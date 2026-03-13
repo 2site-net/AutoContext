@@ -1,6 +1,6 @@
 <Project>
     <!--
-      Static code analysis and quality enforcement settings for TuningEditor.
+      Static code analysis and quality enforcement settings.
       This file provides consistent analyzer configuration across all projects.
       
       Features:
