@@ -55,8 +55,11 @@ public sealed class CodeStyleCheckerTests
         var result = CodeStyleChecker.Check(source);
 
         // Assert
-        Assert.StartsWith("❌", result);
-        Assert.Contains("#region", result);
+        Assert.Multiple(() =>
+        {
+            Assert.StartsWith("❌", result);
+            Assert.Contains("#region", result);
+        });
     }
 
     [Theory]
@@ -80,8 +83,11 @@ public sealed class CodeStyleCheckerTests
         var result = CodeStyleChecker.Check(source);
 
         // Assert
-        Assert.StartsWith("❌", result);
-        Assert.Contains("Decorative", result);
+        Assert.Multiple(() =>
+        {
+            Assert.StartsWith("❌", result);
+            Assert.Contains("Decorative", result);
+        });
     }
 
     [Fact]
@@ -124,8 +130,11 @@ public sealed class CodeStyleCheckerTests
         var result = CodeStyleChecker.Check(source);
 
         // Assert
-        Assert.StartsWith("❌", result);
-        Assert.Contains("curly braces", result);
+        Assert.Multiple(() =>
+        {
+            Assert.StartsWith("❌", result);
+            Assert.Contains("curly braces", result);
+        });
     }
 
     [Fact]
@@ -197,8 +206,11 @@ public sealed class CodeStyleCheckerTests
         var result = CodeStyleChecker.Check(source);
 
         // Assert
-        Assert.StartsWith("❌", result);
-        Assert.Contains("curly braces", result);
+        Assert.Multiple(() =>
+        {
+            Assert.StartsWith("❌", result);
+            Assert.Contains("curly braces", result);
+        });
     }
 
     [Fact]
@@ -222,9 +234,12 @@ public sealed class CodeStyleCheckerTests
         var result = CodeStyleChecker.Check(source);
 
         // Assert
-        Assert.StartsWith("❌", result);
-        Assert.Contains("curly braces", result);
-        Assert.Contains("foreach", result);
+        Assert.Multiple(() =>
+        {
+            Assert.StartsWith("❌", result);
+            Assert.Contains("curly braces", result);
+            Assert.Contains("foreach", result);
+        });
     }
 
     [Fact]
@@ -248,8 +263,11 @@ public sealed class CodeStyleCheckerTests
         var result = CodeStyleChecker.Check(source);
 
         // Assert
-        Assert.StartsWith("❌", result);
-        Assert.Contains("while", result);
+        Assert.Multiple(() =>
+        {
+            Assert.StartsWith("❌", result);
+            Assert.Contains("while", result);
+        });
     }
 
     [Fact]
@@ -274,9 +292,12 @@ public sealed class CodeStyleCheckerTests
         var result = CodeStyleChecker.Check(source);
 
         // Assert
-        Assert.StartsWith("❌", result);
-        Assert.Contains("blank line before", result);
-        Assert.Contains("if", result);
+        Assert.Multiple(() =>
+        {
+            Assert.StartsWith("❌", result);
+            Assert.Contains("blank line before", result);
+            Assert.Contains("if", result);
+        });
     }
 
     [Fact]
@@ -317,9 +338,12 @@ public sealed class CodeStyleCheckerTests
         var result = CodeStyleChecker.Check(source);
 
         // Assert
-        Assert.StartsWith("❌", result);
-        Assert.Contains("Expression-body arrow", result);
-        Assert.Contains("next line", result);
+        Assert.Multiple(() =>
+        {
+            Assert.StartsWith("❌", result);
+            Assert.Contains("Expression-body arrow", result);
+            Assert.Contains("next line", result);
+        });
     }
 
     [Fact]
@@ -358,8 +382,11 @@ public sealed class CodeStyleCheckerTests
         var result = CodeStyleChecker.Check(source);
 
         // Assert
-        Assert.StartsWith("❌", result);
-        Assert.Contains("Expression-body arrow", result);
+        Assert.Multiple(() =>
+        {
+            Assert.StartsWith("❌", result);
+            Assert.Contains("Expression-body arrow", result);
+        });
     }
 
     [Fact]
@@ -423,9 +450,12 @@ public sealed class CodeStyleCheckerTests
         var result = CodeStyleChecker.Check(source);
 
         // Assert
-        Assert.StartsWith("❌", result);
-        Assert.Contains("#region", result);
-        Assert.Contains("Expression-body arrow", result);
+        Assert.Multiple(() =>
+        {
+            Assert.StartsWith("❌", result);
+            Assert.Contains("#region", result);
+            Assert.Contains("Expression-body arrow", result);
+        });
     }
 
     [Theory]
@@ -463,9 +493,12 @@ public sealed class CodeStyleCheckerTests
         var result = CodeStyleChecker.Check(source);
 
         // Assert
-        Assert.StartsWith("❌", result);
-        Assert.Contains("curly braces", result);
-        Assert.Contains("for", result);
+        Assert.Multiple(() =>
+        {
+            Assert.StartsWith("❌", result);
+            Assert.Contains("curly braces", result);
+            Assert.Contains("for", result);
+        });
     }
 
     [Fact]
@@ -489,9 +522,12 @@ public sealed class CodeStyleCheckerTests
         var result = CodeStyleChecker.Check(source);
 
         // Assert
-        Assert.StartsWith("❌", result);
-        Assert.Contains("blank line before", result);
-        Assert.Contains("foreach", result);
+        Assert.Multiple(() =>
+        {
+            Assert.StartsWith("❌", result);
+            Assert.Contains("blank line before", result);
+            Assert.Contains("foreach", result);
+        });
     }
 
     [Fact]
@@ -516,9 +552,12 @@ public sealed class CodeStyleCheckerTests
         var result = CodeStyleChecker.Check(source);
 
         // Assert
-        Assert.StartsWith("❌", result);
-        Assert.Contains("curly braces", result);
-        Assert.Contains("using", result);
+        Assert.Multiple(() =>
+        {
+            Assert.StartsWith("❌", result);
+            Assert.Contains("curly braces", result);
+            Assert.Contains("using", result);
+        });
     }
 
     [Fact]
@@ -570,9 +609,12 @@ public sealed class CodeStyleCheckerTests
         var result = CodeStyleChecker.Check(source);
 
         // Assert
-        Assert.StartsWith("❌", result);
-        Assert.Contains("curly braces", result);
-        Assert.Contains("lock", result);
+        Assert.Multiple(() =>
+        {
+            Assert.StartsWith("❌", result);
+            Assert.Contains("curly braces", result);
+            Assert.Contains("lock", result);
+        });
     }
 
     [Fact]
@@ -623,9 +665,12 @@ public sealed class CodeStyleCheckerTests
         var result = CodeStyleChecker.Check(source);
 
         // Assert
-        Assert.StartsWith("❌", result);
-        Assert.Contains("curly braces", result);
-        Assert.Contains("fixed", result);
+        Assert.Multiple(() =>
+        {
+            Assert.StartsWith("❌", result);
+            Assert.Contains("curly braces", result);
+            Assert.Contains("fixed", result);
+        });
     }
 
     [Fact]
@@ -652,9 +697,12 @@ public sealed class CodeStyleCheckerTests
         var result = CodeStyleChecker.Check(source);
 
         // Assert
-        Assert.StartsWith("❌", result);
-        Assert.Contains("blank line before", result);
-        Assert.Contains("using", result);
+        Assert.Multiple(() =>
+        {
+            Assert.StartsWith("❌", result);
+            Assert.Contains("blank line before", result);
+            Assert.Contains("using", result);
+        });
     }
 
     [Fact]
@@ -680,9 +728,12 @@ public sealed class CodeStyleCheckerTests
         var result = CodeStyleChecker.Check(source);
 
         // Assert
-        Assert.StartsWith("❌", result);
-        Assert.Contains("blank line before", result);
-        Assert.Contains("lock", result);
+        Assert.Multiple(() =>
+        {
+            Assert.StartsWith("❌", result);
+            Assert.Contains("blank line before", result);
+            Assert.Contains("lock", result);
+        });
     }
 
     [Fact]
@@ -710,9 +761,12 @@ public sealed class CodeStyleCheckerTests
         var result = CodeStyleChecker.Check(source);
 
         // Assert
-        Assert.StartsWith("❌", result);
-        Assert.Contains("blank line before", result);
-        Assert.Contains("try", result);
+        Assert.Multiple(() =>
+        {
+            Assert.StartsWith("❌", result);
+            Assert.Contains("blank line before", result);
+            Assert.Contains("try", result);
+        });
     }
 
     [Fact]
@@ -759,9 +813,12 @@ public sealed class CodeStyleCheckerTests
         var result = CodeStyleChecker.Check(source);
 
         // Assert
-        Assert.StartsWith("❌", result);
-        Assert.Contains("XML doc", result);
-        Assert.Contains("MyClass", result);
+        Assert.Multiple(() =>
+        {
+            Assert.StartsWith("❌", result);
+            Assert.Contains("XML doc", result);
+            Assert.Contains("MyClass", result);
+        });
     }
 
     [Fact]
@@ -782,9 +839,12 @@ public sealed class CodeStyleCheckerTests
         var result = CodeStyleChecker.Check(source);
 
         // Assert
-        Assert.StartsWith("❌", result);
-        Assert.Contains("XML doc", result);
-        Assert.Contains("DoWork", result);
+        Assert.Multiple(() =>
+        {
+            Assert.StartsWith("❌", result);
+            Assert.Contains("XML doc", result);
+            Assert.Contains("DoWork", result);
+        });
     }
 
     [Fact]
@@ -805,9 +865,12 @@ public sealed class CodeStyleCheckerTests
         var result = CodeStyleChecker.Check(source);
 
         // Assert
-        Assert.StartsWith("❌", result);
-        Assert.Contains("XML doc", result);
-        Assert.Contains("Helper", result);
+        Assert.Multiple(() =>
+        {
+            Assert.StartsWith("❌", result);
+            Assert.Contains("XML doc", result);
+            Assert.Contains("Helper", result);
+        });
     }
 
     [Fact]
@@ -936,9 +999,12 @@ public sealed class CodeStyleCheckerTests
         var result = CodeStyleChecker.Check(source);
 
         // Assert
-        Assert.StartsWith("❌", result);
-        Assert.Contains("XML doc", result);
-        Assert.Contains("Name", result);
+        Assert.Multiple(() =>
+        {
+            Assert.StartsWith("❌", result);
+            Assert.Contains("XML doc", result);
+            Assert.Contains("Name", result);
+        });
     }
 
     [Fact]
@@ -959,8 +1025,11 @@ public sealed class CodeStyleCheckerTests
         var result = CodeStyleChecker.Check(source);
 
         // Assert
-        Assert.StartsWith("❌", result);
-        Assert.Contains("XML doc", result);
-        Assert.Contains("MyClass", result);
+        Assert.Multiple(() =>
+        {
+            Assert.StartsWith("❌", result);
+            Assert.Contains("XML doc", result);
+            Assert.Contains("MyClass", result);
+        });
     }
 }

@@ -46,8 +46,11 @@ public sealed class CommitContentValidatorTests
         var result = CommitContentValidator.Validate(message);
 
         // Assert
-        Assert.StartsWith("❌", result);
-        Assert.Contains("bullet lists", result);
+        Assert.Multiple(() =>
+        {
+            Assert.StartsWith("❌", result);
+            Assert.Contains("bullet lists", result);
+        });
     }
 
     [Theory]
@@ -62,8 +65,11 @@ public sealed class CommitContentValidatorTests
         var result = CommitContentValidator.Validate(message);
 
         // Assert
-        Assert.StartsWith("❌", result);
-        Assert.Contains("file paths", result);
+        Assert.Multiple(() =>
+        {
+            Assert.StartsWith("❌", result);
+            Assert.Contains("file paths", result);
+        });
     }
 
     [Theory]
@@ -79,8 +85,11 @@ public sealed class CommitContentValidatorTests
         var result = CommitContentValidator.Validate(message);
 
         // Assert
-        Assert.StartsWith("❌", result);
-        Assert.Contains("counts", result);
+        Assert.Multiple(() =>
+        {
+            Assert.StartsWith("❌", result);
+            Assert.Contains("counts", result);
+        });
     }
 
     [Theory]
@@ -97,8 +106,11 @@ public sealed class CommitContentValidatorTests
         var result = CommitContentValidator.Validate(message);
 
         // Assert
-        Assert.StartsWith("❌", result);
-        Assert.Contains("section headers", result);
+        Assert.Multiple(() =>
+        {
+            Assert.StartsWith("❌", result);
+            Assert.Contains("section headers", result);
+        });
     }
 
     [Fact]
@@ -113,8 +125,11 @@ public sealed class CommitContentValidatorTests
         var result = CommitContentValidator.Validate(message);
 
         // Assert
-        Assert.StartsWith("❌", result);
-        Assert.Contains("enumerates parameters", result);
+        Assert.Multiple(() =>
+        {
+            Assert.StartsWith("❌", result);
+            Assert.Contains("enumerates parameters", result);
+        });
     }
 
     [Theory]
@@ -131,8 +146,11 @@ public sealed class CommitContentValidatorTests
         var result = CommitContentValidator.Validate(message);
 
         // Assert
-        Assert.StartsWith("❌", result);
-        Assert.Contains("sensitive information", result);
+        Assert.Multiple(() =>
+        {
+            Assert.StartsWith("❌", result);
+            Assert.Contains("sensitive information", result);
+        });
     }
 
     [Fact]
@@ -148,9 +166,12 @@ public sealed class CommitContentValidatorTests
         var result = CommitContentValidator.Validate(message);
 
         // Assert
-        Assert.StartsWith("❌", result);
-        Assert.Contains("bullet lists", result);
-        Assert.Contains("counts", result);
+        Assert.Multiple(() =>
+        {
+            Assert.StartsWith("❌", result);
+            Assert.Contains("bullet lists", result);
+            Assert.Contains("counts", result);
+        });
     }
 
     [Theory]

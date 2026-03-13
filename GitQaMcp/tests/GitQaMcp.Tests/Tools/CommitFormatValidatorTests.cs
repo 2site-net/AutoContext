@@ -34,8 +34,11 @@ public sealed class CommitFormatValidatorTests
         var result = CommitFormatValidator.Validate(subject);
 
         // Assert
-        Assert.StartsWith("❌", result);
-        Assert.Contains("Conventional Commits format", result);
+        Assert.Multiple(() =>
+        {
+            Assert.StartsWith("❌", result);
+            Assert.Contains("Conventional Commits format", result);
+        });
     }
 
     [Fact]
@@ -48,8 +51,11 @@ public sealed class CommitFormatValidatorTests
         var result = CommitFormatValidator.Validate(subject);
 
         // Assert
-        Assert.StartsWith("❌", result);
-        Assert.Contains("maximum is 50", result);
+        Assert.Multiple(() =>
+        {
+            Assert.StartsWith("❌", result);
+            Assert.Contains("maximum is 50", result);
+        });
     }
 
     [Fact]
@@ -76,8 +82,11 @@ public sealed class CommitFormatValidatorTests
         var result = CommitFormatValidator.Validate(message);
 
         // Assert
-        Assert.StartsWith("❌", result);
-        Assert.Contains("blank line", result);
+        Assert.Multiple(() =>
+        {
+            Assert.StartsWith("❌", result);
+            Assert.Contains("blank line", result);
+        });
     }
 
     [Fact]
@@ -104,8 +113,11 @@ public sealed class CommitFormatValidatorTests
         var result = CommitFormatValidator.Validate(message);
 
         // Assert
-        Assert.StartsWith("❌", result);
-        Assert.Contains("maximum is 72", result);
+        Assert.Multiple(() =>
+        {
+            Assert.StartsWith("❌", result);
+            Assert.Contains("maximum is 72", result);
+        });
     }
 
     [Fact]
@@ -133,9 +145,12 @@ public sealed class CommitFormatValidatorTests
         var result = CommitFormatValidator.Validate(message);
 
         // Assert
-        Assert.StartsWith("❌", result);
-        Assert.Contains("Conventional Commits format", result);
-        Assert.Contains("blank line", result);
+        Assert.Multiple(() =>
+        {
+            Assert.StartsWith("❌", result);
+            Assert.Contains("Conventional Commits format", result);
+            Assert.Contains("blank line", result);
+        });
     }
 
     [Theory]

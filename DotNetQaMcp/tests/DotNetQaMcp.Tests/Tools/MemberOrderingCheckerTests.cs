@@ -53,9 +53,12 @@ public sealed class MemberOrderingCheckerTests
         var result = MemberOrderingChecker.Check(source);
 
         // Assert
-        Assert.StartsWith("❌", result);
-        Assert.Contains("constant", result);
-        Assert.Contains("field", result);
+        Assert.Multiple(() =>
+        {
+            Assert.StartsWith("❌", result);
+            Assert.Contains("constant", result);
+            Assert.Contains("field", result);
+        });
     }
 
     [Fact]
@@ -74,9 +77,12 @@ public sealed class MemberOrderingCheckerTests
         var result = MemberOrderingChecker.Check(source);
 
         // Assert
-        Assert.StartsWith("❌", result);
-        Assert.Contains("property", result);
-        Assert.Contains("method", result);
+        Assert.Multiple(() =>
+        {
+            Assert.StartsWith("❌", result);
+            Assert.Contains("property", result);
+            Assert.Contains("method", result);
+        });
     }
 
     [Fact]
@@ -95,9 +101,12 @@ public sealed class MemberOrderingCheckerTests
         var result = MemberOrderingChecker.Check(source);
 
         // Assert
-        Assert.StartsWith("❌", result);
-        Assert.Contains("field", result);
-        Assert.Contains("constructor", result);
+        Assert.Multiple(() =>
+        {
+            Assert.StartsWith("❌", result);
+            Assert.Contains("field", result);
+            Assert.Contains("constructor", result);
+        });
     }
 
     [Fact]
@@ -116,9 +125,12 @@ public sealed class MemberOrderingCheckerTests
         var result = MemberOrderingChecker.Check(source);
 
         // Assert
-        Assert.StartsWith("❌", result);
-        Assert.Contains("method", result);
-        Assert.Contains("nested type", result);
+        Assert.Multiple(() =>
+        {
+            Assert.StartsWith("❌", result);
+            Assert.Contains("method", result);
+            Assert.Contains("nested type", result);
+        });
     }
 
     [Fact]
@@ -137,9 +149,12 @@ public sealed class MemberOrderingCheckerTests
         var result = MemberOrderingChecker.Check(source);
 
         // Assert
-        Assert.StartsWith("❌", result);
-        Assert.Contains("public", result);
-        Assert.Contains("private", result);
+        Assert.Multiple(() =>
+        {
+            Assert.StartsWith("❌", result);
+            Assert.Contains("public", result);
+            Assert.Contains("private", result);
+        });
     }
 
     [Fact]
@@ -158,9 +173,12 @@ public sealed class MemberOrderingCheckerTests
         var result = MemberOrderingChecker.Check(source);
 
         // Assert
-        Assert.StartsWith("❌", result);
-        Assert.Contains("static", result);
-        Assert.Contains("instance", result);
+        Assert.Multiple(() =>
+        {
+            Assert.StartsWith("❌", result);
+            Assert.Contains("static", result);
+            Assert.Contains("instance", result);
+        });
     }
 
     [Fact]
@@ -180,8 +198,11 @@ public sealed class MemberOrderingCheckerTests
         var result = MemberOrderingChecker.Check(source);
 
         // Assert
-        Assert.StartsWith("❌", result);
-        Assert.Contains("2 ordering violation", result);
+        Assert.Multiple(() =>
+        {
+            Assert.StartsWith("❌", result);
+            Assert.Contains("2 ordering violation", result);
+        });
     }
 
     [Fact]
@@ -206,9 +227,12 @@ public sealed class MemberOrderingCheckerTests
         var result = MemberOrderingChecker.Check(source);
 
         // Assert
-        Assert.StartsWith("❌", result);
-        Assert.Contains("Second", result);
-        Assert.DoesNotContain("First", result);
+        Assert.Multiple(() =>
+        {
+            Assert.StartsWith("❌", result);
+            Assert.Contains("Second", result);
+            Assert.DoesNotContain("First", result);
+        });
     }
 
     [Fact]
@@ -269,9 +293,12 @@ public sealed class MemberOrderingCheckerTests
         var result = MemberOrderingChecker.Check(source);
 
         // Assert
-        Assert.StartsWith("❌", result);
-        Assert.Contains("internal", result);
-        Assert.Contains("protected", result);
+        Assert.Multiple(() =>
+        {
+            Assert.StartsWith("❌", result);
+            Assert.Contains("internal", result);
+            Assert.Contains("protected", result);
+        });
     }
 
     [Fact]
@@ -362,9 +389,12 @@ public sealed class MemberOrderingCheckerTests
         var result = MemberOrderingChecker.Check(source);
 
         // Assert
-        Assert.StartsWith("❌", result);
-        Assert.Contains("property", result);
-        Assert.Contains("indexer", result);
+        Assert.Multiple(() =>
+        {
+            Assert.StartsWith("❌", result);
+            Assert.Contains("property", result);
+            Assert.Contains("indexer", result);
+        });
     }
 
     [Fact]
@@ -383,9 +413,12 @@ public sealed class MemberOrderingCheckerTests
         var result = MemberOrderingChecker.Check(source);
 
         // Assert
-        Assert.StartsWith("❌", result);
-        Assert.Contains("static field", result);
-        Assert.Contains("field", result);
+        Assert.Multiple(() =>
+        {
+            Assert.StartsWith("❌", result);
+            Assert.Contains("static field", result);
+            Assert.Contains("field", result);
+        });
     }
 
     [Fact]
@@ -424,9 +457,12 @@ public sealed class MemberOrderingCheckerTests
         var result = MemberOrderingChecker.Check(source);
 
         // Assert
-        Assert.StartsWith("❌", result);
-        Assert.Contains("delegate", result);
-        Assert.Contains("event", result);
+        Assert.Multiple(() =>
+        {
+            Assert.StartsWith("❌", result);
+            Assert.Contains("delegate", result);
+            Assert.Contains("event", result);
+        });
     }
 
     [Fact]
@@ -644,10 +680,13 @@ public sealed class MemberOrderingCheckerTests
         var result = MemberOrderingChecker.Check(source);
 
         // Assert
-        Assert.StartsWith("❌", result);
-        Assert.Contains("alphabetical", result);
-        Assert.Contains("Apple", result);
-        Assert.Contains("Zebra", result);
+        Assert.Multiple(() =>
+        {
+            Assert.StartsWith("❌", result);
+            Assert.Contains("alphabetical", result);
+            Assert.Contains("Apple", result);
+            Assert.Contains("Zebra", result);
+        });
     }
 
     [Fact]
@@ -686,9 +725,12 @@ public sealed class MemberOrderingCheckerTests
         var result = MemberOrderingChecker.Check(source);
 
         // Assert
-        Assert.StartsWith("❌", result);
-        Assert.Contains("alphabetical", result);
-        Assert.Contains("Age", result);
+        Assert.Multiple(() =>
+        {
+            Assert.StartsWith("❌", result);
+            Assert.Contains("alphabetical", result);
+            Assert.Contains("Age", result);
+        });
     }
 
     [Fact]
