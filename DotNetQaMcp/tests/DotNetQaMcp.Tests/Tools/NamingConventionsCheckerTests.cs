@@ -552,4 +552,72 @@ public sealed class NamingConventionsCheckerTests
         // Act & Assert
         Assert.Throws<ArgumentNullException>(() => NamingConventionsChecker.Check(null!));
     }
+
+    [Fact]
+    public void Should_reject_event_field_with_lowercase_name()
+    {
+        // Arrange
+        var source = """
+            public class MyClass
+            {
+                public event EventHandler? changed;
+            }
+            """;
+
+        // Act
+        var result = NamingConventionsChecker.Check(source);
+
+        // Assert
+        Assert.Multiple(() =>
+        {
+            Assert.StartsWith("❌", result);
+            Assert.Contains("PascalCase", result);
+            Assert.Contains("changed", result);
+        });
+    }
+
+    [Fact]
+    public void Should_reject_event_declaration_with_lowercase_name()
+    {
+        // Arrange
+        var source = """
+            public class MyClass
+            {
+                public event EventHandler changed
+                {
+                    add { }
+                    remove { }
+                }
+            }
+            """;
+
+        // Act
+        var result = NamingConventionsChecker.Check(source);
+
+        // Assert
+        Assert.Multiple(() =>
+        {
+            Assert.StartsWith("❌", result);
+            Assert.Contains("PascalCase", result);
+            Assert.Contains("changed", result);
+        });
+    }
+
+    [Fact]
+    public void Should_pass_event_field_with_PascalCase_name()
+    {
+        // Arrange
+        var source = """
+            public class MyClass
+            {
+                public event EventHandler? Changed;
+            }
+            """;
+
+        // Act
+        var result = NamingConventionsChecker.Check(source);
+
+        // Assert
+        Assert.DoesNotContain("PascalCase", result);
+    }
 }

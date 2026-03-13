@@ -751,4 +751,57 @@ public sealed class MemberOrderingCheckerTests
         // Assert
         Assert.DoesNotContain("alphabetical", result);
     }
+
+    [Fact]
+    public void Should_pass_event_declaration_before_method()
+    {
+        // Arrange
+        var source = """
+            public class MyClass
+            {
+                public event EventHandler Changed
+                {
+                    add { }
+                    remove { }
+                }
+
+                public void DoWork() { }
+            }
+            """;
+
+        // Act
+        var result = MemberOrderingChecker.Check(source);
+
+        // Assert
+        Assert.DoesNotContain("should appear before", result);
+    }
+
+    [Fact]
+    public void Should_reject_method_before_event_declaration()
+    {
+        // Arrange
+        var source = """
+            public class MyClass
+            {
+                public void DoWork() { }
+
+                public event EventHandler Changed
+                {
+                    add { }
+                    remove { }
+                }
+            }
+            """;
+
+        // Act
+        var result = MemberOrderingChecker.Check(source);
+
+        // Assert
+        Assert.Multiple(() =>
+        {
+            Assert.StartsWith("❌", result);
+            Assert.Contains("event", result);
+            Assert.Contains("should appear before", result);
+        });
+    }
 }

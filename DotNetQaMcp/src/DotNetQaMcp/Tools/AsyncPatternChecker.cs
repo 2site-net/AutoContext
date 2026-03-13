@@ -16,14 +16,6 @@ using ModelContextProtocol.Server;
 [McpServerToolType]
 public static class AsyncPatternChecker
 {
-    private static readonly HashSet<string> TestAttributes =
-    [
-        "Fact", "FactAttribute",
-        "Theory", "TheoryAttribute",
-        "Test", "TestAttribute",
-        "TestCase", "TestCaseAttribute",
-    ];
-
     /// <summary>
     /// Checks C# source code for async/await pattern violations.
     /// </summary>
@@ -68,7 +60,7 @@ public static class AsyncPatternChecker
                 continue;
             }
 
-            if (IsLikelyEventHandler(method))
+            if (TestDetection.IsLikelyEventHandler(method))
             {
                 continue;
             }
@@ -78,20 +70,6 @@ public static class AsyncPatternChecker
                 $"Line {line}: Method '{method.Identifier.Text}' uses 'async void', which is not allowed. " +
                 "Use 'async Task' instead — 'async void' swallows unhandled exceptions.");
         }
-    }
-
-    private static bool IsLikelyEventHandler(MethodDeclarationSyntax method)
-    {
-        var parameters = method.ParameterList.Parameters;
-
-        if (parameters.Count != 2)
-        {
-            return false;
-        }
-
-        var lastParamType = parameters[1].Type?.ToString() ?? string.Empty;
-
-        return lastParamType.Contains("EventArgs", StringComparison.Ordinal);
     }
 
     private static void CheckCancellationToken(SyntaxNode root, SyntaxTree tree, List<string> violations)
@@ -117,7 +95,7 @@ public static class AsyncPatternChecker
 
             var containingType = method.Ancestors().OfType<TypeDeclarationSyntax>().FirstOrDefault();
 
-            if (containingType is not null && IsTestClass(containingType))
+            if (containingType is not null && TestDetection.IsTestClass(containingType))
             {
                 continue;
             }
@@ -153,7 +131,7 @@ public static class AsyncPatternChecker
         {
             var containingType = awaitExpr.Ancestors().OfType<TypeDeclarationSyntax>().FirstOrDefault();
 
-            if (containingType is not null && IsTestClass(containingType))
+            if (containingType is not null && TestDetection.IsTestClass(containingType))
             {
                 continue;
             }
@@ -197,18 +175,4 @@ public static class AsyncPatternChecker
         return args[0].Expression.IsKind(SyntaxKind.FalseLiteralExpression);
     }
 
-    private static bool IsTestClass(TypeDeclarationSyntax typeDecl)
-        => typeDecl.Members
-            .OfType<MethodDeclarationSyntax>()
-            .Any(m => m.AttributeLists
-                .SelectMany(al => al.Attributes)
-                .Any(a => TestAttributes.Contains(GetAttributeName(a))));
-
-    private static string GetAttributeName(AttributeSyntax attr)
-        => attr.Name switch
-        {
-            SimpleNameSyntax simple => simple.Identifier.Text,
-            QualifiedNameSyntax qualified => qualified.Right.Identifier.Text,
-            _ => string.Empty,
-        };
 }

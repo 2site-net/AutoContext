@@ -14,14 +14,6 @@ using ModelContextProtocol.Server;
 [McpServerToolType]
 public static class MemberOrderingChecker
 {
-    private static readonly HashSet<string> TestAttributes =
-    [
-        "Fact", "FactAttribute",
-        "Theory", "TheoryAttribute",
-        "Test", "TestAttribute",
-        "TestCase", "TestCaseAttribute",
-    ];
-
     private enum MemberKind
     {
         Constant = 0,
@@ -81,7 +73,7 @@ public static class MemberOrderingChecker
 
     private static void CheckType(TypeDeclarationSyntax typeDecl, SyntaxTree tree, List<string> violations)
     {
-        if (IsTestClass(typeDecl))
+        if (TestDetection.IsTestClass(typeDecl))
         {
             return;
         }
@@ -148,21 +140,6 @@ public static class MemberOrderingChecker
             previousName = name;
         }
     }
-
-    private static bool IsTestClass(TypeDeclarationSyntax typeDecl)
-        => typeDecl.Members
-            .OfType<MethodDeclarationSyntax>()
-            .Any(m => m.AttributeLists
-                .SelectMany(al => al.Attributes)
-                .Any(a => TestAttributes.Contains(GetAttributeName(a))));
-
-    private static string GetAttributeName(AttributeSyntax attr)
-        => attr.Name switch
-        {
-            SimpleNameSyntax simple => simple.Identifier.Text,
-            QualifiedNameSyntax qualified => qualified.Right.Identifier.Text,
-            _ => string.Empty,
-        };
 
     private static MemberKind? GetMemberKind(MemberDeclarationSyntax member) =>
         member switch

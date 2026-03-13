@@ -16,14 +16,6 @@ using ModelContextProtocol.Server;
 [McpServerToolType]
 public static class TestStyleChecker
 {
-    private static readonly HashSet<string> TestAttributes = new(StringComparer.Ordinal)
-    {
-        "Fact", "FactAttribute",
-        "Theory", "TheoryAttribute",
-        "Test", "TestAttribute",
-        "TestCase", "TestCaseAttribute",
-    };
-
     /// <summary>
     /// Checks C# test source code for test style violations.
     /// </summary>
@@ -152,22 +144,12 @@ public static class TestStyleChecker
     private static List<TypeDeclarationSyntax> FindTestClasses(SyntaxNode root)
         => [.. root.DescendantNodes()
             .OfType<TypeDeclarationSyntax>()
-            .Where(IsTestClass)];
-
-    private static bool IsTestClass(TypeDeclarationSyntax typeDecl)
-        => typeDecl.Members
-            .OfType<MethodDeclarationSyntax>()
-            .Any(HasTestAttribute);
+            .Where(TestDetection.IsTestClass)];
 
     private static List<MethodDeclarationSyntax> GetTestMethods(TypeDeclarationSyntax testClass)
         => [.. testClass.Members
             .OfType<MethodDeclarationSyntax>()
-            .Where(HasTestAttribute)];
-
-    private static bool HasTestAttribute(MethodDeclarationSyntax method)
-        => method.AttributeLists
-            .SelectMany(al => al.Attributes)
-            .Any(a => TestAttributes.Contains(GetAttributeName(a)));
+            .Where(TestDetection.HasTestAttribute)];
 
     private static void CheckTestClassNaming(TypeDeclarationSyntax testClass, SyntaxTree tree, List<string> violations)
     {
@@ -286,14 +268,6 @@ public static class TestStyleChecker
         => node.GetLeadingTrivia()
             .Any(t => t.IsKind(SyntaxKind.SingleLineDocumentationCommentTrivia)
                       || t.IsKind(SyntaxKind.MultiLineDocumentationCommentTrivia));
-
-    private static string GetAttributeName(AttributeSyntax attr)
-        => attr.Name switch
-        {
-            SimpleNameSyntax simple => simple.Identifier.Text,
-            QualifiedNameSyntax qualified => qualified.Right.Identifier.Text,
-            _ => string.Empty,
-        };
 
     private static string ToSnakeCase(string name)
     {

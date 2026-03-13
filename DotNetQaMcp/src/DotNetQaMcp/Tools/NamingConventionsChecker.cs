@@ -16,14 +16,6 @@ using ModelContextProtocol.Server;
 [McpServerToolType]
 public static class NamingConventionsChecker
 {
-    private static readonly HashSet<string> TestAttributes =
-    [
-        "Fact", "FactAttribute",
-        "Theory", "TheoryAttribute",
-        "Test", "TestAttribute",
-        "TestCase", "TestCaseAttribute",
-    ];
-
     /// <summary>
     /// Checks C# source code for naming convention violations.
     /// </summary>
@@ -130,12 +122,12 @@ public static class NamingConventionsChecker
                 continue;
             }
 
-            if (HasTestAttribute(method))
+            if (TestDetection.HasTestAttribute(method))
             {
                 continue;
             }
 
-            if (IsLikelyEventHandler(method))
+            if (TestDetection.IsLikelyEventHandler(method))
             {
                 continue;
             }
@@ -151,31 +143,6 @@ public static class NamingConventionsChecker
             }
         }
     }
-
-    private static bool IsLikelyEventHandler(MethodDeclarationSyntax method)
-    {
-        if (method.ReturnType is not PredefinedTypeSyntax returnType
-            || !returnType.Keyword.IsKind(SyntaxKind.VoidKeyword))
-        {
-            return false;
-        }
-
-        var parameters = method.ParameterList.Parameters;
-
-        if (parameters.Count != 2)
-        {
-            return false;
-        }
-
-        var lastParamType = parameters[1].Type?.ToString() ?? string.Empty;
-
-        return lastParamType.Contains("EventArgs", StringComparison.Ordinal);
-    }
-
-    private static bool HasTestAttribute(MethodDeclarationSyntax method)
-        => method.AttributeLists
-            .SelectMany(al => al.Attributes)
-            .Any(a => TestAttributes.Contains(GetAttributeName(a)));
 
     private static void CheckPrivateFieldNames(SyntaxNode root, SyntaxTree tree, List<string> violations)
     {
@@ -251,12 +218,12 @@ public static class NamingConventionsChecker
     {
         foreach (var typeDecl in root.DescendantNodes().OfType<TypeDeclarationSyntax>())
         {
-            var isTestClass = IsTestClass(typeDecl);
+            var isTestClass = TestDetection.IsTestClass(typeDecl);
 
             foreach (var method in typeDecl.Members.OfType<MethodDeclarationSyntax>())
             {
                 // Test method names follow Should_do_something convention — skip PascalCase check.
-                if (isTestClass && HasTestAttribute(method))
+                if (isTestClass && TestDetection.HasTestAttribute(method))
                 {
                     continue;
                 }
@@ -362,18 +329,4 @@ public static class NamingConventionsChecker
     private static bool IsCamelCase(string name)
         => name.Length > 0 && char.IsLower(name[0]);
 
-    private static bool IsTestClass(TypeDeclarationSyntax typeDecl)
-        => typeDecl.Members
-            .OfType<MethodDeclarationSyntax>()
-            .Any(m => m.AttributeLists
-                .SelectMany(al => al.Attributes)
-                .Any(a => TestAttributes.Contains(GetAttributeName(a))));
-
-    private static string GetAttributeName(AttributeSyntax attr)
-        => attr.Name switch
-        {
-            SimpleNameSyntax simple => simple.Identifier.Text,
-            QualifiedNameSyntax qualified => qualified.Right.Identifier.Text,
-            _ => string.Empty,
-        };
 }

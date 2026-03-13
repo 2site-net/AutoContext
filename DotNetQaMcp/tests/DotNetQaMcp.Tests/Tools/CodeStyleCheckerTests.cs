@@ -1032,4 +1032,158 @@ public sealed class CodeStyleCheckerTests
             Assert.Contains("MyClass", result);
         });
     }
+
+    [Fact]
+    public void Should_reject_do_without_curly_braces()
+    {
+        // Arrange
+        var source = """
+            /// <summary>
+            /// A class.
+            /// </summary>
+            public class MyClass
+            {
+                /// <summary>
+                /// Does work.
+                /// </summary>
+                public void DoWork()
+                {
+                    var x = 0;
+
+                    do
+                        x++;
+                    while (x < 10);
+                }
+            }
+            """;
+
+        // Act
+        var result = CodeStyleChecker.Check(source);
+
+        // Assert
+        Assert.Multiple(() =>
+        {
+            Assert.StartsWith("❌", result);
+            Assert.Contains("curly braces", result);
+            Assert.Contains("'do'", result);
+        });
+    }
+
+    [Fact]
+    public void Should_reject_missing_blank_line_before_switch()
+    {
+        // Arrange
+        var source = """
+            /// <summary>
+            /// A class.
+            /// </summary>
+            public class MyClass
+            {
+                /// <summary>
+                /// Does work.
+                /// </summary>
+                public void DoWork(int x)
+                {
+                    var y = 0;
+                    switch (x)
+                    {
+                        case 1:
+                            y = 1;
+                            break;
+                    }
+                }
+            }
+            """;
+
+        // Act
+        var result = CodeStyleChecker.Check(source);
+
+        // Assert
+        Assert.Multiple(() =>
+        {
+            Assert.StartsWith("❌", result);
+            Assert.Contains("blank line", result);
+            Assert.Contains("'switch'", result);
+        });
+    }
+
+    [Fact]
+    public void Should_not_flag_else_if_for_blank_line()
+    {
+        // Arrange
+        var source = """
+            /// <summary>
+            /// A class.
+            /// </summary>
+            public class MyClass
+            {
+                /// <summary>
+                /// Does work.
+                /// </summary>
+                public void DoWork(int x)
+                {
+                    var y = 0;
+
+                    if (x == 1)
+                    {
+                        y = 1;
+                    }
+                    else if (x == 2)
+                    {
+                        y = 2;
+                    }
+                }
+            }
+            """;
+
+        // Act
+        var result = CodeStyleChecker.Check(source);
+
+        // Assert
+        Assert.DoesNotContain("blank line", result);
+    }
+
+    [Fact]
+    public void Should_reject_public_enum_without_xml_doc()
+    {
+        // Arrange
+        var source = """
+            public enum Status
+            {
+                Active,
+                Inactive,
+            }
+            """;
+
+        // Act
+        var result = CodeStyleChecker.Check(source);
+
+        // Assert
+        Assert.Multiple(() =>
+        {
+            Assert.StartsWith("❌", result);
+            Assert.Contains("XML doc", result);
+            Assert.Contains("Status", result);
+        });
+    }
+
+    [Fact]
+    public void Should_reject_public_delegate_without_xml_doc()
+    {
+        // Arrange
+        var source = """
+            public delegate void MyHandler(object sender);
+            """;
+
+        // Act
+        var result = CodeStyleChecker.Check(source);
+
+        // Assert
+        Assert.Multiple(() =>
+        {
+            Assert.StartsWith("❌", result);
+            Assert.Contains("XML doc", result);
+            Assert.Contains("MyHandler", result);
+        });
+    }
 }

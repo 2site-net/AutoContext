@@ -17,14 +17,6 @@ using ModelContextProtocol.Server;
 [McpServerToolType]
 public static partial class CodeStyleChecker
 {
-    private static readonly HashSet<string> TestAttributes =
-    [
-        "Fact", "FactAttribute",
-        "Theory", "TheoryAttribute",
-        "Test", "TestAttribute",
-        "TestCase", "TestCaseAttribute",
-    ];
-
     /// <summary>
     /// Checks C# source code for code-style violations.
     /// </summary>
@@ -263,7 +255,7 @@ public static partial class CodeStyleChecker
     {
         foreach (var typeDecl in root.DescendantNodes().OfType<TypeDeclarationSyntax>())
         {
-            if (IsTestClass(typeDecl))
+            if (TestDetection.IsTestClass(typeDecl))
             {
                 continue;
             }
@@ -339,21 +331,6 @@ public static partial class CodeStyleChecker
         return modifiers.Any(SyntaxKind.PublicKeyword)
                || modifiers.Any(SyntaxKind.ProtectedKeyword);
     }
-
-    private static bool IsTestClass(TypeDeclarationSyntax typeDecl)
-        => typeDecl.Members
-            .OfType<MethodDeclarationSyntax>()
-            .Any(m => m.AttributeLists
-                .SelectMany(al => al.Attributes)
-                .Any(a => TestAttributes.Contains(GetAttributeName(a))));
-
-    private static string GetAttributeName(AttributeSyntax attr)
-        => attr.Name switch
-        {
-            SimpleNameSyntax simple => simple.Identifier.Text,
-            QualifiedNameSyntax qualified => qualified.Right.Identifier.Text,
-            _ => string.Empty,
-        };
 
     private static string GetMemberDisplayName(MemberDeclarationSyntax member)
         => member switch
