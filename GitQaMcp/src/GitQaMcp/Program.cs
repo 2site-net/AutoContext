@@ -1,4 +1,4 @@
-﻿namespace GitQaMcp;
+namespace GitQaMcp;
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
