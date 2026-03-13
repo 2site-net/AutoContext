@@ -1,0 +1,4 @@
+<Project>
+    <!-- Import analyzer settings for all projects -->
+    <Import Project="Analyzers.targets" />
+</Project>

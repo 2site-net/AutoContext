@@ -1,0 +1,16 @@
+<Solution>
+  <Folder Name="/DotNetQaMcp/" />
+  <Folder Name="/DotNetQaMcp/src/">
+    <Project Path="DotNetQaMcp/src/DotNetQaMcp/DotNetQaMcp.csproj" />
+  </Folder>
+  <Folder Name="/DotNetQaMcp/tests/">
+    <Project Path="DotNetQaMcp/tests/DotNetQaMcp.Tests/DotNetQaMcp.Tests.csproj" />
+  </Folder>
+  <Folder Name="/GitQaMcp/" />
+  <Folder Name="/GitQaMcp/src/">
+    <Project Path="GitQaMcp/src/GitQaMcp/GitQaMcp.csproj" />
+  </Folder>
+  <Folder Name="/GitQaMcp/tests/">
+    <Project Path="GitQaMcp/tests/GitQaMcp.Tests/GitQaMcp.Tests.csproj" />
+  </Folder>
+</Solution>

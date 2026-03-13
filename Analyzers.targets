@@ -1,0 +1,43 @@
+<Project>
+    <!--
+      Static code analysis and quality enforcement settings for TuningEditor.
+      This file provides consistent analyzer configuration across all projects.
+      
+      Features:
+      - .NET built-in analyzers
+      - Code style enforcement during build
+      - EditorConfig integration
+      - Treat warnings as errors for quality enforcement
+    -->
+
+    <PropertyGroup>
+        <!-- Enable .NET built-in analyzers -->
+        <EnableNETAnalyzers>true</EnableNETAnalyzers>
+        
+        <!-- Use latest analysis level for best practices -->
+        <AnalysisLevel>latest</AnalysisLevel>
+        
+        <!-- Enforce code style rules during build -->
+        <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+        
+        <!-- Treat code analysis warnings as errors -->
+        <CodeAnalysisTreatWarningsAsErrors>true</CodeAnalysisTreatWarningsAsErrors>
+        
+        <!-- General warning treatment -->
+        <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+        <WarningsAsErrors />
+        
+        <!-- Ensure nullable reference types are enabled -->
+        <Nullable>enable</Nullable>
+        
+        <!-- Enable implicit usings for cleaner code -->
+        <ImplicitUsings>enable</ImplicitUsings>
+    </PropertyGroup>
+
+    <!-- Additional analyzer packages can be added here if needed -->
+    <ItemGroup>
+        <!-- Example: Add StyleCop analyzers if desired -->
+        <!-- <PackageReference Include="StyleCop.Analyzers" Version="1.1.118" PrivateAssets="All" /> -->
+    </ItemGroup>
+
+</Project>
