@@ -504,4 +504,14 @@ dotnet_diagnostic.IDE0301.severity = error              # Use collection express
 dotnet_diagnostic.IDE0302.severity = error              # Use collection expression for stackalloc
 dotnet_diagnostic.IDE0305.severity = warning            # Use collection expression for fluent
 
+# ------------------------------------------------------------
+# Test projects
+# ------------------------------------------------------------
+[*Tests*.cs]
+dotnet_diagnostic.CA1707.severity = none                # Allow underscores in test names (Should_do_something)
+dotnet_diagnostic.CA1307.severity = none                # Assert methods don't need StringComparison
+dotnet_diagnostic.CA1062.severity = none                # Test parameters don't need null validation
+dotnet_diagnostic.CA2007.severity = none                # Don't require ConfigureAwait in tests (xUnit1030)
+dotnet_diagnostic.IDE0022.severity = none               # Allow block body in test methods
+
 # End of .editorconfig
