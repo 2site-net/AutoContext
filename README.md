@@ -1,7 +1,9 @@
 # QaMcp
 
-A collection of MCP servers that give AI coding assistants — such as GitHub
-Copilot — the ability to enforce project quality standards in real time.
+A collection of MCP servers that give GitHub Copilot the ability to validate
+C# code quality and Git commit conventions. The servers are distributed as a
+VS Code extension — see [VSCodeQaMcp/README.md](VSCodeQaMcp/README.md) for
+end-user installation and usage.
 
 ## Repository Structure
 
@@ -45,12 +47,8 @@ content best practices.
 
 ## Prerequisites
 
-- [.NET 10 SDK](https://dotnet.microsoft.com/download) (or later) — required
-  for building from source and for the manual `.vscode/mcp.json` workflow.
-- [Node.js](https://nodejs.org/) 18+ — required for building the VS Code
-  extension.
-- Extension users do **not** need .NET or Node.js installed — the VSIX ships
-  self-contained executables.
+- [.NET 10 SDK](https://dotnet.microsoft.com/download) or later
+- [Node.js](https://nodejs.org/) 18+ — required to build the VS Code extension
 
 ## Build
 
@@ -64,55 +62,12 @@ dotnet build
 dotnet test
 ```
 
-## Usage
+## Manual Server Configuration
 
-### VS Code Extension (no .NET required)
-
-The `VSCodeQaMcp/` directory contains a VS Code extension that bundles both
-servers as self-contained executables — consumers do not need .NET installed.
-
-Package a platform-specific VSIX:
-
-```sh
-cd VSCodeQaMcp
-npm install
-npm run package:win-x64      # or osx-arm64, linux-x64, etc.
-npm run package:all           # all platforms
-```
-
-Available targets: `win-x64`, `win-arm64`, `linux-x64`, `linux-arm64`,
-`osx-x64`, `osx-arm64`.
-
-Install the VSIX locally:
-
-```sh
-code --install-extension VSCodeQaMcp/qa-mcp-win32-x64-0.1.0.vsix
-```
-
-#### Publishing to the Marketplace
-
-Login once (requires a
-[Personal Access Token](https://dev.azure.com/_usersSettings/tokens) with
-**Marketplace → Manage** scope):
-
-```sh
-cd VSCodeQaMcp
-npx vsce login <publisher-id>
-```
-
-Build all platform packages and publish them:
-
-```sh
-npm run publish:all
-```
-
-See [VSCodeQaMcp/README.md](VSCodeQaMcp/README.md) for more details.
-
-### Manual Configuration (requires .NET SDK)
-
-If you have the .NET SDK installed, you can register the servers directly in
-`.vscode/mcp.json` without the VS Code extension. Replace
-`${workspaceFolder}` with the absolute path to the cloned repo if needed:
+If you have the .NET 10 SDK installed and have cloned this repo, you can
+register the servers directly in `.vscode/mcp.json` without the VS Code
+extension. This is useful for development or for using the latest unreleased
+server code:
 
 ```jsonc
 {
@@ -139,6 +94,31 @@ If you have the .NET SDK installed, you can register the servers directly in
 }
 ```
 
+## Building and Publishing the Extension
+
+Package a platform-specific VSIX:
+
+```sh
+cd VSCodeQaMcp
+npm install
+npm run package:win-x64      # or osx-arm64, linux-x64, etc.
+npm run package:all           # all platforms
+```
+
+Available targets: `win-x64`, `win-arm64`, `linux-x64`, `linux-arm64`,
+`osx-x64`, `osx-arm64`.
+
+Publish to the VS Code Marketplace (requires a
+[Personal Access Token](https://dev.azure.com/_usersSettings/tokens) with
+**Marketplace → Manage** scope):
+
+```sh
+cd VSCodeQaMcp
+npx vsce login <publisher-id>
+npm run publish:all
+```
+
 ## License
 
 [MIT](VSCodeQaMcp/LICENSE)
+

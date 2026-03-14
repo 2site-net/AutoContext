@@ -1,18 +1,18 @@
 # QA-MCP
 
-A collection of MCP servers that give AI coding assistants — such as GitHub
-Copilot — the ability to enforce project quality standards in real time.
+A quality assurance toolkit for GitHub Copilot. QA-MCP bundles MCP servers and
+a curated set of coding instructions that activate automatically based on your
+workspace and can be enabled or disabled individually.
 
-## Servers
+## MCP Tools
 
-The extension registers two MCP servers that run locally via **stdio**.
+Once installed, the following tools are available to GitHub Copilot in Agent
+mode. Invoke them by asking Copilot to check your code or commits.
 
-### DotNet QA MCP
+### .NET
 
-Eight tools that analyse C# source and project files for common quality issues.
-
-| Tool | Purpose |
-|------|---------|
+| Tool | What it checks |
+|------|----------------|
 | `check_code_style` | No `#region`, no decorative comments, curly braces on control flow (except single-line guard clauses), blank lines before control flow, expression-body arrows on the next line, and XML doc on public/protected members. |
 | `check_member_ordering` | Members must follow constants → static fields → fields → constructors → delegates → events → enums → properties → indexers → methods → operators → nested types, then public → private, static before instance, then alphabetically. Test classes are skipped. |
 | `check_naming_conventions` | `I`-prefixed interfaces, `Extensions`-suffixed extension classes, `Async`-suffixed async methods, `_camelCase` private fields, PascalCase types/methods/properties/events, and camelCase parameters. |
@@ -22,15 +22,41 @@ Eight tools that analyse C# source and project files for common quality issues.
 | `check_nuget_hygiene` | No duplicate, floating, or wildcard package versions; no missing `Version` attribute (unless Central Package Management is enabled); flags packages with built-in .NET alternatives. |
 | `check_tests_style` | Test classes suffixed `Tests`, methods prefixed `Should_`/`Should_not_`, no XML doc on tests, `Assert.Multiple()` when multiple asserts, no `.ConfigureAwait()` in tests, and optional file-structure mirroring validation. |
 
-### Git QA MCP
+### Git
 
-Two tools that validate git commit messages against Conventional Commits and
-content best practices.
-
-| Tool | Purpose |
-|------|---------|
+| Tool | What it checks |
+|------|----------------|
 | `validate_commit_format` | Subject must follow `type(scope): description`, stay under 50 characters, body wrapped at 72 characters, blank line between subject and body. |
 | `validate_commit_content` | No bullet lists, file paths, counts, enumerated properties, "Key features:" sections, or sensitive information in the commit body. |
+
+## Coding Instructions
+
+The extension ships 13 instruction files that are automatically injected into
+GitHub Copilot's context when relevant to your workspace:
+
+| Instruction | Activates when |
+|-------------|----------------|
+| Copilot Rules | Always |
+| Async/Await | .NET project detected |
+| Blazor | `.razor` files detected |
+| Code Quality | .NET project detected |
+| Code Style | .NET project detected |
+| Coding Standards | .NET project detected |
+| Debugging | .NET project detected |
+| Design Principles | .NET project detected |
+| NuGet | .NET project detected |
+| Performance & Memory | .NET project detected |
+| Testing | .NET project detected |
+| xUnit | xUnit referenced in a `.csproj` |
+| Commit Format | Git repository detected |
+
+The status bar shows how many instructions are currently active (e.g.
+`QA-MCP: 13/13`). Click it — or run **QA-MCP: Toggle Instructions** from
+the Command Palette — to enable or disable individual instructions without
+opening Settings.
+
+Each instruction can also be toggled individually under
+**Settings → QA-MCP → Instructions**.
 
 ## Prerequisites
 
@@ -48,29 +74,17 @@ code --install-extension qa-mcp-win32-x64-0.1.0.vsix
 ```
 
 Once installed, open Agent mode in Copilot Chat and the QA MCP tools will
-appear in the tools picker. You can verify the servers are running via the
-Command Palette → **MCP: List Servers**.
+appear in the tools picker. Ask Copilot things like:
 
-## Building from Source
+- *"Check this file for code style issues."*
+- *"Validate my commit message against Conventional Commits."*
+- *"Check for async pattern violations in the current file."*
 
-Requires [.NET 10 SDK](https://dotnet.microsoft.com/download) and Node.js 18+.
+You can verify the servers are running via the Command Palette →
+**MCP: List Servers**.
 
-```sh
-npm install
-npm run compile            # compile the TypeScript extension
-npm run publish:servers    # build .NET servers as self-contained executables
-```
+## Source
 
-To create a platform-specific `.vsix` (builds both the extension and the
-servers):
+The source code and contribution guidelines are available at
+[github.com/2site-net/QaMcp](https://github.com/2site-net/QaMcp).
 
-```sh
-npm run package:win-x64
-npm run package:osx-arm64
-npm run package:linux-x64
-# Or all platforms at once:
-npm run package:all
-```
-
-Available targets: `win-x64`, `win-arm64`, `linux-x64`, `linux-arm64`,
-`osx-x64`, `osx-arm64`.
