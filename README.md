@@ -2,23 +2,23 @@
 
 A collection of MCP servers that give GitHub Copilot the ability to validate
 C# code quality and Git commit conventions. The servers are distributed as a
-VS Code extension — see [VSCodeQaMcp/README.md](VSCodeQaMcp/README.md) for
+VS Code extension — see [src/VSCodeQaMcp/README.md](src/VSCodeQaMcp/README.md) for
 end-user installation and usage.
 
 ## Repository Structure
 
 ```text
 QaMcp.slnx                  # Solution file
-DotNetQaMcp/                # C# source-analysis MCP server
-  src/DotNetQaMcp/
-  tests/DotNetQaMcp.Tests/
-GitQaMcp/                   # Git commit-validation MCP server
-  src/GitQaMcp/
-  tests/GitQaMcp.Tests/
-VSCodeQaMcp/                # VS Code extension that registers both servers
+src/QaMcp/                  # MCP server (.NET + Git tools)
+tests/QaMcp.Tests/          # xUnit tests
+src/VSCodeQaMcp/            # VS Code extension that registers the server
 ```
 
 ## Servers and Tools
+
+The MCP server exposes two tool scopes. The VS Code extension registers the
+server twice — once with `--scope dotnet` and once with `--scope git` — so
+that .NET and Git tools appear in separate sections in the tools UI.
 
 ### DotNet QA MCP
 
@@ -78,7 +78,10 @@ server code:
       "args": [
         "run",
         "--project",
-        "${workspaceFolder}/DotNetQaMcp/src/DotNetQaMcp/DotNetQaMcp.csproj"
+        "${workspaceFolder}/src/QaMcp/QaMcp.csproj",
+        "--",
+        "--scope",
+        "dotnet"
       ]
     },
     "git-qa-mcp": {
@@ -87,7 +90,10 @@ server code:
       "args": [
         "run",
         "--project",
-        "${workspaceFolder}/GitQaMcp/src/GitQaMcp/GitQaMcp.csproj"
+        "${workspaceFolder}/src/QaMcp/QaMcp.csproj",
+        "--",
+        "--scope",
+        "git"
       ]
     }
   }
@@ -99,7 +105,7 @@ server code:
 Package a platform-specific VSIX:
 
 ```sh
-cd VSCodeQaMcp
+cd src/VSCodeQaMcp
 npm install
 npm run package:win-x64      # or osx-arm64, linux-x64, etc.
 npm run package:all           # all platforms
@@ -113,12 +119,12 @@ Publish to the VS Code Marketplace (requires a
 **Marketplace → Manage** scope):
 
 ```sh
-cd VSCodeQaMcp
+cd src/VSCodeQaMcp
 npx vsce login <publisher-id>
 npm run publish:all
 ```
 
 ## License
 
-[MIT](VSCodeQaMcp/LICENSE)
+[MIT](src/VSCodeQaMcp/LICENSE)
 
