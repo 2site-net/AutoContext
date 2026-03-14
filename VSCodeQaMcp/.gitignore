@@ -1,4 +1,4 @@
 servers/
 out/
 node_modules/
-*.vsix
+publish/

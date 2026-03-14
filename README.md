@@ -92,8 +92,8 @@ code --install-extension VSCodeQaMcp/qa-mcp-win32-x64-0.1.0.vsix
 #### Publishing to the Marketplace
 
 Login once (requires a
-[Personal Access Token](https://dev.azure.com) with **Marketplace → Manage**
-scope):
+[Personal Access Token](https://dev.azure.com/_usersSettings/tokens) with
+**Marketplace → Manage** scope):
 
 ```sh
 cd VSCodeQaMcp
@@ -110,7 +110,9 @@ See [VSCodeQaMcp/README.md](VSCodeQaMcp/README.md) for more details.
 
 ### Manual Configuration (requires .NET SDK)
 
-You can also register the servers directly in `.vscode/mcp.json`:
+If you have the .NET SDK installed, you can register the servers directly in
+`.vscode/mcp.json` without the VS Code extension. Replace
+`${workspaceFolder}` with the absolute path to the cloned repo if needed:
 
 ```jsonc
 {

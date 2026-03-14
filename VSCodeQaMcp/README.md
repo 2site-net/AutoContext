@@ -1,4 +1,4 @@
-# QaMcp
+# QA-MCP
 
 A collection of MCP servers that give AI coding assistants — such as GitHub
 Copilot — the ability to enforce project quality standards in real time.
@@ -48,7 +48,8 @@ code --install-extension qa-mcp-win32-x64-0.1.0.vsix
 ```
 
 Once installed, open Agent mode in Copilot Chat and the QA MCP tools will
-appear in the tools picker.
+appear in the tools picker. You can verify the servers are running via the
+Command Palette → **MCP: List Servers**.
 
 ## Building from Source
 
@@ -56,11 +57,18 @@ Requires [.NET 10 SDK](https://dotnet.microsoft.com/download) and Node.js 18+.
 
 ```sh
 npm install
-# Package for a specific platform:
+npm run compile            # compile the TypeScript extension
+npm run publish:servers    # build .NET servers as self-contained executables
+```
+
+To create a platform-specific `.vsix` (builds both the extension and the
+servers):
+
+```sh
 npm run package:win-x64
 npm run package:osx-arm64
 npm run package:linux-x64
-# Or package all platforms:
+# Or all platforms at once:
 npm run package:all
 ```
 

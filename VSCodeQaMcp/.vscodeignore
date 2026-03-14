@@ -2,6 +2,7 @@
 src/**
 node_modules/**
 scripts/**
+publish/**
 .gitignore
 tsconfig.json
 package-lock.json
