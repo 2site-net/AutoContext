@@ -1,0 +1,23 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "type": "npm",
+      "script": "compile",
+      "problemMatcher": "$tsc"
+    },
+    {
+      "type": "npm",
+      "script": "watch",
+      "isBackground": true,
+      "problemMatcher": "$tsc-watch"
+    },
+    {
+      "label": "publish-servers",
+      "type": "shell",
+      "command": "pwsh",
+      "args": ["scripts/publish-servers.ps1"],
+      "problemMatcher": []
+    }
+  ]
+}

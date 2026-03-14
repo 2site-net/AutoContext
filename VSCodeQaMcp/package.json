@@ -1,0 +1,44 @@
+{
+  "name": "qa-mcp",
+  "displayName": "QA-MCP",
+  "description": "A collection of MCP servers that give AI coding assistants — such as GitHub Copilot — the ability to enforce project quality standards in real time.",
+  "version": "0.1.0",
+  "publisher": "2site-net",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.99.0"
+  },
+  "categories": [
+    "AI"
+  ],
+  "activationEvents": [],
+  "main": "./out/extension.js",
+  "contributes": {
+    "mcpServerDefinitionProviders": [
+      {
+        "id": "qaMcpProvider",
+        "label": "QA MCP Servers"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "publish:servers": "pwsh scripts/publish-servers.ps1",
+    "package:win-x64": "pwsh scripts/publish-servers.ps1 -RuntimeIdentifier win-x64 && npx vsce package --target win32-x64 --allow-missing-repository",
+    "package:win-arm64": "pwsh scripts/publish-servers.ps1 -RuntimeIdentifier win-arm64 && npx vsce package --target win32-arm64 --allow-missing-repository",
+    "package:linux-x64": "pwsh scripts/publish-servers.ps1 -RuntimeIdentifier linux-x64 && npx vsce package --target linux-x64 --allow-missing-repository",
+    "package:linux-arm64": "pwsh scripts/publish-servers.ps1 -RuntimeIdentifier linux-arm64 && npx vsce package --target linux-arm64 --allow-missing-repository",
+    "package:osx-x64": "pwsh scripts/publish-servers.ps1 -RuntimeIdentifier osx-x64 && npx vsce package --target darwin-x64 --allow-missing-repository",
+    "package:osx-arm64": "pwsh scripts/publish-servers.ps1 -RuntimeIdentifier osx-arm64 && npx vsce package --target darwin-arm64 --allow-missing-repository",
+    "package:all": "npm run package:win-x64 && npm run package:win-arm64 && npm run package:linux-x64 && npm run package:linux-arm64 && npm run package:osx-x64 && npm run package:osx-arm64",
+    "publish:all": "npm run package:all && pwsh -Command \"Get-ChildItem *.vsix | ForEach-Object { npx vsce publish --packagePath $_.Name }\""
+  },
+  "devDependencies": {
+    "@types/node": "^25.5.0",
+    "@types/vscode": "^1.99.0",
+    "@vscode/vsce": "^3.0.0",
+    "typescript": "^5.7.0"
+  }
+}
