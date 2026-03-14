@@ -12,7 +12,7 @@
   "categories": [
     "AI"
   ],
-  "activationEvents": [],
+  "activationEvents": ["onStartupFinished"],
   "main": "./out/extension.js",
   "contributes": {
     "mcpServerDefinitionProviders": [
@@ -20,7 +20,138 @@
         "id": "qaMcpProvider",
         "label": "QA MCP Servers"
       }
-    ]
+    ],
+    "commands": [
+      {
+        "command": "qa-mcp.toggleInstructions",
+        "title": "Toggle Instructions",
+        "category": "QA-MCP"
+      }
+    ],
+    "chatInstructions": [
+      {
+        "path": "./instructions/copilot.instructions.md",
+        "when": "config.qa-mcp.instructions.copilot"
+      },
+      {
+        "path": "./instructions/async-await.instructions.md",
+        "when": "config.qa-mcp.instructions.dotnet.asyncAwait && qa-mcp.workspace.hasDotnet"
+      },
+      {
+        "path": "./instructions/blazor.instructions.md",
+        "when": "config.qa-mcp.instructions.dotnet.blazor && qa-mcp.workspace.hasBlazor"
+      },
+      {
+        "path": "./instructions/code-quality.instructions.md",
+        "when": "config.qa-mcp.instructions.dotnet.codeQuality && qa-mcp.workspace.hasDotnet"
+      },
+      {
+        "path": "./instructions/code-style.instructions.md",
+        "when": "config.qa-mcp.instructions.dotnet.codeStyle && qa-mcp.workspace.hasDotnet"
+      },
+      {
+        "path": "./instructions/coding-standards.instructions.md",
+        "when": "config.qa-mcp.instructions.dotnet.codingStandards && qa-mcp.workspace.hasDotnet"
+      },
+      {
+        "path": "./instructions/debugging.instructions.md",
+        "when": "config.qa-mcp.instructions.dotnet.debugging && qa-mcp.workspace.hasDotnet"
+      },
+      {
+        "path": "./instructions/design-principles.instructions.md",
+        "when": "config.qa-mcp.instructions.dotnet.designPrinciples && qa-mcp.workspace.hasDotnet"
+      },
+      {
+        "path": "./instructions/nuget.instructions.md",
+        "when": "config.qa-mcp.instructions.dotnet.nuget && qa-mcp.workspace.hasDotnet"
+      },
+      {
+        "path": "./instructions/performance-memory.instructions.md",
+        "when": "config.qa-mcp.instructions.dotnet.performanceMemory && qa-mcp.workspace.hasDotnet"
+      },
+      {
+        "path": "./instructions/testing.instructions.md",
+        "when": "config.qa-mcp.instructions.dotnet.testing && qa-mcp.workspace.hasDotnet"
+      },
+      {
+        "path": "./instructions/xunit.instructions.md",
+        "when": "config.qa-mcp.instructions.dotnet.xunit && qa-mcp.workspace.hasXunit"
+      },
+      {
+        "path": "./instructions/git-commit-format.instructions.md",
+        "when": "config.qa-mcp.instructions.git.commitFormat && qa-mcp.workspace.hasGit"
+      }
+    ],
+    "configuration": {
+      "title": "QA-MCP",
+      "properties": {
+        "qa-mcp.instructions.copilot": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable Copilot behavior rules and rule precedence."
+        },
+        "qa-mcp.instructions.dotnet.asyncAwait": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable async/await pattern guidelines for C# code."
+        },
+        "qa-mcp.instructions.dotnet.blazor": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable Blazor component guidelines for Razor files."
+        },
+        "qa-mcp.instructions.dotnet.codeQuality": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable code quality and development workflow guidelines."
+        },
+        "qa-mcp.instructions.dotnet.codeStyle": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable C# code style rules (member ordering, formatting, etc.)."
+        },
+        "qa-mcp.instructions.dotnet.codingStandards": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable C# coding standards (naming, nullability, language features)."
+        },
+        "qa-mcp.instructions.dotnet.debugging": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable debugging and troubleshooting guidelines."
+        },
+        "qa-mcp.instructions.dotnet.designPrinciples": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable design principles (SOLID, DI, composition)."
+        },
+        "qa-mcp.instructions.dotnet.nuget": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable NuGet package and dependency guidelines."
+        },
+        "qa-mcp.instructions.dotnet.performanceMemory": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable performance and memory optimization guidelines."
+        },
+        "qa-mcp.instructions.dotnet.testing": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable general testing strategy guidelines (TDD, naming, organization)."
+        },
+        "qa-mcp.instructions.dotnet.xunit": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable xUnit-specific guidelines (v3 APIs, attributes, assertions)."
+        },
+        "qa-mcp.instructions.git.commitFormat": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable Conventional Commits formatting guidelines."
+        }
+      }
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
