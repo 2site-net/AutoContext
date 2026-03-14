@@ -5,6 +5,11 @@ C# code quality and Git commit conventions. The servers are distributed as a
 VS Code extension — see [src/VSCodeQaMcp/README.md](src/VSCodeQaMcp/README.md) for
 end-user installation and usage.
 
+## Prerequisites
+
+- [.NET 10 SDK](https://dotnet.microsoft.com/download) or later
+- [Node.js](https://nodejs.org/) 18+ — required to build the VS Code extension
+
 ## Repository Structure
 
 ```text
@@ -44,23 +49,6 @@ content best practices.
 |------|---------|
 | `validate_commit_format` | Subject must follow `type(scope): description`, stay under 50 characters, body wrapped at 72 characters, blank line between subject and body. |
 | `validate_commit_content` | No bullet lists, file paths, counts, enumerated properties, "Key features:" sections, or sensitive information in the commit body. |
-
-## Prerequisites
-
-- [.NET 10 SDK](https://dotnet.microsoft.com/download) or later
-- [Node.js](https://nodejs.org/) 18+ — required to build the VS Code extension
-
-## Build
-
-```sh
-dotnet build
-```
-
-## Test
-
-```sh
-dotnet test
-```
 
 ## Manual Server Configuration
 
