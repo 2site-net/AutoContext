@@ -13,16 +13,16 @@ using ModelContextProtocol.Server;
 /// single type per file, file name matches type name, and no #pragma warning disable.
 /// </summary>
 [McpServerToolType]
-public sealed class ProjectStructureChecker : IChecker
+public sealed class CSharpProjectStructureChecker : IChecker
 {
     /// <inheritdoc />
     public string ToolName
-        => "check_project_structure";
+        => "check_csharp_project_structure";
 
     /// <summary>
     /// Checks C# source code for project structure violations.
     /// </summary>
-    [McpServerTool(Name = "check_project_structure", ReadOnly = true, Idempotent = true)]
+    [McpServerTool(Name = "check_csharp_project_structure", ReadOnly = true, Idempotent = true)]
     [Description(
         "Checks C# source code for project structure violations: " +
         "file-scoped namespaces are required (not block-scoped), " +

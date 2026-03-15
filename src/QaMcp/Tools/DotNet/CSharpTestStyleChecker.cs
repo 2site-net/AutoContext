@@ -14,16 +14,16 @@ using ModelContextProtocol.Server;
 /// and structure mirroring (file name, namespace) against the production project.
 /// </summary>
 [McpServerToolType]
-public sealed class TestStyleChecker : IChecker
+public sealed class CSharpTestStyleChecker : IChecker
 {
     /// <inheritdoc />
     public string ToolName
-        => "check_tests_style";
+        => "check_csharp_test_style";
 
     /// <summary>
     /// Checks C# test source code for test style violations.
     /// </summary>
-    [McpServerTool(Name = "check_tests_style", ReadOnly = true, Idempotent = true)]
+    [McpServerTool(Name = "check_csharp_test_style", ReadOnly = true, Idempotent = true)]
     [Description(
         "Checks C# test source code for test style violations: " +
         "test classes must be suffixed with 'Tests', " +

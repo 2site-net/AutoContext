@@ -14,16 +14,16 @@ using ModelContextProtocol.Server;
 /// expressions in non-test code must use .ConfigureAwait(false).
 /// </summary>
 [McpServerToolType]
-public sealed class AsyncPatternChecker : IChecker
+public sealed class CSharpAsyncPatternChecker : IChecker
 {
     /// <inheritdoc />
     public string ToolName
-        => "check_async_patterns";
+        => "check_csharp_async_patterns";
 
     /// <summary>
     /// Checks C# source code for async/await pattern violations.
     /// </summary>
-    [McpServerTool(Name = "check_async_patterns", ReadOnly = true, Idempotent = true)]
+    [McpServerTool(Name = "check_csharp_async_patterns", ReadOnly = true, Idempotent = true)]
     [Description(
         "Checks C# source code for async/await pattern violations: " +
         "async void is not allowed except for event handlers (two-parameter methods where the last parameter type contains 'EventArgs'), " +

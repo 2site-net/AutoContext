@@ -13,16 +13,16 @@ using ModelContextProtocol.Server;
 /// directives, and no use of the null-forgiving (!) operator to suppress warnings.
 /// </summary>
 [McpServerToolType]
-public sealed class NullableContextChecker : IChecker
+public sealed class CSharpNullableContextChecker : IChecker
 {
     /// <inheritdoc />
     public string ToolName
-        => "check_nullable_context";
+        => "check_csharp_nullable_context";
 
     /// <summary>
     /// Checks C# source code for nullable context violations.
     /// </summary>
-    [McpServerTool(Name = "check_nullable_context", ReadOnly = true, Idempotent = true)]
+    [McpServerTool(Name = "check_csharp_nullable_context", ReadOnly = true, Idempotent = true)]
     [Description(
         "Checks C# source code for nullable context violations: " +
         "#nullable disable directives are not allowed (nullable is expected to be enabled project-wide " +

@@ -19,14 +19,14 @@ internal sealed class Program
             "dotnet" =>
             [
                 typeof(DotNetQaChecker),
-                typeof(AsyncPatternChecker),
-                typeof(CodeStyleChecker),
-                typeof(MemberOrderingChecker),
-                typeof(NamingConventionsChecker),
+                typeof(CSharpAsyncPatternChecker),
+                typeof(CSharpCodingStyleChecker),
+                typeof(CSharpMemberOrderingChecker),
+                typeof(CSharpNamingConventionsChecker),
                 typeof(NuGetHygieneChecker),
-                typeof(NullableContextChecker),
-                typeof(ProjectStructureChecker),
-                typeof(TestStyleChecker),
+                typeof(CSharpNullableContextChecker),
+                typeof(CSharpProjectStructureChecker),
+                typeof(CSharpTestStyleChecker),
             ],
             "git" =>
             [

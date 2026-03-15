@@ -45,13 +45,13 @@ public sealed class DotNetQaChecker : IChecker
 
         IChecker[] checkers =
         [
-            new CodeStyleChecker(),
-            new MemberOrderingChecker(),
-            new NamingConventionsChecker(),
-            new AsyncPatternChecker(),
-            new NullableContextChecker(),
-            new ProjectStructureChecker(),
-            new TestStyleChecker(),
+            new CSharpCodingStyleChecker(),
+            new CSharpMemberOrderingChecker(),
+            new CSharpNamingConventionsChecker(),
+            new CSharpAsyncPatternChecker(),
+            new CSharpNullableContextChecker(),
+            new CSharpProjectStructureChecker(),
+            new CSharpTestStyleChecker(),
         ];
 
         foreach (var checker in checkers)

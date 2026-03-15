@@ -14,16 +14,16 @@ using ModelContextProtocol.Server;
 /// types/methods/properties/events, and camelCase for parameters.
 /// </summary>
 [McpServerToolType]
-public sealed class NamingConventionsChecker : IChecker
+public sealed class CSharpNamingConventionsChecker : IChecker
 {
     /// <inheritdoc />
     public string ToolName
-        => "check_naming_conventions";
+        => "check_csharp_naming_conventions";
 
     /// <summary>
     /// Checks C# source code for naming convention violations.
     /// </summary>
-    [McpServerTool(Name = "check_naming_conventions", ReadOnly = true, Idempotent = true)]
+    [McpServerTool(Name = "check_csharp_naming_conventions", ReadOnly = true, Idempotent = true)]
     [Description(
         "Checks C# source code for naming convention violations: " +
         "interfaces must be prefixed with 'I' followed by an uppercase letter (e.g., IMyType), " +

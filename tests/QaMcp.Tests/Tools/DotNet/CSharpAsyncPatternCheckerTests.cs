@@ -2,7 +2,7 @@ namespace QaMcp.Tests.Tools.DotNet;
 
 using QaMcp.Tools.DotNet;
 
-public sealed class AsyncPatternCheckerTests
+public sealed class CSharpAsyncPatternCheckerTests
 {
     [Fact]
     public void Should_pass_correct_async_code()
@@ -19,7 +19,7 @@ public sealed class AsyncPatternCheckerTests
             """;
 
         // Act
-        var result = new AsyncPatternChecker().Check(source);
+        var result = new CSharpAsyncPatternChecker().Check(source);
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -37,7 +37,7 @@ public sealed class AsyncPatternCheckerTests
             """;
 
         // Act
-        var result = new AsyncPatternChecker().Check(source);
+        var result = new CSharpAsyncPatternChecker().Check(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -63,7 +63,7 @@ public sealed class AsyncPatternCheckerTests
             """;
 
         // Act
-        var result = new AsyncPatternChecker().Check(source);
+        var result = new CSharpAsyncPatternChecker().Check(source);
 
         // Assert
         Assert.DoesNotContain("async void", result);
@@ -81,7 +81,7 @@ public sealed class AsyncPatternCheckerTests
             """;
 
         // Act
-        var result = new AsyncPatternChecker().Check(source);
+        var result = new CSharpAsyncPatternChecker().Check(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -104,7 +104,7 @@ public sealed class AsyncPatternCheckerTests
             """;
 
         // Act
-        var result = new AsyncPatternChecker().Check(source);
+        var result = new CSharpAsyncPatternChecker().Check(source);
 
         // Assert
         Assert.DoesNotContain("CancellationToken", result);
@@ -122,7 +122,7 @@ public sealed class AsyncPatternCheckerTests
             """;
 
         // Act
-        var result = new AsyncPatternChecker().Check(source);
+        var result = new CSharpAsyncPatternChecker().Check(source);
 
         // Assert
         Assert.DoesNotContain("CancellationToken", result);
@@ -145,7 +145,7 @@ public sealed class AsyncPatternCheckerTests
             """;
 
         // Act
-        var result = new AsyncPatternChecker().Check(source);
+        var result = new CSharpAsyncPatternChecker().Check(source);
 
         // Assert
         Assert.DoesNotContain("CancellationToken", result);
@@ -166,7 +166,7 @@ public sealed class AsyncPatternCheckerTests
             """;
 
         // Act
-        var result = new AsyncPatternChecker().Check(source);
+        var result = new CSharpAsyncPatternChecker().Check(source);
 
         // Assert
         Assert.DoesNotContain("CancellationToken", result);
@@ -184,7 +184,7 @@ public sealed class AsyncPatternCheckerTests
             """;
 
         // Act
-        var result = new AsyncPatternChecker().Check(source);
+        var result = new CSharpAsyncPatternChecker().Check(source);
 
         // Assert
         Assert.DoesNotContain("CancellationToken", result);
@@ -205,7 +205,7 @@ public sealed class AsyncPatternCheckerTests
             """;
 
         // Act
-        var result = new AsyncPatternChecker().Check(source);
+        var result = new CSharpAsyncPatternChecker().Check(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -230,7 +230,7 @@ public sealed class AsyncPatternCheckerTests
             """;
 
         // Act
-        var result = new AsyncPatternChecker().Check(source);
+        var result = new CSharpAsyncPatternChecker().Check(source);
 
         // Assert
         Assert.DoesNotContain("ConfigureAwait", result);
@@ -251,7 +251,7 @@ public sealed class AsyncPatternCheckerTests
             """;
 
         // Act
-        var result = new AsyncPatternChecker().Check(source);
+        var result = new CSharpAsyncPatternChecker().Check(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -277,7 +277,7 @@ public sealed class AsyncPatternCheckerTests
             """;
 
         // Act
-        var result = new AsyncPatternChecker().Check(source);
+        var result = new CSharpAsyncPatternChecker().Check(source);
 
         // Assert
         Assert.DoesNotContain("ConfigureAwait", result);
@@ -299,7 +299,7 @@ public sealed class AsyncPatternCheckerTests
             """;
 
         // Act
-        var result = new AsyncPatternChecker().Check(source);
+        var result = new CSharpAsyncPatternChecker().Check(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -329,7 +329,7 @@ public sealed class AsyncPatternCheckerTests
             """;
 
         // Act
-        var result = new AsyncPatternChecker().Check(source);
+        var result = new CSharpAsyncPatternChecker().Check(source);
 
         // Assert
         Assert.DoesNotContain("async void", result);
@@ -341,13 +341,13 @@ public sealed class AsyncPatternCheckerTests
     public void Should_throw_on_empty_or_whitespace_input(string input)
     {
         // Act & Assert
-        Assert.Throws<ArgumentException>(() => new AsyncPatternChecker().Check(input));
+        Assert.Throws<ArgumentException>(() => new CSharpAsyncPatternChecker().Check(input));
     }
 
     [Fact]
     public void Should_throw_on_null_input()
     {
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() => new AsyncPatternChecker().Check(null!));
+        Assert.Throws<ArgumentNullException>(() => new CSharpAsyncPatternChecker().Check(null!));
     }
 }

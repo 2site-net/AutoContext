@@ -22,12 +22,12 @@ public sealed partial class CommitFormatChecker : IChecker
 
     /// <inheritdoc />
     public string ToolName
-        => "check_commit_format";
+        => "check_git_commit_format";
 
     /// <summary>
     /// Validates a git commit message for Conventional Commits formatting rules.
     /// </summary>
-    [McpServerTool(Name = "check_commit_format", ReadOnly = true, Idempotent = true)]
+    [McpServerTool(Name = "check_git_commit_format", ReadOnly = true, Idempotent = true)]
     [Description(
         "Validates a git commit message for Conventional Commits formatting: " +
         "type(scope): description, subject ≤ 50 chars, body wrap at 72 chars, " +

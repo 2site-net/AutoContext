@@ -13,12 +13,12 @@ public sealed partial class CommitContentChecker : IChecker
 {
     /// <inheritdoc />
     public string ToolName
-        => "check_commit_content";
+        => "check_git_commit_content";
 
     /// <summary>
     /// Validates a git commit message body for content anti-patterns.
     /// </summary>
-    [McpServerTool(Name = "check_commit_content", ReadOnly = true, Idempotent = true)]
+    [McpServerTool(Name = "check_git_commit_content", ReadOnly = true, Idempotent = true)]
     [Description(
         "Validates a git commit message body for content anti-patterns: " +
         "no bullet lists, no file paths, no counts, no enumerated properties, " +

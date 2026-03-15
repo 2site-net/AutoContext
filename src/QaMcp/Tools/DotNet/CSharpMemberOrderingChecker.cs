@@ -12,11 +12,11 @@ using ModelContextProtocol.Server;
 /// Validates that type members are ordered by kind, access level, and static-before-instance.
 /// </summary>
 [McpServerToolType]
-public sealed class MemberOrderingChecker : IChecker
+public sealed class CSharpMemberOrderingChecker : IChecker
 {
     /// <inheritdoc />
     public string ToolName
-        => "check_member_ordering";
+        => "check_csharp_member_ordering";
 
     private enum MemberKind
     {
@@ -47,7 +47,7 @@ public sealed class MemberOrderingChecker : IChecker
     /// <summary>
     /// Checks that members within each type are ordered by kind, then access level, then static before instance.
     /// </summary>
-    [McpServerTool(Name = "check_member_ordering", ReadOnly = true, Idempotent = true)]
+    [McpServerTool(Name = "check_csharp_member_ordering", ReadOnly = true, Idempotent = true)]
     [Description(
         "Checks that C# type members follow the required ordering: " +
         "constants → static fields → fields → constructors → delegates → events → " +

@@ -15,16 +15,16 @@ using ModelContextProtocol.Server;
 /// and XML doc comments on public/protected members.
 /// </summary>
 [McpServerToolType]
-public sealed partial class CodeStyleChecker : IChecker
+public sealed partial class CSharpCodingStyleChecker : IChecker
 {
     /// <inheritdoc />
     public string ToolName
-        => "check_coding_style";
+        => "check_csharp_coding_style";
 
     /// <summary>
     /// Checks C# source code for code-style violations.
     /// </summary>
-    [McpServerTool(Name = "check_coding_style", ReadOnly = true, Idempotent = true)]
+    [McpServerTool(Name = "check_csharp_coding_style", ReadOnly = true, Idempotent = true)]
     [Description(
         "Checks C# source code for style violations: " +
         "no #region, no decorative section-header comments, " +
