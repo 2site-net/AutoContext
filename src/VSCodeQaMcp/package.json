@@ -1,7 +1,7 @@
 {
   "name": "qa-mcp",
   "displayName": "QA-MCP",
-  "description": "A quality assurance toolkit for GitHub Copilot. QA-MCP bundles MCP servers and a curated set of coding instructions that activate automatically based on your workspace and can be enabled or disabled individually.",
+  "description": "QA-MCP is a development quality toolkit for GitHub Copilot, providing a curated set of tools and guidelines to improve code quality and the overall development workflow.",
   "version": "0.1.0",
   "publisher": "2site-net",
   "license": "MIT",
@@ -18,7 +18,7 @@
     "mcpServerDefinitionProviders": [
       {
         "id": "qaMcpProvider",
-        "label": "QA MCP Servers"
+        "label": "QA-MCP Servers"
       }
     ],
     "commands": [
