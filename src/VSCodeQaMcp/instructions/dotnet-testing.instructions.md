@@ -1,5 +1,5 @@
 ---
-description: "Use when writing, reviewing, or refactoring tests, test naming, TDD workflows, or test organization in C#."
+description: "Use when writing, reviewing, or refactoring tests, test naming, TDD workflows, or test organization in .NET."
 applyTo: "**/*Tests*.{cs,razor}"
 ---
 # Testing Strategy
@@ -14,6 +14,8 @@ applyTo: "**/*Tests*.{cs,razor}"
 - **Do** name integration tests after the most dependent type (e.g., say `VirtualCodeEditor` depends on `SyntaxHighlighter` then `VirtualCodeEditorTests`).
 - **Do** break down large tests into smaller, focused ones; avoid monolithic tests.
 - **Do** wrap test‑specific helper logic in local functions to keep the test body focused and readable.
+- **Do** distinguish dead code (never called) from test-only code — verify test utilities actually serve a clear purpose before removing them.
+- **Do** validate that all tests pass before considering work complete.
 - **Don't** add test-only code to production; keep helpers inside test projects or inject them via patterns (e.g., decorator).
 - **Don't** mix UI tests (e.g., Selenium, Playwright) into unit test projects — keep them in separate test projects.
 - **Don't** give tests arbitrary names (e.g., `DebugSomeType`, `AnotherTypeEssentialTests`); always name them `<UnitUnderTest>Tests` (e.g., `SyntaxHighlighterTests`, `VirtualCodeEditorTests`).

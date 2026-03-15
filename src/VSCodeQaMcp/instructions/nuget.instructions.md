@@ -1,5 +1,5 @@
 ---
-description: "Use when adding, updating, removing, or reviewing NuGet package references or third-party dependencies in C# projects."
+description: "Use when adding, updating, removing, or reviewing NuGet package references or third-party dependencies in .NET projects."
 ---
 # NuGet Packages & Dependencies Guidelines
 

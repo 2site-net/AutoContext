@@ -1,6 +1,6 @@
 ---
-description: "Use when debugging issues, troubleshooting failures, reproducing bugs, or writing regression tests in C#."
-applyTo: "**/*.cs"
+description: "Use when debugging issues, troubleshooting failures, reproducing bugs, or writing regression tests in .NET."
+applyTo: "**/*.{cs,fs,vb}"
 ---
 # Debugging & Troubleshooting
 

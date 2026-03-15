@@ -1,6 +1,6 @@
 ---
-description: "Use when writing async C# code, Task/ValueTask APIs, CancellationToken, IAsyncEnumerable, IAsyncDisposable, or ConfigureAwait patterns."
-applyTo: "**/*.cs"
+description: "Use when writing async .NET code, Task/ValueTask APIs, CancellationToken, IAsyncEnumerable, IAsyncDisposable, or ConfigureAwait patterns."
+applyTo: "**/*.{cs,fs,vb}"
 ---
 # Async / Await Guidelines
 

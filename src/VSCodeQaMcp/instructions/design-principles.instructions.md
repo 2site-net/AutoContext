@@ -1,5 +1,5 @@
 ---
-description: "Use when designing C# systems: SOLID principles, dependency injection, composition, separation of concerns, error handling, and structured logging."
+description: "Use when designing .NET systems: SOLID principles, dependency injection, composition, separation of concerns, error handling, and structured logging."
 ---
 # Design Principles
 

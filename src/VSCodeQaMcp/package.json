@@ -34,52 +34,48 @@
         "when": "config.qa-mcp.instructions.copilot"
       },
       {
-        "path": "./instructions/async-await.instructions.md",
-        "when": "config.qa-mcp.instructions.dotnet.asyncAwait && qa-mcp.workspace.hasDotnet"
-      },
-      {
-        "path": "./instructions/blazor.instructions.md",
-        "when": "config.qa-mcp.instructions.dotnet.blazor && qa-mcp.workspace.hasBlazor"
-      },
-      {
-        "path": "./instructions/code-quality.instructions.md",
-        "when": "config.qa-mcp.instructions.dotnet.codeQuality && qa-mcp.workspace.hasDotnet"
-      },
-      {
-        "path": "./instructions/code-style.instructions.md",
-        "when": "config.qa-mcp.instructions.dotnet.codeStyle && qa-mcp.workspace.hasDotnet"
-      },
-      {
-        "path": "./instructions/coding-standards.instructions.md",
-        "when": "config.qa-mcp.instructions.dotnet.codingStandards && qa-mcp.workspace.hasDotnet"
-      },
-      {
-        "path": "./instructions/debugging.instructions.md",
-        "when": "config.qa-mcp.instructions.dotnet.debugging && qa-mcp.workspace.hasDotnet"
+        "path": "./instructions/csharp-coding-style.instructions.md",
+        "when": "config.qa-mcp.instructions.csharp.codingStyle && qa-mcp.workspace.hasDotnet"
       },
       {
         "path": "./instructions/design-principles.instructions.md",
         "when": "config.qa-mcp.instructions.dotnet.designPrinciples && qa-mcp.workspace.hasDotnet"
       },
       {
-        "path": "./instructions/nuget.instructions.md",
-        "when": "config.qa-mcp.instructions.dotnet.nuget && qa-mcp.workspace.hasDotnet"
+        "path": "./instructions/dotnet-async-await.instructions.md",
+        "when": "config.qa-mcp.instructions.dotnet.asyncAwait && qa-mcp.workspace.hasDotnet"
       },
       {
-        "path": "./instructions/performance-memory.instructions.md",
+        "path": "./instructions/dotnet-blazor.instructions.md",
+        "when": "config.qa-mcp.instructions.dotnet.blazor && qa-mcp.workspace.hasBlazor"
+      },
+      {
+        "path": "./instructions/dotnet-coding-standards.instructions.md",
+        "when": "config.qa-mcp.instructions.dotnet.codingStandards && qa-mcp.workspace.hasDotnet"
+      },
+      {
+        "path": "./instructions/dotnet-debugging.instructions.md",
+        "when": "config.qa-mcp.instructions.dotnet.debugging && qa-mcp.workspace.hasDotnet"
+      },
+      {
+        "path": "./instructions/dotnet-performance-memory.instructions.md",
         "when": "config.qa-mcp.instructions.dotnet.performanceMemory && qa-mcp.workspace.hasDotnet"
       },
       {
-        "path": "./instructions/testing.instructions.md",
+        "path": "./instructions/dotnet-testing.instructions.md",
         "when": "config.qa-mcp.instructions.dotnet.testing && qa-mcp.workspace.hasDotnet"
       },
       {
-        "path": "./instructions/xunit.instructions.md",
+        "path": "./instructions/dotnet-xunit.instructions.md",
         "when": "config.qa-mcp.instructions.dotnet.xunit && qa-mcp.workspace.hasXunit"
       },
       {
         "path": "./instructions/git-commit-format.instructions.md",
         "when": "config.qa-mcp.instructions.git.commitFormat && qa-mcp.workspace.hasGit"
+      },
+      {
+        "path": "./instructions/nuget.instructions.md",
+        "when": "config.qa-mcp.instructions.dotnet.nuget && qa-mcp.workspace.hasDotnet"
       }
     ],
     "configuration": {
@@ -90,30 +86,25 @@
           "default": true,
           "description": "Enable Copilot behavior rules and rule precedence."
         },
+        "qa-mcp.instructions.csharp.codingStyle": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable C# code style rules (member ordering, formatting, etc.)."
+        },
         "qa-mcp.instructions.dotnet.asyncAwait": {
           "type": "boolean",
           "default": true,
-          "description": "Enable async/await pattern guidelines for C# code."
+          "description": "Enable async/await pattern guidelines for .NET code."
         },
         "qa-mcp.instructions.dotnet.blazor": {
           "type": "boolean",
           "default": true,
           "description": "Enable Blazor component guidelines for Razor files."
         },
-        "qa-mcp.instructions.dotnet.codeQuality": {
-          "type": "boolean",
-          "default": true,
-          "description": "Enable code quality and development workflow guidelines."
-        },
-        "qa-mcp.instructions.dotnet.codeStyle": {
-          "type": "boolean",
-          "default": true,
-          "description": "Enable C# code style rules (member ordering, formatting, etc.)."
-        },
         "qa-mcp.instructions.dotnet.codingStandards": {
           "type": "boolean",
           "default": true,
-          "description": "Enable C# coding standards (naming, nullability, language features)."
+          "description": "Enable .NET coding standards (naming, validation, file organization, API design)."
         },
         "qa-mcp.instructions.dotnet.debugging": {
           "type": "boolean",
@@ -150,6 +141,11 @@
           "default": true,
           "description": "Enable Conventional Commits formatting guidelines."
         },
+        "qa-mcp.tools.check_async_patterns": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable the async patterns checker tool."
+        },
         "qa-mcp.tools.check_code_style": {
           "type": "boolean",
           "default": true,
@@ -165,10 +161,10 @@
           "default": true,
           "description": "Enable the naming conventions checker tool."
         },
-        "qa-mcp.tools.check_async_patterns": {
+        "qa-mcp.tools.check_nuget_hygiene": {
           "type": "boolean",
           "default": true,
-          "description": "Enable the async patterns checker tool."
+          "description": "Enable the NuGet hygiene checker tool."
         },
         "qa-mcp.tools.check_nullable_context": {
           "type": "boolean",
@@ -180,25 +176,20 @@
           "default": true,
           "description": "Enable the project structure checker tool."
         },
-        "qa-mcp.tools.check_nuget_hygiene": {
-          "type": "boolean",
-          "default": true,
-          "description": "Enable the NuGet hygiene checker tool."
-        },
         "qa-mcp.tools.check_tests_style": {
           "type": "boolean",
           "default": true,
           "description": "Enable the test style checker tool."
         },
-        "qa-mcp.tools.validate_commit_format": {
-          "type": "boolean",
-          "default": true,
-          "description": "Enable the commit format validator tool."
-        },
         "qa-mcp.tools.validate_commit_content": {
           "type": "boolean",
           "default": true,
           "description": "Enable the commit content validator tool."
+        },
+        "qa-mcp.tools.validate_commit_format": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable the commit format validator tool."
         }
       }
     }

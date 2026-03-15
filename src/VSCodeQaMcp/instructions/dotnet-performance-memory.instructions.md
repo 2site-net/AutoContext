@@ -1,7 +1,10 @@
 ---
-description: "Use when benchmarking, optimizing performance, profiling memory, using Span/Memory/ArrayPool/stackalloc, evaluating SIMD/Vector paths, or deciding whether to add instrumentation in C#."
+description: "Use when benchmarking, optimizing performance, profiling memory, using Span/Memory/ArrayPool/stackalloc, evaluating SIMD/Vector paths, or deciding whether to add instrumentation in .NET."
+applyTo: "**/*.{cs,fs,vb}"
 ---
 # Performance & Memory Guidelines
+
+- **Do** prefer simple, readable implementations over premature optimization (e.g., avoid complex LINQ queries when a simple loop suffices).
 
 - **Do** benchmark every non-trivial optimisation first. Keep the tests in a dedicated `*.Benchmarks` project and use `BenchmarkDotNet`.
 - **Do** profile allocations before and after every memory change (e.g., `BenchmarkDotNet` + `[MemoryDiagnoser]`, `dotnet-counters`, IDE profiler).
