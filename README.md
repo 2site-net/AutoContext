@@ -1,9 +1,8 @@
-# QaMcp
+# QA-MCP
 
-A collection of MCP servers that give GitHub Copilot the ability to validate
-C# code quality and Git commit conventions. The servers are distributed as a
-VS Code extension — see [src/VSCodeQaMcp/README.md](src/VSCodeQaMcp/README.md) for
-end-user installation and usage.
+QA-MCP is a quality assurance toolkit for GitHub Copilot, providing tools and coding guidelines that improve code quality and the overall development workflow. 
+
+Distributed as a VS Code extension — see [src/VSCodeQaMcp/README.md](src/VSCodeQaMcp/README.md) for installation and usage.
 
 ## Prerequisites
 
@@ -25,7 +24,7 @@ The MCP server exposes two tool scopes. The VS Code extension registers the
 server twice — once with `--scope dotnet` and once with `--scope git` — so
 that .NET and Git tools appear in separate sections in the tools UI.
 
-### DotNet QA MCP
+### QA-MCP: DotNet
 
 Eight tools that analyse C# source and project files for common quality issues.
 
@@ -40,7 +39,7 @@ Eight tools that analyse C# source and project files for common quality issues.
 | `check_nuget_hygiene` | No duplicate, floating, or wildcard package versions; no missing `Version` attribute (unless Central Package Management is enabled); flags packages with built-in .NET alternatives. |
 | `check_tests_style` | Test classes suffixed `Tests`, methods prefixed `Should_`/`Should_not_`, no XML doc on tests, `Assert.Multiple()` when multiple asserts, no `.ConfigureAwait()` in tests, and optional file-structure mirroring validation. |
 
-### Git QA MCP
+### QA-MCP: Git
 
 Two tools that validate git commit messages against Conventional Commits and
 content best practices.

@@ -1,8 +1,6 @@
 # QA-MCP
 
-A quality assurance toolkit for GitHub Copilot. QA-MCP bundles MCP servers and
-a curated set of coding instructions that activate automatically based on your
-workspace and can be enabled or disabled individually.
+QA-MCP is a development quality toolkit for GitHub Copilot, providing a curated set of tools and guidelines to improve code quality and the overall development workflow.
 
 ## MCP Tools
 
@@ -73,7 +71,7 @@ Install the platform-specific `.vsix` for your OS from the Extensions view
 code --install-extension qa-mcp-win32-x64-0.1.0.vsix
 ```
 
-Once installed, open Agent mode in Copilot Chat and the QA MCP tools will
+Once installed, open Agent mode in Copilot Chat and the QA-MCP tools will
 appear in the tools picker. Ask Copilot things like:
 
 - *"Check this file for code style issues."*
