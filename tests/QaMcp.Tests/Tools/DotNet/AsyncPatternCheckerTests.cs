@@ -309,6 +309,32 @@ public sealed class AsyncPatternCheckerTests
         });
     }
 
+    [Fact]
+    public void Should_pass_on_named_async_void_as_event_handler()
+    {
+        // Arrange — OnXxx naming convention covers Blazor lifecycle, WPF overrides, etc.
+        var source = """
+            public class MyComponent
+            {
+                protected async void OnInitialized()
+                {
+                    await Task.Delay(0).ConfigureAwait(false);
+                }
+
+                protected async void OnAfterRender(bool firstRender)
+                {
+                    await Task.Delay(0).ConfigureAwait(false);
+                }
+            }
+            """;
+
+        // Act
+        var result = new AsyncPatternChecker().Check(source);
+
+        // Assert
+        Assert.DoesNotContain("async void", result);
+    }
+
     [Theory]
     [InlineData("")]
     [InlineData(" ")]

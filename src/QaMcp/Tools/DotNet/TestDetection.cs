@@ -46,8 +46,9 @@ internal static class TestDetection
         };
 
     /// <summary>
-    /// Determines whether the given method is likely an event handler
-    /// (void return type, two parameters, second parameter type contains "EventArgs").
+    /// Determines whether the given method is likely an event handler, using two heuristics:
+    /// the conventional two-parameter signature where the second parameter type contains "EventArgs",
+    /// or the <c>OnXxx</c> naming convention used by WinForms, WPF, Blazor, MAUI, and ASP.NET.
     /// </summary>
     internal static bool IsLikelyEventHandler(MethodDeclarationSyntax method)
     {
@@ -59,13 +60,23 @@ internal static class TestDetection
 
         var parameters = method.ParameterList.Parameters;
 
-        if (parameters.Count != 2)
+        // Conventional event handler: (object sender, XxxEventArgs e)
+        if (parameters.Count == 2)
         {
-            return false;
+            var lastParamType = parameters[1].Type?.ToString() ?? string.Empty;
+
+            if (lastParamType.Contains("EventArgs", StringComparison.Ordinal))
+            {
+                return true;
+            }
         }
 
-        var lastParamType = parameters[1].Type?.ToString() ?? string.Empty;
+        // Naming convention: OnXxx methods are by convention event-handler overrides
+        // or lifecycle callbacks in WinForms, WPF, Blazor, MAUI, and ASP.NET.
+        var name = method.Identifier.Text;
 
-        return lastParamType.Contains("EventArgs", StringComparison.Ordinal);
+        return name.Length > 2
+               && name.StartsWith("On", StringComparison.Ordinal)
+               && char.IsUpper(name[2]);
     }
 }
