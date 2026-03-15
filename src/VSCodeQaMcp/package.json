@@ -89,7 +89,7 @@
         "qa-mcp.instructions.csharp.codingStyle": {
           "type": "boolean",
           "default": true,
-          "description": "Enable C# code style rules (member ordering, formatting, etc.)."
+          "description": "Enable C# coding style rules (member ordering, formatting, etc.)."
         },
         "qa-mcp.instructions.dotnet.asyncAwait": {
           "type": "boolean",
@@ -146,10 +146,10 @@
           "default": true,
           "description": "Enable the async patterns checker tool."
         },
-        "qa-mcp.tools.check_code_style": {
+        "qa-mcp.tools.check_coding_style": {
           "type": "boolean",
           "default": true,
-          "description": "Enable the code style checker tool."
+          "description": "Enable the coding style checker tool."
         },
         "qa-mcp.tools.check_member_ordering": {
           "type": "boolean",

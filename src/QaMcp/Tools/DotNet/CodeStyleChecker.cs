@@ -19,12 +19,12 @@ public sealed partial class CodeStyleChecker : IChecker
 {
     /// <inheritdoc />
     public string ToolName
-        => "check_code_style";
+        => "check_coding_style";
 
     /// <summary>
     /// Checks C# source code for code-style violations.
     /// </summary>
-    [McpServerTool(Name = "check_code_style", ReadOnly = true, Idempotent = true)]
+    [McpServerTool(Name = "check_coding_style", ReadOnly = true, Idempotent = true)]
     [Description(
         "Checks C# source code for style violations: " +
         "no #region, no decorative section-header comments, " +
