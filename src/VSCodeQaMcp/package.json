@@ -149,6 +149,56 @@
           "type": "boolean",
           "default": true,
           "description": "Enable Conventional Commits formatting guidelines."
+        },
+        "qa-mcp.tools.check_code_style": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable the code style checker tool."
+        },
+        "qa-mcp.tools.check_member_ordering": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable the member ordering checker tool."
+        },
+        "qa-mcp.tools.check_naming_conventions": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable the naming conventions checker tool."
+        },
+        "qa-mcp.tools.check_async_patterns": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable the async patterns checker tool."
+        },
+        "qa-mcp.tools.check_nullable_context": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable the nullable context checker tool."
+        },
+        "qa-mcp.tools.check_project_structure": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable the project structure checker tool."
+        },
+        "qa-mcp.tools.check_nuget_hygiene": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable the NuGet hygiene checker tool."
+        },
+        "qa-mcp.tools.check_tests_style": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable the test style checker tool."
+        },
+        "qa-mcp.tools.validate_commit_format": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable the commit format validator tool."
+        },
+        "qa-mcp.tools.validate_commit_content": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable the commit content validator tool."
         }
       }
     }

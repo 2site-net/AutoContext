@@ -18,6 +18,7 @@ internal sealed class Program
         {
             "dotnet" =>
             [
+                typeof(DotNetQaChecker),
                 typeof(AsyncPatternChecker),
                 typeof(CodeStyleChecker),
                 typeof(MemberOrderingChecker),
@@ -27,7 +28,12 @@ internal sealed class Program
                 typeof(ProjectStructureChecker),
                 typeof(TestStyleChecker),
             ],
-            "git" => [typeof(CommitContentValidator), typeof(CommitFormatValidator)],
+            "git" =>
+            [
+                typeof(GitQaChecker),
+                typeof(CommitContentValidator),
+                typeof(CommitFormatValidator),
+            ],
             _ => throw new ArgumentException($"Unknown scope '{scope}'. Valid values: dotnet, git."),
         };
 
