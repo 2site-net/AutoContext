@@ -36,7 +36,7 @@ public sealed class DotNetQaCheckerTests
             """;
 
         // Act
-        var result = DotNetQaChecker.Check(source, "MyClass.cs");
+        var result = new DotNetQaChecker().Check(source, "MyClass.cs");
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -59,7 +59,7 @@ public sealed class DotNetQaCheckerTests
             """;
 
         // Act
-        var result = DotNetQaChecker.Check(source, "MyClass.cs");
+        var result = new DotNetQaChecker().Check(source, "MyClass.cs");
 
         // Assert
         Assert.StartsWith("❌", result);
@@ -84,7 +84,7 @@ public sealed class DotNetQaCheckerTests
             """;
 
         // Act
-        var result = DotNetQaChecker.Check(source);
+        var result = new DotNetQaChecker().Check(source);
 
         // Assert — should contain naming violation but not a success message for passing checks
         Assert.StartsWith("❌", result);
@@ -94,7 +94,7 @@ public sealed class DotNetQaCheckerTests
     [Fact]
     public void Should_throw_on_null_or_whitespace_source()
     {
-        Assert.Throws<ArgumentException>(() => DotNetQaChecker.Check(""));
-        Assert.Throws<ArgumentException>(() => DotNetQaChecker.Check("   "));
+        Assert.Throws<ArgumentException>(() => new DotNetQaChecker().Check(""));
+        Assert.Throws<ArgumentException>(() => new DotNetQaChecker().Check("   "));
     }
 }

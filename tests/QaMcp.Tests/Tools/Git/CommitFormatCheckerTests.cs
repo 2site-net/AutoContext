@@ -2,7 +2,7 @@ namespace QaMcp.Tests.Tools.Git;
 
 using QaMcp.Tools.Git;
 
-public sealed class CommitFormatValidatorTests
+public sealed class CommitFormatCheckerTests
 {
     [Theory]
     [InlineData("feat: add login")]
@@ -15,7 +15,7 @@ public sealed class CommitFormatValidatorTests
     public void Should_pass_valid_conventional_commit_subjects(string subject)
     {
         // Act
-        var result = CommitFormatValidator.Validate(subject);
+        var result = new CommitFormatChecker().Check(subject);
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -31,7 +31,7 @@ public sealed class CommitFormatValidatorTests
     public void Should_reject_invalid_conventional_commit_subjects(string subject)
     {
         // Act
-        var result = CommitFormatValidator.Validate(subject);
+        var result = new CommitFormatChecker().Check(subject);
 
         // Assert
         Assert.Multiple(() =>
@@ -48,7 +48,7 @@ public sealed class CommitFormatValidatorTests
         var subject = "feat: " + new string('a', 50);
 
         // Act
-        var result = CommitFormatValidator.Validate(subject);
+        var result = new CommitFormatChecker().Check(subject);
 
         // Assert
         Assert.Multiple(() =>
@@ -66,7 +66,7 @@ public sealed class CommitFormatValidatorTests
         Assert.Equal(50, subject.Length);
 
         // Act
-        var result = CommitFormatValidator.Validate(subject);
+        var result = new CommitFormatChecker().Check(subject);
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -79,7 +79,7 @@ public sealed class CommitFormatValidatorTests
         var message = "feat: add login\nThis is the body without blank line.";
 
         // Act
-        var result = CommitFormatValidator.Validate(message);
+        var result = new CommitFormatChecker().Check(message);
 
         // Assert
         Assert.Multiple(() =>
@@ -96,7 +96,7 @@ public sealed class CommitFormatValidatorTests
         var message = "feat: add login\n\nThis is the body.";
 
         // Act
-        var result = CommitFormatValidator.Validate(message);
+        var result = new CommitFormatChecker().Check(message);
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -110,7 +110,7 @@ public sealed class CommitFormatValidatorTests
         var message = $"feat: add login\n\n{longLine}";
 
         // Act
-        var result = CommitFormatValidator.Validate(message);
+        var result = new CommitFormatChecker().Check(message);
 
         // Assert
         Assert.Multiple(() =>
@@ -128,7 +128,7 @@ public sealed class CommitFormatValidatorTests
         var message = $"feat: add login\n\n{line}";
 
         // Act
-        var result = CommitFormatValidator.Validate(message);
+        var result = new CommitFormatChecker().Check(message);
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -142,7 +142,7 @@ public sealed class CommitFormatValidatorTests
         var message = $"Add stuff\nno blank line\n{longLine}";
 
         // Act
-        var result = CommitFormatValidator.Validate(message);
+        var result = new CommitFormatChecker().Check(message);
 
         // Assert
         Assert.Multiple(() =>
@@ -160,14 +160,14 @@ public sealed class CommitFormatValidatorTests
     public void Should_throw_on_empty_or_whitespace_input(string input)
     {
         // Act & Assert
-        Assert.Throws<ArgumentException>(() => CommitFormatValidator.Validate(input));
+        Assert.Throws<ArgumentException>(() => new CommitFormatChecker().Check(input));
     }
 
     [Fact]
     public void Should_throw_on_null_input()
     {
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() => CommitFormatValidator.Validate(null!));
+        Assert.Throws<ArgumentNullException>(() => new CommitFormatChecker().Check(null!));
     }
 
     [Theory]
@@ -188,7 +188,7 @@ public sealed class CommitFormatValidatorTests
         var message = $"{type}: do something";
 
         // Act
-        var result = CommitFormatValidator.Validate(message);
+        var result = new CommitFormatChecker().Check(message);
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -201,7 +201,7 @@ public sealed class CommitFormatValidatorTests
         var message = "feat: add login\r\n\r\nThis is the body.";
 
         // Act
-        var result = CommitFormatValidator.Validate(message);
+        var result = new CommitFormatChecker().Check(message);
 
         // Assert
         Assert.StartsWith("✅", result);

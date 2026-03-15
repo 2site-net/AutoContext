@@ -18,7 +18,7 @@ public sealed class ProjectStructureCheckerTests
             """;
 
         // Act
-        var result = ProjectStructureChecker.Check(source, "UserService.cs");
+        var result = new ProjectStructureChecker().Check(source, "UserService.cs");
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -38,7 +38,7 @@ public sealed class ProjectStructureCheckerTests
             """;
 
         // Act
-        var result = ProjectStructureChecker.Check(source);
+        var result = new ProjectStructureChecker().Check(source);
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -56,7 +56,7 @@ public sealed class ProjectStructureCheckerTests
             """;
 
         // Act
-        var result = ProjectStructureChecker.Check(source);
+        var result = new ProjectStructureChecker().Check(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -78,7 +78,7 @@ public sealed class ProjectStructureCheckerTests
             """;
 
         // Act
-        var result = ProjectStructureChecker.Check(source);
+        var result = new ProjectStructureChecker().Check(source);
 
         // Assert
         Assert.DoesNotContain("namespace", result);
@@ -97,7 +97,7 @@ public sealed class ProjectStructureCheckerTests
             """;
 
         // Act
-        var result = ProjectStructureChecker.Check(source);
+        var result = new ProjectStructureChecker().Check(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -122,7 +122,7 @@ public sealed class ProjectStructureCheckerTests
             """;
 
         // Act
-        var result = ProjectStructureChecker.Check(source);
+        var result = new ProjectStructureChecker().Check(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -146,7 +146,7 @@ public sealed class ProjectStructureCheckerTests
             """;
 
         // Act
-        var result = ProjectStructureChecker.Check(source);
+        var result = new ProjectStructureChecker().Check(source);
 
         // Assert
         Assert.DoesNotContain("top-level type", result);
@@ -163,7 +163,7 @@ public sealed class ProjectStructureCheckerTests
             """;
 
         // Act
-        var result = ProjectStructureChecker.Check(source, "WrongName.cs");
+        var result = new ProjectStructureChecker().Check(source, "WrongName.cs");
 
         // Assert
         Assert.Multiple(() =>
@@ -186,7 +186,7 @@ public sealed class ProjectStructureCheckerTests
             """;
 
         // Act
-        var result = ProjectStructureChecker.Check(source, "UserService.cs");
+        var result = new ProjectStructureChecker().Check(source, "UserService.cs");
 
         // Assert
         Assert.DoesNotContain("file name", result, StringComparison.OrdinalIgnoreCase);
@@ -208,7 +208,7 @@ public sealed class ProjectStructureCheckerTests
             """;
 
         // Act
-        var result = ProjectStructureChecker.Check(source);
+        var result = new ProjectStructureChecker().Check(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -234,7 +234,7 @@ public sealed class ProjectStructureCheckerTests
             """;
 
         // Act
-        var result = ProjectStructureChecker.Check(source);
+        var result = new ProjectStructureChecker().Check(source);
 
         // Assert
         Assert.DoesNotContain("#pragma", result);
@@ -254,7 +254,7 @@ public sealed class ProjectStructureCheckerTests
             """;
 
         // Act
-        var result = ProjectStructureChecker.Check(source);
+        var result = new ProjectStructureChecker().Check(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -279,7 +279,7 @@ public sealed class ProjectStructureCheckerTests
             """;
 
         // Act
-        var result = ProjectStructureChecker.Check(source, "User.cs");
+        var result = new ProjectStructureChecker().Check(source, "User.cs");
 
         // Assert
         Assert.Multiple(() =>
@@ -300,7 +300,7 @@ public sealed class ProjectStructureCheckerTests
             """;
 
         // Act
-        var result = ProjectStructureChecker.Check(source, "DataCallback.cs");
+        var result = new ProjectStructureChecker().Check(source, "DataCallback.cs");
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -317,7 +317,7 @@ public sealed class ProjectStructureCheckerTests
             """;
 
         // Act
-        var result = ProjectStructureChecker.Check(source, "Wrong.cs");
+        var result = new ProjectStructureChecker().Check(source, "Wrong.cs");
 
         // Assert
         Assert.Multiple(() =>
@@ -341,7 +341,7 @@ public sealed class ProjectStructureCheckerTests
             """;
 
         // Act
-        var result = ProjectStructureChecker.Check(source, "IUserRepository.cs");
+        var result = new ProjectStructureChecker().Check(source, "IUserRepository.cs");
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -362,7 +362,7 @@ public sealed class ProjectStructureCheckerTests
             """;
 
         // Act
-        var result = ProjectStructureChecker.Check(source, "Status.cs");
+        var result = new ProjectStructureChecker().Check(source, "Status.cs");
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -379,7 +379,7 @@ public sealed class ProjectStructureCheckerTests
             """;
 
         // Act
-        var result = ProjectStructureChecker.Check(source, "UserDto.cs");
+        var result = new ProjectStructureChecker().Check(source, "UserDto.cs");
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -391,13 +391,13 @@ public sealed class ProjectStructureCheckerTests
     public void Should_throw_on_empty_or_whitespace_input(string input)
     {
         // Act & Assert
-        Assert.Throws<ArgumentException>(() => ProjectStructureChecker.Check(input));
+        Assert.Throws<ArgumentException>(() => new ProjectStructureChecker().Check(input));
     }
 
     [Fact]
     public void Should_throw_on_null_input()
     {
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() => ProjectStructureChecker.Check(null!));
+        Assert.Throws<ArgumentNullException>(() => new ProjectStructureChecker().Check(null!));
     }
 }

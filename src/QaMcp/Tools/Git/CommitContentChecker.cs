@@ -9,8 +9,12 @@ using ModelContextProtocol.Server;
 /// Validates git commit message body content against anti-pattern rules.
 /// </summary>
 [McpServerToolType]
-public static partial class CommitContentValidator
+public sealed partial class CommitContentChecker : IChecker
 {
+    /// <inheritdoc />
+    public string ToolName
+        => "validate_commit_content";
+
     /// <summary>
     /// Validates a git commit message body for content anti-patterns.
     /// </summary>
@@ -19,14 +23,15 @@ public static partial class CommitContentValidator
         "Validates a git commit message body for content anti-patterns: " +
         "no bullet lists, no file paths, no counts, no enumerated properties, " +
         "no 'Key features:' sections, and no sensitive information.")]
-    public static string Validate(
+    public string Check(
         [Description("The full git commit message to validate.")]
-        string commitMessage)
+        string content,
+        string? data = null)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(commitMessage);
+        ArgumentException.ThrowIfNullOrWhiteSpace(content);
 
         var violations = new List<string>();
-        var lines = commitMessage.ReplaceLineEndings("\n").Split('\n');
+        var lines = content.ReplaceLineEndings("\n").Split('\n');
 
         // Body starts after the blank line (line index 2+)
         var bodyLines = lines.Length > 2

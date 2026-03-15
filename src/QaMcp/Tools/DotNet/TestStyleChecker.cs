@@ -14,8 +14,12 @@ using ModelContextProtocol.Server;
 /// and structure mirroring (file name, namespace) against the production project.
 /// </summary>
 [McpServerToolType]
-public static class TestStyleChecker
+public sealed class TestStyleChecker : IChecker
 {
+    /// <inheritdoc />
+    public string ToolName
+        => "check_tests_style";
+
     /// <summary>
     /// Checks C# test source code for test style violations.
     /// </summary>
@@ -27,23 +31,32 @@ public static class TestStyleChecker
         "no XML doc comments on test classes or test methods, " +
         "Assert.Multiple() is required when a test method has more than one Assert call, " +
         ".ConfigureAwait() must not be called inside test methods (xUnit1030), " +
-        "and when fileName/productionNamespace are provided, validates that the test file " +
+        "and when data is provided, validates that the test file " +
         "mirrors the production structure (file name ends with 'Tests' before extensions, namespace mirrors production).")]
-    public static string Check(
+    public string Check(
         [Description("The C# test source code to check.")]
-        string sourceCode,
-        [Description("The test file name (e.g., 'UserServiceTests.cs'). When provided, validates the name (without extensions) ends with 'Tests'. Supports .cs, .razor, and .razor.cs files.")]
-        string? fileName = null,
-        [Description("The production namespace to mirror (e.g., 'MyApp.Services'). When provided, validates the test namespace mirrors it with a '.Tests' segment inserted.")]
-        string? productionNamespace = null)
+        string content,
+        [Description("Optional comma-separated metadata: fileName,productionNamespace. " +
+            "fileName (e.g., 'UserServiceTests.cs') validates the name ends with 'Tests' before extensions. " +
+            "productionNamespace (e.g., 'MyApp.Services') validates the test namespace mirrors it.")]
+        string? data = null)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(sourceCode);
+        ArgumentException.ThrowIfNullOrWhiteSpace(content);
 
-        var tree = CSharpSyntaxTree.ParseText(sourceCode);
+        var parts = data?.Split(',', 2);
+        var fileName = parts is [{ Length: > 0 } f, ..] ? f : null;
+        var productionNamespace = parts is [_, { Length: > 0 } ns] ? ns : null;
+
+        var tree = CSharpSyntaxTree.ParseText(content);
         var root = tree.GetRoot();
         var violations = new List<string>();
 
         var testClasses = FindTestClasses(root);
+
+        if (testClasses.Count == 0)
+        {
+            return "✅ Test style is correct.";
+        }
 
         CheckFileNameConvention(fileName, violations);
         CheckNamespaceMirroring(root, productionNamespace, violations);

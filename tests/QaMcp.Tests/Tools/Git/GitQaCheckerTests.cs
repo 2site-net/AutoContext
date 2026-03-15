@@ -12,7 +12,7 @@ public sealed class GitQaCheckerTests
         var message = "feat(auth): add token refresh";
 
         // Act
-        var result = GitQaChecker.Check(message);
+        var result = new GitQaChecker().Check(message);
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -25,7 +25,7 @@ public sealed class GitQaCheckerTests
         var message = "added token refresh support";
 
         // Act
-        var result = GitQaChecker.Check(message);
+        var result = new GitQaChecker().Check(message);
 
         // Assert
         Assert.StartsWith("❌", result);
@@ -43,7 +43,7 @@ public sealed class GitQaCheckerTests
             """;
 
         // Act
-        var result = GitQaChecker.Check(message.TrimStart());
+        var result = new GitQaChecker().Check(message.TrimStart());
 
         // Assert
         Assert.StartsWith("❌", result);
@@ -52,7 +52,7 @@ public sealed class GitQaCheckerTests
     [Fact]
     public void Should_throw_on_null_or_whitespace_message()
     {
-        Assert.Throws<ArgumentException>(() => GitQaChecker.Check(""));
-        Assert.Throws<ArgumentException>(() => GitQaChecker.Check("   "));
+        Assert.Throws<ArgumentException>(() => new GitQaChecker().Check(""));
+        Assert.Throws<ArgumentException>(() => new GitQaChecker().Check("   "));
     }
 }

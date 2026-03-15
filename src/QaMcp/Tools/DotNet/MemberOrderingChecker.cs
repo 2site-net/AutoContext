@@ -12,8 +12,12 @@ using ModelContextProtocol.Server;
 /// Validates that type members are ordered by kind, access level, and static-before-instance.
 /// </summary>
 [McpServerToolType]
-public static class MemberOrderingChecker
+public sealed class MemberOrderingChecker : IChecker
 {
+    /// <inheritdoc />
+    public string ToolName
+        => "check_member_ordering";
+
     private enum MemberKind
     {
         Constant = 0,
@@ -50,13 +54,14 @@ public static class MemberOrderingChecker
         "enums → properties → indexers → methods → operators → nested types, " +
         "then public → private, then static before instance, then alphabetically. " +
         "Test classes (with [Fact], [Theory], [Test], or [TestCase] methods) are skipped.")]
-    public static string Check(
+    public string Check(
         [Description("The C# source code to check.")]
-        string sourceCode)
+        string content,
+        string? data = null)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(sourceCode);
+        ArgumentException.ThrowIfNullOrWhiteSpace(content);
 
-        var tree = CSharpSyntaxTree.ParseText(sourceCode);
+        var tree = CSharpSyntaxTree.ParseText(content);
         var root = tree.GetRoot();
         var violations = new List<string>();
 

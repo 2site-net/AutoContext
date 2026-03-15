@@ -9,7 +9,7 @@ using ModelContextProtocol.Server;
 /// Validates git commit message formatting against Conventional Commits and line-length rules.
 /// </summary>
 [McpServerToolType]
-public static partial class CommitFormatValidator
+public sealed partial class CommitFormatChecker : IChecker
 {
     private const int MaxSubjectLength = 50;
     private const int MaxBodyLineLength = 72;
@@ -20,6 +20,10 @@ public static partial class CommitFormatValidator
         "perf", "test", "build", "ci", "chore", "revert",
     ];
 
+    /// <inheritdoc />
+    public string ToolName
+        => "validate_commit_format";
+
     /// <summary>
     /// Validates a git commit message for Conventional Commits formatting rules.
     /// </summary>
@@ -28,14 +32,15 @@ public static partial class CommitFormatValidator
         "Validates a git commit message for Conventional Commits formatting: " +
         "type(scope): description, subject ≤ 50 chars, body wrap at 72 chars, " +
         "blank line between subject and body.")]
-    public static string Validate(
+    public string Check(
         [Description("The full git commit message to validate.")]
-        string commitMessage)
+        string content,
+        string? data = null)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(commitMessage);
+        ArgumentException.ThrowIfNullOrWhiteSpace(content);
 
         var violations = new List<string>();
-        var lines = commitMessage.ReplaceLineEndings("\n").Split('\n');
+        var lines = content.ReplaceLineEndings("\n").Split('\n');
         var subject = lines[0];
 
         ValidateSubjectFormat(subject, violations);

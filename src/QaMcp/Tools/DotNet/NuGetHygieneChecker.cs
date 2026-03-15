@@ -11,8 +11,12 @@ using ModelContextProtocol.Server;
 /// and flags packages that have well-known built-in .NET alternatives.
 /// </summary>
 [McpServerToolType]
-public static class NuGetHygieneChecker
+public sealed class NuGetHygieneChecker : IChecker
 {
+    /// <inheritdoc />
+    public string ToolName
+        => "check_nuget_hygiene";
+
     /// <summary>
     /// Maps package names (case-insensitive) to their built-in .NET alternative.
     /// </summary>
@@ -37,17 +41,18 @@ public static class NuGetHygieneChecker
         "no floating or wildcard versions (e.g., '*', version ranges), " +
         "no PackageReference without a Version attribute (unless Central Package Management is enabled via ManagePackageVersionsCentrally), " +
         "and flags packages that have well-known built-in .NET alternatives.")]
-    public static string Check(
+    public string Check(
         [Description("The .csproj file content (XML) to check.")]
-        string projectFileContent)
+        string content,
+        string? data = null)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(projectFileContent);
+        ArgumentException.ThrowIfNullOrWhiteSpace(content);
 
         XDocument doc;
 
         try
         {
-            doc = XDocument.Parse(projectFileContent);
+            doc = XDocument.Parse(content);
         }
         catch (System.Xml.XmlException ex)
         {

@@ -20,7 +20,7 @@ public sealed class NuGetHygieneCheckerTests
             """;
 
         // Act
-        var result = NuGetHygieneChecker.Check(csproj);
+        var result = new NuGetHygieneChecker().Check(csproj);
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -40,7 +40,7 @@ public sealed class NuGetHygieneCheckerTests
             """;
 
         // Act
-        var result = NuGetHygieneChecker.Check(csproj);
+        var result = new NuGetHygieneChecker().Check(csproj);
 
         // Assert
         Assert.Multiple(() =>
@@ -64,7 +64,7 @@ public sealed class NuGetHygieneCheckerTests
             """;
 
         // Act
-        var result = NuGetHygieneChecker.Check(csproj);
+        var result = new NuGetHygieneChecker().Check(csproj);
 
         // Assert
         Assert.DoesNotContain("Duplicate", result);
@@ -87,7 +87,7 @@ public sealed class NuGetHygieneCheckerTests
             """;
 
         // Act
-        var result = NuGetHygieneChecker.Check(csproj);
+        var result = new NuGetHygieneChecker().Check(csproj);
 
         // Assert
         Assert.Multiple(() =>
@@ -111,7 +111,7 @@ public sealed class NuGetHygieneCheckerTests
             """;
 
         // Act
-        var result = NuGetHygieneChecker.Check(csproj);
+        var result = new NuGetHygieneChecker().Check(csproj);
 
         // Assert
         Assert.DoesNotContain("floating", result);
@@ -130,7 +130,7 @@ public sealed class NuGetHygieneCheckerTests
             """;
 
         // Act
-        var result = NuGetHygieneChecker.Check(csproj);
+        var result = new NuGetHygieneChecker().Check(csproj);
 
         // Assert
         Assert.Multiple(() =>
@@ -156,7 +156,7 @@ public sealed class NuGetHygieneCheckerTests
             """;
 
         // Act
-        var result = NuGetHygieneChecker.Check(csproj);
+        var result = new NuGetHygieneChecker().Check(csproj);
 
         // Assert
         Assert.DoesNotContain("no Version specified", result);
@@ -178,7 +178,7 @@ public sealed class NuGetHygieneCheckerTests
             """;
 
         // Act
-        var result = NuGetHygieneChecker.Check(csproj);
+        var result = new NuGetHygieneChecker().Check(csproj);
 
         // Assert
         Assert.Multiple(() =>
@@ -201,7 +201,7 @@ public sealed class NuGetHygieneCheckerTests
             """;
 
         // Act
-        var result = NuGetHygieneChecker.Check(csproj);
+        var result = new NuGetHygieneChecker().Check(csproj);
 
         // Assert
         Assert.DoesNotContain("built-in", result);
@@ -222,7 +222,7 @@ public sealed class NuGetHygieneCheckerTests
             """;
 
         // Act
-        var result = NuGetHygieneChecker.Check(csproj);
+        var result = new NuGetHygieneChecker().Check(csproj);
 
         // Assert
         Assert.Multiple(() =>
@@ -250,7 +250,7 @@ public sealed class NuGetHygieneCheckerTests
             """;
 
         // Act
-        var result = NuGetHygieneChecker.Check(csproj);
+        var result = new NuGetHygieneChecker().Check(csproj);
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -263,7 +263,7 @@ public sealed class NuGetHygieneCheckerTests
         var badXml = "<Project><ItemGroup><PackageReference";
 
         // Act
-        var result = NuGetHygieneChecker.Check(badXml);
+        var result = new NuGetHygieneChecker().Check(badXml);
 
         // Assert
         Assert.Multiple(() =>
@@ -287,7 +287,7 @@ public sealed class NuGetHygieneCheckerTests
             """;
 
         // Act
-        var result = NuGetHygieneChecker.Check(csproj);
+        var result = new NuGetHygieneChecker().Check(csproj);
 
         // Assert
         Assert.Contains("Duplicate", result);
@@ -305,7 +305,7 @@ public sealed class NuGetHygieneCheckerTests
             """;
 
         // Act
-        var result = NuGetHygieneChecker.Check(csproj);
+        var result = new NuGetHygieneChecker().Check(csproj);
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -324,7 +324,7 @@ public sealed class NuGetHygieneCheckerTests
             """;
 
         // Act
-        var result = NuGetHygieneChecker.Check(csproj);
+        var result = new NuGetHygieneChecker().Check(csproj);
 
         // Assert
         Assert.Contains("built-in .NET alternative", result);
@@ -336,13 +336,13 @@ public sealed class NuGetHygieneCheckerTests
     public void Should_throw_on_empty_or_whitespace_input(string input)
     {
         // Act & Assert
-        Assert.Throws<ArgumentException>(() => NuGetHygieneChecker.Check(input));
+        Assert.Throws<ArgumentException>(() => new NuGetHygieneChecker().Check(input));
     }
 
     [Fact]
     public void Should_throw_on_null_input()
     {
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() => NuGetHygieneChecker.Check(null!));
+        Assert.Throws<ArgumentNullException>(() => new NuGetHygieneChecker().Check(null!));
     }
 }

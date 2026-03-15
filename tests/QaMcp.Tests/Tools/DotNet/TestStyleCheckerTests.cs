@@ -20,7 +20,7 @@ public sealed class TestStyleCheckerTests
             """;
 
         // Act
-        var result = TestStyleChecker.Check(source);
+        var result = new TestStyleChecker().Check(source);
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -42,7 +42,7 @@ public sealed class TestStyleCheckerTests
             """;
 
         // Act
-        var result = TestStyleChecker.Check(source);
+        var result = new TestStyleChecker().Check(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -68,7 +68,7 @@ public sealed class TestStyleCheckerTests
             """;
 
         // Act
-        var result = TestStyleChecker.Check(source);
+        var result = new TestStyleChecker().Check(source);
 
         // Assert
         Assert.DoesNotContain("suffixed", result);
@@ -90,7 +90,7 @@ public sealed class TestStyleCheckerTests
             """;
 
         // Act
-        var result = TestStyleChecker.Check(source);
+        var result = new TestStyleChecker().Check(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -119,7 +119,7 @@ public sealed class TestStyleCheckerTests
             """;
 
         // Act
-        var result = TestStyleChecker.Check(source);
+        var result = new TestStyleChecker().Check(source);
 
         // Assert
         Assert.DoesNotContain("must start with", result);
@@ -142,7 +142,7 @@ public sealed class TestStyleCheckerTests
             """;
 
         // Act
-        var result = TestStyleChecker.Check(source);
+        var result = new TestStyleChecker().Check(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -170,7 +170,7 @@ public sealed class TestStyleCheckerTests
             """;
 
         // Act
-        var result = TestStyleChecker.Check(source);
+        var result = new TestStyleChecker().Check(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -197,7 +197,7 @@ public sealed class TestStyleCheckerTests
             """;
 
         // Act
-        var result = TestStyleChecker.Check(source);
+        var result = new TestStyleChecker().Check(source);
 
         // Assert
         Assert.DoesNotContain("XML doc", result);
@@ -220,7 +220,7 @@ public sealed class TestStyleCheckerTests
             """;
 
         // Act
-        var result = TestStyleChecker.Check(source);
+        var result = new TestStyleChecker().Check(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -251,7 +251,7 @@ public sealed class TestStyleCheckerTests
             """;
 
         // Act
-        var result = TestStyleChecker.Check(source);
+        var result = new TestStyleChecker().Check(source);
 
         // Assert
         Assert.DoesNotContain("Assert.Multiple", result);
@@ -273,7 +273,7 @@ public sealed class TestStyleCheckerTests
             """;
 
         // Act
-        var result = TestStyleChecker.Check(source);
+        var result = new TestStyleChecker().Check(source);
 
         // Assert
         Assert.DoesNotContain("Assert.Multiple", result);
@@ -295,7 +295,7 @@ public sealed class TestStyleCheckerTests
             """;
 
         // Act
-        var result = TestStyleChecker.Check(source);
+        var result = new TestStyleChecker().Check(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -322,7 +322,7 @@ public sealed class TestStyleCheckerTests
             """;
 
         // Act
-        var result = TestStyleChecker.Check(source);
+        var result = new TestStyleChecker().Check(source);
 
         // Assert
         Assert.DoesNotContain("ConfigureAwait", result);
@@ -347,7 +347,7 @@ public sealed class TestStyleCheckerTests
             """;
 
         // Act
-        var result = TestStyleChecker.Check(source);
+        var result = new TestStyleChecker().Check(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -374,7 +374,7 @@ public sealed class TestStyleCheckerTests
             """;
 
         // Act
-        var result = TestStyleChecker.Check(source);
+        var result = new TestStyleChecker().Check(source);
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -397,7 +397,7 @@ public sealed class TestStyleCheckerTests
             """;
 
         // Act
-        var result = TestStyleChecker.Check(source);
+        var result = new TestStyleChecker().Check(source);
 
         // Assert
         Assert.Contains("must start with 'Should_'", result);
@@ -421,7 +421,7 @@ public sealed class TestStyleCheckerTests
             """;
 
         // Act
-        var result = TestStyleChecker.Check(source);
+        var result = new TestStyleChecker().Check(source);
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -443,7 +443,7 @@ public sealed class TestStyleCheckerTests
             """;
 
         // Act
-        var result = TestStyleChecker.Check(source, fileName: "UserService.cs");
+        var result = new TestStyleChecker().Check(source, "UserService.cs");
 
         // Assert
         Assert.Multiple(() =>
@@ -469,7 +469,7 @@ public sealed class TestStyleCheckerTests
             """;
 
         // Act
-        var result = TestStyleChecker.Check(source, fileName: "UserServiceTests.cs");
+        var result = new TestStyleChecker().Check(source, "UserServiceTests.cs");
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -493,7 +493,7 @@ public sealed class TestStyleCheckerTests
             """;
 
         // Act
-        var result = TestStyleChecker.Check(source, fileName: fileName);
+        var result = new TestStyleChecker().Check(source, fileName);
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -517,7 +517,7 @@ public sealed class TestStyleCheckerTests
             """;
 
         // Act
-        var result = TestStyleChecker.Check(source, fileName: fileName);
+        var result = new TestStyleChecker().Check(source, fileName);
 
         // Assert
         Assert.Multiple(() =>
@@ -545,7 +545,7 @@ public sealed class TestStyleCheckerTests
             """;
 
         // Act
-        var result = TestStyleChecker.Check(source, productionNamespace: "MyApp.Services");
+        var result = new TestStyleChecker().Check(source, ",MyApp.Services");
 
         // Assert
         Assert.Multiple(() =>
@@ -574,7 +574,7 @@ public sealed class TestStyleCheckerTests
             """;
 
         // Act
-        var result = TestStyleChecker.Check(source, productionNamespace: "MyApp.Services");
+        var result = new TestStyleChecker().Check(source, ",MyApp.Services");
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -598,7 +598,7 @@ public sealed class TestStyleCheckerTests
             """;
 
         // Act
-        var result = TestStyleChecker.Check(source, productionNamespace: "MyApp");
+        var result = new TestStyleChecker().Check(source, ",MyApp");
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -622,7 +622,7 @@ public sealed class TestStyleCheckerTests
             """;
 
         // Act
-        var result = TestStyleChecker.Check(source, productionNamespace: "MyApp.Data.Repositories");
+        var result = new TestStyleChecker().Check(source, ",MyApp.Data.Repositories");
 
         // Assert
         Assert.Multiple(() =>
@@ -650,7 +650,7 @@ public sealed class TestStyleCheckerTests
             """;
 
         // Act
-        var result = TestStyleChecker.Check(source, productionNamespace: "MyApp.Data.Repositories");
+        var result = new TestStyleChecker().Check(source, ",MyApp.Data.Repositories");
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -674,7 +674,7 @@ public sealed class TestStyleCheckerTests
             """;
 
         // Act
-        var result = TestStyleChecker.Check(source);
+        var result = new TestStyleChecker().Check(source);
 
         // Assert
         Assert.DoesNotContain("mirror", result);
@@ -699,7 +699,7 @@ public sealed class TestStyleCheckerTests
             """;
 
         // Act
-        var result = TestStyleChecker.Check(source, productionNamespace: "MyApp.Services");
+        var result = new TestStyleChecker().Check(source, ",MyApp.Services");
 
         // Assert
         Assert.Contains("does not mirror", result);
@@ -711,13 +711,13 @@ public sealed class TestStyleCheckerTests
     public void Should_throw_on_empty_or_whitespace_input(string input)
     {
         // Act & Assert
-        Assert.Throws<ArgumentException>(() => TestStyleChecker.Check(input));
+        Assert.Throws<ArgumentException>(() => new TestStyleChecker().Check(input));
     }
 
     [Fact]
     public void Should_throw_on_null_input()
     {
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() => TestStyleChecker.Check(null!));
+        Assert.Throws<ArgumentNullException>(() => new TestStyleChecker().Check(null!));
     }
 }

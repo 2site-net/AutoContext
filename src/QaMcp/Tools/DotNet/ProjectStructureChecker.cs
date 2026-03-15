@@ -13,8 +13,12 @@ using ModelContextProtocol.Server;
 /// single type per file, file name matches type name, and no #pragma warning disable.
 /// </summary>
 [McpServerToolType]
-public static class ProjectStructureChecker
+public sealed class ProjectStructureChecker : IChecker
 {
+    /// <inheritdoc />
+    public string ToolName
+        => "check_project_structure";
+
     /// <summary>
     /// Checks C# source code for project structure violations.
     /// </summary>
@@ -25,15 +29,18 @@ public static class ProjectStructureChecker
         "only one top-level type declaration per file is allowed, " +
         "the file name (without extension) must match the type name when provided, " +
         "and #pragma warning disable is not allowed (use [SuppressMessage] with a justification instead).")]
-    public static string Check(
+    public string Check(
         [Description("The C# source code to check.")]
-        string sourceCode,
-        [Description("The file name (e.g., 'MyClass.cs'). When provided, validates that the file name matches the declared type name.")]
-        string? fileName = null)
+        string content,
+        [Description("Optional comma-separated metadata. The first segment is the file name " +
+            "(e.g., 'MyClass.cs') — when provided, validates that it matches the declared type name.")]
+        string? data = null)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(sourceCode);
+        ArgumentException.ThrowIfNullOrWhiteSpace(content);
 
-        var tree = CSharpSyntaxTree.ParseText(sourceCode);
+        var fileName = data?.Split(',', 2) is [{ Length: > 0 } f, ..] ? f : null;
+
+        var tree = CSharpSyntaxTree.ParseText(content);
         var root = tree.GetRoot();
         var violations = new List<string>();
 

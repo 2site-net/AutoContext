@@ -14,8 +14,12 @@ using ModelContextProtocol.Server;
 /// XML, not C# source code.
 /// </remarks>
 [McpServerToolType]
-public static class DotNetQaChecker
+public sealed class DotNetQaChecker : IChecker
 {
+    /// <inheritdoc />
+    public string ToolName
+        => "check_dotnet";
+
     /// <summary>
     /// Runs all enabled .NET code quality checks on the supplied C# source code.
     /// </summary>
@@ -25,52 +29,37 @@ public static class DotNetQaChecker
         "Covers code style, member ordering, naming conventions, async patterns, nullable context, " +
         "project structure, and test style. " +
         "Prefer this over calling individual check tools unless you only need a specific check. " +
-        "Does not include NuGet hygiene (use check_nuget_hygiene separately for project files).")]
-    public static string Check(
+        "Does not include NuGet hygiene (use check_nuget_hygiene separately for project files). " +
+        "When data is provided, expects comma-separated fileName,productionNamespace.")]
+    public string Check(
         [Description("The C# source code to check.")]
-        string sourceCode,
-        [Description("The file name (e.g., 'MyClass.cs'). When provided, validates that the file name matches the declared type name.")]
-        string? fileName = null,
-        [Description("The root namespace of the production code (e.g., 'MyApp.Services'). When provided, validates that test file structure mirrors the production structure.")]
-        string? productionNamespace = null)
+        string content,
+        [Description("Optional comma-separated metadata: fileName,productionNamespace. " +
+            "fileName (e.g., 'MyClass.cs') validates the file name matches the declared type. " +
+            "productionNamespace (e.g., 'MyApp.Services') validates test namespace mirroring.")]
+        string? data = null)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(sourceCode);
+        ArgumentException.ThrowIfNullOrWhiteSpace(content);
 
         var sections = new List<string>();
 
-        if (ToolsStatusConfig.IsEnabled("check_code_style"))
-        {
-            sections.Add(CodeStyleChecker.Check(sourceCode));
-        }
+        IChecker[] checkers =
+        [
+            new CodeStyleChecker(),
+            new MemberOrderingChecker(),
+            new NamingConventionsChecker(),
+            new AsyncPatternChecker(),
+            new NullableContextChecker(),
+            new ProjectStructureChecker(),
+            new TestStyleChecker(),
+        ];
 
-        if (ToolsStatusConfig.IsEnabled("check_member_ordering"))
+        foreach (var checker in checkers)
         {
-            sections.Add(MemberOrderingChecker.Check(sourceCode));
-        }
-
-        if (ToolsStatusConfig.IsEnabled("check_naming_conventions"))
-        {
-            sections.Add(NamingConventionsChecker.Check(sourceCode));
-        }
-
-        if (ToolsStatusConfig.IsEnabled("check_async_patterns"))
-        {
-            sections.Add(AsyncPatternChecker.Check(sourceCode));
-        }
-
-        if (ToolsStatusConfig.IsEnabled("check_nullable_context"))
-        {
-            sections.Add(NullableContextChecker.Check(sourceCode));
-        }
-
-        if (ToolsStatusConfig.IsEnabled("check_project_structure"))
-        {
-            sections.Add(ProjectStructureChecker.Check(sourceCode, fileName));
-        }
-
-        if (ToolsStatusConfig.IsEnabled("check_tests_style") && IsLikelyTestFile(fileName))
-        {
-            sections.Add(TestStyleChecker.Check(sourceCode, fileName, productionNamespace));
+            if (ToolsStatusConfig.IsEnabled(checker.ToolName))
+            {
+                sections.Add(checker.Check(content, data));
+            }
         }
 
         if (sections.Count == 0)
@@ -86,23 +75,5 @@ public static class DotNetQaChecker
         }
 
         return string.Join("\n\n", failures);
-    }
-
-    /// <summary>
-    /// Returns <see langword="true"/> when <paramref name="fileName"/> is absent
-    /// (unknown context) or its base name ends with <c>Tests</c>.
-    /// </summary>
-    private static bool IsLikelyTestFile(string? fileName)
-    {
-        if (string.IsNullOrWhiteSpace(fileName))
-        {
-            return true;
-        }
-
-        var name = Path.GetFileName(fileName);
-        var dotIndex = name.IndexOf('.', StringComparison.Ordinal);
-        var baseName = dotIndex < 0 ? name : name[..dotIndex];
-
-        return baseName.EndsWith("Tests", StringComparison.Ordinal);
     }
 }

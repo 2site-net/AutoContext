@@ -14,8 +14,12 @@ using ModelContextProtocol.Server;
 /// types/methods/properties/events, and camelCase for parameters.
 /// </summary>
 [McpServerToolType]
-public static class NamingConventionsChecker
+public sealed class NamingConventionsChecker : IChecker
 {
+    /// <inheritdoc />
+    public string ToolName
+        => "check_naming_conventions";
+
     /// <summary>
     /// Checks C# source code for naming convention violations.
     /// </summary>
@@ -28,13 +32,14 @@ public static class NamingConventionsChecker
         "private non-static instance fields must use _camelCase, " +
         "types, methods, properties, and events must use PascalCase, " +
         "and method/constructor/delegate parameters must use camelCase.")]
-    public static string Check(
+    public string Check(
         [Description("The C# source code to check.")]
-        string sourceCode)
+        string content,
+        string? data = null)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(sourceCode);
+        ArgumentException.ThrowIfNullOrWhiteSpace(content);
 
-        var tree = CSharpSyntaxTree.ParseText(sourceCode);
+        var tree = CSharpSyntaxTree.ParseText(content);
         var root = tree.GetRoot();
         var violations = new List<string>();
 

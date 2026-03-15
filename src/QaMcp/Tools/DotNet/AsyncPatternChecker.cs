@@ -14,8 +14,12 @@ using ModelContextProtocol.Server;
 /// expressions in non-test code must use .ConfigureAwait(false).
 /// </summary>
 [McpServerToolType]
-public static class AsyncPatternChecker
+public sealed class AsyncPatternChecker : IChecker
 {
+    /// <inheritdoc />
+    public string ToolName
+        => "check_async_patterns";
+
     /// <summary>
     /// Checks C# source code for async/await pattern violations.
     /// </summary>
@@ -25,13 +29,14 @@ public static class AsyncPatternChecker
         "async void is not allowed except for event handlers (two-parameter methods where the last parameter type contains 'EventArgs'), " +
         "public async methods (non-void, non-override) must include a CancellationToken parameter, " +
         "and all await expressions in non-test code must use .ConfigureAwait(false).")]
-    public static string Check(
+    public string Check(
         [Description("The C# source code to check.")]
-        string sourceCode)
+        string content,
+        string? data = null)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(sourceCode);
+        ArgumentException.ThrowIfNullOrWhiteSpace(content);
 
-        var tree = CSharpSyntaxTree.ParseText(sourceCode);
+        var tree = CSharpSyntaxTree.ParseText(content);
         var root = tree.GetRoot();
         var violations = new List<string>();
 

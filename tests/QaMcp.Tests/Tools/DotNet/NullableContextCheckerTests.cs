@@ -21,7 +21,7 @@ public sealed class NullableContextCheckerTests
             """;
 
         // Act
-        var result = NullableContextChecker.Check(source);
+        var result = new NullableContextChecker().Check(source);
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -41,7 +41,7 @@ public sealed class NullableContextCheckerTests
             """;
 
         // Act
-        var result = NullableContextChecker.Check(source);
+        var result = new NullableContextChecker().Check(source);
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -61,7 +61,7 @@ public sealed class NullableContextCheckerTests
             """;
 
         // Act
-        var result = NullableContextChecker.Check(source);
+        var result = new NullableContextChecker().Check(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -88,7 +88,7 @@ public sealed class NullableContextCheckerTests
             """;
 
         // Act
-        var result = NullableContextChecker.Check(source);
+        var result = new NullableContextChecker().Check(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -113,7 +113,7 @@ public sealed class NullableContextCheckerTests
             """;
 
         // Act
-        var result = NullableContextChecker.Check(source);
+        var result = new NullableContextChecker().Check(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -142,7 +142,7 @@ public sealed class NullableContextCheckerTests
             """;
 
         // Act
-        var result = NullableContextChecker.Check(source);
+        var result = new NullableContextChecker().Check(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -168,7 +168,7 @@ public sealed class NullableContextCheckerTests
             """;
 
         // Act
-        var result = NullableContextChecker.Check(source);
+        var result = new NullableContextChecker().Check(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -195,7 +195,7 @@ public sealed class NullableContextCheckerTests
             """;
 
         // Act
-        var result = NullableContextChecker.Check(source);
+        var result = new NullableContextChecker().Check(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -211,13 +211,13 @@ public sealed class NullableContextCheckerTests
     public void Should_throw_on_empty_or_whitespace_input(string input)
     {
         // Act & Assert
-        Assert.Throws<ArgumentException>(() => NullableContextChecker.Check(input));
+        Assert.Throws<ArgumentException>(() => new NullableContextChecker().Check(input));
     }
 
     [Fact]
     public void Should_throw_on_null_input()
     {
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() => NullableContextChecker.Check(null!));
+        Assert.Throws<ArgumentNullException>(() => new NullableContextChecker().Check(null!));
     }
 }

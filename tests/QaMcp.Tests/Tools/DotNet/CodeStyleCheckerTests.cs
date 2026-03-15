@@ -32,7 +32,7 @@ public sealed class CodeStyleCheckerTests
             """;
 
         // Act
-        var result = CodeStyleChecker.Check(source);
+        var result = new CodeStyleChecker().Check(source);
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -52,7 +52,7 @@ public sealed class CodeStyleCheckerTests
             """;
 
         // Act
-        var result = CodeStyleChecker.Check(source);
+        var result = new CodeStyleChecker().Check(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -80,7 +80,7 @@ public sealed class CodeStyleCheckerTests
             """;
 
         // Act
-        var result = CodeStyleChecker.Check(source);
+        var result = new CodeStyleChecker().Check(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -103,7 +103,7 @@ public sealed class CodeStyleCheckerTests
             """;
 
         // Act
-        var result = CodeStyleChecker.Check(source);
+        var result = new CodeStyleChecker().Check(source);
 
         // Assert
         Assert.DoesNotContain("Decorative", result);
@@ -127,7 +127,7 @@ public sealed class CodeStyleCheckerTests
             """;
 
         // Act
-        var result = CodeStyleChecker.Check(source);
+        var result = new CodeStyleChecker().Check(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -155,7 +155,7 @@ public sealed class CodeStyleCheckerTests
             """;
 
         // Act
-        var result = CodeStyleChecker.Check(source);
+        var result = new CodeStyleChecker().Check(source);
 
         // Assert
         Assert.DoesNotContain("curly braces", result);
@@ -179,7 +179,7 @@ public sealed class CodeStyleCheckerTests
             """;
 
         // Act
-        var result = CodeStyleChecker.Check(source);
+        var result = new CodeStyleChecker().Check(source);
 
         // Assert
         Assert.DoesNotContain("curly braces", result);
@@ -203,7 +203,7 @@ public sealed class CodeStyleCheckerTests
             """;
 
         // Act
-        var result = CodeStyleChecker.Check(source);
+        var result = new CodeStyleChecker().Check(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -231,7 +231,7 @@ public sealed class CodeStyleCheckerTests
             """;
 
         // Act
-        var result = CodeStyleChecker.Check(source);
+        var result = new CodeStyleChecker().Check(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -260,7 +260,7 @@ public sealed class CodeStyleCheckerTests
             """;
 
         // Act
-        var result = CodeStyleChecker.Check(source);
+        var result = new CodeStyleChecker().Check(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -289,7 +289,7 @@ public sealed class CodeStyleCheckerTests
             """;
 
         // Act
-        var result = CodeStyleChecker.Check(source);
+        var result = new CodeStyleChecker().Check(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -317,7 +317,7 @@ public sealed class CodeStyleCheckerTests
             """;
 
         // Act
-        var result = CodeStyleChecker.Check(source);
+        var result = new CodeStyleChecker().Check(source);
 
         // Assert
         Assert.DoesNotContain("blank line before", result);
@@ -335,7 +335,7 @@ public sealed class CodeStyleCheckerTests
             """;
 
         // Act
-        var result = CodeStyleChecker.Check(source);
+        var result = new CodeStyleChecker().Check(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -359,7 +359,7 @@ public sealed class CodeStyleCheckerTests
             """;
 
         // Act
-        var result = CodeStyleChecker.Check(source);
+        var result = new CodeStyleChecker().Check(source);
 
         // Assert
         Assert.DoesNotContain("Expression-body arrow", result);
@@ -379,7 +379,7 @@ public sealed class CodeStyleCheckerTests
             """;
 
         // Act
-        var result = CodeStyleChecker.Check(source);
+        var result = new CodeStyleChecker().Check(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -404,7 +404,7 @@ public sealed class CodeStyleCheckerTests
             """;
 
         // Act
-        var result = CodeStyleChecker.Check(source);
+        var result = new CodeStyleChecker().Check(source);
 
         // Assert
         Assert.DoesNotContain("Expression-body arrow", result);
@@ -425,7 +425,7 @@ public sealed class CodeStyleCheckerTests
             """;
 
         // Act
-        var result = CodeStyleChecker.Check(source);
+        var result = new CodeStyleChecker().Check(source);
 
         // Assert
         Assert.DoesNotContain("Expression-body arrow", result);
@@ -447,7 +447,7 @@ public sealed class CodeStyleCheckerTests
             """;
 
         // Act
-        var result = CodeStyleChecker.Check(source);
+        var result = new CodeStyleChecker().Check(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -464,14 +464,14 @@ public sealed class CodeStyleCheckerTests
     public void Should_throw_on_empty_or_whitespace_input(string input)
     {
         // Act & Assert
-        Assert.Throws<ArgumentException>(() => CodeStyleChecker.Check(input));
+        Assert.Throws<ArgumentException>(() => new CodeStyleChecker().Check(input));
     }
 
     [Fact]
     public void Should_throw_on_null_input()
     {
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() => CodeStyleChecker.Check(null!));
+        Assert.Throws<ArgumentNullException>(() => new CodeStyleChecker().Check(null!));
     }
 
     [Fact]
@@ -490,7 +490,7 @@ public sealed class CodeStyleCheckerTests
             """;
 
         // Act
-        var result = CodeStyleChecker.Check(source);
+        var result = new CodeStyleChecker().Check(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -519,7 +519,7 @@ public sealed class CodeStyleCheckerTests
             """;
 
         // Act
-        var result = CodeStyleChecker.Check(source);
+        var result = new CodeStyleChecker().Check(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -549,7 +549,7 @@ public sealed class CodeStyleCheckerTests
             """;
 
         // Act
-        var result = CodeStyleChecker.Check(source);
+        var result = new CodeStyleChecker().Check(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -581,7 +581,7 @@ public sealed class CodeStyleCheckerTests
             """;
 
         // Act
-        var result = CodeStyleChecker.Check(source);
+        var result = new CodeStyleChecker().Check(source);
 
         // Assert
         Assert.DoesNotContain("curly braces", result);
@@ -606,7 +606,7 @@ public sealed class CodeStyleCheckerTests
             """;
 
         // Act
-        var result = CodeStyleChecker.Check(source);
+        var result = new CodeStyleChecker().Check(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -638,7 +638,7 @@ public sealed class CodeStyleCheckerTests
             """;
 
         // Act
-        var result = CodeStyleChecker.Check(source);
+        var result = new CodeStyleChecker().Check(source);
 
         // Assert
         Assert.DoesNotContain("curly braces", result);
@@ -662,7 +662,7 @@ public sealed class CodeStyleCheckerTests
             """;
 
         // Act
-        var result = CodeStyleChecker.Check(source);
+        var result = new CodeStyleChecker().Check(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -694,7 +694,7 @@ public sealed class CodeStyleCheckerTests
             """;
 
         // Act
-        var result = CodeStyleChecker.Check(source);
+        var result = new CodeStyleChecker().Check(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -725,7 +725,7 @@ public sealed class CodeStyleCheckerTests
             """;
 
         // Act
-        var result = CodeStyleChecker.Check(source);
+        var result = new CodeStyleChecker().Check(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -758,7 +758,7 @@ public sealed class CodeStyleCheckerTests
             """;
 
         // Act
-        var result = CodeStyleChecker.Check(source);
+        var result = new CodeStyleChecker().Check(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -792,7 +792,7 @@ public sealed class CodeStyleCheckerTests
             """;
 
         // Act
-        var result = CodeStyleChecker.Check(source);
+        var result = new CodeStyleChecker().Check(source);
 
         // Assert
         Assert.DoesNotContain("blank line before", result);
@@ -810,7 +810,7 @@ public sealed class CodeStyleCheckerTests
             """;
 
         // Act
-        var result = CodeStyleChecker.Check(source);
+        var result = new CodeStyleChecker().Check(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -836,7 +836,7 @@ public sealed class CodeStyleCheckerTests
             """;
 
         // Act
-        var result = CodeStyleChecker.Check(source);
+        var result = new CodeStyleChecker().Check(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -862,7 +862,7 @@ public sealed class CodeStyleCheckerTests
             """;
 
         // Act
-        var result = CodeStyleChecker.Check(source);
+        var result = new CodeStyleChecker().Check(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -888,7 +888,7 @@ public sealed class CodeStyleCheckerTests
             """;
 
         // Act
-        var result = CodeStyleChecker.Check(source);
+        var result = new CodeStyleChecker().Check(source);
 
         // Assert
         Assert.DoesNotContain("XML doc", result);
@@ -909,7 +909,7 @@ public sealed class CodeStyleCheckerTests
             """;
 
         // Act
-        var result = CodeStyleChecker.Check(source);
+        var result = new CodeStyleChecker().Check(source);
 
         // Assert
         Assert.DoesNotContain("XML doc", result);
@@ -930,7 +930,7 @@ public sealed class CodeStyleCheckerTests
             """;
 
         // Act
-        var result = CodeStyleChecker.Check(source);
+        var result = new CodeStyleChecker().Check(source);
 
         // Assert
         Assert.DoesNotContain("XML doc", result);
@@ -951,7 +951,7 @@ public sealed class CodeStyleCheckerTests
             """;
 
         // Act
-        var result = CodeStyleChecker.Check(source);
+        var result = new CodeStyleChecker().Check(source);
 
         // Assert
         Assert.DoesNotContain("XML doc", result);
@@ -975,7 +975,7 @@ public sealed class CodeStyleCheckerTests
             """;
 
         // Act
-        var result = CodeStyleChecker.Check(source);
+        var result = new CodeStyleChecker().Check(source);
 
         // Assert
         Assert.DoesNotContain("XML doc", result);
@@ -996,7 +996,7 @@ public sealed class CodeStyleCheckerTests
             """;
 
         // Act
-        var result = CodeStyleChecker.Check(source);
+        var result = new CodeStyleChecker().Check(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -1022,7 +1022,7 @@ public sealed class CodeStyleCheckerTests
             """;
 
         // Act
-        var result = CodeStyleChecker.Check(source);
+        var result = new CodeStyleChecker().Check(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -1058,7 +1058,7 @@ public sealed class CodeStyleCheckerTests
             """;
 
         // Act
-        var result = CodeStyleChecker.Check(source);
+        var result = new CodeStyleChecker().Check(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -1096,7 +1096,7 @@ public sealed class CodeStyleCheckerTests
             """;
 
         // Act
-        var result = CodeStyleChecker.Check(source);
+        var result = new CodeStyleChecker().Check(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -1137,7 +1137,7 @@ public sealed class CodeStyleCheckerTests
             """;
 
         // Act
-        var result = CodeStyleChecker.Check(source);
+        var result = new CodeStyleChecker().Check(source);
 
         // Assert
         Assert.DoesNotContain("blank line", result);
@@ -1156,7 +1156,7 @@ public sealed class CodeStyleCheckerTests
             """;
 
         // Act
-        var result = CodeStyleChecker.Check(source);
+        var result = new CodeStyleChecker().Check(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -1176,7 +1176,7 @@ public sealed class CodeStyleCheckerTests
             """;
 
         // Act
-        var result = CodeStyleChecker.Check(source);
+        var result = new CodeStyleChecker().Check(source);
 
         // Assert
         Assert.Multiple(() =>

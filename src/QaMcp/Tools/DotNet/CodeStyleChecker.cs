@@ -15,8 +15,12 @@ using ModelContextProtocol.Server;
 /// and XML doc comments on public/protected members.
 /// </summary>
 [McpServerToolType]
-public static partial class CodeStyleChecker
+public sealed partial class CodeStyleChecker : IChecker
 {
+    /// <inheritdoc />
+    public string ToolName
+        => "check_code_style";
+
     /// <summary>
     /// Checks C# source code for code-style violations.
     /// </summary>
@@ -28,15 +32,16 @@ public static partial class CodeStyleChecker
         "blank lines before control flow statements, " +
         "expression-body arrows (=>) must be on the next line, " +
         "and XML doc comments required on public/protected members.")]
-    public static string Check(
+    public string Check(
         [Description("The C# source code to check.")]
-        string sourceCode)
+        string content,
+        string? data = null)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(sourceCode);
+        ArgumentException.ThrowIfNullOrWhiteSpace(content);
 
-        var tree = CSharpSyntaxTree.ParseText(sourceCode);
+        var tree = CSharpSyntaxTree.ParseText(content);
         var root = tree.GetRoot();
-        var lines = sourceCode.ReplaceLineEndings("\n").Split('\n');
+        var lines = content.ReplaceLineEndings("\n").Split('\n');
         var violations = new List<string>();
 
         CheckRegions(root, tree, violations);

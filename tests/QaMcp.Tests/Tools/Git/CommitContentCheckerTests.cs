@@ -2,7 +2,7 @@ namespace QaMcp.Tests.Tools.Git;
 
 using QaMcp.Tools.Git;
 
-public sealed class CommitContentValidatorTests
+public sealed class CommitContentCheckerTests
 {
     [Fact]
     public void Should_pass_valid_prose_body()
@@ -14,7 +14,7 @@ public sealed class CommitContentValidatorTests
             "before making API calls, preventing session timeouts.";
 
         // Act
-        var result = CommitContentValidator.Validate(message);
+        var result = new CommitContentChecker().Check(message);
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -27,7 +27,7 @@ public sealed class CommitContentValidatorTests
         var message = "fix: typo in readme";
 
         // Act
-        var result = CommitContentValidator.Validate(message);
+        var result = new CommitContentChecker().Check(message);
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -43,7 +43,7 @@ public sealed class CommitContentValidatorTests
         var message = $"feat: add feature\n\n{bulletLine}";
 
         // Act
-        var result = CommitContentValidator.Validate(message);
+        var result = new CommitContentChecker().Check(message);
 
         // Assert
         Assert.Multiple(() =>
@@ -62,7 +62,7 @@ public sealed class CommitContentValidatorTests
         var message = $"feat: update auth\n\n{bodyLine}";
 
         // Act
-        var result = CommitContentValidator.Validate(message);
+        var result = new CommitContentChecker().Check(message);
 
         // Assert
         Assert.Multiple(() =>
@@ -82,7 +82,7 @@ public sealed class CommitContentValidatorTests
         var message = $"fix: cleanup\n\n{bodyLine}";
 
         // Act
-        var result = CommitContentValidator.Validate(message);
+        var result = new CommitContentChecker().Check(message);
 
         // Assert
         Assert.Multiple(() =>
@@ -103,7 +103,7 @@ public sealed class CommitContentValidatorTests
         var message = $"feat: new stuff\n\n{bodyContent}";
 
         // Act
-        var result = CommitContentValidator.Validate(message);
+        var result = new CommitContentChecker().Check(message);
 
         // Assert
         Assert.Multiple(() =>
@@ -122,7 +122,7 @@ public sealed class CommitContentValidatorTests
             "Added `Timeout`, `RetryCount`, `MaxConnections` parameters.";
 
         // Act
-        var result = CommitContentValidator.Validate(message);
+        var result = new CommitContentChecker().Check(message);
 
         // Assert
         Assert.Multiple(() =>
@@ -143,7 +143,7 @@ public sealed class CommitContentValidatorTests
         var message = $"fix: update config\n\n{bodyLine}";
 
         // Act
-        var result = CommitContentValidator.Validate(message);
+        var result = new CommitContentChecker().Check(message);
 
         // Assert
         Assert.Multiple(() =>
@@ -163,7 +163,7 @@ public sealed class CommitContentValidatorTests
             "Updated 5 files for the change.";
 
         // Act
-        var result = CommitContentValidator.Validate(message);
+        var result = new CommitContentChecker().Check(message);
 
         // Assert
         Assert.Multiple(() =>
@@ -180,14 +180,14 @@ public sealed class CommitContentValidatorTests
     public void Should_throw_on_empty_or_whitespace_input(string input)
     {
         // Act & Assert
-        Assert.Throws<ArgumentException>(() => CommitContentValidator.Validate(input));
+        Assert.Throws<ArgumentException>(() => new CommitContentChecker().Check(input));
     }
 
     [Fact]
     public void Should_throw_on_null_input()
     {
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() => CommitContentValidator.Validate(null!));
+        Assert.Throws<ArgumentNullException>(() => new CommitContentChecker().Check(null!));
     }
 
     [Fact]
@@ -199,7 +199,7 @@ public sealed class CommitContentValidatorTests
             "Users can now reset their password via email verification.";
 
         // Act
-        var result = CommitContentValidator.Validate(message);
+        var result = new CommitContentChecker().Check(message);
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -214,7 +214,7 @@ public sealed class CommitContentValidatorTests
             "The module now supports batch processing for improved throughput.";
 
         // Act
-        var result = CommitContentValidator.Validate(message);
+        var result = new CommitContentChecker().Check(message);
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -227,7 +227,7 @@ public sealed class CommitContentValidatorTests
         var message = "feat: add login\n\n";
 
         // Act
-        var result = CommitContentValidator.Validate(message);
+        var result = new CommitContentChecker().Check(message);
 
         // Assert
         Assert.StartsWith("✅", result);

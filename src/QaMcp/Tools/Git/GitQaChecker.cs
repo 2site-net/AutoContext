@@ -9,8 +9,12 @@ using ModelContextProtocol.Server;
 /// a single combined report.
 /// </summary>
 [McpServerToolType]
-public static class GitQaChecker
+public sealed class GitQaChecker : IChecker
 {
+    /// <inheritdoc />
+    public string ToolName
+        => "check_git_commit";
+
     /// <summary>
     /// Runs all enabled Git commit checks on the supplied commit message.
     /// </summary>
@@ -19,22 +23,27 @@ public static class GitQaChecker
         "Runs all enabled Git commit quality checks on a commit message and returns a combined report. " +
         "Covers commit format (Conventional Commits) and commit content best practices. " +
         "Prefer this over calling individual validate tools unless you only need a specific check.")]
-    public static string Check(
+    public string Check(
         [Description("The full commit message to validate.")]
-        string commitMessage)
+        string content,
+        string? data = null)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(commitMessage);
+        ArgumentException.ThrowIfNullOrWhiteSpace(content);
 
         var sections = new List<string>();
 
-        if (ToolsStatusConfig.IsEnabled("validate_commit_format"))
-        {
-            sections.Add(CommitFormatValidator.Validate(commitMessage));
-        }
+        IChecker[] checkers =
+        [
+            new CommitFormatChecker(),
+            new CommitContentChecker(),
+        ];
 
-        if (ToolsStatusConfig.IsEnabled("validate_commit_content"))
+        foreach (var checker in checkers)
         {
-            sections.Add(CommitContentValidator.Validate(commitMessage));
+            if (ToolsStatusConfig.IsEnabled(checker.ToolName))
+            {
+                sections.Add(checker.Check(content));
+            }
         }
 
         if (sections.Count == 0)
