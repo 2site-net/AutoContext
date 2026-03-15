@@ -31,21 +31,33 @@ public sealed partial class CommitContentChecker : IChecker
         ArgumentException.ThrowIfNullOrWhiteSpace(content);
 
         var violations = new List<string>();
-        var lines = content.ReplaceLineEndings("\n").Split('\n');
+        var normalized = content.ReplaceLineEndings("\n");
+        ReadOnlySpan<char> span = normalized;
 
         // Body starts after the blank line (line index 2+)
-        var bodyLines = lines.Length > 2
-            ? lines[2..]
-            : [];
+        var firstNewline = span.IndexOf('\n');
 
-        var body = string.Join('\n', bodyLines).Trim();
-
-        if (body.Length == 0)
+        if (firstNewline < 0)
         {
             return "✅ Commit content is valid (no body to check).";
         }
 
-        CheckBulletLists(bodyLines, violations);
+        var rest = span[(firstNewline + 1)..];
+        var secondNewline = rest.IndexOf('\n');
+
+        if (secondNewline < 0)
+        {
+            return "✅ Commit content is valid (no body to check).";
+        }
+
+        var body = rest[(secondNewline + 1)..].Trim();
+
+        if (body.IsEmpty)
+        {
+            return "✅ Commit content is valid (no body to check).";
+        }
+
+        CheckBulletLists(body, violations);
         CheckFilePaths(body, violations);
         CheckCounts(body, violations);
         CheckSectionHeaders(body, violations);
@@ -58,11 +70,11 @@ public sealed partial class CommitContentChecker : IChecker
               string.Join('\n', violations.Select((v, i) => $"  {i + 1}. {v}"));
     }
 
-    private static void CheckBulletLists(string[] bodyLines, List<string> violations)
+    private static void CheckBulletLists(ReadOnlySpan<char> body, List<string> violations)
     {
-        foreach (var line in bodyLines)
+        foreach (var lineRange in body.Split('\n'))
         {
-            if (BulletListRegex().IsMatch(line))
+            if (BulletListRegex().IsMatch(body[lineRange]))
             {
                 violations.Add(
                     "Body contains bullet lists (-, *, •). Write prose instead.");
@@ -72,7 +84,7 @@ public sealed partial class CommitContentChecker : IChecker
         }
     }
 
-    private static void CheckFilePaths(string body, List<string> violations)
+    private static void CheckFilePaths(ReadOnlySpan<char> body, List<string> violations)
     {
         if (FilePathRegex().IsMatch(body))
         {
@@ -81,7 +93,7 @@ public sealed partial class CommitContentChecker : IChecker
         }
     }
 
-    private static void CheckCounts(string body, List<string> violations)
+    private static void CheckCounts(ReadOnlySpan<char> body, List<string> violations)
     {
         if (CountsRegex().IsMatch(body))
         {
@@ -91,7 +103,7 @@ public sealed partial class CommitContentChecker : IChecker
         }
     }
 
-    private static void CheckSectionHeaders(string body, List<string> violations)
+    private static void CheckSectionHeaders(ReadOnlySpan<char> body, List<string> violations)
     {
         if (SectionHeaderRegex().IsMatch(body))
         {
@@ -101,7 +113,7 @@ public sealed partial class CommitContentChecker : IChecker
         }
     }
 
-    private static void CheckParameterEnumerations(string body, List<string> violations)
+    private static void CheckParameterEnumerations(ReadOnlySpan<char> body, List<string> violations)
     {
         if (ParameterEnumRegex().IsMatch(body))
         {
@@ -111,7 +123,7 @@ public sealed partial class CommitContentChecker : IChecker
         }
     }
 
-    private static void CheckSensitiveInfo(string body, List<string> violations)
+    private static void CheckSensitiveInfo(ReadOnlySpan<char> body, List<string> violations)
     {
         if (SensitiveInfoRegex().IsMatch(body))
         {

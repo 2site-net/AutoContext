@@ -43,9 +43,12 @@ public sealed class TestStyleChecker : IChecker
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(content);
 
-        var parts = data?.Split(',', 2);
-        var fileName = parts is [{ Length: > 0 } f, ..] ? f : null;
-        var productionNamespace = parts is [_, { Length: > 0 } ns] ? ns : null;
+        ReadOnlySpan<char> dataSpan = data;
+        var commaIndex = dataSpan.IndexOf(',');
+        ReadOnlySpan<char> fileName = commaIndex < 0 ? dataSpan : dataSpan[..commaIndex];
+        ReadOnlySpan<char> productionNamespace = commaIndex < 0
+            ? []
+            : dataSpan[(commaIndex + 1)..];
 
         var tree = CSharpSyntaxTree.ParseText(content);
         var root = tree.GetRoot();
@@ -83,9 +86,9 @@ public sealed class TestStyleChecker : IChecker
               string.Join('\n', violations.Select((v, i) => $"  {i + 1}. {v}"));
     }
 
-    private static void CheckFileNameConvention(string? fileName, List<string> violations)
+    private static void CheckFileNameConvention(ReadOnlySpan<char> fileName, List<string> violations)
     {
-        if (string.IsNullOrWhiteSpace(fileName))
+        if (fileName.IsEmpty || fileName.IsWhiteSpace())
         {
             return;
         }
@@ -103,17 +106,17 @@ public sealed class TestStyleChecker : IChecker
     /// <summary>
     /// Strips all extensions from a file name (e.g., "FooTests.razor.cs" → "FooTests").
     /// </summary>
-    private static string StripAllExtensions(string fileName)
+    private static ReadOnlySpan<char> StripAllExtensions(ReadOnlySpan<char> fileName)
     {
         var name = Path.GetFileName(fileName);
-        var dotIndex = name.IndexOf('.', StringComparison.Ordinal);
+        var dotIndex = name.IndexOf('.');
 
         return dotIndex < 0 ? name : name[..dotIndex];
     }
 
-    private static void CheckNamespaceMirroring(SyntaxNode root, string? productionNamespace, List<string> violations)
+    private static void CheckNamespaceMirroring(SyntaxNode root, ReadOnlySpan<char> productionNamespace, List<string> violations)
     {
-        if (string.IsNullOrWhiteSpace(productionNamespace))
+        if (productionNamespace.IsEmpty || productionNamespace.IsWhiteSpace())
         {
             return;
         }
@@ -127,13 +130,34 @@ public sealed class TestStyleChecker : IChecker
 
         // Expected pattern: insert ".Tests" after the first segment of the production namespace.
         // E.g., "MyApp.Services.Users" → "MyApp.Tests.Services.Users"
-        var dotIndex = productionNamespace.IndexOf('.', StringComparison.Ordinal);
-        var expectedNamespace = dotIndex < 0
-            ? $"{productionNamespace}.Tests"
-            : $"{productionNamespace[..dotIndex]}.Tests{productionNamespace[dotIndex..]}";
+        ReadOnlySpan<char> declared = declaredNamespace;
+        var dotIndex = productionNamespace.IndexOf('.');
+        const int testsSuffixLength = 6; // ".Tests".Length
+        bool matches;
 
-        if (!string.Equals(declaredNamespace, expectedNamespace, StringComparison.Ordinal))
+        if (dotIndex < 0)
         {
+            matches = declared.Length == productionNamespace.Length + testsSuffixLength
+                      && declared.StartsWith(productionNamespace, StringComparison.Ordinal)
+                      && declared[productionNamespace.Length..].Equals(".Tests", StringComparison.Ordinal);
+        }
+        else
+        {
+            var first = productionNamespace[..dotIndex];
+            var rest = productionNamespace[dotIndex..];
+
+            matches = declared.Length == first.Length + testsSuffixLength + rest.Length
+                      && declared.StartsWith(first, StringComparison.Ordinal)
+                      && declared[first.Length..].StartsWith(".Tests", StringComparison.Ordinal)
+                      && declared[(first.Length + testsSuffixLength)..].Equals(rest, StringComparison.Ordinal);
+        }
+
+        if (!matches)
+        {
+            var expectedNamespace = dotIndex < 0
+                ? $"{productionNamespace}.Tests"
+                : $"{productionNamespace[..dotIndex]}.Tests{productionNamespace[dotIndex..]}";
+
             violations.Add(
                 $"Test namespace '{declaredNamespace}' does not mirror the production namespace '{productionNamespace}'. " +
                 $"Expected '{expectedNamespace}'.");

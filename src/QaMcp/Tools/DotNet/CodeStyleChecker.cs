@@ -41,13 +41,17 @@ public sealed partial class CodeStyleChecker : IChecker
 
         var tree = CSharpSyntaxTree.ParseText(content);
         var root = tree.GetRoot();
-        var lines = content.ReplaceLineEndings("\n").Split('\n');
+        var normalized = content.ReplaceLineEndings("\n");
+        ReadOnlySpan<char> contentSpan = normalized;
+        var lineCount = contentSpan.Count('\n') + 1;
+        var lineRanges = new Range[lineCount];
+        contentSpan.Split(lineRanges, '\n');
         var violations = new List<string>();
 
         CheckRegions(root, tree, violations);
-        CheckDecorativeComments(lines, violations);
+        CheckDecorativeComments(contentSpan, lineRanges, violations);
         CheckCurlyBraces(root, tree, violations);
-        CheckBlankLineBeforeControlFlow(root, tree, lines, violations);
+        CheckBlankLineBeforeControlFlow(root, tree, contentSpan, lineRanges, violations);
         CheckExpressionBodyArrowPlacement(root, tree, violations);
         CheckXmlDocComments(root, tree, violations);
 
@@ -69,11 +73,14 @@ public sealed partial class CodeStyleChecker : IChecker
         }
     }
 
-    private static void CheckDecorativeComments(string[] lines, List<string> violations)
+    private static void CheckDecorativeComments(
+        ReadOnlySpan<char> content,
+        ReadOnlySpan<Range> lineRanges,
+        List<string> violations)
     {
-        for (var i = 0; i < lines.Length; i++)
+        for (var i = 0; i < lineRanges.Length; i++)
         {
-            if (DecorativeCommentRegex().IsMatch(lines[i]))
+            if (DecorativeCommentRegex().IsMatch(content[lineRanges[i]]))
             {
                 violations.Add(
                     $"Line {i + 1}: Decorative section-header comment detected. " +
@@ -116,7 +123,8 @@ public sealed partial class CodeStyleChecker : IChecker
     private static void CheckBlankLineBeforeControlFlow(
         SyntaxNode root,
         SyntaxTree tree,
-        string[] lines,
+        ReadOnlySpan<char> content,
+        ReadOnlySpan<Range> lineRanges,
         List<string> violations)
     {
         var controlFlowNodes = root.DescendantNodes()
@@ -147,9 +155,9 @@ public sealed partial class CodeStyleChecker : IChecker
                 continue;
             }
 
-            var previousLine = lines[lineIndex - 1].Trim();
+            var previousLine = content[lineRanges[lineIndex - 1]].Trim();
 
-            if (previousLine.Length > 0 && previousLine != "{")
+            if (previousLine.Length > 0 && !(previousLine.Length == 1 && previousLine[0] == '{'))
             {
                 violations.Add(
                     $"Line {lineIndex + 1}: Missing blank line before " +

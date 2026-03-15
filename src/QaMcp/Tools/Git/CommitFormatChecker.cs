@@ -40,16 +40,27 @@ public sealed partial class CommitFormatChecker : IChecker
         ArgumentException.ThrowIfNullOrWhiteSpace(content);
 
         var violations = new List<string>();
-        var lines = content.ReplaceLineEndings("\n").Split('\n');
-        var subject = lines[0];
+        var normalized = content.ReplaceLineEndings("\n");
+        ReadOnlySpan<char> span = normalized;
+
+        var firstNewline = span.IndexOf('\n');
+        var subject = firstNewline < 0 ? span : span[..firstNewline];
 
         ValidateSubjectFormat(subject, violations);
         ValidateSubjectLength(subject, violations);
 
-        if (lines.Length > 1)
+        if (firstNewline >= 0)
         {
-            ValidateBlankLineAfterSubject(lines[1], violations);
-            ValidateBodyLineLength(lines, violations);
+            var afterSubject = span[(firstNewline + 1)..];
+            var secondNewline = afterSubject.IndexOf('\n');
+            var secondLine = secondNewline < 0 ? afterSubject : afterSubject[..secondNewline];
+
+            ValidateBlankLineAfterSubject(secondLine, violations);
+
+            if (secondNewline >= 0)
+            {
+                ValidateBodyLineLength(afterSubject[(secondNewline + 1)..], violations);
+            }
         }
 
         return violations.Count == 0
@@ -58,7 +69,7 @@ public sealed partial class CommitFormatChecker : IChecker
               string.Join('\n', violations.Select((v, i) => $"  {i + 1}. {v}"));
     }
 
-    private static void ValidateSubjectFormat(string subject, List<string> violations)
+    private static void ValidateSubjectFormat(ReadOnlySpan<char> subject, List<string> violations)
     {
         if (!SubjectRegex().IsMatch(subject))
         {
@@ -69,7 +80,7 @@ public sealed partial class CommitFormatChecker : IChecker
         }
     }
 
-    private static void ValidateSubjectLength(string subject, List<string> violations)
+    private static void ValidateSubjectLength(ReadOnlySpan<char> subject, List<string> violations)
     {
         if (subject.Length > MaxSubjectLength)
         {
@@ -78,24 +89,30 @@ public sealed partial class CommitFormatChecker : IChecker
         }
     }
 
-    private static void ValidateBlankLineAfterSubject(string secondLine, List<string> violations)
+    private static void ValidateBlankLineAfterSubject(ReadOnlySpan<char> secondLine, List<string> violations)
     {
-        if (!string.IsNullOrEmpty(secondLine))
+        if (!secondLine.IsEmpty)
         {
             violations.Add("There must be a blank line between the subject and body.");
         }
     }
 
-    private static void ValidateBodyLineLength(string[] lines, List<string> violations)
+    private static void ValidateBodyLineLength(ReadOnlySpan<char> body, List<string> violations)
     {
-        for (var i = 2; i < lines.Length; i++)
+        var lineNumber = 3;
+
+        foreach (var lineRange in body.Split('\n'))
         {
-            if (lines[i].Length > MaxBodyLineLength)
+            var line = body[lineRange];
+
+            if (line.Length > MaxBodyLineLength)
             {
                 violations.Add(
-                    $"Body line {i + 1} is {lines[i].Length} characters; " +
+                    $"Body line {lineNumber} is {line.Length} characters; " +
                     $"maximum is {MaxBodyLineLength}.");
             }
+
+            lineNumber++;
         }
     }
 

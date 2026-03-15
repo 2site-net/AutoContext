@@ -38,7 +38,9 @@ public sealed class ProjectStructureChecker : IChecker
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(content);
 
-        var fileName = data?.Split(',', 2) is [{ Length: > 0 } f, ..] ? f : null;
+        ReadOnlySpan<char> dataSpan = data;
+        var commaIndex = dataSpan.IndexOf(',');
+        ReadOnlySpan<char> fileName = commaIndex < 0 ? dataSpan : dataSpan[..commaIndex];
 
         var tree = CSharpSyntaxTree.ParseText(content);
         var root = tree.GetRoot();
@@ -84,9 +86,9 @@ public sealed class ProjectStructureChecker : IChecker
             "Keep a single type per file and name the file after that type.");
     }
 
-    private static void CheckFileNameMatchesType(SyntaxNode root, string? fileName, List<string> violations)
+    private static void CheckFileNameMatchesType(SyntaxNode root, ReadOnlySpan<char> fileName, List<string> violations)
     {
-        if (string.IsNullOrWhiteSpace(fileName))
+        if (fileName.IsEmpty || fileName.IsWhiteSpace())
         {
             return;
         }
@@ -103,7 +105,7 @@ public sealed class ProjectStructureChecker : IChecker
         var expectedName = Path.GetFileNameWithoutExtension(fileName);
         var actualName = GetTypeName(topLevelTypes[0]);
 
-        if (!string.Equals(expectedName, actualName, StringComparison.Ordinal))
+        if (!expectedName.Equals(actualName, StringComparison.Ordinal))
         {
             violations.Add(
                 $"File name '{fileName}' does not match the type name '{actualName}'. " +
