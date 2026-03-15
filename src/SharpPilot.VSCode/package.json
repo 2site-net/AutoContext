@@ -1,0 +1,217 @@
+{
+  "name": "sharp-pilot",
+  "displayName": "SharpPilot",
+  "description": "SharpPilot is a development quality toolkit for GitHub Copilot, providing a curated set of tools and guidelines to improve code quality and the overall development workflow.",
+  "version": "0.5.0",
+  "publisher": "2site-net",
+  "license": "Apache-2.0",
+  "icon": "logo.png",
+  "engines": {
+    "vscode": "^1.99.0"
+  },
+  "categories": [
+    "AI"
+  ],
+  "activationEvents": ["onStartupFinished"],
+  "main": "./out/extension.js",
+  "contributes": {
+    "mcpServerDefinitionProviders": [
+      {
+        "id": "sharpPilotProvider",
+        "label": "SharpPilot Servers"
+      }
+    ],
+    "commands": [
+      {
+        "command": "sharp-pilot.toggleInstructions",
+        "title": "Toggle Instructions",
+        "category": "SharpPilot"
+      }
+    ],
+    "chatInstructions": [
+      {
+        "path": "./instructions/copilot.instructions.md",
+        "when": "config.sharp-pilot.instructions.copilot"
+      },
+      {
+        "path": "./instructions/csharp-coding-style.instructions.md",
+        "when": "config.sharp-pilot.instructions.csharp.codingStyle && sharp-pilot.workspace.hasDotnet"
+      },
+      {
+        "path": "./instructions/design-principles.instructions.md",
+        "when": "config.sharp-pilot.instructions.dotnet.designPrinciples && sharp-pilot.workspace.hasDotnet"
+      },
+      {
+        "path": "./instructions/dotnet-async-await.instructions.md",
+        "when": "config.sharp-pilot.instructions.dotnet.asyncAwait && sharp-pilot.workspace.hasDotnet"
+      },
+      {
+        "path": "./instructions/dotnet-blazor.instructions.md",
+        "when": "config.sharp-pilot.instructions.dotnet.blazor && sharp-pilot.workspace.hasBlazor"
+      },
+      {
+        "path": "./instructions/dotnet-coding-standards.instructions.md",
+        "when": "config.sharp-pilot.instructions.dotnet.codingStandards && sharp-pilot.workspace.hasDotnet"
+      },
+      {
+        "path": "./instructions/dotnet-debugging.instructions.md",
+        "when": "config.sharp-pilot.instructions.dotnet.debugging && sharp-pilot.workspace.hasDotnet"
+      },
+      {
+        "path": "./instructions/dotnet-performance-memory.instructions.md",
+        "when": "config.sharp-pilot.instructions.dotnet.performanceMemory && sharp-pilot.workspace.hasDotnet"
+      },
+      {
+        "path": "./instructions/dotnet-testing.instructions.md",
+        "when": "config.sharp-pilot.instructions.dotnet.testing && sharp-pilot.workspace.hasDotnet"
+      },
+      {
+        "path": "./instructions/dotnet-xunit.instructions.md",
+        "when": "config.sharp-pilot.instructions.dotnet.xunit && sharp-pilot.workspace.hasXunit"
+      },
+      {
+        "path": "./instructions/git-commit-format.instructions.md",
+        "when": "config.sharp-pilot.instructions.git.commitFormat && sharp-pilot.workspace.hasGit"
+      },
+      {
+        "path": "./instructions/nuget.instructions.md",
+        "when": "config.sharp-pilot.instructions.dotnet.nuget && sharp-pilot.workspace.hasDotnet"
+      }
+    ],
+    "configuration": {
+      "title": "SharpPilot",
+      "properties": {
+        "sharp-pilot.instructions.copilot": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable Copilot behavior rules and rule precedence."
+        },
+        "sharp-pilot.instructions.csharp.codingStyle": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable C# coding style rules (member ordering, formatting, etc.)."
+        },
+        "sharp-pilot.instructions.dotnet.asyncAwait": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable async/await pattern guidelines for .NET code."
+        },
+        "sharp-pilot.instructions.dotnet.blazor": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable Blazor component guidelines for Razor files."
+        },
+        "sharp-pilot.instructions.dotnet.codingStandards": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable .NET coding standards (naming, validation, file organization, API design)."
+        },
+        "sharp-pilot.instructions.dotnet.debugging": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable debugging and troubleshooting guidelines."
+        },
+        "sharp-pilot.instructions.dotnet.designPrinciples": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable design principles (SOLID, DI, composition)."
+        },
+        "sharp-pilot.instructions.dotnet.nuget": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable NuGet package and dependency guidelines."
+        },
+        "sharp-pilot.instructions.dotnet.performanceMemory": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable performance and memory optimization guidelines."
+        },
+        "sharp-pilot.instructions.dotnet.testing": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable general testing strategy guidelines (TDD, naming, organization)."
+        },
+        "sharp-pilot.instructions.dotnet.xunit": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable xUnit-specific guidelines (v3 APIs, attributes, assertions)."
+        },
+        "sharp-pilot.instructions.git.commitFormat": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable Conventional Commits formatting guidelines."
+        },
+        "sharp-pilot.tools.check_csharp_async_patterns": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable the async patterns checker tool."
+        },
+        "sharp-pilot.tools.check_csharp_coding_style": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable the coding style checker tool."
+        },
+        "sharp-pilot.tools.check_csharp_member_ordering": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable the member ordering checker tool."
+        },
+        "sharp-pilot.tools.check_csharp_naming_conventions": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable the naming conventions checker tool."
+        },
+        "sharp-pilot.tools.check_csharp_nullable_context": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable the nullable context checker tool."
+        },
+        "sharp-pilot.tools.check_csharp_project_structure": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable the project structure checker tool."
+        },
+        "sharp-pilot.tools.check_csharp_test_style": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable the test style checker tool."
+        },
+        "sharp-pilot.tools.check_nuget_hygiene": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable the NuGet hygiene checker tool."
+        },
+        "sharp-pilot.tools.check_git_commit_content": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable the commit content validator tool."
+        },
+        "sharp-pilot.tools.check_git_commit_format": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable the commit format validator tool."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "publish:servers": "pwsh scripts/publish-servers.ps1",
+    "package:win-x64": "pwsh scripts/publish-servers.ps1 -RuntimeIdentifier win-x64 -Package",
+    "package:win-arm64": "pwsh scripts/publish-servers.ps1 -RuntimeIdentifier win-arm64 -Package",
+    "package:linux-x64": "pwsh scripts/publish-servers.ps1 -RuntimeIdentifier linux-x64 -Package",
+    "package:linux-arm64": "pwsh scripts/publish-servers.ps1 -RuntimeIdentifier linux-arm64 -Package",
+    "package:osx-x64": "pwsh scripts/publish-servers.ps1 -RuntimeIdentifier osx-x64 -Package",
+    "package:osx-arm64": "pwsh scripts/publish-servers.ps1 -RuntimeIdentifier osx-arm64 -Package",
+    "package:all": "pwsh scripts/publish-servers.ps1 -All",
+    "publish:all": "pwsh scripts/publish-servers.ps1 -Publish"
+  },
+  "devDependencies": {
+    "@types/node": "^25.5.0",
+    "@types/vscode": "^1.99.0",
+    "@vscode/vsce": "^3.0.0",
+    "typescript": "^5.7.0"
+  }
+}

@@ -1,8 +1,0 @@
-<Solution>
-  <Folder Name="/src/">
-    <Project Path="src/QaMcp/QaMcp.csproj" />
-  </Folder>
-  <Folder Name="/tests/">
-    <Project Path="tests/QaMcp.Tests/QaMcp.Tests.csproj" />
-  </Folder>
-</Solution>

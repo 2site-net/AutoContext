@@ -1,8 +1,8 @@
-# QA-MCP
+# SharpPilot
 
-QA-MCP is a quality assurance toolkit for GitHub Copilot, providing tools and coding guidelines that improve code quality and the overall development workflow. 
+SharpPilot is a quality assurance toolkit for GitHub Copilot, providing tools and coding guidelines that improve code quality and the overall development workflow. 
 
-Distributed as a VS Code extension — see [src/VSCodeQaMcp/README.md](src/VSCodeQaMcp/README.md) for installation and usage.
+Distributed as a VS Code extension — see [src/SharpPilot.VSCode/README.md](src/SharpPilot.VSCode/README.md) for installation and usage.
 
 ## Prerequisites
 
@@ -12,10 +12,10 @@ Distributed as a VS Code extension — see [src/VSCodeQaMcp/README.md](src/VSCod
 ## Repository Structure
 
 ```text
-QaMcp.slnx                  # Solution file
-src/QaMcp/                  # MCP server (.NET + Git tools)
-tests/QaMcp.Tests/          # xUnit tests
-src/VSCodeQaMcp/            # VS Code extension that registers the server
+SharpPilot.slnx                  # Solution file
+src/SharpPilot/                  # MCP server (.NET + Git tools)
+tests/SharpPilot.Tests/          # xUnit tests
+src/SharpPilot.VSCode/            # VS Code extension that registers the server
 ```
 
 ## Servers and Tools
@@ -24,7 +24,7 @@ The MCP server exposes two tool scopes. The VS Code extension registers the
 server twice — once with `--scope dotnet` and once with `--scope git` — so
 that .NET and Git tools appear in separate sections in the tools UI.
 
-### QA-MCP: DotNet
+### SharpPilot: DotNet
 
 Eight tools that analyse C# source and project files for common quality issues.
 
@@ -39,7 +39,7 @@ Eight tools that analyse C# source and project files for common quality issues.
 | `check_nuget_hygiene` | No duplicate, floating, or wildcard package versions; no missing `Version` attribute (unless Central Package Management is enabled); flags packages with built-in .NET alternatives. |
 | `check_csharp_test_style` | Test classes suffixed `Tests`, methods prefixed `Should_`/`Should_not_`, no XML doc on tests, `Assert.Multiple()` when multiple asserts, no `.ConfigureAwait()` in tests, and optional file-structure mirroring validation. |
 
-### QA-MCP: Git
+### SharpPilot: Git
 
 Two tools that validate git commit messages against Conventional Commits and
 content best practices.
@@ -59,25 +59,25 @@ server code:
 ```jsonc
 {
   "servers": {
-    "dotnet-qa-mcp": {
+    "dotnet-SharpPilot": {
       "type": "stdio",
       "command": "dotnet",
       "args": [
         "run",
         "--project",
-        "${workspaceFolder}/src/QaMcp/QaMcp.csproj",
+        "${workspaceFolder}/src/SharpPilot/SharpPilot.csproj",
         "--",
         "--scope",
         "dotnet"
       ]
     },
-    "git-qa-mcp": {
+    "git-SharpPilot": {
       "type": "stdio",
       "command": "dotnet",
       "args": [
         "run",
         "--project",
-        "${workspaceFolder}/src/QaMcp/QaMcp.csproj",
+        "${workspaceFolder}/src/SharpPilot/SharpPilot.csproj",
         "--",
         "--scope",
         "git"
@@ -92,7 +92,7 @@ server code:
 Package a platform-specific VSIX:
 
 ```sh
-cd src/VSCodeQaMcp
+cd src/SharpPilot.VSCode
 npm install
 npm run package:win-x64      # or osx-arm64, linux-x64, etc.
 npm run package:all           # all platforms
@@ -106,12 +106,12 @@ Publish to the VS Code Marketplace (requires a
 **Marketplace → Manage** scope):
 
 ```sh
-cd src/VSCodeQaMcp
+cd src/SharpPilot.VSCode
 npx vsce login <publisher-id>
 npm run publish:all
 ```
 
 ## License
 
-[MIT](src/VSCodeQaMcp/LICENSE)
+[Apache-2.0](src/SharpPilot.VSCode/LICENSE)
 
