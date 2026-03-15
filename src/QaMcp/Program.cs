@@ -23,10 +23,10 @@ internal sealed class Program
                 typeof(CSharpCodingStyleChecker),
                 typeof(CSharpMemberOrderingChecker),
                 typeof(CSharpNamingConventionsChecker),
-                typeof(NuGetHygieneChecker),
                 typeof(CSharpNullableContextChecker),
                 typeof(CSharpProjectStructureChecker),
                 typeof(CSharpTestStyleChecker),
+                typeof(NuGetHygieneChecker),
             ],
             "git" =>
             [
