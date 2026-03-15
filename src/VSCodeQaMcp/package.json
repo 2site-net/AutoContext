@@ -181,12 +181,12 @@
           "default": true,
           "description": "Enable the test style checker tool."
         },
-        "qa-mcp.tools.validate_commit_content": {
+        "qa-mcp.tools.check_commit_content": {
           "type": "boolean",
           "default": true,
           "description": "Enable the commit content validator tool."
         },
-        "qa-mcp.tools.validate_commit_format": {
+        "qa-mcp.tools.check_commit_format": {
           "type": "boolean",
           "default": true,
           "description": "Enable the commit format validator tool."

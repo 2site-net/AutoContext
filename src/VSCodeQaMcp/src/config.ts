@@ -45,6 +45,6 @@ export const tools: readonly ToolEntry[] = [
     { settingId: 'qa-mcp.tools.check_nullable_context', toolName: 'check_nullable_context', label: 'Nullable Context', category: '.NET Tool' },
     { settingId: 'qa-mcp.tools.check_project_structure', toolName: 'check_project_structure', label: 'Project Structure', category: '.NET Tool' },
     { settingId: 'qa-mcp.tools.check_tests_style', toolName: 'check_tests_style', label: 'Test Style', category: '.NET Tool' },
-    { settingId: 'qa-mcp.tools.validate_commit_content', toolName: 'validate_commit_content', label: 'Commit Content', category: 'Git Tool' },
-    { settingId: 'qa-mcp.tools.validate_commit_format', toolName: 'validate_commit_format', label: 'Commit Format', category: 'Git Tool' },
+    { settingId: 'qa-mcp.tools.check_commit_content', toolName: 'validate_commit_content', label: 'Commit Content', category: 'Git Tool' },
+    { settingId: 'qa-mcp.tools.check_commit_format', toolName: 'validate_commit_format', label: 'Commit Format', category: 'Git Tool' },
 ];
