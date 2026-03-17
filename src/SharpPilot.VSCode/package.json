@@ -88,6 +88,10 @@
       {
         "path": "./instructions/html.instructions.md",
         "when": "config.sharp-pilot.instructions.dotnet.html && sharp-pilot.workspace.hasHtml"
+      },
+      {
+        "path": "./instructions/javascript.instructions.md",
+        "when": "config.sharp-pilot.instructions.web.javascript && sharp-pilot.workspace.hasJavaScript"
       }
     ],
     "configuration": {
@@ -167,6 +171,11 @@
           "type": "boolean",
           "default": true,
           "description": "Enable HTML semantics, accessibility, and structure guidelines."
+        },
+        "sharp-pilot.instructions.web.javascript": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable JavaScript language, async patterns, and security guidelines."
         },
         "sharp-pilot.tools.check_csharp_async_patterns": {
           "type": "boolean",

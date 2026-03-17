@@ -37,6 +37,7 @@ export const instructions: readonly InstructionEntry[] = [
     { settingId: 'sharp-pilot.instructions.git.commitFormat', label: 'Commit Format', category: 'Git' },
     { settingId: 'sharp-pilot.instructions.dotnet.css', label: 'CSS', category: 'Web' },
     { settingId: 'sharp-pilot.instructions.dotnet.html', label: 'HTML', category: 'Web' },
+    { settingId: 'sharp-pilot.instructions.web.javascript', label: 'JavaScript', category: 'Web' },
 ];
 
 export const tools: readonly ToolEntry[] = [
