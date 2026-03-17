@@ -54,6 +54,10 @@
         "when": "config.sharp-pilot.instructions.dotnet.razor && sharp-pilot.workspace.hasBlazor"
       },
       {
+        "path": "./instructions/html.instructions.md",
+        "when": "config.sharp-pilot.instructions.dotnet.html && sharp-pilot.workspace.hasHtml"
+      },
+      {
         "path": "./instructions/dotnet-coding-standards.instructions.md",
         "when": "config.sharp-pilot.instructions.dotnet.codingStandards && sharp-pilot.workspace.hasDotnet"
       },
@@ -109,6 +113,11 @@
           "type": "boolean",
           "default": true,
           "description": "Enable Razor file structure and syntax guidelines."
+        },
+        "sharp-pilot.instructions.dotnet.html": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable HTML semantics, accessibility, and structure guidelines."
         },
         "sharp-pilot.instructions.dotnet.codingStandards": {
           "type": "boolean",
