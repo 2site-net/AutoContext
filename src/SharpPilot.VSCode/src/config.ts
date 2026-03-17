@@ -28,6 +28,7 @@ export const instructions: readonly InstructionEntry[] = [
     { settingId: 'sharp-pilot.instructions.dotnet.blazor', label: 'Blazor', category: '.NET' },
     { settingId: 'sharp-pilot.instructions.dotnet.razor', label: 'Razor', category: '.NET' },
     { settingId: 'sharp-pilot.instructions.dotnet.html', label: 'HTML', category: '.NET' },
+    { settingId: 'sharp-pilot.instructions.dotnet.css', label: 'CSS', category: '.NET' },
     { settingId: 'sharp-pilot.instructions.dotnet.codingStandards', label: 'Coding Standards', category: '.NET' },
     { settingId: 'sharp-pilot.instructions.dotnet.debugging', label: 'Debugging', category: '.NET' },
     { settingId: 'sharp-pilot.instructions.dotnet.designPrinciples', label: 'Design Principles', category: '.NET' },

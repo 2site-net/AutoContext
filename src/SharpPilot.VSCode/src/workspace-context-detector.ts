@@ -5,7 +5,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
 
     constructor() {
         this.watcher = vscode.workspace.createFileSystemWatcher(
-            '**/*.{csproj,fsproj,sln,slnx,razor,html,cshtml}',
+            '**/*.{csproj,fsproj,sln,slnx,razor,html,cshtml,css}',
         );
         this.watcher.onDidCreate(() => this.detect());
         this.watcher.onDidDelete(() => this.detect());
@@ -16,15 +16,17 @@ export class WorkspaceContextDetector implements vscode.Disposable {
             const setCtx = (key: string, value: boolean): Thenable<unknown> =>
                 vscode.commands.executeCommand('setContext', key, value);
 
-            const [dotnetFiles, razorFiles, htmlFiles] = await Promise.all([
+            const [dotnetFiles, razorFiles, htmlFiles, cssFiles] = await Promise.all([
                 vscode.workspace.findFiles('**/*.{csproj,fsproj,sln,slnx}', '**/node_modules/**', 1),
                 vscode.workspace.findFiles('**/*.razor', '**/node_modules/**', 1),
                 vscode.workspace.findFiles('**/*.{html,cshtml}', '**/node_modules/**', 1),
+                vscode.workspace.findFiles('**/*.css', '**/node_modules/**', 1),
             ]);
 
             const hasDotnet = dotnetFiles.length > 0;
             const hasBlazor = razorFiles.length > 0;
             const hasHtml = htmlFiles.length > 0 || hasBlazor;
+            const hasCss = cssFiles.length > 0 || hasHtml;
 
             let hasXunit = false;
             if (hasDotnet) {
@@ -54,6 +56,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
                 setCtx('sharp-pilot.workspace.hasDotnet', hasDotnet),
                 setCtx('sharp-pilot.workspace.hasBlazor', hasBlazor),
                 setCtx('sharp-pilot.workspace.hasHtml', hasHtml),
+                setCtx('sharp-pilot.workspace.hasCss', hasCss),
                 setCtx('sharp-pilot.workspace.hasXunit', hasXunit),
                 setCtx('sharp-pilot.workspace.hasGit', hasGit),
             ]);
