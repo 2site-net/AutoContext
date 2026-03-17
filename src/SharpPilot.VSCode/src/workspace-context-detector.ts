@@ -34,6 +34,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
 
             let hasXunit = false;
             let hasWpf = false;
+            let hasWinForms = false;
             if (hasDotnet) {
                 const projFiles = await vscode.workspace.findFiles('**/*.csproj', '**/node_modules/**', 50);
                 for (const uri of projFiles) {
@@ -45,7 +46,10 @@ export class WorkspaceContextDetector implements vscode.Disposable {
                     if (!hasWpf && /<UseWPF>\s*true\s*<\/UseWPF>/i.test(content)) {
                         hasWpf = true;
                     }
-                    if (hasXunit && hasWpf) {
+                    if (!hasWinForms && /<UseWindowsForms>\s*true\s*<\/UseWindowsForms>/i.test(content)) {
+                        hasWinForms = true;
+                    }
+                    if (hasXunit && hasWpf && hasWinForms) {
                         break;
                     }
                 }
@@ -71,6 +75,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
                 setCtx('sharp-pilot.workspace.hasTypeScript', hasTypeScript),
                 setCtx('sharp-pilot.workspace.hasXunit', hasXunit),
                 setCtx('sharp-pilot.workspace.hasWpf', hasWpf),
+                setCtx('sharp-pilot.workspace.hasWinForms', hasWinForms),
                 setCtx('sharp-pilot.workspace.hasGit', hasGit),
             ]);
         } catch {

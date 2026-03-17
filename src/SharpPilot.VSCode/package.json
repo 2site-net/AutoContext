@@ -66,6 +66,10 @@
         "when": "config.sharp-pilot.instructions.dotnet.testing && sharp-pilot.workspace.hasDotnet"
       },
       {
+        "path": "./instructions/dotnet-winforms.instructions.md",
+        "when": "config.sharp-pilot.instructions.dotnet.winForms && sharp-pilot.workspace.hasWinForms"
+      },
+      {
         "path": "./instructions/dotnet-wpf.instructions.md",
         "when": "config.sharp-pilot.instructions.dotnet.wpf && sharp-pilot.workspace.hasWpf"
       },
@@ -149,6 +153,11 @@
           "type": "boolean",
           "default": true,
           "description": "Enable general testing strategy guidelines (TDD, naming, organization)."
+        },
+        "sharp-pilot.instructions.dotnet.winForms": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable Windows Forms threading, data binding, layout, and lifecycle guidelines."
         },
         "sharp-pilot.instructions.dotnet.wpf": {
           "type": "boolean",
