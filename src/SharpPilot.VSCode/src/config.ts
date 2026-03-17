@@ -40,6 +40,7 @@ export const instructions: readonly InstructionEntry[] = [
     { settingId: 'sharp-pilot.instructions.web.css', label: 'CSS', category: 'Web' },
     { settingId: 'sharp-pilot.instructions.web.html', label: 'HTML', category: 'Web' },
     { settingId: 'sharp-pilot.instructions.web.javascript', label: 'JavaScript', category: 'Web' },
+    { settingId: 'sharp-pilot.instructions.web.react', label: 'React', category: 'Web' },
     { settingId: 'sharp-pilot.instructions.web.typescript', label: 'TypeScript', category: 'Web' },
 ];
 

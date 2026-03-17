@@ -102,6 +102,10 @@
         "when": "config.sharp-pilot.instructions.web.javascript && (sharp-pilot.workspace.hasJavaScript || sharp-pilot.workspace.hasTypeScript)"
       },
       {
+        "path": "./instructions/web-react.instructions.md",
+        "when": "config.sharp-pilot.instructions.web.react && sharp-pilot.workspace.hasReact"
+      },
+      {
         "path": "./instructions/web-typescript.instructions.md",
         "when": "config.sharp-pilot.instructions.web.typescript && sharp-pilot.workspace.hasTypeScript"
       }
@@ -198,6 +202,11 @@
           "type": "boolean",
           "default": true,
           "description": "Enable JavaScript language, async patterns, and security guidelines."
+        },
+        "sharp-pilot.instructions.web.react": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable React component purity, Hooks, state design, effects, and list rendering guidelines."
         },
         "sharp-pilot.instructions.web.typescript": {
           "type": "boolean",
