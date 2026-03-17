@@ -54,6 +54,10 @@
         "when": "config.sharp-pilot.instructions.dotnet.designPrinciples && sharp-pilot.workspace.hasDotnet"
       },
       {
+        "path": "./instructions/dotnet-entity-framework-core.instructions.md",
+        "when": "config.sharp-pilot.instructions.dotnet.entityFrameworkCore && sharp-pilot.workspace.hasEntityFrameworkCore"
+      },
+      {
         "path": "./instructions/nuget.instructions.md",
         "when": "config.sharp-pilot.instructions.dotnet.nuget && sharp-pilot.workspace.hasDotnet"
       },
@@ -146,6 +150,11 @@
           "type": "boolean",
           "default": true,
           "description": "Enable design principles (SOLID, DI, composition)."
+        },
+        "sharp-pilot.instructions.dotnet.entityFrameworkCore": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable Entity Framework Core guidelines (DbContext lifetime, querying, migrations, bulk operations)."
         },
         "sharp-pilot.instructions.dotnet.nuget": {
           "type": "boolean",

@@ -44,6 +44,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
             }
 
             let hasAspNetCore = false;
+            let hasEntityFrameworkCore = false;
             let hasXunit = false;
             let hasWpf = false;
             let hasWinForms = false;
@@ -55,6 +56,9 @@ export class WorkspaceContextDetector implements vscode.Disposable {
                     if (!hasAspNetCore && /Sdk\s*=\s*["']Microsoft\.NET\.Sdk\.(Web|Razor)["']/i.test(content)) {
                         hasAspNetCore = true;
                     }
+                    if (!hasEntityFrameworkCore && /Microsoft\.EntityFrameworkCore/i.test(content)) {
+                        hasEntityFrameworkCore = true;
+                    }
                     if (!hasXunit && /xunit/i.test(content)) {
                         hasXunit = true;
                     }
@@ -64,7 +68,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
                     if (!hasWinForms && /<UseWindowsForms>\s*true\s*<\/UseWindowsForms>/i.test(content)) {
                         hasWinForms = true;
                     }
-                    if (hasAspNetCore && hasXunit && hasWpf && hasWinForms) {
+                    if (hasAspNetCore && hasEntityFrameworkCore && hasXunit && hasWpf && hasWinForms) {
                         break;
                     }
                 }
@@ -84,6 +88,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
             await Promise.all([
                 setCtx('sharp-pilot.workspace.hasDotnet', hasDotnet),
                 setCtx('sharp-pilot.workspace.hasAspNetCore', hasAspNetCore),
+                setCtx('sharp-pilot.workspace.hasEntityFrameworkCore', hasEntityFrameworkCore),
                 setCtx('sharp-pilot.workspace.hasBlazor', hasBlazor),
                 setCtx('sharp-pilot.workspace.hasHtml', hasHtml),
                 setCtx('sharp-pilot.workspace.hasCss', hasCss),
