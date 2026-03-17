@@ -74,6 +74,10 @@
         "when": "config.sharp-pilot.instructions.dotnet.testing && sharp-pilot.workspace.hasDotnet"
       },
       {
+        "path": "./instructions/dotnet-maui.instructions.md",
+        "when": "config.sharp-pilot.instructions.dotnet.maui && sharp-pilot.workspace.hasMaui"
+      },
+      {
         "path": "./instructions/dotnet-winforms.instructions.md",
         "when": "config.sharp-pilot.instructions.dotnet.winForms && sharp-pilot.workspace.hasWinForms"
       },
@@ -175,6 +179,11 @@
           "type": "boolean",
           "default": true,
           "description": "Enable general testing strategy guidelines (TDD, naming, organization)."
+        },
+        "sharp-pilot.instructions.dotnet.maui": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable .NET MAUI guidelines (MVVM, Shell navigation, data binding, layouts, DI)."
         },
         "sharp-pilot.instructions.dotnet.winForms": {
           "type": "boolean",

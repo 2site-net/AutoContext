@@ -29,6 +29,7 @@ export const instructions: readonly InstructionEntry[] = [
     { settingId: 'sharp-pilot.instructions.dotnet.debugging', label: 'Debugging', category: '.NET' },
     { settingId: 'sharp-pilot.instructions.dotnet.designPrinciples', label: 'Design Principles', category: '.NET' },
     { settingId: 'sharp-pilot.instructions.dotnet.entityFrameworkCore', label: 'Entity Framework Core', category: '.NET' },
+    { settingId: 'sharp-pilot.instructions.dotnet.maui', label: '.NET MAUI', category: '.NET' },
     { settingId: 'sharp-pilot.instructions.dotnet.nuget', label: 'NuGet', category: '.NET' },
     { settingId: 'sharp-pilot.instructions.dotnet.performanceMemory', label: 'Performance & Memory', category: '.NET' },
     { settingId: 'sharp-pilot.instructions.dotnet.razor', label: 'Razor', category: '.NET' },

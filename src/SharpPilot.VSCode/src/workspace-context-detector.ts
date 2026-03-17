@@ -45,6 +45,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
 
             let hasAspNetCore = false;
             let hasEntityFrameworkCore = false;
+            let hasMaui = false;
             let hasXunit = false;
             let hasWpf = false;
             let hasWinForms = false;
@@ -59,6 +60,9 @@ export class WorkspaceContextDetector implements vscode.Disposable {
                     if (!hasEntityFrameworkCore && /Microsoft\.EntityFrameworkCore/i.test(content)) {
                         hasEntityFrameworkCore = true;
                     }
+                    if (!hasMaui && /<UseMaui>\s*true\s*<\/UseMaui>/i.test(content)) {
+                        hasMaui = true;
+                    }
                     if (!hasXunit && /xunit/i.test(content)) {
                         hasXunit = true;
                     }
@@ -68,7 +72,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
                     if (!hasWinForms && /<UseWindowsForms>\s*true\s*<\/UseWindowsForms>/i.test(content)) {
                         hasWinForms = true;
                     }
-                    if (hasAspNetCore && hasEntityFrameworkCore && hasXunit && hasWpf && hasWinForms) {
+                    if (hasAspNetCore && hasEntityFrameworkCore && hasMaui && hasXunit && hasWpf && hasWinForms) {
                         break;
                     }
                 }
@@ -89,6 +93,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
                 setCtx('sharp-pilot.workspace.hasDotnet', hasDotnet),
                 setCtx('sharp-pilot.workspace.hasAspNetCore', hasAspNetCore),
                 setCtx('sharp-pilot.workspace.hasEntityFrameworkCore', hasEntityFrameworkCore),
+                setCtx('sharp-pilot.workspace.hasMaui', hasMaui),
                 setCtx('sharp-pilot.workspace.hasBlazor', hasBlazor),
                 setCtx('sharp-pilot.workspace.hasHtml', hasHtml),
                 setCtx('sharp-pilot.workspace.hasCss', hasCss),
