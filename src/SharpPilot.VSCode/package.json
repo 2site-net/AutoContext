@@ -50,6 +50,10 @@
         "when": "config.sharp-pilot.instructions.dotnet.blazor && sharp-pilot.workspace.hasBlazor"
       },
       {
+        "path": "./instructions/dotnet-razor.instructions.md",
+        "when": "config.sharp-pilot.instructions.dotnet.razor && sharp-pilot.workspace.hasBlazor"
+      },
+      {
         "path": "./instructions/dotnet-coding-standards.instructions.md",
         "when": "config.sharp-pilot.instructions.dotnet.codingStandards && sharp-pilot.workspace.hasDotnet"
       },
@@ -100,6 +104,11 @@
           "type": "boolean",
           "default": true,
           "description": "Enable Blazor component guidelines for Razor files."
+        },
+        "sharp-pilot.instructions.dotnet.razor": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable Razor file structure and syntax guidelines."
         },
         "sharp-pilot.instructions.dotnet.codingStandards": {
           "type": "boolean",
