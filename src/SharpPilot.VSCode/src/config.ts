@@ -31,6 +31,7 @@ export const instructions: readonly InstructionEntry[] = [
     { settingId: 'sharp-pilot.instructions.dotnet.performanceMemory', label: 'Performance & Memory', category: '.NET' },
     { settingId: 'sharp-pilot.instructions.dotnet.razor', label: 'Razor', category: '.NET' },
     { settingId: 'sharp-pilot.instructions.dotnet.testing', label: 'Testing', category: '.NET' },
+    { settingId: 'sharp-pilot.instructions.dotnet.wpf', label: 'WPF', category: '.NET' },
     { settingId: 'sharp-pilot.instructions.dotnet.xunit', label: 'xUnit', category: '.NET' },
     { settingId: 'sharp-pilot.instructions.csharp.codingStyle', label: 'Coding Style', category: 'C#' },
     { settingId: 'sharp-pilot.instructions.copilot', label: 'Copilot Rules', category: 'General' },

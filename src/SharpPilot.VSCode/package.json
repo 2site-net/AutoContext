@@ -66,6 +66,10 @@
         "when": "config.sharp-pilot.instructions.dotnet.testing && sharp-pilot.workspace.hasDotnet"
       },
       {
+        "path": "./instructions/dotnet-wpf.instructions.md",
+        "when": "config.sharp-pilot.instructions.dotnet.wpf && sharp-pilot.workspace.hasWpf"
+      },
+      {
         "path": "./instructions/dotnet-xunit.instructions.md",
         "when": "config.sharp-pilot.instructions.dotnet.xunit && sharp-pilot.workspace.hasXunit"
       },
@@ -145,6 +149,11 @@
           "type": "boolean",
           "default": true,
           "description": "Enable general testing strategy guidelines (TDD, naming, organization)."
+        },
+        "sharp-pilot.instructions.dotnet.wpf": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable WPF MVVM, data binding, threading, and performance guidelines."
         },
         "sharp-pilot.instructions.dotnet.xunit": {
           "type": "boolean",
