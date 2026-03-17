@@ -30,6 +30,10 @@
     ],
     "chatInstructions": [
       {
+        "path": "./instructions/dotnet-aspnetcore.instructions.md",
+        "when": "config.sharp-pilot.instructions.dotnet.aspnetCore && sharp-pilot.workspace.hasAspNetCore"
+      },
+      {
         "path": "./instructions/dotnet-async-await.instructions.md",
         "when": "config.sharp-pilot.instructions.dotnet.asyncAwait && sharp-pilot.workspace.hasDotnet"
       },
@@ -113,6 +117,11 @@
     "configuration": {
       "title": "SharpPilot",
       "properties": {
+        "sharp-pilot.instructions.dotnet.aspnetCore": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable ASP.NET Core Web API guidelines (middleware, routing, error handling, auth)."
+        },
         "sharp-pilot.instructions.dotnet.asyncAwait": {
           "type": "boolean",
           "default": true,

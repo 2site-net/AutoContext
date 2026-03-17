@@ -22,6 +22,7 @@ export const servers: readonly ServerEntry[] = [
 ];
 
 export const instructions: readonly InstructionEntry[] = [
+    { settingId: 'sharp-pilot.instructions.dotnet.aspnetCore', label: 'ASP.NET Core', category: '.NET' },
     { settingId: 'sharp-pilot.instructions.dotnet.asyncAwait', label: 'Async/Await', category: '.NET' },
     { settingId: 'sharp-pilot.instructions.dotnet.blazor', label: 'Blazor', category: '.NET' },
     { settingId: 'sharp-pilot.instructions.dotnet.codingStandards', label: 'Coding Standards', category: '.NET' },
