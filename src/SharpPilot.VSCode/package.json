@@ -30,36 +30,12 @@
     ],
     "chatInstructions": [
       {
-        "path": "./instructions/copilot.instructions.md",
-        "when": "config.sharp-pilot.instructions.copilot"
-      },
-      {
-        "path": "./instructions/csharp-coding-style.instructions.md",
-        "when": "config.sharp-pilot.instructions.csharp.codingStyle && sharp-pilot.workspace.hasDotnet"
-      },
-      {
-        "path": "./instructions/design-principles.instructions.md",
-        "when": "config.sharp-pilot.instructions.dotnet.designPrinciples && sharp-pilot.workspace.hasDotnet"
-      },
-      {
         "path": "./instructions/dotnet-async-await.instructions.md",
         "when": "config.sharp-pilot.instructions.dotnet.asyncAwait && sharp-pilot.workspace.hasDotnet"
       },
       {
         "path": "./instructions/dotnet-blazor.instructions.md",
         "when": "config.sharp-pilot.instructions.dotnet.blazor && sharp-pilot.workspace.hasBlazor"
-      },
-      {
-        "path": "./instructions/dotnet-razor.instructions.md",
-        "when": "config.sharp-pilot.instructions.dotnet.razor && sharp-pilot.workspace.hasBlazor"
-      },
-      {
-        "path": "./instructions/html.instructions.md",
-        "when": "config.sharp-pilot.instructions.dotnet.html && sharp-pilot.workspace.hasHtml"
-      },
-      {
-        "path": "./instructions/css.instructions.md",
-        "when": "config.sharp-pilot.instructions.dotnet.css && sharp-pilot.workspace.hasCss"
       },
       {
         "path": "./instructions/dotnet-coding-standards.instructions.md",
@@ -70,8 +46,20 @@
         "when": "config.sharp-pilot.instructions.dotnet.debugging && sharp-pilot.workspace.hasDotnet"
       },
       {
+        "path": "./instructions/design-principles.instructions.md",
+        "when": "config.sharp-pilot.instructions.dotnet.designPrinciples && sharp-pilot.workspace.hasDotnet"
+      },
+      {
+        "path": "./instructions/nuget.instructions.md",
+        "when": "config.sharp-pilot.instructions.dotnet.nuget && sharp-pilot.workspace.hasDotnet"
+      },
+      {
         "path": "./instructions/dotnet-performance-memory.instructions.md",
         "when": "config.sharp-pilot.instructions.dotnet.performanceMemory && sharp-pilot.workspace.hasDotnet"
+      },
+      {
+        "path": "./instructions/dotnet-razor.instructions.md",
+        "when": "config.sharp-pilot.instructions.dotnet.razor && sharp-pilot.workspace.hasBlazor"
       },
       {
         "path": "./instructions/dotnet-testing.instructions.md",
@@ -82,27 +70,29 @@
         "when": "config.sharp-pilot.instructions.dotnet.xunit && sharp-pilot.workspace.hasXunit"
       },
       {
+        "path": "./instructions/csharp-coding-style.instructions.md",
+        "when": "config.sharp-pilot.instructions.csharp.codingStyle && sharp-pilot.workspace.hasDotnet"
+      },
+      {
+        "path": "./instructions/copilot.instructions.md",
+        "when": "config.sharp-pilot.instructions.copilot"
+      },
+      {
         "path": "./instructions/git-commit-format.instructions.md",
         "when": "config.sharp-pilot.instructions.git.commitFormat && sharp-pilot.workspace.hasGit"
       },
       {
-        "path": "./instructions/nuget.instructions.md",
-        "when": "config.sharp-pilot.instructions.dotnet.nuget && sharp-pilot.workspace.hasDotnet"
+        "path": "./instructions/css.instructions.md",
+        "when": "config.sharp-pilot.instructions.dotnet.css && sharp-pilot.workspace.hasCss"
+      },
+      {
+        "path": "./instructions/html.instructions.md",
+        "when": "config.sharp-pilot.instructions.dotnet.html && sharp-pilot.workspace.hasHtml"
       }
     ],
     "configuration": {
       "title": "SharpPilot",
       "properties": {
-        "sharp-pilot.instructions.copilot": {
-          "type": "boolean",
-          "default": true,
-          "description": "Enable Copilot behavior rules and rule precedence."
-        },
-        "sharp-pilot.instructions.csharp.codingStyle": {
-          "type": "boolean",
-          "default": true,
-          "description": "Enable C# coding style rules (member ordering, formatting, etc.)."
-        },
         "sharp-pilot.instructions.dotnet.asyncAwait": {
           "type": "boolean",
           "default": true,
@@ -112,21 +102,6 @@
           "type": "boolean",
           "default": true,
           "description": "Enable Blazor component guidelines for Razor files."
-        },
-        "sharp-pilot.instructions.dotnet.razor": {
-          "type": "boolean",
-          "default": true,
-          "description": "Enable Razor file structure and syntax guidelines."
-        },
-        "sharp-pilot.instructions.dotnet.html": {
-          "type": "boolean",
-          "default": true,
-          "description": "Enable HTML semantics, accessibility, and structure guidelines."
-        },
-        "sharp-pilot.instructions.dotnet.css": {
-          "type": "boolean",
-          "default": true,
-          "description": "Enable CSS layout, theming, selectors, and accessibility guidelines."
         },
         "sharp-pilot.instructions.dotnet.codingStandards": {
           "type": "boolean",
@@ -153,6 +128,11 @@
           "default": true,
           "description": "Enable performance and memory optimization guidelines."
         },
+        "sharp-pilot.instructions.dotnet.razor": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable Razor file structure and syntax guidelines."
+        },
         "sharp-pilot.instructions.dotnet.testing": {
           "type": "boolean",
           "default": true,
@@ -163,10 +143,30 @@
           "default": true,
           "description": "Enable xUnit-specific guidelines (v3 APIs, attributes, assertions)."
         },
+        "sharp-pilot.instructions.csharp.codingStyle": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable C# coding style rules (member ordering, formatting, etc.)."
+        },
+        "sharp-pilot.instructions.copilot": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable Copilot behavior rules and rule precedence."
+        },
         "sharp-pilot.instructions.git.commitFormat": {
           "type": "boolean",
           "default": true,
           "description": "Enable Conventional Commits formatting guidelines."
+        },
+        "sharp-pilot.instructions.dotnet.css": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable CSS layout, theming, selectors, and accessibility guidelines."
+        },
+        "sharp-pilot.instructions.dotnet.html": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable HTML semantics, accessibility, and structure guidelines."
         },
         "sharp-pilot.tools.check_csharp_async_patterns": {
           "type": "boolean",

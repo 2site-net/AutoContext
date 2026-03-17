@@ -22,21 +22,21 @@ export const servers: readonly ServerEntry[] = [
 ];
 
 export const instructions: readonly InstructionEntry[] = [
-    { settingId: 'sharp-pilot.instructions.copilot', label: 'Copilot Rules', category: 'General' },
-    { settingId: 'sharp-pilot.instructions.csharp.codingStyle', label: 'Coding Style', category: 'C#' },
     { settingId: 'sharp-pilot.instructions.dotnet.asyncAwait', label: 'Async/Await', category: '.NET' },
     { settingId: 'sharp-pilot.instructions.dotnet.blazor', label: 'Blazor', category: '.NET' },
-    { settingId: 'sharp-pilot.instructions.dotnet.razor', label: 'Razor', category: '.NET' },
-    { settingId: 'sharp-pilot.instructions.dotnet.html', label: 'HTML', category: 'Web' },
-    { settingId: 'sharp-pilot.instructions.dotnet.css', label: 'CSS', category: 'Web' },
     { settingId: 'sharp-pilot.instructions.dotnet.codingStandards', label: 'Coding Standards', category: '.NET' },
     { settingId: 'sharp-pilot.instructions.dotnet.debugging', label: 'Debugging', category: '.NET' },
     { settingId: 'sharp-pilot.instructions.dotnet.designPrinciples', label: 'Design Principles', category: '.NET' },
     { settingId: 'sharp-pilot.instructions.dotnet.nuget', label: 'NuGet', category: '.NET' },
     { settingId: 'sharp-pilot.instructions.dotnet.performanceMemory', label: 'Performance & Memory', category: '.NET' },
+    { settingId: 'sharp-pilot.instructions.dotnet.razor', label: 'Razor', category: '.NET' },
     { settingId: 'sharp-pilot.instructions.dotnet.testing', label: 'Testing', category: '.NET' },
     { settingId: 'sharp-pilot.instructions.dotnet.xunit', label: 'xUnit', category: '.NET' },
+    { settingId: 'sharp-pilot.instructions.csharp.codingStyle', label: 'Coding Style', category: 'C#' },
+    { settingId: 'sharp-pilot.instructions.copilot', label: 'Copilot Rules', category: 'General' },
     { settingId: 'sharp-pilot.instructions.git.commitFormat', label: 'Commit Format', category: 'Git' },
+    { settingId: 'sharp-pilot.instructions.dotnet.css', label: 'CSS', category: 'Web' },
+    { settingId: 'sharp-pilot.instructions.dotnet.html', label: 'HTML', category: 'Web' },
 ];
 
 export const tools: readonly ToolEntry[] = [
