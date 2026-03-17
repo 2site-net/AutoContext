@@ -82,19 +82,19 @@
         "when": "config.sharp-pilot.instructions.git.commitFormat && sharp-pilot.workspace.hasGit"
       },
       {
-        "path": "./instructions/css.instructions.md",
-        "when": "config.sharp-pilot.instructions.dotnet.css && sharp-pilot.workspace.hasCss"
+        "path": "./instructions/web-css.instructions.md",
+        "when": "config.sharp-pilot.instructions.web.css && sharp-pilot.workspace.hasCss"
       },
       {
-        "path": "./instructions/html.instructions.md",
-        "when": "config.sharp-pilot.instructions.dotnet.html && sharp-pilot.workspace.hasHtml"
+        "path": "./instructions/web-html.instructions.md",
+        "when": "config.sharp-pilot.instructions.web.html && sharp-pilot.workspace.hasHtml"
       },
       {
-        "path": "./instructions/javascript.instructions.md",
+        "path": "./instructions/web-javascript.instructions.md",
         "when": "config.sharp-pilot.instructions.web.javascript && (sharp-pilot.workspace.hasJavaScript || sharp-pilot.workspace.hasTypeScript)"
       },
       {
-        "path": "./instructions/typescript.instructions.md",
+        "path": "./instructions/web-typescript.instructions.md",
         "when": "config.sharp-pilot.instructions.web.typescript && sharp-pilot.workspace.hasTypeScript"
       }
     ],
@@ -166,12 +166,12 @@
           "default": true,
           "description": "Enable Conventional Commits formatting guidelines."
         },
-        "sharp-pilot.instructions.dotnet.css": {
+        "sharp-pilot.instructions.web.css": {
           "type": "boolean",
           "default": true,
           "description": "Enable CSS layout, theming, selectors, and accessibility guidelines."
         },
-        "sharp-pilot.instructions.dotnet.html": {
+        "sharp-pilot.instructions.web.html": {
           "type": "boolean",
           "default": true,
           "description": "Enable HTML semantics, accessibility, and structure guidelines."

@@ -35,8 +35,8 @@ export const instructions: readonly InstructionEntry[] = [
     { settingId: 'sharp-pilot.instructions.csharp.codingStyle', label: 'Coding Style', category: 'C#' },
     { settingId: 'sharp-pilot.instructions.copilot', label: 'Copilot Rules', category: 'General' },
     { settingId: 'sharp-pilot.instructions.git.commitFormat', label: 'Commit Format', category: 'Git' },
-    { settingId: 'sharp-pilot.instructions.dotnet.css', label: 'CSS', category: 'Web' },
-    { settingId: 'sharp-pilot.instructions.dotnet.html', label: 'HTML', category: 'Web' },
+    { settingId: 'sharp-pilot.instructions.web.css', label: 'CSS', category: 'Web' },
+    { settingId: 'sharp-pilot.instructions.web.html', label: 'HTML', category: 'Web' },
     { settingId: 'sharp-pilot.instructions.web.javascript', label: 'JavaScript', category: 'Web' },
     { settingId: 'sharp-pilot.instructions.web.typescript', label: 'TypeScript', category: 'Web' },
 ];
