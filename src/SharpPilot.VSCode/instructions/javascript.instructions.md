@@ -1,6 +1,6 @@
 ---
-description: "Use when generating or editing JavaScript code, working with ES modules, async patterns, DOM manipulation, or modern JS features."
-applyTo: "**/*.{js,mjs,cjs}"
+description: "Use when generating or editing JavaScript or TypeScript code, working with ES modules, async patterns, DOM manipulation, or modern JS/TS features."
+applyTo: "**/*.{js,jsx,mjs,cjs,ts,tsx,mts,cts}"
 ---
 # JavaScript Guidelines
 

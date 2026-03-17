@@ -91,7 +91,11 @@
       },
       {
         "path": "./instructions/javascript.instructions.md",
-        "when": "config.sharp-pilot.instructions.web.javascript && sharp-pilot.workspace.hasJavaScript"
+        "when": "config.sharp-pilot.instructions.web.javascript && (sharp-pilot.workspace.hasJavaScript || sharp-pilot.workspace.hasTypeScript)"
+      },
+      {
+        "path": "./instructions/typescript.instructions.md",
+        "when": "config.sharp-pilot.instructions.web.typescript && sharp-pilot.workspace.hasTypeScript"
       }
     ],
     "configuration": {
@@ -176,6 +180,11 @@
           "type": "boolean",
           "default": true,
           "description": "Enable JavaScript language, async patterns, and security guidelines."
+        },
+        "sharp-pilot.instructions.web.typescript": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable TypeScript type safety, generics, and anti-pattern guidelines."
         },
         "sharp-pilot.tools.check_csharp_async_patterns": {
           "type": "boolean",
