@@ -10,4 +10,5 @@ applyTo: "**/*.{cs,fs,vb}"
 - **Do** use `ValueTask` only when best practices permit and profiling shows a measurable benefit over `Task`.
 - **Do** implement `IAsyncDisposable` for async cleanup.
 - **Do** add `.ConfigureAwait(false)` in library or other non-UI code to avoid deadlocks on captured contexts except in xUnit tests (xUnit1030).
-- **Don’t** use `async void` except for event handlers—unobserved exceptions crash the process.
+- **Don't** use `async void` except for event handlers—unobserved exceptions crash the process.
+- **Don't** block on async code by calling `.Result`, `.Wait()`, or `.GetAwaiter().GetResult()` on a `Task` — this deadlocks in UI / ASP.NET contexts and defeats all back-pressure from the async pipeline.
