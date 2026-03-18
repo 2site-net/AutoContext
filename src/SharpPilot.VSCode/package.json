@@ -122,6 +122,10 @@
         "when": "config.sharp-pilot.instructions.web.react && sharp-pilot.workspace.hasReact"
       },
       {
+        "path": "./instructions/web-svelte.instructions.md",
+        "when": "config.sharp-pilot.instructions.web.svelte && sharp-pilot.workspace.hasSvelte"
+      },
+      {
         "path": "./instructions/web-typescript.instructions.md",
         "when": "config.sharp-pilot.instructions.web.typescript && sharp-pilot.workspace.hasTypeScript"
       },
@@ -247,6 +251,11 @@
           "type": "boolean",
           "default": true,
           "description": "Enable React component purity, Hooks, state design, effects, and list rendering guidelines."
+        },
+        "sharp-pilot.instructions.web.svelte": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable Svelte guidelines (runes, stores, SvelteKit routing, load functions, form actions)."
         },
         "sharp-pilot.instructions.web.typescript": {
           "type": "boolean",
