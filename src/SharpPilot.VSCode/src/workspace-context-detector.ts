@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { instructions, instructionByFileName, overrideContextKey } from './config';
 
 export class WorkspaceContextDetector implements vscode.Disposable {
     private readonly disposables: vscode.Disposable[] = [];
@@ -26,6 +27,16 @@ export class WorkspaceContextDetector implements vscode.Disposable {
             contentWatcher.onDidCreate(schedule),
             contentWatcher.onDidChange(schedule),
             contentWatcher.onDidDelete(schedule),
+        );
+
+        const overrideWatcher = vscode.workspace.createFileSystemWatcher(
+            '**/.github/{copilot-instructions.md,instructions/*.instructions.md}',
+        );
+
+        this.disposables.push(
+            overrideWatcher,
+            overrideWatcher.onDidCreate(schedule),
+            overrideWatcher.onDidDelete(schedule),
         );
     }
 
@@ -171,6 +182,26 @@ export class WorkspaceContextDetector implements vscode.Disposable {
                 }
             }
 
+            const overrideFiles = await Promise.all([
+                vscode.workspace.findFiles('.github/instructions/*.instructions.md', undefined, 50),
+                vscode.workspace.findFiles('.github/copilot-instructions.md', undefined, 1),
+            ]);
+
+            const overriddenFileNames = new Set<string>();
+
+            for (const uri of overrideFiles.flat()) {
+                const segments = uri.path.split('/');
+                let matchName = segments[segments.length - 1];
+
+                if (matchName === 'copilot-instructions.md') {
+                    matchName = 'copilot.instructions.md';
+                }
+
+                if (instructionByFileName(matchName)) {
+                    overriddenFileNames.add(matchName);
+                }
+            }
+
             await Promise.all([
                 setContext('sharp-pilot.workspace.hasDotnet', hasDotnet),
                 setContext('sharp-pilot.workspace.hasFsharp', hasFsharp),
@@ -198,6 +229,9 @@ export class WorkspaceContextDetector implements vscode.Disposable {
                 setContext('sharp-pilot.workspace.hasWinForms', hasWinForms),
                 setContext('sharp-pilot.workspace.hasUnity', hasUnity),
                 setContext('sharp-pilot.workspace.hasGit', hasGit),
+                ...instructions.map(i =>
+                    setContext(overrideContextKey(i.settingId), overriddenFileNames.has(i.fileName)),
+                ),
             ]);
         } catch {
             // Workspace detection is best-effort; failures should not break the extension

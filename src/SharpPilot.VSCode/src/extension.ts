@@ -5,6 +5,8 @@ import { StatusBarIndicator } from './status-bar-indicator';
 import { WorkspaceContextDetector } from './workspace-context-detector';
 import { ToolsStatusWriter } from './tools-status-writer';
 import { InstructionsToggler } from './instructions-toggler';
+import { InstructionExporter } from './instruction-exporter';
+import { InstructionVersionChecker } from './instruction-version-checker';
 
 export function activate(context: vscode.ExtensionContext): void {
     const serversPath = join(context.extensionPath, 'servers');
@@ -16,15 +18,19 @@ export function activate(context: vscode.ExtensionContext): void {
     const workspaceContextDetector = new WorkspaceContextDetector();
     const toolsStatusWriter = new ToolsStatusWriter(serversPath);
     const instructionsToggler = new InstructionsToggler();
+    const instructionExporter = new InstructionExporter(context.extensionPath);
+    const instructionVersionChecker = new InstructionVersionChecker(context.extensionPath);
 
     toolsStatusWriter.write();
     workspaceContextDetector.detect();
+    instructionVersionChecker.check();
 
     context.subscriptions.push(
         didChangeEmitter,
         statusBarIndicator,
         workspaceContextDetector,
         vscode.commands.registerCommand('sharp-pilot.toggleInstructions', () => instructionsToggler.toggle()),
+        vscode.commands.registerCommand('sharp-pilot.exportInstructions', () => instructionExporter.export()),
         vscode.workspace.onDidChangeConfiguration(e => {
             if (e.affectsConfiguration('sharp-pilot.instructions') || e.affectsConfiguration('sharp-pilot.tools')) {
                 statusBarIndicator.update();
