@@ -58,6 +58,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
             }
 
             let hasAspNetCore = false;
+            let hasDapper = false;
             let hasEntityFrameworkCore = false;
             let hasMaui = false;
             let hasMongodb = false;
@@ -76,6 +77,9 @@ export class WorkspaceContextDetector implements vscode.Disposable {
                     const content = new TextDecoder().decode(bytes);
                     if (!hasAspNetCore && /Sdk\s*=\s*["']Microsoft\.NET\.Sdk\.(Web|Razor)["']/i.test(content)) {
                         hasAspNetCore = true;
+                    }
+                    if (!hasDapper && /Dapper/i.test(content)) {
+                        hasDapper = true;
                     }
                     if (!hasEntityFrameworkCore && /Microsoft\.EntityFrameworkCore/i.test(content)) {
                         hasEntityFrameworkCore = true;
@@ -110,7 +114,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
                     if (!hasSqlServer && /Microsoft\.Data\.SqlClient|System\.Data\.SqlClient|EntityFrameworkCore\.SqlServer|EntityFramework\.SqlServer/i.test(content)) {
                         hasSqlServer = true;
                     }
-                    if (hasAspNetCore && hasEntityFrameworkCore && hasMaui && hasMongodb && hasMysql && hasOracle && hasPostgres && hasSqlite && hasSqlServer && hasXunit && hasWpf && hasWinForms) {
+                    if (hasAspNetCore && hasDapper && hasEntityFrameworkCore && hasMaui && hasMongodb && hasMysql && hasOracle && hasPostgres && hasSqlite && hasSqlServer && hasXunit && hasWpf && hasWinForms) {
                         break;
                     }
                 }
@@ -130,6 +134,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
             await Promise.all([
                 setCtx('sharp-pilot.workspace.hasDotnet', hasDotnet),
                 setCtx('sharp-pilot.workspace.hasAspNetCore', hasAspNetCore),
+                setCtx('sharp-pilot.workspace.hasDapper', hasDapper),
                 setCtx('sharp-pilot.workspace.hasEntityFrameworkCore', hasEntityFrameworkCore),
                 setCtx('sharp-pilot.workspace.hasMaui', hasMaui),
                 setCtx('sharp-pilot.workspace.hasBlazor', hasBlazor),

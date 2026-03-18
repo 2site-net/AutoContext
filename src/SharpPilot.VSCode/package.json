@@ -54,6 +54,10 @@
         "when": "config.sharp-pilot.instructions.dotnet.designPrinciples && sharp-pilot.workspace.hasDotnet"
       },
       {
+        "path": "./instructions/dotnet-dapper.instructions.md",
+        "when": "config.sharp-pilot.instructions.dotnet.dapper && sharp-pilot.workspace.hasDapper"
+      },
+      {
         "path": "./instructions/dotnet-entity-framework-core.instructions.md",
         "when": "config.sharp-pilot.instructions.dotnet.entityFrameworkCore && sharp-pilot.workspace.hasEntityFrameworkCore"
       },
@@ -180,6 +184,11 @@
           "type": "boolean",
           "default": true,
           "description": "Enable .NET coding standards (naming, validation, file organization, API design)."
+        },
+        "sharp-pilot.instructions.dotnet.dapper": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable Dapper guidelines (connection management, parameterized queries, mapping, transactions, performance)."
         },
         "sharp-pilot.instructions.dotnet.debugging": {
           "type": "boolean",

@@ -26,6 +26,7 @@ export const instructions: readonly InstructionEntry[] = [
     { settingId: 'sharp-pilot.instructions.dotnet.asyncAwait', label: 'Async/Await', category: '.NET' },
     { settingId: 'sharp-pilot.instructions.dotnet.blazor', label: 'Blazor', category: '.NET' },
     { settingId: 'sharp-pilot.instructions.dotnet.codingStandards', label: 'Coding Standards', category: '.NET' },
+    { settingId: 'sharp-pilot.instructions.dotnet.dapper', label: 'Dapper', category: '.NET' },
     { settingId: 'sharp-pilot.instructions.dotnet.debugging', label: 'Debugging', category: '.NET' },
     { settingId: 'sharp-pilot.instructions.dotnet.designPrinciples', label: 'Design Principles', category: '.NET' },
     { settingId: 'sharp-pilot.instructions.dotnet.entityFrameworkCore', label: 'Entity Framework Core', category: '.NET' },
