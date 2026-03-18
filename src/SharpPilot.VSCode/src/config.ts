@@ -30,6 +30,7 @@ export const instructions: readonly InstructionEntry[] = [
     { settingId: 'sharp-pilot.instructions.dotnet.designPrinciples', label: 'Design Principles', category: '.NET' },
     { settingId: 'sharp-pilot.instructions.dotnet.entityFrameworkCore', label: 'Entity Framework Core', category: '.NET' },
     { settingId: 'sharp-pilot.instructions.dotnet.maui', label: '.NET MAUI', category: '.NET' },
+    { settingId: 'sharp-pilot.instructions.dotnet.mongodb', label: 'MongoDB', category: '.NET' },
     { settingId: 'sharp-pilot.instructions.dotnet.mysql', label: 'MySQL', category: '.NET' },
     { settingId: 'sharp-pilot.instructions.dotnet.nuget', label: 'NuGet', category: '.NET' },
     { settingId: 'sharp-pilot.instructions.dotnet.oracle', label: 'Oracle', category: '.NET' },

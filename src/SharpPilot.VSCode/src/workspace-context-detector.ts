@@ -60,6 +60,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
             let hasAspNetCore = false;
             let hasEntityFrameworkCore = false;
             let hasMaui = false;
+            let hasMongodb = false;
             let hasMysql = false;
             let hasOracle = false;
             let hasPostgres = false;
@@ -81,6 +82,9 @@ export class WorkspaceContextDetector implements vscode.Disposable {
                     }
                     if (!hasMaui && /<UseMaui>\s*true\s*<\/UseMaui>/i.test(content)) {
                         hasMaui = true;
+                    }
+                    if (!hasMongodb && /MongoDB\.Driver|MongoDB\.EntityFrameworkCore/i.test(content)) {
+                        hasMongodb = true;
                     }
                     if (!hasXunit && /xunit/i.test(content)) {
                         hasXunit = true;
@@ -106,7 +110,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
                     if (!hasSqlServer && /Microsoft\.Data\.SqlClient|System\.Data\.SqlClient|EntityFrameworkCore\.SqlServer|EntityFramework\.SqlServer/i.test(content)) {
                         hasSqlServer = true;
                     }
-                    if (hasAspNetCore && hasEntityFrameworkCore && hasMaui && hasMysql && hasOracle && hasPostgres && hasSqlite && hasSqlServer && hasXunit && hasWpf && hasWinForms) {
+                    if (hasAspNetCore && hasEntityFrameworkCore && hasMaui && hasMongodb && hasMysql && hasOracle && hasPostgres && hasSqlite && hasSqlServer && hasXunit && hasWpf && hasWinForms) {
                         break;
                     }
                 }
@@ -138,6 +142,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
                 setCtx('sharp-pilot.workspace.hasVue', hasVue),
                 setCtx('sharp-pilot.workspace.hasSvelte', hasSvelte),
                 setCtx('sharp-pilot.workspace.hasMysql', hasMysql),
+                setCtx('sharp-pilot.workspace.hasMongodb', hasMongodb),
                 setCtx('sharp-pilot.workspace.hasOracle', hasOracle),
                 setCtx('sharp-pilot.workspace.hasPostgres', hasPostgres),
                 setCtx('sharp-pilot.workspace.hasSqlite', hasSqlite),

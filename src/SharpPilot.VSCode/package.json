@@ -86,6 +86,10 @@
         "when": "config.sharp-pilot.instructions.dotnet.maui && sharp-pilot.workspace.hasMaui"
       },
       {
+        "path": "./instructions/dotnet-mongodb.instructions.md",
+        "when": "config.sharp-pilot.instructions.dotnet.mongodb && sharp-pilot.workspace.hasMongodb"
+      },
+      {
         "path": "./instructions/dotnet-mysql.instructions.md",
         "when": "config.sharp-pilot.instructions.dotnet.mysql && sharp-pilot.workspace.hasMysql"
       },
@@ -226,6 +230,11 @@
           "type": "boolean",
           "default": true,
           "description": "Enable .NET MAUI guidelines (MVVM, Shell navigation, data binding, layouts, DI)."
+        },
+        "sharp-pilot.instructions.dotnet.mongodb": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable MongoDB guidelines (security, data modelling, query design, indexing, transactions)."
         },
         "sharp-pilot.instructions.dotnet.mysql": {
           "type": "boolean",
