@@ -4,7 +4,7 @@ applyTo: "**/*.{js,jsx,mjs,cjs,ts,tsx,mts,cts}"
 ---
 # React Guidelines
 
-> These rules target React code — component purity, Hooks, state design, effects, list rendering, and DOM access. All rules are derived from official React documentation (react.dev).
+> These rules target React code — component purity, Hooks, state design, effects, list rendering, and DOM access.
 
 ## Rules of React
 

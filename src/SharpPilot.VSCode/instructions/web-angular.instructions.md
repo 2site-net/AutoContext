@@ -4,7 +4,7 @@ applyTo: "**/*.{ts,mts,cts,html}"
 ---
 # Angular Guidelines
 
-> These rules target Angular applications — component design, reactivity, dependency injection, RxJS, routing, and forms. Rules are derived from the [Angular style guide](https://angular.dev/style-guide) and official Angular documentation.
+> These rules target Angular applications — component design, reactivity, dependency injection, RxJS, routing, and forms.
 
 ## Components & Templates
 

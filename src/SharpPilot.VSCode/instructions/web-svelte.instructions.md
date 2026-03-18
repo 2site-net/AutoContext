@@ -4,7 +4,7 @@ applyTo: "**/*.{svelte,js,jsx,mjs,cjs,ts,tsx,mts,cts}"
 ---
 # Svelte Guidelines
 
-> These rules target Svelte 5 and SvelteKit applications — runes-based reactivity, component design, stores, routing, and data loading. Rules are derived from the [Svelte documentation](https://svelte.dev/docs) and [SvelteKit documentation](https://kit.svelte.dev/docs).
+> These rules target Svelte 5 and SvelteKit applications — runes-based reactivity, component design, stores, routing, and data loading.
 
 ## Reactivity (Svelte 5 Runes)
 

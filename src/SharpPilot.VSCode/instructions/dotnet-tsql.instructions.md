@@ -3,7 +3,7 @@ description: "Use when writing T-SQL queries, stored procedures, migrations, or 
 ---
 # T-SQL / SQL Server Guidelines
 
-> These rules target T-SQL as used with SQL Server, Azure SQL Database, and Azure SQL Managed Instance. Rules are derived from [Microsoft SQL Server documentation](https://learn.microsoft.com/en-us/sql/sql-server/) and SQL Server security and performance best practices.
+> These rules target T-SQL as used with SQL Server, Azure SQL Database, and Azure SQL Managed Instance.
 
 ## Security
 

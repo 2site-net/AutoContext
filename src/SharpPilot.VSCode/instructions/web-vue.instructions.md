@@ -4,7 +4,7 @@ applyTo: "**/*.{vue,js,jsx,mjs,cjs,ts,tsx,mts,cts}"
 ---
 # Vue.js Guidelines
 
-> These rules target Vue 3 applications — Composition API, reactivity, component design, state management, routing, and template practices. Rules are derived from the [Vue.js Style Guide](https://vuejs.org/style-guide/) and official Vue documentation.
+> These rules target Vue 3 applications — Composition API, reactivity, component design, state management, routing, and template practices.
 
 ## Composition API
 
