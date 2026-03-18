@@ -144,6 +144,10 @@
         "when": "config.sharp-pilot.instructions.designPrinciples && !sharp-pilot.override.designPrinciples"
       },
       {
+        "path": "./instructions/rest-api-design.instructions.md",
+        "when": "config.sharp-pilot.instructions.restApiDesign && !sharp-pilot.override.restApiDesign"
+      },
+      {
         "path": "./instructions/git-commit-format.instructions.md",
         "when": "config.sharp-pilot.instructions.git.commitFormat && sharp-pilot.workspace.hasGit && !sharp-pilot.override.git.commitFormat"
       },
@@ -312,6 +316,11 @@
           "type": "boolean",
           "default": true,
           "description": "Enable design principles (SOLID, DI, composition, separation of concerns, structured logging)."
+        },
+        "sharp-pilot.instructions.restApiDesign": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable REST API design guidelines (resource naming, HTTP methods, status codes, pagination, error responses, versioning)."
         },
         "sharp-pilot.instructions.git.commitFormat": {
           "type": "boolean",
