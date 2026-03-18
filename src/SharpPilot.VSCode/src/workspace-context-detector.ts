@@ -34,6 +34,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
 
             let hasReact = false;
             let hasAngular = false;
+            let hasVue = false;
             const packageFiles = await vscode.workspace.findFiles('**/package.json', '**/node_modules/**', 50);
             for (const uri of packageFiles) {
                 const bytes = await vscode.workspace.fs.readFile(uri);
@@ -44,7 +45,10 @@ export class WorkspaceContextDetector implements vscode.Disposable {
                 if (!hasAngular && /"@angular\/core"\s*:/.test(content)) {
                     hasAngular = true;
                 }
-                if (hasReact && hasAngular) {
+                if (!hasVue && /"vue"\s*:/.test(content)) {
+                    hasVue = true;
+                }
+                if (hasReact && hasAngular && hasVue) {
                     break;
                 }
             }
@@ -107,6 +111,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
                 setCtx('sharp-pilot.workspace.hasTypeScript', hasTypeScript),
                 setCtx('sharp-pilot.workspace.hasReact', hasReact),
                 setCtx('sharp-pilot.workspace.hasAngular', hasAngular),
+                setCtx('sharp-pilot.workspace.hasVue', hasVue),
                 setCtx('sharp-pilot.workspace.hasXunit', hasXunit),
                 setCtx('sharp-pilot.workspace.hasWpf', hasWpf),
                 setCtx('sharp-pilot.workspace.hasWinForms', hasWinForms),

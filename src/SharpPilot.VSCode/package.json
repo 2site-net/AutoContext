@@ -124,6 +124,10 @@
       {
         "path": "./instructions/web-typescript.instructions.md",
         "when": "config.sharp-pilot.instructions.web.typescript && sharp-pilot.workspace.hasTypeScript"
+      },
+      {
+        "path": "./instructions/web-vue.instructions.md",
+        "when": "config.sharp-pilot.instructions.web.vue && sharp-pilot.workspace.hasVue"
       }
     ],
     "configuration": {
@@ -248,6 +252,11 @@
           "type": "boolean",
           "default": true,
           "description": "Enable TypeScript type safety, generics, and anti-pattern guidelines."
+        },
+        "sharp-pilot.instructions.web.vue": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable Vue.js guidelines (Composition API, reactivity, Pinia, Vue Router, component design)."
         },
         "sharp-pilot.tools.check_csharp_async_patterns": {
           "type": "boolean",
