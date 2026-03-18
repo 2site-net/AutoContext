@@ -28,6 +28,8 @@ applyTo: "**/*.{js,jsx,mjs,cjs,ts,tsx,mts,cts}"
 * **Do** check `response.ok` after `fetch()` before reading the body — `fetch` only rejects on network errors, not on HTTP 4xx/5xx status codes.
 * **Do** use `Object.hasOwn(obj, key)` instead of `obj.hasOwnProperty(key)` — works on objects created with `Object.create(null)` and is more concise.
 * **Do** use classes for stateful objects with behavior and lifecycle; prefer plain functions and modules for stateless operations and utilities — avoid wrapping a single function in a class.
+* **Do** insert a blank line before control flow statements (`if`, `for`, `for...of`, `for...in`, `while`, `do`, `switch`, `try`, `using`).
+* **Do** insert a blank line between variable declarations and their first usage.
 * **Don't** use `var` — it has function scope, hoisting quirks, and allows accidental redeclaration; use `const` or `let` instead.
 * **Don't** use `for...in` to iterate arrays or iterables — it enumerates all enumerable properties including inherited ones; use `for...of` or array methods instead.
 * **Don't** use `eval()`, `new Function()`, or `setTimeout`/`setInterval` with string arguments — they parse strings as code and open code-injection vectors.
