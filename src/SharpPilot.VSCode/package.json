@@ -102,6 +102,10 @@
         "when": "config.sharp-pilot.instructions.dotnet.sqlite && sharp-pilot.workspace.hasSqlite"
       },
       {
+        "path": "./instructions/dotnet-unity.instructions.md",
+        "when": "config.sharp-pilot.instructions.dotnet.unity && sharp-pilot.workspace.hasUnity"
+      },
+      {
         "path": "./instructions/dotnet-winforms.instructions.md",
         "when": "config.sharp-pilot.instructions.dotnet.winForms && sharp-pilot.workspace.hasWinForms"
       },
@@ -258,6 +262,11 @@
           "type": "boolean",
           "default": true,
           "description": "Enable SQLite guidelines (security, query design, performance, WAL mode, schema migrations)."
+        },
+        "sharp-pilot.instructions.dotnet.unity": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable Unity guidelines (MonoBehaviour lifecycle, component caching, physics, coroutines, ScriptableObjects, performance)."
         },
         "sharp-pilot.instructions.dotnet.winForms": {
           "type": "boolean",

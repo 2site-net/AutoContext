@@ -46,7 +46,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
 
             const decoder = new TextDecoder();
 
-            const [dotnetFiles, fsharpFiles, razorFiles, htmlFiles, cssFiles, jsFiles, tsFiles] = await Promise.all([
+            const [dotnetFiles, fsharpFiles, razorFiles, htmlFiles, cssFiles, jsFiles, tsFiles, unityFiles] = await Promise.all([
                 vscode.workspace.findFiles('**/*.{csproj,fsproj,sln,slnx}', '**/node_modules/**', 1),
                 vscode.workspace.findFiles('**/*.fsproj', '**/node_modules/**', 1),
                 vscode.workspace.findFiles('**/*.razor', '**/node_modules/**', 1),
@@ -54,6 +54,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
                 vscode.workspace.findFiles('**/*.css', '**/node_modules/**', 1),
                 vscode.workspace.findFiles('**/*.{js,jsx,mjs,cjs}', '**/node_modules/**', 1),
                 vscode.workspace.findFiles('**/*.{ts,tsx,mts,cts}', '**/node_modules/**', 1),
+                vscode.workspace.findFiles('**/ProjectSettings/ProjectSettings.asset', '**/node_modules/**', 1),
             ]);
 
             const hasDotnet = dotnetFiles.length > 0;
@@ -63,6 +64,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
             const hasCss = cssFiles.length > 0 || hasHtml;
             const hasJavaScript = jsFiles.length > 0;
             const hasTypeScript = tsFiles.length > 0;
+            const hasUnity = unityFiles.length > 0;
 
             let hasReact = false;
             let hasAngular = false;
@@ -188,6 +190,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
                 setCtx('sharp-pilot.workspace.hasXunit', hasXunit),
                 setCtx('sharp-pilot.workspace.hasWpf', hasWpf),
                 setCtx('sharp-pilot.workspace.hasWinForms', hasWinForms),
+                setCtx('sharp-pilot.workspace.hasUnity', hasUnity),
                 setCtx('sharp-pilot.workspace.hasGit', hasGit),
             ]);
         } catch {

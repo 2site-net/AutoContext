@@ -40,6 +40,7 @@ export const instructions: readonly InstructionEntry[] = [
     { settingId: 'sharp-pilot.instructions.dotnet.sqlite', label: 'SQLite', category: '.NET' },
     { settingId: 'sharp-pilot.instructions.dotnet.sqlServer', label: 'SQL Server', category: '.NET' },
     { settingId: 'sharp-pilot.instructions.dotnet.testing', label: 'Testing', category: '.NET' },
+    { settingId: 'sharp-pilot.instructions.dotnet.unity', label: 'Unity', category: '.NET' },
     { settingId: 'sharp-pilot.instructions.dotnet.winForms', label: 'Windows Forms', category: '.NET' },
     { settingId: 'sharp-pilot.instructions.dotnet.wpf', label: 'WPF', category: '.NET' },
     { settingId: 'sharp-pilot.instructions.dotnet.xunit', label: 'xUnit', category: '.NET' },
