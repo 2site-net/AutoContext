@@ -1,20 +1,50 @@
 import * as vscode from 'vscode';
 
 export class WorkspaceContextDetector implements vscode.Disposable {
-    private readonly watcher: vscode.FileSystemWatcher;
+    private readonly disposables: vscode.Disposable[] = [];
+    private debounceTimer: ReturnType<typeof setTimeout> | undefined;
 
     constructor() {
-        this.watcher = vscode.workspace.createFileSystemWatcher(
+        const schedule = () => this.scheduleDetect();
+
+        const existenceWatcher = vscode.workspace.createFileSystemWatcher(
             '**/*.{csproj,fsproj,sln,slnx,razor,html,cshtml,css,js,jsx,mjs,cjs,ts,tsx,mts,cts}',
         );
-        this.watcher.onDidCreate(() => this.detect());
-        this.watcher.onDidDelete(() => this.detect());
+
+        this.disposables.push(
+            existenceWatcher,
+            existenceWatcher.onDidCreate(schedule),
+            existenceWatcher.onDidDelete(schedule),
+        );
+
+        const contentWatcher = vscode.workspace.createFileSystemWatcher(
+            '**/{*.csproj,*.fsproj,package.json}',
+        );
+
+        this.disposables.push(
+            contentWatcher,
+            contentWatcher.onDidCreate(schedule),
+            contentWatcher.onDidChange(schedule),
+            contentWatcher.onDidDelete(schedule),
+        );
+    }
+
+    private scheduleDetect(): void {
+        if (this.debounceTimer !== undefined) {
+            clearTimeout(this.debounceTimer);
+        }
+        this.debounceTimer = setTimeout(() => {
+            this.debounceTimer = undefined;
+            this.detect();
+        }, 500);
     }
 
     async detect(): Promise<void> {
         try {
             const setCtx = (key: string, value: boolean): Thenable<unknown> =>
                 vscode.commands.executeCommand('setContext', key, value);
+
+            const decoder = new TextDecoder();
 
             const [dotnetFiles, razorFiles, htmlFiles, cssFiles, jsFiles, tsFiles] = await Promise.all([
                 vscode.workspace.findFiles('**/*.{csproj,fsproj,sln,slnx}', '**/node_modules/**', 1),
@@ -39,7 +69,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
             const packageFiles = await vscode.workspace.findFiles('**/package.json', '**/node_modules/**', 50);
             for (const uri of packageFiles) {
                 const bytes = await vscode.workspace.fs.readFile(uri);
-                const content = new TextDecoder().decode(bytes);
+                const content = decoder.decode(bytes);
                 if (!hasReact && /"react"\s*:/.test(content)) {
                     hasReact = true;
                 }
@@ -71,10 +101,10 @@ export class WorkspaceContextDetector implements vscode.Disposable {
             let hasWpf = false;
             let hasWinForms = false;
             if (hasDotnet) {
-                const projFiles = await vscode.workspace.findFiles('**/*.csproj', '**/node_modules/**', 50);
+                const projFiles = await vscode.workspace.findFiles('**/*.{csproj,fsproj}', '**/node_modules/**', 50);
                 for (const uri of projFiles) {
                     const bytes = await vscode.workspace.fs.readFile(uri);
-                    const content = new TextDecoder().decode(bytes);
+                    const content = decoder.decode(bytes);
                     if (!hasAspNetCore && /Sdk\s*=\s*["']Microsoft\.NET\.Sdk\.(Web|Razor)["']/i.test(content)) {
                         hasAspNetCore = true;
                     }
@@ -163,6 +193,9 @@ export class WorkspaceContextDetector implements vscode.Disposable {
     }
 
     dispose(): void {
-        this.watcher.dispose();
+        if (this.debounceTimer !== undefined) {
+            clearTimeout(this.debounceTimer);
+        }
+        this.disposables.forEach(d => d.dispose());
     }
 }
