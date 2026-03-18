@@ -32,6 +32,7 @@ export const instructions: readonly InstructionEntry[] = [
     { settingId: 'sharp-pilot.instructions.dotnet.maui', label: '.NET MAUI', category: '.NET' },
     { settingId: 'sharp-pilot.instructions.dotnet.nuget', label: 'NuGet', category: '.NET' },
     { settingId: 'sharp-pilot.instructions.dotnet.performanceMemory', label: 'Performance & Memory', category: '.NET' },
+    { settingId: 'sharp-pilot.instructions.dotnet.postgresql', label: 'PostgreSQL', category: '.NET' },
     { settingId: 'sharp-pilot.instructions.dotnet.razor', label: 'Razor', category: '.NET' },
     { settingId: 'sharp-pilot.instructions.dotnet.testing', label: 'Testing', category: '.NET' },
     { settingId: 'sharp-pilot.instructions.dotnet.tsql', label: 'T-SQL', category: '.NET' },

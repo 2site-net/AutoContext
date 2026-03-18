@@ -60,6 +60,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
             let hasAspNetCore = false;
             let hasEntityFrameworkCore = false;
             let hasMaui = false;
+            let hasPostgres = false;
             let hasSqlServer = false;
             let hasXunit = false;
             let hasWpf = false;
@@ -87,10 +88,13 @@ export class WorkspaceContextDetector implements vscode.Disposable {
                     if (!hasWinForms && /<UseWindowsForms>\s*true\s*<\/UseWindowsForms>/i.test(content)) {
                         hasWinForms = true;
                     }
+                    if (!hasPostgres && /Npgsql/i.test(content)) {
+                        hasPostgres = true;
+                    }
                     if (!hasSqlServer && /Microsoft\.Data\.SqlClient|System\.Data\.SqlClient|EntityFrameworkCore\.SqlServer|EntityFramework\.SqlServer/i.test(content)) {
                         hasSqlServer = true;
                     }
-                    if (hasAspNetCore && hasEntityFrameworkCore && hasMaui && hasSqlServer && hasXunit && hasWpf && hasWinForms) {
+                    if (hasAspNetCore && hasEntityFrameworkCore && hasMaui && hasPostgres && hasSqlServer && hasXunit && hasWpf && hasWinForms) {
                         break;
                     }
                 }
@@ -121,6 +125,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
                 setCtx('sharp-pilot.workspace.hasAngular', hasAngular),
                 setCtx('sharp-pilot.workspace.hasVue', hasVue),
                 setCtx('sharp-pilot.workspace.hasSvelte', hasSvelte),
+                setCtx('sharp-pilot.workspace.hasPostgres', hasPostgres),
                 setCtx('sharp-pilot.workspace.hasSqlServer', hasSqlServer),
                 setCtx('sharp-pilot.workspace.hasXunit', hasXunit),
                 setCtx('sharp-pilot.workspace.hasWpf', hasWpf),

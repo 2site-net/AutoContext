@@ -66,6 +66,10 @@
         "when": "config.sharp-pilot.instructions.dotnet.performanceMemory && sharp-pilot.workspace.hasDotnet"
       },
       {
+        "path": "./instructions/dotnet-postgresql.instructions.md",
+        "when": "config.sharp-pilot.instructions.dotnet.postgresql && sharp-pilot.workspace.hasPostgres"
+      },
+      {
         "path": "./instructions/dotnet-razor.instructions.md",
         "when": "config.sharp-pilot.instructions.dotnet.razor && sharp-pilot.workspace.hasBlazor"
       },
@@ -185,6 +189,11 @@
           "type": "boolean",
           "default": true,
           "description": "Enable performance and memory optimization guidelines."
+        },
+        "sharp-pilot.instructions.dotnet.postgresql": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable PostgreSQL guidelines (security, query design, performance, PL/pgSQL, schema migrations)."
         },
         "sharp-pilot.instructions.dotnet.razor": {
           "type": "boolean",
