@@ -74,6 +74,10 @@
         "when": "config.sharp-pilot.instructions.dotnet.testing && sharp-pilot.workspace.hasDotnet"
       },
       {
+        "path": "./instructions/dotnet-tsql.instructions.md",
+        "when": "config.sharp-pilot.instructions.dotnet.tsql && sharp-pilot.workspace.hasSqlServer"
+      },
+      {
         "path": "./instructions/dotnet-maui.instructions.md",
         "when": "config.sharp-pilot.instructions.dotnet.maui && sharp-pilot.workspace.hasMaui"
       },
@@ -191,6 +195,11 @@
           "type": "boolean",
           "default": true,
           "description": "Enable general testing strategy guidelines (TDD, naming, organization)."
+        },
+        "sharp-pilot.instructions.dotnet.tsql": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable T-SQL guidelines for SQL Server (security, query design, performance, stored procedures, schema migrations)."
         },
         "sharp-pilot.instructions.dotnet.maui": {
           "type": "boolean",
