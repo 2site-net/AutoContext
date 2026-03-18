@@ -118,11 +118,11 @@
         "when": "config.sharp-pilot.instructions.dotnet.xunit && sharp-pilot.workspace.hasXunit"
       },
       {
-        "path": "./instructions/csharp-coding-style.instructions.md",
+        "path": "./instructions/dotnet-csharp-coding-style.instructions.md",
         "when": "config.sharp-pilot.instructions.dotnet.csharp.codingStyle && sharp-pilot.workspace.hasDotnet"
       },
       {
-        "path": "./instructions/fsharp-coding-style.instructions.md",
+        "path": "./instructions/dotnet-fsharp-coding-style.instructions.md",
         "when": "config.sharp-pilot.instructions.dotnet.fsharp.codingStyle && sharp-pilot.workspace.hasFsharp"
       },
       {
