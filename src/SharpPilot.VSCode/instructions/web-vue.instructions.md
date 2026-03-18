@@ -1,6 +1,6 @@
 ---
 description: "Use when building Vue.js apps: Composition API, reactivity (ref/reactive/computed/watch), component design, props/emits, composables, routing, Pinia state management, and template best practices."
-applyTo: "**/*.{vue,ts,js}"
+applyTo: "**/*.{vue,js,jsx,mjs,cjs,ts,tsx,mts,cts}"
 ---
 # Vue.js Guidelines
 

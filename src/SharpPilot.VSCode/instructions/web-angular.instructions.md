@@ -1,6 +1,6 @@
 ---
 description: "Use when building Angular apps: standalone components, signals, change detection, dependency injection, routing, reactive forms, RxJS subscription management, and lazy loading."
-applyTo: "**/*.{ts,html}"
+applyTo: "**/*.{ts,mts,cts,html}"
 ---
 # Angular Guidelines
 
