@@ -78,12 +78,12 @@
         "when": "config.sharp-pilot.instructions.dotnet.razor && sharp-pilot.workspace.hasBlazor"
       },
       {
-        "path": "./instructions/dotnet-testing.instructions.md",
-        "when": "config.sharp-pilot.instructions.dotnet.testing && sharp-pilot.workspace.hasDotnet"
+        "path": "./instructions/dotnet-sql-server.instructions.md",
+        "when": "config.sharp-pilot.instructions.dotnet.sqlServer && sharp-pilot.workspace.hasSqlServer"
       },
       {
-        "path": "./instructions/dotnet-tsql.instructions.md",
-        "when": "config.sharp-pilot.instructions.dotnet.tsql && sharp-pilot.workspace.hasSqlServer"
+        "path": "./instructions/dotnet-testing.instructions.md",
+        "when": "config.sharp-pilot.instructions.dotnet.testing && sharp-pilot.workspace.hasDotnet"
       },
       {
         "path": "./instructions/dotnet-maui.instructions.md",
@@ -225,15 +225,15 @@
           "default": true,
           "description": "Enable Razor file structure and syntax guidelines."
         },
+        "sharp-pilot.instructions.dotnet.sqlServer": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable SQL Server guidelines (T-SQL security, query design, performance, stored procedures, schema migrations)."
+        },
         "sharp-pilot.instructions.dotnet.testing": {
           "type": "boolean",
           "default": true,
           "description": "Enable general testing strategy guidelines (TDD, naming, organization)."
-        },
-        "sharp-pilot.instructions.dotnet.tsql": {
-          "type": "boolean",
-          "default": true,
-          "description": "Enable T-SQL guidelines for SQL Server (security, query design, performance, stored procedures, schema migrations)."
         },
         "sharp-pilot.instructions.dotnet.maui": {
           "type": "boolean",
