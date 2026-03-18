@@ -86,6 +86,18 @@
         "when": "config.sharp-pilot.instructions.dotnet.maui && sharp-pilot.workspace.hasMaui"
       },
       {
+        "path": "./instructions/dotnet-mysql.instructions.md",
+        "when": "config.sharp-pilot.instructions.dotnet.mysql && sharp-pilot.workspace.hasMysql"
+      },
+      {
+        "path": "./instructions/dotnet-oracle.instructions.md",
+        "when": "config.sharp-pilot.instructions.dotnet.oracle && sharp-pilot.workspace.hasOracle"
+      },
+      {
+        "path": "./instructions/dotnet-sqlite.instructions.md",
+        "when": "config.sharp-pilot.instructions.dotnet.sqlite && sharp-pilot.workspace.hasSqlite"
+      },
+      {
         "path": "./instructions/dotnet-winforms.instructions.md",
         "when": "config.sharp-pilot.instructions.dotnet.winForms && sharp-pilot.workspace.hasWinForms"
       },
@@ -214,6 +226,21 @@
           "type": "boolean",
           "default": true,
           "description": "Enable .NET MAUI guidelines (MVVM, Shell navigation, data binding, layouts, DI)."
+        },
+        "sharp-pilot.instructions.dotnet.mysql": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable MySQL guidelines (security, query design, performance, stored procedures, schema migrations)."
+        },
+        "sharp-pilot.instructions.dotnet.oracle": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable Oracle guidelines (security, query design, performance, PL/SQL, schema migrations)."
+        },
+        "sharp-pilot.instructions.dotnet.sqlite": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable SQLite guidelines (security, query design, performance, WAL mode, schema migrations)."
         },
         "sharp-pilot.instructions.dotnet.winForms": {
           "type": "boolean",

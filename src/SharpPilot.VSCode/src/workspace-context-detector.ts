@@ -60,7 +60,10 @@ export class WorkspaceContextDetector implements vscode.Disposable {
             let hasAspNetCore = false;
             let hasEntityFrameworkCore = false;
             let hasMaui = false;
+            let hasMysql = false;
+            let hasOracle = false;
             let hasPostgres = false;
+            let hasSqlite = false;
             let hasSqlServer = false;
             let hasXunit = false;
             let hasWpf = false;
@@ -88,13 +91,22 @@ export class WorkspaceContextDetector implements vscode.Disposable {
                     if (!hasWinForms && /<UseWindowsForms>\s*true\s*<\/UseWindowsForms>/i.test(content)) {
                         hasWinForms = true;
                     }
+                    if (!hasMysql && /MySqlConnector|MySql\.Data|Pomelo\.EntityFrameworkCore\.MySql/i.test(content)) {
+                        hasMysql = true;
+                    }
+                    if (!hasOracle && /Oracle\.ManagedDataAccess|Oracle\.EntityFrameworkCore/i.test(content)) {
+                        hasOracle = true;
+                    }
                     if (!hasPostgres && /Npgsql/i.test(content)) {
                         hasPostgres = true;
+                    }
+                    if (!hasSqlite && /Microsoft\.Data\.Sqlite|System\.Data\.SQLite|EntityFrameworkCore\.Sqlite/i.test(content)) {
+                        hasSqlite = true;
                     }
                     if (!hasSqlServer && /Microsoft\.Data\.SqlClient|System\.Data\.SqlClient|EntityFrameworkCore\.SqlServer|EntityFramework\.SqlServer/i.test(content)) {
                         hasSqlServer = true;
                     }
-                    if (hasAspNetCore && hasEntityFrameworkCore && hasMaui && hasPostgres && hasSqlServer && hasXunit && hasWpf && hasWinForms) {
+                    if (hasAspNetCore && hasEntityFrameworkCore && hasMaui && hasMysql && hasOracle && hasPostgres && hasSqlite && hasSqlServer && hasXunit && hasWpf && hasWinForms) {
                         break;
                     }
                 }
@@ -125,7 +137,10 @@ export class WorkspaceContextDetector implements vscode.Disposable {
                 setCtx('sharp-pilot.workspace.hasAngular', hasAngular),
                 setCtx('sharp-pilot.workspace.hasVue', hasVue),
                 setCtx('sharp-pilot.workspace.hasSvelte', hasSvelte),
+                setCtx('sharp-pilot.workspace.hasMysql', hasMysql),
+                setCtx('sharp-pilot.workspace.hasOracle', hasOracle),
                 setCtx('sharp-pilot.workspace.hasPostgres', hasPostgres),
+                setCtx('sharp-pilot.workspace.hasSqlite', hasSqlite),
                 setCtx('sharp-pilot.workspace.hasSqlServer', hasSqlServer),
                 setCtx('sharp-pilot.workspace.hasXunit', hasXunit),
                 setCtx('sharp-pilot.workspace.hasWpf', hasWpf),
