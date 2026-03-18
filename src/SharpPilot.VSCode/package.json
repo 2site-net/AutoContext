@@ -122,6 +122,10 @@
         "when": "config.sharp-pilot.instructions.csharp.codingStyle && sharp-pilot.workspace.hasDotnet"
       },
       {
+        "path": "./instructions/fsharp-coding-style.instructions.md",
+        "when": "config.sharp-pilot.instructions.fsharp.codingStyle && sharp-pilot.workspace.hasFsharp"
+      },
+      {
         "path": "./instructions/copilot.instructions.md",
         "when": "config.sharp-pilot.instructions.copilot"
       },
@@ -279,6 +283,11 @@
           "type": "boolean",
           "default": true,
           "description": "Enable C# coding style rules (member ordering, formatting, etc.)."
+        },
+        "sharp-pilot.instructions.fsharp.codingStyle": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable F# coding style rules (module layout, naming, type design, pattern matching, formatting)."
         },
         "sharp-pilot.instructions.copilot": {
           "type": "boolean",

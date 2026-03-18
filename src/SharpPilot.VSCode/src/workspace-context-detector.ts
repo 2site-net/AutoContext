@@ -46,8 +46,9 @@ export class WorkspaceContextDetector implements vscode.Disposable {
 
             const decoder = new TextDecoder();
 
-            const [dotnetFiles, razorFiles, htmlFiles, cssFiles, jsFiles, tsFiles] = await Promise.all([
+            const [dotnetFiles, fsharpFiles, razorFiles, htmlFiles, cssFiles, jsFiles, tsFiles] = await Promise.all([
                 vscode.workspace.findFiles('**/*.{csproj,fsproj,sln,slnx}', '**/node_modules/**', 1),
+                vscode.workspace.findFiles('**/*.fsproj', '**/node_modules/**', 1),
                 vscode.workspace.findFiles('**/*.razor', '**/node_modules/**', 1),
                 vscode.workspace.findFiles('**/*.{html,cshtml}', '**/node_modules/**', 1),
                 vscode.workspace.findFiles('**/*.css', '**/node_modules/**', 1),
@@ -56,6 +57,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
             ]);
 
             const hasDotnet = dotnetFiles.length > 0;
+            const hasFsharp = fsharpFiles.length > 0;
             const hasBlazor = razorFiles.length > 0;
             const hasHtml = htmlFiles.length > 0 || hasBlazor;
             const hasCss = cssFiles.length > 0 || hasHtml;
@@ -163,6 +165,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
 
             await Promise.all([
                 setCtx('sharp-pilot.workspace.hasDotnet', hasDotnet),
+                setCtx('sharp-pilot.workspace.hasFsharp', hasFsharp),
                 setCtx('sharp-pilot.workspace.hasAspNetCore', hasAspNetCore),
                 setCtx('sharp-pilot.workspace.hasDapper', hasDapper),
                 setCtx('sharp-pilot.workspace.hasEntityFrameworkCore', hasEntityFrameworkCore),

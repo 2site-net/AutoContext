@@ -45,6 +45,7 @@ export const instructions: readonly InstructionEntry[] = [
     { settingId: 'sharp-pilot.instructions.dotnet.wpf', label: 'WPF', category: '.NET' },
     { settingId: 'sharp-pilot.instructions.dotnet.xunit', label: 'xUnit', category: '.NET' },
     { settingId: 'sharp-pilot.instructions.csharp.codingStyle', label: 'Coding Style', category: 'C#' },
+    { settingId: 'sharp-pilot.instructions.fsharp.codingStyle', label: 'Coding Style', category: 'F#' },
     { settingId: 'sharp-pilot.instructions.copilot', label: 'Copilot Rules', category: 'General' },
     { settingId: 'sharp-pilot.instructions.git.commitFormat', label: 'Commit Format', category: 'Git' },
     { settingId: 'sharp-pilot.instructions.web.angular', label: 'Angular', category: 'Web' },
