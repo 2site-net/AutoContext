@@ -15,7 +15,7 @@ For tier-1 violations, stop generating and surface a warning. For lower-tier con
 > **If unsure** which rule applies, generate a concise plan explaining the dilemma and stop; await user approval before continuing.
 
 ## Prompt Rules
-- **Don't** run `git commit`, `git push`, or any git write commands without explicit user permission.
+- **Don't** run any git command that changes repository state (`git add`, `git rm`, `git commit`, `git push`, `git reset`, `git checkout`, `git merge`, `git rebase`, etc.) without explicit user permission — read-only commands (`git status`, `git diff`, `git log`, `git show`) are fine.
 - **Don't** omit `--gpg-sign` (`-S`) from `git commit` when the repo or global config has `commit.gpgSign = true`; always honour the user's signing settings.
 - **Don't** create markdown report files unless explicitly requested by the user.
 - **Do** act immediately; pause for approval only on multi-file, major-refactor, or multi-phase work.
