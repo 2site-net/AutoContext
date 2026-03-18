@@ -20,7 +20,7 @@ For tier-1 violations, stop generating and surface a warning. For lower-tier con
 - **Don't** create markdown report files unless explicitly requested by the user.
 - **Do** act immediately; pause for approval only on multi-file, major-refactor, or multi-phase work.
 - **Do** use cross-platform PowerShell commands and scripts (e.g., `pwsh -Command 'dotnet test; ./scripts/coverage.ps1'`).
-- **Do** respect existing config files (`.editorconfig`, `.gitignore`, `.csproj`, `GlobalSuppressions`, etc.); only change them when necessary, with rationale.
+- **Do** respect existing config files (`.editorconfig`, `.gitignore`, `.csproj`, `.fsproj`, `GlobalSuppressions`, etc.); only change them when necessary, with rationale.
 - **Do** clean up after yourself – delete any temp or redundant files you create.
 - **Do** read the `README.md` and other documentation files to understand the project structure and requirements.
 - **Do** fix one category of errors completely before moving to the next.

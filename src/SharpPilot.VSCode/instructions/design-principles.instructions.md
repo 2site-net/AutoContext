@@ -1,5 +1,5 @@
 ---
-description: "Use when designing .NET systems: SOLID principles, dependency injection, composition, separation of concerns, error handling, and structured logging."
+description: "Use when designing software systems: SOLID principles, dependency injection, composition, separation of concerns, error handling, and structured logging."
 ---
 # Design Principles
 
@@ -9,4 +9,4 @@ description: "Use when designing .NET systems: SOLID principles, dependency inje
 - **Do** follow SOLID (SRP · OCP · LSP · ISP · DIP).
 - **Do** use Exception‑based Error Handling – wrap expected faults in `try/catch`; log unexpected ones.
 - **Do** design for Testability First – isolate components and minimise mocks.
-- **Do** use Structured Logging – rely on Serilog (or similar) with proper log levels when available.
+- **Do** use Structured Logging when available.

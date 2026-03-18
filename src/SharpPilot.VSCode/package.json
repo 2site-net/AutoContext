@@ -50,10 +50,6 @@
         "when": "config.sharp-pilot.instructions.dotnet.debugging && sharp-pilot.workspace.hasDotnet"
       },
       {
-        "path": "./instructions/design-principles.instructions.md",
-        "when": "config.sharp-pilot.instructions.dotnet.designPrinciples && sharp-pilot.workspace.hasDotnet"
-      },
-      {
         "path": "./instructions/dotnet-dapper.instructions.md",
         "when": "config.sharp-pilot.instructions.dotnet.dapper && sharp-pilot.workspace.hasDapper"
       },
@@ -62,7 +58,7 @@
         "when": "config.sharp-pilot.instructions.dotnet.entityFrameworkCore && sharp-pilot.workspace.hasEntityFrameworkCore"
       },
       {
-        "path": "./instructions/nuget.instructions.md",
+        "path": "./instructions/dotnet-nuget.instructions.md",
         "when": "config.sharp-pilot.instructions.dotnet.nuget && sharp-pilot.workspace.hasDotnet"
       },
       {
@@ -119,15 +115,19 @@
       },
       {
         "path": "./instructions/csharp-coding-style.instructions.md",
-        "when": "config.sharp-pilot.instructions.csharp.codingStyle && sharp-pilot.workspace.hasDotnet"
+        "when": "config.sharp-pilot.instructions.dotnet.csharp.codingStyle && sharp-pilot.workspace.hasDotnet"
       },
       {
         "path": "./instructions/fsharp-coding-style.instructions.md",
-        "when": "config.sharp-pilot.instructions.fsharp.codingStyle && sharp-pilot.workspace.hasFsharp"
+        "when": "config.sharp-pilot.instructions.dotnet.fsharp.codingStyle && sharp-pilot.workspace.hasFsharp"
       },
       {
         "path": "./instructions/copilot.instructions.md",
         "when": "config.sharp-pilot.instructions.copilot"
+      },
+      {
+        "path": "./instructions/design-principles.instructions.md",
+        "when": "config.sharp-pilot.instructions.designPrinciples"
       },
       {
         "path": "./instructions/git-commit-format.instructions.md",
@@ -198,11 +198,6 @@
           "type": "boolean",
           "default": true,
           "description": "Enable debugging and troubleshooting guidelines."
-        },
-        "sharp-pilot.instructions.dotnet.designPrinciples": {
-          "type": "boolean",
-          "default": true,
-          "description": "Enable design principles (SOLID, DI, composition)."
         },
         "sharp-pilot.instructions.dotnet.entityFrameworkCore": {
           "type": "boolean",
@@ -279,12 +274,12 @@
           "default": true,
           "description": "Enable xUnit-specific guidelines (v3 APIs, attributes, assertions)."
         },
-        "sharp-pilot.instructions.csharp.codingStyle": {
+        "sharp-pilot.instructions.dotnet.csharp.codingStyle": {
           "type": "boolean",
           "default": true,
           "description": "Enable C# coding style rules (member ordering, formatting, etc.)."
         },
-        "sharp-pilot.instructions.fsharp.codingStyle": {
+        "sharp-pilot.instructions.dotnet.fsharp.codingStyle": {
           "type": "boolean",
           "default": true,
           "description": "Enable F# coding style rules (module layout, naming, type design, pattern matching, formatting)."
@@ -293,6 +288,11 @@
           "type": "boolean",
           "default": true,
           "description": "Enable Copilot behavior rules and rule precedence."
+        },
+        "sharp-pilot.instructions.designPrinciples": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable design principles (SOLID, DI, composition, separation of concerns, structured logging)."
         },
         "sharp-pilot.instructions.git.commitFormat": {
           "type": "boolean",
