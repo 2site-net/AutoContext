@@ -23,6 +23,9 @@ export const servers: readonly ServerEntry[] = [
 ];
 
 export const instructions: readonly InstructionEntry[] = [
+    { settingId: 'sharp-pilot.instructions.copilot', fileName: 'copilot.instructions.md', label: 'Copilot Rules', category: 'General' },
+    { settingId: 'sharp-pilot.instructions.designPrinciples', fileName: 'design-principles.instructions.md', label: 'Design Principles', category: 'General' },
+    { settingId: 'sharp-pilot.instructions.restApiDesign', fileName: 'rest-api-design.instructions.md', label: 'REST API Design', category: 'General' },
     { settingId: 'sharp-pilot.instructions.dotnet.aspnetCore', fileName: 'dotnet-aspnetcore.instructions.md', label: 'ASP.NET Core', category: '.NET' },
     { settingId: 'sharp-pilot.instructions.dotnet.asyncAwait', fileName: 'dotnet-async-await.instructions.md', label: 'Async/Await', category: '.NET' },
     { settingId: 'sharp-pilot.instructions.dotnet.blazor', fileName: 'dotnet-blazor.instructions.md', label: 'Blazor', category: '.NET' },
@@ -47,9 +50,6 @@ export const instructions: readonly InstructionEntry[] = [
     { settingId: 'sharp-pilot.instructions.dotnet.xunit', fileName: 'dotnet-xunit.instructions.md', label: 'xUnit', category: '.NET' },
     { settingId: 'sharp-pilot.instructions.dotnet.csharp.codingStyle', fileName: 'dotnet-csharp-coding-style.instructions.md', label: 'Coding Style', category: 'C#' },
     { settingId: 'sharp-pilot.instructions.dotnet.fsharp.codingStyle', fileName: 'dotnet-fsharp-coding-style.instructions.md', label: 'Coding Style', category: 'F#' },
-    { settingId: 'sharp-pilot.instructions.copilot', fileName: 'copilot.instructions.md', label: 'Copilot Rules', category: 'General' },
-    { settingId: 'sharp-pilot.instructions.designPrinciples', fileName: 'design-principles.instructions.md', label: 'Design Principles', category: 'General' },
-    { settingId: 'sharp-pilot.instructions.restApiDesign', fileName: 'rest-api-design.instructions.md', label: 'REST API Design', category: 'General' },
     { settingId: 'sharp-pilot.instructions.git.commitFormat', fileName: 'git-commit-format.instructions.md', label: 'Commit Format', category: 'Git' },
     { settingId: 'sharp-pilot.instructions.web.angular', fileName: 'web-angular.instructions.md', label: 'Angular', category: 'Web' },
     { settingId: 'sharp-pilot.instructions.web.css', fileName: 'web-css.instructions.md', label: 'CSS', category: 'Web' },

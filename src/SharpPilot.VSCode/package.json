@@ -40,6 +40,18 @@
     ],
     "chatInstructions": [
       {
+        "path": "./instructions/copilot.instructions.md",
+        "when": "config.sharp-pilot.instructions.copilot && !sharp-pilot.override.copilot"
+      },
+      {
+        "path": "./instructions/design-principles.instructions.md",
+        "when": "config.sharp-pilot.instructions.designPrinciples && !sharp-pilot.override.designPrinciples"
+      },
+      {
+        "path": "./instructions/rest-api-design.instructions.md",
+        "when": "config.sharp-pilot.instructions.restApiDesign && !sharp-pilot.override.restApiDesign"
+      },
+      {
         "path": "./instructions/dotnet-aspnetcore.instructions.md",
         "when": "config.sharp-pilot.instructions.dotnet.aspnetCore && sharp-pilot.workspace.hasAspNetCore && !sharp-pilot.override.dotnet.aspnetCore"
       },
@@ -136,18 +148,6 @@
         "when": "config.sharp-pilot.instructions.dotnet.fsharp.codingStyle && sharp-pilot.workspace.hasFsharp && !sharp-pilot.override.dotnet.fsharp.codingStyle"
       },
       {
-        "path": "./instructions/copilot.instructions.md",
-        "when": "config.sharp-pilot.instructions.copilot && !sharp-pilot.override.copilot"
-      },
-      {
-        "path": "./instructions/design-principles.instructions.md",
-        "when": "config.sharp-pilot.instructions.designPrinciples && !sharp-pilot.override.designPrinciples"
-      },
-      {
-        "path": "./instructions/rest-api-design.instructions.md",
-        "when": "config.sharp-pilot.instructions.restApiDesign && !sharp-pilot.override.restApiDesign"
-      },
-      {
         "path": "./instructions/git-commit-format.instructions.md",
         "when": "config.sharp-pilot.instructions.git.commitFormat && sharp-pilot.workspace.hasGit && !sharp-pilot.override.git.commitFormat"
       },
@@ -187,6 +187,21 @@
     "configuration": {
       "title": "SharpPilot",
       "properties": {
+        "sharp-pilot.instructions.copilot": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable Copilot behavior rules and rule precedence."
+        },
+        "sharp-pilot.instructions.designPrinciples": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable design principles (SOLID, DI, composition, separation of concerns, structured logging)."
+        },
+        "sharp-pilot.instructions.restApiDesign": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable REST API design guidelines (resource naming, HTTP methods, status codes, pagination, error responses, versioning)."
+        },
         "sharp-pilot.instructions.dotnet.aspnetCore": {
           "type": "boolean",
           "default": true,
@@ -306,21 +321,6 @@
           "type": "boolean",
           "default": true,
           "description": "Enable F# coding style rules (module layout, naming, type design, pattern matching, formatting)."
-        },
-        "sharp-pilot.instructions.copilot": {
-          "type": "boolean",
-          "default": true,
-          "description": "Enable Copilot behavior rules and rule precedence."
-        },
-        "sharp-pilot.instructions.designPrinciples": {
-          "type": "boolean",
-          "default": true,
-          "description": "Enable design principles (SOLID, DI, composition, separation of concerns, structured logging)."
-        },
-        "sharp-pilot.instructions.restApiDesign": {
-          "type": "boolean",
-          "default": true,
-          "description": "Enable REST API design guidelines (resource naming, HTTP methods, status codes, pagination, error responses, versioning)."
         },
         "sharp-pilot.instructions.git.commitFormat": {
           "type": "boolean",
