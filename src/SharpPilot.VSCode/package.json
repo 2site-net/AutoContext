@@ -102,6 +102,10 @@
         "when": "config.sharp-pilot.instructions.git.commitFormat && sharp-pilot.workspace.hasGit"
       },
       {
+        "path": "./instructions/web-angular.instructions.md",
+        "when": "config.sharp-pilot.instructions.web.angular && sharp-pilot.workspace.hasAngular"
+      },
+      {
         "path": "./instructions/web-css.instructions.md",
         "when": "config.sharp-pilot.instructions.web.css && sharp-pilot.workspace.hasCss"
       },
@@ -214,6 +218,11 @@
           "type": "boolean",
           "default": true,
           "description": "Enable Conventional Commits formatting guidelines."
+        },
+        "sharp-pilot.instructions.web.angular": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable Angular guidelines (standalone components, signals, DI, RxJS, routing, reactive forms)."
         },
         "sharp-pilot.instructions.web.css": {
           "type": "boolean",
