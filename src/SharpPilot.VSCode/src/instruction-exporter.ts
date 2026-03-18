@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { instructions, targetPath, type InstructionEntry } from './config';
-import { manifestRelativePath, readManifest, writeManifest } from './export-manifest';
+import { hashContent, manifestRelativePath, readManifest, writeManifest } from './export-manifest';
 
 export class InstructionExporter {
     constructor(private readonly extensionPath: string) {}
@@ -58,8 +58,8 @@ export class InstructionExporter {
                 }
             }
 
-            await copyInstruction(this.extensionPath, entry, targetUri);
-            manifest.exports[entry.fileName] = { version: entry.version };
+            const hash = await copyInstruction(this.extensionPath, entry, targetUri);
+            manifest.exports[entry.fileName] = { hash };
             exported.push(entry.label);
         }
 
@@ -74,11 +74,13 @@ export class InstructionExporter {
     }
 }
 
-async function copyInstruction(extensionPath: string, entry: InstructionEntry, targetUri: vscode.Uri): Promise<void> {
+async function copyInstruction(extensionPath: string, entry: InstructionEntry, targetUri: vscode.Uri): Promise<string> {
     const sourceUri = vscode.Uri.file(`${extensionPath}/instructions/${entry.fileName}`);
     const content = await vscode.workspace.fs.readFile(sourceUri);
 
     await vscode.workspace.fs.writeFile(targetUri, content);
+
+    return hashContent(content);
 }
 
 async function fileExists(uri: vscode.Uri): Promise<boolean> {

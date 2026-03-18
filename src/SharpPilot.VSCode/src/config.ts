@@ -6,7 +6,6 @@ export interface ServerEntry {
 export interface InstructionEntry {
     settingId: string;
     fileName: string;
-    version: number;
     label: string;
     category: string;
 }
@@ -24,41 +23,41 @@ export const servers: readonly ServerEntry[] = [
 ];
 
 export const instructions: readonly InstructionEntry[] = [
-    { settingId: 'sharp-pilot.instructions.dotnet.aspnetCore', fileName: 'dotnet-aspnetcore.instructions.md', version: 1, label: 'ASP.NET Core', category: '.NET' },
-    { settingId: 'sharp-pilot.instructions.dotnet.asyncAwait', fileName: 'dotnet-async-await.instructions.md', version: 1, label: 'Async/Await', category: '.NET' },
-    { settingId: 'sharp-pilot.instructions.dotnet.blazor', fileName: 'dotnet-blazor.instructions.md', version: 1, label: 'Blazor', category: '.NET' },
-    { settingId: 'sharp-pilot.instructions.dotnet.codingStandards', fileName: 'dotnet-coding-standards.instructions.md', version: 1, label: 'Coding Standards', category: '.NET' },
-    { settingId: 'sharp-pilot.instructions.dotnet.dapper', fileName: 'dotnet-dapper.instructions.md', version: 1, label: 'Dapper', category: '.NET' },
-    { settingId: 'sharp-pilot.instructions.dotnet.debugging', fileName: 'dotnet-debugging.instructions.md', version: 1, label: 'Debugging', category: '.NET' },
-    { settingId: 'sharp-pilot.instructions.dotnet.entityFrameworkCore', fileName: 'dotnet-entity-framework-core.instructions.md', version: 1, label: 'Entity Framework Core', category: '.NET' },
-    { settingId: 'sharp-pilot.instructions.dotnet.maui', fileName: 'dotnet-maui.instructions.md', version: 1, label: '.NET MAUI', category: '.NET' },
-    { settingId: 'sharp-pilot.instructions.dotnet.mongodb', fileName: 'dotnet-mongodb.instructions.md', version: 1, label: 'MongoDB', category: '.NET' },
-    { settingId: 'sharp-pilot.instructions.dotnet.mysql', fileName: 'dotnet-mysql.instructions.md', version: 1, label: 'MySQL', category: '.NET' },
-    { settingId: 'sharp-pilot.instructions.dotnet.nuget', fileName: 'dotnet-nuget.instructions.md', version: 1, label: 'NuGet', category: '.NET' },
-    { settingId: 'sharp-pilot.instructions.dotnet.oracle', fileName: 'dotnet-oracle.instructions.md', version: 1, label: 'Oracle', category: '.NET' },
-    { settingId: 'sharp-pilot.instructions.dotnet.performanceMemory', fileName: 'dotnet-performance-memory.instructions.md', version: 1, label: 'Performance & Memory', category: '.NET' },
-    { settingId: 'sharp-pilot.instructions.dotnet.postgresql', fileName: 'dotnet-postgresql.instructions.md', version: 1, label: 'PostgreSQL', category: '.NET' },
-    { settingId: 'sharp-pilot.instructions.dotnet.razor', fileName: 'dotnet-razor.instructions.md', version: 1, label: 'Razor', category: '.NET' },
-    { settingId: 'sharp-pilot.instructions.dotnet.sqlite', fileName: 'dotnet-sqlite.instructions.md', version: 1, label: 'SQLite', category: '.NET' },
-    { settingId: 'sharp-pilot.instructions.dotnet.sqlServer', fileName: 'dotnet-sql-server.instructions.md', version: 1, label: 'SQL Server', category: '.NET' },
-    { settingId: 'sharp-pilot.instructions.dotnet.testing', fileName: 'dotnet-testing.instructions.md', version: 1, label: 'Testing', category: '.NET' },
-    { settingId: 'sharp-pilot.instructions.dotnet.unity', fileName: 'dotnet-unity.instructions.md', version: 1, label: 'Unity', category: '.NET' },
-    { settingId: 'sharp-pilot.instructions.dotnet.winForms', fileName: 'dotnet-winforms.instructions.md', version: 1, label: 'Windows Forms', category: '.NET' },
-    { settingId: 'sharp-pilot.instructions.dotnet.wpf', fileName: 'dotnet-wpf.instructions.md', version: 1, label: 'WPF', category: '.NET' },
-    { settingId: 'sharp-pilot.instructions.dotnet.xunit', fileName: 'dotnet-xunit.instructions.md', version: 1, label: 'xUnit', category: '.NET' },
-    { settingId: 'sharp-pilot.instructions.dotnet.csharp.codingStyle', fileName: 'dotnet-csharp-coding-style.instructions.md', version: 1, label: 'Coding Style', category: 'C#' },
-    { settingId: 'sharp-pilot.instructions.dotnet.fsharp.codingStyle', fileName: 'dotnet-fsharp-coding-style.instructions.md', version: 1, label: 'Coding Style', category: 'F#' },
-    { settingId: 'sharp-pilot.instructions.copilot', fileName: 'copilot.instructions.md', version: 1, label: 'Copilot Rules', category: 'General' },
-    { settingId: 'sharp-pilot.instructions.designPrinciples', fileName: 'design-principles.instructions.md', version: 1, label: 'Design Principles', category: 'General' },
-    { settingId: 'sharp-pilot.instructions.git.commitFormat', fileName: 'git-commit-format.instructions.md', version: 1, label: 'Commit Format', category: 'Git' },
-    { settingId: 'sharp-pilot.instructions.web.angular', fileName: 'web-angular.instructions.md', version: 1, label: 'Angular', category: 'Web' },
-    { settingId: 'sharp-pilot.instructions.web.css', fileName: 'web-css.instructions.md', version: 1, label: 'CSS', category: 'Web' },
-    { settingId: 'sharp-pilot.instructions.web.html', fileName: 'web-html.instructions.md', version: 1, label: 'HTML', category: 'Web' },
-    { settingId: 'sharp-pilot.instructions.web.javascript', fileName: 'web-javascript.instructions.md', version: 1, label: 'JavaScript', category: 'Web' },
-    { settingId: 'sharp-pilot.instructions.web.react', fileName: 'web-react.instructions.md', version: 1, label: 'React', category: 'Web' },
-    { settingId: 'sharp-pilot.instructions.web.svelte', fileName: 'web-svelte.instructions.md', version: 1, label: 'Svelte', category: 'Web' },
-    { settingId: 'sharp-pilot.instructions.web.typescript', fileName: 'web-typescript.instructions.md', version: 1, label: 'TypeScript', category: 'Web' },
-    { settingId: 'sharp-pilot.instructions.web.vue', fileName: 'web-vue.instructions.md', version: 1, label: 'Vue.js', category: 'Web' },
+    { settingId: 'sharp-pilot.instructions.dotnet.aspnetCore', fileName: 'dotnet-aspnetcore.instructions.md', label: 'ASP.NET Core', category: '.NET' },
+    { settingId: 'sharp-pilot.instructions.dotnet.asyncAwait', fileName: 'dotnet-async-await.instructions.md', label: 'Async/Await', category: '.NET' },
+    { settingId: 'sharp-pilot.instructions.dotnet.blazor', fileName: 'dotnet-blazor.instructions.md', label: 'Blazor', category: '.NET' },
+    { settingId: 'sharp-pilot.instructions.dotnet.codingStandards', fileName: 'dotnet-coding-standards.instructions.md', label: 'Coding Standards', category: '.NET' },
+    { settingId: 'sharp-pilot.instructions.dotnet.dapper', fileName: 'dotnet-dapper.instructions.md', label: 'Dapper', category: '.NET' },
+    { settingId: 'sharp-pilot.instructions.dotnet.debugging', fileName: 'dotnet-debugging.instructions.md', label: 'Debugging', category: '.NET' },
+    { settingId: 'sharp-pilot.instructions.dotnet.entityFrameworkCore', fileName: 'dotnet-entity-framework-core.instructions.md', label: 'Entity Framework Core', category: '.NET' },
+    { settingId: 'sharp-pilot.instructions.dotnet.maui', fileName: 'dotnet-maui.instructions.md', label: '.NET MAUI', category: '.NET' },
+    { settingId: 'sharp-pilot.instructions.dotnet.mongodb', fileName: 'dotnet-mongodb.instructions.md', label: 'MongoDB', category: '.NET' },
+    { settingId: 'sharp-pilot.instructions.dotnet.mysql', fileName: 'dotnet-mysql.instructions.md', label: 'MySQL', category: '.NET' },
+    { settingId: 'sharp-pilot.instructions.dotnet.nuget', fileName: 'dotnet-nuget.instructions.md', label: 'NuGet', category: '.NET' },
+    { settingId: 'sharp-pilot.instructions.dotnet.oracle', fileName: 'dotnet-oracle.instructions.md', label: 'Oracle', category: '.NET' },
+    { settingId: 'sharp-pilot.instructions.dotnet.performanceMemory', fileName: 'dotnet-performance-memory.instructions.md', label: 'Performance & Memory', category: '.NET' },
+    { settingId: 'sharp-pilot.instructions.dotnet.postgresql', fileName: 'dotnet-postgresql.instructions.md', label: 'PostgreSQL', category: '.NET' },
+    { settingId: 'sharp-pilot.instructions.dotnet.razor', fileName: 'dotnet-razor.instructions.md', label: 'Razor', category: '.NET' },
+    { settingId: 'sharp-pilot.instructions.dotnet.sqlite', fileName: 'dotnet-sqlite.instructions.md', label: 'SQLite', category: '.NET' },
+    { settingId: 'sharp-pilot.instructions.dotnet.sqlServer', fileName: 'dotnet-sql-server.instructions.md', label: 'SQL Server', category: '.NET' },
+    { settingId: 'sharp-pilot.instructions.dotnet.testing', fileName: 'dotnet-testing.instructions.md', label: 'Testing', category: '.NET' },
+    { settingId: 'sharp-pilot.instructions.dotnet.unity', fileName: 'dotnet-unity.instructions.md', label: 'Unity', category: '.NET' },
+    { settingId: 'sharp-pilot.instructions.dotnet.winForms', fileName: 'dotnet-winforms.instructions.md', label: 'Windows Forms', category: '.NET' },
+    { settingId: 'sharp-pilot.instructions.dotnet.wpf', fileName: 'dotnet-wpf.instructions.md', label: 'WPF', category: '.NET' },
+    { settingId: 'sharp-pilot.instructions.dotnet.xunit', fileName: 'dotnet-xunit.instructions.md', label: 'xUnit', category: '.NET' },
+    { settingId: 'sharp-pilot.instructions.dotnet.csharp.codingStyle', fileName: 'dotnet-csharp-coding-style.instructions.md', label: 'Coding Style', category: 'C#' },
+    { settingId: 'sharp-pilot.instructions.dotnet.fsharp.codingStyle', fileName: 'dotnet-fsharp-coding-style.instructions.md', label: 'Coding Style', category: 'F#' },
+    { settingId: 'sharp-pilot.instructions.copilot', fileName: 'copilot.instructions.md', label: 'Copilot Rules', category: 'General' },
+    { settingId: 'sharp-pilot.instructions.designPrinciples', fileName: 'design-principles.instructions.md', label: 'Design Principles', category: 'General' },
+    { settingId: 'sharp-pilot.instructions.git.commitFormat', fileName: 'git-commit-format.instructions.md', label: 'Commit Format', category: 'Git' },
+    { settingId: 'sharp-pilot.instructions.web.angular', fileName: 'web-angular.instructions.md', label: 'Angular', category: 'Web' },
+    { settingId: 'sharp-pilot.instructions.web.css', fileName: 'web-css.instructions.md', label: 'CSS', category: 'Web' },
+    { settingId: 'sharp-pilot.instructions.web.html', fileName: 'web-html.instructions.md', label: 'HTML', category: 'Web' },
+    { settingId: 'sharp-pilot.instructions.web.javascript', fileName: 'web-javascript.instructions.md', label: 'JavaScript', category: 'Web' },
+    { settingId: 'sharp-pilot.instructions.web.react', fileName: 'web-react.instructions.md', label: 'React', category: 'Web' },
+    { settingId: 'sharp-pilot.instructions.web.svelte', fileName: 'web-svelte.instructions.md', label: 'Svelte', category: 'Web' },
+    { settingId: 'sharp-pilot.instructions.web.typescript', fileName: 'web-typescript.instructions.md', label: 'TypeScript', category: 'Web' },
+    { settingId: 'sharp-pilot.instructions.web.vue', fileName: 'web-vue.instructions.md', label: 'Vue.js', category: 'Web' },
 ];
 
 export const tools: readonly ToolEntry[] = [
@@ -75,7 +74,7 @@ export const tools: readonly ToolEntry[] = [
 ];
 
 export interface ExportManifest {
-    exports: Record<string, { version: number }>;
+    exports: Record<string, { hash: string }>;
 }
 
 const settingIdPrefix = 'sharp-pilot.instructions.';

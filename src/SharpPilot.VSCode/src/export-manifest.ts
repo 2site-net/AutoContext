@@ -1,7 +1,12 @@
+import { createHash } from 'node:crypto';
 import * as vscode from 'vscode';
 import type { ExportManifest } from './config';
 
 export const manifestRelativePath = '.github/.sharp-pilot-exports.json';
+
+export function hashContent(bytes: Uint8Array): string {
+    return createHash('sha256').update(bytes).digest('hex').slice(0, 16);
+}
 
 export async function readManifest(uri: vscode.Uri): Promise<ExportManifest | undefined> {
     try {
