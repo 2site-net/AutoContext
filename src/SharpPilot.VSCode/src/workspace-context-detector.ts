@@ -41,7 +41,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
 
     async detect(): Promise<void> {
         try {
-            const setCtx = (key: string, value: boolean): Thenable<unknown> =>
+            const setContext = (key: string, value: boolean): Thenable<unknown> =>
                 vscode.commands.executeCommand('setContext', key, value);
 
             const decoder = new TextDecoder();
@@ -71,9 +71,11 @@ export class WorkspaceContextDetector implements vscode.Disposable {
             let hasVue = false;
             let hasSvelte = false;
             const packageFiles = await vscode.workspace.findFiles('**/package.json', '**/node_modules/**', 50);
+
             for (const uri of packageFiles) {
                 const bytes = await vscode.workspace.fs.readFile(uri);
                 const content = decoder.decode(bytes);
+
                 if (!hasReact && /"react"\s*:/.test(content)) {
                     hasReact = true;
                 }
@@ -104,11 +106,14 @@ export class WorkspaceContextDetector implements vscode.Disposable {
             let hasXunit = false;
             let hasWpf = false;
             let hasWinForms = false;
+
             if (hasDotnet) {
                 const projFiles = await vscode.workspace.findFiles('**/*.{csproj,fsproj}', '**/node_modules/**', 50);
+
                 for (const uri of projFiles) {
                     const bytes = await vscode.workspace.fs.readFile(uri);
                     const content = decoder.decode(bytes);
+
                     if (!hasAspNetCore && /Sdk\s*=\s*["']Microsoft\.NET\.Sdk\.(Web|Razor)["']/i.test(content)) {
                         hasAspNetCore = true;
                     }
@@ -155,6 +160,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
             }
 
             let hasGit = false;
+
             for (const folder of vscode.workspace.workspaceFolders ?? []) {
                 try {
                     await vscode.workspace.fs.stat(vscode.Uri.joinPath(folder.uri, '.git'));
@@ -166,32 +172,32 @@ export class WorkspaceContextDetector implements vscode.Disposable {
             }
 
             await Promise.all([
-                setCtx('sharp-pilot.workspace.hasDotnet', hasDotnet),
-                setCtx('sharp-pilot.workspace.hasFsharp', hasFsharp),
-                setCtx('sharp-pilot.workspace.hasAspNetCore', hasAspNetCore),
-                setCtx('sharp-pilot.workspace.hasDapper', hasDapper),
-                setCtx('sharp-pilot.workspace.hasEntityFrameworkCore', hasEntityFrameworkCore),
-                setCtx('sharp-pilot.workspace.hasMaui', hasMaui),
-                setCtx('sharp-pilot.workspace.hasBlazor', hasBlazor),
-                setCtx('sharp-pilot.workspace.hasHtml', hasHtml),
-                setCtx('sharp-pilot.workspace.hasCss', hasCss),
-                setCtx('sharp-pilot.workspace.hasJavaScript', hasJavaScript),
-                setCtx('sharp-pilot.workspace.hasTypeScript', hasTypeScript),
-                setCtx('sharp-pilot.workspace.hasReact', hasReact),
-                setCtx('sharp-pilot.workspace.hasAngular', hasAngular),
-                setCtx('sharp-pilot.workspace.hasVue', hasVue),
-                setCtx('sharp-pilot.workspace.hasSvelte', hasSvelte),
-                setCtx('sharp-pilot.workspace.hasMysql', hasMysql),
-                setCtx('sharp-pilot.workspace.hasMongodb', hasMongodb),
-                setCtx('sharp-pilot.workspace.hasOracle', hasOracle),
-                setCtx('sharp-pilot.workspace.hasPostgres', hasPostgres),
-                setCtx('sharp-pilot.workspace.hasSqlite', hasSqlite),
-                setCtx('sharp-pilot.workspace.hasSqlServer', hasSqlServer),
-                setCtx('sharp-pilot.workspace.hasXunit', hasXunit),
-                setCtx('sharp-pilot.workspace.hasWpf', hasWpf),
-                setCtx('sharp-pilot.workspace.hasWinForms', hasWinForms),
-                setCtx('sharp-pilot.workspace.hasUnity', hasUnity),
-                setCtx('sharp-pilot.workspace.hasGit', hasGit),
+                setContext('sharp-pilot.workspace.hasDotnet', hasDotnet),
+                setContext('sharp-pilot.workspace.hasFsharp', hasFsharp),
+                setContext('sharp-pilot.workspace.hasAspNetCore', hasAspNetCore),
+                setContext('sharp-pilot.workspace.hasDapper', hasDapper),
+                setContext('sharp-pilot.workspace.hasEntityFrameworkCore', hasEntityFrameworkCore),
+                setContext('sharp-pilot.workspace.hasMaui', hasMaui),
+                setContext('sharp-pilot.workspace.hasBlazor', hasBlazor),
+                setContext('sharp-pilot.workspace.hasHtml', hasHtml),
+                setContext('sharp-pilot.workspace.hasCss', hasCss),
+                setContext('sharp-pilot.workspace.hasJavaScript', hasJavaScript),
+                setContext('sharp-pilot.workspace.hasTypeScript', hasTypeScript),
+                setContext('sharp-pilot.workspace.hasReact', hasReact),
+                setContext('sharp-pilot.workspace.hasAngular', hasAngular),
+                setContext('sharp-pilot.workspace.hasVue', hasVue),
+                setContext('sharp-pilot.workspace.hasSvelte', hasSvelte),
+                setContext('sharp-pilot.workspace.hasMysql', hasMysql),
+                setContext('sharp-pilot.workspace.hasMongodb', hasMongodb),
+                setContext('sharp-pilot.workspace.hasOracle', hasOracle),
+                setContext('sharp-pilot.workspace.hasPostgres', hasPostgres),
+                setContext('sharp-pilot.workspace.hasSqlite', hasSqlite),
+                setContext('sharp-pilot.workspace.hasSqlServer', hasSqlServer),
+                setContext('sharp-pilot.workspace.hasXunit', hasXunit),
+                setContext('sharp-pilot.workspace.hasWpf', hasWpf),
+                setContext('sharp-pilot.workspace.hasWinForms', hasWinForms),
+                setContext('sharp-pilot.workspace.hasUnity', hasUnity),
+                setContext('sharp-pilot.workspace.hasGit', hasGit),
             ]);
         } catch {
             // Workspace detection is best-effort; failures should not break the extension
