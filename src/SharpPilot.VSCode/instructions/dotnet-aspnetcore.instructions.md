@@ -1,6 +1,6 @@
 ---
 description: "Use when building ASP.NET Core Web APIs: middleware pipeline, routing, error handling, authentication, model validation, HttpClient, and minimal vs controller-based APIs."
-applyTo: "**/*.cs"
+applyTo: "**/*.{cs,vb}"
 ---
 # ASP.NET Core / Web API Guidelines
 

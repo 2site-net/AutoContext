@@ -58,7 +58,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
             const decoder = new TextDecoder();
 
             const [dotnetFiles, fsharpFiles, razorFiles, htmlFiles, cssFiles, jsFiles, tsFiles, unityFiles, dockerFiles] = await Promise.all([
-                vscode.workspace.findFiles('**/*.{csproj,fsproj,sln,slnx}', '**/node_modules/**', 1),
+                vscode.workspace.findFiles('**/*.{csproj,fsproj,vbproj,sln,slnx}', '**/node_modules/**', 1),
                 vscode.workspace.findFiles('**/*.fsproj', '**/node_modules/**', 1),
                 vscode.workspace.findFiles('**/*.razor', '**/node_modules/**', 1),
                 vscode.workspace.findFiles('**/*.{html,cshtml}', '**/node_modules/**', 1),
@@ -160,7 +160,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
             let hasSignalR = false;
 
             if (hasDotnet) {
-                const projFiles = await vscode.workspace.findFiles('**/*.{csproj,fsproj}', '**/node_modules/**', 50);
+                const projFiles = await vscode.workspace.findFiles('**/*.{csproj,fsproj,vbproj}', '**/node_modules/**', 50);
 
                 for (const uri of projFiles) {
                     const bytes = await vscode.workspace.fs.readFile(uri);

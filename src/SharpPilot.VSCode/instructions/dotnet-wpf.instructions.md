@@ -1,6 +1,6 @@
 ---
 description: "Use when generating or editing WPF code, XAML views, ViewModels, data bindings, commands, or WPF-specific patterns."
-applyTo: "**/*.{cs,xaml}"
+applyTo: "**/*.{cs,vb,xaml}"
 ---
 # WPF Guidelines
 

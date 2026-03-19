@@ -1,6 +1,6 @@
 ---
 description: "Use when writing, reviewing, or refactoring NUnit tests, assertions, or NUnit-specific APIs in .NET."
-applyTo: "**/*Tests*.{cs,razor}"
+applyTo: "**/*Tests*.{cs,vb,razor}"
 ---
 # NUnit Guidelines
 

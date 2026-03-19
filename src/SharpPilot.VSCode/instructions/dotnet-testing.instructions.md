@@ -1,6 +1,6 @@
 ---
 description: "Use when writing, reviewing, or refactoring tests, test naming, TDD workflows, or test organization in .NET."
-applyTo: "**/*Tests*.{cs,razor}"
+applyTo: "**/*Tests*.{cs,vb,razor}"
 ---
 # Testing Strategy
 

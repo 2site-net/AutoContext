@@ -1,6 +1,6 @@
 ---
 description: "Use when writing, reviewing, or refactoring MSTest tests, test initialization, or MSTest-specific APIs in .NET."
-applyTo: "**/*Tests*.{cs,razor}"
+applyTo: "**/*Tests*.{cs,vb,razor}"
 ---
 # MSTest Guidelines
 

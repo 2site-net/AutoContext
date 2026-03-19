@@ -1,6 +1,6 @@
 ---
 description: "Use when generating or editing Windows Forms code, forms, controls, data binding, or WinForms-specific patterns."
-applyTo: "**/*.cs"
+applyTo: "**/*.{cs,vb}"
 ---
 # Windows Forms Guidelines
 
