@@ -52,6 +52,14 @@
         "when": "config.sharp-pilot.instructions.designPrinciples && !sharp-pilot.override.designPrinciples"
       },
       {
+        "path": "./instructions/docker.instructions.md",
+        "when": "config.sharp-pilot.instructions.docker && sharp-pilot.workspace.hasDocker && !sharp-pilot.override.docker"
+      },
+      {
+        "path": "./instructions/graphql.instructions.md",
+        "when": "config.sharp-pilot.instructions.graphql && sharp-pilot.workspace.hasGraphql && !sharp-pilot.override.graphql"
+      },
+      {
         "path": "./instructions/rest-api-design.instructions.md",
         "when": "config.sharp-pilot.instructions.restApiDesign && !sharp-pilot.override.restApiDesign"
       },
@@ -92,6 +100,10 @@
         "when": "config.sharp-pilot.instructions.dotnet.entityFrameworkCore && sharp-pilot.workspace.hasEntityFrameworkCore && !sharp-pilot.override.dotnet.entityFrameworkCore"
       },
       {
+        "path": "./instructions/dotnet-grpc.instructions.md",
+        "when": "config.sharp-pilot.instructions.dotnet.grpc && sharp-pilot.workspace.hasGrpc && !sharp-pilot.override.dotnet.grpc"
+      },
+      {
         "path": "./instructions/dotnet-nuget.instructions.md",
         "when": "config.sharp-pilot.instructions.dotnet.nuget && sharp-pilot.workspace.hasDotnet && !sharp-pilot.override.dotnet.nuget"
       },
@@ -108,6 +120,14 @@
         "when": "config.sharp-pilot.instructions.dotnet.razor && sharp-pilot.workspace.hasBlazor && !sharp-pilot.override.dotnet.razor"
       },
       {
+        "path": "./instructions/dotnet-redis.instructions.md",
+        "when": "config.sharp-pilot.instructions.dotnet.redis && sharp-pilot.workspace.hasRedis && !sharp-pilot.override.dotnet.redis"
+      },
+      {
+        "path": "./instructions/dotnet-signalr.instructions.md",
+        "when": "config.sharp-pilot.instructions.dotnet.signalR && sharp-pilot.workspace.hasSignalR && !sharp-pilot.override.dotnet.signalR"
+      },
+      {
         "path": "./instructions/dotnet-sql-server.instructions.md",
         "when": "config.sharp-pilot.instructions.dotnet.sqlServer && sharp-pilot.workspace.hasSqlServer && !sharp-pilot.override.dotnet.sqlServer"
       },
@@ -118,6 +138,10 @@
       {
         "path": "./instructions/dotnet-maui.instructions.md",
         "when": "config.sharp-pilot.instructions.dotnet.maui && sharp-pilot.workspace.hasMaui && !sharp-pilot.override.dotnet.maui"
+      },
+      {
+        "path": "./instructions/dotnet-mediator-cqrs.instructions.md",
+        "when": "config.sharp-pilot.instructions.dotnet.mediatorCqrs && sharp-pilot.workspace.hasMediatR && !sharp-pilot.override.dotnet.mediatorCqrs"
       },
       {
         "path": "./instructions/dotnet-mongodb.instructions.md",
@@ -188,6 +212,14 @@
         "when": "config.sharp-pilot.instructions.web.javascript && (sharp-pilot.workspace.hasJavaScript || sharp-pilot.workspace.hasTypeScript) && !sharp-pilot.override.web.javascript"
       },
       {
+        "path": "./instructions/web-nextjs.instructions.md",
+        "when": "config.sharp-pilot.instructions.web.nextJs && sharp-pilot.workspace.hasNextJs && !sharp-pilot.override.web.nextJs"
+      },
+      {
+        "path": "./instructions/web-nodejs.instructions.md",
+        "when": "config.sharp-pilot.instructions.web.nodeJs && sharp-pilot.workspace.hasNodeJs && !sharp-pilot.override.web.nodeJs"
+      },
+      {
         "path": "./instructions/web-react.instructions.md",
         "when": "config.sharp-pilot.instructions.web.react && sharp-pilot.workspace.hasReact && !sharp-pilot.override.web.react"
       },
@@ -250,6 +282,16 @@
           "default": true,
           "description": "Enable design principles (SOLID, DI, composition, separation of concerns, structured logging)."
         },
+        "sharp-pilot.instructions.docker": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable Docker guidelines (multi-stage builds, security, Compose, layer caching)."
+        },
+        "sharp-pilot.instructions.graphql": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable GraphQL guidelines (schema design, pagination, DataLoader, mutations, subscriptions)."
+        },
         "sharp-pilot.instructions.restApiDesign": {
           "type": "boolean",
           "default": true,
@@ -300,6 +342,11 @@
           "default": true,
           "description": "Enable Entity Framework Core guidelines (DbContext lifetime, querying, migrations, bulk operations)."
         },
+        "sharp-pilot.instructions.dotnet.grpc": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable gRPC guidelines (proto design, status codes, deadlines, streaming, channel reuse)."
+        },
         "sharp-pilot.instructions.dotnet.nuget": {
           "type": "boolean",
           "default": true,
@@ -320,6 +367,16 @@
           "default": true,
           "description": "Enable Razor file structure and syntax guidelines."
         },
+        "sharp-pilot.instructions.dotnet.redis": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable Redis guidelines (connection multiplexing, key naming, TTL, pub/sub, distributed locking)."
+        },
+        "sharp-pilot.instructions.dotnet.signalR": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable SignalR guidelines (hub design, groups, backplane, reconnection, strongly-typed hubs)."
+        },
         "sharp-pilot.instructions.dotnet.sqlServer": {
           "type": "boolean",
           "default": true,
@@ -334,6 +391,11 @@
           "type": "boolean",
           "default": true,
           "description": "Enable .NET MAUI guidelines (MVVM, Shell navigation, data binding, layouts, DI)."
+        },
+        "sharp-pilot.instructions.dotnet.mediatorCqrs": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable Mediator/CQRS guidelines (command/query separation, handler design, pipeline behaviors, notifications)."
         },
         "sharp-pilot.instructions.dotnet.mongodb": {
           "type": "boolean",
@@ -419,6 +481,16 @@
           "type": "boolean",
           "default": true,
           "description": "Enable JavaScript language, async patterns, and security guidelines."
+        },
+        "sharp-pilot.instructions.web.nextJs": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable Next.js guidelines (App Router, Server/Client Components, data fetching, rendering strategies)."
+        },
+        "sharp-pilot.instructions.web.nodeJs": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable Node.js guidelines (async patterns, module design, security, process lifecycle)."
         },
         "sharp-pilot.instructions.web.react": {
           "type": "boolean",

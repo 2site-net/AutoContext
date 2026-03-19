@@ -57,7 +57,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
 
             const decoder = new TextDecoder();
 
-            const [dotnetFiles, fsharpFiles, razorFiles, htmlFiles, cssFiles, jsFiles, tsFiles, unityFiles] = await Promise.all([
+            const [dotnetFiles, fsharpFiles, razorFiles, htmlFiles, cssFiles, jsFiles, tsFiles, unityFiles, dockerFiles] = await Promise.all([
                 vscode.workspace.findFiles('**/*.{csproj,fsproj,sln,slnx}', '**/node_modules/**', 1),
                 vscode.workspace.findFiles('**/*.fsproj', '**/node_modules/**', 1),
                 vscode.workspace.findFiles('**/*.razor', '**/node_modules/**', 1),
@@ -66,6 +66,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
                 vscode.workspace.findFiles('**/*.{js,jsx,mjs,cjs}', '**/node_modules/**', 1),
                 vscode.workspace.findFiles('**/*.{ts,tsx,mts,cts}', '**/node_modules/**', 1),
                 vscode.workspace.findFiles('**/ProjectSettings/ProjectSettings.asset', '**/node_modules/**', 1),
+                vscode.workspace.findFiles('**/Dockerfile*', '**/node_modules/**', 1),
             ]);
 
             const hasDotnet = dotnetFiles.length > 0;
@@ -76,6 +77,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
             const hasJavaScript = jsFiles.length > 0;
             const hasTypeScript = tsFiles.length > 0;
             const hasUnity = unityFiles.length > 0;
+            const hasDocker = dockerFiles.length > 0;
 
             let hasReact = false;
             let hasAngular = false;
@@ -87,7 +89,10 @@ export class WorkspaceContextDetector implements vscode.Disposable {
             let hasMocha = false;
             let hasPlaywright = false;
             let hasCypress = false;
+            let hasNextJs = false;
+            let hasGraphql = false;
             const packageFiles = await vscode.workspace.findFiles('**/package.json', '**/node_modules/**', 50);
+            const hasNodeJs = packageFiles.length > 0;
 
             for (const uri of packageFiles) {
                 const bytes = await vscode.workspace.fs.readFile(uri);
@@ -123,7 +128,13 @@ export class WorkspaceContextDetector implements vscode.Disposable {
                 if (!hasCypress && /"cypress"\s*:/.test(content)) {
                     hasCypress = true;
                 }
-                if (hasReact && hasAngular && hasVue && hasSvelte && hasVitest && hasJest && hasJasmine && hasMocha && hasPlaywright && hasCypress) {
+                if (!hasNextJs && /"next"\s*:/.test(content)) {
+                    hasNextJs = true;
+                }
+                if (!hasGraphql && /"graphql"\s*:|"@apollo\/|"graphql-request"\s*:|"urql"\s*:|"HotChocolate/i.test(content)) {
+                    hasGraphql = true;
+                }
+                if (hasReact && hasAngular && hasVue && hasSvelte && hasVitest && hasJest && hasJasmine && hasMocha && hasPlaywright && hasCypress && hasNextJs && hasGraphql) {
                     break;
                 }
             }
@@ -143,6 +154,10 @@ export class WorkspaceContextDetector implements vscode.Disposable {
             let hasNunit = false;
             let hasWpf = false;
             let hasWinForms = false;
+            let hasGrpc = false;
+            let hasMediatR = false;
+            let hasRedis = false;
+            let hasSignalR = false;
 
             if (hasDotnet) {
                 const projFiles = await vscode.workspace.findFiles('**/*.{csproj,fsproj}', '**/node_modules/**', 50);
@@ -196,7 +211,22 @@ export class WorkspaceContextDetector implements vscode.Disposable {
                     if (!hasSqlServer && /Microsoft\.Data\.SqlClient|System\.Data\.SqlClient|EntityFrameworkCore\.SqlServer|EntityFramework\.SqlServer/i.test(content)) {
                         hasSqlServer = true;
                     }
-                    if (hasAspNetCore && hasDapper && hasEntityFrameworkCore && hasMaui && hasMongodb && hasMysql && hasOracle && hasPostgres && hasSqlite && hasSqlServer && hasXunit && hasMstest && hasNunit && hasWpf && hasWinForms) {
+                    if (!hasGrpc && /Grpc\.|Google\.Protobuf/i.test(content)) {
+                        hasGrpc = true;
+                    }
+                    if (!hasMediatR && /MediatR|Mediator\.Abstractions/i.test(content)) {
+                        hasMediatR = true;
+                    }
+                    if (!hasRedis && /StackExchange\.Redis|Microsoft\.Extensions\.Caching\.StackExchangeRedis/i.test(content)) {
+                        hasRedis = true;
+                    }
+                    if (!hasSignalR && /Microsoft\.AspNetCore\.SignalR/i.test(content)) {
+                        hasSignalR = true;
+                    }
+                    if (!hasGraphql && /HotChocolate|GraphQL\.Server/i.test(content)) {
+                        hasGraphql = true;
+                    }
+                    if (hasAspNetCore && hasDapper && hasEntityFrameworkCore && hasMaui && hasMongodb && hasMysql && hasOracle && hasPostgres && hasSqlite && hasSqlServer && hasXunit && hasMstest && hasNunit && hasWpf && hasWinForms && hasGrpc && hasMediatR && hasRedis && hasSignalR && hasGraphql) {
                         break;
                     }
                 }
@@ -261,7 +291,15 @@ export class WorkspaceContextDetector implements vscode.Disposable {
                 setContext('sharp-pilot.workspace.hasNunit', hasNunit),
                 setContext('sharp-pilot.workspace.hasWpf', hasWpf),
                 setContext('sharp-pilot.workspace.hasWinForms', hasWinForms),
+                setContext('sharp-pilot.workspace.hasGrpc', hasGrpc),
+                setContext('sharp-pilot.workspace.hasMediatR', hasMediatR),
+                setContext('sharp-pilot.workspace.hasRedis', hasRedis),
+                setContext('sharp-pilot.workspace.hasSignalR', hasSignalR),
                 setContext('sharp-pilot.workspace.hasUnity', hasUnity),
+                setContext('sharp-pilot.workspace.hasDocker', hasDocker),
+                setContext('sharp-pilot.workspace.hasGraphql', hasGraphql),
+                setContext('sharp-pilot.workspace.hasNextJs', hasNextJs),
+                setContext('sharp-pilot.workspace.hasNodeJs', hasNodeJs),
                 setContext('sharp-pilot.workspace.hasVitest', hasVitest),
                 setContext('sharp-pilot.workspace.hasJest', hasJest),
                 setContext('sharp-pilot.workspace.hasJasmine', hasJasmine),
