@@ -72,6 +72,10 @@
         "when": "config.sharp-pilot.instructions.dotnet.codingStandards && sharp-pilot.workspace.hasDotnet && !sharp-pilot.override.dotnet.codingStandards"
       },
       {
+        "path": "./instructions/dotnet-core.instructions.md",
+        "when": "config.sharp-pilot.instructions.dotnet.core && sharp-pilot.workspace.hasDotnet && !sharp-pilot.override.dotnet.core"
+      },
+      {
         "path": "./instructions/dotnet-debugging.instructions.md",
         "when": "config.sharp-pilot.instructions.dotnet.debugging && sharp-pilot.workspace.hasDotnet && !sharp-pilot.override.dotnet.debugging"
       },
@@ -266,6 +270,11 @@
           "type": "boolean",
           "default": true,
           "description": "Enable .NET coding standards (naming, validation, file organization, API design)."
+        },
+        "sharp-pilot.instructions.dotnet.core": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable .NET Core guidelines (dependency injection, logging, configuration, security)."
         },
         "sharp-pilot.instructions.dotnet.dapper": {
           "type": "boolean",
