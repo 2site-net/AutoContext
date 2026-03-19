@@ -29,27 +29,92 @@ mode. Invoke them by asking Copilot to check your code or commits.
 
 ## Coding Instructions
 
-The extension ships 13 instruction files that are automatically injected into
+The extension ships 56 instruction files that are automatically injected into
 GitHub Copilot's context when relevant to your workspace:
+
+### General
 
 | Instruction | Activates when |
 |-------------|----------------|
 | Copilot Rules | Always |
+| Code Review | Always |
+| Design Principles | Always |
+| Docker | Dockerfile detected |
+| GraphQL | GraphQL package detected |
+| REST API Design | Always |
+| SQL | Always |
+
+### .NET
+
+| Instruction | Activates when |
+|-------------|----------------|
+| ASP.NET Core | ASP.NET Core project detected |
 | Async/Await | .NET project detected |
 | Blazor | `.razor` files detected |
-| Code Quality | .NET project detected |
-| Code Style | .NET project detected |
 | Coding Standards | .NET project detected |
+| Core (DI, Logging, Config, Security) | .NET project detected |
+| Dapper | Dapper package detected |
 | Debugging | .NET project detected |
-| Design Principles | .NET project detected |
+| Entity Framework Core | EF Core package detected |
+| gRPC | gRPC package detected |
+| .NET MAUI | MAUI project detected |
+| Mediator / CQRS | MediatR package detected |
+| MongoDB | MongoDB driver detected |
+| MySQL | MySQL package detected |
 | NuGet | .NET project detected |
+| Oracle | Oracle package detected |
 | Performance & Memory | .NET project detected |
+| PostgreSQL | Npgsql package detected |
+| Razor | `.razor` files detected |
+| Redis | StackExchange.Redis detected |
+| SignalR | SignalR package detected |
+| SQLite | SQLite package detected |
+| SQL Server | SqlClient package detected |
 | Testing | .NET project detected |
-| xUnit | xUnit referenced in a `.csproj` |
+| Unity | Unity project detected |
+| Windows Forms | WinForms project detected |
+| WPF | WPF project detected |
+| xUnit | xUnit package detected |
+| MSTest | MSTest package detected |
+| NUnit | NUnit package detected |
+
+### C# / F#
+
+| Instruction | Activates when |
+|-------------|----------------|
+| C# Coding Style | .NET project detected |
+| F# Coding Style | F# project detected |
+
+### Git
+
+| Instruction | Activates when |
+|-------------|----------------|
 | Commit Format | Git repository detected |
 
+### Web
+
+| Instruction | Activates when |
+|-------------|----------------|
+| Angular | Angular detected in `package.json` |
+| CSS | `.css` files detected |
+| HTML | `.html` or `.cshtml` files detected |
+| JavaScript | `.js` or `.ts` files detected |
+| Next.js | Next.js detected in `package.json` |
+| Node.js | `package.json` detected |
+| React | React detected in `package.json` |
+| Svelte | Svelte detected in `package.json` |
+| TypeScript | `.ts` files detected |
+| Vue.js | Vue detected in `package.json` |
+| Testing | Any web test framework detected |
+| Vitest | Vitest detected in `package.json` |
+| Jest | Jest detected in `package.json` |
+| Jasmine | Jasmine detected in `package.json` |
+| Mocha | Mocha detected in `package.json` |
+| Playwright | Playwright detected in `package.json` |
+| Cypress | Cypress detected in `package.json` |
+
 The status bar shows how many instructions are currently active (e.g.
-`SharpPilot: 13/13`). Click it — or run **SharpPilot: Toggle Instructions** from
+`SharpPilot: 42/56`). Click it — or run **SharpPilot: Toggle Instructions** from
 the Command Palette — to enable or disable individual instructions without
 opening Settings.
 
