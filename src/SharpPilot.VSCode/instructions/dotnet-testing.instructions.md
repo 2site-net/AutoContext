@@ -10,6 +10,7 @@ applyTo: "**/*Tests*.{cs,razor}"
 - **Do** mirror production namespaces—one test class per feature, suffixed `Tests`; prefix methods with `Should_` / `Should_not_` (e.g., `Should_do_something`, `Should_not_do_something`).
 - **Do** suffix test doubles with `Fake` and store them in a `Fakes` folder.
 - **Do** keep each test laser-focused: one behavior, one primary assertion, minimal mocks.
+- **Do** mock only when truly required — prefer real implementations or simple fakes over mocking frameworks.
 - **Do** structure every test in AAA (Arrange–Act–Assert) style; separate the three sections with a blank line or `// Arrange` / `// Act` / `// Assert` comments.
 - **Do** name integration tests after the most dependent type (e.g., say `VirtualCodeEditor` depends on `SyntaxHighlighter` then `VirtualCodeEditorTests`).
 - **Do** break down large tests into smaller, focused ones; avoid monolithic tests.
