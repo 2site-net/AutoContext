@@ -1,6 +1,7 @@
 namespace SharpPilot.Tools.DotNet;
 
 using System.ComponentModel;
+using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 
 using Microsoft.CodeAnalysis;
@@ -35,7 +36,7 @@ public sealed partial class CSharpCodingStyleChecker : IChecker
     public string Check(
         [Description("The C# source code to check.")]
         string content,
-        string? data = null)
+        JsonObject? data = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(content);
 

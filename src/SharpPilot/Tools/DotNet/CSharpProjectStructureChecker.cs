@@ -1,6 +1,7 @@
 namespace SharpPilot.Tools.DotNet;
 
 using System.ComponentModel;
+using System.Text.Json.Nodes;
 
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -32,15 +33,13 @@ public sealed class CSharpProjectStructureChecker : IChecker
     public string Check(
         [Description("The C# source code to check.")]
         string content,
-        [Description("Optional comma-separated metadata. The first segment is the file name " +
-            "(e.g., 'MyClass.cs') — when provided, validates that it matches the declared type name.")]
-        string? data = null)
+        [Description("Optional JSON metadata. " +
+            "'fileName' (e.g., 'MyClass.cs') — when provided, validates that it matches the declared type name.")]
+        JsonObject? data = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(content);
 
-        ReadOnlySpan<char> dataSpan = data;
-        var commaIndex = dataSpan.IndexOf(',');
-        ReadOnlySpan<char> fileName = commaIndex < 0 ? dataSpan : dataSpan[..commaIndex];
+        var fileName = data?["fileName"]?.GetValue<string>() ?? string.Empty;
 
         var tree = CSharpSyntaxTree.ParseText(content);
         var root = tree.GetRoot();

@@ -1,5 +1,7 @@
 namespace SharpPilot.Tests.Tools.DotNet;
 
+using System.Text.Json.Nodes;
+
 using SharpPilot.Tools.DotNet;
 
 public sealed class CSharpTestStyleCheckerTests
@@ -443,7 +445,7 @@ public sealed class CSharpTestStyleCheckerTests
             """;
 
         // Act
-        var result = new CSharpTestStyleChecker().Check(source, "UserService.cs");
+        var result = new CSharpTestStyleChecker().Check(source, new JsonObject { ["fileName"] = "UserService.cs" });
 
         // Assert
         Assert.Multiple(() =>
@@ -469,7 +471,7 @@ public sealed class CSharpTestStyleCheckerTests
             """;
 
         // Act
-        var result = new CSharpTestStyleChecker().Check(source, "UserServiceTests.cs");
+        var result = new CSharpTestStyleChecker().Check(source, new JsonObject { ["fileName"] = "UserServiceTests.cs" });
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -493,7 +495,7 @@ public sealed class CSharpTestStyleCheckerTests
             """;
 
         // Act
-        var result = new CSharpTestStyleChecker().Check(source, fileName);
+        var result = new CSharpTestStyleChecker().Check(source, new JsonObject { ["fileName"] = fileName });
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -517,7 +519,7 @@ public sealed class CSharpTestStyleCheckerTests
             """;
 
         // Act
-        var result = new CSharpTestStyleChecker().Check(source, fileName);
+        var result = new CSharpTestStyleChecker().Check(source, new JsonObject { ["fileName"] = fileName });
 
         // Assert
         Assert.Multiple(() =>
@@ -545,7 +547,7 @@ public sealed class CSharpTestStyleCheckerTests
             """;
 
         // Act
-        var result = new CSharpTestStyleChecker().Check(source, ",MyApp.Services");
+        var result = new CSharpTestStyleChecker().Check(source, new JsonObject { ["productionNamespace"] = "MyApp.Services" });
 
         // Assert
         Assert.Multiple(() =>
@@ -574,7 +576,7 @@ public sealed class CSharpTestStyleCheckerTests
             """;
 
         // Act
-        var result = new CSharpTestStyleChecker().Check(source, ",MyApp.Services");
+        var result = new CSharpTestStyleChecker().Check(source, new JsonObject { ["productionNamespace"] = "MyApp.Services" });
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -598,7 +600,7 @@ public sealed class CSharpTestStyleCheckerTests
             """;
 
         // Act
-        var result = new CSharpTestStyleChecker().Check(source, ",MyApp");
+        var result = new CSharpTestStyleChecker().Check(source, new JsonObject { ["productionNamespace"] = "MyApp" });
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -622,7 +624,7 @@ public sealed class CSharpTestStyleCheckerTests
             """;
 
         // Act
-        var result = new CSharpTestStyleChecker().Check(source, ",MyApp.Data.Repositories");
+        var result = new CSharpTestStyleChecker().Check(source, new JsonObject { ["productionNamespace"] = "MyApp.Data.Repositories" });
 
         // Assert
         Assert.Multiple(() =>
@@ -650,7 +652,7 @@ public sealed class CSharpTestStyleCheckerTests
             """;
 
         // Act
-        var result = new CSharpTestStyleChecker().Check(source, ",MyApp.Data.Repositories");
+        var result = new CSharpTestStyleChecker().Check(source, new JsonObject { ["productionNamespace"] = "MyApp.Data.Repositories" });
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -699,7 +701,7 @@ public sealed class CSharpTestStyleCheckerTests
             """;
 
         // Act
-        var result = new CSharpTestStyleChecker().Check(source, ",MyApp.Services");
+        var result = new CSharpTestStyleChecker().Check(source, new JsonObject { ["productionNamespace"] = "MyApp.Services" });
 
         // Assert
         Assert.Contains("does not mirror", result);

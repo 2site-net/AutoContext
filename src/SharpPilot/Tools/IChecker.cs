@@ -1,5 +1,7 @@
 namespace SharpPilot.Tools;
 
+using System.Text.Json.Nodes;
+
 /// <summary>
 /// Common contract for all code and commit quality checkers.
 /// </summary>
@@ -14,5 +16,5 @@ public interface IChecker
     /// Analyses <paramref name="content"/> and returns a report string
     /// starting with ✅ (pass) or ❌ (violations found).
     /// </summary>
-    string Check(string content, string? data = null);
+    string Check(string content, JsonObject? data = null);
 }

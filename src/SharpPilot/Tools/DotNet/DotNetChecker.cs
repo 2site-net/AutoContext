@@ -1,6 +1,7 @@
 namespace SharpPilot.Tools.DotNet;
 
 using System.ComponentModel;
+using System.Text.Json.Nodes;
 
 using ModelContextProtocol.Server;
 
@@ -29,15 +30,14 @@ public sealed class DotNetChecker : IChecker
         "Covers code style, member ordering, naming conventions, async patterns, nullable context, " +
         "project structure, and test style. " +
         "Prefer this over calling individual check tools unless you only need a specific check. " +
-        "Does not include NuGet hygiene (use check_nuget_hygiene separately for project files). " +
-        "When data is provided, expects comma-separated fileName,productionNamespace.")]
+        "Does not include NuGet hygiene (use check_nuget_hygiene separately for project files).")]
     public string Check(
         [Description("The C# source code to check.")]
         string content,
-        [Description("Optional comma-separated metadata: fileName,productionNamespace. " +
-            "fileName (e.g., 'MyClass.cs') validates the file name matches the declared type. " +
-            "productionNamespace (e.g., 'MyApp.Services') validates test namespace mirroring.")]
-        string? data = null)
+        [Description("Optional JSON metadata. " +
+            "'fileName' (e.g., 'MyClass.cs') validates the file name matches the declared type. " +
+            "'productionNamespace' (e.g., 'MyApp.Services') validates test namespace mirroring.")]
+        JsonObject? data = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(content);
 

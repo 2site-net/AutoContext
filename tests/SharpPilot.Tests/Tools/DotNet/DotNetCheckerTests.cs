@@ -1,5 +1,7 @@
 namespace SharpPilot.Tests.Tools.DotNet;
 
+using System.Text.Json.Nodes;
+
 using SharpPilot.Tools.DotNet;
 
 [Collection("ToolsStatus")]
@@ -36,7 +38,7 @@ public sealed class DotNetCheckerTests
             """;
 
         // Act
-        var result = new DotNetChecker().Check(source, "MyClass.cs");
+        var result = new DotNetChecker().Check(source, new JsonObject { ["fileName"] = "MyClass.cs" });
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -59,7 +61,7 @@ public sealed class DotNetCheckerTests
             """;
 
         // Act
-        var result = new DotNetChecker().Check(source, "MyClass.cs");
+        var result = new DotNetChecker().Check(source, new JsonObject { ["fileName"] = "MyClass.cs" });
 
         // Assert
         Assert.StartsWith("❌", result);

@@ -1,6 +1,7 @@
 namespace SharpPilot.Tools.DotNet;
 
 using System.ComponentModel;
+using System.Text.Json.Nodes;
 
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -36,19 +37,15 @@ public sealed class CSharpTestStyleChecker : IChecker
     public string Check(
         [Description("The C# test source code to check.")]
         string content,
-        [Description("Optional comma-separated metadata: fileName,productionNamespace. " +
-            "fileName (e.g., 'UserServiceTests.cs') validates the name ends with 'Tests' before extensions. " +
-            "productionNamespace (e.g., 'MyApp.Services') validates the test namespace mirrors it.")]
-        string? data = null)
+        [Description("Optional JSON metadata. " +
+            "'fileName' (e.g., 'UserServiceTests.cs') validates the name ends with 'Tests' before extensions. " +
+            "'productionNamespace' (e.g., 'MyApp.Services') validates the test namespace mirrors it.")]
+        JsonObject? data = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(content);
 
-        ReadOnlySpan<char> dataSpan = data;
-        var commaIndex = dataSpan.IndexOf(',');
-        ReadOnlySpan<char> fileName = commaIndex < 0 ? dataSpan : dataSpan[..commaIndex];
-        ReadOnlySpan<char> productionNamespace = commaIndex < 0
-            ? []
-            : dataSpan[(commaIndex + 1)..];
+        var fileName = data?["fileName"]?.GetValue<string>() ?? string.Empty;
+        var productionNamespace = data?["productionNamespace"]?.GetValue<string>() ?? string.Empty;
 
         var tree = CSharpSyntaxTree.ParseText(content);
         var root = tree.GetRoot();
