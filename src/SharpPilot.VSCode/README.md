@@ -78,7 +78,7 @@ GitHub Copilot's context when relevant to your workspace:
 | MSTest | MSTest package detected |
 | NUnit | NUnit package detected |
 
-### C# / F#
+### .NET Languages
 
 | Instruction | Activates when |
 |-------------|----------------|
@@ -96,14 +96,10 @@ GitHub Copilot's context when relevant to your workspace:
 | Instruction | Activates when |
 |-------------|----------------|
 | Angular | Angular detected in `package.json` |
-| CSS | `.css` files detected |
-| HTML | `.html` or `.cshtml` files detected |
-| JavaScript | `.js` or `.ts` files detected |
 | Next.js | Next.js detected in `package.json` |
 | Node.js | `package.json` detected |
 | React | React detected in `package.json` |
 | Svelte | Svelte detected in `package.json` |
-| TypeScript | `.ts` files detected |
 | Vue.js | Vue detected in `package.json` |
 | Testing | Any web test framework detected |
 | Vitest | Vitest detected in `package.json` |
@@ -112,6 +108,15 @@ GitHub Copilot's context when relevant to your workspace:
 | Mocha | Mocha detected in `package.json` |
 | Playwright | Playwright detected in `package.json` |
 | Cypress | Cypress detected in `package.json` |
+
+### Web Languages
+
+| Instruction | Activates when |
+|-------------|----------------|
+| CSS | `.css` files detected |
+| HTML | `.html` or `.cshtml` files detected |
+| JavaScript | `.js` or `.ts` files detected |
+| TypeScript | `.ts` files detected |
 
 The status bar shows how many instructions are currently active (e.g.
 `SharpPilot: 42/56`). Click it — or run **SharpPilot: Toggle Instructions** from
