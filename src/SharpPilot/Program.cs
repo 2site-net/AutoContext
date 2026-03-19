@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
 using SharpPilot.Tools.DotNet;
+using SharpPilot.Tools.EditorConfig;
 using SharpPilot.Tools.Git;
 
 internal sealed class Program
@@ -12,7 +13,7 @@ internal sealed class Program
     {
         var builder = Host.CreateApplicationBuilder(args);
         var scope = builder.Configuration["scope"]
-            ?? throw new ArgumentException("Missing required argument: --scope (dotnet|git)");
+            ?? throw new ArgumentException("Missing required argument: --scope (dotnet|git|editorconfig)");
 
         Type[] toolTypes = scope switch
         {
@@ -34,7 +35,11 @@ internal sealed class Program
                 typeof(CommitContentChecker),
                 typeof(CommitFormatChecker),
             ],
-            _ => throw new ArgumentException($"Unknown scope '{scope}'. Valid values: dotnet, git."),
+            "editorconfig" =>
+            [
+                typeof(EditorConfigReader),
+            ],
+            _ => throw new ArgumentException($"Unknown scope '{scope}'. Valid values: dotnet, git, editorconfig."),
         };
 
         builder.Services

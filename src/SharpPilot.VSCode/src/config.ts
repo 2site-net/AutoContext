@@ -20,6 +20,7 @@ export interface ToolEntry {
 export const servers: readonly ServerEntry[] = [
     { label: 'SharpPilot: DotNet', scope: 'dotnet' },
     { label: 'SharpPilot: Git', scope: 'git' },
+    { label: 'SharpPilot: EditorConfig', scope: 'editorconfig' },
 ];
 
 export const instructions: readonly InstructionEntry[] = [
@@ -92,6 +93,7 @@ export const tools: readonly ToolEntry[] = [
     { settingId: 'sharp-pilot.tools.check_nuget_hygiene', toolName: 'check_nuget_hygiene', label: 'NuGet Hygiene', category: '.NET Tool' },
     { settingId: 'sharp-pilot.tools.check_git_commit_content', toolName: 'check_git_commit_content', label: 'Commit Content', category: 'Git Tool' },
     { settingId: 'sharp-pilot.tools.check_git_commit_format', toolName: 'check_git_commit_format', label: 'Commit Format', category: 'Git Tool' },
+    { settingId: 'sharp-pilot.tools.get_editorconfig', toolName: 'get_editorconfig', label: 'EditorConfig', category: 'EditorConfig Tool' },
 ];
 
 export interface ExportManifest {

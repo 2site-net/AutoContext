@@ -20,9 +20,10 @@ src/SharpPilot.VSCode/            # VS Code extension that registers the server
 
 ## Servers and Tools
 
-The MCP server exposes two tool scopes. The VS Code extension registers the
-server twice — once with `--scope dotnet` and once with `--scope git` — so
-that .NET and Git tools appear in separate sections in the tools UI.
+The MCP server exposes three tool scopes. The VS Code extension registers the
+server three times — `--scope dotnet`, `--scope git`, and `--scope editorconfig`
+— so that .NET, Git, and EditorConfig tools appear in separate sections in the
+tools UI.
 
 ### SharpPilot: DotNet
 
@@ -48,6 +49,14 @@ content best practices.
 |------|---------|
 | `check_git_commit_format` | Subject must follow `type(scope): description`, stay under 50 characters, body wrapped at 72 characters, blank line between subject and body. |
 | `check_git_commit_content` | No bullet lists, file paths, counts, enumerated properties, "Key features:" sections, or sensitive information in the commit body. |
+
+### SharpPilot: EditorConfig
+
+One tool that resolves effective `.editorconfig` properties for a given file.
+
+| Tool | Purpose |
+|------|---------|
+| `get_editorconfig` | Resolves the effective `.editorconfig` properties for a given file path — walks the directory tree, evaluates glob patterns and section cascading, and returns the final key-value pairs. |
 
 ## Manual Server Configuration
 
@@ -81,6 +90,18 @@ server code:
         "--",
         "--scope",
         "git"
+      ]
+    },
+    "editorconfig-SharpPilot": {
+      "type": "stdio",
+      "command": "dotnet",
+      "args": [
+        "run",
+        "--project",
+        "${workspaceFolder}/src/SharpPilot/SharpPilot.csproj",
+        "--",
+        "--scope",
+        "editorconfig"
       ]
     }
   }

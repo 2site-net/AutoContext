@@ -27,6 +27,12 @@ mode. Invoke them by asking Copilot to check your code or commits.
 | `check_git_commit_format` | Subject must follow `type(scope): description`, stay under 50 characters, body wrapped at 72 characters, blank line between subject and body. |
 | `check_git_commit_content` | No bullet lists, file paths, counts, enumerated properties, "Key features:" sections, or sensitive information in the commit body. |
 
+### EditorConfig
+
+| Tool | What it does |
+|------|--------------|
+| `get_editorconfig` | Resolves the effective `.editorconfig` properties for a given file path — walks the directory tree, evaluates glob patterns and section cascading, and returns the final key-value pairs. |
+
 ## Coding Instructions
 
 The extension ships 56 instruction files that are automatically injected into

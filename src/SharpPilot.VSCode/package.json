@@ -596,6 +596,11 @@
           "type": "boolean",
           "default": true,
           "description": "Enable the commit format validator tool."
+        },
+        "sharp-pilot.tools.get_editorconfig": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable the EditorConfig reader tool."
         }
       }
     }
