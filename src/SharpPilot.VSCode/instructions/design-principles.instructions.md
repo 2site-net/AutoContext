@@ -3,6 +3,7 @@ description: "Use when designing software systems: SOLID principles, dependency 
 ---
 # Design Principles
 
+- **Do** give descriptive names that reveal intent — prefer `retriesRemaining` over `n`, `calculateMonthlyTotal` over `calc`, `getUserById` over `getUser`, and `setContext` over `setCtx`; single-letter names are acceptable only as loop counters or well-known math symbols.
 - **Do** use Separation of Concerns – keep data, domain and UI in distinct layers; keep UI types out of core code.
 - **Do** use Dependency Injection – prefer constructor injection; avoid service locators and singletons.
 - **Do** favor Composition over inheritance; expose clear extension points.
