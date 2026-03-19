@@ -44,6 +44,10 @@
         "when": "config.sharp-pilot.instructions.copilot && !sharp-pilot.override.copilot"
       },
       {
+        "path": "./instructions/code-review.instructions.md",
+        "when": "config.sharp-pilot.instructions.codeReview && !sharp-pilot.override.codeReview"
+      },
+      {
         "path": "./instructions/design-principles.instructions.md",
         "when": "config.sharp-pilot.instructions.designPrinciples && !sharp-pilot.override.designPrinciples"
       },
@@ -235,6 +239,11 @@
           "type": "boolean",
           "default": true,
           "description": "Enable Copilot behavior rules and rule precedence."
+        },
+        "sharp-pilot.instructions.codeReview": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable code review guidelines (priority order, feedback style, scope and test coverage checks)."
         },
         "sharp-pilot.instructions.designPrinciples": {
           "type": "boolean",
