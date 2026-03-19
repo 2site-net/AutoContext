@@ -5,6 +5,8 @@ using System.Text.Json.Nodes;
 
 using ModelContextProtocol.Server;
 
+using SharpPilot.Tools.EditorConfig;
+
 /// <summary>
 /// Aggregate tool that runs all enabled .NET source-code checkers and returns
 /// a single combined report. Reads <c>tools-status.json</c> to determine which
@@ -30,16 +32,22 @@ public sealed class DotNetChecker : IChecker
         "Covers code style, member ordering, naming conventions, async patterns, nullable context, " +
         "project structure, and test style. " +
         "Prefer this over calling individual check tools unless you only need a specific check. " +
-        "Does not include NuGet hygiene (use check_nuget_hygiene separately for project files).")]
+        "Does not include NuGet hygiene (use check_nuget_hygiene separately for project files). " +
+        "When editorConfigFilePath is provided, resolves .editorconfig properties and uses them to " +
+        "suppress checks that conflict with the project's editorconfig settings.")]
     public string Check(
         [Description("The C# source code to check.")]
         string content,
         [Description("Optional JSON metadata. " +
-            "'fileName' (e.g., 'MyClass.cs') validates the file name matches the declared type. " +
+            "'editorConfigFilePath' (absolute path) resolves .editorconfig rules for this file. " +
+            "'productionFileName' (e.g., 'MyClass.cs') validates the file name matches the declared type. " +
+            "'testFileName' (e.g., 'UserServiceTests.cs') validates the test file name ends with 'Tests'. " +
             "'productionNamespace' (e.g., 'MyApp.Services') validates test namespace mirroring.")]
         JsonObject? data = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(content);
+
+        data = MergeEditorConfig(data);
 
         var sections = new List<string>();
 
@@ -75,5 +83,26 @@ public sealed class DotNetChecker : IChecker
         }
 
         return string.Join("\n\n", failures);
+    }
+
+    private static JsonObject? MergeEditorConfig(JsonObject? data)
+    {
+        var filePath = data?["editorConfigFilePath"]?.GetValue<string>();
+        var properties = EditorConfigReader.Resolve(filePath);
+
+        if (properties is null)
+        {
+            return data;
+        }
+
+        data ??= [];
+
+        foreach (var kv in properties)
+        {
+            // Only add editorconfig keys that aren't already in data
+            data.TryAdd(kv.Key, JsonValue.Create(kv.Value));
+        }
+
+        return data;
     }
 }

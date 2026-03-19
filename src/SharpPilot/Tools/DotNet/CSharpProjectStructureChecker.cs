@@ -34,18 +34,22 @@ public sealed class CSharpProjectStructureChecker : IChecker
         [Description("The C# source code to check.")]
         string content,
         [Description("Optional JSON metadata. " +
-            "'fileName' (e.g., 'MyClass.cs') — when provided, validates that it matches the declared type name.")]
+            "'productionFileName' (e.g., 'MyClass.cs') — when provided, validates that it matches the declared type name.")]
         JsonObject? data = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(content);
 
-        var fileName = data?["fileName"]?.GetValue<string>() ?? string.Empty;
+        var fileName = data?["productionFileName"]?.GetValue<string>() ?? string.Empty;
 
         var tree = CSharpSyntaxTree.ParseText(content);
         var root = tree.GetRoot();
         var violations = new List<string>();
 
-        CheckFileScopedNamespace(root, tree, violations);
+        if (!ShouldSkipFileScopedNamespace(data))
+        {
+            CheckFileScopedNamespace(root, tree, violations);
+        }
+
         CheckSingleTypePerFile(root, violations);
         CheckFileNameMatchesType(root, fileName, violations);
         CheckPragmaWarningDisable(root, tree, violations);
@@ -54,6 +58,13 @@ public sealed class CSharpProjectStructureChecker : IChecker
             ? "✅ Project structure is correct."
             : $"❌ Found {violations.Count} project structure violation(s):\n" +
               string.Join('\n', violations.Select((v, i) => $"  {i + 1}. {v}"));
+    }
+
+    private static bool ShouldSkipFileScopedNamespace(JsonObject? data)
+    {
+        var value = data?["csharp_style_namespace_declarations"]?.GetValue<string>();
+
+        return value is "block_scoped";
     }
 
     private static void CheckFileScopedNamespace(SyntaxNode root, SyntaxTree tree, List<string> violations)

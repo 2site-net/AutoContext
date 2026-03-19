@@ -51,4 +51,21 @@ public static class EditorConfigReader
 
         return sb.ToString().TrimEnd();
     }
+
+    /// <summary>
+    /// Resolves the effective editorconfig properties for <paramref name="path"/>
+    /// as a dictionary for programmatic use by checkers.
+    /// </summary>
+    internal static IReadOnlyDictionary<string, string>? Resolve(string? path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return null;
+        }
+
+        var parser = new EditorConfigParser();
+        var config = parser.Parse(path);
+
+        return config.Properties.Count == 0 ? null : config.Properties;
+    }
 }

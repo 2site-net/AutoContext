@@ -445,7 +445,7 @@ public sealed class CSharpTestStyleCheckerTests
             """;
 
         // Act
-        var result = new CSharpTestStyleChecker().Check(source, new JsonObject { ["fileName"] = "UserService.cs" });
+        var result = new CSharpTestStyleChecker().Check(source, new JsonObject { ["testFileName"] = "UserService.cs" });
 
         // Assert
         Assert.Multiple(() =>
@@ -471,7 +471,7 @@ public sealed class CSharpTestStyleCheckerTests
             """;
 
         // Act
-        var result = new CSharpTestStyleChecker().Check(source, new JsonObject { ["fileName"] = "UserServiceTests.cs" });
+        var result = new CSharpTestStyleChecker().Check(source, new JsonObject { ["testFileName"] = "UserServiceTests.cs" });
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -495,7 +495,7 @@ public sealed class CSharpTestStyleCheckerTests
             """;
 
         // Act
-        var result = new CSharpTestStyleChecker().Check(source, new JsonObject { ["fileName"] = fileName });
+        var result = new CSharpTestStyleChecker().Check(source, new JsonObject { ["testFileName"] = fileName });
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -519,7 +519,7 @@ public sealed class CSharpTestStyleCheckerTests
             """;
 
         // Act
-        var result = new CSharpTestStyleChecker().Check(source, new JsonObject { ["fileName"] = fileName });
+        var result = new CSharpTestStyleChecker().Check(source, new JsonObject { ["testFileName"] = fileName });
 
         // Assert
         Assert.Multiple(() =>

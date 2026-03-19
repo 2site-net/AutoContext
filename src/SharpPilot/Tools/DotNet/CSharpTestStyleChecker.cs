@@ -38,13 +38,13 @@ public sealed class CSharpTestStyleChecker : IChecker
         [Description("The C# test source code to check.")]
         string content,
         [Description("Optional JSON metadata. " +
-            "'fileName' (e.g., 'UserServiceTests.cs') validates the name ends with 'Tests' before extensions. " +
+            "'testFileName' (e.g., 'UserServiceTests.cs') validates the name ends with 'Tests' before extensions. " +
             "'productionNamespace' (e.g., 'MyApp.Services') validates the test namespace mirrors it.")]
         JsonObject? data = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(content);
 
-        var fileName = data?["fileName"]?.GetValue<string>() ?? string.Empty;
+        var fileName = data?["testFileName"]?.GetValue<string>() ?? string.Empty;
         var productionNamespace = data?["productionNamespace"]?.GetValue<string>() ?? string.Empty;
 
         var tree = CSharpSyntaxTree.ParseText(content);

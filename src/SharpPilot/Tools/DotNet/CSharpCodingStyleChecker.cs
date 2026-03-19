@@ -51,7 +51,12 @@ public sealed partial class CSharpCodingStyleChecker : IChecker
 
         CheckRegions(root, tree, violations);
         CheckDecorativeComments(contentSpan, lineRanges, violations);
-        CheckCurlyBraces(root, tree, violations);
+
+        if (!ShouldSkipCurlyBraces(data))
+        {
+            CheckCurlyBraces(root, tree, violations);
+        }
+
         CheckBlankLineBeforeControlFlow(root, tree, contentSpan, lineRanges, violations);
         CheckExpressionBodyArrowPlacement(root, tree, violations);
         CheckXmlDocComments(root, tree, violations);
@@ -60,6 +65,13 @@ public sealed partial class CSharpCodingStyleChecker : IChecker
             ? "✅ Code style is correct."
             : $"❌ Found {violations.Count} style violation(s):\n" +
               string.Join('\n', violations.Select((v, i) => $"  {i + 1}. {v}"));
+    }
+
+    private static bool ShouldSkipCurlyBraces(JsonObject? data)
+    {
+        var value = data?["csharp_prefer_braces"]?.GetValue<string>();
+
+        return value is "false" or "when_multiline";
     }
 
     private static void CheckRegions(SyntaxNode root, SyntaxTree tree, List<string> violations)

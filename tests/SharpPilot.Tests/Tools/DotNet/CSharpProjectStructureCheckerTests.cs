@@ -20,7 +20,7 @@ public sealed class CSharpProjectStructureCheckerTests
             """;
 
         // Act
-        var result = new CSharpProjectStructureChecker().Check(source, new JsonObject { ["fileName"] = "UserService.cs" });
+        var result = new CSharpProjectStructureChecker().Check(source, new JsonObject { ["productionFileName"] = "UserService.cs" });
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -165,7 +165,7 @@ public sealed class CSharpProjectStructureCheckerTests
             """;
 
         // Act
-        var result = new CSharpProjectStructureChecker().Check(source, new JsonObject { ["fileName"] = "WrongName.cs" });
+        var result = new CSharpProjectStructureChecker().Check(source, new JsonObject { ["productionFileName"] = "WrongName.cs" });
 
         // Assert
         Assert.Multiple(() =>
@@ -188,7 +188,7 @@ public sealed class CSharpProjectStructureCheckerTests
             """;
 
         // Act
-        var result = new CSharpProjectStructureChecker().Check(source, new JsonObject { ["fileName"] = "UserService.cs" });
+        var result = new CSharpProjectStructureChecker().Check(source, new JsonObject { ["productionFileName"] = "UserService.cs" });
 
         // Assert
         Assert.DoesNotContain("file name", result, StringComparison.OrdinalIgnoreCase);
@@ -281,7 +281,7 @@ public sealed class CSharpProjectStructureCheckerTests
             """;
 
         // Act
-        var result = new CSharpProjectStructureChecker().Check(source, new JsonObject { ["fileName"] = "User.cs" });
+        var result = new CSharpProjectStructureChecker().Check(source, new JsonObject { ["productionFileName"] = "User.cs" });
 
         // Assert
         Assert.Multiple(() =>
@@ -302,7 +302,7 @@ public sealed class CSharpProjectStructureCheckerTests
             """;
 
         // Act
-        var result = new CSharpProjectStructureChecker().Check(source, new JsonObject { ["fileName"] = "DataCallback.cs" });
+        var result = new CSharpProjectStructureChecker().Check(source, new JsonObject { ["productionFileName"] = "DataCallback.cs" });
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -319,7 +319,7 @@ public sealed class CSharpProjectStructureCheckerTests
             """;
 
         // Act
-        var result = new CSharpProjectStructureChecker().Check(source, new JsonObject { ["fileName"] = "Wrong.cs" });
+        var result = new CSharpProjectStructureChecker().Check(source, new JsonObject { ["productionFileName"] = "Wrong.cs" });
 
         // Assert
         Assert.Multiple(() =>
@@ -343,7 +343,7 @@ public sealed class CSharpProjectStructureCheckerTests
             """;
 
         // Act
-        var result = new CSharpProjectStructureChecker().Check(source, new JsonObject { ["fileName"] = "IUserRepository.cs" });
+        var result = new CSharpProjectStructureChecker().Check(source, new JsonObject { ["productionFileName"] = "IUserRepository.cs" });
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -364,7 +364,7 @@ public sealed class CSharpProjectStructureCheckerTests
             """;
 
         // Act
-        var result = new CSharpProjectStructureChecker().Check(source, new JsonObject { ["fileName"] = "Status.cs" });
+        var result = new CSharpProjectStructureChecker().Check(source, new JsonObject { ["productionFileName"] = "Status.cs" });
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -381,7 +381,7 @@ public sealed class CSharpProjectStructureCheckerTests
             """;
 
         // Act
-        var result = new CSharpProjectStructureChecker().Check(source, new JsonObject { ["fileName"] = "UserDto.cs" });
+        var result = new CSharpProjectStructureChecker().Check(source, new JsonObject { ["productionFileName"] = "UserDto.cs" });
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -401,5 +401,63 @@ public sealed class CSharpProjectStructureCheckerTests
     {
         // Act & Assert
         Assert.Throws<ArgumentNullException>(() => new CSharpProjectStructureChecker().Check(null!));
+    }
+
+    [Fact]
+    public void Should_skip_file_scoped_namespace_when_editorconfig_says_block_scoped()
+    {
+        // Arrange — block-scoped namespace, would normally fail
+        var source = """
+            namespace MyApp.Services
+            {
+                public class UserService { }
+            }
+            """;
+
+        var data = new JsonObject { ["csharp_style_namespace_declarations"] = "block_scoped" };
+
+        // Act
+        var result = new CSharpProjectStructureChecker().Check(source, data);
+
+        // Assert — namespace violation should not appear
+        Assert.DoesNotContain("Block-scoped namespace", result);
+    }
+
+    [Fact]
+    public void Should_enforce_file_scoped_namespace_when_editorconfig_says_file_scoped()
+    {
+        // Arrange — block-scoped namespace
+        var source = """
+            namespace MyApp.Services
+            {
+                public class UserService { }
+            }
+            """;
+
+        var data = new JsonObject { ["csharp_style_namespace_declarations"] = "file_scoped" };
+
+        // Act
+        var result = new CSharpProjectStructureChecker().Check(source, data);
+
+        // Assert — should still report block-scoped violation
+        Assert.Contains("Block-scoped namespace", result);
+    }
+
+    [Fact]
+    public void Should_enforce_file_scoped_namespace_when_no_editorconfig()
+    {
+        // Arrange — block-scoped namespace, no data
+        var source = """
+            namespace MyApp.Services
+            {
+                public class UserService { }
+            }
+            """;
+
+        // Act
+        var result = new CSharpProjectStructureChecker().Check(source);
+
+        // Assert — default: enforce file-scoped
+        Assert.Contains("Block-scoped namespace", result);
     }
 }

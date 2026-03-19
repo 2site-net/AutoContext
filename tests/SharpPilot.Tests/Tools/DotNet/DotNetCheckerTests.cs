@@ -38,7 +38,7 @@ public sealed class DotNetCheckerTests
             """;
 
         // Act
-        var result = new DotNetChecker().Check(source, new JsonObject { ["fileName"] = "MyClass.cs" });
+        var result = new DotNetChecker().Check(source, new JsonObject { ["productionFileName"] = "MyClass.cs" });
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -61,7 +61,7 @@ public sealed class DotNetCheckerTests
             """;
 
         // Act
-        var result = new DotNetChecker().Check(source, new JsonObject { ["fileName"] = "MyClass.cs" });
+        var result = new DotNetChecker().Check(source, new JsonObject { ["productionFileName"] = "MyClass.cs" });
 
         // Assert
         Assert.StartsWith("❌", result);

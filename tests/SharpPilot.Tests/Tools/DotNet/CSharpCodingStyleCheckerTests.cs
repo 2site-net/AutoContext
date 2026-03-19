@@ -1,5 +1,7 @@
 namespace SharpPilot.Tests.Tools.DotNet;
 
+using System.Text.Json.Nodes;
+
 using SharpPilot.Tools.DotNet;
 
 public sealed class CSharpCodingStyleCheckerTests
@@ -1185,5 +1187,101 @@ public sealed class CSharpCodingStyleCheckerTests
             Assert.Contains("XML doc", result);
             Assert.Contains("MyHandler", result);
         });
+    }
+
+    [Theory]
+    [InlineData("false")]
+    [InlineData("when_multiline")]
+    public void Should_skip_curly_braces_when_editorconfig_opts_out(string prefValue)
+    {
+        // Arrange — missing braces on if, would normally fail
+        var source = """
+            /// <summary>
+            /// A class.
+            /// </summary>
+            public class MyClass
+            {
+                /// <summary>
+                /// Does work.
+                /// </summary>
+                public void DoWork()
+                {
+                    var items = new[] { 1, 2, 3 };
+
+                    foreach (var item in items)
+                        Console.WriteLine(item);
+                }
+            }
+            """;
+
+        var data = new JsonObject { ["csharp_prefer_braces"] = prefValue };
+
+        // Act
+        var result = new CSharpCodingStyleChecker().Check(source, data);
+
+        // Assert — curly braces violation should not appear
+        Assert.DoesNotContain("curly braces", result, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Should_enforce_curly_braces_when_editorconfig_says_true()
+    {
+        // Arrange — missing braces on if
+        var source = """
+            /// <summary>
+            /// A class.
+            /// </summary>
+            public class MyClass
+            {
+                /// <summary>
+                /// Does work.
+                /// </summary>
+                public void DoWork()
+                {
+                    var items = new[] { 1, 2, 3 };
+
+                    foreach (var item in items)
+                        Console.WriteLine(item);
+                }
+            }
+            """;
+
+        var data = new JsonObject { ["csharp_prefer_braces"] = "true" };
+
+        // Act
+        var result = new CSharpCodingStyleChecker().Check(source, data);
+
+        // Assert — should still enforce braces
+        Assert.Contains("curly braces", result, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Should_enforce_curly_braces_when_no_editorconfig()
+    {
+        // Arrange — missing braces on foreach, no data
+        var source = """
+            /// <summary>
+            /// A class.
+            /// </summary>
+            public class MyClass
+            {
+                /// <summary>
+                /// Does work.
+                /// </summary>
+                public void DoWork()
+                {
+                    var items = new[] { 1, 2, 3 };
+
+                    foreach (var item in items)
+                        Console.WriteLine(item);
+                }
+            }
+            """;
+
+        // Act
+        var result = new CSharpCodingStyleChecker().Check(source);
+
+        // Assert — default behavior: enforce braces
+        Assert.Contains("curly braces", result, StringComparison.OrdinalIgnoreCase);
     }
 }
