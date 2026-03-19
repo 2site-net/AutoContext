@@ -81,6 +81,12 @@ export class WorkspaceContextDetector implements vscode.Disposable {
             let hasAngular = false;
             let hasVue = false;
             let hasSvelte = false;
+            let hasVitest = false;
+            let hasJest = false;
+            let hasJasmine = false;
+            let hasMocha = false;
+            let hasPlaywright = false;
+            let hasCypress = false;
             const packageFiles = await vscode.workspace.findFiles('**/package.json', '**/node_modules/**', 50);
 
             for (const uri of packageFiles) {
@@ -99,7 +105,25 @@ export class WorkspaceContextDetector implements vscode.Disposable {
                 if (!hasSvelte && /"svelte"\s*:/.test(content)) {
                     hasSvelte = true;
                 }
-                if (hasReact && hasAngular && hasVue && hasSvelte) {
+                if (!hasVitest && /"vitest"\s*:/.test(content)) {
+                    hasVitest = true;
+                }
+                if (!hasJest && /"jest"\s*:/.test(content)) {
+                    hasJest = true;
+                }
+                if (!hasJasmine && /"jasmine"\s*:/.test(content)) {
+                    hasJasmine = true;
+                }
+                if (!hasMocha && /"mocha"\s*:/.test(content)) {
+                    hasMocha = true;
+                }
+                if (!hasPlaywright && /"@playwright\/test"\s*:/.test(content)) {
+                    hasPlaywright = true;
+                }
+                if (!hasCypress && /"cypress"\s*:/.test(content)) {
+                    hasCypress = true;
+                }
+                if (hasReact && hasAngular && hasVue && hasSvelte && hasVitest && hasJest && hasJasmine && hasMocha && hasPlaywright && hasCypress) {
                     break;
                 }
             }
@@ -115,6 +139,8 @@ export class WorkspaceContextDetector implements vscode.Disposable {
             let hasSqlite = false;
             let hasSqlServer = false;
             let hasXunit = false;
+            let hasMstest = false;
+            let hasNunit = false;
             let hasWpf = false;
             let hasWinForms = false;
 
@@ -143,6 +169,12 @@ export class WorkspaceContextDetector implements vscode.Disposable {
                     if (!hasXunit && /xunit/i.test(content)) {
                         hasXunit = true;
                     }
+                    if (!hasMstest && /MSTest|Microsoft\.VisualStudio\.TestPlatform/i.test(content)) {
+                        hasMstest = true;
+                    }
+                    if (!hasNunit && /NUnit/i.test(content)) {
+                        hasNunit = true;
+                    }
                     if (!hasWpf && /<UseWPF>\s*true\s*<\/UseWPF>/i.test(content)) {
                         hasWpf = true;
                     }
@@ -164,7 +196,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
                     if (!hasSqlServer && /Microsoft\.Data\.SqlClient|System\.Data\.SqlClient|EntityFrameworkCore\.SqlServer|EntityFramework\.SqlServer/i.test(content)) {
                         hasSqlServer = true;
                     }
-                    if (hasAspNetCore && hasDapper && hasEntityFrameworkCore && hasMaui && hasMongodb && hasMysql && hasOracle && hasPostgres && hasSqlite && hasSqlServer && hasXunit && hasWpf && hasWinForms) {
+                    if (hasAspNetCore && hasDapper && hasEntityFrameworkCore && hasMaui && hasMongodb && hasMysql && hasOracle && hasPostgres && hasSqlite && hasSqlServer && hasXunit && hasMstest && hasNunit && hasWpf && hasWinForms) {
                         break;
                     }
                 }
@@ -225,9 +257,17 @@ export class WorkspaceContextDetector implements vscode.Disposable {
                 setContext('sharp-pilot.workspace.hasSqlite', hasSqlite),
                 setContext('sharp-pilot.workspace.hasSqlServer', hasSqlServer),
                 setContext('sharp-pilot.workspace.hasXunit', hasXunit),
+                setContext('sharp-pilot.workspace.hasMstest', hasMstest),
+                setContext('sharp-pilot.workspace.hasNunit', hasNunit),
                 setContext('sharp-pilot.workspace.hasWpf', hasWpf),
                 setContext('sharp-pilot.workspace.hasWinForms', hasWinForms),
                 setContext('sharp-pilot.workspace.hasUnity', hasUnity),
+                setContext('sharp-pilot.workspace.hasVitest', hasVitest),
+                setContext('sharp-pilot.workspace.hasJest', hasJest),
+                setContext('sharp-pilot.workspace.hasJasmine', hasJasmine),
+                setContext('sharp-pilot.workspace.hasMocha', hasMocha),
+                setContext('sharp-pilot.workspace.hasPlaywright', hasPlaywright),
+                setContext('sharp-pilot.workspace.hasCypress', hasCypress),
                 setContext('sharp-pilot.workspace.hasGit', hasGit),
                 ...instructions.map(i =>
                     setContext(overrideContextKey(i.settingId), overriddenFileNames.has(i.fileName)),

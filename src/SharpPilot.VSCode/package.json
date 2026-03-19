@@ -144,6 +144,14 @@
         "when": "config.sharp-pilot.instructions.dotnet.xunit && sharp-pilot.workspace.hasXunit && !sharp-pilot.override.dotnet.xunit"
       },
       {
+        "path": "./instructions/dotnet-mstest.instructions.md",
+        "when": "config.sharp-pilot.instructions.dotnet.mstest && sharp-pilot.workspace.hasMstest && !sharp-pilot.override.dotnet.mstest"
+      },
+      {
+        "path": "./instructions/dotnet-nunit.instructions.md",
+        "when": "config.sharp-pilot.instructions.dotnet.nunit && sharp-pilot.workspace.hasNunit && !sharp-pilot.override.dotnet.nunit"
+      },
+      {
         "path": "./instructions/dotnet-csharp-coding-style.instructions.md",
         "when": "config.sharp-pilot.instructions.dotnet.csharp.codingStyle && sharp-pilot.workspace.hasDotnet && !sharp-pilot.override.dotnet.csharp.codingStyle"
       },
@@ -186,6 +194,30 @@
       {
         "path": "./instructions/web-vue.instructions.md",
         "when": "config.sharp-pilot.instructions.web.vue && sharp-pilot.workspace.hasVue && !sharp-pilot.override.web.vue"
+      },
+      {
+        "path": "./instructions/web-vitest.instructions.md",
+        "when": "config.sharp-pilot.instructions.web.vitest && sharp-pilot.workspace.hasVitest && !sharp-pilot.override.web.vitest"
+      },
+      {
+        "path": "./instructions/web-jest.instructions.md",
+        "when": "config.sharp-pilot.instructions.web.jest && sharp-pilot.workspace.hasJest && !sharp-pilot.override.web.jest"
+      },
+      {
+        "path": "./instructions/web-jasmine.instructions.md",
+        "when": "config.sharp-pilot.instructions.web.jasmine && sharp-pilot.workspace.hasJasmine && !sharp-pilot.override.web.jasmine"
+      },
+      {
+        "path": "./instructions/web-mocha.instructions.md",
+        "when": "config.sharp-pilot.instructions.web.mocha && sharp-pilot.workspace.hasMocha && !sharp-pilot.override.web.mocha"
+      },
+      {
+        "path": "./instructions/web-playwright.instructions.md",
+        "when": "config.sharp-pilot.instructions.web.playwright && sharp-pilot.workspace.hasPlaywright && !sharp-pilot.override.web.playwright"
+      },
+      {
+        "path": "./instructions/web-cypress.instructions.md",
+        "when": "config.sharp-pilot.instructions.web.cypress && sharp-pilot.workspace.hasCypress && !sharp-pilot.override.web.cypress"
       }
     ],
     "configuration": {
@@ -321,6 +353,16 @@
           "default": true,
           "description": "Enable xUnit-specific guidelines (v3 APIs, attributes, assertions)."
         },
+        "sharp-pilot.instructions.dotnet.mstest": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable MSTest-specific guidelines (attributes, assertions, test lifecycle)."
+        },
+        "sharp-pilot.instructions.dotnet.nunit": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable NUnit-specific guidelines (constraint model, attributes, assertions, test lifecycle)."
+        },
         "sharp-pilot.instructions.dotnet.csharp.codingStyle": {
           "type": "boolean",
           "default": true,
@@ -375,6 +417,36 @@
           "type": "boolean",
           "default": true,
           "description": "Enable Vue.js guidelines (Composition API, reactivity, Pinia, Vue Router, component design)."
+        },
+        "sharp-pilot.instructions.web.vitest": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable Vitest guidelines (test structure, mocking with vi, snapshots, fake timers)."
+        },
+        "sharp-pilot.instructions.web.jest": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable Jest guidelines (test structure, mocking, snapshots, fake timers)."
+        },
+        "sharp-pilot.instructions.web.jasmine": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable Jasmine guidelines (spies, async assertions, custom matchers)."
+        },
+        "sharp-pilot.instructions.web.mocha": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable Mocha guidelines (test structure, Sinon mocking, async patterns)."
+        },
+        "sharp-pilot.instructions.web.playwright": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable Playwright guidelines (auto-waiting locators, Page Object Model, web-first assertions)."
+        },
+        "sharp-pilot.instructions.web.cypress": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable Cypress guidelines (chainable commands, intercepts, custom commands, session caching)."
         },
         "sharp-pilot.tools.check_csharp_async_patterns": {
           "type": "boolean",
