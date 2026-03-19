@@ -1,6 +1,6 @@
 ---
 description: "Use when working with Entity Framework Core: DbContext lifetime, querying, change tracking, eager/lazy loading, migrations, and bulk operations."
-applyTo: "**/*.{cs,vb}"
+applyTo: "**/*.{cs,fs,vb}"
 ---
 # Entity Framework Core Guidelines
 
