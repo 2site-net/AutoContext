@@ -196,6 +196,10 @@
         "when": "config.sharp-pilot.instructions.web.vue && sharp-pilot.workspace.hasVue && !sharp-pilot.override.web.vue"
       },
       {
+        "path": "./instructions/web-testing.instructions.md",
+        "when": "config.sharp-pilot.instructions.web.testing && sharp-pilot.workspace.hasWebTesting && !sharp-pilot.override.web.testing"
+      },
+      {
         "path": "./instructions/web-vitest.instructions.md",
         "when": "config.sharp-pilot.instructions.web.vitest && sharp-pilot.workspace.hasVitest && !sharp-pilot.override.web.vitest"
       },
@@ -418,25 +422,30 @@
           "default": true,
           "description": "Enable Vue.js guidelines (Composition API, reactivity, Pinia, Vue Router, component design)."
         },
+        "sharp-pilot.instructions.web.testing": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable general web testing strategy guidelines (test structure, naming, organization)."
+        },
         "sharp-pilot.instructions.web.vitest": {
           "type": "boolean",
           "default": true,
-          "description": "Enable Vitest guidelines (test structure, mocking with vi, snapshots, fake timers)."
+          "description": "Enable Vitest guidelines (mocking with vi, snapshots, fake timers)."
         },
         "sharp-pilot.instructions.web.jest": {
           "type": "boolean",
           "default": true,
-          "description": "Enable Jest guidelines (test structure, mocking, snapshots, fake timers)."
+          "description": "Enable Jest guidelines (mocking, snapshots, fake timers)."
         },
         "sharp-pilot.instructions.web.jasmine": {
           "type": "boolean",
           "default": true,
-          "description": "Enable Jasmine guidelines (spies, async assertions, custom matchers)."
+          "description": "Enable Jasmine guidelines (spies, clock, async assertions, custom matchers)."
         },
         "sharp-pilot.instructions.web.mocha": {
           "type": "boolean",
           "default": true,
-          "description": "Enable Mocha guidelines (test structure, Sinon mocking, async patterns)."
+          "description": "Enable Mocha guidelines (Sinon mocking, Chai assertions, async patterns)."
         },
         "sharp-pilot.instructions.web.playwright": {
           "type": "boolean",

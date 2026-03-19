@@ -4,7 +4,6 @@ applyTo: "**/*.{test,spec,cy}.{js,jsx,ts,tsx,mjs,mts}"
 ---
 # Cypress Guidelines
 
-- **Do** use `describe` / `it` blocks with clear, behaviour-focused names.
 - **Do** use `cy.get('[data-testid="…"]')` or `cy.findByRole` (with `@testing-library/cypress`) — avoid brittle CSS class or structure-based selectors.
 - **Do** rely on Cypress's built-in retry-ability — commands like `cy.get`, `cy.contains`, and `.should()` automatically retry until the assertion passes or times out.
 - **Do** use `.should('be.visible')`, `.should('have.text', …)`, `.should('have.value', …)` for assertions — chain them directly on commands.

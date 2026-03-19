@@ -268,6 +268,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
                 setContext('sharp-pilot.workspace.hasMocha', hasMocha),
                 setContext('sharp-pilot.workspace.hasPlaywright', hasPlaywright),
                 setContext('sharp-pilot.workspace.hasCypress', hasCypress),
+                setContext('sharp-pilot.workspace.hasWebTesting', hasVitest || hasJest || hasJasmine || hasMocha || hasPlaywright || hasCypress),
                 setContext('sharp-pilot.workspace.hasGit', hasGit),
                 ...instructions.map(i =>
                     setContext(overrideContextKey(i.settingId), overriddenFileNames.has(i.fileName)),
