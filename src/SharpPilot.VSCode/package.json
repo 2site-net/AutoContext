@@ -52,6 +52,10 @@
         "when": "config.sharp-pilot.instructions.restApiDesign && !sharp-pilot.override.restApiDesign"
       },
       {
+        "path": "./instructions/sql.instructions.md",
+        "when": "config.sharp-pilot.instructions.sql && !sharp-pilot.override.sql"
+      },
+      {
         "path": "./instructions/dotnet-aspnetcore.instructions.md",
         "when": "config.sharp-pilot.instructions.dotnet.aspnetCore && sharp-pilot.workspace.hasAspNetCore && !sharp-pilot.override.dotnet.aspnetCore"
       },
@@ -201,6 +205,11 @@
           "type": "boolean",
           "default": true,
           "description": "Enable REST API design guidelines (resource naming, HTTP methods, status codes, pagination, error responses, versioning)."
+        },
+        "sharp-pilot.instructions.sql": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable SQL guidelines (naming, formatting, query design, indexing, parameters, transactions, NULL handling, performance)."
         },
         "sharp-pilot.instructions.dotnet.aspnetCore": {
           "type": "boolean",
