@@ -43,6 +43,11 @@
         "category": "SharpPilot"
       },
       {
+        "command": "sharp-pilot.autoConfigure",
+        "title": "Auto Configure",
+        "category": "SharpPilot"
+      },
+      {
         "command": "sharp-pilot.exportInstructions",
         "title": "Export Instructions",
         "category": "SharpPilot"

@@ -7,6 +7,7 @@ import {
     tools,
     servers,
     toolSettingsForScope,
+    contextKeysForEntry,
     type InstructionEntry,
 } from '../src/config';
 
@@ -124,5 +125,57 @@ describe('toolSettingsForScope', () => {
 
     it('should return empty array for unknown scope', () => {
         expect(toolSettingsForScope('unknown')).toEqual([]);
+    });
+});
+
+describe('contextKeysForEntry', () => {
+    it('should return empty array for always-on instructions', () => {
+        const copilot = instructions.find(i => i.settingId === 'sharp-pilot.instructions.copilot')!;
+
+        expect(contextKeysForEntry(copilot)).toEqual([]);
+    });
+
+    it('should return context keys for workspace-specific instructions', () => {
+        const asyncAwait = instructions.find(i => i.settingId === 'sharp-pilot.instructions.dotnet.asyncAwait')!;
+
+        expect(contextKeysForEntry(asyncAwait)).toEqual(['hasDotnet']);
+    });
+
+    it('should return multiple context keys for OR conditions', () => {
+        const js = instructions.find(i => i.settingId === 'sharp-pilot.instructions.web.javascript')!;
+
+        expect(contextKeysForEntry(js)).toEqual(['hasJavaScript', 'hasTypeScript']);
+    });
+
+    it('should return context keys for tools', () => {
+        const codingStyle = tools.find(t => t.settingId === 'sharp-pilot.tools.check_csharp_coding_style')!;
+        const commitFormat = tools.find(t => t.settingId === 'sharp-pilot.tools.check_git_commit_format')!;
+
+        expect(contextKeysForEntry(codingStyle)).toEqual(['hasDotnet']);
+        expect(contextKeysForEntry(commitFormat)).toEqual(['hasGit']);
+    });
+
+    it('should return empty array for the editorconfig tool', () => {
+        const editorconfig = tools.find(t => t.settingId === 'sharp-pilot.tools.get_editorconfig')!;
+
+        expect(contextKeysForEntry(editorconfig)).toEqual([]);
+    });
+
+    it('should have a mapping for every instruction with a workspace when clause', () => {
+        const alwaysOn = new Set([
+            'sharp-pilot.instructions.copilot',
+            'sharp-pilot.instructions.codeReview',
+            'sharp-pilot.instructions.designPrinciples',
+            'sharp-pilot.instructions.restApiDesign',
+            'sharp-pilot.instructions.sql',
+        ]);
+
+        for (const entry of instructions) {
+            if (alwaysOn.has(entry.settingId)) {
+                expect(contextKeysForEntry(entry)).toEqual([]);
+            } else {
+                expect(contextKeysForEntry(entry).length).toBeGreaterThan(0);
+            }
+        }
     });
 });

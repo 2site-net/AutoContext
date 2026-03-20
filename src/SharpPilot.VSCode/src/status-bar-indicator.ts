@@ -27,6 +27,7 @@ export class StatusBarIndicator implements vscode.Disposable {
             [
                 { label: '$(book) Toggle Instructions', command: 'sharp-pilot.toggleInstructions' },
                 { label: '$(tools) Toggle Tools', command: 'sharp-pilot.toggleTools' },
+                { label: '$(sparkle) Auto Configure', command: 'sharp-pilot.autoConfigure' },
             ],
             { title: 'SharpPilot', placeHolder: 'What would you like to toggle?' },
         );

@@ -326,11 +326,24 @@ export class WorkspaceContextDetector implements vscode.Disposable {
                 ),
             ]);
 
-            const changed = this._state.get('hasDotnet') !== hasDotnet
+            const serverChanged = this._state.get('hasDotnet') !== hasDotnet
                 || this._state.get('hasGit') !== hasGit;
 
-            this._state.set('hasDotnet', hasDotnet);
-            this._state.set('hasGit', hasGit);
+            const contextState: Record<string, boolean> = {
+                hasDotnet, hasFsharp, hasAspNetCore, hasDapper, hasEntityFrameworkCore,
+                hasMaui, hasBlazor, hasHtml, hasCss, hasJavaScript, hasTypeScript,
+                hasReact, hasAngular, hasVue, hasSvelte, hasMysql, hasMongodb,
+                hasOracle, hasPostgres, hasSqlite, hasSqlServer, hasXunit, hasMstest,
+                hasNunit, hasWpf, hasWinForms, hasGrpc, hasMediatR, hasRedis, hasSignalR,
+                hasUnity, hasDocker, hasGraphql, hasNextJs, hasNodeJs, hasVitest, hasJest,
+                hasJasmine, hasMocha, hasPlaywright, hasCypress,
+                hasWebTesting: hasVitest || hasJest || hasJasmine || hasMocha || hasPlaywright || hasCypress,
+                hasGit,
+            };
+
+            for (const [k, v] of Object.entries(contextState)) {
+                this._state.set(k, v);
+            }
 
             this._overriddenSettingIds.clear();
             for (const i of instructions) {
@@ -339,7 +352,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
                 }
             }
 
-            if (changed) {
+            if (serverChanged) {
                 this._onDidChange.fire();
             }
         } catch {

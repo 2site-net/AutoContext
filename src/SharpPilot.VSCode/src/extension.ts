@@ -5,6 +5,7 @@ import { StatusBarIndicator } from './status-bar-indicator';
 import { WorkspaceContextDetector } from './workspace-context-detector';
 import { ToolsStatusWriter } from './tools-status-writer';
 import { MenuToggler } from './menu-toggler';
+import { autoConfigure } from './auto-configurer';
 import { InstructionExporter } from './instruction-exporter';
 import { InstructionVersionChecker } from './instruction-version-checker';
 import { InstructionBrowser } from './instruction-browser';
@@ -35,6 +36,7 @@ export function activate(context: vscode.ExtensionContext): void {
         vscode.commands.registerCommand(StatusBarIndicator.commandId, () => statusBarIndicator.showToggleMenu()),
         vscode.commands.registerCommand('sharp-pilot.toggleTools', () => toolsToggler.toggle()),
         vscode.commands.registerCommand('sharp-pilot.toggleInstructions', () => instructionsToggler.toggle()),
+        vscode.commands.registerCommand('sharp-pilot.autoConfigure', () => autoConfigure(workspaceContextDetector)),
         vscode.commands.registerCommand('sharp-pilot.exportInstructions', () => instructionExporter.export()),
         vscode.commands.registerCommand('sharp-pilot.browseInstructions', () => instructionBrowser.browse()),
         vscode.workspace.onDidChangeConfiguration(e => {
