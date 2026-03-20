@@ -33,6 +33,7 @@ export const window = {
         show: vi.fn(),
         dispose: vi.fn(),
     })),
+    createQuickPick: vi.fn(() => createMockQuickPick()),
     showQuickPick: vi.fn(),
     showInformationMessage: vi.fn(),
     showWarningMessage: vi.fn(),
@@ -73,6 +74,50 @@ export class EventEmitter {
     event = vi.fn();
     fire = vi.fn();
     dispose = vi.fn();
+}
+
+export class ThemeIcon {
+    constructor(public readonly id: string) {}
+}
+
+export interface MockQuickPick {
+    title: string;
+    placeholder: string;
+    canSelectMany: boolean;
+    items: unknown[];
+    selectedItems: unknown[];
+    buttons: unknown[];
+    onDidTriggerButton: ReturnType<typeof vi.fn>;
+    onDidAccept: ReturnType<typeof vi.fn>;
+    onDidHide: ReturnType<typeof vi.fn>;
+    show: ReturnType<typeof vi.fn>;
+    dispose: ReturnType<typeof vi.fn>;
+    __accept(): void;
+    __hide(): void;
+    __triggerButton(button: unknown): void;
+}
+
+export function createMockQuickPick(): MockQuickPick {
+    const acceptListeners: (() => void)[] = [];
+    const hideListeners: (() => void)[] = [];
+    const buttonListeners: ((b: unknown) => void)[] = [];
+
+    return {
+        title: '',
+        placeholder: '',
+        canSelectMany: false,
+        items: [],
+        selectedItems: [],
+        buttons: [],
+        onDidTriggerButton: vi.fn((cb: (b: unknown) => void) => { buttonListeners.push(cb); }),
+        onDidAccept: vi.fn((cb: () => void) => { acceptListeners.push(cb); }),
+        onDidHide: vi.fn((cb: () => void) => { hideListeners.push(cb); }),
+        show: vi.fn(),
+        dispose: vi.fn(),
+        __accept() { for (const cb of acceptListeners) cb(); },
+        __hide() { for (const cb of hideListeners) cb(); },
+        __triggerButton(button: unknown) { for (const cb of buttonListeners) cb(button); },
+    };
 }
 
 export class McpStdioServerDefinition {

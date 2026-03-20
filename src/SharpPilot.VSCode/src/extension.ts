@@ -1,11 +1,10 @@
 import * as vscode from 'vscode';
 import { join } from 'node:path';
-import { servers, toolSettingsForScope } from './config';
+import { servers, instructions, tools, toolSettingsForScope } from './config';
 import { StatusBarIndicator } from './status-bar-indicator';
 import { WorkspaceContextDetector } from './workspace-context-detector';
 import { ToolsStatusWriter } from './tools-status-writer';
-import { InstructionsToggler } from './instructions-toggler';
-import { ToolsToggler } from './tools-toggler';
+import { MenuToggler } from './menu-toggler';
 import { InstructionExporter } from './instruction-exporter';
 import { InstructionVersionChecker } from './instruction-version-checker';
 import { InstructionBrowser } from './instruction-browser';
@@ -19,8 +18,8 @@ export function activate(context: vscode.ExtensionContext): void {
     const statusBarIndicator = new StatusBarIndicator();
     const workspaceContextDetector = new WorkspaceContextDetector();
     const toolsStatusWriter = new ToolsStatusWriter(serversPath);
-    const instructionsToggler = new InstructionsToggler();
-    const toolsToggler = new ToolsToggler();
+    const instructionsToggler = new MenuToggler('SharpPilot: Toggle Instructions', 'Select instructions to enable', instructions);
+    const toolsToggler = new MenuToggler('SharpPilot: Toggle Tools', 'Select tools to enable', tools);
     const instructionExporter = new InstructionExporter(context.extensionPath);
     const instructionVersionChecker = new InstructionVersionChecker(context.extensionPath);
     const instructionBrowser = new InstructionBrowser(context.extensionPath);

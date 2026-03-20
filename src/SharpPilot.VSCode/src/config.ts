@@ -1,21 +1,21 @@
+export interface ToggleEntry {
+    settingId: string;
+    label: string;
+    category: string;
+}
+
 export interface ServerEntry {
     label: string;
     scope: string;
     contextKey?: string;
 }
 
-export interface InstructionEntry {
-    settingId: string;
+export interface InstructionEntry extends ToggleEntry {
     fileName: string;
-    label: string;
-    category: string;
 }
 
-export interface ToolEntry {
-    settingId: string;
+export interface ToolEntry extends ToggleEntry {
     toolName: string;
-    label: string;
-    category: string;
 }
 
 export const servers: readonly ServerEntry[] = [
