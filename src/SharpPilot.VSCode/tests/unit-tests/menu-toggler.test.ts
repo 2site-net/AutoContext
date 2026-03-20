@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { window, __setConfigStore, QuickPickItemKind, type MockQuickPick } from './__mocks__/vscode';
 
-import { MenuToggler } from '../src/menu-toggler';
-import { tools, instructions, type ToggleEntry } from '../src/config';
+import { MenuToggler } from '../../src/menu-toggler';
+import { tools, instructions, type ToggleEntry } from '../../src/config';
 
 beforeEach(() => {
     vi.clearAllMocks();

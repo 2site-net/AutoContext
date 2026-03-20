@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { instructions, instructionByFileName, overrideContextKey } from './config';
+import { instructions, instructionByFileName, overrideContextKey } from './config.js';
 
 export class WorkspaceContextDetector implements vscode.Disposable {
     private readonly disposables: vscode.Disposable[] = [];

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { hashContent, manifestRelativePath } from '../src/export-manifest';
+import { hashContent, manifestRelativePath } from '../../src/export-manifest';
 
 describe('manifestRelativePath', () => {
     it('should point to .github/.sharp-pilot-exports.json', () => {

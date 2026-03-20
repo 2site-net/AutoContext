@@ -1,7 +1,7 @@
 import { join } from 'node:path';
 import { writeFileSync, mkdirSync } from 'node:fs';
 import * as vscode from 'vscode';
-import { tools } from './config';
+import { tools } from './config.js';
 
 export class ToolsStatusWriter {
     private readonly dir: string;

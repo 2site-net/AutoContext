@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { workspace, window, __setConfigStore } from './__mocks__/vscode';
-import { autoConfigure } from '../src/auto-configurer';
-import { instructions, tools, contextKeysForEntry } from '../src/config';
+import { autoConfigure } from '../../src/auto-configurer';
+import { instructions, tools, contextKeysForEntry } from '../../src/config';
 
 const fakeDetector = {
     get: vi.fn((_key: string) => false),
-} as unknown as import('../src/workspace-context-detector').WorkspaceContextDetector;
+} as unknown as import('../../src/workspace-context-detector').WorkspaceContextDetector;
 
 beforeEach(() => {
     vi.clearAllMocks();

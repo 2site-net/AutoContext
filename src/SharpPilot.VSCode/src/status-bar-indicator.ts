@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { instructions, tools } from './config';
+import { instructions, tools } from './config.js';
 
 export class StatusBarIndicator implements vscode.Disposable {
     static readonly commandId = 'sharp-pilot.showToggleMenu';

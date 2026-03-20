@@ -9,7 +9,7 @@ import {
     toolSettingsForScope,
     contextKeysForEntry,
     type InstructionEntry,
-} from '../src/config';
+} from '../../src/config';
 
 describe('overrideContextKey', () => {
     it('should strip the settings prefix and prepend the override prefix', () => {

@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { instructions, type InstructionEntry } from './config';
+import { instructions, type InstructionEntry } from './config.js';
 
 type BrowseItem = vscode.QuickPickItem & { entry?: InstructionEntry };
 

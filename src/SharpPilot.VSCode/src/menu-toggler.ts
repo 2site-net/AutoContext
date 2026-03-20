@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import type { ToggleEntry } from './config';
+import type { ToggleEntry } from './config.js';
 
 interface ToggleItem extends vscode.QuickPickItem {
     settingId: string;

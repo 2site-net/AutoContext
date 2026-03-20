@@ -1,14 +1,14 @@
 import * as vscode from 'vscode';
 import { join } from 'node:path';
-import { servers, instructions, tools, toolSettingsForScope } from './config';
-import { StatusBarIndicator } from './status-bar-indicator';
-import { WorkspaceContextDetector } from './workspace-context-detector';
-import { ToolsStatusWriter } from './tools-status-writer';
-import { MenuToggler } from './menu-toggler';
-import { autoConfigure } from './auto-configurer';
-import { InstructionExporter } from './instruction-exporter';
-import { InstructionVersionChecker } from './instruction-version-checker';
-import { InstructionBrowser } from './instruction-browser';
+import { servers, instructions, tools, toolSettingsForScope } from './config.js';
+import { StatusBarIndicator } from './status-bar-indicator.js';
+import { WorkspaceContextDetector } from './workspace-context-detector.js';
+import { ToolsStatusWriter } from './tools-status-writer.js';
+import { MenuToggler } from './menu-toggler.js';
+import { autoConfigure } from './auto-configurer.js';
+import { InstructionExporter } from './instruction-exporter.js';
+import { InstructionVersionChecker } from './instruction-version-checker.js';
+import { InstructionBrowser } from './instruction-browser.js';
 
 export function activate(context: vscode.ExtensionContext): void {
     const serversPath = join(context.extensionPath, 'servers');

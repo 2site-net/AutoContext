@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
-import { instructions, tools, contextKeysForEntry, type ToggleEntry } from './config';
-import type { WorkspaceContextDetector } from './workspace-context-detector';
+import { instructions, tools, contextKeysForEntry, type ToggleEntry } from './config.js';
+import type { WorkspaceContextDetector } from './workspace-context-detector.js';
 
 export async function autoConfigure(detector: WorkspaceContextDetector): Promise<void> {
     const config = vscode.workspace.getConfiguration();

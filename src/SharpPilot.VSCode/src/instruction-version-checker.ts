@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
-import { instructions, targetPath, type InstructionEntry } from './config';
-import { hashContent, manifestRelativePath, readManifest, writeManifest } from './export-manifest';
+import { instructions, targetPath, type InstructionEntry } from './config.js';
+import { hashContent, manifestRelativePath, readManifest, writeManifest } from './export-manifest.js';
 
 export class InstructionVersionChecker {
     constructor(private readonly extensionPath: string) {}

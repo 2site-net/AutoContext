@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { __setConfigStore } from './__mocks__/vscode';
 
 // Must import after the mock is set up via the vitest alias
-import { ToolsStatusWriter } from '../src/tools-status-writer';
+import { ToolsStatusWriter } from '../../src/tools-status-writer';
 
 import { writeFileSync, mkdirSync } from 'node:fs';
 

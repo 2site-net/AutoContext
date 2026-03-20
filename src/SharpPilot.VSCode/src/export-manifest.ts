@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import * as vscode from 'vscode';
-import type { ExportManifest } from './config';
+import type { ExportManifest } from './config.js';
 
 export const manifestRelativePath = '.github/.sharp-pilot-exports.json';
 

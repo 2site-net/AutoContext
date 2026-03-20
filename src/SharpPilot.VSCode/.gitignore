@@ -2,3 +2,4 @@ servers/
 out/
 node_modules/
 publish/
+.vscode-test/
