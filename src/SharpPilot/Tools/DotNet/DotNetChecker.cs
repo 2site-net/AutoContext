@@ -45,8 +45,8 @@ public sealed partial class DotNetChecker(ILogger<DotNetChecker> logger) : IChec
         [Description("Optional JSON metadata. " +
             "'editorConfigFilePath' (absolute path) resolves .editorconfig rules for this file. " +
             "'productionFileName' (e.g., 'MyClass.cs') validates the file name matches the declared type. " +
-            "'testFileName' (e.g., 'UserServiceTests.cs') validates the test file name ends with 'Tests'. " +
-            "'productionNamespace' (e.g., 'MyApp.Services') validates test namespace mirroring.")]
+            "'productionNamespace' (e.g., 'MyApp.Services') validates test namespace mirroring. " +
+            "'testFileName' (e.g., 'UserServiceTests.cs') validates the test file name ends with 'Tests'.")]
         JsonObject? data = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(content);
