@@ -6,13 +6,16 @@
   "publisher": "2site-net",
   "license": "Apache-2.0",
   "icon": "logo.png",
+  "type": "module",
   "engines": {
-    "vscode": "^1.99.0"
+    "vscode": "^1.100.0"
   },
   "categories": [
     "AI"
   ],
-  "activationEvents": ["onStartupFinished"],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
   "main": "./out/extension.js",
   "contributes": {
     "mcpServerDefinitionProviders": [
@@ -607,8 +610,9 @@
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
-    "compile": "tsc -p ./",
-    "watch": "tsc -watch -p ./",
+    "compile": "tsc -p ./tsconfig.build.json",
+    "watch": "tsc -watch -p ./tsconfig.build.json",
+    "test": "vitest run",
     "publish:servers": "pwsh scripts/publish-servers.ps1",
     "package:win-x64": "pwsh scripts/publish-servers.ps1 -RuntimeIdentifier win-x64 -Package",
     "package:win-arm64": "pwsh scripts/publish-servers.ps1 -RuntimeIdentifier win-arm64 -Package",
@@ -621,8 +625,9 @@
   },
   "devDependencies": {
     "@types/node": "^25.5.0",
-    "@types/vscode": "^1.99.0",
+    "@types/vscode": "^1.100.0",
     "@vscode/vsce": "^3.0.0",
-    "typescript": "^5.7.0"
+    "typescript": "^5.7.0",
+    "vitest": "^4.1.0"
   }
 }
