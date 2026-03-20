@@ -1,0 +1,25 @@
+## MCP Tools
+
+SharpPilot registers MCP (Model Context Protocol) servers that expose quality-assurance tools to Copilot. In agent mode, Copilot can call these tools to check your code on the spot.
+
+### Server scopes
+
+Tools are organized into three server scopes, each activated by workspace context:
+
+| Scope | Activates when | Tools |
+|-------|---------------|-------|
+| **DotNet** | `.csproj`, `.fsproj`, `.vbproj`, `.sln`, or `.slnx` detected | C# async patterns, coding style, member ordering, naming conventions, nullable context, project structure, test style, NuGet hygiene |
+| **Git** | `.git` folder detected | Commit format, commit content |
+| **EditorConfig** | Always active | EditorConfig check |
+
+A server scope is filtered out entirely if its workspace context is not present or all its tools are disabled.
+
+### How it works
+
+Enabled tool settings are written to a `tools-status.json` file that the .NET MCP server reads. Only enabled tools are exposed to Copilot, so disabling a tool removes it from agent mode entirely.
+
+### Toggle tools
+
+Open the multi-select menu to enable or disable individual tools. Like instructions, tools are grouped by category with bulk select/deselect support.
+
+[Toggle Tools](command:sharp-pilot.toggleTools)

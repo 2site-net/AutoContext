@@ -288,6 +288,67 @@
         "when": "config.sharp-pilot.instructions.web.cypress && sharp-pilot.workspace.hasCypress && !sharp-pilot.override.web.cypress"
       }
     ],
+    "walkthroughs": [
+      {
+        "id": "sharp-pilot.getStarted",
+        "title": "Get Started with SharpPilot",
+        "description": "Learn how SharpPilot enhances GitHub Copilot with curated instructions and MCP tools.",
+        "steps": [
+          {
+            "id": "sharp-pilot.welcome",
+            "title": "Welcome to SharpPilot",
+            "description": "Discover how SharpPilot elevates code quality with curated instructions and model-invokable tools.",
+            "media": {
+              "markdown": "walkthroughs/welcome.md"
+            }
+          },
+          {
+            "id": "sharp-pilot.instructions",
+            "title": "Chat Instructions",
+            "description": "Enable instruction sets that guide Copilot's responses for your tech stack.\n[Toggle Instructions](command:sharp-pilot.toggleInstructions)",
+            "media": {
+              "markdown": "walkthroughs/instructions.md"
+            },
+            "completionEvents": [
+              "onCommand:sharp-pilot.toggleInstructions"
+            ]
+          },
+          {
+            "id": "sharp-pilot.tools",
+            "title": "MCP Tools",
+            "description": "Enable quality-assurance tools that Copilot can call in agent mode.\n[Toggle Tools](command:sharp-pilot.toggleTools)",
+            "media": {
+              "markdown": "walkthroughs/tools.md"
+            },
+            "completionEvents": [
+              "onCommand:sharp-pilot.toggleTools"
+            ]
+          },
+          {
+            "id": "sharp-pilot.autoConfigure",
+            "title": "Auto Configure",
+            "description": "Let SharpPilot detect your workspace and enable the right instructions and tools.\n[Auto Configure](command:sharp-pilot.autoConfigure)",
+            "media": {
+              "markdown": "walkthroughs/auto-configure.md"
+            },
+            "completionEvents": [
+              "onCommand:sharp-pilot.autoConfigure"
+            ]
+          },
+          {
+            "id": "sharp-pilot.exportAndBrowse",
+            "title": "Export & Browse",
+            "description": "Export instruction files to your repository or browse them in the editor.\n[Export Instructions](command:sharp-pilot.exportInstructions)",
+            "media": {
+              "markdown": "walkthroughs/export-and-browse.md"
+            },
+            "completionEvents": [
+              "onCommand:sharp-pilot.exportInstructions"
+            ]
+          }
+        ]
+      }
+    ],
     "configuration": {
       "title": "SharpPilot",
       "properties": {
