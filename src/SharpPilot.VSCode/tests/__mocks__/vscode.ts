@@ -90,6 +90,7 @@ export interface MockQuickPick {
     onDidTriggerButton: ReturnType<typeof vi.fn>;
     onDidAccept: ReturnType<typeof vi.fn>;
     onDidHide: ReturnType<typeof vi.fn>;
+    onDidChangeSelection: ReturnType<typeof vi.fn>;
     show: ReturnType<typeof vi.fn>;
     dispose: ReturnType<typeof vi.fn>;
     __accept(): void;
@@ -101,8 +102,9 @@ export function createMockQuickPick(): MockQuickPick {
     const acceptListeners: (() => void)[] = [];
     const hideListeners: (() => void)[] = [];
     const buttonListeners: ((b: unknown) => void)[] = [];
+    const selectionListeners: ((items: unknown[]) => void)[] = [];
 
-    return {
+    const qp: MockQuickPick = {
         title: '',
         placeholder: '',
         canSelectMany: false,
@@ -112,12 +114,25 @@ export function createMockQuickPick(): MockQuickPick {
         onDidTriggerButton: vi.fn((cb: (b: unknown) => void) => { buttonListeners.push(cb); }),
         onDidAccept: vi.fn((cb: () => void) => { acceptListeners.push(cb); }),
         onDidHide: vi.fn((cb: () => void) => { hideListeners.push(cb); }),
+        onDidChangeSelection: vi.fn((cb: (items: unknown[]) => void) => { selectionListeners.push(cb); }),
         show: vi.fn(),
         dispose: vi.fn(),
         __accept() { for (const cb of acceptListeners) cb(); },
         __hide() { for (const cb of hideListeners) cb(); },
         __triggerButton(button: unknown) { for (const cb of buttonListeners) cb(button); },
     };
+
+    // Fire selection listeners when selectedItems is assigned.
+    let currentSelection = qp.selectedItems;
+    Object.defineProperty(qp, 'selectedItems', {
+        get: () => currentSelection,
+        set: (value: unknown[]) => {
+            currentSelection = value;
+            for (const cb of selectionListeners) cb(value);
+        },
+    });
+
+    return qp;
 }
 
 export class McpStdioServerDefinition {
