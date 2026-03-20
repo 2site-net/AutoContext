@@ -5,6 +5,13 @@
   "version": "0.5.0",
   "publisher": "2site-net",
   "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/2site-net/SharpPilot"
+  },
+  "bugs": {
+    "url": "https://github.com/2site-net/SharpPilot/issues"
+  },
   "icon": "logo.png",
   "type": "module",
   "engines": {
