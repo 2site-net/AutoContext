@@ -4,7 +4,7 @@ applyTo: "**/*.{test,spec}.{js,jsx,ts,tsx,mjs,mts}"
 ---
 # Vitest Guidelines
 
-- **Do** use `test` over `it` for test blocks.
+- **Do** use `test` over `it` for test blocks — but if the existing codebase already uses one consistently, follow the project's convention.
 - **Do** use tagged template syntax for `test.each` with a human-readable label column for test name interpolation.
 - **Do** use `vi.fn()` for spy/stub creation and `vi.mock('module')` for module-level mocking.
 - **Do** use `vi.spyOn(object, 'method')` when you need to observe calls without replacing the implementation.
