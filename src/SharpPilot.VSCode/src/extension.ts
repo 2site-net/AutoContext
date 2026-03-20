@@ -33,6 +33,7 @@ export function activate(context: vscode.ExtensionContext): void {
         didChangeEmitter,
         statusBarIndicator,
         workspaceContextDetector,
+        vscode.commands.registerCommand(StatusBarIndicator.commandId, () => statusBarIndicator.showToggleMenu()),
         vscode.commands.registerCommand('sharp-pilot.toggleTools', () => toolsToggler.toggle()),
         vscode.commands.registerCommand('sharp-pilot.toggleInstructions', () => instructionsToggler.toggle()),
         vscode.commands.registerCommand('sharp-pilot.exportInstructions', () => instructionExporter.export()),

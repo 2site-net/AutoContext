@@ -35,11 +35,11 @@ describe('StatusBarIndicator', () => {
         indicator.dispose();
     });
 
-    it('should register the toggle command on the status bar item', () => {
+    it('should register the toggle menu command on the status bar item', () => {
         const indicator = new StatusBarIndicator();
         const item = vi.mocked(window.createStatusBarItem).mock.results[0].value;
 
-        expect(item.command).toBe('sharp-pilot.toggleInstructions');
+        expect(item.command).toBe(StatusBarIndicator.commandId);
 
         indicator.dispose();
     });
