@@ -39,7 +39,7 @@ server are disabled, that server is not registered at all.
 
 ## Coding Instructions
 
-The extension ships 56 instruction files that are automatically injected into
+The extension ships 57 instruction files that are automatically injected into
 GitHub Copilot's context when relevant to your workspace:
 
 ### General
@@ -94,6 +94,7 @@ GitHub Copilot's context when relevant to your workspace:
 |-------------|----------------|
 | C# Coding Style | .NET project detected |
 | F# Coding Style | F# project detected |
+| VB.NET Coding Style | VB.NET project detected |
 
 ### Git
 
@@ -110,7 +111,16 @@ GitHub Copilot's context when relevant to your workspace:
 | Node.js | `package.json` detected |
 | React | React detected in `package.json` |
 | Svelte | Svelte detected in `package.json` |
+| TypeScript | `.ts` files detected |
 | Vue.js | Vue detected in `package.json` |
+| CSS | `.css` files detected |
+| HTML | `.html` or `.cshtml` files detected |
+| JavaScript | `.js` or `.ts` files detected |
+
+### Web Testing
+
+| Instruction | Activates when |
+|-------------|----------------|
 | Testing | Any web test framework detected |
 | Vitest | Vitest detected in `package.json` |
 | Jest | Jest detected in `package.json` |
@@ -119,30 +129,41 @@ GitHub Copilot's context when relevant to your workspace:
 | Playwright | Playwright detected in `package.json` |
 | Cypress | Cypress detected in `package.json` |
 
-### Web Languages
+## Status Bar
 
-| Instruction | Activates when |
-|-------------|----------------|
-| CSS | `.css` files detected |
-| HTML | `.html` or `.cshtml` files detected |
-| JavaScript | `.js` or `.ts` files detected |
-| TypeScript | `.ts` files detected |
+The status bar shows how many instructions and tools are currently active (e.g.
+`$(book) 42/57 $(tools) 8/11`). Click it to open a menu where you can toggle
+instructions, toggle tools, auto-configure, export, or browse instructions.
 
-The status bar shows how many instructions are currently active (e.g.
-`SharpPilot: 42/56`). Click it — or run **SharpPilot: Toggle Instructions** from
-the Command Palette — to enable or disable individual instructions without
-opening Settings.
+## Auto Configuration
 
-Each instruction can also be toggled individually under
-**Settings → SharpPilot → Instructions**.
+Run **SharpPilot: Auto Configure** from the Command Palette or the status bar
+menu. The extension scans your workspace for `.csproj`, `.fsproj`, `.vbproj`,
+`package.json`, `.git`, NuGet packages, and npm dependencies, then enables only
+the instructions and tools relevant to your project.
+
+## Export & Version Tracking
+
+**SharpPilot: Export Instructions** copies instruction files to
+`.github/instructions/` for team sharing. A manifest (`.manifest.json`) tracks
+exported file hashes — when instructions are updated in a new release, the
+extension alerts you so you can re-export.
+
+## Override Detection
+
+When instruction files exist in `.github/instructions/` or a
+`.github/copilot-instructions.md` file is present, SharpPilot detects them as
+overrides. Overridden instructions appear with a badge in the toggle menu,
+signaling that a local version is in use.
 
 ## Commands
 
 | Command | Description |
 |---------|-------------|
-| **SharpPilot: Toggle Tools** | Enable or disable individual tool checks. |
 | **SharpPilot: Toggle Instructions** | Enable or disable coding instructions. |
-| **SharpPilot: Export Instructions** | Export instruction files to the workspace. |
+| **SharpPilot: Toggle Tools** | Enable or disable individual tool checks. |
+| **SharpPilot: Auto Configure** | Scan the workspace and enable relevant items. |
+| **SharpPilot: Export Instructions** | Export instruction files to `.github/instructions/`. |
 | **SharpPilot: Browse Instructions** | Open an instruction file to read its content. |
 
 ## Prerequisites
