@@ -1,3 +1,5 @@
+![SharpPilot](small-logo.png)
+
 # SharpPilot
 
 SharpPilot is a development quality toolkit for GitHub Copilot, providing a curated set of tools and guidelines to improve code quality and the overall development workflow.
