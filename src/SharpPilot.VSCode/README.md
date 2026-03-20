@@ -7,31 +7,33 @@ SharpPilot is a development quality toolkit for GitHub Copilot, providing a cura
 Once installed, the following tools are available to GitHub Copilot in Agent
 mode. Invoke them by asking Copilot to check your code or commits.
 
+Servers are registered only when relevant to the workspace — the .NET and
+EditorConfig servers appear only when .NET project files are detected, and the
+Git server appears only when a `.git` directory is present.
+
 ### .NET
 
 | Tool | What it checks |
 |------|----------------|
-| `check_csharp_coding_style` | No `#region`, no decorative comments, curly braces on control flow (except single-line guard clauses), blank lines before control flow, expression-body arrows on the next line, and XML doc on public/protected members. |
-| `check_csharp_member_ordering` | Members must follow constants → static fields → fields → constructors → delegates → events → enums → properties → indexers → methods → operators → nested types, then public → private, static before instance, then alphabetically. Test classes are skipped. |
-| `check_csharp_naming_conventions` | `I`-prefixed interfaces, `Extensions`-suffixed extension classes, `Async`-suffixed async methods, `_camelCase` private fields, PascalCase types/methods/properties/events, and camelCase parameters. |
-| `check_csharp_async_patterns` | No async void (except event handlers), `CancellationToken` required on public async methods, `.ConfigureAwait(false)` required on all await expressions in non-test code. |
-| `check_csharp_nullable_context` | `#nullable disable` and the null-forgiving operator (`!`) are not allowed. |
-| `check_csharp_project_structure` | File-scoped namespaces required, one type per file, file name must match type name, and `#pragma warning disable` is not allowed. |
+| `check_dotnet` | Runs all enabled .NET code quality checks on C# source and returns a combined report. Covers coding style, member ordering, naming conventions, async patterns, nullable context, project structure, and test style. When an `.editorconfig` path is provided, resolves its properties and suppresses conflicting checks. |
 | `check_nuget_hygiene` | No duplicate, floating, or wildcard package versions; no missing `Version` attribute (unless Central Package Management is enabled); flags packages with built-in .NET alternatives. |
-| `check_csharp_test_style` | Test classes suffixed `Tests`, methods prefixed `Should_`/`Should_not_`, no XML doc on tests, `Assert.Multiple()` when multiple asserts, no `.ConfigureAwait()` in tests, and optional file-structure mirroring validation. |
 
 ### Git
 
 | Tool | What it checks |
 |------|----------------|
-| `check_git_commit_format` | Subject must follow `type(scope): description`, stay under 50 characters, body wrapped at 72 characters, blank line between subject and body. |
-| `check_git_commit_content` | No bullet lists, file paths, counts, enumerated properties, "Key features:" sections, or sensitive information in the commit body. |
+| `check_git_commit` | Runs all enabled Git commit quality checks and returns a combined report. Covers commit format (Conventional Commits) and commit content best practices. |
 
 ### EditorConfig
 
 | Tool | What it does |
 |------|--------------|
 | `get_editorconfig` | Resolves the effective `.editorconfig` properties for a given file path — walks the directory tree, evaluates glob patterns and section cascading, and returns the final key-value pairs. |
+
+Each sub-check within `check_dotnet` and `check_git_commit` can be toggled
+individually under **Settings → SharpPilot → Tools**, or via
+**SharpPilot: Toggle Tools** in the Command Palette. If all sub-checks for a
+server are disabled, that server is not registered at all.
 
 ## Coding Instructions
 
@@ -131,6 +133,15 @@ opening Settings.
 
 Each instruction can also be toggled individually under
 **Settings → SharpPilot → Instructions**.
+
+## Commands
+
+| Command | Description |
+|---------|-------------|
+| **SharpPilot: Toggle Tools** | Enable or disable individual tool checks. |
+| **SharpPilot: Toggle Instructions** | Enable or disable coding instructions. |
+| **SharpPilot: Export Instructions** | Export instruction files to the workspace. |
+| **SharpPilot: Browse Instructions** | Open an instruction file to read its content. |
 
 ## Prerequisites
 

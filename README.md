@@ -25,30 +25,28 @@ server three times — `--scope dotnet`, `--scope git`, and `--scope editorconfi
 — so that .NET, Git, and EditorConfig tools appear in separate sections in the
 tools UI.
 
+Servers are workspace-aware: the extension only registers a server when the
+workspace contains matching content (e.g., `.csproj` files for .NET, `.git`
+directory for Git). If all sub-checks for a scope are disabled in settings, that
+server is not registered at all.
+
 ### SharpPilot: DotNet
 
-Eight tools that analyse C# source and project files for common quality issues.
+Two tools that analyse C# source and project files for common quality issues.
 
 | Tool | Purpose |
 |------|---------|
-| `check_csharp_coding_style` | No `#region`, no decorative comments, curly braces on control flow (except single-line guard clauses), blank lines before control flow, expression-body arrows on the next line, and XML doc on public/protected members. |
-| `check_csharp_member_ordering` | Members must follow constants → static fields → fields → constructors → delegates → events → enums → properties → indexers → methods → operators → nested types, then public → private, static before instance, then alphabetically. Test classes are skipped. |
-| `check_csharp_naming_conventions` | `I`-prefixed interfaces, `Extensions`-suffixed extension classes, `Async`-suffixed async methods, `_camelCase` private fields, PascalCase types/methods/properties/events, and camelCase parameters. |
-| `check_csharp_async_patterns` | No async void (except event handlers), `CancellationToken` required on public async methods, `.ConfigureAwait(false)` required on all await expressions in non-test code. |
-| `check_csharp_nullable_context` | `#nullable disable` and the null-forgiving operator (`!`) are not allowed. |
-| `check_csharp_project_structure` | File-scoped namespaces required, one type per file, file name must match type name, and `#pragma warning disable` is not allowed. |
+| `check_dotnet` | Runs all enabled .NET code quality checks on C# source and returns a combined report. Covers coding style, member ordering, naming conventions, async patterns, nullable context, project structure, and test style. When an `.editorconfig` path is provided, resolves its properties and suppresses conflicting checks. |
 | `check_nuget_hygiene` | No duplicate, floating, or wildcard package versions; no missing `Version` attribute (unless Central Package Management is enabled); flags packages with built-in .NET alternatives. |
-| `check_csharp_test_style` | Test classes suffixed `Tests`, methods prefixed `Should_`/`Should_not_`, no XML doc on tests, `Assert.Multiple()` when multiple asserts, no `.ConfigureAwait()` in tests, and optional file-structure mirroring validation. |
 
 ### SharpPilot: Git
 
-Two tools that validate git commit messages against Conventional Commits and
-content best practices.
+One composite tool that validates git commit messages against Conventional
+Commits and content best practices.
 
 | Tool | Purpose |
 |------|---------|
-| `check_git_commit_format` | Subject must follow `type(scope): description`, stay under 50 characters, body wrapped at 72 characters, blank line between subject and body. |
-| `check_git_commit_content` | No bullet lists, file paths, counts, enumerated properties, "Key features:" sections, or sensitive information in the commit body. |
+| `check_git_commit` | Runs all enabled Git commit quality checks on a commit message and returns a combined report. Covers commit format (Conventional Commits) and commit content best practices. |
 
 ### SharpPilot: EditorConfig
 
