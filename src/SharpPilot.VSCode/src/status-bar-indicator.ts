@@ -18,10 +18,8 @@ export class StatusBarIndicator implements vscode.Disposable {
         const config = vscode.workspace.getConfiguration();
         const enabledInstructions = instructions.filter(i => config.get<boolean>(i.settingId, true)).length;
         const enabledTools = tools.filter(t => config.get<boolean>(t.settingId, true)).length;
-        const enabled = enabledInstructions + enabledTools;
-        const total = instructions.length + tools.length;
-        this.item.text = `$(checklist) SharpPilot: ${enabled}/${total}`;
-        this.item.tooltip = `${enabled} of ${total} items enabled — click to toggle`;
+        this.item.text = `$(book) ${enabledInstructions}/${instructions.length} $(tools) ${enabledTools}/${tools.length}`;
+        this.item.tooltip = `Instructions: ${enabledInstructions}/${instructions.length} enabled, Tools: ${enabledTools}/${tools.length} enabled — click to toggle`;
     }
 
     async showToggleMenu(): Promise<void> {

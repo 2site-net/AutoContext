@@ -6,11 +6,16 @@ export class WorkspaceContextDetector implements vscode.Disposable {
     private debounceTimer: ReturnType<typeof setTimeout> | undefined;
     private readonly _onDidChange = new vscode.EventEmitter<void>();
     private readonly _state = new Map<string, boolean>();
+    private readonly _overriddenSettingIds = new Set<string>();
 
     readonly onDidChange = this._onDidChange.event;
 
     get(key: string): boolean {
         return this._state.get(key) ?? false;
+    }
+
+    getOverriddenSettingIds(): ReadonlySet<string> {
+        return this._overriddenSettingIds;
     }
 
     constructor() {
@@ -326,6 +331,13 @@ export class WorkspaceContextDetector implements vscode.Disposable {
 
             this._state.set('hasDotnet', hasDotnet);
             this._state.set('hasGit', hasGit);
+
+            this._overriddenSettingIds.clear();
+            for (const i of instructions) {
+                if (overriddenFileNames.has(i.fileName)) {
+                    this._overriddenSettingIds.add(i.settingId);
+                }
+            }
 
             if (changed) {
                 this._onDidChange.fire();

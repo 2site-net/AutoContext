@@ -13,14 +13,16 @@ export class MenuToggler {
         private readonly title: string,
         private readonly placeholder: string,
         private readonly entries: readonly ToggleEntry[],
+        private readonly getOverrides?: () => ReadonlySet<string>,
     ) {}
 
     async toggle(): Promise<void> {
         const config = vscode.workspace.getConfiguration();
+        const overrides = this.getOverrides?.() ?? new Set<string>();
 
         const allEntries: ToggleItem[] = this.entries.map(entry => ({
             label: entry.label,
-            description: entry.category,
+            description: overrides.has(entry.settingId) ? `${entry.category} $(file-symlink-directory)` : entry.category,
             picked: config.get<boolean>(entry.settingId, true),
             settingId: entry.settingId,
         }));

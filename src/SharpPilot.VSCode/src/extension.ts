@@ -18,7 +18,7 @@ export function activate(context: vscode.ExtensionContext): void {
     const statusBarIndicator = new StatusBarIndicator();
     const workspaceContextDetector = new WorkspaceContextDetector();
     const toolsStatusWriter = new ToolsStatusWriter(serversPath);
-    const instructionsToggler = new MenuToggler('SharpPilot: Toggle Instructions', 'Select instructions to enable', instructions);
+    const instructionsToggler = new MenuToggler('SharpPilot: Toggle Instructions', 'Select instructions to enable', instructions, () => workspaceContextDetector.getOverriddenSettingIds());
     const toolsToggler = new MenuToggler('SharpPilot: Toggle Tools', 'Select tools to enable', tools);
     const instructionExporter = new InstructionExporter(context.extensionPath);
     const instructionVersionChecker = new InstructionVersionChecker(context.extensionPath);

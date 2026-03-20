@@ -12,9 +12,8 @@ describe('StatusBarIndicator', () => {
     it('should show all items enabled by default', () => {
         const indicator = new StatusBarIndicator();
         const item = vi.mocked(window.createStatusBarItem).mock.results[0].value;
-        const total = instructions.length + tools.length;
 
-        expect(item.text).toBe(`$(checklist) SharpPilot: ${total}/${total}`);
+        expect(item.text).toBe(`$(book) ${instructions.length}/${instructions.length} $(tools) ${tools.length}/${tools.length}`);
 
         indicator.dispose();
     });
@@ -27,10 +26,8 @@ describe('StatusBarIndicator', () => {
 
         const indicator = new StatusBarIndicator();
         const item = vi.mocked(window.createStatusBarItem).mock.results[0].value;
-        const total = instructions.length + tools.length;
-        const enabled = total - 2;
 
-        expect(item.text).toBe(`$(checklist) SharpPilot: ${enabled}/${total}`);
+        expect(item.text).toBe(`$(book) ${instructions.length - 1}/${instructions.length} $(tools) ${tools.length - 1}/${tools.length}`);
 
         indicator.dispose();
     });
