@@ -1,8 +1,5 @@
 # SharpPilot
 
-> **Note:** If the SharpPilot extension is installed and enabled, it manages
-> instruction delivery automatically — ignore this file completely.
-
 SharpPilot is a development quality toolkit for GitHub Copilot — an MCP server
 (C#/.NET 10) paired with a VS Code extension (TypeScript/ESM) that provides
 coding guidelines and static-analysis tools.
