@@ -20,20 +20,11 @@ internal sealed class Program
             "dotnet" =>
             [
                 typeof(DotNetChecker),
-                typeof(CSharpAsyncPatternChecker),
-                typeof(CSharpCodingStyleChecker),
-                typeof(CSharpMemberOrderingChecker),
-                typeof(CSharpNamingConventionsChecker),
-                typeof(CSharpNullableContextChecker),
-                typeof(CSharpProjectStructureChecker),
-                typeof(CSharpTestStyleChecker),
                 typeof(NuGetHygieneChecker),
             ],
             "git" =>
             [
                 typeof(GitChecker),
-                typeof(CommitContentChecker),
-                typeof(CommitFormatChecker),
             ],
             "editorconfig" =>
             [

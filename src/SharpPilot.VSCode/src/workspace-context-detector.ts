@@ -4,6 +4,14 @@ import { instructions, instructionByFileName, overrideContextKey } from './confi
 export class WorkspaceContextDetector implements vscode.Disposable {
     private readonly disposables: vscode.Disposable[] = [];
     private debounceTimer: ReturnType<typeof setTimeout> | undefined;
+    private readonly _onDidChange = new vscode.EventEmitter<void>();
+    private readonly _state = new Map<string, boolean>();
+
+    readonly onDidChange = this._onDidChange.event;
+
+    get(key: string): boolean {
+        return this._state.get(key) ?? false;
+    }
 
     constructor() {
         const schedule = () => this.scheduleDetect();
@@ -312,6 +320,16 @@ export class WorkspaceContextDetector implements vscode.Disposable {
                     setContext(overrideContextKey(i.settingId), overriddenFileNames.has(i.fileName)),
                 ),
             ]);
+
+            const changed = this._state.get('hasDotnet') !== hasDotnet
+                || this._state.get('hasGit') !== hasGit;
+
+            this._state.set('hasDotnet', hasDotnet);
+            this._state.set('hasGit', hasGit);
+
+            if (changed) {
+                this._onDidChange.fire();
+            }
         } catch {
             // Workspace detection is best-effort; failures should not break the extension
         }
@@ -321,6 +339,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
         if (this.debounceTimer !== undefined) {
             clearTimeout(this.debounceTimer);
         }
+        this._onDidChange.dispose();
         this.disposables.forEach(d => d.dispose());
     }
 }

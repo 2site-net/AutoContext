@@ -1,10 +1,11 @@
 import * as vscode from 'vscode';
 import { join } from 'node:path';
-import { servers } from './config';
+import { servers, toolSettingsForScope } from './config';
 import { StatusBarIndicator } from './status-bar-indicator';
 import { WorkspaceContextDetector } from './workspace-context-detector';
 import { ToolsStatusWriter } from './tools-status-writer';
 import { InstructionsToggler } from './instructions-toggler';
+import { ToolsToggler } from './tools-toggler';
 import { InstructionExporter } from './instruction-exporter';
 import { InstructionVersionChecker } from './instruction-version-checker';
 import { InstructionBrowser } from './instruction-browser';
@@ -19,6 +20,7 @@ export function activate(context: vscode.ExtensionContext): void {
     const workspaceContextDetector = new WorkspaceContextDetector();
     const toolsStatusWriter = new ToolsStatusWriter(serversPath);
     const instructionsToggler = new InstructionsToggler();
+    const toolsToggler = new ToolsToggler();
     const instructionExporter = new InstructionExporter(context.extensionPath);
     const instructionVersionChecker = new InstructionVersionChecker(context.extensionPath);
     const instructionBrowser = new InstructionBrowser(context.extensionPath);
@@ -31,6 +33,7 @@ export function activate(context: vscode.ExtensionContext): void {
         didChangeEmitter,
         statusBarIndicator,
         workspaceContextDetector,
+        vscode.commands.registerCommand('sharp-pilot.toggleTools', () => toolsToggler.toggle()),
         vscode.commands.registerCommand('sharp-pilot.toggleInstructions', () => instructionsToggler.toggle()),
         vscode.commands.registerCommand('sharp-pilot.exportInstructions', () => instructionExporter.export()),
         vscode.commands.registerCommand('sharp-pilot.browseInstructions', () => instructionBrowser.browse()),
@@ -41,21 +44,33 @@ export function activate(context: vscode.ExtensionContext): void {
 
             if (e.affectsConfiguration('sharp-pilot.tools')) {
                 toolsStatusWriter.write();
+                didChangeEmitter.fire();
             }
         }),
+        workspaceContextDetector.onDidChange(() => didChangeEmitter.fire()),
         vscode.lm.registerMcpServerDefinitionProvider('sharpPilotProvider', {
             onDidChangeMcpServerDefinitions: didChangeEmitter.event,
-            provideMcpServerDefinitions: async () =>
-                servers.map(
-                    s =>
-                        new vscode.McpStdioServerDefinition(
-                            s.label,
-                            join(serversPath, 'SharpPilot', `SharpPilot${ext}`),
-                            ['--scope', s.scope],
-                            undefined,
-                            version,
-                        ),
-                ),
+            provideMcpServerDefinitions: async () => {
+                const config = vscode.workspace.getConfiguration();
+                return servers
+                    .filter(s => {
+                        if (!workspaceContextDetector.get(s.contextKey)) {
+                            return false;
+                        }
+                        const toolSettings = toolSettingsForScope(s.scope);
+                        return toolSettings.length === 0 || toolSettings.some(id => config.get(id) !== false);
+                    })
+                    .map(
+                        s =>
+                            new vscode.McpStdioServerDefinition(
+                                s.label,
+                                join(serversPath, 'SharpPilot', `SharpPilot${ext}`),
+                                ['--scope', s.scope],
+                                undefined,
+                                version,
+                            ),
+                    );
+            },
             resolveMcpServerDefinition: async (server) => server,
         }),
     );

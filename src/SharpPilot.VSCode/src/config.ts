@@ -1,6 +1,7 @@
 export interface ServerEntry {
     label: string;
     scope: string;
+    contextKey: string;
 }
 
 export interface InstructionEntry {
@@ -18,9 +19,9 @@ export interface ToolEntry {
 }
 
 export const servers: readonly ServerEntry[] = [
-    { label: 'SharpPilot: DotNet', scope: 'dotnet' },
-    { label: 'SharpPilot: Git', scope: 'git' },
-    { label: 'SharpPilot: EditorConfig', scope: 'editorconfig' },
+    { label: 'SharpPilot: DotNet', scope: 'dotnet', contextKey: 'hasDotnet' },
+    { label: 'SharpPilot: Git', scope: 'git', contextKey: 'hasGit' },
+    { label: 'SharpPilot: EditorConfig', scope: 'editorconfig', contextKey: 'hasDotnet' },
 ];
 
 export const instructions: readonly InstructionEntry[] = [
@@ -95,6 +96,16 @@ export const tools: readonly ToolEntry[] = [
     { settingId: 'sharp-pilot.tools.check_git_commit_format', toolName: 'check_git_commit_format', label: 'Commit Format', category: 'Git Tool' },
     { settingId: 'sharp-pilot.tools.get_editorconfig', toolName: 'get_editorconfig', label: 'EditorConfig', category: 'EditorConfig Tool' },
 ];
+
+export function toolSettingsForScope(scope: string): readonly string[] {
+    const categoryPrefix: Record<string, string> = {
+        dotnet: '.NET Tool',
+        git: 'Git Tool',
+        editorconfig: 'EditorConfig Tool',
+    };
+    const cat = categoryPrefix[scope];
+    return cat ? tools.filter(t => t.category === cat).map(t => t.settingId) : [];
+}
 
 export interface ExportManifest {
     exports: Record<string, { hash: string }>;

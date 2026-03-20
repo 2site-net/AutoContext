@@ -1,11 +1,11 @@
 import * as vscode from 'vscode';
-import { instructions } from './config';
+import { tools } from './config';
 
-export class InstructionsToggler {
+export class ToolsToggler {
     async toggle(): Promise<void> {
         const config = vscode.workspace.getConfiguration();
 
-        const allEntries = instructions.map(entry => ({
+        const allEntries = tools.map(entry => ({
             label: entry.label,
             description: entry.category,
             picked: config.get<boolean>(entry.settingId, true),
@@ -14,8 +14,8 @@ export class InstructionsToggler {
 
         const selected = await vscode.window.showQuickPick(allEntries, {
             canPickMany: true,
-            title: 'SharpPilot: Toggle Instructions',
-            placeHolder: 'Select instructions to enable',
+            title: 'SharpPilot: Toggle Tools',
+            placeHolder: 'Select tools to enable',
         });
 
         if (!selected) {
