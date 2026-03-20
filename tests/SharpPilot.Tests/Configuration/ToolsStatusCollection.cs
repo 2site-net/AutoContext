@@ -1,4 +1,4 @@
-namespace SharpPilot.Tests;
+namespace SharpPilot.Tests.Configuration;
 
 /// <summary>
 /// Serialises test classes that read or write <c>tools-status.json</c> via

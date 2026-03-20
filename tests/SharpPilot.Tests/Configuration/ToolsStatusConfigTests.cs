@@ -1,4 +1,4 @@
-namespace SharpPilot.Tests;
+namespace SharpPilot.Tests.Configuration;
 
 using SharpPilot.Configuration;
 
