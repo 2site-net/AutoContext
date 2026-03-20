@@ -1,0 +1,70 @@
+name: Release
+
+on:
+  push:
+    tags: ['[0-9]+.[0-9]+.[0-9]+*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Require annotated tag
+        run: |
+          tag_type=$(git cat-file -t "$GITHUB_REF")
+          if [ "$tag_type" != "tag" ]; then
+            echo "::error::Tag '$GITHUB_REF_NAME' is lightweight (type: $tag_type). Only annotated tags are supported."
+            exit 1
+          fi
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.x'
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install extension dependencies
+        working-directory: src/SharpPilot.VSCode
+        run: npm ci
+
+      - name: .NET tests
+        run: dotnet test
+
+      - name: TypeScript tests
+        working-directory: src/SharpPilot.VSCode
+        run: npx vitest run
+
+      - name: Set version in package.json
+        working-directory: src/SharpPilot.VSCode
+        run: npm version "$GITHUB_REF_NAME" --no-git-tag-version
+
+      - name: Package all platforms
+        working-directory: src/SharpPilot.VSCode
+        run: npm run package:all
+
+      - name: Publish to VS Code Marketplace
+        working-directory: src/SharpPilot.VSCode
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+        run: |
+          for vsix in publish/*.vsix; do
+            echo "Publishing $vsix..."
+            npx vsce publish --packagePath "$vsix"
+          done
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: src/SharpPilot.VSCode/publish/*.vsix

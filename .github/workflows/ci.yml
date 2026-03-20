@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.x'
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install extension dependencies
+        working-directory: src/SharpPilot.VSCode
+        run: npm ci
+
+      - name: .NET build
+        run: dotnet build
+
+      - name: .NET tests
+        run: dotnet test --no-build
+
+      - name: TypeScript type-check
+        working-directory: src/SharpPilot.VSCode
+        run: npx tsc --noEmit
+
+      - name: TypeScript tests
+        working-directory: src/SharpPilot.VSCode
+        run: npx vitest run
