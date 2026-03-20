@@ -1,5 +1,7 @@
 namespace SharpPilot.Tests.Tools.Git;
 
+using Microsoft.Extensions.Logging.Abstractions;
+
 using SharpPilot.Tools.Git;
 
 [Collection("ToolsStatus")]
@@ -12,7 +14,7 @@ public sealed class GitCheckerTests
         var message = "feat(auth): add token refresh";
 
         // Act
-        var result = new GitChecker().Check(message);
+        var result = new GitChecker(NullLogger<GitChecker>.Instance).Check(message);
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -25,7 +27,7 @@ public sealed class GitCheckerTests
         var message = "added token refresh support";
 
         // Act
-        var result = new GitChecker().Check(message);
+        var result = new GitChecker(NullLogger<GitChecker>.Instance).Check(message);
 
         // Assert
         Assert.StartsWith("❌", result);
@@ -43,7 +45,7 @@ public sealed class GitCheckerTests
             """;
 
         // Act
-        var result = new GitChecker().Check(message.TrimStart());
+        var result = new GitChecker(NullLogger<GitChecker>.Instance).Check(message.TrimStart());
 
         // Assert
         Assert.StartsWith("❌", result);
@@ -52,7 +54,7 @@ public sealed class GitCheckerTests
     [Fact]
     public void Should_throw_on_null_or_whitespace_message()
     {
-        Assert.Throws<ArgumentException>(() => new GitChecker().Check(""));
-        Assert.Throws<ArgumentException>(() => new GitChecker().Check("   "));
+        Assert.Throws<ArgumentException>(() => new GitChecker(NullLogger<GitChecker>.Instance).Check(""));
+        Assert.Throws<ArgumentException>(() => new GitChecker(NullLogger<GitChecker>.Instance).Check("   "));
     }
 }

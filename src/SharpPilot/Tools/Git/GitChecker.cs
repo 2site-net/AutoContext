@@ -3,6 +3,8 @@ namespace SharpPilot.Tools.Git;
 using System.ComponentModel;
 using System.Text.Json.Nodes;
 
+using Microsoft.Extensions.Logging;
+
 using ModelContextProtocol.Server;
 
 using SharpPilot.Configuration;
@@ -13,7 +15,7 @@ using SharpPilot.Core;
 /// a single combined report.
 /// </summary>
 [McpServerToolType]
-public sealed class GitChecker : IChecker
+public sealed partial class GitChecker(ILogger<GitChecker> logger) : IChecker
 {
     /// <inheritdoc />
     public string ToolName
@@ -33,6 +35,8 @@ public sealed class GitChecker : IChecker
         JsonObject? data = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(content);
+
+        LogToolInvoked(logger, ToolName, content.Length);
 
         var sections = new List<string>();
 
@@ -64,4 +68,8 @@ public sealed class GitChecker : IChecker
 
         return string.Join("\n\n", failures);
     }
+
+    [LoggerMessage(Level = LogLevel.Information,
+        Message = "Tool invoked: {ToolName} | content length: {ContentLength}")]
+    private static partial void LogToolInvoked(ILogger logger, string toolName, int contentLength);
 }

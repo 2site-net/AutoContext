@@ -3,6 +3,8 @@ namespace SharpPilot.Tools.DotNet;
 using System.ComponentModel;
 using System.Text.Json.Nodes;
 
+using Microsoft.Extensions.Logging;
+
 using ModelContextProtocol.Server;
 
 using SharpPilot.Configuration;
@@ -19,7 +21,7 @@ using SharpPilot.Tools.EditorConfig;
 /// XML, not C# source code.
 /// </remarks>
 [McpServerToolType]
-public sealed class DotNetChecker : IChecker
+public sealed partial class DotNetChecker(ILogger<DotNetChecker> logger) : IChecker
 {
     /// <inheritdoc />
     public string ToolName
@@ -48,6 +50,9 @@ public sealed class DotNetChecker : IChecker
         JsonObject? data = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(content);
+
+        LogToolInvoked(logger, ToolName, content.Length,
+            data is not null ? string.Join(", ", data.Select(kv => kv.Key)) : "(none)");
 
         data = MergeEditorConfig(data);
 
@@ -107,4 +112,8 @@ public sealed class DotNetChecker : IChecker
 
         return data;
     }
+
+    [LoggerMessage(Level = LogLevel.Information,
+        Message = "Tool invoked: {ToolName} | content length: {ContentLength} | data keys: {DataKeys}")]
+    private static partial void LogToolInvoked(ILogger logger, string toolName, int contentLength, string dataKeys);
 }

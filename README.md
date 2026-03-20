@@ -58,6 +58,17 @@ One tool that resolves effective `.editorconfig` properties for a given file.
 |------|---------|
 | `get_editorconfig` | Resolves the effective `.editorconfig` properties for a given file path — walks the directory tree, evaluates glob patterns and section cascading, and returns the final key-value pairs. |
 
+### Viewing Tool Invocation Logs
+
+Each server logs tool invocations (tool name, content length, data keys) to
+stderr, which VS Code surfaces in the **Output** panel. To view the logs:
+
+1. Open the **Output** panel (`Ctrl+Shift+U`).
+2. Select the server from the dropdown (e.g., *SharpPilot: DotNet*).
+
+Only SharpPilot log messages are emitted — host and framework noise is filtered
+out.
+
 ## Manual Server Configuration
 
 If you have the .NET 10 SDK installed and have cloned this repo, you can

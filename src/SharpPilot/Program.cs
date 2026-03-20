@@ -2,6 +2,7 @@ namespace SharpPilot;
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
 using SharpPilot.Tools.DotNet;
 using SharpPilot.Tools.EditorConfig;
@@ -12,6 +13,14 @@ internal sealed class Program
     public static async Task Main(string[] args)
     {
         var builder = Host.CreateApplicationBuilder(args);
+
+        builder.Logging.AddConsole(options =>
+        {
+            options.LogToStandardErrorThreshold = LogLevel.Trace;
+        });
+        builder.Logging.SetMinimumLevel(LogLevel.None);
+        builder.Logging.AddFilter("SharpPilot", LogLevel.Information);
+
         var scope = builder.Configuration["scope"]
             ?? throw new ArgumentException("Missing required argument: --scope (dotnet|git|editorconfig)");
 

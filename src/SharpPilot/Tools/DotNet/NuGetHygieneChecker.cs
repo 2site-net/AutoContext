@@ -4,6 +4,8 @@ using System.ComponentModel;
 using System.Text.Json.Nodes;
 using System.Xml.Linq;
 
+using Microsoft.Extensions.Logging;
+
 using ModelContextProtocol.Server;
 
 using SharpPilot.Core;
@@ -14,7 +16,7 @@ using SharpPilot.Core;
 /// and flags packages that have well-known built-in .NET alternatives.
 /// </summary>
 [McpServerToolType]
-public sealed class NuGetHygieneChecker : IChecker
+public sealed partial class NuGetHygieneChecker(ILogger<NuGetHygieneChecker> logger) : IChecker
 {
     /// <inheritdoc />
     public string ToolName
@@ -50,6 +52,8 @@ public sealed class NuGetHygieneChecker : IChecker
         JsonObject? data = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(content);
+
+        LogToolInvoked(logger, ToolName, content.Length);
 
         XDocument doc;
 
@@ -182,4 +186,8 @@ public sealed class NuGetHygieneChecker : IChecker
             }
         }
     }
+
+    [LoggerMessage(Level = LogLevel.Information,
+        Message = "Tool invoked: {ToolName} | content length: {ContentLength}")]
+    private static partial void LogToolInvoked(ILogger logger, string toolName, int contentLength);
 }
