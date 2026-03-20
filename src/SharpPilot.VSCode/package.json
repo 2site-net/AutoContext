@@ -1,7 +1,7 @@
 {
   "name": "sharp-pilot",
   "displayName": "SharpPilot",
-  "description": "SharpPilot is a development quality toolkit for GitHub Copilot, providing a curated set of tools and guidelines to improve code quality and the overall development workflow.",
+  "description": "SharpPilot is a quality assurance extension for Visual Studio Code that leverages an MCP server to enable model-invokable tools and curated, configurable instructions—elevating code quality, workflows, and overall developer productivity with Copilot.",
   "version": "0.5.0",
   "publisher": "2site-net",
   "license": "Apache-2.0",

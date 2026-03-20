@@ -2,7 +2,7 @@
 
 # SharpPilot
 
-SharpPilot is a development quality toolkit for GitHub Copilot, providing a curated set of tools and guidelines to improve code quality and the overall development workflow.
+SharpPilot is a quality assurance extension for Visual Studio Code that leverages an MCP server to enable model-invokable tools and curated, configurable instructions—elevating code quality, workflows, and overall developer productivity with Copilot.
 
 ## MCP Tools
 
