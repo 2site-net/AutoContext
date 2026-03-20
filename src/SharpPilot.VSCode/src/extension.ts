@@ -54,7 +54,7 @@ export function activate(context: vscode.ExtensionContext): void {
                 const config = vscode.workspace.getConfiguration();
                 return servers
                     .filter(s => {
-                        if (!workspaceContextDetector.get(s.contextKey)) {
+                        if (s.contextKey && !workspaceContextDetector.get(s.contextKey)) {
                             return false;
                         }
                         const toolSettings = toolSettingsForScope(s.scope);

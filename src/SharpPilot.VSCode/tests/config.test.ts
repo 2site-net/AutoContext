@@ -80,10 +80,18 @@ describe('config arrays', () => {
         }
     });
 
-    it('should have a contextKey on every server entry', () => {
-        for (const server of servers) {
-            expect(server.contextKey).toBeTruthy();
-        }
+    it('should have a contextKey on workspace-specific server entries', () => {
+        const dotnet = servers.find(s => s.scope === 'dotnet')!;
+        const git = servers.find(s => s.scope === 'git')!;
+
+        expect(dotnet.contextKey).toBe('hasDotnet');
+        expect(git.contextKey).toBe('hasGit');
+    });
+
+    it('should not require a contextKey on the editorconfig server', () => {
+        const editorconfig = servers.find(s => s.scope === 'editorconfig')!;
+
+        expect(editorconfig.contextKey).toBeUndefined();
     });
 });
 

@@ -1,7 +1,7 @@
 export interface ServerEntry {
     label: string;
     scope: string;
-    contextKey: string;
+    contextKey?: string;
 }
 
 export interface InstructionEntry {
@@ -21,7 +21,7 @@ export interface ToolEntry {
 export const servers: readonly ServerEntry[] = [
     { label: 'SharpPilot: DotNet', scope: 'dotnet', contextKey: 'hasDotnet' },
     { label: 'SharpPilot: Git', scope: 'git', contextKey: 'hasGit' },
-    { label: 'SharpPilot: EditorConfig', scope: 'editorconfig', contextKey: 'hasDotnet' },
+    { label: 'SharpPilot: EditorConfig', scope: 'editorconfig' },
 ];
 
 export const instructions: readonly InstructionEntry[] = [
