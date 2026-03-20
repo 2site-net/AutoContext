@@ -119,6 +119,36 @@ server code:
 }
 ```
 
+## Testing
+
+### MCP Server (xUnit)
+
+```sh
+dotnet test tests/SharpPilot.Tests/SharpPilot.Tests.csproj
+```
+
+### VS Code Extension — Unit Tests (Vitest)
+
+```sh
+cd src/SharpPilot.VSCode
+npm install
+npm test
+```
+
+### VS Code Extension — Smoke Tests
+
+Smoke tests launch a real VS Code instance, load the extension, and verify
+activation and command registration:
+
+```sh
+cd src/SharpPilot.VSCode
+npm install
+npm run test:smoke
+```
+
+A VS Code installation is downloaded automatically on the first run and cached
+in `src/SharpPilot.VSCode/.vscode-test/`.
+
 ## Building and Publishing the Extension
 
 Package a platform-specific VSIX:
