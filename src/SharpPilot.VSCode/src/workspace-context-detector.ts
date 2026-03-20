@@ -70,9 +70,10 @@ export class WorkspaceContextDetector implements vscode.Disposable {
 
             const decoder = new TextDecoder();
 
-            const [dotnetFiles, fsharpFiles, razorFiles, htmlFiles, cssFiles, jsFiles, tsFiles, unityFiles, dockerFiles] = await Promise.all([
+            const [dotnetFiles, fsharpFiles, vbnetFiles, razorFiles, htmlFiles, cssFiles, jsFiles, tsFiles, unityFiles, dockerFiles] = await Promise.all([
                 vscode.workspace.findFiles('**/*.{csproj,fsproj,vbproj,sln,slnx}', '**/node_modules/**', 1),
                 vscode.workspace.findFiles('**/*.fsproj', '**/node_modules/**', 1),
+                vscode.workspace.findFiles('**/*.vbproj', '**/node_modules/**', 1),
                 vscode.workspace.findFiles('**/*.razor', '**/node_modules/**', 1),
                 vscode.workspace.findFiles('**/*.{html,cshtml}', '**/node_modules/**', 1),
                 vscode.workspace.findFiles('**/*.css', '**/node_modules/**', 1),
@@ -84,6 +85,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
 
             const hasDotnet = dotnetFiles.length > 0;
             const hasFsharp = fsharpFiles.length > 0;
+            const hasVbnet = vbnetFiles.length > 0;
             const hasBlazor = razorFiles.length > 0;
             const hasHtml = htmlFiles.length > 0 || hasBlazor;
             const hasCss = cssFiles.length > 0 || hasHtml;
@@ -280,6 +282,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
             await Promise.all([
                 setContext('sharp-pilot.workspace.hasDotnet', hasDotnet),
                 setContext('sharp-pilot.workspace.hasFsharp', hasFsharp),
+                setContext('sharp-pilot.workspace.hasVbnet', hasVbnet),
                 setContext('sharp-pilot.workspace.hasAspNetCore', hasAspNetCore),
                 setContext('sharp-pilot.workspace.hasDapper', hasDapper),
                 setContext('sharp-pilot.workspace.hasEntityFrameworkCore', hasEntityFrameworkCore),
@@ -330,7 +333,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
                 || this._state.get('hasGit') !== hasGit;
 
             const contextState: Record<string, boolean> = {
-                hasDotnet, hasFsharp, hasAspNetCore, hasDapper, hasEntityFrameworkCore,
+                hasDotnet, hasFsharp, hasVbnet, hasAspNetCore, hasDapper, hasEntityFrameworkCore,
                 hasMaui, hasBlazor, hasHtml, hasCss, hasJavaScript, hasTypeScript,
                 hasReact, hasAngular, hasVue, hasSvelte, hasMysql, hasMongodb,
                 hasOracle, hasPostgres, hasSqlite, hasSqlServer, hasXunit, hasMstest,

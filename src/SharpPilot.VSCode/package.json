@@ -212,6 +212,10 @@
         "when": "config.sharp-pilot.instructions.dotnet.fsharp.codingStyle && sharp-pilot.workspace.hasFsharp && !sharp-pilot.override.dotnet.fsharp.codingStyle"
       },
       {
+        "path": "./instructions/dotnet-vbnet-coding-style.instructions.md",
+        "when": "config.sharp-pilot.instructions.dotnet.vbnet.codingStyle && sharp-pilot.workspace.hasVbnet && !sharp-pilot.override.dotnet.vbnet.codingStyle"
+      },
+      {
         "path": "./instructions/git-commit-format.instructions.md",
         "when": "config.sharp-pilot.instructions.git.commitFormat && sharp-pilot.workspace.hasGit && !sharp-pilot.override.git.commitFormat"
       },
@@ -476,6 +480,11 @@
           "type": "boolean",
           "default": true,
           "description": "Enable F# coding style rules (module layout, naming, type design, pattern matching, formatting)."
+        },
+        "sharp-pilot.instructions.dotnet.vbnet.codingStyle": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable VB.NET coding style rules (naming, Option Strict, error handling, formatting)."
         },
         "sharp-pilot.instructions.git.commitFormat": {
           "type": "boolean",
