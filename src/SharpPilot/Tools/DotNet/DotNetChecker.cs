@@ -5,6 +5,8 @@ using System.Text.Json.Nodes;
 
 using ModelContextProtocol.Server;
 
+using SharpPilot.Configuration;
+using SharpPilot.Core;
 using SharpPilot.Tools.EditorConfig;
 
 /// <summary>

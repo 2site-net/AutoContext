@@ -9,6 +9,8 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 using ModelContextProtocol.Server;
 
+using SharpPilot.Core;
+
 /// <summary>
 /// Validates C# naming conventions: interface I prefix, extension class Extensions suffix,
 /// async method Async suffix, private instance field _camelCase, PascalCase for

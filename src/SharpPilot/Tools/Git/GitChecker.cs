@@ -5,6 +5,9 @@ using System.Text.Json.Nodes;
 
 using ModelContextProtocol.Server;
 
+using SharpPilot.Configuration;
+using SharpPilot.Core;
+
 /// <summary>
 /// Aggregate tool that runs all enabled Git commit validators and returns
 /// a single combined report.

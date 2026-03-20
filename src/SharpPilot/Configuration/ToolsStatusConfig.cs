@@ -1,4 +1,4 @@
-namespace SharpPilot;
+namespace SharpPilot.Configuration;
 
 using System.Text.Json;
 

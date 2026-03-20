@@ -1,5 +1,7 @@
 namespace SharpPilot.Tests;
 
+using SharpPilot.Configuration;
+
 [Collection("ToolsStatus")]
 public sealed class ToolsStatusConfigTests : IDisposable
 {

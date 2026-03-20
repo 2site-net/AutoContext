@@ -9,6 +9,8 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 using ModelContextProtocol.Server;
 
+using SharpPilot.Core;
+
 /// <summary>
 /// Validates that nullable reference type safety is maintained: no #nullable disable
 /// directives, and no use of the null-forgiving (!) operator to suppress warnings.

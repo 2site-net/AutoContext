@@ -6,6 +6,8 @@ using System.Xml.Linq;
 
 using ModelContextProtocol.Server;
 
+using SharpPilot.Core;
+
 /// <summary>
 /// Validates NuGet package hygiene in .csproj files: no duplicate references,
 /// no floating versions, no missing versions (unless Central Package Management),

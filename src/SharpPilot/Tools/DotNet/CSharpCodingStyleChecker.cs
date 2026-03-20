@@ -10,6 +10,8 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 using ModelContextProtocol.Server;
 
+using SharpPilot.Core;
+
 /// <summary>
 /// Validates C# code style rules: regions, decorative comments, curly braces,
 /// blank lines before control flow, expression-body arrow placement,

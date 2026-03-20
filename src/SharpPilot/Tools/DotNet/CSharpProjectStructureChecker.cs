@@ -9,6 +9,8 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 using ModelContextProtocol.Server;
 
+using SharpPilot.Core;
+
 /// <summary>
 /// Validates C# project structure conventions: file-scoped namespaces,
 /// single type per file, file name matches type name, and no #pragma warning disable.

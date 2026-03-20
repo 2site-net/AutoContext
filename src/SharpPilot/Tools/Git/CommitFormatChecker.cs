@@ -6,6 +6,8 @@ using System.Text.RegularExpressions;
 
 using ModelContextProtocol.Server;
 
+using SharpPilot.Core;
+
 /// <summary>
 /// Validates git commit message formatting against Conventional Commits and line-length rules.
 /// </summary>

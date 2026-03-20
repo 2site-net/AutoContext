@@ -9,6 +9,8 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 using ModelContextProtocol.Server;
 
+using SharpPilot.Core;
+
 /// <summary>
 /// Validates xUnit test style conventions: test class naming, test method naming,
 /// no XML doc comments, Assert.Multiple for multi-assertion tests, no ConfigureAwait,
