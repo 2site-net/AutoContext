@@ -42,4 +42,4 @@ jobs:
 
       - name: TypeScript tests
         working-directory: src/SharpPilot.VSCode
-        run: npx vitest run
+        run: npm test
