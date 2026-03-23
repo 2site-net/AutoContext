@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
     overrideContextKey,
+    filteredContextKey,
     targetPath,
     instructionByFileName,
     instructions,
@@ -20,6 +21,18 @@ describe('overrideContextKey', () => {
     it('should handle nested setting ids', () => {
         expect(overrideContextKey('sharp-pilot.instructions.dotnet.asyncAwait'))
             .toBe('sharp-pilot.override.dotnet.asyncAwait');
+    });
+});
+
+describe('filteredContextKey', () => {
+    it('should strip the settings prefix and prepend the filtered prefix', () => {
+        expect(filteredContextKey('sharp-pilot.instructions.copilot'))
+            .toBe('sharp-pilot.filtered.copilot');
+    });
+
+    it('should handle nested setting ids', () => {
+        expect(filteredContextKey('sharp-pilot.instructions.dotnet.asyncAwait'))
+            .toBe('sharp-pilot.filtered.dotnet.asyncAwait');
     });
 });
 

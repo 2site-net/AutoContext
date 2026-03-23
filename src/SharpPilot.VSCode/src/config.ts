@@ -114,9 +114,14 @@ export interface ExportManifest {
 
 const settingIdPrefix = 'sharp-pilot.instructions.';
 const overrideContextPrefix = 'sharp-pilot.override.';
+const filteredContextPrefix = 'sharp-pilot.filtered.';
 
 export function overrideContextKey(settingId: string): string {
     return overrideContextPrefix + settingId.slice(settingIdPrefix.length);
+}
+
+export function filteredContextKey(settingId: string): string {
+    return filteredContextPrefix + settingId.slice(settingIdPrefix.length);
 }
 
 export function targetPath(entry: InstructionEntry): string {
