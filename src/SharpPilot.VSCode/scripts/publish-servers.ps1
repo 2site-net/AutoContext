@@ -68,6 +68,13 @@ function Invoke-BuildAndPackage([string]$rid) {
             throw "No VS Code target mapping for runtime identifier '$rid'."
         }
 
+        # Seed instructions-filtered/ so the VSIX ships with all files.
+        # At runtime the extension may overwrite them with filtered versions.
+        $instructionsSrc = Join-Path $extensionDir 'instructions'
+        $instructionsDst = Join-Path $extensionDir 'instructions-filtered'
+        if (Test-Path $instructionsDst) { Remove-Item $instructionsDst -Recurse -Force }
+        Copy-Item $instructionsSrc $instructionsDst -Recurse
+
         Push-Location $extensionDir
         try {
             npx vsce package --target $vsceTarget --allow-missing-repository
