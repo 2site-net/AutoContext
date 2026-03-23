@@ -39,7 +39,7 @@ server are disabled, that server is not registered at all.
 
 ## Coding Instructions
 
-The extension ships 57 instruction files that are automatically injected into
+The extension ships 60 instruction files that are automatically injected into
 GitHub Copilot's context when relevant to your workspace:
 
 ### General
@@ -102,6 +102,14 @@ GitHub Copilot's context when relevant to your workspace:
 |-------------|----------------|
 | Commit Format | Git repository detected |
 
+### Scripting
+
+| Instruction | Activates when |
+|-------------|----------------|
+| PowerShell | `.ps1`, `.psm1`, or `.psd1` files detected |
+| Bash | `.sh` or `.bash` files detected |
+| Batch (CMD) | `.bat` or `.cmd` files detected |
+
 ### Web
 
 | Instruction | Activates when |
@@ -132,7 +140,7 @@ GitHub Copilot's context when relevant to your workspace:
 ## Status Bar
 
 The status bar shows how many instructions and tools are currently active (e.g.
-`$(book) 42/57 $(tools) 8/11`). Click it to open a menu where you can toggle
+`$(book) 42/60 $(tools) 8/11`). Click it to open a menu where you can toggle
 instructions, toggle tools, auto-configure, export, or browse instructions.
 
 ## Auto Configuration

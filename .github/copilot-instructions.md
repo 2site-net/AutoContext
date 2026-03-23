@@ -22,6 +22,9 @@ Read the relevant file **before** generating or reviewing code:
 | TypeScript / VS Code ext | `web-typescript.instructions.md`                                                                                              |
 | TypeScript tests         | `web-vitest.instructions.md`                                                                                                  |
 | Git commits              | `git-commit-format.instructions.md`                                                                                           |
+| PowerShell scripts       | `scripting-powershell.instructions.md`                                                                                        |
+| Bash / shell scripts     | `scripting-bash.instructions.md`                                                                                              |
+| Batch (CMD) scripts      | `scripting-batch.instructions.md`                                                                                             |
 | REST API design          | `rest-api-design.instructions.md`                                                                                             |
 
 All paths are relative to `src/SharpPilot.VSCode/instructions/`.

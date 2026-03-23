@@ -22,7 +22,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
         const schedule = () => this.scheduleDetect();
 
         const existenceWatcher = vscode.workspace.createFileSystemWatcher(
-            '**/*.{csproj,fsproj,sln,slnx,razor,html,cshtml,css,js,jsx,mjs,cjs,ts,tsx,mts,cts}',
+            '**/*.{csproj,fsproj,sln,slnx,razor,html,cshtml,css,js,jsx,mjs,cjs,ts,tsx,mts,cts,ps1,psm1,psd1,sh,bash,bat,cmd}',
         );
 
         this.disposables.push(
@@ -70,7 +70,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
 
             const decoder = new TextDecoder();
 
-            const [dotnetFiles, fsharpFiles, vbnetFiles, razorFiles, htmlFiles, cssFiles, jsFiles, tsFiles, unityFiles, dockerFiles] = await Promise.all([
+            const [dotnetFiles, fsharpFiles, vbnetFiles, razorFiles, htmlFiles, cssFiles, jsFiles, tsFiles, unityFiles, dockerFiles, psFiles, shFiles, batFiles] = await Promise.all([
                 vscode.workspace.findFiles('**/*.{csproj,fsproj,vbproj,sln,slnx}', '**/node_modules/**', 1),
                 vscode.workspace.findFiles('**/*.fsproj', '**/node_modules/**', 1),
                 vscode.workspace.findFiles('**/*.vbproj', '**/node_modules/**', 1),
@@ -81,6 +81,9 @@ export class WorkspaceContextDetector implements vscode.Disposable {
                 vscode.workspace.findFiles('**/*.{ts,tsx,mts,cts}', '**/node_modules/**', 1),
                 vscode.workspace.findFiles('**/ProjectSettings/ProjectSettings.asset', '**/node_modules/**', 1),
                 vscode.workspace.findFiles('**/Dockerfile*', '**/node_modules/**', 1),
+                vscode.workspace.findFiles('**/*.{ps1,psm1,psd1}', '**/node_modules/**', 1),
+                vscode.workspace.findFiles('**/*.{sh,bash}', '**/node_modules/**', 1),
+                vscode.workspace.findFiles('**/*.{bat,cmd}', '**/node_modules/**', 1),
             ]);
 
             const hasDotnet = dotnetFiles.length > 0;
@@ -93,6 +96,9 @@ export class WorkspaceContextDetector implements vscode.Disposable {
             const hasTypeScript = tsFiles.length > 0;
             const hasUnity = unityFiles.length > 0;
             const hasDocker = dockerFiles.length > 0;
+            const hasPowerShell = psFiles.length > 0;
+            const hasBash = shFiles.length > 0;
+            const hasBatch = batFiles.length > 0;
 
             let hasReact = false;
             let hasAngular = false;
@@ -316,6 +322,9 @@ export class WorkspaceContextDetector implements vscode.Disposable {
                 setContext('sharp-pilot.workspace.hasGraphql', hasGraphql),
                 setContext('sharp-pilot.workspace.hasNextJs', hasNextJs),
                 setContext('sharp-pilot.workspace.hasNodeJs', hasNodeJs),
+                setContext('sharp-pilot.workspace.hasPowerShell', hasPowerShell),
+                setContext('sharp-pilot.workspace.hasBash', hasBash),
+                setContext('sharp-pilot.workspace.hasBatch', hasBatch),
                 setContext('sharp-pilot.workspace.hasVitest', hasVitest),
                 setContext('sharp-pilot.workspace.hasJest', hasJest),
                 setContext('sharp-pilot.workspace.hasJasmine', hasJasmine),
@@ -338,8 +347,8 @@ export class WorkspaceContextDetector implements vscode.Disposable {
                 hasReact, hasAngular, hasVue, hasSvelte, hasMysql, hasMongodb,
                 hasOracle, hasPostgres, hasSqlite, hasSqlServer, hasXunit, hasMstest,
                 hasNunit, hasWpf, hasWinForms, hasGrpc, hasMediatR, hasRedis, hasSignalR,
-                hasUnity, hasDocker, hasGraphql, hasNextJs, hasNodeJs, hasVitest, hasJest,
-                hasJasmine, hasMocha, hasPlaywright, hasCypress,
+                hasUnity, hasDocker, hasGraphql, hasNextJs, hasNodeJs, hasPowerShell, hasBash, hasBatch,
+                hasVitest, hasJest, hasJasmine, hasMocha, hasPlaywright, hasCypress,
                 hasWebTesting: hasVitest || hasJest || hasJasmine || hasMocha || hasPlaywright || hasCypress,
                 hasGit,
             };

@@ -390,6 +390,30 @@
         "when": "config.sharp-pilot.instructions.git.commitFormat && sharp-pilot.workspace.hasGit && !sharp-pilot.override.git.commitFormat && sharp-pilot.filtered.git.commitFormat"
       },
       {
+        "path": "./instructions/scripting-powershell.instructions.md",
+        "when": "config.sharp-pilot.instructions.scripting.powershell && sharp-pilot.workspace.hasPowerShell && !sharp-pilot.override.scripting.powershell && !sharp-pilot.filtered.scripting.powershell"
+      },
+      {
+        "path": "./instructions-filtered/scripting-powershell.instructions.md",
+        "when": "config.sharp-pilot.instructions.scripting.powershell && sharp-pilot.workspace.hasPowerShell && !sharp-pilot.override.scripting.powershell && sharp-pilot.filtered.scripting.powershell"
+      },
+      {
+        "path": "./instructions/scripting-bash.instructions.md",
+        "when": "config.sharp-pilot.instructions.scripting.bash && sharp-pilot.workspace.hasBash && !sharp-pilot.override.scripting.bash && !sharp-pilot.filtered.scripting.bash"
+      },
+      {
+        "path": "./instructions-filtered/scripting-bash.instructions.md",
+        "when": "config.sharp-pilot.instructions.scripting.bash && sharp-pilot.workspace.hasBash && !sharp-pilot.override.scripting.bash && sharp-pilot.filtered.scripting.bash"
+      },
+      {
+        "path": "./instructions/scripting-batch.instructions.md",
+        "when": "config.sharp-pilot.instructions.scripting.batch && sharp-pilot.workspace.hasBatch && !sharp-pilot.override.scripting.batch && !sharp-pilot.filtered.scripting.batch"
+      },
+      {
+        "path": "./instructions-filtered/scripting-batch.instructions.md",
+        "when": "config.sharp-pilot.instructions.scripting.batch && sharp-pilot.workspace.hasBatch && !sharp-pilot.override.scripting.batch && sharp-pilot.filtered.scripting.batch"
+      },
+      {
         "path": "./instructions/web-angular.instructions.md",
         "when": "config.sharp-pilot.instructions.web.angular && sharp-pilot.workspace.hasAngular && !sharp-pilot.override.web.angular && !sharp-pilot.filtered.web.angular"
       },
@@ -789,6 +813,21 @@
           "type": "boolean",
           "default": true,
           "description": "Enable Conventional Commits formatting guidelines."
+        },
+        "sharp-pilot.instructions.scripting.powershell": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable PowerShell guidelines (naming, error handling, pipeline design, security, module structure)."
+        },
+        "sharp-pilot.instructions.scripting.bash": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable Bash guidelines (safety flags, quoting, error handling, portability, script structure)."
+        },
+        "sharp-pilot.instructions.scripting.batch": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable Batch (CMD) guidelines (variable handling, error checking, quoting, script structure)."
         },
         "sharp-pilot.instructions.web.angular": {
           "type": "boolean",
