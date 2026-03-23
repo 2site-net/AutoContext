@@ -1,0 +1,73 @@
+import * as vscode from 'vscode';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { parseRules } from './rule-parser.js';
+import { instructionScheme } from './instruction-content-provider.js';
+import type { SharpPilotConfigManager } from './sharppilot-config.js';
+
+export const toggleRuleCommandId = 'sharp-pilot.toggleRule';
+export const resetRulesCommandId = 'sharp-pilot.resetRules';
+
+export class RuleCodeLensProvider implements vscode.CodeLensProvider, vscode.Disposable {
+    private readonly didChangeEmitter = new vscode.EventEmitter<void>();
+    readonly onDidChangeCodeLenses = this.didChangeEmitter.event;
+    private readonly disposables: vscode.Disposable[] = [];
+
+    constructor(
+        private readonly extensionPath: string,
+        private readonly configManager: SharpPilotConfigManager,
+    ) {
+        this.disposables.push(
+            this.didChangeEmitter,
+            configManager.onDidChange(() => this.didChangeEmitter.fire()),
+        );
+    }
+
+    provideCodeLenses(document: vscode.TextDocument): vscode.CodeLens[] {
+        if (document.uri.scheme !== instructionScheme) {
+            return [];
+        }
+
+        const fileName = document.uri.path;
+        const filePath = join(this.extensionPath, 'instructions', fileName);
+
+        let content: string;
+        try {
+            content = readFileSync(filePath, 'utf-8');
+        } catch {
+            return [];
+        }
+
+        const rules = parseRules(content);
+        const disabledHashes = this.configManager.getDisabledRules(fileName);
+
+        const lenses: vscode.CodeLens[] = [];
+
+        if (disabledHashes.size > 0) {
+            lenses.push(new vscode.CodeLens(new vscode.Range(0, 0, 0, 0), {
+                title: '$(refresh) Reset All Rules',
+                command: resetRulesCommandId,
+                arguments: [fileName],
+            }));
+        }
+
+        for (const rule of rules) {
+            const isDisabled = disabledHashes.has(rule.hash);
+            const range = new vscode.Range(rule.startLine, 0, rule.startLine, 0);
+
+            lenses.push(new vscode.CodeLens(range, {
+                title: isDisabled ? '$(check) Enable Rule' : '$(x) Disable Rule',
+                command: toggleRuleCommandId,
+                arguments: [fileName, rule.hash],
+            }));
+        }
+
+        return lenses;
+    }
+
+    dispose(): void {
+        for (const d of this.disposables) {
+            d.dispose();
+        }
+    }
+}

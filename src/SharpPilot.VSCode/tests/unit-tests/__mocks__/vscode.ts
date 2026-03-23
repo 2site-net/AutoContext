@@ -16,12 +16,17 @@ export const workspace = {
     })),
     findFiles: vi.fn(async () => []),
     workspaceFolders: undefined as unknown[] | undefined,
+    textDocuments: [] as unknown[],
+    openTextDocument: vi.fn(async (uri: unknown) => ({ uri })),
     fs: {
         readFile: vi.fn(),
         writeFile: vi.fn(),
         stat: vi.fn(),
     },
     onDidChangeConfiguration: vi.fn(),
+    onDidChangeWorkspaceFolders: vi.fn(() => ({ dispose: vi.fn() })),
+    onDidGrantWorkspaceTrust: vi.fn(() => ({ dispose: vi.fn() })),
+    registerTextDocumentContentProvider: vi.fn(() => ({ dispose: vi.fn() })),
 };
 
 export const window = {
@@ -34,16 +39,23 @@ export const window = {
         dispose: vi.fn(),
     })),
     createQuickPick: vi.fn(() => createMockQuickPick()),
+    createTextEditorDecorationType: vi.fn(() => ({ dispose: vi.fn() })),
     showQuickPick: vi.fn(),
     showInformationMessage: vi.fn(),
     showWarningMessage: vi.fn(),
     showErrorMessage: vi.fn(),
     showTextDocument: vi.fn(),
+    onDidChangeActiveTextEditor: vi.fn(() => ({ dispose: vi.fn() })),
+    visibleTextEditors: [] as unknown[],
 };
 
 export const commands = {
     registerCommand: vi.fn(),
     executeCommand: vi.fn(),
+};
+
+export const languages = {
+    registerCodeLensProvider: vi.fn(() => ({ dispose: vi.fn() })),
 };
 
 export const lm = {
@@ -71,13 +83,29 @@ export enum ViewColumn {
 }
 
 export class EventEmitter {
-    event = vi.fn();
+    event = vi.fn(() => ({ dispose: vi.fn() }));
     fire = vi.fn();
     dispose = vi.fn();
 }
 
 export class ThemeIcon {
     constructor(public readonly id: string) {}
+}
+
+export class Range {
+    constructor(
+        public readonly startLine: number,
+        public readonly startCharacter: number,
+        public readonly endLine: number,
+        public readonly endCharacter: number,
+    ) {}
+}
+
+export class CodeLens {
+    constructor(
+        public readonly range: Range,
+        public readonly command?: unknown,
+    ) {}
 }
 
 export interface MockQuickPick {
@@ -147,6 +175,10 @@ export class McpStdioServerDefinition {
 
 export const Uri = {
     file: vi.fn((path: string) => ({ path, scheme: 'file' })),
+    from: vi.fn((components: { scheme: string; path: string }) => ({
+        scheme: components.scheme,
+        path: components.path,
+    })),
     joinPath: vi.fn((base: { path: string }, ...segments: string[]) => ({
         path: [base.path, ...segments].join('/'),
         scheme: 'file',
