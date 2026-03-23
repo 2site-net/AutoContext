@@ -17,7 +17,7 @@ Distributed as a VS Code extension — see [src/SharpPilot.VSCode/README.md](src
 SharpPilot.slnx                  # Solution file
 src/SharpPilot/                  # MCP server (.NET + Git tools)
 tests/SharpPilot.Tests/          # xUnit tests
-src/SharpPilot.VSCode/            # VS Code extension that registers the server
+src/SharpPilot.VSCode/            # VS Code extension (instructions, tools, rule management)
 ```
 
 ## Servers and Tools

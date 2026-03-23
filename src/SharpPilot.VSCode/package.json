@@ -940,6 +940,7 @@
     "test": "vitest run --config tests/vitest.config.ts",
     "test:smoke": "npm run compile && tsc -p tests/smoke-tests/tsconfig.json && node -e \"require('fs').writeFileSync('out/tests/smoke-tests/package.json','{\\\"type\\\":\\\"commonjs\\\"}')\" && vscode-test --config tests/.vscode-test.mjs",
     "publish:servers": "pwsh scripts/publish-servers.ps1",
+    "generate:chat-instructions": "npm run compile && node scripts/generate-chat-instructions.mjs",
     "package:win-x64": "pwsh scripts/publish-servers.ps1 -RuntimeIdentifier win-x64 -Package",
     "package:win-arm64": "pwsh scripts/publish-servers.ps1 -RuntimeIdentifier win-arm64 -Package",
     "package:linux-x64": "pwsh scripts/publish-servers.ps1 -RuntimeIdentifier linux-x64 -Package",

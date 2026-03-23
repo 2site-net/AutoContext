@@ -156,6 +156,27 @@ When instruction files exist in `.github/instructions/` or a
 overrides. Overridden instructions appear with a badge in the toggle menu,
 signaling that a local version is in use.
 
+## Per-Rule Disable
+
+Individual rules within any instruction file can be disabled without turning off
+the entire instruction:
+
+1. Run **SharpPilot: Browse Instructions** and select an instruction.
+2. The file opens in a virtual document with a **Disable Rule** / **Enable Rule**
+   CodeLens above each rule.
+3. Click a CodeLens to toggle the rule. Disabled rules are dimmed and tagged
+   `[DISABLED]`.
+4. When any rules are disabled, a **Reset All Rules** CodeLens appears at the
+   top of the file to re-enable everything at once.
+
+Disabled rules are excluded from the instructions that Copilot receives. The
+disable state is stored in `.sharppilot.json` in your workspace root — commit it
+for team-wide settings or add it to `.gitignore` for personal preferences.
+
+> **Note:** Disabled rules are tracked by a content hash. If an extension update
+> changes the wording of a rule, the old hash no longer matches and the rule is
+> silently re-enabled.
+
 ## Commands
 
 | Command | Description |
@@ -164,7 +185,9 @@ signaling that a local version is in use.
 | **SharpPilot: Toggle Tools** | Enable or disable individual tool checks. |
 | **SharpPilot: Auto Configure** | Scan the workspace and enable relevant items. |
 | **SharpPilot: Export Instructions** | Export instruction files to `.github/instructions/`. |
-| **SharpPilot: Browse Instructions** | Open an instruction file to read its content. |
+| **SharpPilot: Browse Instructions** | Preview an instruction file with per-rule disable/enable CodeLens. |
+| **SharpPilot: Toggle Rule** | Disable or re-enable a single rule (invoked via CodeLens). |
+| **SharpPilot: Reset All Rules** | Re-enable all disabled rules for the current file (invoked via CodeLens). |
 
 ## Prerequisites
 
