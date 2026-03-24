@@ -25,8 +25,8 @@ description: "Test"
 ---
 # Test
 
-- **Do** always use curly braces.
-- **Don't** use async void.
+- [INST0001] **Do** always use curly braces.
+- [INST0002] **Don't** use async void.
 `;
 
 function makeDocument(scheme: string, path: string) {
@@ -57,7 +57,7 @@ describe('InstructionCodeLensProvider', () => {
 
         const lenses = provider.provideCodeLenses(makeDocument(instructionScheme, 'test.instructions.md'));
 
-        const parsedInstructions = parseInstructions(testContent);
+        const { instructions: parsedInstructions } = parseInstructions(testContent);
         expect(lenses).toHaveLength(parsedInstructions.length);
 
         for (const lens of lenses) {
@@ -68,14 +68,14 @@ describe('InstructionCodeLensProvider', () => {
     });
 
     it('should show Enable Instruction for disabled instructions', () => {
-        const parsedInstructions = parseInstructions(testContent);
-        const firstHash = parsedInstructions[0].hash;
+        const { instructions: parsedInstructions } = parseInstructions(testContent);
+        const firstId = parsedInstructions[0].id;
 
         vi.mocked(readFileSync).mockImplementation((path: unknown) => {
             const pathStr = String(path);
             if (pathStr.endsWith('.sharppilot.json')) {
                 return JSON.stringify({
-                    instructions: { disabledInstructions: { 'test.instructions.md': [firstHash] } },
+                    instructions: { disabledInstructions: { 'test.instructions.md': [firstId] } },
                 });
             }
             return testContent;
@@ -98,14 +98,14 @@ describe('InstructionCodeLensProvider', () => {
     });
 
     it('should include Reset All Instructions lens when instructions are disabled', () => {
-        const parsedInstructions = parseInstructions(testContent);
-        const firstHash = parsedInstructions[0].hash;
+        const { instructions: parsedInstructions } = parseInstructions(testContent);
+        const firstId = parsedInstructions[0].id;
 
         vi.mocked(readFileSync).mockImplementation((path: unknown) => {
             const pathStr = String(path);
             if (pathStr.endsWith('.sharppilot.json')) {
                 return JSON.stringify({
-                    instructions: { disabledInstructions: { 'test.instructions.md': [firstHash] } },
+                    instructions: { disabledInstructions: { 'test.instructions.md': [firstId] } },
                 });
             }
             return testContent;

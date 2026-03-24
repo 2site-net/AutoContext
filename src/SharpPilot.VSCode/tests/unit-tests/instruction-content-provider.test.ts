@@ -24,8 +24,8 @@ description: "Test"
 ---
 # Test
 
-- **Do** always use curly braces.
-- **Don't** use async void.
+- [INST0001] **Do** always use curly braces.
+- [INST0002] **Don't** use async void.
 `;
 
 describe('InstructionContentProvider', () => {
@@ -45,13 +45,13 @@ describe('InstructionContentProvider', () => {
     });
 
     it('should insert [DISABLED] tag for disabled instructions', () => {
-        const parsedInstructions = parseInstructions(testContent);
-        const firstInstructionHash = parsedInstructions[0].hash;
+        const { instructions: parsedInstructions } = parseInstructions(testContent);
+        const firstInstructionId = parsedInstructions[0].id;
 
         vi.mocked(readFileSync).mockImplementation((path: unknown) => {
             const pathStr = String(path);
             if (pathStr.endsWith('.sharppilot.json')) {
-                return JSON.stringify({ instructions: { disabledInstructions: { 'test.instructions.md': [firstInstructionHash] } } });
+                return JSON.stringify({ instructions: { disabledInstructions: { 'test.instructions.md': [firstInstructionId] } } });
             }
             return testContent;
         });

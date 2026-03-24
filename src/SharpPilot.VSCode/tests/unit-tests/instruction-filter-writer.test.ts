@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-import { InstructionOverrideWriter } from '../../src/instruction-override-writer';
+import { InstructionFilterWriter } from '../../src/instruction-filter-writer';
 import { SharpPilotConfigManager } from '../../src/sharppilot-config';
 import { parseInstructions } from '../../src/instruction-parser';
 import { instructions, filteredContextKey } from '../../src/config';
@@ -30,11 +30,11 @@ description: "Test"
 ---
 # Test
 
-- **Do** always use curly braces.
-- **Don't** use async void.
+- [INST0001] **Do** always use curly braces.
+- [INST0002] **Don't** use async void.
 `;
 
-describe('InstructionOverrideWriter', () => {
+describe('InstructionFilterWriter', () => {
     it('should stage original files when no instructions are disabled', () => {
         vi.mocked(readFileSync).mockImplementation((path: unknown) => {
             const pathStr = String(path);
@@ -43,7 +43,7 @@ describe('InstructionOverrideWriter', () => {
         });
 
         const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
-        const writer = new InstructionOverrideWriter('/ext', configManager);
+        const writer = new InstructionFilterWriter('/ext', configManager);
         writer.write();
 
         expect(mkdirSync).toHaveBeenCalled();
@@ -61,7 +61,7 @@ describe('InstructionOverrideWriter', () => {
         });
 
         const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
-        const writer = new InstructionOverrideWriter('/ext', configManager);
+        const writer = new InstructionFilterWriter('/ext', configManager);
         writer.write();
 
         for (const entry of instructions) {
@@ -74,22 +74,22 @@ describe('InstructionOverrideWriter', () => {
     });
 
     it('should set filtered context key to true when instructions are disabled', () => {
-        const parsedInstructions = parseInstructions(testContent);
-        const firstHash = parsedInstructions[0].hash;
+        const { instructions: parsedInstructions } = parseInstructions(testContent);
+        const firstId = parsedInstructions[0].id;
         const targetFileName = instructions[0].fileName;
 
         vi.mocked(readFileSync).mockImplementation((path: unknown) => {
             const pathStr = String(path);
             if (pathStr.endsWith('.sharppilot.json')) {
                 return JSON.stringify({
-                    instructions: { disabledInstructions: { [targetFileName]: [firstHash] } },
+                    instructions: { disabledInstructions: { [targetFileName]: [firstId] } },
                 });
             }
             return testContent;
         });
 
         const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
-        const writer = new InstructionOverrideWriter('/ext', configManager);
+        const writer = new InstructionFilterWriter('/ext', configManager);
         writer.write();
 
         expect(commands.executeCommand).toHaveBeenCalledWith(
@@ -100,22 +100,22 @@ describe('InstructionOverrideWriter', () => {
     });
 
     it('should write filtered content with disabled instructions removed', () => {
-        const parsedInstructions = parseInstructions(testContent);
-        const firstHash = parsedInstructions[0].hash;
+        const { instructions: parsedInstructions } = parseInstructions(testContent);
+        const firstId = parsedInstructions[0].id;
         const targetFileName = instructions[0].fileName;
 
         vi.mocked(readFileSync).mockImplementation((path: unknown) => {
             const pathStr = String(path);
             if (pathStr.endsWith('.sharppilot.json')) {
                 return JSON.stringify({
-                    instructions: { disabledInstructions: { [targetFileName]: [firstHash] } },
+                    instructions: { disabledInstructions: { [targetFileName]: [firstId] } },
                 });
             }
             return testContent;
         });
 
         const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
-        const writer = new InstructionOverrideWriter('/ext', configManager);
+        const writer = new InstructionFilterWriter('/ext', configManager);
         writer.write();
 
         // Find the write call for the target instruction file in staging.
@@ -138,7 +138,7 @@ describe('InstructionOverrideWriter', () => {
         vi.mocked(readFileSync).mockReturnValue('{}');
 
         const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
-        const writer = new InstructionOverrideWriter('/ext', configManager);
+        const writer = new InstructionFilterWriter('/ext', configManager);
         writer.removeOrphanedStagingDirs();
 
         expect(readdirSync).not.toHaveBeenCalled();
@@ -152,7 +152,7 @@ describe('InstructionOverrideWriter', () => {
         vi.mocked(readFileSync).mockReturnValue('{}');
 
         const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
-        const writer = new InstructionOverrideWriter('/ext', configManager);
+        const writer = new InstructionFilterWriter('/ext', configManager);
         writer.removeOrphanedStagingDirs();
 
         expect(rmSync).toHaveBeenCalledWith(
@@ -168,7 +168,7 @@ describe('InstructionOverrideWriter', () => {
         vi.mocked(readFileSync).mockReturnValue('{}');
 
         const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
-        const writer = new InstructionOverrideWriter('/ext', configManager);
+        const writer = new InstructionFilterWriter('/ext', configManager);
         writer.removeOrphanedStagingDirs();
 
         expect(rmSync).not.toHaveBeenCalled();
@@ -178,7 +178,7 @@ describe('InstructionOverrideWriter', () => {
         vi.mocked(readFileSync).mockReturnValue('{}');
 
         const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
-        const writer = new InstructionOverrideWriter('/ext', configManager);
+        const writer = new InstructionFilterWriter('/ext', configManager);
 
         // Should not throw.
         writer.dispose();

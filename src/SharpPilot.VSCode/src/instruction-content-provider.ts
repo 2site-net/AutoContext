@@ -32,23 +32,23 @@ export class InstructionContentProvider implements vscode.TextDocumentContentPro
             return `Unable to read instruction file: ${fileName}`;
         }
 
-        const disabledHashes = this.configManager.getDisabledInstructions(fileName);
-        if (disabledHashes.size === 0) {
+        const disabledIds = this.configManager.getDisabledInstructions(fileName);
+        if (disabledIds.size === 0) {
             return content;
         }
 
-        const parsedInstructions = parseInstructions(content);
+        const { instructions } = parseInstructions(content);
         const lines = content.split('\n');
 
         // Apply [DISABLED] tags in reverse order to preserve line indices.
-        for (let i = parsedInstructions.length - 1; i >= 0; i--) {
-            const instruction = parsedInstructions[i];
-            if (!disabledHashes.has(instruction.hash)) {
+        for (let i = instructions.length - 1; i >= 0; i--) {
+            const instruction = instructions[i];
+            if (instruction.id === undefined || !disabledIds.has(instruction.id)) {
                 continue;
             }
 
             const line = lines[instruction.startLine];
-            const match = line.match(/^([-*]\s)(\*\*(?:Do|Don't)\*\*)/);
+            const match = line.match(/^([-*]\s)(?:\[INST\d{4}\]\s*)?(\*\*(?:Do|Don't)\*\*)/);
             if (match) {
                 lines[instruction.startLine] = `${match[1]}**[DISABLED]** ${match[2]}${line.slice(match[0].length)}`;
             }

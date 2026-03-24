@@ -19,7 +19,7 @@ import type { SharpPilotConfigManager } from './sharppilot-config.js';
  * Per-file context keys (`sharp-pilot.filtered.<suffix>`) tell `package.json` which
  * entry to activate — original or filtered — so Copilot always reads the correct file.
  */
-export class InstructionOverrideWriter implements vscode.Disposable {
+export class InstructionFilterWriter implements vscode.Disposable {
     private readonly filteredRoot: string;
     private stagingDir: string;
     private readonly disposables: vscode.Disposable[] = [];
@@ -58,11 +58,11 @@ export class InstructionOverrideWriter implements vscode.Disposable {
         const disabledInstructionsMap = config.instructions?.disabledInstructions ?? {};
 
         for (const entry of instructions) {
-            const disabledHashes = disabledInstructionsMap[entry.fileName];
-            const hasDisabled = disabledHashes !== undefined && disabledHashes.length > 0;
+            const disabledIds = disabledInstructionsMap[entry.fileName];
+            const hasDisabled = disabledIds !== undefined && disabledIds.length > 0;
 
             if (hasDisabled) {
-                this.writeFiltered(entry.fileName, new Set(disabledHashes));
+                this.writeFiltered(entry.fileName, new Set(disabledIds));
             } else {
                 this.stageOriginal(entry.fileName);
             }
@@ -142,7 +142,7 @@ export class InstructionOverrideWriter implements vscode.Disposable {
         }
     }
 
-    private writeFiltered(fileName: string, disabledHashes: ReadonlySet<string>): void {
+    private writeFiltered(fileName: string, disabledIds: ReadonlySet<string>): void {
         const src = join(this.extensionPath, 'instructions', fileName);
         const dest = join(this.stagingDir, fileName);
 
@@ -153,12 +153,12 @@ export class InstructionOverrideWriter implements vscode.Disposable {
             return;
         }
 
-        const parsedInstructions = parseInstructions(content);
+        const { instructions: parsedInstructions } = parseInstructions(content);
         const lines = content.split('\n');
         const linesToRemove = new Set<number>();
 
         for (const instruction of parsedInstructions) {
-            if (disabledHashes.has(instruction.hash)) {
+            if (instruction.id !== undefined && disabledIds.has(instruction.id)) {
                 for (let i = instruction.startLine; i <= instruction.endLine; i++) {
                     linesToRemove.add(i);
                 }

@@ -25,8 +25,8 @@ description: "Test"
 ---
 # Test
 
-- **Do** always use curly braces.
-- **Don't** use async void.
+- [INST0001] **Do** always use curly braces.
+- [INST0002] **Don't** use async void.
 `;
 
 function makeEditor(scheme: string, path: string) {
@@ -69,14 +69,14 @@ describe('InstructionDecorationManager', () => {
     });
 
     it('should set decoration ranges for disabled instructions', () => {
-        const parsedInstructions = parseInstructions(testContent);
-        const firstHash = parsedInstructions[0].hash;
+        const { instructions: parsedInstructions } = parseInstructions(testContent);
+        const firstId = parsedInstructions[0].id;
 
         vi.mocked(readFileSync).mockImplementation((path: unknown) => {
             const pathStr = String(path);
             if (pathStr.endsWith('.sharppilot.json')) {
                 return JSON.stringify({
-                    instructions: { disabledInstructions: { 'test.instructions.md': [firstHash] } },
+                    instructions: { disabledInstructions: { 'test.instructions.md': [firstId] } },
                 });
             }
             return testContent;

@@ -39,12 +39,12 @@ export class InstructionDecorationManager implements vscode.Disposable {
             return;
         }
 
-        const parsedInstructions = parseInstructions(content);
-        const disabledHashes = this.configManager.getDisabledInstructions(fileName);
+        const { instructions } = parseInstructions(content);
+        const disabledIds = this.configManager.getDisabledInstructions(fileName);
         const ranges: vscode.Range[] = [];
 
-        for (const instruction of parsedInstructions) {
-            if (disabledHashes.has(instruction.hash)) {
+        for (const instruction of instructions) {
+            if (instruction.id !== undefined && disabledIds.has(instruction.id)) {
                 ranges.push(new vscode.Range(instruction.startLine, 0, instruction.endLine, Number.MAX_SAFE_INTEGER));
             }
         }

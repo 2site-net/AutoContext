@@ -38,12 +38,12 @@ export class InstructionCodeLensProvider implements vscode.CodeLensProvider, vsc
             return [];
         }
 
-        const parsedInstructions = parseInstructions(content);
-        const disabledHashes = this.configManager.getDisabledInstructions(fileName);
+        const { instructions } = parseInstructions(content);
+        const disabledIds = this.configManager.getDisabledInstructions(fileName);
 
         const lenses: vscode.CodeLens[] = [];
 
-        if (disabledHashes.size > 0) {
+        if (disabledIds.size > 0) {
             lenses.push(new vscode.CodeLens(new vscode.Range(0, 0, 0, 0), {
                 title: '$(refresh) Reset All Instructions',
                 command: resetInstructionsCommandId,
@@ -51,14 +51,18 @@ export class InstructionCodeLensProvider implements vscode.CodeLensProvider, vsc
             }));
         }
 
-        for (const instruction of parsedInstructions) {
-            const isDisabled = disabledHashes.has(instruction.hash);
+        for (const instruction of instructions) {
+            if (instruction.id === undefined) {
+                continue;
+            }
+
+            const isDisabled = disabledIds.has(instruction.id);
             const range = new vscode.Range(instruction.startLine, 0, instruction.startLine, 0);
 
             lenses.push(new vscode.CodeLens(range, {
                 title: isDisabled ? '$(check) Enable Instruction' : '$(x) Disable Instruction',
                 command: toggleInstructionCommandId,
-                arguments: [fileName, instruction.hash],
+                arguments: [fileName, instruction.id],
             }));
         }
 

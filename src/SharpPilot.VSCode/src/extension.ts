@@ -13,7 +13,9 @@ import { SharpPilotConfigManager } from './sharppilot-config.js';
 import { InstructionContentProvider, instructionScheme } from './instruction-content-provider.js';
 import { InstructionCodeLensProvider, toggleInstructionCommandId, resetInstructionsCommandId } from './instruction-codelens-provider.js';
 import { InstructionDecorationManager } from './instruction-decoration-manager.js';
-import { InstructionOverrideWriter } from './instruction-override-writer.js';
+import { InstructionFilterWriter } from './instruction-filter-writer.js';
+import { parseInstructions } from './instruction-parser.js';
+import { readFileSync } from 'node:fs';
 
 export function activate(context: vscode.ExtensionContext): void {
     const serversPath = join(context.extensionPath, 'servers');
@@ -33,24 +35,51 @@ export function activate(context: vscode.ExtensionContext): void {
     const contentProvider = new InstructionContentProvider(context.extensionPath, configManager);
     const codeLensProvider = new InstructionCodeLensProvider(context.extensionPath, configManager);
     const decorationManager = new InstructionDecorationManager(context.extensionPath, configManager);
-    const instructionOverrideWriter = new InstructionOverrideWriter(context.extensionPath, configManager);
+    const instructionFilterWriter = new InstructionFilterWriter(context.extensionPath, configManager);
+    const outputChannel = vscode.window.createOutputChannel('SharpPilot');
+
+    function logDiagnostics(): void {
+        outputChannel.clear();
+        const warnOnMissingId = configManager.read().diagnostic?.warnOnMissingId === true;
+
+        for (const entry of instructions) {
+            let content: string;
+            try {
+                content = readFileSync(join(context.extensionPath, 'instructions', entry.fileName), 'utf-8');
+            } catch {
+                continue;
+            }
+
+            const { diagnostics } = parseInstructions(content);
+
+            for (const d of diagnostics) {
+                if (d.kind === 'missing-id' && !warnOnMissingId) {
+                    continue;
+                }
+
+                outputChannel.appendLine(`[warn] ${entry.fileName}:${d.line + 1} — ${d.message}`);
+            }
+        }
+    }
 
     toolsStatusWriter.write();
     workspaceContextDetector.detect();
     instructionVersionChecker.check();
-    configManager.removeOrphanedHashes();
-    instructionOverrideWriter.removeOrphanedStagingDirs();
-    instructionOverrideWriter.write();
+    configManager.removeOrphanedIds();
+    instructionFilterWriter.removeOrphanedStagingDirs();
+    instructionFilterWriter.write();
+    logDiagnostics();
 
     context.subscriptions.push(
         didChangeEmitter,
+        outputChannel,
         statusBarIndicator,
         workspaceContextDetector,
         configManager,
         contentProvider,
         codeLensProvider,
         decorationManager,
-        instructionOverrideWriter,
+        instructionFilterWriter,
         vscode.workspace.registerTextDocumentContentProvider(instructionScheme, contentProvider),
         vscode.languages.registerCodeLensProvider({ scheme: instructionScheme }, codeLensProvider),
         vscode.commands.registerCommand(StatusBarIndicator.commandId, () => statusBarIndicator.showToggleMenu()),
@@ -59,19 +88,20 @@ export function activate(context: vscode.ExtensionContext): void {
         vscode.commands.registerCommand('sharp-pilot.autoConfigure', () => autoConfigure(workspaceContextDetector)),
         vscode.commands.registerCommand('sharp-pilot.exportInstructions', () => instructionExporter.export()),
         vscode.commands.registerCommand('sharp-pilot.browseInstructions', () => instructionBrowser.browse()),
-        vscode.commands.registerCommand(toggleInstructionCommandId, (fileName: string, hash: string) => {
-            configManager.toggleInstruction(fileName, hash);
+        vscode.commands.registerCommand(toggleInstructionCommandId, (fileName: string, id: string) => {
+            configManager.toggleInstruction(fileName, id);
         }),
         vscode.commands.registerCommand(resetInstructionsCommandId, (fileName: string) => {
             configManager.resetInstructions(fileName);
         }),
+        configManager.onDidChange(() => logDiagnostics()),
         vscode.window.onDidChangeWindowState(e => {
             if (e.focused) {
-                instructionOverrideWriter.write();
+                instructionFilterWriter.write();
             }
         }),
         vscode.workspace.onDidGrantWorkspaceTrust(() => {
-            instructionOverrideWriter.write();
+            instructionFilterWriter.write();
         }),
         vscode.workspace.onDidChangeConfiguration(e => {
             if (e.affectsConfiguration('sharp-pilot.instructions') || e.affectsConfiguration('sharp-pilot.tools')) {

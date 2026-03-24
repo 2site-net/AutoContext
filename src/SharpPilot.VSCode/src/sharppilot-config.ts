@@ -5,6 +5,9 @@ import { parseInstructions } from './instruction-parser.js';
 
 export interface SharpPilotConfig {
     version?: string;
+    diagnostic?: {
+        warnOnMissingId?: boolean;
+    };
     instructions?: {
         disabledInstructions?: Record<string, string[]>;
     };
@@ -44,8 +47,8 @@ export class SharpPilotConfigManager implements vscode.Disposable {
 
     getDisabledInstructions(fileName: string): ReadonlySet<string> {
         const config = this.read();
-        const hashes = config.instructions?.disabledInstructions?.[fileName];
-        return new Set(hashes ?? []);
+        const ids = config.instructions?.disabledInstructions?.[fileName];
+        return new Set(ids ?? []);
     }
 
     hasAnyDisabledInstructions(): boolean {
@@ -54,27 +57,27 @@ export class SharpPilotConfigManager implements vscode.Disposable {
         if (!disabledInstructions) {
             return false;
         }
-        return Object.values(disabledInstructions).some(hashes => hashes.length > 0);
+        return Object.values(disabledInstructions).some(ids => ids.length > 0);
     }
 
-    toggleInstruction(fileName: string, hash: string): void {
+    toggleInstruction(fileName: string, id: string): void {
         const config = this.read();
         config.instructions ??= {};
         config.instructions.disabledInstructions ??= {};
 
-        const hashes = config.instructions.disabledInstructions[fileName] ?? [];
-        const index = hashes.indexOf(hash);
+        const ids = config.instructions.disabledInstructions[fileName] ?? [];
+        const index = ids.indexOf(id);
 
         if (index >= 0) {
-            hashes.splice(index, 1);
+            ids.splice(index, 1);
         } else {
-            hashes.push(hash);
+            ids.push(id);
         }
 
-        if (hashes.length === 0) {
+        if (ids.length === 0) {
             delete config.instructions.disabledInstructions[fileName];
         } else {
-            config.instructions.disabledInstructions[fileName] = hashes;
+            config.instructions.disabledInstructions[fileName] = ids;
         }
 
         // Clean up empty containers.
@@ -107,7 +110,7 @@ export class SharpPilotConfigManager implements vscode.Disposable {
         this.write(config);
     }
 
-    removeOrphanedHashes(): number {
+    removeOrphanedIds(): number {
         const config = this.read();
         const disabledInstructions = config.instructions?.disabledInstructions;
         if (!disabledInstructions) {
@@ -116,15 +119,17 @@ export class SharpPilotConfigManager implements vscode.Disposable {
 
         let removed = 0;
 
-        for (const [fileName, hashes] of Object.entries(disabledInstructions)) {
+        for (const [fileName, ids] of Object.entries(disabledInstructions)) {
             try {
                 const filePath = join(this.extensionPath, 'instructions', fileName);
                 const content = readFileSync(filePath, 'utf-8');
-                const parsedInstructions = parseInstructions(content);
-                const validHashes = new Set(parsedInstructions.map(r => r.hash));
+                const { instructions } = parseInstructions(content);
+                const validIds = new Set(
+                    instructions.map(r => r.id).filter((id): id is string => id !== undefined),
+                );
 
-                const filtered = hashes.filter(h => validHashes.has(h));
-                removed += hashes.length - filtered.length;
+                const filtered = ids.filter(id => validIds.has(id));
+                removed += ids.length - filtered.length;
 
                 if (filtered.length === 0) {
                     delete disabledInstructions[fileName];
@@ -132,8 +137,8 @@ export class SharpPilotConfigManager implements vscode.Disposable {
                     disabledInstructions[fileName] = filtered;
                 }
             } catch {
-                // File no longer exists — remove all its hashes.
-                removed += hashes.length;
+                // File no longer exists — remove all its IDs.
+                removed += ids.length;
                 delete disabledInstructions[fileName];
             }
         }
@@ -173,7 +178,7 @@ export class SharpPilotConfigManager implements vscode.Disposable {
             return;
         }
 
-        const isEmpty = !config.instructions;
+        const isEmpty = !config.instructions && !config.diagnostic;
         if (isEmpty) {
             try {
                 unlinkSync(path);
