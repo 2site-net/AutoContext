@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-import { RuleCodeLensProvider, toggleRuleCommandId, resetRulesCommandId } from '../../src/rule-codelens-provider';
+import { InstructionCodeLensProvider, toggleInstructionCommandId, resetInstructionsCommandId } from '../../src/instruction-codelens-provider';
 import { SharpPilotConfigManager } from '../../src/sharppilot-config';
 import { instructionScheme } from '../../src/instruction-content-provider';
-import { parseRules } from '../../src/rule-parser';
+import { parseInstructions } from '../../src/instruction-parser';
 
 import { readFileSync } from 'node:fs';
 
@@ -33,19 +33,19 @@ function makeDocument(scheme: string, path: string) {
     return { uri: { scheme, path } } as unknown as import('vscode').TextDocument;
 }
 
-describe('RuleCodeLensProvider', () => {
+describe('InstructionCodeLensProvider', () => {
     it('should return empty array for non-instruction documents', () => {
         vi.mocked(readFileSync).mockReturnValue('{}');
 
         const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
-        const provider = new RuleCodeLensProvider('/ext', configManager);
+        const provider = new InstructionCodeLensProvider('/ext', configManager);
 
         const lenses = provider.provideCodeLenses(makeDocument('file', 'test.md'));
 
         expect(lenses).toEqual([]);
     });
 
-    it('should return one CodeLens per rule when no rules are disabled', () => {
+    it('should return one CodeLens per instruction when no instructions are disabled', () => {
         vi.mocked(readFileSync).mockImplementation((path: unknown) => {
             const pathStr = String(path);
             if (pathStr.endsWith('.sharppilot.json')) return '{}';
@@ -53,76 +53,76 @@ describe('RuleCodeLensProvider', () => {
         });
 
         const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
-        const provider = new RuleCodeLensProvider('/ext', configManager);
+        const provider = new InstructionCodeLensProvider('/ext', configManager);
 
         const lenses = provider.provideCodeLenses(makeDocument(instructionScheme, 'test.instructions.md'));
 
-        const rules = parseRules(testContent);
-        expect(lenses).toHaveLength(rules.length);
+        const parsedInstructions = parseInstructions(testContent);
+        expect(lenses).toHaveLength(parsedInstructions.length);
 
         for (const lens of lenses) {
             const cmd = lens.command as { title: string; command: string };
-            expect(cmd.title).toContain('Disable Rule');
-            expect(cmd.command).toBe(toggleRuleCommandId);
+            expect(cmd.title).toContain('Disable Instruction');
+            expect(cmd.command).toBe(toggleInstructionCommandId);
         }
     });
 
-    it('should show Enable Rule for disabled rules', () => {
-        const rules = parseRules(testContent);
-        const firstHash = rules[0].hash;
+    it('should show Enable Instruction for disabled instructions', () => {
+        const parsedInstructions = parseInstructions(testContent);
+        const firstHash = parsedInstructions[0].hash;
 
         vi.mocked(readFileSync).mockImplementation((path: unknown) => {
             const pathStr = String(path);
             if (pathStr.endsWith('.sharppilot.json')) {
                 return JSON.stringify({
-                    instructions: { disabledRules: { 'test.instructions.md': [firstHash] } },
+                    instructions: { disabledInstructions: { 'test.instructions.md': [firstHash] } },
                 });
             }
             return testContent;
         });
 
         const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
-        const provider = new RuleCodeLensProvider('/ext', configManager);
+        const provider = new InstructionCodeLensProvider('/ext', configManager);
 
         const lenses = provider.provideCodeLenses(makeDocument(instructionScheme, 'test.instructions.md'));
 
-        // Should have reset lens + one per rule.
-        expect(lenses).toHaveLength(rules.length + 1);
+        // Should have reset lens + one per instruction.
+        expect(lenses).toHaveLength(parsedInstructions.length + 1);
 
-        const toggleLenses = lenses.filter(l => (l.command as { command: string }).command === toggleRuleCommandId);
-        const enableLens = toggleLenses.find(l => (l.command as { title: string }).title.includes('Enable Rule'));
-        const disableLens = toggleLenses.find(l => (l.command as { title: string }).title.includes('Disable Rule'));
+        const toggleLenses = lenses.filter(l => (l.command as { command: string }).command === toggleInstructionCommandId);
+        const enableLens = toggleLenses.find(l => (l.command as { title: string }).title.includes('Enable Instruction'));
+        const disableLens = toggleLenses.find(l => (l.command as { title: string }).title.includes('Disable Instruction'));
 
         expect(enableLens).toBeDefined();
         expect(disableLens).toBeDefined();
     });
 
-    it('should include Reset All Rules lens when rules are disabled', () => {
-        const rules = parseRules(testContent);
-        const firstHash = rules[0].hash;
+    it('should include Reset All Instructions lens when instructions are disabled', () => {
+        const parsedInstructions = parseInstructions(testContent);
+        const firstHash = parsedInstructions[0].hash;
 
         vi.mocked(readFileSync).mockImplementation((path: unknown) => {
             const pathStr = String(path);
             if (pathStr.endsWith('.sharppilot.json')) {
                 return JSON.stringify({
-                    instructions: { disabledRules: { 'test.instructions.md': [firstHash] } },
+                    instructions: { disabledInstructions: { 'test.instructions.md': [firstHash] } },
                 });
             }
             return testContent;
         });
 
         const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
-        const provider = new RuleCodeLensProvider('/ext', configManager);
+        const provider = new InstructionCodeLensProvider('/ext', configManager);
 
         const lenses = provider.provideCodeLenses(makeDocument(instructionScheme, 'test.instructions.md'));
 
-        const resetLens = lenses.find(l => (l.command as { command: string }).command === resetRulesCommandId);
+        const resetLens = lenses.find(l => (l.command as { command: string }).command === resetInstructionsCommandId);
         expect(resetLens).toBeDefined();
-        expect((resetLens!.command as { title: string }).title).toContain('Reset All Rules');
+        expect((resetLens!.command as { title: string }).title).toContain('Reset All Instructions');
         expect((resetLens!.command as { arguments: string[] }).arguments).toEqual(['test.instructions.md']);
     });
 
-    it('should not include Reset All Rules lens when no rules are disabled', () => {
+    it('should not include Reset All Instructions lens when no instructions are disabled', () => {
         vi.mocked(readFileSync).mockImplementation((path: unknown) => {
             const pathStr = String(path);
             if (pathStr.endsWith('.sharppilot.json')) return '{}';
@@ -130,11 +130,11 @@ describe('RuleCodeLensProvider', () => {
         });
 
         const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
-        const provider = new RuleCodeLensProvider('/ext', configManager);
+        const provider = new InstructionCodeLensProvider('/ext', configManager);
 
         const lenses = provider.provideCodeLenses(makeDocument(instructionScheme, 'test.instructions.md'));
 
-        const resetLens = lenses.find(l => (l.command as { command: string }).command === resetRulesCommandId);
+        const resetLens = lenses.find(l => (l.command as { command: string }).command === resetInstructionsCommandId);
         expect(resetLens).toBeUndefined();
     });
 });

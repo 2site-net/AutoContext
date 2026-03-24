@@ -58,13 +58,13 @@
         "category": "SharpPilot"
       },
       {
-        "command": "sharp-pilot.toggleRule",
-        "title": "Toggle Rule",
+        "command": "sharp-pilot.toggleInstruction",
+        "title": "Toggle Instruction",
         "category": "SharpPilot"
       },
       {
-        "command": "sharp-pilot.resetRules",
-        "title": "Reset Rules",
+        "command": "sharp-pilot.resetInstructions",
+        "title": "Reset Instructions",
         "category": "SharpPilot"
       }
     ],

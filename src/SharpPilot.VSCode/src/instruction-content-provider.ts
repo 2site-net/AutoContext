@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { parseRules } from './rule-parser.js';
+import { parseInstructions } from './instruction-parser.js';
 import type { SharpPilotConfigManager } from './sharppilot-config.js';
 
 export const instructionScheme = 'sharp-pilot-instructions';
@@ -32,25 +32,25 @@ export class InstructionContentProvider implements vscode.TextDocumentContentPro
             return `Unable to read instruction file: ${fileName}`;
         }
 
-        const disabledHashes = this.configManager.getDisabledRules(fileName);
+        const disabledHashes = this.configManager.getDisabledInstructions(fileName);
         if (disabledHashes.size === 0) {
             return content;
         }
 
-        const rules = parseRules(content);
+        const parsedInstructions = parseInstructions(content);
         const lines = content.split('\n');
 
         // Apply [DISABLED] tags in reverse order to preserve line indices.
-        for (let i = rules.length - 1; i >= 0; i--) {
-            const rule = rules[i];
-            if (!disabledHashes.has(rule.hash)) {
+        for (let i = parsedInstructions.length - 1; i >= 0; i--) {
+            const instruction = parsedInstructions[i];
+            if (!disabledHashes.has(instruction.hash)) {
                 continue;
             }
 
-            const line = lines[rule.startLine];
+            const line = lines[instruction.startLine];
             const match = line.match(/^([-*]\s)(\*\*(?:Do|Don't)\*\*)/);
             if (match) {
-                lines[rule.startLine] = `${match[1]}**[DISABLED]** ${match[2]}${line.slice(match[0].length)}`;
+                lines[instruction.startLine] = `${match[1]}**[DISABLED]** ${match[2]}${line.slice(match[0].length)}`;
             }
         }
 

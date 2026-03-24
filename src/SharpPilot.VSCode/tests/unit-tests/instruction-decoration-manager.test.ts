@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-import { RuleDecorationManager } from '../../src/rule-decoration-manager';
+import { InstructionDecorationManager } from '../../src/instruction-decoration-manager';
 import { SharpPilotConfigManager } from '../../src/sharppilot-config';
 import { instructionScheme } from '../../src/instruction-content-provider';
-import { parseRules } from '../../src/rule-parser';
+import { parseInstructions } from '../../src/instruction-parser';
 
 import { readFileSync } from 'node:fs';
 
@@ -36,12 +36,12 @@ function makeEditor(scheme: string, path: string) {
     } as unknown as import('vscode').TextEditor;
 }
 
-describe('RuleDecorationManager', () => {
+describe('InstructionDecorationManager', () => {
     it('should not set decorations for non-instruction editors', () => {
         vi.mocked(readFileSync).mockReturnValue('{}');
 
         const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
-        const manager = new RuleDecorationManager('/ext', configManager);
+        const manager = new InstructionDecorationManager('/ext', configManager);
 
         const editor = makeEditor('file', '/some/file.ts');
         manager.applyDecorations(editor);
@@ -49,7 +49,7 @@ describe('RuleDecorationManager', () => {
         expect((editor as unknown as { setDecorations: ReturnType<typeof vi.fn> }).setDecorations).not.toHaveBeenCalled();
     });
 
-    it('should set empty decorations when no rules are disabled', () => {
+    it('should set empty decorations when no instructions are disabled', () => {
         vi.mocked(readFileSync).mockImplementation((path: unknown) => {
             const pathStr = String(path);
             if (pathStr.endsWith('.sharppilot.json')) return '{}';
@@ -57,7 +57,7 @@ describe('RuleDecorationManager', () => {
         });
 
         const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
-        const manager = new RuleDecorationManager('/ext', configManager);
+        const manager = new InstructionDecorationManager('/ext', configManager);
 
         const editor = makeEditor(instructionScheme, 'test.instructions.md');
         manager.applyDecorations(editor);
@@ -68,22 +68,22 @@ describe('RuleDecorationManager', () => {
         );
     });
 
-    it('should set decoration ranges for disabled rules', () => {
-        const rules = parseRules(testContent);
-        const firstHash = rules[0].hash;
+    it('should set decoration ranges for disabled instructions', () => {
+        const parsedInstructions = parseInstructions(testContent);
+        const firstHash = parsedInstructions[0].hash;
 
         vi.mocked(readFileSync).mockImplementation((path: unknown) => {
             const pathStr = String(path);
             if (pathStr.endsWith('.sharppilot.json')) {
                 return JSON.stringify({
-                    instructions: { disabledRules: { 'test.instructions.md': [firstHash] } },
+                    instructions: { disabledInstructions: { 'test.instructions.md': [firstHash] } },
                 });
             }
             return testContent;
         });
 
         const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
-        const manager = new RuleDecorationManager('/ext', configManager);
+        const manager = new InstructionDecorationManager('/ext', configManager);
 
         const editor = makeEditor(instructionScheme, 'test.instructions.md');
         manager.applyDecorations(editor);
@@ -110,7 +110,7 @@ describe('RuleDecorationManager', () => {
         vscodeWindow.visibleTextEditors = [editor1, editor2] as unknown[];
 
         const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
-        const manager = new RuleDecorationManager('/ext', configManager);
+        const manager = new InstructionDecorationManager('/ext', configManager);
         manager.refreshAll();
 
         // Only the instruction editor should get decorations.

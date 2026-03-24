@@ -1,11 +1,11 @@
 import * as vscode from 'vscode';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { parseRules } from './rule-parser.js';
+import { parseInstructions } from './instruction-parser.js';
 import { instructionScheme } from './instruction-content-provider.js';
 import type { SharpPilotConfigManager } from './sharppilot-config.js';
 
-export class RuleDecorationManager implements vscode.Disposable {
+export class InstructionDecorationManager implements vscode.Disposable {
     private readonly decorationType = vscode.window.createTextEditorDecorationType({ opacity: '0.4' });
     private readonly disposables: vscode.Disposable[] = [];
 
@@ -39,13 +39,13 @@ export class RuleDecorationManager implements vscode.Disposable {
             return;
         }
 
-        const rules = parseRules(content);
-        const disabledHashes = this.configManager.getDisabledRules(fileName);
+        const parsedInstructions = parseInstructions(content);
+        const disabledHashes = this.configManager.getDisabledInstructions(fileName);
         const ranges: vscode.Range[] = [];
 
-        for (const rule of rules) {
-            if (disabledHashes.has(rule.hash)) {
-                ranges.push(new vscode.Range(rule.startLine, 0, rule.endLine, Number.MAX_SAFE_INTEGER));
+        for (const instruction of parsedInstructions) {
+            if (disabledHashes.has(instruction.hash)) {
+                ranges.push(new vscode.Range(instruction.startLine, 0, instruction.endLine, Number.MAX_SAFE_INTEGER));
             }
         }
 

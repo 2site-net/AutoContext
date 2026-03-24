@@ -1,12 +1,12 @@
 import * as vscode from 'vscode';
 import { readFileSync, writeFileSync, unlinkSync } from 'node:fs';
 import { join } from 'node:path';
-import { parseRules } from './rule-parser.js';
+import { parseInstructions } from './instruction-parser.js';
 
 export interface SharpPilotConfig {
     version?: string;
     instructions?: {
-        disabledRules?: Record<string, string[]>;
+        disabledInstructions?: Record<string, string[]>;
     };
 }
 
@@ -42,27 +42,27 @@ export class SharpPilotConfigManager implements vscode.Disposable {
         }
     }
 
-    getDisabledRules(fileName: string): ReadonlySet<string> {
+    getDisabledInstructions(fileName: string): ReadonlySet<string> {
         const config = this.read();
-        const hashes = config.instructions?.disabledRules?.[fileName];
+        const hashes = config.instructions?.disabledInstructions?.[fileName];
         return new Set(hashes ?? []);
     }
 
-    hasAnyDisabledRules(): boolean {
+    hasAnyDisabledInstructions(): boolean {
         const config = this.read();
-        const disabledRules = config.instructions?.disabledRules;
-        if (!disabledRules) {
+        const disabledInstructions = config.instructions?.disabledInstructions;
+        if (!disabledInstructions) {
             return false;
         }
-        return Object.values(disabledRules).some(hashes => hashes.length > 0);
+        return Object.values(disabledInstructions).some(hashes => hashes.length > 0);
     }
 
-    toggleRule(fileName: string, hash: string): void {
+    toggleInstruction(fileName: string, hash: string): void {
         const config = this.read();
         config.instructions ??= {};
-        config.instructions.disabledRules ??= {};
+        config.instructions.disabledInstructions ??= {};
 
-        const hashes = config.instructions.disabledRules[fileName] ?? [];
+        const hashes = config.instructions.disabledInstructions[fileName] ?? [];
         const index = hashes.indexOf(hash);
 
         if (index >= 0) {
@@ -72,14 +72,14 @@ export class SharpPilotConfigManager implements vscode.Disposable {
         }
 
         if (hashes.length === 0) {
-            delete config.instructions.disabledRules[fileName];
+            delete config.instructions.disabledInstructions[fileName];
         } else {
-            config.instructions.disabledRules[fileName] = hashes;
+            config.instructions.disabledInstructions[fileName] = hashes;
         }
 
         // Clean up empty containers.
-        if (Object.keys(config.instructions.disabledRules).length === 0) {
-            delete config.instructions.disabledRules;
+        if (Object.keys(config.instructions.disabledInstructions).length === 0) {
+            delete config.instructions.disabledInstructions;
         }
         if (Object.keys(config.instructions).length === 0) {
             delete config.instructions;
@@ -88,17 +88,17 @@ export class SharpPilotConfigManager implements vscode.Disposable {
         this.write(config);
     }
 
-    resetRules(fileName: string): void {
+    resetInstructions(fileName: string): void {
         const config = this.read();
-        const disabledRules = config.instructions?.disabledRules;
-        if (!disabledRules?.[fileName]) {
+        const disabledInstructions = config.instructions?.disabledInstructions;
+        if (!disabledInstructions?.[fileName]) {
             return;
         }
 
-        delete disabledRules[fileName];
+        delete disabledInstructions[fileName];
 
-        if (Object.keys(disabledRules).length === 0) {
-            delete config.instructions!.disabledRules;
+        if (Object.keys(disabledInstructions).length === 0) {
+            delete config.instructions!.disabledInstructions;
         }
         if (Object.keys(config.instructions!).length === 0) {
             delete config.instructions;
@@ -109,39 +109,39 @@ export class SharpPilotConfigManager implements vscode.Disposable {
 
     removeOrphanedHashes(): number {
         const config = this.read();
-        const disabledRules = config.instructions?.disabledRules;
-        if (!disabledRules) {
+        const disabledInstructions = config.instructions?.disabledInstructions;
+        if (!disabledInstructions) {
             return 0;
         }
 
         let removed = 0;
 
-        for (const [fileName, hashes] of Object.entries(disabledRules)) {
+        for (const [fileName, hashes] of Object.entries(disabledInstructions)) {
             try {
                 const filePath = join(this.extensionPath, 'instructions', fileName);
                 const content = readFileSync(filePath, 'utf-8');
-                const rules = parseRules(content);
-                const validHashes = new Set(rules.map(r => r.hash));
+                const parsedInstructions = parseInstructions(content);
+                const validHashes = new Set(parsedInstructions.map(r => r.hash));
 
                 const filtered = hashes.filter(h => validHashes.has(h));
                 removed += hashes.length - filtered.length;
 
                 if (filtered.length === 0) {
-                    delete disabledRules[fileName];
+                    delete disabledInstructions[fileName];
                 } else {
-                    disabledRules[fileName] = filtered;
+                    disabledInstructions[fileName] = filtered;
                 }
             } catch {
                 // File no longer exists — remove all its hashes.
                 removed += hashes.length;
-                delete disabledRules[fileName];
+                delete disabledInstructions[fileName];
             }
         }
 
         if (removed > 0) {
             // Clean up empty containers.
-            if (Object.keys(disabledRules).length === 0) {
-                delete config.instructions!.disabledRules;
+            if (Object.keys(disabledInstructions).length === 0) {
+                delete config.instructions!.disabledInstructions;
             }
             if (Object.keys(config.instructions!).length === 0) {
                 delete config.instructions;

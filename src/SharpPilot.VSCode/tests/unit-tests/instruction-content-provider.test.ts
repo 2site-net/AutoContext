@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 import { InstructionContentProvider, instructionScheme } from '../../src/instruction-content-provider';
 import { SharpPilotConfigManager } from '../../src/sharppilot-config';
-import { parseRules } from '../../src/rule-parser';
+import { parseInstructions } from '../../src/instruction-parser';
 
 import { readFileSync } from 'node:fs';
 
@@ -29,7 +29,7 @@ description: "Test"
 `;
 
 describe('InstructionContentProvider', () => {
-    it('should return file content unchanged when no rules are disabled', () => {
+    it('should return file content unchanged when no instructions are disabled', () => {
         vi.mocked(readFileSync).mockImplementation((path: unknown) => {
             const pathStr = String(path);
             if (pathStr.endsWith('.sharppilot.json')) return '{}';
@@ -44,14 +44,14 @@ describe('InstructionContentProvider', () => {
         expect(result).toBe(testContent);
     });
 
-    it('should insert [DISABLED] tag for disabled rules', () => {
-        const rules = parseRules(testContent);
-        const firstRuleHash = rules[0].hash;
+    it('should insert [DISABLED] tag for disabled instructions', () => {
+        const parsedInstructions = parseInstructions(testContent);
+        const firstInstructionHash = parsedInstructions[0].hash;
 
         vi.mocked(readFileSync).mockImplementation((path: unknown) => {
             const pathStr = String(path);
             if (pathStr.endsWith('.sharppilot.json')) {
-                return JSON.stringify({ instructions: { disabledRules: { 'test.instructions.md': [firstRuleHash] } } });
+                return JSON.stringify({ instructions: { disabledInstructions: { 'test.instructions.md': [firstInstructionHash] } } });
             }
             return testContent;
         });

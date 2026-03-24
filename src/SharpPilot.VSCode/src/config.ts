@@ -25,7 +25,7 @@ export const servers: readonly ServerEntry[] = [
 ];
 
 export const instructions: readonly InstructionEntry[] = [
-    { settingId: 'sharp-pilot.instructions.copilot', fileName: 'copilot.instructions.md', label: 'Copilot Rules', category: 'General' },
+    { settingId: 'sharp-pilot.instructions.copilot', fileName: 'copilot.instructions.md', label: 'Copilot Instructions', category: 'General' },
     { settingId: 'sharp-pilot.instructions.codeReview', fileName: 'code-review.instructions.md', label: 'Code Review', category: 'General' },
     { settingId: 'sharp-pilot.instructions.designPrinciples', fileName: 'design-principles.instructions.md', label: 'Design Principles', category: 'General' },
     { settingId: 'sharp-pilot.instructions.docker', fileName: 'docker.instructions.md', label: 'Docker', category: 'General' },

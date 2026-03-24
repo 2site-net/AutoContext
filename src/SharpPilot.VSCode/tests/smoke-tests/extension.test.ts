@@ -24,8 +24,8 @@ suite('Extension Smoke Tests', () => {
             'sharp-pilot.autoConfigure',
             'sharp-pilot.exportInstructions',
             'sharp-pilot.browseInstructions',
-            'sharp-pilot.toggleRule',
-            'sharp-pilot.resetRules',
+            'sharp-pilot.toggleInstruction',
+            'sharp-pilot.resetInstructions',
         ];
 
         for (const cmd of expected) {

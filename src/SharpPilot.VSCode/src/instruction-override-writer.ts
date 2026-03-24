@@ -3,11 +3,11 @@ import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, rmSync
 import { join } from 'node:path';
 import { createHash } from 'node:crypto';
 import { instructions, filteredContextKey } from './config.js';
-import { parseRules } from './rule-parser.js';
+import { parseInstructions } from './instruction-parser.js';
 import type { SharpPilotConfigManager } from './sharppilot-config.js';
 
 /**
- * Generates filtered instruction files that exclude disabled rules.
+ * Generates filtered instruction files that exclude disabled instructions.
  *
  * Multi-window safe via per-workspace staging + focus-based write:
  * - `instructions-filtered/.workspaces/<hash>/` holds pre-computed files per workspace
@@ -19,7 +19,7 @@ import type { SharpPilotConfigManager } from './sharppilot-config.js';
  * Per-file context keys (`sharp-pilot.filtered.<suffix>`) tell `package.json` which
  * entry to activate — original or filtered — so Copilot always reads the correct file.
  */
-export class RuleOverrideWriter implements vscode.Disposable {
+export class InstructionOverrideWriter implements vscode.Disposable {
     private readonly filteredRoot: string;
     private stagingDir: string;
     private readonly disposables: vscode.Disposable[] = [];
@@ -55,10 +55,10 @@ export class RuleOverrideWriter implements vscode.Disposable {
         mkdirSync(this.stagingDir, { recursive: true });
 
         const config = this.configManager.read();
-        const disabledRulesMap = config.instructions?.disabledRules ?? {};
+        const disabledInstructionsMap = config.instructions?.disabledInstructions ?? {};
 
         for (const entry of instructions) {
-            const disabledHashes = disabledRulesMap[entry.fileName];
+            const disabledHashes = disabledInstructionsMap[entry.fileName];
             const hasDisabled = disabledHashes !== undefined && disabledHashes.length > 0;
 
             if (hasDisabled) {
@@ -153,13 +153,13 @@ export class RuleOverrideWriter implements vscode.Disposable {
             return;
         }
 
-        const rules = parseRules(content);
+        const parsedInstructions = parseInstructions(content);
         const lines = content.split('\n');
         const linesToRemove = new Set<number>();
 
-        for (const rule of rules) {
-            if (disabledHashes.has(rule.hash)) {
-                for (let i = rule.startLine; i <= rule.endLine; i++) {
+        for (const instruction of parsedInstructions) {
+            if (disabledHashes.has(instruction.hash)) {
+                for (let i = instruction.startLine; i <= instruction.endLine; i++) {
                     linesToRemove.add(i);
                 }
             }

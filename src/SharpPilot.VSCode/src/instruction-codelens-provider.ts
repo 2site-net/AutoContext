@@ -1,14 +1,14 @@
 import * as vscode from 'vscode';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { parseRules } from './rule-parser.js';
+import { parseInstructions } from './instruction-parser.js';
 import { instructionScheme } from './instruction-content-provider.js';
 import type { SharpPilotConfigManager } from './sharppilot-config.js';
 
-export const toggleRuleCommandId = 'sharp-pilot.toggleRule';
-export const resetRulesCommandId = 'sharp-pilot.resetRules';
+export const toggleInstructionCommandId = 'sharp-pilot.toggleInstruction';
+export const resetInstructionsCommandId = 'sharp-pilot.resetInstructions';
 
-export class RuleCodeLensProvider implements vscode.CodeLensProvider, vscode.Disposable {
+export class InstructionCodeLensProvider implements vscode.CodeLensProvider, vscode.Disposable {
     private readonly didChangeEmitter = new vscode.EventEmitter<void>();
     readonly onDidChangeCodeLenses = this.didChangeEmitter.event;
     private readonly disposables: vscode.Disposable[] = [];
@@ -38,27 +38,27 @@ export class RuleCodeLensProvider implements vscode.CodeLensProvider, vscode.Dis
             return [];
         }
 
-        const rules = parseRules(content);
-        const disabledHashes = this.configManager.getDisabledRules(fileName);
+        const parsedInstructions = parseInstructions(content);
+        const disabledHashes = this.configManager.getDisabledInstructions(fileName);
 
         const lenses: vscode.CodeLens[] = [];
 
         if (disabledHashes.size > 0) {
             lenses.push(new vscode.CodeLens(new vscode.Range(0, 0, 0, 0), {
-                title: '$(refresh) Reset All Rules',
-                command: resetRulesCommandId,
+                title: '$(refresh) Reset All Instructions',
+                command: resetInstructionsCommandId,
                 arguments: [fileName],
             }));
         }
 
-        for (const rule of rules) {
-            const isDisabled = disabledHashes.has(rule.hash);
-            const range = new vscode.Range(rule.startLine, 0, rule.startLine, 0);
+        for (const instruction of parsedInstructions) {
+            const isDisabled = disabledHashes.has(instruction.hash);
+            const range = new vscode.Range(instruction.startLine, 0, instruction.startLine, 0);
 
             lenses.push(new vscode.CodeLens(range, {
-                title: isDisabled ? '$(check) Enable Rule' : '$(x) Disable Rule',
-                command: toggleRuleCommandId,
-                arguments: [fileName, rule.hash],
+                title: isDisabled ? '$(check) Enable Instruction' : '$(x) Disable Instruction',
+                command: toggleInstructionCommandId,
+                arguments: [fileName, instruction.hash],
             }));
         }
 

@@ -11,9 +11,9 @@ import { InstructionVersionChecker } from './instruction-version-checker.js';
 import { InstructionBrowser } from './instruction-browser.js';
 import { SharpPilotConfigManager } from './sharppilot-config.js';
 import { InstructionContentProvider, instructionScheme } from './instruction-content-provider.js';
-import { RuleCodeLensProvider, toggleRuleCommandId, resetRulesCommandId } from './rule-codelens-provider.js';
-import { RuleDecorationManager } from './rule-decoration-manager.js';
-import { RuleOverrideWriter } from './rule-override-writer.js';
+import { InstructionCodeLensProvider, toggleInstructionCommandId, resetInstructionsCommandId } from './instruction-codelens-provider.js';
+import { InstructionDecorationManager } from './instruction-decoration-manager.js';
+import { InstructionOverrideWriter } from './instruction-override-writer.js';
 
 export function activate(context: vscode.ExtensionContext): void {
     const serversPath = join(context.extensionPath, 'servers');
@@ -31,16 +31,16 @@ export function activate(context: vscode.ExtensionContext): void {
     const instructionBrowser = new InstructionBrowser();
     const configManager = new SharpPilotConfigManager(context.extensionPath, version);
     const contentProvider = new InstructionContentProvider(context.extensionPath, configManager);
-    const codeLensProvider = new RuleCodeLensProvider(context.extensionPath, configManager);
-    const decorationManager = new RuleDecorationManager(context.extensionPath, configManager);
-    const ruleOverrideWriter = new RuleOverrideWriter(context.extensionPath, configManager);
+    const codeLensProvider = new InstructionCodeLensProvider(context.extensionPath, configManager);
+    const decorationManager = new InstructionDecorationManager(context.extensionPath, configManager);
+    const instructionOverrideWriter = new InstructionOverrideWriter(context.extensionPath, configManager);
 
     toolsStatusWriter.write();
     workspaceContextDetector.detect();
     instructionVersionChecker.check();
     configManager.removeOrphanedHashes();
-    ruleOverrideWriter.removeOrphanedStagingDirs();
-    ruleOverrideWriter.write();
+    instructionOverrideWriter.removeOrphanedStagingDirs();
+    instructionOverrideWriter.write();
 
     context.subscriptions.push(
         didChangeEmitter,
@@ -50,7 +50,7 @@ export function activate(context: vscode.ExtensionContext): void {
         contentProvider,
         codeLensProvider,
         decorationManager,
-        ruleOverrideWriter,
+        instructionOverrideWriter,
         vscode.workspace.registerTextDocumentContentProvider(instructionScheme, contentProvider),
         vscode.languages.registerCodeLensProvider({ scheme: instructionScheme }, codeLensProvider),
         vscode.commands.registerCommand(StatusBarIndicator.commandId, () => statusBarIndicator.showToggleMenu()),
@@ -59,19 +59,19 @@ export function activate(context: vscode.ExtensionContext): void {
         vscode.commands.registerCommand('sharp-pilot.autoConfigure', () => autoConfigure(workspaceContextDetector)),
         vscode.commands.registerCommand('sharp-pilot.exportInstructions', () => instructionExporter.export()),
         vscode.commands.registerCommand('sharp-pilot.browseInstructions', () => instructionBrowser.browse()),
-        vscode.commands.registerCommand(toggleRuleCommandId, (fileName: string, hash: string) => {
-            configManager.toggleRule(fileName, hash);
+        vscode.commands.registerCommand(toggleInstructionCommandId, (fileName: string, hash: string) => {
+            configManager.toggleInstruction(fileName, hash);
         }),
-        vscode.commands.registerCommand(resetRulesCommandId, (fileName: string) => {
-            configManager.resetRules(fileName);
+        vscode.commands.registerCommand(resetInstructionsCommandId, (fileName: string) => {
+            configManager.resetInstructions(fileName);
         }),
         vscode.window.onDidChangeWindowState(e => {
             if (e.focused) {
-                ruleOverrideWriter.write();
+                instructionOverrideWriter.write();
             }
         }),
         vscode.workspace.onDidGrantWorkspaceTrust(() => {
-            ruleOverrideWriter.write();
+            instructionOverrideWriter.write();
         }),
         vscode.workspace.onDidChangeConfiguration(e => {
             if (e.affectsConfiguration('sharp-pilot.instructions') || e.affectsConfiguration('sharp-pilot.tools')) {
