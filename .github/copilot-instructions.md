@@ -16,7 +16,7 @@ Read the relevant file **before** generating or reviewing code:
 | When working on          | Read                                                                                                                          |
 | ------------------------ | ----------------------------------------------------------------------------------------------------------------------------- |
 | Any code                 | `copilot.instructions.md`, `design-principles.instructions.md`                                                                |
-| C# source               | `dotnet-csharp-coding-style.instructions.md`, `dotnet-coding-standards.instructions.md`, `dotnet-async-await.instructions.md` |
+| C# source               | `dotnet-csharp.instructions.md`, `dotnet-coding-standards.instructions.md`, `dotnet-async-await.instructions.md` |
 | C# tests                | `dotnet-testing.instructions.md`, `dotnet-xunit.instructions.md`                                                              |
 | NuGet / .csproj          | `dotnet-nuget.instructions.md`                                                                                                |
 | TypeScript / VS Code ext | `web-typescript.instructions.md`                                                                                              |

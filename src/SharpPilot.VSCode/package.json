@@ -213,15 +213,15 @@
         "when": "config.sharppilot.instructions.dotnet.nunit && sharppilot.workspace.hasNunit && !sharppilot.override.dotnet.nunit"
       },
       {
-        "path": "./instructions/.generated/dotnet-csharp-coding-style.instructions.md",
+        "path": "./instructions/.generated/dotnet-csharp.instructions.md",
         "when": "config.sharppilot.instructions.dotnet.csharp.codingStyle && sharppilot.workspace.hasDotnet && !sharppilot.override.dotnet.csharp.codingStyle"
       },
       {
-        "path": "./instructions/.generated/dotnet-fsharp-coding-style.instructions.md",
+        "path": "./instructions/.generated/dotnet-fsharp.instructions.md",
         "when": "config.sharppilot.instructions.dotnet.fsharp.codingStyle && sharppilot.workspace.hasFsharp && !sharppilot.override.dotnet.fsharp.codingStyle"
       },
       {
-        "path": "./instructions/.generated/dotnet-vbnet-coding-style.instructions.md",
+        "path": "./instructions/.generated/dotnet-vbnet.instructions.md",
         "when": "config.sharppilot.instructions.dotnet.vbnet.codingStyle && sharppilot.workspace.hasVbnet && !sharppilot.override.dotnet.vbnet.codingStyle"
       },
       {
