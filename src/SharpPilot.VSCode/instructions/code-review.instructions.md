@@ -5,11 +5,11 @@ description: "Use when reviewing code, giving feedback on a pull request, or aud
 
 ## Output Structure
 
-- **Do** cite the specific line or block and explain *why* it is a problem — not just *what* is wrong.
-- **Do** suggest a concrete fix or direction for each finding.
-- **Do** classify each finding as **blocking** (must fix), **suggestion** (should consider), or **nit** (optional polish) — surface blocking issues first.
-- **Don't** rewrite the author's approach because you would have done it differently — only flag concrete problems.
-- **Don't** repeat the same finding on every occurrence — identify the pattern once and note how many times it appears.
+- [INST0001] **Do** cite the specific line or block and explain *why* it is a problem — not just *what* is wrong.
+- [INST0002] **Do** suggest a concrete fix or direction for each finding.
+- [INST0003] **Do** classify each finding as **blocking** (must fix), **suggestion** (should consider), or **nit** (optional polish) — surface blocking issues first.
+- [INST0004] **Don't** rewrite the author's approach because you would have done it differently — only flag concrete problems.
+- [INST0005] **Don't** repeat the same finding on every occurrence — identify the pattern once and note how many times it appears.
 
 ## What to Check
 
