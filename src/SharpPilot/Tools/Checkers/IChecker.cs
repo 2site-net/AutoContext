@@ -8,7 +8,7 @@ using System.Text.Json.Nodes;
 public interface IChecker
 {
     /// <summary>
-    /// The MCP tool name used for toggle lookup in <c>tools-status.json</c>.
+    /// The MCP tool name used for toggle lookup in <c>.sharppilot.json</c>.
     /// </summary>
     string ToolName { get; }
 

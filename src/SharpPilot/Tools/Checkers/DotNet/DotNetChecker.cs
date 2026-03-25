@@ -13,7 +13,7 @@ using SharpPilot.Tools.EditorConfig;
 
 /// <summary>
 /// Aggregate tool that runs all enabled .NET source-code checkers and returns
-/// a single combined report. Reads <c>tools-status.json</c> to determine which
+/// a single combined report. Reads <c>.sharppilot.json</c> to determine which
 /// checkers are active; when the file is absent, all checkers run.
 /// </summary>
 /// <remarks>
