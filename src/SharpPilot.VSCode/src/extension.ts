@@ -13,7 +13,7 @@ import { SharpPilotConfigManager } from './sharppilot-config.js';
 import { InstructionContentProvider, instructionScheme } from './instruction-content-provider.js';
 import { InstructionCodeLensProvider, toggleInstructionCommandId, resetInstructionsCommandId } from './instruction-codelens-provider.js';
 import { InstructionDecorationManager } from './instruction-decoration-manager.js';
-import { InstructionFilterWriter } from './instruction-filter-writer.js';
+import { InstructionWriter } from './instruction-writer.js';
 import { parseInstructions } from './instruction-parser.js';
 import { readFileSync } from 'node:fs';
 
@@ -35,7 +35,7 @@ export function activate(context: vscode.ExtensionContext): void {
     const contentProvider = new InstructionContentProvider(context.extensionPath, configManager);
     const codeLensProvider = new InstructionCodeLensProvider(context.extensionPath, configManager);
     const decorationManager = new InstructionDecorationManager(context.extensionPath, configManager);
-    const instructionFilterWriter = new InstructionFilterWriter(context.extensionPath, configManager);
+    const instructionWriter = new InstructionWriter(context.extensionPath, configManager);
     const outputChannel = vscode.window.createOutputChannel('SharpPilot');
 
     function logDiagnostics(): void {
@@ -66,8 +66,8 @@ export function activate(context: vscode.ExtensionContext): void {
     workspaceContextDetector.detect();
     instructionVersionChecker.check();
     configManager.removeOrphanedIds();
-    instructionFilterWriter.removeOrphanedStagingDirs();
-    instructionFilterWriter.write();
+    instructionWriter.removeOrphanedStagingDirs();
+    instructionWriter.write();
     logDiagnostics();
 
     context.subscriptions.push(
@@ -79,7 +79,7 @@ export function activate(context: vscode.ExtensionContext): void {
         contentProvider,
         codeLensProvider,
         decorationManager,
-        instructionFilterWriter,
+        instructionWriter,
         vscode.workspace.registerTextDocumentContentProvider(instructionScheme, contentProvider),
         vscode.languages.registerCodeLensProvider({ scheme: instructionScheme }, codeLensProvider),
         vscode.commands.registerCommand(StatusBarIndicator.commandId, () => statusBarIndicator.showToggleMenu()),
@@ -97,11 +97,11 @@ export function activate(context: vscode.ExtensionContext): void {
         configManager.onDidChange(() => logDiagnostics()),
         vscode.window.onDidChangeWindowState(e => {
             if (e.focused) {
-                instructionFilterWriter.write();
+                instructionWriter.write();
             }
         }),
         vscode.workspace.onDidGrantWorkspaceTrust(() => {
-            instructionFilterWriter.write();
+            instructionWriter.write();
         }),
         vscode.workspace.onDidChangeConfiguration(e => {
             if (e.affectsConfiguration('sharppilot.instructions') || e.affectsConfiguration('sharppilot.tools')) {

@@ -75,7 +75,7 @@ export class InstructionExporter {
 }
 
 async function copyInstruction(extensionPath: string, entry: InstructionEntry, targetUri: vscode.Uri): Promise<string> {
-    const sourceUri = vscode.Uri.file(`${extensionPath}/instructions/${entry.fileName}`);
+    const sourceUri = vscode.Uri.file(`${extensionPath}/instructions/.generated/${entry.fileName}`);
     const content = await vscode.workspace.fs.readFile(sourceUri);
 
     await vscode.workspace.fs.writeFile(targetUri, content);

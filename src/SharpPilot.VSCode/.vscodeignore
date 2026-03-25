@@ -3,6 +3,7 @@ src/**
 node_modules/**
 scripts/**
 publish/**
+instructions/.workspaces/**
 .gitignore
 tsconfig.json
 package-lock.json

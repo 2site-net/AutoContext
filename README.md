@@ -67,10 +67,11 @@ When the extension activates, the following steps execute synchronously:
 2. **`WorkspaceContextDetector.detect()`** — scans the workspace for project
    files, `package.json` dependencies, and directory markers. Sets VS Code
    context keys that control both server registration and instruction injection.
-3. **`InstructionFilterWriter.write()`** — for any instruction file that has
-   per-instruction disabling active, generates a filtered copy with the disabled
-   rules removed. Sets context keys so `package.json` routes Copilot to the
-   correct file (original or filtered).
+3. **`InstructionWriter.write()`** — normalizes all instruction files into
+   `instructions/.generated/`, stripping `[INSTxxxx]` tag identifiers and
+   removing any individually disabled instruction bullets. Copilot always
+   reads from the normalized output, so neither tags nor disabled content
+   are visible to the model.
 
 ### Runtime flow
 

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseInstructions } from '../../src/instruction-parser';
+import { parseInstructions, stripInstructionIds } from '../../src/instruction-parser';
 
 const singleInstructionDoc = `---
 description: "Test"
@@ -204,5 +204,29 @@ Some paragraph.
         const { diagnostics } = parseInstructions(content);
 
         expect(diagnostics.filter(d => d.kind === 'malformed-id')).toHaveLength(0);
+    });
+});
+
+describe('stripInstructionIds', () => {
+    it('should remove instruction ID tags from bullet lines', () => {
+        const input = '- [INST0001] **Do** always use curly braces.';
+
+        expect(stripInstructionIds(input)).toBe('- **Do** always use curly braces.');
+    });
+
+    it('should remove multiple ID tags in the same document', () => {
+        const input = '- [INST0001] **Do** foo.\n- [INST0002] **Don\'t** bar.';
+
+        const result = stripInstructionIds(input);
+
+        expect(result).not.toContain('[INST');
+        expect(result).toContain('**Do** foo.');
+        expect(result).toContain("**Don't** bar.");
+    });
+
+    it('should leave content without ID tags unchanged', () => {
+        const input = '# Heading\n\nSome prose.\n';
+
+        expect(stripInstructionIds(input)).toBe(input);
     });
 });

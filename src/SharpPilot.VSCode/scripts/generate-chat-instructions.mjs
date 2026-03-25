@@ -9,10 +9,10 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = join(__dirname, '..');
 
 const configUrl = new URL('../out/config.js', import.meta.url);
-const { instructions, contextKeysForEntry, overrideContextKey, filteredContextKey } =
+const { instructions, contextKeysForEntry, overrideContextKey } =
     await import(configUrl);
 
-function buildWhenClause(entry, filtered) {
+function buildWhenClause(entry) {
     const parts = [`config.${entry.settingId}`];
 
     const ctxKeys = contextKeysForEntry(entry);
@@ -23,7 +23,6 @@ function buildWhenClause(entry, filtered) {
     }
 
     parts.push(`!${overrideContextKey(entry.settingId)}`);
-    parts.push(filtered ? filteredContextKey(entry.settingId) : `!${filteredContextKey(entry.settingId)}`);
 
     return parts.join(' && ');
 }
@@ -35,13 +34,8 @@ const chatInstructions = [
 
 for (const entry of instructions) {
     chatInstructions.push({
-        path: `./instructions/${entry.fileName}`,
-        when: buildWhenClause(entry, false),
-    });
-
-    chatInstructions.push({
-        path: `./instructions-filtered/${entry.fileName}`,
-        when: buildWhenClause(entry, true),
+        path: `./instructions/.generated/${entry.fileName}`,
+        when: buildWhenClause(entry),
     });
 }
 

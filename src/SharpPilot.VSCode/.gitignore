@@ -2,5 +2,6 @@ servers/
 out/
 node_modules/
 publish/
-instructions-filtered/
+instructions/.generated/
+instructions/.workspaces/
 .vscode-test/

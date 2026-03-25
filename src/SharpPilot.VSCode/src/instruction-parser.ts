@@ -107,3 +107,9 @@ function buildInstruction(
 
     return { id, text, startLine, endLine };
 }
+
+const instructionIdTag = /\[INST\d{4}\]\s*/g;
+
+export function stripInstructionIds(content: string): string {
+    return content.replace(instructionIdTag, '');
+}

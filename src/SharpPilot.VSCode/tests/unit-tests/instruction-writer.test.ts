@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-import { InstructionFilterWriter } from '../../src/instruction-filter-writer';
+import { InstructionWriter } from '../../src/instruction-writer';
 import { SharpPilotConfigManager } from '../../src/sharppilot-config';
 import { parseInstructions } from '../../src/instruction-parser';
-import { instructions, filteredContextKey } from '../../src/config';
+import { instructions } from '../../src/config';
 
-import { readFileSync, writeFileSync, existsSync, readdirSync, rmSync, statSync, unlinkSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync, readdirSync, rmSync, statSync } from 'node:fs';
 
 vi.mock('node:fs', () => ({
     readFileSync: vi.fn(),
@@ -15,10 +15,9 @@ vi.mock('node:fs', () => ({
     readdirSync: vi.fn(() => []),
     rmSync: vi.fn(),
     statSync: vi.fn(),
-    unlinkSync: vi.fn(),
 }));
 
-import { workspace, commands } from './__mocks__/vscode';
+import { workspace } from './__mocks__/vscode';
 
 beforeEach(() => {
     vi.clearAllMocks();
@@ -34,8 +33,8 @@ description: "Test"
 - [INST0002] **Don't** use async void.
 `;
 
-describe('InstructionFilterWriter', () => {
-    it('should not write any files when no instructions are disabled', () => {
+describe('InstructionWriter', () => {
+    it('should write all instruction files when no instructions are disabled', () => {
         vi.mocked(readFileSync).mockImplementation((path: unknown) => {
             const pathStr = String(path);
             if (pathStr.endsWith('.sharppilot.json')) return '{}';
@@ -43,77 +42,42 @@ describe('InstructionFilterWriter', () => {
         });
 
         const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
-        const writer = new InstructionFilterWriter('/ext', configManager);
+        const writer = new InstructionWriter('/ext', configManager);
         writer.write();
 
-        expect(writeFileSync).not.toHaveBeenCalled();
-    });
-
-    it('should delete stale live files when no instructions are disabled', () => {
-        vi.mocked(readFileSync).mockImplementation((path: unknown) => {
-            const pathStr = String(path);
-            if (pathStr.endsWith('.sharppilot.json')) return '{}';
-            return testContent;
-        });
-
-        const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
-        const writer = new InstructionFilterWriter('/ext', configManager);
-        writer.write();
-
-        // Should attempt to delete every live instruction file.
-        expect(unlinkSync).toHaveBeenCalled();
-        const unlinkCalls = vi.mocked(unlinkSync).mock.calls;
-        for (const entry of instructions) {
-            expect(unlinkCalls).toContainEqual(
-                [expect.stringContaining(entry.fileName)],
-            );
-        }
-    });
-
-    it('should set filtered context keys to false when no instructions are disabled', () => {
-        vi.mocked(readFileSync).mockImplementation((path: unknown) => {
-            const pathStr = String(path);
-            if (pathStr.endsWith('.sharppilot.json')) return '{}';
-            return testContent;
-        });
-
-        const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
-        const writer = new InstructionFilterWriter('/ext', configManager);
-        writer.write();
-
-        for (const entry of instructions) {
-            expect(commands.executeCommand).toHaveBeenCalledWith(
-                'setContext',
-                filteredContextKey(entry.settingId),
-                false,
-            );
-        }
-    });
-
-    it('should set filtered context key to true when instructions are disabled', () => {
-        const { instructions: parsedInstructions } = parseInstructions(testContent);
-        const firstId = parsedInstructions[0].id;
-        const targetFileName = instructions[0].fileName;
-
-        vi.mocked(readFileSync).mockImplementation((path: unknown) => {
-            const pathStr = String(path);
-            if (pathStr.endsWith('.sharppilot.json')) {
-                return JSON.stringify({
-                    instructions: { disabledInstructions: { [targetFileName]: [firstId] } },
-                });
-            }
-            return testContent;
-        });
-
-        const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
-        const writer = new InstructionFilterWriter('/ext', configManager);
-        writer.write();
-
-        expect(commands.executeCommand).toHaveBeenCalledWith(
-            'setContext',
-            filteredContextKey(instructions[0].settingId),
-            true,
+        // Should write every instruction file to staging + promote to .generated.
+        expect(writeFileSync).toHaveBeenCalled();
+        const writeCalls = vi.mocked(writeFileSync).mock.calls;
+        const stagingWrites = writeCalls.filter(([path]) =>
+            String(path).includes('.workspaces'),
         );
+        expect(stagingWrites.length).toBe(instructions.length);
+    });
+
+    it('should strip instruction IDs from output', () => {
+        vi.mocked(readFileSync).mockImplementation((path: unknown) => {
+            const pathStr = String(path);
+            if (pathStr.endsWith('.sharppilot.json')) return '{}';
+            return testContent;
+        });
+
+        const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
+        const writer = new InstructionWriter('/ext', configManager);
+        writer.write();
+
+        const writeCalls = vi.mocked(writeFileSync).mock.calls;
+        const stagingWrite = writeCalls.find(([path]) =>
+            String(path).includes('.workspaces'),
+        );
+
+        expect(stagingWrite).toBeDefined();
+        const writtenContent = stagingWrite![1] as string;
+
+        expect(writtenContent).not.toContain('[INST0001]');
+        expect(writtenContent).not.toContain('[INST0002]');
+        // Content itself should still be present.
+        expect(writtenContent).toContain('always use curly braces');
+        expect(writtenContent).toContain('async void');
     });
 
     it('should write filtered content with disabled instructions removed', () => {
@@ -132,7 +96,7 @@ describe('InstructionFilterWriter', () => {
         });
 
         const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
-        const writer = new InstructionFilterWriter('/ext', configManager);
+        const writer = new InstructionWriter('/ext', configManager);
         writer.write();
 
         // Find the write call for the target instruction file in staging.
@@ -148,6 +112,47 @@ describe('InstructionFilterWriter', () => {
         expect(writtenContent).not.toContain('always use curly braces');
         // The other instruction should still be present.
         expect(writtenContent).toContain('async void');
+        // Tags should be stripped from remaining lines.
+        expect(writtenContent).not.toContain('[INST0002]');
+    });
+
+    it('should preserve non-instruction content unchanged', () => {
+        const contentWithProse = `---
+description: "Test"
+---
+# Guidelines
+
+Some introductory text here.
+
+- [INST0001] **Do** always use curly braces.
+
+## Section Two
+
+More prose below.
+`;
+
+        vi.mocked(readFileSync).mockImplementation((path: unknown) => {
+            const pathStr = String(path);
+            if (pathStr.endsWith('.sharppilot.json')) return '{}';
+            return contentWithProse;
+        });
+
+        const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
+        const writer = new InstructionWriter('/ext', configManager);
+        writer.write();
+
+        const writeCalls = vi.mocked(writeFileSync).mock.calls;
+        const stagingWrite = writeCalls.find(([path]) =>
+            String(path).includes('.workspaces'),
+        );
+
+        expect(stagingWrite).toBeDefined();
+        const writtenContent = stagingWrite![1] as string;
+
+        expect(writtenContent).toContain('# Guidelines');
+        expect(writtenContent).toContain('Some introductory text here.');
+        expect(writtenContent).toContain('## Section Two');
+        expect(writtenContent).toContain('More prose below.');
     });
 
     it('should skip orphan cleanup when .workspaces does not exist', () => {
@@ -155,7 +160,7 @@ describe('InstructionFilterWriter', () => {
         vi.mocked(readFileSync).mockReturnValue('{}');
 
         const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
-        const writer = new InstructionFilterWriter('/ext', configManager);
+        const writer = new InstructionWriter('/ext', configManager);
         writer.removeOrphanedStagingDirs();
 
         expect(readdirSync).not.toHaveBeenCalled();
@@ -169,7 +174,7 @@ describe('InstructionFilterWriter', () => {
         vi.mocked(readFileSync).mockReturnValue('{}');
 
         const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
-        const writer = new InstructionFilterWriter('/ext', configManager);
+        const writer = new InstructionWriter('/ext', configManager);
         writer.removeOrphanedStagingDirs();
 
         expect(rmSync).toHaveBeenCalledWith(
@@ -185,7 +190,7 @@ describe('InstructionFilterWriter', () => {
         vi.mocked(readFileSync).mockReturnValue('{}');
 
         const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
-        const writer = new InstructionFilterWriter('/ext', configManager);
+        const writer = new InstructionWriter('/ext', configManager);
         writer.removeOrphanedStagingDirs();
 
         expect(rmSync).not.toHaveBeenCalled();
@@ -195,7 +200,7 @@ describe('InstructionFilterWriter', () => {
         vi.mocked(readFileSync).mockReturnValue('{}');
 
         const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
-        const writer = new InstructionFilterWriter('/ext', configManager);
+        const writer = new InstructionWriter('/ext', configManager);
 
         // Should not throw.
         writer.dispose();
