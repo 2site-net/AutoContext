@@ -5,7 +5,6 @@ applyTo: "**/*.{cs,fs,vb}"
 # Performance & Memory Guidelines
 
 - [INST0001] **Do** prefer simple, readable implementations over premature optimization (e.g., avoid complex LINQ queries when a simple loop suffices).
-
 - [INST0002] **Do** benchmark every non-trivial optimisation first. Keep the tests in a dedicated `*.Benchmarks` project and use `BenchmarkDotNet`.
 - [INST0003] **Do** profile allocations before and after every memory change (e.g., `BenchmarkDotNet` + `[MemoryDiagnoser]`, `dotnet-counters`, IDE profiler).
 - [INST0004] **Do** use `Span<T>` / `Memory<T>` whenever they cut allocations or clarify buffer handling; in hot paths, prefer them by default.

@@ -11,6 +11,7 @@ description: "Use when writing git commit messages, formatting commit subjects a
 - [INST0004] **Do** keep the subject line under 50 characters.
 - [INST0005] **Do** wrap the body at 72 characters.
 - [INST0006] **Do** separate the subject line from the body with a blank line.
+
 ## Content
 
 - [INST0007] **Do** use the body to explain what and why as opposed to how.
@@ -22,4 +23,4 @@ description: "Use when writing git commit messages, formatting commit subjects a
 - [INST0013] **Don't** enumerate parameters, properties, or method names added — summarize the capability instead.
 - [INST0014] **Don't** mention checklist updates, README badges, or documentation housekeeping unless that's the primary purpose of the commit.
 - [INST0015] **Don't** use bullet lists or "Key features:" sections in commit messages — write prose.
-- **Don’t** include sensitive information in commit messages.
+- [INST0016] **Don't** include sensitive information in commit messages.

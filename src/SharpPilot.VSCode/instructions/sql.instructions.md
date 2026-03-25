@@ -27,36 +27,36 @@ description: "Use when writing SQL queries: naming conventions, formatting, quer
 - [INST0014] **Do** use `LEFT JOIN` when the related row may be absent; use `INNER JOIN` when it must exist.
 - [INST0015] **Do** filter early — place the most selective conditions first in `WHERE`.
 - [INST0016] **Do** use `UNION ALL` instead of `UNION` when duplicates are intentionally included or impossible.
-- **Do not** use functions on indexed columns in `WHERE` clauses; they prevent index use.
+- [INST0017] **Don't** use functions on indexed columns in `WHERE` clauses; they prevent index use.
 
 ## Parameters and Security
 
-- [INST0017] **Do** always use parameterised queries or prepared statements; never concatenate user input into SQL.
-- [INST0018] **Do** validate and allow-list any dynamic column or table names if runtime construction is unavoidable.
-- **Do not** expose raw database error messages to clients.
+- [INST0018] **Do** always use parameterised queries or prepared statements; never concatenate user input into SQL.
+- [INST0019] **Do** validate and allow-list any dynamic column or table names if runtime construction is unavoidable.
+- [INST0020] **Don't** expose raw database error messages to clients.
 
 ## Transactions
 
-- [INST0019] **Do** wrap related mutations in a transaction to ensure atomicity.
-- [INST0020] **Do** keep transactions as short as possible to reduce lock contention.
-- [INST0021] **Do** handle rollback explicitly on failure.
+- [INST0021] **Do** wrap related mutations in a transaction to ensure atomicity.
+- [INST0022] **Do** keep transactions as short as possible to reduce lock contention.
+- [INST0023] **Do** handle rollback explicitly on failure.
 
 ## Indexing
 
-- [INST0022] **Do** index foreign key columns.
-- [INST0023] **Do** index columns frequently used in `WHERE`, `JOIN`, and `ORDER BY`.
-- [INST0024] **Do** use covering indexes (include extra columns) for read-heavy queries.
-- **Do not** over-index write-heavy tables; each index adds overhead on `INSERT`/`UPDATE`/`DELETE`.
+- [INST0024] **Do** index foreign key columns.
+- [INST0025] **Do** index columns frequently used in `WHERE`, `JOIN`, and `ORDER BY`.
+- [INST0026] **Do** use covering indexes (include extra columns) for read-heavy queries.
+- [INST0027] **Don't** over-index write-heavy tables; each index adds overhead on `INSERT`/`UPDATE`/`DELETE`.
 
 ## NULL Handling
 
-- [INST0025] **Do** use `IS NULL` / `IS NOT NULL`; never compare with `= NULL`.
-- [INST0026] **Do** be explicit about nullable columns in schema design — prefer `NOT NULL` with a default where semantically correct.
-- [INST0027] **Do** account for `NULL` propagation in expressions and aggregates.
+- [INST0028] **Do** use `IS NULL` / `IS NOT NULL`; never compare with `= NULL`.
+- [INST0029] **Do** be explicit about nullable columns in schema design — prefer `NOT NULL` with a default where semantically correct.
+- [INST0030] **Do** account for `NULL` propagation in expressions and aggregates.
 
 ## Performance
 
-- [INST0028] **Do** use `EXPLAIN` / `EXPLAIN ANALYZE` to inspect query plans before optimising.
-- [INST0029] **Do** prefer set-based operations over row-by-row cursor loops.
-- [INST0030] **Do** paginate large result sets rather than fetching all rows.
-- [INST0031] **Do** avoid `SELECT DISTINCT` as a workaround for duplicate rows caused by bad joins; fix the join instead.
+- [INST0031] **Do** use `EXPLAIN` / `EXPLAIN ANALYZE` to inspect query plans before optimising.
+- [INST0032] **Do** prefer set-based operations over row-by-row cursor loops.
+- [INST0033] **Do** paginate large result sets rather than fetching all rows.
+- [INST0034] **Do** avoid `SELECT DISTINCT` as a workaround for duplicate rows caused by bad joins; fix the join instead.
