@@ -4,22 +4,30 @@ applyTo: "**/*Tests*.{cs,fs,vb,razor}"
 ---
 # Testing Strategy
 
+## Workflow & Design
+
 - [INST0001] **Do** follow TDD (red–green–refactor)—write the failing test first whether adding or refactoring.
 - [INST0002] **Do** keep tests fast, reliable, isolated; focus on behavior ("what") not implementation ("how").
 - [INST0003] **Do** assume a failing test means a production bug; fix code first, add a new test if the spec changed.
-- [INST0004] **Do** mirror production namespaces—one test class per feature, suffixed `Tests`; prefix methods with `Should_` / `Should_not_` (e.g., `Should_do_something`, `Should_not_do_something`).
-- [INST0005] **Do** suffix test doubles with `Fake` and store them in a `Fakes` folder.
-- [INST0006] **Do** keep each test laser-focused: one behavior, one primary assertion, minimal mocks.
-- [INST0007] **Do** mock only when truly required — prefer real implementations or simple fakes over mocking frameworks.
-- [INST0008] **Do** structure every test in AAA (Arrange–Act–Assert) style; separate the three sections with a blank line or `// Arrange` / `// Act` / `// Assert` comments.
-- [INST0009] **Do** name integration tests after the most dependent type (e.g., say `VirtualCodeEditor` depends on `SyntaxHighlighter` then `VirtualCodeEditorTests`).
-- [INST0010] **Do** break down large tests into smaller, focused ones; avoid monolithic tests.
-- [INST0011] **Do** wrap test‑specific helper logic in local functions to keep the test body focused and readable.
-- [INST0012] **Do** distinguish dead code (never called) from test-only code — verify test utilities actually serve a clear purpose before removing them.
-- [INST0013] **Do** validate that all tests pass before considering work complete.
-- [INST0014] **Don't** add test-only code to production; keep helpers inside test projects or inject them via patterns (e.g., decorator).
-- [INST0015] **Don't** mix UI tests (e.g., Selenium, Playwright) into unit test projects — keep them in separate test projects.
-- [INST0016] **Don't** give tests arbitrary names (e.g., `DebugSomeType`, `AnotherTypeEssentialTests`); always name them `<UnitUnderTest>Tests` (e.g., `SyntaxHighlighterTests`, `VirtualCodeEditorTests`).
-- [INST0017] **Don't** add a new test class when an existing one already targets the same unit—extend it instead.
+- [INST0004] **Do** validate that all tests pass before considering work complete.
+- [INST0005] **Don't** add test-only code to production; keep helpers inside test projects or inject them via patterns (e.g., decorator).
+
+## Naming & Organization
+
+- [INST0006] **Do** mirror production namespaces—one test class per feature, suffixed `Tests`; prefix methods with `Should_` / `Should_not_` (e.g., `Should_do_something`, `Should_not_do_something`).
+- [INST0007] **Do** suffix test doubles with `Fake` and store them in a `Fakes` folder.
+- [INST0008] **Do** name integration tests after the most dependent type (e.g., say `VirtualCodeEditor` depends on `SyntaxHighlighter` then `VirtualCodeEditorTests`).
+- [INST0009] **Don't** mix UI tests (e.g., Selenium, Playwright) into unit test projects — keep them in separate test projects.
+- [INST0010] **Don't** give tests arbitrary names (e.g., `DebugSomeType`, `AnotherTypeEssentialTests`); always name them `<UnitUnderTest>Tests` (e.g., `SyntaxHighlighterTests`, `VirtualCodeEditorTests`).
+- [INST0011] **Don't** add a new test class when an existing one already targets the same unit—extend it instead.
+
+## Structure & Assertions
+
+- [INST0012] **Do** keep each test laser-focused: one behavior, one primary assertion, minimal mocks.
+- [INST0013] **Do** mock only when truly required — prefer real implementations or simple fakes over mocking frameworks.
+- [INST0014] **Do** structure every test in AAA (Arrange–Act–Assert) style; separate the three sections with a blank line or `// Arrange` / `// Act` / `// Assert` comments.
+- [INST0015] **Do** break down large tests into smaller, focused ones; avoid monolithic tests.
+- [INST0016] **Do** wrap test‑specific helper logic in local functions to keep the test body focused and readable.
+- [INST0017] **Do** distinguish dead code (never called) from test-only code — verify test utilities actually serve a clear purpose before removing them.
 - [INST0018] **Don't** write tests that stray beyond the unit's scope; avoid broad tests that mix unrelated behaviors.
 - [INST0019] **Don't** add comments, regions, or XML docs to tests—except for AAA (Arrange‑Act‑Assert) markers. Rely on descriptive names to convey intent to tell the story.

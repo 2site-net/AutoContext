@@ -3,12 +3,16 @@ description: "Use when writing git commit messages, formatting commit subjects a
 ---
 # Git Commit Format
 
+## Format & Structure
+
 - [INST0001] **Do** use [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) format: `type(scope): description` (e.g., `feat(auth): add token refresh`, `fix(dns): handle null zone`, `refactor(hub): consolidate middleware`).
 - [INST0002] **Do** review the status of files with `git status` and `git diff` before committing — always run these commands fresh; never reuse output from a previous invocation or conversation turn.
 - [INST0003] **Do** scope the commit message to **staged files only** (`git diff --cached`); if no files are staged, then scope it to all modified files.
 - [INST0004] **Do** keep the subject line under 50 characters.
 - [INST0005] **Do** wrap the body at 72 characters.
 - [INST0006] **Do** separate the subject line from the body with a blank line.
+## Content
+
 - [INST0007] **Do** use the body to explain what and why as opposed to how.
 - [INST0008] **Do** focus on behavioral changes — what the software does now that it didn't before; only mention implementation details when they are significant to the change (e.g., switching from polling to WebSockets).
 - [INST0009] **Don't** use the body to describe how the change was made; that belongs in the code itself.
