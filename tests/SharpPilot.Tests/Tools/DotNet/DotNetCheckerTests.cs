@@ -1,7 +1,5 @@
 namespace SharpPilot.Tests.Tools.DotNet;
 
-using System.Text.Json.Nodes;
-
 using Microsoft.Extensions.Logging.Abstractions;
 
 using SharpPilot.Tools.Checkers.DotNet;
@@ -40,7 +38,7 @@ public sealed class DotNetCheckerTests
             """;
 
         // Act
-        var result = new DotNetChecker(NullLogger<DotNetChecker>.Instance).Check(source, new JsonObject { ["productionFileName"] = "MyClass.cs" });
+        var result = new DotNetChecker(NullLogger<DotNetChecker>.Instance).Check(source, productionFileName: "MyClass.cs");
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -63,7 +61,7 @@ public sealed class DotNetCheckerTests
             """;
 
         // Act
-        var result = new DotNetChecker(NullLogger<DotNetChecker>.Instance).Check(source, new JsonObject { ["productionFileName"] = "MyClass.cs" });
+        var result = new DotNetChecker(NullLogger<DotNetChecker>.Instance).Check(source, productionFileName: "MyClass.cs");
 
         // Assert
         Assert.StartsWith("❌", result);

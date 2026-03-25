@@ -27,3 +27,6 @@ For tier-1 violations, stop generating and surface a warning. For lower-tier con
 - [INST0008] **Do** clean up after yourself – delete any temp or redundant files you create.
 - [INST0009] **Do** read the `README.md` and other documentation files to understand the project structure and requirements.
 - [INST0010] **Do** fix one category of errors completely before moving to the next.
+- [INST0011] **Do** pass `editorConfigFilePath` to `check_dotnet` using the same file path passed to `get_editorconfig` (see INST0007); this binds the check to the project's actual style rules rather than generic defaults.
+- [INST0012] **Do** pass `productionFileName` to `check_dotnet` whenever the source file name is known; it validates that the declared type name matches the file name.
+- [INST0013] **Do** pass both `productionNamespace` and `testFileName` to `check_dotnet` only when the content is a test file; they validate namespace mirroring and that the file name ends with `Tests`.

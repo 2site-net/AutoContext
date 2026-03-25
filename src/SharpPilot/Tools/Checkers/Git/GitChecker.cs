@@ -21,6 +21,9 @@ public sealed partial class GitChecker(ILogger<GitChecker> logger) : IChecker
     public string ToolName
         => "check_git_commit";
 
+    string IChecker.Check(string content, JsonObject? data)
+        => Check(content);
+
     /// <summary>
     /// Runs all enabled Git commit checks on the supplied commit message.
     /// </summary>
@@ -31,8 +34,7 @@ public sealed partial class GitChecker(ILogger<GitChecker> logger) : IChecker
         "Prefer this over calling individual validate tools unless you only need a specific check.")]
     public string Check(
         [Description("The full commit message to validate.")]
-        string content,
-        JsonObject? data = null)
+        string content)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(content);
 
