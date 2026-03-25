@@ -4,33 +4,71 @@
 
 SharpPilot is a quality assurance extension for Visual Studio Code that leverages an MCP server to enable model-invokable tools and curated, configurable instructions—elevating code quality, workflows, and overall developer productivity with Copilot.
 
+## How It Works
+
+SharpPilot operates as a deterministic, multi-layer pipeline. Each layer feeds
+workspace-specific context into the next so that Copilot receives exactly the
+right tools, instructions, and enforcement rules for your project.
+
+### 1. Workspace detection
+
+On activation the extension scans your workspace for project files
+(`.csproj`, `.fsproj`, `package.json`, …), directories (`.git`), and
+dependencies. Each finding sets a boolean context key (e.g., `hasDotnet`,
+`hasGit`, `hasTypeScript`) that the remaining layers consume.
+
+### 2. Server registration
+
+One MCP server is registered per scope — **DotNet**, **Git**, and
+**EditorConfig**. A server is only registered when:
+
+- Its context key is true (the workspace contains matching content).
+- At least one of its tools is enabled in settings.
+
+If either condition is not met the server does not appear at all.
+
+### 3. Instruction injection
+
+60 instruction files are conditionally injected into Copilot's context based on
+the same context keys (e.g., "ASP.NET Core" instructions only appear when an
+ASP.NET Core project is detected). Individual rules inside any instruction file
+can be disabled via `.sharppilot.json` without turning off the entire file.
+
+### 4. Tool configuration
+
+VS Code settings control which sub-checks are enabled. The extension writes
+disabled tool names to `.sharppilot.json` in the workspace root. The MCP server
+reads this file at runtime and skips disabled sub-checks.
+
+### 5. Runtime — EditorConfig-driven enforcement
+
+When Copilot invokes `check_dotnet`, the server resolves the project's
+`.editorconfig` properties and uses them to **drive** checker behavior. For
+example, if `csharp_prefer_braces = false`, the brace checker flags
+*unnecessary* braces instead of *missing* ones. EditorConfig values determine
+the enforcement direction — checkers don't just skip conflicting rules, they
+enforce whichever direction the project's EditorConfig specifies.
+
+### Precedence
+
+EditorConfig → instruction files → VS Code settings → workspace context.
+See the [full precedence table](https://github.com/2site-net/SharpPilot#precedence) in the repository
+README for details.
+
 ## MCP Tools
 
 Once installed, the following tools are available to GitHub Copilot in Agent
 mode. Invoke them by asking Copilot to check your code or commits.
 
-Servers are registered only when relevant to the workspace — the .NET and
-EditorConfig servers appear only when .NET project files are detected, and the
-Git server appears only when a `.git` directory is present.
+| Scope | Tool | Purpose |
+|-------|------|---------|
+| .NET | `check_dotnet` | Composite C# quality check (style, naming, async, structure, …) |
+| .NET | `check_nuget_hygiene` | Package version and hygiene check |
+| Git | `check_git_commit` | Conventional Commits format and content check |
+| EditorConfig | `get_editorconfig` | Resolve effective `.editorconfig` properties for a file |
 
-### .NET
-
-| Tool | What it checks |
-|------|----------------|
-| `check_dotnet` | Runs all enabled .NET code quality checks on C# source and returns a combined report. Covers coding style, member ordering, naming conventions, async patterns, nullable context, project structure, and test style. When an `.editorconfig` path is provided, resolves its properties and suppresses conflicting checks. |
-| `check_nuget_hygiene` | No duplicate, floating, or wildcard package versions; no missing `Version` attribute (unless Central Package Management is enabled); flags packages with built-in .NET alternatives. |
-
-### Git
-
-| Tool | What it checks |
-|------|----------------|
-| `check_git_commit` | Runs all enabled Git commit quality checks and returns a combined report. Covers commit format (Conventional Commits) and commit content best practices. |
-
-### EditorConfig
-
-| Tool | What it does |
-|------|--------------|
-| `get_editorconfig` | Resolves the effective `.editorconfig` properties for a given file path — walks the directory tree, evaluates glob patterns and section cascading, and returns the final key-value pairs. |
+See the [Servers and Tools](https://github.com/2site-net/SharpPilot#servers-and-tools) section in the
+repository README for full tool descriptions.
 
 Each sub-check within `check_dotnet` and `check_git_commit` can be toggled
 individually under **Settings → SharpPilot → Tools**, or via

@@ -20,6 +20,83 @@ tests/SharpPilot.Tests/          # xUnit tests
 src/SharpPilot.VSCode/            # VS Code extension (instructions, tools, rule management)
 ```
 
+## Architecture
+
+SharpPilot operates as a multi-layer pipeline where each layer feeds
+deterministic, workspace-specific context into the next. The layers run in
+order and the output of each becomes the input of the one below it.
+
+### Layer overview
+
+```text
+┌─────────────────────────────────────────────────────────────────────┐
+│  1. Workspace Detection                                             │
+│     WorkspaceContextDetector scans the workspace and sets boolean   │
+│     context keys (hasDotnet, hasGit, hasTypeScript, …).             │
+├─────────────────────────────────────────────────────────────────────┤
+│  2. Server Registration                                             │
+│     The extension registers one MCP server per scope (dotnet, git,  │
+│     editorconfig). A server is only registered when its context key │
+│     is true AND at least one of its tools is enabled in settings.   │
+├─────────────────────────────────────────────────────────────────────┤
+│  3. Instruction Injection                                           │
+│     60 instruction files are conditionally injected into Copilot's  │
+│     context based on the same context keys. Per-instruction disable │
+│     (via .sharppilot.json) removes individual rules without         │
+│     turning off the entire file.                                    │
+├─────────────────────────────────────────────────────────────────────┤
+│  4. Tool Configuration                                              │
+│     ToolsStatusWriter reads VS Code settings and writes disabled    │
+│     tool names to .sharppilot.json. The MCP server reads this file  │
+│     at runtime to skip disabled sub-checks.                         │
+├─────────────────────────────────────────────────────────────────────┤
+│  5. Runtime (Copilot invokes tools)                                 │
+│     Copilot calls check_dotnet / check_git_commit /                 │
+│     get_editorconfig. The server resolves .editorconfig properties  │
+│     and uses them to drive checker behavior — e.g., enforcement     │
+│     direction for brace style and namespace style.                  │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### Activation flow
+
+When the extension activates, the following steps execute synchronously:
+
+1. **`ToolsStatusWriter.write()`** — reads VS Code settings, writes disabled
+   tool names to `.sharppilot.json` in the workspace root.
+2. **`WorkspaceContextDetector.detect()`** — scans the workspace for project
+   files, `package.json` dependencies, and directory markers. Sets VS Code
+   context keys that control both server registration and instruction injection.
+3. **`InstructionFilterWriter.write()`** — for any instruction file that has
+   per-instruction disabling active, generates a filtered copy with the disabled
+   rules removed. Sets context keys so `package.json` routes Copilot to the
+   correct file (original or filtered).
+
+### Runtime flow
+
+When Copilot invokes an MCP tool (e.g., `check_dotnet`):
+
+1. The MCP server reads `.sharppilot.json` → skips any disabled sub-checks.
+2. If `editorConfigFilePath` is provided, the server resolves `.editorconfig`
+   properties and merges them into the checker data.
+3. Each checker reads the merged EditorConfig values and uses them to **drive**
+   its enforcement direction — not just to skip conflicting checks.
+4. The checker returns a report (✅ pass or ❌ violations found).
+
+### Precedence
+
+When multiple sources disagree, the following precedence applies:
+
+| Priority | Source | Role |
+|----------|--------|------|
+| 1 | `.editorconfig` | Drives enforcement direction — checkers enforce whatever EditorConfig says. Instruction defaults yield to EditorConfig values. |
+| 2 | Instruction files | Provide default coding guidance. Style rules in instructions are fallback defaults, not absolutes. |
+| 3 | VS Code settings / `.sharppilot.json` | Control which tools and instructions are active. |
+| 4 | Workspace context | Determines which servers and instructions are registered at all. |
+
+See the "EditorConfig wins" rule in `copilot.instructions.md` for the
+user-facing statement of this precedence.
+
 ## Servers and Tools
 
 The MCP server exposes three tool scopes. The VS Code extension registers the
@@ -38,7 +115,7 @@ Two tools that analyse C# source and project files for common quality issues.
 
 | Tool | Purpose |
 |------|---------|
-| `check_dotnet` | Runs all enabled .NET code quality checks on C# source and returns a combined report. Covers coding style, member ordering, naming conventions, async patterns, nullable context, project structure, and test style. When an `.editorconfig` path is provided, resolves its properties and suppresses conflicting checks. |
+| `check_dotnet` | Runs all enabled .NET code quality checks on C# source and returns a combined report. Covers coding style, member ordering, naming conventions, async patterns, nullable context, project structure, and test style. When an `.editorconfig` path is provided, resolves its properties and uses them to drive checker behavior (e.g., brace and namespace style enforcement direction). |
 | `check_nuget_hygiene` | No duplicate, floating, or wildcard package versions; no missing `Version` attribute (unless Central Package Management is enabled); flags packages with built-in .NET alternatives. |
 
 ### SharpPilot: Git
