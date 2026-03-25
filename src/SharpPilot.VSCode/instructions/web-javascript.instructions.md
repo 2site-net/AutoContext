@@ -30,11 +30,15 @@ applyTo: "**/*.{js,jsx,mjs,cjs,ts,tsx,mts,cts}"
 - [INST0022] **Do** use classes for stateful objects with behavior and lifecycle; prefer plain functions and modules for stateless operations and utilities — avoid wrapping a single function in a class.
 - [INST0023] **Do** insert a blank line before control flow statements (`if`, `for`, `for...of`, `for...in`, `while`, `do`, `switch`, `try`, `using`).
 - [INST0024] **Do** insert a blank line between variable declarations and their first usage.
-- [INST0025] **Don't** use `var` — it has function scope, hoisting quirks, and allows accidental redeclaration; use `const` or `let` instead.
-- [INST0026] **Don't** use `for...in` to iterate arrays or iterables — it enumerates all enumerable properties including inherited ones; use `for...of` or array methods instead.
-- [INST0027] **Don't** use `eval()`, `new Function()`, or `setTimeout`/`setInterval` with string arguments — they parse strings as code and open code-injection vectors.
-- [INST0028] **Don't** use `innerHTML`, `outerHTML`, or `document.write()` with unsanitized data — use `textContent` for text or sanitize with DOMPurify first.
-- [INST0029] **Don't** use arrow functions as object methods or constructors — they don't bind their own `this`, leading to unexpected `undefined` values.
-- [INST0030] **Don't** mutate function parameters — copy first (spread, `structuredClone`) if modification is needed, to avoid surprising callers.
-- [INST0031] **Don't** leave empty `catch` blocks — at minimum log the error or add a comment explaining why the error is intentionally swallowed.
-- [INST0032] **Don't** use the `arguments` object — use rest parameters (`...args`) instead; they produce a real array, work in arrow functions, and make the accepted parameters explicit.
+- [INST0025] **Do** keep each module focused on a single concept — split when a file mixes unrelated types, data, and logic; a module that serves as a grab-bag of utilities becomes hard to name, navigate, and reason about.
+- [INST0026] **Do** place a helper function in its sole consumer's module rather than a shared utility file — extract to a shared module only when a second consumer appears.
+- [INST0027] **Do** make module-private helper functions `private static` methods when they serve a single class in the same file — keeps the module's public surface minimal and makes ownership explicit.
+- [INST0028] **Don't** use `var` — it has function scope, hoisting quirks, and allows accidental redeclaration; use `const` or `let` instead.
+- [INST0029] **Don't** use `for...in` to iterate arrays or iterables — it enumerates all enumerable properties including inherited ones; use `for...of` or array methods instead.
+- [INST0030] **Don't** use `eval()`, `new Function()`, or `setTimeout`/`setInterval` with string arguments — they parse strings as code and open code-injection vectors.
+- [INST0031] **Don't** use `innerHTML`, `outerHTML`, or `document.write()` with unsanitized data — use `textContent` for text or sanitize with DOMPurify first.
+- [INST0032] **Don't** use arrow functions as object methods or constructors — they don't bind their own `this`, leading to unexpected `undefined` values.
+- [INST0033] **Don't** mutate function parameters — copy first (spread, `structuredClone`) if modification is needed, to avoid surprising callers.
+- [INST0034] **Don't** leave empty `catch` blocks — at minimum log the error or add a comment explaining why the error is intentionally swallowed.
+- [INST0035] **Don't** use the `arguments` object — use rest parameters (`...args`) instead; they produce a real array, work in arrow functions, and make the accepted parameters explicit.
+- [INST0036] **Don't** re-export symbols through intermediate barrel modules just to preserve an import path — update consumers to import directly from the owning module; passthrough re-exports add indirection without value.
