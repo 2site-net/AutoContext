@@ -85,12 +85,17 @@ export function activate(context: vscode.ExtensionContext): void {
         instructionsWriter,
         vscode.workspace.registerTextDocumentContentProvider(instructionScheme, contentProvider),
         vscode.languages.registerCodeLensProvider({ scheme: instructionScheme }, codeLensProvider),
+        // Status bar
         vscode.commands.registerCommand(StatusBarIndicator.commandId, () => statusBarIndicator.showToggleMenu()),
+        // Toggle menus
         vscode.commands.registerCommand('sharppilot.toggleTools', () => toolsToggler.toggle()),
+        // Instructions management
         vscode.commands.registerCommand('sharppilot.toggleInstructions', () => instructionsToggler.toggle()),
-        vscode.commands.registerCommand('sharppilot.autoConfigure', () => autoConfigure(workspaceContextDetector)),
         vscode.commands.registerCommand('sharppilot.exportInstructions', () => instructionsExporter.export()),
         vscode.commands.registerCommand('sharppilot.browseInstructions', () => instructionsBrowser.browse()),
+        // Workspace auto-configuration (instructions + tools)
+        vscode.commands.registerCommand('sharppilot.autoConfigure', () => autoConfigure(workspaceContextDetector)),
+        // CodeLens (internal)
         vscode.commands.registerCommand(toggleInstructionCommandId, (fileName: string, id: string) => {
             configManager.toggleInstruction(fileName, id);
         }),
