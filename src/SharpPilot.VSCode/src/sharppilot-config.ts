@@ -11,6 +11,9 @@ export interface SharpPilotConfig {
     instructions?: {
         disabledInstructions?: Record<string, string[]>;
     };
+    tools?: {
+        disabledTools?: string[];
+    };
 }
 
 const configFileName = '.sharppilot.json';
@@ -88,7 +91,24 @@ export class SharpPilotConfigManager implements vscode.Disposable {
             delete config.instructions;
         }
 
-        this.write(config);
+        this.writeConfig(config);
+    }
+
+    setDisabledTools(disabledTools: string[]): void {
+        const config = this.read();
+        const currentDisabled = config.tools?.disabledTools ?? [];
+
+        if (arraysEqual(disabledTools, currentDisabled)) {
+            return;
+        }
+
+        if (disabledTools.length === 0) {
+            delete config.tools;
+        } else {
+            config.tools = { disabledTools };
+        }
+
+        this.writeConfig(config);
     }
 
     resetInstructions(fileName: string): void {
@@ -107,7 +127,7 @@ export class SharpPilotConfigManager implements vscode.Disposable {
             delete config.instructions;
         }
 
-        this.write(config);
+        this.writeConfig(config);
     }
 
     removeOrphanedIds(): number {
@@ -152,7 +172,7 @@ export class SharpPilotConfigManager implements vscode.Disposable {
                 delete config.instructions;
             }
 
-            this.write(config);
+            this.writeConfig(config);
         }
 
         return removed;
@@ -172,13 +192,13 @@ export class SharpPilotConfigManager implements vscode.Disposable {
         return join(folder.uri.fsPath, configFileName);
     }
 
-    private write(config: SharpPilotConfig): void {
+    private writeConfig(config: SharpPilotConfig): void {
         const path = this.configPath();
         if (!path) {
             return;
         }
 
-        const isEmpty = !config.instructions && !config.diagnostic;
+        const isEmpty = !config.instructions && !config.diagnostic && !config.tools;
         if (isEmpty) {
             try {
                 unlinkSync(path);
@@ -191,4 +211,16 @@ export class SharpPilotConfigManager implements vscode.Disposable {
         config.version = this.extensionVersion;
         writeFileSync(path, JSON.stringify(config, null, 4) + '\n', 'utf-8');
     }
+}
+
+function arraysEqual(a: readonly string[], b: readonly string[]): boolean {
+    if (a.length !== b.length) {
+        return false;
+    }
+    for (let i = 0; i < a.length; i++) {
+        if (a[i] !== b[i]) {
+            return false;
+        }
+    }
+    return true;
 }

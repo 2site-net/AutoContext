@@ -1,8 +1,8 @@
 namespace SharpPilot.Tests.Configuration;
 
 /// <summary>
-/// Serialises test classes that read or write <c>tools-status.json</c> via
-/// <see cref="ToolsStatusConfig"/> so they do not conflict on the shared file.
+/// Serialises test classes that read or write <c>.sharppilot.json</c> via
+/// <see cref="ToolsStatusConfig"/> so they do not conflict on the shared state.
 /// </summary>
 [CollectionDefinition("ToolsStatus")]
 [System.Diagnostics.CodeAnalysis.SuppressMessage(

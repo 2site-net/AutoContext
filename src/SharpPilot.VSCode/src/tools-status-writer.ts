@@ -1,26 +1,20 @@
-import { join } from 'node:path';
-import { writeFileSync, mkdirSync } from 'node:fs';
 import * as vscode from 'vscode';
 import { tools } from './config.js';
+import type { SharpPilotConfigManager } from './sharppilot-config.js';
 
 export class ToolsStatusWriter {
-    private readonly dir: string;
-    private readonly filePath: string;
-
-    constructor(serversPath: string) {
-        this.dir = join(serversPath, 'SharpPilot');
-        this.filePath = join(this.dir, 'tools-status.json');
-    }
+    constructor(private readonly configManager: SharpPilotConfigManager) {}
 
     write(): void {
         const config = vscode.workspace.getConfiguration();
-        const status: Record<string, boolean> = {};
+        const disabledTools: string[] = [];
 
         for (const tool of tools) {
-            status[tool.toolName] = config.get<boolean>(tool.settingId, true);
+            if (config.get<boolean>(tool.settingId, true) === false) {
+                disabledTools.push(tool.toolName);
+            }
         }
 
-        mkdirSync(this.dir, { recursive: true });
-        writeFileSync(this.filePath, JSON.stringify(status, null, 2));
+        this.configManager.setDisabledTools(disabledTools);
     }
 }

@@ -25,13 +25,13 @@ export function activate(context: vscode.ExtensionContext): void {
 
     const statusBarIndicator = new StatusBarIndicator();
     const workspaceContextDetector = new WorkspaceContextDetector();
-    const toolsStatusWriter = new ToolsStatusWriter(serversPath);
     const instructionsToggler = new MenuToggler('SharpPilot: Toggle Instructions', 'Select instructions to enable', instructions, () => workspaceContextDetector.getOverriddenSettingIds());
     const toolsToggler = new MenuToggler('SharpPilot: Toggle Tools', 'Select tools to enable', tools);
     const instructionExporter = new InstructionExporter(context.extensionPath);
     const instructionVersionChecker = new InstructionVersionChecker(context.extensionPath);
     const instructionBrowser = new InstructionBrowser();
     const configManager = new SharpPilotConfigManager(context.extensionPath, version);
+    const toolsStatusWriter = new ToolsStatusWriter(configManager);
     const contentProvider = new InstructionContentProvider(context.extensionPath, configManager);
     const codeLensProvider = new InstructionCodeLensProvider(context.extensionPath, configManager);
     const decorationManager = new InstructionDecorationManager(context.extensionPath, configManager);
@@ -127,14 +127,20 @@ export function activate(context: vscode.ExtensionContext): void {
                         return toolSettings.length === 0 || toolSettings.some(id => config.get(id) !== false);
                     })
                     .map(
-                        s =>
-                            new vscode.McpStdioServerDefinition(
+                        s => {
+                            const args = ['--scope', s.scope];
+                            const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+                            if (workspaceFolder) {
+                                args.push('--workspace', workspaceFolder.uri.fsPath);
+                            }
+                            return new vscode.McpStdioServerDefinition(
                                 s.label,
                                 join(serversPath, 'SharpPilot', `SharpPilot${ext}`),
-                                ['--scope', s.scope],
+                                args,
                                 undefined,
                                 version,
-                            ),
+                            );
+                        },
                     );
             },
             resolveMcpServerDefinition: async (server) => server,

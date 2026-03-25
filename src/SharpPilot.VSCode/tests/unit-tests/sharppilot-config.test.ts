@@ -203,4 +203,76 @@ describe('SharpPilotConfigManager', () => {
         expect(vi.mocked(unlinkSync)).toHaveBeenCalled();
         expect(vi.mocked(writeFileSync)).not.toHaveBeenCalled();
     });
+
+    it('should write disabled tools to config', () => {
+        vi.mocked(readFileSync).mockReturnValue('{}');
+
+        const manager = new SharpPilotConfigManager('/ext', '0.5.0');
+        manager.setDisabledTools(['check_csharp_coding_style']);
+
+        const writeCalls = vi.mocked(writeFileSync).mock.calls;
+
+        expect(writeCalls).toHaveLength(1);
+
+        const parsed = JSON.parse(writeCalls[0][1] as string);
+
+        expect(parsed.tools.disabledTools).toEqual(['check_csharp_coding_style']);
+    });
+
+    it('should skip write when disabled tools have not changed', () => {
+        vi.mocked(readFileSync).mockReturnValue(JSON.stringify({
+            tools: { disabledTools: ['check_csharp_coding_style'] },
+        }));
+
+        const manager = new SharpPilotConfigManager('/ext', '0.5.0');
+        manager.setDisabledTools(['check_csharp_coding_style']);
+
+        expect(vi.mocked(writeFileSync)).not.toHaveBeenCalled();
+        expect(vi.mocked(unlinkSync)).not.toHaveBeenCalled();
+    });
+
+    it('should remove tools section when all tools are enabled', () => {
+        vi.mocked(readFileSync).mockReturnValue(JSON.stringify({
+            tools: { disabledTools: ['check_csharp_coding_style'] },
+            instructions: { disabledInstructions: { 'copilot.instructions.md': ['INST0001'] } },
+        }));
+
+        const manager = new SharpPilotConfigManager('/ext', '0.5.0');
+        manager.setDisabledTools([]);
+
+        const writeCalls = vi.mocked(writeFileSync).mock.calls;
+
+        expect(writeCalls).toHaveLength(1);
+
+        const parsed = JSON.parse(writeCalls[0][1] as string);
+
+        expect(parsed.tools).toBeUndefined();
+        expect(parsed.instructions).toBeDefined();
+    });
+
+    it('should delete file when clearing tools and no other config exists', () => {
+        vi.mocked(readFileSync).mockReturnValue(JSON.stringify({
+            tools: { disabledTools: ['check_csharp_coding_style'] },
+        }));
+
+        const manager = new SharpPilotConfigManager('/ext', '0.5.0');
+        manager.setDisabledTools([]);
+
+        expect(vi.mocked(unlinkSync)).toHaveBeenCalled();
+        expect(vi.mocked(writeFileSync)).not.toHaveBeenCalled();
+    });
+
+    it('should preserve other config sections when writing tools', () => {
+        vi.mocked(readFileSync).mockReturnValue(JSON.stringify({
+            instructions: { disabledInstructions: { 'copilot.instructions.md': ['INST0001'] } },
+        }));
+
+        const manager = new SharpPilotConfigManager('/ext', '0.5.0');
+        manager.setDisabledTools(['check_csharp_async_patterns']);
+
+        const parsed = JSON.parse(vi.mocked(writeFileSync).mock.calls[0][1] as string);
+
+        expect(parsed.tools.disabledTools).toEqual(['check_csharp_async_patterns']);
+        expect(parsed.instructions.disabledInstructions['copilot.instructions.md']).toEqual(['INST0001']);
+    });
 });

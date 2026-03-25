@@ -5,28 +5,26 @@ using SharpPilot.Configuration;
 [Collection("ToolsStatus")]
 public sealed class ToolsStatusConfigTests : IDisposable
 {
-    private static readonly string StatusFilePath =
-        Path.Combine(AppContext.BaseDirectory, "tools-status.json");
+    private readonly string _workspacePath = Path.Combine(Path.GetTempPath(), $"sharppilot-test-{Guid.NewGuid():N}");
+    private readonly string _configFilePath;
 
     public ToolsStatusConfigTests()
     {
-        // Ensure clean state before each test.
-        if (File.Exists(StatusFilePath))
-        {
-            File.Delete(StatusFilePath);
-        }
+        Directory.CreateDirectory(_workspacePath);
+        _configFilePath = Path.Combine(_workspacePath, ".sharppilot.json");
+        ToolsStatusConfig.Configure(_workspacePath);
     }
 
     public void Dispose()
     {
-        if (File.Exists(StatusFilePath))
+        if (Directory.Exists(_workspacePath))
         {
-            File.Delete(StatusFilePath);
+            Directory.Delete(_workspacePath, recursive: true);
         }
     }
 
     [Fact]
-    public void Should_return_true_when_status_file_is_missing()
+    public void Should_return_true_when_config_file_is_missing()
     {
         // Act
         var result = ToolsStatusConfig.IsEnabled("check_csharp_coding_style");
@@ -36,10 +34,10 @@ public sealed class ToolsStatusConfigTests : IDisposable
     }
 
     [Fact]
-    public void Should_return_true_when_tool_is_enabled()
+    public void Should_return_true_when_tool_is_not_disabled()
     {
         // Arrange
-        File.WriteAllText(StatusFilePath, """{ "check_csharp_coding_style": true }""");
+        File.WriteAllText(_configFilePath, """{ "tools": { "disabledTools": ["check_csharp_async_patterns"] } }""");
 
         // Act
         var result = ToolsStatusConfig.IsEnabled("check_csharp_coding_style");
@@ -52,7 +50,7 @@ public sealed class ToolsStatusConfigTests : IDisposable
     public void Should_return_false_when_tool_is_disabled()
     {
         // Arrange
-        File.WriteAllText(StatusFilePath, """{ "check_csharp_coding_style": false }""");
+        File.WriteAllText(_configFilePath, """{ "tools": { "disabledTools": ["check_csharp_coding_style"] } }""");
 
         // Act
         var result = ToolsStatusConfig.IsEnabled("check_csharp_coding_style");
@@ -62,10 +60,10 @@ public sealed class ToolsStatusConfigTests : IDisposable
     }
 
     [Fact]
-    public void Should_return_true_when_tool_is_not_in_file()
+    public void Should_return_true_when_tools_section_is_absent()
     {
         // Arrange
-        File.WriteAllText(StatusFilePath, """{ "check_csharp_async_patterns": false }""");
+        File.WriteAllText(_configFilePath, """{ "version": "0.5.0" }""");
 
         // Act
         var result = ToolsStatusConfig.IsEnabled("check_csharp_coding_style");
@@ -78,7 +76,7 @@ public sealed class ToolsStatusConfigTests : IDisposable
     public void Should_return_true_when_file_contains_invalid_json()
     {
         // Arrange
-        File.WriteAllText(StatusFilePath, "not valid json!!!");
+        File.WriteAllText(_configFilePath, "not valid json!!!");
 
         // Act
         var result = ToolsStatusConfig.IsEnabled("check_csharp_coding_style");

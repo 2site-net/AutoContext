@@ -1,59 +1,92 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { __setConfigStore } from './__mocks__/vscode';
+import { workspace } from './__mocks__/vscode';
+
+import { readFileSync, writeFileSync, existsSync, readdirSync, rmSync, statSync, unlinkSync } from 'node:fs';
+
+vi.mock('node:fs', () => ({
+    readFileSync: vi.fn(),
+    writeFileSync: vi.fn(),
+    existsSync: vi.fn(),
+    readdirSync: vi.fn(),
+    rmSync: vi.fn(),
+    statSync: vi.fn(),
+    unlinkSync: vi.fn(),
+}));
 
 // Must import after the mock is set up via the vitest alias
 import { ToolsStatusWriter } from '../../src/tools-status-writer';
-
-import { writeFileSync, mkdirSync } from 'node:fs';
-
-vi.mock('node:fs', () => ({
-    writeFileSync: vi.fn(),
-    mkdirSync: vi.fn(),
-}));
+import { SharpPilotConfigManager } from '../../src/sharppilot-config';
 
 beforeEach(() => {
     vi.clearAllMocks();
     __setConfigStore({});
+    workspace.workspaceFolders = [{ uri: { fsPath: '/workspace' } }];
 });
 
 describe('ToolsStatusWriter', () => {
-    it('should write a JSON file with tool statuses', () => {
+    it('should write disabled tools to .sharppilot.json', () => {
         __setConfigStore({
             'sharppilot.tools.check_csharp_coding_style': false,
         });
 
-        const writer = new ToolsStatusWriter('/servers');
+        vi.mocked(readFileSync).mockImplementation((path: unknown) => {
+            const pathStr = String(path);
+            if (pathStr.endsWith('.sharppilot.json')) return '{}';
+            return '';
+        });
+
+        const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
+        const writer = new ToolsStatusWriter(configManager);
         writer.write();
 
-        expect(mkdirSync).toHaveBeenCalledWith(
-            expect.stringContaining('SharpPilot'),
-            { recursive: true },
-        );
-
         const writeCalls = vi.mocked(writeFileSync).mock.calls;
-
         expect(writeCalls).toHaveLength(1);
 
         const [filePath, content] = writeCalls[0];
-
-        expect(filePath).toMatch(/tools-status\.json$/);
+        expect(filePath).toMatch(/\.sharppilot\.json$/);
 
         const parsed = JSON.parse(content as string);
-
-        expect(parsed.check_csharp_coding_style).toBe(false);
-        // Tools not in configStore should default to true
-        expect(parsed.check_csharp_async_patterns).toBe(true);
+        expect(parsed.tools.disabledTools).toEqual(['check_csharp_coding_style']);
     });
 
-    it('should default all tools to true when no config is set', () => {
-        const writer = new ToolsStatusWriter('/servers');
+    it('should not write when nothing changed', () => {
+        __setConfigStore({
+            'sharppilot.tools.check_csharp_coding_style': false,
+        });
+
+        vi.mocked(readFileSync).mockImplementation((path: unknown) => {
+            const pathStr = String(path);
+            if (pathStr.endsWith('.sharppilot.json')) {
+                return JSON.stringify({ tools: { disabledTools: ['check_csharp_coding_style'] } });
+            }
+            return '';
+        });
+
+        const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
+        const writer = new ToolsStatusWriter(configManager);
         writer.write();
 
-        const content = vi.mocked(writeFileSync).mock.calls[0][1] as string;
-        const parsed = JSON.parse(content);
+        expect(writeFileSync).not.toHaveBeenCalled();
+    });
 
-        for (const value of Object.values(parsed)) {
-            expect(value).toBe(true);
-        }
+    it('should delete config file when all tools are enabled and no other config exists', () => {
+        __setConfigStore({});
+
+        vi.mocked(readFileSync).mockImplementation((path: unknown) => {
+            const pathStr = String(path);
+            if (pathStr.endsWith('.sharppilot.json')) {
+                return JSON.stringify({ tools: { disabledTools: ['check_csharp_coding_style'] } });
+            }
+            return '';
+        });
+
+        const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
+        const writer = new ToolsStatusWriter(configManager);
+        writer.write();
+
+        // Config is empty — file should be deleted, not written.
+        expect(writeFileSync).not.toHaveBeenCalled();
+        expect(unlinkSync).toHaveBeenCalled();
     });
 });
