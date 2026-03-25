@@ -12,6 +12,8 @@ For tier-1 violations, stop generating and surface a warning. For lower-tier con
     3. performance / memory
     4. stylistic / formatting
 
+> **EditorConfig wins** — when a `.editorconfig` property explicitly configures a style rule (e.g., `csharp_prefer_braces`, `csharp_style_namespace_declarations`), it overrides the corresponding default in any instruction file. Instruction-file style rules are fallback defaults, not absolutes.
+
 > **If unsure** which rule applies, generate a concise plan explaining the dilemma and stop; await user approval before continuing.
 
 ## Prompt Rules
