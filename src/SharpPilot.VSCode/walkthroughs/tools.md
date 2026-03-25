@@ -16,7 +16,7 @@ A server scope is filtered out entirely if its workspace context is not present 
 
 ### How it works
 
-Enabled tool settings are written to a `tools-status.json` file that the .NET MCP server reads. Only enabled tools are exposed to Copilot, so disabling a tool removes it from agent mode entirely.
+Enabled tool settings are written to a `.sharppilot.json` file that the .NET MCP server reads. Only enabled tools are exposed to Copilot, so disabling a tool removes it from agent mode entirely.
 
 ### Toggle tools
 

@@ -1,13 +1,14 @@
 ## Chat Instructions
 
-SharpPilot ships with 57 curated instruction files organized into categories:
+SharpPilot ships with 60 curated instruction files organized into categories:
 
 | Category | Examples |
 |----------|----------|
-| **General** | Copilot behavior, code review, design principles |
+| **General** | Copilot behavior, code review, design principles, Docker, REST API design, SQL |
 | **.NET** | C# coding style, F# coding style, VB.NET coding style, async/await, coding standards, NuGet, debugging, performance |
 | **Language-specific** | Blazor, WPF, WinForms, MAUI, Unity |
 | **Git** | Commit format |
+| **Scripting** | PowerShell, Bash, Batch |
 | **Web & Frameworks** | TypeScript, HTML/CSS, React, Angular, Vue, Svelte, Next.js, GraphQL |
 | **Web Testing** | Vitest, Jest, Jasmine, Mocha, Playwright, Cypress |
 
