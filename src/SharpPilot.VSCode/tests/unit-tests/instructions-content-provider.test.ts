@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 import { InstructionsContentProvider, instructionScheme } from '../../src/instructions-content-provider';
 import { SharpPilotConfigManager } from '../../src/sharppilot-config';
-import { parseInstructions } from '../../src/instructions-parser';
+import { InstructionsParser } from '../../src/instructions-parser';
 
 import { readFileSync } from 'node:fs';
 
@@ -45,7 +45,7 @@ describe('InstructionsContentProvider', () => {
     });
 
     it('should insert [DISABLED] tag for disabled instructions', () => {
-        const { instructions: parsedInstructions } = parseInstructions(testContent);
+        const { instructions: parsedInstructions } = InstructionsParser.parse(testContent);
         const firstInstructionId = parsedInstructions[0].id;
 
         vi.mocked(readFileSync).mockImplementation((path: unknown) => {

@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { InstructionsDecorationManager } from '../../src/instructions-decoration-manager';
 import { SharpPilotConfigManager } from '../../src/sharppilot-config';
 import { instructionScheme } from '../../src/instructions-content-provider';
-import { parseInstructions } from '../../src/instructions-parser';
+import { InstructionsParser } from '../../src/instructions-parser';
 
 import { readFileSync } from 'node:fs';
 
@@ -69,7 +69,7 @@ describe('InstructionsDecorationManager', () => {
     });
 
     it('should set decoration ranges for disabled instructions', () => {
-        const { instructions: parsedInstructions } = parseInstructions(testContent);
+        const { instructions: parsedInstructions } = InstructionsParser.parse(testContent);
         const firstId = parsedInstructions[0].id;
 
         vi.mocked(readFileSync).mockImplementation((path: unknown) => {

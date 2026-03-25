@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { parseInstructions } from './instructions-parser.js';
+import { InstructionsParser } from './instructions-parser.js';
 import { instructionScheme } from './instructions-content-provider.js';
 import type { SharpPilotConfigManager } from './sharppilot-config.js';
 
@@ -38,7 +38,7 @@ export class InstructionsCodeLensProvider implements vscode.CodeLensProvider, vs
             return [];
         }
 
-        const { instructions } = parseInstructions(content);
+        const { instructions } = InstructionsParser.parse(content);
         const disabledIds = this.configManager.getDisabledInstructions(fileName);
 
         const lenses: vscode.CodeLens[] = [];

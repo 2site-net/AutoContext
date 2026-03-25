@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 import { InstructionsWriter } from '../../src/instructions-writer';
 import { SharpPilotConfigManager } from '../../src/sharppilot-config';
-import { parseInstructions } from '../../src/instructions-parser';
+import { InstructionsParser } from '../../src/instructions-parser';
 import { instructions } from '../../src/config';
 
 import { readFileSync, writeFileSync, existsSync, readdirSync, rmSync, statSync } from 'node:fs';
@@ -81,7 +81,7 @@ describe('InstructionsWriter', () => {
     });
 
     it('should write filtered content with disabled instructions removed', () => {
-        const { instructions: parsedInstructions } = parseInstructions(testContent);
+        const { instructions: parsedInstructions } = InstructionsParser.parse(testContent);
         const firstId = parsedInstructions[0].id;
         const targetFileName = instructions[0].fileName;
 

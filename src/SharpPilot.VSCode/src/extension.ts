@@ -14,7 +14,7 @@ import { InstructionsContentProvider, instructionScheme } from './instructions-c
 import { InstructionsCodeLensProvider, toggleInstructionCommandId, resetInstructionsCommandId } from './instructions-codelens-provider.js';
 import { InstructionsDecorationManager } from './instructions-decoration-manager.js';
 import { InstructionsWriter } from './instructions-writer.js';
-import { parseInstructions } from './instructions-parser.js';
+import { InstructionsParser } from './instructions-parser.js';
 import { readFileSync } from 'node:fs';
 
 export function activate(context: vscode.ExtensionContext): void {
@@ -50,7 +50,7 @@ export function activate(context: vscode.ExtensionContext): void {
                 continue;
             }
 
-            const { diagnostics } = parseInstructions(content);
+            const { diagnostics } = InstructionsParser.parse(content);
 
             for (const d of diagnostics) {
                 if (d.kind === 'missing-id' && !warnOnMissingId) {

@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { readFileSync, writeFileSync, unlinkSync } from 'node:fs';
 import { join } from 'node:path';
-import { parseInstructions } from './instructions-parser.js';
+import { InstructionsParser } from './instructions-parser.js';
 
 export interface SharpPilotConfig {
     version?: string;
@@ -98,7 +98,7 @@ export class SharpPilotConfigManager implements vscode.Disposable {
         const config = this.read();
         const currentDisabled = config.tools?.disabledTools ?? [];
 
-        if (arraysEqual(disabledTools, currentDisabled)) {
+        if (SharpPilotConfigManager.arraysEqual(disabledTools, currentDisabled)) {
             return;
         }
 
@@ -143,7 +143,7 @@ export class SharpPilotConfigManager implements vscode.Disposable {
             try {
                 const filePath = join(this.extensionPath, 'instructions', fileName);
                 const content = readFileSync(filePath, 'utf-8');
-                const { instructions } = parseInstructions(content);
+                const { instructions } = InstructionsParser.parse(content);
                 const validIds = new Set(
                     instructions.map(r => r.id).filter((id): id is string => id !== undefined),
                 );
@@ -211,16 +211,16 @@ export class SharpPilotConfigManager implements vscode.Disposable {
         config.version = this.extensionVersion;
         writeFileSync(path, JSON.stringify(config, null, 4) + '\n', 'utf-8');
     }
-}
 
-function arraysEqual(a: readonly string[], b: readonly string[]): boolean {
-    if (a.length !== b.length) {
-        return false;
-    }
-    for (let i = 0; i < a.length; i++) {
-        if (a[i] !== b[i]) {
+    private static arraysEqual(a: readonly string[], b: readonly string[]): boolean {
+        if (a.length !== b.length) {
             return false;
         }
+        for (let i = 0; i < a.length; i++) {
+            if (a[i] !== b[i]) {
+                return false;
+            }
+        }
+        return true;
     }
-    return true;
 }

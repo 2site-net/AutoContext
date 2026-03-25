@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { InstructionsCodeLensProvider, toggleInstructionCommandId, resetInstructionsCommandId } from '../../src/instructions-codelens-provider';
 import { SharpPilotConfigManager } from '../../src/sharppilot-config';
 import { instructionScheme } from '../../src/instructions-content-provider';
-import { parseInstructions } from '../../src/instructions-parser';
+import { InstructionsParser } from '../../src/instructions-parser';
 
 import { readFileSync } from 'node:fs';
 
@@ -57,7 +57,7 @@ describe('InstructionsCodeLensProvider', () => {
 
         const lenses = provider.provideCodeLenses(makeDocument(instructionScheme, 'test.instructions.md'));
 
-        const { instructions: parsedInstructions } = parseInstructions(testContent);
+        const { instructions: parsedInstructions } = InstructionsParser.parse(testContent);
         expect(lenses).toHaveLength(parsedInstructions.length);
 
         for (const lens of lenses) {
@@ -68,7 +68,7 @@ describe('InstructionsCodeLensProvider', () => {
     });
 
     it('should show Enable Instruction for disabled instructions', () => {
-        const { instructions: parsedInstructions } = parseInstructions(testContent);
+        const { instructions: parsedInstructions } = InstructionsParser.parse(testContent);
         const firstId = parsedInstructions[0].id;
 
         vi.mocked(readFileSync).mockImplementation((path: unknown) => {
@@ -98,7 +98,7 @@ describe('InstructionsCodeLensProvider', () => {
     });
 
     it('should include Reset All Instructions lens when instructions are disabled', () => {
-        const { instructions: parsedInstructions } = parseInstructions(testContent);
+        const { instructions: parsedInstructions } = InstructionsParser.parse(testContent);
         const firstId = parsedInstructions[0].id;
 
         vi.mocked(readFileSync).mockImplementation((path: unknown) => {

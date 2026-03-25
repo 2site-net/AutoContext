@@ -3,7 +3,7 @@ import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, rmSync
 import { join } from 'node:path';
 import { createHash } from 'node:crypto';
 import { instructions } from './config.js';
-import { parseInstructions, stripInstructionIds } from './instructions-parser.js';
+import { InstructionsParser } from './instructions-parser.js';
 import type { SharpPilotConfigManager } from './sharppilot-config.js';
 
 /**
@@ -28,11 +28,11 @@ export class InstructionsWriter implements vscode.Disposable {
         private readonly configManager: SharpPilotConfigManager,
     ) {
         this.generatedRoot = join(extensionPath, 'instructions', '.generated');
-        this.stagingDir = join(extensionPath, 'instructions', '.workspaces', workspaceHash());
+        this.stagingDir = join(extensionPath, 'instructions', '.workspaces', InstructionsWriter.workspaceHash());
         this.disposables.push(
             configManager.onDidChange(() => this.scheduleWrite()),
             vscode.workspace.onDidChangeWorkspaceFolders(() => {
-                this.stagingDir = join(this.extensionPath, 'instructions', '.workspaces', workspaceHash());
+                this.stagingDir = join(this.extensionPath, 'instructions', '.workspaces', InstructionsWriter.workspaceHash());
                 this.write();
             }),
         );
@@ -73,7 +73,7 @@ export class InstructionsWriter implements vscode.Disposable {
         for (const entry of instructions) {
             const staged = join(this.stagingDir, entry.fileName);
             const live = join(this.generatedRoot, entry.fileName);
-            copyIfChanged(staged, live);
+            InstructionsWriter.copyIfChanged(staged, live);
         }
     }
 
@@ -83,7 +83,7 @@ export class InstructionsWriter implements vscode.Disposable {
             return;
         }
 
-        const currentHash = workspaceHash();
+        const currentHash = InstructionsWriter.workspaceHash();
         const oneHourAgo = Date.now() - 60 * 60 * 1000;
         let entries: string[];
         try {
@@ -131,7 +131,7 @@ export class InstructionsWriter implements vscode.Disposable {
         }
 
         if (disabledIds !== undefined && disabledIds.size > 0) {
-            const { instructions: parsedInstructions } = parseInstructions(content);
+            const { instructions: parsedInstructions } = InstructionsParser.parse(content);
             const lines = content.split('\n');
             const linesToRemove = new Set<number>();
 
@@ -146,39 +146,45 @@ export class InstructionsWriter implements vscode.Disposable {
             content = lines.filter((_, i) => !linesToRemove.has(i)).join('\n');
         }
 
-        content = stripInstructionIds(content);
-        writeIfChanged(dest, content);
+        content = InstructionsWriter.stripInstructionIds(content);
+        InstructionsWriter.writeIfChanged(dest, content);
     }
-}
 
-function workspaceHash(): string {
-    const root = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? 'no-workspace';
-    return createHash('sha256').update(root).digest('hex').slice(0, 12);
-}
+    private static readonly instructionIdTag = /\[INST\d{4}\]\s*/g;
 
-function writeIfChanged(dest: string, content: string): void {
-    if (existsSync(dest)) {
-        try {
-            if (readFileSync(dest, 'utf-8') === content) {
-                return;
+    private static stripInstructionIds(content: string): string {
+        return content.replace(InstructionsWriter.instructionIdTag, '');
+    }
+
+    private static workspaceHash(): string {
+        const root = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? 'no-workspace';
+        return createHash('sha256').update(root).digest('hex').slice(0, 12);
+    }
+
+    private static writeIfChanged(dest: string, content: string): void {
+        if (existsSync(dest)) {
+            try {
+                if (readFileSync(dest, 'utf-8') === content) {
+                    return;
+                }
+            } catch {
+                // Read failed — fall through to write.
             }
-        } catch {
-            // Read failed — fall through to write.
         }
+
+        writeFileSync(dest, content, 'utf-8');
     }
 
-    writeFileSync(dest, content, 'utf-8');
-}
+    private static copyIfChanged(src: string, dest: string): void {
+        if (!existsSync(src)) {
+            return;
+        }
 
-function copyIfChanged(src: string, dest: string): void {
-    if (!existsSync(src)) {
-        return;
-    }
-
-    try {
-        const content = readFileSync(src, 'utf-8');
-        writeIfChanged(dest, content);
-    } catch {
-        // Source read failed — skip.
+        try {
+            const content = readFileSync(src, 'utf-8');
+            InstructionsWriter.writeIfChanged(dest, content);
+        } catch {
+            // Source read failed — skip.
+        }
     }
 }
