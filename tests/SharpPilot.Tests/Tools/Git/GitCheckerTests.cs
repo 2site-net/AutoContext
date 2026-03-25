@@ -2,7 +2,7 @@ namespace SharpPilot.Tests.Tools.Git;
 
 using Microsoft.Extensions.Logging.Abstractions;
 
-using SharpPilot.Tools.Git;
+using SharpPilot.Tools.Checkers.Git;
 
 [Collection("ToolsStatus")]
 public sealed class GitCheckerTests

@@ -2,7 +2,7 @@ namespace SharpPilot.Tests.Tools.DotNet;
 
 using Microsoft.Extensions.Logging.Abstractions;
 
-using SharpPilot.Tools.DotNet;
+using SharpPilot.Tools.Checkers.DotNet;
 
 public sealed class NuGetHygieneCheckerTests
 {

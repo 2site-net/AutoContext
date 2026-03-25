@@ -5,9 +5,9 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 using SharpPilot.Configuration;
-using SharpPilot.Tools.DotNet;
+using SharpPilot.Tools.Checkers.DotNet;
+using SharpPilot.Tools.Checkers.Git;
 using SharpPilot.Tools.EditorConfig;
-using SharpPilot.Tools.Git;
 
 internal sealed class Program
 {

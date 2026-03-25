@@ -4,7 +4,7 @@ using System.Text.Json.Nodes;
 
 using Microsoft.Extensions.Logging.Abstractions;
 
-using SharpPilot.Tools.DotNet;
+using SharpPilot.Tools.Checkers.DotNet;
 
 [Collection("ToolsStatus")]
 public sealed class DotNetCheckerTests

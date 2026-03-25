@@ -1,4 +1,4 @@
-namespace SharpPilot.Tools.DotNet;
+namespace SharpPilot.Tools.Checkers.DotNet;
 
 using System.ComponentModel;
 using System.Text.Json.Nodes;
@@ -9,7 +9,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 using ModelContextProtocol.Server;
 
-using SharpPilot.Core;
+using SharpPilot.Tools.Checkers;
 
 /// <summary>
 /// Validates that type members are ordered by kind, access level, and static-before-instance.

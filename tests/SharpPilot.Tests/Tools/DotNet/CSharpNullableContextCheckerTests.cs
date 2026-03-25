@@ -1,6 +1,6 @@
 namespace SharpPilot.Tests.Tools.DotNet;
 
-using SharpPilot.Tools.DotNet;
+using SharpPilot.Tools.Checkers.DotNet;
 
 public sealed class CSharpNullableContextCheckerTests
 {

@@ -1,4 +1,4 @@
-namespace SharpPilot.Tools.Git;
+namespace SharpPilot.Tools.Checkers.Git;
 
 using System.ComponentModel;
 using System.Text.Json.Nodes;
@@ -8,7 +8,7 @@ using Microsoft.Extensions.Logging;
 using ModelContextProtocol.Server;
 
 using SharpPilot.Configuration;
-using SharpPilot.Core;
+using SharpPilot.Tools.Checkers;
 
 /// <summary>
 /// Aggregate tool that runs all enabled Git commit validators and returns

@@ -1,4 +1,4 @@
-namespace SharpPilot.Core;
+namespace SharpPilot.Tools.Checkers;
 
 using System.Text.Json.Nodes;
 

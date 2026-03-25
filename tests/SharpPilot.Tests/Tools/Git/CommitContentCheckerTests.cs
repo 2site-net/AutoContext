@@ -1,6 +1,6 @@
 namespace SharpPilot.Tests.Tools.Git;
 
-using SharpPilot.Tools.Git;
+using SharpPilot.Tools.Checkers.Git;
 
 public sealed class CommitContentCheckerTests
 {

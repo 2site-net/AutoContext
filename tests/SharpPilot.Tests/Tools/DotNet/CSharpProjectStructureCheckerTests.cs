@@ -2,7 +2,7 @@ namespace SharpPilot.Tests.Tools.DotNet;
 
 using System.Text.Json.Nodes;
 
-using SharpPilot.Tools.DotNet;
+using SharpPilot.Tools.Checkers.DotNet;
 
 public sealed class CSharpProjectStructureCheckerTests
 {

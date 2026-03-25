@@ -1,4 +1,4 @@
-namespace SharpPilot.Tools.DotNet;
+namespace SharpPilot.Tools.Checkers.DotNet;
 
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;

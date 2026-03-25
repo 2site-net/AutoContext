@@ -1,4 +1,4 @@
-namespace SharpPilot.Tools.DotNet;
+namespace SharpPilot.Tools.Checkers.DotNet;
 
 using System.ComponentModel;
 using System.Text.Json.Nodes;
@@ -8,7 +8,7 @@ using Microsoft.Extensions.Logging;
 using ModelContextProtocol.Server;
 
 using SharpPilot.Configuration;
-using SharpPilot.Core;
+using SharpPilot.Tools.Checkers;
 using SharpPilot.Tools.EditorConfig;
 
 /// <summary>

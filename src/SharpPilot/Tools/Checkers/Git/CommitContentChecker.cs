@@ -1,4 +1,4 @@
-namespace SharpPilot.Tools.Git;
+namespace SharpPilot.Tools.Checkers.Git;
 
 using System.ComponentModel;
 using System.Text.Json.Nodes;
@@ -6,7 +6,7 @@ using System.Text.RegularExpressions;
 
 using ModelContextProtocol.Server;
 
-using SharpPilot.Core;
+using SharpPilot.Tools.Checkers;
 
 /// <summary>
 /// Validates git commit message body content against anti-pattern rules.
