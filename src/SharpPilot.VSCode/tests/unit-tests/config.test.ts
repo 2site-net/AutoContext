@@ -37,13 +37,7 @@ describe('filteredContextKey', () => {
 });
 
 describe('targetPath', () => {
-    it('should map copilot.instructions.md to .github/copilot-instructions.md', () => {
-        const entry = { fileName: 'copilot.instructions.md' } as InstructionEntry;
-
-        expect(targetPath(entry)).toBe('.github/copilot-instructions.md');
-    });
-
-    it('should map other files to .github/instructions/', () => {
+    it('should map files to .github/instructions/', () => {
         const entry = { fileName: 'dotnet-testing.instructions.md' } as InstructionEntry;
 
         expect(targetPath(entry)).toBe('.github/instructions/dotnet-testing.instructions.md');
@@ -52,14 +46,18 @@ describe('targetPath', () => {
 
 describe('instructionByFileName', () => {
     it('should return the entry for a known file name', () => {
-        const entry = instructionByFileName('copilot.instructions.md');
+        const entry = instructionByFileName('code-review.instructions.md');
 
         expect(entry).toBeDefined();
-        expect(entry!.settingId).toBe('sharppilot.instructions.copilot');
+        expect(entry!.settingId).toBe('sharppilot.instructions.codeReview');
     });
 
     it('should return undefined for an unknown file name', () => {
         expect(instructionByFileName('nonexistent.md')).toBeUndefined();
+    });
+
+    it('should not include copilot.instructions.md (always-on, not toggleable)', () => {
+        expect(instructionByFileName('copilot.instructions.md')).toBeUndefined();
     });
 });
 
@@ -143,9 +141,9 @@ describe('toolSettingsForScope', () => {
 
 describe('contextKeysForEntry', () => {
     it('should return empty array for always-on instructions', () => {
-        const copilot = instructions.find(i => i.settingId === 'sharppilot.instructions.copilot')!;
+        const codeReview = instructions.find(i => i.settingId === 'sharppilot.instructions.codeReview')!;
 
-        expect(contextKeysForEntry(copilot)).toEqual([]);
+        expect(contextKeysForEntry(codeReview)).toEqual([]);
     });
 
     it('should return context keys for workspace-specific instructions', () => {
@@ -176,7 +174,6 @@ describe('contextKeysForEntry', () => {
 
     it('should have a mapping for every instruction with a workspace when clause', () => {
         const alwaysOn = new Set([
-            'sharppilot.instructions.copilot',
             'sharppilot.instructions.codeReview',
             'sharppilot.instructions.designPrinciples',
             'sharppilot.instructions.restApiDesign',

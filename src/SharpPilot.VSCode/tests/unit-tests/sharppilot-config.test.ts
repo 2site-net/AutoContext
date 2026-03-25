@@ -40,13 +40,13 @@ describe('SharpPilotConfigManager', () => {
         vi.mocked(readFileSync).mockReturnValue(JSON.stringify({
             instructions: {
                 disabledInstructions: {
-                    'copilot.instructions.md': ['INST0001'],
+                    'code-review.instructions.md': ['INST0001'],
                 },
             },
         }));
 
         const manager = new SharpPilotConfigManager('/ext', '0.5.0');
-        const disabled = manager.getDisabledInstructions('copilot.instructions.md');
+        const disabled = manager.getDisabledInstructions('code-review.instructions.md');
 
         expect(disabled.has('INST0001')).toBe(true);
         expect(disabled.size).toBe(1);
@@ -56,7 +56,7 @@ describe('SharpPilotConfigManager', () => {
         vi.mocked(readFileSync).mockReturnValue('{}');
 
         const manager = new SharpPilotConfigManager('/ext', '0.5.0');
-        const disabled = manager.getDisabledInstructions('copilot.instructions.md');
+        const disabled = manager.getDisabledInstructions('code-review.instructions.md');
 
         expect(disabled.size).toBe(0);
     });
@@ -65,7 +65,7 @@ describe('SharpPilotConfigManager', () => {
         vi.mocked(readFileSync).mockReturnValue(JSON.stringify({
             instructions: {
                 disabledInstructions: {
-                    'copilot.instructions.md': ['INST0001'],
+                    'code-review.instructions.md': ['INST0001'],
                 },
             },
         }));
@@ -87,7 +87,7 @@ describe('SharpPilotConfigManager', () => {
         vi.mocked(readFileSync).mockReturnValue('{}');
 
         const manager = new SharpPilotConfigManager('/ext', '0.5.0');
-        manager.toggleInstruction('copilot.instructions.md', 'INST0001');
+        manager.toggleInstruction('code-review.instructions.md', 'INST0001');
 
         const writeCalls = vi.mocked(writeFileSync).mock.calls;
 
@@ -99,20 +99,20 @@ describe('SharpPilotConfigManager', () => {
 
         const parsed = JSON.parse(content as string);
 
-        expect(parsed.instructions.disabledInstructions['copilot.instructions.md']).toEqual(['INST0001']);
+        expect(parsed.instructions.disabledInstructions['code-review.instructions.md']).toEqual(['INST0001']);
     });
 
     it('should toggle an instruction off (re-enable it)', () => {
         vi.mocked(readFileSync).mockReturnValue(JSON.stringify({
             instructions: {
                 disabledInstructions: {
-                    'copilot.instructions.md': ['INST0001'],
+                    'code-review.instructions.md': ['INST0001'],
                 },
             },
         }));
 
         const manager = new SharpPilotConfigManager('/ext', '0.5.0');
-        manager.toggleInstruction('copilot.instructions.md', 'INST0001');
+        manager.toggleInstruction('code-review.instructions.md', 'INST0001');
 
         // When all instructions re-enabled, file should be deleted (empty config).
         expect(vi.mocked(unlinkSync)).toHaveBeenCalled();
@@ -122,7 +122,7 @@ describe('SharpPilotConfigManager', () => {
         workspace.workspaceFolders = undefined;
 
         const manager = new SharpPilotConfigManager('/ext', '0.5.0');
-        manager.toggleInstruction('copilot.instructions.md', 'INST0001');
+        manager.toggleInstruction('code-review.instructions.md', 'INST0001');
 
         expect(vi.mocked(writeFileSync)).not.toHaveBeenCalled();
     });
@@ -131,7 +131,7 @@ describe('SharpPilotConfigManager', () => {
         vi.mocked(readFileSync).mockReturnValue('{}');
 
         const manager = new SharpPilotConfigManager('/ext', '1.2.3');
-        manager.toggleInstruction('copilot.instructions.md', 'INST0001');
+        manager.toggleInstruction('code-review.instructions.md', 'INST0001');
 
         const writeCalls = vi.mocked(writeFileSync).mock.calls;
         const parsed = JSON.parse(writeCalls[0][1] as string);
@@ -143,14 +143,14 @@ describe('SharpPilotConfigManager', () => {
         vi.mocked(readFileSync).mockReturnValue(JSON.stringify({
             instructions: {
                 disabledInstructions: {
-                    'copilot.instructions.md': ['INST0001', 'INST0002'],
+                    'code-review.instructions.md': ['INST0001', 'INST0002'],
                     'dotnet-async-await.instructions.md': ['INST0003'],
                 },
             },
         }));
 
         const manager = new SharpPilotConfigManager('/ext', '0.5.0');
-        manager.resetInstructions('copilot.instructions.md');
+        manager.resetInstructions('code-review.instructions.md');
 
         const writeCalls = vi.mocked(writeFileSync).mock.calls;
 
@@ -158,7 +158,7 @@ describe('SharpPilotConfigManager', () => {
 
         const parsed = JSON.parse(writeCalls[0][1] as string);
 
-        expect(parsed.instructions.disabledInstructions['copilot.instructions.md']).toBeUndefined();
+        expect(parsed.instructions.disabledInstructions['code-review.instructions.md']).toBeUndefined();
         expect(parsed.instructions.disabledInstructions['dotnet-async-await.instructions.md']).toEqual(['INST0003']);
     });
 
@@ -166,13 +166,13 @@ describe('SharpPilotConfigManager', () => {
         vi.mocked(readFileSync).mockReturnValue(JSON.stringify({
             instructions: {
                 disabledInstructions: {
-                    'copilot.instructions.md': ['INST0001'],
+                    'code-review.instructions.md': ['INST0001'],
                 },
             },
         }));
 
         const manager = new SharpPilotConfigManager('/ext', '0.5.0');
-        manager.resetInstructions('copilot.instructions.md');
+        manager.resetInstructions('code-review.instructions.md');
 
         expect(vi.mocked(unlinkSync)).toHaveBeenCalled();
     });
@@ -181,7 +181,7 @@ describe('SharpPilotConfigManager', () => {
         vi.mocked(readFileSync).mockReturnValue('{}');
 
         const manager = new SharpPilotConfigManager('/ext', '0.5.0');
-        manager.resetInstructions('copilot.instructions.md');
+        manager.resetInstructions('code-review.instructions.md');
 
         expect(vi.mocked(writeFileSync)).not.toHaveBeenCalled();
         expect(vi.mocked(unlinkSync)).not.toHaveBeenCalled();
@@ -192,13 +192,13 @@ describe('SharpPilotConfigManager', () => {
             version: '0.5.0',
             instructions: {
                 disabledInstructions: {
-                    'copilot.instructions.md': ['INST0001'],
+                    'code-review.instructions.md': ['INST0001'],
                 },
             },
         }));
 
         const manager = new SharpPilotConfigManager('/ext', '0.5.0');
-        manager.toggleInstruction('copilot.instructions.md', 'INST0001');
+        manager.toggleInstruction('code-review.instructions.md', 'INST0001');
 
         expect(vi.mocked(unlinkSync)).toHaveBeenCalled();
         expect(vi.mocked(writeFileSync)).not.toHaveBeenCalled();
@@ -234,7 +234,7 @@ describe('SharpPilotConfigManager', () => {
     it('should remove tools section when all tools are enabled', () => {
         vi.mocked(readFileSync).mockReturnValue(JSON.stringify({
             tools: { disabledTools: ['check_csharp_coding_style'] },
-            instructions: { disabledInstructions: { 'copilot.instructions.md': ['INST0001'] } },
+            instructions: { disabledInstructions: { 'code-review.instructions.md': ['INST0001'] } },
         }));
 
         const manager = new SharpPilotConfigManager('/ext', '0.5.0');
@@ -264,7 +264,7 @@ describe('SharpPilotConfigManager', () => {
 
     it('should preserve other config sections when writing tools', () => {
         vi.mocked(readFileSync).mockReturnValue(JSON.stringify({
-            instructions: { disabledInstructions: { 'copilot.instructions.md': ['INST0001'] } },
+            instructions: { disabledInstructions: { 'code-review.instructions.md': ['INST0001'] } },
         }));
 
         const manager = new SharpPilotConfigManager('/ext', '0.5.0');
@@ -273,6 +273,6 @@ describe('SharpPilotConfigManager', () => {
         const parsed = JSON.parse(vi.mocked(writeFileSync).mock.calls[0][1] as string);
 
         expect(parsed.tools.disabledTools).toEqual(['check_csharp_async_patterns']);
-        expect(parsed.instructions.disabledInstructions['copilot.instructions.md']).toEqual(['INST0001']);
+        expect(parsed.instructions.disabledInstructions['code-review.instructions.md']).toEqual(['INST0001']);
     });
 });

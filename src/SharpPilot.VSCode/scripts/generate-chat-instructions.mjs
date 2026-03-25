@@ -28,7 +28,10 @@ function buildWhenClause(entry, filtered) {
     return parts.join(' && ');
 }
 
-const chatInstructions = [];
+const chatInstructions = [
+    // Always injected — not toggleable, not filterable, not exportable.
+    { path: './instructions/copilot.instructions.md' },
+];
 
 for (const entry of instructions) {
     chatInstructions.push({

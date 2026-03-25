@@ -25,7 +25,6 @@ export const servers: readonly ServerEntry[] = [
 ];
 
 export const instructions: readonly InstructionEntry[] = [
-    { settingId: 'sharppilot.instructions.copilot', fileName: 'copilot.instructions.md', label: 'Copilot Instructions', category: 'General' },
     { settingId: 'sharppilot.instructions.codeReview', fileName: 'code-review.instructions.md', label: 'Code Review', category: 'General' },
     { settingId: 'sharppilot.instructions.designPrinciples', fileName: 'design-principles.instructions.md', label: 'Design Principles', category: 'General' },
     { settingId: 'sharppilot.instructions.docker', fileName: 'docker.instructions.md', label: 'Docker', category: 'General' },
@@ -128,9 +127,7 @@ export function filteredContextKey(settingId: string): string {
 }
 
 export function targetPath(entry: InstructionEntry): string {
-    return entry.fileName === 'copilot.instructions.md'
-        ? '.github/copilot-instructions.md'
-        : `.github/instructions/${entry.fileName}`;
+    return `.github/instructions/${entry.fileName}`;
 }
 
 const instructionsByFileName = new Map(instructions.map(i => [i.fileName, i]));

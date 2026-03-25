@@ -70,12 +70,7 @@
     ],
     "chatInstructions": [
       {
-        "path": "./instructions/copilot.instructions.md",
-        "when": "config.sharppilot.instructions.copilot && !sharppilot.override.copilot && !sharppilot.filtered.copilot"
-      },
-      {
-        "path": "./instructions-filtered/copilot.instructions.md",
-        "when": "config.sharppilot.instructions.copilot && !sharppilot.override.copilot && sharppilot.filtered.copilot"
+        "path": "./instructions/copilot.instructions.md"
       },
       {
         "path": "./instructions/code-review.instructions.md",
@@ -614,11 +609,6 @@
     "configuration": {
       "title": "SharpPilot",
       "properties": {
-        "sharppilot.instructions.copilot": {
-          "type": "boolean",
-          "default": true,
-          "description": "Enable Copilot behavior rules and rule precedence."
-        },
         "sharppilot.instructions.codeReview": {
           "type": "boolean",
           "default": true,

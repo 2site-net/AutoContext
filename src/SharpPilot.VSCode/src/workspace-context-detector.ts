@@ -265,20 +265,15 @@ export class WorkspaceContextDetector implements vscode.Disposable {
                 }
             }
 
-            const overrideFiles = await Promise.all([
-                vscode.workspace.findFiles('.github/instructions/*.instructions.md', undefined, 50),
-                vscode.workspace.findFiles('.github/copilot-instructions.md', undefined, 1),
-            ]);
+            const overrideFiles = await vscode.workspace.findFiles(
+                '.github/instructions/*.instructions.md', undefined, 50,
+            );
 
             const overriddenFileNames = new Set<string>();
 
-            for (const uri of overrideFiles.flat()) {
+            for (const uri of overrideFiles) {
                 const segments = uri.path.split('/');
-                let matchName = segments[segments.length - 1];
-
-                if (matchName === 'copilot-instructions.md') {
-                    matchName = 'copilot.instructions.md';
-                }
+                const matchName = segments[segments.length - 1];
 
                 if (instructionByFileName(matchName)) {
                     overriddenFileNames.add(matchName);

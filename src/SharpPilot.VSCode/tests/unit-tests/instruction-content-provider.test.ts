@@ -70,11 +70,11 @@ describe('InstructionContentProvider', () => {
 
         const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
         const provider = new InstructionContentProvider('/ext', configManager);
-        provider.buildUri('copilot.instructions.md');
+        provider.buildUri('code-review.instructions.md');
 
         expect(Uri.from).toHaveBeenCalledWith({
             scheme: instructionScheme,
-            path: 'copilot.instructions.md',
+            path: 'code-review.instructions.md',
         });
     });
 });
