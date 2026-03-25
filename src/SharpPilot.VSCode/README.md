@@ -237,7 +237,7 @@ for team-wide settings or add it to `.gitignore` for personal preferences.
 
 ## Prerequisites
 
-- VS Code 1.99 or later with [GitHub Copilot](https://marketplace.visualstudio.com/items?itemName=GitHub.copilot).
+- VS Code 1.100 or later with [GitHub Copilot](https://marketplace.visualstudio.com/items?itemName=GitHub.copilot).
 
 No .NET runtime is required — the extension ships self-contained executables.
 
@@ -247,7 +247,7 @@ Install the platform-specific `.vsix` for your OS from the Extensions view
 (**Install from VSIX…**) or from the command line:
 
 ```sh
-code --install-extension SharpPilot-win32-x64-0.1.0.vsix
+code --install-extension SharpPilot-win32-x64-0.5.0.vsix
 ```
 
 Once installed, open Agent mode in Copilot Chat and the SharpPilot tools will
