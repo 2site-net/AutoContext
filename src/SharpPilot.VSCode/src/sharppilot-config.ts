@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { readFileSync, writeFileSync, unlinkSync } from 'node:fs';
 import { join } from 'node:path';
-import { parseInstructions } from './instruction-parser.js';
+import { parseInstructions } from './instructions-parser.js';
 
 export interface SharpPilotConfig {
     version?: string;

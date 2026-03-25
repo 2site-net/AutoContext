@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-import { InstructionContentProvider, instructionScheme } from '../../src/instruction-content-provider';
+import { InstructionsContentProvider, instructionScheme } from '../../src/instructions-content-provider';
 import { SharpPilotConfigManager } from '../../src/sharppilot-config';
-import { parseInstructions } from '../../src/instruction-parser';
+import { parseInstructions } from '../../src/instructions-parser';
 
 import { readFileSync } from 'node:fs';
 
@@ -28,7 +28,7 @@ description: "Test"
 - [INST0002] **Don't** use async void.
 `;
 
-describe('InstructionContentProvider', () => {
+describe('InstructionsContentProvider', () => {
     it('should return file content unchanged when no instructions are disabled', () => {
         vi.mocked(readFileSync).mockImplementation((path: unknown) => {
             const pathStr = String(path);
@@ -37,7 +37,7 @@ describe('InstructionContentProvider', () => {
         });
 
         const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
-        const provider = new InstructionContentProvider('/ext', configManager);
+        const provider = new InstructionsContentProvider('/ext', configManager);
         const uri = { scheme: instructionScheme, path: 'test.instructions.md' } as unknown as import('vscode').Uri;
         const result = provider.provideTextDocumentContent(uri);
 
@@ -57,7 +57,7 @@ describe('InstructionContentProvider', () => {
         });
 
         const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
-        const provider = new InstructionContentProvider('/ext', configManager);
+        const provider = new InstructionsContentProvider('/ext', configManager);
         const uri = { scheme: instructionScheme, path: 'test.instructions.md' } as unknown as import('vscode').Uri;
         const result = provider.provideTextDocumentContent(uri);
 
@@ -69,7 +69,7 @@ describe('InstructionContentProvider', () => {
         vi.mocked(readFileSync).mockReturnValue('{}');
 
         const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
-        const provider = new InstructionContentProvider('/ext', configManager);
+        const provider = new InstructionsContentProvider('/ext', configManager);
         provider.buildUri('code-review.instructions.md');
 
         expect(Uri.from).toHaveBeenCalledWith({

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseInstructions, stripInstructionIds } from '../../src/instruction-parser';
+import { parseInstructions, stripInstructionIds } from '../../src/instructions-parser';
 
 const singleInstructionDoc = `---
 description: "Test"

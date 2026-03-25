@@ -3,7 +3,7 @@ import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, rmSync
 import { join } from 'node:path';
 import { createHash } from 'node:crypto';
 import { instructions } from './config.js';
-import { parseInstructions, stripInstructionIds } from './instruction-parser.js';
+import { parseInstructions, stripInstructionIds } from './instructions-parser.js';
 import type { SharpPilotConfigManager } from './sharppilot-config.js';
 
 /**
@@ -17,7 +17,7 @@ import type { SharpPilotConfigManager } from './sharppilot-config.js';
  * - On window focus: full write() (re-reads config, re-stages, promotes — caching makes
  *   this near-free when nothing changed, but catches missed watcher events)
  */
-export class InstructionWriter implements vscode.Disposable {
+export class InstructionsWriter implements vscode.Disposable {
     private readonly generatedRoot: string;
     private stagingDir: string;
     private readonly disposables: vscode.Disposable[] = [];

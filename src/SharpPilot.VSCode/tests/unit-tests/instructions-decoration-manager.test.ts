@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-import { InstructionDecorationManager } from '../../src/instruction-decoration-manager';
+import { InstructionsDecorationManager } from '../../src/instructions-decoration-manager';
 import { SharpPilotConfigManager } from '../../src/sharppilot-config';
-import { instructionScheme } from '../../src/instruction-content-provider';
-import { parseInstructions } from '../../src/instruction-parser';
+import { instructionScheme } from '../../src/instructions-content-provider';
+import { parseInstructions } from '../../src/instructions-parser';
 
 import { readFileSync } from 'node:fs';
 
@@ -36,12 +36,12 @@ function makeEditor(scheme: string, path: string) {
     } as unknown as import('vscode').TextEditor;
 }
 
-describe('InstructionDecorationManager', () => {
+describe('InstructionsDecorationManager', () => {
     it('should not set decorations for non-instruction editors', () => {
         vi.mocked(readFileSync).mockReturnValue('{}');
 
         const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
-        const manager = new InstructionDecorationManager('/ext', configManager);
+        const manager = new InstructionsDecorationManager('/ext', configManager);
 
         const editor = makeEditor('file', '/some/file.ts');
         manager.applyDecorations(editor);
@@ -57,7 +57,7 @@ describe('InstructionDecorationManager', () => {
         });
 
         const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
-        const manager = new InstructionDecorationManager('/ext', configManager);
+        const manager = new InstructionsDecorationManager('/ext', configManager);
 
         const editor = makeEditor(instructionScheme, 'test.instructions.md');
         manager.applyDecorations(editor);
@@ -83,7 +83,7 @@ describe('InstructionDecorationManager', () => {
         });
 
         const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
-        const manager = new InstructionDecorationManager('/ext', configManager);
+        const manager = new InstructionsDecorationManager('/ext', configManager);
 
         const editor = makeEditor(instructionScheme, 'test.instructions.md');
         manager.applyDecorations(editor);
@@ -110,7 +110,7 @@ describe('InstructionDecorationManager', () => {
         vscodeWindow.visibleTextEditors = [editor1, editor2] as unknown[];
 
         const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
-        const manager = new InstructionDecorationManager('/ext', configManager);
+        const manager = new InstructionsDecorationManager('/ext', configManager);
         manager.refreshAll();
 
         // Only the instruction editor should get decorations.

@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { instructions, targetPath, type InstructionEntry } from './config.js';
 import { hashContent, manifestRelativePath, readManifest, writeManifest } from './export-manifest.js';
 
-export class InstructionExporter {
+export class InstructionsExporter {
     constructor(private readonly extensionPath: string) {}
 
     async export(): Promise<void> {

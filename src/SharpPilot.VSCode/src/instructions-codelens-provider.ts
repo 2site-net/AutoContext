@@ -1,14 +1,14 @@
 import * as vscode from 'vscode';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { parseInstructions } from './instruction-parser.js';
-import { instructionScheme } from './instruction-content-provider.js';
+import { parseInstructions } from './instructions-parser.js';
+import { instructionScheme } from './instructions-content-provider.js';
 import type { SharpPilotConfigManager } from './sharppilot-config.js';
 
 export const toggleInstructionCommandId = 'sharppilot.toggleInstruction';
 export const resetInstructionsCommandId = 'sharppilot.resetInstructions';
 
-export class InstructionCodeLensProvider implements vscode.CodeLensProvider, vscode.Disposable {
+export class InstructionsCodeLensProvider implements vscode.CodeLensProvider, vscode.Disposable {
     private readonly didChangeEmitter = new vscode.EventEmitter<void>();
     readonly onDidChangeCodeLenses = this.didChangeEmitter.event;
     private readonly disposables: vscode.Disposable[] = [];

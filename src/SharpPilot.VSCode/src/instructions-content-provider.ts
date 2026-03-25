@@ -1,12 +1,12 @@
 import * as vscode from 'vscode';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { parseInstructions } from './instruction-parser.js';
+import { parseInstructions } from './instructions-parser.js';
 import type { SharpPilotConfigManager } from './sharppilot-config.js';
 
 export const instructionScheme = 'sharppilot-instructions';
 
-export class InstructionContentProvider implements vscode.TextDocumentContentProvider, vscode.Disposable {
+export class InstructionsContentProvider implements vscode.TextDocumentContentProvider, vscode.Disposable {
     private readonly didChangeEmitter = new vscode.EventEmitter<vscode.Uri>();
     readonly onDidChange = this.didChangeEmitter.event;
     private readonly disposables: vscode.Disposable[] = [];

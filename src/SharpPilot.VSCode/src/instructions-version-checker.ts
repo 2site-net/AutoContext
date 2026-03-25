@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { instructions, targetPath, type InstructionEntry } from './config.js';
 import { hashContent, manifestRelativePath, readManifest, writeManifest } from './export-manifest.js';
 
-export class InstructionVersionChecker {
+export class InstructionsVersionChecker {
     constructor(private readonly extensionPath: string) {}
 
     async check(): Promise<void> {

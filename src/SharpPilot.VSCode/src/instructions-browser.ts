@@ -1,10 +1,10 @@
 import * as vscode from 'vscode';
 import { instructions, type InstructionEntry } from './config.js';
-import { instructionScheme } from './instruction-content-provider.js';
+import { instructionScheme } from './instructions-content-provider.js';
 
 type BrowseItem = vscode.QuickPickItem & { entry?: InstructionEntry };
 
-export class InstructionBrowser {
+export class InstructionsBrowser {
 
     async browse(): Promise<void> {
         const items: BrowseItem[] = [];

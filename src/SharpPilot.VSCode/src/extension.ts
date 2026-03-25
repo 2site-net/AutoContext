@@ -6,15 +6,15 @@ import { WorkspaceContextDetector } from './workspace-context-detector.js';
 import { ToolsStatusWriter } from './tools-status-writer.js';
 import { MenuToggler } from './menu-toggler.js';
 import { autoConfigure } from './auto-configurer.js';
-import { InstructionExporter } from './instruction-exporter.js';
-import { InstructionVersionChecker } from './instruction-version-checker.js';
-import { InstructionBrowser } from './instruction-browser.js';
+import { InstructionsExporter } from './instructions-exporter.js';
+import { InstructionsVersionChecker } from './instructions-version-checker.js';
+import { InstructionsBrowser } from './instructions-browser.js';
 import { SharpPilotConfigManager } from './sharppilot-config.js';
-import { InstructionContentProvider, instructionScheme } from './instruction-content-provider.js';
-import { InstructionCodeLensProvider, toggleInstructionCommandId, resetInstructionsCommandId } from './instruction-codelens-provider.js';
-import { InstructionDecorationManager } from './instruction-decoration-manager.js';
-import { InstructionWriter } from './instruction-writer.js';
-import { parseInstructions } from './instruction-parser.js';
+import { InstructionsContentProvider, instructionScheme } from './instructions-content-provider.js';
+import { InstructionsCodeLensProvider, toggleInstructionCommandId, resetInstructionsCommandId } from './instructions-codelens-provider.js';
+import { InstructionsDecorationManager } from './instructions-decoration-manager.js';
+import { InstructionsWriter } from './instructions-writer.js';
+import { parseInstructions } from './instructions-parser.js';
 import { readFileSync } from 'node:fs';
 
 export function activate(context: vscode.ExtensionContext): void {
@@ -27,15 +27,15 @@ export function activate(context: vscode.ExtensionContext): void {
     const workspaceContextDetector = new WorkspaceContextDetector();
     const instructionsToggler = new MenuToggler('SharpPilot: Toggle Instructions', 'Select instructions to enable', instructions, () => workspaceContextDetector.getOverriddenSettingIds());
     const toolsToggler = new MenuToggler('SharpPilot: Toggle Tools', 'Select tools to enable', tools);
-    const instructionExporter = new InstructionExporter(context.extensionPath);
-    const instructionVersionChecker = new InstructionVersionChecker(context.extensionPath);
-    const instructionBrowser = new InstructionBrowser();
+    const instructionsExporter = new InstructionsExporter(context.extensionPath);
+    const instructionsVersionChecker = new InstructionsVersionChecker(context.extensionPath);
+    const instructionsBrowser = new InstructionsBrowser();
     const configManager = new SharpPilotConfigManager(context.extensionPath, version);
     const toolsStatusWriter = new ToolsStatusWriter(configManager);
-    const contentProvider = new InstructionContentProvider(context.extensionPath, configManager);
-    const codeLensProvider = new InstructionCodeLensProvider(context.extensionPath, configManager);
-    const decorationManager = new InstructionDecorationManager(context.extensionPath, configManager);
-    const instructionWriter = new InstructionWriter(context.extensionPath, configManager);
+    const contentProvider = new InstructionsContentProvider(context.extensionPath, configManager);
+    const codeLensProvider = new InstructionsCodeLensProvider(context.extensionPath, configManager);
+    const decorationManager = new InstructionsDecorationManager(context.extensionPath, configManager);
+    const instructionsWriter = new InstructionsWriter(context.extensionPath, configManager);
     const outputChannel = vscode.window.createOutputChannel('SharpPilot');
 
     function logDiagnostics(): void {
@@ -64,10 +64,10 @@ export function activate(context: vscode.ExtensionContext): void {
 
     toolsStatusWriter.write();
     workspaceContextDetector.detect();
-    instructionVersionChecker.check();
+    instructionsVersionChecker.check();
     configManager.removeOrphanedIds();
-    instructionWriter.removeOrphanedStagingDirs();
-    instructionWriter.write();
+    instructionsWriter.removeOrphanedStagingDirs();
+    instructionsWriter.write();
     logDiagnostics();
 
     context.subscriptions.push(
@@ -79,15 +79,15 @@ export function activate(context: vscode.ExtensionContext): void {
         contentProvider,
         codeLensProvider,
         decorationManager,
-        instructionWriter,
+        instructionsWriter,
         vscode.workspace.registerTextDocumentContentProvider(instructionScheme, contentProvider),
         vscode.languages.registerCodeLensProvider({ scheme: instructionScheme }, codeLensProvider),
         vscode.commands.registerCommand(StatusBarIndicator.commandId, () => statusBarIndicator.showToggleMenu()),
         vscode.commands.registerCommand('sharppilot.toggleTools', () => toolsToggler.toggle()),
         vscode.commands.registerCommand('sharppilot.toggleInstructions', () => instructionsToggler.toggle()),
         vscode.commands.registerCommand('sharppilot.autoConfigure', () => autoConfigure(workspaceContextDetector)),
-        vscode.commands.registerCommand('sharppilot.exportInstructions', () => instructionExporter.export()),
-        vscode.commands.registerCommand('sharppilot.browseInstructions', () => instructionBrowser.browse()),
+        vscode.commands.registerCommand('sharppilot.exportInstructions', () => instructionsExporter.export()),
+        vscode.commands.registerCommand('sharppilot.browseInstructions', () => instructionsBrowser.browse()),
         vscode.commands.registerCommand(toggleInstructionCommandId, (fileName: string, id: string) => {
             configManager.toggleInstruction(fileName, id);
         }),
@@ -97,11 +97,11 @@ export function activate(context: vscode.ExtensionContext): void {
         configManager.onDidChange(() => logDiagnostics()),
         vscode.window.onDidChangeWindowState(e => {
             if (e.focused) {
-                instructionWriter.write();
+                instructionsWriter.write();
             }
         }),
         vscode.workspace.onDidGrantWorkspaceTrust(() => {
-            instructionWriter.write();
+            instructionsWriter.write();
         }),
         vscode.workspace.onDidChangeConfiguration(e => {
             if (e.affectsConfiguration('sharppilot.instructions') || e.affectsConfiguration('sharppilot.tools')) {

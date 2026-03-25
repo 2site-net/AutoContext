@@ -1,11 +1,11 @@
 import * as vscode from 'vscode';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { parseInstructions } from './instruction-parser.js';
-import { instructionScheme } from './instruction-content-provider.js';
+import { parseInstructions } from './instructions-parser.js';
+import { instructionScheme } from './instructions-content-provider.js';
 import type { SharpPilotConfigManager } from './sharppilot-config.js';
 
-export class InstructionDecorationManager implements vscode.Disposable {
+export class InstructionsDecorationManager implements vscode.Disposable {
     private readonly decorationType = vscode.window.createTextEditorDecorationType({ opacity: '0.4' });
     private readonly disposables: vscode.Disposable[] = [];
 
