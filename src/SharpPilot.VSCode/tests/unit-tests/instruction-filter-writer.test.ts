@@ -5,7 +5,7 @@ import { SharpPilotConfigManager } from '../../src/sharppilot-config';
 import { parseInstructions } from '../../src/instruction-parser';
 import { instructions, filteredContextKey } from '../../src/config';
 
-import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, rmSync, statSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync, readdirSync, rmSync, statSync, unlinkSync } from 'node:fs';
 
 vi.mock('node:fs', () => ({
     readFileSync: vi.fn(),
@@ -35,7 +35,7 @@ description: "Test"
 `;
 
 describe('InstructionFilterWriter', () => {
-    it('should stage original files when no instructions are disabled', () => {
+    it('should not write any files when no instructions are disabled', () => {
         vi.mocked(readFileSync).mockImplementation((path: unknown) => {
             const pathStr = String(path);
             if (pathStr.endsWith('.sharppilot.json')) return '{}';
@@ -46,11 +46,28 @@ describe('InstructionFilterWriter', () => {
         const writer = new InstructionFilterWriter('/ext', configManager);
         writer.write();
 
-        expect(mkdirSync).toHaveBeenCalled();
+        expect(writeFileSync).not.toHaveBeenCalled();
+    });
 
-        // Should write original content for each instruction file.
-        const writeCalls = vi.mocked(writeFileSync).mock.calls;
-        expect(writeCalls.length).toBeGreaterThan(0);
+    it('should delete stale live files when no instructions are disabled', () => {
+        vi.mocked(readFileSync).mockImplementation((path: unknown) => {
+            const pathStr = String(path);
+            if (pathStr.endsWith('.sharppilot.json')) return '{}';
+            return testContent;
+        });
+
+        const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
+        const writer = new InstructionFilterWriter('/ext', configManager);
+        writer.write();
+
+        // Should attempt to delete every live instruction file.
+        expect(unlinkSync).toHaveBeenCalled();
+        const unlinkCalls = vi.mocked(unlinkSync).mock.calls;
+        for (const entry of instructions) {
+            expect(unlinkCalls).toContainEqual(
+                [expect.stringContaining(entry.fileName)],
+            );
+        }
     });
 
     it('should set filtered context keys to false when no instructions are disabled', () => {

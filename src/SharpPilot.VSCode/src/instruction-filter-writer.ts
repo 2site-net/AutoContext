@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, rmSync, statSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, rmSync, statSync, unlinkSync } from 'node:fs';
 import { join } from 'node:path';
 import { createHash } from 'node:crypto';
 import { instructions, filteredContextKey } from './config.js';
@@ -16,7 +16,7 @@ import type { SharpPilotConfigManager } from './sharppilot-config.js';
  * - On window focus: full write() (re-reads config, re-stages, promotes — caching makes
  *   this near-free when nothing changed, but catches missed watcher events)
  *
- * Per-file context keys (`sharp-pilot.filtered.<suffix>`) tell `package.json` which
+ * Per-file context keys (`sharppilot.filtered.<suffix>`) tell `package.json` which
  * entry to activate — original or filtered — so Copilot always reads the correct file.
  */
 export class InstructionFilterWriter implements vscode.Disposable {
@@ -56,6 +56,7 @@ export class InstructionFilterWriter implements vscode.Disposable {
 
         const config = this.configManager.read();
         const disabledInstructionsMap = config.instructions?.disabledInstructions ?? {};
+        const filteredFileNames = new Set<string>();
 
         for (const entry of instructions) {
             const disabledIds = disabledInstructionsMap[entry.fileName];
@@ -63,8 +64,7 @@ export class InstructionFilterWriter implements vscode.Disposable {
 
             if (hasDisabled) {
                 this.writeFiltered(entry.fileName, new Set(disabledIds));
-            } else {
-                this.stageOriginal(entry.fileName);
+                filteredFileNames.add(entry.fileName);
             }
 
             vscode.commands.executeCommand(
@@ -74,17 +74,24 @@ export class InstructionFilterWriter implements vscode.Disposable {
             );
         }
 
-        this.promote();
+        this.promote(filteredFileNames);
     }
 
-    /** Copy staged files → live root. Called by write() after staging. */
-    private promote(): void {
-        mkdirSync(this.filteredRoot, { recursive: true });
+    /** Copy staged files → live root; remove stale live files. */
+    private promote(filteredFileNames: ReadonlySet<string>): void {
+        if (filteredFileNames.size > 0) {
+            mkdirSync(this.filteredRoot, { recursive: true });
+        }
 
         for (const entry of instructions) {
-            const staged = join(this.stagingDir, entry.fileName);
             const live = join(this.filteredRoot, entry.fileName);
-            copyIfChanged(staged, live);
+
+            if (filteredFileNames.has(entry.fileName)) {
+                const staged = join(this.stagingDir, entry.fileName);
+                copyIfChanged(staged, live);
+            } else {
+                deleteIfExists(live);
+            }
         }
     }
 
@@ -127,18 +134,6 @@ export class InstructionFilterWriter implements vscode.Disposable {
         }
         for (const d of this.disposables) {
             d.dispose();
-        }
-    }
-
-    private stageOriginal(fileName: string): void {
-        const src = join(this.extensionPath, 'instructions', fileName);
-        const dest = join(this.stagingDir, fileName);
-
-        try {
-            const content = readFileSync(src, 'utf-8');
-            writeIfChanged(dest, content);
-        } catch {
-            // Source file missing — skip.
         }
     }
 
@@ -199,5 +194,13 @@ function copyIfChanged(src: string, dest: string): void {
         writeIfChanged(dest, content);
     } catch {
         // Source read failed — skip.
+    }
+}
+
+function deleteIfExists(path: string): void {
+    try {
+        unlinkSync(path);
+    } catch {
+        // File doesn't exist or permission error — skip.
     }
 }
