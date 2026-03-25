@@ -28,7 +28,7 @@ public sealed class CSharpProjectStructureChecker : IChecker
     [McpServerTool(Name = "check_csharp_project_structure", ReadOnly = true, Idempotent = true)]
     [Description(
         "Checks C# source code for project structure violations: " +
-        "file-scoped namespaces are required (not block-scoped), " +
+        "namespace style enforced per csharp_style_namespace_declarations (file_scoped or block_scoped), " +
         "only one top-level type declaration per file is allowed, " +
         "the file name (without extension) must match the type name when provided, " +
         "and #pragma warning disable is not allowed (use [SuppressMessage] with a justification instead).")]
@@ -47,7 +47,13 @@ public sealed class CSharpProjectStructureChecker : IChecker
         var root = tree.GetRoot();
         var violations = new List<string>();
 
-        if (!ShouldSkipFileScopedNamespace(data))
+        var namespacePreference = data?["csharp_style_namespace_declarations"]?.GetValue<string>() ?? "file_scoped";
+
+        if (namespacePreference is "block_scoped")
+        {
+            CheckBlockScopedNamespace(root, tree, violations);
+        }
+        else
         {
             CheckFileScopedNamespace(root, tree, violations);
         }
@@ -62,11 +68,17 @@ public sealed class CSharpProjectStructureChecker : IChecker
               string.Join('\n', violations.Select((v, i) => $"  {i + 1}. {v}"));
     }
 
-    private static bool ShouldSkipFileScopedNamespace(JsonObject? data)
+    private static void CheckBlockScopedNamespace(SyntaxNode root, SyntaxTree tree, List<string> violations)
     {
-        var value = data?["csharp_style_namespace_declarations"]?.GetValue<string>();
+        var fileScopedNamespaces = root.DescendantNodes().OfType<FileScopedNamespaceDeclarationSyntax>().ToList();
 
-        return value is "block_scoped";
+        foreach (var ns in fileScopedNamespaces)
+        {
+            var line = tree.GetLineSpan(ns.Span).StartLinePosition.Line + 1;
+            violations.Add(
+                $"Line {line}: File-scoped namespace '{ns.Name}' detected. " +
+                "Use a block-scoped namespace instead (csharp_style_namespace_declarations = block_scoped).");
+        }
     }
 
     private static void CheckFileScopedNamespace(SyntaxNode root, SyntaxTree tree, List<string> violations)

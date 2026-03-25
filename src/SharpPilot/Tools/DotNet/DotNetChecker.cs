@@ -38,7 +38,7 @@ public sealed partial class DotNetChecker(ILogger<DotNetChecker> logger) : IChec
         "Prefer this over calling individual check tools unless you only need a specific check. " +
         "Does not include NuGet hygiene (use check_nuget_hygiene separately for project files). " +
         "When editorConfigFilePath is provided, resolves .editorconfig properties and uses them to " +
-        "suppress checks that conflict with the project's editorconfig settings.")]
+        "drive checker behavior (e.g., brace and namespace style enforcement direction).")]
     public string Check(
         [Description("The C# source code to check.")]
         string content,

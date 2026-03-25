@@ -1189,12 +1189,48 @@ public sealed class CSharpCodingStyleCheckerTests
         });
     }
 
-    [Theory]
-    [InlineData("false")]
-    [InlineData("when_multiline")]
-    public void Should_skip_curly_braces_when_editorconfig_opts_out(string prefValue)
+    [Fact]
+    public void Should_flag_unnecessary_braces_when_editorconfig_false()
     {
-        // Arrange — missing braces on if, would normally fail
+        // Arrange — single-line body with braces
+        var source = """
+            /// <summary>
+            /// A class.
+            /// </summary>
+            public class MyClass
+            {
+                /// <summary>
+                /// Does work.
+                /// </summary>
+                public void DoWork()
+                {
+                    var items = new[] { 1, 2, 3 };
+
+                    foreach (var item in items)
+                    {
+                        Console.WriteLine(item);
+                    }
+                }
+            }
+            """;
+
+        var data = new JsonObject { ["csharp_prefer_braces"] = "false" };
+
+        // Act
+        var result = new CSharpCodingStyleChecker().Check(source, data);
+
+        // Assert
+        Assert.Multiple(() =>
+        {
+            Assert.StartsWith("❌", result);
+            Assert.Contains("unnecessary curly braces", result, StringComparison.OrdinalIgnoreCase);
+        });
+    }
+
+    [Fact]
+    public void Should_pass_braceless_body_when_editorconfig_false()
+    {
+        // Arrange — no braces on single-line body
         var source = """
             /// <summary>
             /// A class.
@@ -1214,13 +1250,89 @@ public sealed class CSharpCodingStyleCheckerTests
             }
             """;
 
-        var data = new JsonObject { ["csharp_prefer_braces"] = prefValue };
+        var data = new JsonObject { ["csharp_prefer_braces"] = "false" };
 
         // Act
         var result = new CSharpCodingStyleChecker().Check(source, data);
 
-        // Assert — curly braces violation should not appear
+        // Assert
         Assert.DoesNotContain("curly braces", result, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Should_flag_unnecessary_braces_on_single_line_when_editorconfig_when_multiline()
+    {
+        // Arrange — single-line body with braces
+        var source = """
+            /// <summary>
+            /// A class.
+            /// </summary>
+            public class MyClass
+            {
+                /// <summary>
+                /// Does work.
+                /// </summary>
+                public void DoWork()
+                {
+                    var items = new[] { 1, 2, 3 };
+
+                    foreach (var item in items)
+                    {
+                        Console.WriteLine(item);
+                    }
+                }
+            }
+            """;
+
+        var data = new JsonObject { ["csharp_prefer_braces"] = "when_multiline" };
+
+        // Act
+        var result = new CSharpCodingStyleChecker().Check(source, data);
+
+        // Assert
+        Assert.Multiple(() =>
+        {
+            Assert.StartsWith("❌", result);
+            Assert.Contains("unnecessary curly braces", result, StringComparison.OrdinalIgnoreCase);
+        });
+    }
+
+    [Fact]
+    public void Should_require_braces_on_multiline_when_editorconfig_when_multiline()
+    {
+        // Arrange — multi-line body without braces
+        var source = """
+            /// <summary>
+            /// A class.
+            /// </summary>
+            public class MyClass
+            {
+                /// <summary>
+                /// Does work.
+                /// </summary>
+                public void DoWork()
+                {
+                    var items = new[] { 1, 2, 3 };
+
+                    foreach (var item in items)
+                        Console.WriteLine(
+                            item);
+                }
+            }
+            """;
+
+        var data = new JsonObject { ["csharp_prefer_braces"] = "when_multiline" };
+
+        // Act
+        var result = new CSharpCodingStyleChecker().Check(source, data);
+
+        // Assert
+        Assert.Multiple(() =>
+        {
+            Assert.StartsWith("❌", result);
+            Assert.Contains("requires curly braces", result, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("multi-line", result, StringComparison.OrdinalIgnoreCase);
+        });
     }
 
     [Fact]

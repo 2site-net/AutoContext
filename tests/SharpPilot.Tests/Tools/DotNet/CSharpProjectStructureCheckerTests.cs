@@ -404,9 +404,33 @@ public sealed class CSharpProjectStructureCheckerTests
     }
 
     [Fact]
-    public void Should_skip_file_scoped_namespace_when_editorconfig_says_block_scoped()
+    public void Should_enforce_block_scoped_namespace_when_editorconfig_says_block_scoped()
     {
-        // Arrange — block-scoped namespace, would normally fail
+        // Arrange — file-scoped namespace, should be flagged when block_scoped is preferred
+        var source = """
+            namespace MyApp.Services;
+
+            public class UserService { }
+            """;
+
+        var data = new JsonObject { ["csharp_style_namespace_declarations"] = "block_scoped" };
+
+        // Act
+        var result = new CSharpProjectStructureChecker().Check(source, data);
+
+        // Assert
+        Assert.Multiple(() =>
+        {
+            Assert.StartsWith("❌", result);
+            Assert.Contains("File-scoped namespace", result);
+            Assert.Contains("block_scoped", result);
+        });
+    }
+
+    [Fact]
+    public void Should_pass_block_scoped_namespace_when_editorconfig_says_block_scoped()
+    {
+        // Arrange — block-scoped namespace, matching the preference
         var source = """
             namespace MyApp.Services
             {
@@ -419,8 +443,8 @@ public sealed class CSharpProjectStructureCheckerTests
         // Act
         var result = new CSharpProjectStructureChecker().Check(source, data);
 
-        // Assert — namespace violation should not appear
-        Assert.DoesNotContain("Block-scoped namespace", result);
+        // Assert
+        Assert.DoesNotContain("namespace", result, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

@@ -31,7 +31,7 @@ public sealed partial class CSharpCodingStyleChecker : IChecker
     [Description(
         "Checks C# source code for style violations: " +
         "no #region, no decorative section-header comments, " +
-        "curly braces required on control flow (except single-line guard clauses), " +
+        "curly brace usage enforced per csharp_prefer_braces (true/false/when_multiline), " +
         "blank lines before control flow statements, " +
         "expression-body arrows (=>) must be on the next line, " +
         "and XML doc comments required on public/protected members.")]
@@ -53,12 +53,7 @@ public sealed partial class CSharpCodingStyleChecker : IChecker
 
         CheckRegions(root, tree, violations);
         CheckDecorativeComments(contentSpan, lineRanges, violations);
-
-        if (!ShouldSkipCurlyBraces(data))
-        {
-            CheckCurlyBraces(root, tree, violations);
-        }
-
+        CheckCurlyBraces(root, tree, GetBracePreference(data), violations);
         CheckBlankLineBeforeControlFlow(root, tree, contentSpan, lineRanges, violations);
         CheckExpressionBodyArrowPlacement(root, tree, violations);
         CheckXmlDocComments(root, tree, violations);
@@ -69,12 +64,8 @@ public sealed partial class CSharpCodingStyleChecker : IChecker
               string.Join('\n', violations.Select((v, i) => $"  {i + 1}. {v}"));
     }
 
-    private static bool ShouldSkipCurlyBraces(JsonObject? data)
-    {
-        var value = data?["csharp_prefer_braces"]?.GetValue<string>();
-
-        return value is "false" or "when_multiline";
-    }
+    private static string GetBracePreference(JsonObject? data)
+        => data?["csharp_prefer_braces"]?.GetValue<string>() ?? "true";
 
     private static void CheckRegions(SyntaxNode root, SyntaxTree tree, List<string> violations)
     {
@@ -104,7 +95,11 @@ public sealed partial class CSharpCodingStyleChecker : IChecker
         }
     }
 
-    private static void CheckCurlyBraces(SyntaxNode root, SyntaxTree tree, List<string> violations)
+    private static void CheckCurlyBraces(
+        SyntaxNode root,
+        SyntaxTree tree,
+        string preference,
+        List<string> violations)
     {
         var controlFlowStatements = root.DescendantNodes()
             .Where(n => n is IfStatementSyntax or ElseClauseSyntax
@@ -117,22 +112,63 @@ public sealed partial class CSharpCodingStyleChecker : IChecker
         {
             var embedded = GetEmbeddedStatement(node);
 
-            if (embedded is null or BlockSyntax)
-            {
-                continue;
-            }
-
-            if (IsGuardClause(node, embedded))
+            if (embedded is null)
             {
                 continue;
             }
 
             var line = tree.GetLineSpan(node.Span).StartLinePosition.Line + 1;
             var keyword = GetControlFlowKeyword(node);
-            violations.Add(
-                $"Line {line}: '{keyword}' statement requires curly braces " +
-                "(exception: single-line guard clauses).");
+
+            switch (preference)
+            {
+                case "false":
+                    if (embedded is BlockSyntax block && block.Statements.Count == 1
+                        && !IsMultilineStatement(block.Statements[0], tree))
+                    {
+                        violations.Add(
+                            $"Line {line}: '{keyword}' statement has unnecessary curly braces " +
+                            "around a single-line body (csharp_prefer_braces = false).");
+                    }
+
+                    break;
+
+                case "when_multiline":
+                    if (embedded is BlockSyntax wmBlock && wmBlock.Statements.Count == 1
+                        && !IsMultilineStatement(wmBlock.Statements[0], tree))
+                    {
+                        violations.Add(
+                            $"Line {line}: '{keyword}' statement has unnecessary curly braces " +
+                            "around a single-line body (csharp_prefer_braces = when_multiline).");
+                    }
+                    else if (embedded is not BlockSyntax
+                             && IsMultilineStatement(embedded, tree))
+                    {
+                        violations.Add(
+                            $"Line {line}: '{keyword}' statement requires curly braces " +
+                            "around a multi-line body (csharp_prefer_braces = when_multiline).");
+                    }
+
+                    break;
+
+                default: // "true" or unrecognized — require braces
+                    if (embedded is not BlockSyntax && !IsGuardClause(node, embedded))
+                    {
+                        violations.Add(
+                            $"Line {line}: '{keyword}' statement requires curly braces " +
+                            "(exception: single-line guard clauses).");
+                    }
+
+                    break;
+            }
         }
+    }
+
+    private static bool IsMultilineStatement(StatementSyntax statement, SyntaxTree tree)
+    {
+        var span = tree.GetLineSpan(statement.Span);
+
+        return span.StartLinePosition.Line != span.EndLinePosition.Line;
     }
 
     private static void CheckBlankLineBeforeControlFlow(
