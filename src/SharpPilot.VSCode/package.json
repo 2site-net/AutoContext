@@ -1,5 +1,5 @@
 {
-  "name": "sharp-pilot",
+  "name": "sharppilot",
   "displayName": "SharpPilot",
   "description": "SharpPilot is a quality assurance extension for Visual Studio Code that leverages an MCP server to enable model-invokable tools and curated, configurable instructions—elevating code quality, workflows, and overall developer productivity with Copilot.",
   "version": "0.5.0",
@@ -33,37 +33,37 @@
     ],
     "commands": [
       {
-        "command": "sharp-pilot.toggleInstructions",
+        "command": "sharppilot.toggleInstructions",
         "title": "Toggle Instructions",
         "category": "SharpPilot"
       },
       {
-        "command": "sharp-pilot.toggleTools",
+        "command": "sharppilot.toggleTools",
         "title": "Toggle Tools",
         "category": "SharpPilot"
       },
       {
-        "command": "sharp-pilot.autoConfigure",
+        "command": "sharppilot.autoConfigure",
         "title": "Auto Configure",
         "category": "SharpPilot"
       },
       {
-        "command": "sharp-pilot.exportInstructions",
+        "command": "sharppilot.exportInstructions",
         "title": "Export Instructions",
         "category": "SharpPilot"
       },
       {
-        "command": "sharp-pilot.browseInstructions",
+        "command": "sharppilot.browseInstructions",
         "title": "Browse Instructions",
         "category": "SharpPilot"
       },
       {
-        "command": "sharp-pilot.toggleInstruction",
+        "command": "sharppilot.toggleInstruction",
         "title": "Toggle Instruction",
         "category": "SharpPilot"
       },
       {
-        "command": "sharp-pilot.resetInstructions",
+        "command": "sharppilot.resetInstructions",
         "title": "Reset Instructions",
         "category": "SharpPilot"
       }
@@ -71,493 +71,493 @@
     "chatInstructions": [
       {
         "path": "./instructions/copilot.instructions.md",
-        "when": "config.sharp-pilot.instructions.copilot && !sharp-pilot.override.copilot && !sharp-pilot.filtered.copilot"
+        "when": "config.sharppilot.instructions.copilot && !sharppilot.override.copilot && !sharppilot.filtered.copilot"
       },
       {
         "path": "./instructions-filtered/copilot.instructions.md",
-        "when": "config.sharp-pilot.instructions.copilot && !sharp-pilot.override.copilot && sharp-pilot.filtered.copilot"
+        "when": "config.sharppilot.instructions.copilot && !sharppilot.override.copilot && sharppilot.filtered.copilot"
       },
       {
         "path": "./instructions/code-review.instructions.md",
-        "when": "config.sharp-pilot.instructions.codeReview && !sharp-pilot.override.codeReview && !sharp-pilot.filtered.codeReview"
+        "when": "config.sharppilot.instructions.codeReview && !sharppilot.override.codeReview && !sharppilot.filtered.codeReview"
       },
       {
         "path": "./instructions-filtered/code-review.instructions.md",
-        "when": "config.sharp-pilot.instructions.codeReview && !sharp-pilot.override.codeReview && sharp-pilot.filtered.codeReview"
+        "when": "config.sharppilot.instructions.codeReview && !sharppilot.override.codeReview && sharppilot.filtered.codeReview"
       },
       {
         "path": "./instructions/design-principles.instructions.md",
-        "when": "config.sharp-pilot.instructions.designPrinciples && !sharp-pilot.override.designPrinciples && !sharp-pilot.filtered.designPrinciples"
+        "when": "config.sharppilot.instructions.designPrinciples && !sharppilot.override.designPrinciples && !sharppilot.filtered.designPrinciples"
       },
       {
         "path": "./instructions-filtered/design-principles.instructions.md",
-        "when": "config.sharp-pilot.instructions.designPrinciples && !sharp-pilot.override.designPrinciples && sharp-pilot.filtered.designPrinciples"
+        "when": "config.sharppilot.instructions.designPrinciples && !sharppilot.override.designPrinciples && sharppilot.filtered.designPrinciples"
       },
       {
         "path": "./instructions/docker.instructions.md",
-        "when": "config.sharp-pilot.instructions.docker && sharp-pilot.workspace.hasDocker && !sharp-pilot.override.docker && !sharp-pilot.filtered.docker"
+        "when": "config.sharppilot.instructions.docker && sharppilot.workspace.hasDocker && !sharppilot.override.docker && !sharppilot.filtered.docker"
       },
       {
         "path": "./instructions-filtered/docker.instructions.md",
-        "when": "config.sharp-pilot.instructions.docker && sharp-pilot.workspace.hasDocker && !sharp-pilot.override.docker && sharp-pilot.filtered.docker"
+        "when": "config.sharppilot.instructions.docker && sharppilot.workspace.hasDocker && !sharppilot.override.docker && sharppilot.filtered.docker"
       },
       {
         "path": "./instructions/graphql.instructions.md",
-        "when": "config.sharp-pilot.instructions.graphql && sharp-pilot.workspace.hasGraphql && !sharp-pilot.override.graphql && !sharp-pilot.filtered.graphql"
+        "when": "config.sharppilot.instructions.graphql && sharppilot.workspace.hasGraphql && !sharppilot.override.graphql && !sharppilot.filtered.graphql"
       },
       {
         "path": "./instructions-filtered/graphql.instructions.md",
-        "when": "config.sharp-pilot.instructions.graphql && sharp-pilot.workspace.hasGraphql && !sharp-pilot.override.graphql && sharp-pilot.filtered.graphql"
+        "when": "config.sharppilot.instructions.graphql && sharppilot.workspace.hasGraphql && !sharppilot.override.graphql && sharppilot.filtered.graphql"
       },
       {
         "path": "./instructions/rest-api-design.instructions.md",
-        "when": "config.sharp-pilot.instructions.restApiDesign && !sharp-pilot.override.restApiDesign && !sharp-pilot.filtered.restApiDesign"
+        "when": "config.sharppilot.instructions.restApiDesign && !sharppilot.override.restApiDesign && !sharppilot.filtered.restApiDesign"
       },
       {
         "path": "./instructions-filtered/rest-api-design.instructions.md",
-        "when": "config.sharp-pilot.instructions.restApiDesign && !sharp-pilot.override.restApiDesign && sharp-pilot.filtered.restApiDesign"
+        "when": "config.sharppilot.instructions.restApiDesign && !sharppilot.override.restApiDesign && sharppilot.filtered.restApiDesign"
       },
       {
         "path": "./instructions/sql.instructions.md",
-        "when": "config.sharp-pilot.instructions.sql && !sharp-pilot.override.sql && !sharp-pilot.filtered.sql"
+        "when": "config.sharppilot.instructions.sql && !sharppilot.override.sql && !sharppilot.filtered.sql"
       },
       {
         "path": "./instructions-filtered/sql.instructions.md",
-        "when": "config.sharp-pilot.instructions.sql && !sharp-pilot.override.sql && sharp-pilot.filtered.sql"
+        "when": "config.sharppilot.instructions.sql && !sharppilot.override.sql && sharppilot.filtered.sql"
       },
       {
         "path": "./instructions/dotnet-aspnetcore.instructions.md",
-        "when": "config.sharp-pilot.instructions.dotnet.aspnetCore && sharp-pilot.workspace.hasAspNetCore && !sharp-pilot.override.dotnet.aspnetCore && !sharp-pilot.filtered.dotnet.aspnetCore"
+        "when": "config.sharppilot.instructions.dotnet.aspnetCore && sharppilot.workspace.hasAspNetCore && !sharppilot.override.dotnet.aspnetCore && !sharppilot.filtered.dotnet.aspnetCore"
       },
       {
         "path": "./instructions-filtered/dotnet-aspnetcore.instructions.md",
-        "when": "config.sharp-pilot.instructions.dotnet.aspnetCore && sharp-pilot.workspace.hasAspNetCore && !sharp-pilot.override.dotnet.aspnetCore && sharp-pilot.filtered.dotnet.aspnetCore"
+        "when": "config.sharppilot.instructions.dotnet.aspnetCore && sharppilot.workspace.hasAspNetCore && !sharppilot.override.dotnet.aspnetCore && sharppilot.filtered.dotnet.aspnetCore"
       },
       {
         "path": "./instructions/dotnet-async-await.instructions.md",
-        "when": "config.sharp-pilot.instructions.dotnet.asyncAwait && sharp-pilot.workspace.hasDotnet && !sharp-pilot.override.dotnet.asyncAwait && !sharp-pilot.filtered.dotnet.asyncAwait"
+        "when": "config.sharppilot.instructions.dotnet.asyncAwait && sharppilot.workspace.hasDotnet && !sharppilot.override.dotnet.asyncAwait && !sharppilot.filtered.dotnet.asyncAwait"
       },
       {
         "path": "./instructions-filtered/dotnet-async-await.instructions.md",
-        "when": "config.sharp-pilot.instructions.dotnet.asyncAwait && sharp-pilot.workspace.hasDotnet && !sharp-pilot.override.dotnet.asyncAwait && sharp-pilot.filtered.dotnet.asyncAwait"
+        "when": "config.sharppilot.instructions.dotnet.asyncAwait && sharppilot.workspace.hasDotnet && !sharppilot.override.dotnet.asyncAwait && sharppilot.filtered.dotnet.asyncAwait"
       },
       {
         "path": "./instructions/dotnet-blazor.instructions.md",
-        "when": "config.sharp-pilot.instructions.dotnet.blazor && sharp-pilot.workspace.hasBlazor && !sharp-pilot.override.dotnet.blazor && !sharp-pilot.filtered.dotnet.blazor"
+        "when": "config.sharppilot.instructions.dotnet.blazor && sharppilot.workspace.hasBlazor && !sharppilot.override.dotnet.blazor && !sharppilot.filtered.dotnet.blazor"
       },
       {
         "path": "./instructions-filtered/dotnet-blazor.instructions.md",
-        "when": "config.sharp-pilot.instructions.dotnet.blazor && sharp-pilot.workspace.hasBlazor && !sharp-pilot.override.dotnet.blazor && sharp-pilot.filtered.dotnet.blazor"
+        "when": "config.sharppilot.instructions.dotnet.blazor && sharppilot.workspace.hasBlazor && !sharppilot.override.dotnet.blazor && sharppilot.filtered.dotnet.blazor"
       },
       {
         "path": "./instructions/dotnet-coding-standards.instructions.md",
-        "when": "config.sharp-pilot.instructions.dotnet.codingStandards && sharp-pilot.workspace.hasDotnet && !sharp-pilot.override.dotnet.codingStandards && !sharp-pilot.filtered.dotnet.codingStandards"
+        "when": "config.sharppilot.instructions.dotnet.codingStandards && sharppilot.workspace.hasDotnet && !sharppilot.override.dotnet.codingStandards && !sharppilot.filtered.dotnet.codingStandards"
       },
       {
         "path": "./instructions-filtered/dotnet-coding-standards.instructions.md",
-        "when": "config.sharp-pilot.instructions.dotnet.codingStandards && sharp-pilot.workspace.hasDotnet && !sharp-pilot.override.dotnet.codingStandards && sharp-pilot.filtered.dotnet.codingStandards"
+        "when": "config.sharppilot.instructions.dotnet.codingStandards && sharppilot.workspace.hasDotnet && !sharppilot.override.dotnet.codingStandards && sharppilot.filtered.dotnet.codingStandards"
       },
       {
         "path": "./instructions/dotnet-core.instructions.md",
-        "when": "config.sharp-pilot.instructions.dotnet.core && sharp-pilot.workspace.hasDotnet && !sharp-pilot.override.dotnet.core && !sharp-pilot.filtered.dotnet.core"
+        "when": "config.sharppilot.instructions.dotnet.core && sharppilot.workspace.hasDotnet && !sharppilot.override.dotnet.core && !sharppilot.filtered.dotnet.core"
       },
       {
         "path": "./instructions-filtered/dotnet-core.instructions.md",
-        "when": "config.sharp-pilot.instructions.dotnet.core && sharp-pilot.workspace.hasDotnet && !sharp-pilot.override.dotnet.core && sharp-pilot.filtered.dotnet.core"
+        "when": "config.sharppilot.instructions.dotnet.core && sharppilot.workspace.hasDotnet && !sharppilot.override.dotnet.core && sharppilot.filtered.dotnet.core"
       },
       {
         "path": "./instructions/dotnet-dapper.instructions.md",
-        "when": "config.sharp-pilot.instructions.dotnet.dapper && sharp-pilot.workspace.hasDapper && !sharp-pilot.override.dotnet.dapper && !sharp-pilot.filtered.dotnet.dapper"
+        "when": "config.sharppilot.instructions.dotnet.dapper && sharppilot.workspace.hasDapper && !sharppilot.override.dotnet.dapper && !sharppilot.filtered.dotnet.dapper"
       },
       {
         "path": "./instructions-filtered/dotnet-dapper.instructions.md",
-        "when": "config.sharp-pilot.instructions.dotnet.dapper && sharp-pilot.workspace.hasDapper && !sharp-pilot.override.dotnet.dapper && sharp-pilot.filtered.dotnet.dapper"
+        "when": "config.sharppilot.instructions.dotnet.dapper && sharppilot.workspace.hasDapper && !sharppilot.override.dotnet.dapper && sharppilot.filtered.dotnet.dapper"
       },
       {
         "path": "./instructions/dotnet-debugging.instructions.md",
-        "when": "config.sharp-pilot.instructions.dotnet.debugging && sharp-pilot.workspace.hasDotnet && !sharp-pilot.override.dotnet.debugging && !sharp-pilot.filtered.dotnet.debugging"
+        "when": "config.sharppilot.instructions.dotnet.debugging && sharppilot.workspace.hasDotnet && !sharppilot.override.dotnet.debugging && !sharppilot.filtered.dotnet.debugging"
       },
       {
         "path": "./instructions-filtered/dotnet-debugging.instructions.md",
-        "when": "config.sharp-pilot.instructions.dotnet.debugging && sharp-pilot.workspace.hasDotnet && !sharp-pilot.override.dotnet.debugging && sharp-pilot.filtered.dotnet.debugging"
+        "when": "config.sharppilot.instructions.dotnet.debugging && sharppilot.workspace.hasDotnet && !sharppilot.override.dotnet.debugging && sharppilot.filtered.dotnet.debugging"
       },
       {
         "path": "./instructions/dotnet-entity-framework-core.instructions.md",
-        "when": "config.sharp-pilot.instructions.dotnet.entityFrameworkCore && sharp-pilot.workspace.hasEntityFrameworkCore && !sharp-pilot.override.dotnet.entityFrameworkCore && !sharp-pilot.filtered.dotnet.entityFrameworkCore"
+        "when": "config.sharppilot.instructions.dotnet.entityFrameworkCore && sharppilot.workspace.hasEntityFrameworkCore && !sharppilot.override.dotnet.entityFrameworkCore && !sharppilot.filtered.dotnet.entityFrameworkCore"
       },
       {
         "path": "./instructions-filtered/dotnet-entity-framework-core.instructions.md",
-        "when": "config.sharp-pilot.instructions.dotnet.entityFrameworkCore && sharp-pilot.workspace.hasEntityFrameworkCore && !sharp-pilot.override.dotnet.entityFrameworkCore && sharp-pilot.filtered.dotnet.entityFrameworkCore"
+        "when": "config.sharppilot.instructions.dotnet.entityFrameworkCore && sharppilot.workspace.hasEntityFrameworkCore && !sharppilot.override.dotnet.entityFrameworkCore && sharppilot.filtered.dotnet.entityFrameworkCore"
       },
       {
         "path": "./instructions/dotnet-grpc.instructions.md",
-        "when": "config.sharp-pilot.instructions.dotnet.grpc && sharp-pilot.workspace.hasGrpc && !sharp-pilot.override.dotnet.grpc && !sharp-pilot.filtered.dotnet.grpc"
+        "when": "config.sharppilot.instructions.dotnet.grpc && sharppilot.workspace.hasGrpc && !sharppilot.override.dotnet.grpc && !sharppilot.filtered.dotnet.grpc"
       },
       {
         "path": "./instructions-filtered/dotnet-grpc.instructions.md",
-        "when": "config.sharp-pilot.instructions.dotnet.grpc && sharp-pilot.workspace.hasGrpc && !sharp-pilot.override.dotnet.grpc && sharp-pilot.filtered.dotnet.grpc"
+        "when": "config.sharppilot.instructions.dotnet.grpc && sharppilot.workspace.hasGrpc && !sharppilot.override.dotnet.grpc && sharppilot.filtered.dotnet.grpc"
       },
       {
         "path": "./instructions/dotnet-maui.instructions.md",
-        "when": "config.sharp-pilot.instructions.dotnet.maui && sharp-pilot.workspace.hasMaui && !sharp-pilot.override.dotnet.maui && !sharp-pilot.filtered.dotnet.maui"
+        "when": "config.sharppilot.instructions.dotnet.maui && sharppilot.workspace.hasMaui && !sharppilot.override.dotnet.maui && !sharppilot.filtered.dotnet.maui"
       },
       {
         "path": "./instructions-filtered/dotnet-maui.instructions.md",
-        "when": "config.sharp-pilot.instructions.dotnet.maui && sharp-pilot.workspace.hasMaui && !sharp-pilot.override.dotnet.maui && sharp-pilot.filtered.dotnet.maui"
+        "when": "config.sharppilot.instructions.dotnet.maui && sharppilot.workspace.hasMaui && !sharppilot.override.dotnet.maui && sharppilot.filtered.dotnet.maui"
       },
       {
         "path": "./instructions/dotnet-mediator-cqrs.instructions.md",
-        "when": "config.sharp-pilot.instructions.dotnet.mediatorCqrs && sharp-pilot.workspace.hasMediatR && !sharp-pilot.override.dotnet.mediatorCqrs && !sharp-pilot.filtered.dotnet.mediatorCqrs"
+        "when": "config.sharppilot.instructions.dotnet.mediatorCqrs && sharppilot.workspace.hasMediatR && !sharppilot.override.dotnet.mediatorCqrs && !sharppilot.filtered.dotnet.mediatorCqrs"
       },
       {
         "path": "./instructions-filtered/dotnet-mediator-cqrs.instructions.md",
-        "when": "config.sharp-pilot.instructions.dotnet.mediatorCqrs && sharp-pilot.workspace.hasMediatR && !sharp-pilot.override.dotnet.mediatorCqrs && sharp-pilot.filtered.dotnet.mediatorCqrs"
+        "when": "config.sharppilot.instructions.dotnet.mediatorCqrs && sharppilot.workspace.hasMediatR && !sharppilot.override.dotnet.mediatorCqrs && sharppilot.filtered.dotnet.mediatorCqrs"
       },
       {
         "path": "./instructions/dotnet-mongodb.instructions.md",
-        "when": "config.sharp-pilot.instructions.dotnet.mongodb && sharp-pilot.workspace.hasMongodb && !sharp-pilot.override.dotnet.mongodb && !sharp-pilot.filtered.dotnet.mongodb"
+        "when": "config.sharppilot.instructions.dotnet.mongodb && sharppilot.workspace.hasMongodb && !sharppilot.override.dotnet.mongodb && !sharppilot.filtered.dotnet.mongodb"
       },
       {
         "path": "./instructions-filtered/dotnet-mongodb.instructions.md",
-        "when": "config.sharp-pilot.instructions.dotnet.mongodb && sharp-pilot.workspace.hasMongodb && !sharp-pilot.override.dotnet.mongodb && sharp-pilot.filtered.dotnet.mongodb"
+        "when": "config.sharppilot.instructions.dotnet.mongodb && sharppilot.workspace.hasMongodb && !sharppilot.override.dotnet.mongodb && sharppilot.filtered.dotnet.mongodb"
       },
       {
         "path": "./instructions/dotnet-mysql.instructions.md",
-        "when": "config.sharp-pilot.instructions.dotnet.mysql && sharp-pilot.workspace.hasMysql && !sharp-pilot.override.dotnet.mysql && !sharp-pilot.filtered.dotnet.mysql"
+        "when": "config.sharppilot.instructions.dotnet.mysql && sharppilot.workspace.hasMysql && !sharppilot.override.dotnet.mysql && !sharppilot.filtered.dotnet.mysql"
       },
       {
         "path": "./instructions-filtered/dotnet-mysql.instructions.md",
-        "when": "config.sharp-pilot.instructions.dotnet.mysql && sharp-pilot.workspace.hasMysql && !sharp-pilot.override.dotnet.mysql && sharp-pilot.filtered.dotnet.mysql"
+        "when": "config.sharppilot.instructions.dotnet.mysql && sharppilot.workspace.hasMysql && !sharppilot.override.dotnet.mysql && sharppilot.filtered.dotnet.mysql"
       },
       {
         "path": "./instructions/dotnet-nuget.instructions.md",
-        "when": "config.sharp-pilot.instructions.dotnet.nuget && sharp-pilot.workspace.hasDotnet && !sharp-pilot.override.dotnet.nuget && !sharp-pilot.filtered.dotnet.nuget"
+        "when": "config.sharppilot.instructions.dotnet.nuget && sharppilot.workspace.hasDotnet && !sharppilot.override.dotnet.nuget && !sharppilot.filtered.dotnet.nuget"
       },
       {
         "path": "./instructions-filtered/dotnet-nuget.instructions.md",
-        "when": "config.sharp-pilot.instructions.dotnet.nuget && sharp-pilot.workspace.hasDotnet && !sharp-pilot.override.dotnet.nuget && sharp-pilot.filtered.dotnet.nuget"
+        "when": "config.sharppilot.instructions.dotnet.nuget && sharppilot.workspace.hasDotnet && !sharppilot.override.dotnet.nuget && sharppilot.filtered.dotnet.nuget"
       },
       {
         "path": "./instructions/dotnet-oracle.instructions.md",
-        "when": "config.sharp-pilot.instructions.dotnet.oracle && sharp-pilot.workspace.hasOracle && !sharp-pilot.override.dotnet.oracle && !sharp-pilot.filtered.dotnet.oracle"
+        "when": "config.sharppilot.instructions.dotnet.oracle && sharppilot.workspace.hasOracle && !sharppilot.override.dotnet.oracle && !sharppilot.filtered.dotnet.oracle"
       },
       {
         "path": "./instructions-filtered/dotnet-oracle.instructions.md",
-        "when": "config.sharp-pilot.instructions.dotnet.oracle && sharp-pilot.workspace.hasOracle && !sharp-pilot.override.dotnet.oracle && sharp-pilot.filtered.dotnet.oracle"
+        "when": "config.sharppilot.instructions.dotnet.oracle && sharppilot.workspace.hasOracle && !sharppilot.override.dotnet.oracle && sharppilot.filtered.dotnet.oracle"
       },
       {
         "path": "./instructions/dotnet-performance-memory.instructions.md",
-        "when": "config.sharp-pilot.instructions.dotnet.performanceMemory && sharp-pilot.workspace.hasDotnet && !sharp-pilot.override.dotnet.performanceMemory && !sharp-pilot.filtered.dotnet.performanceMemory"
+        "when": "config.sharppilot.instructions.dotnet.performanceMemory && sharppilot.workspace.hasDotnet && !sharppilot.override.dotnet.performanceMemory && !sharppilot.filtered.dotnet.performanceMemory"
       },
       {
         "path": "./instructions-filtered/dotnet-performance-memory.instructions.md",
-        "when": "config.sharp-pilot.instructions.dotnet.performanceMemory && sharp-pilot.workspace.hasDotnet && !sharp-pilot.override.dotnet.performanceMemory && sharp-pilot.filtered.dotnet.performanceMemory"
+        "when": "config.sharppilot.instructions.dotnet.performanceMemory && sharppilot.workspace.hasDotnet && !sharppilot.override.dotnet.performanceMemory && sharppilot.filtered.dotnet.performanceMemory"
       },
       {
         "path": "./instructions/dotnet-postgresql.instructions.md",
-        "when": "config.sharp-pilot.instructions.dotnet.postgresql && sharp-pilot.workspace.hasPostgres && !sharp-pilot.override.dotnet.postgresql && !sharp-pilot.filtered.dotnet.postgresql"
+        "when": "config.sharppilot.instructions.dotnet.postgresql && sharppilot.workspace.hasPostgres && !sharppilot.override.dotnet.postgresql && !sharppilot.filtered.dotnet.postgresql"
       },
       {
         "path": "./instructions-filtered/dotnet-postgresql.instructions.md",
-        "when": "config.sharp-pilot.instructions.dotnet.postgresql && sharp-pilot.workspace.hasPostgres && !sharp-pilot.override.dotnet.postgresql && sharp-pilot.filtered.dotnet.postgresql"
+        "when": "config.sharppilot.instructions.dotnet.postgresql && sharppilot.workspace.hasPostgres && !sharppilot.override.dotnet.postgresql && sharppilot.filtered.dotnet.postgresql"
       },
       {
         "path": "./instructions/dotnet-razor.instructions.md",
-        "when": "config.sharp-pilot.instructions.dotnet.razor && sharp-pilot.workspace.hasBlazor && !sharp-pilot.override.dotnet.razor && !sharp-pilot.filtered.dotnet.razor"
+        "when": "config.sharppilot.instructions.dotnet.razor && sharppilot.workspace.hasBlazor && !sharppilot.override.dotnet.razor && !sharppilot.filtered.dotnet.razor"
       },
       {
         "path": "./instructions-filtered/dotnet-razor.instructions.md",
-        "when": "config.sharp-pilot.instructions.dotnet.razor && sharp-pilot.workspace.hasBlazor && !sharp-pilot.override.dotnet.razor && sharp-pilot.filtered.dotnet.razor"
+        "when": "config.sharppilot.instructions.dotnet.razor && sharppilot.workspace.hasBlazor && !sharppilot.override.dotnet.razor && sharppilot.filtered.dotnet.razor"
       },
       {
         "path": "./instructions/dotnet-redis.instructions.md",
-        "when": "config.sharp-pilot.instructions.dotnet.redis && sharp-pilot.workspace.hasRedis && !sharp-pilot.override.dotnet.redis && !sharp-pilot.filtered.dotnet.redis"
+        "when": "config.sharppilot.instructions.dotnet.redis && sharppilot.workspace.hasRedis && !sharppilot.override.dotnet.redis && !sharppilot.filtered.dotnet.redis"
       },
       {
         "path": "./instructions-filtered/dotnet-redis.instructions.md",
-        "when": "config.sharp-pilot.instructions.dotnet.redis && sharp-pilot.workspace.hasRedis && !sharp-pilot.override.dotnet.redis && sharp-pilot.filtered.dotnet.redis"
+        "when": "config.sharppilot.instructions.dotnet.redis && sharppilot.workspace.hasRedis && !sharppilot.override.dotnet.redis && sharppilot.filtered.dotnet.redis"
       },
       {
         "path": "./instructions/dotnet-signalr.instructions.md",
-        "when": "config.sharp-pilot.instructions.dotnet.signalR && sharp-pilot.workspace.hasSignalR && !sharp-pilot.override.dotnet.signalR && !sharp-pilot.filtered.dotnet.signalR"
+        "when": "config.sharppilot.instructions.dotnet.signalR && sharppilot.workspace.hasSignalR && !sharppilot.override.dotnet.signalR && !sharppilot.filtered.dotnet.signalR"
       },
       {
         "path": "./instructions-filtered/dotnet-signalr.instructions.md",
-        "when": "config.sharp-pilot.instructions.dotnet.signalR && sharp-pilot.workspace.hasSignalR && !sharp-pilot.override.dotnet.signalR && sharp-pilot.filtered.dotnet.signalR"
+        "when": "config.sharppilot.instructions.dotnet.signalR && sharppilot.workspace.hasSignalR && !sharppilot.override.dotnet.signalR && sharppilot.filtered.dotnet.signalR"
       },
       {
         "path": "./instructions/dotnet-sqlite.instructions.md",
-        "when": "config.sharp-pilot.instructions.dotnet.sqlite && sharp-pilot.workspace.hasSqlite && !sharp-pilot.override.dotnet.sqlite && !sharp-pilot.filtered.dotnet.sqlite"
+        "when": "config.sharppilot.instructions.dotnet.sqlite && sharppilot.workspace.hasSqlite && !sharppilot.override.dotnet.sqlite && !sharppilot.filtered.dotnet.sqlite"
       },
       {
         "path": "./instructions-filtered/dotnet-sqlite.instructions.md",
-        "when": "config.sharp-pilot.instructions.dotnet.sqlite && sharp-pilot.workspace.hasSqlite && !sharp-pilot.override.dotnet.sqlite && sharp-pilot.filtered.dotnet.sqlite"
+        "when": "config.sharppilot.instructions.dotnet.sqlite && sharppilot.workspace.hasSqlite && !sharppilot.override.dotnet.sqlite && sharppilot.filtered.dotnet.sqlite"
       },
       {
         "path": "./instructions/dotnet-sql-server.instructions.md",
-        "when": "config.sharp-pilot.instructions.dotnet.sqlServer && sharp-pilot.workspace.hasSqlServer && !sharp-pilot.override.dotnet.sqlServer && !sharp-pilot.filtered.dotnet.sqlServer"
+        "when": "config.sharppilot.instructions.dotnet.sqlServer && sharppilot.workspace.hasSqlServer && !sharppilot.override.dotnet.sqlServer && !sharppilot.filtered.dotnet.sqlServer"
       },
       {
         "path": "./instructions-filtered/dotnet-sql-server.instructions.md",
-        "when": "config.sharp-pilot.instructions.dotnet.sqlServer && sharp-pilot.workspace.hasSqlServer && !sharp-pilot.override.dotnet.sqlServer && sharp-pilot.filtered.dotnet.sqlServer"
+        "when": "config.sharppilot.instructions.dotnet.sqlServer && sharppilot.workspace.hasSqlServer && !sharppilot.override.dotnet.sqlServer && sharppilot.filtered.dotnet.sqlServer"
       },
       {
         "path": "./instructions/dotnet-testing.instructions.md",
-        "when": "config.sharp-pilot.instructions.dotnet.testing && sharp-pilot.workspace.hasDotnet && !sharp-pilot.override.dotnet.testing && !sharp-pilot.filtered.dotnet.testing"
+        "when": "config.sharppilot.instructions.dotnet.testing && sharppilot.workspace.hasDotnet && !sharppilot.override.dotnet.testing && !sharppilot.filtered.dotnet.testing"
       },
       {
         "path": "./instructions-filtered/dotnet-testing.instructions.md",
-        "when": "config.sharp-pilot.instructions.dotnet.testing && sharp-pilot.workspace.hasDotnet && !sharp-pilot.override.dotnet.testing && sharp-pilot.filtered.dotnet.testing"
+        "when": "config.sharppilot.instructions.dotnet.testing && sharppilot.workspace.hasDotnet && !sharppilot.override.dotnet.testing && sharppilot.filtered.dotnet.testing"
       },
       {
         "path": "./instructions/dotnet-unity.instructions.md",
-        "when": "config.sharp-pilot.instructions.dotnet.unity && sharp-pilot.workspace.hasUnity && !sharp-pilot.override.dotnet.unity && !sharp-pilot.filtered.dotnet.unity"
+        "when": "config.sharppilot.instructions.dotnet.unity && sharppilot.workspace.hasUnity && !sharppilot.override.dotnet.unity && !sharppilot.filtered.dotnet.unity"
       },
       {
         "path": "./instructions-filtered/dotnet-unity.instructions.md",
-        "when": "config.sharp-pilot.instructions.dotnet.unity && sharp-pilot.workspace.hasUnity && !sharp-pilot.override.dotnet.unity && sharp-pilot.filtered.dotnet.unity"
+        "when": "config.sharppilot.instructions.dotnet.unity && sharppilot.workspace.hasUnity && !sharppilot.override.dotnet.unity && sharppilot.filtered.dotnet.unity"
       },
       {
         "path": "./instructions/dotnet-winforms.instructions.md",
-        "when": "config.sharp-pilot.instructions.dotnet.winForms && sharp-pilot.workspace.hasWinForms && !sharp-pilot.override.dotnet.winForms && !sharp-pilot.filtered.dotnet.winForms"
+        "when": "config.sharppilot.instructions.dotnet.winForms && sharppilot.workspace.hasWinForms && !sharppilot.override.dotnet.winForms && !sharppilot.filtered.dotnet.winForms"
       },
       {
         "path": "./instructions-filtered/dotnet-winforms.instructions.md",
-        "when": "config.sharp-pilot.instructions.dotnet.winForms && sharp-pilot.workspace.hasWinForms && !sharp-pilot.override.dotnet.winForms && sharp-pilot.filtered.dotnet.winForms"
+        "when": "config.sharppilot.instructions.dotnet.winForms && sharppilot.workspace.hasWinForms && !sharppilot.override.dotnet.winForms && sharppilot.filtered.dotnet.winForms"
       },
       {
         "path": "./instructions/dotnet-wpf.instructions.md",
-        "when": "config.sharp-pilot.instructions.dotnet.wpf && sharp-pilot.workspace.hasWpf && !sharp-pilot.override.dotnet.wpf && !sharp-pilot.filtered.dotnet.wpf"
+        "when": "config.sharppilot.instructions.dotnet.wpf && sharppilot.workspace.hasWpf && !sharppilot.override.dotnet.wpf && !sharppilot.filtered.dotnet.wpf"
       },
       {
         "path": "./instructions-filtered/dotnet-wpf.instructions.md",
-        "when": "config.sharp-pilot.instructions.dotnet.wpf && sharp-pilot.workspace.hasWpf && !sharp-pilot.override.dotnet.wpf && sharp-pilot.filtered.dotnet.wpf"
+        "when": "config.sharppilot.instructions.dotnet.wpf && sharppilot.workspace.hasWpf && !sharppilot.override.dotnet.wpf && sharppilot.filtered.dotnet.wpf"
       },
       {
         "path": "./instructions/dotnet-xunit.instructions.md",
-        "when": "config.sharp-pilot.instructions.dotnet.xunit && sharp-pilot.workspace.hasXunit && !sharp-pilot.override.dotnet.xunit && !sharp-pilot.filtered.dotnet.xunit"
+        "when": "config.sharppilot.instructions.dotnet.xunit && sharppilot.workspace.hasXunit && !sharppilot.override.dotnet.xunit && !sharppilot.filtered.dotnet.xunit"
       },
       {
         "path": "./instructions-filtered/dotnet-xunit.instructions.md",
-        "when": "config.sharp-pilot.instructions.dotnet.xunit && sharp-pilot.workspace.hasXunit && !sharp-pilot.override.dotnet.xunit && sharp-pilot.filtered.dotnet.xunit"
+        "when": "config.sharppilot.instructions.dotnet.xunit && sharppilot.workspace.hasXunit && !sharppilot.override.dotnet.xunit && sharppilot.filtered.dotnet.xunit"
       },
       {
         "path": "./instructions/dotnet-mstest.instructions.md",
-        "when": "config.sharp-pilot.instructions.dotnet.mstest && sharp-pilot.workspace.hasMstest && !sharp-pilot.override.dotnet.mstest && !sharp-pilot.filtered.dotnet.mstest"
+        "when": "config.sharppilot.instructions.dotnet.mstest && sharppilot.workspace.hasMstest && !sharppilot.override.dotnet.mstest && !sharppilot.filtered.dotnet.mstest"
       },
       {
         "path": "./instructions-filtered/dotnet-mstest.instructions.md",
-        "when": "config.sharp-pilot.instructions.dotnet.mstest && sharp-pilot.workspace.hasMstest && !sharp-pilot.override.dotnet.mstest && sharp-pilot.filtered.dotnet.mstest"
+        "when": "config.sharppilot.instructions.dotnet.mstest && sharppilot.workspace.hasMstest && !sharppilot.override.dotnet.mstest && sharppilot.filtered.dotnet.mstest"
       },
       {
         "path": "./instructions/dotnet-nunit.instructions.md",
-        "when": "config.sharp-pilot.instructions.dotnet.nunit && sharp-pilot.workspace.hasNunit && !sharp-pilot.override.dotnet.nunit && !sharp-pilot.filtered.dotnet.nunit"
+        "when": "config.sharppilot.instructions.dotnet.nunit && sharppilot.workspace.hasNunit && !sharppilot.override.dotnet.nunit && !sharppilot.filtered.dotnet.nunit"
       },
       {
         "path": "./instructions-filtered/dotnet-nunit.instructions.md",
-        "when": "config.sharp-pilot.instructions.dotnet.nunit && sharp-pilot.workspace.hasNunit && !sharp-pilot.override.dotnet.nunit && sharp-pilot.filtered.dotnet.nunit"
+        "when": "config.sharppilot.instructions.dotnet.nunit && sharppilot.workspace.hasNunit && !sharppilot.override.dotnet.nunit && sharppilot.filtered.dotnet.nunit"
       },
       {
         "path": "./instructions/dotnet-csharp-coding-style.instructions.md",
-        "when": "config.sharp-pilot.instructions.dotnet.csharp.codingStyle && sharp-pilot.workspace.hasDotnet && !sharp-pilot.override.dotnet.csharp.codingStyle && !sharp-pilot.filtered.dotnet.csharp.codingStyle"
+        "when": "config.sharppilot.instructions.dotnet.csharp.codingStyle && sharppilot.workspace.hasDotnet && !sharppilot.override.dotnet.csharp.codingStyle && !sharppilot.filtered.dotnet.csharp.codingStyle"
       },
       {
         "path": "./instructions-filtered/dotnet-csharp-coding-style.instructions.md",
-        "when": "config.sharp-pilot.instructions.dotnet.csharp.codingStyle && sharp-pilot.workspace.hasDotnet && !sharp-pilot.override.dotnet.csharp.codingStyle && sharp-pilot.filtered.dotnet.csharp.codingStyle"
+        "when": "config.sharppilot.instructions.dotnet.csharp.codingStyle && sharppilot.workspace.hasDotnet && !sharppilot.override.dotnet.csharp.codingStyle && sharppilot.filtered.dotnet.csharp.codingStyle"
       },
       {
         "path": "./instructions/dotnet-fsharp-coding-style.instructions.md",
-        "when": "config.sharp-pilot.instructions.dotnet.fsharp.codingStyle && sharp-pilot.workspace.hasFsharp && !sharp-pilot.override.dotnet.fsharp.codingStyle && !sharp-pilot.filtered.dotnet.fsharp.codingStyle"
+        "when": "config.sharppilot.instructions.dotnet.fsharp.codingStyle && sharppilot.workspace.hasFsharp && !sharppilot.override.dotnet.fsharp.codingStyle && !sharppilot.filtered.dotnet.fsharp.codingStyle"
       },
       {
         "path": "./instructions-filtered/dotnet-fsharp-coding-style.instructions.md",
-        "when": "config.sharp-pilot.instructions.dotnet.fsharp.codingStyle && sharp-pilot.workspace.hasFsharp && !sharp-pilot.override.dotnet.fsharp.codingStyle && sharp-pilot.filtered.dotnet.fsharp.codingStyle"
+        "when": "config.sharppilot.instructions.dotnet.fsharp.codingStyle && sharppilot.workspace.hasFsharp && !sharppilot.override.dotnet.fsharp.codingStyle && sharppilot.filtered.dotnet.fsharp.codingStyle"
       },
       {
         "path": "./instructions/dotnet-vbnet-coding-style.instructions.md",
-        "when": "config.sharp-pilot.instructions.dotnet.vbnet.codingStyle && sharp-pilot.workspace.hasVbnet && !sharp-pilot.override.dotnet.vbnet.codingStyle && !sharp-pilot.filtered.dotnet.vbnet.codingStyle"
+        "when": "config.sharppilot.instructions.dotnet.vbnet.codingStyle && sharppilot.workspace.hasVbnet && !sharppilot.override.dotnet.vbnet.codingStyle && !sharppilot.filtered.dotnet.vbnet.codingStyle"
       },
       {
         "path": "./instructions-filtered/dotnet-vbnet-coding-style.instructions.md",
-        "when": "config.sharp-pilot.instructions.dotnet.vbnet.codingStyle && sharp-pilot.workspace.hasVbnet && !sharp-pilot.override.dotnet.vbnet.codingStyle && sharp-pilot.filtered.dotnet.vbnet.codingStyle"
+        "when": "config.sharppilot.instructions.dotnet.vbnet.codingStyle && sharppilot.workspace.hasVbnet && !sharppilot.override.dotnet.vbnet.codingStyle && sharppilot.filtered.dotnet.vbnet.codingStyle"
       },
       {
         "path": "./instructions/git-commit-format.instructions.md",
-        "when": "config.sharp-pilot.instructions.git.commitFormat && sharp-pilot.workspace.hasGit && !sharp-pilot.override.git.commitFormat && !sharp-pilot.filtered.git.commitFormat"
+        "when": "config.sharppilot.instructions.git.commitFormat && sharppilot.workspace.hasGit && !sharppilot.override.git.commitFormat && !sharppilot.filtered.git.commitFormat"
       },
       {
         "path": "./instructions-filtered/git-commit-format.instructions.md",
-        "when": "config.sharp-pilot.instructions.git.commitFormat && sharp-pilot.workspace.hasGit && !sharp-pilot.override.git.commitFormat && sharp-pilot.filtered.git.commitFormat"
+        "when": "config.sharppilot.instructions.git.commitFormat && sharppilot.workspace.hasGit && !sharppilot.override.git.commitFormat && sharppilot.filtered.git.commitFormat"
       },
       {
         "path": "./instructions/scripting-powershell.instructions.md",
-        "when": "config.sharp-pilot.instructions.scripting.powershell && sharp-pilot.workspace.hasPowerShell && !sharp-pilot.override.scripting.powershell && !sharp-pilot.filtered.scripting.powershell"
+        "when": "config.sharppilot.instructions.scripting.powershell && sharppilot.workspace.hasPowerShell && !sharppilot.override.scripting.powershell && !sharppilot.filtered.scripting.powershell"
       },
       {
         "path": "./instructions-filtered/scripting-powershell.instructions.md",
-        "when": "config.sharp-pilot.instructions.scripting.powershell && sharp-pilot.workspace.hasPowerShell && !sharp-pilot.override.scripting.powershell && sharp-pilot.filtered.scripting.powershell"
+        "when": "config.sharppilot.instructions.scripting.powershell && sharppilot.workspace.hasPowerShell && !sharppilot.override.scripting.powershell && sharppilot.filtered.scripting.powershell"
       },
       {
         "path": "./instructions/scripting-bash.instructions.md",
-        "when": "config.sharp-pilot.instructions.scripting.bash && sharp-pilot.workspace.hasBash && !sharp-pilot.override.scripting.bash && !sharp-pilot.filtered.scripting.bash"
+        "when": "config.sharppilot.instructions.scripting.bash && sharppilot.workspace.hasBash && !sharppilot.override.scripting.bash && !sharppilot.filtered.scripting.bash"
       },
       {
         "path": "./instructions-filtered/scripting-bash.instructions.md",
-        "when": "config.sharp-pilot.instructions.scripting.bash && sharp-pilot.workspace.hasBash && !sharp-pilot.override.scripting.bash && sharp-pilot.filtered.scripting.bash"
+        "when": "config.sharppilot.instructions.scripting.bash && sharppilot.workspace.hasBash && !sharppilot.override.scripting.bash && sharppilot.filtered.scripting.bash"
       },
       {
         "path": "./instructions/scripting-batch.instructions.md",
-        "when": "config.sharp-pilot.instructions.scripting.batch && sharp-pilot.workspace.hasBatch && !sharp-pilot.override.scripting.batch && !sharp-pilot.filtered.scripting.batch"
+        "when": "config.sharppilot.instructions.scripting.batch && sharppilot.workspace.hasBatch && !sharppilot.override.scripting.batch && !sharppilot.filtered.scripting.batch"
       },
       {
         "path": "./instructions-filtered/scripting-batch.instructions.md",
-        "when": "config.sharp-pilot.instructions.scripting.batch && sharp-pilot.workspace.hasBatch && !sharp-pilot.override.scripting.batch && sharp-pilot.filtered.scripting.batch"
+        "when": "config.sharppilot.instructions.scripting.batch && sharppilot.workspace.hasBatch && !sharppilot.override.scripting.batch && sharppilot.filtered.scripting.batch"
       },
       {
         "path": "./instructions/web-angular.instructions.md",
-        "when": "config.sharp-pilot.instructions.web.angular && sharp-pilot.workspace.hasAngular && !sharp-pilot.override.web.angular && !sharp-pilot.filtered.web.angular"
+        "when": "config.sharppilot.instructions.web.angular && sharppilot.workspace.hasAngular && !sharppilot.override.web.angular && !sharppilot.filtered.web.angular"
       },
       {
         "path": "./instructions-filtered/web-angular.instructions.md",
-        "when": "config.sharp-pilot.instructions.web.angular && sharp-pilot.workspace.hasAngular && !sharp-pilot.override.web.angular && sharp-pilot.filtered.web.angular"
+        "when": "config.sharppilot.instructions.web.angular && sharppilot.workspace.hasAngular && !sharppilot.override.web.angular && sharppilot.filtered.web.angular"
       },
       {
         "path": "./instructions/web-css.instructions.md",
-        "when": "config.sharp-pilot.instructions.web.css && sharp-pilot.workspace.hasCss && !sharp-pilot.override.web.css && !sharp-pilot.filtered.web.css"
+        "when": "config.sharppilot.instructions.web.css && sharppilot.workspace.hasCss && !sharppilot.override.web.css && !sharppilot.filtered.web.css"
       },
       {
         "path": "./instructions-filtered/web-css.instructions.md",
-        "when": "config.sharp-pilot.instructions.web.css && sharp-pilot.workspace.hasCss && !sharp-pilot.override.web.css && sharp-pilot.filtered.web.css"
+        "when": "config.sharppilot.instructions.web.css && sharppilot.workspace.hasCss && !sharppilot.override.web.css && sharppilot.filtered.web.css"
       },
       {
         "path": "./instructions/web-html.instructions.md",
-        "when": "config.sharp-pilot.instructions.web.html && sharp-pilot.workspace.hasHtml && !sharp-pilot.override.web.html && !sharp-pilot.filtered.web.html"
+        "when": "config.sharppilot.instructions.web.html && sharppilot.workspace.hasHtml && !sharppilot.override.web.html && !sharppilot.filtered.web.html"
       },
       {
         "path": "./instructions-filtered/web-html.instructions.md",
-        "when": "config.sharp-pilot.instructions.web.html && sharp-pilot.workspace.hasHtml && !sharp-pilot.override.web.html && sharp-pilot.filtered.web.html"
+        "when": "config.sharppilot.instructions.web.html && sharppilot.workspace.hasHtml && !sharppilot.override.web.html && sharppilot.filtered.web.html"
       },
       {
         "path": "./instructions/web-javascript.instructions.md",
-        "when": "config.sharp-pilot.instructions.web.javascript && (sharp-pilot.workspace.hasJavaScript || sharp-pilot.workspace.hasTypeScript) && !sharp-pilot.override.web.javascript && !sharp-pilot.filtered.web.javascript"
+        "when": "config.sharppilot.instructions.web.javascript && (sharppilot.workspace.hasJavaScript || sharppilot.workspace.hasTypeScript) && !sharppilot.override.web.javascript && !sharppilot.filtered.web.javascript"
       },
       {
         "path": "./instructions-filtered/web-javascript.instructions.md",
-        "when": "config.sharp-pilot.instructions.web.javascript && (sharp-pilot.workspace.hasJavaScript || sharp-pilot.workspace.hasTypeScript) && !sharp-pilot.override.web.javascript && sharp-pilot.filtered.web.javascript"
+        "when": "config.sharppilot.instructions.web.javascript && (sharppilot.workspace.hasJavaScript || sharppilot.workspace.hasTypeScript) && !sharppilot.override.web.javascript && sharppilot.filtered.web.javascript"
       },
       {
         "path": "./instructions/web-nextjs.instructions.md",
-        "when": "config.sharp-pilot.instructions.web.nextJs && sharp-pilot.workspace.hasNextJs && !sharp-pilot.override.web.nextJs && !sharp-pilot.filtered.web.nextJs"
+        "when": "config.sharppilot.instructions.web.nextJs && sharppilot.workspace.hasNextJs && !sharppilot.override.web.nextJs && !sharppilot.filtered.web.nextJs"
       },
       {
         "path": "./instructions-filtered/web-nextjs.instructions.md",
-        "when": "config.sharp-pilot.instructions.web.nextJs && sharp-pilot.workspace.hasNextJs && !sharp-pilot.override.web.nextJs && sharp-pilot.filtered.web.nextJs"
+        "when": "config.sharppilot.instructions.web.nextJs && sharppilot.workspace.hasNextJs && !sharppilot.override.web.nextJs && sharppilot.filtered.web.nextJs"
       },
       {
         "path": "./instructions/web-nodejs.instructions.md",
-        "when": "config.sharp-pilot.instructions.web.nodeJs && sharp-pilot.workspace.hasNodeJs && !sharp-pilot.override.web.nodeJs && !sharp-pilot.filtered.web.nodeJs"
+        "when": "config.sharppilot.instructions.web.nodeJs && sharppilot.workspace.hasNodeJs && !sharppilot.override.web.nodeJs && !sharppilot.filtered.web.nodeJs"
       },
       {
         "path": "./instructions-filtered/web-nodejs.instructions.md",
-        "when": "config.sharp-pilot.instructions.web.nodeJs && sharp-pilot.workspace.hasNodeJs && !sharp-pilot.override.web.nodeJs && sharp-pilot.filtered.web.nodeJs"
+        "when": "config.sharppilot.instructions.web.nodeJs && sharppilot.workspace.hasNodeJs && !sharppilot.override.web.nodeJs && sharppilot.filtered.web.nodeJs"
       },
       {
         "path": "./instructions/web-react.instructions.md",
-        "when": "config.sharp-pilot.instructions.web.react && sharp-pilot.workspace.hasReact && !sharp-pilot.override.web.react && !sharp-pilot.filtered.web.react"
+        "when": "config.sharppilot.instructions.web.react && sharppilot.workspace.hasReact && !sharppilot.override.web.react && !sharppilot.filtered.web.react"
       },
       {
         "path": "./instructions-filtered/web-react.instructions.md",
-        "when": "config.sharp-pilot.instructions.web.react && sharp-pilot.workspace.hasReact && !sharp-pilot.override.web.react && sharp-pilot.filtered.web.react"
+        "when": "config.sharppilot.instructions.web.react && sharppilot.workspace.hasReact && !sharppilot.override.web.react && sharppilot.filtered.web.react"
       },
       {
         "path": "./instructions/web-svelte.instructions.md",
-        "when": "config.sharp-pilot.instructions.web.svelte && sharp-pilot.workspace.hasSvelte && !sharp-pilot.override.web.svelte && !sharp-pilot.filtered.web.svelte"
+        "when": "config.sharppilot.instructions.web.svelte && sharppilot.workspace.hasSvelte && !sharppilot.override.web.svelte && !sharppilot.filtered.web.svelte"
       },
       {
         "path": "./instructions-filtered/web-svelte.instructions.md",
-        "when": "config.sharp-pilot.instructions.web.svelte && sharp-pilot.workspace.hasSvelte && !sharp-pilot.override.web.svelte && sharp-pilot.filtered.web.svelte"
+        "when": "config.sharppilot.instructions.web.svelte && sharppilot.workspace.hasSvelte && !sharppilot.override.web.svelte && sharppilot.filtered.web.svelte"
       },
       {
         "path": "./instructions/web-typescript.instructions.md",
-        "when": "config.sharp-pilot.instructions.web.typescript && sharp-pilot.workspace.hasTypeScript && !sharp-pilot.override.web.typescript && !sharp-pilot.filtered.web.typescript"
+        "when": "config.sharppilot.instructions.web.typescript && sharppilot.workspace.hasTypeScript && !sharppilot.override.web.typescript && !sharppilot.filtered.web.typescript"
       },
       {
         "path": "./instructions-filtered/web-typescript.instructions.md",
-        "when": "config.sharp-pilot.instructions.web.typescript && sharp-pilot.workspace.hasTypeScript && !sharp-pilot.override.web.typescript && sharp-pilot.filtered.web.typescript"
+        "when": "config.sharppilot.instructions.web.typescript && sharppilot.workspace.hasTypeScript && !sharppilot.override.web.typescript && sharppilot.filtered.web.typescript"
       },
       {
         "path": "./instructions/web-vue.instructions.md",
-        "when": "config.sharp-pilot.instructions.web.vue && sharp-pilot.workspace.hasVue && !sharp-pilot.override.web.vue && !sharp-pilot.filtered.web.vue"
+        "when": "config.sharppilot.instructions.web.vue && sharppilot.workspace.hasVue && !sharppilot.override.web.vue && !sharppilot.filtered.web.vue"
       },
       {
         "path": "./instructions-filtered/web-vue.instructions.md",
-        "when": "config.sharp-pilot.instructions.web.vue && sharp-pilot.workspace.hasVue && !sharp-pilot.override.web.vue && sharp-pilot.filtered.web.vue"
+        "when": "config.sharppilot.instructions.web.vue && sharppilot.workspace.hasVue && !sharppilot.override.web.vue && sharppilot.filtered.web.vue"
       },
       {
         "path": "./instructions/web-testing.instructions.md",
-        "when": "config.sharp-pilot.instructions.web.testing && sharp-pilot.workspace.hasWebTesting && !sharp-pilot.override.web.testing && !sharp-pilot.filtered.web.testing"
+        "when": "config.sharppilot.instructions.web.testing && sharppilot.workspace.hasWebTesting && !sharppilot.override.web.testing && !sharppilot.filtered.web.testing"
       },
       {
         "path": "./instructions-filtered/web-testing.instructions.md",
-        "when": "config.sharp-pilot.instructions.web.testing && sharp-pilot.workspace.hasWebTesting && !sharp-pilot.override.web.testing && sharp-pilot.filtered.web.testing"
+        "when": "config.sharppilot.instructions.web.testing && sharppilot.workspace.hasWebTesting && !sharppilot.override.web.testing && sharppilot.filtered.web.testing"
       },
       {
         "path": "./instructions/web-vitest.instructions.md",
-        "when": "config.sharp-pilot.instructions.web.vitest && sharp-pilot.workspace.hasVitest && !sharp-pilot.override.web.vitest && !sharp-pilot.filtered.web.vitest"
+        "when": "config.sharppilot.instructions.web.vitest && sharppilot.workspace.hasVitest && !sharppilot.override.web.vitest && !sharppilot.filtered.web.vitest"
       },
       {
         "path": "./instructions-filtered/web-vitest.instructions.md",
-        "when": "config.sharp-pilot.instructions.web.vitest && sharp-pilot.workspace.hasVitest && !sharp-pilot.override.web.vitest && sharp-pilot.filtered.web.vitest"
+        "when": "config.sharppilot.instructions.web.vitest && sharppilot.workspace.hasVitest && !sharppilot.override.web.vitest && sharppilot.filtered.web.vitest"
       },
       {
         "path": "./instructions/web-jest.instructions.md",
-        "when": "config.sharp-pilot.instructions.web.jest && sharp-pilot.workspace.hasJest && !sharp-pilot.override.web.jest && !sharp-pilot.filtered.web.jest"
+        "when": "config.sharppilot.instructions.web.jest && sharppilot.workspace.hasJest && !sharppilot.override.web.jest && !sharppilot.filtered.web.jest"
       },
       {
         "path": "./instructions-filtered/web-jest.instructions.md",
-        "when": "config.sharp-pilot.instructions.web.jest && sharp-pilot.workspace.hasJest && !sharp-pilot.override.web.jest && sharp-pilot.filtered.web.jest"
+        "when": "config.sharppilot.instructions.web.jest && sharppilot.workspace.hasJest && !sharppilot.override.web.jest && sharppilot.filtered.web.jest"
       },
       {
         "path": "./instructions/web-jasmine.instructions.md",
-        "when": "config.sharp-pilot.instructions.web.jasmine && sharp-pilot.workspace.hasJasmine && !sharp-pilot.override.web.jasmine && !sharp-pilot.filtered.web.jasmine"
+        "when": "config.sharppilot.instructions.web.jasmine && sharppilot.workspace.hasJasmine && !sharppilot.override.web.jasmine && !sharppilot.filtered.web.jasmine"
       },
       {
         "path": "./instructions-filtered/web-jasmine.instructions.md",
-        "when": "config.sharp-pilot.instructions.web.jasmine && sharp-pilot.workspace.hasJasmine && !sharp-pilot.override.web.jasmine && sharp-pilot.filtered.web.jasmine"
+        "when": "config.sharppilot.instructions.web.jasmine && sharppilot.workspace.hasJasmine && !sharppilot.override.web.jasmine && sharppilot.filtered.web.jasmine"
       },
       {
         "path": "./instructions/web-mocha.instructions.md",
-        "when": "config.sharp-pilot.instructions.web.mocha && sharp-pilot.workspace.hasMocha && !sharp-pilot.override.web.mocha && !sharp-pilot.filtered.web.mocha"
+        "when": "config.sharppilot.instructions.web.mocha && sharppilot.workspace.hasMocha && !sharppilot.override.web.mocha && !sharppilot.filtered.web.mocha"
       },
       {
         "path": "./instructions-filtered/web-mocha.instructions.md",
-        "when": "config.sharp-pilot.instructions.web.mocha && sharp-pilot.workspace.hasMocha && !sharp-pilot.override.web.mocha && sharp-pilot.filtered.web.mocha"
+        "when": "config.sharppilot.instructions.web.mocha && sharppilot.workspace.hasMocha && !sharppilot.override.web.mocha && sharppilot.filtered.web.mocha"
       },
       {
         "path": "./instructions/web-playwright.instructions.md",
-        "when": "config.sharp-pilot.instructions.web.playwright && sharp-pilot.workspace.hasPlaywright && !sharp-pilot.override.web.playwright && !sharp-pilot.filtered.web.playwright"
+        "when": "config.sharppilot.instructions.web.playwright && sharppilot.workspace.hasPlaywright && !sharppilot.override.web.playwright && !sharppilot.filtered.web.playwright"
       },
       {
         "path": "./instructions-filtered/web-playwright.instructions.md",
-        "when": "config.sharp-pilot.instructions.web.playwright && sharp-pilot.workspace.hasPlaywright && !sharp-pilot.override.web.playwright && sharp-pilot.filtered.web.playwright"
+        "when": "config.sharppilot.instructions.web.playwright && sharppilot.workspace.hasPlaywright && !sharppilot.override.web.playwright && sharppilot.filtered.web.playwright"
       },
       {
         "path": "./instructions/web-cypress.instructions.md",
-        "when": "config.sharp-pilot.instructions.web.cypress && sharp-pilot.workspace.hasCypress && !sharp-pilot.override.web.cypress && !sharp-pilot.filtered.web.cypress"
+        "when": "config.sharppilot.instructions.web.cypress && sharppilot.workspace.hasCypress && !sharppilot.override.web.cypress && !sharppilot.filtered.web.cypress"
       },
       {
         "path": "./instructions-filtered/web-cypress.instructions.md",
-        "when": "config.sharp-pilot.instructions.web.cypress && sharp-pilot.workspace.hasCypress && !sharp-pilot.override.web.cypress && sharp-pilot.filtered.web.cypress"
+        "when": "config.sharppilot.instructions.web.cypress && sharppilot.workspace.hasCypress && !sharppilot.override.web.cypress && sharppilot.filtered.web.cypress"
       }
     ],
     "walkthroughs": [
       {
-        "id": "sharp-pilot.getStarted",
+        "id": "sharppilot.getStarted",
         "title": "Get Started with SharpPilot",
         "description": "Learn how SharpPilot enhances GitHub Copilot with curated instructions and MCP tools.",
         "steps": [
           {
-            "id": "sharp-pilot.welcome",
+            "id": "sharppilot.welcome",
             "title": "Welcome to SharpPilot",
             "description": "Discover how SharpPilot elevates code quality with curated instructions and model-invokable tools.",
             "media": {
@@ -565,47 +565,47 @@
             }
           },
           {
-            "id": "sharp-pilot.instructions",
+            "id": "sharppilot.instructions",
             "title": "Chat Instructions",
-            "description": "Enable instruction sets that guide Copilot's responses for your tech stack.\n[Toggle Instructions](command:sharp-pilot.toggleInstructions)",
+            "description": "Enable instruction sets that guide Copilot's responses for your tech stack.\n[Toggle Instructions](command:sharppilot.toggleInstructions)",
             "media": {
               "markdown": "walkthroughs/instructions.md"
             },
             "completionEvents": [
-              "onCommand:sharp-pilot.toggleInstructions"
+              "onCommand:sharppilot.toggleInstructions"
             ]
           },
           {
-            "id": "sharp-pilot.tools",
+            "id": "sharppilot.tools",
             "title": "MCP Tools",
-            "description": "Enable quality-assurance tools that Copilot can call in agent mode.\n[Toggle Tools](command:sharp-pilot.toggleTools)",
+            "description": "Enable quality-assurance tools that Copilot can call in agent mode.\n[Toggle Tools](command:sharppilot.toggleTools)",
             "media": {
               "markdown": "walkthroughs/tools.md"
             },
             "completionEvents": [
-              "onCommand:sharp-pilot.toggleTools"
+              "onCommand:sharppilot.toggleTools"
             ]
           },
           {
-            "id": "sharp-pilot.autoConfigure",
+            "id": "sharppilot.autoConfigure",
             "title": "Auto Configure",
-            "description": "Let SharpPilot detect your workspace and enable the right instructions and tools.\n[Auto Configure](command:sharp-pilot.autoConfigure)",
+            "description": "Let SharpPilot detect your workspace and enable the right instructions and tools.\n[Auto Configure](command:sharppilot.autoConfigure)",
             "media": {
               "markdown": "walkthroughs/auto-configure.md"
             },
             "completionEvents": [
-              "onCommand:sharp-pilot.autoConfigure"
+              "onCommand:sharppilot.autoConfigure"
             ]
           },
           {
-            "id": "sharp-pilot.exportAndBrowse",
+            "id": "sharppilot.exportAndBrowse",
             "title": "Export & Browse",
-            "description": "Export instruction files to your repository or browse them in the editor.\n[Export Instructions](command:sharp-pilot.exportInstructions)",
+            "description": "Export instruction files to your repository or browse them in the editor.\n[Export Instructions](command:sharppilot.exportInstructions)",
             "media": {
               "markdown": "walkthroughs/export-and-browse.md"
             },
             "completionEvents": [
-              "onCommand:sharp-pilot.exportInstructions"
+              "onCommand:sharppilot.exportInstructions"
             ]
           }
         ]
@@ -614,357 +614,357 @@
     "configuration": {
       "title": "SharpPilot",
       "properties": {
-        "sharp-pilot.instructions.copilot": {
+        "sharppilot.instructions.copilot": {
           "type": "boolean",
           "default": true,
           "description": "Enable Copilot behavior rules and rule precedence."
         },
-        "sharp-pilot.instructions.codeReview": {
+        "sharppilot.instructions.codeReview": {
           "type": "boolean",
           "default": true,
           "description": "Enable code review guidelines (priority order, feedback style, scope and test coverage checks)."
         },
-        "sharp-pilot.instructions.designPrinciples": {
+        "sharppilot.instructions.designPrinciples": {
           "type": "boolean",
           "default": true,
           "description": "Enable design principles (SOLID, DI, composition, separation of concerns, structured logging)."
         },
-        "sharp-pilot.instructions.docker": {
+        "sharppilot.instructions.docker": {
           "type": "boolean",
           "default": true,
           "description": "Enable Docker guidelines (multi-stage builds, security, Compose, layer caching)."
         },
-        "sharp-pilot.instructions.graphql": {
+        "sharppilot.instructions.graphql": {
           "type": "boolean",
           "default": true,
           "description": "Enable GraphQL guidelines (schema design, pagination, DataLoader, mutations, subscriptions)."
         },
-        "sharp-pilot.instructions.restApiDesign": {
+        "sharppilot.instructions.restApiDesign": {
           "type": "boolean",
           "default": true,
           "description": "Enable REST API design guidelines (resource naming, HTTP methods, status codes, pagination, error responses, versioning)."
         },
-        "sharp-pilot.instructions.sql": {
+        "sharppilot.instructions.sql": {
           "type": "boolean",
           "default": true,
           "description": "Enable SQL guidelines (naming, formatting, query design, indexing, parameters, transactions, NULL handling, performance)."
         },
-        "sharp-pilot.instructions.dotnet.aspnetCore": {
+        "sharppilot.instructions.dotnet.aspnetCore": {
           "type": "boolean",
           "default": true,
           "description": "Enable ASP.NET Core Web API guidelines (middleware, routing, error handling, auth)."
         },
-        "sharp-pilot.instructions.dotnet.asyncAwait": {
+        "sharppilot.instructions.dotnet.asyncAwait": {
           "type": "boolean",
           "default": true,
           "description": "Enable async/await pattern guidelines for .NET code."
         },
-        "sharp-pilot.instructions.dotnet.blazor": {
+        "sharppilot.instructions.dotnet.blazor": {
           "type": "boolean",
           "default": true,
           "description": "Enable Blazor component guidelines for Razor files."
         },
-        "sharp-pilot.instructions.dotnet.codingStandards": {
+        "sharppilot.instructions.dotnet.codingStandards": {
           "type": "boolean",
           "default": true,
           "description": "Enable .NET coding standards (naming, validation, file organization, API design)."
         },
-        "sharp-pilot.instructions.dotnet.core": {
+        "sharppilot.instructions.dotnet.core": {
           "type": "boolean",
           "default": true,
           "description": "Enable .NET Core guidelines (dependency injection, logging, configuration, security)."
         },
-        "sharp-pilot.instructions.dotnet.dapper": {
+        "sharppilot.instructions.dotnet.dapper": {
           "type": "boolean",
           "default": true,
           "description": "Enable Dapper guidelines (connection management, parameterized queries, mapping, transactions, performance)."
         },
-        "sharp-pilot.instructions.dotnet.debugging": {
+        "sharppilot.instructions.dotnet.debugging": {
           "type": "boolean",
           "default": true,
           "description": "Enable debugging and troubleshooting guidelines."
         },
-        "sharp-pilot.instructions.dotnet.entityFrameworkCore": {
+        "sharppilot.instructions.dotnet.entityFrameworkCore": {
           "type": "boolean",
           "default": true,
           "description": "Enable Entity Framework Core guidelines (DbContext lifetime, querying, migrations, bulk operations)."
         },
-        "sharp-pilot.instructions.dotnet.grpc": {
+        "sharppilot.instructions.dotnet.grpc": {
           "type": "boolean",
           "default": true,
           "description": "Enable gRPC guidelines (proto design, status codes, deadlines, streaming, channel reuse)."
         },
-        "sharp-pilot.instructions.dotnet.nuget": {
+        "sharppilot.instructions.dotnet.nuget": {
           "type": "boolean",
           "default": true,
           "description": "Enable NuGet package and dependency guidelines."
         },
-        "sharp-pilot.instructions.dotnet.performanceMemory": {
+        "sharppilot.instructions.dotnet.performanceMemory": {
           "type": "boolean",
           "default": true,
           "description": "Enable performance and memory optimization guidelines."
         },
-        "sharp-pilot.instructions.dotnet.postgresql": {
+        "sharppilot.instructions.dotnet.postgresql": {
           "type": "boolean",
           "default": true,
           "description": "Enable PostgreSQL guidelines (security, query design, performance, PL/pgSQL, schema migrations)."
         },
-        "sharp-pilot.instructions.dotnet.razor": {
+        "sharppilot.instructions.dotnet.razor": {
           "type": "boolean",
           "default": true,
           "description": "Enable Razor file structure and syntax guidelines."
         },
-        "sharp-pilot.instructions.dotnet.redis": {
+        "sharppilot.instructions.dotnet.redis": {
           "type": "boolean",
           "default": true,
           "description": "Enable Redis guidelines (connection multiplexing, key naming, TTL, pub/sub, distributed locking)."
         },
-        "sharp-pilot.instructions.dotnet.signalR": {
+        "sharppilot.instructions.dotnet.signalR": {
           "type": "boolean",
           "default": true,
           "description": "Enable SignalR guidelines (hub design, groups, backplane, reconnection, strongly-typed hubs)."
         },
-        "sharp-pilot.instructions.dotnet.sqlServer": {
+        "sharppilot.instructions.dotnet.sqlServer": {
           "type": "boolean",
           "default": true,
           "description": "Enable SQL Server guidelines (T-SQL security, query design, performance, stored procedures, schema migrations)."
         },
-        "sharp-pilot.instructions.dotnet.testing": {
+        "sharppilot.instructions.dotnet.testing": {
           "type": "boolean",
           "default": true,
           "description": "Enable general testing strategy guidelines (TDD, naming, organization)."
         },
-        "sharp-pilot.instructions.dotnet.maui": {
+        "sharppilot.instructions.dotnet.maui": {
           "type": "boolean",
           "default": true,
           "description": "Enable .NET MAUI guidelines (MVVM, Shell navigation, data binding, layouts, DI)."
         },
-        "sharp-pilot.instructions.dotnet.mediatorCqrs": {
+        "sharppilot.instructions.dotnet.mediatorCqrs": {
           "type": "boolean",
           "default": true,
           "description": "Enable Mediator/CQRS guidelines (command/query separation, handler design, pipeline behaviors, notifications)."
         },
-        "sharp-pilot.instructions.dotnet.mongodb": {
+        "sharppilot.instructions.dotnet.mongodb": {
           "type": "boolean",
           "default": true,
           "description": "Enable MongoDB guidelines (security, data modelling, query design, indexing, transactions)."
         },
-        "sharp-pilot.instructions.dotnet.mysql": {
+        "sharppilot.instructions.dotnet.mysql": {
           "type": "boolean",
           "default": true,
           "description": "Enable MySQL guidelines (security, query design, performance, stored procedures, schema migrations)."
         },
-        "sharp-pilot.instructions.dotnet.oracle": {
+        "sharppilot.instructions.dotnet.oracle": {
           "type": "boolean",
           "default": true,
           "description": "Enable Oracle guidelines (security, query design, performance, PL/SQL, schema migrations)."
         },
-        "sharp-pilot.instructions.dotnet.sqlite": {
+        "sharppilot.instructions.dotnet.sqlite": {
           "type": "boolean",
           "default": true,
           "description": "Enable SQLite guidelines (security, query design, performance, WAL mode, schema migrations)."
         },
-        "sharp-pilot.instructions.dotnet.unity": {
+        "sharppilot.instructions.dotnet.unity": {
           "type": "boolean",
           "default": true,
           "description": "Enable Unity guidelines (MonoBehaviour lifecycle, component caching, physics, coroutines, ScriptableObjects, performance)."
         },
-        "sharp-pilot.instructions.dotnet.winForms": {
+        "sharppilot.instructions.dotnet.winForms": {
           "type": "boolean",
           "default": true,
           "description": "Enable Windows Forms threading, data binding, layout, and lifecycle guidelines."
         },
-        "sharp-pilot.instructions.dotnet.wpf": {
+        "sharppilot.instructions.dotnet.wpf": {
           "type": "boolean",
           "default": true,
           "description": "Enable WPF MVVM, data binding, threading, and performance guidelines."
         },
-        "sharp-pilot.instructions.dotnet.xunit": {
+        "sharppilot.instructions.dotnet.xunit": {
           "type": "boolean",
           "default": true,
           "description": "Enable xUnit-specific guidelines (v3 APIs, attributes, assertions)."
         },
-        "sharp-pilot.instructions.dotnet.mstest": {
+        "sharppilot.instructions.dotnet.mstest": {
           "type": "boolean",
           "default": true,
           "description": "Enable MSTest-specific guidelines (attributes, assertions, test lifecycle)."
         },
-        "sharp-pilot.instructions.dotnet.nunit": {
+        "sharppilot.instructions.dotnet.nunit": {
           "type": "boolean",
           "default": true,
           "description": "Enable NUnit-specific guidelines (constraint model, attributes, assertions, test lifecycle)."
         },
-        "sharp-pilot.instructions.dotnet.csharp.codingStyle": {
+        "sharppilot.instructions.dotnet.csharp.codingStyle": {
           "type": "boolean",
           "default": true,
           "description": "Enable C# coding style rules (member ordering, formatting, etc.)."
         },
-        "sharp-pilot.instructions.dotnet.fsharp.codingStyle": {
+        "sharppilot.instructions.dotnet.fsharp.codingStyle": {
           "type": "boolean",
           "default": true,
           "description": "Enable F# coding style rules (module layout, naming, type design, pattern matching, formatting)."
         },
-        "sharp-pilot.instructions.dotnet.vbnet.codingStyle": {
+        "sharppilot.instructions.dotnet.vbnet.codingStyle": {
           "type": "boolean",
           "default": true,
           "description": "Enable VB.NET coding style rules (naming, Option Strict, error handling, formatting)."
         },
-        "sharp-pilot.instructions.git.commitFormat": {
+        "sharppilot.instructions.git.commitFormat": {
           "type": "boolean",
           "default": true,
           "description": "Enable Conventional Commits formatting guidelines."
         },
-        "sharp-pilot.instructions.scripting.powershell": {
+        "sharppilot.instructions.scripting.powershell": {
           "type": "boolean",
           "default": true,
           "description": "Enable PowerShell guidelines (naming, error handling, pipeline design, security, module structure)."
         },
-        "sharp-pilot.instructions.scripting.bash": {
+        "sharppilot.instructions.scripting.bash": {
           "type": "boolean",
           "default": true,
           "description": "Enable Bash guidelines (safety flags, quoting, error handling, portability, script structure)."
         },
-        "sharp-pilot.instructions.scripting.batch": {
+        "sharppilot.instructions.scripting.batch": {
           "type": "boolean",
           "default": true,
           "description": "Enable Batch (CMD) guidelines (variable handling, error checking, quoting, script structure)."
         },
-        "sharp-pilot.instructions.web.angular": {
+        "sharppilot.instructions.web.angular": {
           "type": "boolean",
           "default": true,
           "description": "Enable Angular guidelines (standalone components, signals, DI, RxJS, routing, reactive forms)."
         },
-        "sharp-pilot.instructions.web.css": {
+        "sharppilot.instructions.web.css": {
           "type": "boolean",
           "default": true,
           "description": "Enable CSS layout, theming, selectors, and accessibility guidelines."
         },
-        "sharp-pilot.instructions.web.html": {
+        "sharppilot.instructions.web.html": {
           "type": "boolean",
           "default": true,
           "description": "Enable HTML semantics, accessibility, and structure guidelines."
         },
-        "sharp-pilot.instructions.web.javascript": {
+        "sharppilot.instructions.web.javascript": {
           "type": "boolean",
           "default": true,
           "description": "Enable JavaScript language, async patterns, and security guidelines."
         },
-        "sharp-pilot.instructions.web.nextJs": {
+        "sharppilot.instructions.web.nextJs": {
           "type": "boolean",
           "default": true,
           "description": "Enable Next.js guidelines (App Router, Server/Client Components, data fetching, rendering strategies)."
         },
-        "sharp-pilot.instructions.web.nodeJs": {
+        "sharppilot.instructions.web.nodeJs": {
           "type": "boolean",
           "default": true,
           "description": "Enable Node.js guidelines (async patterns, module design, security, process lifecycle)."
         },
-        "sharp-pilot.instructions.web.react": {
+        "sharppilot.instructions.web.react": {
           "type": "boolean",
           "default": true,
           "description": "Enable React component purity, Hooks, state design, effects, and list rendering guidelines."
         },
-        "sharp-pilot.instructions.web.svelte": {
+        "sharppilot.instructions.web.svelte": {
           "type": "boolean",
           "default": true,
           "description": "Enable Svelte guidelines (runes, stores, SvelteKit routing, load functions, form actions)."
         },
-        "sharp-pilot.instructions.web.typescript": {
+        "sharppilot.instructions.web.typescript": {
           "type": "boolean",
           "default": true,
           "description": "Enable TypeScript type safety, generics, and anti-pattern guidelines."
         },
-        "sharp-pilot.instructions.web.vue": {
+        "sharppilot.instructions.web.vue": {
           "type": "boolean",
           "default": true,
           "description": "Enable Vue.js guidelines (Composition API, reactivity, Pinia, Vue Router, component design)."
         },
-        "sharp-pilot.instructions.web.testing": {
+        "sharppilot.instructions.web.testing": {
           "type": "boolean",
           "default": true,
           "description": "Enable general web testing strategy guidelines (test structure, naming, organization)."
         },
-        "sharp-pilot.instructions.web.vitest": {
+        "sharppilot.instructions.web.vitest": {
           "type": "boolean",
           "default": true,
           "description": "Enable Vitest guidelines (mocking with vi, snapshots, fake timers)."
         },
-        "sharp-pilot.instructions.web.jest": {
+        "sharppilot.instructions.web.jest": {
           "type": "boolean",
           "default": true,
           "description": "Enable Jest guidelines (mocking, snapshots, fake timers)."
         },
-        "sharp-pilot.instructions.web.jasmine": {
+        "sharppilot.instructions.web.jasmine": {
           "type": "boolean",
           "default": true,
           "description": "Enable Jasmine guidelines (spies, clock, async assertions, custom matchers)."
         },
-        "sharp-pilot.instructions.web.mocha": {
+        "sharppilot.instructions.web.mocha": {
           "type": "boolean",
           "default": true,
           "description": "Enable Mocha guidelines (Sinon mocking, Chai assertions, async patterns)."
         },
-        "sharp-pilot.instructions.web.playwright": {
+        "sharppilot.instructions.web.playwright": {
           "type": "boolean",
           "default": true,
           "description": "Enable Playwright guidelines (auto-waiting locators, Page Object Model, web-first assertions)."
         },
-        "sharp-pilot.instructions.web.cypress": {
+        "sharppilot.instructions.web.cypress": {
           "type": "boolean",
           "default": true,
           "description": "Enable Cypress guidelines (chainable commands, intercepts, custom commands, session caching)."
         },
-        "sharp-pilot.tools.check_csharp_async_patterns": {
+        "sharppilot.tools.check_csharp_async_patterns": {
           "type": "boolean",
           "default": true,
           "description": "Enable the async patterns checker tool."
         },
-        "sharp-pilot.tools.check_csharp_coding_style": {
+        "sharppilot.tools.check_csharp_coding_style": {
           "type": "boolean",
           "default": true,
           "description": "Enable the coding style checker tool."
         },
-        "sharp-pilot.tools.check_csharp_member_ordering": {
+        "sharppilot.tools.check_csharp_member_ordering": {
           "type": "boolean",
           "default": true,
           "description": "Enable the member ordering checker tool."
         },
-        "sharp-pilot.tools.check_csharp_naming_conventions": {
+        "sharppilot.tools.check_csharp_naming_conventions": {
           "type": "boolean",
           "default": true,
           "description": "Enable the naming conventions checker tool."
         },
-        "sharp-pilot.tools.check_csharp_nullable_context": {
+        "sharppilot.tools.check_csharp_nullable_context": {
           "type": "boolean",
           "default": true,
           "description": "Enable the nullable context checker tool."
         },
-        "sharp-pilot.tools.check_csharp_project_structure": {
+        "sharppilot.tools.check_csharp_project_structure": {
           "type": "boolean",
           "default": true,
           "description": "Enable the project structure checker tool."
         },
-        "sharp-pilot.tools.check_csharp_test_style": {
+        "sharppilot.tools.check_csharp_test_style": {
           "type": "boolean",
           "default": true,
           "description": "Enable the test style checker tool."
         },
-        "sharp-pilot.tools.check_nuget_hygiene": {
+        "sharppilot.tools.check_nuget_hygiene": {
           "type": "boolean",
           "default": true,
           "description": "Enable the NuGet hygiene checker tool."
         },
-        "sharp-pilot.tools.check_git_commit_content": {
+        "sharppilot.tools.check_git_commit_content": {
           "type": "boolean",
           "default": true,
           "description": "Enable the commit content validator tool."
         },
-        "sharp-pilot.tools.check_git_commit_format": {
+        "sharppilot.tools.check_git_commit_format": {
           "type": "boolean",
           "default": true,
           "description": "Enable the commit format validator tool."
         },
-        "sharp-pilot.tools.get_editorconfig": {
+        "sharppilot.tools.get_editorconfig": {
           "type": "boolean",
           "default": true,
           "description": "Enable the EditorConfig reader tool."

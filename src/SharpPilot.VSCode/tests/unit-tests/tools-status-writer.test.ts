@@ -19,7 +19,7 @@ beforeEach(() => {
 describe('ToolsStatusWriter', () => {
     it('should write a JSON file with tool statuses', () => {
         __setConfigStore({
-            'sharp-pilot.tools.check_csharp_coding_style': false,
+            'sharppilot.tools.check_csharp_coding_style': false,
         });
 
         const writer = new ToolsStatusWriter('/servers');

@@ -20,8 +20,8 @@ describe('StatusBarIndicator', () => {
 
     it('should reflect disabled items after update', () => {
         __setConfigStore({
-            'sharp-pilot.instructions.copilot': false,
-            'sharp-pilot.tools.check_csharp_coding_style': false,
+            'sharppilot.instructions.copilot': false,
+            'sharppilot.tools.check_csharp_coding_style': false,
         });
 
         const indicator = new StatusBarIndicator();

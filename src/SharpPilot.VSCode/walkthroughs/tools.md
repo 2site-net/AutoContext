@@ -22,4 +22,4 @@ Enabled tool settings are written to a `tools-status.json` file that the .NET MC
 
 Open the multi-select menu to enable or disable individual tools. Like instructions, tools are grouped by category with bulk select/deselect support.
 
-[Toggle Tools](command:sharp-pilot.toggleTools)
+[Toggle Tools](command:sharppilot.toggleTools)

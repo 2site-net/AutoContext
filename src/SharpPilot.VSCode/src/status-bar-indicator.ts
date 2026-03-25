@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { instructions, tools } from './config.js';
 
 export class StatusBarIndicator implements vscode.Disposable {
-    static readonly commandId = 'sharp-pilot.showToggleMenu';
+    static readonly commandId = 'sharppilot.showToggleMenu';
 
     private readonly item: vscode.StatusBarItem;
 
@@ -25,9 +25,9 @@ export class StatusBarIndicator implements vscode.Disposable {
     async showToggleMenu(): Promise<void> {
         const picked = await vscode.window.showQuickPick(
             [
-                { label: '$(book) Toggle Instructions', command: 'sharp-pilot.toggleInstructions' },
-                { label: '$(tools) Toggle Tools', command: 'sharp-pilot.toggleTools' },
-                { label: '$(sparkle) Auto Configure', command: 'sharp-pilot.autoConfigure' },
+                { label: '$(book) Toggle Instructions', command: 'sharppilot.toggleInstructions' },
+                { label: '$(tools) Toggle Tools', command: 'sharppilot.toggleTools' },
+                { label: '$(sparkle) Auto Configure', command: 'sharppilot.autoConfigure' },
             ],
             { title: 'SharpPilot', placeHolder: 'What would you like to toggle?' },
         );

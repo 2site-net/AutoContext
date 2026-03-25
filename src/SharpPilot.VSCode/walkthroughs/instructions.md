@@ -17,7 +17,7 @@ When enabled, instructions are automatically attached to every Copilot Chat conv
 
 Open the multi-select menu to control which instruction sets are active. Instructions are grouped by category — toggling a category header selects or deselects all items in that group. Use **Select All** or **Clear All** for bulk changes.
 
-[Toggle Instructions](command:sharp-pilot.toggleInstructions)
+[Toggle Instructions](command:sharppilot.toggleInstructions)
 
 ### Overrides
 

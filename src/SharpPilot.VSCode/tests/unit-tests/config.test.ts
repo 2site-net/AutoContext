@@ -14,25 +14,25 @@ import {
 
 describe('overrideContextKey', () => {
     it('should strip the settings prefix and prepend the override prefix', () => {
-        expect(overrideContextKey('sharp-pilot.instructions.copilot'))
-            .toBe('sharp-pilot.override.copilot');
+        expect(overrideContextKey('sharppilot.instructions.copilot'))
+            .toBe('sharppilot.override.copilot');
     });
 
     it('should handle nested setting ids', () => {
-        expect(overrideContextKey('sharp-pilot.instructions.dotnet.asyncAwait'))
-            .toBe('sharp-pilot.override.dotnet.asyncAwait');
+        expect(overrideContextKey('sharppilot.instructions.dotnet.asyncAwait'))
+            .toBe('sharppilot.override.dotnet.asyncAwait');
     });
 });
 
 describe('filteredContextKey', () => {
     it('should strip the settings prefix and prepend the filtered prefix', () => {
-        expect(filteredContextKey('sharp-pilot.instructions.copilot'))
-            .toBe('sharp-pilot.filtered.copilot');
+        expect(filteredContextKey('sharppilot.instructions.copilot'))
+            .toBe('sharppilot.filtered.copilot');
     });
 
     it('should handle nested setting ids', () => {
-        expect(filteredContextKey('sharp-pilot.instructions.dotnet.asyncAwait'))
-            .toBe('sharp-pilot.filtered.dotnet.asyncAwait');
+        expect(filteredContextKey('sharppilot.instructions.dotnet.asyncAwait'))
+            .toBe('sharppilot.filtered.dotnet.asyncAwait');
     });
 });
 
@@ -55,7 +55,7 @@ describe('instructionByFileName', () => {
         const entry = instructionByFileName('copilot.instructions.md');
 
         expect(entry).toBeDefined();
-        expect(entry!.settingId).toBe('sharp-pilot.instructions.copilot');
+        expect(entry!.settingId).toBe('sharppilot.instructions.copilot');
     });
 
     it('should return undefined for an unknown file name', () => {
@@ -114,7 +114,7 @@ describe('toolSettingsForScope', () => {
         const result = toolSettingsForScope('dotnet');
 
         expect(result.length).toBeGreaterThan(0);
-        expect(result.every(id => id.startsWith('sharp-pilot.tools.'))).toBe(true);
+        expect(result.every(id => id.startsWith('sharppilot.tools.'))).toBe(true);
 
         const dotnetTools = tools.filter(t => t.category === '.NET Tool');
         expect(result).toEqual(dotnetTools.map(t => t.settingId));
@@ -133,7 +133,7 @@ describe('toolSettingsForScope', () => {
         const result = toolSettingsForScope('editorconfig');
 
         expect(result).toHaveLength(1);
-        expect(result[0]).toBe('sharp-pilot.tools.get_editorconfig');
+        expect(result[0]).toBe('sharppilot.tools.get_editorconfig');
     });
 
     it('should return empty array for unknown scope', () => {
@@ -143,44 +143,44 @@ describe('toolSettingsForScope', () => {
 
 describe('contextKeysForEntry', () => {
     it('should return empty array for always-on instructions', () => {
-        const copilot = instructions.find(i => i.settingId === 'sharp-pilot.instructions.copilot')!;
+        const copilot = instructions.find(i => i.settingId === 'sharppilot.instructions.copilot')!;
 
         expect(contextKeysForEntry(copilot)).toEqual([]);
     });
 
     it('should return context keys for workspace-specific instructions', () => {
-        const asyncAwait = instructions.find(i => i.settingId === 'sharp-pilot.instructions.dotnet.asyncAwait')!;
+        const asyncAwait = instructions.find(i => i.settingId === 'sharppilot.instructions.dotnet.asyncAwait')!;
 
         expect(contextKeysForEntry(asyncAwait)).toEqual(['hasDotnet']);
     });
 
     it('should return multiple context keys for OR conditions', () => {
-        const js = instructions.find(i => i.settingId === 'sharp-pilot.instructions.web.javascript')!;
+        const js = instructions.find(i => i.settingId === 'sharppilot.instructions.web.javascript')!;
 
         expect(contextKeysForEntry(js)).toEqual(['hasJavaScript', 'hasTypeScript']);
     });
 
     it('should return context keys for tools', () => {
-        const codingStyle = tools.find(t => t.settingId === 'sharp-pilot.tools.check_csharp_coding_style')!;
-        const commitFormat = tools.find(t => t.settingId === 'sharp-pilot.tools.check_git_commit_format')!;
+        const codingStyle = tools.find(t => t.settingId === 'sharppilot.tools.check_csharp_coding_style')!;
+        const commitFormat = tools.find(t => t.settingId === 'sharppilot.tools.check_git_commit_format')!;
 
         expect(contextKeysForEntry(codingStyle)).toEqual(['hasDotnet']);
         expect(contextKeysForEntry(commitFormat)).toEqual(['hasGit']);
     });
 
     it('should return empty array for the editorconfig tool', () => {
-        const editorconfig = tools.find(t => t.settingId === 'sharp-pilot.tools.get_editorconfig')!;
+        const editorconfig = tools.find(t => t.settingId === 'sharppilot.tools.get_editorconfig')!;
 
         expect(contextKeysForEntry(editorconfig)).toEqual([]);
     });
 
     it('should have a mapping for every instruction with a workspace when clause', () => {
         const alwaysOn = new Set([
-            'sharp-pilot.instructions.copilot',
-            'sharp-pilot.instructions.codeReview',
-            'sharp-pilot.instructions.designPrinciples',
-            'sharp-pilot.instructions.restApiDesign',
-            'sharp-pilot.instructions.sql',
+            'sharppilot.instructions.copilot',
+            'sharppilot.instructions.codeReview',
+            'sharppilot.instructions.designPrinciples',
+            'sharppilot.instructions.restApiDesign',
+            'sharppilot.instructions.sql',
         ]);
 
         for (const entry of instructions) {

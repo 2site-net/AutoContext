@@ -17,9 +17,9 @@ function buildWhenClause(entry, filtered) {
 
     const ctxKeys = contextKeysForEntry(entry);
     if (ctxKeys.length === 1) {
-        parts.push(`sharp-pilot.workspace.${ctxKeys[0]}`);
+        parts.push(`sharppilot.workspace.${ctxKeys[0]}`);
     } else if (ctxKeys.length > 1) {
-        parts.push(`(${ctxKeys.map(k => `sharp-pilot.workspace.${k}`).join(' || ')})`);
+        parts.push(`(${ctxKeys.map(k => `sharppilot.workspace.${k}`).join(' || ')})`);
     }
 
     parts.push(`!${overrideContextKey(entry.settingId)}`);

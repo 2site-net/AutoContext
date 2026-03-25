@@ -28,7 +28,7 @@ describe('autoConfigure', () => {
 
         for (const [settingId, value] of updates) {
             expect(value).toBe(false);
-            expect(settingId).toMatch(/^sharp-pilot\./);
+            expect(settingId).toMatch(/^sharppilot\./);
         }
     });
 
@@ -44,11 +44,11 @@ describe('autoConfigure', () => {
         // Non-.NET workspace entries should be disabled.
         const updatedIds = new Set(updates.map(([id]: [string]) => id));
 
-        expect(updatedIds.has('sharp-pilot.instructions.dotnet.asyncAwait')).toBe(false);
-        expect(updatedIds.has('sharp-pilot.tools.check_csharp_coding_style')).toBe(false);
+        expect(updatedIds.has('sharppilot.instructions.dotnet.asyncAwait')).toBe(false);
+        expect(updatedIds.has('sharppilot.tools.check_csharp_coding_style')).toBe(false);
 
         // Git entries should be disabled
-        expect(updatedIds.has('sharp-pilot.instructions.git.commitFormat')).toBe(true);
+        expect(updatedIds.has('sharppilot.instructions.git.commitFormat')).toBe(true);
     });
 
     it('should show an info message with the count of enabled items', async () => {
@@ -66,7 +66,7 @@ describe('autoConfigure', () => {
 
     it('should not update settings that already match the target state', async () => {
         __setConfigStore({
-            'sharp-pilot.instructions.dotnet.asyncAwait': false,
+            'sharppilot.instructions.dotnet.asyncAwait': false,
         });
         vi.mocked(fakeDetector.get).mockReturnValue(false);
 
@@ -76,6 +76,6 @@ describe('autoConfigure', () => {
         const updatedIds = vi.mocked(config.update).mock.calls.map(([id]: [string]) => id);
 
         // Already false, should not be updated again
-        expect(updatedIds.filter((id: string) => id === 'sharp-pilot.instructions.dotnet.asyncAwait')).toHaveLength(0);
+        expect(updatedIds.filter((id: string) => id === 'sharppilot.instructions.dotnet.asyncAwait')).toHaveLength(0);
     });
 });

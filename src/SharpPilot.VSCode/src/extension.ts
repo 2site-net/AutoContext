@@ -83,11 +83,11 @@ export function activate(context: vscode.ExtensionContext): void {
         vscode.workspace.registerTextDocumentContentProvider(instructionScheme, contentProvider),
         vscode.languages.registerCodeLensProvider({ scheme: instructionScheme }, codeLensProvider),
         vscode.commands.registerCommand(StatusBarIndicator.commandId, () => statusBarIndicator.showToggleMenu()),
-        vscode.commands.registerCommand('sharp-pilot.toggleTools', () => toolsToggler.toggle()),
-        vscode.commands.registerCommand('sharp-pilot.toggleInstructions', () => instructionsToggler.toggle()),
-        vscode.commands.registerCommand('sharp-pilot.autoConfigure', () => autoConfigure(workspaceContextDetector)),
-        vscode.commands.registerCommand('sharp-pilot.exportInstructions', () => instructionExporter.export()),
-        vscode.commands.registerCommand('sharp-pilot.browseInstructions', () => instructionBrowser.browse()),
+        vscode.commands.registerCommand('sharppilot.toggleTools', () => toolsToggler.toggle()),
+        vscode.commands.registerCommand('sharppilot.toggleInstructions', () => instructionsToggler.toggle()),
+        vscode.commands.registerCommand('sharppilot.autoConfigure', () => autoConfigure(workspaceContextDetector)),
+        vscode.commands.registerCommand('sharppilot.exportInstructions', () => instructionExporter.export()),
+        vscode.commands.registerCommand('sharppilot.browseInstructions', () => instructionBrowser.browse()),
         vscode.commands.registerCommand(toggleInstructionCommandId, (fileName: string, id: string) => {
             configManager.toggleInstruction(fileName, id);
         }),
@@ -104,11 +104,11 @@ export function activate(context: vscode.ExtensionContext): void {
             instructionFilterWriter.write();
         }),
         vscode.workspace.onDidChangeConfiguration(e => {
-            if (e.affectsConfiguration('sharp-pilot.instructions') || e.affectsConfiguration('sharp-pilot.tools')) {
+            if (e.affectsConfiguration('sharppilot.instructions') || e.affectsConfiguration('sharppilot.tools')) {
                 statusBarIndicator.update();
             }
 
-            if (e.affectsConfiguration('sharp-pilot.tools')) {
+            if (e.affectsConfiguration('sharppilot.tools')) {
                 toolsStatusWriter.write();
                 didChangeEmitter.fire();
             }

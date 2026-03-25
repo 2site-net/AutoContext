@@ -5,8 +5,8 @@ import { parseInstructions } from './instruction-parser.js';
 import { instructionScheme } from './instruction-content-provider.js';
 import type { SharpPilotConfigManager } from './sharppilot-config.js';
 
-export const toggleInstructionCommandId = 'sharp-pilot.toggleInstruction';
-export const resetInstructionsCommandId = 'sharp-pilot.resetInstructions';
+export const toggleInstructionCommandId = 'sharppilot.toggleInstruction';
+export const resetInstructionsCommandId = 'sharppilot.resetInstructions';
 
 export class InstructionCodeLensProvider implements vscode.CodeLensProvider, vscode.Disposable {
     private readonly didChangeEmitter = new vscode.EventEmitter<void>();

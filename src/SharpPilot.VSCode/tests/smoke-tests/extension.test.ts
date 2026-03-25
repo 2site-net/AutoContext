@@ -2,7 +2,7 @@ import * as assert from 'node:assert/strict';
 import * as vscode from 'vscode';
 
 suite('Extension Smoke Tests', () => {
-    const extensionId = 'iam3yal.sharp-pilot';
+    const extensionId = 'iam3yal.sharppilot';
 
     test('extension should be present', () => {
         const ext = vscode.extensions.getExtension(extensionId);
@@ -19,13 +19,13 @@ suite('Extension Smoke Tests', () => {
     test('registered commands should include all SharpPilot commands', async () => {
         const allCommands = await vscode.commands.getCommands(true);
         const expected = [
-            'sharp-pilot.toggleInstructions',
-            'sharp-pilot.toggleTools',
-            'sharp-pilot.autoConfigure',
-            'sharp-pilot.exportInstructions',
-            'sharp-pilot.browseInstructions',
-            'sharp-pilot.toggleInstruction',
-            'sharp-pilot.resetInstructions',
+            'sharppilot.toggleInstructions',
+            'sharppilot.toggleTools',
+            'sharppilot.autoConfigure',
+            'sharppilot.exportInstructions',
+            'sharppilot.browseInstructions',
+            'sharppilot.toggleInstruction',
+            'sharppilot.resetInstructions',
         ];
 
         for (const cmd of expected) {

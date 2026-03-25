@@ -22,6 +22,6 @@ The status bar shows the current counts at a glance: `$(book) X/Y $(tools) X/Y`.
 
 Open a workspace with your project, then run:
 
-[Auto Configure](command:sharp-pilot.autoConfigure)
+[Auto Configure](command:sharppilot.autoConfigure)
 
 You can always fine-tune the result afterwards using the toggle commands.

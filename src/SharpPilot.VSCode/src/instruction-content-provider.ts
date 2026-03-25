@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { parseInstructions } from './instruction-parser.js';
 import type { SharpPilotConfigManager } from './sharppilot-config.js';
 
-export const instructionScheme = 'sharp-pilot-instructions';
+export const instructionScheme = 'sharppilot-instructions';
 
 export class InstructionContentProvider implements vscode.TextDocumentContentProvider, vscode.Disposable {
     private readonly didChangeEmitter = new vscode.EventEmitter<vscode.Uri>();

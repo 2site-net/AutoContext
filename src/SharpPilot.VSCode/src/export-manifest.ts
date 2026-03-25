@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import * as vscode from 'vscode';
 import type { ExportManifest } from './config.js';
 
-export const manifestRelativePath = '.github/.sharp-pilot-exports.json';
+export const manifestRelativePath = '.github/.sharppilot-exports.json';
 
 export function hashContent(bytes: Uint8Array): string {
     return createHash('sha256').update(bytes).digest('hex').slice(0, 16);
