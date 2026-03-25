@@ -3,7 +3,7 @@ description: "Use when writing Oracle SQL or PL/SQL queries, stored procedures, 
 ---
 # Oracle Guidelines
 
-> These rules target Oracle Database used in .NET projects with Oracle.ManagedDataAccess.Core or Oracle.EntityFrameworkCore.
+> These instructions target Oracle Database used in .NET projects with Oracle.ManagedDataAccess.Core or Oracle.EntityFrameworkCore.
 
 ## Security
 

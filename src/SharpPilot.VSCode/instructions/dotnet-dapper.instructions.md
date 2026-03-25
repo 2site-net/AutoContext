@@ -3,7 +3,7 @@ description: "Use when writing data access code with Dapper: raw SQL queries, pa
 ---
 # Dapper Guidelines
 
-> These rules target Dapper used as a micro-ORM in .NET projects.
+> These instructions target Dapper used as a micro-ORM in .NET projects.
 
 ## Connection Management
 

@@ -1,10 +1,10 @@
 ---
-description: "VB.NET code style rules: naming, module layout, type design, error handling, formatting, and documentation conventions."
+description: "VB.NET code style instructions: naming, module layout, type design, error handling, formatting, and documentation conventions."
 applyTo: "**/*.vb"
 ---
 # VB.NET Coding Style
 
-> These rules target VB.NET code — idiomatic style, naming, type design, error handling, and formatting.
+> These instructions target VB.NET code — idiomatic style, naming, type design, error handling, and formatting.
 
 ## Naming
 

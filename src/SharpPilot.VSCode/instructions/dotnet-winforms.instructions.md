@@ -4,7 +4,7 @@ applyTo: "**/*.{cs,vb}"
 ---
 # Windows Forms Guidelines
 
-> These rules cover WinForms-specific patterns — form and control design, threading, data binding, layout, validation, and resource management.
+> These instructions cover WinForms-specific patterns — form and control design, threading, data binding, layout, validation, and resource management.
 
 - [INST0001] **Do** keep `Form` classes as thin presentation shells — event handlers should immediately delegate to service or presenter classes, leaving the form responsible only for updating controls and routing input; this keeps business logic independently testable without a live UI host.
 - [INST0002] **Do** use `Control.InvokeAsync` (.NET 9+) to marshal updates to the UI thread from async code — it posts non-blocking to the message queue, returns an awaitable `Task`, and avoids the deadlock risk of `Control.Invoke`; on earlier frameworks check `InvokeRequired` and call `Invoke` if true.

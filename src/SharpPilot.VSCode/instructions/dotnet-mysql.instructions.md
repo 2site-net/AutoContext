@@ -3,7 +3,7 @@ description: "Use when writing MySQL queries, stored procedures, migrations, or 
 ---
 # MySQL Guidelines
 
-> These rules target MySQL used in .NET projects with MySqlConnector or Pomelo.EntityFrameworkCore.MySql.
+> These instructions target MySQL used in .NET projects with MySqlConnector or Pomelo.EntityFrameworkCore.MySql.
 
 ## Security
 

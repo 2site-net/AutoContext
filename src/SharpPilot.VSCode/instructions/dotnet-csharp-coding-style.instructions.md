@@ -1,5 +1,5 @@
 ---
-description: "C# code style rules: member ordering, formatting, language features, nullability, and documentation conventions."
+description: "C# code style instructions: member ordering, formatting, language features, nullability, and documentation conventions."
 applyTo: "**/*.cs"
 ---
 # C# Coding Style

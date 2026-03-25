@@ -4,7 +4,7 @@ applyTo: "**/*.{cs,vb,xaml}"
 ---
 # WPF Guidelines
 
-> These rules cover WPF-specific patterns — MVVM architecture, data binding, threading, performance, and XAML structure.
+> These instructions cover WPF-specific patterns — MVVM architecture, data binding, threading, performance, and XAML structure.
 
 - [INST0001] **Do** follow the MVVM pattern — ViewModels must not reference View types; express user interactions through commands and data binding rather than code-behind event handlers, keeping the ViewModel testable without a UI host.
 - [INST0002] **Do** use `ICommand` via `RelayCommand` or `DelegateCommand` (e.g., from CommunityToolkit.Mvvm) for user actions instead of wiring event handlers in code-behind — this decouples the action from the UI and makes ViewModels independently testable.

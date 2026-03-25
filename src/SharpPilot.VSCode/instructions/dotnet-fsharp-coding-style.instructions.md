@@ -1,10 +1,10 @@
 ---
-description: "F# code style rules: module layout, naming, type design, pattern matching, formatting, and documentation conventions."
+description: "F# code style instructions: module layout, naming, type design, pattern matching, formatting, and documentation conventions."
 applyTo: "**/*.{fs,fsi}"
 ---
 # F# Coding Style
 
-> These rules target F# code — idiomatic style, type design, pattern matching, and formatting.
+> These instructions target F# code — idiomatic style, type design, pattern matching, and formatting.
 
 ## Module & Namespace Layout
 

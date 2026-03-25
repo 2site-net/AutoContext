@@ -3,7 +3,7 @@ description: "Use when writing SQLite queries, migrations, or any SQLite data ac
 ---
 # SQLite Guidelines
 
-> These rules target SQLite used in .NET projects with Microsoft.Data.Sqlite or Microsoft.EntityFrameworkCore.Sqlite.
+> These instructions target SQLite used in .NET projects with Microsoft.Data.Sqlite or Microsoft.EntityFrameworkCore.Sqlite.
 
 ## Security
 

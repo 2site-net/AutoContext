@@ -4,7 +4,7 @@ applyTo: "**/*.{js,jsx,mjs,cjs,ts,tsx,mts,cts}"
 ---
 # JavaScript Guidelines
 
-> These rules target JavaScript code — language fundamentals, async patterns, modern features, and security.
+> These instructions target JavaScript code — language fundamentals, async patterns, modern features, and security.
 
 - [INST0001] **Do** use `const` by default; use `let` only when reassignment is needed — signals intent and prevents accidental mutation.
 - [INST0002] **Do** use `===` and `!==` instead of `==` and `!=` — strict equality avoids implicit type coercion bugs.

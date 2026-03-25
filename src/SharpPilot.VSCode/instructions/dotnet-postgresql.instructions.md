@@ -3,7 +3,7 @@ description: "Use when writing PostgreSQL queries, PL/pgSQL functions, migration
 ---
 # PostgreSQL Guidelines
 
-> These rules target PostgreSQL used in .NET projects with Npgsql or Npgsql.EntityFrameworkCore.PostgreSQL.
+> These instructions target PostgreSQL used in .NET projects with Npgsql or Npgsql.EntityFrameworkCore.PostgreSQL.
 
 ## Security
 

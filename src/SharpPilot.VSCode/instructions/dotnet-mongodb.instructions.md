@@ -3,7 +3,7 @@ description: "Use when writing MongoDB queries, aggregation pipelines, indexes, 
 ---
 # MongoDB Guidelines
 
-> These rules target MongoDB used in .NET projects with MongoDB.Driver or MongoDB.EntityFrameworkCore.
+> These instructions target MongoDB used in .NET projects with MongoDB.Driver or MongoDB.EntityFrameworkCore.
 
 ## Security
 

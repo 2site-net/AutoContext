@@ -4,7 +4,7 @@ applyTo: "**/*.{html,razor,cshtml}"
 ---
 # HTML Guidelines
 
-> These rules target frontend HTML markup — document structure, accessibility, SEO, and client-side security.
+> These instructions target frontend HTML markup — document structure, accessibility, SEO, and client-side security.
 
 ## Structure & Semantics
 

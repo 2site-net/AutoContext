@@ -4,7 +4,7 @@ applyTo: "**/*.css"
 ---
 # CSS Guidelines
 
-> These rules target CSS stylesheets — layout, theming, selectors, responsive design, and accessibility.
+> These instructions target CSS stylesheets — layout, theming, selectors, responsive design, and accessibility.
 
 - [INST0001] **Do** use CSS custom properties (`var(--*)`) for colors, spacing, and typography tokens — centralizes theming and eases consistency across the stylesheet.
 - [INST0002] **Do** use `rem` for font sizes and relative units for spacing — respects user font-size preferences and scales consistently.

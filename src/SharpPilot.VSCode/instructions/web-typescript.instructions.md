@@ -4,7 +4,7 @@ applyTo: "**/*.{ts,tsx,mts,cts}"
 ---
 # TypeScript Guidelines
 
-> These rules cover TypeScript-specific patterns — type safety, generics, utility types, and common anti-patterns. JavaScript guidelines also apply to TypeScript files.
+> These instructions cover TypeScript-specific patterns — type safety, generics, utility types, and common anti-patterns. JavaScript guidelines also apply to TypeScript files.
 
 - [INST0001] **Do** enable `strict: true` in `tsconfig.json` — activates `strictNullChecks`, `noImplicitAny`, `strictFunctionTypes`, and several other checks in one flag; do not patch individual strict flags instead.
 - [INST0002] **Do** use `unknown` instead of `any` for values whose type is not yet determined — `unknown` forces a type check before use; `any` silently disables type checking for that value and everything it touches.
