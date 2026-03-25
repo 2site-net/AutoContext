@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import type { ToggleEntry } from './config.js';
+import type { ToggleEntry } from './toggle-entry.js';
 
 interface ToggleItem extends vscode.QuickPickItem {
     settingId: string;
@@ -9,51 +9,6 @@ interface ToggleItem extends vscode.QuickPickItem {
 
 const selectAllButton: vscode.QuickInputButton = { iconPath: new vscode.ThemeIcon('check-all'), tooltip: 'Select All' };
 const clearAllButton: vscode.QuickInputButton = { iconPath: new vscode.ThemeIcon('clear-all'), tooltip: 'Clear All' };
-
-function buildItems(entries: readonly ToggleEntry[], config: vscode.WorkspaceConfiguration, overrides: ReadonlySet<string>): ToggleItem[] {
-    const items: ToggleItem[] = [];
-    let lastCategory: string | undefined;
-
-    for (const entry of entries) {
-        if (entry.category !== lastCategory) {
-            lastCategory = entry.category;
-            items.push({
-                label: entry.category,
-                kind: vscode.QuickPickItemKind.Separator,
-                settingId: '',
-            });
-            items.push({
-                label: `$(folder) ${entry.category}`,
-                description: 'toggle all',
-                settingId: `__category__${entry.category}`,
-                isCategory: true,
-                category: entry.category,
-            });
-        }
-
-        items.push({
-            label: entry.label,
-            description: overrides.has(entry.settingId) ? `${entry.category} $(file-symlink-directory)` : entry.category,
-            picked: config.get<boolean>(entry.settingId, true),
-            settingId: entry.settingId,
-            category: entry.category,
-        });
-    }
-
-    return items;
-}
-
-function settingItems(items: readonly ToggleItem[]): ToggleItem[] {
-    return items.filter(i => !i.isCategory && i.kind !== vscode.QuickPickItemKind.Separator);
-}
-
-function categoryItems(items: readonly ToggleItem[]): (ToggleItem & { category: string })[] {
-    return items.filter((i): i is ToggleItem & { category: string } => !!i.isCategory);
-}
-
-function itemsInCategory(items: readonly ToggleItem[], category: string): ToggleItem[] {
-    return items.filter(i => i.category === category && !i.isCategory && i.kind !== vscode.QuickPickItemKind.Separator);
-}
 
 export class MenuToggler {
     constructor(
@@ -67,14 +22,14 @@ export class MenuToggler {
         const config = vscode.workspace.getConfiguration();
         const overrides = this.getOverrides?.() ?? new Set<string>();
 
-        const allItems = buildItems(this.entries, config, overrides);
-        const settings = settingItems(allItems);
-        const categories = categoryItems(allItems);
+        const allItems = MenuToggler.buildItems(this.entries, config, overrides);
+        const settings = MenuToggler.settingItems(allItems);
+        const categories = MenuToggler.categoryItems(allItems);
 
         const initiallySelected = [
             ...settings.filter(e => e.picked),
             ...categories.filter(cat => {
-                const members = itemsInCategory(allItems, cat.category);
+                const members = MenuToggler.itemsInCategory(allItems, cat.category);
                 return members.length > 0 && members.every(m => m.picked);
             }),
         ];
@@ -101,7 +56,7 @@ export class MenuToggler {
                     const nowSelected = newSet.has(cat.settingId);
 
                     if (wasSelected !== nowSelected) {
-                        const members = itemsInCategory(allItems, cat.category);
+                        const members = MenuToggler.itemsInCategory(allItems, cat.category);
                         if (nowSelected) {
                             for (const m of members) newSet.add(m.settingId);
                         } else {
@@ -111,7 +66,7 @@ export class MenuToggler {
                 }
 
                 for (const cat of categories) {
-                    const members = itemsInCategory(allItems, cat.category);
+                    const members = MenuToggler.itemsInCategory(allItems, cat.category);
                     const allSelected = members.length > 0 && members.every(m => newSet.has(m.settingId));
                     if (allSelected) {
                         newSet.add(cat.settingId);
@@ -170,5 +125,50 @@ export class MenuToggler {
                 await config.update(entry.settingId, shouldBeEnabled, vscode.ConfigurationTarget.Global);
             }
         }
+    }
+
+    private static buildItems(entries: readonly ToggleEntry[], config: vscode.WorkspaceConfiguration, overrides: ReadonlySet<string>): ToggleItem[] {
+        const items: ToggleItem[] = [];
+        let lastCategory: string | undefined;
+
+        for (const entry of entries) {
+            if (entry.category !== lastCategory) {
+                lastCategory = entry.category;
+                items.push({
+                    label: entry.category,
+                    kind: vscode.QuickPickItemKind.Separator,
+                    settingId: '',
+                });
+                items.push({
+                    label: `$(folder) ${entry.category}`,
+                    description: 'toggle all',
+                    settingId: `__category__${entry.category}`,
+                    isCategory: true,
+                    category: entry.category,
+                });
+            }
+
+            items.push({
+                label: entry.label,
+                description: overrides.has(entry.settingId) ? `${entry.category} $(file-symlink-directory)` : entry.category,
+                picked: config.get<boolean>(entry.settingId, true),
+                settingId: entry.settingId,
+                category: entry.category,
+            });
+        }
+
+        return items;
+    }
+
+    private static settingItems(items: readonly ToggleItem[]): ToggleItem[] {
+        return items.filter(i => !i.isCategory && i.kind !== vscode.QuickPickItemKind.Separator);
+    }
+
+    private static categoryItems(items: readonly ToggleItem[]): (ToggleItem & { category: string })[] {
+        return items.filter((i): i is ToggleItem & { category: string } => !!i.isCategory);
+    }
+
+    private static itemsInCategory(items: readonly ToggleItem[], category: string): ToggleItem[] {
+        return items.filter(i => i.category === category && !i.isCategory && i.kind !== vscode.QuickPickItemKind.Separator);
     }
 }

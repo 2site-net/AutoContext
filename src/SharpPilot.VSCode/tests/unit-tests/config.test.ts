@@ -1,15 +1,17 @@
 import { describe, it, expect } from 'vitest';
+import { overrideContextKey } from '../../src/workspace-context-detector';
+import { contextKeysForEntry } from '../../src/auto-configurer';
+import { servers } from '../../src/server-entry';
 import {
-    overrideContextKey,
     targetPath,
     instructionByFileName,
     instructions,
-    tools,
-    servers,
-    toolSettingsForScope,
-    contextKeysForEntry,
     type InstructionEntry,
-} from '../../src/config';
+} from '../../src/instructions-catalog';
+import { tools } from '../../src/tool-entry';
+import {
+    toolSettingsForScope,
+} from '../../src/tools-catalog';
 
 describe('overrideContextKey', () => {
     it('should strip the settings prefix and prepend the override prefix', () => {

@@ -1,28 +1,8 @@
-export interface ToggleEntry {
-    settingId: string;
-    label: string;
-    category: string;
-}
-
-export interface ServerEntry {
-    label: string;
-    scope: string;
-    contextKey?: string;
-}
+import type { ToggleEntry } from './toggle-entry.js';
 
 export interface InstructionEntry extends ToggleEntry {
     fileName: string;
 }
-
-export interface ToolEntry extends ToggleEntry {
-    toolName: string;
-}
-
-export const servers: readonly ServerEntry[] = [
-    { label: 'SharpPilot: DotNet', scope: 'dotnet', contextKey: 'hasDotnet' },
-    { label: 'SharpPilot: Git', scope: 'git', contextKey: 'hasGit' },
-    { label: 'SharpPilot: EditorConfig', scope: 'editorconfig' },
-];
 
 export const instructions: readonly InstructionEntry[] = [
     { settingId: 'sharppilot.instructions.codeReview', fileName: 'code-review.instructions.md', label: 'Code Review', category: 'General' },
@@ -86,118 +66,12 @@ export const instructions: readonly InstructionEntry[] = [
     { settingId: 'sharppilot.instructions.web.cypress', fileName: 'web-cypress.instructions.md', label: 'Cypress', category: 'Web' },
 ];
 
-export const tools: readonly ToolEntry[] = [
-    { settingId: 'sharppilot.tools.check_csharp_async_patterns', toolName: 'check_csharp_async_patterns', label: 'Async Patterns', category: '.NET Tool' },
-    { settingId: 'sharppilot.tools.check_csharp_coding_style', toolName: 'check_csharp_coding_style', label: 'Coding Style', category: '.NET Tool' },
-    { settingId: 'sharppilot.tools.check_csharp_member_ordering', toolName: 'check_csharp_member_ordering', label: 'Member Ordering', category: '.NET Tool' },
-    { settingId: 'sharppilot.tools.check_csharp_naming_conventions', toolName: 'check_csharp_naming_conventions', label: 'Naming Conventions', category: '.NET Tool' },
-    { settingId: 'sharppilot.tools.check_csharp_nullable_context', toolName: 'check_csharp_nullable_context', label: 'Nullable Context', category: '.NET Tool' },
-    { settingId: 'sharppilot.tools.check_csharp_project_structure', toolName: 'check_csharp_project_structure', label: 'Project Structure', category: '.NET Tool' },
-    { settingId: 'sharppilot.tools.check_csharp_test_style', toolName: 'check_csharp_test_style', label: 'Test Style', category: '.NET Tool' },
-    { settingId: 'sharppilot.tools.check_nuget_hygiene', toolName: 'check_nuget_hygiene', label: 'NuGet Hygiene', category: '.NET Tool' },
-    { settingId: 'sharppilot.tools.check_git_commit_content', toolName: 'check_git_commit_content', label: 'Commit Content', category: 'Git Tool' },
-    { settingId: 'sharppilot.tools.check_git_commit_format', toolName: 'check_git_commit_format', label: 'Commit Format', category: 'Git Tool' },
-    { settingId: 'sharppilot.tools.get_editorconfig', toolName: 'get_editorconfig', label: 'EditorConfig', category: 'EditorConfig Tool' },
-];
-
-export function toolSettingsForScope(scope: string): readonly string[] {
-    const categoryPrefix: Record<string, string> = {
-        dotnet: '.NET Tool',
-        git: 'Git Tool',
-        editorconfig: 'EditorConfig Tool',
-    };
-    const cat = categoryPrefix[scope];
-    return cat ? tools.filter(t => t.category === cat).map(t => t.settingId) : [];
-}
-
-export interface ExportManifest {
-    exports: Record<string, { hash: string }>;
-}
-
-const settingIdPrefix = 'sharppilot.instructions.';
-const overrideContextPrefix = 'sharppilot.override.';
-export function overrideContextKey(settingId: string): string {
-    return overrideContextPrefix + settingId.slice(settingIdPrefix.length);
-}
-
-export function targetPath(entry: InstructionEntry): string {
-    return `.github/instructions/${entry.fileName}`;
-}
-
 const instructionsByFileName = new Map(instructions.map(i => [i.fileName, i]));
 
 export function instructionByFileName(fileName: string): InstructionEntry | undefined {
     return instructionsByFileName.get(fileName);
 }
 
-const entryContextKeys = new Map<string, readonly string[]>([
-    ['sharppilot.instructions.docker', ['hasDocker']],
-    ['sharppilot.instructions.graphql', ['hasGraphql']],
-    ['sharppilot.instructions.dotnet.aspnetCore', ['hasAspNetCore']],
-    ['sharppilot.instructions.dotnet.asyncAwait', ['hasDotnet']],
-    ['sharppilot.instructions.dotnet.blazor', ['hasBlazor']],
-    ['sharppilot.instructions.dotnet.codingStandards', ['hasDotnet']],
-    ['sharppilot.instructions.dotnet.core', ['hasDotnet']],
-    ['sharppilot.instructions.dotnet.dapper', ['hasDapper']],
-    ['sharppilot.instructions.dotnet.debugging', ['hasDotnet']],
-    ['sharppilot.instructions.dotnet.entityFrameworkCore', ['hasEntityFrameworkCore']],
-    ['sharppilot.instructions.dotnet.grpc', ['hasGrpc']],
-    ['sharppilot.instructions.dotnet.maui', ['hasMaui']],
-    ['sharppilot.instructions.dotnet.mediatorCqrs', ['hasMediatR']],
-    ['sharppilot.instructions.dotnet.mongodb', ['hasMongodb']],
-    ['sharppilot.instructions.dotnet.mysql', ['hasMysql']],
-    ['sharppilot.instructions.dotnet.nuget', ['hasDotnet']],
-    ['sharppilot.instructions.dotnet.oracle', ['hasOracle']],
-    ['sharppilot.instructions.dotnet.performanceMemory', ['hasDotnet']],
-    ['sharppilot.instructions.dotnet.postgresql', ['hasPostgres']],
-    ['sharppilot.instructions.dotnet.razor', ['hasBlazor']],
-    ['sharppilot.instructions.dotnet.redis', ['hasRedis']],
-    ['sharppilot.instructions.dotnet.signalR', ['hasSignalR']],
-    ['sharppilot.instructions.dotnet.sqlite', ['hasSqlite']],
-    ['sharppilot.instructions.dotnet.sqlServer', ['hasSqlServer']],
-    ['sharppilot.instructions.dotnet.testing', ['hasDotnet']],
-    ['sharppilot.instructions.dotnet.unity', ['hasUnity']],
-    ['sharppilot.instructions.dotnet.winForms', ['hasWinForms']],
-    ['sharppilot.instructions.dotnet.wpf', ['hasWpf']],
-    ['sharppilot.instructions.dotnet.xunit', ['hasXunit']],
-    ['sharppilot.instructions.dotnet.mstest', ['hasMstest']],
-    ['sharppilot.instructions.dotnet.nunit', ['hasNunit']],
-    ['sharppilot.instructions.dotnet.csharp.codingStyle', ['hasDotnet']],
-    ['sharppilot.instructions.dotnet.fsharp.codingStyle', ['hasFsharp']],
-    ['sharppilot.instructions.dotnet.vbnet.codingStyle', ['hasVbnet']],
-    ['sharppilot.instructions.git.commitFormat', ['hasGit']],
-    ['sharppilot.instructions.scripting.powershell', ['hasPowerShell']],
-    ['sharppilot.instructions.scripting.bash', ['hasBash']],
-    ['sharppilot.instructions.scripting.batch', ['hasBatch']],
-    ['sharppilot.instructions.web.angular', ['hasAngular']],
-    ['sharppilot.instructions.web.css', ['hasCss']],
-    ['sharppilot.instructions.web.html', ['hasHtml']],
-    ['sharppilot.instructions.web.javascript', ['hasJavaScript', 'hasTypeScript']],
-    ['sharppilot.instructions.web.nextJs', ['hasNextJs']],
-    ['sharppilot.instructions.web.nodeJs', ['hasNodeJs']],
-    ['sharppilot.instructions.web.react', ['hasReact']],
-    ['sharppilot.instructions.web.svelte', ['hasSvelte']],
-    ['sharppilot.instructions.web.typescript', ['hasTypeScript']],
-    ['sharppilot.instructions.web.vue', ['hasVue']],
-    ['sharppilot.instructions.web.testing', ['hasWebTesting']],
-    ['sharppilot.instructions.web.vitest', ['hasVitest']],
-    ['sharppilot.instructions.web.jest', ['hasJest']],
-    ['sharppilot.instructions.web.jasmine', ['hasJasmine']],
-    ['sharppilot.instructions.web.mocha', ['hasMocha']],
-    ['sharppilot.instructions.web.playwright', ['hasPlaywright']],
-    ['sharppilot.instructions.web.cypress', ['hasCypress']],
-    ['sharppilot.tools.check_csharp_async_patterns', ['hasDotnet']],
-    ['sharppilot.tools.check_csharp_coding_style', ['hasDotnet']],
-    ['sharppilot.tools.check_csharp_member_ordering', ['hasDotnet']],
-    ['sharppilot.tools.check_csharp_naming_conventions', ['hasDotnet']],
-    ['sharppilot.tools.check_csharp_nullable_context', ['hasDotnet']],
-    ['sharppilot.tools.check_csharp_project_structure', ['hasDotnet']],
-    ['sharppilot.tools.check_csharp_test_style', ['hasDotnet']],
-    ['sharppilot.tools.check_nuget_hygiene', ['hasDotnet']],
-    ['sharppilot.tools.check_git_commit_content', ['hasGit']],
-    ['sharppilot.tools.check_git_commit_format', ['hasGit']],
-]);
-
-export function contextKeysForEntry(entry: ToggleEntry): readonly string[] {
-    return entryContextKeys.get(entry.settingId) ?? [];
+export function targetPath(entry: InstructionEntry): string {
+    return `.github/instructions/${entry.fileName}`;
 }

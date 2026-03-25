@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { tools } from './config.js';
+import { tools } from './tool-entry.js';
 import type { SharpPilotConfigManager } from './sharppilot-config.js';
 
 export class ToolsStatusWriter {

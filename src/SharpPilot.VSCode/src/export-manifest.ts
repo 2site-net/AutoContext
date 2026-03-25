@@ -1,6 +1,9 @@
 import { createHash } from 'node:crypto';
 import * as vscode from 'vscode';
-import type { ExportManifest } from './config.js';
+
+export interface ExportManifest {
+    exports: Record<string, { hash: string }>;
+}
 
 export const manifestRelativePath = '.github/.sharppilot-exports.json';
 

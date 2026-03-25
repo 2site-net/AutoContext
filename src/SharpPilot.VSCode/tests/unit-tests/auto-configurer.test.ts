@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { workspace, window, __setConfigStore } from './__mocks__/vscode';
-import { autoConfigure } from '../../src/auto-configurer';
-import { instructions, tools, contextKeysForEntry } from '../../src/config';
+import { autoConfigure, contextKeysForEntry } from '../../src/auto-configurer';
+import { instructions } from '../../src/instructions-catalog';
+import { tools } from '../../src/tool-entry';
 
 const fakeDetector = {
     get: vi.fn((_key: string) => false),

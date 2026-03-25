@@ -1,6 +1,9 @@
 import * as vscode from 'vscode';
 import { join } from 'node:path';
-import { servers, instructions, tools, toolSettingsForScope } from './config.js';
+import { servers } from './server-entry.js';
+import { instructions } from './instructions-catalog.js';
+import { tools } from './tool-entry.js';
+import { toolSettingsForScope } from './tools-catalog.js';
 import { StatusBarIndicator } from './status-bar-indicator.js';
 import { WorkspaceContextDetector } from './workspace-context-detector.js';
 import { ToolsStatusWriter } from './tools-status-writer.js';

@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { InstructionsWriter } from '../../src/instructions-writer';
 import { SharpPilotConfigManager } from '../../src/sharppilot-config';
 import { InstructionsParser } from '../../src/instructions-parser';
-import { instructions } from '../../src/config';
+import { instructions } from '../../src/instructions-catalog';
 
 import { readFileSync, writeFileSync, existsSync, readdirSync, rmSync, statSync } from 'node:fs';
 

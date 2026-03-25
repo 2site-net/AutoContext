@@ -1,5 +1,11 @@
 import * as vscode from 'vscode';
-import { instructions, instructionByFileName, overrideContextKey } from './config.js';
+import { instructions, instructionByFileName } from './instructions-catalog.js';
+
+const settingIdPrefix = 'sharppilot.instructions.';
+const overrideContextPrefix = 'sharppilot.override.';
+export function overrideContextKey(settingId: string): string {
+    return overrideContextPrefix + settingId.slice(settingIdPrefix.length);
+}
 
 export class WorkspaceContextDetector implements vscode.Disposable {
     private readonly disposables: vscode.Disposable[] = [];

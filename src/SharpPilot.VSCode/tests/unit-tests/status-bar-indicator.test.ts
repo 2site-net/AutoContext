@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { __setConfigStore, window } from './__mocks__/vscode';
 import { StatusBarIndicator } from '../../src/status-bar-indicator';
-import { instructions, tools } from '../../src/config';
+import { instructions } from '../../src/instructions-catalog';
+import { tools } from '../../src/tool-entry';
 
 beforeEach(() => {
     vi.clearAllMocks();

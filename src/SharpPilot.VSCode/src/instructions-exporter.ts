@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { instructions, targetPath, type InstructionEntry } from './config.js';
+import { instructions, targetPath, type InstructionEntry } from './instructions-catalog.js';
 import { hashContent, manifestRelativePath, readManifest, writeManifest } from './export-manifest.js';
 
 export class InstructionsExporter {
@@ -38,7 +38,7 @@ export class InstructionsExporter {
             const target = targetPath(entry);
             const targetUri = vscode.Uri.joinPath(rootUri, target);
 
-            const exists = await fileExists(targetUri);
+            const exists = await InstructionsExporter.fileExists(targetUri);
 
             if (exists) {
                 const action = await vscode.window.showWarningMessage(
@@ -58,7 +58,7 @@ export class InstructionsExporter {
                 }
             }
 
-            const hash = await copyInstruction(this.extensionPath, entry, targetUri);
+            const hash = await InstructionsExporter.copyInstruction(this.extensionPath, entry, targetUri);
             manifest.exports[entry.fileName] = { hash };
             exported.push(entry.label);
         }
@@ -72,22 +72,22 @@ export class InstructionsExporter {
             await vscode.window.showInformationMessage(`Exported ${exported.length} instruction(s) to .github.`);
         }
     }
-}
 
-async function copyInstruction(extensionPath: string, entry: InstructionEntry, targetUri: vscode.Uri): Promise<string> {
-    const sourceUri = vscode.Uri.file(`${extensionPath}/instructions/.generated/${entry.fileName}`);
-    const content = await vscode.workspace.fs.readFile(sourceUri);
+    private static async copyInstruction(extensionPath: string, entry: InstructionEntry, targetUri: vscode.Uri): Promise<string> {
+        const sourceUri = vscode.Uri.file(`${extensionPath}/instructions/.generated/${entry.fileName}`);
+        const content = await vscode.workspace.fs.readFile(sourceUri);
 
-    await vscode.workspace.fs.writeFile(targetUri, content);
+        await vscode.workspace.fs.writeFile(targetUri, content);
 
-    return hashContent(content);
-}
+        return hashContent(content);
+    }
 
-async function fileExists(uri: vscode.Uri): Promise<boolean> {
-    try {
-        await vscode.workspace.fs.stat(uri);
-        return true;
-    } catch {
-        return false;
+    private static async fileExists(uri: vscode.Uri): Promise<boolean> {
+        try {
+            await vscode.workspace.fs.stat(uri);
+            return true;
+        } catch {
+            return false;
+        }
     }
 }
