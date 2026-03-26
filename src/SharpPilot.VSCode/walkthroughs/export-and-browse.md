@@ -12,8 +12,10 @@ A multi-select menu lets you pick which instructions to export. If a file alread
 
 Once instruction files exist in `.github/instructions/` that match a built-in instruction by filename, the extension detects them as overrides. Overridden instructions are marked with a $(file-symlink-directory) badge in the Toggle Instructions menu, signaling that a workspace-level version is present.
 
-### Browse instructions
+### Browse and disable individual instructions
 
-Preview any instruction file shipped with the extension — opens it read-only in the editor so you can review its content before exporting.
+Browse any instruction file shipped with the extension — opens it in a virtual document with a **Disable Instruction** / **Enable Instruction** CodeLens above each instruction. Click a CodeLens to toggle that instruction. Disabled instructions are dimmed and tagged `[DISABLED]`, and they are excluded from what Copilot receives.
+
+When any instructions are disabled, a **Reset All Instructions** CodeLens appears at the top of the file to re-enable everything at once. The disable state is stored in `.sharppilot.json` in your workspace root.
 
 [Browse Instructions](command:sharppilot.browseInstructions)

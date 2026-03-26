@@ -10,3 +10,4 @@ SharpPilot is a quality-assurance companion for GitHub Copilot. It ships curated
 - **Auto Configuration** — Workspace detection scans `.csproj`, `package.json`, `.git`, NuGet packages, and npm dependencies, then enables only the items relevant to your project.
 - **Export** — Export instruction files to `.github/instructions/` for team sharing. Exported files become workspace-level overrides automatically.
 - **Override Detection** — When instruction files exist in `.github/instructions/` that match a built-in instruction by filename, SharpPilot detects them as overrides and marks them with a badge in the toggle menu.
+- **Per-Instruction Disable** — Browse any instruction file and use CodeLens actions to disable or re-enable individual instructions without turning off the entire file.
