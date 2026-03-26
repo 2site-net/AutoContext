@@ -179,7 +179,7 @@ GitHub Copilot's context when relevant to your workspace:
 
 The status bar shows how many instructions and tools are currently active (e.g.
 `$(book) 42/60 $(tools) 8/11`). Click it to open a menu where you can toggle
-instructions, toggle tools, auto-configure, export, or browse instructions.
+instructions, toggle tools, or auto-configure.
 
 ## Auto Configuration
 
@@ -188,19 +188,19 @@ menu. The extension scans your workspace for `.csproj`, `.fsproj`, `.vbproj`,
 `package.json`, `.git`, NuGet packages, and npm dependencies, then enables only
 the instructions and tools relevant to your project.
 
-## Export & Version Tracking
+## Export
 
 **SharpPilot: Export Instructions** copies instruction files to
-`.github/instructions/` for team sharing. A manifest (`.manifest.json`) tracks
-exported file hashes — when instructions are updated in a new release, the
-extension alerts you so you can re-export.
+`.github/instructions/` for team sharing. Exported files become workspace-level
+overrides — the extension detects them automatically and uses the local copy
+instead of the built-in version.
 
 ## Override Detection
 
-When instruction files exist in `.github/instructions/` or a
-`.github/copilot-instructions.md` file is present, SharpPilot detects them as
-overrides. Overridden instructions appear with a badge in the toggle menu,
-signaling that a local version is in use.
+When instruction files exist in `.github/instructions/` that match a built-in
+instruction by filename, SharpPilot detects them as overrides. Overridden
+instructions appear with a badge in the toggle menu, signaling that a local
+version is in use.
 
 ## Per-Instruction Disable
 
@@ -219,9 +219,9 @@ Disabled instructions are excluded from the instructions that Copilot receives. 
 disable state is stored in `.sharppilot.json` in your workspace root — commit it
 for team-wide settings or add it to `.gitignore` for personal preferences.
 
-> **Note:** Disabled instructions are tracked by a content hash. If an extension update
-> changes the wording of an instruction, the old hash no longer matches and the instruction is
-> silently re-enabled.
+> **Note:** Disabled instructions are tracked by their ID tag (e.g., `[INST0001]`). If an
+> extension update removes or renumbers an instruction, orphaned IDs are cleaned up on
+> activation and the instruction is silently re-enabled.
 
 ## Commands
 
@@ -233,7 +233,7 @@ for team-wide settings or add it to `.gitignore` for personal preferences.
 | **SharpPilot: Export Instructions** | Export instruction files to `.github/instructions/`. |
 | **SharpPilot: Browse Instructions** | Preview an instruction file with per-instruction disable/enable CodeLens. |
 | **SharpPilot: Toggle Instruction** | Disable or re-enable a single instruction (invoked via CodeLens). |
-| **SharpPilot: Reset All Instructions** | Re-enable all disabled instructions for the current file (invoked via CodeLens). |
+| **SharpPilot: Reset Instructions** | Re-enable all disabled instructions for the current file (invoked via CodeLens). |
 
 ## Prerequisites
 

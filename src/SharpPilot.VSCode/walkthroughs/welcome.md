@@ -8,5 +8,5 @@ SharpPilot is a quality-assurance companion for GitHub Copilot. It ships curated
 - **11 MCP Tools** — Model-invokable checks for C# coding style, naming conventions, async patterns, member ordering, nullable context, NuGet hygiene, project structure, test style, and Git commit format and content. Copilot can call these tools in agent mode to inspect your code on the spot.
 - **Status Bar** — A single indicator showing how many instructions and tools are active (`$(book) X/Y $(tools) X/Y`). Click it to toggle instructions, toggle tools, or auto-configure.
 - **Auto Configuration** — Workspace detection scans `.csproj`, `package.json`, `.git`, NuGet packages, and npm dependencies, then enables only the items relevant to your project.
-- **Export & Version Tracking** — Export instruction files to `.github/instructions/` for team sharing. A manifest tracks exported file hashes so the extension can alert you when instructions are updated in a new release.
-- **Override Detection** — When instruction files exist in `.github/instructions/` or `.github/copilot-instructions.md`, SharpPilot detects them as overrides and marks them with a badge in the toggle menu.
+- **Export** — Export instruction files to `.github/instructions/` for team sharing. Exported files become workspace-level overrides automatically.
+- **Override Detection** — When instruction files exist in `.github/instructions/` that match a built-in instruction by filename, SharpPilot detects them as overrides and marks them with a badge in the toggle menu.

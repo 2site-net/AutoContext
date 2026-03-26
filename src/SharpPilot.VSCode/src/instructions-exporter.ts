@@ -1,6 +1,5 @@
 import * as vscode from 'vscode';
 import { instructions, targetPath, type InstructionEntry } from './instructions-catalog.js';
-import { hashContent, manifestRelativePath, readManifest, writeManifest } from './export-manifest.js';
 
 export class InstructionsExporter {
     constructor(private readonly extensionPath: string) {}
@@ -30,8 +29,6 @@ export class InstructionsExporter {
         }
 
         const rootUri = workspaceFolder.uri;
-        const manifestUri = vscode.Uri.joinPath(rootUri, manifestRelativePath);
-        const manifest = await readManifest(manifestUri) ?? { exports: {} };
         const exported: string[] = [];
 
         for (const { entry } of selected) {
@@ -58,14 +55,11 @@ export class InstructionsExporter {
                 }
             }
 
-            const hash = await InstructionsExporter.copyInstruction(this.extensionPath, entry, targetUri);
-            manifest.exports[entry.fileName] = { hash };
+            await InstructionsExporter.copyInstruction(this.extensionPath, entry, targetUri);
             exported.push(entry.label);
         }
 
         if (exported.length > 0) {
-            await writeManifest(manifestUri, manifest);
-
             const lastUri = vscode.Uri.joinPath(rootUri, targetPath(selected[selected.length - 1].entry));
 
             await vscode.window.showTextDocument(lastUri);
@@ -73,13 +67,11 @@ export class InstructionsExporter {
         }
     }
 
-    private static async copyInstruction(extensionPath: string, entry: InstructionEntry, targetUri: vscode.Uri): Promise<string> {
+    private static async copyInstruction(extensionPath: string, entry: InstructionEntry, targetUri: vscode.Uri): Promise<void> {
         const sourceUri = vscode.Uri.file(`${extensionPath}/instructions/.generated/${entry.fileName}`);
         const content = await vscode.workspace.fs.readFile(sourceUri);
 
         await vscode.workspace.fs.writeFile(targetUri, content);
-
-        return hashContent(content);
     }
 
     private static async fileExists(uri: vscode.Uri): Promise<boolean> {

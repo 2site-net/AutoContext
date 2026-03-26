@@ -51,10 +51,11 @@ order and the output of each becomes the input of the one below it.
 │     at runtime to skip disabled sub-checks.                         │
 ├─────────────────────────────────────────────────────────────────────┤
 │  5. Runtime (Copilot invokes tools)                                 │
-│     Copilot calls check_dotnet / check_git_commit /                 │
-│     get_editorconfig. The server resolves .editorconfig properties  │
-│     and uses them to drive checker behavior — e.g., enforcement     │
-│     direction for brace style and namespace style.                  │
+│     Copilot calls check_dotnet / check_nuget_hygiene /              │
+│     check_git_commit / get_editorconfig. The server resolves        │
+│     .editorconfig properties and uses them to drive checker         │
+│     behavior — e.g., enforcement direction for brace style and      │
+│     namespace style.                                                │
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -67,11 +68,18 @@ When the extension activates, the following steps execute synchronously:
 2. **`WorkspaceContextDetector.detect()`** — scans the workspace for project
    files, `package.json` dependencies, and directory markers. Sets VS Code
    context keys that control both server registration and instruction injection.
-3. **`InstructionsWriter.write()`** — normalizes all instruction files into
+3. **`ConfigManager.removeOrphanedIds()`** — cleans disabled-instruction IDs
+   from `.sharppilot.json` that no longer match any instruction in the current
+   extension version.
+4. **`InstructionsWriter.removeOrphanedStagingDirs()`** — deletes per-workspace
+   staging directories older than one hour that belong to other VS Code windows.
+5. **`InstructionsWriter.write()`** — normalizes all instruction files into
    `instructions/.generated/`, stripping `[INSTxxxx]` tag identifiers and
    removing any individually disabled instruction bullets. Copilot always
    reads from the normalized output, so neither tags nor disabled content
    are visible to the model.
+6. **`logDiagnostics()`** — parses every instruction file and logs warnings
+   (e.g., missing `[INSTxxxx]` IDs) to the **SharpPilot** Output channel.
 
 ### Runtime flow
 

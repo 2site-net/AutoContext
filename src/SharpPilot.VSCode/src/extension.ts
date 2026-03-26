@@ -10,7 +10,6 @@ import { ToolsStatusWriter } from './tools-status-writer.js';
 import { MenuToggler } from './menu-toggler.js';
 import { autoConfigure } from './auto-configurer.js';
 import { InstructionsExporter } from './instructions-exporter.js';
-import { InstructionsVersionChecker } from './instructions-version-checker.js';
 import { InstructionsBrowser } from './instructions-browser.js';
 import { SharpPilotConfigManager } from './sharppilot-config.js';
 import { InstructionsContentProvider, instructionScheme } from './instructions-content-provider.js';
@@ -31,7 +30,6 @@ export function activate(context: vscode.ExtensionContext): void {
     const instructionsToggler = new MenuToggler('SharpPilot: Toggle Instructions', 'Select instructions to enable', instructions, () => workspaceContextDetector.getOverriddenSettingIds());
     const toolsToggler = new MenuToggler('SharpPilot: Toggle Tools', 'Select tools to enable', tools);
     const instructionsExporter = new InstructionsExporter(context.extensionPath);
-    const instructionsVersionChecker = new InstructionsVersionChecker(context.extensionPath);
     const instructionsBrowser = new InstructionsBrowser();
     const configManager = new SharpPilotConfigManager(context.extensionPath, version);
     const toolsStatusWriter = new ToolsStatusWriter(configManager);
@@ -67,7 +65,6 @@ export function activate(context: vscode.ExtensionContext): void {
 
     toolsStatusWriter.write();
     workspaceContextDetector.detect();
-    instructionsVersionChecker.check();
     configManager.removeOrphanedIds();
     instructionsWriter.removeOrphanedStagingDirs();
     instructionsWriter.write();
