@@ -4,13 +4,23 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { register } from 'node:module';
+
+// The compiled modules import 'vscode' which isn't available outside the
+// extension host.  Register a lightweight ESM loader that resolves 'vscode'
+// to an empty stub so the pure-data / pure-function exports we need work.
+register('data:text/javascript,' + encodeURIComponent([
+    'export function resolve(specifier, context, next) {',
+    '  if (specifier === "vscode") return { shortCircuit: true, url: "data:text/javascript,export default {}" };',
+    '  return next(specifier, context);',
+    '}',
+].join('\n')));
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = join(__dirname, '..');
 
-const configUrl = new URL('../out/config.js', import.meta.url);
-const { instructions, contextKeysForEntry, overrideContextKey } =
-    await import(configUrl);
+const { instructions } = await import(new URL('../out/instructions-catalog.js', import.meta.url));
+const { contextKeysForEntry, overrideContextKey } = await import(new URL('../out/toggle-context-keys.js', import.meta.url));
 
 function buildWhenClause(entry) {
     const parts = [`config.${entry.settingId}`];
