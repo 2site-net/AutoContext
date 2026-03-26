@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { __setConfigStore } from './__mocks__/vscode';
 import { workspace } from './__mocks__/vscode';
 
-import { readFileSync, writeFileSync, existsSync, readdirSync, rmSync, statSync, unlinkSync } from 'node:fs';
+import { readFileSync, writeFileSync, unlinkSync } from 'node:fs';
 
 vi.mock('node:fs', () => ({
     readFileSync: vi.fn(),
