@@ -115,7 +115,8 @@ tools UI.
 
 Servers are workspace-aware: the extension only registers a server when the
 workspace contains matching content (e.g., `.csproj` files for .NET, `.git`
-directory for Git). If all sub-checks for a scope are disabled in settings, that
+directory for Git). The EditorConfig server is always available regardless of
+workspace content. If all sub-checks for a scope are disabled in settings, that
 server is not registered at all.
 
 ### SharpPilot: DotNet

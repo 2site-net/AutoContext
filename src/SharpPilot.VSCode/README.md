@@ -178,7 +178,7 @@ GitHub Copilot's context when relevant to your workspace:
 ## Status Bar
 
 The status bar shows how many instructions and tools are currently active (e.g.
-`$(book) 42/60 $(tools) 8/11`). Click it to open a menu where you can toggle
+`$(book) 42/59 $(tools) 8/11`). Click it to open a menu where you can toggle
 instructions, toggle tools, or auto-configure.
 
 ## Auto Configuration

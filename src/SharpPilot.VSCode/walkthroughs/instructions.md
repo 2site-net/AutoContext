@@ -4,13 +4,11 @@ SharpPilot ships with 60 curated instruction files organized into categories:
 
 | Category | Examples |
 |----------|----------|
-| **General** | Copilot behavior, code review, design principles, Docker, REST API design, SQL |
-| **.NET** | C# coding style, F# coding style, VB.NET coding style, async/await, coding standards, NuGet, debugging, performance |
-| **Language-specific** | Blazor, WPF, WinForms, MAUI, Unity |
+| **General** | Copilot behavior, code review, design principles, Docker, GraphQL, REST API design, SQL |
+| **.NET** | ASP.NET Core, async/await, Blazor, C#, coding standards, Dapper, Entity Framework Core, F#, gRPC, MAUI, NuGet, performance, Redis, SignalR, testing (xUnit, MSTest, NUnit), Unity, VB.NET, WPF, WinForms |
 | **Git** | Commit format |
 | **Scripting** | PowerShell, Bash, Batch |
-| **Web & Frameworks** | TypeScript, HTML/CSS, React, Angular, Vue, Svelte, Next.js, GraphQL |
-| **Web Testing** | Vitest, Jest, Jasmine, Mocha, Playwright, Cypress |
+| **Web** | TypeScript, HTML/CSS, JavaScript, React, Angular, Vue, Svelte, Next.js, Node.js, testing (Vitest, Jest, Jasmine, Mocha, Playwright, Cypress) |
 
 When enabled, instructions are automatically attached to every Copilot Chat conversation — so Copilot follows your coding standards without being told each time. Each instruction only activates when the matching technology is detected in your workspace (e.g., `.csproj` for C#, `react` in `package.json` for React, `.git` for commit format).
 
