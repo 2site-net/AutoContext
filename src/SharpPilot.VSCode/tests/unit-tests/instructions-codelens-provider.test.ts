@@ -75,7 +75,7 @@ describe('InstructionsCodeLensProvider', () => {
             const pathStr = String(path);
             if (pathStr.endsWith('.sharppilot.json')) {
                 return JSON.stringify({
-                    instructions: { disabledInstructions: { 'test.instructions.md': [firstId] } },
+                    instructions: { disabled: { 'test.instructions.md': [firstId] } },
                 });
             }
             return testContent;
@@ -105,7 +105,7 @@ describe('InstructionsCodeLensProvider', () => {
             const pathStr = String(path);
             if (pathStr.endsWith('.sharppilot.json')) {
                 return JSON.stringify({
-                    instructions: { disabledInstructions: { 'test.instructions.md': [firstId] } },
+                    instructions: { disabled: { 'test.instructions.md': [firstId] } },
                 });
             }
             return testContent;

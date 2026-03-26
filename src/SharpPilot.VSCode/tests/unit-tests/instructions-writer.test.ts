@@ -89,7 +89,7 @@ describe('InstructionsWriter', () => {
             const pathStr = String(path);
             if (pathStr.endsWith('.sharppilot.json')) {
                 return JSON.stringify({
-                    instructions: { disabledInstructions: { [targetFileName]: [firstId] } },
+                    instructions: { disabled: { [targetFileName]: [firstId] } },
                 });
             }
             return testContent;

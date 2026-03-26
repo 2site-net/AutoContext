@@ -51,7 +51,7 @@ describe('InstructionsContentProvider', () => {
         vi.mocked(readFileSync).mockImplementation((path: unknown) => {
             const pathStr = String(path);
             if (pathStr.endsWith('.sharppilot.json')) {
-                return JSON.stringify({ instructions: { disabledInstructions: { 'test.instructions.md': [firstInstructionId] } } });
+                return JSON.stringify({ instructions: { disabled: { 'test.instructions.md': [firstInstructionId] } } });
             }
             return testContent;
         });

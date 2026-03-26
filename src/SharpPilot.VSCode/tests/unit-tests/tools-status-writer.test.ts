@@ -47,7 +47,7 @@ describe('ToolsStatusWriter', () => {
         expect(filePath).toMatch(/\.sharppilot\.json$/);
 
         const parsed = JSON.parse(content as string);
-        expect(parsed.tools.disabledTools).toEqual(['check_csharp_coding_style']);
+        expect(parsed.tools.disabled).toEqual(['check_csharp_coding_style']);
     });
 
     it('should not write when nothing changed', () => {
@@ -58,7 +58,7 @@ describe('ToolsStatusWriter', () => {
         vi.mocked(readFileSync).mockImplementation((path: unknown) => {
             const pathStr = String(path);
             if (pathStr.endsWith('.sharppilot.json')) {
-                return JSON.stringify({ tools: { disabledTools: ['check_csharp_coding_style'] } });
+                return JSON.stringify({ tools: { disabled: ['check_csharp_coding_style'] } });
             }
             return '';
         });
@@ -76,7 +76,7 @@ describe('ToolsStatusWriter', () => {
         vi.mocked(readFileSync).mockImplementation((path: unknown) => {
             const pathStr = String(path);
             if (pathStr.endsWith('.sharppilot.json')) {
-                return JSON.stringify({ tools: { disabledTools: ['check_csharp_coding_style'] } });
+                return JSON.stringify({ tools: { disabled: ['check_csharp_coding_style'] } });
             }
             return '';
         });

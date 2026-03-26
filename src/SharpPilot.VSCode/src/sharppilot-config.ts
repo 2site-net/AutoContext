@@ -9,10 +9,10 @@ export interface SharpPilotConfig {
         warnOnMissingId?: boolean;
     };
     instructions?: {
-        disabledInstructions?: Record<string, string[]>;
+        disabled?: Record<string, string[]>;
     };
     tools?: {
-        disabledTools?: string[];
+        disabled?: string[];
     };
 }
 
@@ -50,25 +50,25 @@ export class SharpPilotConfigManager implements vscode.Disposable {
 
     getDisabledInstructions(fileName: string): ReadonlySet<string> {
         const config = this.read();
-        const ids = config.instructions?.disabledInstructions?.[fileName];
+        const ids = config.instructions?.disabled?.[fileName];
         return new Set(ids ?? []);
     }
 
     hasAnyDisabledInstructions(): boolean {
         const config = this.read();
-        const disabledInstructions = config.instructions?.disabledInstructions;
-        if (!disabledInstructions) {
+        const disabled = config.instructions?.disabled;
+        if (!disabled) {
             return false;
         }
-        return Object.values(disabledInstructions).some(ids => ids.length > 0);
+        return Object.values(disabled).some(ids => ids.length > 0);
     }
 
     toggleInstruction(fileName: string, id: string): void {
         const config = this.read();
         config.instructions ??= {};
-        config.instructions.disabledInstructions ??= {};
+        config.instructions.disabled ??= {};
 
-        const ids = config.instructions.disabledInstructions[fileName] ?? [];
+        const ids = config.instructions.disabled[fileName] ?? [];
         const index = ids.indexOf(id);
 
         if (index >= 0) {
@@ -78,14 +78,14 @@ export class SharpPilotConfigManager implements vscode.Disposable {
         }
 
         if (ids.length === 0) {
-            delete config.instructions.disabledInstructions[fileName];
+            delete config.instructions.disabled[fileName];
         } else {
-            config.instructions.disabledInstructions[fileName] = ids;
+            config.instructions.disabled[fileName] = ids;
         }
 
         // Clean up empty containers.
-        if (Object.keys(config.instructions.disabledInstructions).length === 0) {
-            delete config.instructions.disabledInstructions;
+        if (Object.keys(config.instructions.disabled).length === 0) {
+            delete config.instructions.disabled;
         }
         if (Object.keys(config.instructions).length === 0) {
             delete config.instructions;
@@ -96,7 +96,7 @@ export class SharpPilotConfigManager implements vscode.Disposable {
 
     setDisabledTools(disabledTools: string[]): void {
         const config = this.read();
-        const currentDisabled = config.tools?.disabledTools ?? [];
+        const currentDisabled = config.tools?.disabled ?? [];
 
         if (SharpPilotConfigManager.arraysEqual(disabledTools, currentDisabled)) {
             return;
@@ -105,7 +105,7 @@ export class SharpPilotConfigManager implements vscode.Disposable {
         if (disabledTools.length === 0) {
             delete config.tools;
         } else {
-            config.tools = { disabledTools };
+            config.tools = { disabled: disabledTools };
         }
 
         this.writeConfig(config);
@@ -113,15 +113,15 @@ export class SharpPilotConfigManager implements vscode.Disposable {
 
     resetInstructions(fileName: string): void {
         const config = this.read();
-        const disabledInstructions = config.instructions?.disabledInstructions;
-        if (!disabledInstructions?.[fileName]) {
+        const disabled = config.instructions?.disabled;
+        if (!disabled?.[fileName]) {
             return;
         }
 
-        delete disabledInstructions[fileName];
+        delete disabled[fileName];
 
-        if (Object.keys(disabledInstructions).length === 0) {
-            delete config.instructions!.disabledInstructions;
+        if (Object.keys(disabled).length === 0) {
+            delete config.instructions!.disabled;
         }
         if (Object.keys(config.instructions!).length === 0) {
             delete config.instructions;
@@ -132,14 +132,14 @@ export class SharpPilotConfigManager implements vscode.Disposable {
 
     removeOrphanedIds(): number {
         const config = this.read();
-        const disabledInstructions = config.instructions?.disabledInstructions;
-        if (!disabledInstructions) {
+        const disabled = config.instructions?.disabled;
+        if (!disabled) {
             return 0;
         }
 
         let removed = 0;
 
-        for (const [fileName, ids] of Object.entries(disabledInstructions)) {
+        for (const [fileName, ids] of Object.entries(disabled)) {
             try {
                 const filePath = join(this.extensionPath, 'instructions', fileName);
                 const content = readFileSync(filePath, 'utf-8');
@@ -152,21 +152,21 @@ export class SharpPilotConfigManager implements vscode.Disposable {
                 removed += ids.length - filtered.length;
 
                 if (filtered.length === 0) {
-                    delete disabledInstructions[fileName];
+                    delete disabled[fileName];
                 } else {
-                    disabledInstructions[fileName] = filtered;
+                    disabled[fileName] = filtered;
                 }
             } catch {
                 // File no longer exists — remove all its IDs.
                 removed += ids.length;
-                delete disabledInstructions[fileName];
+                delete disabled[fileName];
             }
         }
 
         if (removed > 0) {
             // Clean up empty containers.
-            if (Object.keys(disabledInstructions).length === 0) {
-                delete config.instructions!.disabledInstructions;
+            if (Object.keys(disabled).length === 0) {
+                delete config.instructions!.disabled;
             }
             if (Object.keys(config.instructions!).length === 0) {
                 delete config.instructions;
@@ -208,8 +208,13 @@ export class SharpPilotConfigManager implements vscode.Disposable {
             return;
         }
 
-        config.version = this.extensionVersion;
-        writeFileSync(path, JSON.stringify(config, null, 4) + '\n', 'utf-8');
+        // Enforce deterministic key order: version first.
+        const ordered: SharpPilotConfig = { version: this.extensionVersion };
+        if (config.diagnostic) ordered.diagnostic = config.diagnostic;
+        if (config.instructions) ordered.instructions = config.instructions;
+        if (config.tools) ordered.tools = config.tools;
+
+        writeFileSync(path, JSON.stringify(ordered, null, 4) + '\n', 'utf-8');
     }
 
     private static arraysEqual(a: readonly string[], b: readonly string[]): boolean {

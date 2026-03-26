@@ -53,7 +53,7 @@ export class InstructionsWriter implements vscode.Disposable {
         mkdirSync(this.stagingDir, { recursive: true });
 
         const config = this.configManager.read();
-        const disabledInstructionsMap = config.instructions?.disabledInstructions ?? {};
+        const disabledInstructionsMap = config.instructions?.disabled ?? {};
 
         for (const entry of instructions) {
             const disabledIds = disabledInstructionsMap[entry.fileName];

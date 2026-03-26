@@ -39,7 +39,7 @@ describe('SharpPilotConfigManager', () => {
     it('should read disabled instructions from config file', () => {
         vi.mocked(readFileSync).mockReturnValue(JSON.stringify({
             instructions: {
-                disabledInstructions: {
+                disabled: {
                     'code-review.instructions.md': ['INST0001'],
                 },
             },
@@ -64,7 +64,7 @@ describe('SharpPilotConfigManager', () => {
     it('should detect when any instructions are disabled', () => {
         vi.mocked(readFileSync).mockReturnValue(JSON.stringify({
             instructions: {
-                disabledInstructions: {
+                disabled: {
                     'code-review.instructions.md': ['INST0001'],
                 },
             },
@@ -99,13 +99,13 @@ describe('SharpPilotConfigManager', () => {
 
         const parsed = JSON.parse(content as string);
 
-        expect(parsed.instructions.disabledInstructions['code-review.instructions.md']).toEqual(['INST0001']);
+        expect(parsed.instructions.disabled['code-review.instructions.md']).toEqual(['INST0001']);
     });
 
     it('should toggle an instruction off (re-enable it)', () => {
         vi.mocked(readFileSync).mockReturnValue(JSON.stringify({
             instructions: {
-                disabledInstructions: {
+                disabled: {
                     'code-review.instructions.md': ['INST0001'],
                 },
             },
@@ -142,7 +142,7 @@ describe('SharpPilotConfigManager', () => {
     it('should reset all instructions for a specific file', () => {
         vi.mocked(readFileSync).mockReturnValue(JSON.stringify({
             instructions: {
-                disabledInstructions: {
+                disabled: {
                     'code-review.instructions.md': ['INST0001', 'INST0002'],
                     'dotnet-async-await.instructions.md': ['INST0003'],
                 },
@@ -158,14 +158,14 @@ describe('SharpPilotConfigManager', () => {
 
         const parsed = JSON.parse(writeCalls[0][1] as string);
 
-        expect(parsed.instructions.disabledInstructions['code-review.instructions.md']).toBeUndefined();
-        expect(parsed.instructions.disabledInstructions['dotnet-async-await.instructions.md']).toEqual(['INST0003']);
+        expect(parsed.instructions.disabled['code-review.instructions.md']).toBeUndefined();
+        expect(parsed.instructions.disabled['dotnet-async-await.instructions.md']).toEqual(['INST0003']);
     });
 
     it('should delete file when resetting the last file with disabled instructions', () => {
         vi.mocked(readFileSync).mockReturnValue(JSON.stringify({
             instructions: {
-                disabledInstructions: {
+                disabled: {
                     'code-review.instructions.md': ['INST0001'],
                 },
             },
@@ -191,7 +191,7 @@ describe('SharpPilotConfigManager', () => {
         vi.mocked(readFileSync).mockReturnValue(JSON.stringify({
             version: '0.5.0',
             instructions: {
-                disabledInstructions: {
+                disabled: {
                     'code-review.instructions.md': ['INST0001'],
                 },
             },
@@ -216,12 +216,12 @@ describe('SharpPilotConfigManager', () => {
 
         const parsed = JSON.parse(writeCalls[0][1] as string);
 
-        expect(parsed.tools.disabledTools).toEqual(['check_csharp_coding_style']);
+        expect(parsed.tools.disabled).toEqual(['check_csharp_coding_style']);
     });
 
     it('should skip write when disabled tools have not changed', () => {
         vi.mocked(readFileSync).mockReturnValue(JSON.stringify({
-            tools: { disabledTools: ['check_csharp_coding_style'] },
+            tools: { disabled: ['check_csharp_coding_style'] },
         }));
 
         const manager = new SharpPilotConfigManager('/ext', '0.5.0');
@@ -233,8 +233,8 @@ describe('SharpPilotConfigManager', () => {
 
     it('should remove tools section when all tools are enabled', () => {
         vi.mocked(readFileSync).mockReturnValue(JSON.stringify({
-            tools: { disabledTools: ['check_csharp_coding_style'] },
-            instructions: { disabledInstructions: { 'code-review.instructions.md': ['INST0001'] } },
+            tools: { disabled: ['check_csharp_coding_style'] },
+            instructions: { disabled: { 'code-review.instructions.md': ['INST0001'] } },
         }));
 
         const manager = new SharpPilotConfigManager('/ext', '0.5.0');
@@ -252,7 +252,7 @@ describe('SharpPilotConfigManager', () => {
 
     it('should delete file when clearing tools and no other config exists', () => {
         vi.mocked(readFileSync).mockReturnValue(JSON.stringify({
-            tools: { disabledTools: ['check_csharp_coding_style'] },
+            tools: { disabled: ['check_csharp_coding_style'] },
         }));
 
         const manager = new SharpPilotConfigManager('/ext', '0.5.0');
@@ -264,7 +264,7 @@ describe('SharpPilotConfigManager', () => {
 
     it('should preserve other config sections when writing tools', () => {
         vi.mocked(readFileSync).mockReturnValue(JSON.stringify({
-            instructions: { disabledInstructions: { 'code-review.instructions.md': ['INST0001'] } },
+            instructions: { disabled: { 'code-review.instructions.md': ['INST0001'] } },
         }));
 
         const manager = new SharpPilotConfigManager('/ext', '0.5.0');
@@ -272,7 +272,7 @@ describe('SharpPilotConfigManager', () => {
 
         const parsed = JSON.parse(vi.mocked(writeFileSync).mock.calls[0][1] as string);
 
-        expect(parsed.tools.disabledTools).toEqual(['check_csharp_async_patterns']);
-        expect(parsed.instructions.disabledInstructions['code-review.instructions.md']).toEqual(['INST0001']);
+        expect(parsed.tools.disabled).toEqual(['check_csharp_async_patterns']);
+        expect(parsed.instructions.disabled['code-review.instructions.md']).toEqual(['INST0001']);
     });
 });
