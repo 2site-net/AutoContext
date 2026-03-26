@@ -14,10 +14,9 @@ Distributed as a VS Code extension — see [src/SharpPilot.VSCode/README.md](src
 - **Workspace Detection** — Scans for project files, `package.json` dependencies, directory markers, and NuGet packages to set context keys that control which servers, tools, and instructions are active.
 - **Auto Configuration** — One command scans the workspace and enables only the instructions and tools relevant to the detected technologies.
 - **Status Bar** — A persistent indicator showing active instruction and tool counts (`$(book) X/59 $(tools) X/11`) with a quick-access menu for toggling instructions, toggling tools, or running auto-configure.
-- **Toggle Menus** — Multi-select QuickPick menus for instructions and tools with category grouping, category-level toggling, Select All / Clear All buttons, and override badges.
+- **Toggle Menus** — Multi-select QuickPick menus for instructions and tools with category grouping, category-level toggling, and Select All / Clear All buttons.
 - **Per-Instruction Disable** — Browse any instruction file in a virtual document, then use CodeLens actions to disable or re-enable individual rules without turning off the entire file. Disabled instructions are dimmed, tagged `[DISABLED]`, and excluded from Copilot's context.
-- **Export** — Copy instruction files to `.github/instructions/` for team sharing. Exported files become workspace-level overrides automatically.
-- **Override Detection** — When instruction files in `.github/instructions/` match a built-in instruction by filename, SharpPilot detects them as overrides and marks them with a badge in the toggle menu.
+- **Export** — Copy instruction files to `.github/instructions/` for team sharing. Exported instructions are automatically removed from the Toggle, Browse, and Export menus — they reappear if the exported file is deleted.
 - **Multi-Window Safe** — Per-workspace staging directories with hash-based isolation and automatic cleanup of stale directories older than one hour.
 - **Diagnostics** — Parses every instruction file on activation and logs warnings (missing IDs, duplicate IDs, malformed IDs) to the SharpPilot Output channel.
 

@@ -4,9 +4,14 @@ SharpPilot is a quality-assurance companion for GitHub Copilot. It ships curated
 
 ### What you get
 
-- **60 Chat Instructions** — Markdown guidelines covering .NET, C#, F#, VB.NET, TypeScript, testing frameworks, Git, REST APIs, scripting, and more. Active instructions are automatically attached to every Copilot Chat conversation so Copilot follows your coding standards without being told each time.
-- **11 MCP Tools** — Model-invokable checks for C# coding style, naming conventions, async patterns, member ordering, nullable context, NuGet hygiene, project structure, test style, and Git commit format and content. Copilot can call these tools in agent mode to inspect your code on the spot.
-- **Status Bar** — A single indicator showing how many instructions and tools are active (`$(book) X/Y $(tools) X/Y`). Click it to toggle instructions, toggle tools, or auto-configure.
-- **Auto Configuration** — Workspace detection scans `.csproj`, `package.json`, `.git`, NuGet packages, and npm dependencies, then enables only the items relevant to your project.
-- **Export** — Export instruction files to `.github/instructions/` for team sharing. Exported instructions are automatically removed from the Toggle, Browse, and Export menus.
-- **Per-Instruction Disable** — Browse any instruction file and use CodeLens actions to disable or re-enable individual instructions without turning off the entire file.
+- **60 Chat Instructions** — Curated Markdown guidelines for .NET, C#, F#, VB.NET, TypeScript, JavaScript, React, Angular, Vue, Svelte, Next.js, Node.js, Docker, Git, REST APIs, GraphQL, SQL, PowerShell, Bash, and more. One always-on instruction (`copilot.instructions.md`) plus 59 toggleable instructions automatically attached to every Copilot Chat conversation when their technology is detected in the workspace.
+- **11 MCP Tool Checks** across 3 server scopes — C# coding style, naming conventions, async patterns, member ordering, nullable context, project structure, test style, NuGet hygiene (DotNet); commit format, commit content (Git); EditorConfig resolution (EditorConfig).
+- **EditorConfig-Driven Enforcement** — Checkers read `.editorconfig` properties and enforce whichever direction the project specifies rather than just skipping conflicting rules.
+- **Workspace Detection** — Scans for project files, `package.json` dependencies, directory markers, and NuGet packages to set context keys that control which servers, tools, and instructions are active.
+- **Auto Configuration** — One command scans the workspace and enables only the instructions and tools relevant to the detected technologies.
+- **Status Bar** — A persistent indicator showing active instruction and tool counts (`$(book) X/59 $(tools) X/11`) with a quick-access menu for toggling instructions, toggling tools, or running auto-configure.
+- **Toggle Menus** — Multi-select QuickPick menus for instructions and tools with category grouping, category-level toggling, and Select All / Clear All buttons.
+- **Per-Instruction Disable** — Browse any instruction file in a virtual document, then use CodeLens actions to disable or re-enable individual rules without turning off the entire file. Disabled instructions are dimmed, tagged `[DISABLED]`, and excluded from Copilot's context.
+- **Export** — Copy instruction files to `.github/instructions/` for team sharing. Exported instructions are automatically removed from the Toggle, Browse, and Export menus — they reappear if the exported file is deleted.
+- **Multi-Window Safe** — Per-workspace staging directories with hash-based isolation and automatic cleanup of stale directories older than one hour.
+- **Diagnostics** — Parses every instruction file on activation and logs warnings (missing IDs, duplicate IDs, malformed IDs) to the SharpPilot Output channel.
