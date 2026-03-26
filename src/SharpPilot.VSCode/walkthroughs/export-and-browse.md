@@ -8,9 +8,9 @@ A multi-select menu lets you pick which instructions to export. If a file alread
 
 [Export Instructions](command:sharppilot.exportInstructions)
 
-### Override detection
+### Exported instructions
 
-Once instruction files exist in `.github/instructions/` that match a built-in instruction by filename, the extension detects them as overrides. Overridden instructions are marked with a $(file-symlink-directory) badge in the Toggle Instructions menu, signaling that a workspace-level version is present.
+Once an instruction file exists in `.github/instructions/`, it is automatically hidden from the Toggle, Browse, and Export menus. The exported workspace-level file takes precedence. Delete the exported file to bring the built-in instruction back.
 
 ### Browse and disable individual instructions
 

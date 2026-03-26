@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
-import { instructions, type InstructionEntry } from './instructions-catalog.js';
+import { type InstructionEntry } from './instructions-catalog.js';
+import { getUnexportedInstructions } from './instructions-export-state.js';
 import { instructionScheme } from './instructions-content-provider.js';
 
 type BrowseItem = vscode.QuickPickItem & { entry?: InstructionEntry };
@@ -7,14 +8,21 @@ type BrowseItem = vscode.QuickPickItem & { entry?: InstructionEntry };
 export class InstructionsBrowser {
 
     async browse(): Promise<void> {
+        const availableInstructions = await getUnexportedInstructions();
+        if (availableInstructions.length === 0) {
+            await vscode.window.showInformationMessage('All instructions are exported. Delete one to browse it here again.');
+            return;
+        }
+
         const items: BrowseItem[] = [];
         let currentCategory = '';
 
-        for (const entry of instructions) {
+        for (const entry of availableInstructions) {
             if (entry.category !== currentCategory) {
                 currentCategory = entry.category;
                 items.push({ label: currentCategory, kind: vscode.QuickPickItemKind.Separator });
             }
+
             items.push({ label: entry.label, description: entry.category, entry });
         }
 

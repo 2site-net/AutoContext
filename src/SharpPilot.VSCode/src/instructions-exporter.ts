@@ -1,11 +1,27 @@
 import * as vscode from 'vscode';
-import { instructions, targetPath, type InstructionEntry } from './instructions-catalog.js';
+import { targetPath, type InstructionEntry } from './instructions-catalog.js';
+import { getUnexportedInstructions } from './instructions-export-state.js';
 
 export class InstructionsExporter {
     constructor(private readonly extensionPath: string) {}
 
     async export(): Promise<void> {
-        const items = instructions.map(entry => ({
+        const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+
+        if (!workspaceFolder) {
+            await vscode.window.showErrorMessage('No workspace folder open.');
+            return;
+        }
+
+        const rootUri = workspaceFolder.uri;
+
+        const availableInstructions = await getUnexportedInstructions();
+        if (availableInstructions.length === 0) {
+            await vscode.window.showInformationMessage('All instructions are already exported.');
+            return;
+        }
+
+        const items = availableInstructions.map(entry => ({
             label: entry.label,
             description: entry.category,
             entry,
@@ -20,15 +36,6 @@ export class InstructionsExporter {
         if (!selected || selected.length === 0) {
             return;
         }
-
-        const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
-
-        if (!workspaceFolder) {
-            await vscode.window.showErrorMessage('No workspace folder open.');
-            return;
-        }
-
-        const rootUri = workspaceFolder.uri;
         const exported: string[] = [];
 
         for (const { entry } of selected) {

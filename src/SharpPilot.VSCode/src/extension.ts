@@ -11,6 +11,7 @@ import { MenuToggler } from './menu-toggler.js';
 import { autoConfigure } from './auto-configurer.js';
 import { InstructionsExporter } from './instructions-exporter.js';
 import { InstructionsBrowser } from './instructions-browser.js';
+import { getUnexportedInstructions } from './instructions-export-state.js';
 import { SharpPilotConfigManager } from './sharppilot-config.js';
 import { InstructionsContentProvider, instructionScheme } from './instructions-content-provider.js';
 import { InstructionsCodeLensProvider, toggleInstructionCommandId, resetInstructionsCommandId } from './instructions-codelens-provider.js';
@@ -31,7 +32,6 @@ export function activate(context: vscode.ExtensionContext): void {
 
     const statusBarIndicator = new StatusBarIndicator();
     const workspaceContextDetector = new WorkspaceContextDetector();
-    const instructionsToggler = new MenuToggler('SharpPilot: Toggle Instructions', 'Select instructions to enable', instructions, () => workspaceContextDetector.getOverriddenSettingIds());
     const toolsToggler = new MenuToggler('SharpPilot: Toggle Tools', 'Select tools to enable', tools);
     const instructionsExporter = new InstructionsExporter(context.extensionPath);
     const instructionsBrowser = new InstructionsBrowser();
@@ -91,7 +91,23 @@ export function activate(context: vscode.ExtensionContext): void {
         // Toggle menus
         vscode.commands.registerCommand('sharppilot.toggleTools', async () => { await toolsToggler.toggle(); statusBarIndicator.update(); }),
         // Instructions management
-        vscode.commands.registerCommand('sharppilot.toggleInstructions', async () => { await instructionsToggler.toggle(); statusBarIndicator.update(); }),
+        vscode.commands.registerCommand('sharppilot.toggleInstructions', async () => {
+            const availableInstructions = await getUnexportedInstructions(instructions);
+            if (availableInstructions.length === 0) {
+                await vscode.window.showInformationMessage('All instructions are exported. Delete one to toggle it here again.');
+                return;
+            }
+
+            const instructionsToggler = new MenuToggler(
+                'SharpPilot: Toggle Instructions',
+                'Select instructions to enable',
+                availableInstructions,
+                () => workspaceContextDetector.getOverriddenSettingIds(),
+            );
+
+            await instructionsToggler.toggle();
+            statusBarIndicator.update();
+        }),
         vscode.commands.registerCommand('sharppilot.exportInstructions', () => instructionsExporter.export()),
         vscode.commands.registerCommand('sharppilot.browseInstructions', () => instructionsBrowser.browse()),
         // Workspace auto-configuration (instructions + tools)

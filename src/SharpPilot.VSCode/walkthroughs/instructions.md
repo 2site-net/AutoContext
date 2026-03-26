@@ -18,6 +18,6 @@ Open the multi-select menu to control which instruction sets are active. Instruc
 
 [Toggle Instructions](command:sharppilot.toggleInstructions)
 
-### Overrides
+### Exported instructions
 
-If you have instruction files in `.github/instructions/` that match a built-in instruction by filename, SharpPilot detects them as **overrides**. Overridden instructions appear with a $(file-symlink-directory) badge in the toggle menu, signaling that a local version is in use. The built-in instruction still activates normally — the badge is a visual cue so you know a workspace-level file exists.
+If you have instruction files in `.github/instructions/` that match a built-in instruction by filename, those instructions are automatically hidden from the toggle menu. The exported workspace-level file takes precedence. Delete the exported file to bring the built-in instruction back into the toggle menu.
