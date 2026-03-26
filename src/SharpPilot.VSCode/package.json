@@ -33,18 +33,13 @@
     ],
     "commands": [
       {
-        "command": "sharppilot.toggleInstructions",
-        "title": "Toggle Instructions",
-        "category": "SharpPilot"
-      },
-      {
         "command": "sharppilot.toggleTools",
         "title": "Toggle Tools",
         "category": "SharpPilot"
       },
       {
-        "command": "sharppilot.autoConfigure",
-        "title": "Auto Configure",
+        "command": "sharppilot.toggleInstructions",
+        "title": "Toggle Instructions",
         "category": "SharpPilot"
       },
       {
@@ -58,6 +53,11 @@
         "category": "SharpPilot"
       },
       {
+        "command": "sharppilot.autoConfigure",
+        "title": "Auto Configure",
+        "category": "SharpPilot"
+      },
+      {
         "command": "sharppilot.toggleInstruction",
         "title": "Toggle Instruction",
         "category": "SharpPilot"
@@ -68,6 +68,18 @@
         "category": "SharpPilot"
       }
     ],
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "sharppilot.toggleInstruction",
+          "when": "false"
+        },
+        {
+          "command": "sharppilot.resetInstructions",
+          "when": "false"
+        }
+      ]
+    },
     "chatInstructions": [
       {
         "path": "./instructions/copilot.instructions.md"
