@@ -47,7 +47,7 @@ jobs:
 
       - name: Set version in package.json
         working-directory: src/SharpPilot.VSCode
-        run: npm version "$GITHUB_REF_NAME" --no-git-tag-version
+        run: npm version "$GITHUB_REF_NAME" --no-git-tag-version --allow-same-version
 
       - name: Package all platforms
         working-directory: src/SharpPilot.VSCode
