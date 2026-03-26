@@ -20,6 +20,10 @@ import { InstructionsParser } from './instructions-parser.js';
 import { readFileSync } from 'node:fs';
 
 export function activate(context: vscode.ExtensionContext): void {
+    if (!vscode.workspace.workspaceFolders?.length) {
+        return;
+    }
+
     const serversPath = join(context.extensionPath, 'servers');
     const ext = process.platform === 'win32' ? '.exe' : '';
     const version = context.extension.packageJSON.version as string;
@@ -85,13 +89,13 @@ export function activate(context: vscode.ExtensionContext): void {
         // Status bar
         vscode.commands.registerCommand(StatusBarIndicator.commandId, () => statusBarIndicator.showToggleMenu()),
         // Toggle menus
-        vscode.commands.registerCommand('sharppilot.toggleTools', () => toolsToggler.toggle()),
+        vscode.commands.registerCommand('sharppilot.toggleTools', async () => { await toolsToggler.toggle(); statusBarIndicator.update(); }),
         // Instructions management
-        vscode.commands.registerCommand('sharppilot.toggleInstructions', () => instructionsToggler.toggle()),
+        vscode.commands.registerCommand('sharppilot.toggleInstructions', async () => { await instructionsToggler.toggle(); statusBarIndicator.update(); }),
         vscode.commands.registerCommand('sharppilot.exportInstructions', () => instructionsExporter.export()),
         vscode.commands.registerCommand('sharppilot.browseInstructions', () => instructionsBrowser.browse()),
         // Workspace auto-configuration (instructions + tools)
-        vscode.commands.registerCommand('sharppilot.autoConfigure', () => autoConfigure(workspaceContextDetector)),
+        vscode.commands.registerCommand('sharppilot.autoConfigure', async () => { await autoConfigure(workspaceContextDetector); statusBarIndicator.update(); }),
         // CodeLens (internal)
         vscode.commands.registerCommand(toggleInstructionCommandId, (fileName: string, id: string) => {
             configManager.toggleInstruction(fileName, id);
