@@ -4,16 +4,16 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { instructions } from './instructions-catalog.js';
+import { instructionsCatalog } from './instructions-catalog.js';
 import { contextKeysForEntry, overrideContextKey } from './toggle-context-keys.js';
-import type { ToggleEntry } from './toggle-entry.js';
+import type { CatalogEntry } from './catalog-entry.js';
 
 export interface ChatInstruction {
     path: string;
     when?: string;
 }
 
-function buildWhenClause(entry: ToggleEntry): string {
+function buildWhenClause(entry: CatalogEntry): string {
     const parts = [`config.${entry.settingId}`];
 
     const ctxKeys = contextKeysForEntry(entry);
@@ -31,7 +31,7 @@ function buildWhenClause(entry: ToggleEntry): string {
 export function buildChatInstructions(): ChatInstruction[] {
     return [
         { path: './instructions/copilot.instructions.md' },
-        ...instructions.map(entry => ({
+        ...instructionsCatalog.all.map(entry => ({
             path: `./instructions/.generated/${entry.fileName}`,
             when: buildWhenClause(entry),
         })),

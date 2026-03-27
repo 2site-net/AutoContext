@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { workspace, window, __setConfigStore } from './__mocks__/vscode';
 import { autoConfigure, contextKeysForEntry } from '../../src/auto-configurer';
-import { instructions } from '../../src/instructions-catalog';
+import { instructionsCatalog } from '../../src/instructions-catalog';
 import { tools } from '../../src/tool-entry';
 
 const fakeDetector = {
@@ -57,7 +57,7 @@ describe('autoConfigure', () => {
 
         await autoConfigure(fakeDetector);
 
-        const allEntries = [...instructions, ...tools];
+        const allEntries = [...instructionsCatalog.all, ...tools];
         const alwaysOnCount = allEntries.filter(e => contextKeysForEntry(e).length === 0).length;
 
         expect(window.showInformationMessage).toHaveBeenCalledWith(

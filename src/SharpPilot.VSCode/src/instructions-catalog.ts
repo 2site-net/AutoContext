@@ -1,10 +1,28 @@
-import type { ToggleEntry } from './toggle-entry.js';
+import { InstructionsCatalogEntry, type InstructionsFileEntry } from './instructions-catalog-entry.js';
 
-export interface InstructionEntry extends ToggleEntry {
-    fileName: string;
+class InstructionsCatalog {
+    private readonly entries: readonly InstructionsCatalogEntry[];
+    private readonly byFileName: ReadonlyMap<string, InstructionsCatalogEntry>;
+
+    constructor(data: readonly InstructionsFileEntry[]) {
+        this.entries = data.map(d => new InstructionsCatalogEntry(d));
+        this.byFileName = new Map(this.entries.map(e => [e.fileName, e]));
+    }
+
+    get all(): readonly InstructionsCatalogEntry[] {
+        return this.entries;
+    }
+
+    get count(): number {
+        return this.entries.length;
+    }
+
+    findByFileName(fileName: string): InstructionsCatalogEntry | undefined {
+        return this.byFileName.get(fileName);
+    }
 }
 
-export const instructions: readonly InstructionEntry[] = [
+export const instructionsCatalog = new InstructionsCatalog([
     { settingId: 'sharppilot.instructions.codeReview', fileName: 'code-review.instructions.md', label: 'Code Review', category: 'General' },
     { settingId: 'sharppilot.instructions.designPrinciples', fileName: 'design-principles.instructions.md', label: 'Design Principles', category: 'General' },
     { settingId: 'sharppilot.instructions.docker', fileName: 'docker.instructions.md', label: 'Docker', category: 'General', contextKeys: ['hasDocker'] },
@@ -64,14 +82,4 @@ export const instructions: readonly InstructionEntry[] = [
     { settingId: 'sharppilot.instructions.web.mocha', fileName: 'web-mocha.instructions.md', label: 'Mocha', category: 'Web', contextKeys: ['hasMocha'] },
     { settingId: 'sharppilot.instructions.web.playwright', fileName: 'web-playwright.instructions.md', label: 'Playwright', category: 'Web', contextKeys: ['hasPlaywright'] },
     { settingId: 'sharppilot.instructions.web.cypress', fileName: 'web-cypress.instructions.md', label: 'Cypress', category: 'Web', contextKeys: ['hasCypress'] },
-];
-
-const instructionsByFileName = new Map(instructions.map(i => [i.fileName, i]));
-
-export function instructionByFileName(fileName: string): InstructionEntry | undefined {
-    return instructionsByFileName.get(fileName);
-}
-
-export function targetPath(entry: InstructionEntry): string {
-    return `.github/instructions/${entry.fileName}`;
-}
+]);

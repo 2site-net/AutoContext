@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, rmSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { createHash } from 'node:crypto';
-import { instructions } from './instructions-catalog.js';
+import { instructionsCatalog } from './instructions-catalog.js';
 import { InstructionsParser } from './instructions-parser.js';
 import type { SharpPilotConfigManager } from './sharppilot-config.js';
 
@@ -55,7 +55,7 @@ export class InstructionsWriter implements vscode.Disposable {
         const config = this.configManager.read();
         const disabledInstructionsMap = config.instructions?.disabled ?? {};
 
-        for (const entry of instructions) {
+        for (const entry of instructionsCatalog.all) {
             const disabledIds = disabledInstructionsMap[entry.fileName];
             const disabled = disabledIds !== undefined && disabledIds.length > 0
                 ? new Set(disabledIds)
@@ -70,7 +70,7 @@ export class InstructionsWriter implements vscode.Disposable {
     private promote(): void {
         mkdirSync(this.generatedRoot, { recursive: true });
 
-        for (const entry of instructions) {
+        for (const entry of instructionsCatalog.all) {
             const staged = join(this.stagingDir, entry.fileName);
             const live = join(this.generatedRoot, entry.fileName);
             InstructionsWriter.copyIfChanged(staged, live);

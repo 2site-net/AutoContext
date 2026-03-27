@@ -1,45 +1,41 @@
 import { describe, it, expect } from 'vitest';
-import {
-    targetPath,
-    instructionByFileName,
-    instructions,
-    type InstructionEntry,
-} from '../../src/instructions-catalog';
+import { InstructionsCatalogEntry } from '../../src/instructions-catalog-entry';
+import { instructionsCatalog } from '../../src/instructions-catalog';
 
 describe('targetPath', () => {
     it('should map files to .github/instructions/', () => {
-        const entry = { fileName: 'dotnet-testing.instructions.md' } as InstructionEntry;
+        const entry = new InstructionsCatalogEntry({ settingId: '', fileName: 'dotnet-testing.instructions.md', label: '', category: '' });
 
-        expect(targetPath(entry)).toBe('.github/instructions/dotnet-testing.instructions.md');
+        expect(entry.targetPath).toBe('.github/instructions/dotnet-testing.instructions.md');
     });
 });
 
-describe('instructionByFileName', () => {
+describe('findByFileName', () => {
     it('should return the entry for a known file name', () => {
-        const entry = instructionByFileName('code-review.instructions.md');
+        const entry = instructionsCatalog.findByFileName('code-review.instructions.md');
 
         expect(entry).toBeDefined();
         expect(entry!.settingId).toBe('sharppilot.instructions.codeReview');
     });
 
     it('should return undefined for an unknown file name', () => {
-        expect(instructionByFileName('nonexistent.md')).toBeUndefined();
+        expect(instructionsCatalog.findByFileName('nonexistent.md')).toBeUndefined();
     });
 
     it('should not include copilot.instructions.md (always-on, not toggleable)', () => {
-        expect(instructionByFileName('copilot.instructions.md')).toBeUndefined();
+        expect(instructionsCatalog.findByFileName('copilot.instructions.md')).toBeUndefined();
     });
 });
 
 describe('instructions catalog', () => {
     it('should have unique setting ids', () => {
-        const ids = instructions.map(i => i.settingId);
+        const ids = instructionsCatalog.all.map(i => i.settingId);
 
         expect(new Set(ids).size).toBe(ids.length);
     });
 
     it('should have .instructions.md suffix on all file names', () => {
-        for (const entry of instructions) {
+        for (const entry of instructionsCatalog.all) {
             expect(entry.fileName).toMatch(/\.instructions\.md$/);
         }
     });

@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { instructions } from './instructions-catalog.js';
+import { instructionsCatalog } from './instructions-catalog.js';
 import { tools } from './tool-entry.js';
 
 export class StatusBarIndicator implements vscode.Disposable {
@@ -17,10 +17,10 @@ export class StatusBarIndicator implements vscode.Disposable {
 
     update(): void {
         const config = vscode.workspace.getConfiguration();
-        const enabledInstructions = instructions.filter(i => config.get<boolean>(i.settingId, true)).length;
+        const enabledInstructions = instructionsCatalog.all.filter(i => config.get<boolean>(i.settingId, true)).length;
         const enabledTools = tools.filter(t => config.get<boolean>(t.settingId, true)).length;
-        this.item.text = `$(book) ${enabledInstructions}/${instructions.length} $(tools) ${enabledTools}/${tools.length}`;
-        this.item.tooltip = `Instructions: ${enabledInstructions}/${instructions.length} enabled, Tools: ${enabledTools}/${tools.length} enabled — click to toggle`;
+        this.item.text = `$(book) ${enabledInstructions}/${instructionsCatalog.count} $(tools) ${enabledTools}/${tools.length}`;
+        this.item.tooltip = `Instructions: ${enabledInstructions}/${instructionsCatalog.count} enabled, Tools: ${enabledTools}/${tools.length} enabled — click to toggle`;
     }
 
     async showToggleMenu(): Promise<void> {

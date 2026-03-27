@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { targetPath, type InstructionEntry } from './instructions-catalog.js';
+import type { InstructionsCatalogEntry } from './instructions-catalog-entry.js';
 import { getUnexportedInstructions } from './instructions-export-state.js';
 
 export class InstructionsExporter {
@@ -39,7 +39,7 @@ export class InstructionsExporter {
         const exported: string[] = [];
 
         for (const { entry } of selected) {
-            const target = targetPath(entry);
+            const target = entry.targetPath;
             const targetUri = vscode.Uri.joinPath(rootUri, target);
 
             const exists = await InstructionsExporter.fileExists(targetUri);
@@ -67,14 +67,14 @@ export class InstructionsExporter {
         }
 
         if (exported.length > 0) {
-            const lastUri = vscode.Uri.joinPath(rootUri, targetPath(selected[selected.length - 1].entry));
+            const lastUri = vscode.Uri.joinPath(rootUri, selected[selected.length - 1].entry.targetPath);
 
             await vscode.window.showTextDocument(lastUri);
             await vscode.window.showInformationMessage(`Exported ${exported.length} instruction(s) to .github.`);
         }
     }
 
-    private static async copyInstruction(extensionPath: string, entry: InstructionEntry, targetUri: vscode.Uri): Promise<void> {
+    private static async copyInstruction(extensionPath: string, entry: InstructionsCatalogEntry, targetUri: vscode.Uri): Promise<void> {
         const sourceUri = vscode.Uri.file(`${extensionPath}/instructions/.generated/${entry.fileName}`);
         const content = await vscode.workspace.fs.readFile(sourceUri);
 

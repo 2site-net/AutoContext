@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { instructions, instructionByFileName } from './instructions-catalog.js';
+import { instructionsCatalog } from './instructions-catalog.js';
 import { overrideContextKey } from './toggle-context-keys.js';
 
 export { overrideContextKey };
@@ -278,7 +278,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
                 const segments = uri.path.split('/');
                 const matchName = segments[segments.length - 1];
 
-                if (instructionByFileName(matchName)) {
+                if (instructionsCatalog.findByFileName(matchName)) {
                     overriddenFileNames.add(matchName);
                 }
             }
@@ -331,7 +331,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
                 setContext('sharppilot.workspace.hasCypress', hasCypress),
                 setContext('sharppilot.workspace.hasWebTesting', hasVitest || hasJest || hasJasmine || hasMocha || hasPlaywright || hasCypress),
                 setContext('sharppilot.workspace.hasGit', hasGit),
-                ...instructions.map(i =>
+                ...instructionsCatalog.all.map(i =>
                     setContext(overrideContextKey(i.settingId), overriddenFileNames.has(i.fileName)),
                 ),
             ]);
@@ -356,7 +356,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
             }
 
             this._overriddenSettingIds.clear();
-            for (const i of instructions) {
+            for (const i of instructionsCatalog.all) {
                 if (overriddenFileNames.has(i.fileName)) {
                     this._overriddenSettingIds.add(i.settingId);
                 }

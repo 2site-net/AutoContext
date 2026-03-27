@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import type { ToggleEntry } from './toggle-entry.js';
+import type { CatalogEntry } from './catalog-entry.js';
 
 interface ToggleItem extends vscode.QuickPickItem {
     settingId: string;
@@ -14,7 +14,7 @@ export class MenuToggler {
     constructor(
         private readonly title: string,
         private readonly placeholder: string,
-        private readonly entries: readonly ToggleEntry[],
+        private readonly entries: readonly CatalogEntry[],
         private readonly getOverrides?: () => ReadonlySet<string>,
     ) {}
 
@@ -127,7 +127,7 @@ export class MenuToggler {
         }
     }
 
-    private static buildItems(entries: readonly ToggleEntry[], config: vscode.WorkspaceConfiguration, overrides: ReadonlySet<string>): ToggleItem[] {
+    private static buildItems(entries: readonly CatalogEntry[], config: vscode.WorkspaceConfiguration, overrides: ReadonlySet<string>): ToggleItem[] {
         const items: ToggleItem[] = [];
         let lastCategory: string | undefined;
 

@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { InstructionsWriter } from '../../src/instructions-writer';
 import { SharpPilotConfigManager } from '../../src/sharppilot-config';
 import { InstructionsParser } from '../../src/instructions-parser';
-import { instructions } from '../../src/instructions-catalog';
+import { instructionsCatalog } from '../../src/instructions-catalog';
 
 import { readFileSync, writeFileSync, existsSync, readdirSync, rmSync, statSync } from 'node:fs';
 
@@ -51,7 +51,7 @@ describe('InstructionsWriter', () => {
         const stagingWrites = writeCalls.filter(([path]) =>
             String(path).includes('.workspaces'),
         );
-        expect(stagingWrites.length).toBe(instructions.length);
+        expect(stagingWrites.length).toBe(instructionsCatalog.count);
     });
 
     it('should strip instruction IDs from output', () => {
@@ -83,7 +83,7 @@ describe('InstructionsWriter', () => {
     it('should write filtered content with disabled instructions removed', () => {
         const { instructions: parsedInstructions } = InstructionsParser.parse(testContent);
         const firstId = parsedInstructions[0].id;
-        const targetFileName = instructions[0].fileName;
+        const targetFileName = instructionsCatalog.all[0].fileName;
 
         vi.mocked(readFileSync).mockImplementation((path: unknown) => {
             const pathStr = String(path);

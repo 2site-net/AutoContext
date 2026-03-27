@@ -2,8 +2,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { window, __setConfigStore, QuickPickItemKind, type MockQuickPick } from './__mocks__/vscode';
 
 import { MenuToggler } from '../../src/menu-toggler';
-import { type ToggleEntry } from '../../src/toggle-entry';
-import { instructions } from '../../src/instructions-catalog';
+import { type CatalogEntry } from '../../src/catalog-entry';
+import { instructionsCatalog } from '../../src/instructions-catalog';
 import { tools } from '../../src/tool-entry';
 
 beforeEach(() => {
@@ -21,7 +21,7 @@ function categoryHeaders(qp: MockQuickPick): ToggleItem[] {
     return (qp.items as ToggleItem[]).filter(i => i.isCategory);
 }
 
-const smallEntries: readonly ToggleEntry[] = [
+const smallEntries: readonly CatalogEntry[] = [
     { settingId: 'a.one', label: 'One', category: 'Alpha' },
     { settingId: 'a.two', label: 'Two', category: 'Alpha' },
     { settingId: 'b.one', label: 'Three', category: 'Beta' },
@@ -69,11 +69,11 @@ describe('MenuToggler', () => {
     });
 
     it('should append override badge to description for overridden entries', async () => {
-        const overriddenId = instructions[0].settingId;
+        const overriddenId = instructionsCatalog.all[0].settingId;
         const toggler = new MenuToggler(
             'SharpPilot: Toggle Instructions',
             'Select instructions to enable',
-            instructions,
+            instructionsCatalog.all,
             () => new Set([overriddenId]),
         );
         const promise = toggler.toggle();
@@ -81,7 +81,7 @@ describe('MenuToggler', () => {
         const qp = vi.mocked(window.createQuickPick).mock.results[0].value as MockQuickPick;
         const items = qp.items as ToggleItem[];
         const overriddenItem = items.find(i => i.settingId === overriddenId);
-        const normalItem = items.find(i => i.settingId === instructions[1].settingId);
+        const normalItem = items.find(i => i.settingId === instructionsCatalog.all[1].settingId);
 
         expect(overriddenItem?.description).toContain('$(file-symlink-directory)');
         expect(normalItem?.description).not.toContain('$(file-symlink-directory)');

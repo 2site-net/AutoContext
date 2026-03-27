@@ -1,6 +1,6 @@
-import type { ToggleEntry } from './toggle-entry.js';
+import type { CatalogEntry } from './catalog-entry.js';
 
-export interface ToolEntry extends ToggleEntry {
+export interface ToolEntry extends CatalogEntry {
     toolName: string;
 }
 

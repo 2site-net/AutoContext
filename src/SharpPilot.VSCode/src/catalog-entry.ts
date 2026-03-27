@@ -1,4 +1,4 @@
-export interface ToggleEntry {
+export interface CatalogEntry {
     settingId: string;
     label: string;
     category: string;

@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
-import type { ToggleEntry } from './toggle-entry.js';
-import { instructions } from './instructions-catalog.js';
+import type { CatalogEntry } from './catalog-entry.js';
+import { instructionsCatalog } from './instructions-catalog.js';
 import { tools } from './tool-entry.js';
 import { contextKeysForEntry } from './toggle-context-keys.js';
 import type { WorkspaceContextDetector } from './workspace-context-detector.js';
@@ -9,7 +9,7 @@ export { contextKeysForEntry };
 
 export async function autoConfigure(detector: WorkspaceContextDetector): Promise<void> {
     const config = vscode.workspace.getConfiguration();
-    const allEntries: readonly ToggleEntry[] = [...instructions, ...tools];
+    const allEntries: readonly CatalogEntry[] = [...instructionsCatalog.all, ...tools];
 
     let enabled = 0;
 

@@ -1,9 +1,10 @@
 import * as vscode from 'vscode';
-import { instructions, targetPath, type InstructionEntry } from './instructions-catalog.js';
+import type { InstructionsCatalogEntry } from './instructions-catalog-entry.js';
+import { instructionsCatalog } from './instructions-catalog.js';
 
 export async function getUnexportedInstructions(
-    entries: readonly InstructionEntry[] = instructions,
-): Promise<readonly InstructionEntry[]> {
+    entries: readonly InstructionsCatalogEntry[] = instructionsCatalog.all,
+): Promise<readonly InstructionsCatalogEntry[]> {
     const rootUri = vscode.workspace.workspaceFolders?.[0]?.uri;
     if (!rootUri) {
         return entries;
@@ -11,7 +12,7 @@ export async function getUnexportedInstructions(
 
     const checks = await Promise.all(entries.map(async entry => ({
         entry,
-        exported: await fileExists(vscode.Uri.joinPath(rootUri, targetPath(entry))),
+        exported: await fileExists(vscode.Uri.joinPath(rootUri, entry.targetPath)),
     })));
 
     return checks.filter(c => !c.exported).map(c => c.entry);

@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { join } from 'node:path';
 import { servers } from './server-entry.js';
-import { instructions } from './instructions-catalog.js';
+import { instructionsCatalog } from './instructions-catalog.js';
 import { tools } from './tool-entry.js';
 import { toolSettingsForScope } from './tools-catalog.js';
 import { StatusBarIndicator } from './status-bar-indicator.js';
@@ -47,7 +47,7 @@ export function activate(context: vscode.ExtensionContext): void {
         outputChannel.clear();
         const warnOnMissingId = configManager.read().diagnostic?.warnOnMissingId === true;
 
-        for (const entry of instructions) {
+        for (const entry of instructionsCatalog.all) {
             let content: string;
             try {
                 content = readFileSync(join(context.extensionPath, 'instructions', entry.fileName), 'utf-8');
@@ -92,7 +92,7 @@ export function activate(context: vscode.ExtensionContext): void {
         vscode.commands.registerCommand('sharppilot.toggleTools', async () => { await toolsToggler.toggle(); statusBarIndicator.update(); }),
         // Instructions management
         vscode.commands.registerCommand('sharppilot.toggleInstructions', async () => {
-            const availableInstructions = await getUnexportedInstructions(instructions);
+            const availableInstructions = await getUnexportedInstructions();
             if (availableInstructions.length === 0) {
                 await vscode.window.showInformationMessage('All instructions are exported. Delete one to toggle it here again.');
                 return;

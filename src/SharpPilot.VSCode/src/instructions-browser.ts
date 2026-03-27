@@ -1,9 +1,9 @@
 import * as vscode from 'vscode';
-import { type InstructionEntry } from './instructions-catalog.js';
+import type { InstructionsCatalogEntry } from './instructions-catalog-entry.js';
 import { getUnexportedInstructions } from './instructions-export-state.js';
 import { instructionScheme } from './instructions-content-provider.js';
 
-type BrowseItem = vscode.QuickPickItem & { entry?: InstructionEntry };
+type BrowseItem = vscode.QuickPickItem & { entry?: InstructionsCatalogEntry };
 
 export class InstructionsBrowser {
 

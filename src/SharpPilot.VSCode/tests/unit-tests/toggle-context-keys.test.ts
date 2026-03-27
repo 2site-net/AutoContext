@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { overrideContextKey, contextKeysForEntry } from '../../src/toggle-context-keys';
-import { instructions } from '../../src/instructions-catalog';
+import { instructionsCatalog } from '../../src/instructions-catalog';
 import { tools } from '../../src/tool-entry';
 
 describe('overrideContextKey', () => {
@@ -17,19 +17,19 @@ describe('overrideContextKey', () => {
 
 describe('contextKeysForEntry', () => {
     it('should return empty array for always-on instructions', () => {
-        const codeReview = instructions.find(i => i.settingId === 'sharppilot.instructions.codeReview')!;
+        const codeReview = instructionsCatalog.all.find(i => i.settingId === 'sharppilot.instructions.codeReview')!;
 
         expect(contextKeysForEntry(codeReview)).toEqual([]);
     });
 
     it('should return context keys for workspace-specific instructions', () => {
-        const asyncAwait = instructions.find(i => i.settingId === 'sharppilot.instructions.dotnet.asyncAwait')!;
+        const asyncAwait = instructionsCatalog.all.find(i => i.settingId === 'sharppilot.instructions.dotnet.asyncAwait')!;
 
         expect(contextKeysForEntry(asyncAwait)).toEqual(['hasDotnet']);
     });
 
     it('should return multiple context keys for OR conditions', () => {
-        const js = instructions.find(i => i.settingId === 'sharppilot.instructions.web.javascript')!;
+        const js = instructionsCatalog.all.find(i => i.settingId === 'sharppilot.instructions.web.javascript')!;
 
         expect(contextKeysForEntry(js)).toEqual(['hasJavaScript', 'hasTypeScript']);
     });
@@ -56,7 +56,7 @@ describe('contextKeysForEntry', () => {
             'sharppilot.instructions.sql',
         ]);
 
-        for (const entry of instructions) {
+        for (const entry of instructionsCatalog.all) {
             if (alwaysOn.has(entry.settingId)) {
                 expect(contextKeysForEntry(entry)).toEqual([]);
             } else {
