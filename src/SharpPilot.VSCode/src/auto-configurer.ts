@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import type { CatalogEntry } from './catalog-entry.js';
 import { instructionsCatalog } from './instructions-catalog.js';
-import { tools } from './tool-entry.js';
+import { toolsCatalog } from './tools-catalog.js';
 import { contextKeysForEntry } from './toggle-context-keys.js';
 import type { WorkspaceContextDetector } from './workspace-context-detector.js';
 
@@ -9,7 +9,7 @@ export { contextKeysForEntry };
 
 export async function autoConfigure(detector: WorkspaceContextDetector): Promise<void> {
     const config = vscode.workspace.getConfiguration();
-    const allEntries: readonly CatalogEntry[] = [...instructionsCatalog.all, ...tools];
+    const allEntries: readonly CatalogEntry[] = [...instructionsCatalog.all, ...toolsCatalog.all];
 
     let enabled = 0;
 

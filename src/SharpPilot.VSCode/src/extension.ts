@@ -2,8 +2,7 @@ import * as vscode from 'vscode';
 import { join } from 'node:path';
 import { servers } from './server-entry.js';
 import { instructionsCatalog } from './instructions-catalog.js';
-import { tools } from './tool-entry.js';
-import { toolSettingsForScope } from './tools-catalog.js';
+import { toolsCatalog } from './tools-catalog.js';
 import { StatusBarIndicator } from './status-bar-indicator.js';
 import { WorkspaceContextDetector } from './workspace-context-detector.js';
 import { ToolsStatusWriter } from './tools-status-writer.js';
@@ -32,7 +31,7 @@ export function activate(context: vscode.ExtensionContext): void {
 
     const statusBarIndicator = new StatusBarIndicator();
     const workspaceContextDetector = new WorkspaceContextDetector();
-    const toolsToggler = new MenuToggler('SharpPilot: Toggle Tools', 'Select tools to enable', tools);
+    const toolsToggler = new MenuToggler('SharpPilot: Toggle Tools', 'Select tools to enable', toolsCatalog.all);
     const instructionsExporter = new InstructionsExporter(context.extensionPath);
     const instructionsBrowser = new InstructionsBrowser();
     const configManager = new SharpPilotConfigManager(context.extensionPath, version);
@@ -148,7 +147,7 @@ export function activate(context: vscode.ExtensionContext): void {
                         if (s.contextKey && !workspaceContextDetector.get(s.contextKey)) {
                             return false;
                         }
-                        const toolSettings = toolSettingsForScope(s.scope);
+                        const toolSettings = toolsCatalog.getSettingIdByCategory(s.scope);
                         return toolSettings.length === 0 || toolSettings.some(id => config.get(id) !== false);
                     })
                     .map(

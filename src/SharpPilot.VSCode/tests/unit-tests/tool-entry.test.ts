@@ -1,15 +1,15 @@
 import { describe, it, expect } from 'vitest';
-import { tools } from '../../src/tool-entry';
+import { toolsCatalog } from '../../src/tools-catalog';
 
 describe('tools catalog', () => {
     it('should have unique setting ids', () => {
-        const ids = tools.map(t => t.settingId);
+        const ids = toolsCatalog.all.map(t => t.settingId);
 
         expect(new Set(ids).size).toBe(ids.length);
     });
 
     it('should have unique tool names', () => {
-        const names = tools.map(t => t.toolName);
+        const names = toolsCatalog.all.map(t => t.toolName);
 
         expect(new Set(names).size).toBe(names.length);
     });

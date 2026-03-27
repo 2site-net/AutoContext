@@ -4,7 +4,7 @@ import { window, __setConfigStore, QuickPickItemKind, type MockQuickPick } from 
 import { MenuToggler } from '../../src/menu-toggler';
 import { type CatalogEntry } from '../../src/catalog-entry';
 import { instructionsCatalog } from '../../src/instructions-catalog';
-import { tools } from '../../src/tool-entry';
+import { toolsCatalog } from '../../src/tools-catalog';
 
 beforeEach(() => {
     vi.clearAllMocks();
@@ -29,13 +29,13 @@ const smallEntries: readonly CatalogEntry[] = [
 
 describe('MenuToggler', () => {
     it('should show a multi-select QuickPick with setting items, separators, and category headers', async () => {
-        const toggler = new MenuToggler('SharpPilot: Toggle Tools', 'Select tools to enable', tools);
+        const toggler = new MenuToggler('SharpPilot: Toggle Tools', 'Select tools to enable', toolsCatalog.all);
         const promise = toggler.toggle();
 
         const qp = vi.mocked(window.createQuickPick).mock.results[0].value as MockQuickPick;
         expect(qp.canSelectMany).toBe(true);
         expect(qp.title).toBe('SharpPilot: Toggle Tools');
-        expect(settingItems(qp)).toHaveLength(tools.length);
+        expect(settingItems(qp)).toHaveLength(toolsCatalog.count);
         expect(categoryHeaders(qp).length).toBeGreaterThan(0);
         expect(qp.show).toHaveBeenCalledOnce();
 
@@ -44,7 +44,7 @@ describe('MenuToggler', () => {
     });
 
     it('should not update settings when the user cancels', async () => {
-        const toggler = new MenuToggler('SharpPilot: Toggle Tools', 'Select tools to enable', tools);
+        const toggler = new MenuToggler('SharpPilot: Toggle Tools', 'Select tools to enable', toolsCatalog.all);
         const promise = toggler.toggle();
 
         const qp = vi.mocked(window.createQuickPick).mock.results[0].value as MockQuickPick;
@@ -56,7 +56,7 @@ describe('MenuToggler', () => {
     });
 
     it('should have Select All and Clear All buttons', async () => {
-        const toggler = new MenuToggler('SharpPilot: Toggle Tools', 'Select tools to enable', tools);
+        const toggler = new MenuToggler('SharpPilot: Toggle Tools', 'Select tools to enable', toolsCatalog.all);
         const promise = toggler.toggle();
 
         const qp = vi.mocked(window.createQuickPick).mock.results[0].value as MockQuickPick;

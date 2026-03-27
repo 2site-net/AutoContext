@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { __setConfigStore, window } from './__mocks__/vscode';
 import { StatusBarIndicator } from '../../src/status-bar-indicator';
 import { instructionsCatalog } from '../../src/instructions-catalog';
-import { tools } from '../../src/tool-entry';
+import { toolsCatalog } from '../../src/tools-catalog';
 
 beforeEach(() => {
     vi.clearAllMocks();
@@ -14,7 +14,7 @@ describe('StatusBarIndicator', () => {
         const indicator = new StatusBarIndicator();
         const item = vi.mocked(window.createStatusBarItem).mock.results[0].value;
 
-        expect(item.text).toBe(`$(book) ${instructionsCatalog.count}/${instructionsCatalog.count} $(tools) ${tools.length}/${tools.length}`);
+        expect(item.text).toBe(`$(book) ${instructionsCatalog.count}/${instructionsCatalog.count} $(tools) ${toolsCatalog.count}/${toolsCatalog.count}`);
 
         indicator.dispose();
     });
@@ -28,7 +28,7 @@ describe('StatusBarIndicator', () => {
         const indicator = new StatusBarIndicator();
         const item = vi.mocked(window.createStatusBarItem).mock.results[0].value;
 
-        expect(item.text).toBe(`$(book) ${instructionsCatalog.count - 1}/${instructionsCatalog.count} $(tools) ${tools.length - 1}/${tools.length}`);
+        expect(item.text).toBe(`$(book) ${instructionsCatalog.count - 1}/${instructionsCatalog.count} $(tools) ${toolsCatalog.count - 1}/${toolsCatalog.count}`);
 
         indicator.dispose();
     });

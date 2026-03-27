@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { overrideContextKey, contextKeysForEntry } from '../../src/toggle-context-keys';
 import { instructionsCatalog } from '../../src/instructions-catalog';
-import { tools } from '../../src/tool-entry';
+import { toolsCatalog } from '../../src/tools-catalog';
 
 describe('overrideContextKey', () => {
     it('should strip the settings prefix and prepend the override prefix', () => {
@@ -35,15 +35,15 @@ describe('contextKeysForEntry', () => {
     });
 
     it('should return context keys for tools', () => {
-        const codingStyle = tools.find(t => t.settingId === 'sharppilot.tools.check_csharp_coding_style')!;
-        const commitFormat = tools.find(t => t.settingId === 'sharppilot.tools.check_git_commit_format')!;
+        const codingStyle = toolsCatalog.all.find(t => t.settingId === 'sharppilot.tools.check_csharp_coding_style')!;
+        const commitFormat = toolsCatalog.all.find(t => t.settingId === 'sharppilot.tools.check_git_commit_format')!;
 
         expect(contextKeysForEntry(codingStyle)).toEqual(['hasDotnet']);
         expect(contextKeysForEntry(commitFormat)).toEqual(['hasGit']);
     });
 
     it('should return empty array for the editorconfig tool', () => {
-        const editorconfig = tools.find(t => t.settingId === 'sharppilot.tools.get_editorconfig')!;
+        const editorconfig = toolsCatalog.all.find(t => t.settingId === 'sharppilot.tools.get_editorconfig')!;
 
         expect(contextKeysForEntry(editorconfig)).toEqual([]);
     });

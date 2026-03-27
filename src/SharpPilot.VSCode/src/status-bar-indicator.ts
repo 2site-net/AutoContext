@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { instructionsCatalog } from './instructions-catalog.js';
-import { tools } from './tool-entry.js';
+import { toolsCatalog } from './tools-catalog.js';
 
 export class StatusBarIndicator implements vscode.Disposable {
     static readonly commandId = 'sharppilot.showToggleMenu';
@@ -18,9 +18,9 @@ export class StatusBarIndicator implements vscode.Disposable {
     update(): void {
         const config = vscode.workspace.getConfiguration();
         const enabledInstructions = instructionsCatalog.all.filter(i => config.get<boolean>(i.settingId, true)).length;
-        const enabledTools = tools.filter(t => config.get<boolean>(t.settingId, true)).length;
-        this.item.text = `$(book) ${enabledInstructions}/${instructionsCatalog.count} $(tools) ${enabledTools}/${tools.length}`;
-        this.item.tooltip = `Instructions: ${enabledInstructions}/${instructionsCatalog.count} enabled, Tools: ${enabledTools}/${tools.length} enabled — click to toggle`;
+        const enabledTools = toolsCatalog.all.filter(t => config.get<boolean>(t.settingId, true)).length;
+        this.item.text = `$(book) ${enabledInstructions}/${instructionsCatalog.count} $(tools) ${enabledTools}/${toolsCatalog.count}`;
+        this.item.tooltip = `Instructions: ${enabledInstructions}/${instructionsCatalog.count} enabled, Tools: ${enabledTools}/${toolsCatalog.count} enabled — click to toggle`;
     }
 
     async showToggleMenu(): Promise<void> {
