@@ -1,3 +1,5 @@
+![SharpPilot](../small-logo.png)
+
 ## Welcome to SharpPilot
 
 SharpPilot is a quality-assurance companion for GitHub Copilot. It ships curated **chat instructions** that guide Copilot's responses and registers **MCP servers** whose tools let Copilot check your code against best practices — all configurable from a single status-bar entry point.
