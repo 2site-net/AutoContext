@@ -29,6 +29,7 @@ class TestResult {
     [string]$Name
     [string]$Status      # Pass, Fail
     [string]$Detail
+    [string]$Output      # Captured stdout+stderr (for -Verbose)
     [double]$DurationMs
 }
 
@@ -70,7 +71,7 @@ function Invoke-TestCase {
             $result.Detail = "Expected error matching '$ErrorPattern' but got output that didn't match."
         }
         else {
-            Write-Verbose ($output -replace '(?m)^', '    ')
+            $result.Output = $output
             $result.Status = 'Pass'
         }
         return $result
@@ -92,7 +93,7 @@ function Invoke-TestCase {
         }
     }
 
-    Write-Verbose ($output -replace '(?m)^', '    ')
+    $result.Output = $output
     $result.Status = 'Pass'
 
     return $result
@@ -117,6 +118,62 @@ function Write-TestResult {
 
         if ($Result.Detail) {
             Write-Host "       $($Result.Detail)" -ForegroundColor Red
+        }
+
+        if ($Result.Output) {
+            # Condense to a single line: extract "=== Section Name" headings and join with " | ".
+            # Collapse "Compile TypeScript | Compile .NET" → "Compile All", etc.
+            # Collapse repeated platform publish/package pairs into a compact RID list.
+            $headings = $Result.Output -split "`n" |
+                Where-Object { $_ -match '^\s*=== (.+)' } |
+                ForEach-Object { ($Matches[1]).Trim() }
+
+            # Collapse TS + .NET pairs into "X All"
+            $compileTS    = 'Compile TypeScript'
+            $compileDotNet = 'Compile .NET'
+            $testTS       = 'Test TypeScript'
+            $testDotNet   = 'Test .NET'
+            $knownPairs   = @($compileTS, $compileDotNet, $testTS, $testDotNet)
+
+            $rids = @()
+            $general = [System.Collections.Generic.List[string]]::new()
+
+            if ($headings -contains $compileTS -and $headings -contains $compileDotNet) { $general.Add('Compile All') }
+            elseif ($headings -contains $compileTS)    { $general.Add($compileTS) }
+            elseif ($headings -contains $compileDotNet) { $general.Add($compileDotNet) }
+
+            if ($headings -contains $testTS -and $headings -contains $testDotNet) { $general.Add('Test All') }
+            elseif ($headings -contains $testTS)    { $general.Add($testTS) }
+            elseif ($headings -contains $testDotNet) { $general.Add($testDotNet) }
+
+            # Remaining headings (Compile/Test already handled via $knownPairs)
+            foreach ($h in $headings) {
+                if ($h -in $knownPairs) { continue }
+                if ($h -match '^Publish \.NET server \((.+)\)$') {
+                    $rids += $Matches[1]
+                }
+                elseif ($h -match '^Package VSIX \(') {
+                    # Skip — always pairs 1:1 with the Publish heading above
+                }
+                else {
+                    $general.Add($h)
+                }
+            }
+
+            if ($rids.Count -gt 1) {
+                $general.Add("Publish + Package: $($rids -join ', ')")
+            }
+            elseif ($rids.Count -eq 1) {
+                $general.Add("Publish .NET server ($($rids[0]))")
+                $vsceHead = $headings | Where-Object { $_ -match '^Package VSIX' } | Select-Object -First 1
+                if ($vsceHead) { $general.Add($vsceHead) }
+            }
+
+            if ($general.Count -gt 0 -and $VerbosePreference -ne 'SilentlyContinue') {
+                Write-Host ''
+                Write-Verbose ("       " + ($general -join ' | '))
+                Write-Host ''
+            }
         }
     }
 }
@@ -259,7 +316,7 @@ $testCases = @(
     @{
         Name         = 'Prepare'
         Arguments    = 'Prepare -WhatIf'
-        ExpectOutput = @('Clean', 'Compile TypeScript', 'dotnet build', 'Run TypeScript tests', 'dotnet test', 'Copy LICENSE')
+        ExpectOutput = @('Delete TypeScript output', 'Compile TypeScript', 'dotnet build', 'Run TypeScript tests', 'dotnet test', 'Copy LICENSE')
     }
 
     # ── Package ──────────────────────────────────────────────────────────
@@ -267,7 +324,7 @@ $testCases = @(
     @{
         Name         = 'Package (auto-detect RID)'
         Arguments    = 'Package -WhatIf'
-        ExpectOutput = @('Clean', 'Compile', 'Test', 'Prepare', 'dotnet publish', 'vsce package')
+        ExpectOutput = @('Delete TypeScript output', 'Compile TypeScript', 'dotnet build', 'Run TypeScript tests', 'dotnet publish', 'vsce package')
     }
     @{
         Name         = 'Package All (6 platforms)'
@@ -295,7 +352,7 @@ $testCases = @(
     @{
         Name         = 'Publish (auto-detect RID)'
         Arguments    = 'Publish -WhatIf'
-        ExpectOutput = @('Clean', 'Compile', 'Test', 'Prepare', 'dotnet publish', 'vsce package', 'Publish to Marketplace')
+        ExpectOutput = @('Delete TypeScript output', 'Compile TypeScript', 'dotnet build', 'Run TypeScript tests', 'Copy LICENSE', 'dotnet publish', 'vsce package', 'Publish to Marketplace')
     }
     @{
         Name         = 'Publish All (6 platforms)'
@@ -330,13 +387,13 @@ $testCases = @(
         ErrorPattern = 'mutually exclusive'
     }
     @{
-        Name         = 'Invalid Action value'
+        Name         = 'Reject unknown Action'
         Arguments    = 'InvalidAction -WhatIf'
         ExpectError  = $true
         ErrorPattern = 'ValidateSet|cannot be validated'
     }
     @{
-        Name         = 'Invalid Target value'
+        Name         = 'Reject unknown Target'
         Arguments    = 'Compile InvalidTarget -WhatIf'
         ExpectError  = $true
         ErrorPattern = 'ValidateSet|cannot be validated'
