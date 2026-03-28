@@ -32,10 +32,20 @@ All paths are relative to `src/SharpPilot.VSCode/instructions/`.
 ## Build & test
 
 ```powershell
-# MCP server
-dotnet build src/SharpPilot/SharpPilot.csproj
-dotnet test  tests/SharpPilot.Tests/SharpPilot.Tests.csproj
+# Show all available actions, targets, and switches
+./build.ps1 -Help
 
-# VS Code extension
-cd src/SharpPilot.VSCode && npm test
+# Everything (compile + test)
+./build.ps1
+
+# TypeScript only
+./build.ps1 Compile TS
+./build.ps1 Test TS
+
+# .NET only
+./build.ps1 Compile DotNet
+./build.ps1 Test DotNet
+
+# Package for current platform
+./build.ps1 Package
 ```

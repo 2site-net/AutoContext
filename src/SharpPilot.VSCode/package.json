@@ -744,21 +744,11 @@
     }
   },
   "scripts": {
-    "vscode:prepublish": "npm run compile && node -e \"require('fs').copyFileSync('../../LICENSE','LICENSE')\"",
-    "compile": "tsx src/chat-instructions-manifest.ts && tsc -p ./tsconfig.build.json",
+    "vscode:prepublish": "node -e \"if(!process.env.SHARPPILOT_VSCE_BYPASS){console.error('Do not run vsce package directly. Use: ./build.ps1 Package');process.exit(1)}\"",
+    "compile": "pwsh ../../build.ps1 Compile TS",
     "watch": "tsc -watch -p ./tsconfig.build.json",
-    "test": "vitest run --config tests/vitest.config.ts",
-    "test:smoke": "npm run compile && tsc -p tests/smoke-tests/tsconfig.json && node -e \"require('fs').writeFileSync('out/tests/smoke-tests/package.json','{\\\"type\\\":\\\"commonjs\\\"}')\" && vscode-test --config tests/.vscode-test.mjs",
-    "publish:servers": "pwsh scripts/publish-servers.ps1",
-    "generate:chat-instructions": "tsx src/chat-instructions-manifest.ts",
-    "package:win-x64": "pwsh scripts/publish-servers.ps1 -RuntimeIdentifier win-x64 -Package",
-    "package:win-arm64": "pwsh scripts/publish-servers.ps1 -RuntimeIdentifier win-arm64 -Package",
-    "package:linux-x64": "pwsh scripts/publish-servers.ps1 -RuntimeIdentifier linux-x64 -Package",
-    "package:linux-arm64": "pwsh scripts/publish-servers.ps1 -RuntimeIdentifier linux-arm64 -Package",
-    "package:osx-x64": "pwsh scripts/publish-servers.ps1 -RuntimeIdentifier osx-x64 -Package",
-    "package:osx-arm64": "pwsh scripts/publish-servers.ps1 -RuntimeIdentifier osx-arm64 -Package",
-    "package:all": "pwsh scripts/publish-servers.ps1 -All",
-    "publish:all": "pwsh scripts/publish-servers.ps1 -Publish"
+    "test": "pwsh ../../build.ps1 Test TS",
+    "test:smoke": "npm run compile && tsc -p tests/smoke-tests/tsconfig.json && node -e \"require('fs').writeFileSync('out/tests/smoke-tests/package.json','{\\\"type\\\":\\\"commonjs\\\"}')\" && vscode-test --config tests/.vscode-test.mjs"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.10",
