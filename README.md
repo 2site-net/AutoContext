@@ -277,5 +277,10 @@ npm run publish:all
 
 ## License
 
-[Apache-2.0](src/SharpPilot.VSCode/LICENSE)
+This project uses a dual-license model:
+
+- **MCP Server** (`src/SharpPilot/`) — [AGPL-3.0](LICENSE)
+- **VS Code Extension** (`src/SharpPilot.VSCode/`) — [GPL-3.0](src/SharpPilot.VSCode/LICENSE)
+
+See each LICENSE file for full terms. By contributing, you agree to the [Contributor License Agreement](CLA.md).
 
