@@ -538,6 +538,10 @@ function Invoke-Clean {
         $targets += @{ Path = (Join-Path $extensionDir 'LICENSE');       Label = 'Extension LICENSE copy' }
         $targets += @{ Path = (Join-Path $extensionDir 'logo.png');       Label = 'Extension logo.png copy' }
         $targets += @{ Path = (Join-Path $extensionDir 'small-logo.png'); Label = 'Extension small-logo.png copy' }
+
+        $instructionsDir = Join-Path $extensionDir 'instructions'
+        $targets += @{ Path = (Join-Path $instructionsDir '.generated');  Label = 'Generated instructions (.generated/)' }
+        $targets += @{ Path = (Join-Path $instructionsDir '.workspaces'); Label = 'Workspace instructions (.workspaces/)' }
     }
 
     foreach ($project in $dotnetProjects) {
