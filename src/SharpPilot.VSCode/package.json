@@ -4,7 +4,7 @@
   "description": "SharpPilot is a quality assurance extension for Visual Studio Code that leverages an MCP server to enable model-invokable tools and curated, configurable instructions—elevating code quality, workflows, and overall developer productivity with Copilot.",
   "version": "0.5.0",
   "publisher": "2site-net",
-  "license": "GPL-3.0-only",
+  "license": "AGPL-3.0-only",
   "author": {
     "name": "Eyal Alon",
     "email": "sharppilot@2site.net",
@@ -744,7 +744,7 @@
     }
   },
   "scripts": {
-    "vscode:prepublish": "npm run compile",
+    "vscode:prepublish": "npm run compile && node -e \"require('fs').copyFileSync('../../LICENSE','LICENSE')\"",
     "compile": "tsx src/chat-instructions-manifest.ts && tsc -p ./tsconfig.build.json",
     "watch": "tsc -watch -p ./tsconfig.build.json",
     "test": "vitest run --config tests/vitest.config.ts",
