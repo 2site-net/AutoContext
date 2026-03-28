@@ -13,7 +13,7 @@
     The build action to perform:
       Compile  — compile TypeScript and/or .NET sources
       Test     — run unit tests (without compiling)
-      Prepare  — Compile + Test + copy LICENSE into extension
+      Prepare  — Clean + Compile + Test + copy assets into extension
       Package  — Prepare + dotnet publish + vsce package
       Publish  — Package + vsce publish
 
@@ -29,8 +29,9 @@
     When omitted for Package/Publish, auto-detects the current platform.
 
 .PARAMETER Clean
-    Delete build artifacts. Can be combined with an action (e.g. -Clean Compile)
+    Delete build artifacts. Can be combined with Compile or Test,
     or used alone to only clean.
+    Mutually exclusive with Prepare, Package, and Publish (they already clean).
 
 .PARAMETER RuntimeIdentifier
     .NET runtime identifier for Package/Publish (e.g. win-x64, osx-arm64).
@@ -44,7 +45,7 @@
     .\build.ps1 Compile                          # Compile TS + .NET
     .\build.ps1 Compile TS                       # Compile TypeScript only
     .\build.ps1 Test DotNet                      # Test .NET only
-    .\build.ps1 Prepare                          # Compile + Test + LICENSE copy
+    .\build.ps1 Prepare                          # Clean + Compile + Test + copy assets
     .\build.ps1 Package                          # Prepare + build for current platform
     .\build.ps1 Package All                      # Prepare + build all 6 platforms
     .\build.ps1 Package -RuntimeIdentifier win-x64
@@ -182,7 +183,7 @@ function Show-Help {
     Write-Host '  (none)     Compile + Test (all sources)'
     Write-Host '  Compile    Compile TypeScript and/or .NET sources'
     Write-Host '  Test       Run unit tests (without compiling)'
-    Write-Host '  Prepare    Compile + Test + copy LICENSE into extension'
+    Write-Host '  Prepare    Clean + Compile + Test + copy assets into extension'
     Write-Host '  Package    Prepare + dotnet publish + vsce package'
     Write-Host "  Publish    Package + vsce publish`n"
 
@@ -193,7 +194,7 @@ function Show-Help {
     Write-Host "  All        Both TS + .NET; for Package/Publish: all 6 platforms`n"
 
     Write-Host 'SWITCHES' -ForegroundColor Yellow
-    Write-Host '  -Clean                Delete build artifacts (combinable with actions)'
+    Write-Host '  -Clean                Delete build artifacts (combinable with Compile/Test)'
     Write-Host '  -RuntimeIdentifier    .NET RID for Package/Publish (e.g. win-x64)'
     Write-Host '  -WhatIf               Preview changes without executing (works with any action and switch)'
     Write-Host "  -Help                 Show this help`n"
@@ -308,16 +309,23 @@ function Invoke-TestDotNet {
     }
 }
 
-function Invoke-CopyLicense {
+function Invoke-CopyAssets {
     [CmdletBinding(SupportsShouldProcess)]
     param()
 
-    $source = Join-Path $repoRoot 'LICENSE'
-    $destination = Join-Path $extensionDir 'LICENSE'
+    $assets = @(
+        @{ Source = 'LICENSE';       Label = 'LICENSE' }
+        @{ Source = 'logo.png';      Label = 'logo.png' }
+        @{ Source = 'small-logo.png'; Label = 'small-logo.png' }
+    )
 
-    if ($PSCmdlet.ShouldProcess($destination, 'Copy LICENSE')) {
-        Copy-Item -LiteralPath $source -Destination $destination -Force
-        Write-Status 'LICENSE copied to extension' 'OK'
+    foreach ($asset in $assets) {
+        $source      = Join-Path $repoRoot $asset.Source
+        $destination = Join-Path $extensionDir $asset.Source
+        if ($PSCmdlet.ShouldProcess($destination, "Copy $($asset.Label)")) {
+            Copy-Item -LiteralPath $source -Destination $destination -Force
+            Write-Status "$($asset.Label) copied to extension" 'OK'
+        }
     }
 }
 
@@ -446,11 +454,12 @@ function Invoke-Prepare {
     [CmdletBinding(SupportsShouldProcess)]
     param()
 
+    Invoke-Clean
     Invoke-Compile -Scope 'All'
     Invoke-Test -Scope 'All'
 
     Write-Header 'Prepare'
-    Invoke-CopyLicense
+    Invoke-CopyAssets
 }
 
 function Invoke-Package {
@@ -526,7 +535,9 @@ function Invoke-Clean {
         $targets += @{ Path = (Join-Path $extensionDir 'out');     Label = 'TypeScript output (out/)' }
         $targets += @{ Path = $mcpDir;                            Label = 'MCP servers (mcp/)' }
         $targets += @{ Path = $publishDir;                         Label = 'VSIX packages (publish/)' }
-        $targets += @{ Path = (Join-Path $extensionDir 'LICENSE'); Label = 'Extension LICENSE copy' }
+        $targets += @{ Path = (Join-Path $extensionDir 'LICENSE');       Label = 'Extension LICENSE copy' }
+        $targets += @{ Path = (Join-Path $extensionDir 'logo.png');       Label = 'Extension logo.png copy' }
+        $targets += @{ Path = (Join-Path $extensionDir 'small-logo.png'); Label = 'Extension small-logo.png copy' }
     }
 
     foreach ($project in $dotnetProjects) {
@@ -563,6 +574,10 @@ if ($Target -eq '.NET')       { $Target = 'DotNet' }
 # Validate mutually exclusive options
 if ($RuntimeIdentifier -and $Target -eq 'All') {
     throw '-RuntimeIdentifier and Target ''All'' are mutually exclusive.'
+}
+
+if ($Clean -and $Action -in 'Prepare', 'Package', 'Publish') {
+    throw "-Clean and '$Action' are mutually exclusive — $Action already performs a clean."
 }
 
 $resolvedTarget = if ($Target) { $Target } else { 'All' }
