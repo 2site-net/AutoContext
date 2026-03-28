@@ -1,8 +1,8 @@
 <Solution>
   <Folder Name="/src/">
-    <Project Path="src/SharpPilot/SharpPilot.csproj" />
+    <Project Path="src/SharpPilot.Mcp/SharpPilot.Mcp.csproj" />
   </Folder>
   <Folder Name="/tests/">
-    <Project Path="tests/SharpPilot.Tests/SharpPilot.Tests.csproj" />
+    <Project Path="src/SharpPilot.Mcp.Tests/SharpPilot.Mcp.Tests.csproj" />
   </Folder>
 </Solution>

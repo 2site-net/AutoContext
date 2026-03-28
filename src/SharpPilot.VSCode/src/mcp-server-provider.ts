@@ -41,7 +41,7 @@ export class McpServerProvider implements vscode.McpServerDefinitionProvider {
                 }
                 return new vscode.McpStdioServerDefinition(
                     s.label,
-                    join(this.serversPath, 'SharpPilot', `SharpPilot${this.ext}`),
+                    join(this.serversPath, 'SharpPilot.Mcp', `SharpPilot.Mcp${this.ext}`),
                     args,
                     undefined,
                     this.version,

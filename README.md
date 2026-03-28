@@ -29,8 +29,8 @@ Distributed as a VS Code extension — see [src/SharpPilot.VSCode/README.md](src
 
 ```text
 SharpPilot.slnx                  # Solution file
-src/SharpPilot/                  # MCP server (.NET + Git tools)
-tests/SharpPilot.Tests/          # xUnit tests
+src/SharpPilot.Mcp/              # MCP server (.NET + Git tools)
+src/SharpPilot.Mcp.Tests/        # xUnit tests
 src/SharpPilot.VSCode/            # VS Code extension (instructions, tools, rule management)
 ```
 
@@ -187,7 +187,7 @@ server code:
       "args": [
         "run",
         "--project",
-        "${workspaceFolder}/src/SharpPilot/SharpPilot.csproj",
+        "${workspaceFolder}/src/SharpPilot.Mcp/SharpPilot.Mcp.csproj",
         "--",
         "--scope",
         "dotnet"
@@ -199,7 +199,7 @@ server code:
       "args": [
         "run",
         "--project",
-        "${workspaceFolder}/src/SharpPilot/SharpPilot.csproj",
+        "${workspaceFolder}/src/SharpPilot.Mcp/SharpPilot.Mcp.csproj",
         "--",
         "--scope",
         "git"
@@ -211,7 +211,7 @@ server code:
       "args": [
         "run",
         "--project",
-        "${workspaceFolder}/src/SharpPilot/SharpPilot.csproj",
+        "${workspaceFolder}/src/SharpPilot.Mcp/SharpPilot.Mcp.csproj",
         "--",
         "--scope",
         "editorconfig"
