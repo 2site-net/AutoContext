@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { workspace, window, __setConfigStore } from './__mocks__/vscode';
-import { autoConfigure, contextKeysForEntry } from '../../src/auto-configurer';
+import { autoConfigure } from '../../src/auto-configurer';
+import { ContextKeys } from '../../src/context-keys';
 import { instructionsCatalog } from '../../src/instructions-catalog';
 import { toolsCatalog } from '../../src/tools-catalog';
 
@@ -58,7 +59,7 @@ describe('autoConfigure', () => {
         await autoConfigure(fakeDetector);
 
         const allEntries = [...instructionsCatalog.all, ...toolsCatalog.all];
-        const alwaysOnCount = allEntries.filter(e => contextKeysForEntry(e).length === 0).length;
+        const alwaysOnCount = allEntries.filter(e => ContextKeys.forEntry(e).length === 0).length;
 
         expect(window.showInformationMessage).toHaveBeenCalledWith(
             `SharpPilot: Enabled ${alwaysOnCount} of ${allEntries.length} items for this workspace.`,

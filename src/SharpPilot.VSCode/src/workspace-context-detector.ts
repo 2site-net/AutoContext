@@ -1,8 +1,6 @@
 import * as vscode from 'vscode';
 import { instructionsCatalog } from './instructions-catalog.js';
-import { overrideContextKey } from './toggle-context-keys.js';
-
-export { overrideContextKey };
+import { ContextKeys } from './context-keys.js';
 
 export class WorkspaceContextDetector implements vscode.Disposable {
     private readonly disposables: vscode.Disposable[] = [];
@@ -332,7 +330,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
                 setContext('sharppilot.workspace.hasWebTesting', hasVitest || hasJest || hasJasmine || hasMocha || hasPlaywright || hasCypress),
                 setContext('sharppilot.workspace.hasGit', hasGit),
                 ...instructionsCatalog.all.map(i =>
-                    setContext(overrideContextKey(i.settingId), overriddenFileNames.has(i.fileName)),
+                    setContext(ContextKeys.overrideKey(i.settingId), overriddenFileNames.has(i.fileName)),
                 ),
             ]);
 

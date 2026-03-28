@@ -2,10 +2,8 @@ import * as vscode from 'vscode';
 import type { CatalogEntry } from './catalog-entry.js';
 import { instructionsCatalog } from './instructions-catalog.js';
 import { toolsCatalog } from './tools-catalog.js';
-import { contextKeysForEntry } from './toggle-context-keys.js';
+import { ContextKeys } from './context-keys.js';
 import type { WorkspaceContextDetector } from './workspace-context-detector.js';
-
-export { contextKeysForEntry };
 
 export async function autoConfigure(detector: WorkspaceContextDetector): Promise<void> {
     const config = vscode.workspace.getConfiguration();
@@ -14,7 +12,7 @@ export async function autoConfigure(detector: WorkspaceContextDetector): Promise
     let enabled = 0;
 
     for (const entry of allEntries) {
-        const keys = contextKeysForEntry(entry);
+        const keys = ContextKeys.forEntry(entry);
         const relevant = keys.length === 0 || keys.some(k => detector.get(k));
 
         if (config.get<boolean>(entry.settingId, true) !== relevant) {

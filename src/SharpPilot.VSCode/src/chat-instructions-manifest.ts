@@ -5,7 +5,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { instructionsCatalog } from './instructions-catalog.js';
-import { contextKeysForEntry, overrideContextKey } from './toggle-context-keys.js';
+import { ContextKeys } from './context-keys.js';
 import type { CatalogEntry } from './catalog-entry.js';
 
 export interface ChatInstruction {
@@ -16,14 +16,14 @@ export interface ChatInstruction {
 function buildWhenClause(entry: CatalogEntry): string {
     const parts = [`config.${entry.settingId}`];
 
-    const ctxKeys = contextKeysForEntry(entry);
+    const ctxKeys = ContextKeys.forEntry(entry);
     if (ctxKeys.length === 1) {
         parts.push(`sharppilot.workspace.${ctxKeys[0]}`);
     } else if (ctxKeys.length > 1) {
         parts.push(`(${ctxKeys.map(k => `sharppilot.workspace.${k}`).join(' || ')})`);
     }
 
-    parts.push(`!${overrideContextKey(entry.settingId)}`);
+    parts.push(`!${ContextKeys.overrideKey(entry.settingId)}`);
 
     return parts.join(' && ');
 }
