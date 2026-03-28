@@ -7,7 +7,7 @@ SharpPilot is a quality assurance extension for Visual Studio Code that leverage
 ## Features
 
 - **60 Chat Instructions** — Curated Markdown guidelines for .NET, C#, F#, VB.NET, TypeScript, JavaScript, React, Angular, Vue, Svelte, Next.js, Node.js, Docker, Git, REST APIs, GraphQL, SQL, PowerShell, Bash, and more. One always-on instruction (`copilot.instructions.md`) plus 59 toggleable instructions automatically attached to every Copilot Chat conversation when their technology is detected in the workspace.
-- **11 MCP Tool Checks** across 3 server scopes — C# coding style, naming conventions, async patterns, member ordering, nullable context, project structure, test style, NuGet hygiene (DotNet); commit format, commit content (Git); EditorConfig resolution (EditorConfig).
+- **11 MCP Tool Checks** across 3 server categories — C# coding style, naming conventions, async patterns, member ordering, nullable context, project structure, test style, NuGet hygiene (DotNet); commit format, commit content (Git); EditorConfig resolution (EditorConfig).
 - **EditorConfig-Driven Enforcement** — Checkers read `.editorconfig` properties and enforce whichever direction the project specifies rather than just skipping conflicting rules.
 - **Workspace Detection** — Scans for project files, `package.json` dependencies, directory markers, and NuGet packages to set context keys that control which servers, tools, and instructions are active.
 - **Auto Configuration** — One command scans the workspace and enables only the instructions and tools relevant to the detected technologies.
@@ -33,7 +33,7 @@ dependencies. Each finding sets a boolean context key (e.g., `hasDotnet`,
 
 ### 2. Server registration
 
-One MCP server is registered per scope — **DotNet**, **Git**, and
+One MCP server is registered per category — **DotNet**, **Git**, and
 **EditorConfig**. A server is only registered when:
 
 - Its context key is true (the workspace contains matching content).
@@ -74,8 +74,8 @@ README for details.
 Once installed, the following tools are available to GitHub Copilot in Agent
 mode. Invoke them by asking Copilot to check your code or commits.
 
-| Scope | Tool | Purpose |
-|-------|------|---------|
+| Category | Tool | Purpose |
+|----------|------|---------|
 | .NET | `check_dotnet` | Composite C# quality check (style, naming, async, structure, …) |
 | .NET | `check_nuget_hygiene` | Package version and hygiene check |
 | Git | `check_git_commit` | Conventional Commits format and content check |

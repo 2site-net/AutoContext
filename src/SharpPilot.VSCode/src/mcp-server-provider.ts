@@ -30,11 +30,11 @@ export class McpServerProvider implements vscode.McpServerDefinitionProvider {
                 if (s.contextKey && !this.workspaceContextDetector.get(s.contextKey)) {
                     return false;
                 }
-                const toolSettings = toolsCatalog.getSettingIdByCategory(s.scope);
+                const toolSettings = toolsCatalog.getSettingIdByCategory(s.category);
                 return toolSettings.length === 0 || toolSettings.some(id => config.get(id) !== false);
             })
             .map(s => {
-                const args = ['--scope', s.scope];
+                const args = ['--scope', s.category];
                 const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
                 if (workspaceFolder) {
                     args.push('--workspace', workspaceFolder.uri.fsPath);

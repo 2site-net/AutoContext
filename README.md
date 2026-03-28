@@ -9,7 +9,7 @@ Distributed as a VS Code extension — see [src/SharpPilot.VSCode/README.md](src
 ## Features
 
 - **60 Chat Instructions** — Curated Markdown guidelines for .NET, C#, F#, VB.NET, TypeScript, JavaScript, React, Angular, Vue, Svelte, Next.js, Node.js, Docker, Git, REST APIs, GraphQL, SQL, PowerShell, Bash, and more. One always-on instruction (`copilot.instructions.md`) plus 59 toggleable instructions automatically attached to every Copilot Chat conversation when their technology is detected in the workspace.
-- **11 MCP Tool Checks** across 3 server scopes — C# coding style, naming conventions, async patterns, member ordering, nullable context, project structure, test style, NuGet hygiene (DotNet); commit format, commit content (Git); EditorConfig resolution (EditorConfig).
+- **11 MCP Tool Checks** across 3 server categories — C# coding style, naming conventions, async patterns, member ordering, nullable context, project structure, test style, NuGet hygiene (DotNet); commit format, commit content (Git); EditorConfig resolution (EditorConfig).
 - **EditorConfig-Driven Enforcement** — Checkers read `.editorconfig` properties and enforce whichever direction the project specifies rather than just skipping conflicting rules.
 - **Workspace Detection** — Scans for project files, `package.json` dependencies, directory markers, and NuGet packages to set context keys that control which servers, tools, and instructions are active.
 - **Auto Configuration** — One command scans the workspace and enables only the instructions and tools relevant to the detected technologies.
@@ -49,9 +49,10 @@ order and the output of each becomes the input of the one below it.
 │     context keys (hasDotnet, hasGit, hasTypeScript, …).             │
 ├─────────────────────────────────────────────────────────────────────┤
 │  2. Server Registration                                             │
-│     The extension registers one MCP server per scope (dotnet, git,  │
-│     editorconfig). A server is only registered when its context key │
-│     is true AND at least one of its tools is enabled in settings.   │
+│     The extension registers one MCP server per category (dotnet,    │
+│     git, editorconfig). A server is only registered when its        │
+│     context key is true AND at least one of its tools is enabled    │
+│     in settings.                                                    │
 ├─────────────────────────────────────────────────────────────────────┤
 │  3. Instruction Injection                                           │
 │     60 instruction files are conditionally injected into Copilot's  │
@@ -122,16 +123,16 @@ user-facing statement of this precedence.
 
 ## Servers and Tools
 
-The MCP server exposes three tool scopes. The VS Code extension registers the
-server three times — `--scope dotnet`, `--scope git`, and `--scope editorconfig`
-— so that .NET, Git, and EditorConfig tools appear in separate sections in the
-tools UI.
+The MCP server exposes three tool categories. The VS Code extension registers
+the server three times — `--scope dotnet`, `--scope git`, and
+`--scope editorconfig` — so that .NET, Git, and EditorConfig tools appear in
+separate sections in the tools UI.
 
 Servers are workspace-aware: the extension only registers a server when the
 workspace contains matching content (e.g., `.csproj` files for .NET, `.git`
 directory for Git). The EditorConfig server is always available regardless of
-workspace content. If all sub-checks for a scope are disabled in settings, that
-server is not registered at all.
+workspace content. If all sub-checks for a category are disabled in settings,
+that server is not registered at all.
 
 ### SharpPilot: DotNet
 

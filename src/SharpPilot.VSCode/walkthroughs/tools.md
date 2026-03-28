@@ -2,17 +2,17 @@
 
 SharpPilot registers MCP (Model Context Protocol) servers that expose quality-assurance tools to Copilot. In agent mode, Copilot can call these tools to check your code on the spot.
 
-### Server scopes
+### Server categories
 
-Tools are organized into three server scopes, each activated by workspace context:
+Tools are organized into three server categories, each activated by workspace context:
 
-| Scope | Activates when | Tools |
+| Category | Activates when | Tools |
 |-------|---------------|-------|
 | **DotNet** | `.csproj`, `.fsproj`, `.vbproj`, `.sln`, or `.slnx` detected | C# async patterns, coding style, member ordering, naming conventions, nullable context, project structure, test style, NuGet hygiene |
 | **Git** | `.git` folder detected | Commit format, commit content |
 | **EditorConfig** | Always active | EditorConfig check |
 
-A server scope is filtered out entirely if its workspace context is not present or all its tools are disabled.
+A server category is filtered out entirely if its workspace context is not present or all its tools are disabled.
 
 ### How it works
 
