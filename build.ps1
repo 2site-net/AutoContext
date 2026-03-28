@@ -511,7 +511,7 @@ function Invoke-Publish {
         $vsixName = "$name-$vsceTarget-$version.vsix"
         $vsixPath = Join-Path $publishDir $vsixName
 
-        if (Test-Path $vsixPath) {
+        if (-not $WhatIfPreference -and (Test-Path $vsixPath)) {
             Write-Status "Found existing $vsixName — skipping build for $rid" 'INFO'
         }
         else {
