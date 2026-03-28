@@ -93,7 +93,7 @@ $vitestConfig = Get-ChildItem $repoRoot -Filter 'vitest.config.ts' -Recurse -Fil
     Select-Object -First 1
 $vitestConfigPath = if ($vitestConfig) { $vitestConfig.FullName } else { $null }
 
-$serversDir = if ($extensionDir) { Join-Path $extensionDir 'servers' } else { $null }
+$mcpDir = if ($extensionDir) { Join-Path $extensionDir 'mcp' } else { $null }
 $publishDir = if ($extensionDir) { Join-Path $extensionDir 'publish' } else { $null }
 
 # Discover solution file (.slnx preferred, .sln fallback)
@@ -330,7 +330,7 @@ function Invoke-DotNetPublish {
     if ($PSCmdlet.ShouldProcess("$serverProjectPath → $Rid", 'dotnet publish')) {
         Assert-ExternalCommand 'dotnet'
 
-        if (Test-Path $serversDir) { Remove-Item $serversDir -Recurse -Force }
+        if (Test-Path $mcpDir) { Remove-Item $mcpDir -Recurse -Force }
 
         $publishArgs = @(
             'publish'
@@ -341,7 +341,7 @@ function Invoke-DotNetPublish {
         )
 
         $serverName = [System.IO.Path]::GetFileNameWithoutExtension($serverProjectPath)
-        dotnet @publishArgs $serverProjectPath -o (Join-Path $serversDir $serverName)
+        dotnet @publishArgs $serverProjectPath -o (Join-Path $mcpDir $serverName)
         if ($LASTEXITCODE -ne 0) { throw "dotnet publish failed for $Rid." }
         Write-Status ".NET server published ($Rid)" 'OK'
     }
@@ -469,7 +469,7 @@ function Invoke-Package {
         }
 
         # Clean up staging directory — each VSIX already contains its server binary
-        if (Test-Path $serversDir) { Remove-Item $serversDir -Recurse -Force }
+        if (Test-Path $mcpDir) { Remove-Item $mcpDir -Recurse -Force }
     }
     else {
         # Single platform: explicit -RuntimeIdentifier or auto-detect
@@ -524,7 +524,7 @@ function Invoke-Clean {
 
     if ($extensionDir) {
         $targets += @{ Path = (Join-Path $extensionDir 'out');     Label = 'TypeScript output (out/)' }
-        $targets += @{ Path = $serversDir;                         Label = 'MCP servers (servers/)' }
+        $targets += @{ Path = $mcpDir;                            Label = 'MCP servers (mcp/)' }
         $targets += @{ Path = $publishDir;                         Label = 'VSIX packages (publish/)' }
         $targets += @{ Path = (Join-Path $extensionDir 'LICENSE'); Label = 'Extension LICENSE copy' }
     }

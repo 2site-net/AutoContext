@@ -17,7 +17,7 @@ export class McpServerProvider implements vscode.McpServerDefinitionProvider {
         private readonly workspaceContextDetector: WorkspaceContextDetector,
         onDidChange: vscode.Event<void>,
     ) {
-        this.serversPath = join(extensionPath, 'servers');
+        this.serversPath = join(extensionPath, 'mcp');
         this.ext = process.platform === 'win32' ? '.exe' : '';
         this.version = version;
         this.onDidChangeMcpServerDefinitions = onDidChange;
