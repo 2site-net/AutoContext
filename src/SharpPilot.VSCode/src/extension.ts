@@ -1,8 +1,4 @@
 import * as vscode from 'vscode';
-import { join } from 'node:path';
-import { servers } from './server-entry.js';
-import { instructionsCatalog } from './instructions-catalog.js';
-import { toolsCatalog } from './tools-catalog.js';
 import { StatusBarIndicator } from './status-bar-indicator.js';
 import { WorkspaceContextDetector } from './workspace-context-detector.js';
 import { ToolsStatusWriter } from './tools-status-writer.js';
@@ -16,16 +12,15 @@ import { InstructionsContentProvider, instructionScheme } from './instructions-c
 import { InstructionsCodeLensProvider, toggleInstructionCommandId, resetInstructionsCommandId } from './instructions-codelens-provider.js';
 import { InstructionsDecorationManager } from './instructions-decoration-manager.js';
 import { InstructionsWriter } from './instructions-writer.js';
-import { InstructionsParser } from './instructions-parser.js';
-import { readFileSync } from 'node:fs';
+import { InstructionsDiagnostics } from './instructions-diagnostics.js';
+import { McpServerProvider } from './mcp-server-provider.js';
+import { toolsCatalog } from './tools-catalog.js';
 
 export function activate(context: vscode.ExtensionContext): void {
     if (!vscode.workspace.workspaceFolders?.length) {
         return;
     }
 
-    const serversPath = join(context.extensionPath, 'servers');
-    const ext = process.platform === 'win32' ? '.exe' : '';
     const version = context.extension.packageJSON.version as string;
     const didChangeEmitter = new vscode.EventEmitter<void>();
 
@@ -41,30 +36,9 @@ export function activate(context: vscode.ExtensionContext): void {
     const decorationManager = new InstructionsDecorationManager(context.extensionPath, configManager);
     const instructionsWriter = new InstructionsWriter(context.extensionPath, configManager);
     const outputChannel = vscode.window.createOutputChannel('SharpPilot');
+    const mcpServerProvider = new McpServerProvider(context.extensionPath, version, workspaceContextDetector, didChangeEmitter.event);
 
-    function logDiagnostics(): void {
-        outputChannel.clear();
-        const warnOnMissingId = configManager.read().diagnostic?.warnOnMissingId === true;
-
-        for (const entry of instructionsCatalog.all) {
-            let content: string;
-            try {
-                content = readFileSync(join(context.extensionPath, 'instructions', entry.fileName), 'utf-8');
-            } catch {
-                continue;
-            }
-
-            const { diagnostics } = InstructionsParser.parse(content);
-
-            for (const d of diagnostics) {
-                if (d.kind === 'missing-id' && !warnOnMissingId) {
-                    continue;
-                }
-
-                outputChannel.appendLine(`[warn] ${entry.fileName}:${d.line + 1} — ${d.message}`);
-            }
-        }
-    }
+    const logDiagnostics = () => InstructionsDiagnostics.log(outputChannel, context.extensionPath, configManager);
 
     toolsStatusWriter.write();
     workspaceContextDetector.detect();
@@ -138,37 +112,7 @@ export function activate(context: vscode.ExtensionContext): void {
             }
         }),
         workspaceContextDetector.onDidChange(() => didChangeEmitter.fire()),
-        vscode.lm.registerMcpServerDefinitionProvider('sharpPilotProvider', {
-            onDidChangeMcpServerDefinitions: didChangeEmitter.event,
-            provideMcpServerDefinitions: async () => {
-                const config = vscode.workspace.getConfiguration();
-                return servers
-                    .filter(s => {
-                        if (s.contextKey && !workspaceContextDetector.get(s.contextKey)) {
-                            return false;
-                        }
-                        const toolSettings = toolsCatalog.getSettingIdByCategory(s.scope);
-                        return toolSettings.length === 0 || toolSettings.some(id => config.get(id) !== false);
-                    })
-                    .map(
-                        s => {
-                            const args = ['--scope', s.scope];
-                            const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
-                            if (workspaceFolder) {
-                                args.push('--workspace', workspaceFolder.uri.fsPath);
-                            }
-                            return new vscode.McpStdioServerDefinition(
-                                s.label,
-                                join(serversPath, 'SharpPilot', `SharpPilot${ext}`),
-                                args,
-                                undefined,
-                                version,
-                            );
-                        },
-                    );
-            },
-            resolveMcpServerDefinition: async (server) => server,
-        }),
+        vscode.lm.registerMcpServerDefinitionProvider('sharpPilotProvider', mcpServerProvider),
     );
 }
 
