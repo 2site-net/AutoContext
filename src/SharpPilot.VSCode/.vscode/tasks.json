@@ -11,13 +11,6 @@
       "script": "watch",
       "isBackground": true,
       "problemMatcher": "$tsc-watch"
-    },
-    {
-      "label": "publish-servers",
-      "type": "shell",
-      "command": "pwsh",
-      "args": ["scripts/publish-servers.ps1"],
-      "problemMatcher": []
     }
   ]
 }

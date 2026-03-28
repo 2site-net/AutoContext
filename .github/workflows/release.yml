@@ -38,30 +38,14 @@ jobs:
         working-directory: src/SharpPilot.VSCode
         run: npm ci
 
-      - name: .NET tests
-        run: dotnet test
-
-      - name: TypeScript tests
-        working-directory: src/SharpPilot.VSCode
-        run: npm test
-
       - name: Set version in package.json
         working-directory: src/SharpPilot.VSCode
         run: npm version "$GITHUB_REF_NAME" --no-git-tag-version --allow-same-version
 
-      - name: Package all platforms
-        working-directory: src/SharpPilot.VSCode
-        run: npm run package:all
-
-      - name: Publish to VS Code Marketplace
-        working-directory: src/SharpPilot.VSCode
+      - name: Package and publish
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
-        run: |
-          for vsix in publish/*.vsix; do
-            echo "Publishing $vsix..."
-            npx vsce publish --packagePath "$vsix"
-          done
+        run: pwsh ./build.ps1 Publish All
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2

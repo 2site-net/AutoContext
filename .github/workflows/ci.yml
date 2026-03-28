@@ -30,16 +30,5 @@ jobs:
         working-directory: src/SharpPilot.VSCode
         run: npm ci
 
-      - name: .NET build
-        run: dotnet build
-
-      - name: .NET tests
-        run: dotnet test --no-build
-
-      - name: TypeScript type-check
-        working-directory: src/SharpPilot.VSCode
-        run: npx tsc --noEmit
-
-      - name: TypeScript tests
-        working-directory: src/SharpPilot.VSCode
-        run: npm test
+      - name: Build and test
+        run: pwsh ./build.ps1

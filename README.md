@@ -223,18 +223,10 @@ server code:
 
 ## Testing
 
-### MCP Server (xUnit)
-
-```sh
-dotnet test tests/SharpPilot.Tests/SharpPilot.Tests.csproj
-```
-
-### VS Code Extension — Unit Tests (Vitest)
-
-```sh
-cd src/SharpPilot.VSCode
-npm install
-npm test
+```powershell
+./build.ps1                   # compile + test (all)
+./build.ps1 Test TS           # TypeScript tests only
+./build.ps1 Test DotNet       # .NET tests only
 ```
 
 ### VS Code Extension — Smoke Tests
@@ -253,13 +245,10 @@ in `src/SharpPilot.VSCode/.vscode-test/`.
 
 ## Building and Publishing the Extension
 
-Package a platform-specific VSIX:
-
-```sh
-cd src/SharpPilot.VSCode
-npm install
-npm run package:win-x64      # or osx-arm64, linux-x64, etc.
-npm run package:all           # all platforms
+```powershell
+./build.ps1 Package                          # current platform
+./build.ps1 Package All                      # all 6 platforms
+./build.ps1 Package -RuntimeIdentifier win-x64
 ```
 
 Available targets: `win-x64`, `win-arm64`, `linux-x64`, `linux-arm64`,
@@ -269,10 +258,9 @@ Publish to the VS Code Marketplace (requires a
 [Personal Access Token](https://dev.azure.com/_usersSettings/tokens) with
 **Marketplace → Manage** scope):
 
-```sh
-cd src/SharpPilot.VSCode
-npx vsce login <publisher-id>
-npm run publish:all
+```powershell
+./build.ps1 Publish           # current platform
+./build.ps1 Publish All       # all 6 platforms
 ```
 
 ## License
