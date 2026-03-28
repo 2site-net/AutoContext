@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import type { InstructionsCatalogEntry } from './instructions-catalog-entry.js';
-import { getUnexportedInstructions } from './instructions-export-state.js';
+import { InstructionsExportState } from './instructions-export-state.js';
 import { instructionScheme } from './instructions-content-provider.js';
 
 type BrowseItem = vscode.QuickPickItem & { entry?: InstructionsCatalogEntry };
@@ -8,7 +8,7 @@ type BrowseItem = vscode.QuickPickItem & { entry?: InstructionsCatalogEntry };
 export class InstructionsBrowser {
 
     async browse(): Promise<void> {
-        const availableInstructions = await getUnexportedInstructions();
+        const availableInstructions = await InstructionsExportState.getUnexportedFiles();
         if (availableInstructions.length === 0) {
             await vscode.window.showInformationMessage('All instructions are exported. Delete one to browse it here again.');
             return;

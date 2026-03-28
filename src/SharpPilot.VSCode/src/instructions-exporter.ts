@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import type { InstructionsCatalogEntry } from './instructions-catalog-entry.js';
-import { getUnexportedInstructions } from './instructions-export-state.js';
+import { InstructionsExportState } from './instructions-export-state.js';
 
 export class InstructionsExporter {
     constructor(private readonly extensionPath: string) {}
@@ -15,7 +15,7 @@ export class InstructionsExporter {
 
         const rootUri = workspaceFolder.uri;
 
-        const availableInstructions = await getUnexportedInstructions();
+        const availableInstructions = await InstructionsExportState.getUnexportedFiles();
         if (availableInstructions.length === 0) {
             await vscode.window.showInformationMessage('All instructions are already exported.');
             return;

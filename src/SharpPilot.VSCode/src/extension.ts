@@ -7,10 +7,10 @@ import { StatusBarIndicator } from './status-bar-indicator.js';
 import { WorkspaceContextDetector } from './workspace-context-detector.js';
 import { ToolsStatusWriter } from './tools-status-writer.js';
 import { MenuToggler } from './menu-toggler.js';
-import { autoConfigure } from './auto-configurer.js';
+import { AutoConfigurer } from './auto-configurer.js';
 import { InstructionsExporter } from './instructions-exporter.js';
 import { InstructionsBrowser } from './instructions-browser.js';
-import { getUnexportedInstructions } from './instructions-export-state.js';
+import { InstructionsExportState } from './instructions-export-state.js';
 import { SharpPilotConfigManager } from './sharppilot-config.js';
 import { InstructionsContentProvider, instructionScheme } from './instructions-content-provider.js';
 import { InstructionsCodeLensProvider, toggleInstructionCommandId, resetInstructionsCommandId } from './instructions-codelens-provider.js';
@@ -91,7 +91,7 @@ export function activate(context: vscode.ExtensionContext): void {
         vscode.commands.registerCommand('sharppilot.toggleTools', async () => { await toolsToggler.toggle(); statusBarIndicator.update(); }),
         // Instructions management
         vscode.commands.registerCommand('sharppilot.toggleInstructions', async () => {
-            const availableInstructions = await getUnexportedInstructions();
+            const availableInstructions = await InstructionsExportState.getUnexportedFiles();
             if (availableInstructions.length === 0) {
                 await vscode.window.showInformationMessage('All instructions are exported. Delete one to toggle it here again.');
                 return;
@@ -110,7 +110,7 @@ export function activate(context: vscode.ExtensionContext): void {
         vscode.commands.registerCommand('sharppilot.exportInstructions', () => instructionsExporter.export()),
         vscode.commands.registerCommand('sharppilot.browseInstructions', () => instructionsBrowser.browse()),
         // Workspace auto-configuration (instructions + tools)
-        vscode.commands.registerCommand('sharppilot.autoConfigure', async () => { await autoConfigure(workspaceContextDetector); statusBarIndicator.update(); }),
+        vscode.commands.registerCommand('sharppilot.autoConfigure', async () => { await AutoConfigurer.configure(workspaceContextDetector); statusBarIndicator.update(); }),
         // CodeLens (internal)
         vscode.commands.registerCommand(toggleInstructionCommandId, (fileName: string, id: string) => {
             configManager.toggleInstruction(fileName, id);

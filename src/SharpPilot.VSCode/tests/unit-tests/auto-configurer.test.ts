@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { workspace, window, __setConfigStore } from './__mocks__/vscode';
-import { autoConfigure } from '../../src/auto-configurer';
+import { AutoConfigurer } from '../../src/auto-configurer';
 import { ContextKeys } from '../../src/context-keys';
 import { instructionsCatalog } from '../../src/instructions-catalog';
 import { toolsCatalog } from '../../src/tools-catalog';
@@ -15,11 +15,11 @@ beforeEach(() => {
     vi.mocked(fakeDetector.get).mockReset();
 });
 
-describe('autoConfigure', () => {
+describe('AutoConfigurer.configure', () => {
     it('should enable always-on entries and disable others when nothing is detected', async () => {
         vi.mocked(fakeDetector.get).mockReturnValue(false);
 
-        await autoConfigure(fakeDetector);
+        await AutoConfigurer.configure(fakeDetector);
 
         const config = vi.mocked(workspace.getConfiguration).mock.results[0].value;
         const updates = vi.mocked(config.update).mock.calls;
@@ -37,7 +37,7 @@ describe('autoConfigure', () => {
     it('should enable .NET entries when hasDotnet is detected', async () => {
         vi.mocked(fakeDetector.get).mockImplementation((key: string) => key === 'hasDotnet');
 
-        await autoConfigure(fakeDetector);
+        await AutoConfigurer.configure(fakeDetector);
 
         const config = vi.mocked(workspace.getConfiguration).mock.results[0].value;
         const updates = vi.mocked(config.update).mock.calls;
@@ -56,7 +56,7 @@ describe('autoConfigure', () => {
     it('should show an info message with the count of enabled items', async () => {
         vi.mocked(fakeDetector.get).mockReturnValue(false);
 
-        await autoConfigure(fakeDetector);
+        await AutoConfigurer.configure(fakeDetector);
 
         const allEntries = [...instructionsCatalog.all, ...toolsCatalog.all];
         const alwaysOnCount = allEntries.filter(e => ContextKeys.forEntry(e).length === 0).length;
@@ -72,7 +72,7 @@ describe('autoConfigure', () => {
         });
         vi.mocked(fakeDetector.get).mockReturnValue(false);
 
-        await autoConfigure(fakeDetector);
+        await AutoConfigurer.configure(fakeDetector);
 
         const config = vi.mocked(workspace.getConfiguration).mock.results[0].value;
         const updatedIds = vi.mocked(config.update).mock.calls.map(([id]: [string]) => id);
