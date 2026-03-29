@@ -267,8 +267,17 @@ appear in the tools picker. Ask Copilot things like:
 You can verify the servers are running via the Command Palette →
 **MCP: List Servers**.
 
+## License
+
+SharpPilot is licensed under the [AGPL-3.0](LICENSE). A separate
+[commercial license](COMMERCIAL.md) is available for organizations that
+want to use SharpPilot under terms different from the AGPL-3.0.
+
+Use of the SharpPilot name and logo is subject to
+[TRADEMARKS.md](TRADEMARKS.md).
+
 ## Source
 
-The source code and contribution guidelines are available at
-[github.com/2site-net/SharpPilot](https://github.com/2site-net/SharpPilot).
-
+[github.com/2site-net/SharpPilot](https://github.com/2site-net/SharpPilot) —
+see [CONTRIBUTING.md](https://github.com/2site-net/SharpPilot/blob/main/CONTRIBUTING.md)
+for contribution guidelines.

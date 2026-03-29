@@ -318,8 +318,10 @@ function Invoke-CopyAssets {
     param()
 
     $assets = @(
-        @{ Source = 'LICENSE';       Label = 'LICENSE' }
-        @{ Source = 'logo.png';      Label = 'logo.png' }
+        @{ Source = 'LICENSE';        Label = 'LICENSE' }
+        @{ Source = 'COMMERCIAL.md';  Label = 'COMMERCIAL.md' }
+        @{ Source = 'TRADEMARKS.md';  Label = 'TRADEMARKS.md' }
+        @{ Source = 'logo.png';       Label = 'logo.png' }
         @{ Source = 'small-logo.png'; Label = 'small-logo.png' }
     )
 

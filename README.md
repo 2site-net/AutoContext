@@ -265,5 +265,13 @@ Publish to the VS Code Marketplace (requires a
 
 ## License
 
-[AGPL-3.0](LICENSE). By contributing, you agree to the [Contributor License Agreement](CLA.md).
+SharpPilot is licensed under the [AGPL-3.0](LICENSE). A separate
+[commercial license](COMMERCIAL.md) is available for organizations that
+want to use SharpPilot under terms different from the AGPL-3.0.
 
+Use of the SharpPilot name and logo is subject to
+[TRADEMARKS.md](TRADEMARKS.md).
+
+By submitting a contribution, you agree to the
+[Contributor License Agreement](CLA.md). See
+[CONTRIBUTING.md](CONTRIBUTING.md) for how to get started.
