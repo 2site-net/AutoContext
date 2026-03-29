@@ -32,9 +32,9 @@ Commercial licenses are available at no charge for organizations with **5 or few
 
 For organizations with **more than 5 developers**, the following plans are available. A **seat** is one developer authorized to use SharpPilot under the commercial license.
 
-| Plan    | Price                                   |
-| ------- | --------------------------------------- |
-| Monthly | $8 / seat / month                      |
+| Plan    | Price                                 |
+| ------- | --------------------------------------|
+| Monthly | $8 / seat / month                     |
 | Annual  | $6 / seat / month ($72 / seat / year) |
 
 ## Contact
