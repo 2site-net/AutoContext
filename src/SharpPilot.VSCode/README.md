@@ -33,7 +33,7 @@ One MCP server is registered per category — **DotNet**, **Git**, and **EditorC
 - Its context key is true (the workspace contains matching content).
 - At least one of its tools is enabled in settings.
 
-If either condition is not met the server does not appear at all.
+If either condition is not met the server does not appear at all. The EditorConfig server is an exception — it is always active regardless of workspace content.
 
 ### 3. Instruction injection
 

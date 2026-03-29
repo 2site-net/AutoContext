@@ -20,7 +20,7 @@ Distributed as a VS Code extension — see [src/SharpPilot.VSCode/README.md](src
 - **Multi-Window Safe** — Per-workspace staging directories with hash-based isolation and automatic cleanup of stale directories older than one hour.
 - **Diagnostics** — Parses every instruction file on activation and logs warnings (missing IDs, duplicate IDs, malformed IDs) to the SharpPilot Output channel.
 
-## Prerequisites
+## Build Prerequisites
 
 - [.NET 10 SDK](https://dotnet.microsoft.com/download) or later
 - [Node.js](https://nodejs.org/) 18+ — required to build the VS Code extension
@@ -239,4 +239,4 @@ Use of the SharpPilot name and logo is subject to [TRADEMARKS.md](TRADEMARKS.md)
 
 ## Contributing
 
-By submitting a contribution, you agree to the [Contributor License Agreement](CLA.md). See [CONTRIBUTING.md](CONTRIBUTING.md) for how to get started.
+Contributions require acceptance of the [Contributor License Agreement](CLA.md). See [CONTRIBUTING.md](CONTRIBUTING.md) for how to get started.

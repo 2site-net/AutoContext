@@ -20,4 +20,4 @@ Open the multi-select menu to control which instruction sets are active. Instruc
 
 ### Exported instructions
 
-If you have instruction files in `.github/instructions/` that match a built-in instruction by filename, those instructions are automatically hidden from the toggle menu. The exported workspace-level file takes precedence. Delete the exported file to bring the built-in instruction back into the toggle menu.
+If you have instruction files in `.github/instructions/` that match a built-in instruction by filename, those instructions are automatically hidden from the Toggle, Browse, and Export menus. The exported workspace-level file takes precedence. Delete the exported file to bring the built-in instruction back into those menus.

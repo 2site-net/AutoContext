@@ -4,7 +4,7 @@ Contributions are welcome. Before submitting, please review the following.
 
 ## Contributor License Agreement
 
-By submitting a contribution, you agree to the [Contributor License Agreement](CLA.md).
+Contributions require acceptance of the [Contributor License Agreement](CLA.md) through the signing process described there.
 
 ## Getting Started
 

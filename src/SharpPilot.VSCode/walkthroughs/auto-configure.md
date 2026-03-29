@@ -16,7 +16,7 @@ For each instruction and tool, auto-configure checks whether any of its context 
 
 ### Status bar
 
-The status bar shows the current counts at a glance: `$(book) X/Y $(tools) X/Y`. Click it to open a menu where you can toggle instructions, toggle tools, or run auto-configure.
+The status bar shows the current counts at a glance: `$(book) X/59 $(tools) X/11`. Click it to open a menu where you can toggle instructions, toggle tools, or run auto-configure.
 
 ### Run auto configure
 
