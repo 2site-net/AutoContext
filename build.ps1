@@ -97,6 +97,14 @@ $vitestConfigPath = if ($vitestConfig) { $vitestConfig.FullName } else { $null }
 $mcpDir = if ($extensionDir) { Join-Path $extensionDir 'mcp' } else { $null }
 $publishDir = if ($extensionDir) { Join-Path $extensionDir 'publish' } else { $null }
 
+# Read extension version from package.json
+$extensionVersion = if ($extensionDir) {
+    $packageJsonPath = Join-Path $extensionDir 'package.json'
+    if (Test-Path $packageJsonPath) {
+        (Get-Content $packageJsonPath -Raw | ConvertFrom-Json).version
+    }
+}
+
 # Discover solution file (.slnx preferred, .sln fallback)
 $solutionFile = Get-ChildItem $repoRoot -Filter '*.slnx' -File | Select-Object -First 1
 if (-not $solutionFile) {
@@ -585,6 +593,11 @@ if ($Clean -and $Action -in 'Prepare', 'Package', 'Publish') {
 }
 
 $resolvedTarget = if ($Target) { $Target } else { 'All' }
+
+if ($extensionVersion) {
+    Write-Host "SharpPilot v$extensionVersion" -ForegroundColor Magenta
+    Write-Host ''
+}
 
 if ($Clean) {
     Invoke-Clean
