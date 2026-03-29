@@ -4,7 +4,7 @@ Thank you for your interest in contributing to **SharpPilot**.
 
 To keep the project legally clear for both contributors and maintainers, contributions to this repository are made under the terms of this Contributor License Agreement ("Agreement").
 
-## How to sign
+## Signing
 
 By submitting a pull request, you agree that your contribution is offered under this CLA if you also add the following comment to the pull request:
 
