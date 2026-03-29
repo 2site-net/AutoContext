@@ -2,7 +2,7 @@ import * as assert from 'node:assert/strict';
 import * as vscode from 'vscode';
 
 suite('Extension Smoke Tests', () => {
-    const extensionId = 'iam3yal.sharppilot';
+    const extensionId = '2site-net.sharppilot';
 
     test('extension should be present', () => {
         const ext = vscode.extensions.getExtension(extensionId);

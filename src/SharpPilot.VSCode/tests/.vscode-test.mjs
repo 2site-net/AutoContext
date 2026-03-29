@@ -8,5 +8,5 @@ export default defineConfig({
     files: '../out/tests/smoke-tests/**/*.test.js',
     extensionDevelopmentPath: root,
     mocha: { timeout: 10_000 },
-    launchArgs: ['--disable-extensions'],
+    launchArgs: ['--disable-extensions', root],
 });
