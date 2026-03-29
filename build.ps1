@@ -84,25 +84,21 @@ $ErrorActionPreference = 'Stop'
 
 $repoRoot = $PSScriptRoot
 
-# Discover VS Code extension directory from tsconfig.build.json
-$tsconfigBuild = Get-ChildItem $repoRoot -Filter 'tsconfig.build.json' -Recurse -File -Depth 3 |
-    Select-Object -First 1
-$extensionDir = if ($tsconfigBuild) { $tsconfigBuild.DirectoryName } else { $null }
+# VS Code extension directory (fixed — used for packaging, publishing, assets)
+$extensionDir = Join-Path $repoRoot 'src' 'SharpPilot.VSCode'
 
 # Discover vitest config
 $vitestConfig = Get-ChildItem $repoRoot -Filter 'vitest.config.ts' -Recurse -File -Depth 4 |
     Select-Object -First 1
 $vitestConfigPath = if ($vitestConfig) { $vitestConfig.FullName } else { $null }
 
-$mcpDir = if ($extensionDir) { Join-Path $extensionDir 'mcp' } else { $null }
-$publishDir = if ($extensionDir) { Join-Path $extensionDir 'publish' } else { $null }
+$mcpDir = Join-Path $extensionDir 'mcp'
+$publishDir = Join-Path $extensionDir 'publish'
 
 # Read extension version from package.json
-$extensionVersion = if ($extensionDir) {
-    $packageJsonPath = Join-Path $extensionDir 'package.json'
-    if (Test-Path $packageJsonPath) {
-        (Get-Content $packageJsonPath -Raw | ConvertFrom-Json).version
-    }
+$packageJsonPath = Join-Path $extensionDir 'package.json'
+$extensionVersion = if (Test-Path $packageJsonPath) {
+    (Get-Content $packageJsonPath -Raw | ConvertFrom-Json).version
 }
 
 # Discover solution file (.slnx preferred, .sln fallback)
@@ -236,7 +232,7 @@ function Invoke-CompileTS {
 
     Write-Section 'Compile TypeScript'
 
-    if (-not $extensionDir) { throw 'No tsconfig.build.json found — cannot locate TypeScript project.' }
+    if (-not (Test-Path $extensionDir)) { throw "Extension directory not found: $extensionDir" }
 
     if ($PSCmdlet.ShouldProcess('chat-instructions manifest + tsc', 'Compile TypeScript')) {
         Assert-ExternalCommand 'npx'
@@ -539,18 +535,16 @@ function Invoke-Clean {
 
     $targets = @()
 
-    if ($extensionDir) {
-        $targets += @{ Path = (Join-Path $extensionDir 'out');     Label = 'TypeScript output (out/)' }
-        $targets += @{ Path = $mcpDir;                            Label = 'MCP servers (mcp/)' }
-        $targets += @{ Path = $publishDir;                         Label = 'VSIX packages (publish/)' }
-        $targets += @{ Path = (Join-Path $extensionDir 'LICENSE');       Label = 'Extension LICENSE copy' }
-        $targets += @{ Path = (Join-Path $extensionDir 'logo.png');       Label = 'Extension logo.png copy' }
-        $targets += @{ Path = (Join-Path $extensionDir 'small-logo.png'); Label = 'Extension small-logo.png copy' }
+    $targets += @{ Path = (Join-Path $extensionDir 'out');     Label = 'TypeScript output (out/)' }
+    $targets += @{ Path = $mcpDir;                            Label = 'MCP servers (mcp/)' }
+    $targets += @{ Path = $publishDir;                         Label = 'VSIX packages (publish/)' }
+    $targets += @{ Path = (Join-Path $extensionDir 'LICENSE');       Label = 'Extension LICENSE copy' }
+    $targets += @{ Path = (Join-Path $extensionDir 'logo.png');       Label = 'Extension logo.png copy' }
+    $targets += @{ Path = (Join-Path $extensionDir 'small-logo.png'); Label = 'Extension small-logo.png copy' }
 
-        $instructionsDir = Join-Path $extensionDir 'instructions'
-        $targets += @{ Path = (Join-Path $instructionsDir '.generated');  Label = 'Generated instructions (.generated/)' }
-        $targets += @{ Path = (Join-Path $instructionsDir '.workspaces'); Label = 'Workspace instructions (.workspaces/)' }
-    }
+    $instructionsDir = Join-Path $extensionDir 'instructions'
+    $targets += @{ Path = (Join-Path $instructionsDir '.generated');  Label = 'Generated instructions (.generated/)' }
+    $targets += @{ Path = (Join-Path $instructionsDir '.workspaces'); Label = 'Workspace instructions (.workspaces/)' }
 
     foreach ($project in $dotnetProjects) {
         $projectDir = Split-Path $project -Parent
