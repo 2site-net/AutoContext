@@ -39,9 +39,9 @@ Commercial licenses are available at no charge for organizations with
 
 ### Paid plans
 
-| Plan    | Price              |
-| ------- | ------------------ |
-| Monthly | $8 / seat / month |
+| Plan    | Price                                 |
+| ------- | ------------------------------------- |
+| Monthly | $8 / seat / month                    |
 | Annual  | $6 / seat / month ($72 / seat / year) |
 
 ## Contact
