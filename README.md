@@ -36,9 +36,7 @@ src/SharpPilot.VSCode/            # VS Code extension (instructions, tools, rule
 
 ## Architecture
 
-SharpPilot operates as a multi-layer pipeline where each layer feeds
-deterministic, workspace-specific context into the next. The layers run in
-order and the output of each becomes the input of the one below it.
+SharpPilot operates as a multi-layer pipeline where each layer feeds deterministic, workspace-specific context into the next. The layers run in order and the output of each becomes the input of the one below it.
 
 ### Layer overview
 
@@ -78,33 +76,20 @@ order and the output of each becomes the input of the one below it.
 
 When the extension activates, the following steps execute synchronously:
 
-1. **`ToolsStatusWriter.write()`** — reads VS Code settings, writes disabled
-   tool names to `.sharppilot.json` in the workspace root.
-2. **`WorkspaceContextDetector.detect()`** — scans the workspace for project
-   files, `package.json` dependencies, and directory markers. Sets VS Code
-   context keys that control both server registration and instruction injection.
-3. **`ConfigManager.removeOrphanedIds()`** — cleans disabled-instruction IDs
-   from `.sharppilot.json` that no longer match any instruction in the current
-   extension version.
-4. **`InstructionsWriter.removeOrphanedStagingDirs()`** — deletes per-workspace
-   staging directories older than one hour that belong to other VS Code windows.
-5. **`InstructionsWriter.write()`** — normalizes all instruction files into
-   `instructions/.generated/`, stripping `[INSTxxxx]` tag identifiers and
-   removing any individually disabled instruction bullets. Copilot always
-   reads from the normalized output, so neither tags nor disabled content
-   are visible to the model.
-6. **`logDiagnostics()`** — parses every instruction file and logs warnings
-   (e.g., missing `[INSTxxxx]` IDs) to the **SharpPilot** Output channel.
+1. **`ToolsStatusWriter.write()`** — reads VS Code settings, writes disabled tool names to `.sharppilot.json` in the workspace root.
+2. **`WorkspaceContextDetector.detect()`** — scans the workspace for project files, `package.json` dependencies, and directory markers. Sets VS Code context keys that control both server registration and instruction injection.
+3. **`ConfigManager.removeOrphanedIds()`** — cleans disabled-instruction IDs from `.sharppilot.json` that no longer match any instruction in the current extension version.
+4. **`InstructionsWriter.removeOrphanedStagingDirs()`** — deletes per-workspace staging directories older than one hour that belong to other VS Code windows.
+5. **`InstructionsWriter.write()`** — normalizes all instruction files into `instructions/.generated/`, stripping `[INSTxxxx]` tag identifiers and removing any individually disabled instruction bullets. Copilot always reads from the normalized output, so neither tags nor disabled content are visible to the model.
+6. **`logDiagnostics()`** — parses every instruction file and logs warnings (e.g., missing `[INSTxxxx]` IDs) to the **SharpPilot** Output channel.
 
 ### Runtime flow
 
 When Copilot invokes an MCP tool (e.g., `check_dotnet`):
 
 1. The MCP server reads `.sharppilot.json` → skips any disabled sub-checks.
-2. If `editorConfigFilePath` is provided, the server resolves `.editorconfig`
-   properties and merges them into the checker data.
-3. Each checker reads the merged EditorConfig values and uses them to **drive**
-   its enforcement direction — not just to skip conflicting checks.
+2. If `editorConfigFilePath` is provided, the server resolves `.editorconfig` properties and merges them into the checker data.
+3. Each checker reads the merged EditorConfig values and uses them to **drive** its enforcement direction — not just to skip conflicting checks.
 4. The checker returns a report (✅ pass or ❌ violations found).
 
 ### Precedence
@@ -118,21 +103,13 @@ When multiple sources disagree, the following precedence applies:
 | 3 | VS Code settings / `.sharppilot.json` | Control which tools and instructions are active. |
 | 4 | Workspace context | Determines which servers and instructions are registered at all. |
 
-See the "EditorConfig wins" rule in `copilot.instructions.md` for the
-user-facing statement of this precedence.
+See the "EditorConfig wins" rule in `copilot.instructions.md` for the user-facing statement of this precedence.
 
 ## Servers and Tools
 
-The MCP server exposes three tool categories. The VS Code extension registers
-the server three times — `--scope dotnet`, `--scope git`, and
-`--scope editorconfig` — so that .NET, Git, and EditorConfig tools appear in
-separate sections in the tools UI.
+The MCP server exposes three tool categories. The VS Code extension registers the server three times — `--scope dotnet`, `--scope git`, and `--scope editorconfig` — so that .NET, Git, and EditorConfig tools appear in separate sections in the tools UI.
 
-Servers are workspace-aware: the extension only registers a server when the
-workspace contains matching content (e.g., `.csproj` files for .NET, `.git`
-directory for Git). The EditorConfig server is always available regardless of
-workspace content. If all sub-checks for a category are disabled in settings,
-that server is not registered at all.
+Servers are workspace-aware: the extension only registers a server when the workspace contains matching content (e.g., `.csproj` files for .NET, `.git` directory for Git). The EditorConfig server is always available regardless of workspace content. If all sub-checks for a category are disabled in settings, that server is not registered at all.
 
 ### SharpPilot: DotNet
 
@@ -145,8 +122,7 @@ Two tools that analyse C# source and project files for common quality issues.
 
 ### SharpPilot: Git
 
-One composite tool that validates git commit messages against Conventional
-Commits and content best practices.
+One composite tool that validates git commit messages against Conventional Commits and content best practices.
 
 | Tool | Purpose |
 |------|---------|
@@ -162,8 +138,7 @@ One tool that resolves effective `.editorconfig` properties for a given file.
 
 ### Viewing Tool Invocation Logs
 
-Each server logs tool invocations (tool name, content length, data keys) to
-stderr, which VS Code surfaces in the **Output** panel. To view the logs:
+Each server logs tool invocations (tool name, content length, data keys) to stderr, which VS Code surfaces in the **Output** panel. To view the logs:
 
 1. Open the **Output** panel (`Ctrl+Shift+U`).
 2. Select the server from the dropdown (e.g., *SharpPilot: DotNet*).
@@ -173,10 +148,7 @@ out.
 
 ## Manual Server Configuration
 
-If you have the .NET 10 SDK installed and have cloned this repo, you can
-register the servers directly in `.vscode/mcp.json` without the VS Code
-extension. This is useful for development or for using the latest unreleased
-server code:
+If you have the .NET 10 SDK installed and have cloned this repo, you can register the servers directly in `.vscode/mcp.json` without the VS Code extension. This is useful for development or for using the latest unreleased server code:
 
 ```jsonc
 {
@@ -231,8 +203,7 @@ server code:
 
 ### VS Code Extension — Smoke Tests
 
-Smoke tests launch a real VS Code instance, load the extension, and verify
-activation and command registration:
+Smoke tests launch a real VS Code instance, load the extension, and verify activation and command registration:
 
 ```sh
 cd src/SharpPilot.VSCode
@@ -251,12 +222,9 @@ in `src/SharpPilot.VSCode/.vscode-test/`.
 ./build.ps1 Package -RuntimeIdentifier win-x64
 ```
 
-Available targets: `win-x64`, `win-arm64`, `linux-x64`, `linux-arm64`,
-`osx-x64`, `osx-arm64`.
+Available targets: `win-x64`, `win-arm64`, `linux-x64`, `linux-arm64`, `osx-x64`, `osx-arm64`.
 
-Publish to the VS Code Marketplace (requires a
-[Personal Access Token](https://dev.azure.com/_usersSettings/tokens) with
-**Marketplace → Manage** scope):
+Publish to the VS Code Marketplace (requires a [Personal Access Token](https://dev.azure.com/_usersSettings/tokens) with **Marketplace → Manage** scope):
 
 ```powershell
 ./build.ps1 Publish           # current platform
@@ -265,15 +233,10 @@ Publish to the VS Code Marketplace (requires a
 
 ## License
 
-SharpPilot is licensed under the [AGPL-3.0](LICENSE). A separate
-[commercial license](COMMERCIAL.md) is available for organizations that
-want to use SharpPilot under terms different from the AGPL-3.0.
+SharpPilot is licensed under the [AGPL-3.0](LICENSE). A separate [commercial license](COMMERCIAL.md) is available for organizations that want to use SharpPilot under terms different from the AGPL-3.0.
 
-Use of the SharpPilot name and logo is subject to
-[TRADEMARKS.md](TRADEMARKS.md).
+Use of the SharpPilot name and logo is subject to [TRADEMARKS.md](TRADEMARKS.md).
 
 ## Contributing
 
-By submitting a contribution, you agree to the
-[Contributor License Agreement](CLA.md). See
-[CONTRIBUTING.md](CONTRIBUTING.md) for how to get started.
+By submitting a contribution, you agree to the [Contributor License Agreement](CLA.md). See [CONTRIBUTING.md](CONTRIBUTING.md) for how to get started.
