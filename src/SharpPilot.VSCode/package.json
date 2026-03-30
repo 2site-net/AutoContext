@@ -231,15 +231,15 @@
       },
       {
         "path": "./instructions/.generated/dotnet-csharp.instructions.md",
-        "when": "config.sharppilot.instructions.dotnet.csharp.codingStyle && sharppilot.workspace.hasCSharp && !sharppilot.override.dotnet.csharp.codingStyle"
+        "when": "config.sharppilot.instructions.dotnet.csharp && sharppilot.workspace.hasCSharp && !sharppilot.override.dotnet.csharp"
       },
       {
         "path": "./instructions/.generated/dotnet-fsharp.instructions.md",
-        "when": "config.sharppilot.instructions.dotnet.fsharp.codingStyle && sharppilot.workspace.hasFSharp && !sharppilot.override.dotnet.fsharp.codingStyle"
+        "when": "config.sharppilot.instructions.dotnet.fsharp && sharppilot.workspace.hasFSharp && !sharppilot.override.dotnet.fsharp"
       },
       {
         "path": "./instructions/.generated/dotnet-vbnet.instructions.md",
-        "when": "config.sharppilot.instructions.dotnet.vbnet.codingStyle && sharppilot.workspace.hasVbNet && !sharppilot.override.dotnet.vbnet.codingStyle"
+        "when": "config.sharppilot.instructions.dotnet.vbnet && sharppilot.workspace.hasVbNet && !sharppilot.override.dotnet.vbnet"
       },
       {
         "path": "./instructions/.generated/git-commit-format.instructions.md",
@@ -565,17 +565,17 @@
           "default": true,
           "description": "Enable NUnit-specific guidelines (constraint model, attributes, assertions, test lifecycle)."
         },
-        "sharppilot.instructions.dotnet.csharp.codingStyle": {
+        "sharppilot.instructions.dotnet.csharp": {
           "type": "boolean",
           "default": true,
           "description": "Enable C# coding style rules (member ordering, formatting, etc.)."
         },
-        "sharppilot.instructions.dotnet.fsharp.codingStyle": {
+        "sharppilot.instructions.dotnet.fsharp": {
           "type": "boolean",
           "default": true,
           "description": "Enable F# coding style rules (module layout, naming, type design, pattern matching, formatting)."
         },
-        "sharppilot.instructions.dotnet.vbnet.codingStyle": {
+        "sharppilot.instructions.dotnet.vbnet": {
           "type": "boolean",
           "default": true,
           "description": "Enable VB.NET coding style rules (naming, Option Strict, error handling, formatting)."
