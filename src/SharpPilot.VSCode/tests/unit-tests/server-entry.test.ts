@@ -12,7 +12,7 @@ describe('servers catalog', () => {
         const dotnet = servers.find(s => s.category === 'dotnet')!;
         const git = servers.find(s => s.category === 'git')!;
 
-        expect(dotnet.contextKey).toBe('hasDotnet');
+        expect(dotnet.contextKey).toBe('hasDotNet');
         expect(git.contextKey).toBe('hasGit');
     });
 

@@ -91,11 +91,11 @@ export class WorkspaceContextDetector implements vscode.Disposable {
 
             let hasJavaScript = jsFiles.length > 0;
             let hasTypeScript = tsFiles.length > 0;
-            let hasDotnet = dotnetFiles.length > 0;
-            let hasCsharp = csharpFiles.length > 0;
+            let hasDotNet = dotnetFiles.length > 0;
+            let hasCSharp = csharpFiles.length > 0;
 
-            const hasFsharp = fsharpFiles.length > 0;
-            const hasVbnet = vbnetFiles.length > 0;
+            const hasFSharp = fsharpFiles.length > 0;
+            const hasVbNet = vbnetFiles.length > 0;
             const hasBlazor = razorFiles.length > 0;
             const hasHtml = htmlFiles.length > 0 || hasBlazor;
             const hasCss = cssFiles.length > 0 || hasHtml;
@@ -170,15 +170,15 @@ export class WorkspaceContextDetector implements vscode.Disposable {
             let hasDapper = false;
             let hasEntityFrameworkCore = false;
             let hasMaui = false;
-            let hasMongodb = false;
-            let hasMysql = false;
+            let hasMongoDb = false;
+            let hasMySql = false;
             let hasOracle = false;
             let hasPostgres = false;
             let hasSqlite = false;
             let hasSqlServer = false;
             let hasXunit = false;
-            let hasMstest = false;
-            let hasNunit = false;
+            let hasMsTest = false;
+            let hasNUnit = false;
             let hasWpf = false;
             let hasWinForms = false;
             let hasGrpc = false;
@@ -186,7 +186,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
             let hasRedis = false;
             let hasSignalR = false;
 
-            if (hasDotnet) {
+            if (hasDotNet) {
                 const projFiles = await vscode.workspace.findFiles('**/*.{csproj,fsproj,vbproj}', '**/node_modules/**', 50);
 
                 for (const uri of projFiles) {
@@ -205,17 +205,17 @@ export class WorkspaceContextDetector implements vscode.Disposable {
                     if (!hasMaui && /<UseMaui>\s*true\s*<\/UseMaui>/i.test(content)) {
                         hasMaui = true;
                     }
-                    if (!hasMongodb && /MongoDB\.Driver|MongoDB\.EntityFrameworkCore/i.test(content)) {
-                        hasMongodb = true;
+                    if (!hasMongoDb && /MongoDB\.Driver|MongoDB\.EntityFrameworkCore/i.test(content)) {
+                        hasMongoDb = true;
                     }
                     if (!hasXunit && /xunit/i.test(content)) {
                         hasXunit = true;
                     }
-                    if (!hasMstest && /MSTest|Microsoft\.VisualStudio\.TestPlatform/i.test(content)) {
-                        hasMstest = true;
+                    if (!hasMsTest && /MSTest|Microsoft\.VisualStudio\.TestPlatform/i.test(content)) {
+                        hasMsTest = true;
                     }
-                    if (!hasNunit && /NUnit/i.test(content)) {
-                        hasNunit = true;
+                    if (!hasNUnit && /NUnit/i.test(content)) {
+                        hasNUnit = true;
                     }
                     if (!hasWpf && /<UseWPF>\s*true\s*<\/UseWPF>/i.test(content)) {
                         hasWpf = true;
@@ -223,8 +223,8 @@ export class WorkspaceContextDetector implements vscode.Disposable {
                     if (!hasWinForms && /<UseWindowsForms>\s*true\s*<\/UseWindowsForms>/i.test(content)) {
                         hasWinForms = true;
                     }
-                    if (!hasMysql && /MySqlConnector|MySql\.Data|Pomelo\.EntityFrameworkCore\.MySql/i.test(content)) {
-                        hasMysql = true;
+                    if (!hasMySql && /MySqlConnector|MySql\.Data|Pomelo\.EntityFrameworkCore\.MySql/i.test(content)) {
+                        hasMySql = true;
                     }
                     if (!hasOracle && /Oracle\.ManagedDataAccess|Oracle\.EntityFrameworkCore/i.test(content)) {
                         hasOracle = true;
@@ -253,7 +253,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
                     if (!hasGraphql && /HotChocolate|GraphQL\.Server/i.test(content)) {
                         hasGraphql = true;
                     }
-                    if (hasAspNetCore && hasDapper && hasEntityFrameworkCore && hasMaui && hasMongodb && hasMysql && hasOracle && hasPostgres && hasSqlite && hasSqlServer && hasXunit && hasMstest && hasNunit && hasWpf && hasWinForms && hasGrpc && hasMediatR && hasRedis && hasSignalR && hasGraphql) {
+                    if (hasAspNetCore && hasDapper && hasEntityFrameworkCore && hasMaui && hasMongoDb && hasMySql && hasOracle && hasPostgres && hasSqlite && hasSqlServer && hasXunit && hasMsTest && hasNUnit && hasWpf && hasWinForms && hasGrpc && hasMediatR && hasRedis && hasSignalR && hasGraphql) {
                         break;
                     }
                 }
@@ -292,16 +292,16 @@ export class WorkspaceContextDetector implements vscode.Disposable {
             }
 
             if (hasBlazor || hasUnity) {
-                hasCsharp = true;
+                hasCSharp = true;
             }
 
             if (hasAspNetCore || hasDapper || hasEntityFrameworkCore
                 || hasMaui || hasWpf || hasWinForms
                 || hasGrpc || hasMediatR || hasRedis || hasSignalR
-                || hasXunit || hasMstest || hasNunit
-                || hasMongodb || hasMysql || hasOracle || hasPostgres || hasSqlite || hasSqlServer
+                || hasXunit || hasMsTest || hasNUnit
+                || hasMongoDb || hasMySql || hasOracle || hasPostgres || hasSqlite || hasSqlServer
                 || hasUnity) {
-                hasDotnet = true;
+                hasDotNet = true;
             }
 
             let hasGit = false;
@@ -332,10 +332,10 @@ export class WorkspaceContextDetector implements vscode.Disposable {
             }
 
             await Promise.all([
-                setContext('sharppilot.workspace.hasDotnet', hasDotnet),
-                setContext('sharppilot.workspace.hasCsharp', hasCsharp),
-                setContext('sharppilot.workspace.hasFsharp', hasFsharp),
-                setContext('sharppilot.workspace.hasVbnet', hasVbnet),
+                setContext('sharppilot.workspace.hasDotNet', hasDotNet),
+                setContext('sharppilot.workspace.hasCSharp', hasCSharp),
+                setContext('sharppilot.workspace.hasFSharp', hasFSharp),
+                setContext('sharppilot.workspace.hasVbNet', hasVbNet),
                 setContext('sharppilot.workspace.hasAspNetCore', hasAspNetCore),
                 setContext('sharppilot.workspace.hasDapper', hasDapper),
                 setContext('sharppilot.workspace.hasEntityFrameworkCore', hasEntityFrameworkCore),
@@ -349,15 +349,15 @@ export class WorkspaceContextDetector implements vscode.Disposable {
                 setContext('sharppilot.workspace.hasAngular', hasAngular),
                 setContext('sharppilot.workspace.hasVue', hasVue),
                 setContext('sharppilot.workspace.hasSvelte', hasSvelte),
-                setContext('sharppilot.workspace.hasMysql', hasMysql),
-                setContext('sharppilot.workspace.hasMongodb', hasMongodb),
+                setContext('sharppilot.workspace.hasMySql', hasMySql),
+                setContext('sharppilot.workspace.hasMongoDb', hasMongoDb),
                 setContext('sharppilot.workspace.hasOracle', hasOracle),
                 setContext('sharppilot.workspace.hasPostgres', hasPostgres),
                 setContext('sharppilot.workspace.hasSqlite', hasSqlite),
                 setContext('sharppilot.workspace.hasSqlServer', hasSqlServer),
                 setContext('sharppilot.workspace.hasXunit', hasXunit),
-                setContext('sharppilot.workspace.hasMstest', hasMstest),
-                setContext('sharppilot.workspace.hasNunit', hasNunit),
+                setContext('sharppilot.workspace.hasMsTest', hasMsTest),
+                setContext('sharppilot.workspace.hasNUnit', hasNUnit),
                 setContext('sharppilot.workspace.hasWpf', hasWpf),
                 setContext('sharppilot.workspace.hasWinForms', hasWinForms),
                 setContext('sharppilot.workspace.hasGrpc', hasGrpc),
@@ -378,7 +378,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
                 setContext('sharppilot.workspace.hasMocha', hasMocha),
                 setContext('sharppilot.workspace.hasPlaywright', hasPlaywright),
                 setContext('sharppilot.workspace.hasCypress', hasCypress),
-                setContext('sharppilot.workspace.hasDotnetTesting', hasXunit || hasMstest || hasNunit),
+                setContext('sharppilot.workspace.hasDotNetTesting', hasXunit || hasMsTest || hasNUnit),
                 setContext('sharppilot.workspace.hasWebTesting', hasVitest || hasJest || hasJasmine || hasMocha || hasPlaywright || hasCypress),
                 setContext('sharppilot.workspace.hasGit', hasGit),
                 ...instructionsCatalog.all.map(i =>
@@ -387,14 +387,14 @@ export class WorkspaceContextDetector implements vscode.Disposable {
             ]);
 
             const contextState: Record<string, boolean> = {
-                hasDotnet, hasCsharp, hasFsharp, hasVbnet, hasAspNetCore, hasDapper, hasEntityFrameworkCore,
+                hasDotNet, hasCSharp, hasFSharp, hasVbNet, hasAspNetCore, hasDapper, hasEntityFrameworkCore,
                 hasMaui, hasBlazor, hasHtml, hasCss, hasJavaScript, hasTypeScript,
-                hasReact, hasAngular, hasVue, hasSvelte, hasMysql, hasMongodb,
-                hasOracle, hasPostgres, hasSqlite, hasSqlServer, hasXunit, hasMstest,
-                hasNunit, hasWpf, hasWinForms, hasGrpc, hasMediatR, hasRedis, hasSignalR,
+                hasReact, hasAngular, hasVue, hasSvelte, hasMySql, hasMongoDb,
+                hasOracle, hasPostgres, hasSqlite, hasSqlServer, hasXunit, hasMsTest,
+                hasNUnit, hasWpf, hasWinForms, hasGrpc, hasMediatR, hasRedis, hasSignalR,
                 hasUnity, hasDocker, hasGraphql, hasNextJs, hasNodeJs, hasPowerShell, hasBash, hasBatch,
                 hasVitest, hasJest, hasJasmine, hasMocha, hasPlaywright, hasCypress,
-                hasDotnetTesting: hasXunit || hasMstest || hasNunit,
+                hasDotNetTesting: hasXunit || hasMsTest || hasNUnit,
                 hasWebTesting: hasVitest || hasJest || hasJasmine || hasMocha || hasPlaywright || hasCypress,
                 hasGit,
             };

@@ -44,7 +44,7 @@ SharpPilot operates as a multi-layer pipeline where each layer feeds determinist
 ┌─────────────────────────────────────────────────────────────────────┐
 │  1. Workspace Detection                                             │
 │     WorkspaceContextDetector scans the workspace and sets boolean   │
-│     context keys (hasDotnet, hasGit, hasTypeScript, …).             │
+│     context keys (hasDotNet, hasGit, hasTypeScript, …).             │
 ├─────────────────────────────────────────────────────────────────────┤
 │  2. Server Registration                                             │
 │     The extension registers one MCP server per category (dotnet,    │

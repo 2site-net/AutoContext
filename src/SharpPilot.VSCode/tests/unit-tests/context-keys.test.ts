@@ -25,7 +25,7 @@ describe('ContextKeys.forEntry', () => {
     it('should return context keys for workspace-specific instructions', () => {
         const asyncAwait = instructionsCatalog.all.find(i => i.settingId === 'sharppilot.instructions.dotnet.asyncAwait')!;
 
-        expect(ContextKeys.forEntry(asyncAwait)).toEqual(['hasDotnet']);
+        expect(ContextKeys.forEntry(asyncAwait)).toEqual(['hasDotNet']);
     });
 
     it('should return multiple context keys for OR conditions', () => {
@@ -38,7 +38,7 @@ describe('ContextKeys.forEntry', () => {
         const codingStyle = toolsCatalog.all.find(t => t.settingId === 'sharppilot.tools.check_csharp_coding_style')!;
         const commitFormat = toolsCatalog.all.find(t => t.settingId === 'sharppilot.tools.check_git_commit_format')!;
 
-        expect(ContextKeys.forEntry(codingStyle)).toEqual(['hasCsharp']);
+        expect(ContextKeys.forEntry(codingStyle)).toEqual(['hasCSharp']);
         expect(ContextKeys.forEntry(commitFormat)).toEqual(['hasGit']);
     });
 

@@ -119,7 +119,7 @@
       },
       {
         "path": "./instructions/.generated/dotnet-async-await.instructions.md",
-        "when": "config.sharppilot.instructions.dotnet.asyncAwait && sharppilot.workspace.hasDotnet && !sharppilot.override.dotnet.asyncAwait"
+        "when": "config.sharppilot.instructions.dotnet.asyncAwait && sharppilot.workspace.hasDotNet && !sharppilot.override.dotnet.asyncAwait"
       },
       {
         "path": "./instructions/.generated/dotnet-blazor.instructions.md",
@@ -127,11 +127,11 @@
       },
       {
         "path": "./instructions/.generated/dotnet-coding-standards.instructions.md",
-        "when": "config.sharppilot.instructions.dotnet.codingStandards && sharppilot.workspace.hasDotnet && !sharppilot.override.dotnet.codingStandards"
+        "when": "config.sharppilot.instructions.dotnet.codingStandards && sharppilot.workspace.hasDotNet && !sharppilot.override.dotnet.codingStandards"
       },
       {
         "path": "./instructions/.generated/dotnet-core.instructions.md",
-        "when": "config.sharppilot.instructions.dotnet.core && sharppilot.workspace.hasDotnet && !sharppilot.override.dotnet.core"
+        "when": "config.sharppilot.instructions.dotnet.core && sharppilot.workspace.hasDotNet && !sharppilot.override.dotnet.core"
       },
       {
         "path": "./instructions/.generated/dotnet-dapper.instructions.md",
@@ -139,7 +139,7 @@
       },
       {
         "path": "./instructions/.generated/dotnet-debugging.instructions.md",
-        "when": "config.sharppilot.instructions.dotnet.debugging && sharppilot.workspace.hasDotnet && !sharppilot.override.dotnet.debugging"
+        "when": "config.sharppilot.instructions.dotnet.debugging && sharppilot.workspace.hasDotNet && !sharppilot.override.dotnet.debugging"
       },
       {
         "path": "./instructions/.generated/dotnet-entity-framework-core.instructions.md",
@@ -159,15 +159,15 @@
       },
       {
         "path": "./instructions/.generated/dotnet-mongodb.instructions.md",
-        "when": "config.sharppilot.instructions.dotnet.mongodb && sharppilot.workspace.hasMongodb && !sharppilot.override.dotnet.mongodb"
+        "when": "config.sharppilot.instructions.dotnet.mongodb && sharppilot.workspace.hasMongoDb && !sharppilot.override.dotnet.mongodb"
       },
       {
         "path": "./instructions/.generated/dotnet-mysql.instructions.md",
-        "when": "config.sharppilot.instructions.dotnet.mysql && sharppilot.workspace.hasMysql && !sharppilot.override.dotnet.mysql"
+        "when": "config.sharppilot.instructions.dotnet.mysql && sharppilot.workspace.hasMySql && !sharppilot.override.dotnet.mysql"
       },
       {
         "path": "./instructions/.generated/dotnet-nuget.instructions.md",
-        "when": "config.sharppilot.instructions.dotnet.nuget && sharppilot.workspace.hasDotnet && !sharppilot.override.dotnet.nuget"
+        "when": "config.sharppilot.instructions.dotnet.nuget && sharppilot.workspace.hasDotNet && !sharppilot.override.dotnet.nuget"
       },
       {
         "path": "./instructions/.generated/dotnet-oracle.instructions.md",
@@ -175,7 +175,7 @@
       },
       {
         "path": "./instructions/.generated/dotnet-performance-memory.instructions.md",
-        "when": "config.sharppilot.instructions.dotnet.performanceMemory && sharppilot.workspace.hasDotnet && !sharppilot.override.dotnet.performanceMemory"
+        "when": "config.sharppilot.instructions.dotnet.performanceMemory && sharppilot.workspace.hasDotNet && !sharppilot.override.dotnet.performanceMemory"
       },
       {
         "path": "./instructions/.generated/dotnet-postgresql.instructions.md",
@@ -203,7 +203,7 @@
       },
       {
         "path": "./instructions/.generated/dotnet-testing.instructions.md",
-        "when": "config.sharppilot.instructions.dotnet.testing && sharppilot.workspace.hasDotnetTesting && !sharppilot.override.dotnet.testing"
+        "when": "config.sharppilot.instructions.dotnet.testing && sharppilot.workspace.hasDotNetTesting && !sharppilot.override.dotnet.testing"
       },
       {
         "path": "./instructions/.generated/dotnet-unity.instructions.md",
@@ -223,23 +223,23 @@
       },
       {
         "path": "./instructions/.generated/dotnet-mstest.instructions.md",
-        "when": "config.sharppilot.instructions.dotnet.mstest && sharppilot.workspace.hasMstest && !sharppilot.override.dotnet.mstest"
+        "when": "config.sharppilot.instructions.dotnet.mstest && sharppilot.workspace.hasMsTest && !sharppilot.override.dotnet.mstest"
       },
       {
         "path": "./instructions/.generated/dotnet-nunit.instructions.md",
-        "when": "config.sharppilot.instructions.dotnet.nunit && sharppilot.workspace.hasNunit && !sharppilot.override.dotnet.nunit"
+        "when": "config.sharppilot.instructions.dotnet.nunit && sharppilot.workspace.hasNUnit && !sharppilot.override.dotnet.nunit"
       },
       {
         "path": "./instructions/.generated/dotnet-csharp.instructions.md",
-        "when": "config.sharppilot.instructions.dotnet.csharp.codingStyle && sharppilot.workspace.hasCsharp && !sharppilot.override.dotnet.csharp.codingStyle"
+        "when": "config.sharppilot.instructions.dotnet.csharp.codingStyle && sharppilot.workspace.hasCSharp && !sharppilot.override.dotnet.csharp.codingStyle"
       },
       {
         "path": "./instructions/.generated/dotnet-fsharp.instructions.md",
-        "when": "config.sharppilot.instructions.dotnet.fsharp.codingStyle && sharppilot.workspace.hasFsharp && !sharppilot.override.dotnet.fsharp.codingStyle"
+        "when": "config.sharppilot.instructions.dotnet.fsharp.codingStyle && sharppilot.workspace.hasFSharp && !sharppilot.override.dotnet.fsharp.codingStyle"
       },
       {
         "path": "./instructions/.generated/dotnet-vbnet.instructions.md",
-        "when": "config.sharppilot.instructions.dotnet.vbnet.codingStyle && sharppilot.workspace.hasVbnet && !sharppilot.override.dotnet.vbnet.codingStyle"
+        "when": "config.sharppilot.instructions.dotnet.vbnet.codingStyle && sharppilot.workspace.hasVbNet && !sharppilot.override.dotnet.vbnet.codingStyle"
       },
       {
         "path": "./instructions/.generated/git-commit-format.instructions.md",

@@ -34,8 +34,8 @@ describe('AutoConfigurer.configure', () => {
         }
     });
 
-    it('should enable .NET entries when hasDotnet and hasCsharp are detected', async () => {
-        vi.mocked(fakeDetector.get).mockImplementation((key: string) => key === 'hasDotnet' || key === 'hasCsharp');
+    it('should enable .NET entries when hasDotNet and hasCSharp are detected', async () => {
+        vi.mocked(fakeDetector.get).mockImplementation((key: string) => key === 'hasDotNet' || key === 'hasCSharp');
 
         await AutoConfigurer.configure(fakeDetector);
 

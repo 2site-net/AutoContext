@@ -24,7 +24,7 @@ SharpPilot operates as a deterministic, multi-layer pipeline. Each layer feeds w
 
 ### 1. Workspace detection
 
-On activation the extension scans your workspace for project files (`.csproj`, `.fsproj`, `package.json`, …), directories (`.git`), and dependencies. Each finding sets a boolean context key (e.g., `hasDotnet`, `hasGit`, `hasTypeScript`) that the remaining layers consume.
+On activation the extension scans your workspace for project files (`.csproj`, `.fsproj`, `package.json`, …), directories (`.git`), and dependencies. Each finding sets a boolean context key (e.g., `hasDotNet`, `hasGit`, `hasTypeScript`) that the remaining layers consume.
 
 ### 2. Server registration
 
