@@ -2,13 +2,13 @@ import { describe, it, expect } from 'vitest';
 import { toolsCatalog } from '../../src/tools-catalog';
 
 describe('toolsCatalog.getSettingIdByCategory', () => {
-    it('should return .NET tool setting ids for dotnet category', () => {
+    it('should return .NET and C# tool setting ids for dotnet category', () => {
         const result = toolsCatalog.getSettingIdByCategory('dotnet');
 
         expect(result.length).toBeGreaterThan(0);
         expect(result.every(id => id.startsWith('sharppilot.tools.'))).toBe(true);
 
-        const dotnetTools = toolsCatalog.all.filter(t => t.category === '.NET Tool');
+        const dotnetTools = toolsCatalog.all.filter(t => t.category === '.NET' || t.category === 'C#');
         expect(result).toEqual(dotnetTools.map(t => t.settingId));
     });
 
@@ -17,7 +17,7 @@ describe('toolsCatalog.getSettingIdByCategory', () => {
 
         expect(result.length).toBeGreaterThan(0);
 
-        const gitTools = toolsCatalog.all.filter(t => t.category === 'Git Tool');
+        const gitTools = toolsCatalog.all.filter(t => t.category === 'Git');
         expect(result).toEqual(gitTools.map(t => t.settingId));
     });
 
