@@ -38,7 +38,7 @@ describe('ContextKeys.forEntry', () => {
         const codingStyle = toolsCatalog.all.find(t => t.settingId === 'sharppilot.tools.check_csharp_coding_style')!;
         const commitFormat = toolsCatalog.all.find(t => t.settingId === 'sharppilot.tools.check_git_commit_format')!;
 
-        expect(ContextKeys.forEntry(codingStyle)).toEqual(['hasDotnet']);
+        expect(ContextKeys.forEntry(codingStyle)).toEqual(['hasCsharp']);
         expect(ContextKeys.forEntry(commitFormat)).toEqual(['hasGit']);
     });
 

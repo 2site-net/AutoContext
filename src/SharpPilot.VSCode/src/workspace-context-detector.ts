@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { instructionsCatalog } from './instructions-catalog.js';
 import { ContextKeys } from './context-keys.js';
+import { servers } from './server-entry.js';
 
 export class WorkspaceContextDetector implements vscode.Disposable {
     private readonly disposables: vscode.Disposable[] = [];
@@ -71,8 +72,9 @@ export class WorkspaceContextDetector implements vscode.Disposable {
 
             const decoder = new TextDecoder();
 
-            const [dotnetFiles, fsharpFiles, vbnetFiles, razorFiles, htmlFiles, cssFiles, jsFiles, tsFiles, unityFiles, dockerFiles, psFiles, shFiles, batFiles] = await Promise.all([
+            const [dotnetFiles, csharpFiles, fsharpFiles, vbnetFiles, razorFiles, htmlFiles, cssFiles, jsFiles, tsFiles, unityFiles, dockerFiles, psFiles, shFiles, batFiles] = await Promise.all([
                 vscode.workspace.findFiles('**/*.{csproj,fsproj,vbproj,sln,slnx}', '**/node_modules/**', 1),
+                vscode.workspace.findFiles('**/*.csproj', '**/node_modules/**', 1),
                 vscode.workspace.findFiles('**/*.fsproj', '**/node_modules/**', 1),
                 vscode.workspace.findFiles('**/*.vbproj', '**/node_modules/**', 1),
                 vscode.workspace.findFiles('**/*.razor', '**/node_modules/**', 1),
@@ -87,14 +89,16 @@ export class WorkspaceContextDetector implements vscode.Disposable {
                 vscode.workspace.findFiles('**/*.{bat,cmd}', '**/node_modules/**', 1),
             ]);
 
-            const hasDotnet = dotnetFiles.length > 0;
+            let hasJavaScript = jsFiles.length > 0;
+            let hasTypeScript = tsFiles.length > 0;
+            let hasDotnet = dotnetFiles.length > 0;
+            let hasCsharp = csharpFiles.length > 0;
+
             const hasFsharp = fsharpFiles.length > 0;
             const hasVbnet = vbnetFiles.length > 0;
             const hasBlazor = razorFiles.length > 0;
             const hasHtml = htmlFiles.length > 0 || hasBlazor;
             const hasCss = cssFiles.length > 0 || hasHtml;
-            const hasJavaScript = jsFiles.length > 0;
-            const hasTypeScript = tsFiles.length > 0;
             const hasUnity = unityFiles.length > 0;
             const hasDocker = dockerFiles.length > 0;
             const hasPowerShell = psFiles.length > 0;
@@ -113,8 +117,9 @@ export class WorkspaceContextDetector implements vscode.Disposable {
             let hasCypress = false;
             let hasNextJs = false;
             let hasGraphql = false;
+            
             const packageFiles = await vscode.workspace.findFiles('**/package.json', '**/node_modules/**', 50);
-            const hasNodeJs = packageFiles.length > 0;
+            let hasNodeJs = packageFiles.length > 0;
 
             for (const uri of packageFiles) {
                 const bytes = await vscode.workspace.fs.readFile(uri);
@@ -188,7 +193,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
                     const bytes = await vscode.workspace.fs.readFile(uri);
                     const content = decoder.decode(bytes);
 
-                    if (!hasAspNetCore && /Sdk\s*=\s*["']Microsoft\.NET\.Sdk\.(Web|Razor)["']/i.test(content)) {
+                    if (!hasAspNetCore && /Sdk\s*=\s*["']Microsoft\.NET\.Sdk\.(Web|Razor|BlazorWebAssembly)["']/i.test(content)) {
                         hasAspNetCore = true;
                     }
                     if (!hasDapper && /Dapper/i.test(content)) {
@@ -254,6 +259,51 @@ export class WorkspaceContextDetector implements vscode.Disposable {
                 }
             }
 
+            // --- Flag implications ---
+            // Sub-flags imply their parent so that the MCP server and
+            // cross-cutting instructions activate whenever any child
+            // technology is detected. Order: leaves → roots.
+
+            // Web: framework → language/runtime
+            if (hasNextJs) {
+                hasReact = true;
+            }
+
+            if (hasAngular) {
+                hasTypeScript = true;
+            }
+
+            if (hasTypeScript) {
+                hasJavaScript = true;
+            }
+
+            if (hasReact || hasAngular || hasVue || hasSvelte
+                || hasVitest || hasJest || hasJasmine || hasMocha || hasPlaywright || hasCypress) {
+                hasNodeJs = true;
+            }
+
+            if (hasNodeJs) {
+                hasJavaScript = true;
+            }
+
+            // .NET: framework → platform
+            if (hasBlazor || hasSignalR) {
+                hasAspNetCore = true;
+            }
+
+            if (hasBlazor || hasUnity) {
+                hasCsharp = true;
+            }
+
+            if (hasAspNetCore || hasDapper || hasEntityFrameworkCore
+                || hasMaui || hasWpf || hasWinForms
+                || hasGrpc || hasMediatR || hasRedis || hasSignalR
+                || hasXunit || hasMstest || hasNunit
+                || hasMongodb || hasMysql || hasOracle || hasPostgres || hasSqlite || hasSqlServer
+                || hasUnity) {
+                hasDotnet = true;
+            }
+
             let hasGit = false;
 
             for (const folder of vscode.workspace.workspaceFolders ?? []) {
@@ -283,6 +333,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
 
             await Promise.all([
                 setContext('sharppilot.workspace.hasDotnet', hasDotnet),
+                setContext('sharppilot.workspace.hasCsharp', hasCsharp),
                 setContext('sharppilot.workspace.hasFsharp', hasFsharp),
                 setContext('sharppilot.workspace.hasVbnet', hasVbnet),
                 setContext('sharppilot.workspace.hasAspNetCore', hasAspNetCore),
@@ -327,6 +378,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
                 setContext('sharppilot.workspace.hasMocha', hasMocha),
                 setContext('sharppilot.workspace.hasPlaywright', hasPlaywright),
                 setContext('sharppilot.workspace.hasCypress', hasCypress),
+                setContext('sharppilot.workspace.hasDotnetTesting', hasXunit || hasMstest || hasNunit),
                 setContext('sharppilot.workspace.hasWebTesting', hasVitest || hasJest || hasJasmine || hasMocha || hasPlaywright || hasCypress),
                 setContext('sharppilot.workspace.hasGit', hasGit),
                 ...instructionsCatalog.all.map(i =>
@@ -334,20 +386,22 @@ export class WorkspaceContextDetector implements vscode.Disposable {
                 ),
             ]);
 
-            const serverChanged = this._state.get('hasDotnet') !== hasDotnet
-                || this._state.get('hasGit') !== hasGit;
-
             const contextState: Record<string, boolean> = {
-                hasDotnet, hasFsharp, hasVbnet, hasAspNetCore, hasDapper, hasEntityFrameworkCore,
+                hasDotnet, hasCsharp, hasFsharp, hasVbnet, hasAspNetCore, hasDapper, hasEntityFrameworkCore,
                 hasMaui, hasBlazor, hasHtml, hasCss, hasJavaScript, hasTypeScript,
                 hasReact, hasAngular, hasVue, hasSvelte, hasMysql, hasMongodb,
                 hasOracle, hasPostgres, hasSqlite, hasSqlServer, hasXunit, hasMstest,
                 hasNunit, hasWpf, hasWinForms, hasGrpc, hasMediatR, hasRedis, hasSignalR,
                 hasUnity, hasDocker, hasGraphql, hasNextJs, hasNodeJs, hasPowerShell, hasBash, hasBatch,
                 hasVitest, hasJest, hasJasmine, hasMocha, hasPlaywright, hasCypress,
+                hasDotnetTesting: hasXunit || hasMstest || hasNunit,
                 hasWebTesting: hasVitest || hasJest || hasJasmine || hasMocha || hasPlaywright || hasCypress,
                 hasGit,
             };
+
+            const serverChanged = servers.some(s =>
+                s.contextKey !== undefined && this._state.get(s.contextKey) !== contextState[s.contextKey],
+            );
 
             for (const [k, v] of Object.entries(contextState)) {
                 this._state.set(k, v);

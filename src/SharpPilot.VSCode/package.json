@@ -203,7 +203,7 @@
       },
       {
         "path": "./instructions/.generated/dotnet-testing.instructions.md",
-        "when": "config.sharppilot.instructions.dotnet.testing && sharppilot.workspace.hasDotnet && !sharppilot.override.dotnet.testing"
+        "when": "config.sharppilot.instructions.dotnet.testing && sharppilot.workspace.hasDotnetTesting && !sharppilot.override.dotnet.testing"
       },
       {
         "path": "./instructions/.generated/dotnet-unity.instructions.md",
@@ -231,7 +231,7 @@
       },
       {
         "path": "./instructions/.generated/dotnet-csharp.instructions.md",
-        "when": "config.sharppilot.instructions.dotnet.csharp.codingStyle && sharppilot.workspace.hasDotnet && !sharppilot.override.dotnet.csharp.codingStyle"
+        "when": "config.sharppilot.instructions.dotnet.csharp.codingStyle && sharppilot.workspace.hasCsharp && !sharppilot.override.dotnet.csharp.codingStyle"
       },
       {
         "path": "./instructions/.generated/dotnet-fsharp.instructions.md",
