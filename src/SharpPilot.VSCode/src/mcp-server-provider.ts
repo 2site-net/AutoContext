@@ -34,14 +34,26 @@ export class McpServerProvider implements vscode.McpServerDefinitionProvider {
                 return toolSettings.length === 0 || toolSettings.some(id => config.get(id) !== false);
             })
             .map(s => {
-                const args = ['--scope', s.category];
                 const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+
+                let command: string;
+                const args: string[] = [];
+
+                if (s.server === 'web') {
+                    command = 'node';
+                    args.push(join(this.serversPath, 'SharpPilot.Mcp.Web', 'index.js'));
+                } else {
+                    command = join(this.serversPath, 'SharpPilot.Mcp.DotNet', `SharpPilot.Mcp.DotNet${this.ext}`);
+                }
+
+                args.push('--scope', s.category);
                 if (workspaceFolder) {
                     args.push('--workspace', workspaceFolder.uri.fsPath);
                 }
+
                 return new vscode.McpStdioServerDefinition(
                     s.label,
-                    join(this.serversPath, 'SharpPilot.Mcp.DotNet', `SharpPilot.Mcp.DotNet${this.ext}`),
+                    command,
                     args,
                     undefined,
                     this.version,

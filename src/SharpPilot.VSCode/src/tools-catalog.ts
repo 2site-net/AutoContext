@@ -4,6 +4,7 @@ const categories: Record<string, string> = {
     dotnet: '.NET Tool',
     git: 'Git Tool',
     editorconfig: 'EditorConfig Tool',
+    typescript: 'TypeScript Tool',
 };
 
 class ToolsCatalog {
@@ -39,4 +40,5 @@ export const toolsCatalog = new ToolsCatalog([
     { settingId: 'sharppilot.tools.check_git_commit_content', toolName: 'check_git_commit_content', label: 'Commit Content', category: 'Git Tool', contextKeys: ['hasGit'] },
     { settingId: 'sharppilot.tools.check_git_commit_format', toolName: 'check_git_commit_format', label: 'Commit Format', category: 'Git Tool', contextKeys: ['hasGit'] },
     { settingId: 'sharppilot.tools.get_editorconfig', toolName: 'get_editorconfig', label: 'EditorConfig', category: 'EditorConfig Tool' },
+    { settingId: 'sharppilot.tools.check_typescript_coding_style', toolName: 'check_typescript_coding_style', label: 'Coding Style', category: 'TypeScript Tool', contextKeys: ['hasTypeScript'] },
 ]);

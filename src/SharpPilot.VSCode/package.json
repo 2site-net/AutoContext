@@ -739,6 +739,11 @@
           "type": "boolean",
           "default": true,
           "description": "Enable the EditorConfig reader tool."
+        },
+        "sharppilot.tools.check_typescript_coding_style": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable the TypeScript coding style checker tool."
         }
       }
     }

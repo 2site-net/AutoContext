@@ -87,13 +87,15 @@ $repoRoot = $PSScriptRoot
 # VS Code extension directory (fixed — used for packaging, publishing, assets)
 $extensionDir = Join-Path $repoRoot 'src' 'SharpPilot.VSCode'
 
-# Discover vitest config
-$vitestConfig = Get-ChildItem $repoRoot -Filter 'vitest.config.ts' -Recurse -File -Depth 4 |
-    Select-Object -First 1
-$vitestConfigPath = if ($vitestConfig) { $vitestConfig.FullName } else { $null }
+# Discover vitest configs
+$vitestConfigs = @(Get-ChildItem $repoRoot -Filter 'vitest.config.ts' -Recurse -File -Depth 4)
+$vitestConfigPath = if ($vitestConfigs.Count -gt 0) { $vitestConfigs[0].FullName } else { $null }
 
 $mcpDir = Join-Path $extensionDir 'mcp'
 $publishDir = Join-Path $extensionDir 'publish'
+
+# Web MCP server directory (TypeScript/Node.js-based server)
+$webServerDir = Join-Path $repoRoot 'src' 'SharpPilot.Mcp.Web'
 
 # Read extension version from package.json
 $packageJsonPath = Join-Path $extensionDir 'package.json'
@@ -252,6 +254,19 @@ function Invoke-CompileTS {
         finally {
             Pop-Location
         }
+
+        if (Test-Path $webServerDir) {
+            Push-Location $webServerDir
+            try {
+                Write-Status 'Compiling Web MCP server...' 'INFO'
+                npx tsc -p ./tsconfig.build.json
+                if ($LASTEXITCODE -ne 0) { throw 'Web MCP server compilation failed.' }
+                Write-Status 'Web MCP server compiled' 'OK'
+            }
+            finally {
+                Pop-Location
+            }
+        }
     }
 }
 
@@ -278,20 +293,30 @@ function Invoke-TestTS {
 
     Write-Section 'Test TypeScript'
 
-    if (-not $vitestConfigPath) { throw 'No vitest.config.ts found — cannot locate TypeScript tests.' }
+    if ($vitestConfigs.Count -eq 0) { throw 'No vitest.config.ts found — cannot locate TypeScript tests.' }
 
     if ($PSCmdlet.ShouldProcess('vitest', 'Run TypeScript tests')) {
         Assert-ExternalCommand 'npx'
 
-        Push-Location $extensionDir
-        try {
-            $relativeConfig = [System.IO.Path]::GetRelativePath($extensionDir, $vitestConfigPath)
-            npx vitest run --config $relativeConfig
-            if ($LASTEXITCODE -ne 0) { throw 'TypeScript tests failed.' }
-            Write-Status 'TypeScript tests passed' 'OK'
-        }
-        finally {
-            Pop-Location
+        foreach ($config in $vitestConfigs) {
+            # Resolve project root as the nearest ancestor containing package.json
+            $searchDir = $config.Directory
+            while ($searchDir -and -not (Test-Path (Join-Path $searchDir.FullName 'package.json'))) {
+                $searchDir = $searchDir.Parent
+            }
+            $projectDir = if ($searchDir) { $searchDir.FullName } else { $config.Directory.FullName }
+            $projectName = Split-Path $projectDir -Leaf
+
+            Push-Location $projectDir
+            try {
+                $relativeConfig = [System.IO.Path]::GetRelativePath($projectDir, $config.FullName)
+                npx vitest run --config $relativeConfig
+                if ($LASTEXITCODE -ne 0) { throw "TypeScript tests failed ($projectName)." }
+                Write-Status "TypeScript tests passed ($projectName)" 'OK'
+            }
+            finally {
+                Pop-Location
+            }
         }
     }
 }
@@ -358,6 +383,43 @@ function Invoke-DotNetPublish {
         dotnet @publishArgs $serverProjectPath -o (Join-Path $mcpDir $serverName)
         if ($LASTEXITCODE -ne 0) { throw "dotnet publish failed for $Rid." }
         Write-Status ".NET server published ($Rid)" 'OK'
+    }
+}
+
+function Invoke-WebServerPublish {
+    [CmdletBinding(SupportsShouldProcess)]
+    param()
+
+    Write-Section 'Publish Web MCP server'
+
+    if (-not (Test-Path $webServerDir)) {
+        Write-Status 'Web MCP server directory not found — skipping' 'INFO'
+        return
+    }
+
+    $outDir = Join-Path $webServerDir 'out'
+    if (-not (Test-Path $outDir)) { throw 'Web MCP server not compiled — run Compile first.' }
+
+    $targetDir = Join-Path $mcpDir 'SharpPilot.Mcp.Web'
+
+    if ($PSCmdlet.ShouldProcess($targetDir, 'Copy Web MCP server')) {
+        New-Item $targetDir -ItemType Directory -Force | Out-Null
+        Copy-Item (Join-Path $outDir '*') $targetDir -Recurse -Force
+
+        # Copy package.json first so npm install can read it from the target
+        Copy-Item (Join-Path $webServerDir 'package.json') $targetDir -Force
+
+        # Bundle production dependencies
+        Push-Location $webServerDir
+        try {
+            npm install --omit=dev --prefix $targetDir
+            if ($LASTEXITCODE -ne 0) { throw 'npm install for Web MCP server failed.' }
+        }
+        finally {
+            Pop-Location
+        }
+
+        Write-Status 'Web MCP server published' 'OK'
     }
 }
 
@@ -476,6 +538,8 @@ function Invoke-Package {
 
     Write-Header 'Package'
 
+    Invoke-WebServerPublish
+
     if ($Scope -eq 'All') {
         # Explicit "Package All" — build all six platforms
         foreach ($rid in $ridToTarget.Keys) {
@@ -512,6 +576,8 @@ function Invoke-Publish {
     # Explicit "Publish All" = all platforms; otherwise single platform
     $rids = if ($Scope -eq 'All') { $ridToTarget.Keys } else { @(Resolve-RuntimeIdentifier) }
 
+    Invoke-WebServerPublish
+
     foreach ($rid in $rids) {
         $vsceTarget = $ridToTarget[$rid]
         $vsixName = "$name-$vsceTarget-$version.vsix"
@@ -538,6 +604,7 @@ function Invoke-Clean {
     $targets = @()
 
     $targets += @{ Path = (Join-Path $extensionDir 'out');     Label = 'TypeScript output (out/)' }
+    $targets += @{ Path = (Join-Path $webServerDir 'out');    Label = 'Web MCP server output (out/)' }
     $targets += @{ Path = $mcpDir;                            Label = 'MCP servers (mcp/)' }
     $targets += @{ Path = $publishDir;                         Label = 'VSIX packages (publish/)' }
     $targets += @{ Path = (Join-Path $extensionDir 'LICENSE');       Label = 'Extension LICENSE copy' }
