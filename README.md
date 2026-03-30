@@ -29,8 +29,8 @@ Distributed as a VS Code extension — see [src/SharpPilot.VSCode/README.md](src
 
 ```text
 SharpPilot.slnx                  # Solution file
-src/SharpPilot.Mcp/              # MCP server (.NET + Git tools)
-src/SharpPilot.Mcp.Tests/        # xUnit tests
+src/SharpPilot.Mcp.DotNet/              # MCP server (.NET + Git tools)
+src/SharpPilot.Mcp.DotNet.Tests/        # xUnit tests
 src/SharpPilot.VSCode/            # VS Code extension (instructions, tools, rule management)
 ```
 
@@ -64,8 +64,8 @@ SharpPilot operates as a multi-layer pipeline where each layer feeds determinist
 │     at runtime to skip disabled sub-checks.                         │
 ├─────────────────────────────────────────────────────────────────────┤
 │  5. Runtime (Copilot invokes tools)                                 │
-│     Copilot calls check_dotnet / check_nuget_hygiene /              │
-│     check_git_commit / get_editorconfig. The server resolves        │
+│     Copilot calls check_csharp_all / check_nuget_hygiene /              │
+│     check_git_all / get_editorconfig. The server resolves        │
 │     .editorconfig properties and uses them to drive checker         │
 │     behavior — e.g., enforcement direction for brace style and      │
 │     namespace style.                                                │
@@ -85,7 +85,7 @@ When the extension activates, the following steps execute synchronously:
 
 ### Runtime flow
 
-When Copilot invokes an MCP tool (e.g., `check_dotnet`):
+When Copilot invokes an MCP tool (e.g., `check_csharp_all`):
 
 1. The MCP server reads `.sharppilot.json` → skips any disabled sub-checks.
 2. If `editorConfigFilePath` is provided, the server resolves `.editorconfig` properties and merges them into the checker data.
@@ -117,7 +117,7 @@ Two tools that analyse C# source and project files for common quality issues.
 
 | Tool | Purpose |
 |------|---------|
-| `check_dotnet` | Runs all enabled .NET code quality checks on C# source and returns a combined report. Covers coding style, member ordering, naming conventions, async patterns, nullable context, project structure, and test style. When an `.editorconfig` path is provided, resolves its properties and uses them to drive checker behavior (e.g., brace and namespace style enforcement direction). |
+| `check_csharp_all` | Runs all enabled C# code quality checks on C# source and returns a combined report. Covers coding style, member ordering, naming conventions, async patterns, nullable context, project structure, and test style. When an `.editorconfig` path is provided, resolves its properties and uses them to drive checker behavior (e.g., brace and namespace style enforcement direction). |
 | `check_nuget_hygiene` | No duplicate, floating, or wildcard package versions; no missing `Version` attribute (unless Central Package Management is enabled); flags packages with built-in .NET alternatives. |
 
 ### SharpPilot: Git
@@ -126,7 +126,7 @@ One composite tool that validates git commit messages against Conventional Commi
 
 | Tool | Purpose |
 |------|---------|
-| `check_git_commit` | Runs all enabled Git commit quality checks on a commit message and returns a combined report. Covers commit format (Conventional Commits) and commit content best practices. |
+| `check_git_all` | Runs all enabled Git commit quality checks on a commit message and returns a combined report. Covers commit format (Conventional Commits) and commit content best practices. |
 
 ### SharpPilot: EditorConfig
 
@@ -159,7 +159,7 @@ If you have the .NET 10 SDK installed and have cloned this repo, you can registe
       "args": [
         "run",
         "--project",
-        "${workspaceFolder}/src/SharpPilot.Mcp/SharpPilot.Mcp.csproj",
+        "${workspaceFolder}/src/SharpPilot.Mcp.DotNet/SharpPilot.Mcp.DotNet.csproj",
         "--",
         "--scope",
         "dotnet"
@@ -171,7 +171,7 @@ If you have the .NET 10 SDK installed and have cloned this repo, you can registe
       "args": [
         "run",
         "--project",
-        "${workspaceFolder}/src/SharpPilot.Mcp/SharpPilot.Mcp.csproj",
+        "${workspaceFolder}/src/SharpPilot.Mcp.DotNet/SharpPilot.Mcp.DotNet.csproj",
         "--",
         "--scope",
         "git"
@@ -183,7 +183,7 @@ If you have the .NET 10 SDK installed and have cloned this repo, you can registe
       "args": [
         "run",
         "--project",
-        "${workspaceFolder}/src/SharpPilot.Mcp/SharpPilot.Mcp.csproj",
+        "${workspaceFolder}/src/SharpPilot.Mcp.DotNet/SharpPilot.Mcp.DotNet.csproj",
         "--",
         "--scope",
         "editorconfig"

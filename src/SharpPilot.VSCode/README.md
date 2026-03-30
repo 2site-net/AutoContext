@@ -45,7 +45,7 @@ VS Code settings control which sub-checks are enabled. The extension writes disa
 
 ### 5. Runtime — EditorConfig-driven enforcement
 
-When Copilot invokes `check_dotnet`, the server resolves the project's `.editorconfig` properties and uses them to **drive** checker behavior. For example, if `csharp_prefer_braces = false`, the brace checker flags *unnecessary* braces instead of *missing* ones. EditorConfig values determine the enforcement direction — checkers don't just skip conflicting rules, they enforce whichever direction the project's EditorConfig specifies.
+When Copilot invokes `check_csharp_all`, the server resolves the project's `.editorconfig` properties and uses them to **drive** checker behavior. For example, if `csharp_prefer_braces = false`, the brace checker flags *unnecessary* braces instead of *missing* ones. EditorConfig values determine the enforcement direction — checkers don't just skip conflicting rules, they enforce whichever direction the project's EditorConfig specifies.
 
 ### Precedence
 
@@ -57,14 +57,14 @@ Once installed, the following tools are available to GitHub Copilot in Agent mod
 
 | Category | Tool | Purpose |
 |----------|------|---------|
-| .NET | `check_dotnet` | Composite C# quality check (style, naming, async, structure, …) |
+| .NET | `check_csharp_all` | Composite C# quality check (style, naming, async, structure, …) |
 | .NET | `check_nuget_hygiene` | Package version and hygiene check |
-| Git | `check_git_commit` | Conventional Commits format and content check |
+| Git | `check_git_all` | Conventional Commits format and content check |
 | EditorConfig | `get_editorconfig` | Resolve effective `.editorconfig` properties for a file |
 
 See the [Servers and Tools](https://github.com/2site-net/SharpPilot#servers-and-tools) section in the repository README for full tool descriptions.
 
-Each sub-check within `check_dotnet` and `check_git_commit` can be toggled individually under **Settings → SharpPilot → Tools**, or via **SharpPilot: Toggle Tools** in the Command Palette. If all sub-checks for a server are disabled, that server is not registered at all.
+Each sub-check within `check_csharp_all` and `check_git_all` can be toggled individually under **Settings → SharpPilot → Tools**, or via **SharpPilot: Toggle Tools** in the Command Palette. If all sub-checks for a server are disabled, that server is not registered at all.
 
 ## Coding Instructions
 

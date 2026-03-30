@@ -29,6 +29,6 @@ For tier-1 violations, stop generating and surface a warning. For lower-tier con
 - **Do** clean up after yourself – delete any temp or redundant files you create.
 - **Do** read the `README.md` and other documentation files to understand the project structure and requirements.
 - **Do** fix one category of errors completely before moving to the next.
-- **Do** pass `editorConfigFilePath` to `check_dotnet` using the same file path passed to `get_editorconfig` (see the instruction above about calling `get_editorconfig`); this binds the check to the project's actual style rules rather than generic defaults.
-- **Do** pass `productionFileName` to `check_dotnet` whenever the source file name is known; it validates that the declared type name matches the file name.
-- **Do** pass both `productionNamespace` and `testFileName` to `check_dotnet` only when the content is a test file; they validate namespace mirroring and that the file name ends with `Tests`.
+- **Do** pass `editorConfigFilePath` to `check_csharp_all` using the same file path passed to `get_editorconfig` (see the instruction above about calling `get_editorconfig`); this binds the check to the project's actual style rules rather than generic defaults.
+- **Do** pass `productionFileName` to `check_csharp_all` whenever the source file name is known; it validates that the declared type name matches the file name.
+- **Do** pass both `productionNamespace` and `testFileName` to `check_csharp_all` only when the content is a test file; they validate namespace mirroring and that the file name ends with `Tests`.
