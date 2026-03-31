@@ -117,9 +117,8 @@ if ($solutionFile -and $solutionFile.Extension -eq '.slnx') {
         ForEach-Object { Join-Path $repoRoot $_.Value })
 }
 
-$serverProjectPath = $dotnetProjects |
-    Where-Object { $_ -notmatch '\.Tests\.' } |
-    Select-Object -First 1
+$serverProjectPaths = @($dotnetProjects |
+    Where-Object { $_ -notmatch '\.Tests\.' })
 
 # ── RID → vsce target mapping ───────────────────────────────────────────────
 
@@ -372,9 +371,9 @@ function Invoke-DotNetPublish {
     [CmdletBinding(SupportsShouldProcess)]
     param([Parameter(Mandatory)][string]$Rid)
 
-    Write-Section "Publish .NET server ($Rid)"
-    if (-not $serverProjectPath) { throw 'No non-test .NET project found in the solution.' }
-    if ($PSCmdlet.ShouldProcess("$serverProjectPath → $Rid", 'dotnet publish')) {
+    Write-Section "Publish .NET servers ($Rid)"
+    if ($serverProjectPaths.Count -eq 0) { throw 'No non-test .NET projects found in the solution.' }
+    if ($PSCmdlet.ShouldProcess("$($serverProjectPaths.Count) project(s) → $Rid", 'dotnet publish')) {
         Assert-ExternalCommand 'dotnet'
 
         if (Test-Path $mcpDir) { Remove-Item $mcpDir -Recurse -Force }
@@ -387,10 +386,12 @@ function Invoke-DotNetPublish {
             '-p:PublishSingleFile=true'
         )
 
-        $serverName = [System.IO.Path]::GetFileNameWithoutExtension($serverProjectPath)
-        dotnet @publishArgs $serverProjectPath -o (Join-Path $mcpDir $serverName)
-        if ($LASTEXITCODE -ne 0) { throw "dotnet publish failed for $Rid." }
-        Write-Status ".NET server published ($Rid)" 'OK'
+        foreach ($projectPath in $serverProjectPaths) {
+            $serverName = [System.IO.Path]::GetFileNameWithoutExtension($projectPath)
+            dotnet @publishArgs $projectPath -o (Join-Path $mcpDir $serverName)
+            if ($LASTEXITCODE -ne 0) { throw "dotnet publish failed for $serverName ($Rid)." }
+            Write-Status "$serverName published ($Rid)" 'OK'
+        }
     }
 }
 
