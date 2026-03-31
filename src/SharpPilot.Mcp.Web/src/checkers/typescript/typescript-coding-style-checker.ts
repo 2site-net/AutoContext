@@ -71,7 +71,7 @@ function formatReport(violations: readonly Violation[]): string {
 export class TypeScriptCodingStyleChecker implements Checker {
     readonly toolName = 'check_typescript_coding_style';
 
-    check(content: string): string {
+    check(content: string, _data?: Record<string, string>): string {
         const violations = findViolations(content);
 
         if (violations.length === 0) {
