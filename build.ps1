@@ -241,6 +241,10 @@ function Invoke-CompileTS {
 
         Push-Location $extensionDir
         try {
+            Write-Status 'Installing extension dependencies...' 'INFO'
+            npm install
+            if ($LASTEXITCODE -ne 0) { throw 'Extension npm install failed.' }
+
             Write-Status 'Generating chat-instructions manifest...' 'INFO'
             npx tsx src/chat-instructions-manifest.ts
             if ($LASTEXITCODE -ne 0) { throw 'Chat-instructions manifest generation failed.' }
@@ -258,6 +262,10 @@ function Invoke-CompileTS {
         if (Test-Path $webServerDir) {
             Push-Location $webServerDir
             try {
+                Write-Status 'Installing Web MCP server dependencies...' 'INFO'
+                npm install
+                if ($LASTEXITCODE -ne 0) { throw 'Web MCP server npm install failed.' }
+
                 Write-Status 'Compiling Web MCP server...' 'INFO'
                 npx tsc -p ./tsconfig.build.json
                 if ($LASTEXITCODE -ne 0) { throw 'Web MCP server compilation failed.' }

@@ -38,6 +38,10 @@ jobs:
         working-directory: src/SharpPilot.VSCode
         run: npm ci
 
+      - name: Install web MCP server dependencies
+        working-directory: src/SharpPilot.Mcp.Web
+        run: npm ci
+
       - name: Set version in package.json
         working-directory: src/SharpPilot.VSCode
         run: npm version "$GITHUB_REF_NAME" --no-git-tag-version --allow-same-version
