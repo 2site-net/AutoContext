@@ -1,7 +1,5 @@
 namespace SharpPilot.Mcp.DotNet.Tests.Tools.DotNet.CSharp;
 
-using System.Text.Json.Nodes;
-
 using SharpPilot.Mcp.DotNet.Tools.Checkers.DotNet.CSharp;
 
 public sealed class CSharpProjectStructureCheckerTests
@@ -20,7 +18,7 @@ public sealed class CSharpProjectStructureCheckerTests
             """;
 
         // Act
-        var result = new CSharpProjectStructureChecker().Check(source, new JsonObject { ["productionFileName"] = "UserService.cs" });
+        var result = new CSharpProjectStructureChecker().Check(source, new Dictionary<string, string> { ["productionFileName"] = "UserService.cs" });
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -165,7 +163,7 @@ public sealed class CSharpProjectStructureCheckerTests
             """;
 
         // Act
-        var result = new CSharpProjectStructureChecker().Check(source, new JsonObject { ["productionFileName"] = "WrongName.cs" });
+        var result = new CSharpProjectStructureChecker().Check(source, new Dictionary<string, string> { ["productionFileName"] = "WrongName.cs" });
 
         // Assert
         Assert.Multiple(() =>
@@ -188,7 +186,7 @@ public sealed class CSharpProjectStructureCheckerTests
             """;
 
         // Act
-        var result = new CSharpProjectStructureChecker().Check(source, new JsonObject { ["productionFileName"] = "UserService.cs" });
+        var result = new CSharpProjectStructureChecker().Check(source, new Dictionary<string, string> { ["productionFileName"] = "UserService.cs" });
 
         // Assert
         Assert.DoesNotContain("file name", result, StringComparison.OrdinalIgnoreCase);
@@ -281,7 +279,7 @@ public sealed class CSharpProjectStructureCheckerTests
             """;
 
         // Act
-        var result = new CSharpProjectStructureChecker().Check(source, new JsonObject { ["productionFileName"] = "User.cs" });
+        var result = new CSharpProjectStructureChecker().Check(source, new Dictionary<string, string> { ["productionFileName"] = "User.cs" });
 
         // Assert
         Assert.Multiple(() =>
@@ -302,7 +300,7 @@ public sealed class CSharpProjectStructureCheckerTests
             """;
 
         // Act
-        var result = new CSharpProjectStructureChecker().Check(source, new JsonObject { ["productionFileName"] = "DataCallback.cs" });
+        var result = new CSharpProjectStructureChecker().Check(source, new Dictionary<string, string> { ["productionFileName"] = "DataCallback.cs" });
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -319,7 +317,7 @@ public sealed class CSharpProjectStructureCheckerTests
             """;
 
         // Act
-        var result = new CSharpProjectStructureChecker().Check(source, new JsonObject { ["productionFileName"] = "Wrong.cs" });
+        var result = new CSharpProjectStructureChecker().Check(source, new Dictionary<string, string> { ["productionFileName"] = "Wrong.cs" });
 
         // Assert
         Assert.Multiple(() =>
@@ -343,7 +341,7 @@ public sealed class CSharpProjectStructureCheckerTests
             """;
 
         // Act
-        var result = new CSharpProjectStructureChecker().Check(source, new JsonObject { ["productionFileName"] = "IUserRepository.cs" });
+        var result = new CSharpProjectStructureChecker().Check(source, new Dictionary<string, string> { ["productionFileName"] = "IUserRepository.cs" });
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -364,7 +362,7 @@ public sealed class CSharpProjectStructureCheckerTests
             """;
 
         // Act
-        var result = new CSharpProjectStructureChecker().Check(source, new JsonObject { ["productionFileName"] = "Status.cs" });
+        var result = new CSharpProjectStructureChecker().Check(source, new Dictionary<string, string> { ["productionFileName"] = "Status.cs" });
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -381,7 +379,7 @@ public sealed class CSharpProjectStructureCheckerTests
             """;
 
         // Act
-        var result = new CSharpProjectStructureChecker().Check(source, new JsonObject { ["productionFileName"] = "UserDto.cs" });
+        var result = new CSharpProjectStructureChecker().Check(source, new Dictionary<string, string> { ["productionFileName"] = "UserDto.cs" });
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -413,7 +411,7 @@ public sealed class CSharpProjectStructureCheckerTests
             public class UserService { }
             """;
 
-        var data = new JsonObject { ["csharp_style_namespace_declarations"] = "block_scoped" };
+        var data = new Dictionary<string, string> { ["csharp_style_namespace_declarations"] = "block_scoped" };
 
         // Act
         var result = new CSharpProjectStructureChecker().Check(source, data);
@@ -438,7 +436,7 @@ public sealed class CSharpProjectStructureCheckerTests
             }
             """;
 
-        var data = new JsonObject { ["csharp_style_namespace_declarations"] = "block_scoped" };
+        var data = new Dictionary<string, string> { ["csharp_style_namespace_declarations"] = "block_scoped" };
 
         // Act
         var result = new CSharpProjectStructureChecker().Check(source, data);
@@ -458,7 +456,7 @@ public sealed class CSharpProjectStructureCheckerTests
             }
             """;
 
-        var data = new JsonObject { ["csharp_style_namespace_declarations"] = "file_scoped" };
+        var data = new Dictionary<string, string> { ["csharp_style_namespace_declarations"] = "file_scoped" };
 
         // Act
         var result = new CSharpProjectStructureChecker().Check(source, data);

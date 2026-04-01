@@ -1,7 +1,6 @@
 namespace SharpPilot.Mcp.DotNet.Tools.Checkers.DotNet.CSharp;
 
 using System.ComponentModel;
-using System.Text.Json.Nodes;
 
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -39,19 +38,19 @@ public sealed class CSharpProjectStructureChecker : IChecker, IEditorConfigFilte
     public string Check(
         [Description("The C# source code to check.")]
         string content,
-        [Description("Optional JSON metadata. " +
+        [Description("Optional metadata. " +
             "'productionFileName' (e.g., 'MyClass.cs') — when provided, validates that it matches the declared type name.")]
-        JsonObject? data = null)
+        IReadOnlyDictionary<string, string>? data = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(content);
 
-        var fileName = data?["productionFileName"]?.GetValue<string>() ?? string.Empty;
+        var fileName = data?.GetValueOrDefault("productionFileName") ?? string.Empty;
 
         var tree = CSharpSyntaxTree.ParseText(content);
         var root = tree.GetRoot();
         var violations = new List<string>();
 
-        var namespacePreference = data?["csharp_style_namespace_declarations"]?.GetValue<string>() ?? "file_scoped";
+        var namespacePreference = data?.GetValueOrDefault("csharp_style_namespace_declarations") ?? "file_scoped";
 
         if (namespacePreference is "block_scoped")
         {

@@ -1,7 +1,5 @@
 namespace SharpPilot.Mcp.DotNet.Tests.Tools.DotNet.CSharp;
 
-using System.Text.Json.Nodes;
-
 using SharpPilot.Mcp.DotNet.Tools.Checkers.DotNet.CSharp;
 
 public sealed class CSharpCodingStyleCheckerTests
@@ -1214,7 +1212,7 @@ public sealed class CSharpCodingStyleCheckerTests
             }
             """;
 
-        var data = new JsonObject { ["csharp_prefer_braces"] = "false" };
+        var data = new Dictionary<string, string> { ["csharp_prefer_braces"] = "false" };
 
         // Act
         var result = new CSharpCodingStyleChecker().Check(source, data);
@@ -1250,7 +1248,7 @@ public sealed class CSharpCodingStyleCheckerTests
             }
             """;
 
-        var data = new JsonObject { ["csharp_prefer_braces"] = "false" };
+        var data = new Dictionary<string, string> { ["csharp_prefer_braces"] = "false" };
 
         // Act
         var result = new CSharpCodingStyleChecker().Check(source, data);
@@ -1284,7 +1282,7 @@ public sealed class CSharpCodingStyleCheckerTests
             }
             """;
 
-        var data = new JsonObject { ["csharp_prefer_braces"] = "when_multiline" };
+        var data = new Dictionary<string, string> { ["csharp_prefer_braces"] = "when_multiline" };
 
         // Act
         var result = new CSharpCodingStyleChecker().Check(source, data);
@@ -1321,7 +1319,7 @@ public sealed class CSharpCodingStyleCheckerTests
             }
             """;
 
-        var data = new JsonObject { ["csharp_prefer_braces"] = "when_multiline" };
+        var data = new Dictionary<string, string> { ["csharp_prefer_braces"] = "when_multiline" };
 
         // Act
         var result = new CSharpCodingStyleChecker().Check(source, data);
@@ -1358,7 +1356,7 @@ public sealed class CSharpCodingStyleCheckerTests
             }
             """;
 
-        var data = new JsonObject { ["csharp_prefer_braces"] = "true" };
+        var data = new Dictionary<string, string> { ["csharp_prefer_braces"] = "true" };
 
         // Act
         var result = new CSharpCodingStyleChecker().Check(source, data);

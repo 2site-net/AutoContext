@@ -1,7 +1,6 @@
 namespace SharpPilot.Mcp.DotNet.Tools.Checkers.DotNet.CSharp;
 
 using System.ComponentModel;
-using System.Text.Json.Nodes;
 
 using Microsoft.Extensions.Logging;
 
@@ -27,12 +26,12 @@ public sealed partial class CSharpChecker(ILogger<CSharpChecker> logger) : IChec
     public string ToolName
         => "check_csharp_all";
 
-    string IChecker.Check(string content, JsonObject? data)
+    string IChecker.Check(string content, IReadOnlyDictionary<string, string>? data)
         => Check(content,
-            editorConfigFilePath: data?["editorConfigFilePath"]?.GetValue<string>(),
-            productionFileName: data?["productionFileName"]?.GetValue<string>(),
-            productionNamespace: data?["productionNamespace"]?.GetValue<string>(),
-            testFileName: data?["testFileName"]?.GetValue<string>());
+            editorConfigFilePath: data?.GetValueOrDefault("editorConfigFilePath"),
+            productionFileName: data?.GetValueOrDefault("productionFileName"),
+            productionNamespace: data?.GetValueOrDefault("productionNamespace"),
+            testFileName: data?.GetValueOrDefault("testFileName"));
 
     /// <summary>
     /// Runs all enabled C# code quality checks on the supplied C# source code.
@@ -114,14 +113,14 @@ public sealed partial class CSharpChecker(ILogger<CSharpChecker> logger) : IChec
         return string.Join("\n\n", failures);
     }
 
-    private static JsonObject? BuildData(
+    private static Dictionary<string, string>? BuildData(
         IChecker[] checkers,
         string? editorConfigFilePath,
         string? productionFileName,
         string? productionNamespace,
         string? testFileName)
     {
-        JsonObject data = [];
+        var data = new Dictionary<string, string>();
 
         if (productionFileName is not null)
         {
@@ -148,7 +147,7 @@ public sealed partial class CSharpChecker(ILogger<CSharpChecker> logger) : IChec
         {
             foreach (var kv in properties)
             {
-                data.TryAdd(kv.Key, JsonValue.Create(kv.Value));
+                data.TryAdd(kv.Key, kv.Value);
             }
         }
 

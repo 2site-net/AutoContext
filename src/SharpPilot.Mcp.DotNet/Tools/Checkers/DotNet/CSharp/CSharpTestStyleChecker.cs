@@ -1,7 +1,6 @@
 namespace SharpPilot.Mcp.DotNet.Tools.Checkers.DotNet.CSharp;
 
 using System.ComponentModel;
-using System.Text.Json.Nodes;
 
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -39,15 +38,15 @@ public sealed class CSharpTestStyleChecker : IChecker
     public string Check(
         [Description("The C# test source code to check.")]
         string content,
-        [Description("Optional JSON metadata. " +
+        [Description("Optional metadata. " +
             "'testFileName' (e.g., 'UserServiceTests.cs') validates the name ends with 'Tests' before extensions. " +
             "'productionNamespace' (e.g., 'MyApp.Services') validates the test namespace mirrors it.")]
-        JsonObject? data = null)
+        IReadOnlyDictionary<string, string>? data = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(content);
 
-        var fileName = data?["testFileName"]?.GetValue<string>() ?? string.Empty;
-        var productionNamespace = data?["productionNamespace"]?.GetValue<string>() ?? string.Empty;
+        var fileName = data?.GetValueOrDefault("testFileName") ?? string.Empty;
+        var productionNamespace = data?.GetValueOrDefault("productionNamespace") ?? string.Empty;
 
         var tree = CSharpSyntaxTree.ParseText(content);
         var root = tree.GetRoot();

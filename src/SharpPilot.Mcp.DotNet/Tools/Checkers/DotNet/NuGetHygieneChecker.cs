@@ -1,7 +1,6 @@
 namespace SharpPilot.Mcp.DotNet.Tools.Checkers.DotNet;
 
 using System.ComponentModel;
-using System.Text.Json.Nodes;
 using System.Xml.Linq;
 
 using Microsoft.Extensions.Logging;
@@ -49,7 +48,7 @@ public sealed partial class NuGetHygieneChecker(ILogger<NuGetHygieneChecker> log
     public string Check(
         [Description("The .csproj file content (XML) to check.")]
         string content,
-        JsonObject? data = null)
+        IReadOnlyDictionary<string, string>? data = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(content);
 

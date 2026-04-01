@@ -1,7 +1,6 @@
 namespace SharpPilot.Mcp.DotNet.Tools.Checkers.Git;
 
 using System.ComponentModel;
-using System.Text.Json.Nodes;
 
 using Microsoft.Extensions.Logging;
 
@@ -21,7 +20,7 @@ public sealed partial class GitChecker(ILogger<GitChecker> logger) : IChecker
     public string ToolName
         => "check_git_all";
 
-    string IChecker.Check(string content, JsonObject? data)
+    string IChecker.Check(string content, IReadOnlyDictionary<string, string>? data)
         => Check(content);
 
     /// <summary>

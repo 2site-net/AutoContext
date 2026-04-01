@@ -1,7 +1,6 @@
 namespace SharpPilot.Mcp.DotNet.Tools.Checkers.DotNet.CSharp;
 
 using System.ComponentModel;
-using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 
 using Microsoft.CodeAnalysis;
@@ -42,7 +41,7 @@ public sealed partial class CSharpCodingStyleChecker : IChecker, IEditorConfigFi
     public string Check(
         [Description("The C# source code to check.")]
         string content,
-        JsonObject? data = null)
+        IReadOnlyDictionary<string, string>? data = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(content);
 
@@ -68,8 +67,8 @@ public sealed partial class CSharpCodingStyleChecker : IChecker, IEditorConfigFi
               string.Join('\n', violations.Select((v, i) => $"  {i + 1}. {v}"));
     }
 
-    private static string GetBracePreference(JsonObject? data)
-        => data?["csharp_prefer_braces"]?.GetValue<string>() ?? "true";
+    private static string GetBracePreference(IReadOnlyDictionary<string, string>? data)
+        => data?.GetValueOrDefault("csharp_prefer_braces") ?? "true";
 
     private static void CheckRegions(SyntaxNode root, SyntaxTree tree, List<string> violations)
     {

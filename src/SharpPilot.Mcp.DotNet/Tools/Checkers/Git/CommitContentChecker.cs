@@ -1,7 +1,6 @@
 namespace SharpPilot.Mcp.DotNet.Tools.Checkers.Git;
 
 using System.ComponentModel;
-using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 
 using ModelContextProtocol.Server;
@@ -29,7 +28,7 @@ public sealed partial class CommitContentChecker : IChecker
     public string Check(
         [Description("The full git commit message to validate.")]
         string content,
-        JsonObject? data = null)
+        IReadOnlyDictionary<string, string>? data = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(content);
 

@@ -1,7 +1,6 @@
 namespace SharpPilot.Mcp.DotNet.Tools.Checkers.DotNet.CSharp;
 
 using System.ComponentModel;
-using System.Text.Json.Nodes;
 
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -35,7 +34,7 @@ public sealed class CSharpAsyncPatternChecker : IChecker
     public string Check(
         [Description("The C# source code to check.")]
         string content,
-        JsonObject? data = null)
+        IReadOnlyDictionary<string, string>? data = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(content);
 
