@@ -17,6 +17,7 @@ export class WorkspaceServerManager implements vscode.Disposable {
     constructor(
         private readonly extensionPath: string,
         private readonly outputChannel: vscode.OutputChannel,
+        private readonly workspaceRoot: string | undefined,
     ) {}
 
     /**
@@ -33,7 +34,13 @@ export class WorkspaceServerManager implements vscode.Disposable {
     start(): void {
         const command = join(this.extensionPath, 'mcp', 'SharpPilot.WorkspaceServer', `SharpPilot.WorkspaceServer${this.ext}`);
 
-        this.process = spawn(command, ['--pipe', this.pipeName], {
+        const args = ['--pipe', this.pipeName];
+
+        if (this.workspaceRoot) {
+            args.push('--workspace-root', this.workspaceRoot);
+        }
+
+        this.process = spawn(command, args, {
             stdio: ['ignore', 'pipe', 'pipe'],
         });
 

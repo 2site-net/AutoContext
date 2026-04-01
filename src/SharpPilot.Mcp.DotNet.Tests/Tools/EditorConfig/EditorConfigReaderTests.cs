@@ -14,20 +14,24 @@ public sealed class EditorConfigReaderTests : IAsyncLifetime, IDisposable
     private readonly string _pipeName = $"ec-reader-test-{Guid.NewGuid():N}";
     private readonly CancellationTokenSource _cts = new();
 
-    private SharpPilot.WorkspaceServer.WorkspaceService? _service;
+    private SharpPilot.WorkspaceServer.Features.EditorConfig.WorkspaceService? _service;
 
     public async ValueTask InitializeAsync()
     {
         Directory.CreateDirectory(_tempRoot);
 
         var config = new ConfigurationBuilder()
-            .AddInMemoryCollection([new("pipe", _pipeName)])
+            .AddInMemoryCollection([
+                new("pipe", _pipeName),
+                new("workspace-root", _tempRoot),
+            ])
             .Build();
 
-        _service = new SharpPilot.WorkspaceServer.WorkspaceService(
+        _service = new SharpPilot.WorkspaceServer.Features.EditorConfig.WorkspaceService(
             config,
-            new SharpPilot.WorkspaceServer.EditorConfigResolver(),
-            NullLogger<SharpPilot.WorkspaceServer.WorkspaceService>.Instance);
+            new SharpPilot.WorkspaceServer.Features.EditorConfig.EditorConfigResolver(),
+            new SharpPilot.WorkspaceServer.Features.EditorConfig.McpToolsConfig(config),
+            NullLogger<SharpPilot.WorkspaceServer.Features.EditorConfig.WorkspaceService>.Instance);
 
         await _service.StartAsync(_cts.Token);
         EditorConfigReader.Configure(_pipeName);

@@ -5,7 +5,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Console;
 
-using SharpPilot.WorkspaceServer;
+using SharpPilot.WorkspaceServer.Features.EditorConfig;
 
 var builder = Host.CreateApplicationBuilder(args);
 
@@ -19,6 +19,7 @@ builder.Services.Configure<ConsoleLifetimeOptions>(o =>
     o.SuppressStatusMessages = true);
 
 builder.Services.AddSingleton<EditorConfigResolver>();
+builder.Services.AddSingleton<McpToolsConfig>();
 builder.Services.AddHostedService<WorkspaceService>();
 
 var host = builder.Build();

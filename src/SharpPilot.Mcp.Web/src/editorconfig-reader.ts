@@ -20,7 +20,11 @@ function queryAsync(filePath: string, keys?: readonly string[]): Promise<Record<
         return Promise.resolve({});
     }
 
-    const request = JSON.stringify(keys?.length ? { filePath, keys } : { filePath });
+    const request = JSON.stringify(
+        keys?.length
+            ? { type: 'editorconfig', 'file-path': filePath, keys }
+            : { type: 'editorconfig', 'file-path': filePath },
+    );
     const requestBytes = Buffer.from(request, 'utf8');
     const header = Buffer.alloc(4);
     header.writeInt32LE(requestBytes.length, 0);

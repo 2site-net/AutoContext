@@ -1,4 +1,4 @@
-namespace SharpPilot.WorkspaceServer;
+namespace SharpPilot.WorkspaceServer.Features.EditorConfig;
 
 using System.Buffers.Binary;
 using System.IO.Pipes;
@@ -7,6 +7,8 @@ using System.Text.Json;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+
+using SharpPilot.WorkspaceServer.Features.EditorConfig.Protocol;
 
 /// <summary>
 /// Named pipe server that resolves EditorConfig properties using a
@@ -17,11 +19,12 @@ using Microsoft.Extensions.Logging;
 internal sealed partial class WorkspaceService(
     IConfiguration configuration,
     EditorConfigResolver resolver,
+    McpToolsConfig toolsStatus,
     ILogger<WorkspaceService> logger) : BackgroundService
 {
     internal static JsonSerializerOptions JsonOptions { get; } = new()
     {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        PropertyNamingPolicy = JsonNamingPolicy.KebabCaseLower,
     };
 
     /// <inheritdoc />
@@ -45,7 +48,7 @@ internal sealed partial class WorkspaceService(
                     break;
                 }
 
-                handlers.Add(HandleConnectionAsync(pipe, resolver));
+                handlers.Add(HandleConnectionAsync(pipe, resolver, toolsStatus));
             }
         }
         finally
@@ -100,7 +103,8 @@ internal sealed partial class WorkspaceService(
 
     private static async Task HandleConnectionAsync(
         NamedPipeServerStream pipe,
-        EditorConfigResolver resolver)
+        EditorConfigResolver resolver,
+        McpToolsConfig toolsStatus)
     {
         try
         {
@@ -113,7 +117,7 @@ internal sealed partial class WorkspaceService(
                     return;
                 }
 
-                var responseBytes = ProcessRequest(requestBytes, resolver);
+                var responseBytes = ProcessRequest(requestBytes, resolver, toolsStatus);
 
                 await WriteMessageAsync(pipe, responseBytes).ConfigureAwait(false);
             }
@@ -194,26 +198,80 @@ internal sealed partial class WorkspaceService(
         return true;
     }
 
-    private static byte[] ProcessRequest(ReadOnlySpan<byte> json, EditorConfigResolver resolver)
+    private static byte[] ProcessRequest(
+        ReadOnlySpan<byte> json,
+        EditorConfigResolver resolver,
+        McpToolsConfig toolsStatus)
     {
         try
         {
-            var request = JsonSerializer.Deserialize<EditorConfigRequest>(json, JsonOptions);
+            var envelope = JsonSerializer.Deserialize<WorkspaceRequest>(json, JsonOptions);
 
-            if (request is null || string.IsNullOrWhiteSpace(request.FilePath))
+            return envelope?.Type switch
             {
-                return JsonSerializer.SerializeToUtf8Bytes(new EditorConfigResponse([]), JsonOptions);
-            }
-
-            var properties = resolver.Resolve(request.FilePath, request.Keys);
-            var response = new EditorConfigResponse(properties);
-
-            return JsonSerializer.SerializeToUtf8Bytes(response, JsonOptions);
+                "mcp-tools" => ProcessMcpToolsRequest(json, resolver, toolsStatus),
+                _ => ProcessEditorConfigRequest(json, resolver),
+            };
         }
         catch (JsonException)
         {
             return JsonSerializer.SerializeToUtf8Bytes(new EditorConfigResponse([]), JsonOptions);
         }
+    }
+
+    private static byte[] ProcessEditorConfigRequest(ReadOnlySpan<byte> json, EditorConfigResolver resolver)
+    {
+        var request = JsonSerializer.Deserialize<EditorConfigRequest>(json, JsonOptions);
+
+        if (request is null || string.IsNullOrWhiteSpace(request.FilePath))
+        {
+            return JsonSerializer.SerializeToUtf8Bytes(new EditorConfigResponse([]), JsonOptions);
+        }
+
+        var properties = resolver.Resolve(request.FilePath, request.Keys);
+
+        return JsonSerializer.SerializeToUtf8Bytes(new EditorConfigResponse(properties), JsonOptions);
+    }
+
+    private static byte[] ProcessMcpToolsRequest(
+        ReadOnlySpan<byte> json,
+        EditorConfigResolver resolver,
+        McpToolsConfig toolsStatus)
+    {
+        var request = JsonSerializer.Deserialize<McpToolsRequest>(json, JsonOptions);
+
+        if (request is null
+            || string.IsNullOrWhiteSpace(request.FilePath)
+            || request.McpTools is not { Length: > 0 })
+        {
+            return JsonSerializer.SerializeToUtf8Bytes(new McpToolsResponse([]), JsonOptions);
+        }
+
+        var results = new McpToolEditorConfigResult[request.McpTools.Length];
+
+        for (var i = 0; i < request.McpTools.Length; i++)
+        {
+            var tool = request.McpTools[i];
+            var enabled = toolsStatus.IsEnabled(tool.Name);
+            var hasKeys = tool.EditorConfigKeys is { Length: > 0 };
+
+            if (enabled)
+            {
+                var data = hasKeys ? resolver.Resolve(request.FilePath, tool.EditorConfigKeys) : null;
+                results[i] = new McpToolEditorConfigResult(tool.Name, McpToolMode.Run, data);
+            }
+            else if (hasKeys)
+            {
+                var data = resolver.Resolve(request.FilePath, tool.EditorConfigKeys);
+                results[i] = new McpToolEditorConfigResult(tool.Name, McpToolMode.EditorConfigOnly, data);
+            }
+            else
+            {
+                results[i] = new McpToolEditorConfigResult(tool.Name, McpToolMode.Skip);
+            }
+        }
+
+        return JsonSerializer.SerializeToUtf8Bytes(new McpToolsResponse(results), JsonOptions);
     }
 
     [LoggerMessage(Level = LogLevel.Information,

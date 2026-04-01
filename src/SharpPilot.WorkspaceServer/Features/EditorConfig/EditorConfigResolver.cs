@@ -1,4 +1,4 @@
-namespace SharpPilot.WorkspaceServer;
+namespace SharpPilot.WorkspaceServer.Features.EditorConfig;
 
 using System.Diagnostics.CodeAnalysis;
 

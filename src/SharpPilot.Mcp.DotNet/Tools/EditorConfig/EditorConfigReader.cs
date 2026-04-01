@@ -7,7 +7,8 @@ using System.Text.Json;
 
 using ModelContextProtocol.Server;
 
-using SharpPilot.WorkspaceServer;
+using SharpPilot.WorkspaceServer.Features.EditorConfig;
+using SharpPilot.WorkspaceServer.Features.EditorConfig.Protocol;
 
 /// <summary>
 /// Named pipe client that delegates EditorConfig resolution to the
@@ -18,7 +19,7 @@ public static class EditorConfigReader
 {
     private static readonly JsonSerializerOptions s_jsonOptions = new()
     {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        PropertyNamingPolicy = JsonNamingPolicy.KebabCaseLower,
     };
 
     private static string? s_pipeName;
@@ -75,7 +76,7 @@ public static class EditorConfigReader
             return null;
         }
 
-        var request = new { filePath = path, keys };
+        var request = new EditorConfigRequest(path, keys);
         var requestBytes = JsonSerializer.SerializeToUtf8Bytes(request, s_jsonOptions);
 
         using var client = new NamedPipeClientStream(".", s_pipeName, PipeDirection.InOut, PipeOptions.Asynchronous);

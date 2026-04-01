@@ -36,8 +36,8 @@ function createMockService(pipeName: string): Server {
             chunks.length = 0;
 
             try {
-                const request = JSON.parse(payloadBytes.toString('utf8')) as { filePath?: string; keys?: string[] };
-                const filePath = request.filePath ?? '';
+                const request = JSON.parse(payloadBytes.toString('utf8')) as { 'file-path'?: string; keys?: string[] };
+                const filePath = request['file-path'] ?? '';
 
                 // Simulate a small set of known responses.
                 let properties: Record<string, string> = {};

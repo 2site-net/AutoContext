@@ -1,4 +1,6 @@
-namespace SharpPilot.WorkspaceServer.Tests;
+namespace SharpPilot.WorkspaceServer.Tests.Features.EditorConfig;
+
+using SharpPilot.WorkspaceServer.Features.EditorConfig;
 
 public sealed class EditorConfigResolverTests : IDisposable
 {
