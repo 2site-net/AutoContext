@@ -1,8 +1,10 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/SharpPilot.EditorConfig/SharpPilot.EditorConfig.csproj" />
     <Project Path="src/SharpPilot.Mcp.DotNet/SharpPilot.Mcp.DotNet.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="src/SharpPilot.EditorConfig.Tests/SharpPilot.EditorConfig.Tests.csproj" />
     <Project Path="src/SharpPilot.Mcp.DotNet.Tests/SharpPilot.Mcp.DotNet.Tests.csproj" />
   </Folder>
 </Solution>
