@@ -45,7 +45,7 @@ public sealed partial class NuGetHygieneChecker(ILogger<NuGetHygieneChecker> log
         "no floating or wildcard versions (e.g., '*', version ranges), " +
         "no PackageReference without a Version attribute (unless Central Package Management is enabled via ManagePackageVersionsCentrally), " +
         "and flags packages that have well-known built-in .NET alternatives.")]
-    public string Check(
+    public Task<string> CheckAsync(
         [Description("The .csproj file content (XML) to check.")]
         string content,
         IReadOnlyDictionary<string, string>? data = null)
@@ -62,12 +62,12 @@ public sealed partial class NuGetHygieneChecker(ILogger<NuGetHygieneChecker> log
         }
         catch (System.Xml.XmlException ex)
         {
-            return $"❌ Failed to parse .csproj XML: {ex.Message}";
+            return Task.FromResult($"❌ Failed to parse .csproj XML: {ex.Message}");
         }
 
         if (doc.Root is null)
         {
-            return "❌ Failed to parse .csproj XML: document has no root element.";
+            return Task.FromResult("❌ Failed to parse .csproj XML: document has no root element.");
         }
 
         var violations = new List<string>();
@@ -79,10 +79,10 @@ public sealed partial class NuGetHygieneChecker(ILogger<NuGetHygieneChecker> log
         CheckMissingVersions(packages, usesCpm, violations);
         CheckBuiltInAlternatives(packages, violations);
 
-        return violations.Count == 0
+        return Task.FromResult(violations.Count == 0
             ? "✅ NuGet hygiene is correct."
             : $"❌ Found {violations.Count} NuGet hygiene violation(s):\n" +
-              string.Join('\n', violations.Select((v, i) => $"  {i + 1}. {v}"));
+              string.Join('\n', violations.Select((v, i) => $"  {i + 1}. {v}")));
     }
 
     private static List<(string Name, string? Version)> GetPackageReferences(XElement root)

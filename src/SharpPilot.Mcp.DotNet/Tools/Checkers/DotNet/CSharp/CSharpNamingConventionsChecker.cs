@@ -34,7 +34,7 @@ public sealed class CSharpNamingConventionsChecker : IChecker
         "private non-static instance fields must use _camelCase, " +
         "types, methods, properties, and events must use PascalCase, " +
         "and method/constructor/delegate parameters must use camelCase.")]
-    public string Check(
+    public async Task<string> CheckAsync(
         [Description("The C# source code to check.")]
         string content,
         IReadOnlyDictionary<string, string>? data = null)
@@ -42,7 +42,7 @@ public sealed class CSharpNamingConventionsChecker : IChecker
         ArgumentException.ThrowIfNullOrWhiteSpace(content);
 
         var tree = CSharpSyntaxTree.ParseText(content);
-        var root = tree.GetRoot();
+        var root = await tree.GetRootAsync().ConfigureAwait(false);
         var violations = new List<string>();
 
         CheckInterfaceNames(root, tree, violations);

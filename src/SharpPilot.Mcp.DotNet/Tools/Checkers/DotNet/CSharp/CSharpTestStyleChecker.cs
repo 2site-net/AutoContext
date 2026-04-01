@@ -35,7 +35,7 @@ public sealed class CSharpTestStyleChecker : IChecker
         ".ConfigureAwait() must not be called inside test methods (xUnit1030), " +
         "and when data is provided, validates that the test file " +
         "mirrors the production structure (file name ends with 'Tests' before extensions, namespace mirrors production).")]
-    public string Check(
+    public async Task<string> CheckAsync(
         [Description("The C# test source code to check.")]
         string content,
         [Description("Optional metadata. " +
@@ -49,7 +49,7 @@ public sealed class CSharpTestStyleChecker : IChecker
         var productionNamespace = data?.GetValueOrDefault("productionNamespace") ?? string.Empty;
 
         var tree = CSharpSyntaxTree.ParseText(content);
-        var root = tree.GetRoot();
+        var root = await tree.GetRootAsync().ConfigureAwait(false);
         var violations = new List<string>();
 
         var testClasses = FindTestClasses(root);

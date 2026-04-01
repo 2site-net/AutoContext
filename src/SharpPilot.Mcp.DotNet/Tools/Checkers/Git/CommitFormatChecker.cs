@@ -34,7 +34,7 @@ public sealed partial class CommitFormatChecker : IChecker
         "Validates a git commit message for Conventional Commits formatting: " +
         "type(scope): description, subject ≤ 50 chars, body wrap at 72 chars, " +
         "blank line between subject and body.")]
-    public string Check(
+    public Task<string> CheckAsync(
         [Description("The full git commit message to validate.")]
         string content,
         IReadOnlyDictionary<string, string>? data = null)
@@ -65,10 +65,10 @@ public sealed partial class CommitFormatChecker : IChecker
             }
         }
 
-        return violations.Count == 0
+        return Task.FromResult(violations.Count == 0
             ? "✅ Commit format is valid."
             : $"❌ Found {violations.Count} format violation(s):\n" +
-              string.Join('\n', violations.Select((v, i) => $"  {i + 1}. {v}"));
+              string.Join('\n', violations.Select((v, i) => $"  {i + 1}. {v}")));
     }
 
     private static void ValidateSubjectFormat(ReadOnlySpan<char> subject, List<string> violations)

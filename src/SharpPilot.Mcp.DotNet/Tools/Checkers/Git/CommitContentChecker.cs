@@ -25,7 +25,7 @@ public sealed partial class CommitContentChecker : IChecker
         "Validates a git commit message body for content anti-patterns: " +
         "no bullet lists, no file paths, no counts, no enumerated properties, " +
         "no 'Key features:' sections, and no sensitive information.")]
-    public string Check(
+    public Task<string> CheckAsync(
         [Description("The full git commit message to validate.")]
         string content,
         IReadOnlyDictionary<string, string>? data = null)
@@ -41,7 +41,7 @@ public sealed partial class CommitContentChecker : IChecker
 
         if (firstNewline < 0)
         {
-            return "✅ Commit content is valid (no body to check).";
+            return Task.FromResult("✅ Commit content is valid (no body to check).");
         }
 
         var rest = span[(firstNewline + 1)..];
@@ -49,14 +49,14 @@ public sealed partial class CommitContentChecker : IChecker
 
         if (secondNewline < 0)
         {
-            return "✅ Commit content is valid (no body to check).";
+            return Task.FromResult("✅ Commit content is valid (no body to check).");
         }
 
         var body = rest[(secondNewline + 1)..].Trim();
 
         if (body.IsEmpty)
         {
-            return "✅ Commit content is valid (no body to check).";
+            return Task.FromResult("✅ Commit content is valid (no body to check).");
         }
 
         CheckBulletLists(body, violations);
@@ -66,10 +66,10 @@ public sealed partial class CommitContentChecker : IChecker
         CheckParameterEnumerations(body, violations);
         CheckSensitiveInfo(body, violations);
 
-        return violations.Count == 0
+        return Task.FromResult(violations.Count == 0
             ? "✅ Commit content is valid."
             : $"❌ Found {violations.Count} content violation(s):\n" +
-              string.Join('\n', violations.Select((v, i) => $"  {i + 1}. {v}"));
+              string.Join('\n', violations.Select((v, i) => $"  {i + 1}. {v}")));
     }
 
     private static void CheckBulletLists(ReadOnlySpan<char> body, List<string> violations)

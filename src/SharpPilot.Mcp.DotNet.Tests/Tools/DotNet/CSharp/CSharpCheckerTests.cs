@@ -8,7 +8,7 @@ using SharpPilot.Mcp.DotNet.Tools.Checkers.DotNet.CSharp;
 public sealed class CSharpCheckerTests
 {
     [Fact]
-    public void Should_pass_when_all_checks_pass()
+    public async Task Should_pass_when_all_checks_pass()
     {
         // Arrange
         var source = """
@@ -38,14 +38,14 @@ public sealed class CSharpCheckerTests
             """;
 
         // Act
-        var result = new CSharpChecker(NullLogger<CSharpChecker>.Instance).Check(source, productionFileName: "MyClass.cs");
+        var result = await new CSharpChecker(NullLogger<CSharpChecker>.Instance).CheckAsync(source, productionFileName: "MyClass.cs");
 
         // Assert
         Assert.StartsWith("✅", result);
     }
 
     [Fact]
-    public void Should_report_violations_from_multiple_checkers()
+    public async Task Should_report_violations_from_multiple_checkers()
     {
         // Arrange — block-scoped namespace (project structure) + region (code style)
         var source = """
@@ -61,7 +61,7 @@ public sealed class CSharpCheckerTests
             """;
 
         // Act
-        var result = new CSharpChecker(NullLogger<CSharpChecker>.Instance).Check(source, productionFileName: "MyClass.cs");
+        var result = await new CSharpChecker(NullLogger<CSharpChecker>.Instance).CheckAsync(source, productionFileName: "MyClass.cs");
 
         // Assert
         Assert.StartsWith("❌", result);
@@ -70,7 +70,7 @@ public sealed class CSharpCheckerTests
     }
 
     [Fact]
-    public void Should_aggregate_only_failing_checks()
+    public async Task Should_aggregate_only_failing_checks()
     {
         // Arrange — passes style but has a naming violation (PascalCase field without underscore)
         var source = """
@@ -86,7 +86,7 @@ public sealed class CSharpCheckerTests
             """;
 
         // Act
-        var result = new CSharpChecker(NullLogger<CSharpChecker>.Instance).Check(source);
+        var result = await new CSharpChecker(NullLogger<CSharpChecker>.Instance).CheckAsync(source);
 
         // Assert — should contain naming violation but not a success message for passing checks
         Assert.StartsWith("❌", result);
@@ -94,9 +94,9 @@ public sealed class CSharpCheckerTests
     }
 
     [Fact]
-    public void Should_throw_on_null_or_whitespace_source()
+    public async Task Should_throw_on_null_or_whitespace_source()
     {
-        Assert.Throws<ArgumentException>(() => new CSharpChecker(NullLogger<CSharpChecker>.Instance).Check(""));
-        Assert.Throws<ArgumentException>(() => new CSharpChecker(NullLogger<CSharpChecker>.Instance).Check("   "));
+        await Assert.ThrowsAsync<ArgumentException>(() => new CSharpChecker(NullLogger<CSharpChecker>.Instance).CheckAsync(""));
+        await Assert.ThrowsAsync<ArgumentException>(() => new CSharpChecker(NullLogger<CSharpChecker>.Instance).CheckAsync("   "));
     }
 }

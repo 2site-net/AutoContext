@@ -26,8 +26,8 @@ public sealed partial class CSharpChecker(ILogger<CSharpChecker> logger) : IChec
     public string ToolName
         => "check_csharp_all";
 
-    string IChecker.Check(string content, IReadOnlyDictionary<string, string>? data)
-        => Check(content,
+    Task<string> IChecker.CheckAsync(string content, IReadOnlyDictionary<string, string>? data)
+        => CheckAsync(content,
             editorConfigFilePath: data?.GetValueOrDefault("editorConfigFilePath"),
             productionFileName: data?.GetValueOrDefault("productionFileName"),
             productionNamespace: data?.GetValueOrDefault("productionNamespace"),
@@ -46,7 +46,7 @@ public sealed partial class CSharpChecker(ILogger<CSharpChecker> logger) : IChec
         "When editorConfigFilePath is provided (the path of the source file being checked), " +
         "resolves its effective .editorconfig properties and uses them to " +
         "drive checker behavior (e.g., brace and namespace style enforcement direction).")]
-    public string Check(
+    public async Task<string> CheckAsync(
         [Description("The C# source code to check.")]
         string content,
         [Description("Absolute path of the C# source file being checked. " +
@@ -86,7 +86,7 @@ public sealed partial class CSharpChecker(ILogger<CSharpChecker> logger) : IChec
             new CSharpTestStyleChecker(),
         ];
 
-        var data = BuildData(checkers, editorConfigFilePath, productionFileName, productionNamespace, testFileName);
+        var data = await BuildDataAsync(checkers, editorConfigFilePath, productionFileName, productionNamespace, testFileName).ConfigureAwait(false);
 
         var sections = new List<string>();
 
@@ -94,7 +94,7 @@ public sealed partial class CSharpChecker(ILogger<CSharpChecker> logger) : IChec
         {
             if (ToolsStatusConfig.IsEnabled(checker.ToolName))
             {
-                sections.Add(checker.Check(content, data));
+                sections.Add(await checker.CheckAsync(content, data).ConfigureAwait(false));
             }
         }
 
@@ -113,7 +113,7 @@ public sealed partial class CSharpChecker(ILogger<CSharpChecker> logger) : IChec
         return string.Join("\n\n", failures);
     }
 
-    private static Dictionary<string, string>? BuildData(
+    private static async Task<Dictionary<string, string>?> BuildDataAsync(
         IChecker[] checkers,
         string? editorConfigFilePath,
         string? productionFileName,
@@ -141,7 +141,7 @@ public sealed partial class CSharpChecker(ILogger<CSharpChecker> logger) : IChec
             .SelectMany(f => f.EditorConfigKeys)
             .Distinct()
             .ToArray();
-        var properties = EditorConfigReader.Resolve(editorConfigFilePath, allKeys);
+        var properties = await EditorConfigReader.ResolveAsync(editorConfigFilePath, allKeys).ConfigureAwait(false);
 
         if (properties is not null)
         {

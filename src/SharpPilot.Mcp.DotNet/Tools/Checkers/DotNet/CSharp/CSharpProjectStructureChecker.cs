@@ -35,7 +35,7 @@ public sealed class CSharpProjectStructureChecker : IChecker, IEditorConfigFilte
         "only one top-level type declaration per file is allowed, " +
         "the file name (without extension) must match the type name when provided, " +
         "and #pragma warning disable is not allowed (use [SuppressMessage] with a justification instead).")]
-    public string Check(
+    public async Task<string> CheckAsync(
         [Description("The C# source code to check.")]
         string content,
         [Description("Optional metadata. " +
@@ -47,7 +47,7 @@ public sealed class CSharpProjectStructureChecker : IChecker, IEditorConfigFilte
         var fileName = data?.GetValueOrDefault("productionFileName") ?? string.Empty;
 
         var tree = CSharpSyntaxTree.ParseText(content);
-        var root = tree.GetRoot();
+        var root = await tree.GetRootAsync().ConfigureAwait(false);
         var violations = new List<string>();
 
         var namespacePreference = data?.GetValueOrDefault("csharp_style_namespace_declarations") ?? "file_scoped";

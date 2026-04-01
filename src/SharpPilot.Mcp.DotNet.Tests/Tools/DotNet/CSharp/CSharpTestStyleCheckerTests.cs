@@ -5,14 +5,14 @@ using SharpPilot.Mcp.DotNet.Tools.Checkers.DotNet.CSharp;
 public sealed class CSharpTestStyleCheckerTests
 {
     [Fact]
-    public void Should_pass_well_styled_test_class()
+    public async Task Should_pass_well_styled_test_class()
     {
         // Arrange
         var source = """
             public sealed class UserServiceTests
             {
                 [Fact]
-                public void Should_return_user_by_id()
+                public async Task Should_return_user_by_id()
                 {
                     Assert.True(true);
                 }
@@ -20,21 +20,21 @@ public sealed class CSharpTestStyleCheckerTests
             """;
 
         // Act
-        var result = new CSharpTestStyleChecker().Check(source);
+        var result = await new CSharpTestStyleChecker().CheckAsync(source);
 
         // Assert
         Assert.StartsWith("✅", result);
     }
 
     [Fact]
-    public void Should_reject_test_class_without_tests_suffix()
+    public async Task Should_reject_test_class_without_tests_suffix()
     {
         // Arrange
         var source = """
             public sealed class UserServiceTest
             {
                 [Fact]
-                public void Should_work()
+                public async Task Should_work()
                 {
                     Assert.True(true);
                 }
@@ -42,7 +42,7 @@ public sealed class CSharpTestStyleCheckerTests
             """;
 
         // Act
-        var result = new CSharpTestStyleChecker().Check(source);
+        var result = await new CSharpTestStyleChecker().CheckAsync(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -53,14 +53,14 @@ public sealed class CSharpTestStyleCheckerTests
     }
 
     [Fact]
-    public void Should_pass_test_class_with_tests_suffix()
+    public async Task Should_pass_test_class_with_tests_suffix()
     {
         // Arrange
         var source = """
             public sealed class UserServiceTests
             {
                 [Fact]
-                public void Should_work()
+                public async Task Should_work()
                 {
                     Assert.True(true);
                 }
@@ -68,14 +68,14 @@ public sealed class CSharpTestStyleCheckerTests
             """;
 
         // Act
-        var result = new CSharpTestStyleChecker().Check(source);
+        var result = await new CSharpTestStyleChecker().CheckAsync(source);
 
         // Assert
         Assert.DoesNotContain("suffixed", result);
     }
 
     [Fact]
-    public void Should_reject_test_method_without_should_prefix()
+    public async Task Should_reject_test_method_without_should_prefix()
     {
         // Arrange
         var source = """
@@ -90,7 +90,7 @@ public sealed class CSharpTestStyleCheckerTests
             """;
 
         // Act
-        var result = new CSharpTestStyleChecker().Check(source);
+        var result = await new CSharpTestStyleChecker().CheckAsync(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -104,7 +104,7 @@ public sealed class CSharpTestStyleCheckerTests
     [Theory]
     [InlineData("Should_return_data")]
     [InlineData("Should_not_throw")]
-    public void Should_pass_test_method_with_valid_prefix(string methodName)
+    public async Task Should_pass_test_method_with_valid_prefix(string methodName)
     {
         // Arrange
         var source = $$"""
@@ -119,14 +119,14 @@ public sealed class CSharpTestStyleCheckerTests
             """;
 
         // Act
-        var result = new CSharpTestStyleChecker().Check(source);
+        var result = await new CSharpTestStyleChecker().CheckAsync(source);
 
         // Assert
         Assert.DoesNotContain("must start with", result);
     }
 
     [Fact]
-    public void Should_reject_xml_doc_on_test_class()
+    public async Task Should_reject_xml_doc_on_test_class()
     {
         // Arrange
         var source = """
@@ -134,7 +134,7 @@ public sealed class CSharpTestStyleCheckerTests
             public sealed class UserServiceTests
             {
                 [Fact]
-                public void Should_work()
+                public async Task Should_work()
                 {
                     Assert.True(true);
                 }
@@ -142,7 +142,7 @@ public sealed class CSharpTestStyleCheckerTests
             """;
 
         // Act
-        var result = new CSharpTestStyleChecker().Check(source);
+        var result = await new CSharpTestStyleChecker().CheckAsync(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -154,7 +154,7 @@ public sealed class CSharpTestStyleCheckerTests
     }
 
     [Fact]
-    public void Should_reject_xml_doc_on_test_method()
+    public async Task Should_reject_xml_doc_on_test_method()
     {
         // Arrange
         var source = """
@@ -162,7 +162,7 @@ public sealed class CSharpTestStyleCheckerTests
             {
                 /// <summary>Checks user retrieval.</summary>
                 [Fact]
-                public void Should_get_user()
+                public async Task Should_get_user()
                 {
                     Assert.True(true);
                 }
@@ -170,7 +170,7 @@ public sealed class CSharpTestStyleCheckerTests
             """;
 
         // Act
-        var result = new CSharpTestStyleChecker().Check(source);
+        var result = await new CSharpTestStyleChecker().CheckAsync(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -182,14 +182,14 @@ public sealed class CSharpTestStyleCheckerTests
     }
 
     [Fact]
-    public void Should_pass_test_without_xml_doc()
+    public async Task Should_pass_test_without_xml_doc()
     {
         // Arrange
         var source = """
             public sealed class UserServiceTests
             {
                 [Fact]
-                public void Should_work()
+                public async Task Should_work()
                 {
                     Assert.True(true);
                 }
@@ -197,21 +197,21 @@ public sealed class CSharpTestStyleCheckerTests
             """;
 
         // Act
-        var result = new CSharpTestStyleChecker().Check(source);
+        var result = await new CSharpTestStyleChecker().CheckAsync(source);
 
         // Assert
         Assert.DoesNotContain("XML doc", result);
     }
 
     [Fact]
-    public void Should_reject_multiple_asserts_without_assert_multiple()
+    public async Task Should_reject_multiple_asserts_without_assert_multiple()
     {
         // Arrange
         var source = """
             public sealed class UserServiceTests
             {
                 [Fact]
-                public void Should_check_user()
+                public async Task Should_check_user()
                 {
                     Assert.NotNull("x");
                     Assert.Equal(1, 1);
@@ -220,7 +220,7 @@ public sealed class CSharpTestStyleCheckerTests
             """;
 
         // Act
-        var result = new CSharpTestStyleChecker().Check(source);
+        var result = await new CSharpTestStyleChecker().CheckAsync(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -232,14 +232,14 @@ public sealed class CSharpTestStyleCheckerTests
     }
 
     [Fact]
-    public void Should_pass_multiple_asserts_inside_assert_multiple()
+    public async Task Should_pass_multiple_asserts_inside_assert_multiple()
     {
         // Arrange
         var source = """
             public sealed class UserServiceTests
             {
                 [Fact]
-                public void Should_check_user()
+                public async Task Should_check_user()
                 {
                     Assert.Multiple(() =>
                     {
@@ -251,21 +251,21 @@ public sealed class CSharpTestStyleCheckerTests
             """;
 
         // Act
-        var result = new CSharpTestStyleChecker().Check(source);
+        var result = await new CSharpTestStyleChecker().CheckAsync(source);
 
         // Assert
         Assert.DoesNotContain("Assert.Multiple", result);
     }
 
     [Fact]
-    public void Should_pass_single_assert_without_assert_multiple()
+    public async Task Should_pass_single_assert_without_assert_multiple()
     {
         // Arrange
         var source = """
             public sealed class UserServiceTests
             {
                 [Fact]
-                public void Should_check_user()
+                public async Task Should_check_user()
                 {
                     Assert.True(true);
                 }
@@ -273,14 +273,14 @@ public sealed class CSharpTestStyleCheckerTests
             """;
 
         // Act
-        var result = new CSharpTestStyleChecker().Check(source);
+        var result = await new CSharpTestStyleChecker().CheckAsync(source);
 
         // Assert
         Assert.DoesNotContain("Assert.Multiple", result);
     }
 
     [Fact]
-    public void Should_reject_configure_await_in_test()
+    public async Task Should_reject_configure_await_in_test()
     {
         // Arrange
         var source = """
@@ -295,7 +295,7 @@ public sealed class CSharpTestStyleCheckerTests
             """;
 
         // Act
-        var result = new CSharpTestStyleChecker().Check(source);
+        var result = await new CSharpTestStyleChecker().CheckAsync(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -307,7 +307,7 @@ public sealed class CSharpTestStyleCheckerTests
     }
 
     [Fact]
-    public void Should_pass_async_test_without_configure_await()
+    public async Task Should_pass_async_test_without_configure_await()
     {
         // Arrange
         var source = """
@@ -322,14 +322,14 @@ public sealed class CSharpTestStyleCheckerTests
             """;
 
         // Act
-        var result = new CSharpTestStyleChecker().Check(source);
+        var result = await new CSharpTestStyleChecker().CheckAsync(source);
 
         // Assert
         Assert.DoesNotContain("ConfigureAwait", result);
     }
 
     [Fact]
-    public void Should_report_multiple_violations()
+    public async Task Should_report_multiple_violations()
     {
         // Arrange
         var source = """
@@ -347,7 +347,7 @@ public sealed class CSharpTestStyleCheckerTests
             """;
 
         // Act
-        var result = new CSharpTestStyleChecker().Check(source);
+        var result = await new CSharpTestStyleChecker().CheckAsync(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -360,7 +360,7 @@ public sealed class CSharpTestStyleCheckerTests
     }
 
     [Fact]
-    public void Should_skip_non_test_classes()
+    public async Task Should_skip_non_test_classes()
     {
         // Arrange
         var source = """
@@ -374,14 +374,14 @@ public sealed class CSharpTestStyleCheckerTests
             """;
 
         // Act
-        var result = new CSharpTestStyleChecker().Check(source);
+        var result = await new CSharpTestStyleChecker().CheckAsync(source);
 
         // Assert
         Assert.StartsWith("✅", result);
     }
 
     [Fact]
-    public void Should_detect_theory_test_methods()
+    public async Task Should_detect_theory_test_methods()
     {
         // Arrange
         var source = """
@@ -397,21 +397,21 @@ public sealed class CSharpTestStyleCheckerTests
             """;
 
         // Act
-        var result = new CSharpTestStyleChecker().Check(source);
+        var result = await new CSharpTestStyleChecker().CheckAsync(source);
 
         // Assert
         Assert.Contains("must start with 'Should_'", result);
     }
 
     [Fact]
-    public void Should_not_flag_non_test_methods_in_test_class()
+    public async Task Should_not_flag_non_test_methods_in_test_class()
     {
         // Arrange
         var source = """
             public sealed class UserServiceTests
             {
                 [Fact]
-                public void Should_work()
+                public async Task Should_work()
                 {
                     Assert.True(true);
                 }
@@ -421,21 +421,21 @@ public sealed class CSharpTestStyleCheckerTests
             """;
 
         // Act
-        var result = new CSharpTestStyleChecker().Check(source);
+        var result = await new CSharpTestStyleChecker().CheckAsync(source);
 
         // Assert
         Assert.StartsWith("✅", result);
     }
 
     [Fact]
-    public void Should_reject_file_name_not_ending_with_tests()
+    public async Task Should_reject_file_name_not_ending_with_tests()
     {
         // Arrange
         var source = """
             public sealed class UserServiceTests
             {
                 [Fact]
-                public void Should_work()
+                public async Task Should_work()
                 {
                     Assert.True(true);
                 }
@@ -443,7 +443,7 @@ public sealed class CSharpTestStyleCheckerTests
             """;
 
         // Act
-        var result = new CSharpTestStyleChecker().Check(source, new Dictionary<string, string> { ["testFileName"] = "UserService.cs" });
+        var result = await new CSharpTestStyleChecker().CheckAsync(source, new Dictionary<string, string> { ["testFileName"] = "UserService.cs" });
 
         // Assert
         Assert.Multiple(() =>
@@ -454,14 +454,14 @@ public sealed class CSharpTestStyleCheckerTests
     }
 
     [Fact]
-    public void Should_pass_file_name_ending_with_tests()
+    public async Task Should_pass_file_name_ending_with_tests()
     {
         // Arrange
         var source = """
             public sealed class UserServiceTests
             {
                 [Fact]
-                public void Should_work()
+                public async Task Should_work()
                 {
                     Assert.True(true);
                 }
@@ -469,7 +469,7 @@ public sealed class CSharpTestStyleCheckerTests
             """;
 
         // Act
-        var result = new CSharpTestStyleChecker().Check(source, new Dictionary<string, string> { ["testFileName"] = "UserServiceTests.cs" });
+        var result = await new CSharpTestStyleChecker().CheckAsync(source, new Dictionary<string, string> { ["testFileName"] = "UserServiceTests.cs" });
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -478,14 +478,14 @@ public sealed class CSharpTestStyleCheckerTests
     [Theory]
     [InlineData("UserServiceTests.razor.cs")]
     [InlineData("UserServiceTests.razor")]
-    public void Should_pass_razor_file_name_ending_with_tests(string fileName)
+    public async Task Should_pass_razor_file_name_ending_with_tests(string fileName)
     {
         // Arrange
         var source = """
             public sealed class UserServiceTests
             {
                 [Fact]
-                public void Should_work()
+                public async Task Should_work()
                 {
                     Assert.True(true);
                 }
@@ -493,7 +493,7 @@ public sealed class CSharpTestStyleCheckerTests
             """;
 
         // Act
-        var result = new CSharpTestStyleChecker().Check(source, new Dictionary<string, string> { ["testFileName"] = fileName });
+        var result = await new CSharpTestStyleChecker().CheckAsync(source, new Dictionary<string, string> { ["testFileName"] = fileName });
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -502,14 +502,14 @@ public sealed class CSharpTestStyleCheckerTests
     [Theory]
     [InlineData("UserService.razor.cs")]
     [InlineData("UserService.razor")]
-    public void Should_reject_razor_file_name_not_ending_with_tests(string fileName)
+    public async Task Should_reject_razor_file_name_not_ending_with_tests(string fileName)
     {
         // Arrange
         var source = """
             public sealed class UserServiceTests
             {
                 [Fact]
-                public void Should_work()
+                public async Task Should_work()
                 {
                     Assert.True(true);
                 }
@@ -517,7 +517,7 @@ public sealed class CSharpTestStyleCheckerTests
             """;
 
         // Act
-        var result = new CSharpTestStyleChecker().Check(source, new Dictionary<string, string> { ["testFileName"] = fileName });
+        var result = await new CSharpTestStyleChecker().CheckAsync(source, new Dictionary<string, string> { ["testFileName"] = fileName });
 
         // Assert
         Assert.Multiple(() =>
@@ -528,7 +528,7 @@ public sealed class CSharpTestStyleCheckerTests
     }
 
     [Fact]
-    public void Should_reject_namespace_not_mirroring_production()
+    public async Task Should_reject_namespace_not_mirroring_production()
     {
         // Arrange
         var source = """
@@ -537,7 +537,7 @@ public sealed class CSharpTestStyleCheckerTests
             public sealed class UserServiceTests
             {
                 [Fact]
-                public void Should_work()
+                public async Task Should_work()
                 {
                     Assert.True(true);
                 }
@@ -545,7 +545,7 @@ public sealed class CSharpTestStyleCheckerTests
             """;
 
         // Act
-        var result = new CSharpTestStyleChecker().Check(source, new Dictionary<string, string> { ["productionNamespace"] = "MyApp.Services" });
+        var result = await new CSharpTestStyleChecker().CheckAsync(source, new Dictionary<string, string> { ["productionNamespace"] = "MyApp.Services" });
 
         // Assert
         Assert.Multiple(() =>
@@ -557,7 +557,7 @@ public sealed class CSharpTestStyleCheckerTests
     }
 
     [Fact]
-    public void Should_pass_namespace_mirroring_production()
+    public async Task Should_pass_namespace_mirroring_production()
     {
         // Arrange
         var source = """
@@ -566,7 +566,7 @@ public sealed class CSharpTestStyleCheckerTests
             public sealed class UserServiceTests
             {
                 [Fact]
-                public void Should_work()
+                public async Task Should_work()
                 {
                     Assert.True(true);
                 }
@@ -574,14 +574,14 @@ public sealed class CSharpTestStyleCheckerTests
             """;
 
         // Act
-        var result = new CSharpTestStyleChecker().Check(source, new Dictionary<string, string> { ["productionNamespace"] = "MyApp.Services" });
+        var result = await new CSharpTestStyleChecker().CheckAsync(source, new Dictionary<string, string> { ["productionNamespace"] = "MyApp.Services" });
 
         // Assert
         Assert.StartsWith("✅", result);
     }
 
     [Fact]
-    public void Should_handle_single_segment_production_namespace()
+    public async Task Should_handle_single_segment_production_namespace()
     {
         // Arrange
         var source = """
@@ -590,7 +590,7 @@ public sealed class CSharpTestStyleCheckerTests
             public sealed class HelperTests
             {
                 [Fact]
-                public void Should_work()
+                public async Task Should_work()
                 {
                     Assert.True(true);
                 }
@@ -598,14 +598,14 @@ public sealed class CSharpTestStyleCheckerTests
             """;
 
         // Act
-        var result = new CSharpTestStyleChecker().Check(source, new Dictionary<string, string> { ["productionNamespace"] = "MyApp" });
+        var result = await new CSharpTestStyleChecker().CheckAsync(source, new Dictionary<string, string> { ["productionNamespace"] = "MyApp" });
 
         // Assert
         Assert.StartsWith("✅", result);
     }
 
     [Fact]
-    public void Should_reject_deep_namespace_mismatch()
+    public async Task Should_reject_deep_namespace_mismatch()
     {
         // Arrange
         var source = """
@@ -614,7 +614,7 @@ public sealed class CSharpTestStyleCheckerTests
             public sealed class RepoTests
             {
                 [Fact]
-                public void Should_work()
+                public async Task Should_work()
                 {
                     Assert.True(true);
                 }
@@ -622,7 +622,7 @@ public sealed class CSharpTestStyleCheckerTests
             """;
 
         // Act
-        var result = new CSharpTestStyleChecker().Check(source, new Dictionary<string, string> { ["productionNamespace"] = "MyApp.Data.Repositories" });
+        var result = await new CSharpTestStyleChecker().CheckAsync(source, new Dictionary<string, string> { ["productionNamespace"] = "MyApp.Data.Repositories" });
 
         // Assert
         Assert.Multiple(() =>
@@ -633,7 +633,7 @@ public sealed class CSharpTestStyleCheckerTests
     }
 
     [Fact]
-    public void Should_pass_deep_namespace_mirroring()
+    public async Task Should_pass_deep_namespace_mirroring()
     {
         // Arrange
         var source = """
@@ -642,7 +642,7 @@ public sealed class CSharpTestStyleCheckerTests
             public sealed class UserRepoTests
             {
                 [Fact]
-                public void Should_work()
+                public async Task Should_work()
                 {
                     Assert.True(true);
                 }
@@ -650,14 +650,14 @@ public sealed class CSharpTestStyleCheckerTests
             """;
 
         // Act
-        var result = new CSharpTestStyleChecker().Check(source, new Dictionary<string, string> { ["productionNamespace"] = "MyApp.Data.Repositories" });
+        var result = await new CSharpTestStyleChecker().CheckAsync(source, new Dictionary<string, string> { ["productionNamespace"] = "MyApp.Data.Repositories" });
 
         // Assert
         Assert.StartsWith("✅", result);
     }
 
     [Fact]
-    public void Should_skip_namespace_check_when_not_provided()
+    public async Task Should_skip_namespace_check_when_not_provided()
     {
         // Arrange
         var source = """
@@ -666,7 +666,7 @@ public sealed class CSharpTestStyleCheckerTests
             public sealed class SomeTests
             {
                 [Fact]
-                public void Should_work()
+                public async Task Should_work()
                 {
                     Assert.True(true);
                 }
@@ -674,14 +674,14 @@ public sealed class CSharpTestStyleCheckerTests
             """;
 
         // Act
-        var result = new CSharpTestStyleChecker().Check(source);
+        var result = await new CSharpTestStyleChecker().CheckAsync(source);
 
         // Assert
         Assert.DoesNotContain("mirror", result);
     }
 
     [Fact]
-    public void Should_check_namespace_with_block_scoped_namespace()
+    public async Task Should_check_namespace_with_block_scoped_namespace()
     {
         // Arrange
         var source = """
@@ -690,7 +690,7 @@ public sealed class CSharpTestStyleCheckerTests
                 public sealed class SomeTests
                 {
                     [Fact]
-                    public void Should_work()
+                    public async Task Should_work()
                     {
                         Assert.True(true);
                     }
@@ -699,7 +699,7 @@ public sealed class CSharpTestStyleCheckerTests
             """;
 
         // Act
-        var result = new CSharpTestStyleChecker().Check(source, new Dictionary<string, string> { ["productionNamespace"] = "MyApp.Services" });
+        var result = await new CSharpTestStyleChecker().CheckAsync(source, new Dictionary<string, string> { ["productionNamespace"] = "MyApp.Services" });
 
         // Assert
         Assert.Contains("does not mirror", result);
@@ -708,16 +708,16 @@ public sealed class CSharpTestStyleCheckerTests
     [Theory]
     [InlineData("")]
     [InlineData(" ")]
-    public void Should_throw_on_empty_or_whitespace_input(string input)
+    public async Task Should_throw_on_empty_or_whitespace_input(string input)
     {
         // Act & Assert
-        Assert.Throws<ArgumentException>(() => new CSharpTestStyleChecker().Check(input));
+        await Assert.ThrowsAsync<ArgumentException>(() => new CSharpTestStyleChecker().CheckAsync(input));
     }
 
     [Fact]
-    public void Should_throw_on_null_input()
+    public async Task Should_throw_on_null_input()
     {
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() => new CSharpTestStyleChecker().Check(null!));
+        await Assert.ThrowsAsync<ArgumentNullException>(() => new CSharpTestStyleChecker().CheckAsync(null!));
     }
 }

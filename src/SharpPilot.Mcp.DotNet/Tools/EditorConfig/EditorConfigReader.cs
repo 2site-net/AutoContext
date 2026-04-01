@@ -39,13 +39,13 @@ public static class EditorConfigReader
         "and returns the final resolved key-value pairs that apply to the file. " +
         "Use this tool to understand the coding style rules (indent style, charset, " +
         "end-of-line, etc.) that apply to a specific file.")]
-    public static string Read(
+    public static async Task<string> ReadAsync(
         [Description("Absolute path to the file whose effective .editorconfig properties should be resolved.")]
         string path)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
 
-        var properties = Resolve(path);
+        var properties = await ResolveAsync(path).ConfigureAwait(false);
 
         if (properties is null || properties.Count == 0)
         {
@@ -68,7 +68,7 @@ public static class EditorConfigReader
     /// Resolves the effective editorconfig properties for <paramref name="path"/>
     /// as a dictionary for programmatic use by checkers.
     /// </summary>
-    internal static IReadOnlyDictionary<string, string>? Resolve(string? path, string[]? keys = null)
+    internal static async Task<IReadOnlyDictionary<string, string>?> ResolveAsync(string? path, string[]? keys = null)
     {
         if (string.IsNullOrWhiteSpace(path) || string.IsNullOrWhiteSpace(s_pipeName))
         {
@@ -79,11 +79,11 @@ public static class EditorConfigReader
         var requestBytes = JsonSerializer.SerializeToUtf8Bytes(request, s_jsonOptions);
 
         using var client = new NamedPipeClientStream(".", s_pipeName, PipeDirection.InOut, PipeOptions.Asynchronous);
-        client.Connect(5000);
+        await client.ConnectAsync(5000).ConfigureAwait(false);
 
-        EditorConfigService.WriteMessageAsync(client, requestBytes).GetAwaiter().GetResult();
+        await EditorConfigService.WriteMessageAsync(client, requestBytes).ConfigureAwait(false);
 
-        var responseBytes = EditorConfigService.ReadMessageAsync(client).GetAwaiter().GetResult();
+        var responseBytes = await EditorConfigService.ReadMessageAsync(client).ConfigureAwait(false);
 
         if (responseBytes is null || responseBytes.Length == 0)
         {

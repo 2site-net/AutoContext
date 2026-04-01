@@ -14,5 +14,5 @@ public interface IChecker
     /// Analyses <paramref name="content"/> and returns a report string
     /// starting with ✅ (pass) or ❌ (violations found).
     /// </summary>
-    string Check(string content, IReadOnlyDictionary<string, string>? data = null);
+    Task<string> CheckAsync(string content, IReadOnlyDictionary<string, string>? data = null);
 }

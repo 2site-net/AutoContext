@@ -7,7 +7,7 @@ using SharpPilot.Mcp.DotNet.Tools.Checkers.DotNet;
 public sealed class NuGetHygieneCheckerTests
 {
     [Fact]
-    public void Should_pass_clean_project()
+    public async Task Should_pass_clean_project()
     {
         // Arrange
         var csproj = """
@@ -22,14 +22,14 @@ public sealed class NuGetHygieneCheckerTests
             """;
 
         // Act
-        var result = new NuGetHygieneChecker(NullLogger<NuGetHygieneChecker>.Instance).Check(csproj);
+        var result = await new NuGetHygieneChecker(NullLogger<NuGetHygieneChecker>.Instance).CheckAsync(csproj);
 
         // Assert
         Assert.StartsWith("✅", result);
     }
 
     [Fact]
-    public void Should_reject_duplicate_package_reference()
+    public async Task Should_reject_duplicate_package_reference()
     {
         // Arrange
         var csproj = """
@@ -42,7 +42,7 @@ public sealed class NuGetHygieneCheckerTests
             """;
 
         // Act
-        var result = new NuGetHygieneChecker(NullLogger<NuGetHygieneChecker>.Instance).Check(csproj);
+        var result = await new NuGetHygieneChecker(NullLogger<NuGetHygieneChecker>.Instance).CheckAsync(csproj);
 
         // Assert
         Assert.Multiple(() =>
@@ -53,7 +53,7 @@ public sealed class NuGetHygieneCheckerTests
     }
 
     [Fact]
-    public void Should_not_flag_different_packages_as_duplicates()
+    public async Task Should_not_flag_different_packages_as_duplicates()
     {
         // Arrange
         var csproj = """
@@ -66,7 +66,7 @@ public sealed class NuGetHygieneCheckerTests
             """;
 
         // Act
-        var result = new NuGetHygieneChecker(NullLogger<NuGetHygieneChecker>.Instance).Check(csproj);
+        var result = await new NuGetHygieneChecker(NullLogger<NuGetHygieneChecker>.Instance).CheckAsync(csproj);
 
         // Assert
         Assert.DoesNotContain("Duplicate", result);
@@ -77,7 +77,7 @@ public sealed class NuGetHygieneCheckerTests
     [InlineData("1.*")]
     [InlineData("[1.0,2.0)")]
     [InlineData("(,2.0]")]
-    public void Should_reject_floating_or_range_version(string version)
+    public async Task Should_reject_floating_or_range_version(string version)
     {
         // Arrange
         var csproj = $"""
@@ -89,7 +89,7 @@ public sealed class NuGetHygieneCheckerTests
             """;
 
         // Act
-        var result = new NuGetHygieneChecker(NullLogger<NuGetHygieneChecker>.Instance).Check(csproj);
+        var result = await new NuGetHygieneChecker(NullLogger<NuGetHygieneChecker>.Instance).CheckAsync(csproj);
 
         // Assert
         Assert.Multiple(() =>
@@ -101,7 +101,7 @@ public sealed class NuGetHygieneCheckerTests
     }
 
     [Fact]
-    public void Should_pass_exact_version()
+    public async Task Should_pass_exact_version()
     {
         // Arrange
         var csproj = """
@@ -113,14 +113,14 @@ public sealed class NuGetHygieneCheckerTests
             """;
 
         // Act
-        var result = new NuGetHygieneChecker(NullLogger<NuGetHygieneChecker>.Instance).Check(csproj);
+        var result = await new NuGetHygieneChecker(NullLogger<NuGetHygieneChecker>.Instance).CheckAsync(csproj);
 
         // Assert
         Assert.DoesNotContain("floating", result);
     }
 
     [Fact]
-    public void Should_reject_missing_version_without_cpm()
+    public async Task Should_reject_missing_version_without_cpm()
     {
         // Arrange
         var csproj = """
@@ -132,7 +132,7 @@ public sealed class NuGetHygieneCheckerTests
             """;
 
         // Act
-        var result = new NuGetHygieneChecker(NullLogger<NuGetHygieneChecker>.Instance).Check(csproj);
+        var result = await new NuGetHygieneChecker(NullLogger<NuGetHygieneChecker>.Instance).CheckAsync(csproj);
 
         // Assert
         Assert.Multiple(() =>
@@ -143,7 +143,7 @@ public sealed class NuGetHygieneCheckerTests
     }
 
     [Fact]
-    public void Should_pass_missing_version_with_cpm()
+    public async Task Should_pass_missing_version_with_cpm()
     {
         // Arrange
         var csproj = """
@@ -158,7 +158,7 @@ public sealed class NuGetHygieneCheckerTests
             """;
 
         // Act
-        var result = new NuGetHygieneChecker(NullLogger<NuGetHygieneChecker>.Instance).Check(csproj);
+        var result = await new NuGetHygieneChecker(NullLogger<NuGetHygieneChecker>.Instance).CheckAsync(csproj);
 
         // Assert
         Assert.DoesNotContain("no Version specified", result);
@@ -168,7 +168,7 @@ public sealed class NuGetHygieneCheckerTests
     [InlineData("Newtonsoft.Json", "System.Text.Json")]
     [InlineData("RestSharp", "System.Net.Http.HttpClient")]
     [InlineData("AutoMapper", "manual mapping or Mapster")]
-    public void Should_flag_package_with_built_in_alternative(string package, string alternative)
+    public async Task Should_flag_package_with_built_in_alternative(string package, string alternative)
     {
         // Arrange
         var csproj = $"""
@@ -180,7 +180,7 @@ public sealed class NuGetHygieneCheckerTests
             """;
 
         // Act
-        var result = new NuGetHygieneChecker(NullLogger<NuGetHygieneChecker>.Instance).Check(csproj);
+        var result = await new NuGetHygieneChecker(NullLogger<NuGetHygieneChecker>.Instance).CheckAsync(csproj);
 
         // Assert
         Assert.Multiple(() =>
@@ -191,7 +191,7 @@ public sealed class NuGetHygieneCheckerTests
     }
 
     [Fact]
-    public void Should_not_flag_package_without_known_alternative()
+    public async Task Should_not_flag_package_without_known_alternative()
     {
         // Arrange
         var csproj = """
@@ -203,14 +203,14 @@ public sealed class NuGetHygieneCheckerTests
             """;
 
         // Act
-        var result = new NuGetHygieneChecker(NullLogger<NuGetHygieneChecker>.Instance).Check(csproj);
+        var result = await new NuGetHygieneChecker(NullLogger<NuGetHygieneChecker>.Instance).CheckAsync(csproj);
 
         // Assert
         Assert.DoesNotContain("built-in", result);
     }
 
     [Fact]
-    public void Should_report_multiple_violations()
+    public async Task Should_report_multiple_violations()
     {
         // Arrange
         var csproj = """
@@ -224,7 +224,7 @@ public sealed class NuGetHygieneCheckerTests
             """;
 
         // Act
-        var result = new NuGetHygieneChecker(NullLogger<NuGetHygieneChecker>.Instance).Check(csproj);
+        var result = await new NuGetHygieneChecker(NullLogger<NuGetHygieneChecker>.Instance).CheckAsync(csproj);
 
         // Assert
         Assert.Multiple(() =>
@@ -238,7 +238,7 @@ public sealed class NuGetHygieneCheckerTests
     }
 
     [Fact]
-    public void Should_read_version_from_child_element()
+    public async Task Should_read_version_from_child_element()
     {
         // Arrange
         var csproj = """
@@ -252,20 +252,20 @@ public sealed class NuGetHygieneCheckerTests
             """;
 
         // Act
-        var result = new NuGetHygieneChecker(NullLogger<NuGetHygieneChecker>.Instance).Check(csproj);
+        var result = await new NuGetHygieneChecker(NullLogger<NuGetHygieneChecker>.Instance).CheckAsync(csproj);
 
         // Assert
         Assert.StartsWith("✅", result);
     }
 
     [Fact]
-    public void Should_return_error_for_invalid_xml()
+    public async Task Should_return_error_for_invalid_xml()
     {
         // Arrange
         var badXml = "<Project><ItemGroup><PackageReference";
 
         // Act
-        var result = new NuGetHygieneChecker(NullLogger<NuGetHygieneChecker>.Instance).Check(badXml);
+        var result = await new NuGetHygieneChecker(NullLogger<NuGetHygieneChecker>.Instance).CheckAsync(badXml);
 
         // Assert
         Assert.Multiple(() =>
@@ -276,7 +276,7 @@ public sealed class NuGetHygieneCheckerTests
     }
 
     [Fact]
-    public void Should_detect_duplicates_case_insensitively()
+    public async Task Should_detect_duplicates_case_insensitively()
     {
         // Arrange
         var csproj = """
@@ -289,14 +289,14 @@ public sealed class NuGetHygieneCheckerTests
             """;
 
         // Act
-        var result = new NuGetHygieneChecker(NullLogger<NuGetHygieneChecker>.Instance).Check(csproj);
+        var result = await new NuGetHygieneChecker(NullLogger<NuGetHygieneChecker>.Instance).CheckAsync(csproj);
 
         // Assert
         Assert.Contains("Duplicate", result);
     }
 
     [Fact]
-    public void Should_pass_empty_item_group()
+    public async Task Should_pass_empty_item_group()
     {
         // Arrange
         var csproj = """
@@ -307,14 +307,14 @@ public sealed class NuGetHygieneCheckerTests
             """;
 
         // Act
-        var result = new NuGetHygieneChecker(NullLogger<NuGetHygieneChecker>.Instance).Check(csproj);
+        var result = await new NuGetHygieneChecker(NullLogger<NuGetHygieneChecker>.Instance).CheckAsync(csproj);
 
         // Assert
         Assert.StartsWith("✅", result);
     }
 
     [Fact]
-    public void Should_handle_update_attribute()
+    public async Task Should_handle_update_attribute()
     {
         // Arrange
         var csproj = """
@@ -326,7 +326,7 @@ public sealed class NuGetHygieneCheckerTests
             """;
 
         // Act
-        var result = new NuGetHygieneChecker(NullLogger<NuGetHygieneChecker>.Instance).Check(csproj);
+        var result = await new NuGetHygieneChecker(NullLogger<NuGetHygieneChecker>.Instance).CheckAsync(csproj);
 
         // Assert
         Assert.Contains("built-in .NET alternative", result);
@@ -335,16 +335,16 @@ public sealed class NuGetHygieneCheckerTests
     [Theory]
     [InlineData("")]
     [InlineData(" ")]
-    public void Should_throw_on_empty_or_whitespace_input(string input)
+    public async Task Should_throw_on_empty_or_whitespace_input(string input)
     {
         // Act & Assert
-        Assert.Throws<ArgumentException>(() => new NuGetHygieneChecker(NullLogger<NuGetHygieneChecker>.Instance).Check(input));
+        await Assert.ThrowsAsync<ArgumentException>(() => new NuGetHygieneChecker(NullLogger<NuGetHygieneChecker>.Instance).CheckAsync(input));
     }
 
     [Fact]
-    public void Should_throw_on_null_input()
+    public async Task Should_throw_on_null_input()
     {
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() => new NuGetHygieneChecker(NullLogger<NuGetHygieneChecker>.Instance).Check(null!));
+        await Assert.ThrowsAsync<ArgumentNullException>(() => new NuGetHygieneChecker(NullLogger<NuGetHygieneChecker>.Instance).CheckAsync(null!));
     }
 }

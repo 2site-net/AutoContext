@@ -1,7 +1,10 @@
 namespace SharpPilot.Mcp.DotNet.Tests.Tools.EditorConfig;
 
+using System.Diagnostics.CodeAnalysis;
+
 using SharpPilot.Mcp.DotNet.Tools.EditorConfig;
 
+[SuppressMessage("Reliability", "CA1849", Justification = "File.WriteAllText is used for trivial test setup")]
 public sealed class EditorConfigReaderTests : IAsyncLifetime, IDisposable
 {
     private readonly string _tempRoot = Path.Combine(Path.GetTempPath(), $"ec-test-{Guid.NewGuid():N}");
@@ -46,7 +49,7 @@ public sealed class EditorConfigReaderTests : IAsyncLifetime, IDisposable
     }
 
     [Fact]
-    public void Should_return_warning_when_no_editorconfig_exists()
+    public async Task Should_return_warning_when_no_editorconfig_exists()
     {
         // Arrange
         File.WriteAllText(
@@ -54,7 +57,7 @@ public sealed class EditorConfigReaderTests : IAsyncLifetime, IDisposable
             "root = true");
 
         // Act
-        var result = EditorConfigReader.Read(Path.Combine(_tempRoot, "file.cs"));
+        var result = await EditorConfigReader.ReadAsync(Path.Combine(_tempRoot, "file.cs"));
 
         // Assert
         Assert.StartsWith("⚠️", result);
@@ -62,7 +65,7 @@ public sealed class EditorConfigReaderTests : IAsyncLifetime, IDisposable
     }
 
     [Fact]
-    public void Should_resolve_properties_from_matching_section()
+    public async Task Should_resolve_properties_from_matching_section()
     {
         // Arrange
         File.WriteAllText(
@@ -76,7 +79,7 @@ public sealed class EditorConfigReaderTests : IAsyncLifetime, IDisposable
             """);
 
         // Act
-        var result = EditorConfigReader.Read(Path.Combine(_tempRoot, "Program.cs"));
+        var result = await EditorConfigReader.ReadAsync(Path.Combine(_tempRoot, "Program.cs"));
 
         // Assert
         Assert.Contains("indent_style = space", result);
@@ -84,7 +87,7 @@ public sealed class EditorConfigReaderTests : IAsyncLifetime, IDisposable
     }
 
     [Fact]
-    public void Should_not_include_properties_from_non_matching_section()
+    public async Task Should_not_include_properties_from_non_matching_section()
     {
         // Arrange
         File.WriteAllText(
@@ -97,14 +100,14 @@ public sealed class EditorConfigReaderTests : IAsyncLifetime, IDisposable
             """);
 
         // Act
-        var result = EditorConfigReader.Read(Path.Combine(_tempRoot, "file.cs"));
+        var result = await EditorConfigReader.ReadAsync(Path.Combine(_tempRoot, "file.cs"));
 
         // Assert
         Assert.StartsWith("⚠️", result);
     }
 
     [Fact]
-    public void Should_cascade_child_over_parent()
+    public async Task Should_cascade_child_over_parent()
     {
         // Arrange
         var child = Path.Combine(_tempRoot, "src");
@@ -127,7 +130,7 @@ public sealed class EditorConfigReaderTests : IAsyncLifetime, IDisposable
             """);
 
         // Act
-        var result = EditorConfigReader.Read(Path.Combine(child, "file.cs"));
+        var result = await EditorConfigReader.ReadAsync(Path.Combine(child, "file.cs"));
 
         // Assert
         Assert.Contains("indent_size = 2", result);
@@ -136,7 +139,7 @@ public sealed class EditorConfigReaderTests : IAsyncLifetime, IDisposable
     }
 
     [Fact]
-    public void Should_stop_at_root_equals_true()
+    public async Task Should_stop_at_root_equals_true()
     {
         // Arrange
         var parent = Path.Combine(_tempRoot, "parent");
@@ -161,7 +164,7 @@ public sealed class EditorConfigReaderTests : IAsyncLifetime, IDisposable
             """);
 
         // Act
-        var result = EditorConfigReader.Read(Path.Combine(child, "file.cs"));
+        var result = await EditorConfigReader.ReadAsync(Path.Combine(child, "file.cs"));
 
         // Assert
         Assert.Contains("parent_rule = yes", result);
@@ -169,7 +172,7 @@ public sealed class EditorConfigReaderTests : IAsyncLifetime, IDisposable
     }
 
     [Fact]
-    public void Should_resolve_wildcard_section()
+    public async Task Should_resolve_wildcard_section()
     {
         // Arrange
         File.WriteAllText(
@@ -182,21 +185,21 @@ public sealed class EditorConfigReaderTests : IAsyncLifetime, IDisposable
             """);
 
         // Act
-        var result = EditorConfigReader.Read(Path.Combine(_tempRoot, "anything.txt"));
+        var result = await EditorConfigReader.ReadAsync(Path.Combine(_tempRoot, "anything.txt"));
 
         // Assert
         Assert.Contains("end_of_line = lf", result);
     }
 
     [Fact]
-    public void Should_return_warning_for_whitespace_path()
+    public async Task Should_return_warning_for_whitespace_path()
     {
         // Act & Assert
-        Assert.Throws<ArgumentException>(() => EditorConfigReader.Read("   "));
+        await Assert.ThrowsAsync<ArgumentException>(() => EditorConfigReader.ReadAsync("   "));
     }
 
     [Fact]
-    public void Should_resolve_brace_expansion()
+    public async Task Should_resolve_brace_expansion()
     {
         // Arrange
         File.WriteAllText(
@@ -209,8 +212,8 @@ public sealed class EditorConfigReaderTests : IAsyncLifetime, IDisposable
             """);
 
         // Act
-        var csResult = EditorConfigReader.Read(Path.Combine(_tempRoot, "file.cs"));
-        var vbResult = EditorConfigReader.Read(Path.Combine(_tempRoot, "file.vb"));
+        var csResult = await EditorConfigReader.ReadAsync(Path.Combine(_tempRoot, "file.cs"));
+        var vbResult = await EditorConfigReader.ReadAsync(Path.Combine(_tempRoot, "file.vb"));
 
         // Assert
         Assert.Contains("indent_style = space", csResult);

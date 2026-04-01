@@ -5,7 +5,7 @@ using SharpPilot.Mcp.DotNet.Tools.Checkers.DotNet.CSharp;
 public sealed class CSharpProjectStructureCheckerTests
 {
     [Fact]
-    public void Should_pass_well_structured_file()
+    public async Task Should_pass_well_structured_file()
     {
         // Arrange
         var source = """
@@ -18,14 +18,14 @@ public sealed class CSharpProjectStructureCheckerTests
             """;
 
         // Act
-        var result = new CSharpProjectStructureChecker().Check(source, new Dictionary<string, string> { ["productionFileName"] = "UserService.cs" });
+        var result = await new CSharpProjectStructureChecker().CheckAsync(source, new Dictionary<string, string> { ["productionFileName"] = "UserService.cs" });
 
         // Assert
         Assert.StartsWith("✅", result);
     }
 
     [Fact]
-    public void Should_pass_without_file_name()
+    public async Task Should_pass_without_file_name()
     {
         // Arrange
         var source = """
@@ -38,14 +38,14 @@ public sealed class CSharpProjectStructureCheckerTests
             """;
 
         // Act
-        var result = new CSharpProjectStructureChecker().Check(source);
+        var result = await new CSharpProjectStructureChecker().CheckAsync(source);
 
         // Assert
         Assert.StartsWith("✅", result);
     }
 
     [Fact]
-    public void Should_reject_block_scoped_namespace()
+    public async Task Should_reject_block_scoped_namespace()
     {
         // Arrange
         var source = """
@@ -56,7 +56,7 @@ public sealed class CSharpProjectStructureCheckerTests
             """;
 
         // Act
-        var result = new CSharpProjectStructureChecker().Check(source);
+        var result = await new CSharpProjectStructureChecker().CheckAsync(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -68,7 +68,7 @@ public sealed class CSharpProjectStructureCheckerTests
     }
 
     [Fact]
-    public void Should_pass_file_scoped_namespace()
+    public async Task Should_pass_file_scoped_namespace()
     {
         // Arrange
         var source = """
@@ -78,14 +78,14 @@ public sealed class CSharpProjectStructureCheckerTests
             """;
 
         // Act
-        var result = new CSharpProjectStructureChecker().Check(source);
+        var result = await new CSharpProjectStructureChecker().CheckAsync(source);
 
         // Assert
         Assert.DoesNotContain("namespace", result);
     }
 
     [Fact]
-    public void Should_reject_multiple_types_in_one_file()
+    public async Task Should_reject_multiple_types_in_one_file()
     {
         // Arrange
         var source = """
@@ -97,7 +97,7 @@ public sealed class CSharpProjectStructureCheckerTests
             """;
 
         // Act
-        var result = new CSharpProjectStructureChecker().Check(source);
+        var result = await new CSharpProjectStructureChecker().CheckAsync(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -110,7 +110,7 @@ public sealed class CSharpProjectStructureCheckerTests
     }
 
     [Fact]
-    public void Should_reject_type_and_delegate_in_same_file()
+    public async Task Should_reject_type_and_delegate_in_same_file()
     {
         // Arrange
         var source = """
@@ -122,7 +122,7 @@ public sealed class CSharpProjectStructureCheckerTests
             """;
 
         // Act
-        var result = new CSharpProjectStructureChecker().Check(source);
+        var result = await new CSharpProjectStructureChecker().CheckAsync(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -133,7 +133,7 @@ public sealed class CSharpProjectStructureCheckerTests
     }
 
     [Fact]
-    public void Should_pass_single_type_with_nested_type()
+    public async Task Should_pass_single_type_with_nested_type()
     {
         // Arrange
         var source = """
@@ -146,14 +146,14 @@ public sealed class CSharpProjectStructureCheckerTests
             """;
 
         // Act
-        var result = new CSharpProjectStructureChecker().Check(source);
+        var result = await new CSharpProjectStructureChecker().CheckAsync(source);
 
         // Assert
         Assert.DoesNotContain("top-level type", result);
     }
 
     [Fact]
-    public void Should_reject_file_name_mismatch()
+    public async Task Should_reject_file_name_mismatch()
     {
         // Arrange
         var source = """
@@ -163,7 +163,7 @@ public sealed class CSharpProjectStructureCheckerTests
             """;
 
         // Act
-        var result = new CSharpProjectStructureChecker().Check(source, new Dictionary<string, string> { ["productionFileName"] = "WrongName.cs" });
+        var result = await new CSharpProjectStructureChecker().CheckAsync(source, new Dictionary<string, string> { ["productionFileName"] = "WrongName.cs" });
 
         // Assert
         Assert.Multiple(() =>
@@ -176,7 +176,7 @@ public sealed class CSharpProjectStructureCheckerTests
     }
 
     [Fact]
-    public void Should_pass_file_name_matching_type()
+    public async Task Should_pass_file_name_matching_type()
     {
         // Arrange
         var source = """
@@ -186,14 +186,14 @@ public sealed class CSharpProjectStructureCheckerTests
             """;
 
         // Act
-        var result = new CSharpProjectStructureChecker().Check(source, new Dictionary<string, string> { ["productionFileName"] = "UserService.cs" });
+        var result = await new CSharpProjectStructureChecker().CheckAsync(source, new Dictionary<string, string> { ["productionFileName"] = "UserService.cs" });
 
         // Assert
         Assert.DoesNotContain("file name", result, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
-    public void Should_reject_pragma_warning_disable()
+    public async Task Should_reject_pragma_warning_disable()
     {
         // Arrange
         var source = """
@@ -208,7 +208,7 @@ public sealed class CSharpProjectStructureCheckerTests
             """;
 
         // Act
-        var result = new CSharpProjectStructureChecker().Check(source);
+        var result = await new CSharpProjectStructureChecker().CheckAsync(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -220,7 +220,7 @@ public sealed class CSharpProjectStructureCheckerTests
     }
 
     [Fact]
-    public void Should_pass_pragma_warning_restore()
+    public async Task Should_pass_pragma_warning_restore()
     {
         // Arrange
         var source = """
@@ -234,14 +234,14 @@ public sealed class CSharpProjectStructureCheckerTests
             """;
 
         // Act
-        var result = new CSharpProjectStructureChecker().Check(source);
+        var result = await new CSharpProjectStructureChecker().CheckAsync(source);
 
         // Assert
         Assert.DoesNotContain("#pragma", result);
     }
 
     [Fact]
-    public void Should_report_multiple_violations()
+    public async Task Should_report_multiple_violations()
     {
         // Arrange
         var source = """
@@ -254,7 +254,7 @@ public sealed class CSharpProjectStructureCheckerTests
             """;
 
         // Act
-        var result = new CSharpProjectStructureChecker().Check(source);
+        var result = await new CSharpProjectStructureChecker().CheckAsync(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -267,7 +267,7 @@ public sealed class CSharpProjectStructureCheckerTests
     }
 
     [Fact]
-    public void Should_not_check_file_name_when_multiple_types()
+    public async Task Should_not_check_file_name_when_multiple_types()
     {
         // Arrange
         var source = """
@@ -279,7 +279,7 @@ public sealed class CSharpProjectStructureCheckerTests
             """;
 
         // Act
-        var result = new CSharpProjectStructureChecker().Check(source, new Dictionary<string, string> { ["productionFileName"] = "User.cs" });
+        var result = await new CSharpProjectStructureChecker().CheckAsync(source, new Dictionary<string, string> { ["productionFileName"] = "User.cs" });
 
         // Assert
         Assert.Multiple(() =>
@@ -290,7 +290,7 @@ public sealed class CSharpProjectStructureCheckerTests
     }
 
     [Fact]
-    public void Should_pass_single_delegate_file()
+    public async Task Should_pass_single_delegate_file()
     {
         // Arrange
         var source = """
@@ -300,14 +300,14 @@ public sealed class CSharpProjectStructureCheckerTests
             """;
 
         // Act
-        var result = new CSharpProjectStructureChecker().Check(source, new Dictionary<string, string> { ["productionFileName"] = "DataCallback.cs" });
+        var result = await new CSharpProjectStructureChecker().CheckAsync(source, new Dictionary<string, string> { ["productionFileName"] = "DataCallback.cs" });
 
         // Assert
         Assert.StartsWith("✅", result);
     }
 
     [Fact]
-    public void Should_reject_delegate_file_name_mismatch()
+    public async Task Should_reject_delegate_file_name_mismatch()
     {
         // Arrange
         var source = """
@@ -317,7 +317,7 @@ public sealed class CSharpProjectStructureCheckerTests
             """;
 
         // Act
-        var result = new CSharpProjectStructureChecker().Check(source, new Dictionary<string, string> { ["productionFileName"] = "Wrong.cs" });
+        var result = await new CSharpProjectStructureChecker().CheckAsync(source, new Dictionary<string, string> { ["productionFileName"] = "Wrong.cs" });
 
         // Assert
         Assert.Multiple(() =>
@@ -328,7 +328,7 @@ public sealed class CSharpProjectStructureCheckerTests
     }
 
     [Fact]
-    public void Should_pass_interface_file()
+    public async Task Should_pass_interface_file()
     {
         // Arrange
         var source = """
@@ -341,14 +341,14 @@ public sealed class CSharpProjectStructureCheckerTests
             """;
 
         // Act
-        var result = new CSharpProjectStructureChecker().Check(source, new Dictionary<string, string> { ["productionFileName"] = "IUserRepository.cs" });
+        var result = await new CSharpProjectStructureChecker().CheckAsync(source, new Dictionary<string, string> { ["productionFileName"] = "IUserRepository.cs" });
 
         // Assert
         Assert.StartsWith("✅", result);
     }
 
     [Fact]
-    public void Should_pass_enum_file()
+    public async Task Should_pass_enum_file()
     {
         // Arrange
         var source = """
@@ -362,14 +362,14 @@ public sealed class CSharpProjectStructureCheckerTests
             """;
 
         // Act
-        var result = new CSharpProjectStructureChecker().Check(source, new Dictionary<string, string> { ["productionFileName"] = "Status.cs" });
+        var result = await new CSharpProjectStructureChecker().CheckAsync(source, new Dictionary<string, string> { ["productionFileName"] = "Status.cs" });
 
         // Assert
         Assert.StartsWith("✅", result);
     }
 
     [Fact]
-    public void Should_pass_record_file()
+    public async Task Should_pass_record_file()
     {
         // Arrange
         var source = """
@@ -379,7 +379,7 @@ public sealed class CSharpProjectStructureCheckerTests
             """;
 
         // Act
-        var result = new CSharpProjectStructureChecker().Check(source, new Dictionary<string, string> { ["productionFileName"] = "UserDto.cs" });
+        var result = await new CSharpProjectStructureChecker().CheckAsync(source, new Dictionary<string, string> { ["productionFileName"] = "UserDto.cs" });
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -388,21 +388,21 @@ public sealed class CSharpProjectStructureCheckerTests
     [Theory]
     [InlineData("")]
     [InlineData(" ")]
-    public void Should_throw_on_empty_or_whitespace_input(string input)
+    public async Task Should_throw_on_empty_or_whitespace_input(string input)
     {
         // Act & Assert
-        Assert.Throws<ArgumentException>(() => new CSharpProjectStructureChecker().Check(input));
+        await Assert.ThrowsAsync<ArgumentException>(() => new CSharpProjectStructureChecker().CheckAsync(input));
     }
 
     [Fact]
-    public void Should_throw_on_null_input()
+    public async Task Should_throw_on_null_input()
     {
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() => new CSharpProjectStructureChecker().Check(null!));
+        await Assert.ThrowsAsync<ArgumentNullException>(() => new CSharpProjectStructureChecker().CheckAsync(null!));
     }
 
     [Fact]
-    public void Should_enforce_block_scoped_namespace_when_editorconfig_says_block_scoped()
+    public async Task Should_enforce_block_scoped_namespace_when_editorconfig_says_block_scoped()
     {
         // Arrange — file-scoped namespace, should be flagged when block_scoped is preferred
         var source = """
@@ -414,7 +414,7 @@ public sealed class CSharpProjectStructureCheckerTests
         var data = new Dictionary<string, string> { ["csharp_style_namespace_declarations"] = "block_scoped" };
 
         // Act
-        var result = new CSharpProjectStructureChecker().Check(source, data);
+        var result = await new CSharpProjectStructureChecker().CheckAsync(source, data);
 
         // Assert
         Assert.Multiple(() =>
@@ -426,7 +426,7 @@ public sealed class CSharpProjectStructureCheckerTests
     }
 
     [Fact]
-    public void Should_pass_block_scoped_namespace_when_editorconfig_says_block_scoped()
+    public async Task Should_pass_block_scoped_namespace_when_editorconfig_says_block_scoped()
     {
         // Arrange — block-scoped namespace, matching the preference
         var source = """
@@ -439,14 +439,14 @@ public sealed class CSharpProjectStructureCheckerTests
         var data = new Dictionary<string, string> { ["csharp_style_namespace_declarations"] = "block_scoped" };
 
         // Act
-        var result = new CSharpProjectStructureChecker().Check(source, data);
+        var result = await new CSharpProjectStructureChecker().CheckAsync(source, data);
 
         // Assert
         Assert.DoesNotContain("namespace", result, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
-    public void Should_enforce_file_scoped_namespace_when_editorconfig_says_file_scoped()
+    public async Task Should_enforce_file_scoped_namespace_when_editorconfig_says_file_scoped()
     {
         // Arrange — block-scoped namespace
         var source = """
@@ -459,14 +459,14 @@ public sealed class CSharpProjectStructureCheckerTests
         var data = new Dictionary<string, string> { ["csharp_style_namespace_declarations"] = "file_scoped" };
 
         // Act
-        var result = new CSharpProjectStructureChecker().Check(source, data);
+        var result = await new CSharpProjectStructureChecker().CheckAsync(source, data);
 
         // Assert — should still report block-scoped violation
         Assert.Contains("Block-scoped namespace", result);
     }
 
     [Fact]
-    public void Should_enforce_file_scoped_namespace_when_no_editorconfig()
+    public async Task Should_enforce_file_scoped_namespace_when_no_editorconfig()
     {
         // Arrange — block-scoped namespace, no data
         var source = """
@@ -477,7 +477,7 @@ public sealed class CSharpProjectStructureCheckerTests
             """;
 
         // Act
-        var result = new CSharpProjectStructureChecker().Check(source);
+        var result = await new CSharpProjectStructureChecker().CheckAsync(source);
 
         // Assert — default: enforce file-scoped
         Assert.Contains("Block-scoped namespace", result);

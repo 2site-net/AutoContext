@@ -20,8 +20,8 @@ public sealed partial class GitChecker(ILogger<GitChecker> logger) : IChecker
     public string ToolName
         => "check_git_all";
 
-    string IChecker.Check(string content, IReadOnlyDictionary<string, string>? data)
-        => Check(content);
+    Task<string> IChecker.CheckAsync(string content, IReadOnlyDictionary<string, string>? data)
+        => CheckAsync(content);
 
     /// <summary>
     /// Runs all enabled Git commit checks on the supplied commit message.
@@ -31,7 +31,7 @@ public sealed partial class GitChecker(ILogger<GitChecker> logger) : IChecker
         "Runs all enabled Git quality checks and returns a combined report. " +
         "Currently covers commit format (Conventional Commits) and commit content best practices. " +
         "Prefer this over calling individual check tools unless you only need a specific check.")]
-    public string Check(
+    public async Task<string> CheckAsync(
         [Description("The full commit message to validate.")]
         string content)
     {
@@ -51,7 +51,7 @@ public sealed partial class GitChecker(ILogger<GitChecker> logger) : IChecker
         {
             if (ToolsStatusConfig.IsEnabled(checker.ToolName))
             {
-                sections.Add(checker.Check(content));
+                sections.Add(await checker.CheckAsync(content).ConfigureAwait(false));
             }
         }
 

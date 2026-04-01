@@ -5,7 +5,7 @@ using SharpPilot.Mcp.DotNet.Tools.Checkers.DotNet.CSharp;
 public sealed class CSharpMemberOrderingCheckerTests
 {
     [Fact]
-    public void Should_pass_correctly_ordered_members()
+    public async Task Should_pass_correctly_ordered_members()
     {
         // Arrange
         var source = """
@@ -31,14 +31,14 @@ public sealed class CSharpMemberOrderingCheckerTests
             """;
 
         // Act
-        var result = new CSharpMemberOrderingChecker().Check(source);
+        var result = await new CSharpMemberOrderingChecker().CheckAsync(source);
 
         // Assert
         Assert.StartsWith("✅", result);
     }
 
     [Fact]
-    public void Should_reject_field_before_constant()
+    public async Task Should_reject_field_before_constant()
     {
         // Arrange
         var source = """
@@ -50,7 +50,7 @@ public sealed class CSharpMemberOrderingCheckerTests
             """;
 
         // Act
-        var result = new CSharpMemberOrderingChecker().Check(source);
+        var result = await new CSharpMemberOrderingChecker().CheckAsync(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -62,7 +62,7 @@ public sealed class CSharpMemberOrderingCheckerTests
     }
 
     [Fact]
-    public void Should_reject_method_before_property()
+    public async Task Should_reject_method_before_property()
     {
         // Arrange
         var source = """
@@ -74,7 +74,7 @@ public sealed class CSharpMemberOrderingCheckerTests
             """;
 
         // Act
-        var result = new CSharpMemberOrderingChecker().Check(source);
+        var result = await new CSharpMemberOrderingChecker().CheckAsync(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -86,7 +86,7 @@ public sealed class CSharpMemberOrderingCheckerTests
     }
 
     [Fact]
-    public void Should_reject_constructor_before_field()
+    public async Task Should_reject_constructor_before_field()
     {
         // Arrange
         var source = """
@@ -98,7 +98,7 @@ public sealed class CSharpMemberOrderingCheckerTests
             """;
 
         // Act
-        var result = new CSharpMemberOrderingChecker().Check(source);
+        var result = await new CSharpMemberOrderingChecker().CheckAsync(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -110,7 +110,7 @@ public sealed class CSharpMemberOrderingCheckerTests
     }
 
     [Fact]
-    public void Should_reject_nested_type_before_method()
+    public async Task Should_reject_nested_type_before_method()
     {
         // Arrange
         var source = """
@@ -122,7 +122,7 @@ public sealed class CSharpMemberOrderingCheckerTests
             """;
 
         // Act
-        var result = new CSharpMemberOrderingChecker().Check(source);
+        var result = await new CSharpMemberOrderingChecker().CheckAsync(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -134,7 +134,7 @@ public sealed class CSharpMemberOrderingCheckerTests
     }
 
     [Fact]
-    public void Should_reject_private_before_public_in_same_kind()
+    public async Task Should_reject_private_before_public_in_same_kind()
     {
         // Arrange
         var source = """
@@ -146,7 +146,7 @@ public sealed class CSharpMemberOrderingCheckerTests
             """;
 
         // Act
-        var result = new CSharpMemberOrderingChecker().Check(source);
+        var result = await new CSharpMemberOrderingChecker().CheckAsync(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -158,7 +158,7 @@ public sealed class CSharpMemberOrderingCheckerTests
     }
 
     [Fact]
-    public void Should_reject_instance_before_static_in_same_kind_and_access()
+    public async Task Should_reject_instance_before_static_in_same_kind_and_access()
     {
         // Arrange
         var source = """
@@ -170,7 +170,7 @@ public sealed class CSharpMemberOrderingCheckerTests
             """;
 
         // Act
-        var result = new CSharpMemberOrderingChecker().Check(source);
+        var result = await new CSharpMemberOrderingChecker().CheckAsync(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -182,7 +182,7 @@ public sealed class CSharpMemberOrderingCheckerTests
     }
 
     [Fact]
-    public void Should_report_multiple_violations()
+    public async Task Should_report_multiple_violations()
     {
         // Arrange
         var source = """
@@ -195,7 +195,7 @@ public sealed class CSharpMemberOrderingCheckerTests
             """;
 
         // Act
-        var result = new CSharpMemberOrderingChecker().Check(source);
+        var result = await new CSharpMemberOrderingChecker().CheckAsync(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -206,7 +206,7 @@ public sealed class CSharpMemberOrderingCheckerTests
     }
 
     [Fact]
-    public void Should_check_each_type_independently()
+    public async Task Should_check_each_type_independently()
     {
         // Arrange
         var source = """
@@ -224,7 +224,7 @@ public sealed class CSharpMemberOrderingCheckerTests
             """;
 
         // Act
-        var result = new CSharpMemberOrderingChecker().Check(source);
+        var result = await new CSharpMemberOrderingChecker().CheckAsync(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -236,7 +236,7 @@ public sealed class CSharpMemberOrderingCheckerTests
     }
 
     [Fact]
-    public void Should_pass_struct_with_correct_ordering()
+    public async Task Should_pass_struct_with_correct_ordering()
     {
         // Arrange
         var source = """
@@ -250,14 +250,14 @@ public sealed class CSharpMemberOrderingCheckerTests
             """;
 
         // Act
-        var result = new CSharpMemberOrderingChecker().Check(source);
+        var result = await new CSharpMemberOrderingChecker().CheckAsync(source);
 
         // Assert
         Assert.StartsWith("✅", result);
     }
 
     [Fact]
-    public void Should_pass_record_with_correct_ordering()
+    public async Task Should_pass_record_with_correct_ordering()
     {
         // Arrange
         var source = """
@@ -271,14 +271,14 @@ public sealed class CSharpMemberOrderingCheckerTests
             """;
 
         // Act
-        var result = new CSharpMemberOrderingChecker().Check(source);
+        var result = await new CSharpMemberOrderingChecker().CheckAsync(source);
 
         // Assert
         Assert.StartsWith("✅", result);
     }
 
     [Fact]
-    public void Should_treat_internal_between_public_and_protected()
+    public async Task Should_treat_internal_between_public_and_protected()
     {
         // Arrange
         var source = """
@@ -290,7 +290,7 @@ public sealed class CSharpMemberOrderingCheckerTests
             """;
 
         // Act
-        var result = new CSharpMemberOrderingChecker().Check(source);
+        var result = await new CSharpMemberOrderingChecker().CheckAsync(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -302,7 +302,7 @@ public sealed class CSharpMemberOrderingCheckerTests
     }
 
     [Fact]
-    public void Should_pass_event_before_method()
+    public async Task Should_pass_event_before_method()
     {
         // Arrange
         var source = """
@@ -314,7 +314,7 @@ public sealed class CSharpMemberOrderingCheckerTests
             """;
 
         // Act
-        var result = new CSharpMemberOrderingChecker().Check(source);
+        var result = await new CSharpMemberOrderingChecker().CheckAsync(source);
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -323,21 +323,21 @@ public sealed class CSharpMemberOrderingCheckerTests
     [Theory]
     [InlineData("")]
     [InlineData(" ")]
-    public void Should_throw_on_empty_or_whitespace_input(string input)
+    public async Task Should_throw_on_empty_or_whitespace_input(string input)
     {
         // Act & Assert
-        Assert.Throws<ArgumentException>(() => new CSharpMemberOrderingChecker().Check(input));
+        await Assert.ThrowsAsync<ArgumentException>(() => new CSharpMemberOrderingChecker().CheckAsync(input));
     }
 
     [Fact]
-    public void Should_throw_on_null_input()
+    public async Task Should_throw_on_null_input()
     {
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() => new CSharpMemberOrderingChecker().Check(null!));
+        await Assert.ThrowsAsync<ArgumentNullException>(() => new CSharpMemberOrderingChecker().CheckAsync(null!));
     }
 
     [Fact]
-    public void Should_pass_empty_class()
+    public async Task Should_pass_empty_class()
     {
         // Arrange
         var source = """
@@ -345,14 +345,14 @@ public sealed class CSharpMemberOrderingCheckerTests
             """;
 
         // Act
-        var result = new CSharpMemberOrderingChecker().Check(source);
+        var result = await new CSharpMemberOrderingChecker().CheckAsync(source);
 
         // Assert
         Assert.StartsWith("✅", result);
     }
 
     [Fact]
-    public void Should_pass_property_before_indexer_before_method()
+    public async Task Should_pass_property_before_indexer_before_method()
     {
         // Arrange
         var source = """
@@ -367,14 +367,14 @@ public sealed class CSharpMemberOrderingCheckerTests
             """;
 
         // Act
-        var result = new CSharpMemberOrderingChecker().Check(source);
+        var result = await new CSharpMemberOrderingChecker().CheckAsync(source);
 
         // Assert
         Assert.StartsWith("✅", result);
     }
 
     [Fact]
-    public void Should_reject_indexer_before_property()
+    public async Task Should_reject_indexer_before_property()
     {
         // Arrange
         var source = """
@@ -386,7 +386,7 @@ public sealed class CSharpMemberOrderingCheckerTests
             """;
 
         // Act
-        var result = new CSharpMemberOrderingChecker().Check(source);
+        var result = await new CSharpMemberOrderingChecker().CheckAsync(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -398,7 +398,7 @@ public sealed class CSharpMemberOrderingCheckerTests
     }
 
     [Fact]
-    public void Should_reject_instance_field_before_static_field()
+    public async Task Should_reject_instance_field_before_static_field()
     {
         // Arrange
         var source = """
@@ -410,7 +410,7 @@ public sealed class CSharpMemberOrderingCheckerTests
             """;
 
         // Act
-        var result = new CSharpMemberOrderingChecker().Check(source);
+        var result = await new CSharpMemberOrderingChecker().CheckAsync(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -422,7 +422,7 @@ public sealed class CSharpMemberOrderingCheckerTests
     }
 
     [Fact]
-    public void Should_pass_delegate_before_event()
+    public async Task Should_pass_delegate_before_event()
     {
         // Arrange
         var source = """
@@ -435,14 +435,14 @@ public sealed class CSharpMemberOrderingCheckerTests
             """;
 
         // Act
-        var result = new CSharpMemberOrderingChecker().Check(source);
+        var result = await new CSharpMemberOrderingChecker().CheckAsync(source);
 
         // Assert
         Assert.StartsWith("✅", result);
     }
 
     [Fact]
-    public void Should_reject_event_before_delegate()
+    public async Task Should_reject_event_before_delegate()
     {
         // Arrange
         var source = """
@@ -454,7 +454,7 @@ public sealed class CSharpMemberOrderingCheckerTests
             """;
 
         // Act
-        var result = new CSharpMemberOrderingChecker().Check(source);
+        var result = await new CSharpMemberOrderingChecker().CheckAsync(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -466,7 +466,7 @@ public sealed class CSharpMemberOrderingCheckerTests
     }
 
     [Fact]
-    public void Should_pass_enum_before_property()
+    public async Task Should_pass_enum_before_property()
     {
         // Arrange
         var source = """
@@ -479,14 +479,14 @@ public sealed class CSharpMemberOrderingCheckerTests
             """;
 
         // Act
-        var result = new CSharpMemberOrderingChecker().Check(source);
+        var result = await new CSharpMemberOrderingChecker().CheckAsync(source);
 
         // Assert
         Assert.StartsWith("✅", result);
     }
 
     [Fact]
-    public void Should_pass_operator_after_method()
+    public async Task Should_pass_operator_after_method()
     {
         // Arrange
         var source = """
@@ -501,14 +501,14 @@ public sealed class CSharpMemberOrderingCheckerTests
             """;
 
         // Act
-        var result = new CSharpMemberOrderingChecker().Check(source);
+        var result = await new CSharpMemberOrderingChecker().CheckAsync(source);
 
         // Assert
         Assert.StartsWith("✅", result);
     }
 
     [Fact]
-    public void Should_reject_operator_before_method()
+    public async Task Should_reject_operator_before_method()
     {
         // Arrange
         var source = """
@@ -522,14 +522,14 @@ public sealed class CSharpMemberOrderingCheckerTests
             """;
 
         // Act
-        var result = new CSharpMemberOrderingChecker().Check(source);
+        var result = await new CSharpMemberOrderingChecker().CheckAsync(source);
 
         // Assert
         Assert.StartsWith("❌", result);
     }
 
     [Fact]
-    public void Should_skip_test_class_with_fact_attribute()
+    public async Task Should_skip_test_class_with_fact_attribute()
     {
         // Arrange
         var source = """
@@ -541,19 +541,19 @@ public sealed class CSharpMemberOrderingCheckerTests
                 private int _value;
 
                 [Fact]
-                public void Should_work() { }
+                public async Task Should_work() { }
             }
             """;
 
         // Act
-        var result = new CSharpMemberOrderingChecker().Check(source);
+        var result = await new CSharpMemberOrderingChecker().CheckAsync(source);
 
         // Assert
         Assert.StartsWith("✅", result);
     }
 
     [Fact]
-    public void Should_skip_test_class_with_theory_attribute()
+    public async Task Should_skip_test_class_with_theory_attribute()
     {
         // Arrange
         var source = """
@@ -565,19 +565,19 @@ public sealed class CSharpMemberOrderingCheckerTests
                 private int _value;
 
                 [Theory]
-                public void Should_work(int x) { }
+                public async Task Should_work(int x) { }
             }
             """;
 
         // Act
-        var result = new CSharpMemberOrderingChecker().Check(source);
+        var result = await new CSharpMemberOrderingChecker().CheckAsync(source);
 
         // Assert
         Assert.StartsWith("✅", result);
     }
 
     [Fact]
-    public void Should_skip_test_class_with_test_attribute()
+    public async Task Should_skip_test_class_with_test_attribute()
     {
         // Arrange
         var source = """
@@ -589,19 +589,19 @@ public sealed class CSharpMemberOrderingCheckerTests
                 private int _value;
 
                 [Test]
-                public void Should_work() { }
+                public async Task Should_work() { }
             }
             """;
 
         // Act
-        var result = new CSharpMemberOrderingChecker().Check(source);
+        var result = await new CSharpMemberOrderingChecker().CheckAsync(source);
 
         // Assert
         Assert.StartsWith("✅", result);
     }
 
     [Fact]
-    public void Should_skip_test_class_with_testcase_attribute()
+    public async Task Should_skip_test_class_with_testcase_attribute()
     {
         // Arrange
         var source = """
@@ -613,19 +613,19 @@ public sealed class CSharpMemberOrderingCheckerTests
                 private int _value;
 
                 [TestCase(1)]
-                public void Should_work(int x) { }
+                public async Task Should_work(int x) { }
             }
             """;
 
         // Act
-        var result = new CSharpMemberOrderingChecker().Check(source);
+        var result = await new CSharpMemberOrderingChecker().CheckAsync(source);
 
         // Assert
         Assert.StartsWith("✅", result);
     }
 
     [Fact]
-    public void Should_pass_full_resharper_ordering()
+    public async Task Should_pass_full_resharper_ordering()
     {
         // Arrange
         var source = """
@@ -658,14 +658,14 @@ public sealed class CSharpMemberOrderingCheckerTests
             """;
 
         // Act
-        var result = new CSharpMemberOrderingChecker().Check(source);
+        var result = await new CSharpMemberOrderingChecker().CheckAsync(source);
 
         // Assert
         Assert.StartsWith("✅", result);
     }
 
     [Fact]
-    public void Should_reject_non_alphabetical_methods_in_same_group()
+    public async Task Should_reject_non_alphabetical_methods_in_same_group()
     {
         // Arrange
         var source = """
@@ -677,7 +677,7 @@ public sealed class CSharpMemberOrderingCheckerTests
             """;
 
         // Act
-        var result = new CSharpMemberOrderingChecker().Check(source);
+        var result = await new CSharpMemberOrderingChecker().CheckAsync(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -690,7 +690,7 @@ public sealed class CSharpMemberOrderingCheckerTests
     }
 
     [Fact]
-    public void Should_pass_alphabetical_methods_in_same_group()
+    public async Task Should_pass_alphabetical_methods_in_same_group()
     {
         // Arrange
         var source = """
@@ -703,14 +703,14 @@ public sealed class CSharpMemberOrderingCheckerTests
             """;
 
         // Act
-        var result = new CSharpMemberOrderingChecker().Check(source);
+        var result = await new CSharpMemberOrderingChecker().CheckAsync(source);
 
         // Assert
         Assert.StartsWith("✅", result);
     }
 
     [Fact]
-    public void Should_reject_non_alphabetical_properties_in_same_group()
+    public async Task Should_reject_non_alphabetical_properties_in_same_group()
     {
         // Arrange
         var source = """
@@ -722,7 +722,7 @@ public sealed class CSharpMemberOrderingCheckerTests
             """;
 
         // Act
-        var result = new CSharpMemberOrderingChecker().Check(source);
+        var result = await new CSharpMemberOrderingChecker().CheckAsync(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -734,7 +734,7 @@ public sealed class CSharpMemberOrderingCheckerTests
     }
 
     [Fact]
-    public void Should_not_compare_alphabetically_across_access_levels()
+    public async Task Should_not_compare_alphabetically_across_access_levels()
     {
         // Arrange
         var source = """
@@ -746,14 +746,14 @@ public sealed class CSharpMemberOrderingCheckerTests
             """;
 
         // Act
-        var result = new CSharpMemberOrderingChecker().Check(source);
+        var result = await new CSharpMemberOrderingChecker().CheckAsync(source);
 
         // Assert
         Assert.DoesNotContain("alphabetical", result);
     }
 
     [Fact]
-    public void Should_pass_event_declaration_before_method()
+    public async Task Should_pass_event_declaration_before_method()
     {
         // Arrange
         var source = """
@@ -770,14 +770,14 @@ public sealed class CSharpMemberOrderingCheckerTests
             """;
 
         // Act
-        var result = new CSharpMemberOrderingChecker().Check(source);
+        var result = await new CSharpMemberOrderingChecker().CheckAsync(source);
 
         // Assert
         Assert.DoesNotContain("should appear before", result);
     }
 
     [Fact]
-    public void Should_reject_method_before_event_declaration()
+    public async Task Should_reject_method_before_event_declaration()
     {
         // Arrange
         var source = """
@@ -794,7 +794,7 @@ public sealed class CSharpMemberOrderingCheckerTests
             """;
 
         // Act
-        var result = new CSharpMemberOrderingChecker().Check(source);
+        var result = await new CSharpMemberOrderingChecker().CheckAsync(source);
 
         // Assert
         Assert.Multiple(() =>

@@ -5,7 +5,7 @@ using SharpPilot.Mcp.DotNet.Tools.Checkers.DotNet.CSharp;
 public sealed class CSharpNamingConventionsCheckerTests
 {
     [Fact]
-    public void Should_pass_well_named_code()
+    public async Task Should_pass_well_named_code()
     {
         // Arrange
         var source = """
@@ -30,14 +30,14 @@ public sealed class CSharpNamingConventionsCheckerTests
             """;
 
         // Act
-        var result = new CSharpNamingConventionsChecker().Check(source);
+        var result = await new CSharpNamingConventionsChecker().CheckAsync(source);
 
         // Assert
         Assert.StartsWith("✅", result);
     }
 
     [Fact]
-    public void Should_reject_interface_without_I_prefix()
+    public async Task Should_reject_interface_without_I_prefix()
     {
         // Arrange
         var source = """
@@ -45,7 +45,7 @@ public sealed class CSharpNamingConventionsCheckerTests
             """;
 
         // Act
-        var result = new CSharpNamingConventionsChecker().Check(source);
+        var result = await new CSharpNamingConventionsChecker().CheckAsync(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -57,7 +57,7 @@ public sealed class CSharpNamingConventionsCheckerTests
     }
 
     [Fact]
-    public void Should_pass_interface_with_I_prefix()
+    public async Task Should_pass_interface_with_I_prefix()
     {
         // Arrange
         var source = """
@@ -65,14 +65,14 @@ public sealed class CSharpNamingConventionsCheckerTests
             """;
 
         // Act
-        var result = new CSharpNamingConventionsChecker().Check(source);
+        var result = await new CSharpNamingConventionsChecker().CheckAsync(source);
 
         // Assert
         Assert.DoesNotContain("Interface", result);
     }
 
     [Fact]
-    public void Should_reject_interface_with_lowercase_after_I()
+    public async Task Should_reject_interface_with_lowercase_after_I()
     {
         // Arrange
         var source = """
@@ -80,7 +80,7 @@ public sealed class CSharpNamingConventionsCheckerTests
             """;
 
         // Act
-        var result = new CSharpNamingConventionsChecker().Check(source);
+        var result = await new CSharpNamingConventionsChecker().CheckAsync(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -91,7 +91,7 @@ public sealed class CSharpNamingConventionsCheckerTests
     }
 
     [Fact]
-    public void Should_reject_extension_class_without_Extensions_suffix()
+    public async Task Should_reject_extension_class_without_Extensions_suffix()
     {
         // Arrange
         var source = """
@@ -103,7 +103,7 @@ public sealed class CSharpNamingConventionsCheckerTests
             """;
 
         // Act
-        var result = new CSharpNamingConventionsChecker().Check(source);
+        var result = await new CSharpNamingConventionsChecker().CheckAsync(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -115,7 +115,7 @@ public sealed class CSharpNamingConventionsCheckerTests
     }
 
     [Fact]
-    public void Should_pass_extension_class_with_Extensions_suffix()
+    public async Task Should_pass_extension_class_with_Extensions_suffix()
     {
         // Arrange
         var source = """
@@ -127,14 +127,14 @@ public sealed class CSharpNamingConventionsCheckerTests
             """;
 
         // Act
-        var result = new CSharpNamingConventionsChecker().Check(source);
+        var result = await new CSharpNamingConventionsChecker().CheckAsync(source);
 
         // Assert
         Assert.DoesNotContain("StringExtensions", result);
     }
 
     [Fact]
-    public void Should_pass_static_class_without_extension_methods()
+    public async Task Should_pass_static_class_without_extension_methods()
     {
         // Arrange
         var source = """
@@ -146,14 +146,14 @@ public sealed class CSharpNamingConventionsCheckerTests
             """;
 
         // Act
-        var result = new CSharpNamingConventionsChecker().Check(source);
+        var result = await new CSharpNamingConventionsChecker().CheckAsync(source);
 
         // Assert
         Assert.DoesNotContain("Extension", result);
     }
 
     [Fact]
-    public void Should_reject_async_method_without_Async_suffix()
+    public async Task Should_reject_async_method_without_Async_suffix()
     {
         // Arrange
         var source = """
@@ -164,7 +164,7 @@ public sealed class CSharpNamingConventionsCheckerTests
             """;
 
         // Act
-        var result = new CSharpNamingConventionsChecker().Check(source);
+        var result = await new CSharpNamingConventionsChecker().CheckAsync(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -176,7 +176,7 @@ public sealed class CSharpNamingConventionsCheckerTests
     }
 
     [Fact]
-    public void Should_pass_async_method_with_Async_suffix()
+    public async Task Should_pass_async_method_with_Async_suffix()
     {
         // Arrange
         var source = """
@@ -187,14 +187,14 @@ public sealed class CSharpNamingConventionsCheckerTests
             """;
 
         // Act
-        var result = new CSharpNamingConventionsChecker().Check(source);
+        var result = await new CSharpNamingConventionsChecker().CheckAsync(source);
 
         // Assert
         Assert.DoesNotContain("suffixed with 'Async'", result);
     }
 
     [Fact]
-    public void Should_skip_override_async_method_for_Async_suffix()
+    public async Task Should_skip_override_async_method_for_Async_suffix()
     {
         // Arrange
         var source = """
@@ -210,14 +210,14 @@ public sealed class CSharpNamingConventionsCheckerTests
             """;
 
         // Act
-        var result = new CSharpNamingConventionsChecker().Check(source);
+        var result = await new CSharpNamingConventionsChecker().CheckAsync(source);
 
         // Assert
         Assert.DoesNotContain("suffixed with 'Async'", result);
     }
 
     [Fact]
-    public void Should_skip_event_handler_for_Async_suffix()
+    public async Task Should_skip_event_handler_for_Async_suffix()
     {
         // Arrange
         var source = """
@@ -228,14 +228,14 @@ public sealed class CSharpNamingConventionsCheckerTests
             """;
 
         // Act
-        var result = new CSharpNamingConventionsChecker().Check(source);
+        var result = await new CSharpNamingConventionsChecker().CheckAsync(source);
 
         // Assert
         Assert.DoesNotContain("suffixed with 'Async'", result);
     }
 
     [Fact]
-    public void Should_skip_test_methods_for_Async_suffix()
+    public async Task Should_skip_test_methods_for_Async_suffix()
     {
         // Arrange
         var source = """
@@ -247,14 +247,14 @@ public sealed class CSharpNamingConventionsCheckerTests
             """;
 
         // Act
-        var result = new CSharpNamingConventionsChecker().Check(source);
+        var result = await new CSharpNamingConventionsChecker().CheckAsync(source);
 
         // Assert
         Assert.DoesNotContain("suffixed with 'Async'", result);
     }
 
     [Fact]
-    public void Should_reject_private_field_without_underscore()
+    public async Task Should_reject_private_field_without_underscore()
     {
         // Arrange
         var source = """
@@ -265,7 +265,7 @@ public sealed class CSharpNamingConventionsCheckerTests
             """;
 
         // Act
-        var result = new CSharpNamingConventionsChecker().Check(source);
+        var result = await new CSharpNamingConventionsChecker().CheckAsync(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -277,7 +277,7 @@ public sealed class CSharpNamingConventionsCheckerTests
     }
 
     [Fact]
-    public void Should_reject_private_field_with_uppercase_after_underscore()
+    public async Task Should_reject_private_field_with_uppercase_after_underscore()
     {
         // Arrange
         var source = """
@@ -288,7 +288,7 @@ public sealed class CSharpNamingConventionsCheckerTests
             """;
 
         // Act
-        var result = new CSharpNamingConventionsChecker().Check(source);
+        var result = await new CSharpNamingConventionsChecker().CheckAsync(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -299,7 +299,7 @@ public sealed class CSharpNamingConventionsCheckerTests
     }
 
     [Fact]
-    public void Should_pass_private_field_with_underscore_camelCase()
+    public async Task Should_pass_private_field_with_underscore_camelCase()
     {
         // Arrange
         var source = """
@@ -310,14 +310,14 @@ public sealed class CSharpNamingConventionsCheckerTests
             """;
 
         // Act
-        var result = new CSharpNamingConventionsChecker().Check(source);
+        var result = await new CSharpNamingConventionsChecker().CheckAsync(source);
 
         // Assert
         Assert.DoesNotContain("_camelCase", result);
     }
 
     [Fact]
-    public void Should_skip_static_private_field_naming()
+    public async Task Should_skip_static_private_field_naming()
     {
         // Arrange
         var source = """
@@ -328,14 +328,14 @@ public sealed class CSharpNamingConventionsCheckerTests
             """;
 
         // Act
-        var result = new CSharpNamingConventionsChecker().Check(source);
+        var result = await new CSharpNamingConventionsChecker().CheckAsync(source);
 
         // Assert
         Assert.DoesNotContain("_camelCase", result);
     }
 
     [Fact]
-    public void Should_skip_const_field_naming()
+    public async Task Should_skip_const_field_naming()
     {
         // Arrange
         var source = """
@@ -346,14 +346,14 @@ public sealed class CSharpNamingConventionsCheckerTests
             """;
 
         // Act
-        var result = new CSharpNamingConventionsChecker().Check(source);
+        var result = await new CSharpNamingConventionsChecker().CheckAsync(source);
 
         // Assert
         Assert.DoesNotContain("_camelCase", result);
     }
 
     [Fact]
-    public void Should_reject_type_starting_with_lowercase()
+    public async Task Should_reject_type_starting_with_lowercase()
     {
         // Arrange
         var source = """
@@ -361,7 +361,7 @@ public sealed class CSharpNamingConventionsCheckerTests
             """;
 
         // Act
-        var result = new CSharpNamingConventionsChecker().Check(source);
+        var result = await new CSharpNamingConventionsChecker().CheckAsync(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -373,7 +373,7 @@ public sealed class CSharpNamingConventionsCheckerTests
     }
 
     [Fact]
-    public void Should_reject_method_starting_with_lowercase()
+    public async Task Should_reject_method_starting_with_lowercase()
     {
         // Arrange
         var source = """
@@ -384,7 +384,7 @@ public sealed class CSharpNamingConventionsCheckerTests
             """;
 
         // Act
-        var result = new CSharpNamingConventionsChecker().Check(source);
+        var result = await new CSharpNamingConventionsChecker().CheckAsync(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -396,7 +396,7 @@ public sealed class CSharpNamingConventionsCheckerTests
     }
 
     [Fact]
-    public void Should_reject_property_starting_with_lowercase()
+    public async Task Should_reject_property_starting_with_lowercase()
     {
         // Arrange
         var source = """
@@ -407,7 +407,7 @@ public sealed class CSharpNamingConventionsCheckerTests
             """;
 
         // Act
-        var result = new CSharpNamingConventionsChecker().Check(source);
+        var result = await new CSharpNamingConventionsChecker().CheckAsync(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -419,7 +419,7 @@ public sealed class CSharpNamingConventionsCheckerTests
     }
 
     [Fact]
-    public void Should_reject_parameter_starting_with_uppercase()
+    public async Task Should_reject_parameter_starting_with_uppercase()
     {
         // Arrange
         var source = """
@@ -430,7 +430,7 @@ public sealed class CSharpNamingConventionsCheckerTests
             """;
 
         // Act
-        var result = new CSharpNamingConventionsChecker().Check(source);
+        var result = await new CSharpNamingConventionsChecker().CheckAsync(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -442,7 +442,7 @@ public sealed class CSharpNamingConventionsCheckerTests
     }
 
     [Fact]
-    public void Should_reject_parameter_with_leading_underscore()
+    public async Task Should_reject_parameter_with_leading_underscore()
     {
         // Arrange
         var source = """
@@ -453,7 +453,7 @@ public sealed class CSharpNamingConventionsCheckerTests
             """;
 
         // Act
-        var result = new CSharpNamingConventionsChecker().Check(source);
+        var result = await new CSharpNamingConventionsChecker().CheckAsync(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -464,7 +464,7 @@ public sealed class CSharpNamingConventionsCheckerTests
     }
 
     [Fact]
-    public void Should_pass_camelCase_parameter()
+    public async Task Should_pass_camelCase_parameter()
     {
         // Arrange
         var source = """
@@ -475,14 +475,14 @@ public sealed class CSharpNamingConventionsCheckerTests
             """;
 
         // Act
-        var result = new CSharpNamingConventionsChecker().Check(source);
+        var result = await new CSharpNamingConventionsChecker().CheckAsync(source);
 
         // Assert
         Assert.DoesNotContain("camelCase", result);
     }
 
     [Fact]
-    public void Should_skip_this_parameter_in_extension_method()
+    public async Task Should_skip_this_parameter_in_extension_method()
     {
         // Arrange
         var source = """
@@ -494,14 +494,14 @@ public sealed class CSharpNamingConventionsCheckerTests
             """;
 
         // Act
-        var result = new CSharpNamingConventionsChecker().Check(source);
+        var result = await new CSharpNamingConventionsChecker().CheckAsync(source);
 
         // Assert
         Assert.DoesNotContain("camelCase", result);
     }
 
     [Fact]
-    public void Should_skip_discard_parameter()
+    public async Task Should_skip_discard_parameter()
     {
         // Arrange
         var source = """
@@ -512,14 +512,14 @@ public sealed class CSharpNamingConventionsCheckerTests
             """;
 
         // Act
-        var result = new CSharpNamingConventionsChecker().Check(source);
+        var result = await new CSharpNamingConventionsChecker().CheckAsync(source);
 
         // Assert
         Assert.DoesNotContain("camelCase", result);
     }
 
     [Fact]
-    public void Should_reject_delegate_with_lowercase_name()
+    public async Task Should_reject_delegate_with_lowercase_name()
     {
         // Arrange
         var source = """
@@ -527,7 +527,7 @@ public sealed class CSharpNamingConventionsCheckerTests
             """;
 
         // Act
-        var result = new CSharpNamingConventionsChecker().Check(source);
+        var result = await new CSharpNamingConventionsChecker().CheckAsync(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -540,21 +540,21 @@ public sealed class CSharpNamingConventionsCheckerTests
     [Theory]
     [InlineData("")]
     [InlineData(" ")]
-    public void Should_throw_on_empty_or_whitespace_input(string input)
+    public async Task Should_throw_on_empty_or_whitespace_input(string input)
     {
         // Act & Assert
-        Assert.Throws<ArgumentException>(() => new CSharpNamingConventionsChecker().Check(input));
+        await Assert.ThrowsAsync<ArgumentException>(() => new CSharpNamingConventionsChecker().CheckAsync(input));
     }
 
     [Fact]
-    public void Should_throw_on_null_input()
+    public async Task Should_throw_on_null_input()
     {
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() => new CSharpNamingConventionsChecker().Check(null!));
+        await Assert.ThrowsAsync<ArgumentNullException>(() => new CSharpNamingConventionsChecker().CheckAsync(null!));
     }
 
     [Fact]
-    public void Should_reject_event_field_with_lowercase_name()
+    public async Task Should_reject_event_field_with_lowercase_name()
     {
         // Arrange
         var source = """
@@ -565,7 +565,7 @@ public sealed class CSharpNamingConventionsCheckerTests
             """;
 
         // Act
-        var result = new CSharpNamingConventionsChecker().Check(source);
+        var result = await new CSharpNamingConventionsChecker().CheckAsync(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -577,7 +577,7 @@ public sealed class CSharpNamingConventionsCheckerTests
     }
 
     [Fact]
-    public void Should_reject_event_declaration_with_lowercase_name()
+    public async Task Should_reject_event_declaration_with_lowercase_name()
     {
         // Arrange
         var source = """
@@ -592,7 +592,7 @@ public sealed class CSharpNamingConventionsCheckerTests
             """;
 
         // Act
-        var result = new CSharpNamingConventionsChecker().Check(source);
+        var result = await new CSharpNamingConventionsChecker().CheckAsync(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -604,7 +604,7 @@ public sealed class CSharpNamingConventionsCheckerTests
     }
 
     [Fact]
-    public void Should_pass_event_field_with_PascalCase_name()
+    public async Task Should_pass_event_field_with_PascalCase_name()
     {
         // Arrange
         var source = """
@@ -615,7 +615,7 @@ public sealed class CSharpNamingConventionsCheckerTests
             """;
 
         // Act
-        var result = new CSharpNamingConventionsChecker().Check(source);
+        var result = await new CSharpNamingConventionsChecker().CheckAsync(source);
 
         // Assert
         Assert.DoesNotContain("PascalCase", result);

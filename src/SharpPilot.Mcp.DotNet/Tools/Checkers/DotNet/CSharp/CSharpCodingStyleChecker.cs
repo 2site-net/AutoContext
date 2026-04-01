@@ -38,7 +38,7 @@ public sealed partial class CSharpCodingStyleChecker : IChecker, IEditorConfigFi
         "blank lines before control flow statements, " +
         "expression-body arrows (=>) must be on the next line, " +
         "and XML doc comments required on public/protected members.")]
-    public string Check(
+    public async Task<string> CheckAsync(
         [Description("The C# source code to check.")]
         string content,
         IReadOnlyDictionary<string, string>? data = null)
@@ -46,7 +46,7 @@ public sealed partial class CSharpCodingStyleChecker : IChecker, IEditorConfigFi
         ArgumentException.ThrowIfNullOrWhiteSpace(content);
 
         var tree = CSharpSyntaxTree.ParseText(content);
-        var root = tree.GetRoot();
+        var root = await tree.GetRootAsync().ConfigureAwait(false);
         var normalized = content.ReplaceLineEndings("\n");
         ReadOnlySpan<char> contentSpan = normalized;
         var lineCount = contentSpan.Count('\n') + 1;

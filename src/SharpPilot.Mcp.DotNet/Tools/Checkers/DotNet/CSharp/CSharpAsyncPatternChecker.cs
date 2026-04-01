@@ -31,7 +31,7 @@ public sealed class CSharpAsyncPatternChecker : IChecker
         "async void is not allowed except for event handlers (two-parameter methods where the last parameter type contains 'EventArgs'), " +
         "public async methods (non-void, non-override) must include a CancellationToken parameter, " +
         "and all await expressions in non-test code must use .ConfigureAwait(false).")]
-    public string Check(
+    public async Task<string> CheckAsync(
         [Description("The C# source code to check.")]
         string content,
         IReadOnlyDictionary<string, string>? data = null)
@@ -39,7 +39,7 @@ public sealed class CSharpAsyncPatternChecker : IChecker
         ArgumentException.ThrowIfNullOrWhiteSpace(content);
 
         var tree = CSharpSyntaxTree.ParseText(content);
-        var root = tree.GetRoot();
+        var root = await tree.GetRootAsync().ConfigureAwait(false);
         var violations = new List<string>();
 
         CheckAsyncVoid(root, tree, violations);

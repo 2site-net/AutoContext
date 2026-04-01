@@ -56,7 +56,7 @@ public sealed class CSharpMemberOrderingChecker : IChecker
         "enums → properties → indexers → methods → operators → nested types, " +
         "then public → private, then static before instance, then alphabetically. " +
         "Test classes (with [Fact], [Theory], [Test], or [TestCase] methods) are skipped.")]
-    public string Check(
+    public async Task<string> CheckAsync(
         [Description("The C# source code to check.")]
         string content,
         IReadOnlyDictionary<string, string>? data = null)
@@ -64,7 +64,7 @@ public sealed class CSharpMemberOrderingChecker : IChecker
         ArgumentException.ThrowIfNullOrWhiteSpace(content);
 
         var tree = CSharpSyntaxTree.ParseText(content);
-        var root = tree.GetRoot();
+        var root = await tree.GetRootAsync().ConfigureAwait(false);
         var violations = new List<string>();
 
         foreach (var typeDecl in root.DescendantNodes().OfType<TypeDeclarationSyntax>())

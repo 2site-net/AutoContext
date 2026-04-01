@@ -30,7 +30,7 @@ public sealed class CSharpNullableContextChecker : IChecker
         "#nullable disable directives are not allowed (nullable is expected to be enabled project-wide " +
         "via <Nullable>enable</Nullable> in the .csproj), " +
         "and the null-forgiving operator (!) must not be used to suppress nullable warnings.")]
-    public string Check(
+    public async Task<string> CheckAsync(
         [Description("The C# source code to check.")]
         string content,
         IReadOnlyDictionary<string, string>? data = null)
@@ -38,7 +38,7 @@ public sealed class CSharpNullableContextChecker : IChecker
         ArgumentException.ThrowIfNullOrWhiteSpace(content);
 
         var tree = CSharpSyntaxTree.ParseText(content);
-        var root = tree.GetRoot();
+        var root = await tree.GetRootAsync().ConfigureAwait(false);
         var violations = new List<string>();
 
         CheckNullableDisable(root, tree, violations);

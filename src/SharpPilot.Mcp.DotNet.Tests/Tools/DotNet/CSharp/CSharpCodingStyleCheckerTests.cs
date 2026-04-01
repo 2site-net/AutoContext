@@ -5,7 +5,7 @@ using SharpPilot.Mcp.DotNet.Tools.Checkers.DotNet.CSharp;
 public sealed class CSharpCodingStyleCheckerTests
 {
     [Fact]
-    public void Should_pass_well_formatted_code()
+    public async Task Should_pass_well_formatted_code()
     {
         // Arrange
         var source = """
@@ -32,14 +32,14 @@ public sealed class CSharpCodingStyleCheckerTests
             """;
 
         // Act
-        var result = new CSharpCodingStyleChecker().Check(source);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source);
 
         // Assert
         Assert.StartsWith("✅", result);
     }
 
     [Fact]
-    public void Should_reject_region_directives()
+    public async Task Should_reject_region_directives()
     {
         // Arrange
         var source = """
@@ -52,7 +52,7 @@ public sealed class CSharpCodingStyleCheckerTests
             """;
 
         // Act
-        var result = new CSharpCodingStyleChecker().Check(source);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -68,7 +68,7 @@ public sealed class CSharpCodingStyleCheckerTests
     [InlineData("// -------------------")]
     [InlineData("// ━━━━━━━━━━━━━━━━━━━")]
     [InlineData("// ___________________")]
-    public void Should_reject_decorative_comments(string comment)
+    public async Task Should_reject_decorative_comments(string comment)
     {
         // Arrange
         var source = $$"""
@@ -80,7 +80,7 @@ public sealed class CSharpCodingStyleCheckerTests
             """;
 
         // Act
-        var result = new CSharpCodingStyleChecker().Check(source);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -91,7 +91,7 @@ public sealed class CSharpCodingStyleCheckerTests
     }
 
     [Fact]
-    public void Should_not_flag_normal_comments()
+    public async Task Should_not_flag_normal_comments()
     {
         // Arrange
         var source = """
@@ -103,14 +103,14 @@ public sealed class CSharpCodingStyleCheckerTests
             """;
 
         // Act
-        var result = new CSharpCodingStyleChecker().Check(source);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source);
 
         // Assert
         Assert.DoesNotContain("Decorative", result);
     }
 
     [Fact]
-    public void Should_reject_if_without_curly_braces()
+    public async Task Should_reject_if_without_curly_braces()
     {
         // Arrange
         var source = """
@@ -127,7 +127,7 @@ public sealed class CSharpCodingStyleCheckerTests
             """;
 
         // Act
-        var result = new CSharpCodingStyleChecker().Check(source);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -138,7 +138,7 @@ public sealed class CSharpCodingStyleCheckerTests
     }
 
     [Fact]
-    public void Should_allow_guard_clause_without_braces()
+    public async Task Should_allow_guard_clause_without_braces()
     {
         // Arrange
         var source = """
@@ -155,14 +155,14 @@ public sealed class CSharpCodingStyleCheckerTests
             """;
 
         // Act
-        var result = new CSharpCodingStyleChecker().Check(source);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source);
 
         // Assert
         Assert.DoesNotContain("curly braces", result);
     }
 
     [Fact]
-    public void Should_allow_guard_clause_with_throw()
+    public async Task Should_allow_guard_clause_with_throw()
     {
         // Arrange
         var source = """
@@ -179,14 +179,14 @@ public sealed class CSharpCodingStyleCheckerTests
             """;
 
         // Act
-        var result = new CSharpCodingStyleChecker().Check(source);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source);
 
         // Assert
         Assert.DoesNotContain("curly braces", result);
     }
 
     [Fact]
-    public void Should_reject_guard_clause_with_else()
+    public async Task Should_reject_guard_clause_with_else()
     {
         // Arrange
         var source = """
@@ -203,7 +203,7 @@ public sealed class CSharpCodingStyleCheckerTests
             """;
 
         // Act
-        var result = new CSharpCodingStyleChecker().Check(source);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -214,7 +214,7 @@ public sealed class CSharpCodingStyleCheckerTests
     }
 
     [Fact]
-    public void Should_reject_foreach_without_braces()
+    public async Task Should_reject_foreach_without_braces()
     {
         // Arrange
         var source = """
@@ -231,7 +231,7 @@ public sealed class CSharpCodingStyleCheckerTests
             """;
 
         // Act
-        var result = new CSharpCodingStyleChecker().Check(source);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -243,7 +243,7 @@ public sealed class CSharpCodingStyleCheckerTests
     }
 
     [Fact]
-    public void Should_reject_while_without_braces()
+    public async Task Should_reject_while_without_braces()
     {
         // Arrange
         var source = """
@@ -260,7 +260,7 @@ public sealed class CSharpCodingStyleCheckerTests
             """;
 
         // Act
-        var result = new CSharpCodingStyleChecker().Check(source);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -271,7 +271,7 @@ public sealed class CSharpCodingStyleCheckerTests
     }
 
     [Fact]
-    public void Should_reject_missing_blank_line_before_if()
+    public async Task Should_reject_missing_blank_line_before_if()
     {
         // Arrange
         var source = """
@@ -289,7 +289,7 @@ public sealed class CSharpCodingStyleCheckerTests
             """;
 
         // Act
-        var result = new CSharpCodingStyleChecker().Check(source);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -301,7 +301,7 @@ public sealed class CSharpCodingStyleCheckerTests
     }
 
     [Fact]
-    public void Should_pass_if_at_start_of_block()
+    public async Task Should_pass_if_at_start_of_block()
     {
         // Arrange
         var source = """
@@ -317,14 +317,14 @@ public sealed class CSharpCodingStyleCheckerTests
             """;
 
         // Act
-        var result = new CSharpCodingStyleChecker().Check(source);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source);
 
         // Assert
         Assert.DoesNotContain("blank line before", result);
     }
 
     [Fact]
-    public void Should_reject_expression_body_arrow_on_same_line()
+    public async Task Should_reject_expression_body_arrow_on_same_line()
     {
         // Arrange
         var source = """
@@ -335,7 +335,7 @@ public sealed class CSharpCodingStyleCheckerTests
             """;
 
         // Act
-        var result = new CSharpCodingStyleChecker().Check(source);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -347,7 +347,7 @@ public sealed class CSharpCodingStyleCheckerTests
     }
 
     [Fact]
-    public void Should_pass_expression_body_arrow_on_next_line()
+    public async Task Should_pass_expression_body_arrow_on_next_line()
     {
         // Arrange
         var source = """
@@ -359,14 +359,14 @@ public sealed class CSharpCodingStyleCheckerTests
             """;
 
         // Act
-        var result = new CSharpCodingStyleChecker().Check(source);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source);
 
         // Assert
         Assert.DoesNotContain("Expression-body arrow", result);
     }
 
     [Fact]
-    public void Should_reject_property_expression_body_on_same_line()
+    public async Task Should_reject_property_expression_body_on_same_line()
     {
         // Arrange
         var source = """
@@ -379,7 +379,7 @@ public sealed class CSharpCodingStyleCheckerTests
             """;
 
         // Act
-        var result = new CSharpCodingStyleChecker().Check(source);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -390,7 +390,7 @@ public sealed class CSharpCodingStyleCheckerTests
     }
 
     [Fact]
-    public void Should_pass_property_expression_body_on_next_line()
+    public async Task Should_pass_property_expression_body_on_next_line()
     {
         // Arrange
         var source = """
@@ -404,14 +404,14 @@ public sealed class CSharpCodingStyleCheckerTests
             """;
 
         // Act
-        var result = new CSharpCodingStyleChecker().Check(source);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source);
 
         // Assert
         Assert.DoesNotContain("Expression-body arrow", result);
     }
 
     [Fact]
-    public void Should_not_flag_lambda_expression_body()
+    public async Task Should_not_flag_lambda_expression_body()
     {
         // Arrange
         var source = """
@@ -425,14 +425,14 @@ public sealed class CSharpCodingStyleCheckerTests
             """;
 
         // Act
-        var result = new CSharpCodingStyleChecker().Check(source);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source);
 
         // Assert
         Assert.DoesNotContain("Expression-body arrow", result);
     }
 
     [Fact]
-    public void Should_report_multiple_violations()
+    public async Task Should_report_multiple_violations()
     {
         // Arrange
         var source = """
@@ -447,7 +447,7 @@ public sealed class CSharpCodingStyleCheckerTests
             """;
 
         // Act
-        var result = new CSharpCodingStyleChecker().Check(source);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -461,21 +461,21 @@ public sealed class CSharpCodingStyleCheckerTests
     [Theory]
     [InlineData("")]
     [InlineData(" ")]
-    public void Should_throw_on_empty_or_whitespace_input(string input)
+    public async Task Should_throw_on_empty_or_whitespace_input(string input)
     {
         // Act & Assert
-        Assert.Throws<ArgumentException>(() => new CSharpCodingStyleChecker().Check(input));
+        await Assert.ThrowsAsync<ArgumentException>(() => new CSharpCodingStyleChecker().CheckAsync(input));
     }
 
     [Fact]
-    public void Should_throw_on_null_input()
+    public async Task Should_throw_on_null_input()
     {
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() => new CSharpCodingStyleChecker().Check(null!));
+        await Assert.ThrowsAsync<ArgumentNullException>(() => new CSharpCodingStyleChecker().CheckAsync(null!));
     }
 
     [Fact]
-    public void Should_reject_for_without_braces()
+    public async Task Should_reject_for_without_braces()
     {
         // Arrange
         var source = """
@@ -490,7 +490,7 @@ public sealed class CSharpCodingStyleCheckerTests
             """;
 
         // Act
-        var result = new CSharpCodingStyleChecker().Check(source);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -502,7 +502,7 @@ public sealed class CSharpCodingStyleCheckerTests
     }
 
     [Fact]
-    public void Should_reject_missing_blank_line_before_foreach()
+    public async Task Should_reject_missing_blank_line_before_foreach()
     {
         // Arrange
         var source = """
@@ -519,7 +519,7 @@ public sealed class CSharpCodingStyleCheckerTests
             """;
 
         // Act
-        var result = new CSharpCodingStyleChecker().Check(source);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -531,7 +531,7 @@ public sealed class CSharpCodingStyleCheckerTests
     }
 
     [Fact]
-    public void Should_reject_using_without_braces()
+    public async Task Should_reject_using_without_braces()
     {
         // Arrange
         var source = """
@@ -549,7 +549,7 @@ public sealed class CSharpCodingStyleCheckerTests
             """;
 
         // Act
-        var result = new CSharpCodingStyleChecker().Check(source);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -561,7 +561,7 @@ public sealed class CSharpCodingStyleCheckerTests
     }
 
     [Fact]
-    public void Should_pass_using_with_braces()
+    public async Task Should_pass_using_with_braces()
     {
         // Arrange
         var source = """
@@ -581,14 +581,14 @@ public sealed class CSharpCodingStyleCheckerTests
             """;
 
         // Act
-        var result = new CSharpCodingStyleChecker().Check(source);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source);
 
         // Assert
         Assert.DoesNotContain("curly braces", result);
     }
 
     [Fact]
-    public void Should_reject_lock_without_braces()
+    public async Task Should_reject_lock_without_braces()
     {
         // Arrange
         var source = """
@@ -606,7 +606,7 @@ public sealed class CSharpCodingStyleCheckerTests
             """;
 
         // Act
-        var result = new CSharpCodingStyleChecker().Check(source);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -618,7 +618,7 @@ public sealed class CSharpCodingStyleCheckerTests
     }
 
     [Fact]
-    public void Should_pass_lock_with_braces()
+    public async Task Should_pass_lock_with_braces()
     {
         // Arrange
         var source = """
@@ -638,14 +638,14 @@ public sealed class CSharpCodingStyleCheckerTests
             """;
 
         // Act
-        var result = new CSharpCodingStyleChecker().Check(source);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source);
 
         // Assert
         Assert.DoesNotContain("curly braces", result);
     }
 
     [Fact]
-    public void Should_reject_fixed_without_braces()
+    public async Task Should_reject_fixed_without_braces()
     {
         // Arrange
         var source = """
@@ -662,7 +662,7 @@ public sealed class CSharpCodingStyleCheckerTests
             """;
 
         // Act
-        var result = new CSharpCodingStyleChecker().Check(source);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -674,7 +674,7 @@ public sealed class CSharpCodingStyleCheckerTests
     }
 
     [Fact]
-    public void Should_reject_missing_blank_line_before_using()
+    public async Task Should_reject_missing_blank_line_before_using()
     {
         // Arrange
         var source = """
@@ -694,7 +694,7 @@ public sealed class CSharpCodingStyleCheckerTests
             """;
 
         // Act
-        var result = new CSharpCodingStyleChecker().Check(source);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -706,7 +706,7 @@ public sealed class CSharpCodingStyleCheckerTests
     }
 
     [Fact]
-    public void Should_reject_missing_blank_line_before_lock()
+    public async Task Should_reject_missing_blank_line_before_lock()
     {
         // Arrange
         var source = """
@@ -725,7 +725,7 @@ public sealed class CSharpCodingStyleCheckerTests
             """;
 
         // Act
-        var result = new CSharpCodingStyleChecker().Check(source);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -737,7 +737,7 @@ public sealed class CSharpCodingStyleCheckerTests
     }
 
     [Fact]
-    public void Should_reject_missing_blank_line_before_try()
+    public async Task Should_reject_missing_blank_line_before_try()
     {
         // Arrange
         var source = """
@@ -758,7 +758,7 @@ public sealed class CSharpCodingStyleCheckerTests
             """;
 
         // Act
-        var result = new CSharpCodingStyleChecker().Check(source);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -770,7 +770,7 @@ public sealed class CSharpCodingStyleCheckerTests
     }
 
     [Fact]
-    public void Should_pass_try_with_blank_line_before()
+    public async Task Should_pass_try_with_blank_line_before()
     {
         // Arrange
         var source = """
@@ -792,14 +792,14 @@ public sealed class CSharpCodingStyleCheckerTests
             """;
 
         // Act
-        var result = new CSharpCodingStyleChecker().Check(source);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source);
 
         // Assert
         Assert.DoesNotContain("blank line before", result);
     }
 
     [Fact]
-    public void Should_reject_public_class_without_xml_doc()
+    public async Task Should_reject_public_class_without_xml_doc()
     {
         // Arrange
         var source = """
@@ -810,7 +810,7 @@ public sealed class CSharpCodingStyleCheckerTests
             """;
 
         // Act
-        var result = new CSharpCodingStyleChecker().Check(source);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -822,7 +822,7 @@ public sealed class CSharpCodingStyleCheckerTests
     }
 
     [Fact]
-    public void Should_reject_public_method_without_xml_doc()
+    public async Task Should_reject_public_method_without_xml_doc()
     {
         // Arrange
         var source = """
@@ -836,7 +836,7 @@ public sealed class CSharpCodingStyleCheckerTests
             """;
 
         // Act
-        var result = new CSharpCodingStyleChecker().Check(source);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -848,7 +848,7 @@ public sealed class CSharpCodingStyleCheckerTests
     }
 
     [Fact]
-    public void Should_reject_protected_method_without_xml_doc()
+    public async Task Should_reject_protected_method_without_xml_doc()
     {
         // Arrange
         var source = """
@@ -862,7 +862,7 @@ public sealed class CSharpCodingStyleCheckerTests
             """;
 
         // Act
-        var result = new CSharpCodingStyleChecker().Check(source);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -874,7 +874,7 @@ public sealed class CSharpCodingStyleCheckerTests
     }
 
     [Fact]
-    public void Should_pass_private_method_without_xml_doc()
+    public async Task Should_pass_private_method_without_xml_doc()
     {
         // Arrange
         var source = """
@@ -888,14 +888,14 @@ public sealed class CSharpCodingStyleCheckerTests
             """;
 
         // Act
-        var result = new CSharpCodingStyleChecker().Check(source);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source);
 
         // Assert
         Assert.DoesNotContain("XML doc", result);
     }
 
     [Fact]
-    public void Should_pass_internal_method_without_xml_doc()
+    public async Task Should_pass_internal_method_without_xml_doc()
     {
         // Arrange
         var source = """
@@ -909,14 +909,14 @@ public sealed class CSharpCodingStyleCheckerTests
             """;
 
         // Act
-        var result = new CSharpCodingStyleChecker().Check(source);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source);
 
         // Assert
         Assert.DoesNotContain("XML doc", result);
     }
 
     [Fact]
-    public void Should_pass_override_method_without_xml_doc()
+    public async Task Should_pass_override_method_without_xml_doc()
     {
         // Arrange
         var source = """
@@ -930,14 +930,14 @@ public sealed class CSharpCodingStyleCheckerTests
             """;
 
         // Act
-        var result = new CSharpCodingStyleChecker().Check(source);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source);
 
         // Assert
         Assert.DoesNotContain("XML doc", result);
     }
 
     [Fact]
-    public void Should_skip_xml_doc_check_for_test_class()
+    public async Task Should_skip_xml_doc_check_for_test_class()
     {
         // Arrange
         var source = """
@@ -946,19 +946,19 @@ public sealed class CSharpCodingStyleCheckerTests
                 public void DoWork() { }
 
                 [Fact]
-                public void Should_work() { }
+                public async Task Should_work() { }
             }
             """;
 
         // Act
-        var result = new CSharpCodingStyleChecker().Check(source);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source);
 
         // Assert
         Assert.DoesNotContain("XML doc", result);
     }
 
     [Fact]
-    public void Should_pass_public_property_with_xml_doc()
+    public async Task Should_pass_public_property_with_xml_doc()
     {
         // Arrange
         var source = """
@@ -975,14 +975,14 @@ public sealed class CSharpCodingStyleCheckerTests
             """;
 
         // Act
-        var result = new CSharpCodingStyleChecker().Check(source);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source);
 
         // Assert
         Assert.DoesNotContain("XML doc", result);
     }
 
     [Fact]
-    public void Should_reject_public_property_without_xml_doc()
+    public async Task Should_reject_public_property_without_xml_doc()
     {
         // Arrange
         var source = """
@@ -996,7 +996,7 @@ public sealed class CSharpCodingStyleCheckerTests
             """;
 
         // Act
-        var result = new CSharpCodingStyleChecker().Check(source);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -1008,7 +1008,7 @@ public sealed class CSharpCodingStyleCheckerTests
     }
 
     [Fact]
-    public void Should_reject_public_constructor_without_xml_doc()
+    public async Task Should_reject_public_constructor_without_xml_doc()
     {
         // Arrange
         var source = """
@@ -1022,7 +1022,7 @@ public sealed class CSharpCodingStyleCheckerTests
             """;
 
         // Act
-        var result = new CSharpCodingStyleChecker().Check(source);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -1034,7 +1034,7 @@ public sealed class CSharpCodingStyleCheckerTests
     }
 
     [Fact]
-    public void Should_reject_do_without_curly_braces()
+    public async Task Should_reject_do_without_curly_braces()
     {
         // Arrange
         var source = """
@@ -1058,7 +1058,7 @@ public sealed class CSharpCodingStyleCheckerTests
             """;
 
         // Act
-        var result = new CSharpCodingStyleChecker().Check(source);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -1070,7 +1070,7 @@ public sealed class CSharpCodingStyleCheckerTests
     }
 
     [Fact]
-    public void Should_reject_missing_blank_line_before_switch()
+    public async Task Should_reject_missing_blank_line_before_switch()
     {
         // Arrange
         var source = """
@@ -1096,7 +1096,7 @@ public sealed class CSharpCodingStyleCheckerTests
             """;
 
         // Act
-        var result = new CSharpCodingStyleChecker().Check(source);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -1108,7 +1108,7 @@ public sealed class CSharpCodingStyleCheckerTests
     }
 
     [Fact]
-    public void Should_not_flag_else_if_for_blank_line()
+    public async Task Should_not_flag_else_if_for_blank_line()
     {
         // Arrange
         var source = """
@@ -1137,14 +1137,14 @@ public sealed class CSharpCodingStyleCheckerTests
             """;
 
         // Act
-        var result = new CSharpCodingStyleChecker().Check(source);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source);
 
         // Assert
         Assert.DoesNotContain("blank line", result);
     }
 
     [Fact]
-    public void Should_reject_public_enum_without_xml_doc()
+    public async Task Should_reject_public_enum_without_xml_doc()
     {
         // Arrange
         var source = """
@@ -1156,7 +1156,7 @@ public sealed class CSharpCodingStyleCheckerTests
             """;
 
         // Act
-        var result = new CSharpCodingStyleChecker().Check(source);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -1168,7 +1168,7 @@ public sealed class CSharpCodingStyleCheckerTests
     }
 
     [Fact]
-    public void Should_reject_public_delegate_without_xml_doc()
+    public async Task Should_reject_public_delegate_without_xml_doc()
     {
         // Arrange
         var source = """
@@ -1176,7 +1176,7 @@ public sealed class CSharpCodingStyleCheckerTests
             """;
 
         // Act
-        var result = new CSharpCodingStyleChecker().Check(source);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source);
 
         // Assert
         Assert.Multiple(() =>
@@ -1188,7 +1188,7 @@ public sealed class CSharpCodingStyleCheckerTests
     }
 
     [Fact]
-    public void Should_flag_unnecessary_braces_when_editorconfig_false()
+    public async Task Should_flag_unnecessary_braces_when_editorconfig_false()
     {
         // Arrange — single-line body with braces
         var source = """
@@ -1215,7 +1215,7 @@ public sealed class CSharpCodingStyleCheckerTests
         var data = new Dictionary<string, string> { ["csharp_prefer_braces"] = "false" };
 
         // Act
-        var result = new CSharpCodingStyleChecker().Check(source, data);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source, data);
 
         // Assert
         Assert.Multiple(() =>
@@ -1226,7 +1226,7 @@ public sealed class CSharpCodingStyleCheckerTests
     }
 
     [Fact]
-    public void Should_pass_braceless_body_when_editorconfig_false()
+    public async Task Should_pass_braceless_body_when_editorconfig_false()
     {
         // Arrange — no braces on single-line body
         var source = """
@@ -1251,14 +1251,14 @@ public sealed class CSharpCodingStyleCheckerTests
         var data = new Dictionary<string, string> { ["csharp_prefer_braces"] = "false" };
 
         // Act
-        var result = new CSharpCodingStyleChecker().Check(source, data);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source, data);
 
         // Assert
         Assert.DoesNotContain("curly braces", result, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
-    public void Should_flag_unnecessary_braces_on_single_line_when_editorconfig_when_multiline()
+    public async Task Should_flag_unnecessary_braces_on_single_line_when_editorconfig_when_multiline()
     {
         // Arrange — single-line body with braces
         var source = """
@@ -1285,7 +1285,7 @@ public sealed class CSharpCodingStyleCheckerTests
         var data = new Dictionary<string, string> { ["csharp_prefer_braces"] = "when_multiline" };
 
         // Act
-        var result = new CSharpCodingStyleChecker().Check(source, data);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source, data);
 
         // Assert
         Assert.Multiple(() =>
@@ -1296,7 +1296,7 @@ public sealed class CSharpCodingStyleCheckerTests
     }
 
     [Fact]
-    public void Should_require_braces_on_multiline_when_editorconfig_when_multiline()
+    public async Task Should_require_braces_on_multiline_when_editorconfig_when_multiline()
     {
         // Arrange — multi-line body without braces
         var source = """
@@ -1322,7 +1322,7 @@ public sealed class CSharpCodingStyleCheckerTests
         var data = new Dictionary<string, string> { ["csharp_prefer_braces"] = "when_multiline" };
 
         // Act
-        var result = new CSharpCodingStyleChecker().Check(source, data);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source, data);
 
         // Assert
         Assert.Multiple(() =>
@@ -1334,7 +1334,7 @@ public sealed class CSharpCodingStyleCheckerTests
     }
 
     [Fact]
-    public void Should_enforce_curly_braces_when_editorconfig_says_true()
+    public async Task Should_enforce_curly_braces_when_editorconfig_says_true()
     {
         // Arrange — missing braces on if
         var source = """
@@ -1359,14 +1359,14 @@ public sealed class CSharpCodingStyleCheckerTests
         var data = new Dictionary<string, string> { ["csharp_prefer_braces"] = "true" };
 
         // Act
-        var result = new CSharpCodingStyleChecker().Check(source, data);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source, data);
 
         // Assert — should still enforce braces
         Assert.Contains("curly braces", result, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
-    public void Should_enforce_curly_braces_when_no_editorconfig()
+    public async Task Should_enforce_curly_braces_when_no_editorconfig()
     {
         // Arrange — missing braces on foreach, no data
         var source = """
@@ -1389,7 +1389,7 @@ public sealed class CSharpCodingStyleCheckerTests
             """;
 
         // Act
-        var result = new CSharpCodingStyleChecker().Check(source);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source);
 
         // Assert — default behavior: enforce braces
         Assert.Contains("curly braces", result, StringComparison.OrdinalIgnoreCase);
