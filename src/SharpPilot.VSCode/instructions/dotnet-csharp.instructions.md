@@ -6,7 +6,7 @@ applyTo: "**/*.cs"
 
 ## Naming
 
-- [INST0001] **Do** name private instance fields with a leading underscore and camelCase (e.g., `_workerQueue`); name private static fields with `s_` prefix (e.g., `s_instance`) — this is the .NET Runtime team convention.
+- [INST0001] **Do** name private readonly fields with a leading underscore and camelCase (e.g., `_workerQueue`); name private static readonly fields with PascalCase and no prefix (e.g., `DefaultTimeout`).
 - [INST0002] **Do** use PascalCase for all constants, both fields and local constants.
 - [INST0003] **Do** use language keywords for built-in types instead of BCL type names — `string` not `String`, `int` not `Int32`, `bool` not `Boolean`.
 
