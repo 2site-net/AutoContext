@@ -1,45 +1,34 @@
-namespace SharpPilot.WorkspaceServer;
-
 using System.Text.Json;
 
-internal sealed class Program
-{
-    private static readonly JsonSerializerOptions s_jsonOptions = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-    };
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Console;
 
-    public static async Task Main(string[] args)
-    {
-        var pipeName = GetRequiredArg(args, "--pipe");
+using SharpPilot.WorkspaceServer;
 
-        using var cts = new CancellationTokenSource();
+var builder = Host.CreateApplicationBuilder(args);
 
-        Console.CancelKeyPress += (_, e) =>
-        {
-            e.Cancel = true;
-            cts.Cancel();
-        };
+// stdout is reserved for the ready-signal protocol — send all log
+// output to stderr, which the extension captures and forwards to the
+// output channel.  Suppress the host's "Application started" banners.
+builder.Services.Configure<ConsoleLoggerOptions>(o =>
+    o.LogToStandardErrorThreshold = LogLevel.Trace);
 
-        // Signal readiness — the extension reads this to know the pipe is active.
-        var readyMessage = JsonSerializer.Serialize(new { pipe = pipeName }, s_jsonOptions);
-        Console.WriteLine(readyMessage);
+builder.Services.Configure<ConsoleLifetimeOptions>(o =>
+    o.SuppressStatusMessages = true);
 
-        var service = new WorkspaceService(pipeName, cts.Token);
+builder.Services.AddSingleton<EditorConfigResolver>();
+builder.Services.AddHostedService<WorkspaceService>();
 
-        await service.RunAsync().ConfigureAwait(false);
-    }
+var host = builder.Build();
 
-    private static string GetRequiredArg(string[] args, string name)
-    {
-        for (var i = 0; i < args.Length - 1; i++)
-        {
-            if (string.Equals(args[i], name, StringComparison.OrdinalIgnoreCase))
-            {
-                return args[i + 1];
-            }
-        }
+// Signal readiness — the extension reads this to know the pipe is active.
+var pipeName = builder.Configuration["pipe"]
+    ?? throw new InvalidOperationException("Missing required argument: --pipe");
 
-        throw new ArgumentException($"Missing required argument: {name}");
-    }
-}
+Console.WriteLine(JsonSerializer.Serialize(
+    new { pipe = pipeName },
+    WorkspaceService.JsonOptions));
+
+await host.RunAsync().ConfigureAwait(false);

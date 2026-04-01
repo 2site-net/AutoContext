@@ -4,48 +4,48 @@ using System.Buffers.Binary;
 using System.IO.Pipes;
 using System.Text.Json;
 
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+
 /// <summary>
 /// Named pipe server that resolves EditorConfig properties using a
 /// length-prefixed binary protocol.  Each connection handles a single
 /// request: 4-byte little-endian length + UTF-8 JSON request, followed
 /// by a 4-byte little-endian length + UTF-8 JSON response.
 /// </summary>
-internal sealed class WorkspaceService
+internal sealed partial class WorkspaceService(
+    IConfiguration configuration,
+    EditorConfigResolver resolver,
+    ILogger<WorkspaceService> logger) : BackgroundService
 {
-    private static readonly JsonSerializerOptions s_jsonOptions = new()
+    internal static JsonSerializerOptions JsonOptions { get; } = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
     };
 
-    private readonly string _pipeName;
-    private readonly CancellationToken _ct;
-
-    internal WorkspaceService(string pipeName, CancellationToken ct)
+    /// <inheritdoc />
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        _pipeName = pipeName;
-        _ct = ct;
-    }
+        var pipeName = configuration["pipe"]
+            ?? throw new InvalidOperationException("Missing required configuration: --pipe");
 
-    /// <summary>
-    /// Starts listening for connections on the named pipe. Does not return
-    /// until <see cref="_ct"/> is cancelled.
-    /// </summary>
-    internal async Task RunAsync()
-    {
+        LogStarting(logger, pipeName);
+
         var handlers = new List<Task>();
 
         try
         {
-            while (!_ct.IsCancellationRequested)
+            while (!stoppingToken.IsCancellationRequested)
             {
-                var pipe = await AcceptConnectionAsync().ConfigureAwait(false);
+                var pipe = await AcceptConnectionAsync(pipeName, stoppingToken).ConfigureAwait(false);
 
                 if (pipe is null)
                 {
                     break;
                 }
 
-                handlers.Add(HandleConnectionAsync(pipe));
+                handlers.Add(HandleConnectionAsync(pipe, resolver));
             }
         }
         finally
@@ -54,7 +54,9 @@ internal sealed class WorkspaceService
         }
     }
 
-    private async Task<NamedPipeServerStream?> AcceptConnectionAsync()
+    private static async Task<NamedPipeServerStream?> AcceptConnectionAsync(
+        string pipeName,
+        CancellationToken ct)
     {
         NamedPipeServerStream? pipe = null;
         CancellationTokenRegistration registration = default;
@@ -62,7 +64,7 @@ internal sealed class WorkspaceService
         try
         {
             pipe = new NamedPipeServerStream(
-                _pipeName,
+                pipeName,
                 PipeDirection.InOut,
                 NamedPipeServerStream.MaxAllowedServerInstances,
                 PipeTransmissionMode.Byte,
@@ -71,9 +73,9 @@ internal sealed class WorkspaceService
             // On Windows, WaitForConnectionAsync does not reliably respond
             // to the cancellation token.  Disposing the pipe from the
             // cancellation callback forces the wait to throw.
-            registration = _ct.Register(pipe.Dispose);
+            registration = ct.Register(pipe.Dispose);
 
-            await pipe.WaitForConnectionAsync(_ct).ConfigureAwait(false);
+            await pipe.WaitForConnectionAsync(ct).ConfigureAwait(false);
 
             return pipe;
         }
@@ -81,12 +83,12 @@ internal sealed class WorkspaceService
         {
             return null;
         }
-        catch (IOException) when (_ct.IsCancellationRequested)
+        catch (IOException) when (ct.IsCancellationRequested)
         {
             // Pipe was disposed by the cancellation callback.
             return null;
         }
-        catch (ObjectDisposedException) when (_ct.IsCancellationRequested)
+        catch (ObjectDisposedException) when (ct.IsCancellationRequested)
         {
             return null;
         }
@@ -96,7 +98,9 @@ internal sealed class WorkspaceService
         }
     }
 
-    private static async Task HandleConnectionAsync(NamedPipeServerStream pipe)
+    private static async Task HandleConnectionAsync(
+        NamedPipeServerStream pipe,
+        EditorConfigResolver resolver)
     {
         try
         {
@@ -109,7 +113,7 @@ internal sealed class WorkspaceService
                     return;
                 }
 
-                var responseBytes = ProcessRequest(requestBytes);
+                var responseBytes = ProcessRequest(requestBytes, resolver);
 
                 await WriteMessageAsync(pipe, responseBytes).ConfigureAwait(false);
             }
@@ -190,25 +194,29 @@ internal sealed class WorkspaceService
         return true;
     }
 
-    private static byte[] ProcessRequest(ReadOnlySpan<byte> json)
+    private static byte[] ProcessRequest(ReadOnlySpan<byte> json, EditorConfigResolver resolver)
     {
         try
         {
-            var request = JsonSerializer.Deserialize<EditorConfigRequest>(json, s_jsonOptions);
+            var request = JsonSerializer.Deserialize<EditorConfigRequest>(json, JsonOptions);
 
             if (request is null || string.IsNullOrWhiteSpace(request.FilePath))
             {
-                return JsonSerializer.SerializeToUtf8Bytes(new EditorConfigResponse([]), s_jsonOptions);
+                return JsonSerializer.SerializeToUtf8Bytes(new EditorConfigResponse([]), JsonOptions);
             }
 
-            var properties = EditorConfigResolver.Resolve(request.FilePath, request.Keys);
+            var properties = resolver.Resolve(request.FilePath, request.Keys);
             var response = new EditorConfigResponse(properties);
 
-            return JsonSerializer.SerializeToUtf8Bytes(response, s_jsonOptions);
+            return JsonSerializer.SerializeToUtf8Bytes(response, JsonOptions);
         }
         catch (JsonException)
         {
-            return JsonSerializer.SerializeToUtf8Bytes(new EditorConfigResponse([]), s_jsonOptions);
+            return JsonSerializer.SerializeToUtf8Bytes(new EditorConfigResponse([]), JsonOptions);
         }
     }
+
+    [LoggerMessage(Level = LogLevel.Information,
+        Message = "Workspace service listening on pipe: {PipeName}")]
+    private static partial void LogStarting(ILogger logger, string pipeName);
 }

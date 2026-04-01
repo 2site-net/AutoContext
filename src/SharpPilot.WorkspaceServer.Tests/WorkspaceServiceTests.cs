@@ -4,6 +4,9 @@ using System.IO.Pipes;
 using System.Text;
 using System.Text.Json;
 
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging.Abstractions;
+
 public sealed class WorkspaceServiceTests : IDisposable
 {
     private static readonly JsonSerializerOptions s_jsonOptions = new()
@@ -45,8 +48,8 @@ public sealed class WorkspaceServiceTests : IDisposable
         var pipeName = $"ec-test-{Guid.NewGuid():N}";
 
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-        var service = new WorkspaceService(pipeName, cts.Token);
-        var serviceTask = service.RunAsync();
+        using var service = CreateService(pipeName);
+        await service.StartAsync(cts.Token);
 
         try
         {
@@ -61,7 +64,7 @@ public sealed class WorkspaceServiceTests : IDisposable
         }
         finally
         {
-            await StopServiceAsync(cts, serviceTask);
+            await service.StopAsync(CancellationToken.None);
         }
     }
 
@@ -85,8 +88,8 @@ public sealed class WorkspaceServiceTests : IDisposable
         var pipeName = $"ec-test-{Guid.NewGuid():N}";
 
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-        var service = new WorkspaceService(pipeName, cts.Token);
-        var serviceTask = service.RunAsync();
+        using var service = CreateService(pipeName);
+        await service.StartAsync(cts.Token);
 
         try
         {
@@ -101,7 +104,7 @@ public sealed class WorkspaceServiceTests : IDisposable
         }
         finally
         {
-            await StopServiceAsync(cts, serviceTask);
+            await service.StopAsync(CancellationToken.None);
         }
     }
 
@@ -112,8 +115,8 @@ public sealed class WorkspaceServiceTests : IDisposable
         var pipeName = $"ec-test-{Guid.NewGuid():N}";
 
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-        var service = new WorkspaceService(pipeName, cts.Token);
-        var serviceTask = service.RunAsync();
+        using var service = CreateService(pipeName);
+        await service.StartAsync(cts.Token);
 
         try
         {
@@ -134,8 +137,17 @@ public sealed class WorkspaceServiceTests : IDisposable
         }
         finally
         {
-            await StopServiceAsync(cts, serviceTask);
+            await service.StopAsync(CancellationToken.None);
         }
+    }
+
+    private static WorkspaceService CreateService(string pipeName)
+    {
+        var config = new ConfigurationBuilder()
+            .AddInMemoryCollection([new("pipe", pipeName)])
+            .Build();
+
+        return new WorkspaceService(config, new EditorConfigResolver(), NullLogger<WorkspaceService>.Instance);
     }
 
     private static async Task<EditorConfigResponse?> SendRequestAsync(
@@ -154,21 +166,5 @@ public sealed class WorkspaceServiceTests : IDisposable
         return responseBytes is null
             ? null
             : JsonSerializer.Deserialize<EditorConfigResponse>(responseBytes, s_jsonOptions);
-    }
-
-    private static async Task StopServiceAsync(CancellationTokenSource cts, Task serviceTask)
-    {
-        await cts.CancelAsync();
-
-        // The cancellation callback inside the service disposes the
-        // waiting pipe, so no dummy connection is needed.
-        var completed = await Task.WhenAny(serviceTask, Task.Delay(TimeSpan.FromSeconds(5)));
-
-        if (completed != serviceTask)
-        {
-            throw new TimeoutException("Workspace service did not shut down within 5 seconds.");
-        }
-
-        await serviceTask;
     }
 }

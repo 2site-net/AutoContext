@@ -2,6 +2,9 @@ namespace SharpPilot.Mcp.DotNet.Tests.Tools.EditorConfig;
 
 using System.Diagnostics.CodeAnalysis;
 
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging.Abstractions;
+
 using SharpPilot.Mcp.DotNet.Tools.EditorConfig;
 
 [SuppressMessage("Reliability", "CA1849", Justification = "File.WriteAllText is used for trivial test setup")]
@@ -11,35 +14,36 @@ public sealed class EditorConfigReaderTests : IAsyncLifetime, IDisposable
     private readonly string _pipeName = $"ec-reader-test-{Guid.NewGuid():N}";
     private readonly CancellationTokenSource _cts = new();
 
-    private Task _serviceTask = Task.CompletedTask;
+    private SharpPilot.WorkspaceServer.WorkspaceService? _service;
 
     public async ValueTask InitializeAsync()
     {
         Directory.CreateDirectory(_tempRoot);
 
-        var service = new SharpPilot.WorkspaceServer.WorkspaceService(_pipeName, _cts.Token);
-        _serviceTask = service.RunAsync();
-        EditorConfigReader.Configure(_pipeName);
+        var config = new ConfigurationBuilder()
+            .AddInMemoryCollection([new("pipe", _pipeName)])
+            .Build();
 
-        await Task.Delay(100);
+        _service = new SharpPilot.WorkspaceServer.WorkspaceService(
+            config,
+            new SharpPilot.WorkspaceServer.EditorConfigResolver(),
+            NullLogger<SharpPilot.WorkspaceServer.WorkspaceService>.Instance);
+
+        await _service.StartAsync(_cts.Token);
+        EditorConfigReader.Configure(_pipeName);
     }
 
     public async ValueTask DisposeAsync()
     {
-        await _cts.CancelAsync();
-
-        var completed = await Task.WhenAny(_serviceTask, Task.Delay(TimeSpan.FromSeconds(5)));
-
-        if (completed != _serviceTask)
+        if (_service is not null)
         {
-            throw new TimeoutException("Workspace service did not shut down within 5 seconds.");
+            await _service.StopAsync(CancellationToken.None);
         }
-
-        await _serviceTask;
     }
 
     public void Dispose()
     {
+        _service?.Dispose();
         _cts.Dispose();
 
         if (Directory.Exists(_tempRoot))

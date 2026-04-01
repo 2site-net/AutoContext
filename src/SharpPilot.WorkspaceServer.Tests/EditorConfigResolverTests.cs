@@ -2,6 +2,7 @@ namespace SharpPilot.WorkspaceServer.Tests;
 
 public sealed class EditorConfigResolverTests : IDisposable
 {
+    private readonly EditorConfigResolver _resolver = new();
     private readonly string _tempRoot = Path.Combine(Path.GetTempPath(), $"ec-test-{Guid.NewGuid():N}");
 
     public EditorConfigResolverTests()
@@ -24,7 +25,7 @@ public sealed class EditorConfigResolverTests : IDisposable
             Path.Combine(_tempRoot, ".editorconfig"),
             "root = true");
 
-        var result = EditorConfigResolver.Resolve(Path.Combine(_tempRoot, "file.cs"));
+        var result = _resolver.Resolve(Path.Combine(_tempRoot, "file.cs"));
 
         Assert.Empty(result);
     }
@@ -42,7 +43,7 @@ public sealed class EditorConfigResolverTests : IDisposable
             indent_size = 4
             """);
 
-        var result = EditorConfigResolver.Resolve(Path.Combine(_tempRoot, "Program.cs"));
+        var result = _resolver.Resolve(Path.Combine(_tempRoot, "Program.cs"));
 
         Assert.Equal("space", result["indent_style"]);
         Assert.Equal("4", result["indent_size"]);
@@ -60,7 +61,7 @@ public sealed class EditorConfigResolverTests : IDisposable
             indent_style = tab
             """);
 
-        var result = EditorConfigResolver.Resolve(Path.Combine(_tempRoot, "file.cs"));
+        var result = _resolver.Resolve(Path.Combine(_tempRoot, "file.cs"));
 
         Assert.Empty(result);
     }
@@ -88,7 +89,7 @@ public sealed class EditorConfigResolverTests : IDisposable
             indent_size = 2
             """);
 
-        var result = EditorConfigResolver.Resolve(Path.Combine(child, "file.cs"));
+        var result = _resolver.Resolve(Path.Combine(child, "file.cs"));
 
         Assert.Equal("2", result["indent_size"]);
         Assert.Equal("utf-8", result["charset"]);
@@ -119,7 +120,7 @@ public sealed class EditorConfigResolverTests : IDisposable
             parent_rule = yes
             """);
 
-        var result = EditorConfigResolver.Resolve(Path.Combine(child, "file.cs"));
+        var result = _resolver.Resolve(Path.Combine(child, "file.cs"));
 
         Assert.Equal("yes", result["parent_rule"]);
         Assert.False(result.ContainsKey("should_not_appear"));
@@ -137,7 +138,7 @@ public sealed class EditorConfigResolverTests : IDisposable
             end_of_line = lf
             """);
 
-        var result = EditorConfigResolver.Resolve(Path.Combine(_tempRoot, "anything.txt"));
+        var result = _resolver.Resolve(Path.Combine(_tempRoot, "anything.txt"));
 
         Assert.Equal("lf", result["end_of_line"]);
     }
@@ -154,8 +155,8 @@ public sealed class EditorConfigResolverTests : IDisposable
             indent_style = space
             """);
 
-        var csResult = EditorConfigResolver.Resolve(Path.Combine(_tempRoot, "file.cs"));
-        var vbResult = EditorConfigResolver.Resolve(Path.Combine(_tempRoot, "file.vb"));
+        var csResult = _resolver.Resolve(Path.Combine(_tempRoot, "file.cs"));
+        var vbResult = _resolver.Resolve(Path.Combine(_tempRoot, "file.vb"));
 
         Assert.Equal("space", csResult["indent_style"]);
         Assert.Equal("space", vbResult["indent_style"]);
@@ -175,7 +176,7 @@ public sealed class EditorConfigResolverTests : IDisposable
             charset = utf-8
             """);
 
-        var result = EditorConfigResolver.Resolve(
+        var result = _resolver.Resolve(
             Path.Combine(_tempRoot, "file.cs"),
             ["indent_style"]);
 
@@ -196,7 +197,7 @@ public sealed class EditorConfigResolverTests : IDisposable
             indent_size = 4
             """);
 
-        var result = EditorConfigResolver.Resolve(Path.Combine(_tempRoot, "file.cs"), null);
+        var result = _resolver.Resolve(Path.Combine(_tempRoot, "file.cs"), null);
 
         Assert.True(result.Count >= 2);
     }
@@ -214,7 +215,7 @@ public sealed class EditorConfigResolverTests : IDisposable
             indent_size = 4
             """);
 
-        var result = EditorConfigResolver.Resolve(Path.Combine(_tempRoot, "file.cs"), []);
+        var result = _resolver.Resolve(Path.Combine(_tempRoot, "file.cs"), []);
 
         Assert.True(result.Count >= 2);
     }
