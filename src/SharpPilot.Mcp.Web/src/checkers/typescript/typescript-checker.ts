@@ -1,4 +1,4 @@
-import type { Checker } from '../checker.js';
+import type { Checker, EditorConfigFilter } from '../checker.js';
 import { isEnabled } from '../../tools-status-config.js';
 import { resolve } from '../../editorconfig-reader.js';
 import { TypeScriptCodingStyleChecker } from './typescript-coding-style-checker.js';
@@ -6,28 +6,31 @@ import { TypeScriptCodingStyleChecker } from './typescript-coding-style-checker.
 export class TypeScriptChecker implements Checker {
     readonly toolName = 'check_typescript_all';
 
-    check(content: string, data?: Record<string, string>): string {
+    async check(content: string, data?: Record<string, string>): Promise<string> {
         if (!content.trim()) {
             throw new Error('Source code must not be empty or whitespace.');
         }
 
+        const checkers: readonly Checker[] = [
+            new TypeScriptCodingStyleChecker(),
+        ];
+
         const { editorConfigFilePath, ...restData } = data ?? {};
-        const properties = resolve(editorConfigFilePath);
+        const allKeys = checkers
+            .filter((c): c is Checker & EditorConfigFilter => 'editorConfigKeys' in c)
+            .flatMap(c => c.editorConfigKeys);
+        const properties = await resolve(editorConfigFilePath, allKeys);
 
         const mergedData: Record<string, string> | undefined =
             properties ?? Object.keys(restData).length > 0
                 ? { ...restData, ...properties }
                 : undefined;
 
-        const checkers: readonly Checker[] = [
-            new TypeScriptCodingStyleChecker(),
-        ];
-
         const sections: string[] = [];
 
         for (const checker of checkers) {
             if (isEnabled(checker.toolName)) {
-                sections.push(checker.check(content, mergedData));
+                sections.push(await checker.check(content, mergedData));
             }
         }
 

@@ -3,13 +3,14 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { parseArgs } from 'node:util';
 import { z } from 'zod';
 import { configure } from './tools-status-config.js';
-import { read } from './editorconfig-reader.js';
+import { configurePipe } from './editorconfig-reader.js';
 import { TypeScriptChecker } from './checkers/typescript/typescript-checker.js';
 
 const { values } = parseArgs({
     options: {
         scope: { type: 'string' },
         workspace: { type: 'string' },
+        'editorconfig-pipe': { type: 'string' },
     },
     strict: false,
 });
@@ -23,29 +24,17 @@ if (typeof values.workspace === 'string') {
     configure(values.workspace);
 }
 
+const editorConfigPipe = values['editorconfig-pipe'];
+if (typeof editorConfigPipe === 'string') {
+    configurePipe(editorConfigPipe);
+}
+
 const server = new McpServer({
     name: 'SharpPilot.Mcp.Web',
     version: '0.5.0',
 });
 
 if (scope === 'typescript') {
-    server.tool(
-        'get_editorconfig',
-        'Resolves the effective .editorconfig properties for a given file path. ' +
-        'Walks up the directory tree, evaluates glob patterns and section cascading, ' +
-        'and returns the final resolved key-value pairs that apply to the file. ' +
-        'Use this tool to understand the coding style rules (indent style, charset, ' +
-        'end-of-line, etc.) that apply to a specific file.',
-        {
-            path: z.string().describe(
-                'Absolute path to the file whose effective .editorconfig properties should be resolved.',
-            ),
-        },
-        ({ path }) => ({
-            content: [{ type: 'text' as const, text: read(path) }],
-        }),
-    );
-
     const checker = new TypeScriptChecker();
 
     server.tool(
@@ -63,10 +52,10 @@ if (scope === 'typescript') {
                 'Pass the same path used when calling get_editorconfig.',
             ),
         },
-        ({ content, editorConfigFilePath }) => ({
+        async ({ content, editorConfigFilePath }) => ({
             content: [{
                 type: 'text' as const,
-                text: checker.check(
+                text: await checker.check(
                     content,
                     editorConfigFilePath ? { editorConfigFilePath } : undefined,
                 ),
