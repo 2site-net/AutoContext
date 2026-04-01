@@ -14,9 +14,9 @@ Instructions alone give guidance but can't verify compliance. Tools alone can fl
 
 Style rules vary between projects. Rather than hardcoding one opinion, checkers read `.editorconfig` properties and enforce whichever direction the project specifies. If a project uses tabs, the checker enforces tabs. If it uses spaces, it enforces spaces. Instructions provide sensible defaults, but EditorConfig always wins — so a team's existing configuration is never contradicted.
 
-### Why a Separate EditorConfig Service?
+### Why a Separate Workspace Server?
 
-SharpPilot runs multiple MCP servers (one per tool category). Each server needs `.editorconfig` resolution, and parsing the full directory tree on every tool call would be wasteful. A single `SharpPilot.EditorConfig` process runs as a named-pipe server, shared by all MCP servers. This avoids duplicate parsing and keeps the checkers stateless.
+SharpPilot runs multiple MCP servers (one per tool category). Each server needs `.editorconfig` resolution, and parsing the full directory tree on every tool call would be wasteful. A single `SharpPilot.WorkspaceServer` process runs as a named-pipe server, shared by all MCP servers. This avoids duplicate parsing and keeps the checkers stateless.
 
 ### Why Per-Instruction Disable?
 
@@ -30,7 +30,7 @@ A single instruction file may contain dozens of rules. Turning off the entire fi
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                           VS Code Activation                                 │
 │                                                                              │
-│   Extension starts, spawns the EditorConfig service, scans the workspace,    │
+│   Extension starts, spawns the workspace server, scans the workspace,       │
 │   sets context keys, writes tool status and normalized instructions.          │
 └─────────────────────────────────────────────────────────────────────────────┘
                                      │
@@ -75,7 +75,7 @@ A single instruction file may contain dozens of rules. Turning off the entire fi
 │                                                                              │
 │   Copilot calls check_csharp_all / check_nuget_hygiene / check_git_all /    │
 │   check_typescript_all / get_editorconfig. EditorConfig properties are       │
-│   resolved on demand via the EditorConfig service and drive checker          │
+│   resolved on demand via the workspace server and drive checker              │
 │   behavior — e.g., enforcement direction for brace and namespace style.      │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -86,7 +86,7 @@ A single instruction file may contain dozens of rules. Turning off the entire fi
 
 When the extension activates, the following steps execute synchronously:
 
-1. **`EditorConfigServiceManager.start()`** — spawns the `SharpPilot.EditorConfig` service process, a standalone named-pipe server that resolves `.editorconfig` properties. Once ready, the pipe name is injected into every MCP server definition via `--editorconfig-pipe` so all servers share a single EditorConfig process.
+1. **`WorkspaceServerManager.start()`** — spawns the `SharpPilot.WorkspaceServer` service process, a standalone named-pipe server that resolves `.editorconfig` properties. Once ready, the pipe name is injected into every MCP server definition via `--workspace-server` so all servers share a single process.
 2. **`ToolsStatusWriter.write()`** — reads VS Code settings, writes disabled tool names to `.sharppilot.json` in the workspace root.
 3. **`WorkspaceContextDetector.detect()`** — scans the workspace for project files, `package.json` dependencies, and directory markers. Sets VS Code context keys that control both server registration and instruction injection.
 4. **`ConfigManager.removeOrphanedIds()`** — cleans disabled-instruction IDs from `.sharppilot.json` that no longer match any instruction in the current extension version.
@@ -99,7 +99,7 @@ When the extension activates, the following steps execute synchronously:
 When Copilot invokes an MCP tool (e.g., `check_csharp_all`):
 
 1. The MCP server reads `.sharppilot.json` to determine which sub-checks are disabled.
-2. If `editorConfigFilePath` is provided, the server queries the `SharpPilot.EditorConfig` service over the named pipe to resolve `.editorconfig` properties and merges them into the checker data.
+2. If `editorConfigFilePath` is provided, the server queries the `SharpPilot.WorkspaceServer` service over the named pipe to resolve `.editorconfig` properties and merges them into the checker data.
 3. **Disabled sub-checks with EditorConfig backing** — When a sub-check is disabled but implements `IEditorConfigFilter` *and* the resolved `.editorconfig` contains at least one key that checker consumes, the checker still runs in a restricted mode: it enforces only the EditorConfig-backed rules and skips its instruction-only (INST) checks. This lets project-level `.editorconfig` settings remain enforced even after a team opts out of the instruction.
 4. **Fully disabled sub-checks** — When a sub-check is disabled and no relevant EditorConfig key is present, it is skipped entirely.
 5. Enabled checkers read the merged EditorConfig values and use them to **drive** their enforcement direction — not just to skip conflicting checks.

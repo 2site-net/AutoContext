@@ -1,4 +1,4 @@
-namespace SharpPilot.EditorConfig;
+namespace SharpPilot.WorkspaceServer;
 
 using System.Buffers.Binary;
 using System.IO.Pipes;
@@ -10,7 +10,7 @@ using System.Text.Json;
 /// request: 4-byte little-endian length + UTF-8 JSON request, followed
 /// by a 4-byte little-endian length + UTF-8 JSON response.
 /// </summary>
-internal sealed class EditorConfigService
+internal sealed class WorkspaceService
 {
     private static readonly JsonSerializerOptions s_jsonOptions = new()
     {
@@ -20,7 +20,7 @@ internal sealed class EditorConfigService
     private readonly string _pipeName;
     private readonly CancellationToken _ct;
 
-    internal EditorConfigService(string pipeName, CancellationToken ct)
+    internal WorkspaceService(string pipeName, CancellationToken ct)
     {
         _pipeName = pipeName;
         _ct = ct;

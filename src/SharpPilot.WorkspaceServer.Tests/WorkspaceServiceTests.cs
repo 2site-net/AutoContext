@@ -1,10 +1,10 @@
-namespace SharpPilot.EditorConfig.Tests;
+namespace SharpPilot.WorkspaceServer.Tests;
 
 using System.IO.Pipes;
 using System.Text;
 using System.Text.Json;
 
-public sealed class EditorConfigServiceTests : IDisposable
+public sealed class WorkspaceServiceTests : IDisposable
 {
     private static readonly JsonSerializerOptions s_jsonOptions = new()
     {
@@ -13,7 +13,7 @@ public sealed class EditorConfigServiceTests : IDisposable
 
     private readonly string _tempRoot = Path.Combine(Path.GetTempPath(), $"ec-svc-test-{Guid.NewGuid():N}");
 
-    public EditorConfigServiceTests()
+    public WorkspaceServiceTests()
     {
         Directory.CreateDirectory(_tempRoot);
     }
@@ -45,7 +45,7 @@ public sealed class EditorConfigServiceTests : IDisposable
         var pipeName = $"ec-test-{Guid.NewGuid():N}";
 
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-        var service = new EditorConfigService(pipeName, cts.Token);
+        var service = new WorkspaceService(pipeName, cts.Token);
         var serviceTask = service.RunAsync();
 
         try
@@ -85,7 +85,7 @@ public sealed class EditorConfigServiceTests : IDisposable
         var pipeName = $"ec-test-{Guid.NewGuid():N}";
 
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-        var service = new EditorConfigService(pipeName, cts.Token);
+        var service = new WorkspaceService(pipeName, cts.Token);
         var serviceTask = service.RunAsync();
 
         try
@@ -112,7 +112,7 @@ public sealed class EditorConfigServiceTests : IDisposable
         var pipeName = $"ec-test-{Guid.NewGuid():N}";
 
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-        var service = new EditorConfigService(pipeName, cts.Token);
+        var service = new WorkspaceService(pipeName, cts.Token);
         var serviceTask = service.RunAsync();
 
         try
@@ -121,9 +121,9 @@ public sealed class EditorConfigServiceTests : IDisposable
             await client.ConnectAsync(ct);
 
             var requestBytes = Encoding.UTF8.GetBytes("not valid json");
-            await EditorConfigService.WriteMessageAsync(client, requestBytes, ct);
+            await WorkspaceService.WriteMessageAsync(client, requestBytes, ct);
 
-            var responseBytes = await EditorConfigService.ReadMessageAsync(client, ct);
+            var responseBytes = await WorkspaceService.ReadMessageAsync(client, ct);
 
             Assert.NotNull(responseBytes);
 
@@ -147,9 +147,9 @@ public sealed class EditorConfigServiceTests : IDisposable
         await client.ConnectAsync(ct);
 
         var requestBytes = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(request, s_jsonOptions));
-        await EditorConfigService.WriteMessageAsync(client, requestBytes, ct);
+        await WorkspaceService.WriteMessageAsync(client, requestBytes, ct);
 
-        var responseBytes = await EditorConfigService.ReadMessageAsync(client, ct);
+        var responseBytes = await WorkspaceService.ReadMessageAsync(client, ct);
 
         return responseBytes is null
             ? null
@@ -166,7 +166,7 @@ public sealed class EditorConfigServiceTests : IDisposable
 
         if (completed != serviceTask)
         {
-            throw new TimeoutException("EditorConfig service did not shut down within 5 seconds.");
+            throw new TimeoutException("Workspace service did not shut down within 5 seconds.");
         }
 
         await serviceTask;

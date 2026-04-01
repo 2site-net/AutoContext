@@ -5,12 +5,12 @@ import { randomUUID } from 'node:crypto';
 import { createInterface } from 'node:readline';
 
 /**
- * Manages the lifecycle of the `SharpPilot.EditorConfig` service process.
+ * Manages the lifecycle of the `SharpPilot.WorkspaceServer` service process.
  * Spawns the service on activation and kills it on disposal.
  */
-export class EditorConfigServiceManager implements vscode.Disposable {
+export class WorkspaceServerManager implements vscode.Disposable {
     private readonly ext = process.platform === 'win32' ? '.exe' : '';
-    private readonly pipeName = `sharppilot-editorconfig-${randomUUID().replace(/-/g, '').slice(0, 12)}`;
+    private readonly pipeName = `sharppilot-workspace-${randomUUID().replace(/-/g, '').slice(0, 12)}`;
     private process: ChildProcess | undefined;
     private ready = false;
 
@@ -28,10 +28,10 @@ export class EditorConfigServiceManager implements vscode.Disposable {
     }
 
     /**
-     * Spawns the EditorConfig service process.
+     * Spawns the workspace service process.
      */
     start(): void {
-        const command = join(this.extensionPath, 'mcp', 'SharpPilot.EditorConfig', `SharpPilot.EditorConfig${this.ext}`);
+        const command = join(this.extensionPath, 'mcp', 'SharpPilot.WorkspaceServer', `SharpPilot.WorkspaceServer${this.ext}`);
 
         this.process = spawn(command, ['--pipe', this.pipeName], {
             stdio: ['ignore', 'pipe', 'pipe'],
@@ -47,10 +47,10 @@ export class EditorConfigServiceManager implements vscode.Disposable {
 
                     if (msg.pipe) {
                         this.ready = true;
-                        this.outputChannel.appendLine(`[EditorConfig] Service ready on pipe: ${msg.pipe}`);
+                        this.outputChannel.appendLine(`[WorkspaceServer] Service ready on pipe: ${msg.pipe}`);
                     }
                 } catch {
-                    this.outputChannel.appendLine(`[EditorConfig] Unexpected ready message: ${line}`);
+                    this.outputChannel.appendLine(`[WorkspaceServer] Unexpected ready message: ${line}`);
                 }
 
                 rl.close();
@@ -61,13 +61,13 @@ export class EditorConfigServiceManager implements vscode.Disposable {
             const rl = createInterface({ input: this.process.stderr });
 
             rl.on('line', (line: string) => {
-                this.outputChannel.appendLine(`[EditorConfig] ${line}`);
+                this.outputChannel.appendLine(`[WorkspaceServer] ${line}`);
             });
         }
 
         this.process.on('exit', (code) => {
             this.ready = false;
-            this.outputChannel.appendLine(`[EditorConfig] Service exited with code ${code}`);
+            this.outputChannel.appendLine(`[WorkspaceServer] Service exited with code ${code}`);
         });
     }
 

@@ -6,7 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <InternalsVisibleTo Include="SharpPilot.EditorConfig.Tests" />
+    <InternalsVisibleTo Include="SharpPilot.WorkspaceServer.Tests" />
     <InternalsVisibleTo Include="SharpPilot.Mcp.DotNet" />
     <InternalsVisibleTo Include="SharpPilot.Mcp.DotNet.Tests" />
   </ItemGroup>

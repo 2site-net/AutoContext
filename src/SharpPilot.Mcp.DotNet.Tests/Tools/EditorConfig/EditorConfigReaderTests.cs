@@ -17,7 +17,7 @@ public sealed class EditorConfigReaderTests : IAsyncLifetime, IDisposable
     {
         Directory.CreateDirectory(_tempRoot);
 
-        var service = new SharpPilot.EditorConfig.EditorConfigService(_pipeName, _cts.Token);
+        var service = new SharpPilot.WorkspaceServer.WorkspaceService(_pipeName, _cts.Token);
         _serviceTask = service.RunAsync();
         EditorConfigReader.Configure(_pipeName);
 
@@ -32,7 +32,7 @@ public sealed class EditorConfigReaderTests : IAsyncLifetime, IDisposable
 
         if (completed != _serviceTask)
         {
-            throw new TimeoutException("EditorConfig service did not shut down within 5 seconds.");
+            throw new TimeoutException("Workspace service did not shut down within 5 seconds.");
         }
 
         await _serviceTask;

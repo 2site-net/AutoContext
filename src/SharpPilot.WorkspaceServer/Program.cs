@@ -1,4 +1,4 @@
-namespace SharpPilot.EditorConfig;
+namespace SharpPilot.WorkspaceServer;
 
 using System.Text.Json;
 
@@ -25,7 +25,7 @@ internal sealed class Program
         var readyMessage = JsonSerializer.Serialize(new { pipe = pipeName }, s_jsonOptions);
         Console.WriteLine(readyMessage);
 
-        var service = new EditorConfigService(pipeName, cts.Token);
+        var service = new WorkspaceService(pipeName, cts.Token);
 
         await service.RunAsync().ConfigureAwait(false);
     }

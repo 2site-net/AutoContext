@@ -3,14 +3,14 @@ import { connect } from 'node:net';
 let pipeName: string | undefined;
 
 /**
- * Configures the pipe name used to connect to the EditorConfig service.
+ * Configures the pipe name used to connect to the workspace service.
  */
 export function configurePipe(name: string): void {
     pipeName = name;
 }
 
 /**
- * Sends a length-prefixed request to the EditorConfig service over the named
+ * Sends a length-prefixed request to the workspace service over the named
  * pipe and returns the parsed properties.
  *
  * Protocol: 4-byte LE int32 length + UTF-8 JSON payload (both directions).

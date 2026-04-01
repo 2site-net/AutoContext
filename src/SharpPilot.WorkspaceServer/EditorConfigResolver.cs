@@ -1,4 +1,4 @@
-namespace SharpPilot.EditorConfig;
+namespace SharpPilot.WorkspaceServer;
 
 using global::EditorConfig.Core;
 

@@ -10,7 +10,7 @@ const { values } = parseArgs({
     options: {
         scope: { type: 'string' },
         workspace: { type: 'string' },
-        'editorconfig-pipe': { type: 'string' },
+        'workspace-server': { type: 'string' },
     },
     strict: false,
 });
@@ -24,9 +24,9 @@ if (typeof values.workspace === 'string') {
     configure(values.workspace);
 }
 
-const editorConfigPipe = values['editorconfig-pipe'];
-if (typeof editorConfigPipe === 'string') {
-    configurePipe(editorConfigPipe);
+const workspacePipe = values['workspace-server'];
+if (typeof workspacePipe === 'string') {
+    configurePipe(workspacePipe);
 }
 
 const server = new McpServer({

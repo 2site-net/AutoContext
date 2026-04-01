@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { servers } from './server-entry.js';
 import { toolsCatalog } from './tools-catalog.js';
 import type { WorkspaceContextDetector } from './workspace-context-detector.js';
-import type { EditorConfigServiceManager } from './editorconfig-service-manager.js';
+import type { WorkspaceServerManager } from './workspace-server-manager.js';
 
 export class McpServerProvider implements vscode.McpServerDefinitionProvider {
     private readonly serversPath: string;
@@ -17,7 +17,7 @@ export class McpServerProvider implements vscode.McpServerDefinitionProvider {
         version: string,
         private readonly workspaceContextDetector: WorkspaceContextDetector,
         onDidChange: vscode.Event<void>,
-        private readonly editorConfigService: EditorConfigServiceManager,
+        private readonly workspaceServer: WorkspaceServerManager,
     ) {
         this.serversPath = join(extensionPath, 'mcp');
         this.ext = process.platform === 'win32' ? '.exe' : '';
@@ -53,9 +53,9 @@ export class McpServerProvider implements vscode.McpServerDefinitionProvider {
                     args.push('--workspace', workspaceFolder.uri.fsPath);
                 }
 
-                const pipeName = this.editorConfigService.getPipeName();
+                const pipeName = this.workspaceServer.getPipeName();
                 if (pipeName) {
-                    args.push('--editorconfig-pipe', pipeName);
+                    args.push('--workspace-server', pipeName);
                 }
 
                 return new vscode.McpStdioServerDefinition(

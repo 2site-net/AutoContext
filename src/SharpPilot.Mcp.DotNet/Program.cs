@@ -32,10 +32,10 @@ internal sealed class Program
             ToolsStatusConfig.Configure(workspace);
         }
 
-        var editorConfigPipe = builder.Configuration["editorconfig-pipe"];
-        if (editorConfigPipe is not null)
+        var workspacePipe = builder.Configuration["workspace-server"];
+        if (workspacePipe is not null)
         {
-            EditorConfigReader.Configure(editorConfigPipe);
+            EditorConfigReader.Configure(workspacePipe);
         }
 
         Type[] toolTypes = scope switch

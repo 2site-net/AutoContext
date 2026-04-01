@@ -7,11 +7,11 @@ using System.Text.Json;
 
 using ModelContextProtocol.Server;
 
-using SharpPilot.EditorConfig;
+using SharpPilot.WorkspaceServer;
 
 /// <summary>
 /// Named pipe client that delegates EditorConfig resolution to the
-/// <c>SharpPilot.EditorConfig</c> service process.
+/// <c>SharpPilot.WorkspaceServer</c> service process.
 /// </summary>
 [McpServerToolType]
 public static class EditorConfigReader
@@ -24,7 +24,7 @@ public static class EditorConfigReader
     private static string? s_pipeName;
 
     /// <summary>
-    /// Configures the pipe name used to connect to the EditorConfig service.
+    /// Configures the pipe name used to connect to the workspace service.
     /// </summary>
     internal static void Configure(string pipeName) =>
         s_pipeName = pipeName;
@@ -81,9 +81,9 @@ public static class EditorConfigReader
         using var client = new NamedPipeClientStream(".", s_pipeName, PipeDirection.InOut, PipeOptions.Asynchronous);
         await client.ConnectAsync(5000).ConfigureAwait(false);
 
-        await EditorConfigService.WriteMessageAsync(client, requestBytes).ConfigureAwait(false);
+        await WorkspaceService.WriteMessageAsync(client, requestBytes).ConfigureAwait(false);
 
-        var responseBytes = await EditorConfigService.ReadMessageAsync(client).ConfigureAwait(false);
+        var responseBytes = await WorkspaceService.ReadMessageAsync(client).ConfigureAwait(false);
 
         if (responseBytes is null || responseBytes.Length == 0)
         {

@@ -29,8 +29,8 @@ Distributed as a VS Code extension — see [src/SharpPilot.VSCode/README.md](src
 
 ```text
 SharpPilot.slnx                        # Solution file
-src/SharpPilot.EditorConfig/           # EditorConfig resolution service (named-pipe server)
-src/SharpPilot.EditorConfig.Tests/     # xUnit tests for the EditorConfig service
+src/SharpPilot.WorkspaceServer/        # Workspace server (named-pipe, EditorConfig resolution)
+src/SharpPilot.WorkspaceServer.Tests/  # xUnit tests for the workspace server
 src/SharpPilot.Mcp.DotNet/            # MCP server (.NET + Git tools)
 src/SharpPilot.Mcp.DotNet.Tests/      # xUnit tests for the .NET MCP server
 src/SharpPilot.Mcp.Web/               # MCP server (TypeScript tools)
@@ -97,7 +97,7 @@ If you have the .NET 10 SDK installed and have cloned this repo, you can registe
 }
 ```
 
-> **Note:** The TypeScript server requires a prior build: `cd src/SharpPilot.Mcp.Web && npm install && npm run build`. When configured manually, EditorConfig properties are not resolved (the `--editorconfig-pipe` argument is omitted); checkers fall back to their built-in defaults.
+> **Note:** The TypeScript server requires a prior build: `cd src/SharpPilot.Mcp.Web && npm install && npm run build`. When configured manually, EditorConfig properties are not resolved (the `--workspace-server` argument is omitted); checkers fall back to their built-in defaults.
 
 ## Testing
 

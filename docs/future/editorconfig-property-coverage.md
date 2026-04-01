@@ -11,7 +11,7 @@ the project's `.editorconfig` specifies.
 ## Current Approach
 
 `check_csharp_all` accepts an optional `editorConfigFilePath` argument. When
-provided, it queries the `SharpPilot.EditorConfig` named-pipe service to
+provided, it queries the `SharpPilot.WorkspaceServer` named-pipe service to
 resolve the effective properties for that file, then passes the key-value
 dictionary to each checker via its `IReadOnlyDictionary<string, string>? data`
 parameter.
@@ -20,7 +20,11 @@ Two checkers currently implement `IEditorConfigFilter` and declare which keys
 they consume:
 
 - `CSharpCodingStyleChecker` reads `csharp_prefer_braces` to determine
-  whether to flag missing braces, unnecessary braces, or both.
+  whether to flag missing braces, unnecessary braces, or both;
+  `dotnet_sort_system_directives_first` to enforce using-directive ordering;
+  and `csharp_style_expression_bodied_methods` /
+  `csharp_style_expression_bodied_properties` to validate expression-body
+  usage per member type.
 - `CSharpProjectStructureChecker` reads `csharp_style_namespace_declarations`
   to enforce file-scoped or block-scoped namespaces.
 
@@ -64,21 +68,17 @@ behaviour.
 
 ### `dotnet_sort_system_directives_first` — Using Directive Ordering
 
-No checker currently validates `using` directive ordering. The coding style
-checker could flag out-of-order `System.*` directives when
-`dotnet_sort_system_directives_first = true` is set.
+> **Implemented.** `CSharpCodingStyleChecker` now reads this property and
+> flags out-of-order `System.*` directives when the value is `true`.
 
 ### `csharp_style_expression_bodied_*` — Expression-Body Usage
 
-The coding style checker flags `=>` arrow placement (arrow must be on a new
-line) but does not validate *whether* expression bodies should be used at all.
-The `csharp_style_expression_bodied_methods`,
-`csharp_style_expression_bodied_properties`, and related properties control
-this per member type.
-
-**Proposed change:** When these properties are set to `when_on_single_line`
-or `always`, flag multi-line members that could be expression-bodied. When
-set to `never`, flag expression-bodied members that should use block bodies.
+> **Implemented.** `CSharpCodingStyleChecker` now reads
+> `csharp_style_expression_bodied_methods` and
+> `csharp_style_expression_bodied_properties`. When set to
+> `when_on_single_line` or `true`, it flags multi-line members that could be
+> expression-bodied. When set to `never` or `false`, it flags
+> expression-bodied members that should use block bodies.
 
 ### `csharp_new_line_*` / `csharp_indent_*` — Formatting
 

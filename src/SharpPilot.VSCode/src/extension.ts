@@ -14,7 +14,7 @@ import { InstructionsDecorationManager } from './instructions-decoration-manager
 import { InstructionsWriter } from './instructions-writer.js';
 import { InstructionsDiagnostics } from './instructions-diagnostics.js';
 import { McpServerProvider } from './mcp-server-provider.js';
-import { EditorConfigServiceManager } from './editorconfig-service-manager.js';
+import { WorkspaceServerManager } from './workspace-server-manager.js';
 import { toolsCatalog } from './tools-catalog.js';
 
 export function activate(context: vscode.ExtensionContext): void {
@@ -37,12 +37,12 @@ export function activate(context: vscode.ExtensionContext): void {
     const decorationManager = new InstructionsDecorationManager(context.extensionPath, configManager);
     const instructionsWriter = new InstructionsWriter(context.extensionPath, configManager);
     const outputChannel = vscode.window.createOutputChannel('SharpPilot');
-    const editorConfigService = new EditorConfigServiceManager(context.extensionPath, outputChannel);
-    const mcpServerProvider = new McpServerProvider(context.extensionPath, version, workspaceContextDetector, didChangeEmitter.event, editorConfigService);
+    const workspaceServer = new WorkspaceServerManager(context.extensionPath, outputChannel);
+    const mcpServerProvider = new McpServerProvider(context.extensionPath, version, workspaceContextDetector, didChangeEmitter.event, workspaceServer);
 
     const logDiagnostics = () => InstructionsDiagnostics.log(outputChannel, context.extensionPath, configManager);
 
-    editorConfigService.start();
+    workspaceServer.start();
     toolsStatusWriter.write();
     workspaceContextDetector.detect();
     configManager.removeOrphanedIds();
@@ -53,7 +53,7 @@ export function activate(context: vscode.ExtensionContext): void {
     context.subscriptions.push(
         didChangeEmitter,
         outputChannel,
-        editorConfigService,
+        workspaceServer,
         statusBarIndicator,
         workspaceContextDetector,
         configManager,

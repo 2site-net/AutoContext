@@ -5,7 +5,7 @@ namespace SharpPilot.Mcp.DotNet.Tools.Checkers;
 /// from the <c>data</c> bag passed to <see cref="IChecker.Check"/>.
 /// The composite checker aggregates keys from all sub-checkers that implement
 /// this interface and requests only the needed properties from the
-/// EditorConfig service.
+/// workspace service.
 /// </summary>
 public interface IEditorConfigFilter
 {
