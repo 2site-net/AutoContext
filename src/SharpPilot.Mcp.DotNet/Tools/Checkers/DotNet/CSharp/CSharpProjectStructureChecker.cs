@@ -16,11 +16,15 @@ using SharpPilot.Mcp.DotNet.Tools.Checkers;
 /// single type per file, file name matches type name, and no #pragma warning disable.
 /// </summary>
 [McpServerToolType]
-public sealed class CSharpProjectStructureChecker : IChecker
+public sealed class CSharpProjectStructureChecker : IChecker, IEditorConfigFilter
 {
     /// <inheritdoc />
     public string ToolName
         => "check_csharp_project_structure";
+
+    /// <inheritdoc />
+    public IReadOnlyList<string> EditorConfigKeys
+        => ["csharp_style_namespace_declarations"];
 
     /// <summary>
     /// Checks C# source code for project structure violations.

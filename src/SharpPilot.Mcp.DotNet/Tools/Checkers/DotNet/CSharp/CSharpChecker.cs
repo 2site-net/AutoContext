@@ -76,10 +76,6 @@ public sealed partial class CSharpChecker(ILogger<CSharpChecker> logger) : IChec
         LogToolInvoked(logger, ToolName, content.Length,
             providedKeys.Length > 0 ? providedKeys : "(none)");
 
-        var data = BuildData(editorConfigFilePath, productionFileName, productionNamespace, testFileName);
-
-        var sections = new List<string>();
-
         IChecker[] checkers =
         [
             new CSharpCodingStyleChecker(),
@@ -90,6 +86,10 @@ public sealed partial class CSharpChecker(ILogger<CSharpChecker> logger) : IChec
             new CSharpProjectStructureChecker(),
             new CSharpTestStyleChecker(),
         ];
+
+        var data = BuildData(checkers, editorConfigFilePath, productionFileName, productionNamespace, testFileName);
+
+        var sections = new List<string>();
 
         foreach (var checker in checkers)
         {
@@ -115,6 +115,7 @@ public sealed partial class CSharpChecker(ILogger<CSharpChecker> logger) : IChec
     }
 
     private static JsonObject? BuildData(
+        IChecker[] checkers,
         string? editorConfigFilePath,
         string? productionFileName,
         string? productionNamespace,
@@ -137,7 +138,11 @@ public sealed partial class CSharpChecker(ILogger<CSharpChecker> logger) : IChec
             data["testFileName"] = testFileName;
         }
 
-        var properties = EditorConfigReader.Resolve(editorConfigFilePath);
+        var allKeys = checkers.OfType<IEditorConfigFilter>()
+            .SelectMany(f => f.EditorConfigKeys)
+            .Distinct()
+            .ToArray();
+        var properties = EditorConfigReader.Resolve(editorConfigFilePath, allKeys);
 
         if (properties is not null)
         {

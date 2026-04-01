@@ -18,11 +18,15 @@ using SharpPilot.Mcp.DotNet.Tools.Checkers;
 /// and XML doc comments on public/protected members.
 /// </summary>
 [McpServerToolType]
-public sealed partial class CSharpCodingStyleChecker : IChecker
+public sealed partial class CSharpCodingStyleChecker : IChecker, IEditorConfigFilter
 {
     /// <inheritdoc />
     public string ToolName
         => "check_csharp_coding_style";
+
+    /// <inheritdoc />
+    public IReadOnlyList<string> EditorConfigKeys
+        => ["csharp_prefer_braces"];
 
     /// <summary>
     /// Checks C# source code for code-style violations.

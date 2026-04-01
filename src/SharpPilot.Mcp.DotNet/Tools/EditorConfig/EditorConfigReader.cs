@@ -1,21 +1,34 @@
 namespace SharpPilot.Mcp.DotNet.Tools.EditorConfig;
 
 using System.ComponentModel;
+using System.IO.Pipes;
 using System.Text;
-
-using global::EditorConfig.Core;
+using System.Text.Json;
 
 using ModelContextProtocol.Server;
 
+using SharpPilot.EditorConfig;
+
 /// <summary>
-/// Resolves the effective <c>.editorconfig</c> properties for a given file path.
-/// Uses <see cref="EditorConfigParser"/> to walk the directory tree, evaluate
-/// glob patterns, and cascade sections — returning the final resolved key-value
-/// pairs that apply to the file.
+/// Named pipe client that delegates EditorConfig resolution to the
+/// <c>SharpPilot.EditorConfig</c> service process.
 /// </summary>
 [McpServerToolType]
 public static class EditorConfigReader
 {
+    private static readonly JsonSerializerOptions s_jsonOptions = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+    };
+
+    private static string? s_pipeName;
+
+    /// <summary>
+    /// Configures the pipe name used to connect to the EditorConfig service.
+    /// </summary>
+    internal static void Configure(string pipeName) =>
+        s_pipeName = pipeName;
+
     /// <summary>
     /// Resolves the effective editorconfig properties for <paramref name="path"/>.
     /// </summary>
@@ -32,17 +45,16 @@ public static class EditorConfigReader
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
 
-        var parser = new EditorConfigParser();
-        var config = parser.Parse(path);
+        var properties = Resolve(path);
 
-        if (config.Properties.Count == 0)
+        if (properties is null || properties.Count == 0)
         {
             return "⚠️ No .editorconfig properties apply to this file.";
         }
 
         var sb = new StringBuilder();
 
-        foreach (var kv in config.Properties)
+        foreach (var kv in properties)
         {
             sb.Append(kv.Key);
             sb.Append(" = ");
@@ -56,16 +68,43 @@ public static class EditorConfigReader
     /// Resolves the effective editorconfig properties for <paramref name="path"/>
     /// as a dictionary for programmatic use by checkers.
     /// </summary>
-    internal static IReadOnlyDictionary<string, string>? Resolve(string? path)
+    internal static IReadOnlyDictionary<string, string>? Resolve(string? path, string[]? keys = null)
     {
-        if (string.IsNullOrWhiteSpace(path))
+        if (string.IsNullOrWhiteSpace(path) || string.IsNullOrWhiteSpace(s_pipeName))
         {
             return null;
         }
 
-        var parser = new EditorConfigParser();
-        var config = parser.Parse(path);
+        var request = new { filePath = path, keys };
+        var requestBytes = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(request, s_jsonOptions));
 
-        return config.Properties.Count == 0 ? null : config.Properties;
+        using var client = new NamedPipeClientStream(".", s_pipeName, PipeDirection.InOut, PipeOptions.Asynchronous);
+        client.Connect(5000);
+
+        EditorConfigService.WriteMessageAsync(client, requestBytes).GetAwaiter().GetResult();
+
+        var responseBytes = EditorConfigService.ReadMessageAsync(client).GetAwaiter().GetResult();
+
+        if (responseBytes is null || responseBytes.Length == 0)
+        {
+            return null;
+        }
+
+        using var doc = JsonDocument.Parse(responseBytes);
+        var properties = doc.RootElement.GetProperty("properties");
+
+        if (properties.ValueKind is not JsonValueKind.Object)
+        {
+            return null;
+        }
+
+        var result = new Dictionary<string, string>();
+
+        foreach (var prop in properties.EnumerateObject())
+        {
+            result[prop.Name] = prop.Value.GetString() ?? string.Empty;
+        }
+
+        return result.Count == 0 ? null : result;
     }
 }

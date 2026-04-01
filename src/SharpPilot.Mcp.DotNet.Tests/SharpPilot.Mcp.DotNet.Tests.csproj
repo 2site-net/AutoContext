@@ -18,6 +18,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\SharpPilot.EditorConfig\SharpPilot.EditorConfig.csproj" />
     <ProjectReference Include="..\SharpPilot.Mcp.DotNet\SharpPilot.Mcp.DotNet.csproj" />
   </ItemGroup>
 

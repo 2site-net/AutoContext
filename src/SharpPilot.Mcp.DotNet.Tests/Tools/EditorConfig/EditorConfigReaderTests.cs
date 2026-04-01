@@ -2,17 +2,43 @@ namespace SharpPilot.Mcp.DotNet.Tests.Tools.EditorConfig;
 
 using SharpPilot.Mcp.DotNet.Tools.EditorConfig;
 
-public sealed class EditorConfigReaderTests : IDisposable
+public sealed class EditorConfigReaderTests : IAsyncLifetime, IDisposable
 {
     private readonly string _tempRoot = Path.Combine(Path.GetTempPath(), $"ec-test-{Guid.NewGuid():N}");
+    private readonly string _pipeName = $"ec-reader-test-{Guid.NewGuid():N}";
+    private readonly CancellationTokenSource _cts = new();
 
-    public EditorConfigReaderTests()
+    private Task _serviceTask = Task.CompletedTask;
+
+    public async ValueTask InitializeAsync()
     {
         Directory.CreateDirectory(_tempRoot);
+
+        var service = new SharpPilot.EditorConfig.EditorConfigService(_pipeName, _cts.Token);
+        _serviceTask = service.RunAsync();
+        EditorConfigReader.Configure(_pipeName);
+
+        await Task.Delay(100);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await _cts.CancelAsync();
+
+        var completed = await Task.WhenAny(_serviceTask, Task.Delay(TimeSpan.FromSeconds(5)));
+
+        if (completed != _serviceTask)
+        {
+            throw new TimeoutException("EditorConfig service did not shut down within 5 seconds.");
+        }
+
+        await _serviceTask;
     }
 
     public void Dispose()
     {
+        _cts.Dispose();
+
         if (Directory.Exists(_tempRoot))
         {
             Directory.Delete(_tempRoot, recursive: true);
@@ -103,7 +129,7 @@ public sealed class EditorConfigReaderTests : IDisposable
         // Act
         var result = EditorConfigReader.Read(Path.Combine(child, "file.cs"));
 
-        // Assert — child overrides parent for indent_size, parent's charset still inherited
+        // Assert
         Assert.Contains("indent_size = 2", result);
         Assert.Contains("charset = utf-8", result);
         Assert.DoesNotContain("indent_size = 4", result);
@@ -112,7 +138,7 @@ public sealed class EditorConfigReaderTests : IDisposable
     [Fact]
     public void Should_stop_at_root_equals_true()
     {
-        // Arrange — grandparent has a property that should NOT appear
+        // Arrange
         var parent = Path.Combine(_tempRoot, "parent");
         var child = Path.Combine(parent, "child");
         Directory.CreateDirectory(child);

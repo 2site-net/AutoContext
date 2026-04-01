@@ -32,6 +32,12 @@ internal sealed class Program
             ToolsStatusConfig.Configure(workspace);
         }
 
+        var editorConfigPipe = builder.Configuration["editorconfig-pipe"];
+        if (editorConfigPipe is not null)
+        {
+            EditorConfigReader.Configure(editorConfigPipe);
+        }
+
         Type[] toolTypes = scope switch
         {
             "dotnet" =>
