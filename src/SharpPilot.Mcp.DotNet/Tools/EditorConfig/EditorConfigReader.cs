@@ -76,7 +76,7 @@ public static class EditorConfigReader
         }
 
         var request = new { filePath = path, keys };
-        var requestBytes = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(request, s_jsonOptions));
+        var requestBytes = JsonSerializer.SerializeToUtf8Bytes(request, s_jsonOptions);
 
         using var client = new NamedPipeClientStream(".", s_pipeName, PipeDirection.InOut, PipeOptions.Asynchronous);
         client.Connect(5000);

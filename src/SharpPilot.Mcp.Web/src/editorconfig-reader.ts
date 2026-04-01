@@ -31,28 +31,36 @@ function queryAsync(filePath: string, keys?: readonly string[]): Promise<Record<
 
     return new Promise((resolve) => {
         const chunks: Buffer[] = [];
+        let received = 0;
 
         const socket = connect(pipePath, () => {
-            socket.write(Buffer.concat([header, requestBytes]));
+            socket.write(header);
+            socket.write(requestBytes);
         });
 
         socket.on('data', (chunk: Buffer) => {
             chunks.push(chunk);
-
-            const buf = Buffer.concat(chunks);
+            received += chunk.length;
 
             // Need at least 4 bytes for the length header.
-            if (buf.length < 4) {
+            if (received < 4) {
                 return;
             }
 
-            const payloadLength = buf.readInt32LE(0);
+            // Read length from the first chunk if it's large enough,
+            // otherwise concat once to get the header.
+            const headerBuf = chunks[0]!.length >= 4
+                ? chunks[0]!
+                : Buffer.concat(chunks);
+
+            const payloadLength = headerBuf.readInt32LE(0);
 
             // Need the full payload.
-            if (buf.length < 4 + payloadLength) {
+            if (received < 4 + payloadLength) {
                 return;
             }
 
+            const buf = chunks.length === 1 ? chunks[0]! : Buffer.concat(chunks);
             const payloadBytes = buf.subarray(4, 4 + payloadLength);
             socket.destroy();
 

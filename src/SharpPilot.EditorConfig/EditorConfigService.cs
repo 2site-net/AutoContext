@@ -2,7 +2,6 @@ namespace SharpPilot.EditorConfig;
 
 using System.Buffers.Binary;
 using System.IO.Pipes;
-using System.Text;
 using System.Text.Json;
 
 /// <summary>
@@ -110,9 +109,7 @@ internal sealed class EditorConfigService
                     return;
                 }
 
-                var requestJson = Encoding.UTF8.GetString(requestBytes);
-                var responseJson = ProcessRequest(requestJson);
-                var responseBytes = Encoding.UTF8.GetBytes(responseJson);
+                var responseBytes = ProcessRequest(requestBytes);
 
                 await WriteMessageAsync(pipe, responseBytes).ConfigureAwait(false);
             }
@@ -165,11 +162,11 @@ internal sealed class EditorConfigService
     /// </summary>
     internal static async Task WriteMessageAsync(Stream stream, byte[] payload, CancellationToken ct = default)
     {
-        var header = new byte[4];
-        BinaryPrimitives.WriteInt32LittleEndian(header, payload.Length);
+        var message = new byte[4 + payload.Length];
+        BinaryPrimitives.WriteInt32LittleEndian(message, payload.Length);
+        payload.CopyTo(message.AsSpan(4));
 
-        await stream.WriteAsync(header, ct).ConfigureAwait(false);
-        await stream.WriteAsync(payload, ct).ConfigureAwait(false);
+        await stream.WriteAsync(message, ct).ConfigureAwait(false);
         await stream.FlushAsync(ct).ConfigureAwait(false);
     }
 
@@ -193,7 +190,7 @@ internal sealed class EditorConfigService
         return true;
     }
 
-    private static string ProcessRequest(string json)
+    private static byte[] ProcessRequest(ReadOnlySpan<byte> json)
     {
         try
         {
@@ -201,17 +198,17 @@ internal sealed class EditorConfigService
 
             if (request is null || string.IsNullOrWhiteSpace(request.FilePath))
             {
-                return JsonSerializer.Serialize(new EditorConfigResponse([]), s_jsonOptions);
+                return JsonSerializer.SerializeToUtf8Bytes(new EditorConfigResponse([]), s_jsonOptions);
             }
 
             var properties = EditorConfigResolver.Resolve(request.FilePath, request.Keys);
             var response = new EditorConfigResponse(properties);
 
-            return JsonSerializer.Serialize(response, s_jsonOptions);
+            return JsonSerializer.SerializeToUtf8Bytes(response, s_jsonOptions);
         }
         catch (JsonException)
         {
-            return JsonSerializer.Serialize(new EditorConfigResponse([]), s_jsonOptions);
+            return JsonSerializer.SerializeToUtf8Bytes(new EditorConfigResponse([]), s_jsonOptions);
         }
     }
 }
