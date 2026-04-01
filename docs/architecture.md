@@ -65,8 +65,8 @@ A single instruction file may contain dozens of rules. Turning off the entire fi
 │                        4. TOOL CONFIGURATION                                 │
 │                                                                              │
 │   ToolsStatusWriter reads VS Code settings and writes disabled tool names    │
-│   to .sharppilot.json. MCP servers read this file at runtime to skip         │
-│   disabled sub-checks.                                                       │
+│   to .sharppilot.json. MCP servers read this file at runtime. Disabled       │
+│   sub-checks are skipped unless they have EditorConfig backing (see below).  │
 └─────────────────────────────────────────────────────────────────────────────┘
                                      │
                                      ▼
@@ -98,10 +98,12 @@ When the extension activates, the following steps execute synchronously:
 
 When Copilot invokes an MCP tool (e.g., `check_csharp_all`):
 
-1. The MCP server reads `.sharppilot.json` → skips any disabled sub-checks.
+1. The MCP server reads `.sharppilot.json` to determine which sub-checks are disabled.
 2. If `editorConfigFilePath` is provided, the server queries the `SharpPilot.EditorConfig` service over the named pipe to resolve `.editorconfig` properties and merges them into the checker data.
-3. Each checker reads the merged EditorConfig values and uses them to **drive** its enforcement direction — not just to skip conflicting checks.
-4. The checker returns a report (✅ pass or ❌ violations found).
+3. **Disabled sub-checks with EditorConfig backing** — When a sub-check is disabled but implements `IEditorConfigFilter` *and* the resolved `.editorconfig` contains at least one key that checker consumes, the checker still runs in a restricted mode: it enforces only the EditorConfig-backed rules and skips its instruction-only (INST) checks. This lets project-level `.editorconfig` settings remain enforced even after a team opts out of the instruction.
+4. **Fully disabled sub-checks** — When a sub-check is disabled and no relevant EditorConfig key is present, it is skipped entirely.
+5. Enabled checkers read the merged EditorConfig values and use them to **drive** their enforcement direction — not just to skip conflicting checks.
+6. The checker returns a report (✅ pass or ❌ violations found).
 
 ---
 
@@ -117,6 +119,19 @@ When multiple sources disagree, the following precedence applies:
 | 4 | Workspace context | Determines which servers and instructions are registered at all. |
 
 See the "EditorConfig wins" rule in `copilot.instructions.md` for the user-facing statement of this precedence.
+
+### EditorConfig as a Floor
+
+Disabling a tool removes its **instruction-only** checks from the report, but project-level `.editorconfig` settings are a stronger signal than a personal tool toggle. Checkers that implement `IEditorConfigFilter` declare which EditorConfig keys they consume. When a checker is disabled but the resolved `.editorconfig` contains at least one of those keys, the checker runs in a restricted mode that enforces only the EditorConfig-backed rules and skips the instruction-only (INST) checks.
+
+This means a team can commit a `.editorconfig` that requires file-scoped namespaces or braces on single-line blocks, and those checks remain enforced even if an individual developer disables the corresponding tool. The `.editorconfig` acts as a floor that cannot be silenced by local tool toggles.
+
+Checkers with EditorConfig backing today:
+
+| Checker | EditorConfig Keys |
+|---------|-------------------|
+| `check_csharp_coding_style` | `csharp_prefer_braces`, `dotnet_sort_system_directives_first`, `csharp_style_expression_bodied_methods`, `csharp_style_expression_bodied_properties` |
+| `check_csharp_project_structure` | `csharp_style_namespace_declarations` |
 
 ---
 

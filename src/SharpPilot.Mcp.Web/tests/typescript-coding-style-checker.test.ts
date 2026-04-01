@@ -286,4 +286,26 @@ describe('TypeScriptCodingStyleChecker', () => {
 
         expect(checker.check(source)).toMatch(/^✅/);
     });
+
+    it('should skip all checks when disabled and no editorconfig', () => {
+        const source = `
+            const data: any = {};
+            enum Direction { Up, Down }
+        `;
+
+        const result = checker.check(source, { __disabled: 'true' });
+        expect(result).toMatch(/^✅/);
+    });
+
+    it('should skip all checks when disabled even with violations', () => {
+        // All current TS checks are INST-only (no EC backing),
+        // so disabled mode produces no violations.
+        const source = `
+            // @ts-ignore
+            function process(data: any): void {}
+        `;
+
+        const result = checker.check(source, { __disabled: 'true' });
+        expect(result).toMatch(/^✅/);
+    });
 });

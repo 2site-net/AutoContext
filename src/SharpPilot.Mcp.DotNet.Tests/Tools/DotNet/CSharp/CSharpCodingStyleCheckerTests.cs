@@ -1979,4 +1979,102 @@ public sealed class CSharpCodingStyleCheckerTests
         // Assert
         Assert.DoesNotContain("non-System using directives", result);
     }
+
+    // -------------------------------------------------------------------------
+    // Disabled mode (__disabled flag)
+    // -------------------------------------------------------------------------
+
+    [Fact]
+    public async Task Should_skip_all_checks_when_disabled_and_no_editorconfig()
+    {
+        // Arrange — code with multiple violations but tool is disabled without EC data
+        var source = """
+            #region Bad
+            namespace MyApp
+            {
+                public class MyClass
+                {
+                    public void DoWork()
+                    {
+                        if (true)
+                            Console.WriteLine();
+                    }
+                }
+            }
+            #endregion
+            """;
+
+        var data = new Dictionary<string, string> { ["__disabled"] = "true" };
+
+        // Act
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source, data);
+
+        // Assert — disabled with no EC means nothing to enforce
+        Assert.StartsWith("✅", result);
+    }
+
+    [Fact]
+    public async Task Should_run_editorconfig_backed_check_when_disabled_but_ec_present()
+    {
+        // Arrange — code with unnecessary braces + EC explicitly says no braces
+        var source = """
+            /// <summary>
+            /// A class.
+            /// </summary>
+            public class MyClass
+            {
+                /// <summary>
+                /// Does work.
+                /// </summary>
+                public void DoWork()
+                {
+                    var items = new[] { 1, 2, 3 };
+
+                    foreach (var item in items)
+                    {
+                        Console.WriteLine(item);
+                    }
+                }
+            }
+            """;
+
+        var data = new Dictionary<string, string>
+        {
+            ["__disabled"] = "true",
+            ["csharp_prefer_braces"] = "false",
+        };
+
+        // Act
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source, data);
+
+        // Assert — EC check still runs
+        Assert.Multiple(() =>
+        {
+            Assert.StartsWith("❌", result);
+            Assert.Contains("unnecessary curly braces", result, StringComparison.OrdinalIgnoreCase);
+        });
+    }
+
+    [Fact]
+    public async Task Should_not_run_instruction_only_checks_when_disabled_with_ec()
+    {
+        // Arrange — code with #region (INST-only) but tool is disabled with some EC data
+        var source = """
+            #region Bad
+            public class MyClass { }
+            #endregion
+            """;
+
+        var data = new Dictionary<string, string>
+        {
+            ["__disabled"] = "true",
+            ["csharp_prefer_braces"] = "true",
+        };
+
+        // Act
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source, data);
+
+        // Assert — #region is INST-only, should be skipped even with EC present
+        Assert.DoesNotContain("#region", result);
+    }
 }

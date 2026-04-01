@@ -96,6 +96,13 @@ public sealed partial class CSharpChecker(ILogger<CSharpChecker> logger) : IChec
             {
                 sections.Add(await checker.CheckAsync(content, data).ConfigureAwait(false));
             }
+            else if (data is not null
+                     && checker is IEditorConfigFilter filter
+                     && HasAnyEditorConfigKey(data, filter.EditorConfigKeys))
+            {
+                var disabledData = new Dictionary<string, string>(data) { ["__disabled"] = "true" };
+                sections.Add(await checker.CheckAsync(content, disabledData).ConfigureAwait(false));
+            }
         }
 
         if (sections.Count == 0)
@@ -152,6 +159,26 @@ public sealed partial class CSharpChecker(ILogger<CSharpChecker> logger) : IChec
         }
 
         return data.Count > 0 ? data : null;
+    }
+
+    private static bool HasAnyEditorConfigKey(
+        Dictionary<string, string>? data,
+        IReadOnlyList<string> editorConfigKeys)
+    {
+        if (data is null)
+        {
+            return false;
+        }
+
+        foreach (var key in editorConfigKeys)
+        {
+            if (data.ContainsKey(key))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     [LoggerMessage(Level = LogLevel.Information,

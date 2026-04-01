@@ -3,6 +3,18 @@ import { isEnabled } from '../../tools-status-config.js';
 import { resolve } from '../../editorconfig-reader.js';
 import { TypeScriptCodingStyleChecker } from './typescript-coding-style-checker.js';
 
+function hasAnyEditorConfigKey(
+    data: Record<string, string> | undefined,
+    checker: Checker,
+): boolean {
+    if (!data || !('editorConfigKeys' in checker)) {
+        return false;
+    }
+
+    const filter = checker as Checker & EditorConfigFilter;
+    return filter.editorConfigKeys.some(key => key in data);
+}
+
 export class TypeScriptChecker implements Checker {
     readonly toolName = 'check_typescript_all';
 
@@ -31,6 +43,9 @@ export class TypeScriptChecker implements Checker {
         for (const checker of checkers) {
             if (isEnabled(checker.toolName)) {
                 sections.push(await checker.check(content, mergedData));
+            } else if (hasAnyEditorConfigKey(mergedData, checker)) {
+                const disabledData = { ...mergedData, __disabled: 'true' };
+                sections.push(await checker.check(content, disabledData));
             }
         }
 

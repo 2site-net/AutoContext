@@ -482,4 +482,81 @@ public sealed class CSharpProjectStructureCheckerTests
         // Assert — default: enforce file-scoped
         Assert.Contains("Block-scoped namespace", result);
     }
+
+    // -------------------------------------------------------------------------
+    // Disabled mode (__disabled flag)
+    // -------------------------------------------------------------------------
+
+    [Fact]
+    public async Task Should_skip_all_checks_when_disabled_and_no_editorconfig()
+    {
+        // Arrange — block-scoped namespace + #pragma (both violations) but tool disabled
+        var source = """
+            #pragma warning disable CA1234
+            namespace MyApp
+            {
+                public class MyClass { }
+                public class OtherClass { }
+            }
+            """;
+
+        var data = new Dictionary<string, string> { ["__disabled"] = "true" };
+
+        // Act
+        var result = await new CSharpProjectStructureChecker().CheckAsync(source, data);
+
+        // Assert — nothing to enforce
+        Assert.StartsWith("✅", result);
+    }
+
+    [Fact]
+    public async Task Should_run_namespace_check_when_disabled_but_ec_present()
+    {
+        // Arrange — file-scoped namespace, EC says block_scoped
+        var source = """
+            namespace MyApp.Services;
+
+            public class UserService { }
+            """;
+
+        var data = new Dictionary<string, string>
+        {
+            ["__disabled"] = "true",
+            ["csharp_style_namespace_declarations"] = "block_scoped",
+        };
+
+        // Act
+        var result = await new CSharpProjectStructureChecker().CheckAsync(source, data);
+
+        // Assert — EC check still runs
+        Assert.Multiple(() =>
+        {
+            Assert.StartsWith("❌", result);
+            Assert.Contains("File-scoped namespace", result);
+        });
+    }
+
+    [Fact]
+    public async Task Should_not_run_pragma_check_when_disabled_with_ec()
+    {
+        // Arrange — #pragma violation + EC for namespace
+        var source = """
+            #pragma warning disable CA1234
+            namespace MyApp.Services;
+
+            public class UserService { }
+            """;
+
+        var data = new Dictionary<string, string>
+        {
+            ["__disabled"] = "true",
+            ["csharp_style_namespace_declarations"] = "file_scoped",
+        };
+
+        // Act
+        var result = await new CSharpProjectStructureChecker().CheckAsync(source, data);
+
+        // Assert — pragma is INST-only, skipped when disabled
+        Assert.DoesNotContain("#pragma", result);
+    }
 }

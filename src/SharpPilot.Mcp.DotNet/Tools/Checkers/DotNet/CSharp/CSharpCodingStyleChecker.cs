@@ -62,16 +62,46 @@ public sealed partial class CSharpCodingStyleChecker : IChecker, IEditorConfigFi
         var lineRanges = new Range[lineCount];
         contentSpan.Split(lineRanges, '\n');
         var violations = new List<string>();
+        var disabled = IsDisabled(data);
 
-        CheckRegions(root, tree, violations);
-        CheckDecorativeComments(contentSpan, lineRanges, violations);
-        CheckCurlyBraces(root, tree, GetBracePreference(data), violations);
-        CheckBlankLineBeforeControlFlow(root, tree, contentSpan, lineRanges, violations);
-        CheckExpressionBodyArrowPlacement(root, tree, violations);
-        CheckXmlDocComments(root, tree, violations);
-        CheckSortSystemDirectivesFirst(root, tree, GetSortSystemDirectivesFirst(data), violations);
-        CheckExpressionBodiedMethods(root, tree, GetExpressionBodiedPreference(data, "csharp_style_expression_bodied_methods"), violations);
-        CheckExpressionBodiedProperties(root, tree, GetExpressionBodiedPreference(data, "csharp_style_expression_bodied_properties"), violations);
+        if (!disabled)
+        {
+            CheckRegions(root, tree, violations);
+            CheckDecorativeComments(contentSpan, lineRanges, violations);
+            CheckBlankLineBeforeControlFlow(root, tree, contentSpan, lineRanges, violations);
+            CheckExpressionBodyArrowPlacement(root, tree, violations);
+            CheckXmlDocComments(root, tree, violations);
+        }
+
+        // EditorConfig-backed checks run when the EC key is present,
+        // regardless of whether the tool is disabled.
+        var bracePreference = GetBracePreference(data, disabled);
+
+        if (bracePreference is not null)
+        {
+            CheckCurlyBraces(root, tree, bracePreference, violations);
+        }
+
+        var sortSystemFirst = GetSortSystemDirectivesFirst(data, disabled);
+
+        if (sortSystemFirst is not null)
+        {
+            CheckSortSystemDirectivesFirst(root, tree, sortSystemFirst.Value, violations);
+        }
+
+        var expressionBodiedMethods = GetExpressionBodiedPreference(data, "csharp_style_expression_bodied_methods");
+
+        if (expressionBodiedMethods is not null)
+        {
+            CheckExpressionBodiedMethods(root, tree, expressionBodiedMethods, violations);
+        }
+
+        var expressionBodiedProperties = GetExpressionBodiedPreference(data, "csharp_style_expression_bodied_properties");
+
+        if (expressionBodiedProperties is not null)
+        {
+            CheckExpressionBodiedProperties(root, tree, expressionBodiedProperties, violations);
+        }
 
         return violations.Count == 0
             ? "✅ Code style is correct."
@@ -79,14 +109,34 @@ public sealed partial class CSharpCodingStyleChecker : IChecker, IEditorConfigFi
               string.Join('\n', violations.Select((v, i) => $"  {i + 1}. {v}"));
     }
 
-    private static string GetBracePreference(IReadOnlyDictionary<string, string>? data)
-        => data?.GetValueOrDefault("csharp_prefer_braces") ?? "true";
+    private static bool IsDisabled(IReadOnlyDictionary<string, string>? data)
+        => data?.ContainsKey("__disabled") == true;
 
-    private static bool GetSortSystemDirectivesFirst(IReadOnlyDictionary<string, string>? data)
-        => !string.Equals(
-            data?.GetValueOrDefault("dotnet_sort_system_directives_first"),
-            "false",
-            StringComparison.OrdinalIgnoreCase);
+    /// <summary>
+    /// Returns the brace preference, or <see langword="null"/> when the tool
+    /// is disabled and no EditorConfig value is present.
+    /// </summary>
+    private static string? GetBracePreference(IReadOnlyDictionary<string, string>? data, bool disabled)
+    {
+        var value = data?.GetValueOrDefault("csharp_prefer_braces");
+        return value ?? (disabled ? null : "true");
+    }
+
+    /// <summary>
+    /// Returns the sort-system-directives-first preference, or <see langword="null"/>
+    /// when the tool is disabled and no EditorConfig value is present.
+    /// </summary>
+    private static bool? GetSortSystemDirectivesFirst(IReadOnlyDictionary<string, string>? data, bool disabled)
+    {
+        var value = data?.GetValueOrDefault("dotnet_sort_system_directives_first");
+
+        if (value is not null)
+        {
+            return !string.Equals(value, "false", StringComparison.OrdinalIgnoreCase);
+        }
+
+        return disabled ? null : true;
+    }
 
     private static string? GetExpressionBodiedPreference(IReadOnlyDictionary<string, string>? data, string key)
         => data?.GetValueOrDefault(key);

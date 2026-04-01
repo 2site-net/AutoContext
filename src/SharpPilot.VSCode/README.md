@@ -41,7 +41,7 @@ If either condition is not met the server does not appear at all. The EditorConf
 
 ### 4. Tool configuration
 
-VS Code settings control which sub-checks are enabled. The extension writes disabled tool names to `.sharppilot.json` in the workspace root. The MCP server reads this file at runtime and skips disabled sub-checks.
+VS Code settings control which sub-checks are enabled. The extension writes disabled tool names to `.sharppilot.json` in the workspace root. The MCP server reads this file at runtime. Disabled sub-checks are skipped unless they have EditorConfig backing — if the resolved `.editorconfig` contains a key the checker consumes (e.g., `csharp_prefer_braces`), it still runs in a restricted mode that enforces only the EditorConfig-backed rules. This lets project-level `.editorconfig` settings remain enforced even after opting out of the instruction.
 
 ### 5. Runtime — EditorConfig-driven enforcement
 

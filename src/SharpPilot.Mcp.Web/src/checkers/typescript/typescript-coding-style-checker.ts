@@ -175,7 +175,12 @@ function formatReport(violations: readonly Violation[]): string {
 export class TypeScriptCodingStyleChecker implements Checker {
     readonly toolName = 'check_typescript_coding_style';
 
-    check(content: string, _data?: Record<string, string>): string {
+    check(content: string, data?: Record<string, string>): string {
+        if (data?.__disabled === 'true') {
+            // No EditorConfig-backed checks yet — nothing to run in disabled mode.
+            return '✅ TypeScript Coding Style';
+        }
+
         const violations = findViolations(content);
 
         if (violations.length === 0) {

@@ -45,25 +45,35 @@ public sealed class CSharpProjectStructureChecker : IChecker, IEditorConfigFilte
         ArgumentException.ThrowIfNullOrWhiteSpace(content);
 
         var fileName = data?.GetValueOrDefault("productionFileName") ?? string.Empty;
+        var disabled = data?.ContainsKey("__disabled") == true;
 
         var tree = CSharpSyntaxTree.ParseText(content);
         var root = await tree.GetRootAsync().ConfigureAwait(false);
         var violations = new List<string>();
 
-        var namespacePreference = data?.GetValueOrDefault("csharp_style_namespace_declarations") ?? "file_scoped";
+        // EditorConfig-backed: run when EC key is present, or when tool is enabled (use default).
+        var namespacePreference = data?.GetValueOrDefault("csharp_style_namespace_declarations");
 
-        if (namespacePreference is "block_scoped")
+        if (namespacePreference is not null || !disabled)
         {
-            CheckBlockScopedNamespace(root, tree, violations);
-        }
-        else
-        {
-            CheckFileScopedNamespace(root, tree, violations);
+            var effective = namespacePreference ?? "file_scoped";
+
+            if (effective is "block_scoped")
+            {
+                CheckBlockScopedNamespace(root, tree, violations);
+            }
+            else
+            {
+                CheckFileScopedNamespace(root, tree, violations);
+            }
         }
 
-        CheckSingleTypePerFile(root, violations);
-        CheckFileNameMatchesType(root, fileName, violations);
-        CheckPragmaWarningDisable(root, tree, violations);
+        if (!disabled)
+        {
+            CheckSingleTypePerFile(root, violations);
+            CheckFileNameMatchesType(root, fileName, violations);
+            CheckPragmaWarningDisable(root, tree, violations);
+        }
 
         return violations.Count == 0
             ? "✅ Project structure is correct."
