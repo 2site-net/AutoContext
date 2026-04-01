@@ -14,7 +14,8 @@ using SharpPilot.Mcp.DotNet.Tools.Checkers;
 /// <summary>
 /// Validates C# code style rules: regions, decorative comments, curly braces,
 /// blank lines before control flow, expression-body arrow placement,
-/// and XML doc comments on public/protected members.
+/// XML doc comments on public/protected members, System-directive ordering,
+/// and expression-body style for methods and properties.
 /// </summary>
 [McpServerToolType]
 public sealed partial class CSharpCodingStyleChecker : IChecker, IEditorConfigFilter
@@ -25,7 +26,12 @@ public sealed partial class CSharpCodingStyleChecker : IChecker, IEditorConfigFi
 
     /// <inheritdoc />
     public IReadOnlyList<string> EditorConfigKeys
-        => ["csharp_prefer_braces"];
+        => [
+            "csharp_prefer_braces",
+            "dotnet_sort_system_directives_first",
+            "csharp_style_expression_bodied_methods",
+            "csharp_style_expression_bodied_properties",
+        ];
 
     /// <summary>
     /// Checks C# source code for code-style violations.
@@ -37,7 +43,10 @@ public sealed partial class CSharpCodingStyleChecker : IChecker, IEditorConfigFi
         "curly brace usage enforced per csharp_prefer_braces (true/false/when_multiline), " +
         "blank lines before control flow statements, " +
         "expression-body arrows (=>) must be on the next line, " +
-        "and XML doc comments required on public/protected members.")]
+        "XML doc comments required on public/protected members, " +
+        "System using directives ordered first per dotnet_sort_system_directives_first (default true), " +
+        "and expression-body style enforced per csharp_style_expression_bodied_methods and " +
+        "csharp_style_expression_bodied_properties (never/always/when_on_single_line).")]
     public async Task<string> CheckAsync(
         [Description("The C# source code to check.")]
         string content,
@@ -60,6 +69,9 @@ public sealed partial class CSharpCodingStyleChecker : IChecker, IEditorConfigFi
         CheckBlankLineBeforeControlFlow(root, tree, contentSpan, lineRanges, violations);
         CheckExpressionBodyArrowPlacement(root, tree, violations);
         CheckXmlDocComments(root, tree, violations);
+        CheckSortSystemDirectivesFirst(root, tree, GetSortSystemDirectivesFirst(data), violations);
+        CheckExpressionBodiedMethods(root, tree, GetExpressionBodiedPreference(data, "csharp_style_expression_bodied_methods"), violations);
+        CheckExpressionBodiedProperties(root, tree, GetExpressionBodiedPreference(data, "csharp_style_expression_bodied_properties"), violations);
 
         return violations.Count == 0
             ? "✅ Code style is correct."
@@ -69,6 +81,15 @@ public sealed partial class CSharpCodingStyleChecker : IChecker, IEditorConfigFi
 
     private static string GetBracePreference(IReadOnlyDictionary<string, string>? data)
         => data?.GetValueOrDefault("csharp_prefer_braces") ?? "true";
+
+    private static bool GetSortSystemDirectivesFirst(IReadOnlyDictionary<string, string>? data)
+        => !string.Equals(
+            data?.GetValueOrDefault("dotnet_sort_system_directives_first"),
+            "false",
+            StringComparison.OrdinalIgnoreCase);
+
+    private static string? GetExpressionBodiedPreference(IReadOnlyDictionary<string, string>? data, string key)
+        => data?.GetValueOrDefault(key);
 
     private static void CheckRegions(SyntaxNode root, SyntaxTree tree, List<string> violations)
     {
@@ -418,6 +439,232 @@ public sealed partial class CSharpCodingStyleChecker : IChecker, IEditorConfigFi
                 => f.Declaration.Variables.FirstOrDefault()?.Identifier.Text ?? "(field)",
             _ => "(unknown)",
         };
+
+    private static void CheckSortSystemDirectivesFirst(
+        SyntaxNode root,
+        SyntaxTree tree,
+        bool sortSystemFirst,
+        List<string> violations)
+    {
+        if (!sortSystemFirst)
+        {
+            return;
+        }
+
+        if (root is CompilationUnitSyntax compilationUnit)
+        {
+            CheckUsingsOrder(compilationUnit.Usings, tree, violations);
+        }
+
+        foreach (var namespaceDecl in root.DescendantNodes().OfType<BaseNamespaceDeclarationSyntax>())
+        {
+            CheckUsingsOrder(namespaceDecl.Usings, tree, violations);
+        }
+    }
+
+    private static void CheckUsingsOrder(
+        SyntaxList<UsingDirectiveSyntax> usings,
+        SyntaxTree tree,
+        List<string> violations)
+    {
+        var seenNonSystem = false;
+
+        foreach (var usingDirective in usings)
+        {
+            if (usingDirective.GlobalKeyword.IsKind(SyntaxKind.GlobalKeyword)
+                || usingDirective.StaticKeyword.IsKind(SyntaxKind.StaticKeyword)
+                || usingDirective.Alias is not null)
+            {
+                continue;
+            }
+
+            var name = usingDirective.Name?.ToString() ?? string.Empty;
+            var isSystem = name == "System" || name.StartsWith("System.", StringComparison.Ordinal);
+
+            if (!isSystem)
+            {
+                seenNonSystem = true;
+            }
+            else if (seenNonSystem)
+            {
+                var line = tree.GetLineSpan(usingDirective.Span).StartLinePosition.Line + 1;
+                violations.Add(
+                    $"Line {line}: 'using {name}' must come before non-System using directives " +
+                    "(dotnet_sort_system_directives_first = true).");
+            }
+        }
+    }
+
+    private static void CheckExpressionBodiedMethods(
+        SyntaxNode root,
+        SyntaxTree tree,
+        string? preference,
+        List<string> violations)
+    {
+        if (preference is null)
+        {
+            return;
+        }
+
+        foreach (var method in root.DescendantNodes().OfType<MethodDeclarationSyntax>())
+        {
+            switch (preference)
+            {
+                case "false":
+                case "never":
+                    if (method.ExpressionBody is not null)
+                    {
+                        var line = tree.GetLineSpan(method.Span).StartLinePosition.Line + 1;
+                        violations.Add(
+                            $"Line {line}: Method '{method.Identifier.Text}' uses an expression body; " +
+                            "prefer a block body (csharp_style_expression_bodied_methods = never).");
+                    }
+
+                    break;
+
+                case "true":
+                case "always":
+                    if (method.Body is { } body
+                        && method.ExpressionBody is null
+                        && body.Statements.Count == 1
+                        && body.Statements[0] is ReturnStatementSyntax { Expression: not null })
+                    {
+                        var line = tree.GetLineSpan(method.Span).StartLinePosition.Line + 1;
+                        violations.Add(
+                            $"Line {line}: Method '{method.Identifier.Text}' has a single return statement; " +
+                            "prefer expression-body syntax (csharp_style_expression_bodied_methods = always).");
+                    }
+
+                    break;
+
+                case "when_on_single_line":
+                    if (method.Body is { } whenBody
+                        && method.ExpressionBody is null
+                        && whenBody.Statements.Count == 1
+                        && whenBody.Statements[0] is ReturnStatementSyntax { Expression: not null } retStmt
+                        && IsExpressionOnSingleLine(retStmt.Expression, tree))
+                    {
+                        var line = tree.GetLineSpan(method.Span).StartLinePosition.Line + 1;
+                        violations.Add(
+                            $"Line {line}: Method '{method.Identifier.Text}' has a single-line return; " +
+                            "prefer expression-body syntax (csharp_style_expression_bodied_methods = when_on_single_line).");
+                    }
+
+                    break;
+
+                default:
+                    break;
+            }
+        }
+    }
+
+    private static void CheckExpressionBodiedProperties(
+        SyntaxNode root,
+        SyntaxTree tree,
+        string? preference,
+        List<string> violations)
+    {
+        if (preference is null)
+        {
+            return;
+        }
+
+        foreach (var property in root.DescendantNodes().OfType<PropertyDeclarationSyntax>())
+        {
+            switch (preference)
+            {
+                case "false":
+                case "never":
+                    if (property.ExpressionBody is not null)
+                    {
+                        var line = tree.GetLineSpan(property.Span).StartLinePosition.Line + 1;
+                        violations.Add(
+                            $"Line {line}: Property '{property.Identifier.Text}' uses an expression body; " +
+                            "prefer a block body with a getter accessor (csharp_style_expression_bodied_properties = never).");
+                    }
+
+                    break;
+
+                case "true":
+                case "always":
+                    if (IsGetOnlySingleReturnProperty(property, out _))
+                    {
+                        var line = tree.GetLineSpan(property.Span).StartLinePosition.Line + 1;
+                        violations.Add(
+                            $"Line {line}: Property '{property.Identifier.Text}' has a get accessor with a single return; " +
+                            "prefer expression-body syntax (csharp_style_expression_bodied_properties = always).");
+                    }
+
+                    break;
+
+                case "when_on_single_line":
+                    if (IsGetOnlySingleReturnProperty(property, out var returnExpr)
+                        && returnExpr is not null
+                        && IsExpressionOnSingleLine(returnExpr, tree))
+                    {
+                        var line = tree.GetLineSpan(property.Span).StartLinePosition.Line + 1;
+                        violations.Add(
+                            $"Line {line}: Property '{property.Identifier.Text}' has a single-line get return; " +
+                            "prefer expression-body syntax (csharp_style_expression_bodied_properties = when_on_single_line).");
+                    }
+
+                    break;
+
+                default:
+                    break;
+            }
+        }
+    }
+
+    private static bool IsGetOnlySingleReturnProperty(
+        PropertyDeclarationSyntax property,
+        out ExpressionSyntax? returnExpression)
+    {
+        returnExpression = null;
+
+        if (property.ExpressionBody is not null)
+        {
+            return false;
+        }
+
+        var accessorList = property.AccessorList;
+
+        if (accessorList is null)
+        {
+            return false;
+        }
+
+        var accessors = accessorList.Accessors;
+
+        if (accessors.Count != 1 || !accessors[0].IsKind(SyntaxKind.GetAccessorDeclaration))
+        {
+            return false;
+        }
+
+        var getter = accessors[0];
+
+        if (getter.Body is null || getter.ExpressionBody is not null)
+        {
+            return false;
+        }
+
+        if (getter.Body.Statements.Count != 1
+            || getter.Body.Statements[0] is not ReturnStatementSyntax { Expression: not null } returnStmt)
+        {
+            return false;
+        }
+
+        returnExpression = returnStmt.Expression;
+
+        return true;
+    }
+
+    private static bool IsExpressionOnSingleLine(SyntaxNode node, SyntaxTree tree)
+    {
+        var span = tree.GetLineSpan(node.Span);
+
+        return span.StartLinePosition.Line == span.EndLinePosition.Line;
+    }
 
     [GeneratedRegex(
         @"^\s*//\s*[─═━—–\-_]{2,}\s*\S+.*[─═━—–\-_]{2,}|^\s*//\s*[─═━—–\-_]{3,}",

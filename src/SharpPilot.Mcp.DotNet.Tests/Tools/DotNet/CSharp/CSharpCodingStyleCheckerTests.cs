@@ -1394,4 +1394,589 @@ public sealed class CSharpCodingStyleCheckerTests
         // Assert — default behavior: enforce braces
         Assert.Contains("curly braces", result, StringComparison.OrdinalIgnoreCase);
     }
+
+    // -------------------------------------------------------------------------
+    // dotnet_sort_system_directives_first
+    // -------------------------------------------------------------------------
+
+    [Fact]
+    public async Task Should_flag_system_using_after_non_system_using_by_default()
+    {
+        // Arrange
+        var source = """
+            using Microsoft.Extensions.Logging;
+            using System.Collections.Generic;
+
+            public class MyClass { }
+            """;
+
+        // Act
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source);
+
+        // Assert
+        Assert.Multiple(() =>
+        {
+            Assert.StartsWith("❌", result);
+            Assert.Contains("System.Collections.Generic", result);
+            Assert.Contains("non-System using directives", result);
+        });
+    }
+
+    [Fact]
+    public async Task Should_pass_system_usings_before_non_system_usings()
+    {
+        // Arrange — System.* usings come first
+        var source = """
+            using System.Collections.Generic;
+            using Microsoft.Extensions.Logging;
+
+            public class MyClass { }
+            """;
+
+        // Act
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source);
+
+        // Assert
+        Assert.DoesNotContain("non-System using directives", result);
+    }
+
+    [Fact]
+    public async Task Should_pass_only_system_usings()
+    {
+        // Arrange
+        var source = """
+            using System;
+            using System.Collections.Generic;
+            using System.IO;
+
+            public class MyClass { }
+            """;
+
+        // Act
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source);
+
+        // Assert
+        Assert.DoesNotContain("non-System using directives", result);
+    }
+
+    [Fact]
+    public async Task Should_pass_only_non_system_usings()
+    {
+        // Arrange
+        var source = """
+            using Microsoft.Extensions.DependencyInjection;
+            using Microsoft.Extensions.Logging;
+
+            public class MyClass { }
+            """;
+
+        // Act
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source);
+
+        // Assert
+        Assert.DoesNotContain("non-System using directives", result);
+    }
+
+    [Fact]
+    public async Task Should_skip_sort_check_when_dotnet_sort_system_directives_first_false()
+    {
+        // Arrange — System.* after non-System.*, but setting is false
+        var source = """
+            using Microsoft.Extensions.Logging;
+            using System.Collections.Generic;
+
+            public class MyClass { }
+            """;
+
+        var data = new Dictionary<string, string> { ["dotnet_sort_system_directives_first"] = "false" };
+
+        // Act
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source, data);
+
+        // Assert
+        Assert.DoesNotContain("non-System using directives", result);
+    }
+
+    [Fact]
+    public async Task Should_flag_system_using_after_non_system_when_setting_true()
+    {
+        // Arrange — explicit true is the same as the default
+        var source = """
+            using Newtonsoft.Json;
+            using System.Text;
+
+            public class MyClass { }
+            """;
+
+        var data = new Dictionary<string, string> { ["dotnet_sort_system_directives_first"] = "true" };
+
+        // Act
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source, data);
+
+        // Assert
+        Assert.Multiple(() =>
+        {
+            Assert.StartsWith("❌", result);
+            Assert.Contains("System.Text", result);
+        });
+    }
+
+    [Fact]
+    public async Task Should_skip_static_and_alias_usings_in_sort_check()
+    {
+        // Arrange — static and alias usings are ignored; only plain ordering matters
+        var source = """
+            using static System.Math;
+            using Alias = System.Collections.Generic.List<int>;
+            using Microsoft.Extensions.Logging;
+            using System.Collections.Generic;
+
+            public class MyClass { }
+            """;
+
+        // Act
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source);
+
+        // Assert
+        Assert.Multiple(() =>
+        {
+            Assert.StartsWith("❌", result);
+            Assert.Contains("System.Collections.Generic", result);
+            Assert.Contains("non-System using directives", result);
+        });
+    }
+
+    // -------------------------------------------------------------------------
+    // csharp_style_expression_bodied_methods
+    // -------------------------------------------------------------------------
+
+    [Fact]
+    public async Task Should_flag_expression_body_method_when_never()
+    {
+        // Arrange
+        var source = """
+            public class MyClass
+            {
+                public int GetValue()
+                    => 42;
+            }
+            """;
+
+        var data = new Dictionary<string, string> { ["csharp_style_expression_bodied_methods"] = "never" };
+
+        // Act
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source, data);
+
+        // Assert
+        Assert.Multiple(() =>
+        {
+            Assert.StartsWith("❌", result);
+            Assert.Contains("GetValue", result);
+            Assert.Contains("expression body", result);
+            Assert.Contains("never", result);
+        });
+    }
+
+    [Fact]
+    public async Task Should_pass_block_body_method_when_never()
+    {
+        // Arrange
+        var source = """
+            public class MyClass
+            {
+                public int GetValue()
+                {
+                    return 42;
+                }
+            }
+            """;
+
+        var data = new Dictionary<string, string> { ["csharp_style_expression_bodied_methods"] = "never" };
+
+        // Act
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source, data);
+
+        // Assert
+        Assert.DoesNotContain("expression body", result);
+    }
+
+    [Fact]
+    public async Task Should_flag_block_body_single_return_method_when_always()
+    {
+        // Arrange
+        var source = """
+            public class MyClass
+            {
+                public int GetValue()
+                {
+                    return 42;
+                }
+            }
+            """;
+
+        var data = new Dictionary<string, string> { ["csharp_style_expression_bodied_methods"] = "always" };
+
+        // Act
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source, data);
+
+        // Assert
+        Assert.Multiple(() =>
+        {
+            Assert.StartsWith("❌", result);
+            Assert.Contains("GetValue", result);
+            Assert.Contains("single return statement", result);
+            Assert.Contains("always", result);
+        });
+    }
+
+    [Fact]
+    public async Task Should_pass_expression_body_method_when_always()
+    {
+        // Arrange — already expression-bodied, should not be flagged by this check
+        var source = """
+            public class MyClass
+            {
+                public int GetValue()
+                    => 42;
+            }
+            """;
+
+        var data = new Dictionary<string, string> { ["csharp_style_expression_bodied_methods"] = "always" };
+
+        // Act
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source, data);
+
+        // Assert
+        Assert.DoesNotContain("single return statement", result);
+    }
+
+    [Fact]
+    public async Task Should_pass_multi_statement_method_when_always()
+    {
+        // Arrange — two statements: cannot be expression-bodied
+        var source = """
+            public class MyClass
+            {
+                public int GetValue()
+                {
+                    var x = 1;
+                    return x * 2;
+                }
+            }
+            """;
+
+        var data = new Dictionary<string, string> { ["csharp_style_expression_bodied_methods"] = "always" };
+
+        // Act
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source, data);
+
+        // Assert
+        Assert.DoesNotContain("single return statement", result);
+    }
+
+    [Fact]
+    public async Task Should_flag_single_line_return_method_when_when_on_single_line()
+    {
+        // Arrange — return expression is a single-line literal
+        var source = """
+            public class MyClass
+            {
+                public int GetValue()
+                {
+                    return 42;
+                }
+            }
+            """;
+
+        var data = new Dictionary<string, string> { ["csharp_style_expression_bodied_methods"] = "when_on_single_line" };
+
+        // Act
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source, data);
+
+        // Assert
+        Assert.Multiple(() =>
+        {
+            Assert.StartsWith("❌", result);
+            Assert.Contains("GetValue", result);
+            Assert.Contains("when_on_single_line", result);
+        });
+    }
+
+    [Fact]
+    public async Task Should_pass_multi_line_return_expression_when_when_on_single_line()
+    {
+        // Arrange — return expression spans multiple lines
+        var source = """
+            public class MyClass
+            {
+                public string Build()
+                {
+                    return string.Join(
+                        ", ",
+                        new[] { "a", "b", "c" });
+                }
+            }
+            """;
+
+        var data = new Dictionary<string, string> { ["csharp_style_expression_bodied_methods"] = "when_on_single_line" };
+
+        // Act
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source, data);
+
+        // Assert
+        Assert.DoesNotContain("when_on_single_line", result);
+    }
+
+    [Fact]
+    public async Task Should_not_check_expression_body_methods_when_no_editorconfig_key()
+    {
+        // Arrange — expression body without any preference set
+        var source = """
+            public class MyClass
+            {
+                public int GetValue()
+                    => 42;
+            }
+            """;
+
+        // Act — no data, so preference is null → no check
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source);
+
+        // Assert
+        Assert.DoesNotContain("csharp_style_expression_bodied_methods", result);
+    }
+
+    // -------------------------------------------------------------------------
+    // csharp_style_expression_bodied_properties
+    // -------------------------------------------------------------------------
+
+    [Fact]
+    public async Task Should_flag_expression_body_property_when_never()
+    {
+        // Arrange
+        var source = """
+            public class MyClass
+            {
+                private int _value;
+
+                public int Value
+                    => _value;
+            }
+            """;
+
+        var data = new Dictionary<string, string> { ["csharp_style_expression_bodied_properties"] = "never" };
+
+        // Act
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source, data);
+
+        // Assert
+        Assert.Multiple(() =>
+        {
+            Assert.StartsWith("❌", result);
+            Assert.Contains("Value", result);
+            Assert.Contains("expression body", result);
+            Assert.Contains("never", result);
+        });
+    }
+
+    [Fact]
+    public async Task Should_pass_block_body_property_when_never()
+    {
+        // Arrange
+        var source = """
+            public class MyClass
+            {
+                private int _value;
+
+                public int Value
+                {
+                    get { return _value; }
+                }
+            }
+            """;
+
+        var data = new Dictionary<string, string> { ["csharp_style_expression_bodied_properties"] = "never" };
+
+        // Act
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source, data);
+
+        // Assert
+        Assert.DoesNotContain("expression body", result);
+    }
+
+    [Fact]
+    public async Task Should_flag_get_only_single_return_property_when_always()
+    {
+        // Arrange
+        var source = """
+            public class MyClass
+            {
+                private int _value;
+
+                public int Value
+                {
+                    get { return _value; }
+                }
+            }
+            """;
+
+        var data = new Dictionary<string, string> { ["csharp_style_expression_bodied_properties"] = "always" };
+
+        // Act
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source, data);
+
+        // Assert
+        Assert.Multiple(() =>
+        {
+            Assert.StartsWith("❌", result);
+            Assert.Contains("Value", result);
+            Assert.Contains("single return", result);
+            Assert.Contains("always", result);
+        });
+    }
+
+    [Fact]
+    public async Task Should_pass_auto_property_when_always()
+    {
+        // Arrange — auto-property has no body to convert
+        var source = """
+            public class MyClass
+            {
+                public int Value { get; set; }
+            }
+            """;
+
+        var data = new Dictionary<string, string> { ["csharp_style_expression_bodied_properties"] = "always" };
+
+        // Act
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source, data);
+
+        // Assert
+        Assert.DoesNotContain("single return", result);
+    }
+
+    [Fact]
+    public async Task Should_pass_get_set_property_when_always()
+    {
+        // Arrange — two accessors: cannot use property-level expression body
+        var source = """
+            public class MyClass
+            {
+                private int _value;
+
+                public int Value
+                {
+                    get { return _value; }
+                    set { _value = value; }
+                }
+            }
+            """;
+
+        var data = new Dictionary<string, string> { ["csharp_style_expression_bodied_properties"] = "always" };
+
+        // Act
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source, data);
+
+        // Assert
+        Assert.DoesNotContain("single return", result);
+    }
+
+    [Fact]
+    public async Task Should_flag_single_line_get_return_when_when_on_single_line()
+    {
+        // Arrange
+        var source = """
+            public class MyClass
+            {
+                private int _value;
+
+                public int Value
+                {
+                    get { return _value; }
+                }
+            }
+            """;
+
+        var data = new Dictionary<string, string> { ["csharp_style_expression_bodied_properties"] = "when_on_single_line" };
+
+        // Act
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source, data);
+
+        // Assert
+        Assert.Multiple(() =>
+        {
+            Assert.StartsWith("❌", result);
+            Assert.Contains("Value", result);
+            Assert.Contains("when_on_single_line", result);
+        });
+    }
+
+    [Fact]
+    public async Task Should_pass_multi_line_get_return_when_when_on_single_line()
+    {
+        // Arrange — return expression spans multiple lines
+        var source = """
+            public class MyClass
+            {
+                private readonly string[] _items = [];
+
+                public string Value
+                {
+                    get
+                    {
+                        return string.Join(
+                            ", ",
+                            _items);
+                    }
+                }
+            }
+            """;
+
+        var data = new Dictionary<string, string> { ["csharp_style_expression_bodied_properties"] = "when_on_single_line" };
+
+        // Act
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source, data);
+
+        // Assert
+        Assert.DoesNotContain("when_on_single_line", result);
+    }
+
+    [Fact]
+    public async Task Should_not_check_expression_body_properties_when_no_editorconfig_key()
+    {
+        // Arrange
+        var source = """
+            public class MyClass
+            {
+                private int _value;
+
+                public int Value
+                    => _value;
+            }
+            """;
+
+        // Act — no data, so preference is null → no check
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source);
+
+        // Assert
+        Assert.DoesNotContain("csharp_style_expression_bodied_properties", result);
+    }
+
+    [Fact]
+    public async Task Should_skip_global_usings_in_sort_check()
+    {
+        // Arrange — global using for a non-System namespace followed by a System using
+        var source = """
+            global using ThirdParty;
+            using System;
+
+            public class MyClass { }
+            """;
+
+        // Act
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source);
+
+        // Assert
+        Assert.DoesNotContain("non-System using directives", result);
+    }
 }
