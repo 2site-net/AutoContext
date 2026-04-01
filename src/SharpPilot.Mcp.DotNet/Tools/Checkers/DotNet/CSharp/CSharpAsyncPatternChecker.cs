@@ -52,6 +52,7 @@ public sealed class CSharpAsyncPatternChecker : IChecker
               string.Join('\n', violations.Select((v, i) => $"  {i + 1}. {v}"));
     }
 
+    // [async-await INST0007]: no async void except event handlers
     private static void CheckAsyncVoid(SyntaxNode root, SyntaxTree tree, List<string> violations)
     {
         foreach (var method in root.DescendantNodes().OfType<MethodDeclarationSyntax>())
@@ -79,6 +80,7 @@ public sealed class CSharpAsyncPatternChecker : IChecker
         }
     }
 
+    // [async-await INST0002]: public async APIs must have CancellationToken
     private static void CheckCancellationToken(SyntaxNode root, SyntaxTree tree, List<string> violations)
     {
         foreach (var method in root.DescendantNodes().OfType<MethodDeclarationSyntax>())
@@ -132,6 +134,7 @@ public sealed class CSharpAsyncPatternChecker : IChecker
             _ => type.ToString(),
         };
 
+    // [async-await INST0006]: .ConfigureAwait(false) in non-test code
     private static void CheckConfigureAwait(SyntaxNode root, SyntaxTree tree, List<string> violations)
     {
         foreach (var awaitExpr in root.DescendantNodes().OfType<AwaitExpressionSyntax>())

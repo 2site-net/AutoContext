@@ -50,6 +50,7 @@ public sealed class CSharpNullableContextChecker : IChecker
               string.Join('\n', violations.Select((v, i) => $"  {i + 1}. {v}"));
     }
 
+    // [csharp INST0019]: keep #nullable enable
     private static void CheckNullableDisable(SyntaxNode root, SyntaxTree tree, List<string> violations)
     {
         foreach (var trivia in root.DescendantTrivia())
@@ -74,6 +75,7 @@ public sealed class CSharpNullableContextChecker : IChecker
         }
     }
 
+    // [csharp INST0020]: no null-forgiving operator (!)
     private static void CheckNullForgivingOperator(SyntaxNode root, SyntaxTree tree, List<string> violations)
     {
         foreach (var expression in root.DescendantNodes().OfType<PostfixUnaryExpressionSyntax>())

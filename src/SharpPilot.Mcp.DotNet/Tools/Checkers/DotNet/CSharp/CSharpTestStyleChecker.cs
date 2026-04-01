@@ -84,6 +84,7 @@ public sealed class CSharpTestStyleChecker : IChecker
               string.Join('\n', violations.Select((v, i) => $"  {i + 1}. {v}"));
     }
 
+    // [testing INST0006]: test file name ends with Tests
     private static void CheckFileNameConvention(ReadOnlySpan<char> fileName, List<string> violations)
     {
         if (fileName.IsEmpty || fileName.IsWhiteSpace())
@@ -112,6 +113,7 @@ public sealed class CSharpTestStyleChecker : IChecker
         return dotIndex < 0 ? name : name[..dotIndex];
     }
 
+    // [testing INST0006]: test namespace mirrors production
     private static void CheckNamespaceMirroring(SyntaxNode root, ReadOnlySpan<char> productionNamespace, List<string> violations)
     {
         if (productionNamespace.IsEmpty || productionNamespace.IsWhiteSpace())
@@ -186,6 +188,7 @@ public sealed class CSharpTestStyleChecker : IChecker
             .OfType<MethodDeclarationSyntax>()
             .Where(TestDetection.HasTestAttribute)];
 
+    // [testing INST0006]: test class suffix Tests
     private static void CheckTestClassNaming(TypeDeclarationSyntax testClass, SyntaxTree tree, List<string> violations)
     {
         var name = testClass.Identifier.Text;
@@ -199,6 +202,7 @@ public sealed class CSharpTestStyleChecker : IChecker
         }
     }
 
+    // [testing INST0019]: no XML docs on test classes
     private static void CheckTestClassXmlDoc(TypeDeclarationSyntax testClass, SyntaxTree tree, List<string> violations)
     {
         if (!HasXmlDocComment(testClass))
@@ -212,6 +216,7 @@ public sealed class CSharpTestStyleChecker : IChecker
             "Rely on descriptive names to convey intent.");
     }
 
+    // [testing INST0006]: test method prefix Should_ / Should_not_
     private static void CheckTestMethodNaming(MethodDeclarationSyntax method, SyntaxTree tree, List<string> violations)
     {
         var name = method.Identifier.Text;
@@ -225,6 +230,7 @@ public sealed class CSharpTestStyleChecker : IChecker
         }
     }
 
+    // [testing INST0019]: no XML docs on test methods
     private static void CheckTestMethodXmlDoc(MethodDeclarationSyntax method, SyntaxTree tree, List<string> violations)
     {
         if (!HasXmlDocComment(method))
@@ -238,6 +244,7 @@ public sealed class CSharpTestStyleChecker : IChecker
             "Rely on descriptive names to convey intent.");
     }
 
+    // [xunit INST0004]: Assert.Multiple for multiple assertions
     private static void CheckAssertMultiple(MethodDeclarationSyntax method, SyntaxTree tree, List<string> violations)
     {
         if (method.Body is null && method.ExpressionBody is null)
@@ -268,6 +275,7 @@ public sealed class CSharpTestStyleChecker : IChecker
             "so all failures are reported together.");
     }
 
+    // [xunit INST0009]: no .ConfigureAwait() in test methods
     private static void CheckConfigureAwait(MethodDeclarationSyntax method, SyntaxTree tree, List<string> violations)
     {
         var invocations = method.DescendantNodes().OfType<InvocationExpressionSyntax>();

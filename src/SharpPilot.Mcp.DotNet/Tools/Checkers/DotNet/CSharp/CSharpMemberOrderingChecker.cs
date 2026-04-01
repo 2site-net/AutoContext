@@ -78,6 +78,7 @@ public sealed class CSharpMemberOrderingChecker : IChecker
               string.Join('\n', violations.Select((v, i) => $"  {i + 1}. {v}"));
     }
 
+    // [csharp INST0004]: member ordering by kind, access level, static, alphabetical
     private static void CheckType(TypeDeclarationSyntax typeDecl, SyntaxTree tree, List<string> violations)
     {
         if (TestDetection.IsTestClass(typeDecl))

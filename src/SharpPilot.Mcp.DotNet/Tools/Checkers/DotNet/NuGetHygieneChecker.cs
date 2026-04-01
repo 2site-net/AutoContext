@@ -113,6 +113,7 @@ public sealed partial class NuGetHygieneChecker(ILogger<NuGetHygieneChecker> log
             .Any(e => e.Name.LocalName == "ManagePackageVersionsCentrally"
                       && string.Equals(e.Value.Trim(), "true", StringComparison.OrdinalIgnoreCase));
 
+    // [nuget INST0002]: review package references — no duplicates
     private static void CheckDuplicatePackages(
         List<(string Name, string? Version)> packages,
         List<string> violations)
@@ -128,6 +129,7 @@ public sealed partial class NuGetHygieneChecker(ILogger<NuGetHygieneChecker> log
         }
     }
 
+    // [nuget INST0002]: review package references — no floating versions
     private static void CheckFloatingVersions(
         List<(string Name, string? Version)> packages,
         List<string> violations)
@@ -150,6 +152,7 @@ public sealed partial class NuGetHygieneChecker(ILogger<NuGetHygieneChecker> log
         }
     }
 
+    // [nuget INST0002]: review package references — no missing versions
     private static void CheckMissingVersions(
         List<(string Name, string? Version)> packages,
         bool usesCpm,
@@ -171,6 +174,7 @@ public sealed partial class NuGetHygieneChecker(ILogger<NuGetHygieneChecker> log
         }
     }
 
+    // [nuget INST0001]: prefer built-in .NET libraries
     private static void CheckBuiltInAlternatives(
         List<(string Name, string? Version)> packages,
         List<string> violations)

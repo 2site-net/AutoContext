@@ -72,6 +72,7 @@ public sealed partial class CommitContentChecker : IChecker
               string.Join('\n', violations.Select((v, i) => $"  {i + 1}. {v}")));
     }
 
+    // [git-commit-format INST0015]: no bullet lists
     private static void CheckBulletLists(ReadOnlySpan<char> body, List<string> violations)
     {
         foreach (var lineRange in body.Split('\n'))
@@ -86,6 +87,7 @@ public sealed partial class CommitContentChecker : IChecker
         }
     }
 
+    // [git-commit-format INST0010]: no file paths
     private static void CheckFilePaths(ReadOnlySpan<char> body, List<string> violations)
     {
         if (FilePathRegex().IsMatch(body))
@@ -95,6 +97,7 @@ public sealed partial class CommitContentChecker : IChecker
         }
     }
 
+    // [git-commit-format INST0011]: no counts
     private static void CheckCounts(ReadOnlySpan<char> body, List<string> violations)
     {
         if (CountsRegex().IsMatch(body))
@@ -105,6 +108,7 @@ public sealed partial class CommitContentChecker : IChecker
         }
     }
 
+    // [git-commit-format INST0015]: no section headers
     private static void CheckSectionHeaders(ReadOnlySpan<char> body, List<string> violations)
     {
         if (SectionHeaderRegex().IsMatch(body))
@@ -115,6 +119,7 @@ public sealed partial class CommitContentChecker : IChecker
         }
     }
 
+    // [git-commit-format INST0013]: no parameter enumerations
     private static void CheckParameterEnumerations(ReadOnlySpan<char> body, List<string> violations)
     {
         if (ParameterEnumRegex().IsMatch(body))
@@ -125,6 +130,7 @@ public sealed partial class CommitContentChecker : IChecker
         }
     }
 
+    // [git-commit-format INST0016]: no sensitive information
     private static void CheckSensitiveInfo(ReadOnlySpan<char> body, List<string> violations)
     {
         if (SensitiveInfoRegex().IsMatch(body))

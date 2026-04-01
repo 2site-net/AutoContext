@@ -71,6 +71,7 @@ public sealed partial class CommitFormatChecker : IChecker
               string.Join('\n', violations.Select((v, i) => $"  {i + 1}. {v}")));
     }
 
+    // [git-commit-format INST0001]: Conventional Commits format
     private static void ValidateSubjectFormat(ReadOnlySpan<char> subject, List<string> violations)
     {
         if (!SubjectRegex().IsMatch(subject))
@@ -82,6 +83,7 @@ public sealed partial class CommitFormatChecker : IChecker
         }
     }
 
+    // [git-commit-format INST0004]: subject ≤ 50 characters
     private static void ValidateSubjectLength(ReadOnlySpan<char> subject, List<string> violations)
     {
         if (subject.Length > MaxSubjectLength)
@@ -91,6 +93,7 @@ public sealed partial class CommitFormatChecker : IChecker
         }
     }
 
+    // [git-commit-format INST0006]: blank line between subject and body
     private static void ValidateBlankLineAfterSubject(ReadOnlySpan<char> secondLine, List<string> violations)
     {
         if (!secondLine.IsEmpty)
@@ -99,6 +102,7 @@ public sealed partial class CommitFormatChecker : IChecker
         }
     }
 
+    // [git-commit-format INST0005]: body wrap at 72 characters
     private static void ValidateBodyLineLength(ReadOnlySpan<char> body, List<string> violations)
     {
         var lineNumber = 3;

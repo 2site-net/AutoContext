@@ -39,11 +39,11 @@ function findViolations(content: string): readonly Violation[] {
 
     const violations: Violation[] = [];
 
-    // INST0004: @ts-ignore in comments (regex — comments are not AST nodes)
+    // [typescript INST0004]: @ts-ignore in comments (regex — comments are not AST nodes)
     checkTsIgnoreComments(sourceFile, violations);
 
     function visit(node: ts.Node): void {
-        // INST0011: enum declarations
+        // [typescript INST0011]: enum declarations
         if (ts.isEnumDeclaration(node)) {
             violations.push({
                 line: lineOf(sourceFile, node.getStart(sourceFile)),
@@ -51,7 +51,7 @@ function findViolations(content: string): readonly Violation[] {
             });
         }
 
-        // INST0005: any type keyword
+        // [typescript INST0005]: any type keyword
         if (node.kind === ts.SyntaxKind.AnyKeyword) {
             violations.push({
                 line: lineOf(sourceFile, node.getStart(sourceFile)),
@@ -59,7 +59,7 @@ function findViolations(content: string): readonly Violation[] {
             });
         }
 
-        // INST0012: Function / Object type references
+        // [typescript INST0012]: Function / Object type references
         if (ts.isTypeReferenceNode(node)) {
             const name = node.typeName.getText(sourceFile);
             if (name === 'Function') {
@@ -75,7 +75,7 @@ function findViolations(content: string): readonly Violation[] {
             }
         }
 
-        // INST0012: {} empty type literal
+        // [typescript INST0012]: {} empty type literal
         if (ts.isTypeLiteralNode(node) && node.members.length === 0) {
             violations.push({
                 line: lineOf(sourceFile, node.getStart(sourceFile)),
@@ -83,7 +83,7 @@ function findViolations(content: string): readonly Violation[] {
             });
         }
 
-        // INST0010: type alias with plain object literal → prefer interface
+        // [typescript INST0010]: type alias with plain object literal → prefer interface
         if (
             ts.isTypeAliasDeclaration(node) &&
             ts.isTypeLiteralNode(node.type) &&
@@ -96,7 +96,7 @@ function findViolations(content: string): readonly Violation[] {
             });
         }
 
-        // INST0006: exported function without return type
+        // [typescript INST0006]: exported function without return type
         if (
             ts.isFunctionDeclaration(node) &&
             hasExportModifier(node) &&
@@ -109,7 +109,7 @@ function findViolations(content: string): readonly Violation[] {
             });
         }
 
-        // INST0006: exported arrow / function-expression initializers
+        // [typescript INST0006]: exported arrow / function-expression initializers
         if (ts.isVariableStatement(node) && hasExportModifier(node)) {
             for (const decl of node.declarationList.declarations) {
                 const init = decl.initializer;
@@ -123,7 +123,7 @@ function findViolations(content: string): readonly Violation[] {
             }
         }
 
-        // INST0006: export default arrow / function expression
+        // [typescript INST0006]: export default arrow / function expression
         if (ts.isExportAssignment(node) && !node.isExportEquals) {
             const expr = node.expression;
             if ((ts.isArrowFunction(expr) || ts.isFunctionExpression(expr)) && !expr.type) {
@@ -134,7 +134,7 @@ function findViolations(content: string): readonly Violation[] {
             }
         }
 
-        // INST0009: unconstrained generic type parameters
+        // [typescript INST0009]: unconstrained generic type parameters
         if (ts.isTypeParameterDeclaration(node) && !node.constraint) {
             const name = node.name.getText(sourceFile);
             violations.push({
@@ -143,7 +143,7 @@ function findViolations(content: string): readonly Violation[] {
             });
         }
 
-        // INST0018: as type assertions (skip as const)
+        // [typescript INST0018]: as type assertions (skip as const)
         if (ts.isAsExpression(node) && node.type.getText(sourceFile) !== 'const') {
             violations.push({
                 line: lineOf(sourceFile, node.getStart(sourceFile)),
@@ -151,7 +151,7 @@ function findViolations(content: string): readonly Violation[] {
             });
         }
 
-        // INST0019: non-null assertions (!)
+        // [typescript INST0019]: non-null assertions (!)
         if (ts.isNonNullExpression(node)) {
             violations.push({
                 line: lineOf(sourceFile, node.getStart(sourceFile)),

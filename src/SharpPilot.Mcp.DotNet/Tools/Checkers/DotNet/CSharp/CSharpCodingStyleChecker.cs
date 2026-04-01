@@ -91,6 +91,7 @@ public sealed partial class CSharpCodingStyleChecker : IChecker, IEditorConfigFi
     private static string? GetExpressionBodiedPreference(IReadOnlyDictionary<string, string>? data, string key)
         => data?.GetValueOrDefault(key);
 
+    // [csharp INST0005]: no #region directives
     private static void CheckRegions(SyntaxNode root, SyntaxTree tree, List<string> violations)
     {
         foreach (var trivia in root.DescendantTrivia())
@@ -103,6 +104,7 @@ public sealed partial class CSharpCodingStyleChecker : IChecker, IEditorConfigFi
         }
     }
 
+    // [csharp INST0022]: no decorative section-header comments
     private static void CheckDecorativeComments(
         ReadOnlySpan<char> content,
         ReadOnlySpan<Range> lineRanges,
@@ -119,6 +121,7 @@ public sealed partial class CSharpCodingStyleChecker : IChecker, IEditorConfigFi
         }
     }
 
+    // [csharp INST0018]: curly braces for control flow statements
     private static void CheckCurlyBraces(
         SyntaxNode root,
         SyntaxTree tree,
@@ -195,6 +198,7 @@ public sealed partial class CSharpCodingStyleChecker : IChecker, IEditorConfigFi
         return span.StartLinePosition.Line != span.EndLinePosition.Line;
     }
 
+    // [csharp INST0015]: blank line before control flow statements
     private static void CheckBlankLineBeforeControlFlow(
         SyntaxNode root,
         SyntaxTree tree,
@@ -241,6 +245,7 @@ public sealed partial class CSharpCodingStyleChecker : IChecker, IEditorConfigFi
         }
     }
 
+    // [csharp INST0017]: expression-body arrow on the next line
     private static void CheckExpressionBodyArrowPlacement(
         SyntaxNode root,
         SyntaxTree tree,
@@ -336,6 +341,7 @@ public sealed partial class CSharpCodingStyleChecker : IChecker, IEditorConfigFi
         return block.Statements.FirstOrDefault() == node;
     }
 
+    // [csharp INST0021]: XML doc comments on public/protected members
     private static void CheckXmlDocComments(
         SyntaxNode root,
         SyntaxTree tree,
@@ -440,6 +446,7 @@ public sealed partial class CSharpCodingStyleChecker : IChecker, IEditorConfigFi
             _ => "(unknown)",
         };
 
+    // EditorConfig: dotnet_sort_system_directives_first
     private static void CheckSortSystemDirectivesFirst(
         SyntaxNode root,
         SyntaxTree tree,
@@ -495,6 +502,7 @@ public sealed partial class CSharpCodingStyleChecker : IChecker, IEditorConfigFi
         }
     }
 
+    // EditorConfig: csharp_style_expression_bodied_methods
     private static void CheckExpressionBodiedMethods(
         SyntaxNode root,
         SyntaxTree tree,
@@ -558,6 +566,7 @@ public sealed partial class CSharpCodingStyleChecker : IChecker, IEditorConfigFi
         }
     }
 
+    // EditorConfig: csharp_style_expression_bodied_properties
     private static void CheckExpressionBodiedProperties(
         SyntaxNode root,
         SyntaxTree tree,

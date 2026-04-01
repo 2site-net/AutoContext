@@ -71,6 +71,7 @@ public sealed class CSharpProjectStructureChecker : IChecker, IEditorConfigFilte
               string.Join('\n', violations.Select((v, i) => $"  {i + 1}. {v}"));
     }
 
+    // EditorConfig: csharp_style_namespace_declarations (block-scoped)
     private static void CheckBlockScopedNamespace(SyntaxNode root, SyntaxTree tree, List<string> violations)
     {
         var fileScopedNamespaces = root.DescendantNodes().OfType<FileScopedNamespaceDeclarationSyntax>().ToList();
@@ -84,6 +85,7 @@ public sealed class CSharpProjectStructureChecker : IChecker, IEditorConfigFilte
         }
     }
 
+    // EditorConfig: csharp_style_namespace_declarations (file-scoped)
     private static void CheckFileScopedNamespace(SyntaxNode root, SyntaxTree tree, List<string> violations)
     {
         var blockNamespaces = root.DescendantNodes().OfType<NamespaceDeclarationSyntax>().ToList();
@@ -97,6 +99,7 @@ public sealed class CSharpProjectStructureChecker : IChecker, IEditorConfigFilte
         }
     }
 
+    // [coding-standards INST0016]: single type per file, file name matches type
     private static void CheckSingleTypePerFile(SyntaxNode root, List<string> violations)
     {
         var topLevelTypes = CollectTopLevelTypes(root);
@@ -113,6 +116,7 @@ public sealed class CSharpProjectStructureChecker : IChecker, IEditorConfigFilte
             "Keep a single type per file and name the file after that type.");
     }
 
+    // [coding-standards INST0016]: file name matches type name
     private static void CheckFileNameMatchesType(SyntaxNode root, ReadOnlySpan<char> fileName, List<string> violations)
     {
         if (fileName.IsEmpty || fileName.IsWhiteSpace())
@@ -177,6 +181,7 @@ public sealed class CSharpProjectStructureChecker : IChecker, IEditorConfigFilte
             _ => string.Empty,
         };
 
+    // [csharp INST0013]: no #pragma warning disable
     private static void CheckPragmaWarningDisable(SyntaxNode root, SyntaxTree tree, List<string> violations)
     {
         foreach (var trivia in root.DescendantTrivia())

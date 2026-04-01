@@ -61,6 +61,7 @@ public sealed class CSharpNamingConventionsChecker : IChecker
               string.Join('\n', violations.Select((v, i) => $"  {i + 1}. {v}"));
     }
 
+    // [coding-standards INST0010]: interface I prefix
     private static void CheckInterfaceNames(SyntaxNode root, SyntaxTree tree, List<string> violations)
     {
         foreach (var iface in root.DescendantNodes().OfType<InterfaceDeclarationSyntax>())
@@ -80,6 +81,7 @@ public sealed class CSharpNamingConventionsChecker : IChecker
     private static bool IsValidInterfaceName(string name)
         => name.Length >= 2 && name[0] == 'I' && char.IsUpper(name[1]);
 
+    // [coding-standards INST0012]: extension class Extensions suffix
     private static void CheckExtensionClassNames(SyntaxNode root, SyntaxTree tree, List<string> violations)
     {
         foreach (var classDecl in root.DescendantNodes().OfType<ClassDeclarationSyntax>())
@@ -115,6 +117,7 @@ public sealed class CSharpNamingConventionsChecker : IChecker
            && method.ParameterList.Parameters.Count > 0
            && method.ParameterList.Parameters[0].Modifiers.Any(SyntaxKind.ThisKeyword);
 
+    // [coding-standards INST0013]: async method Async suffix
     private static void CheckAsyncMethodNames(SyntaxNode root, SyntaxTree tree, List<string> violations)
     {
         foreach (var method in root.DescendantNodes().OfType<MethodDeclarationSyntax>())
@@ -151,6 +154,7 @@ public sealed class CSharpNamingConventionsChecker : IChecker
         }
     }
 
+    // [csharp INST0001]: private instance fields _camelCase
     private static void CheckPrivateFieldNames(SyntaxNode root, SyntaxTree tree, List<string> violations)
     {
         foreach (var field in root.DescendantNodes().OfType<FieldDeclarationSyntax>())
@@ -194,6 +198,7 @@ public sealed class CSharpNamingConventionsChecker : IChecker
         return !hasPublic && !hasInternal && !hasProtected;
     }
 
+    // [coding-standards INST0001]: .NET naming conventions (PascalCase types)
     private static void CheckPascalCaseTypes(SyntaxNode root, SyntaxTree tree, List<string> violations)
     {
         foreach (var typeDecl in root.DescendantNodes().OfType<BaseTypeDeclarationSyntax>())
@@ -221,6 +226,7 @@ public sealed class CSharpNamingConventionsChecker : IChecker
         }
     }
 
+    // [coding-standards INST0001]: .NET naming conventions (PascalCase methods)
     private static void CheckPascalCaseMethods(SyntaxNode root, SyntaxTree tree, List<string> violations)
     {
         foreach (var typeDecl in root.DescendantNodes().OfType<TypeDeclarationSyntax>())
@@ -247,6 +253,7 @@ public sealed class CSharpNamingConventionsChecker : IChecker
         }
     }
 
+    // [coding-standards INST0001]: .NET naming conventions (PascalCase properties)
     private static void CheckPascalCaseProperties(SyntaxNode root, SyntaxTree tree, List<string> violations)
     {
         foreach (var property in root.DescendantNodes().OfType<PropertyDeclarationSyntax>())
@@ -262,6 +269,7 @@ public sealed class CSharpNamingConventionsChecker : IChecker
         }
     }
 
+    // [coding-standards INST0001]: .NET naming conventions (PascalCase events)
     private static void CheckPascalCaseEvents(SyntaxNode root, SyntaxTree tree, List<string> violations)
     {
         foreach (var eventDecl in root.DescendantNodes().OfType<EventDeclarationSyntax>())
@@ -292,6 +300,7 @@ public sealed class CSharpNamingConventionsChecker : IChecker
         }
     }
 
+    // [coding-standards INST0001]: .NET naming conventions (camelCase parameters)
     private static void CheckCamelCaseParameters(SyntaxNode root, SyntaxTree tree, List<string> violations)
     {
         foreach (var parameter in root.DescendantNodes().OfType<ParameterSyntax>())
