@@ -115,4 +115,175 @@ describe('TypeScriptCodingStyleChecker', () => {
 
         expect(checker.check(source)).toMatch(/^✅/);
     });
+
+    it('should not flag any inside string literals', () => {
+        const source = `
+            const msg = "use any type carefully";
+            const tmpl = \`the any keyword\`;
+        `;
+
+        expect(checker.check(source)).toMatch(/^✅/);
+    });
+
+    it('should flag {} empty type literal', () => {
+        const source = `
+            function process(data: {}): void {
+                console.log(data);
+            }
+        `;
+
+        const result = checker.check(source);
+        expect(result).toMatch(/^❌/);
+        expect(result).toContain('{}');
+    });
+
+    it('should flag exported function without return type', () => {
+        const source = `
+            export function add(a: number, b: number) {
+                return a + b;
+            }
+        `;
+
+        const result = checker.check(source);
+        expect(result).toMatch(/^❌/);
+        expect(result).toContain('return type');
+        expect(result).toContain('add');
+    });
+
+    it('should not flag non-exported function without return type', () => {
+        const source = `
+            function add(a: number, b: number) {
+                return a + b;
+            }
+        `;
+
+        expect(checker.check(source)).toMatch(/^✅/);
+    });
+
+    it('should not flag exported function with return type', () => {
+        const source = `
+            export function add(a: number, b: number): number {
+                return a + b;
+            }
+        `;
+
+        expect(checker.check(source)).toMatch(/^✅/);
+    });
+
+    it('should flag exported arrow function without return type', () => {
+        const source = `
+            export const add = (a: number, b: number) => a + b;
+        `;
+
+        const result = checker.check(source);
+        expect(result).toMatch(/^❌/);
+        expect(result).toContain('return type');
+        expect(result).toContain('add');
+    });
+
+    it('should not flag exported arrow function with return type', () => {
+        const source = `
+            export const add = (a: number, b: number): number => a + b;
+        `;
+
+        expect(checker.check(source)).toMatch(/^✅/);
+    });
+
+    it('should flag export default function without return type', () => {
+        const source = `
+            export default (x: number) => x + 1;
+        `;
+
+        const result = checker.check(source);
+        expect(result).toMatch(/^❌/);
+        expect(result).toContain('Default-exported');
+    });
+
+    it('should flag unconstrained generic type parameter', () => {
+        const source = `
+            function identity<T>(x: T): T {
+                return x;
+            }
+        `;
+
+        const result = checker.check(source);
+        expect(result).toMatch(/^❌/);
+        expect(result).toContain('extends');
+        expect(result).toContain('T');
+    });
+
+    it('should not flag constrained generic type parameter', () => {
+        const source = `
+            function identity<T extends object>(x: T): T {
+                return x;
+            }
+        `;
+
+        expect(checker.check(source)).toMatch(/^✅/);
+    });
+
+    it('should flag as type assertion', () => {
+        const source = `
+            const el = document.getElementById('root') as HTMLDivElement;
+        `;
+
+        const result = checker.check(source);
+        expect(result).toMatch(/^❌/);
+        expect(result).toContain('as');
+    });
+
+    it('should not flag as const assertion', () => {
+        const source = `
+            const colors = ['red', 'green', 'blue'] as const;
+        `;
+
+        expect(checker.check(source)).toMatch(/^✅/);
+    });
+
+    it('should flag non-null assertion', () => {
+        const source = `
+            const el = document.getElementById('root')!;
+        `;
+
+        const result = checker.check(source);
+        expect(result).toMatch(/^❌/);
+        expect(result).toContain('non-null');
+    });
+
+    it('should flag type alias with object literal body', () => {
+        const source = `
+            type User = {
+                name: string;
+                age: number;
+            };
+        `;
+
+        const result = checker.check(source);
+        expect(result).toMatch(/^❌/);
+        expect(result).toContain('interface User');
+    });
+
+    it('should not flag type alias for union', () => {
+        const source = `
+            type Status = 'active' | 'inactive';
+        `;
+
+        expect(checker.check(source)).toMatch(/^✅/);
+    });
+
+    it('should not flag type alias for intersection', () => {
+        const source = `
+            type WithId = Base & { id: string };
+        `;
+
+        expect(checker.check(source)).toMatch(/^✅/);
+    });
+
+    it('should not flag type alias for mapped type', () => {
+        const source = `
+            type ReadonlyUser = { readonly [K in keyof User]: User[K] };
+        `;
+
+        expect(checker.check(source)).toMatch(/^✅/);
+    });
 });
