@@ -42,7 +42,7 @@ export class SharpPilotConfigManager implements vscode.Disposable {
 
         try {
             const raw = readFileSync(path, 'utf-8');
-            const parsed = JSON.parse(raw);
+            const parsed: Record<string, unknown> = JSON.parse(raw);
 
             if (parsed['mcp-tools']) {
                 parsed.mcpTools = parsed['mcp-tools'];
@@ -216,13 +216,16 @@ export class SharpPilotConfigManager implements vscode.Disposable {
         }
 
         // Enforce deterministic key order: version first.
-        // Remap camelCase back to kebab-case for the JSON file.
-        const ordered: Record<string, unknown> = { version: this.extensionVersion };
+        const ordered: SharpPilotConfig = { version: this.extensionVersion };
         if (config.diagnostic) ordered.diagnostic = config.diagnostic;
         if (config.instructions) ordered.instructions = config.instructions;
-        if (config.mcpTools) ordered['mcp-tools'] = config.mcpTools;
+        if (config.mcpTools) ordered.mcpTools = config.mcpTools;
 
-        writeFileSync(path, JSON.stringify(ordered, null, 4) + '\n', 'utf-8');
+        // Remap camelCase to kebab-case for the on-disk JSON key.
+        const { mcpTools, ...rest } = ordered;
+        const output = mcpTools ? { ...rest, 'mcp-tools': mcpTools } : rest;
+
+        writeFileSync(path, JSON.stringify(output, null, 4) + '\n', 'utf-8');
     }
 
     private static arraysEqual(a: readonly string[], b: readonly string[]): boolean {
