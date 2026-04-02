@@ -38,7 +38,7 @@ internal sealed class McpToolsConfig(IConfiguration configuration)
             using var doc = JsonDocument.Parse(json);
 
             if (doc.RootElement.TryGetProperty("tools", out var toolsElement)
-                && toolsElement.TryGetProperty("disabledTools", out var disabledArray)
+                && toolsElement.TryGetProperty("disabled", out var disabledArray)
                 && disabledArray.ValueKind == JsonValueKind.Array)
             {
                 foreach (var item in disabledArray.EnumerateArray())

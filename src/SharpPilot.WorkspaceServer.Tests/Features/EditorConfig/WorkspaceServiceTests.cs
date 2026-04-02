@@ -251,7 +251,7 @@ public sealed class WorkspaceServiceTests : IDisposable
             """
             {
                 "tools": {
-                    "disabledTools": ["check-style"]
+                    "disabled": ["check-style"]
                 }
             }
             """,
@@ -306,7 +306,7 @@ public sealed class WorkspaceServiceTests : IDisposable
             """
             {
                 "tools": {
-                    "disabledTools": ["check-style"]
+                    "disabled": ["check-style"]
                 }
             }
             """,
@@ -362,7 +362,7 @@ public sealed class WorkspaceServiceTests : IDisposable
             """
             {
                 "tools": {
-                    "disabledTools": ["disabled-with-keys", "disabled-no-keys"]
+                    "disabled": ["disabled-with-keys", "disabled-no-keys"]
                 }
             }
             """,
