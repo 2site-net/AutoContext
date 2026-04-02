@@ -6,7 +6,7 @@ using Microsoft.Extensions.Logging;
 
 using ModelContextProtocol.Server;
 
-using SharpPilot.Mcp.DotNet.Configuration;
+using SharpPilot.Mcp.DotNet.Protocol;
 using SharpPilot.Mcp.DotNet.Tools.Checkers;
 using SharpPilot.Mcp.DotNet.Tools.EditorConfig;
 
@@ -86,22 +86,37 @@ public sealed partial class CSharpChecker(ILogger<CSharpChecker> logger) : IChec
             new CSharpTestStyleChecker(),
         ];
 
-        var data = await BuildDataAsync(checkers, editorConfigFilePath, productionFileName, productionNamespace, testFileName).ConfigureAwait(false);
+        var (explicitParams, results) = await BuildDataAsync(checkers, editorConfigFilePath, productionFileName, productionNamespace, testFileName).ConfigureAwait(false);
 
         var sections = new List<string>();
 
         foreach (var checker in checkers)
         {
-            if (ToolsStatusConfig.IsEnabled(checker.ToolName))
+            var result = results?.FirstOrDefault(r => r.Name == checker.ToolName);
+
+            if (result is null)
             {
-                sections.Add(await checker.CheckAsync(content, data).ConfigureAwait(false));
+                sections.Add(await checker.CheckAsync(content, explicitParams).ConfigureAwait(false));
+                continue;
             }
-            else if (data is not null
-                     && checker is IEditorConfigFilter filter
-                     && HasAnyEditorConfigKey(data, filter.EditorConfigKeys))
+
+            switch (result.Mode)
             {
-                var disabledData = new Dictionary<string, string>(data) { ["__disabled"] = "true" };
-                sections.Add(await checker.CheckAsync(content, disabledData).ConfigureAwait(false));
+                case McpToolMode.Run:
+                    sections.Add(await checker.CheckAsync(content, MergeData(explicitParams, result.Data)).ConfigureAwait(false));
+                    break;
+
+                case McpToolMode.EditorConfigOnly:
+                    var merged = MergeData(explicitParams, result.Data);
+                    merged["__disabled"] = "true";
+                    sections.Add(await checker.CheckAsync(content, merged).ConfigureAwait(false));
+                    break;
+
+                case McpToolMode.Skip:
+                    break;
+
+                default:
+                    break;
             }
         }
 
@@ -120,65 +135,70 @@ public sealed partial class CSharpChecker(ILogger<CSharpChecker> logger) : IChec
         return string.Join("\n\n", failures);
     }
 
-    private static async Task<Dictionary<string, string>?> BuildDataAsync(
+    private static async Task<(Dictionary<string, string>? ExplicitParams, McpToolEditorConfigResult[]? Results)> BuildDataAsync(
         IChecker[] checkers,
         string? editorConfigFilePath,
         string? productionFileName,
         string? productionNamespace,
         string? testFileName)
     {
-        var data = new Dictionary<string, string>();
+        Dictionary<string, string>? explicitParams = null;
 
-        if (productionFileName is not null)
+        if (productionFileName is not null || productionNamespace is not null || testFileName is not null)
         {
-            data["productionFileName"] = productionFileName;
-        }
+            explicitParams = [];
 
-        if (productionNamespace is not null)
-        {
-            data["productionNamespace"] = productionNamespace;
-        }
-
-        if (testFileName is not null)
-        {
-            data["testFileName"] = testFileName;
-        }
-
-        var allKeys = checkers.OfType<IEditorConfigFilter>()
-            .SelectMany(f => f.EditorConfigKeys)
-            .Distinct()
-            .ToArray();
-        var properties = await EditorConfigReader.ResolveAsync(editorConfigFilePath, allKeys).ConfigureAwait(false);
-
-        if (properties is not null)
-        {
-            foreach (var kv in properties)
+            if (productionFileName is not null)
             {
-                data.TryAdd(kv.Key, kv.Value);
+                explicitParams["productionFileName"] = productionFileName;
+            }
+
+            if (productionNamespace is not null)
+            {
+                explicitParams["productionNamespace"] = productionNamespace;
+            }
+
+            if (testFileName is not null)
+            {
+                explicitParams["testFileName"] = testFileName;
             }
         }
 
-        return data.Count > 0 ? data : null;
+        var entries = checkers.Select(c =>
+        {
+            var keys = c is IEditorConfigFilter filter ? filter.EditorConfigKeys.ToArray() : null;
+
+            return new McpToolEditorConfigEntry(c.ToolName, keys);
+        }).ToArray();
+
+        var results = await EditorConfigReader.ResolveToolsAsync(editorConfigFilePath, entries).ConfigureAwait(false);
+
+        return (explicitParams, results);
     }
 
-    private static bool HasAnyEditorConfigKey(
-        Dictionary<string, string>? data,
-        IReadOnlyList<string> editorConfigKeys)
+    private static Dictionary<string, string> MergeData(
+        Dictionary<string, string>? explicitParams,
+        Dictionary<string, string>? editorConfigData)
     {
-        if (data is null)
-        {
-            return false;
-        }
+        var merged = new Dictionary<string, string>();
 
-        foreach (var key in editorConfigKeys)
+        if (explicitParams is not null)
         {
-            if (data.ContainsKey(key))
+            foreach (var kv in explicitParams)
             {
-                return true;
+                merged[kv.Key] = kv.Value;
             }
         }
 
-        return false;
+        if (editorConfigData is not null)
+        {
+            foreach (var kv in editorConfigData)
+            {
+                merged.TryAdd(kv.Key, kv.Value);
+            }
+        }
+
+        return merged;
     }
 
     [LoggerMessage(Level = LogLevel.Information,

@@ -1,5 +1,6 @@
 namespace SharpPilot.Mcp.DotNet.Tools.EditorConfig;
 
+using System.Buffers.Binary;
 using System.ComponentModel;
 using System.IO.Pipes;
 using System.Text;
@@ -7,8 +8,7 @@ using System.Text.Json;
 
 using ModelContextProtocol.Server;
 
-using SharpPilot.WorkspaceServer.Features.EditorConfig;
-using SharpPilot.WorkspaceServer.Features.EditorConfig.Protocol;
+using SharpPilot.Mcp.DotNet.Protocol;
 
 /// <summary>
 /// Named pipe client that delegates EditorConfig resolution to the
@@ -66,6 +66,38 @@ public static class EditorConfigReader
     }
 
     /// <summary>
+    /// Resolves tool modes and EditorConfig data for a batch of MCP tools
+    /// via the <c>mcp-tools</c> workspace service endpoint.
+    /// </summary>
+    internal static async Task<McpToolEditorConfigResult[]?> ResolveToolsAsync(
+        string? filePath, McpToolEditorConfigEntry[] tools)
+    {
+        if (string.IsNullOrWhiteSpace(filePath) || string.IsNullOrWhiteSpace(s_pipeName))
+        {
+            return null;
+        }
+
+        var request = new McpToolsRequest(filePath, tools);
+        var requestBytes = JsonSerializer.SerializeToUtf8Bytes(request, s_jsonOptions);
+
+        using var client = new NamedPipeClientStream(".", s_pipeName, PipeDirection.InOut, PipeOptions.Asynchronous);
+        await client.ConnectAsync(5000).ConfigureAwait(false);
+
+        await WriteMessageAsync(client, requestBytes).ConfigureAwait(false);
+
+        var responseBytes = await ReadMessageAsync(client).ConfigureAwait(false);
+
+        if (responseBytes is null || responseBytes.Length == 0)
+        {
+            return null;
+        }
+
+        var response = JsonSerializer.Deserialize<McpToolsResponse>(responseBytes, s_jsonOptions);
+
+        return response?.McpTools;
+    }
+
+    /// <summary>
     /// Resolves the effective editorconfig properties for <paramref name="path"/>
     /// as a dictionary for programmatic use by checkers.
     /// </summary>
@@ -82,9 +114,9 @@ public static class EditorConfigReader
         using var client = new NamedPipeClientStream(".", s_pipeName, PipeDirection.InOut, PipeOptions.Asynchronous);
         await client.ConnectAsync(5000).ConfigureAwait(false);
 
-        await WorkspaceService.WriteMessageAsync(client, requestBytes).ConfigureAwait(false);
+        await WriteMessageAsync(client, requestBytes).ConfigureAwait(false);
 
-        var responseBytes = await WorkspaceService.ReadMessageAsync(client).ConfigureAwait(false);
+        var responseBytes = await ReadMessageAsync(client).ConfigureAwait(false);
 
         if (responseBytes is null || responseBytes.Length == 0)
         {
@@ -107,5 +139,56 @@ public static class EditorConfigReader
         }
 
         return result.Count == 0 ? null : result;
+    }
+
+    private static async Task WriteMessageAsync(Stream stream, byte[] payload)
+    {
+        var message = new byte[4 + payload.Length];
+        BinaryPrimitives.WriteInt32LittleEndian(message, payload.Length);
+        payload.CopyTo(message.AsSpan(4));
+
+        await stream.WriteAsync(message).ConfigureAwait(false);
+        await stream.FlushAsync().ConfigureAwait(false);
+    }
+
+    private static async Task<byte[]?> ReadMessageAsync(Stream stream)
+    {
+        var header = new byte[4];
+
+        if (!await ReadExactAsync(stream, header).ConfigureAwait(false))
+        {
+            return null;
+        }
+
+        var length = BinaryPrimitives.ReadInt32LittleEndian(header);
+
+        if (length <= 0)
+        {
+            return [];
+        }
+
+        var payload = new byte[length];
+
+        return await ReadExactAsync(stream, payload).ConfigureAwait(false) ? payload : null;
+    }
+
+    private static async Task<bool> ReadExactAsync(Stream stream, byte[] buffer)
+    {
+        var offset = 0;
+
+        while (offset < buffer.Length)
+        {
+            var read = await stream.ReadAsync(
+                buffer.AsMemory(offset, buffer.Length - offset)).ConfigureAwait(false);
+
+            if (read == 0)
+            {
+                return false;
+            }
+
+            offset += read;
+        }
+
+        return true;
     }
 }

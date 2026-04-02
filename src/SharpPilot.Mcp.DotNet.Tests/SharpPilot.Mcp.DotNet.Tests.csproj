@@ -18,7 +18,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\SharpPilot.WorkspaceServer\SharpPilot.WorkspaceServer.csproj" />
     <ProjectReference Include="..\SharpPilot.Mcp.DotNet\SharpPilot.Mcp.DotNet.csproj" />
   </ItemGroup>
 

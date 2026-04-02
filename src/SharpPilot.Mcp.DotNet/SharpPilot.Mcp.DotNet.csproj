@@ -15,8 +15,4 @@
     <PackageReference Include="ModelContextProtocol" Version="1.1.0" />
   </ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\SharpPilot.WorkspaceServer\SharpPilot.WorkspaceServer.csproj" />
-  </ItemGroup>
-
 </Project>
