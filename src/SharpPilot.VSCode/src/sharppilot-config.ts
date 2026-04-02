@@ -11,7 +11,7 @@ export interface SharpPilotConfig {
     instructions?: {
         disabled?: Record<string, string[]>;
     };
-    tools?: {
+    mcpTools?: {
         disabled?: string[];
     };
 }
@@ -42,7 +42,14 @@ export class SharpPilotConfigManager implements vscode.Disposable {
 
         try {
             const raw = readFileSync(path, 'utf-8');
-            return JSON.parse(raw) as SharpPilotConfig;
+            const parsed = JSON.parse(raw);
+
+            if (parsed['mcp-tools']) {
+                parsed.mcpTools = parsed['mcp-tools'];
+                delete parsed['mcp-tools'];
+            }
+
+            return parsed as SharpPilotConfig;
         } catch {
             return {};
         }
@@ -96,16 +103,16 @@ export class SharpPilotConfigManager implements vscode.Disposable {
 
     setDisabledTools(disabledTools: string[]): void {
         const config = this.read();
-        const currentDisabled = config.tools?.disabled ?? [];
+        const currentDisabled = config.mcpTools?.disabled ?? [];
 
         if (SharpPilotConfigManager.arraysEqual(disabledTools, currentDisabled)) {
             return;
         }
 
         if (disabledTools.length === 0) {
-            delete config.tools;
+            delete config.mcpTools;
         } else {
-            config.tools = { disabled: disabledTools };
+            config.mcpTools = { disabled: disabledTools };
         }
 
         this.writeConfig(config);
@@ -198,7 +205,7 @@ export class SharpPilotConfigManager implements vscode.Disposable {
             return;
         }
 
-        const isEmpty = !config.instructions && !config.diagnostic && !config.tools;
+        const isEmpty = !config.instructions && !config.diagnostic && !config.mcpTools;
         if (isEmpty) {
             try {
                 unlinkSync(path);
@@ -209,10 +216,11 @@ export class SharpPilotConfigManager implements vscode.Disposable {
         }
 
         // Enforce deterministic key order: version first.
-        const ordered: SharpPilotConfig = { version: this.extensionVersion };
+        // Remap camelCase back to kebab-case for the JSON file.
+        const ordered: Record<string, unknown> = { version: this.extensionVersion };
         if (config.diagnostic) ordered.diagnostic = config.diagnostic;
         if (config.instructions) ordered.instructions = config.instructions;
-        if (config.tools) ordered.tools = config.tools;
+        if (config.mcpTools) ordered['mcp-tools'] = config.mcpTools;
 
         writeFileSync(path, JSON.stringify(ordered, null, 4) + '\n', 'utf-8');
     }

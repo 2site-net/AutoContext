@@ -250,7 +250,7 @@ public sealed class WorkspaceServiceTests : IDisposable
             Path.Combine(_tempRoot, ".sharppilot.json"),
             """
             {
-                "tools": {
+                "mcp-tools": {
                     "disabled": ["check-style"]
                 }
             }
@@ -305,7 +305,7 @@ public sealed class WorkspaceServiceTests : IDisposable
             Path.Combine(_tempRoot, ".sharppilot.json"),
             """
             {
-                "tools": {
+                "mcp-tools": {
                     "disabled": ["check-style"]
                 }
             }
@@ -361,7 +361,7 @@ public sealed class WorkspaceServiceTests : IDisposable
             Path.Combine(_tempRoot, ".sharppilot.json"),
             """
             {
-                "tools": {
+                "mcp-tools": {
                     "disabled": ["disabled-with-keys", "disabled-no-keys"]
                 }
             }

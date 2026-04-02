@@ -216,12 +216,12 @@ describe('SharpPilotConfigManager', () => {
 
         const parsed = JSON.parse(writeCalls[0][1] as string);
 
-        expect(parsed.tools.disabled).toEqual(['check_csharp_coding_style']);
+        expect(parsed["mcp-tools"].disabled).toEqual(['check_csharp_coding_style']);
     });
 
     it('should skip write when disabled tools have not changed', () => {
         vi.mocked(readFileSync).mockReturnValue(JSON.stringify({
-            tools: { disabled: ['check_csharp_coding_style'] },
+            "mcp-tools": { disabled: ['check_csharp_coding_style'] },
         }));
 
         const manager = new SharpPilotConfigManager('/ext', '0.5.0');
@@ -233,7 +233,7 @@ describe('SharpPilotConfigManager', () => {
 
     it('should remove tools section when all tools are enabled', () => {
         vi.mocked(readFileSync).mockReturnValue(JSON.stringify({
-            tools: { disabled: ['check_csharp_coding_style'] },
+            "mcp-tools": { disabled: ['check_csharp_coding_style'] },
             instructions: { disabled: { 'code-review.instructions.md': ['INST0001'] } },
         }));
 
@@ -246,13 +246,13 @@ describe('SharpPilotConfigManager', () => {
 
         const parsed = JSON.parse(writeCalls[0][1] as string);
 
-        expect(parsed.tools).toBeUndefined();
+        expect(parsed["mcp-tools"]).toBeUndefined();
         expect(parsed.instructions).toBeDefined();
     });
 
     it('should delete file when clearing tools and no other config exists', () => {
         vi.mocked(readFileSync).mockReturnValue(JSON.stringify({
-            tools: { disabled: ['check_csharp_coding_style'] },
+            "mcp-tools": { disabled: ['check_csharp_coding_style'] },
         }));
 
         const manager = new SharpPilotConfigManager('/ext', '0.5.0');
@@ -272,7 +272,7 @@ describe('SharpPilotConfigManager', () => {
 
         const parsed = JSON.parse(vi.mocked(writeFileSync).mock.calls[0][1] as string);
 
-        expect(parsed.tools.disabled).toEqual(['check_csharp_async_patterns']);
+        expect(parsed["mcp-tools"].disabled).toEqual(['check_csharp_async_patterns']);
         expect(parsed.instructions.disabled['code-review.instructions.md']).toEqual(['INST0001']);
     });
 });
