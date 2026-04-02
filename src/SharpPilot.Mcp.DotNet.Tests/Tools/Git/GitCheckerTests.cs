@@ -4,7 +4,6 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 using SharpPilot.Mcp.DotNet.Tools.Checkers.Git;
 
-[Collection("ToolsStatus")]
 public sealed class GitCheckerTests
 {
     [Fact]

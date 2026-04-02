@@ -1,9 +1,23 @@
 import { connect } from 'node:net';
 
+export interface McpToolEntry {
+    readonly name: string;
+    readonly 'editorconfig-keys'?: readonly string[];
+}
+
+export interface McpToolResult {
+    readonly name: string;
+    readonly mode: 'run' | 'editorconfig-only' | 'skip';
+    readonly data?: Record<string, string>;
+}
+
 export class EditorConfigReader {
     private readonly pipePath: string | undefined;
+    readonly workspacePath: string | undefined;
 
-    constructor(pipeName?: string) {
+    constructor(pipeName?: string, workspacePath?: string) {
+        this.workspacePath = workspacePath;
+
         if (pipeName) {
             this.pipePath = process.platform === 'win32'
                 ? `\\\\.\\pipe\\${pipeName}`
@@ -50,22 +64,53 @@ export class EditorConfigReader {
     }
 
     /**
+     * Resolves tool modes and EditorConfig data for a batch of MCP tools
+     * via the `mcp-tools` workspace service endpoint.
+     */
+    async resolveTools(
+        filePath: string | undefined,
+        tools: readonly McpToolEntry[],
+    ): Promise<McpToolResult[] | undefined> {
+        if (!filePath?.trim() || !this.pipePath) {
+            return undefined;
+        }
+
+        const response = await this.sendPipeRequest<{ 'mcp-tools'?: McpToolResult[] }>({
+            type: 'mcp-tools',
+            'file-path': filePath,
+            'mcp-tools': tools,
+        });
+
+        const results = response['mcp-tools'];
+        return results?.length ? results : undefined;
+    }
+
+    /**
      * Sends a length-prefixed request to the workspace service over the named
      * pipe and returns the parsed properties.
      *
      * Protocol: 4-byte LE int32 length + UTF-8 JSON payload (both directions).
      */
     private query(filePath: string, keys?: readonly string[]): Promise<Record<string, string>> {
+        const request = keys?.length
+            ? { type: 'editorconfig', 'file-path': filePath, keys }
+            : { type: 'editorconfig', 'file-path': filePath };
+
+        return this.sendPipeRequest<{ properties?: Record<string, string> }>(request)
+            .then(r => r.properties ?? {});
+    }
+
+    /**
+     * Low-level pipe protocol: sends a length-prefixed JSON request and
+     * returns the parsed response object.
+     */
+    private sendPipeRequest<T>(request: object): Promise<T> {
         if (!this.pipePath) {
-            return Promise.resolve({});
+            return Promise.resolve({} as T);
         }
 
-        const request = JSON.stringify(
-            keys?.length
-                ? { type: 'editorconfig', 'file-path': filePath, keys }
-                : { type: 'editorconfig', 'file-path': filePath },
-        );
-        const requestBytes = Buffer.from(request, 'utf8');
+        const json = JSON.stringify(request);
+        const requestBytes = Buffer.from(json, 'utf8');
         const header = Buffer.alloc(4);
         header.writeInt32LE(requestBytes.length, 0);
 
@@ -107,15 +152,15 @@ export class EditorConfigReader {
                 socket.destroy();
 
                 try {
-                    const response = JSON.parse(payloadBytes.toString('utf8')) as { properties?: Record<string, string> };
-                    resolve(response.properties ?? {});
+                    const response = JSON.parse(payloadBytes.toString('utf8')) as T;
+                    resolve(response);
                 } catch {
-                    resolve({});
+                    resolve({} as T);
                 }
             });
 
-            socket.on('error', () => resolve({}));
-            socket.on('timeout', () => { socket.destroy(); resolve({}); });
+            socket.on('error', () => resolve({} as T));
+            socket.on('timeout', () => { socket.destroy(); resolve({} as T); });
             socket.setTimeout(5000);
         });
     }

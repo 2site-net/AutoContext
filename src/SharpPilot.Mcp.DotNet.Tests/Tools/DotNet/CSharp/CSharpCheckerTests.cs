@@ -4,7 +4,6 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 using SharpPilot.Mcp.DotNet.Tools.Checkers.DotNet.CSharp;
 
-[Collection("ToolsStatus")]
 public sealed class CSharpCheckerTests
 {
     [Fact]

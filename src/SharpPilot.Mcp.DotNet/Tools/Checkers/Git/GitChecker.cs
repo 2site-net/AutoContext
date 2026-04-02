@@ -6,8 +6,9 @@ using Microsoft.Extensions.Logging;
 
 using ModelContextProtocol.Server;
 
-using SharpPilot.Mcp.DotNet.Configuration;
+using SharpPilot.Mcp.DotNet.Protocol;
 using SharpPilot.Mcp.DotNet.Tools.Checkers;
+using SharpPilot.Mcp.DotNet.Tools.EditorConfig;
 
 /// <summary>
 /// Aggregate tool that runs all enabled Git commit validators and returns
@@ -39,17 +40,22 @@ public sealed partial class GitChecker(ILogger<GitChecker> logger) : IChecker
 
         LogToolInvoked(logger, ToolName, content.Length);
 
-        var sections = new List<string>();
-
         IChecker[] checkers =
         [
             new CommitFormatChecker(),
             new CommitContentChecker(),
         ];
 
+        var entries = checkers.Select(c => new McpToolEditorConfigEntry(c.ToolName)).ToArray();
+        var results = await EditorConfigReader.ResolveToolsAsync(EditorConfigReader.WorkspacePath, entries).ConfigureAwait(false);
+
+        var sections = new List<string>();
+
         foreach (var checker in checkers)
         {
-            if (ToolsStatusConfig.IsEnabled(checker.ToolName))
+            var result = results?.FirstOrDefault(r => r.Name == checker.ToolName);
+
+            if (result is null || result.Mode != McpToolMode.Skip)
             {
                 sections.Add(await checker.CheckAsync(content).ConfigureAwait(false));
             }

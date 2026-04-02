@@ -4,7 +4,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-using SharpPilot.Mcp.DotNet.Configuration;
 using SharpPilot.Mcp.DotNet.Tools.Checkers.DotNet;
 using SharpPilot.Mcp.DotNet.Tools.Checkers.DotNet.CSharp;
 using SharpPilot.Mcp.DotNet.Tools.Checkers.Git;
@@ -27,15 +26,11 @@ internal sealed class Program
             ?? throw new ArgumentException("Missing required argument: --scope (dotnet|git|editorconfig)");
 
         var workspace = builder.Configuration["workspace"];
-        if (workspace is not null)
-        {
-            ToolsStatusConfig.Configure(workspace);
-        }
 
         var workspacePipe = builder.Configuration["workspace-server"];
         if (workspacePipe is not null)
         {
-            EditorConfigReader.Configure(workspacePipe);
+            EditorConfigReader.Configure(workspacePipe, workspace);
         }
 
         Type[] toolTypes = scope switch

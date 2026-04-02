@@ -23,12 +23,21 @@ public static class EditorConfigReader
     };
 
     private static string? s_pipeName;
+    private static string? s_workspacePath;
+
+    /// <summary>
+    /// Gets the workspace root path, if configured.
+    /// </summary>
+    internal static string? WorkspacePath => s_workspacePath;
 
     /// <summary>
     /// Configures the pipe name used to connect to the workspace service.
     /// </summary>
-    internal static void Configure(string pipeName) =>
+    internal static void Configure(string pipeName, string? workspacePath = null)
+    {
         s_pipeName = pipeName;
+        s_workspacePath = workspacePath;
+    }
 
     /// <summary>
     /// Resolves the effective editorconfig properties for <paramref name="path"/>.

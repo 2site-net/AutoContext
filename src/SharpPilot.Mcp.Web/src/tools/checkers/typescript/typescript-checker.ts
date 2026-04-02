@@ -1,26 +1,13 @@
 import type { Checker } from '../checker.js';
 import { isEditorConfigFilter } from '../editorconfig-filter.js';
-import type { ToolsStatusConfig } from '../../../configuration/tools-status-config.js';
-import type { EditorConfigReader } from '../../editorconfig/editorconfig-reader.js';
+import type { EditorConfigReader, McpToolEntry } from '../../editorconfig/editorconfig-reader.js';
 import type { Logger } from '../../../core/logger.js';
 import { TypeScriptCodingStyleChecker } from './typescript-coding-style-checker.js';
-
-function hasAnyEditorConfigKey(
-    data: Record<string, string> | undefined,
-    checker: Checker,
-): boolean {
-    if (!data || !isEditorConfigFilter(checker)) {
-        return false;
-    }
-
-    return checker.editorConfigKeys.some(key => key in data);
-}
 
 export class TypeScriptChecker implements Checker {
     readonly toolName = 'check_typescript_all';
 
     constructor(
-        private readonly config: ToolsStatusConfig,
         private readonly editorConfig: EditorConfigReader,
         private readonly logger: Logger,
     ) {}
@@ -37,24 +24,36 @@ export class TypeScriptChecker implements Checker {
         ];
 
         const { editorConfigFilePath, ...restData } = data ?? {};
-        const allKeys = checkers
-            .filter(isEditorConfigFilter)
-            .flatMap(c => c.editorConfigKeys);
-        const properties = await this.editorConfig.resolve(editorConfigFilePath, allKeys);
+        const explicitParams = Object.keys(restData).length > 0 ? restData : undefined;
 
-        const mergedData: Record<string, string> | undefined =
-            properties ?? Object.keys(restData).length > 0
-                ? { ...restData, ...properties }
-                : undefined;
+        const entries: McpToolEntry[] = checkers.map(c => {
+            const keys = isEditorConfigFilter(c) ? [...c.editorConfigKeys] : undefined;
+            return keys ? { name: c.toolName, 'editorconfig-keys': keys } : { name: c.toolName };
+        });
+
+        const results = await this.editorConfig.resolveTools(editorConfigFilePath, entries);
 
         const sections: string[] = [];
 
         for (const checker of checkers) {
-            if (this.config.isEnabled(checker.toolName)) {
-                sections.push(await checker.check(content, mergedData));
-            } else if (hasAnyEditorConfigKey(mergedData, checker)) {
-                const disabledData = { ...mergedData, __disabled: 'true' };
-                sections.push(await checker.check(content, disabledData));
+            const result = results?.find(r => r.name === checker.toolName);
+
+            if (result === undefined) {
+                sections.push(await checker.check(content, explicitParams));
+                continue;
+            }
+
+            switch (result.mode) {
+                case 'run':
+                    sections.push(await checker.check(content, { ...explicitParams, ...result.data }));
+                    break;
+                case 'editorconfig-only': {
+                    const merged = { ...explicitParams, ...result.data, __disabled: 'true' };
+                    sections.push(await checker.check(content, merged));
+                    break;
+                }
+                case 'skip':
+                    break;
             }
         }
 

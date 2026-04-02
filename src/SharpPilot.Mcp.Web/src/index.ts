@@ -3,7 +3,6 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { readFileSync } from 'node:fs';
 import { parseArgs } from 'node:util';
 import { z } from 'zod';
-import { ToolsStatusConfig } from './configuration/tools-status-config.js';
 import { EditorConfigReader } from './tools/editorconfig/editorconfig-reader.js';
 import { StderrLogger } from './core/logger.js';
 import { TypeScriptChecker } from './tools/checkers/typescript/typescript-checker.js';
@@ -27,13 +26,12 @@ const logger = new StderrLogger();
 logger.log('Startup', `scope=${scope}`);
 
 const workspace = typeof values.workspace === 'string' ? values.workspace : undefined;
-const config = new ToolsStatusConfig(workspace);
 if (workspace) {
     logger.log('Startup', `workspace=${workspace}`);
 }
 
 const workspacePipe = typeof values['workspace-server'] === 'string' ? values['workspace-server'] : undefined;
-const editorConfig = new EditorConfigReader(workspacePipe);
+const editorConfig = new EditorConfigReader(workspacePipe, workspace);
 if (workspacePipe) {
     logger.log('Startup', `workspace-server=${workspacePipe}`);
 }
@@ -48,7 +46,7 @@ const server = new McpServer({
 });
 
 if (scope === 'typescript') {
-    const checker = new TypeScriptChecker(config, editorConfig, logger);
+    const checker = new TypeScriptChecker(editorConfig, logger);
 
     server.registerTool(
         'check_typescript_all',

@@ -86,7 +86,7 @@ A single instruction file may contain dozens of rules. Turning off the entire fi
 
 When the extension activates, the following steps execute synchronously:
 
-1. **`WorkspaceServerManager.start()`** — spawns the `SharpPilot.WorkspaceServer` service process, a standalone named-pipe server that resolves `.editorconfig` properties. Once ready, the pipe name is injected into every MCP server definition via `--workspace-server` so all servers share a single process.
+1. **`WorkspaceServerManager.start()`** — spawns the `SharpPilot.WorkspaceServer` service process, a standalone named-pipe server that resolves `.editorconfig` properties and tool enable/disable status. Each VS Code window generates a unique pipe name (`sharppilot-workspace-<random>`) and its own server process, so multiple windows open on different workspaces are fully isolated — each reads its own `.sharppilot.json` and `.editorconfig` tree with no cross-talk. Once ready, the pipe name is injected into every MCP server definition via `--workspace-server` so all MCP servers within that window share a single process.
 2. **`ToolsStatusWriter.write()`** — reads VS Code settings, writes disabled tool names to `.sharppilot.json` in the workspace root.
 3. **`WorkspaceContextDetector.detect()`** — scans the workspace for project files, `package.json` dependencies, and directory markers. Sets VS Code context keys that control both server registration and instruction injection.
 4. **`ConfigManager.removeOrphanedIds()`** — cleans disabled-instruction IDs from `.sharppilot.json` that no longer match any instruction in the current extension version.
@@ -98,12 +98,15 @@ When the extension activates, the following steps execute synchronously:
 
 When Copilot invokes an MCP tool (e.g., `check_csharp_all`):
 
-1. The MCP server reads `.sharppilot.json` to determine which sub-checks are disabled.
-2. If `editorConfigFilePath` is provided, the server queries the `SharpPilot.WorkspaceServer` service over the named pipe to resolve `.editorconfig` properties and merges them into the checker data.
-3. **Disabled sub-checks with EditorConfig backing** — When a sub-check is disabled but implements `IEditorConfigFilter` *and* the resolved `.editorconfig` contains at least one key that checker consumes, the checker still runs in a restricted mode: it enforces only the EditorConfig-backed rules and skips its instruction-only (INST) checks. This lets project-level `.editorconfig` settings remain enforced even after a team opts out of the instruction.
-4. **Fully disabled sub-checks** — When a sub-check is disabled and no relevant EditorConfig key is present, it is skipped entirely.
-5. Enabled checkers read the merged EditorConfig values and use them to **drive** their enforcement direction — not just to skip conflicting checks.
-6. The checker returns a report (✅ pass or ❌ violations found).
+1. The aggregation checker builds a list of its sub-checks — each entry includes the tool name and, for checkers that implement `IEditorConfigFilter`, the EditorConfig keys it consumes.
+2. It sends a single `mcp-tools` request over the named pipe to `SharpPilot.WorkspaceServer`, which reads `.sharppilot.json` for tool status, resolves `.editorconfig` properties, and returns a per-tool decision:
+   - **`run`** — tool is enabled; includes resolved EditorConfig data.
+   - **`editorconfig-only`** — tool is disabled but has EditorConfig keys; run in restricted mode that enforces only EditorConfig-backed rules and skips instruction-only (INST) checks. This lets project-level `.editorconfig` settings remain enforced even after a team opts out of the instruction.
+   - **`skip`** — tool is disabled and has no EditorConfig keys; skip entirely.
+3. The aggregation checker loops over sub-checks and acts on the mode. Enabled checkers use the merged EditorConfig values to **drive** their enforcement direction — not just to skip conflicting checks.
+4. The checker returns a report (✅ pass or ❌ violations found).
+
+MCP servers never read `.sharppilot.json` directly — all tool orchestration decisions are centralized in WorkspaceServer so the config format and decision logic can evolve in one place.
 
 ---
 
