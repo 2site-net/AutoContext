@@ -17,26 +17,26 @@ using SharpPilot.Mcp.DotNet.Protocol;
 [McpServerToolType]
 public static class EditorConfigReader
 {
-    private static readonly JsonSerializerOptions s_jsonOptions = new()
+    private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.KebabCaseLower,
     };
 
-    private static string? s_pipeName;
-    private static string? s_workspacePath;
+    private static string? _pipeName;
+    private static string? _workspacePath;
 
     /// <summary>
     /// Gets the workspace root path, if configured.
     /// </summary>
-    internal static string? WorkspacePath => s_workspacePath;
+    internal static string? WorkspacePath => _workspacePath;
 
     /// <summary>
     /// Configures the pipe name used to connect to the workspace service.
     /// </summary>
     internal static void Configure(string pipeName, string? workspacePath = null)
     {
-        s_pipeName = pipeName;
-        s_workspacePath = workspacePath;
+        _pipeName = pipeName;
+        _workspacePath = workspacePath;
     }
 
     /// <summary>
@@ -81,15 +81,15 @@ public static class EditorConfigReader
     internal static async Task<McpToolEditorConfigResult[]?> ResolveToolsAsync(
         string? filePath, McpToolEditorConfigEntry[] tools)
     {
-        if (string.IsNullOrWhiteSpace(filePath) || string.IsNullOrWhiteSpace(s_pipeName))
+        if (string.IsNullOrWhiteSpace(filePath) || string.IsNullOrWhiteSpace(_pipeName))
         {
             return null;
         }
 
         var request = new McpToolsRequest(filePath, tools);
-        var requestBytes = JsonSerializer.SerializeToUtf8Bytes(request, s_jsonOptions);
+        var requestBytes = JsonSerializer.SerializeToUtf8Bytes(request, JsonOptions);
 
-        using var client = new NamedPipeClientStream(".", s_pipeName, PipeDirection.InOut, PipeOptions.Asynchronous);
+        using var client = new NamedPipeClientStream(".", _pipeName, PipeDirection.InOut, PipeOptions.Asynchronous);
         await client.ConnectAsync(5000).ConfigureAwait(false);
 
         await WriteMessageAsync(client, requestBytes).ConfigureAwait(false);
@@ -101,7 +101,7 @@ public static class EditorConfigReader
             return null;
         }
 
-        var response = JsonSerializer.Deserialize<McpToolsResponse>(responseBytes, s_jsonOptions);
+        var response = JsonSerializer.Deserialize<McpToolsResponse>(responseBytes, JsonOptions);
 
         return response?.McpTools;
     }
@@ -112,15 +112,15 @@ public static class EditorConfigReader
     /// </summary>
     internal static async Task<IReadOnlyDictionary<string, string>?> ResolveAsync(string? path, string[]? keys = null)
     {
-        if (string.IsNullOrWhiteSpace(path) || string.IsNullOrWhiteSpace(s_pipeName))
+        if (string.IsNullOrWhiteSpace(path) || string.IsNullOrWhiteSpace(_pipeName))
         {
             return null;
         }
 
         var request = new EditorConfigRequest(path, keys);
-        var requestBytes = JsonSerializer.SerializeToUtf8Bytes(request, s_jsonOptions);
+        var requestBytes = JsonSerializer.SerializeToUtf8Bytes(request, JsonOptions);
 
-        using var client = new NamedPipeClientStream(".", s_pipeName, PipeDirection.InOut, PipeOptions.Asynchronous);
+        using var client = new NamedPipeClientStream(".", _pipeName, PipeDirection.InOut, PipeOptions.Asynchronous);
         await client.ConnectAsync(5000).ConfigureAwait(false);
 
         await WriteMessageAsync(client, requestBytes).ConfigureAwait(false);

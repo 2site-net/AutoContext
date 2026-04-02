@@ -12,7 +12,7 @@ using SharpPilot.WorkspaceServer.Features.EditorConfig.Protocol;
 
 public sealed class WorkspaceServiceTests : IDisposable
 {
-    private static readonly JsonSerializerOptions s_jsonOptions = new()
+    private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.KebabCaseLower,
     };
@@ -133,7 +133,7 @@ public sealed class WorkspaceServiceTests : IDisposable
 
             Assert.NotNull(responseBytes);
 
-            var response = JsonSerializer.Deserialize<EditorConfigResponse>(responseBytes!, s_jsonOptions);
+            var response = JsonSerializer.Deserialize<EditorConfigResponse>(responseBytes!, JsonOptions);
 
             Assert.NotNull(response);
             Assert.Empty(response!.Properties);
@@ -168,14 +168,14 @@ public sealed class WorkspaceServiceTests : IDisposable
         using var client = new NamedPipeClientStream(".", pipeName, PipeDirection.InOut, PipeOptions.Asynchronous);
         await client.ConnectAsync(ct);
 
-        var requestBytes = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(request, s_jsonOptions));
+        var requestBytes = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(request, JsonOptions));
         await WorkspaceService.WriteMessageAsync(client, requestBytes, ct);
 
         var responseBytes = await WorkspaceService.ReadMessageAsync(client, ct);
 
         return responseBytes is null
             ? null
-            : JsonSerializer.Deserialize<EditorConfigResponse>(responseBytes, s_jsonOptions);
+            : JsonSerializer.Deserialize<EditorConfigResponse>(responseBytes, JsonOptions);
     }
 
     private static async Task<McpToolsResponse?> SendMcpToolsRequestAsync(
@@ -186,14 +186,14 @@ public sealed class WorkspaceServiceTests : IDisposable
         using var client = new NamedPipeClientStream(".", pipeName, PipeDirection.InOut, PipeOptions.Asynchronous);
         await client.ConnectAsync(ct);
 
-        var requestBytes = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(request, s_jsonOptions));
+        var requestBytes = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(request, JsonOptions));
         await WorkspaceService.WriteMessageAsync(client, requestBytes, ct);
 
         var responseBytes = await WorkspaceService.ReadMessageAsync(client, ct);
 
         return responseBytes is null
             ? null
-            : JsonSerializer.Deserialize<McpToolsResponse>(responseBytes, s_jsonOptions);
+            : JsonSerializer.Deserialize<McpToolsResponse>(responseBytes, JsonOptions);
     }
 
     [Fact]
