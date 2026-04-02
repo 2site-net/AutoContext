@@ -395,6 +395,26 @@ function Invoke-DotNetPublish {
     }
 }
 
+function Sync-WebServerVersion {
+    [CmdletBinding(SupportsShouldProcess)]
+    param()
+
+    if (-not $extensionVersion) { return }
+
+    $webPkgPath = Join-Path $webServerDir 'package.json'
+    if (-not (Test-Path $webPkgPath)) { return }
+
+    $webPkg = Get-Content $webPkgPath -Raw | ConvertFrom-Json
+    if ($webPkg.version -eq $extensionVersion) { return }
+
+    if ($PSCmdlet.ShouldProcess($webPkgPath, "Sync version to $extensionVersion")) {
+        $raw = Get-Content $webPkgPath -Raw
+        $raw = $raw -replace '"version":\s*"[^"]*"', "`"version`": `"$extensionVersion`""
+        Set-Content $webPkgPath $raw -NoNewline
+        Write-Status "Synced Web MCP server version to $extensionVersion" 'OK'
+    }
+}
+
 function Invoke-WebServerPublish {
     [CmdletBinding(SupportsShouldProcess)]
     param()
@@ -405,6 +425,8 @@ function Invoke-WebServerPublish {
         Write-Status 'Web MCP server directory not found — skipping' 'INFO'
         return
     }
+
+    Sync-WebServerVersion
 
     $outDir = Join-Path $webServerDir 'out'
     if (-not (Test-Path $outDir)) { throw 'Web MCP server not compiled — run Compile first.' }

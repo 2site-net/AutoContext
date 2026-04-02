@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { TypeScriptCodingStyleChecker } from '../src/checkers/typescript/typescript-coding-style-checker.js';
+import { TypeScriptCodingStyleChecker } from '../../../../src/tools/checkers/typescript/typescript-coding-style-checker.js';
 
 describe('TypeScriptCodingStyleChecker', () => {
     const checker = new TypeScriptCodingStyleChecker();

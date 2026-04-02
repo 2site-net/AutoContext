@@ -1,8 +1,15 @@
 import { describe, it, expect } from 'vitest';
-import { TypeScriptChecker } from '../src/checkers/typescript/typescript-checker.js';
+import { TypeScriptChecker } from '../../../../src/tools/checkers/typescript/typescript-checker.js';
+import { ToolsStatusConfig } from '../../../../src/configuration/tools-status-config.js';
+import { EditorConfigReader } from '../../../../src/tools/editorconfig/editorconfig-reader.js';
+import { NullLogger } from '../../../../src/core/logger.js';
 
 describe('TypeScriptChecker', () => {
-    const checker = new TypeScriptChecker();
+    const checker = new TypeScriptChecker(
+        new ToolsStatusConfig(),
+        new EditorConfigReader(),
+        NullLogger,
+    );
 
     it('should pass clean TypeScript code', async () => {
         const source = `

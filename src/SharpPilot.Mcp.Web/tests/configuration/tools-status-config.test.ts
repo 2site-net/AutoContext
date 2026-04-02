@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { writeFileSync, mkdirSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { configure, isEnabled } from '../src/tools-status-config.js';
+import { ToolsStatusConfig } from '../../src/configuration/tools-status-config.js';
 
 describe('ToolsStatusConfig', () => {
     const testDir = join(tmpdir(), `sharppilot-test-${Date.now()}`);
@@ -17,18 +17,18 @@ describe('ToolsStatusConfig', () => {
     }
 
     it('should return true when no config file exists', () => {
-        configure(join(tmpdir(), 'nonexistent-dir'));
+        const config = new ToolsStatusConfig(join(tmpdir(), 'nonexistent-dir'));
 
-        expect(isEnabled('check_typescript_coding_style')).toBe(true);
+        expect(config.isEnabled('check_typescript_coding_style')).toBe(true);
     });
 
     it('should return true when tool is not in disabled list', () => {
         writeConfig(JSON.stringify({
             tools: { disabledTools: ['some_other_tool'] },
         }));
-        configure(testDir);
+        const config = new ToolsStatusConfig(testDir);
 
-        expect(isEnabled('check_typescript_coding_style')).toBe(true);
+        expect(config.isEnabled('check_typescript_coding_style')).toBe(true);
 
         cleanup();
     });
@@ -37,18 +37,18 @@ describe('ToolsStatusConfig', () => {
         writeConfig(JSON.stringify({
             tools: { disabledTools: ['check_typescript_coding_style'] },
         }));
-        configure(testDir);
+        const config = new ToolsStatusConfig(testDir);
 
-        expect(isEnabled('check_typescript_coding_style')).toBe(false);
+        expect(config.isEnabled('check_typescript_coding_style')).toBe(false);
 
         cleanup();
     });
 
     it('should return true when config file is malformed', () => {
         writeConfig('not valid json');
-        configure(testDir);
+        const config = new ToolsStatusConfig(testDir);
 
-        expect(isEnabled('check_typescript_coding_style')).toBe(true);
+        expect(config.isEnabled('check_typescript_coding_style')).toBe(true);
 
         cleanup();
     });
