@@ -5,8 +5,11 @@ SharpPilot is a quality assurance extension for Visual Studio Code that leverage
 ## Repository layout
 
 - `src/SharpPilot.Mcp.DotNet/` — MCP server (.NET 10, C#)
+- `src/SharpPilot.Mcp.DotNet.Tests/` — xUnit test suite for the .NET MCP server
+- `src/SharpPilot.Mcp.Web/` — MCP server (TypeScript tools, Node.js)
+- `src/SharpPilot.WorkspaceServer/` — Workspace server (named-pipe, EditorConfig resolution)
+- `src/SharpPilot.WorkspaceServer.Tests/` — xUnit test suite for the workspace server
 - `src/SharpPilot.VSCode/` — VS Code extension (TypeScript, ESM, Vitest)
-- `src/SharpPilot.Mcp.DotNet.Tests/` — xUnit test suite for the MCP server
 
 ## Coding guidelines
 
