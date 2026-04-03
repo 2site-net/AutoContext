@@ -2,19 +2,10 @@
 
 SharpPilot is a quality assurance extension for Visual Studio Code that leverages an MCP server to enable model-invokable tools and curated, configurable instructions—elevating code quality, workflows, and overall developer productivity with Copilot.
 
-## Repository layout
-
-- `src/SharpPilot.Mcp.DotNet/` — MCP server (.NET 10, C#)
-- `src/SharpPilot.Mcp.DotNet.Tests/` — xUnit test suite for the .NET MCP server
-- `src/SharpPilot.Mcp.Web/` — MCP server (TypeScript tools, Node.js)
-- `src/SharpPilot.WorkspaceServer/` — Workspace server (named-pipe, EditorConfig resolution)
-- `src/SharpPilot.WorkspaceServer.Tests/` — xUnit test suite for the workspace server
-- `src/SharpPilot.VSCode/` — VS Code extension (TypeScript, ESM, Vitest)
-
-## Coding guidelines
+## Coding Guidelines
 
 Detailed instruction files live in `src/SharpPilot.VSCode/instructions/`.
-Read the relevant file **before** generating or reviewing code:
+**Do** read the relevant file **before** generating or reviewing code:
 
 | When working on          | Read                                                                                                                          |
 | ------------------------ | ----------------------------------------------------------------------------------------------------------------------------- |
@@ -32,9 +23,16 @@ Read the relevant file **before** generating or reviewing code:
 
 All paths are relative to `src/SharpPilot.VSCode/instructions/`.
 
-## Build & test
+## Context
 
-**Always run `build.ps1` in the foreground (non-background) terminal.** It completes in seconds and does not need a background process. Running it in background mode accumulates orphan terminal sessions that degrade VS Code performance.
+- **Do** read `README.md` for repository structure, build prerequisites, and manual server configuration.
+- **Do** read `docs/architecture.md` for the activation flow, runtime flow, MCP server modes, and precedence rules.
+- **Don't** duplicate information from these files — they are the single source of truth.
+
+## Build & Test
+
+- **Do** always run `build.ps1` in the foreground (non-background) terminal — it completes in seconds and does not need a background process.
+- **Don't** run `build.ps1` in background mode — it accumulates orphan terminal sessions that degrade VS Code performance.
 
 ```powershell
 # Show all available actions, targets, and switches
