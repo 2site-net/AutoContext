@@ -8,17 +8,12 @@ Distributed as a VS Code extension — see [src/SharpPilot.VSCode/README.md](src
 
 ## Features
 
-- **60 Chat Instructions** — Curated Markdown guidelines for .NET, C#, F#, VB.NET, TypeScript, JavaScript, React, Angular, Vue, Svelte, Next.js, Node.js, Docker, Git, REST APIs, GraphQL, SQL, PowerShell, Bash, and more. One always-on instruction (`copilot.instructions.md`) plus 59 toggleable instructions automatically attached to every Copilot Chat conversation when their technology is detected in the workspace.
-- **12 MCP Tool Checks** across 4 server categories — C# coding style, naming conventions, async patterns, member ordering, nullable context, project structure, test style, NuGet hygiene (DotNet); commit format, commit content (Git); EditorConfig resolution (EditorConfig); TypeScript coding style (TypeScript).
-- **EditorConfig-Driven Enforcement** — Checkers read `.editorconfig` properties and enforce whichever direction the project specifies rather than just skipping conflicting rules.
-- **Workspace Detection** — Scans for project files, `package.json` dependencies, directory markers, and NuGet packages to set context keys that control which servers, tools, and instructions are active.
-- **Auto Configuration** — One command scans the workspace and enables only the instructions and tools relevant to the detected technologies.
-- **Status Bar** — A persistent indicator showing active instruction and tool counts (`$(book) X/59 $(tools) X/12`) with a quick-access menu for toggling instructions, toggling tools, or running auto-configure.
-- **Toggle Menus** — Multi-select QuickPick menus for instructions and tools with category grouping, category-level toggling, and Select All / Clear All buttons.
-- **Per-Instruction Disable** — Browse any instruction file in a virtual document, then use CodeLens actions to disable or re-enable individual rules without turning off the entire file. Disabled instructions are dimmed, tagged `[DISABLED]`, and excluded from Copilot's context.
-- **Export** — Copy instruction files to `.github/instructions/` for team sharing. Exported instructions are automatically removed from the Toggle, Browse, and Export menus — they reappear if the exported file is deleted.
-- **Multi-Window Safe** — Per-workspace staging directories with hash-based isolation and automatic cleanup of stale directories older than one hour.
-- **Diagnostics** — Parses every instruction file on activation and logs warnings (missing IDs, duplicate IDs, malformed IDs) to the SharpPilot Output channel.
+SharpPilot provides two complementary capabilities:
+
+- **Chat Instructions** — Curated Markdown guidelines covering .NET, TypeScript, Web frameworks, Git, scripting, and more. Instructions are workspace-aware — only the ones relevant to your project are injected into Copilot's context. Individual rules within any instruction file can be disabled without turning off the entire file.
+- **MCP Tool Checks** — Quality checks that Copilot can invoke in Agent mode to validate code style, naming conventions, async patterns, NuGet hygiene, commit messages, and more. Checkers read `.editorconfig` properties and enforce whichever direction the project specifies.
+
+Tools and instructions are grouped into categories (DotNet, Git, EditorConfig, TypeScript) and can be individually toggled, auto-configured based on workspace detection, or exported to `.github/instructions/` for team sharing.
 
 ## Build Prerequisites
 
@@ -78,7 +73,7 @@ If you have the .NET 10 SDK installed and have cloned this repo, you can registe
       "args": [
         "run",
         "--project",
-        "${workspaceFolder}/src/SharpPilot.Mcp.DotNet/SharpPilot.Mcp.DotNet.csproj",
+        "${workspaceFolder}/src/SharpPilot.WorkspaceServer/SharpPilot.WorkspaceServer.csproj",
         "--",
         "--scope",
         "editorconfig"

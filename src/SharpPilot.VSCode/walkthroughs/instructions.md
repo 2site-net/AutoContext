@@ -1,14 +1,14 @@
 ## Chat Instructions
 
-SharpPilot ships with 60 curated instruction files organized into categories:
+SharpPilot ships with curated instruction files organized into categories:
 
-| Category | Examples |
+| Category | Coverage |
 |----------|----------|
-| **General** | Copilot behavior, code review, design principles, Docker, GraphQL, REST API design, SQL |
-| **.NET** | ASP.NET Core, async/await, Blazor, C#, coding standards, Dapper, Entity Framework Core, F#, gRPC, MAUI, NuGet, performance, Redis, SignalR, testing (xUnit, MSTest, NUnit), Unity, VB.NET, WPF, WinForms |
+| **General** | Cross-cutting guidelines — code review, design principles, Docker, SQL, and more |
+| **.NET** | C#, F#, VB.NET, ASP.NET Core, EF Core, testing frameworks, database drivers, and more |
 | **Git** | Commit format |
 | **Scripting** | PowerShell, Bash, Batch |
-| **Web** | TypeScript, HTML/CSS, JavaScript, React, Angular, Vue, Svelte, Next.js, Node.js, testing (Vitest, Jest, Jasmine, Mocha, Playwright, Cypress) |
+| **Web** | TypeScript, JavaScript, React, Angular, Vue, Svelte, Next.js, Node.js, testing frameworks, and more |
 
 When enabled, instructions are automatically attached to every Copilot Chat conversation — so Copilot follows your coding standards without being told each time. Each instruction only activates when the matching technology is detected in your workspace (e.g., `.csproj` for C#, `react` in `package.json` for React, `.git` for commit format).
 

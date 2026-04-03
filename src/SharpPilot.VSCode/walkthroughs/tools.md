@@ -4,15 +4,16 @@ SharpPilot registers MCP (Model Context Protocol) servers that expose quality-as
 
 ### Server categories
 
-Tools are organized into three server categories, each activated by workspace context:
+Tools are organized into server categories, each activated by workspace context:
 
-| Category | Activates when | Built-in Checks |
-|-------|---------------|-------|
-| **DotNet** | `.csproj`, `.fsproj`, `.vbproj`, `.sln`, or `.slnx` detected | C# async patterns, coding style, member ordering, naming conventions, nullable context, project structure, test style, NuGet hygiene |
-| **Git** | `.git` folder detected | Commit format, commit content |
-| **EditorConfig** | Always active | EditorConfig check |
+| Category | Activates when |
+|----------|----------------|
+| **DotNet** | `.csproj`, `.fsproj`, `.vbproj`, `.sln`, or `.slnx` detected |
+| **Git** | `.git` folder detected |
+| **EditorConfig** | Always active |
+| **TypeScript** | `.ts` files detected |
 
-A server category is filtered out entirely if its workspace context is not present or all its tools are disabled. The EditorConfig category is an exception — it is always active regardless of workspace content.
+A server category is filtered out entirely if its workspace context is not present or all its tools are disabled. The EditorConfig category is an exception — it is always active regardless of workspace content. Each category exposes one or more tools containing individually toggleable sub-checks.
 
 ### How it works
 

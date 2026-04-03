@@ -6,9 +6,9 @@ SharpPilot can scan your workspace and automatically enable the right instructio
 
 The workspace detector looks for files, project contents, and dependencies to build a context profile:
 
-- **File existence** — `.csproj`, `.fsproj`, `.vbproj`, `.razor`, `.html`, `.css`, `.js`, `.ts`, `Dockerfile`, `.git`, Unity project settings, and more.
-- **Project file contents** — NuGet packages like `xunit`, `NUnit`, `MSTest`, `Entity Framework Core`, `Dapper`, `SignalR`, `gRPC`, `MediatR`, `Redis`, `HotChocolate`, and database drivers (SQL Server, PostgreSQL, MySQL, SQLite, Oracle, MongoDB). Also detects ASP.NET Core SDK, WPF, WinForms, and MAUI.
-- **package.json dependencies** — Frameworks (`react`, `@angular/core`, `vue`, `svelte`, `next`), test runners (`vitest`, `jest`, `jasmine`, `mocha`, `@playwright/test`, `cypress`), and GraphQL libraries.
+- **File existence** — Project files (`.csproj`, `.fsproj`, …), source files (`.ts`, `.razor`, …), configuration files (`Dockerfile`, `.git`), and more.
+- **Project file contents** — NuGet packages, SDK references, and project properties (e.g., test frameworks, database drivers, ASP.NET Core, WPF, MAUI).
+- **package.json dependencies** — Web frameworks, test runners, and libraries.
 
 ### How auto-configure works
 
@@ -16,7 +16,7 @@ For each instruction and tool, auto-configure checks whether any of its context 
 
 ### Status bar
 
-The status bar shows the current counts at a glance: `$(book) X/59 $(tools) X/11`. Click it to open a menu where you can toggle instructions, toggle tools, or run auto-configure.
+The status bar shows the current counts at a glance. Click it to open a menu where you can toggle instructions, toggle tools, or run auto-configure.
 
 ### Run auto configure
 
