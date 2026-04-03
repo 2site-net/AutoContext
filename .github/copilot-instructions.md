@@ -31,6 +31,8 @@ All paths are relative to `src/SharpPilot.VSCode/instructions/`.
 
 ## Build & test
 
+**Always run `build.ps1` in the foreground (non-background) terminal.** It completes in seconds and does not need a background process. Running it in background mode accumulates orphan terminal sessions that degrade VS Code performance.
+
 ```powershell
 # Show all available actions, targets, and switches
 ./build.ps1 -Help
