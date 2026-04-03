@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, rmSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { createHash } from 'node:crypto';
-import { instructionsCatalog } from './instructions-catalog.js';
+import { InstructionsRegistry } from './instructions-registry.js';
 import { InstructionsParser } from './instructions-parser.js';
 import type { SharpPilotConfigManager } from './sharppilot-config.js';
 
@@ -17,7 +17,7 @@ import type { SharpPilotConfigManager } from './sharppilot-config.js';
  * - On window focus: full write() (re-reads config, re-stages, promotes — caching makes
  *   this near-free when nothing changed, but catches missed watcher events)
  */
-export class InstructionsWriter implements vscode.Disposable {
+export class InstructionsConfigWriter implements vscode.Disposable {
     private readonly generatedRoot: string;
     private stagingDir: string;
     private readonly disposables: vscode.Disposable[] = [];
@@ -28,11 +28,11 @@ export class InstructionsWriter implements vscode.Disposable {
         private readonly configManager: SharpPilotConfigManager,
     ) {
         this.generatedRoot = join(extensionPath, 'instructions', '.generated');
-        this.stagingDir = join(extensionPath, 'instructions', '.workspaces', InstructionsWriter.workspaceHash());
+        this.stagingDir = join(extensionPath, 'instructions', '.workspaces', InstructionsConfigWriter.workspaceHash());
         this.disposables.push(
             configManager.onDidChange(() => this.scheduleWrite()),
             vscode.workspace.onDidChangeWorkspaceFolders(() => {
-                this.stagingDir = join(this.extensionPath, 'instructions', '.workspaces', InstructionsWriter.workspaceHash());
+                this.stagingDir = join(this.extensionPath, 'instructions', '.workspaces', InstructionsConfigWriter.workspaceHash());
                 this.write();
             }),
         );
@@ -55,7 +55,7 @@ export class InstructionsWriter implements vscode.Disposable {
         const config = this.configManager.read();
         const disabledInstructionsMap = config.instructions?.disabled ?? {};
 
-        for (const entry of instructionsCatalog.all) {
+        for (const entry of InstructionsRegistry.all) {
             const disabledIds = disabledInstructionsMap[entry.fileName];
             const disabled = disabledIds !== undefined && disabledIds.length > 0
                 ? new Set(disabledIds)
@@ -70,10 +70,10 @@ export class InstructionsWriter implements vscode.Disposable {
     private promote(): void {
         mkdirSync(this.generatedRoot, { recursive: true });
 
-        for (const entry of instructionsCatalog.all) {
+        for (const entry of InstructionsRegistry.all) {
             const staged = join(this.stagingDir, entry.fileName);
             const live = join(this.generatedRoot, entry.fileName);
-            InstructionsWriter.copyIfChanged(staged, live);
+            InstructionsConfigWriter.copyIfChanged(staged, live);
         }
     }
 
@@ -83,7 +83,7 @@ export class InstructionsWriter implements vscode.Disposable {
             return;
         }
 
-        const currentHash = InstructionsWriter.workspaceHash();
+        const currentHash = InstructionsConfigWriter.workspaceHash();
         const oneHourAgo = Date.now() - 60 * 60 * 1000;
         let entries: string[];
         try {
@@ -146,14 +146,14 @@ export class InstructionsWriter implements vscode.Disposable {
             content = lines.filter((_, i) => !linesToRemove.has(i)).join('\n');
         }
 
-        content = InstructionsWriter.stripInstructionIds(content);
-        InstructionsWriter.writeIfChanged(dest, content);
+        content = InstructionsConfigWriter.stripInstructionIds(content);
+        InstructionsConfigWriter.writeIfChanged(dest, content);
     }
 
     private static readonly instructionIdTag = /\[INST\d{4}\]\s*/g;
 
     private static stripInstructionIds(content: string): string {
-        return content.replace(InstructionsWriter.instructionIdTag, '');
+        return content.replace(InstructionsConfigWriter.instructionIdTag, '');
     }
 
     private static workspaceHash(): string {
@@ -182,7 +182,7 @@ export class InstructionsWriter implements vscode.Disposable {
 
         try {
             const content = readFileSync(src, 'utf-8');
-            InstructionsWriter.writeIfChanged(dest, content);
+            InstructionsConfigWriter.writeIfChanged(dest, content);
         } catch {
             // Source read failed — skip.
         }

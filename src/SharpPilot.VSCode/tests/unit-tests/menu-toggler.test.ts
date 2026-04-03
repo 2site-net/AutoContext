@@ -3,8 +3,8 @@ import { window, __setConfigStore, QuickPickItemKind, type MockQuickPick } from 
 
 import { MenuToggler } from '../../src/menu-toggler';
 import { type CatalogEntry } from '../../src/catalog-entry';
-import { instructionsCatalog } from '../../src/instructions-catalog';
-import { toolsCatalog } from '../../src/tools-catalog';
+import { InstructionsRegistry } from '../../src/instructions-registry';
+import { McpToolsRegistry } from '../../src/mcp-tools-registry';
 
 beforeEach(() => {
     vi.clearAllMocks();
@@ -29,13 +29,13 @@ const smallEntries: readonly CatalogEntry[] = [
 
 describe('MenuToggler', () => {
     it('should show a multi-select QuickPick with setting items, separators, and category headers', async () => {
-        const toggler = new MenuToggler('SharpPilot: Toggle Tools', 'Select tools to enable', toolsCatalog.all);
+        const toggler = new MenuToggler('SharpPilot: Toggle Tools', 'Select tools to enable', McpToolsRegistry.all);
         const promise = toggler.toggle();
 
         const qp = vi.mocked(window.createQuickPick).mock.results[0].value as MockQuickPick;
         expect(qp.canSelectMany).toBe(true);
         expect(qp.title).toBe('SharpPilot: Toggle Tools');
-        expect(settingItems(qp)).toHaveLength(toolsCatalog.count);
+        expect(settingItems(qp)).toHaveLength(McpToolsRegistry.count);
         expect(categoryHeaders(qp).length).toBeGreaterThan(0);
         expect(qp.show).toHaveBeenCalledOnce();
 
@@ -44,7 +44,7 @@ describe('MenuToggler', () => {
     });
 
     it('should not update settings when the user cancels', async () => {
-        const toggler = new MenuToggler('SharpPilot: Toggle Tools', 'Select tools to enable', toolsCatalog.all);
+        const toggler = new MenuToggler('SharpPilot: Toggle Tools', 'Select tools to enable', McpToolsRegistry.all);
         const promise = toggler.toggle();
 
         const qp = vi.mocked(window.createQuickPick).mock.results[0].value as MockQuickPick;
@@ -56,7 +56,7 @@ describe('MenuToggler', () => {
     });
 
     it('should have Select All and Clear All buttons', async () => {
-        const toggler = new MenuToggler('SharpPilot: Toggle Tools', 'Select tools to enable', toolsCatalog.all);
+        const toggler = new MenuToggler('SharpPilot: Toggle Tools', 'Select tools to enable', McpToolsRegistry.all);
         const promise = toggler.toggle();
 
         const qp = vi.mocked(window.createQuickPick).mock.results[0].value as MockQuickPick;
@@ -69,11 +69,11 @@ describe('MenuToggler', () => {
     });
 
     it('should append override badge to description for overridden entries', async () => {
-        const overriddenId = instructionsCatalog.all[0].settingId;
+        const overriddenId = InstructionsRegistry.all[0].settingId;
         const toggler = new MenuToggler(
             'SharpPilot: Toggle Instructions',
             'Select instructions to enable',
-            instructionsCatalog.all,
+            InstructionsRegistry.all,
             () => new Set([overriddenId]),
         );
         const promise = toggler.toggle();
@@ -81,7 +81,7 @@ describe('MenuToggler', () => {
         const qp = vi.mocked(window.createQuickPick).mock.results[0].value as MockQuickPick;
         const items = qp.items as ToggleItem[];
         const overriddenItem = items.find(i => i.settingId === overriddenId);
-        const normalItem = items.find(i => i.settingId === instructionsCatalog.all[1].settingId);
+        const normalItem = items.find(i => i.settingId === InstructionsRegistry.all[1].settingId);
 
         expect(overriddenItem?.description).toContain('$(file-symlink-directory)');
         expect(normalItem?.description).not.toContain('$(file-symlink-directory)');

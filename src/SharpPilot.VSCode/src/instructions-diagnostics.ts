@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { instructionsCatalog } from './instructions-catalog.js';
+import { InstructionsRegistry } from './instructions-registry.js';
 import { InstructionsParser } from './instructions-parser.js';
 import type { SharpPilotConfigManager } from './sharppilot-config.js';
 
@@ -10,7 +10,7 @@ export class InstructionsDiagnostics {
         outputChannel.clear();
         const warnOnMissingId = configManager.read().diagnostic?.warnOnMissingId === true;
 
-        for (const entry of instructionsCatalog.all) {
+        for (const entry of InstructionsRegistry.all) {
             let content: string;
             try {
                 content = readFileSync(join(extensionPath, 'instructions', entry.fileName), 'utf-8');

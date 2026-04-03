@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { ContextKeys } from '../../src/context-keys';
-import { instructionsCatalog } from '../../src/instructions-catalog';
-import { toolsCatalog } from '../../src/tools-catalog';
+import { InstructionsRegistry } from '../../src/instructions-registry';
+import { McpToolsRegistry } from '../../src/mcp-tools-registry';
 
 describe('ContextKeys.overrideKey', () => {
     it('should strip the settings prefix and prepend the override prefix', () => {
@@ -17,33 +17,33 @@ describe('ContextKeys.overrideKey', () => {
 
 describe('ContextKeys.forEntry', () => {
     it('should return empty array for always-on instructions', () => {
-        const codeReview = instructionsCatalog.all.find(i => i.settingId === 'sharppilot.instructions.codeReview')!;
+        const codeReview = InstructionsRegistry.all.find(i => i.settingId === 'sharppilot.instructions.codeReview')!;
 
         expect(ContextKeys.forEntry(codeReview)).toEqual([]);
     });
 
     it('should return context keys for workspace-specific instructions', () => {
-        const asyncAwait = instructionsCatalog.all.find(i => i.settingId === 'sharppilot.instructions.dotnet.asyncAwait')!;
+        const asyncAwait = InstructionsRegistry.all.find(i => i.settingId === 'sharppilot.instructions.dotnet.asyncAwait')!;
 
         expect(ContextKeys.forEntry(asyncAwait)).toEqual(['hasDotNet']);
     });
 
     it('should return multiple context keys for OR conditions', () => {
-        const js = instructionsCatalog.all.find(i => i.settingId === 'sharppilot.instructions.web.javascript')!;
+        const js = InstructionsRegistry.all.find(i => i.settingId === 'sharppilot.instructions.web.javascript')!;
 
         expect(ContextKeys.forEntry(js)).toEqual(['hasJavaScript', 'hasTypeScript']);
     });
 
     it('should return context keys for tools', () => {
-        const codingStyle = toolsCatalog.all.find(t => t.settingId === 'sharppilot.tools.check_csharp_coding_style')!;
-        const commitFormat = toolsCatalog.all.find(t => t.settingId === 'sharppilot.tools.check_git_commit_format')!;
+        const codingStyle = McpToolsRegistry.all.find(t => t.settingId === 'sharppilot.tools.check_csharp_coding_style')!;
+        const commitFormat = McpToolsRegistry.all.find(t => t.settingId === 'sharppilot.tools.check_git_commit_format')!;
 
         expect(ContextKeys.forEntry(codingStyle)).toEqual(['hasCSharp']);
         expect(ContextKeys.forEntry(commitFormat)).toEqual(['hasGit']);
     });
 
     it('should return empty array for the editorconfig tool', () => {
-        const editorconfig = toolsCatalog.all.find(t => t.settingId === 'sharppilot.tools.get_editorconfig')!;
+        const editorconfig = McpToolsRegistry.all.find(t => t.settingId === 'sharppilot.tools.get_editorconfig')!;
 
         expect(ContextKeys.forEntry(editorconfig)).toEqual([]);
     });
@@ -56,7 +56,7 @@ describe('ContextKeys.forEntry', () => {
             'sharppilot.instructions.sql',
         ]);
 
-        for (const entry of instructionsCatalog.all) {
+        for (const entry of InstructionsRegistry.all) {
             if (alwaysOn.has(entry.settingId)) {
                 expect(ContextKeys.forEntry(entry)).toEqual([]);
             } else {

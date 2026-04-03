@@ -4,7 +4,7 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { instructionsCatalog } from './instructions-catalog.js';
+import { InstructionsRegistry } from './instructions-registry.js';
 import { ContextKeys } from './context-keys.js';
 import type { CatalogEntry } from './catalog-entry.js';
 
@@ -31,7 +31,7 @@ function buildWhenClause(entry: CatalogEntry): string {
 export function buildChatInstructions(): ChatInstruction[] {
     return [
         { path: './instructions/copilot.instructions.md' },
-        ...instructionsCatalog.all.map(entry => ({
+        ...InstructionsRegistry.all.map(entry => ({
             path: `./instructions/.generated/${entry.fileName}`,
             when: buildWhenClause(entry),
         })),

@@ -15,7 +15,7 @@ vi.mock('node:fs', () => ({
 }));
 
 // Must import after the mock is set up via the vitest alias
-import { ToolsStatusWriter } from '../../src/tools-status-writer';
+import { McpToolsConfigWriter } from '../../src/mcp-tools-config-writer';
 import { SharpPilotConfigManager } from '../../src/sharppilot-config';
 
 beforeEach(() => {
@@ -24,7 +24,7 @@ beforeEach(() => {
     workspace.workspaceFolders = [{ uri: { fsPath: '/workspace' } }];
 });
 
-describe('ToolsStatusWriter', () => {
+describe('McpToolsConfigWriter', () => {
     it('should write disabled tools to .sharppilot.json', () => {
         __setConfigStore({
             'sharppilot.tools.check_csharp_coding_style': false,
@@ -37,7 +37,7 @@ describe('ToolsStatusWriter', () => {
         });
 
         const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
-        const writer = new ToolsStatusWriter(configManager);
+        const writer = new McpToolsConfigWriter(configManager);
         writer.write();
 
         const writeCalls = vi.mocked(writeFileSync).mock.calls;
@@ -64,7 +64,7 @@ describe('ToolsStatusWriter', () => {
         });
 
         const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
-        const writer = new ToolsStatusWriter(configManager);
+        const writer = new McpToolsConfigWriter(configManager);
         writer.write();
 
         expect(writeFileSync).not.toHaveBeenCalled();
@@ -82,7 +82,7 @@ describe('ToolsStatusWriter', () => {
         });
 
         const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
-        const writer = new ToolsStatusWriter(configManager);
+        const writer = new McpToolsConfigWriter(configManager);
         writer.write();
 
         // Config is empty — file should be deleted, not written.

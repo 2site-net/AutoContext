@@ -2,8 +2,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { workspace, window, __setConfigStore } from './__mocks__/vscode';
 import { AutoConfigurer } from '../../src/auto-configurer';
 import { ContextKeys } from '../../src/context-keys';
-import { instructionsCatalog } from '../../src/instructions-catalog';
-import { toolsCatalog } from '../../src/tools-catalog';
+import { InstructionsRegistry } from '../../src/instructions-registry';
+import { McpToolsRegistry } from '../../src/mcp-tools-registry';
 
 const fakeDetector = {
     get: vi.fn((_key: string) => false),
@@ -58,7 +58,7 @@ describe('AutoConfigurer.configure', () => {
 
         await AutoConfigurer.configure(fakeDetector);
 
-        const allEntries = [...instructionsCatalog.all, ...toolsCatalog.all];
+        const allEntries = [...InstructionsRegistry.all, ...McpToolsRegistry.all];
         const alwaysOnCount = allEntries.filter(e => ContextKeys.forEntry(e).length === 0).length;
 
         expect(window.showInformationMessage).toHaveBeenCalledWith(

@@ -1,10 +1,10 @@
 import * as vscode from 'vscode';
 import type { InstructionsCatalogEntry } from './instructions-catalog-entry.js';
-import { instructionsCatalog } from './instructions-catalog.js';
+import { InstructionsRegistry } from './instructions-registry.js';
 
 export class InstructionsExportState {
     static async getUnexportedFiles(
-        entries: readonly InstructionsCatalogEntry[] = instructionsCatalog.all,
+        entries: readonly InstructionsCatalogEntry[] = InstructionsRegistry.all,
     ): Promise<readonly InstructionsCatalogEntry[]> {
         const rootUri = vscode.workspace.workspaceFolders?.[0]?.uri;
         if (!rootUri) {

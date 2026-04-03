@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
-import { instructionsCatalog } from './instructions-catalog.js';
+import { InstructionsRegistry } from './instructions-registry.js';
 import { ContextKeys } from './context-keys.js';
-import { servers } from './server-entry.js';
+import { McpServersRegistry } from './mcp-servers-registry.js';
 
 export class WorkspaceContextDetector implements vscode.Disposable {
     private readonly disposables: vscode.Disposable[] = [];
@@ -326,7 +326,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
                 const segments = uri.path.split('/');
                 const matchName = segments[segments.length - 1];
 
-                if (instructionsCatalog.findByFileName(matchName)) {
+                if (InstructionsRegistry.findByFileName(matchName)) {
                     overriddenFileNames.add(matchName);
                 }
             }
@@ -381,7 +381,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
                 setContext('sharppilot.workspace.hasDotNetTesting', hasXunit || hasMsTest || hasNUnit),
                 setContext('sharppilot.workspace.hasWebTesting', hasVitest || hasJest || hasJasmine || hasMocha || hasPlaywright || hasCypress),
                 setContext('sharppilot.workspace.hasGit', hasGit),
-                ...instructionsCatalog.all.map(i =>
+                ...InstructionsRegistry.all.map(i =>
                     setContext(ContextKeys.overrideKey(i.settingId), overriddenFileNames.has(i.fileName)),
                 ),
             ]);
@@ -399,7 +399,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
                 hasGit,
             };
 
-            const serverChanged = servers.some(s =>
+            const serverChanged = McpServersRegistry.all.some(s =>
                 s.contextKey !== undefined && this._state.get(s.contextKey) !== contextState[s.contextKey],
             );
 
@@ -408,7 +408,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
             }
 
             this._overriddenSettingIds.clear();
-            for (const i of instructionsCatalog.all) {
+            for (const i of InstructionsRegistry.all) {
                 if (overriddenFileNames.has(i.fileName)) {
                     this._overriddenSettingIds.add(i.settingId);
                 }

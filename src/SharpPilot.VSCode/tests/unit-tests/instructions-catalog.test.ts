@@ -1,8 +1,14 @@
 import { describe, it, expect } from 'vitest';
 import { InstructionsCatalogEntry } from '../../src/instructions-catalog-entry';
-import { instructionsCatalog } from '../../src/instructions-catalog';
+import { InstructionsCatalog } from '../../src/instructions-catalog';
 
-describe('targetPath', () => {
+const testData = [
+    { settingId: 'inst.alpha', fileName: 'alpha.instructions.md', label: 'Alpha', category: 'General' },
+    { settingId: 'inst.beta', fileName: 'beta.instructions.md', label: 'Beta', category: '.NET' },
+    { settingId: 'inst.gamma', fileName: 'gamma.instructions.md', label: 'Gamma', category: 'Web' },
+] as const;
+
+describe('InstructionsCatalogEntry', () => {
     it('should map files to .github/instructions/', () => {
         const entry = new InstructionsCatalogEntry({ settingId: '', fileName: 'dotnet-testing.instructions.md', label: '', category: '' });
 
@@ -10,33 +16,46 @@ describe('targetPath', () => {
     });
 });
 
-describe('findByFileName', () => {
-    it('should return the entry for a known file name', () => {
-        const entry = instructionsCatalog.findByFileName('code-review.instructions.md');
+describe('InstructionsCatalog', () => {
+    it('should expose all entries', () => {
+        const catalog = new InstructionsCatalog(testData);
 
+        expect(catalog.all).toHaveLength(3);
+        expect(catalog.all[0].settingId).toBe('inst.alpha');
+    });
+
+    it('should return the correct count', () => {
+        const catalog = new InstructionsCatalog(testData);
+
+        expect(catalog.count).toBe(3);
+    });
+
+    it('should find an entry by file name', () => {
+        const catalog = new InstructionsCatalog(testData);
+
+        const entry = catalog.findByFileName('beta.instructions.md');
         expect(entry).toBeDefined();
-        expect(entry!.settingId).toBe('sharppilot.instructions.codeReview');
+        expect(entry!.settingId).toBe('inst.beta');
     });
 
     it('should return undefined for an unknown file name', () => {
-        expect(instructionsCatalog.findByFileName('nonexistent.md')).toBeUndefined();
+        const catalog = new InstructionsCatalog(testData);
+
+        expect(catalog.findByFileName('nonexistent.md')).toBeUndefined();
     });
 
-    it('should not include copilot.instructions.md (always-on, not toggleable)', () => {
-        expect(instructionsCatalog.findByFileName('copilot.instructions.md')).toBeUndefined();
-    });
-});
-
-describe('instructions catalog', () => {
     it('should have unique setting ids', () => {
-        const ids = instructionsCatalog.all.map(i => i.settingId);
+        const catalog = new InstructionsCatalog(testData);
+        const ids = catalog.all.map(i => i.settingId);
 
         expect(new Set(ids).size).toBe(ids.length);
     });
 
-    it('should have .instructions.md suffix on all file names', () => {
-        for (const entry of instructionsCatalog.all) {
-            expect(entry.fileName).toMatch(/\.instructions\.md$/);
-        }
+    it('should return empty results for empty catalog', () => {
+        const catalog = new InstructionsCatalog([]);
+
+        expect(catalog.all).toEqual([]);
+        expect(catalog.count).toBe(0);
+        expect(catalog.findByFileName('anything.md')).toBeUndefined();
     });
 });

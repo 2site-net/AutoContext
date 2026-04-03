@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { join } from 'node:path';
-import { servers } from './server-entry.js';
-import { toolsCatalog } from './tools-catalog.js';
+import { McpServersRegistry } from './mcp-servers-registry.js';
+import { McpToolsRegistry } from './mcp-tools-registry.js';
 import type { WorkspaceContextDetector } from './workspace-context-detector.js';
 import type { WorkspaceServerManager } from './workspace-server-manager.js';
 
@@ -27,12 +27,12 @@ export class McpServerProvider implements vscode.McpServerDefinitionProvider {
 
     async provideMcpServerDefinitions(): Promise<vscode.McpServerDefinition[]> {
         const config = vscode.workspace.getConfiguration();
-        return servers
+        return McpServersRegistry.all
             .filter(s => {
                 if (s.contextKey && !this.workspaceContextDetector.get(s.contextKey)) {
                     return false;
                 }
-                const toolSettings = toolsCatalog.getSettingIdByCategory(s.category);
+                const toolSettings = McpToolsRegistry.getSettingIdByCategory(s.category);
                 return toolSettings.length === 0 || toolSettings.some(id => config.get(id) !== false);
             })
             .map(s => {
@@ -41,10 +41,10 @@ export class McpServerProvider implements vscode.McpServerDefinitionProvider {
                 let command: string;
                 const args: string[] = [];
 
-                if (s.server === 'web') {
+                if (s.process === 'web') {
                     command = 'node';
                     args.push(join(this.serversPath, 'SharpPilot.Mcp.Web', 'index.js'));
-                } else if (s.server === 'workspace') {
+                } else if (s.process === 'workspace') {
                     command = join(this.serversPath, 'SharpPilot.WorkspaceServer', `SharpPilot.WorkspaceServer${this.ext}`);
                 } else {
                     command = join(this.serversPath, 'SharpPilot.Mcp.DotNet', `SharpPilot.Mcp.DotNet${this.ext}`);
@@ -56,7 +56,7 @@ export class McpServerProvider implements vscode.McpServerDefinitionProvider {
                     args.push('--workspace', workspaceFolder.uri.fsPath);
                 }
 
-                if (s.server !== 'workspace') {
+                if (s.process !== 'workspace') {
                     const pipeName = this.workspaceServer.getPipeName();
 
                     if (pipeName) {

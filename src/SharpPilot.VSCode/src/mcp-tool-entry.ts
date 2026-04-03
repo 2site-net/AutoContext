@@ -1,5 +1,5 @@
 import type { CatalogEntry } from './catalog-entry.js';
 
-export interface ToolEntry extends CatalogEntry {
+export interface McpToolEntry extends CatalogEntry {
     toolName: string;
 }

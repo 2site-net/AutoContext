@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
-import { instructionsCatalog } from './instructions-catalog.js';
-import { toolsCatalog } from './tools-catalog.js';
+import { InstructionsRegistry } from './instructions-registry.js';
+import { McpToolsRegistry } from './mcp-tools-registry.js';
 
 export class StatusBarIndicator implements vscode.Disposable {
     static readonly commandId = 'sharppilot.showToggleMenu';
@@ -17,10 +17,10 @@ export class StatusBarIndicator implements vscode.Disposable {
 
     update(): void {
         const config = vscode.workspace.getConfiguration();
-        const enabledInstructions = instructionsCatalog.all.filter(i => config.get<boolean>(i.settingId, true)).length;
-        const enabledTools = toolsCatalog.all.filter(t => config.get<boolean>(t.settingId, true)).length;
-        this.item.text = `$(book) ${enabledInstructions}/${instructionsCatalog.count} $(tools) ${enabledTools}/${toolsCatalog.count}`;
-        this.item.tooltip = `Instructions: ${enabledInstructions}/${instructionsCatalog.count} enabled, Tools: ${enabledTools}/${toolsCatalog.count} enabled — click to toggle`;
+        const enabledInstructions = InstructionsRegistry.all.filter(i => config.get<boolean>(i.settingId, true)).length;
+        const enabledTools = McpToolsRegistry.all.filter(t => config.get<boolean>(t.settingId, true)).length;
+        this.item.text = `$(book) ${enabledInstructions}/${InstructionsRegistry.count} $(tools) ${enabledTools}/${McpToolsRegistry.count}`;
+        this.item.tooltip = `Instructions: ${enabledInstructions}/${InstructionsRegistry.count} enabled, Tools: ${enabledTools}/${McpToolsRegistry.count} enabled — click to toggle`;
     }
 
     async showToggleMenu(): Promise<void> {

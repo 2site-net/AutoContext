@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { StatusBarIndicator } from './status-bar-indicator.js';
 import { WorkspaceContextDetector } from './workspace-context-detector.js';
-import { ToolsStatusWriter } from './tools-status-writer.js';
+import { McpToolsConfigWriter } from './mcp-tools-config-writer.js';
 import { MenuToggler } from './menu-toggler.js';
 import { AutoConfigurer } from './auto-configurer.js';
 import { InstructionsExporter } from './instructions-exporter.js';
@@ -11,11 +11,11 @@ import { SharpPilotConfigManager } from './sharppilot-config.js';
 import { InstructionsContentProvider, instructionScheme } from './instructions-content-provider.js';
 import { InstructionsCodeLensProvider, toggleInstructionCommandId, resetInstructionsCommandId } from './instructions-codelens-provider.js';
 import { InstructionsDecorationManager } from './instructions-decoration-manager.js';
-import { InstructionsWriter } from './instructions-writer.js';
+import { InstructionsConfigWriter } from './instructions-config-writer.js';
 import { InstructionsDiagnostics } from './instructions-diagnostics.js';
 import { McpServerProvider } from './mcp-server-provider.js';
 import { WorkspaceServerManager } from './workspace-server-manager.js';
-import { toolsCatalog } from './tools-catalog.js';
+import { McpToolsRegistry } from './mcp-tools-registry.js';
 
 export function activate(context: vscode.ExtensionContext): void {
     if (!vscode.workspace.workspaceFolders?.length) {
@@ -27,15 +27,15 @@ export function activate(context: vscode.ExtensionContext): void {
 
     const statusBarIndicator = new StatusBarIndicator();
     const workspaceContextDetector = new WorkspaceContextDetector();
-    const toolsToggler = new MenuToggler('SharpPilot: Toggle Tools', 'Select tools to enable', toolsCatalog.all);
+    const toolsToggler = new MenuToggler('SharpPilot: Toggle Tools', 'Select tools to enable', McpToolsRegistry.all);
     const instructionsExporter = new InstructionsExporter(context.extensionPath);
     const instructionsBrowser = new InstructionsBrowser();
     const configManager = new SharpPilotConfigManager(context.extensionPath, version);
-    const toolsStatusWriter = new ToolsStatusWriter(configManager);
+    const toolsStatusWriter = new McpToolsConfigWriter(configManager);
     const contentProvider = new InstructionsContentProvider(context.extensionPath, configManager);
     const codeLensProvider = new InstructionsCodeLensProvider(context.extensionPath, configManager);
     const decorationManager = new InstructionsDecorationManager(context.extensionPath, configManager);
-    const instructionsWriter = new InstructionsWriter(context.extensionPath, configManager);
+    const instructionsWriter = new InstructionsConfigWriter(context.extensionPath, configManager);
     const outputChannel = vscode.window.createOutputChannel('SharpPilot');
     const workspaceServer = new WorkspaceServerManager(context.extensionPath, outputChannel, vscode.workspace.workspaceFolders?.[0]?.uri.fsPath);
     const mcpServerProvider = new McpServerProvider(context.extensionPath, version, workspaceContextDetector, didChangeEmitter.event, workspaceServer);
