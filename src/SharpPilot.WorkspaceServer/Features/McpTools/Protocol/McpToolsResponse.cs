@@ -1,4 +1,4 @@
-namespace SharpPilot.WorkspaceServer.Features.EditorConfig.Protocol;
+namespace SharpPilot.WorkspaceServer.Features.McpTools.Protocol;
 
 using System.Diagnostics.CodeAnalysis;
 

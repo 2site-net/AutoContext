@@ -6,10 +6,12 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Console;
 
 using SharpPilot.WorkspaceServer.Features.EditorConfig;
+using SharpPilot.WorkspaceServer.Features.McpTools;
+using SharpPilot.WorkspaceServer.Services;
 
 var builder = Host.CreateApplicationBuilder(args);
 
-// stdout is reserved for the ready-signal protocol — send all log
+// stdout is reserved for the ready-signal / MCP protocol — send all log
 // output to stderr, which the extension captures and forwards to the
 // output channel.  Suppress the host's "Application started" banners.
 builder.Services.Configure<ConsoleLoggerOptions>(o =>
@@ -18,18 +20,39 @@ builder.Services.Configure<ConsoleLoggerOptions>(o =>
 builder.Services.Configure<ConsoleLifetimeOptions>(o =>
     o.SuppressStatusMessages = true);
 
-builder.Services.AddSingleton<EditorConfigResolver>();
-builder.Services.AddSingleton<McpToolsConfig>();
-builder.Services.AddHostedService<WorkspaceService>();
+var scope = builder.Configuration["scope"];
 
-var host = builder.Build();
+if (scope == "editorconfig")
+{
+    // MCP stdio mode — registers the get_editorconfig MCP tool.
+    builder.Services.AddSingleton<EditorConfigResolver>();
 
-// Signal readiness — the extension reads this to know the pipe is active.
-var pipeName = builder.Configuration["pipe"]
-    ?? throw new InvalidOperationException("Missing required argument: --pipe");
+    builder.Services
+        .AddMcpServer()
+        .WithStdioServerTransport()
+        .WithTools([typeof(EditorConfigTool)]);
 
-Console.WriteLine(JsonSerializer.Serialize(
-    new { pipe = pipeName },
-    WorkspaceService.JsonOptions));
+    await builder.Build().RunAsync().ConfigureAwait(false);
+}
+else
+{
+    // Named pipe mode — workspace service for EditorConfig resolution
+    // and MCP tool orchestration.
+    builder.Services.AddSingleton<EditorConfigResolver>();
+    builder.Services.AddSingleton<McpToolsConfig>();
+    builder.Services.AddSingleton<IRequestHandler, EditorConfigRequestHandler>();
+    builder.Services.AddSingleton<IRequestHandler, McpToolsRequestHandler>();
+    builder.Services.AddHostedService<WorkspaceService>();
 
-await host.RunAsync().ConfigureAwait(false);
+    var host = builder.Build();
+
+    // Signal readiness — the extension reads this to know the pipe is active.
+    var pipeName = builder.Configuration["pipe"]
+        ?? throw new InvalidOperationException("Missing required argument: --pipe");
+
+    Console.WriteLine(JsonSerializer.Serialize(
+        new { pipe = pipeName },
+        WorkspaceService.JsonOptions));
+
+    await host.RunAsync().ConfigureAwait(false);
+}

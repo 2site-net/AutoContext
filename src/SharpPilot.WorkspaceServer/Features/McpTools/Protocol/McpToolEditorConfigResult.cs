@@ -1,4 +1,4 @@
-namespace SharpPilot.WorkspaceServer.Features.EditorConfig.Protocol;
+namespace SharpPilot.WorkspaceServer.Features.McpTools.Protocol;
 
 /// <summary>
 /// The resolved mode and optional EditorConfig data for a single MCP tool.

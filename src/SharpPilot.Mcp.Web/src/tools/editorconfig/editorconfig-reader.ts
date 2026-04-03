@@ -26,44 +26,6 @@ export class EditorConfigReader {
     }
 
     /**
-     * Resolves the effective `.editorconfig` properties for a given file path.
-     * Returns a human-readable report.
-     */
-    async read(path: string): Promise<string> {
-        if (!path.trim()) {
-            throw new Error('File path must not be empty or whitespace.');
-        }
-
-        const properties = await this.query(path);
-        const entries = Object.entries(properties);
-
-        if (entries.length === 0) {
-            return '⚠️ No .editorconfig properties apply to this file.';
-        }
-
-        return entries.map(([key, value]) => `${key} = ${String(value)}`).join('\n');
-    }
-
-    /**
-     * Resolves the effective `.editorconfig` properties for a given file path
-     * as a record for programmatic use by checkers.
-     *
-     * Returns `undefined` when the path is empty or no properties apply.
-     */
-    async resolve(
-        path: string | undefined,
-        keys?: readonly string[],
-    ): Promise<Record<string, string> | undefined> {
-        if (!path?.trim()) {
-            return undefined;
-        }
-
-        const properties = await this.query(path, keys);
-
-        return Object.keys(properties).length === 0 ? undefined : properties;
-    }
-
-    /**
      * Resolves tool modes and EditorConfig data for a batch of MCP tools
      * via the `mcp-tools` workspace service endpoint.
      */
@@ -83,21 +45,6 @@ export class EditorConfigReader {
 
         const results = response['mcp-tools'];
         return results?.length ? results : undefined;
-    }
-
-    /**
-     * Sends a length-prefixed request to the workspace service over the named
-     * pipe and returns the parsed properties.
-     *
-     * Protocol: 4-byte LE int32 length + UTF-8 JSON payload (both directions).
-     */
-    private query(filePath: string, keys?: readonly string[]): Promise<Record<string, string>> {
-        const request = keys?.length
-            ? { type: 'editorconfig', 'file-path': filePath, keys }
-            : { type: 'editorconfig', 'file-path': filePath };
-
-        return this.sendPipeRequest<{ properties?: Record<string, string> }>(request)
-            .then(r => r.properties ?? {});
     }
 
     /**

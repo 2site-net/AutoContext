@@ -1,4 +1,4 @@
-namespace SharpPilot.WorkspaceServer.Features.EditorConfig;
+namespace SharpPilot.WorkspaceServer.Services;
 
 using System.Buffers.Binary;
 using System.IO.Pipes;
@@ -8,20 +8,24 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-using SharpPilot.WorkspaceServer.Features.EditorConfig.Protocol;
+using SharpPilot.WorkspaceServer.Services.Protocol;
 
 /// <summary>
-/// Named pipe server that resolves EditorConfig properties using a
-/// length-prefixed binary protocol.  Each connection handles a single
-/// request: 4-byte little-endian length + UTF-8 JSON request, followed
-/// by a 4-byte little-endian length + UTF-8 JSON response.
+/// Named pipe server that dispatches requests to feature-specific handlers
+/// using a length-prefixed binary protocol.  Each connection handles a
+/// single request: 4-byte little-endian length + UTF-8 JSON request,
+/// followed by a 4-byte little-endian length + UTF-8 JSON response.
 /// </summary>
 internal sealed partial class WorkspaceService(
     IConfiguration configuration,
-    EditorConfigResolver resolver,
-    McpToolsConfig toolsStatus,
+    IEnumerable<IRequestHandler> handlers,
     ILogger<WorkspaceService> logger) : BackgroundService
 {
+    private static readonly byte[] FallbackResponse = """{"properties":{}}"""u8.ToArray();
+
+    private readonly Dictionary<string, IRequestHandler> _handlers =
+        handlers.ToDictionary(h => h.RequestType);
+
     internal static JsonSerializerOptions JsonOptions { get; } = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.KebabCaseLower,
@@ -35,7 +39,7 @@ internal sealed partial class WorkspaceService(
 
         LogStarting(logger, pipeName);
 
-        var handlers = new List<Task>();
+        var connections = new List<Task>();
 
         try
         {
@@ -48,12 +52,12 @@ internal sealed partial class WorkspaceService(
                     break;
                 }
 
-                handlers.Add(HandleConnectionAsync(pipe, resolver, toolsStatus));
+                connections.Add(HandleConnectionAsync(pipe));
             }
         }
         finally
         {
-            await Task.WhenAll(handlers).ConfigureAwait(false);
+            await Task.WhenAll(connections).ConfigureAwait(false);
         }
     }
 
@@ -101,10 +105,7 @@ internal sealed partial class WorkspaceService(
         }
     }
 
-    private static async Task HandleConnectionAsync(
-        NamedPipeServerStream pipe,
-        EditorConfigResolver resolver,
-        McpToolsConfig toolsStatus)
+    private async Task HandleConnectionAsync(NamedPipeServerStream pipe)
     {
         try
         {
@@ -117,7 +118,7 @@ internal sealed partial class WorkspaceService(
                     return;
                 }
 
-                var responseBytes = ProcessRequest(requestBytes, resolver, toolsStatus);
+                var responseBytes = ProcessRequest(requestBytes);
 
                 await WriteMessageAsync(pipe, responseBytes).ConfigureAwait(false);
             }
@@ -198,80 +199,26 @@ internal sealed partial class WorkspaceService(
         return true;
     }
 
-    private static byte[] ProcessRequest(
-        ReadOnlySpan<byte> json,
-        EditorConfigResolver resolver,
-        McpToolsConfig toolsStatus)
+    private byte[] ProcessRequest(ReadOnlySpan<byte> json)
     {
         try
         {
             var envelope = JsonSerializer.Deserialize<WorkspaceRequest>(json, JsonOptions);
 
-            return envelope?.Type switch
+            if (envelope?.Type is not null && _handlers.TryGetValue(envelope.Type, out var handler))
             {
-                "mcp-tools" => ProcessMcpToolsRequest(json, resolver, toolsStatus),
-                _ => ProcessEditorConfigRequest(json, resolver),
-            };
+                return handler.Process(json);
+            }
+
+            // Untyped requests default to the editorconfig handler (backward compatibility).
+            return _handlers.TryGetValue("editorconfig", out var fallback)
+                ? fallback.Process(json)
+                : FallbackResponse;
         }
         catch (JsonException)
         {
-            return JsonSerializer.SerializeToUtf8Bytes(new EditorConfigResponse([]), JsonOptions);
+            return FallbackResponse;
         }
-    }
-
-    private static byte[] ProcessEditorConfigRequest(ReadOnlySpan<byte> json, EditorConfigResolver resolver)
-    {
-        var request = JsonSerializer.Deserialize<EditorConfigRequest>(json, JsonOptions);
-
-        if (request is null || string.IsNullOrWhiteSpace(request.FilePath))
-        {
-            return JsonSerializer.SerializeToUtf8Bytes(new EditorConfigResponse([]), JsonOptions);
-        }
-
-        var properties = resolver.Resolve(request.FilePath, request.Keys);
-
-        return JsonSerializer.SerializeToUtf8Bytes(new EditorConfigResponse(properties), JsonOptions);
-    }
-
-    private static byte[] ProcessMcpToolsRequest(
-        ReadOnlySpan<byte> json,
-        EditorConfigResolver resolver,
-        McpToolsConfig toolsStatus)
-    {
-        var request = JsonSerializer.Deserialize<McpToolsRequest>(json, JsonOptions);
-
-        if (request is null
-            || string.IsNullOrWhiteSpace(request.FilePath)
-            || request.McpTools is not { Length: > 0 })
-        {
-            return JsonSerializer.SerializeToUtf8Bytes(new McpToolsResponse([]), JsonOptions);
-        }
-
-        var results = new McpToolEditorConfigResult[request.McpTools.Length];
-
-        for (var i = 0; i < request.McpTools.Length; i++)
-        {
-            var tool = request.McpTools[i];
-            var enabled = toolsStatus.IsEnabled(tool.Name);
-            var hasKeys = tool.EditorConfigKeys is { Length: > 0 };
-
-            if (enabled)
-            {
-                var data = hasKeys ? resolver.Resolve(request.FilePath, tool.EditorConfigKeys) : null;
-                results[i] = new McpToolEditorConfigResult(tool.Name, McpToolMode.Run, data);
-            }
-            else if (hasKeys)
-            {
-                var data = resolver.Resolve(request.FilePath, tool.EditorConfigKeys);
-                results[i] = new McpToolEditorConfigResult(tool.Name, McpToolMode.EditorConfigOnly, data);
-            }
-            else
-            {
-                results[i] = new McpToolEditorConfigResult(tool.Name, McpToolMode.Skip);
-            }
-        }
-
-        return JsonSerializer.SerializeToUtf8Bytes(new McpToolsResponse(results), JsonOptions);
     }
 
     [LoggerMessage(Level = LogLevel.Information,

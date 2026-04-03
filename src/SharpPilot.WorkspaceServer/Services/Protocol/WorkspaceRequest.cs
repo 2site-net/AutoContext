@@ -1,4 +1,4 @@
-namespace SharpPilot.WorkspaceServer.Features.EditorConfig.Protocol;
+namespace SharpPilot.WorkspaceServer.Services.Protocol;
 
 /// <summary>
 /// Minimal envelope used to read the <c>type</c> discriminator before

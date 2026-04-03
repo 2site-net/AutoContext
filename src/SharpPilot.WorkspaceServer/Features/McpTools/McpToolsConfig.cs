@@ -1,4 +1,4 @@
-namespace SharpPilot.WorkspaceServer.Features.EditorConfig;
+namespace SharpPilot.WorkspaceServer.Features.McpTools;
 
 using System.Text.Json;
 

@@ -23,11 +23,12 @@ internal sealed class Program
         builder.Logging.AddFilter("SharpPilot", LogLevel.Information);
 
         var scope = builder.Configuration["scope"]
-            ?? throw new ArgumentException("Missing required argument: --scope (dotnet|git|editorconfig)");
+            ?? throw new ArgumentException("Missing required argument: --scope (dotnet|git)");
 
         var workspace = builder.Configuration["workspace"];
 
         var workspacePipe = builder.Configuration["workspace-server"];
+
         if (workspacePipe is not null)
         {
             EditorConfigReader.Configure(workspacePipe, workspace);
@@ -44,11 +45,7 @@ internal sealed class Program
             [
                 typeof(GitChecker),
             ],
-            "editorconfig" =>
-            [
-                typeof(EditorConfigReader),
-            ],
-            _ => throw new ArgumentException($"Unknown scope '{scope}'. Valid values: dotnet, git, editorconfig."),
+            _ => throw new ArgumentException($"Unknown scope '{scope}'. Valid values: dotnet, git."),
         };
 
         builder.Services

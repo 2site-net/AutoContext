@@ -1,4 +1,4 @@
-namespace SharpPilot.WorkspaceServer.Tests.Features.EditorConfig;
+namespace SharpPilot.WorkspaceServer.Tests.Services;
 
 using System.IO.Pipes;
 using System.Text;
@@ -9,6 +9,9 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 using SharpPilot.WorkspaceServer.Features.EditorConfig;
 using SharpPilot.WorkspaceServer.Features.EditorConfig.Protocol;
+using SharpPilot.WorkspaceServer.Features.McpTools;
+using SharpPilot.WorkspaceServer.Features.McpTools.Protocol;
+using SharpPilot.WorkspaceServer.Services;
 
 public sealed class WorkspaceServiceTests : IDisposable
 {
@@ -153,11 +156,15 @@ public sealed class WorkspaceServiceTests : IDisposable
             ])
             .Build();
 
-        return new WorkspaceService(
-            config,
-            new EditorConfigResolver(),
-            new McpToolsConfig(config),
-            NullLogger<WorkspaceService>.Instance);
+        var resolver = new EditorConfigResolver();
+
+        IRequestHandler[] handlers =
+        [
+            new EditorConfigRequestHandler(resolver),
+            new McpToolsRequestHandler(resolver, new McpToolsConfig(config)),
+        ];
+
+        return new WorkspaceService(config, handlers, NullLogger<WorkspaceService>.Instance);
     }
 
     private static async Task<EditorConfigResponse?> SendRequestAsync(
