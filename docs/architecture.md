@@ -16,7 +16,7 @@ Style rules vary between projects. Rather than hardcoding one opinion, checkers 
 
 ### Why a Separate Workspace Server?
 
-`SharpPilot.WorkspaceServer` is a dual-mode executable. In **named-pipe mode** (`--pipe <name>`) it runs as a long-lived background service shared by all other MCP servers — centralizing `.editorconfig` resolution and tool orchestration so the checkers stay stateless and the directory tree is not reparsed on every tool call. In **MCP mode** (`--scope editorconfig`) the same binary runs as a standard MCP stdio server exposing the `get_editorconfig` tool to Copilot.
+Other MCP servers need `.editorconfig` properties and tool enable/disable decisions, but reparsing the directory tree and config file on every tool call would be wasteful and error-prone. `SharpPilot.WorkspaceServer` centralizes these concerns in a single long-lived process so the checkers stay stateless. The same binary also hosts technology-agnostic MCP tools directly — see [Projects](#projects) for the full mode breakdown.
 
 ### Why Per-Instruction Disable?
 
@@ -27,60 +27,28 @@ A single instruction file may contain dozens of rules. Turning off the entire fi
 ## How It All Connects
 
 ```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                       1. WORKSPACE SERVER SPAWN                              │
-│                                                                              │
-│   WorkspaceServerManager starts a SharpPilot.WorkspaceServer process on a   │
-│   unique named pipe. All MCP servers in this window share this single        │
-│   process for .editorconfig resolution and tool orchestration.               │
-└─────────────────────────────────────────────────────────────────────────────┘
-                                     │
-                                     ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                        2. TOOL CONFIGURATION                                 │
-│                                                                              │
-│   McpToolsConfigWriter reads VS Code settings and writes disabled tool       │
-│   names to .sharppilot.json. MCP servers read this file at runtime.          │
-│   Disabled sub-checks are skipped unless they have EditorConfig backing.     │
-└─────────────────────────────────────────────────────────────────────────────┘
-                                     │
-                                     ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                        3. WORKSPACE DETECTION                                │
-│                                                                              │
-│   WorkspaceContextDetector scans for .csproj, package.json, .git, etc.      │
-│   Sets boolean context keys: hasDotNet, hasGit, hasTypeScript, …            │
-│   These keys drive both server registration and instruction injection.       │
-└─────────────────────────────────────────────────────────────────────────────┘
-                                     │
-                                     ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                      4. INSTRUCTION NORMALIZATION                            │
-│                                                                              │
-│   InstructionsConfigWriter normalizes instruction files into .generated/,   │
-│   stripping [INSTxxxx] tags and removing disabled rules. Per-instruction     │
-│   disable removes individual rules without turning off the entire file.      │
-└─────────────────────────────────────────────────────────────────────────────┘
-                                     │
-                                     ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                        5. SERVER REGISTRATION                                │
-│                                                                              │
-│   McpServerProvider implements McpServerDefinitionProvider. Its              │
-│   provideMcpServerDefinitions() filters McpServersRegistry entries by        │
-│   context keys (step 3) and tool settings (step 2), returning only the      │
-│   servers relevant to the current workspace.                                 │
-└─────────────────────────────────────────────────────────────────────────────┘
-                                     │
-                                     ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                      6. RUNTIME (Copilot invokes tools)                      │
-│                                                                              │
-│   Copilot calls aggregation tools (check_csharp_all, check_git_all, …)     │
-│   or standalone tools (get_editorconfig). EditorConfig properties are        │
-│   resolved on demand via the workspace server and drive checker behavior.    │
-└─────────────────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────┐
+│  1. WORKSPACE SERVER SPAWN                   │
+│  Start the named-pipe background service.    │
+├──────────────────────────────────────────────┤
+│  2. TOOL CONFIGURATION                       │
+│  Write disabled tools to .sharppilot.json.   │
+├──────────────────────────────────────────────┤
+│  3. WORKSPACE DETECTION                      │
+│  Scan for project files, set context keys.   │
+├──────────────────────────────────────────────┤
+│  4. INSTRUCTION NORMALIZATION                │
+│  Strip tags, remove disabled rules.          │
+├──────────────────────────────────────────────┤
+│  5. SERVER REGISTRATION                      │
+│  Filter MCP servers by context and settings. │
+├──────────────────────────────────────────────┤
+│  6. RUNTIME                                  │
+│  Copilot invokes tools, checkers report.     │
+└──────────────────────────────────────────────┘
 ```
+
+Steps 1–5 run on activation; step 6 happens at runtime when Copilot calls a tool. See [Activation Flow](#activation-flow) and [Runtime Flow](#runtime-flow) for details.
 
 ---
 
@@ -88,7 +56,7 @@ A single instruction file may contain dozens of rules. Turning off the entire fi
 
 When the extension activates, the following steps execute synchronously:
 
-1. **`WorkspaceServerManager.start()`** — spawns the `SharpPilot.WorkspaceServer` service process, a standalone named-pipe server that resolves `.editorconfig` properties and tool enable/disable status. Each VS Code window generates a unique pipe name (`sharppilot-workspace-<random>`) and its own server process, so multiple windows open on different workspaces are fully isolated — each reads its own `.sharppilot.json` and `.editorconfig` tree with no cross-talk. Once ready, the pipe name is injected into every MCP server definition via `--workspace-server` so all MCP servers within that window share a single process.
+1. **`WorkspaceServerManager.start()`** — spawns `SharpPilot.WorkspaceServer` in named-pipe mode (see [Projects](#projects)). Each VS Code window gets its own pipe (`sharppilot-workspace-<random>`) and its own server process, so multiple windows are fully isolated. The pipe name is injected into every MCP server definition via `--workspace-server`.
 2. **`McpToolsConfigWriter.write()`** — reads VS Code settings, writes disabled tool names to `.sharppilot.json` in the workspace root.
 3. **`WorkspaceContextDetector.detect()`** — scans the workspace for project files, `package.json` dependencies, and directory markers. Sets VS Code context keys that control both server registration and instruction injection.
 4. **`ConfigManager.removeOrphanedIds()`** — cleans disabled-instruction IDs from `.sharppilot.json` that no longer match any instruction in the current extension version.
@@ -174,20 +142,18 @@ On activation (and on configuration or window-focus changes), `InstructionsConfi
 
 ## MCP and Tools
 
-SharpPilot registers four MCP server categories — DotNet, Git, EditorConfig, and TypeScript — each identified by a `--scope` argument so they appear as separate sections in the tools UI. These categories run across three executables (`SharpPilot.Mcp.DotNet`, `SharpPilot.WorkspaceServer`, and `SharpPilot.Mcp.Web`), plus a background `WorkspaceServer` instance in named-pipe mode. The current categories are defined in `mcp-servers-registry.ts` and `mcp-tools-registry.ts`.
+SharpPilot registers four MCP server categories — DotNet, Git, EditorConfig, and TypeScript — each identified by a `--scope` argument so they appear as separate sections in the tools UI. Categories are defined in `mcp-servers-registry.ts` and `mcp-tools-registry.ts`. Servers are workspace-aware (see [Activation Flow](#activation-flow) steps 3 and 5) and most tools are aggregation tools that loop over individually-toggleable sub-checks (see [Runtime Flow](#runtime-flow)).
 
-Servers are workspace-aware: `McpServerProvider` (implementing `McpServerDefinitionProvider`) only returns a server definition when the workspace contains matching content (e.g., `.csproj` files for .NET, `.git` directory for Git) and at least one of its tools is enabled. The EditorConfig category has no context key — it is always available regardless of workspace content.
+### Projects
 
-Most tools Copilot sees are **aggregation tools** — a single MCP tool that loops over multiple sub-checks internally. Each sub-check can be individually toggled on or off in VS Code settings (e.g., `sharppilot.tools.check_csharp_naming_conventions`). When a sub-check is disabled, the aggregation tool simply skips it, so the report only contains the checks the team cares about.
+A shared class library and three executables make up the server side:
 
-### Executables
-
-Three executables handle tool execution:
-
-- **`SharpPilot.Mcp.DotNet`** — .NET-based MCP server. Handles the DotNet and Git scopes (one process per scope). C# checkers resolve `.editorconfig` properties via the workspace server and use them to drive enforcement direction (e.g., brace style, namespace style).
+- **`SharpPilot.Mcp.Shared`** — Shared contracts and communication layer for the .NET MCP servers.
+- **`SharpPilot.Mcp.DotNet`** — .NET-based MCP server. Handles the DotNet scope. C# checkers resolve `.editorconfig` properties via the workspace server and use them to drive enforcement direction (e.g., brace style, namespace style).
 - **`SharpPilot.Mcp.Web`** — Node.js-based MCP server. Handles the TypeScript scope.
-- **`SharpPilot.WorkspaceServer`** — Dual-mode .NET executable:
-  - **MCP mode** (`--scope editorconfig`): Runs as an MCP stdio server exposing a single tool, `get_editorconfig`, which resolves the effective `.editorconfig` properties for a given file path by walking the directory tree, evaluating glob patterns and section cascading, and returning the final key-value pairs. This tool is standalone — not an aggregation.
+- **`SharpPilot.WorkspaceServer`** — Handles cross-cutting workspace tasks and hosts technology-agnostic MCP tools. Multi-mode .NET executable:
+  - **MCP mode — EditorConfig** (`--scope editorconfig`): Runs as an MCP stdio server exposing a single tool, `get_editorconfig`, which resolves the effective `.editorconfig` properties for a given file path by walking the directory tree, evaluating glob patterns and section cascading, and returning the final key-value pairs. This tool is standalone — not an aggregation.
+  - **MCP mode — Git** (`--scope git`): Runs as an MCP stdio server exposing Git quality checks (commit format, commit content). Like the DotNet scope, checkers resolve `.editorconfig` properties via the workspace server.
   - **Named-pipe mode** (`--pipe <name>`): Runs as a long-lived background service started once by `WorkspaceServerManager`. Handles `"editorconfig"` requests (property resolution) and `"mcp-tools"` requests (tool orchestration — enable/disable decisions + EditorConfig data). All other MCP servers connect to this service via `--workspace-server <pipeName>`.
 
 > **Future:** The current design relies on Copilot calling `get_editorconfig` explicitly — which depends on the model following the instruction in `copilot.instructions.md`. A planned improvement would replace this with a dynamic `InstructionsProvider` that injects `.editorconfig` rules into the chat context automatically, removing the tool-call dependency. This is blocked on the VS Code `chatPromptFiles` proposed API graduating to stable. See [docs/future/dynamic-editorconfig-instructions.md](future/dynamic-editorconfig-instructions.md) for details.

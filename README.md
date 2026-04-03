@@ -24,12 +24,11 @@ Tools and instructions are grouped into categories (DotNet, Git, EditorConfig, T
 
 ```text
 SharpPilot.slnx                        # Solution file
-src/SharpPilot.WorkspaceServer/        # Workspace server (named-pipe, EditorConfig resolution)
-src/SharpPilot.WorkspaceServer.Tests/  # xUnit tests for the workspace server
-src/SharpPilot.Mcp.DotNet/            # MCP server (.NET + Git tools)
-src/SharpPilot.Mcp.DotNet.Tests/      # xUnit tests for the .NET MCP server
-src/SharpPilot.Mcp.Web/               # MCP server (TypeScript tools)
-src/SharpPilot.VSCode/                # VS Code extension (instructions, tools, rule management)
+src/SharpPilot.Mcp.Shared/             # Shared contracts and communication layer for .NET MCP servers
+src/SharpPilot.WorkspaceServer/        # Handles cross-cutting workspace tasks and hosts technology-agnostic MCP tools
+src/SharpPilot.Mcp.DotNet/             # Provides MCP tools server for .NET development (e.g. C#, NuGet)
+src/SharpPilot.Mcp.Web/                # Provides MCP tools server for web development (e.g. TypeScript)
+src/SharpPilot.VSCode/                 # VS Code extension for instructions, tool orchestration, and workspace detection
 ```
 
 ## Architecture
@@ -61,7 +60,7 @@ If you have the .NET 10 SDK installed and have cloned this repo, you can registe
       "args": [
         "run",
         "--project",
-        "${workspaceFolder}/src/SharpPilot.Mcp.DotNet/SharpPilot.Mcp.DotNet.csproj",
+        "${workspaceFolder}/src/SharpPilot.WorkspaceServer/SharpPilot.WorkspaceServer.csproj",
         "--",
         "--scope",
         "git"

@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/SharpPilot.Mcp.Shared/SharpPilot.Mcp.Shared.csproj" />
     <Project Path="src/SharpPilot.WorkspaceServer/SharpPilot.WorkspaceServer.csproj" />
     <Project Path="src/SharpPilot.Mcp.DotNet/SharpPilot.Mcp.DotNet.csproj" />
   </Folder>

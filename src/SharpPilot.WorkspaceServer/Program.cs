@@ -5,7 +5,9 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Console;
 
+using SharpPilot.Mcp.Shared.EditorConfig;
 using SharpPilot.WorkspaceServer.Features.EditorConfig;
+using SharpPilot.WorkspaceServer.Features.Git;
 using SharpPilot.WorkspaceServer.Features.McpTools;
 using SharpPilot.WorkspaceServer.Services;
 
@@ -31,6 +33,24 @@ if (scope == "editorconfig")
         .AddMcpServer()
         .WithStdioServerTransport()
         .WithTools([typeof(EditorConfigTool)]);
+
+    await builder.Build().RunAsync().ConfigureAwait(false);
+}
+else if (scope == "git")
+{
+    // MCP stdio mode — registers Git commit quality check tools.
+    var workspace = builder.Configuration["workspace"];
+    var workspacePipe = builder.Configuration["workspace-server"];
+
+    if (workspacePipe is not null)
+    {
+        EditorConfigReader.Configure(workspacePipe, workspace);
+    }
+
+    builder.Services
+        .AddMcpServer()
+        .WithStdioServerTransport()
+        .WithTools([typeof(GitChecker)]);
 
     await builder.Build().RunAsync().ConfigureAwait(false);
 }

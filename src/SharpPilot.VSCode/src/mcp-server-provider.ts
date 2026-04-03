@@ -56,7 +56,7 @@ export class McpServerProvider implements vscode.McpServerDefinitionProvider {
                     args.push('--workspace', workspaceFolder.uri.fsPath);
                 }
 
-                if (s.process !== 'workspace') {
+                if (s.category !== 'editorconfig') {
                     const pipeName = this.workspaceServer.getPipeName();
 
                     if (pipeName) {

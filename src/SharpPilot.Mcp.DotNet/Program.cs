@@ -4,10 +4,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-using SharpPilot.Mcp.DotNet.Tools.Checkers.DotNet;
-using SharpPilot.Mcp.DotNet.Tools.Checkers.DotNet.CSharp;
-using SharpPilot.Mcp.DotNet.Tools.Checkers.Git;
-using SharpPilot.Mcp.DotNet.Tools.EditorConfig;
+using SharpPilot.Mcp.Shared.EditorConfig;
+using SharpPilot.Mcp.DotNet.Tools.Checkers;
+using SharpPilot.Mcp.DotNet.Tools.Checkers.CSharp;
 
 internal sealed class Program
 {
@@ -23,7 +22,7 @@ internal sealed class Program
         builder.Logging.AddFilter("SharpPilot", LogLevel.Information);
 
         var scope = builder.Configuration["scope"]
-            ?? throw new ArgumentException("Missing required argument: --scope (dotnet|git)");
+            ?? throw new ArgumentException("Missing required argument: --scope dotnet");
 
         var workspace = builder.Configuration["workspace"];
 
@@ -41,11 +40,7 @@ internal sealed class Program
                 typeof(CSharpChecker),
                 typeof(NuGetHygieneChecker),
             ],
-            "git" =>
-            [
-                typeof(GitChecker),
-            ],
-            _ => throw new ArgumentException($"Unknown scope '{scope}'. Valid values: dotnet, git."),
+            _ => throw new ArgumentException($"Unknown scope '{scope}'. Valid value: dotnet."),
         };
 
         builder.Services
