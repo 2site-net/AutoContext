@@ -17,7 +17,7 @@ import { McpServerProvider } from './mcp-server-provider.js';
 import { WorkspaceServerManager } from './workspace-server-manager.js';
 import { McpToolsRegistry } from './mcp-tools-registry.js';
 
-export function activate(context: vscode.ExtensionContext): void {
+export function activate(context: vscode.ExtensionContext) {
     if (!vscode.workspace.workspaceFolders?.length) {
         return;
     }
@@ -118,6 +118,8 @@ export function activate(context: vscode.ExtensionContext): void {
         workspaceContextDetector.onDidChange(() => didChangeEmitter.fire()),
         vscode.lm.registerMcpServerDefinitionProvider('sharpPilotProvider', mcpServerProvider),
     );
+
+    return { mcpServerProvider, configManager, codeLensProvider, contentProvider, workspaceContextDetector, workspaceServer };
 }
 
 export function deactivate(): void {}

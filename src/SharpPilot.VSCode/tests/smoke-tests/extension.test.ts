@@ -2,23 +2,13 @@ import * as assert from 'node:assert/strict';
 import * as vscode from 'vscode';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { activatedExtension } from './helpers.js';
 
 suite('Extension Smoke Tests', () => {
-    const extensionId = '2site-net.sharppilot';
-
-    async function activatedExtension(): Promise<vscode.Extension<unknown>> {
-        const ext = vscode.extensions.getExtension(extensionId);
-        assert.ok(ext, `Extension ${extensionId} not found`);
-        if (!ext.isActive) {
-            await ext.activate();
-        }
-        return ext as vscode.Extension<unknown>;
-    }
-
     test('extension should be present', () => {
-        const ext = vscode.extensions.getExtension(extensionId);
+        const ext = vscode.extensions.getExtension('2site-net.sharppilot');
 
-        assert.ok(ext, `Extension ${extensionId} not found`);
+        assert.ok(ext, 'Extension 2site-net.sharppilot not found');
     });
 
     test('extension should activate', async () => {
@@ -29,6 +19,7 @@ suite('Extension Smoke Tests', () => {
 
     test('registered commands should include all SharpPilot commands', async () => {
         await activatedExtension();
+
         const allCommands = await vscode.commands.getCommands(true);
         const expected = [
             'sharppilot.toggleInstructions',
