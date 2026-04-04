@@ -28,7 +28,7 @@ export class InstructionsRegistry {
         { settingId: 'sharppilot.instructions.dotnet.oracle', fileName: 'dotnet-oracle.instructions.md', label: 'Oracle', category: '.NET', contextKeys: ['hasOracle'] },
         { settingId: 'sharppilot.instructions.dotnet.performanceMemory', fileName: 'dotnet-performance-memory.instructions.md', label: 'Performance & Memory', category: '.NET', contextKeys: ['hasDotNet'] },
         { settingId: 'sharppilot.instructions.dotnet.postgresql', fileName: 'dotnet-postgresql.instructions.md', label: 'PostgreSQL', category: '.NET', contextKeys: ['hasPostgres'] },
-        { settingId: 'sharppilot.instructions.dotnet.razor', fileName: 'dotnet-razor.instructions.md', label: 'Razor', category: '.NET', contextKeys: ['hasBlazor'] },
+        { settingId: 'sharppilot.instructions.dotnet.razor', fileName: 'dotnet-razor.instructions.md', label: 'Razor', category: '.NET', contextKeys: ['hasRazor'] },
         { settingId: 'sharppilot.instructions.dotnet.redis', fileName: 'dotnet-redis.instructions.md', label: 'Redis', category: '.NET', contextKeys: ['hasRedis'] },
         { settingId: 'sharppilot.instructions.dotnet.signalR', fileName: 'dotnet-signalr.instructions.md', label: 'SignalR', category: '.NET', contextKeys: ['hasSignalR'] },
         { settingId: 'sharppilot.instructions.dotnet.sqlite', fileName: 'dotnet-sqlite.instructions.md', label: 'SQLite', category: '.NET', contextKeys: ['hasSqlite'] },

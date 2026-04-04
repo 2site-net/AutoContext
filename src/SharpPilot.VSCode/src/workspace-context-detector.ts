@@ -72,13 +72,14 @@ export class WorkspaceContextDetector implements vscode.Disposable {
 
             const decoder = new TextDecoder();
 
-            const [dotnetFiles, csharpFiles, fsharpFiles, vbnetFiles, razorFiles, xamlFiles, htmlFiles, cssFiles, jsFiles, tsFiles, unityFiles, dockerFiles, psFiles, shFiles, batFiles, yamlFiles] = await Promise.all([
+            const [dotnetFiles, csharpFiles, fsharpFiles, vbnetFiles, razorFiles, xamlFiles, cshtmlFiles, htmlFiles, cssFiles, jsFiles, tsFiles, unityFiles, dockerFiles, psFiles, shFiles, batFiles, yamlFiles] = await Promise.all([
                 vscode.workspace.findFiles('**/*.{csproj,fsproj,vbproj,sln,slnx}', '**/node_modules/**', 1),
                 vscode.workspace.findFiles('**/*.csproj', '**/node_modules/**', 1),
                 vscode.workspace.findFiles('**/*.fsproj', '**/node_modules/**', 1),
                 vscode.workspace.findFiles('**/*.vbproj', '**/node_modules/**', 1),
                 vscode.workspace.findFiles('**/*.razor', '**/node_modules/**', 1),
                 vscode.workspace.findFiles('**/*.xaml', '**/node_modules/**', 1),
+                vscode.workspace.findFiles('**/*.cshtml', '**/node_modules/**', 1),
                 vscode.workspace.findFiles('**/*.{html,cshtml}', '**/node_modules/**', 1),
                 vscode.workspace.findFiles('**/*.css', '**/node_modules/**', 1),
                 vscode.workspace.findFiles('**/*.{js,jsx,mjs,cjs}', '**/node_modules/**', 1),
@@ -100,6 +101,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
             const hasVbNet = vbnetFiles.length > 0;
             const hasBlazor = razorFiles.length > 0;
             let hasXaml = xamlFiles.length > 0;
+            let hasRazor = razorFiles.length > 0 || cshtmlFiles.length > 0;
             const hasHtml = htmlFiles.length > 0 || hasBlazor;
             const hasCss = cssFiles.length > 0 || hasHtml;
             const hasUnity = unityFiles.length > 0;
@@ -295,6 +297,10 @@ export class WorkspaceContextDetector implements vscode.Disposable {
                 hasAspNetCore = true;
             }
 
+            if (hasAspNetCore) {
+                hasRazor = true;
+            }
+
             if (hasBlazor || hasUnity) {
                 hasCSharp = true;
             }
@@ -388,6 +394,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
                 setContext('sharppilot.workspace.hasPlaywright', hasPlaywright),
                 setContext('sharppilot.workspace.hasCypress', hasCypress),
                 setContext('sharppilot.workspace.hasXaml', hasXaml),
+                setContext('sharppilot.workspace.hasRazor', hasRazor),
                 setContext('sharppilot.workspace.hasDotNetTesting', hasXunit || hasMsTest || hasNUnit),
                 setContext('sharppilot.workspace.hasWebTesting', hasVitest || hasJest || hasJasmine || hasMocha || hasPlaywright || hasCypress),
                 setContext('sharppilot.workspace.hasGit', hasGit),
@@ -405,6 +412,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
                 hasUnity, hasDocker, hasYaml, hasGraphql, hasNextJs, hasNodeJs, hasPowerShell, hasBash, hasBatch,
                 hasVitest, hasJest, hasJasmine, hasMocha, hasPlaywright, hasCypress,
                 hasXaml,
+                hasRazor,
                 hasDotNetTesting: hasXunit || hasMsTest || hasNUnit,
                 hasWebTesting: hasVitest || hasJest || hasJasmine || hasMocha || hasPlaywright || hasCypress,
                 hasGit,

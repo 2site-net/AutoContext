@@ -191,7 +191,7 @@
       },
       {
         "path": "./instructions/.generated/dotnet-razor.instructions.md",
-        "when": "config.sharppilot.instructions.dotnet.razor && sharppilot.workspace.hasBlazor && !sharppilot.override.dotnet.razor"
+        "when": "config.sharppilot.instructions.dotnet.razor && sharppilot.workspace.hasRazor && !sharppilot.override.dotnet.razor"
       },
       {
         "path": "./instructions/.generated/dotnet-redis.instructions.md",
