@@ -226,6 +226,10 @@
         "when": "config.sharppilot.instructions.dotnet.wpf && sharppilot.workspace.hasWpf && !sharppilot.override.dotnet.wpf"
       },
       {
+        "path": "./instructions/.generated/dotnet-xaml.instructions.md",
+        "when": "config.sharppilot.instructions.dotnet.xaml && sharppilot.workspace.hasXaml && !sharppilot.override.dotnet.xaml"
+      },
+      {
         "path": "./instructions/.generated/dotnet-xunit.instructions.md",
         "when": "config.sharppilot.instructions.dotnet.xunit && sharppilot.workspace.hasXunit && !sharppilot.override.dotnet.xunit"
       },
@@ -567,6 +571,11 @@
           "type": "boolean",
           "default": true,
           "description": "Enable WPF MVVM, data binding, threading, and performance guidelines."
+        },
+        "sharppilot.instructions.dotnet.xaml": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable XAML guidelines (layout, data binding, resources, templates, accessibility)."
         },
         "sharppilot.instructions.dotnet.xunit": {
           "type": "boolean",

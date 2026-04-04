@@ -37,6 +37,7 @@ export class InstructionsRegistry {
         { settingId: 'sharppilot.instructions.dotnet.unity', fileName: 'dotnet-unity.instructions.md', label: 'Unity', category: '.NET', contextKeys: ['hasUnity'] },
         { settingId: 'sharppilot.instructions.dotnet.winForms', fileName: 'dotnet-winforms.instructions.md', label: 'Windows Forms', category: '.NET', contextKeys: ['hasWinForms'] },
         { settingId: 'sharppilot.instructions.dotnet.wpf', fileName: 'dotnet-wpf.instructions.md', label: 'WPF', category: '.NET', contextKeys: ['hasWpf'] },
+        { settingId: 'sharppilot.instructions.dotnet.xaml', fileName: 'dotnet-xaml.instructions.md', label: 'XAML', category: '.NET', contextKeys: ['hasXaml'] },
         { settingId: 'sharppilot.instructions.dotnet.xunit', fileName: 'dotnet-xunit.instructions.md', label: 'xUnit', category: '.NET', contextKeys: ['hasXunit'] },
         { settingId: 'sharppilot.instructions.dotnet.mstest', fileName: 'dotnet-mstest.instructions.md', label: 'MSTest', category: '.NET', contextKeys: ['hasMsTest'] },
         { settingId: 'sharppilot.instructions.dotnet.nunit', fileName: 'dotnet-nunit.instructions.md', label: 'NUnit', category: '.NET', contextKeys: ['hasNUnit'] },
