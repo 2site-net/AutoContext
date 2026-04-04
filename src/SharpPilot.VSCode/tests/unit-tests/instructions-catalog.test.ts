@@ -56,6 +56,6 @@ describe('InstructionsCatalog', () => {
 
         expect.soft(catalog.all).toEqual([]);
         expect.soft(catalog.count).toBe(0);
-        expect(catalog.findByFileName('anything.md')).toBeUndefined();
+        expect.soft(catalog.findByFileName('anything.md')).toBeUndefined();
     });
 });

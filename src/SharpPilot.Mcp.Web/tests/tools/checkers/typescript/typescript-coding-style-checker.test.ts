@@ -16,7 +16,7 @@ describe('TypeScriptCodingStyleChecker', () => {
             }
         `;
 
-        expect(checker.check(source)).toMatch(/^✅/);
+        expect.soft(checker.check(source)).toMatch(/^✅/);
     });
 
     it('should flag use of any type', () => {
@@ -29,7 +29,7 @@ describe('TypeScriptCodingStyleChecker', () => {
         const result = checker.check(source);
 
         expect.soft(result).toMatch(/^❌/);
-        expect(result).toContain('any');
+        expect.soft(result).toContain('any');
     });
 
     it('should flag as any assertion', () => {
@@ -40,7 +40,7 @@ describe('TypeScriptCodingStyleChecker', () => {
         const result = checker.check(source);
 
         expect.soft(result).toMatch(/^❌/);
-        expect(result).toContain('any');
+        expect.soft(result).toContain('any');
     });
 
     it('should flag enum declarations', () => {
@@ -56,7 +56,7 @@ describe('TypeScriptCodingStyleChecker', () => {
         const result = checker.check(source);
 
         expect.soft(result).toMatch(/^❌/);
-        expect(result).toContain('enum');
+        expect.soft(result).toContain('enum');
     });
 
     it('should flag @ts-ignore', () => {
@@ -68,7 +68,7 @@ describe('TypeScriptCodingStyleChecker', () => {
         const result = checker.check(source);
 
         expect.soft(result).toMatch(/^❌/);
-        expect(result).toContain('@ts-expect-error');
+        expect.soft(result).toContain('@ts-expect-error');
     });
 
     it('should flag Function type', () => {
@@ -81,7 +81,7 @@ describe('TypeScriptCodingStyleChecker', () => {
         const result = checker.check(source);
 
         expect.soft(result).toMatch(/^❌/);
-        expect(result).toContain('Function');
+        expect.soft(result).toContain('Function');
     });
 
     it('should flag Object type', () => {
@@ -94,7 +94,7 @@ describe('TypeScriptCodingStyleChecker', () => {
         const result = checker.check(source);
 
         expect.soft(result).toMatch(/^❌/);
-        expect(result).toContain('Object');
+        expect.soft(result).toContain('Object');
     });
 
     it('should report multiple violations', () => {
@@ -109,7 +109,7 @@ describe('TypeScriptCodingStyleChecker', () => {
         expect.soft(result).toMatch(/^❌/);
         expect.soft(result).toContain('@ts-expect-error');
         expect.soft(result).toContain('any');
-        expect(result).toContain('enum');
+        expect.soft(result).toContain('enum');
     });
 
     it('should not flag any in comments', () => {
@@ -120,7 +120,7 @@ describe('TypeScriptCodingStyleChecker', () => {
             }
         `;
 
-        expect(checker.check(source)).toMatch(/^✅/);
+        expect.soft(checker.check(source)).toMatch(/^✅/);
     });
 
     it('should not flag any inside string literals', () => {
@@ -129,7 +129,7 @@ describe('TypeScriptCodingStyleChecker', () => {
             const tmpl = \`the any keyword\`;
         `;
 
-        expect(checker.check(source)).toMatch(/^✅/);
+        expect.soft(checker.check(source)).toMatch(/^✅/);
     });
 
     it('should flag {} empty type literal', () => {
@@ -142,7 +142,7 @@ describe('TypeScriptCodingStyleChecker', () => {
         const result = checker.check(source);
 
         expect.soft(result).toMatch(/^❌/);
-        expect(result).toContain('{}');
+        expect.soft(result).toContain('{}');
     });
 
     it('should flag exported function without return type', () => {
@@ -156,7 +156,7 @@ describe('TypeScriptCodingStyleChecker', () => {
 
         expect.soft(result).toMatch(/^❌/);
         expect.soft(result).toContain('return type');
-        expect(result).toContain('add');
+        expect.soft(result).toContain('add');
     });
 
     it('should not flag non-exported function without return type', () => {
@@ -166,7 +166,7 @@ describe('TypeScriptCodingStyleChecker', () => {
             }
         `;
 
-        expect(checker.check(source)).toMatch(/^✅/);
+        expect.soft(checker.check(source)).toMatch(/^✅/);
     });
 
     it('should not flag exported function with return type', () => {
@@ -176,7 +176,7 @@ describe('TypeScriptCodingStyleChecker', () => {
             }
         `;
 
-        expect(checker.check(source)).toMatch(/^✅/);
+        expect.soft(checker.check(source)).toMatch(/^✅/);
     });
 
     it('should flag exported arrow function without return type', () => {
@@ -188,7 +188,7 @@ describe('TypeScriptCodingStyleChecker', () => {
 
         expect.soft(result).toMatch(/^❌/);
         expect.soft(result).toContain('return type');
-        expect(result).toContain('add');
+        expect.soft(result).toContain('add');
     });
 
     it('should not flag exported arrow function with return type', () => {
@@ -196,7 +196,7 @@ describe('TypeScriptCodingStyleChecker', () => {
             export const add = (a: number, b: number): number => a + b;
         `;
 
-        expect(checker.check(source)).toMatch(/^✅/);
+        expect.soft(checker.check(source)).toMatch(/^✅/);
     });
 
     it('should flag export default function without return type', () => {
@@ -207,7 +207,7 @@ describe('TypeScriptCodingStyleChecker', () => {
         const result = checker.check(source);
 
         expect.soft(result).toMatch(/^❌/);
-        expect(result).toContain('Default-exported');
+        expect.soft(result).toContain('Default-exported');
     });
 
     it('should flag unconstrained generic type parameter', () => {
@@ -221,7 +221,7 @@ describe('TypeScriptCodingStyleChecker', () => {
 
         expect.soft(result).toMatch(/^❌/);
         expect.soft(result).toContain('extends');
-        expect(result).toContain('T');
+        expect.soft(result).toContain('T');
     });
 
     it('should not flag constrained generic type parameter', () => {
@@ -231,7 +231,7 @@ describe('TypeScriptCodingStyleChecker', () => {
             }
         `;
 
-        expect(checker.check(source)).toMatch(/^✅/);
+        expect.soft(checker.check(source)).toMatch(/^✅/);
     });
 
     it('should flag as type assertion', () => {
@@ -242,7 +242,7 @@ describe('TypeScriptCodingStyleChecker', () => {
         const result = checker.check(source);
 
         expect.soft(result).toMatch(/^❌/);
-        expect(result).toContain('as');
+        expect.soft(result).toContain('as');
     });
 
     it('should not flag as const assertion', () => {
@@ -250,7 +250,7 @@ describe('TypeScriptCodingStyleChecker', () => {
             const colors = ['red', 'green', 'blue'] as const;
         `;
 
-        expect(checker.check(source)).toMatch(/^✅/);
+        expect.soft(checker.check(source)).toMatch(/^✅/);
     });
 
     it('should flag non-null assertion', () => {
@@ -261,7 +261,7 @@ describe('TypeScriptCodingStyleChecker', () => {
         const result = checker.check(source);
 
         expect.soft(result).toMatch(/^❌/);
-        expect(result).toContain('non-null');
+        expect.soft(result).toContain('non-null');
     });
 
     it('should flag type alias with object literal body', () => {
@@ -275,7 +275,7 @@ describe('TypeScriptCodingStyleChecker', () => {
         const result = checker.check(source);
 
         expect.soft(result).toMatch(/^❌/);
-        expect(result).toContain('interface User');
+        expect.soft(result).toContain('interface User');
     });
 
     it('should not flag type alias for union', () => {
@@ -283,7 +283,7 @@ describe('TypeScriptCodingStyleChecker', () => {
             type Status = 'active' | 'inactive';
         `;
 
-        expect(checker.check(source)).toMatch(/^✅/);
+        expect.soft(checker.check(source)).toMatch(/^✅/);
     });
 
     it('should not flag type alias for intersection', () => {
@@ -291,7 +291,7 @@ describe('TypeScriptCodingStyleChecker', () => {
             type WithId = Base & { id: string };
         `;
 
-        expect(checker.check(source)).toMatch(/^✅/);
+        expect.soft(checker.check(source)).toMatch(/^✅/);
     });
 
     it('should not flag type alias for mapped type', () => {
@@ -299,7 +299,7 @@ describe('TypeScriptCodingStyleChecker', () => {
             type ReadonlyUser = { readonly [K in keyof User]: User[K] };
         `;
 
-        expect(checker.check(source)).toMatch(/^✅/);
+        expect.soft(checker.check(source)).toMatch(/^✅/);
     });
 
     it('should skip all checks when disabled and no editorconfig', () => {
@@ -310,7 +310,7 @@ describe('TypeScriptCodingStyleChecker', () => {
 
         const result = checker.check(source, { __disabled: 'true' });
 
-        expect(result).toMatch(/^✅/);
+        expect.soft(result).toMatch(/^✅/);
     });
 
     it('should skip all checks when disabled even with violations', () => {
@@ -321,6 +321,6 @@ describe('TypeScriptCodingStyleChecker', () => {
 
         const result = checker.check(source, { __disabled: 'true' });
 
-        expect(result).toMatch(/^✅/);
+        expect.soft(result).toMatch(/^✅/);
     });
 });

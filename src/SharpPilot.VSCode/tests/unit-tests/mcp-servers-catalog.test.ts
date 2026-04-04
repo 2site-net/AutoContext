@@ -12,12 +12,12 @@ describe('McpServersCatalog', () => {
     it('should expose all entries', () => {
         const catalog = new McpServersCatalog(testEntries);
 
-        expect(catalog.all).toEqual(testEntries);
+        expect.soft(catalog.all).toEqual(testEntries);
     });
 
     it('should return empty array for empty catalog', () => {
         const catalog = new McpServersCatalog([]);
 
-        expect(catalog.all).toEqual([]);
+        expect.soft(catalog.all).toEqual([]);
     });
 });

@@ -42,7 +42,7 @@ describe('InstructionsCodeLensProvider', () => {
 
         const lenses = provider.provideCodeLenses(makeDocument('file', 'test.md'));
 
-        expect(lenses).toEqual([]);
+        expect.soft(lenses).toEqual([]);
     });
 
     it('should return one CodeLens per instruction when no instructions are disabled', () => {
@@ -59,7 +59,7 @@ describe('InstructionsCodeLensProvider', () => {
 
         const { instructions: parsedInstructions } = InstructionsParser.parse(testContent);
         expect(lenses).toHaveLength(parsedInstructions.length);
-        expect(lenses.every(lens => {
+        expect.soft(lenses.every(lens => {
             const cmd = lens.command as { title: string; command: string };
             return cmd.title.includes('Disable Instruction') && cmd.command === toggleInstructionCommandId;
         })).toBe(true);
@@ -91,7 +91,7 @@ describe('InstructionsCodeLensProvider', () => {
         const disableLens = toggleLenses.find(l => (l.command as { title: string }).title.includes('Disable Instruction'));
 
         expect(enableLens).toBeDefined();
-        expect(disableLens).toBeDefined();
+        expect.soft(disableLens).toBeDefined();
     });
 
     it('should include Reset All Instructions lens when instructions are disabled', () => {
@@ -117,7 +117,7 @@ describe('InstructionsCodeLensProvider', () => {
 
         expect.soft(resetLens).toBeDefined();
         expect.soft((resetLens?.command as { title: string })?.title).toContain('Reset All Instructions');
-        expect((resetLens?.command as { arguments: string[] })?.arguments).toEqual(['test.instructions.md']);
+        expect.soft((resetLens?.command as { arguments: string[] })?.arguments).toEqual(['test.instructions.md']);
     });
 
     it('should not include Reset All Instructions lens when no instructions are disabled', () => {
@@ -133,6 +133,6 @@ describe('InstructionsCodeLensProvider', () => {
         const lenses = provider.provideCodeLenses(makeDocument(instructionScheme, 'test.instructions.md'));
 
         const resetLens = lenses.find(l => (l.command as { command: string }).command === resetInstructionsCommandId);
-        expect(resetLens).toBeUndefined();
+        expect.soft(resetLens).toBeUndefined();
     });
 });

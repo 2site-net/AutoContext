@@ -14,7 +14,7 @@ describe('StatusBarIndicator', () => {
         const indicator = new StatusBarIndicator();
         const item = vi.mocked(window.createStatusBarItem).mock.results[0].value;
 
-        expect(item.text).toBe(`$(book) ${InstructionsRegistry.count}/${InstructionsRegistry.count} $(tools) ${McpToolsRegistry.count}/${McpToolsRegistry.count}`);
+        expect.soft(item.text).toBe(`$(book) ${InstructionsRegistry.count}/${InstructionsRegistry.count} $(tools) ${McpToolsRegistry.count}/${McpToolsRegistry.count}`);
 
         indicator.dispose();
     });
@@ -28,7 +28,7 @@ describe('StatusBarIndicator', () => {
         const indicator = new StatusBarIndicator();
         const item = vi.mocked(window.createStatusBarItem).mock.results[0].value;
 
-        expect(item.text).toBe(`$(book) ${InstructionsRegistry.count - 1}/${InstructionsRegistry.count} $(tools) ${McpToolsRegistry.count - 1}/${McpToolsRegistry.count}`);
+        expect.soft(item.text).toBe(`$(book) ${InstructionsRegistry.count - 1}/${InstructionsRegistry.count} $(tools) ${McpToolsRegistry.count - 1}/${McpToolsRegistry.count}`);
 
         indicator.dispose();
     });
@@ -37,7 +37,7 @@ describe('StatusBarIndicator', () => {
         const indicator = new StatusBarIndicator();
         const item = vi.mocked(window.createStatusBarItem).mock.results[0].value;
 
-        expect(item.command).toBe(StatusBarIndicator.commandId);
+        expect.soft(item.command).toBe(StatusBarIndicator.commandId);
 
         indicator.dispose();
     });

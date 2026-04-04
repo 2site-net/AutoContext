@@ -4,7 +4,6 @@ import { activatedExtension } from './helpers.js';
 suite('MCP Server Provider Smoke Tests', () => {
     test('should return at least one server definition', async () => {
         const { exports } = await activatedExtension();
-
         const defs = await exports.mcpServerProvider.provideMcpServerDefinitions();
 
         assert.ok(defs.length > 0, 'No MCP server definitions returned');
@@ -14,20 +13,23 @@ suite('MCP Server Provider Smoke Tests', () => {
         const { exports } = await activatedExtension();
 
         const defs = await exports.mcpServerProvider.provideMcpServerDefinitions();
-        for (const def of defs) {
-            const idx = def.args.indexOf('--scope');
-            assert.ok(idx >= 0, `Definition ${def.label} missing --scope`);
-            assert.ok(def.args[idx + 1], `Definition ${def.label} has empty --scope value`);
-        }
+
+        const missing = defs.filter((d: { label: string; args: string[] }) => {
+            const idx = d.args.indexOf('--scope');
+            return idx < 0 || !d.args[idx + 1];
+        });
+
+        assert.strictEqual(missing.length, 0, `Definitions missing --scope: ${missing.map((d: { label: string }) => d.label).join(', ')}`);
     });
 
     test('every definition should carry the extension version', async () => {
         const { exports } = await activatedExtension();
 
         const defs = await exports.mcpServerProvider.provideMcpServerDefinitions();
-        for (const def of defs) {
-            assert.ok(def.version, `Definition ${def.label} missing version`);
-        }
+
+        const missing = defs.filter((d: { label: string; version?: string }) => !d.version);
+
+        assert.strictEqual(missing.length, 0, `Definitions missing version: ${missing.map((d: { label: string }) => d.label).join(', ')}`);
     });
 
     test('should include TypeScript category for this workspace', async () => {

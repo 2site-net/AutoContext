@@ -50,7 +50,7 @@ describe('InstructionsConfigWriter', () => {
         const stagingWrites = writeCalls.filter(([path]) =>
             String(path).includes('.workspaces'),
         );
-        expect(stagingWrites.length).toBe(InstructionsRegistry.count);
+        expect.soft(stagingWrites.length).toBe(InstructionsRegistry.count);
     });
 
     it('should strip instruction IDs from output', () => {
@@ -75,7 +75,7 @@ describe('InstructionsConfigWriter', () => {
         expect.soft(writtenContent).not.toContain('[INST0001]');
         expect.soft(writtenContent).not.toContain('[INST0002]');
         expect.soft(writtenContent).toContain('always use curly braces');
-        expect(writtenContent).toContain('async void');
+        expect.soft(writtenContent).toContain('async void');
     });
 
     it('should write filtered content with disabled instructions removed', () => {
@@ -107,7 +107,7 @@ describe('InstructionsConfigWriter', () => {
 
         expect.soft(writtenContent).not.toContain('always use curly braces');
         expect.soft(writtenContent).toContain('async void');
-        expect(writtenContent).not.toContain('[INST0002]');
+        expect.soft(writtenContent).not.toContain('[INST0002]');
     });
 
     it('should preserve non-instruction content unchanged', () => {
@@ -146,7 +146,7 @@ More prose below.
         expect.soft(writtenContent).toContain('# Guidelines');
         expect.soft(writtenContent).toContain('Some introductory text here.');
         expect.soft(writtenContent).toContain('## Section Two');
-        expect(writtenContent).toContain('More prose below.');
+        expect.soft(writtenContent).toContain('More prose below.');
     });
 
     it('should skip orphan cleanup when .workspaces does not exist', () => {
@@ -158,7 +158,7 @@ More prose below.
         writer.removeOrphanedStagingDirs();
 
         expect(readdirSync).not.toHaveBeenCalled();
-        expect(rmSync).not.toHaveBeenCalled();
+        expect.soft(rmSync).not.toHaveBeenCalled();
     });
 
     it('should remove stale staging dirs older than 1 hour', () => {
@@ -171,7 +171,7 @@ More prose below.
         const writer = new InstructionsConfigWriter('/ext', configManager);
         writer.removeOrphanedStagingDirs();
 
-        expect(rmSync).toHaveBeenCalledWith(
+        expect.soft(rmSync).toHaveBeenCalledWith(
             expect.stringContaining('stale_hash_01'),
             { recursive: true },
         );
@@ -187,7 +187,7 @@ More prose below.
         const writer = new InstructionsConfigWriter('/ext', configManager);
         writer.removeOrphanedStagingDirs();
 
-        expect(rmSync).not.toHaveBeenCalled();
+        expect.soft(rmSync).not.toHaveBeenCalled();
     });
 
     it('should dispose debounce timer and subscriptions', () => {
@@ -196,6 +196,6 @@ More prose below.
         const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
         const writer = new InstructionsConfigWriter('/ext', configManager);
 
-        expect(() => writer.dispose()).not.toThrow();
+        expect.soft(() => writer.dispose()).not.toThrow();
     });
 });

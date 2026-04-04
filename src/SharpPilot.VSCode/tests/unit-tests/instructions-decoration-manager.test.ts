@@ -46,7 +46,7 @@ describe('InstructionsDecorationManager', () => {
         const editor = makeEditor('file', '/some/file.ts');
         manager.applyDecorations(editor);
 
-        expect((editor as unknown as { setDecorations: ReturnType<typeof vi.fn> }).setDecorations).not.toHaveBeenCalled();
+        expect.soft((editor as unknown as { setDecorations: ReturnType<typeof vi.fn> }).setDecorations).not.toHaveBeenCalled();
     });
 
     it('should set empty decorations when no instructions are disabled', () => {
@@ -62,7 +62,7 @@ describe('InstructionsDecorationManager', () => {
         const editor = makeEditor(instructionScheme, 'test.instructions.md');
         manager.applyDecorations(editor);
 
-        expect((editor as unknown as { setDecorations: ReturnType<typeof vi.fn> }).setDecorations).toHaveBeenCalledWith(
+        expect.soft((editor as unknown as { setDecorations: ReturnType<typeof vi.fn> }).setDecorations).toHaveBeenCalledWith(
             expect.anything(),
             [],
         );
@@ -95,7 +95,7 @@ describe('InstructionsDecorationManager', () => {
         );
 
         const ranges = setDecorationsCall.mock.calls[0][1];
-        expect(ranges).toHaveLength(1);
+        expect.soft(ranges).toHaveLength(1);
     });
 
     it('should refresh all visible editors', () => {
@@ -114,6 +114,6 @@ describe('InstructionsDecorationManager', () => {
         manager.refreshAll();
 
         expect((editor1 as unknown as { setDecorations: ReturnType<typeof vi.fn> }).setDecorations).toHaveBeenCalled();
-        expect((editor2 as unknown as { setDecorations: ReturnType<typeof vi.fn> }).setDecorations).not.toHaveBeenCalled();
+        expect.soft((editor2 as unknown as { setDecorations: ReturnType<typeof vi.fn> }).setDecorations).not.toHaveBeenCalled();
     });
 });

@@ -37,7 +37,7 @@ describe('MenuToggler', () => {
         expect.soft(qp.title).toBe('SharpPilot: Toggle Tools');
         expect.soft(settingItems(qp)).toHaveLength(McpToolsRegistry.count);
         expect.soft(categoryHeaders(qp).length).toBeGreaterThan(0);
-        expect(qp.show).toHaveBeenCalledOnce();
+        expect.soft(qp.show).toHaveBeenCalledOnce();
 
         qp.__hide();
         await promise;
@@ -52,7 +52,7 @@ describe('MenuToggler', () => {
         await promise;
 
         const config = (await import('./__mocks__/vscode')).workspace.getConfiguration();
-        expect(config.update).not.toHaveBeenCalled();
+        expect.soft(config.update).not.toHaveBeenCalled();
     });
 
     it('should have Select All and Clear All buttons', async () => {
@@ -62,7 +62,7 @@ describe('MenuToggler', () => {
         const qp = vi.mocked(window.createQuickPick).mock.results[0].value as MockQuickPick;
         expect.soft(qp.buttons).toHaveLength(2);
         expect.soft(qp.buttons[0]).toMatchObject({ tooltip: 'Select All' });
-        expect(qp.buttons[1]).toMatchObject({ tooltip: 'Clear All' });
+        expect.soft(qp.buttons[1]).toMatchObject({ tooltip: 'Clear All' });
 
         qp.__hide();
         await promise;
@@ -84,7 +84,7 @@ describe('MenuToggler', () => {
         const normalItem = items.find(i => i.settingId === InstructionsRegistry.all[1].settingId);
 
         expect.soft(overriddenItem?.description).toContain('$(file-symlink-directory)');
-        expect(normalItem?.description).not.toContain('$(file-symlink-directory)');
+        expect.soft(normalItem?.description).not.toContain('$(file-symlink-directory)');
 
         qp.__hide();
         await promise;
@@ -105,7 +105,7 @@ describe('MenuToggler', () => {
 
         const selectedIds = new Set((qp.selectedItems as ToggleItem[]).map(i => i.settingId));
         expect.soft(selectedIds.has('a.one')).toBe(true);
-        expect(selectedIds.has('a.two')).toBe(true);
+        expect.soft(selectedIds.has('a.two')).toBe(true);
 
         qp.__hide();
         await promise;
@@ -122,7 +122,7 @@ describe('MenuToggler', () => {
         const selectedIds = new Set((qp.selectedItems as ToggleItem[]).map(i => i.settingId));
 
         expect.soft(selectedIds.has(betaHeader.settingId)).toBe(true);
-        expect(selectedIds.has(betaItem.settingId)).toBe(true);
+        expect.soft(selectedIds.has(betaItem.settingId)).toBe(true);
 
         qp.__hide();
         await promise;
@@ -139,7 +139,7 @@ describe('MenuToggler', () => {
         qp.selectedItems = [...alphaItems];
 
         const afterIds = new Set((qp.selectedItems as ToggleItem[]).map(i => i.settingId));
-        expect(afterIds.has('b.one')).toBe(false);
+        expect.soft(afterIds.has('b.one')).toBe(false);
 
         qp.__hide();
         await promise;
@@ -155,7 +155,7 @@ describe('MenuToggler', () => {
         const alphaHeader = items.find(i => i.isCategory && i.category === 'Alpha')!;
         const selectedIds = new Set((qp.selectedItems as ToggleItem[]).map(i => i.settingId));
 
-        expect(selectedIds.has(alphaHeader.settingId)).toBe(false);
+        expect.soft(selectedIds.has(alphaHeader.settingId)).toBe(false);
 
         qp.__hide();
         await promise;
@@ -176,7 +176,7 @@ describe('MenuToggler', () => {
         );
 
         const afterIds = new Set((qp.selectedItems as ToggleItem[]).map(i => i.settingId));
-        expect(afterIds.has(alphaHeader.settingId)).toBe(true);
+        expect.soft(afterIds.has(alphaHeader.settingId)).toBe(true);
 
         qp.__hide();
         await promise;
@@ -198,6 +198,6 @@ describe('MenuToggler', () => {
             (r.value.update as ReturnType<typeof vi.fn>).mock.calls.map((c: unknown[]) => c[0] as string),
         );
         expect(updatedKeys).not.toHaveLength(0);
-        expect(updatedKeys.every(k => !k.startsWith('__category__'))).toBe(true);
+        expect.soft(updatedKeys.every(k => !k.startsWith('__category__'))).toBe(true);
     });
 });

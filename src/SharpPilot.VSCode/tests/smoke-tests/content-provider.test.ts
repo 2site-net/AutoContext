@@ -8,7 +8,6 @@ suite('Content Provider Smoke Tests', () => {
     test('should return content for copilot.instructions.md', async () => {
         const { exports } = await activatedExtension();
         const uri = vscode.Uri.from({ scheme: 'sharppilot-instructions', path: 'copilot.instructions.md' });
-
         const content = exports.contentProvider.provideTextDocumentContent(uri);
 
         assert.ok(content.length > 0, 'Content provider returned empty content');
@@ -18,11 +17,12 @@ suite('Content Provider Smoke Tests', () => {
         const { exports } = await activatedExtension();
         const files = ['copilot.instructions.md', 'design-principles.instructions.md', 'testing.instructions.md'];
 
-        for (const file of files) {
+        const empty = files.filter(file => {
             const uri = vscode.Uri.from({ scheme: 'sharppilot-instructions', path: file });
-            const content = exports.contentProvider.provideTextDocumentContent(uri);
-            assert.ok(content.length > 0, `${file} returned empty content`);
-        }
+            return exports.contentProvider.provideTextDocumentContent(uri).length === 0;
+        });
+
+        assert.strictEqual(empty.length, 0, `Empty content for: ${empty.join(', ')}`);
     });
 
     test('should mark disabled instructions in content', async () => {

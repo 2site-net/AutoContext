@@ -25,7 +25,7 @@ describe('AutoConfigurer.configure', () => {
         const updates = vi.mocked(config.update).mock.calls;
 
         expect(updates.length).toBeGreaterThan(0);
-        expect(updates.every(([settingId, value]: [string, boolean]) =>
+        expect.soft(updates.every(([settingId, value]: [string, boolean]) =>
             value === false && settingId.startsWith('sharppilot.'),
         )).toBe(true);
     });
@@ -42,7 +42,7 @@ describe('AutoConfigurer.configure', () => {
 
         expect.soft(updatedIds.has('sharppilot.instructions.dotnet.asyncAwait')).toBe(false);
         expect.soft(updatedIds.has('sharppilot.tools.check_csharp_coding_style')).toBe(false);
-        expect(updatedIds.has('sharppilot.instructions.git.commitFormat')).toBe(true);
+        expect.soft(updatedIds.has('sharppilot.instructions.git.commitFormat')).toBe(true);
     });
 
     it('should show an info message with the count of enabled items', async () => {
@@ -53,7 +53,7 @@ describe('AutoConfigurer.configure', () => {
         const allEntries = [...InstructionsRegistry.all, ...McpToolsRegistry.all];
         const alwaysOnCount = allEntries.filter(e => ContextKeys.forEntry(e).length === 0).length;
 
-        expect(window.showInformationMessage).toHaveBeenCalledWith(
+        expect.soft(window.showInformationMessage).toHaveBeenCalledWith(
             `SharpPilot: Enabled ${alwaysOnCount} of ${allEntries.length} items for this workspace.`,
         );
     });
@@ -69,6 +69,6 @@ describe('AutoConfigurer.configure', () => {
         const config = vi.mocked(workspace.getConfiguration).mock.results[0].value;
         const updatedIds = vi.mocked(config.update).mock.calls.map(([id]: [string]) => id);
 
-        expect(updatedIds.filter((id: string) => id === 'sharppilot.instructions.dotnet.asyncAwait')).toHaveLength(0);
+        expect.soft(updatedIds.filter((id: string) => id === 'sharppilot.instructions.dotnet.asyncAwait')).toHaveLength(0);
     });
 });

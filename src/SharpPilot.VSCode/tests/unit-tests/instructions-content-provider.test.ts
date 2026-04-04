@@ -41,7 +41,7 @@ describe('InstructionsContentProvider', () => {
         const uri = { scheme: instructionScheme, path: 'test.instructions.md' } as unknown as import('vscode').Uri;
         const result = provider.provideTextDocumentContent(uri);
 
-        expect(result).toBe(testContent);
+        expect.soft(result).toBe(testContent);
     });
 
     it('should insert [DISABLED] tag for disabled instructions', () => {
@@ -62,7 +62,7 @@ describe('InstructionsContentProvider', () => {
         const result = provider.provideTextDocumentContent(uri);
 
         expect(result).toContain('**[DISABLED]** **Do**');
-        expect(result).not.toContain("**[DISABLED]** **Don't**");
+        expect.soft(result).not.toContain("**[DISABLED]** **Don't**");
     });
 
     it('should build URI with the correct scheme', () => {
@@ -72,7 +72,7 @@ describe('InstructionsContentProvider', () => {
         const provider = new InstructionsContentProvider('/ext', configManager);
         provider.buildUri('code-review.instructions.md');
 
-        expect(Uri.from).toHaveBeenCalledWith({
+        expect.soft(Uri.from).toHaveBeenCalledWith({
             scheme: instructionScheme,
             path: 'code-review.instructions.md',
         });

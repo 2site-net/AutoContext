@@ -51,7 +51,7 @@ describe('parseInstructions', () => {
         expect.soft(instructions[0]?.text).toBe('- [INST0001] **Do** always use curly braces for control flow statements.');
         expect.soft(instructions[0]?.startLine).toBe(5);
         expect.soft(instructions[0]?.endLine).toBe(5);
-        expect(instructions[0]?.id).toBe('INST0001');
+        expect.soft(instructions[0]?.id).toBe('INST0001');
     });
 
     it('should parse multiple instructions', () => {
@@ -60,7 +60,7 @@ describe('parseInstructions', () => {
         expect.soft(instructions).toHaveLength(3);
         expect.soft(instructions[0]?.text).toContain('write true');
         expect.soft(instructions[1]?.text).toContain('CancellationToken');
-        expect(instructions[2]?.text).toContain('async void');
+        expect.soft(instructions[2]?.text).toContain('async void');
     });
 
     it('should handle * bullet style with IDs', () => {
@@ -70,7 +70,7 @@ describe('parseInstructions', () => {
         expect.soft(instructions[0]?.id).toBe('INST0001');
         expect.soft(instructions[0]?.text).toContain('strict: true');
         expect.soft(instructions[1]?.id).toBe('INST0002');
-        expect(instructions[1]?.text).toContain('type assertions');
+        expect.soft(instructions[1]?.text).toContain('type assertions');
     });
 
     it('should parse instructions across sections', () => {
@@ -79,21 +79,21 @@ describe('parseInstructions', () => {
         expect.soft(instructions).toHaveLength(3);
         expect.soft(instructions[0]?.text).toContain('leading underscore');
         expect.soft(instructions[1]?.text).toContain('PascalCase');
-        expect(instructions[2]?.text).toContain('nest conditional');
+        expect.soft(instructions[2]?.text).toContain('nest conditional');
     });
 
     it('should assign unique IDs to distinct instructions', () => {
         const { instructions } = InstructionsParser.parse(multiInstructionDoc);
         const ids = instructions.map(r => r.id);
 
-        expect(new Set(ids).size).toBe(ids.length);
+        expect.soft(new Set(ids).size).toBe(ids.length);
     });
 
     it('should produce deterministic IDs', () => {
         const { instructions: first } = InstructionsParser.parse(multiInstructionDoc);
         const { instructions: second } = InstructionsParser.parse(multiInstructionDoc);
 
-        expect(first.map(r => r.id)).toEqual(second.map(r => r.id));
+        expect.soft(first.map(r => r.id)).toEqual(second.map(r => r.id));
     });
 
     it('should return empty array for content with no instructions', () => {
@@ -105,7 +105,7 @@ description: "Test"
 Some paragraph text.
 `;
 
-        expect(InstructionsParser.parse(content).instructions).toHaveLength(0);
+        expect.soft(InstructionsParser.parse(content).instructions).toHaveLength(0);
     });
 
     it('should handle CRLF line endings', () => {
@@ -114,7 +114,7 @@ Some paragraph text.
 
         expect.soft(instructions).toHaveLength(2);
         expect.soft(instructions[0]?.text).toContain('use CRLF');
-        expect(instructions[1]?.text).toContain('mix line endings');
+        expect.soft(instructions[1]?.text).toContain('mix line endings');
     });
 
     it('should handle trailing blank lines at end of file', () => {
@@ -122,7 +122,7 @@ Some paragraph text.
         const { instructions } = InstructionsParser.parse(content);
 
         expect(instructions).toHaveLength(1);
-        expect(instructions[0].text).toBe('- [INST0001] **Do** something.');
+        expect.soft(instructions[0].text).toBe('- [INST0001] **Do** something.');
     });
 
     it('should stop an instruction at a heading', () => {
@@ -137,7 +137,7 @@ Some paragraph.
         const { instructions } = InstructionsParser.parse(content);
 
         expect(instructions).toHaveLength(1);
-        expect(instructions[0].text).toBe('- [INST0001] **Do** instruction one.');
+        expect.soft(instructions[0].text).toBe('- [INST0001] **Do** instruction one.');
     });
 
     it('should include indented continuation lines in an instruction', () => {
@@ -151,7 +151,7 @@ Some paragraph.
 
         expect.soft(instructions).toHaveLength(2);
         expect.soft(instructions[0]?.text).toContain('for all control flow statements');
-        expect(instructions[1]?.text).toContain('nest ternaries');
+        expect.soft(instructions[1]?.text).toContain('nest ternaries');
     });
 
     it('should set id to undefined for instructions without an ID tag', () => {
@@ -159,7 +159,7 @@ Some paragraph.
         const { instructions } = InstructionsParser.parse(content);
 
         expect(instructions).toHaveLength(1);
-        expect(instructions[0].id).toBeUndefined();
+        expect.soft(instructions[0].id).toBeUndefined();
     });
 
     it('should emit missing-id diagnostic for instructions without an ID tag', () => {
@@ -168,7 +168,7 @@ Some paragraph.
 
         expect.soft(diagnostics).toHaveLength(1);
         expect.soft(diagnostics[0]?.kind).toBe('missing-id');
-        expect(diagnostics[0]?.line).toBe(2);
+        expect.soft(diagnostics[0]?.line).toBe(2);
     });
 
     it('should emit duplicate-id diagnostic for repeated IDs', () => {
@@ -181,7 +181,7 @@ Some paragraph.
 
         const dup = diagnostics.find(d => d.kind === 'duplicate-id');
         expect(dup).toBeDefined();
-        expect(dup!.message).toContain('INST0001');
+        expect.soft(dup!.message).toContain('INST0001');
     });
 
     it('should emit malformed-id diagnostic for invalid ID tags', () => {
@@ -190,19 +190,19 @@ Some paragraph.
 
         const malformed = diagnostics.find(d => d.kind === 'malformed-id');
         expect(malformed).toBeDefined();
-        expect(malformed!.message).toContain('WRONG');
+        expect.soft(malformed!.message).toContain('WRONG');
     });
 
     it('should emit no diagnostics for well-formed instructions with IDs', () => {
         const { diagnostics } = InstructionsParser.parse(multiInstructionDoc);
 
-        expect(diagnostics).toHaveLength(0);
+        expect.soft(diagnostics).toHaveLength(0);
     });
 
     it('should not emit malformed-id diagnostic for markdown links', () => {
         const content = '# Test\n\n- [Reference](https://example.com) for more info.\n';
         const { diagnostics } = InstructionsParser.parse(content);
 
-        expect(diagnostics.filter(d => d.kind === 'malformed-id')).toHaveLength(0);
+        expect.soft(diagnostics.filter(d => d.kind === 'malformed-id')).toHaveLength(0);
     });
 });

@@ -5,7 +5,7 @@ describe('servers catalog', () => {
     it('should have unique categories', () => {
         const categories = McpServersRegistry.all.map(s => s.category);
 
-        expect(new Set(categories).size).toBe(categories.length);
+        expect.soft(new Set(categories).size).toBe(categories.length);
     });
 
     it('should have a contextKey on workspace-specific server entries', () => {
@@ -13,12 +13,12 @@ describe('servers catalog', () => {
         const git = McpServersRegistry.all.find(s => s.category === 'git')!;
 
         expect(dotnet.contextKey).toBe('hasDotNet');
-        expect(git.contextKey).toBe('hasGit');
+        expect.soft(git.contextKey).toBe('hasGit');
     });
 
     it('should not require a contextKey on the editorconfig server', () => {
         const editorconfig = McpServersRegistry.all.find(s => s.category === 'editorconfig')!;
 
-        expect(editorconfig.contextKey).toBeUndefined();
+        expect.soft(editorconfig.contextKey).toBeUndefined();
     });
 });

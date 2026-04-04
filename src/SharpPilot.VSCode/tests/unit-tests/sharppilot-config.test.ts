@@ -24,7 +24,7 @@ describe('SharpPilotConfigManager', () => {
         const manager = new SharpPilotConfigManager('/ext', '0.5.0');
         const config = manager.read();
 
-        expect(config).toEqual({});
+        expect.soft(config).toEqual({});
     });
 
     it('should return empty config when file contains invalid JSON', () => {
@@ -33,7 +33,7 @@ describe('SharpPilotConfigManager', () => {
         const manager = new SharpPilotConfigManager('/ext', '0.5.0');
         const config = manager.read();
 
-        expect(config).toEqual({});
+        expect.soft(config).toEqual({});
     });
 
     it('should read disabled instructions from config file', () => {
@@ -49,7 +49,7 @@ describe('SharpPilotConfigManager', () => {
         const disabled = manager.getDisabledInstructions('code-review.instructions.md');
 
         expect(disabled.has('INST0001')).toBe(true);
-        expect(disabled.size).toBe(1);
+        expect.soft(disabled.size).toBe(1);
     });
 
     it('should return empty set for file with no disabled instructions', () => {
@@ -58,7 +58,7 @@ describe('SharpPilotConfigManager', () => {
         const manager = new SharpPilotConfigManager('/ext', '0.5.0');
         const disabled = manager.getDisabledInstructions('code-review.instructions.md');
 
-        expect(disabled.size).toBe(0);
+        expect.soft(disabled.size).toBe(0);
     });
 
     it('should detect when any instructions are disabled', () => {
@@ -72,7 +72,7 @@ describe('SharpPilotConfigManager', () => {
 
         const manager = new SharpPilotConfigManager('/ext', '0.5.0');
 
-        expect(manager.hasAnyDisabledInstructions()).toBe(true);
+        expect.soft(manager.hasAnyDisabledInstructions()).toBe(true);
     });
 
     it('should detect when no instructions are disabled', () => {
@@ -80,7 +80,7 @@ describe('SharpPilotConfigManager', () => {
 
         const manager = new SharpPilotConfigManager('/ext', '0.5.0');
 
-        expect(manager.hasAnyDisabledInstructions()).toBe(false);
+        expect.soft(manager.hasAnyDisabledInstructions()).toBe(false);
     });
 
     it('should toggle an instruction on (disable it)', () => {
@@ -99,7 +99,7 @@ describe('SharpPilotConfigManager', () => {
 
         const parsed = JSON.parse(content as string);
 
-        expect(parsed.instructions.disabled['code-review.instructions.md']).toEqual(['INST0001']);
+        expect.soft(parsed.instructions.disabled['code-review.instructions.md']).toEqual(['INST0001']);
     });
 
     it('should toggle an instruction off (re-enable it)', () => {
@@ -114,7 +114,7 @@ describe('SharpPilotConfigManager', () => {
         const manager = new SharpPilotConfigManager('/ext', '0.5.0');
         manager.toggleInstruction('code-review.instructions.md', 'INST0001');
 
-        expect(vi.mocked(unlinkSync)).toHaveBeenCalled();
+        expect.soft(vi.mocked(unlinkSync)).toHaveBeenCalled();
     });
 
     it('should not write when no workspace folder is available', () => {
@@ -123,7 +123,7 @@ describe('SharpPilotConfigManager', () => {
         const manager = new SharpPilotConfigManager('/ext', '0.5.0');
         manager.toggleInstruction('code-review.instructions.md', 'INST0001');
 
-        expect(vi.mocked(writeFileSync)).not.toHaveBeenCalled();
+        expect.soft(vi.mocked(writeFileSync)).not.toHaveBeenCalled();
     });
 
     it('should write extension version when saving config', () => {
@@ -135,7 +135,7 @@ describe('SharpPilotConfigManager', () => {
         const writeCalls = vi.mocked(writeFileSync).mock.calls;
         const parsed = JSON.parse(writeCalls[0][1] as string);
 
-        expect(parsed.version).toBe('1.2.3');
+        expect.soft(parsed.version).toBe('1.2.3');
     });
 
     it('should reset all instructions for a specific file', () => {
@@ -158,7 +158,7 @@ describe('SharpPilotConfigManager', () => {
         const parsed = JSON.parse(writeCalls[0][1] as string);
 
         expect(parsed.instructions.disabled['code-review.instructions.md']).toBeUndefined();
-        expect(parsed.instructions.disabled['dotnet-async-await.instructions.md']).toEqual(['INST0003']);
+        expect.soft(parsed.instructions.disabled['dotnet-async-await.instructions.md']).toEqual(['INST0003']);
     });
 
     it('should delete file when resetting the last file with disabled instructions', () => {
@@ -173,7 +173,7 @@ describe('SharpPilotConfigManager', () => {
         const manager = new SharpPilotConfigManager('/ext', '0.5.0');
         manager.resetInstructions('code-review.instructions.md');
 
-        expect(vi.mocked(unlinkSync)).toHaveBeenCalled();
+        expect.soft(vi.mocked(unlinkSync)).toHaveBeenCalled();
     });
 
     it('should be a no-op when resetting a file with no disabled instructions', () => {
@@ -183,7 +183,7 @@ describe('SharpPilotConfigManager', () => {
         manager.resetInstructions('code-review.instructions.md');
 
         expect(vi.mocked(writeFileSync)).not.toHaveBeenCalled();
-        expect(vi.mocked(unlinkSync)).not.toHaveBeenCalled();
+        expect.soft(vi.mocked(unlinkSync)).not.toHaveBeenCalled();
     });
 
     it('should delete file when toggling last instruction off with version present (round-trip)', () => {
@@ -200,7 +200,7 @@ describe('SharpPilotConfigManager', () => {
         manager.toggleInstruction('code-review.instructions.md', 'INST0001');
 
         expect(vi.mocked(unlinkSync)).toHaveBeenCalled();
-        expect(vi.mocked(writeFileSync)).not.toHaveBeenCalled();
+        expect.soft(vi.mocked(writeFileSync)).not.toHaveBeenCalled();
     });
 
     it('should write disabled tools to config', () => {
@@ -215,7 +215,7 @@ describe('SharpPilotConfigManager', () => {
 
         const parsed = JSON.parse(writeCalls[0][1] as string);
 
-        expect(parsed["mcp-tools"].disabled).toEqual(['check_csharp_coding_style']);
+        expect.soft(parsed["mcp-tools"].disabled).toEqual(['check_csharp_coding_style']);
     });
 
     it('should skip write when disabled tools have not changed', () => {
@@ -227,7 +227,7 @@ describe('SharpPilotConfigManager', () => {
         manager.setDisabledTools(['check_csharp_coding_style']);
 
         expect(vi.mocked(writeFileSync)).not.toHaveBeenCalled();
-        expect(vi.mocked(unlinkSync)).not.toHaveBeenCalled();
+        expect.soft(vi.mocked(unlinkSync)).not.toHaveBeenCalled();
     });
 
     it('should remove tools section when all tools are enabled', () => {
@@ -246,7 +246,7 @@ describe('SharpPilotConfigManager', () => {
         const parsed = JSON.parse(writeCalls[0][1] as string);
 
         expect(parsed["mcp-tools"]).toBeUndefined();
-        expect(parsed.instructions).toBeDefined();
+        expect.soft(parsed.instructions).toBeDefined();
     });
 
     it('should delete file when clearing tools and no other config exists', () => {
@@ -258,7 +258,7 @@ describe('SharpPilotConfigManager', () => {
         manager.setDisabledTools([]);
 
         expect(vi.mocked(unlinkSync)).toHaveBeenCalled();
-        expect(vi.mocked(writeFileSync)).not.toHaveBeenCalled();
+        expect.soft(vi.mocked(writeFileSync)).not.toHaveBeenCalled();
     });
 
     it('should preserve other config sections when writing tools', () => {
@@ -272,6 +272,6 @@ describe('SharpPilotConfigManager', () => {
         const parsed = JSON.parse(vi.mocked(writeFileSync).mock.calls[0][1] as string);
 
         expect(parsed["mcp-tools"].disabled).toEqual(['check_csharp_async_patterns']);
-        expect(parsed.instructions.disabled['code-review.instructions.md']).toEqual(['INST0001']);
+        expect.soft(parsed.instructions.disabled['code-review.instructions.md']).toEqual(['INST0001']);
     });
 });

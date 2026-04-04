@@ -12,31 +12,31 @@ describe('McpToolsCatalog', () => {
     it('should expose all entries', () => {
         const catalog = new McpToolsCatalog(testEntries);
 
-        expect(catalog.all).toEqual(testEntries);
+        expect.soft(catalog.all).toEqual(testEntries);
     });
 
     it('should return the correct count', () => {
         const catalog = new McpToolsCatalog(testEntries);
 
-        expect(catalog.count).toBe(3);
+        expect.soft(catalog.count).toBe(3);
     });
 
     it('should return setting ids for a matching category', () => {
         const catalog = new McpToolsCatalog(testEntries);
 
-        expect(catalog.getSettingIdByCategory('dotnet')).toEqual(['tools.alpha', 'tools.beta']);
+        expect.soft(catalog.getSettingIdByCategory('dotnet')).toEqual(['tools.alpha', 'tools.beta']);
     });
 
     it('should return setting ids for git category', () => {
         const catalog = new McpToolsCatalog(testEntries);
 
-        expect(catalog.getSettingIdByCategory('git')).toEqual(['tools.gamma']);
+        expect.soft(catalog.getSettingIdByCategory('git')).toEqual(['tools.gamma']);
     });
 
     it('should return empty array for unknown category', () => {
         const catalog = new McpToolsCatalog(testEntries);
 
-        expect(catalog.getSettingIdByCategory('unknown')).toEqual([]);
+        expect.soft(catalog.getSettingIdByCategory('unknown')).toEqual([]);
     });
 
     it('should return empty array for empty catalog', () => {
@@ -44,6 +44,6 @@ describe('McpToolsCatalog', () => {
 
         expect.soft(catalog.all).toEqual([]);
         expect.soft(catalog.count).toBe(0);
-        expect(catalog.getSettingIdByCategory('dotnet')).toEqual([]);
+        expect.soft(catalog.getSettingIdByCategory('dotnet')).toEqual([]);
     });
 });

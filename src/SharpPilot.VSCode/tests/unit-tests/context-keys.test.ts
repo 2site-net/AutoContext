@@ -5,12 +5,12 @@ import { McpToolsRegistry } from '../../src/mcp-tools-registry';
 
 describe('ContextKeys.overrideKey', () => {
     it('should strip the settings prefix and prepend the override prefix', () => {
-        expect(ContextKeys.overrideKey('sharppilot.instructions.copilot'))
+        expect.soft(ContextKeys.overrideKey('sharppilot.instructions.copilot'))
             .toBe('sharppilot.override.copilot');
     });
 
     it('should handle nested setting ids', () => {
-        expect(ContextKeys.overrideKey('sharppilot.instructions.dotnet.asyncAwait'))
+        expect.soft(ContextKeys.overrideKey('sharppilot.instructions.dotnet.asyncAwait'))
             .toBe('sharppilot.override.dotnet.asyncAwait');
     });
 });
@@ -19,19 +19,19 @@ describe('ContextKeys.forEntry', () => {
     it('should return empty array for always-on instructions', () => {
         const codeReview = InstructionsRegistry.all.find(i => i.settingId === 'sharppilot.instructions.codeReview')!;
 
-        expect(ContextKeys.forEntry(codeReview)).toEqual([]);
+        expect.soft(ContextKeys.forEntry(codeReview)).toEqual([]);
     });
 
     it('should return context keys for workspace-specific instructions', () => {
         const asyncAwait = InstructionsRegistry.all.find(i => i.settingId === 'sharppilot.instructions.dotnet.asyncAwait')!;
 
-        expect(ContextKeys.forEntry(asyncAwait)).toEqual(['hasDotNet']);
+        expect.soft(ContextKeys.forEntry(asyncAwait)).toEqual(['hasDotNet']);
     });
 
     it('should return multiple context keys for OR conditions', () => {
         const js = InstructionsRegistry.all.find(i => i.settingId === 'sharppilot.instructions.web.javascript')!;
 
-        expect(ContextKeys.forEntry(js)).toEqual(['hasJavaScript', 'hasTypeScript']);
+        expect.soft(ContextKeys.forEntry(js)).toEqual(['hasJavaScript', 'hasTypeScript']);
     });
 
     it('should return context keys for tools', () => {
@@ -39,13 +39,13 @@ describe('ContextKeys.forEntry', () => {
         const commitFormat = McpToolsRegistry.all.find(t => t.settingId === 'sharppilot.tools.check_git_commit_format')!;
 
         expect(ContextKeys.forEntry(codingStyle)).toEqual(['hasCSharp']);
-        expect(ContextKeys.forEntry(commitFormat)).toEqual(['hasGit']);
+        expect.soft(ContextKeys.forEntry(commitFormat)).toEqual(['hasGit']);
     });
 
     it('should return empty array for the editorconfig tool', () => {
         const editorconfig = McpToolsRegistry.all.find(t => t.settingId === 'sharppilot.tools.get_editorconfig')!;
 
-        expect(ContextKeys.forEntry(editorconfig)).toEqual([]);
+        expect.soft(ContextKeys.forEntry(editorconfig)).toEqual([]);
     });
 
     it('should have a mapping for every instruction with a workspace when clause', () => {
@@ -58,7 +58,7 @@ describe('ContextKeys.forEntry', () => {
         ]);
 
         expect(InstructionsRegistry.all.length).toBeGreaterThan(0);
-        expect(InstructionsRegistry.all.every(entry =>
+        expect.soft(InstructionsRegistry.all.every(entry =>
             alwaysOn.has(entry.settingId)
                 ? ContextKeys.forEntry(entry).length === 0
                 : ContextKeys.forEntry(entry).length > 0,

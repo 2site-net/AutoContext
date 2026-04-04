@@ -47,7 +47,7 @@ describe('McpToolsConfigWriter', () => {
         expect(filePath).toMatch(/\.sharppilot\.json$/);
 
         const parsed = JSON.parse(content as string);
-        expect(parsed["mcp-tools"].disabled).toEqual(['check_csharp_coding_style']);
+        expect.soft(parsed["mcp-tools"].disabled).toEqual(['check_csharp_coding_style']);
     });
 
     it('should not write when nothing changed', () => {
@@ -67,7 +67,7 @@ describe('McpToolsConfigWriter', () => {
         const writer = new McpToolsConfigWriter(configManager);
         writer.write();
 
-        expect(writeFileSync).not.toHaveBeenCalled();
+        expect.soft(writeFileSync).not.toHaveBeenCalled();
     });
 
     it('should delete config file when all tools are enabled and no other config exists', () => {
@@ -86,6 +86,6 @@ describe('McpToolsConfigWriter', () => {
         writer.write();
 
         expect(writeFileSync).not.toHaveBeenCalled();
-        expect(unlinkSync).toHaveBeenCalled();
+        expect.soft(unlinkSync).toHaveBeenCalled();
     });
 });

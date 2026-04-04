@@ -9,6 +9,6 @@ describe('chatInstructions in package.json', () => {
     const pkg = JSON.parse(readFileSync(pkgPath, 'utf-8'));
 
     it('should match the instructions catalog', () => {
-        expect(pkg.contributes.chatInstructions).toEqual(buildChatInstructions());
+        expect.soft(pkg.contributes.chatInstructions).toEqual(buildChatInstructions());
     });
 });

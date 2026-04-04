@@ -16,7 +16,7 @@ describe('TypeScriptChecker', () => {
             }
         `;
 
-        expect(await checker.check(source)).toBe('✅ All enabled TypeScript checks passed.');
+        expect.soft(await checker.check(source)).toBe('✅ All enabled TypeScript checks passed.');
     });
 
     it('should report failures from sub-checkers', async () => {
@@ -26,11 +26,11 @@ describe('TypeScriptChecker', () => {
 
         const result = await checker.check(source);
 
-        expect(result).toMatch(/^❌/);
+        expect.soft(result).toMatch(/^❌/);
     });
 
     it('should throw on empty input', async () => {
         await expect(checker.check('')).rejects.toThrow(Error);
-        await expect(checker.check('   ')).rejects.toThrow(Error);
+        await expect.soft(checker.check('   ')).rejects.toThrow(Error);
     });
 });
