@@ -99,7 +99,7 @@
       },
       {
         "path": "./instructions/.generated/testing.instructions.md",
-        "when": "config.sharppilot.instructions.testing && !sharppilot.override.testing"
+        "when": "config.sharppilot.instructions.testing && (sharppilot.workspace.hasDotNetTesting || sharppilot.workspace.hasWebTesting) && !sharppilot.override.testing"
       },
       {
         "path": "./instructions/.generated/docker.instructions.md",

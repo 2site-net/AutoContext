@@ -52,7 +52,6 @@ describe('ContextKeys.forEntry', () => {
         const alwaysOn = new Set([
             'sharppilot.instructions.codeReview',
             'sharppilot.instructions.designPrinciples',
-            'sharppilot.instructions.testing',
             'sharppilot.instructions.restApiDesign',
             'sharppilot.instructions.sql',
         ]);
