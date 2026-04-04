@@ -72,6 +72,11 @@ export class WorkspaceServerManager implements vscode.Disposable {
             });
         }
 
+        this.process.on('error', (err) => {
+            this.ready = false;
+            this.outputChannel.appendLine(`[WorkspaceServer] Failed to start: ${err.message}`);
+        });
+
         this.process.on('exit', (code) => {
             this.ready = false;
             this.outputChannel.appendLine(`[WorkspaceServer] Service exited with code ${code}`);
