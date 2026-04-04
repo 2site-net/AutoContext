@@ -24,7 +24,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
         const schedule = () => this.scheduleDetect();
 
         const existenceWatcher = vscode.workspace.createFileSystemWatcher(
-            '**/*.{csproj,fsproj,sln,slnx,razor,xaml,html,cshtml,css,js,jsx,mjs,cjs,ts,tsx,mts,cts,ps1,psm1,psd1,sh,bash,bat,cmd}',
+            '**/*.{csproj,fsproj,sln,slnx,razor,xaml,aspx,html,cshtml,css,js,jsx,mjs,cjs,ts,tsx,mts,cts,ps1,psm1,psd1,sh,bash,bat,cmd}',
         );
 
         this.disposables.push(
@@ -72,13 +72,14 @@ export class WorkspaceContextDetector implements vscode.Disposable {
 
             const decoder = new TextDecoder();
 
-            const [dotnetFiles, csharpFiles, fsharpFiles, vbnetFiles, razorFiles, xamlFiles, cshtmlFiles, htmlFiles, cssFiles, jsFiles, tsFiles, unityFiles, dockerFiles, psFiles, shFiles, batFiles, yamlFiles] = await Promise.all([
+            const [dotnetFiles, csharpFiles, fsharpFiles, vbnetFiles, razorFiles, xamlFiles, aspxFiles, cshtmlFiles, htmlFiles, cssFiles, jsFiles, tsFiles, unityFiles, dockerFiles, psFiles, shFiles, batFiles, yamlFiles] = await Promise.all([
                 vscode.workspace.findFiles('**/*.{csproj,fsproj,vbproj,sln,slnx}', '**/node_modules/**', 1),
                 vscode.workspace.findFiles('**/*.csproj', '**/node_modules/**', 1),
                 vscode.workspace.findFiles('**/*.fsproj', '**/node_modules/**', 1),
                 vscode.workspace.findFiles('**/*.vbproj', '**/node_modules/**', 1),
                 vscode.workspace.findFiles('**/*.razor', '**/node_modules/**', 1),
                 vscode.workspace.findFiles('**/*.xaml', '**/node_modules/**', 1),
+                vscode.workspace.findFiles('**/*.{aspx,ascx,master}', '**/node_modules/**', 1),
                 vscode.workspace.findFiles('**/*.cshtml', '**/node_modules/**', 1),
                 vscode.workspace.findFiles('**/*.{html,cshtml}', '**/node_modules/**', 1),
                 vscode.workspace.findFiles('**/*.css', '**/node_modules/**', 1),
@@ -101,6 +102,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
             const hasVbNet = vbnetFiles.length > 0;
             const hasBlazor = razorFiles.length > 0;
             let hasXaml = xamlFiles.length > 0;
+            const hasWebForms = aspxFiles.length > 0;
             let hasRazor = razorFiles.length > 0 || cshtmlFiles.length > 0;
             const hasHtml = htmlFiles.length > 0 || hasBlazor;
             const hasCss = cssFiles.length > 0 || hasHtml;
@@ -310,7 +312,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
             }
 
             if (hasAspNetCore || hasDapper || hasEntityFrameworkCore
-                || hasMaui || hasWpf || hasWinForms
+                || hasMaui || hasWpf || hasWinForms || hasWebForms
                 || hasGrpc || hasMediatR || hasRedis || hasSignalR
                 || hasXunit || hasMsTest || hasNUnit
                 || hasMongoDb || hasMySql || hasOracle || hasPostgres || hasSqlite || hasSqlServer
@@ -395,6 +397,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
                 setContext('sharppilot.workspace.hasCypress', hasCypress),
                 setContext('sharppilot.workspace.hasXaml', hasXaml),
                 setContext('sharppilot.workspace.hasRazor', hasRazor),
+                setContext('sharppilot.workspace.hasWebForms', hasWebForms),
                 setContext('sharppilot.workspace.hasDotNetTesting', hasXunit || hasMsTest || hasNUnit),
                 setContext('sharppilot.workspace.hasWebTesting', hasVitest || hasJest || hasJasmine || hasMocha || hasPlaywright || hasCypress),
                 setContext('sharppilot.workspace.hasGit', hasGit),
@@ -413,6 +416,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
                 hasVitest, hasJest, hasJasmine, hasMocha, hasPlaywright, hasCypress,
                 hasXaml,
                 hasRazor,
+                hasWebForms,
                 hasDotNetTesting: hasXunit || hasMsTest || hasNUnit,
                 hasWebTesting: hasVitest || hasJest || hasJasmine || hasMocha || hasPlaywright || hasCypress,
                 hasGit,

@@ -126,6 +126,10 @@
         "when": "config.sharppilot.instructions.dotnet.aspnetCore && sharppilot.workspace.hasAspNetCore && !sharppilot.override.dotnet.aspnetCore"
       },
       {
+        "path": "./instructions/.generated/dotnet-aspx.instructions.md",
+        "when": "config.sharppilot.instructions.dotnet.aspx && sharppilot.workspace.hasWebForms && !sharppilot.override.dotnet.aspx"
+      },
+      {
         "path": "./instructions/.generated/dotnet-async-await.instructions.md",
         "when": "config.sharppilot.instructions.dotnet.asyncAwait && sharppilot.workspace.hasDotNet && !sharppilot.override.dotnet.asyncAwait"
       },
@@ -446,6 +450,11 @@
           "type": "boolean",
           "default": true,
           "description": "Enable ASP.NET Core Web API guidelines (middleware, routing, error handling, auth)."
+        },
+        "sharppilot.instructions.dotnet.aspx": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable ASP.NET Web Forms guidelines (page lifecycle, ViewState, server controls, security)."
         },
         "sharppilot.instructions.dotnet.asyncAwait": {
           "type": "boolean",
