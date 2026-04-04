@@ -5,6 +5,7 @@ export class InstructionsRegistry {
     private static readonly catalog = new InstructionsCatalog([
         { settingId: 'sharppilot.instructions.codeReview', fileName: 'code-review.instructions.md', label: 'Code Review', category: 'General' },
         { settingId: 'sharppilot.instructions.designPrinciples', fileName: 'design-principles.instructions.md', label: 'Design Principles', category: 'General' },
+        { settingId: 'sharppilot.instructions.testing', fileName: 'testing.instructions.md', label: 'Testing', category: 'General' },
         { settingId: 'sharppilot.instructions.docker', fileName: 'docker.instructions.md', label: 'Docker', category: 'General', contextKeys: ['hasDocker'] },
         { settingId: 'sharppilot.instructions.graphql', fileName: 'graphql.instructions.md', label: 'GraphQL', category: 'General', contextKeys: ['hasGraphql'] },
         { settingId: 'sharppilot.instructions.restApiDesign', fileName: 'rest-api-design.instructions.md', label: 'REST API Design', category: 'General' },

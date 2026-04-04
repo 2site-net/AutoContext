@@ -11,10 +11,10 @@ Detailed instruction files live in `src/SharpPilot.VSCode/instructions/`.
 | ------------------------ | ----------------------------------------------------------------------------------------------------------------------------- |
 | Any code                 | `copilot.instructions.md`, `design-principles.instructions.md`                                                                |
 | C# source               | `dotnet-csharp.instructions.md`, `dotnet-coding-standards.instructions.md`, `dotnet-async-await.instructions.md` |
-| C# tests                | `dotnet-testing.instructions.md`, `dotnet-xunit.instructions.md`                                                              |
+| C# tests                | `testing.instructions.md`, `dotnet-testing.instructions.md`, `dotnet-xunit.instructions.md`                                   |
 | NuGet / .csproj          | `dotnet-nuget.instructions.md`                                                                                                |
 | TypeScript / VS Code ext | `web-typescript.instructions.md`                                                                                              |
-| TypeScript tests         | `web-vitest.instructions.md`                                                                                                  |
+| TypeScript tests         | `testing.instructions.md`, `web-testing.instructions.md`, `web-vitest.instructions.md`                                        |
 | Git commits              | `git-commit-format.instructions.md`                                                                                           |
 | PowerShell scripts       | `scripting-powershell.instructions.md`                                                                                        |
 | Bash / shell scripts     | `scripting-bash.instructions.md`                                                                                              |

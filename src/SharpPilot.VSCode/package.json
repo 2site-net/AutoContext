@@ -98,6 +98,10 @@
         "when": "config.sharppilot.instructions.designPrinciples && !sharppilot.override.designPrinciples"
       },
       {
+        "path": "./instructions/.generated/testing.instructions.md",
+        "when": "config.sharppilot.instructions.testing && !sharppilot.override.testing"
+      },
+      {
         "path": "./instructions/.generated/docker.instructions.md",
         "when": "config.sharppilot.instructions.docker && sharppilot.workspace.hasDocker && !sharppilot.override.docker"
       },
@@ -399,6 +403,11 @@
           "type": "boolean",
           "default": true,
           "description": "Enable design principles (SOLID, DI, composition, separation of concerns, structured logging)."
+        },
+        "sharppilot.instructions.testing": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable general testing guidelines (TDD, AAA structure, single-behavior focus, test isolation)."
         },
         "sharppilot.instructions.docker": {
           "type": "boolean",
