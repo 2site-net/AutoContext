@@ -12,3 +12,4 @@ applyTo: "**/*.{test,spec,cy}.{js,jsx,ts,tsx,mjs,mts}"
 - [INST0006] **Do** prefer `toHaveBeenCalledWith(…)` over inspecting raw mock `calls` arrays.
 - [INST0007] **Do** prefer `async/await` over `done` callbacks for async tests — callback-style is less readable and error-prone on timeout.
 - [INST0008] **Don't** leave focus or skip markers (`.only`, `.skip`, `fdescribe`, `fit`, `xit`) in committed tests — they silently reduce coverage.
+- [INST0009] **Do** use optional chaining (`?.`, `[i]?.`) instead of non-null assertions (`!.`) when accessing values after a soft/grouped guard assertion — a soft `toBeDefined()` or `toHaveLength()` that fails still continues execution, so subsequent property access must not throw a `TypeError`.
