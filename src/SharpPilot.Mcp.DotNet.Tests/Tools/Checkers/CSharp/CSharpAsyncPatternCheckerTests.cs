@@ -1,4 +1,4 @@
-namespace SharpPilot.Mcp.DotNet.Tests.Tools.CSharp;
+namespace SharpPilot.Mcp.DotNet.Tests.Tools.Checkers.CSharp;
 
 using SharpPilot.Mcp.DotNet.Tools.Checkers.CSharp;
 

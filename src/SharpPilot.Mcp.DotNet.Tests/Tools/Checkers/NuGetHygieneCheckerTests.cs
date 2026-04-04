@@ -1,4 +1,4 @@
-namespace SharpPilot.Mcp.DotNet.Tests.Tools;
+namespace SharpPilot.Mcp.DotNet.Tests.Tools.Checkers;
 
 using Microsoft.Extensions.Logging.Abstractions;
 

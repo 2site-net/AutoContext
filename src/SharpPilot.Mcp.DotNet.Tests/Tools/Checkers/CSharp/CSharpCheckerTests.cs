@@ -1,4 +1,4 @@
-namespace SharpPilot.Mcp.DotNet.Tests.Tools.CSharp;
+namespace SharpPilot.Mcp.DotNet.Tests.Tools.Checkers.CSharp;
 
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -63,9 +63,10 @@ public sealed class CSharpCheckerTests
         var result = await new CSharpChecker(NullLogger<CSharpChecker>.Instance).CheckAsync(source, productionFileName: "MyClass.cs");
 
         // Assert
-        Assert.StartsWith("❌", result);
-        Assert.Contains("Block-scoped namespace", result);
-        Assert.Contains("#region", result);
+        Assert.Multiple(
+            () => Assert.StartsWith("❌", result),
+            () => Assert.Contains("Block-scoped namespace", result),
+            () => Assert.Contains("#region", result));
     }
 
     [Fact]
@@ -87,9 +88,10 @@ public sealed class CSharpCheckerTests
         // Act
         var result = await new CSharpChecker(NullLogger<CSharpChecker>.Instance).CheckAsync(source);
 
-        // Assert — should contain naming violation but not a success message for passing checks
-        Assert.StartsWith("❌", result);
-        Assert.DoesNotContain("✅", result);
+        // Assert
+        Assert.Multiple(
+            () => Assert.StartsWith("❌", result),
+            () => Assert.DoesNotContain("✅", result));
     }
 
     [Fact]

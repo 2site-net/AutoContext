@@ -30,8 +30,9 @@ public sealed class EditorConfigToolTests : IDisposable
 
         var result = _tool.Read(Path.Combine(_tempRoot, "file.cs"));
 
-        Assert.StartsWith("⚠️", result);
-        Assert.Contains("No .editorconfig properties", result);
+        Assert.Multiple(
+            () => Assert.StartsWith("⚠️", result),
+            () => Assert.Contains("No .editorconfig properties", result));
     }
 
     [Fact]
@@ -49,8 +50,9 @@ public sealed class EditorConfigToolTests : IDisposable
 
         var result = _tool.Read(Path.Combine(_tempRoot, "Program.cs"));
 
-        Assert.Contains("indent_style = space", result);
-        Assert.Contains("indent_size = 4", result);
+        Assert.Multiple(
+            () => Assert.Contains("indent_style = space", result),
+            () => Assert.Contains("indent_size = 4", result));
     }
 
     [Fact]

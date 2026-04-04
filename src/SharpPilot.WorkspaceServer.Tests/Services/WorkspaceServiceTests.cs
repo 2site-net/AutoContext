@@ -104,9 +104,11 @@ public sealed class WorkspaceServiceTests : IDisposable
                 new EditorConfigRequest(Path.Combine(_tempRoot, "file.cs"), ["indent_style"]),
                 ct);
 
-            Assert.NotNull(response);
-            Assert.Single(response!.Properties);
-            Assert.Equal("space", response.Properties["indent_style"]);
+            Assert.Multiple(
+                () => Assert.NotNull(response),
+                () => Assert.Single(response!.Properties),
+                () => Assert.Equal("space", response!.Properties["indent_style"])
+            );
         }
         finally
         {
@@ -134,12 +136,16 @@ public sealed class WorkspaceServiceTests : IDisposable
 
             var responseBytes = await WorkspaceService.ReadMessageAsync(client, ct);
 
-            Assert.NotNull(responseBytes);
+            Assert.Multiple(
+                () => Assert.NotNull(responseBytes),
+                () =>
+                {
+                    var response = JsonSerializer.Deserialize<EditorConfigResponse>(responseBytes!, JsonOptions);
 
-            var response = JsonSerializer.Deserialize<EditorConfigResponse>(responseBytes!, JsonOptions);
-
-            Assert.NotNull(response);
-            Assert.Empty(response!.Properties);
+                    Assert.NotNull(response);
+                    Assert.Empty(response!.Properties);
+                }
+            );
         }
         finally
         {
@@ -204,7 +210,7 @@ public sealed class WorkspaceServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task McpTools_should_return_run_for_enabled_tool()
+    public async Task Should_return_run_for_enabled_tool()
     {
         var ct = TestContext.Current.CancellationToken;
 
@@ -233,14 +239,18 @@ public sealed class WorkspaceServiceTests : IDisposable
                     [new McpToolEditorConfigEntry("check-style", ["indent_style"])]),
                 ct);
 
-            Assert.NotNull(response);
-            Assert.Single(response!.McpTools);
-
-            var result = response.McpTools[0];
-            Assert.Equal("check-style", result.Name);
-            Assert.Equal(McpToolMode.Run, result.Mode);
-            Assert.NotNull(result.Data);
-            Assert.Equal("space", result.Data!["indent_style"]);
+            Assert.Multiple(
+                () => Assert.NotNull(response),
+                () => Assert.Single(response!.McpTools),
+                () =>
+                {
+                    var result = response!.McpTools[0];
+                    Assert.Equal("check-style", result.Name);
+                    Assert.Equal(McpToolMode.Run, result.Mode);
+                    Assert.NotNull(result.Data);
+                    Assert.Equal("space", result.Data!["indent_style"]);
+                }
+            );
         }
         finally
         {
@@ -249,7 +259,7 @@ public sealed class WorkspaceServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task McpTools_should_return_skip_for_disabled_tool_without_keys()
+    public async Task Should_return_skip_for_disabled_tool_without_keys()
     {
         var ct = TestContext.Current.CancellationToken;
 
@@ -279,13 +289,17 @@ public sealed class WorkspaceServiceTests : IDisposable
                     [new McpToolEditorConfigEntry("check-style")]),
                 ct);
 
-            Assert.NotNull(response);
-            Assert.Single(response!.McpTools);
-
-            var result = response.McpTools[0];
-            Assert.Equal("check-style", result.Name);
-            Assert.Equal(McpToolMode.Skip, result.Mode);
-            Assert.Null(result.Data);
+            Assert.Multiple(
+                () => Assert.NotNull(response),
+                () => Assert.Single(response!.McpTools),
+                () =>
+                {
+                    var result = response!.McpTools[0];
+                    Assert.Equal("check-style", result.Name);
+                    Assert.Equal(McpToolMode.Skip, result.Mode);
+                    Assert.Null(result.Data);
+                }
+            );
         }
         finally
         {
@@ -294,7 +308,7 @@ public sealed class WorkspaceServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task McpTools_should_return_editorconfig_only_for_disabled_tool_with_keys()
+    public async Task Should_return_editorconfig_only_for_disabled_tool_with_keys()
     {
         var ct = TestContext.Current.CancellationToken;
 
@@ -334,14 +348,17 @@ public sealed class WorkspaceServiceTests : IDisposable
                     [new McpToolEditorConfigEntry("check-style", ["indent_size"])]),
                 ct);
 
-            Assert.NotNull(response);
-            Assert.Single(response!.McpTools);
-
-            var result = response.McpTools[0];
-            Assert.Equal("check-style", result.Name);
-            Assert.Equal(McpToolMode.EditorConfigOnly, result.Mode);
-            Assert.NotNull(result.Data);
-            Assert.Equal("4", result.Data!["indent_size"]);
+            Assert.Multiple(
+                () => Assert.NotNull(response),
+                () => Assert.Single(response!.McpTools),
+                () =>
+                {
+                    var result = response!.McpTools[0];
+                    Assert.Equal("check-style", result.Name);
+                    Assert.Equal(McpToolMode.EditorConfigOnly, result.Mode);
+                    Assert.NotNull(result.Data);
+                    Assert.Equal("4", result.Data!["indent_size"]);
+                });
         }
         finally
         {
@@ -350,7 +367,7 @@ public sealed class WorkspaceServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task McpTools_should_handle_multiple_tools_with_different_modes()
+    public async Task Should_handle_multiple_tools_with_different_modes()
     {
         var ct = TestContext.Current.CancellationToken;
 
@@ -394,12 +411,12 @@ public sealed class WorkspaceServiceTests : IDisposable
                     ]),
                 ct);
 
-            Assert.NotNull(response);
-            Assert.Equal(3, response!.McpTools.Length);
-
-            Assert.Equal(McpToolMode.Run, response.McpTools[0].Mode);
-            Assert.Equal(McpToolMode.EditorConfigOnly, response.McpTools[1].Mode);
-            Assert.Equal(McpToolMode.Skip, response.McpTools[2].Mode);
+            Assert.Multiple(
+                () => Assert.NotNull(response),
+                () => Assert.Equal(3, response!.McpTools.Length),
+                () => Assert.Equal(McpToolMode.Run, response!.McpTools[0].Mode),
+                () => Assert.Equal(McpToolMode.EditorConfigOnly, response!.McpTools[1].Mode),
+                () => Assert.Equal(McpToolMode.Skip, response!.McpTools[2].Mode));
         }
         finally
         {
@@ -408,7 +425,7 @@ public sealed class WorkspaceServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task McpTools_should_return_empty_for_missing_file_path()
+    public async Task Should_return_empty_for_missing_file_path()
     {
         var ct = TestContext.Current.CancellationToken;
         var pipeName = $"ec-test-{Guid.NewGuid():N}";
@@ -424,8 +441,9 @@ public sealed class WorkspaceServiceTests : IDisposable
                 new McpToolsRequest("", [new McpToolEditorConfigEntry("check-style")]),
                 ct);
 
-            Assert.NotNull(response);
-            Assert.Empty(response!.McpTools);
+            Assert.Multiple(
+                () => Assert.NotNull(response),
+                () => Assert.Empty(response!.McpTools));
         }
         finally
         {

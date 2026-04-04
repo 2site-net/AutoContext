@@ -47,8 +47,9 @@ public sealed class EditorConfigResolverTests : IDisposable
 
         var result = _resolver.Resolve(Path.Combine(_tempRoot, "Program.cs"));
 
-        Assert.Equal("space", result["indent_style"]);
-        Assert.Equal("4", result["indent_size"]);
+        Assert.Multiple(
+            () => Assert.Equal("space", result["indent_style"]),
+            () => Assert.Equal("4", result["indent_size"]));
     }
 
     [Fact]
@@ -93,8 +94,9 @@ public sealed class EditorConfigResolverTests : IDisposable
 
         var result = _resolver.Resolve(Path.Combine(child, "file.cs"));
 
-        Assert.Equal("2", result["indent_size"]);
-        Assert.Equal("utf-8", result["charset"]);
+        Assert.Multiple(
+            () => Assert.Equal("2", result["indent_size"]),
+            () => Assert.Equal("utf-8", result["charset"]));
     }
 
     [Fact]
@@ -124,8 +126,9 @@ public sealed class EditorConfigResolverTests : IDisposable
 
         var result = _resolver.Resolve(Path.Combine(child, "file.cs"));
 
-        Assert.Equal("yes", result["parent_rule"]);
-        Assert.False(result.ContainsKey("should_not_appear"));
+        Assert.Multiple(
+            () => Assert.Equal("yes", result["parent_rule"]),
+            () => Assert.False(result.ContainsKey("should_not_appear")));
     }
 
     [Fact]
@@ -160,8 +163,9 @@ public sealed class EditorConfigResolverTests : IDisposable
         var csResult = _resolver.Resolve(Path.Combine(_tempRoot, "file.cs"));
         var vbResult = _resolver.Resolve(Path.Combine(_tempRoot, "file.vb"));
 
-        Assert.Equal("space", csResult["indent_style"]);
-        Assert.Equal("space", vbResult["indent_style"]);
+        Assert.Multiple(
+            () => Assert.Equal("space", csResult["indent_style"]),
+            () => Assert.Equal("space", vbResult["indent_style"]));
     }
 
     [Fact]
@@ -182,8 +186,9 @@ public sealed class EditorConfigResolverTests : IDisposable
             Path.Combine(_tempRoot, "file.cs"),
             ["indent_style"]);
 
-        Assert.Single(result);
-        Assert.Equal("space", result["indent_style"]);
+        Assert.Multiple(
+            () => Assert.Single(result),
+            () => Assert.Equal("space", result["indent_style"]));
     }
 
     [Fact]
