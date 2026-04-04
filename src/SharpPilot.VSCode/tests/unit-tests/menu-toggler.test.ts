@@ -33,10 +33,10 @@ describe('MenuToggler', () => {
         const promise = toggler.toggle();
 
         const qp = vi.mocked(window.createQuickPick).mock.results[0].value as MockQuickPick;
-        expect(qp.canSelectMany).toBe(true);
-        expect(qp.title).toBe('SharpPilot: Toggle Tools');
-        expect(settingItems(qp)).toHaveLength(McpToolsRegistry.count);
-        expect(categoryHeaders(qp).length).toBeGreaterThan(0);
+        expect.soft(qp.canSelectMany).toBe(true);
+        expect.soft(qp.title).toBe('SharpPilot: Toggle Tools');
+        expect.soft(settingItems(qp)).toHaveLength(McpToolsRegistry.count);
+        expect.soft(categoryHeaders(qp).length).toBeGreaterThan(0);
         expect(qp.show).toHaveBeenCalledOnce();
 
         qp.__hide();
@@ -60,8 +60,8 @@ describe('MenuToggler', () => {
         const promise = toggler.toggle();
 
         const qp = vi.mocked(window.createQuickPick).mock.results[0].value as MockQuickPick;
-        expect(qp.buttons).toHaveLength(2);
-        expect(qp.buttons[0]).toMatchObject({ tooltip: 'Select All' });
+        expect.soft(qp.buttons).toHaveLength(2);
+        expect.soft(qp.buttons[0]).toMatchObject({ tooltip: 'Select All' });
         expect(qp.buttons[1]).toMatchObject({ tooltip: 'Clear All' });
 
         qp.__hide();
@@ -83,7 +83,7 @@ describe('MenuToggler', () => {
         const overriddenItem = items.find(i => i.settingId === overriddenId);
         const normalItem = items.find(i => i.settingId === InstructionsRegistry.all[1].settingId);
 
-        expect(overriddenItem?.description).toContain('$(file-symlink-directory)');
+        expect.soft(overriddenItem?.description).toContain('$(file-symlink-directory)');
         expect(normalItem?.description).not.toContain('$(file-symlink-directory)');
 
         qp.__hide();
@@ -101,13 +101,28 @@ describe('MenuToggler', () => {
         const betaHeader = items.find(i => i.isCategory && i.category === 'Beta')!;
         const betaItem = items.find(i => i.settingId === 'b.one')!;
 
-        // Simulate checking the Alpha category header (plus keep Beta members selected)
         qp.selectedItems = [alphaHeader, betaHeader, betaItem];
 
-        // Alpha members should now be selected too
         const selectedIds = new Set((qp.selectedItems as ToggleItem[]).map(i => i.settingId));
-        expect(selectedIds.has('a.one')).toBe(true);
+        expect.soft(selectedIds.has('a.one')).toBe(true);
         expect(selectedIds.has('a.two')).toBe(true);
+
+        qp.__hide();
+        await promise;
+    });
+
+    it('should initially select category header when all members default to true', async () => {
+        const toggler = new MenuToggler('Test', 'test', smallEntries);
+        const promise = toggler.toggle();
+
+        const qp = vi.mocked(window.createQuickPick).mock.results[0].value as MockQuickPick;
+        const items = qp.items as ToggleItem[];
+        const betaHeader = items.find(i => i.isCategory && i.category === 'Beta')!;
+        const betaItem = items.find(i => i.settingId === 'b.one')!;
+        const selectedIds = new Set((qp.selectedItems as ToggleItem[]).map(i => i.settingId));
+
+        expect.soft(selectedIds.has(betaHeader.settingId)).toBe(true);
+        expect(selectedIds.has(betaItem.settingId)).toBe(true);
 
         qp.__hide();
         await promise;
@@ -119,21 +134,28 @@ describe('MenuToggler', () => {
 
         const qp = vi.mocked(window.createQuickPick).mock.results[0].value as MockQuickPick;
         const items = qp.items as ToggleItem[];
-        const betaHeader = items.find(i => i.isCategory && i.category === 'Beta')!;
-        const betaItem = items.find(i => i.settingId === 'b.one')!;
-
-        // First verify Beta is initially all selected (default true)
-        const initialIds = new Set((qp.selectedItems as ToggleItem[]).map(i => i.settingId));
-        expect(initialIds.has(betaHeader.settingId)).toBe(true);
-        expect(initialIds.has(betaItem.settingId)).toBe(true);
-
-        // Now deselect Beta category header — keep only Alpha items
         const alphaItems = items.filter(i => i.category === 'Alpha' && i.kind !== QuickPickItemKind.Separator);
+
         qp.selectedItems = [...alphaItems];
 
-        // Beta member should be deselected
         const afterIds = new Set((qp.selectedItems as ToggleItem[]).map(i => i.settingId));
         expect(afterIds.has('b.one')).toBe(false);
+
+        qp.__hide();
+        await promise;
+    });
+
+    it('should not auto-check category header when some members are unselected', async () => {
+        __setConfigStore({ 'a.one': false });
+        const toggler = new MenuToggler('Test', 'test', smallEntries);
+        const promise = toggler.toggle();
+
+        const qp = vi.mocked(window.createQuickPick).mock.results[0].value as MockQuickPick;
+        const items = qp.items as ToggleItem[];
+        const alphaHeader = items.find(i => i.isCategory && i.category === 'Alpha')!;
+        const selectedIds = new Set((qp.selectedItems as ToggleItem[]).map(i => i.settingId));
+
+        expect(selectedIds.has(alphaHeader.settingId)).toBe(false);
 
         qp.__hide();
         await promise;
@@ -147,18 +169,12 @@ describe('MenuToggler', () => {
         const qp = vi.mocked(window.createQuickPick).mock.results[0].value as MockQuickPick;
         const items = qp.items as ToggleItem[];
         const alphaHeader = items.find(i => i.isCategory && i.category === 'Alpha')!;
-
-        // Initially a.one is off, so Alpha header should not be selected
-        const initialIds = new Set((qp.selectedItems as ToggleItem[]).map(i => i.settingId));
-        expect(initialIds.has(alphaHeader.settingId)).toBe(false);
-
-        // Select both Alpha members manually (without the header)
         const allNonSeparator = items.filter(i => i.kind !== QuickPickItemKind.Separator);
+
         qp.selectedItems = allNonSeparator.filter(i =>
             i.settingId === 'a.one' || i.settingId === 'a.two' || i.category === 'Beta',
         );
 
-        // Alpha header should now be auto-checked
         const afterIds = new Set((qp.selectedItems as ToggleItem[]).map(i => i.settingId));
         expect(afterIds.has(alphaHeader.settingId)).toBe(true);
 
@@ -167,15 +183,21 @@ describe('MenuToggler', () => {
     });
 
     it('should only persist setting entries, not category headers', async () => {
+        __setConfigStore({ 'a.one': false });
         const toggler = new MenuToggler('Test', 'test', smallEntries);
         const promise = toggler.toggle();
 
         const qp = vi.mocked(window.createQuickPick).mock.results[0].value as MockQuickPick;
+        const allSelectable = (qp.items as ToggleItem[]).filter(i => i.kind !== QuickPickItemKind.Separator);
+        qp.selectedItems = allSelectable;
         qp.__accept();
         await promise;
 
-        const config = (await import('./__mocks__/vscode')).workspace.getConfiguration();
-        const updatedKeys = (config.update as ReturnType<typeof vi.fn>).mock.calls.map((c: unknown[]) => c[0] as string);
+        const { workspace: ws } = await import('./__mocks__/vscode');
+        const updatedKeys = vi.mocked(ws.getConfiguration).mock.results.flatMap(r =>
+            (r.value.update as ReturnType<typeof vi.fn>).mock.calls.map((c: unknown[]) => c[0] as string),
+        );
+        expect(updatedKeys).not.toHaveLength(0);
         expect(updatedKeys.every(k => !k.startsWith('__category__'))).toBe(true);
     });
 });

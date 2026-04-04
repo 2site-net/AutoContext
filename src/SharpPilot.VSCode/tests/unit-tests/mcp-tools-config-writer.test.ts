@@ -85,7 +85,6 @@ describe('McpToolsConfigWriter', () => {
         const writer = new McpToolsConfigWriter(configManager);
         writer.write();
 
-        // Config is empty — file should be deleted, not written.
         expect(writeFileSync).not.toHaveBeenCalled();
         expect(unlinkSync).toHaveBeenCalled();
     });

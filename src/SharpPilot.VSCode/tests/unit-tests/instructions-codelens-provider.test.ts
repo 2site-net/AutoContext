@@ -59,12 +59,10 @@ describe('InstructionsCodeLensProvider', () => {
 
         const { instructions: parsedInstructions } = InstructionsParser.parse(testContent);
         expect(lenses).toHaveLength(parsedInstructions.length);
-
-        for (const lens of lenses) {
+        expect(lenses.every(lens => {
             const cmd = lens.command as { title: string; command: string };
-            expect(cmd.title).toContain('Disable Instruction');
-            expect(cmd.command).toBe(toggleInstructionCommandId);
-        }
+            return cmd.title.includes('Disable Instruction') && cmd.command === toggleInstructionCommandId;
+        })).toBe(true);
     });
 
     it('should show Enable Instruction for disabled instructions', () => {
@@ -86,7 +84,6 @@ describe('InstructionsCodeLensProvider', () => {
 
         const lenses = provider.provideCodeLenses(makeDocument(instructionScheme, 'test.instructions.md'));
 
-        // Should have reset lens + one per instruction.
         expect(lenses).toHaveLength(parsedInstructions.length + 1);
 
         const toggleLenses = lenses.filter(l => (l.command as { command: string }).command === toggleInstructionCommandId);
@@ -117,9 +114,10 @@ describe('InstructionsCodeLensProvider', () => {
         const lenses = provider.provideCodeLenses(makeDocument(instructionScheme, 'test.instructions.md'));
 
         const resetLens = lenses.find(l => (l.command as { command: string }).command === resetInstructionsCommandId);
-        expect(resetLens).toBeDefined();
-        expect((resetLens!.command as { title: string }).title).toContain('Reset All Instructions');
-        expect((resetLens!.command as { arguments: string[] }).arguments).toEqual(['test.instructions.md']);
+
+        expect.soft(resetLens).toBeDefined();
+        expect.soft((resetLens?.command as { title: string })?.title).toContain('Reset All Instructions');
+        expect((resetLens?.command as { arguments: string[] })?.arguments).toEqual(['test.instructions.md']);
     });
 
     it('should not include Reset All Instructions lens when no instructions are disabled', () => {

@@ -54,8 +54,8 @@ describe('InstructionsCatalog', () => {
     it('should return empty results for empty catalog', () => {
         const catalog = new InstructionsCatalog([]);
 
-        expect(catalog.all).toEqual([]);
-        expect(catalog.count).toBe(0);
+        expect.soft(catalog.all).toEqual([]);
+        expect.soft(catalog.count).toBe(0);
         expect(catalog.findByFileName('anything.md')).toBeUndefined();
     });
 });

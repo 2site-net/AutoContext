@@ -24,14 +24,10 @@ describe('AutoConfigurer.configure', () => {
         const config = vi.mocked(workspace.getConfiguration).mock.results[0].value;
         const updates = vi.mocked(config.update).mock.calls;
 
-        // Always-on entries (copilot, codeReview, etc.) default to true and should stay true → no update needed.
-        // Workspace-specific entries default to true but workspace says false → should be disabled.
         expect(updates.length).toBeGreaterThan(0);
-
-        for (const [settingId, value] of updates) {
-            expect(value).toBe(false);
-            expect(settingId).toMatch(/^sharppilot\./);
-        }
+        expect(updates.every(([settingId, value]: [string, boolean]) =>
+            value === false && settingId.startsWith('sharppilot.'),
+        )).toBe(true);
     });
 
     it('should enable .NET entries when hasDotNet and hasCSharp are detected', async () => {
@@ -42,14 +38,10 @@ describe('AutoConfigurer.configure', () => {
         const config = vi.mocked(workspace.getConfiguration).mock.results[0].value;
         const updates = vi.mocked(config.update).mock.calls;
 
-        // .NET entries should NOT appear in updates (already true by default, and relevant).
-        // Non-.NET workspace entries should be disabled.
         const updatedIds = new Set(updates.map(([id]: [string]) => id));
 
-        expect(updatedIds.has('sharppilot.instructions.dotnet.asyncAwait')).toBe(false);
-        expect(updatedIds.has('sharppilot.tools.check_csharp_coding_style')).toBe(false);
-
-        // Git entries should be disabled
+        expect.soft(updatedIds.has('sharppilot.instructions.dotnet.asyncAwait')).toBe(false);
+        expect.soft(updatedIds.has('sharppilot.tools.check_csharp_coding_style')).toBe(false);
         expect(updatedIds.has('sharppilot.instructions.git.commitFormat')).toBe(true);
     });
 
@@ -77,7 +69,6 @@ describe('AutoConfigurer.configure', () => {
         const config = vi.mocked(workspace.getConfiguration).mock.results[0].value;
         const updatedIds = vi.mocked(config.update).mock.calls.map(([id]: [string]) => id);
 
-        // Already false, should not be updated again
         expect(updatedIds.filter((id: string) => id === 'sharppilot.instructions.dotnet.asyncAwait')).toHaveLength(0);
     });
 });

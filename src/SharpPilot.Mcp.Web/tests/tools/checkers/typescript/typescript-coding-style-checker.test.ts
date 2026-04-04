@@ -27,7 +27,8 @@ describe('TypeScriptCodingStyleChecker', () => {
         `;
 
         const result = checker.check(source);
-        expect(result).toMatch(/^❌/);
+
+        expect.soft(result).toMatch(/^❌/);
         expect(result).toContain('any');
     });
 
@@ -37,7 +38,8 @@ describe('TypeScriptCodingStyleChecker', () => {
         `;
 
         const result = checker.check(source);
-        expect(result).toMatch(/^❌/);
+
+        expect.soft(result).toMatch(/^❌/);
         expect(result).toContain('any');
     });
 
@@ -52,7 +54,8 @@ describe('TypeScriptCodingStyleChecker', () => {
         `;
 
         const result = checker.check(source);
-        expect(result).toMatch(/^❌/);
+
+        expect.soft(result).toMatch(/^❌/);
         expect(result).toContain('enum');
     });
 
@@ -63,7 +66,8 @@ describe('TypeScriptCodingStyleChecker', () => {
         `;
 
         const result = checker.check(source);
-        expect(result).toMatch(/^❌/);
+
+        expect.soft(result).toMatch(/^❌/);
         expect(result).toContain('@ts-expect-error');
     });
 
@@ -75,7 +79,8 @@ describe('TypeScriptCodingStyleChecker', () => {
         `;
 
         const result = checker.check(source);
-        expect(result).toMatch(/^❌/);
+
+        expect.soft(result).toMatch(/^❌/);
         expect(result).toContain('Function');
     });
 
@@ -87,7 +92,8 @@ describe('TypeScriptCodingStyleChecker', () => {
         `;
 
         const result = checker.check(source);
-        expect(result).toMatch(/^❌/);
+
+        expect.soft(result).toMatch(/^❌/);
         expect(result).toContain('Object');
     });
 
@@ -99,9 +105,10 @@ describe('TypeScriptCodingStyleChecker', () => {
         `;
 
         const result = checker.check(source);
-        expect(result).toMatch(/^❌/);
-        expect(result).toContain('@ts-expect-error');
-        expect(result).toContain('any');
+
+        expect.soft(result).toMatch(/^❌/);
+        expect.soft(result).toContain('@ts-expect-error');
+        expect.soft(result).toContain('any');
         expect(result).toContain('enum');
     });
 
@@ -133,7 +140,8 @@ describe('TypeScriptCodingStyleChecker', () => {
         `;
 
         const result = checker.check(source);
-        expect(result).toMatch(/^❌/);
+
+        expect.soft(result).toMatch(/^❌/);
         expect(result).toContain('{}');
     });
 
@@ -145,8 +153,9 @@ describe('TypeScriptCodingStyleChecker', () => {
         `;
 
         const result = checker.check(source);
-        expect(result).toMatch(/^❌/);
-        expect(result).toContain('return type');
+
+        expect.soft(result).toMatch(/^❌/);
+        expect.soft(result).toContain('return type');
         expect(result).toContain('add');
     });
 
@@ -176,8 +185,9 @@ describe('TypeScriptCodingStyleChecker', () => {
         `;
 
         const result = checker.check(source);
-        expect(result).toMatch(/^❌/);
-        expect(result).toContain('return type');
+
+        expect.soft(result).toMatch(/^❌/);
+        expect.soft(result).toContain('return type');
         expect(result).toContain('add');
     });
 
@@ -195,7 +205,8 @@ describe('TypeScriptCodingStyleChecker', () => {
         `;
 
         const result = checker.check(source);
-        expect(result).toMatch(/^❌/);
+
+        expect.soft(result).toMatch(/^❌/);
         expect(result).toContain('Default-exported');
     });
 
@@ -207,8 +218,9 @@ describe('TypeScriptCodingStyleChecker', () => {
         `;
 
         const result = checker.check(source);
-        expect(result).toMatch(/^❌/);
-        expect(result).toContain('extends');
+
+        expect.soft(result).toMatch(/^❌/);
+        expect.soft(result).toContain('extends');
         expect(result).toContain('T');
     });
 
@@ -228,7 +240,8 @@ describe('TypeScriptCodingStyleChecker', () => {
         `;
 
         const result = checker.check(source);
-        expect(result).toMatch(/^❌/);
+
+        expect.soft(result).toMatch(/^❌/);
         expect(result).toContain('as');
     });
 
@@ -246,7 +259,8 @@ describe('TypeScriptCodingStyleChecker', () => {
         `;
 
         const result = checker.check(source);
-        expect(result).toMatch(/^❌/);
+
+        expect.soft(result).toMatch(/^❌/);
         expect(result).toContain('non-null');
     });
 
@@ -259,7 +273,8 @@ describe('TypeScriptCodingStyleChecker', () => {
         `;
 
         const result = checker.check(source);
-        expect(result).toMatch(/^❌/);
+
+        expect.soft(result).toMatch(/^❌/);
         expect(result).toContain('interface User');
     });
 
@@ -294,18 +309,18 @@ describe('TypeScriptCodingStyleChecker', () => {
         `;
 
         const result = checker.check(source, { __disabled: 'true' });
+
         expect(result).toMatch(/^✅/);
     });
 
     it('should skip all checks when disabled even with violations', () => {
-        // All current TS checks are INST-only (no EC backing),
-        // so disabled mode produces no violations.
         const source = `
             // @ts-ignore
             function process(data: any): void {}
         `;
 
         const result = checker.check(source, { __disabled: 'true' });
+
         expect(result).toMatch(/^✅/);
     });
 });

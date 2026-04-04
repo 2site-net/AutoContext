@@ -25,6 +25,7 @@ describe('TypeScriptChecker', () => {
         `;
 
         const result = await checker.check(source);
+
         expect(result).toMatch(/^❌/);
     });
 

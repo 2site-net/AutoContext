@@ -47,39 +47,39 @@ describe('parseInstructions', () => {
     it('should parse a single instruction with ID', () => {
         const { instructions } = InstructionsParser.parse(singleInstructionDoc);
 
-        expect(instructions).toHaveLength(1);
-        expect(instructions[0].text).toBe('- [INST0001] **Do** always use curly braces for control flow statements.');
-        expect(instructions[0].startLine).toBe(5);
-        expect(instructions[0].endLine).toBe(5);
-        expect(instructions[0].id).toBe('INST0001');
+        expect.soft(instructions).toHaveLength(1);
+        expect.soft(instructions[0]?.text).toBe('- [INST0001] **Do** always use curly braces for control flow statements.');
+        expect.soft(instructions[0]?.startLine).toBe(5);
+        expect.soft(instructions[0]?.endLine).toBe(5);
+        expect(instructions[0]?.id).toBe('INST0001');
     });
 
     it('should parse multiple instructions', () => {
         const { instructions } = InstructionsParser.parse(multiInstructionDoc);
 
-        expect(instructions).toHaveLength(3);
-        expect(instructions[0].text).toContain('write true');
-        expect(instructions[1].text).toContain('CancellationToken');
-        expect(instructions[2].text).toContain('async void');
+        expect.soft(instructions).toHaveLength(3);
+        expect.soft(instructions[0]?.text).toContain('write true');
+        expect.soft(instructions[1]?.text).toContain('CancellationToken');
+        expect(instructions[2]?.text).toContain('async void');
     });
 
     it('should handle * bullet style with IDs', () => {
         const { instructions } = InstructionsParser.parse(starBulletDoc);
 
-        expect(instructions).toHaveLength(2);
-        expect(instructions[0].id).toBe('INST0001');
-        expect(instructions[0].text).toContain('strict: true');
-        expect(instructions[1].id).toBe('INST0002');
-        expect(instructions[1].text).toContain('type assertions');
+        expect.soft(instructions).toHaveLength(2);
+        expect.soft(instructions[0]?.id).toBe('INST0001');
+        expect.soft(instructions[0]?.text).toContain('strict: true');
+        expect.soft(instructions[1]?.id).toBe('INST0002');
+        expect(instructions[1]?.text).toContain('type assertions');
     });
 
     it('should parse instructions across sections', () => {
         const { instructions } = InstructionsParser.parse(sectionedDoc);
 
-        expect(instructions).toHaveLength(3);
-        expect(instructions[0].text).toContain('leading underscore');
-        expect(instructions[1].text).toContain('PascalCase');
-        expect(instructions[2].text).toContain('nest conditional');
+        expect.soft(instructions).toHaveLength(3);
+        expect.soft(instructions[0]?.text).toContain('leading underscore');
+        expect.soft(instructions[1]?.text).toContain('PascalCase');
+        expect(instructions[2]?.text).toContain('nest conditional');
     });
 
     it('should assign unique IDs to distinct instructions', () => {
@@ -112,9 +112,9 @@ Some paragraph text.
         const content = '# Test\r\n\r\n- [INST0001] **Do** use CRLF.\r\n- [INST0002] **Don\'t** mix line endings.\r\n';
         const { instructions } = InstructionsParser.parse(content);
 
-        expect(instructions).toHaveLength(2);
-        expect(instructions[0].text).toContain('use CRLF');
-        expect(instructions[1].text).toContain('mix line endings');
+        expect.soft(instructions).toHaveLength(2);
+        expect.soft(instructions[0]?.text).toContain('use CRLF');
+        expect(instructions[1]?.text).toContain('mix line endings');
     });
 
     it('should handle trailing blank lines at end of file', () => {
@@ -149,9 +149,9 @@ Some paragraph.
 `;
         const { instructions } = InstructionsParser.parse(content);
 
-        expect(instructions).toHaveLength(2);
-        expect(instructions[0].text).toContain('for all control flow statements');
-        expect(instructions[1].text).toContain('nest ternaries');
+        expect.soft(instructions).toHaveLength(2);
+        expect.soft(instructions[0]?.text).toContain('for all control flow statements');
+        expect(instructions[1]?.text).toContain('nest ternaries');
     });
 
     it('should set id to undefined for instructions without an ID tag', () => {
@@ -166,9 +166,9 @@ Some paragraph.
         const content = '# Test\n\n- **Do** something without an ID.\n';
         const { diagnostics } = InstructionsParser.parse(content);
 
-        expect(diagnostics).toHaveLength(1);
-        expect(diagnostics[0].kind).toBe('missing-id');
-        expect(diagnostics[0].line).toBe(2);
+        expect.soft(diagnostics).toHaveLength(1);
+        expect.soft(diagnostics[0]?.kind).toBe('missing-id');
+        expect(diagnostics[0]?.line).toBe(2);
     });
 
     it('should emit duplicate-id diagnostic for repeated IDs', () => {

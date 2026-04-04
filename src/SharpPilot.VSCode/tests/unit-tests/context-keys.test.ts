@@ -52,16 +52,16 @@ describe('ContextKeys.forEntry', () => {
         const alwaysOn = new Set([
             'sharppilot.instructions.codeReview',
             'sharppilot.instructions.designPrinciples',
+            'sharppilot.instructions.testing',
             'sharppilot.instructions.restApiDesign',
             'sharppilot.instructions.sql',
         ]);
 
-        for (const entry of InstructionsRegistry.all) {
-            if (alwaysOn.has(entry.settingId)) {
-                expect(ContextKeys.forEntry(entry)).toEqual([]);
-            } else {
-                expect(ContextKeys.forEntry(entry).length).toBeGreaterThan(0);
-            }
-        }
+        expect(InstructionsRegistry.all.length).toBeGreaterThan(0);
+        expect(InstructionsRegistry.all.every(entry =>
+            alwaysOn.has(entry.settingId)
+                ? ContextKeys.forEntry(entry).length === 0
+                : ContextKeys.forEntry(entry).length > 0,
+        )).toBe(true);
     });
 });

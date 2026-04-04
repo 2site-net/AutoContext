@@ -45,7 +45,6 @@ describe('InstructionsConfigWriter', () => {
         const writer = new InstructionsConfigWriter('/ext', configManager);
         writer.write();
 
-        // Should write every instruction file to staging + promote to .generated.
         expect(writeFileSync).toHaveBeenCalled();
         const writeCalls = vi.mocked(writeFileSync).mock.calls;
         const stagingWrites = writeCalls.filter(([path]) =>
@@ -73,10 +72,9 @@ describe('InstructionsConfigWriter', () => {
         expect(stagingWrite).toBeDefined();
         const writtenContent = stagingWrite![1] as string;
 
-        expect(writtenContent).not.toContain('[INST0001]');
-        expect(writtenContent).not.toContain('[INST0002]');
-        // Content itself should still be present.
-        expect(writtenContent).toContain('always use curly braces');
+        expect.soft(writtenContent).not.toContain('[INST0001]');
+        expect.soft(writtenContent).not.toContain('[INST0002]');
+        expect.soft(writtenContent).toContain('always use curly braces');
         expect(writtenContent).toContain('async void');
     });
 
@@ -99,7 +97,6 @@ describe('InstructionsConfigWriter', () => {
         const writer = new InstructionsConfigWriter('/ext', configManager);
         writer.write();
 
-        // Find the write call for the target instruction file in staging.
         const writeCalls = vi.mocked(writeFileSync).mock.calls;
         const targetWrite = writeCalls.find(([path]) =>
             String(path).includes(targetFileName) && String(path).includes('.workspaces'),
@@ -108,11 +105,8 @@ describe('InstructionsConfigWriter', () => {
         expect(targetWrite).toBeDefined();
         const writtenContent = targetWrite![1] as string;
 
-        // The disabled instruction's text should not appear.
-        expect(writtenContent).not.toContain('always use curly braces');
-        // The other instruction should still be present.
-        expect(writtenContent).toContain('async void');
-        // Tags should be stripped from remaining lines.
+        expect.soft(writtenContent).not.toContain('always use curly braces');
+        expect.soft(writtenContent).toContain('async void');
         expect(writtenContent).not.toContain('[INST0002]');
     });
 
@@ -149,9 +143,9 @@ More prose below.
         expect(stagingWrite).toBeDefined();
         const writtenContent = stagingWrite![1] as string;
 
-        expect(writtenContent).toContain('# Guidelines');
-        expect(writtenContent).toContain('Some introductory text here.');
-        expect(writtenContent).toContain('## Section Two');
+        expect.soft(writtenContent).toContain('# Guidelines');
+        expect.soft(writtenContent).toContain('Some introductory text here.');
+        expect.soft(writtenContent).toContain('## Section Two');
         expect(writtenContent).toContain('More prose below.');
     });
 
@@ -202,7 +196,6 @@ More prose below.
         const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
         const writer = new InstructionsConfigWriter('/ext', configManager);
 
-        // Should not throw.
-        writer.dispose();
+        expect(() => writer.dispose()).not.toThrow();
     });
 });

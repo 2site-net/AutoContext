@@ -113,7 +113,6 @@ describe('InstructionsDecorationManager', () => {
         const manager = new InstructionsDecorationManager('/ext', configManager);
         manager.refreshAll();
 
-        // Only the instruction editor should get decorations.
         expect((editor1 as unknown as { setDecorations: ReturnType<typeof vi.fn> }).setDecorations).toHaveBeenCalled();
         expect((editor2 as unknown as { setDecorations: ReturnType<typeof vi.fn> }).setDecorations).not.toHaveBeenCalled();
     });

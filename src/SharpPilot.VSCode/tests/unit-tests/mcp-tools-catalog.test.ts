@@ -42,8 +42,8 @@ describe('McpToolsCatalog', () => {
     it('should return empty array for empty catalog', () => {
         const catalog = new McpToolsCatalog([]);
 
-        expect(catalog.all).toEqual([]);
-        expect(catalog.count).toBe(0);
+        expect.soft(catalog.all).toEqual([]);
+        expect.soft(catalog.count).toBe(0);
         expect(catalog.getSettingIdByCategory('dotnet')).toEqual([]);
     });
 });

@@ -46,11 +46,10 @@ describe('McpServerProvider.provideMcpServerDefinitions', () => {
             const git = defs.find(d => d.args?.includes('git'));
             const editorconfig = defs.find(d => d.args?.includes('editorconfig'));
 
-            expect(git).toBeDefined();
-            expect(git!.command).toContain('SharpPilot.WorkspaceServer');
-
-            expect(editorconfig).toBeDefined();
-            expect(editorconfig!.command).toContain('SharpPilot.WorkspaceServer');
+            expect.soft(git).toBeDefined();
+            expect.soft(git?.command).toContain('SharpPilot.WorkspaceServer');
+            expect.soft(editorconfig).toBeDefined();
+            expect(editorconfig?.command).toContain('SharpPilot.WorkspaceServer');
         });
 
         it('web process resolves to node with index.js', async () => {
@@ -68,47 +67,43 @@ describe('McpServerProvider.provideMcpServerDefinitions', () => {
     describe('argument assembly', () => {
         it('every server receives --scope with its category', async () => {
             const defs = await createProvider().provideMcpServerDefinitions() as StdioDef[];
-            expect(defs).not.toHaveLength(0);
 
-            for (const def of defs) {
-                const scopeIdx = def.args!.indexOf('--scope');
-                expect(scopeIdx).toBeGreaterThanOrEqual(0);
-                expect(def.args![scopeIdx + 1]).toBeTruthy();
-            }
+            expect(defs).not.toHaveLength(0);
+            expect(defs.every(d => {
+                const idx = d.args!.indexOf('--scope');
+                return idx >= 0 && !!d.args![idx + 1];
+            })).toBe(true);
         });
 
         it('every server receives --workspace when a folder is open', async () => {
             const defs = await createProvider().provideMcpServerDefinitions() as StdioDef[];
-            expect(defs).not.toHaveLength(0);
 
-            for (const def of defs) {
-                expect(def.args).toEqual(expect.arrayContaining(['--workspace', '/workspace']));
-            }
+            expect(defs).not.toHaveLength(0);
+            expect(defs.every(d =>
+                d.args!.includes('--workspace') && d.args!.includes('/workspace'),
+            )).toBe(true);
         });
 
         it('--workspace is omitted when no folder is open', async () => {
             workspace.workspaceFolders = undefined;
-            const defs = await createProvider().provideMcpServerDefinitions() as StdioDef[];
-            expect(defs).not.toHaveLength(0);
 
-            for (const def of defs) {
-                expect(def.args).not.toEqual(expect.arrayContaining(['--workspace']));
-            }
+            const defs = await createProvider().provideMcpServerDefinitions() as StdioDef[];
+
+            expect(defs).not.toHaveLength(0);
+            expect(defs.every(d => !d.args!.includes('--workspace'))).toBe(true);
         });
 
         it('non-editorconfig servers receive --workspace-server pipe', async () => {
             const defs = await createProvider().provideMcpServerDefinitions() as StdioDef[];
-            expect(defs).not.toHaveLength(0);
+            const nonEditorconfig = defs.filter(d => {
+                const category = d.args![d.args!.indexOf('--scope') + 1];
+                return category !== 'editorconfig';
+            });
 
-            for (const def of defs) {
-                const category = def.args![def.args!.indexOf('--scope') + 1];
-
-                if (category !== 'editorconfig') {
-                    expect(def.args).toEqual(expect.arrayContaining([
-                        '--workspace-server', 'sharppilot-workspace-abc123',
-                    ]));
-                }
-            }
+            expect(nonEditorconfig).not.toHaveLength(0);
+            expect(nonEditorconfig.every(d =>
+                d.args!.includes('--workspace-server') && d.args!.includes('sharppilot-workspace-abc123'),
+            )).toBe(true);
         });
 
         it('editorconfig server does not receive --workspace-server', async () => {
@@ -120,12 +115,11 @@ describe('McpServerProvider.provideMcpServerDefinitions', () => {
 
         it('--workspace-server is omitted when pipe is not ready', async () => {
             vi.mocked(fakeWorkspaceServer.getPipeName).mockReturnValue(undefined);
-            const defs = await createProvider().provideMcpServerDefinitions() as StdioDef[];
-            expect(defs).not.toHaveLength(0);
 
-            for (const def of defs) {
-                expect(def.args).not.toEqual(expect.arrayContaining(['--workspace-server']));
-            }
+            const defs = await createProvider().provideMcpServerDefinitions() as StdioDef[];
+
+            expect(defs).not.toHaveLength(0);
+            expect(defs.every(d => !d.args!.includes('--workspace-server'))).toBe(true);
         });
     });
 
@@ -134,17 +128,19 @@ describe('McpServerProvider.provideMcpServerDefinitions', () => {
             vi.mocked(fakeDetector.get).mockImplementation(
                 (key: string) => key !== 'hasDotNet',
             );
+
             const defs = await createProvider().provideMcpServerDefinitions() as StdioDef[];
             const categories = defs.map(d => d.args![d.args!.indexOf('--scope') + 1]);
 
-            expect(categories).not.toContain('dotnet');
-            expect(categories).toContain('git');
-            expect(categories).toContain('editorconfig');
+            expect.soft(categories).not.toContain('dotnet');
+            expect.soft(categories).toContain('git');
+            expect.soft(categories).toContain('editorconfig');
             expect(categories).toContain('typescript');
         });
 
         it('editorconfig is always included (no contextKey)', async () => {
             vi.mocked(fakeDetector.get).mockReturnValue(false);
+
             const defs = await createProvider().provideMcpServerDefinitions() as StdioDef[];
             const categories = defs.map(d => d.args![d.args!.indexOf('--scope') + 1]);
 
@@ -156,6 +152,7 @@ describe('McpServerProvider.provideMcpServerDefinitions', () => {
                 'sharppilot.tools.check_git_commit_content': false,
                 'sharppilot.tools.check_git_commit_format': false,
             });
+
             const defs = await createProvider().provideMcpServerDefinitions() as StdioDef[];
             const categories = defs.map(d => d.args![d.args!.indexOf('--scope') + 1]);
 
@@ -166,6 +163,7 @@ describe('McpServerProvider.provideMcpServerDefinitions', () => {
             __setConfigStore({
                 'sharppilot.tools.check_git_commit_content': false,
             });
+
             const defs = await createProvider().provideMcpServerDefinitions() as StdioDef[];
             const categories = defs.map(d => d.args![d.args!.indexOf('--scope') + 1]);
 
@@ -177,17 +175,17 @@ describe('McpServerProvider.provideMcpServerDefinitions', () => {
         it('all definitions are McpStdioServerDefinition instances', async () => {
             const defs = await createProvider().provideMcpServerDefinitions();
 
-            for (const def of defs) {
-                expect(def).toBeInstanceOf(McpStdioServerDefinition);
-            }
+            expect(defs).not.toHaveLength(0);
+            expect(defs.every(d => d instanceof McpStdioServerDefinition)).toBe(true);
         });
 
         it('all definitions carry the extension version', async () => {
             const defs = await createProvider().provideMcpServerDefinitions();
 
-            for (const def of defs) {
-                expect((def as InstanceType<typeof McpStdioServerDefinition>).version).toBe(version);
-            }
+            expect(defs).not.toHaveLength(0);
+            expect(defs.every(d =>
+                (d as InstanceType<typeof McpStdioServerDefinition>).version === version,
+            )).toBe(true);
         });
 
         it('returns four servers when all contexts are met', async () => {

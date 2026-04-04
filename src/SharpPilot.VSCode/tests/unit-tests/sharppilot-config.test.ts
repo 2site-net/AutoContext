@@ -114,7 +114,6 @@ describe('SharpPilotConfigManager', () => {
         const manager = new SharpPilotConfigManager('/ext', '0.5.0');
         manager.toggleInstruction('code-review.instructions.md', 'INST0001');
 
-        // When all instructions re-enabled, file should be deleted (empty config).
         expect(vi.mocked(unlinkSync)).toHaveBeenCalled();
     });
 
