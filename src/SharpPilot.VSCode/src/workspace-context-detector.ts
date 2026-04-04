@@ -72,7 +72,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
 
             const decoder = new TextDecoder();
 
-            const [dotnetFiles, csharpFiles, fsharpFiles, vbnetFiles, razorFiles, htmlFiles, cssFiles, jsFiles, tsFiles, unityFiles, dockerFiles, psFiles, shFiles, batFiles] = await Promise.all([
+            const [dotnetFiles, csharpFiles, fsharpFiles, vbnetFiles, razorFiles, htmlFiles, cssFiles, jsFiles, tsFiles, unityFiles, dockerFiles, psFiles, shFiles, batFiles, yamlFiles] = await Promise.all([
                 vscode.workspace.findFiles('**/*.{csproj,fsproj,vbproj,sln,slnx}', '**/node_modules/**', 1),
                 vscode.workspace.findFiles('**/*.csproj', '**/node_modules/**', 1),
                 vscode.workspace.findFiles('**/*.fsproj', '**/node_modules/**', 1),
@@ -87,6 +87,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
                 vscode.workspace.findFiles('**/*.{ps1,psm1,psd1}', '**/node_modules/**', 1),
                 vscode.workspace.findFiles('**/*.{sh,bash}', '**/node_modules/**', 1),
                 vscode.workspace.findFiles('**/*.{bat,cmd}', '**/node_modules/**', 1),
+                vscode.workspace.findFiles('**/*.{yml,yaml}', '**/node_modules/**', 1),
             ]);
 
             let hasJavaScript = jsFiles.length > 0;
@@ -101,6 +102,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
             const hasCss = cssFiles.length > 0 || hasHtml;
             const hasUnity = unityFiles.length > 0;
             const hasDocker = dockerFiles.length > 0;
+            const hasYaml = yamlFiles.length > 0;
             const hasPowerShell = psFiles.length > 0;
             const hasBash = shFiles.length > 0;
             const hasBatch = batFiles.length > 0;
@@ -366,6 +368,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
                 setContext('sharppilot.workspace.hasSignalR', hasSignalR),
                 setContext('sharppilot.workspace.hasUnity', hasUnity),
                 setContext('sharppilot.workspace.hasDocker', hasDocker),
+                setContext('sharppilot.workspace.hasYaml', hasYaml),
                 setContext('sharppilot.workspace.hasGraphql', hasGraphql),
                 setContext('sharppilot.workspace.hasNextJs', hasNextJs),
                 setContext('sharppilot.workspace.hasNodeJs', hasNodeJs),
@@ -392,7 +395,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
                 hasReact, hasAngular, hasVue, hasSvelte, hasMySql, hasMongoDb,
                 hasOracle, hasPostgres, hasSqlite, hasSqlServer, hasXunit, hasMsTest,
                 hasNUnit, hasWpf, hasWinForms, hasGrpc, hasMediatR, hasRedis, hasSignalR,
-                hasUnity, hasDocker, hasGraphql, hasNextJs, hasNodeJs, hasPowerShell, hasBash, hasBatch,
+                hasUnity, hasDocker, hasYaml, hasGraphql, hasNextJs, hasNodeJs, hasPowerShell, hasBash, hasBatch,
                 hasVitest, hasJest, hasJasmine, hasMocha, hasPlaywright, hasCypress,
                 hasDotNetTesting: hasXunit || hasMsTest || hasNUnit,
                 hasWebTesting: hasVitest || hasJest || hasJasmine || hasMocha || hasPlaywright || hasCypress,

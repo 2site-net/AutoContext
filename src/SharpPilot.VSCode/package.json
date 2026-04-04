@@ -118,6 +118,10 @@
         "when": "config.sharppilot.instructions.sql && !sharppilot.override.sql"
       },
       {
+        "path": "./instructions/.generated/yaml.instructions.md",
+        "when": "config.sharppilot.instructions.yaml && sharppilot.workspace.hasYaml && !sharppilot.override.yaml"
+      },
+      {
         "path": "./instructions/.generated/dotnet-aspnetcore.instructions.md",
         "when": "config.sharppilot.instructions.dotnet.aspnetCore && sharppilot.workspace.hasAspNetCore && !sharppilot.override.dotnet.aspnetCore"
       },
@@ -428,6 +432,11 @@
           "type": "boolean",
           "default": true,
           "description": "Enable SQL guidelines (naming, formatting, query design, indexing, parameters, transactions, NULL handling, performance)."
+        },
+        "sharppilot.instructions.yaml": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable YAML guidelines (formatting, quoting, type safety, anchors, multi-document, security)."
         },
         "sharppilot.instructions.dotnet.aspnetCore": {
           "type": "boolean",

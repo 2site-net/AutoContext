@@ -10,6 +10,7 @@ export class InstructionsRegistry {
         { settingId: 'sharppilot.instructions.graphql', fileName: 'graphql.instructions.md', label: 'GraphQL', category: 'General', contextKeys: ['hasGraphql'] },
         { settingId: 'sharppilot.instructions.restApiDesign', fileName: 'rest-api-design.instructions.md', label: 'REST API Design', category: 'General' },
         { settingId: 'sharppilot.instructions.sql', fileName: 'sql.instructions.md', label: 'SQL', category: 'General' },
+        { settingId: 'sharppilot.instructions.yaml', fileName: 'yaml.instructions.md', label: 'YAML', category: 'General', contextKeys: ['hasYaml'] },
         { settingId: 'sharppilot.instructions.dotnet.aspnetCore', fileName: 'dotnet-aspnetcore.instructions.md', label: 'ASP.NET Core', category: '.NET', contextKeys: ['hasAspNetCore'] },
         { settingId: 'sharppilot.instructions.dotnet.asyncAwait', fileName: 'dotnet-async-await.instructions.md', label: 'Async/Await', category: '.NET', contextKeys: ['hasDotNet'] },
         { settingId: 'sharppilot.instructions.dotnet.blazor', fileName: 'dotnet-blazor.instructions.md', label: 'Blazor', category: '.NET', contextKeys: ['hasBlazor'] },
