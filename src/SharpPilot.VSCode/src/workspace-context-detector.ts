@@ -117,6 +117,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
             const hasBatch = batFiles.length > 0;
             const hasJava = javaFiles.length > 0 || javaProjectFiles.length > 0;
             const hasKotlin = ktFiles.length > 0;
+            const hasJvm = hasJava || hasKotlin;
 
             let hasReact = false;
             let hasAngular = false;
@@ -396,6 +397,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
                 setContext('sharppilot.workspace.hasBatch', hasBatch),
                 setContext('sharppilot.workspace.hasJava', hasJava),
                 setContext('sharppilot.workspace.hasKotlin', hasKotlin),
+                setContext('sharppilot.workspace.hasJvm', hasJvm),
                 setContext('sharppilot.workspace.hasVitest', hasVitest),
                 setContext('sharppilot.workspace.hasJest', hasJest),
                 setContext('sharppilot.workspace.hasJasmine', hasJasmine),
@@ -423,6 +425,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
                 hasVitest, hasJest, hasJasmine, hasMocha, hasPlaywright, hasCypress,
                 hasJava,
                 hasKotlin,
+                hasJvm,
                 hasXaml,
                 hasRazor,
                 hasWebForms,

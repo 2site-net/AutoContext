@@ -258,12 +258,12 @@
         "when": "config.sharppilot.instructions.dotnet.vbnet && sharppilot.workspace.hasVbNet && !sharppilot.override.dotnet.vbnet"
       },
       {
-        "path": "./instructions/.generated/java.instructions.md",
-        "when": "config.sharppilot.instructions.java && sharppilot.workspace.hasJava && !sharppilot.override.java"
+        "path": "./instructions/.generated/jvm-java.instructions.md",
+        "when": "config.sharppilot.instructions.jvm.java && sharppilot.workspace.hasJava && !sharppilot.override.jvm.java"
       },
       {
-        "path": "./instructions/.generated/kotlin.instructions.md",
-        "when": "config.sharppilot.instructions.kotlin && sharppilot.workspace.hasKotlin && !sharppilot.override.kotlin"
+        "path": "./instructions/.generated/jvm-kotlin.instructions.md",
+        "when": "config.sharppilot.instructions.jvm.kotlin && sharppilot.workspace.hasKotlin && !sharppilot.override.jvm.kotlin"
       },
       {
         "path": "./instructions/.generated/git-commit-format.instructions.md",
@@ -624,12 +624,12 @@
           "default": true,
           "description": "Enable VB.NET coding style rules (naming, Option Strict, error handling, formatting)."
         },
-        "sharppilot.instructions.java": {
+        "sharppilot.instructions.jvm.java": {
           "type": "boolean",
           "default": true,
           "description": "Enable Java coding style rules (naming, type design, error handling, streams, Optional, generics, concurrency)."
         },
-        "sharppilot.instructions.kotlin": {
+        "sharppilot.instructions.jvm.kotlin": {
           "type": "boolean",
           "default": true,
           "description": "Enable Kotlin coding style rules (null safety, type design, scope functions, collections, coroutines)."
