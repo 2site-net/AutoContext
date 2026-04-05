@@ -34,7 +34,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
         );
 
         const contentWatcher = vscode.workspace.createFileSystemWatcher(
-            '**/{*.csproj,*.fsproj,package.json,pom.xml,build.gradle,build.gradle.kts}',
+            '**/{*.csproj,*.fsproj,package.json,pom.xml,build.gradle}',
         );
 
         this.disposables.push(
@@ -92,7 +92,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
                 vscode.workspace.findFiles('**/*.{bat,cmd}', '**/node_modules/**', 1),
                 vscode.workspace.findFiles('**/*.{yml,yaml}', '**/node_modules/**', 1),
                 vscode.workspace.findFiles('**/*.java', '**/node_modules/**', 1),
-                vscode.workspace.findFiles('**/{pom.xml,build.gradle,build.gradle.kts}', '**/node_modules/**', 1),
+                vscode.workspace.findFiles('**/{pom.xml,build.gradle}', '**/node_modules/**', 1),
                 vscode.workspace.findFiles('**/*.{kt,kts}', '**/node_modules/**', 1),
             ]);
 
