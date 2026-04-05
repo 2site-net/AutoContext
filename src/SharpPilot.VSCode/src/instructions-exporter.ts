@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import type { InstructionsCatalogEntry } from './instructions-catalog-entry.js';
+import { instructionScheme } from './instructions-content-provider.js';
 import { InstructionsExportState } from './instructions-export-state.js';
 
 export class InstructionsExporter {
@@ -63,6 +64,7 @@ export class InstructionsExporter {
             }
 
             await InstructionsExporter.copyInstruction(this.extensionPath, entry, targetUri);
+            await InstructionsExporter.closeVirtualDocument(entry.fileName);
             exported.push(entry.label);
         }
 
@@ -96,6 +98,7 @@ export class InstructionsExporter {
             }
 
             await InstructionsExporter.copyInstruction(this.extensionPath, entry, targetUri);
+            await InstructionsExporter.closeVirtualDocument(entry.fileName);
             exportedCount++;
         }
 
@@ -117,6 +120,16 @@ export class InstructionsExporter {
             return true;
         } catch {
             return false;
+        }
+    }
+
+    private static async closeVirtualDocument(fileName: string): Promise<void> {
+        const virtualUri = vscode.Uri.from({ scheme: instructionScheme, path: fileName });
+        for (const tab of vscode.window.tabGroups.all.flatMap(g => g.tabs)) {
+            const tabUri = (tab.input as { uri?: vscode.Uri })?.uri;
+            if (tabUri?.toString() === virtualUri.toString()) {
+                await vscode.window.tabGroups.close(tab);
+            }
         }
     }
 }

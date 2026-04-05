@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { __setConfigStore, TreeItemCollapsibleState, TreeItemCheckboxState, workspace, ConfigurationTarget, commands, Uri } from './__mocks__/vscode';
+import { __setConfigStore, TreeItemCollapsibleState, TreeItemCheckboxState, workspace, ConfigurationTarget, commands, Uri, window } from './__mocks__/vscode';
 import { InstructionsTreeProvider, InstructionState } from '../../src/instructions-tree-provider';
 import { InstructionsRegistry } from '../../src/instructions-registry';
 
@@ -225,6 +225,26 @@ describe('InstructionsTreeProvider', () => {
         provider.dispose();
     });
 
+    it('should open the workspace override file for overridden items', () => {
+        vi.mocked(fakeDetector.get).mockReturnValue(true);
+        vi.mocked(fakeDetector.getOverriddenSettingIds).mockReturnValue(new Set(['sharppilot.instructions.lang.csharp']));
+        workspace.workspaceFolders = [{ uri: { path: '/workspace', scheme: 'file' } }];
+
+        const provider = new InstructionsTreeProvider(fakeDetector);
+        const roots = provider.getChildren();
+        const languages = roots.find(r => r.kind === 'category' && r.name === 'Languages')!;
+        const children = provider.getChildren(languages);
+        const csharp = children.find(c => c.kind === 'instruction' && c.entry.settingId === 'sharppilot.instructions.lang.csharp')!;
+
+        const treeItem = provider.getTreeItem(csharp);
+        expect.soft(treeItem.command).toBeDefined();
+        expect.soft(treeItem.command!.command).toBe('vscode.open');
+        expect.soft(treeItem.command!.arguments![0].scheme).toBe('file');
+        expect.soft(treeItem.command!.arguments![0].path).toContain('.github/instructions/lang-csharp.instructions.md');
+
+        provider.dispose();
+    });
+
     it('should set contextValue to instruction.active for active items', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
 
@@ -295,10 +315,14 @@ describe('InstructionsTreeProvider', () => {
         provider.dispose();
     });
 
-    it('should delete the override file when deleteOverride is called', async () => {
+    it('should delete the override file and close its tab when deleteOverride is called', async () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
         vi.mocked(fakeDetector.getOverriddenSettingIds).mockReturnValue(new Set(['sharppilot.instructions.lang.csharp']));
         workspace.workspaceFolders = [{ uri: { path: '/workspace', scheme: 'file' } }];
+
+        const targetUri = Uri.joinPath(workspace.workspaceFolders[0].uri, '.github/instructions/lang-csharp.instructions.md');
+        const matchingTab = { input: { uri: { toString: () => targetUri.toString() } } };
+        window.tabGroups.all = [{ tabs: [matchingTab] }];
 
         const provider = new InstructionsTreeProvider(fakeDetector);
         const roots = provider.getChildren();
@@ -308,10 +332,7 @@ describe('InstructionsTreeProvider', () => {
 
         await InstructionsTreeProvider.deleteOverride(node as { kind: 'instruction'; entry: { settingId: string; targetPath: string }; state: string });
 
-        expect.soft(Uri.joinPath).toHaveBeenCalledWith(
-            { path: '/workspace', scheme: 'file' },
-            '.github/instructions/lang-csharp.instructions.md',
-        );
+        expect.soft(window.tabGroups.close).toHaveBeenCalledWith(matchingTab);
         expect.soft(workspace.fs.delete).toHaveBeenCalled();
 
         provider.dispose();

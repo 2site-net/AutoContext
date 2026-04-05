@@ -189,11 +189,24 @@ export class InstructionsTreeProvider implements vscode.TreeDataProvider<TreeEle
         }
 
         item.tooltip = InstructionsTreeProvider.tooltip(node);
-        item.command = {
-            command: 'vscode.open',
-            title: 'Open Instruction',
-            arguments: [vscode.Uri.from({ scheme: instructionScheme, path: node.entry.fileName })],
-        };
+
+        if (node.state === InstructionState.Overridden) {
+            const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+            if (workspaceFolder) {
+                item.command = {
+                    command: 'vscode.open',
+                    title: 'Open Override',
+                    arguments: [vscode.Uri.joinPath(workspaceFolder.uri, node.entry.targetPath)],
+                };
+            }
+        } else {
+            item.command = {
+                command: 'vscode.open',
+                title: 'Open Instruction',
+                arguments: [vscode.Uri.from({ scheme: instructionScheme, path: node.entry.fileName })],
+            };
+        }
+
         return item;
     }
 
@@ -255,6 +268,14 @@ export class InstructionsTreeProvider implements vscode.TreeDataProvider<TreeEle
         if (!workspaceFolder) { return; }
 
         const targetUri = vscode.Uri.joinPath(workspaceFolder.uri, node.entry.targetPath);
+
+        for (const tab of vscode.window.tabGroups.all.flatMap(g => g.tabs)) {
+            const tabUri = (tab.input as { uri?: vscode.Uri })?.uri;
+            if (tabUri?.toString() === targetUri.toString()) {
+                await vscode.window.tabGroups.close(tab);
+            }
+        }
+
         await vscode.workspace.fs.delete(targetUri);
     }
 

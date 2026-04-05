@@ -53,6 +53,10 @@ export const window = {
         dispose: vi.fn(),
     })),
     visibleTextEditors: [] as unknown[],
+    tabGroups: {
+        all: [] as { tabs: unknown[] }[],
+        close: vi.fn(),
+    },
 };
 
 export const commands = {
@@ -211,15 +215,20 @@ export class McpStdioServerDefinition {
 }
 
 export const Uri = {
-    file: vi.fn((path: string) => ({ path, scheme: 'file' })),
+    file: vi.fn((path: string) => ({ path, scheme: 'file', toString: () => `file://${path}` })),
     from: vi.fn((components: { scheme: string; path: string }) => ({
         scheme: components.scheme,
         path: components.path,
+        toString: () => `${components.scheme}://${components.path}`,
     })),
-    joinPath: vi.fn((base: { path: string }, ...segments: string[]) => ({
-        path: [base.path, ...segments].join('/'),
-        scheme: 'file',
-    })),
+    joinPath: vi.fn((base: { path: string }, ...segments: string[]) => {
+        const path = [base.path, ...segments].join('/');
+        return {
+            path,
+            scheme: 'file',
+            toString: () => `file://${path}`,
+        };
+    }),
 };
 
 /**
