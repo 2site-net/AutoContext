@@ -17,7 +17,7 @@ applyTo: "**/*.{scala,sc}"
 - [INST0006] **Do** use `case class` for immutable value types whose identity is defined by their fields — `equals`, `hashCode`, `copy`, and `toString` are generated automatically.
 - [INST0007] **Do** use `sealed trait` or `sealed abstract class` when the set of subtypes is fixed and known at compile time — enables exhaustive pattern matching.
 - [INST0008] **Do** prefer `val` over `var` — immutability is the default; mutability should be explicit and intentional.
-- [INST0009] **Do** program to traits — declare parameters and return types as `Seq`, `Map`, `Set`, not `List`, `HashMap`, `HashSet`, unless the specific implementation is required.
+- [INST0009] **Do** program to abstractions — declare parameters as `Seq`, `Iterable`, or `Map` when the method does not depend on a specific collection type; use concrete types (`List`, `Vector`) when performance characteristics matter.
 - [INST0010] **Do** use `opaque type` (Scala 3) or `AnyVal` wrapper classes (Scala 2) to create zero-cost typed wrappers around primitives (e.g., `opaque type CustomerId = Long`).
 - [INST0011] **Do** use `enum` (Scala 3) or `sealed trait` with `case object` subtypes (Scala 2) for algebraic data types with a fixed set of values.
 - [INST0012] **Don't** use `null` — use `Option[T]` when a value may be absent, `Either[E, A]` for computations that can fail, or `Try[T]` for exception-prone code.
