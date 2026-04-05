@@ -13,12 +13,12 @@ description: "Use when reviewing code, giving feedback on a pull request, or aud
 
 ## What to Check
 
-- **Correctness** — logic errors, off-by-one, null dereferences, race conditions, incorrect state transitions.
-- **Security** — injection vectors, broken auth, sensitive data exposure, insecure defaults.
-- **Error handling** — unhandled exceptions, silent failures, missing cancellation, resource leaks.
-- **Code quality** — dead code, duplicated logic, unnecessary complexity, missed simplification or existing utility reuse.
-- **Unintended changes** — accidentally staged files, removed lines that shouldn't have been deleted, debug leftovers.
-- **Consistency** — does the change follow the patterns already established in the surrounding code and project?
-- **Tests** — are new behaviors covered? are edge cases and failure paths tested?
-- **API surface** — are new public members necessary? are names clear to callers who lack context?
-- **Side effects** — does the change affect shared state, configuration, or infrastructure in ways not obvious from the diff?
+- [INST0006] **Do** check for **correctness** — logic errors, off-by-one, null dereferences, race conditions, incorrect state transitions.
+- [INST0007] **Do** check for **security** — injection vectors, broken auth, sensitive data exposure, insecure defaults.
+- [INST0008] **Do** check **error handling** — unhandled exceptions, silent failures, missing cancellation, resource leaks.
+- [INST0009] **Do** check **code quality** — dead code, duplicated logic, unnecessary complexity, missed simplification or existing utility reuse.
+- [INST0010] **Do** check for **unintended changes** — accidentally staged files, removed lines that shouldn't have been deleted, debug leftovers.
+- [INST0011] **Do** check **consistency** — does the change follow the patterns already established in the surrounding code and project?
+- [INST0012] **Do** check **tests** — are new behaviors covered? are edge cases and failure paths tested?
+- [INST0013] **Do** check **API surface** — are new public members necessary? are names clear to callers who lack context?
+- [INST0014] **Do** check for **side effects** — does the change affect shared state, configuration, or infrastructure in ways not obvious from the diff?

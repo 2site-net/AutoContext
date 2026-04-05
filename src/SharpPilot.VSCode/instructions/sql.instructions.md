@@ -1,5 +1,6 @@
 ---
 description: "Use when writing SQL queries: naming conventions, formatting, query design, joins, indexing, security, and performance."
+applyTo: "**/*.sql"
 ---
 # SQL
 
@@ -14,10 +15,10 @@ description: "Use when writing SQL queries: naming conventions, formatting, quer
 ## Naming
 
 - [INST0006] **Do** use `PascalCase` for table and column names.
-- [INST0007] **Do** use singular nouns for table names: `Order`, `Customer`, `Product`.
+- [INST0007] **Do** choose a table-naming convention (singular or plural) and apply it consistently across the entire database — singular (`Order`, `Customer`) and plural (`Orders`, `Customers`) are both widely accepted; consistency matters more than the choice.
 - [INST0008] **Do** name primary keys `Id` or `<Table>Id` (e.g. `OrderId`).
 - [INST0009] **Do** name foreign keys `<ReferencedTable>Id` (e.g. `CustomerId`).
-- [INST0010] **Do** use descriptive names for indexes: `IX_Order_CustomerId`, `UQ_Customer_Email`.
+- [INST0010] **Do** use descriptive names for indexes: `IX_Orders_CustomerId`, `UQ_Users_Email`.
 
 ## Query Design
 

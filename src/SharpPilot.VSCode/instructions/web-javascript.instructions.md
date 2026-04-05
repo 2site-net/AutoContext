@@ -63,5 +63,5 @@ applyTo: "**/*.{js,jsx,mjs,cjs,ts,tsx,mts,cts}"
 - [INST0032] **Do** insert a blank line between variable declarations and their first usage.
 - [INST0033] **Do** keep each module focused on a single concept — split when a file mixes unrelated types, data, and logic; a module that serves as a grab-bag of utilities becomes hard to name, navigate, and reason about.
 - [INST0034] **Do** place a helper function in its sole consumer's module rather than a shared utility file — extract to a shared module only when a second consumer appears.
-- [INST0035] **Do** make module-private helper functions `private static` methods when they serve a single class in the same file — keeps the module's public surface minimal and makes ownership explicit.
+- [INST0035] **Do** make module-private helper functions static private methods (`static #method()` in JS, `private static method()` in TS) when they serve a single class in the same file — keeps the module's public surface minimal and makes ownership explicit.
 - [INST0036] **Don't** re-export symbols through intermediate barrel modules just to preserve an import path — update consumers to import directly from the owning module; passthrough re-exports add indirection without value.

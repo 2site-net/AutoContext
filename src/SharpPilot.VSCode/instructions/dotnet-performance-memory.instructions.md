@@ -15,6 +15,6 @@ applyTo: "**/*.{cs,fs,vb}"
 - [INST0009] **Do** hide memory details behind an API when it simplifies usage; callers should never manage lifetimes.
 - [INST0010] **Do** adopt specialised paths (e.g., `Vector<T>` / SIMD) **only** when the benchmark proves a clear win; otherwise keep the simple loop.
 - [INST0011] **Don't** maintain parallel SIMD + fallback code if the gain is negligible.
-- [INST0012] **Don't** leave in elaborate metrics or instrumentation that nobody consumes.
+- [INST0012] **Don't** leave performance counters, custom `EventSource` events, or distributed tracing spans that are not consumed by dashboards, alerts, or operational tooling.
 - [INST0013] **Don't** rent from `ArrayPool<T>` inside the innermost loop unless a benchmark proves net savings—tiny objects may be cheaper than pool contention.
 - [INST0014] **Don't** leave large arrays pinned for long durations.
