@@ -286,6 +286,10 @@
         "when": "config.sharppilot.instructions.native.rust && sharppilot.workspace.hasRust && !sharppilot.override.native.rust"
       },
       {
+        "path": "./instructions/.generated/native-go.instructions.md",
+        "when": "config.sharppilot.instructions.native.go && sharppilot.workspace.hasGo && !sharppilot.override.native.go"
+      },
+      {
         "path": "./instructions/.generated/git-commit-format.instructions.md",
         "when": "config.sharppilot.instructions.git.commitFormat && sharppilot.workspace.hasGit && !sharppilot.override.git.commitFormat"
       },
@@ -678,6 +682,11 @@
           "type": "boolean",
           "default": true,
           "description": "Enable Rust coding style rules (ownership, borrowing, error handling, type design, traits, concurrency)."
+        },
+        "sharppilot.instructions.native.go": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable Go coding style rules (error handling, interfaces, concurrency, packages, testing)."
         },
         "sharppilot.instructions.git.commitFormat": {
           "type": "boolean",

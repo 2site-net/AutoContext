@@ -52,6 +52,7 @@ export class InstructionsRegistry {
         { settingId: 'sharppilot.instructions.native.c', fileName: 'native-c.instructions.md', label: 'C', category: 'Native', contextKeys: ['hasC'] },
         { settingId: 'sharppilot.instructions.native.cpp', fileName: 'native-cpp.instructions.md', label: 'C++', category: 'Native', contextKeys: ['hasCpp'] },
         { settingId: 'sharppilot.instructions.native.rust', fileName: 'native-rust.instructions.md', label: 'Rust', category: 'Native', contextKeys: ['hasRust'] },
+        { settingId: 'sharppilot.instructions.native.go', fileName: 'native-go.instructions.md', label: 'Go', category: 'Native', contextKeys: ['hasGo'] },
         { settingId: 'sharppilot.instructions.git.commitFormat', fileName: 'git-commit-format.instructions.md', label: 'Commit Format', category: 'Git', contextKeys: ['hasGit'] },
         { settingId: 'sharppilot.instructions.scripting.powershell', fileName: 'scripting-powershell.instructions.md', label: 'PowerShell', category: 'Scripting', contextKeys: ['hasPowerShell'] },
         { settingId: 'sharppilot.instructions.scripting.bash', fileName: 'scripting-bash.instructions.md', label: 'Bash', category: 'Scripting', contextKeys: ['hasBash'] },
