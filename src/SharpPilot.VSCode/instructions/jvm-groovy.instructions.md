@@ -10,7 +10,7 @@ applyTo: "**/*.{groovy,gvy}"
 - [INST0002] **Do** use SCREAMING_SNAKE_CASE for constants (`static final` fields).
 - [INST0003] **Do** name packages in all-lowercase with dots as separators — follow the reversed-domain convention (e.g., `com.example.billing.api`).
 - [INST0004] **Do** name boolean properties and methods with affirmative predicates — `isValid`, `hasAccess`, `canRetry` — not negations like `isNotEmpty`.
-- [INST0005] **Don't** use Hungarian notation or type prefixes — write `def account = new Account()`, not `def objAccount`.
+- [INST0005] **Don't** carry over type-prefix conventions from Java — write `def account = new Account()`, not `def objAccount` or `def strName`.
 
 ## Type Safety
 
@@ -52,18 +52,11 @@ applyTo: "**/*.{groovy,gvy}"
 - [INST0029] **Do** use the `withCloseable` / `withStream` GDK pattern for any `Closeable` — `stream.withCloseable { … }` ensures the resource is always closed.
 - [INST0030] **Don't** swallow exceptions silently — at a minimum, log the exception before recovering or rethrowing.
 
-## Spock Testing
-
-- [INST0031] **Do** use the Spock Framework for unit and integration tests — its specification-style blocks (`given`, `when`, `then`, `expect`, `where`) produce self-documenting tests.
-- [INST0032] **Do** use data tables in `where` blocks for parameterized tests — they are more readable than separate test methods.
-- [INST0033] **Do** use `@Unroll` (Spock 1.x) or the default unrolling behaviour (Spock 2.x) with descriptive `#variable` names in the spec method name so each case is individually reported.
-- [INST0034] **Do** use Spock's built-in interaction DSL (`1 * mock.method(_)`) for verifying collaborators — avoid mixing Mockito or EasyMock with Spock specifications.
-
 ## Documentation
 
-- [INST0035] **Do** add Groovydoc (`/** … */`) to all public and protected classes, methods, and fields — document intent, parameters (`@param`), return value (`@return`), and thrown exceptions (`@throws`).
-- [INST0036] **Don't** add Groovydoc that merely restates the method name — `/** Gets the name. */ def getName()` adds no value.
+- [INST0031] **Do** add Groovydoc (`/** … */`) to all public and protected classes, methods, and fields — document intent, parameters (`@param`), return value (`@return`), and thrown exceptions (`@throws`).
+- [INST0032] **Don't** add Groovydoc that merely restates the method name — `/** Gets the name. */ def getName()` adds no value.
 
 ## Formatting
 
-- [INST0037] **Do** follow the official [Groovy Style Guide](https://groovy-lang.org/style-guide.html) — 4-space indentation, opening braces on the same line, no semicolons at end of statements.
+- [INST0033] **Do** follow the official [Groovy Style Guide](https://groovy-lang.org/style-guide.html) — 4-space indentation, opening braces on the same line, no semicolons at end of statements.

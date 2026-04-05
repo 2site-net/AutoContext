@@ -10,7 +10,7 @@ applyTo: "**/*.{kt,kts}"
 - [INST0002] **Do** use SCREAMING_SNAKE_CASE for `const val` declarations in companion objects and top-level scope.
 - [INST0003] **Do** name packages in all-lowercase with dots as separators — follow the reversed-domain convention (e.g., `com.example.billing.api`).
 - [INST0004] **Do** name boolean properties and functions with affirmative predicates — `isValid`, `hasAccess`, `canRetry` — not negations like `isNotEmpty`.
-- [INST0005] **Don't** use Hungarian notation or type prefixes — write `val account: Account`, not `val objAccount: Account`.
+- [INST0005] **Don't** carry over `m`-prefix (Android-era Java) or type-prefix conventions — write `val account: Account`, not `val mAccount` or `val objAccount`.
 
 ## Null Safety
 

@@ -10,7 +10,7 @@ applyTo: "**/*.{scala,sc}"
 - [INST0002] **Do** use PascalCase for constants defined in companion objects or package objects — `val MaxRetryCount = 3` — not UPPER_SNAKE_CASE (Scala convention).
 - [INST0003] **Do** name packages in all-lowercase with dots as separators — follow the reversed-domain convention (e.g., `com.example.billing.api`).
 - [INST0004] **Do** name boolean values and methods with affirmative predicates — `isValid`, `hasAccess`, `canRetry` — not negations like `isNotEmpty`.
-- [INST0005] **Don't** use Hungarian notation or type prefixes — write `val account: Account`, not `val objAccount: Account`.
+- [INST0005] **Don't** encode types or roles in names — Scala's expressive type system and type inference make prefixes like `obj`, `str`, or `lst` redundant; write `val account: Account`, not `val objAccount`.
 
 ## Type Design
 

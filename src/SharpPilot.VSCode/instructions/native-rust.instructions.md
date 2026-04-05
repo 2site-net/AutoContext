@@ -8,7 +8,7 @@ applyTo: "**/*.rs"
 
 - [INST0001] **Do** use `snake_case` for functions, methods, variables, modules, and crate names; use `PascalCase` for types (structs, enums, traits, type aliases); use `SCREAMING_SNAKE_CASE` for constants and statics.
 - [INST0002] **Do** use descriptive lifetime names (`'buf`, `'conn`, `'src`) when there are multiple lifetimes or the meaning is not obvious from context — `'a` is fine for single-lifetime generics.
-- [INST0003] **Don't** use Hungarian notation or type suffixes in variable names — write `let timeout = Duration::from_secs(30)`, not `let timeout_duration`.
+- [INST0003] **Don't** encode types or ownership in variable names — write `let timeout = Duration::from_secs(30)`, not `let timeout_dur`; Rust's type system and IDE tooling make such suffixes redundant.
 
 ## Ownership & Borrowing
 

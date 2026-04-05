@@ -23,7 +23,7 @@ applyTo: "**/*.py"
 - [INST0009] **Do** use `raise ... from err` to chain exceptions and preserve the original traceback — never silently swallow the cause.
 - [INST0010] **Do** define custom exception classes that inherit from a project-specific base exception (itself inheriting `Exception`) for domain errors that callers need to distinguish.
 - [INST0011] **Do** use context managers (`with` statements) for resource management — files, locks, database connections, and network sessions should always be released deterministically.
-- [INST0012] **Don't** use exceptions as a substitute for simple conditional logic — prefer `dict.get(key, default)`, `getattr(obj, name, default)`, or `collections.defaultdict` over catching `KeyError`/`AttributeError` when a direct accessor with a default exists.
+- [INST0012] **Don't** catch `KeyError`, `AttributeError`, or `IndexError` when a direct accessor with a default exists — prefer `dict.get(key, default)`, `getattr(obj, name, default)`, or `collections.defaultdict`; EAFP is idiomatic Python for operations without a clean look-before-you-leap alternative, not for cases where one is readily available.
 
 ## Functions & Methods
 

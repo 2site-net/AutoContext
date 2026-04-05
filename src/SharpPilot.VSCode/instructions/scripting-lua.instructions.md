@@ -52,7 +52,7 @@ applyTo: "**/*.lua"
 ## Performance & Idioms
 
 - [INST0028] **Do** localise frequently used global functions — `local insert = table.insert` — local lookups are significantly faster than global/table chain lookups in hot paths.
-- [INST0029] **Do** pre-size tables with `table.new(narray, nhash)` (LuaJIT) or `table.create(n, value)` (Luau) or by initialising with known elements — it avoids rehashing during growth.
+- [INST0029] **Do** pre-size tables when targeting LuaJIT (`table.new(narray, nhash)`) or Luau (`table.create(n, value)`); in standard Lua, initialise tables with known elements upfront — pre-sizing avoids rehashing during growth.
 - [INST0030] **Do** use `table.concat` for building strings from many parts — repeated `..` concatenation creates intermediate strings and pressures the garbage collector.
 - [INST0031] **Do** use `ipairs` for iterating array-part sequences and `pairs` for iterating all key-value entries — `ipairs` stops at the first nil, `pairs` visits every entry.
 - [INST0032] **Don't** create closures or tables inside tight loops when the same object can be reused — each allocation adds GC pressure.

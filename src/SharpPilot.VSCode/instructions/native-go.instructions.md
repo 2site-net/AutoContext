@@ -53,7 +53,7 @@ applyTo: "**/*.go"
 - [INST0027] **Do** name test functions `TestXxx` and use `t.Run("subtest name", ...)` for table-driven tests — each row should be a self-contained case with a descriptive name.
 - [INST0028] **Do** use `t.Helper()` in test helper functions so failure messages report the caller's line number, not the helper's.
 - [INST0029] **Do** use `t.Parallel()` for tests that have no shared mutable state — it enables concurrent test execution and surfaces data races.
-- [INST0030] **Do** use `testify/assert` or `testify/require` (or the standard `testing` package with clearly formatted messages) for assertions — `require` stops the test immediately on failure to avoid cascading nil-pointer panics.
+- [INST0030] **Do** write clear assertion messages — the standard `testing` package with formatted `t.Errorf`/`t.Fatalf` messages works well; if using `testify`, prefer `require` over `assert` when a failure should stop the test immediately to avoid cascading nil-pointer panics.
 - [INST0031] **Don't** test unexported functions directly — test through the public API; if an unexported function is complex enough to need its own tests, consider extracting it into its own package.
 
 ## Performance & Idioms
