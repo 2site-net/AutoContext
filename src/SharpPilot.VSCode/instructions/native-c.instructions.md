@@ -6,7 +6,7 @@ applyTo: "**/*.{c,h}"
 
 ## Naming
 
-- [INST0001] **Do** use PascalCase for type names (`typedef`, `struct`, `enum` tags) and SCREAMING_SNAKE_CASE for macros and compile-time constants.
+- [INST0001] **Do** use `snake_case` for type names (`typedef`, `struct` tags, `enum` tags) consistent with functions and variables; use SCREAMING_SNAKE_CASE for macros and compile-time constants.
 - [INST0002] **Do** use snake_case for functions, variables, and struct members.
 - [INST0003] **Do** prefix public API symbols with a short module or library tag to avoid name collisions — `json_parse()`, `http_request_new()`.
 - [INST0004] **Don't** use names that start with an underscore followed by an uppercase letter or double underscores — those are reserved by the C standard and the implementation.
