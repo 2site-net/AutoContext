@@ -7,10 +7,12 @@ export class WorkspaceContextDetector implements vscode.Disposable {
     private readonly disposables: vscode.Disposable[] = [];
     private debounceTimer: ReturnType<typeof setTimeout> | undefined;
     private readonly _onDidChange = new vscode.EventEmitter<void>();
+    private readonly _onDidDetect = new vscode.EventEmitter<void>();
     private readonly _state = new Map<string, boolean>();
     private readonly _overriddenSettingIds = new Set<string>();
 
     readonly onDidChange = this._onDidChange.event;
+    readonly onDidDetect = this._onDidDetect.event;
 
     get(key: string): boolean {
         return this._state.get(key) ?? false;
@@ -493,6 +495,8 @@ export class WorkspaceContextDetector implements vscode.Disposable {
             if (serverChanged) {
                 this._onDidChange.fire();
             }
+
+            this._onDidDetect.fire();
         } catch {
             // Workspace detection is best-effort; failures should not break the extension
         }
@@ -503,6 +507,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
             clearTimeout(this.debounceTimer);
         }
         this._onDidChange.dispose();
+        this._onDidDetect.dispose();
         this.disposables.forEach(d => d.dispose());
     }
 }

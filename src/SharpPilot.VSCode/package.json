@@ -36,6 +36,24 @@
         "label": "SharpPilot Servers"
       }
     ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "sharppilot",
+          "title": "SharpPilot",
+          "icon": "resources/sidebar.svg"
+        }
+      ]
+    },
+    "views": {
+      "sharppilot": [
+        {
+          "id": "sharppilot.instructionsView",
+          "name": "Instructions",
+          "when": "workspaceFolderCount > 0"
+        }
+      ]
+    },
     "commands": [
       {
         "command": "sharppilot.toggleTools",

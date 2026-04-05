@@ -23,7 +23,7 @@ export const workspace = {
         writeFile: vi.fn(),
         stat: vi.fn(),
     },
-    onDidChangeConfiguration: vi.fn(),
+    onDidChangeConfiguration: vi.fn(() => ({ dispose: vi.fn() })),
     onDidChangeWorkspaceFolders: vi.fn(() => ({ dispose: vi.fn() })),
     onDidGrantWorkspaceTrust: vi.fn(() => ({ dispose: vi.fn() })),
     registerTextDocumentContentProvider: vi.fn(() => ({ dispose: vi.fn() })),
@@ -46,6 +46,7 @@ export const window = {
     showErrorMessage: vi.fn(),
     showTextDocument: vi.fn(),
     onDidChangeActiveTextEditor: vi.fn(() => ({ dispose: vi.fn() })),
+    registerTreeDataProvider: vi.fn(() => ({ dispose: vi.fn() })),
     visibleTextEditors: [] as unknown[],
 };
 
@@ -89,7 +90,31 @@ export class EventEmitter {
 }
 
 export class ThemeIcon {
+    constructor(public readonly id: string, public readonly color?: ThemeColor) {}
+}
+
+export class ThemeColor {
     constructor(public readonly id: string) {}
+}
+
+export enum TreeItemCollapsibleState {
+    None = 0,
+    Collapsed = 1,
+    Expanded = 2,
+}
+
+export class TreeItem {
+    label?: string;
+    collapsibleState?: TreeItemCollapsibleState;
+    iconPath?: unknown;
+    description?: string;
+    tooltip?: string;
+    contextValue?: string;
+
+    constructor(label: string, collapsibleState?: TreeItemCollapsibleState) {
+        this.label = label;
+        this.collapsibleState = collapsibleState;
+    }
 }
 
 export class Range {

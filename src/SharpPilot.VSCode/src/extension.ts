@@ -13,6 +13,7 @@ import { InstructionsCodeLensProvider, toggleInstructionCommandId, resetInstruct
 import { InstructionsDecorationManager } from './instructions-decoration-manager.js';
 import { InstructionsConfigWriter } from './instructions-config-writer.js';
 import { InstructionsDiagnostics } from './instructions-diagnostics.js';
+import { InstructionsTreeProvider } from './instructions-tree-provider.js';
 import { McpServerProvider } from './mcp-server-provider.js';
 import { WorkspaceServerManager } from './workspace-server-manager.js';
 import { McpToolsRegistry } from './mcp-tools-registry.js';
@@ -39,6 +40,7 @@ export function activate(context: vscode.ExtensionContext) {
     const outputChannel = vscode.window.createOutputChannel('SharpPilot');
     const workspaceServer = new WorkspaceServerManager(context.extensionPath, outputChannel, vscode.workspace.workspaceFolders?.[0]?.uri.fsPath);
     const mcpServerProvider = new McpServerProvider(context.extensionPath, version, workspaceContextDetector, didChangeEmitter.event, workspaceServer);
+    const instructionsTreeProvider = new InstructionsTreeProvider(workspaceContextDetector);
 
     const logDiagnostics = () => InstructionsDiagnostics.log(outputChannel, context.extensionPath, configManager);
 
@@ -61,6 +63,8 @@ export function activate(context: vscode.ExtensionContext) {
         codeLensProvider,
         decorationManager,
         instructionsWriter,
+        instructionsTreeProvider,
+        vscode.window.registerTreeDataProvider(InstructionsTreeProvider.viewId, instructionsTreeProvider),
         vscode.workspace.registerTextDocumentContentProvider(instructionScheme, contentProvider),
         vscode.languages.registerCodeLensProvider({ scheme: instructionScheme }, codeLensProvider),
         // Status bar
