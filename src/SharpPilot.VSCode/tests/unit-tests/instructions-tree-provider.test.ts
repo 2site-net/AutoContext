@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { __setConfigStore, TreeItemCollapsibleState } from './__mocks__/vscode';
+import { __setConfigStore, TreeItemCollapsibleState, workspace, ConfigurationTarget } from './__mocks__/vscode';
 import { InstructionsTreeProvider, InstructionState } from '../../src/instructions-tree-provider';
 import { InstructionsRegistry } from '../../src/instructions-registry';
 
@@ -93,6 +93,7 @@ describe('InstructionsTreeProvider', () => {
     });
 
     it('should mark instructions as disabled when config setting is false', () => {
+        vi.mocked(fakeDetector.get).mockImplementation((key: string) => key === 'hasCSharp');
         __setConfigStore({ 'sharppilot.instructions.lang.csharp': false });
 
         const provider = new InstructionsTreeProvider(fakeDetector);
@@ -180,8 +181,8 @@ describe('InstructionsTreeProvider', () => {
     });
 
     it('should sort active instructions before disabled, and disabled before not detected', () => {
-        vi.mocked(fakeDetector.get).mockImplementation((key: string) => key === 'hasCSharp');
-        __setConfigStore({ 'sharppilot.instructions.lang.typescript': false });
+        vi.mocked(fakeDetector.get).mockImplementation((key: string) => key === 'hasCSharp' || key === 'hasTypeScript');
+        __setConfigStore({ 'sharppilot.instructions.lang.csharp': false });
 
         const provider = new InstructionsTreeProvider(fakeDetector);
         const roots = provider.getChildren();
@@ -202,6 +203,94 @@ describe('InstructionsTreeProvider', () => {
         if (firstDisabledIndex !== -1 && firstNotDetectedIndex !== -1) {
             expect.soft(firstDisabledIndex).toBeLessThan(firstNotDetectedIndex);
         }
+
+        provider.dispose();
+    });
+
+    it('should set a command on instruction items to open the virtual document', () => {
+        vi.mocked(fakeDetector.get).mockReturnValue(true);
+
+        const provider = new InstructionsTreeProvider(fakeDetector);
+        const roots = provider.getChildren();
+        const languages = roots.find(r => r.kind === 'category' && r.name === 'Languages')!;
+        const children = provider.getChildren(languages);
+        const csharp = children.find(c => c.kind === 'instruction' && c.entry.settingId === 'sharppilot.instructions.lang.csharp')!;
+
+        const treeItem = provider.getTreeItem(csharp);
+        expect.soft(treeItem.command).toBeDefined();
+        expect.soft(treeItem.command!.command).toBe('vscode.open');
+        expect.soft(treeItem.command!.arguments![0].scheme).toBe('sharppilot-instructions');
+        expect.soft(treeItem.command!.arguments![0].path).toBe(csharp.kind === 'instruction' ? csharp.entry.fileName : '');
+
+        provider.dispose();
+    });
+
+    it('should set contextValue to instruction.active for active items', () => {
+        vi.mocked(fakeDetector.get).mockReturnValue(true);
+
+        const provider = new InstructionsTreeProvider(fakeDetector);
+        const roots = provider.getChildren();
+        const general = roots.find(r => r.kind === 'category' && r.name === 'General')!;
+        const children = provider.getChildren(general);
+        const active = children.find(c => c.kind === 'instruction' && c.state === InstructionState.Active)!;
+
+        const treeItem = provider.getTreeItem(active);
+        expect.soft(treeItem.contextValue).toBe('instruction.active');
+
+        provider.dispose();
+    });
+
+    it('should set contextValue to instruction.disabled for disabled items', () => {
+        vi.mocked(fakeDetector.get).mockImplementation((key: string) => key === 'hasCSharp');
+        __setConfigStore({ 'sharppilot.instructions.lang.csharp': false });
+
+        const provider = new InstructionsTreeProvider(fakeDetector);
+        const roots = provider.getChildren();
+        const languages = roots.find(r => r.kind === 'category' && r.name === 'Languages')!;
+        const children = provider.getChildren(languages);
+        const disabled = children.find(c => c.kind === 'instruction' && c.entry.settingId === 'sharppilot.instructions.lang.csharp')!;
+
+        const treeItem = provider.getTreeItem(disabled);
+        expect.soft(treeItem.contextValue).toBe('instruction.disabled');
+
+        provider.dispose();
+    });
+
+    it('should update setting to true when enableInstruction is called', async () => {
+        vi.mocked(fakeDetector.get).mockImplementation((key: string) => key === 'hasCSharp');
+        __setConfigStore({ 'sharppilot.instructions.lang.csharp': false });
+
+        const provider = new InstructionsTreeProvider(fakeDetector);
+        const roots = provider.getChildren();
+        const languages = roots.find(r => r.kind === 'category' && r.name === 'Languages')!;
+        const children = provider.getChildren(languages);
+        const node = children.find(c => c.kind === 'instruction' && c.entry.settingId === 'sharppilot.instructions.lang.csharp')!;
+
+        await InstructionsTreeProvider.enableInstruction(node as { kind: 'instruction'; entry: { settingId: string }; state: string });
+
+        const config = vi.mocked(workspace.getConfiguration).mock.results.at(-1)!.value;
+        expect.soft(config.update).toHaveBeenCalledWith('sharppilot.instructions.lang.csharp', true, ConfigurationTarget.Global);
+
+        provider.dispose();
+    });
+
+    it('should update setting to false when disableInstruction is called', async () => {
+        vi.mocked(fakeDetector.get).mockReturnValue(true);
+
+        const provider = new InstructionsTreeProvider(fakeDetector);
+        const roots = provider.getChildren();
+        const general = roots.find(r => r.kind === 'category' && r.name === 'General')!;
+        const children = provider.getChildren(general);
+        const node = children.find(c => c.kind === 'instruction' && c.state === InstructionState.Active)!;
+
+        await InstructionsTreeProvider.disableInstruction(node as { kind: 'instruction'; entry: { settingId: string }; state: string });
+
+        const config = vi.mocked(workspace.getConfiguration).mock.results.at(-1)!.value;
+        expect.soft(config.update).toHaveBeenCalledWith(
+            node.kind === 'instruction' ? node.entry.settingId : '',
+            false,
+            ConfigurationTarget.Global,
+        );
 
         provider.dispose();
     });

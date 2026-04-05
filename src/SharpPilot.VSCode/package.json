@@ -89,6 +89,18 @@
         "command": "sharppilot.resetInstructions",
         "title": "Reset Instructions",
         "category": "SharpPilot"
+      },
+      {
+        "command": "sharppilot.enableInstruction",
+        "title": "Enable Instruction",
+        "category": "SharpPilot",
+        "icon": "$(check)"
+      },
+      {
+        "command": "sharppilot.disableInstruction",
+        "title": "Disable Instruction",
+        "category": "SharpPilot",
+        "icon": "$(close)"
       }
     ],
     "menus": {
@@ -100,6 +112,26 @@
         {
           "command": "sharppilot.resetInstructions",
           "when": "false"
+        },
+        {
+          "command": "sharppilot.enableInstruction",
+          "when": "false"
+        },
+        {
+          "command": "sharppilot.disableInstruction",
+          "when": "false"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "sharppilot.enableInstruction",
+          "when": "viewItem == 'instruction.disabled'",
+          "group": "inline"
+        },
+        {
+          "command": "sharppilot.disableInstruction",
+          "when": "viewItem == 'instruction.active'",
+          "group": "inline"
         }
       ]
     },

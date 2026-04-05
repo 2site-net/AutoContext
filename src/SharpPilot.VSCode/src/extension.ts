@@ -120,6 +120,8 @@ export function activate(context: vscode.ExtensionContext) {
             }
         }),
         workspaceContextDetector.onDidChange(() => didChangeEmitter.fire()),
+        vscode.commands.registerCommand(InstructionsTreeProvider.enableCommandId, InstructionsTreeProvider.enableInstruction),
+        vscode.commands.registerCommand(InstructionsTreeProvider.disableCommandId, InstructionsTreeProvider.disableInstruction),
         vscode.lm.registerMcpServerDefinitionProvider('sharpPilotProvider', mcpServerProvider),
     );
 

@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { InstructionsRegistry } from './instructions-registry.js';
 import { ContextKeys } from './context-keys.js';
+import { instructionScheme } from './instructions-content-provider.js';
 import type { WorkspaceContextDetector } from './workspace-context-detector.js';
 import type { InstructionsCatalogEntry } from './instructions-catalog-entry.js';
 
@@ -39,6 +40,8 @@ const stateRank: Record<InstructionState, number> = {
 
 export class InstructionsTreeProvider implements vscode.TreeDataProvider<TreeElement>, vscode.Disposable {
     static readonly viewId = 'sharppilot.instructionsView';
+    static readonly enableCommandId = 'sharppilot.enableInstruction';
+    static readonly disableCommandId = 'sharppilot.disableInstruction';
 
     private readonly _onDidChangeTreeData = new vscode.EventEmitter<TreeElement | undefined>();
     readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
@@ -108,17 +111,17 @@ export class InstructionsTreeProvider implements vscode.TreeDataProvider<TreeEle
         detector: WorkspaceContextDetector,
         overrides: ReadonlySet<string>,
     ): InstructionState {
+        const ctxKeys = ContextKeys.forEntry(entry);
+        if (ctxKeys.length > 0 && !ctxKeys.some(k => detector.get(k))) {
+            return InstructionState.NotDetected;
+        }
+
         if (!config.get<boolean>(entry.settingId, true)) {
             return InstructionState.Disabled;
         }
 
         if (overrides.has(entry.settingId)) {
             return InstructionState.Overridden;
-        }
-
-        const ctxKeys = ContextKeys.forEntry(entry);
-        if (ctxKeys.length > 0 && !ctxKeys.some(k => detector.get(k))) {
-            return InstructionState.NotDetected;
         }
 
         return InstructionState.Active;
@@ -158,6 +161,11 @@ export class InstructionsTreeProvider implements vscode.TreeDataProvider<TreeEle
         }
 
         item.tooltip = InstructionsTreeProvider.tooltip(node);
+        item.command = {
+            command: 'vscode.open',
+            title: 'Open Instruction',
+            arguments: [vscode.Uri.from({ scheme: instructionScheme, path: node.entry.fileName })],
+        };
         return item;
     }
 
@@ -186,6 +194,14 @@ export class InstructionsTreeProvider implements vscode.TreeDataProvider<TreeEle
 
         lines.push(`Setting: ${node.entry.settingId}`);
         return lines.join('\n');
+    }
+
+    static async enableInstruction(node: InstructionNode): Promise<void> {
+        await vscode.workspace.getConfiguration().update(node.entry.settingId, true, vscode.ConfigurationTarget.Global);
+    }
+
+    static async disableInstruction(node: InstructionNode): Promise<void> {
+        await vscode.workspace.getConfiguration().update(node.entry.settingId, false, vscode.ConfigurationTarget.Global);
     }
 
     dispose(): void {
