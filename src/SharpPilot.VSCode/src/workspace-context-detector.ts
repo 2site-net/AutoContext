@@ -24,7 +24,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
         const schedule = () => this.scheduleDetect();
 
         const existenceWatcher = vscode.workspace.createFileSystemWatcher(
-            '**/*.{csproj,fsproj,sln,slnx,razor,xaml,aspx,html,cshtml,css,js,jsx,mjs,cjs,ts,tsx,mts,cts,ps1,psm1,psd1,sh,bash,bat,cmd,java,kt,kts}',
+            '**/*.{csproj,fsproj,sln,slnx,razor,xaml,aspx,html,cshtml,css,js,jsx,mjs,cjs,ts,tsx,mts,cts,ps1,psm1,psd1,sh,bash,bat,cmd,java,kt,kts,scala,sc}',
         );
 
         this.disposables.push(
@@ -34,7 +34,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
         );
 
         const contentWatcher = vscode.workspace.createFileSystemWatcher(
-            '**/{*.csproj,*.fsproj,package.json,pom.xml,build.gradle}',
+            '**/{*.csproj,*.fsproj,package.json,pom.xml,build.gradle,build.sbt}',
         );
 
         this.disposables.push(
@@ -72,7 +72,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
 
             const decoder = new TextDecoder();
 
-            const [dotnetFiles, csharpFiles, fsharpFiles, vbnetFiles, razorFiles, xamlFiles, aspxFiles, cshtmlFiles, htmlFiles, cssFiles, jsFiles, tsFiles, unityFiles, dockerFiles, psFiles, shFiles, batFiles, yamlFiles, javaFiles, javaProjectFiles, ktFiles] = await Promise.all([
+            const [dotnetFiles, csharpFiles, fsharpFiles, vbnetFiles, razorFiles, xamlFiles, aspxFiles, cshtmlFiles, htmlFiles, cssFiles, jsFiles, tsFiles, unityFiles, dockerFiles, psFiles, shFiles, batFiles, yamlFiles, javaFiles, javaProjectFiles, ktFiles, scalaFiles, scalaProjectFiles] = await Promise.all([
                 vscode.workspace.findFiles('**/*.{csproj,fsproj,vbproj,sln,slnx}', '**/node_modules/**', 1),
                 vscode.workspace.findFiles('**/*.csproj', '**/node_modules/**', 1),
                 vscode.workspace.findFiles('**/*.fsproj', '**/node_modules/**', 1),
@@ -94,6 +94,8 @@ export class WorkspaceContextDetector implements vscode.Disposable {
                 vscode.workspace.findFiles('**/*.java', '**/node_modules/**', 1),
                 vscode.workspace.findFiles('**/{pom.xml,build.gradle}', '**/node_modules/**', 1),
                 vscode.workspace.findFiles('**/*.{kt,kts}', '**/node_modules/**', 1),
+                vscode.workspace.findFiles('**/*.{scala,sc}', '**/node_modules/**', 1),
+                vscode.workspace.findFiles('**/build.sbt', '**/node_modules/**', 1),
             ]);
 
             let hasJavaScript = jsFiles.length > 0;
@@ -117,7 +119,8 @@ export class WorkspaceContextDetector implements vscode.Disposable {
             const hasBatch = batFiles.length > 0;
             const hasJava = javaFiles.length > 0 || javaProjectFiles.length > 0;
             const hasKotlin = ktFiles.length > 0;
-            const hasJvm = hasJava || hasKotlin;
+            const hasScala = scalaFiles.length > 0 || scalaProjectFiles.length > 0;
+            const hasJvm = hasJava || hasKotlin || hasScala;
 
             let hasReact = false;
             let hasAngular = false;
@@ -397,6 +400,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
                 setContext('sharppilot.workspace.hasBatch', hasBatch),
                 setContext('sharppilot.workspace.hasJava', hasJava),
                 setContext('sharppilot.workspace.hasKotlin', hasKotlin),
+                setContext('sharppilot.workspace.hasScala', hasScala),
                 setContext('sharppilot.workspace.hasJvm', hasJvm),
                 setContext('sharppilot.workspace.hasVitest', hasVitest),
                 setContext('sharppilot.workspace.hasJest', hasJest),
@@ -425,6 +429,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
                 hasVitest, hasJest, hasJasmine, hasMocha, hasPlaywright, hasCypress,
                 hasJava,
                 hasKotlin,
+                hasScala,
                 hasJvm,
                 hasXaml,
                 hasRazor,

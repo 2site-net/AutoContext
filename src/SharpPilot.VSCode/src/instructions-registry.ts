@@ -47,6 +47,7 @@ export class InstructionsRegistry {
         { settingId: 'sharppilot.instructions.dotnet.vbnet', fileName: 'dotnet-vbnet.instructions.md', label: 'VB.NET', category: '.NET', contextKeys: ['hasVbNet'] },
         { settingId: 'sharppilot.instructions.jvm.java', fileName: 'jvm-java.instructions.md', label: 'Java', category: 'JVM', contextKeys: ['hasJava'] },
         { settingId: 'sharppilot.instructions.jvm.kotlin', fileName: 'jvm-kotlin.instructions.md', label: 'Kotlin', category: 'JVM', contextKeys: ['hasKotlin'] },
+        { settingId: 'sharppilot.instructions.jvm.scala', fileName: 'jvm-scala.instructions.md', label: 'Scala', category: 'JVM', contextKeys: ['hasScala'] },
         { settingId: 'sharppilot.instructions.git.commitFormat', fileName: 'git-commit-format.instructions.md', label: 'Commit Format', category: 'Git', contextKeys: ['hasGit'] },
         { settingId: 'sharppilot.instructions.scripting.powershell', fileName: 'scripting-powershell.instructions.md', label: 'PowerShell', category: 'Scripting', contextKeys: ['hasPowerShell'] },
         { settingId: 'sharppilot.instructions.scripting.bash', fileName: 'scripting-bash.instructions.md', label: 'Bash', category: 'Scripting', contextKeys: ['hasBash'] },
