@@ -106,20 +106,20 @@
         "when": "config.sharppilot.instructions.docker && sharppilot.workspace.hasDocker && !sharppilot.override.docker"
       },
       {
-        "path": "./instructions/.generated/graphql.instructions.md",
-        "when": "config.sharppilot.instructions.graphql && sharppilot.workspace.hasGraphql && !sharppilot.override.graphql"
+        "path": "./instructions/.generated/lang-graphql.instructions.md",
+        "when": "config.sharppilot.instructions.lang.graphql && sharppilot.workspace.hasGraphql && !sharppilot.override.lang.graphql"
       },
       {
         "path": "./instructions/.generated/rest-api-design.instructions.md",
         "when": "config.sharppilot.instructions.restApiDesign && !sharppilot.override.restApiDesign"
       },
       {
-        "path": "./instructions/.generated/sql.instructions.md",
-        "when": "config.sharppilot.instructions.sql && !sharppilot.override.sql"
+        "path": "./instructions/.generated/lang-sql.instructions.md",
+        "when": "config.sharppilot.instructions.lang.sql && !sharppilot.override.lang.sql"
       },
       {
-        "path": "./instructions/.generated/yaml.instructions.md",
-        "when": "config.sharppilot.instructions.yaml && sharppilot.workspace.hasYaml && !sharppilot.override.yaml"
+        "path": "./instructions/.generated/lang-yaml.instructions.md",
+        "when": "config.sharppilot.instructions.lang.yaml && sharppilot.workspace.hasYaml && !sharppilot.override.lang.yaml"
       },
       {
         "path": "./instructions/.generated/dotnet-aspnetcore.instructions.md",
@@ -246,92 +246,92 @@
         "when": "config.sharppilot.instructions.dotnet.nunit && sharppilot.workspace.hasNUnit && !sharppilot.override.dotnet.nunit"
       },
       {
-        "path": "./instructions/.generated/dotnet-csharp.instructions.md",
-        "when": "config.sharppilot.instructions.dotnet.csharp && sharppilot.workspace.hasCSharp && !sharppilot.override.dotnet.csharp"
+        "path": "./instructions/.generated/lang-csharp.instructions.md",
+        "when": "config.sharppilot.instructions.lang.csharp && sharppilot.workspace.hasCSharp && !sharppilot.override.lang.csharp"
       },
       {
-        "path": "./instructions/.generated/dotnet-fsharp.instructions.md",
-        "when": "config.sharppilot.instructions.dotnet.fsharp && sharppilot.workspace.hasFSharp && !sharppilot.override.dotnet.fsharp"
+        "path": "./instructions/.generated/lang-fsharp.instructions.md",
+        "when": "config.sharppilot.instructions.lang.fsharp && sharppilot.workspace.hasFSharp && !sharppilot.override.lang.fsharp"
       },
       {
-        "path": "./instructions/.generated/dotnet-vbnet.instructions.md",
-        "when": "config.sharppilot.instructions.dotnet.vbnet && sharppilot.workspace.hasVbNet && !sharppilot.override.dotnet.vbnet"
+        "path": "./instructions/.generated/lang-vbnet.instructions.md",
+        "when": "config.sharppilot.instructions.lang.vbnet && sharppilot.workspace.hasVbNet && !sharppilot.override.lang.vbnet"
       },
       {
-        "path": "./instructions/.generated/jvm-java.instructions.md",
-        "when": "config.sharppilot.instructions.jvm.java && sharppilot.workspace.hasJava && !sharppilot.override.jvm.java"
+        "path": "./instructions/.generated/lang-java.instructions.md",
+        "when": "config.sharppilot.instructions.lang.java && sharppilot.workspace.hasJava && !sharppilot.override.lang.java"
       },
       {
-        "path": "./instructions/.generated/jvm-kotlin.instructions.md",
-        "when": "config.sharppilot.instructions.jvm.kotlin && sharppilot.workspace.hasKotlin && !sharppilot.override.jvm.kotlin"
+        "path": "./instructions/.generated/lang-kotlin.instructions.md",
+        "when": "config.sharppilot.instructions.lang.kotlin && sharppilot.workspace.hasKotlin && !sharppilot.override.lang.kotlin"
       },
       {
-        "path": "./instructions/.generated/jvm-scala.instructions.md",
-        "when": "config.sharppilot.instructions.jvm.scala && sharppilot.workspace.hasScala && !sharppilot.override.jvm.scala"
+        "path": "./instructions/.generated/lang-scala.instructions.md",
+        "when": "config.sharppilot.instructions.lang.scala && sharppilot.workspace.hasScala && !sharppilot.override.lang.scala"
       },
       {
-        "path": "./instructions/.generated/jvm-groovy.instructions.md",
-        "when": "config.sharppilot.instructions.jvm.groovy && sharppilot.workspace.hasGroovy && !sharppilot.override.jvm.groovy"
+        "path": "./instructions/.generated/lang-groovy.instructions.md",
+        "when": "config.sharppilot.instructions.lang.groovy && sharppilot.workspace.hasGroovy && !sharppilot.override.lang.groovy"
       },
       {
-        "path": "./instructions/.generated/native-c.instructions.md",
-        "when": "config.sharppilot.instructions.native.c && sharppilot.workspace.hasC && !sharppilot.override.native.c"
+        "path": "./instructions/.generated/lang-c.instructions.md",
+        "when": "config.sharppilot.instructions.lang.c && sharppilot.workspace.hasC && !sharppilot.override.lang.c"
       },
       {
-        "path": "./instructions/.generated/native-cpp.instructions.md",
-        "when": "config.sharppilot.instructions.native.cpp && sharppilot.workspace.hasCpp && !sharppilot.override.native.cpp"
+        "path": "./instructions/.generated/lang-cpp.instructions.md",
+        "when": "config.sharppilot.instructions.lang.cpp && sharppilot.workspace.hasCpp && !sharppilot.override.lang.cpp"
       },
       {
-        "path": "./instructions/.generated/native-rust.instructions.md",
-        "when": "config.sharppilot.instructions.native.rust && sharppilot.workspace.hasRust && !sharppilot.override.native.rust"
+        "path": "./instructions/.generated/lang-rust.instructions.md",
+        "when": "config.sharppilot.instructions.lang.rust && sharppilot.workspace.hasRust && !sharppilot.override.lang.rust"
       },
       {
-        "path": "./instructions/.generated/native-go.instructions.md",
-        "when": "config.sharppilot.instructions.native.go && sharppilot.workspace.hasGo && !sharppilot.override.native.go"
+        "path": "./instructions/.generated/lang-go.instructions.md",
+        "when": "config.sharppilot.instructions.lang.go && sharppilot.workspace.hasGo && !sharppilot.override.lang.go"
       },
       {
         "path": "./instructions/.generated/git-commit-format.instructions.md",
         "when": "config.sharppilot.instructions.git.commitFormat && sharppilot.workspace.hasGit && !sharppilot.override.git.commitFormat"
       },
       {
-        "path": "./instructions/.generated/scripting-powershell.instructions.md",
-        "when": "config.sharppilot.instructions.scripting.powershell && sharppilot.workspace.hasPowerShell && !sharppilot.override.scripting.powershell"
+        "path": "./instructions/.generated/lang-powershell.instructions.md",
+        "when": "config.sharppilot.instructions.lang.powershell && sharppilot.workspace.hasPowerShell && !sharppilot.override.lang.powershell"
       },
       {
-        "path": "./instructions/.generated/scripting-bash.instructions.md",
-        "when": "config.sharppilot.instructions.scripting.bash && sharppilot.workspace.hasBash && !sharppilot.override.scripting.bash"
+        "path": "./instructions/.generated/lang-bash.instructions.md",
+        "when": "config.sharppilot.instructions.lang.bash && sharppilot.workspace.hasBash && !sharppilot.override.lang.bash"
       },
       {
-        "path": "./instructions/.generated/scripting-batch.instructions.md",
-        "when": "config.sharppilot.instructions.scripting.batch && sharppilot.workspace.hasBatch && !sharppilot.override.scripting.batch"
+        "path": "./instructions/.generated/lang-batch.instructions.md",
+        "when": "config.sharppilot.instructions.lang.batch && sharppilot.workspace.hasBatch && !sharppilot.override.lang.batch"
       },
       {
-        "path": "./instructions/.generated/scripting-python.instructions.md",
-        "when": "config.sharppilot.instructions.scripting.python && sharppilot.workspace.hasPython && !sharppilot.override.scripting.python"
+        "path": "./instructions/.generated/lang-python.instructions.md",
+        "when": "config.sharppilot.instructions.lang.python && sharppilot.workspace.hasPython && !sharppilot.override.lang.python"
       },
       {
-        "path": "./instructions/.generated/scripting-lua.instructions.md",
-        "when": "config.sharppilot.instructions.scripting.lua && sharppilot.workspace.hasLua && !sharppilot.override.scripting.lua"
+        "path": "./instructions/.generated/lang-lua.instructions.md",
+        "when": "config.sharppilot.instructions.lang.lua && sharppilot.workspace.hasLua && !sharppilot.override.lang.lua"
       },
       {
-        "path": "./instructions/.generated/web-php.instructions.md",
-        "when": "config.sharppilot.instructions.web.php && sharppilot.workspace.hasPhp && !sharppilot.override.web.php"
+        "path": "./instructions/.generated/lang-php.instructions.md",
+        "when": "config.sharppilot.instructions.lang.php && sharppilot.workspace.hasPhp && !sharppilot.override.lang.php"
       },
       {
         "path": "./instructions/.generated/web-angular.instructions.md",
         "when": "config.sharppilot.instructions.web.angular && sharppilot.workspace.hasAngular && !sharppilot.override.web.angular"
       },
       {
-        "path": "./instructions/.generated/web-css.instructions.md",
-        "when": "config.sharppilot.instructions.web.css && sharppilot.workspace.hasCss && !sharppilot.override.web.css"
+        "path": "./instructions/.generated/lang-css.instructions.md",
+        "when": "config.sharppilot.instructions.lang.css && sharppilot.workspace.hasCss && !sharppilot.override.lang.css"
       },
       {
-        "path": "./instructions/.generated/web-html.instructions.md",
-        "when": "config.sharppilot.instructions.web.html && sharppilot.workspace.hasHtml && !sharppilot.override.web.html"
+        "path": "./instructions/.generated/lang-html.instructions.md",
+        "when": "config.sharppilot.instructions.lang.html && sharppilot.workspace.hasHtml && !sharppilot.override.lang.html"
       },
       {
-        "path": "./instructions/.generated/web-javascript.instructions.md",
-        "when": "config.sharppilot.instructions.web.javascript && (sharppilot.workspace.hasJavaScript || sharppilot.workspace.hasTypeScript) && !sharppilot.override.web.javascript"
+        "path": "./instructions/.generated/lang-javascript.instructions.md",
+        "when": "config.sharppilot.instructions.lang.javascript && (sharppilot.workspace.hasJavaScript || sharppilot.workspace.hasTypeScript) && !sharppilot.override.lang.javascript"
       },
       {
         "path": "./instructions/.generated/web-nextjs.instructions.md",
@@ -350,8 +350,8 @@
         "when": "config.sharppilot.instructions.web.svelte && sharppilot.workspace.hasSvelte && !sharppilot.override.web.svelte"
       },
       {
-        "path": "./instructions/.generated/web-typescript.instructions.md",
-        "when": "config.sharppilot.instructions.web.typescript && sharppilot.workspace.hasTypeScript && !sharppilot.override.web.typescript"
+        "path": "./instructions/.generated/lang-typescript.instructions.md",
+        "when": "config.sharppilot.instructions.lang.typescript && sharppilot.workspace.hasTypeScript && !sharppilot.override.lang.typescript"
       },
       {
         "path": "./instructions/.generated/web-vue.instructions.md",
@@ -470,7 +470,7 @@
           "default": true,
           "description": "Enable Docker guidelines (multi-stage builds, security, Compose, layer caching)."
         },
-        "sharppilot.instructions.graphql": {
+        "sharppilot.instructions.lang.graphql": {
           "type": "boolean",
           "default": true,
           "description": "Enable GraphQL guidelines (schema design, pagination, DataLoader, mutations, subscriptions)."
@@ -480,12 +480,12 @@
           "default": true,
           "description": "Enable REST API design guidelines (resource naming, HTTP methods, status codes, pagination, error responses, versioning)."
         },
-        "sharppilot.instructions.sql": {
+        "sharppilot.instructions.lang.sql": {
           "type": "boolean",
           "default": true,
           "description": "Enable SQL guidelines (naming, formatting, query design, indexing, parameters, transactions, NULL handling, performance)."
         },
-        "sharppilot.instructions.yaml": {
+        "sharppilot.instructions.lang.yaml": {
           "type": "boolean",
           "default": true,
           "description": "Enable YAML guidelines (formatting, quoting, type safety, anchors, multi-document, security)."
@@ -645,57 +645,57 @@
           "default": true,
           "description": "Enable NUnit-specific guidelines (constraint model, attributes, assertions, test lifecycle)."
         },
-        "sharppilot.instructions.dotnet.csharp": {
+        "sharppilot.instructions.lang.csharp": {
           "type": "boolean",
           "default": true,
           "description": "Enable C# coding style rules (member ordering, formatting, etc.)."
         },
-        "sharppilot.instructions.dotnet.fsharp": {
+        "sharppilot.instructions.lang.fsharp": {
           "type": "boolean",
           "default": true,
           "description": "Enable F# coding style rules (module layout, naming, type design, pattern matching, formatting)."
         },
-        "sharppilot.instructions.dotnet.vbnet": {
+        "sharppilot.instructions.lang.vbnet": {
           "type": "boolean",
           "default": true,
           "description": "Enable VB.NET coding style rules (naming, Option Strict, error handling, formatting)."
         },
-        "sharppilot.instructions.jvm.java": {
+        "sharppilot.instructions.lang.java": {
           "type": "boolean",
           "default": true,
           "description": "Enable Java coding style rules (naming, type design, error handling, streams, Optional, generics, concurrency)."
         },
-        "sharppilot.instructions.jvm.kotlin": {
+        "sharppilot.instructions.lang.kotlin": {
           "type": "boolean",
           "default": true,
           "description": "Enable Kotlin coding style rules (null safety, type design, scope functions, collections, coroutines)."
         },
-        "sharppilot.instructions.jvm.scala": {
+        "sharppilot.instructions.lang.scala": {
           "type": "boolean",
           "default": true,
           "description": "Enable Scala coding style rules (pattern matching, implicits, collections, error handling, concurrency)."
         },
-        "sharppilot.instructions.jvm.groovy": {
+        "sharppilot.instructions.lang.groovy": {
           "type": "boolean",
           "default": true,
-          "description": "Enable Groovy coding style rules (type safety, closures, GStrings, collections, error handling, Spock testing)."
+          "description": "Enable Groovy coding style rules (type safety, closures, GStrings, collections, error handling)."
         },
-        "sharppilot.instructions.native.c": {
+        "sharppilot.instructions.lang.c": {
           "type": "boolean",
           "default": true,
           "description": "Enable C coding style rules (memory management, pointer safety, const correctness, error handling, header design)."
         },
-        "sharppilot.instructions.native.cpp": {
+        "sharppilot.instructions.lang.cpp": {
           "type": "boolean",
           "default": true,
           "description": "Enable C++ coding style rules (RAII, smart pointers, move semantics, modern features, templates, STL usage)."
         },
-        "sharppilot.instructions.native.rust": {
+        "sharppilot.instructions.lang.rust": {
           "type": "boolean",
           "default": true,
           "description": "Enable Rust coding style rules (ownership, borrowing, error handling, type design, traits, concurrency)."
         },
-        "sharppilot.instructions.native.go": {
+        "sharppilot.instructions.lang.go": {
           "type": "boolean",
           "default": true,
           "description": "Enable Go coding style rules (error handling, interfaces, concurrency, packages, testing)."
@@ -705,32 +705,32 @@
           "default": true,
           "description": "Enable Conventional Commits formatting guidelines."
         },
-        "sharppilot.instructions.scripting.powershell": {
+        "sharppilot.instructions.lang.powershell": {
           "type": "boolean",
           "default": true,
           "description": "Enable PowerShell guidelines (naming, error handling, pipeline design, security, module structure)."
         },
-        "sharppilot.instructions.scripting.bash": {
+        "sharppilot.instructions.lang.bash": {
           "type": "boolean",
           "default": true,
           "description": "Enable Bash guidelines (safety flags, quoting, error handling, portability, script structure)."
         },
-        "sharppilot.instructions.scripting.batch": {
+        "sharppilot.instructions.lang.batch": {
           "type": "boolean",
           "default": true,
           "description": "Enable Batch (CMD) guidelines (variable handling, error checking, quoting, script structure)."
         },
-        "sharppilot.instructions.scripting.python": {
+        "sharppilot.instructions.lang.python": {
           "type": "boolean",
           "default": true,
           "description": "Enable Python guidelines (naming, type hints, error handling, classes, modules, concurrency, idioms)."
         },
-        "sharppilot.instructions.scripting.lua": {
+        "sharppilot.instructions.lang.lua": {
           "type": "boolean",
           "default": true,
           "description": "Enable Lua guidelines (tables, error handling, modules, metatables, OOP, performance)."
         },
-        "sharppilot.instructions.web.php": {
+        "sharppilot.instructions.lang.php": {
           "type": "boolean",
           "default": true,
           "description": "Enable PHP guidelines (type safety, error handling, OOP, security, autoloading, documentation)."
@@ -740,17 +740,17 @@
           "default": true,
           "description": "Enable Angular guidelines (standalone components, signals, DI, RxJS, routing, reactive forms)."
         },
-        "sharppilot.instructions.web.css": {
+        "sharppilot.instructions.lang.css": {
           "type": "boolean",
           "default": true,
           "description": "Enable CSS layout, theming, selectors, and accessibility guidelines."
         },
-        "sharppilot.instructions.web.html": {
+        "sharppilot.instructions.lang.html": {
           "type": "boolean",
           "default": true,
           "description": "Enable HTML semantics, accessibility, and structure guidelines."
         },
-        "sharppilot.instructions.web.javascript": {
+        "sharppilot.instructions.lang.javascript": {
           "type": "boolean",
           "default": true,
           "description": "Enable JavaScript language, async patterns, and security guidelines."
@@ -775,7 +775,7 @@
           "default": true,
           "description": "Enable Svelte guidelines (runes, stores, SvelteKit routing, load functions, form actions)."
         },
-        "sharppilot.instructions.web.typescript": {
+        "sharppilot.instructions.lang.typescript": {
           "type": "boolean",
           "default": true,
           "description": "Enable TypeScript type safety, generics, and anti-pattern guidelines."

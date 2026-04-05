@@ -29,7 +29,7 @@ describe('ContextKeys.forEntry', () => {
     });
 
     it('should return multiple context keys for OR conditions', () => {
-        const js = InstructionsRegistry.all.find(i => i.settingId === 'sharppilot.instructions.web.javascript')!;
+        const js = InstructionsRegistry.all.find(i => i.settingId === 'sharppilot.instructions.lang.javascript')!;
 
         expect.soft(ContextKeys.forEntry(js)).toEqual(['hasJavaScript', 'hasTypeScript']);
     });
@@ -53,7 +53,7 @@ describe('ContextKeys.forEntry', () => {
             'sharppilot.instructions.codeReview',
             'sharppilot.instructions.designPrinciples',
             'sharppilot.instructions.restApiDesign',
-            'sharppilot.instructions.sql',
+            'sharppilot.instructions.lang.sql',
         ]);
 
         expect(InstructionsRegistry.all.length).toBeGreaterThan(0);

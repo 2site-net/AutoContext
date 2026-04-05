@@ -10,15 +10,15 @@ Detailed instruction files live in `src/SharpPilot.VSCode/instructions/`.
 | When working on          | Read                                                                                                                          |
 | ------------------------ | ----------------------------------------------------------------------------------------------------------------------------- |
 | Any code                 | `copilot.instructions.md`, `design-principles.instructions.md`                                                                |
-| C# source               | `dotnet-csharp.instructions.md`, `dotnet-coding-standards.instructions.md`, `dotnet-async-await.instructions.md` |
+| C# source               | `lang-csharp.instructions.md`, `dotnet-coding-standards.instructions.md`, `dotnet-async-await.instructions.md`                 |
 | C# tests                | `testing.instructions.md`, `dotnet-testing.instructions.md`, `dotnet-xunit.instructions.md`                                   |
 | NuGet / .csproj          | `dotnet-nuget.instructions.md`                                                                                                |
-| TypeScript / VS Code ext | `web-typescript.instructions.md`                                                                                              |
+| TypeScript / VS Code ext | `lang-typescript.instructions.md`                                                                                             |
 | TypeScript tests         | `testing.instructions.md`, `web-testing.instructions.md`, `web-vitest.instructions.md`                                        |
 | Git commits              | `git-commit-format.instructions.md`                                                                                           |
-| PowerShell scripts       | `scripting-powershell.instructions.md`                                                                                        |
-| Bash / shell scripts     | `scripting-bash.instructions.md`                                                                                              |
-| Batch (CMD) scripts      | `scripting-batch.instructions.md`                                                                                             |
+| PowerShell scripts       | `lang-powershell.instructions.md`                                                                                             |
+| Bash / shell scripts     | `lang-bash.instructions.md`                                                                                                   |
+| Batch (CMD) scripts      | `lang-batch.instructions.md`                                                                                                  |
 | REST API design          | `rest-api-design.instructions.md`                                                                                             |
 
 All paths are relative to `src/SharpPilot.VSCode/instructions/`.
