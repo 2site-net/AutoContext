@@ -258,6 +258,10 @@
         "when": "config.sharppilot.instructions.dotnet.vbnet && sharppilot.workspace.hasVbNet && !sharppilot.override.dotnet.vbnet"
       },
       {
+        "path": "./instructions/.generated/java.instructions.md",
+        "when": "config.sharppilot.instructions.java && sharppilot.workspace.hasJava && !sharppilot.override.java"
+      },
+      {
         "path": "./instructions/.generated/git-commit-format.instructions.md",
         "when": "config.sharppilot.instructions.git.commitFormat && sharppilot.workspace.hasGit && !sharppilot.override.git.commitFormat"
       },
@@ -615,6 +619,11 @@
           "type": "boolean",
           "default": true,
           "description": "Enable VB.NET coding style rules (naming, Option Strict, error handling, formatting)."
+        },
+        "sharppilot.instructions.java": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable Java coding style rules (naming, type design, error handling, streams, Optional, generics, concurrency)."
         },
         "sharppilot.instructions.git.commitFormat": {
           "type": "boolean",
