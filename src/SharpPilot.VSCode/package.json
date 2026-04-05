@@ -274,6 +274,14 @@
         "when": "config.sharppilot.instructions.jvm.groovy && sharppilot.workspace.hasGroovy && !sharppilot.override.jvm.groovy"
       },
       {
+        "path": "./instructions/.generated/native-c.instructions.md",
+        "when": "config.sharppilot.instructions.native.c && sharppilot.workspace.hasC && !sharppilot.override.native.c"
+      },
+      {
+        "path": "./instructions/.generated/native-cpp.instructions.md",
+        "when": "config.sharppilot.instructions.native.cpp && sharppilot.workspace.hasCpp && !sharppilot.override.native.cpp"
+      },
+      {
         "path": "./instructions/.generated/git-commit-format.instructions.md",
         "when": "config.sharppilot.instructions.git.commitFormat && sharppilot.workspace.hasGit && !sharppilot.override.git.commitFormat"
       },
@@ -651,6 +659,16 @@
           "type": "boolean",
           "default": true,
           "description": "Enable Groovy coding style rules (type safety, closures, GStrings, collections, error handling, Spock testing)."
+        },
+        "sharppilot.instructions.native.c": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable C coding style rules (memory management, pointer safety, const correctness, error handling, header design)."
+        },
+        "sharppilot.instructions.native.cpp": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable C++ coding style rules (RAII, smart pointers, move semantics, modern features, templates, STL usage)."
         },
         "sharppilot.instructions.git.commitFormat": {
           "type": "boolean",
