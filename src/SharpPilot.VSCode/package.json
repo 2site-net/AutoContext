@@ -101,6 +101,24 @@
         "title": "Disable Instruction",
         "category": "SharpPilot",
         "icon": "$(close)"
+      },
+      {
+        "command": "sharppilot.enterExportMode",
+        "title": "Export Instructions",
+        "category": "SharpPilot",
+        "icon": "$(export)"
+      },
+      {
+        "command": "sharppilot.confirmExport",
+        "title": "Confirm Export",
+        "category": "SharpPilot",
+        "icon": "$(check)"
+      },
+      {
+        "command": "sharppilot.cancelExport",
+        "title": "Cancel Export",
+        "category": "SharpPilot",
+        "icon": "$(close)"
       }
     ],
     "menus": {
@@ -120,17 +138,46 @@
         {
           "command": "sharppilot.disableInstruction",
           "when": "false"
+        },
+        {
+          "command": "sharppilot.enterExportMode",
+          "when": "false"
+        },
+        {
+          "command": "sharppilot.confirmExport",
+          "when": "false"
+        },
+        {
+          "command": "sharppilot.cancelExport",
+          "when": "false"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "sharppilot.enterExportMode",
+          "when": "view == 'sharppilot.instructionsView' && !sharppilot.exportMode",
+          "group": "navigation"
+        },
+        {
+          "command": "sharppilot.confirmExport",
+          "when": "view == 'sharppilot.instructionsView' && sharppilot.exportMode",
+          "group": "navigation@1"
+        },
+        {
+          "command": "sharppilot.cancelExport",
+          "when": "view == 'sharppilot.instructionsView' && sharppilot.exportMode",
+          "group": "navigation@2"
         }
       ],
       "view/item/context": [
         {
           "command": "sharppilot.enableInstruction",
-          "when": "viewItem == 'instruction.disabled'",
+          "when": "viewItem == 'instruction.disabled' && !sharppilot.exportMode",
           "group": "inline"
         },
         {
           "command": "sharppilot.disableInstruction",
-          "when": "viewItem == 'instruction.active'",
+          "when": "viewItem == 'instruction.active' && !sharppilot.exportMode",
           "group": "inline"
         }
       ]

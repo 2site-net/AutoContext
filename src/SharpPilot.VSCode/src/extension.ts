@@ -64,7 +64,13 @@ export function activate(context: vscode.ExtensionContext) {
         decorationManager,
         instructionsWriter,
         instructionsTreeProvider,
-        vscode.window.registerTreeDataProvider(InstructionsTreeProvider.viewId, instructionsTreeProvider),
+        vscode.commands.registerCommand(InstructionsTreeProvider.enterExportCommandId, () => instructionsTreeProvider.enterExportMode()),
+        vscode.commands.registerCommand(InstructionsTreeProvider.cancelExportCommandId, () => instructionsTreeProvider.cancelExportMode()),
+        vscode.commands.registerCommand(InstructionsTreeProvider.confirmExportCommandId, async () => {
+            const entries = instructionsTreeProvider.getCheckedEntries();
+            await instructionsExporter.exportEntries(entries);
+            instructionsTreeProvider.cancelExportMode();
+        }),
         vscode.workspace.registerTextDocumentContentProvider(instructionScheme, contentProvider),
         vscode.languages.registerCodeLensProvider({ scheme: instructionScheme }, codeLensProvider),
         // Status bar
@@ -125,7 +131,7 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.lm.registerMcpServerDefinitionProvider('sharpPilotProvider', mcpServerProvider),
     );
 
-    return { mcpServerProvider, configManager, codeLensProvider, contentProvider, workspaceContextDetector, workspaceServer };
+    return { mcpServerProvider, configManager, codeLensProvider, contentProvider, workspaceContextDetector, workspaceServer, instructionsTreeProvider };
 }
 
 export function deactivate(): void {}

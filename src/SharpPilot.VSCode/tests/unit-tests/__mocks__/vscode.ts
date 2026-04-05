@@ -47,6 +47,10 @@ export const window = {
     showTextDocument: vi.fn(),
     onDidChangeActiveTextEditor: vi.fn(() => ({ dispose: vi.fn() })),
     registerTreeDataProvider: vi.fn(() => ({ dispose: vi.fn() })),
+    createTreeView: vi.fn(() => ({
+        onDidChangeCheckboxState: vi.fn(() => ({ dispose: vi.fn() })),
+        dispose: vi.fn(),
+    })),
     visibleTextEditors: [] as unknown[],
 };
 
@@ -103,6 +107,11 @@ export enum TreeItemCollapsibleState {
     Expanded = 2,
 }
 
+export enum TreeItemCheckboxState {
+    Unchecked = 0,
+    Checked = 1,
+}
+
 export class TreeItem {
     label?: string;
     collapsibleState?: TreeItemCollapsibleState;
@@ -110,6 +119,8 @@ export class TreeItem {
     description?: string;
     tooltip?: string;
     contextValue?: string;
+    command?: { command: string; title: string; arguments?: unknown[] };
+    checkboxState?: TreeItemCheckboxState;
 
     constructor(label: string, collapsibleState?: TreeItemCollapsibleState) {
         this.label = label;

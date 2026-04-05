@@ -42,19 +42,40 @@ export class InstructionsTreeProvider implements vscode.TreeDataProvider<TreeEle
     static readonly viewId = 'sharppilot.instructionsView';
     static readonly enableCommandId = 'sharppilot.enableInstruction';
     static readonly disableCommandId = 'sharppilot.disableInstruction';
+    static readonly enterExportCommandId = 'sharppilot.enterExportMode';
+    static readonly confirmExportCommandId = 'sharppilot.confirmExport';
+    static readonly cancelExportCommandId = 'sharppilot.cancelExport';
 
     private readonly _onDidChangeTreeData = new vscode.EventEmitter<TreeElement | undefined>();
     readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
 
+    private _exportMode = false;
+    private readonly _checkedEntries = new Set<string>();
     private readonly disposables: vscode.Disposable[] = [];
 
     constructor(private readonly detector: WorkspaceContextDetector) {
+        const treeView = vscode.window.createTreeView(InstructionsTreeProvider.viewId, {
+            treeDataProvider: this,
+        });
+
         this.disposables.push(
+            treeView,
             this._onDidChangeTreeData,
             detector.onDidDetect(() => this.refresh()),
             vscode.workspace.onDidChangeConfiguration(e => {
                 if (e.affectsConfiguration('sharppilot.instructions')) {
                     this.refresh();
+                }
+            }),
+            treeView.onDidChangeCheckboxState(e => {
+                for (const [item, state] of e.items) {
+                    if (item.kind === 'instruction') {
+                        if (state === vscode.TreeItemCheckboxState.Checked) {
+                            this._checkedEntries.add(item.entry.settingId);
+                        } else {
+                            this._checkedEntries.delete(item.entry.settingId);
+                        }
+                    }
                 }
             }),
         );
@@ -69,7 +90,7 @@ export class InstructionsTreeProvider implements vscode.TreeDataProvider<TreeEle
             return InstructionsTreeProvider.categoryItem(element);
         }
 
-        return InstructionsTreeProvider.instructionItem(element);
+        return this.instructionItem(element);
     }
 
     getChildren(element?: TreeElement): TreeElement[] {
@@ -133,7 +154,7 @@ export class InstructionsTreeProvider implements vscode.TreeDataProvider<TreeEle
         return item;
     }
 
-    private static instructionItem(node: InstructionNode): vscode.TreeItem {
+    private instructionItem(node: InstructionNode): vscode.TreeItem {
         const item = new vscode.TreeItem(node.entry.label, vscode.TreeItemCollapsibleState.None);
         item.contextValue = `instruction.${node.state}`;
 
@@ -158,6 +179,12 @@ export class InstructionsTreeProvider implements vscode.TreeDataProvider<TreeEle
                 void _;
                 break;
             }
+        }
+
+        if (this._exportMode && (node.state === InstructionState.Active || node.state === InstructionState.Disabled)) {
+            item.checkboxState = this._checkedEntries.has(node.entry.settingId)
+                ? vscode.TreeItemCheckboxState.Checked
+                : vscode.TreeItemCheckboxState.Unchecked;
         }
 
         item.tooltip = InstructionsTreeProvider.tooltip(node);
@@ -194,6 +221,24 @@ export class InstructionsTreeProvider implements vscode.TreeDataProvider<TreeEle
 
         lines.push(`Setting: ${node.entry.settingId}`);
         return lines.join('\n');
+    }
+
+    enterExportMode(): void {
+        this._exportMode = true;
+        this._checkedEntries.clear();
+        void vscode.commands.executeCommand('setContext', 'sharppilot.exportMode', true);
+        this.refresh();
+    }
+
+    cancelExportMode(): void {
+        this._exportMode = false;
+        this._checkedEntries.clear();
+        void vscode.commands.executeCommand('setContext', 'sharppilot.exportMode', false);
+        this.refresh();
+    }
+
+    getCheckedEntries(): readonly InstructionsCatalogEntry[] {
+        return InstructionsRegistry.all.filter(e => this._checkedEntries.has(e.settingId));
     }
 
     static async enableInstruction(node: InstructionNode): Promise<void> {

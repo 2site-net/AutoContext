@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { __setConfigStore, TreeItemCollapsibleState, workspace, ConfigurationTarget } from './__mocks__/vscode';
+import { __setConfigStore, TreeItemCollapsibleState, TreeItemCheckboxState, workspace, ConfigurationTarget, commands } from './__mocks__/vscode';
 import { InstructionsTreeProvider, InstructionState } from '../../src/instructions-tree-provider';
 import { InstructionsRegistry } from '../../src/instructions-registry';
 
@@ -291,6 +291,114 @@ describe('InstructionsTreeProvider', () => {
             false,
             ConfigurationTarget.Global,
         );
+
+        provider.dispose();
+    });
+
+    it('should show checkboxes on active and disabled items in export mode', () => {
+        vi.mocked(fakeDetector.get).mockImplementation((key: string) => key === 'hasCSharp');
+        __setConfigStore({ 'sharppilot.instructions.designPrinciples': false });
+
+        const provider = new InstructionsTreeProvider(fakeDetector);
+        provider.enterExportMode();
+
+        const roots = provider.getChildren();
+        const general = roots.find(r => r.kind === 'category' && r.name === 'General')!;
+        const children = provider.getChildren(general);
+
+        const active = children.find(c => c.kind === 'instruction' && c.state === InstructionState.Active)!;
+        const disabled = children.find(c => c.kind === 'instruction' && c.state === InstructionState.Disabled)!;
+
+        expect.soft(provider.getTreeItem(active).checkboxState).toBe(TreeItemCheckboxState.Unchecked);
+        expect.soft(provider.getTreeItem(disabled).checkboxState).toBe(TreeItemCheckboxState.Unchecked);
+
+        provider.dispose();
+    });
+
+    it('should not show checkboxes on not-detected or overridden items in export mode', () => {
+        vi.mocked(fakeDetector.get).mockReturnValue(false);
+
+        const provider = new InstructionsTreeProvider(fakeDetector);
+        provider.enterExportMode();
+
+        const roots = provider.getChildren();
+        const languages = roots.find(r => r.kind === 'category' && r.name === 'Languages')!;
+        const children = provider.getChildren(languages);
+        const notDetected = children.find(c => c.kind === 'instruction' && c.state === InstructionState.NotDetected)!;
+
+        expect.soft(provider.getTreeItem(notDetected).checkboxState).toBeUndefined();
+
+        provider.dispose();
+    });
+
+    it('should not show checkboxes when not in export mode', () => {
+        vi.mocked(fakeDetector.get).mockReturnValue(true);
+
+        const provider = new InstructionsTreeProvider(fakeDetector);
+        const roots = provider.getChildren();
+        const general = roots.find(r => r.kind === 'category' && r.name === 'General')!;
+        const children = provider.getChildren(general);
+        const active = children.find(c => c.kind === 'instruction' && c.state === InstructionState.Active)!;
+
+        expect.soft(provider.getTreeItem(active).checkboxState).toBeUndefined();
+
+        provider.dispose();
+    });
+
+    it('should set export mode context key when entering export mode', () => {
+        const provider = new InstructionsTreeProvider(fakeDetector);
+        provider.enterExportMode();
+
+        expect.soft(commands.executeCommand).toHaveBeenCalledWith('setContext', 'sharppilot.exportMode', true);
+
+        provider.dispose();
+    });
+
+    it('should clear export mode context key when canceling export mode', () => {
+        const provider = new InstructionsTreeProvider(fakeDetector);
+        provider.enterExportMode();
+        provider.cancelExportMode();
+
+        expect.soft(commands.executeCommand).toHaveBeenCalledWith('setContext', 'sharppilot.exportMode', false);
+
+        provider.dispose();
+    });
+
+    it('should return checked entries from getCheckedEntries', () => {
+        vi.mocked(fakeDetector.get).mockReturnValue(true);
+
+        const provider = new InstructionsTreeProvider(fakeDetector);
+        provider.enterExportMode();
+
+        const roots = provider.getChildren();
+        const general = roots.find(r => r.kind === 'category' && r.name === 'General')!;
+        const children = provider.getChildren(general);
+        const entry = children.find(c => c.kind === 'instruction' && c.entry.settingId === 'sharppilot.instructions.codeReview')!;
+
+        // Simulate checkbox toggle by accessing the internal checked set
+        // In production, this is driven by onDidChangeCheckboxState
+        if (entry.kind === 'instruction') {
+            (provider as unknown as { _checkedEntries: Set<string> })._checkedEntries.add(entry.entry.settingId);
+        }
+
+        const checked = provider.getCheckedEntries();
+        expect.soft(checked.length).toBe(1);
+        expect.soft(checked[0].settingId).toBe('sharppilot.instructions.codeReview');
+
+        provider.dispose();
+    });
+
+    it('should clear checked entries when canceling export mode', () => {
+        vi.mocked(fakeDetector.get).mockReturnValue(true);
+
+        const provider = new InstructionsTreeProvider(fakeDetector);
+        provider.enterExportMode();
+
+        (provider as unknown as { _checkedEntries: Set<string> })._checkedEntries.add('sharppilot.instructions.codeReview');
+        expect.soft(provider.getCheckedEntries().length).toBe(1);
+
+        provider.cancelExportMode();
+        expect.soft(provider.getCheckedEntries().length).toBe(0);
 
         provider.dispose();
     });

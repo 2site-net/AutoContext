@@ -74,6 +74,36 @@ export class InstructionsExporter {
         }
     }
 
+    async exportEntries(entries: readonly InstructionsCatalogEntry[]): Promise<void> {
+        const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+        if (!workspaceFolder || entries.length === 0) { return; }
+
+        const rootUri = workspaceFolder.uri;
+        let exportedCount = 0;
+
+        for (const entry of entries) {
+            const targetUri = vscode.Uri.joinPath(rootUri, entry.targetPath);
+            const exists = await InstructionsExporter.fileExists(targetUri);
+
+            if (exists) {
+                const action = await vscode.window.showWarningMessage(
+                    `'${entry.targetPath}' already exists.`,
+                    'Overwrite',
+                    'Skip',
+                );
+
+                if (action !== 'Overwrite') { continue; }
+            }
+
+            await InstructionsExporter.copyInstruction(this.extensionPath, entry, targetUri);
+            exportedCount++;
+        }
+
+        if (exportedCount > 0) {
+            await vscode.window.showInformationMessage(`Exported ${exportedCount} instruction(s) to .github.`);
+        }
+    }
+
     private static async copyInstruction(extensionPath: string, entry: InstructionsCatalogEntry, targetUri: vscode.Uri): Promise<void> {
         const sourceUri = vscode.Uri.file(`${extensionPath}/instructions/.generated/${entry.fileName}`);
         const content = await vscode.workspace.fs.readFile(sourceUri);
