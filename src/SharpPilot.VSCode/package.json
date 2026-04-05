@@ -51,6 +51,11 @@
           "id": "sharppilot.instructionsView",
           "name": "Instructions",
           "when": "workspaceFolderCount > 0"
+        },
+        {
+          "id": "sharppilot.toolsView",
+          "name": "MCP Tools",
+          "when": "workspaceFolderCount > 0"
         }
       ]
     },

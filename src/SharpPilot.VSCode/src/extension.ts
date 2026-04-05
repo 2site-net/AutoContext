@@ -14,6 +14,7 @@ import { InstructionsDecorationManager } from './instructions-decoration-manager
 import { InstructionsConfigWriter } from './instructions-config-writer.js';
 import { InstructionsDiagnostics } from './instructions-diagnostics.js';
 import { InstructionsTreeProvider } from './instructions-tree-provider.js';
+import { McpToolsTreeProvider } from './mcp-tools-tree-provider.js';
 import { McpServerProvider } from './mcp-server-provider.js';
 import { WorkspaceServerManager } from './workspace-server-manager.js';
 import { McpToolsRegistry } from './mcp-tools-registry.js';
@@ -41,6 +42,7 @@ export function activate(context: vscode.ExtensionContext) {
     const workspaceServer = new WorkspaceServerManager(context.extensionPath, outputChannel, vscode.workspace.workspaceFolders?.[0]?.uri.fsPath);
     const mcpServerProvider = new McpServerProvider(context.extensionPath, version, workspaceContextDetector, didChangeEmitter.event, workspaceServer);
     const instructionsTreeProvider = new InstructionsTreeProvider(workspaceContextDetector);
+    const mcpToolsTreeProvider = new McpToolsTreeProvider(workspaceContextDetector);
 
     const logDiagnostics = () => InstructionsDiagnostics.log(outputChannel, context.extensionPath, configManager);
 
@@ -64,6 +66,7 @@ export function activate(context: vscode.ExtensionContext) {
         decorationManager,
         instructionsWriter,
         instructionsTreeProvider,
+        mcpToolsTreeProvider,
         vscode.commands.registerCommand(InstructionsTreeProvider.enterExportCommandId, () => instructionsTreeProvider.enterExportMode()),
         vscode.commands.registerCommand(InstructionsTreeProvider.cancelExportCommandId, () => instructionsTreeProvider.cancelExportMode()),
         vscode.commands.registerCommand(InstructionsTreeProvider.confirmExportCommandId, async () => {
@@ -133,7 +136,7 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.lm.registerMcpServerDefinitionProvider('sharpPilotProvider', mcpServerProvider),
     );
 
-    return { mcpServerProvider, configManager, codeLensProvider, contentProvider, workspaceContextDetector, workspaceServer, instructionsTreeProvider };
+    return { mcpServerProvider, configManager, codeLensProvider, contentProvider, workspaceContextDetector, workspaceServer, instructionsTreeProvider, mcpToolsTreeProvider };
 }
 
 export function deactivate(): void {}
