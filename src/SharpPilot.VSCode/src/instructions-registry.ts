@@ -57,6 +57,8 @@ export class InstructionsRegistry {
         { settingId: 'sharppilot.instructions.scripting.powershell', fileName: 'scripting-powershell.instructions.md', label: 'PowerShell', category: 'Scripting', contextKeys: ['hasPowerShell'] },
         { settingId: 'sharppilot.instructions.scripting.bash', fileName: 'scripting-bash.instructions.md', label: 'Bash', category: 'Scripting', contextKeys: ['hasBash'] },
         { settingId: 'sharppilot.instructions.scripting.batch', fileName: 'scripting-batch.instructions.md', label: 'Batch (CMD)', category: 'Scripting', contextKeys: ['hasBatch'] },
+        { settingId: 'sharppilot.instructions.scripting.python', fileName: 'scripting-python.instructions.md', label: 'Python', category: 'Scripting', contextKeys: ['hasPython'] },
+        { settingId: 'sharppilot.instructions.scripting.lua', fileName: 'scripting-lua.instructions.md', label: 'Lua', category: 'Scripting', contextKeys: ['hasLua'] },
         { settingId: 'sharppilot.instructions.web.angular', fileName: 'web-angular.instructions.md', label: 'Angular', category: 'Web', contextKeys: ['hasAngular'] },
         { settingId: 'sharppilot.instructions.web.css', fileName: 'web-css.instructions.md', label: 'CSS', category: 'Web', contextKeys: ['hasCss'] },
         { settingId: 'sharppilot.instructions.web.html', fileName: 'web-html.instructions.md', label: 'HTML', category: 'Web', contextKeys: ['hasHtml'] },

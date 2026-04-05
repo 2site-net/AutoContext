@@ -306,6 +306,14 @@
         "when": "config.sharppilot.instructions.scripting.batch && sharppilot.workspace.hasBatch && !sharppilot.override.scripting.batch"
       },
       {
+        "path": "./instructions/.generated/scripting-python.instructions.md",
+        "when": "config.sharppilot.instructions.scripting.python && sharppilot.workspace.hasPython && !sharppilot.override.scripting.python"
+      },
+      {
+        "path": "./instructions/.generated/scripting-lua.instructions.md",
+        "when": "config.sharppilot.instructions.scripting.lua && sharppilot.workspace.hasLua && !sharppilot.override.scripting.lua"
+      },
+      {
         "path": "./instructions/.generated/web-angular.instructions.md",
         "when": "config.sharppilot.instructions.web.angular && sharppilot.workspace.hasAngular && !sharppilot.override.web.angular"
       },
@@ -707,6 +715,16 @@
           "type": "boolean",
           "default": true,
           "description": "Enable Batch (CMD) guidelines (variable handling, error checking, quoting, script structure)."
+        },
+        "sharppilot.instructions.scripting.python": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable Python guidelines (naming, type hints, error handling, classes, modules, concurrency, idioms)."
+        },
+        "sharppilot.instructions.scripting.lua": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable Lua guidelines (tables, error handling, modules, metatables, OOP, performance)."
         },
         "sharppilot.instructions.web.angular": {
           "type": "boolean",
