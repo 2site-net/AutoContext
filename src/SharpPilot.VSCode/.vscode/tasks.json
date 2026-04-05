@@ -4,7 +4,10 @@
     {
       "type": "npm",
       "script": "compile",
-      "problemMatcher": "$tsc"
+      "problemMatcher": "$tsc",
+      "presentation": {
+        "close": true
+      }
     },
     {
       "type": "npm",
