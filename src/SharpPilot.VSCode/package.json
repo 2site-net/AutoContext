@@ -314,6 +314,10 @@
         "when": "config.sharppilot.instructions.scripting.lua && sharppilot.workspace.hasLua && !sharppilot.override.scripting.lua"
       },
       {
+        "path": "./instructions/.generated/web-php.instructions.md",
+        "when": "config.sharppilot.instructions.web.php && sharppilot.workspace.hasPhp && !sharppilot.override.web.php"
+      },
+      {
         "path": "./instructions/.generated/web-angular.instructions.md",
         "when": "config.sharppilot.instructions.web.angular && sharppilot.workspace.hasAngular && !sharppilot.override.web.angular"
       },
@@ -725,6 +729,11 @@
           "type": "boolean",
           "default": true,
           "description": "Enable Lua guidelines (tables, error handling, modules, metatables, OOP, performance)."
+        },
+        "sharppilot.instructions.web.php": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable PHP guidelines (type safety, error handling, OOP, security, autoloading, documentation)."
         },
         "sharppilot.instructions.web.angular": {
           "type": "boolean",

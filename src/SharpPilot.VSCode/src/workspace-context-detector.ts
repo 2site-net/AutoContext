@@ -24,7 +24,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
         const schedule = () => this.scheduleDetect();
 
         const existenceWatcher = vscode.workspace.createFileSystemWatcher(
-            '**/*.{csproj,fsproj,sln,slnx,razor,xaml,aspx,html,cshtml,css,js,jsx,mjs,cjs,ts,tsx,mts,cts,ps1,psm1,psd1,sh,bash,bat,cmd,java,kt,kts,scala,sc,groovy,gvy,c,cpp,cxx,cc,rs,go,py,lua}',
+            '**/*.{csproj,fsproj,sln,slnx,razor,xaml,aspx,html,cshtml,css,js,jsx,mjs,cjs,ts,tsx,mts,cts,ps1,psm1,psd1,sh,bash,bat,cmd,java,kt,kts,scala,sc,groovy,gvy,c,cpp,cxx,cc,rs,go,py,lua,php}',
         );
 
         this.disposables.push(
@@ -34,7 +34,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
         );
 
         const contentWatcher = vscode.workspace.createFileSystemWatcher(
-            '**/{*.csproj,*.fsproj,package.json,pom.xml,build.gradle,build.sbt,Cargo.toml,go.mod,pyproject.toml}',
+            '**/{*.csproj,*.fsproj,package.json,pom.xml,build.gradle,build.sbt,Cargo.toml,go.mod,pyproject.toml,composer.json}',
         );
 
         this.disposables.push(
@@ -72,7 +72,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
 
             const decoder = new TextDecoder();
 
-            const [dotnetFiles, csharpFiles, fsharpFiles, vbnetFiles, razorFiles, xamlFiles, aspxFiles, cshtmlFiles, htmlFiles, cssFiles, jsFiles, tsFiles, unityFiles, dockerFiles, psFiles, shFiles, batFiles, yamlFiles, javaFiles, javaProjectFiles, ktFiles, scalaFiles, scalaProjectFiles, groovyFiles, cFiles, cppFiles, rustFiles, rustProjectFiles, goFiles, goProjectFiles, pythonFiles, pythonProjectFiles, luaFiles] = await Promise.all([
+            const [dotnetFiles, csharpFiles, fsharpFiles, vbnetFiles, razorFiles, xamlFiles, aspxFiles, cshtmlFiles, htmlFiles, cssFiles, jsFiles, tsFiles, unityFiles, dockerFiles, psFiles, shFiles, batFiles, yamlFiles, javaFiles, javaProjectFiles, ktFiles, scalaFiles, scalaProjectFiles, groovyFiles, cFiles, cppFiles, rustFiles, rustProjectFiles, goFiles, goProjectFiles, pythonFiles, pythonProjectFiles, luaFiles, phpFiles, phpProjectFiles] = await Promise.all([
                 vscode.workspace.findFiles('**/*.{csproj,fsproj,vbproj,sln,slnx}', '**/node_modules/**', 1),
                 vscode.workspace.findFiles('**/*.csproj', '**/node_modules/**', 1),
                 vscode.workspace.findFiles('**/*.fsproj', '**/node_modules/**', 1),
@@ -106,6 +106,8 @@ export class WorkspaceContextDetector implements vscode.Disposable {
                 vscode.workspace.findFiles('**/*.py', '**/node_modules/**', 1),
                 vscode.workspace.findFiles('**/pyproject.toml', '**/node_modules/**', 1),
                 vscode.workspace.findFiles('**/*.lua', '**/node_modules/**', 1),
+                vscode.workspace.findFiles('**/*.php', '**/node_modules/**', 1),
+                vscode.workspace.findFiles('**/composer.json', '**/node_modules/**', 1),
             ]);
 
             let hasJavaScript = jsFiles.length > 0;
@@ -139,6 +141,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
             const hasNative = hasC || hasCpp || hasRust || hasGo;
             const hasPython = pythonFiles.length > 0 || pythonProjectFiles.length > 0;
             const hasLua = luaFiles.length > 0;
+            const hasPhp = phpFiles.length > 0 || phpProjectFiles.length > 0;
 
             let hasReact = false;
             let hasAngular = false;
@@ -418,6 +421,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
                 setContext('sharppilot.workspace.hasBatch', hasBatch),
                 setContext('sharppilot.workspace.hasPython', hasPython),
                 setContext('sharppilot.workspace.hasLua', hasLua),
+                setContext('sharppilot.workspace.hasPhp', hasPhp),
                 setContext('sharppilot.workspace.hasJava', hasJava),
                 setContext('sharppilot.workspace.hasKotlin', hasKotlin),
                 setContext('sharppilot.workspace.hasScala', hasScala),
@@ -451,7 +455,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
                 hasReact, hasAngular, hasVue, hasSvelte, hasMySql, hasMongoDb,
                 hasOracle, hasPostgres, hasSqlite, hasSqlServer, hasXunit, hasMsTest,
                 hasNUnit, hasWpf, hasWinForms, hasGrpc, hasMediatR, hasRedis, hasSignalR,
-                hasUnity, hasDocker, hasYaml, hasGraphql, hasNextJs, hasNodeJs, hasPowerShell, hasBash, hasBatch, hasPython, hasLua,
+                hasUnity, hasDocker, hasYaml, hasGraphql, hasNextJs, hasNodeJs, hasPowerShell, hasBash, hasBatch, hasPython, hasLua, hasPhp,
                 hasVitest, hasJest, hasJasmine, hasMocha, hasPlaywright, hasCypress,
                 hasJava,
                 hasKotlin,
