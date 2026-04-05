@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { __setConfigStore, TreeItemCollapsibleState, TreeItemCheckboxState, workspace, ConfigurationTarget, commands } from './__mocks__/vscode';
+import { __setConfigStore, TreeItemCollapsibleState, TreeItemCheckboxState, workspace, ConfigurationTarget, commands, Uri } from './__mocks__/vscode';
 import { InstructionsTreeProvider, InstructionState } from '../../src/instructions-tree-provider';
 import { InstructionsRegistry } from '../../src/instructions-registry';
 
@@ -291,6 +291,28 @@ describe('InstructionsTreeProvider', () => {
             false,
             ConfigurationTarget.Global,
         );
+
+        provider.dispose();
+    });
+
+    it('should delete the override file when deleteOverride is called', async () => {
+        vi.mocked(fakeDetector.get).mockReturnValue(true);
+        vi.mocked(fakeDetector.getOverriddenSettingIds).mockReturnValue(new Set(['sharppilot.instructions.lang.csharp']));
+        workspace.workspaceFolders = [{ uri: { path: '/workspace', scheme: 'file' } }];
+
+        const provider = new InstructionsTreeProvider(fakeDetector);
+        const roots = provider.getChildren();
+        const languages = roots.find(r => r.kind === 'category' && r.name === 'Languages')!;
+        const children = provider.getChildren(languages);
+        const node = children.find(c => c.kind === 'instruction' && c.entry.settingId === 'sharppilot.instructions.lang.csharp')!;
+
+        await InstructionsTreeProvider.deleteOverride(node as { kind: 'instruction'; entry: { settingId: string; targetPath: string }; state: string });
+
+        expect.soft(Uri.joinPath).toHaveBeenCalledWith(
+            { path: '/workspace', scheme: 'file' },
+            '.github/instructions/lang-csharp.instructions.md',
+        );
+        expect.soft(workspace.fs.delete).toHaveBeenCalled();
 
         provider.dispose();
     });

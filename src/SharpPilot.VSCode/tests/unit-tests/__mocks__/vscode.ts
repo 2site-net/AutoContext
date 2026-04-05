@@ -22,6 +22,7 @@ export const workspace = {
         readFile: vi.fn(),
         writeFile: vi.fn(),
         stat: vi.fn(),
+        delete: vi.fn(),
     },
     onDidChangeConfiguration: vi.fn(() => ({ dispose: vi.fn() })),
     onDidChangeWorkspaceFolders: vi.fn(() => ({ dispose: vi.fn() })),

@@ -119,6 +119,12 @@
         "title": "Cancel Export",
         "category": "SharpPilot",
         "icon": "$(close)"
+      },
+      {
+        "command": "sharppilot.deleteOverride",
+        "title": "Delete Override",
+        "category": "SharpPilot",
+        "icon": "$(trash)"
       }
     ],
     "menus": {
@@ -150,6 +156,10 @@
         {
           "command": "sharppilot.cancelExport",
           "when": "false"
+        },
+        {
+          "command": "sharppilot.deleteOverride",
+          "when": "false"
         }
       ],
       "view/title": [
@@ -178,6 +188,11 @@
         {
           "command": "sharppilot.disableInstruction",
           "when": "viewItem == 'instruction.active' && !sharppilot.exportMode",
+          "group": "inline"
+        },
+        {
+          "command": "sharppilot.deleteOverride",
+          "when": "viewItem == 'instruction.overridden' && !sharppilot.exportMode",
           "group": "inline"
         }
       ]

@@ -42,6 +42,7 @@ export class InstructionsTreeProvider implements vscode.TreeDataProvider<TreeEle
     static readonly viewId = 'sharppilot.instructionsView';
     static readonly enableCommandId = 'sharppilot.enableInstruction';
     static readonly disableCommandId = 'sharppilot.disableInstruction';
+    static readonly deleteOverrideCommandId = 'sharppilot.deleteOverride';
     static readonly enterExportCommandId = 'sharppilot.enterExportMode';
     static readonly confirmExportCommandId = 'sharppilot.confirmExport';
     static readonly cancelExportCommandId = 'sharppilot.cancelExport';
@@ -247,6 +248,14 @@ export class InstructionsTreeProvider implements vscode.TreeDataProvider<TreeEle
 
     static async disableInstruction(node: InstructionNode): Promise<void> {
         await vscode.workspace.getConfiguration().update(node.entry.settingId, false, vscode.ConfigurationTarget.Global);
+    }
+
+    static async deleteOverride(node: InstructionNode): Promise<void> {
+        const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+        if (!workspaceFolder) { return; }
+
+        const targetUri = vscode.Uri.joinPath(workspaceFolder.uri, node.entry.targetPath);
+        await vscode.workspace.fs.delete(targetUri);
     }
 
     dispose(): void {
