@@ -353,8 +353,6 @@ function Invoke-CopyAssets {
         @{ Source = 'LICENSE';        Label = 'LICENSE' }
         @{ Source = 'COMMERCIAL.md';  Label = 'COMMERCIAL.md' }
         @{ Source = 'TRADEMARKS.md';  Label = 'TRADEMARKS.md' }
-        @{ Source = 'logo.png';       Label = 'logo.png' }
-        @{ Source = 'small-logo.png'; Label = 'small-logo.png' }
     )
 
     foreach ($asset in $assets) {
@@ -639,8 +637,6 @@ function Invoke-Clean {
     $targets += @{ Path = $mcpDir;                            Label = 'MCP servers (mcp/)' }
     $targets += @{ Path = $publishDir;                         Label = 'VSIX packages (publish/)' }
     $targets += @{ Path = (Join-Path $extensionDir 'LICENSE');       Label = 'Extension LICENSE copy' }
-    $targets += @{ Path = (Join-Path $extensionDir 'logo.png');       Label = 'Extension logo.png copy' }
-    $targets += @{ Path = (Join-Path $extensionDir 'small-logo.png'); Label = 'Extension small-logo.png copy' }
 
     $instructionsDir = Join-Path $extensionDir 'instructions'
     $targets += @{ Path = (Join-Path $instructionsDir '.generated');  Label = 'Generated instructions (.generated/)' }

@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+  <!-- Three cycling arrows -->
+  <g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+    <path d="M13.5,3.6 A8.5,8.5 0 0,1 20,14.9"/>
+    <path d="M18.5,17.5 A8.5,8.5 0 0,1 5.5,17.5"/>
+    <path d="M4,14.9 A8.5,8.5 0 0,1 10.5,3.6"/>
+  </g>
+  <!-- Arrowheads -->
+  <g fill="currentColor" stroke="none">
+    <polygon points="21.4,15.4 19.1,17.3 18.6,14.4"/>
+    <polygon points="4.3,18.4 3.9,15.5 6.6,16.5"/>
+    <polygon points="10.3,2.2 13,3.2 10.8,5.1"/>
+  </g>
+  <!-- Hash/Sharp symbol -->
+  <g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+    <line x1="10.5" y1="8.5" x2="10.5" y2="15.5"/>
+    <line x1="13.5" y1="8.5" x2="13.5" y2="15.5"/>
+    <line x1="8.5" y1="10.3" x2="15.5" y2="10.3"/>
+    <line x1="8.5" y1="13.7" x2="15.5" y2="13.7"/>
+  </g>
+</svg>

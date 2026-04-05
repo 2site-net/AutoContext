@@ -1,4 +1,4 @@
-![SharpPilot](small-logo.png)
+![SharpPilot](resources/logo.png)
 
 # SharpPilot
 

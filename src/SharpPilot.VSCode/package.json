@@ -17,7 +17,7 @@
   "bugs": {
     "url": "https://github.com/2site-net/SharpPilot/issues"
   },
-  "icon": "logo.png",
+  "icon": "resources/logo.png",
   "type": "module",
   "engines": {
     "vscode": "^1.100.0"
