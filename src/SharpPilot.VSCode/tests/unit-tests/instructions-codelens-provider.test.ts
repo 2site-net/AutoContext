@@ -15,8 +15,14 @@ vi.mock('node:fs', () => ({
 
 import { workspace } from './__mocks__/vscode';
 
+const fakeDetector = {
+    get: vi.fn((_key: string) => false),
+    onDidDetect: vi.fn(() => ({ dispose: vi.fn() })),
+} as unknown as import('../../src/workspace-context-detector').WorkspaceContextDetector;
+
 beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(fakeDetector.get).mockReset();
     workspace.workspaceFolders = [{ uri: { fsPath: '/workspace' } }];
 });
 
@@ -38,7 +44,7 @@ describe('InstructionsCodeLensProvider', () => {
         vi.mocked(readFileSync).mockReturnValue('{}');
 
         const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
-        const provider = new InstructionsCodeLensProvider('/ext', configManager);
+        const provider = new InstructionsCodeLensProvider('/ext', configManager, fakeDetector);
 
         const lenses = provider.provideCodeLenses(makeDocument('file', 'test.md'));
 
@@ -53,7 +59,7 @@ describe('InstructionsCodeLensProvider', () => {
         });
 
         const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
-        const provider = new InstructionsCodeLensProvider('/ext', configManager);
+        const provider = new InstructionsCodeLensProvider('/ext', configManager, fakeDetector);
 
         const lenses = provider.provideCodeLenses(makeDocument(instructionScheme, 'test.instructions.md'));
 
@@ -80,7 +86,7 @@ describe('InstructionsCodeLensProvider', () => {
         });
 
         const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
-        const provider = new InstructionsCodeLensProvider('/ext', configManager);
+        const provider = new InstructionsCodeLensProvider('/ext', configManager, fakeDetector);
 
         const lenses = provider.provideCodeLenses(makeDocument(instructionScheme, 'test.instructions.md'));
 
@@ -109,7 +115,7 @@ describe('InstructionsCodeLensProvider', () => {
         });
 
         const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
-        const provider = new InstructionsCodeLensProvider('/ext', configManager);
+        const provider = new InstructionsCodeLensProvider('/ext', configManager, fakeDetector);
 
         const lenses = provider.provideCodeLenses(makeDocument(instructionScheme, 'test.instructions.md'));
 
@@ -128,11 +134,27 @@ describe('InstructionsCodeLensProvider', () => {
         });
 
         const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
-        const provider = new InstructionsCodeLensProvider('/ext', configManager);
+        const provider = new InstructionsCodeLensProvider('/ext', configManager, fakeDetector);
 
         const lenses = provider.provideCodeLenses(makeDocument(instructionScheme, 'test.instructions.md'));
 
         const resetLens = lenses.find(l => (l.command as { command: string }).command === resetInstructionsCommandId);
         expect.soft(resetLens).toBeUndefined();
+    });
+
+    it('should return empty array for instructions whose context is not detected', () => {
+        vi.mocked(fakeDetector.get).mockReturnValue(false);
+        vi.mocked(readFileSync).mockImplementation((path: unknown) => {
+            const pathStr = String(path);
+            if (pathStr.endsWith('.sharppilot.json')) return '{}';
+            return testContent;
+        });
+
+        const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
+        const provider = new InstructionsCodeLensProvider('/ext', configManager, fakeDetector);
+
+        const lenses = provider.provideCodeLenses(makeDocument(instructionScheme, 'lang-csharp.instructions.md'));
+
+        expect.soft(lenses).toEqual([]);
     });
 });

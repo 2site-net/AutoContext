@@ -34,7 +34,7 @@ export function activate(context: vscode.ExtensionContext) {
     const configManager = new SharpPilotConfigManager(context.extensionPath, version);
     const toolsStatusWriter = new McpToolsConfigWriter(configManager);
     const contentProvider = new InstructionsContentProvider(context.extensionPath, configManager);
-    const codeLensProvider = new InstructionsCodeLensProvider(context.extensionPath, configManager);
+    const codeLensProvider = new InstructionsCodeLensProvider(context.extensionPath, configManager, workspaceContextDetector);
     const decorationManager = new InstructionsDecorationManager(context.extensionPath, configManager);
     const instructionsWriter = new InstructionsConfigWriter(context.extensionPath, configManager);
     const outputChannel = vscode.window.createOutputChannel('SharpPilot');

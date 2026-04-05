@@ -2,8 +2,11 @@ import * as vscode from 'vscode';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { InstructionsParser } from './instructions-parser.js';
+import { InstructionsRegistry } from './instructions-registry.js';
+import { ContextKeys } from './context-keys.js';
 import { instructionScheme } from './instructions-content-provider.js';
 import type { SharpPilotConfigManager } from './sharppilot-config.js';
+import type { WorkspaceContextDetector } from './workspace-context-detector.js';
 
 export const toggleInstructionCommandId = 'sharppilot.toggleInstruction';
 export const resetInstructionsCommandId = 'sharppilot.resetInstructions';
@@ -16,10 +19,12 @@ export class InstructionsCodeLensProvider implements vscode.CodeLensProvider, vs
     constructor(
         private readonly extensionPath: string,
         private readonly configManager: SharpPilotConfigManager,
+        private readonly detector: WorkspaceContextDetector,
     ) {
         this.disposables.push(
             this.didChangeEmitter,
             configManager.onDidChange(() => this.didChangeEmitter.fire()),
+            detector.onDidDetect(() => this.didChangeEmitter.fire()),
         );
     }
 
@@ -29,6 +34,15 @@ export class InstructionsCodeLensProvider implements vscode.CodeLensProvider, vs
         }
 
         const fileName = document.uri.path;
+
+        const entry = InstructionsRegistry.findByFileName(fileName);
+        if (entry) {
+            const ctxKeys = ContextKeys.forEntry(entry);
+            if (ctxKeys.length > 0 && !ctxKeys.some(k => this.detector.get(k))) {
+                return [];
+            }
+        }
+
         const filePath = join(this.extensionPath, 'instructions', fileName);
 
         let content: string;
