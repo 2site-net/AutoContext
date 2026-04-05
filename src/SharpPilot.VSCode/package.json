@@ -270,6 +270,10 @@
         "when": "config.sharppilot.instructions.jvm.scala && sharppilot.workspace.hasScala && !sharppilot.override.jvm.scala"
       },
       {
+        "path": "./instructions/.generated/jvm-groovy.instructions.md",
+        "when": "config.sharppilot.instructions.jvm.groovy && sharppilot.workspace.hasGroovy && !sharppilot.override.jvm.groovy"
+      },
+      {
         "path": "./instructions/.generated/git-commit-format.instructions.md",
         "when": "config.sharppilot.instructions.git.commitFormat && sharppilot.workspace.hasGit && !sharppilot.override.git.commitFormat"
       },
@@ -642,6 +646,11 @@
           "type": "boolean",
           "default": true,
           "description": "Enable Scala coding style rules (pattern matching, implicits, collections, error handling, concurrency)."
+        },
+        "sharppilot.instructions.jvm.groovy": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable Groovy coding style rules (type safety, closures, GStrings, collections, error handling, Spock testing)."
         },
         "sharppilot.instructions.git.commitFormat": {
           "type": "boolean",
