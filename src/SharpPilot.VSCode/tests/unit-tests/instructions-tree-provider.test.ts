@@ -338,6 +338,26 @@ describe('InstructionsTreeProvider', () => {
         provider.dispose();
     });
 
+    it('should open the virtual document when showOriginal is called on overridden item', async () => {
+        vi.mocked(fakeDetector.get).mockReturnValue(true);
+        vi.mocked(fakeDetector.getOverriddenSettingIds).mockReturnValue(new Set(['sharppilot.instructions.lang.csharp']));
+
+        const provider = new InstructionsTreeProvider(fakeDetector);
+        const roots = provider.getChildren();
+        const languages = roots.find(r => r.kind === 'category' && r.name === 'Languages')!;
+        const children = provider.getChildren(languages);
+        const node = children.find(c => c.kind === 'instruction' && c.entry.settingId === 'sharppilot.instructions.lang.csharp')!;
+
+        await InstructionsTreeProvider.showOriginal(node as { kind: 'instruction'; entry: { fileName: string }; state: string });
+
+        expect.soft(commands.executeCommand).toHaveBeenCalledWith(
+            'vscode.open',
+            expect.objectContaining({ scheme: 'sharppilot-instructions', path: 'lang-csharp.instructions.md' }),
+        );
+
+        provider.dispose();
+    });
+
     it('should show checkboxes on active and disabled items in export mode', () => {
         vi.mocked(fakeDetector.get).mockImplementation((key: string) => key === 'hasCSharp');
         __setConfigStore({ 'sharppilot.instructions.designPrinciples': false });

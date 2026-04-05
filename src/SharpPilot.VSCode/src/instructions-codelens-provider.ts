@@ -41,6 +41,10 @@ export class InstructionsCodeLensProvider implements vscode.CodeLensProvider, vs
             if (ctxKeys.length > 0 && !ctxKeys.some(k => this.detector.get(k))) {
                 return [];
             }
+
+            if (this.detector.getOverriddenSettingIds().has(entry.settingId)) {
+                return [];
+            }
         }
 
         const filePath = join(this.extensionPath, 'instructions', fileName);

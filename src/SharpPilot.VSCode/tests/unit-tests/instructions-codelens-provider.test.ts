@@ -17,6 +17,7 @@ import { workspace } from './__mocks__/vscode';
 
 const fakeDetector = {
     get: vi.fn((_key: string) => false),
+    getOverriddenSettingIds: vi.fn(() => new Set<string>()),
     onDidDetect: vi.fn(() => ({ dispose: vi.fn() })),
 } as unknown as import('../../src/workspace-context-detector').WorkspaceContextDetector;
 
@@ -140,6 +141,23 @@ describe('InstructionsCodeLensProvider', () => {
 
         const resetLens = lenses.find(l => (l.command as { command: string }).command === resetInstructionsCommandId);
         expect.soft(resetLens).toBeUndefined();
+    });
+
+    it('should return empty array for overridden instructions', () => {
+        vi.mocked(fakeDetector.get).mockReturnValue(true);
+        vi.mocked(fakeDetector.getOverriddenSettingIds).mockReturnValue(new Set(['sharppilot.instructions.lang.csharp']));
+        vi.mocked(readFileSync).mockImplementation((path: unknown) => {
+            const pathStr = String(path);
+            if (pathStr.endsWith('.sharppilot.json')) return '{}';
+            return testContent;
+        });
+
+        const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
+        const provider = new InstructionsCodeLensProvider('/ext', configManager, fakeDetector);
+
+        const lenses = provider.provideCodeLenses(makeDocument(instructionScheme, 'lang-csharp.instructions.md'));
+
+        expect.soft(lenses).toEqual([]);
     });
 
     it('should return empty array for instructions whose context is not detected', () => {

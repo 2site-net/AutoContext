@@ -129,6 +129,7 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.commands.registerCommand(InstructionsTreeProvider.enableCommandId, InstructionsTreeProvider.enableInstruction),
         vscode.commands.registerCommand(InstructionsTreeProvider.disableCommandId, InstructionsTreeProvider.disableInstruction),
         vscode.commands.registerCommand(InstructionsTreeProvider.deleteOverrideCommandId, InstructionsTreeProvider.deleteOverride),
+        vscode.commands.registerCommand(InstructionsTreeProvider.showOriginalCommandId, InstructionsTreeProvider.showOriginal),
         vscode.lm.registerMcpServerDefinitionProvider('sharpPilotProvider', mcpServerProvider),
     );
 

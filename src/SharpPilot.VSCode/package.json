@@ -125,6 +125,12 @@
         "title": "Delete Override",
         "category": "SharpPilot",
         "icon": "$(trash)"
+      },
+      {
+        "command": "sharppilot.showOriginal",
+        "title": "Show Original",
+        "category": "SharpPilot",
+        "icon": "$(eye)"
       }
     ],
     "menus": {
@@ -160,6 +166,10 @@
         {
           "command": "sharppilot.deleteOverride",
           "when": "false"
+        },
+        {
+          "command": "sharppilot.showOriginal",
+          "when": "false"
         }
       ],
       "view/title": [
@@ -191,9 +201,14 @@
           "group": "inline"
         },
         {
+          "command": "sharppilot.showOriginal",
+          "when": "viewItem == 'instruction.overridden' && !sharppilot.exportMode",
+          "group": "inline@1"
+        },
+        {
           "command": "sharppilot.deleteOverride",
           "when": "viewItem == 'instruction.overridden' && !sharppilot.exportMode",
-          "group": "inline"
+          "group": "inline@2"
         }
       ]
     },
