@@ -262,6 +262,10 @@
         "when": "config.sharppilot.instructions.java && sharppilot.workspace.hasJava && !sharppilot.override.java"
       },
       {
+        "path": "./instructions/.generated/kotlin.instructions.md",
+        "when": "config.sharppilot.instructions.kotlin && sharppilot.workspace.hasKotlin && !sharppilot.override.kotlin"
+      },
+      {
         "path": "./instructions/.generated/git-commit-format.instructions.md",
         "when": "config.sharppilot.instructions.git.commitFormat && sharppilot.workspace.hasGit && !sharppilot.override.git.commitFormat"
       },
@@ -624,6 +628,11 @@
           "type": "boolean",
           "default": true,
           "description": "Enable Java coding style rules (naming, type design, error handling, streams, Optional, generics, concurrency)."
+        },
+        "sharppilot.instructions.kotlin": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable Kotlin coding style rules (null safety, type design, scope functions, collections, coroutines)."
         },
         "sharppilot.instructions.git.commitFormat": {
           "type": "boolean",
