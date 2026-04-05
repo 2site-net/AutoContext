@@ -5,18 +5,15 @@
       "label": "compile",
       "type": "shell",
       "command": "npm run compile",
+      "options": {
+        "cwd": "${workspaceFolder}/src/SharpPilot.VSCode"
+      },
       "problemMatcher": "$tsc",
       "presentation": {
         "reveal": "always",
         "close": true,
         "showReuseMessage": false
       }
-    },
-    {
-      "type": "npm",
-      "script": "watch",
-      "isBackground": true,
-      "problemMatcher": "$tsc-watch"
     }
   ]
 }

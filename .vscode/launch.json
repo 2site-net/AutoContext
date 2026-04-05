@@ -7,7 +7,7 @@
       "request": "launch",
       "args": ["--extensionDevelopmentPath=${workspaceFolder}/src/SharpPilot.VSCode"],
       "outFiles": ["${workspaceFolder}/src/SharpPilot.VSCode/out/**/*.js"],
-      "preLaunchTask": "npm: compile - src/SharpPilot.VSCode"
+      "preLaunchTask": "compile"
     }
   ]
 }
