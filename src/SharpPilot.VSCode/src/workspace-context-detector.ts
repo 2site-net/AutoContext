@@ -34,7 +34,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
         );
 
         const contentWatcher = vscode.workspace.createFileSystemWatcher(
-            '**/{*.csproj,*.fsproj,package.json,pom.xml,build.gradle,build.sbt}',
+            '**/{*.csproj,*.fsproj,package.json,pom.xml,build.gradle,build.sbt,Cargo.toml,go.mod}',
         );
 
         this.disposables.push(
@@ -72,7 +72,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
 
             const decoder = new TextDecoder();
 
-            const [dotnetFiles, csharpFiles, fsharpFiles, vbnetFiles, razorFiles, xamlFiles, aspxFiles, cshtmlFiles, htmlFiles, cssFiles, jsFiles, tsFiles, unityFiles, dockerFiles, psFiles, shFiles, batFiles, yamlFiles, javaFiles, javaProjectFiles, ktFiles, scalaFiles, scalaProjectFiles, groovyFiles, cFiles, cppFiles, rustFiles, goFiles] = await Promise.all([
+            const [dotnetFiles, csharpFiles, fsharpFiles, vbnetFiles, razorFiles, xamlFiles, aspxFiles, cshtmlFiles, htmlFiles, cssFiles, jsFiles, tsFiles, unityFiles, dockerFiles, psFiles, shFiles, batFiles, yamlFiles, javaFiles, javaProjectFiles, ktFiles, scalaFiles, scalaProjectFiles, groovyFiles, cFiles, cppFiles, rustFiles, rustProjectFiles, goFiles, goProjectFiles] = await Promise.all([
                 vscode.workspace.findFiles('**/*.{csproj,fsproj,vbproj,sln,slnx}', '**/node_modules/**', 1),
                 vscode.workspace.findFiles('**/*.csproj', '**/node_modules/**', 1),
                 vscode.workspace.findFiles('**/*.fsproj', '**/node_modules/**', 1),
@@ -100,7 +100,9 @@ export class WorkspaceContextDetector implements vscode.Disposable {
                 vscode.workspace.findFiles('**/*.c', '**/node_modules/**', 1),
                 vscode.workspace.findFiles('**/*.{cpp,cxx,cc}', '**/node_modules/**', 1),
                 vscode.workspace.findFiles('**/*.rs', '**/node_modules/**', 1),
+                vscode.workspace.findFiles('**/Cargo.toml', '**/node_modules/**', 1),
                 vscode.workspace.findFiles('**/*.go', '**/node_modules/**', 1),
+                vscode.workspace.findFiles('**/go.mod', '**/node_modules/**', 1),
             ]);
 
             let hasJavaScript = jsFiles.length > 0;
@@ -129,8 +131,8 @@ export class WorkspaceContextDetector implements vscode.Disposable {
             const hasJvm = hasJava || hasKotlin || hasScala || hasGroovy;
             const hasC = cFiles.length > 0;
             const hasCpp = cppFiles.length > 0;
-            const hasRust = rustFiles.length > 0;
-            const hasGo = goFiles.length > 0;
+            const hasRust = rustFiles.length > 0 || rustProjectFiles.length > 0;
+            const hasGo = goFiles.length > 0 || goProjectFiles.length > 0;
             const hasNative = hasC || hasCpp || hasRust || hasGo;
 
             let hasReact = false;
