@@ -282,6 +282,10 @@
         "when": "config.sharppilot.instructions.native.cpp && sharppilot.workspace.hasCpp && !sharppilot.override.native.cpp"
       },
       {
+        "path": "./instructions/.generated/native-rust.instructions.md",
+        "when": "config.sharppilot.instructions.native.rust && sharppilot.workspace.hasRust && !sharppilot.override.native.rust"
+      },
+      {
         "path": "./instructions/.generated/git-commit-format.instructions.md",
         "when": "config.sharppilot.instructions.git.commitFormat && sharppilot.workspace.hasGit && !sharppilot.override.git.commitFormat"
       },
@@ -669,6 +673,11 @@
           "type": "boolean",
           "default": true,
           "description": "Enable C++ coding style rules (RAII, smart pointers, move semantics, modern features, templates, STL usage)."
+        },
+        "sharppilot.instructions.native.rust": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable Rust coding style rules (ownership, borrowing, error handling, type design, traits, concurrency)."
         },
         "sharppilot.instructions.git.commitFormat": {
           "type": "boolean",
