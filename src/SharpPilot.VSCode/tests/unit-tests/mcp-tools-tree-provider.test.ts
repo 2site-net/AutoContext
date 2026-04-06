@@ -15,8 +15,8 @@ beforeEach(() => {
 });
 
 describe('McpToolsTreeProvider', () => {
-    /** Navigate: root → group → category → aggregation tools */
-    function getAggregationTools(provider: McpToolsTreeProvider, groupName: string, categoryName: string) {
+    /** Navigate: root → group → category → MCP tools */
+    function getMcpTools(provider: McpToolsTreeProvider, groupName: string, categoryName: string) {
         const groups = provider.getChildren();
         const group = groups.find(r => r.kind === 'group' && r.name === groupName)!;
         const categories = provider.getChildren(group);
@@ -24,10 +24,10 @@ describe('McpToolsTreeProvider', () => {
         return provider.getChildren(category);
     }
 
-    /** Navigate: root → group → category → aggregation tool → sub-checks */
-    function getSubChecks(provider: McpToolsTreeProvider, groupName: string, categoryName: string, toolName: string) {
-        const tools = getAggregationTools(provider, groupName, categoryName);
-        const tool = tools.find(r => r.kind === 'aggregationTool' && r.toolName === toolName)!;
+    /** Navigate: root → group → category → MCP tool → features */
+    function getFeatures(provider: McpToolsTreeProvider, groupName: string, categoryName: string, toolName: string) {
+        const tools = getMcpTools(provider, groupName, categoryName);
+        const tool = tools.find(r => r.kind === 'mcpTool' && r.toolName === toolName)!;
         return provider.getChildren(tool);
     }
 
@@ -53,100 +53,100 @@ describe('McpToolsTreeProvider', () => {
         provider.dispose();
     });
 
-    it('should return aggregation tool nodes as children of a category', () => {
+    it('should return MCP tool nodes as children of a category', () => {
         const provider = new McpToolsTreeProvider(fakeDetector);
-        const tools = getAggregationTools(provider, '.NET', 'C#');
+        const tools = getMcpTools(provider, '.NET', 'C#');
 
         expect.soft(tools.length).toBe(1);
-        expect.soft(tools[0].kind).toBe('aggregationTool');
-        expect.soft(tools[0].kind === 'aggregationTool' && tools[0].toolName).toBe('check_csharp_all');
+        expect.soft(tools[0].kind).toBe('mcpTool');
+        expect.soft(tools[0].kind === 'mcpTool' && tools[0].toolName).toBe('check_csharp_all');
 
         provider.dispose();
     });
 
-    it('should return sub-check nodes as children of a parent aggregation tool', () => {
+    it('should return feature nodes as children of a parent MCP tool', () => {
         const provider = new McpToolsTreeProvider(fakeDetector);
-        const subChecks = getSubChecks(provider, '.NET', 'C#', 'check_csharp_all');
+        const features = getFeatures(provider, '.NET', 'C#', 'check_csharp_all');
 
-        expect.soft(subChecks.length).toBeGreaterThan(0);
-        expect.soft(subChecks.every(c => c.kind === 'subCheck')).toBe(true);
+        expect.soft(features.length).toBeGreaterThan(0);
+        expect.soft(features.every(c => c.kind === 'mcpToolFeature')).toBe(true);
 
         provider.dispose();
     });
 
-    it('should return empty array for leaf aggregation tool children', () => {
+    it('should return empty array for leaf MCP tool children', () => {
         const provider = new McpToolsTreeProvider(fakeDetector);
-        const tools = getAggregationTools(provider, 'Workspace', 'EditorConfig');
-        const leaf = tools.find(r => r.kind === 'aggregationTool' && r.toolName === 'get_editorconfig')!;
+        const tools = getMcpTools(provider, 'Workspace', 'EditorConfig');
+        const leaf = tools.find(r => r.kind === 'mcpTool' && r.toolName === 'get_editorconfig')!;
 
         expect.soft(provider.getChildren(leaf)).toEqual([]);
 
         provider.dispose();
     });
 
-    it('should return empty array for sub-check children', () => {
+    it('should return empty array for feature node children', () => {
         const provider = new McpToolsTreeProvider(fakeDetector);
-        const subChecks = getSubChecks(provider, '.NET', 'C#', 'check_csharp_all');
+        const features = getFeatures(provider, '.NET', 'C#', 'check_csharp_all');
 
-        expect.soft(provider.getChildren(subChecks[0])).toEqual([]);
+        expect.soft(provider.getChildren(features[0])).toEqual([]);
 
         provider.dispose();
     });
 
-    it('should mark sub-checks as not-detected when context is missing', () => {
+    it('should mark features as not-detected when context is missing', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(false);
 
         const provider = new McpToolsTreeProvider(fakeDetector);
-        const subChecks = getSubChecks(provider, '.NET', 'C#', 'check_csharp_all');
+        const features = getFeatures(provider, '.NET', 'C#', 'check_csharp_all');
 
-        expect.soft(subChecks.every(c => c.kind === 'subCheck' && c.state === ToolState.NotDetected)).toBe(true);
+        expect.soft(features.every(c => c.kind === 'mcpToolFeature' && c.state === ToolState.NotDetected)).toBe(true);
 
         provider.dispose();
     });
 
-    it('should mark sub-checks as enabled when context is detected and setting is true', () => {
+    it('should mark features as enabled when context is detected and setting is true', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
 
         const provider = new McpToolsTreeProvider(fakeDetector);
-        const subChecks = getSubChecks(provider, '.NET', 'C#', 'check_csharp_all');
+        const features = getFeatures(provider, '.NET', 'C#', 'check_csharp_all');
 
-        expect.soft(subChecks.every(c => c.kind === 'subCheck' && c.state === ToolState.Enabled)).toBe(true);
+        expect.soft(features.every(c => c.kind === 'mcpToolFeature' && c.state === ToolState.Enabled)).toBe(true);
 
         provider.dispose();
     });
 
-    it('should mark sub-checks as disabled when setting is false', () => {
+    it('should mark features as disabled when setting is false', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
         __setConfigStore({ 'sharppilot.tools.check_csharp_async_patterns': false });
 
         const provider = new McpToolsTreeProvider(fakeDetector);
-        const subChecks = getSubChecks(provider, '.NET', 'C#', 'check_csharp_all');
+        const features = getFeatures(provider, '.NET', 'C#', 'check_csharp_all');
 
-        const asyncTool = subChecks.find(c => c.kind === 'subCheck' && c.entry.settingId === 'sharppilot.tools.check_csharp_async_patterns');
-        expect.soft(asyncTool?.kind === 'subCheck' && asyncTool.state).toBe(ToolState.Disabled);
+        const asyncTool = features.find(c => c.kind === 'mcpToolFeature' && c.entry.settingId === 'sharppilot.tools.check_csharp_async_patterns');
+        expect.soft(asyncTool?.kind === 'mcpToolFeature' && asyncTool.state).toBe(ToolState.Disabled);
 
         provider.dispose();
     });
 
-    it('should show checkbox checked for enabled sub-checks', () => {
+    it('should show checkbox checked for enabled features', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
 
         const provider = new McpToolsTreeProvider(fakeDetector);
-        const subChecks = getSubChecks(provider, '.NET', 'C#', 'check_csharp_all');
-        const item = provider.getTreeItem(subChecks[0]);
+        const features = getFeatures(provider, '.NET', 'C#', 'check_csharp_all');
+        const item = provider.getTreeItem(features[0]);
 
         expect.soft(item.checkboxState).toBe(TreeItemCheckboxState.Checked);
 
         provider.dispose();
     });
 
-    it('should show checkbox unchecked for disabled sub-checks', () => {
+    it('should show checkbox unchecked for disabled features', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
         __setConfigStore({ 'sharppilot.tools.check_csharp_async_patterns': false });
 
         const provider = new McpToolsTreeProvider(fakeDetector);
-        const subChecks = getSubChecks(provider, '.NET', 'C#', 'check_csharp_all');
-        const asyncTool = subChecks.find(c => c.kind === 'subCheck' && c.entry.settingId === 'sharppilot.tools.check_csharp_async_patterns')!;
+        const features = getFeatures(provider, '.NET', 'C#', 'check_csharp_all');
+        const asyncTool = features.find(c => c.kind === 'mcpToolFeature' && c.entry.settingId === 'sharppilot.tools.check_csharp_async_patterns')!;
         const item = provider.getTreeItem(asyncTool);
 
         expect.soft(item.checkboxState).toBe(TreeItemCheckboxState.Unchecked);
@@ -154,12 +154,12 @@ describe('McpToolsTreeProvider', () => {
         provider.dispose();
     });
 
-    it('should not show checkbox for not-detected sub-checks', () => {
+    it('should not show checkbox for not-detected features', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(false);
 
         const provider = new McpToolsTreeProvider(fakeDetector);
-        const subChecks = getSubChecks(provider, '.NET', 'C#', 'check_csharp_all');
-        const item = provider.getTreeItem(subChecks[0]);
+        const features = getFeatures(provider, '.NET', 'C#', 'check_csharp_all');
+        const item = provider.getTreeItem(features[0]);
 
         expect.soft(item.checkboxState).toBeUndefined();
         expect.soft(item.description).toBe('not detected');
@@ -192,11 +192,11 @@ describe('McpToolsTreeProvider', () => {
         provider.dispose();
     });
 
-    it('should show aggregation tool checkbox checked when all sub-checks are enabled', () => {
+    it('should show MCP tool checkbox checked when all features are enabled', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
 
         const provider = new McpToolsTreeProvider(fakeDetector);
-        const tools = getAggregationTools(provider, '.NET', 'C#');
+        const tools = getMcpTools(provider, '.NET', 'C#');
         const item = provider.getTreeItem(tools[0]);
 
         expect.soft(item.checkboxState).toBe(TreeItemCheckboxState.Checked);
@@ -204,12 +204,12 @@ describe('McpToolsTreeProvider', () => {
         provider.dispose();
     });
 
-    it('should show aggregation tool checkbox unchecked when any sub-check is disabled', () => {
+    it('should show MCP tool checkbox unchecked when any feature is disabled', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
         __setConfigStore({ 'sharppilot.tools.check_csharp_async_patterns': false });
 
         const provider = new McpToolsTreeProvider(fakeDetector);
-        const tools = getAggregationTools(provider, '.NET', 'C#');
+        const tools = getMcpTools(provider, '.NET', 'C#');
         const item = provider.getTreeItem(tools[0]);
 
         expect.soft(item.checkboxState).toBe(TreeItemCheckboxState.Unchecked);
@@ -217,11 +217,11 @@ describe('McpToolsTreeProvider', () => {
         provider.dispose();
     });
 
-    it('should show aggregation tool checkbox undefined when all sub-checks are not-detected', () => {
+    it('should show MCP tool checkbox undefined when all features are not-detected', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(false);
 
         const provider = new McpToolsTreeProvider(fakeDetector);
-        const tools = getAggregationTools(provider, '.NET', 'C#');
+        const tools = getMcpTools(provider, '.NET', 'C#');
         const item = provider.getTreeItem(tools[0]);
 
         expect.soft(item.checkboxState).toBeUndefined();
@@ -229,33 +229,33 @@ describe('McpToolsTreeProvider', () => {
         provider.dispose();
     });
 
-    it('should show parent aggregation tool as expanded with contextValue', () => {
+    it('should show parent MCP tool as expanded with contextValue', () => {
         const provider = new McpToolsTreeProvider(fakeDetector);
-        const tools = getAggregationTools(provider, '.NET', 'C#');
+        const tools = getMcpTools(provider, '.NET', 'C#');
         const item = provider.getTreeItem(tools[0]);
 
         expect.soft(item.collapsibleState).toBe(TreeItemCollapsibleState.Expanded);
-        expect.soft(item.contextValue).toBe('aggregationTool');
+        expect.soft(item.contextValue).toBe('mcpTool');
 
         provider.dispose();
     });
 
-    it('should show leaf aggregation tool as non-collapsible with contextValue', () => {
+    it('should show leaf MCP tool as non-collapsible with contextValue', () => {
         const provider = new McpToolsTreeProvider(fakeDetector);
-        const tools = getAggregationTools(provider, 'Workspace', 'EditorConfig');
+        const tools = getMcpTools(provider, 'Workspace', 'EditorConfig');
         const item = provider.getTreeItem(tools[0]);
 
         expect.soft(item.collapsibleState).toBe(TreeItemCollapsibleState.None);
-        expect.soft(item.contextValue).toBe('aggregationTool');
+        expect.soft(item.contextValue).toBe('mcpTool');
 
         provider.dispose();
     });
 
-    it('should show leaf aggregation tool checkbox checked when enabled', () => {
+    it('should show leaf MCP tool checkbox checked when enabled', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(false);
 
         const provider = new McpToolsTreeProvider(fakeDetector);
-        const tools = getAggregationTools(provider, 'Workspace', 'EditorConfig');
+        const tools = getMcpTools(provider, 'Workspace', 'EditorConfig');
         const item = provider.getTreeItem(tools[0]);
 
         expect.soft(item.checkboxState).toBe(TreeItemCheckboxState.Checked);
@@ -263,14 +263,14 @@ describe('McpToolsTreeProvider', () => {
         provider.dispose();
     });
 
-    it('should sort enabled before disabled before not-detected in sub-checks', () => {
+    it('should sort enabled before disabled before not-detected in features', () => {
         vi.mocked(fakeDetector.get).mockImplementation((key: string) => key === 'hasCSharp');
         __setConfigStore({ 'sharppilot.tools.check_csharp_async_patterns': false });
 
         const provider = new McpToolsTreeProvider(fakeDetector);
-        const subChecks = getSubChecks(provider, '.NET', 'C#', 'check_csharp_all');
+        const features = getFeatures(provider, '.NET', 'C#', 'check_csharp_all');
 
-        const states = subChecks.map(c => c.kind === 'subCheck' ? c.state : '');
+        const states = features.map(c => c.kind === 'mcpToolFeature' ? c.state : '');
         const enabledIdx = states.indexOf(ToolState.Enabled);
         const disabledIdx = states.indexOf(ToolState.Disabled);
 
@@ -283,7 +283,7 @@ describe('McpToolsTreeProvider', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(false);
 
         const provider = new McpToolsTreeProvider(fakeDetector);
-        const tools = getAggregationTools(provider, 'Workspace', 'EditorConfig');
+        const tools = getMcpTools(provider, 'Workspace', 'EditorConfig');
 
         expect.soft(tools.length).toBe(1);
         const item = provider.getTreeItem(tools[0]);
@@ -319,73 +319,73 @@ describe('McpToolsTreeProvider', () => {
         provider.dispose();
     });
 
-    it('should include state description in tooltip for enabled sub-checks', () => {
+    it('should include state description in tooltip for enabled features', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
 
         const provider = new McpToolsTreeProvider(fakeDetector);
-        const subChecks = getSubChecks(provider, '.NET', 'C#', 'check_csharp_all');
-        const enabledItem = provider.getTreeItem(subChecks[0]);
+        const features = getFeatures(provider, '.NET', 'C#', 'check_csharp_all');
+        const enabledItem = provider.getTreeItem(features[0]);
         expect.soft(enabledItem.tooltip).toContain('Enabled');
 
         provider.dispose();
     });
 
-    it('should include state description in tooltip for disabled sub-checks', () => {
+    it('should include state description in tooltip for disabled features', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
         __setConfigStore({ 'sharppilot.tools.check_csharp_async_patterns': false });
 
         const provider = new McpToolsTreeProvider(fakeDetector);
-        const subChecks = getSubChecks(provider, '.NET', 'C#', 'check_csharp_all');
-        const disabled = subChecks.find(c => c.kind === 'subCheck' && c.state === ToolState.Disabled)!;
+        const features = getFeatures(provider, '.NET', 'C#', 'check_csharp_all');
+        const disabled = features.find(c => c.kind === 'mcpToolFeature' && c.state === ToolState.Disabled)!;
 
         expect.soft(provider.getTreeItem(disabled).tooltip).toContain('Disabled');
 
         provider.dispose();
     });
 
-    it('should include state description in tooltip for not-detected sub-checks', () => {
+    it('should include state description in tooltip for not-detected features', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(false);
 
         const provider = new McpToolsTreeProvider(fakeDetector);
-        const subChecks = getSubChecks(provider, '.NET', 'C#', 'check_csharp_all');
-        const notDetected = subChecks.find(c => c.kind === 'subCheck' && c.state === ToolState.NotDetected)!;
+        const features = getFeatures(provider, '.NET', 'C#', 'check_csharp_all');
+        const notDetected = features.find(c => c.kind === 'mcpToolFeature' && c.state === ToolState.NotDetected)!;
 
         expect.soft(provider.getTreeItem(notDetected).tooltip).toContain('Not detected');
 
         provider.dispose();
     });
 
-    it('should include setting ID in sub-check tooltip', () => {
+    it('should include setting ID in feature tooltip', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
 
         const provider = new McpToolsTreeProvider(fakeDetector);
-        const subChecks = getSubChecks(provider, '.NET', 'C#', 'check_csharp_all');
-        const item = provider.getTreeItem(subChecks[0]);
+        const features = getFeatures(provider, '.NET', 'C#', 'check_csharp_all');
+        const item = provider.getTreeItem(features[0]);
 
         expect.soft(item.tooltip).toContain('sharppilot.tools.');
 
         provider.dispose();
     });
 
-    it('should include sub-check count in parent aggregation tool tooltip', () => {
+    it('should include feature count in parent MCP tool tooltip', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
 
         const provider = new McpToolsTreeProvider(fakeDetector);
-        const tools = getAggregationTools(provider, '.NET', 'C#');
+        const tools = getMcpTools(provider, '.NET', 'C#');
         const item = provider.getTreeItem(tools[0]);
 
         expect.soft(item.tooltip).toContain('check_csharp_all');
-        expect.soft(item.tooltip).toContain('sub-checks enabled');
+        expect.soft(item.tooltip).toContain('features enabled');
 
         provider.dispose();
     });
 
-    it('should update sub-check setting when handleCheckboxChange fires for a sub-check', async () => {
+    it('should update feature setting when handleCheckboxChange fires for a feature', async () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
 
         const provider = new McpToolsTreeProvider(fakeDetector);
-        const subChecks = getSubChecks(provider, '.NET', 'C#', 'check_csharp_all');
-        const asyncTool = subChecks.find(c => c.kind === 'subCheck' && c.entry.settingId === 'sharppilot.tools.check_csharp_async_patterns')!;
+        const features = getFeatures(provider, '.NET', 'C#', 'check_csharp_all');
+        const asyncTool = features.find(c => c.kind === 'mcpToolFeature' && c.entry.settingId === 'sharppilot.tools.check_csharp_async_patterns')!;
 
         const treeView = vi.mocked(window.createTreeView).mock.results.at(-1)!.value;
         const checkboxCallback = vi.mocked(treeView.onDidChangeCheckboxState).mock.calls[0][0] as (e: { items: [typeof asyncTool, TreeItemCheckboxState][] }) => void;
@@ -403,12 +403,12 @@ describe('McpToolsTreeProvider', () => {
         provider.dispose();
     });
 
-    it('should update all detected sub-checks when handleCheckboxChange fires for a parent aggregation tool', async () => {
+    it('should update all detected features when handleCheckboxChange fires for a parent MCP tool', async () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
 
         const provider = new McpToolsTreeProvider(fakeDetector);
-        const tools = getAggregationTools(provider, '.NET', 'C#');
-        const csharpTool = tools.find(r => r.kind === 'aggregationTool' && r.toolName === 'check_csharp_all')!;
+        const tools = getMcpTools(provider, '.NET', 'C#');
+        const csharpTool = tools.find(r => r.kind === 'mcpTool' && r.toolName === 'check_csharp_all')!;
 
         const treeView = vi.mocked(window.createTreeView).mock.results.at(-1)!.value;
         const checkboxCallback = vi.mocked(treeView.onDidChangeCheckboxState).mock.calls[0][0] as (e: { items: [typeof csharpTool, TreeItemCheckboxState][] }) => void;
@@ -419,9 +419,9 @@ describe('McpToolsTreeProvider', () => {
         await Promise.resolve();
 
         const config = vi.mocked(workspace.getConfiguration).mock.results[callsBefore]!.value;
-        const subChecks = getSubChecks(provider, '.NET', 'C#', 'check_csharp_all');
-        for (const sub of subChecks) {
-            if (sub.kind === 'subCheck') {
+        const features = getFeatures(provider, '.NET', 'C#', 'check_csharp_all');
+        for (const sub of features) {
+            if (sub.kind === 'mcpToolFeature') {
                 expect.soft(config.update).toHaveBeenCalledWith(sub.entry.settingId, false, ConfigurationTarget.Global);
             }
         }
@@ -429,15 +429,15 @@ describe('McpToolsTreeProvider', () => {
         provider.dispose();
     });
 
-    it('should skip not-detected sub-checks when aggregation tool bulk toggle fires', async () => {
-        // hasCSharp=true so C# sub-checks are detected; hasTypeScript=false so TypeScript sub-checks are not.
+    it('should skip not-detected features when MCP tool bulk toggle fires', async () => {
+        // hasCSharp=true so C# features are detected; hasTypeScript=false so TypeScript features are not.
         vi.mocked(fakeDetector.get).mockImplementation((key: string) => key === 'hasCSharp');
 
         const provider = new McpToolsTreeProvider(fakeDetector);
-        const tools = getAggregationTools(provider, 'Web', 'TypeScript');
+        const tools = getMcpTools(provider, 'Web', 'TypeScript');
 
-        // TypeScript aggregation tool: all sub-checks are not-detected (hasTypeScript=false)
-        const tsTool = tools.find(r => r.kind === 'aggregationTool' && r.toolName === 'check_typescript_all')!;
+        // TypeScript MCP tool: all features are not-detected (hasTypeScript=false)
+        const tsTool = tools.find(r => r.kind === 'mcpTool' && r.toolName === 'check_typescript_all')!;
 
         const treeView = vi.mocked(window.createTreeView).mock.results.at(-1)!.value;
         const checkboxCallback = vi.mocked(treeView.onDidChangeCheckboxState).mock.calls[0][0] as (e: { items: [typeof tsTool, TreeItemCheckboxState][] }) => void;
@@ -448,10 +448,10 @@ describe('McpToolsTreeProvider', () => {
 
         const config = vi.mocked(workspace.getConfiguration).mock.results[callsBefore]!.value;
 
-        // No TypeScript sub-checks should have been updated since they are all not-detected
-        const subChecks = provider.getChildren(tsTool);
-        for (const sub of subChecks) {
-            if (sub.kind === 'subCheck') {
+        // No TypeScript features should have been updated since they are all not-detected
+        const features = provider.getChildren(tsTool);
+        for (const sub of features) {
+            if (sub.kind === 'mcpToolFeature') {
                 expect.soft(config.update).not.toHaveBeenCalledWith(sub.entry.settingId, expect.anything(), expect.anything());
             }
         }
@@ -459,12 +459,12 @@ describe('McpToolsTreeProvider', () => {
         provider.dispose();
     });
 
-    it('should update leaf aggregation tool setting when handleCheckboxChange fires', async () => {
+    it('should update leaf MCP tool setting when handleCheckboxChange fires', async () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
 
         const provider = new McpToolsTreeProvider(fakeDetector);
-        const tools = getAggregationTools(provider, 'Workspace', 'EditorConfig');
-        const editorConfigTool = tools.find(r => r.kind === 'aggregationTool' && r.toolName === 'get_editorconfig')!;
+        const tools = getMcpTools(provider, 'Workspace', 'EditorConfig');
+        const editorConfigTool = tools.find(r => r.kind === 'mcpTool' && r.toolName === 'get_editorconfig')!;
 
         const treeView = vi.mocked(window.createTreeView).mock.results.at(-1)!.value;
         const checkboxCallback = vi.mocked(treeView.onDidChangeCheckboxState).mock.calls[0][0] as (e: { items: [typeof editorConfigTool, TreeItemCheckboxState][] }) => void;

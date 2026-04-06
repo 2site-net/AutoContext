@@ -13,7 +13,7 @@ Tools are organized into server categories, each activated by workspace context:
 | **EditorConfig** | Always active |
 | **TypeScript** | `.ts` files detected |
 
-A server category is filtered out entirely if its workspace context is not present or all its tools are disabled. The EditorConfig category is an exception — it is always active regardless of workspace content. Each category exposes one or more tools containing individually toggleable sub-checks.
+A server category is filtered out entirely if its workspace context is not present or all its tools are disabled. The EditorConfig category is an exception — it is always active regardless of workspace content. Each category exposes one or more MCP tools containing individually toggleable features.
 
 ### How it works
 
@@ -21,6 +21,6 @@ Enabled tool settings are written to a `.sharppilot.json` file that the .NET MCP
 
 ### Toggle tools
 
-Use the SharpPilot sidebar to enable or disable individual tools. Tools are organized under platform, category, and aggregation-tool headers — checking an aggregation tool toggles all its sub-checks at once. Use the `…` menu on the panel header to show or hide items that are not detected in your workspace.
+Use the SharpPilot sidebar to enable or disable individual tools. Tools are organized under platform, category, and tool headers — checking an MCP tool toggles all its features at once. Use the `…` menu on the panel header to show or hide items that are not detected in your workspace.
 
 [Open Tools Panel](command:sharppilot.toolsView.focus)

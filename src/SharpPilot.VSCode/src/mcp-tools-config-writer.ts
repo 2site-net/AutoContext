@@ -11,7 +11,7 @@ export class McpToolsConfigWriter {
 
         for (const tool of McpToolsRegistry.all) {
             if (config.get<boolean>(tool.settingId, true) === false) {
-                disabledTools.push(tool.toolName);
+                disabledTools.push(tool.featureName ?? tool.toolName);
             }
         }
 

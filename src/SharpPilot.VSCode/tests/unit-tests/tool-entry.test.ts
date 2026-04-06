@@ -9,7 +9,7 @@ describe('tools catalog', () => {
     });
 
     it('should have unique tool names', () => {
-        const names = McpToolsRegistry.all.map(t => t.toolName);
+        const names = McpToolsRegistry.all.map(t => t.featureName ?? t.toolName);
 
         expect.soft(new Set(names).size).toBe(names.length);
     });

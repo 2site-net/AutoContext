@@ -7,7 +7,7 @@ SharpPilot is a quality assurance extension for Visual Studio Code that leverage
 ## Features
 
 - **Chat Instructions** — Curated Markdown guidelines covering .NET, C#, F#, VB.NET, TypeScript, JavaScript, React, Angular, Vue, Svelte, Next.js, Node.js, Docker, Git, REST APIs, GraphQL, SQL, PowerShell, Bash, and more. Instructions are workspace-aware — only the ones relevant to your project are injected into Copilot's context.
-- **MCP Tool Checks** — Quality checks that Copilot can invoke in Agent mode. Categories include DotNet (C# style, naming, async patterns, NuGet hygiene, …), Git (commit format and content), EditorConfig (property resolution), and TypeScript (coding style). Each sub-check can be toggled individually.
+- **MCP Tool Checks** — Quality checks that Copilot can invoke in Agent mode. Categories include DotNet (C# style, naming, async patterns, NuGet hygiene, …), Git (commit format and content), EditorConfig (property resolution), and TypeScript (coding style). Each feature can be toggled individually.
 - **EditorConfig-Driven Enforcement** — Checkers read `.editorconfig` properties and enforce whichever direction the project specifies rather than just skipping conflicting rules.
 - **Workspace Detection** — Scans for project files, dependencies, and directory markers to automatically determine which servers, tools, and instructions are relevant.
 - **Auto Configuration** — One command scans the workspace and enables only the instructions and tools that match the detected technologies.
@@ -17,7 +17,7 @@ SharpPilot is a quality assurance extension for Visual Studio Code that leverage
 
 ## MCP Tools
 
-Once installed, the following aggregation tools are available to GitHub Copilot in Agent mode. Ask Copilot to check your code or commits and it will invoke the relevant tool.
+Once installed, the following MCP tools are available to GitHub Copilot in Agent mode. Ask Copilot to check your code or commits and it will invoke the relevant tool.
 
 | Category | Tool | Purpose |
 |----------|------|---------|
@@ -27,14 +27,14 @@ Once installed, the following aggregation tools are available to GitHub Copilot 
 | EditorConfig | `get_editorconfig` | Resolve effective `.editorconfig` properties for a file |
 | TypeScript | `check_typescript_all` | Composite TypeScript quality check |
 
-Each aggregation tool bundles multiple sub-checks that can be toggled individually under **Settings → SharpPilot → Tools**, or from the **MCP Tools** panel in the SharpPilot sidebar. If all sub-checks for a category are disabled, that server is not registered at all.
+Each MCP tool bundles multiple features that can be toggled individually under **Settings → SharpPilot → Tools**, or from the **MCP Tools** panel in the SharpPilot sidebar. If all features for a category are disabled, that server is not registered at all.
 
 ## Sidebar Panels
 
 SharpPilot adds a dedicated activity bar icon with two tree views:
 
 - **Instructions** — Grouped by category (General, Languages, .NET, Web, Tools). Click an instruction to open it in a virtual document with per-rule CodeLens. Enable or disable instructions from the inline actions. Enter export mode from the panel header to batch-export checked instructions to `.github/instructions/`.
-- **MCP Tools** — Grouped by platform (.NET, Web, Workspace), category (C#, NuGet, TypeScript, Git, EditorConfig), and aggregation tool. Check or uncheck an aggregation tool to toggle all its sub-checks at once. Individual sub-checks can also be toggled.
+- **MCP Tools** — Grouped by platform (.NET, Web, Workspace), category (C#, NuGet, TypeScript, Git, EditorConfig), and tool. Check or uncheck an MCP tool to toggle all its features at once. Individual features can also be toggled.
 
 Both panels show an **enabled / total** count in the header and offer a **Show Not Detected** / **Hide Not Detected** filter in the `…` overflow menu.
 

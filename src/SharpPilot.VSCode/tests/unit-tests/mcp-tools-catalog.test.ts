@@ -3,9 +3,9 @@ import { McpToolsCatalog } from '../../src/mcp-tools-catalog';
 import type { McpToolEntry } from '../../src/mcp-tool-entry';
 
 const testEntries: readonly McpToolEntry[] = [
-    { settingId: 'tools.alpha', toolName: 'alpha', aggregationTool: 'alpha', label: 'Alpha', category: 'C#', group: '.NET' },
-    { settingId: 'tools.beta', toolName: 'beta', aggregationTool: 'beta', label: 'Beta', category: 'NuGet', group: '.NET' },
-    { settingId: 'tools.gamma', toolName: 'gamma', aggregationTool: 'gamma', label: 'Gamma', category: 'Git', group: 'Workspace' },
+    { settingId: 'tools.alpha', toolName: 'alpha', label: 'Alpha', category: 'C#', group: '.NET' },
+    { settingId: 'tools.beta', toolName: 'beta', label: 'Beta', category: 'NuGet', group: '.NET' },
+    { settingId: 'tools.gamma', toolName: 'gamma', label: 'Gamma', category: 'Git', group: 'Workspace' },
 ];
 
 describe('McpToolsCatalog', () => {

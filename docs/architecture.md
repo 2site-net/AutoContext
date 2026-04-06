@@ -68,12 +68,12 @@ When the extension activates, the following steps execute synchronously:
 
 When Copilot invokes an MCP tool (e.g., `check_csharp_all`):
 
-1. The aggregation checker builds a list of its sub-checks — each entry includes the tool name and, for checkers that implement `IEditorConfigFilter`, the EditorConfig keys it consumes.
-2. It sends a single `mcp-tools` request over the named pipe to `SharpPilot.WorkspaceServer`, which reads `.sharppilot.json` for tool status, resolves `.editorconfig` properties, and returns a per-tool decision:
-   - **`run`** — tool is enabled; includes resolved EditorConfig data.
-   - **`editorconfig-only`** — tool is disabled but has EditorConfig keys; run in restricted mode that enforces only EditorConfig-backed rules and skips instruction-only (INST) checks. This lets project-level `.editorconfig` settings remain enforced even after a team opts out of the instruction.
-   - **`skip`** — tool is disabled and has no EditorConfig keys; skip entirely.
-3. The aggregation checker loops over sub-checks and acts on the mode. Enabled checkers use the merged EditorConfig values to **drive** their enforcement direction — not just to skip conflicting checks.
+1. The MCP tool builds a list of its features — each entry includes the feature name and, for checkers that implement `IEditorConfigFilter`, the EditorConfig keys it consumes.
+2. It sends a single `mcp-tools` request over the named pipe to `SharpPilot.WorkspaceServer`, which reads `.sharppilot.json` for tool status, resolves `.editorconfig` properties, and returns a per-feature decision:
+   - **`run`** — feature is enabled; includes resolved EditorConfig data.
+   - **`editorconfig-only`** — feature is disabled but has EditorConfig keys; run in restricted mode that enforces only EditorConfig-backed rules and skips instruction-only (INST) checks. This lets project-level `.editorconfig` settings remain enforced even after a team opts out of the instruction.
+   - **`skip`** — feature is disabled and has no EditorConfig keys; skip entirely.
+3. The MCP tool loops over features and acts on the mode. Enabled features use the merged EditorConfig values to **drive** their enforcement direction — not just to skip conflicting checks.
 4. The checker returns a report (✅ pass or ❌ violations found).
 
 MCP servers never read `.sharppilot.json` directly — all tool orchestration decisions are centralized in WorkspaceServer so the config format and decision logic can evolve in one place.
@@ -142,7 +142,7 @@ On activation (and on configuration or window-focus changes), `InstructionsConfi
 
 ## MCP and Tools
 
-SharpPilot registers four MCP server categories — DotNet, Git, EditorConfig, and TypeScript — each identified by a `--scope` argument so they appear as separate sections in the tools UI. Categories are defined in `mcp-servers-registry.ts` and `mcp-tools-registry.ts`. Servers are workspace-aware (see [Activation Flow](#activation-flow) steps 3 and 5) and most tools are aggregation tools that loop over individually-toggleable sub-checks (see [Runtime Flow](#runtime-flow)).
+SharpPilot registers four MCP server categories — DotNet, Git, EditorConfig, and TypeScript — each identified by a `--scope` argument so they appear as separate sections in the tools UI. Categories are defined in `mcp-servers-registry.ts` and `mcp-tools-registry.ts`. Servers are workspace-aware (see [Activation Flow](#activation-flow) steps 3 and 5) and most MCP tools loop over individually-toggleable features (see [Runtime Flow](#runtime-flow)).
 
 ### Projects
 
@@ -152,7 +152,7 @@ A shared class library and three executables make up the server side:
 - **`SharpPilot.Mcp.DotNet`** — .NET-based MCP server. Handles the DotNet scope. C# checkers resolve `.editorconfig` properties via the workspace server and use them to drive enforcement direction (e.g., brace style, namespace style).
 - **`SharpPilot.Mcp.Web`** — Node.js-based MCP server. Handles the TypeScript scope.
 - **`SharpPilot.WorkspaceServer`** — Handles cross-cutting workspace tasks and hosts technology-agnostic MCP tools. Multi-mode .NET executable:
-  - **MCP mode — EditorConfig** (`--scope editorconfig`): Runs as an MCP stdio server exposing a single tool, `get_editorconfig`, which resolves the effective `.editorconfig` properties for a given file path by walking the directory tree, evaluating glob patterns and section cascading, and returning the final key-value pairs. This tool is standalone — not an aggregation.
+  - **MCP mode — EditorConfig** (`--scope editorconfig`): Runs as an MCP stdio server exposing a single tool, `get_editorconfig`, which resolves the effective `.editorconfig` properties for a given file path by walking the directory tree, evaluating glob patterns and section cascading, and returning the final key-value pairs. This tool is standalone — it has no features.
   - **MCP mode — Git** (`--scope git`): Runs as an MCP stdio server exposing Git quality checks (commit format, commit content). Like the DotNet scope, checkers resolve `.editorconfig` properties via the workspace server.
   - **Named-pipe mode** (`--pipe <name>`): Runs as a long-lived background service started once by `WorkspaceServerManager`. Handles `"editorconfig"` requests (property resolution) and `"mcp-tools"` requests (tool orchestration — enable/disable decisions + EditorConfig data). All other MCP servers connect to this service via `--workspace-server <pipeName>`.
 
