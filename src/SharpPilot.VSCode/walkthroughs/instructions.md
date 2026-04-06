@@ -14,9 +14,9 @@ When enabled, instructions are automatically attached to every Copilot Chat conv
 
 ### Toggle instructions
 
-Open the multi-select menu to control which instruction sets are active. Instructions are grouped by category — toggling a category header selects or deselects all items in that group. Use **Select All** or **Clear All** for bulk changes.
+Use the SharpPilot sidebar to control which instruction sets are active. Instructions are grouped by category — checking or unchecking a category selects or deselects all items in that group. Use the eye icon on the panel header to show or hide items that are not detected in your workspace.
 
-[Toggle Instructions](command:sharppilot.toggleInstructions)
+[Open Instructions Panel](command:sharppilot.instructionsView.focus)
 
 ### Exported instructions
 

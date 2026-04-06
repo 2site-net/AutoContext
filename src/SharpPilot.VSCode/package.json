@@ -61,16 +61,6 @@
     },
     "commands": [
       {
-        "command": "sharppilot.toggleTools",
-        "title": "Toggle Tools",
-        "category": "SharpPilot"
-      },
-      {
-        "command": "sharppilot.toggleInstructions",
-        "title": "Toggle Instructions",
-        "category": "SharpPilot"
-      },
-      {
         "command": "sharppilot.exportInstructions",
         "title": "Export Instructions",
         "category": "SharpPilot"
@@ -565,23 +555,23 @@
           {
             "id": "sharppilot.instructions",
             "title": "Chat Instructions",
-            "description": "Enable instruction sets that guide Copilot's responses for your tech stack.\n[Toggle Instructions](command:sharppilot.toggleInstructions)",
+            "description": "Enable instruction sets that guide Copilot's responses for your tech stack.\n[Open Instructions Panel](command:sharppilot.instructionsView.focus)",
             "media": {
               "markdown": "walkthroughs/instructions.md"
             },
             "completionEvents": [
-              "onCommand:sharppilot.toggleInstructions"
+              "onView:sharppilot.instructionsView"
             ]
           },
           {
             "id": "sharppilot.tools",
             "title": "MCP Tools",
-            "description": "Enable quality-assurance tools that Copilot can call in agent mode.\n[Toggle Tools](command:sharppilot.toggleTools)",
+            "description": "Enable quality-assurance tools that Copilot can call in agent mode.\n[Open Tools Panel](command:sharppilot.toolsView.focus)",
             "media": {
               "markdown": "walkthroughs/tools.md"
             },
             "completionEvents": [
-              "onCommand:sharppilot.toggleTools"
+              "onView:sharppilot.toolsView"
             ]
           },
           {

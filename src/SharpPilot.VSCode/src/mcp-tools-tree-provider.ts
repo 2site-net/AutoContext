@@ -46,16 +46,17 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
     private readonly _onDidChangeTreeData = new vscode.EventEmitter<TreeElement | undefined>();
     readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
     private _showNotDetected = true;
+    private readonly treeView: vscode.TreeView<TreeElement>;
     private readonly disposables: vscode.Disposable[] = [];
 
     constructor(private readonly detector: WorkspaceContextDetector) {
-        const treeView = vscode.window.createTreeView(McpToolsTreeProvider.viewId, {
+        this.treeView = vscode.window.createTreeView(McpToolsTreeProvider.viewId, {
             treeDataProvider: this,
             manageCheckboxStateManually: true,
         });
 
         this.disposables.push(
-            treeView,
+            this.treeView,
             this._onDidChangeTreeData,
             detector.onDidDetect(() => this.refresh()),
             vscode.workspace.onDidChangeConfiguration(e => {
@@ -63,14 +64,21 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
                     this.refresh();
                 }
             }),
-            treeView.onDidChangeCheckboxState(e => {
+            this.treeView.onDidChangeCheckboxState(e => {
                 void this.handleCheckboxChange(e.items);
             }),
         );
     }
 
     refresh(): void {
+        this.updateDescription();
         this._onDidChangeTreeData.fire(undefined);
+    }
+
+    private updateDescription(): void {
+        const config = vscode.workspace.getConfiguration();
+        const enabled = McpToolsRegistry.all.filter(e => config.get<boolean>(e.settingId, true)).length;
+        this.treeView.description = `${enabled}/${McpToolsRegistry.count}`;
     }
 
     getTreeItem(element: TreeElement): vscode.TreeItem {

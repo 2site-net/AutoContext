@@ -22,8 +22,6 @@ suite('Extension Smoke Tests', () => {
 
         const allCommands = await vscode.commands.getCommands(true);
         const expected = [
-            'sharppilot.toggleInstructions',
-            'sharppilot.toggleTools',
             'sharppilot.autoConfigure',
             'sharppilot.exportInstructions',
             'sharppilot.browseInstructions',

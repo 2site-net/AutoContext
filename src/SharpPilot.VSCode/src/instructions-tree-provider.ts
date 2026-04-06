@@ -54,15 +54,16 @@ export class InstructionsTreeProvider implements vscode.TreeDataProvider<TreeEle
     private _exportMode = false;
     private _showNotDetected = true;
     private readonly _checkedEntries = new Set<string>();
+    private readonly treeView: vscode.TreeView<TreeElement>;
     private readonly disposables: vscode.Disposable[] = [];
 
     constructor(private readonly detector: WorkspaceContextDetector) {
-        const treeView = vscode.window.createTreeView(InstructionsTreeProvider.viewId, {
+        this.treeView = vscode.window.createTreeView(InstructionsTreeProvider.viewId, {
             treeDataProvider: this,
         });
 
         this.disposables.push(
-            treeView,
+            this.treeView,
             this._onDidChangeTreeData,
             detector.onDidDetect(() => this.refresh()),
             vscode.workspace.onDidChangeConfiguration(e => {
@@ -70,7 +71,7 @@ export class InstructionsTreeProvider implements vscode.TreeDataProvider<TreeEle
                     this.refresh();
                 }
             }),
-            treeView.onDidChangeCheckboxState(e => {
+            this.treeView.onDidChangeCheckboxState(e => {
                 for (const [item, state] of e.items) {
                     if (item.kind === 'instruction') {
                         if (state === vscode.TreeItemCheckboxState.Checked) {
@@ -85,7 +86,14 @@ export class InstructionsTreeProvider implements vscode.TreeDataProvider<TreeEle
     }
 
     refresh(): void {
+        this.updateDescription();
         this._onDidChangeTreeData.fire(undefined);
+    }
+
+    private updateDescription(): void {
+        const config = vscode.workspace.getConfiguration();
+        const enabled = InstructionsRegistry.all.filter(e => config.get<boolean>(e.settingId, true)).length;
+        this.treeView.description = `${enabled}/${InstructionsRegistry.count}`;
     }
 
     getTreeItem(element: TreeElement): vscode.TreeItem {
