@@ -113,6 +113,7 @@ export class InstructionsTreeProvider implements vscode.TreeDataProvider<TreeEle
     }
 
     set showNotDetected(value: boolean) {
+        if (this._showNotDetected === value) { return; }
         this._showNotDetected = value;
         this.refresh();
     }

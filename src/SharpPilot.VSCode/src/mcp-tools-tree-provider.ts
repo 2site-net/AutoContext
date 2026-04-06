@@ -106,6 +106,7 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
     }
 
     set showNotDetected(value: boolean) {
+        if (this._showNotDetected === value) { return; }
         this._showNotDetected = value;
         this.refresh();
     }
