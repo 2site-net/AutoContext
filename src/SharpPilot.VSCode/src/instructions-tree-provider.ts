@@ -62,6 +62,8 @@ export class InstructionsTreeProvider implements vscode.TreeDataProvider<TreeEle
             treeDataProvider: this,
         });
 
+        this.updateDescription();
+
         this.disposables.push(
             this.treeView,
             this._onDidChangeTreeData,

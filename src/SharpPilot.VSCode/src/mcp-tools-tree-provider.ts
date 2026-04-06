@@ -55,6 +55,8 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
             manageCheckboxStateManually: true,
         });
 
+        this.updateDescription();
+
         this.disposables.push(
             this.treeView,
             this._onDidChangeTreeData,

@@ -514,4 +514,87 @@ describe('InstructionsTreeProvider', () => {
 
         provider.dispose();
     });
+
+    it('should set contextValue to instruction.overridden for overridden items', () => {
+        vi.mocked(fakeDetector.get).mockReturnValue(true);
+        vi.mocked(fakeDetector.getOverriddenSettingIds).mockReturnValue(new Set(['sharppilot.instructions.lang.csharp']));
+
+        const provider = new InstructionsTreeProvider(fakeDetector);
+        const roots = provider.getChildren();
+        const languages = roots.find(r => r.kind === 'category' && r.name === 'Languages')!;
+        const children = provider.getChildren(languages);
+        const overridden = children.find(c => c.kind === 'instruction' && c.entry.settingId === 'sharppilot.instructions.lang.csharp')!;
+
+        const treeItem = provider.getTreeItem(overridden);
+        expect.soft(treeItem.contextValue).toBe('instruction.overridden');
+
+        provider.dispose();
+    });
+
+    it('should include state description in tooltip for active state', () => {
+        vi.mocked(fakeDetector.get).mockReturnValue(true);
+
+        const provider = new InstructionsTreeProvider(fakeDetector);
+        const roots = provider.getChildren();
+
+        const general = roots.find(r => r.kind === 'category' && r.name === 'General')!;
+        const activeNode = provider.getChildren(general).find(c => c.kind === 'instruction' && c.state === InstructionState.Active)!;
+        expect.soft(provider.getTreeItem(activeNode).tooltip).toContain('Active');
+
+        provider.dispose();
+    });
+
+    it('should include state description in tooltip for not-detected state', () => {
+        vi.mocked(fakeDetector.get).mockReturnValue(false);
+
+        const provider = new InstructionsTreeProvider(fakeDetector);
+        const roots = provider.getChildren();
+        const languages = roots.find(r => r.kind === 'category' && r.name === 'Languages')!;
+        const notDetectedNode = provider.getChildren(languages).find(c => c.kind === 'instruction' && c.state === InstructionState.NotDetected)!;
+        expect.soft(provider.getTreeItem(notDetectedNode).tooltip).toContain('Not detected');
+
+        provider.dispose();
+    });
+
+    it('should include state description in tooltip for disabled state', () => {
+        vi.mocked(fakeDetector.get).mockImplementation((key: string) => key === 'hasCSharp');
+        __setConfigStore({ 'sharppilot.instructions.lang.csharp': false });
+
+        const provider = new InstructionsTreeProvider(fakeDetector);
+        const roots = provider.getChildren();
+        const languages = roots.find(r => r.kind === 'category' && r.name === 'Languages')!;
+        const disabled = provider.getChildren(languages).find(c => c.kind === 'instruction' && c.state === InstructionState.Disabled)!;
+
+        expect.soft(provider.getTreeItem(disabled).tooltip).toContain('Disabled');
+
+        provider.dispose();
+    });
+
+    it('should include state description in tooltip for overridden state', () => {
+        vi.mocked(fakeDetector.get).mockReturnValue(true);
+        vi.mocked(fakeDetector.getOverriddenSettingIds).mockReturnValue(new Set(['sharppilot.instructions.lang.csharp']));
+
+        const provider = new InstructionsTreeProvider(fakeDetector);
+        const roots = provider.getChildren();
+        const languages = roots.find(r => r.kind === 'category' && r.name === 'Languages')!;
+        const overridden = provider.getChildren(languages).find(c => c.kind === 'instruction' && c.state === InstructionState.Overridden)!;
+
+        expect.soft(provider.getTreeItem(overridden).tooltip).toContain('Overridden');
+
+        provider.dispose();
+    });
+
+    it('should set treeView description to enabled/total count', () => {
+        vi.mocked(fakeDetector.get).mockReturnValue(true);
+        __setConfigStore({ 'sharppilot.instructions.lang.csharp': false });
+
+        const provider = new InstructionsTreeProvider(fakeDetector);
+        const treeView = vi.mocked(window.createTreeView).mock.results.at(-1)!.value;
+        const total = InstructionsRegistry.count;
+        const enabled = InstructionsRegistry.all.filter(e => e.settingId !== 'sharppilot.instructions.lang.csharp').length;
+
+        expect.soft(treeView.description).toBe(`${enabled}/${total}`);
+
+        provider.dispose();
+    });
 });

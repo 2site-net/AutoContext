@@ -30,6 +30,8 @@ suite('Extension Smoke Tests', () => {
             'sharppilot.enterExportMode',
             'sharppilot.confirmExport',
             'sharppilot.cancelExport',
+            'sharppilot.showNotDetected',
+            'sharppilot.hideNotDetected',
         ];
         const missing = expected.filter(cmd => !allCommands.includes(cmd));
 

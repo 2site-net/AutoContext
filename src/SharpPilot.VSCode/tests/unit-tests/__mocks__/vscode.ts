@@ -49,6 +49,7 @@ export const window = {
     onDidChangeActiveTextEditor: vi.fn(() => ({ dispose: vi.fn() })),
     registerTreeDataProvider: vi.fn(() => ({ dispose: vi.fn() })),
     createTreeView: vi.fn(() => ({
+        description: undefined as string | undefined,
         onDidChangeCheckboxState: vi.fn(() => ({ dispose: vi.fn() })),
         dispose: vi.fn(),
     })),
