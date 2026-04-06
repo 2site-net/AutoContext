@@ -14,9 +14,9 @@ The workspace detector looks for files, project contents, and dependencies to bu
 
 For each instruction and tool, auto-configure checks whether any of its context keys match the workspace profile. Items with matching context are enabled; items without matching context are disabled. Items with no context keys (like general instructions) are always enabled.
 
-### Status bar
+### Sidebar panels
 
-The status bar shows the current counts at a glance. Click it to open a menu where you can toggle instructions, toggle tools, or run auto-configure.
+The Instructions and MCP Tools panels in the SharpPilot activity bar show the enabled/total count in each panel header, so you can see the result at a glance.
 
 ### Run auto configure
 
@@ -24,4 +24,4 @@ Open a workspace with your project, then run:
 
 [Auto Configure](command:sharppilot.autoConfigure)
 
-You can always fine-tune the result afterwards using the toggle commands.
+You can always fine-tune the result afterwards from the sidebar panels.

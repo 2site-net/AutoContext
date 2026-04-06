@@ -4,20 +4,20 @@ SharpPilot ships with curated instruction files organized into categories:
 
 | Category | Coverage |
 |----------|----------|
-| **General** | Cross-cutting guidelines — code review, design principles, Docker, SQL, and more |
-| **.NET** | C#, F#, VB.NET, ASP.NET Core, EF Core, testing frameworks, database drivers, and more |
-| **Git** | Commit format |
-| **Scripting** | PowerShell, Bash, Batch |
-| **Web** | TypeScript, JavaScript, React, Angular, Vue, Svelte, Next.js, Node.js, testing frameworks, and more |
+| **General** | Cross-cutting guidelines — code review, design principles, REST API design, testing |
+| **Languages** | C#, C++, F#, VB.NET, TypeScript, JavaScript, Python, Go, Rust, Java, PowerShell, Bash, SQL, and more |
+| **.NET** | ASP.NET Core, Blazor, EF Core, WPF, xUnit, NUnit, NuGet, database drivers, and more |
+| **Web** | Angular, React, Vue, Svelte, Next.js, Node.js, Jest, Vitest, Cypress, Playwright, and more |
+| **Tools** | Git commit format, Docker |
 
 When enabled, instructions are automatically attached to every Copilot Chat conversation — so Copilot follows your coding standards without being told each time. Each instruction only activates when the matching technology is detected in your workspace (e.g., `.csproj` for C#, `react` in `package.json` for React, `.git` for commit format).
 
 ### Toggle instructions
 
-Use the SharpPilot sidebar to control which instruction sets are active. Instructions are grouped by category — checking or unchecking a category selects or deselects all items in that group. Use the eye icon on the panel header to show or hide items that are not detected in your workspace.
+Use the SharpPilot sidebar to control which instruction sets are active. Instructions are grouped by category — use the inline actions on each item to enable or disable it. Use the `…` menu on the panel header to show or hide items that are not detected in your workspace.
 
 [Open Instructions Panel](command:sharppilot.instructionsView.focus)
 
 ### Exported instructions
 
-If you have instruction files in `.github/instructions/` that match a built-in instruction by filename, those instructions are automatically hidden from the panel. The exported workspace-level file takes precedence. Delete the exported file to bring the built-in instruction back.
+If you have instruction files in `.github/instructions/` that match a built-in instruction by filename, those instructions appear as **overridden** in the panel with a distinct icon. Clicking an overridden item opens the workspace-level file for editing. Use the **Show Original** action to view the built-in version, or **Delete Override** to remove the workspace file and revert to the built-in version.

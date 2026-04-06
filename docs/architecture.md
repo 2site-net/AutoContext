@@ -110,21 +110,21 @@ Checkers with EditorConfig backing today:
 
 ## Instructions
 
-SharpPilot ships curated Markdown instruction files organized into categories — .NET, Web, Scripting, Git, and General. The full list is defined in `instructions-registry.ts`. One always-on file (`copilot.instructions.md`) provides cross-cutting rules; the rest are toggleable.
+SharpPilot ships curated Markdown instruction files organized into categories — General, Languages, .NET, Web, and Tools. The full list is defined in `instructions-registry.ts`. One always-on file (`copilot.instructions.md`) provides cross-cutting rules; the rest are toggleable.
 
 Instructions are **workspace-aware** — they are only injected into Copilot's context when the workspace contains their technology (e.g., .NET instructions require a `.csproj` or `.sln` file). The always-on `copilot.instructions.md` is the only file that is attached unconditionally.
 
 ### Toggling
 
-A multi-select QuickPick menu (`Toggle Instructions`) groups instructions by category and supports category-level toggling, Select All, and Clear All. Toggling an instruction off sets its VS Code setting (e.g., `sharppilot.instructions.dotnet.csharp`) to `false`, and the activation flow excludes it from the normalized output.
+The **Instructions** sidebar panel groups instructions by category and lets you enable or disable each one via inline actions. Toggling an instruction off sets its VS Code setting (e.g., `sharppilot.instructions.dotnet.csharp`) to `false`, and the activation flow excludes it from the normalized output.
 
 ### Per-Instruction Disable
 
-Each instruction file can contain dozens of individual rules. The `Browse Instructions` command opens a file in a virtual document where every rule is visible. CodeLens actions on each rule let you disable or re-enable it without turning off the entire file. Disabled rules are dimmed, tagged `[DISABLED]`, and written to `.sharppilot.json`. The normalization step strips them from Copilot's context entirely.
+Each instruction file can contain dozens of individual rules. Click an instruction in the sidebar panel to open it in a virtual document where every rule is visible. CodeLens actions on each rule let you disable or re-enable it without turning off the entire file. Disabled rules are dimmed, tagged `[DISABLED]`, and written to `.sharppilot.json`. The normalization step strips them from Copilot's context entirely.
 
 ### Export
 
-The `Export Instructions` command copies instruction files to `.github/instructions/` for team sharing via source control. Exported files are automatically removed from the Toggle, Browse, and Export menus — they reappear if the exported file is deleted.
+Enter export mode from the Instructions panel header icon, check the instructions you want to export, and confirm. Files are copied to `.github/instructions/` for team sharing via source control. Exported instructions appear as **overridden** in the panel — the workspace-level file takes precedence over the built-in version. Delete the exported file to revert to the built-in version.
 
 ### Normalization Pipeline
 

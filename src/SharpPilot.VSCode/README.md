@@ -11,10 +11,9 @@ SharpPilot is a quality assurance extension for Visual Studio Code that leverage
 - **EditorConfig-Driven Enforcement** — Checkers read `.editorconfig` properties and enforce whichever direction the project specifies rather than just skipping conflicting rules.
 - **Workspace Detection** — Scans for project files, dependencies, and directory markers to automatically determine which servers, tools, and instructions are relevant.
 - **Auto Configuration** — One command scans the workspace and enables only the instructions and tools that match the detected technologies.
-- **Toggle Menus** — Multi-select QuickPick menus for instructions and tools with category grouping, category-level toggling, and Select All / Clear All buttons.
-- **Per-Instruction Disable** — Browse any instruction file in a virtual document, then use CodeLens actions to disable or re-enable individual rules without turning off the entire file.
-- **Export** — Copy instruction files to `.github/instructions/` for team sharing. Exported instructions are automatically hidden from the extension menus — delete the exported file to bring them back.
-- **Status Bar** — A persistent indicator showing active instruction and tool counts with a quick-access menu for toggling and auto-configuration.
+- **Sidebar Panels** — A dedicated SharpPilot activity bar with two tree views: **Instructions** (grouped by category) and **MCP Tools** (grouped by group and category). Each panel header shows the enabled/total count, and the `…` menu includes a filter to show or hide items not detected in the workspace.
+- **Per-Instruction Disable** — Click any instruction in the sidebar to open it in a virtual document, then use CodeLens actions to disable or re-enable individual rules without turning off the entire file.
+- **Export** — Enter export mode from the Instructions panel header, check the instructions you want to export, and confirm. Files are copied to `.github/instructions/` for team sharing. Exported instructions appear as **overridden** in the panel — the workspace-level file takes precedence. Delete the exported file to revert to the built-in version.
 
 ## MCP Tools
 
@@ -28,13 +27,22 @@ Once installed, the following aggregation tools are available to GitHub Copilot 
 | EditorConfig | `get_editorconfig` | Resolve effective `.editorconfig` properties for a file |
 | TypeScript | `check_typescript_all` | Composite TypeScript quality check |
 
-Each aggregation tool bundles multiple sub-checks that can be toggled individually under **Settings → SharpPilot → Tools**, or via **SharpPilot: Toggle Tools** in the Command Palette. If all sub-checks for a category are disabled, that server is not registered at all.
+Each aggregation tool bundles multiple sub-checks that can be toggled individually under **Settings → SharpPilot → Tools**, or from the **MCP Tools** panel in the SharpPilot sidebar. If all sub-checks for a category are disabled, that server is not registered at all.
+
+## Sidebar Panels
+
+SharpPilot adds a dedicated activity bar icon with two tree views:
+
+- **Instructions** — Grouped by category (General, Languages, .NET, Web, Tools). Click an instruction to open it in a virtual document with per-rule CodeLens. Enable or disable instructions from the inline actions. Enter export mode from the panel header to batch-export checked instructions to `.github/instructions/`.
+- **MCP Tools** — Grouped by group (Languages, Platforms, Workspace) and category (C#, TypeScript, .NET, Git, EditorConfig). Check or uncheck a category to toggle all its tools at once. Individual tools can also be toggled.
+
+Both panels show an **enabled / total** count in the header and offer a **Show Not Detected** / **Hide Not Detected** filter in the `…` overflow menu.
 
 ## Per-Instruction Disable
 
 Individual rules within any instruction file can be disabled without turning off the entire instruction:
 
-1. Run **SharpPilot: Browse Instructions** and select an instruction.
+1. Click an instruction in the **Instructions** sidebar panel.
 2. The file opens in a virtual document with a **Disable Instruction** / **Enable Instruction** CodeLens above each rule.
 3. Click a CodeLens to toggle. Disabled rules are dimmed, tagged `[DISABLED]`, and excluded from Copilot's context.
 4. A **Reset All Instructions** CodeLens appears at the top to re-enable everything at once.
@@ -45,11 +53,7 @@ The disable state is stored in `.sharppilot.json` in your workspace root — com
 
 | Command | Description |
 |---------|-------------|
-| **SharpPilot: Toggle Instructions** | Enable or disable coding instructions. |
-| **SharpPilot: Toggle Tools** | Enable or disable individual tool checks. |
 | **SharpPilot: Auto Configure** | Scan the workspace and enable relevant items. |
-| **SharpPilot: Export Instructions** | Export instruction files to `.github/instructions/`. |
-| **SharpPilot: Browse Instructions** | Preview an instruction file with per-instruction disable/enable CodeLens. |
 | **SharpPilot: Toggle Instruction** | Disable or re-enable a single instruction (invoked via CodeLens). |
 | **SharpPilot: Reset Instructions** | Re-enable all disabled instructions for the current file (invoked via CodeLens). |
 

@@ -10,7 +10,7 @@ Open the Instructions Panel, click the export icon in the panel header to enter 
 
 ### Exported instructions
 
-Once an instruction file exists in `.github/instructions/`, it is automatically hidden from the panel. The exported workspace-level file takes precedence. Delete the exported file to bring the built-in instruction back.
+Once an instruction file exists in `.github/instructions/`, it appears as **overridden** in the panel with a distinct icon. Clicking an overridden item opens the workspace-level file for editing. Use the **Show Original** inline action to view the built-in version, or **Delete Override** to remove the workspace file and revert to the built-in version.
 
 ### Browse and disable individual instructions
 
