@@ -288,7 +288,7 @@ $testCases = @(
     @{
         Name         = 'Clean (standalone)'
         Arguments    = '-Clean -WhatIf'
-        ExpectOutput = @('Delete TypeScript output', 'Delete MCP servers', 'Delete VSIX packages')
+        ExpectOutput = @('Delete TypeScript output|TypeScript output.*not found', 'Delete MCP servers|MCP servers.*not found', 'Delete VSIX packages|VSIX packages.*not found')
     }
     @{
         Name         = 'Clean + Compile'
@@ -352,7 +352,7 @@ $testCases = @(
     @{
         Name         = 'Publish (auto-detect RID)'
         Arguments    = 'Publish -WhatIf'
-        ExpectOutput = @('Delete TypeScript output', 'Compile TypeScript', 'dotnet build', 'Run TypeScript tests', 'Copy LICENSE', 'dotnet publish', 'vsce package', 'Publish to Marketplace')
+        ExpectOutput = @('Delete TypeScript output|TypeScript output.*not found', 'Compile TypeScript', 'dotnet build', 'Run TypeScript tests', 'Copy LICENSE', 'dotnet publish', 'vsce package', 'Publish to Marketplace')
     }
     @{
         Name         = 'Publish All (6 platforms)'

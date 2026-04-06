@@ -491,6 +491,10 @@ function Invoke-VscePublish {
 
     $vsixFiles = Get-ChildItem (Join-Path $publishDir '*.vsix') -ErrorAction SilentlyContinue
     if (-not $vsixFiles -or $vsixFiles.Count -eq 0) {
+        if ($WhatIfPreference) {
+            Write-Status 'No VSIX files (skipped in WhatIf)' 'INFO'
+            return
+        }
         throw 'No VSIX files found in publish/ directory.'
     }
 
