@@ -9,6 +9,10 @@
     Compiles, tests, packages, and publishes both the TypeScript VS Code extension
     and the .NET MCP server from a single entry point.
 
+    After modifying this script, run build.tests.ps1 to verify all action/target
+    combinations still work. If a test fails, determine whether the script has a
+    bug or the test expectations need updating to match the new behaviour.
+
 .PARAMETER Action
     The build action to perform:
       Compile  — compile TypeScript and/or .NET sources
