@@ -1,7 +1,7 @@
 import type { McpToolEntry } from './mcp-tool-entry.js';
 
 const categories: Record<string, readonly string[]> = {
-    dotnet: ['.NET', 'C#'],
+    dotnet: ['NuGet', 'C#'],
     git: ['Git'],
     editorconfig: ['EditorConfig'],
     typescript: ['TypeScript'],

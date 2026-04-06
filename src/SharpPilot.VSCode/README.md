@@ -34,7 +34,7 @@ Each aggregation tool bundles multiple sub-checks that can be toggled individual
 SharpPilot adds a dedicated activity bar icon with two tree views:
 
 - **Instructions** — Grouped by category (General, Languages, .NET, Web, Tools). Click an instruction to open it in a virtual document with per-rule CodeLens. Enable or disable instructions from the inline actions. Enter export mode from the panel header to batch-export checked instructions to `.github/instructions/`.
-- **MCP Tools** — Grouped by group (Languages, Platforms, Workspace) and category (C#, TypeScript, .NET, Git, EditorConfig). Check or uncheck a category to toggle all its tools at once. Individual tools can also be toggled.
+- **MCP Tools** — Grouped by platform (.NET, Web, Workspace), category (C#, NuGet, TypeScript, Git, EditorConfig), and aggregation tool. Check or uncheck an aggregation tool to toggle all its sub-checks at once. Individual sub-checks can also be toggled.
 
 Both panels show an **enabled / total** count in the header and offer a **Show Not Detected** / **Hide Not Detected** filter in the `…` overflow menu.
 

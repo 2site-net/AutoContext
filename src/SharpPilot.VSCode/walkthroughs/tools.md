@@ -21,6 +21,6 @@ Enabled tool settings are written to a `.sharppilot.json` file that the .NET MCP
 
 ### Toggle tools
 
-Use the SharpPilot sidebar to enable or disable individual tools. Tools are organized under group and category headers — checking a category toggles all tools within it. Use the `…` menu on the panel header to show or hide items that are not detected in your workspace.
+Use the SharpPilot sidebar to enable or disable individual tools. Tools are organized under platform, category, and aggregation-tool headers — checking an aggregation tool toggles all its sub-checks at once. Use the `…` menu on the panel header to show or hide items that are not detected in your workspace.
 
 [Open Tools Panel](command:sharppilot.toolsView.focus)
