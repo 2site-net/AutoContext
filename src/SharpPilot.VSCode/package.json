@@ -61,16 +61,6 @@
     },
     "commands": [
       {
-        "command": "sharppilot.exportInstructions",
-        "title": "Export Instructions",
-        "category": "SharpPilot"
-      },
-      {
-        "command": "sharppilot.browseInstructions",
-        "title": "Browse Instructions",
-        "category": "SharpPilot"
-      },
-      {
         "command": "sharppilot.autoConfigure",
         "title": "Auto Configure",
         "category": "SharpPilot"
@@ -588,12 +578,12 @@
           {
             "id": "sharppilot.exportAndBrowse",
             "title": "Export & Browse",
-            "description": "Export instruction files to your repository or browse them in the editor.\n[Export Instructions](command:sharppilot.exportInstructions)",
+            "description": "Export instruction files to your repository using the sidebar panel.\n[Open Instructions Panel](command:sharppilot.instructionsView.focus)",
             "media": {
               "markdown": "walkthroughs/export-and-browse.md"
             },
             "completionEvents": [
-              "onCommand:sharppilot.exportInstructions"
+              "onCommand:sharppilot.enterExportMode"
             ]
           }
         ]

@@ -1,80 +1,9 @@
 import * as vscode from 'vscode';
 import type { InstructionsCatalogEntry } from './instructions-catalog-entry.js';
 import { instructionScheme } from './instructions-content-provider.js';
-import { InstructionsExportState } from './instructions-export-state.js';
 
 export class InstructionsExporter {
     constructor(private readonly extensionPath: string) {}
-
-    async export(): Promise<void> {
-        const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
-
-        if (!workspaceFolder) {
-            await vscode.window.showErrorMessage('No workspace folder open.');
-            return;
-        }
-
-        const rootUri = workspaceFolder.uri;
-
-        const availableInstructions = await InstructionsExportState.getUnexportedFiles();
-        if (availableInstructions.length === 0) {
-            await vscode.window.showInformationMessage('All instructions are already exported.');
-            return;
-        }
-
-        const items = availableInstructions.map(entry => ({
-            label: entry.label,
-            description: entry.category,
-            entry,
-        }));
-
-        const selected = await vscode.window.showQuickPick(items, {
-            canPickMany: true,
-            title: 'SharpPilot: Export Instructions',
-            placeHolder: 'Select instructions to export to .github',
-        });
-
-        if (!selected || selected.length === 0) {
-            return;
-        }
-        const exported: string[] = [];
-
-        for (const { entry } of selected) {
-            const target = entry.targetPath;
-            const targetUri = vscode.Uri.joinPath(rootUri, target);
-
-            const exists = await InstructionsExporter.fileExists(targetUri);
-
-            if (exists) {
-                const action = await vscode.window.showWarningMessage(
-                    `'${target}' already exists.`,
-                    'Overwrite',
-                    'Open Existing',
-                    'Skip',
-                );
-
-                if (action === 'Open Existing') {
-                    await vscode.window.showTextDocument(targetUri);
-                    continue;
-                }
-
-                if (action !== 'Overwrite') {
-                    continue;
-                }
-            }
-
-            await InstructionsExporter.copyInstruction(this.extensionPath, entry, targetUri);
-            await InstructionsExporter.closeVirtualDocument(entry.fileName);
-            exported.push(entry.label);
-        }
-
-        if (exported.length > 0) {
-            const lastUri = vscode.Uri.joinPath(rootUri, selected[selected.length - 1].entry.targetPath);
-
-            await vscode.window.showTextDocument(lastUri);
-            await vscode.window.showInformationMessage(`Exported ${exported.length} instruction(s) to .github.`);
-        }
-    }
 
     async exportEntries(entries: readonly InstructionsCatalogEntry[]): Promise<void> {
         const workspaceFolder = vscode.workspace.workspaceFolders?.[0];

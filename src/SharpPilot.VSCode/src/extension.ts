@@ -3,7 +3,6 @@ import { WorkspaceContextDetector } from './workspace-context-detector.js';
 import { McpToolsConfigWriter } from './mcp-tools-config-writer.js';
 import { AutoConfigurer } from './auto-configurer.js';
 import { InstructionsExporter } from './instructions-exporter.js';
-import { InstructionsBrowser } from './instructions-browser.js';
 import { SharpPilotConfigManager } from './sharppilot-config.js';
 import { InstructionsContentProvider, instructionScheme } from './instructions-content-provider.js';
 import { InstructionsCodeLensProvider, toggleInstructionCommandId, resetInstructionsCommandId } from './instructions-codelens-provider.js';
@@ -25,7 +24,6 @@ export function activate(context: vscode.ExtensionContext) {
 
     const workspaceContextDetector = new WorkspaceContextDetector();
     const instructionsExporter = new InstructionsExporter(context.extensionPath);
-    const instructionsBrowser = new InstructionsBrowser();
     const configManager = new SharpPilotConfigManager(context.extensionPath, version);
     const toolsStatusWriter = new McpToolsConfigWriter(configManager);
     const contentProvider = new InstructionsContentProvider(context.extensionPath, configManager);
@@ -82,8 +80,6 @@ export function activate(context: vscode.ExtensionContext) {
         }),
         vscode.workspace.registerTextDocumentContentProvider(instructionScheme, contentProvider),
         vscode.languages.registerCodeLensProvider({ scheme: instructionScheme }, codeLensProvider),
-        vscode.commands.registerCommand('sharppilot.exportInstructions', () => instructionsExporter.export()),
-        vscode.commands.registerCommand('sharppilot.browseInstructions', () => instructionsBrowser.browse()),
         // Workspace auto-configuration (instructions + tools)
         vscode.commands.registerCommand('sharppilot.autoConfigure', async () => { await AutoConfigurer.configure(workspaceContextDetector); }),
         // CodeLens (internal)
