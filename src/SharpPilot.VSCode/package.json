@@ -180,13 +180,11 @@
       "view/title": [
         {
           "command": "sharppilot.hideNotDetected",
-          "when": "(view == 'sharppilot.instructionsView' || view == 'sharppilot.toolsView') && sharppilot.showNotDetected",
-          "group": "navigation@1"
+          "when": "(view == 'sharppilot.instructionsView' || view == 'sharppilot.toolsView') && sharppilot.showNotDetected"
         },
         {
           "command": "sharppilot.showNotDetected",
-          "when": "(view == 'sharppilot.instructionsView' || view == 'sharppilot.toolsView') && !sharppilot.showNotDetected",
-          "group": "navigation@1"
+          "when": "(view == 'sharppilot.instructionsView' || view == 'sharppilot.toolsView') && !sharppilot.showNotDetected"
         },
         {
           "command": "sharppilot.enterExportMode",
