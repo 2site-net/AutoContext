@@ -14,35 +14,52 @@ beforeEach(() => {
 });
 
 describe('McpToolsTreeProvider', () => {
-    it('should return category nodes as root elements', () => {
+    /** Navigate: root → group → category → tools */
+    function getCategoryTools(provider: McpToolsTreeProvider, groupName: string, categoryName: string) {
+        const groups = provider.getChildren();
+        const group = groups.find(r => r.kind === 'group' && r.name === groupName)!;
+        const categories = provider.getChildren(group);
+        const category = categories.find(r => r.kind === 'category' && r.name === categoryName)!;
+        return provider.getChildren(category);
+    }
+
+    it('should return group nodes as root elements', () => {
         const provider = new McpToolsTreeProvider(fakeDetector);
         const roots = provider.getChildren();
 
-        const names = roots.map(r => r.kind === 'category' ? r.name : '');
-        expect.soft(names).toEqual(['C#', '.NET', 'Git', 'EditorConfig', 'TypeScript']);
+        const names = roots.map(r => r.kind === 'group' ? r.name : '');
+        expect.soft(names).toEqual(['Languages', 'Platforms', 'Workspace']);
+
+        provider.dispose();
+    });
+
+    it('should return category nodes as children of a group', () => {
+        const provider = new McpToolsTreeProvider(fakeDetector);
+        const roots = provider.getChildren();
+        const languages = roots.find(r => r.kind === 'group' && r.name === 'Languages')!;
+        const categories = provider.getChildren(languages);
+
+        const names = categories.map(r => r.kind === 'category' ? r.name : '');
+        expect.soft(names).toEqual(['C#', 'TypeScript']);
 
         provider.dispose();
     });
 
     it('should return tool nodes as children of a category', () => {
         const provider = new McpToolsTreeProvider(fakeDetector);
-        const roots = provider.getChildren();
-        const csharp = roots.find(r => r.kind === 'category' && r.name === 'C#')!;
-        const children = provider.getChildren(csharp);
+        const tools = getCategoryTools(provider, 'Languages', 'C#');
 
-        expect.soft(children.length).toBeGreaterThan(0);
-        expect.soft(children.every(c => c.kind === 'tool')).toBe(true);
+        expect.soft(tools.length).toBeGreaterThan(0);
+        expect.soft(tools.every(c => c.kind === 'tool')).toBe(true);
 
         provider.dispose();
     });
 
     it('should return empty array for leaf nodes', () => {
         const provider = new McpToolsTreeProvider(fakeDetector);
-        const roots = provider.getChildren();
-        const csharp = roots.find(r => r.kind === 'category' && r.name === 'C#')!;
-        const children = provider.getChildren(csharp);
+        const tools = getCategoryTools(provider, 'Languages', 'C#');
 
-        expect.soft(provider.getChildren(children[0])).toEqual([]);
+        expect.soft(provider.getChildren(tools[0])).toEqual([]);
 
         provider.dispose();
     });
@@ -51,11 +68,9 @@ describe('McpToolsTreeProvider', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(false);
 
         const provider = new McpToolsTreeProvider(fakeDetector);
-        const roots = provider.getChildren();
-        const csharp = roots.find(r => r.kind === 'category' && r.name === 'C#')!;
-        const children = provider.getChildren(csharp);
+        const tools = getCategoryTools(provider, 'Languages', 'C#');
 
-        expect.soft(children.every(c => c.kind === 'tool' && c.state === ToolState.NotDetected)).toBe(true);
+        expect.soft(tools.every(c => c.kind === 'tool' && c.state === ToolState.NotDetected)).toBe(true);
 
         provider.dispose();
     });
@@ -64,11 +79,9 @@ describe('McpToolsTreeProvider', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
 
         const provider = new McpToolsTreeProvider(fakeDetector);
-        const roots = provider.getChildren();
-        const csharp = roots.find(r => r.kind === 'category' && r.name === 'C#')!;
-        const children = provider.getChildren(csharp);
+        const tools = getCategoryTools(provider, 'Languages', 'C#');
 
-        expect.soft(children.every(c => c.kind === 'tool' && c.state === ToolState.Enabled)).toBe(true);
+        expect.soft(tools.every(c => c.kind === 'tool' && c.state === ToolState.Enabled)).toBe(true);
 
         provider.dispose();
     });
@@ -78,11 +91,9 @@ describe('McpToolsTreeProvider', () => {
         __setConfigStore({ 'sharppilot.tools.check_csharp_async_patterns': false });
 
         const provider = new McpToolsTreeProvider(fakeDetector);
-        const roots = provider.getChildren();
-        const csharp = roots.find(r => r.kind === 'category' && r.name === 'C#')!;
-        const children = provider.getChildren(csharp);
+        const tools = getCategoryTools(provider, 'Languages', 'C#');
 
-        const asyncTool = children.find(c => c.kind === 'tool' && c.entry.settingId === 'sharppilot.tools.check_csharp_async_patterns');
+        const asyncTool = tools.find(c => c.kind === 'tool' && c.entry.settingId === 'sharppilot.tools.check_csharp_async_patterns');
         expect.soft(asyncTool?.kind === 'tool' && asyncTool.state).toBe(ToolState.Disabled);
 
         provider.dispose();
@@ -92,10 +103,8 @@ describe('McpToolsTreeProvider', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
 
         const provider = new McpToolsTreeProvider(fakeDetector);
-        const roots = provider.getChildren();
-        const csharp = roots.find(r => r.kind === 'category' && r.name === 'C#')!;
-        const children = provider.getChildren(csharp);
-        const item = provider.getTreeItem(children[0]);
+        const tools = getCategoryTools(provider, 'Languages', 'C#');
+        const item = provider.getTreeItem(tools[0]);
 
         expect.soft(item.checkboxState).toBe(TreeItemCheckboxState.Checked);
 
@@ -107,10 +116,8 @@ describe('McpToolsTreeProvider', () => {
         __setConfigStore({ 'sharppilot.tools.check_csharp_async_patterns': false });
 
         const provider = new McpToolsTreeProvider(fakeDetector);
-        const roots = provider.getChildren();
-        const csharp = roots.find(r => r.kind === 'category' && r.name === 'C#')!;
-        const children = provider.getChildren(csharp);
-        const asyncTool = children.find(c => c.kind === 'tool' && c.entry.settingId === 'sharppilot.tools.check_csharp_async_patterns')!;
+        const tools = getCategoryTools(provider, 'Languages', 'C#');
+        const asyncTool = tools.find(c => c.kind === 'tool' && c.entry.settingId === 'sharppilot.tools.check_csharp_async_patterns')!;
         const item = provider.getTreeItem(asyncTool);
 
         expect.soft(item.checkboxState).toBe(TreeItemCheckboxState.Unchecked);
@@ -122,10 +129,8 @@ describe('McpToolsTreeProvider', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(false);
 
         const provider = new McpToolsTreeProvider(fakeDetector);
-        const roots = provider.getChildren();
-        const csharp = roots.find(r => r.kind === 'category' && r.name === 'C#')!;
-        const children = provider.getChildren(csharp);
-        const item = provider.getTreeItem(children[0]);
+        const tools = getCategoryTools(provider, 'Languages', 'C#');
+        const item = provider.getTreeItem(tools[0]);
 
         expect.soft(item.checkboxState).toBeUndefined();
         expect.soft(item.description).toBe('not detected');
@@ -133,10 +138,23 @@ describe('McpToolsTreeProvider', () => {
         provider.dispose();
     });
 
-    it('should show category items as expanded with contextValue', () => {
+    it('should show group items as expanded with contextValue', () => {
         const provider = new McpToolsTreeProvider(fakeDetector);
         const roots = provider.getChildren();
         const item = provider.getTreeItem(roots[0]);
+
+        expect.soft(item.collapsibleState).toBe(TreeItemCollapsibleState.Expanded);
+        expect.soft(item.contextValue).toBe('group');
+
+        provider.dispose();
+    });
+
+    it('should show category items as expanded with contextValue', () => {
+        const provider = new McpToolsTreeProvider(fakeDetector);
+        const roots = provider.getChildren();
+        const languages = roots.find(r => r.kind === 'group' && r.name === 'Languages')!;
+        const categories = provider.getChildren(languages);
+        const item = provider.getTreeItem(categories[0]);
 
         expect.soft(item.collapsibleState).toBe(TreeItemCollapsibleState.Expanded);
         expect.soft(item.contextValue).toBe('category');
@@ -149,11 +167,9 @@ describe('McpToolsTreeProvider', () => {
         __setConfigStore({ 'sharppilot.tools.check_csharp_async_patterns': false });
 
         const provider = new McpToolsTreeProvider(fakeDetector);
-        const roots = provider.getChildren();
-        const csharp = roots.find(r => r.kind === 'category' && r.name === 'C#')!;
-        const children = provider.getChildren(csharp);
+        const tools = getCategoryTools(provider, 'Languages', 'C#');
 
-        const states = children.map(c => c.kind === 'tool' ? c.state : '');
+        const states = tools.map(c => c.kind === 'tool' ? c.state : '');
         const enabledIdx = states.indexOf(ToolState.Enabled);
         const disabledIdx = states.indexOf(ToolState.Disabled);
 
@@ -166,12 +182,10 @@ describe('McpToolsTreeProvider', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(false);
 
         const provider = new McpToolsTreeProvider(fakeDetector);
-        const roots = provider.getChildren();
-        const editorConfig = roots.find(r => r.kind === 'category' && r.name === 'EditorConfig')!;
-        const children = provider.getChildren(editorConfig);
+        const tools = getCategoryTools(provider, 'Workspace', 'EditorConfig');
 
-        expect.soft(children.length).toBe(1);
-        const tool = children[0];
+        expect.soft(tools.length).toBe(1);
+        const tool = tools[0];
         expect.soft(tool.kind === 'tool' && tool.state).toBe(ToolState.Enabled);
 
         provider.dispose();
@@ -184,9 +198,9 @@ describe('McpToolsTreeProvider', () => {
         provider.showNotDetected = false;
 
         const roots = provider.getChildren();
-        // Only EditorConfig category should remain (context-free tool)
-        const names = roots.map(r => r.kind === 'category' ? r.name : '');
-        expect.soft(names).toEqual(['EditorConfig']);
+        // Only Workspace group should remain (EditorConfig has no context keys)
+        const names = roots.map(r => r.kind === 'group' ? r.name : '');
+        expect.soft(names).toEqual(['Workspace']);
 
         provider.dispose();
     });
@@ -198,8 +212,8 @@ describe('McpToolsTreeProvider', () => {
         provider.showNotDetected = true;
 
         const roots = provider.getChildren();
-        const names = roots.map(r => r.kind === 'category' ? r.name : '');
-        expect.soft(names).toEqual(['C#', '.NET', 'Git', 'EditorConfig', 'TypeScript']);
+        const names = roots.map(r => r.kind === 'group' ? r.name : '');
+        expect.soft(names).toEqual(['Languages', 'Platforms', 'Workspace']);
 
         provider.dispose();
     });

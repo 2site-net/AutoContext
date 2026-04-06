@@ -12,10 +12,16 @@ export const ToolState = {
 
 export type ToolState = typeof ToolState[keyof typeof ToolState];
 
-type TreeElement = CategoryNode | ToolNode;
+type TreeElement = GroupNode | CategoryNode | ToolNode;
+
+interface GroupNode {
+    readonly kind: 'group';
+    readonly name: string;
+}
 
 interface CategoryNode {
     readonly kind: 'category';
+    readonly group: string;
     readonly name: string;
 }
 
@@ -25,7 +31,8 @@ interface ToolNode {
     readonly state: ToolState;
 }
 
-const categoryOrder: readonly string[] = ['C#', '.NET', 'Git', 'EditorConfig', 'TypeScript'];
+const groupOrder: readonly string[] = ['Languages', 'Platforms', 'Workspace'];
+const categoryOrder: readonly string[] = ['C#', 'TypeScript', '.NET', 'Git', 'EditorConfig'];
 
 const stateRank: Record<ToolState, number> = {
     [ToolState.Enabled]: 0,
@@ -67,6 +74,10 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
     }
 
     getTreeItem(element: TreeElement): vscode.TreeItem {
+        if (element.kind === 'group') {
+            return McpToolsTreeProvider.groupItem(element);
+        }
+
         if (element.kind === 'category') {
             return McpToolsTreeProvider.categoryItem(element);
         }
@@ -76,7 +87,11 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
 
     getChildren(element?: TreeElement): TreeElement[] {
         if (element === undefined) {
-            return this.getRootCategories();
+            return this.getRootGroups();
+        }
+
+        if (element.kind === 'group') {
+            return this.getCategoriesForGroup(element.name);
         }
 
         if (element.kind === 'category') {
@@ -95,12 +110,22 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
         this.refresh();
     }
 
-    private getRootCategories(): CategoryNode[] {
-        const children = (name: string) => this.getToolsForCategory(name);
-        const presentCategories = new Set(McpToolsRegistry.all.map(e => e.category));
+    private getRootGroups(): GroupNode[] {
+        const hasChildren = (group: string) => this.getCategoriesForGroup(group).length > 0;
+        const presentGroups = new Set(McpToolsRegistry.all.map(e => e.group));
+        return groupOrder
+            .filter(g => presentGroups.has(g) && hasChildren(g))
+            .map(name => ({ kind: 'group' as const, name }));
+    }
+
+    private getCategoriesForGroup(group: string): CategoryNode[] {
+        const hasChildren = (cat: string) => this.getToolsForCategory(cat).length > 0;
+        const presentCategories = new Set(
+            McpToolsRegistry.all.filter(e => e.group === group).map(e => e.category),
+        );
         return categoryOrder
-            .filter(c => presentCategories.has(c) && children(c).length > 0)
-            .map(name => ({ kind: 'category' as const, name }));
+            .filter(c => presentCategories.has(c) && hasChildren(c))
+            .map(name => ({ kind: 'category' as const, group, name }));
     }
 
     private getToolsForCategory(category: string): ToolNode[] {
@@ -132,6 +157,12 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
         }
 
         return ToolState.Enabled;
+    }
+
+    private static groupItem(node: GroupNode): vscode.TreeItem {
+        const item = new vscode.TreeItem(node.name, vscode.TreeItemCollapsibleState.Expanded);
+        item.contextValue = 'group';
+        return item;
     }
 
     private static categoryItem(node: CategoryNode): vscode.TreeItem {
