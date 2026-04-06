@@ -76,7 +76,7 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.commands.registerCommand(InstructionsTreeProvider.confirmExportCommandId, async () => {
             const entries = instructionsTreeProvider.getCheckedEntries();
             instructionsTreeProvider.cancelExportMode();
-            await instructionsExporter.exportEntries(entries);
+            await instructionsExporter.export(entries);
         }),
         vscode.workspace.registerTextDocumentContentProvider(instructionScheme, contentProvider),
         vscode.languages.registerCodeLensProvider({ scheme: instructionScheme }, codeLensProvider),

@@ -5,7 +5,7 @@ import { instructionScheme } from './instructions-content-provider.js';
 export class InstructionsExporter {
     constructor(private readonly extensionPath: string) {}
 
-    async exportEntries(entries: readonly InstructionsCatalogEntry[]): Promise<void> {
+    async export(entries: readonly InstructionsCatalogEntry[]): Promise<void> {
         const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
         if (!workspaceFolder || entries.length === 0) { return; }
 
