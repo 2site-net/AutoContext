@@ -64,7 +64,7 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
                 }
             }),
             treeView.onDidChangeCheckboxState(e => {
-                void McpToolsTreeProvider.handleCheckboxChange(e.items);
+                void this.handleCheckboxChange(e.items);
             }),
         );
     }
@@ -79,7 +79,7 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
         }
 
         if (element.kind === 'category') {
-            return McpToolsTreeProvider.categoryItem(element);
+            return this.categoryItem(element);
         }
 
         return McpToolsTreeProvider.toolItem(element);
@@ -160,15 +160,25 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
         return ToolState.Enabled;
     }
 
+    private static checkboxForParent(tools: ToolNode[]): vscode.TreeItemCheckboxState | undefined {
+        const detected = tools.filter(t => t.state !== ToolState.NotDetected);
+        if (detected.length === 0) { return undefined; }
+
+        return detected.every(t => t.state === ToolState.Enabled)
+            ? vscode.TreeItemCheckboxState.Checked
+            : vscode.TreeItemCheckboxState.Unchecked;
+    }
+
     private static groupItem(node: GroupNode): vscode.TreeItem {
         const item = new vscode.TreeItem(node.name, vscode.TreeItemCollapsibleState.Expanded);
         item.contextValue = 'group';
         return item;
     }
 
-    private static categoryItem(node: CategoryNode): vscode.TreeItem {
+    private categoryItem(node: CategoryNode): vscode.TreeItem {
         const item = new vscode.TreeItem(node.name, vscode.TreeItemCollapsibleState.Expanded);
         item.contextValue = 'category';
+        item.checkboxState = McpToolsTreeProvider.checkboxForParent(this.getToolsForCategory(node.name));
         return item;
     }
 
@@ -212,15 +222,27 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
         return lines.join('\n');
     }
 
-    private static async handleCheckboxChange(items: ReadonlyArray<readonly [TreeElement, vscode.TreeItemCheckboxState]>): Promise<void> {
+    private async handleCheckboxChange(items: ReadonlyArray<readonly [TreeElement, vscode.TreeItemCheckboxState]>): Promise<void> {
         const config = vscode.workspace.getConfiguration();
+        const enabled = (s: vscode.TreeItemCheckboxState) => s === vscode.TreeItemCheckboxState.Checked;
+
+        const updates: Thenable<void>[] = [];
 
         for (const [element, state] of items) {
-            if (element.kind !== 'tool') { continue; }
+            if (element.kind === 'tool') {
+                updates.push(config.update(element.entry.settingId, enabled(state), vscode.ConfigurationTarget.Global));
+                continue;
+            }
 
-            const enabled = state === vscode.TreeItemCheckboxState.Checked;
-            await config.update(element.entry.settingId, enabled, vscode.ConfigurationTarget.Global);
+            if (element.kind !== 'category') { continue; }
+
+            for (const tool of this.getToolsForCategory(element.name)) {
+                if (tool.state === ToolState.NotDetected) { continue; }
+                updates.push(config.update(tool.entry.settingId, enabled(state), vscode.ConfigurationTarget.Global));
+            }
         }
+
+        await Promise.all(updates);
     }
 
     dispose(): void {

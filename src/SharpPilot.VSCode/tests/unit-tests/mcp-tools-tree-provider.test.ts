@@ -149,6 +149,37 @@ describe('McpToolsTreeProvider', () => {
         provider.dispose();
     });
 
+    it('should show category checkbox checked when all detected tools are enabled', () => {
+        vi.mocked(fakeDetector.get).mockReturnValue(true);
+
+        const provider = new McpToolsTreeProvider(fakeDetector);
+        const roots = provider.getChildren();
+        const languages = roots.find(r => r.kind === 'group' && r.name === 'Languages')!;
+        const categories = provider.getChildren(languages);
+        const csharp = categories.find(r => r.kind === 'category' && r.name === 'C#')!;
+        const item = provider.getTreeItem(csharp);
+
+        expect.soft(item.checkboxState).toBe(TreeItemCheckboxState.Checked);
+
+        provider.dispose();
+    });
+
+    it('should show category checkbox unchecked when any tool is disabled', () => {
+        vi.mocked(fakeDetector.get).mockReturnValue(true);
+        __setConfigStore({ 'sharppilot.tools.check_csharp_async_patterns': false });
+
+        const provider = new McpToolsTreeProvider(fakeDetector);
+        const roots = provider.getChildren();
+        const languages = roots.find(r => r.kind === 'group' && r.name === 'Languages')!;
+        const categories = provider.getChildren(languages);
+        const csharp = categories.find(r => r.kind === 'category' && r.name === 'C#')!;
+        const item = provider.getTreeItem(csharp);
+
+        expect.soft(item.checkboxState).toBe(TreeItemCheckboxState.Unchecked);
+
+        provider.dispose();
+    });
+
     it('should show category items as expanded with contextValue', () => {
         const provider = new McpToolsTreeProvider(fakeDetector);
         const roots = provider.getChildren();
