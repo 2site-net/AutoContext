@@ -38,6 +38,7 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
 
     private readonly _onDidChangeTreeData = new vscode.EventEmitter<TreeElement | undefined>();
     readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
+    private _showNotDetected = true;
     private readonly disposables: vscode.Disposable[] = [];
 
     constructor(private readonly detector: WorkspaceContextDetector) {
@@ -85,10 +86,20 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
         return [];
     }
 
+    get showNotDetected(): boolean {
+        return this._showNotDetected;
+    }
+
+    set showNotDetected(value: boolean) {
+        this._showNotDetected = value;
+        this.refresh();
+    }
+
     private getRootCategories(): CategoryNode[] {
+        const children = (name: string) => this.getToolsForCategory(name);
         const presentCategories = new Set(McpToolsRegistry.all.map(e => e.category));
         return categoryOrder
-            .filter(c => presentCategories.has(c))
+            .filter(c => presentCategories.has(c) && children(c).length > 0)
             .map(name => ({ kind: 'category' as const, name }));
     }
 
@@ -102,6 +113,7 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
                 entry,
                 state: McpToolsTreeProvider.resolveState(entry, config, this.detector),
             }))
+            .filter(n => this._showNotDetected || n.state !== ToolState.NotDetected)
             .sort((a, b) => stateRank[a.state] - stateRank[b.state]);
     }
 

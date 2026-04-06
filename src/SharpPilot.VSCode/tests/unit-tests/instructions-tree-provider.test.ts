@@ -465,4 +465,53 @@ describe('InstructionsTreeProvider', () => {
 
         provider.dispose();
     });
+
+    it('should hide not-detected instructions when showNotDetected is false', () => {
+        vi.mocked(fakeDetector.get).mockReturnValue(false);
+
+        const provider = new InstructionsTreeProvider(fakeDetector);
+        provider.showNotDetected = false;
+
+        const roots = provider.getChildren();
+        // All items are not-detected except context-free ones → categories with only not-detected items are hidden
+        for (const cat of roots) {
+            if (cat.kind !== 'category') { continue; }
+            const children = provider.getChildren(cat);
+            const notDetected = children.filter(c => c.kind === 'instruction' && c.state === InstructionState.NotDetected);
+            expect.soft(notDetected).toHaveLength(0);
+        }
+
+        provider.dispose();
+    });
+
+    it('should show not-detected instructions when showNotDetected is true', () => {
+        vi.mocked(fakeDetector.get).mockReturnValue(false);
+
+        const provider = new InstructionsTreeProvider(fakeDetector);
+        provider.showNotDetected = true;
+
+        const roots = provider.getChildren();
+        const languages = roots.find(r => r.kind === 'category' && r.name === 'Languages')!;
+        const children = provider.getChildren(languages);
+        const notDetected = children.filter(c => c.kind === 'instruction' && c.state === InstructionState.NotDetected);
+        expect.soft(notDetected.length).toBeGreaterThan(0);
+
+        provider.dispose();
+    });
+
+    it('should hide empty categories when showNotDetected is false', () => {
+        vi.mocked(fakeDetector.get).mockReturnValue(false);
+
+        const provider = new InstructionsTreeProvider(fakeDetector);
+        provider.showNotDetected = false;
+
+        const roots = provider.getChildren();
+        for (const cat of roots) {
+            if (cat.kind !== 'category') { continue; }
+            const children = provider.getChildren(cat);
+            expect.soft(children.length).toBeGreaterThan(0);
+        }
+
+        provider.dispose();
+    });
 });

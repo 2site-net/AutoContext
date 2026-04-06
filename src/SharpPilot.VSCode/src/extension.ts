@@ -44,6 +44,19 @@ export function activate(context: vscode.ExtensionContext) {
     const instructionsTreeProvider = new InstructionsTreeProvider(workspaceContextDetector);
     const mcpToolsTreeProvider = new McpToolsTreeProvider(workspaceContextDetector);
 
+    const showNotDetectedKey = 'sharppilot.showNotDetected';
+    const showNotDetected = context.globalState.get<boolean>(showNotDetectedKey, true);
+    instructionsTreeProvider.showNotDetected = showNotDetected;
+    mcpToolsTreeProvider.showNotDetected = showNotDetected;
+    void vscode.commands.executeCommand('setContext', showNotDetectedKey, showNotDetected);
+
+    const setShowNotDetected = async (value: boolean) => {
+        await context.globalState.update(showNotDetectedKey, value);
+        instructionsTreeProvider.showNotDetected = value;
+        mcpToolsTreeProvider.showNotDetected = value;
+        void vscode.commands.executeCommand('setContext', showNotDetectedKey, value);
+    };
+
     const logDiagnostics = () => InstructionsDiagnostics.log(outputChannel, context.extensionPath, configManager);
 
     workspaceServer.start();
@@ -133,6 +146,8 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.commands.registerCommand(InstructionsTreeProvider.disableCommandId, InstructionsTreeProvider.disableInstruction),
         vscode.commands.registerCommand(InstructionsTreeProvider.deleteOverrideCommandId, InstructionsTreeProvider.deleteOverride),
         vscode.commands.registerCommand(InstructionsTreeProvider.showOriginalCommandId, InstructionsTreeProvider.showOriginal),
+        vscode.commands.registerCommand('sharppilot.showNotDetected', () => setShowNotDetected(true)),
+        vscode.commands.registerCommand('sharppilot.hideNotDetected', () => setShowNotDetected(false)),
         vscode.lm.registerMcpServerDefinitionProvider('sharpPilotProvider', mcpServerProvider),
     );
 

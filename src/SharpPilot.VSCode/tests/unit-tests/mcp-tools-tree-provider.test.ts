@@ -176,4 +176,31 @@ describe('McpToolsTreeProvider', () => {
 
         provider.dispose();
     });
+
+    it('should hide not-detected tools when showNotDetected is false', () => {
+        vi.mocked(fakeDetector.get).mockReturnValue(false);
+
+        const provider = new McpToolsTreeProvider(fakeDetector);
+        provider.showNotDetected = false;
+
+        const roots = provider.getChildren();
+        // Only EditorConfig category should remain (context-free tool)
+        const names = roots.map(r => r.kind === 'category' ? r.name : '');
+        expect.soft(names).toEqual(['EditorConfig']);
+
+        provider.dispose();
+    });
+
+    it('should show not-detected tools when showNotDetected is true', () => {
+        vi.mocked(fakeDetector.get).mockReturnValue(false);
+
+        const provider = new McpToolsTreeProvider(fakeDetector);
+        provider.showNotDetected = true;
+
+        const roots = provider.getChildren();
+        const names = roots.map(r => r.kind === 'category' ? r.name : '');
+        expect.soft(names).toEqual(['C#', '.NET', 'Git', 'EditorConfig', 'TypeScript']);
+
+        provider.dispose();
+    });
 });

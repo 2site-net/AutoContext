@@ -136,6 +136,18 @@
         "title": "Show Original",
         "category": "SharpPilot",
         "icon": "$(eye)"
+      },
+      {
+        "command": "sharppilot.showNotDetected",
+        "title": "Show Not Detected",
+        "category": "SharpPilot",
+        "icon": "$(eye)"
+      },
+      {
+        "command": "sharppilot.hideNotDetected",
+        "title": "Hide Not Detected",
+        "category": "SharpPilot",
+        "icon": "$(eye-closed)"
       }
     ],
     "menus": {
@@ -175,23 +187,41 @@
         {
           "command": "sharppilot.showOriginal",
           "when": "false"
+        },
+        {
+          "command": "sharppilot.showNotDetected",
+          "when": "false"
+        },
+        {
+          "command": "sharppilot.hideNotDetected",
+          "when": "false"
         }
       ],
       "view/title": [
         {
+          "command": "sharppilot.hideNotDetected",
+          "when": "(view == 'sharppilot.instructionsView' || view == 'sharppilot.toolsView') && sharppilot.showNotDetected",
+          "group": "navigation@1"
+        },
+        {
+          "command": "sharppilot.showNotDetected",
+          "when": "(view == 'sharppilot.instructionsView' || view == 'sharppilot.toolsView') && !sharppilot.showNotDetected",
+          "group": "navigation@1"
+        },
+        {
           "command": "sharppilot.enterExportMode",
           "when": "view == 'sharppilot.instructionsView' && !sharppilot.exportMode",
-          "group": "navigation"
+          "group": "navigation@2"
         },
         {
           "command": "sharppilot.confirmExport",
           "when": "view == 'sharppilot.instructionsView' && sharppilot.exportMode",
-          "group": "navigation@1"
+          "group": "navigation@2"
         },
         {
           "command": "sharppilot.cancelExport",
           "when": "view == 'sharppilot.instructionsView' && sharppilot.exportMode",
-          "group": "navigation@2"
+          "group": "navigation@3"
         }
       ],
       "view/item/context": [

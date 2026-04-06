@@ -52,6 +52,7 @@ export class InstructionsTreeProvider implements vscode.TreeDataProvider<TreeEle
     readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
 
     private _exportMode = false;
+    private _showNotDetected = true;
     private readonly _checkedEntries = new Set<string>();
     private readonly disposables: vscode.Disposable[] = [];
 
@@ -107,10 +108,20 @@ export class InstructionsTreeProvider implements vscode.TreeDataProvider<TreeEle
         return [];
     }
 
+    get showNotDetected(): boolean {
+        return this._showNotDetected;
+    }
+
+    set showNotDetected(value: boolean) {
+        this._showNotDetected = value;
+        this.refresh();
+    }
+
     private getRootCategories(): CategoryNode[] {
+        const children = (name: string) => this.getInstructionsForCategory(name);
         const presentCategories = new Set(InstructionsRegistry.all.map(e => e.category));
         return categoryOrder
-            .filter(c => presentCategories.has(c))
+            .filter(c => presentCategories.has(c) && children(c).length > 0)
             .map(name => ({ kind: 'category' as const, name }));
     }
 
@@ -125,6 +136,7 @@ export class InstructionsTreeProvider implements vscode.TreeDataProvider<TreeEle
                 entry,
                 state: InstructionsTreeProvider.resolveState(entry, config, this.detector, overrides),
             }))
+            .filter(n => this._showNotDetected || n.state !== InstructionState.NotDetected)
             .sort((a, b) => stateRank[a.state] - stateRank[b.state]);
     }
 
