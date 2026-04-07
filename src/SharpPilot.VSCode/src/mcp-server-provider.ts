@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { join } from 'node:path';
 import { McpServersRegistry } from './mcp-servers-registry.js';
-import { McpToolsRegistry } from './mcp-tools-registry.js';
+import type { McpToolsCatalog } from './mcp-tools-catalog.js';
 import type { WorkspaceContextDetector } from './workspace-context-detector.js';
 import type { WorkspaceServerManager } from './workspace-server-manager.js';
 
@@ -18,6 +18,7 @@ export class McpServerProvider implements vscode.McpServerDefinitionProvider {
         private readonly workspaceContextDetector: WorkspaceContextDetector,
         onDidChange: vscode.Event<void>,
         private readonly workspaceServer: WorkspaceServerManager,
+        private readonly toolsCatalog: McpToolsCatalog,
     ) {
         this.serversPath = join(extensionPath, 'mcp');
         this.ext = process.platform === 'win32' ? '.exe' : '';
@@ -32,7 +33,7 @@ export class McpServerProvider implements vscode.McpServerDefinitionProvider {
                 if (s.contextKey && !this.workspaceContextDetector.get(s.contextKey)) {
                     return false;
                 }
-                const toolSettings = McpToolsRegistry.getSettingIdByCategory(s.category);
+                const toolSettings = this.toolsCatalog.getSettingIdByCategory(s.category);
                 return toolSettings.length === 0 || toolSettings.some(id => config.get(id) !== false);
             })
             .map(s => {

@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { workspace, McpStdioServerDefinition, __setConfigStore } from './__mocks__/vscode';
 import { McpServerProvider } from '../../src/mcp-server-provider';
+import { McpToolsCatalog } from '../../src/mcp-tools-catalog';
+import { mcpToolEntries } from '../../src/ui-constants';
 import type { WorkspaceContextDetector } from '../../src/workspace-context-detector';
 import type { WorkspaceServerManager } from '../../src/workspace-server-manager';
 
@@ -18,9 +20,10 @@ const fakeWorkspaceServer = {
 } as unknown as WorkspaceServerManager;
 
 const onDidChange = vi.fn() as unknown as import('vscode').Event<void>;
+const toolsCatalog = new McpToolsCatalog(mcpToolEntries);
 
 function createProvider(): McpServerProvider {
-    return new McpServerProvider(extensionPath, version, fakeDetector, onDidChange, fakeWorkspaceServer);
+    return new McpServerProvider(extensionPath, version, fakeDetector, onDidChange, fakeWorkspaceServer, toolsCatalog);
 }
 
 beforeEach(() => {

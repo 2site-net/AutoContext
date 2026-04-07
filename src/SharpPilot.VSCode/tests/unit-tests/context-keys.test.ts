@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { ContextKeys } from '../../src/context-keys';
 import { InstructionsRegistry } from '../../src/instructions-registry';
-import { McpToolsRegistry } from '../../src/mcp-tools-registry';
+import { mcpToolEntries } from '../../src/ui-constants';
 
 describe('ContextKeys.overrideKey', () => {
     it('should strip the settings prefix and prepend the override prefix', () => {
@@ -35,15 +35,15 @@ describe('ContextKeys.forEntry', () => {
     });
 
     it('should return context keys for tools', () => {
-        const codingStyle = McpToolsRegistry.all.find(t => t.settingId === 'sharppilot.tools.check_csharp_coding_style')!;
-        const commitFormat = McpToolsRegistry.all.find(t => t.settingId === 'sharppilot.tools.check_git_commit_format')!;
+        const codingStyle = mcpToolEntries.find(t => t.settingId === 'sharppilot.tools.check_csharp_coding_style')!;
+        const commitFormat = mcpToolEntries.find(t => t.settingId === 'sharppilot.tools.check_git_commit_format')!;
 
         expect(ContextKeys.forEntry(codingStyle)).toEqual(['hasCSharp']);
         expect.soft(ContextKeys.forEntry(commitFormat)).toEqual(['hasGit']);
     });
 
     it('should return empty array for the editorconfig tool', () => {
-        const editorconfig = McpToolsRegistry.all.find(t => t.settingId === 'sharppilot.tools.get_editorconfig')!;
+        const editorconfig = mcpToolEntries.find(t => t.settingId === 'sharppilot.tools.get_editorconfig')!;
 
         expect.soft(ContextKeys.forEntry(editorconfig)).toEqual([]);
     });

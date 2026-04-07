@@ -1,14 +1,14 @@
 import * as vscode from 'vscode';
 import type { CatalogEntry } from './catalog-entry.js';
 import { InstructionsRegistry } from './instructions-registry.js';
-import { McpToolsRegistry } from './mcp-tools-registry.js';
+import type { McpToolsCatalog } from './mcp-tools-catalog.js';
 import { ContextKeys } from './context-keys.js';
 import type { WorkspaceContextDetector } from './workspace-context-detector.js';
 
 export class AutoConfigurer {
-    static async configure(detector: WorkspaceContextDetector): Promise<void> {
+    static async configure(detector: WorkspaceContextDetector, toolsCatalog: McpToolsCatalog): Promise<void> {
         const config = vscode.workspace.getConfiguration();
-        const allEntries: readonly CatalogEntry[] = [...InstructionsRegistry.all, ...McpToolsRegistry.all];
+        const allEntries: readonly CatalogEntry[] = [...InstructionsRegistry.all, ...toolsCatalog.all];
 
         let enabled = 0;
 

@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
-import { McpToolsRegistry } from './mcp-tools-registry.js';
+import type { McpToolsCatalog } from './mcp-tools-catalog.js';
 import { ContextKeys } from './context-keys.js';
+import { mcpToolGroupOrder, mcpToolCategoryOrder } from './ui-constants.js';
 import type { WorkspaceContextDetector } from './workspace-context-detector.js';
 import type { McpToolEntry } from './mcp-tool-entry.js';
 
@@ -37,9 +38,6 @@ interface McpToolFeatureNode {
     readonly state: ToolState;
 }
 
-const groupOrder: readonly string[] = ['.NET', 'Web', 'Workspace'];
-const categoryOrder: readonly string[] = ['C#', 'NuGet', 'TypeScript', 'Git', 'EditorConfig'];
-
 const stateRank: Record<ToolState, number> = {
     [ToolState.Enabled]: 0,
     [ToolState.Disabled]: 1,
@@ -55,7 +53,7 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
     private readonly treeView: vscode.TreeView<TreeElement>;
     private readonly disposables: vscode.Disposable[] = [];
 
-    constructor(private readonly detector: WorkspaceContextDetector) {
+    constructor(private readonly detector: WorkspaceContextDetector, private readonly catalog: McpToolsCatalog) {
         this.treeView = vscode.window.createTreeView(McpToolsTreeProvider.viewId, {
             treeDataProvider: this,
             manageCheckboxStateManually: true,
@@ -85,8 +83,8 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
 
     private updateDescription(): void {
         const config = vscode.workspace.getConfiguration();
-        const enabled = McpToolsRegistry.all.filter(e => config.get<boolean>(e.settingId, true)).length;
-        this.treeView.description = `${enabled}/${McpToolsRegistry.count}`;
+        const enabled = this.catalog.all.filter(e => config.get<boolean>(e.settingId, true)).length;
+        this.treeView.description = `${enabled}/${this.catalog.count}`;
     }
 
     getTreeItem(element: TreeElement): vscode.TreeItem {
@@ -123,8 +121,8 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
 
     private getRootGroups(): GroupNode[] {
         const hasChildren = (group: string) => this.getCategoriesForGroup(group).length > 0;
-        const presentGroups = new Set(McpToolsRegistry.all.map(e => e.group));
-        return groupOrder
+        const presentGroups = new Set(this.catalog.all.map(e => e.group));
+        return mcpToolGroupOrder
             .filter(g => presentGroups.has(g) && hasChildren(g))
             .map(name => ({ kind: 'group' as const, name }));
     }
@@ -132,16 +130,16 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
     private getCategoriesForGroup(group: string): CategoryNode[] {
         const hasChildren = (cat: string) => this.getMcpToolsForCategory(cat).length > 0;
         const presentCategories = new Set(
-            McpToolsRegistry.all.filter(e => e.group === group).map(e => e.category),
+            this.catalog.all.filter(e => e.group === group).map(e => e.category),
         );
-        return categoryOrder
+        return mcpToolCategoryOrder
             .filter(c => presentCategories.has(c) && hasChildren(c))
             .map(name => ({ kind: 'category' as const, group, name }));
     }
 
     private getMcpToolsForCategory(category: string): McpToolNode[] {
         const toolNames = [...new Set(
-            McpToolsRegistry.all
+            this.catalog.all
                 .filter(e => e.category === category)
                 .map(e => e.toolName),
         )];
@@ -149,7 +147,7 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
         if (!this._showNotDetected) {
             const config = vscode.workspace.getConfiguration();
             return toolNames
-                .filter(toolName => McpToolsRegistry.all
+                .filter(toolName => this.catalog.all
                     .filter(e => e.toolName === toolName)
                     .some(e => McpToolsTreeProvider.resolveState(e, config, this.detector) !== ToolState.NotDetected))
                 .map(toolName => ({ kind: 'mcpTool' as const, toolName, category }));
@@ -160,7 +158,7 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
 
     private getResolvedFeatures(toolName: string): McpToolFeatureNode[] {
         const config = vscode.workspace.getConfiguration();
-        return McpToolsRegistry.all
+        return this.catalog.all
             .filter(e => e.toolName === toolName && e.featureName !== undefined)
             .map(entry => ({
                 kind: 'mcpToolFeature' as const,
@@ -228,7 +226,7 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
     }
 
     private leafMcpToolItem(node: McpToolNode): vscode.TreeItem {
-        const entry = McpToolsRegistry.all.find(e => e.toolName === node.toolName && !e.featureName)!;
+        const entry = this.catalog.all.find(e => e.toolName === node.toolName && !e.featureName)!;
         const config = vscode.workspace.getConfiguration();
         const state = McpToolsTreeProvider.resolveState(entry, config, this.detector);
 
@@ -311,7 +309,7 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
             const features = this.getResolvedFeatures(element.toolName);
 
             if (features.length === 0) {
-                const entry = McpToolsRegistry.all.find(e => e.toolName === element.toolName && !e.featureName)!;
+                const entry = this.catalog.all.find(e => e.toolName === element.toolName && !e.featureName)!;
                 updates.push(config.update(entry.settingId, enabled(state), vscode.ConfigurationTarget.Global));
             } else {
                 for (const sub of features) {

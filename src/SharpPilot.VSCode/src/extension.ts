@@ -1,6 +1,8 @@
 import * as vscode from 'vscode';
 import { WorkspaceContextDetector } from './workspace-context-detector.js';
 import { McpToolsConfigWriter } from './mcp-tools-config-writer.js';
+import { McpToolsCatalog } from './mcp-tools-catalog.js';
+import { mcpToolEntries } from './ui-constants.js';
 import { AutoConfigurer } from './auto-configurer.js';
 import { InstructionsExporter } from './instructions-exporter.js';
 import { SharpPilotConfigManager } from './sharppilot-config.js';
@@ -25,16 +27,17 @@ export function activate(context: vscode.ExtensionContext) {
     const workspaceContextDetector = new WorkspaceContextDetector();
     const instructionsExporter = new InstructionsExporter(context.extensionPath);
     const configManager = new SharpPilotConfigManager(context.extensionPath, version);
-    const toolsStatusWriter = new McpToolsConfigWriter(configManager);
+    const toolsCatalog = new McpToolsCatalog(mcpToolEntries);
+    const toolsStatusWriter = new McpToolsConfigWriter(configManager, toolsCatalog);
     const contentProvider = new InstructionsContentProvider(context.extensionPath, configManager);
     const codeLensProvider = new InstructionsCodeLensProvider(context.extensionPath, configManager, workspaceContextDetector);
     const decorationManager = new InstructionsDecorationManager(context.extensionPath, configManager);
     const instructionsWriter = new InstructionsConfigWriter(context.extensionPath, configManager);
     const outputChannel = vscode.window.createOutputChannel('SharpPilot');
     const workspaceServer = new WorkspaceServerManager(context.extensionPath, outputChannel, vscode.workspace.workspaceFolders?.[0]?.uri.fsPath);
-    const mcpServerProvider = new McpServerProvider(context.extensionPath, version, workspaceContextDetector, didChangeEmitter.event, workspaceServer);
+    const mcpServerProvider = new McpServerProvider(context.extensionPath, version, workspaceContextDetector, didChangeEmitter.event, workspaceServer, toolsCatalog);
     const instructionsTreeProvider = new InstructionsTreeProvider(workspaceContextDetector);
-    const mcpToolsTreeProvider = new McpToolsTreeProvider(workspaceContextDetector);
+    const mcpToolsTreeProvider = new McpToolsTreeProvider(workspaceContextDetector, toolsCatalog);
 
     const showNotDetectedKey = 'sharppilot.showNotDetected';
     const showNotDetected = context.globalState.get<boolean>(showNotDetectedKey, true);
@@ -81,7 +84,7 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.workspace.registerTextDocumentContentProvider(instructionScheme, contentProvider),
         vscode.languages.registerCodeLensProvider({ scheme: instructionScheme }, codeLensProvider),
         // Workspace auto-configuration (instructions + tools)
-        vscode.commands.registerCommand('sharppilot.autoConfigure', async () => { await AutoConfigurer.configure(workspaceContextDetector); }),
+        vscode.commands.registerCommand('sharppilot.autoConfigure', async () => { await AutoConfigurer.configure(workspaceContextDetector, toolsCatalog); }),
         // CodeLens (internal)
         vscode.commands.registerCommand(toggleInstructionCommandId, (fileName: string, id: string) => {
             configManager.toggleInstruction(fileName, id);
