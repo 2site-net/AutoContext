@@ -3,7 +3,8 @@ import { WorkspaceContextDetector } from './workspace-context-detector.js';
 import { McpToolsConfigWriter } from './mcp-tools-config-writer.js';
 import { McpToolsCatalog } from './mcp-tools-catalog.js';
 import { InstructionsCatalog } from './instructions-catalog.js';
-import { mcpToolEntries, instructionEntries } from './ui-constants.js';
+import { McpServersCatalog } from './mcp-servers-catalog.js';
+import { mcpToolEntries, instructionEntries, mcpServerEntries } from './ui-constants.js';
 import { AutoConfigurer } from './auto-configurer.js';
 import { InstructionsExporter } from './instructions-exporter.js';
 import { SharpPilotConfigManager } from './sharppilot-config.js';
@@ -27,7 +28,8 @@ export function activate(context: vscode.ExtensionContext) {
 
     const toolsCatalog = new McpToolsCatalog(mcpToolEntries);
     const instructionsCatalog = new InstructionsCatalog(instructionEntries);
-    const workspaceContextDetector = new WorkspaceContextDetector(instructionsCatalog);
+    const serversCatalog = new McpServersCatalog(mcpServerEntries);
+    const workspaceContextDetector = new WorkspaceContextDetector(instructionsCatalog, serversCatalog);
     const instructionsExporter = new InstructionsExporter(context.extensionPath);
     const configManager = new SharpPilotConfigManager(context.extensionPath, version);
     const toolsStatusWriter = new McpToolsConfigWriter(configManager, toolsCatalog);
@@ -37,7 +39,7 @@ export function activate(context: vscode.ExtensionContext) {
     const instructionsWriter = new InstructionsConfigWriter(context.extensionPath, configManager, instructionsCatalog);
     const outputChannel = vscode.window.createOutputChannel('SharpPilot');
     const workspaceServer = new WorkspaceServerManager(context.extensionPath, outputChannel, vscode.workspace.workspaceFolders?.[0]?.uri.fsPath);
-    const mcpServerProvider = new McpServerProvider(context.extensionPath, version, workspaceContextDetector, didChangeEmitter.event, workspaceServer, toolsCatalog);
+    const mcpServerProvider = new McpServerProvider(context.extensionPath, version, workspaceContextDetector, didChangeEmitter.event, workspaceServer, toolsCatalog, serversCatalog);
     const instructionsTreeProvider = new InstructionsTreeProvider(workspaceContextDetector, instructionsCatalog);
     const mcpToolsTreeProvider = new McpToolsTreeProvider(workspaceContextDetector, toolsCatalog);
 

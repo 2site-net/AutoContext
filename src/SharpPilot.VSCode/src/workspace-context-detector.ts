@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import type { InstructionsCatalog } from './instructions-catalog.js';
 import { ContextKeys } from './context-keys.js';
-import { McpServersRegistry } from './mcp-servers-registry.js';
+import type { McpServersCatalog } from './mcp-servers-catalog.js';
 
 export class WorkspaceContextDetector implements vscode.Disposable {
     private readonly disposables: vscode.Disposable[] = [];
@@ -22,7 +22,10 @@ export class WorkspaceContextDetector implements vscode.Disposable {
         return this._overriddenSettingIds;
     }
 
-    constructor(private readonly instructionsCatalog: InstructionsCatalog) {
+    constructor(
+        private readonly instructionsCatalog: InstructionsCatalog,
+        private readonly serversCatalog: McpServersCatalog,
+    ) {
         const schedule = () => this.scheduleDetect();
 
         const existenceWatcher = vscode.workspace.createFileSystemWatcher(
@@ -477,7 +480,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
                 hasGit,
             };
 
-            const serverChanged = McpServersRegistry.all.some(s =>
+            const serverChanged = this.serversCatalog.all.some(s =>
                 s.contextKey !== undefined && this._state.get(s.contextKey) !== contextState[s.contextKey],
             );
 

@@ -1,4 +1,5 @@
 import type { McpToolEntry } from './mcp-tool-entry.js';
+import type { McpServerEntry } from './mcp-server-entry.js';
 import type { InstructionsFileEntry } from './instructions-catalog-entry.js';
 
 // Category order: General → Languages → Platforms (.NET, Web) → Tools.
@@ -100,3 +101,10 @@ export const mcpToolEntries: readonly McpToolEntry[] = [
 
 export const mcpToolGroupOrder: readonly string[] = ['.NET', 'Web', 'Workspace'];
 export const mcpToolCategoryOrder: readonly string[] = ['C#', 'NuGet', 'TypeScript', 'Git', 'EditorConfig'];
+
+export const mcpServerEntries: readonly McpServerEntry[] = [
+    { label: 'SharpPilot: DotNet', category: 'dotnet', process: 'dotnet', contextKey: 'hasDotNet' },
+    { label: 'SharpPilot: Git', category: 'git', process: 'workspace', contextKey: 'hasGit' },
+    { label: 'SharpPilot: EditorConfig', category: 'editorconfig', process: 'workspace' },
+    { label: 'SharpPilot: TypeScript', category: 'typescript', process: 'web', contextKey: 'hasTypeScript' },
+];

@@ -142,7 +142,7 @@ On activation (and on configuration or window-focus changes), `InstructionsConfi
 
 ## MCP and Tools
 
-SharpPilot registers four MCP server categories — DotNet, Git, EditorConfig, and TypeScript — each identified by a `--scope` argument so they appear as separate sections in the tools UI. Categories are defined in `mcp-servers-registry.ts` and `ui-constants.ts`. Servers are workspace-aware (see [Activation Flow](#activation-flow) steps 3 and 5) and most MCP tools loop over individually-toggleable features (see [Runtime Flow](#runtime-flow)).
+SharpPilot registers four MCP server categories — DotNet, Git, EditorConfig, and TypeScript — each identified by a `--scope` argument so they appear as separate sections in the tools UI. Categories are defined in `ui-constants.ts`. Servers are workspace-aware (see [Activation Flow](#activation-flow) steps 3 and 5) and most MCP tools loop over individually-toggleable features (see [Runtime Flow](#runtime-flow)).
 
 ### Projects
 
