@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, rmSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { createHash } from 'node:crypto';
-import { InstructionsRegistry } from './instructions-registry.js';
+import type { InstructionsCatalog } from './instructions-catalog.js';
 import { InstructionsParser } from './instructions-parser.js';
 import type { SharpPilotConfigManager } from './sharppilot-config.js';
 
@@ -26,6 +26,7 @@ export class InstructionsConfigWriter implements vscode.Disposable {
     constructor(
         private readonly extensionPath: string,
         private readonly configManager: SharpPilotConfigManager,
+        private readonly catalog: InstructionsCatalog,
     ) {
         this.generatedRoot = join(extensionPath, 'instructions', '.generated');
         this.stagingDir = join(extensionPath, 'instructions', '.workspaces', InstructionsConfigWriter.workspaceHash());
@@ -55,7 +56,7 @@ export class InstructionsConfigWriter implements vscode.Disposable {
         const config = this.configManager.read();
         const disabledInstructionsMap = config.instructions?.disabled ?? {};
 
-        for (const entry of InstructionsRegistry.all) {
+        for (const entry of this.catalog.all) {
             const disabledIds = disabledInstructionsMap[entry.fileName];
             const disabled = disabledIds !== undefined && disabledIds.length > 0
                 ? new Set(disabledIds)
@@ -70,7 +71,7 @@ export class InstructionsConfigWriter implements vscode.Disposable {
     private promote(): void {
         mkdirSync(this.generatedRoot, { recursive: true });
 
-        for (const entry of InstructionsRegistry.all) {
+        for (const entry of this.catalog.all) {
             const staged = join(this.stagingDir, entry.fileName);
             const live = join(this.generatedRoot, entry.fileName);
             InstructionsConfigWriter.copyIfChanged(staged, live);

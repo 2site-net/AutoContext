@@ -3,7 +3,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { InstructionsConfigWriter } from '../../src/instructions-config-writer';
 import { SharpPilotConfigManager } from '../../src/sharppilot-config';
 import { InstructionsParser } from '../../src/instructions-parser';
-import { InstructionsRegistry } from '../../src/instructions-registry';
+import { InstructionsCatalog } from '../../src/instructions-catalog';
+import { instructionEntries } from '../../src/ui-constants';
 
 import { readFileSync, writeFileSync, existsSync, readdirSync, rmSync, statSync } from 'node:fs';
 
@@ -34,6 +35,8 @@ description: "Test"
 `;
 
 describe('InstructionsConfigWriter', () => {
+    const catalog = new InstructionsCatalog(instructionEntries);
+
     it('should write all instruction files when no instructions are disabled', () => {
         vi.mocked(readFileSync).mockImplementation((path: unknown) => {
             const pathStr = String(path);
@@ -42,7 +45,7 @@ describe('InstructionsConfigWriter', () => {
         });
 
         const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
-        const writer = new InstructionsConfigWriter('/ext', configManager);
+        const writer = new InstructionsConfigWriter('/ext', configManager, catalog);
         writer.write();
 
         expect(writeFileSync).toHaveBeenCalled();
@@ -50,7 +53,7 @@ describe('InstructionsConfigWriter', () => {
         const stagingWrites = writeCalls.filter(([path]) =>
             String(path).includes('.workspaces'),
         );
-        expect.soft(stagingWrites.length).toBe(InstructionsRegistry.count);
+        expect.soft(stagingWrites.length).toBe(catalog.count);
     });
 
     it('should strip instruction IDs from output', () => {
@@ -61,7 +64,7 @@ describe('InstructionsConfigWriter', () => {
         });
 
         const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
-        const writer = new InstructionsConfigWriter('/ext', configManager);
+        const writer = new InstructionsConfigWriter('/ext', configManager, catalog);
         writer.write();
 
         const writeCalls = vi.mocked(writeFileSync).mock.calls;
@@ -81,7 +84,7 @@ describe('InstructionsConfigWriter', () => {
     it('should write filtered content with disabled instructions removed', () => {
         const { instructions: parsedInstructions } = InstructionsParser.parse(testContent);
         const firstId = parsedInstructions[0].id;
-        const targetFileName = InstructionsRegistry.all[0].fileName;
+        const targetFileName = catalog.all[0].fileName;
 
         vi.mocked(readFileSync).mockImplementation((path: unknown) => {
             const pathStr = String(path);
@@ -94,7 +97,7 @@ describe('InstructionsConfigWriter', () => {
         });
 
         const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
-        const writer = new InstructionsConfigWriter('/ext', configManager);
+        const writer = new InstructionsConfigWriter('/ext', configManager, catalog);
         writer.write();
 
         const writeCalls = vi.mocked(writeFileSync).mock.calls;
@@ -132,7 +135,7 @@ More prose below.
         });
 
         const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
-        const writer = new InstructionsConfigWriter('/ext', configManager);
+        const writer = new InstructionsConfigWriter('/ext', configManager, catalog);
         writer.write();
 
         const writeCalls = vi.mocked(writeFileSync).mock.calls;
@@ -154,7 +157,7 @@ More prose below.
         vi.mocked(readFileSync).mockReturnValue('{}');
 
         const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
-        const writer = new InstructionsConfigWriter('/ext', configManager);
+        const writer = new InstructionsConfigWriter('/ext', configManager, catalog);
         writer.removeOrphanedStagingDirs();
 
         expect(readdirSync).not.toHaveBeenCalled();
@@ -168,7 +171,7 @@ More prose below.
         vi.mocked(readFileSync).mockReturnValue('{}');
 
         const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
-        const writer = new InstructionsConfigWriter('/ext', configManager);
+        const writer = new InstructionsConfigWriter('/ext', configManager, catalog);
         writer.removeOrphanedStagingDirs();
 
         expect.soft(rmSync).toHaveBeenCalledWith(
@@ -184,7 +187,7 @@ More prose below.
         vi.mocked(readFileSync).mockReturnValue('{}');
 
         const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
-        const writer = new InstructionsConfigWriter('/ext', configManager);
+        const writer = new InstructionsConfigWriter('/ext', configManager, catalog);
         writer.removeOrphanedStagingDirs();
 
         expect.soft(rmSync).not.toHaveBeenCalled();
@@ -194,7 +197,7 @@ More prose below.
         vi.mocked(readFileSync).mockReturnValue('{}');
 
         const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
-        const writer = new InstructionsConfigWriter('/ext', configManager);
+        const writer = new InstructionsConfigWriter('/ext', configManager, catalog);
 
         expect.soft(() => writer.dispose()).not.toThrow();
     });

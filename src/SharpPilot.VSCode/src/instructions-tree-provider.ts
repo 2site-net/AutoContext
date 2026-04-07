@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
-import { InstructionsRegistry } from './instructions-registry.js';
+import type { InstructionsCatalog } from './instructions-catalog.js';
 import { ContextKeys } from './context-keys.js';
+import { instructionsCategoryOrder } from './ui-constants.js';
 import { instructionScheme } from './instructions-content-provider.js';
 import type { WorkspaceContextDetector } from './workspace-context-detector.js';
 import type { InstructionsCatalogEntry } from './instructions-catalog-entry.js';
@@ -27,8 +28,7 @@ interface InstructionNode {
     readonly state: InstructionState;
 }
 
-// Category order: General → Languages → Platforms (.NET, Web) → Tools.
-const categoryOrder: readonly string[] = ['General', 'Languages', '.NET', 'Web', 'Tools'];
+
 
 // Sort rank: Active & Overridden first, then Disabled, then NotDetected.
 const stateRank: Record<InstructionState, number> = {
@@ -57,7 +57,7 @@ export class InstructionsTreeProvider implements vscode.TreeDataProvider<TreeEle
     private readonly treeView: vscode.TreeView<TreeElement>;
     private readonly disposables: vscode.Disposable[] = [];
 
-    constructor(private readonly detector: WorkspaceContextDetector) {
+    constructor(private readonly detector: WorkspaceContextDetector, private readonly catalog: InstructionsCatalog) {
         this.treeView = vscode.window.createTreeView(InstructionsTreeProvider.viewId, {
             treeDataProvider: this,
         });
@@ -94,8 +94,8 @@ export class InstructionsTreeProvider implements vscode.TreeDataProvider<TreeEle
 
     private updateDescription(): void {
         const config = vscode.workspace.getConfiguration();
-        const enabled = InstructionsRegistry.all.filter(e => config.get<boolean>(e.settingId, true)).length;
-        this.treeView.description = `${enabled}/${InstructionsRegistry.count}`;
+        const enabled = this.catalog.all.filter(e => config.get<boolean>(e.settingId, true)).length;
+        this.treeView.description = `${enabled}/${this.catalog.count}`;
     }
 
     getTreeItem(element: TreeElement): vscode.TreeItem {
@@ -130,8 +130,8 @@ export class InstructionsTreeProvider implements vscode.TreeDataProvider<TreeEle
 
     private getRootCategories(): CategoryNode[] {
         const children = (name: string) => this.getInstructionsForCategory(name);
-        const presentCategories = new Set(InstructionsRegistry.all.map(e => e.category));
-        return categoryOrder
+        const presentCategories = new Set(this.catalog.all.map(e => e.category));
+        return instructionsCategoryOrder
             .filter(c => presentCategories.has(c) && children(c).length > 0)
             .map(name => ({ kind: 'category' as const, name }));
     }
@@ -140,7 +140,7 @@ export class InstructionsTreeProvider implements vscode.TreeDataProvider<TreeEle
         const config = vscode.workspace.getConfiguration();
         const overrides = this.detector.getOverriddenSettingIds();
 
-        return InstructionsRegistry.all
+        return this.catalog.all
             .filter(e => e.category === category)
             .map(entry => ({
                 kind: 'instruction' as const,
@@ -276,7 +276,7 @@ export class InstructionsTreeProvider implements vscode.TreeDataProvider<TreeEle
     }
 
     getCheckedEntries(): readonly InstructionsCatalogEntry[] {
-        return InstructionsRegistry.all.filter(e => this._checkedEntries.has(e.settingId));
+        return this.catalog.all.filter(e => this._checkedEntries.has(e.settingId));
     }
 
     static async enableInstruction(node: InstructionNode): Promise<void> {

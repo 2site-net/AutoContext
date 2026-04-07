@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { InstructionsRegistry } from './instructions-registry.js';
+import type { InstructionsCatalog } from './instructions-catalog.js';
 import { ContextKeys } from './context-keys.js';
 import { McpServersRegistry } from './mcp-servers-registry.js';
 
@@ -22,7 +22,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
         return this._overriddenSettingIds;
     }
 
-    constructor() {
+    constructor(private readonly instructionsCatalog: InstructionsCatalog) {
         const schedule = () => this.scheduleDetect();
 
         const existenceWatcher = vscode.workspace.createFileSystemWatcher(
@@ -374,7 +374,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
                 const segments = uri.path.split('/');
                 const matchName = segments[segments.length - 1];
 
-                if (InstructionsRegistry.findByFileName(matchName)) {
+                if (this.instructionsCatalog.findByFileName(matchName)) {
                     overriddenFileNames.add(matchName);
                 }
             }
@@ -446,7 +446,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
                 setContext('sharppilot.workspace.hasDotNetTesting', hasXunit || hasMsTest || hasNUnit),
                 setContext('sharppilot.workspace.hasWebTesting', hasVitest || hasJest || hasJasmine || hasMocha || hasPlaywright || hasCypress),
                 setContext('sharppilot.workspace.hasGit', hasGit),
-                ...InstructionsRegistry.all.map(i =>
+                ...this.instructionsCatalog.all.map(i =>
                     setContext(ContextKeys.overrideKey(i.settingId), overriddenFileNames.has(i.fileName)),
                 ),
             ]);
@@ -486,7 +486,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
             }
 
             this._overriddenSettingIds.clear();
-            for (const i of InstructionsRegistry.all) {
+            for (const i of this.instructionsCatalog.all) {
                 if (overriddenFileNames.has(i.fileName)) {
                     this._overriddenSettingIds.add(i.settingId);
                 }

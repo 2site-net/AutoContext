@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { InstructionsParser } from './instructions-parser.js';
-import { InstructionsRegistry } from './instructions-registry.js';
+import type { InstructionsCatalog } from './instructions-catalog.js';
 import { ContextKeys } from './context-keys.js';
 import { instructionScheme } from './instructions-content-provider.js';
 import type { SharpPilotConfigManager } from './sharppilot-config.js';
@@ -20,6 +20,7 @@ export class InstructionsCodeLensProvider implements vscode.CodeLensProvider, vs
         private readonly extensionPath: string,
         private readonly configManager: SharpPilotConfigManager,
         private readonly detector: WorkspaceContextDetector,
+        private readonly catalog: InstructionsCatalog,
     ) {
         this.disposables.push(
             this.didChangeEmitter,
@@ -35,7 +36,7 @@ export class InstructionsCodeLensProvider implements vscode.CodeLensProvider, vs
 
         const fileName = document.uri.path;
 
-        const entry = InstructionsRegistry.findByFileName(fileName);
+        const entry = this.catalog.findByFileName(fileName);
         if (entry) {
             const ctxKeys = ContextKeys.forEntry(entry);
             if (ctxKeys.length > 0 && !ctxKeys.some(k => this.detector.get(k))) {

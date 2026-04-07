@@ -4,7 +4,8 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { InstructionsRegistry } from './instructions-registry.js';
+import { InstructionsCatalog } from './instructions-catalog.js';
+import { instructionEntries } from './ui-constants.js';
 import { ContextKeys } from './context-keys.js';
 import type { CatalogEntry } from './catalog-entry.js';
 
@@ -28,10 +29,10 @@ function buildWhenClause(entry: CatalogEntry): string {
     return parts.join(' && ');
 }
 
-export function buildChatInstructions(): ChatInstruction[] {
+export function buildChatInstructions(catalog: InstructionsCatalog): ChatInstruction[] {
     return [
         { path: './instructions/copilot.instructions.md' },
-        ...InstructionsRegistry.all.map(entry => ({
+        ...catalog.all.map(entry => ({
             path: `./instructions/.generated/${entry.fileName}`,
             when: buildWhenClause(entry),
         })),
@@ -43,7 +44,8 @@ if (process.argv[1]?.replace(/\\/g, '/').endsWith('/src/chat-instructions-manife
     const pkgPath = join(root, 'package.json');
     const pkg = JSON.parse(readFileSync(pkgPath, 'utf-8'));
 
-    pkg.contributes.chatInstructions = buildChatInstructions();
+    const catalog = new InstructionsCatalog(instructionEntries);
+    pkg.contributes.chatInstructions = buildChatInstructions(catalog);
     writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + '\n', 'utf-8');
 
     console.log(`Generated ${pkg.contributes.chatInstructions.length} chatInstructions entries.`);

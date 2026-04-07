@@ -1,7 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { ContextKeys } from '../../src/context-keys';
-import { InstructionsRegistry } from '../../src/instructions-registry';
-import { mcpToolEntries } from '../../src/ui-constants';
+import { instructionEntries, mcpToolEntries } from '../../src/ui-constants';
 
 describe('ContextKeys.overrideKey', () => {
     it('should strip the settings prefix and prepend the override prefix', () => {
@@ -17,19 +16,19 @@ describe('ContextKeys.overrideKey', () => {
 
 describe('ContextKeys.forEntry', () => {
     it('should return empty array for always-on instructions', () => {
-        const codeReview = InstructionsRegistry.all.find(i => i.settingId === 'sharppilot.instructions.codeReview')!;
+        const codeReview = instructionEntries.find(i => i.settingId === 'sharppilot.instructions.codeReview')!;
 
         expect.soft(ContextKeys.forEntry(codeReview)).toEqual([]);
     });
 
     it('should return context keys for workspace-specific instructions', () => {
-        const asyncAwait = InstructionsRegistry.all.find(i => i.settingId === 'sharppilot.instructions.dotnet.asyncAwait')!;
+        const asyncAwait = instructionEntries.find(i => i.settingId === 'sharppilot.instructions.dotnet.asyncAwait')!;
 
         expect.soft(ContextKeys.forEntry(asyncAwait)).toEqual(['hasDotNet']);
     });
 
     it('should return multiple context keys for OR conditions', () => {
-        const js = InstructionsRegistry.all.find(i => i.settingId === 'sharppilot.instructions.lang.javascript')!;
+        const js = instructionEntries.find(i => i.settingId === 'sharppilot.instructions.lang.javascript')!;
 
         expect.soft(ContextKeys.forEntry(js)).toEqual(['hasJavaScript', 'hasTypeScript']);
     });
@@ -56,8 +55,8 @@ describe('ContextKeys.forEntry', () => {
             'sharppilot.instructions.lang.sql',
         ]);
 
-        expect(InstructionsRegistry.all.length).toBeGreaterThan(0);
-        expect.soft(InstructionsRegistry.all.every(entry =>
+        expect(instructionEntries.length).toBeGreaterThan(0);
+        expect.soft(instructionEntries.every(entry =>
             alwaysOn.has(entry.settingId)
                 ? ContextKeys.forEntry(entry).length === 0
                 : ContextKeys.forEntry(entry).length > 0,

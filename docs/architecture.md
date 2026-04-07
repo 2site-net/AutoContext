@@ -110,7 +110,7 @@ Checkers with EditorConfig backing today:
 
 ## Instructions
 
-SharpPilot ships curated Markdown instruction files organized into categories — General, Languages, .NET, Web, and Tools. The full list is defined in `instructions-registry.ts`. One always-on file (`copilot.instructions.md`) provides cross-cutting rules; the rest are toggleable.
+SharpPilot ships curated Markdown instruction files organized into categories — General, Languages, .NET, Web, and Tools. The full list is defined in `ui-constants.ts`. One always-on file (`copilot.instructions.md`) provides cross-cutting rules; the rest are toggleable.
 
 Instructions are **workspace-aware** — they are only injected into Copilot's context when the workspace contains their technology (e.g., .NET instructions require a `.csproj` or `.sln` file). The always-on `copilot.instructions.md` is the only file that is attached unconditionally.
 

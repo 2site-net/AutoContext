@@ -1,16 +1,16 @@
 import * as vscode from 'vscode';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { InstructionsRegistry } from './instructions-registry.js';
+import type { InstructionsCatalog } from './instructions-catalog.js';
 import { InstructionsParser } from './instructions-parser.js';
 import type { SharpPilotConfigManager } from './sharppilot-config.js';
 
 export class InstructionsDiagnostics {
-    static log(outputChannel: vscode.OutputChannel, extensionPath: string, configManager: SharpPilotConfigManager): void {
+    static log(outputChannel: vscode.OutputChannel, extensionPath: string, configManager: SharpPilotConfigManager, catalog: InstructionsCatalog): void {
         outputChannel.clear();
         const warnOnMissingId = configManager.read().diagnostic?.warnOnMissingId === true;
 
-        for (const entry of InstructionsRegistry.all) {
+        for (const entry of catalog.all) {
             let content: string;
             try {
                 content = readFileSync(join(extensionPath, 'instructions', entry.fileName), 'utf-8');

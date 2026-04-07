@@ -4,6 +4,8 @@ import { InstructionsCodeLensProvider, toggleInstructionCommandId, resetInstruct
 import { SharpPilotConfigManager } from '../../src/sharppilot-config';
 import { instructionScheme } from '../../src/instructions-content-provider';
 import { InstructionsParser } from '../../src/instructions-parser';
+import { InstructionsCatalog } from '../../src/instructions-catalog';
+import { instructionEntries } from '../../src/ui-constants';
 
 import { readFileSync } from 'node:fs';
 
@@ -41,11 +43,13 @@ function makeDocument(scheme: string, path: string) {
 }
 
 describe('InstructionsCodeLensProvider', () => {
+    const catalog = new InstructionsCatalog(instructionEntries);
+
     it('should return empty array for non-instruction documents', () => {
         vi.mocked(readFileSync).mockReturnValue('{}');
 
         const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
-        const provider = new InstructionsCodeLensProvider('/ext', configManager, fakeDetector);
+        const provider = new InstructionsCodeLensProvider('/ext', configManager, fakeDetector, catalog);
 
         const lenses = provider.provideCodeLenses(makeDocument('file', 'test.md'));
 
@@ -60,7 +64,7 @@ describe('InstructionsCodeLensProvider', () => {
         });
 
         const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
-        const provider = new InstructionsCodeLensProvider('/ext', configManager, fakeDetector);
+        const provider = new InstructionsCodeLensProvider('/ext', configManager, fakeDetector, catalog);
 
         const lenses = provider.provideCodeLenses(makeDocument(instructionScheme, 'test.instructions.md'));
 
@@ -87,7 +91,7 @@ describe('InstructionsCodeLensProvider', () => {
         });
 
         const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
-        const provider = new InstructionsCodeLensProvider('/ext', configManager, fakeDetector);
+        const provider = new InstructionsCodeLensProvider('/ext', configManager, fakeDetector, catalog);
 
         const lenses = provider.provideCodeLenses(makeDocument(instructionScheme, 'test.instructions.md'));
 
@@ -116,7 +120,7 @@ describe('InstructionsCodeLensProvider', () => {
         });
 
         const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
-        const provider = new InstructionsCodeLensProvider('/ext', configManager, fakeDetector);
+        const provider = new InstructionsCodeLensProvider('/ext', configManager, fakeDetector, catalog);
 
         const lenses = provider.provideCodeLenses(makeDocument(instructionScheme, 'test.instructions.md'));
 
@@ -135,7 +139,7 @@ describe('InstructionsCodeLensProvider', () => {
         });
 
         const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
-        const provider = new InstructionsCodeLensProvider('/ext', configManager, fakeDetector);
+        const provider = new InstructionsCodeLensProvider('/ext', configManager, fakeDetector, catalog);
 
         const lenses = provider.provideCodeLenses(makeDocument(instructionScheme, 'test.instructions.md'));
 
@@ -153,7 +157,7 @@ describe('InstructionsCodeLensProvider', () => {
         });
 
         const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
-        const provider = new InstructionsCodeLensProvider('/ext', configManager, fakeDetector);
+        const provider = new InstructionsCodeLensProvider('/ext', configManager, fakeDetector, catalog);
 
         const lenses = provider.provideCodeLenses(makeDocument(instructionScheme, 'lang-csharp.instructions.md'));
 
@@ -169,7 +173,7 @@ describe('InstructionsCodeLensProvider', () => {
         });
 
         const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
-        const provider = new InstructionsCodeLensProvider('/ext', configManager, fakeDetector);
+        const provider = new InstructionsCodeLensProvider('/ext', configManager, fakeDetector, catalog);
 
         const lenses = provider.provideCodeLenses(makeDocument(instructionScheme, 'lang-csharp.instructions.md'));
 
