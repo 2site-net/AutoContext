@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { __setConfigStore, TreeItemCollapsibleState, TreeItemCheckboxState, workspace, ConfigurationTarget, window } from './__mocks__/vscode';
 import { McpToolsTreeProvider, ToolState } from '../../src/mcp-tools-tree-provider';
 import { McpToolsCatalog } from '../../src/mcp-tools-catalog';
-import { mcpToolEntries } from '../../src/ui-constants';
+import { mcpToolEntries, mcpToolCategoriesByServer } from '../../src/ui-constants';
 
 const fakeDetector = {
     get: vi.fn((_key: string) => false),
@@ -16,7 +16,7 @@ beforeEach(() => {
 });
 
 describe('McpToolsTreeProvider', () => {
-    const catalog = new McpToolsCatalog(mcpToolEntries);
+    const catalog = new McpToolsCatalog(mcpToolEntries, mcpToolCategoriesByServer);
 
     /** Navigate: root → group → category → MCP tools */
     function getMcpTools(provider: McpToolsTreeProvider, groupName: string, categoryName: string) {

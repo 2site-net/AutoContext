@@ -1,16 +1,12 @@
 import type { McpToolEntry } from './mcp-tool-entry.js';
 
-const categories: Record<string, readonly string[]> = {
-    dotnet: ['NuGet', 'C#'],
-    git: ['Git'],
-    editorconfig: ['EditorConfig'],
-    typescript: ['TypeScript'],
-};
-
 export class McpToolsCatalog {
     private readonly entries: readonly McpToolEntry[];
 
-    constructor(data: readonly McpToolEntry[]) {
+    constructor(
+        data: readonly McpToolEntry[],
+        private readonly serverCategories: Record<string, readonly string[]>,
+    ) {
         this.entries = data;
     }
 
@@ -23,7 +19,7 @@ export class McpToolsCatalog {
     }
 
     getSettingIdByCategory(category: string): readonly string[] {
-        const cats = categories[category];
+        const cats = this.serverCategories[category];
         return cats ? this.entries.filter(t => cats.includes(t.category)).map(t => t.settingId) : [];
     }
 }

@@ -99,6 +99,13 @@ export const mcpToolEntries: readonly McpToolEntry[] = [
     { settingId: 'sharppilot.tools.check_typescript_coding_style', featureName: 'check_typescript_coding_style', toolName: 'check_typescript_all', label: 'Coding Style', category: 'TypeScript', group: 'Web', contextKeys: ['hasTypeScript'] },
 ];
 
+export const mcpToolCategoriesByServer: Record<string, readonly string[]> = {
+    dotnet: ['NuGet', 'C#'],
+    git: ['Git'],
+    editorconfig: ['EditorConfig'],
+    typescript: ['TypeScript'],
+};
+
 export const mcpToolGroupOrder: readonly string[] = ['.NET', 'Web', 'Workspace'];
 export const mcpToolCategoryOrder: readonly string[] = ['C#', 'NuGet', 'TypeScript', 'Git', 'EditorConfig'];
 

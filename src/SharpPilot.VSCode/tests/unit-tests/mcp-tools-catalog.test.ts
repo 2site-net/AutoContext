@@ -8,39 +8,44 @@ const testEntries: readonly McpToolEntry[] = [
     { settingId: 'tools.gamma', toolName: 'gamma', label: 'Gamma', category: 'Git', group: 'Workspace' },
 ];
 
+const testCategories: Record<string, readonly string[]> = {
+    dotnet: ['NuGet', 'C#'],
+    git: ['Git'],
+};
+
 describe('McpToolsCatalog', () => {
     it('should expose all entries', () => {
-        const catalog = new McpToolsCatalog(testEntries);
+        const catalog = new McpToolsCatalog(testEntries, testCategories);
 
         expect.soft(catalog.all).toEqual(testEntries);
     });
 
     it('should return the correct count', () => {
-        const catalog = new McpToolsCatalog(testEntries);
+        const catalog = new McpToolsCatalog(testEntries, testCategories);
 
         expect.soft(catalog.count).toBe(3);
     });
 
     it('should return setting ids for a matching category', () => {
-        const catalog = new McpToolsCatalog(testEntries);
+        const catalog = new McpToolsCatalog(testEntries, testCategories);
 
         expect.soft(catalog.getSettingIdByCategory('dotnet')).toEqual(['tools.alpha', 'tools.beta']);
     });
 
     it('should return setting ids for git category', () => {
-        const catalog = new McpToolsCatalog(testEntries);
+        const catalog = new McpToolsCatalog(testEntries, testCategories);
 
         expect.soft(catalog.getSettingIdByCategory('git')).toEqual(['tools.gamma']);
     });
 
     it('should return empty array for unknown category', () => {
-        const catalog = new McpToolsCatalog(testEntries);
+        const catalog = new McpToolsCatalog(testEntries, testCategories);
 
         expect.soft(catalog.getSettingIdByCategory('unknown')).toEqual([]);
     });
 
     it('should return empty array for empty catalog', () => {
-        const catalog = new McpToolsCatalog([]);
+        const catalog = new McpToolsCatalog([], testCategories);
 
         expect.soft(catalog.all).toEqual([]);
         expect.soft(catalog.count).toBe(0);
