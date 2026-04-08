@@ -58,6 +58,11 @@ export class McpServerProvider implements vscode.McpServerDefinitionProvider {
                     args.push('--workspace-folder', workspaceFolder.uri.fsPath);
                 }
 
+                // Some MCP server tools require EditorConfig data from the workspace-server
+                // sidecar. We pass the --workspace-server pipe only to non-editorconfig
+                // servers, since the editorconfig MCP server tool reads .editorconfig files
+                // directly from the workspace.
+                // Giving it the same pipe would create a circular dependency.
                 if (s.category !== 'editorconfig') {
                     const pipeName = this.workspaceServer.getPipeName();
 
