@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import type { InstructionsCatalog } from './instructions-catalog.js';
 import { ContextKeys } from './context-keys.js';
-import { instructionsCategoryOrder, viewIds, contextKeys, InstructionState } from './ui-constants.js';
+import { instructionsCategoryOrder, viewIds, contextKeys, InstructionState, treeViewLabels } from './ui-constants.js';
 import { instructionScheme } from './instructions-content-provider.js';
 import type { WorkspaceContextDetector } from './workspace-context-detector.js';
 import type { InstructionsCatalogEntry } from './instructions-catalog-entry.js';
@@ -18,8 +18,6 @@ interface InstructionNode {
     readonly entry: InstructionsCatalogEntry;
     readonly state: InstructionState;
 }
-
-
 
 // Sort rank: Active & Overridden first, then Disabled, then NotDetected.
 const stateRank: Record<InstructionState, number> = {
@@ -170,7 +168,7 @@ export class InstructionsTreeProvider implements vscode.TreeDataProvider<TreeEle
             const state = InstructionsTreeProvider.resolveState(e, config, this.detector, overrides);
             return state === InstructionState.Active || state === InstructionState.Overridden;
         }).length;
-        item.tooltip = `${node.name}\n${active}/${entries.length} active`;
+        item.tooltip = `${node.name}\n${active}/${entries.length} ${treeViewLabels.activeSuffix}`;
         return item;
     }
 
@@ -184,15 +182,15 @@ export class InstructionsTreeProvider implements vscode.TreeDataProvider<TreeEle
                 break;
             case InstructionState.NotDetected:
                 item.iconPath = new vscode.ThemeIcon('circle-slash', new vscode.ThemeColor('disabledForeground'));
-                item.description = 'not detected';
+                item.description = treeViewLabels.notDetected;
                 break;
             case InstructionState.Disabled:
                 item.iconPath = new vscode.ThemeIcon('x', new vscode.ThemeColor('testing.iconFailed'));
-                item.description = 'disabled';
+                item.description = treeViewLabels.disabled;
                 break;
             case InstructionState.Overridden:
                 item.iconPath = new vscode.ThemeIcon('file-symlink-file', new vscode.ThemeColor('terminal.ansiYellow'));
-                item.description = 'overridden';
+                item.description = treeViewLabels.overridden;
                 break;
             default: {
                 const _: never = node.state;
@@ -234,16 +232,16 @@ export class InstructionsTreeProvider implements vscode.TreeDataProvider<TreeEle
 
         switch (node.state) {
             case InstructionState.Active:
-                lines.push('Active — included in Copilot context');
+                lines.push(treeViewLabels.activeTooltip);
                 break;
             case InstructionState.NotDetected:
-                lines.push('Not detected — workspace lacks matching files');
+                lines.push(treeViewLabels.notDetectedTooltip);
                 break;
             case InstructionState.Disabled:
-                lines.push('Disabled — turned off in settings');
+                lines.push(treeViewLabels.disabledTooltip);
                 break;
             case InstructionState.Overridden:
-                lines.push('Overridden — local .github/instructions file found');
+                lines.push(treeViewLabels.overriddenTooltip);
                 break;
             default: {
                 const _: never = node.state;
@@ -252,7 +250,7 @@ export class InstructionsTreeProvider implements vscode.TreeDataProvider<TreeEle
             }
         }
 
-        lines.push(`Setting: ${node.entry.settingId}`);
+        lines.push(`${treeViewLabels.settingPrefix} ${node.entry.settingId}`);
         return lines.join('\n');
     }
 

@@ -166,3 +166,19 @@ export const InstructionState = {
 } as const;
 
 export type InstructionState = typeof InstructionState[keyof typeof InstructionState];
+
+// ── Tree View Labels ─────────────────────────────────────────────────
+
+export const treeViewLabels = {
+    activeSuffix: 'active',
+    activeTooltip: 'Active — included in Copilot context',
+    disabled: 'disabled',
+    disabledTooltip: 'Disabled — turned off in settings',
+    enabledTooltip: 'Enabled — available to Copilot',
+    featuresEnabledTooltip: 'features enabled',
+    notDetected: 'not detected',
+    notDetectedTooltip: 'Not detected — workspace lacks matching files',
+    overridden: 'overridden',
+    overriddenTooltip: 'Overridden — local .github/instructions file found',
+    settingPrefix: 'Setting:',
+} as const;
