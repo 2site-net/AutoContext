@@ -487,6 +487,69 @@ describe('McpToolsTreeProvider', () => {
         provider.dispose();
     });
 
+    it('should show enabled/total count in group tooltip when all detected', () => {
+        vi.mocked(fakeDetector.get).mockReturnValue(true);
+
+        const provider = new McpToolsTreeProvider(fakeDetector, catalog);
+        const roots = provider.getChildren();
+        const dotnet = roots.find(r => r.kind === 'group' && r.name === '.NET')!;
+        const item = provider.getTreeItem(dotnet);
+        const dotnetEntries = catalog.all.filter(e => e.group === '.NET');
+
+        expect.soft(item.tooltip).toBe(`.NET\n${dotnetEntries.length}/${dotnetEntries.length} features enabled`);
+
+        provider.dispose();
+    });
+
+    it('should show enabled/total count in group tooltip with not-detected entries', () => {
+        vi.mocked(fakeDetector.get).mockReturnValue(false);
+
+        const provider = new McpToolsTreeProvider(fakeDetector, catalog);
+        const roots = provider.getChildren();
+        const workspace = roots.find(r => r.kind === 'group' && r.name === 'Workspace')!;
+        const item = provider.getTreeItem(workspace);
+        const workspaceEntries = catalog.all.filter(e => e.group === 'Workspace');
+        const alwaysOn = workspaceEntries.filter(e => !e.contextKeys || e.contextKeys.length === 0).length;
+
+        expect.soft(item.tooltip).toBe(`Workspace\n${alwaysOn}/${workspaceEntries.length} features enabled`);
+
+        provider.dispose();
+    });
+
+    it('should show enabled/total count in category tooltip when all detected', () => {
+        vi.mocked(fakeDetector.get).mockReturnValue(true);
+        __setConfigStore({ 'sharppilot.tools.check_csharp_async_patterns': false });
+
+        const provider = new McpToolsTreeProvider(fakeDetector, catalog);
+        const roots = provider.getChildren();
+        const dotnet = roots.find(r => r.kind === 'group' && r.name === '.NET')!;
+        const categories = provider.getChildren(dotnet);
+        const csharp = categories.find(r => r.kind === 'category' && r.name === 'C#')!;
+        const item = provider.getTreeItem(csharp);
+        const csharpEntries = catalog.all.filter(e => e.category === 'C#');
+        const enabled = csharpEntries.filter(e => e.settingId !== 'sharppilot.tools.check_csharp_async_patterns').length;
+
+        expect.soft(item.tooltip).toBe(`C#\n${enabled}/${csharpEntries.length} features enabled`);
+
+        provider.dispose();
+    });
+
+    it('should show enabled/total count in category tooltip with not-detected entries', () => {
+        vi.mocked(fakeDetector.get).mockReturnValue(false);
+
+        const provider = new McpToolsTreeProvider(fakeDetector, catalog);
+        const roots = provider.getChildren();
+        const dotnet = roots.find(r => r.kind === 'group' && r.name === '.NET')!;
+        const categories = provider.getChildren(dotnet);
+        const csharp = categories.find(r => r.kind === 'category' && r.name === 'C#')!;
+        const item = provider.getTreeItem(csharp);
+        const csharpEntries = catalog.all.filter(e => e.category === 'C#');
+
+        expect.soft(item.tooltip).toBe(`C#\n0/${csharpEntries.length} features enabled`);
+
+        provider.dispose();
+    });
+
     it('should set treeView description to enabled/total count', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
         __setConfigStore({ 'sharppilot.tools.check_csharp_async_patterns': false });
@@ -497,6 +560,19 @@ describe('McpToolsTreeProvider', () => {
         const enabled = catalog.all.filter(e => e.settingId !== 'sharppilot.tools.check_csharp_async_patterns').length;
 
         expect.soft(treeView.description).toBe(`${enabled}/${total}`);
+
+        provider.dispose();
+    });
+
+    it('should exclude not-detected entries from enabled count in description', () => {
+        vi.mocked(fakeDetector.get).mockReturnValue(false);
+
+        const provider = new McpToolsTreeProvider(fakeDetector, catalog);
+        const treeView = vi.mocked(window.createTreeView).mock.results.at(-1)!.value;
+        const total = catalog.count;
+        const alwaysOn = catalog.all.filter(e => !e.contextKeys || e.contextKeys.length === 0).length;
+
+        expect.soft(treeView.description).toBe(`${alwaysOn}/${total}`);
 
         provider.dispose();
     });

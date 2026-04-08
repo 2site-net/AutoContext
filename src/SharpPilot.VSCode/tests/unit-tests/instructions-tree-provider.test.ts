@@ -587,6 +587,52 @@ describe('InstructionsTreeProvider', () => {
         provider.dispose();
     });
 
+    it('should show active/total count in category tooltip when all detected', () => {
+        vi.mocked(fakeDetector.get).mockReturnValue(true);
+        __setConfigStore({ 'sharppilot.instructions.lang.csharp': false });
+
+        const provider = new InstructionsTreeProvider(fakeDetector, catalog);
+        const roots = provider.getChildren();
+        const languages = roots.find(r => r.kind === 'category' && r.name === 'Languages')!;
+        const item = provider.getTreeItem(languages);
+        const langEntries = catalog.all.filter(e => e.category === 'Languages');
+        const active = langEntries.filter(e => e.settingId !== 'sharppilot.instructions.lang.csharp').length;
+
+        expect.soft(item.tooltip).toBe(`Languages\n${active}/${langEntries.length} active`);
+
+        provider.dispose();
+    });
+
+    it('should show active/total count in category tooltip with not-detected entries', () => {
+        vi.mocked(fakeDetector.get).mockReturnValue(false);
+
+        const provider = new InstructionsTreeProvider(fakeDetector, catalog);
+        const roots = provider.getChildren();
+        const general = roots.find(r => r.kind === 'category' && r.name === 'General')!;
+        const item = provider.getTreeItem(general);
+        const generalEntries = catalog.all.filter(e => e.category === 'General');
+        const alwaysOn = generalEntries.filter(e => !e.contextKeys || e.contextKeys.length === 0).length;
+
+        expect.soft(item.tooltip).toBe(`General\n${alwaysOn}/${generalEntries.length} active`);
+
+        provider.dispose();
+    });
+
+    it('should count overridden instructions as active in category tooltip', () => {
+        vi.mocked(fakeDetector.get).mockReturnValue(true);
+        vi.mocked(fakeDetector.getOverriddenSettingIds).mockReturnValue(new Set(['sharppilot.instructions.lang.csharp']));
+
+        const provider = new InstructionsTreeProvider(fakeDetector, catalog);
+        const roots = provider.getChildren();
+        const languages = roots.find(r => r.kind === 'category' && r.name === 'Languages')!;
+        const item = provider.getTreeItem(languages);
+        const langEntries = catalog.all.filter(e => e.category === 'Languages');
+
+        expect.soft(item.tooltip).toBe(`Languages\n${langEntries.length}/${langEntries.length} active`);
+
+        provider.dispose();
+    });
+
     it('should set treeView description to enabled/total count', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
         __setConfigStore({ 'sharppilot.instructions.lang.csharp': false });
@@ -597,6 +643,19 @@ describe('InstructionsTreeProvider', () => {
         const enabled = catalog.all.filter(e => e.settingId !== 'sharppilot.instructions.lang.csharp').length;
 
         expect.soft(treeView.description).toBe(`${enabled}/${total}`);
+
+        provider.dispose();
+    });
+
+    it('should exclude not-detected entries from enabled count in description', () => {
+        vi.mocked(fakeDetector.get).mockReturnValue(false);
+
+        const provider = new InstructionsTreeProvider(fakeDetector, catalog);
+        const treeView = vi.mocked(window.createTreeView).mock.results.at(-1)!.value;
+        const total = catalog.count;
+        const alwaysOn = catalog.all.filter(e => !e.contextKeys || e.contextKeys.length === 0).length;
+
+        expect.soft(treeView.description).toBe(`${alwaysOn}/${total}`);
 
         provider.dispose();
     });

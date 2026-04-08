@@ -86,13 +86,17 @@ export class InstructionsTreeProvider implements vscode.TreeDataProvider<TreeEle
 
     private updateDescription(): void {
         const config = vscode.workspace.getConfiguration();
-        const enabled = this.catalog.all.filter(e => config.get<boolean>(e.settingId, true)).length;
-        this.treeView.description = `${enabled}/${this.catalog.count}`;
+        const overrides = this.detector.getOverriddenSettingIds();
+        const active = this.catalog.all.filter(e => {
+            const state = InstructionsTreeProvider.resolveState(e, config, this.detector, overrides);
+            return state === InstructionState.Active || state === InstructionState.Overridden;
+        }).length;
+        this.treeView.description = `${active}/${this.catalog.count}`;
     }
 
     getTreeItem(element: TreeElement): vscode.TreeItem {
         if (element.kind === 'category') {
-            return InstructionsTreeProvider.categoryItem(element);
+            return this.categoryItem(element);
         }
 
         return this.instructionItem(element);
@@ -165,9 +169,17 @@ export class InstructionsTreeProvider implements vscode.TreeDataProvider<TreeEle
         return InstructionState.Active;
     }
 
-    private static categoryItem(node: CategoryNode): vscode.TreeItem {
+    private categoryItem(node: CategoryNode): vscode.TreeItem {
         const item = new vscode.TreeItem(node.name, vscode.TreeItemCollapsibleState.Expanded);
         item.contextValue = 'category';
+        const config = vscode.workspace.getConfiguration();
+        const overrides = this.detector.getOverriddenSettingIds();
+        const entries = this.catalog.all.filter(e => e.category === node.name);
+        const active = entries.filter(e => {
+            const state = InstructionsTreeProvider.resolveState(e, config, this.detector, overrides);
+            return state === InstructionState.Active || state === InstructionState.Overridden;
+        }).length;
+        item.tooltip = `${node.name}\n${active}/${entries.length} active`;
         return item;
     }
 
