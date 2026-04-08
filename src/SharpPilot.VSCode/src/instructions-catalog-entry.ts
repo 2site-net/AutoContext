@@ -1,6 +1,5 @@
 import type { CatalogEntry } from './catalog-entry.js';
-
-export type InstructionsFileEntry = CatalogEntry & { fileName: string };
+import type { InstructionsFileEntry } from './instructions-file-entry.js';
 
 export class InstructionsCatalogEntry implements CatalogEntry {
     readonly settingId: string;
@@ -9,12 +8,12 @@ export class InstructionsCatalogEntry implements CatalogEntry {
     readonly category: string;
     readonly contextKeys?: readonly string[];
 
-    constructor(instructionsFile: InstructionsFileEntry) {
-        this.settingId = instructionsFile.settingId;
-        this.fileName = instructionsFile.fileName;
-        this.label = instructionsFile.label;
-        this.category = instructionsFile.category;
-        this.contextKeys = instructionsFile.contextKeys;
+    constructor(data: InstructionsFileEntry) {
+        this.settingId = `sharppilot.instructions.${data.key}`;
+        this.fileName = data.fileName;
+        this.label = data.label;
+        this.category = data.category;
+        this.contextKeys = data.contextKeys;
     }
 
     get targetPath(): string {

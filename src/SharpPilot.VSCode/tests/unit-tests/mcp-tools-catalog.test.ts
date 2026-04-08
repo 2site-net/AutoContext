@@ -3,16 +3,17 @@ import { McpToolsCatalog } from '../../src/mcp-tools-catalog';
 import type { McpToolEntry } from '../../src/mcp-tool-entry';
 
 const testEntries: readonly McpToolEntry[] = [
-    { settingId: 'tools.alpha', toolName: 'alpha', label: 'Alpha', category: 'C#', group: '.NET', serverCategory: 'dotnet' },
-    { settingId: 'tools.beta', toolName: 'beta', label: 'Beta', category: 'NuGet', group: '.NET', serverCategory: 'dotnet' },
-    { settingId: 'tools.gamma', toolName: 'gamma', label: 'Gamma', category: 'Git', group: 'Workspace', serverCategory: 'git' },
+    { key: 'alpha', label: 'Alpha', category: 'C#', group: '.NET', serverCategory: 'dotnet' },
+    { key: 'beta', label: 'Beta', category: 'NuGet', group: '.NET', serverCategory: 'dotnet' },
+    { key: 'gamma', label: 'Gamma', category: 'Git', group: 'Workspace', serverCategory: 'git' },
 ];
 
 describe('McpToolsCatalog', () => {
     it('should expose all entries', () => {
         const catalog = new McpToolsCatalog(testEntries);
 
-        expect.soft(catalog.all).toEqual(testEntries);
+        expect.soft(catalog.count).toBe(3);
+        expect.soft(catalog.all[0].settingId).toBe('sharppilot.tools.alpha');
     });
 
     it('should return the correct count', () => {
@@ -24,13 +25,13 @@ describe('McpToolsCatalog', () => {
     it('should return setting ids for a matching server category', () => {
         const catalog = new McpToolsCatalog(testEntries);
 
-        expect.soft(catalog.getSettingIdByCategory('dotnet')).toEqual(['tools.alpha', 'tools.beta']);
+        expect.soft(catalog.getSettingIdByCategory('dotnet')).toEqual(['sharppilot.tools.alpha', 'sharppilot.tools.beta']);
     });
 
     it('should return setting ids for git server category', () => {
         const catalog = new McpToolsCatalog(testEntries);
 
-        expect.soft(catalog.getSettingIdByCategory('git')).toEqual(['tools.gamma']);
+        expect.soft(catalog.getSettingIdByCategory('git')).toEqual(['sharppilot.tools.gamma']);
     });
 
     it('should return empty array for unknown server category', () => {

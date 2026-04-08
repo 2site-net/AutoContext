@@ -1,16 +1,19 @@
 import { describe, it, expect } from 'vitest';
 import { mcpTools } from '../../src/ui-constants';
+import { McpToolsCatalog } from '../../src/mcp-tools-catalog';
+
+const catalog = new McpToolsCatalog(mcpTools);
 
 describe('tools catalog', () => {
     it('should have unique setting ids', () => {
-        const ids = mcpTools.map(t => t.settingId);
+        const ids = catalog.all.map(t => t.settingId);
 
         expect.soft(new Set(ids).size).toBe(ids.length);
     });
 
-    it('should have unique tool names', () => {
-        const names = mcpTools.map(t => t.featureName ?? t.toolName);
+    it('should have unique keys', () => {
+        const keys = mcpTools.map(t => t.key);
 
-        expect.soft(new Set(names).size).toBe(names.length);
+        expect.soft(new Set(keys).size).toBe(keys.length);
     });
 });

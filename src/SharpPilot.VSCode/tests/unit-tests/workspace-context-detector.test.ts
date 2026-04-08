@@ -4,13 +4,13 @@ import { WorkspaceContextDetector } from '../../src/workspace-context-detector';
 import { InstructionsCatalog } from '../../src/instructions-catalog';
 import { McpServersCatalog } from '../../src/mcp-servers-catalog';
 import type { McpServerEntry } from '../../src/mcp-server-entry';
-import type { InstructionsFileEntry } from '../../src/instructions-catalog-entry';
+import type { InstructionsFileEntry } from '../../src/instructions-file-entry';
 
 const fakeUri = (p: string) => ({ path: p, scheme: 'file', fsPath: p, toString: () => `file://${p}` });
 
 const testInstructions: InstructionsFileEntry[] = [
-    { settingId: 'sharppilot.instructions.copilot', fileName: 'copilot.instructions.md', label: 'Copilot', category: 'general' },
-    { settingId: 'sharppilot.instructions.dotnet.codingStandards', fileName: 'dotnet-coding-standards.instructions.md', label: '.NET Standards', category: 'dotnet', contextKeys: ['hasDotNet'] },
+    { key: 'copilot', fileName: 'copilot.instructions.md', label: 'Copilot', category: 'general' },
+    { key: 'dotnet.codingStandards', fileName: 'dotnet-coding-standards.instructions.md', label: '.NET Standards', category: 'dotnet', contextKeys: ['hasDotNet'] },
 ];
 
 const testServers: McpServerEntry[] = [

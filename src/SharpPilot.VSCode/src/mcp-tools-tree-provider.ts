@@ -3,7 +3,7 @@ import type { McpToolsCatalog } from './mcp-tools-catalog.js';
 import { ContextKeys } from './context-keys.js';
 import { mcpToolGroupOrder, mcpToolCategoryOrder, viewIds } from './ui-constants.js';
 import type { WorkspaceContextDetector } from './workspace-context-detector.js';
-import type { McpToolEntry } from './mcp-tool-entry.js';
+import type { McpToolCatalogEntry } from './mcp-tool-catalog-entry.js';
 
 export const ToolState = {
     Enabled: 'enabled',
@@ -34,7 +34,7 @@ interface McpToolNode {
 
 interface McpToolFeatureNode {
     readonly kind: 'mcpToolFeature';
-    readonly entry: McpToolEntry;
+    readonly entry: McpToolCatalogEntry;
     readonly state: ToolState;
 }
 
@@ -173,7 +173,7 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
     }
 
     private static resolveState(
-        entry: McpToolEntry,
+        entry: McpToolCatalogEntry,
         config: vscode.WorkspaceConfiguration,
         detector: WorkspaceContextDetector,
     ): ToolState {
@@ -261,7 +261,7 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
         return item;
     }
 
-    private static featureTooltip(entry: McpToolEntry, state: ToolState): string {
+    private static featureTooltip(entry: McpToolCatalogEntry, state: ToolState): string {
         const lines = [entry.label];
 
         switch (state) {

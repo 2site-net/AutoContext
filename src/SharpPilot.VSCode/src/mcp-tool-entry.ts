@@ -1,8 +1,9 @@
-import type { CatalogEntry } from './catalog-entry.js';
-
-export interface McpToolEntry extends CatalogEntry {
-    featureName?: string;
-    toolName: string;
+export interface McpToolEntry {
+    key: string;
+    toolName?: string;
+    label: string;
+    category: string;
     group: string;
     serverCategory: string;
+    contextKeys?: readonly string[];
 }

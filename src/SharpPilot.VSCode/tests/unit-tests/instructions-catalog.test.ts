@@ -3,16 +3,22 @@ import { InstructionsCatalogEntry } from '../../src/instructions-catalog-entry';
 import { InstructionsCatalog } from '../../src/instructions-catalog';
 
 const testData = [
-    { settingId: 'inst.alpha', fileName: 'alpha.instructions.md', label: 'Alpha', category: 'General' },
-    { settingId: 'inst.beta', fileName: 'beta.instructions.md', label: 'Beta', category: '.NET' },
-    { settingId: 'inst.gamma', fileName: 'gamma.instructions.md', label: 'Gamma', category: 'Web' },
+    { key: 'alpha', fileName: 'alpha.instructions.md', label: 'Alpha', category: 'General' },
+    { key: 'beta', fileName: 'beta.instructions.md', label: 'Beta', category: '.NET' },
+    { key: 'gamma', fileName: 'gamma.instructions.md', label: 'Gamma', category: 'Web' },
 ] as const;
 
 describe('InstructionsCatalogEntry', () => {
     it('should map files to .github/instructions/', () => {
-        const entry = new InstructionsCatalogEntry({ settingId: '', fileName: 'dotnet-testing.instructions.md', label: '', category: '' });
+        const entry = new InstructionsCatalogEntry({ key: 'test', fileName: 'dotnet-testing.instructions.md', label: '', category: '' });
 
         expect(entry.targetPath).toBe('.github/instructions/dotnet-testing.instructions.md');
+    });
+
+    it('should compute settingId from key', () => {
+        const entry = new InstructionsCatalogEntry({ key: 'lang.csharp', fileName: 'lang-csharp.instructions.md', label: 'C#', category: 'Languages' });
+
+        expect(entry.settingId).toBe('sharppilot.instructions.lang.csharp');
     });
 });
 
@@ -21,7 +27,7 @@ describe('InstructionsCatalog', () => {
         const catalog = new InstructionsCatalog(testData);
 
         expect(catalog.all).toHaveLength(3);
-        expect(catalog.all[0].settingId).toBe('inst.alpha');
+        expect(catalog.all[0].settingId).toBe('sharppilot.instructions.alpha');
     });
 
     it('should return the correct count', () => {
@@ -35,7 +41,7 @@ describe('InstructionsCatalog', () => {
 
         const entry = catalog.findByFileName('beta.instructions.md');
         expect(entry).toBeDefined();
-        expect(entry!.settingId).toBe('inst.beta');
+        expect(entry!.settingId).toBe('sharppilot.instructions.beta');
     });
 
     it('should return undefined for an unknown file name', () => {
