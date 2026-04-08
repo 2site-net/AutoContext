@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { __setConfigStore, TreeItemCollapsibleState, TreeItemCheckboxState, workspace, ConfigurationTarget, commands, Uri, window } from './__mocks__/vscode';
 import { InstructionsTreeProvider } from '../../src/instructions-tree-provider';
+import type { InstructionNode } from '../../src/instructions-tree-provider';
 import { InstructionState } from '../../src/ui-constants';
 import { InstructionsCatalog } from '../../src/instructions-catalog';
 import { instructionsFiles, contextKeys } from '../../src/ui-constants';
@@ -290,7 +291,7 @@ describe('InstructionsTreeProvider', () => {
         const children = provider.getChildren(languages);
         const node = children.find(c => c.kind === 'instruction' && c.entry.settingId === 'sharppilot.instructions.lang.csharp')!;
 
-        await InstructionsTreeProvider.enableInstruction(node as { kind: 'instruction'; entry: { settingId: string }; state: string });
+        await InstructionsTreeProvider.enableInstruction(node as InstructionNode);
 
         const config = vi.mocked(workspace.getConfiguration).mock.results.at(-1)!.value;
         expect.soft(config.update).toHaveBeenCalledWith('sharppilot.instructions.lang.csharp', true, ConfigurationTarget.Global);
@@ -307,7 +308,7 @@ describe('InstructionsTreeProvider', () => {
         const children = provider.getChildren(general);
         const node = children.find(c => c.kind === 'instruction' && c.state === InstructionState.Active)!;
 
-        await InstructionsTreeProvider.disableInstruction(node as { kind: 'instruction'; entry: { settingId: string }; state: string });
+        await InstructionsTreeProvider.disableInstruction(node as InstructionNode);
 
         const config = vi.mocked(workspace.getConfiguration).mock.results.at(-1)!.value;
         expect.soft(config.update).toHaveBeenCalledWith(
@@ -324,7 +325,8 @@ describe('InstructionsTreeProvider', () => {
         vi.mocked(fakeDetector.getOverriddenSettingIds).mockReturnValue(new Set(['sharppilot.instructions.lang.csharp']));
         workspace.workspaceFolders = [{ uri: { path: '/workspace', scheme: 'file' } }];
 
-        const targetUri = Uri.joinPath(workspace.workspaceFolders[0].uri, '.github/instructions/lang-csharp.instructions.md');
+        const folder = workspace.workspaceFolders[0] as { uri: { path: string; scheme: string } };
+        const targetUri = Uri.joinPath(folder.uri, '.github/instructions/lang-csharp.instructions.md');
         const matchingTab = { input: { uri: { toString: () => targetUri.toString() } } };
         window.tabGroups.all = [{ tabs: [matchingTab] }];
 
@@ -334,7 +336,7 @@ describe('InstructionsTreeProvider', () => {
         const children = provider.getChildren(languages);
         const node = children.find(c => c.kind === 'instruction' && c.entry.settingId === 'sharppilot.instructions.lang.csharp')!;
 
-        await InstructionsTreeProvider.deleteOverride(node as { kind: 'instruction'; entry: { settingId: string; targetPath: string }; state: string });
+        await InstructionsTreeProvider.deleteOverride(node as InstructionNode);
 
         expect.soft(window.tabGroups.close).toHaveBeenCalledWith(matchingTab);
         expect.soft(workspace.fs.delete).toHaveBeenCalled();
@@ -352,7 +354,7 @@ describe('InstructionsTreeProvider', () => {
         const children = provider.getChildren(languages);
         const node = children.find(c => c.kind === 'instruction' && c.entry.settingId === 'sharppilot.instructions.lang.csharp')!;
 
-        await InstructionsTreeProvider.showOriginal(node as { kind: 'instruction'; entry: { fileName: string }; state: string });
+        await InstructionsTreeProvider.showOriginal(node as InstructionNode);
 
         expect.soft(commands.executeCommand).toHaveBeenCalledWith(
             'vscode.open',

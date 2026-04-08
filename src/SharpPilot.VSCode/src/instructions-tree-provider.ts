@@ -13,7 +13,7 @@ interface CategoryNode {
     readonly name: string;
 }
 
-interface InstructionNode {
+export interface InstructionNode {
     readonly kind: 'instruction';
     readonly entry: InstructionsCatalogEntry;
     readonly state: InstructionState;
