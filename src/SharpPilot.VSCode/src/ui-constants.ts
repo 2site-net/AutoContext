@@ -147,3 +147,22 @@ export const mcpServers: readonly McpServerEntry[] = [
     { label: 'SharpPilot: EditorConfig', category: 'editorconfig', process: 'workspace' },
     { label: 'SharpPilot: TypeScript', category: 'typescript', process: 'web', contextKey: 'hasTypeScript' },
 ];
+
+// ── Tree View States ─────────────────────────────────────────────────
+
+export const ToolState = {
+    Enabled: 'enabled',
+    Disabled: 'disabled',
+    NotDetected: 'notDetected',
+} as const;
+
+export type ToolState = typeof ToolState[keyof typeof ToolState];
+
+export const InstructionState = {
+    Active: 'active',
+    NotDetected: 'notDetected',
+    Disabled: 'disabled',
+    Overridden: 'overridden',
+} as const;
+
+export type InstructionState = typeof InstructionState[keyof typeof InstructionState];

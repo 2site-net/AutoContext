@@ -1,17 +1,9 @@
 import * as vscode from 'vscode';
 import type { McpToolsCatalog } from './mcp-tools-catalog.js';
 import { ContextKeys } from './context-keys.js';
-import { mcpToolGroupOrder, mcpToolCategoryOrder, viewIds } from './ui-constants.js';
+import { mcpToolGroupOrder, mcpToolCategoryOrder, viewIds, ToolState } from './ui-constants.js';
 import type { WorkspaceContextDetector } from './workspace-context-detector.js';
 import type { McpToolCatalogEntry } from './mcp-tool-catalog-entry.js';
-
-export const ToolState = {
-    Enabled: 'enabled',
-    Disabled: 'disabled',
-    NotDetected: 'notDetected',
-} as const;
-
-export type ToolState = typeof ToolState[keyof typeof ToolState];
 
 type TreeElement = GroupNode | CategoryNode | McpToolNode | McpToolFeatureNode;
 

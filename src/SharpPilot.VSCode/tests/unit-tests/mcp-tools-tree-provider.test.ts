@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { __setConfigStore, TreeItemCollapsibleState, TreeItemCheckboxState, workspace, ConfigurationTarget, window } from './__mocks__/vscode';
-import { McpToolsTreeProvider, ToolState } from '../../src/mcp-tools-tree-provider';
+import { McpToolsTreeProvider } from '../../src/mcp-tools-tree-provider';
+import { ToolState } from '../../src/ui-constants';
 import { McpToolsCatalog } from '../../src/mcp-tools-catalog';
 import { mcpTools } from '../../src/ui-constants';
 

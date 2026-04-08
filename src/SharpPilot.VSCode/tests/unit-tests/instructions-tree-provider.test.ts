@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { __setConfigStore, TreeItemCollapsibleState, TreeItemCheckboxState, workspace, ConfigurationTarget, commands, Uri, window } from './__mocks__/vscode';
-import { InstructionsTreeProvider, InstructionState } from '../../src/instructions-tree-provider';
+import { InstructionsTreeProvider } from '../../src/instructions-tree-provider';
+import { InstructionState } from '../../src/ui-constants';
 import { InstructionsCatalog } from '../../src/instructions-catalog';
 import { instructionsFiles, contextKeys } from '../../src/ui-constants';
 

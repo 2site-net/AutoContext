@@ -1,19 +1,10 @@
 import * as vscode from 'vscode';
 import type { InstructionsCatalog } from './instructions-catalog.js';
 import { ContextKeys } from './context-keys.js';
-import { instructionsCategoryOrder, viewIds, contextKeys } from './ui-constants.js';
+import { instructionsCategoryOrder, viewIds, contextKeys, InstructionState } from './ui-constants.js';
 import { instructionScheme } from './instructions-content-provider.js';
 import type { WorkspaceContextDetector } from './workspace-context-detector.js';
 import type { InstructionsCatalogEntry } from './instructions-catalog-entry.js';
-
-export const InstructionState = {
-    Active: 'active',
-    NotDetected: 'notDetected',
-    Disabled: 'disabled',
-    Overridden: 'overridden',
-} as const;
-
-export type InstructionState = typeof InstructionState[keyof typeof InstructionState];
 
 type TreeElement = CategoryNode | InstructionNode;
 
