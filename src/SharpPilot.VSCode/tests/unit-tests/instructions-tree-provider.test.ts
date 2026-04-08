@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { __setConfigStore, TreeItemCollapsibleState, TreeItemCheckboxState, workspace, ConfigurationTarget, commands, Uri, window } from './__mocks__/vscode';
 import { InstructionsTreeProvider } from '../../src/instructions-tree-provider';
 import type { InstructionsTreeNode } from '../../src/instructions-tree-node';
-import { InstructionState } from '../../src/ui-constants';
+import { InstructionsState } from '../../src/ui-constants';
 import { InstructionsCatalog } from '../../src/instructions-catalog';
 import { instructionsFiles, contextKeys } from '../../src/ui-constants';
 
@@ -39,7 +39,7 @@ describe('InstructionsTreeProvider', () => {
         const children = provider.getChildren(general);
 
         expect.soft(children.length).toBeGreaterThan(0);
-        expect.soft(children.every(c => c.kind === 'instruction')).toBe(true);
+        expect.soft(children.every(c => c.kind === 'instructions')).toBe(true);
 
         provider.dispose();
     });
@@ -73,9 +73,9 @@ describe('InstructionsTreeProvider', () => {
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'category' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
-        const csharp = children.find(c => c.kind === 'instruction' && c.entry.settingId === 'sharppilot.instructions.lang.csharp')!;
+        const csharp = children.find(c => c.kind === 'instructions' && c.entry.settingId === 'sharppilot.instructions.lang.csharp')!;
 
-        expect.soft(csharp.kind === 'instruction' && csharp.state).toBe(InstructionState.Active);
+        expect.soft(csharp.kind === 'instructions' && csharp.state).toBe(InstructionsState.Active);
 
         provider.dispose();
     });
@@ -87,9 +87,9 @@ describe('InstructionsTreeProvider', () => {
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'category' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
-        const csharp = children.find(c => c.kind === 'instruction' && c.entry.settingId === 'sharppilot.instructions.lang.csharp')!;
+        const csharp = children.find(c => c.kind === 'instructions' && c.entry.settingId === 'sharppilot.instructions.lang.csharp')!;
 
-        expect.soft(csharp.kind === 'instruction' && csharp.state).toBe(InstructionState.NotDetected);
+        expect.soft(csharp.kind === 'instructions' && csharp.state).toBe(InstructionsState.NotDetected);
 
         const treeItem = provider.getTreeItem(csharp);
         expect.soft(treeItem.description).toBe('not detected');
@@ -105,9 +105,9 @@ describe('InstructionsTreeProvider', () => {
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'category' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
-        const csharp = children.find(c => c.kind === 'instruction' && c.entry.settingId === 'sharppilot.instructions.lang.csharp')!;
+        const csharp = children.find(c => c.kind === 'instructions' && c.entry.settingId === 'sharppilot.instructions.lang.csharp')!;
 
-        expect.soft(csharp.kind === 'instruction' && csharp.state).toBe(InstructionState.Disabled);
+        expect.soft(csharp.kind === 'instructions' && csharp.state).toBe(InstructionsState.Disabled);
 
         const treeItem = provider.getTreeItem(csharp);
         expect.soft(treeItem.description).toBe('disabled');
@@ -123,9 +123,9 @@ describe('InstructionsTreeProvider', () => {
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'category' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
-        const csharp = children.find(c => c.kind === 'instruction' && c.entry.settingId === 'sharppilot.instructions.lang.csharp')!;
+        const csharp = children.find(c => c.kind === 'instructions' && c.entry.settingId === 'sharppilot.instructions.lang.csharp')!;
 
-        expect.soft(csharp.kind === 'instruction' && csharp.state).toBe(InstructionState.Overridden);
+        expect.soft(csharp.kind === 'instructions' && csharp.state).toBe(InstructionsState.Overridden);
 
         const treeItem = provider.getTreeItem(csharp);
         expect.soft(treeItem.description).toBe('overridden');
@@ -138,9 +138,9 @@ describe('InstructionsTreeProvider', () => {
         const roots = provider.getChildren();
         const general = roots.find(r => r.kind === 'category' && r.name === 'General')!;
         const children = provider.getChildren(general);
-        const codeReview = children.find(c => c.kind === 'instruction' && c.entry.settingId === 'sharppilot.instructions.codeReview')!;
+        const codeReview = children.find(c => c.kind === 'instructions' && c.entry.settingId === 'sharppilot.instructions.codeReview')!;
 
-        expect.soft(codeReview.kind === 'instruction' && codeReview.state).toBe(InstructionState.Active);
+        expect.soft(codeReview.kind === 'instructions' && codeReview.state).toBe(InstructionsState.Active);
 
         provider.dispose();
     });
@@ -162,7 +162,7 @@ describe('InstructionsTreeProvider', () => {
         const roots = provider.getChildren();
         const general = roots.find(r => r.kind === 'category' && r.name === 'General')!;
         const children = provider.getChildren(general);
-        const labels = children.map(c => c.kind === 'instruction' ? c.entry.label : '');
+        const labels = children.map(c => c.kind === 'instructions' ? c.entry.label : '');
         const expected = catalog.all.filter(e => e.category === 'General').map(e => e.label);
 
         expect.soft(labels).toEqual(expected);
@@ -177,7 +177,7 @@ describe('InstructionsTreeProvider', () => {
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'category' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
-        const csharp = children.find(c => c.kind === 'instruction' && c.entry.settingId === 'sharppilot.instructions.lang.csharp')!;
+        const csharp = children.find(c => c.kind === 'instructions' && c.entry.settingId === 'sharppilot.instructions.lang.csharp')!;
 
         const treeItem = provider.getTreeItem(csharp);
         expect.soft(treeItem.tooltip).toContain('sharppilot.instructions.lang.csharp');
@@ -195,12 +195,12 @@ describe('InstructionsTreeProvider', () => {
         const children = provider.getChildren(languages);
 
         const states = children
-            .filter(c => c.kind === 'instruction')
-            .map(c => c.kind === 'instruction' ? c.state : '');
+            .filter(c => c.kind === 'instructions')
+            .map(c => c.kind === 'instructions' ? c.state : '');
 
-        const firstDisabledIndex = states.indexOf(InstructionState.Disabled);
-        const firstNotDetectedIndex = states.indexOf(InstructionState.NotDetected);
-        const lastActiveIndex = states.lastIndexOf(InstructionState.Active);
+        const firstDisabledIndex = states.indexOf(InstructionsState.Disabled);
+        const firstNotDetectedIndex = states.indexOf(InstructionsState.NotDetected);
+        const lastActiveIndex = states.lastIndexOf(InstructionsState.Active);
 
         if (lastActiveIndex !== -1 && firstDisabledIndex !== -1) {
             expect.soft(lastActiveIndex).toBeLessThan(firstDisabledIndex);
@@ -219,13 +219,13 @@ describe('InstructionsTreeProvider', () => {
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'category' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
-        const csharp = children.find(c => c.kind === 'instruction' && c.entry.settingId === 'sharppilot.instructions.lang.csharp')!;
+        const csharp = children.find(c => c.kind === 'instructions' && c.entry.settingId === 'sharppilot.instructions.lang.csharp')!;
 
         const treeItem = provider.getTreeItem(csharp);
         expect.soft(treeItem.command).toBeDefined();
         expect.soft(treeItem.command!.command).toBe('vscode.open');
         expect.soft(treeItem.command!.arguments![0].scheme).toBe('sharppilot-instructions');
-        expect.soft(treeItem.command!.arguments![0].path).toBe(csharp.kind === 'instruction' ? csharp.entry.fileName : '');
+        expect.soft(treeItem.command!.arguments![0].path).toBe(csharp.kind === 'instructions' ? csharp.entry.fileName : '');
 
         provider.dispose();
     });
@@ -239,7 +239,7 @@ describe('InstructionsTreeProvider', () => {
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'category' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
-        const csharp = children.find(c => c.kind === 'instruction' && c.entry.settingId === 'sharppilot.instructions.lang.csharp')!;
+        const csharp = children.find(c => c.kind === 'instructions' && c.entry.settingId === 'sharppilot.instructions.lang.csharp')!;
 
         const treeItem = provider.getTreeItem(csharp);
         expect.soft(treeItem.command).toBeDefined();
@@ -257,7 +257,7 @@ describe('InstructionsTreeProvider', () => {
         const roots = provider.getChildren();
         const general = roots.find(r => r.kind === 'category' && r.name === 'General')!;
         const children = provider.getChildren(general);
-        const active = children.find(c => c.kind === 'instruction' && c.state === InstructionState.Active)!;
+        const active = children.find(c => c.kind === 'instructions' && c.state === InstructionsState.Active)!;
 
         const treeItem = provider.getTreeItem(active);
         expect.soft(treeItem.contextValue).toBe('instruction.active');
@@ -273,7 +273,7 @@ describe('InstructionsTreeProvider', () => {
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'category' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
-        const disabled = children.find(c => c.kind === 'instruction' && c.entry.settingId === 'sharppilot.instructions.lang.csharp')!;
+        const disabled = children.find(c => c.kind === 'instructions' && c.entry.settingId === 'sharppilot.instructions.lang.csharp')!;
 
         const treeItem = provider.getTreeItem(disabled);
         expect.soft(treeItem.contextValue).toBe('instruction.disabled');
@@ -289,7 +289,7 @@ describe('InstructionsTreeProvider', () => {
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'category' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
-        const node = children.find(c => c.kind === 'instruction' && c.entry.settingId === 'sharppilot.instructions.lang.csharp')!;
+        const node = children.find(c => c.kind === 'instructions' && c.entry.settingId === 'sharppilot.instructions.lang.csharp')!;
 
         await InstructionsTreeProvider.enableInstruction(node as InstructionsTreeNode);
 
@@ -306,13 +306,13 @@ describe('InstructionsTreeProvider', () => {
         const roots = provider.getChildren();
         const general = roots.find(r => r.kind === 'category' && r.name === 'General')!;
         const children = provider.getChildren(general);
-        const node = children.find(c => c.kind === 'instruction' && c.state === InstructionState.Active)!;
+        const node = children.find(c => c.kind === 'instructions' && c.state === InstructionsState.Active)!;
 
         await InstructionsTreeProvider.disableInstruction(node as InstructionsTreeNode);
 
         const config = vi.mocked(workspace.getConfiguration).mock.results.at(-1)!.value;
         expect.soft(config.update).toHaveBeenCalledWith(
-            node.kind === 'instruction' ? node.entry.settingId : '',
+            node.kind === 'instructions' ? node.entry.settingId : '',
             false,
             ConfigurationTarget.Global,
         );
@@ -334,7 +334,7 @@ describe('InstructionsTreeProvider', () => {
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'category' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
-        const node = children.find(c => c.kind === 'instruction' && c.entry.settingId === 'sharppilot.instructions.lang.csharp')!;
+        const node = children.find(c => c.kind === 'instructions' && c.entry.settingId === 'sharppilot.instructions.lang.csharp')!;
 
         await InstructionsTreeProvider.deleteOverride(node as InstructionsTreeNode);
 
@@ -352,7 +352,7 @@ describe('InstructionsTreeProvider', () => {
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'category' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
-        const node = children.find(c => c.kind === 'instruction' && c.entry.settingId === 'sharppilot.instructions.lang.csharp')!;
+        const node = children.find(c => c.kind === 'instructions' && c.entry.settingId === 'sharppilot.instructions.lang.csharp')!;
 
         await InstructionsTreeProvider.showOriginal(node as InstructionsTreeNode);
 
@@ -375,8 +375,8 @@ describe('InstructionsTreeProvider', () => {
         const general = roots.find(r => r.kind === 'category' && r.name === 'General')!;
         const children = provider.getChildren(general);
 
-        const active = children.find(c => c.kind === 'instruction' && c.state === InstructionState.Active)!;
-        const disabled = children.find(c => c.kind === 'instruction' && c.state === InstructionState.Disabled)!;
+        const active = children.find(c => c.kind === 'instructions' && c.state === InstructionsState.Active)!;
+        const disabled = children.find(c => c.kind === 'instructions' && c.state === InstructionsState.Disabled)!;
 
         expect.soft(provider.getTreeItem(active).checkboxState).toBe(TreeItemCheckboxState.Unchecked);
         expect.soft(provider.getTreeItem(disabled).checkboxState).toBe(TreeItemCheckboxState.Unchecked);
@@ -393,7 +393,7 @@ describe('InstructionsTreeProvider', () => {
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'category' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
-        const notDetected = children.find(c => c.kind === 'instruction' && c.state === InstructionState.NotDetected)!;
+        const notDetected = children.find(c => c.kind === 'instructions' && c.state === InstructionsState.NotDetected)!;
 
         expect.soft(provider.getTreeItem(notDetected).checkboxState).toBeUndefined();
 
@@ -407,7 +407,7 @@ describe('InstructionsTreeProvider', () => {
         const roots = provider.getChildren();
         const general = roots.find(r => r.kind === 'category' && r.name === 'General')!;
         const children = provider.getChildren(general);
-        const active = children.find(c => c.kind === 'instruction' && c.state === InstructionState.Active)!;
+        const active = children.find(c => c.kind === 'instructions' && c.state === InstructionsState.Active)!;
 
         expect.soft(provider.getTreeItem(active).checkboxState).toBeUndefined();
 
@@ -442,11 +442,11 @@ describe('InstructionsTreeProvider', () => {
         const roots = provider.getChildren();
         const general = roots.find(r => r.kind === 'category' && r.name === 'General')!;
         const children = provider.getChildren(general);
-        const entry = children.find(c => c.kind === 'instruction' && c.entry.settingId === 'sharppilot.instructions.codeReview')!;
+        const entry = children.find(c => c.kind === 'instructions' && c.entry.settingId === 'sharppilot.instructions.codeReview')!;
 
         // Simulate checkbox toggle by accessing the internal checked set
         // In production, this is driven by onDidChangeCheckboxState
-        if (entry.kind === 'instruction') {
+        if (entry.kind === 'instructions') {
             (provider as unknown as { _checkedEntries: Set<string> })._checkedEntries.add(entry.entry.settingId);
         }
 
@@ -483,7 +483,7 @@ describe('InstructionsTreeProvider', () => {
         for (const cat of roots) {
             if (cat.kind !== 'category') { continue; }
             const children = provider.getChildren(cat);
-            const notDetected = children.filter(c => c.kind === 'instruction' && c.state === InstructionState.NotDetected);
+            const notDetected = children.filter(c => c.kind === 'instructions' && c.state === InstructionsState.NotDetected);
             expect.soft(notDetected).toHaveLength(0);
         }
 
@@ -499,7 +499,7 @@ describe('InstructionsTreeProvider', () => {
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'category' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
-        const notDetected = children.filter(c => c.kind === 'instruction' && c.state === InstructionState.NotDetected);
+        const notDetected = children.filter(c => c.kind === 'instructions' && c.state === InstructionsState.NotDetected);
         expect.soft(notDetected.length).toBeGreaterThan(0);
 
         provider.dispose();
@@ -529,7 +529,7 @@ describe('InstructionsTreeProvider', () => {
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'category' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
-        const overridden = children.find(c => c.kind === 'instruction' && c.entry.settingId === 'sharppilot.instructions.lang.csharp')!;
+        const overridden = children.find(c => c.kind === 'instructions' && c.entry.settingId === 'sharppilot.instructions.lang.csharp')!;
 
         const treeItem = provider.getTreeItem(overridden);
         expect.soft(treeItem.contextValue).toBe('instruction.overridden');
@@ -544,7 +544,7 @@ describe('InstructionsTreeProvider', () => {
         const roots = provider.getChildren();
 
         const general = roots.find(r => r.kind === 'category' && r.name === 'General')!;
-        const activeNode = provider.getChildren(general).find(c => c.kind === 'instruction' && c.state === InstructionState.Active)!;
+        const activeNode = provider.getChildren(general).find(c => c.kind === 'instructions' && c.state === InstructionsState.Active)!;
         expect.soft(provider.getTreeItem(activeNode).tooltip).toContain('Active');
 
         provider.dispose();
@@ -556,7 +556,7 @@ describe('InstructionsTreeProvider', () => {
         const provider = new InstructionsTreeProvider(fakeDetector, catalog);
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'category' && r.name === 'Languages')!;
-        const notDetectedNode = provider.getChildren(languages).find(c => c.kind === 'instruction' && c.state === InstructionState.NotDetected)!;
+        const notDetectedNode = provider.getChildren(languages).find(c => c.kind === 'instructions' && c.state === InstructionsState.NotDetected)!;
         expect.soft(provider.getTreeItem(notDetectedNode).tooltip).toContain('Not detected');
 
         provider.dispose();
@@ -569,7 +569,7 @@ describe('InstructionsTreeProvider', () => {
         const provider = new InstructionsTreeProvider(fakeDetector, catalog);
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'category' && r.name === 'Languages')!;
-        const disabled = provider.getChildren(languages).find(c => c.kind === 'instruction' && c.state === InstructionState.Disabled)!;
+        const disabled = provider.getChildren(languages).find(c => c.kind === 'instructions' && c.state === InstructionsState.Disabled)!;
 
         expect.soft(provider.getTreeItem(disabled).tooltip).toContain('Disabled');
 
@@ -583,7 +583,7 @@ describe('InstructionsTreeProvider', () => {
         const provider = new InstructionsTreeProvider(fakeDetector, catalog);
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'category' && r.name === 'Languages')!;
-        const overridden = provider.getChildren(languages).find(c => c.kind === 'instruction' && c.state === InstructionState.Overridden)!;
+        const overridden = provider.getChildren(languages).find(c => c.kind === 'instructions' && c.state === InstructionsState.Overridden)!;
 
         expect.soft(provider.getTreeItem(overridden).tooltip).toContain('Overridden');
 

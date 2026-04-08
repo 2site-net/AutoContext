@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { __setConfigStore, TreeItemCollapsibleState, TreeItemCheckboxState, workspace, ConfigurationTarget, window } from './__mocks__/vscode';
 import { McpToolsTreeProvider } from '../../src/mcp-tools-tree-provider';
-import { ToolState } from '../../src/ui-constants';
+import { McpToolState } from '../../src/ui-constants';
 import { McpToolsCatalog } from '../../src/mcp-tools-catalog';
 import { mcpTools } from '../../src/ui-constants';
 
@@ -103,7 +103,7 @@ describe('McpToolsTreeProvider', () => {
         const provider = new McpToolsTreeProvider(fakeDetector, catalog);
         const features = getFeatures(provider, '.NET', 'C#', 'check_csharp_all');
 
-        expect.soft(features.every(c => c.kind === 'mcpToolFeature' && c.state === ToolState.NotDetected)).toBe(true);
+        expect.soft(features.every(c => c.kind === 'mcpToolFeature' && c.state === McpToolState.NotDetected)).toBe(true);
 
         provider.dispose();
     });
@@ -114,7 +114,7 @@ describe('McpToolsTreeProvider', () => {
         const provider = new McpToolsTreeProvider(fakeDetector, catalog);
         const features = getFeatures(provider, '.NET', 'C#', 'check_csharp_all');
 
-        expect.soft(features.every(c => c.kind === 'mcpToolFeature' && c.state === ToolState.Enabled)).toBe(true);
+        expect.soft(features.every(c => c.kind === 'mcpToolFeature' && c.state === McpToolState.Enabled)).toBe(true);
 
         provider.dispose();
     });
@@ -127,7 +127,7 @@ describe('McpToolsTreeProvider', () => {
         const features = getFeatures(provider, '.NET', 'C#', 'check_csharp_all');
 
         const asyncTool = features.find(c => c.kind === 'mcpToolFeature' && c.entry.settingId === 'sharppilot.tools.check_csharp_async_patterns');
-        expect.soft(asyncTool?.kind === 'mcpToolFeature' && asyncTool.state).toBe(ToolState.Disabled);
+        expect.soft(asyncTool?.kind === 'mcpToolFeature' && asyncTool.state).toBe(McpToolState.Disabled);
 
         provider.dispose();
     });
@@ -275,8 +275,8 @@ describe('McpToolsTreeProvider', () => {
         const features = getFeatures(provider, '.NET', 'C#', 'check_csharp_all');
 
         const states = features.map(c => c.kind === 'mcpToolFeature' ? c.state : '');
-        const enabledIdx = states.indexOf(ToolState.Enabled);
-        const disabledIdx = states.indexOf(ToolState.Disabled);
+        const enabledIdx = states.indexOf(McpToolState.Enabled);
+        const disabledIdx = states.indexOf(McpToolState.Disabled);
 
         expect.soft(enabledIdx).toBeLessThan(disabledIdx);
 
@@ -340,7 +340,7 @@ describe('McpToolsTreeProvider', () => {
 
         const provider = new McpToolsTreeProvider(fakeDetector, catalog);
         const features = getFeatures(provider, '.NET', 'C#', 'check_csharp_all');
-        const disabled = features.find(c => c.kind === 'mcpToolFeature' && c.state === ToolState.Disabled)!;
+        const disabled = features.find(c => c.kind === 'mcpToolFeature' && c.state === McpToolState.Disabled)!;
 
         expect.soft(provider.getTreeItem(disabled).tooltip).toContain('Disabled');
 
@@ -352,7 +352,7 @@ describe('McpToolsTreeProvider', () => {
 
         const provider = new McpToolsTreeProvider(fakeDetector, catalog);
         const features = getFeatures(provider, '.NET', 'C#', 'check_csharp_all');
-        const notDetected = features.find(c => c.kind === 'mcpToolFeature' && c.state === ToolState.NotDetected)!;
+        const notDetected = features.find(c => c.kind === 'mcpToolFeature' && c.state === McpToolState.NotDetected)!;
 
         expect.soft(provider.getTreeItem(notDetected).tooltip).toContain('Not detected');
 

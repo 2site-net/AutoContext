@@ -1,8 +1,8 @@
 import type { InstructionsCatalogEntry } from './instructions-catalog-entry.js';
-import type { InstructionState } from './ui-constants.js';
+import type { InstructionsState } from './ui-constants.js';
 
 export interface InstructionsTreeNode {
-    readonly kind: 'instruction';
+    readonly kind: 'instructions';
     readonly entry: InstructionsCatalogEntry;
-    readonly state: InstructionState;
+    readonly state: InstructionsState;
 }

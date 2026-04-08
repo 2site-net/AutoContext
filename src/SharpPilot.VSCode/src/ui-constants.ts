@@ -150,22 +150,22 @@ export const mcpServers: readonly McpServerEntry[] = [
 
 // ── Tree View States ─────────────────────────────────────────────────
 
-export const ToolState = {
+export const McpToolState = {
     Enabled: 'enabled',
     Disabled: 'disabled',
     NotDetected: 'notDetected',
 } as const;
 
-export type ToolState = typeof ToolState[keyof typeof ToolState];
+export type McpToolState = typeof McpToolState[keyof typeof McpToolState];
 
-export const InstructionState = {
+export const InstructionsState = {
     Active: 'active',
     NotDetected: 'notDetected',
     Disabled: 'disabled',
     Overridden: 'overridden',
 } as const;
 
-export type InstructionState = typeof InstructionState[keyof typeof InstructionState];
+export type InstructionsState = typeof InstructionsState[keyof typeof InstructionsState];
 
 // ── Tree View Labels ─────────────────────────────────────────────────
 

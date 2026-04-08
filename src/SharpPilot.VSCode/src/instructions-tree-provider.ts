@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import type { InstructionsCatalog } from './instructions-catalog.js';
 import { ContextKeys } from './context-keys.js';
-import { instructionsCategoryOrder, viewIds, contextKeys, InstructionState, treeViewLabels } from './ui-constants.js';
+import { instructionsCategoryOrder, viewIds, contextKeys, InstructionsState, treeViewLabels } from './ui-constants.js';
 import { instructionScheme } from './instructions-content-provider.js';
 import type { WorkspaceContextDetector } from './workspace-context-detector.js';
 import type { InstructionsCatalogEntry } from './instructions-catalog-entry.js';
@@ -11,11 +11,11 @@ import type { InstructionsTreeNode } from './instructions-tree-node.js';
 type TreeElement = InstructionsTreeCategoryNode | InstructionsTreeNode;
 
 // Sort rank: Active & Overridden first, then Disabled, then NotDetected.
-const stateRank: Record<InstructionState, number> = {
-    [InstructionState.Active]: 0,
-    [InstructionState.Overridden]: 1,
-    [InstructionState.Disabled]: 2,
-    [InstructionState.NotDetected]: 3,
+const stateRank: Record<InstructionsState, number> = {
+    [InstructionsState.Active]: 0,
+    [InstructionsState.Overridden]: 1,
+    [InstructionsState.Disabled]: 2,
+    [InstructionsState.NotDetected]: 3,
 };
 
 export class InstructionsTreeProvider implements vscode.TreeDataProvider<TreeElement>, vscode.Disposable {
@@ -47,7 +47,7 @@ export class InstructionsTreeProvider implements vscode.TreeDataProvider<TreeEle
             }),
             this.treeView.onDidChangeCheckboxState(e => {
                 for (const [item, state] of e.items) {
-                    if (item.kind === 'instruction') {
+                    if (item.kind === 'instructions') {
                         if (state === vscode.TreeItemCheckboxState.Checked) {
                             this._checkedEntries.add(item.entry.settingId);
                         } else {
@@ -69,7 +69,7 @@ export class InstructionsTreeProvider implements vscode.TreeDataProvider<TreeEle
         const overrides = this.detector.getOverriddenSettingIds();
         const active = this.catalog.all.filter(e => {
             const state = InstructionsTreeProvider.resolveState(e, config, this.detector, overrides);
-            return state === InstructionState.Active || state === InstructionState.Overridden;
+            return state === InstructionsState.Active || state === InstructionsState.Overridden;
         }).length;
         this.treeView.description = `${active}/${this.catalog.count}`;
     }
@@ -119,11 +119,11 @@ export class InstructionsTreeProvider implements vscode.TreeDataProvider<TreeEle
         return this.catalog.all
             .filter(e => e.category === category)
             .map(entry => ({
-                kind: 'instruction' as const,
+                kind: 'instructions' as const,
                 entry,
                 state: InstructionsTreeProvider.resolveState(entry, config, this.detector, overrides),
             }))
-            .filter(n => this._showNotDetected || n.state !== InstructionState.NotDetected)
+            .filter(n => this._showNotDetected || n.state !== InstructionsState.NotDetected)
             .sort((a, b) => stateRank[a.state] - stateRank[b.state]);
     }
 
@@ -132,21 +132,21 @@ export class InstructionsTreeProvider implements vscode.TreeDataProvider<TreeEle
         config: vscode.WorkspaceConfiguration,
         detector: WorkspaceContextDetector,
         overrides: ReadonlySet<string>,
-    ): InstructionState {
+    ): InstructionsState {
         const ctxKeys = ContextKeys.forEntry(entry);
         if (ctxKeys.length > 0 && !ctxKeys.some(k => detector.get(k))) {
-            return InstructionState.NotDetected;
+            return InstructionsState.NotDetected;
         }
 
         if (!config.get<boolean>(entry.settingId, true)) {
-            return InstructionState.Disabled;
+            return InstructionsState.Disabled;
         }
 
         if (overrides.has(entry.settingId)) {
-            return InstructionState.Overridden;
+            return InstructionsState.Overridden;
         }
 
-        return InstructionState.Active;
+        return InstructionsState.Active;
     }
 
     private categoryItem(node: InstructionsTreeCategoryNode): vscode.TreeItem {
@@ -157,7 +157,7 @@ export class InstructionsTreeProvider implements vscode.TreeDataProvider<TreeEle
         const entries = this.catalog.all.filter(e => e.category === node.name);
         const active = entries.filter(e => {
             const state = InstructionsTreeProvider.resolveState(e, config, this.detector, overrides);
-            return state === InstructionState.Active || state === InstructionState.Overridden;
+            return state === InstructionsState.Active || state === InstructionsState.Overridden;
         }).length;
         item.tooltip = `${node.name}\n${active}/${entries.length} ${treeViewLabels.activeSuffix}`;
         return item;
@@ -168,18 +168,18 @@ export class InstructionsTreeProvider implements vscode.TreeDataProvider<TreeEle
         item.contextValue = `instruction.${node.state}`;
 
         switch (node.state) {
-            case InstructionState.Active:
+            case InstructionsState.Active:
                 item.iconPath = new vscode.ThemeIcon('check', new vscode.ThemeColor('testing.iconPassed'));
                 break;
-            case InstructionState.NotDetected:
+            case InstructionsState.NotDetected:
                 item.iconPath = new vscode.ThemeIcon('circle-slash', new vscode.ThemeColor('disabledForeground'));
                 item.description = treeViewLabels.notDetected;
                 break;
-            case InstructionState.Disabled:
+            case InstructionsState.Disabled:
                 item.iconPath = new vscode.ThemeIcon('x', new vscode.ThemeColor('testing.iconFailed'));
                 item.description = treeViewLabels.disabled;
                 break;
-            case InstructionState.Overridden:
+            case InstructionsState.Overridden:
                 item.iconPath = new vscode.ThemeIcon('file-symlink-file', new vscode.ThemeColor('terminal.ansiYellow'));
                 item.description = treeViewLabels.overridden;
                 break;
@@ -190,7 +190,7 @@ export class InstructionsTreeProvider implements vscode.TreeDataProvider<TreeEle
             }
         }
 
-        if (this._exportMode && (node.state === InstructionState.Active || node.state === InstructionState.Disabled)) {
+        if (this._exportMode && (node.state === InstructionsState.Active || node.state === InstructionsState.Disabled)) {
             item.checkboxState = this._checkedEntries.has(node.entry.settingId)
                 ? vscode.TreeItemCheckboxState.Checked
                 : vscode.TreeItemCheckboxState.Unchecked;
@@ -198,7 +198,7 @@ export class InstructionsTreeProvider implements vscode.TreeDataProvider<TreeEle
 
         item.tooltip = InstructionsTreeProvider.tooltip(node);
 
-        if (node.state === InstructionState.Overridden) {
+        if (node.state === InstructionsState.Overridden) {
             const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
             if (workspaceFolder) {
                 item.command = {
@@ -222,16 +222,16 @@ export class InstructionsTreeProvider implements vscode.TreeDataProvider<TreeEle
         const lines = [node.entry.label];
 
         switch (node.state) {
-            case InstructionState.Active:
+            case InstructionsState.Active:
                 lines.push(treeViewLabels.activeTooltip);
                 break;
-            case InstructionState.NotDetected:
+            case InstructionsState.NotDetected:
                 lines.push(treeViewLabels.notDetectedTooltip);
                 break;
-            case InstructionState.Disabled:
+            case InstructionsState.Disabled:
                 lines.push(treeViewLabels.disabledTooltip);
                 break;
-            case InstructionState.Overridden:
+            case InstructionsState.Overridden:
                 lines.push(treeViewLabels.overriddenTooltip);
                 break;
             default: {

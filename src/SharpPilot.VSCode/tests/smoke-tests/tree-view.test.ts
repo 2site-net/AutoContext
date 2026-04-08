@@ -22,7 +22,7 @@ suite('Instructions Tree View Smoke Tests', () => {
             const children = exports.instructionsTreeProvider.getChildren(root);
             assert.ok(children.length > 0, `Category '${root.name}' should have at least one instruction`);
             assert.ok(
-                children.every((c: { kind: string }) => c.kind === 'instruction'),
+                children.every((c: { kind: string }) => c.kind === 'instructions'),
                 `All children of '${root.name}' should be instruction nodes`,
             );
         }
@@ -118,7 +118,7 @@ suite('Instructions Tree View Smoke Tests', () => {
             const children = exports.instructionsTreeProvider.getChildren(general);
             const disabled = children.find(
                 (c: { kind: string; entry: { settingId: string }; state: string }) =>
-                    c.kind === 'instruction' && c.entry.settingId === 'sharppilot.instructions.designPrinciples',
+                    c.kind === 'instructions' && c.entry.settingId === 'sharppilot.instructions.designPrinciples',
             );
 
             assert.ok(disabled, 'Design Principles should be found');
@@ -139,7 +139,7 @@ suite('Instructions Tree View Smoke Tests', () => {
         const roots = exports.instructionsTreeProvider.getChildren();
         const general = roots.find((r: { kind: string; name: string }) => r.kind === 'category' && r.name === 'General');
         const children = exports.instructionsTreeProvider.getChildren(general);
-        const active = children.find((c: { kind: string; state: string }) => c.kind === 'instruction' && c.state === 'active');
+        const active = children.find((c: { kind: string; state: string }) => c.kind === 'instructions' && c.state === 'active');
 
         assert.ok(active, 'Should have at least one active instruction');
 
