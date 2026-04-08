@@ -2,6 +2,34 @@ import type { McpToolEntry } from './mcp-tool-entry.js';
 import type { McpServerEntry } from './mcp-server-entry.js';
 import type { InstructionsFileEntry } from './instructions-catalog-entry.js';
 
+// ── Extension identifiers ────────────────────────────────────────────
+
+export const commandIds = {
+    AutoConfigure: 'sharppilot.autoConfigure',
+    ShowNotDetected: 'sharppilot.showNotDetected',
+    HideNotDetected: 'sharppilot.hideNotDetected',
+    ToggleInstruction: 'sharppilot.toggleInstruction',
+    ResetInstructions: 'sharppilot.resetInstructions',
+    EnableInstruction: 'sharppilot.enableInstruction',
+    DisableInstruction: 'sharppilot.disableInstruction',
+    DeleteOverride: 'sharppilot.deleteOverride',
+    ShowOriginal: 'sharppilot.showOriginal',
+    EnterExportMode: 'sharppilot.enterExportMode',
+    ConfirmExport: 'sharppilot.confirmExport',
+    CancelExport: 'sharppilot.cancelExport',
+} as const;
+
+export const viewIds = {
+    Instructions: 'sharppilot.instructionsView',
+    Tools: 'sharppilot.toolsView',
+} as const;
+
+export const contextKeys = {
+    ExportMode: 'sharppilot.exportMode',
+} as const;
+
+// ── Instructions ─────────────────────────────────────────────────────
+
 // Category order: General → Languages → Platforms (.NET, Web) → Tools.
 // Within each category, entries are sorted alphabetically by label.
 // package.json (chatInstructions + configuration.properties) should follow the same order.
@@ -84,6 +112,8 @@ export const instructionEntries: readonly InstructionsFileEntry[] = [
 
 export const instructionsCategoryOrder: readonly string[] = ['General', 'Languages', '.NET', 'Web', 'Tools'];
 
+// ── MCP Tools ────────────────────────────────────────────────────────
+
 export const mcpToolEntries: readonly McpToolEntry[] = [
     { settingId: 'sharppilot.tools.check_csharp_async_patterns', featureName: 'check_csharp_async_patterns', toolName: 'check_csharp_all', label: 'Async Patterns', category: 'C#', group: '.NET', serverCategory: 'dotnet', contextKeys: ['hasCSharp'] },
     { settingId: 'sharppilot.tools.check_csharp_coding_style', featureName: 'check_csharp_coding_style', toolName: 'check_csharp_all', label: 'Coding Style', category: 'C#', group: '.NET', serverCategory: 'dotnet', contextKeys: ['hasCSharp'] },
@@ -102,33 +132,11 @@ export const mcpToolEntries: readonly McpToolEntry[] = [
 export const mcpToolGroupOrder: readonly string[] = ['.NET', 'Web', 'Workspace'];
 export const mcpToolCategoryOrder: readonly string[] = ['C#', 'NuGet', 'TypeScript', 'Git', 'EditorConfig'];
 
+// ── MCP Servers ──────────────────────────────────────────────────────
+
 export const mcpServerEntries: readonly McpServerEntry[] = [
     { label: 'SharpPilot: DotNet', category: 'dotnet', process: 'dotnet', contextKey: 'hasDotNet' },
     { label: 'SharpPilot: Git', category: 'git', process: 'workspace', contextKey: 'hasGit' },
     { label: 'SharpPilot: EditorConfig', category: 'editorconfig', process: 'workspace' },
     { label: 'SharpPilot: TypeScript', category: 'typescript', process: 'web', contextKey: 'hasTypeScript' },
 ];
-
-export const commandIds = {
-    AutoConfigure: 'sharppilot.autoConfigure',
-    ShowNotDetected: 'sharppilot.showNotDetected',
-    HideNotDetected: 'sharppilot.hideNotDetected',
-    ToggleInstruction: 'sharppilot.toggleInstruction',
-    ResetInstructions: 'sharppilot.resetInstructions',
-    EnableInstruction: 'sharppilot.enableInstruction',
-    DisableInstruction: 'sharppilot.disableInstruction',
-    DeleteOverride: 'sharppilot.deleteOverride',
-    ShowOriginal: 'sharppilot.showOriginal',
-    EnterExportMode: 'sharppilot.enterExportMode',
-    ConfirmExport: 'sharppilot.confirmExport',
-    CancelExport: 'sharppilot.cancelExport',
-} as const;
-
-export const viewIds = {
-    Instructions: 'sharppilot.instructionsView',
-    Tools: 'sharppilot.toolsView',
-} as const;
-
-export const contextKeys = {
-    ExportMode: 'sharppilot.exportMode',
-} as const;
