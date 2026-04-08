@@ -4,4 +4,5 @@ export interface McpToolEntry extends CatalogEntry {
     featureName?: string;
     toolName: string;
     group: string;
+    serverCategory: string;
 }

@@ -17,7 +17,7 @@ vi.mock('node:fs', () => ({
 // Must import after the mock is set up via the vitest alias
 import { McpToolsConfigWriter } from '../../src/mcp-tools-config-writer';
 import { McpToolsCatalog } from '../../src/mcp-tools-catalog';
-import { mcpToolEntries, mcpToolCategoriesByServer } from '../../src/ui-constants';
+import { mcpToolEntries } from '../../src/ui-constants';
 import { SharpPilotConfigManager } from '../../src/sharppilot-config';
 
 beforeEach(() => {
@@ -27,7 +27,7 @@ beforeEach(() => {
 });
 
 describe('McpToolsConfigWriter', () => {
-    const catalog = new McpToolsCatalog(mcpToolEntries, mcpToolCategoriesByServer);
+    const catalog = new McpToolsCatalog(mcpToolEntries);
 
     it('should write disabled tools to .sharppilot.json', () => {
         __setConfigStore({

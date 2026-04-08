@@ -4,7 +4,7 @@ import { AutoConfigurer } from '../../src/auto-configurer';
 import { ContextKeys } from '../../src/context-keys';
 import { InstructionsCatalog } from '../../src/instructions-catalog';
 import { McpToolsCatalog } from '../../src/mcp-tools-catalog';
-import { instructionEntries, mcpToolEntries, mcpToolCategoriesByServer } from '../../src/ui-constants';
+import { instructionEntries, mcpToolEntries } from '../../src/ui-constants';
 
 const fakeDetector = {
     get: vi.fn((_key: string) => false),
@@ -18,7 +18,7 @@ beforeEach(() => {
 
 describe('AutoConfigurer.configure', () => {
     const instructionsCatalog = new InstructionsCatalog(instructionEntries);
-    const catalog = new McpToolsCatalog(mcpToolEntries, mcpToolCategoriesByServer);
+    const catalog = new McpToolsCatalog(mcpToolEntries);
 
     it('should enable always-on entries and disable others when nothing is detected', async () => {
         vi.mocked(fakeDetector.get).mockReturnValue(false);
