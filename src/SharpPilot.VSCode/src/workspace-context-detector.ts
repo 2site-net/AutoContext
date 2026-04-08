@@ -3,6 +3,17 @@ import type { InstructionsCatalog } from './instructions-catalog.js';
 import { ContextKeys } from './context-keys.js';
 import type { McpServersCatalog } from './mcp-servers-catalog.js';
 
+// --- File-system watcher globs ---
+
+const existenceWatchGlob =
+    '**/*.{csproj,fsproj,sln,slnx,razor,xaml,aspx,html,cshtml,css,js,jsx,mjs,cjs,ts,tsx,mts,cts,ps1,psm1,psd1,sh,bash,bat,cmd,java,kt,kts,scala,sc,groovy,gvy,c,cpp,cxx,cc,rs,go,py,lua,php}';
+
+const contentWatchGlob =
+    '**/{*.csproj,*.fsproj,package.json,pom.xml,build.gradle,build.sbt,Cargo.toml,go.mod,pyproject.toml,composer.json}';
+
+const overrideWatchGlob =
+    '**/.github/{copilot-instructions.md,instructions/*.instructions.md}';
+
 // --- Declarative detection tables ---
 
 interface FileRule {
@@ -202,9 +213,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
     ) {
         const schedule = () => this.scheduleDetect();
 
-        const existenceWatcher = vscode.workspace.createFileSystemWatcher(
-            '**/*.{csproj,fsproj,sln,slnx,razor,xaml,aspx,html,cshtml,css,js,jsx,mjs,cjs,ts,tsx,mts,cts,ps1,psm1,psd1,sh,bash,bat,cmd,java,kt,kts,scala,sc,groovy,gvy,c,cpp,cxx,cc,rs,go,py,lua,php}',
-        );
+        const existenceWatcher = vscode.workspace.createFileSystemWatcher(existenceWatchGlob);
 
         this.disposables.push(
             existenceWatcher,
@@ -212,9 +221,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
             existenceWatcher.onDidDelete(schedule),
         );
 
-        const contentWatcher = vscode.workspace.createFileSystemWatcher(
-            '**/{*.csproj,*.fsproj,package.json,pom.xml,build.gradle,build.sbt,Cargo.toml,go.mod,pyproject.toml,composer.json}',
-        );
+        const contentWatcher = vscode.workspace.createFileSystemWatcher(contentWatchGlob);
 
         this.disposables.push(
             contentWatcher,
@@ -223,9 +230,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
             contentWatcher.onDidDelete(schedule),
         );
 
-        const overrideWatcher = vscode.workspace.createFileSystemWatcher(
-            '**/.github/{copilot-instructions.md,instructions/*.instructions.md}',
-        );
+        const overrideWatcher = vscode.workspace.createFileSystemWatcher(overrideWatchGlob);
 
         this.disposables.push(
             overrideWatcher,
