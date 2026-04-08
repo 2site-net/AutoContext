@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { __setConfigStore, TreeItemCollapsibleState, TreeItemCheckboxState, workspace, ConfigurationTarget, commands, Uri, window } from './__mocks__/vscode';
 import { InstructionsTreeProvider, InstructionState } from '../../src/instructions-tree-provider';
 import { InstructionsCatalog } from '../../src/instructions-catalog';
-import { instructionEntries } from '../../src/ui-constants';
+import { instructionEntries, contextKeys } from '../../src/ui-constants';
 
 const fakeDetector = {
     get: vi.fn((_key: string) => false),
@@ -415,7 +415,7 @@ describe('InstructionsTreeProvider', () => {
         const provider = new InstructionsTreeProvider(fakeDetector, catalog);
         provider.enterExportMode();
 
-        expect.soft(commands.executeCommand).toHaveBeenCalledWith('setContext', 'sharppilot.exportMode', true);
+        expect.soft(commands.executeCommand).toHaveBeenCalledWith('setContext', contextKeys.ExportMode, true);
 
         provider.dispose();
     });
@@ -425,7 +425,7 @@ describe('InstructionsTreeProvider', () => {
         provider.enterExportMode();
         provider.cancelExportMode();
 
-        expect.soft(commands.executeCommand).toHaveBeenCalledWith('setContext', 'sharppilot.exportMode', false);
+        expect.soft(commands.executeCommand).toHaveBeenCalledWith('setContext', contextKeys.ExportMode, false);
 
         provider.dispose();
     });

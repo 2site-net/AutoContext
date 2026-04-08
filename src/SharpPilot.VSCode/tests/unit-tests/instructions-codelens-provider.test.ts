@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-import { InstructionsCodeLensProvider, toggleInstructionCommandId, resetInstructionsCommandId } from '../../src/instructions-codelens-provider';
+import { InstructionsCodeLensProvider } from '../../src/instructions-codelens-provider';
 import { SharpPilotConfigManager } from '../../src/sharppilot-config';
 import { instructionScheme } from '../../src/instructions-content-provider';
 import { InstructionsParser } from '../../src/instructions-parser';
 import { InstructionsCatalog } from '../../src/instructions-catalog';
-import { instructionEntries } from '../../src/ui-constants';
+import { instructionEntries, commandIds } from '../../src/ui-constants';
 
 import { readFileSync } from 'node:fs';
 
@@ -72,7 +72,7 @@ describe('InstructionsCodeLensProvider', () => {
         expect(lenses).toHaveLength(parsedInstructions.length);
         expect.soft(lenses.every(lens => {
             const cmd = lens.command as { title: string; command: string };
-            return cmd.title.includes('Disable Instruction') && cmd.command === toggleInstructionCommandId;
+            return cmd.title.includes('Disable Instruction') && cmd.command === commandIds.ToggleInstruction;
         })).toBe(true);
     });
 
@@ -97,7 +97,7 @@ describe('InstructionsCodeLensProvider', () => {
 
         expect(lenses).toHaveLength(parsedInstructions.length + 1);
 
-        const toggleLenses = lenses.filter(l => (l.command as { command: string }).command === toggleInstructionCommandId);
+        const toggleLenses = lenses.filter(l => (l.command as { command: string }).command === commandIds.ToggleInstruction);
         const enableLens = toggleLenses.find(l => (l.command as { title: string }).title.includes('Enable Instruction'));
         const disableLens = toggleLenses.find(l => (l.command as { title: string }).title.includes('Disable Instruction'));
 
@@ -124,7 +124,7 @@ describe('InstructionsCodeLensProvider', () => {
 
         const lenses = provider.provideCodeLenses(makeDocument(instructionScheme, 'test.instructions.md'));
 
-        const resetLens = lenses.find(l => (l.command as { command: string }).command === resetInstructionsCommandId);
+        const resetLens = lenses.find(l => (l.command as { command: string }).command === commandIds.ResetInstructions);
 
         expect.soft(resetLens).toBeDefined();
         expect.soft((resetLens?.command as { title: string })?.title).toContain('Reset All Instructions');
@@ -143,7 +143,7 @@ describe('InstructionsCodeLensProvider', () => {
 
         const lenses = provider.provideCodeLenses(makeDocument(instructionScheme, 'test.instructions.md'));
 
-        const resetLens = lenses.find(l => (l.command as { command: string }).command === resetInstructionsCommandId);
+        const resetLens = lenses.find(l => (l.command as { command: string }).command === commandIds.ResetInstructions);
         expect.soft(resetLens).toBeUndefined();
     });
 

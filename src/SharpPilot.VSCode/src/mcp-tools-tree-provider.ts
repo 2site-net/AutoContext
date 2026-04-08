@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import type { McpToolsCatalog } from './mcp-tools-catalog.js';
 import { ContextKeys } from './context-keys.js';
-import { mcpToolGroupOrder, mcpToolCategoryOrder } from './ui-constants.js';
+import { mcpToolGroupOrder, mcpToolCategoryOrder, viewIds } from './ui-constants.js';
 import type { WorkspaceContextDetector } from './workspace-context-detector.js';
 import type { McpToolEntry } from './mcp-tool-entry.js';
 
@@ -45,7 +45,6 @@ const stateRank: Record<ToolState, number> = {
 };
 
 export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement>, vscode.Disposable {
-    static readonly viewId = 'sharppilot.toolsView';
 
     private readonly _onDidChangeTreeData = new vscode.EventEmitter<TreeElement | undefined>();
     readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
@@ -54,7 +53,7 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
     private readonly disposables: vscode.Disposable[] = [];
 
     constructor(private readonly detector: WorkspaceContextDetector, private readonly catalog: McpToolsCatalog) {
-        this.treeView = vscode.window.createTreeView(McpToolsTreeProvider.viewId, {
+        this.treeView = vscode.window.createTreeView(viewIds.Tools, {
             treeDataProvider: this,
             manageCheckboxStateManually: true,
         });

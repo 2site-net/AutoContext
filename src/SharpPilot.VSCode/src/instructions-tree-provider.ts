@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import type { InstructionsCatalog } from './instructions-catalog.js';
 import { ContextKeys } from './context-keys.js';
-import { instructionsCategoryOrder } from './ui-constants.js';
+import { instructionsCategoryOrder, viewIds, contextKeys } from './ui-constants.js';
 import { instructionScheme } from './instructions-content-provider.js';
 import type { WorkspaceContextDetector } from './workspace-context-detector.js';
 import type { InstructionsCatalogEntry } from './instructions-catalog-entry.js';
@@ -39,14 +39,6 @@ const stateRank: Record<InstructionState, number> = {
 };
 
 export class InstructionsTreeProvider implements vscode.TreeDataProvider<TreeElement>, vscode.Disposable {
-    static readonly viewId = 'sharppilot.instructionsView';
-    static readonly enableCommandId = 'sharppilot.enableInstruction';
-    static readonly disableCommandId = 'sharppilot.disableInstruction';
-    static readonly deleteOverrideCommandId = 'sharppilot.deleteOverride';
-    static readonly showOriginalCommandId = 'sharppilot.showOriginal';
-    static readonly enterExportCommandId = 'sharppilot.enterExportMode';
-    static readonly confirmExportCommandId = 'sharppilot.confirmExport';
-    static readonly cancelExportCommandId = 'sharppilot.cancelExport';
 
     private readonly _onDidChangeTreeData = new vscode.EventEmitter<TreeElement | undefined>();
     readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
@@ -58,7 +50,7 @@ export class InstructionsTreeProvider implements vscode.TreeDataProvider<TreeEle
     private readonly disposables: vscode.Disposable[] = [];
 
     constructor(private readonly detector: WorkspaceContextDetector, private readonly catalog: InstructionsCatalog) {
-        this.treeView = vscode.window.createTreeView(InstructionsTreeProvider.viewId, {
+        this.treeView = vscode.window.createTreeView(viewIds.Instructions, {
             treeDataProvider: this,
         });
 
@@ -264,14 +256,14 @@ export class InstructionsTreeProvider implements vscode.TreeDataProvider<TreeEle
     enterExportMode(): void {
         this._exportMode = true;
         this._checkedEntries.clear();
-        void vscode.commands.executeCommand('setContext', 'sharppilot.exportMode', true);
+        void vscode.commands.executeCommand('setContext', contextKeys.ExportMode, true);
         this.refresh();
     }
 
     cancelExportMode(): void {
         this._exportMode = false;
         this._checkedEntries.clear();
-        void vscode.commands.executeCommand('setContext', 'sharppilot.exportMode', false);
+        void vscode.commands.executeCommand('setContext', contextKeys.ExportMode, false);
         this.refresh();
     }
 

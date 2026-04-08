@@ -7,9 +7,7 @@ import { ContextKeys } from './context-keys.js';
 import { instructionScheme } from './instructions-content-provider.js';
 import type { SharpPilotConfigManager } from './sharppilot-config.js';
 import type { WorkspaceContextDetector } from './workspace-context-detector.js';
-
-export const toggleInstructionCommandId = 'sharppilot.toggleInstruction';
-export const resetInstructionsCommandId = 'sharppilot.resetInstructions';
+import { commandIds } from './ui-constants.js';
 
 export class InstructionsCodeLensProvider implements vscode.CodeLensProvider, vscode.Disposable {
     private readonly didChangeEmitter = new vscode.EventEmitter<void>();
@@ -65,7 +63,7 @@ export class InstructionsCodeLensProvider implements vscode.CodeLensProvider, vs
         if (disabledIds.size > 0) {
             lenses.push(new vscode.CodeLens(new vscode.Range(0, 0, 0, 0), {
                 title: '$(refresh) Reset All Instructions',
-                command: resetInstructionsCommandId,
+                command: commandIds.ResetInstructions,
                 arguments: [fileName],
             }));
         }
@@ -80,7 +78,7 @@ export class InstructionsCodeLensProvider implements vscode.CodeLensProvider, vs
 
             lenses.push(new vscode.CodeLens(range, {
                 title: isDisabled ? '$(check) Enable Instruction' : '$(x) Disable Instruction',
-                command: toggleInstructionCommandId,
+                command: commandIds.ToggleInstruction,
                 arguments: [fileName, instruction.id],
             }));
         }

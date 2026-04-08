@@ -108,3 +108,27 @@ export const mcpServerEntries: readonly McpServerEntry[] = [
     { label: 'SharpPilot: EditorConfig', category: 'editorconfig', process: 'workspace' },
     { label: 'SharpPilot: TypeScript', category: 'typescript', process: 'web', contextKey: 'hasTypeScript' },
 ];
+
+export const commandIds = {
+    AutoConfigure: 'sharppilot.autoConfigure',
+    ShowNotDetected: 'sharppilot.showNotDetected',
+    HideNotDetected: 'sharppilot.hideNotDetected',
+    ToggleInstruction: 'sharppilot.toggleInstruction',
+    ResetInstructions: 'sharppilot.resetInstructions',
+    EnableInstruction: 'sharppilot.enableInstruction',
+    DisableInstruction: 'sharppilot.disableInstruction',
+    DeleteOverride: 'sharppilot.deleteOverride',
+    ShowOriginal: 'sharppilot.showOriginal',
+    EnterExportMode: 'sharppilot.enterExportMode',
+    ConfirmExport: 'sharppilot.confirmExport',
+    CancelExport: 'sharppilot.cancelExport',
+} as const;
+
+export const viewIds = {
+    Instructions: 'sharppilot.instructionsView',
+    Tools: 'sharppilot.toolsView',
+} as const;
+
+export const contextKeys = {
+    ExportMode: 'sharppilot.exportMode',
+} as const;

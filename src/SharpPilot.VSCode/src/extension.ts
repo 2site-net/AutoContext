@@ -4,12 +4,12 @@ import { McpToolsConfigWriter } from './mcp-tools-config-writer.js';
 import { McpToolsCatalog } from './mcp-tools-catalog.js';
 import { InstructionsCatalog } from './instructions-catalog.js';
 import { McpServersCatalog } from './mcp-servers-catalog.js';
-import { mcpToolEntries, instructionEntries, mcpServerEntries } from './ui-constants.js';
+import { mcpToolEntries, instructionEntries, mcpServerEntries, commandIds } from './ui-constants.js';
 import { AutoConfigurer } from './auto-configurer.js';
 import { InstructionsExporter } from './instructions-exporter.js';
 import { SharpPilotConfigManager } from './sharppilot-config.js';
 import { InstructionsContentProvider, instructionScheme } from './instructions-content-provider.js';
-import { InstructionsCodeLensProvider, toggleInstructionCommandId, resetInstructionsCommandId } from './instructions-codelens-provider.js';
+import { InstructionsCodeLensProvider } from './instructions-codelens-provider.js';
 import { InstructionsDecorationManager } from './instructions-decoration-manager.js';
 import { InstructionsConfigWriter } from './instructions-config-writer.js';
 import { InstructionsDiagnostics } from './instructions-diagnostics.js';
@@ -43,17 +43,16 @@ export function activate(context: vscode.ExtensionContext) {
     const instructionsTreeProvider = new InstructionsTreeProvider(workspaceContextDetector, instructionsCatalog);
     const mcpToolsTreeProvider = new McpToolsTreeProvider(workspaceContextDetector, toolsCatalog);
 
-    const showNotDetectedKey = 'sharppilot.showNotDetected';
-    const showNotDetected = context.globalState.get<boolean>(showNotDetectedKey, true);
+    const showNotDetected = context.globalState.get<boolean>(commandIds.ShowNotDetected, true);
     instructionsTreeProvider.showNotDetected = showNotDetected;
     mcpToolsTreeProvider.showNotDetected = showNotDetected;
-    void vscode.commands.executeCommand('setContext', showNotDetectedKey, showNotDetected);
+    void vscode.commands.executeCommand('setContext', commandIds.ShowNotDetected, showNotDetected);
 
     const setShowNotDetected = async (value: boolean) => {
-        await context.globalState.update(showNotDetectedKey, value);
+        await context.globalState.update(commandIds.ShowNotDetected, value);
         instructionsTreeProvider.showNotDetected = value;
         mcpToolsTreeProvider.showNotDetected = value;
-        void vscode.commands.executeCommand('setContext', showNotDetectedKey, value);
+        void vscode.commands.executeCommand('setContext', commandIds.ShowNotDetected, value);
     };
 
     const logDiagnostics = () => InstructionsDiagnostics.log(outputChannel, context.extensionPath, configManager, instructionsCatalog);
@@ -78,9 +77,9 @@ export function activate(context: vscode.ExtensionContext) {
         instructionsWriter,
         instructionsTreeProvider,
         mcpToolsTreeProvider,
-        vscode.commands.registerCommand(InstructionsTreeProvider.enterExportCommandId, () => instructionsTreeProvider.enterExportMode()),
-        vscode.commands.registerCommand(InstructionsTreeProvider.cancelExportCommandId, () => instructionsTreeProvider.cancelExportMode()),
-        vscode.commands.registerCommand(InstructionsTreeProvider.confirmExportCommandId, async () => {
+        vscode.commands.registerCommand(commandIds.EnterExportMode, () => instructionsTreeProvider.enterExportMode()),
+        vscode.commands.registerCommand(commandIds.CancelExport, () => instructionsTreeProvider.cancelExportMode()),
+        vscode.commands.registerCommand(commandIds.ConfirmExport, async () => {
             const entries = instructionsTreeProvider.getCheckedEntries();
             instructionsTreeProvider.cancelExportMode();
             await instructionsExporter.export(entries);
@@ -88,12 +87,12 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.workspace.registerTextDocumentContentProvider(instructionScheme, contentProvider),
         vscode.languages.registerCodeLensProvider({ scheme: instructionScheme }, codeLensProvider),
         // Workspace auto-configuration (instructions + tools)
-        vscode.commands.registerCommand('sharppilot.autoConfigure', async () => { await AutoConfigurer.configure(workspaceContextDetector, instructionsCatalog, toolsCatalog); }),
+        vscode.commands.registerCommand(commandIds.AutoConfigure, async () => { await AutoConfigurer.configure(workspaceContextDetector, instructionsCatalog, toolsCatalog); }),
         // CodeLens (internal)
-        vscode.commands.registerCommand(toggleInstructionCommandId, (fileName: string, id: string) => {
+        vscode.commands.registerCommand(commandIds.ToggleInstruction, (fileName: string, id: string) => {
             configManager.toggleInstruction(fileName, id);
         }),
-        vscode.commands.registerCommand(resetInstructionsCommandId, (fileName: string) => {
+        vscode.commands.registerCommand(commandIds.ResetInstructions, (fileName: string) => {
             configManager.resetInstructions(fileName);
         }),
         configManager.onDidChange(() => logDiagnostics()),
@@ -112,12 +111,12 @@ export function activate(context: vscode.ExtensionContext) {
             }
         }),
         workspaceContextDetector.onDidChange(() => didChangeEmitter.fire()),
-        vscode.commands.registerCommand(InstructionsTreeProvider.enableCommandId, InstructionsTreeProvider.enableInstruction),
-        vscode.commands.registerCommand(InstructionsTreeProvider.disableCommandId, InstructionsTreeProvider.disableInstruction),
-        vscode.commands.registerCommand(InstructionsTreeProvider.deleteOverrideCommandId, InstructionsTreeProvider.deleteOverride),
-        vscode.commands.registerCommand(InstructionsTreeProvider.showOriginalCommandId, InstructionsTreeProvider.showOriginal),
-        vscode.commands.registerCommand('sharppilot.showNotDetected', () => setShowNotDetected(true)),
-        vscode.commands.registerCommand('sharppilot.hideNotDetected', () => setShowNotDetected(false)),
+        vscode.commands.registerCommand(commandIds.EnableInstruction, InstructionsTreeProvider.enableInstruction),
+        vscode.commands.registerCommand(commandIds.DisableInstruction, InstructionsTreeProvider.disableInstruction),
+        vscode.commands.registerCommand(commandIds.DeleteOverride, InstructionsTreeProvider.deleteOverride),
+        vscode.commands.registerCommand(commandIds.ShowOriginal, InstructionsTreeProvider.showOriginal),
+        vscode.commands.registerCommand(commandIds.ShowNotDetected, () => setShowNotDetected(true)),
+        vscode.commands.registerCommand(commandIds.HideNotDetected, () => setShowNotDetected(false)),
         vscode.lm.registerMcpServerDefinitionProvider('sharpPilotProvider', mcpServerProvider),
     );
 
