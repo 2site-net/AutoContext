@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { __setConfigStore, TreeItemCollapsibleState, TreeItemCheckboxState, workspace, ConfigurationTarget, commands, Uri, window } from './__mocks__/vscode';
 import { InstructionsTreeProvider } from '../../src/instructions-tree-provider';
-import type { InstructionNode } from '../../src/instructions-tree-provider';
+import type { InstructionsTreeNode } from '../../src/instructions-tree-node';
 import { InstructionState } from '../../src/ui-constants';
 import { InstructionsCatalog } from '../../src/instructions-catalog';
 import { instructionsFiles, contextKeys } from '../../src/ui-constants';
@@ -291,7 +291,7 @@ describe('InstructionsTreeProvider', () => {
         const children = provider.getChildren(languages);
         const node = children.find(c => c.kind === 'instruction' && c.entry.settingId === 'sharppilot.instructions.lang.csharp')!;
 
-        await InstructionsTreeProvider.enableInstruction(node as InstructionNode);
+        await InstructionsTreeProvider.enableInstruction(node as InstructionsTreeNode);
 
         const config = vi.mocked(workspace.getConfiguration).mock.results.at(-1)!.value;
         expect.soft(config.update).toHaveBeenCalledWith('sharppilot.instructions.lang.csharp', true, ConfigurationTarget.Global);
@@ -308,7 +308,7 @@ describe('InstructionsTreeProvider', () => {
         const children = provider.getChildren(general);
         const node = children.find(c => c.kind === 'instruction' && c.state === InstructionState.Active)!;
 
-        await InstructionsTreeProvider.disableInstruction(node as InstructionNode);
+        await InstructionsTreeProvider.disableInstruction(node as InstructionsTreeNode);
 
         const config = vi.mocked(workspace.getConfiguration).mock.results.at(-1)!.value;
         expect.soft(config.update).toHaveBeenCalledWith(
@@ -336,7 +336,7 @@ describe('InstructionsTreeProvider', () => {
         const children = provider.getChildren(languages);
         const node = children.find(c => c.kind === 'instruction' && c.entry.settingId === 'sharppilot.instructions.lang.csharp')!;
 
-        await InstructionsTreeProvider.deleteOverride(node as InstructionNode);
+        await InstructionsTreeProvider.deleteOverride(node as InstructionsTreeNode);
 
         expect.soft(window.tabGroups.close).toHaveBeenCalledWith(matchingTab);
         expect.soft(workspace.fs.delete).toHaveBeenCalled();
@@ -354,7 +354,7 @@ describe('InstructionsTreeProvider', () => {
         const children = provider.getChildren(languages);
         const node = children.find(c => c.kind === 'instruction' && c.entry.settingId === 'sharppilot.instructions.lang.csharp')!;
 
-        await InstructionsTreeProvider.showOriginal(node as InstructionNode);
+        await InstructionsTreeProvider.showOriginal(node as InstructionsTreeNode);
 
         expect.soft(commands.executeCommand).toHaveBeenCalledWith(
             'vscode.open',
