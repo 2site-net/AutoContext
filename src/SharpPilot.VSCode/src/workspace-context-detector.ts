@@ -3,6 +3,180 @@ import type { InstructionsCatalog } from './instructions-catalog.js';
 import { ContextKeys } from './context-keys.js';
 import type { McpServersCatalog } from './mcp-servers-catalog.js';
 
+// --- Declarative detection tables ---
+
+interface FileRule {
+    readonly flag: string;
+    readonly globs: readonly string[];
+}
+
+interface ContentRule {
+    readonly flag: string;
+    readonly pattern: RegExp;
+}
+
+const fileRules = [
+    { flag: 'hasDotNet', globs: ['**/*.{csproj,fsproj,vbproj,sln,slnx}'] },
+    { flag: 'hasCSharp', globs: ['**/*.csproj'] },
+    { flag: 'hasFSharp', globs: ['**/*.fsproj'] },
+    { flag: 'hasVbNet', globs: ['**/*.vbproj'] },
+    { flag: 'hasBlazor', globs: ['**/*.razor'] },
+    { flag: 'hasXaml', globs: ['**/*.xaml'] },
+    { flag: 'hasWebForms', globs: ['**/*.{aspx,ascx,master}'] },
+    { flag: 'hasRazor', globs: ['**/*.cshtml'] },
+    { flag: 'hasHtml', globs: ['**/*.{html,cshtml}'] },
+    { flag: 'hasCss', globs: ['**/*.css'] },
+    { flag: 'hasJavaScript', globs: ['**/*.{js,jsx,mjs,cjs}'] },
+    { flag: 'hasTypeScript', globs: ['**/*.{ts,tsx,mts,cts}'] },
+    { flag: 'hasUnity', globs: ['**/ProjectSettings/ProjectSettings.asset'] },
+    { flag: 'hasDocker', globs: ['**/Dockerfile*'] },
+    { flag: 'hasPowerShell', globs: ['**/*.{ps1,psm1,psd1}'] },
+    { flag: 'hasBash', globs: ['**/*.{sh,bash}'] },
+    { flag: 'hasBatch', globs: ['**/*.{bat,cmd}'] },
+    { flag: 'hasYaml', globs: ['**/*.{yml,yaml}'] },
+    { flag: 'hasJava', globs: ['**/*.java', '**/{pom.xml,build.gradle}'] },
+    { flag: 'hasKotlin', globs: ['**/*.{kt,kts}'] },
+    { flag: 'hasScala', globs: ['**/*.{scala,sc}', '**/build.sbt'] },
+    { flag: 'hasGroovy', globs: ['**/*.{groovy,gvy}'] },
+    { flag: 'hasC', globs: ['**/*.c'] },
+    { flag: 'hasCpp', globs: ['**/*.{cpp,cxx,cc}'] },
+    { flag: 'hasRust', globs: ['**/*.rs', '**/Cargo.toml'] },
+    { flag: 'hasGo', globs: ['**/*.go', '**/go.mod'] },
+    { flag: 'hasPython', globs: ['**/*.py', '**/pyproject.toml'] },
+    { flag: 'hasLua', globs: ['**/*.lua'] },
+    { flag: 'hasPhp', globs: ['**/*.php', '**/composer.json'] },
+] as const satisfies readonly FileRule[];
+
+const npmContentRules = [
+    { flag: 'hasReact', pattern: /"react"\s*:/ },
+    { flag: 'hasAngular', pattern: /"@angular\/core"\s*:/ },
+    { flag: 'hasVue', pattern: /"vue"\s*:/ },
+    { flag: 'hasSvelte', pattern: /"svelte"\s*:/ },
+    { flag: 'hasVitest', pattern: /"vitest"\s*:/ },
+    { flag: 'hasJest', pattern: /"jest"\s*:/ },
+    { flag: 'hasJasmine', pattern: /"jasmine"\s*:/ },
+    { flag: 'hasMocha', pattern: /"mocha"\s*:/ },
+    { flag: 'hasPlaywright', pattern: /"@playwright\/test"\s*:/ },
+    { flag: 'hasCypress', pattern: /"cypress"\s*:/ },
+    { flag: 'hasNextJs', pattern: /"next"\s*:/ },
+    { flag: 'hasGraphql', pattern: /"graphql"\s*:|"@apollo\/|"graphql-request"\s*:|"urql"\s*:|"HotChocolate/i },
+] as const satisfies readonly ContentRule[];
+
+const dotnetContentRules = [
+    { flag: 'hasAspNetCore', pattern: /Sdk\s*=\s*["']Microsoft\.NET\.Sdk\.(Web|Razor|BlazorWebAssembly)["']/i },
+    { flag: 'hasDapper', pattern: /Dapper/i },
+    { flag: 'hasEntityFrameworkCore', pattern: /Microsoft\.EntityFrameworkCore/i },
+    { flag: 'hasMaui', pattern: /<UseMaui>\s*true\s*<\/UseMaui>/i },
+    { flag: 'hasMongoDb', pattern: /MongoDB\.Driver|MongoDB\.EntityFrameworkCore/i },
+    { flag: 'hasXunit', pattern: /xunit/i },
+    { flag: 'hasMsTest', pattern: /MSTest|Microsoft\.VisualStudio\.TestPlatform/i },
+    { flag: 'hasNUnit', pattern: /NUnit/i },
+    { flag: 'hasWpf', pattern: /<UseWPF>\s*true\s*<\/UseWPF>/i },
+    { flag: 'hasWinForms', pattern: /<UseWindowsForms>\s*true\s*<\/UseWindowsForms>/i },
+    { flag: 'hasMySql', pattern: /MySqlConnector|MySql\.Data|Pomelo\.EntityFrameworkCore\.MySql/i },
+    { flag: 'hasOracle', pattern: /Oracle\.ManagedDataAccess|Oracle\.EntityFrameworkCore/i },
+    { flag: 'hasPostgres', pattern: /Npgsql/i },
+    { flag: 'hasSqlite', pattern: /Microsoft\.Data\.Sqlite|System\.Data\.SQLite|EntityFrameworkCore\.Sqlite/i },
+    { flag: 'hasSqlServer', pattern: /Microsoft\.Data\.SqlClient|System\.Data\.SqlClient|EntityFrameworkCore\.SqlServer|EntityFramework\.SqlServer/i },
+    { flag: 'hasGrpc', pattern: /Grpc\.|Google\.Protobuf/i },
+    { flag: 'hasMediatR', pattern: /MediatR|Mediator\.Abstractions/i },
+    { flag: 'hasRedis', pattern: /StackExchange\.Redis|Microsoft\.Extensions\.Caching\.StackExchangeRedis/i },
+    { flag: 'hasSignalR', pattern: /Microsoft\.AspNetCore\.SignalR/i },
+    { flag: 'hasGraphql', pattern: /HotChocolate|GraphQL\.Server/i },
+] as const satisfies readonly ContentRule[];
+
+// [child, parent] — when child is true, parent becomes activated.
+const flagActivationRules = [
+    // Web: framework → language/runtime
+    ['hasNextJs', 'hasReact'],
+    ['hasAngular', 'hasTypeScript'],
+    ['hasTypeScript', 'hasJavaScript'],
+    ['hasReact', 'hasNodeJs'],
+    ['hasAngular', 'hasNodeJs'],
+    ['hasVue', 'hasNodeJs'],
+    ['hasSvelte', 'hasNodeJs'],
+    ['hasVitest', 'hasNodeJs'],
+    ['hasJest', 'hasNodeJs'],
+    ['hasJasmine', 'hasNodeJs'],
+    ['hasMocha', 'hasNodeJs'],
+    ['hasPlaywright', 'hasNodeJs'],
+    ['hasCypress', 'hasNodeJs'],
+    ['hasNodeJs', 'hasJavaScript'],
+
+    // .NET: framework → platform
+    ['hasBlazor', 'hasAspNetCore'],
+    ['hasSignalR', 'hasAspNetCore'],
+    ['hasAspNetCore', 'hasRazor'],
+    ['hasBlazor', 'hasCSharp'],
+    ['hasUnity', 'hasCSharp'],
+    ['hasWpf', 'hasXaml'],
+    ['hasMaui', 'hasXaml'],
+    ['hasAspNetCore', 'hasDotNet'],
+    ['hasDapper', 'hasDotNet'],
+    ['hasEntityFrameworkCore', 'hasDotNet'],
+    ['hasMaui', 'hasDotNet'],
+    ['hasWpf', 'hasDotNet'],
+    ['hasWinForms', 'hasDotNet'],
+    ['hasWebForms', 'hasDotNet'],
+    ['hasGrpc', 'hasDotNet'],
+    ['hasMediatR', 'hasDotNet'],
+    ['hasRedis', 'hasDotNet'],
+    ['hasSignalR', 'hasDotNet'],
+    ['hasXunit', 'hasDotNet'],
+    ['hasMsTest', 'hasDotNet'],
+    ['hasNUnit', 'hasDotNet'],
+    ['hasMongoDb', 'hasDotNet'],
+    ['hasMySql', 'hasDotNet'],
+    ['hasOracle', 'hasDotNet'],
+    ['hasPostgres', 'hasDotNet'],
+    ['hasSqlite', 'hasDotNet'],
+    ['hasSqlServer', 'hasDotNet'],
+    ['hasUnity', 'hasDotNet'],
+
+    // Markup → style
+    ['hasBlazor', 'hasHtml'],
+    ['hasHtml', 'hasCss'],
+
+    // JVM ecosystem
+    ['hasJava', 'hasJvm'],
+    ['hasKotlin', 'hasJvm'],
+    ['hasScala', 'hasJvm'],
+    ['hasGroovy', 'hasJvm'],
+
+    // Native/systems
+    ['hasC', 'hasNative'],
+    ['hasCpp', 'hasNative'],
+    ['hasRust', 'hasNative'],
+    ['hasGo', 'hasNative'],
+
+    // Testing composites
+    ['hasXunit', 'hasDotNetTesting'],
+    ['hasMsTest', 'hasDotNetTesting'],
+    ['hasNUnit', 'hasDotNetTesting'],
+    ['hasVitest', 'hasWebTesting'],
+    ['hasJest', 'hasWebTesting'],
+    ['hasJasmine', 'hasWebTesting'],
+    ['hasMocha', 'hasWebTesting'],
+    ['hasPlaywright', 'hasWebTesting'],
+    ['hasCypress', 'hasWebTesting'],
+] as const satisfies readonly (readonly [string, string])[];
+
+type FlagName =
+    | typeof fileRules[number]['flag']
+    | typeof npmContentRules[number]['flag']
+    | typeof dotnetContentRules[number]['flag']
+    | typeof flagActivationRules[number][0 | 1]
+    | 'hasGit';
+
+const allFlags: ReadonlySet<FlagName> = new Set<FlagName>([
+    ...fileRules.map(r => r.flag),
+    ...npmContentRules.map(r => r.flag),
+    ...dotnetContentRules.map(r => r.flag),
+    ...flagActivationRules.flat(),
+    'hasGit',
+    'hasNodeJs',
+]);
+
 export class WorkspaceContextDetector implements vscode.Disposable {
     private readonly disposables: vscode.Disposable[] = [];
     private debounceTimer: ReturnType<typeof setTimeout> | undefined;
@@ -75,298 +249,81 @@ export class WorkspaceContextDetector implements vscode.Disposable {
             const setContext = (key: string, value: boolean): Thenable<unknown> =>
                 vscode.commands.executeCommand('setContext', key, value);
 
-            const decoder = new TextDecoder();
+            const flags = {} as Record<FlagName, boolean>;
+            for (const f of allFlags) flags[f] = false;
 
-            const [dotnetFiles, csharpFiles, fsharpFiles, vbnetFiles, razorFiles, xamlFiles, aspxFiles, cshtmlFiles, htmlFiles, cssFiles, jsFiles, tsFiles, unityFiles, dockerFiles, psFiles, shFiles, batFiles, yamlFiles, javaFiles, javaProjectFiles, ktFiles, scalaFiles, scalaProjectFiles, groovyFiles, cFiles, cppFiles, rustFiles, rustProjectFiles, goFiles, goProjectFiles, pythonFiles, pythonProjectFiles, luaFiles, phpFiles, phpProjectFiles] = await Promise.all([
-                vscode.workspace.findFiles('**/*.{csproj,fsproj,vbproj,sln,slnx}', '**/node_modules/**', 1),
-                vscode.workspace.findFiles('**/*.csproj', '**/node_modules/**', 1),
-                vscode.workspace.findFiles('**/*.fsproj', '**/node_modules/**', 1),
-                vscode.workspace.findFiles('**/*.vbproj', '**/node_modules/**', 1),
-                vscode.workspace.findFiles('**/*.razor', '**/node_modules/**', 1),
-                vscode.workspace.findFiles('**/*.xaml', '**/node_modules/**', 1),
-                vscode.workspace.findFiles('**/*.{aspx,ascx,master}', '**/node_modules/**', 1),
-                vscode.workspace.findFiles('**/*.cshtml', '**/node_modules/**', 1),
-                vscode.workspace.findFiles('**/*.{html,cshtml}', '**/node_modules/**', 1),
-                vscode.workspace.findFiles('**/*.css', '**/node_modules/**', 1),
-                vscode.workspace.findFiles('**/*.{js,jsx,mjs,cjs}', '**/node_modules/**', 1),
-                vscode.workspace.findFiles('**/*.{ts,tsx,mts,cts}', '**/node_modules/**', 1),
-                vscode.workspace.findFiles('**/ProjectSettings/ProjectSettings.asset', '**/node_modules/**', 1),
-                vscode.workspace.findFiles('**/Dockerfile*', '**/node_modules/**', 1),
-                vscode.workspace.findFiles('**/*.{ps1,psm1,psd1}', '**/node_modules/**', 1),
-                vscode.workspace.findFiles('**/*.{sh,bash}', '**/node_modules/**', 1),
-                vscode.workspace.findFiles('**/*.{bat,cmd}', '**/node_modules/**', 1),
-                vscode.workspace.findFiles('**/*.{yml,yaml}', '**/node_modules/**', 1),
-                vscode.workspace.findFiles('**/*.java', '**/node_modules/**', 1),
-                vscode.workspace.findFiles('**/{pom.xml,build.gradle}', '**/node_modules/**', 1),
-                vscode.workspace.findFiles('**/*.{kt,kts}', '**/node_modules/**', 1),
-                vscode.workspace.findFiles('**/*.{scala,sc}', '**/node_modules/**', 1),
-                vscode.workspace.findFiles('**/build.sbt', '**/node_modules/**', 1),
-                vscode.workspace.findFiles('**/*.{groovy,gvy}', '**/node_modules/**', 1),
-                vscode.workspace.findFiles('**/*.c', '**/node_modules/**', 1),
-                vscode.workspace.findFiles('**/*.{cpp,cxx,cc}', '**/node_modules/**', 1),
-                vscode.workspace.findFiles('**/*.rs', '**/node_modules/**', 1),
-                vscode.workspace.findFiles('**/Cargo.toml', '**/node_modules/**', 1),
-                vscode.workspace.findFiles('**/*.go', '**/node_modules/**', 1),
-                vscode.workspace.findFiles('**/go.mod', '**/node_modules/**', 1),
-                vscode.workspace.findFiles('**/*.py', '**/node_modules/**', 1),
-                vscode.workspace.findFiles('**/pyproject.toml', '**/node_modules/**', 1),
-                vscode.workspace.findFiles('**/*.lua', '**/node_modules/**', 1),
-                vscode.workspace.findFiles('**/*.php', '**/node_modules/**', 1),
-                vscode.workspace.findFiles('**/composer.json', '**/node_modules/**', 1),
-            ]);
+            // File-based detection
+            const fileResults = await Promise.all(
+                fileRules.flatMap(rule =>
+                    rule.globs.map(glob =>
+                        vscode.workspace.findFiles(glob, '**/node_modules/**', 1)
+                            .then(files => ({ flag: rule.flag, found: files.length > 0 })),
+                    ),
+                ),
+            );
 
-            let hasJavaScript = jsFiles.length > 0;
-            let hasTypeScript = tsFiles.length > 0;
-            let hasDotNet = dotnetFiles.length > 0;
-            let hasCSharp = csharpFiles.length > 0;
-
-            const hasFSharp = fsharpFiles.length > 0;
-            const hasVbNet = vbnetFiles.length > 0;
-            const hasBlazor = razorFiles.length > 0;
-            let hasXaml = xamlFiles.length > 0;
-            const hasWebForms = aspxFiles.length > 0;
-            let hasRazor = razorFiles.length > 0 || cshtmlFiles.length > 0;
-            const hasHtml = htmlFiles.length > 0 || hasBlazor;
-            const hasCss = cssFiles.length > 0 || hasHtml;
-            const hasUnity = unityFiles.length > 0;
-            const hasDocker = dockerFiles.length > 0;
-            const hasYaml = yamlFiles.length > 0;
-            const hasPowerShell = psFiles.length > 0;
-            const hasBash = shFiles.length > 0;
-            const hasBatch = batFiles.length > 0;
-            const hasJava = javaFiles.length > 0 || javaProjectFiles.length > 0;
-            const hasKotlin = ktFiles.length > 0;
-            const hasScala = scalaFiles.length > 0 || scalaProjectFiles.length > 0;
-            const hasGroovy = groovyFiles.length > 0;
-            const hasJvm = hasJava || hasKotlin || hasScala || hasGroovy;
-            const hasC = cFiles.length > 0;
-            const hasCpp = cppFiles.length > 0;
-            const hasRust = rustFiles.length > 0 || rustProjectFiles.length > 0;
-            const hasGo = goFiles.length > 0 || goProjectFiles.length > 0;
-            const hasNative = hasC || hasCpp || hasRust || hasGo;
-            const hasPython = pythonFiles.length > 0 || pythonProjectFiles.length > 0;
-            const hasLua = luaFiles.length > 0;
-            const hasPhp = phpFiles.length > 0 || phpProjectFiles.length > 0;
-
-            let hasReact = false;
-            let hasAngular = false;
-            let hasVue = false;
-            let hasSvelte = false;
-            let hasVitest = false;
-            let hasJest = false;
-            let hasJasmine = false;
-            let hasMocha = false;
-            let hasPlaywright = false;
-            let hasCypress = false;
-            let hasNextJs = false;
-            let hasGraphql = false;
-            
-            const packageFiles = await vscode.workspace.findFiles('**/package.json', '**/node_modules/**', 50);
-            let hasNodeJs = packageFiles.length > 0;
-
-            for (const uri of packageFiles) {
-                const bytes = await vscode.workspace.fs.readFile(uri);
-                const content = decoder.decode(bytes);
-
-                if (!hasReact && /"react"\s*:/.test(content)) {
-                    hasReact = true;
-                }
-                if (!hasAngular && /"@angular\/core"\s*:/.test(content)) {
-                    hasAngular = true;
-                }
-                if (!hasVue && /"vue"\s*:/.test(content)) {
-                    hasVue = true;
-                }
-                if (!hasSvelte && /"svelte"\s*:/.test(content)) {
-                    hasSvelte = true;
-                }
-                if (!hasVitest && /"vitest"\s*:/.test(content)) {
-                    hasVitest = true;
-                }
-                if (!hasJest && /"jest"\s*:/.test(content)) {
-                    hasJest = true;
-                }
-                if (!hasJasmine && /"jasmine"\s*:/.test(content)) {
-                    hasJasmine = true;
-                }
-                if (!hasMocha && /"mocha"\s*:/.test(content)) {
-                    hasMocha = true;
-                }
-                if (!hasPlaywright && /"@playwright\/test"\s*:/.test(content)) {
-                    hasPlaywright = true;
-                }
-                if (!hasCypress && /"cypress"\s*:/.test(content)) {
-                    hasCypress = true;
-                }
-                if (!hasNextJs && /"next"\s*:/.test(content)) {
-                    hasNextJs = true;
-                }
-                if (!hasGraphql && /"graphql"\s*:|"@apollo\/|"graphql-request"\s*:|"urql"\s*:|"HotChocolate/i.test(content)) {
-                    hasGraphql = true;
-                }
-                if (hasReact && hasAngular && hasVue && hasSvelte && hasVitest && hasJest && hasJasmine && hasMocha && hasPlaywright && hasCypress && hasNextJs && hasGraphql) {
-                    break;
-                }
+            for (const { flag, found } of fileResults) {
+                if (found) flags[flag] = true;
             }
 
-            let hasAspNetCore = false;
-            let hasDapper = false;
-            let hasEntityFrameworkCore = false;
-            let hasMaui = false;
-            let hasMongoDb = false;
-            let hasMySql = false;
-            let hasOracle = false;
-            let hasPostgres = false;
-            let hasSqlite = false;
-            let hasSqlServer = false;
-            let hasXunit = false;
-            let hasMsTest = false;
-            let hasNUnit = false;
-            let hasWpf = false;
-            let hasWinForms = false;
-            let hasGrpc = false;
-            let hasMediatR = false;
-            let hasRedis = false;
-            let hasSignalR = false;
+            // Package.json scanning
+            const decoder = new TextDecoder();
+            const packageFiles = await vscode.workspace.findFiles('**/package.json', '**/node_modules/**', 50);
+            if (packageFiles.length > 0) flags.hasNodeJs = true;
 
-            if (hasDotNet) {
+            for (const uri of packageFiles) {
+                const content = decoder.decode(await vscode.workspace.fs.readFile(uri));
+
+                for (const rule of npmContentRules) {
+                    if (!flags[rule.flag] && rule.pattern.test(content)) {
+                        flags[rule.flag] = true;
+                    }
+                }
+
+                if (npmContentRules.every(r => flags[r.flag])) break;
+            }
+
+            // .NET project scanning
+            if (flags.hasDotNet) {
                 const projFiles = await vscode.workspace.findFiles('**/*.{csproj,fsproj,vbproj}', '**/node_modules/**', 50);
 
                 for (const uri of projFiles) {
-                    const bytes = await vscode.workspace.fs.readFile(uri);
-                    const content = decoder.decode(bytes);
+                    const content = decoder.decode(await vscode.workspace.fs.readFile(uri));
 
-                    if (!hasAspNetCore && /Sdk\s*=\s*["']Microsoft\.NET\.Sdk\.(Web|Razor|BlazorWebAssembly)["']/i.test(content)) {
-                        hasAspNetCore = true;
+                    for (const rule of dotnetContentRules) {
+                        if (!flags[rule.flag] && rule.pattern.test(content)) {
+                            flags[rule.flag] = true;
+                        }
                     }
-                    if (!hasDapper && /Dapper/i.test(content)) {
-                        hasDapper = true;
-                    }
-                    if (!hasEntityFrameworkCore && /Microsoft\.EntityFrameworkCore/i.test(content)) {
-                        hasEntityFrameworkCore = true;
-                    }
-                    if (!hasMaui && /<UseMaui>\s*true\s*<\/UseMaui>/i.test(content)) {
-                        hasMaui = true;
-                    }
-                    if (!hasMongoDb && /MongoDB\.Driver|MongoDB\.EntityFrameworkCore/i.test(content)) {
-                        hasMongoDb = true;
-                    }
-                    if (!hasXunit && /xunit/i.test(content)) {
-                        hasXunit = true;
-                    }
-                    if (!hasMsTest && /MSTest|Microsoft\.VisualStudio\.TestPlatform/i.test(content)) {
-                        hasMsTest = true;
-                    }
-                    if (!hasNUnit && /NUnit/i.test(content)) {
-                        hasNUnit = true;
-                    }
-                    if (!hasWpf && /<UseWPF>\s*true\s*<\/UseWPF>/i.test(content)) {
-                        hasWpf = true;
-                    }
-                    if (!hasWinForms && /<UseWindowsForms>\s*true\s*<\/UseWindowsForms>/i.test(content)) {
-                        hasWinForms = true;
-                    }
-                    if (!hasMySql && /MySqlConnector|MySql\.Data|Pomelo\.EntityFrameworkCore\.MySql/i.test(content)) {
-                        hasMySql = true;
-                    }
-                    if (!hasOracle && /Oracle\.ManagedDataAccess|Oracle\.EntityFrameworkCore/i.test(content)) {
-                        hasOracle = true;
-                    }
-                    if (!hasPostgres && /Npgsql/i.test(content)) {
-                        hasPostgres = true;
-                    }
-                    if (!hasSqlite && /Microsoft\.Data\.Sqlite|System\.Data\.SQLite|EntityFrameworkCore\.Sqlite/i.test(content)) {
-                        hasSqlite = true;
-                    }
-                    if (!hasSqlServer && /Microsoft\.Data\.SqlClient|System\.Data\.SqlClient|EntityFrameworkCore\.SqlServer|EntityFramework\.SqlServer/i.test(content)) {
-                        hasSqlServer = true;
-                    }
-                    if (!hasGrpc && /Grpc\.|Google\.Protobuf/i.test(content)) {
-                        hasGrpc = true;
-                    }
-                    if (!hasMediatR && /MediatR|Mediator\.Abstractions/i.test(content)) {
-                        hasMediatR = true;
-                    }
-                    if (!hasRedis && /StackExchange\.Redis|Microsoft\.Extensions\.Caching\.StackExchangeRedis/i.test(content)) {
-                        hasRedis = true;
-                    }
-                    if (!hasSignalR && /Microsoft\.AspNetCore\.SignalR/i.test(content)) {
-                        hasSignalR = true;
-                    }
-                    if (!hasGraphql && /HotChocolate|GraphQL\.Server/i.test(content)) {
-                        hasGraphql = true;
-                    }
-                    if (hasAspNetCore && hasDapper && hasEntityFrameworkCore && hasMaui && hasMongoDb && hasMySql && hasOracle && hasPostgres && hasSqlite && hasSqlServer && hasXunit && hasMsTest && hasNUnit && hasWpf && hasWinForms && hasGrpc && hasMediatR && hasRedis && hasSignalR && hasGraphql) {
-                        break;
+
+                    if (dotnetContentRules.every(r => flags[r.flag])) break;
+                }
+            }
+
+            // Flag activation
+            let changed = true;
+            while (changed) {
+                changed = false;
+                for (const [child, parent] of flagActivationRules) {
+                    if (flags[child] && !flags[parent]) {
+                        flags[parent] = true;
+                        changed = true;
                     }
                 }
             }
 
-            // --- Flag implications ---
-            // Sub-flags imply their parent so that the MCP server and
-            // cross-cutting instructions activate whenever any child
-            // technology is detected. Order: leaves → roots.
-
-            // Web: framework → language/runtime
-            if (hasNextJs) {
-                hasReact = true;
-            }
-
-            if (hasAngular) {
-                hasTypeScript = true;
-            }
-
-            if (hasTypeScript) {
-                hasJavaScript = true;
-            }
-
-            if (hasReact || hasAngular || hasVue || hasSvelte
-                || hasVitest || hasJest || hasJasmine || hasMocha || hasPlaywright || hasCypress) {
-                hasNodeJs = true;
-            }
-
-            if (hasNodeJs) {
-                hasJavaScript = true;
-            }
-
-            // .NET: framework → platform
-            if (hasBlazor || hasSignalR) {
-                hasAspNetCore = true;
-            }
-
-            if (hasAspNetCore) {
-                hasRazor = true;
-            }
-
-            if (hasBlazor || hasUnity) {
-                hasCSharp = true;
-            }
-
-            if (hasWpf || hasMaui) {
-                hasXaml = true;
-            }
-
-            if (hasAspNetCore || hasDapper || hasEntityFrameworkCore
-                || hasMaui || hasWpf || hasWinForms || hasWebForms
-                || hasGrpc || hasMediatR || hasRedis || hasSignalR
-                || hasXunit || hasMsTest || hasNUnit
-                || hasMongoDb || hasMySql || hasOracle || hasPostgres || hasSqlite || hasSqlServer
-                || hasUnity) {
-                hasDotNet = true;
-            }
-
-            let hasGit = false;
-
+            // Git detection
             for (const folder of vscode.workspace.workspaceFolders ?? []) {
                 try {
                     await vscode.workspace.fs.stat(vscode.Uri.joinPath(folder.uri, '.git'));
-                    hasGit = true;
+                    flags.hasGit = true;
                     break;
                 } catch {
                     // .git directory not found in this workspace folder
                 }
             }
 
+            // Override detection
             const overrideFiles = await vscode.workspace.findFiles(
                 '.github/instructions/*.instructions.md', undefined, 50,
             );
@@ -382,24 +339,9 @@ export class WorkspaceContextDetector implements vscode.Disposable {
                 }
             }
 
-            const contextState: Record<string, boolean> = {
-                hasDotNet, hasCSharp, hasFSharp, hasVbNet, hasAspNetCore, hasDapper, hasEntityFrameworkCore,
-                hasMaui, hasBlazor, hasHtml, hasCss, hasJavaScript, hasTypeScript,
-                hasReact, hasAngular, hasVue, hasSvelte, hasMySql, hasMongoDb,
-                hasOracle, hasPostgres, hasSqlite, hasSqlServer, hasXunit, hasMsTest,
-                hasNUnit, hasWpf, hasWinForms, hasGrpc, hasMediatR, hasRedis, hasSignalR,
-                hasUnity, hasDocker, hasYaml, hasGraphql, hasNextJs, hasNodeJs, hasPowerShell, hasBash, hasBatch, hasPython, hasLua, hasPhp,
-                hasVitest, hasJest, hasJasmine, hasMocha, hasPlaywright, hasCypress,
-                hasJava, hasKotlin, hasScala, hasGroovy, hasJvm,
-                hasC, hasCpp, hasRust, hasGo, hasNative,
-                hasXaml, hasRazor, hasWebForms,
-                hasDotNetTesting: hasXunit || hasMsTest || hasNUnit,
-                hasWebTesting: hasVitest || hasJest || hasJasmine || hasMocha || hasPlaywright || hasCypress,
-                hasGit,
-            };
-
+            // Register context keys
             await Promise.all([
-                ...Object.entries(contextState).map(([key, value]) =>
+                ...Object.entries(flags).map(([key, value]) =>
                     setContext(`sharppilot.workspace.${key}`, value),
                 ),
                 ...this.instructionsCatalog.all.map(i =>
@@ -408,10 +350,10 @@ export class WorkspaceContextDetector implements vscode.Disposable {
             ]);
 
             const serverChanged = this.serversCatalog.all.some(s =>
-                s.contextKey !== undefined && this._state.get(s.contextKey) !== contextState[s.contextKey],
+                s.contextKey !== undefined && this._state.get(s.contextKey) !== flags[s.contextKey as FlagName],
             );
 
-            for (const [k, v] of Object.entries(contextState)) {
+            for (const [k, v] of Object.entries(flags)) {
                 this._state.set(k, v);
             }
 
