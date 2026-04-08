@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { __setConfigStore, TreeItemCollapsibleState, TreeItemCheckboxState, workspace, ConfigurationTarget, commands, Uri, window } from './__mocks__/vscode';
 import { InstructionsTreeProvider, InstructionState } from '../../src/instructions-tree-provider';
 import { InstructionsCatalog } from '../../src/instructions-catalog';
-import { instructionEntries, contextKeys } from '../../src/ui-constants';
+import { instructionsFiles, contextKeys } from '../../src/ui-constants';
 
 const fakeDetector = {
     get: vi.fn((_key: string) => false),
@@ -18,7 +18,7 @@ beforeEach(() => {
 });
 
 describe('InstructionsTreeProvider', () => {
-    const catalog = new InstructionsCatalog(instructionEntries);
+    const catalog = new InstructionsCatalog(instructionsFiles);
 
     it('should return category nodes as root elements', () => {
         const provider = new InstructionsTreeProvider(fakeDetector, catalog);

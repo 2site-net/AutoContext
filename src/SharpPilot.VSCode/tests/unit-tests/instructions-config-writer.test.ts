@@ -4,7 +4,7 @@ import { InstructionsConfigWriter } from '../../src/instructions-config-writer';
 import { SharpPilotConfigManager } from '../../src/sharppilot-config';
 import { InstructionsParser } from '../../src/instructions-parser';
 import { InstructionsCatalog } from '../../src/instructions-catalog';
-import { instructionEntries } from '../../src/ui-constants';
+import { instructionsFiles } from '../../src/ui-constants';
 
 import { readFileSync, writeFileSync, existsSync, readdirSync, rmSync, statSync } from 'node:fs';
 
@@ -35,7 +35,7 @@ description: "Test"
 `;
 
 describe('InstructionsConfigWriter', () => {
-    const catalog = new InstructionsCatalog(instructionEntries);
+    const catalog = new InstructionsCatalog(instructionsFiles);
 
     it('should write all instruction files when no instructions are disabled', () => {
         vi.mocked(readFileSync).mockImplementation((path: unknown) => {

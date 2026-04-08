@@ -33,7 +33,7 @@ export const contextKeys = {
 // Category order: General → Languages → Platforms (.NET, Web) → Tools.
 // Within each category, entries are sorted alphabetically by label.
 // package.json (chatInstructions + configuration.properties) should follow the same order.
-export const instructionEntries: readonly InstructionsFileEntry[] = [
+export const instructionsFiles: readonly InstructionsFileEntry[] = [
     { settingId: 'sharppilot.instructions.codeReview', fileName: 'code-review.instructions.md', label: 'Code Review', category: 'General' },
     { settingId: 'sharppilot.instructions.designPrinciples', fileName: 'design-principles.instructions.md', label: 'Design Principles', category: 'General' },
     { settingId: 'sharppilot.instructions.restApiDesign', fileName: 'rest-api-design.instructions.md', label: 'REST API Design', category: 'General' },
@@ -114,7 +114,7 @@ export const instructionsCategoryOrder: readonly string[] = ['General', 'Languag
 
 // ── MCP Tools ────────────────────────────────────────────────────────
 
-export const mcpToolEntries: readonly McpToolEntry[] = [
+export const mcpTools: readonly McpToolEntry[] = [
     { settingId: 'sharppilot.tools.check_csharp_async_patterns', featureName: 'check_csharp_async_patterns', toolName: 'check_csharp_all', label: 'Async Patterns', category: 'C#', group: '.NET', serverCategory: 'dotnet', contextKeys: ['hasCSharp'] },
     { settingId: 'sharppilot.tools.check_csharp_coding_style', featureName: 'check_csharp_coding_style', toolName: 'check_csharp_all', label: 'Coding Style', category: 'C#', group: '.NET', serverCategory: 'dotnet', contextKeys: ['hasCSharp'] },
     { settingId: 'sharppilot.tools.check_csharp_member_ordering', featureName: 'check_csharp_member_ordering', toolName: 'check_csharp_all', label: 'Member Ordering', category: 'C#', group: '.NET', serverCategory: 'dotnet', contextKeys: ['hasCSharp'] },
@@ -134,7 +134,7 @@ export const mcpToolCategoryOrder: readonly string[] = ['C#', 'NuGet', 'TypeScri
 
 // ── MCP Servers ──────────────────────────────────────────────────────
 
-export const mcpServerEntries: readonly McpServerEntry[] = [
+export const mcpServers: readonly McpServerEntry[] = [
     { label: 'SharpPilot: DotNet', category: 'dotnet', process: 'dotnet', contextKey: 'hasDotNet' },
     { label: 'SharpPilot: Git', category: 'git', process: 'workspace', contextKey: 'hasGit' },
     { label: 'SharpPilot: EditorConfig', category: 'editorconfig', process: 'workspace' },

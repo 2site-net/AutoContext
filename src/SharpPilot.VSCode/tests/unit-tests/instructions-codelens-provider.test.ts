@@ -5,7 +5,7 @@ import { SharpPilotConfigManager } from '../../src/sharppilot-config';
 import { instructionScheme } from '../../src/instructions-content-provider';
 import { InstructionsParser } from '../../src/instructions-parser';
 import { InstructionsCatalog } from '../../src/instructions-catalog';
-import { instructionEntries, commandIds } from '../../src/ui-constants';
+import { instructionsFiles, commandIds } from '../../src/ui-constants';
 
 import { readFileSync } from 'node:fs';
 
@@ -43,7 +43,7 @@ function makeDocument(scheme: string, path: string) {
 }
 
 describe('InstructionsCodeLensProvider', () => {
-    const catalog = new InstructionsCatalog(instructionEntries);
+    const catalog = new InstructionsCatalog(instructionsFiles);
 
     it('should return empty array for non-instruction documents', () => {
         vi.mocked(readFileSync).mockReturnValue('{}');

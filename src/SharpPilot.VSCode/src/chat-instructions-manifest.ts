@@ -5,7 +5,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { InstructionsCatalog } from './instructions-catalog.js';
-import { instructionEntries } from './ui-constants.js';
+import { instructionsFiles } from './ui-constants.js';
 import { ContextKeys } from './context-keys.js';
 import type { CatalogEntry } from './catalog-entry.js';
 
@@ -44,7 +44,7 @@ if (process.argv[1]?.replace(/\\/g, '/').endsWith('/src/chat-instructions-manife
     const pkgPath = join(root, 'package.json');
     const pkg = JSON.parse(readFileSync(pkgPath, 'utf-8'));
 
-    const catalog = new InstructionsCatalog(instructionEntries);
+    const catalog = new InstructionsCatalog(instructionsFiles);
     pkg.contributes.chatInstructions = buildChatInstructions(catalog);
     writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + '\n', 'utf-8');
 

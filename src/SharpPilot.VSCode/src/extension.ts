@@ -4,7 +4,7 @@ import { McpToolsConfigWriter } from './mcp-tools-config-writer.js';
 import { McpToolsCatalog } from './mcp-tools-catalog.js';
 import { InstructionsCatalog } from './instructions-catalog.js';
 import { McpServersCatalog } from './mcp-servers-catalog.js';
-import { mcpToolEntries, instructionEntries, mcpServerEntries, commandIds } from './ui-constants.js';
+import { mcpTools, instructionsFiles, mcpServers, commandIds } from './ui-constants.js';
 import { AutoConfigurer } from './auto-configurer.js';
 import { InstructionsExporter } from './instructions-exporter.js';
 import { SharpPilotConfigManager } from './sharppilot-config.js';
@@ -26,9 +26,9 @@ export function activate(context: vscode.ExtensionContext) {
     const version = context.extension.packageJSON.version as string;
     const didChangeEmitter = new vscode.EventEmitter<void>();
 
-    const toolsCatalog = new McpToolsCatalog(mcpToolEntries);
-    const instructionsCatalog = new InstructionsCatalog(instructionEntries);
-    const serversCatalog = new McpServersCatalog(mcpServerEntries);
+    const toolsCatalog = new McpToolsCatalog(mcpTools);
+    const instructionsCatalog = new InstructionsCatalog(instructionsFiles);
+    const serversCatalog = new McpServersCatalog(mcpServers);
     const workspaceContextDetector = new WorkspaceContextDetector(instructionsCatalog, serversCatalog);
     const instructionsExporter = new InstructionsExporter(context.extensionPath);
     const configManager = new SharpPilotConfigManager(context.extensionPath, version);

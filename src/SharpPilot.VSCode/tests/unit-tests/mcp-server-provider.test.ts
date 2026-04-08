@@ -3,7 +3,7 @@ import { workspace, McpStdioServerDefinition, __setConfigStore } from './__mocks
 import { McpServerProvider } from '../../src/mcp-server-provider';
 import { McpToolsCatalog } from '../../src/mcp-tools-catalog';
 import { McpServersCatalog } from '../../src/mcp-servers-catalog';
-import { mcpToolEntries, mcpServerEntries } from '../../src/ui-constants';
+import { mcpTools, mcpServers } from '../../src/ui-constants';
 import type { WorkspaceContextDetector } from '../../src/workspace-context-detector';
 import type { WorkspaceServerManager } from '../../src/workspace-server-manager';
 
@@ -21,8 +21,8 @@ const fakeWorkspaceServer = {
 } as unknown as WorkspaceServerManager;
 
 const onDidChange = vi.fn() as unknown as import('vscode').Event<void>;
-const toolsCatalog = new McpToolsCatalog(mcpToolEntries);
-const serversCatalog = new McpServersCatalog(mcpServerEntries);
+const toolsCatalog = new McpToolsCatalog(mcpTools);
+const serversCatalog = new McpServersCatalog(mcpServers);
 
 function createProvider(): McpServerProvider {
     return new McpServerProvider(extensionPath, version, fakeDetector, onDidChange, fakeWorkspaceServer, toolsCatalog, serversCatalog);
