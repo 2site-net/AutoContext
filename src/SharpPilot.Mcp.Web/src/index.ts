@@ -10,7 +10,7 @@ import { TypeScriptChecker } from './tools/checkers/typescript/typescript-checke
 const { values } = parseArgs({
     options: {
         scope: { type: 'string' },
-        workspace: { type: 'string' },
+        'workspace-folder': { type: 'string' },
         'workspace-server': { type: 'string' },
     },
     strict: false,
@@ -25,15 +25,15 @@ const logger = new StderrLogger();
 
 logger.log('Startup', `scope=${scope}`);
 
-const workspace = typeof values.workspace === 'string' ? values.workspace : undefined;
-if (workspace) {
-    logger.log('Startup', `workspace=${workspace}`);
+const workspaceFolder = typeof values['workspace-folder'] === 'string' ? values['workspace-folder'] : undefined;
+if (workspaceFolder) {
+    logger.log('Startup', `workspace-folder=${workspaceFolder}`);
 }
 
-const workspacePipe = typeof values['workspace-server'] === 'string' ? values['workspace-server'] : undefined;
-const editorConfig = new EditorConfigReader(workspacePipe, workspace);
-if (workspacePipe) {
-    logger.log('Startup', `workspace-server=${workspacePipe}`);
+const workspaceServer = typeof values['workspace-server'] === 'string' ? values['workspace-server'] : undefined;
+const editorConfig = new EditorConfigReader(workspaceServer, workspaceFolder);
+if (workspaceServer) {
+    logger.log('Startup', `workspace-server=${workspaceServer}`);
 }
 
 const { version } = JSON.parse(

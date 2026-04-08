@@ -39,12 +39,12 @@ if (scope == "editorconfig")
 else if (scope == "git")
 {
     // MCP stdio mode — registers Git commit quality check tools.
-    var workspace = builder.Configuration["workspace"];
-    var workspacePipe = builder.Configuration["workspace-server"];
+    var workspaceFolder = builder.Configuration["workspace-folder"];
+    var workspaceServer = builder.Configuration["workspace-server"];
 
-    if (workspacePipe is not null)
+    if (workspaceServer is not null)
     {
-        EditorConfigReader.Configure(workspacePipe, workspace);
+        EditorConfigReader.Configure(workspaceServer, workspaceFolder);
     }
 
     builder.Services

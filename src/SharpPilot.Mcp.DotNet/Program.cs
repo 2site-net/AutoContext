@@ -24,13 +24,13 @@ internal sealed class Program
         var scope = builder.Configuration["scope"]
             ?? throw new ArgumentException("Missing required argument: --scope dotnet");
 
-        var workspace = builder.Configuration["workspace"];
+        var workspaceFolder = builder.Configuration["workspace-folder"];
 
-        var workspacePipe = builder.Configuration["workspace-server"];
+        var workspaceServer = builder.Configuration["workspace-server"];
 
-        if (workspacePipe is not null)
+        if (workspaceServer is not null)
         {
-            EditorConfigReader.Configure(workspacePipe, workspace);
+            EditorConfigReader.Configure(workspaceServer, workspaceFolder);
         }
 
         Type[] toolTypes = scope switch

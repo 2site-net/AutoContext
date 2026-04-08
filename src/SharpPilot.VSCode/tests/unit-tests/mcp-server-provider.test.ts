@@ -80,25 +80,25 @@ describe('McpServerProvider.provideMcpServerDefinitions', () => {
             })).toBe(true);
         });
 
-        it('every server receives --workspace when a folder is open', async () => {
+        it('every server receives --workspace-folder when a folder is open', async () => {
             const defs = await createProvider().provideMcpServerDefinitions() as StdioDef[];
 
             expect(defs).not.toHaveLength(0);
             expect.soft(defs.every(d =>
-                d.args!.includes('--workspace') && d.args!.includes('/workspace'),
+                d.args!.includes('--workspace-folder') && d.args!.includes('/workspace'),
             )).toBe(true);
         });
 
-        it('--workspace is omitted when no folder is open', async () => {
+        it('--workspace-folder is omitted when no folder is open', async () => {
             workspace.workspaceFolders = undefined;
 
             const defs = await createProvider().provideMcpServerDefinitions() as StdioDef[];
 
             expect(defs).not.toHaveLength(0);
-            expect.soft(defs.every(d => !d.args!.includes('--workspace'))).toBe(true);
+            expect.soft(defs.every(d => !d.args!.includes('--workspace-folder'))).toBe(true);
         });
 
-        it('non-editorconfig servers receive --workspace-server pipe', async () => {
+        it('non-editorconfig servers receive --workspace-server', async () => {
             const defs = await createProvider().provideMcpServerDefinitions() as StdioDef[];
             const nonEditorconfig = defs.filter(d => {
                 const category = d.args![d.args!.indexOf('--scope') + 1];
