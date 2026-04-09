@@ -88,7 +88,7 @@ export class InstructionsTreeProvider implements vscode.TreeDataProvider<TreeEle
         }
 
         if (element.kind === 'category') {
-            return this.getInstructionsForCategory(element.name);
+            return [...element.children];
         }
 
         return [];
@@ -105,17 +105,25 @@ export class InstructionsTreeProvider implements vscode.TreeDataProvider<TreeEle
     }
 
     private getRootCategories(): InstructionsTreeCategoryNode[] {
-        const children = (name: string) => this.getInstructionsForCategory(name);
-        const presentCategories = new Set(this.catalog.all.map(e => e.category));
-        return instructionsCategoryOrder
-            .filter(c => presentCategories.has(c) && children(c).length > 0)
-            .map(name => ({ kind: 'category' as const, name }));
-    }
-
-    private getInstructionsForCategory(category: string): InstructionsTreeNode[] {
         const config = vscode.workspace.getConfiguration();
         const overrides = this.detector.getOverriddenSettingIds();
+        const presentCategories = new Set(this.catalog.all.map(e => e.category));
 
+        return instructionsCategoryOrder
+            .filter(c => presentCategories.has(c))
+            .map(name => ({
+                kind: 'category' as const,
+                name,
+                children: this.resolveInstructions(name, config, overrides),
+            }))
+            .filter(c => c.children.length > 0);
+    }
+
+    private resolveInstructions(
+        category: string,
+        config: vscode.WorkspaceConfiguration,
+        overrides: ReadonlySet<string>,
+    ): InstructionsTreeNode[] {
         return this.catalog.all
             .filter(e => e.category === category)
             .map(entry => ({
@@ -152,14 +160,11 @@ export class InstructionsTreeProvider implements vscode.TreeDataProvider<TreeEle
     private categoryItem(node: InstructionsTreeCategoryNode): vscode.TreeItem {
         const item = new vscode.TreeItem(node.name, vscode.TreeItemCollapsibleState.Expanded);
         item.contextValue = 'category';
-        const config = vscode.workspace.getConfiguration();
-        const overrides = this.detector.getOverriddenSettingIds();
-        const entries = this.catalog.all.filter(e => e.category === node.name);
-        const active = entries.filter(e => {
-            const state = InstructionsTreeProvider.resolveState(e, config, this.detector, overrides);
-            return state === InstructionsState.Active || state === InstructionsState.Overridden;
-        }).length;
-        item.tooltip = `${node.name}\n${active}/${entries.length} ${treeViewLabels.activeSuffix}`;
+        const active = node.children.filter(n =>
+            n.state === InstructionsState.Active || n.state === InstructionsState.Overridden,
+        ).length;
+        const total = this.catalog.all.filter(e => e.category === node.name).length;
+        item.tooltip = `${node.name}\n${active}/${total} ${treeViewLabels.activeSuffix}`;
         return item;
     }
 

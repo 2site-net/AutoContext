@@ -72,13 +72,13 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
 
     getChildren(element?: TreeElement): TreeElement[] {
         if (element === undefined) {
-            return this.getRootGroups();
+            return this.buildTree();
         }
 
         switch (element.kind) {
-            case 'group': return this.getCategoriesForGroup(element.name);
-            case 'category': return this.getMcpToolsForCategory(element.name);
-            case 'mcpTool': return this.getFeaturesForTool(element.toolName);
+            case 'group': return [...element.children];
+            case 'category': return [...element.children];
+            case 'mcpTool': return this.getVisibleFeatures(element);
             default: return [];
         }
     }
@@ -93,45 +93,73 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
         this.refresh();
     }
 
-    private getRootGroups(): TreeViewGroupNode[] {
-        const hasChildren = (group: string) => this.getCategoriesForGroup(group).length > 0;
+    private buildTree(): TreeViewGroupNode[] {
+        const config = vscode.workspace.getConfiguration();
         const presentGroups = new Set(this.catalog.all.map(e => e.group));
+
         return mcpToolGroupOrder
-            .filter(g => presentGroups.has(g) && hasChildren(g))
-            .map(name => ({ kind: 'group' as const, name }));
+            .filter(g => presentGroups.has(g))
+            .map(name => {
+                const children = this.resolveCategories(name, config);
+                return {
+                    kind: 'group' as const,
+                    name,
+                    children,
+                    totalEntries: this.catalog.all.filter(e => e.group === name).length,
+                };
+            })
+            .filter(g => g.children.length > 0);
     }
 
-    private getCategoriesForGroup(group: string): McpToolsTreeCategoryNode[] {
-        const hasChildren = (cat: string) => this.getMcpToolsForCategory(cat).length > 0;
+    private resolveCategories(group: string, config: vscode.WorkspaceConfiguration): McpToolsTreeCategoryNode[] {
         const presentCategories = new Set(
             this.catalog.all.filter(e => e.group === group).map(e => e.category),
         );
         return mcpToolCategoryOrder
-            .filter(c => presentCategories.has(c) && hasChildren(c))
-            .map(name => ({ kind: 'category' as const, group, name }));
+            .filter(c => presentCategories.has(c))
+            .map(name => {
+                const children = this.resolveTools(name, config);
+                return {
+                    kind: 'category' as const,
+                    group,
+                    name,
+                    children,
+                    totalEntries: this.catalog.all.filter(e => e.category === name).length,
+                };
+            })
+            .filter(c => c.children.length > 0);
     }
 
-    private getMcpToolsForCategory(category: string): McpToolsTreeNode[] {
+    private resolveTools(category: string, config: vscode.WorkspaceConfiguration): McpToolsTreeNode[] {
         const toolNames = [...new Set(
             this.catalog.all
                 .filter(e => e.category === category)
                 .map(e => e.toolName),
         )];
 
-        if (!this._showNotDetected) {
-            const config = vscode.workspace.getConfiguration();
-            return toolNames
-                .filter(toolName => this.catalog.all
-                    .filter(e => e.toolName === toolName)
-                    .some(e => McpToolsTreeProvider.resolveState(e, config, this.detector) !== McpToolState.NotDetected))
-                .map(toolName => ({ kind: 'mcpTool' as const, toolName, category }));
-        }
-
-        return toolNames.map(toolName => ({ kind: 'mcpTool' as const, toolName, category }));
+        return toolNames
+            .map(toolName => {
+                const features = this.resolveFeatures(toolName, config);
+                const leafEntry = features.length === 0
+                    ? this.catalog.all.find(e => e.toolName === toolName && !e.featureName)
+                    : undefined;
+                return {
+                    kind: 'mcpTool' as const,
+                    toolName,
+                    category,
+                    features,
+                    leafState: leafEntry
+                        ? McpToolsTreeProvider.resolveState(leafEntry, config, this.detector)
+                        : undefined,
+                };
+            })
+            .filter(n => this._showNotDetected || (
+                n.features.length === 0
+                    ? n.leafState !== McpToolState.NotDetected
+                    : n.features.some(f => f.state !== McpToolState.NotDetected)));
     }
 
-    private getResolvedFeatures(toolName: string): McpToolsTreeFeatureNode[] {
-        const config = vscode.workspace.getConfiguration();
+    private resolveFeatures(toolName: string, config: vscode.WorkspaceConfiguration): McpToolsTreeFeatureNode[] {
         return this.catalog.all
             .filter(e => e.toolName === toolName && e.featureName !== undefined)
             .map(entry => ({
@@ -141,8 +169,8 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
             }));
     }
 
-    private getFeaturesForTool(toolName: string): McpToolsTreeFeatureNode[] {
-        return this.getResolvedFeatures(toolName)
+    private getVisibleFeatures(node: McpToolsTreeNode): McpToolsTreeFeatureNode[] {
+        return [...node.features]
             .filter(n => this._showNotDetected || n.state !== McpToolState.NotDetected)
             .sort((a, b) => stateRank[a.state] - stateRank[b.state]);
     }
@@ -164,7 +192,19 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
         return McpToolState.Enabled;
     }
 
-    private static checkboxForParent(features: McpToolsTreeFeatureNode[]): vscode.TreeItemCheckboxState | undefined {
+    private static countEnabled(tools: readonly McpToolsTreeNode[]): number {
+        let enabled = 0;
+        for (const t of tools) {
+            if (t.features.length > 0) {
+                enabled += t.features.filter(f => f.state === McpToolState.Enabled).length;
+            } else if (t.leafState === McpToolState.Enabled) {
+                enabled += 1;
+            }
+        }
+        return enabled;
+    }
+
+    private static checkboxForParent(features: readonly McpToolsTreeFeatureNode[]): vscode.TreeItemCheckboxState | undefined {
         const detected = features.filter(t => t.state !== McpToolState.NotDetected);
         if (detected.length === 0) { return undefined; }
 
@@ -176,43 +216,34 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
     private groupItem(node: TreeViewGroupNode): vscode.TreeItem {
         const item = new vscode.TreeItem(node.name, vscode.TreeItemCollapsibleState.Expanded);
         item.contextValue = 'group';
-        const entries = this.catalog.all.filter(e => e.group === node.name);
-        item.tooltip = this.countTooltip(node.name, entries);
+        const enabled = McpToolsTreeProvider.countEnabled(node.children.flatMap(c => c.children));
+        item.tooltip = `${node.name}\n${enabled}/${node.totalEntries} ${treeViewLabels.featuresEnabledTooltip}`;
         return item;
     }
 
     private categoryItem(node: McpToolsTreeCategoryNode): vscode.TreeItem {
         const item = new vscode.TreeItem(node.name, vscode.TreeItemCollapsibleState.Expanded);
         item.contextValue = 'category';
-        const entries = this.catalog.all.filter(e => e.category === node.name);
-        item.tooltip = this.countTooltip(node.name, entries);
+        const enabled = McpToolsTreeProvider.countEnabled(node.children);
+        item.tooltip = `${node.name}\n${enabled}/${node.totalEntries} ${treeViewLabels.featuresEnabledTooltip}`;
         return item;
     }
 
-    private countTooltip(name: string, entries: readonly McpToolsCatalogEntry[]): string {
-        const config = vscode.workspace.getConfiguration();
-        const enabled = entries.filter(e => McpToolsTreeProvider.resolveState(e, config, this.detector) === McpToolState.Enabled).length;
-        return `${name}\n${enabled}/${entries.length} ${treeViewLabels.featuresEnabledTooltip}`;
-    }
-
     private mcpToolItem(node: McpToolsTreeNode): vscode.TreeItem {
-        const features = this.getResolvedFeatures(node.toolName);
-
-        if (features.length === 0) {
+        if (node.features.length === 0) {
             return this.leafMcpToolItem(node);
         }
 
         const item = new vscode.TreeItem(node.toolName, vscode.TreeItemCollapsibleState.Expanded);
         item.contextValue = 'mcpTool';
-        item.checkboxState = McpToolsTreeProvider.checkboxForParent(features);
-        item.tooltip = McpToolsTreeProvider.parentTooltip(node.toolName, features);
+        item.checkboxState = McpToolsTreeProvider.checkboxForParent(node.features);
+        item.tooltip = McpToolsTreeProvider.parentTooltip(node.toolName, node.features);
         return item;
     }
 
     private leafMcpToolItem(node: McpToolsTreeNode): vscode.TreeItem {
         const entry = this.catalog.all.find(e => e.toolName === node.toolName && !e.featureName)!;
-        const config = vscode.workspace.getConfiguration();
-        const state = McpToolsTreeProvider.resolveState(entry, config, this.detector);
+        const state = node.leafState!;
 
         const item = new vscode.TreeItem(node.toolName, vscode.TreeItemCollapsibleState.None);
         item.contextValue = 'mcpTool';
@@ -270,7 +301,7 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
         return lines.join('\n');
     }
 
-    private static parentTooltip(toolName: string, features: McpToolsTreeFeatureNode[]): string {
+    private static parentTooltip(toolName: string, features: readonly McpToolsTreeFeatureNode[]): string {
         const enabled = features.filter(s => s.state === McpToolState.Enabled).length;
         return `${toolName}\n${enabled}/${features.length} ${treeViewLabels.featuresEnabledTooltip}`;
     }
@@ -289,13 +320,11 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
 
             if (element.kind !== 'mcpTool') { continue; }
 
-            const features = this.getResolvedFeatures(element.toolName);
-
-            if (features.length === 0) {
+            if (element.features.length === 0) {
                 const entry = this.catalog.all.find(e => e.toolName === element.toolName && !e.featureName)!;
                 updates.push(config.update(entry.settingId, enabled(state), vscode.ConfigurationTarget.Global));
             } else {
-                for (const sub of features) {
+                for (const sub of element.features) {
                     if (sub.state === McpToolState.NotDetected) { continue; }
                     updates.push(config.update(sub.entry.settingId, enabled(state), vscode.ConfigurationTarget.Global));
                 }
