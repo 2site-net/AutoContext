@@ -20,13 +20,18 @@ export interface InstructionsParsedResult {
     readonly diagnostics: readonly InstructionsDiagnostic[];
 }
 
+export interface InstructionsFileParsedResult {
+    readonly content: string;
+    readonly result: InstructionsParsedResult;
+}
+
 const instructionBulletPattern = /^[-*]\s(?:\[(INST\d{4})\]\s*)?\*\*(Do|Don't)\*\*/;
 const malformedIdPattern = /^[-*]\s\[(?!INST\d{4}\])[^\]]*\]\s*\*\*(Do|Don't)\*\*/;
 
 export class InstructionsParser {
     private static readonly fileCache = new Map<string, { mtimeMs: number; content: string; result: InstructionsParsedResult }>();
 
-    static fromFile(filePath: string): { content: string; result: InstructionsParsedResult } {
+    static fromFile(filePath: string): InstructionsFileParsedResult {
         const mtimeMs = statSync(filePath).mtimeMs;
         const cached = this.fileCache.get(filePath);
         if (cached && cached.mtimeMs === mtimeMs) {
