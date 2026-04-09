@@ -23,6 +23,7 @@ applyTo: "**/*.{test,spec}.{js,jsx,ts,tsx,mjs,mts},**/*Tests*.{cs,fs,vb,razor}"
 - [INST0012] **Do** wrap test-specific helper logic in local functions to keep the test body focused and readable.
 - [INST0013] **Do** pair positive and negative test cases for each behavior — test both the happy path and the boundary.
 - [INST0014] **Don't** write tests that stray beyond the unit's scope; avoid broad tests that mix unrelated behaviors.
-- [INST0015] **Don't** add comments inside tests — except for AAA markers in .NET. Rely on descriptive names to convey intent.
-- [INST0016] **Don't** use control structures (`for`, `while`, `if`, `switch`, `try/catch`) inside test bodies — use parameterized tests (`test.each`, `[Theory]`) for iteration, separate tests for branches, and assertion APIs (e.g., `.toThrow()`) for expected exceptions.
-- [INST0017] **Don't** place assertions before or between act phases — arrange first, act once, then assert; split multi-step scenarios into separate tests.
+- [INST0015] **Don't** test private or internal methods directly (via `as any`, reflection, `[InternalsVisibleTo]`, etc.) — test the behavior through the public API. If a private method is complex enough to feel like it needs its own tests, consider whether it should be extracted into a separate, publicly testable unit.
+- [INST0016] **Don't** add comments inside tests — except for AAA markers in .NET. Rely on descriptive names to convey intent.
+- [INST0017] **Don't** use control structures (`for`, `while`, `if`, `switch`, `try/catch`) inside test bodies — use parameterized tests (`test.each`, `[Theory]`) for iteration, separate tests for branches, and assertion APIs (e.g., `.toThrow()`) for expected exceptions.
+- [INST0018] **Don't** place assertions before or between act phases — arrange first, act once, then assert; split multi-step scenarios into separate tests.
