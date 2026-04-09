@@ -1,29 +1,8 @@
 import { readFileSync, statSync } from 'node:fs';
-
-export interface InstructionsParsedInstruction {
-    readonly id: string | undefined;
-    readonly text: string;
-    readonly startLine: number;
-    readonly endLine: number;
-}
-
-export type InstructionsDiagnosticKind = 'malformed-id' | 'duplicate-id' | 'missing-id';
-
-export interface InstructionsDiagnostic {
-    readonly kind: InstructionsDiagnosticKind;
-    readonly line: number;
-    readonly message: string;
-}
-
-export interface InstructionsParsedResult {
-    readonly instructions: readonly InstructionsParsedInstruction[];
-    readonly diagnostics: readonly InstructionsDiagnostic[];
-}
-
-export interface InstructionsFileParsedResult {
-    readonly content: string;
-    readonly result: InstructionsParsedResult;
-}
+import type { InstructionsParsedInstruction } from './instructions-parsed-instruction.js';
+import type { InstructionsDiagnostic } from './instructions-diagnostic.js';
+import type { InstructionsParsedResult } from './instructions-parsed-result.js';
+import type { InstructionsFileParsedResult } from './instructions-file-parsed-result.js';
 
 const instructionBulletPattern = /^[-*]\s(?:\[(INST\d{4})\]\s*)?\*\*(Do|Don't)\*\*/;
 const malformedIdPattern = /^[-*]\s\[(?!INST\d{4}\])[^\]]*\]\s*\*\*(Do|Don't)\*\*/;

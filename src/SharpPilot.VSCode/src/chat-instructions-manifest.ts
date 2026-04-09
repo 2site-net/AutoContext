@@ -8,11 +8,7 @@ import { InstructionsCatalog } from './instructions-catalog.js';
 import { instructionsFiles } from './ui-constants.js';
 import { ContextKeys } from './context-keys.js';
 import type { CatalogEntry } from './catalog-entry.js';
-
-export interface ChatInstruction {
-    path: string;
-    when?: string;
-}
+import type { ChatInstructions } from './chat-instructions.js';
 
 function buildWhenClause(entry: CatalogEntry): string {
     const parts = [`config.${entry.settingId}`];
@@ -29,7 +25,7 @@ function buildWhenClause(entry: CatalogEntry): string {
     return parts.join(' && ');
 }
 
-export function buildChatInstructions(catalog: InstructionsCatalog): ChatInstruction[] {
+export function buildChatInstructions(catalog: InstructionsCatalog): ChatInstructions[] {
     return [
         { path: './instructions/copilot.instructions.md' },
         ...catalog.all.map(entry => ({

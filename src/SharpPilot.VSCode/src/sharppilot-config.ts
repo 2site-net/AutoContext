@@ -2,19 +2,7 @@ import * as vscode from 'vscode';
 import { readFileSync, writeFileSync, unlinkSync } from 'node:fs';
 import { join } from 'node:path';
 import { InstructionsParser } from './instructions-parser.js';
-
-export interface SharpPilotConfig {
-    version?: string;
-    diagnostic?: {
-        warnOnMissingId?: boolean;
-    };
-    instructions?: {
-        disabled?: Record<string, string[]>;
-    };
-    mcpTools?: {
-        disabled?: string[];
-    };
-}
+import type { SharpPilotConfig } from './sharppilot-config-types.js';
 
 const configFileName = '.sharppilot.json';
 
