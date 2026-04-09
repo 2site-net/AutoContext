@@ -52,6 +52,7 @@ const fileRules = [
     { flag: 'hasGroovy', globs: ['**/*.{groovy,gvy}'] },
     { flag: 'hasC', globs: ['**/*.c'] },
     { flag: 'hasCpp', globs: ['**/*.{cpp,cxx,cc}'] },
+    { flag: 'hasRuby', globs: ['**/*.rb', '**/Gemfile'] },
     { flag: 'hasRust', globs: ['**/*.rs', '**/Cargo.toml'] },
     { flag: 'hasSwift', globs: ['**/*.swift', '**/Package.swift'] },
     { flag: 'hasGo', globs: ['**/*.go', '**/go.mod'] },

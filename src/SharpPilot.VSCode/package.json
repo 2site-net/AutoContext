@@ -322,6 +322,10 @@
         "when": "config.sharppilot.instructions.lang.python && sharppilot.workspace.hasPython && !sharppilot.override.lang.python"
       },
       {
+        "path": "./instructions/.generated/lang-ruby.instructions.md",
+        "when": "config.sharppilot.instructions.lang.ruby && sharppilot.workspace.hasRuby && !sharppilot.override.lang.ruby"
+      },
+      {
         "path": "./instructions/.generated/lang-rust.instructions.md",
         "when": "config.sharppilot.instructions.lang.rust && sharppilot.workspace.hasRust && !sharppilot.override.lang.rust"
       },
@@ -712,6 +716,11 @@
           "type": "boolean",
           "default": true,
           "description": "Enable Python guidelines (naming, type hints, error handling, classes, modules, concurrency, idioms)."
+        },
+        "sharppilot.instructions.lang.ruby": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable Ruby coding style rules (naming, blocks, error handling, classes, modules, collections, metaprogramming)."
         },
         "sharppilot.instructions.lang.rust": {
           "type": "boolean",

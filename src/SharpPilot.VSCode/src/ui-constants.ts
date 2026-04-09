@@ -60,6 +60,7 @@ export const instructionsFiles: readonly InstructionsFileEntry[] = [
     { key: 'lang.php', fileName: 'lang-php.instructions.md', label: 'PHP', category: 'Languages', contextKeys: ['hasPhp'] },
     { key: 'lang.powershell', fileName: 'lang-powershell.instructions.md', label: 'PowerShell', category: 'Languages', contextKeys: ['hasPowerShell'] },
     { key: 'lang.python', fileName: 'lang-python.instructions.md', label: 'Python', category: 'Languages', contextKeys: ['hasPython'] },
+    { key: 'lang.ruby', fileName: 'lang-ruby.instructions.md', label: 'Ruby', category: 'Languages', contextKeys: ['hasRuby'] },
     { key: 'lang.rust', fileName: 'lang-rust.instructions.md', label: 'Rust', category: 'Languages', contextKeys: ['hasRust'] },
     { key: 'lang.scala', fileName: 'lang-scala.instructions.md', label: 'Scala', category: 'Languages', contextKeys: ['hasScala'] },
     { key: 'lang.sql', fileName: 'lang-sql.instructions.md', label: 'SQL', category: 'Languages' },
