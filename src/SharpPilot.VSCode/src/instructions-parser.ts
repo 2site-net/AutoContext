@@ -1,32 +1,32 @@
 import { readFileSync, statSync } from 'node:fs';
 
-export interface ParsedInstruction {
+export interface InstructionsParsedInstruction {
     readonly id: string | undefined;
     readonly text: string;
     readonly startLine: number;
     readonly endLine: number;
 }
 
-export type InstructionDiagnosticKind = 'malformed-id' | 'duplicate-id' | 'missing-id';
+export type InstructionsDiagnosticKind = 'malformed-id' | 'duplicate-id' | 'missing-id';
 
-export interface InstructionDiagnostic {
-    readonly kind: InstructionDiagnosticKind;
+export interface InstructionsDiagnostic {
+    readonly kind: InstructionsDiagnosticKind;
     readonly line: number;
     readonly message: string;
 }
 
-export interface ParseResult {
-    readonly instructions: readonly ParsedInstruction[];
-    readonly diagnostics: readonly InstructionDiagnostic[];
+export interface InstructionsParsedResult {
+    readonly instructions: readonly InstructionsParsedInstruction[];
+    readonly diagnostics: readonly InstructionsDiagnostic[];
 }
 
 const instructionBulletPattern = /^[-*]\s(?:\[(INST\d{4})\]\s*)?\*\*(Do|Don't)\*\*/;
 const malformedIdPattern = /^[-*]\s\[(?!INST\d{4}\])[^\]]*\]\s*\*\*(Do|Don't)\*\*/;
 
 export class InstructionsParser {
-    private static readonly fileCache = new Map<string, { mtimeMs: number; content: string; result: ParseResult }>();
+    private static readonly fileCache = new Map<string, { mtimeMs: number; content: string; result: InstructionsParsedResult }>();
 
-    static fromFile(filePath: string): { content: string; result: ParseResult } {
+    static fromFile(filePath: string): { content: string; result: InstructionsParsedResult } {
         const mtimeMs = statSync(filePath).mtimeMs;
         const cached = this.fileCache.get(filePath);
         if (cached && cached.mtimeMs === mtimeMs) {
@@ -38,10 +38,10 @@ export class InstructionsParser {
         return { content, result };
     }
 
-    static parse(content: string): ParseResult {
+    static parse(content: string): InstructionsParsedResult {
         const lines = content.split('\n');
-        const instructions: ParsedInstruction[] = [];
-        const diagnostics: InstructionDiagnostic[] = [];
+        const instructions: InstructionsParsedInstruction[] = [];
+        const diagnostics: InstructionsDiagnostic[] = [];
         const seenIds = new Map<string, number>();
         let instructionStart = -1;
         let instructionLines: string[] = [];
@@ -112,7 +112,7 @@ export class InstructionsParser {
         lines: readonly string[],
         startLine: number,
         endLine: number,
-    ): ParsedInstruction {
+    ): InstructionsParsedInstruction {
         let end = lines.length;
 
         while (end > 0 && lines[end - 1].trim() === '') {
