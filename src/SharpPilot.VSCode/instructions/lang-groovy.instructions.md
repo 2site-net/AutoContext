@@ -56,7 +56,3 @@ applyTo: "**/*.{groovy,gvy}"
 
 - [INST0031] **Do** add Groovydoc (`/** … */`) to all public and protected classes, methods, and fields — document intent, parameters (`@param`), return value (`@return`), and thrown exceptions (`@throws`).
 - [INST0032] **Don't** add Groovydoc that merely restates the method name — `/** Gets the name. */ def getName()` adds no value.
-
-## Formatting
-
-- [INST0033] **Do** follow the official [Groovy Style Guide](https://groovy-lang.org/style-guide.html) — 4-space indentation, opening braces on the same line, no semicolons at end of statements.

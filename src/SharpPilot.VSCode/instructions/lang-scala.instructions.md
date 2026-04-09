@@ -63,7 +63,3 @@ applyTo: "**/*.{scala,sc}"
 
 - [INST0035] **Do** add Scaladoc (`/** … */`) to all public and protected types, methods, and values — document intent, parameters (`@param`), return value (`@return`), and thrown exceptions (`@throws`).
 - [INST0036] **Don't** add Scaladoc that merely restates the method name — `/** Gets the name. */ def getName: String` adds no value.
-
-## Formatting
-
-- [INST0037] **Do** follow the official [Scala style guide](https://docs.scala-lang.org/style/) — 2-space indentation, opening braces on the same line, avoid unnecessary semicolons.

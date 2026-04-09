@@ -80,7 +80,3 @@ applyTo: "**/*.swift"
 - [INST0042] **Do** write triple-slash (`///`) doc comments for all `public` and `open` symbols — include a one-line summary, parameter descriptions (`- Parameter name:`), return value (`- Returns:`), and thrown errors (`- Throws:`).
 - [INST0043] **Do** use `- Note:`, `- Important:`, and `- Warning:` callouts in doc comments for non-obvious behavior.
 - [INST0044] **Don't** repeat what the signature already says — focus doc comments on *why*, edge cases, preconditions, and threading expectations.
-
-## Formatting
-
-- [INST0045] **Do** follow the [Swift API Design Guidelines](https://www.swift.org/documentation/api-design-guidelines/) for all public API naming decisions.

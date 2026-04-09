@@ -67,7 +67,3 @@ applyTo: "**/*.{kt,kts}"
 
 - [INST0039] **Do** add KDoc (`/** … */`) to all public and internal types, functions, and properties — focus on intent, parameters, return value, and thrown exceptions.
 - [INST0040] **Don't** add KDoc that merely restates the function name — `/** Gets the name. */ fun getName()` adds no value.
-
-## Formatting
-
-- [INST0041] **Do** follow the official [Kotlin coding conventions](https://kotlinlang.org/docs/coding-conventions.html) — opening braces on the same line, 4-space indentation, trailing lambdas outside parentheses.
