@@ -122,7 +122,7 @@ if ($solutionFile -and $solutionFile.Extension -eq '.slnx') {
 }
 
 $serverProjectPaths = @($dotnetProjects |
-    Where-Object { $_ -notmatch '\.Tests\.' })
+    Where-Object { $_ -notmatch '\.(Tests|Shared)\.' })
 
 # ── RID → vsce target mapping ───────────────────────────────────────────────
 
