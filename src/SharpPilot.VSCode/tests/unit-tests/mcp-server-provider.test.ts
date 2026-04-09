@@ -154,8 +154,8 @@ describe('McpServerProvider.provideMcpServerDefinitions', () => {
 
         it('server is excluded when all its tools are disabled', async () => {
             __setConfigStore({
-                'sharppilot.tools.check_git_commit_content': false,
-                'sharppilot.tools.check_git_commit_format': false,
+                'sharppilot.mcpTools.check_git_commit_content': false,
+                'sharppilot.mcpTools.check_git_commit_format': false,
             });
 
             const defs = await createProvider().provideMcpServerDefinitions() as StdioDef[];
@@ -166,7 +166,7 @@ describe('McpServerProvider.provideMcpServerDefinitions', () => {
 
         it('server is included when at least one tool is enabled', async () => {
             __setConfigStore({
-                'sharppilot.tools.check_git_commit_content': false,
+                'sharppilot.mcpTools.check_git_commit_content': false,
             });
 
             const defs = await createProvider().provideMcpServerDefinitions() as StdioDef[];

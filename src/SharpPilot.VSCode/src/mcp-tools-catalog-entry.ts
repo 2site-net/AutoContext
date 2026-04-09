@@ -12,7 +12,7 @@ export class McpToolsCatalogEntry implements CatalogEntry {
     readonly contextKeys?: readonly string[];
 
     constructor(data: McpToolsEntry) {
-        this.settingId = `sharppilot.tools.${data.key}`;
+        this.settingId = `sharppilot.mcpTools.${data.key}`;
         this.toolName = data.toolName ?? data.key;
         this.featureName = data.toolName ? data.key : undefined;
         this.label = data.label;

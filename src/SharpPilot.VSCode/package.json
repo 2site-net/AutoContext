@@ -987,62 +987,62 @@
           "default": true,
           "description": "Enable Docker guidelines (multi-stage builds, security, Compose, layer caching)."
         },
-        "sharppilot.tools.check_csharp_async_patterns": {
+        "sharppilot.mcpTools.check_csharp_async_patterns": {
           "type": "boolean",
           "default": true,
           "description": "Enable the async patterns checker tool."
         },
-        "sharppilot.tools.check_csharp_coding_style": {
+        "sharppilot.mcpTools.check_csharp_coding_style": {
           "type": "boolean",
           "default": true,
           "description": "Enable the coding style checker tool."
         },
-        "sharppilot.tools.check_csharp_member_ordering": {
+        "sharppilot.mcpTools.check_csharp_member_ordering": {
           "type": "boolean",
           "default": true,
           "description": "Enable the member ordering checker tool."
         },
-        "sharppilot.tools.check_csharp_naming_conventions": {
+        "sharppilot.mcpTools.check_csharp_naming_conventions": {
           "type": "boolean",
           "default": true,
           "description": "Enable the naming conventions checker tool."
         },
-        "sharppilot.tools.check_csharp_nullable_context": {
+        "sharppilot.mcpTools.check_csharp_nullable_context": {
           "type": "boolean",
           "default": true,
           "description": "Enable the nullable context checker tool."
         },
-        "sharppilot.tools.check_csharp_project_structure": {
+        "sharppilot.mcpTools.check_csharp_project_structure": {
           "type": "boolean",
           "default": true,
           "description": "Enable the project structure checker tool."
         },
-        "sharppilot.tools.check_csharp_test_style": {
+        "sharppilot.mcpTools.check_csharp_test_style": {
           "type": "boolean",
           "default": true,
           "description": "Enable the test style checker tool."
         },
-        "sharppilot.tools.check_nuget_hygiene": {
+        "sharppilot.mcpTools.check_nuget_hygiene": {
           "type": "boolean",
           "default": true,
           "description": "Enable the NuGet hygiene checker tool."
         },
-        "sharppilot.tools.check_git_commit_content": {
+        "sharppilot.mcpTools.check_git_commit_content": {
           "type": "boolean",
           "default": true,
           "description": "Enable the commit content validator tool."
         },
-        "sharppilot.tools.check_git_commit_format": {
+        "sharppilot.mcpTools.check_git_commit_format": {
           "type": "boolean",
           "default": true,
           "description": "Enable the commit format validator tool."
         },
-        "sharppilot.tools.get_editorconfig": {
+        "sharppilot.mcpTools.get_editorconfig": {
           "type": "boolean",
           "default": true,
           "description": "Enable the EditorConfig reader tool."
         },
-        "sharppilot.tools.check_typescript_coding_style": {
+        "sharppilot.mcpTools.check_typescript_coding_style": {
           "type": "boolean",
           "default": true,
           "description": "Enable the TypeScript coding style checker tool."

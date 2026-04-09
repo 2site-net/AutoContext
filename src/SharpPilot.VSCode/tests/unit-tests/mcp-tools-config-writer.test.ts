@@ -27,7 +27,7 @@ describe('McpToolsConfigWriter', () => {
 
     it('should write disabled tools to .sharppilot.json', async () => {
         __setConfigStore({
-            'sharppilot.tools.check_csharp_coding_style': false,
+            'sharppilot.mcpTools.check_csharp_coding_style': false,
         });
 
         vi.mocked(readFile).mockImplementation(async (path: unknown) => {
@@ -52,7 +52,7 @@ describe('McpToolsConfigWriter', () => {
 
     it('should not write when nothing changed', async () => {
         __setConfigStore({
-            'sharppilot.tools.check_csharp_coding_style': false,
+            'sharppilot.mcpTools.check_csharp_coding_style': false,
         });
 
         vi.mocked(readFile).mockImplementation(async (path: unknown) => {

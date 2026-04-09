@@ -120,7 +120,7 @@ export const instructionsCategoryOrder: readonly string[] = ['General', 'Languag
 
 // ── MCP Tools ────────────────────────────────────────────────────────
 
-// Each entry's `key` is expanded to a full `settingId` (`sharppilot.tools.<key>`) by
+// Each entry's `key` is expanded to a full `settingId` (`sharppilot.mcpTools.<key>`) by
 // `McpToolsCatalogEntry` at construction time — see `McpToolsCatalog`.
 // When `toolName` is present the entry is a sub-feature of a composite tool (e.g.
 // `check_csharp_all`); when absent, `key` doubles as the MCP tool name.

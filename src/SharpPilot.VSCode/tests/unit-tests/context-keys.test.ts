@@ -39,15 +39,15 @@ describe('ContextKeys.forEntry', () => {
     });
 
     it('should return context keys for tools', () => {
-        const codingStyle = toolsCatalog.all.find(t => t.settingId === 'sharppilot.tools.check_csharp_coding_style')!;
-        const commitFormat = toolsCatalog.all.find(t => t.settingId === 'sharppilot.tools.check_git_commit_format')!;
+        const codingStyle = toolsCatalog.all.find(t => t.settingId === 'sharppilot.mcpTools.check_csharp_coding_style')!;
+        const commitFormat = toolsCatalog.all.find(t => t.settingId === 'sharppilot.mcpTools.check_git_commit_format')!;
 
         expect(ContextKeys.forEntry(codingStyle)).toEqual(['hasCSharp']);
         expect.soft(ContextKeys.forEntry(commitFormat)).toEqual(['hasGit']);
     });
 
     it('should return empty array for the editorconfig tool', () => {
-        const editorconfig = toolsCatalog.all.find(t => t.settingId === 'sharppilot.tools.get_editorconfig')!;
+        const editorconfig = toolsCatalog.all.find(t => t.settingId === 'sharppilot.mcpTools.get_editorconfig')!;
 
         expect.soft(ContextKeys.forEntry(editorconfig)).toEqual([]);
     });

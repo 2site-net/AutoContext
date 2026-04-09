@@ -29,7 +29,7 @@ Once installed, the following MCP tools are available to GitHub Copilot in Agent
 | Workspace | `get_editorconfig` | Resolve effective `.editorconfig` properties for a file |
 | Web | `check_typescript_all` | Composite TypeScript quality check |
 
-Each category maps to a dedicated MCP server. Tools within a category are further organized by sub-category (e.g., C#, NuGet under .NET) and can be toggled individually under **Settings → SharpPilot** (search `sharppilot.tools`), or from the **MCP Tools** panel in the SharpPilot sidebar. If all tools for a category are disabled, that server is not registered at all.
+Each category maps to a dedicated MCP server. Tools within a category are further organized by sub-category (e.g., C#, NuGet under .NET) and can be toggled individually under **Settings → SharpPilot** (search `sharppilot.mcpTools`), or from the **MCP Tools** panel in the SharpPilot sidebar. If all tools for a category are disabled, that server is not registered at all.
 
 ## Sidebar Panels
 

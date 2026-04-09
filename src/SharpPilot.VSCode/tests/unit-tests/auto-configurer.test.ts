@@ -45,7 +45,7 @@ describe('AutoConfigurer.configure', () => {
         const updatedIds = new Set(updates.map(([id]: [string]) => id));
 
         expect.soft(updatedIds.has('sharppilot.instructions.dotnet.asyncAwait')).toBe(false);
-        expect.soft(updatedIds.has('sharppilot.tools.check_csharp_coding_style')).toBe(false);
+        expect.soft(updatedIds.has('sharppilot.mcpTools.check_csharp_coding_style')).toBe(false);
         expect.soft(updatedIds.has('sharppilot.instructions.git.commitFormat')).toBe(true);
     });
 

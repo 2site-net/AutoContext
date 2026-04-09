@@ -100,7 +100,7 @@ export async function activate(context: vscode.ExtensionContext) {
             void instructionsWriter.write();
         }),
         vscode.workspace.onDidChangeConfiguration(e => {
-            if (e.affectsConfiguration('sharppilot.tools')) {
+            if (e.affectsConfiguration('sharppilot.mcpTools')) {
                 void toolsStatusWriter.write();
                 didChangeEmitter.fire();
             }

@@ -13,7 +13,7 @@ describe('McpToolsCatalog', () => {
         const catalog = new McpToolsCatalog(testEntries);
 
         expect.soft(catalog.count).toBe(3);
-        expect.soft(catalog.all[0].settingId).toBe('sharppilot.tools.alpha');
+        expect.soft(catalog.all[0].settingId).toBe('sharppilot.mcpTools.alpha');
     });
 
     it('should return the correct count', () => {
@@ -25,13 +25,13 @@ describe('McpToolsCatalog', () => {
     it('should return setting ids for a matching server category', () => {
         const catalog = new McpToolsCatalog(testEntries);
 
-        expect.soft(catalog.getSettingIdByCategory('dotnet')).toEqual(['sharppilot.tools.alpha', 'sharppilot.tools.beta']);
+        expect.soft(catalog.getSettingIdByCategory('dotnet')).toEqual(['sharppilot.mcpTools.alpha', 'sharppilot.mcpTools.beta']);
     });
 
     it('should return setting ids for git server category', () => {
         const catalog = new McpToolsCatalog(testEntries);
 
-        expect.soft(catalog.getSettingIdByCategory('git')).toEqual(['sharppilot.tools.gamma']);
+        expect.soft(catalog.getSettingIdByCategory('git')).toEqual(['sharppilot.mcpTools.gamma']);
     });
 
     it('should return empty array for unknown server category', () => {
