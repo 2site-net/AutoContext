@@ -270,6 +270,10 @@
         "when": "config.sharppilot.instructions.lang.css && sharppilot.workspace.hasCss && !sharppilot.override.lang.css"
       },
       {
+        "path": "./instructions/.generated/lang-dart.instructions.md",
+        "when": "config.sharppilot.instructions.lang.dart && sharppilot.workspace.hasDart && !sharppilot.override.lang.dart"
+      },
+      {
         "path": "./instructions/.generated/lang-fsharp.instructions.md",
         "when": "config.sharppilot.instructions.lang.fsharp && sharppilot.workspace.hasFSharp && !sharppilot.override.lang.fsharp"
       },
@@ -639,6 +643,11 @@
           "type": "boolean",
           "default": true,
           "description": "Enable CSS layout, theming, selectors, and accessibility guidelines."
+        },
+        "sharppilot.instructions.lang.dart": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable Dart coding style rules (null safety, type design, async patterns, collections, pattern matching)."
         },
         "sharppilot.instructions.lang.fsharp": {
           "type": "boolean",

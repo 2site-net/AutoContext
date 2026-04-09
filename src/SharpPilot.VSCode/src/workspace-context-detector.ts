@@ -37,6 +37,7 @@ const fileRules = [
     { flag: 'hasRazor', globs: ['**/*.cshtml'] },
     { flag: 'hasHtml', globs: ['**/*.{html,cshtml}'] },
     { flag: 'hasCss', globs: ['**/*.css'] },
+    { flag: 'hasDart', globs: ['**/*.dart', '**/pubspec.yaml'] },
     { flag: 'hasJavaScript', globs: ['**/*.{js,jsx,mjs,cjs}'] },
     { flag: 'hasTypeScript', globs: ['**/*.{ts,tsx,mts,cts}'] },
     { flag: 'hasUnity', globs: ['**/ProjectSettings/ProjectSettings.asset'] },

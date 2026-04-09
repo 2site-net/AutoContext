@@ -47,6 +47,7 @@ export const instructionsFiles: readonly InstructionsFileEntry[] = [
     { key: 'lang.csharp', fileName: 'lang-csharp.instructions.md', label: 'C#', category: 'Languages', contextKeys: ['hasCSharp'] },
     { key: 'lang.cpp', fileName: 'lang-cpp.instructions.md', label: 'C++', category: 'Languages', contextKeys: ['hasCpp'] },
     { key: 'lang.css', fileName: 'lang-css.instructions.md', label: 'CSS', category: 'Languages', contextKeys: ['hasCss'] },
+    { key: 'lang.dart', fileName: 'lang-dart.instructions.md', label: 'Dart', category: 'Languages', contextKeys: ['hasDart'] },
     { key: 'lang.fsharp', fileName: 'lang-fsharp.instructions.md', label: 'F#', category: 'Languages', contextKeys: ['hasFSharp'] },
     { key: 'lang.go', fileName: 'lang-go.instructions.md', label: 'Go', category: 'Languages', contextKeys: ['hasGo'] },
     { key: 'lang.graphql', fileName: 'lang-graphql.instructions.md', label: 'GraphQL', category: 'Languages', contextKeys: ['hasGraphql'] },
