@@ -20,19 +20,19 @@ export class InstructionsContentProvider implements vscode.TextDocumentContentPr
         );
     }
 
-    provideTextDocumentContent(uri: vscode.Uri): string {
+    async provideTextDocumentContent(uri: vscode.Uri): Promise<string> {
         const fileName = uri.path;
         const filePath = join(this.extensionPath, 'instructions', fileName);
 
         let content: string;
         let instructions;
         try {
-            ({ content, result: { instructions } } = InstructionsParser.fromFile(filePath));
+            ({ content, result: { instructions } } = await InstructionsParser.fromFile(filePath));
         } catch {
             return `Unable to read instruction file: ${fileName}`;
         }
 
-        const disabledIds = this.configManager.getDisabledInstructions(fileName);
+        const disabledIds = await this.configManager.getDisabledInstructions(fileName);
         if (disabledIds.size === 0) {
             return content;
         }

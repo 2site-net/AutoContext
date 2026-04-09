@@ -2,12 +2,12 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 import { SharpPilotConfigManager } from '../../src/sharppilot-config';
 
-import { readFileSync, writeFileSync, unlinkSync } from 'node:fs';
+import { writeFile, unlink, readFile } from 'node:fs/promises';
 
-vi.mock('node:fs', () => ({
-    readFileSync: vi.fn(),
-    writeFileSync: vi.fn(),
-    unlinkSync: vi.fn(),
+vi.mock('node:fs/promises', () => ({
+    readFile: vi.fn().mockRejectedValue(new Error('ENOENT')),
+    writeFile: vi.fn().mockResolvedValue(undefined),
+    unlink: vi.fn().mockResolvedValue(undefined),
 }));
 
 import { workspace } from './__mocks__/vscode';
@@ -18,26 +18,26 @@ beforeEach(() => {
 });
 
 describe('SharpPilotConfigManager', () => {
-    it('should return empty config when file does not exist', () => {
-        vi.mocked(readFileSync).mockImplementation(() => { throw new Error('ENOENT'); });
+    it('should return empty config when file does not exist', async () => {
+        vi.mocked(readFile).mockRejectedValue(new Error('ENOENT'));
 
         const manager = new SharpPilotConfigManager('/ext', '0.5.0');
-        const config = manager.read();
+        const config = await manager.read();
 
         expect.soft(config).toEqual({});
     });
 
-    it('should return empty config when file contains invalid JSON', () => {
-        vi.mocked(readFileSync).mockReturnValue('not json at all');
+    it('should return empty config when file contains invalid JSON', async () => {
+        vi.mocked(readFile).mockResolvedValue('not json at all');
 
         const manager = new SharpPilotConfigManager('/ext', '0.5.0');
-        const config = manager.read();
+        const config = await manager.read();
 
         expect.soft(config).toEqual({});
     });
 
-    it('should read disabled instructions from config file', () => {
-        vi.mocked(readFileSync).mockReturnValue(JSON.stringify({
+    it('should read disabled instructions from config file', async () => {
+        vi.mocked(readFile).mockResolvedValue(JSON.stringify({
             instructions: {
                 disabled: {
                     'code-review.instructions.md': ['INST0001'],
@@ -46,23 +46,23 @@ describe('SharpPilotConfigManager', () => {
         }));
 
         const manager = new SharpPilotConfigManager('/ext', '0.5.0');
-        const disabled = manager.getDisabledInstructions('code-review.instructions.md');
+        const disabled = await manager.getDisabledInstructions('code-review.instructions.md');
 
         expect(disabled.has('INST0001')).toBe(true);
         expect.soft(disabled.size).toBe(1);
     });
 
-    it('should return empty set for file with no disabled instructions', () => {
-        vi.mocked(readFileSync).mockReturnValue('{}');
+    it('should return empty set for file with no disabled instructions', async () => {
+        vi.mocked(readFile).mockResolvedValue('{}');
 
         const manager = new SharpPilotConfigManager('/ext', '0.5.0');
-        const disabled = manager.getDisabledInstructions('code-review.instructions.md');
+        const disabled = await manager.getDisabledInstructions('code-review.instructions.md');
 
         expect.soft(disabled.size).toBe(0);
     });
 
-    it('should detect when any instructions are disabled', () => {
-        vi.mocked(readFileSync).mockReturnValue(JSON.stringify({
+    it('should detect when any instructions are disabled', async () => {
+        vi.mocked(readFile).mockResolvedValue(JSON.stringify({
             instructions: {
                 disabled: {
                     'code-review.instructions.md': ['INST0001'],
@@ -72,24 +72,24 @@ describe('SharpPilotConfigManager', () => {
 
         const manager = new SharpPilotConfigManager('/ext', '0.5.0');
 
-        expect.soft(manager.hasAnyDisabledInstructions()).toBe(true);
+        expect.soft(await manager.hasAnyDisabledInstructions()).toBe(true);
     });
 
-    it('should detect when no instructions are disabled', () => {
-        vi.mocked(readFileSync).mockReturnValue('{}');
+    it('should detect when no instructions are disabled', async () => {
+        vi.mocked(readFile).mockResolvedValue('{}');
 
         const manager = new SharpPilotConfigManager('/ext', '0.5.0');
 
-        expect.soft(manager.hasAnyDisabledInstructions()).toBe(false);
+        expect.soft(await manager.hasAnyDisabledInstructions()).toBe(false);
     });
 
-    it('should toggle an instruction on (disable it)', () => {
-        vi.mocked(readFileSync).mockReturnValue('{}');
+    it('should toggle an instruction on (disable it)', async () => {
+        vi.mocked(readFile).mockResolvedValue('{}');
 
         const manager = new SharpPilotConfigManager('/ext', '0.5.0');
-        manager.toggleInstruction('code-review.instructions.md', 'INST0001');
+        await manager.toggleInstruction('code-review.instructions.md', 'INST0001');
 
-        const writeCalls = vi.mocked(writeFileSync).mock.calls;
+        const writeCalls = vi.mocked(writeFile).mock.calls;
 
         expect(writeCalls).toHaveLength(1);
 
@@ -102,8 +102,8 @@ describe('SharpPilotConfigManager', () => {
         expect.soft(parsed.instructions.disabled['code-review.instructions.md']).toEqual(['INST0001']);
     });
 
-    it('should toggle an instruction off (re-enable it)', () => {
-        vi.mocked(readFileSync).mockReturnValue(JSON.stringify({
+    it('should toggle an instruction off (re-enable it)', async () => {
+        vi.mocked(readFile).mockResolvedValue(JSON.stringify({
             instructions: {
                 disabled: {
                     'code-review.instructions.md': ['INST0001'],
@@ -112,34 +112,34 @@ describe('SharpPilotConfigManager', () => {
         }));
 
         const manager = new SharpPilotConfigManager('/ext', '0.5.0');
-        manager.toggleInstruction('code-review.instructions.md', 'INST0001');
+        await manager.toggleInstruction('code-review.instructions.md', 'INST0001');
 
-        expect.soft(vi.mocked(unlinkSync)).toHaveBeenCalled();
+        expect.soft(vi.mocked(unlink)).toHaveBeenCalled();
     });
 
-    it('should not write when no workspace folder is available', () => {
+    it('should not write when no workspace folder is available', async () => {
         workspace.workspaceFolders = undefined;
 
         const manager = new SharpPilotConfigManager('/ext', '0.5.0');
-        manager.toggleInstruction('code-review.instructions.md', 'INST0001');
+        await manager.toggleInstruction('code-review.instructions.md', 'INST0001');
 
-        expect.soft(vi.mocked(writeFileSync)).not.toHaveBeenCalled();
+        expect.soft(vi.mocked(writeFile)).not.toHaveBeenCalled();
     });
 
-    it('should write extension version when saving config', () => {
-        vi.mocked(readFileSync).mockReturnValue('{}');
+    it('should write extension version when saving config', async () => {
+        vi.mocked(readFile).mockResolvedValue('{}');
 
         const manager = new SharpPilotConfigManager('/ext', '1.2.3');
-        manager.toggleInstruction('code-review.instructions.md', 'INST0001');
+        await manager.toggleInstruction('code-review.instructions.md', 'INST0001');
 
-        const writeCalls = vi.mocked(writeFileSync).mock.calls;
+        const writeCalls = vi.mocked(writeFile).mock.calls;
         const parsed = JSON.parse(writeCalls[0][1] as string);
 
         expect.soft(parsed.version).toBe('1.2.3');
     });
 
-    it('should reset all instructions for a specific file', () => {
-        vi.mocked(readFileSync).mockReturnValue(JSON.stringify({
+    it('should reset all instructions for a specific file', async () => {
+        vi.mocked(readFile).mockResolvedValue(JSON.stringify({
             instructions: {
                 disabled: {
                     'code-review.instructions.md': ['INST0001', 'INST0002'],
@@ -149,9 +149,9 @@ describe('SharpPilotConfigManager', () => {
         }));
 
         const manager = new SharpPilotConfigManager('/ext', '0.5.0');
-        manager.resetInstructions('code-review.instructions.md');
+        await manager.resetInstructions('code-review.instructions.md');
 
-        const writeCalls = vi.mocked(writeFileSync).mock.calls;
+        const writeCalls = vi.mocked(writeFile).mock.calls;
 
         expect(writeCalls).toHaveLength(1);
 
@@ -161,8 +161,8 @@ describe('SharpPilotConfigManager', () => {
         expect.soft(parsed.instructions.disabled['dotnet-async-await.instructions.md']).toEqual(['INST0003']);
     });
 
-    it('should delete file when resetting the last file with disabled instructions', () => {
-        vi.mocked(readFileSync).mockReturnValue(JSON.stringify({
+    it('should delete file when resetting the last file with disabled instructions', async () => {
+        vi.mocked(readFile).mockResolvedValue(JSON.stringify({
             instructions: {
                 disabled: {
                     'code-review.instructions.md': ['INST0001'],
@@ -171,23 +171,23 @@ describe('SharpPilotConfigManager', () => {
         }));
 
         const manager = new SharpPilotConfigManager('/ext', '0.5.0');
-        manager.resetInstructions('code-review.instructions.md');
+        await manager.resetInstructions('code-review.instructions.md');
 
-        expect.soft(vi.mocked(unlinkSync)).toHaveBeenCalled();
+        expect.soft(vi.mocked(unlink)).toHaveBeenCalled();
     });
 
-    it('should be a no-op when resetting a file with no disabled instructions', () => {
-        vi.mocked(readFileSync).mockReturnValue('{}');
+    it('should be a no-op when resetting a file with no disabled instructions', async () => {
+        vi.mocked(readFile).mockResolvedValue('{}');
 
         const manager = new SharpPilotConfigManager('/ext', '0.5.0');
-        manager.resetInstructions('code-review.instructions.md');
+        await manager.resetInstructions('code-review.instructions.md');
 
-        expect(vi.mocked(writeFileSync)).not.toHaveBeenCalled();
-        expect.soft(vi.mocked(unlinkSync)).not.toHaveBeenCalled();
+        expect(vi.mocked(writeFile)).not.toHaveBeenCalled();
+        expect.soft(vi.mocked(unlink)).not.toHaveBeenCalled();
     });
 
-    it('should delete file when toggling last instruction off with version present (round-trip)', () => {
-        vi.mocked(readFileSync).mockReturnValue(JSON.stringify({
+    it('should delete file when toggling last instruction off with version present (round-trip)', async () => {
+        vi.mocked(readFile).mockResolvedValue(JSON.stringify({
             version: '0.5.0',
             instructions: {
                 disabled: {
@@ -197,19 +197,19 @@ describe('SharpPilotConfigManager', () => {
         }));
 
         const manager = new SharpPilotConfigManager('/ext', '0.5.0');
-        manager.toggleInstruction('code-review.instructions.md', 'INST0001');
+        await manager.toggleInstruction('code-review.instructions.md', 'INST0001');
 
-        expect(vi.mocked(unlinkSync)).toHaveBeenCalled();
-        expect.soft(vi.mocked(writeFileSync)).not.toHaveBeenCalled();
+        expect(vi.mocked(unlink)).toHaveBeenCalled();
+        expect.soft(vi.mocked(writeFile)).not.toHaveBeenCalled();
     });
 
-    it('should write disabled tools to config', () => {
-        vi.mocked(readFileSync).mockReturnValue('{}');
+    it('should write disabled tools to config', async () => {
+        vi.mocked(readFile).mockResolvedValue('{}');
 
         const manager = new SharpPilotConfigManager('/ext', '0.5.0');
-        manager.setDisabledTools(['check_csharp_coding_style']);
+        await manager.setDisabledTools(['check_csharp_coding_style']);
 
-        const writeCalls = vi.mocked(writeFileSync).mock.calls;
+        const writeCalls = vi.mocked(writeFile).mock.calls;
 
         expect(writeCalls).toHaveLength(1);
 
@@ -218,28 +218,28 @@ describe('SharpPilotConfigManager', () => {
         expect.soft(parsed["mcp-tools"].disabled).toEqual(['check_csharp_coding_style']);
     });
 
-    it('should skip write when disabled tools have not changed', () => {
-        vi.mocked(readFileSync).mockReturnValue(JSON.stringify({
+    it('should skip write when disabled tools have not changed', async () => {
+        vi.mocked(readFile).mockResolvedValue(JSON.stringify({
             "mcp-tools": { disabled: ['check_csharp_coding_style'] },
         }));
 
         const manager = new SharpPilotConfigManager('/ext', '0.5.0');
-        manager.setDisabledTools(['check_csharp_coding_style']);
+        await manager.setDisabledTools(['check_csharp_coding_style']);
 
-        expect(vi.mocked(writeFileSync)).not.toHaveBeenCalled();
-        expect.soft(vi.mocked(unlinkSync)).not.toHaveBeenCalled();
+        expect(vi.mocked(writeFile)).not.toHaveBeenCalled();
+        expect.soft(vi.mocked(unlink)).not.toHaveBeenCalled();
     });
 
-    it('should remove tools section when all tools are enabled', () => {
-        vi.mocked(readFileSync).mockReturnValue(JSON.stringify({
+    it('should remove tools section when all tools are enabled', async () => {
+        vi.mocked(readFile).mockResolvedValue(JSON.stringify({
             "mcp-tools": { disabled: ['check_csharp_coding_style'] },
             instructions: { disabled: { 'code-review.instructions.md': ['INST0001'] } },
         }));
 
         const manager = new SharpPilotConfigManager('/ext', '0.5.0');
-        manager.setDisabledTools([]);
+        await manager.setDisabledTools([]);
 
-        const writeCalls = vi.mocked(writeFileSync).mock.calls;
+        const writeCalls = vi.mocked(writeFile).mock.calls;
 
         expect(writeCalls).toHaveLength(1);
 
@@ -249,56 +249,56 @@ describe('SharpPilotConfigManager', () => {
         expect.soft(parsed.instructions).toBeDefined();
     });
 
-    it('should delete file when clearing tools and no other config exists', () => {
-        vi.mocked(readFileSync).mockReturnValue(JSON.stringify({
+    it('should delete file when clearing tools and no other config exists', async () => {
+        vi.mocked(readFile).mockResolvedValue(JSON.stringify({
             "mcp-tools": { disabled: ['check_csharp_coding_style'] },
         }));
 
         const manager = new SharpPilotConfigManager('/ext', '0.5.0');
-        manager.setDisabledTools([]);
+        await manager.setDisabledTools([]);
 
-        expect(vi.mocked(unlinkSync)).toHaveBeenCalled();
-        expect.soft(vi.mocked(writeFileSync)).not.toHaveBeenCalled();
+        expect(vi.mocked(unlink)).toHaveBeenCalled();
+        expect.soft(vi.mocked(writeFile)).not.toHaveBeenCalled();
     });
 
-    it('should preserve other config sections when writing tools', () => {
-        vi.mocked(readFileSync).mockReturnValue(JSON.stringify({
+    it('should preserve other config sections when writing tools', async () => {
+        vi.mocked(readFile).mockResolvedValue(JSON.stringify({
             instructions: { disabled: { 'code-review.instructions.md': ['INST0001'] } },
         }));
 
         const manager = new SharpPilotConfigManager('/ext', '0.5.0');
-        manager.setDisabledTools(['check_csharp_async_patterns']);
+        await manager.setDisabledTools(['check_csharp_async_patterns']);
 
-        const parsed = JSON.parse(vi.mocked(writeFileSync).mock.calls[0][1] as string);
+        const parsed = JSON.parse(vi.mocked(writeFile).mock.calls[0][1] as string);
 
         expect(parsed["mcp-tools"].disabled).toEqual(['check_csharp_async_patterns']);
         expect.soft(parsed.instructions.disabled['code-review.instructions.md']).toEqual(['INST0001']);
     });
 
-    it('should return cached config on repeated reads without re-reading disk', () => {
-        vi.mocked(readFileSync).mockReturnValue(JSON.stringify({
+    it('should return cached config on repeated reads without re-reading disk', async () => {
+        vi.mocked(readFile).mockResolvedValue(JSON.stringify({
             instructions: { disabled: { 'code-review.instructions.md': ['INST0001'] } },
         }));
 
         const manager = new SharpPilotConfigManager('/ext', '0.5.0');
-        manager.read();
-        manager.read();
-        manager.read();
+        await manager.read();
+        await manager.read();
+        await manager.read();
 
-        expect.soft(readFileSync).toHaveBeenCalledTimes(1);
+        expect.soft(readFile).toHaveBeenCalledTimes(1);
     });
 
-    it('should invalidate cache after writing config', () => {
-        vi.mocked(readFileSync).mockReturnValue('{}');
+    it('should invalidate cache after writing config', async () => {
+        vi.mocked(readFile).mockResolvedValue('{}');
 
         const manager = new SharpPilotConfigManager('/ext', '0.5.0');
-        manager.read();
-        manager.toggleInstruction('code-review.instructions.md', 'INST0001');
+        await manager.read();
+        await manager.toggleInstruction('code-review.instructions.md', 'INST0001');
 
         // toggleInstruction calls read() (cache hit) then writeConfig() (invalidates).
         // Next read() should re-read from disk.
-        manager.read();
+        await manager.read();
 
-        expect.soft(readFileSync).toHaveBeenCalledTimes(2);
+        expect.soft(readFile).toHaveBeenCalledTimes(2);
     });
 });

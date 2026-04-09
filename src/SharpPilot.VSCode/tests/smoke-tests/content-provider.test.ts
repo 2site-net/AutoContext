@@ -8,7 +8,7 @@ suite('Content Provider Smoke Tests', () => {
     test('should return content for copilot.instructions.md', async () => {
         const { exports } = await activatedExtension();
         const uri = vscode.Uri.from({ scheme: 'sharppilot-instructions', path: 'copilot.instructions.md' });
-        const content = exports.contentProvider.provideTextDocumentContent(uri);
+        const content = await exports.contentProvider.provideTextDocumentContent(uri);
 
         assert.ok(content.length > 0, 'Content provider returned empty content');
     });
@@ -17,10 +17,12 @@ suite('Content Provider Smoke Tests', () => {
         const { exports } = await activatedExtension();
         const files = ['copilot.instructions.md', 'design-principles.instructions.md', 'testing.instructions.md'];
 
-        const empty = files.filter(file => {
+        const empty: string[] = [];
+        for (const file of files) {
             const uri = vscode.Uri.from({ scheme: 'sharppilot-instructions', path: file });
-            return exports.contentProvider.provideTextDocumentContent(uri).length === 0;
-        });
+            const content = await exports.contentProvider.provideTextDocumentContent(uri);
+            if (content.length === 0) empty.push(file);
+        }
 
         assert.strictEqual(empty.length, 0, `Empty content for: ${empty.join(', ')}`);
     });
@@ -29,13 +31,13 @@ suite('Content Provider Smoke Tests', () => {
         const { exports } = await activatedExtension();
         const uri = vscode.Uri.from({ scheme: 'sharppilot-instructions', path: taggedFile });
 
-        const before = exports.contentProvider.provideTextDocumentContent(uri);
+        const before = await exports.contentProvider.provideTextDocumentContent(uri);
 
-        exports.configManager.toggleInstruction(taggedFile, 'INST0001');
+        await exports.configManager.toggleInstruction(taggedFile, 'INST0001');
 
-        const after = exports.contentProvider.provideTextDocumentContent(uri);
+        const after = await exports.contentProvider.provideTextDocumentContent(uri);
 
-        exports.configManager.resetInstructions(taggedFile);
+        await exports.configManager.resetInstructions(taggedFile);
 
         assert.ok(!before.includes('[DISABLED]'), 'No instructions should be disabled initially');
         assert.ok(after.includes('[DISABLED]'), 'Disabled instruction should be tagged');

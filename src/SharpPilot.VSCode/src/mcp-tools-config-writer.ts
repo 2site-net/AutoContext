@@ -5,7 +5,7 @@ import type { SharpPilotConfigManager } from './sharppilot-config.js';
 export class McpToolsConfigWriter {
     constructor(private readonly configManager: SharpPilotConfigManager, private readonly catalog: McpToolsCatalog) {}
 
-    write(): void {
+    async write(): Promise<void> {
         const config = vscode.workspace.getConfiguration();
         const disabledTools: string[] = [];
 
@@ -15,6 +15,6 @@ export class McpToolsConfigWriter {
             }
         }
 
-        this.configManager.setDisabledTools(disabledTools);
+        await this.configManager.setDisabledTools(disabledTools);
     }
 }

@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { InstructionsParser } from '../../src/instructions-parser';
 
-import { readFileSync, statSync } from 'node:fs';
+import { readFile, stat } from 'node:fs/promises';
 
-vi.mock('node:fs', () => ({
-    readFileSync: vi.fn(),
-    statSync: vi.fn(),
+vi.mock('node:fs/promises', () => ({
+    readFile: vi.fn(),
+    stat: vi.fn(),
 }));
 
 beforeEach(() => {
@@ -221,36 +221,36 @@ Some paragraph.
 });
 
 describe('fromFile', () => {
-    it('should read and parse a file', () => {
-        vi.mocked(statSync).mockReturnValue({ mtimeMs: 1000 } as ReturnType<typeof statSync>);
-        vi.mocked(readFileSync).mockReturnValue(singleInstructionDoc);
+    it('should read and parse a file', async () => {
+        vi.mocked(stat).mockResolvedValue({ mtimeMs: 1000 } as Awaited<ReturnType<typeof stat>>);
+        vi.mocked(readFile).mockResolvedValue(singleInstructionDoc);
 
-        const { content, result } = InstructionsParser.fromFile('/ext/instructions/test.md');
+        const { content, result } = await InstructionsParser.fromFile('/ext/instructions/test.md');
 
         expect.soft(content).toBe(singleInstructionDoc);
         expect.soft(result.instructions).toHaveLength(1);
         expect.soft(result.instructions[0]?.id).toBe('INST0001');
     });
 
-    it('should return cached result for unchanged file', () => {
-        vi.mocked(statSync).mockReturnValue({ mtimeMs: 1000 } as ReturnType<typeof statSync>);
-        vi.mocked(readFileSync).mockReturnValue(singleInstructionDoc);
+    it('should return cached result for unchanged file', async () => {
+        vi.mocked(stat).mockResolvedValue({ mtimeMs: 1000 } as Awaited<ReturnType<typeof stat>>);
+        vi.mocked(readFile).mockResolvedValue(singleInstructionDoc);
 
-        InstructionsParser.fromFile('/ext/instructions/test.md');
-        InstructionsParser.fromFile('/ext/instructions/test.md');
+        await InstructionsParser.fromFile('/ext/instructions/test.md');
+        await InstructionsParser.fromFile('/ext/instructions/test.md');
 
-        expect.soft(readFileSync).toHaveBeenCalledTimes(1);
+        expect.soft(readFile).toHaveBeenCalledTimes(1);
     });
 
-    it('should re-parse when file mtime changes', () => {
-        vi.mocked(readFileSync).mockReturnValue(singleInstructionDoc);
+    it('should re-parse when file mtime changes', async () => {
+        vi.mocked(readFile).mockResolvedValue(singleInstructionDoc);
 
-        vi.mocked(statSync).mockReturnValue({ mtimeMs: 1000 } as ReturnType<typeof statSync>);
-        InstructionsParser.fromFile('/ext/instructions/test.md');
+        vi.mocked(stat).mockResolvedValue({ mtimeMs: 1000 } as Awaited<ReturnType<typeof stat>>);
+        await InstructionsParser.fromFile('/ext/instructions/test.md');
 
-        vi.mocked(statSync).mockReturnValue({ mtimeMs: 2000 } as ReturnType<typeof statSync>);
-        InstructionsParser.fromFile('/ext/instructions/test.md');
+        vi.mocked(stat).mockResolvedValue({ mtimeMs: 2000 } as Awaited<ReturnType<typeof stat>>);
+        await InstructionsParser.fromFile('/ext/instructions/test.md');
 
-        expect.soft(readFileSync).toHaveBeenCalledTimes(2);
+        expect.soft(readFile).toHaveBeenCalledTimes(2);
     });
 });

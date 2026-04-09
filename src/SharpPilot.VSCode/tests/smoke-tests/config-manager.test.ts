@@ -7,13 +7,13 @@ const taggedFile = 'design-principles.instructions.md';
 suite('Config Manager Smoke Tests', () => {
     teardown(async () => {
         const { exports } = await activatedExtension();
-        exports.configManager.resetInstructions(taggedFile);
+        await exports.configManager.resetInstructions(taggedFile);
     });
 
     test('should have no disabled instructions by default', async () => {
         const { exports } = await activatedExtension();
 
-        assert.strictEqual(exports.configManager.hasAnyDisabledInstructions(), false);
+        assert.strictEqual(await exports.configManager.hasAnyDisabledInstructions(), false);
     });
 
     test('toggle should disable an instruction', async () => {
@@ -21,7 +21,7 @@ suite('Config Manager Smoke Tests', () => {
 
         await vscode.commands.executeCommand('sharppilot.toggleInstruction', taggedFile, 'INST0001');
 
-        const disabled = exports.configManager.getDisabledInstructions(taggedFile);
+        const disabled = await exports.configManager.getDisabledInstructions(taggedFile);
 
         assert.ok(disabled.has('INST0001'), 'INST0001 should be disabled after toggle');
     });
@@ -32,7 +32,7 @@ suite('Config Manager Smoke Tests', () => {
         await vscode.commands.executeCommand('sharppilot.toggleInstruction', taggedFile, 'INST0001');
         await vscode.commands.executeCommand('sharppilot.resetInstructions', taggedFile);
 
-        const disabled = exports.configManager.getDisabledInstructions(taggedFile);
+        const disabled = await exports.configManager.getDisabledInstructions(taggedFile);
 
         assert.strictEqual(disabled.size, 0, 'No instructions should be disabled after reset');
     });
@@ -40,6 +40,6 @@ suite('Config Manager Smoke Tests', () => {
     test('removeOrphanedIds should not throw', async () => {
         const { exports } = await activatedExtension();
 
-        assert.doesNotThrow(() => exports.configManager.removeOrphanedIds());
+        await exports.configManager.removeOrphanedIds();
     });
 });

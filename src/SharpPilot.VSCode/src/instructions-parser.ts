@@ -1,4 +1,4 @@
-import { readFileSync, statSync } from 'node:fs';
+import { readFile, stat } from 'node:fs/promises';
 import type { InstructionsParsedInstruction } from './types/instructions-parsed-instruction.js';
 import type { InstructionsDiagnostic } from './types/instructions-diagnostic.js';
 import type { InstructionsParsedResult } from './types/instructions-parsed-result.js';
@@ -10,13 +10,13 @@ const malformedIdPattern = /^[-*]\s\[(?!INST\d{4}\])[^\]]*\]\s*\*\*(Do|Don't)\*\
 export class InstructionsParser {
     private static readonly fileCache = new Map<string, { mtimeMs: number; content: string; result: InstructionsParsedResult }>();
 
-    static fromFile(filePath: string): InstructionsFileParsedResult {
-        const mtimeMs = statSync(filePath).mtimeMs;
+    static async fromFile(filePath: string): Promise<InstructionsFileParsedResult> {
+        const mtimeMs = (await stat(filePath)).mtimeMs;
         const cached = this.fileCache.get(filePath);
         if (cached && cached.mtimeMs === mtimeMs) {
             return { content: cached.content, result: cached.result };
         }
-        const content = readFileSync(filePath, 'utf-8');
+        const content = await readFile(filePath, 'utf-8');
         const result = this.parse(content);
         this.fileCache.set(filePath, { mtimeMs, content, result });
         return { content, result };

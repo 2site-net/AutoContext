@@ -4,13 +4,11 @@ import { InstructionsContentProvider, instructionScheme } from '../../src/instru
 import { SharpPilotConfigManager } from '../../src/sharppilot-config';
 import { InstructionsParser } from '../../src/instructions-parser';
 
-import { readFileSync } from 'node:fs';
+import { readFile, stat } from 'node:fs/promises';
 
-vi.mock('node:fs', () => ({
-    readFileSync: vi.fn(),
-    writeFileSync: vi.fn(),
-    unlinkSync: vi.fn(),
-    statSync: vi.fn(() => ({ mtimeMs: 1 })),
+vi.mock('node:fs/promises', () => ({
+    readFile: vi.fn(),
+    stat: vi.fn(async () => ({ mtimeMs: 1 })),
 }));
 
 import { workspace, Uri } from './__mocks__/vscode';
@@ -31,8 +29,8 @@ description: "Test"
 `;
 
 describe('InstructionsContentProvider', () => {
-    it('should return file content unchanged when no instructions are disabled', () => {
-        vi.mocked(readFileSync).mockImplementation((path: unknown) => {
+    it('should return file content unchanged when no instructions are disabled', async () => {
+        vi.mocked(readFile).mockImplementation(async (path: unknown) => {
             const pathStr = String(path);
             if (pathStr.endsWith('.sharppilot.json')) return '{}';
             return testContent;
@@ -41,16 +39,16 @@ describe('InstructionsContentProvider', () => {
         const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
         const provider = new InstructionsContentProvider('/ext', configManager);
         const uri = { scheme: instructionScheme, path: 'test.instructions.md' } as unknown as import('vscode').Uri;
-        const result = provider.provideTextDocumentContent(uri);
+        const result = await provider.provideTextDocumentContent(uri);
 
         expect.soft(result).toBe(testContent);
     });
 
-    it('should insert [DISABLED] tag for disabled instructions', () => {
+    it('should insert [DISABLED] tag for disabled instructions', async () => {
         const { instructions: parsedInstructions } = InstructionsParser.parse(testContent);
         const firstInstructionId = parsedInstructions[0].id;
 
-        vi.mocked(readFileSync).mockImplementation((path: unknown) => {
+        vi.mocked(readFile).mockImplementation(async (path: unknown) => {
             const pathStr = String(path);
             if (pathStr.endsWith('.sharppilot.json')) {
                 return JSON.stringify({ instructions: { disabled: { 'test.instructions.md': [firstInstructionId] } } });
@@ -61,14 +59,14 @@ describe('InstructionsContentProvider', () => {
         const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
         const provider = new InstructionsContentProvider('/ext', configManager);
         const uri = { scheme: instructionScheme, path: 'test.instructions.md' } as unknown as import('vscode').Uri;
-        const result = provider.provideTextDocumentContent(uri);
+        const result = await provider.provideTextDocumentContent(uri);
 
         expect(result).toContain('**[DISABLED]** **Do**');
         expect.soft(result).not.toContain("**[DISABLED]** **Don't**");
     });
 
     it('should build URI with the correct scheme', () => {
-        vi.mocked(readFileSync).mockReturnValue('{}');
+        vi.mocked(readFile).mockResolvedValue('{}');
 
         const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
         const provider = new InstructionsContentProvider('/ext', configManager);

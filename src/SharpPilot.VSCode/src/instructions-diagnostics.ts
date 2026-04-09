@@ -5,14 +5,15 @@ import { InstructionsParser } from './instructions-parser.js';
 import type { SharpPilotConfigManager } from './sharppilot-config.js';
 
 export class InstructionsDiagnostics {
-    static log(outputChannel: vscode.OutputChannel, extensionPath: string, configManager: SharpPilotConfigManager, catalog: InstructionsCatalog): void {
+    static async log(outputChannel: vscode.OutputChannel, extensionPath: string, configManager: SharpPilotConfigManager, catalog: InstructionsCatalog): Promise<void> {
         outputChannel.clear();
-        const warnOnMissingId = configManager.read().diagnostic?.warnOnMissingId === true;
+        const config = await configManager.read();
+        const warnOnMissingId = config.diagnostic?.warnOnMissingId === true;
 
         for (const entry of catalog.all) {
             let diagnostics;
             try {
-                ({ result: { diagnostics } } = InstructionsParser.fromFile(join(extensionPath, 'instructions', entry.fileName)));
+                ({ result: { diagnostics } } = await InstructionsParser.fromFile(join(extensionPath, 'instructions', entry.fileName)));
             } catch {
                 continue;
             }

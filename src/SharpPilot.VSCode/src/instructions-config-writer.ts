@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, rmSync, statSync } from 'node:fs';
+import { readFile, writeFile, mkdir, readdir, stat, rm, access } from 'node:fs/promises';
 import { join } from 'node:path';
 import { createHash } from 'node:crypto';
 import type { InstructionsCatalog } from './instructions-catalog.js';
@@ -22,6 +22,7 @@ export class InstructionsConfigWriter implements vscode.Disposable {
     private stagingDir: string;
     private readonly disposables: vscode.Disposable[] = [];
     private debounceTimer: ReturnType<typeof setTimeout> | undefined;
+    private writeInFlight: Promise<void> | undefined;
 
     constructor(
         private readonly extensionPath: string,
@@ -34,7 +35,7 @@ export class InstructionsConfigWriter implements vscode.Disposable {
             configManager.onDidChange(() => this.scheduleWrite()),
             vscode.workspace.onDidChangeWorkspaceFolders(() => {
                 this.stagingDir = join(this.extensionPath, 'instructions', '.workspaces', InstructionsConfigWriter.workspaceHash());
-                this.write();
+                void this.write();
             }),
         );
     }
@@ -45,42 +46,60 @@ export class InstructionsConfigWriter implements vscode.Disposable {
         }
         this.debounceTimer = setTimeout(() => {
             this.debounceTimer = undefined;
-            this.write();
+            void this.write();
         }, 250);
     }
 
     /** Compute normalized files → write to staging → promote to live root. */
-    write(): void {
-        mkdirSync(this.stagingDir, { recursive: true });
+    async write(): Promise<void> {
+        if (this.writeInFlight) {
+            await this.writeInFlight;
+        }
 
-        const config = this.configManager.read();
+        const task = this.doWrite();
+        this.writeInFlight = task;
+        try {
+            await task;
+        } finally {
+            if (this.writeInFlight === task) {
+                this.writeInFlight = undefined;
+            }
+        }
+    }
+
+    private async doWrite(): Promise<void> {
+        await mkdir(this.stagingDir, { recursive: true });
+
+        const config = await this.configManager.read();
         const disabledInstructionsMap = config.instructions?.disabled ?? {};
 
-        for (const entry of this.catalog.all) {
+        await Promise.all(this.catalog.all.map(entry => {
             const disabledIds = disabledInstructionsMap[entry.fileName];
             const disabled = disabledIds !== undefined && disabledIds.length > 0
                 ? new Set(disabledIds)
                 : undefined;
-            this.writeNormalized(entry.fileName, disabled);
-        }
+            return this.writeNormalized(entry.fileName, disabled);
+        }));
 
-        this.promote();
+        await this.promote();
     }
 
     /** Copy staged files → live root. */
-    private promote(): void {
-        mkdirSync(this.generatedRoot, { recursive: true });
+    private async promote(): Promise<void> {
+        await mkdir(this.generatedRoot, { recursive: true });
 
-        for (const entry of this.catalog.all) {
+        await Promise.all(this.catalog.all.map(entry => {
             const staged = join(this.stagingDir, entry.fileName);
             const live = join(this.generatedRoot, entry.fileName);
-            InstructionsConfigWriter.copyIfChanged(staged, live);
-        }
+            return InstructionsConfigWriter.copyIfChanged(staged, live);
+        }));
     }
 
-    removeOrphanedStagingDirs(): void {
+    async removeOrphanedStagingDirs(): Promise<void> {
         const workspacesDir = join(this.extensionPath, 'instructions', '.workspaces');
-        if (!existsSync(workspacesDir)) {
+        try {
+            await access(workspacesDir);
+        } catch {
             return;
         }
 
@@ -88,27 +107,27 @@ export class InstructionsConfigWriter implements vscode.Disposable {
         const oneHourAgo = Date.now() - 60 * 60 * 1000;
         let entries: string[];
         try {
-            entries = readdirSync(workspacesDir);
+            entries = await readdir(workspacesDir);
         } catch {
             return;
         }
 
-        for (const entry of entries) {
+        await Promise.all(entries.map(async entry => {
             if (entry === currentHash) {
-                continue;
+                return;
             }
 
             const dirPath = join(workspacesDir, entry);
             try {
-                const stat = statSync(dirPath);
-                if (stat.mtimeMs > oneHourAgo) {
-                    continue;
+                const s = await stat(dirPath);
+                if (s.mtimeMs > oneHourAgo) {
+                    return;
                 }
-                rmSync(dirPath, { recursive: true });
+                await rm(dirPath, { recursive: true });
             } catch {
                 // Permission error or in-use — skip.
             }
-        }
+        }));
     }
 
     dispose(): void {
@@ -120,14 +139,14 @@ export class InstructionsConfigWriter implements vscode.Disposable {
         }
     }
 
-    private writeNormalized(fileName: string, disabledIds: ReadonlySet<string> | undefined): void {
+    private async writeNormalized(fileName: string, disabledIds: ReadonlySet<string> | undefined): Promise<void> {
         const src = join(this.extensionPath, 'instructions', fileName);
         const dest = join(this.stagingDir, fileName);
 
         let content: string;
         let parsedResult;
         try {
-            ({ content, result: parsedResult } = InstructionsParser.fromFile(src));
+            ({ content, result: parsedResult } = await InstructionsParser.fromFile(src));
         } catch {
             return;
         }
@@ -149,7 +168,7 @@ export class InstructionsConfigWriter implements vscode.Disposable {
         }
 
         content = InstructionsConfigWriter.stripInstructionIds(content);
-        InstructionsConfigWriter.writeIfChanged(dest, content);
+        await InstructionsConfigWriter.writeIfChanged(dest, content);
     }
 
     private static readonly instructionIdTag = /\[INST\d{4}\]\s*/g;
@@ -163,28 +182,23 @@ export class InstructionsConfigWriter implements vscode.Disposable {
         return createHash('sha256').update(root).digest('hex').slice(0, 12);
     }
 
-    private static writeIfChanged(dest: string, content: string): void {
-        if (existsSync(dest)) {
-            try {
-                if (readFileSync(dest, 'utf-8') === content) {
-                    return;
-                }
-            } catch {
-                // Read failed — fall through to write.
+    private static async writeIfChanged(dest: string, content: string): Promise<void> {
+        try {
+            const existing = await readFile(dest, 'utf-8');
+            if (existing === content) {
+                return;
             }
+        } catch {
+            // File doesn't exist or read failed — fall through to write.
         }
 
-        writeFileSync(dest, content, 'utf-8');
+        await writeFile(dest, content, 'utf-8');
     }
 
-    private static copyIfChanged(src: string, dest: string): void {
-        if (!existsSync(src)) {
-            return;
-        }
-
+    private static async copyIfChanged(src: string, dest: string): Promise<void> {
         try {
-            const content = readFileSync(src, 'utf-8');
-            InstructionsConfigWriter.writeIfChanged(dest, content);
+            const content = await readFile(src, 'utf-8');
+            await InstructionsConfigWriter.writeIfChanged(dest, content);
         } catch {
             // Source read failed — skip.
         }

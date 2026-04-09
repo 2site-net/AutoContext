@@ -16,14 +16,14 @@ export class InstructionsDecorationManager implements vscode.Disposable {
             this.decorationType,
             vscode.window.onDidChangeActiveTextEditor(editor => {
                 if (editor) {
-                    this.applyDecorations(editor);
+                    void this.applyDecorations(editor);
                 }
             }),
             configManager.onDidChange(() => this.refreshAll()),
         );
     }
 
-    applyDecorations(editor: vscode.TextEditor): void {
+    async applyDecorations(editor: vscode.TextEditor): Promise<void> {
         if (editor.document.uri.scheme !== instructionScheme) {
             return;
         }
@@ -33,11 +33,11 @@ export class InstructionsDecorationManager implements vscode.Disposable {
 
         let instructions;
         try {
-            ({ result: { instructions } } = InstructionsParser.fromFile(filePath));
+            ({ result: { instructions } } = await InstructionsParser.fromFile(filePath));
         } catch {
             return;
         }
-        const disabledIds = this.configManager.getDisabledInstructions(fileName);
+        const disabledIds = await this.configManager.getDisabledInstructions(fileName);
         const ranges: vscode.Range[] = [];
 
         for (const instruction of instructions) {
@@ -51,7 +51,7 @@ export class InstructionsDecorationManager implements vscode.Disposable {
 
     refreshAll(): void {
         for (const editor of vscode.window.visibleTextEditors) {
-            this.applyDecorations(editor);
+            void this.applyDecorations(editor);
         }
     }
 

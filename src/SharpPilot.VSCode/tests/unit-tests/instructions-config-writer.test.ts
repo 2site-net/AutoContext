@@ -6,16 +6,16 @@ import { InstructionsParser } from '../../src/instructions-parser';
 import { InstructionsCatalog } from '../../src/instructions-catalog';
 import { instructionsFiles } from '../../src/ui-constants';
 
-import { readFileSync, writeFileSync, existsSync, readdirSync, rmSync, statSync } from 'node:fs';
+import { writeFile, readFile, readdir, stat, rm, access } from 'node:fs/promises';
 
-vi.mock('node:fs', () => ({
-    readFileSync: vi.fn(),
-    writeFileSync: vi.fn(),
-    mkdirSync: vi.fn(),
-    existsSync: vi.fn(() => false),
-    readdirSync: vi.fn(() => []),
-    rmSync: vi.fn(),
-    statSync: vi.fn(() => ({ mtimeMs: 1 })),
+vi.mock('node:fs/promises', () => ({
+    readFile: vi.fn(async () => ''),
+    writeFile: vi.fn(async () => undefined),
+    mkdir: vi.fn(async () => undefined),
+    readdir: vi.fn(async () => []),
+    stat: vi.fn(async () => ({ mtimeMs: 1 })),
+    rm: vi.fn(async () => undefined),
+    access: vi.fn(async () => undefined),
 }));
 
 import { workspace } from './__mocks__/vscode';
@@ -38,8 +38,8 @@ description: "Test"
 describe('InstructionsConfigWriter', () => {
     const catalog = new InstructionsCatalog(instructionsFiles);
 
-    it('should write all instruction files when no instructions are disabled', () => {
-        vi.mocked(readFileSync).mockImplementation((path: unknown) => {
+    it('should write all instruction files when no instructions are disabled', async () => {
+        vi.mocked(readFile).mockImplementation(async (path: unknown) => {
             const pathStr = String(path);
             if (pathStr.endsWith('.sharppilot.json')) return '{}';
             return testContent;
@@ -47,18 +47,18 @@ describe('InstructionsConfigWriter', () => {
 
         const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
         const writer = new InstructionsConfigWriter('/ext', configManager, catalog);
-        writer.write();
+        await writer.write();
 
-        expect(writeFileSync).toHaveBeenCalled();
-        const writeCalls = vi.mocked(writeFileSync).mock.calls;
+        expect(writeFile).toHaveBeenCalled();
+        const writeCalls = vi.mocked(writeFile).mock.calls;
         const stagingWrites = writeCalls.filter(([path]) =>
             String(path).includes('.workspaces'),
         );
         expect.soft(stagingWrites.length).toBe(catalog.count);
     });
 
-    it('should strip instruction IDs from output', () => {
-        vi.mocked(readFileSync).mockImplementation((path: unknown) => {
+    it('should strip instruction IDs from output', async () => {
+        vi.mocked(readFile).mockImplementation(async (path: unknown) => {
             const pathStr = String(path);
             if (pathStr.endsWith('.sharppilot.json')) return '{}';
             return testContent;
@@ -66,9 +66,9 @@ describe('InstructionsConfigWriter', () => {
 
         const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
         const writer = new InstructionsConfigWriter('/ext', configManager, catalog);
-        writer.write();
+        await writer.write();
 
-        const writeCalls = vi.mocked(writeFileSync).mock.calls;
+        const writeCalls = vi.mocked(writeFile).mock.calls;
         const stagingWrite = writeCalls.find(([path]) =>
             String(path).includes('.workspaces'),
         );
@@ -82,12 +82,12 @@ describe('InstructionsConfigWriter', () => {
         expect.soft(writtenContent).toContain('async void');
     });
 
-    it('should write filtered content with disabled instructions removed', () => {
+    it('should write filtered content with disabled instructions removed', async () => {
         const { instructions: parsedInstructions } = InstructionsParser.parse(testContent);
         const firstId = parsedInstructions[0].id;
         const targetFileName = catalog.all[0].fileName;
 
-        vi.mocked(readFileSync).mockImplementation((path: unknown) => {
+        vi.mocked(readFile).mockImplementation(async (path: unknown) => {
             const pathStr = String(path);
             if (pathStr.endsWith('.sharppilot.json')) {
                 return JSON.stringify({
@@ -99,9 +99,9 @@ describe('InstructionsConfigWriter', () => {
 
         const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
         const writer = new InstructionsConfigWriter('/ext', configManager, catalog);
-        writer.write();
+        await writer.write();
 
-        const writeCalls = vi.mocked(writeFileSync).mock.calls;
+        const writeCalls = vi.mocked(writeFile).mock.calls;
         const targetWrite = writeCalls.find(([path]) =>
             String(path).includes(targetFileName) && String(path).includes('.workspaces'),
         );
@@ -114,7 +114,7 @@ describe('InstructionsConfigWriter', () => {
         expect.soft(writtenContent).not.toContain('[INST0002]');
     });
 
-    it('should preserve non-instruction content unchanged', () => {
+    it('should preserve non-instruction content unchanged', async () => {
         const contentWithProse = `---
 description: "Test"
 ---
@@ -129,7 +129,7 @@ Some introductory text here.
 More prose below.
 `;
 
-        vi.mocked(readFileSync).mockImplementation((path: unknown) => {
+        vi.mocked(readFile).mockImplementation(async (path: unknown) => {
             const pathStr = String(path);
             if (pathStr.endsWith('.sharppilot.json')) return '{}';
             return contentWithProse;
@@ -137,9 +137,9 @@ More prose below.
 
         const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
         const writer = new InstructionsConfigWriter('/ext', configManager, catalog);
-        writer.write();
+        await writer.write();
 
-        const writeCalls = vi.mocked(writeFileSync).mock.calls;
+        const writeCalls = vi.mocked(writeFile).mock.calls;
         const stagingWrite = writeCalls.find(([path]) =>
             String(path).includes('.workspaces'),
         );
@@ -153,49 +153,49 @@ More prose below.
         expect.soft(writtenContent).toContain('More prose below.');
     });
 
-    it('should skip orphan cleanup when .workspaces does not exist', () => {
-        vi.mocked(existsSync).mockReturnValue(false);
-        vi.mocked(readFileSync).mockReturnValue('{}');
+    it('should skip orphan cleanup when .workspaces does not exist', async () => {
+        vi.mocked(access).mockRejectedValue(new Error('ENOENT'));
+        vi.mocked(readFile).mockResolvedValue('{}');
 
         const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
         const writer = new InstructionsConfigWriter('/ext', configManager, catalog);
-        writer.removeOrphanedStagingDirs();
+        await writer.removeOrphanedStagingDirs();
 
-        expect(readdirSync).not.toHaveBeenCalled();
-        expect.soft(rmSync).not.toHaveBeenCalled();
+        expect(readdir).not.toHaveBeenCalled();
+        expect.soft(rm).not.toHaveBeenCalled();
     });
 
-    it('should remove stale staging dirs older than 1 hour', () => {
-        vi.mocked(existsSync).mockReturnValue(true);
-        vi.mocked(readdirSync).mockReturnValue(['stale_hash_01'] as unknown as ReturnType<typeof readdirSync>);
-        vi.mocked(statSync).mockReturnValue({ mtimeMs: Date.now() - 2 * 60 * 60 * 1000 } as import('node:fs').Stats);
-        vi.mocked(readFileSync).mockReturnValue('{}');
+    it('should remove stale staging dirs older than 1 hour', async () => {
+        vi.mocked(access).mockResolvedValue(undefined);
+        vi.mocked(readdir).mockResolvedValue(['stale_hash_01'] as unknown as Awaited<ReturnType<typeof readdir>>);
+        vi.mocked(stat).mockResolvedValue({ mtimeMs: Date.now() - 2 * 60 * 60 * 1000 } as import('node:fs').Stats);
+        vi.mocked(readFile).mockResolvedValue('{}');
 
         const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
         const writer = new InstructionsConfigWriter('/ext', configManager, catalog);
-        writer.removeOrphanedStagingDirs();
+        await writer.removeOrphanedStagingDirs();
 
-        expect.soft(rmSync).toHaveBeenCalledWith(
+        expect.soft(rm).toHaveBeenCalledWith(
             expect.stringContaining('stale_hash_01'),
             { recursive: true },
         );
     });
 
-    it('should not remove staging dirs modified within the last hour', () => {
-        vi.mocked(existsSync).mockReturnValue(true);
-        vi.mocked(readdirSync).mockReturnValue(['recent_hash_'] as unknown as ReturnType<typeof readdirSync>);
-        vi.mocked(statSync).mockReturnValue({ mtimeMs: Date.now() - 30 * 60 * 1000 } as import('node:fs').Stats);
-        vi.mocked(readFileSync).mockReturnValue('{}');
+    it('should not remove staging dirs modified within the last hour', async () => {
+        vi.mocked(access).mockResolvedValue(undefined);
+        vi.mocked(readdir).mockResolvedValue(['recent_hash_'] as unknown as Awaited<ReturnType<typeof readdir>>);
+        vi.mocked(stat).mockResolvedValue({ mtimeMs: Date.now() - 30 * 60 * 1000 } as import('node:fs').Stats);
+        vi.mocked(readFile).mockResolvedValue('{}');
 
         const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
         const writer = new InstructionsConfigWriter('/ext', configManager, catalog);
-        writer.removeOrphanedStagingDirs();
+        await writer.removeOrphanedStagingDirs();
 
-        expect.soft(rmSync).not.toHaveBeenCalled();
+        expect.soft(rm).not.toHaveBeenCalled();
     });
 
     it('should dispose debounce timer and subscriptions', () => {
-        vi.mocked(readFileSync).mockReturnValue('{}');
+        vi.mocked(readFile).mockResolvedValue('{}');
 
         const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
         const writer = new InstructionsConfigWriter('/ext', configManager, catalog);

@@ -18,7 +18,7 @@ import { McpToolsTreeProvider } from './mcp-tools-tree-provider.js';
 import { McpServerProvider } from './mcp-server-provider.js';
 import { WorkspaceServerManager } from './workspace-server-manager.js';
 
-export function activate(context: vscode.ExtensionContext) {
+export async function activate(context: vscode.ExtensionContext) {
     if (!vscode.workspace.workspaceFolders?.length) {
         return;
     }
@@ -58,12 +58,6 @@ export function activate(context: vscode.ExtensionContext) {
     const logDiagnostics = () => InstructionsDiagnostics.log(outputChannel, context.extensionPath, configManager, instructionsCatalog);
 
     workspaceServer.start();
-    toolsStatusWriter.write();
-    workspaceContextDetector.detect();
-    configManager.removeOrphanedIds();
-    instructionsWriter.removeOrphanedStagingDirs();
-    instructionsWriter.write();
-    logDiagnostics();
 
     context.subscriptions.push(
         didChangeEmitter,
@@ -89,24 +83,22 @@ export function activate(context: vscode.ExtensionContext) {
         // Workspace auto-configuration (instructions + tools)
         vscode.commands.registerCommand(commandIds.AutoConfigure, async () => { await AutoConfigurer.configure(workspaceContextDetector, instructionsCatalog, toolsCatalog); }),
         // CodeLens (internal)
-        vscode.commands.registerCommand(commandIds.ToggleInstruction, (fileName: string, id: string) => {
-            configManager.toggleInstruction(fileName, id);
-        }),
-        vscode.commands.registerCommand(commandIds.ResetInstructions, (fileName: string) => {
-            configManager.resetInstructions(fileName);
-        }),
-        configManager.onDidChange(() => logDiagnostics()),
+        vscode.commands.registerCommand(commandIds.ToggleInstruction, (fileName: string, id: string) =>
+            configManager.toggleInstruction(fileName, id)),
+        vscode.commands.registerCommand(commandIds.ResetInstructions, (fileName: string) =>
+            configManager.resetInstructions(fileName)),
+        configManager.onDidChange(() => void logDiagnostics()),
         vscode.window.onDidChangeWindowState(e => {
             if (e.focused) {
-                instructionsWriter.write();
+                void instructionsWriter.write();
             }
         }),
         vscode.workspace.onDidGrantWorkspaceTrust(() => {
-            instructionsWriter.write();
+            void instructionsWriter.write();
         }),
         vscode.workspace.onDidChangeConfiguration(e => {
             if (e.affectsConfiguration('sharppilot.tools')) {
-                toolsStatusWriter.write();
+                void toolsStatusWriter.write();
                 didChangeEmitter.fire();
             }
         }),
@@ -119,6 +111,17 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.commands.registerCommand(commandIds.HideNotDetected, () => setShowNotDetected(false)),
         vscode.lm.registerMcpServerDefinitionProvider('sharpPilotProvider', mcpServerProvider),
     );
+
+    await Promise.all([
+        workspaceContextDetector.detect(),
+        toolsStatusWriter.write(),
+        instructionsWriter.removeOrphanedStagingDirs(),
+        configManager.removeOrphanedIds(),
+    ]);
+
+    await instructionsWriter.write();
+
+    await logDiagnostics();
 
     return { mcpServerProvider, configManager, codeLensProvider, contentProvider, workspaceContextDetector, workspaceServer, instructionsTreeProvider, mcpToolsTreeProvider };
 }

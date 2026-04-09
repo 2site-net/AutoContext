@@ -7,13 +7,11 @@ import { InstructionsParser } from '../../src/instructions-parser';
 import { InstructionsCatalog } from '../../src/instructions-catalog';
 import { instructionsFiles, commandIds } from '../../src/ui-constants';
 
-import { readFileSync } from 'node:fs';
+import { readFile } from 'node:fs/promises';
 
-vi.mock('node:fs', () => ({
-    readFileSync: vi.fn(),
-    writeFileSync: vi.fn(),
-    unlinkSync: vi.fn(),
-    statSync: vi.fn(() => ({ mtimeMs: 1 })),
+vi.mock('node:fs/promises', () => ({
+    readFile: vi.fn(),
+    stat: vi.fn(async () => ({ mtimeMs: 1 })),
 }));
 
 import { workspace } from './__mocks__/vscode';
@@ -47,19 +45,19 @@ function makeDocument(scheme: string, path: string) {
 describe('InstructionsCodeLensProvider', () => {
     const catalog = new InstructionsCatalog(instructionsFiles);
 
-    it('should return empty array for non-instruction documents', () => {
-        vi.mocked(readFileSync).mockReturnValue('{}');
+    it('should return empty array for non-instruction documents', async () => {
+        vi.mocked(readFile).mockResolvedValue('{}');
 
         const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
         const provider = new InstructionsCodeLensProvider('/ext', configManager, fakeDetector, catalog);
 
-        const lenses = provider.provideCodeLenses(makeDocument('file', 'test.md'));
+        const lenses = await provider.provideCodeLenses(makeDocument('file', 'test.md'));
 
         expect.soft(lenses).toEqual([]);
     });
 
-    it('should return one CodeLens per instruction when no instructions are disabled', () => {
-        vi.mocked(readFileSync).mockImplementation((path: unknown) => {
+    it('should return one CodeLens per instruction when no instructions are disabled', async () => {
+        vi.mocked(readFile).mockImplementation(async (path: unknown) => {
             const pathStr = String(path);
             if (pathStr.endsWith('.sharppilot.json')) return '{}';
             return testContent;
@@ -68,7 +66,7 @@ describe('InstructionsCodeLensProvider', () => {
         const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
         const provider = new InstructionsCodeLensProvider('/ext', configManager, fakeDetector, catalog);
 
-        const lenses = provider.provideCodeLenses(makeDocument(instructionScheme, 'test.instructions.md'));
+        const lenses = await provider.provideCodeLenses(makeDocument(instructionScheme, 'test.instructions.md'));
 
         const { instructions: parsedInstructions } = InstructionsParser.parse(testContent);
         expect(lenses).toHaveLength(parsedInstructions.length);
@@ -78,11 +76,11 @@ describe('InstructionsCodeLensProvider', () => {
         })).toBe(true);
     });
 
-    it('should show Enable Instruction for disabled instructions', () => {
+    it('should show Enable Instruction for disabled instructions', async () => {
         const { instructions: parsedInstructions } = InstructionsParser.parse(testContent);
         const firstId = parsedInstructions[0].id;
 
-        vi.mocked(readFileSync).mockImplementation((path: unknown) => {
+        vi.mocked(readFile).mockImplementation(async (path: unknown) => {
             const pathStr = String(path);
             if (pathStr.endsWith('.sharppilot.json')) {
                 return JSON.stringify({
@@ -95,7 +93,7 @@ describe('InstructionsCodeLensProvider', () => {
         const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
         const provider = new InstructionsCodeLensProvider('/ext', configManager, fakeDetector, catalog);
 
-        const lenses = provider.provideCodeLenses(makeDocument(instructionScheme, 'test.instructions.md'));
+        const lenses = await provider.provideCodeLenses(makeDocument(instructionScheme, 'test.instructions.md'));
 
         expect(lenses).toHaveLength(parsedInstructions.length + 1);
 
@@ -107,11 +105,11 @@ describe('InstructionsCodeLensProvider', () => {
         expect.soft(disableLens).toBeDefined();
     });
 
-    it('should include Reset All Instructions lens when instructions are disabled', () => {
+    it('should include Reset All Instructions lens when instructions are disabled', async () => {
         const { instructions: parsedInstructions } = InstructionsParser.parse(testContent);
         const firstId = parsedInstructions[0].id;
 
-        vi.mocked(readFileSync).mockImplementation((path: unknown) => {
+        vi.mocked(readFile).mockImplementation(async (path: unknown) => {
             const pathStr = String(path);
             if (pathStr.endsWith('.sharppilot.json')) {
                 return JSON.stringify({
@@ -124,7 +122,7 @@ describe('InstructionsCodeLensProvider', () => {
         const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
         const provider = new InstructionsCodeLensProvider('/ext', configManager, fakeDetector, catalog);
 
-        const lenses = provider.provideCodeLenses(makeDocument(instructionScheme, 'test.instructions.md'));
+        const lenses = await provider.provideCodeLenses(makeDocument(instructionScheme, 'test.instructions.md'));
 
         const resetLens = lenses.find(l => (l.command as { command: string }).command === commandIds.ResetInstructions);
 
@@ -133,8 +131,8 @@ describe('InstructionsCodeLensProvider', () => {
         expect.soft((resetLens?.command as { arguments: string[] })?.arguments).toEqual(['test.instructions.md']);
     });
 
-    it('should not include Reset All Instructions lens when no instructions are disabled', () => {
-        vi.mocked(readFileSync).mockImplementation((path: unknown) => {
+    it('should not include Reset All Instructions lens when no instructions are disabled', async () => {
+        vi.mocked(readFile).mockImplementation(async (path: unknown) => {
             const pathStr = String(path);
             if (pathStr.endsWith('.sharppilot.json')) return '{}';
             return testContent;
@@ -143,16 +141,16 @@ describe('InstructionsCodeLensProvider', () => {
         const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
         const provider = new InstructionsCodeLensProvider('/ext', configManager, fakeDetector, catalog);
 
-        const lenses = provider.provideCodeLenses(makeDocument(instructionScheme, 'test.instructions.md'));
+        const lenses = await provider.provideCodeLenses(makeDocument(instructionScheme, 'test.instructions.md'));
 
         const resetLens = lenses.find(l => (l.command as { command: string }).command === commandIds.ResetInstructions);
         expect.soft(resetLens).toBeUndefined();
     });
 
-    it('should return empty array for overridden instructions', () => {
+    it('should return empty array for overridden instructions', async () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
         vi.mocked(fakeDetector.getOverriddenSettingIds).mockReturnValue(new Set(['sharppilot.instructions.lang.csharp']));
-        vi.mocked(readFileSync).mockImplementation((path: unknown) => {
+        vi.mocked(readFile).mockImplementation(async (path: unknown) => {
             const pathStr = String(path);
             if (pathStr.endsWith('.sharppilot.json')) return '{}';
             return testContent;
@@ -161,14 +159,14 @@ describe('InstructionsCodeLensProvider', () => {
         const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
         const provider = new InstructionsCodeLensProvider('/ext', configManager, fakeDetector, catalog);
 
-        const lenses = provider.provideCodeLenses(makeDocument(instructionScheme, 'lang-csharp.instructions.md'));
+        const lenses = await provider.provideCodeLenses(makeDocument(instructionScheme, 'lang-csharp.instructions.md'));
 
         expect.soft(lenses).toEqual([]);
     });
 
-    it('should return empty array for instructions whose context is not detected', () => {
+    it('should return empty array for instructions whose context is not detected', async () => {
         vi.mocked(fakeDetector.get).mockReturnValue(false);
-        vi.mocked(readFileSync).mockImplementation((path: unknown) => {
+        vi.mocked(readFile).mockImplementation(async (path: unknown) => {
             const pathStr = String(path);
             if (pathStr.endsWith('.sharppilot.json')) return '{}';
             return testContent;
@@ -177,7 +175,7 @@ describe('InstructionsCodeLensProvider', () => {
         const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
         const provider = new InstructionsCodeLensProvider('/ext', configManager, fakeDetector, catalog);
 
-        const lenses = provider.provideCodeLenses(makeDocument(instructionScheme, 'lang-csharp.instructions.md'));
+        const lenses = await provider.provideCodeLenses(makeDocument(instructionScheme, 'lang-csharp.instructions.md'));
 
         expect.soft(lenses).toEqual([]);
     });

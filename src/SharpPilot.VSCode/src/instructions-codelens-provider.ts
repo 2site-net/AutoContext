@@ -26,7 +26,7 @@ export class InstructionsCodeLensProvider implements vscode.CodeLensProvider, vs
         );
     }
 
-    provideCodeLenses(document: vscode.TextDocument): vscode.CodeLens[] {
+    async provideCodeLenses(document: vscode.TextDocument): Promise<vscode.CodeLens[]> {
         if (document.uri.scheme !== instructionScheme) {
             return [];
         }
@@ -49,11 +49,11 @@ export class InstructionsCodeLensProvider implements vscode.CodeLensProvider, vs
 
         let instructions;
         try {
-            ({ result: { instructions } } = InstructionsParser.fromFile(filePath));
+            ({ result: { instructions } } = await InstructionsParser.fromFile(filePath));
         } catch {
             return [];
         }
-        const disabledIds = this.configManager.getDisabledInstructions(fileName);
+        const disabledIds = await this.configManager.getDisabledInstructions(fileName);
 
         const lenses: vscode.CodeLens[] = [];
 

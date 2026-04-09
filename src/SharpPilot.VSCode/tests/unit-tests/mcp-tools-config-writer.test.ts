@@ -2,16 +2,12 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { __setConfigStore } from './__mocks__/vscode';
 import { workspace } from './__mocks__/vscode';
 
-import { readFileSync, writeFileSync, unlinkSync } from 'node:fs';
+import { writeFile, unlink, readFile } from 'node:fs/promises';
 
-vi.mock('node:fs', () => ({
-    readFileSync: vi.fn(),
-    writeFileSync: vi.fn(),
-    existsSync: vi.fn(),
-    readdirSync: vi.fn(),
-    rmSync: vi.fn(),
-    statSync: vi.fn(),
-    unlinkSync: vi.fn(),
+vi.mock('node:fs/promises', () => ({
+    writeFile: vi.fn().mockResolvedValue(undefined),
+    unlink: vi.fn().mockResolvedValue(undefined),
+    readFile: vi.fn().mockResolvedValue('{}'),
 }));
 
 // Must import after the mock is set up via the vitest alias
@@ -29,12 +25,12 @@ beforeEach(() => {
 describe('McpToolsConfigWriter', () => {
     const catalog = new McpToolsCatalog(mcpTools);
 
-    it('should write disabled tools to .sharppilot.json', () => {
+    it('should write disabled tools to .sharppilot.json', async () => {
         __setConfigStore({
             'sharppilot.tools.check_csharp_coding_style': false,
         });
 
-        vi.mocked(readFileSync).mockImplementation((path: unknown) => {
+        vi.mocked(readFile).mockImplementation(async (path: unknown) => {
             const pathStr = String(path);
             if (pathStr.endsWith('.sharppilot.json')) return '{}';
             return '';
@@ -42,9 +38,9 @@ describe('McpToolsConfigWriter', () => {
 
         const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
         const writer = new McpToolsConfigWriter(configManager, catalog);
-        writer.write();
+        await writer.write();
 
-        const writeCalls = vi.mocked(writeFileSync).mock.calls;
+        const writeCalls = vi.mocked(writeFile).mock.calls;
         expect(writeCalls).toHaveLength(1);
 
         const [filePath, content] = writeCalls[0];
@@ -54,12 +50,12 @@ describe('McpToolsConfigWriter', () => {
         expect.soft(parsed["mcp-tools"].disabled).toEqual(['check_csharp_coding_style']);
     });
 
-    it('should not write when nothing changed', () => {
+    it('should not write when nothing changed', async () => {
         __setConfigStore({
             'sharppilot.tools.check_csharp_coding_style': false,
         });
 
-        vi.mocked(readFileSync).mockImplementation((path: unknown) => {
+        vi.mocked(readFile).mockImplementation(async (path: unknown) => {
             const pathStr = String(path);
             if (pathStr.endsWith('.sharppilot.json')) {
                 return JSON.stringify({ "mcp-tools": { disabled: ['check_csharp_coding_style'] } });
@@ -69,15 +65,15 @@ describe('McpToolsConfigWriter', () => {
 
         const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
         const writer = new McpToolsConfigWriter(configManager, catalog);
-        writer.write();
+        await writer.write();
 
-        expect.soft(writeFileSync).not.toHaveBeenCalled();
+        expect.soft(writeFile).not.toHaveBeenCalled();
     });
 
-    it('should delete config file when all tools are enabled and no other config exists', () => {
+    it('should delete config file when all tools are enabled and no other config exists', async () => {
         __setConfigStore({});
 
-        vi.mocked(readFileSync).mockImplementation((path: unknown) => {
+        vi.mocked(readFile).mockImplementation(async (path: unknown) => {
             const pathStr = String(path);
             if (pathStr.endsWith('.sharppilot.json')) {
                 return JSON.stringify({ "mcp-tools": { disabled: ['check_csharp_coding_style'] } });
@@ -87,9 +83,9 @@ describe('McpToolsConfigWriter', () => {
 
         const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
         const writer = new McpToolsConfigWriter(configManager, catalog);
-        writer.write();
+        await writer.write();
 
-        expect(writeFileSync).not.toHaveBeenCalled();
-        expect.soft(unlinkSync).toHaveBeenCalled();
+        expect(writeFile).not.toHaveBeenCalled();
+        expect.soft(unlink).toHaveBeenCalled();
     });
 });
