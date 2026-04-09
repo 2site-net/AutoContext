@@ -188,13 +188,69 @@ const allFlags: ReadonlySet<FlagName> = new Set<FlagName>([
     'hasNodeJs',
 ]);
 
+// --- Reverse maps for incremental detection ---
+
+const extensionToFileFlags: ReadonlyMap<string, readonly string[]> = (() => {
+    const map = new Map<string, string[]>();
+    const add = (ext: string, flag: string) => {
+        const list = map.get(ext);
+        if (list) { list.push(flag); } else { map.set(ext, [flag]); }
+    };
+    for (const rule of fileRules) {
+        for (const glob of rule.globs) {
+            const brace = glob.match(/^\*\*\/\*\.\{([^}]+)\}$/);
+            if (brace) { for (const e of brace[1].split(',')) add(e, rule.flag); continue; }
+            const single = glob.match(/^\*\*\/\*\.(\w+)$/);
+            if (single) { add(single[1], rule.flag); }
+        }
+    }
+    return map;
+})();
+
+const manifestToFileFlags: ReadonlyMap<string, readonly string[]> = (() => {
+    const map = new Map<string, string[]>();
+    const add = (name: string, flag: string) => {
+        const list = map.get(name);
+        if (list) { list.push(flag); } else { map.set(name, [flag]); }
+    };
+    for (const rule of fileRules) {
+        for (const glob of rule.globs) {
+            const braceNames = glob.match(/^\*\*\/\{([^}]+)\}$/);
+            if (braceNames) { for (const n of braceNames[1].split(',')) add(n, rule.flag); continue; }
+            const exact = glob.match(/^\*\*\/([^*{/]+)$/);
+            if (exact) { add(exact[1], rule.flag); }
+        }
+    }
+    return map;
+})();
+
+type ContentCategory = 'npm' | 'dotnet';
+
+function getContentCategory(filename: string): ContentCategory | undefined {
+    if (filename === 'package.json') return 'npm';
+    if (/\.(?:csproj|fsproj|vbproj)$/.test(filename)) return 'dotnet';
+    return undefined;
+}
+
+type WatcherKind = 'existence' | 'content' | 'override';
+type EventKind = 'create' | 'change' | 'delete';
+
+interface PendingEvent {
+    readonly uri: vscode.Uri;
+    readonly watcher: WatcherKind;
+    readonly event: EventKind;
+}
+
 export class WorkspaceContextDetector implements vscode.Disposable {
     private readonly disposables: vscode.Disposable[] = [];
     private debounceTimer: ReturnType<typeof setTimeout> | undefined;
     private readonly _onDidChange = new vscode.EventEmitter<void>();
     private readonly _onDidDetect = new vscode.EventEmitter<void>();
     private readonly _state = new Map<string, boolean>();
+    private readonly _baseFlags = new Map<string, boolean>();
     private readonly _overriddenSettingIds = new Set<string>();
+    private _overriddenFileNames = new Set<string>();
+    private _pendingEvents: PendingEvent[] = [];
 
     readonly onDidChange = this._onDidChange.event;
     readonly onDidDetect = this._onDidDetect.event;
@@ -211,50 +267,49 @@ export class WorkspaceContextDetector implements vscode.Disposable {
         private readonly instructionsCatalog: InstructionsCatalog,
         private readonly serversCatalog: McpServersCatalog,
     ) {
-        const schedule = () => this.scheduleDetect();
-
         const existenceWatcher = vscode.workspace.createFileSystemWatcher(existenceWatchGlob);
 
         this.disposables.push(
             existenceWatcher,
-            existenceWatcher.onDidCreate(schedule),
-            existenceWatcher.onDidDelete(schedule),
+            existenceWatcher.onDidCreate(uri => this.scheduleEvent(uri, 'existence', 'create')),
+            existenceWatcher.onDidDelete(uri => this.scheduleEvent(uri, 'existence', 'delete')),
         );
 
         const contentWatcher = vscode.workspace.createFileSystemWatcher(contentWatchGlob);
 
         this.disposables.push(
             contentWatcher,
-            contentWatcher.onDidCreate(schedule),
-            contentWatcher.onDidChange(schedule),
-            contentWatcher.onDidDelete(schedule),
+            contentWatcher.onDidCreate(uri => this.scheduleEvent(uri, 'content', 'create')),
+            contentWatcher.onDidChange(uri => this.scheduleEvent(uri, 'content', 'change')),
+            contentWatcher.onDidDelete(uri => this.scheduleEvent(uri, 'content', 'delete')),
         );
 
         const overrideWatcher = vscode.workspace.createFileSystemWatcher(overrideWatchGlob);
 
         this.disposables.push(
             overrideWatcher,
-            overrideWatcher.onDidCreate(schedule),
-            overrideWatcher.onDidDelete(schedule),
+            overrideWatcher.onDidCreate(uri => this.scheduleEvent(uri, 'override', 'create')),
+            overrideWatcher.onDidDelete(uri => this.scheduleEvent(uri, 'override', 'delete')),
         );
     }
 
-    private scheduleDetect(): void {
+    private scheduleEvent(uri: vscode.Uri, watcher: WatcherKind, event: EventKind): void {
+        this._pendingEvents.push({ uri, watcher, event });
         if (this.debounceTimer !== undefined) {
             clearTimeout(this.debounceTimer);
         }
         this.debounceTimer = setTimeout(() => {
             this.debounceTimer = undefined;
-            this.detect();
+            const events = this._pendingEvents;
+            this._pendingEvents = [];
+            void this.detectIncremental(events);
         }, 500);
     }
 
+    /** Full workspace scan. Called on activation and as a fallback. */
     async detect(): Promise<void> {
         try {
-            const setContext = (key: string, value: boolean): Thenable<unknown> =>
-                vscode.commands.executeCommand('setContext', key, value);
-
-            const flags = {} as Record<FlagName, boolean>;
+            const flags = {} as Record<string, boolean>;
             for (const f of allFlags) flags[f] = false;
 
             // File-based detection
@@ -271,112 +326,249 @@ export class WorkspaceContextDetector implements vscode.Disposable {
                 if (found) flags[flag] = true;
             }
 
-            // Package.json scanning
-            const decoder = new TextDecoder();
-            const packageFiles = await vscode.workspace.findFiles('**/package.json', '**/node_modules/**', 50);
-            if (packageFiles.length > 0) flags.hasNodeJs = true;
+            await WorkspaceContextDetector.scanNpmContent(flags);
 
-            for (const uri of packageFiles) {
-                const content = decoder.decode(await vscode.workspace.fs.readFile(uri));
-
-                for (const rule of npmContentRules) {
-                    if (!flags[rule.flag] && rule.pattern.test(content)) {
-                        flags[rule.flag] = true;
-                    }
-                }
-
-                if (npmContentRules.every(r => flags[r.flag])) break;
-            }
-
-            // .NET project scanning
             if (flags.hasDotNet) {
-                const projFiles = await vscode.workspace.findFiles('**/*.{csproj,fsproj,vbproj}', '**/node_modules/**', 50);
-
-                for (const uri of projFiles) {
-                    const content = decoder.decode(await vscode.workspace.fs.readFile(uri));
-
-                    for (const rule of dotnetContentRules) {
-                        if (!flags[rule.flag] && rule.pattern.test(content)) {
-                            flags[rule.flag] = true;
-                        }
-                    }
-
-                    if (dotnetContentRules.every(r => flags[r.flag])) break;
-                }
+                await WorkspaceContextDetector.scanDotNetContent(flags);
             }
 
-            // Flag activation
-            let changed = true;
-            while (changed) {
-                changed = false;
-                for (const [child, parent] of flagActivationRules) {
-                    if (flags[child] && !flags[parent]) {
-                        flags[parent] = true;
-                        changed = true;
-                    }
-                }
-            }
+            // Store base flags (pre-cascade)
+            this._baseFlags.clear();
+            for (const f of allFlags) this._baseFlags.set(f, flags[f]);
 
-            // Git detection
-            for (const folder of vscode.workspace.workspaceFolders ?? []) {
-                try {
-                    await vscode.workspace.fs.stat(vscode.Uri.joinPath(folder.uri, '.git'));
-                    flags.hasGit = true;
-                    break;
-                } catch {
-                    // .git directory not found in this workspace folder
-                }
-            }
+            WorkspaceContextDetector.applyActivationCascade(flags);
+            await WorkspaceContextDetector.detectGit(flags);
 
-            // Override detection
-            const overrideFiles = await vscode.workspace.findFiles(
-                '.github/instructions/*.instructions.md', undefined, 50,
-            );
-
-            const overriddenFileNames = new Set<string>();
-
-            for (const uri of overrideFiles) {
-                const segments = uri.path.split('/');
-                const matchName = segments[segments.length - 1];
-
-                if (this.instructionsCatalog.findByFileName(matchName)) {
-                    overriddenFileNames.add(matchName);
-                }
-            }
-
-            // Register context keys
-            await Promise.all([
-                ...Object.entries(flags).map(([key, value]) =>
-                    setContext(`sharppilot.workspace.${key}`, value),
-                ),
-                ...this.instructionsCatalog.all.map(i =>
-                    setContext(ContextKeys.overrideKey(i.settingId), overriddenFileNames.has(i.fileName)),
-                ),
-            ]);
-
-            const serverChanged = this.serversCatalog.all.some(s =>
-                s.contextKey !== undefined && this._state.get(s.contextKey) !== flags[s.contextKey as FlagName],
-            );
-
-            for (const [k, v] of Object.entries(flags)) {
-                this._state.set(k, v);
-            }
-
-            this._overriddenSettingIds.clear();
-            for (const i of this.instructionsCatalog.all) {
-                if (overriddenFileNames.has(i.fileName)) {
-                    this._overriddenSettingIds.add(i.settingId);
-                }
-            }
-
-            if (serverChanged) {
-                this._onDidChange.fire();
-            }
-
-            this._onDidDetect.fire();
+            const overriddenFileNames = await this.scanOverrides();
+            await this.commitState(flags, overriddenFileNames);
         } catch {
             // Workspace detection is best-effort; failures should not break the extension
         }
+    }
+
+    /**
+     * Incremental detection from file-system watcher events.
+     * Falls back to a full detect() when no prior scan exists.
+     */
+    private async detectIncremental(events: readonly PendingEvent[]): Promise<void> {
+        if (this._baseFlags.size === 0) {
+            return this.detect();
+        }
+
+        try {
+            const flags = {} as Record<string, boolean>;
+            for (const [k, v] of this._baseFlags) flags[k] = v;
+
+            let scanNpm = false;
+            let scanDotnet = false;
+            let scanOverrides = false;
+            const flagsToRecheck = new Set<string>();
+
+            for (const ev of events) {
+                if (ev.watcher === 'override') {
+                    scanOverrides = true;
+                    continue;
+                }
+
+                const filename = ev.uri.path.split('/').pop() ?? '';
+                const dotIdx = filename.lastIndexOf('.');
+                const ext = dotIdx >= 0 ? filename.slice(dotIdx + 1) : '';
+
+                // File-flag updates from extension (existence + content watchers)
+                const extFlags = extensionToFileFlags.get(ext);
+                if (extFlags) {
+                    if (ev.event === 'create') {
+                        for (const f of extFlags) flags[f] = true;
+                    } else if (ev.event === 'delete') {
+                        for (const f of extFlags) flagsToRecheck.add(f);
+                    }
+                }
+
+                // File-flag updates from manifest filename (content watcher)
+                if (ev.watcher === 'content') {
+                    const nameFlags = manifestToFileFlags.get(filename);
+                    if (nameFlags) {
+                        if (ev.event === 'create') {
+                            for (const f of nameFlags) flags[f] = true;
+                        } else if (ev.event === 'delete') {
+                            for (const f of nameFlags) flagsToRecheck.add(f);
+                        }
+                    }
+
+                    const category = getContentCategory(filename);
+                    if (category === 'npm') scanNpm = true;
+                    if (category === 'dotnet') scanDotnet = true;
+                }
+            }
+
+            // Re-glob only flags affected by file deletions
+            if (flagsToRecheck.size > 0) {
+                const results = await Promise.all(
+                    [...flagsToRecheck].flatMap(flag => {
+                        const rule = fileRules.find(r => r.flag === flag);
+                        if (!rule) return [];
+                        return rule.globs.map(glob =>
+                            vscode.workspace.findFiles(glob, '**/node_modules/**', 1)
+                                .then(files => ({ flag, found: files.length > 0 })),
+                        );
+                    }),
+                );
+
+                for (const flag of flagsToRecheck) flags[flag] = false;
+                for (const { flag, found } of results) {
+                    if (found) flags[flag] = true;
+                }
+            }
+
+            if (scanNpm) {
+                for (const rule of npmContentRules) flags[rule.flag] = false;
+                flags.hasNodeJs = false;
+                await WorkspaceContextDetector.scanNpmContent(flags);
+            }
+
+            if (scanDotnet) {
+                for (const rule of dotnetContentRules) flags[rule.flag] = false;
+                if (flags.hasDotNet) {
+                    await WorkspaceContextDetector.scanDotNetContent(flags);
+                }
+            }
+
+            // Update base flags
+            for (const [k, v] of Object.entries(flags)) this._baseFlags.set(k, v);
+
+            WorkspaceContextDetector.applyActivationCascade(flags);
+
+            // Git detection is unchanged by file events
+            flags.hasGit = this._state.get('hasGit') ?? false;
+
+            const overriddenFileNames = scanOverrides
+                ? await this.scanOverrides()
+                : this._overriddenFileNames;
+
+            await this.commitState(flags, overriddenFileNames);
+        } catch {
+            // Workspace detection is best-effort; failures should not break the extension
+        }
+    }
+
+    // --- Shared helpers ---
+
+    private static async scanNpmContent(flags: Record<string, boolean>): Promise<void> {
+        const decoder = new TextDecoder();
+        const packageFiles = await vscode.workspace.findFiles('**/package.json', '**/node_modules/**', 50);
+        if (packageFiles.length > 0) flags.hasNodeJs = true;
+
+        for (const uri of packageFiles) {
+            const content = decoder.decode(await vscode.workspace.fs.readFile(uri));
+
+            for (const rule of npmContentRules) {
+                if (!flags[rule.flag] && rule.pattern.test(content)) {
+                    flags[rule.flag] = true;
+                }
+            }
+
+            if (npmContentRules.every(r => flags[r.flag])) break;
+        }
+    }
+
+    private static async scanDotNetContent(flags: Record<string, boolean>): Promise<void> {
+        const decoder = new TextDecoder();
+        const projFiles = await vscode.workspace.findFiles('**/*.{csproj,fsproj,vbproj}', '**/node_modules/**', 50);
+
+        for (const uri of projFiles) {
+            const content = decoder.decode(await vscode.workspace.fs.readFile(uri));
+
+            for (const rule of dotnetContentRules) {
+                if (!flags[rule.flag] && rule.pattern.test(content)) {
+                    flags[rule.flag] = true;
+                }
+            }
+
+            if (dotnetContentRules.every(r => flags[r.flag])) break;
+        }
+    }
+
+    private static applyActivationCascade(flags: Record<string, boolean>): void {
+        let changed = true;
+        while (changed) {
+            changed = false;
+            for (const [child, parent] of flagActivationRules) {
+                if (flags[child] && !flags[parent]) {
+                    flags[parent] = true;
+                    changed = true;
+                }
+            }
+        }
+    }
+
+    private static async detectGit(flags: Record<string, boolean>): Promise<void> {
+        for (const folder of vscode.workspace.workspaceFolders ?? []) {
+            try {
+                await vscode.workspace.fs.stat(vscode.Uri.joinPath(folder.uri, '.git'));
+                flags.hasGit = true;
+                return;
+            } catch {
+                // .git directory not found in this workspace folder
+            }
+        }
+    }
+
+    private async scanOverrides(): Promise<Set<string>> {
+        const overrideFiles = await vscode.workspace.findFiles(
+            '.github/instructions/*.instructions.md', undefined, 50,
+        );
+
+        const overriddenFileNames = new Set<string>();
+
+        for (const uri of overrideFiles) {
+            const segments = uri.path.split('/');
+            const matchName = segments[segments.length - 1];
+
+            if (this.instructionsCatalog.findByFileName(matchName)) {
+                overriddenFileNames.add(matchName);
+            }
+        }
+
+        return overriddenFileNames;
+    }
+
+    private async commitState(
+        flags: Record<string, boolean>,
+        overriddenFileNames: Set<string>,
+    ): Promise<void> {
+        const setContext = (key: string, value: boolean): Thenable<unknown> =>
+            vscode.commands.executeCommand('setContext', key, value);
+
+        await Promise.all([
+            ...Object.entries(flags).map(([key, value]) =>
+                setContext(`sharppilot.workspace.${key}`, value),
+            ),
+            ...this.instructionsCatalog.all.map(i =>
+                setContext(ContextKeys.overrideKey(i.settingId), overriddenFileNames.has(i.fileName)),
+            ),
+        ]);
+
+        const serverChanged = this.serversCatalog.all.some(s =>
+            s.contextKey !== undefined && this._state.get(s.contextKey) !== flags[s.contextKey as string],
+        );
+
+        for (const [k, v] of Object.entries(flags)) {
+            this._state.set(k, v);
+        }
+
+        this._overriddenFileNames = overriddenFileNames;
+        this._overriddenSettingIds.clear();
+        for (const i of this.instructionsCatalog.all) {
+            if (overriddenFileNames.has(i.fileName)) {
+                this._overriddenSettingIds.add(i.settingId);
+            }
+        }
+
+        if (serverChanged) {
+            this._onDidChange.fire();
+        }
+
+        this._onDidDetect.fire();
     }
 
     dispose(): void {

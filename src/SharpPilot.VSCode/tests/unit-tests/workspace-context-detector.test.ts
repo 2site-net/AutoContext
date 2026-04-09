@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { workspace, commands } from './__mocks__/vscode';
 import { WorkspaceContextDetector } from '../../src/workspace-context-detector';
 import { InstructionsCatalog } from '../../src/instructions-catalog';
@@ -509,6 +509,160 @@ describe('WorkspaceContextDetector', () => {
 
             expect.soft(det.get('hasTypeScript')).toBe(true);
             expect.soft(det.get('hasDotNet')).toBe(false);
+        });
+    });
+
+    describe('incremental detection', () => {
+        beforeEach(() => vi.useFakeTimers());
+        afterEach(() => vi.useRealTimers());
+
+        type WatcherMock = {
+            onDidCreate: ReturnType<typeof vi.fn>;
+            onDidChange: ReturnType<typeof vi.fn>;
+            onDidDelete: ReturnType<typeof vi.fn>;
+        };
+
+        function getWatchers(): { existence: WatcherMock; content: WatcherMock; override: WatcherMock } {
+            const results = (workspace.createFileSystemWatcher as ReturnType<typeof vi.fn>).mock.results;
+            return {
+                existence: results[0].value as WatcherMock,
+                content: results[1].value as WatcherMock,
+                override: results[2].value as WatcherMock,
+            };
+        }
+
+        function fireEvent(watcher: WatcherMock, event: 'create' | 'change' | 'delete', path: string): void {
+            const prop = event === 'create' ? 'onDidCreate' : event === 'change' ? 'onDidChange' : 'onDidDelete';
+            const listener = watcher[prop].mock.calls[0]?.[0] as ((uri: unknown) => void) | undefined;
+            listener?.(fakeUri(path));
+        }
+
+        it('should set flag on existence create without extra globs', async () => {
+            const det = createDetector();
+            const { existence } = getWatchers();
+            await det.detect();
+            (workspace.findFiles as ReturnType<typeof vi.fn>).mockClear();
+
+            fireEvent(existence, 'create', '/src/index.ts');
+            await vi.advanceTimersByTimeAsync(500);
+
+            expect.soft(det.get('hasTypeScript')).toBe(true);
+            expect.soft(det.get('hasJavaScript')).toBe(true); // activation cascade
+            expect(workspace.findFiles).not.toHaveBeenCalled();
+        });
+
+        it('should re-glob only affected flags on existence delete', async () => {
+            stubFindFiles({ '**/*.{ts,tsx,mts,cts}': ['/app.ts'] });
+            const det = createDetector();
+            const { existence } = getWatchers();
+            await det.detect();
+            expect(det.get('hasTypeScript')).toBe(true);
+
+            stubFindFiles({});
+            (workspace.findFiles as ReturnType<typeof vi.fn>).mockClear();
+
+            fireEvent(existence, 'delete', '/app.ts');
+            await vi.advanceTimersByTimeAsync(500);
+
+            expect.soft(det.get('hasTypeScript')).toBe(false);
+            // Only the TypeScript glob should have been called, not all 30+
+            const calls = (workspace.findFiles as ReturnType<typeof vi.fn>).mock.calls.map(c => c[0]);
+            expect(calls).toEqual(['**/*.{ts,tsx,mts,cts}']);
+        });
+
+        it('should trigger npm content re-scan on package.json change', async () => {
+            stubFindFiles({ '**/package.json': ['/package.json'] });
+            stubReadFile({ '/package.json': '{ "dependencies": { "react": "^18" } }' });
+            const det = createDetector();
+            const { content } = getWatchers();
+            await det.detect();
+            expect(det.get('hasReact')).toBe(true);
+
+            stubReadFile({ '/package.json': '{ "dependencies": { "vue": "^3" } }' });
+
+            fireEvent(content, 'change', '/package.json');
+            await vi.advanceTimersByTimeAsync(500);
+
+            expect.soft(det.get('hasReact')).toBe(false);
+            expect.soft(det.get('hasVue')).toBe(true);
+            expect.soft(det.get('hasNodeJs')).toBe(true);
+        });
+
+        it('should trigger dotnet content re-scan on csproj change', async () => {
+            stubFindFiles({
+                '**/*.{csproj,fsproj,vbproj,sln,slnx}': ['/app/App.csproj'],
+                '**/*.csproj': ['/app/App.csproj'],
+                '**/*.{csproj,fsproj,vbproj}': ['/app/App.csproj'],
+            });
+            stubReadFile({ '/app/App.csproj': '<PackageReference Include="xunit" />' });
+            const det = createDetector();
+            const { content } = getWatchers();
+            await det.detect();
+            expect(det.get('hasXunit')).toBe(true);
+
+            stubReadFile({ '/app/App.csproj': '<Project Sdk="Microsoft.NET.Sdk.Web"></Project>' });
+
+            fireEvent(content, 'change', '/app/App.csproj');
+            await vi.advanceTimersByTimeAsync(500);
+
+            expect.soft(det.get('hasXunit')).toBe(false);
+            expect.soft(det.get('hasAspNetCore')).toBe(true);
+        });
+
+        it('should re-scan overrides when override watcher fires', async () => {
+            const det = createDetector();
+            const { override } = getWatchers();
+            await det.detect();
+            expect(det.getOverriddenSettingIds().size).toBe(0);
+
+            stubFindFiles({
+                '.github/instructions/*.instructions.md': [
+                    '/.github/instructions/dotnet-coding-standards.instructions.md',
+                ],
+            });
+
+            fireEvent(override, 'create', '/.github/instructions/dotnet-coding-standards.instructions.md');
+            await vi.advanceTimersByTimeAsync(500);
+
+            expect(det.getOverriddenSettingIds().has('sharppilot.instructions.dotnet.codingStandards')).toBe(true);
+        });
+
+        it('should fall back to full detect when no prior scan exists', async () => {
+            stubFindFiles({ '**/*.py': ['/main.py'] });
+            const det = createDetector();
+            const { existence } = getWatchers();
+
+            fireEvent(existence, 'create', '/main.py');
+            await vi.advanceTimersByTimeAsync(500);
+
+            // Full detect ran, so all flags are computed from globs
+            expect(det.get('hasPython')).toBe(true);
+        });
+
+        it('should set manifest file flags on content create', async () => {
+            const det = createDetector();
+            const { content } = getWatchers();
+            await det.detect();
+
+            fireEvent(content, 'create', '/pom.xml');
+            await vi.advanceTimersByTimeAsync(500);
+
+            expect.soft(det.get('hasJava')).toBe(true);
+            expect.soft(det.get('hasJvm')).toBe(true); // activation cascade
+        });
+
+        it('should carry forward git detection from full scan', async () => {
+            workspace.workspaceFolders = [{ uri: { path: '/workspace', fsPath: '/workspace' } }];
+            (workspace.fs.stat as ReturnType<typeof vi.fn>).mockResolvedValue({});
+            const det = createDetector();
+            const { existence } = getWatchers();
+            await det.detect();
+            expect(det.get('hasGit')).toBe(true);
+
+            fireEvent(existence, 'create', '/src/index.ts');
+            await vi.advanceTimersByTimeAsync(500);
+
+            expect(det.get('hasGit')).toBe(true);
         });
     });
 
