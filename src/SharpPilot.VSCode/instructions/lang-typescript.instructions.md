@@ -33,3 +33,9 @@ applyTo: "**/*.{ts,tsx,mts,cts}"
 - [INST0017] **Do** give type guard functions a `value is T` return type annotation instead of `boolean` — without the predicate form, TypeScript does not narrow the type at the call site even when the check is correct.
 - [INST0018] **Don't** use type assertions (`as SomeType`) to silence compiler errors — narrow properly with `typeof`, `instanceof`, `in`, or user-defined type guards; reserve `as` only when you have verified the type through other means and add a comment explaining why.
 - [INST0019] **Don't** use non-null assertions (`!`) without proof — only apply them when you've verified by other means that the value cannot be `null` or `undefined`, and add a comment explaining why.
+
+## File Organization
+
+- [INST0020] **Do** give each exported `interface`, `type` alias, or `enum` its own file — mirrors one-type-per-file conventions from other languages, keeps modules focused, and makes types easy to locate by filename.
+- [INST0021] **Do** keep a `const`-as-`enum` pattern (e.g., `export const Foo = { ... } as const` and its companion `export type Foo = ...`) in a single file — they form one logical unit.
+- [INST0022] **Do** allow barrel re-export files (`index.ts`) that aggregate and re-export from submodules — these are organizational and do not violate one-type-per-file.

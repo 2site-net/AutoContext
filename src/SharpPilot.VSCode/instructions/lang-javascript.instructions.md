@@ -62,6 +62,8 @@ applyTo: "**/*.{js,jsx,mjs,cjs,ts,tsx,mts,cts}"
 - [INST0031] **Do** insert a blank line before control flow statements (`if`, `for`, `for...of`, `for...in`, `while`, `do`, `switch`, `try`, `using`).
 - [INST0032] **Do** insert a blank line between variable declarations and their first usage.
 - [INST0033] **Do** keep each module focused on a single concept — split when a file mixes unrelated types, data, and logic; a module that serves as a grab-bag of utilities becomes hard to name, navigate, and reason about.
-- [INST0034] **Do** place a helper function in its sole consumer's module rather than a shared utility file — extract to a shared module only when a second consumer appears.
-- [INST0035] **Do** make module-private helper functions static private methods (`static #method()` in JS, `private static method()` in TS) when they serve a single class in the same file — keeps the module's public surface minimal and makes ownership explicit.
-- [INST0036] **Don't** re-export symbols through intermediate barrel modules just to preserve an import path — update consumers to import directly from the owning module; passthrough re-exports add indirection without value.
+- [INST0034] **Do** give each exported class its own file, named after the class — keeps modules focused and discoverable; utility functions and constants can be grouped by cohesion.
+- [INST0035] **Do** place a helper function in its sole consumer's module rather than a shared utility file — extract to a shared module only when a second consumer appears.
+- [INST0036] **Do** make module-private helper functions static private methods (`static #method()` in JS, `private static method()` in TS) when they serve a single class in the same file — keeps the module's public surface minimal and makes ownership explicit.
+- [INST0037] **Don't** re-export symbols through intermediate barrel modules just to preserve an import path — update consumers to import directly from the owning module; passthrough re-exports add indirection without value.
+- [INST0038] **Don't** leave a backward-compatibility re-export at the old location when moving an export to a new file — update all consumers to import from the new module instead; compatibility shims accumulate tech debt and obscure the true module structure.
