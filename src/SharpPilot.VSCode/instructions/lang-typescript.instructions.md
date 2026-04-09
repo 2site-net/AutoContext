@@ -36,6 +36,6 @@ applyTo: "**/*.{ts,tsx,mts,cts}"
 
 ## File Organization
 
-- [INST0020] **Do** give each exported `interface`, `type` alias, or `enum` its own file — mirrors one-type-per-file conventions from other languages, keeps modules focused, and makes types easy to locate by filename.
-- [INST0021] **Do** keep a `const`-as-`enum` pattern (e.g., `export const Foo = { ... } as const` and its companion `export type Foo = ...`) in a single file — they form one logical unit.
+- [INST0020] **Do** give each exported `interface` or `type` alias its own file when it represents a standalone concept — mirrors one-type-per-file conventions, keeps modules focused, and makes types easy to locate by filename; a supporting type that exists only to type a field or parameter of a single parent type may stay in the parent type's file (e.g., a string-union `Kind` type alongside the interface whose `kind` field it describes).
+- [INST0021] **Do** keep a `const`-as-`enum` pattern (e.g., `export const Foo = { ... } as const` and its companion `export type Foo = ...`) together with related const objects that share the same pattern in a single file — they form one logical unit; other types that happen to be co-located with const objects but represent independent concepts should still get their own file.
 - [INST0022] **Do** allow barrel re-export files (`index.ts`) that aggregate and re-export from submodules — these are organizational and do not violate one-type-per-file.
