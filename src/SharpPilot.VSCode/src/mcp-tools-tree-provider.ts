@@ -3,7 +3,7 @@ import type { McpToolsCatalog } from './mcp-tools-catalog.js';
 import { ContextKeys } from './context-keys.js';
 import { mcpToolGroupOrder, mcpToolCategoryOrder, viewIds, McpToolState, treeViewLabels } from './ui-constants.js';
 import type { WorkspaceContextDetector } from './workspace-context-detector.js';
-import type { McpToolCatalogEntry } from './mcp-tool-catalog-entry.js';
+import type { McpToolsCatalogEntry } from './mcp-tools-catalog-entry.js';
 import type { TreeViewGroupNode } from './tree-view-group-node.js';
 import type { McpToolsTreeCategoryNode } from './mcp-tools-tree-category-node.js';
 import type { McpToolsTreeNode } from './mcp-tools-tree-node.js';
@@ -148,7 +148,7 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
     }
 
     private static resolveState(
-        entry: McpToolCatalogEntry,
+        entry: McpToolsCatalogEntry,
         config: vscode.WorkspaceConfiguration,
         detector: WorkspaceContextDetector,
     ): McpToolState {
@@ -189,7 +189,7 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
         return item;
     }
 
-    private countTooltip(name: string, entries: readonly McpToolCatalogEntry[]): string {
+    private countTooltip(name: string, entries: readonly McpToolsCatalogEntry[]): string {
         const config = vscode.workspace.getConfiguration();
         const enabled = entries.filter(e => McpToolsTreeProvider.resolveState(e, config, this.detector) === McpToolState.Enabled).length;
         return `${name}\n${enabled}/${entries.length} ${treeViewLabels.featuresEnabledTooltip}`;
@@ -246,7 +246,7 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
         return item;
     }
 
-    private static featureTooltip(entry: McpToolCatalogEntry, state: McpToolState): string {
+    private static featureTooltip(entry: McpToolsCatalogEntry, state: McpToolState): string {
         const lines = [entry.label];
 
         switch (state) {

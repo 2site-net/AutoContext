@@ -1,7 +1,7 @@
 import type { CatalogEntry } from './catalog-entry.js';
-import type { McpToolEntry } from './mcp-tool-entry.js';
+import type { McpToolsEntry } from './mcp-tools-entry.js';
 
-export class McpToolCatalogEntry implements CatalogEntry {
+export class McpToolsCatalogEntry implements CatalogEntry {
     readonly settingId: string;
     readonly toolName: string;
     readonly featureName?: string;
@@ -11,7 +11,7 @@ export class McpToolCatalogEntry implements CatalogEntry {
     readonly serverCategory: string;
     readonly contextKeys?: readonly string[];
 
-    constructor(data: McpToolEntry) {
+    constructor(data: McpToolsEntry) {
         this.settingId = `sharppilot.tools.${data.key}`;
         this.toolName = data.toolName ?? data.key;
         this.featureName = data.toolName ? data.key : undefined;

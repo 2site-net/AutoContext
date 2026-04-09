@@ -1,4 +1,4 @@
-export interface McpToolEntry {
+export interface McpToolsEntry {
     key: string;
     toolName?: string;
     label: string;

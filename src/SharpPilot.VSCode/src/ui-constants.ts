@@ -1,4 +1,4 @@
-import type { McpToolEntry } from './mcp-tool-entry.js';
+import type { McpToolsEntry } from './mcp-tools-entry.js';
 import type { McpServerEntry } from './mcp-server-entry.js';
 import type { InstructionsFileEntry } from './instructions-file-entry.js';
 
@@ -118,10 +118,10 @@ export const instructionsCategoryOrder: readonly string[] = ['General', 'Languag
 // ── MCP Tools ────────────────────────────────────────────────────────
 
 // Each entry's `key` is expanded to a full `settingId` (`sharppilot.tools.<key>`) by
-// `McpToolCatalogEntry` at construction time — see `McpToolsCatalog`.
+// `McpToolsCatalogEntry` at construction time — see `McpToolsCatalog`.
 // When `toolName` is present the entry is a sub-feature of a composite tool (e.g.
 // `check_csharp_all`); when absent, `key` doubles as the MCP tool name.
-export const mcpTools: readonly McpToolEntry[] = [
+export const mcpTools: readonly McpToolsEntry[] = [
     { key: 'check_csharp_async_patterns', toolName: 'check_csharp_all', label: 'Async Patterns', category: 'C#', group: '.NET', serverCategory: 'dotnet', contextKeys: ['hasCSharp'] },
     { key: 'check_csharp_coding_style', toolName: 'check_csharp_all', label: 'Coding Style', category: 'C#', group: '.NET', serverCategory: 'dotnet', contextKeys: ['hasCSharp'] },
     { key: 'check_csharp_member_ordering', toolName: 'check_csharp_all', label: 'Member Ordering', category: 'C#', group: '.NET', serverCategory: 'dotnet', contextKeys: ['hasCSharp'] },
