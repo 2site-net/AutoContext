@@ -17,7 +17,7 @@ A server category is filtered out entirely if its workspace context is not prese
 
 ### How it works
 
-Enabled tool settings are written to a `.sharppilot.json` file that the .NET MCP server reads. Only enabled tools are exposed to Copilot, so disabling a tool removes it from agent mode entirely — with one exception: if the project's `.editorconfig` contains keys a checker consumes (e.g., `csharp_prefer_braces`), those EditorConfig-backed checks still run even when the tool is disabled.
+When you disable a feature, it is recorded in `.sharppilot.json` at your workspace root. The workspace server reads this file and decides how each feature runs. Disabled features are skipped when Copilot invokes the tool — with one exception: if the project's `.editorconfig` contains keys a checker consumes (e.g., `csharp_prefer_braces`), those EditorConfig-backed checks still apply even when the feature is disabled.
 
 ### Toggle tools
 
