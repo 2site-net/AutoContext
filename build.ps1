@@ -121,8 +121,12 @@ if ($solutionFile -and $solutionFile.Extension -eq '.slnx') {
         ForEach-Object { Join-Path $repoRoot $_.Value })
 }
 
-$serverProjectPaths = @($dotnetProjects |
-    Where-Object { $_ -notmatch '\.(Tests|Shared)\.' })
+$serverProjectPaths = @($dotnetProjects | Where-Object {
+    [xml]$csproj = Get-Content $_
+    $outputType = $csproj.SelectSingleNode('//OutputType')?.InnerText
+    $isPackable = $csproj.SelectSingleNode('//IsPackable')?.InnerText
+    $outputType -eq 'Exe' -and $isPackable -ne 'false'
+})
 
 # ── RID → vsce target mapping ───────────────────────────────────────────────
 
