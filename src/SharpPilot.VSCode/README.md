@@ -8,8 +8,8 @@ SharpPilot is a quality assurance extension for Visual Studio Code that leverage
 
 ## Features
 
-- **Chat Instructions** — Curated Markdown guidelines covering .NET, C#, F#, VB.NET, TypeScript, JavaScript, React, Angular, Vue, Svelte, Next.js, Node.js, Docker, Git, REST APIs, GraphQL, SQL, PowerShell, Bash, and more. Instructions are workspace-aware — only the ones relevant to your project are injected into Copilot's context.
-- **MCP Tool Checks** — Quality checks that Copilot can invoke in Agent mode. Categories include DotNet (C# style, naming, async patterns, NuGet hygiene, …), Git (commit format and content), EditorConfig (property resolution), and TypeScript (coding style). Each feature can be toggled individually.
+- **Chat Instructions** — Curated Markdown guidelines covering C#, F#, VB.NET, TypeScript, JavaScript, Python, Java, Go, Rust, Ruby, Swift, Kotlin, Dart, C, C++, Scala, SQL, PowerShell, Bash, and more — plus .NET frameworks (ASP.NET Core, Blazor, EF Core, WPF, …), web frameworks (React, Angular, Vue, Svelte, Next.js, Node.js, …), and tools (Git, Docker). Instructions are workspace-aware — only the ones relevant to your project are injected into Copilot's context.
+- **MCP Tool Checks** — Quality checks that Copilot can invoke in Agent mode. Categories include .NET (C# style, naming, async patterns, NuGet hygiene, …), Workspace (Git commit format and content, EditorConfig property resolution), and Web (TypeScript coding style). Each feature can be toggled individually.
 - **EditorConfig-Driven Enforcement** — Checkers read `.editorconfig` properties and enforce whichever direction the project specifies rather than just skipping conflicting rules.
 - **Workspace Detection** — Scans for project files, dependencies, and directory markers to automatically determine which servers, tools, and instructions are relevant.
 - **Auto Configuration** — One command scans the workspace and enables only the instructions and tools that match the detected technologies.
@@ -23,13 +23,13 @@ Once installed, the following MCP tools are available to GitHub Copilot in Agent
 
 | Category | Tool | Purpose |
 |----------|------|---------|
-| DotNet | `check_csharp_all` | Composite C# quality check (style, naming, async, structure, …) |
-| DotNet | `check_nuget_hygiene` | Package version and hygiene check |
-| Git | `check_git_all` | Conventional Commits format and content check |
-| EditorConfig | `get_editorconfig` | Resolve effective `.editorconfig` properties for a file |
-| TypeScript | `check_typescript_all` | Composite TypeScript quality check |
+| .NET | `check_csharp_all` | Composite C# quality check (style, naming, async, structure, …) |
+| .NET | `check_nuget_hygiene` | Package version and hygiene check |
+| Workspace | `check_git_all` | Conventional Commits format and content check |
+| Workspace | `get_editorconfig` | Resolve effective `.editorconfig` properties for a file |
+| Web | `check_typescript_all` | Composite TypeScript quality check |
 
-Each MCP tool bundles multiple features that can be toggled individually under **Settings → SharpPilot → Tools**, or from the **MCP Tools** panel in the SharpPilot sidebar. If all features for a category are disabled, that server is not registered at all.
+Each category maps to a dedicated MCP server. Tools within a category are further organized by sub-category (e.g., C#, NuGet under .NET) and can be toggled individually under **Settings → SharpPilot** (search `sharppilot.tools`), or from the **MCP Tools** panel in the SharpPilot sidebar. If all tools for a category are disabled, that server is not registered at all.
 
 ## Sidebar Panels
 

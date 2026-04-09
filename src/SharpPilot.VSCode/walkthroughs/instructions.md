@@ -5,7 +5,7 @@ SharpPilot ships with curated instruction files organized into categories:
 | Category | Coverage |
 |----------|----------|
 | **General** | Cross-cutting guidelines — code review, design principles, REST API design, testing |
-| **Languages** | C#, C++, F#, VB.NET, TypeScript, JavaScript, Python, Go, Rust, Java, PowerShell, Bash, SQL, and more |
+| **Languages** | C#, C++, F#, VB.NET, TypeScript, JavaScript, Python, Java, Go, Rust, Ruby, Swift, Kotlin, Dart, Scala, SQL, PowerShell, Bash, and more |
 | **.NET** | ASP.NET Core, Blazor, EF Core, WPF, xUnit, NUnit, NuGet, database drivers, and more |
 | **Web** | Angular, React, Vue, Svelte, Next.js, Node.js, Jest, Vitest, Cypress, Playwright, and more |
 | **Tools** | Git commit format, Docker |

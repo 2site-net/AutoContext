@@ -54,15 +54,20 @@ Steps 1–5 run on activation; step 6 happens at runtime when Copilot calls a to
 
 ## Activation Flow
 
-When the extension activates, the following steps execute synchronously:
+When the extension activates, the following steps execute in two phases:
 
-1. **`WorkspaceServerManager.start()`** — spawns `SharpPilot.WorkspaceServer` in named-pipe mode (see [Projects](#projects)). Each VS Code window gets its own pipe (`sharppilot-workspace-<random>`) and its own server process, so multiple windows are fully isolated. The pipe name is injected into every MCP server definition via `--workspace-server`.
-2. **`McpToolsConfigWriter.write()`** — reads VS Code settings, writes disabled tool names to `.sharppilot.json` in the workspace root.
-3. **`WorkspaceContextDetector.detect()`** — scans the workspace for project files, `package.json` dependencies, and directory markers. Sets VS Code context keys that control both server registration and instruction injection.
-4. **`ConfigManager.removeOrphanedIds()`** — cleans disabled-instruction IDs from `.sharppilot.json` that no longer match any instruction in the current extension version.
-5. **`InstructionsConfigWriter.removeOrphanedStagingDirs()`** — deletes per-workspace staging directories older than one hour that belong to other VS Code windows.
-6. **`InstructionsConfigWriter.write()`** — normalizes all instruction files into `instructions/.generated/`, stripping `[INSTxxxx]` tag identifiers and removing any individually disabled instruction bullets. Copilot always reads from the normalized output, so neither tags nor disabled content are visible to the model.
-7. **`logDiagnostics()`** — parses every instruction file and logs warnings (e.g., missing `[INSTxxxx]` IDs) to the **SharpPilot** Output channel.
+**Phase 1 — `WorkspaceServerManager.start()`** — spawns `SharpPilot.WorkspaceServer` in named-pipe mode (see [Projects](#projects)). Each VS Code window gets its own pipe (`sharppilot-workspace-<random>`) and its own server process, so multiple windows are fully isolated. The pipe name is injected into every MCP server definition via `--workspace-server`.
+
+**Phase 2 (parallel)** — the following four operations run concurrently via `Promise.all()`:
+
+- **`WorkspaceContextDetector.detect()`** — scans the workspace for project files, `package.json` dependencies, and directory markers. Sets VS Code context keys that control both server registration and instruction injection.
+- **`McpToolsConfigWriter.write()`** — reads VS Code settings, writes disabled tool names to `.sharppilot.json` in the workspace root.
+- **`InstructionsConfigWriter.removeOrphanedStagingDirs()`** — deletes per-workspace staging directories older than one hour that belong to other VS Code windows.
+- **`ConfigManager.removeOrphanedIds()`** — cleans disabled-instruction IDs from `.sharppilot.json` that no longer match any instruction in the current extension version.
+
+**Phase 3 — `InstructionsConfigWriter.write()`** — normalizes all instruction files into `instructions/.generated/`, stripping `[INSTxxxx]` tag identifiers and removing any individually disabled instruction bullets. Copilot always reads from the normalized output, so neither tags nor disabled content are visible to the model. Runs after phase 2 completes because it depends on workspace detection and config state.
+
+**Phase 4 — `logDiagnostics()`** — parses every instruction file and logs warnings (e.g., missing `[INSTxxxx]` IDs) to the **SharpPilot** Output channel.
 
 ## Runtime Flow
 
