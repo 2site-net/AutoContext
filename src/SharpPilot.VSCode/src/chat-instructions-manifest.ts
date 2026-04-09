@@ -1,5 +1,13 @@
-// Builds the chatInstructions manifest from the instructions catalog.
+// Builds the chatInstructions manifest from the instructions catalog and writes
+// it to the contributes.chatInstructions field in package.json.
 // Self-executable: tsx src/chat-instructions-manifest.ts
+//
+// Example output:
+//   { "path": "./instructions/copilot.instructions.md" },
+//   { "path": "./instructions/.generated/code-review.instructions.md",
+//     "when": "config.sharppilot.instructions.codeReview && !sharppilot.override.codeReview" },
+//   { "path": "./instructions/.generated/testing.instructions.md",
+//     "when": "config.sharppilot.instructions.testing && (sharppilot.workspace.hasDotNetTesting || sharppilot.workspace.hasWebTesting) && !sharppilot.override.testing" }
 
 import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
