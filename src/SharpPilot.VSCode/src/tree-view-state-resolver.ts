@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { ContextKeys } from './context-keys.js';
-import { TreeViewNodeState } from './ui-constants.js';
+import { TreeViewNodeState } from './tree-view-node-state.js';
 import type { CatalogEntry } from './types/catalog-entry.js';
 import type { WorkspaceContextDetector } from './workspace-context-detector.js';
 
@@ -26,14 +26,5 @@ export class TreeViewStateResolver {
         }
 
         return TreeViewNodeState.Enabled;
-    }
-
-    isActive(state: TreeViewNodeState): boolean {
-        return state === TreeViewNodeState.Enabled
-            || state === TreeViewNodeState.Overridden;
-    }
-
-    countActive(states: readonly TreeViewNodeState[]): number {
-        return states.filter(s => this.isActive(s)).length;
     }
 }

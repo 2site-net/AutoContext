@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import type { McpToolsCatalog } from './mcp-tools-catalog.js';
-import { mcpToolGroupOrder, mcpToolCategoryOrder, viewIds, TreeViewNodeState, treeViewStateSortOrder, treeViewLabels } from './ui-constants.js';
+import { TreeViewNodeState } from './tree-view-node-state.js';
+import { mcpToolGroupOrder, mcpToolCategoryOrder, viewIds, treeViewLabels } from './ui-constants.js';
 import type { WorkspaceContextDetector } from './workspace-context-detector.js';
 import type { TreeViewStateResolver } from './tree-view-state-resolver.js';
 import type { TreeViewTooltip } from './tree-view-tooltip.js';
@@ -55,7 +56,7 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
     private updateDescription(): void {
         const config = vscode.workspace.getConfiguration();
         const states = this.catalog.all.map(e => this.stateResolver.resolve(e, config));
-        this.treeView.description = this.tooltip.description(this.stateResolver.countActive(states), this.catalog.count);
+        this.treeView.description = this.tooltip.description(states.filter(s => s.isActive()).length, this.catalog.count);
     }
 
     getTreeItem(element: TreeElement): vscode.TreeItem {
@@ -169,7 +170,7 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
     private getVisibleFeatures(node: McpToolsTreeNode): McpToolsTreeFeatureNode[] {
         return [...node.features]
             .filter(n => this._showNotDetected || n.state !== TreeViewNodeState.NotDetected)
-            .sort((a, b) => treeViewStateSortOrder[a.state] - treeViewStateSortOrder[b.state]);
+            .sort((a, b) => a.state.sortOrder - b.state.sortOrder);
     }
 
     private countActive(tools: readonly McpToolsTreeNode[]): number {
@@ -181,14 +182,14 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
                 states.push(t.leafState);
             }
         }
-        return this.stateResolver.countActive(states);
+        return states.filter(s => s.isActive()).length;
     }
 
     private checkboxForParent(features: readonly McpToolsTreeFeatureNode[]): vscode.TreeItemCheckboxState | undefined {
         const detected = features.filter(t => t.state !== TreeViewNodeState.NotDetected);
         if (detected.length === 0) { return undefined; }
 
-        return detected.every(t => this.stateResolver.isActive(t.state))
+        return detected.every(t => t.state.isActive())
             ? vscode.TreeItemCheckboxState.Checked
             : vscode.TreeItemCheckboxState.Unchecked;
     }
@@ -217,7 +218,7 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
         const item = new vscode.TreeItem(node.toolName, vscode.TreeItemCollapsibleState.Expanded);
         item.contextValue = 'mcpTool';
         item.checkboxState = this.checkboxForParent(node.features);
-        const active = this.stateResolver.countActive(node.features.map(f => f.state));
+        const active = node.features.filter(f => f.state.isActive()).length;
         item.tooltip = this.tooltip.container(node.toolName, active, node.features.length);
         return item;
     }
@@ -233,7 +234,7 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
             item.iconPath = new vscode.ThemeIcon('circle-slash', new vscode.ThemeColor('disabledForeground'));
             item.description = treeViewLabels.notDetected;
         } else {
-            item.checkboxState = this.stateResolver.isActive(state)
+            item.checkboxState = state.isActive()
                 ? vscode.TreeItemCheckboxState.Checked
                 : vscode.TreeItemCheckboxState.Unchecked;
         }
@@ -249,7 +250,7 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
             item.iconPath = new vscode.ThemeIcon('circle-slash', new vscode.ThemeColor('disabledForeground'));
             item.description = treeViewLabels.notDetected;
         } else {
-            item.checkboxState = this.stateResolver.isActive(node.state)
+            item.checkboxState = node.state.isActive()
                 ? vscode.TreeItemCheckboxState.Checked
                 : vscode.TreeItemCheckboxState.Unchecked;
         }

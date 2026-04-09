@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import type { InstructionsCatalog } from './instructions-catalog.js';
-import { instructionsCategoryOrder, viewIds, contextKeys, TreeViewNodeState, treeViewStateSortOrder, treeViewLabels } from './ui-constants.js';
+import { TreeViewNodeState } from './tree-view-node-state.js';
+import { instructionsCategoryOrder, viewIds, contextKeys, treeViewLabels } from './ui-constants.js';
 import { instructionScheme } from './instructions-content-provider.js';
 import type { WorkspaceContextDetector } from './workspace-context-detector.js';
 import type { InstructionsCatalogEntry } from './instructions-catalog-entry.js';
@@ -66,7 +67,7 @@ export class InstructionsTreeProvider implements vscode.TreeDataProvider<TreeEle
         const config = vscode.workspace.getConfiguration();
         const overrides = this.detector.getOverriddenSettingIds();
         const states = this.catalog.all.map(e => this.stateResolver.resolve(e, config, overrides));
-        this.treeView.description = this.tooltip.description(this.stateResolver.countActive(states), this.catalog.count);
+        this.treeView.description = this.tooltip.description(states.filter(s => s.isActive()).length, this.catalog.count);
     }
 
     getTreeItem(element: TreeElement): vscode.TreeItem {
@@ -127,13 +128,13 @@ export class InstructionsTreeProvider implements vscode.TreeDataProvider<TreeEle
                 state: this.stateResolver.resolve(entry, config, overrides),
             }))
             .filter(n => this._showNotDetected || n.state !== TreeViewNodeState.NotDetected)
-            .sort((a, b) => treeViewStateSortOrder[a.state] - treeViewStateSortOrder[b.state]);
+            .sort((a, b) => a.state.sortOrder - b.state.sortOrder);
     }
 
     private categoryItem(node: InstructionsTreeCategoryNode): vscode.TreeItem {
         const item = new vscode.TreeItem(node.name, vscode.TreeItemCollapsibleState.Expanded);
         item.contextValue = 'category';
-        const active = this.stateResolver.countActive(node.children.map(n => n.state));
+        const active = node.children.filter(n => n.state.isActive()).length;
         const total = this.catalog.all.filter(e => e.category === node.name).length;
         item.tooltip = this.tooltip.container(node.name, active, total);
         return item;
@@ -141,7 +142,7 @@ export class InstructionsTreeProvider implements vscode.TreeDataProvider<TreeEle
 
     private instructionItem(node: InstructionsTreeNode): vscode.TreeItem {
         const item = new vscode.TreeItem(node.entry.label, vscode.TreeItemCollapsibleState.None);
-        item.contextValue = `instruction.${node.state}`;
+        item.contextValue = `instruction.${node.state.value}`;
 
         switch (node.state) {
             case TreeViewNodeState.Enabled:
@@ -159,11 +160,8 @@ export class InstructionsTreeProvider implements vscode.TreeDataProvider<TreeEle
                 item.iconPath = new vscode.ThemeIcon('file-symlink-file', new vscode.ThemeColor('terminal.ansiYellow'));
                 item.description = treeViewLabels.overridden;
                 break;
-            default: {
-                const _: never = node.state;
-                void _;
-                break;
-            }
+            default:
+                node.state.throwIfUnknown();
         }
 
         if (this._exportMode && (node.state === TreeViewNodeState.Enabled || node.state === TreeViewNodeState.Disabled)) {

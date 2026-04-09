@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { __setConfigStore, TreeItemCollapsibleState, TreeItemCheckboxState, workspace, ConfigurationTarget, window } from './__mocks__/vscode';
 import { McpToolsTreeProvider } from '../../src/mcp-tools-tree-provider';
-import { TreeViewNodeState } from '../../src/ui-constants';
+import { TreeViewNodeState } from '../../src/tree-view-node-state';
 import { McpToolsCatalog } from '../../src/mcp-tools-catalog';
 import { mcpTools } from '../../src/ui-constants';
 import { TreeViewStateResolver } from '../../src/tree-view-state-resolver';

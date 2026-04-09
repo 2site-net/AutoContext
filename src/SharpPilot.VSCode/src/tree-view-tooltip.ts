@@ -1,4 +1,5 @@
-import { TreeViewNodeState, treeViewLabels } from './ui-constants.js';
+import { TreeViewNodeState } from './tree-view-node-state.js';
+import { treeViewLabels } from './ui-constants.js';
 
 export type TreeViewKind = 'instructions' | 'tools';
 
@@ -37,6 +38,8 @@ export class TreeViewTooltip {
                 return treeViewLabels.notDetectedTooltip;
             case TreeViewNodeState.Overridden:
                 return treeViewLabels.overriddenTooltip;
+            default:
+                state.throwIfUnknown();
         }
     }
 }

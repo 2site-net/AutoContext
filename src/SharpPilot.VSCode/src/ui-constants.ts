@@ -148,26 +148,6 @@ export const mcpServers: readonly McpServerEntry[] = [
     { label: 'SharpPilot: TypeScript', category: 'typescript', process: 'web', contextKey: 'hasTypeScript' },
 ];
 
-// ── Tree View States ─────────────────────────────────────────────────
-
-export const TreeViewNodeState = {
-    Enabled: 'enabled',
-    Disabled: 'disabled',
-    NotDetected: 'notDetected',
-    Overridden: 'overridden',
-} as const;
-
-export type TreeViewNodeState = typeof TreeViewNodeState[keyof typeof TreeViewNodeState];
-
-// Numeric sort order for tree-view nodes: lower values appear first.
-// Enabled & Overridden items float to the top; NotDetected sinks to the bottom.
-export const treeViewStateSortOrder: Record<TreeViewNodeState, number> = {
-    [TreeViewNodeState.Enabled]: 0,
-    [TreeViewNodeState.Overridden]: 1,
-    [TreeViewNodeState.Disabled]: 2,
-    [TreeViewNodeState.NotDetected]: 3,
-};
-
 // ── Tree View Labels ─────────────────────────────────────────────────
 
 export const treeViewLabels = {

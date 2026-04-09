@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { __setConfigStore, TreeItemCollapsibleState, TreeItemCheckboxState, workspace, ConfigurationTarget, commands, Uri, window } from './__mocks__/vscode';
 import { InstructionsTreeProvider } from '../../src/instructions-tree-provider';
 import type { InstructionsTreeNode } from '../../src/types/instructions-tree-node';
-import { TreeViewNodeState } from '../../src/ui-constants';
+import { TreeViewNodeState } from '../../src/tree-view-node-state';
 import { InstructionsCatalog } from '../../src/instructions-catalog';
 import { instructionsFiles, contextKeys } from '../../src/ui-constants';
 import { TreeViewStateResolver } from '../../src/tree-view-state-resolver';
