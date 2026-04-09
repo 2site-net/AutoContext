@@ -5,27 +5,27 @@ import type { InstructionsFileEntry } from './types/instructions-file-entry.js';
 // ── Extension identifiers ────────────────────────────────────────────
 
 export const commandIds = {
-    AutoConfigure: 'sharppilot.autoConfigure',
-    ShowNotDetected: 'sharppilot.showNotDetected',
-    HideNotDetected: 'sharppilot.hideNotDetected',
-    ToggleInstruction: 'sharppilot.toggleInstruction',
-    ResetInstructions: 'sharppilot.resetInstructions',
-    EnableInstruction: 'sharppilot.enableInstruction',
-    DisableInstruction: 'sharppilot.disableInstruction',
-    DeleteOverride: 'sharppilot.deleteOverride',
-    ShowOriginal: 'sharppilot.showOriginal',
-    EnterExportMode: 'sharppilot.enterExportMode',
-    ConfirmExport: 'sharppilot.confirmExport',
-    CancelExport: 'sharppilot.cancelExport',
+    AutoConfigure: 'sharppilot.auto-configure',
+    ShowNotDetected: 'sharppilot.show-not-detected',
+    HideNotDetected: 'sharppilot.hide-not-detected',
+    ToggleInstruction: 'sharppilot.toggle-instruction',
+    ResetInstructions: 'sharppilot.reset-instructions',
+    EnableInstruction: 'sharppilot.enable-instruction',
+    DisableInstruction: 'sharppilot.disable-instruction',
+    DeleteOverride: 'sharppilot.delete-override',
+    ShowOriginal: 'sharppilot.show-original',
+    EnterExportMode: 'sharppilot.enter-export-mode',
+    ConfirmExport: 'sharppilot.confirm-export',
+    CancelExport: 'sharppilot.cancel-export',
 } as const;
 
 export const viewIds = {
-    Instructions: 'sharppilot.instructionsView',
-    Tools: 'sharppilot.toolsView',
+    Instructions: 'sharppilot.instructions-view',
+    Tools: 'sharppilot.mcp-tools-view',
 } as const;
 
 export const contextKeys = {
-    ExportMode: 'sharppilot.exportMode',
+    ExportMode: 'sharppilot.export-mode',
 } as const;
 
 // ── Instructions ─────────────────────────────────────────────────────

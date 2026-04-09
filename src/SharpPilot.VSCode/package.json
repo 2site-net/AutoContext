@@ -48,12 +48,12 @@
     "views": {
       "sharppilot": [
         {
-          "id": "sharppilot.instructionsView",
+          "id": "sharppilot.instructions-view",
           "name": "Instructions",
           "when": "workspaceFolderCount > 0"
         },
         {
-          "id": "sharppilot.toolsView",
+          "id": "sharppilot.mcp-tools-view",
           "name": "MCP Tools",
           "when": "workspaceFolderCount > 0"
         }
@@ -61,70 +61,70 @@
     },
     "commands": [
       {
-        "command": "sharppilot.autoConfigure",
+        "command": "sharppilot.auto-configure",
         "title": "Auto Configure",
         "category": "SharpPilot"
       },
       {
-        "command": "sharppilot.toggleInstruction",
+        "command": "sharppilot.toggle-instruction",
         "title": "Toggle Instruction",
         "category": "SharpPilot"
       },
       {
-        "command": "sharppilot.resetInstructions",
+        "command": "sharppilot.reset-instructions",
         "title": "Reset Instructions",
         "category": "SharpPilot"
       },
       {
-        "command": "sharppilot.enableInstruction",
+        "command": "sharppilot.enable-instruction",
         "title": "Enable Instruction",
         "category": "SharpPilot",
         "icon": "$(check)"
       },
       {
-        "command": "sharppilot.disableInstruction",
+        "command": "sharppilot.disable-instruction",
         "title": "Disable Instruction",
         "category": "SharpPilot",
         "icon": "$(close)"
       },
       {
-        "command": "sharppilot.enterExportMode",
+        "command": "sharppilot.enter-export-mode",
         "title": "Export Instructions",
         "category": "SharpPilot",
         "icon": "$(export)"
       },
       {
-        "command": "sharppilot.confirmExport",
+        "command": "sharppilot.confirm-export",
         "title": "Confirm Export",
         "category": "SharpPilot",
         "icon": "$(check)"
       },
       {
-        "command": "sharppilot.cancelExport",
+        "command": "sharppilot.cancel-export",
         "title": "Cancel Export",
         "category": "SharpPilot",
         "icon": "$(close)"
       },
       {
-        "command": "sharppilot.deleteOverride",
+        "command": "sharppilot.delete-override",
         "title": "Delete Override",
         "category": "SharpPilot",
         "icon": "$(trash)"
       },
       {
-        "command": "sharppilot.showOriginal",
+        "command": "sharppilot.show-original",
         "title": "Show Original",
         "category": "SharpPilot",
         "icon": "$(eye)"
       },
       {
-        "command": "sharppilot.showNotDetected",
+        "command": "sharppilot.show-not-detected",
         "title": "Show Not Detected",
         "category": "SharpPilot",
         "icon": "$(eye)"
       },
       {
-        "command": "sharppilot.hideNotDetected",
+        "command": "sharppilot.hide-not-detected",
         "title": "Hide Not Detected",
         "category": "SharpPilot",
         "icon": "$(eye-closed)"
@@ -133,94 +133,94 @@
     "menus": {
       "commandPalette": [
         {
-          "command": "sharppilot.toggleInstruction",
+          "command": "sharppilot.toggle-instruction",
           "when": "false"
         },
         {
-          "command": "sharppilot.resetInstructions",
+          "command": "sharppilot.reset-instructions",
           "when": "false"
         },
         {
-          "command": "sharppilot.enableInstruction",
+          "command": "sharppilot.enable-instruction",
           "when": "false"
         },
         {
-          "command": "sharppilot.disableInstruction",
+          "command": "sharppilot.disable-instruction",
           "when": "false"
         },
         {
-          "command": "sharppilot.enterExportMode",
+          "command": "sharppilot.enter-export-mode",
           "when": "false"
         },
         {
-          "command": "sharppilot.confirmExport",
+          "command": "sharppilot.confirm-export",
           "when": "false"
         },
         {
-          "command": "sharppilot.cancelExport",
+          "command": "sharppilot.cancel-export",
           "when": "false"
         },
         {
-          "command": "sharppilot.deleteOverride",
+          "command": "sharppilot.delete-override",
           "when": "false"
         },
         {
-          "command": "sharppilot.showOriginal",
+          "command": "sharppilot.show-original",
           "when": "false"
         },
         {
-          "command": "sharppilot.showNotDetected",
+          "command": "sharppilot.show-not-detected",
           "when": "false"
         },
         {
-          "command": "sharppilot.hideNotDetected",
+          "command": "sharppilot.hide-not-detected",
           "when": "false"
         }
       ],
       "view/title": [
         {
-          "command": "sharppilot.hideNotDetected",
-          "when": "(view == 'sharppilot.instructionsView' || view == 'sharppilot.toolsView') && sharppilot.showNotDetected"
+          "command": "sharppilot.hide-not-detected",
+          "when": "(view == 'sharppilot.instructions-view' || view == 'sharppilot.mcp-tools-view') && sharppilot.show-not-detected"
         },
         {
-          "command": "sharppilot.showNotDetected",
-          "when": "(view == 'sharppilot.instructionsView' || view == 'sharppilot.toolsView') && !sharppilot.showNotDetected"
+          "command": "sharppilot.show-not-detected",
+          "when": "(view == 'sharppilot.instructions-view' || view == 'sharppilot.mcp-tools-view') && !sharppilot.show-not-detected"
         },
         {
-          "command": "sharppilot.enterExportMode",
-          "when": "view == 'sharppilot.instructionsView' && !sharppilot.exportMode",
+          "command": "sharppilot.enter-export-mode",
+          "when": "view == 'sharppilot.instructions-view' && !sharppilot.export-mode",
           "group": "navigation@2"
         },
         {
-          "command": "sharppilot.confirmExport",
-          "when": "view == 'sharppilot.instructionsView' && sharppilot.exportMode",
+          "command": "sharppilot.confirm-export",
+          "when": "view == 'sharppilot.instructions-view' && sharppilot.export-mode",
           "group": "navigation@2"
         },
         {
-          "command": "sharppilot.cancelExport",
-          "when": "view == 'sharppilot.instructionsView' && sharppilot.exportMode",
+          "command": "sharppilot.cancel-export",
+          "when": "view == 'sharppilot.instructions-view' && sharppilot.export-mode",
           "group": "navigation@3"
         }
       ],
       "view/item/context": [
         {
-          "command": "sharppilot.enableInstruction",
-          "when": "viewItem == 'instruction.disabled' && !sharppilot.exportMode",
+          "command": "sharppilot.enable-instruction",
+          "when": "viewItem == 'instruction.disabled' && !sharppilot.export-mode",
           "group": "inline"
         },
         {
-          "command": "sharppilot.disableInstruction",
-          "when": "viewItem == 'instruction.enabled' && !sharppilot.exportMode",
+          "command": "sharppilot.disable-instruction",
+          "when": "viewItem == 'instruction.enabled' && !sharppilot.export-mode",
           "group": "inline"
         },
         {
-          "command": "sharppilot.showOriginal",
-          "when": "viewItem == 'instruction.overridden' && !sharppilot.exportMode",
+          "command": "sharppilot.show-original",
+          "when": "viewItem == 'instruction.overridden' && !sharppilot.export-mode",
           "group": "inline@1"
         },
         {
-          "command": "sharppilot.deleteOverride",
-          "when": "viewItem == 'instruction.overridden' && !sharppilot.exportMode",
+          "command": "sharppilot.delete-override",
+          "when": "viewItem == 'instruction.overridden' && !sharppilot.export-mode",
           "group": "inline@2"
         }
       ]
@@ -540,7 +540,7 @@
     ],
     "walkthroughs": [
       {
-        "id": "sharppilot.getStarted",
+        "id": "sharppilot.get-started",
         "title": "Get Started with SharpPilot",
         "description": "Learn how SharpPilot enhances GitHub Copilot with curated instructions and MCP tools.",
         "steps": [
@@ -555,45 +555,45 @@
           {
             "id": "sharppilot.instructions",
             "title": "Chat Instructions",
-            "description": "Enable instruction sets that guide Copilot's responses for your tech stack.\n[Open Instructions Panel](command:sharppilot.instructionsView.focus)",
+            "description": "Enable instruction sets that guide Copilot's responses for your tech stack.\n[Open Instructions Panel](command:sharppilot.instructions-view.focus)",
             "media": {
               "markdown": "walkthroughs/instructions.md"
             },
             "completionEvents": [
-              "onView:sharppilot.instructionsView"
+              "onView:sharppilot.instructions-view"
             ]
           },
           {
-            "id": "sharppilot.tools",
+            "id": "sharppilot.mcp-tools",
             "title": "MCP Tools",
-            "description": "Enable quality-assurance tools that Copilot can call in agent mode.\n[Open Tools Panel](command:sharppilot.toolsView.focus)",
+            "description": "Enable quality-assurance tools that Copilot can call in agent mode.\n[Open Tools Panel](command:sharppilot.mcp-tools-view.focus)",
             "media": {
               "markdown": "walkthroughs/tools.md"
             },
             "completionEvents": [
-              "onView:sharppilot.toolsView"
+              "onView:sharppilot.mcp-tools-view"
             ]
           },
           {
-            "id": "sharppilot.autoConfigure",
+            "id": "sharppilot.auto-configure",
             "title": "Auto Configure",
-            "description": "Let SharpPilot detect your workspace and enable the right instructions and tools.\n[Auto Configure](command:sharppilot.autoConfigure)",
+            "description": "Let SharpPilot detect your workspace and enable the right instructions and tools.\n[Auto Configure](command:sharppilot.auto-configure)",
             "media": {
               "markdown": "walkthroughs/auto-configure.md"
             },
             "completionEvents": [
-              "onCommand:sharppilot.autoConfigure"
+              "onCommand:sharppilot.auto-configure"
             ]
           },
           {
-            "id": "sharppilot.exportAndBrowse",
+            "id": "sharppilot.export-and-browse",
             "title": "Export & Browse",
-            "description": "Export instruction files to your repository using the sidebar panel.\n[Open Instructions Panel](command:sharppilot.instructionsView.focus)",
+            "description": "Export instruction files to your repository using the sidebar panel.\n[Open Instructions Panel](command:sharppilot.instructions-view.focus)",
             "media": {
               "markdown": "walkthroughs/export-and-browse.md"
             },
             "completionEvents": [
-              "onCommand:sharppilot.enterExportMode"
+              "onCommand:sharppilot.enter-export-mode"
             ]
           }
         ]

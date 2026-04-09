@@ -21,7 +21,7 @@ suite('CodeLens Provider Smoke Tests', () => {
 
         const lenses = await exports.codeLensProvider.provideCodeLenses(doc);
 
-        const validCommands = ['sharppilot.toggleInstruction', 'sharppilot.resetInstructions'];
+        const validCommands = ['sharppilot.toggle-instruction', 'sharppilot.reset-instructions'];
         const invalid = lenses.filter((l: vscode.CodeLens) => !validCommands.includes((l.command as { command: string }).command));
 
         assert.strictEqual(invalid.length, 0, `Unexpected commands: ${invalid.map((l: vscode.CodeLens) => (l.command as { command: string }).command).join(', ')}`);

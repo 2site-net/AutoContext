@@ -23,4 +23,4 @@ When you disable a feature, it is recorded in `.sharppilot.json` at your workspa
 
 Use the SharpPilot sidebar to enable or disable individual tools. Tools are organized under platform, category, and tool headers — checking an MCP tool toggles all its features at once. Use the `…` menu on the panel header to show or hide items that are not detected in your workspace.
 
-[Open Tools Panel](command:sharppilot.toolsView.focus)
+[Open Tools Panel](command:sharppilot.mcp-tools-view.focus)

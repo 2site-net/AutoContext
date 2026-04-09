@@ -22,6 +22,6 @@ The Instructions and MCP Tools panels in the SharpPilot activity bar show the en
 
 Open a workspace with your project, then run:
 
-[Auto Configure](command:sharppilot.autoConfigure)
+[Auto Configure](command:sharppilot.auto-configure)
 
 You can always fine-tune the result afterwards from the sidebar panels.

@@ -6,7 +6,7 @@ Export instruction files into your workspace at `.github/instructions/`. This is
 
 Open the Instructions Panel, click the export icon in the panel header to enter export mode, check the instructions you want to export, then confirm. If a file already exists at the target path, you can choose to **Overwrite** or **Skip**.
 
-[Open Instructions Panel](command:sharppilot.instructionsView.focus)
+[Open Instructions Panel](command:sharppilot.instructions-view.focus)
 
 ### Exported instructions
 

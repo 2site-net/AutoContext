@@ -124,7 +124,7 @@ suite('Instructions Tree View Smoke Tests', () => {
             assert.ok(disabled, 'Design Principles should be found');
             assert.strictEqual(disabled.state, 'disabled', 'Should be disabled');
 
-            await vscode.commands.executeCommand('sharppilot.enableInstruction', disabled);
+            await vscode.commands.executeCommand('sharppilot.enable-instruction', disabled);
 
             const value = vscode.workspace.getConfiguration().get<boolean>('sharppilot.instructions.designPrinciples');
             assert.strictEqual(value, true, 'Setting should be true after enable');
@@ -144,7 +144,7 @@ suite('Instructions Tree View Smoke Tests', () => {
         assert.ok(active, 'Should have at least one active instruction');
 
         try {
-            await vscode.commands.executeCommand('sharppilot.disableInstruction', active);
+            await vscode.commands.executeCommand('sharppilot.disable-instruction', active);
 
             const value = vscode.workspace.getConfiguration().get<boolean>(active.entry.settingId);
             assert.strictEqual(value, false, 'Setting should be false after disable');

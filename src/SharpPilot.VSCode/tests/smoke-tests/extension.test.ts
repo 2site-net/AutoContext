@@ -22,16 +22,16 @@ suite('Extension Smoke Tests', () => {
 
         const allCommands = await vscode.commands.getCommands(true);
         const expected = [
-            'sharppilot.autoConfigure',
-            'sharppilot.toggleInstruction',
-            'sharppilot.resetInstructions',
-            'sharppilot.enableInstruction',
-            'sharppilot.disableInstruction',
-            'sharppilot.enterExportMode',
-            'sharppilot.confirmExport',
-            'sharppilot.cancelExport',
-            'sharppilot.showNotDetected',
-            'sharppilot.hideNotDetected',
+            'sharppilot.auto-configure',
+            'sharppilot.toggle-instruction',
+            'sharppilot.reset-instructions',
+            'sharppilot.enable-instruction',
+            'sharppilot.disable-instruction',
+            'sharppilot.enter-export-mode',
+            'sharppilot.confirm-export',
+            'sharppilot.cancel-export',
+            'sharppilot.show-not-detected',
+            'sharppilot.hide-not-detected',
         ];
         const missing = expected.filter(cmd => !allCommands.includes(cmd));
 

@@ -19,7 +19,7 @@ suite('Config Manager Smoke Tests', () => {
     test('toggle should disable an instruction', async () => {
         const { exports } = await activatedExtension();
 
-        await vscode.commands.executeCommand('sharppilot.toggleInstruction', taggedFile, 'INST0001');
+        await vscode.commands.executeCommand('sharppilot.toggle-instruction', taggedFile, 'INST0001');
 
         const disabled = await exports.configManager.getDisabledInstructions(taggedFile);
 
@@ -29,8 +29,8 @@ suite('Config Manager Smoke Tests', () => {
     test('reset should re-enable all instructions for a file', async () => {
         const { exports } = await activatedExtension();
 
-        await vscode.commands.executeCommand('sharppilot.toggleInstruction', taggedFile, 'INST0001');
-        await vscode.commands.executeCommand('sharppilot.resetInstructions', taggedFile);
+        await vscode.commands.executeCommand('sharppilot.toggle-instruction', taggedFile, 'INST0001');
+        await vscode.commands.executeCommand('sharppilot.reset-instructions', taggedFile);
 
         const disabled = await exports.configManager.getDisabledInstructions(taggedFile);
 
