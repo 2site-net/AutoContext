@@ -334,6 +334,10 @@
         "when": "config.sharppilot.instructions.lang.sql && !sharppilot.override.lang.sql"
       },
       {
+        "path": "./instructions/.generated/lang-swift.instructions.md",
+        "when": "config.sharppilot.instructions.lang.swift && sharppilot.workspace.hasSwift && !sharppilot.override.lang.swift"
+      },
+      {
         "path": "./instructions/.generated/lang-typescript.instructions.md",
         "when": "config.sharppilot.instructions.lang.typescript && sharppilot.workspace.hasTypeScript && !sharppilot.override.lang.typescript"
       },
@@ -723,6 +727,11 @@
           "type": "boolean",
           "default": true,
           "description": "Enable SQL guidelines (naming, formatting, query design, indexing, parameters, transactions, NULL handling, performance)."
+        },
+        "sharppilot.instructions.lang.swift": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable Swift coding style rules (naming, optionals, value types, protocols, concurrency, error handling, memory management)."
         },
         "sharppilot.instructions.lang.typescript": {
           "type": "boolean",

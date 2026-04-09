@@ -63,6 +63,7 @@ export const instructionsFiles: readonly InstructionsFileEntry[] = [
     { key: 'lang.rust', fileName: 'lang-rust.instructions.md', label: 'Rust', category: 'Languages', contextKeys: ['hasRust'] },
     { key: 'lang.scala', fileName: 'lang-scala.instructions.md', label: 'Scala', category: 'Languages', contextKeys: ['hasScala'] },
     { key: 'lang.sql', fileName: 'lang-sql.instructions.md', label: 'SQL', category: 'Languages' },
+    { key: 'lang.swift', fileName: 'lang-swift.instructions.md', label: 'Swift', category: 'Languages', contextKeys: ['hasSwift'] },
     { key: 'lang.typescript', fileName: 'lang-typescript.instructions.md', label: 'TypeScript', category: 'Languages', contextKeys: ['hasTypeScript'] },
     { key: 'lang.vbnet', fileName: 'lang-vbnet.instructions.md', label: 'VB.NET', category: 'Languages', contextKeys: ['hasVbNet'] },
     { key: 'lang.yaml', fileName: 'lang-yaml.instructions.md', label: 'YAML', category: 'Languages', contextKeys: ['hasYaml'] },
