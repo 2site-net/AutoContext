@@ -274,4 +274,31 @@ describe('SharpPilotConfigManager', () => {
         expect(parsed["mcp-tools"].disabled).toEqual(['check_csharp_async_patterns']);
         expect.soft(parsed.instructions.disabled['code-review.instructions.md']).toEqual(['INST0001']);
     });
+
+    it('should return cached config on repeated reads without re-reading disk', () => {
+        vi.mocked(readFileSync).mockReturnValue(JSON.stringify({
+            instructions: { disabled: { 'code-review.instructions.md': ['INST0001'] } },
+        }));
+
+        const manager = new SharpPilotConfigManager('/ext', '0.5.0');
+        manager.read();
+        manager.read();
+        manager.read();
+
+        expect.soft(readFileSync).toHaveBeenCalledTimes(1);
+    });
+
+    it('should invalidate cache after writing config', () => {
+        vi.mocked(readFileSync).mockReturnValue('{}');
+
+        const manager = new SharpPilotConfigManager('/ext', '0.5.0');
+        manager.read();
+        manager.toggleInstruction('code-review.instructions.md', 'INST0001');
+
+        // toggleInstruction calls read() (cache hit) then writeConfig() (invalidates).
+        // Next read() should re-read from disk.
+        manager.read();
+
+        expect.soft(readFileSync).toHaveBeenCalledTimes(2);
+    });
 });

@@ -21,6 +21,7 @@ const configFileName = '.sharppilot.json';
 export class SharpPilotConfigManager implements vscode.Disposable {
     private readonly disposables: vscode.Disposable[] = [];
     private readonly didChangeEmitter = new vscode.EventEmitter<void>();
+    private cachedConfig: SharpPilotConfig | undefined;
     readonly onDidChange = this.didChangeEmitter.event;
 
     constructor(
@@ -28,13 +29,22 @@ export class SharpPilotConfigManager implements vscode.Disposable {
         private readonly extensionVersion: string,
     ) {
         const watcher = vscode.workspace.createFileSystemWatcher(`**/${configFileName}`);
-        watcher.onDidChange(() => this.didChangeEmitter.fire());
-        watcher.onDidCreate(() => this.didChangeEmitter.fire());
-        watcher.onDidDelete(() => this.didChangeEmitter.fire());
+        watcher.onDidChange(() => this.invalidate());
+        watcher.onDidCreate(() => this.invalidate());
+        watcher.onDidDelete(() => this.invalidate());
         this.disposables.push(watcher, this.didChangeEmitter);
     }
 
+    private invalidate(): void {
+        this.cachedConfig = undefined;
+        this.didChangeEmitter.fire();
+    }
+
     read(): SharpPilotConfig {
+        if (this.cachedConfig !== undefined) {
+            return this.cachedConfig;
+        }
+
         const path = this.configPath();
         if (!path) {
             return {};
@@ -49,7 +59,8 @@ export class SharpPilotConfigManager implements vscode.Disposable {
                 delete parsed['mcp-tools'];
             }
 
-            return parsed as SharpPilotConfig;
+            this.cachedConfig = parsed as SharpPilotConfig;
+            return this.cachedConfig;
         } catch {
             return {};
         }
@@ -204,6 +215,8 @@ export class SharpPilotConfigManager implements vscode.Disposable {
         if (!path) {
             return;
         }
+
+        this.cachedConfig = undefined;
 
         const isEmpty = !config.instructions && !config.diagnostic && !config.mcpTools;
         if (isEmpty) {
