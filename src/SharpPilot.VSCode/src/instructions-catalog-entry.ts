@@ -1,5 +1,5 @@
-import type { CatalogEntry } from './catalog-entry.js';
-import type { InstructionsFileEntry } from './instructions-file-entry.js';
+import type { CatalogEntry } from './types/catalog-entry.js';
+import type { InstructionsFileEntry } from './types/instructions-file-entry.js';
 
 export class InstructionsCatalogEntry implements CatalogEntry {
     readonly settingId: string;

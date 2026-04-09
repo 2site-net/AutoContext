@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { McpServersCatalog } from '../../src/mcp-servers-catalog';
-import type { McpServerEntry } from '../../src/mcp-server-entry';
+import type { McpServerEntry } from '../../src/types/mcp-server-entry';
 
 const testEntries: readonly McpServerEntry[] = [
     { label: 'Server A', category: 'alpha', process: 'dotnet', contextKey: 'hasAlpha' },

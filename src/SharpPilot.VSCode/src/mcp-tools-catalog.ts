@@ -1,5 +1,5 @@
 import { McpToolsCatalogEntry } from './mcp-tools-catalog-entry.js';
-import type { McpToolsEntry } from './mcp-tools-entry.js';
+import type { McpToolsEntry } from './types/mcp-tools-entry.js';
 
 export class McpToolsCatalog {
     private readonly entries: readonly McpToolsCatalogEntry[];

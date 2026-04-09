@@ -1,4 +1,4 @@
-import type { CatalogEntry } from './catalog-entry.js';
+import type { CatalogEntry } from './types/catalog-entry.js';
 
 export class ContextKeys {
     private static readonly settingIdPrefix = 'sharppilot.instructions.';

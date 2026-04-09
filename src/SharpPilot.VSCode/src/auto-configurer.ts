@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import type { CatalogEntry } from './catalog-entry.js';
+import type { CatalogEntry } from './types/catalog-entry.js';
 import type { InstructionsCatalog } from './instructions-catalog.js';
 import type { McpToolsCatalog } from './mcp-tools-catalog.js';
 import { ContextKeys } from './context-keys.js';

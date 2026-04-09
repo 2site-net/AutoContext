@@ -15,8 +15,8 @@ import { fileURLToPath } from 'node:url';
 import { InstructionsCatalog } from './instructions-catalog.js';
 import { instructionsFiles } from './ui-constants.js';
 import { ContextKeys } from './context-keys.js';
-import type { CatalogEntry } from './catalog-entry.js';
-import type { ChatInstructions } from './chat-instructions.js';
+import type { CatalogEntry } from './types/catalog-entry.js';
+import type { ChatInstructions } from './types/chat-instructions.js';
 
 function buildWhenClause(entry: CatalogEntry): string {
     const parts = [`config.${entry.settingId}`];

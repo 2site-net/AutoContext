@@ -1,5 +1,5 @@
-import type { CatalogEntry } from './catalog-entry.js';
-import type { McpToolsEntry } from './mcp-tools-entry.js';
+import type { CatalogEntry } from './types/catalog-entry.js';
+import type { McpToolsEntry } from './types/mcp-tools-entry.js';
 
 export class McpToolsCatalogEntry implements CatalogEntry {
     readonly settingId: string;

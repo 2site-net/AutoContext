@@ -3,8 +3,8 @@ import { workspace, commands } from './__mocks__/vscode';
 import { WorkspaceContextDetector } from '../../src/workspace-context-detector';
 import { InstructionsCatalog } from '../../src/instructions-catalog';
 import { McpServersCatalog } from '../../src/mcp-servers-catalog';
-import type { McpServerEntry } from '../../src/mcp-server-entry';
-import type { InstructionsFileEntry } from '../../src/instructions-file-entry';
+import type { McpServerEntry } from '../../src/types/mcp-server-entry';
+import type { InstructionsFileEntry } from '../../src/types/instructions-file-entry';
 
 const fakeUri = (p: string) => ({ path: p, scheme: 'file', fsPath: p, toString: () => `file://${p}` });
 

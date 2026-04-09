@@ -4,10 +4,10 @@ import { ContextKeys } from './context-keys.js';
 import { mcpToolGroupOrder, mcpToolCategoryOrder, viewIds, McpToolState, treeViewLabels } from './ui-constants.js';
 import type { WorkspaceContextDetector } from './workspace-context-detector.js';
 import type { McpToolsCatalogEntry } from './mcp-tools-catalog-entry.js';
-import type { TreeViewGroupNode } from './tree-view-group-node.js';
-import type { McpToolsTreeCategoryNode } from './mcp-tools-tree-category-node.js';
-import type { McpToolsTreeNode } from './mcp-tools-tree-node.js';
-import type { McpToolsTreeFeatureNode } from './mcp-tools-tree-feature-node.js';
+import type { TreeViewGroupNode } from './types/tree-view-group-node.js';
+import type { McpToolsTreeCategoryNode } from './types/mcp-tools-tree-category-node.js';
+import type { McpToolsTreeNode } from './types/mcp-tools-tree-node.js';
+import type { McpToolsTreeFeatureNode } from './types/mcp-tools-tree-feature-node.js';
 
 type TreeElement = TreeViewGroupNode | McpToolsTreeCategoryNode | McpToolsTreeNode | McpToolsTreeFeatureNode;
 

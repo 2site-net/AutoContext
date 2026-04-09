@@ -1,8 +1,8 @@
 import { readFileSync, statSync } from 'node:fs';
-import type { InstructionsParsedInstruction } from './instructions-parsed-instruction.js';
-import type { InstructionsDiagnostic } from './instructions-diagnostic.js';
-import type { InstructionsParsedResult } from './instructions-parsed-result.js';
-import type { InstructionsFileParsedResult } from './instructions-file-parsed-result.js';
+import type { InstructionsParsedInstruction } from './types/instructions-parsed-instruction.js';
+import type { InstructionsDiagnostic } from './types/instructions-diagnostic.js';
+import type { InstructionsParsedResult } from './types/instructions-parsed-result.js';
+import type { InstructionsFileParsedResult } from './types/instructions-file-parsed-result.js';
 
 const instructionBulletPattern = /^[-*]\s(?:\[(INST\d{4})\]\s*)?\*\*(Do|Don't)\*\*/;
 const malformedIdPattern = /^[-*]\s\[(?!INST\d{4}\])[^\]]*\]\s*\*\*(Do|Don't)\*\*/;

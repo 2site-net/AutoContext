@@ -5,8 +5,8 @@ import { instructionsCategoryOrder, viewIds, contextKeys, InstructionsState, tre
 import { instructionScheme } from './instructions-content-provider.js';
 import type { WorkspaceContextDetector } from './workspace-context-detector.js';
 import type { InstructionsCatalogEntry } from './instructions-catalog-entry.js';
-import type { InstructionsTreeCategoryNode } from './instructions-tree-category-node.js';
-import type { InstructionsTreeNode } from './instructions-tree-node.js';
+import type { InstructionsTreeCategoryNode } from './types/instructions-tree-category-node.js';
+import type { InstructionsTreeNode } from './types/instructions-tree-node.js';
 
 type TreeElement = InstructionsTreeCategoryNode | InstructionsTreeNode;
 

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { McpToolsCatalog } from '../../src/mcp-tools-catalog';
-import type { McpToolsEntry } from '../../src/mcp-tools-entry';
+import type { McpToolsEntry } from '../../src/types/mcp-tools-entry';
 
 const testEntries: readonly McpToolsEntry[] = [
     { key: 'alpha', label: 'Alpha', category: 'C#', group: '.NET', serverCategory: 'dotnet' },

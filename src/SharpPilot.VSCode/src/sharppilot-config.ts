@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { readFileSync, writeFileSync, unlinkSync } from 'node:fs';
 import { join } from 'node:path';
 import { InstructionsParser } from './instructions-parser.js';
-import type { SharpPilotConfig } from './sharppilot-config-types.js';
+import type { SharpPilotConfig } from './types/sharppilot-config.js';
 
 const configFileName = '.sharppilot.json';
 

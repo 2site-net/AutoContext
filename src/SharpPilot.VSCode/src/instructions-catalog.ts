@@ -1,5 +1,5 @@
 import { InstructionsCatalogEntry } from './instructions-catalog-entry.js';
-import type { InstructionsFileEntry } from './instructions-file-entry.js';
+import type { InstructionsFileEntry } from './types/instructions-file-entry.js';
 
 export class InstructionsCatalog {
     private readonly entries: readonly InstructionsCatalogEntry[];

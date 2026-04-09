@@ -1,6 +1,6 @@
-import type { McpToolsEntry } from './mcp-tools-entry.js';
-import type { McpServerEntry } from './mcp-server-entry.js';
-import type { InstructionsFileEntry } from './instructions-file-entry.js';
+import type { McpToolsEntry } from './types/mcp-tools-entry.js';
+import type { McpServerEntry } from './types/mcp-server-entry.js';
+import type { InstructionsFileEntry } from './types/instructions-file-entry.js';
 
 // ── Extension identifiers ────────────────────────────────────────────
 

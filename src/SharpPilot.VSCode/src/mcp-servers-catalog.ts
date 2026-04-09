@@ -1,4 +1,4 @@
-import type { McpServerEntry } from './mcp-server-entry.js';
+import type { McpServerEntry } from './types/mcp-server-entry.js';
 
 export class McpServersCatalog {
     private readonly entries: readonly McpServerEntry[];
