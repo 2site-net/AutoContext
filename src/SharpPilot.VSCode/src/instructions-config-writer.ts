@@ -125,14 +125,15 @@ export class InstructionsConfigWriter implements vscode.Disposable {
         const dest = join(this.stagingDir, fileName);
 
         let content: string;
+        let parsedResult;
         try {
-            content = readFileSync(src, 'utf-8');
+            ({ content, result: parsedResult } = InstructionsParser.fromFile(src));
         } catch {
             return;
         }
 
         if (disabledIds !== undefined && disabledIds.size > 0) {
-            const { instructions: parsedInstructions } = InstructionsParser.parse(content);
+            const { instructions: parsedInstructions } = parsedResult;
             const lines = content.split('\n');
             const linesToRemove = new Set<number>();
 

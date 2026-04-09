@@ -1,5 +1,4 @@
 import * as vscode from 'vscode';
-import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { InstructionsParser } from './instructions-parser.js';
 import type { InstructionsCatalog } from './instructions-catalog.js';
@@ -48,14 +47,12 @@ export class InstructionsCodeLensProvider implements vscode.CodeLensProvider, vs
 
         const filePath = join(this.extensionPath, 'instructions', fileName);
 
-        let content: string;
+        let instructions;
         try {
-            content = readFileSync(filePath, 'utf-8');
+            ({ result: { instructions } } = InstructionsParser.fromFile(filePath));
         } catch {
             return [];
         }
-
-        const { instructions } = InstructionsParser.parse(content);
         const disabledIds = this.configManager.getDisabledInstructions(fileName);
 
         const lenses: vscode.CodeLens[] = [];

@@ -1,3 +1,5 @@
+import { readFileSync, statSync } from 'node:fs';
+
 export interface ParsedInstruction {
     readonly id: string | undefined;
     readonly text: string;
@@ -22,6 +24,20 @@ const instructionBulletPattern = /^[-*]\s(?:\[(INST\d{4})\]\s*)?\*\*(Do|Don't)\*
 const malformedIdPattern = /^[-*]\s\[(?!INST\d{4}\])[^\]]*\]\s*\*\*(Do|Don't)\*\*/;
 
 export class InstructionsParser {
+    private static readonly fileCache = new Map<string, { mtimeMs: number; content: string; result: ParseResult }>();
+
+    static fromFile(filePath: string): { content: string; result: ParseResult } {
+        const mtimeMs = statSync(filePath).mtimeMs;
+        const cached = this.fileCache.get(filePath);
+        if (cached && cached.mtimeMs === mtimeMs) {
+            return { content: cached.content, result: cached.result };
+        }
+        const content = readFileSync(filePath, 'utf-8');
+        const result = this.parse(content);
+        this.fileCache.set(filePath, { mtimeMs, content, result });
+        return { content, result };
+    }
+
     static parse(content: string): ParseResult {
         const lines = content.split('\n');
         const instructions: ParsedInstruction[] = [];

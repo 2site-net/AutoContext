@@ -1,5 +1,4 @@
 import * as vscode from 'vscode';
-import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { InstructionsCatalog } from './instructions-catalog.js';
 import { InstructionsParser } from './instructions-parser.js';
@@ -11,14 +10,12 @@ export class InstructionsDiagnostics {
         const warnOnMissingId = configManager.read().diagnostic?.warnOnMissingId === true;
 
         for (const entry of catalog.all) {
-            let content: string;
+            let diagnostics;
             try {
-                content = readFileSync(join(extensionPath, 'instructions', entry.fileName), 'utf-8');
+                ({ result: { diagnostics } } = InstructionsParser.fromFile(join(extensionPath, 'instructions', entry.fileName)));
             } catch {
                 continue;
             }
-
-            const { diagnostics } = InstructionsParser.parse(content);
 
             for (const d of diagnostics) {
                 if (d.kind === 'missing-id' && !warnOnMissingId) {

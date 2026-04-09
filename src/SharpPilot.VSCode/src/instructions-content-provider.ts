@@ -1,5 +1,4 @@
 import * as vscode from 'vscode';
-import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { InstructionsParser } from './instructions-parser.js';
 import type { SharpPilotConfigManager } from './sharppilot-config.js';
@@ -26,8 +25,9 @@ export class InstructionsContentProvider implements vscode.TextDocumentContentPr
         const filePath = join(this.extensionPath, 'instructions', fileName);
 
         let content: string;
+        let instructions;
         try {
-            content = readFileSync(filePath, 'utf-8');
+            ({ content, result: { instructions } } = InstructionsParser.fromFile(filePath));
         } catch {
             return `Unable to read instruction file: ${fileName}`;
         }
@@ -37,7 +37,6 @@ export class InstructionsContentProvider implements vscode.TextDocumentContentPr
             return content;
         }
 
-        const { instructions } = InstructionsParser.parse(content);
         const lines = content.split('\n');
 
         // Apply [DISABLED] tags in reverse order to preserve line indices.

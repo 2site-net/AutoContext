@@ -1,5 +1,4 @@
 import * as vscode from 'vscode';
-import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { InstructionsParser } from './instructions-parser.js';
 import { instructionScheme } from './instructions-content-provider.js';
@@ -32,14 +31,12 @@ export class InstructionsDecorationManager implements vscode.Disposable {
         const fileName = editor.document.uri.path;
         const filePath = join(this.extensionPath, 'instructions', fileName);
 
-        let content: string;
+        let instructions;
         try {
-            content = readFileSync(filePath, 'utf-8');
+            ({ result: { instructions } } = InstructionsParser.fromFile(filePath));
         } catch {
             return;
         }
-
-        const { instructions } = InstructionsParser.parse(content);
         const disabledIds = this.configManager.getDisabledInstructions(fileName);
         const ranges: vscode.Range[] = [];
 

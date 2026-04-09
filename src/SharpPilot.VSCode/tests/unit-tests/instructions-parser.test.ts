@@ -1,5 +1,18 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { InstructionsParser } from '../../src/instructions-parser';
+
+import { readFileSync, statSync } from 'node:fs';
+
+vi.mock('node:fs', () => ({
+    readFileSync: vi.fn(),
+    statSync: vi.fn(),
+}));
+
+beforeEach(() => {
+    vi.clearAllMocks();
+    // Clear the static file cache between tests to avoid cross-test pollution.
+    InstructionsParser['fileCache'].clear();
+});
 
 const singleInstructionDoc = `---
 description: "Test"
@@ -204,5 +217,40 @@ Some paragraph.
         const { diagnostics } = InstructionsParser.parse(content);
 
         expect.soft(diagnostics.filter(d => d.kind === 'malformed-id')).toHaveLength(0);
+    });
+});
+
+describe('fromFile', () => {
+    it('should read and parse a file', () => {
+        vi.mocked(statSync).mockReturnValue({ mtimeMs: 1000 } as ReturnType<typeof statSync>);
+        vi.mocked(readFileSync).mockReturnValue(singleInstructionDoc);
+
+        const { content, result } = InstructionsParser.fromFile('/ext/instructions/test.md');
+
+        expect.soft(content).toBe(singleInstructionDoc);
+        expect.soft(result.instructions).toHaveLength(1);
+        expect.soft(result.instructions[0]?.id).toBe('INST0001');
+    });
+
+    it('should return cached result for unchanged file', () => {
+        vi.mocked(statSync).mockReturnValue({ mtimeMs: 1000 } as ReturnType<typeof statSync>);
+        vi.mocked(readFileSync).mockReturnValue(singleInstructionDoc);
+
+        InstructionsParser.fromFile('/ext/instructions/test.md');
+        InstructionsParser.fromFile('/ext/instructions/test.md');
+
+        expect.soft(readFileSync).toHaveBeenCalledTimes(1);
+    });
+
+    it('should re-parse when file mtime changes', () => {
+        vi.mocked(readFileSync).mockReturnValue(singleInstructionDoc);
+
+        vi.mocked(statSync).mockReturnValue({ mtimeMs: 1000 } as ReturnType<typeof statSync>);
+        InstructionsParser.fromFile('/ext/instructions/test.md');
+
+        vi.mocked(statSync).mockReturnValue({ mtimeMs: 2000 } as ReturnType<typeof statSync>);
+        InstructionsParser.fromFile('/ext/instructions/test.md');
+
+        expect.soft(readFileSync).toHaveBeenCalledTimes(2);
     });
 });

@@ -10,12 +10,14 @@ vi.mock('node:fs', () => ({
     readFileSync: vi.fn(),
     writeFileSync: vi.fn(),
     unlinkSync: vi.fn(),
+    statSync: vi.fn(() => ({ mtimeMs: 1 })),
 }));
 
 import { workspace, Uri } from './__mocks__/vscode';
 
 beforeEach(() => {
     vi.clearAllMocks();
+    InstructionsParser['fileCache'].clear();
     workspace.workspaceFolders = [{ uri: { fsPath: '/workspace' } }];
 });
 

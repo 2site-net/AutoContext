@@ -13,6 +13,7 @@ vi.mock('node:fs', () => ({
     readFileSync: vi.fn(),
     writeFileSync: vi.fn(),
     unlinkSync: vi.fn(),
+    statSync: vi.fn(() => ({ mtimeMs: 1 })),
 }));
 
 import { workspace } from './__mocks__/vscode';
@@ -26,6 +27,7 @@ const fakeDetector = {
 beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(fakeDetector.get).mockReset();
+    InstructionsParser['fileCache'].clear();
     workspace.workspaceFolders = [{ uri: { fsPath: '/workspace' } }];
 });
 
