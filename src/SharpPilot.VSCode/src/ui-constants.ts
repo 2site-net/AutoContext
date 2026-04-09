@@ -150,22 +150,23 @@ export const mcpServers: readonly McpServerEntry[] = [
 
 // ── Tree View States ─────────────────────────────────────────────────
 
-export const McpToolState = {
+export const TreeViewNodeState = {
     Enabled: 'enabled',
     Disabled: 'disabled',
     NotDetected: 'notDetected',
-} as const;
-
-export type McpToolState = typeof McpToolState[keyof typeof McpToolState];
-
-export const InstructionsState = {
-    Active: 'active',
-    NotDetected: 'notDetected',
-    Disabled: 'disabled',
     Overridden: 'overridden',
 } as const;
 
-export type InstructionsState = typeof InstructionsState[keyof typeof InstructionsState];
+export type TreeViewNodeState = typeof TreeViewNodeState[keyof typeof TreeViewNodeState];
+
+// Numeric sort order for tree-view nodes: lower values appear first.
+// Enabled & Overridden items float to the top; NotDetected sinks to the bottom.
+export const treeViewStateSortOrder: Record<TreeViewNodeState, number> = {
+    [TreeViewNodeState.Enabled]: 0,
+    [TreeViewNodeState.Overridden]: 1,
+    [TreeViewNodeState.Disabled]: 2,
+    [TreeViewNodeState.NotDetected]: 3,
+};
 
 // ── Tree View Labels ─────────────────────────────────────────────────
 

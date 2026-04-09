@@ -210,7 +210,7 @@
         },
         {
           "command": "sharppilot.disableInstruction",
-          "when": "viewItem == 'instruction.active' && !sharppilot.exportMode",
+          "when": "viewItem == 'instruction.enabled' && !sharppilot.exportMode",
           "group": "inline"
         },
         {

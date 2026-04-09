@@ -1,14 +1,19 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { __setConfigStore, TreeItemCollapsibleState, TreeItemCheckboxState, workspace, ConfigurationTarget, window } from './__mocks__/vscode';
 import { McpToolsTreeProvider } from '../../src/mcp-tools-tree-provider';
-import { McpToolState } from '../../src/ui-constants';
+import { TreeViewNodeState } from '../../src/ui-constants';
 import { McpToolsCatalog } from '../../src/mcp-tools-catalog';
 import { mcpTools } from '../../src/ui-constants';
+import { TreeViewStateResolver } from '../../src/tree-view-state-resolver';
+import { TreeViewTooltip } from '../../src/tree-view-tooltip';
 
 const fakeDetector = {
     get: vi.fn((_key: string) => false),
     onDidDetect: vi.fn(() => ({ dispose: vi.fn() })),
 } as unknown as import('../../src/workspace-context-detector').WorkspaceContextDetector;
+
+const stateResolver = new TreeViewStateResolver(fakeDetector);
+const tooltip = new TreeViewTooltip('tools');
 
 beforeEach(() => {
     vi.clearAllMocks();
@@ -36,7 +41,7 @@ describe('McpToolsTreeProvider', () => {
     }
 
     it('should return group nodes as root elements', () => {
-        const provider = new McpToolsTreeProvider(fakeDetector, catalog);
+        const provider = new McpToolsTreeProvider(fakeDetector, catalog, stateResolver, tooltip);
         const roots = provider.getChildren();
 
         const names = roots.map(r => r.kind === 'group' ? r.name : '');
@@ -46,7 +51,7 @@ describe('McpToolsTreeProvider', () => {
     });
 
     it('should return category nodes as children of a group', () => {
-        const provider = new McpToolsTreeProvider(fakeDetector, catalog);
+        const provider = new McpToolsTreeProvider(fakeDetector, catalog, stateResolver, tooltip);
         const roots = provider.getChildren();
         const dotnet = roots.find(r => r.kind === 'group' && r.name === '.NET')!;
         const categories = provider.getChildren(dotnet);
@@ -58,7 +63,7 @@ describe('McpToolsTreeProvider', () => {
     });
 
     it('should return MCP tool nodes as children of a category', () => {
-        const provider = new McpToolsTreeProvider(fakeDetector, catalog);
+        const provider = new McpToolsTreeProvider(fakeDetector, catalog, stateResolver, tooltip);
         const tools = getMcpTools(provider, '.NET', 'C#');
 
         expect.soft(tools.length).toBe(1);
@@ -69,7 +74,7 @@ describe('McpToolsTreeProvider', () => {
     });
 
     it('should return feature nodes as children of a parent MCP tool', () => {
-        const provider = new McpToolsTreeProvider(fakeDetector, catalog);
+        const provider = new McpToolsTreeProvider(fakeDetector, catalog, stateResolver, tooltip);
         const features = getFeatures(provider, '.NET', 'C#', 'check_csharp_all');
 
         expect.soft(features.length).toBeGreaterThan(0);
@@ -79,7 +84,7 @@ describe('McpToolsTreeProvider', () => {
     });
 
     it('should return empty array for leaf MCP tool children', () => {
-        const provider = new McpToolsTreeProvider(fakeDetector, catalog);
+        const provider = new McpToolsTreeProvider(fakeDetector, catalog, stateResolver, tooltip);
         const tools = getMcpTools(provider, 'Workspace', 'EditorConfig');
         const leaf = tools.find(r => r.kind === 'mcpTool' && r.toolName === 'get_editorconfig')!;
 
@@ -89,7 +94,7 @@ describe('McpToolsTreeProvider', () => {
     });
 
     it('should return empty array for feature node children', () => {
-        const provider = new McpToolsTreeProvider(fakeDetector, catalog);
+        const provider = new McpToolsTreeProvider(fakeDetector, catalog, stateResolver, tooltip);
         const features = getFeatures(provider, '.NET', 'C#', 'check_csharp_all');
 
         expect.soft(provider.getChildren(features[0])).toEqual([]);
@@ -100,10 +105,10 @@ describe('McpToolsTreeProvider', () => {
     it('should mark features as not-detected when context is missing', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(false);
 
-        const provider = new McpToolsTreeProvider(fakeDetector, catalog);
+        const provider = new McpToolsTreeProvider(fakeDetector, catalog, stateResolver, tooltip);
         const features = getFeatures(provider, '.NET', 'C#', 'check_csharp_all');
 
-        expect.soft(features.every(c => c.kind === 'mcpToolFeature' && c.state === McpToolState.NotDetected)).toBe(true);
+        expect.soft(features.every(c => c.kind === 'mcpToolFeature' && c.state === TreeViewNodeState.NotDetected)).toBe(true);
 
         provider.dispose();
     });
@@ -111,10 +116,10 @@ describe('McpToolsTreeProvider', () => {
     it('should mark features as enabled when context is detected and setting is true', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
 
-        const provider = new McpToolsTreeProvider(fakeDetector, catalog);
+        const provider = new McpToolsTreeProvider(fakeDetector, catalog, stateResolver, tooltip);
         const features = getFeatures(provider, '.NET', 'C#', 'check_csharp_all');
 
-        expect.soft(features.every(c => c.kind === 'mcpToolFeature' && c.state === McpToolState.Enabled)).toBe(true);
+        expect.soft(features.every(c => c.kind === 'mcpToolFeature' && c.state === TreeViewNodeState.Enabled)).toBe(true);
 
         provider.dispose();
     });
@@ -123,11 +128,11 @@ describe('McpToolsTreeProvider', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
         __setConfigStore({ 'sharppilot.tools.check_csharp_async_patterns': false });
 
-        const provider = new McpToolsTreeProvider(fakeDetector, catalog);
+        const provider = new McpToolsTreeProvider(fakeDetector, catalog, stateResolver, tooltip);
         const features = getFeatures(provider, '.NET', 'C#', 'check_csharp_all');
 
         const asyncTool = features.find(c => c.kind === 'mcpToolFeature' && c.entry.settingId === 'sharppilot.tools.check_csharp_async_patterns');
-        expect.soft(asyncTool?.kind === 'mcpToolFeature' && asyncTool.state).toBe(McpToolState.Disabled);
+        expect.soft(asyncTool?.kind === 'mcpToolFeature' && asyncTool.state).toBe(TreeViewNodeState.Disabled);
 
         provider.dispose();
     });
@@ -135,7 +140,7 @@ describe('McpToolsTreeProvider', () => {
     it('should show checkbox checked for enabled features', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
 
-        const provider = new McpToolsTreeProvider(fakeDetector, catalog);
+        const provider = new McpToolsTreeProvider(fakeDetector, catalog, stateResolver, tooltip);
         const features = getFeatures(provider, '.NET', 'C#', 'check_csharp_all');
         const item = provider.getTreeItem(features[0]);
 
@@ -148,7 +153,7 @@ describe('McpToolsTreeProvider', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
         __setConfigStore({ 'sharppilot.tools.check_csharp_async_patterns': false });
 
-        const provider = new McpToolsTreeProvider(fakeDetector, catalog);
+        const provider = new McpToolsTreeProvider(fakeDetector, catalog, stateResolver, tooltip);
         const features = getFeatures(provider, '.NET', 'C#', 'check_csharp_all');
         const asyncTool = features.find(c => c.kind === 'mcpToolFeature' && c.entry.settingId === 'sharppilot.tools.check_csharp_async_patterns')!;
         const item = provider.getTreeItem(asyncTool);
@@ -161,7 +166,7 @@ describe('McpToolsTreeProvider', () => {
     it('should not show checkbox for not-detected features', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(false);
 
-        const provider = new McpToolsTreeProvider(fakeDetector, catalog);
+        const provider = new McpToolsTreeProvider(fakeDetector, catalog, stateResolver, tooltip);
         const features = getFeatures(provider, '.NET', 'C#', 'check_csharp_all');
         const item = provider.getTreeItem(features[0]);
 
@@ -172,7 +177,7 @@ describe('McpToolsTreeProvider', () => {
     });
 
     it('should show group items as expanded with contextValue', () => {
-        const provider = new McpToolsTreeProvider(fakeDetector, catalog);
+        const provider = new McpToolsTreeProvider(fakeDetector, catalog, stateResolver, tooltip);
         const roots = provider.getChildren();
         const item = provider.getTreeItem(roots[0]);
 
@@ -183,7 +188,7 @@ describe('McpToolsTreeProvider', () => {
     });
 
     it('should show category items as expanded with contextValue and no checkbox', () => {
-        const provider = new McpToolsTreeProvider(fakeDetector, catalog);
+        const provider = new McpToolsTreeProvider(fakeDetector, catalog, stateResolver, tooltip);
         const roots = provider.getChildren();
         const dotnet = roots.find(r => r.kind === 'group' && r.name === '.NET')!;
         const categories = provider.getChildren(dotnet);
@@ -199,7 +204,7 @@ describe('McpToolsTreeProvider', () => {
     it('should show MCP tool checkbox checked when all features are enabled', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
 
-        const provider = new McpToolsTreeProvider(fakeDetector, catalog);
+        const provider = new McpToolsTreeProvider(fakeDetector, catalog, stateResolver, tooltip);
         const tools = getMcpTools(provider, '.NET', 'C#');
         const item = provider.getTreeItem(tools[0]);
 
@@ -212,7 +217,7 @@ describe('McpToolsTreeProvider', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
         __setConfigStore({ 'sharppilot.tools.check_csharp_async_patterns': false });
 
-        const provider = new McpToolsTreeProvider(fakeDetector, catalog);
+        const provider = new McpToolsTreeProvider(fakeDetector, catalog, stateResolver, tooltip);
         const tools = getMcpTools(provider, '.NET', 'C#');
         const item = provider.getTreeItem(tools[0]);
 
@@ -224,7 +229,7 @@ describe('McpToolsTreeProvider', () => {
     it('should show MCP tool checkbox undefined when all features are not-detected', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(false);
 
-        const provider = new McpToolsTreeProvider(fakeDetector, catalog);
+        const provider = new McpToolsTreeProvider(fakeDetector, catalog, stateResolver, tooltip);
         const tools = getMcpTools(provider, '.NET', 'C#');
         const item = provider.getTreeItem(tools[0]);
 
@@ -234,7 +239,7 @@ describe('McpToolsTreeProvider', () => {
     });
 
     it('should show parent MCP tool as expanded with contextValue', () => {
-        const provider = new McpToolsTreeProvider(fakeDetector, catalog);
+        const provider = new McpToolsTreeProvider(fakeDetector, catalog, stateResolver, tooltip);
         const tools = getMcpTools(provider, '.NET', 'C#');
         const item = provider.getTreeItem(tools[0]);
 
@@ -245,7 +250,7 @@ describe('McpToolsTreeProvider', () => {
     });
 
     it('should show leaf MCP tool as non-collapsible with contextValue', () => {
-        const provider = new McpToolsTreeProvider(fakeDetector, catalog);
+        const provider = new McpToolsTreeProvider(fakeDetector, catalog, stateResolver, tooltip);
         const tools = getMcpTools(provider, 'Workspace', 'EditorConfig');
         const item = provider.getTreeItem(tools[0]);
 
@@ -258,7 +263,7 @@ describe('McpToolsTreeProvider', () => {
     it('should show leaf MCP tool checkbox checked when enabled', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(false);
 
-        const provider = new McpToolsTreeProvider(fakeDetector, catalog);
+        const provider = new McpToolsTreeProvider(fakeDetector, catalog, stateResolver, tooltip);
         const tools = getMcpTools(provider, 'Workspace', 'EditorConfig');
         const item = provider.getTreeItem(tools[0]);
 
@@ -271,12 +276,12 @@ describe('McpToolsTreeProvider', () => {
         vi.mocked(fakeDetector.get).mockImplementation((key: string) => key === 'hasCSharp');
         __setConfigStore({ 'sharppilot.tools.check_csharp_async_patterns': false });
 
-        const provider = new McpToolsTreeProvider(fakeDetector, catalog);
+        const provider = new McpToolsTreeProvider(fakeDetector, catalog, stateResolver, tooltip);
         const features = getFeatures(provider, '.NET', 'C#', 'check_csharp_all');
 
         const states = features.map(c => c.kind === 'mcpToolFeature' ? c.state : '');
-        const enabledIdx = states.indexOf(McpToolState.Enabled);
-        const disabledIdx = states.indexOf(McpToolState.Disabled);
+        const enabledIdx = states.indexOf(TreeViewNodeState.Enabled);
+        const disabledIdx = states.indexOf(TreeViewNodeState.Disabled);
 
         expect.soft(enabledIdx).toBeLessThan(disabledIdx);
 
@@ -286,7 +291,7 @@ describe('McpToolsTreeProvider', () => {
     it('should include tools without context keys as enabled by default', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(false);
 
-        const provider = new McpToolsTreeProvider(fakeDetector, catalog);
+        const provider = new McpToolsTreeProvider(fakeDetector, catalog, stateResolver, tooltip);
         const tools = getMcpTools(provider, 'Workspace', 'EditorConfig');
 
         expect.soft(tools.length).toBe(1);
@@ -299,7 +304,7 @@ describe('McpToolsTreeProvider', () => {
     it('should hide not-detected tools when showNotDetected is false', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(false);
 
-        const provider = new McpToolsTreeProvider(fakeDetector, catalog);
+        const provider = new McpToolsTreeProvider(fakeDetector, catalog, stateResolver, tooltip);
         provider.showNotDetected = false;
 
         const roots = provider.getChildren();
@@ -313,7 +318,7 @@ describe('McpToolsTreeProvider', () => {
     it('should show not-detected tools when showNotDetected is true', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(false);
 
-        const provider = new McpToolsTreeProvider(fakeDetector, catalog);
+        const provider = new McpToolsTreeProvider(fakeDetector, catalog, stateResolver, tooltip);
         provider.showNotDetected = true;
 
         const roots = provider.getChildren();
@@ -326,7 +331,7 @@ describe('McpToolsTreeProvider', () => {
     it('should include state description in tooltip for enabled features', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
 
-        const provider = new McpToolsTreeProvider(fakeDetector, catalog);
+        const provider = new McpToolsTreeProvider(fakeDetector, catalog, stateResolver, tooltip);
         const features = getFeatures(provider, '.NET', 'C#', 'check_csharp_all');
         const enabledItem = provider.getTreeItem(features[0]);
         expect.soft(enabledItem.tooltip).toContain('Enabled');
@@ -338,9 +343,9 @@ describe('McpToolsTreeProvider', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
         __setConfigStore({ 'sharppilot.tools.check_csharp_async_patterns': false });
 
-        const provider = new McpToolsTreeProvider(fakeDetector, catalog);
+        const provider = new McpToolsTreeProvider(fakeDetector, catalog, stateResolver, tooltip);
         const features = getFeatures(provider, '.NET', 'C#', 'check_csharp_all');
-        const disabled = features.find(c => c.kind === 'mcpToolFeature' && c.state === McpToolState.Disabled)!;
+        const disabled = features.find(c => c.kind === 'mcpToolFeature' && c.state === TreeViewNodeState.Disabled)!;
 
         expect.soft(provider.getTreeItem(disabled).tooltip).toContain('Disabled');
 
@@ -350,9 +355,9 @@ describe('McpToolsTreeProvider', () => {
     it('should include state description in tooltip for not-detected features', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(false);
 
-        const provider = new McpToolsTreeProvider(fakeDetector, catalog);
+        const provider = new McpToolsTreeProvider(fakeDetector, catalog, stateResolver, tooltip);
         const features = getFeatures(provider, '.NET', 'C#', 'check_csharp_all');
-        const notDetected = features.find(c => c.kind === 'mcpToolFeature' && c.state === McpToolState.NotDetected)!;
+        const notDetected = features.find(c => c.kind === 'mcpToolFeature' && c.state === TreeViewNodeState.NotDetected)!;
 
         expect.soft(provider.getTreeItem(notDetected).tooltip).toContain('Not detected');
 
@@ -362,7 +367,7 @@ describe('McpToolsTreeProvider', () => {
     it('should include setting ID in feature tooltip', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
 
-        const provider = new McpToolsTreeProvider(fakeDetector, catalog);
+        const provider = new McpToolsTreeProvider(fakeDetector, catalog, stateResolver, tooltip);
         const features = getFeatures(provider, '.NET', 'C#', 'check_csharp_all');
         const item = provider.getTreeItem(features[0]);
 
@@ -374,7 +379,7 @@ describe('McpToolsTreeProvider', () => {
     it('should include feature count in parent MCP tool tooltip', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
 
-        const provider = new McpToolsTreeProvider(fakeDetector, catalog);
+        const provider = new McpToolsTreeProvider(fakeDetector, catalog, stateResolver, tooltip);
         const tools = getMcpTools(provider, '.NET', 'C#');
         const item = provider.getTreeItem(tools[0]);
 
@@ -387,7 +392,7 @@ describe('McpToolsTreeProvider', () => {
     it('should update feature setting when handleCheckboxChange fires for a feature', async () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
 
-        const provider = new McpToolsTreeProvider(fakeDetector, catalog);
+        const provider = new McpToolsTreeProvider(fakeDetector, catalog, stateResolver, tooltip);
         const features = getFeatures(provider, '.NET', 'C#', 'check_csharp_all');
         const asyncTool = features.find(c => c.kind === 'mcpToolFeature' && c.entry.settingId === 'sharppilot.tools.check_csharp_async_patterns')!;
 
@@ -410,7 +415,7 @@ describe('McpToolsTreeProvider', () => {
     it('should update all detected features when handleCheckboxChange fires for a parent MCP tool', async () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
 
-        const provider = new McpToolsTreeProvider(fakeDetector, catalog);
+        const provider = new McpToolsTreeProvider(fakeDetector, catalog, stateResolver, tooltip);
         const tools = getMcpTools(provider, '.NET', 'C#');
         const csharpTool = tools.find(r => r.kind === 'mcpTool' && r.toolName === 'check_csharp_all')!;
 
@@ -437,7 +442,7 @@ describe('McpToolsTreeProvider', () => {
         // hasCSharp=true so C# features are detected; hasTypeScript=false so TypeScript features are not.
         vi.mocked(fakeDetector.get).mockImplementation((key: string) => key === 'hasCSharp');
 
-        const provider = new McpToolsTreeProvider(fakeDetector, catalog);
+        const provider = new McpToolsTreeProvider(fakeDetector, catalog, stateResolver, tooltip);
         const tools = getMcpTools(provider, 'Web', 'TypeScript');
 
         // TypeScript MCP tool: all features are not-detected (hasTypeScript=false)
@@ -466,7 +471,7 @@ describe('McpToolsTreeProvider', () => {
     it('should update leaf MCP tool setting when handleCheckboxChange fires', async () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
 
-        const provider = new McpToolsTreeProvider(fakeDetector, catalog);
+        const provider = new McpToolsTreeProvider(fakeDetector, catalog, stateResolver, tooltip);
         const tools = getMcpTools(provider, 'Workspace', 'EditorConfig');
         const editorConfigTool = tools.find(r => r.kind === 'mcpTool' && r.toolName === 'get_editorconfig')!;
 
@@ -491,7 +496,7 @@ describe('McpToolsTreeProvider', () => {
     it('should show enabled/total count in group tooltip when all detected', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
 
-        const provider = new McpToolsTreeProvider(fakeDetector, catalog);
+        const provider = new McpToolsTreeProvider(fakeDetector, catalog, stateResolver, tooltip);
         const roots = provider.getChildren();
         const dotnet = roots.find(r => r.kind === 'group' && r.name === '.NET')!;
         const item = provider.getTreeItem(dotnet);
@@ -505,7 +510,7 @@ describe('McpToolsTreeProvider', () => {
     it('should show enabled/total count in group tooltip with not-detected entries', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(false);
 
-        const provider = new McpToolsTreeProvider(fakeDetector, catalog);
+        const provider = new McpToolsTreeProvider(fakeDetector, catalog, stateResolver, tooltip);
         const roots = provider.getChildren();
         const workspace = roots.find(r => r.kind === 'group' && r.name === 'Workspace')!;
         const item = provider.getTreeItem(workspace);
@@ -521,7 +526,7 @@ describe('McpToolsTreeProvider', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
         __setConfigStore({ 'sharppilot.tools.check_csharp_async_patterns': false });
 
-        const provider = new McpToolsTreeProvider(fakeDetector, catalog);
+        const provider = new McpToolsTreeProvider(fakeDetector, catalog, stateResolver, tooltip);
         const roots = provider.getChildren();
         const dotnet = roots.find(r => r.kind === 'group' && r.name === '.NET')!;
         const categories = provider.getChildren(dotnet);
@@ -538,7 +543,7 @@ describe('McpToolsTreeProvider', () => {
     it('should show enabled/total count in category tooltip with not-detected entries', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(false);
 
-        const provider = new McpToolsTreeProvider(fakeDetector, catalog);
+        const provider = new McpToolsTreeProvider(fakeDetector, catalog, stateResolver, tooltip);
         const roots = provider.getChildren();
         const dotnet = roots.find(r => r.kind === 'group' && r.name === '.NET')!;
         const categories = provider.getChildren(dotnet);
@@ -555,7 +560,7 @@ describe('McpToolsTreeProvider', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
         __setConfigStore({ 'sharppilot.tools.check_csharp_async_patterns': false });
 
-        const provider = new McpToolsTreeProvider(fakeDetector, catalog);
+        const provider = new McpToolsTreeProvider(fakeDetector, catalog, stateResolver, tooltip);
         const treeView = vi.mocked(window.createTreeView).mock.results.at(-1)!.value;
         const total = catalog.count;
         const enabled = catalog.all.filter(e => e.settingId !== 'sharppilot.tools.check_csharp_async_patterns').length;
@@ -568,7 +573,7 @@ describe('McpToolsTreeProvider', () => {
     it('should exclude not-detected entries from enabled count in description', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(false);
 
-        const provider = new McpToolsTreeProvider(fakeDetector, catalog);
+        const provider = new McpToolsTreeProvider(fakeDetector, catalog, stateResolver, tooltip);
         const treeView = vi.mocked(window.createTreeView).mock.results.at(-1)!.value;
         const total = catalog.count;
         const alwaysOn = catalog.all.filter(e => !e.contextKeys || e.contextKeys.length === 0).length;

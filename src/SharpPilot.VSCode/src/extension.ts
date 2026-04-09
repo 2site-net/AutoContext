@@ -15,6 +15,8 @@ import { InstructionsConfigWriter } from './instructions-config-writer.js';
 import { InstructionsDiagnostics } from './instructions-diagnostics.js';
 import { InstructionsTreeProvider } from './instructions-tree-provider.js';
 import { McpToolsTreeProvider } from './mcp-tools-tree-provider.js';
+import { TreeViewStateResolver } from './tree-view-state-resolver.js';
+import { TreeViewTooltip } from './tree-view-tooltip.js';
 import { McpServerProvider } from './mcp-server-provider.js';
 import { WorkspaceServerManager } from './workspace-server-manager.js';
 
@@ -40,8 +42,9 @@ export async function activate(context: vscode.ExtensionContext) {
     const outputChannel = vscode.window.createOutputChannel('SharpPilot');
     const workspaceServer = new WorkspaceServerManager(context.extensionPath, outputChannel, vscode.workspace.workspaceFolders?.[0]?.uri.fsPath);
     const mcpServerProvider = new McpServerProvider(context.extensionPath, version, workspaceContextDetector, didChangeEmitter.event, workspaceServer, toolsCatalog, serversCatalog);
-    const instructionsTreeProvider = new InstructionsTreeProvider(workspaceContextDetector, instructionsCatalog);
-    const mcpToolsTreeProvider = new McpToolsTreeProvider(workspaceContextDetector, toolsCatalog);
+    const stateResolver = new TreeViewStateResolver(workspaceContextDetector);
+    const instructionsTreeProvider = new InstructionsTreeProvider(workspaceContextDetector, instructionsCatalog, stateResolver, new TreeViewTooltip('instructions'));
+    const mcpToolsTreeProvider = new McpToolsTreeProvider(workspaceContextDetector, toolsCatalog, stateResolver, new TreeViewTooltip('tools'));
 
     const showNotDetected = context.globalState.get<boolean>(commandIds.ShowNotDetected, true);
     instructionsTreeProvider.showNotDetected = showNotDetected;
