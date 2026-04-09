@@ -54,10 +54,8 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
 
     private updateDescription(): void {
         const config = vscode.workspace.getConfiguration();
-        const enabled = this.catalog.all.filter(e =>
-            this.stateResolver.isActive(this.stateResolver.resolve(e, config)),
-        ).length;
-        this.treeView.description = this.tooltip.description(enabled, this.catalog.count);
+        const states = this.catalog.all.map(e => this.stateResolver.resolve(e, config));
+        this.treeView.description = this.tooltip.description(this.stateResolver.countActive(states), this.catalog.count);
     }
 
     getTreeItem(element: TreeElement): vscode.TreeItem {
@@ -174,23 +172,23 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
             .sort((a, b) => treeViewStateSortOrder[a.state] - treeViewStateSortOrder[b.state]);
     }
 
-    private static countEnabled(tools: readonly McpToolsTreeNode[]): number {
-        let enabled = 0;
+    private countActive(tools: readonly McpToolsTreeNode[]): number {
+        const states: TreeViewNodeState[] = [];
         for (const t of tools) {
             if (t.features.length > 0) {
-                enabled += t.features.filter(f => f.state === TreeViewNodeState.Enabled).length;
-            } else if (t.leafState === TreeViewNodeState.Enabled) {
-                enabled += 1;
+                states.push(...t.features.map(f => f.state));
+            } else if (t.leafState) {
+                states.push(t.leafState);
             }
         }
-        return enabled;
+        return this.stateResolver.countActive(states);
     }
 
-    private static checkboxForParent(features: readonly McpToolsTreeFeatureNode[]): vscode.TreeItemCheckboxState | undefined {
+    private checkboxForParent(features: readonly McpToolsTreeFeatureNode[]): vscode.TreeItemCheckboxState | undefined {
         const detected = features.filter(t => t.state !== TreeViewNodeState.NotDetected);
         if (detected.length === 0) { return undefined; }
 
-        return detected.every(t => t.state === TreeViewNodeState.Enabled)
+        return detected.every(t => this.stateResolver.isActive(t.state))
             ? vscode.TreeItemCheckboxState.Checked
             : vscode.TreeItemCheckboxState.Unchecked;
     }
@@ -198,16 +196,16 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
     private groupItem(node: TreeViewGroupNode): vscode.TreeItem {
         const item = new vscode.TreeItem(node.name, vscode.TreeItemCollapsibleState.Expanded);
         item.contextValue = 'group';
-        const enabled = McpToolsTreeProvider.countEnabled(node.children.flatMap(c => c.children));
-        item.tooltip = this.tooltip.container(node.name, enabled, node.totalEntries);
+        const active = this.countActive(node.children.flatMap(c => c.children));
+        item.tooltip = this.tooltip.container(node.name, active, node.totalEntries);
         return item;
     }
 
     private categoryItem(node: McpToolsTreeCategoryNode): vscode.TreeItem {
         const item = new vscode.TreeItem(node.name, vscode.TreeItemCollapsibleState.Expanded);
         item.contextValue = 'category';
-        const enabled = McpToolsTreeProvider.countEnabled(node.children);
-        item.tooltip = this.tooltip.container(node.name, enabled, node.totalEntries);
+        const active = this.countActive(node.children);
+        item.tooltip = this.tooltip.container(node.name, active, node.totalEntries);
         return item;
     }
 
@@ -218,9 +216,9 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
 
         const item = new vscode.TreeItem(node.toolName, vscode.TreeItemCollapsibleState.Expanded);
         item.contextValue = 'mcpTool';
-        item.checkboxState = McpToolsTreeProvider.checkboxForParent(node.features);
-        const enabled = node.features.filter(f => f.state === TreeViewNodeState.Enabled).length;
-        item.tooltip = this.tooltip.container(node.toolName, enabled, node.features.length);
+        item.checkboxState = this.checkboxForParent(node.features);
+        const active = this.stateResolver.countActive(node.features.map(f => f.state));
+        item.tooltip = this.tooltip.container(node.toolName, active, node.features.length);
         return item;
     }
 
@@ -235,7 +233,7 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
             item.iconPath = new vscode.ThemeIcon('circle-slash', new vscode.ThemeColor('disabledForeground'));
             item.description = treeViewLabels.notDetected;
         } else {
-            item.checkboxState = state === TreeViewNodeState.Enabled
+            item.checkboxState = this.stateResolver.isActive(state)
                 ? vscode.TreeItemCheckboxState.Checked
                 : vscode.TreeItemCheckboxState.Unchecked;
         }
@@ -251,7 +249,7 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
             item.iconPath = new vscode.ThemeIcon('circle-slash', new vscode.ThemeColor('disabledForeground'));
             item.description = treeViewLabels.notDetected;
         } else {
-            item.checkboxState = node.state === TreeViewNodeState.Enabled
+            item.checkboxState = this.stateResolver.isActive(node.state)
                 ? vscode.TreeItemCheckboxState.Checked
                 : vscode.TreeItemCheckboxState.Unchecked;
         }

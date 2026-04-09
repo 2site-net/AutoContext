@@ -32,4 +32,8 @@ export class TreeViewStateResolver {
         return state === TreeViewNodeState.Enabled
             || state === TreeViewNodeState.Overridden;
     }
+
+    countActive(states: readonly TreeViewNodeState[]): number {
+        return states.filter(s => this.isActive(s)).length;
+    }
 }

@@ -65,10 +65,8 @@ export class InstructionsTreeProvider implements vscode.TreeDataProvider<TreeEle
     private updateDescription(): void {
         const config = vscode.workspace.getConfiguration();
         const overrides = this.detector.getOverriddenSettingIds();
-        const active = this.catalog.all.filter(e =>
-            this.stateResolver.isActive(this.stateResolver.resolve(e, config, overrides)),
-        ).length;
-        this.treeView.description = this.tooltip.description(active, this.catalog.count);
+        const states = this.catalog.all.map(e => this.stateResolver.resolve(e, config, overrides));
+        this.treeView.description = this.tooltip.description(this.stateResolver.countActive(states), this.catalog.count);
     }
 
     getTreeItem(element: TreeElement): vscode.TreeItem {
@@ -135,7 +133,7 @@ export class InstructionsTreeProvider implements vscode.TreeDataProvider<TreeEle
     private categoryItem(node: InstructionsTreeCategoryNode): vscode.TreeItem {
         const item = new vscode.TreeItem(node.name, vscode.TreeItemCollapsibleState.Expanded);
         item.contextValue = 'category';
-        const active = node.children.filter(n => this.stateResolver.isActive(n.state)).length;
+        const active = this.stateResolver.countActive(node.children.map(n => n.state));
         const total = this.catalog.all.filter(e => e.category === node.name).length;
         item.tooltip = this.tooltip.container(node.name, active, total);
         return item;
