@@ -257,6 +257,11 @@ function Invoke-CompileTS {
             if ($LASTEXITCODE -ne 0) { throw 'Chat-instructions manifest generation failed.' }
             Write-Status 'Chat-instructions manifest generated' 'OK'
 
+            Write-Status 'Generating MCP tools manifest...' 'INFO'
+            npx tsx src/mcp-tools-manifest.ts
+            if ($LASTEXITCODE -ne 0) { throw 'MCP tools manifest generation failed.' }
+            Write-Status 'MCP tools manifest generated' 'OK'
+
             Write-Status 'Compiling TypeScript...' 'INFO'
             npx tsc -p ./tsconfig.build.json
             if ($LASTEXITCODE -ne 0) { throw 'TypeScript compilation failed.' }

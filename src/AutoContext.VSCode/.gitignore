@@ -4,6 +4,7 @@ node_modules/
 publish/
 instructions/.generated/
 instructions/.workspaces/
+.mcp-tools.json
 .vscode-test/
 LICENSE
 COMMERCIAL.md
