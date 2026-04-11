@@ -1,6 +1,7 @@
 ---
 description: "Rust coding style instructions: naming conventions, ownership, borrowing, error handling, type design, traits, concurrency, and documentation."
 applyTo: "**/*.rs"
+version: "1.0.0"
 ---
 # Rust Coding Style
 

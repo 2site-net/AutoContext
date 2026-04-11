@@ -1,6 +1,7 @@
 ---
 description: "Lua coding style instructions: naming conventions, tables, error handling, functions, modules, metatables, performance, and documentation."
 applyTo: "**/*.lua"
+version: "1.0.0"
 ---
 # Lua Coding Style
 

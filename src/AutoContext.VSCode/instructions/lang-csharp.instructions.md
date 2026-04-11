@@ -1,6 +1,7 @@
 ---
 description: "C# code style instructions: member ordering, formatting, language features, nullability, and documentation conventions."
 applyTo: "**/*.cs"
+version: "1.0.0"
 ---
 # C# Coding Style
 

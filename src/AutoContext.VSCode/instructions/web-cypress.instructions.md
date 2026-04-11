@@ -1,6 +1,7 @@
 ---
 description: "Use when writing, reviewing, or refactoring Cypress end-to-end tests, custom commands, or Cypress-specific APIs."
 applyTo: "**/*.{test,spec,cy}.{js,jsx,ts,tsx,mjs,mts}"
+version: "1.0.0"
 ---
 # Cypress Guidelines
 

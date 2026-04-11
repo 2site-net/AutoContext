@@ -1,6 +1,7 @@
 ---
 description: "Use when writing, reviewing, or refactoring Vitest tests, mocks, or Vitest-specific APIs."
 applyTo: "**/*.{test,spec}.{js,jsx,ts,tsx,mjs,mts}"
+version: "1.0.0"
 ---
 # Vitest Guidelines
 

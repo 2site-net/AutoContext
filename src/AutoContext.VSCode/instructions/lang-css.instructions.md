@@ -1,6 +1,7 @@
 ---
 description: "Use when generating or editing CSS stylesheets, working with selectors, custom properties, layout, responsive design, or accessibility-related styles."
 applyTo: "**/*.css"
+version: "1.0.0"
 ---
 # CSS Guidelines
 

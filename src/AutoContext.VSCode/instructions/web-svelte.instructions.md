@@ -1,6 +1,7 @@
 ---
 description: "Use when building Svelte or SvelteKit apps: Svelte 5 runes ($state, $derived, $effect, $props), component design, stores, reactivity, SvelteKit routing, form actions, and load functions."
 applyTo: "**/*.{svelte,js,jsx,mjs,cjs,ts,tsx,mts,cts}"
+version: "1.0.0"
 ---
 # Svelte Guidelines
 

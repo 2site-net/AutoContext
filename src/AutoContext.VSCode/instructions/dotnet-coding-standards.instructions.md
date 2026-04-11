@@ -1,6 +1,7 @@
 ---
 description: "Use when writing .NET code: design guidelines, naming conventions, input validation, file organization, and API design."
 applyTo: "**/*.{cs,fs,vb}"
+version: "1.0.0"
 ---
 # Coding Standards
 

@@ -1,6 +1,7 @@
 ---
 description: "Java coding style instructions: naming conventions, type design, error handling, streams, Optional, generics, concurrency, and documentation."
 applyTo: "**/*.java"
+version: "1.0.0"
 ---
 # Java Coding Style
 

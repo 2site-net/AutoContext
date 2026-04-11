@@ -1,6 +1,7 @@
 ---
 description: "Use when defining gRPC services, proto files, client/server implementation, or streaming patterns in .NET."
 applyTo: "**/*.{cs,fs,vb,proto}"
+version: "1.0.0"
 ---
 # gRPC Guidelines
 

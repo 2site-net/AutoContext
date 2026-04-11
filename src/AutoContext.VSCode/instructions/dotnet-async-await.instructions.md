@@ -1,6 +1,7 @@
 ---
 description: "Use when writing async .NET code, Task/ValueTask APIs, CancellationToken, IAsyncEnumerable, IAsyncDisposable, or ConfigureAwait patterns."
 applyTo: "**/*.{cs,fs,vb}"
+version: "1.0.0"
 ---
 # Async / Await Guidelines
 

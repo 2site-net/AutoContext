@@ -1,6 +1,7 @@
 ---
 description: "Use when writing, reviewing, or troubleshooting YAML files such as CI/CD pipelines, Docker Compose, Kubernetes manifests, or configuration files."
 applyTo: "**/*.{yml,yaml}"
+version: "1.0.0"
 ---
 # YAML
 

@@ -1,6 +1,7 @@
 ---
 description: "Use when creating or editing Razor component files (.razor), organizing directives, structuring code-behind files, or working with Razor syntax and markup."
 applyTo: "**/*.razor,**/*.razor.cs"
+version: "1.0.0"
 ---
 # Razor Guidelines
 

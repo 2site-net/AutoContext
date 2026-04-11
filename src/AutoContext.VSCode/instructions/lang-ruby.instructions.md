@@ -1,6 +1,7 @@
 ---
 description: "Ruby coding style instructions: naming conventions, blocks, error handling, classes, modules, collections, metaprogramming, and documentation."
 applyTo: "**/*.rb"
+version: "1.0.0"
 ---
 # Ruby Coding Style
 

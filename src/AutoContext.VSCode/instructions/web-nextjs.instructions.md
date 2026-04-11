@@ -1,6 +1,7 @@
 ---
 description: "Use when building Next.js applications: App Router, Server/Client Components, data fetching, routing, middleware, and rendering strategies."
 applyTo: "**/*.{js,jsx,ts,tsx,mjs,mts}"
+version: "1.0.0"
 ---
 # Next.js Guidelines
 

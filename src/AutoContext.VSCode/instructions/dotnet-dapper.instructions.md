@@ -1,5 +1,6 @@
 ---
 description: "Use when writing data access code with Dapper: raw SQL queries, parameter binding, mapping, multi-mapping, transactions, or connection management in .NET projects."
+version: "1.0.0"
 ---
 # Dapper Guidelines
 

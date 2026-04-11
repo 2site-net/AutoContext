@@ -1,6 +1,7 @@
 ---
 description: "Use when working with Redis caching, session storage, pub/sub, or distributed locking in .NET projects."
 applyTo: "**/*.{cs,fs,vb}"
+version: "1.0.0"
 ---
 # Redis Guidelines
 

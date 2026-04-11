@@ -1,6 +1,7 @@
 ---
 description: "PHP coding style instructions: naming conventions, type safety, error handling, OOP, functions, security, database access, and documentation."
 applyTo: "**/*.php"
+version: "1.0.0"
 ---
 # PHP Coding Style
 

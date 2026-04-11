@@ -1,6 +1,7 @@
 ---
 description: "Use when building Node.js server applications: module design, async patterns, process lifecycle, streams, and security."
 applyTo: "**/*.{js,mjs,cjs,ts,mts,cts}"
+version: "1.0.0"
 ---
 # Node.js Guidelines
 

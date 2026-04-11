@@ -1,6 +1,7 @@
 ---
 description: "Use when building .NET MAUI apps: MVVM, Shell navigation, data binding, layouts, CollectionView, DI registration, and UI-thread safety."
 applyTo: "**/*.{cs,xaml}"
+version: "1.0.0"
 ---
 # .NET MAUI Guidelines
 

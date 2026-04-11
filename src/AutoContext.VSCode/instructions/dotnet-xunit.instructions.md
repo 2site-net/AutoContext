@@ -1,6 +1,7 @@
 ---
 description: "Use when writing, reviewing, or refactoring xUnit tests, test doubles, or xUnit-specific APIs in .NET."
 applyTo: "**/*Tests*.{cs,fs,vb,razor}"
+version: "1.0.0"
 ---
 # xUnit Guidelines
 

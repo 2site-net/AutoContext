@@ -1,6 +1,7 @@
 ---
 description: "Swift coding style instructions: naming conventions, optionals, value types, protocols, concurrency, error handling, collections, and documentation."
 applyTo: "**/*.swift"
+version: "1.0.0"
 ---
 # Swift Coding Style
 

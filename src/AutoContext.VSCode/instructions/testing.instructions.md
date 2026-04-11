@@ -1,6 +1,7 @@
 ---
 description: "Use when writing, reviewing, or refactoring any tests — regardless of language or framework."
 applyTo: "**/*.{test,spec}.{js,jsx,ts,tsx,mjs,mts},**/*Tests*.{cs,fs,vb,razor}"
+version: "1.0.0"
 ---
 # Testing Strategy
 

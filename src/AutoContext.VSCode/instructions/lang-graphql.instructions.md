@@ -1,6 +1,7 @@
 ---
 description: "Use when designing GraphQL schemas, resolvers, queries, mutations, or subscriptions."
 applyTo: "**/*.{graphql,gql}"
+version: "1.0.0"
 ---
 # GraphQL Guidelines
 

@@ -1,6 +1,7 @@
 ---
 description: "Use when writing or reviewing ASP.NET Web Forms pages (.aspx), user controls (.ascx), master pages (.master), or their code-behind files."
 applyTo: "**/*.{aspx,ascx,master}"
+version: "1.0.0"
 ---
 # ASP.NET Web Forms Guidelines
 

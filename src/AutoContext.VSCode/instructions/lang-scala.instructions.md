@@ -1,6 +1,7 @@
 ---
 description: "Scala coding style instructions: naming conventions, type design, pattern matching, implicits, collections, error handling, concurrency, and documentation."
 applyTo: "**/*.{scala,sc}"
+version: "1.0.0"
 ---
 # Scala Coding Style
 

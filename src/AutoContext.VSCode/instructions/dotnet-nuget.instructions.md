@@ -1,5 +1,6 @@
 ---
 description: "Use when adding, updating, removing, or reviewing NuGet package references or third-party dependencies in .NET projects."
+version: "1.0.0"
 ---
 # NuGet Packages & Dependencies Guidelines
 

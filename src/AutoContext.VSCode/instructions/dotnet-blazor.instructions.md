@@ -1,6 +1,7 @@
 ---
 description: "Use when creating or editing Blazor Razor components, render modes, cascading parameters, EventCallback, Virtualize, or JS interop."
 applyTo: "**/*.razor,**/*.razor.cs"
+version: "1.0.0"
 ---
 # Blazor Guidelines
 

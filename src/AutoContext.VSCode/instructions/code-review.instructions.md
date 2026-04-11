@@ -1,5 +1,6 @@
 ---
 description: "Use when reviewing code, giving feedback on a pull request, or auditing a change for correctness, security, and quality."
+version: "1.0.0"
 ---
 # Code Review Guidelines
 

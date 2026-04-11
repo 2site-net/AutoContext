@@ -1,6 +1,7 @@
 ---
 description: "Use when writing, reviewing, or refactoring Playwright end-to-end tests, page objects, or Playwright-specific APIs."
 applyTo: "**/*.{test,spec}.{js,jsx,ts,tsx,mjs,mts}"
+version: "1.0.0"
 ---
 # Playwright Guidelines
 

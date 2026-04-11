@@ -1,6 +1,7 @@
 ---
 description: "VB.NET code style instructions: naming, module layout, type design, error handling, formatting, and documentation conventions."
 applyTo: "**/*.vb"
+version: "1.0.0"
 ---
 # VB.NET Coding Style
 

@@ -1,6 +1,7 @@
 ---
 description: "Use when implementing CQRS patterns, MediatR handlers, pipelines, or command/query separation in .NET."
 applyTo: "**/*.{cs,fs,vb}"
+version: "1.0.0"
 ---
 # Mediator / CQRS Guidelines
 

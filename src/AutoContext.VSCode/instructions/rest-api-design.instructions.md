@@ -1,5 +1,6 @@
 ---
 description: "Use when designing or implementing REST APIs: resource naming, HTTP methods, status codes, versioning, pagination, error responses, and caching."
+version: "1.0.0"
 ---
 # REST API Design
 

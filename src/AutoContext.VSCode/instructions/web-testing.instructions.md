@@ -1,6 +1,7 @@
 ---
 description: "Use when writing, reviewing, or refactoring JavaScript/TypeScript tests, test structure, or test organization."
 applyTo: "**/*.{test,spec,cy}.{js,jsx,ts,tsx,mjs,mts}"
+version: "1.0.0"
 ---
 # Web Testing Strategy
 

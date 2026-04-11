@@ -1,6 +1,7 @@
 ---
 description: "Use when writing Windows Batch (CMD) scripts: variable handling, error checking, quoting, and script structure."
 applyTo: "**/*.{bat,cmd}"
+version: "1.0.0"
 ---
 # Batch (CMD)
 
