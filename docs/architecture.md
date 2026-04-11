@@ -1,8 +1,8 @@
 # Architecture
 
-## What Is SharpPilot?
+## What Is AutoContext?
 
-SharpPilot is a **quality assurance layer** that sits between GitHub Copilot and the developer's workspace. It provides two things: curated instruction files that shape how Copilot writes and reviews code, and MCP tool checks that Copilot can invoke to validate code against concrete rules. The extension owns the configuration and context; the MCP servers own the analysis.
+AutoContext is a **quality assurance layer** that sits between GitHub Copilot and the developer's workspace. It provides two things: curated instruction files that shape how Copilot writes and reviews code, and MCP tool checks that Copilot can invoke to validate code against concrete rules. The extension owns the configuration and context; the MCP servers own the analysis.
 
 ## Design Philosophy
 
@@ -16,11 +16,11 @@ Style rules vary between projects. Rather than hardcoding one opinion, checkers 
 
 ### Why a Separate Workspace Server?
 
-Other MCP servers need `.editorconfig` properties and tool enable/disable decisions, but reparsing the directory tree and config file on every tool call would be wasteful and error-prone. `SharpPilot.WorkspaceServer` centralizes these concerns in a single long-lived process so the checkers stay stateless. The same binary also hosts technology-agnostic MCP tools directly — see [Projects](#projects) for the full mode breakdown.
+Other MCP servers need `.editorconfig` properties and tool enable/disable decisions, but reparsing the directory tree and config file on every tool call would be wasteful and error-prone. `AutoContext.WorkspaceServer` centralizes these concerns in a single long-lived process so the checkers stay stateless. The same binary also hosts technology-agnostic MCP tools directly — see [Projects](#projects) for the full mode breakdown.
 
 ### Why Per-Instruction Disable?
 
-A single instruction file may contain dozens of rules. Turning off the entire file because one rule conflicts with a project convention defeats the purpose. Per-instruction disable (via `.sharppilot.json`) removes individual bullets from the normalized output so Copilot never sees them — without affecting the rest of the file.
+A single instruction file may contain dozens of rules. Turning off the entire file because one rule conflicts with a project convention defeats the purpose. Per-instruction disable (via `.autocontext.json`) removes individual bullets from the normalized output so Copilot never sees them — without affecting the rest of the file.
 
 ---
 
@@ -32,7 +32,7 @@ A single instruction file may contain dozens of rules. Turning off the entire fi
 │  Start the named-pipe background service.    │
 ├──────────────────────────────────────────────┤
 │  2. TOOL CONFIGURATION                       │
-│  Write disabled tools to .sharppilot.json.   │
+│  Write disabled tools to .autocontext.json.  │
 ├──────────────────────────────────────────────┤
 │  3. WORKSPACE DETECTION                      │
 │  Scan for project files, set context keys.   │
@@ -56,32 +56,32 @@ Steps 1–5 run on activation; step 6 happens at runtime when Copilot calls a to
 
 When the extension activates, the following steps execute in two phases:
 
-**Phase 1 — `WorkspaceServerManager.start()`** — spawns `SharpPilot.WorkspaceServer` in named-pipe mode (see [Projects](#projects)). Each VS Code window gets its own pipe (`sharppilot-workspace-<random>`) and its own server process, so multiple windows are fully isolated. The pipe name is injected into every MCP server definition via `--workspace-server`.
+**Phase 1 — `WorkspaceServerManager.start()`** — spawns `AutoContext.WorkspaceServer` in named-pipe mode (see [Projects](#projects)). Each VS Code window gets its own pipe (`autocontext-workspace-<random>`) and its own server process, so multiple windows are fully isolated. The pipe name is injected into every MCP server definition via `--workspace-server`.
 
 **Phase 2 (parallel)** — the following four operations run concurrently via `Promise.all()`:
 
 - **`WorkspaceContextDetector.detect()`** — scans the workspace for project files, `package.json` dependencies, and directory markers. Sets VS Code context keys that control both server registration and instruction injection.
-- **`McpToolsConfigWriter.write()`** — reads VS Code settings, writes disabled tool names to `.sharppilot.json` in the workspace root.
+- **`McpToolsConfigWriter.write()`** — reads VS Code settings, writes disabled tool names to `.autocontext.json` in the workspace root.
 - **`InstructionsConfigWriter.removeOrphanedStagingDirs()`** — deletes per-workspace staging directories older than one hour that belong to other VS Code windows.
-- **`ConfigManager.removeOrphanedIds()`** — cleans disabled-instruction IDs from `.sharppilot.json` that no longer match any instruction in the current extension version.
+- **`ConfigManager.removeOrphanedIds()`** — cleans disabled-instruction IDs from `.autocontext.json` that no longer match any instruction in the current extension version.
 
 **Phase 3 — `InstructionsConfigWriter.write()`** — normalizes all instruction files into `instructions/.generated/`, stripping `[INSTxxxx]` tag identifiers and removing any individually disabled instruction bullets. Copilot always reads from the normalized output, so neither tags nor disabled content are visible to the model. Runs after phase 2 completes because it depends on workspace detection and config state.
 
-**Phase 4 — `logDiagnostics()`** — parses every instruction file and logs warnings (e.g., missing `[INSTxxxx]` IDs) to the **SharpPilot** Output channel.
+**Phase 4 — `logDiagnostics()`** — parses every instruction file and logs warnings (e.g., missing `[INSTxxxx]` IDs) to the **AutoContext** Output channel.
 
 ## Runtime Flow
 
 When Copilot invokes an MCP tool (e.g., `check_csharp_all`):
 
 1. The MCP tool builds a list of its features — each entry includes the feature name and, for checkers that implement `IEditorConfigFilter`, the EditorConfig keys it consumes.
-2. It sends a single `mcp-tools` request over the named pipe to `SharpPilot.WorkspaceServer`, which reads `.sharppilot.json` for tool status, resolves `.editorconfig` properties, and returns a per-feature decision:
+2. It sends a single `mcp-tools` request over the named pipe to `AutoContext.WorkspaceServer`, which reads `.autocontext.json` for tool status, resolves `.editorconfig` properties, and returns a per-feature decision:
    - **`run`** — feature is enabled; includes resolved EditorConfig data.
    - **`editorconfig-only`** — feature is disabled but has EditorConfig keys; run in restricted mode that enforces only EditorConfig-backed rules and skips instruction-only (INST) checks. This lets project-level `.editorconfig` settings remain enforced even after a team opts out of the instruction.
    - **`skip`** — feature is disabled and has no EditorConfig keys; skip entirely.
 3. The MCP tool loops over features and acts on the mode. Enabled features use the merged EditorConfig values to **drive** their enforcement direction — not just to skip conflicting checks.
 4. The checker returns a report (✅ pass or ❌ violations found).
 
-MCP servers never read `.sharppilot.json` directly — all tool orchestration decisions are centralized in WorkspaceServer so the config format and decision logic can evolve in one place.
+MCP servers never read `.autocontext.json` directly — all tool orchestration decisions are centralized in WorkspaceServer so the config format and decision logic can evolve in one place.
 
 ---
 
@@ -93,7 +93,7 @@ When multiple sources disagree, the following precedence applies:
 |----------|--------|------|
 | 1 | `.editorconfig` | Drives enforcement direction — checkers enforce whatever EditorConfig says. Instruction defaults yield to EditorConfig values. |
 | 2 | Instruction files | Provide default coding guidance. Style rules in instructions are fallback defaults, not absolutes. |
-| 3 | VS Code settings / `.sharppilot.json` | Control which tools and instructions are active. |
+| 3 | VS Code settings / `.autocontext.json` | Control which tools and instructions are active. |
 | 4 | Workspace context | Determines which servers and instructions are registered at all. |
 
 See the "EditorConfig wins" rule in `copilot.instructions.md` for the user-facing statement of this precedence.
@@ -115,17 +115,17 @@ Checkers with EditorConfig backing today:
 
 ## Instructions
 
-SharpPilot ships curated Markdown instruction files organized into categories — General, Languages, .NET, Web, and Tools. The full list is defined in `ui-constants.ts`. One always-on file (`copilot.instructions.md`) provides cross-cutting rules; the rest are toggleable.
+AutoContext ships curated Markdown instruction files organized into categories — General, Languages, .NET, Web, and Tools. The full list is defined in `ui-constants.ts`. One always-on file (`copilot.instructions.md`) provides cross-cutting rules; the rest are toggleable.
 
 Instructions are **workspace-aware** — they are only injected into Copilot's context when the workspace contains their technology (e.g., .NET instructions require a `.csproj` or `.sln` file). The always-on `copilot.instructions.md` is the only file that is attached unconditionally.
 
 ### Toggling
 
-The **Instructions** sidebar panel groups instructions by category and lets you enable or disable each one via inline actions. Toggling an instruction off sets its VS Code setting (e.g., `sharppilot.instructions.dotnet.csharp`) to `false`, and the activation flow excludes it from the normalized output.
+The **Instructions** sidebar panel groups instructions by category and lets you enable or disable each one via inline actions. Toggling an instruction off sets its VS Code setting (e.g., `autocontext.instructions.dotnet.csharp`) to `false`, and the activation flow excludes it from the normalized output.
 
 ### Per-Instruction Disable
 
-Each instruction file can contain dozens of individual rules. Click an instruction in the sidebar panel to open it in a virtual document where every rule is visible. CodeLens actions on each rule let you disable or re-enable it without turning off the entire file. Disabled rules are dimmed, tagged `[DISABLED]`, and written to `.sharppilot.json`. The normalization step strips them from Copilot's context entirely.
+Each instruction file can contain dozens of individual rules. Click an instruction in the sidebar panel to open it in a virtual document where every rule is visible. CodeLens actions on each rule let you disable or re-enable it without turning off the entire file. Disabled rules are dimmed, tagged `[DISABLED]`, and written to `.autocontext.json`. The normalization step strips them from Copilot's context entirely.
 
 ### Export
 
@@ -147,16 +147,16 @@ On activation (and on configuration or window-focus changes), `InstructionsConfi
 
 ## MCP and Tools
 
-SharpPilot registers four MCP server categories — DotNet, Git, EditorConfig, and TypeScript — each identified by a `--scope` argument so they appear as separate sections in the tools UI. Categories are defined in `ui-constants.ts`. Servers are workspace-aware (see [Activation Flow](#activation-flow) steps 3 and 5) and most MCP tools loop over individually-toggleable features (see [Runtime Flow](#runtime-flow)).
+AutoContext registers four MCP server categories — DotNet, Git, EditorConfig, and TypeScript — each identified by a `--scope` argument so they appear as separate sections in the tools UI. Categories are defined in `ui-constants.ts`. Servers are workspace-aware (see [Activation Flow](#activation-flow) steps 3 and 5) and most MCP tools loop over individually-toggleable features (see [Runtime Flow](#runtime-flow)).
 
 ### Projects
 
 A shared class library and three executables make up the server side:
 
-- **`SharpPilot.Mcp.Shared`** — Shared contracts and communication layer for the .NET MCP servers.
-- **`SharpPilot.Mcp.DotNet`** — .NET-based MCP server. Handles the DotNet scope. C# checkers resolve `.editorconfig` properties via the workspace server and use them to drive enforcement direction (e.g., brace style, namespace style).
-- **`SharpPilot.Mcp.Web`** — Node.js-based MCP server. Handles the TypeScript scope.
-- **`SharpPilot.WorkspaceServer`** — Handles cross-cutting workspace tasks and hosts technology-agnostic MCP tools. Multi-mode .NET executable:
+- **`AutoContext.Mcp.Shared`** — Shared contracts and communication layer for the .NET MCP servers.
+- **`AutoContext.Mcp.DotNet`** — .NET-based MCP server. Handles the DotNet scope. C# checkers resolve `.editorconfig` properties via the workspace server and use them to drive enforcement direction (e.g., brace style, namespace style).
+- **`AutoContext.Mcp.Web`** — Node.js-based MCP server. Handles the TypeScript scope.
+- **`AutoContext.WorkspaceServer`** — Handles cross-cutting workspace tasks and hosts technology-agnostic MCP tools. Multi-mode .NET executable:
   - **MCP mode — EditorConfig** (`--scope editorconfig`): Runs as an MCP stdio server exposing a single tool, `get_editorconfig`, which resolves the effective `.editorconfig` properties for a given file path by walking the directory tree, evaluating glob patterns and section cascading, and returning the final key-value pairs. This tool is standalone — it has no features.
   - **MCP mode — Git** (`--scope git`): Runs as an MCP stdio server exposing Git quality checks (commit format, commit content). Like the DotNet scope, checkers resolve `.editorconfig` properties via the workspace server.
   - **Named-pipe mode** (`--pipe <name>`): Runs as a long-lived background service started once by `WorkspaceServerManager`. Handles `"editorconfig"` requests (property resolution) and `"mcp-tools"` requests (tool orchestration — enable/disable decisions + EditorConfig data). All other MCP servers connect to this service via `--workspace-server <pipeName>`.
@@ -168,9 +168,9 @@ A shared class library and three executables make up the server side:
 Each server logs tool invocations (tool name, content length, data keys) to stderr, which VS Code surfaces in the **Output** panel. To view the logs:
 
 1. Open the **Output** panel (`Ctrl+Shift+U`).
-2. Select the server from the dropdown (e.g., *SharpPilot: DotNet*).
+2. Select the server from the dropdown (e.g., *AutoContext: DotNet*).
 
-Only SharpPilot log messages are emitted — host and framework noise is filtered out.
+Only AutoContext log messages are emitted — host and framework noise is filtered out.
 
 ---
 

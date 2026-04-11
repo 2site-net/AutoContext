@@ -1,6 +1,6 @@
 # Contributor License Agreement (CLA)
 
-Thank you for your interest in contributing to **SharpPilot**.
+Thank you for your interest in contributing to **AutoContext**.
 
 To keep the project legally clear for both contributors and maintainers, contributions to this repository are made under the terms of this Contributor License Agreement ("Agreement").
 
@@ -14,9 +14,9 @@ The Project Owner may also accept another clear written form of assent, such as 
 
 ---
 
-## SharpPilot Contributor License Agreement
+## AutoContext Contributor License Agreement
 
-This Contributor License Agreement (the **"Agreement"**) is entered into by the individual or legal entity identified by the submission of a Contribution ("**You**"), in favor of **Eyal Alon** <<sharppilot@2site.net>> (the **"Project Owner"**), for the benefit of the **SharpPilot** project (the **"Project"**).
+This Contributor License Agreement (the **"Agreement"**) is entered into by the individual or legal entity identified by the submission of a Contribution ("**You**"), in favor of **Eyal Alon** <<autocontext@2site.net>> (the **"Project Owner"**), for the benefit of the **AutoContext** project (the **"Project"**).
 
 By intentionally submitting a Contribution for inclusion in the Project, and by providing acceptance through the signing process described in this Agreement, You agree to the terms of this Agreement with respect to that Contribution and any future Contributions You intentionally submit to the Project.
 
@@ -27,7 +27,7 @@ For purposes of this Agreement:
 - **"You"** (or **"Your"**) means the individual or legal entity making a Contribution.
 - **"Contribution"** means any original work of authorship, including any modification, addition, correction, documentation, configuration, test, asset, or other material, that You intentionally submit for inclusion in the Project.
 - **"Submitted"** means delivered to the Project Owner or the Project through channels intended for proposing material for inclusion in the Project, including pull requests, patches, and similar submission mechanisms.
-- **"Project"** means the SharpPilot project, including its source code, documentation, configuration, assets, and related materials made available by the Project Owner.
+- **"Project"** means the AutoContext project, including its source code, documentation, configuration, assets, and related materials made available by the Project Owner.
 
 For clarity, general discussion, bug reports, feature requests, questions, comments not intended for inclusion, and other communications that are not clearly submitted as Contributions are **not** Contributions under this Agreement.
 
@@ -83,4 +83,4 @@ The Project Owner may also accept other clear methods of assent, including a che
 
 ## Maintainer Note
 
-If SharpPilot is later transferred to an organization or maintained by multiple maintainers under a legal entity, consider replacing references to **"Project Owner"** with the legal name of that individual or entity, or with wording such as **"Project Owner and its successors or authorized maintainers."**
+If AutoContext is later transferred to an organization or maintained by multiple maintainers under a legal entity, consider replacing references to **"Project Owner"** with the legal name of that individual or entity, or with wording such as **"Project Owner and its successors or authorized maintainers."**

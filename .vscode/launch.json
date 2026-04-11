@@ -5,8 +5,8 @@
       "name": "Run Extension",
       "type": "extensionHost",
       "request": "launch",
-      "args": ["--extensionDevelopmentPath=${workspaceFolder}/src/SharpPilot.VSCode"],
-      "outFiles": ["${workspaceFolder}/src/SharpPilot.VSCode/out/**/*.js"],
+      "args": ["--extensionDevelopmentPath=${workspaceFolder}/src/AutoContext.VSCode"],
+      "outFiles": ["${workspaceFolder}/src/AutoContext.VSCode/out/**/*.js"],
       "preLaunchTask": "compile"
     }
   ]

@@ -1,14 +1,14 @@
-![SharpPilot](logo.png)
+![AutoContext](logo.png)
 
-# SharpPilot
+# AutoContext
 
-SharpPilot is a quality assurance extension for Visual Studio Code that leverages an MCP server to enable model-invokable tools and curated, configurable instructions—elevating code quality, workflows, and overall developer productivity with Copilot.
+AutoContext is a quality assurance extension for Visual Studio Code that leverages an MCP server to enable model-invokable tools and curated, configurable instructions—elevating code quality, workflows, and overall developer productivity with Copilot.
 
-Distributed as a VS Code extension — see [src/SharpPilot.VSCode/README.md](src/SharpPilot.VSCode/README.md) for installation and usage.
+Distributed as a VS Code extension — see [src/AutoContext.VSCode/README.md](src/AutoContext.VSCode/README.md) for installation and usage.
 
 ## Features
 
-SharpPilot provides two complementary capabilities:
+AutoContext provides two complementary capabilities:
 
 - **Chat Instructions** — Curated Markdown guidelines covering .NET, TypeScript, Web frameworks, Git, scripting, and more. Instructions are workspace-aware — only the ones relevant to your project are injected into Copilot's context. Individual rules within any instruction file can be disabled without turning off the entire file.
 - **MCP Tool Checks** — Quality checks that Copilot can invoke in Agent mode to validate code style, naming conventions, async patterns, NuGet hygiene, commit messages, and more. Checkers read `.editorconfig` properties and enforce whichever direction the project specifies.
@@ -23,12 +23,12 @@ Tools and instructions are grouped into categories and managed from dedicated si
 ## Repository Structure
 
 ```text
-SharpPilot.slnx                        # Solution file
-src/SharpPilot.Mcp.Shared/             # Shared contracts and communication layer for .NET MCP servers
-src/SharpPilot.WorkspaceServer/        # Handles cross-cutting workspace tasks and hosts technology-agnostic MCP tools
-src/SharpPilot.Mcp.DotNet/             # Provides MCP tools server for .NET development (e.g. C#, NuGet)
-src/SharpPilot.Mcp.Web/                # Provides MCP tools server for web development (e.g. TypeScript)
-src/SharpPilot.VSCode/                 # VS Code extension for instructions, tool orchestration, and workspace detection
+AutoContext.slnx                        # Solution file
+src/AutoContext.Mcp.Shared/             # Shared contracts and communication layer for .NET MCP servers
+src/AutoContext.WorkspaceServer/        # Handles cross-cutting workspace tasks and hosts technology-agnostic MCP tools
+src/AutoContext.Mcp.DotNet/             # Provides MCP tools server for .NET development (e.g. C#, NuGet)
+src/AutoContext.Mcp.Web/                # Provides MCP tools server for web development (e.g. TypeScript)
+src/AutoContext.VSCode/                 # VS Code extension for instructions, tool orchestration, and workspace detection
 ```
 
 ## Architecture
@@ -42,47 +42,47 @@ If you have the .NET 10 SDK installed and have cloned this repo, you can registe
 ```jsonc
 {
   "servers": {
-    "dotnet-SharpPilot": {
+    "dotnet-AutoContext": {
       "type": "stdio",
       "command": "dotnet",
       "args": [
         "run",
         "--project",
-        "${workspaceFolder}/src/SharpPilot.Mcp.DotNet/SharpPilot.Mcp.DotNet.csproj",
+        "${workspaceFolder}/src/AutoContext.Mcp.DotNet/AutoContext.Mcp.DotNet.csproj",
         "--",
         "--scope",
         "dotnet"
       ]
     },
-    "git-SharpPilot": {
+    "git-AutoContext": {
       "type": "stdio",
       "command": "dotnet",
       "args": [
         "run",
         "--project",
-        "${workspaceFolder}/src/SharpPilot.WorkspaceServer/SharpPilot.WorkspaceServer.csproj",
+        "${workspaceFolder}/src/AutoContext.WorkspaceServer/AutoContext.WorkspaceServer.csproj",
         "--",
         "--scope",
         "git"
       ]
     },
-    "editorconfig-SharpPilot": {
+    "editorconfig-AutoContext": {
       "type": "stdio",
       "command": "dotnet",
       "args": [
         "run",
         "--project",
-        "${workspaceFolder}/src/SharpPilot.WorkspaceServer/SharpPilot.WorkspaceServer.csproj",
+        "${workspaceFolder}/src/AutoContext.WorkspaceServer/AutoContext.WorkspaceServer.csproj",
         "--",
         "--scope",
         "editorconfig"
       ]
     },
-    "typescript-SharpPilot": {
+    "typescript-AutoContext": {
       "type": "stdio",
       "command": "node",
       "args": [
-        "${workspaceFolder}/src/SharpPilot.Mcp.Web/out/index.js",
+        "${workspaceFolder}/src/AutoContext.Mcp.Web/out/index.js",
         "--scope",
         "typescript"
       ]
@@ -91,7 +91,7 @@ If you have the .NET 10 SDK installed and have cloned this repo, you can registe
 }
 ```
 
-> **Note:** The TypeScript server requires a prior build: `cd src/SharpPilot.Mcp.Web && npm install && npm run build`. When configured manually, EditorConfig properties are not resolved (the `--workspace-server` argument is omitted); checkers fall back to their built-in defaults.
+> **Note:** The TypeScript server requires a prior build: `cd src/AutoContext.Mcp.Web && npm install && npm run build`. When configured manually, EditorConfig properties are not resolved (the `--workspace-server` argument is omitted); checkers fall back to their built-in defaults.
 
 ## Testing
 
@@ -106,13 +106,13 @@ If you have the .NET 10 SDK installed and have cloned this repo, you can registe
 Smoke tests launch a real VS Code instance, load the extension, and verify activation and command registration:
 
 ```sh
-cd src/SharpPilot.VSCode
+cd src/AutoContext.VSCode
 npm install
 npm run test:smoke
 ```
 
 A VS Code installation is downloaded automatically on the first run and cached
-in `src/SharpPilot.VSCode/.vscode-test/`.
+in `src/AutoContext.VSCode/.vscode-test/`.
 
 ## Building and Publishing the Extension
 
@@ -133,9 +133,9 @@ Publish to the VS Code Marketplace (requires a [Personal Access Token](https://d
 
 ## License
 
-SharpPilot is licensed under the [AGPL-3.0](LICENSE). A separate [commercial license](COMMERCIAL.md) is available for organizations that want to use SharpPilot under terms different from the AGPL-3.0.
+AutoContext is licensed under the [AGPL-3.0](LICENSE). A separate [commercial license](COMMERCIAL.md) is available for organizations that want to use AutoContext under terms different from the AGPL-3.0.
 
-Use of the SharpPilot name and logo is subject to [TRADEMARKS.md](TRADEMARKS.md).
+Use of the AutoContext name and logo is subject to [TRADEMARKS.md](TRADEMARKS.md).
 
 ## Contributing
 

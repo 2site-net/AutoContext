@@ -1,10 +1,10 @@
-# SharpPilot
+# AutoContext
 
-SharpPilot is a quality assurance extension for Visual Studio Code that leverages an MCP server to enable model-invokable tools and curated, configurable instructions—elevating code quality, workflows, and overall developer productivity with Copilot.
+AutoContext is a quality assurance extension for Visual Studio Code that leverages an MCP server to enable model-invokable tools and curated, configurable instructions—elevating code quality, workflows, and overall developer productivity with Copilot.
 
 ## Coding Guidelines
 
-Detailed instruction files live in `src/SharpPilot.VSCode/instructions/`.
+Detailed instruction files live in `src/AutoContext.VSCode/instructions/`.
 **Do** read the relevant file **before** generating or reviewing code:
 
 | When working on          | Read                                                                                                                          |
@@ -21,7 +21,7 @@ Detailed instruction files live in `src/SharpPilot.VSCode/instructions/`.
 | Batch (CMD) scripts      | `lang-batch.instructions.md`                                                                                                  |
 | REST API design          | `rest-api-design.instructions.md`                                                                                             |
 
-All paths are relative to `src/SharpPilot.VSCode/instructions/`.
+All paths are relative to `src/AutoContext.VSCode/instructions/`.
 
 ## Context
 
