@@ -1,0 +1,28 @@
+{
+  "git": [
+    {
+      "name": "check_git_all",
+      "description": "Runs all enabled Git commit quality checks and returns a combined report covering commit format and content anti-patterns.",
+      "version": "0.1.0",
+      "features": [
+        {
+          "name": "check_git_commit_content",
+          "description": "Validates commit message body for content anti-patterns: no bullet lists, no file paths, no counts, no enumerated properties, no 'Key features:' sections, no sensitive information.",
+          "version": "1.0.0"
+        },
+        {
+          "name": "check_git_commit_format",
+          "description": "Validates commit message formatting against Conventional Commits: type(scope): description, subject under 50 characters, body wrap at 72 characters, blank line between subject and body.",
+          "version": "1.0.0"
+        }
+      ]
+    }
+  ],
+  "editorconfig": [
+    {
+      "name": "get_editorconfig",
+      "description": "Resolves effective .editorconfig properties for a given file path by walking the directory tree, evaluating glob patterns and section cascading, and returning final key-value pairs.",
+      "version": "1.0.0"
+    }
+  ]
+}

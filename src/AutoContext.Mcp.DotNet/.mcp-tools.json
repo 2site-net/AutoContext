@@ -1,0 +1,51 @@
+{
+  "dotnet": [
+    {
+      "name": "check_csharp_all",
+      "description": "Runs all enabled C# code quality checks and returns a combined report covering code style, member ordering, naming conventions, async patterns, nullable context, project structure, and test style.",
+      "version": "0.1.0",
+      "features": [
+        {
+          "name": "check_csharp_async_patterns",
+          "description": "Checks async/await pattern violations: no async void except event handlers, public async methods must accept CancellationToken, all await expressions in non-test code must use ConfigureAwait(false).",
+          "version": "1.0.0"
+        },
+        {
+          "name": "check_csharp_coding_style",
+          "description": "Checks C# source code for style violations: no #region, no decorative comments, curly brace usage, blank lines before control flow, expression-body placement, XML doc comments, and System directives ordering.",
+          "version": "1.0.0"
+        },
+        {
+          "name": "check_csharp_member_ordering",
+          "description": "Checks that C# type members follow canonical ordering: constants, static fields, fields, constructors, delegates, events, enums, properties, indexers, methods, operators, nested types — then by accessibility, static before instance, and alphabetically.",
+          "version": "1.0.0"
+        },
+        {
+          "name": "check_csharp_naming_conventions",
+          "description": "Checks C# naming violations: I-prefix on interfaces, Extensions suffix on extension classes, Async suffix on async methods, _camelCase for private non-static instance fields, PascalCase for types/methods/properties/events, camelCase for parameters.",
+          "version": "1.0.0"
+        },
+        {
+          "name": "check_csharp_nullable_context",
+          "description": "Checks nullable context violations: #nullable disable not allowed, and the null-forgiving operator (!) must not suppress warnings.",
+          "version": "1.0.0"
+        },
+        {
+          "name": "check_csharp_project_structure",
+          "description": "Checks project structure violations: namespace style per EditorConfig, one top-level type per file, file name matches type name, no #pragma warning disable.",
+          "version": "1.0.0"
+        },
+        {
+          "name": "check_csharp_test_style",
+          "description": "Checks test style violations: Tests suffix on test classes, Should_ or Should_not_ prefix on test methods, no XML docs on test code, Assert.Multiple() for multi-assertion tests, no ConfigureAwait in tests, and structure mirroring (file name, namespace) against the production project.",
+          "version": "1.0.0"
+        }
+      ]
+    },
+    {
+      "name": "check_nuget_hygiene",
+      "description": "Checks .csproj files for NuGet hygiene: no duplicate packages, no floating or wildcard versions, no missing versions unless Central Package Management is enabled, and flags packages with built-in .NET alternatives.",
+      "version": "0.1.0"
+    }
+  ]
+}

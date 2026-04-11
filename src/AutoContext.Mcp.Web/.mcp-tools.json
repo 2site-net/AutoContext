@@ -1,0 +1,16 @@
+{
+  "typescript": [
+    {
+      "name": "check_typescript_all",
+      "description": "Runs all enabled TypeScript code quality checks and returns a combined report covering coding style anti-patterns.",
+      "version": "0.1.0",
+      "features": [
+        {
+          "name": "check_typescript_coding_style",
+          "description": "Checks TypeScript coding style violations: no @ts-ignore, no enum declarations, avoid any/Function/Object/{} types, prefer interface over type for objects, exported functions require return types, constrain generic parameters, no as type assertions, and no non-null assertions.",
+          "version": "1.0.0"
+        }
+      ]
+    }
+  ]
+}
