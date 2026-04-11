@@ -3,7 +3,7 @@
 
 <#
 .SYNOPSIS
-    Build orchestrator for SharpPilot.
+    Build orchestrator for AutoContext.
 
 .DESCRIPTION
     Compiles, tests, packages, and publishes both the TypeScript VS Code extension
@@ -89,7 +89,7 @@ $ErrorActionPreference = 'Stop'
 $repoRoot = $PSScriptRoot
 
 # VS Code extension directory (fixed — used for packaging, publishing, assets)
-$extensionDir = Join-Path $repoRoot 'src' 'SharpPilot.VSCode'
+$extensionDir = Join-Path $repoRoot 'src' 'AutoContext.VSCode'
 
 # Discover vitest configs
 $vitestConfigs = @(Get-ChildItem $repoRoot -Filter 'vitest.config.ts' -Recurse -File -Depth 4)
@@ -99,7 +99,7 @@ $mcpDir = Join-Path $extensionDir 'mcp'
 $publishDir = Join-Path $extensionDir 'publish'
 
 # Web MCP server directory (TypeScript/Node.js-based server)
-$webServerDir = Join-Path $repoRoot 'src' 'SharpPilot.Mcp.Web'
+$webServerDir = Join-Path $repoRoot 'src' 'AutoContext.Mcp.Web'
 
 # Read extension version from package.json
 $packageJsonPath = Join-Path $extensionDir 'package.json'
@@ -187,7 +187,7 @@ function Write-Status {
 # ── Help ─────────────────────────────────────────────────────────────────────
 
 function Show-Help {
-    Write-Host "`nSharpPilot Build Orchestrator`n" -ForegroundColor Cyan
+    Write-Host "`nAutoContext Build Orchestrator`n" -ForegroundColor Cyan
 
     Write-Host 'SYNTAX' -ForegroundColor Yellow
     Write-Host "  .\build.ps1 [Action] [Target] [-Clean] [-RuntimeIdentifier <rid>] [-WhatIf] [-Help]`n"
@@ -437,7 +437,7 @@ function Invoke-WebServerPublish {
     $outDir = Join-Path $webServerDir 'out'
     if (-not (Test-Path $outDir)) { throw 'Web MCP server not compiled — run Compile first.' }
 
-    $targetDir = Join-Path $mcpDir 'SharpPilot.Mcp.Web'
+    $targetDir = Join-Path $mcpDir 'AutoContext.Mcp.Web'
 
     if ($PSCmdlet.ShouldProcess($targetDir, 'Copy Web MCP server')) {
         New-Item $targetDir -ItemType Directory -Force | Out-Null
@@ -474,7 +474,7 @@ function Invoke-VscePackage {
     if ($PSCmdlet.ShouldProcess("vsce package --target $vsceTarget", 'Package extension')) {
         Assert-ExternalCommand 'npx'
 
-        $env:SHARPPILOT_VSCE_BYPASS = '1'
+        $env:AUTOCONTEXT_VSCE_BYPASS = '1'
         Push-Location $extensionDir
         try {
             npx vsce package --target $vsceTarget --allow-missing-repository
@@ -486,7 +486,7 @@ function Invoke-VscePackage {
         }
         finally {
             Pop-Location
-            Remove-Item Env:\SHARPPILOT_VSCE_BYPASS -ErrorAction SilentlyContinue
+            Remove-Item Env:\AUTOCONTEXT_VSCE_BYPASS -ErrorAction SilentlyContinue
         }
     }
 }
@@ -697,7 +697,7 @@ if ($Clean -and $Action -in 'Prepare', 'Package', 'Publish') {
 $resolvedTarget = if ($Target) { $Target } else { 'All' }
 
 if ($extensionVersion) {
-    Write-Host "SharpPilot v$extensionVersion" -ForegroundColor Magenta
+    Write-Host "AutoContext v$extensionVersion" -ForegroundColor Magenta
     Write-Host ''
 }
 

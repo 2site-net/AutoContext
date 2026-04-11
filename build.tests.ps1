@@ -224,7 +224,7 @@ $testCases = @(
     @{
         Name         = 'Default (Compile + Test all)'
         Arguments    = '-WhatIf'
-        ExpectOutput = @('Compile TypeScript.*tsc', 'dotnet build.*SharpPilot', 'Run TypeScript tests.*vitest', 'dotnet test')
+        ExpectOutput = @('Compile TypeScript.*tsc', 'dotnet build.*AutoContext', 'Run TypeScript tests.*vitest', 'dotnet test')
     }
 
     # ── Compile ──────────────────────────────────────────────────────────
@@ -412,7 +412,7 @@ $testCases = @(
 
 $width = 64
 Write-Host ('=' * $width) -ForegroundColor Cyan
-Write-Host ((' ' * 9) + 'SharpPilot Build Script — Test Suite') -ForegroundColor Cyan
+Write-Host ((' ' * 9) + 'AutoContext Build Script — Test Suite') -ForegroundColor Cyan
 Write-Host ('=' * $width) -ForegroundColor Cyan
 Write-Host "  Running $($testCases.Count) tests..." -ForegroundColor Gray
 Write-Host ''

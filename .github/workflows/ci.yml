@@ -27,11 +27,11 @@ jobs:
           node-version: '22'
 
       - name: Install extension dependencies
-        working-directory: src/SharpPilot.VSCode
+        working-directory: src/AutoContext.VSCode
         run: npm ci
 
       - name: Install web MCP server dependencies
-        working-directory: src/SharpPilot.Mcp.Web
+        working-directory: src/AutoContext.Mcp.Web
         run: npm ci
 
       - name: Build and test
