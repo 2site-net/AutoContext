@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 import { InstructionsCodeLensProvider } from '../../src/instructions-codelens-provider';
-import { SharpPilotConfigManager } from '../../src/sharppilot-config';
+import { AutoContextConfigManager } from '../../src/autocontext-config';
 import { instructionScheme } from '../../src/instructions-content-provider';
 import { InstructionsParser } from '../../src/instructions-parser';
 import { InstructionsCatalog } from '../../src/instructions-catalog';
@@ -48,7 +48,7 @@ describe('InstructionsCodeLensProvider', () => {
     it('should return empty array for non-instruction documents', async () => {
         vi.mocked(readFile).mockResolvedValue('{}');
 
-        const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
+        const configManager = new AutoContextConfigManager('/ext', '0.5.0');
         const provider = new InstructionsCodeLensProvider('/ext', configManager, fakeDetector, catalog);
 
         const lenses = await provider.provideCodeLenses(makeDocument('file', 'test.md'));
@@ -63,7 +63,7 @@ describe('InstructionsCodeLensProvider', () => {
             return testContent;
         });
 
-        const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
+        const configManager = new AutoContextConfigManager('/ext', '0.5.0');
         const provider = new InstructionsCodeLensProvider('/ext', configManager, fakeDetector, catalog);
 
         const lenses = await provider.provideCodeLenses(makeDocument(instructionScheme, 'test.instructions.md'));
@@ -90,7 +90,7 @@ describe('InstructionsCodeLensProvider', () => {
             return testContent;
         });
 
-        const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
+        const configManager = new AutoContextConfigManager('/ext', '0.5.0');
         const provider = new InstructionsCodeLensProvider('/ext', configManager, fakeDetector, catalog);
 
         const lenses = await provider.provideCodeLenses(makeDocument(instructionScheme, 'test.instructions.md'));
@@ -119,7 +119,7 @@ describe('InstructionsCodeLensProvider', () => {
             return testContent;
         });
 
-        const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
+        const configManager = new AutoContextConfigManager('/ext', '0.5.0');
         const provider = new InstructionsCodeLensProvider('/ext', configManager, fakeDetector, catalog);
 
         const lenses = await provider.provideCodeLenses(makeDocument(instructionScheme, 'test.instructions.md'));
@@ -138,7 +138,7 @@ describe('InstructionsCodeLensProvider', () => {
             return testContent;
         });
 
-        const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
+        const configManager = new AutoContextConfigManager('/ext', '0.5.0');
         const provider = new InstructionsCodeLensProvider('/ext', configManager, fakeDetector, catalog);
 
         const lenses = await provider.provideCodeLenses(makeDocument(instructionScheme, 'test.instructions.md'));
@@ -149,14 +149,14 @@ describe('InstructionsCodeLensProvider', () => {
 
     it('should return empty array for overridden instructions', async () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
-        vi.mocked(fakeDetector.getOverriddenSettingIds).mockReturnValue(new Set(['sharppilot.instructions.lang.csharp']));
+        vi.mocked(fakeDetector.getOverriddenSettingIds).mockReturnValue(new Set(['autocontext.instructions.lang.csharp']));
         vi.mocked(readFile).mockImplementation(async (path: unknown) => {
             const pathStr = String(path);
             if (pathStr.endsWith('.autocontext.json')) return '{}';
             return testContent;
         });
 
-        const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
+        const configManager = new AutoContextConfigManager('/ext', '0.5.0');
         const provider = new InstructionsCodeLensProvider('/ext', configManager, fakeDetector, catalog);
 
         const lenses = await provider.provideCodeLenses(makeDocument(instructionScheme, 'lang-csharp.instructions.md'));
@@ -172,7 +172,7 @@ describe('InstructionsCodeLensProvider', () => {
             return testContent;
         });
 
-        const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
+        const configManager = new AutoContextConfigManager('/ext', '0.5.0');
         const provider = new InstructionsCodeLensProvider('/ext', configManager, fakeDetector, catalog);
 
         const lenses = await provider.provideCodeLenses(makeDocument(instructionScheme, 'lang-csharp.instructions.md'));

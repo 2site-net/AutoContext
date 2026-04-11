@@ -78,7 +78,7 @@ describe('InstructionsTreeProvider', () => {
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'category' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
-        const csharp = children.find(c => c.kind === 'instructions' && c.entry.settingId === 'sharppilot.instructions.lang.csharp')!;
+        const csharp = children.find(c => c.kind === 'instructions' && c.entry.settingId === 'autocontext.instructions.lang.csharp')!;
 
         expect.soft(csharp.kind === 'instructions' && csharp.state).toBe(TreeViewNodeState.Enabled);
 
@@ -92,7 +92,7 @@ describe('InstructionsTreeProvider', () => {
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'category' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
-        const csharp = children.find(c => c.kind === 'instructions' && c.entry.settingId === 'sharppilot.instructions.lang.csharp')!;
+        const csharp = children.find(c => c.kind === 'instructions' && c.entry.settingId === 'autocontext.instructions.lang.csharp')!;
 
         expect.soft(csharp.kind === 'instructions' && csharp.state).toBe(TreeViewNodeState.NotDetected);
 
@@ -104,13 +104,13 @@ describe('InstructionsTreeProvider', () => {
 
     it('should mark instructions as disabled when config setting is false', () => {
         vi.mocked(fakeDetector.get).mockImplementation((key: string) => key === 'hasCSharp');
-        __setConfigStore({ 'sharppilot.instructions.lang.csharp': false });
+        __setConfigStore({ 'autocontext.instructions.lang.csharp': false });
 
         const provider = new InstructionsTreeProvider(fakeDetector, catalog, stateResolver, tooltip);
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'category' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
-        const csharp = children.find(c => c.kind === 'instructions' && c.entry.settingId === 'sharppilot.instructions.lang.csharp')!;
+        const csharp = children.find(c => c.kind === 'instructions' && c.entry.settingId === 'autocontext.instructions.lang.csharp')!;
 
         expect.soft(csharp.kind === 'instructions' && csharp.state).toBe(TreeViewNodeState.Disabled);
 
@@ -122,13 +122,13 @@ describe('InstructionsTreeProvider', () => {
 
     it('should mark instructions as overridden when settingId is in overrides', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
-        vi.mocked(fakeDetector.getOverriddenSettingIds).mockReturnValue(new Set(['sharppilot.instructions.lang.csharp']));
+        vi.mocked(fakeDetector.getOverriddenSettingIds).mockReturnValue(new Set(['autocontext.instructions.lang.csharp']));
 
         const provider = new InstructionsTreeProvider(fakeDetector, catalog, stateResolver, tooltip);
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'category' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
-        const csharp = children.find(c => c.kind === 'instructions' && c.entry.settingId === 'sharppilot.instructions.lang.csharp')!;
+        const csharp = children.find(c => c.kind === 'instructions' && c.entry.settingId === 'autocontext.instructions.lang.csharp')!;
 
         expect.soft(csharp.kind === 'instructions' && csharp.state).toBe(TreeViewNodeState.Overridden);
 
@@ -143,7 +143,7 @@ describe('InstructionsTreeProvider', () => {
         const roots = provider.getChildren();
         const general = roots.find(r => r.kind === 'category' && r.name === 'General')!;
         const children = provider.getChildren(general);
-        const codeReview = children.find(c => c.kind === 'instructions' && c.entry.settingId === 'sharppilot.instructions.codeReview')!;
+        const codeReview = children.find(c => c.kind === 'instructions' && c.entry.settingId === 'autocontext.instructions.codeReview')!;
 
         expect.soft(codeReview.kind === 'instructions' && codeReview.state).toBe(TreeViewNodeState.Enabled);
 
@@ -182,17 +182,17 @@ describe('InstructionsTreeProvider', () => {
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'category' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
-        const csharp = children.find(c => c.kind === 'instructions' && c.entry.settingId === 'sharppilot.instructions.lang.csharp')!;
+        const csharp = children.find(c => c.kind === 'instructions' && c.entry.settingId === 'autocontext.instructions.lang.csharp')!;
 
         const treeItem = provider.getTreeItem(csharp);
-        expect.soft(treeItem.tooltip).toContain('sharppilot.instructions.lang.csharp');
+        expect.soft(treeItem.tooltip).toContain('autocontext.instructions.lang.csharp');
 
         provider.dispose();
     });
 
     it('should sort active instructions before disabled, and disabled before not detected', () => {
         vi.mocked(fakeDetector.get).mockImplementation((key: string) => key === 'hasCSharp' || key === 'hasTypeScript');
-        __setConfigStore({ 'sharppilot.instructions.lang.csharp': false });
+        __setConfigStore({ 'autocontext.instructions.lang.csharp': false });
 
         const provider = new InstructionsTreeProvider(fakeDetector, catalog, stateResolver, tooltip);
         const roots = provider.getChildren();
@@ -224,12 +224,12 @@ describe('InstructionsTreeProvider', () => {
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'category' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
-        const csharp = children.find(c => c.kind === 'instructions' && c.entry.settingId === 'sharppilot.instructions.lang.csharp')!;
+        const csharp = children.find(c => c.kind === 'instructions' && c.entry.settingId === 'autocontext.instructions.lang.csharp')!;
 
         const treeItem = provider.getTreeItem(csharp);
         expect.soft(treeItem.command).toBeDefined();
         expect.soft(treeItem.command!.command).toBe('vscode.open');
-        expect.soft(treeItem.command!.arguments![0].scheme).toBe('sharppilot-instructions');
+        expect.soft(treeItem.command!.arguments![0].scheme).toBe('autocontext-instructions');
         expect.soft(treeItem.command!.arguments![0].path).toBe(csharp.kind === 'instructions' ? csharp.entry.fileName : '');
 
         provider.dispose();
@@ -237,14 +237,14 @@ describe('InstructionsTreeProvider', () => {
 
     it('should open the workspace override file for overridden items', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
-        vi.mocked(fakeDetector.getOverriddenSettingIds).mockReturnValue(new Set(['sharppilot.instructions.lang.csharp']));
+        vi.mocked(fakeDetector.getOverriddenSettingIds).mockReturnValue(new Set(['autocontext.instructions.lang.csharp']));
         workspace.workspaceFolders = [{ uri: { path: '/workspace', scheme: 'file' } }];
 
         const provider = new InstructionsTreeProvider(fakeDetector, catalog, stateResolver, tooltip);
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'category' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
-        const csharp = children.find(c => c.kind === 'instructions' && c.entry.settingId === 'sharppilot.instructions.lang.csharp')!;
+        const csharp = children.find(c => c.kind === 'instructions' && c.entry.settingId === 'autocontext.instructions.lang.csharp')!;
 
         const treeItem = provider.getTreeItem(csharp);
         expect.soft(treeItem.command).toBeDefined();
@@ -272,13 +272,13 @@ describe('InstructionsTreeProvider', () => {
 
     it('should set contextValue to instruction.disabled for disabled items', () => {
         vi.mocked(fakeDetector.get).mockImplementation((key: string) => key === 'hasCSharp');
-        __setConfigStore({ 'sharppilot.instructions.lang.csharp': false });
+        __setConfigStore({ 'autocontext.instructions.lang.csharp': false });
 
         const provider = new InstructionsTreeProvider(fakeDetector, catalog, stateResolver, tooltip);
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'category' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
-        const disabled = children.find(c => c.kind === 'instructions' && c.entry.settingId === 'sharppilot.instructions.lang.csharp')!;
+        const disabled = children.find(c => c.kind === 'instructions' && c.entry.settingId === 'autocontext.instructions.lang.csharp')!;
 
         const treeItem = provider.getTreeItem(disabled);
         expect.soft(treeItem.contextValue).toBe('instruction.disabled');
@@ -288,18 +288,18 @@ describe('InstructionsTreeProvider', () => {
 
     it('should update setting to true when enableInstruction is called', async () => {
         vi.mocked(fakeDetector.get).mockImplementation((key: string) => key === 'hasCSharp');
-        __setConfigStore({ 'sharppilot.instructions.lang.csharp': false });
+        __setConfigStore({ 'autocontext.instructions.lang.csharp': false });
 
         const provider = new InstructionsTreeProvider(fakeDetector, catalog, stateResolver, tooltip);
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'category' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
-        const node = children.find(c => c.kind === 'instructions' && c.entry.settingId === 'sharppilot.instructions.lang.csharp')!;
+        const node = children.find(c => c.kind === 'instructions' && c.entry.settingId === 'autocontext.instructions.lang.csharp')!;
 
         await InstructionsTreeProvider.enableInstruction(node as InstructionsTreeNode);
 
         const config = vi.mocked(workspace.getConfiguration).mock.results.at(-1)!.value;
-        expect.soft(config.update).toHaveBeenCalledWith('sharppilot.instructions.lang.csharp', true, ConfigurationTarget.Global);
+        expect.soft(config.update).toHaveBeenCalledWith('autocontext.instructions.lang.csharp', true, ConfigurationTarget.Global);
 
         provider.dispose();
     });
@@ -327,7 +327,7 @@ describe('InstructionsTreeProvider', () => {
 
     it('should delete the override file and close its tab when deleteOverride is called', async () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
-        vi.mocked(fakeDetector.getOverriddenSettingIds).mockReturnValue(new Set(['sharppilot.instructions.lang.csharp']));
+        vi.mocked(fakeDetector.getOverriddenSettingIds).mockReturnValue(new Set(['autocontext.instructions.lang.csharp']));
         workspace.workspaceFolders = [{ uri: { path: '/workspace', scheme: 'file' } }];
 
         const folder = workspace.workspaceFolders[0] as { uri: { path: string; scheme: string } };
@@ -339,7 +339,7 @@ describe('InstructionsTreeProvider', () => {
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'category' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
-        const node = children.find(c => c.kind === 'instructions' && c.entry.settingId === 'sharppilot.instructions.lang.csharp')!;
+        const node = children.find(c => c.kind === 'instructions' && c.entry.settingId === 'autocontext.instructions.lang.csharp')!;
 
         await InstructionsTreeProvider.deleteOverride(node as InstructionsTreeNode);
 
@@ -351,19 +351,19 @@ describe('InstructionsTreeProvider', () => {
 
     it('should open the virtual document when showOriginal is called on overridden item', async () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
-        vi.mocked(fakeDetector.getOverriddenSettingIds).mockReturnValue(new Set(['sharppilot.instructions.lang.csharp']));
+        vi.mocked(fakeDetector.getOverriddenSettingIds).mockReturnValue(new Set(['autocontext.instructions.lang.csharp']));
 
         const provider = new InstructionsTreeProvider(fakeDetector, catalog, stateResolver, tooltip);
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'category' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
-        const node = children.find(c => c.kind === 'instructions' && c.entry.settingId === 'sharppilot.instructions.lang.csharp')!;
+        const node = children.find(c => c.kind === 'instructions' && c.entry.settingId === 'autocontext.instructions.lang.csharp')!;
 
         await InstructionsTreeProvider.showOriginal(node as InstructionsTreeNode);
 
         expect.soft(commands.executeCommand).toHaveBeenCalledWith(
             'vscode.open',
-            expect.objectContaining({ scheme: 'sharppilot-instructions', path: 'lang-csharp.instructions.md' }),
+            expect.objectContaining({ scheme: 'autocontext-instructions', path: 'lang-csharp.instructions.md' }),
         );
 
         provider.dispose();
@@ -371,7 +371,7 @@ describe('InstructionsTreeProvider', () => {
 
     it('should show checkboxes on active and disabled items in export mode', () => {
         vi.mocked(fakeDetector.get).mockImplementation((key: string) => key === 'hasCSharp');
-        __setConfigStore({ 'sharppilot.instructions.designPrinciples': false });
+        __setConfigStore({ 'autocontext.instructions.designPrinciples': false });
 
         const provider = new InstructionsTreeProvider(fakeDetector, catalog, stateResolver, tooltip);
         provider.enterExportMode();
@@ -447,7 +447,7 @@ describe('InstructionsTreeProvider', () => {
         const roots = provider.getChildren();
         const general = roots.find(r => r.kind === 'category' && r.name === 'General')!;
         const children = provider.getChildren(general);
-        const entry = children.find(c => c.kind === 'instructions' && c.entry.settingId === 'sharppilot.instructions.codeReview')!;
+        const entry = children.find(c => c.kind === 'instructions' && c.entry.settingId === 'autocontext.instructions.codeReview')!;
 
         // Simulate checkbox toggle by accessing the internal checked set
         // In production, this is driven by onDidChangeCheckboxState
@@ -457,7 +457,7 @@ describe('InstructionsTreeProvider', () => {
 
         const checked = provider.getCheckedEntries();
         expect.soft(checked.length).toBe(1);
-        expect.soft(checked[0].settingId).toBe('sharppilot.instructions.codeReview');
+        expect.soft(checked[0].settingId).toBe('autocontext.instructions.codeReview');
 
         provider.dispose();
     });
@@ -468,7 +468,7 @@ describe('InstructionsTreeProvider', () => {
         const provider = new InstructionsTreeProvider(fakeDetector, catalog, stateResolver, tooltip);
         provider.enterExportMode();
 
-        (provider as unknown as { _checkedEntries: Set<string> })._checkedEntries.add('sharppilot.instructions.codeReview');
+        (provider as unknown as { _checkedEntries: Set<string> })._checkedEntries.add('autocontext.instructions.codeReview');
         expect.soft(provider.getCheckedEntries().length).toBe(1);
 
         provider.cancelExportMode();
@@ -528,13 +528,13 @@ describe('InstructionsTreeProvider', () => {
 
     it('should set contextValue to instruction.overridden for overridden items', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
-        vi.mocked(fakeDetector.getOverriddenSettingIds).mockReturnValue(new Set(['sharppilot.instructions.lang.csharp']));
+        vi.mocked(fakeDetector.getOverriddenSettingIds).mockReturnValue(new Set(['autocontext.instructions.lang.csharp']));
 
         const provider = new InstructionsTreeProvider(fakeDetector, catalog, stateResolver, tooltip);
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'category' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
-        const overridden = children.find(c => c.kind === 'instructions' && c.entry.settingId === 'sharppilot.instructions.lang.csharp')!;
+        const overridden = children.find(c => c.kind === 'instructions' && c.entry.settingId === 'autocontext.instructions.lang.csharp')!;
 
         const treeItem = provider.getTreeItem(overridden);
         expect.soft(treeItem.contextValue).toBe('instruction.overridden');
@@ -569,7 +569,7 @@ describe('InstructionsTreeProvider', () => {
 
     it('should include state description in tooltip for disabled state', () => {
         vi.mocked(fakeDetector.get).mockImplementation((key: string) => key === 'hasCSharp');
-        __setConfigStore({ 'sharppilot.instructions.lang.csharp': false });
+        __setConfigStore({ 'autocontext.instructions.lang.csharp': false });
 
         const provider = new InstructionsTreeProvider(fakeDetector, catalog, stateResolver, tooltip);
         const roots = provider.getChildren();
@@ -583,7 +583,7 @@ describe('InstructionsTreeProvider', () => {
 
     it('should include state description in tooltip for overridden state', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
-        vi.mocked(fakeDetector.getOverriddenSettingIds).mockReturnValue(new Set(['sharppilot.instructions.lang.csharp']));
+        vi.mocked(fakeDetector.getOverriddenSettingIds).mockReturnValue(new Set(['autocontext.instructions.lang.csharp']));
 
         const provider = new InstructionsTreeProvider(fakeDetector, catalog, stateResolver, tooltip);
         const roots = provider.getChildren();
@@ -597,14 +597,14 @@ describe('InstructionsTreeProvider', () => {
 
     it('should show active/total count in category tooltip when all detected', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
-        __setConfigStore({ 'sharppilot.instructions.lang.csharp': false });
+        __setConfigStore({ 'autocontext.instructions.lang.csharp': false });
 
         const provider = new InstructionsTreeProvider(fakeDetector, catalog, stateResolver, tooltip);
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'category' && r.name === 'Languages')!;
         const item = provider.getTreeItem(languages);
         const langEntries = catalog.all.filter(e => e.category === 'Languages');
-        const active = langEntries.filter(e => e.settingId !== 'sharppilot.instructions.lang.csharp').length;
+        const active = langEntries.filter(e => e.settingId !== 'autocontext.instructions.lang.csharp').length;
 
         expect.soft(item.tooltip).toBe(`Languages\n${active}/${langEntries.length} active`);
 
@@ -628,7 +628,7 @@ describe('InstructionsTreeProvider', () => {
 
     it('should count overridden instructions as active in category tooltip', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
-        vi.mocked(fakeDetector.getOverriddenSettingIds).mockReturnValue(new Set(['sharppilot.instructions.lang.csharp']));
+        vi.mocked(fakeDetector.getOverriddenSettingIds).mockReturnValue(new Set(['autocontext.instructions.lang.csharp']));
 
         const provider = new InstructionsTreeProvider(fakeDetector, catalog, stateResolver, tooltip);
         const roots = provider.getChildren();
@@ -643,12 +643,12 @@ describe('InstructionsTreeProvider', () => {
 
     it('should set treeView description to enabled/total count', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
-        __setConfigStore({ 'sharppilot.instructions.lang.csharp': false });
+        __setConfigStore({ 'autocontext.instructions.lang.csharp': false });
 
         const provider = new InstructionsTreeProvider(fakeDetector, catalog, stateResolver, tooltip);
         const treeView = vi.mocked(window.createTreeView).mock.results.at(-1)!.value;
         const total = catalog.count;
-        const enabled = catalog.all.filter(e => e.settingId !== 'sharppilot.instructions.lang.csharp').length;
+        const enabled = catalog.all.filter(e => e.settingId !== 'autocontext.instructions.lang.csharp').length;
 
         expect.soft(treeView.description).toBe(`${enabled}/${total}`);
 

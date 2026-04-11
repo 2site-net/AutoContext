@@ -394,21 +394,21 @@ describe('WorkspaceContextDetector', () => {
         });
 
         describe('context key registration', () => {
-            it('should prefix workspace keys with sharppilot.workspace.', async () => {
+            it('should prefix workspace keys with autocontext.workspace.', async () => {
                 stubFindFiles({ '**/*.py': ['/main.py'] });
 
                 const det = createDetector();
                 await det.detect();
 
                 expect.soft(commands.executeCommand).toHaveBeenCalledWith(
-                    'setContext', 'sharppilot.workspace.hasPython', true,
+                    'setContext', 'autocontext.workspace.hasPython', true,
                 );
                 expect.soft(commands.executeCommand).toHaveBeenCalledWith(
-                    'setContext', 'sharppilot.workspace.hasRust', false,
+                    'setContext', 'autocontext.workspace.hasRust', false,
                 );
             });
 
-            it('should register override keys with sharppilot.override. prefix', async () => {
+            it('should register override keys with autocontext.override. prefix', async () => {
                 stubFindFiles({
                     '.github/instructions/*.instructions.md': [
                         '/.github/instructions/dotnet-coding-standards.instructions.md',
@@ -419,7 +419,7 @@ describe('WorkspaceContextDetector', () => {
                 await det.detect();
 
                 expect(commands.executeCommand).toHaveBeenCalledWith(
-                    'setContext', 'sharppilot.override.dotnet.codingStandards', true,
+                    'setContext', 'autocontext.override.dotnet.codingStandards', true,
                 );
             });
         });
@@ -435,7 +435,7 @@ describe('WorkspaceContextDetector', () => {
                 const det = createDetector();
                 await det.detect();
 
-                expect(det.getOverriddenSettingIds().has('sharppilot.instructions.dotnet.codingStandards')).toBe(true);
+                expect(det.getOverriddenSettingIds().has('autocontext.instructions.dotnet.codingStandards')).toBe(true);
             });
 
             it('should not include unknown override files', async () => {
@@ -624,7 +624,7 @@ describe('WorkspaceContextDetector', () => {
             fireEvent(override, 'create', '/.github/instructions/dotnet-coding-standards.instructions.md');
             await vi.advanceTimersByTimeAsync(500);
 
-            expect(det.getOverriddenSettingIds().has('sharppilot.instructions.dotnet.codingStandards')).toBe(true);
+            expect(det.getOverriddenSettingIds().has('autocontext.instructions.dotnet.codingStandards')).toBe(true);
         });
 
         it('should fall back to full detect when no prior scan exists', async () => {

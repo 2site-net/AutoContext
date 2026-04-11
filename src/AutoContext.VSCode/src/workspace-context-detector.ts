@@ -544,7 +544,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
 
         await Promise.all([
             ...Object.entries(flags).map(([key, value]) =>
-                setContext(`sharppilot.workspace.${key}`, value),
+                setContext(`autocontext.workspace.${key}`, value),
             ),
             ...this.instructionsCatalog.all.map(i =>
                 setContext(ContextKeys.overrideKey(i.settingId), overriddenFileNames.has(i.fileName)),

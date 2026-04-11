@@ -6,9 +6,9 @@ import { activatedExtension } from './helpers.js';
 
 suite('Extension Smoke Tests', () => {
     test('extension should be present', () => {
-        const ext = vscode.extensions.getExtension('2site-net.sharppilot');
+        const ext = vscode.extensions.getExtension('2site-net.AutoContext');
 
-        assert.ok(ext, 'Extension 2site-net.sharppilot not found');
+        assert.ok(ext, 'Extension 2site-net.AutoContext not found');
     });
 
     test('extension should activate', async () => {
@@ -17,21 +17,21 @@ suite('Extension Smoke Tests', () => {
         assert.ok(ext.isActive, 'Extension did not activate');
     });
 
-    test('registered commands should include all SharpPilot commands', async () => {
+    test('registered commands should include all AutoContext commands', async () => {
         await activatedExtension();
 
         const allCommands = await vscode.commands.getCommands(true);
         const expected = [
-            'sharppilot.auto-configure',
-            'sharppilot.toggle-instruction',
-            'sharppilot.reset-instructions',
-            'sharppilot.enable-instruction',
-            'sharppilot.disable-instruction',
-            'sharppilot.enter-export-mode',
-            'sharppilot.confirm-export',
-            'sharppilot.cancel-export',
-            'sharppilot.show-not-detected',
-            'sharppilot.hide-not-detected',
+            'autocontext.auto-configure',
+            'autocontext.toggle-instruction',
+            'autocontext.reset-instructions',
+            'autocontext.enable-instruction',
+            'autocontext.disable-instruction',
+            'autocontext.enter-export-mode',
+            'autocontext.confirm-export',
+            'autocontext.cancel-export',
+            'autocontext.show-not-detected',
+            'autocontext.hide-not-detected',
         ];
         const missing = expected.filter(cmd => !allCommands.includes(cmd));
 
@@ -52,9 +52,9 @@ suite('Extension Smoke Tests', () => {
         assert.ok(violations.length === 0, `Files with empty content or un-stripped tags: ${violations.join(', ')}`);
     });
 
-    test('sharppilot-instructions content provider should be registered', async () => {
+    test('autocontext-instructions content provider should be registered', async () => {
         await activatedExtension();
-        const uri = vscode.Uri.from({ scheme: 'sharppilot-instructions', path: 'copilot.instructions.md' });
+        const uri = vscode.Uri.from({ scheme: 'autocontext-instructions', path: 'copilot.instructions.md' });
 
         const doc = await vscode.workspace.openTextDocument(uri);
 

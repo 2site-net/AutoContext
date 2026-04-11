@@ -14,7 +14,7 @@ vi.mock('node:fs/promises', () => ({
 import { McpToolsConfigWriter } from '../../src/mcp-tools-config-writer';
 import { McpToolsCatalog } from '../../src/mcp-tools-catalog';
 import { mcpTools } from '../../src/ui-constants';
-import { SharpPilotConfigManager } from '../../src/sharppilot-config';
+import { AutoContextConfigManager } from '../../src/autocontext-config';
 
 beforeEach(() => {
     vi.clearAllMocks();
@@ -27,7 +27,7 @@ describe('McpToolsConfigWriter', () => {
 
     it('should write disabled tools to .autocontext.json', async () => {
         __setConfigStore({
-            'sharppilot.mcpTools.check_csharp_coding_style': false,
+            'autocontext.mcpTools.check_csharp_coding_style': false,
         });
 
         vi.mocked(readFile).mockImplementation(async (path: unknown) => {
@@ -36,7 +36,7 @@ describe('McpToolsConfigWriter', () => {
             return '';
         });
 
-        const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
+        const configManager = new AutoContextConfigManager('/ext', '0.5.0');
         const writer = new McpToolsConfigWriter(configManager, catalog);
         await writer.write();
 
@@ -52,7 +52,7 @@ describe('McpToolsConfigWriter', () => {
 
     it('should not write when nothing changed', async () => {
         __setConfigStore({
-            'sharppilot.mcpTools.check_csharp_coding_style': false,
+            'autocontext.mcpTools.check_csharp_coding_style': false,
         });
 
         vi.mocked(readFile).mockImplementation(async (path: unknown) => {
@@ -63,7 +63,7 @@ describe('McpToolsConfigWriter', () => {
             return '';
         });
 
-        const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
+        const configManager = new AutoContextConfigManager('/ext', '0.5.0');
         const writer = new McpToolsConfigWriter(configManager, catalog);
         await writer.write();
 
@@ -81,7 +81,7 @@ describe('McpToolsConfigWriter', () => {
             return '';
         });
 
-        const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
+        const configManager = new AutoContextConfigManager('/ext', '0.5.0');
         const writer = new McpToolsConfigWriter(configManager, catalog);
         await writer.write();
 

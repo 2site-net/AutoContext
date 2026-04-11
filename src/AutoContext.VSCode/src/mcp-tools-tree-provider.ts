@@ -38,7 +38,7 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
             this._onDidChangeTreeData,
             detector.onDidDetect(() => this.refresh()),
             vscode.workspace.onDidChangeConfiguration(e => {
-                if (e.affectsConfiguration('sharppilot.mcpTools')) {
+                if (e.affectsConfiguration('autocontext.mcpTools')) {
                     this.refresh();
                 }
             }),

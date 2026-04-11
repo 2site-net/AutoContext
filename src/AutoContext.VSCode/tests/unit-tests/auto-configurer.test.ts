@@ -30,7 +30,7 @@ describe('AutoConfigurer.configure', () => {
 
         expect(updates.length).toBeGreaterThan(0);
         expect.soft(updates.every(([settingId, value]: [string, boolean]) =>
-            value === false && settingId.startsWith('sharppilot.'),
+            value === false && settingId.startsWith('autocontext.'),
         )).toBe(true);
     });
 
@@ -44,9 +44,9 @@ describe('AutoConfigurer.configure', () => {
 
         const updatedIds = new Set(updates.map(([id]: [string]) => id));
 
-        expect.soft(updatedIds.has('sharppilot.instructions.dotnet.asyncAwait')).toBe(false);
-        expect.soft(updatedIds.has('sharppilot.mcpTools.check_csharp_coding_style')).toBe(false);
-        expect.soft(updatedIds.has('sharppilot.instructions.git.commitFormat')).toBe(true);
+        expect.soft(updatedIds.has('autocontext.instructions.dotnet.asyncAwait')).toBe(false);
+        expect.soft(updatedIds.has('autocontext.mcpTools.check_csharp_coding_style')).toBe(false);
+        expect.soft(updatedIds.has('autocontext.instructions.git.commitFormat')).toBe(true);
     });
 
     it('should show an info message with the count of enabled items', async () => {
@@ -58,13 +58,13 @@ describe('AutoConfigurer.configure', () => {
         const alwaysOnCount = allEntries.filter(e => ContextKeys.forEntry(e).length === 0).length;
 
         expect.soft(window.showInformationMessage).toHaveBeenCalledWith(
-            `SharpPilot: Enabled ${alwaysOnCount} of ${allEntries.length} items for this workspace.`,
+            `AutoContext: Enabled ${alwaysOnCount} of ${allEntries.length} items for this workspace.`,
         );
     });
 
     it('should not update settings that already match the target state', async () => {
         __setConfigStore({
-            'sharppilot.instructions.dotnet.asyncAwait': false,
+            'autocontext.instructions.dotnet.asyncAwait': false,
         });
         vi.mocked(fakeDetector.get).mockReturnValue(false);
 
@@ -73,6 +73,6 @@ describe('AutoConfigurer.configure', () => {
         const config = vi.mocked(workspace.getConfiguration).mock.results[0].value;
         const updatedIds = vi.mocked(config.update).mock.calls.map(([id]: [string]) => id);
 
-        expect.soft(updatedIds.filter((id: string) => id === 'sharppilot.instructions.dotnet.asyncAwait')).toHaveLength(0);
+        expect.soft(updatedIds.filter((id: string) => id === 'autocontext.instructions.dotnet.asyncAwait')).toHaveLength(0);
     });
 });

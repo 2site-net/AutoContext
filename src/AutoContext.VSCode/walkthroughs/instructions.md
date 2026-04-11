@@ -1,6 +1,6 @@
 ## Chat Instructions
 
-SharpPilot ships with curated instruction files organized into categories:
+AutoContext ships with curated instruction files organized into categories:
 
 | Category | Coverage |
 |----------|----------|
@@ -14,9 +14,9 @@ When enabled, instructions are automatically attached to every Copilot Chat conv
 
 ### Toggle instructions
 
-Use the SharpPilot sidebar to control which instruction sets are active. Instructions are grouped by category — use the inline actions on each item to enable or disable it. Use the `…` menu on the panel header to show or hide items that are not detected in your workspace.
+Use the AutoContext sidebar to control which instruction sets are active. Instructions are grouped by category — use the inline actions on each item to enable or disable it. Use the `…` menu on the panel header to show or hide items that are not detected in your workspace.
 
-[Open Instructions Panel](command:sharppilot.instructions-view.focus)
+[Open Instructions Panel](command:autocontext.instructions-view.focus)
 
 ### Exported instructions
 

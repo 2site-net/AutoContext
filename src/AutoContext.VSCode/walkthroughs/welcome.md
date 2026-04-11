@@ -1,8 +1,8 @@
-![SharpPilot](../resources/logo.png)
+![AutoContext](../resources/logo.png)
 
-## Welcome to SharpPilot
+## Welcome to AutoContext
 
-SharpPilot is a quality-assurance extension for GitHub Copilot. It ships curated **chat instructions** that guide Copilot's responses and registers **MCP servers** whose tools let Copilot check your code against best practices — all manageable from dedicated sidebar panels.
+AutoContext is a quality-assurance extension for GitHub Copilot. It ships curated **chat instructions** that guide Copilot's responses and registers **MCP servers** whose tools let Copilot check your code against best practices — all manageable from dedicated sidebar panels.
 
 ### What you get
 
@@ -10,4 +10,4 @@ SharpPilot is a quality-assurance extension for GitHub Copilot. It ships curated
 - **MCP Tool Checks** — Quality checks that Copilot can invoke in Agent mode across multiple categories (DotNet, Git, EditorConfig, TypeScript). Each feature can be toggled individually.
 - **EditorConfig-Driven Enforcement** — Checkers read `.editorconfig` properties and enforce whichever direction the project specifies rather than just skipping conflicting rules.
 - **Auto Configuration** — One command scans your workspace and enables only the instructions and tools that match the detected technologies.
-- **Sidebar Panels** — Dedicated Instructions and MCP Tools panels in the SharpPilot activity bar, showing enabled/total counts and offering filters, export, and per-item toggling.
+- **Sidebar Panels** — Dedicated Instructions and MCP Tools panels in the AutoContext activity bar, showing enabled/total counts and offering filters, export, and per-item toggling.

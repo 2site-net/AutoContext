@@ -4,7 +4,7 @@ import { InstructionsParser } from './instructions-parser.js';
 import type { InstructionsCatalog } from './instructions-catalog.js';
 import { ContextKeys } from './context-keys.js';
 import { instructionScheme } from './instructions-content-provider.js';
-import type { SharpPilotConfigManager } from './sharppilot-config.js';
+import type { AutoContextConfigManager } from './autocontext-config.js';
 import type { WorkspaceContextDetector } from './workspace-context-detector.js';
 import { commandIds } from './ui-constants.js';
 
@@ -15,7 +15,7 @@ export class InstructionsCodeLensProvider implements vscode.CodeLensProvider, vs
 
     constructor(
         private readonly extensionPath: string,
-        private readonly configManager: SharpPilotConfigManager,
+        private readonly configManager: AutoContextConfigManager,
         private readonly detector: WorkspaceContextDetector,
         private readonly catalog: InstructionsCatalog,
     ) {

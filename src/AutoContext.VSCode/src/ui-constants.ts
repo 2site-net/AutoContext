@@ -5,27 +5,27 @@ import type { InstructionsFileEntry } from './types/instructions-file-entry.js';
 // ── Extension identifiers ────────────────────────────────────────────
 
 export const commandIds = {
-    AutoConfigure: 'sharppilot.auto-configure',
-    ShowNotDetected: 'sharppilot.show-not-detected',
-    HideNotDetected: 'sharppilot.hide-not-detected',
-    ToggleInstruction: 'sharppilot.toggle-instruction',
-    ResetInstructions: 'sharppilot.reset-instructions',
-    EnableInstruction: 'sharppilot.enable-instruction',
-    DisableInstruction: 'sharppilot.disable-instruction',
-    DeleteOverride: 'sharppilot.delete-override',
-    ShowOriginal: 'sharppilot.show-original',
-    EnterExportMode: 'sharppilot.enter-export-mode',
-    ConfirmExport: 'sharppilot.confirm-export',
-    CancelExport: 'sharppilot.cancel-export',
+    AutoConfigure: 'autocontext.auto-configure',
+    ShowNotDetected: 'autocontext.show-not-detected',
+    HideNotDetected: 'autocontext.hide-not-detected',
+    ToggleInstruction: 'autocontext.toggle-instruction',
+    ResetInstructions: 'autocontext.reset-instructions',
+    EnableInstruction: 'autocontext.enable-instruction',
+    DisableInstruction: 'autocontext.disable-instruction',
+    DeleteOverride: 'autocontext.delete-override',
+    ShowOriginal: 'autocontext.show-original',
+    EnterExportMode: 'autocontext.enter-export-mode',
+    ConfirmExport: 'autocontext.confirm-export',
+    CancelExport: 'autocontext.cancel-export',
 } as const;
 
 export const viewIds = {
-    Instructions: 'sharppilot.instructions-view',
-    Tools: 'sharppilot.mcp-tools-view',
+    Instructions: 'autocontext.instructions-view',
+    Tools: 'autocontext.mcp-tools-view',
 } as const;
 
 export const contextKeys = {
-    ExportMode: 'sharppilot.export-mode',
+    ExportMode: 'autocontext.export-mode',
 } as const;
 
 // ── Instructions ─────────────────────────────────────────────────────
@@ -34,7 +34,7 @@ export const contextKeys = {
 // Within each category, entries are sorted alphabetically by label.
 // package.json (chatInstructions + configuration.properties) should follow the same order.
 //
-// Each entry's `key` is expanded to a full `settingId` (`sharppilot.instructions.<key>`)
+// Each entry's `key` is expanded to a full `settingId` (`autocontext.instructions.<key>`)
 // by `InstructionsCatalogEntry` at construction time — see `InstructionsCatalog`.
 export const instructionsFiles: readonly InstructionsFileEntry[] = [
     { key: 'codeReview', fileName: 'code-review.instructions.md', label: 'Code Review', category: 'General' },
@@ -120,7 +120,7 @@ export const instructionsCategoryOrder: readonly string[] = ['General', 'Languag
 
 // ── MCP Tools ────────────────────────────────────────────────────────
 
-// Each entry's `key` is expanded to a full `settingId` (`sharppilot.mcpTools.<key>`) by
+// Each entry's `key` is expanded to a full `settingId` (`autocontext.mcpTools.<key>`) by
 // `McpToolsCatalogEntry` at construction time — see `McpToolsCatalog`.
 // When `toolName` is present the entry is a sub-feature of a composite tool (e.g.
 // `check_csharp_all`); when absent, `key` doubles as the MCP tool name.
@@ -145,10 +145,10 @@ export const mcpToolCategoryOrder: readonly string[] = ['C#', 'NuGet', 'TypeScri
 // ── MCP Servers ──────────────────────────────────────────────────────
 
 export const mcpServers: readonly McpServerEntry[] = [
-    { label: 'SharpPilot: DotNet', category: 'dotnet', process: 'dotnet', contextKey: 'hasDotNet' },
-    { label: 'SharpPilot: Git', category: 'git', process: 'workspace', contextKey: 'hasGit' },
-    { label: 'SharpPilot: EditorConfig', category: 'editorconfig', process: 'workspace' },
-    { label: 'SharpPilot: TypeScript', category: 'typescript', process: 'web', contextKey: 'hasTypeScript' },
+    { label: 'AutoContext: DotNet', category: 'dotnet', process: 'dotnet', contextKey: 'hasDotNet' },
+    { label: 'AutoContext: Git', category: 'git', process: 'workspace', contextKey: 'hasGit' },
+    { label: 'AutoContext: EditorConfig', category: 'editorconfig', process: 'workspace' },
+    { label: 'AutoContext: TypeScript', category: 'typescript', process: 'web', contextKey: 'hasTypeScript' },
 ];
 
 // ── Tree View Labels ─────────────────────────────────────────────────

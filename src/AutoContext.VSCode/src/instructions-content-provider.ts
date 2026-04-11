@@ -1,9 +1,9 @@
 import * as vscode from 'vscode';
 import { join } from 'node:path';
 import { InstructionsParser } from './instructions-parser.js';
-import type { SharpPilotConfigManager } from './sharppilot-config.js';
+import type { AutoContextConfigManager } from './autocontext-config.js';
 
-export const instructionScheme = 'sharppilot-instructions';
+export const instructionScheme = 'autocontext-instructions';
 
 export class InstructionsContentProvider implements vscode.TextDocumentContentProvider, vscode.Disposable {
     private readonly didChangeEmitter = new vscode.EventEmitter<vscode.Uri>();
@@ -12,7 +12,7 @@ export class InstructionsContentProvider implements vscode.TextDocumentContentPr
 
     constructor(
         private readonly extensionPath: string,
-        private readonly configManager: SharpPilotConfigManager,
+        private readonly configManager: AutoContextConfigManager,
     ) {
         this.disposables.push(
             this.didChangeEmitter,

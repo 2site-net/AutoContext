@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-import { SharpPilotConfigManager } from '../../src/sharppilot-config';
+import { AutoContextConfigManager } from '../../src/autocontext-config';
 
 import { writeFile, unlink, readFile } from 'node:fs/promises';
 
@@ -17,11 +17,11 @@ beforeEach(() => {
     workspace.workspaceFolders = [{ uri: { fsPath: '/workspace' } }];
 });
 
-describe('SharpPilotConfigManager', () => {
+describe('AutoContextConfigManager', () => {
     it('should return empty config when file does not exist', async () => {
         vi.mocked(readFile).mockRejectedValue(new Error('ENOENT'));
 
-        const manager = new SharpPilotConfigManager('/ext', '0.5.0');
+        const manager = new AutoContextConfigManager('/ext', '0.5.0');
         const config = await manager.read();
 
         expect.soft(config).toEqual({});
@@ -30,7 +30,7 @@ describe('SharpPilotConfigManager', () => {
     it('should return empty config when file contains invalid JSON', async () => {
         vi.mocked(readFile).mockResolvedValue('not json at all');
 
-        const manager = new SharpPilotConfigManager('/ext', '0.5.0');
+        const manager = new AutoContextConfigManager('/ext', '0.5.0');
         const config = await manager.read();
 
         expect.soft(config).toEqual({});
@@ -45,7 +45,7 @@ describe('SharpPilotConfigManager', () => {
             },
         }));
 
-        const manager = new SharpPilotConfigManager('/ext', '0.5.0');
+        const manager = new AutoContextConfigManager('/ext', '0.5.0');
         const disabled = await manager.getDisabledInstructions('code-review.instructions.md');
 
         expect(disabled.has('INST0001')).toBe(true);
@@ -55,7 +55,7 @@ describe('SharpPilotConfigManager', () => {
     it('should return empty set for file with no disabled instructions', async () => {
         vi.mocked(readFile).mockResolvedValue('{}');
 
-        const manager = new SharpPilotConfigManager('/ext', '0.5.0');
+        const manager = new AutoContextConfigManager('/ext', '0.5.0');
         const disabled = await manager.getDisabledInstructions('code-review.instructions.md');
 
         expect.soft(disabled.size).toBe(0);
@@ -70,7 +70,7 @@ describe('SharpPilotConfigManager', () => {
             },
         }));
 
-        const manager = new SharpPilotConfigManager('/ext', '0.5.0');
+        const manager = new AutoContextConfigManager('/ext', '0.5.0');
 
         expect.soft(await manager.hasAnyDisabledInstructions()).toBe(true);
     });
@@ -78,7 +78,7 @@ describe('SharpPilotConfigManager', () => {
     it('should detect when no instructions are disabled', async () => {
         vi.mocked(readFile).mockResolvedValue('{}');
 
-        const manager = new SharpPilotConfigManager('/ext', '0.5.0');
+        const manager = new AutoContextConfigManager('/ext', '0.5.0');
 
         expect.soft(await manager.hasAnyDisabledInstructions()).toBe(false);
     });
@@ -86,7 +86,7 @@ describe('SharpPilotConfigManager', () => {
     it('should toggle an instruction on (disable it)', async () => {
         vi.mocked(readFile).mockResolvedValue('{}');
 
-        const manager = new SharpPilotConfigManager('/ext', '0.5.0');
+        const manager = new AutoContextConfigManager('/ext', '0.5.0');
         await manager.toggleInstruction('code-review.instructions.md', 'INST0001');
 
         const writeCalls = vi.mocked(writeFile).mock.calls;
@@ -111,7 +111,7 @@ describe('SharpPilotConfigManager', () => {
             },
         }));
 
-        const manager = new SharpPilotConfigManager('/ext', '0.5.0');
+        const manager = new AutoContextConfigManager('/ext', '0.5.0');
         await manager.toggleInstruction('code-review.instructions.md', 'INST0001');
 
         expect.soft(vi.mocked(unlink)).toHaveBeenCalled();
@@ -120,7 +120,7 @@ describe('SharpPilotConfigManager', () => {
     it('should not write when no workspace folder is available', async () => {
         workspace.workspaceFolders = undefined;
 
-        const manager = new SharpPilotConfigManager('/ext', '0.5.0');
+        const manager = new AutoContextConfigManager('/ext', '0.5.0');
         await manager.toggleInstruction('code-review.instructions.md', 'INST0001');
 
         expect.soft(vi.mocked(writeFile)).not.toHaveBeenCalled();
@@ -129,7 +129,7 @@ describe('SharpPilotConfigManager', () => {
     it('should write extension version when saving config', async () => {
         vi.mocked(readFile).mockResolvedValue('{}');
 
-        const manager = new SharpPilotConfigManager('/ext', '1.2.3');
+        const manager = new AutoContextConfigManager('/ext', '1.2.3');
         await manager.toggleInstruction('code-review.instructions.md', 'INST0001');
 
         const writeCalls = vi.mocked(writeFile).mock.calls;
@@ -148,7 +148,7 @@ describe('SharpPilotConfigManager', () => {
             },
         }));
 
-        const manager = new SharpPilotConfigManager('/ext', '0.5.0');
+        const manager = new AutoContextConfigManager('/ext', '0.5.0');
         await manager.resetInstructions('code-review.instructions.md');
 
         const writeCalls = vi.mocked(writeFile).mock.calls;
@@ -170,7 +170,7 @@ describe('SharpPilotConfigManager', () => {
             },
         }));
 
-        const manager = new SharpPilotConfigManager('/ext', '0.5.0');
+        const manager = new AutoContextConfigManager('/ext', '0.5.0');
         await manager.resetInstructions('code-review.instructions.md');
 
         expect.soft(vi.mocked(unlink)).toHaveBeenCalled();
@@ -179,7 +179,7 @@ describe('SharpPilotConfigManager', () => {
     it('should be a no-op when resetting a file with no disabled instructions', async () => {
         vi.mocked(readFile).mockResolvedValue('{}');
 
-        const manager = new SharpPilotConfigManager('/ext', '0.5.0');
+        const manager = new AutoContextConfigManager('/ext', '0.5.0');
         await manager.resetInstructions('code-review.instructions.md');
 
         expect(vi.mocked(writeFile)).not.toHaveBeenCalled();
@@ -196,7 +196,7 @@ describe('SharpPilotConfigManager', () => {
             },
         }));
 
-        const manager = new SharpPilotConfigManager('/ext', '0.5.0');
+        const manager = new AutoContextConfigManager('/ext', '0.5.0');
         await manager.toggleInstruction('code-review.instructions.md', 'INST0001');
 
         expect(vi.mocked(unlink)).toHaveBeenCalled();
@@ -206,7 +206,7 @@ describe('SharpPilotConfigManager', () => {
     it('should write disabled tools to config', async () => {
         vi.mocked(readFile).mockResolvedValue('{}');
 
-        const manager = new SharpPilotConfigManager('/ext', '0.5.0');
+        const manager = new AutoContextConfigManager('/ext', '0.5.0');
         await manager.setDisabledTools(['check_csharp_coding_style']);
 
         const writeCalls = vi.mocked(writeFile).mock.calls;
@@ -223,7 +223,7 @@ describe('SharpPilotConfigManager', () => {
             "mcp-tools": { disabled: ['check_csharp_coding_style'] },
         }));
 
-        const manager = new SharpPilotConfigManager('/ext', '0.5.0');
+        const manager = new AutoContextConfigManager('/ext', '0.5.0');
         await manager.setDisabledTools(['check_csharp_coding_style']);
 
         expect(vi.mocked(writeFile)).not.toHaveBeenCalled();
@@ -236,7 +236,7 @@ describe('SharpPilotConfigManager', () => {
             instructions: { disabled: { 'code-review.instructions.md': ['INST0001'] } },
         }));
 
-        const manager = new SharpPilotConfigManager('/ext', '0.5.0');
+        const manager = new AutoContextConfigManager('/ext', '0.5.0');
         await manager.setDisabledTools([]);
 
         const writeCalls = vi.mocked(writeFile).mock.calls;
@@ -254,7 +254,7 @@ describe('SharpPilotConfigManager', () => {
             "mcp-tools": { disabled: ['check_csharp_coding_style'] },
         }));
 
-        const manager = new SharpPilotConfigManager('/ext', '0.5.0');
+        const manager = new AutoContextConfigManager('/ext', '0.5.0');
         await manager.setDisabledTools([]);
 
         expect(vi.mocked(unlink)).toHaveBeenCalled();
@@ -266,7 +266,7 @@ describe('SharpPilotConfigManager', () => {
             instructions: { disabled: { 'code-review.instructions.md': ['INST0001'] } },
         }));
 
-        const manager = new SharpPilotConfigManager('/ext', '0.5.0');
+        const manager = new AutoContextConfigManager('/ext', '0.5.0');
         await manager.setDisabledTools(['check_csharp_async_patterns']);
 
         const parsed = JSON.parse(vi.mocked(writeFile).mock.calls[0][1] as string);
@@ -280,7 +280,7 @@ describe('SharpPilotConfigManager', () => {
             instructions: { disabled: { 'code-review.instructions.md': ['INST0001'] } },
         }));
 
-        const manager = new SharpPilotConfigManager('/ext', '0.5.0');
+        const manager = new AutoContextConfigManager('/ext', '0.5.0');
         await manager.read();
         await manager.read();
         await manager.read();
@@ -291,7 +291,7 @@ describe('SharpPilotConfigManager', () => {
     it('should invalidate cache after writing config', async () => {
         vi.mocked(readFile).mockResolvedValue('{}');
 
-        const manager = new SharpPilotConfigManager('/ext', '0.5.0');
+        const manager = new AutoContextConfigManager('/ext', '0.5.0');
         await manager.read();
         await manager.toggleInstruction('code-review.instructions.md', 'INST0001');
 

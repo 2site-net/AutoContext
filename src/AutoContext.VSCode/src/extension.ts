@@ -7,7 +7,7 @@ import { McpServersCatalog } from './mcp-servers-catalog.js';
 import { mcpTools, instructionsFiles, mcpServers, commandIds } from './ui-constants.js';
 import { AutoConfigurer } from './auto-configurer.js';
 import { InstructionsExporter } from './instructions-exporter.js';
-import { SharpPilotConfigManager } from './sharppilot-config.js';
+import { AutoContextConfigManager } from './autocontext-config.js';
 import { InstructionsContentProvider, instructionScheme } from './instructions-content-provider.js';
 import { InstructionsCodeLensProvider } from './instructions-codelens-provider.js';
 import { InstructionsDecorationManager } from './instructions-decoration-manager.js';
@@ -33,13 +33,13 @@ export async function activate(context: vscode.ExtensionContext) {
     const serversCatalog = new McpServersCatalog(mcpServers);
     const workspaceContextDetector = new WorkspaceContextDetector(instructionsCatalog, serversCatalog);
     const instructionsExporter = new InstructionsExporter(context.extensionPath);
-    const configManager = new SharpPilotConfigManager(context.extensionPath, version);
+    const configManager = new AutoContextConfigManager(context.extensionPath, version);
     const toolsStatusWriter = new McpToolsConfigWriter(configManager, toolsCatalog);
     const contentProvider = new InstructionsContentProvider(context.extensionPath, configManager);
     const codeLensProvider = new InstructionsCodeLensProvider(context.extensionPath, configManager, workspaceContextDetector, instructionsCatalog);
     const decorationManager = new InstructionsDecorationManager(context.extensionPath, configManager);
     const instructionsWriter = new InstructionsConfigWriter(context.extensionPath, configManager, instructionsCatalog);
-    const outputChannel = vscode.window.createOutputChannel('SharpPilot');
+    const outputChannel = vscode.window.createOutputChannel('AutoContext');
     const workspaceServer = new WorkspaceServerManager(context.extensionPath, outputChannel, vscode.workspace.workspaceFolders?.[0]?.uri.fsPath);
     const mcpServerProvider = new McpServerProvider(context.extensionPath, version, workspaceContextDetector, didChangeEmitter.event, workspaceServer, toolsCatalog, serversCatalog);
     const stateResolver = new TreeViewStateResolver(workspaceContextDetector);
@@ -100,7 +100,7 @@ export async function activate(context: vscode.ExtensionContext) {
             void instructionsWriter.write();
         }),
         vscode.workspace.onDidChangeConfiguration(e => {
-            if (e.affectsConfiguration('sharppilot.mcpTools')) {
+            if (e.affectsConfiguration('autocontext.mcpTools')) {
                 void toolsStatusWriter.write();
                 didChangeEmitter.fire();
             }
@@ -112,7 +112,7 @@ export async function activate(context: vscode.ExtensionContext) {
         vscode.commands.registerCommand(commandIds.ShowOriginal, InstructionsTreeProvider.showOriginal),
         vscode.commands.registerCommand(commandIds.ShowNotDetected, () => setShowNotDetected(true)),
         vscode.commands.registerCommand(commandIds.HideNotDetected, () => setShowNotDetected(false)),
-        vscode.lm.registerMcpServerDefinitionProvider('sharpPilotProvider', mcpServerProvider),
+        vscode.lm.registerMcpServerDefinitionProvider('autoContextProvider', mcpServerProvider),
     );
 
     await Promise.all([

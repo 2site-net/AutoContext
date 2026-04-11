@@ -126,12 +126,12 @@ describe('McpToolsTreeProvider', () => {
 
     it('should mark features as disabled when setting is false', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
-        __setConfigStore({ 'sharppilot.mcpTools.check_csharp_async_patterns': false });
+        __setConfigStore({ 'autocontext.mcpTools.check_csharp_async_patterns': false });
 
         const provider = new McpToolsTreeProvider(fakeDetector, catalog, stateResolver, tooltip);
         const features = getFeatures(provider, '.NET', 'C#', 'check_csharp_all');
 
-        const asyncTool = features.find(c => c.kind === 'mcpToolFeature' && c.entry.settingId === 'sharppilot.mcpTools.check_csharp_async_patterns');
+        const asyncTool = features.find(c => c.kind === 'mcpToolFeature' && c.entry.settingId === 'autocontext.mcpTools.check_csharp_async_patterns');
         expect.soft(asyncTool?.kind === 'mcpToolFeature' && asyncTool.state).toBe(TreeViewNodeState.Disabled);
 
         provider.dispose();
@@ -151,11 +151,11 @@ describe('McpToolsTreeProvider', () => {
 
     it('should show checkbox unchecked for disabled features', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
-        __setConfigStore({ 'sharppilot.mcpTools.check_csharp_async_patterns': false });
+        __setConfigStore({ 'autocontext.mcpTools.check_csharp_async_patterns': false });
 
         const provider = new McpToolsTreeProvider(fakeDetector, catalog, stateResolver, tooltip);
         const features = getFeatures(provider, '.NET', 'C#', 'check_csharp_all');
-        const asyncTool = features.find(c => c.kind === 'mcpToolFeature' && c.entry.settingId === 'sharppilot.mcpTools.check_csharp_async_patterns')!;
+        const asyncTool = features.find(c => c.kind === 'mcpToolFeature' && c.entry.settingId === 'autocontext.mcpTools.check_csharp_async_patterns')!;
         const item = provider.getTreeItem(asyncTool);
 
         expect.soft(item.checkboxState).toBe(TreeItemCheckboxState.Unchecked);
@@ -215,7 +215,7 @@ describe('McpToolsTreeProvider', () => {
 
     it('should show MCP tool checkbox unchecked when any feature is disabled', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
-        __setConfigStore({ 'sharppilot.mcpTools.check_csharp_async_patterns': false });
+        __setConfigStore({ 'autocontext.mcpTools.check_csharp_async_patterns': false });
 
         const provider = new McpToolsTreeProvider(fakeDetector, catalog, stateResolver, tooltip);
         const tools = getMcpTools(provider, '.NET', 'C#');
@@ -274,7 +274,7 @@ describe('McpToolsTreeProvider', () => {
 
     it('should sort enabled before disabled before not-detected in features', () => {
         vi.mocked(fakeDetector.get).mockImplementation((key: string) => key === 'hasCSharp');
-        __setConfigStore({ 'sharppilot.mcpTools.check_csharp_async_patterns': false });
+        __setConfigStore({ 'autocontext.mcpTools.check_csharp_async_patterns': false });
 
         const provider = new McpToolsTreeProvider(fakeDetector, catalog, stateResolver, tooltip);
         const features = getFeatures(provider, '.NET', 'C#', 'check_csharp_all');
@@ -341,7 +341,7 @@ describe('McpToolsTreeProvider', () => {
 
     it('should include state description in tooltip for disabled features', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
-        __setConfigStore({ 'sharppilot.mcpTools.check_csharp_async_patterns': false });
+        __setConfigStore({ 'autocontext.mcpTools.check_csharp_async_patterns': false });
 
         const provider = new McpToolsTreeProvider(fakeDetector, catalog, stateResolver, tooltip);
         const features = getFeatures(provider, '.NET', 'C#', 'check_csharp_all');
@@ -371,7 +371,7 @@ describe('McpToolsTreeProvider', () => {
         const features = getFeatures(provider, '.NET', 'C#', 'check_csharp_all');
         const item = provider.getTreeItem(features[0]);
 
-        expect.soft(item.tooltip).toContain('sharppilot.mcpTools.');
+        expect.soft(item.tooltip).toContain('autocontext.mcpTools.');
 
         provider.dispose();
     });
@@ -394,7 +394,7 @@ describe('McpToolsTreeProvider', () => {
 
         const provider = new McpToolsTreeProvider(fakeDetector, catalog, stateResolver, tooltip);
         const features = getFeatures(provider, '.NET', 'C#', 'check_csharp_all');
-        const asyncTool = features.find(c => c.kind === 'mcpToolFeature' && c.entry.settingId === 'sharppilot.mcpTools.check_csharp_async_patterns')!;
+        const asyncTool = features.find(c => c.kind === 'mcpToolFeature' && c.entry.settingId === 'autocontext.mcpTools.check_csharp_async_patterns')!;
 
         const treeView = vi.mocked(window.createTreeView).mock.results.at(-1)!.value;
         const checkboxCallback = vi.mocked(treeView.onDidChangeCheckboxState).mock.calls[0][0] as (e: { items: [typeof asyncTool, TreeItemCheckboxState][] }) => void;
@@ -404,7 +404,7 @@ describe('McpToolsTreeProvider', () => {
 
         const config = vi.mocked(workspace.getConfiguration).mock.results.at(-1)!.value;
         expect.soft(config.update).toHaveBeenCalledWith(
-            'sharppilot.mcpTools.check_csharp_async_patterns',
+            'autocontext.mcpTools.check_csharp_async_patterns',
             false,
             ConfigurationTarget.Global,
         );
@@ -485,7 +485,7 @@ describe('McpToolsTreeProvider', () => {
 
         const config = vi.mocked(workspace.getConfiguration).mock.results[callsBefore]!.value;
         expect.soft(config.update).toHaveBeenCalledWith(
-            'sharppilot.mcpTools.get_editorconfig',
+            'autocontext.mcpTools.get_editorconfig',
             false,
             ConfigurationTarget.Global,
         );
@@ -524,7 +524,7 @@ describe('McpToolsTreeProvider', () => {
 
     it('should show enabled/total count in category tooltip when all detected', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
-        __setConfigStore({ 'sharppilot.mcpTools.check_csharp_async_patterns': false });
+        __setConfigStore({ 'autocontext.mcpTools.check_csharp_async_patterns': false });
 
         const provider = new McpToolsTreeProvider(fakeDetector, catalog, stateResolver, tooltip);
         const roots = provider.getChildren();
@@ -533,7 +533,7 @@ describe('McpToolsTreeProvider', () => {
         const csharp = categories.find(r => r.kind === 'category' && r.name === 'C#')!;
         const item = provider.getTreeItem(csharp);
         const csharpEntries = catalog.all.filter(e => e.category === 'C#');
-        const enabled = csharpEntries.filter(e => e.settingId !== 'sharppilot.mcpTools.check_csharp_async_patterns').length;
+        const enabled = csharpEntries.filter(e => e.settingId !== 'autocontext.mcpTools.check_csharp_async_patterns').length;
 
         expect.soft(item.tooltip).toBe(`C#\n${enabled}/${csharpEntries.length} features enabled`);
 
@@ -558,12 +558,12 @@ describe('McpToolsTreeProvider', () => {
 
     it('should set treeView description to enabled/total count', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
-        __setConfigStore({ 'sharppilot.mcpTools.check_csharp_async_patterns': false });
+        __setConfigStore({ 'autocontext.mcpTools.check_csharp_async_patterns': false });
 
         const provider = new McpToolsTreeProvider(fakeDetector, catalog, stateResolver, tooltip);
         const treeView = vi.mocked(window.createTreeView).mock.results.at(-1)!.value;
         const total = catalog.count;
-        const enabled = catalog.all.filter(e => e.settingId !== 'sharppilot.mcpTools.check_csharp_async_patterns').length;
+        const enabled = catalog.all.filter(e => e.settingId !== 'autocontext.mcpTools.check_csharp_async_patterns').length;
 
         expect.soft(treeView.description).toBe(`${enabled}/${total}`);
 

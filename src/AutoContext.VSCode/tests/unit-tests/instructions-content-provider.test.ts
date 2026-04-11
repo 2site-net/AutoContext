@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 import { InstructionsContentProvider, instructionScheme } from '../../src/instructions-content-provider';
-import { SharpPilotConfigManager } from '../../src/sharppilot-config';
+import { AutoContextConfigManager } from '../../src/autocontext-config';
 import { InstructionsParser } from '../../src/instructions-parser';
 
 import { readFile, stat } from 'node:fs/promises';
@@ -36,7 +36,7 @@ describe('InstructionsContentProvider', () => {
             return testContent;
         });
 
-        const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
+        const configManager = new AutoContextConfigManager('/ext', '0.5.0');
         const provider = new InstructionsContentProvider('/ext', configManager);
         const uri = { scheme: instructionScheme, path: 'test.instructions.md' } as unknown as import('vscode').Uri;
         const result = await provider.provideTextDocumentContent(uri);
@@ -56,7 +56,7 @@ describe('InstructionsContentProvider', () => {
             return testContent;
         });
 
-        const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
+        const configManager = new AutoContextConfigManager('/ext', '0.5.0');
         const provider = new InstructionsContentProvider('/ext', configManager);
         const uri = { scheme: instructionScheme, path: 'test.instructions.md' } as unknown as import('vscode').Uri;
         const result = await provider.provideTextDocumentContent(uri);
@@ -68,7 +68,7 @@ describe('InstructionsContentProvider', () => {
     it('should build URI with the correct scheme', () => {
         vi.mocked(readFile).mockResolvedValue('{}');
 
-        const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
+        const configManager = new AutoContextConfigManager('/ext', '0.5.0');
         const provider = new InstructionsContentProvider('/ext', configManager);
         provider.buildUri('code-review.instructions.md');
 

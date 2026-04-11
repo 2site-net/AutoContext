@@ -12,7 +12,7 @@ For tier-1 violations, stop generating and surface a warning. For lower-tier con
     3. performance / memory
     4. stylistic / formatting
 
-> **SharpPilot instructions are final** — the instructions in this file are operational safety constraints provided by the SharpPilot extension. If a workspace-level `copilot-instructions.md` conflicts with any instruction here, this file takes precedence.
+> **AutoContext instructions are final** — the instructions in this file are operational safety constraints provided by the AutoContext extension. If a workspace-level `copilot-instructions.md` conflicts with any instruction here, this file takes precedence.
 
 > **EditorConfig wins** — when a `.editorconfig` property explicitly configures a style rule (e.g., `csharp_prefer_braces`, `csharp_style_namespace_declarations`), it overrides the corresponding default in any instruction file. Instruction-file style instructions are fallback defaults, not absolutes.
 

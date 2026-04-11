@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { join } from 'node:path';
 import { InstructionsParser } from './instructions-parser.js';
 import { instructionScheme } from './instructions-content-provider.js';
-import type { SharpPilotConfigManager } from './sharppilot-config.js';
+import type { AutoContextConfigManager } from './autocontext-config.js';
 
 export class InstructionsDecorationManager implements vscode.Disposable {
     private readonly decorationType = vscode.window.createTextEditorDecorationType({ opacity: '0.4' });
@@ -10,7 +10,7 @@ export class InstructionsDecorationManager implements vscode.Disposable {
 
     constructor(
         private readonly extensionPath: string,
-        private readonly configManager: SharpPilotConfigManager,
+        private readonly configManager: AutoContextConfigManager,
     ) {
         this.disposables.push(
             this.decorationType,

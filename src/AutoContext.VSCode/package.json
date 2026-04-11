@@ -1,21 +1,21 @@
 {
-  "name": "sharppilot",
-  "displayName": "SharpPilot",
-  "description": "SharpPilot is a quality assurance extension for Visual Studio Code that leverages an MCP server to enable model-invokable tools and curated, configurable instructions—elevating code quality, workflows, and overall developer productivity with Copilot.",
+  "name": "autocontext",
+  "displayName": "AutoContext",
+  "description": "AutoContext is a quality assurance extension for Visual Studio Code that leverages an MCP server to enable model-invokable tools and curated, configurable instructions—elevating code quality, workflows, and overall developer productivity with Copilot.",
   "version": "0.5.0",
   "publisher": "2site-net",
   "license": "AGPL-3.0-only",
   "author": {
     "name": "Eyal Alon",
-    "email": "sharppilot@2site.net",
+    "email": "AutoContext@2site.net",
     "url": "https://github.com/iam3yal"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/2site-net/SharpPilot"
+    "url": "https://github.com/2site-net/AutoContext"
   },
   "bugs": {
-    "url": "https://github.com/2site-net/SharpPilot/issues"
+    "url": "https://github.com/2site-net/AutoContext/issues"
   },
   "icon": "resources/logo.png",
   "type": "module",
@@ -32,28 +32,28 @@
   "contributes": {
     "mcpServerDefinitionProviders": [
       {
-        "id": "sharpPilotProvider",
-        "label": "SharpPilot Servers"
+        "id": "AutoContextProvider",
+        "label": "AutoContext Servers"
       }
     ],
     "viewsContainers": {
       "activitybar": [
         {
-          "id": "sharppilot",
-          "title": "SharpPilot",
+          "id": "AutoContext",
+          "title": "AutoContext",
           "icon": "resources/sidebar.svg"
         }
       ]
     },
     "views": {
-      "sharppilot": [
+      "AutoContext": [
         {
-          "id": "sharppilot.instructions-view",
+          "id": "autocontext.instructions-view",
           "name": "Instructions",
           "when": "workspaceFolderCount > 0"
         },
         {
-          "id": "sharppilot.mcp-tools-view",
+          "id": "autocontext.mcp-tools-view",
           "name": "MCP Tools",
           "when": "workspaceFolderCount > 0"
         }
@@ -61,166 +61,166 @@
     },
     "commands": [
       {
-        "command": "sharppilot.auto-configure",
+        "command": "autocontext.auto-configure",
         "title": "Auto Configure",
-        "category": "SharpPilot"
+        "category": "AutoContext"
       },
       {
-        "command": "sharppilot.toggle-instruction",
+        "command": "autocontext.toggle-instruction",
         "title": "Toggle Instruction",
-        "category": "SharpPilot"
+        "category": "AutoContext"
       },
       {
-        "command": "sharppilot.reset-instructions",
+        "command": "autocontext.reset-instructions",
         "title": "Reset Instructions",
-        "category": "SharpPilot"
+        "category": "AutoContext"
       },
       {
-        "command": "sharppilot.enable-instruction",
+        "command": "autocontext.enable-instruction",
         "title": "Enable Instruction",
-        "category": "SharpPilot",
+        "category": "AutoContext",
         "icon": "$(check)"
       },
       {
-        "command": "sharppilot.disable-instruction",
+        "command": "autocontext.disable-instruction",
         "title": "Disable Instruction",
-        "category": "SharpPilot",
+        "category": "AutoContext",
         "icon": "$(close)"
       },
       {
-        "command": "sharppilot.enter-export-mode",
+        "command": "autocontext.enter-export-mode",
         "title": "Export Instructions",
-        "category": "SharpPilot",
+        "category": "AutoContext",
         "icon": "$(export)"
       },
       {
-        "command": "sharppilot.confirm-export",
+        "command": "autocontext.confirm-export",
         "title": "Confirm Export",
-        "category": "SharpPilot",
+        "category": "AutoContext",
         "icon": "$(check)"
       },
       {
-        "command": "sharppilot.cancel-export",
+        "command": "autocontext.cancel-export",
         "title": "Cancel Export",
-        "category": "SharpPilot",
+        "category": "AutoContext",
         "icon": "$(close)"
       },
       {
-        "command": "sharppilot.delete-override",
+        "command": "autocontext.delete-override",
         "title": "Delete Override",
-        "category": "SharpPilot",
+        "category": "AutoContext",
         "icon": "$(trash)"
       },
       {
-        "command": "sharppilot.show-original",
+        "command": "autocontext.show-original",
         "title": "Show Original",
-        "category": "SharpPilot",
+        "category": "AutoContext",
         "icon": "$(eye)"
       },
       {
-        "command": "sharppilot.show-not-detected",
+        "command": "autocontext.show-not-detected",
         "title": "Show Not Detected",
-        "category": "SharpPilot",
+        "category": "AutoContext",
         "icon": "$(eye)"
       },
       {
-        "command": "sharppilot.hide-not-detected",
+        "command": "autocontext.hide-not-detected",
         "title": "Hide Not Detected",
-        "category": "SharpPilot",
+        "category": "AutoContext",
         "icon": "$(eye-closed)"
       }
     ],
     "menus": {
       "commandPalette": [
         {
-          "command": "sharppilot.toggle-instruction",
+          "command": "autocontext.toggle-instruction",
           "when": "false"
         },
         {
-          "command": "sharppilot.reset-instructions",
+          "command": "autocontext.reset-instructions",
           "when": "false"
         },
         {
-          "command": "sharppilot.enable-instruction",
+          "command": "autocontext.enable-instruction",
           "when": "false"
         },
         {
-          "command": "sharppilot.disable-instruction",
+          "command": "autocontext.disable-instruction",
           "when": "false"
         },
         {
-          "command": "sharppilot.enter-export-mode",
+          "command": "autocontext.enter-export-mode",
           "when": "false"
         },
         {
-          "command": "sharppilot.confirm-export",
+          "command": "autocontext.confirm-export",
           "when": "false"
         },
         {
-          "command": "sharppilot.cancel-export",
+          "command": "autocontext.cancel-export",
           "when": "false"
         },
         {
-          "command": "sharppilot.delete-override",
+          "command": "autocontext.delete-override",
           "when": "false"
         },
         {
-          "command": "sharppilot.show-original",
+          "command": "autocontext.show-original",
           "when": "false"
         },
         {
-          "command": "sharppilot.show-not-detected",
+          "command": "autocontext.show-not-detected",
           "when": "false"
         },
         {
-          "command": "sharppilot.hide-not-detected",
+          "command": "autocontext.hide-not-detected",
           "when": "false"
         }
       ],
       "view/title": [
         {
-          "command": "sharppilot.hide-not-detected",
-          "when": "(view == 'sharppilot.instructions-view' || view == 'sharppilot.mcp-tools-view') && sharppilot.show-not-detected"
+          "command": "autocontext.hide-not-detected",
+          "when": "(view == 'autocontext.instructions-view' || view == 'autocontext.mcp-tools-view') && autocontext.show-not-detected"
         },
         {
-          "command": "sharppilot.show-not-detected",
-          "when": "(view == 'sharppilot.instructions-view' || view == 'sharppilot.mcp-tools-view') && !sharppilot.show-not-detected"
+          "command": "autocontext.show-not-detected",
+          "when": "(view == 'autocontext.instructions-view' || view == 'autocontext.mcp-tools-view') && !autocontext.show-not-detected"
         },
         {
-          "command": "sharppilot.enter-export-mode",
-          "when": "view == 'sharppilot.instructions-view' && !sharppilot.export-mode",
+          "command": "autocontext.enter-export-mode",
+          "when": "view == 'autocontext.instructions-view' && !autocontext.export-mode",
           "group": "navigation@2"
         },
         {
-          "command": "sharppilot.confirm-export",
-          "when": "view == 'sharppilot.instructions-view' && sharppilot.export-mode",
+          "command": "autocontext.confirm-export",
+          "when": "view == 'autocontext.instructions-view' && autocontext.export-mode",
           "group": "navigation@2"
         },
         {
-          "command": "sharppilot.cancel-export",
-          "when": "view == 'sharppilot.instructions-view' && sharppilot.export-mode",
+          "command": "autocontext.cancel-export",
+          "when": "view == 'autocontext.instructions-view' && autocontext.export-mode",
           "group": "navigation@3"
         }
       ],
       "view/item/context": [
         {
-          "command": "sharppilot.enable-instruction",
-          "when": "viewItem == 'instruction.disabled' && !sharppilot.export-mode",
+          "command": "autocontext.enable-instruction",
+          "when": "viewItem == 'instruction.disabled' && !autocontext.export-mode",
           "group": "inline"
         },
         {
-          "command": "sharppilot.disable-instruction",
-          "when": "viewItem == 'instruction.enabled' && !sharppilot.export-mode",
+          "command": "autocontext.disable-instruction",
+          "when": "viewItem == 'instruction.enabled' && !autocontext.export-mode",
           "group": "inline"
         },
         {
-          "command": "sharppilot.show-original",
-          "when": "viewItem == 'instruction.overridden' && !sharppilot.export-mode",
+          "command": "autocontext.show-original",
+          "when": "viewItem == 'instruction.overridden' && !autocontext.export-mode",
           "group": "inline@1"
         },
         {
-          "command": "sharppilot.delete-override",
-          "when": "viewItem == 'instruction.overridden' && !sharppilot.export-mode",
+          "command": "autocontext.delete-override",
+          "when": "viewItem == 'instruction.overridden' && !autocontext.export-mode",
           "group": "inline@2"
         }
       ]
@@ -231,818 +231,818 @@
       },
       {
         "path": "./instructions/.generated/code-review.instructions.md",
-        "when": "config.sharppilot.instructions.codeReview && !sharppilot.override.codeReview"
+        "when": "config.autocontext.instructions.codeReview && !autocontext.override.codeReview"
       },
       {
         "path": "./instructions/.generated/design-principles.instructions.md",
-        "when": "config.sharppilot.instructions.designPrinciples && !sharppilot.override.designPrinciples"
+        "when": "config.autocontext.instructions.designPrinciples && !autocontext.override.designPrinciples"
       },
       {
         "path": "./instructions/.generated/rest-api-design.instructions.md",
-        "when": "config.sharppilot.instructions.restApiDesign && !sharppilot.override.restApiDesign"
+        "when": "config.autocontext.instructions.restApiDesign && !autocontext.override.restApiDesign"
       },
       {
         "path": "./instructions/.generated/testing.instructions.md",
-        "when": "config.sharppilot.instructions.testing && (sharppilot.workspace.hasDotNetTesting || sharppilot.workspace.hasWebTesting) && !sharppilot.override.testing"
+        "when": "config.autocontext.instructions.testing && (autocontext.workspace.hasDotNetTesting || autocontext.workspace.hasWebTesting) && !autocontext.override.testing"
       },
       {
         "path": "./instructions/.generated/lang-bash.instructions.md",
-        "when": "config.sharppilot.instructions.lang.bash && sharppilot.workspace.hasBash && !sharppilot.override.lang.bash"
+        "when": "config.autocontext.instructions.lang.bash && autocontext.workspace.hasBash && !autocontext.override.lang.bash"
       },
       {
         "path": "./instructions/.generated/lang-batch.instructions.md",
-        "when": "config.sharppilot.instructions.lang.batch && sharppilot.workspace.hasBatch && !sharppilot.override.lang.batch"
+        "when": "config.autocontext.instructions.lang.batch && autocontext.workspace.hasBatch && !autocontext.override.lang.batch"
       },
       {
         "path": "./instructions/.generated/lang-c.instructions.md",
-        "when": "config.sharppilot.instructions.lang.c && sharppilot.workspace.hasC && !sharppilot.override.lang.c"
+        "when": "config.autocontext.instructions.lang.c && autocontext.workspace.hasC && !autocontext.override.lang.c"
       },
       {
         "path": "./instructions/.generated/lang-csharp.instructions.md",
-        "when": "config.sharppilot.instructions.lang.csharp && sharppilot.workspace.hasCSharp && !sharppilot.override.lang.csharp"
+        "when": "config.autocontext.instructions.lang.csharp && autocontext.workspace.hasCSharp && !autocontext.override.lang.csharp"
       },
       {
         "path": "./instructions/.generated/lang-cpp.instructions.md",
-        "when": "config.sharppilot.instructions.lang.cpp && sharppilot.workspace.hasCpp && !sharppilot.override.lang.cpp"
+        "when": "config.autocontext.instructions.lang.cpp && autocontext.workspace.hasCpp && !autocontext.override.lang.cpp"
       },
       {
         "path": "./instructions/.generated/lang-css.instructions.md",
-        "when": "config.sharppilot.instructions.lang.css && sharppilot.workspace.hasCss && !sharppilot.override.lang.css"
+        "when": "config.autocontext.instructions.lang.css && autocontext.workspace.hasCss && !autocontext.override.lang.css"
       },
       {
         "path": "./instructions/.generated/lang-dart.instructions.md",
-        "when": "config.sharppilot.instructions.lang.dart && sharppilot.workspace.hasDart && !sharppilot.override.lang.dart"
+        "when": "config.autocontext.instructions.lang.dart && autocontext.workspace.hasDart && !autocontext.override.lang.dart"
       },
       {
         "path": "./instructions/.generated/lang-fsharp.instructions.md",
-        "when": "config.sharppilot.instructions.lang.fsharp && sharppilot.workspace.hasFSharp && !sharppilot.override.lang.fsharp"
+        "when": "config.autocontext.instructions.lang.fsharp && autocontext.workspace.hasFSharp && !autocontext.override.lang.fsharp"
       },
       {
         "path": "./instructions/.generated/lang-go.instructions.md",
-        "when": "config.sharppilot.instructions.lang.go && sharppilot.workspace.hasGo && !sharppilot.override.lang.go"
+        "when": "config.autocontext.instructions.lang.go && autocontext.workspace.hasGo && !autocontext.override.lang.go"
       },
       {
         "path": "./instructions/.generated/lang-graphql.instructions.md",
-        "when": "config.sharppilot.instructions.lang.graphql && sharppilot.workspace.hasGraphql && !sharppilot.override.lang.graphql"
+        "when": "config.autocontext.instructions.lang.graphql && autocontext.workspace.hasGraphql && !autocontext.override.lang.graphql"
       },
       {
         "path": "./instructions/.generated/lang-groovy.instructions.md",
-        "when": "config.sharppilot.instructions.lang.groovy && sharppilot.workspace.hasGroovy && !sharppilot.override.lang.groovy"
+        "when": "config.autocontext.instructions.lang.groovy && autocontext.workspace.hasGroovy && !autocontext.override.lang.groovy"
       },
       {
         "path": "./instructions/.generated/lang-html.instructions.md",
-        "when": "config.sharppilot.instructions.lang.html && sharppilot.workspace.hasHtml && !sharppilot.override.lang.html"
+        "when": "config.autocontext.instructions.lang.html && autocontext.workspace.hasHtml && !autocontext.override.lang.html"
       },
       {
         "path": "./instructions/.generated/lang-java.instructions.md",
-        "when": "config.sharppilot.instructions.lang.java && sharppilot.workspace.hasJava && !sharppilot.override.lang.java"
+        "when": "config.autocontext.instructions.lang.java && autocontext.workspace.hasJava && !autocontext.override.lang.java"
       },
       {
         "path": "./instructions/.generated/lang-javascript.instructions.md",
-        "when": "config.sharppilot.instructions.lang.javascript && (sharppilot.workspace.hasJavaScript || sharppilot.workspace.hasTypeScript) && !sharppilot.override.lang.javascript"
+        "when": "config.autocontext.instructions.lang.javascript && (autocontext.workspace.hasJavaScript || autocontext.workspace.hasTypeScript) && !autocontext.override.lang.javascript"
       },
       {
         "path": "./instructions/.generated/lang-kotlin.instructions.md",
-        "when": "config.sharppilot.instructions.lang.kotlin && sharppilot.workspace.hasKotlin && !sharppilot.override.lang.kotlin"
+        "when": "config.autocontext.instructions.lang.kotlin && autocontext.workspace.hasKotlin && !autocontext.override.lang.kotlin"
       },
       {
         "path": "./instructions/.generated/lang-lua.instructions.md",
-        "when": "config.sharppilot.instructions.lang.lua && sharppilot.workspace.hasLua && !sharppilot.override.lang.lua"
+        "when": "config.autocontext.instructions.lang.lua && autocontext.workspace.hasLua && !autocontext.override.lang.lua"
       },
       {
         "path": "./instructions/.generated/lang-php.instructions.md",
-        "when": "config.sharppilot.instructions.lang.php && sharppilot.workspace.hasPhp && !sharppilot.override.lang.php"
+        "when": "config.autocontext.instructions.lang.php && autocontext.workspace.hasPhp && !autocontext.override.lang.php"
       },
       {
         "path": "./instructions/.generated/lang-powershell.instructions.md",
-        "when": "config.sharppilot.instructions.lang.powershell && sharppilot.workspace.hasPowerShell && !sharppilot.override.lang.powershell"
+        "when": "config.autocontext.instructions.lang.powershell && autocontext.workspace.hasPowerShell && !autocontext.override.lang.powershell"
       },
       {
         "path": "./instructions/.generated/lang-python.instructions.md",
-        "when": "config.sharppilot.instructions.lang.python && sharppilot.workspace.hasPython && !sharppilot.override.lang.python"
+        "when": "config.autocontext.instructions.lang.python && autocontext.workspace.hasPython && !autocontext.override.lang.python"
       },
       {
         "path": "./instructions/.generated/lang-ruby.instructions.md",
-        "when": "config.sharppilot.instructions.lang.ruby && sharppilot.workspace.hasRuby && !sharppilot.override.lang.ruby"
+        "when": "config.autocontext.instructions.lang.ruby && autocontext.workspace.hasRuby && !autocontext.override.lang.ruby"
       },
       {
         "path": "./instructions/.generated/lang-rust.instructions.md",
-        "when": "config.sharppilot.instructions.lang.rust && sharppilot.workspace.hasRust && !sharppilot.override.lang.rust"
+        "when": "config.autocontext.instructions.lang.rust && autocontext.workspace.hasRust && !autocontext.override.lang.rust"
       },
       {
         "path": "./instructions/.generated/lang-scala.instructions.md",
-        "when": "config.sharppilot.instructions.lang.scala && sharppilot.workspace.hasScala && !sharppilot.override.lang.scala"
+        "when": "config.autocontext.instructions.lang.scala && autocontext.workspace.hasScala && !autocontext.override.lang.scala"
       },
       {
         "path": "./instructions/.generated/lang-sql.instructions.md",
-        "when": "config.sharppilot.instructions.lang.sql && !sharppilot.override.lang.sql"
+        "when": "config.autocontext.instructions.lang.sql && !autocontext.override.lang.sql"
       },
       {
         "path": "./instructions/.generated/lang-swift.instructions.md",
-        "when": "config.sharppilot.instructions.lang.swift && sharppilot.workspace.hasSwift && !sharppilot.override.lang.swift"
+        "when": "config.autocontext.instructions.lang.swift && autocontext.workspace.hasSwift && !autocontext.override.lang.swift"
       },
       {
         "path": "./instructions/.generated/lang-typescript.instructions.md",
-        "when": "config.sharppilot.instructions.lang.typescript && sharppilot.workspace.hasTypeScript && !sharppilot.override.lang.typescript"
+        "when": "config.autocontext.instructions.lang.typescript && autocontext.workspace.hasTypeScript && !autocontext.override.lang.typescript"
       },
       {
         "path": "./instructions/.generated/lang-vbnet.instructions.md",
-        "when": "config.sharppilot.instructions.lang.vbnet && sharppilot.workspace.hasVbNet && !sharppilot.override.lang.vbnet"
+        "when": "config.autocontext.instructions.lang.vbnet && autocontext.workspace.hasVbNet && !autocontext.override.lang.vbnet"
       },
       {
         "path": "./instructions/.generated/lang-yaml.instructions.md",
-        "when": "config.sharppilot.instructions.lang.yaml && sharppilot.workspace.hasYaml && !sharppilot.override.lang.yaml"
+        "when": "config.autocontext.instructions.lang.yaml && autocontext.workspace.hasYaml && !autocontext.override.lang.yaml"
       },
       {
         "path": "./instructions/.generated/dotnet-maui.instructions.md",
-        "when": "config.sharppilot.instructions.dotnet.maui && sharppilot.workspace.hasMaui && !sharppilot.override.dotnet.maui"
+        "when": "config.autocontext.instructions.dotnet.maui && autocontext.workspace.hasMaui && !autocontext.override.dotnet.maui"
       },
       {
         "path": "./instructions/.generated/dotnet-aspnetcore.instructions.md",
-        "when": "config.sharppilot.instructions.dotnet.aspnetCore && sharppilot.workspace.hasAspNetCore && !sharppilot.override.dotnet.aspnetCore"
+        "when": "config.autocontext.instructions.dotnet.aspnetCore && autocontext.workspace.hasAspNetCore && !autocontext.override.dotnet.aspnetCore"
       },
       {
         "path": "./instructions/.generated/dotnet-aspx.instructions.md",
-        "when": "config.sharppilot.instructions.dotnet.aspx && sharppilot.workspace.hasWebForms && !sharppilot.override.dotnet.aspx"
+        "when": "config.autocontext.instructions.dotnet.aspx && autocontext.workspace.hasWebForms && !autocontext.override.dotnet.aspx"
       },
       {
         "path": "./instructions/.generated/dotnet-async-await.instructions.md",
-        "when": "config.sharppilot.instructions.dotnet.asyncAwait && sharppilot.workspace.hasDotNet && !sharppilot.override.dotnet.asyncAwait"
+        "when": "config.autocontext.instructions.dotnet.asyncAwait && autocontext.workspace.hasDotNet && !autocontext.override.dotnet.asyncAwait"
       },
       {
         "path": "./instructions/.generated/dotnet-blazor.instructions.md",
-        "when": "config.sharppilot.instructions.dotnet.blazor && sharppilot.workspace.hasBlazor && !sharppilot.override.dotnet.blazor"
+        "when": "config.autocontext.instructions.dotnet.blazor && autocontext.workspace.hasBlazor && !autocontext.override.dotnet.blazor"
       },
       {
         "path": "./instructions/.generated/dotnet-coding-standards.instructions.md",
-        "when": "config.sharppilot.instructions.dotnet.codingStandards && sharppilot.workspace.hasDotNet && !sharppilot.override.dotnet.codingStandards"
+        "when": "config.autocontext.instructions.dotnet.codingStandards && autocontext.workspace.hasDotNet && !autocontext.override.dotnet.codingStandards"
       },
       {
         "path": "./instructions/.generated/dotnet-core.instructions.md",
-        "when": "config.sharppilot.instructions.dotnet.core && sharppilot.workspace.hasDotNet && !sharppilot.override.dotnet.core"
+        "when": "config.autocontext.instructions.dotnet.core && autocontext.workspace.hasDotNet && !autocontext.override.dotnet.core"
       },
       {
         "path": "./instructions/.generated/dotnet-dapper.instructions.md",
-        "when": "config.sharppilot.instructions.dotnet.dapper && sharppilot.workspace.hasDapper && !sharppilot.override.dotnet.dapper"
+        "when": "config.autocontext.instructions.dotnet.dapper && autocontext.workspace.hasDapper && !autocontext.override.dotnet.dapper"
       },
       {
         "path": "./instructions/.generated/dotnet-debugging.instructions.md",
-        "when": "config.sharppilot.instructions.dotnet.debugging && sharppilot.workspace.hasDotNet && !sharppilot.override.dotnet.debugging"
+        "when": "config.autocontext.instructions.dotnet.debugging && autocontext.workspace.hasDotNet && !autocontext.override.dotnet.debugging"
       },
       {
         "path": "./instructions/.generated/dotnet-entity-framework-core.instructions.md",
-        "when": "config.sharppilot.instructions.dotnet.entityFrameworkCore && sharppilot.workspace.hasEntityFrameworkCore && !sharppilot.override.dotnet.entityFrameworkCore"
+        "when": "config.autocontext.instructions.dotnet.entityFrameworkCore && autocontext.workspace.hasEntityFrameworkCore && !autocontext.override.dotnet.entityFrameworkCore"
       },
       {
         "path": "./instructions/.generated/dotnet-grpc.instructions.md",
-        "when": "config.sharppilot.instructions.dotnet.grpc && sharppilot.workspace.hasGrpc && !sharppilot.override.dotnet.grpc"
+        "when": "config.autocontext.instructions.dotnet.grpc && autocontext.workspace.hasGrpc && !autocontext.override.dotnet.grpc"
       },
       {
         "path": "./instructions/.generated/dotnet-mediator-cqrs.instructions.md",
-        "when": "config.sharppilot.instructions.dotnet.mediatorCqrs && sharppilot.workspace.hasMediatR && !sharppilot.override.dotnet.mediatorCqrs"
+        "when": "config.autocontext.instructions.dotnet.mediatorCqrs && autocontext.workspace.hasMediatR && !autocontext.override.dotnet.mediatorCqrs"
       },
       {
         "path": "./instructions/.generated/dotnet-mongodb.instructions.md",
-        "when": "config.sharppilot.instructions.dotnet.mongodb && sharppilot.workspace.hasMongoDb && !sharppilot.override.dotnet.mongodb"
+        "when": "config.autocontext.instructions.dotnet.mongodb && autocontext.workspace.hasMongoDb && !autocontext.override.dotnet.mongodb"
       },
       {
         "path": "./instructions/.generated/dotnet-mstest.instructions.md",
-        "when": "config.sharppilot.instructions.dotnet.mstest && sharppilot.workspace.hasMsTest && !sharppilot.override.dotnet.mstest"
+        "when": "config.autocontext.instructions.dotnet.mstest && autocontext.workspace.hasMsTest && !autocontext.override.dotnet.mstest"
       },
       {
         "path": "./instructions/.generated/dotnet-mysql.instructions.md",
-        "when": "config.sharppilot.instructions.dotnet.mysql && sharppilot.workspace.hasMySql && !sharppilot.override.dotnet.mysql"
+        "when": "config.autocontext.instructions.dotnet.mysql && autocontext.workspace.hasMySql && !autocontext.override.dotnet.mysql"
       },
       {
         "path": "./instructions/.generated/dotnet-nuget.instructions.md",
-        "when": "config.sharppilot.instructions.dotnet.nuget && sharppilot.workspace.hasDotNet && !sharppilot.override.dotnet.nuget"
+        "when": "config.autocontext.instructions.dotnet.nuget && autocontext.workspace.hasDotNet && !autocontext.override.dotnet.nuget"
       },
       {
         "path": "./instructions/.generated/dotnet-nunit.instructions.md",
-        "when": "config.sharppilot.instructions.dotnet.nunit && sharppilot.workspace.hasNUnit && !sharppilot.override.dotnet.nunit"
+        "when": "config.autocontext.instructions.dotnet.nunit && autocontext.workspace.hasNUnit && !autocontext.override.dotnet.nunit"
       },
       {
         "path": "./instructions/.generated/dotnet-oracle.instructions.md",
-        "when": "config.sharppilot.instructions.dotnet.oracle && sharppilot.workspace.hasOracle && !sharppilot.override.dotnet.oracle"
+        "when": "config.autocontext.instructions.dotnet.oracle && autocontext.workspace.hasOracle && !autocontext.override.dotnet.oracle"
       },
       {
         "path": "./instructions/.generated/dotnet-performance-memory.instructions.md",
-        "when": "config.sharppilot.instructions.dotnet.performanceMemory && sharppilot.workspace.hasDotNet && !sharppilot.override.dotnet.performanceMemory"
+        "when": "config.autocontext.instructions.dotnet.performanceMemory && autocontext.workspace.hasDotNet && !autocontext.override.dotnet.performanceMemory"
       },
       {
         "path": "./instructions/.generated/dotnet-postgresql.instructions.md",
-        "when": "config.sharppilot.instructions.dotnet.postgresql && sharppilot.workspace.hasPostgres && !sharppilot.override.dotnet.postgresql"
+        "when": "config.autocontext.instructions.dotnet.postgresql && autocontext.workspace.hasPostgres && !autocontext.override.dotnet.postgresql"
       },
       {
         "path": "./instructions/.generated/dotnet-razor.instructions.md",
-        "when": "config.sharppilot.instructions.dotnet.razor && sharppilot.workspace.hasRazor && !sharppilot.override.dotnet.razor"
+        "when": "config.autocontext.instructions.dotnet.razor && autocontext.workspace.hasRazor && !autocontext.override.dotnet.razor"
       },
       {
         "path": "./instructions/.generated/dotnet-redis.instructions.md",
-        "when": "config.sharppilot.instructions.dotnet.redis && sharppilot.workspace.hasRedis && !sharppilot.override.dotnet.redis"
+        "when": "config.autocontext.instructions.dotnet.redis && autocontext.workspace.hasRedis && !autocontext.override.dotnet.redis"
       },
       {
         "path": "./instructions/.generated/dotnet-signalr.instructions.md",
-        "when": "config.sharppilot.instructions.dotnet.signalR && sharppilot.workspace.hasSignalR && !sharppilot.override.dotnet.signalR"
+        "when": "config.autocontext.instructions.dotnet.signalR && autocontext.workspace.hasSignalR && !autocontext.override.dotnet.signalR"
       },
       {
         "path": "./instructions/.generated/dotnet-sql-server.instructions.md",
-        "when": "config.sharppilot.instructions.dotnet.sqlServer && sharppilot.workspace.hasSqlServer && !sharppilot.override.dotnet.sqlServer"
+        "when": "config.autocontext.instructions.dotnet.sqlServer && autocontext.workspace.hasSqlServer && !autocontext.override.dotnet.sqlServer"
       },
       {
         "path": "./instructions/.generated/dotnet-sqlite.instructions.md",
-        "when": "config.sharppilot.instructions.dotnet.sqlite && sharppilot.workspace.hasSqlite && !sharppilot.override.dotnet.sqlite"
+        "when": "config.autocontext.instructions.dotnet.sqlite && autocontext.workspace.hasSqlite && !autocontext.override.dotnet.sqlite"
       },
       {
         "path": "./instructions/.generated/dotnet-testing.instructions.md",
-        "when": "config.sharppilot.instructions.dotnet.testing && sharppilot.workspace.hasDotNetTesting && !sharppilot.override.dotnet.testing"
+        "when": "config.autocontext.instructions.dotnet.testing && autocontext.workspace.hasDotNetTesting && !autocontext.override.dotnet.testing"
       },
       {
         "path": "./instructions/.generated/dotnet-unity.instructions.md",
-        "when": "config.sharppilot.instructions.dotnet.unity && sharppilot.workspace.hasUnity && !sharppilot.override.dotnet.unity"
+        "when": "config.autocontext.instructions.dotnet.unity && autocontext.workspace.hasUnity && !autocontext.override.dotnet.unity"
       },
       {
         "path": "./instructions/.generated/dotnet-winforms.instructions.md",
-        "when": "config.sharppilot.instructions.dotnet.winForms && sharppilot.workspace.hasWinForms && !sharppilot.override.dotnet.winForms"
+        "when": "config.autocontext.instructions.dotnet.winForms && autocontext.workspace.hasWinForms && !autocontext.override.dotnet.winForms"
       },
       {
         "path": "./instructions/.generated/dotnet-wpf.instructions.md",
-        "when": "config.sharppilot.instructions.dotnet.wpf && sharppilot.workspace.hasWpf && !sharppilot.override.dotnet.wpf"
+        "when": "config.autocontext.instructions.dotnet.wpf && autocontext.workspace.hasWpf && !autocontext.override.dotnet.wpf"
       },
       {
         "path": "./instructions/.generated/dotnet-xaml.instructions.md",
-        "when": "config.sharppilot.instructions.dotnet.xaml && sharppilot.workspace.hasXaml && !sharppilot.override.dotnet.xaml"
+        "when": "config.autocontext.instructions.dotnet.xaml && autocontext.workspace.hasXaml && !autocontext.override.dotnet.xaml"
       },
       {
         "path": "./instructions/.generated/dotnet-xunit.instructions.md",
-        "when": "config.sharppilot.instructions.dotnet.xunit && sharppilot.workspace.hasXunit && !sharppilot.override.dotnet.xunit"
+        "when": "config.autocontext.instructions.dotnet.xunit && autocontext.workspace.hasXunit && !autocontext.override.dotnet.xunit"
       },
       {
         "path": "./instructions/.generated/web-angular.instructions.md",
-        "when": "config.sharppilot.instructions.web.angular && sharppilot.workspace.hasAngular && !sharppilot.override.web.angular"
+        "when": "config.autocontext.instructions.web.angular && autocontext.workspace.hasAngular && !autocontext.override.web.angular"
       },
       {
         "path": "./instructions/.generated/web-cypress.instructions.md",
-        "when": "config.sharppilot.instructions.web.cypress && sharppilot.workspace.hasCypress && !sharppilot.override.web.cypress"
+        "when": "config.autocontext.instructions.web.cypress && autocontext.workspace.hasCypress && !autocontext.override.web.cypress"
       },
       {
         "path": "./instructions/.generated/web-jasmine.instructions.md",
-        "when": "config.sharppilot.instructions.web.jasmine && sharppilot.workspace.hasJasmine && !sharppilot.override.web.jasmine"
+        "when": "config.autocontext.instructions.web.jasmine && autocontext.workspace.hasJasmine && !autocontext.override.web.jasmine"
       },
       {
         "path": "./instructions/.generated/web-jest.instructions.md",
-        "when": "config.sharppilot.instructions.web.jest && sharppilot.workspace.hasJest && !sharppilot.override.web.jest"
+        "when": "config.autocontext.instructions.web.jest && autocontext.workspace.hasJest && !autocontext.override.web.jest"
       },
       {
         "path": "./instructions/.generated/web-mocha.instructions.md",
-        "when": "config.sharppilot.instructions.web.mocha && sharppilot.workspace.hasMocha && !sharppilot.override.web.mocha"
+        "when": "config.autocontext.instructions.web.mocha && autocontext.workspace.hasMocha && !autocontext.override.web.mocha"
       },
       {
         "path": "./instructions/.generated/web-nextjs.instructions.md",
-        "when": "config.sharppilot.instructions.web.nextJs && sharppilot.workspace.hasNextJs && !sharppilot.override.web.nextJs"
+        "when": "config.autocontext.instructions.web.nextJs && autocontext.workspace.hasNextJs && !autocontext.override.web.nextJs"
       },
       {
         "path": "./instructions/.generated/web-nodejs.instructions.md",
-        "when": "config.sharppilot.instructions.web.nodeJs && sharppilot.workspace.hasNodeJs && !sharppilot.override.web.nodeJs"
+        "when": "config.autocontext.instructions.web.nodeJs && autocontext.workspace.hasNodeJs && !autocontext.override.web.nodeJs"
       },
       {
         "path": "./instructions/.generated/web-playwright.instructions.md",
-        "when": "config.sharppilot.instructions.web.playwright && sharppilot.workspace.hasPlaywright && !sharppilot.override.web.playwright"
+        "when": "config.autocontext.instructions.web.playwright && autocontext.workspace.hasPlaywright && !autocontext.override.web.playwright"
       },
       {
         "path": "./instructions/.generated/web-react.instructions.md",
-        "when": "config.sharppilot.instructions.web.react && sharppilot.workspace.hasReact && !sharppilot.override.web.react"
+        "when": "config.autocontext.instructions.web.react && autocontext.workspace.hasReact && !autocontext.override.web.react"
       },
       {
         "path": "./instructions/.generated/web-svelte.instructions.md",
-        "when": "config.sharppilot.instructions.web.svelte && sharppilot.workspace.hasSvelte && !sharppilot.override.web.svelte"
+        "when": "config.autocontext.instructions.web.svelte && autocontext.workspace.hasSvelte && !autocontext.override.web.svelte"
       },
       {
         "path": "./instructions/.generated/web-testing.instructions.md",
-        "when": "config.sharppilot.instructions.web.testing && sharppilot.workspace.hasWebTesting && !sharppilot.override.web.testing"
+        "when": "config.autocontext.instructions.web.testing && autocontext.workspace.hasWebTesting && !autocontext.override.web.testing"
       },
       {
         "path": "./instructions/.generated/web-vitest.instructions.md",
-        "when": "config.sharppilot.instructions.web.vitest && sharppilot.workspace.hasVitest && !sharppilot.override.web.vitest"
+        "when": "config.autocontext.instructions.web.vitest && autocontext.workspace.hasVitest && !autocontext.override.web.vitest"
       },
       {
         "path": "./instructions/.generated/web-vue.instructions.md",
-        "when": "config.sharppilot.instructions.web.vue && sharppilot.workspace.hasVue && !sharppilot.override.web.vue"
+        "when": "config.autocontext.instructions.web.vue && autocontext.workspace.hasVue && !autocontext.override.web.vue"
       },
       {
         "path": "./instructions/.generated/git-commit-format.instructions.md",
-        "when": "config.sharppilot.instructions.git.commitFormat && sharppilot.workspace.hasGit && !sharppilot.override.git.commitFormat"
+        "when": "config.autocontext.instructions.git.commitFormat && autocontext.workspace.hasGit && !autocontext.override.git.commitFormat"
       },
       {
         "path": "./instructions/.generated/docker.instructions.md",
-        "when": "config.sharppilot.instructions.docker && sharppilot.workspace.hasDocker && !sharppilot.override.docker"
+        "when": "config.autocontext.instructions.docker && autocontext.workspace.hasDocker && !autocontext.override.docker"
       }
     ],
     "walkthroughs": [
       {
-        "id": "sharppilot.get-started",
-        "title": "Get Started with SharpPilot",
-        "description": "Learn how SharpPilot enhances GitHub Copilot with curated instructions and MCP tools.",
+        "id": "autocontext.get-started",
+        "title": "Get Started with AutoContext",
+        "description": "Learn how AutoContext enhances GitHub Copilot with curated instructions and MCP tools.",
         "steps": [
           {
-            "id": "sharppilot.welcome",
-            "title": "Welcome to SharpPilot",
-            "description": "Discover how SharpPilot elevates code quality with curated instructions and model-invokable tools.",
+            "id": "autocontext.welcome",
+            "title": "Welcome to AutoContext",
+            "description": "Discover how AutoContext elevates code quality with curated instructions and model-invokable tools.",
             "media": {
               "markdown": "walkthroughs/welcome.md"
             }
           },
           {
-            "id": "sharppilot.instructions",
+            "id": "autocontext.instructions",
             "title": "Chat Instructions",
-            "description": "Enable instruction sets that guide Copilot's responses for your tech stack.\n[Open Instructions Panel](command:sharppilot.instructions-view.focus)",
+            "description": "Enable instruction sets that guide Copilot's responses for your tech stack.\n[Open Instructions Panel](command:autocontext.instructions-view.focus)",
             "media": {
               "markdown": "walkthroughs/instructions.md"
             },
             "completionEvents": [
-              "onView:sharppilot.instructions-view"
+              "onView:autocontext.instructions-view"
             ]
           },
           {
-            "id": "sharppilot.mcp-tools",
+            "id": "autocontext.mcp-tools",
             "title": "MCP Tools",
-            "description": "Enable quality-assurance tools that Copilot can call in agent mode.\n[Open Tools Panel](command:sharppilot.mcp-tools-view.focus)",
+            "description": "Enable quality-assurance tools that Copilot can call in agent mode.\n[Open Tools Panel](command:autocontext.mcp-tools-view.focus)",
             "media": {
               "markdown": "walkthroughs/tools.md"
             },
             "completionEvents": [
-              "onView:sharppilot.mcp-tools-view"
+              "onView:autocontext.mcp-tools-view"
             ]
           },
           {
-            "id": "sharppilot.auto-configure",
+            "id": "autocontext.auto-configure",
             "title": "Auto Configure",
-            "description": "Let SharpPilot detect your workspace and enable the right instructions and tools.\n[Auto Configure](command:sharppilot.auto-configure)",
+            "description": "Let AutoContext detect your workspace and enable the right instructions and tools.\n[Auto Configure](command:autocontext.auto-configure)",
             "media": {
               "markdown": "walkthroughs/auto-configure.md"
             },
             "completionEvents": [
-              "onCommand:sharppilot.auto-configure"
+              "onCommand:autocontext.auto-configure"
             ]
           },
           {
-            "id": "sharppilot.export-and-browse",
+            "id": "autocontext.export-and-browse",
             "title": "Export & Browse",
-            "description": "Export instruction files to your repository using the sidebar panel.\n[Open Instructions Panel](command:sharppilot.instructions-view.focus)",
+            "description": "Export instruction files to your repository using the sidebar panel.\n[Open Instructions Panel](command:autocontext.instructions-view.focus)",
             "media": {
               "markdown": "walkthroughs/export-and-browse.md"
             },
             "completionEvents": [
-              "onCommand:sharppilot.enter-export-mode"
+              "onCommand:autocontext.enter-export-mode"
             ]
           }
         ]
       }
     ],
     "configuration": {
-      "title": "SharpPilot",
+      "title": "AutoContext",
       "properties": {
-        "sharppilot.instructions.codeReview": {
+        "autocontext.instructions.codeReview": {
           "type": "boolean",
           "default": true,
           "description": "Enable code review guidelines (priority order, feedback style, scope and test coverage checks)."
         },
-        "sharppilot.instructions.designPrinciples": {
+        "autocontext.instructions.designPrinciples": {
           "type": "boolean",
           "default": true,
           "description": "Enable design principles (SOLID, DI, composition, separation of concerns, structured logging)."
         },
-        "sharppilot.instructions.restApiDesign": {
+        "autocontext.instructions.restApiDesign": {
           "type": "boolean",
           "default": true,
           "description": "Enable REST API design guidelines (resource naming, HTTP methods, status codes, pagination, error responses, versioning)."
         },
-        "sharppilot.instructions.testing": {
+        "autocontext.instructions.testing": {
           "type": "boolean",
           "default": true,
           "description": "Enable general testing guidelines (TDD, AAA structure, single-behavior focus, test isolation)."
         },
-        "sharppilot.instructions.lang.bash": {
+        "autocontext.instructions.lang.bash": {
           "type": "boolean",
           "default": true,
           "description": "Enable Bash guidelines (safety flags, quoting, error handling, portability, script structure)."
         },
-        "sharppilot.instructions.lang.batch": {
+        "autocontext.instructions.lang.batch": {
           "type": "boolean",
           "default": true,
           "description": "Enable Batch (CMD) guidelines (variable handling, error checking, quoting, script structure)."
         },
-        "sharppilot.instructions.lang.c": {
+        "autocontext.instructions.lang.c": {
           "type": "boolean",
           "default": true,
           "description": "Enable C coding style rules (memory management, pointer safety, const correctness, error handling, header design)."
         },
-        "sharppilot.instructions.lang.csharp": {
+        "autocontext.instructions.lang.csharp": {
           "type": "boolean",
           "default": true,
           "description": "Enable C# coding style rules (member ordering, formatting, etc.)."
         },
-        "sharppilot.instructions.lang.cpp": {
+        "autocontext.instructions.lang.cpp": {
           "type": "boolean",
           "default": true,
           "description": "Enable C++ coding style rules (RAII, smart pointers, move semantics, modern features, templates, STL usage)."
         },
-        "sharppilot.instructions.lang.css": {
+        "autocontext.instructions.lang.css": {
           "type": "boolean",
           "default": true,
           "description": "Enable CSS layout, theming, selectors, and accessibility guidelines."
         },
-        "sharppilot.instructions.lang.dart": {
+        "autocontext.instructions.lang.dart": {
           "type": "boolean",
           "default": true,
           "description": "Enable Dart coding style rules (null safety, type design, async patterns, collections, pattern matching)."
         },
-        "sharppilot.instructions.lang.fsharp": {
+        "autocontext.instructions.lang.fsharp": {
           "type": "boolean",
           "default": true,
           "description": "Enable F# coding style rules (module layout, naming, type design, pattern matching, formatting)."
         },
-        "sharppilot.instructions.lang.go": {
+        "autocontext.instructions.lang.go": {
           "type": "boolean",
           "default": true,
           "description": "Enable Go coding style rules (error handling, interfaces, concurrency, packages, testing)."
         },
-        "sharppilot.instructions.lang.graphql": {
+        "autocontext.instructions.lang.graphql": {
           "type": "boolean",
           "default": true,
           "description": "Enable GraphQL guidelines (schema design, pagination, DataLoader, mutations, subscriptions)."
         },
-        "sharppilot.instructions.lang.groovy": {
+        "autocontext.instructions.lang.groovy": {
           "type": "boolean",
           "default": true,
           "description": "Enable Groovy coding style rules (type safety, closures, GStrings, collections, error handling)."
         },
-        "sharppilot.instructions.lang.html": {
+        "autocontext.instructions.lang.html": {
           "type": "boolean",
           "default": true,
           "description": "Enable HTML semantics, accessibility, and structure guidelines."
         },
-        "sharppilot.instructions.lang.java": {
+        "autocontext.instructions.lang.java": {
           "type": "boolean",
           "default": true,
           "description": "Enable Java coding style rules (naming, type design, error handling, streams, Optional, generics, concurrency)."
         },
-        "sharppilot.instructions.lang.javascript": {
+        "autocontext.instructions.lang.javascript": {
           "type": "boolean",
           "default": true,
           "description": "Enable JavaScript language, async patterns, and security guidelines."
         },
-        "sharppilot.instructions.lang.kotlin": {
+        "autocontext.instructions.lang.kotlin": {
           "type": "boolean",
           "default": true,
           "description": "Enable Kotlin coding style rules (null safety, type design, scope functions, collections, coroutines)."
         },
-        "sharppilot.instructions.lang.lua": {
+        "autocontext.instructions.lang.lua": {
           "type": "boolean",
           "default": true,
           "description": "Enable Lua guidelines (tables, error handling, modules, metatables, OOP, performance)."
         },
-        "sharppilot.instructions.lang.php": {
+        "autocontext.instructions.lang.php": {
           "type": "boolean",
           "default": true,
           "description": "Enable PHP guidelines (type safety, error handling, OOP, security, autoloading, documentation)."
         },
-        "sharppilot.instructions.lang.powershell": {
+        "autocontext.instructions.lang.powershell": {
           "type": "boolean",
           "default": true,
           "description": "Enable PowerShell guidelines (naming, error handling, pipeline design, security, module structure)."
         },
-        "sharppilot.instructions.lang.python": {
+        "autocontext.instructions.lang.python": {
           "type": "boolean",
           "default": true,
           "description": "Enable Python guidelines (naming, type hints, error handling, classes, modules, concurrency, idioms)."
         },
-        "sharppilot.instructions.lang.ruby": {
+        "autocontext.instructions.lang.ruby": {
           "type": "boolean",
           "default": true,
           "description": "Enable Ruby coding style rules (naming, blocks, error handling, classes, modules, collections, metaprogramming)."
         },
-        "sharppilot.instructions.lang.rust": {
+        "autocontext.instructions.lang.rust": {
           "type": "boolean",
           "default": true,
           "description": "Enable Rust coding style rules (ownership, borrowing, error handling, type design, traits, concurrency)."
         },
-        "sharppilot.instructions.lang.scala": {
+        "autocontext.instructions.lang.scala": {
           "type": "boolean",
           "default": true,
           "description": "Enable Scala coding style rules (pattern matching, implicits, collections, error handling, concurrency)."
         },
-        "sharppilot.instructions.lang.sql": {
+        "autocontext.instructions.lang.sql": {
           "type": "boolean",
           "default": true,
           "description": "Enable SQL guidelines (naming, formatting, query design, indexing, parameters, transactions, NULL handling, performance)."
         },
-        "sharppilot.instructions.lang.swift": {
+        "autocontext.instructions.lang.swift": {
           "type": "boolean",
           "default": true,
           "description": "Enable Swift coding style rules (naming, optionals, value types, protocols, concurrency, error handling, memory management)."
         },
-        "sharppilot.instructions.lang.typescript": {
+        "autocontext.instructions.lang.typescript": {
           "type": "boolean",
           "default": true,
           "description": "Enable TypeScript type safety, generics, and anti-pattern guidelines."
         },
-        "sharppilot.instructions.lang.vbnet": {
+        "autocontext.instructions.lang.vbnet": {
           "type": "boolean",
           "default": true,
           "description": "Enable VB.NET coding style rules (naming, Option Strict, error handling, formatting)."
         },
-        "sharppilot.instructions.lang.yaml": {
+        "autocontext.instructions.lang.yaml": {
           "type": "boolean",
           "default": true,
           "description": "Enable YAML guidelines (formatting, quoting, type safety, anchors, multi-document, security)."
         },
-        "sharppilot.instructions.dotnet.maui": {
+        "autocontext.instructions.dotnet.maui": {
           "type": "boolean",
           "default": true,
           "description": "Enable .NET MAUI guidelines (MVVM, Shell navigation, data binding, layouts, DI)."
         },
-        "sharppilot.instructions.dotnet.aspnetCore": {
+        "autocontext.instructions.dotnet.aspnetCore": {
           "type": "boolean",
           "default": true,
           "description": "Enable ASP.NET Core Web API guidelines (middleware, routing, error handling, auth)."
         },
-        "sharppilot.instructions.dotnet.aspx": {
+        "autocontext.instructions.dotnet.aspx": {
           "type": "boolean",
           "default": true,
           "description": "Enable ASP.NET Web Forms guidelines (page lifecycle, ViewState, server controls, security)."
         },
-        "sharppilot.instructions.dotnet.asyncAwait": {
+        "autocontext.instructions.dotnet.asyncAwait": {
           "type": "boolean",
           "default": true,
           "description": "Enable async/await pattern guidelines for .NET code."
         },
-        "sharppilot.instructions.dotnet.blazor": {
+        "autocontext.instructions.dotnet.blazor": {
           "type": "boolean",
           "default": true,
           "description": "Enable Blazor component guidelines for Razor files."
         },
-        "sharppilot.instructions.dotnet.codingStandards": {
+        "autocontext.instructions.dotnet.codingStandards": {
           "type": "boolean",
           "default": true,
           "description": "Enable .NET coding standards (naming, validation, file organization, API design)."
         },
-        "sharppilot.instructions.dotnet.core": {
+        "autocontext.instructions.dotnet.core": {
           "type": "boolean",
           "default": true,
           "description": "Enable .NET Core guidelines (dependency injection, logging, configuration, security)."
         },
-        "sharppilot.instructions.dotnet.dapper": {
+        "autocontext.instructions.dotnet.dapper": {
           "type": "boolean",
           "default": true,
           "description": "Enable Dapper guidelines (connection management, parameterized queries, mapping, transactions, performance)."
         },
-        "sharppilot.instructions.dotnet.debugging": {
+        "autocontext.instructions.dotnet.debugging": {
           "type": "boolean",
           "default": true,
           "description": "Enable debugging and troubleshooting guidelines."
         },
-        "sharppilot.instructions.dotnet.entityFrameworkCore": {
+        "autocontext.instructions.dotnet.entityFrameworkCore": {
           "type": "boolean",
           "default": true,
           "description": "Enable Entity Framework Core guidelines (DbContext lifetime, querying, migrations, bulk operations)."
         },
-        "sharppilot.instructions.dotnet.grpc": {
+        "autocontext.instructions.dotnet.grpc": {
           "type": "boolean",
           "default": true,
           "description": "Enable gRPC guidelines (proto design, status codes, deadlines, streaming, channel reuse)."
         },
-        "sharppilot.instructions.dotnet.mediatorCqrs": {
+        "autocontext.instructions.dotnet.mediatorCqrs": {
           "type": "boolean",
           "default": true,
           "description": "Enable Mediator/CQRS guidelines (command/query separation, handler design, pipeline behaviors, notifications)."
         },
-        "sharppilot.instructions.dotnet.mongodb": {
+        "autocontext.instructions.dotnet.mongodb": {
           "type": "boolean",
           "default": true,
           "description": "Enable MongoDB guidelines (security, data modelling, query design, indexing, transactions)."
         },
-        "sharppilot.instructions.dotnet.mstest": {
+        "autocontext.instructions.dotnet.mstest": {
           "type": "boolean",
           "default": true,
           "description": "Enable MSTest-specific guidelines (attributes, assertions, test lifecycle)."
         },
-        "sharppilot.instructions.dotnet.mysql": {
+        "autocontext.instructions.dotnet.mysql": {
           "type": "boolean",
           "default": true,
           "description": "Enable MySQL guidelines (security, query design, performance, stored procedures, schema migrations)."
         },
-        "sharppilot.instructions.dotnet.nuget": {
+        "autocontext.instructions.dotnet.nuget": {
           "type": "boolean",
           "default": true,
           "description": "Enable NuGet package and dependency guidelines."
         },
-        "sharppilot.instructions.dotnet.nunit": {
+        "autocontext.instructions.dotnet.nunit": {
           "type": "boolean",
           "default": true,
           "description": "Enable NUnit-specific guidelines (constraint model, attributes, assertions, test lifecycle)."
         },
-        "sharppilot.instructions.dotnet.oracle": {
+        "autocontext.instructions.dotnet.oracle": {
           "type": "boolean",
           "default": true,
           "description": "Enable Oracle guidelines (security, query design, performance, PL/SQL, schema migrations)."
         },
-        "sharppilot.instructions.dotnet.performanceMemory": {
+        "autocontext.instructions.dotnet.performanceMemory": {
           "type": "boolean",
           "default": true,
           "description": "Enable performance and memory optimization guidelines."
         },
-        "sharppilot.instructions.dotnet.postgresql": {
+        "autocontext.instructions.dotnet.postgresql": {
           "type": "boolean",
           "default": true,
           "description": "Enable PostgreSQL guidelines (security, query design, performance, PL/pgSQL, schema migrations)."
         },
-        "sharppilot.instructions.dotnet.razor": {
+        "autocontext.instructions.dotnet.razor": {
           "type": "boolean",
           "default": true,
           "description": "Enable Razor file structure and syntax guidelines."
         },
-        "sharppilot.instructions.dotnet.redis": {
+        "autocontext.instructions.dotnet.redis": {
           "type": "boolean",
           "default": true,
           "description": "Enable Redis guidelines (connection multiplexing, key naming, TTL, pub/sub, distributed locking)."
         },
-        "sharppilot.instructions.dotnet.signalR": {
+        "autocontext.instructions.dotnet.signalR": {
           "type": "boolean",
           "default": true,
           "description": "Enable SignalR guidelines (hub design, groups, backplane, reconnection, strongly-typed hubs)."
         },
-        "sharppilot.instructions.dotnet.sqlServer": {
+        "autocontext.instructions.dotnet.sqlServer": {
           "type": "boolean",
           "default": true,
           "description": "Enable SQL Server guidelines (T-SQL security, query design, performance, stored procedures, schema migrations)."
         },
-        "sharppilot.instructions.dotnet.sqlite": {
+        "autocontext.instructions.dotnet.sqlite": {
           "type": "boolean",
           "default": true,
           "description": "Enable SQLite guidelines (security, query design, performance, WAL mode, schema migrations)."
         },
-        "sharppilot.instructions.dotnet.testing": {
+        "autocontext.instructions.dotnet.testing": {
           "type": "boolean",
           "default": true,
           "description": "Enable general testing strategy guidelines (TDD, naming, organization)."
         },
-        "sharppilot.instructions.dotnet.unity": {
+        "autocontext.instructions.dotnet.unity": {
           "type": "boolean",
           "default": true,
           "description": "Enable Unity guidelines (MonoBehaviour lifecycle, component caching, physics, coroutines, ScriptableObjects, performance)."
         },
-        "sharppilot.instructions.dotnet.winForms": {
+        "autocontext.instructions.dotnet.winForms": {
           "type": "boolean",
           "default": true,
           "description": "Enable Windows Forms threading, data binding, layout, and lifecycle guidelines."
         },
-        "sharppilot.instructions.dotnet.wpf": {
+        "autocontext.instructions.dotnet.wpf": {
           "type": "boolean",
           "default": true,
           "description": "Enable WPF MVVM, data binding, threading, and performance guidelines."
         },
-        "sharppilot.instructions.dotnet.xaml": {
+        "autocontext.instructions.dotnet.xaml": {
           "type": "boolean",
           "default": true,
           "description": "Enable XAML guidelines (layout, data binding, resources, templates, accessibility)."
         },
-        "sharppilot.instructions.dotnet.xunit": {
+        "autocontext.instructions.dotnet.xunit": {
           "type": "boolean",
           "default": true,
           "description": "Enable xUnit-specific guidelines (v3 APIs, attributes, assertions)."
         },
-        "sharppilot.instructions.web.angular": {
+        "autocontext.instructions.web.angular": {
           "type": "boolean",
           "default": true,
           "description": "Enable Angular guidelines (standalone components, signals, DI, RxJS, routing, reactive forms)."
         },
-        "sharppilot.instructions.web.cypress": {
+        "autocontext.instructions.web.cypress": {
           "type": "boolean",
           "default": true,
           "description": "Enable Cypress guidelines (chainable commands, intercepts, custom commands, session caching)."
         },
-        "sharppilot.instructions.web.jasmine": {
+        "autocontext.instructions.web.jasmine": {
           "type": "boolean",
           "default": true,
           "description": "Enable Jasmine guidelines (spies, clock, async assertions, custom matchers)."
         },
-        "sharppilot.instructions.web.jest": {
+        "autocontext.instructions.web.jest": {
           "type": "boolean",
           "default": true,
           "description": "Enable Jest guidelines (mocking, snapshots, fake timers)."
         },
-        "sharppilot.instructions.web.mocha": {
+        "autocontext.instructions.web.mocha": {
           "type": "boolean",
           "default": true,
           "description": "Enable Mocha guidelines (Sinon mocking, Chai assertions, async patterns)."
         },
-        "sharppilot.instructions.web.nextJs": {
+        "autocontext.instructions.web.nextJs": {
           "type": "boolean",
           "default": true,
           "description": "Enable Next.js guidelines (App Router, Server/Client Components, data fetching, rendering strategies)."
         },
-        "sharppilot.instructions.web.nodeJs": {
+        "autocontext.instructions.web.nodeJs": {
           "type": "boolean",
           "default": true,
           "description": "Enable Node.js guidelines (async patterns, module design, security, process lifecycle)."
         },
-        "sharppilot.instructions.web.playwright": {
+        "autocontext.instructions.web.playwright": {
           "type": "boolean",
           "default": true,
           "description": "Enable Playwright guidelines (auto-waiting locators, Page Object Model, web-first assertions)."
         },
-        "sharppilot.instructions.web.react": {
+        "autocontext.instructions.web.react": {
           "type": "boolean",
           "default": true,
           "description": "Enable React component purity, Hooks, state design, effects, and list rendering guidelines."
         },
-        "sharppilot.instructions.web.svelte": {
+        "autocontext.instructions.web.svelte": {
           "type": "boolean",
           "default": true,
           "description": "Enable Svelte guidelines (runes, stores, SvelteKit routing, load functions, form actions)."
         },
-        "sharppilot.instructions.web.testing": {
+        "autocontext.instructions.web.testing": {
           "type": "boolean",
           "default": true,
           "description": "Enable general web testing strategy guidelines (test structure, naming, organization)."
         },
-        "sharppilot.instructions.web.vitest": {
+        "autocontext.instructions.web.vitest": {
           "type": "boolean",
           "default": true,
           "description": "Enable Vitest guidelines (mocking with vi, snapshots, fake timers)."
         },
-        "sharppilot.instructions.web.vue": {
+        "autocontext.instructions.web.vue": {
           "type": "boolean",
           "default": true,
           "description": "Enable Vue.js guidelines (Composition API, reactivity, Pinia, Vue Router, component design)."
         },
-        "sharppilot.instructions.git.commitFormat": {
+        "autocontext.instructions.git.commitFormat": {
           "type": "boolean",
           "default": true,
           "description": "Enable Conventional Commits formatting guidelines."
         },
-        "sharppilot.instructions.docker": {
+        "autocontext.instructions.docker": {
           "type": "boolean",
           "default": true,
           "description": "Enable Docker guidelines (multi-stage builds, security, Compose, layer caching)."
         },
-        "sharppilot.mcpTools.check_csharp_async_patterns": {
+        "autocontext.mcpTools.check_csharp_async_patterns": {
           "type": "boolean",
           "default": true,
           "description": "Enable the async patterns checker tool."
         },
-        "sharppilot.mcpTools.check_csharp_coding_style": {
+        "autocontext.mcpTools.check_csharp_coding_style": {
           "type": "boolean",
           "default": true,
           "description": "Enable the coding style checker tool."
         },
-        "sharppilot.mcpTools.check_csharp_member_ordering": {
+        "autocontext.mcpTools.check_csharp_member_ordering": {
           "type": "boolean",
           "default": true,
           "description": "Enable the member ordering checker tool."
         },
-        "sharppilot.mcpTools.check_csharp_naming_conventions": {
+        "autocontext.mcpTools.check_csharp_naming_conventions": {
           "type": "boolean",
           "default": true,
           "description": "Enable the naming conventions checker tool."
         },
-        "sharppilot.mcpTools.check_csharp_nullable_context": {
+        "autocontext.mcpTools.check_csharp_nullable_context": {
           "type": "boolean",
           "default": true,
           "description": "Enable the nullable context checker tool."
         },
-        "sharppilot.mcpTools.check_csharp_project_structure": {
+        "autocontext.mcpTools.check_csharp_project_structure": {
           "type": "boolean",
           "default": true,
           "description": "Enable the project structure checker tool."
         },
-        "sharppilot.mcpTools.check_csharp_test_style": {
+        "autocontext.mcpTools.check_csharp_test_style": {
           "type": "boolean",
           "default": true,
           "description": "Enable the test style checker tool."
         },
-        "sharppilot.mcpTools.check_nuget_hygiene": {
+        "autocontext.mcpTools.check_nuget_hygiene": {
           "type": "boolean",
           "default": true,
           "description": "Enable the NuGet hygiene checker tool."
         },
-        "sharppilot.mcpTools.check_git_commit_content": {
+        "autocontext.mcpTools.check_git_commit_content": {
           "type": "boolean",
           "default": true,
           "description": "Enable the commit content validator tool."
         },
-        "sharppilot.mcpTools.check_git_commit_format": {
+        "autocontext.mcpTools.check_git_commit_format": {
           "type": "boolean",
           "default": true,
           "description": "Enable the commit format validator tool."
         },
-        "sharppilot.mcpTools.get_editorconfig": {
+        "autocontext.mcpTools.get_editorconfig": {
           "type": "boolean",
           "default": true,
           "description": "Enable the EditorConfig reader tool."
         },
-        "sharppilot.mcpTools.check_typescript_coding_style": {
+        "autocontext.mcpTools.check_typescript_coding_style": {
           "type": "boolean",
           "default": true,
           "description": "Enable the TypeScript coding style checker tool."

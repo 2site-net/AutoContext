@@ -51,7 +51,7 @@ suite('Instructions Tree View Smoke Tests', () => {
 
         assert.ok(item.command, 'Instruction item should have a command');
         assert.strictEqual(item.command.command, 'vscode.open', 'Command should be vscode.open');
-        assert.strictEqual(item.command.arguments[0].scheme, 'sharppilot-instructions', 'URI scheme should be sharppilot-instructions');
+        assert.strictEqual(item.command.arguments[0].scheme, 'autocontext-instructions', 'URI scheme should be autocontext-instructions');
     });
 
     test('entering export mode should show checkboxes on active items', async () => {
@@ -110,7 +110,7 @@ suite('Instructions Tree View Smoke Tests', () => {
     test('enable command should update setting to true', async () => {
         const { exports } = await activatedExtension();
 
-        await vscode.workspace.getConfiguration().update('sharppilot.instructions.designPrinciples', false, vscode.ConfigurationTarget.Global);
+        await vscode.workspace.getConfiguration().update('autocontext.instructions.designPrinciples', false, vscode.ConfigurationTarget.Global);
 
         try {
             const roots = exports.instructionsTreeProvider.getChildren();
@@ -118,18 +118,18 @@ suite('Instructions Tree View Smoke Tests', () => {
             const children = exports.instructionsTreeProvider.getChildren(general);
             const disabled = children.find(
                 (c: { kind: string; entry: { settingId: string }; state: string }) =>
-                    c.kind === 'instructions' && c.entry.settingId === 'sharppilot.instructions.designPrinciples',
+                    c.kind === 'instructions' && c.entry.settingId === 'autocontext.instructions.designPrinciples',
             );
 
             assert.ok(disabled, 'Design Principles should be found');
             assert.strictEqual(disabled.state, 'disabled', 'Should be disabled');
 
-            await vscode.commands.executeCommand('sharppilot.enable-instruction', disabled);
+            await vscode.commands.executeCommand('autocontext.enable-instruction', disabled);
 
-            const value = vscode.workspace.getConfiguration().get<boolean>('sharppilot.instructions.designPrinciples');
+            const value = vscode.workspace.getConfiguration().get<boolean>('autocontext.instructions.designPrinciples');
             assert.strictEqual(value, true, 'Setting should be true after enable');
         } finally {
-            await vscode.workspace.getConfiguration().update('sharppilot.instructions.designPrinciples', undefined, vscode.ConfigurationTarget.Global);
+            await vscode.workspace.getConfiguration().update('autocontext.instructions.designPrinciples', undefined, vscode.ConfigurationTarget.Global);
         }
     });
 
@@ -144,7 +144,7 @@ suite('Instructions Tree View Smoke Tests', () => {
         assert.ok(active, 'Should have at least one active instruction');
 
         try {
-            await vscode.commands.executeCommand('sharppilot.disable-instruction', active);
+            await vscode.commands.executeCommand('autocontext.disable-instruction', active);
 
             const value = vscode.workspace.getConfiguration().get<boolean>(active.entry.settingId);
             assert.strictEqual(value, false, 'Setting should be false after disable');

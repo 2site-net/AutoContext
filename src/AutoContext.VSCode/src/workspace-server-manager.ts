@@ -5,12 +5,12 @@ import { randomUUID } from 'node:crypto';
 import { createInterface } from 'node:readline';
 
 /**
- * Manages the lifecycle of the `SharpPilot.WorkspaceServer` service process.
+ * Manages the lifecycle of the `AutoContext.WorkspaceServer` service process.
  * Spawns the service on activation and kills it on disposal.
  */
 export class WorkspaceServerManager implements vscode.Disposable {
     private readonly ext = process.platform === 'win32' ? '.exe' : '';
-    private readonly pipeName = `sharppilot-workspace-${randomUUID().replace(/-/g, '').slice(0, 12)}`;
+    private readonly pipeName = `autocontext-workspace-${randomUUID().replace(/-/g, '').slice(0, 12)}`;
     private process: ChildProcess | undefined;
     private ready = false;
 

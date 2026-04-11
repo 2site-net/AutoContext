@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { createHash } from 'node:crypto';
 import type { InstructionsCatalog } from './instructions-catalog.js';
 import { InstructionsParser } from './instructions-parser.js';
-import type { SharpPilotConfigManager } from './sharppilot-config.js';
+import type { AutoContextConfigManager } from './autocontext-config.js';
 
 /**
  * Generates normalized instruction files with disabled instructions removed
@@ -26,7 +26,7 @@ export class InstructionsConfigWriter implements vscode.Disposable {
 
     constructor(
         private readonly extensionPath: string,
-        private readonly configManager: SharpPilotConfigManager,
+        private readonly configManager: AutoContextConfigManager,
         private readonly catalog: InstructionsCatalog,
     ) {
         this.generatedRoot = join(extensionPath, 'instructions', '.generated');

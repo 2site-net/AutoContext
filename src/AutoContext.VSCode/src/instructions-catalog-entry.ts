@@ -9,7 +9,7 @@ export class InstructionsCatalogEntry implements CatalogEntry {
     readonly contextKeys?: readonly string[];
 
     constructor(data: InstructionsFileEntry) {
-        this.settingId = `sharppilot.instructions.${data.key}`;
+        this.settingId = `autocontext.instructions.${data.key}`;
         this.fileName = data.fileName;
         this.label = data.label;
         this.category = data.category;

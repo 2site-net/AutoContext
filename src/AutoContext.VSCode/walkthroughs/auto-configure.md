@@ -1,6 +1,6 @@
 ## Auto Configure
 
-SharpPilot can scan your workspace and automatically enable the right instructions and tools for your project.
+AutoContext can scan your workspace and automatically enable the right instructions and tools for your project.
 
 ### What it detects
 
@@ -16,12 +16,12 @@ For each instruction and tool, auto-configure checks whether any of its context 
 
 ### Sidebar panels
 
-The Instructions and MCP Tools panels in the SharpPilot activity bar show the enabled/total count in each panel header, so you can see the result at a glance.
+The Instructions and MCP Tools panels in the AutoContext activity bar show the enabled/total count in each panel header, so you can see the result at a glance.
 
 ### Run auto configure
 
 Open a workspace with your project, then run:
 
-[Auto Configure](command:sharppilot.auto-configure)
+[Auto Configure](command:autocontext.auto-configure)
 
 You can always fine-tune the result afterwards from the sidebar panels.

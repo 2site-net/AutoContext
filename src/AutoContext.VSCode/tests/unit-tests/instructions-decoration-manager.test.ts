@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 import { InstructionsDecorationManager } from '../../src/instructions-decoration-manager';
-import { SharpPilotConfigManager } from '../../src/sharppilot-config';
+import { AutoContextConfigManager } from '../../src/autocontext-config';
 import { instructionScheme } from '../../src/instructions-content-provider';
 import { InstructionsParser } from '../../src/instructions-parser';
 
@@ -40,7 +40,7 @@ describe('InstructionsDecorationManager', () => {
     it('should not set decorations for non-instruction editors', async () => {
         vi.mocked(readFile).mockResolvedValue('{}');
 
-        const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
+        const configManager = new AutoContextConfigManager('/ext', '0.5.0');
         const manager = new InstructionsDecorationManager('/ext', configManager);
 
         const editor = makeEditor('file', '/some/file.ts');
@@ -56,7 +56,7 @@ describe('InstructionsDecorationManager', () => {
             return testContent;
         });
 
-        const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
+        const configManager = new AutoContextConfigManager('/ext', '0.5.0');
         const manager = new InstructionsDecorationManager('/ext', configManager);
 
         const editor = makeEditor(instructionScheme, 'test.instructions.md');
@@ -82,7 +82,7 @@ describe('InstructionsDecorationManager', () => {
             return testContent;
         });
 
-        const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
+        const configManager = new AutoContextConfigManager('/ext', '0.5.0');
         const manager = new InstructionsDecorationManager('/ext', configManager);
 
         const editor = makeEditor(instructionScheme, 'test.instructions.md');
@@ -109,7 +109,7 @@ describe('InstructionsDecorationManager', () => {
         const editor2 = makeEditor('file', '/some/file.ts');
         vscodeWindow.visibleTextEditors = [editor1, editor2] as unknown[];
 
-        const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
+        const configManager = new AutoContextConfigManager('/ext', '0.5.0');
         const manager = new InstructionsDecorationManager('/ext', configManager);
         manager.refreshAll();
 

@@ -1,8 +1,8 @@
-![SharpPilot](resources/logo.png)
+![AutoContext](resources/logo.png)
 
-# SharpPilot
+# AutoContext
 
-SharpPilot is a quality assurance extension for Visual Studio Code that leverages an MCP server to enable model-invokable tools and curated, configurable instructions—elevating code quality, workflows, and overall developer productivity with Copilot.
+AutoContext is a quality assurance extension for Visual Studio Code that leverages an MCP server to enable model-invokable tools and curated, configurable instructions—elevating code quality, workflows, and overall developer productivity with Copilot.
 
 > **Work in Progress** — Instructions and tools are refined iteratively. Coverage, rules, and tool behavior will continue to evolve as we incorporate feedback and expand language and framework support.
 
@@ -13,7 +13,7 @@ SharpPilot is a quality assurance extension for Visual Studio Code that leverage
 - **EditorConfig-Driven Enforcement** — Checkers read `.editorconfig` properties and enforce whichever direction the project specifies rather than just skipping conflicting rules.
 - **Workspace Detection** — Scans for project files, dependencies, and directory markers to automatically determine which servers, tools, and instructions are relevant.
 - **Auto Configuration** — One command scans the workspace and enables only the instructions and tools that match the detected technologies.
-- **Sidebar Panels** — A dedicated SharpPilot activity bar with two tree views: **Instructions** (grouped by category) and **MCP Tools** (grouped by group and category). Each panel header shows the enabled/total count, and the `…` menu includes a filter to show or hide items not detected in the workspace.
+- **Sidebar Panels** — A dedicated AutoContext activity bar with two tree views: **Instructions** (grouped by category) and **MCP Tools** (grouped by group and category). Each panel header shows the enabled/total count, and the `…` menu includes a filter to show or hide items not detected in the workspace.
 - **Per-Instruction Disable** — Click any instruction in the sidebar to open it in a virtual document, then use CodeLens actions to disable or re-enable individual rules without turning off the entire file.
 - **Export** — Enter export mode from the Instructions panel header, check the instructions you want to export, and confirm. Files are copied to `.github/instructions/` for team sharing. Exported instructions appear as **overridden** in the panel — the workspace-level file takes precedence. Delete the exported file to revert to the built-in version.
 
@@ -29,11 +29,11 @@ Once installed, the following MCP tools are available to GitHub Copilot in Agent
 | Workspace | `get_editorconfig` | Resolve effective `.editorconfig` properties for a file |
 | Web | `check_typescript_all` | Composite TypeScript quality check |
 
-Each category maps to a dedicated MCP server. Tools within a category are further organized by sub-category (e.g., C#, NuGet under .NET) and can be toggled individually under **Settings → SharpPilot** (search `sharppilot.mcpTools`), or from the **MCP Tools** panel in the SharpPilot sidebar. If all tools for a category are disabled, that server is not registered at all.
+Each category maps to a dedicated MCP server. Tools within a category are further organized by sub-category (e.g., C#, NuGet under .NET) and can be toggled individually under **Settings → AutoContext** (search `autocontext.mcpTools`), or from the **MCP Tools** panel in the AutoContext sidebar. If all tools for a category are disabled, that server is not registered at all.
 
 ## Sidebar Panels
 
-SharpPilot adds a dedicated activity bar icon with two tree views:
+AutoContext adds a dedicated activity bar icon with two tree views:
 
 - **Instructions** — Grouped by category (General, Languages, .NET, Web, Tools). Click an instruction to open it in a virtual document with per-rule CodeLens. Enable or disable instructions from the inline actions. Enter export mode from the panel header to batch-export checked instructions to `.github/instructions/`.
 - **MCP Tools** — Grouped by platform (.NET, Web, Workspace), category (C#, NuGet, TypeScript, Git, EditorConfig), and tool. Check or uncheck an MCP tool to toggle all its features at once. Individual features can also be toggled.
@@ -49,15 +49,15 @@ Individual rules within any instruction file can be disabled without turning off
 3. Click a CodeLens to toggle. Disabled rules are dimmed, tagged `[DISABLED]`, and excluded from Copilot's context.
 4. A **Reset All Instructions** CodeLens appears at the top to re-enable everything at once.
 
-The disable state is stored in `.sharppilot.json` in your workspace root — commit it for team-wide settings or add it to `.gitignore` for personal preferences.
+The disable state is stored in `.autocontext.json` in your workspace root — commit it for team-wide settings or add it to `.gitignore` for personal preferences.
 
 ## Commands
 
 | Command | Description |
 |---------|-------------|
-| **SharpPilot: Auto Configure** | Scan the workspace and enable relevant items. |
-| **SharpPilot: Toggle Instruction** | Disable or re-enable a single instruction (invoked via CodeLens). |
-| **SharpPilot: Reset Instructions** | Re-enable all disabled instructions for the current file (invoked via CodeLens). |
+| **AutoContext: Auto Configure** | Scan the workspace and enable relevant items. |
+| **AutoContext: Toggle Instruction** | Disable or re-enable a single instruction (invoked via CodeLens). |
+| **AutoContext: Reset Instructions** | Re-enable all disabled instructions for the current file (invoked via CodeLens). |
 
 ## Prerequisites
 
@@ -70,10 +70,10 @@ No .NET runtime is required — the extension ships self-contained executables.
 Install the platform-specific `.vsix` for your OS from the Extensions view (**Install from VSIX…**) or from the command line:
 
 ```sh
-code --install-extension SharpPilot-win32-x64-0.5.0.vsix
+code --install-extension AutoContext-win32-x64-0.5.0.vsix
 ```
 
-Once installed, open Agent mode in Copilot Chat and the SharpPilot tools will appear in the tools picker. Ask Copilot things like:
+Once installed, open Agent mode in Copilot Chat and the AutoContext tools will appear in the tools picker. Ask Copilot things like:
 
 - *"Check this file for code style issues."*
 - *"Validate my commit message against Conventional Commits."*
@@ -83,10 +83,10 @@ You can verify the servers are running via the Command Palette → **MCP: List S
 
 ## License
 
-SharpPilot is licensed under the [AGPL-3.0](LICENSE). A separate [commercial license](COMMERCIAL.md) is available for organizations that want to use SharpPilot under terms different from the AGPL-3.0.
+AutoContext is licensed under the [AGPL-3.0](LICENSE). A separate [commercial license](COMMERCIAL.md) is available for organizations that want to use AutoContext under terms different from the AGPL-3.0.
 
-Use of the SharpPilot name and logo is subject to [TRADEMARKS.md](TRADEMARKS.md).
+Use of the AutoContext name and logo is subject to [TRADEMARKS.md](TRADEMARKS.md).
 
 ## Source
 
-[github.com/2site-net/SharpPilot](https://github.com/2site-net/SharpPilot) — see [CONTRIBUTING.md](https://github.com/2site-net/SharpPilot/blob/main/CONTRIBUTING.md) for contribution guidelines.
+[github.com/2site-net/AutoContext](https://github.com/2site-net/AutoContext) — see [CONTRIBUTING.md](https://github.com/2site-net/AutoContext/blob/main/CONTRIBUTING.md) for contribution guidelines.

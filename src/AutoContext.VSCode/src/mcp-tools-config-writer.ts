@@ -1,9 +1,9 @@
 import * as vscode from 'vscode';
 import type { McpToolsCatalog } from './mcp-tools-catalog.js';
-import type { SharpPilotConfigManager } from './sharppilot-config.js';
+import type { AutoContextConfigManager } from './autocontext-config.js';
 
 export class McpToolsConfigWriter {
-    constructor(private readonly configManager: SharpPilotConfigManager, private readonly catalog: McpToolsCatalog) {}
+    constructor(private readonly configManager: AutoContextConfigManager, private readonly catalog: McpToolsCatalog) {}
 
     async write(): Promise<void> {
         const config = vscode.workspace.getConfiguration();

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 import { InstructionsConfigWriter } from '../../src/instructions-config-writer';
-import { SharpPilotConfigManager } from '../../src/sharppilot-config';
+import { AutoContextConfigManager } from '../../src/autocontext-config';
 import { InstructionsParser } from '../../src/instructions-parser';
 import { InstructionsCatalog } from '../../src/instructions-catalog';
 import { instructionsFiles } from '../../src/ui-constants';
@@ -45,7 +45,7 @@ describe('InstructionsConfigWriter', () => {
             return testContent;
         });
 
-        const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
+        const configManager = new AutoContextConfigManager('/ext', '0.5.0');
         const writer = new InstructionsConfigWriter('/ext', configManager, catalog);
         await writer.write();
 
@@ -64,7 +64,7 @@ describe('InstructionsConfigWriter', () => {
             return testContent;
         });
 
-        const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
+        const configManager = new AutoContextConfigManager('/ext', '0.5.0');
         const writer = new InstructionsConfigWriter('/ext', configManager, catalog);
         await writer.write();
 
@@ -97,7 +97,7 @@ describe('InstructionsConfigWriter', () => {
             return testContent;
         });
 
-        const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
+        const configManager = new AutoContextConfigManager('/ext', '0.5.0');
         const writer = new InstructionsConfigWriter('/ext', configManager, catalog);
         await writer.write();
 
@@ -135,7 +135,7 @@ More prose below.
             return contentWithProse;
         });
 
-        const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
+        const configManager = new AutoContextConfigManager('/ext', '0.5.0');
         const writer = new InstructionsConfigWriter('/ext', configManager, catalog);
         await writer.write();
 
@@ -157,7 +157,7 @@ More prose below.
         vi.mocked(access).mockRejectedValue(new Error('ENOENT'));
         vi.mocked(readFile).mockResolvedValue('{}');
 
-        const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
+        const configManager = new AutoContextConfigManager('/ext', '0.5.0');
         const writer = new InstructionsConfigWriter('/ext', configManager, catalog);
         await writer.removeOrphanedStagingDirs();
 
@@ -171,7 +171,7 @@ More prose below.
         vi.mocked(stat).mockResolvedValue({ mtimeMs: Date.now() - 2 * 60 * 60 * 1000 } as import('node:fs').Stats);
         vi.mocked(readFile).mockResolvedValue('{}');
 
-        const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
+        const configManager = new AutoContextConfigManager('/ext', '0.5.0');
         const writer = new InstructionsConfigWriter('/ext', configManager, catalog);
         await writer.removeOrphanedStagingDirs();
 
@@ -187,7 +187,7 @@ More prose below.
         vi.mocked(stat).mockResolvedValue({ mtimeMs: Date.now() - 30 * 60 * 1000 } as import('node:fs').Stats);
         vi.mocked(readFile).mockResolvedValue('{}');
 
-        const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
+        const configManager = new AutoContextConfigManager('/ext', '0.5.0');
         const writer = new InstructionsConfigWriter('/ext', configManager, catalog);
         await writer.removeOrphanedStagingDirs();
 
@@ -197,7 +197,7 @@ More prose below.
     it('should dispose debounce timer and subscriptions', () => {
         vi.mocked(readFile).mockResolvedValue('{}');
 
-        const configManager = new SharpPilotConfigManager('/ext', '0.5.0');
+        const configManager = new AutoContextConfigManager('/ext', '0.5.0');
         const writer = new InstructionsConfigWriter('/ext', configManager, catalog);
 
         expect.soft(() => writer.dispose()).not.toThrow();

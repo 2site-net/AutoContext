@@ -2,10 +2,10 @@ import * as vscode from 'vscode';
 import { join } from 'node:path';
 import type { InstructionsCatalog } from './instructions-catalog.js';
 import { InstructionsParser } from './instructions-parser.js';
-import type { SharpPilotConfigManager } from './sharppilot-config.js';
+import type { AutoContextConfigManager } from './autocontext-config.js';
 
 export class InstructionsDiagnostics {
-    static async log(outputChannel: vscode.OutputChannel, extensionPath: string, configManager: SharpPilotConfigManager, catalog: InstructionsCatalog): Promise<void> {
+    static async log(outputChannel: vscode.OutputChannel, extensionPath: string, configManager: AutoContextConfigManager, catalog: InstructionsCatalog): Promise<void> {
         outputChannel.clear();
         const config = await configManager.read();
         const warnOnMissingId = config.diagnostic?.warnOnMissingId === true;

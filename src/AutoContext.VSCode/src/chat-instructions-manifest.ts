@@ -5,9 +5,9 @@
 // Example output:
 //   { "path": "./instructions/copilot.instructions.md" },
 //   { "path": "./instructions/.generated/code-review.instructions.md",
-//     "when": "config.sharppilot.instructions.codeReview && !sharppilot.override.codeReview" },
+//     "when": "config.autocontext.instructions.codeReview && !autocontext.override.codeReview" },
 //   { "path": "./instructions/.generated/testing.instructions.md",
-//     "when": "config.sharppilot.instructions.testing && (sharppilot.workspace.hasDotNetTesting || sharppilot.workspace.hasWebTesting) && !sharppilot.override.testing" }
+//     "when": "config.autocontext.instructions.testing && (autocontext.workspace.hasDotNetTesting || autocontext.workspace.hasWebTesting) && !autocontext.override.testing" }
 
 import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -23,9 +23,9 @@ function buildWhenClause(entry: CatalogEntry): string {
 
     const ctxKeys = ContextKeys.forEntry(entry);
     if (ctxKeys.length === 1) {
-        parts.push(`sharppilot.workspace.${ctxKeys[0]}`);
+        parts.push(`autocontext.workspace.${ctxKeys[0]}`);
     } else if (ctxKeys.length > 1) {
-        parts.push(`(${ctxKeys.map(k => `sharppilot.workspace.${k}`).join(' || ')})`);
+        parts.push(`(${ctxKeys.map(k => `autocontext.workspace.${k}`).join(' || ')})`);
     }
 
     parts.push(`!${ContextKeys.overrideKey(entry.settingId)}`);

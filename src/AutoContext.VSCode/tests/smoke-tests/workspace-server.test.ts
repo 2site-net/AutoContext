@@ -28,6 +28,6 @@ suite('Workspace Server Smoke Tests', () => {
 
         const pipeName = ext.exports.workspaceServer.getPipeName();
         assert.ok(pipeName, 'Workspace server pipe name should be available');
-        assert.match(pipeName, /sharppilot-workspace-/, 'Pipe name should contain sharppilot-workspace- prefix');
+        assert.match(pipeName, /autocontext-workspace-/, 'Pipe name should contain autocontext-workspace- prefix');
     });
 });

@@ -1,4 +1,4 @@
-export interface SharpPilotConfig {
+export interface AutoContextConfig {
     version?: string;
     diagnostic?: {
         warnOnMissingId?: boolean;

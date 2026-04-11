@@ -29,7 +29,7 @@ export class AutoConfigurer {
         await Promise.all(updates);
 
         await vscode.window.showInformationMessage(
-            `SharpPilot: Enabled ${enabled} of ${allEntries.length} items for this workspace.`,
+            `AutoContext: Enabled ${enabled} of ${allEntries.length} items for this workspace.`,
         );
     }
 }

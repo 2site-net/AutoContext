@@ -40,7 +40,7 @@ export class InstructionsTreeProvider implements vscode.TreeDataProvider<TreeEle
             this._onDidChangeTreeData,
             detector.onDidDetect(() => this.refresh()),
             vscode.workspace.onDidChangeConfiguration(e => {
-                if (e.affectsConfiguration('sharppilot.instructions')) {
+                if (e.affectsConfiguration('autocontext.instructions')) {
                     this.refresh();
                 }
             }),

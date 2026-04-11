@@ -17,7 +17,7 @@ const fakeDetector = {
 } as unknown as WorkspaceContextDetector;
 
 const fakeWorkspaceServer = {
-    getPipeName: vi.fn(() => 'sharppilot-workspace-abc123'),
+    getPipeName: vi.fn(() => 'autocontext-workspace-abc123'),
 } as unknown as WorkspaceServerManager;
 
 const onDidChange = vi.fn() as unknown as import('vscode').Event<void>;
@@ -32,7 +32,7 @@ beforeEach(() => {
     vi.clearAllMocks();
     __setConfigStore({});
     vi.mocked(fakeDetector.get).mockReturnValue(true);
-    vi.mocked(fakeWorkspaceServer.getPipeName).mockReturnValue('sharppilot-workspace-abc123');
+    vi.mocked(fakeWorkspaceServer.getPipeName).mockReturnValue('autocontext-workspace-abc123');
     workspace.workspaceFolders = [{ uri: { fsPath: '/workspace' } }];
 });
 
@@ -107,7 +107,7 @@ describe('McpServerProvider.provideMcpServerDefinitions', () => {
 
             expect(nonEditorconfig).not.toHaveLength(0);
             expect.soft(nonEditorconfig.every(d =>
-                d.args!.includes('--workspace-server') && d.args!.includes('sharppilot-workspace-abc123'),
+                d.args!.includes('--workspace-server') && d.args!.includes('autocontext-workspace-abc123'),
             )).toBe(true);
         });
 
@@ -154,8 +154,8 @@ describe('McpServerProvider.provideMcpServerDefinitions', () => {
 
         it('server is excluded when all its tools are disabled', async () => {
             __setConfigStore({
-                'sharppilot.mcpTools.check_git_commit_content': false,
-                'sharppilot.mcpTools.check_git_commit_format': false,
+                'autocontext.mcpTools.check_git_commit_content': false,
+                'autocontext.mcpTools.check_git_commit_format': false,
             });
 
             const defs = await createProvider().provideMcpServerDefinitions() as StdioDef[];
@@ -166,7 +166,7 @@ describe('McpServerProvider.provideMcpServerDefinitions', () => {
 
         it('server is included when at least one tool is enabled', async () => {
             __setConfigStore({
-                'sharppilot.mcpTools.check_git_commit_content': false,
+                'autocontext.mcpTools.check_git_commit_content': false,
             });
 
             const defs = await createProvider().provideMcpServerDefinitions() as StdioDef[];

@@ -7,7 +7,7 @@ const taggedFile = 'design-principles.instructions.md';
 suite('Content Provider Smoke Tests', () => {
     test('should return content for copilot.instructions.md', async () => {
         const { exports } = await activatedExtension();
-        const uri = vscode.Uri.from({ scheme: 'sharppilot-instructions', path: 'copilot.instructions.md' });
+        const uri = vscode.Uri.from({ scheme: 'autocontext-instructions', path: 'copilot.instructions.md' });
         const content = await exports.contentProvider.provideTextDocumentContent(uri);
 
         assert.ok(content.length > 0, 'Content provider returned empty content');
@@ -19,7 +19,7 @@ suite('Content Provider Smoke Tests', () => {
 
         const empty: string[] = [];
         for (const file of files) {
-            const uri = vscode.Uri.from({ scheme: 'sharppilot-instructions', path: file });
+            const uri = vscode.Uri.from({ scheme: 'autocontext-instructions', path: file });
             const content = await exports.contentProvider.provideTextDocumentContent(uri);
             if (content.length === 0) empty.push(file);
         }
@@ -29,7 +29,7 @@ suite('Content Provider Smoke Tests', () => {
 
     test('should mark disabled instructions in content', async () => {
         const { exports } = await activatedExtension();
-        const uri = vscode.Uri.from({ scheme: 'sharppilot-instructions', path: taggedFile });
+        const uri = vscode.Uri.from({ scheme: 'autocontext-instructions', path: taggedFile });
 
         const before = await exports.contentProvider.provideTextDocumentContent(uri);
 

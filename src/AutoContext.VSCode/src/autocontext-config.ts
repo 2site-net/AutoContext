@@ -2,14 +2,14 @@ import * as vscode from 'vscode';
 import { writeFile, unlink, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { InstructionsParser } from './instructions-parser.js';
-import type { SharpPilotConfig } from './types/sharppilot-config.js';
+import type { AutoContextConfig } from './types/autocontext-config.js';
 
 const configFileName = '.autocontext.json';
 
-export class SharpPilotConfigManager implements vscode.Disposable {
+export class AutoContextConfigManager implements vscode.Disposable {
     private readonly disposables: vscode.Disposable[] = [];
     private readonly didChangeEmitter = new vscode.EventEmitter<void>();
-    private cachedConfig: SharpPilotConfig | undefined;
+    private cachedConfig: AutoContextConfig | undefined;
     private writeQueue: Promise<void> = Promise.resolve();
     readonly onDidChange = this.didChangeEmitter.event;
 
@@ -29,7 +29,7 @@ export class SharpPilotConfigManager implements vscode.Disposable {
         this.didChangeEmitter.fire();
     }
 
-    async read(): Promise<SharpPilotConfig> {
+    async read(): Promise<AutoContextConfig> {
         if (this.cachedConfig !== undefined) {
             return this.cachedConfig;
         }
@@ -48,7 +48,7 @@ export class SharpPilotConfigManager implements vscode.Disposable {
                 delete parsed['mcp-tools'];
             }
 
-            this.cachedConfig = parsed as SharpPilotConfig;
+            this.cachedConfig = parsed as AutoContextConfig;
             return this.cachedConfig;
         } catch {
             return {};
@@ -108,7 +108,7 @@ export class SharpPilotConfigManager implements vscode.Disposable {
             const config = await this.read();
             const currentDisabled = config.mcpTools?.disabled ?? [];
 
-            if (SharpPilotConfigManager.arraysEqual(disabledTools, currentDisabled)) {
+            if (AutoContextConfigManager.arraysEqual(disabledTools, currentDisabled)) {
                 return;
             }
 
@@ -217,7 +217,7 @@ export class SharpPilotConfigManager implements vscode.Disposable {
         return join(folder.uri.fsPath, configFileName);
     }
 
-    private async writeConfig(config: SharpPilotConfig): Promise<void> {
+    private async writeConfig(config: AutoContextConfig): Promise<void> {
         const path = this.configPath();
         if (!path) {
             return;
@@ -236,7 +236,7 @@ export class SharpPilotConfigManager implements vscode.Disposable {
         }
 
         // Enforce deterministic key order: version first.
-        const ordered: SharpPilotConfig = { version: this.extensionVersion };
+        const ordered: AutoContextConfig = { version: this.extensionVersion };
         if (config.diagnostic) ordered.diagnostic = config.diagnostic;
         if (config.instructions) ordered.instructions = config.instructions;
         if (config.mcpTools) ordered.mcpTools = config.mcpTools;

@@ -1,6 +1,6 @@
 ## MCP Tools
 
-SharpPilot registers MCP (Model Context Protocol) servers that expose quality-assurance tools to Copilot. In agent mode, Copilot can call these tools to check your code on the spot.
+AutoContext registers MCP (Model Context Protocol) servers that expose quality-assurance tools to Copilot. In agent mode, Copilot can call these tools to check your code on the spot.
 
 ### Server categories
 
@@ -17,10 +17,10 @@ A server category is filtered out entirely if its workspace context is not prese
 
 ### How it works
 
-When you disable a feature, it is recorded in `.sharppilot.json` at your workspace root. The workspace server reads this file and decides how each feature runs. Disabled features are skipped when Copilot invokes the tool — with one exception: if the project's `.editorconfig` contains keys a checker consumes (e.g., `csharp_prefer_braces`), those EditorConfig-backed checks still apply even when the feature is disabled.
+When you disable a feature, it is recorded in `.autocontext.json` at your workspace root. The workspace server reads this file and decides how each feature runs. Disabled features are skipped when Copilot invokes the tool — with one exception: if the project's `.editorconfig` contains keys a checker consumes (e.g., `csharp_prefer_braces`), those EditorConfig-backed checks still apply even when the feature is disabled.
 
 ### Toggle tools
 
-Use the SharpPilot sidebar to enable or disable individual tools. Tools are organized under platform, category, and tool headers — checking an MCP tool toggles all its features at once. Use the `…` menu on the panel header to show or hide items that are not detected in your workspace.
+Use the AutoContext sidebar to enable or disable individual tools. Tools are organized under platform, category, and tool headers — checking an MCP tool toggles all its features at once. Use the `…` menu on the panel header to show or hide items that are not detected in your workspace.
 
-[Open Tools Panel](command:sharppilot.mcp-tools-view.focus)
+[Open Tools Panel](command:autocontext.mcp-tools-view.focus)
