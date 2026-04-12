@@ -2,7 +2,8 @@ import * as vscode from 'vscode';
 import { writeFile, unlink, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { InstructionsParser } from './instructions-parser.js';
-import type { AutoContextConfig, VersionedDisabledIds } from './types/autocontext-config.js';
+import type { AutoContextConfig } from './types/autocontext-config.js';
+import type { VersionedDisabledIds } from './types/versioned-disabled-ids.js';
 
 const configFileName = '.autocontext.json';
 

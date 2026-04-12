@@ -1,7 +1,4 @@
-export interface VersionedDisabledIds {
-    version: string;
-    ids: string[];
-}
+import type { VersionedDisabledIds } from './versioned-disabled-ids.js';
 
 export interface AutoContextConfig {
     version?: string;
