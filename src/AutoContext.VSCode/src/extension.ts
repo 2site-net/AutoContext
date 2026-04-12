@@ -117,7 +117,7 @@ export async function activate(context: vscode.ExtensionContext) {
         vscode.commands.registerCommand(commandIds.ShowOriginal, InstructionsTreeProvider.showOriginal),
         vscode.commands.registerCommand(commandIds.ShowNotDetected, () => setShowNotDetected(true)),
         vscode.commands.registerCommand(commandIds.HideNotDetected, () => setShowNotDetected(false)),
-        vscode.lm.registerMcpServerDefinitionProvider('autoContextProvider', mcpServerProvider),
+        vscode.lm.registerMcpServerDefinitionProvider('AutoContextProvider', mcpServerProvider),
     );
 
     await Promise.all([
