@@ -92,7 +92,7 @@ export async function activate(context: vscode.ExtensionContext) {
         vscode.commands.registerCommand(commandIds.AutoConfigure, async () => { await AutoConfigurer.configure(workspaceContextDetector, instructionsCatalog, toolsCatalog); }),
         // CodeLens (internal)
         vscode.commands.registerCommand(commandIds.ToggleInstruction, (fileName: string, id: string) =>
-            configManager.toggleInstruction(fileName, id)),
+            configManager.toggleInstruction(fileName, id, instructionsCatalog.findByFileName(fileName)?.version)),
         vscode.commands.registerCommand(commandIds.ResetInstructions, (fileName: string) =>
             configManager.resetInstructions(fileName)),
         configManager.onDidChange(() => void logDiagnostics()),
@@ -126,6 +126,19 @@ export async function activate(context: vscode.ExtensionContext) {
         instructionsWriter.removeOrphanedStagingDirs(),
         configManager.removeOrphanedIds(),
     ]);
+
+    const catalogVersions = new Map(
+        instructionsCatalog.all
+            .filter(e => e.version !== undefined)
+            .map(e => [e.fileName, e.version!]),
+    );
+    const clearedFiles = await configManager.clearStaleDisabledIds(catalogVersions);
+    if (clearedFiles.length > 0) {
+        const names = clearedFiles.map(f => f.replace('.instructions.md', '')).join(', ');
+        void vscode.window.showInformationMessage(
+            `AutoContext: Disabled instructions cleared for ${names} (version updated).`,
+        );
+    }
 
     await instructionsWriter.write();
 

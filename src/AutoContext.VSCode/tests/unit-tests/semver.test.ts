@@ -51,3 +51,34 @@ describe('SemVer.fromParentheses', () => {
         expect.soft(SemVer.fromParentheses(label)).toBeUndefined();
     });
 });
+
+describe('SemVer.equalsMajorMinor', () => {
+    it.each`
+        a                    | b                    | label
+        ${'1.0.0'}           | ${'1.0.1'}           | ${'patch bump'}
+        ${'1.0.0'}           | ${'1.0.0'}           | ${'identical'}
+        ${'2.3.0'}           | ${'2.3.9'}           | ${'same major.minor, different patch'}
+        ${'1.0.0-beta.1'}   | ${'1.0.2'}           | ${'pre-release vs stable, same major.minor'}
+    `('should return true for $label ($a vs $b)', ({ a, b }) => {
+        expect.soft(SemVer.equalsMajorMinor(a, b)).toBe(true);
+    });
+
+    it.each`
+        a                    | b                    | label
+        ${'1.0.0'}           | ${'1.1.0'}           | ${'minor bump'}
+        ${'1.0.0'}           | ${'2.0.0'}           | ${'major bump'}
+        ${'1.2.0'}           | ${'1.3.0'}           | ${'minor advance'}
+        ${'1.0.0'}           | ${'2.1.0'}           | ${'major and minor bump'}
+    `('should return false for $label ($a vs $b)', ({ a, b }) => {
+        expect.soft(SemVer.equalsMajorMinor(a, b)).toBe(false);
+    });
+
+    it.each`
+        a             | b             | label
+        ${'invalid'}  | ${'1.0.0'}   | ${'first invalid'}
+        ${'1.0.0'}    | ${'invalid'} | ${'second invalid'}
+        ${'abc'}      | ${'def'}     | ${'both invalid'}
+    `('should return false when $label ($a vs $b)', ({ a, b }) => {
+        expect.soft(SemVer.equalsMajorMinor(a, b)).toBe(false);
+    });
+});

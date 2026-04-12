@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { writeFile, unlink, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { InstructionsParser } from './instructions-parser.js';
-import type { AutoContextConfig } from './types/autocontext-config.js';
+import type { AutoContextConfig, VersionedDisabledIds } from './types/autocontext-config.js';
 
 const configFileName = '.autocontext.json';
 
@@ -57,8 +57,9 @@ export class AutoContextConfigManager implements vscode.Disposable {
 
     async getDisabledInstructions(fileName: string): Promise<ReadonlySet<string>> {
         const config = await this.read();
-        const ids = config.instructions?.disabled?.[fileName];
-        return new Set(ids ?? []);
+        const entry = config.instructions?.disabled?.[fileName];
+        const ids = AutoContextConfigManager.resolveIds(entry);
+        return new Set(ids);
     }
 
     async hasAnyDisabledInstructions(): Promise<boolean> {
@@ -67,16 +68,17 @@ export class AutoContextConfigManager implements vscode.Disposable {
         if (!disabled) {
             return false;
         }
-        return Object.values(disabled).some(ids => ids.length > 0);
+        return Object.values(disabled).some(entry => AutoContextConfigManager.resolveIds(entry).length > 0);
     }
 
-    async toggleInstruction(fileName: string, id: string): Promise<void> {
+    async toggleInstruction(fileName: string, id: string, instructionVersion?: string): Promise<void> {
         return this.enqueue(async () => {
             const config = await this.read();
             config.instructions ??= {};
             config.instructions.disabled ??= {};
 
-            const ids = config.instructions.disabled[fileName] ?? [];
+            const entry = config.instructions.disabled[fileName];
+            const ids = AutoContextConfigManager.resolveIds(entry);
             const index = ids.indexOf(id);
 
             if (index >= 0) {
@@ -87,6 +89,13 @@ export class AutoContextConfigManager implements vscode.Disposable {
 
             if (ids.length === 0) {
                 delete config.instructions.disabled[fileName];
+            } else if (instructionVersion) {
+                config.instructions.disabled[fileName] = {
+                    version: AutoContextConfigManager.majorMinor(instructionVersion),
+                    ids,
+                };
+            } else if (entry !== undefined && AutoContextConfigManager.isVersioned(entry)) {
+                config.instructions.disabled[fileName] = { version: entry.version, ids };
             } else {
                 config.instructions.disabled[fileName] = ids;
             }
@@ -153,7 +162,8 @@ export class AutoContextConfigManager implements vscode.Disposable {
 
             let removed = 0;
 
-            await Promise.all(Object.entries(disabled).map(async ([fileName, ids]) => {
+            await Promise.all(Object.entries(disabled).map(async ([fileName, entry]) => {
+                const ids = AutoContextConfigManager.resolveIds(entry);
                 try {
                     const filePath = join(this.extensionPath, 'instructions', fileName);
                     const content = await readFile(filePath, 'utf-8');
@@ -168,7 +178,7 @@ export class AutoContextConfigManager implements vscode.Disposable {
                     if (filtered.length === 0) {
                         delete disabled[fileName];
                     } else {
-                        disabled[fileName] = filtered;
+                        AutoContextConfigManager.setIds(disabled, fileName, entry, filtered);
                     }
                 } catch {
                     // File no longer exists — remove all its IDs.
@@ -190,6 +200,59 @@ export class AutoContextConfigManager implements vscode.Disposable {
             }
 
             return removed;
+        });
+    }
+
+    /**
+     * Compares stored MAJOR.MINOR versions against live catalog versions.
+     * Clears disabled IDs where the version has advanced. Patch-only bumps
+     * are no-ops (stored version is already at MAJOR.MINOR granularity).
+     * Returns the list of file names whose disabled IDs were cleared.
+     */
+    async clearStaleDisabledIds(catalogVersions: ReadonlyMap<string, string>): Promise<readonly string[]> {
+        return this.enqueue(async () => {
+            const config = await this.read();
+            const disabled = config.instructions?.disabled;
+            if (!disabled) {
+                return [];
+            }
+
+            const cleared: string[] = [];
+
+            for (const [fileName, entry] of Object.entries(disabled)) {
+                if (!AutoContextConfigManager.isVersioned(entry)) {
+                    continue;
+                }
+
+                const catalogVersion = catalogVersions.get(fileName);
+                if (!catalogVersion) {
+                    continue;
+                }
+
+                const storedMajorMinor = entry.version;
+                const catalogMajorMinor = AutoContextConfigManager.majorMinor(catalogVersion);
+
+                if (storedMajorMinor === catalogMajorMinor) {
+                    // Same MAJOR.MINOR — IDs are valid, nothing to do.
+                    continue;
+                }
+
+                // MAJOR or MINOR bumped — IDs may point to different rules.
+                delete disabled[fileName];
+                cleared.push(fileName);
+            }
+
+            if (cleared.length > 0) {
+                if (Object.keys(disabled).length === 0) {
+                    delete config.instructions!.disabled;
+                }
+                if (Object.keys(config.instructions!).length === 0) {
+                    delete config.instructions;
+                }
+                await this.writeConfig(config);
+            }
+
+            return cleared;
         });
     }
 
@@ -258,5 +321,37 @@ export class AutoContextConfigManager implements vscode.Disposable {
             }
         }
         return true;
+    }
+
+    private static isVersioned(entry: string[] | VersionedDisabledIds): entry is VersionedDisabledIds {
+        return !Array.isArray(entry);
+    }
+
+    /** Extracts the ID array from either the old (string[]) or new ({ version, ids }) format. */
+    private static resolveIds(entry: string[] | VersionedDisabledIds | undefined): string[] {
+        if (!entry) {
+            return [];
+        }
+        return Array.isArray(entry) ? [...entry] : [...entry.ids];
+    }
+
+    /** Writes back an ID array, preserving the versioned wrapper if the original entry was versioned. */
+    private static setIds(
+        disabled: Record<string, string[] | VersionedDisabledIds>,
+        fileName: string,
+        original: string[] | VersionedDisabledIds,
+        ids: string[],
+    ): void {
+        if (AutoContextConfigManager.isVersioned(original)) {
+            disabled[fileName] = { version: original.version, ids };
+        } else {
+            disabled[fileName] = ids;
+        }
+    }
+
+    /** Extracts "MAJOR.MINOR" from a full semver string. */
+    private static majorMinor(version: string): string {
+        const match = version.match(/^(\d+\.\d+)\./);
+        return match ? match[1] : version;
     }
 }
