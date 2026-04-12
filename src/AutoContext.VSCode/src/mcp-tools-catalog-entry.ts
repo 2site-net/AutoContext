@@ -1,6 +1,11 @@
 import type { CatalogEntry } from './types/catalog-entry.js';
 import type { McpToolsEntry } from './types/mcp-tools-entry.js';
 
+export interface McpToolsMetadataEntry {
+    readonly description?: string;
+    readonly version?: string;
+}
+
 export class McpToolsCatalogEntry implements CatalogEntry {
     readonly settingId: string;
     readonly toolName: string;
@@ -10,8 +15,10 @@ export class McpToolsCatalogEntry implements CatalogEntry {
     readonly group: string;
     readonly serverCategory: string;
     readonly contextKeys?: readonly string[];
+    readonly description?: string;
+    readonly version?: string;
 
-    constructor(data: McpToolsEntry) {
+    constructor(data: McpToolsEntry, metadata?: McpToolsMetadataEntry) {
         this.settingId = `autocontext.mcpTools.${data.key}`;
         this.toolName = data.toolName ?? data.key;
         this.featureName = data.toolName ? data.key : undefined;
@@ -20,5 +27,7 @@ export class McpToolsCatalogEntry implements CatalogEntry {
         this.group = data.group;
         this.serverCategory = data.serverCategory;
         this.contextKeys = data.contextKeys;
+        this.description = metadata?.description;
+        this.version = metadata?.version;
     }
 }

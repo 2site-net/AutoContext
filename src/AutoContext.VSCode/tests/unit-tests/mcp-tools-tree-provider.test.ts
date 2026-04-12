@@ -376,6 +376,36 @@ describe('McpToolsTreeProvider', () => {
         provider.dispose();
     });
 
+    it('should include description and version in feature tooltip when metadata is provided', () => {
+        vi.mocked(fakeDetector.get).mockReturnValue(true);
+
+        const metadata = new Map([
+            ['check_csharp_async_patterns', { description: 'Detects async anti-patterns', version: '1.2.0' }],
+        ]);
+        const enrichedCatalog = new McpToolsCatalog(mcpTools, metadata);
+        const provider = new McpToolsTreeProvider(fakeDetector, enrichedCatalog, stateResolver, tooltip);
+        const features = getFeatures(provider, '.NET', 'C#', 'check_csharp_all');
+        const asyncFeature = features.find(f => f.kind === 'mcpToolFeature' && f.entry.settingId === 'autocontext.mcpTools.check_csharp_async_patterns')!;
+        const item = provider.getTreeItem(asyncFeature);
+
+        expect.soft(item.tooltip).toContain('Detects async anti-patterns');
+        expect.soft(item.tooltip).toContain('v1.2.0');
+
+        provider.dispose();
+    });
+
+    it('should not include version in tooltip when metadata is absent', () => {
+        vi.mocked(fakeDetector.get).mockReturnValue(true);
+
+        const provider = new McpToolsTreeProvider(fakeDetector, catalog, stateResolver, tooltip);
+        const features = getFeatures(provider, '.NET', 'C#', 'check_csharp_all');
+        const item = provider.getTreeItem(features[0]);
+
+        expect.soft(item.tooltip).not.toMatch(/\bv\d/);
+
+        provider.dispose();
+    });
+
     it('should include feature count in parent MCP tool tooltip', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
 

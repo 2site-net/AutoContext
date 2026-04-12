@@ -10,8 +10,10 @@ export class TreeViewTooltip {
         return `${name}\n${active}/${total} ${this.containerSuffix}`;
     }
 
-    leaf(label: string, state: TreeViewNodeState, settingId: string): string {
-        const lines = [label, this.stateDescription(state)];
+    leaf(label: string, state: TreeViewNodeState, settingId: string, description?: string, version?: string): string {
+        const heading = version ? `${label} v${version}` : label;
+        const lines = [`${heading} (${this.stateDescription(state)})`];
+        if (description) { lines.push(description); }
         lines.push(`${treeViewLabels.settingPrefix} ${settingId}`);
         return lines.join('\n');
     }

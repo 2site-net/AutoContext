@@ -1,19 +1,28 @@
 import type { CatalogEntry } from './types/catalog-entry.js';
 import type { InstructionsFileEntry } from './types/instructions-file-entry.js';
 
+export interface InstructionsMetadataEntry {
+    readonly description?: string;
+    readonly version?: string;
+}
+
 export class InstructionsCatalogEntry implements CatalogEntry {
     readonly settingId: string;
     readonly fileName: string;
     readonly label: string;
     readonly category: string;
     readonly contextKeys?: readonly string[];
+    readonly description?: string;
+    readonly version?: string;
 
-    constructor(data: InstructionsFileEntry) {
+    constructor(data: InstructionsFileEntry, metadata?: InstructionsMetadataEntry) {
         this.settingId = `autocontext.instructions.${data.key}`;
         this.fileName = data.fileName;
         this.label = data.label;
         this.category = data.category;
         this.contextKeys = data.contextKeys;
+        this.description = metadata?.description;
+        this.version = metadata?.version;
     }
 
     get targetPath(): string {

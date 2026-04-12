@@ -64,4 +64,26 @@ describe('InstructionsCatalog', () => {
         expect.soft(catalog.count).toBe(0);
         expect.soft(catalog.findByFileName('anything.md')).toBeUndefined();
     });
+
+    it('should enrich entries with metadata when provided', () => {
+        const metadata = new Map([
+            ['alpha.instructions.md', { description: 'Alpha desc', version: '1.0.0' }],
+            ['gamma.instructions.md', { description: 'Gamma desc', version: '2.0.0' }],
+        ]);
+        const catalog = new InstructionsCatalog(testData, metadata);
+
+        expect.soft(catalog.all[0].description).toBe('Alpha desc');
+        expect.soft(catalog.all[0].version).toBe('1.0.0');
+        expect.soft(catalog.all[1].description).toBeUndefined();
+        expect.soft(catalog.all[1].version).toBeUndefined();
+        expect.soft(catalog.all[2].description).toBe('Gamma desc');
+        expect.soft(catalog.all[2].version).toBe('2.0.0');
+    });
+
+    it('should leave metadata undefined when no metadata map is provided', () => {
+        const catalog = new InstructionsCatalog(testData);
+
+        expect.soft(catalog.all[0].description).toBeUndefined();
+        expect.soft(catalog.all[0].version).toBeUndefined();
+    });
 });

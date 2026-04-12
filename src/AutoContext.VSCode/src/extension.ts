@@ -1,4 +1,6 @@
 import * as vscode from 'vscode';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { WorkspaceContextDetector } from './workspace-context-detector.js';
 import { McpToolsConfigWriter } from './mcp-tools-config-writer.js';
 import { McpToolsCatalog } from './mcp-tools-catalog.js';
@@ -14,6 +16,7 @@ import { InstructionsDecorationManager } from './instructions-decoration-manager
 import { InstructionsConfigWriter } from './instructions-config-writer.js';
 import { InstructionsDiagnostics } from './instructions-diagnostics.js';
 import { InstructionsTreeProvider } from './instructions-tree-provider.js';
+import { InstructionsParser } from './instructions-parser.js';
 import { McpToolsTreeProvider } from './mcp-tools-tree-provider.js';
 import { TreeViewStateResolver } from './tree-view-state-resolver.js';
 import { TreeViewTooltip } from './tree-view-tooltip.js';
@@ -28,8 +31,11 @@ export async function activate(context: vscode.ExtensionContext) {
     const version = context.extension.packageJSON.version as string;
     const didChangeEmitter = new vscode.EventEmitter<void>();
 
-    const toolsCatalog = new McpToolsCatalog(mcpTools);
-    const instructionsCatalog = new InstructionsCatalog(instructionsFiles);
+    const toolsMetadata = loadToolsMetadata(join(context.extensionPath, '.mcp-tools.json'));
+    const instructionsMetadata = loadInstructionsMetadata(join(context.extensionPath, 'instructions'), instructionsFiles);
+
+    const toolsCatalog = new McpToolsCatalog(mcpTools, toolsMetadata);
+    const instructionsCatalog = new InstructionsCatalog(instructionsFiles, instructionsMetadata);
     const serversCatalog = new McpServersCatalog(mcpServers);
     const workspaceContextDetector = new WorkspaceContextDetector(instructionsCatalog, serversCatalog);
     const instructionsExporter = new InstructionsExporter(context.extensionPath);
@@ -127,6 +133,49 @@ export async function activate(context: vscode.ExtensionContext) {
     await logDiagnostics();
 
     return { mcpServerProvider, configManager, codeLensProvider, contentProvider, workspaceContextDetector, workspaceServer, instructionsTreeProvider, mcpToolsTreeProvider };
+}
+
+interface ManifestTool {
+    name: string;
+    description: string;
+    version: string;
+    features?: ManifestTool[];
+}
+
+function loadToolsMetadata(manifestPath: string): Map<string, { description: string; version: string }> {
+    const manifest: Record<string, ManifestTool[]> = JSON.parse(readFileSync(manifestPath, 'utf-8'));
+    const metadata = new Map<string, { description: string; version: string }>();
+
+    for (const tools of Object.values(manifest)) {
+        for (const tool of tools) {
+            if (tool.features) {
+                for (const feature of tool.features) {
+                    metadata.set(feature.name, { description: feature.description, version: feature.version });
+                }
+            } else {
+                metadata.set(tool.name, { description: tool.description, version: tool.version });
+            }
+        }
+    }
+
+    return metadata;
+}
+
+function loadInstructionsMetadata(
+    instructionsDir: string,
+    files: readonly { fileName: string }[],
+): Map<string, { description?: string; version?: string }> {
+    const metadata = new Map<string, { description?: string; version?: string }>();
+
+    for (const file of files) {
+        const content = readFileSync(join(instructionsDir, file.fileName), 'utf-8');
+        const { frontmatter } = InstructionsParser.parse(content);
+        if (frontmatter.description || frontmatter.version) {
+            metadata.set(file.fileName, frontmatter);
+        }
+    }
+
+    return metadata;
 }
 
 export function deactivate(): void {}

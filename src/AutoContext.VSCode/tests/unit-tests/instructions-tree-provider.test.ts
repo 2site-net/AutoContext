@@ -190,6 +190,41 @@ describe('InstructionsTreeProvider', () => {
         provider.dispose();
     });
 
+    it('should include description and version in tooltip when metadata is provided', () => {
+        vi.mocked(fakeDetector.get).mockReturnValue(true);
+
+        const metadata = new Map([
+            ['lang-csharp.instructions.md', { description: 'C# coding guidelines', version: '1.0.0' }],
+        ]);
+        const enrichedCatalog = new InstructionsCatalog(instructionsFiles, metadata);
+        const provider = new InstructionsTreeProvider(fakeDetector, enrichedCatalog, stateResolver, tooltip);
+        const roots = provider.getChildren();
+        const languages = roots.find(r => r.kind === 'category' && r.name === 'Languages')!;
+        const children = provider.getChildren(languages);
+        const csharp = children.find(c => c.kind === 'instructions' && c.entry.settingId === 'autocontext.instructions.lang.csharp')!;
+        const treeItem = provider.getTreeItem(csharp);
+
+        expect.soft(treeItem.tooltip).toContain('C# coding guidelines');
+        expect.soft(treeItem.tooltip).toContain('v1.0.0');
+
+        provider.dispose();
+    });
+
+    it('should not include version in tooltip when metadata is absent', () => {
+        vi.mocked(fakeDetector.get).mockReturnValue(true);
+
+        const provider = new InstructionsTreeProvider(fakeDetector, catalog, stateResolver, tooltip);
+        const roots = provider.getChildren();
+        const general = roots.find(r => r.kind === 'category' && r.name === 'General')!;
+        const children = provider.getChildren(general);
+        const active = children.find(c => c.kind === 'instructions' && c.state === TreeViewNodeState.Enabled)!;
+        const treeItem = provider.getTreeItem(active);
+
+        expect.soft(treeItem.tooltip).not.toMatch(/\bv\d/);
+
+        provider.dispose();
+    });
+
     it('should sort active instructions before disabled, and disabled before not detected', () => {
         vi.mocked(fakeDetector.get).mockImplementation((key: string) => key === 'hasCSharp' || key === 'hasTypeScript');
         __setConfigStore({ 'autocontext.instructions.lang.csharp': false });

@@ -1,11 +1,12 @@
 import { McpToolsCatalogEntry } from './mcp-tools-catalog-entry.js';
+import type { McpToolsMetadataEntry } from './mcp-tools-catalog-entry.js';
 import type { McpToolsEntry } from './types/mcp-tools-entry.js';
 
 export class McpToolsCatalog {
     private readonly entries: readonly McpToolsCatalogEntry[];
 
-    constructor(data: readonly McpToolsEntry[]) {
-        this.entries = data.map(d => new McpToolsCatalogEntry(d));
+    constructor(data: readonly McpToolsEntry[], metadata?: ReadonlyMap<string, McpToolsMetadataEntry>) {
+        this.entries = data.map(d => new McpToolsCatalogEntry(d, metadata?.get(d.key)));
     }
 
     get all(): readonly McpToolsCatalogEntry[] {

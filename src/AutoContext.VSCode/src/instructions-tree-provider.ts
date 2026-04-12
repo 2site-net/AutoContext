@@ -170,7 +170,7 @@ export class InstructionsTreeProvider implements vscode.TreeDataProvider<TreeEle
                 : vscode.TreeItemCheckboxState.Unchecked;
         }
 
-        item.tooltip = this.tooltip.leaf(node.entry.label, node.state, node.entry.settingId);
+        item.tooltip = this.tooltip.leaf(node.entry.label, node.state, node.entry.settingId, node.entry.description, node.entry.version);
 
         if (node.state === TreeViewNodeState.Overridden) {
             const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
