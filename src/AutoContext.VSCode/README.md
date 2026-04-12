@@ -16,6 +16,8 @@ AutoContext is a context toolkit for AI coding assistants. It ships with curated
 - **Sidebar Panels** — A dedicated AutoContext activity bar with two tree views: **Instructions** (grouped by category) and **MCP Tools** (grouped by group and category). Each panel header shows the enabled/total count, and the `…` menu includes a filter to show or hide items not detected in the workspace.
 - **Per-Instruction Disable** — Click any instruction in the sidebar to open it in a virtual document, then use CodeLens actions to disable or re-enable individual rules without turning off the entire file.
 - **Export** — Enter export mode from the Instructions panel header, check the instructions you want to export, and confirm. Files are copied to `.github/instructions/` for team sharing. Exported instructions appear as **overridden** in the panel — the workspace-level file takes precedence. Delete the exported file to revert to the built-in version.
+- **Override Staleness Detection** — When a local override in `.github/instructions/` is older than the bundled version, it is flagged as `"overridden (outdated)"` in the tree view. Deleting an outdated override shows a version-comparison dialog and restores the latest built-in version. Use **Show Original** to compare or **Show Changelog** to review what changed.
+- **Upgrade Awareness** — A badge appears on the Instructions panel when the extension updates. Disabled instruction IDs are automatically cleared when an instruction's rule set changes (major or minor version bump), with a notification explaining which files were affected.
 
 ## MCP Tools
 
@@ -63,6 +65,8 @@ The disable state is stored in `.autocontext.json` in your workspace root — co
 | **AutoContext: Export Instructions** | Enter export mode — check instructions to export to `.github/instructions/`. |
 | **AutoContext: Delete Override** | Remove an exported instruction file from the workspace. |
 | **AutoContext: Show Original** | View the built-in version of an overridden instruction. |
+| **AutoContext: Show Changelog** | Open the version history for an instruction (when available). |
+| **AutoContext: Show What's New** | Open the extension release notes. |
 | **AutoContext: Show Not Detected** | Show items not detected in the workspace in the sidebar panels. |
 | **AutoContext: Hide Not Detected** | Hide items not detected in the workspace from the sidebar panels. |
 

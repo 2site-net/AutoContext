@@ -47,6 +47,7 @@ flowchart TB
 
         workspace["Workspace<br/>file scan"] --> detector["WorkspaceContext<br/>Detector"]
         catalogs --> detector
+        detector -->|"detected state<br/>+ override versions"| trees
         detector -->|"context keys"| serverProv["McpServerProvider"]
         detector -->|"context keys<br/>+ overrides"| whenEval["when-clause<br/>evaluation"]
         pkgJson --> whenEval
@@ -88,7 +89,7 @@ flowchart TB
 The diagram reads top-to-bottom: **build artifacts** feed into the **extension process**, which spawns and configures the **WorkspaceServer sidecar** and **MCP servers**. Dotted lines cross process boundaries. Key connections to follow:
 
 - **Catalogs** are the central hub — built from `ui-constants` + `MetadataLoader` output, they feed into tree views, config writers, the detector, and the server provider.
-- **WorkspaceContextDetector** scans workspace files and sets context keys, which drive both MCP server registration (`McpServerProvider`) and instruction filtering (`when`-clause evaluation against `chatInstructions` in `package.json`).
+- **WorkspaceContextDetector** scans workspace files and sets context keys, which drive MCP server registration (`McpServerProvider`), instruction filtering (`when`-clause evaluation against `chatInstructions` in `package.json`), and tree views (detected state + override file versions for staleness comparison).
 - **`.autocontext.json`** bridges the extension and WorkspaceServer. The extension writes tool on/off toggles and disabled instruction IDs; WorkspaceServer reads them for per-feature run/skip/restrict decisions. MCP servers are separate OS processes and cannot read VS Code settings — this file is how toggle state crosses the process boundary.
 - **`.generated/`** files are what Copilot actually reads — they are the instruction source files with `[INSTxxxx]` tags stripped and disabled rules removed. VS Code's `when`-clause engine evaluates the context keys to decide which `.generated/` files are active for a given workspace.
 - **MCP servers** connect to the WorkspaceServer sidecar over a named pipe to get feature decisions and resolved `.editorconfig` properties, then run their checkers and return reports to Copilot.
@@ -101,20 +102,24 @@ The [Activation Flow](#activation-flow) section below describes the exact orderi
 
 When the extension activates, the following steps execute:
 
-**Phase 1 — Metadata & Catalogs** — `MetadataLoader` reads the merged `.mcp-tools.json` manifest (tool name, description, version) and parses YAML frontmatter from every instruction file (description, version). The results are passed to `McpToolsCatalog`, `InstructionsCatalog`, and `McpServersCatalog`, which enrich the raw `ui-constants` data with metadata and serve as the single source of truth for all downstream consumers (tree views, tooltips, config writers, server provider).
+**Phase 1 — Metadata & Catalogs** — `MetadataLoader` reads the merged `.mcp-tools.json` manifest (tool name, description, version) and parses YAML frontmatter from every instruction file (description, version). It also checks for a `.CHANGELOG.md` companion file for each instruction, recording `hasChangelog` so the tree view can offer a changelog command. The results are passed to `McpToolsCatalog`, `InstructionsCatalog`, and `McpServersCatalog`, which enrich the raw `ui-constants` data with metadata and serve as the single source of truth for all downstream consumers (tree views, tooltips, config writers, server provider).
 
 **Phase 2 — `WorkspaceServerManager.start()`** — spawns `AutoContext.WorkspaceServer` in named-pipe mode (see [Projects](#projects)). Each VS Code window gets its own pipe (`autocontext-workspace-<random>`) and its own server process, so multiple windows are fully isolated. The pipe name is injected into every MCP server definition via `--workspace-server`.
 
 **Phase 3 (parallel)** — the following four operations run concurrently via `Promise.all()`:
 
-- **`WorkspaceContextDetector.detect()`** — scans the workspace for project files, `package.json` dependencies, and directory markers. Sets VS Code context keys that control both server registration and instruction injection.
+- **`WorkspaceContextDetector.detect()`** — scans the workspace for project files, `package.json` dependencies, and directory markers. Sets VS Code context keys that control both server registration and instruction injection. Also scans `.github/instructions/` for override files, parsing their frontmatter to extract version numbers for staleness comparison (see [Override Staleness](#override-staleness)).
 - **`McpToolsConfigWriter.write()`** — persists the user's tool on/off toggles from VS Code settings into `.autocontext.json`. MCP servers are separate processes that cannot access VS Code settings, so `.autocontext.json` is how the WorkspaceServer knows which features to run, skip, or restrict at runtime.
 - **`InstructionsConfigWriter.removeOrphanedStagingDirs()`** — deletes per-workspace staging directories older than one hour that belong to other VS Code windows.
 - **`ConfigManager.removeOrphanedIds()`** — cleans disabled-instruction IDs from `.autocontext.json` that no longer match any instruction in the current extension version.
 
-**Phase 4 — `InstructionsConfigWriter.write()`** — normalizes all instruction files into `instructions/.generated/`, stripping `[INSTxxxx]` tag identifiers and removing any individually disabled instruction bullets. Copilot always reads from the normalized output, so neither tags nor disabled content are visible to the model. Runs after phase 3 completes because it depends on workspace detection and config state.
+**Phase 4 — `clearStaleDisabledIds()`** — compares the MAJOR.MINOR version stored alongside each file's disabled instruction IDs in `.autocontext.json` against the current catalog version. If the file's version has advanced (rules may have been renumbered or removed), all disabled IDs for that file are cleared and the user is notified. Patch-only bumps are ignored because they preserve rule IDs. See [Versioning Semantics](#versioning-semantics) for the version-level contract.
 
-**Phase 5 — `logDiagnostics()`** — parses every instruction file and logs warnings (e.g., missing `[INSTxxxx]` IDs) to the **AutoContext** Output channel.
+**Phase 5 — `InstructionsConfigWriter.write()`** — normalizes all instruction files into `instructions/.generated/`, stripping `[INSTxxxx]` tag identifiers and removing any individually disabled instruction bullets. Copilot always reads from the normalized output, so neither tags nor disabled content are visible to the model. Runs after phases 3–4 complete because it depends on workspace detection, config state, and stale-ID clearing.
+
+**Phase 6 — Extension upgrade detection** — compares the running extension version against `lastSeenVersion` in global state. If the version differs, a badge is set on the Instructions tree view (`"New version available"`) that auto-dismisses when the user next reveals the panel. The `HasWhatsNew` context key is also set if the extension ships a `CHANGELOG.md`, enabling the "Show What's New" command.
+
+**Phase 7 — `logDiagnostics()`** — parses every instruction file and logs warnings (e.g., missing `[INSTxxxx]` IDs) to the **AutoContext** Output channel.
 
 ## Runtime Flow
 
@@ -180,6 +185,17 @@ Each instruction file can contain dozens of individual rules. Click an instructi
 
 Enter export mode from the Instructions panel header icon, check the instructions you want to export, and confirm. Files are copied to `.github/instructions/` for team sharing via source control. Exported instructions appear as **overridden** in the panel — the workspace-level file takes precedence over the built-in version. Delete the exported file to revert to the built-in version.
 
+### Override Staleness
+
+When an overridden instruction exists in `.github/instructions/`, `WorkspaceContextDetector` parses its frontmatter during workspace detection and extracts the version number. The tree view compares this override version against the bundled catalog version using `SemVer.isGreaterThan()`:
+
+- **Not outdated** — the override version is equal to or greater than the bundled version. The tree item shows `"overridden"` with a standard tooltip.
+- **Outdated** — the bundled version is newer. The tree item shows `"overridden (outdated)"` with a tooltip explaining that a newer version is available. Deleting the override shows a modal warning that includes both version numbers and confirms the user wants to upgrade to the latest built-in version.
+
+Instructions with no version in their frontmatter are treated as non-outdated — there is no version to compare.
+
+Inline actions on overridden items include **Show Original** (opens the bundled version in a virtual document for side-by-side comparison) and, when a `.CHANGELOG.md` companion file exists, **Show Changelog** (opens the version history in Markdown preview).
+
 ### Normalization Pipeline
 
 Copilot never reads the raw instruction files. Three directories form a write-through pipeline:
@@ -191,6 +207,24 @@ Copilot never reads the raw instruction files. Three directories form a write-th
 On activation (and on configuration or window-focus changes), `InstructionsConfigWriter.write()` runs the full source → staging → promotion cycle. Content-comparison guards at both stages make re-runs essentially free when nothing changed.
 
 > **Future:** The three-directory pipeline exists because VS Code's `chatInstructions` contribution point is static — it can only reference files on disk. If the `chatPromptFiles` proposed API graduates to stable, `registerInstructionsProvider()` could serve normalized instruction content in-memory, eliminating the staging and generated directories entirely. Each window would provide its own content dynamically with no multi-window file conflicts. See [docs/future/dynamic-editorconfig-instructions.md](future/dynamic-editorconfig-instructions.md) for the current status of that API.
+
+---
+
+## Upgrade Detection
+
+AutoContext tracks version changes at two levels — the extension as a whole, and each individual instruction — so users are aware of new content without being interrupted.
+
+### Extension Upgrade Badge
+
+On activation, the extension compares its running version against `lastSeenVersion` stored in VS Code global state. When they differ (the extension was just updated), a numeric badge appears on the **Instructions** tree view with a `"New version available"` tooltip. The badge auto-dismisses the next time the user reveals the panel, at which point `lastSeenVersion` is updated to the current version. If the extension ships a `CHANGELOG.md`, the **Show What's New** command is available from the panel header menu, opening the release notes in Markdown preview.
+
+### Stale Disabled-ID Clearing
+
+When an instruction's MAJOR.MINOR version advances, its `[INSTxxxx]` IDs may no longer map to the same rules. On activation (Phase 4), `clearStaleDisabledIds()` compares the MAJOR.MINOR stored in `.autocontext.json` against each instruction's current catalog version. If the version has advanced, all disabled IDs for that file are removed and the user sees an information message naming the affected files. Patch-only bumps preserve disabled IDs because the rule set is unchanged. See [Versioning Semantics](#versioning-semantics) for the full version-level contract.
+
+### Per-Instruction Changelogs
+
+Instruction files can ship with a companion `.CHANGELOG.md` (e.g., `lang-csharp.CHANGELOG.md`). `MetadataLoader` checks for this file at activation and records `hasChangelog` on the catalog entry. When present, a **Show Changelog** inline action appears on the tree item, opening the version history in Markdown preview so users can see what changed between versions.
 
 ---
 
@@ -208,7 +242,7 @@ Each instruction file carries YAML frontmatter (`name`, `description`, optional 
 
 ### MetadataLoader
 
-At activation (Phase 1), `MetadataLoader` reads the merged `.mcp-tools.json` for tool metadata and parses frontmatter from every instruction file. The enriched data is passed to `McpToolsCatalog` and `InstructionsCatalog`, which serve as the single source of truth for tree views, tooltips, config writers, and the MCP server provider.
+At activation (Phase 1), `MetadataLoader` reads the merged `.mcp-tools.json` for tool metadata and parses frontmatter from every instruction file. It also probes for a `.CHANGELOG.md` companion file for each instruction and records `hasChangelog` on the metadata entry. The enriched data is passed to `McpToolsCatalog` and `InstructionsCatalog`, which serve as the single source of truth for tree views, tooltips, config writers, and the MCP server provider.
 
 ### Versioning Semantics
 
