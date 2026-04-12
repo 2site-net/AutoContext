@@ -344,8 +344,8 @@ export class WorkspaceContextDetector implements vscode.Disposable {
 
             const overriddenFileNames = await this.scanOverrides();
             await this.commitState(flags, overriddenFileNames);
-        } catch {
-            // Workspace detection is best-effort; failures should not break the extension
+        } catch (error) {
+            console.error('[AutoContext] Workspace detection failed:', error);
         }
     }
 
@@ -449,8 +449,8 @@ export class WorkspaceContextDetector implements vscode.Disposable {
                 : this._overriddenFileNames;
 
             await this.commitState(flags, overriddenFileNames);
-        } catch {
-            // Workspace detection is best-effort; failures should not break the extension
+        } catch (error) {
+            console.error('[AutoContext] Incremental detection failed:', error);
         }
     }
 
@@ -539,18 +539,8 @@ export class WorkspaceContextDetector implements vscode.Disposable {
         flags: Record<string, boolean>,
         overriddenFileNames: Set<string>,
     ): Promise<void> {
-        const setContext = (key: string, value: boolean): Thenable<unknown> =>
-            vscode.commands.executeCommand('setContext', key, value);
-
-        await Promise.all([
-            ...Object.entries(flags).map(([key, value]) =>
-                setContext(`autocontext.workspace.${key}`, value),
-            ),
-            ...this.instructionsCatalog.all.map(i =>
-                setContext(ContextKeys.overrideKey(i.settingId), overriddenFileNames.has(i.fileName)),
-            ),
-        ]);
-
+        // Update in-memory state first so tree views always reflect detection
+        // results, even if VS Code context-key writes fail.
         const serverChanged = this.serversCatalog.all.some(s =>
             s.contextKey !== undefined && this._state.get(s.contextKey) !== flags[s.contextKey as string],
         );
@@ -572,6 +562,20 @@ export class WorkspaceContextDetector implements vscode.Disposable {
         }
 
         this._onDidDetect.fire();
+
+        // Set VS Code context keys (powers chatInstructions when-clauses).
+        // Best-effort: failures must not mask a successful detection.
+        const setContext = (key: string, value: boolean): Thenable<unknown> =>
+            vscode.commands.executeCommand('setContext', key, value);
+
+        await Promise.all([
+            ...Object.entries(flags).map(([key, value]) =>
+                setContext(`autocontext.workspace.${key}`, value),
+            ),
+            ...this.instructionsCatalog.all.map(i =>
+                setContext(ContextKeys.overrideKey(i.settingId), overriddenFileNames.has(i.fileName)),
+            ),
+        ]).catch(err => console.error('[AutoContext] Failed to set context keys:', err));
     }
 
     dispose(): void {

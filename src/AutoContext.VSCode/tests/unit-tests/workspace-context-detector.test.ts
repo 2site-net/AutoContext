@@ -666,4 +666,52 @@ describe('WorkspaceContextDetector', () => {
         });
     });
 
+    describe('resilience', () => {
+        it('should update state even when setContext rejects', async () => {
+            stubFindFiles({
+                '**/*.{csproj,fsproj,vbproj,sln,slnx}': ['/app/App.csproj'],
+                '**/*.csproj': ['/app/App.csproj'],
+            });
+            (commands.executeCommand as ReturnType<typeof vi.fn>).mockRejectedValue(
+                new Error('setContext failure'),
+            );
+
+            const det = createDetector();
+            await det.detect();
+
+            expect.soft(det.get('hasCSharp')).toBe(true);
+            expect.soft(det.get('hasDotNet')).toBe(true);
+        });
+
+        it('should fire onDidDetect even when setContext rejects', async () => {
+            stubFindFiles({ '**/*.py': ['/main.py'] });
+            (commands.executeCommand as ReturnType<typeof vi.fn>).mockRejectedValue(
+                new Error('setContext failure'),
+            );
+
+            const det = createDetector();
+
+            await det.detect();
+
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- access private emitter to verify fire was called
+            expect((det as any)._onDidDetect.fire).toHaveBeenCalled();
+        });
+
+        it('should update overrides even when setContext rejects', async () => {
+            stubFindFiles({
+                '.github/instructions/*.instructions.md': [
+                    '/.github/instructions/dotnet-coding-standards.instructions.md',
+                ],
+            });
+            (commands.executeCommand as ReturnType<typeof vi.fn>).mockRejectedValue(
+                new Error('setContext failure'),
+            );
+
+            const det = createDetector();
+            await det.detect();
+
+            expect(det.getOverriddenSettingIds().has('autocontext.instructions.dotnet.codingStandards')).toBe(true);
+        });
+    });
+
 });
