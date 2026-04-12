@@ -1,6 +1,6 @@
 ---
+name: "dotnet-mongodb (v1.0.0)"
 description: "Use when writing MongoDB queries, aggregation pipelines, indexes, or any MongoDB data access code in .NET projects."
-version: "1.0.0"
 ---
 # MongoDB Guidelines
 

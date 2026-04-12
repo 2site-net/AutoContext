@@ -1,6 +1,6 @@
 ---
+name: "copilot (v1.0.0)"
 description: "Instructions that govern how Copilot should behave: instruction precedence, safety, prompt etiquette, and operational boundaries."
-version: "1.0.0"
 ---
 # Copilot Instructions
 

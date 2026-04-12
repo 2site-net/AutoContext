@@ -1,7 +1,7 @@
 ---
+name: "dotnet-unity (v1.0.0)"
 description: "Use when building Unity games or interactive applications: MonoBehaviour lifecycle, component caching, physics, coroutines, ScriptableObjects, and performance."
 applyTo: "**/*.cs"
-version: "1.0.0"
 ---
 # Unity Guidelines
 

@@ -1,6 +1,6 @@
 ---
+name: "dotnet-oracle (v1.0.0)"
 description: "Use when writing Oracle SQL or PL/SQL queries, stored procedures, migrations, or any Oracle data access code in .NET projects."
-version: "1.0.0"
 ---
 # Oracle Guidelines
 

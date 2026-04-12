@@ -1,7 +1,7 @@
 ---
+name: "lang-typescript (v1.0.0)"
 description: "Use when generating or editing TypeScript code, working with types, generics, utility types, or TypeScript-specific patterns."
 applyTo: "**/*.{ts,tsx,mts,cts}"
-version: "1.0.0"
 ---
 # TypeScript Guidelines
 

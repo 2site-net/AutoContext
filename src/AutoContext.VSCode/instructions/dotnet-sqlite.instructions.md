@@ -1,6 +1,6 @@
 ---
+name: "dotnet-sqlite (v1.0.0)"
 description: "Use when writing SQLite queries, migrations, or any SQLite data access code in .NET projects."
-version: "1.0.0"
 ---
 # SQLite Guidelines
 

@@ -1,7 +1,7 @@
 ---
+name: "lang-dart (v1.0.0)"
 description: "Dart coding style instructions: naming conventions, null safety, type design, async patterns, collections, error handling, and documentation."
 applyTo: "**/*.dart"
-version: "1.0.0"
 ---
 # Dart Coding Style
 

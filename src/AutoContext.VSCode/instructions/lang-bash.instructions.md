@@ -1,7 +1,7 @@
 ---
+name: "lang-bash (v1.0.0)"
 description: "Use when writing Bash or shell scripts: safety flags, quoting, error handling, portability, and script structure."
 applyTo: "**/*.{sh,bash}"
-version: "1.0.0"
 ---
 # Bash
 

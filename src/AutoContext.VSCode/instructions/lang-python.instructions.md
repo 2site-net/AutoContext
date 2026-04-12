@@ -1,7 +1,7 @@
 ---
+name: "lang-python (v1.0.0)"
 description: "Python coding style instructions: naming conventions, type hints, error handling, functions, classes, modules, concurrency, and documentation."
 applyTo: "**/*.py"
-version: "1.0.0"
 ---
 # Python Coding Style
 

@@ -1,7 +1,7 @@
 ---
+name: "dotnet-signalr (v1.0.0)"
 description: "Use when building SignalR hubs, real-time connections, group management, or backplane configuration in .NET."
 applyTo: "**/*.{cs,fs,vb}"
-version: "1.0.0"
 ---
 # SignalR Guidelines
 

@@ -1,6 +1,6 @@
 ---
+name: "dotnet-mysql (v1.0.0)"
 description: "Use when writing MySQL queries, stored procedures, migrations, or any MySQL data access code in .NET projects."
-version: "1.0.0"
 ---
 # MySQL Guidelines
 

@@ -1,7 +1,7 @@
 ---
+name: "lang-fsharp (v1.0.0)"
 description: "F# code style instructions: module layout, naming, type design, pattern matching, formatting, and documentation conventions."
 applyTo: "**/*.{fs,fsi}"
-version: "1.0.0"
 ---
 # F# Coding Style
 

@@ -1,7 +1,7 @@
 ---
+name: "web-react (v1.0.0)"
 description: "Use when generating or editing React components, managing state, writing Hooks, handling effects, rendering lists, or structuring component trees."
 applyTo: "**/*.{js,jsx,mjs,cjs,ts,tsx,mts,cts}"
-version: "1.0.0"
 ---
 # React Guidelines
 

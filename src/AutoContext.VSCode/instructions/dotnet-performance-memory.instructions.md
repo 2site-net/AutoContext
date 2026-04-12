@@ -1,7 +1,7 @@
 ---
+name: "dotnet-performance-memory (v1.0.0)"
 description: "Use when benchmarking, optimizing performance, profiling memory, using Span/Memory/ArrayPool/stackalloc, evaluating SIMD/Vector paths, or deciding whether to add instrumentation in .NET."
 applyTo: "**/*.{cs,fs,vb}"
-version: "1.0.0"
 ---
 # Performance & Memory Guidelines
 

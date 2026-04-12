@@ -1,7 +1,7 @@
 ---
+name: "web-jasmine (v1.0.0)"
 description: "Use when writing, reviewing, or refactoring Jasmine tests, spies, or Jasmine-specific APIs."
 applyTo: "**/*.{test,spec}.{js,jsx,ts,tsx,mjs,mts}"
-version: "1.0.0"
 ---
 # Jasmine Guidelines
 

@@ -1,6 +1,6 @@
 ---
+name: "design-principles (v1.0.0)"
 description: "Use when designing software systems: SOLID principles, dependency injection, composition, separation of concerns, error handling, and structured logging."
-version: "1.0.0"
 ---
 # Design Principles
 

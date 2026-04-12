@@ -1,6 +1,6 @@
 ---
+name: "dotnet-postgresql (v1.0.0)"
 description: "Use when writing PostgreSQL queries, PL/pgSQL functions, migrations, or any PostgreSQL data access code in .NET projects."
-version: "1.0.0"
 ---
 # PostgreSQL Guidelines
 

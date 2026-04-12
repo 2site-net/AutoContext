@@ -1,7 +1,7 @@
 ---
+name: "web-jest (v1.0.0)"
 description: "Use when writing, reviewing, or refactoring Jest tests, mocks, or Jest-specific APIs."
 applyTo: "**/*.{test,spec}.{js,jsx,ts,tsx,mjs,mts}"
-version: "1.0.0"
 ---
 # Jest Guidelines
 

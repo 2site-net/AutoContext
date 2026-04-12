@@ -1,7 +1,7 @@
 ---
+name: "dotnet-nunit (v1.0.0)"
 description: "Use when writing, reviewing, or refactoring NUnit tests, assertions, or NUnit-specific APIs in .NET."
 applyTo: "**/*Tests*.{cs,fs,vb,razor}"
-version: "1.0.0"
 ---
 # NUnit Guidelines
 

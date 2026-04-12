@@ -1,6 +1,6 @@
 ---
+name: "dotnet-sql-server (v1.0.0)"
 description: "Use when writing T-SQL queries, stored procedures, migrations, or any SQL Server data access code in .NET projects."
-version: "1.0.0"
 ---
 # T-SQL / SQL Server Guidelines
 

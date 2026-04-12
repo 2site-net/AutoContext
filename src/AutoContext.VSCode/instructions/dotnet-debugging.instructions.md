@@ -1,7 +1,7 @@
 ---
+name: "dotnet-debugging (v1.0.0)"
 description: "Use when debugging issues, troubleshooting failures, reproducing bugs, or writing regression tests in .NET."
 applyTo: "**/*.{cs,fs,vb}"
-version: "1.0.0"
 ---
 # Debugging & Troubleshooting
 

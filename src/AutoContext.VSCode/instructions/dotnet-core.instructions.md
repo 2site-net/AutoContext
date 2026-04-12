@@ -1,7 +1,7 @@
 ---
+name: "dotnet-core (v1.0.0)"
 description: "Use when writing, reviewing, or refactoring .NET dependency injection, logging, configuration, or security setup."
 applyTo: "**/*.{cs,fs,vb}"
-version: "1.0.0"
 ---
 # .NET Core Guidelines
 
