@@ -22,12 +22,11 @@ export class MetadataLoader {
 
         for (const tools of Object.values(manifest)) {
             for (const tool of tools) {
+                metadata.set(tool.name, { description: tool.description, version: tool.version });
                 if (tool.features) {
                     for (const feature of tool.features) {
                         metadata.set(feature.name, { description: feature.description, version: feature.version });
                     }
-                } else {
-                    metadata.set(tool.name, { description: tool.description, version: tool.version });
                 }
             }
         }

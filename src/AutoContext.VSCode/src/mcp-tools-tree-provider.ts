@@ -219,7 +219,8 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
         item.contextValue = 'mcpTool';
         item.checkboxState = this.checkboxForParent(node.features);
         const active = node.features.filter(f => f.state.isActive()).length;
-        item.tooltip = this.tooltip.container(node.toolName, active, node.features.length);
+        const metadata = this.catalog.getMetadata(node.toolName);
+        item.tooltip = this.tooltip.container(node.toolName, active, node.features.length, metadata?.description, metadata?.version);
         return item;
     }
 

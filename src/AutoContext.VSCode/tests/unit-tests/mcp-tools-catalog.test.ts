@@ -69,4 +69,14 @@ describe('McpToolsCatalog', () => {
         expect.soft(catalog.all[0].description).toBeUndefined();
         expect.soft(catalog.all[0].version).toBeUndefined();
     });
+
+    it('should return tool metadata by name', () => {
+        const metadata = new Map([
+            ['alpha', { description: 'Alpha tool', version: '1.0.0' }],
+        ]);
+        const catalog = new McpToolsCatalog(testEntries, metadata);
+
+        expect.soft(catalog.getMetadata('alpha')).toEqual({ description: 'Alpha tool', version: '1.0.0' });
+        expect.soft(catalog.getMetadata('unknown')).toBeUndefined();
+    });
 });

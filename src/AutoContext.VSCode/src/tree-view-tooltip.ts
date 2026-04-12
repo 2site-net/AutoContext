@@ -6,8 +6,12 @@ export type TreeViewKind = 'instructions' | 'tools';
 export class TreeViewTooltip {
     constructor(private readonly kind: TreeViewKind) {}
 
-    container(name: string, active: number, total: number): string {
-        return `${name}\n${active}/${total} ${this.containerSuffix}`;
+    container(name: string, active: number, total: number, description?: string, version?: string): string {
+        const heading = version ? `${name} v${version}` : name;
+        const lines = [heading];
+        if (description) { lines.push(description); }
+        lines.push(`${active}/${total} ${this.containerSuffix}`);
+        return lines.join('\n');
     }
 
     leaf(label: string, state: TreeViewNodeState, settingId: string, description?: string, version?: string): string {
