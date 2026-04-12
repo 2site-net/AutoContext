@@ -1,0 +1,52 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { InstructionsParser } from './instructions-parser.js';
+import type { McpToolsMetadataEntry } from './mcp-tools-catalog-entry.js';
+import type { InstructionsMetadataEntry } from './instructions-catalog-entry.js';
+
+interface ManifestTool {
+    name: string;
+    description: string;
+    version: string;
+    features?: ManifestTool[];
+}
+
+export class MetadataLoader {
+    constructor(private readonly extensionPath: string) {}
+
+    getMcpToolsInfo(): ReadonlyMap<string, McpToolsMetadataEntry> {
+        const manifest: Record<string, ManifestTool[]> = JSON.parse(
+            readFileSync(join(this.extensionPath, '.mcp-tools.json'), 'utf-8'),
+        );
+        const metadata = new Map<string, McpToolsMetadataEntry>();
+
+        for (const tools of Object.values(manifest)) {
+            for (const tool of tools) {
+                if (tool.features) {
+                    for (const feature of tool.features) {
+                        metadata.set(feature.name, { description: feature.description, version: feature.version });
+                    }
+                } else {
+                    metadata.set(tool.name, { description: tool.description, version: tool.version });
+                }
+            }
+        }
+
+        return metadata;
+    }
+
+    getInstructionsInfo(files: readonly { fileName: string }[]): ReadonlyMap<string, InstructionsMetadataEntry> {
+        const metadata = new Map<string, InstructionsMetadataEntry>();
+        const instructionsDir = join(this.extensionPath, 'instructions');
+
+        for (const file of files) {
+            const content = readFileSync(join(instructionsDir, file.fileName), 'utf-8');
+            const { frontmatter } = InstructionsParser.parse(content);
+            if (frontmatter.description || frontmatter.version) {
+                metadata.set(file.fileName, frontmatter);
+            }
+        }
+
+        return metadata;
+    }
+}
