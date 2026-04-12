@@ -67,6 +67,62 @@ describe('parseInstructions', () => {
         expect.soft(instructions[0]?.id).toBe('INST0001');
     });
 
+    it('should extract frontmatter description and version', () => {
+        const content = `---
+description: "My instruction file"
+version: "1.2.3"
+---
+# Test
+
+- [INST0001] **Do** something.
+`;
+        const { frontmatter } = InstructionsParser.parse(content);
+
+        expect.soft(frontmatter.description).toBe('My instruction file');
+        expect.soft(frontmatter.version).toBe('1.2.3');
+    });
+
+    it('should extract frontmatter with applyTo field', () => {
+        const content = `---
+description: "Scoped instructions"
+applyTo: "**/*.cs"
+version: "1.0.0"
+---
+# Test
+
+- [INST0001] **Do** something.
+`;
+        const { frontmatter } = InstructionsParser.parse(content);
+
+        expect.soft(frontmatter.description).toBe('Scoped instructions');
+        expect.soft(frontmatter.version).toBe('1.0.0');
+    });
+
+    it('should return empty frontmatter when no frontmatter block exists', () => {
+        const content = `# No frontmatter
+
+- [INST0001] **Do** something.
+`;
+        const { frontmatter } = InstructionsParser.parse(content);
+
+        expect.soft(frontmatter.description).toBeUndefined();
+        expect.soft(frontmatter.version).toBeUndefined();
+    });
+
+    it('should return partial frontmatter when only description is present', () => {
+        const content = `---
+description: "Only description"
+---
+# Test
+
+- [INST0001] **Do** something.
+`;
+        const { frontmatter } = InstructionsParser.parse(content);
+
+        expect.soft(frontmatter.description).toBe('Only description');
+        expect.soft(frontmatter.version).toBeUndefined();
+    });
+
     it('should parse multiple instructions', () => {
         const { instructions } = InstructionsParser.parse(multiInstructionDoc);
 
@@ -74,6 +130,13 @@ describe('parseInstructions', () => {
         expect.soft(instructions[0]?.text).toContain('write true');
         expect.soft(instructions[1]?.text).toContain('CancellationToken');
         expect.soft(instructions[2]?.text).toContain('async void');
+    });
+
+    it('should extract description from existing fixtures', () => {
+        const { frontmatter } = InstructionsParser.parse(singleInstructionDoc);
+
+        expect.soft(frontmatter.description).toBe('Test');
+        expect.soft(frontmatter.version).toBeUndefined();
     });
 
     it('should handle * bullet style with IDs', () => {

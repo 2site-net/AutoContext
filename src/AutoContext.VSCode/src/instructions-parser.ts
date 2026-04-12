@@ -1,11 +1,13 @@
 import { readFile, stat } from 'node:fs/promises';
 import type { InstructionsParsedInstruction } from './types/instructions-parsed-instruction.js';
 import type { InstructionsDiagnostic } from './types/instructions-diagnostic.js';
-import type { InstructionsParsedResult } from './types/instructions-parsed-result.js';
+import type { InstructionsParsedResult, InstructionsFrontmatter } from './types/instructions-parsed-result.js';
 import type { InstructionsFileParsedResult } from './types/instructions-file-parsed-result.js';
 
 const instructionBulletPattern = /^[-*]\s(?:\[(INST\d{4})\]\s*)?\*\*(Do|Don't)\*\*/;
 const malformedIdPattern = /^[-*]\s\[(?!INST\d{4}\])[^\]]*\]\s*\*\*(Do|Don't)\*\*/;
+const frontmatterPattern = /^---\r?\n([\s\S]*?)\r?\n---/;
+const frontmatterFieldPattern = /^(\w+):\s*"?([^"\r\n]*)"?\s*$/;
 
 export class InstructionsParser {
     private static readonly fileCache = new Map<string, { mtimeMs: number; content: string; result: InstructionsParsedResult }>();
@@ -23,6 +25,7 @@ export class InstructionsParser {
     }
 
     static parse(content: string): InstructionsParsedResult {
+        const frontmatter = this.parseFrontmatter(content);
         const lines = content.split('\n');
         const instructions: InstructionsParsedInstruction[] = [];
         const diagnostics: InstructionsDiagnostic[] = [];
@@ -88,7 +91,27 @@ export class InstructionsParser {
             instructions.push(this.buildInstruction(instructionId, instructionLines, instructionStart, lines.length - 1));
         }
 
-        return { instructions, diagnostics };
+        return { frontmatter, instructions, diagnostics };
+    }
+
+    private static parseFrontmatter(content: string): InstructionsFrontmatter {
+        const match = frontmatterPattern.exec(content);
+        if (!match) {
+            return {};
+        }
+
+        const result: Record<string, string> = {};
+        for (const line of match[1].split('\n')) {
+            const fieldMatch = frontmatterFieldPattern.exec(line.trim());
+            if (fieldMatch) {
+                result[fieldMatch[1]] = fieldMatch[2];
+            }
+        }
+
+        return {
+            description: result['description'],
+            version: result['version'],
+        };
     }
 
     private static buildInstruction(
