@@ -14,9 +14,9 @@ export class TreeViewTooltip {
         return lines.join('\n');
     }
 
-    leaf(label: string, state: TreeViewNodeState, settingId: string, description?: string, version?: string): string {
+    leaf(label: string, state: TreeViewNodeState, settingId: string, description?: string, version?: string, stateLabel?: string): string {
         const heading = version ? `${label} v${version}` : label;
-        const lines = [`${heading} (${this.stateDescription(state)})`];
+        const lines = [`${heading} (${stateLabel ?? this.stateDescription(state)})`];
         if (description) { lines.push(description); }
         lines.push(`${treeViewLabels.settingPrefix} ${settingId}`);
         return lines.join('\n');

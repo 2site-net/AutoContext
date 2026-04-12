@@ -9,6 +9,7 @@ import type { TreeViewStateResolver } from './tree-view-state-resolver.js';
 import type { TreeViewTooltip } from './tree-view-tooltip.js';
 import type { InstructionsTreeCategoryNode } from './types/instructions-tree-category-node.js';
 import type { InstructionsTreeNode } from './types/instructions-tree-node.js';
+import { SemVer } from './semver.js';
 
 type TreeElement = InstructionsTreeCategoryNode | InstructionsTreeNode;
 
@@ -122,11 +123,16 @@ export class InstructionsTreeProvider implements vscode.TreeDataProvider<TreeEle
     ): InstructionsTreeNode[] {
         return this.catalog.all
             .filter(e => e.category === category)
-            .map(entry => ({
-                kind: 'instructions' as const,
-                entry,
-                state: this.stateResolver.resolve(entry, config, overrides),
-            }))
+            .map(entry => {
+                const state = this.stateResolver.resolve(entry, config, overrides);
+                const overrideVersion = state === TreeViewNodeState.Overridden
+                    ? this.detector.getOverrideVersion(entry.fileName)
+                    : undefined;
+                const isOutdated = overrideVersion !== undefined
+                    && entry.version !== undefined
+                    && SemVer.isGreaterThan(entry.version, overrideVersion);
+                return { kind: 'instructions' as const, entry, state, overrideVersion, isOutdated };
+            })
             .filter(n => this._showNotDetected || n.state !== TreeViewNodeState.NotDetected)
             .sort((a, b) => a.state.sortOrder - b.state.sortOrder);
     }
@@ -142,7 +148,8 @@ export class InstructionsTreeProvider implements vscode.TreeDataProvider<TreeEle
 
     private instructionItem(node: InstructionsTreeNode): vscode.TreeItem {
         const item = new vscode.TreeItem(node.entry.label, vscode.TreeItemCollapsibleState.None);
-        item.contextValue = `instruction.${node.state.value}${node.entry.hasChangelog ? '.hasChangelog' : ''}`;
+
+        item.contextValue = `instruction.${node.state.value}${node.isOutdated ? '.outdated' : ''}${node.entry.hasChangelog ? '.hasChangelog' : ''}`;
 
         switch (node.state) {
             case TreeViewNodeState.Enabled:
@@ -158,7 +165,7 @@ export class InstructionsTreeProvider implements vscode.TreeDataProvider<TreeEle
                 break;
             case TreeViewNodeState.Overridden:
                 item.iconPath = new vscode.ThemeIcon('file-symlink-file', new vscode.ThemeColor('terminal.ansiYellow'));
-                item.description = treeViewLabels.overridden;
+                item.description = node.isOutdated ? treeViewLabels.outdated : treeViewLabels.overridden;
                 break;
             default:
                 node.state.throwIfUnknown();
@@ -170,7 +177,10 @@ export class InstructionsTreeProvider implements vscode.TreeDataProvider<TreeEle
                 : vscode.TreeItemCheckboxState.Unchecked;
         }
 
-        item.tooltip = this.tooltip.leaf(node.entry.label, node.state, node.entry.settingId, node.entry.description, node.entry.version);
+        item.tooltip = this.tooltip.leaf(
+            node.entry.label, node.state, node.entry.settingId, node.entry.description, node.entry.version,
+            node.isOutdated ? treeViewLabels.outdatedTooltip : undefined,
+        );
 
         if (node.state === TreeViewNodeState.Overridden) {
             const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
@@ -221,6 +231,15 @@ export class InstructionsTreeProvider implements vscode.TreeDataProvider<TreeEle
     static async deleteOverride(node: InstructionsTreeNode): Promise<void> {
         const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
         if (!workspaceFolder) { return; }
+
+        if (node.isOutdated) {
+            const choice = await vscode.window.showWarningMessage(
+                `The local file (v${node.overrideVersion}) is behind AutoContext's version (v${node.entry.version}). Deleting will restore the latest version.`,
+                { modal: true },
+                'Delete',
+            );
+            if (choice !== 'Delete') { return; }
+        }
 
         const targetUri = vscode.Uri.joinPath(workspaceFolder.uri, node.entry.targetPath);
 

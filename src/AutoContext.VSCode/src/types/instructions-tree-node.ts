@@ -5,4 +5,6 @@ export interface InstructionsTreeNode {
     readonly kind: 'instructions';
     readonly entry: InstructionsCatalogEntry;
     readonly state: TreeViewNodeState;
+    readonly overrideVersion?: string;
+    readonly isOutdated: boolean;
 }

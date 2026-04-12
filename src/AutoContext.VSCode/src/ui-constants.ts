@@ -169,7 +169,9 @@ export const treeViewLabels = {
     featuresEnabledTooltip: 'features enabled',
     notDetected: 'not detected',
     notDetectedTooltip: 'Not detected — workspace lacks matching files',
+    outdated: 'overridden (outdated)',
+    outdatedTooltip: 'Overridden — the local file is outdated, a newer version is available',
     overridden: 'overridden',
-    overriddenTooltip: 'Overridden — local .github/instructions file found',
+    overriddenTooltip: 'Overridden — using a local file instead of AutoContext\'s version',
     settingPrefix: 'Setting:',
 } as const;

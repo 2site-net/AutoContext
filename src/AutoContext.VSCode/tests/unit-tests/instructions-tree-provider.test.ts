@@ -11,6 +11,7 @@ import { TreeViewTooltip } from '../../src/tree-view-tooltip';
 const fakeDetector = {
     get: vi.fn((_key: string) => false),
     getOverriddenSettingIds: vi.fn(() => new Set<string>()),
+    getOverrideVersion: vi.fn((_fileName: string) => undefined as string | undefined),
     onDidDetect: vi.fn(() => ({ dispose: vi.fn() })),
 } as unknown as import('../../src/workspace-context-detector').WorkspaceContextDetector;
 
@@ -22,6 +23,7 @@ beforeEach(() => {
     __setConfigStore({});
     vi.mocked(fakeDetector.get).mockReset();
     vi.mocked(fakeDetector.getOverriddenSettingIds).mockReturnValue(new Set());
+    vi.mocked(fakeDetector.getOverrideVersion).mockReturnValue(undefined);
 });
 
 describe('InstructionsTreeProvider', () => {
@@ -811,6 +813,144 @@ describe('InstructionsTreeProvider', () => {
         const alwaysOn = catalog.all.filter(e => !e.contextKeys || e.contextKeys.length === 0).length;
 
         expect.soft(treeView.description).toBe(`${alwaysOn}/${total}`);
+
+        provider.dispose();
+    });
+
+    it('should show outdated description when override version is behind built-in', () => {
+        vi.mocked(fakeDetector.get).mockReturnValue(true);
+        vi.mocked(fakeDetector.getOverriddenSettingIds).mockReturnValue(new Set(['autocontext.instructions.lang.csharp']));
+        vi.mocked(fakeDetector.getOverrideVersion).mockImplementation(
+            (fileName: string) => fileName === 'lang-csharp.instructions.md' ? '1.0.0' : undefined,
+        );
+
+        const metadata = new Map([['lang-csharp.instructions.md', { version: '1.1.0' }]]);
+        const versionedCatalog = new InstructionsCatalog(instructionsFiles, metadata);
+        const provider = new InstructionsTreeProvider(fakeDetector, versionedCatalog, stateResolver, tooltip);
+        const roots = provider.getChildren();
+        const languages = roots.find(r => r.kind === 'category' && r.name === 'Languages')!;
+        const children = provider.getChildren(languages);
+        const csharp = children.find(c => c.kind === 'instructions' && c.entry.settingId === 'autocontext.instructions.lang.csharp')!;
+
+        const treeItem = provider.getTreeItem(csharp);
+        expect.soft(treeItem.description).toBe('overridden (outdated)');
+        expect.soft(treeItem.contextValue).toContain('.outdated');
+        expect.soft(treeItem.tooltip).toContain('local file is outdated');
+
+        provider.dispose();
+    });
+
+    it('should show standard overridden tooltip when override version matches built-in', () => {
+        vi.mocked(fakeDetector.get).mockReturnValue(true);
+        vi.mocked(fakeDetector.getOverriddenSettingIds).mockReturnValue(new Set(['autocontext.instructions.lang.csharp']));
+        vi.mocked(fakeDetector.getOverrideVersion).mockImplementation(
+            (fileName: string) => fileName === 'lang-csharp.instructions.md' ? '1.0.0' : undefined,
+        );
+
+        const metadata = new Map([['lang-csharp.instructions.md', { version: '1.0.0' }]]);
+        const versionedCatalog = new InstructionsCatalog(instructionsFiles, metadata);
+        const provider = new InstructionsTreeProvider(fakeDetector, versionedCatalog, stateResolver, tooltip);
+        const roots = provider.getChildren();
+        const languages = roots.find(r => r.kind === 'category' && r.name === 'Languages')!;
+        const children = provider.getChildren(languages);
+        const csharp = children.find(c => c.kind === 'instructions' && c.entry.settingId === 'autocontext.instructions.lang.csharp')!;
+
+        const treeItem = provider.getTreeItem(csharp);
+        expect.soft(treeItem.description).toBe('overridden');
+        expect.soft(treeItem.contextValue).not.toContain('.outdated');
+        expect.soft(treeItem.tooltip).toContain('using a local file instead');
+
+        provider.dispose();
+    });
+
+    it('should not show outdated when override has no version in frontmatter', () => {
+        vi.mocked(fakeDetector.get).mockReturnValue(true);
+        vi.mocked(fakeDetector.getOverriddenSettingIds).mockReturnValue(new Set(['autocontext.instructions.lang.csharp']));
+        vi.mocked(fakeDetector.getOverrideVersion).mockReturnValue(undefined);
+
+        const metadata = new Map([['lang-csharp.instructions.md', { version: '1.1.0' }]]);
+        const versionedCatalog = new InstructionsCatalog(instructionsFiles, metadata);
+        const provider = new InstructionsTreeProvider(fakeDetector, versionedCatalog, stateResolver, tooltip);
+        const roots = provider.getChildren();
+        const languages = roots.find(r => r.kind === 'category' && r.name === 'Languages')!;
+        const children = provider.getChildren(languages);
+        const csharp = children.find(c => c.kind === 'instructions' && c.entry.settingId === 'autocontext.instructions.lang.csharp')!;
+
+        const treeItem = provider.getTreeItem(csharp);
+        expect.soft(treeItem.description).toBe('overridden');
+
+        provider.dispose();
+    });
+
+    it('should show warning dialog when deleting an outdated override', async () => {
+        vi.mocked(fakeDetector.get).mockReturnValue(true);
+        vi.mocked(fakeDetector.getOverriddenSettingIds).mockReturnValue(new Set(['autocontext.instructions.lang.csharp']));
+        vi.mocked(fakeDetector.getOverrideVersion).mockImplementation(
+            (fileName: string) => fileName === 'lang-csharp.instructions.md' ? '1.0.0' : undefined,
+        );
+        workspace.workspaceFolders = [{ uri: { path: '/workspace', scheme: 'file' } }];
+        vi.mocked(window.showWarningMessage).mockResolvedValue('Delete' as never);
+
+        const metadata = new Map([['lang-csharp.instructions.md', { version: '1.1.0' }]]);
+        const versionedCatalog = new InstructionsCatalog(instructionsFiles, metadata);
+        const provider = new InstructionsTreeProvider(fakeDetector, versionedCatalog, stateResolver, tooltip);
+        const roots = provider.getChildren();
+        const languages = roots.find(r => r.kind === 'category' && r.name === 'Languages')!;
+        const children = provider.getChildren(languages);
+        const node = children.find(c => c.kind === 'instructions' && c.entry.settingId === 'autocontext.instructions.lang.csharp')!;
+
+        await InstructionsTreeProvider.deleteOverride(node as InstructionsTreeNode);
+
+        expect.soft(window.showWarningMessage).toHaveBeenCalledWith(
+            expect.stringContaining('(v1.0.0) is behind AutoContext\'s version (v1.1.0)'),
+            { modal: true },
+            'Delete',
+        );
+        expect.soft(workspace.fs.delete).toHaveBeenCalled();
+
+        provider.dispose();
+    });
+
+    it('should not delete override when user cancels the outdated warning dialog', async () => {
+        vi.mocked(fakeDetector.get).mockReturnValue(true);
+        vi.mocked(fakeDetector.getOverriddenSettingIds).mockReturnValue(new Set(['autocontext.instructions.lang.csharp']));
+        vi.mocked(fakeDetector.getOverrideVersion).mockImplementation(
+            (fileName: string) => fileName === 'lang-csharp.instructions.md' ? '1.0.0' : undefined,
+        );
+        workspace.workspaceFolders = [{ uri: { path: '/workspace', scheme: 'file' } }];
+        vi.mocked(window.showWarningMessage).mockResolvedValue(undefined as never);
+
+        const metadata = new Map([['lang-csharp.instructions.md', { version: '1.1.0' }]]);
+        const versionedCatalog = new InstructionsCatalog(instructionsFiles, metadata);
+        const provider = new InstructionsTreeProvider(fakeDetector, versionedCatalog, stateResolver, tooltip);
+        const roots = provider.getChildren();
+        const languages = roots.find(r => r.kind === 'category' && r.name === 'Languages')!;
+        const children = provider.getChildren(languages);
+        const node = children.find(c => c.kind === 'instructions' && c.entry.settingId === 'autocontext.instructions.lang.csharp')!;
+
+        await InstructionsTreeProvider.deleteOverride(node as InstructionsTreeNode);
+
+        expect.soft(workspace.fs.delete).not.toHaveBeenCalled();
+
+        provider.dispose();
+    });
+
+    it('should skip warning dialog when deleting a non-outdated override', async () => {
+        vi.mocked(fakeDetector.get).mockReturnValue(true);
+        vi.mocked(fakeDetector.getOverriddenSettingIds).mockReturnValue(new Set(['autocontext.instructions.lang.csharp']));
+        vi.mocked(fakeDetector.getOverrideVersion).mockReturnValue(undefined);
+        workspace.workspaceFolders = [{ uri: { path: '/workspace', scheme: 'file' } }];
+
+        const provider = new InstructionsTreeProvider(fakeDetector, catalog, stateResolver, tooltip);
+        const roots = provider.getChildren();
+        const languages = roots.find(r => r.kind === 'category' && r.name === 'Languages')!;
+        const children = provider.getChildren(languages);
+        const node = children.find(c => c.kind === 'instructions' && c.entry.settingId === 'autocontext.instructions.lang.csharp')!;
+
+        await InstructionsTreeProvider.deleteOverride(node as InstructionsTreeNode);
+
+        expect.soft(window.showWarningMessage).not.toHaveBeenCalled();
+        expect.soft(workspace.fs.delete).toHaveBeenCalled();
 
         provider.dispose();
     });

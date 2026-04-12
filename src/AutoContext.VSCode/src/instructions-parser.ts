@@ -95,7 +95,7 @@ export class InstructionsParser {
         return { frontmatter, instructions, diagnostics };
     }
 
-    private static parseFrontmatter(content: string): InstructionsFrontmatter {
+    static parseFrontmatter(content: string): InstructionsFrontmatter {
         const match = frontmatterPattern.exec(content);
         if (!match) {
             return {};

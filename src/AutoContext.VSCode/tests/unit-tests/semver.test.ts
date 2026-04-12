@@ -82,3 +82,36 @@ describe('SemVer.equalsMajorMinor', () => {
         expect.soft(SemVer.equalsMajorMinor(a, b)).toBe(false);
     });
 });
+
+describe('SemVer.isGreaterThan', () => {
+    it.each`
+        a                    | b                    | label
+        ${'2.0.0'}           | ${'1.0.0'}           | ${'major bump'}
+        ${'1.1.0'}           | ${'1.0.0'}           | ${'minor bump'}
+        ${'1.0.1'}           | ${'1.0.0'}           | ${'patch bump'}
+        ${'10.0.0'}          | ${'9.9.9'}           | ${'multi-digit major'}
+        ${'1.0.1-beta.1'}   | ${'1.0.0'}           | ${'pre-release with higher patch'}
+    `('should return true when a > b: $label ($a vs $b)', ({ a, b }) => {
+        expect.soft(SemVer.isGreaterThan(a, b)).toBe(true);
+    });
+
+    it.each`
+        a                    | b                    | label
+        ${'1.0.0'}           | ${'1.0.0'}           | ${'identical'}
+        ${'1.0.0'}           | ${'2.0.0'}           | ${'a < b major'}
+        ${'1.0.0'}           | ${'1.1.0'}           | ${'a < b minor'}
+        ${'1.0.0'}           | ${'1.0.1'}           | ${'a < b patch'}
+        ${'1.0.0-beta.1'}   | ${'1.0.0'}           | ${'same core with pre-release'}
+    `('should return false when a <= b: $label ($a vs $b)', ({ a, b }) => {
+        expect.soft(SemVer.isGreaterThan(a, b)).toBe(false);
+    });
+
+    it.each`
+        a             | b             | label
+        ${'invalid'}  | ${'1.0.0'}   | ${'first invalid'}
+        ${'1.0.0'}    | ${'invalid'} | ${'second invalid'}
+        ${'abc'}      | ${'def'}     | ${'both invalid'}
+    `('should return false when $label ($a vs $b)', ({ a, b }) => {
+        expect.soft(SemVer.isGreaterThan(a, b)).toBe(false);
+    });
+});

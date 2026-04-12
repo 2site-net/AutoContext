@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import type { InstructionsCatalog } from './instructions-catalog.js';
 import { ContextKeys } from './context-keys.js';
 import type { McpServersCatalog } from './mcp-servers-catalog.js';
+import { InstructionsParser } from './instructions-parser.js';
 
 // --- File-system watcher globs ---
 
@@ -253,6 +254,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
     private readonly _baseFlags = new Map<string, boolean>();
     private readonly _overriddenSettingIds = new Set<string>();
     private _overriddenFileNames = new Set<string>();
+    private _overrideVersions = new Map<string, string | undefined>();
     private _pendingEvents: PendingEvent[] = [];
 
     readonly onDidChange = this._onDidChange.event;
@@ -264,6 +266,10 @@ export class WorkspaceContextDetector implements vscode.Disposable {
 
     getOverriddenSettingIds(): ReadonlySet<string> {
         return this._overriddenSettingIds;
+    }
+
+    getOverrideVersion(fileName: string): string | undefined {
+        return this._overrideVersions.get(fileName);
     }
 
     constructor(
@@ -342,8 +348,8 @@ export class WorkspaceContextDetector implements vscode.Disposable {
             WorkspaceContextDetector.applyActivationCascade(flags);
             await WorkspaceContextDetector.detectGit(flags);
 
-            const overriddenFileNames = await this.scanOverrides();
-            await this.commitState(flags, overriddenFileNames);
+            const overrides = await this.scanOverrides();
+            await this.commitState(flags, overrides);
         } catch (error) {
             console.error('[AutoContext] Workspace detection failed:', error);
         }
@@ -444,11 +450,11 @@ export class WorkspaceContextDetector implements vscode.Disposable {
             // Git detection is unchanged by file events
             flags.hasGit = this._state.get('hasGit') ?? false;
 
-            const overriddenFileNames = scanOverrides
+            const overrides = scanOverrides
                 ? await this.scanOverrides()
-                : this._overriddenFileNames;
+                : { fileNames: this._overriddenFileNames, versions: this._overrideVersions };
 
-            await this.commitState(flags, overriddenFileNames);
+            await this.commitState(flags, overrides);
         } catch (error) {
             console.error('[AutoContext] Incremental detection failed:', error);
         }
@@ -516,28 +522,36 @@ export class WorkspaceContextDetector implements vscode.Disposable {
         }
     }
 
-    private async scanOverrides(): Promise<Set<string>> {
+    private async scanOverrides(): Promise<{ fileNames: Set<string>; versions: Map<string, string | undefined> }> {
         const overrideFiles = await vscode.workspace.findFiles(
             '.github/instructions/*.instructions.md', undefined, 50,
         );
 
-        const overriddenFileNames = new Set<string>();
+        const fileNames = new Set<string>();
+        const versions = new Map<string, string | undefined>();
+        const decoder = new TextDecoder();
 
         for (const uri of overrideFiles) {
             const segments = uri.path.split('/');
             const matchName = segments[segments.length - 1];
 
             if (this.instructionsCatalog.findByFileName(matchName)) {
-                overriddenFileNames.add(matchName);
+                fileNames.add(matchName);
+                try {
+                    const content = decoder.decode(await vscode.workspace.fs.readFile(uri));
+                    versions.set(matchName, InstructionsParser.parseFrontmatter(content).version);
+                } catch {
+                    versions.set(matchName, undefined);
+                }
             }
         }
 
-        return overriddenFileNames;
+        return { fileNames, versions };
     }
 
     private async commitState(
         flags: Record<string, boolean>,
-        overriddenFileNames: Set<string>,
+        overrides: { fileNames: Set<string>; versions: Map<string, string | undefined> },
     ): Promise<void> {
         // Update in-memory state first so tree views always reflect detection
         // results, even if VS Code context-key writes fail.
@@ -549,10 +563,11 @@ export class WorkspaceContextDetector implements vscode.Disposable {
             this._state.set(k, v);
         }
 
-        this._overriddenFileNames = overriddenFileNames;
+        this._overriddenFileNames = overrides.fileNames;
+        this._overrideVersions = overrides.versions;
         this._overriddenSettingIds.clear();
         for (const i of this.instructionsCatalog.all) {
-            if (overriddenFileNames.has(i.fileName)) {
+            if (overrides.fileNames.has(i.fileName)) {
                 this._overriddenSettingIds.add(i.settingId);
             }
         }
@@ -573,7 +588,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
                 setContext(`autocontext.workspace.${key}`, value),
             ),
             ...this.instructionsCatalog.all.map(i =>
-                setContext(ContextKeys.overrideKey(i.settingId), overriddenFileNames.has(i.fileName)),
+                setContext(ContextKeys.overrideKey(i.settingId), overrides.fileNames.has(i.fileName)),
             ),
         ]).catch(err => console.error('[AutoContext] Failed to set context keys:', err));
     }
