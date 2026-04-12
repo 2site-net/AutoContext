@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { join } from 'node:path';
 import { WorkspaceContextDetector } from './workspace-context-detector.js';
 import { McpToolsConfigWriter } from './mcp-tools-config-writer.js';
 import { McpToolsCatalog } from './mcp-tools-catalog.js';
@@ -115,6 +116,11 @@ export async function activate(context: vscode.ExtensionContext) {
         vscode.commands.registerCommand(commandIds.DisableInstruction, InstructionsTreeProvider.disableInstruction),
         vscode.commands.registerCommand(commandIds.DeleteOverride, InstructionsTreeProvider.deleteOverride),
         vscode.commands.registerCommand(commandIds.ShowOriginal, InstructionsTreeProvider.showOriginal),
+        vscode.commands.registerCommand(commandIds.ShowChangelog, async (node: { entry: { fileName: string } }) => {
+            const changelogName = node.entry.fileName.replace('.instructions.md', '.CHANGELOG.md');
+            const uri = vscode.Uri.file(join(context.extensionPath, 'instructions', changelogName));
+            await vscode.commands.executeCommand('markdown.showPreview', uri);
+        }),
         vscode.commands.registerCommand(commandIds.ShowNotDetected, () => setShowNotDetected(true)),
         vscode.commands.registerCommand(commandIds.HideNotDetected, () => setShowNotDetected(false)),
         vscode.lm.registerMcpServerDefinitionProvider('AutoContextProvider', mcpServerProvider),

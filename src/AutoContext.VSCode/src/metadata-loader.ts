@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { InstructionsParser } from './instructions-parser.js';
 import type { McpToolsMetadataEntry } from './mcp-tools-catalog-entry.js';
@@ -41,8 +41,10 @@ export class MetadataLoader {
         for (const file of files) {
             const content = readFileSync(join(instructionsDir, file.fileName), 'utf-8');
             const { frontmatter } = InstructionsParser.parse(content);
-            if (frontmatter.description || frontmatter.version) {
-                metadata.set(file.fileName, frontmatter);
+            const changelogName = file.fileName.replace('.instructions.md', '.CHANGELOG.md');
+            const hasChangelog = existsSync(join(instructionsDir, changelogName));
+            if (frontmatter.description || frontmatter.version || hasChangelog) {
+                metadata.set(file.fileName, { ...frontmatter, hasChangelog });
             }
         }
 

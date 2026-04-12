@@ -142,7 +142,7 @@ export class InstructionsTreeProvider implements vscode.TreeDataProvider<TreeEle
 
     private instructionItem(node: InstructionsTreeNode): vscode.TreeItem {
         const item = new vscode.TreeItem(node.entry.label, vscode.TreeItemCollapsibleState.None);
-        item.contextValue = `instruction.${node.state.value}`;
+        item.contextValue = `instruction.${node.state.value}${node.entry.hasChangelog ? '.hasChangelog' : ''}`;
 
         switch (node.state) {
             case TreeViewNodeState.Enabled:

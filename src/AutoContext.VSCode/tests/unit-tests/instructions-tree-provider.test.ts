@@ -321,6 +321,40 @@ describe('InstructionsTreeProvider', () => {
         provider.dispose();
     });
 
+    it('should append .hasChangelog to contextValue when entry has a changelog', () => {
+        vi.mocked(fakeDetector.get).mockReturnValue(true);
+
+        const metadata = new Map([
+            ['lang-csharp.instructions.md', { description: 'C#', version: '1.0.0', hasChangelog: true }],
+        ]);
+        const changelogCatalog = new InstructionsCatalog(instructionsFiles, metadata);
+        const provider = new InstructionsTreeProvider(fakeDetector, changelogCatalog, stateResolver, tooltip);
+        const roots = provider.getChildren();
+        const languages = roots.find(r => r.kind === 'category' && r.name === 'Languages')!;
+        const children = provider.getChildren(languages);
+        const csharp = children.find(c => c.kind === 'instructions' && c.entry.settingId === 'autocontext.instructions.lang.csharp')!;
+
+        const treeItem = provider.getTreeItem(csharp);
+        expect.soft(treeItem.contextValue).toBe('instruction.enabled.hasChangelog');
+
+        provider.dispose();
+    });
+
+    it('should not append .hasChangelog when entry has no changelog', () => {
+        vi.mocked(fakeDetector.get).mockReturnValue(true);
+
+        const provider = new InstructionsTreeProvider(fakeDetector, catalog, stateResolver, tooltip);
+        const roots = provider.getChildren();
+        const general = roots.find(r => r.kind === 'category' && r.name === 'General')!;
+        const children = provider.getChildren(general);
+        const active = children.find(c => c.kind === 'instructions' && c.state === TreeViewNodeState.Enabled)!;
+
+        const treeItem = provider.getTreeItem(active);
+        expect.soft(treeItem.contextValue).not.toContain('hasChangelog');
+
+        provider.dispose();
+    });
+
     it('should update setting to true when enableInstruction is called', async () => {
         vi.mocked(fakeDetector.get).mockImplementation((key: string) => key === 'hasCSharp');
         __setConfigStore({ 'autocontext.instructions.lang.csharp': false });

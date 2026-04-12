@@ -4,6 +4,7 @@ import type { InstructionsFileEntry } from './types/instructions-file-entry.js';
 export interface InstructionsMetadataEntry {
     readonly description?: string;
     readonly version?: string;
+    readonly hasChangelog?: boolean;
 }
 
 export class InstructionsCatalogEntry implements CatalogEntry {
@@ -14,6 +15,7 @@ export class InstructionsCatalogEntry implements CatalogEntry {
     readonly contextKeys?: readonly string[];
     readonly description?: string;
     readonly version?: string;
+    readonly hasChangelog: boolean;
 
     constructor(data: InstructionsFileEntry, metadata?: InstructionsMetadataEntry) {
         this.settingId = `autocontext.instructions.${data.key}`;
@@ -23,6 +25,7 @@ export class InstructionsCatalogEntry implements CatalogEntry {
         this.contextKeys = data.contextKeys;
         this.description = metadata?.description;
         this.version = metadata?.version;
+        this.hasChangelog = metadata?.hasChangelog ?? false;
     }
 
     get targetPath(): string {

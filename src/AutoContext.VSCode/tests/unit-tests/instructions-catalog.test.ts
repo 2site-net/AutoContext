@@ -86,4 +86,23 @@ describe('InstructionsCatalog', () => {
         expect.soft(catalog.all[0].description).toBeUndefined();
         expect.soft(catalog.all[0].version).toBeUndefined();
     });
+
+    it('should default hasChangelog to false when not in metadata', () => {
+        const catalog = new InstructionsCatalog(testData);
+
+        expect.soft(catalog.all[0].hasChangelog).toBe(false);
+        expect.soft(catalog.all[1].hasChangelog).toBe(false);
+    });
+
+    it('should set hasChangelog from metadata', () => {
+        const metadata = new Map([
+            ['alpha.instructions.md', { hasChangelog: true }],
+            ['gamma.instructions.md', { hasChangelog: false }],
+        ]);
+        const catalog = new InstructionsCatalog(testData, metadata);
+
+        expect.soft(catalog.all[0].hasChangelog).toBe(true);
+        expect.soft(catalog.all[1].hasChangelog).toBe(false);
+        expect.soft(catalog.all[2].hasChangelog).toBe(false);
+    });
 });

@@ -14,6 +14,7 @@ export const commandIds = {
     DisableInstruction: 'autocontext.disable-instruction',
     DeleteOverride: 'autocontext.delete-override',
     ShowOriginal: 'autocontext.show-original',
+    ShowChangelog: 'autocontext.show-changelog',
     EnterExportMode: 'autocontext.enter-export-mode',
     ConfirmExport: 'autocontext.confirm-export',
     CancelExport: 'autocontext.cancel-export',
