@@ -62,7 +62,7 @@ suite('Instructions Tree View Smoke Tests', () => {
         const roots = exports.instructionsTreeProvider.getChildren();
         const general = roots.find((r: { kind: string; name: string }) => r.kind === 'category' && r.name === 'General');
         const children = exports.instructionsTreeProvider.getChildren(general);
-        const active = children.find((c: { state: string }) => c.state === 'active');
+        const active = children.find((c: { state: { value: string } }) => c.state.value === 'enabled');
 
         if (active) {
             const item = exports.instructionsTreeProvider.getTreeItem(active);
@@ -96,7 +96,7 @@ suite('Instructions Tree View Smoke Tests', () => {
         const roots = exports.instructionsTreeProvider.getChildren();
         for (const root of roots) {
             const children = exports.instructionsTreeProvider.getChildren(root);
-            const notDetected = children.filter((c: { state: string }) => c.state === 'notDetected');
+            const notDetected = children.filter((c: { state: { value: string } }) => c.state.value === 'notDetected');
 
             for (const nd of notDetected) {
                 const item = exports.instructionsTreeProvider.getTreeItem(nd);
@@ -151,5 +151,82 @@ suite('Instructions Tree View Smoke Tests', () => {
         } finally {
             await vscode.workspace.getConfiguration().update(active.entry.settingId, undefined, vscode.ConfigurationTarget.Global);
         }
+    });
+
+    test('all instruction items should have tooltips', async () => {
+        const { exports } = await activatedExtension();
+        const roots = exports.instructionsTreeProvider.getChildren();
+
+        for (const root of roots) {
+            const catItem = exports.instructionsTreeProvider.getTreeItem(root);
+            assert.ok(catItem.tooltip, `Category '${root.name}' should have a tooltip`);
+
+            const children = exports.instructionsTreeProvider.getChildren(root);
+            for (const child of children) {
+                const item = exports.instructionsTreeProvider.getTreeItem(child);
+                assert.ok(item.tooltip, `Instruction '${item.label}' should have a tooltip`);
+            }
+        }
+    });
+
+    test('instruction tooltips should contain setting ID', async () => {
+        const { exports } = await activatedExtension();
+        const roots = exports.instructionsTreeProvider.getChildren();
+        const general = roots.find((r: { kind: string; name: string }) => r.kind === 'category' && r.name === 'General');
+        assert.ok(general, 'General category should exist');
+        const children = exports.instructionsTreeProvider.getChildren(general);
+
+        for (const child of children) {
+            const item = exports.instructionsTreeProvider.getTreeItem(child);
+            const tip = item.tooltip as string;
+            assert.ok(tip.includes('Setting:'), `Tooltip should contain 'Setting:' prefix`);
+            assert.ok(tip.includes(child.entry.settingId), `Tooltip should contain setting ID '${child.entry.settingId}'`);
+        }
+    });
+
+    test('enabled items should have correct context value and icon', async () => {
+        const { exports } = await activatedExtension();
+        const roots = exports.instructionsTreeProvider.getChildren();
+        const general = roots.find((r: { kind: string; name: string }) => r.kind === 'category' && r.name === 'General');
+        const children = exports.instructionsTreeProvider.getChildren(general);
+        const enabled = children.find((c: { state: { value: string } }) => c.state.value === 'enabled');
+
+        assert.ok(enabled, 'Should have at least one enabled instruction');
+        const item = exports.instructionsTreeProvider.getTreeItem(enabled);
+        assert.strictEqual(item.contextValue, 'instruction.enabled', 'Context value should be instruction.enabled');
+        assert.ok(item.iconPath, 'Enabled item should have an icon');
+    });
+
+    test('not-detected items should have description and icon', async () => {
+        const { exports } = await activatedExtension();
+        const roots = exports.instructionsTreeProvider.getChildren();
+        let notDetectedCount = 0;
+
+        for (const root of roots) {
+            const children = exports.instructionsTreeProvider.getChildren(root);
+            for (const child of children) {
+                if (child.state.value === 'notDetected') {
+                    const item = exports.instructionsTreeProvider.getTreeItem(child);
+                    assert.strictEqual(item.contextValue, 'instruction.notDetected', 'Context value should be instruction.notDetected');
+                    assert.ok(item.description, `Not-detected item '${item.label}' should have a description`);
+                    assert.ok(item.iconPath, `Not-detected item '${item.label}' should have an icon`);
+                    notDetectedCount++;
+                }
+            }
+        }
+
+        assert.ok(notDetectedCount > 0, 'Should have at least one not-detected instruction');
+    });
+
+    test('category tooltips should show active count', async () => {
+        const { exports } = await activatedExtension();
+        const roots = exports.instructionsTreeProvider.getChildren();
+        const general = roots.find((r: { kind: string; name: string }) => r.kind === 'category' && r.name === 'General');
+        assert.ok(general, 'General category should exist');
+        const catItem = exports.instructionsTreeProvider.getTreeItem(general);
+        const tip = catItem.tooltip as string;
+
+        assert.ok(tip.includes('General'), `Category tooltip should contain category name`);
+        assert.match(tip, /\d+\/\d+/, 'Category tooltip should show active/total count');
     });
 });
