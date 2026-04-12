@@ -48,11 +48,20 @@ export const window = {
     showTextDocument: vi.fn(),
     onDidChangeActiveTextEditor: vi.fn(() => ({ dispose: vi.fn() })),
     registerTreeDataProvider: vi.fn(() => ({ dispose: vi.fn() })),
-    createTreeView: vi.fn(() => ({
-        description: undefined as string | undefined,
-        onDidChangeCheckboxState: vi.fn(() => ({ dispose: vi.fn() })),
-        dispose: vi.fn(),
-    })),
+    createTreeView: vi.fn(() => {
+        const visibilityListeners: ((e: { visible: boolean }) => void)[] = [];
+        return {
+            badge: undefined as { value: number; tooltip: string } | undefined,
+            description: undefined as string | undefined,
+            onDidChangeCheckboxState: vi.fn(() => ({ dispose: vi.fn() })),
+            onDidChangeVisibility: vi.fn((listener: (e: { visible: boolean }) => void) => {
+                visibilityListeners.push(listener);
+                return { dispose: vi.fn(() => { const i = visibilityListeners.indexOf(listener); if (i >= 0) { visibilityListeners.splice(i, 1); } }) };
+            }),
+            __fireVisibility: (visible: boolean) => { for (const l of [...visibilityListeners]) { l({ visible }); } },
+            dispose: vi.fn(),
+        };
+    }),
     visibleTextEditors: [] as unknown[],
     tabGroups: {
         all: [] as { tabs: unknown[] }[],

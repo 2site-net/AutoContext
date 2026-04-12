@@ -239,6 +239,21 @@ export class InstructionsTreeProvider implements vscode.TreeDataProvider<TreeEle
         await vscode.commands.executeCommand('vscode.open', uri);
     }
 
+    setBadge(value: number, tooltip: string): void {
+        this.treeView.badge = value > 0 ? { value, tooltip } : undefined;
+    }
+
+    dismissBadgeOnNextReveal(onDismiss?: () => void | Promise<void>): void {
+        const listener = this.treeView.onDidChangeVisibility(e => {
+            if (e.visible) {
+                this.setBadge(0, '');
+                listener.dispose();
+                void onDismiss?.();
+            }
+        });
+        this.disposables.push(listener);
+    }
+
     dispose(): void {
         for (const d of this.disposables) {
             d.dispose();

@@ -1,11 +1,12 @@
 import * as vscode from 'vscode';
 import { join } from 'node:path';
+import { existsSync } from 'node:fs';
 import { WorkspaceContextDetector } from './workspace-context-detector.js';
 import { McpToolsConfigWriter } from './mcp-tools-config-writer.js';
 import { McpToolsCatalog } from './mcp-tools-catalog.js';
 import { InstructionsCatalog } from './instructions-catalog.js';
 import { McpServersCatalog } from './mcp-servers-catalog.js';
-import { mcpTools, instructionsFiles, mcpServers, commandIds } from './ui-constants.js';
+import { mcpTools, instructionsFiles, mcpServers, commandIds, contextKeys, globalStateKeys } from './ui-constants.js';
 import { AutoConfigurer } from './auto-configurer.js';
 import { InstructionsExporter } from './instructions-exporter.js';
 import { AutoContextConfigManager } from './autocontext-config.js';
@@ -121,6 +122,10 @@ export async function activate(context: vscode.ExtensionContext) {
             const uri = vscode.Uri.file(join(context.extensionPath, 'instructions', changelogName));
             await vscode.commands.executeCommand('markdown.showPreview', uri);
         }),
+        vscode.commands.registerCommand(commandIds.ShowWhatsNew, async () => {
+            const uri = vscode.Uri.file(join(context.extensionPath, 'CHANGELOG.md'));
+            await vscode.commands.executeCommand('markdown.showPreview', uri);
+        }),
         vscode.commands.registerCommand(commandIds.ShowNotDetected, () => setShowNotDetected(true)),
         vscode.commands.registerCommand(commandIds.HideNotDetected, () => setShowNotDetected(false)),
         vscode.lm.registerMcpServerDefinitionProvider('AutoContextProvider', mcpServerProvider),
@@ -147,6 +152,21 @@ export async function activate(context: vscode.ExtensionContext) {
     }
 
     await instructionsWriter.write();
+
+    const lastSeenVersion = context.globalState.get<string>(globalStateKeys.LastSeenVersion);
+    const hasUpdate = lastSeenVersion !== undefined && lastSeenVersion !== version;
+    if (hasUpdate) {
+        instructionsTreeProvider.setBadge(1, 'New version available');
+        instructionsTreeProvider.dismissBadgeOnNextReveal(async () => {
+            await context.globalState.update(globalStateKeys.LastSeenVersion, version);
+        });
+    }
+    if (lastSeenVersion === undefined) {
+        await context.globalState.update(globalStateKeys.LastSeenVersion, version);
+    }
+
+    const hasWhatsNew = existsSync(join(context.extensionPath, 'CHANGELOG.md'));
+    void vscode.commands.executeCommand('setContext', contextKeys.HasWhatsNew, hasWhatsNew);
 
     await logDiagnostics();
 

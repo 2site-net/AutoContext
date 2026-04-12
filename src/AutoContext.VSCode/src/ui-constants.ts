@@ -15,6 +15,7 @@ export const commandIds = {
     DeleteOverride: 'autocontext.delete-override',
     ShowOriginal: 'autocontext.show-original',
     ShowChangelog: 'autocontext.show-changelog',
+    ShowWhatsNew: 'autocontext.show-whats-new',
     EnterExportMode: 'autocontext.enter-export-mode',
     ConfirmExport: 'autocontext.confirm-export',
     CancelExport: 'autocontext.cancel-export',
@@ -27,6 +28,11 @@ export const viewIds = {
 
 export const contextKeys = {
     ExportMode: 'autocontext.export-mode',
+    HasWhatsNew: 'autocontext.has-whats-new',
+} as const;
+
+export const globalStateKeys = {
+    LastSeenVersion: 'autocontext.lastSeenVersion',
 } as const;
 
 // ── Instructions ─────────────────────────────────────────────────────

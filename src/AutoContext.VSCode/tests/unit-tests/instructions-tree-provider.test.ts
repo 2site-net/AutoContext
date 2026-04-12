@@ -546,6 +546,84 @@ describe('InstructionsTreeProvider', () => {
         provider.dispose();
     });
 
+    it('should set badge on tree view when setBadge is called with a positive value', () => {
+        vi.mocked(fakeDetector.get).mockReturnValue(true);
+
+        const provider = new InstructionsTreeProvider(fakeDetector, catalog, stateResolver, tooltip);
+        provider.setBadge(1, 'New version available');
+
+        const treeView = vi.mocked(window.createTreeView).mock.results.at(-1)!.value;
+        expect.soft(treeView.badge).toEqual({ value: 1, tooltip: 'New version available' });
+
+        provider.dispose();
+    });
+
+    it('should clear badge on tree view when setBadge is called with zero', () => {
+        vi.mocked(fakeDetector.get).mockReturnValue(true);
+
+        const provider = new InstructionsTreeProvider(fakeDetector, catalog, stateResolver, tooltip);
+        provider.setBadge(1, 'New version available');
+        provider.setBadge(0, '');
+
+        const treeView = vi.mocked(window.createTreeView).mock.results.at(-1)!.value;
+        expect.soft(treeView.badge).toBeUndefined();
+
+        provider.dispose();
+    });
+
+    it('should clear badge when tree view becomes visible after dismissBadgeOnNextReveal', () => {
+        vi.mocked(fakeDetector.get).mockReturnValue(true);
+        const onDismiss = vi.fn();
+
+        const provider = new InstructionsTreeProvider(fakeDetector, catalog, stateResolver, tooltip);
+        provider.setBadge(1, 'New version available');
+        provider.dismissBadgeOnNextReveal(onDismiss);
+
+        const treeView = vi.mocked(window.createTreeView).mock.results.at(-1)!.value;
+        treeView.__fireVisibility(true);
+
+        expect.soft(treeView.badge).toBeUndefined();
+        expect.soft(onDismiss).toHaveBeenCalledOnce();
+
+        provider.dispose();
+    });
+
+    it('should not clear badge when tree view becomes hidden', () => {
+        vi.mocked(fakeDetector.get).mockReturnValue(true);
+
+        const provider = new InstructionsTreeProvider(fakeDetector, catalog, stateResolver, tooltip);
+        provider.setBadge(1, 'New version available');
+        provider.dismissBadgeOnNextReveal();
+
+        const treeView = vi.mocked(window.createTreeView).mock.results.at(-1)!.value;
+        treeView.__fireVisibility(false);
+
+        expect.soft(treeView.badge).toEqual({ value: 1, tooltip: 'New version available' });
+
+        provider.dispose();
+    });
+
+    it('should only dismiss badge once after dismissBadgeOnNextReveal', () => {
+        vi.mocked(fakeDetector.get).mockReturnValue(true);
+        const onDismiss = vi.fn();
+
+        const provider = new InstructionsTreeProvider(fakeDetector, catalog, stateResolver, tooltip);
+        provider.setBadge(1, 'New version available');
+        provider.dismissBadgeOnNextReveal(onDismiss);
+
+        const treeView = vi.mocked(window.createTreeView).mock.results.at(-1)!.value;
+        treeView.__fireVisibility(true);
+
+        // Set badge again manually — should not auto-clear
+        provider.setBadge(2, 'Another update');
+        treeView.__fireVisibility(true);
+
+        expect.soft(treeView.badge).toEqual({ value: 2, tooltip: 'Another update' });
+        expect.soft(onDismiss).toHaveBeenCalledOnce();
+
+        provider.dispose();
+    });
+
     it('should hide not-detected instructions when showNotDetected is false', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(false);
 

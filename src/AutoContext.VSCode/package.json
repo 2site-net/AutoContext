@@ -124,6 +124,11 @@
         "icon": "$(book)"
       },
       {
+        "command": "autocontext.show-whats-new",
+        "title": "What's New",
+        "category": "AutoContext"
+      },
+      {
         "command": "autocontext.show-not-detected",
         "title": "Show Not Detected",
         "category": "AutoContext",
@@ -177,6 +182,10 @@
         {
           "command": "autocontext.show-changelog",
           "when": "false"
+        },
+        {
+          "command": "autocontext.show-whats-new",
+          "when": "autocontext.has-whats-new"
         },
         {
           "command": "autocontext.show-not-detected",
