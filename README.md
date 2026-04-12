@@ -2,7 +2,9 @@
 
 # AutoContext
 
-AutoContext is a quality assurance extension for Visual Studio Code that leverages an MCP server to enable model-invokable tools and curated, configurable instructions—elevating code quality, workflows, and overall developer productivity with Copilot.
+AutoContext is a context toolkit for AI coding assistants. It ships with curated instructions that shape how code is written and reviewed, bundled MCP tools that validate code against concrete rules, and a context orchestration layer that automatically wires the right guidance and checks into the model based on the workspace and environment. Today AutoContext is integrated with GitHub Copilot, but its architecture is designed to support additional coding assistants and external context sources over time.
+
+> **Work in Progress** — Instructions and tools are refined iteratively. Coverage, rules, and tool behavior will continue to evolve as we incorporate feedback and expand language and framework support.
 
 Distributed as a VS Code extension — see [src/AutoContext.VSCode/README.md](src/AutoContext.VSCode/README.md) for installation and usage.
 
@@ -29,6 +31,8 @@ src/AutoContext.WorkspaceServer/        # Handles cross-cutting workspace tasks 
 src/AutoContext.Mcp.DotNet/             # Provides MCP tools server for .NET development (e.g. C#, NuGet)
 src/AutoContext.Mcp.Web/                # Provides MCP tools server for web development (e.g. TypeScript)
 src/AutoContext.VSCode/                 # VS Code extension for instructions, tool orchestration, and workspace detection
+src/AutoContext.Mcp.DotNet.Tests/       # Tests for the .NET MCP server
+src/AutoContext.WorkspaceServer.Tests/  # Tests for the workspace server
 ```
 
 ## Architecture

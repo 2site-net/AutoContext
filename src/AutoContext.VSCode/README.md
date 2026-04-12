@@ -2,7 +2,7 @@
 
 # AutoContext
 
-AutoContext is a quality assurance extension for Visual Studio Code that leverages an MCP server to enable model-invokable tools and curated, configurable instructions—elevating code quality, workflows, and overall developer productivity with Copilot.
+AutoContext is a context toolkit for AI coding assistants. It ships with curated instructions that shape how code is written and reviewed, bundled MCP tools that validate code against concrete rules, and a context orchestration layer that automatically wires the right guidance and checks into the model based on the workspace and environment.
 
 > **Work in Progress** — Instructions and tools are refined iteratively. Coverage, rules, and tool behavior will continue to evolve as we incorporate feedback and expand language and framework support.
 
@@ -58,6 +58,13 @@ The disable state is stored in `.autocontext.json` in your workspace root — co
 | **AutoContext: Auto Configure** | Scan the workspace and enable relevant items. |
 | **AutoContext: Toggle Instruction** | Disable or re-enable a single instruction (invoked via CodeLens). |
 | **AutoContext: Reset Instructions** | Re-enable all disabled instructions for the current file (invoked via CodeLens). |
+| **AutoContext: Enable Instruction** | Enable an instruction from the sidebar panel. |
+| **AutoContext: Disable Instruction** | Disable an instruction from the sidebar panel. |
+| **AutoContext: Export Instructions** | Enter export mode — check instructions to export to `.github/instructions/`. |
+| **AutoContext: Delete Override** | Remove an exported instruction file from the workspace. |
+| **AutoContext: Show Original** | View the built-in version of an overridden instruction. |
+| **AutoContext: Show Not Detected** | Show items not detected in the workspace in the sidebar panels. |
+| **AutoContext: Hide Not Detected** | Hide items not detected in the workspace from the sidebar panels. |
 
 ## Prerequisites
 
