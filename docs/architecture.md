@@ -210,6 +210,28 @@ Each instruction file carries YAML frontmatter (`name`, `description`, optional 
 
 At activation (Phase 1), `MetadataLoader` reads the merged `.mcp-tools.json` for tool metadata and parses frontmatter from every instruction file. The enriched data is passed to `McpToolsCatalog` and `InstructionsCatalog`, which serve as the single source of truth for tree views, tooltips, config writers, and the MCP server provider.
 
+### Versioning Semantics
+
+Both instructions and tools carry semver version strings. The version levels have specific meanings:
+
+**Instructions:**
+
+| Level | Meaning | Impact on disabled IDs |
+|-------|---------|----------------------|
+| Major | Complete replacement — rules renumbered, removed, or fundamentally changed. `[INSTxxxx]` IDs from the previous major are not comparable. | Clear all disabled IDs |
+| Minor | Rule set changed — IDs added, removed, or reordered. An existing `[INSTxxxx]` may now point to a different rule. | Clear all disabled IDs |
+| Patch | Wording refined — same rules, same IDs, same order. No behavioral change. | Keep disabled IDs as-is |
+
+When an instruction's MAJOR.MINOR version advances beyond the version stored alongside the user's disabled IDs, those IDs are automatically cleared and the user is notified. Patch-only bumps silently update the stored version.
+
+**Tools:**
+
+| Level | Meaning |
+|-------|---------|
+| Major | Breaking — features renamed, removed, or fundamentally changed |
+| Minor | New features or checks added; existing features unchanged |
+| Patch | Bug fixes or refinements to existing checks |
+
 ---
 
 ## MCP and Tools
