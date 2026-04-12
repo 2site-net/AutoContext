@@ -117,12 +117,12 @@ suite('Instructions Tree View Smoke Tests', () => {
             const general = roots.find((r: { kind: string; name: string }) => r.kind === 'category' && r.name === 'General');
             const children = exports.instructionsTreeProvider.getChildren(general);
             const disabled = children.find(
-                (c: { kind: string; entry: { settingId: string }; state: string }) =>
+                (c: { kind: string; entry: { settingId: string }; state: { value: string } }) =>
                     c.kind === 'instructions' && c.entry.settingId === 'autocontext.instructions.designPrinciples',
             );
 
             assert.ok(disabled, 'Design Principles should be found');
-            assert.strictEqual(disabled.state, 'disabled', 'Should be disabled');
+            assert.strictEqual(disabled.state.value, 'disabled', 'Should be disabled');
 
             await vscode.commands.executeCommand('autocontext.enable-instruction', disabled);
 
@@ -139,7 +139,7 @@ suite('Instructions Tree View Smoke Tests', () => {
         const roots = exports.instructionsTreeProvider.getChildren();
         const general = roots.find((r: { kind: string; name: string }) => r.kind === 'category' && r.name === 'General');
         const children = exports.instructionsTreeProvider.getChildren(general);
-        const active = children.find((c: { kind: string; state: string }) => c.kind === 'instructions' && c.state === 'active');
+        const active = children.find((c: { kind: string; state: { value: string } }) => c.kind === 'instructions' && c.state.value === 'enabled');
 
         assert.ok(active, 'Should have at least one active instruction');
 
