@@ -67,10 +67,10 @@ describe('parseInstructions', () => {
         expect.soft(instructions[0]?.id).toBe('INST0001');
     });
 
-    it('should extract frontmatter description and version', () => {
+    it('should extract frontmatter description and version from name', () => {
         const content = `---
 description: "My instruction file"
-version: "1.2.3"
+name: "my-instruction (v1.2.3)"
 ---
 # Test
 
@@ -86,7 +86,7 @@ version: "1.2.3"
         const content = `---
 description: "Scoped instructions"
 applyTo: "**/*.cs"
-version: "1.0.0"
+name: "scoped (v1.0.0)"
 ---
 # Test
 

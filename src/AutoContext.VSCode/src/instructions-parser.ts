@@ -108,9 +108,13 @@ export class InstructionsParser {
             }
         }
 
+        // Version is embedded in the name field as "(vX.Y.Z)" suffix to avoid
+        // VS Code's "unsupported attribute" diagnostic on a bare version field.
+        const versionMatch = result['name']?.match(/\(v([\d.]+)\)\s*$/);
+
         return {
             description: result['description'],
-            version: result['version'],
+            version: versionMatch?.[1],
         };
     }
 
