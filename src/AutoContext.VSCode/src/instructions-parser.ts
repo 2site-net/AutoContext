@@ -3,6 +3,7 @@ import type { InstructionsParsedInstruction } from './types/instructions-parsed-
 import type { InstructionsDiagnostic } from './types/instructions-diagnostic.js';
 import type { InstructionsParsedResult, InstructionsFrontmatter } from './types/instructions-parsed-result.js';
 import type { InstructionsFileParsedResult } from './types/instructions-file-parsed-result.js';
+import { SemVer } from './semver.js';
 
 const instructionBulletPattern = /^[-*]\s(?:\[(INST\d{4})\]\s*)?\*\*(Do|Don't)\*\*/;
 const malformedIdPattern = /^[-*]\s\[(?!INST\d{4}\])[^\]]*\]\s*\*\*(Do|Don't)\*\*/;
@@ -110,11 +111,11 @@ export class InstructionsParser {
 
         // Version is embedded in the name field as "(vX.Y.Z)" suffix to avoid
         // VS Code's "unsupported attribute" diagnostic on a bare version field.
-        const versionMatch = result['name']?.match(/\(v([\d.]+)\)\s*$/);
+        const version = result['name'] ? SemVer.fromParentheses(result['name']) : undefined;
 
         return {
             description: result['description'],
-            version: versionMatch?.[1],
+            version,
         };
     }
 

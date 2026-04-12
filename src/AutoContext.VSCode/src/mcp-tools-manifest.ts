@@ -10,6 +10,7 @@ import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { mcpTools } from './ui-constants.js';
+import { SemVer } from './semver.js';
 
 interface McpToolFeature {
     name: string;
@@ -80,6 +81,19 @@ export function validate(manifest: McpToolsManifest): void {
     const catalogToolNames = new Set(mcpTools.map(t => t.toolName).filter((n): n is string => n !== undefined));
 
     const errors: string[] = [];
+
+    for (const tools of Object.values(manifest)) {
+        for (const tool of tools) {
+            if (!SemVer.isValid(tool.version)) {
+                errors.push(`Invalid version '${tool.version}' on tool '${tool.name}'. Expected semver format (e.g. 1.0.0 or 1.0.0-beta.1).`);
+            }
+            for (const feature of tool.features ?? []) {
+                if (!SemVer.isValid(feature.version)) {
+                    errors.push(`Invalid version '${feature.version}' on feature '${feature.name}' (tool '${tool.name}'). Expected semver format (e.g. 1.0.0 or 1.0.0-beta.1).`);
+                }
+            }
+        }
+    }
 
     const missingInManifest = [...catalogKeys].filter(k => !leafKeys.has(k));
     const missingInCatalog = [...leafKeys].filter(n => !catalogKeys.has(n));
