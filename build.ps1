@@ -89,7 +89,7 @@ $ErrorActionPreference = 'Stop'
 $repoRoot = $PSScriptRoot
 
 # VS Code extension directory (fixed — used for packaging, publishing, assets)
-$extensionDir = Join-Path $repoRoot 'src' 'AutoContext.VSCode'
+$extensionDir = Join-Path $repoRoot 'src' 'AutoContext.VsCode'
 
 # Discover vitest configs
 $vitestConfigs = @(Get-ChildItem $repoRoot -Filter 'vitest.config.ts' -Recurse -File -Depth 4)

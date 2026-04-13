@@ -7,6 +7,7 @@
   <ItemGroup>
     <InternalsVisibleTo Include="AutoContext.Mcp.DotNet" />
     <InternalsVisibleTo Include="AutoContext.WorkspaceServer" />
+    <InternalsVisibleTo Include="AutoContext.WorkspaceServer.Tests" />
   </ItemGroup>
 
 </Project>

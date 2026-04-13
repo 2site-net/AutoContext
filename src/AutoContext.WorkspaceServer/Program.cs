@@ -5,11 +5,12 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Console;
 
-using AutoContext.Mcp.Shared.EditorConfig;
-using AutoContext.WorkspaceServer.Features.EditorConfig;
-using AutoContext.WorkspaceServer.Features.Git;
-using AutoContext.WorkspaceServer.Features.McpTools;
-using AutoContext.WorkspaceServer.Services;
+using AutoContext.Mcp.Shared.McpTools;
+using AutoContext.WorkspaceServer.Hosting;
+using AutoContext.WorkspaceServer.Hosting.EditorConfig;
+using AutoContext.WorkspaceServer.Hosting.McpTools;
+using AutoContext.WorkspaceServer.Tools.EditorConfig;
+using AutoContext.WorkspaceServer.Tools.Git;
 
 var builder = Host.CreateApplicationBuilder(args);
 
@@ -44,7 +45,7 @@ else if (scope == "git")
 
     if (workspaceServer is not null)
     {
-        EditorConfigReader.Configure(workspaceServer, workspaceFolder);
+        McpToolsClient.Configure(workspaceServer, workspaceFolder);
     }
 
     builder.Services

@@ -6,7 +6,7 @@ AutoContext is a context toolkit for AI coding assistants. It ships with curated
 
 > **Work in Progress** — Instructions and tools are refined iteratively. Coverage, rules, and tool behavior will continue to evolve as we incorporate feedback and expand language and framework support.
 
-Distributed as a VS Code extension — see [src/AutoContext.VSCode/README.md](src/AutoContext.VSCode/README.md) for installation and usage.
+Distributed as a VS Code extension — see [src/AutoContext.VsCode/README.md](src/AutoContext.VsCode/README.md) for installation and usage.
 
 ## Features
 
@@ -26,11 +26,17 @@ Tools and instructions are grouped into categories and managed from dedicated si
 
 ```text
 AutoContext.slnx                        # Solution file
-src/AutoContext.Mcp.Shared/             # Shared contracts and communication layer for .NET MCP servers
+src/AutoContext.Mcp.Shared/             # Shared contracts (IChecker, IEditorConfigFilter) and pipe protocol types
+  Checkers/                             #   Checker interfaces implemented across projects
+  McpTools/                             #   McpToolsClient (pipe client) and wire-contract types
 src/AutoContext.WorkspaceServer/        # Handles cross-cutting workspace tasks and hosts technology-agnostic MCP tools
+  Tools/                                #   MCP-facing entry points (EditorConfig tool, Git checkers)
+  Hosting/                              #   Named-pipe infrastructure, EditorConfig resolution, MCP tool orchestration
 src/AutoContext.Mcp.DotNet/             # Provides MCP tools server for .NET development (e.g. C#, NuGet)
+  Tools/                                #   CSharp/ and NuGet/ checker implementations
 src/AutoContext.Mcp.Web/                # Provides MCP tools server for web development (e.g. TypeScript)
-src/AutoContext.VSCode/                 # VS Code extension for instructions, tool orchestration, and workspace detection
+  src/tools/                            #   TypeScript checker implementations
+src/AutoContext.VsCode/                 # VS Code extension for instructions, tool orchestration, and workspace detection
 src/AutoContext.Mcp.DotNet.Tests/       # Tests for the .NET MCP server
 src/AutoContext.WorkspaceServer.Tests/  # Tests for the workspace server
 ```
@@ -110,13 +116,13 @@ If you have the .NET 10 SDK installed and have cloned this repo, you can registe
 Smoke tests launch a real VS Code instance, load the extension, and verify activation and command registration:
 
 ```sh
-cd src/AutoContext.VSCode
+cd src/AutoContext.VsCode
 npm install
 npm run test:smoke
 ```
 
 A VS Code installation is downloaded automatically on the first run and cached
-in `src/AutoContext.VSCode/.vscode-test/`.
+in `src/AutoContext.VsCode/.vscode-test/`.
 
 ## Building and Publishing the Extension
 

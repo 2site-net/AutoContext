@@ -35,7 +35,7 @@ jobs:
           node-version: '22'
 
       - name: Install extension dependencies
-        working-directory: src/AutoContext.VSCode
+        working-directory: src/AutoContext.VsCode
         run: npm ci
 
       - name: Install web MCP server dependencies
@@ -43,7 +43,7 @@ jobs:
         run: npm ci
 
       - name: Set version in package.json
-        working-directory: src/AutoContext.VSCode
+        working-directory: src/AutoContext.VsCode
         run: npm version "$GITHUB_REF_NAME" --no-git-tag-version --allow-same-version
 
       - name: Package and publish
@@ -55,4 +55,4 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           generate_release_notes: true
-          files: src/AutoContext.VSCode/publish/*.vsix
+          files: src/AutoContext.VsCode/publish/*.vsix

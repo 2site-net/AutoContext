@@ -4,7 +4,7 @@ AutoContext is a context toolkit for AI coding assistants. It ships with curated
 
 ## Coding Guidelines
 
-Detailed instruction files live in `src/AutoContext.VSCode/instructions/`.
+Detailed instruction files live in `src/AutoContext.VsCode/instructions/`.
 **Do** read the relevant file **before** generating or reviewing code:
 
 | When working on          | Read                                                                                                                          |
@@ -21,7 +21,7 @@ Detailed instruction files live in `src/AutoContext.VSCode/instructions/`.
 | Batch (CMD) scripts      | `lang-batch.instructions.md`                                                                                                  |
 | REST API design          | `rest-api-design.instructions.md`                                                                                             |
 
-All paths are relative to `src/AutoContext.VSCode/instructions/`.
+All paths are relative to `src/AutoContext.VsCode/instructions/`.
 
 ## Context
 

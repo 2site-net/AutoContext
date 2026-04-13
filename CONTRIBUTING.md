@@ -32,4 +32,4 @@ Please open an issue before submitting large refactors or features that material
 
 ## Code Style
 
-The project follows its own coding standards via AutoContext's instruction files. See `src/AutoContext.VSCode/instructions/` for the full set of guidelines.
+The project follows its own coding standards via AutoContext's instruction files. See `src/AutoContext.VsCode/instructions/` for the full set of guidelines.

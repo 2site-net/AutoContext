@@ -4,9 +4,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-using AutoContext.Mcp.Shared.EditorConfig;
-using AutoContext.Mcp.DotNet.Tools.Checkers;
-using AutoContext.Mcp.DotNet.Tools.Checkers.CSharp;
+using AutoContext.Mcp.Shared.McpTools;
+using AutoContext.Mcp.DotNet.Tools.NuGet;
+using AutoContext.Mcp.DotNet.Tools.CSharp;
 
 internal sealed class Program
 {
@@ -30,7 +30,7 @@ internal sealed class Program
 
         if (workspaceServer is not null)
         {
-            EditorConfigReader.Configure(workspaceServer, workspaceFolder);
+            McpToolsClient.Configure(workspaceServer, workspaceFolder);
         }
 
         Type[] toolTypes = scope switch

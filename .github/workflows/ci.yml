@@ -27,7 +27,7 @@ jobs:
           node-version: '22'
 
       - name: Install extension dependencies
-        working-directory: src/AutoContext.VSCode
+        working-directory: src/AutoContext.VsCode
         run: npm ci
 
       - name: Install web MCP server dependencies

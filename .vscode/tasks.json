@@ -6,7 +6,7 @@
       "type": "shell",
       "command": "npm run compile",
       "options": {
-        "cwd": "${workspaceFolder}/src/AutoContext.VSCode"
+        "cwd": "${workspaceFolder}/src/AutoContext.VsCode"
       },
       "problemMatcher": "$tsc",
       "presentation": {

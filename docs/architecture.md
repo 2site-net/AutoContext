@@ -276,13 +276,29 @@ AutoContext registers four MCP server categories — DotNet, Git, EditorConfig, 
 
 A shared class library and three executables make up the server side:
 
-- **`AutoContext.Mcp.Shared`** — Shared contracts and communication layer for the .NET MCP servers.
-- **`AutoContext.Mcp.DotNet`** — .NET-based MCP server. Handles the DotNet scope. C# checkers resolve `.editorconfig` properties via the workspace server and use them to drive enforcement direction (e.g., brace style, namespace style).
-- **`AutoContext.Mcp.Web`** — Node.js-based MCP server. Handles the TypeScript scope.
-- **`AutoContext.WorkspaceServer`** — Handles cross-cutting workspace tasks and hosts technology-agnostic MCP tools. Multi-mode .NET executable:
+- **`AutoContext.Mcp.Shared`** — Shared contracts and communication layer for the .NET MCP servers. Contains:
+  - `Checkers/` — `IChecker` and `IEditorConfigFilter` interfaces implemented by tool checkers across projects.
+  - `McpTools/` — `McpToolsClient` (named-pipe client for querying WorkspaceServer) and the wire-contract types (`McpToolsRequest`, `McpToolsResponse`, `McpToolMode`, `McpToolEntry`, `McpToolResult`) that define the protocol between MCP servers and WorkspaceServer. Both sides of the pipe share these types — they are the single source of truth.
+- **`AutoContext.Mcp.DotNet`** — .NET-based MCP server. Handles the DotNet scope. Contains `Tools/CSharp/` (C# checkers) and `Tools/NuGet/` (NuGet hygiene). C# checkers resolve `.editorconfig` properties via the workspace server and use them to drive enforcement direction (e.g., brace style, namespace style).
+- **`AutoContext.Mcp.Web`** — Node.js-based MCP server. Handles the TypeScript scope. Mirrors the .NET structure: `features/checkers/` (shared interfaces), `features/logging/` (logger), `features/mcp-tools/` (MCP tools client), and `tools/typescript/` (checkers).
+- **`AutoContext.WorkspaceServer`** — Handles cross-cutting workspace tasks and hosts technology-agnostic MCP tools. Multi-mode .NET executable with two folder layers:
+  - `Tools/` — MCP-facing entry points (the tools Copilot calls). Contains `EditorConfig/EditorConfigTool` and `Git/` checkers.
+  - `Hosting/` — Named-pipe server infrastructure and domain logic. At the top level: `WorkspaceService` (dispatch), `IRequestHandler`, and the `WorkspaceRequest` envelope. Subfolders contain feature handlers: `EditorConfig/` owns property resolution (`EditorConfigResolver`) and the named-pipe request handler; `McpTools/` owns tool orchestration (enable/disable decisions via `McpToolsConfig`, request handling via `McpToolsRequestHandler`).
+  
+  The dependency flows one way: Tools → Hosting. The three modes:
   - **MCP mode — EditorConfig** (`--scope editorconfig`): Runs as an MCP stdio server exposing a single tool, `get_editorconfig`, which resolves the effective `.editorconfig` properties for a given file path by walking the directory tree, evaluating glob patterns and section cascading, and returning the final key-value pairs. This tool is standalone — it has no features.
   - **MCP mode — Git** (`--scope git`): Runs as an MCP stdio server exposing Git quality checks (commit format, commit content). Like the DotNet scope, checkers resolve `.editorconfig` properties via the workspace server.
   - **Named-pipe mode** (`--pipe <name>`): Runs as a long-lived background service started once by `WorkspaceServerManager`. Handles `"editorconfig"` requests (property resolution) and `"mcp-tools"` requests (tool orchestration — enable/disable decisions + EditorConfig data). All other MCP servers connect to this service via `--workspace-server <pipeName>`.
+
+### EditorConfig Layering
+
+EditorConfig logic appears at three levels, each with a distinct role:
+
+| Layer | Location | Role |
+|-------|----------|------|
+| **Shared reader** | `Mcp.Shared/McpTools/McpToolsClient` | Named pipe client. Sends requests to the WorkspaceServer and returns resolved properties + tool decisions to callers. Used by MCP tool checkers in `Mcp.DotNet` and `WorkspaceServer`. |
+| **Hosting resolver** | `WorkspaceServer/Hosting/EditorConfig/EditorConfigResolver` | Server-side logic. Walks the directory tree, parses `.editorconfig` files, evaluates glob patterns, and returns final key-value pairs. Owns the request handler for `"editorconfig"` pipe requests. |
+| **MCP tool** | `WorkspaceServer/Tools/EditorConfig/EditorConfigTool` | The `get_editorconfig` MCP tool that Copilot can call directly. Delegates to the Hosting resolver. |
 
 > **Future:** The current design relies on Copilot calling `get_editorconfig` explicitly — which depends on the model following the instruction in `copilot.instructions.md`. A planned improvement would replace this with a dynamic `InstructionsProvider` that injects `.editorconfig` rules into the chat context automatically, removing the tool-call dependency. This is blocked on the VS Code `chatPromptFiles` proposed API graduating to stable. See [docs/future/dynamic-editorconfig-instructions.md](future/dynamic-editorconfig-instructions.md) for details.
 
