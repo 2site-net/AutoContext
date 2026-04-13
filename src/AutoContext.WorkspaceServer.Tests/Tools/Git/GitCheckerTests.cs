@@ -2,6 +2,7 @@ namespace AutoContext.WorkspaceServer.Tests.Tools.Git;
 
 using Microsoft.Extensions.Logging.Abstractions;
 
+using AutoContext.Mcp.Shared.McpTools;
 using AutoContext.WorkspaceServer.Tools.Git;
 
 public sealed class GitCheckerTests
@@ -13,7 +14,7 @@ public sealed class GitCheckerTests
         var message = "feat(auth): add token refresh";
 
         // Act
-        var result = await new GitChecker(NullLogger<GitChecker>.Instance).CheckAsync(message);
+        var result = await new GitChecker(new McpToolsClient(), NullLogger<GitChecker>.Instance).CheckAsync(message);
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -26,7 +27,7 @@ public sealed class GitCheckerTests
         var message = "added token refresh support";
 
         // Act
-        var result = await new GitChecker(NullLogger<GitChecker>.Instance).CheckAsync(message);
+        var result = await new GitChecker(new McpToolsClient(), NullLogger<GitChecker>.Instance).CheckAsync(message);
 
         // Assert
         Assert.StartsWith("❌", result);
@@ -44,7 +45,7 @@ public sealed class GitCheckerTests
             """;
 
         // Act
-        var result = await new GitChecker(NullLogger<GitChecker>.Instance).CheckAsync(message.TrimStart());
+        var result = await new GitChecker(new McpToolsClient(), NullLogger<GitChecker>.Instance).CheckAsync(message.TrimStart());
 
         // Assert
         Assert.StartsWith("❌", result);
@@ -53,7 +54,7 @@ public sealed class GitCheckerTests
     [Fact]
     public async Task Should_throw_on_null_or_whitespace_message()
     {
-        await Assert.ThrowsAsync<ArgumentException>(() => new GitChecker(NullLogger<GitChecker>.Instance).CheckAsync(""));
-        await Assert.ThrowsAsync<ArgumentException>(() => new GitChecker(NullLogger<GitChecker>.Instance).CheckAsync("   "));
+        await Assert.ThrowsAsync<ArgumentException>(() => new GitChecker(new McpToolsClient(), NullLogger<GitChecker>.Instance).CheckAsync(""));
+        await Assert.ThrowsAsync<ArgumentException>(() => new GitChecker(new McpToolsClient(), NullLogger<GitChecker>.Instance).CheckAsync("   "));
     }
 }

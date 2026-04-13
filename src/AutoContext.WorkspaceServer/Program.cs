@@ -43,10 +43,7 @@ else if (scope == "git")
     var workspaceFolder = builder.Configuration["workspace-folder"];
     var workspaceServer = builder.Configuration["workspace-server"];
 
-    if (workspaceServer is not null)
-    {
-        McpToolsClient.Configure(workspaceServer, workspaceFolder);
-    }
+    builder.Services.AddSingleton(new McpToolsClient(workspaceServer, workspaceFolder));
 
     builder.Services
         .AddMcpServer()

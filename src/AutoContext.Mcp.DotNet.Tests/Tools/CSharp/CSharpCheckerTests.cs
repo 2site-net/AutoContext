@@ -3,6 +3,7 @@ namespace AutoContext.Mcp.DotNet.Tests.Tools.CSharp;
 using Microsoft.Extensions.Logging.Abstractions;
 
 using AutoContext.Mcp.DotNet.Tools.CSharp;
+using AutoContext.Mcp.Shared.McpTools;
 
 public sealed class CSharpCheckerTests
 {
@@ -37,7 +38,7 @@ public sealed class CSharpCheckerTests
             """;
 
         // Act
-        var result = await new CSharpChecker(NullLogger<CSharpChecker>.Instance).CheckAsync(source, productionFileName: "MyClass.cs");
+        var result = await new CSharpChecker(new McpToolsClient(), NullLogger<CSharpChecker>.Instance).CheckAsync(source, productionFileName: "MyClass.cs");
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -60,7 +61,7 @@ public sealed class CSharpCheckerTests
             """;
 
         // Act
-        var result = await new CSharpChecker(NullLogger<CSharpChecker>.Instance).CheckAsync(source, productionFileName: "MyClass.cs");
+        var result = await new CSharpChecker(new McpToolsClient(), NullLogger<CSharpChecker>.Instance).CheckAsync(source, productionFileName: "MyClass.cs");
 
         // Assert
         Assert.Multiple(
@@ -86,7 +87,7 @@ public sealed class CSharpCheckerTests
             """;
 
         // Act
-        var result = await new CSharpChecker(NullLogger<CSharpChecker>.Instance).CheckAsync(source);
+        var result = await new CSharpChecker(new McpToolsClient(), NullLogger<CSharpChecker>.Instance).CheckAsync(source);
 
         // Assert
         Assert.Multiple(
@@ -97,7 +98,7 @@ public sealed class CSharpCheckerTests
     [Fact]
     public async Task Should_throw_on_null_or_whitespace_source()
     {
-        await Assert.ThrowsAsync<ArgumentException>(() => new CSharpChecker(NullLogger<CSharpChecker>.Instance).CheckAsync(""));
-        await Assert.ThrowsAsync<ArgumentException>(() => new CSharpChecker(NullLogger<CSharpChecker>.Instance).CheckAsync("   "));
+        await Assert.ThrowsAsync<ArgumentException>(() => new CSharpChecker(new McpToolsClient(), NullLogger<CSharpChecker>.Instance).CheckAsync(""));
+        await Assert.ThrowsAsync<ArgumentException>(() => new CSharpChecker(new McpToolsClient(), NullLogger<CSharpChecker>.Instance).CheckAsync("   "));
     }
 }

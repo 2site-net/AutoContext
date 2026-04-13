@@ -19,7 +19,7 @@ using AutoContext.Mcp.Shared.McpTools;
 /// XML, not C# source code.
 /// </remarks>
 [McpServerToolType]
-public sealed partial class CSharpChecker(ILogger<CSharpChecker> logger) : IChecker
+public sealed partial class CSharpChecker(McpToolsClient mcpToolsClient, ILogger<CSharpChecker> logger) : IChecker
 {
     /// <inheritdoc />
     public string ToolName
@@ -134,7 +134,7 @@ public sealed partial class CSharpChecker(ILogger<CSharpChecker> logger) : IChec
         return string.Join("\n\n", failures);
     }
 
-    private static async Task<(Dictionary<string, string>? ExplicitParams, McpToolResult[]? Results)> BuildDataAsync(
+    private async Task<(Dictionary<string, string>? ExplicitParams, McpToolResult[]? Results)> BuildDataAsync(
         IChecker[] checkers,
         string? editorConfigFilePath,
         string? productionFileName,
@@ -170,7 +170,7 @@ public sealed partial class CSharpChecker(ILogger<CSharpChecker> logger) : IChec
             return new McpToolEntry(c.ToolName, keys);
         }).ToArray();
 
-        var results = await McpToolsClient.ResolveToolsAsync(editorConfigFilePath, entries).ConfigureAwait(false);
+        var results = await mcpToolsClient.ResolveToolsAsync(editorConfigFilePath, entries).ConfigureAwait(false);
 
         return (explicitParams, results);
     }

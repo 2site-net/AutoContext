@@ -14,7 +14,7 @@ using AutoContext.Mcp.Shared.Checkers;
 /// a single combined report.
 /// </summary>
 [McpServerToolType]
-public sealed partial class GitChecker(ILogger<GitChecker> logger) : IChecker
+public sealed partial class GitChecker(McpToolsClient mcpToolsClient, ILogger<GitChecker> logger) : IChecker
 {
     /// <inheritdoc />
     public string ToolName
@@ -46,7 +46,7 @@ public sealed partial class GitChecker(ILogger<GitChecker> logger) : IChecker
         ];
 
         var entries = checkers.Select(c => new McpToolEntry(c.ToolName)).ToArray();
-        var results = await McpToolsClient.ResolveToolsAsync(McpToolsClient.WorkspacePath, entries).ConfigureAwait(false);
+        var results = await mcpToolsClient.ResolveToolsAsync(mcpToolsClient.WorkspacePath, entries).ConfigureAwait(false);
 
         var sections = new List<string>();
 

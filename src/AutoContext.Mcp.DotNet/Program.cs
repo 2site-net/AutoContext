@@ -28,10 +28,7 @@ internal sealed class Program
 
         var workspaceServer = builder.Configuration["workspace-server"];
 
-        if (workspaceServer is not null)
-        {
-            McpToolsClient.Configure(workspaceServer, workspaceFolder);
-        }
+        builder.Services.AddSingleton(new McpToolsClient(workspaceServer, workspaceFolder));
 
         Type[] toolTypes = scope switch
         {

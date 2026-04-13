@@ -8,35 +8,37 @@ using System.Text.Json;
 /// Named pipe client for the <c>mcp-tools</c> endpoint on the
 /// <c>AutoContext.WorkspaceServer</c> service process.
 /// </summary>
-public static class McpToolsClient
+public sealed class McpToolsClient
 {
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.KebabCaseLower,
     };
 
-    private static string? _pipeName;
-    private static string? _workspacePath;
+    private readonly string? _pipeName;
+    private readonly string? _workspacePath;
 
     /// <summary>
-    /// Gets the workspace root path, if configured.
+    /// Initializes a new instance of the <see cref="McpToolsClient"/> class.
     /// </summary>
-    internal static string? WorkspacePath => _workspacePath;
-
-    /// <summary>
-    /// Configures the pipe name used to connect to the workspace service.
-    /// </summary>
-    internal static void Configure(string pipeName, string? workspacePath = null)
+    /// <param name="pipeName">Named pipe used to connect to the workspace service, or <see langword="null"/> when not available.</param>
+    /// <param name="workspacePath">Absolute path to the workspace root, or <see langword="null"/> when not available.</param>
+    public McpToolsClient(string? pipeName = null, string? workspacePath = null)
     {
         _pipeName = pipeName;
         _workspacePath = workspacePath;
     }
 
     /// <summary>
+    /// Gets the workspace root path, if configured.
+    /// </summary>
+    internal string? WorkspacePath => _workspacePath;
+
+    /// <summary>
     /// Resolves tool modes and EditorConfig data for a batch of MCP tools
     /// via the <c>mcp-tools</c> workspace service endpoint.
     /// </summary>
-    internal static async Task<McpToolResult[]?> ResolveToolsAsync(
+    internal async Task<McpToolResult[]?> ResolveToolsAsync(
         string? filePath, McpToolEntry[] tools)
     {
         if (string.IsNullOrWhiteSpace(filePath) || string.IsNullOrWhiteSpace(_pipeName))
