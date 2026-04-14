@@ -51,4 +51,8 @@ All paths are relative to `src/AutoContext.VsCode/instructions/`.
 
 # Package for current platform
 ./build.ps1 Package
+
+# Tag a release (bump versions, compile, test, commit, annotated tag)
+./build.ps1 Tag 0.6.0
+./build.ps1 Tag 0.6.0 -WhatIf   # dry-run
 ```
