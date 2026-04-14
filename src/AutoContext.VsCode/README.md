@@ -1,5 +1,3 @@
-![AutoContext](resources/logo.png)
-
 # AutoContext
 
 AutoContext is a context toolkit for AI coding assistants. It ships with curated instructions that shape how code is written and reviewed, bundled MCP tools that validate code against concrete rules, and a context orchestration layer that automatically wires the right guidance and checks into the model based on the workspace and environment.
