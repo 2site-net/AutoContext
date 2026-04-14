@@ -8,6 +8,7 @@ using AutoContext.Mcp.Shared.Checkers;
 using AutoContext.Mcp.Shared.WorkspaceServer;
 using AutoContext.WorkspaceServer.Hosting;
 using AutoContext.WorkspaceServer.Hosting.EditorConfig;
+using AutoContext.WorkspaceServer.Hosting.Logging;
 using AutoContext.WorkspaceServer.Hosting.McpTools;
 
 public sealed class CompositeCheckerIntegrationTests : IDisposable
@@ -54,7 +55,6 @@ public sealed class CompositeCheckerIntegrationTests : IDisposable
             var spy = new SpyChecker("indent_size");
             var checker = new TestCompositeChecker(
                 new WorkspaceServerClient(pipeName),
-                NullLogger.Instance,
                 [spy]);
 
             // Explicit param says indent_size = 2, but .editorconfig says 4
@@ -104,7 +104,6 @@ public sealed class CompositeCheckerIntegrationTests : IDisposable
             var spy = new SpyChecker("indent_size");
             var checker = new TestCompositeChecker(
                 new WorkspaceServerClient(pipeName),
-                NullLogger.Instance,
                 [spy]);
 
             // Explicit param has a non-overlapping key
@@ -144,6 +143,7 @@ public sealed class CompositeCheckerIntegrationTests : IDisposable
         [
             new EditorConfigRequestHandler(resolver),
             new McpToolsRequestHandler(resolver, new McpToolsConfig(config)),
+            new LogRequestHandler(),
         ];
 
         return new WorkspaceService(config, handlers, NullLogger<WorkspaceService>.Instance);
@@ -170,8 +170,7 @@ public sealed class CompositeCheckerIntegrationTests : IDisposable
 
     private sealed class TestCompositeChecker(
         WorkspaceServerClient workspaceServerClient,
-        ILogger logger,
-        IChecker[] checkers) : CompositeChecker(workspaceServerClient, logger)
+        IChecker[] checkers) : CompositeChecker(workspaceServerClient)
     {
         public override string ToolName => "test_composite";
 

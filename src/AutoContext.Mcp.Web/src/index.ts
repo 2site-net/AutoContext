@@ -31,7 +31,7 @@ if (workspaceFolder) {
 }
 
 const workspaceServer = typeof values['workspace-server'] === 'string' ? values['workspace-server'] : undefined;
-const workspaceServerClient = new WorkspaceServerClient(workspaceServer);
+const workspaceServerClient = new WorkspaceServerClient(workspaceServer, 'TypeScript');
 if (workspaceServer) {
     logger.log('Startup', `workspace-server=${workspaceServer}`);
 }
@@ -46,7 +46,7 @@ const server = new McpServer({
 });
 
 if (scope === 'typescript') {
-    const checker = new TypeScriptChecker(workspaceServerClient, logger);
+    const checker = new TypeScriptChecker(workspaceServerClient);
 
     server.registerTool(
         'check_typescript_all',

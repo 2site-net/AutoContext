@@ -3,11 +3,10 @@ namespace AutoContext.Mcp.DotNet.Tools.NuGet;
 using System.ComponentModel;
 using System.Xml.Linq;
 
-using Microsoft.Extensions.Logging;
-
 using ModelContextProtocol.Server;
 
 using AutoContext.Mcp.Shared.Checkers;
+using AutoContext.Mcp.Shared.WorkspaceServer;
 
 /// <summary>
 /// Enforces NuGet hygiene rules from <c>dotnet-nuget.instructions.md</c>:
@@ -16,7 +15,7 @@ using AutoContext.Mcp.Shared.Checkers;
 /// well-known built-in .NET alternatives.
 /// </summary>
 [McpServerToolType]
-public sealed partial class NuGetHygieneChecker(ILogger<NuGetHygieneChecker> logger) : IChecker
+public sealed class NuGetHygieneChecker(WorkspaceServerClient workspaceServerClient) : IChecker
 {
     /// <inheritdoc />
     public string ToolName
@@ -46,14 +45,16 @@ public sealed partial class NuGetHygieneChecker(ILogger<NuGetHygieneChecker> log
         "no floating or wildcard versions (e.g., '*', version ranges), " +
         "no PackageReference without a Version attribute (unless Central Package Management is enabled via ManagePackageVersionsCentrally), " +
         "and flags packages that have well-known built-in .NET alternatives.")]
-    public Task<string> CheckAsync(
+    public async Task<string> CheckAsync(
         [Description("The .csproj file content (XML) to check.")]
         string content,
         IReadOnlyDictionary<string, string>? data = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(content);
 
-        LogToolInvoked(logger, ToolName, content.Length);
+        await workspaceServerClient.SendLogAsync(
+            "Information",
+            $"Tool invoked: {ToolName} | content length: {content.Length}").ConfigureAwait(false);
 
         XDocument doc;
 
@@ -63,12 +64,12 @@ public sealed partial class NuGetHygieneChecker(ILogger<NuGetHygieneChecker> log
         }
         catch (System.Xml.XmlException ex)
         {
-            return Task.FromResult($"❌ Failed to parse .csproj XML: {ex.Message}");
+            return $"❌ Failed to parse .csproj XML: {ex.Message}";
         }
 
         if (doc.Root is null)
         {
-            return Task.FromResult("❌ Failed to parse .csproj XML: document has no root element.");
+            return "❌ Failed to parse .csproj XML: document has no root element.";
         }
 
         var violations = new List<string>();
@@ -80,10 +81,10 @@ public sealed partial class NuGetHygieneChecker(ILogger<NuGetHygieneChecker> log
         CheckMissingVersions(packages, usesCpm, violations);
         CheckBuiltInAlternatives(packages, violations);
 
-        return Task.FromResult(violations.Count == 0
+        return violations.Count == 0
             ? "✅ NuGet hygiene is correct."
             : $"❌ Found {violations.Count} NuGet hygiene violation(s):\n" +
-              string.Join('\n', violations.Select((v, i) => $"  {i + 1}. {v}")));
+              string.Join('\n', violations.Select((v, i) => $"  {i + 1}. {v}"));
     }
 
     private static List<(string Name, string? Version)> GetPackageReferences(XElement root)
@@ -191,7 +192,4 @@ public sealed partial class NuGetHygieneChecker(ILogger<NuGetHygieneChecker> log
         }
     }
 
-    [LoggerMessage(Level = LogLevel.Information,
-        Message = "Tool invoked: {ToolName} | content length: {ContentLength}")]
-    private static partial void LogToolInvoked(ILogger logger, string toolName, int contentLength);
 }

@@ -4,7 +4,6 @@ import type { Checker } from '../../../src/features/checkers/checker.js';
 import type { EditorConfigFilter } from '../../../src/features/checkers/editorconfig-filter.js';
 import type { WorkspaceServerClient } from '../../../src/features/workspace-server/workspace-server-client.js';
 import type { McpToolsResponse } from '../../../src/features/workspace-server/mcp-tools/mcp-tools-response.js';
-import { NullLogger } from '../../../src/features/logging/logger.js';
 
 describe('CompositeChecker', () => {
     it('should let editorconfig override explicit params on conflict', async () => {
@@ -66,11 +65,12 @@ function createCompositeChecker(
 ): CompositeChecker {
     const fakeClient = {
         resolveTools: async () => resolved,
+        sendLog: async () => {},
     } as unknown as WorkspaceServerClient;
 
     return new (class extends CompositeChecker {
         readonly toolName = 'test_composite';
         protected readonly toolLabel = 'Test';
         protected createCheckers() { return checkers; }
-    })(fakeClient, NullLogger);
+    })(fakeClient);
 }

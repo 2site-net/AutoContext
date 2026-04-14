@@ -1,7 +1,6 @@
 import type { Checker } from './checker.js';
 import { isEditorConfigFilter } from './editorconfig-filter.js';
 import type { WorkspaceServerClient } from '../workspace-server/workspace-server-client.js';
-import type { Logger } from '../logging/logger.js';
 
 /// Base class for aggregate tools that run multiple sub-checkers and return
 /// a single combined report. Handles tool-mode resolution via the workspace
@@ -13,7 +12,6 @@ export abstract class CompositeChecker implements Checker {
 
     constructor(
         private readonly workspaceServerClient: WorkspaceServerClient,
-        protected readonly logger: Logger,
     ) {}
 
     protected abstract createCheckers(): readonly Checker[];
@@ -23,7 +21,8 @@ export abstract class CompositeChecker implements Checker {
             throw new Error('Source code must not be empty or whitespace.');
         }
 
-        this.logger.log(this.constructor.name,
+        await this.workspaceServerClient.sendLog(
+            'Information',
             `Tool invoked: ${this.toolName} | content length: ${content.length}`);
 
         const checkers = this.createCheckers();
@@ -48,14 +47,19 @@ export abstract class CompositeChecker implements Checker {
             const enabled = resolved?.tools[checker.toolName] ?? true;
 
             if (enabled) {
+                await this.workspaceServerClient.sendLog(
+                    'Information', `  Running: ${checker.toolName}`);
                 const merged = { ...explicitParams, ...resolved?.editorconfig };
                 sections.push(await checker.check(content, Object.keys(merged).length > 0 ? merged : undefined));
             } else if (isEditorConfigFilter(checker)) {
+                await this.workspaceServerClient.sendLog(
+                    'Information', `  Running (editorconfig-only): ${checker.toolName}`);
                 const merged = { ...explicitParams, ...resolved?.editorconfig, __disabled: 'true' };
                 sections.push(await checker.check(content, merged));
+            } else {
+                await this.workspaceServerClient.sendLog(
+                    'Information', `  Skipped: ${checker.toolName}`);
             }
-
-            // else: disabled, no editorconfig keys — skip
         }
 
         if (sections.length === 0) {

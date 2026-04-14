@@ -19,7 +19,6 @@ internal sealed class Program
             options.LogToStandardErrorThreshold = LogLevel.Trace;
         });
         builder.Logging.SetMinimumLevel(LogLevel.None);
-        builder.Logging.AddFilter("AutoContext", LogLevel.Information);
 
         var scope = builder.Configuration["scope"]
             ?? throw new ArgumentException("Missing required argument: --scope dotnet");
@@ -28,7 +27,7 @@ internal sealed class Program
 
         var workspaceServer = builder.Configuration["workspace-server"];
 
-        builder.Services.AddSingleton(new WorkspaceServerClient(workspaceServer));
+        builder.Services.AddSingleton(new WorkspaceServerClient(workspaceServer, "DotNet"));
 
         Type[] toolTypes = scope switch
         {

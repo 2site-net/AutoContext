@@ -1,12 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { TypeScriptChecker } from '../../../src/tools/typescript/typescript-checker.js';
 import { WorkspaceServerClient } from '../../../src/features/workspace-server/workspace-server-client.js';
-import { NullLogger } from '../../../src/features/logging/logger.js';
 
 describe('TypeScriptChecker', () => {
     const checker = new TypeScriptChecker(
         new WorkspaceServerClient(),
-        NullLogger,
     );
 
     it('should pass clean TypeScript code', async () => {

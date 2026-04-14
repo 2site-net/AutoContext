@@ -2,8 +2,6 @@ namespace AutoContext.Mcp.DotNet.Tools.CSharp;
 
 using System.ComponentModel;
 
-using Microsoft.Extensions.Logging;
-
 using ModelContextProtocol.Server;
 
 using AutoContext.Mcp.Shared.Checkers;
@@ -15,8 +13,8 @@ using AutoContext.Mcp.Shared.WorkspaceServer;
 /// checkers are active; when the file is absent, all checkers run.
 /// </summary>
 [McpServerToolType]
-public sealed partial class CSharpChecker(WorkspaceServerClient workspaceServerClient, ILogger<CSharpChecker> logger)
-    : CompositeChecker(workspaceServerClient, logger)
+public sealed class CSharpChecker(WorkspaceServerClient workspaceServerClient)
+    : CompositeChecker(workspaceServerClient)
 {
     /// <inheritdoc />
     public override string ToolName

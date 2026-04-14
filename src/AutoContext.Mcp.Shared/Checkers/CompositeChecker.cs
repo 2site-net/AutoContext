@@ -1,7 +1,5 @@
 namespace AutoContext.Mcp.Shared.Checkers;
 
-using Microsoft.Extensions.Logging;
-
 using AutoContext.Mcp.Shared.WorkspaceServer;
 using AutoContext.Mcp.Shared.WorkspaceServer.McpTools;
 
@@ -10,7 +8,7 @@ using AutoContext.Mcp.Shared.WorkspaceServer.McpTools;
 /// a single combined report. Handles tool-mode resolution via the workspace
 /// service, EditorConfig key aggregation, and data merging.
 /// </summary>
-public abstract partial class CompositeChecker(WorkspaceServerClient workspaceServerClient, ILogger logger) : IChecker
+public abstract class CompositeChecker(WorkspaceServerClient workspaceServerClient) : IChecker
 {
     /// <inheritdoc />
     public abstract string ToolName { get; }
@@ -31,7 +29,9 @@ public abstract partial class CompositeChecker(WorkspaceServerClient workspaceSe
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(content);
 
-        LogToolInvoked(logger, ToolName, content.Length);
+        await workspaceServerClient.SendLogAsync(
+            "Information",
+            $"Tool invoked: {ToolName} | content length: {content.Length}").ConfigureAwait(false);
 
         var checkers = CreateCheckers();
         var filePath = data?.GetValueOrDefault("filePath");
@@ -68,16 +68,23 @@ public abstract partial class CompositeChecker(WorkspaceServerClient workspaceSe
 
             if (enabled)
             {
+                await workspaceServerClient.SendLogAsync(
+                    "Information", $"  Running: {checker.ToolName}").ConfigureAwait(false);
                 sections.Add(await checker.CheckAsync(content, MergeData(extraParams, resolved?.EditorConfig)).ConfigureAwait(false));
             }
             else if (checker is IEditorConfigFilter)
             {
+                await workspaceServerClient.SendLogAsync(
+                    "Information", $"  Running (editorconfig-only): {checker.ToolName}").ConfigureAwait(false);
                 var merged = MergeData(extraParams, resolved?.EditorConfig);
                 merged["__disabled"] = "true";
                 sections.Add(await checker.CheckAsync(content, merged).ConfigureAwait(false));
             }
-
-            // else: disabled, no editorconfig keys — skip
+            else
+            {
+                await workspaceServerClient.SendLogAsync(
+                    "Information", $"  Skipped: {checker.ToolName}").ConfigureAwait(false);
+            }
         }
 
         if (sections.Count == 0)
@@ -119,8 +126,4 @@ public abstract partial class CompositeChecker(WorkspaceServerClient workspaceSe
 
         return merged;
     }
-
-    [LoggerMessage(Level = LogLevel.Information,
-        Message = "Tool invoked: {ToolName} | content length: {ContentLength}")]
-    private static partial void LogToolInvoked(ILogger logger, string toolName, int contentLength);
 }

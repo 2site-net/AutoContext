@@ -4,6 +4,7 @@ using System.Buffers.Binary;
 using System.IO.Pipes;
 using System.Text.Json;
 
+using AutoContext.Mcp.Shared.WorkspaceServer.Logging;
 using AutoContext.Mcp.Shared.WorkspaceServer.McpTools;
 
 /// <summary>
@@ -13,7 +14,8 @@ using AutoContext.Mcp.Shared.WorkspaceServer.McpTools;
 /// Initializes a new instance of the <see cref="WorkspaceServerClient"/> class.
 /// </remarks>
 /// <param name="pipeName">Named pipe used to connect to the workspace service, or <see langword="null"/> when not available.</param>
-public sealed class WorkspaceServerClient(string? pipeName = null)
+/// <param name="source">Server identity included in log messages (e.g. "DotNet", "Git").</param>
+public sealed class WorkspaceServerClient(string? pipeName = null, string? source = null)
 {
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -21,6 +23,7 @@ public sealed class WorkspaceServerClient(string? pipeName = null)
     };
 
     private readonly string? _pipeName = pipeName;
+    private readonly string _source = source ?? "Unknown";
 
     /// <summary>
     /// Resolves tool modes and EditorConfig data for a batch of MCP tools
@@ -48,6 +51,47 @@ public sealed class WorkspaceServerClient(string? pipeName = null)
         }
 
         return JsonSerializer.Deserialize<McpToolsResponse>(responseBytes, JsonOptions);
+    }
+
+    /// <summary>
+    /// Sends a log message to the workspace service for centralized output.
+    /// Falls back to local stderr when the pipe is unavailable.
+    /// </summary>
+    internal async Task SendLogAsync(string level, string message)
+    {
+        if (string.IsNullOrWhiteSpace(_pipeName))
+        {
+            // No pipe configured — write directly to stderr (expected when running standalone).
+            await Console.Error.WriteLineAsync($"[{_source}] {message}").ConfigureAwait(false);
+            return;
+        }
+
+        try
+        {
+            var request = new LogRequest(_source, level, message);
+            var requestBytes = JsonSerializer.SerializeToUtf8Bytes(request, JsonOptions);
+
+            using var client = new NamedPipeClientStream(".", _pipeName, PipeDirection.InOut, PipeOptions.Asynchronous);
+            await client.ConnectAsync(5000).ConfigureAwait(false);
+
+            await WriteMessageAsync(client, requestBytes).ConfigureAwait(false);
+
+            // Protocol requires reading the response to complete the cycle.
+            await ReadMessageAsync(client).ConfigureAwait(false);
+        }
+        catch (IOException ex)
+        {
+            // Pipe failed — log the reason and the original message to local stderr.
+            await Console.Error.WriteLineAsync(
+                $"[{_source}] Failed to send log via workspace server: {ex.Message}").ConfigureAwait(false);
+            await Console.Error.WriteLineAsync($"[{_source}] {message}").ConfigureAwait(false);
+        }
+        catch (TimeoutException ex)
+        {
+            await Console.Error.WriteLineAsync(
+                $"[{_source}] Failed to send log via workspace server: {ex.Message}").ConfigureAwait(false);
+            await Console.Error.WriteLineAsync($"[{_source}] {message}").ConfigureAwait(false);
+        }
     }
 
     private static async Task WriteMessageAsync(Stream stream, byte[] payload)

@@ -2,11 +2,14 @@ import { connect } from 'node:net';
 
 import type { McpToolsRequest } from './mcp-tools/mcp-tools-request.js';
 import type { McpToolsResponse } from './mcp-tools/mcp-tools-response.js';
+import type { LogRequest } from './logging/log-request.js';
 
 export class WorkspaceServerClient {
     private readonly pipePath: string | undefined;
+    private readonly source: string;
 
-    constructor(pipeName?: string) {
+    constructor(pipeName?: string, source?: string) {
+        this.source = source ?? 'Unknown';
 
         if (pipeName) {
             this.pipePath = process.platform === 'win32'
@@ -32,6 +35,33 @@ export class WorkspaceServerClient {
         });
 
         return response.tools ? response : undefined;
+    }
+
+    /**
+     * Sends a log message to the workspace service for centralized output.
+     * Falls back to local stderr when the pipe is unavailable.
+     */
+    async sendLog(level: string, message: string): Promise<void> {
+        if (!this.pipePath) {
+            // No pipe configured — write directly to stderr (expected when running standalone).
+            process.stderr.write(`[${this.source}] ${message}\n`);
+            return;
+        }
+
+        try {
+            const request: LogRequest = {
+                type: 'log',
+                source: this.source,
+                level,
+                message,
+            };
+            await this.sendPipeRequest(request);
+        } catch (ex) {
+            // Pipe failed — log the reason and the original message to local stderr.
+            const reason = ex instanceof Error ? ex.message : String(ex);
+            process.stderr.write(`[${this.source}] Failed to send log via workspace server: ${reason}\n`);
+            process.stderr.write(`[${this.source}] ${message}\n`);
+        }
     }
 
     /**

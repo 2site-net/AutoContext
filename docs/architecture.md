@@ -289,7 +289,7 @@ A shared class library and three executables make up the server side:
   The dependency flows one way: Tools → Hosting. The three modes:
   - **MCP mode — EditorConfig** (`--scope editorconfig`): Runs as an MCP stdio server exposing a single standalone tool, `get_editorconfig`, which resolves the effective `.editorconfig` properties for a given file path by walking the directory tree, evaluating glob patterns and section cascading, and returning the final key-value pairs.
   - **MCP mode — Git** (`--scope git`): Runs as an MCP stdio server exposing Git quality checks (commit format, commit content).
-  - **Named-pipe mode** (`--pipe <name>`): Runs as a long-lived background service started once by `WorkspaceServerManager`. Handles `"editorconfig"` requests (property resolution) and `"mcp-tools"` requests (tool orchestration — enable/disable decisions + EditorConfig data). All other MCP servers connect to this service via `--workspace-server <pipeName>`.
+  - **Named-pipe mode** (`--pipe <name>`): Runs as a long-lived background service started once by `WorkspaceServerManager`. Handles `"editorconfig"` requests (property resolution), `"mcp-tools"` requests (tool orchestration — enable/disable decisions + EditorConfig data), and `"log"` requests (centralized logging from MCP servers). All other MCP servers connect to this service via `--workspace-server <pipeName>`.
 
 ### EditorConfig Layering
 
@@ -297,7 +297,7 @@ EditorConfig logic appears at three levels, each with a distinct role:
 
 | Layer | Location | Role |
 |-------|----------|------|
-| **Shared reader** | `Mcp.Shared/WorkspaceServer/WorkspaceServerClient` | Named pipe client. Sends requests to the WorkspaceServer and returns resolved properties + tool decisions to callers. Used by composite checkers in `Mcp.DotNet` and `WorkspaceServer`. The wire types (`McpToolsRequest`, `McpToolsResponse`) live in the nested `McpTools/` subfolder. |
+| **Shared reader** | `Mcp.Shared/WorkspaceServer/WorkspaceServerClient` | Named pipe client. Sends requests to the WorkspaceServer and returns resolved properties + tool decisions to callers. Also routes log messages through the pipe for centralized output. Used by composite checkers in `Mcp.DotNet` and `WorkspaceServer`. The wire types (`McpToolsRequest`, `McpToolsResponse`, `LogRequest`) live in nested subfolders. |
 | **Hosting resolver** | `WorkspaceServer/Hosting/EditorConfig/EditorConfigResolver` | Server-side logic. Walks the directory tree, parses `.editorconfig` files, evaluates glob patterns, and returns final key-value pairs. Owns the request handler for `"editorconfig"` pipe requests. |
 | **MCP tool** | `WorkspaceServer/Tools/EditorConfig/EditorConfigTool` | The `get_editorconfig` MCP tool that Copilot can call directly. Delegates to the Hosting resolver. |
 
@@ -305,12 +305,21 @@ EditorConfig logic appears at three levels, each with a distinct role:
 
 ### Viewing Tool Invocation Logs
 
-Each server logs tool invocations (tool name, content length, data keys) to stderr, which VS Code surfaces in the **Output** panel. To view the logs:
+All MCP servers route tool invocation logs through the WorkspaceServer named pipe. The WorkspaceServer writes these to stderr, which the extension captures and forwards to the **AutoContext** Output channel. To view the logs:
 
 1. Open the **Output** panel (`Ctrl+Shift+U`).
-2. Select the server from the dropdown (e.g., *AutoContext: DotNet*).
+2. Select **AutoContext** from the dropdown.
 
-Only AutoContext log messages are emitted — host and framework noise is filtered out.
+Each log line is prefixed with the server identity (e.g., `[DotNet]`, `[Git]`, `[TypeScript]`), showing which composite tool was invoked, which sub-checkers ran, and which were skipped:
+
+```
+[DotNet] Tool invoked: check_csharp_all | content length: 1234
+[DotNet]   Running: check_csharp_coding_style
+[DotNet]   Running: check_csharp_naming_conventions
+[DotNet]   Skipped: check_csharp_test_style
+```
+
+When the workspace server pipe is unavailable (e.g., running a server standalone outside VS Code), logs fall back to the server's local stderr with an explanation of why the pipe connection failed.
 
 ---
 
