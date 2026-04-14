@@ -142,6 +142,32 @@ Publish to the VS Code Marketplace (requires a [Personal Access Token](https://d
 ./build.ps1 Publish All       # all 6 platforms
 ```
 
+## Releasing
+
+The `Tag` action bumps all version numbers, compiles, tests, commits, and creates an annotated git tag in one step:
+
+```powershell
+./build.ps1 Tag 0.6.0           # bump to 0.6.0, compile, test, commit, tag
+./build.ps1 Tag 0.6.0 -WhatIf   # dry-run — shows what would happen without changing anything
+```
+
+The action:
+
+1. Validates the version string (semver: `X.Y.Z` or `X.Y.Z-prerelease`).
+2. Rejects versions lower than the current version in `package.json`.
+3. Requires a clean working tree (no uncommitted changes).
+4. Compiles and tests the entire solution — the tag is only created if everything passes.
+5. Updates `package.json`, `package-lock.json`, and `.csproj` files with the new version, then commits.
+6. Creates an annotated tag (`Release X.Y.Z`).
+
+If the requested version already matches the current version (e.g. after a failed push), the bump and commit are skipped and only the tag is created.
+
+After the script completes, push the tag to trigger CI:
+
+```powershell
+git push origin main --follow-tags
+```
+
 ## License
 
 AutoContext is licensed under the [AGPL-3.0](LICENSE). A separate [commercial license](COMMERCIAL.md) is available for organizations that want to use AutoContext under terms different from the AGPL-3.0.
