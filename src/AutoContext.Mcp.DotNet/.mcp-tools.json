@@ -2,49 +2,49 @@
   "dotnet": [
     {
       "name": "check_csharp_all",
-      "description": "Runs all enabled C# code quality checks and returns a combined report covering code style, member ordering, naming conventions, async patterns, nullable context, project structure, and test style.",
+      "description": "Aggregate tool that runs all enabled C# source-code checkers and returns a single combined report. Covers code style, member ordering, naming conventions, async patterns, nullable context, project structure, and test style.",
       "version": "0.1.0",
       "features": [
         {
           "name": "check_csharp_async_patterns",
-          "description": "Checks async/await pattern violations: no async void except event handlers, public async methods must accept CancellationToken, all await expressions in non-test code must use ConfigureAwait(false).",
+          "description": "Enforces async/await rules from dotnet-async-await.instructions.md: no async void (except event handlers), public async APIs require a CancellationToken parameter, and all await expressions in non-test code must use .ConfigureAwait(false).",
           "version": "1.0.0"
         },
         {
           "name": "check_csharp_coding_style",
-          "description": "Checks C# source code for style violations: no #region, no decorative comments, curly brace usage, blank lines before control flow, expression-body placement, XML doc comments, and System directives ordering.",
+          "description": "Enforces code style rules from lang-csharp.instructions.md: regions, decorative comments, curly braces, blank lines before control flow, expression-body arrow placement, XML doc comments on public/protected members, System-directive ordering, and expression-body style for methods and properties.",
           "version": "1.0.0"
         },
         {
           "name": "check_csharp_member_ordering",
-          "description": "Checks that C# type members follow canonical ordering: constants, static fields, fields, constructors, delegates, events, enums, properties, indexers, methods, operators, nested types — then by accessibility, static before instance, and alphabetically.",
+          "description": "Enforces member ordering rules from lang-csharp.instructions.md: members are ordered by kind, access level, and static-before-instance.",
           "version": "1.0.0"
         },
         {
           "name": "check_csharp_naming_conventions",
-          "description": "Checks C# naming violations: I-prefix on interfaces, Extensions suffix on extension classes, Async suffix on async methods, _camelCase for private non-static instance fields, PascalCase for types/methods/properties/events, camelCase for parameters.",
+          "description": "Enforces naming conventions from lang-csharp.instructions.md and dotnet-coding-standards.instructions.md: interface I prefix, extension class Extensions suffix, async method Async suffix, private instance field _camelCase, PascalCase for types/methods/properties/events, and camelCase for parameters.",
           "version": "1.0.0"
         },
         {
           "name": "check_csharp_nullable_context",
-          "description": "Checks nullable context violations: #nullable disable not allowed, and the null-forgiving operator (!) must not suppress warnings.",
+          "description": "Enforces nullable safety rules from lang-csharp.instructions.md: no #nullable disable directives, and no use of the null-forgiving (!) operator to suppress warnings.",
           "version": "1.0.0"
         },
         {
           "name": "check_csharp_project_structure",
-          "description": "Checks project structure violations: namespace style per EditorConfig, one top-level type per file, file name matches type name, no #pragma warning disable.",
+          "description": "Enforces project structure rules from dotnet-coding-standards.instructions.md: file-scoped namespaces, single type per file, file name matches type name, and no #pragma warning disable.",
           "version": "1.0.0"
         },
         {
           "name": "check_csharp_test_style",
-          "description": "Checks test style violations: Tests suffix on test classes, Should_ or Should_not_ prefix on test methods, no XML docs on test code, Assert.Multiple() for multi-assertion tests, no ConfigureAwait in tests, and structure mirroring (file name, namespace) against the production project.",
+          "description": "Enforces test style rules from testing.instructions.md and dotnet-xunit.instructions.md: test class naming, test method naming, no XML doc comments, Assert.Multiple for multi-assertion tests, no ConfigureAwait, and structure mirroring (file name, namespace) against the production project.",
           "version": "1.0.0"
         }
       ]
     },
     {
       "name": "check_nuget_hygiene",
-      "description": "Checks .csproj files for NuGet hygiene: no duplicate packages, no floating or wildcard versions, no missing versions unless Central Package Management is enabled, and flags packages with built-in .NET alternatives.",
+      "description": "Enforces NuGet hygiene rules from dotnet-nuget.instructions.md: no duplicate references, no floating versions, no missing versions (unless Central Package Management), and flags packages that have well-known built-in .NET alternatives.",
       "version": "0.1.0"
     }
   ]

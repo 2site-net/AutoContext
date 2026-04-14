@@ -2,17 +2,17 @@
   "git": [
     {
       "name": "check_git_all",
-      "description": "Runs all enabled Git commit quality checks and returns a combined report covering commit format and content anti-patterns.",
+      "description": "Aggregate tool that runs all enabled Git commit validators and returns a single combined report.",
       "version": "0.1.0",
       "features": [
         {
           "name": "check_git_commit_content",
-          "description": "Validates commit message body for content anti-patterns: no bullet lists, no file paths, no counts, no enumerated properties, no 'Key features:' sections, no sensitive information.",
+          "description": "Enforces commit content rules from git-commit-format.instructions.md: detects anti-patterns in the commit message body.",
           "version": "1.0.0"
         },
         {
           "name": "check_git_commit_format",
-          "description": "Validates commit message formatting against Conventional Commits: type(scope): description, subject under 50 characters, body wrap at 72 characters, blank line between subject and body.",
+          "description": "Enforces commit format rules from git-commit-format.instructions.md: Conventional Commits structure and line-length limits.",
           "version": "1.0.0"
         }
       ]
