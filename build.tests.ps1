@@ -396,7 +396,40 @@ $testCases = @(
         Name         = 'Reject unknown Target'
         Arguments    = 'Compile InvalidTarget -WhatIf'
         ExpectError  = $true
-        ErrorPattern = 'ValidateSet|cannot be validated'
+        ErrorPattern = 'does not belong to the set'
+    }
+
+    # ── Tag ──────────────────────────────────────────────────────────────
+
+    @{
+        Name         = 'Tag without version (error)'
+        Arguments    = 'Tag -WhatIf'
+        ExpectError  = $true
+        ErrorPattern = 'Tag requires a version'
+    }
+    @{
+        Name         = 'Tag with invalid semver (error)'
+        Arguments    = 'Tag abc -WhatIf'
+        ExpectError  = $true
+        ErrorPattern = 'Invalid version'
+    }
+    @{
+        Name         = 'Tag with lower version (error)'
+        Arguments    = 'Tag 0.0.1 -WhatIf'
+        ExpectError  = $true
+        ErrorPattern = 'less than current'
+    }
+    @{
+        Name         = 'Tag + Clean (mutually exclusive)'
+        Arguments    = '-Clean Tag 99.0.0 -WhatIf'
+        ExpectError  = $true
+        ErrorPattern = 'mutually exclusive'
+    }
+    @{
+        Name         = 'Tag + RuntimeIdentifier (invalid)'
+        Arguments    = 'Tag 99.0.0 -RuntimeIdentifier win-x64 -WhatIf'
+        ExpectError  = $true
+        ErrorPattern = 'not valid with Tag'
     }
 
     # ── Help ─────────────────────────────────────────────────────────────

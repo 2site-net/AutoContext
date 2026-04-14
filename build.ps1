@@ -20,6 +20,7 @@
       Prepare  — Clean + Compile + Test + copy assets into extension
       Package  — Prepare + dotnet publish + vsce package
       Publish  — Package + vsce publish
+      Tag      — Compile + Test + bump versions + git commit + annotated tag
 
     When omitted, defaults to Compile + Test.
 
@@ -31,6 +32,9 @@
 
     For Package/Publish, 'All' builds all six platform targets.
     When omitted for Package/Publish, auto-detects the current platform.
+
+    For Tag, this positional slot accepts the version string (X.Y.Z or
+    X.Y.Z-prerelease) instead of a target name.
 
 .PARAMETER Clean
     Delete build artifacts. Can be combined with Compile or Test,
@@ -54,6 +58,8 @@
     .\build.ps1 Package All                      # Prepare + build all 6 platforms
     .\build.ps1 Package -RuntimeIdentifier win-x64
     .\build.ps1 Publish                          # Package + publish to Marketplace
+    .\build.ps1 Tag 0.6.0                        # Bump, compile, test, commit, tag
+    .\build.ps1 Tag 0.6.0-alpha                  # Prerelease tag
     .\build.ps1 -Clean                           # Delete all build artifacts
     .\build.ps1 -Clean Compile                   # Clean then compile
     .\build.ps1 Package -WhatIf                  # Preview what Package would do
@@ -67,11 +73,15 @@
 [CmdletBinding(SupportsShouldProcess)]
 param(
     [Parameter(Position = 0)]
-    [ValidateSet('Compile', 'Test', 'Prepare', 'Package', 'Publish')]
+    [ValidateSet('Compile', 'Test', 'Prepare', 'Package', 'Publish', 'Tag')]
     [string]$Action,
 
     [Parameter(Position = 1)]
-    [ValidateSet('All', 'TS', 'TypeScript', 'DotNet', '.NET')]
+    [ArgumentCompleter({
+        param($commandName, $parameterName, $wordToComplete)
+        @('All', 'TS', 'TypeScript', 'DotNet', '.NET') |
+            Where-Object { $_ -like "$wordToComplete*" }
+    })]
     [string]$Target,
 
     [switch]$Clean,
@@ -198,7 +208,8 @@ function Show-Help {
     Write-Host '  Test       Run unit tests (without compiling)'
     Write-Host '  Prepare    Clean + Compile + Test + copy assets into extension'
     Write-Host '  Package    Prepare + dotnet publish + vsce package'
-    Write-Host "  Publish    Package + vsce publish`n"
+    Write-Host '  Publish    Package + vsce publish'
+    Write-Host "  Tag        Compile + Test + bump versions + git commit + annotated tag`n"
 
     Write-Host 'TARGETS' -ForegroundColor Yellow
     Write-Host '  (none)     All (default)'
@@ -219,6 +230,8 @@ function Show-Help {
     Write-Host '  .\build.ps1 Package                           # Current platform'
     Write-Host '  .\build.ps1 Package All                       # All 6 platforms'
     Write-Host '  .\build.ps1 Package -RuntimeIdentifier win-x64'
+    Write-Host '  .\build.ps1 Tag 0.6.0                         # Bump, test, commit, tag'
+    Write-Host '  .\build.ps1 Tag 0.6.0-alpha                   # Prerelease tag'
     Write-Host '  .\build.ps1 -Clean Compile                    # Clean then compile'
     Write-Host "  .\build.ps1 Package -WhatIf                   # Preview`n"
 }
@@ -231,6 +244,65 @@ function Assert-ExternalCommand {
     if (-not (Get-Command $Command -ErrorAction SilentlyContinue)) {
         throw "'$Command' is not installed or not on PATH."
     }
+}
+
+function Compare-SemVer {
+    <#
+    .SYNOPSIS
+        Compares two semver strings. Returns positive if New > Current,
+        negative if New < Current, zero if equal.
+    #>
+    [OutputType([int])]
+    param(
+        [Parameter(Mandatory)][string]$Current,
+        [Parameter(Mandatory)][string]$New
+    )
+
+    $semverPattern = '^(\d+)\.(\d+)\.(\d+)(?:-(.+))?$'
+
+    if ($Current -notmatch $semverPattern) { throw "Invalid current version: '$Current'" }
+    $curBase = [System.Version]"$($Matches[1]).$($Matches[2]).$($Matches[3])"
+    $curPre = $Matches[4]
+
+    if ($New -notmatch $semverPattern) { throw "Invalid new version: '$New'" }
+    $newBase = [System.Version]"$($Matches[1]).$($Matches[2]).$($Matches[3])"
+    $newPre = $Matches[4]
+
+    $baseCmp = $newBase.CompareTo($curBase)
+    if ($baseCmp -ne 0) { return $baseCmp }
+
+    # Same base: release (no prerelease) beats any prerelease
+    if (-not $curPre -and -not $newPre) { return 0 }
+    if ($curPre -and -not $newPre) { return 1 }
+    if (-not $curPre -and $newPre) { return -1 }
+
+    # Both have prerelease — compare dot-separated identifiers per semver spec
+    $curIds = $curPre -split '\.'
+    $newIds = $newPre -split '\.'
+    $count = [math]::Max($curIds.Count, $newIds.Count)
+
+    for ($i = 0; $i -lt $count; $i++) {
+        if ($i -ge $curIds.Count) { return 1 }
+        if ($i -ge $newIds.Count) { return -1 }
+
+        $curId = $curIds[$i]
+        $newId = $newIds[$i]
+        $curIsNum = $curId -match '^\d+$'
+        $newIsNum = $newId -match '^\d+$'
+
+        if ($curIsNum -and $newIsNum) {
+            $cmp = ([int]$newId).CompareTo([int]$curId)
+            if ($cmp -ne 0) { return $cmp }
+        }
+        elseif ($curIsNum) { return 1 }
+        elseif ($newIsNum) { return -1 }
+        else {
+            $cmp = [string]::Compare($newId, $curId, [System.StringComparison]::Ordinal)
+            if ($cmp -ne 0) { return [math]::Sign($cmp) }
+        }
+    }
+
+    return 0
 }
 
 # ── Core actions ─────────────────────────────────────────────────────────────
@@ -544,6 +616,73 @@ function Resolve-RuntimeIdentifier {
     return $detected
 }
 
+function Update-ProjectVersion {
+    [CmdletBinding(SupportsShouldProcess)]
+    param(
+        [Parameter(Mandatory)][string]$OldVersion,
+        [Parameter(Mandatory)][string]$NewVersion
+    )
+
+    Write-Section 'Update versions'
+
+    # ── npm projects ──
+    $npmDirs = @($extensionDir)
+    if (Test-Path $webServerDir) { $npmDirs += $webServerDir }
+
+    foreach ($dir in $npmDirs) {
+        $pkgPath = Join-Path $dir 'package.json'
+        $lockPath = Join-Path $dir 'package-lock.json'
+        $dirName = Split-Path $dir -Leaf
+
+        if (Test-Path $pkgPath) {
+            if ($PSCmdlet.ShouldProcess($pkgPath, "Update version to $NewVersion")) {
+                $raw = Get-Content $pkgPath -Raw
+                $updated = $raw -replace ('"version":\s*"' + [regex]::Escape($OldVersion) + '"'), "`"version`": `"$NewVersion`""
+                if ($updated -eq $raw) { throw "Version '$OldVersion' not found in $pkgPath" }
+                Set-Content $pkgPath $updated -NoNewline
+                Write-Status "$dirName/package.json -> $NewVersion" 'OK'
+            }
+        }
+
+        if (Test-Path $lockPath) {
+            if ($PSCmdlet.ShouldProcess($lockPath, "Update version to $NewVersion")) {
+                $lockRaw = Get-Content $lockPath -Raw
+
+                # Validate root version before replacing
+                $lockJson = $lockRaw | ConvertFrom-Json -AsHashtable
+                if ($lockJson['version'] -ne $OldVersion) {
+                    throw "package-lock.json root version is '$($lockJson['version'])', expected '$OldVersion'."
+                }
+
+                # Replace only the first two occurrences (root + packages."" entry)
+                $pattern = [regex]::new('"version":\s*"' + [regex]::Escape($OldVersion) + '"')
+                $lockRaw = $pattern.Replace($lockRaw, "`"version`": `"$NewVersion`"", 2)
+                Set-Content $lockPath $lockRaw -NoNewline
+                Write-Status "$dirName/package-lock.json -> $NewVersion" 'OK'
+            }
+        }
+    }
+
+    # ── .csproj files ──
+    foreach ($projectPath in $dotnetProjects) {
+        $projectName = [System.IO.Path]::GetFileNameWithoutExtension($projectPath)
+        if ($PSCmdlet.ShouldProcess($projectPath, "Update version to $NewVersion")) {
+            $raw = Get-Content $projectPath -Raw
+
+            if ($raw -match '<Version>[^<]*</Version>') {
+                $raw = $raw -replace '<Version>[^<]*</Version>', "<Version>$NewVersion</Version>"
+            }
+            else {
+                $propGroupRegex = [regex]::new('(<PropertyGroup>)(\r?\n)')
+                $raw = $propGroupRegex.Replace($raw, "`${1}`${2}    <Version>$NewVersion</Version>`${2}", 1)
+            }
+
+            Set-Content $projectPath $raw -NoNewline
+            Write-Status "$projectName -> $NewVersion" 'OK'
+        }
+    }
+}
+
 # ── Composite actions ────────────────────────────────────────────────────────
 
 function Invoke-Compile {
@@ -641,6 +780,151 @@ function Invoke-Publish {
     Invoke-VscePublish
 }
 
+function Undo-PreviousTag {
+    <#
+    .SYNOPSIS
+        If a previous local-only tag attempt for the same version exists,
+        automatically undo it so the Tag action can re-run cleanly.
+        Returns $true if a previous attempt was undone, $false otherwise.
+    #>
+    [CmdletBinding(SupportsShouldProcess)]
+    [OutputType([bool])]
+    param(
+        [Parameter(Mandatory)][string]$Version
+    )
+
+    $existingTag = git tag -l $Version
+    if (-not $existingTag) { return $false }
+
+    # Tag exists — check safety conditions for auto-undo
+    $tagSha = git rev-parse "refs/tags/$Version" 2>&1
+    $headSha = git rev-parse HEAD 2>&1
+    $tagPointsToHead = $tagSha -eq $headSha
+
+    # An annotated tag's ref resolves to the tag object, not the commit.
+    # Dereference to get the commit it points to.
+    if (-not $tagPointsToHead) {
+        $tagCommitSha = git rev-parse "${Version}^{commit}" 2>&1
+        $tagPointsToHead = $tagCommitSha -eq $headSha
+    }
+
+    if (-not $tagPointsToHead) {
+        throw "Tag '$Version' already exists but does not point to HEAD. Delete it manually."
+    }
+
+    $headMsg = git log -1 --format='%s' HEAD
+    if ($headMsg -ne "chore: bump version to $Version") {
+        throw "Tag '$Version' already exists but HEAD commit message does not match expected bump commit. Delete it manually."
+    }
+
+    # Check the tag is not on any remote
+    $remoteTags = git ls-remote --tags origin "refs/tags/$Version" 2>&1
+    if ($remoteTags) {
+        throw "Tag '$Version' already exists and has been pushed to remote. Delete it manually."
+    }
+
+    # All safety checks passed — undo
+    if ($PSCmdlet.ShouldProcess("tag $Version + bump commit", 'Undo previous tag attempt')) {
+        Write-Section 'Undo previous tag attempt'
+
+        git tag -d $Version 2>&1 | Out-Null
+        if ($LASTEXITCODE -ne 0) { throw "Failed to delete local tag '$Version'." }
+        Write-Status "Deleted local tag $Version" 'OK'
+
+        git reset --mixed HEAD~1 2>&1 | Out-Null
+        if ($LASTEXITCODE -ne 0) { throw 'Failed to reset bump commit.' }
+        Write-Status 'Reset bump commit' 'OK'
+
+        git checkout -- . 2>&1 | Out-Null
+        if ($LASTEXITCODE -ne 0) { throw 'Failed to restore working tree.' }
+        Write-Status 'Restored working tree' 'OK'
+
+        return $true
+    }
+
+    # WhatIf mode — nothing was actually undone
+    return $false
+}
+
+function Invoke-Tag {
+    [CmdletBinding(SupportsShouldProcess)]
+    param(
+        [Parameter(Mandatory)][string]$Version
+    )
+
+    Write-Header 'Tag'
+
+    # ── Validate format ──
+    $semverPattern = '^\d+\.\d+\.\d+(-[a-zA-Z0-9]+([.][a-zA-Z0-9]+)*)?$'
+    if ($Version -notmatch $semverPattern) {
+        throw "Invalid version '$Version'. Expected format: X.Y.Z or X.Y.Z-prerelease"
+    }
+
+    Assert-ExternalCommand 'git'
+
+    # ── Auto-undo previous local-only tag attempt ──
+    $wasUndone = Undo-PreviousTag -Version $Version
+    $currentVersion = if ($wasUndone) {
+        # Re-read version from disk since the undo reverted the bump
+        (Get-Content $packageJsonPath -Raw | ConvertFrom-Json).version
+    }
+    else {
+        $extensionVersion
+    }
+
+    # ── Validate version ──
+    if (-not $currentVersion) {
+        throw "Cannot read current version from $packageJsonPath"
+    }
+
+    $versionCmp = Compare-SemVer -Current $currentVersion -New $Version
+    if ($versionCmp -lt 0) {
+        throw "Version '$Version' is less than current version '$currentVersion'."
+    }
+
+    $needsBump = $versionCmp -gt 0
+
+    # ── Validate working tree ──
+    $gitStatus = git status --porcelain 2>&1
+    if ($gitStatus) {
+        throw 'Working tree is not clean. Commit or stash your changes before tagging.'
+    }
+
+    # ── Build gate ──
+    Invoke-Compile -Scope 'All'
+    Invoke-Test -Scope 'All'
+
+    # ── Bump versions + commit (only if version changed) ──
+    if ($needsBump) {
+        Write-Header 'Bump Versions'
+        Update-ProjectVersion -OldVersion $currentVersion -NewVersion $Version
+
+        Write-Section 'Git commit'
+        if ($PSCmdlet.ShouldProcess("version $Version", 'Git commit')) {
+            git add -A
+            if ($LASTEXITCODE -ne 0) { throw 'git add failed.' }
+
+            git commit -m "chore: bump version to $Version"
+            if ($LASTEXITCODE -ne 0) { throw 'git commit failed.' }
+            Write-Status "Committed version bump to $Version" 'OK'
+        }
+    }
+    else {
+        Write-Status "Version already at $Version — skipping bump" 'INFO'
+    }
+
+    # ── Git tag ──
+    Write-Section 'Git tag'
+    if ($PSCmdlet.ShouldProcess("version $Version", 'Create annotated tag')) {
+        git tag -a $Version -m "Release $Version"
+        if ($LASTEXITCODE -ne 0) { throw 'git tag failed.' }
+        Write-Status "Created annotated tag $Version" 'OK'
+    }
+
+    Write-Host ''
+    Write-Status 'Push with: git push origin main --follow-tags' 'INFO'
+}
+
 function Invoke-Clean {
     [CmdletBinding(SupportsShouldProcess)]
     param()
@@ -690,6 +974,18 @@ if ($Help) {
 if ($Target -eq 'TypeScript') { $Target = 'TS' }
 if ($Target -eq '.NET')       { $Target = 'DotNet' }
 
+# For Tag, the Target positional slot holds the version string
+$Version = $null
+if ($Action -eq 'Tag') {
+    $Version = $Target
+    $Target = $null
+}
+
+# Validate target values for non-Tag actions
+if ($Action -ne 'Tag' -and $Target -and $Target -notin @('All', 'TS', 'DotNet')) {
+    throw "Cannot validate argument on parameter 'Target'. The argument `"$Target`" does not belong to the set `"All, TS, TypeScript, DotNet, .NET`"."
+}
+
 # Validate mutually exclusive options
 if ($RuntimeIdentifier -and $Target -eq 'All') {
     throw '-RuntimeIdentifier and Target ''All'' are mutually exclusive.'
@@ -697,6 +993,18 @@ if ($RuntimeIdentifier -and $Target -eq 'All') {
 
 if ($Clean -and $Action -in 'Prepare', 'Package', 'Publish') {
     throw "-Clean and '$Action' are mutually exclusive — $Action already performs a clean."
+}
+
+if ($Clean -and $Action -eq 'Tag') {
+    throw "-Clean and 'Tag' are mutually exclusive."
+}
+
+if ($Action -eq 'Tag' -and $RuntimeIdentifier) {
+    throw '-RuntimeIdentifier is not valid with Tag.'
+}
+
+if ($Action -eq 'Tag' -and -not $Version) {
+    throw 'Tag requires a version. Usage: .\build.ps1 Tag <version>'
 }
 
 $resolvedTarget = if ($Target) { $Target } else { 'All' }
@@ -722,5 +1030,6 @@ elseif ($Action) {
         'Prepare' { Invoke-Prepare }
         'Package' { Invoke-Package -Scope $Target }
         'Publish' { Invoke-Publish -Scope $Target }
+        'Tag'     { Invoke-Tag -Version $Version }
     }
 }
