@@ -14,35 +14,15 @@ using global::EditorConfig.Core;
 internal sealed class EditorConfigResolver
 {
     /// <summary>
-    /// Resolves the effective editorconfig properties for <paramref name="filePath"/>.
-    /// When <paramref name="keys"/> is provided, only matching keys are returned.
+    /// Resolves all effective editorconfig properties for <paramref name="filePath"/>.
     /// </summary>
-    internal Dictionary<string, string> Resolve(string filePath, string[]? keys = null)
+    internal Dictionary<string, string> Resolve(string filePath)
     {
         var parser = new EditorConfigParser();
         var config = parser.Parse(filePath);
 
-        if (config.Properties.Count == 0)
-        {
-            return [];
-        }
-
-        if (keys is not { Length: > 0 })
-        {
-            return new Dictionary<string, string>(config.Properties);
-        }
-
-        var keySet = new HashSet<string>(keys, StringComparer.OrdinalIgnoreCase);
-        var result = new Dictionary<string, string>();
-
-        foreach (var kv in config.Properties)
-        {
-            if (keySet.Contains(kv.Key))
-            {
-                result[kv.Key] = kv.Value;
-            }
-        }
-
-        return result;
+        return config.Properties.Count == 0
+            ? []
+            : new Dictionary<string, string>(config.Properties);
     }
 }

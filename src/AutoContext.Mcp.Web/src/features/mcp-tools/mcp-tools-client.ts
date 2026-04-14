@@ -1,22 +1,20 @@
 import { connect } from 'node:net';
 
-export interface McpToolEntry {
-    readonly name: string;
+export interface McpToolsRequest {
+    readonly tools: readonly string[];
+    readonly filePath?: string;
     readonly 'editorconfig-keys'?: readonly string[];
 }
 
-export interface McpToolResult {
-    readonly name: string;
-    readonly mode: 'run' | 'editorconfig-only' | 'skip';
-    readonly data?: Record<string, string>;
+export interface McpToolsResponse {
+    readonly tools: Record<string, boolean>;
+    readonly editorconfig?: Record<string, string>;
 }
 
 export class McpToolsClient {
     private readonly pipePath: string | undefined;
-    readonly workspacePath: string | undefined;
 
-    constructor(pipeName?: string, workspacePath?: string) {
-        this.workspacePath = workspacePath;
+    constructor(pipeName?: string) {
 
         if (pipeName) {
             this.pipePath = process.platform === 'win32'
@@ -29,22 +27,19 @@ export class McpToolsClient {
      * Resolves tool modes and EditorConfig data for a batch of MCP tools
      * via the `mcp-tools` workspace service endpoint.
      */
-    async resolveTools(
-        filePath: string | undefined,
-        tools: readonly McpToolEntry[],
-    ): Promise<McpToolResult[] | undefined> {
-        if (!filePath?.trim() || !this.pipePath) {
+    async resolveTools(request: McpToolsRequest): Promise<McpToolsResponse | undefined> {
+        if (!this.pipePath) {
             return undefined;
         }
 
-        const response = await this.sendPipeRequest<{ 'mcp-tools'?: McpToolResult[] }>({
+        const response = await this.sendPipeRequest<McpToolsResponse>({
             type: 'mcp-tools',
-            'file-path': filePath,
-            'mcp-tools': tools,
+            tools: request.tools,
+            'file-path': request.filePath,
+            'editorconfig-keys': request['editorconfig-keys'],
         });
 
-        const results = response['mcp-tools'];
-        return results?.length ? results : undefined;
+        return response.tools ? response : undefined;
     }
 
     /**

@@ -234,20 +234,18 @@ public sealed class WorkspaceServiceTests : IDisposable
             var response = await SendMcpToolsRequestAsync(
                 pipeName,
                 new McpToolsRequest(
+                    ["check-style"],
                     Path.Combine(_tempRoot, "File.cs"),
-                    [new McpToolEntry("check-style", ["indent_style"])]),
+                    ["indent_style"]),
                 ct);
 
             Assert.Multiple(
                 () => Assert.NotNull(response),
-                () => Assert.Single(response!.McpTools),
                 () =>
                 {
-                    var result = response!.McpTools[0];
-                    Assert.Equal("check-style", result.Name);
-                    Assert.Equal(McpToolMode.Run, result.Mode);
-                    Assert.NotNull(result.Data);
-                    Assert.Equal("space", result.Data!["indent_style"]);
+                    Assert.True(response!.Tools["check-style"]);
+                    Assert.NotNull(response.EditorConfig);
+                    Assert.Equal("space", response.EditorConfig!["indent_style"]);
                 }
             );
         }
@@ -284,20 +282,14 @@ public sealed class WorkspaceServiceTests : IDisposable
             var response = await SendMcpToolsRequestAsync(
                 pipeName,
                 new McpToolsRequest(
-                    Path.Combine(_tempRoot, "File.cs"),
-                    [new McpToolEntry("check-style")]),
+                    ["check-style"],
+                    Path.Combine(_tempRoot, "File.cs")),
                 ct);
 
             Assert.Multiple(
                 () => Assert.NotNull(response),
-                () => Assert.Single(response!.McpTools),
-                () =>
-                {
-                    var result = response!.McpTools[0];
-                    Assert.Equal("check-style", result.Name);
-                    Assert.Equal(McpToolMode.Skip, result.Mode);
-                    Assert.Null(result.Data);
-                }
+                () => Assert.False(response!.Tools["check-style"]),
+                () => Assert.Null(response!.EditorConfig)
             );
         }
         finally
@@ -307,7 +299,7 @@ public sealed class WorkspaceServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task Should_return_editorconfig_only_for_disabled_tool_with_keys()
+    public async Task Should_return_editorconfig_for_disabled_tool_with_keys()
     {
         var ct = TestContext.Current.CancellationToken;
 
@@ -343,20 +335,18 @@ public sealed class WorkspaceServiceTests : IDisposable
             var response = await SendMcpToolsRequestAsync(
                 pipeName,
                 new McpToolsRequest(
+                    ["check-style"],
                     Path.Combine(_tempRoot, "File.cs"),
-                    [new McpToolEntry("check-style", ["indent_size"])]),
+                    ["indent_size"]),
                 ct);
 
             Assert.Multiple(
                 () => Assert.NotNull(response),
-                () => Assert.Single(response!.McpTools),
+                () => Assert.False(response!.Tools["check-style"]),
                 () =>
                 {
-                    var result = response!.McpTools[0];
-                    Assert.Equal("check-style", result.Name);
-                    Assert.Equal(McpToolMode.EditorConfigOnly, result.Mode);
-                    Assert.NotNull(result.Data);
-                    Assert.Equal("4", result.Data!["indent_size"]);
+                    Assert.NotNull(response!.EditorConfig);
+                    Assert.Equal("4", response.EditorConfig!["indent_size"]);
                 });
         }
         finally
@@ -402,20 +392,22 @@ public sealed class WorkspaceServiceTests : IDisposable
             var response = await SendMcpToolsRequestAsync(
                 pipeName,
                 new McpToolsRequest(
+                    ["enabled-tool", "disabled-with-keys", "disabled-no-keys"],
                     Path.Combine(_tempRoot, "File.cs"),
-                    [
-                        new McpToolEntry("enabled-tool", ["indent_style"]),
-                        new McpToolEntry("disabled-with-keys", ["indent_style"]),
-                        new McpToolEntry("disabled-no-keys"),
-                    ]),
+                    ["indent_style"]),
                 ct);
 
             Assert.Multiple(
                 () => Assert.NotNull(response),
-                () => Assert.Equal(3, response!.McpTools.Length),
-                () => Assert.Equal(McpToolMode.Run, response!.McpTools[0].Mode),
-                () => Assert.Equal(McpToolMode.EditorConfigOnly, response!.McpTools[1].Mode),
-                () => Assert.Equal(McpToolMode.Skip, response!.McpTools[2].Mode));
+                () => Assert.Equal(3, response!.Tools.Count),
+                () => Assert.True(response!.Tools["enabled-tool"]),
+                () => Assert.False(response!.Tools["disabled-with-keys"]),
+                () => Assert.False(response!.Tools["disabled-no-keys"]),
+                () =>
+                {
+                    Assert.NotNull(response!.EditorConfig);
+                    Assert.Equal("space", response.EditorConfig!["indent_style"]);
+                });
         }
         finally
         {
@@ -424,7 +416,7 @@ public sealed class WorkspaceServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task Should_return_empty_for_missing_file_path()
+    public async Task Should_resolve_tool_modes_when_file_path_is_missing()
     {
         var ct = TestContext.Current.CancellationToken;
         var pipeName = $"ec-test-{Guid.NewGuid():N}";
@@ -437,12 +429,13 @@ public sealed class WorkspaceServiceTests : IDisposable
         {
             var response = await SendMcpToolsRequestAsync(
                 pipeName,
-                new McpToolsRequest("", [new McpToolEntry("check-style")]),
+                new McpToolsRequest(["check-style"]),
                 ct);
 
             Assert.Multiple(
                 () => Assert.NotNull(response),
-                () => Assert.Empty(response!.McpTools));
+                () => Assert.True(response!.Tools["check-style"]),
+                () => Assert.Null(response!.EditorConfig));
         }
         finally
         {

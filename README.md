@@ -26,8 +26,8 @@ Tools and instructions are grouped into categories and managed from dedicated si
 
 ```text
 AutoContext.slnx                        # Solution file
-src/AutoContext.Mcp.Shared/             # Shared contracts (IChecker, IEditorConfigFilter) and pipe protocol types
-  Checkers/                             #   Checker interfaces implemented across projects
+src/AutoContext.Mcp.Shared/             # Shared contracts (IChecker, IEditorConfigFilter, CompositeChecker) and pipe protocol types
+  Checkers/                             #   Checker interfaces and CompositeChecker base class
   McpTools/                             #   McpToolsClient (pipe client) and wire-contract types
 src/AutoContext.WorkspaceServer/        # Handles cross-cutting workspace tasks and hosts technology-agnostic MCP tools
   Tools/                                #   MCP-facing entry points (EditorConfig tool, Git checkers)

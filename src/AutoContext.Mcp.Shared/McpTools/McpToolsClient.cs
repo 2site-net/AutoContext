@@ -8,45 +8,30 @@ using System.Text.Json;
 /// Named pipe client for the <c>mcp-tools</c> endpoint on the
 /// <c>AutoContext.WorkspaceServer</c> service process.
 /// </summary>
-public sealed class McpToolsClient
+/// <remarks>
+/// Initializes a new instance of the <see cref="McpToolsClient"/> class.
+/// </remarks>
+/// <param name="pipeName">Named pipe used to connect to the workspace service, or <see langword="null"/> when not available.</param>
+public sealed class McpToolsClient(string? pipeName = null)
 {
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.KebabCaseLower,
     };
 
-    private readonly string? _pipeName;
-    private readonly string? _workspacePath;
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="McpToolsClient"/> class.
-    /// </summary>
-    /// <param name="pipeName">Named pipe used to connect to the workspace service, or <see langword="null"/> when not available.</param>
-    /// <param name="workspacePath">Absolute path to the workspace root, or <see langword="null"/> when not available.</param>
-    public McpToolsClient(string? pipeName = null, string? workspacePath = null)
-    {
-        _pipeName = pipeName;
-        _workspacePath = workspacePath;
-    }
-
-    /// <summary>
-    /// Gets the workspace root path, if configured.
-    /// </summary>
-    internal string? WorkspacePath => _workspacePath;
+    private readonly string? _pipeName = pipeName;
 
     /// <summary>
     /// Resolves tool modes and EditorConfig data for a batch of MCP tools
     /// via the <c>mcp-tools</c> workspace service endpoint.
     /// </summary>
-    internal async Task<McpToolResult[]?> ResolveToolsAsync(
-        string? filePath, McpToolEntry[] tools)
+    internal async Task<McpToolsResponse?> ResolveToolsAsync(McpToolsRequest request)
     {
-        if (string.IsNullOrWhiteSpace(filePath) || string.IsNullOrWhiteSpace(_pipeName))
+        if (string.IsNullOrWhiteSpace(_pipeName))
         {
             return null;
         }
 
-        var request = new McpToolsRequest(filePath, tools);
         var requestBytes = JsonSerializer.SerializeToUtf8Bytes(request, JsonOptions);
 
         using var client = new NamedPipeClientStream(".", _pipeName, PipeDirection.InOut, PipeOptions.Asynchronous);
@@ -61,9 +46,7 @@ public sealed class McpToolsClient
             return null;
         }
 
-        var response = JsonSerializer.Deserialize<McpToolsResponse>(responseBytes, JsonOptions);
-
-        return response?.McpTools;
+        return JsonSerializer.Deserialize<McpToolsResponse>(responseBytes, JsonOptions);
     }
 
     private static async Task WriteMessageAsync(Stream stream, byte[] payload)

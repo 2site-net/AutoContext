@@ -18,7 +18,15 @@ internal sealed class EditorConfigRequestHandler(EditorConfigResolver resolver) 
             return JsonSerializer.SerializeToUtf8Bytes(new EditorConfigResponse([]), WorkspaceService.JsonOptions);
         }
 
-        var properties = resolver.Resolve(request.FilePath, request.Keys);
+        var properties = resolver.Resolve(request.FilePath);
+
+        if (request.Keys is { Length: > 0 })
+        {
+            var keySet = new HashSet<string>(request.Keys, StringComparer.OrdinalIgnoreCase);
+            properties = properties
+                .Where(kv => keySet.Contains(kv.Key))
+                .ToDictionary(kv => kv.Key, kv => kv.Value);
+        }
 
         return JsonSerializer.SerializeToUtf8Bytes(new EditorConfigResponse(properties), WorkspaceService.JsonOptions);
     }

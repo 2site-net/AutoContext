@@ -19,18 +19,28 @@ using AutoContext.Mcp.Shared.McpTools;
 /// XML, not C# source code.
 /// </remarks>
 [McpServerToolType]
-public sealed partial class CSharpChecker(McpToolsClient mcpToolsClient, ILogger<CSharpChecker> logger) : IChecker
+public sealed partial class CSharpChecker(McpToolsClient mcpToolsClient, ILogger<CSharpChecker> logger)
+    : CompositeChecker(mcpToolsClient, logger)
 {
     /// <inheritdoc />
-    public string ToolName
+    public override string ToolName
         => "check_csharp_all";
 
-    Task<string> IChecker.CheckAsync(string content, IReadOnlyDictionary<string, string>? data)
-        => CheckAsync(content,
-            editorConfigFilePath: data?.GetValueOrDefault("editorConfigFilePath"),
-            productionFileName: data?.GetValueOrDefault("productionFileName"),
-            productionNamespace: data?.GetValueOrDefault("productionNamespace"),
-            testFileName: data?.GetValueOrDefault("testFileName"));
+    /// <inheritdoc />
+    protected override string ToolLabel
+        => "C#";
+
+    /// <inheritdoc />
+    protected override IChecker[] CreateCheckers() =>
+    [
+        new CSharpCodingStyleChecker(),
+        new CSharpMemberOrderingChecker(),
+        new CSharpNamingConventionsChecker(),
+        new CSharpAsyncPatternChecker(),
+        new CSharpNullableContextChecker(),
+        new CSharpProjectStructureChecker(),
+        new CSharpTestStyleChecker(),
+    ];
 
     /// <summary>
     /// Runs all enabled C# code quality checks on the supplied C# source code.
@@ -42,19 +52,15 @@ public sealed partial class CSharpChecker(McpToolsClient mcpToolsClient, ILogger
         "project structure, and test style. " +
         "Prefer this over calling individual check tools unless you only need a specific check. " +
         "Does not include NuGet hygiene (use check_nuget_hygiene separately for project files). " +
-        "When editorConfigFilePath is provided (the path of the source file being checked), " +
-        "resolves its effective .editorconfig properties and uses them to " +
-        "drive checker behavior (e.g., brace and namespace style enforcement direction).")]
+        "When filePath is provided, resolves its effective .editorconfig properties and uses them to " +
+        "drive checker behavior (e.g., brace and namespace style enforcement direction). " +
+        "The file name is also extracted from filePath to validate that the declared type name matches.")]
     public async Task<string> CheckAsync(
         [Description("The C# source code to check.")]
         string content,
         [Description("Absolute path of the C# source file being checked. " +
-            "Used to resolve its effective .editorconfig properties. " +
-            "Pass the same path used when calling get_editorconfig.")]
-        string? editorConfigFilePath = null,
-        [Description("File name of the C# source file (e.g. 'MyClass.cs'). " +
-            "Used to validate that the declared type name matches the file name.")]
-        string? productionFileName = null,
+            "Used to resolve .editorconfig properties and to validate that the type name matches the file name.")]
+        string? filePath = null,
         [Description("Namespace of the corresponding production type (e.g. 'MyApp.Services'). " +
             "Pass when checking a test file to validate namespace mirroring.")]
         string? productionNamespace = null,
@@ -62,145 +68,24 @@ public sealed partial class CSharpChecker(McpToolsClient mcpToolsClient, ILogger
             "Pass when checking a test file to validate the name ends with 'Tests'.")]
         string? testFileName = null)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(content);
+        var data = new Dictionary<string, string>();
 
-        var providedKeys = string.Join(", ",
-            new[] { editorConfigFilePath is not null ? nameof(editorConfigFilePath) : null,
-                    productionFileName is not null ? nameof(productionFileName) : null,
-                    productionNamespace is not null ? nameof(productionNamespace) : null,
-                    testFileName is not null ? nameof(testFileName) : null }
-                .OfType<string>());
-
-        LogToolInvoked(logger, ToolName, content.Length,
-            providedKeys.Length > 0 ? providedKeys : "(none)");
-
-        IChecker[] checkers =
-        [
-            new CSharpCodingStyleChecker(),
-            new CSharpMemberOrderingChecker(),
-            new CSharpNamingConventionsChecker(),
-            new CSharpAsyncPatternChecker(),
-            new CSharpNullableContextChecker(),
-            new CSharpProjectStructureChecker(),
-            new CSharpTestStyleChecker(),
-        ];
-
-        var (explicitParams, results) = await BuildDataAsync(checkers, editorConfigFilePath, productionFileName, productionNamespace, testFileName).ConfigureAwait(false);
-
-        var sections = new List<string>();
-
-        foreach (var checker in checkers)
+        if (filePath is not null)
         {
-            var result = results?.FirstOrDefault(r => r.Name == checker.ToolName);
-
-            if (result is null)
-            {
-                sections.Add(await checker.CheckAsync(content, explicitParams).ConfigureAwait(false));
-                continue;
-            }
-
-            switch (result.Mode)
-            {
-                case McpToolMode.Run:
-                    sections.Add(await checker.CheckAsync(content, MergeData(explicitParams, result.Data)).ConfigureAwait(false));
-                    break;
-
-                case McpToolMode.EditorConfigOnly:
-                    var merged = MergeData(explicitParams, result.Data);
-                    merged["__disabled"] = "true";
-                    sections.Add(await checker.CheckAsync(content, merged).ConfigureAwait(false));
-                    break;
-
-                case McpToolMode.Skip:
-                    break;
-
-                default:
-                    break;
-            }
+            data["filePath"] = filePath;
+            data["productionFileName"] = Path.GetFileName(filePath);
         }
 
-        if (sections.Count == 0)
+        if (productionNamespace is not null)
         {
-            return "⚠️ All C# checks are disabled.";
+            data["productionNamespace"] = productionNamespace;
         }
 
-        var failures = sections.Where(s => s.StartsWith('❌')).ToList();
-
-        if (failures.Count == 0)
+        if (testFileName is not null)
         {
-            return "✅ All enabled C# checks passed.";
+            data["testFileName"] = testFileName;
         }
 
-        return string.Join("\n\n", failures);
+        return await CheckAsync(content, data.Count > 0 ? data : null).ConfigureAwait(false);
     }
-
-    private async Task<(Dictionary<string, string>? ExplicitParams, McpToolResult[]? Results)> BuildDataAsync(
-        IChecker[] checkers,
-        string? editorConfigFilePath,
-        string? productionFileName,
-        string? productionNamespace,
-        string? testFileName)
-    {
-        Dictionary<string, string>? explicitParams = null;
-
-        if (productionFileName is not null || productionNamespace is not null || testFileName is not null)
-        {
-            explicitParams = [];
-
-            if (productionFileName is not null)
-            {
-                explicitParams["productionFileName"] = productionFileName;
-            }
-
-            if (productionNamespace is not null)
-            {
-                explicitParams["productionNamespace"] = productionNamespace;
-            }
-
-            if (testFileName is not null)
-            {
-                explicitParams["testFileName"] = testFileName;
-            }
-        }
-
-        var entries = checkers.Select(c =>
-        {
-            var keys = c is IEditorConfigFilter filter ? filter.EditorConfigKeys.ToArray() : null;
-
-            return new McpToolEntry(c.ToolName, keys);
-        }).ToArray();
-
-        var results = await mcpToolsClient.ResolveToolsAsync(editorConfigFilePath, entries).ConfigureAwait(false);
-
-        return (explicitParams, results);
-    }
-
-    private static Dictionary<string, string> MergeData(
-        Dictionary<string, string>? explicitParams,
-        Dictionary<string, string>? editorConfigData)
-    {
-        var merged = new Dictionary<string, string>();
-
-        if (explicitParams is not null)
-        {
-            foreach (var kv in explicitParams)
-            {
-                merged[kv.Key] = kv.Value;
-            }
-        }
-
-        if (editorConfigData is not null)
-        {
-            foreach (var kv in editorConfigData)
-            {
-                merged.TryAdd(kv.Key, kv.Value);
-            }
-        }
-
-        return merged;
-    }
-
-    [LoggerMessage(Level = LogLevel.Information,
-        Message = "Tool invoked: {ToolName} | content length: {ContentLength} | data keys: {DataKeys}")]
-    private static partial void LogToolInvoked(ILogger logger, string toolName, int contentLength, string dataKeys);
 }

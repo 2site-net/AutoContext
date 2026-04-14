@@ -19,37 +19,39 @@ internal sealed class McpToolsRequestHandler(
     {
         var request = JsonSerializer.Deserialize<McpToolsRequest>(json, WorkspaceService.JsonOptions);
 
-        if (request is null
-            || string.IsNullOrWhiteSpace(request.FilePath)
-            || request.McpTools is not { Length: > 0 })
+        if (request is null || request.Tools is not { Length: > 0 })
         {
             return JsonSerializer.SerializeToUtf8Bytes(new McpToolsResponse([]), WorkspaceService.JsonOptions);
         }
 
-        var results = new McpToolResult[request.McpTools.Length];
+        // Concern 1: tool modes (from .autocontext.json)
+        var tools = new Dictionary<string, bool>(request.Tools.Length);
 
-        for (var i = 0; i < request.McpTools.Length; i++)
+        foreach (var tool in request.Tools)
         {
-            var tool = request.McpTools[i];
-            var enabled = toolsStatus.IsEnabled(tool.Name);
-            var hasKeys = tool.EditorConfigKeys is { Length: > 0 };
+            tools[tool] = toolsStatus.IsEnabled(tool);
+        }
 
-            if (enabled)
+        // Concern 2: EditorConfig (from .editorconfig files) — independent
+        Dictionary<string, string>? editorConfig = null;
+
+        if (!string.IsNullOrWhiteSpace(request.FilePath))
+        {
+            var allProperties = resolver.Resolve(request.FilePath!);
+
+            if (allProperties.Count > 0 && request.EditorConfigKeys is { Length: > 0 })
             {
-                var data = hasKeys ? resolver.Resolve(request.FilePath, tool.EditorConfigKeys) : null;
-                results[i] = new McpToolResult(tool.Name, McpToolMode.Run, data);
+                var keySet = new HashSet<string>(request.EditorConfigKeys, StringComparer.OrdinalIgnoreCase);
+                editorConfig = allProperties
+                    .Where(kv => keySet.Contains(kv.Key))
+                    .ToDictionary(kv => kv.Key, kv => kv.Value);
             }
-            else if (hasKeys)
+            else if (allProperties.Count > 0)
             {
-                var data = resolver.Resolve(request.FilePath, tool.EditorConfigKeys);
-                results[i] = new McpToolResult(tool.Name, McpToolMode.EditorConfigOnly, data);
-            }
-            else
-            {
-                results[i] = new McpToolResult(tool.Name, McpToolMode.Skip);
+                editorConfig = allProperties;
             }
         }
 
-        return JsonSerializer.SerializeToUtf8Bytes(new McpToolsResponse(results), WorkspaceService.JsonOptions);
+        return JsonSerializer.SerializeToUtf8Bytes(new McpToolsResponse(tools, editorConfig), WorkspaceService.JsonOptions);
     }
 }

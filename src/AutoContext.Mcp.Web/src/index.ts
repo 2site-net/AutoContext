@@ -31,7 +31,7 @@ if (workspaceFolder) {
 }
 
 const workspaceServer = typeof values['workspace-server'] === 'string' ? values['workspace-server'] : undefined;
-const mcpToolsClient = new McpToolsClient(workspaceServer, workspaceFolder);
+const mcpToolsClient = new McpToolsClient(workspaceServer);
 if (workspaceServer) {
     logger.log('Startup', `workspace-server=${workspaceServer}`);
 }
@@ -55,23 +55,22 @@ if (scope === 'typescript') {
                 'Runs all enabled TypeScript code quality checks on TypeScript source code and returns a combined report. ' +
                 'Covers coding style anti-patterns (any, enum, @ts-ignore, Function/Object types). ' +
                 'Prefer this over calling individual check tools unless you only need a specific check. ' +
-                'When editorConfigFilePath is provided (the path of the source file being checked), ' +
-                'resolves its effective .editorconfig properties and uses them to drive checker behavior.',
+                'When filePath is provided, resolves its effective .editorconfig properties ' +
+                'and uses them to drive checker behavior.',
             inputSchema: {
                 content: z.string().describe('The TypeScript source code to check.'),
-                editorConfigFilePath: z.string().optional().describe(
+                filePath: z.string().optional().describe(
                     'Absolute path of the TypeScript source file being checked. ' +
-                    'Used to resolve its effective .editorconfig properties. ' +
-                    'Pass the same path used when calling get_editorconfig.',
+                    'Used to resolve .editorconfig properties.',
                 ),
             },
         },
-        async ({ content, editorConfigFilePath }) => ({
+        async ({ content, filePath }) => ({
             content: [{
                 type: 'text' as const,
                 text: await checker.check(
                     content,
-                    editorConfigFilePath ? { editorConfigFilePath } : undefined,
+                    filePath ? { filePath } : undefined,
                 ),
             }],
         }),

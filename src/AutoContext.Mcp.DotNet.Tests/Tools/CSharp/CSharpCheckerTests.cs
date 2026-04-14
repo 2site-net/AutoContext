@@ -38,7 +38,7 @@ public sealed class CSharpCheckerTests
             """;
 
         // Act
-        var result = await new CSharpChecker(new McpToolsClient(), NullLogger<CSharpChecker>.Instance).CheckAsync(source, productionFileName: "MyClass.cs");
+        var result = await new CSharpChecker(new McpToolsClient(), NullLogger<CSharpChecker>.Instance).CheckAsync(source, filePath: "C:\\project\\MyClass.cs");
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -61,7 +61,7 @@ public sealed class CSharpCheckerTests
             """;
 
         // Act
-        var result = await new CSharpChecker(new McpToolsClient(), NullLogger<CSharpChecker>.Instance).CheckAsync(source, productionFileName: "MyClass.cs");
+        var result = await new CSharpChecker(new McpToolsClient(), NullLogger<CSharpChecker>.Instance).CheckAsync(source, filePath: "C:\\project\\MyClass.cs");
 
         // Assert
         Assert.Multiple(

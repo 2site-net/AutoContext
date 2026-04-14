@@ -90,7 +90,7 @@ The diagram reads top-to-bottom: **build artifacts** feed into the **extension p
 
 - **Catalogs** are the central hub — built from `ui-constants` + `MetadataLoader` output, they feed into tree views, config writers, the detector, and the server provider.
 - **WorkspaceContextDetector** scans workspace files and sets context keys, which drive MCP server registration (`McpServerProvider`), instruction filtering (`when`-clause evaluation against `chatInstructions` in `package.json`), and tree views (detected state + override file versions for staleness comparison).
-- **`.autocontext.json`** bridges the extension and WorkspaceServer. The extension writes tool on/off toggles and disabled instruction IDs; WorkspaceServer reads them for per-feature run/skip/restrict decisions. MCP servers are separate OS processes and cannot read VS Code settings — this file is how toggle state crosses the process boundary.
+- **`.autocontext.json`** bridges the extension and WorkspaceServer. The extension writes tool on/off toggles and disabled instruction IDs; WorkspaceServer reads them for per-tool enable/disable decisions. MCP servers are separate OS processes and cannot read VS Code settings — this file is how toggle state crosses the process boundary.
 - **`.generated/`** files are what Copilot actually reads — they are the instruction source files with `[INSTxxxx]` tags stripped and disabled rules removed. VS Code's `when`-clause engine evaluates the context keys to decide which `.generated/` files are active for a given workspace.
 - **MCP servers** connect to the WorkspaceServer sidecar over a named pipe to get feature decisions and resolved `.editorconfig` properties, then run their checkers and return reports to Copilot.
 
@@ -109,7 +109,7 @@ When the extension activates, the following steps execute:
 **Phase 3 (parallel)** — the following four operations run concurrently via `Promise.all()`:
 
 - **`WorkspaceContextDetector.detect()`** — scans the workspace for project files, `package.json` dependencies, and directory markers. Sets VS Code context keys that control both server registration and instruction injection. Also scans `.github/instructions/` for override files, parsing their frontmatter to extract version numbers for staleness comparison (see [Override Staleness](#override-staleness)).
-- **`McpToolsConfigWriter.write()`** — persists the user's tool on/off toggles from VS Code settings into `.autocontext.json`. MCP servers are separate processes that cannot access VS Code settings, so `.autocontext.json` is how the WorkspaceServer knows which features to run, skip, or restrict at runtime.
+- **`McpToolsConfigWriter.write()`** — persists the user's tool on/off toggles from VS Code settings into `.autocontext.json`. MCP servers are separate processes that cannot access VS Code settings, so `.autocontext.json` is how the WorkspaceServer knows which features to enable or disable at runtime.
 - **`InstructionsConfigWriter.removeOrphanedStagingDirs()`** — deletes per-workspace staging directories older than one hour that belong to other VS Code windows.
 - **`ConfigManager.removeOrphanedIds()`** — cleans disabled-instruction IDs from `.autocontext.json` that no longer match any instruction in the current extension version.
 
@@ -125,13 +125,14 @@ When the extension activates, the following steps execute:
 
 When Copilot invokes an MCP tool (e.g., `check_csharp_all`):
 
-1. The MCP tool builds a list of its features — each entry includes the feature name and, for checkers that implement `IEditorConfigFilter`, the EditorConfig keys it consumes.
-2. It sends a single `mcp-tools` request over the named pipe to `AutoContext.WorkspaceServer`, which reads `.autocontext.json` for tool status, resolves `.editorconfig` properties, and returns a per-feature decision:
-   - **`run`** — feature is enabled; includes resolved EditorConfig data.
-   - **`editorconfig-only`** — feature is disabled but has EditorConfig keys; run in restricted mode that enforces only EditorConfig-backed rules and skips instruction-only (INST) checks. This lets project-level `.editorconfig` settings remain enforced even after a team opts out of the instruction.
-   - **`skip`** — feature is disabled and has no EditorConfig keys; skip entirely.
-3. The MCP tool loops over features and acts on the mode. Enabled features use the merged EditorConfig values to **drive** their enforcement direction — not just to skip conflicting checks.
-4. The checker returns a report (✅ pass or ❌ violations found).
+1. The `CompositeChecker` base class collects tool names from its sub-checkers and aggregates EditorConfig keys from any sub-checker that implements `IEditorConfigFilter`.
+2. It sends a single `mcp-tools` request over the named pipe to `AutoContext.WorkspaceServer`, which reads `.autocontext.json` for tool status, resolves `.editorconfig` properties, and returns two flat, independent maps: `tools` (tool name → enabled/disabled) and `editorconfig` (key → value, filtered to the requested keys).
+3. The composite checker merges explicit caller params with the resolved EditorConfig data into a single data bag. EditorConfig values (project rules) overwrite explicit params on conflict.
+4. For each sub-checker the composite base decides how to run it:
+   - **Enabled** — runs with the merged data bag.
+   - **Disabled with EditorConfig keys** — runs in restricted mode (`__disabled` flag set), enforcing only EditorConfig-backed rules and skipping instruction-only (INST) checks. This lets project-level `.editorconfig` settings remain enforced even after a team opts out of the instruction.
+   - **Disabled without EditorConfig keys** — skipped entirely.
+5. The composite checker returns a combined report (✅ pass or ❌ violations found).
 
 MCP servers never read `.autocontext.json` directly — all tool orchestration decisions are centralized in WorkspaceServer so the config format and decision logic can evolve in one place.
 
@@ -277,10 +278,10 @@ AutoContext registers four MCP server categories — DotNet, Git, EditorConfig, 
 A shared class library and three executables make up the server side:
 
 - **`AutoContext.Mcp.Shared`** — Shared contracts and communication layer for the .NET MCP servers. Contains:
-  - `Checkers/` — `IChecker` and `IEditorConfigFilter` interfaces implemented by tool checkers across projects.
-  - `McpTools/` — `McpToolsClient` (named-pipe client for querying WorkspaceServer) and the wire-contract types (`McpToolsRequest`, `McpToolsResponse`, `McpToolMode`, `McpToolEntry`, `McpToolResult`) that define the protocol between MCP servers and WorkspaceServer. Both sides of the pipe share these types — they are the single source of truth.
+  - `Checkers/` — `IChecker` and `IEditorConfigFilter` interfaces, and the `CompositeChecker` abstract base that orchestrates sub-checkers, resolves tool modes and EditorConfig data via a single pipe call, and collects the combined report.
+  - `McpTools/` — `McpToolsClient` (named-pipe client for querying WorkspaceServer) and the wire-contract types (`McpToolsRequest`, `McpToolsResponse`) that define the protocol between MCP servers and WorkspaceServer. The request carries tool names, an optional file path, and optional EditorConfig keys; the response returns two flat maps — tool enabled/disabled status and resolved EditorConfig properties. Both sides of the pipe share these types — they are the single source of truth.
 - **`AutoContext.Mcp.DotNet`** — .NET-based MCP server. Handles the DotNet scope. Contains `Tools/CSharp/` (C# checkers) and `Tools/NuGet/` (NuGet hygiene). C# checkers resolve `.editorconfig` properties via the workspace server and use them to drive enforcement direction (e.g., brace style, namespace style).
-- **`AutoContext.Mcp.Web`** — Node.js-based MCP server. Handles the TypeScript scope. Mirrors the .NET structure: `features/checkers/` (shared interfaces), `features/logging/` (logger), `features/mcp-tools/` (MCP tools client), and `tools/typescript/` (checkers).
+- **`AutoContext.Mcp.Web`** — Node.js-based MCP server. Handles the TypeScript scope. Mirrors the .NET structure: `features/checkers/` (shared interfaces and `CompositeChecker` base), `features/logging/` (logger), `features/mcp-tools/` (MCP tools client), and `tools/typescript/` (checkers).
 - **`AutoContext.WorkspaceServer`** — Handles cross-cutting workspace tasks and hosts technology-agnostic MCP tools. Multi-mode .NET executable with two folder layers:
   - `Tools/` — MCP-facing entry points (the tools Copilot calls). Contains `EditorConfig/EditorConfigTool` and `Git/` checkers.
   - `Hosting/` — Named-pipe server infrastructure and domain logic. At the top level: `WorkspaceService` (dispatch), `IRequestHandler`, and the `WorkspaceRequest` envelope. Subfolders contain feature handlers: `EditorConfig/` owns property resolution (`EditorConfigResolver`) and the named-pipe request handler; `McpTools/` owns tool orchestration (enable/disable decisions via `McpToolsConfig`, request handling via `McpToolsRequestHandler`).

@@ -3,6 +3,7 @@ namespace AutoContext.WorkspaceServer.Tools.Git;
 using System.ComponentModel;
 
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 using ModelContextProtocol.Server;
 
@@ -14,14 +15,23 @@ using AutoContext.Mcp.Shared.Checkers;
 /// a single combined report.
 /// </summary>
 [McpServerToolType]
-public sealed partial class GitChecker(McpToolsClient mcpToolsClient, ILogger<GitChecker> logger) : IChecker
+public sealed partial class GitChecker(McpToolsClient mcpToolsClient, ILogger<GitChecker>? logger = null)
+    : CompositeChecker(mcpToolsClient, logger ?? NullLogger<GitChecker>.Instance)
 {
     /// <inheritdoc />
-    public string ToolName
+    public override string ToolName
         => "check_git_all";
 
-    Task<string> IChecker.CheckAsync(string content, IReadOnlyDictionary<string, string>? data)
-        => CheckAsync(content);
+    /// <inheritdoc />
+    protected override string ToolLabel
+        => "Git";
+
+    /// <inheritdoc />
+    protected override IChecker[] CreateCheckers() =>
+    [
+        new CommitFormatChecker(),
+        new CommitContentChecker(),
+    ];
 
     /// <summary>
     /// Runs all enabled Git commit checks on the supplied commit message.
@@ -34,48 +44,5 @@ public sealed partial class GitChecker(McpToolsClient mcpToolsClient, ILogger<Gi
     public async Task<string> CheckAsync(
         [Description("The full commit message to validate.")]
         string content)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(content);
-
-        LogToolInvoked(logger, ToolName, content.Length);
-
-        IChecker[] checkers =
-        [
-            new CommitFormatChecker(),
-            new CommitContentChecker(),
-        ];
-
-        var entries = checkers.Select(c => new McpToolEntry(c.ToolName)).ToArray();
-        var results = await mcpToolsClient.ResolveToolsAsync(mcpToolsClient.WorkspacePath, entries).ConfigureAwait(false);
-
-        var sections = new List<string>();
-
-        foreach (var checker in checkers)
-        {
-            var result = results?.FirstOrDefault(r => r.Name == checker.ToolName);
-
-            if (result is null || result.Mode != McpToolMode.Skip)
-            {
-                sections.Add(await checker.CheckAsync(content).ConfigureAwait(false));
-            }
-        }
-
-        if (sections.Count == 0)
-        {
-            return "⚠️ All Git checks are disabled.";
-        }
-
-        var failures = sections.Where(s => s.StartsWith('❌')).ToList();
-
-        if (failures.Count == 0)
-        {
-            return "✅ All enabled Git checks passed.";
-        }
-
-        return string.Join("\n\n", failures);
-    }
-
-    [LoggerMessage(Level = LogLevel.Information,
-        Message = "Tool invoked: {ToolName} | content length: {ContentLength}")]
-    private static partial void LogToolInvoked(ILogger logger, string toolName, int contentLength);
+        => await CheckAsync(content, data: null).ConfigureAwait(false);
 }
