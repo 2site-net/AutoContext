@@ -1,13 +1,10 @@
 namespace AutoContext.Mcp.DotNet.Tools.CSharp;
 
-using System.ComponentModel;
 using System.Text.RegularExpressions;
 
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-
-using ModelContextProtocol.Server;
 
 using AutoContext.Mcp.Shared.Checkers;
 
@@ -17,7 +14,6 @@ using AutoContext.Mcp.Shared.Checkers;
 /// XML doc comments on public/protected members, System-directive ordering,
 /// and expression-body style for methods and properties.
 /// </summary>
-[McpServerToolType]
 public sealed partial class CSharpCodingStyleChecker : IChecker, IEditorConfigFilter
 {
     /// <inheritdoc />
@@ -36,19 +32,7 @@ public sealed partial class CSharpCodingStyleChecker : IChecker, IEditorConfigFi
     /// <summary>
     /// Checks C# source code for code-style violations.
     /// </summary>
-    [McpServerTool(Name = "check_csharp_coding_style", ReadOnly = true, Idempotent = true)]
-    [Description(
-        "Checks C# source code for style violations: " +
-        "no #region, no decorative section-header comments, " +
-        "curly brace usage enforced per csharp_prefer_braces (true/false/when_multiline), " +
-        "blank lines before control flow statements, " +
-        "expression-body arrows (=>) must be on the next line, " +
-        "XML doc comments required on public/protected members, " +
-        "System using directives ordered first per dotnet_sort_system_directives_first (default true), " +
-        "and expression-body style enforced per csharp_style_expression_bodied_methods and " +
-        "csharp_style_expression_bodied_properties (never/always/when_on_single_line).")]
     public async Task<string> CheckAsync(
-        [Description("The C# source code to check.")]
         string content,
         IReadOnlyDictionary<string, string>? data = null)
     {

@@ -1,12 +1,8 @@
 namespace AutoContext.Mcp.DotNet.Tools.CSharp;
 
-using System.ComponentModel;
-
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-
-using ModelContextProtocol.Server;
 
 using AutoContext.Mcp.Shared.Checkers;
 
@@ -15,7 +11,6 @@ using AutoContext.Mcp.Shared.Checkers;
 /// public async APIs require a CancellationToken parameter, and all await
 /// expressions in non-test code must use .ConfigureAwait(false).
 /// </summary>
-[McpServerToolType]
 public sealed class CSharpAsyncPatternChecker : IChecker
 {
     /// <inheritdoc />
@@ -25,14 +20,7 @@ public sealed class CSharpAsyncPatternChecker : IChecker
     /// <summary>
     /// Checks C# source code for async/await pattern violations.
     /// </summary>
-    [McpServerTool(Name = "check_csharp_async_patterns", ReadOnly = true, Idempotent = true)]
-    [Description(
-        "Checks C# source code for async/await pattern violations: " +
-        "async void is not allowed except for event handlers (two-parameter methods where the last parameter type contains 'EventArgs'), " +
-        "public async methods (non-void, non-override) must include a CancellationToken parameter, " +
-        "and all await expressions in non-test code must use .ConfigureAwait(false).")]
     public async Task<string> CheckAsync(
-        [Description("The C# source code to check.")]
         string content,
         IReadOnlyDictionary<string, string>? data = null)
     {

@@ -1,12 +1,8 @@
 namespace AutoContext.Mcp.DotNet.Tools.CSharp;
 
-using System.ComponentModel;
-
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-
-using ModelContextProtocol.Server;
 
 using AutoContext.Mcp.Shared.Checkers;
 
@@ -15,7 +11,6 @@ using AutoContext.Mcp.Shared.Checkers;
 /// async method Async suffix, private instance field _camelCase, PascalCase for
 /// types/methods/properties/events, and camelCase for parameters.
 /// </summary>
-[McpServerToolType]
 public sealed class CSharpNamingConventionsChecker : IChecker
 {
     /// <inheritdoc />
@@ -25,17 +20,7 @@ public sealed class CSharpNamingConventionsChecker : IChecker
     /// <summary>
     /// Checks C# source code for naming convention violations.
     /// </summary>
-    [McpServerTool(Name = "check_csharp_naming_conventions", ReadOnly = true, Idempotent = true)]
-    [Description(
-        "Checks C# source code for naming convention violations: " +
-        "interfaces must be prefixed with 'I' followed by an uppercase letter (e.g., IMyType), " +
-        "extension classes must be suffixed with 'Extensions', " +
-        "async methods (except overrides, event handlers, and test methods) must be suffixed with 'Async', " +
-        "private non-static instance fields must use _camelCase, " +
-        "types, methods, properties, and events must use PascalCase, " +
-        "and method/constructor/delegate parameters must use camelCase.")]
     public async Task<string> CheckAsync(
-        [Description("The C# source code to check.")]
         string content,
         IReadOnlyDictionary<string, string>? data = null)
     {

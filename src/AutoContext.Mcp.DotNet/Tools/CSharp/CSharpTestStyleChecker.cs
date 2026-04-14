@@ -1,12 +1,8 @@
 namespace AutoContext.Mcp.DotNet.Tools.CSharp;
 
-using System.ComponentModel;
-
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-
-using ModelContextProtocol.Server;
 
 using AutoContext.Mcp.Shared.Checkers;
 
@@ -15,7 +11,6 @@ using AutoContext.Mcp.Shared.Checkers;
 /// no XML doc comments, Assert.Multiple for multi-assertion tests, no ConfigureAwait,
 /// and structure mirroring (file name, namespace) against the production project.
 /// </summary>
-[McpServerToolType]
 public sealed class CSharpTestStyleChecker : IChecker
 {
     /// <inheritdoc />
@@ -25,28 +20,14 @@ public sealed class CSharpTestStyleChecker : IChecker
     /// <summary>
     /// Checks C# test source code for test style violations.
     /// </summary>
-    [McpServerTool(Name = "check_csharp_test_style", ReadOnly = true, Idempotent = true)]
-    [Description(
-        "Checks C# test source code for test style violations: " +
-        "test classes must be suffixed with 'Tests', " +
-        "test methods must start with 'Should_' or 'Should_not_', " +
-        "no XML doc comments on test classes or test methods, " +
-        "Assert.Multiple() is required when a test method has more than one Assert call, " +
-        ".ConfigureAwait() must not be called inside test methods (xUnit1030), " +
-        "and when data is provided, validates that the test file " +
-        "mirrors the production structure (file name ends with 'Tests' before extensions, namespace mirrors production).")]
     public async Task<string> CheckAsync(
-        [Description("The C# test source code to check.")]
         string content,
-        [Description("Optional metadata. " +
-            "'testFileName' (e.g., 'UserServiceTests.cs') validates the name ends with 'Tests' before extensions. " +
-            "'productionNamespace' (e.g., 'MyApp.Services') validates the test namespace mirrors it.")]
         IReadOnlyDictionary<string, string>? data = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(content);
 
-        var fileName = data?.GetValueOrDefault("testFileName") ?? string.Empty;
-        var productionNamespace = data?.GetValueOrDefault("productionNamespace") ?? string.Empty;
+        var fileName = data?.GetValueOrDefault("comparedFileName") ?? string.Empty;
+        var originalNamespace = data?.GetValueOrDefault("originalNamespace") ?? string.Empty;
 
         var tree = CSharpSyntaxTree.ParseText(content);
         var root = await tree.GetRootAsync().ConfigureAwait(false);
@@ -60,7 +41,7 @@ public sealed class CSharpTestStyleChecker : IChecker
         }
 
         CheckFileNameConvention(fileName, violations);
-        CheckNamespaceMirroring(root, productionNamespace, violations);
+        CheckNamespaceMirroring(root, originalNamespace, violations);
 
         foreach (var testClass in testClasses)
         {
@@ -114,9 +95,9 @@ public sealed class CSharpTestStyleChecker : IChecker
     }
 
     // [testing INST0006]: test namespace mirrors production
-    private static void CheckNamespaceMirroring(SyntaxNode root, ReadOnlySpan<char> productionNamespace, List<string> violations)
+    private static void CheckNamespaceMirroring(SyntaxNode root, ReadOnlySpan<char> originalNamespace, List<string> violations)
     {
-        if (productionNamespace.IsEmpty || productionNamespace.IsWhiteSpace())
+        if (originalNamespace.IsEmpty || originalNamespace.IsWhiteSpace())
         {
             return;
         }
@@ -131,20 +112,20 @@ public sealed class CSharpTestStyleChecker : IChecker
         // Expected pattern: insert ".Tests" after the first segment of the production namespace.
         // E.g., "MyApp.Services.Users" → "MyApp.Tests.Services.Users"
         ReadOnlySpan<char> declared = declaredNamespace;
-        var dotIndex = productionNamespace.IndexOf('.');
+        var dotIndex = originalNamespace.IndexOf('.');
         const int testsSuffixLength = 6; // ".Tests".Length
         bool matches;
 
         if (dotIndex < 0)
         {
-            matches = declared.Length == productionNamespace.Length + testsSuffixLength
-                      && declared.StartsWith(productionNamespace, StringComparison.Ordinal)
-                      && declared[productionNamespace.Length..].Equals(".Tests", StringComparison.Ordinal);
+            matches = declared.Length == originalNamespace.Length + testsSuffixLength
+                      && declared.StartsWith(originalNamespace, StringComparison.Ordinal)
+                      && declared[originalNamespace.Length..].Equals(".Tests", StringComparison.Ordinal);
         }
         else
         {
-            var first = productionNamespace[..dotIndex];
-            var rest = productionNamespace[dotIndex..];
+            var first = originalNamespace[..dotIndex];
+            var rest = originalNamespace[dotIndex..];
 
             matches = declared.Length == first.Length + testsSuffixLength + rest.Length
                       && declared.StartsWith(first, StringComparison.Ordinal)
@@ -155,11 +136,11 @@ public sealed class CSharpTestStyleChecker : IChecker
         if (!matches)
         {
             var expectedNamespace = dotIndex < 0
-                ? $"{productionNamespace}.Tests"
-                : $"{productionNamespace[..dotIndex]}.Tests{productionNamespace[dotIndex..]}";
+                ? $"{originalNamespace}.Tests"
+                : $"{originalNamespace[..dotIndex]}.Tests{originalNamespace[dotIndex..]}";
 
             violations.Add(
-                $"Test namespace '{declaredNamespace}' does not mirror the production namespace '{productionNamespace}'. " +
+                $"Test namespace '{declaredNamespace}' does not mirror the production namespace '{originalNamespace}'. " +
                 $"Expected '{expectedNamespace}'.");
         }
     }

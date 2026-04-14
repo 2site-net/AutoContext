@@ -1,19 +1,14 @@
 namespace AutoContext.Mcp.DotNet.Tools.CSharp;
 
-using System.ComponentModel;
-
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-
-using ModelContextProtocol.Server;
 
 using AutoContext.Mcp.Shared.Checkers;
 
 /// <summary>
 /// Validates that type members are ordered by kind, access level, and static-before-instance.
 /// </summary>
-[McpServerToolType]
 public sealed class CSharpMemberOrderingChecker : IChecker
 {
     /// <inheritdoc />
@@ -49,15 +44,7 @@ public sealed class CSharpMemberOrderingChecker : IChecker
     /// <summary>
     /// Checks that members within each type are ordered by kind, then access level, then static before instance.
     /// </summary>
-    [McpServerTool(Name = "check_csharp_member_ordering", ReadOnly = true, Idempotent = true)]
-    [Description(
-        "Checks that C# type members follow the required ordering: " +
-        "constants → static fields → fields → constructors → delegates → events → " +
-        "enums → properties → indexers → methods → operators → nested types, " +
-        "then public → private, then static before instance, then alphabetically. " +
-        "Test classes (with [Fact], [Theory], [Test], or [TestCase] methods) are skipped.")]
     public async Task<string> CheckAsync(
-        [Description("The C# source code to check.")]
         string content,
         IReadOnlyDictionary<string, string>? data = null)
     {

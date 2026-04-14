@@ -1,12 +1,8 @@
 namespace AutoContext.Mcp.DotNet.Tools.CSharp;
 
-using System.ComponentModel;
-
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-
-using ModelContextProtocol.Server;
 
 using AutoContext.Mcp.Shared.Checkers;
 
@@ -14,7 +10,6 @@ using AutoContext.Mcp.Shared.Checkers;
 /// Validates that nullable reference type safety is maintained: no #nullable disable
 /// directives, and no use of the null-forgiving (!) operator to suppress warnings.
 /// </summary>
-[McpServerToolType]
 public sealed class CSharpNullableContextChecker : IChecker
 {
     /// <inheritdoc />
@@ -24,14 +19,7 @@ public sealed class CSharpNullableContextChecker : IChecker
     /// <summary>
     /// Checks C# source code for nullable context violations.
     /// </summary>
-    [McpServerTool(Name = "check_csharp_nullable_context", ReadOnly = true, Idempotent = true)]
-    [Description(
-        "Checks C# source code for nullable context violations: " +
-        "#nullable disable directives are not allowed (nullable is expected to be enabled project-wide " +
-        "via <Nullable>enable</Nullable> in the .csproj), " +
-        "and the null-forgiving operator (!) must not be used to suppress nullable warnings.")]
     public async Task<string> CheckAsync(
-        [Description("The C# source code to check.")]
         string content,
         IReadOnlyDictionary<string, string>? data = null)
     {

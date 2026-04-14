@@ -18,7 +18,7 @@ public sealed class CSharpProjectStructureCheckerTests
             """;
 
         // Act
-        var result = await new CSharpProjectStructureChecker().CheckAsync(source, new Dictionary<string, string> { ["productionFileName"] = "UserService.cs" });
+        var result = await new CSharpProjectStructureChecker().CheckAsync(source, new Dictionary<string, string> { ["originalFileName"] = "UserService.cs" });
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -163,7 +163,7 @@ public sealed class CSharpProjectStructureCheckerTests
             """;
 
         // Act
-        var result = await new CSharpProjectStructureChecker().CheckAsync(source, new Dictionary<string, string> { ["productionFileName"] = "WrongName.cs" });
+        var result = await new CSharpProjectStructureChecker().CheckAsync(source, new Dictionary<string, string> { ["originalFileName"] = "WrongName.cs" });
 
         // Assert
         Assert.Multiple(() =>
@@ -186,7 +186,7 @@ public sealed class CSharpProjectStructureCheckerTests
             """;
 
         // Act
-        var result = await new CSharpProjectStructureChecker().CheckAsync(source, new Dictionary<string, string> { ["productionFileName"] = "UserService.cs" });
+        var result = await new CSharpProjectStructureChecker().CheckAsync(source, new Dictionary<string, string> { ["originalFileName"] = "UserService.cs" });
 
         // Assert
         Assert.DoesNotContain("file name", result, StringComparison.OrdinalIgnoreCase);
@@ -279,7 +279,7 @@ public sealed class CSharpProjectStructureCheckerTests
             """;
 
         // Act
-        var result = await new CSharpProjectStructureChecker().CheckAsync(source, new Dictionary<string, string> { ["productionFileName"] = "User.cs" });
+        var result = await new CSharpProjectStructureChecker().CheckAsync(source, new Dictionary<string, string> { ["originalFileName"] = "User.cs" });
 
         // Assert
         Assert.Multiple(() =>
@@ -300,7 +300,7 @@ public sealed class CSharpProjectStructureCheckerTests
             """;
 
         // Act
-        var result = await new CSharpProjectStructureChecker().CheckAsync(source, new Dictionary<string, string> { ["productionFileName"] = "DataCallback.cs" });
+        var result = await new CSharpProjectStructureChecker().CheckAsync(source, new Dictionary<string, string> { ["originalFileName"] = "DataCallback.cs" });
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -317,7 +317,7 @@ public sealed class CSharpProjectStructureCheckerTests
             """;
 
         // Act
-        var result = await new CSharpProjectStructureChecker().CheckAsync(source, new Dictionary<string, string> { ["productionFileName"] = "Wrong.cs" });
+        var result = await new CSharpProjectStructureChecker().CheckAsync(source, new Dictionary<string, string> { ["originalFileName"] = "Wrong.cs" });
 
         // Assert
         Assert.Multiple(() =>
@@ -341,7 +341,7 @@ public sealed class CSharpProjectStructureCheckerTests
             """;
 
         // Act
-        var result = await new CSharpProjectStructureChecker().CheckAsync(source, new Dictionary<string, string> { ["productionFileName"] = "IUserRepository.cs" });
+        var result = await new CSharpProjectStructureChecker().CheckAsync(source, new Dictionary<string, string> { ["originalFileName"] = "IUserRepository.cs" });
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -362,7 +362,7 @@ public sealed class CSharpProjectStructureCheckerTests
             """;
 
         // Act
-        var result = await new CSharpProjectStructureChecker().CheckAsync(source, new Dictionary<string, string> { ["productionFileName"] = "Status.cs" });
+        var result = await new CSharpProjectStructureChecker().CheckAsync(source, new Dictionary<string, string> { ["originalFileName"] = "Status.cs" });
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -379,7 +379,7 @@ public sealed class CSharpProjectStructureCheckerTests
             """;
 
         // Act
-        var result = await new CSharpProjectStructureChecker().CheckAsync(source, new Dictionary<string, string> { ["productionFileName"] = "UserDto.cs" });
+        var result = await new CSharpProjectStructureChecker().CheckAsync(source, new Dictionary<string, string> { ["originalFileName"] = "UserDto.cs" });
 
         // Assert
         Assert.StartsWith("✅", result);

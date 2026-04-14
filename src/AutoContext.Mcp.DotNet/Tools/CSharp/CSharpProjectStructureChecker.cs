@@ -1,12 +1,8 @@
 namespace AutoContext.Mcp.DotNet.Tools.CSharp;
 
-using System.ComponentModel;
-
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-
-using ModelContextProtocol.Server;
 
 using AutoContext.Mcp.Shared.Checkers;
 
@@ -14,7 +10,6 @@ using AutoContext.Mcp.Shared.Checkers;
 /// Validates C# project structure conventions: file-scoped namespaces,
 /// single type per file, file name matches type name, and no #pragma warning disable.
 /// </summary>
-[McpServerToolType]
 public sealed class CSharpProjectStructureChecker : IChecker, IEditorConfigFilter
 {
     /// <inheritdoc />
@@ -28,23 +23,13 @@ public sealed class CSharpProjectStructureChecker : IChecker, IEditorConfigFilte
     /// <summary>
     /// Checks C# source code for project structure violations.
     /// </summary>
-    [McpServerTool(Name = "check_csharp_project_structure", ReadOnly = true, Idempotent = true)]
-    [Description(
-        "Checks C# source code for project structure violations: " +
-        "namespace style enforced per csharp_style_namespace_declarations (file_scoped or block_scoped), " +
-        "only one top-level type declaration per file is allowed, " +
-        "the file name (without extension) must match the type name when provided, " +
-        "and #pragma warning disable is not allowed (use [SuppressMessage] with a justification instead).")]
     public async Task<string> CheckAsync(
-        [Description("The C# source code to check.")]
         string content,
-        [Description("Optional metadata. " +
-            "'productionFileName' (e.g., 'MyClass.cs') — when provided, validates that it matches the declared type name.")]
         IReadOnlyDictionary<string, string>? data = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(content);
 
-        var fileName = data?.GetValueOrDefault("productionFileName") ?? string.Empty;
+        var fileName = data?.GetValueOrDefault("originalFileName") ?? string.Empty;
         var disabled = data?.ContainsKey("__disabled") == true;
 
         var tree = CSharpSyntaxTree.ParseText(content);

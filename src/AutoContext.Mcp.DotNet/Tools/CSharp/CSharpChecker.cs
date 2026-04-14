@@ -47,43 +47,38 @@ public sealed partial class CSharpChecker(WorkspaceServerClient workspaceServerC
     /// </summary>
     [McpServerTool(Name = "check_csharp_all", ReadOnly = true, Idempotent = true)]
     [Description(
-        "Runs all enabled C# code quality checks on C# source code and returns a combined report. " +
+        "Runs all enabled C# code quality checks and returns a combined report. " +
         "Covers code style, member ordering, naming conventions, async patterns, nullable context, " +
         "project structure, and test style. " +
-        "Prefer this over calling individual check tools unless you only need a specific check. " +
-        "Does not include NuGet hygiene (use check_nuget_hygiene separately for project files). " +
-        "When filePath is provided, resolves its effective .editorconfig properties and uses them to " +
-        "drive checker behavior (e.g., brace and namespace style enforcement direction). " +
-        "The file name is also extracted from filePath to validate that the declared type name matches.")]
+        "Pass the source to check as content and its file path as originalPath. " +
+        "When checking a test file, also pass the original type's namespace as originalNamespace " +
+        "and the test file path as comparedPath.")]
     public async Task<string> CheckAsync(
         [Description("The C# source code to check.")]
         string content,
-        [Description("Absolute path of the C# source file being checked. " +
-            "Used to resolve .editorconfig properties and to validate that the type name matches the file name.")]
-        string? filePath = null,
-        [Description("Namespace of the corresponding production type (e.g. 'MyApp.Services'). " +
-            "Pass when checking a test file to validate namespace mirroring.")]
-        string? productionNamespace = null,
-        [Description("File name of the test file (e.g. 'UserServiceTests.cs'). " +
-            "Pass when checking a test file to validate the name ends with 'Tests'.")]
-        string? testFileName = null)
+        [Description("Absolute path of the file whose source is in content.")]
+        string? originalPath = null,
+        [Description("Namespace of the type in the original file (e.g. 'MyApp.Services').")]
+        string? originalNamespace = null,
+        [Description("Absolute path of the compared file.")]
+        string? comparedPath = null)
     {
         var data = new Dictionary<string, string>();
 
-        if (filePath is not null)
+        if (originalPath is not null)
         {
-            data["filePath"] = filePath;
-            data["productionFileName"] = Path.GetFileName(filePath);
+            data["filePath"] = originalPath;
+            data["originalFileName"] = Path.GetFileName(originalPath);
         }
 
-        if (productionNamespace is not null)
+        if (originalNamespace is not null)
         {
-            data["productionNamespace"] = productionNamespace;
+            data["originalNamespace"] = originalNamespace;
         }
 
-        if (testFileName is not null)
+        if (comparedPath is not null)
         {
-            data["testFileName"] = testFileName;
+            data["comparedFileName"] = Path.GetFileName(comparedPath);
         }
 
         return await CheckAsync(content, data.Count > 0 ? data : null).ConfigureAwait(false);

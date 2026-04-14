@@ -1,16 +1,12 @@
 namespace AutoContext.WorkspaceServer.Tools.Git;
 
-using System.ComponentModel;
 using System.Text.RegularExpressions;
-
-using ModelContextProtocol.Server;
 
 using AutoContext.Mcp.Shared.Checkers;
 
 /// <summary>
 /// Validates git commit message body content against anti-pattern rules.
 /// </summary>
-[McpServerToolType]
 public sealed partial class CommitContentChecker : IChecker
 {
     /// <inheritdoc />
@@ -20,13 +16,7 @@ public sealed partial class CommitContentChecker : IChecker
     /// <summary>
     /// Validates a git commit message body for content anti-patterns.
     /// </summary>
-    [McpServerTool(Name = "check_git_commit_content", ReadOnly = true, Idempotent = true)]
-    [Description(
-        "Validates a git commit message body for content anti-patterns: " +
-        "no bullet lists, no file paths, no counts, no enumerated properties, " +
-        "no 'Key features:' sections, and no sensitive information.")]
     public Task<string> CheckAsync(
-        [Description("The full git commit message to validate.")]
         string content,
         IReadOnlyDictionary<string, string>? data = null)
     {

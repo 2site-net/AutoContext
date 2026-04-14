@@ -1,16 +1,12 @@
 namespace AutoContext.WorkspaceServer.Tools.Git;
 
-using System.ComponentModel;
 using System.Text.RegularExpressions;
-
-using ModelContextProtocol.Server;
 
 using AutoContext.Mcp.Shared.Checkers;
 
 /// <summary>
 /// Validates git commit message formatting against Conventional Commits and line-length rules.
 /// </summary>
-[McpServerToolType]
 public sealed partial class CommitFormatChecker : IChecker
 {
     private const int MaxSubjectLength = 50;
@@ -29,13 +25,7 @@ public sealed partial class CommitFormatChecker : IChecker
     /// <summary>
     /// Validates a git commit message for Conventional Commits formatting rules.
     /// </summary>
-    [McpServerTool(Name = "check_git_commit_format", ReadOnly = true, Idempotent = true)]
-    [Description(
-        "Validates a git commit message for Conventional Commits formatting: " +
-        "type(scope): description, subject ≤ 50 chars, body wrap at 72 chars, " +
-        "blank line between subject and body.")]
     public Task<string> CheckAsync(
-        [Description("The full git commit message to validate.")]
         string content,
         IReadOnlyDictionary<string, string>? data = null)
     {

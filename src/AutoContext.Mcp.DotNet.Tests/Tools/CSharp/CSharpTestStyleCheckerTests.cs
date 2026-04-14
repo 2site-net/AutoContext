@@ -443,7 +443,7 @@ public sealed class CSharpTestStyleCheckerTests
             """;
 
         // Act
-        var result = await new CSharpTestStyleChecker().CheckAsync(source, new Dictionary<string, string> { ["testFileName"] = "UserService.cs" });
+        var result = await new CSharpTestStyleChecker().CheckAsync(source, new Dictionary<string, string> { ["comparedFileName"] = "UserService.cs" });
 
         // Assert
         Assert.Multiple(() =>
@@ -469,7 +469,7 @@ public sealed class CSharpTestStyleCheckerTests
             """;
 
         // Act
-        var result = await new CSharpTestStyleChecker().CheckAsync(source, new Dictionary<string, string> { ["testFileName"] = "UserServiceTests.cs" });
+        var result = await new CSharpTestStyleChecker().CheckAsync(source, new Dictionary<string, string> { ["comparedFileName"] = "UserServiceTests.cs" });
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -493,7 +493,7 @@ public sealed class CSharpTestStyleCheckerTests
             """;
 
         // Act
-        var result = await new CSharpTestStyleChecker().CheckAsync(source, new Dictionary<string, string> { ["testFileName"] = fileName });
+        var result = await new CSharpTestStyleChecker().CheckAsync(source, new Dictionary<string, string> { ["comparedFileName"] = fileName });
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -517,7 +517,7 @@ public sealed class CSharpTestStyleCheckerTests
             """;
 
         // Act
-        var result = await new CSharpTestStyleChecker().CheckAsync(source, new Dictionary<string, string> { ["testFileName"] = fileName });
+        var result = await new CSharpTestStyleChecker().CheckAsync(source, new Dictionary<string, string> { ["comparedFileName"] = fileName });
 
         // Assert
         Assert.Multiple(() =>
@@ -545,7 +545,7 @@ public sealed class CSharpTestStyleCheckerTests
             """;
 
         // Act
-        var result = await new CSharpTestStyleChecker().CheckAsync(source, new Dictionary<string, string> { ["productionNamespace"] = "MyApp.Services" });
+        var result = await new CSharpTestStyleChecker().CheckAsync(source, new Dictionary<string, string> { ["originalNamespace"] = "MyApp.Services" });
 
         // Assert
         Assert.Multiple(() =>
@@ -574,7 +574,7 @@ public sealed class CSharpTestStyleCheckerTests
             """;
 
         // Act
-        var result = await new CSharpTestStyleChecker().CheckAsync(source, new Dictionary<string, string> { ["productionNamespace"] = "MyApp.Services" });
+        var result = await new CSharpTestStyleChecker().CheckAsync(source, new Dictionary<string, string> { ["originalNamespace"] = "MyApp.Services" });
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -598,7 +598,7 @@ public sealed class CSharpTestStyleCheckerTests
             """;
 
         // Act
-        var result = await new CSharpTestStyleChecker().CheckAsync(source, new Dictionary<string, string> { ["productionNamespace"] = "MyApp" });
+        var result = await new CSharpTestStyleChecker().CheckAsync(source, new Dictionary<string, string> { ["originalNamespace"] = "MyApp" });
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -622,7 +622,7 @@ public sealed class CSharpTestStyleCheckerTests
             """;
 
         // Act
-        var result = await new CSharpTestStyleChecker().CheckAsync(source, new Dictionary<string, string> { ["productionNamespace"] = "MyApp.Data.Repositories" });
+        var result = await new CSharpTestStyleChecker().CheckAsync(source, new Dictionary<string, string> { ["originalNamespace"] = "MyApp.Data.Repositories" });
 
         // Assert
         Assert.Multiple(() =>
@@ -650,7 +650,7 @@ public sealed class CSharpTestStyleCheckerTests
             """;
 
         // Act
-        var result = await new CSharpTestStyleChecker().CheckAsync(source, new Dictionary<string, string> { ["productionNamespace"] = "MyApp.Data.Repositories" });
+        var result = await new CSharpTestStyleChecker().CheckAsync(source, new Dictionary<string, string> { ["originalNamespace"] = "MyApp.Data.Repositories" });
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -699,7 +699,7 @@ public sealed class CSharpTestStyleCheckerTests
             """;
 
         // Act
-        var result = await new CSharpTestStyleChecker().CheckAsync(source, new Dictionary<string, string> { ["productionNamespace"] = "MyApp.Services" });
+        var result = await new CSharpTestStyleChecker().CheckAsync(source, new Dictionary<string, string> { ["originalNamespace"] = "MyApp.Services" });
 
         // Assert
         Assert.Contains("does not mirror", result);

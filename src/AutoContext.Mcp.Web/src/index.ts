@@ -52,25 +52,22 @@ if (scope === 'typescript') {
         'check_typescript_all',
         {
             description:
-                'Runs all enabled TypeScript code quality checks on TypeScript source code and returns a combined report. ' +
-                'Covers coding style anti-patterns (any, enum, @ts-ignore, Function/Object types). ' +
-                'Prefer this over calling individual check tools unless you only need a specific check. ' +
-                'When filePath is provided, resolves its effective .editorconfig properties ' +
-                'and uses them to drive checker behavior.',
+                'Runs all enabled TypeScript code quality checks and returns a combined report. ' +
+                'Covers coding style (any, enum, @ts-ignore, type assertions, unconstrained generics, Function/Object types). ' +
+                'Pass the source to check as content and its file path as originalPath.',
             inputSchema: {
                 content: z.string().describe('The TypeScript source code to check.'),
-                filePath: z.string().optional().describe(
-                    'Absolute path of the TypeScript source file being checked. ' +
-                    'Used to resolve .editorconfig properties.',
+                originalPath: z.string().optional().describe(
+                    'Absolute path of the file whose source is in content.',
                 ),
             },
         },
-        async ({ content, filePath }) => ({
+        async ({ content, originalPath }) => ({
             content: [{
                 type: 'text' as const,
                 text: await checker.check(
                     content,
-                    filePath ? { filePath } : undefined,
+                    originalPath ? { filePath: originalPath } : undefined,
                 ),
             }],
         }),
