@@ -14,10 +14,6 @@ using AutoContext.Mcp.Shared.WorkspaceServer;
 /// a single combined report. Reads <c>.autocontext.json</c> to determine which
 /// checkers are active; when the file is absent, all checkers run.
 /// </summary>
-/// <remarks>
-/// <see cref="NuGetHygieneChecker"/> is excluded because it operates on project
-/// XML, not C# source code.
-/// </remarks>
 [McpServerToolType]
 public sealed partial class CSharpChecker(WorkspaceServerClient workspaceServerClient, ILogger<CSharpChecker> logger)
     : CompositeChecker(workspaceServerClient, logger)
