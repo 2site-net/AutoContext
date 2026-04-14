@@ -271,7 +271,7 @@ When an instruction's MAJOR.MINOR version advances beyond the version stored alo
 
 ## MCP and Tools
 
-AutoContext registers four MCP server categories — DotNet, Git, EditorConfig, and TypeScript — each identified by a `--scope` argument so they appear as separate sections in the tools UI. Categories are defined in `ui-constants.ts`. Servers are workspace-aware (see [Activation Flow](#activation-flow)) and most MCP tools loop over individually-toggleable features (see [Runtime Flow](#runtime-flow)).
+AutoContext registers four MCP server scopes — `dotnet`, `git`, `editorconfig`, and `typescript` — each identified by a `--scope` argument. In the sidebar, tools are grouped by platform (`.NET`, `Workspace`, `Web`), then by category (`C#`, `NuGet`, `Git`, `EditorConfig`, `TypeScript`). Scopes, groups, and categories are all defined in `ui-constants.ts`. Servers are workspace-aware (see [Activation Flow](#activation-flow)) and most MCP tools loop over individually-toggleable features (see [Runtime Flow](#runtime-flow)).
 
 ### Projects
 
@@ -287,8 +287,8 @@ A shared class library and three executables make up the server side:
   - `Hosting/` — Named-pipe server infrastructure and domain logic. At the top level: `WorkspaceService` (dispatch), `IRequestHandler`, and the `WorkspaceRequest` envelope. Subfolders contain feature handlers: `EditorConfig/` owns property resolution (`EditorConfigResolver`) and the named-pipe request handler; `McpTools/` owns tool orchestration (enable/disable decisions via `McpToolsConfig`, request handling via `McpToolsRequestHandler`).
   
   The dependency flows one way: Tools → Hosting. The three modes:
-  - **MCP mode — EditorConfig** (`--scope editorconfig`): Runs as an MCP stdio server exposing a single tool, `get_editorconfig`, which resolves the effective `.editorconfig` properties for a given file path by walking the directory tree, evaluating glob patterns and section cascading, and returning the final key-value pairs. This tool is standalone — it has no features.
-  - **MCP mode — Git** (`--scope git`): Runs as an MCP stdio server exposing Git quality checks (commit format, commit content). Like the DotNet scope, checkers resolve `.editorconfig` properties via the workspace server.
+  - **MCP mode — EditorConfig** (`--scope editorconfig`): Runs as an MCP stdio server exposing a single standalone tool, `get_editorconfig`, which resolves the effective `.editorconfig` properties for a given file path by walking the directory tree, evaluating glob patterns and section cascading, and returning the final key-value pairs.
+  - **MCP mode — Git** (`--scope git`): Runs as an MCP stdio server exposing Git quality checks (commit format, commit content).
   - **Named-pipe mode** (`--pipe <name>`): Runs as a long-lived background service started once by `WorkspaceServerManager`. Handles `"editorconfig"` requests (property resolution) and `"mcp-tools"` requests (tool orchestration — enable/disable decisions + EditorConfig data). All other MCP servers connect to this service via `--workspace-server <pipeName>`.
 
 ### EditorConfig Layering
