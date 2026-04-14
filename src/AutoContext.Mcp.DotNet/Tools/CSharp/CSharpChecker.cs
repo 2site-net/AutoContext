@@ -63,8 +63,9 @@ public sealed partial class CSharpChecker(WorkspaceServerClient workspaceServerC
 
         if (originalPath is not null)
         {
-            data["filePath"] = originalPath;
-            data["originalFileName"] = Path.GetFileName(originalPath);
+            var normalized = originalPath.Replace('\\', Path.AltDirectorySeparatorChar);
+            data["filePath"] = normalized;
+            data["originalFileName"] = Path.GetFileName(normalized);
         }
 
         if (originalNamespace is not null)
@@ -74,7 +75,8 @@ public sealed partial class CSharpChecker(WorkspaceServerClient workspaceServerC
 
         if (comparedPath is not null)
         {
-            data["comparedFileName"] = Path.GetFileName(comparedPath);
+            var normalized = comparedPath.Replace('\\', Path.AltDirectorySeparatorChar);
+            data["comparedFileName"] = Path.GetFileName(normalized);
         }
 
         return await CheckAsync(content, data.Count > 0 ? data : null).ConfigureAwait(false);
