@@ -29,6 +29,7 @@ export class InstructionsConfigWriter implements vscode.Disposable {
         private readonly extensionPath: string,
         private readonly configManager: AutoContextConfigManager,
         private readonly catalog: InstructionsCatalog,
+        private readonly outputChannel: vscode.OutputChannel,
     ) {
         this.generatedRoot = join(extensionPath, 'instructions', '.generated');
         this.stagingDir = join(extensionPath, 'instructions', '.workspaces', InstructionsConfigWriter.workspaceHash());
@@ -149,7 +150,8 @@ export class InstructionsConfigWriter implements vscode.Disposable {
         let parsedResult;
         try {
             ({ content, result: parsedResult } = await InstructionsParser.fromFile(src));
-        } catch {
+        } catch (err) {
+            this.outputChannel.appendLine(`[Instructions] Failed to parse ${fileName}: ${err instanceof Error ? err.message : err}`);
             return;
         }
 

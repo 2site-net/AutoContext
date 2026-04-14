@@ -20,6 +20,8 @@ vi.mock('node:fs/promises', () => ({
 
 import { workspace } from './__mocks__/vscode';
 
+const mockOutputChannel = { appendLine: vi.fn() } as unknown as import('vscode').OutputChannel;
+
 beforeEach(() => {
     vi.clearAllMocks();
     InstructionsParser['fileCache'].clear();
@@ -45,8 +47,8 @@ describe('InstructionsConfigWriter', () => {
             return testContent;
         });
 
-        const configManager = new AutoContextConfigManager('/ext', '0.5.0');
-        const writer = new InstructionsConfigWriter('/ext', configManager, catalog);
+        const configManager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
+        const writer = new InstructionsConfigWriter('/ext', configManager, catalog, mockOutputChannel);
         await writer.write();
 
         expect(writeFile).toHaveBeenCalled();
@@ -64,8 +66,8 @@ describe('InstructionsConfigWriter', () => {
             return testContent;
         });
 
-        const configManager = new AutoContextConfigManager('/ext', '0.5.0');
-        const writer = new InstructionsConfigWriter('/ext', configManager, catalog);
+        const configManager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
+        const writer = new InstructionsConfigWriter('/ext', configManager, catalog, mockOutputChannel);
         await writer.write();
 
         const writeCalls = vi.mocked(writeFile).mock.calls;
@@ -97,8 +99,8 @@ describe('InstructionsConfigWriter', () => {
             return testContent;
         });
 
-        const configManager = new AutoContextConfigManager('/ext', '0.5.0');
-        const writer = new InstructionsConfigWriter('/ext', configManager, catalog);
+        const configManager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
+        const writer = new InstructionsConfigWriter('/ext', configManager, catalog, mockOutputChannel);
         await writer.write();
 
         const writeCalls = vi.mocked(writeFile).mock.calls;
@@ -135,8 +137,8 @@ More prose below.
             return contentWithProse;
         });
 
-        const configManager = new AutoContextConfigManager('/ext', '0.5.0');
-        const writer = new InstructionsConfigWriter('/ext', configManager, catalog);
+        const configManager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
+        const writer = new InstructionsConfigWriter('/ext', configManager, catalog, mockOutputChannel);
         await writer.write();
 
         const writeCalls = vi.mocked(writeFile).mock.calls;
@@ -157,8 +159,8 @@ More prose below.
         vi.mocked(access).mockRejectedValue(new Error('ENOENT'));
         vi.mocked(readFile).mockResolvedValue('{}');
 
-        const configManager = new AutoContextConfigManager('/ext', '0.5.0');
-        const writer = new InstructionsConfigWriter('/ext', configManager, catalog);
+        const configManager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
+        const writer = new InstructionsConfigWriter('/ext', configManager, catalog, mockOutputChannel);
         await writer.removeOrphanedStagingDirs();
 
         expect(readdir).not.toHaveBeenCalled();
@@ -171,8 +173,8 @@ More prose below.
         vi.mocked(stat).mockResolvedValue({ mtimeMs: Date.now() - 2 * 60 * 60 * 1000 } as import('node:fs').Stats);
         vi.mocked(readFile).mockResolvedValue('{}');
 
-        const configManager = new AutoContextConfigManager('/ext', '0.5.0');
-        const writer = new InstructionsConfigWriter('/ext', configManager, catalog);
+        const configManager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
+        const writer = new InstructionsConfigWriter('/ext', configManager, catalog, mockOutputChannel);
         await writer.removeOrphanedStagingDirs();
 
         expect.soft(rm).toHaveBeenCalledWith(
@@ -187,8 +189,8 @@ More prose below.
         vi.mocked(stat).mockResolvedValue({ mtimeMs: Date.now() - 30 * 60 * 1000 } as import('node:fs').Stats);
         vi.mocked(readFile).mockResolvedValue('{}');
 
-        const configManager = new AutoContextConfigManager('/ext', '0.5.0');
-        const writer = new InstructionsConfigWriter('/ext', configManager, catalog);
+        const configManager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
+        const writer = new InstructionsConfigWriter('/ext', configManager, catalog, mockOutputChannel);
         await writer.removeOrphanedStagingDirs();
 
         expect.soft(rm).not.toHaveBeenCalled();
@@ -197,8 +199,8 @@ More prose below.
     it('should dispose debounce timer and subscriptions', () => {
         vi.mocked(readFile).mockResolvedValue('{}');
 
-        const configManager = new AutoContextConfigManager('/ext', '0.5.0');
-        const writer = new InstructionsConfigWriter('/ext', configManager, catalog);
+        const configManager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
+        const writer = new InstructionsConfigWriter('/ext', configManager, catalog, mockOutputChannel);
 
         expect.soft(() => writer.dispose()).not.toThrow();
     });

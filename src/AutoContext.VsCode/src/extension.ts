@@ -23,10 +23,14 @@ import { TreeViewTooltip } from './tree-view-tooltip.js';
 import { McpServerProvider } from './mcp-server-provider.js';
 import { WorkspaceServerManager } from './workspace-server-manager.js';
 
+let subscriptions: vscode.Disposable[] | undefined;
+
 export async function activate(context: vscode.ExtensionContext) {
     if (!vscode.workspace.workspaceFolders?.length) {
         return;
     }
+
+    subscriptions = context.subscriptions;
 
     const version = context.extension.packageJSON.version as string;
     const didChangeEmitter = new vscode.EventEmitter<void>();
@@ -38,15 +42,15 @@ export async function activate(context: vscode.ExtensionContext) {
     const toolsCatalog = new McpToolsCatalog(mcpTools, toolsMetadata);
     const instructionsCatalog = new InstructionsCatalog(instructionsFiles, instructionsMetadata);
     const serversCatalog = new McpServersCatalog(mcpServers);
-    const workspaceContextDetector = new WorkspaceContextDetector(instructionsCatalog, serversCatalog);
     const instructionsExporter = new InstructionsExporter(context.extensionPath);
-    const configManager = new AutoContextConfigManager(context.extensionPath, version);
-    const toolsStatusWriter = new McpToolsConfigWriter(configManager, toolsCatalog);
-    const contentProvider = new InstructionsContentProvider(context.extensionPath, configManager);
-    const codeLensProvider = new InstructionsCodeLensProvider(context.extensionPath, configManager, workspaceContextDetector, instructionsCatalog);
-    const decorationManager = new InstructionsDecorationManager(context.extensionPath, configManager);
-    const instructionsWriter = new InstructionsConfigWriter(context.extensionPath, configManager, instructionsCatalog);
     const outputChannel = vscode.window.createOutputChannel('AutoContext');
+    const workspaceContextDetector = new WorkspaceContextDetector(instructionsCatalog, serversCatalog, outputChannel);
+    const configManager = new AutoContextConfigManager(context.extensionPath, version, outputChannel);
+    const toolsStatusWriter = new McpToolsConfigWriter(configManager, toolsCatalog);
+    const contentProvider = new InstructionsContentProvider(context.extensionPath, configManager, outputChannel);
+    const codeLensProvider = new InstructionsCodeLensProvider(context.extensionPath, configManager, workspaceContextDetector, instructionsCatalog, outputChannel);
+    const decorationManager = new InstructionsDecorationManager(context.extensionPath, configManager, outputChannel);
+    const instructionsWriter = new InstructionsConfigWriter(context.extensionPath, configManager, instructionsCatalog, outputChannel);
     const workspaceServer = new WorkspaceServerManager(context.extensionPath, outputChannel, vscode.workspace.workspaceFolders?.[0]?.uri.fsPath);
     const mcpServerProvider = new McpServerProvider(context.extensionPath, version, workspaceContextDetector, didChangeEmitter.event, workspaceServer, toolsCatalog, serversCatalog);
     const stateResolver = new TreeViewStateResolver(workspaceContextDetector);
@@ -173,4 +177,11 @@ export async function activate(context: vscode.ExtensionContext) {
     return { mcpServerProvider, configManager, codeLensProvider, contentProvider, workspaceContextDetector, workspaceServer, instructionsTreeProvider, mcpToolsTreeProvider };
 }
 
-export function deactivate(): void {}
+export function deactivate(): void {
+    if (subscriptions) {
+        for (const d of subscriptions) {
+            d.dispose();
+        }
+        subscriptions = undefined;
+    }
+}

@@ -13,6 +13,8 @@ vi.mock('node:fs/promises', () => ({
 
 import { workspace, Uri } from './__mocks__/vscode';
 
+const mockOutputChannel = { appendLine: vi.fn() } as unknown as import('vscode').OutputChannel;
+
 beforeEach(() => {
     vi.clearAllMocks();
     InstructionsParser['fileCache'].clear();
@@ -36,8 +38,8 @@ describe('InstructionsContentProvider', () => {
             return testContent;
         });
 
-        const configManager = new AutoContextConfigManager('/ext', '0.5.0');
-        const provider = new InstructionsContentProvider('/ext', configManager);
+        const configManager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
+        const provider = new InstructionsContentProvider('/ext', configManager, mockOutputChannel);
         const uri = { scheme: instructionScheme, path: 'test.instructions.md' } as unknown as import('vscode').Uri;
         const result = await provider.provideTextDocumentContent(uri);
 
@@ -56,8 +58,8 @@ describe('InstructionsContentProvider', () => {
             return testContent;
         });
 
-        const configManager = new AutoContextConfigManager('/ext', '0.5.0');
-        const provider = new InstructionsContentProvider('/ext', configManager);
+        const configManager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
+        const provider = new InstructionsContentProvider('/ext', configManager, mockOutputChannel);
         const uri = { scheme: instructionScheme, path: 'test.instructions.md' } as unknown as import('vscode').Uri;
         const result = await provider.provideTextDocumentContent(uri);
 
@@ -68,8 +70,8 @@ describe('InstructionsContentProvider', () => {
     it('should build URI with the correct scheme', () => {
         vi.mocked(readFile).mockResolvedValue('{}');
 
-        const configManager = new AutoContextConfigManager('/ext', '0.5.0');
-        const provider = new InstructionsContentProvider('/ext', configManager);
+        const configManager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
+        const provider = new InstructionsContentProvider('/ext', configManager, mockOutputChannel);
         provider.buildUri('code-review.instructions.md');
 
         expect.soft(Uri.from).toHaveBeenCalledWith({

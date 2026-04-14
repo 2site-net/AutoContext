@@ -14,6 +14,8 @@ vi.mock('node:fs/promises', () => ({
 
 import { workspace, window as vscodeWindow } from './__mocks__/vscode';
 
+const mockOutputChannel = { appendLine: vi.fn() } as unknown as import('vscode').OutputChannel;
+
 beforeEach(() => {
     vi.clearAllMocks();
     InstructionsParser['fileCache'].clear();
@@ -40,8 +42,8 @@ describe('InstructionsDecorationManager', () => {
     it('should not set decorations for non-instruction editors', async () => {
         vi.mocked(readFile).mockResolvedValue('{}');
 
-        const configManager = new AutoContextConfigManager('/ext', '0.5.0');
-        const manager = new InstructionsDecorationManager('/ext', configManager);
+        const configManager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
+        const manager = new InstructionsDecorationManager('/ext', configManager, mockOutputChannel);
 
         const editor = makeEditor('file', '/some/file.ts');
         await manager.applyDecorations(editor);
@@ -56,8 +58,8 @@ describe('InstructionsDecorationManager', () => {
             return testContent;
         });
 
-        const configManager = new AutoContextConfigManager('/ext', '0.5.0');
-        const manager = new InstructionsDecorationManager('/ext', configManager);
+        const configManager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
+        const manager = new InstructionsDecorationManager('/ext', configManager, mockOutputChannel);
 
         const editor = makeEditor(instructionScheme, 'test.instructions.md');
         await manager.applyDecorations(editor);
@@ -82,8 +84,8 @@ describe('InstructionsDecorationManager', () => {
             return testContent;
         });
 
-        const configManager = new AutoContextConfigManager('/ext', '0.5.0');
-        const manager = new InstructionsDecorationManager('/ext', configManager);
+        const configManager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
+        const manager = new InstructionsDecorationManager('/ext', configManager, mockOutputChannel);
 
         const editor = makeEditor(instructionScheme, 'test.instructions.md');
         await manager.applyDecorations(editor);
@@ -109,8 +111,8 @@ describe('InstructionsDecorationManager', () => {
         const editor2 = makeEditor('file', '/some/file.ts');
         vscodeWindow.visibleTextEditors = [editor1, editor2] as unknown[];
 
-        const configManager = new AutoContextConfigManager('/ext', '0.5.0');
-        const manager = new InstructionsDecorationManager('/ext', configManager);
+        const configManager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
+        const manager = new InstructionsDecorationManager('/ext', configManager, mockOutputChannel);
         manager.refreshAll();
 
         // refreshAll fires void (fire-and-forget) async applyDecorations calls;

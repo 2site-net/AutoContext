@@ -8,6 +8,8 @@ import type { InstructionsFileEntry } from '../../src/types/instructions-file-en
 
 const fakeUri = (p: string) => ({ path: p, scheme: 'file', fsPath: p, toString: () => `file://${p}` });
 
+const mockOutputChannel = { appendLine: vi.fn() } as unknown as import('vscode').OutputChannel;
+
 const testInstructions: InstructionsFileEntry[] = [
     { key: 'copilot', fileName: 'copilot.instructions.md', label: 'Copilot', category: 'general' },
     { key: 'dotnet.codingStandards', fileName: 'dotnet-coding-standards.instructions.md', label: '.NET Standards', category: 'dotnet', contextKeys: ['hasDotNet'] },
@@ -24,6 +26,7 @@ function createDetector(): WorkspaceContextDetector {
     return new WorkspaceContextDetector(
         new InstructionsCatalog(testInstructions),
         new McpServersCatalog(testServers),
+        mockOutputChannel,
     );
 }
 

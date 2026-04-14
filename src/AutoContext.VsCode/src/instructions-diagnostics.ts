@@ -14,7 +14,8 @@ export class InstructionsDiagnostics {
             let diagnostics;
             try {
                 ({ result: { diagnostics } } = await InstructionsParser.fromFile(join(extensionPath, 'instructions', entry.fileName)));
-            } catch {
+            } catch (err) {
+                outputChannel.appendLine(`[Instructions] Failed to parse ${entry.fileName}: ${err instanceof Error ? err.message : err}`);
                 continue;
             }
 

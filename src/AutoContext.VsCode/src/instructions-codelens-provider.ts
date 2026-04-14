@@ -18,6 +18,7 @@ export class InstructionsCodeLensProvider implements vscode.CodeLensProvider, vs
         private readonly configManager: AutoContextConfigManager,
         private readonly detector: WorkspaceContextDetector,
         private readonly catalog: InstructionsCatalog,
+        private readonly outputChannel: vscode.OutputChannel,
     ) {
         this.disposables.push(
             this.didChangeEmitter,
@@ -50,7 +51,8 @@ export class InstructionsCodeLensProvider implements vscode.CodeLensProvider, vs
         let instructions;
         try {
             ({ result: { instructions } } = await InstructionsParser.fromFile(filePath));
-        } catch {
+        } catch (err) {
+            this.outputChannel.appendLine(`[Instructions] Failed to parse ${fileName}: ${err instanceof Error ? err.message : err}`);
             return [];
         }
         const disabledIds = await this.configManager.getDisabledInstructions(fileName);

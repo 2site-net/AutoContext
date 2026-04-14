@@ -12,6 +12,8 @@ vi.mock('node:fs/promises', () => ({
 
 import { workspace } from './__mocks__/vscode';
 
+const mockOutputChannel = { appendLine: vi.fn() } as unknown as import('vscode').OutputChannel;
+
 beforeEach(() => {
     vi.clearAllMocks();
     workspace.workspaceFolders = [{ uri: { fsPath: '/workspace' } }];
@@ -21,7 +23,7 @@ describe('AutoContextConfigManager', () => {
     it('should return empty config when file does not exist', async () => {
         vi.mocked(readFile).mockRejectedValue(new Error('ENOENT'));
 
-        const manager = new AutoContextConfigManager('/ext', '0.5.0');
+        const manager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
         const config = await manager.read();
 
         expect.soft(config).toEqual({});
@@ -30,7 +32,7 @@ describe('AutoContextConfigManager', () => {
     it('should return empty config when file contains invalid JSON', async () => {
         vi.mocked(readFile).mockResolvedValue('not json at all');
 
-        const manager = new AutoContextConfigManager('/ext', '0.5.0');
+        const manager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
         const config = await manager.read();
 
         expect.soft(config).toEqual({});
@@ -45,7 +47,7 @@ describe('AutoContextConfigManager', () => {
             },
         }));
 
-        const manager = new AutoContextConfigManager('/ext', '0.5.0');
+        const manager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
         const disabled = await manager.getDisabledInstructions('code-review.instructions.md');
 
         expect(disabled.has('INST0001')).toBe(true);
@@ -55,7 +57,7 @@ describe('AutoContextConfigManager', () => {
     it('should return empty set for file with no disabled instructions', async () => {
         vi.mocked(readFile).mockResolvedValue('{}');
 
-        const manager = new AutoContextConfigManager('/ext', '0.5.0');
+        const manager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
         const disabled = await manager.getDisabledInstructions('code-review.instructions.md');
 
         expect.soft(disabled.size).toBe(0);
@@ -70,7 +72,7 @@ describe('AutoContextConfigManager', () => {
             },
         }));
 
-        const manager = new AutoContextConfigManager('/ext', '0.5.0');
+        const manager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
 
         expect.soft(await manager.hasAnyDisabledInstructions()).toBe(true);
     });
@@ -78,7 +80,7 @@ describe('AutoContextConfigManager', () => {
     it('should detect when no instructions are disabled', async () => {
         vi.mocked(readFile).mockResolvedValue('{}');
 
-        const manager = new AutoContextConfigManager('/ext', '0.5.0');
+        const manager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
 
         expect.soft(await manager.hasAnyDisabledInstructions()).toBe(false);
     });
@@ -86,7 +88,7 @@ describe('AutoContextConfigManager', () => {
     it('should toggle an instruction on (disable it)', async () => {
         vi.mocked(readFile).mockResolvedValue('{}');
 
-        const manager = new AutoContextConfigManager('/ext', '0.5.0');
+        const manager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
         await manager.toggleInstruction('code-review.instructions.md', 'INST0001');
 
         const writeCalls = vi.mocked(writeFile).mock.calls;
@@ -111,7 +113,7 @@ describe('AutoContextConfigManager', () => {
             },
         }));
 
-        const manager = new AutoContextConfigManager('/ext', '0.5.0');
+        const manager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
         await manager.toggleInstruction('code-review.instructions.md', 'INST0001');
 
         expect.soft(vi.mocked(unlink)).toHaveBeenCalled();
@@ -120,7 +122,7 @@ describe('AutoContextConfigManager', () => {
     it('should not write when no workspace folder is available', async () => {
         workspace.workspaceFolders = undefined;
 
-        const manager = new AutoContextConfigManager('/ext', '0.5.0');
+        const manager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
         await manager.toggleInstruction('code-review.instructions.md', 'INST0001');
 
         expect.soft(vi.mocked(writeFile)).not.toHaveBeenCalled();
@@ -129,7 +131,7 @@ describe('AutoContextConfigManager', () => {
     it('should write extension version when saving config', async () => {
         vi.mocked(readFile).mockResolvedValue('{}');
 
-        const manager = new AutoContextConfigManager('/ext', '1.2.3');
+        const manager = new AutoContextConfigManager('/ext', '1.2.3', mockOutputChannel);
         await manager.toggleInstruction('code-review.instructions.md', 'INST0001');
 
         const writeCalls = vi.mocked(writeFile).mock.calls;
@@ -148,7 +150,7 @@ describe('AutoContextConfigManager', () => {
             },
         }));
 
-        const manager = new AutoContextConfigManager('/ext', '0.5.0');
+        const manager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
         await manager.resetInstructions('code-review.instructions.md');
 
         const writeCalls = vi.mocked(writeFile).mock.calls;
@@ -170,7 +172,7 @@ describe('AutoContextConfigManager', () => {
             },
         }));
 
-        const manager = new AutoContextConfigManager('/ext', '0.5.0');
+        const manager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
         await manager.resetInstructions('code-review.instructions.md');
 
         expect.soft(vi.mocked(unlink)).toHaveBeenCalled();
@@ -179,7 +181,7 @@ describe('AutoContextConfigManager', () => {
     it('should be a no-op when resetting a file with no disabled instructions', async () => {
         vi.mocked(readFile).mockResolvedValue('{}');
 
-        const manager = new AutoContextConfigManager('/ext', '0.5.0');
+        const manager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
         await manager.resetInstructions('code-review.instructions.md');
 
         expect(vi.mocked(writeFile)).not.toHaveBeenCalled();
@@ -196,7 +198,7 @@ describe('AutoContextConfigManager', () => {
             },
         }));
 
-        const manager = new AutoContextConfigManager('/ext', '0.5.0');
+        const manager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
         await manager.toggleInstruction('code-review.instructions.md', 'INST0001');
 
         expect(vi.mocked(unlink)).toHaveBeenCalled();
@@ -206,7 +208,7 @@ describe('AutoContextConfigManager', () => {
     it('should write disabled tools to config', async () => {
         vi.mocked(readFile).mockResolvedValue('{}');
 
-        const manager = new AutoContextConfigManager('/ext', '0.5.0');
+        const manager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
         await manager.setDisabledTools(['check_csharp_coding_style']);
 
         const writeCalls = vi.mocked(writeFile).mock.calls;
@@ -223,7 +225,7 @@ describe('AutoContextConfigManager', () => {
             "mcp-tools": { disabled: ['check_csharp_coding_style'] },
         }));
 
-        const manager = new AutoContextConfigManager('/ext', '0.5.0');
+        const manager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
         await manager.setDisabledTools(['check_csharp_coding_style']);
 
         expect(vi.mocked(writeFile)).not.toHaveBeenCalled();
@@ -236,7 +238,7 @@ describe('AutoContextConfigManager', () => {
             instructions: { disabled: { 'code-review.instructions.md': ['INST0001'] } },
         }));
 
-        const manager = new AutoContextConfigManager('/ext', '0.5.0');
+        const manager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
         await manager.setDisabledTools([]);
 
         const writeCalls = vi.mocked(writeFile).mock.calls;
@@ -254,7 +256,7 @@ describe('AutoContextConfigManager', () => {
             "mcp-tools": { disabled: ['check_csharp_coding_style'] },
         }));
 
-        const manager = new AutoContextConfigManager('/ext', '0.5.0');
+        const manager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
         await manager.setDisabledTools([]);
 
         expect(vi.mocked(unlink)).toHaveBeenCalled();
@@ -266,7 +268,7 @@ describe('AutoContextConfigManager', () => {
             instructions: { disabled: { 'code-review.instructions.md': ['INST0001'] } },
         }));
 
-        const manager = new AutoContextConfigManager('/ext', '0.5.0');
+        const manager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
         await manager.setDisabledTools(['check_csharp_async_patterns']);
 
         const parsed = JSON.parse(vi.mocked(writeFile).mock.calls[0][1] as string);
@@ -280,7 +282,7 @@ describe('AutoContextConfigManager', () => {
             instructions: { disabled: { 'code-review.instructions.md': ['INST0001'] } },
         }));
 
-        const manager = new AutoContextConfigManager('/ext', '0.5.0');
+        const manager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
         await manager.read();
         await manager.read();
         await manager.read();
@@ -291,7 +293,7 @@ describe('AutoContextConfigManager', () => {
     it('should invalidate cache after writing config', async () => {
         vi.mocked(readFile).mockResolvedValue('{}');
 
-        const manager = new AutoContextConfigManager('/ext', '0.5.0');
+        const manager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
         await manager.read();
         await manager.toggleInstruction('code-review.instructions.md', 'INST0001');
 
@@ -311,7 +313,7 @@ describe('AutoContextConfigManager', () => {
             },
         }));
 
-        const manager = new AutoContextConfigManager('/ext', '0.5.0');
+        const manager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
         const disabled = await manager.getDisabledInstructions('code-review.instructions.md');
 
         expect(disabled.has('INST0001')).toBe(true);
@@ -328,7 +330,7 @@ describe('AutoContextConfigManager', () => {
             },
         }));
 
-        const manager = new AutoContextConfigManager('/ext', '0.5.0');
+        const manager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
 
         expect.soft(await manager.hasAnyDisabledInstructions()).toBe(true);
     });
@@ -336,7 +338,7 @@ describe('AutoContextConfigManager', () => {
     it('should write versioned format when instruction version is provided', async () => {
         vi.mocked(readFile).mockResolvedValue('{}');
 
-        const manager = new AutoContextConfigManager('/ext', '0.5.0');
+        const manager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
         await manager.toggleInstruction('code-review.instructions.md', 'INST0001', '1.2.3');
 
         const writeCalls = vi.mocked(writeFile).mock.calls;
@@ -351,7 +353,7 @@ describe('AutoContextConfigManager', () => {
     it('should write plain array when no instruction version is provided', async () => {
         vi.mocked(readFile).mockResolvedValue('{}');
 
-        const manager = new AutoContextConfigManager('/ext', '0.5.0');
+        const manager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
         await manager.toggleInstruction('code-review.instructions.md', 'INST0001');
 
         const writeCalls = vi.mocked(writeFile).mock.calls;
@@ -370,7 +372,7 @@ describe('AutoContextConfigManager', () => {
             },
         }));
 
-        const manager = new AutoContextConfigManager('/ext', '0.5.0');
+        const manager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
         const cleared = await manager.clearStaleDisabledIds(new Map([
             ['code-review.instructions.md', '1.1.0'],
             ['lang-csharp.instructions.md', '1.0.5'],
@@ -397,7 +399,7 @@ describe('AutoContextConfigManager', () => {
             },
         }));
 
-        const manager = new AutoContextConfigManager('/ext', '0.5.0');
+        const manager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
         const cleared = await manager.clearStaleDisabledIds(new Map([
             ['code-review.instructions.md', '2.0.0'],
         ]));
@@ -415,7 +417,7 @@ describe('AutoContextConfigManager', () => {
             },
         }));
 
-        const manager = new AutoContextConfigManager('/ext', '0.5.0');
+        const manager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
         const cleared = await manager.clearStaleDisabledIds(new Map([
             ['code-review.instructions.md', '1.0.5'],
         ]));
@@ -434,7 +436,7 @@ describe('AutoContextConfigManager', () => {
             },
         }));
 
-        const manager = new AutoContextConfigManager('/ext', '0.5.0');
+        const manager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
         await manager.toggleInstruction('code-review.instructions.md', 'INST0001', '1.0.3');
 
         const writeCalls = vi.mocked(writeFile).mock.calls;
@@ -455,7 +457,7 @@ describe('AutoContextConfigManager', () => {
             },
         }));
 
-        const manager = new AutoContextConfigManager('/ext', '0.5.0');
+        const manager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
         await manager.toggleInstruction('code-review.instructions.md', 'INST0001');
 
         const writeCalls = vi.mocked(writeFile).mock.calls;
@@ -476,7 +478,7 @@ describe('AutoContextConfigManager', () => {
             },
         }));
 
-        const manager = new AutoContextConfigManager('/ext', '0.5.0');
+        const manager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
         const cleared = await manager.clearStaleDisabledIds(new Map([
             ['code-review.instructions.md', '2.0.0'],
         ]));

@@ -275,6 +275,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
     constructor(
         private readonly instructionsCatalog: InstructionsCatalog,
         private readonly serversCatalog: McpServersCatalog,
+        private readonly outputChannel: vscode.OutputChannel,
     ) {
         const existenceWatcher = vscode.workspace.createFileSystemWatcher(existenceWatchGlob);
 
@@ -351,7 +352,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
             const overrides = await this.scanOverrides();
             await this.commitState(flags, overrides);
         } catch (error) {
-            console.error('[AutoContext] Workspace detection failed:', error);
+            this.outputChannel.appendLine(`[Detection] Workspace detection failed: ${error instanceof Error ? error.message : error}`);
         }
     }
 
@@ -456,7 +457,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
 
             await this.commitState(flags, overrides);
         } catch (error) {
-            console.error('[AutoContext] Incremental detection failed:', error);
+            this.outputChannel.appendLine(`[Detection] Incremental detection failed: ${error instanceof Error ? error.message : error}`);
         }
     }
 
@@ -590,7 +591,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
             ...this.instructionsCatalog.all.map(i =>
                 setContext(ContextKeys.overrideKey(i.settingId), overrides.fileNames.has(i.fileName)),
             ),
-        ]).catch(err => console.error('[AutoContext] Failed to set context keys:', err));
+        ]).catch(err => this.outputChannel.appendLine(`[Detection] Failed to set context keys: ${err instanceof Error ? err.message : err}`));
     }
 
     dispose(): void {

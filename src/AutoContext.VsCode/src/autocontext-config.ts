@@ -17,6 +17,7 @@ export class AutoContextConfigManager implements vscode.Disposable {
     constructor(
         private readonly extensionPath: string,
         private readonly extensionVersion: string,
+        private readonly outputChannel: vscode.OutputChannel,
     ) {
         const watcher = vscode.workspace.createFileSystemWatcher(`**/${configFileName}`);
         watcher.onDidChange(() => this.invalidate());
@@ -51,7 +52,8 @@ export class AutoContextConfigManager implements vscode.Disposable {
 
             this.cachedConfig = parsed as AutoContextConfig;
             return this.cachedConfig;
-        } catch {
+        } catch (err) {
+            this.outputChannel.appendLine(`[Config] Failed to read config: ${err instanceof Error ? err.message : err}`);
             return {};
         }
     }

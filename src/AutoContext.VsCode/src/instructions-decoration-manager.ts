@@ -11,6 +11,7 @@ export class InstructionsDecorationManager implements vscode.Disposable {
     constructor(
         private readonly extensionPath: string,
         private readonly configManager: AutoContextConfigManager,
+        private readonly outputChannel: vscode.OutputChannel,
     ) {
         this.disposables.push(
             this.decorationType,
@@ -34,7 +35,8 @@ export class InstructionsDecorationManager implements vscode.Disposable {
         let instructions;
         try {
             ({ result: { instructions } } = await InstructionsParser.fromFile(filePath));
-        } catch {
+        } catch (err) {
+            this.outputChannel.appendLine(`[Instructions] Failed to parse ${fileName}: ${err instanceof Error ? err.message : err}`);
             return;
         }
         const disabledIds = await this.configManager.getDisabledInstructions(fileName);

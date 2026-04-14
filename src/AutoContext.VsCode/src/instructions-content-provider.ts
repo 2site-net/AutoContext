@@ -13,6 +13,7 @@ export class InstructionsContentProvider implements vscode.TextDocumentContentPr
     constructor(
         private readonly extensionPath: string,
         private readonly configManager: AutoContextConfigManager,
+        private readonly outputChannel: vscode.OutputChannel,
     ) {
         this.disposables.push(
             this.didChangeEmitter,
@@ -28,7 +29,8 @@ export class InstructionsContentProvider implements vscode.TextDocumentContentPr
         let instructions;
         try {
             ({ content, result: { instructions } } = await InstructionsParser.fromFile(filePath));
-        } catch {
+        } catch (err) {
+            this.outputChannel.appendLine(`[Instructions] Failed to parse ${fileName}: ${err instanceof Error ? err.message : err}`);
             return `Unable to read instruction file: ${fileName}`;
         }
 
