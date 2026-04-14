@@ -1,12 +1,12 @@
 namespace AutoContext.WorkspaceServer.Tests.Tools.Git;
 
-using AutoContext.Mcp.Shared.McpTools;
+using AutoContext.Mcp.Shared.WorkspaceServer;
 using AutoContext.WorkspaceServer.Tools.Git;
 
 public sealed class GitCheckerTests
 {
     private static GitChecker CreateChecker()
-        => new(new McpToolsClient());
+        => new(new WorkspaceServerClient());
 
     [Fact]
     public async Task Should_pass_when_all_checks_pass()

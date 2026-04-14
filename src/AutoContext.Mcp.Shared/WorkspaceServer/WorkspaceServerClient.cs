@@ -1,18 +1,19 @@
-namespace AutoContext.Mcp.Shared.McpTools;
+namespace AutoContext.Mcp.Shared.WorkspaceServer;
 
 using System.Buffers.Binary;
 using System.IO.Pipes;
 using System.Text.Json;
 
+using AutoContext.Mcp.Shared.WorkspaceServer.McpTools;
+
 /// <summary>
-/// Named pipe client for the <c>mcp-tools</c> endpoint on the
-/// <c>AutoContext.WorkspaceServer</c> service process.
+/// Named pipe client for the <c>AutoContext.WorkspaceServer</c> service process.
 /// </summary>
 /// <remarks>
-/// Initializes a new instance of the <see cref="McpToolsClient"/> class.
+/// Initializes a new instance of the <see cref="WorkspaceServerClient"/> class.
 /// </remarks>
 /// <param name="pipeName">Named pipe used to connect to the workspace service, or <see langword="null"/> when not available.</param>
-public sealed class McpToolsClient(string? pipeName = null)
+public sealed class WorkspaceServerClient(string? pipeName = null)
 {
     private static readonly JsonSerializerOptions JsonOptions = new()
     {

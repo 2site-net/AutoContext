@@ -1,11 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import { TypeScriptChecker } from '../../../src/tools/typescript/typescript-checker.js';
-import { McpToolsClient } from '../../../src/features/mcp-tools/mcp-tools-client.js';
+import { WorkspaceServerClient } from '../../../src/features/workspace-server/workspace-server-client.js';
 import { NullLogger } from '../../../src/features/logging/logger.js';
 
 describe('TypeScriptChecker', () => {
     const checker = new TypeScriptChecker(
-        new McpToolsClient(),
+        new WorkspaceServerClient(),
         NullLogger,
     );
 

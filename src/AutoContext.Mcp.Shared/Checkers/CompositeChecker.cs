@@ -2,14 +2,15 @@ namespace AutoContext.Mcp.Shared.Checkers;
 
 using Microsoft.Extensions.Logging;
 
-using AutoContext.Mcp.Shared.McpTools;
+using AutoContext.Mcp.Shared.WorkspaceServer;
+using AutoContext.Mcp.Shared.WorkspaceServer.McpTools;
 
 /// <summary>
 /// Base class for aggregate tools that run multiple sub-checkers and return
 /// a single combined report. Handles tool-mode resolution via the workspace
 /// service, EditorConfig key aggregation, and data merging.
 /// </summary>
-public abstract partial class CompositeChecker(McpToolsClient mcpToolsClient, ILogger logger) : IChecker
+public abstract partial class CompositeChecker(WorkspaceServerClient workspaceServerClient, ILogger logger) : IChecker
 {
     /// <inheritdoc />
     public abstract string ToolName { get; }
@@ -52,7 +53,7 @@ public abstract partial class CompositeChecker(McpToolsClient mcpToolsClient, IL
             .Distinct()
             .ToArray();
 
-        var resolved = await mcpToolsClient
+        var resolved = await workspaceServerClient
             .ResolveToolsAsync(new McpToolsRequest(
                 toolNames,
                 filePath,

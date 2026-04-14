@@ -2,7 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { CompositeChecker } from '../../../src/features/checkers/composite-checker.js';
 import type { Checker } from '../../../src/features/checkers/checker.js';
 import type { EditorConfigFilter } from '../../../src/features/checkers/editorconfig-filter.js';
-import type { McpToolsClient, McpToolsResponse } from '../../../src/features/mcp-tools/mcp-tools-client.js';
+import type { WorkspaceServerClient } from '../../../src/features/workspace-server/workspace-server-client.js';
+import type { McpToolsResponse } from '../../../src/features/workspace-server/mcp-tools/mcp-tools-response.js';
 import { NullLogger } from '../../../src/features/logging/logger.js';
 
 describe('CompositeChecker', () => {
@@ -65,7 +66,7 @@ function createCompositeChecker(
 ): CompositeChecker {
     const fakeClient = {
         resolveTools: async () => resolved,
-    } as unknown as McpToolsClient;
+    } as unknown as WorkspaceServerClient;
 
     return new (class extends CompositeChecker {
         readonly toolName = 'test_composite';

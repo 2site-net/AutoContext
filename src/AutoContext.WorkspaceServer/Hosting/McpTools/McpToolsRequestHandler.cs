@@ -3,7 +3,7 @@ namespace AutoContext.WorkspaceServer.Hosting.McpTools;
 using System.Text.Json;
 
 using AutoContext.WorkspaceServer.Hosting.EditorConfig;
-using AutoContext.Mcp.Shared.McpTools;
+using AutoContext.Mcp.Shared.WorkspaceServer.McpTools;
 
 /// <summary>
 /// Handles pipe requests that resolve MCP tool modes and associated

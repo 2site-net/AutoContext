@@ -5,7 +5,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Console;
 
-using AutoContext.Mcp.Shared.McpTools;
+using AutoContext.Mcp.Shared.WorkspaceServer;
 using AutoContext.WorkspaceServer.Hosting;
 using AutoContext.WorkspaceServer.Hosting.EditorConfig;
 using AutoContext.WorkspaceServer.Hosting.McpTools;
@@ -42,7 +42,7 @@ else if (scope == "git")
     // MCP stdio mode — registers Git commit quality check tools.
     var workspaceServer = builder.Configuration["workspace-server"];
 
-    builder.Services.AddSingleton(new McpToolsClient(workspaceServer));
+    builder.Services.AddSingleton(new WorkspaceServerClient(workspaceServer));
 
     builder.Services
         .AddMcpServer()

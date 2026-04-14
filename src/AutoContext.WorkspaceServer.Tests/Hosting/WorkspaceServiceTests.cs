@@ -10,7 +10,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using AutoContext.WorkspaceServer.Hosting;
 using AutoContext.WorkspaceServer.Hosting.EditorConfig;
 using AutoContext.WorkspaceServer.Hosting.McpTools;
-using AutoContext.Mcp.Shared.McpTools;
+using AutoContext.Mcp.Shared.WorkspaceServer.McpTools;
 
 public sealed class WorkspaceServiceTests : IDisposable
 {

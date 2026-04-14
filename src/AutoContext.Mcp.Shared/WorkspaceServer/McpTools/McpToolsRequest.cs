@@ -1,4 +1,4 @@
-namespace AutoContext.Mcp.Shared.McpTools;
+namespace AutoContext.Mcp.Shared.WorkspaceServer.McpTools;
 
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json.Serialization;

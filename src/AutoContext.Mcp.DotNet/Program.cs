@@ -4,7 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-using AutoContext.Mcp.Shared.McpTools;
+using AutoContext.Mcp.Shared.WorkspaceServer;
 using AutoContext.Mcp.DotNet.Tools.NuGet;
 using AutoContext.Mcp.DotNet.Tools.CSharp;
 
@@ -28,7 +28,7 @@ internal sealed class Program
 
         var workspaceServer = builder.Configuration["workspace-server"];
 
-        builder.Services.AddSingleton(new McpToolsClient(workspaceServer));
+        builder.Services.AddSingleton(new WorkspaceServerClient(workspaceServer));
 
         Type[] toolTypes = scope switch
         {

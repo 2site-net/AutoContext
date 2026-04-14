@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
 using AutoContext.Mcp.Shared.Checkers;
-using AutoContext.Mcp.Shared.McpTools;
+using AutoContext.Mcp.Shared.WorkspaceServer;
 using AutoContext.WorkspaceServer.Hosting;
 using AutoContext.WorkspaceServer.Hosting.EditorConfig;
 using AutoContext.WorkspaceServer.Hosting.McpTools;
@@ -53,7 +53,7 @@ public sealed class CompositeCheckerIntegrationTests : IDisposable
         {
             var spy = new SpyChecker("indent_size");
             var checker = new TestCompositeChecker(
-                new McpToolsClient(pipeName),
+                new WorkspaceServerClient(pipeName),
                 NullLogger.Instance,
                 [spy]);
 
@@ -103,7 +103,7 @@ public sealed class CompositeCheckerIntegrationTests : IDisposable
         {
             var spy = new SpyChecker("indent_size");
             var checker = new TestCompositeChecker(
-                new McpToolsClient(pipeName),
+                new WorkspaceServerClient(pipeName),
                 NullLogger.Instance,
                 [spy]);
 
@@ -169,9 +169,9 @@ public sealed class CompositeCheckerIntegrationTests : IDisposable
     }
 
     private sealed class TestCompositeChecker(
-        McpToolsClient mcpToolsClient,
+        WorkspaceServerClient workspaceServerClient,
         ILogger logger,
-        IChecker[] checkers) : CompositeChecker(mcpToolsClient, logger)
+        IChecker[] checkers) : CompositeChecker(workspaceServerClient, logger)
     {
         public override string ToolName => "test_composite";
 

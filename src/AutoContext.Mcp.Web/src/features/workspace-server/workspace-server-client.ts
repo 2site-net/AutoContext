@@ -1,17 +1,9 @@
 import { connect } from 'node:net';
 
-export interface McpToolsRequest {
-    readonly tools: readonly string[];
-    readonly filePath?: string;
-    readonly 'editorconfig-keys'?: readonly string[];
-}
+import type { McpToolsRequest } from './mcp-tools/mcp-tools-request.js';
+import type { McpToolsResponse } from './mcp-tools/mcp-tools-response.js';
 
-export interface McpToolsResponse {
-    readonly tools: Record<string, boolean>;
-    readonly editorconfig?: Record<string, string>;
-}
-
-export class McpToolsClient {
+export class WorkspaceServerClient {
     private readonly pipePath: string | undefined;
 
     constructor(pipeName?: string) {

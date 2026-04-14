@@ -7,7 +7,7 @@ using Microsoft.Extensions.Logging;
 using ModelContextProtocol.Server;
 
 using AutoContext.Mcp.Shared.Checkers;
-using AutoContext.Mcp.Shared.McpTools;
+using AutoContext.Mcp.Shared.WorkspaceServer;
 
 /// <summary>
 /// Aggregate tool that runs all enabled C# source-code checkers and returns
@@ -19,8 +19,8 @@ using AutoContext.Mcp.Shared.McpTools;
 /// XML, not C# source code.
 /// </remarks>
 [McpServerToolType]
-public sealed partial class CSharpChecker(McpToolsClient mcpToolsClient, ILogger<CSharpChecker> logger)
-    : CompositeChecker(mcpToolsClient, logger)
+public sealed partial class CSharpChecker(WorkspaceServerClient workspaceServerClient, ILogger<CSharpChecker> logger)
+    : CompositeChecker(workspaceServerClient, logger)
 {
     /// <inheritdoc />
     public override string ToolName

@@ -3,7 +3,7 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { readFileSync } from 'node:fs';
 import { parseArgs } from 'node:util';
 import { z } from 'zod';
-import { McpToolsClient } from './features/mcp-tools/mcp-tools-client.js';
+import { WorkspaceServerClient } from './features/workspace-server/workspace-server-client.js';
 import { StderrLogger } from './features/logging/logger.js';
 import { TypeScriptChecker } from './tools/typescript/typescript-checker.js';
 
@@ -31,7 +31,7 @@ if (workspaceFolder) {
 }
 
 const workspaceServer = typeof values['workspace-server'] === 'string' ? values['workspace-server'] : undefined;
-const mcpToolsClient = new McpToolsClient(workspaceServer);
+const workspaceServerClient = new WorkspaceServerClient(workspaceServer);
 if (workspaceServer) {
     logger.log('Startup', `workspace-server=${workspaceServer}`);
 }
@@ -46,7 +46,7 @@ const server = new McpServer({
 });
 
 if (scope === 'typescript') {
-    const checker = new TypeScriptChecker(mcpToolsClient, logger);
+    const checker = new TypeScriptChecker(workspaceServerClient, logger);
 
     server.registerTool(
         'check_typescript_all',

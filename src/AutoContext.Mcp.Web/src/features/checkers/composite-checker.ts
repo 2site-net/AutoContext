@@ -1,6 +1,6 @@
 import type { Checker } from './checker.js';
 import { isEditorConfigFilter } from './editorconfig-filter.js';
-import type { McpToolsClient } from '../mcp-tools/mcp-tools-client.js';
+import type { WorkspaceServerClient } from '../workspace-server/workspace-server-client.js';
 import type { Logger } from '../logging/logger.js';
 
 /// Base class for aggregate tools that run multiple sub-checkers and return
@@ -12,7 +12,7 @@ export abstract class CompositeChecker implements Checker {
     protected abstract readonly toolLabel: string;
 
     constructor(
-        private readonly mcpToolsClient: McpToolsClient,
+        private readonly workspaceServerClient: WorkspaceServerClient,
         protected readonly logger: Logger,
     ) {}
 
@@ -36,7 +36,7 @@ export abstract class CompositeChecker implements Checker {
             checkers.filter(isEditorConfigFilter).flatMap(c => [...c.editorConfigKeys]),
         )];
 
-        const resolved = await this.mcpToolsClient.resolveTools({
+        const resolved = await this.workspaceServerClient.resolveTools({
             tools: toolNames,
             filePath,
             'editorconfig-keys': editorConfigKeys.length > 0 ? editorConfigKeys : undefined,

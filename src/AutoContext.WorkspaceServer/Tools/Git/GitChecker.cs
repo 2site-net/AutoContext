@@ -7,7 +7,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 using ModelContextProtocol.Server;
 
-using AutoContext.Mcp.Shared.McpTools;
+using AutoContext.Mcp.Shared.WorkspaceServer;
 using AutoContext.Mcp.Shared.Checkers;
 
 /// <summary>
@@ -15,8 +15,8 @@ using AutoContext.Mcp.Shared.Checkers;
 /// a single combined report.
 /// </summary>
 [McpServerToolType]
-public sealed partial class GitChecker(McpToolsClient mcpToolsClient, ILogger<GitChecker>? logger = null)
-    : CompositeChecker(mcpToolsClient, logger ?? NullLogger<GitChecker>.Instance)
+public sealed partial class GitChecker(WorkspaceServerClient workspaceServerClient, ILogger<GitChecker>? logger = null)
+    : CompositeChecker(workspaceServerClient, logger ?? NullLogger<GitChecker>.Instance)
 {
     /// <inheritdoc />
     public override string ToolName
