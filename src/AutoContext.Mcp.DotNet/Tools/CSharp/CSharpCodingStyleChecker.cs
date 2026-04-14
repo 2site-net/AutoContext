@@ -9,10 +9,10 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using AutoContext.Mcp.Shared.Checkers;
 
 /// <summary>
-/// Validates C# code style rules: regions, decorative comments, curly braces,
-/// blank lines before control flow, expression-body arrow placement,
-/// XML doc comments on public/protected members, System-directive ordering,
-/// and expression-body style for methods and properties.
+/// Enforces code style rules from <c>lang-csharp.instructions.md</c>:
+/// regions, decorative comments, curly braces, blank lines before control flow,
+/// expression-body arrow placement, XML doc comments on public/protected members,
+/// System-directive ordering, and expression-body style for methods and properties.
 /// </summary>
 public sealed partial class CSharpCodingStyleChecker : IChecker, IEditorConfigFilter
 {

@@ -7,8 +7,9 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using AutoContext.Mcp.Shared.Checkers;
 
 /// <summary>
-/// Validates that nullable reference type safety is maintained: no #nullable disable
-/// directives, and no use of the null-forgiving (!) operator to suppress warnings.
+/// Enforces nullable safety rules from <c>lang-csharp.instructions.md</c>:
+/// no #nullable disable directives, and no use of the null-forgiving (!) operator
+/// to suppress warnings.
 /// </summary>
 public sealed class CSharpNullableContextChecker : IChecker
 {

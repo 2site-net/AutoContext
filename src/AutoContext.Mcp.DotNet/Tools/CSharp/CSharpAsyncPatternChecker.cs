@@ -7,9 +7,10 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using AutoContext.Mcp.Shared.Checkers;
 
 /// <summary>
-/// Validates C# async/await patterns: no async void (except event handlers),
-/// public async APIs require a CancellationToken parameter, and all await
-/// expressions in non-test code must use .ConfigureAwait(false).
+/// Enforces async/await rules from <c>dotnet-async-await.instructions.md</c>:
+/// no async void (except event handlers), public async APIs require a
+/// CancellationToken parameter, and all await expressions in non-test code
+/// must use .ConfigureAwait(false).
 /// </summary>
 public sealed class CSharpAsyncPatternChecker : IChecker
 {

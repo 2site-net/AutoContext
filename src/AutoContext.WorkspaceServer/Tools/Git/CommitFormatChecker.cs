@@ -5,7 +5,8 @@ using System.Text.RegularExpressions;
 using AutoContext.Mcp.Shared.Checkers;
 
 /// <summary>
-/// Validates git commit message formatting against Conventional Commits and line-length rules.
+/// Enforces commit format rules from <c>git-commit-format.instructions.md</c>:
+/// Conventional Commits structure and line-length limits.
 /// </summary>
 public sealed partial class CommitFormatChecker : IChecker
 {

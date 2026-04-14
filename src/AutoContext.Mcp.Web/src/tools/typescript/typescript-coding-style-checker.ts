@@ -172,6 +172,13 @@ function formatReport(violations: readonly Violation[]): string {
     return `❌ TypeScript Coding Style\n${lines.join('\n')}`;
 }
 
+/**
+ * Enforces coding style rules from `lang-typescript.instructions.md`:
+ * no `any`, no enums, no `@ts-ignore`, no `as` type assertions,
+ * no non-null assertions, no unconstrained generics, no `Function`/`Object`/`{}`
+ * types, prefer `interface` over `type` for object shapes, and explicit return
+ * types on exported functions.
+ */
 export class TypeScriptCodingStyleChecker implements Checker {
     readonly toolName = 'check_typescript_coding_style';
 

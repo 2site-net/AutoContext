@@ -7,7 +7,8 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using AutoContext.Mcp.Shared.Checkers;
 
 /// <summary>
-/// Validates that type members are ordered by kind, access level, and static-before-instance.
+/// Enforces member ordering rules from <c>lang-csharp.instructions.md</c>:
+/// members are ordered by kind, access level, and static-before-instance.
 /// </summary>
 public sealed class CSharpMemberOrderingChecker : IChecker
 {

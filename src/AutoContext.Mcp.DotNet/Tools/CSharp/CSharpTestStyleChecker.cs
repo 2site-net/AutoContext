@@ -7,7 +7,8 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using AutoContext.Mcp.Shared.Checkers;
 
 /// <summary>
-/// Validates xUnit test style conventions: test class naming, test method naming,
+/// Enforces test style rules from <c>testing.instructions.md</c> and
+/// <c>dotnet-xunit.instructions.md</c>: test class naming, test method naming,
 /// no XML doc comments, Assert.Multiple for multi-assertion tests, no ConfigureAwait,
 /// and structure mirroring (file name, namespace) against the production project.
 /// </summary>

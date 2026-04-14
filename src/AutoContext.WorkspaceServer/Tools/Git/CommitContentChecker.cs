@@ -5,7 +5,8 @@ using System.Text.RegularExpressions;
 using AutoContext.Mcp.Shared.Checkers;
 
 /// <summary>
-/// Validates git commit message body content against anti-pattern rules.
+/// Enforces commit content rules from <c>git-commit-format.instructions.md</c>:
+/// detects anti-patterns in the commit message body.
 /// </summary>
 public sealed partial class CommitContentChecker : IChecker
 {

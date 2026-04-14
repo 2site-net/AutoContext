@@ -10,9 +10,10 @@ using ModelContextProtocol.Server;
 using AutoContext.Mcp.Shared.Checkers;
 
 /// <summary>
-/// Validates NuGet package hygiene in .csproj files: no duplicate references,
-/// no floating versions, no missing versions (unless Central Package Management),
-/// and flags packages that have well-known built-in .NET alternatives.
+/// Enforces NuGet hygiene rules from <c>dotnet-nuget.instructions.md</c>:
+/// no duplicate references, no floating versions, no missing versions
+/// (unless Central Package Management), and flags packages that have
+/// well-known built-in .NET alternatives.
 /// </summary>
 [McpServerToolType]
 public sealed partial class NuGetHygieneChecker(ILogger<NuGetHygieneChecker> logger) : IChecker

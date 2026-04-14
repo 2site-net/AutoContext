@@ -7,8 +7,9 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using AutoContext.Mcp.Shared.Checkers;
 
 /// <summary>
-/// Validates C# project structure conventions: file-scoped namespaces,
-/// single type per file, file name matches type name, and no #pragma warning disable.
+/// Enforces project structure rules from <c>dotnet-coding-standards.instructions.md</c>:
+/// file-scoped namespaces, single type per file, file name matches type name,
+/// and no #pragma warning disable.
 /// </summary>
 public sealed class CSharpProjectStructureChecker : IChecker, IEditorConfigFilter
 {

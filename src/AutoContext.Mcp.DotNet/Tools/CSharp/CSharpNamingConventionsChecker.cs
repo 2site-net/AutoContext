@@ -7,9 +7,10 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using AutoContext.Mcp.Shared.Checkers;
 
 /// <summary>
-/// Validates C# naming conventions: interface I prefix, extension class Extensions suffix,
-/// async method Async suffix, private instance field _camelCase, PascalCase for
-/// types/methods/properties/events, and camelCase for parameters.
+/// Enforces naming conventions from <c>lang-csharp.instructions.md</c> and
+/// <c>dotnet-coding-standards.instructions.md</c>: interface I prefix, extension class
+/// Extensions suffix, async method Async suffix, private instance field _camelCase,
+/// PascalCase for types/methods/properties/events, and camelCase for parameters.
 /// </summary>
 public sealed class CSharpNamingConventionsChecker : IChecker
 {
