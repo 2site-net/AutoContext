@@ -23,7 +23,10 @@
     "vscode": "^1.100.0"
   },
   "categories": [
-    "AI"
+    "AI",
+    "Chat",
+    "Linters",
+    "Programming Languages"
   ],
   "activationEvents": [
     "onStartupFinished"
