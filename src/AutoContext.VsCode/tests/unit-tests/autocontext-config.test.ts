@@ -4,8 +4,12 @@ import { AutoContextConfigManager } from '../../src/autocontext-config';
 
 import { writeFile, unlink, readFile } from 'node:fs/promises';
 
+const { enoentError } = vi.hoisted(() => ({
+    enoentError: Object.assign(new Error('ENOENT: no such file or directory'), { code: 'ENOENT' }),
+}));
+
 vi.mock('node:fs/promises', () => ({
-    readFile: vi.fn().mockRejectedValue(new Error('ENOENT')),
+    readFile: vi.fn().mockRejectedValue(enoentError),
     writeFile: vi.fn().mockResolvedValue(undefined),
     unlink: vi.fn().mockResolvedValue(undefined),
 }));
@@ -21,12 +25,23 @@ beforeEach(() => {
 
 describe('AutoContextConfigManager', () => {
     it('should return empty config when file does not exist', async () => {
-        vi.mocked(readFile).mockRejectedValue(new Error('ENOENT'));
+        vi.mocked(readFile).mockRejectedValue(enoentError);
 
         const manager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
         const config = await manager.read();
 
         expect.soft(config).toEqual({});
+    });
+
+    it('should log ENOENT only once across repeated reads', async () => {
+        vi.mocked(readFile).mockRejectedValue(enoentError);
+
+        const manager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
+        await manager.read();
+        await manager.read();
+        await manager.read();
+
+        expect(mockOutputChannel.appendLine).toHaveBeenCalledTimes(1);
     });
 
     it('should return empty config when file contains invalid JSON', async () => {

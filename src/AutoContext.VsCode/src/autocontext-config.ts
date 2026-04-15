@@ -11,6 +11,7 @@ export class AutoContextConfigManager implements vscode.Disposable {
     private readonly disposables: vscode.Disposable[] = [];
     private readonly didChangeEmitter = new vscode.EventEmitter<void>();
     private cachedConfig: AutoContextConfig | undefined;
+    private hasLoggedNotFound = false;
     private writeQueue: Promise<void> = Promise.resolve();
     readonly onDidChange = this.didChangeEmitter.event;
 
@@ -28,6 +29,7 @@ export class AutoContextConfigManager implements vscode.Disposable {
 
     private invalidate(): void {
         this.cachedConfig = undefined;
+        this.hasLoggedNotFound = false;
         this.didChangeEmitter.fire();
     }
 
@@ -53,7 +55,18 @@ export class AutoContextConfigManager implements vscode.Disposable {
             this.cachedConfig = parsed as AutoContextConfig;
             return this.cachedConfig;
         } catch (err) {
+            const isNotFound = err instanceof Error && 'code' in err && err.code === 'ENOENT';
+
+            if (isNotFound && this.hasLoggedNotFound) {
+                return {};
+            }
+
+            if (isNotFound) {
+                this.hasLoggedNotFound = true;
+            }
+
             this.outputChannel.appendLine(`[Config] Failed to read config: ${err instanceof Error ? err.message : err}`);
+
             return {};
         }
     }
