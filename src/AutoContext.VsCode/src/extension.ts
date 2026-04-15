@@ -71,8 +71,6 @@ export async function activate(context: vscode.ExtensionContext) {
 
     const logDiagnostics = () => InstructionsDiagnostics.log(outputChannel, context.extensionPath, configManager, instructionsCatalog);
 
-    workspaceServer.start();
-
     context.subscriptions.push(
         didChangeEmitter,
         outputChannel,
@@ -85,6 +83,22 @@ export async function activate(context: vscode.ExtensionContext) {
         instructionsWriter,
         instructionsTreeProvider,
         mcpToolsTreeProvider,
+    );
+
+    workspaceServer.start();
+
+    // Settle all async state before registering event handlers and providers.
+    // detect() populates context flags (hasDotNet, hasTypeScript, etc.) that
+    // VS Code reads on the first provideMcpServerDefinitions() query.
+    await workspaceContextDetector.detect();
+
+    await Promise.all([
+        toolsStatusWriter.write(),
+        instructionsWriter.removeOrphanedStagingDirs(),
+        configManager.removeOrphanedIds(),
+    ]);
+
+    context.subscriptions.push(
         vscode.commands.registerCommand(commandIds.EnterExportMode, () => instructionsTreeProvider.enterExportMode()),
         vscode.commands.registerCommand(commandIds.CancelExport, () => instructionsTreeProvider.cancelExportMode()),
         vscode.commands.registerCommand(commandIds.ConfirmExport, async () => {
@@ -135,19 +149,14 @@ export async function activate(context: vscode.ExtensionContext) {
         vscode.lm.registerMcpServerDefinitionProvider('AutoContextProvider', mcpServerProvider),
     );
 
-    await Promise.all([
-        workspaceContextDetector.detect(),
-        toolsStatusWriter.write(),
-        instructionsWriter.removeOrphanedStagingDirs(),
-        configManager.removeOrphanedIds(),
-    ]);
-
     const catalogVersions = new Map(
         instructionsCatalog.all
             .filter(e => e.version !== undefined)
             .map(e => [e.fileName, e.version!]),
     );
+
     const clearedFiles = await configManager.clearStaleDisabledIds(catalogVersions);
+
     if (clearedFiles.length > 0) {
         const names = clearedFiles.map(f => f.replace('.instructions.md', '')).join(', ');
         void vscode.window.showInformationMessage(
@@ -159,17 +168,20 @@ export async function activate(context: vscode.ExtensionContext) {
 
     const lastSeenVersion = context.globalState.get<string>(globalStateKeys.LastSeenVersion);
     const hasUpdate = lastSeenVersion !== undefined && lastSeenVersion !== version;
+
     if (hasUpdate) {
         instructionsTreeProvider.setBadge(1, 'New version available');
         instructionsTreeProvider.dismissBadgeOnNextReveal(async () => {
             await context.globalState.update(globalStateKeys.LastSeenVersion, version);
         });
     }
+
     if (lastSeenVersion === undefined) {
         await context.globalState.update(globalStateKeys.LastSeenVersion, version);
     }
 
     const hasWhatsNew = existsSync(join(context.extensionPath, 'CHANGELOG.md'));
+
     void vscode.commands.executeCommand('setContext', contextKeys.HasWhatsNew, hasWhatsNew);
 
     await logDiagnostics();
