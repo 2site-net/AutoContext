@@ -2,7 +2,7 @@
 
 # AutoContext
 
-AutoContext is a context toolkit for AI coding assistants. It ships with curated instructions that shape how code is written and reviewed, bundled MCP tools that validate code against concrete rules, and a context orchestration layer that automatically wires the right guidance and checks into the model based on the workspace and environment. Today AutoContext is integrated with GitHub Copilot, but its architecture is designed to support additional coding assistants and external context sources over time.
+AutoContext gives AI coding assistants the right context for your codebase. It provides built-in instructions, MCP tool checks, a dedicated tree view for managing them, and automatic context orchestration to deliver the right guidance and checks for the current task. Today AutoContext is integrated with GitHub Copilot, but its architecture is designed to support additional coding assistants and external context sources over time.
 
 > **Work in Progress** — Instructions and tools are refined iteratively. Coverage, rules, and tool behavior will continue to evolve as we incorporate feedback and expand language and framework support.
 
