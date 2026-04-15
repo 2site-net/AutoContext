@@ -53,11 +53,13 @@
         {
           "id": "autocontext.instructions-view",
           "name": "Instructions",
+          "icon": "$(note)",
           "when": "workspaceFolderCount > 0"
         },
         {
           "id": "autocontext.mcp-tools-view",
           "name": "MCP Tools",
+          "icon": "$(plug)",
           "when": "workspaceFolderCount > 0"
         }
       ]
