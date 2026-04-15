@@ -25,17 +25,17 @@
   },
   "badges": [
     {
-      "url": "https://vsmarketplacebadges.dev/version-short/2site-net.autocontext.svg",
+      "url": "https://vsmarketplacebadges.dev/version-short/2site-net.autocontext.png",
       "href": "https://marketplace.visualstudio.com/items?itemName=2site-net.autocontext",
       "description": "Marketplace version"
     },
     {
-      "url": "https://vsmarketplacebadges.dev/installs-short/2site-net.autocontext.svg",
+      "url": "https://vsmarketplacebadges.dev/installs-short/2site-net.autocontext.png",
       "href": "https://marketplace.visualstudio.com/items?itemName=2site-net.autocontext",
       "description": "Marketplace installs"
     },
     {
-      "url": "https://vsmarketplacebadges.dev/rating-short/2site-net.autocontext.svg",
+      "url": "https://vsmarketplacebadges.dev/rating-short/2site-net.autocontext.png",
       "href": "https://marketplace.visualstudio.com/items?itemName=2site-net.autocontext",
       "description": "Marketplace rating"
     },
