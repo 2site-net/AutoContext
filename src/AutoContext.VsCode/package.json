@@ -28,6 +28,29 @@
     "Linters",
     "Programming Languages"
   ],
+  "keywords": [
+    "copilot",
+    "mcp",
+    "mcp-tools",
+    "instructions",
+    "chat-instructions",
+    "copilot-instructions",
+    "context",
+    "ai-assistant",
+    "coding-assistant",
+    "vibe-coding",
+    "workspace-detection",
+    "auto-configure",
+    "linting",
+    "coding-standards",
+    "code-quality",
+    "code-review",
+    "dotnet",
+    "csharp",
+    "nodejs",
+    "javascript",
+    "typescript"
+  ],
   "activationEvents": [
     "onStartupFinished"
   ],
