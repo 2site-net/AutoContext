@@ -590,9 +590,20 @@ function Invoke-VscePublish {
         try {
             foreach ($vsix in $vsixFiles) {
                 Write-Status "Publishing $($vsix.Name)..." 'INFO'
-                npx vsce publish --packagePath $vsix.FullName
-                if ($LASTEXITCODE -ne 0) { throw "Failed to publish $($vsix.Name)." }
-                Write-Status "Published $($vsix.Name)" 'OK'
+                $output = npx vsce publish --packagePath $vsix.FullName 2>&1
+                if ($LASTEXITCODE -ne 0) {
+                    if ($output -match 'already exists') {
+                        Write-Status "Skipped $($vsix.Name) (already published)" 'INFO'
+                    }
+                    else {
+                        $output | Write-Host
+                        throw "Failed to publish $($vsix.Name)."
+                    }
+                }
+                else {
+                    $output | Write-Host
+                    Write-Status "Published $($vsix.Name)" 'OK'
+                }
             }
         }
         finally {
