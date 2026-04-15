@@ -2,7 +2,7 @@
   "name": "autocontext",
   "displayName": "AutoContext",
   "description": "AutoContext gives AI coding assistants the right context for your codebase. It provides built-in instructions, MCP tool checks, a dedicated tree view for managing them, and automatic context orchestration to deliver the right guidance and checks for the current task.",
-  "version": "0.5.4",
+  "version": "0.5.5",
   "publisher": "2site-net",
   "preview": true,
   "license": "AGPL-3.0-only",
