@@ -23,6 +23,28 @@
     "color": "#0F172A",
     "theme": "dark"
   },
+  "badges": [
+    {
+      "url": "https://vsmarketplacebadges.dev/version-short/2site-net.autocontext.svg",
+      "href": "https://marketplace.visualstudio.com/items?itemName=2site-net.autocontext",
+      "description": "Marketplace version"
+    },
+    {
+      "url": "https://vsmarketplacebadges.dev/installs-short/2site-net.autocontext.svg",
+      "href": "https://marketplace.visualstudio.com/items?itemName=2site-net.autocontext",
+      "description": "Marketplace installs"
+    },
+    {
+      "url": "https://vsmarketplacebadges.dev/rating-short/2site-net.autocontext.svg",
+      "href": "https://marketplace.visualstudio.com/items?itemName=2site-net.autocontext",
+      "description": "Marketplace rating"
+    },
+    {
+      "url": "https://github.com/2site-net/AutoContext/actions/workflows/ci.yml/badge.svg",
+      "href": "https://github.com/2site-net/AutoContext/actions/workflows/ci.yml",
+      "description": "CI status"
+    }
+  ],
   "type": "module",
   "engines": {
     "vscode": "^1.100.0"
