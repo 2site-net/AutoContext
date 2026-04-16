@@ -149,11 +149,11 @@ function Write-TestResult {
             # Remaining headings (Compile/Test already handled via $knownPairs)
             foreach ($h in $headings) {
                 if ($h -in $knownPairs) { continue }
-                if ($h -match '^Publish \.NET server \((.+)\)$') {
+                if ($h -match '^Package \.NET servers \((.+)\)$') {
                     $rids += $Matches[1]
                 }
                 elseif ($h -match '^Package VSIX \(') {
-                    # Skip — always pairs 1:1 with the Publish heading above
+                    # Skip — always pairs 1:1 with the .NET heading above
                 }
                 else {
                     $general.Add($h)
@@ -161,10 +161,10 @@ function Write-TestResult {
             }
 
             if ($rids.Count -gt 1) {
-                $general.Add("Publish + Package: $($rids -join ', ')")
+                $general.Add("Package: $($rids -join ', ')")
             }
             elseif ($rids.Count -eq 1) {
-                $general.Add("Publish .NET server ($($rids[0]))")
+                $general.Add("Package .NET servers ($($rids[0]))")
                 $vsceHead = $headings | Where-Object { $_ -match '^Package VSIX' } | Select-Object -First 1
                 if ($vsceHead) { $general.Add($vsceHead) }
             }

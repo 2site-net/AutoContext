@@ -476,16 +476,14 @@ function Invoke-CopyAssets {
     }
 }
 
-function Invoke-DotNetPublish {
+function Invoke-DotNetPackage {
     [CmdletBinding(SupportsShouldProcess)]
     param([Parameter(Mandatory)][string]$Rid)
 
-    Write-Section "Publish .NET servers ($Rid)"
+    Write-Section "Package .NET servers ($Rid)"
     if ($serverProjectPaths.Count -eq 0) { throw 'No non-test .NET projects found in the solution.' }
     if ($PSCmdlet.ShouldProcess("$($serverProjectPaths.Count) project(s) → $Rid", 'dotnet publish')) {
         Assert-ExternalCommand 'dotnet'
-
-        if (Test-Path $mcpDir) { Remove-Item $mcpDir -Recurse -Force }
 
         $publishArgs = @(
             'publish'
@@ -497,9 +495,11 @@ function Invoke-DotNetPublish {
 
         foreach ($projectPath in $serverProjectPaths) {
             $serverName = [System.IO.Path]::GetFileNameWithoutExtension($projectPath)
-            dotnet @publishArgs $projectPath -o (Join-Path $mcpDir $serverName)
+            $serverDir = Join-Path $mcpDir $serverName
+            if (Test-Path $serverDir) { Remove-Item $serverDir -Recurse -Force }
+            dotnet @publishArgs $projectPath -o $serverDir
             if ($LASTEXITCODE -ne 0) { throw "dotnet publish failed for $serverName ($Rid)." }
-            Write-Status "$serverName published ($Rid)" 'OK'
+            Write-Status "$serverName packaged ($Rid)" 'OK'
         }
     }
 }
@@ -524,11 +524,11 @@ function Sync-WebServerVersion {
     }
 }
 
-function Invoke-WebServerPublish {
+function Invoke-WebServerPackage {
     [CmdletBinding(SupportsShouldProcess)]
     param()
 
-    Write-Section 'Publish Web MCP server'
+    Write-Section 'Package Web MCP server'
 
     if (-not (Test-Path $webServerDir)) {
         Write-Status 'Web MCP server directory not found — skipping' 'INFO'
@@ -559,7 +559,7 @@ function Invoke-WebServerPublish {
             Pop-Location
         }
 
-        Write-Status 'Web MCP server published' 'OK'
+        Write-Status 'Web MCP server packaged' 'OK'
     }
 }
 
@@ -766,12 +766,12 @@ function Invoke-Package {
 
     Write-Header 'Package'
 
-    Invoke-WebServerPublish
+    Invoke-WebServerPackage
 
     if ($Scope -eq 'All') {
         # Explicit "Package All" — build all six platforms
         foreach ($rid in $ridToTarget.Keys) {
-            Invoke-DotNetPublish -Rid $rid
+            Invoke-DotNetPackage -Rid $rid
             Invoke-VscePackage -Rid $rid
         }
 
@@ -781,7 +781,7 @@ function Invoke-Package {
     else {
         # Single platform: explicit -RuntimeIdentifier or auto-detect
         $rid = Resolve-RuntimeIdentifier
-        Invoke-DotNetPublish -Rid $rid
+        Invoke-DotNetPackage -Rid $rid
         Invoke-VscePackage -Rid $rid
     }
 }
@@ -804,7 +804,7 @@ function Invoke-Publish {
     # Explicit "Publish All" = all platforms; otherwise single platform
     $rids = if ($Scope -eq 'All') { $ridToTarget.Keys } else { @(Resolve-RuntimeIdentifier) }
 
-    Invoke-WebServerPublish
+    Invoke-WebServerPackage
 
     foreach ($rid in $rids) {
         $vsceTarget = $ridToTarget[$rid]
@@ -815,7 +815,7 @@ function Invoke-Publish {
             Write-Status "Found existing $vsixName — skipping build for $rid" 'INFO'
         }
         else {
-            Invoke-DotNetPublish -Rid $rid
+            Invoke-DotNetPackage -Rid $rid
             Invoke-VscePackage -Rid $rid
         }
     }
