@@ -41,6 +41,12 @@
     or used alone to only clean.
     Mutually exclusive with Prepare, Package, and Publish (they already clean).
 
+.PARAMETER Local
+    For Package only. Copies framework-dependent .NET build output into
+    the extension's servers directory instead of running dotnet publish.
+    Produces a runnable extension directory for local F5 development
+    without self-contained single-file publishing. No .vsix is produced.
+
 .PARAMETER RuntimeIdentifier
     .NET runtime identifier for Package/Publish (e.g. win-x64, osx-arm64).
     Mutually exclusive with Target 'All'.
@@ -55,6 +61,7 @@
     .\build.ps1 Test DotNet                      # Test .NET only
     .\build.ps1 Prepare                          # Clean + Compile + Test + copy assets
     .\build.ps1 Package                          # Prepare + build for current platform
+    .\build.ps1 Package -Local                   # Prepare + copy servers (local F5)
     .\build.ps1 Package All                      # Prepare + build all 6 platforms
     .\build.ps1 Package -RuntimeIdentifier win-x64
     .\build.ps1 Publish                          # Package + publish to Marketplace
@@ -85,6 +92,8 @@ param(
     [string]$Target,
 
     [switch]$Clean,
+
+    [switch]$Local,
 
     [string]$RuntimeIdentifier,
 
@@ -226,7 +235,7 @@ function Show-Help {
     Write-Host "`nAutoContext Build Orchestrator`n" -ForegroundColor Cyan
 
     Write-Host 'SYNTAX' -ForegroundColor Yellow
-    Write-Host "  .\build.ps1 [Action] [Target] [-Clean] [-RuntimeIdentifier <rid>] [-WhatIf] [-Help]`n"
+    Write-Host "  .\build.ps1 [Action] [Target] [-Clean] [-Local] [-RuntimeIdentifier <rid>] [-WhatIf] [-Help]`n"
 
     Write-Host 'ACTIONS' -ForegroundColor Yellow
     Write-Host '  (none)     Compile + Test (all sources)'
@@ -245,6 +254,7 @@ function Show-Help {
 
     Write-Host 'SWITCHES' -ForegroundColor Yellow
     Write-Host '  -Clean                Delete build artifacts (combinable with Compile/Test)'
+    Write-Host '  -Local                Copy server binaries for local F5 (Package only)'
     Write-Host '  -RuntimeIdentifier    .NET RID for Package/Publish (e.g. win-x64)'
     Write-Host '  -WhatIf               Preview changes without executing (works with any action and switch)'
     Write-Host "  -Help                 Show this help`n"
@@ -254,6 +264,7 @@ function Show-Help {
     Write-Host '  .\build.ps1 Compile TS                        # TypeScript only'
     Write-Host '  .\build.ps1 Test DotNet                       # .NET tests only'
     Write-Host '  .\build.ps1 Package                           # Current platform'
+    Write-Host '  .\build.ps1 Package -Local                    # Prepare + copy servers (F5)'
     Write-Host '  .\build.ps1 Package All                       # All 6 platforms'
     Write-Host '  .\build.ps1 Package -RuntimeIdentifier win-x64'
     Write-Host '  .\build.ps1 Tag 0.6.0                         # Bump, test, commit, tag'
@@ -500,6 +511,35 @@ function Invoke-DotNetPackage {
             dotnet @publishArgs $projectPath -o $serverDir
             if ($LASTEXITCODE -ne 0) { throw "dotnet publish failed for $serverName ($Rid)." }
             Write-Status "$serverName packaged ($Rid)" 'OK'
+        }
+    }
+}
+
+function Invoke-DotNetCopyLocal {
+    [CmdletBinding(SupportsShouldProcess)]
+    param()
+
+    Write-Section 'Copy .NET servers (local)'
+    if ($serverProjectPaths.Count -eq 0) { throw 'No non-test .NET projects found in the solution.' }
+
+    foreach ($projectPath in $serverProjectPaths) {
+        $serverName = [System.IO.Path]::GetFileNameWithoutExtension($projectPath)
+        $projectDir = Split-Path $projectPath -Parent
+        [xml]$csproj = Get-Content $projectPath
+        $tfm = $csproj.SelectSingleNode('//TargetFramework')?.InnerText
+        if (-not $tfm) { throw "Cannot determine TargetFramework for $serverName." }
+
+        $binDir = Join-Path $projectDir 'bin' 'Release' $tfm
+        if (-not (Test-Path $binDir)) {
+            throw ".NET Release output not found for $serverName ($binDir) — run Compile first."
+        }
+
+        $serverDir = Join-Path $serversDir $serverName
+        if ($PSCmdlet.ShouldProcess($serverDir, "Copy $serverName build output")) {
+            if (Test-Path $serverDir) { Remove-Item $serverDir -Recurse -Force }
+            New-Item $serverDir -ItemType Directory -Force | Out-Null
+            Copy-Item (Join-Path $binDir '*') $serverDir -Recurse -Force
+            Write-Status "$serverName copied (local)" 'OK'
         }
     }
 }
@@ -768,7 +808,11 @@ function Invoke-Package {
 
     Invoke-WebServerPackage
 
-    if ($Scope -eq 'All') {
+    if ($Local) {
+        # Local dev: copy framework-dependent build output (no publish, no VSIX)
+        Invoke-DotNetCopyLocal
+    }
+    elseif ($Scope -eq 'All') {
         # Explicit "Package All" — build all six platforms
         foreach ($rid in $ridToTarget.Keys) {
             Invoke-DotNetPackage -Rid $rid
@@ -1032,6 +1076,18 @@ if ($Action -ne 'Tag' -and $Target -and $Target -notin @('All', 'TS', 'DotNet'))
 # Validate mutually exclusive options
 if ($RuntimeIdentifier -and $Target -eq 'All') {
     throw '-RuntimeIdentifier and Target ''All'' are mutually exclusive.'
+}
+
+if ($Local -and $Action -ne 'Package') {
+    throw '-Local is only valid with the Package action.'
+}
+
+if ($Local -and $RuntimeIdentifier) {
+    throw '-Local and -RuntimeIdentifier are mutually exclusive.'
+}
+
+if ($Local -and $Target -eq 'All') {
+    throw "-Local and Target 'All' are mutually exclusive."
 }
 
 if ($Clean -and $Action -in 'Prepare', 'Package', 'Publish') {

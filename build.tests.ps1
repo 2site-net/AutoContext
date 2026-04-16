@@ -45,7 +45,8 @@ function Invoke-TestCase {
         [Parameter(Mandatory)][string]$Arguments,
         [switch]$ExpectError,
         [string]$ErrorPattern,
-        [string[]]$ExpectOutput
+        [string[]]$ExpectOutput,
+        [string[]]$RejectOutput
     )
 
     $result = [TestResult]@{ Name = $Name }
@@ -89,6 +90,15 @@ function Invoke-TestCase {
         if ($output -notmatch $pattern) {
             $result.Status = 'Fail'
             $result.Detail = "Missing expected output pattern: $pattern"
+            return $result
+        }
+    }
+
+    # Verify rejected output patterns
+    foreach ($pattern in $RejectOutput) {
+        if ($output -match $pattern) {
+            $result.Status = 'Fail'
+            $result.Detail = "Found unexpected output pattern: $pattern"
             return $result
         }
     }
@@ -346,6 +356,12 @@ $testCases = @(
         Arguments    = 'Package -RuntimeIdentifier linux-x64 -WhatIf'
         ExpectOutput = @('dotnet publish.*linux-x64', 'vsce package --target linux-x64')
     }
+    @{
+        Name         = 'Package -Local'
+        Arguments    = 'Package -Local -WhatIf'
+        ExpectOutput = @('Delete TypeScript output', 'Compile TypeScript', 'dotnet build', 'Copy .NET servers \(local\)', 'Copy Web MCP server')
+        RejectOutput = @('dotnet publish', 'vsce package')
+    }
 
     # ── Publish ──────────────────────────────────────────────────────────
 
@@ -383,6 +399,24 @@ $testCases = @(
     @{
         Name         = 'Package All + RuntimeIdentifier (mutually exclusive)'
         Arguments    = 'Package All -RuntimeIdentifier win-x64 -WhatIf'
+        ExpectError  = $true
+        ErrorPattern = 'mutually exclusive'
+    }
+    @{
+        Name         = 'Local without Package (invalid)'
+        Arguments    = 'Compile -Local -WhatIf'
+        ExpectError  = $true
+        ErrorPattern = 'only valid with the Package action'
+    }
+    @{
+        Name         = 'Package -Local + RuntimeIdentifier (mutually exclusive)'
+        Arguments    = 'Package -Local -RuntimeIdentifier win-x64 -WhatIf'
+        ExpectError  = $true
+        ErrorPattern = 'mutually exclusive'
+    }
+    @{
+        Name         = 'Package -Local + All (mutually exclusive)'
+        Arguments    = 'Package All -Local -WhatIf'
         ExpectError  = $true
         ErrorPattern = 'mutually exclusive'
     }
@@ -460,6 +494,7 @@ foreach ($case in $testCases) {
     if ($case.ContainsKey('ExpectError')  -and $case.ExpectError)  { $params.ExpectError  = [switch]$true }
     if ($case.ContainsKey('ErrorPattern') -and $case.ErrorPattern) { $params.ErrorPattern  = $case.ErrorPattern }
     if ($case.ContainsKey('ExpectOutput') -and $case.ExpectOutput) { $params.ExpectOutput  = $case.ExpectOutput }
+    if ($case.ContainsKey('RejectOutput') -and $case.RejectOutput) { $params.RejectOutput  = $case.RejectOutput }
 
     $testResult = Invoke-TestCase @params
     $testResult | Write-TestResult
