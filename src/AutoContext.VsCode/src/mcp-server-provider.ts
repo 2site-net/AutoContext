@@ -26,7 +26,7 @@ export class McpServerProvider implements vscode.McpServerDefinitionProvider {
         private readonly serversCatalog: McpServersCatalog,
         private readonly healthMonitor: HealthMonitorServer,
     ) {
-        this.serversPath = join(extensionPath, 'mcp');
+        this.serversPath = join(extensionPath, 'servers');
         this.ext = process.platform === 'win32' ? '.exe' : '';
         this.version = version;
         this.onDidChangeMcpServerDefinitions = onDidChange;

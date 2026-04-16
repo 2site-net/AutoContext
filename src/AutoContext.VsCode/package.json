@@ -83,7 +83,7 @@
   "activationEvents": [
     "onStartupFinished"
   ],
-  "main": "./out/extension.js",
+  "main": "./dist/extension.js",
   "contributes": {
     "mcpServerDefinitionProviders": [
       {
@@ -1136,7 +1136,7 @@
     "compile": "pwsh ../../build.ps1 Compile TS",
     "watch": "tsc -watch -p ./tsconfig.build.json",
     "test": "pwsh ../../build.ps1 Test TS",
-    "test:smoke": "npm run compile && tsc -p tests/smoke-tests/tsconfig.json && node -e \"require('fs').writeFileSync('out/tests/smoke-tests/package.json','{\\\"type\\\":\\\"commonjs\\\"}')\" && node -e \"require('fs').mkdirSync('tests/workspaces/mixed/.git',{recursive:true})\" && vscode-test --config tests/.vscode-test.mjs"
+    "test:smoke": "npm run compile && tsc -p tests/smoke-tests/tsconfig.json && node -e \"require('fs').writeFileSync('dist/tests/smoke-tests/package.json','{\\\"type\\\":\\\"commonjs\\\"}')\" && node -e \"require('fs').mkdirSync('tests/workspaces/mixed/.git',{recursive:true})\" && vscode-test --config tests/.vscode-test.mjs"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.10",

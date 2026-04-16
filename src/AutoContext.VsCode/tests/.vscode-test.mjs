@@ -14,37 +14,37 @@ export default defineConfig([
     // General smoke tests — run against the extension workspace itself
     {
         ...shared,
-        files: '../out/tests/smoke-tests/!(workspace-*).test.js',
+        files: '../dist/tests/smoke-tests/!(workspace-*).test.js',
         launchArgs: ['--disable-extensions', root],
     },
     // Workspace-specific: mixed (TypeScript + .NET + Git)
     {
         ...shared,
-        files: '../out/tests/smoke-tests/workspace-mixed.test.js',
+        files: '../dist/tests/smoke-tests/workspace-mixed.test.js',
         launchArgs: ['--disable-extensions', resolve(workspaces, 'mixed')],
     },
     // Workspace-specific: TypeScript only
     {
         ...shared,
-        files: '../out/tests/smoke-tests/workspace-typescript.test.js',
+        files: '../dist/tests/smoke-tests/workspace-typescript.test.js',
         launchArgs: ['--disable-extensions', resolve(workspaces, 'typescript-only')],
     },
     // Workspace-specific: .NET only
     {
         ...shared,
-        files: '../out/tests/smoke-tests/workspace-dotnet.test.js',
+        files: '../dist/tests/smoke-tests/workspace-dotnet.test.js',
         launchArgs: ['--disable-extensions', resolve(workspaces, 'dotnet-only')],
     },
     // Workspace-specific: Web only (JS + package.json)
     {
         ...shared,
-        files: '../out/tests/smoke-tests/workspace-web.test.js',
+        files: '../dist/tests/smoke-tests/workspace-web.test.js',
         launchArgs: ['--disable-extensions', resolve(workspaces, 'web-only')],
     },
     // Workspace-specific: Empty workspace
     {
         ...shared,
-        files: '../out/tests/smoke-tests/workspace-empty.test.js',
+        files: '../dist/tests/smoke-tests/workspace-empty.test.js',
         launchArgs: ['--disable-extensions', resolve(workspaces, 'empty')],
     },
 ]);

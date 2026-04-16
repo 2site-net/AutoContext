@@ -105,7 +105,7 @@ $extensionDir = Join-Path $repoRoot 'src' 'AutoContext.VsCode'
 $vitestConfigs = @(Get-ChildItem $repoRoot -Filter 'vitest.config.ts' -Recurse -File -Depth 4)
 $vitestConfigPath = if ($vitestConfigs.Count -gt 0) { $vitestConfigs[0].FullName } else { $null }
 
-$mcpDir = Join-Path $extensionDir 'mcp'
+$serversDir = Join-Path $extensionDir 'servers'
 $publishDir = Join-Path $extensionDir 'publish'
 
 # Web MCP server directory (TypeScript/Node.js-based server)
@@ -495,7 +495,7 @@ function Invoke-DotNetPackage {
 
         foreach ($projectPath in $serverProjectPaths) {
             $serverName = [System.IO.Path]::GetFileNameWithoutExtension($projectPath)
-            $serverDir = Join-Path $mcpDir $serverName
+            $serverDir = Join-Path $serversDir $serverName
             if (Test-Path $serverDir) { Remove-Item $serverDir -Recurse -Force }
             dotnet @publishArgs $projectPath -o $serverDir
             if ($LASTEXITCODE -ne 0) { throw "dotnet publish failed for $serverName ($Rid)." }
@@ -540,7 +540,7 @@ function Invoke-WebServerPackage {
     $outDir = Join-Path $webServerDir 'out'
     if (-not (Test-Path $outDir)) { throw 'Web MCP server not compiled — run Compile first.' }
 
-    $targetDir = Join-Path $mcpDir 'AutoContext.Mcp.Web'
+    $targetDir = Join-Path $serversDir 'AutoContext.Mcp.Web'
 
     if ($PSCmdlet.ShouldProcess($targetDir, 'Copy Web MCP server')) {
         New-Item $targetDir -ItemType Directory -Force | Out-Null
@@ -776,7 +776,7 @@ function Invoke-Package {
         }
 
         # Clean up staging directory — each VSIX already contains its server binary
-        if (Test-Path $mcpDir) { Remove-Item $mcpDir -Recurse -Force }
+        if (Test-Path $serversDir) { Remove-Item $serversDir -Recurse -Force }
     }
     else {
         # Single platform: explicit -RuntimeIdentifier or auto-detect
@@ -976,9 +976,9 @@ function Invoke-Clean {
 
     $targets = @()
 
-    $targets += @{ Path = (Join-Path $extensionDir 'out');     Label = 'TypeScript output (out/)' }
+    $targets += @{ Path = (Join-Path $extensionDir 'dist');    Label = 'TypeScript output (dist/)' }
     $targets += @{ Path = (Join-Path $webServerDir 'out');    Label = 'Web MCP server output (out/)' }
-    $targets += @{ Path = $mcpDir;                            Label = 'MCP servers (mcp/)' }
+    $targets += @{ Path = $serversDir;                          Label = 'Servers (servers/)' }
     $targets += @{ Path = $publishDir;                         Label = 'VSIX packages (publish/)' }
     $targets += @{ Path = (Join-Path $extensionDir 'LICENSE');       Label = 'Extension LICENSE copy' }
 

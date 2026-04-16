@@ -9,4 +9,4 @@ instructions/.workspaces/**
 tsconfig.json
 package-lock.json
 **/*.ts
-!out/**
+!dist/**

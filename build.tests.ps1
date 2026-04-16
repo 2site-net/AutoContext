@@ -288,7 +288,7 @@ $testCases = @(
     @{
         Name         = 'Clean (standalone)'
         Arguments    = '-Clean -WhatIf'
-        ExpectOutput = @('Delete TypeScript output|TypeScript output.*not found', 'Delete MCP servers|MCP servers.*not found', 'Delete VSIX packages|VSIX packages.*not found')
+        ExpectOutput = @('Delete TypeScript output|TypeScript output.*not found', 'Delete Servers|Servers.*not found', 'Delete VSIX packages|VSIX packages.*not found')
     }
     @{
         Name         = 'Clean + Compile'

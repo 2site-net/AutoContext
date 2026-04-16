@@ -18,7 +18,7 @@ function poll(fn: () => boolean, interval: number, timeout: number): Promise<voi
 suite('Workspace Server Smoke Tests', () => {
     test('should have a pipe name when the server binary is available', async function () {
         const ext = await activatedExtension();
-        const binary = join(ext.extensionPath, 'mcp', 'AutoContext.WorkspaceServer', `AutoContext.WorkspaceServer${process.platform === 'win32' ? '.exe' : ''}`);
+        const binary = join(ext.extensionPath, 'servers', 'AutoContext.WorkspaceServer', `AutoContext.WorkspaceServer${process.platform === 'win32' ? '.exe' : ''}`);
         if (!existsSync(binary)) {
             this.skip();
             return;

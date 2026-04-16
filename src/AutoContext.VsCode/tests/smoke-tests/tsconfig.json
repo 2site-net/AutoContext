@@ -4,7 +4,7 @@
     "module": "Node16",
     "moduleResolution": "Node16",
     "rootDir": "../..",
-    "outDir": "../../out",
+    "outDir": "../../dist",
     "types": ["node", "mocha"]
   },
   "include": ["."],
