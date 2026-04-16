@@ -2,12 +2,20 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Run Extension",
+      "name": "Run Extension (Compile TS Only)",
       "type": "extensionHost",
       "request": "launch",
       "args": ["--extensionDevelopmentPath=${workspaceFolder}/src/AutoContext.VsCode"],
       "outFiles": ["${workspaceFolder}/src/AutoContext.VsCode/out/**/*.js"],
-      "preLaunchTask": "compile"
+      "preLaunchTask": "compile-ts-only"
+    },
+    {
+      "name": "Run Extension (Full Build)",
+      "type": "extensionHost",
+      "request": "launch",
+      "args": ["--extensionDevelopmentPath=${workspaceFolder}/src/AutoContext.VsCode"],
+      "outFiles": ["${workspaceFolder}/src/AutoContext.VsCode/out/**/*.js"],
+      "preLaunchTask": "prepare-full-build"
     }
   ]
 }

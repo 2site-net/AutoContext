@@ -2,11 +2,25 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "compile",
+      "label": "compile-ts-only",
       "type": "shell",
-      "command": "npm run compile",
+      "command": ".\\build.ps1 Compile TS",
       "options": {
-        "cwd": "${workspaceFolder}/src/AutoContext.VsCode"
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": "$tsc",
+      "presentation": {
+        "reveal": "always",
+        "close": true,
+        "showReuseMessage": false
+      }
+    },
+    {
+      "label": "prepare-full-build",
+      "type": "shell",
+      "command": ".\\build.ps1 Prepare",
+      "options": {
+        "cwd": "${workspaceFolder}"
       },
       "problemMatcher": "$tsc",
       "presentation": {
