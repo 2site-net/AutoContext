@@ -48,13 +48,15 @@ public sealed class NuGetHygieneChecker(WorkspaceServerClient workspaceServerCli
     public async Task<string> CheckAsync(
         [Description("The .csproj file content (XML) to check.")]
         string content,
-        IReadOnlyDictionary<string, string>? data = null)
+        IReadOnlyDictionary<string, string>? data = null,
+        CancellationToken ct = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(content);
 
         await workspaceServerClient.SendLogAsync(
             "Information",
-            $"Tool invoked: {ToolName} | content length: {content.Length}").ConfigureAwait(false);
+            $"Tool invoked: {ToolName} | content length: {content.Length}",
+            ct).ConfigureAwait(false);
 
         XDocument doc;
 

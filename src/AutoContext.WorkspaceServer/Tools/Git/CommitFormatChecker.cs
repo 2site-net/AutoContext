@@ -28,7 +28,8 @@ public sealed partial class CommitFormatChecker : IChecker
     /// </summary>
     public Task<string> CheckAsync(
         string content,
-        IReadOnlyDictionary<string, string>? data = null)
+        IReadOnlyDictionary<string, string>? data = null,
+        CancellationToken ct = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(content);
 

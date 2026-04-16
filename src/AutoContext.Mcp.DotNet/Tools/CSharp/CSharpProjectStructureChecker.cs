@@ -26,15 +26,16 @@ public sealed class CSharpProjectStructureChecker : IChecker, IEditorConfigFilte
     /// </summary>
     public async Task<string> CheckAsync(
         string content,
-        IReadOnlyDictionary<string, string>? data = null)
+        IReadOnlyDictionary<string, string>? data = null,
+        CancellationToken ct = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(content);
 
         var fileName = data?.GetValueOrDefault("originalFileName") ?? string.Empty;
         var disabled = data?.ContainsKey("__disabled") == true;
 
-        var tree = CSharpSyntaxTree.ParseText(content);
-        var root = await tree.GetRootAsync().ConfigureAwait(false);
+        var tree = CSharpSyntaxTree.ParseText(content, cancellationToken: ct);
+        var root = await tree.GetRootAsync(ct).ConfigureAwait(false);
         var violations = new List<string>();
 
         // EditorConfig-backed: run when EC key is present, or when tool is enabled (use default).

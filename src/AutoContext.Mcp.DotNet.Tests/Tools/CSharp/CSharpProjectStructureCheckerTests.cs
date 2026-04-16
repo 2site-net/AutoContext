@@ -18,7 +18,7 @@ public sealed class CSharpProjectStructureCheckerTests
             """;
 
         // Act
-        var result = await new CSharpProjectStructureChecker().CheckAsync(source, new Dictionary<string, string> { ["originalFileName"] = "UserService.cs" });
+        var result = await new CSharpProjectStructureChecker().CheckAsync(source, new Dictionary<string, string> { ["originalFileName"] = "UserService.cs" }, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -38,7 +38,7 @@ public sealed class CSharpProjectStructureCheckerTests
             """;
 
         // Act
-        var result = await new CSharpProjectStructureChecker().CheckAsync(source);
+        var result = await new CSharpProjectStructureChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -56,7 +56,7 @@ public sealed class CSharpProjectStructureCheckerTests
             """;
 
         // Act
-        var result = await new CSharpProjectStructureChecker().CheckAsync(source);
+        var result = await new CSharpProjectStructureChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -78,7 +78,7 @@ public sealed class CSharpProjectStructureCheckerTests
             """;
 
         // Act
-        var result = await new CSharpProjectStructureChecker().CheckAsync(source);
+        var result = await new CSharpProjectStructureChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.DoesNotContain("namespace", result);
@@ -97,7 +97,7 @@ public sealed class CSharpProjectStructureCheckerTests
             """;
 
         // Act
-        var result = await new CSharpProjectStructureChecker().CheckAsync(source);
+        var result = await new CSharpProjectStructureChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -122,7 +122,7 @@ public sealed class CSharpProjectStructureCheckerTests
             """;
 
         // Act
-        var result = await new CSharpProjectStructureChecker().CheckAsync(source);
+        var result = await new CSharpProjectStructureChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -146,7 +146,7 @@ public sealed class CSharpProjectStructureCheckerTests
             """;
 
         // Act
-        var result = await new CSharpProjectStructureChecker().CheckAsync(source);
+        var result = await new CSharpProjectStructureChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.DoesNotContain("top-level type", result);
@@ -163,7 +163,7 @@ public sealed class CSharpProjectStructureCheckerTests
             """;
 
         // Act
-        var result = await new CSharpProjectStructureChecker().CheckAsync(source, new Dictionary<string, string> { ["originalFileName"] = "WrongName.cs" });
+        var result = await new CSharpProjectStructureChecker().CheckAsync(source, new Dictionary<string, string> { ["originalFileName"] = "WrongName.cs" }, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -186,7 +186,7 @@ public sealed class CSharpProjectStructureCheckerTests
             """;
 
         // Act
-        var result = await new CSharpProjectStructureChecker().CheckAsync(source, new Dictionary<string, string> { ["originalFileName"] = "UserService.cs" });
+        var result = await new CSharpProjectStructureChecker().CheckAsync(source, new Dictionary<string, string> { ["originalFileName"] = "UserService.cs" }, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.DoesNotContain("file name", result, StringComparison.OrdinalIgnoreCase);
@@ -208,7 +208,7 @@ public sealed class CSharpProjectStructureCheckerTests
             """;
 
         // Act
-        var result = await new CSharpProjectStructureChecker().CheckAsync(source);
+        var result = await new CSharpProjectStructureChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -234,7 +234,7 @@ public sealed class CSharpProjectStructureCheckerTests
             """;
 
         // Act
-        var result = await new CSharpProjectStructureChecker().CheckAsync(source);
+        var result = await new CSharpProjectStructureChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.DoesNotContain("#pragma", result);
@@ -254,7 +254,7 @@ public sealed class CSharpProjectStructureCheckerTests
             """;
 
         // Act
-        var result = await new CSharpProjectStructureChecker().CheckAsync(source);
+        var result = await new CSharpProjectStructureChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -279,7 +279,7 @@ public sealed class CSharpProjectStructureCheckerTests
             """;
 
         // Act
-        var result = await new CSharpProjectStructureChecker().CheckAsync(source, new Dictionary<string, string> { ["originalFileName"] = "User.cs" });
+        var result = await new CSharpProjectStructureChecker().CheckAsync(source, new Dictionary<string, string> { ["originalFileName"] = "User.cs" }, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -300,7 +300,7 @@ public sealed class CSharpProjectStructureCheckerTests
             """;
 
         // Act
-        var result = await new CSharpProjectStructureChecker().CheckAsync(source, new Dictionary<string, string> { ["originalFileName"] = "DataCallback.cs" });
+        var result = await new CSharpProjectStructureChecker().CheckAsync(source, new Dictionary<string, string> { ["originalFileName"] = "DataCallback.cs" }, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -317,7 +317,7 @@ public sealed class CSharpProjectStructureCheckerTests
             """;
 
         // Act
-        var result = await new CSharpProjectStructureChecker().CheckAsync(source, new Dictionary<string, string> { ["originalFileName"] = "Wrong.cs" });
+        var result = await new CSharpProjectStructureChecker().CheckAsync(source, new Dictionary<string, string> { ["originalFileName"] = "Wrong.cs" }, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -341,7 +341,7 @@ public sealed class CSharpProjectStructureCheckerTests
             """;
 
         // Act
-        var result = await new CSharpProjectStructureChecker().CheckAsync(source, new Dictionary<string, string> { ["originalFileName"] = "IUserRepository.cs" });
+        var result = await new CSharpProjectStructureChecker().CheckAsync(source, new Dictionary<string, string> { ["originalFileName"] = "IUserRepository.cs" }, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -362,7 +362,7 @@ public sealed class CSharpProjectStructureCheckerTests
             """;
 
         // Act
-        var result = await new CSharpProjectStructureChecker().CheckAsync(source, new Dictionary<string, string> { ["originalFileName"] = "Status.cs" });
+        var result = await new CSharpProjectStructureChecker().CheckAsync(source, new Dictionary<string, string> { ["originalFileName"] = "Status.cs" }, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -379,7 +379,7 @@ public sealed class CSharpProjectStructureCheckerTests
             """;
 
         // Act
-        var result = await new CSharpProjectStructureChecker().CheckAsync(source, new Dictionary<string, string> { ["originalFileName"] = "UserDto.cs" });
+        var result = await new CSharpProjectStructureChecker().CheckAsync(source, new Dictionary<string, string> { ["originalFileName"] = "UserDto.cs" }, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -391,14 +391,14 @@ public sealed class CSharpProjectStructureCheckerTests
     public async Task Should_throw_on_empty_or_whitespace_input(string input)
     {
         // Act & Assert
-        await Assert.ThrowsAsync<ArgumentException>(() => new CSharpProjectStructureChecker().CheckAsync(input));
+        await Assert.ThrowsAsync<ArgumentException>(() => new CSharpProjectStructureChecker().CheckAsync(input, ct: TestContext.Current.CancellationToken));
     }
 
     [Fact]
     public async Task Should_throw_on_null_input()
     {
         // Act & Assert
-        await Assert.ThrowsAsync<ArgumentNullException>(() => new CSharpProjectStructureChecker().CheckAsync(null!));
+        await Assert.ThrowsAsync<ArgumentNullException>(() => new CSharpProjectStructureChecker().CheckAsync(null!, ct: TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -414,7 +414,7 @@ public sealed class CSharpProjectStructureCheckerTests
         var data = new Dictionary<string, string> { ["csharp_style_namespace_declarations"] = "block_scoped" };
 
         // Act
-        var result = await new CSharpProjectStructureChecker().CheckAsync(source, data);
+        var result = await new CSharpProjectStructureChecker().CheckAsync(source, data, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -439,7 +439,7 @@ public sealed class CSharpProjectStructureCheckerTests
         var data = new Dictionary<string, string> { ["csharp_style_namespace_declarations"] = "block_scoped" };
 
         // Act
-        var result = await new CSharpProjectStructureChecker().CheckAsync(source, data);
+        var result = await new CSharpProjectStructureChecker().CheckAsync(source, data, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.DoesNotContain("namespace", result, StringComparison.OrdinalIgnoreCase);
@@ -459,7 +459,7 @@ public sealed class CSharpProjectStructureCheckerTests
         var data = new Dictionary<string, string> { ["csharp_style_namespace_declarations"] = "file_scoped" };
 
         // Act
-        var result = await new CSharpProjectStructureChecker().CheckAsync(source, data);
+        var result = await new CSharpProjectStructureChecker().CheckAsync(source, data, ct: TestContext.Current.CancellationToken);
 
         // Assert — should still report block-scoped violation
         Assert.Contains("Block-scoped namespace", result);
@@ -477,7 +477,7 @@ public sealed class CSharpProjectStructureCheckerTests
             """;
 
         // Act
-        var result = await new CSharpProjectStructureChecker().CheckAsync(source);
+        var result = await new CSharpProjectStructureChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert — default: enforce file-scoped
         Assert.Contains("Block-scoped namespace", result);
@@ -503,7 +503,7 @@ public sealed class CSharpProjectStructureCheckerTests
         var data = new Dictionary<string, string> { ["__disabled"] = "true" };
 
         // Act
-        var result = await new CSharpProjectStructureChecker().CheckAsync(source, data);
+        var result = await new CSharpProjectStructureChecker().CheckAsync(source, data, ct: TestContext.Current.CancellationToken);
 
         // Assert — nothing to enforce
         Assert.StartsWith("✅", result);
@@ -526,7 +526,7 @@ public sealed class CSharpProjectStructureCheckerTests
         };
 
         // Act
-        var result = await new CSharpProjectStructureChecker().CheckAsync(source, data);
+        var result = await new CSharpProjectStructureChecker().CheckAsync(source, data, ct: TestContext.Current.CancellationToken);
 
         // Assert — EC check still runs
         Assert.Multiple(() =>
@@ -554,7 +554,7 @@ public sealed class CSharpProjectStructureCheckerTests
         };
 
         // Act
-        var result = await new CSharpProjectStructureChecker().CheckAsync(source, data);
+        var result = await new CSharpProjectStructureChecker().CheckAsync(source, data, ct: TestContext.Current.CancellationToken);
 
         // Assert — pragma is INST-only, skipped when disabled
         Assert.DoesNotContain("#pragma", result);

@@ -14,7 +14,7 @@ public sealed class CommitContentCheckerTests
             "before making API calls, preventing session timeouts.";
 
         // Act
-        var result = await new CommitContentChecker().CheckAsync(message);
+        var result = await new CommitContentChecker().CheckAsync(message, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -27,7 +27,7 @@ public sealed class CommitContentCheckerTests
         var message = "fix: typo in readme";
 
         // Act
-        var result = await new CommitContentChecker().CheckAsync(message);
+        var result = await new CommitContentChecker().CheckAsync(message, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -43,7 +43,7 @@ public sealed class CommitContentCheckerTests
         var message = $"feat: add feature\n\n{bulletLine}";
 
         // Act
-        var result = await new CommitContentChecker().CheckAsync(message);
+        var result = await new CommitContentChecker().CheckAsync(message, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -62,7 +62,7 @@ public sealed class CommitContentCheckerTests
         var message = $"feat: update auth\n\n{bodyLine}";
 
         // Act
-        var result = await new CommitContentChecker().CheckAsync(message);
+        var result = await new CommitContentChecker().CheckAsync(message, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -82,7 +82,7 @@ public sealed class CommitContentCheckerTests
         var message = $"fix: cleanup\n\n{bodyLine}";
 
         // Act
-        var result = await new CommitContentChecker().CheckAsync(message);
+        var result = await new CommitContentChecker().CheckAsync(message, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -103,7 +103,7 @@ public sealed class CommitContentCheckerTests
         var message = $"feat: new stuff\n\n{bodyContent}";
 
         // Act
-        var result = await new CommitContentChecker().CheckAsync(message);
+        var result = await new CommitContentChecker().CheckAsync(message, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -122,7 +122,7 @@ public sealed class CommitContentCheckerTests
             "Added `Timeout`, `RetryCount`, `MaxConnections` parameters.";
 
         // Act
-        var result = await new CommitContentChecker().CheckAsync(message);
+        var result = await new CommitContentChecker().CheckAsync(message, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -143,7 +143,7 @@ public sealed class CommitContentCheckerTests
         var message = $"fix: update config\n\n{bodyLine}";
 
         // Act
-        var result = await new CommitContentChecker().CheckAsync(message);
+        var result = await new CommitContentChecker().CheckAsync(message, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -163,7 +163,7 @@ public sealed class CommitContentCheckerTests
             "Updated 5 files for the change.";
 
         // Act
-        var result = await new CommitContentChecker().CheckAsync(message);
+        var result = await new CommitContentChecker().CheckAsync(message, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -180,14 +180,14 @@ public sealed class CommitContentCheckerTests
     public async Task Should_throw_on_empty_or_whitespace_input(string input)
     {
         // Act & Assert
-        await Assert.ThrowsAsync<ArgumentException>(() => new CommitContentChecker().CheckAsync(input));
+        await Assert.ThrowsAsync<ArgumentException>(() => new CommitContentChecker().CheckAsync(input, ct: TestContext.Current.CancellationToken));
     }
 
     [Fact]
     public async Task Should_throw_on_null_input()
     {
         // Act & Assert
-        await Assert.ThrowsAsync<ArgumentNullException>(() => new CommitContentChecker().CheckAsync(null!));
+        await Assert.ThrowsAsync<ArgumentNullException>(() => new CommitContentChecker().CheckAsync(null!, ct: TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -199,7 +199,7 @@ public sealed class CommitContentCheckerTests
             "Users can now reset their password via email verification.";
 
         // Act
-        var result = await new CommitContentChecker().CheckAsync(message);
+        var result = await new CommitContentChecker().CheckAsync(message, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -214,7 +214,7 @@ public sealed class CommitContentCheckerTests
             "The module now supports batch processing for improved throughput.";
 
         // Act
-        var result = await new CommitContentChecker().CheckAsync(message);
+        var result = await new CommitContentChecker().CheckAsync(message, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -227,7 +227,7 @@ public sealed class CommitContentCheckerTests
         var message = "feat: add login\n\n";
 
         // Act
-        var result = await new CommitContentChecker().CheckAsync(message);
+        var result = await new CommitContentChecker().CheckAsync(message, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.StartsWith("✅", result);

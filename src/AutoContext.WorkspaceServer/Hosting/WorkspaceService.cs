@@ -50,7 +50,7 @@ internal sealed partial class WorkspaceService(
                     break;
                 }
 
-                connections.Add(HandleConnectionAsync(pipe));
+                connections.Add(HandleConnectionAsync(pipe, stoppingToken));
             }
         }
         finally
@@ -103,13 +103,13 @@ internal sealed partial class WorkspaceService(
         }
     }
 
-    private async Task HandleConnectionAsync(NamedPipeServerStream pipe)
+    private async Task HandleConnectionAsync(NamedPipeServerStream pipe, CancellationToken ct = default)
     {
         try
         {
             await using (pipe.ConfigureAwait(false))
             {
-                var requestBytes = await ReadMessageAsync(pipe).ConfigureAwait(false);
+                var requestBytes = await ReadMessageAsync(pipe, ct).ConfigureAwait(false);
 
                 if (requestBytes is null)
                 {
@@ -118,7 +118,7 @@ internal sealed partial class WorkspaceService(
 
                 var responseBytes = ProcessRequest(requestBytes);
 
-                await WriteMessageAsync(pipe, responseBytes).ConfigureAwait(false);
+                await WriteMessageAsync(pipe, responseBytes, ct).ConfigureAwait(false);
             }
         }
         catch (OperationCanceledException)

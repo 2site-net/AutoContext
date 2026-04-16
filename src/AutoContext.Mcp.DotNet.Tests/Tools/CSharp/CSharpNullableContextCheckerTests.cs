@@ -21,7 +21,7 @@ public sealed class CSharpNullableContextCheckerTests
             """;
 
         // Act
-        var result = await new CSharpNullableContextChecker().CheckAsync(source);
+        var result = await new CSharpNullableContextChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -41,7 +41,7 @@ public sealed class CSharpNullableContextCheckerTests
             """;
 
         // Act
-        var result = await new CSharpNullableContextChecker().CheckAsync(source);
+        var result = await new CSharpNullableContextChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -61,7 +61,7 @@ public sealed class CSharpNullableContextCheckerTests
             """;
 
         // Act
-        var result = await new CSharpNullableContextChecker().CheckAsync(source);
+        var result = await new CSharpNullableContextChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -88,7 +88,7 @@ public sealed class CSharpNullableContextCheckerTests
             """;
 
         // Act
-        var result = await new CSharpNullableContextChecker().CheckAsync(source);
+        var result = await new CSharpNullableContextChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -113,7 +113,7 @@ public sealed class CSharpNullableContextCheckerTests
             """;
 
         // Act
-        var result = await new CSharpNullableContextChecker().CheckAsync(source);
+        var result = await new CSharpNullableContextChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -142,7 +142,7 @@ public sealed class CSharpNullableContextCheckerTests
             """;
 
         // Act
-        var result = await new CSharpNullableContextChecker().CheckAsync(source);
+        var result = await new CSharpNullableContextChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -168,7 +168,7 @@ public sealed class CSharpNullableContextCheckerTests
             """;
 
         // Act
-        var result = await new CSharpNullableContextChecker().CheckAsync(source);
+        var result = await new CSharpNullableContextChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -195,7 +195,7 @@ public sealed class CSharpNullableContextCheckerTests
             """;
 
         // Act
-        var result = await new CSharpNullableContextChecker().CheckAsync(source);
+        var result = await new CSharpNullableContextChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -211,13 +211,13 @@ public sealed class CSharpNullableContextCheckerTests
     public async Task Should_throw_on_empty_or_whitespace_input(string input)
     {
         // Act & Assert
-        await Assert.ThrowsAsync<ArgumentException>(() => new CSharpNullableContextChecker().CheckAsync(input));
+        await Assert.ThrowsAsync<ArgumentException>(() => new CSharpNullableContextChecker().CheckAsync(input, ct: TestContext.Current.CancellationToken));
     }
 
     [Fact]
     public async Task Should_throw_on_null_input()
     {
         // Act & Assert
-        await Assert.ThrowsAsync<ArgumentNullException>(() => new CSharpNullableContextChecker().CheckAsync(null!));
+        await Assert.ThrowsAsync<ArgumentNullException>(() => new CSharpNullableContextChecker().CheckAsync(null!, ct: TestContext.Current.CancellationToken));
     }
 }

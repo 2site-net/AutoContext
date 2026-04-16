@@ -32,7 +32,7 @@ public sealed class CSharpCodingStyleCheckerTests
             """;
 
         // Act
-        var result = await new CSharpCodingStyleChecker().CheckAsync(source);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -52,7 +52,7 @@ public sealed class CSharpCodingStyleCheckerTests
             """;
 
         // Act
-        var result = await new CSharpCodingStyleChecker().CheckAsync(source);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -80,7 +80,7 @@ public sealed class CSharpCodingStyleCheckerTests
             """;
 
         // Act
-        var result = await new CSharpCodingStyleChecker().CheckAsync(source);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -103,7 +103,7 @@ public sealed class CSharpCodingStyleCheckerTests
             """;
 
         // Act
-        var result = await new CSharpCodingStyleChecker().CheckAsync(source);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.DoesNotContain("Decorative", result);
@@ -127,7 +127,7 @@ public sealed class CSharpCodingStyleCheckerTests
             """;
 
         // Act
-        var result = await new CSharpCodingStyleChecker().CheckAsync(source);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -155,7 +155,7 @@ public sealed class CSharpCodingStyleCheckerTests
             """;
 
         // Act
-        var result = await new CSharpCodingStyleChecker().CheckAsync(source);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.DoesNotContain("curly braces", result);
@@ -179,7 +179,7 @@ public sealed class CSharpCodingStyleCheckerTests
             """;
 
         // Act
-        var result = await new CSharpCodingStyleChecker().CheckAsync(source);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.DoesNotContain("curly braces", result);
@@ -203,7 +203,7 @@ public sealed class CSharpCodingStyleCheckerTests
             """;
 
         // Act
-        var result = await new CSharpCodingStyleChecker().CheckAsync(source);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -231,7 +231,7 @@ public sealed class CSharpCodingStyleCheckerTests
             """;
 
         // Act
-        var result = await new CSharpCodingStyleChecker().CheckAsync(source);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -260,7 +260,7 @@ public sealed class CSharpCodingStyleCheckerTests
             """;
 
         // Act
-        var result = await new CSharpCodingStyleChecker().CheckAsync(source);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -289,7 +289,7 @@ public sealed class CSharpCodingStyleCheckerTests
             """;
 
         // Act
-        var result = await new CSharpCodingStyleChecker().CheckAsync(source);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -317,7 +317,7 @@ public sealed class CSharpCodingStyleCheckerTests
             """;
 
         // Act
-        var result = await new CSharpCodingStyleChecker().CheckAsync(source);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.DoesNotContain("blank line before", result);
@@ -335,7 +335,7 @@ public sealed class CSharpCodingStyleCheckerTests
             """;
 
         // Act
-        var result = await new CSharpCodingStyleChecker().CheckAsync(source);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -359,7 +359,7 @@ public sealed class CSharpCodingStyleCheckerTests
             """;
 
         // Act
-        var result = await new CSharpCodingStyleChecker().CheckAsync(source);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.DoesNotContain("Expression-body arrow", result);
@@ -379,7 +379,7 @@ public sealed class CSharpCodingStyleCheckerTests
             """;
 
         // Act
-        var result = await new CSharpCodingStyleChecker().CheckAsync(source);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -404,7 +404,7 @@ public sealed class CSharpCodingStyleCheckerTests
             """;
 
         // Act
-        var result = await new CSharpCodingStyleChecker().CheckAsync(source);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.DoesNotContain("Expression-body arrow", result);
@@ -425,7 +425,7 @@ public sealed class CSharpCodingStyleCheckerTests
             """;
 
         // Act
-        var result = await new CSharpCodingStyleChecker().CheckAsync(source);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.DoesNotContain("Expression-body arrow", result);
@@ -447,7 +447,7 @@ public sealed class CSharpCodingStyleCheckerTests
             """;
 
         // Act
-        var result = await new CSharpCodingStyleChecker().CheckAsync(source);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -464,14 +464,14 @@ public sealed class CSharpCodingStyleCheckerTests
     public async Task Should_throw_on_empty_or_whitespace_input(string input)
     {
         // Act & Assert
-        await Assert.ThrowsAsync<ArgumentException>(() => new CSharpCodingStyleChecker().CheckAsync(input));
+        await Assert.ThrowsAsync<ArgumentException>(() => new CSharpCodingStyleChecker().CheckAsync(input, ct: TestContext.Current.CancellationToken));
     }
 
     [Fact]
     public async Task Should_throw_on_null_input()
     {
         // Act & Assert
-        await Assert.ThrowsAsync<ArgumentNullException>(() => new CSharpCodingStyleChecker().CheckAsync(null!));
+        await Assert.ThrowsAsync<ArgumentNullException>(() => new CSharpCodingStyleChecker().CheckAsync(null!, ct: TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -490,7 +490,7 @@ public sealed class CSharpCodingStyleCheckerTests
             """;
 
         // Act
-        var result = await new CSharpCodingStyleChecker().CheckAsync(source);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -519,7 +519,7 @@ public sealed class CSharpCodingStyleCheckerTests
             """;
 
         // Act
-        var result = await new CSharpCodingStyleChecker().CheckAsync(source);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -549,7 +549,7 @@ public sealed class CSharpCodingStyleCheckerTests
             """;
 
         // Act
-        var result = await new CSharpCodingStyleChecker().CheckAsync(source);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -581,7 +581,7 @@ public sealed class CSharpCodingStyleCheckerTests
             """;
 
         // Act
-        var result = await new CSharpCodingStyleChecker().CheckAsync(source);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.DoesNotContain("curly braces", result);
@@ -606,7 +606,7 @@ public sealed class CSharpCodingStyleCheckerTests
             """;
 
         // Act
-        var result = await new CSharpCodingStyleChecker().CheckAsync(source);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -638,7 +638,7 @@ public sealed class CSharpCodingStyleCheckerTests
             """;
 
         // Act
-        var result = await new CSharpCodingStyleChecker().CheckAsync(source);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.DoesNotContain("curly braces", result);
@@ -662,7 +662,7 @@ public sealed class CSharpCodingStyleCheckerTests
             """;
 
         // Act
-        var result = await new CSharpCodingStyleChecker().CheckAsync(source);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -694,7 +694,7 @@ public sealed class CSharpCodingStyleCheckerTests
             """;
 
         // Act
-        var result = await new CSharpCodingStyleChecker().CheckAsync(source);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -725,7 +725,7 @@ public sealed class CSharpCodingStyleCheckerTests
             """;
 
         // Act
-        var result = await new CSharpCodingStyleChecker().CheckAsync(source);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -758,7 +758,7 @@ public sealed class CSharpCodingStyleCheckerTests
             """;
 
         // Act
-        var result = await new CSharpCodingStyleChecker().CheckAsync(source);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -792,7 +792,7 @@ public sealed class CSharpCodingStyleCheckerTests
             """;
 
         // Act
-        var result = await new CSharpCodingStyleChecker().CheckAsync(source);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.DoesNotContain("blank line before", result);
@@ -810,7 +810,7 @@ public sealed class CSharpCodingStyleCheckerTests
             """;
 
         // Act
-        var result = await new CSharpCodingStyleChecker().CheckAsync(source);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -836,7 +836,7 @@ public sealed class CSharpCodingStyleCheckerTests
             """;
 
         // Act
-        var result = await new CSharpCodingStyleChecker().CheckAsync(source);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -862,7 +862,7 @@ public sealed class CSharpCodingStyleCheckerTests
             """;
 
         // Act
-        var result = await new CSharpCodingStyleChecker().CheckAsync(source);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -888,7 +888,7 @@ public sealed class CSharpCodingStyleCheckerTests
             """;
 
         // Act
-        var result = await new CSharpCodingStyleChecker().CheckAsync(source);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.DoesNotContain("XML doc", result);
@@ -909,7 +909,7 @@ public sealed class CSharpCodingStyleCheckerTests
             """;
 
         // Act
-        var result = await new CSharpCodingStyleChecker().CheckAsync(source);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.DoesNotContain("XML doc", result);
@@ -930,7 +930,7 @@ public sealed class CSharpCodingStyleCheckerTests
             """;
 
         // Act
-        var result = await new CSharpCodingStyleChecker().CheckAsync(source);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.DoesNotContain("XML doc", result);
@@ -951,7 +951,7 @@ public sealed class CSharpCodingStyleCheckerTests
             """;
 
         // Act
-        var result = await new CSharpCodingStyleChecker().CheckAsync(source);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.DoesNotContain("XML doc", result);
@@ -975,7 +975,7 @@ public sealed class CSharpCodingStyleCheckerTests
             """;
 
         // Act
-        var result = await new CSharpCodingStyleChecker().CheckAsync(source);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.DoesNotContain("XML doc", result);
@@ -996,7 +996,7 @@ public sealed class CSharpCodingStyleCheckerTests
             """;
 
         // Act
-        var result = await new CSharpCodingStyleChecker().CheckAsync(source);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -1022,7 +1022,7 @@ public sealed class CSharpCodingStyleCheckerTests
             """;
 
         // Act
-        var result = await new CSharpCodingStyleChecker().CheckAsync(source);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -1058,7 +1058,7 @@ public sealed class CSharpCodingStyleCheckerTests
             """;
 
         // Act
-        var result = await new CSharpCodingStyleChecker().CheckAsync(source);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -1096,7 +1096,7 @@ public sealed class CSharpCodingStyleCheckerTests
             """;
 
         // Act
-        var result = await new CSharpCodingStyleChecker().CheckAsync(source);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -1137,7 +1137,7 @@ public sealed class CSharpCodingStyleCheckerTests
             """;
 
         // Act
-        var result = await new CSharpCodingStyleChecker().CheckAsync(source);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.DoesNotContain("blank line", result);
@@ -1156,7 +1156,7 @@ public sealed class CSharpCodingStyleCheckerTests
             """;
 
         // Act
-        var result = await new CSharpCodingStyleChecker().CheckAsync(source);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -1176,7 +1176,7 @@ public sealed class CSharpCodingStyleCheckerTests
             """;
 
         // Act
-        var result = await new CSharpCodingStyleChecker().CheckAsync(source);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -1215,7 +1215,7 @@ public sealed class CSharpCodingStyleCheckerTests
         var data = new Dictionary<string, string> { ["csharp_prefer_braces"] = "false" };
 
         // Act
-        var result = await new CSharpCodingStyleChecker().CheckAsync(source, data);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source, data, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -1251,7 +1251,7 @@ public sealed class CSharpCodingStyleCheckerTests
         var data = new Dictionary<string, string> { ["csharp_prefer_braces"] = "false" };
 
         // Act
-        var result = await new CSharpCodingStyleChecker().CheckAsync(source, data);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source, data, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.DoesNotContain("curly braces", result, StringComparison.OrdinalIgnoreCase);
@@ -1285,7 +1285,7 @@ public sealed class CSharpCodingStyleCheckerTests
         var data = new Dictionary<string, string> { ["csharp_prefer_braces"] = "when_multiline" };
 
         // Act
-        var result = await new CSharpCodingStyleChecker().CheckAsync(source, data);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source, data, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -1322,7 +1322,7 @@ public sealed class CSharpCodingStyleCheckerTests
         var data = new Dictionary<string, string> { ["csharp_prefer_braces"] = "when_multiline" };
 
         // Act
-        var result = await new CSharpCodingStyleChecker().CheckAsync(source, data);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source, data, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -1359,7 +1359,7 @@ public sealed class CSharpCodingStyleCheckerTests
         var data = new Dictionary<string, string> { ["csharp_prefer_braces"] = "true" };
 
         // Act
-        var result = await new CSharpCodingStyleChecker().CheckAsync(source, data);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source, data, ct: TestContext.Current.CancellationToken);
 
         // Assert — should still enforce braces
         Assert.Contains("curly braces", result, StringComparison.OrdinalIgnoreCase);
@@ -1389,7 +1389,7 @@ public sealed class CSharpCodingStyleCheckerTests
             """;
 
         // Act
-        var result = await new CSharpCodingStyleChecker().CheckAsync(source);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert — default behavior: enforce braces
         Assert.Contains("curly braces", result, StringComparison.OrdinalIgnoreCase);
@@ -1411,7 +1411,7 @@ public sealed class CSharpCodingStyleCheckerTests
             """;
 
         // Act
-        var result = await new CSharpCodingStyleChecker().CheckAsync(source);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -1434,7 +1434,7 @@ public sealed class CSharpCodingStyleCheckerTests
             """;
 
         // Act
-        var result = await new CSharpCodingStyleChecker().CheckAsync(source);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.DoesNotContain("non-System using directives", result);
@@ -1453,7 +1453,7 @@ public sealed class CSharpCodingStyleCheckerTests
             """;
 
         // Act
-        var result = await new CSharpCodingStyleChecker().CheckAsync(source);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.DoesNotContain("non-System using directives", result);
@@ -1471,7 +1471,7 @@ public sealed class CSharpCodingStyleCheckerTests
             """;
 
         // Act
-        var result = await new CSharpCodingStyleChecker().CheckAsync(source);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.DoesNotContain("non-System using directives", result);
@@ -1491,7 +1491,7 @@ public sealed class CSharpCodingStyleCheckerTests
         var data = new Dictionary<string, string> { ["dotnet_sort_system_directives_first"] = "false" };
 
         // Act
-        var result = await new CSharpCodingStyleChecker().CheckAsync(source, data);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source, data, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.DoesNotContain("non-System using directives", result);
@@ -1511,7 +1511,7 @@ public sealed class CSharpCodingStyleCheckerTests
         var data = new Dictionary<string, string> { ["dotnet_sort_system_directives_first"] = "true" };
 
         // Act
-        var result = await new CSharpCodingStyleChecker().CheckAsync(source, data);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source, data, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -1535,7 +1535,7 @@ public sealed class CSharpCodingStyleCheckerTests
             """;
 
         // Act
-        var result = await new CSharpCodingStyleChecker().CheckAsync(source);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -1565,7 +1565,7 @@ public sealed class CSharpCodingStyleCheckerTests
         var data = new Dictionary<string, string> { ["csharp_style_expression_bodied_methods"] = "never" };
 
         // Act
-        var result = await new CSharpCodingStyleChecker().CheckAsync(source, data);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source, data, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -1594,7 +1594,7 @@ public sealed class CSharpCodingStyleCheckerTests
         var data = new Dictionary<string, string> { ["csharp_style_expression_bodied_methods"] = "never" };
 
         // Act
-        var result = await new CSharpCodingStyleChecker().CheckAsync(source, data);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source, data, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.DoesNotContain("expression body", result);
@@ -1617,7 +1617,7 @@ public sealed class CSharpCodingStyleCheckerTests
         var data = new Dictionary<string, string> { ["csharp_style_expression_bodied_methods"] = "always" };
 
         // Act
-        var result = await new CSharpCodingStyleChecker().CheckAsync(source, data);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source, data, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -1644,7 +1644,7 @@ public sealed class CSharpCodingStyleCheckerTests
         var data = new Dictionary<string, string> { ["csharp_style_expression_bodied_methods"] = "always" };
 
         // Act
-        var result = await new CSharpCodingStyleChecker().CheckAsync(source, data);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source, data, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.DoesNotContain("single return statement", result);
@@ -1668,7 +1668,7 @@ public sealed class CSharpCodingStyleCheckerTests
         var data = new Dictionary<string, string> { ["csharp_style_expression_bodied_methods"] = "always" };
 
         // Act
-        var result = await new CSharpCodingStyleChecker().CheckAsync(source, data);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source, data, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.DoesNotContain("single return statement", result);
@@ -1691,7 +1691,7 @@ public sealed class CSharpCodingStyleCheckerTests
         var data = new Dictionary<string, string> { ["csharp_style_expression_bodied_methods"] = "when_on_single_line" };
 
         // Act
-        var result = await new CSharpCodingStyleChecker().CheckAsync(source, data);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source, data, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -1721,7 +1721,7 @@ public sealed class CSharpCodingStyleCheckerTests
         var data = new Dictionary<string, string> { ["csharp_style_expression_bodied_methods"] = "when_on_single_line" };
 
         // Act
-        var result = await new CSharpCodingStyleChecker().CheckAsync(source, data);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source, data, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.DoesNotContain("when_on_single_line", result);
@@ -1740,7 +1740,7 @@ public sealed class CSharpCodingStyleCheckerTests
             """;
 
         // Act — no data, so preference is null → no check
-        var result = await new CSharpCodingStyleChecker().CheckAsync(source);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.DoesNotContain("csharp_style_expression_bodied_methods", result);
@@ -1767,7 +1767,7 @@ public sealed class CSharpCodingStyleCheckerTests
         var data = new Dictionary<string, string> { ["csharp_style_expression_bodied_properties"] = "never" };
 
         // Act
-        var result = await new CSharpCodingStyleChecker().CheckAsync(source, data);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source, data, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -1798,7 +1798,7 @@ public sealed class CSharpCodingStyleCheckerTests
         var data = new Dictionary<string, string> { ["csharp_style_expression_bodied_properties"] = "never" };
 
         // Act
-        var result = await new CSharpCodingStyleChecker().CheckAsync(source, data);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source, data, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.DoesNotContain("expression body", result);
@@ -1823,7 +1823,7 @@ public sealed class CSharpCodingStyleCheckerTests
         var data = new Dictionary<string, string> { ["csharp_style_expression_bodied_properties"] = "always" };
 
         // Act
-        var result = await new CSharpCodingStyleChecker().CheckAsync(source, data);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source, data, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -1849,7 +1849,7 @@ public sealed class CSharpCodingStyleCheckerTests
         var data = new Dictionary<string, string> { ["csharp_style_expression_bodied_properties"] = "always" };
 
         // Act
-        var result = await new CSharpCodingStyleChecker().CheckAsync(source, data);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source, data, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.DoesNotContain("single return", result);
@@ -1875,7 +1875,7 @@ public sealed class CSharpCodingStyleCheckerTests
         var data = new Dictionary<string, string> { ["csharp_style_expression_bodied_properties"] = "always" };
 
         // Act
-        var result = await new CSharpCodingStyleChecker().CheckAsync(source, data);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source, data, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.DoesNotContain("single return", result);
@@ -1900,7 +1900,7 @@ public sealed class CSharpCodingStyleCheckerTests
         var data = new Dictionary<string, string> { ["csharp_style_expression_bodied_properties"] = "when_on_single_line" };
 
         // Act
-        var result = await new CSharpCodingStyleChecker().CheckAsync(source, data);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source, data, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -1935,7 +1935,7 @@ public sealed class CSharpCodingStyleCheckerTests
         var data = new Dictionary<string, string> { ["csharp_style_expression_bodied_properties"] = "when_on_single_line" };
 
         // Act
-        var result = await new CSharpCodingStyleChecker().CheckAsync(source, data);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source, data, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.DoesNotContain("when_on_single_line", result);
@@ -1956,7 +1956,7 @@ public sealed class CSharpCodingStyleCheckerTests
             """;
 
         // Act — no data, so preference is null → no check
-        var result = await new CSharpCodingStyleChecker().CheckAsync(source);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.DoesNotContain("csharp_style_expression_bodied_properties", result);
@@ -1974,7 +1974,7 @@ public sealed class CSharpCodingStyleCheckerTests
             """;
 
         // Act
-        var result = await new CSharpCodingStyleChecker().CheckAsync(source);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.DoesNotContain("non-System using directives", result);
@@ -2007,7 +2007,7 @@ public sealed class CSharpCodingStyleCheckerTests
         var data = new Dictionary<string, string> { ["__disabled"] = "true" };
 
         // Act
-        var result = await new CSharpCodingStyleChecker().CheckAsync(source, data);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source, data, ct: TestContext.Current.CancellationToken);
 
         // Assert — disabled with no EC means nothing to enforce
         Assert.StartsWith("✅", result);
@@ -2045,7 +2045,7 @@ public sealed class CSharpCodingStyleCheckerTests
         };
 
         // Act
-        var result = await new CSharpCodingStyleChecker().CheckAsync(source, data);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source, data, ct: TestContext.Current.CancellationToken);
 
         // Assert — EC check still runs
         Assert.Multiple(() =>
@@ -2072,7 +2072,7 @@ public sealed class CSharpCodingStyleCheckerTests
         };
 
         // Act
-        var result = await new CSharpCodingStyleChecker().CheckAsync(source, data);
+        var result = await new CSharpCodingStyleChecker().CheckAsync(source, data, ct: TestContext.Current.CancellationToken);
 
         // Assert — #region is INST-only, should be skipped even with EC present
         Assert.DoesNotContain("#region", result);

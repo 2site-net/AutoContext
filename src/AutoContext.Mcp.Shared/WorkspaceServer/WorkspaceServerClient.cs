@@ -29,7 +29,7 @@ public sealed class WorkspaceServerClient(string? pipeName = null, string? sourc
     /// Resolves tool modes and EditorConfig data for a batch of MCP tools
     /// via the <c>mcp-tools</c> workspace service endpoint.
     /// </summary>
-    internal async Task<McpToolsResponse?> ResolveToolsAsync(McpToolsRequest request)
+    internal async Task<McpToolsResponse?> ResolveToolsAsync(McpToolsRequest request, CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(_pipeName))
         {
@@ -39,11 +39,11 @@ public sealed class WorkspaceServerClient(string? pipeName = null, string? sourc
         var requestBytes = JsonSerializer.SerializeToUtf8Bytes(request, JsonOptions);
 
         using var client = new NamedPipeClientStream(".", _pipeName, PipeDirection.InOut, PipeOptions.Asynchronous);
-        await client.ConnectAsync(5000).ConfigureAwait(false);
+        await client.ConnectAsync(5000, ct).ConfigureAwait(false);
 
-        await WriteMessageAsync(client, requestBytes).ConfigureAwait(false);
+        await WriteMessageAsync(client, requestBytes, ct).ConfigureAwait(false);
 
-        var responseBytes = await ReadMessageAsync(client).ConfigureAwait(false);
+        var responseBytes = await ReadMessageAsync(client, ct).ConfigureAwait(false);
 
         if (responseBytes is null || responseBytes.Length == 0)
         {
@@ -57,7 +57,7 @@ public sealed class WorkspaceServerClient(string? pipeName = null, string? sourc
     /// Sends a log message to the workspace service for centralized output.
     /// Falls back to local stderr when the pipe is unavailable.
     /// </summary>
-    internal async Task SendLogAsync(string level, string message)
+    internal async Task SendLogAsync(string level, string message, CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(_pipeName))
         {
@@ -72,12 +72,12 @@ public sealed class WorkspaceServerClient(string? pipeName = null, string? sourc
             var requestBytes = JsonSerializer.SerializeToUtf8Bytes(request, JsonOptions);
 
             using var client = new NamedPipeClientStream(".", _pipeName, PipeDirection.InOut, PipeOptions.Asynchronous);
-            await client.ConnectAsync(5000).ConfigureAwait(false);
+            await client.ConnectAsync(5000, ct).ConfigureAwait(false);
 
-            await WriteMessageAsync(client, requestBytes).ConfigureAwait(false);
+            await WriteMessageAsync(client, requestBytes, ct).ConfigureAwait(false);
 
             // Protocol requires reading the response to complete the cycle.
-            await ReadMessageAsync(client).ConfigureAwait(false);
+            await ReadMessageAsync(client, ct).ConfigureAwait(false);
         }
         catch (IOException ex)
         {
@@ -94,21 +94,21 @@ public sealed class WorkspaceServerClient(string? pipeName = null, string? sourc
         }
     }
 
-    private static async Task WriteMessageAsync(Stream stream, byte[] payload)
+    private static async Task WriteMessageAsync(Stream stream, byte[] payload, CancellationToken ct = default)
     {
         var message = new byte[4 + payload.Length];
         BinaryPrimitives.WriteInt32LittleEndian(message, payload.Length);
         payload.CopyTo(message.AsSpan(4));
 
-        await stream.WriteAsync(message).ConfigureAwait(false);
-        await stream.FlushAsync().ConfigureAwait(false);
+        await stream.WriteAsync(message, ct).ConfigureAwait(false);
+        await stream.FlushAsync(ct).ConfigureAwait(false);
     }
 
-    private static async Task<byte[]?> ReadMessageAsync(Stream stream)
+    private static async Task<byte[]?> ReadMessageAsync(Stream stream, CancellationToken ct = default)
     {
         var header = new byte[4];
 
-        if (!await ReadExactAsync(stream, header).ConfigureAwait(false))
+        if (!await ReadExactAsync(stream, header, ct).ConfigureAwait(false))
         {
             return null;
         }
@@ -122,17 +122,17 @@ public sealed class WorkspaceServerClient(string? pipeName = null, string? sourc
 
         var payload = new byte[length];
 
-        return await ReadExactAsync(stream, payload).ConfigureAwait(false) ? payload : null;
+        return await ReadExactAsync(stream, payload, ct).ConfigureAwait(false) ? payload : null;
     }
 
-    private static async Task<bool> ReadExactAsync(Stream stream, byte[] buffer)
+    private static async Task<bool> ReadExactAsync(Stream stream, byte[] buffer, CancellationToken ct = default)
     {
         var offset = 0;
 
         while (offset < buffer.Length)
         {
             var read = await stream.ReadAsync(
-                buffer.AsMemory(offset, buffer.Length - offset)).ConfigureAwait(false);
+                buffer.AsMemory(offset, buffer.Length - offset), ct).ConfigureAwait(false);
 
             if (read == 0)
             {

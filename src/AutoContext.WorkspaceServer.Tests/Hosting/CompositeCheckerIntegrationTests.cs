@@ -65,7 +65,7 @@ public sealed class CompositeCheckerIntegrationTests : IDisposable
                 ["indent_size"] = "2",
             };
 
-            await checker.CheckAsync("class C { }", data);
+            await checker.CheckAsync("class C { }", data, ct);
 
             // EditorConfig (project rules) must win over the explicit param (model)
             Assert.Multiple(
@@ -114,7 +114,7 @@ public sealed class CompositeCheckerIntegrationTests : IDisposable
                 ["custom_param"] = "hello",
             };
 
-            await checker.CheckAsync("class C { }", data);
+            await checker.CheckAsync("class C { }", data, ct);
 
             // Both values should be present
             Assert.Multiple(
@@ -161,7 +161,7 @@ public sealed class CompositeCheckerIntegrationTests : IDisposable
 
         public IReadOnlyDictionary<string, string>? ReceivedData { get; private set; }
 
-        public Task<string> CheckAsync(string content, IReadOnlyDictionary<string, string>? data = null)
+        public Task<string> CheckAsync(string content, IReadOnlyDictionary<string, string>? data = null, CancellationToken ct = default)
         {
             ReceivedData = data;
             return Task.FromResult("✅ Spy passed.");

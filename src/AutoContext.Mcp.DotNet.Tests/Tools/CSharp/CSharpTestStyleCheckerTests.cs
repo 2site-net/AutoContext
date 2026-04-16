@@ -20,7 +20,7 @@ public sealed class CSharpTestStyleCheckerTests
             """;
 
         // Act
-        var result = await new CSharpTestStyleChecker().CheckAsync(source);
+        var result = await new CSharpTestStyleChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -42,7 +42,7 @@ public sealed class CSharpTestStyleCheckerTests
             """;
 
         // Act
-        var result = await new CSharpTestStyleChecker().CheckAsync(source);
+        var result = await new CSharpTestStyleChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -68,7 +68,7 @@ public sealed class CSharpTestStyleCheckerTests
             """;
 
         // Act
-        var result = await new CSharpTestStyleChecker().CheckAsync(source);
+        var result = await new CSharpTestStyleChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.DoesNotContain("suffixed", result);
@@ -90,7 +90,7 @@ public sealed class CSharpTestStyleCheckerTests
             """;
 
         // Act
-        var result = await new CSharpTestStyleChecker().CheckAsync(source);
+        var result = await new CSharpTestStyleChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -119,7 +119,7 @@ public sealed class CSharpTestStyleCheckerTests
             """;
 
         // Act
-        var result = await new CSharpTestStyleChecker().CheckAsync(source);
+        var result = await new CSharpTestStyleChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.DoesNotContain("must start with", result);
@@ -142,7 +142,7 @@ public sealed class CSharpTestStyleCheckerTests
             """;
 
         // Act
-        var result = await new CSharpTestStyleChecker().CheckAsync(source);
+        var result = await new CSharpTestStyleChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -170,7 +170,7 @@ public sealed class CSharpTestStyleCheckerTests
             """;
 
         // Act
-        var result = await new CSharpTestStyleChecker().CheckAsync(source);
+        var result = await new CSharpTestStyleChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -197,7 +197,7 @@ public sealed class CSharpTestStyleCheckerTests
             """;
 
         // Act
-        var result = await new CSharpTestStyleChecker().CheckAsync(source);
+        var result = await new CSharpTestStyleChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.DoesNotContain("XML doc", result);
@@ -220,7 +220,7 @@ public sealed class CSharpTestStyleCheckerTests
             """;
 
         // Act
-        var result = await new CSharpTestStyleChecker().CheckAsync(source);
+        var result = await new CSharpTestStyleChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -251,7 +251,7 @@ public sealed class CSharpTestStyleCheckerTests
             """;
 
         // Act
-        var result = await new CSharpTestStyleChecker().CheckAsync(source);
+        var result = await new CSharpTestStyleChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.DoesNotContain("Assert.Multiple", result);
@@ -273,7 +273,7 @@ public sealed class CSharpTestStyleCheckerTests
             """;
 
         // Act
-        var result = await new CSharpTestStyleChecker().CheckAsync(source);
+        var result = await new CSharpTestStyleChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.DoesNotContain("Assert.Multiple", result);
@@ -295,7 +295,7 @@ public sealed class CSharpTestStyleCheckerTests
             """;
 
         // Act
-        var result = await new CSharpTestStyleChecker().CheckAsync(source);
+        var result = await new CSharpTestStyleChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -322,7 +322,7 @@ public sealed class CSharpTestStyleCheckerTests
             """;
 
         // Act
-        var result = await new CSharpTestStyleChecker().CheckAsync(source);
+        var result = await new CSharpTestStyleChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.DoesNotContain("ConfigureAwait", result);
@@ -347,7 +347,7 @@ public sealed class CSharpTestStyleCheckerTests
             """;
 
         // Act
-        var result = await new CSharpTestStyleChecker().CheckAsync(source);
+        var result = await new CSharpTestStyleChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -374,7 +374,7 @@ public sealed class CSharpTestStyleCheckerTests
             """;
 
         // Act
-        var result = await new CSharpTestStyleChecker().CheckAsync(source);
+        var result = await new CSharpTestStyleChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -397,7 +397,7 @@ public sealed class CSharpTestStyleCheckerTests
             """;
 
         // Act
-        var result = await new CSharpTestStyleChecker().CheckAsync(source);
+        var result = await new CSharpTestStyleChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Contains("must start with 'Should_'", result);
@@ -421,7 +421,7 @@ public sealed class CSharpTestStyleCheckerTests
             """;
 
         // Act
-        var result = await new CSharpTestStyleChecker().CheckAsync(source);
+        var result = await new CSharpTestStyleChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -443,7 +443,7 @@ public sealed class CSharpTestStyleCheckerTests
             """;
 
         // Act
-        var result = await new CSharpTestStyleChecker().CheckAsync(source, new Dictionary<string, string> { ["comparedFileName"] = "UserService.cs" });
+        var result = await new CSharpTestStyleChecker().CheckAsync(source, new Dictionary<string, string> { ["comparedFileName"] = "UserService.cs" }, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -469,7 +469,7 @@ public sealed class CSharpTestStyleCheckerTests
             """;
 
         // Act
-        var result = await new CSharpTestStyleChecker().CheckAsync(source, new Dictionary<string, string> { ["comparedFileName"] = "UserServiceTests.cs" });
+        var result = await new CSharpTestStyleChecker().CheckAsync(source, new Dictionary<string, string> { ["comparedFileName"] = "UserServiceTests.cs" }, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -493,7 +493,7 @@ public sealed class CSharpTestStyleCheckerTests
             """;
 
         // Act
-        var result = await new CSharpTestStyleChecker().CheckAsync(source, new Dictionary<string, string> { ["comparedFileName"] = fileName });
+        var result = await new CSharpTestStyleChecker().CheckAsync(source, new Dictionary<string, string> { ["comparedFileName"] = fileName }, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -517,7 +517,7 @@ public sealed class CSharpTestStyleCheckerTests
             """;
 
         // Act
-        var result = await new CSharpTestStyleChecker().CheckAsync(source, new Dictionary<string, string> { ["comparedFileName"] = fileName });
+        var result = await new CSharpTestStyleChecker().CheckAsync(source, new Dictionary<string, string> { ["comparedFileName"] = fileName }, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -545,7 +545,7 @@ public sealed class CSharpTestStyleCheckerTests
             """;
 
         // Act
-        var result = await new CSharpTestStyleChecker().CheckAsync(source, new Dictionary<string, string> { ["originalNamespace"] = "MyApp.Services" });
+        var result = await new CSharpTestStyleChecker().CheckAsync(source, new Dictionary<string, string> { ["originalNamespace"] = "MyApp.Services" }, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -574,7 +574,7 @@ public sealed class CSharpTestStyleCheckerTests
             """;
 
         // Act
-        var result = await new CSharpTestStyleChecker().CheckAsync(source, new Dictionary<string, string> { ["originalNamespace"] = "MyApp.Services" });
+        var result = await new CSharpTestStyleChecker().CheckAsync(source, new Dictionary<string, string> { ["originalNamespace"] = "MyApp.Services" }, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -598,7 +598,7 @@ public sealed class CSharpTestStyleCheckerTests
             """;
 
         // Act
-        var result = await new CSharpTestStyleChecker().CheckAsync(source, new Dictionary<string, string> { ["originalNamespace"] = "MyApp" });
+        var result = await new CSharpTestStyleChecker().CheckAsync(source, new Dictionary<string, string> { ["originalNamespace"] = "MyApp" }, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -622,7 +622,7 @@ public sealed class CSharpTestStyleCheckerTests
             """;
 
         // Act
-        var result = await new CSharpTestStyleChecker().CheckAsync(source, new Dictionary<string, string> { ["originalNamespace"] = "MyApp.Data.Repositories" });
+        var result = await new CSharpTestStyleChecker().CheckAsync(source, new Dictionary<string, string> { ["originalNamespace"] = "MyApp.Data.Repositories" }, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -650,7 +650,7 @@ public sealed class CSharpTestStyleCheckerTests
             """;
 
         // Act
-        var result = await new CSharpTestStyleChecker().CheckAsync(source, new Dictionary<string, string> { ["originalNamespace"] = "MyApp.Data.Repositories" });
+        var result = await new CSharpTestStyleChecker().CheckAsync(source, new Dictionary<string, string> { ["originalNamespace"] = "MyApp.Data.Repositories" }, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -674,7 +674,7 @@ public sealed class CSharpTestStyleCheckerTests
             """;
 
         // Act
-        var result = await new CSharpTestStyleChecker().CheckAsync(source);
+        var result = await new CSharpTestStyleChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.DoesNotContain("mirror", result);
@@ -699,7 +699,7 @@ public sealed class CSharpTestStyleCheckerTests
             """;
 
         // Act
-        var result = await new CSharpTestStyleChecker().CheckAsync(source, new Dictionary<string, string> { ["originalNamespace"] = "MyApp.Services" });
+        var result = await new CSharpTestStyleChecker().CheckAsync(source, new Dictionary<string, string> { ["originalNamespace"] = "MyApp.Services" }, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Contains("does not mirror", result);
@@ -711,13 +711,13 @@ public sealed class CSharpTestStyleCheckerTests
     public async Task Should_throw_on_empty_or_whitespace_input(string input)
     {
         // Act & Assert
-        await Assert.ThrowsAsync<ArgumentException>(() => new CSharpTestStyleChecker().CheckAsync(input));
+        await Assert.ThrowsAsync<ArgumentException>(() => new CSharpTestStyleChecker().CheckAsync(input, ct: TestContext.Current.CancellationToken));
     }
 
     [Fact]
     public async Task Should_throw_on_null_input()
     {
         // Act & Assert
-        await Assert.ThrowsAsync<ArgumentNullException>(() => new CSharpTestStyleChecker().CheckAsync(null!));
+        await Assert.ThrowsAsync<ArgumentNullException>(() => new CSharpTestStyleChecker().CheckAsync(null!, ct: TestContext.Current.CancellationToken));
     }
 }

@@ -25,13 +25,14 @@ public abstract class CompositeChecker(WorkspaceServerClient workspaceServerClie
 
     /// <inheritdoc />
     public async Task<string> CheckAsync(
-        string content, IReadOnlyDictionary<string, string>? data = null)
+        string content, IReadOnlyDictionary<string, string>? data = null, CancellationToken ct = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(content);
 
         await workspaceServerClient.SendLogAsync(
             "Information",
-            $"Tool invoked: {ToolName} | content length: {content.Length}").ConfigureAwait(false);
+            $"Tool invoked: {ToolName} | content length: {content.Length}",
+            ct).ConfigureAwait(false);
 
         var checkers = CreateCheckers();
         var filePath = data?.GetValueOrDefault("filePath");
@@ -54,10 +55,12 @@ public abstract class CompositeChecker(WorkspaceServerClient workspaceServerClie
             .ToArray();
 
         var resolved = await workspaceServerClient
-            .ResolveToolsAsync(new McpToolsRequest(
-                toolNames,
-                filePath,
-                editorConfigKeys.Length > 0 ? editorConfigKeys : null))
+            .ResolveToolsAsync(
+                new McpToolsRequest(
+                    toolNames,
+                    filePath,
+                    editorConfigKeys.Length > 0 ? editorConfigKeys : null),
+                ct)
             .ConfigureAwait(false);
 
         var sections = new List<string>();
@@ -69,21 +72,21 @@ public abstract class CompositeChecker(WorkspaceServerClient workspaceServerClie
             if (enabled)
             {
                 await workspaceServerClient.SendLogAsync(
-                    "Information", $"  Running: {checker.ToolName}").ConfigureAwait(false);
-                sections.Add(await checker.CheckAsync(content, MergeData(extraParams, resolved?.EditorConfig)).ConfigureAwait(false));
+                    "Information", $"  Running: {checker.ToolName}", ct).ConfigureAwait(false);
+                sections.Add(await checker.CheckAsync(content, MergeData(extraParams, resolved?.EditorConfig), ct).ConfigureAwait(false));
             }
             else if (checker is IEditorConfigFilter)
             {
                 await workspaceServerClient.SendLogAsync(
-                    "Information", $"  Running (editorconfig-only): {checker.ToolName}").ConfigureAwait(false);
+                    "Information", $"  Running (editorconfig-only): {checker.ToolName}", ct).ConfigureAwait(false);
                 var merged = MergeData(extraParams, resolved?.EditorConfig);
                 merged["__disabled"] = "true";
-                sections.Add(await checker.CheckAsync(content, merged).ConfigureAwait(false));
+                sections.Add(await checker.CheckAsync(content, merged, ct).ConfigureAwait(false));
             }
             else
             {
                 await workspaceServerClient.SendLogAsync(
-                    "Information", $"  Skipped: {checker.ToolName}").ConfigureAwait(false);
+                    "Information", $"  Skipped: {checker.ToolName}", ct).ConfigureAwait(false);
             }
         }
 

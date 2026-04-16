@@ -18,14 +18,14 @@ internal sealed class HealthMonitorClient : IDisposable
     /// The connection is kept alive until <see cref="Dispose"/> is called
     /// or the process exits.
     /// </summary>
-    public async Task ConnectAsync(string pipeName, string category)
+    public async Task ConnectAsync(string pipeName, string category, CancellationToken ct = default)
     {
         var pipe = new NamedPipeClientStream(".", pipeName, PipeDirection.InOut, PipeOptions.Asynchronous);
-        await pipe.ConnectAsync(5000).ConfigureAwait(false);
+        await pipe.ConnectAsync(5000, ct).ConfigureAwait(false);
 
         var bytes = Encoding.UTF8.GetBytes(category);
-        await pipe.WriteAsync(bytes).ConfigureAwait(false);
-        await pipe.FlushAsync().ConfigureAwait(false);
+        await pipe.WriteAsync(bytes, ct).ConfigureAwait(false);
+        await pipe.FlushAsync(ct).ConfigureAwait(false);
 
         _pipe = pipe;
     }

@@ -19,7 +19,7 @@ public sealed class CSharpAsyncPatternCheckerTests
             """;
 
         // Act
-        var result = await new CSharpAsyncPatternChecker().CheckAsync(source);
+        var result = await new CSharpAsyncPatternChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -37,7 +37,7 @@ public sealed class CSharpAsyncPatternCheckerTests
             """;
 
         // Act
-        var result = await new CSharpAsyncPatternChecker().CheckAsync(source);
+        var result = await new CSharpAsyncPatternChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -63,7 +63,7 @@ public sealed class CSharpAsyncPatternCheckerTests
             """;
 
         // Act
-        var result = await new CSharpAsyncPatternChecker().CheckAsync(source);
+        var result = await new CSharpAsyncPatternChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.DoesNotContain("async void", result);
@@ -81,7 +81,7 @@ public sealed class CSharpAsyncPatternCheckerTests
             """;
 
         // Act
-        var result = await new CSharpAsyncPatternChecker().CheckAsync(source);
+        var result = await new CSharpAsyncPatternChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -104,7 +104,7 @@ public sealed class CSharpAsyncPatternCheckerTests
             """;
 
         // Act
-        var result = await new CSharpAsyncPatternChecker().CheckAsync(source);
+        var result = await new CSharpAsyncPatternChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.DoesNotContain("CancellationToken", result);
@@ -122,7 +122,7 @@ public sealed class CSharpAsyncPatternCheckerTests
             """;
 
         // Act
-        var result = await new CSharpAsyncPatternChecker().CheckAsync(source);
+        var result = await new CSharpAsyncPatternChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.DoesNotContain("CancellationToken", result);
@@ -145,7 +145,7 @@ public sealed class CSharpAsyncPatternCheckerTests
             """;
 
         // Act
-        var result = await new CSharpAsyncPatternChecker().CheckAsync(source);
+        var result = await new CSharpAsyncPatternChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.DoesNotContain("CancellationToken", result);
@@ -166,7 +166,7 @@ public sealed class CSharpAsyncPatternCheckerTests
             """;
 
         // Act
-        var result = await new CSharpAsyncPatternChecker().CheckAsync(source);
+        var result = await new CSharpAsyncPatternChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.DoesNotContain("CancellationToken", result);
@@ -184,7 +184,7 @@ public sealed class CSharpAsyncPatternCheckerTests
             """;
 
         // Act
-        var result = await new CSharpAsyncPatternChecker().CheckAsync(source);
+        var result = await new CSharpAsyncPatternChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.DoesNotContain("CancellationToken", result);
@@ -205,7 +205,7 @@ public sealed class CSharpAsyncPatternCheckerTests
             """;
 
         // Act
-        var result = await new CSharpAsyncPatternChecker().CheckAsync(source);
+        var result = await new CSharpAsyncPatternChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -230,7 +230,7 @@ public sealed class CSharpAsyncPatternCheckerTests
             """;
 
         // Act
-        var result = await new CSharpAsyncPatternChecker().CheckAsync(source);
+        var result = await new CSharpAsyncPatternChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.DoesNotContain("ConfigureAwait", result);
@@ -251,7 +251,7 @@ public sealed class CSharpAsyncPatternCheckerTests
             """;
 
         // Act
-        var result = await new CSharpAsyncPatternChecker().CheckAsync(source);
+        var result = await new CSharpAsyncPatternChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -277,7 +277,7 @@ public sealed class CSharpAsyncPatternCheckerTests
             """;
 
         // Act
-        var result = await new CSharpAsyncPatternChecker().CheckAsync(source);
+        var result = await new CSharpAsyncPatternChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.DoesNotContain("ConfigureAwait", result);
@@ -299,7 +299,7 @@ public sealed class CSharpAsyncPatternCheckerTests
             """;
 
         // Act
-        var result = await new CSharpAsyncPatternChecker().CheckAsync(source);
+        var result = await new CSharpAsyncPatternChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -329,7 +329,7 @@ public sealed class CSharpAsyncPatternCheckerTests
             """;
 
         // Act
-        var result = await new CSharpAsyncPatternChecker().CheckAsync(source);
+        var result = await new CSharpAsyncPatternChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.DoesNotContain("async void", result);
@@ -341,13 +341,13 @@ public sealed class CSharpAsyncPatternCheckerTests
     public async Task Should_throw_on_empty_or_whitespace_input(string input)
     {
         // Act & Assert
-        await Assert.ThrowsAsync<ArgumentException>(() => new CSharpAsyncPatternChecker().CheckAsync(input));
+        await Assert.ThrowsAsync<ArgumentException>(() => new CSharpAsyncPatternChecker().CheckAsync(input, ct: TestContext.Current.CancellationToken));
     }
 
     [Fact]
     public async Task Should_throw_on_null_input()
     {
         // Act & Assert
-        await Assert.ThrowsAsync<ArgumentNullException>(() => new CSharpAsyncPatternChecker().CheckAsync(null!));
+        await Assert.ThrowsAsync<ArgumentNullException>(() => new CSharpAsyncPatternChecker().CheckAsync(null!, ct: TestContext.Current.CancellationToken));
     }
 }

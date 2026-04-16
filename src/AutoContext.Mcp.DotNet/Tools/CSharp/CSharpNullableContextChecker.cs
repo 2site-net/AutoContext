@@ -22,12 +22,13 @@ public sealed class CSharpNullableContextChecker : IChecker
     /// </summary>
     public async Task<string> CheckAsync(
         string content,
-        IReadOnlyDictionary<string, string>? data = null)
+        IReadOnlyDictionary<string, string>? data = null,
+        CancellationToken ct = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(content);
 
-        var tree = CSharpSyntaxTree.ParseText(content);
-        var root = await tree.GetRootAsync().ConfigureAwait(false);
+        var tree = CSharpSyntaxTree.ParseText(content, cancellationToken: ct);
+        var root = await tree.GetRootAsync(ct).ConfigureAwait(false);
         var violations = new List<string>();
 
         CheckNullableDisable(root, tree, violations);

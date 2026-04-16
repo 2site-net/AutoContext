@@ -30,7 +30,7 @@ public sealed class CSharpNamingConventionsCheckerTests
             """;
 
         // Act
-        var result = await new CSharpNamingConventionsChecker().CheckAsync(source);
+        var result = await new CSharpNamingConventionsChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -45,7 +45,7 @@ public sealed class CSharpNamingConventionsCheckerTests
             """;
 
         // Act
-        var result = await new CSharpNamingConventionsChecker().CheckAsync(source);
+        var result = await new CSharpNamingConventionsChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -65,7 +65,7 @@ public sealed class CSharpNamingConventionsCheckerTests
             """;
 
         // Act
-        var result = await new CSharpNamingConventionsChecker().CheckAsync(source);
+        var result = await new CSharpNamingConventionsChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.DoesNotContain("Interface", result);
@@ -80,7 +80,7 @@ public sealed class CSharpNamingConventionsCheckerTests
             """;
 
         // Act
-        var result = await new CSharpNamingConventionsChecker().CheckAsync(source);
+        var result = await new CSharpNamingConventionsChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -103,7 +103,7 @@ public sealed class CSharpNamingConventionsCheckerTests
             """;
 
         // Act
-        var result = await new CSharpNamingConventionsChecker().CheckAsync(source);
+        var result = await new CSharpNamingConventionsChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -127,7 +127,7 @@ public sealed class CSharpNamingConventionsCheckerTests
             """;
 
         // Act
-        var result = await new CSharpNamingConventionsChecker().CheckAsync(source);
+        var result = await new CSharpNamingConventionsChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.DoesNotContain("StringExtensions", result);
@@ -146,7 +146,7 @@ public sealed class CSharpNamingConventionsCheckerTests
             """;
 
         // Act
-        var result = await new CSharpNamingConventionsChecker().CheckAsync(source);
+        var result = await new CSharpNamingConventionsChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.DoesNotContain("Extension", result);
@@ -164,7 +164,7 @@ public sealed class CSharpNamingConventionsCheckerTests
             """;
 
         // Act
-        var result = await new CSharpNamingConventionsChecker().CheckAsync(source);
+        var result = await new CSharpNamingConventionsChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -187,7 +187,7 @@ public sealed class CSharpNamingConventionsCheckerTests
             """;
 
         // Act
-        var result = await new CSharpNamingConventionsChecker().CheckAsync(source);
+        var result = await new CSharpNamingConventionsChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.DoesNotContain("suffixed with 'Async'", result);
@@ -210,7 +210,7 @@ public sealed class CSharpNamingConventionsCheckerTests
             """;
 
         // Act
-        var result = await new CSharpNamingConventionsChecker().CheckAsync(source);
+        var result = await new CSharpNamingConventionsChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.DoesNotContain("suffixed with 'Async'", result);
@@ -228,7 +228,7 @@ public sealed class CSharpNamingConventionsCheckerTests
             """;
 
         // Act
-        var result = await new CSharpNamingConventionsChecker().CheckAsync(source);
+        var result = await new CSharpNamingConventionsChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.DoesNotContain("suffixed with 'Async'", result);
@@ -247,7 +247,7 @@ public sealed class CSharpNamingConventionsCheckerTests
             """;
 
         // Act
-        var result = await new CSharpNamingConventionsChecker().CheckAsync(source);
+        var result = await new CSharpNamingConventionsChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.DoesNotContain("suffixed with 'Async'", result);
@@ -265,7 +265,7 @@ public sealed class CSharpNamingConventionsCheckerTests
             """;
 
         // Act
-        var result = await new CSharpNamingConventionsChecker().CheckAsync(source);
+        var result = await new CSharpNamingConventionsChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -288,7 +288,7 @@ public sealed class CSharpNamingConventionsCheckerTests
             """;
 
         // Act
-        var result = await new CSharpNamingConventionsChecker().CheckAsync(source);
+        var result = await new CSharpNamingConventionsChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -310,7 +310,7 @@ public sealed class CSharpNamingConventionsCheckerTests
             """;
 
         // Act
-        var result = await new CSharpNamingConventionsChecker().CheckAsync(source);
+        var result = await new CSharpNamingConventionsChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.DoesNotContain("_camelCase", result);
@@ -328,7 +328,7 @@ public sealed class CSharpNamingConventionsCheckerTests
             """;
 
         // Act
-        var result = await new CSharpNamingConventionsChecker().CheckAsync(source);
+        var result = await new CSharpNamingConventionsChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.DoesNotContain("_camelCase", result);
@@ -346,7 +346,7 @@ public sealed class CSharpNamingConventionsCheckerTests
             """;
 
         // Act
-        var result = await new CSharpNamingConventionsChecker().CheckAsync(source);
+        var result = await new CSharpNamingConventionsChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.DoesNotContain("_camelCase", result);
@@ -361,7 +361,7 @@ public sealed class CSharpNamingConventionsCheckerTests
             """;
 
         // Act
-        var result = await new CSharpNamingConventionsChecker().CheckAsync(source);
+        var result = await new CSharpNamingConventionsChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -384,7 +384,7 @@ public sealed class CSharpNamingConventionsCheckerTests
             """;
 
         // Act
-        var result = await new CSharpNamingConventionsChecker().CheckAsync(source);
+        var result = await new CSharpNamingConventionsChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -407,7 +407,7 @@ public sealed class CSharpNamingConventionsCheckerTests
             """;
 
         // Act
-        var result = await new CSharpNamingConventionsChecker().CheckAsync(source);
+        var result = await new CSharpNamingConventionsChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -430,7 +430,7 @@ public sealed class CSharpNamingConventionsCheckerTests
             """;
 
         // Act
-        var result = await new CSharpNamingConventionsChecker().CheckAsync(source);
+        var result = await new CSharpNamingConventionsChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -453,7 +453,7 @@ public sealed class CSharpNamingConventionsCheckerTests
             """;
 
         // Act
-        var result = await new CSharpNamingConventionsChecker().CheckAsync(source);
+        var result = await new CSharpNamingConventionsChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -475,7 +475,7 @@ public sealed class CSharpNamingConventionsCheckerTests
             """;
 
         // Act
-        var result = await new CSharpNamingConventionsChecker().CheckAsync(source);
+        var result = await new CSharpNamingConventionsChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.DoesNotContain("camelCase", result);
@@ -494,7 +494,7 @@ public sealed class CSharpNamingConventionsCheckerTests
             """;
 
         // Act
-        var result = await new CSharpNamingConventionsChecker().CheckAsync(source);
+        var result = await new CSharpNamingConventionsChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.DoesNotContain("camelCase", result);
@@ -512,7 +512,7 @@ public sealed class CSharpNamingConventionsCheckerTests
             """;
 
         // Act
-        var result = await new CSharpNamingConventionsChecker().CheckAsync(source);
+        var result = await new CSharpNamingConventionsChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.DoesNotContain("camelCase", result);
@@ -527,7 +527,7 @@ public sealed class CSharpNamingConventionsCheckerTests
             """;
 
         // Act
-        var result = await new CSharpNamingConventionsChecker().CheckAsync(source);
+        var result = await new CSharpNamingConventionsChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -543,14 +543,14 @@ public sealed class CSharpNamingConventionsCheckerTests
     public async Task Should_throw_on_empty_or_whitespace_input(string input)
     {
         // Act & Assert
-        await Assert.ThrowsAsync<ArgumentException>(() => new CSharpNamingConventionsChecker().CheckAsync(input));
+        await Assert.ThrowsAsync<ArgumentException>(() => new CSharpNamingConventionsChecker().CheckAsync(input, ct: TestContext.Current.CancellationToken));
     }
 
     [Fact]
     public async Task Should_throw_on_null_input()
     {
         // Act & Assert
-        await Assert.ThrowsAsync<ArgumentNullException>(() => new CSharpNamingConventionsChecker().CheckAsync(null!));
+        await Assert.ThrowsAsync<ArgumentNullException>(() => new CSharpNamingConventionsChecker().CheckAsync(null!, ct: TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -565,7 +565,7 @@ public sealed class CSharpNamingConventionsCheckerTests
             """;
 
         // Act
-        var result = await new CSharpNamingConventionsChecker().CheckAsync(source);
+        var result = await new CSharpNamingConventionsChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -592,7 +592,7 @@ public sealed class CSharpNamingConventionsCheckerTests
             """;
 
         // Act
-        var result = await new CSharpNamingConventionsChecker().CheckAsync(source);
+        var result = await new CSharpNamingConventionsChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -615,7 +615,7 @@ public sealed class CSharpNamingConventionsCheckerTests
             """;
 
         // Act
-        var result = await new CSharpNamingConventionsChecker().CheckAsync(source);
+        var result = await new CSharpNamingConventionsChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.DoesNotContain("PascalCase", result);

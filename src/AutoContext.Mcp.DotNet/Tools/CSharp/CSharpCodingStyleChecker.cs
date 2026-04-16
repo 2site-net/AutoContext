@@ -34,12 +34,13 @@ public sealed partial class CSharpCodingStyleChecker : IChecker, IEditorConfigFi
     /// </summary>
     public async Task<string> CheckAsync(
         string content,
-        IReadOnlyDictionary<string, string>? data = null)
+        IReadOnlyDictionary<string, string>? data = null,
+        CancellationToken ct = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(content);
 
-        var tree = CSharpSyntaxTree.ParseText(content);
-        var root = await tree.GetRootAsync().ConfigureAwait(false);
+        var tree = CSharpSyntaxTree.ParseText(content, cancellationToken: ct);
+        var root = await tree.GetRootAsync(ct).ConfigureAwait(false);
         var normalized = content.ReplaceLineEndings("\n");
         ReadOnlySpan<char> contentSpan = normalized;
         var lineCount = contentSpan.Count('\n') + 1;

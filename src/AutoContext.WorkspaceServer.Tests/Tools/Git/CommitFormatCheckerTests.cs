@@ -15,7 +15,7 @@ public sealed class CommitFormatCheckerTests
     public async Task Should_pass_valid_conventional_commit_subjects(string subject)
     {
         // Act
-        var result = await new CommitFormatChecker().CheckAsync(subject);
+        var result = await new CommitFormatChecker().CheckAsync(subject, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -31,7 +31,7 @@ public sealed class CommitFormatCheckerTests
     public async Task Should_reject_invalid_conventional_commit_subjects(string subject)
     {
         // Act
-        var result = await new CommitFormatChecker().CheckAsync(subject);
+        var result = await new CommitFormatChecker().CheckAsync(subject, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -48,7 +48,7 @@ public sealed class CommitFormatCheckerTests
         var subject = "feat: " + new string('a', 50);
 
         // Act
-        var result = await new CommitFormatChecker().CheckAsync(subject);
+        var result = await new CommitFormatChecker().CheckAsync(subject, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -66,7 +66,7 @@ public sealed class CommitFormatCheckerTests
         Assert.Equal(50, subject.Length);
 
         // Act
-        var result = await new CommitFormatChecker().CheckAsync(subject);
+        var result = await new CommitFormatChecker().CheckAsync(subject, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -79,7 +79,7 @@ public sealed class CommitFormatCheckerTests
         var message = "feat: add login\nThis is the body without blank line.";
 
         // Act
-        var result = await new CommitFormatChecker().CheckAsync(message);
+        var result = await new CommitFormatChecker().CheckAsync(message, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -96,7 +96,7 @@ public sealed class CommitFormatCheckerTests
         var message = "feat: add login\n\nThis is the body.";
 
         // Act
-        var result = await new CommitFormatChecker().CheckAsync(message);
+        var result = await new CommitFormatChecker().CheckAsync(message, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -110,7 +110,7 @@ public sealed class CommitFormatCheckerTests
         var message = $"feat: add login\n\n{longLine}";
 
         // Act
-        var result = await new CommitFormatChecker().CheckAsync(message);
+        var result = await new CommitFormatChecker().CheckAsync(message, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -128,7 +128,7 @@ public sealed class CommitFormatCheckerTests
         var message = $"feat: add login\n\n{line}";
 
         // Act
-        var result = await new CommitFormatChecker().CheckAsync(message);
+        var result = await new CommitFormatChecker().CheckAsync(message, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -142,7 +142,7 @@ public sealed class CommitFormatCheckerTests
         var message = $"Add stuff\nno blank line\n{longLine}";
 
         // Act
-        var result = await new CommitFormatChecker().CheckAsync(message);
+        var result = await new CommitFormatChecker().CheckAsync(message, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -160,14 +160,14 @@ public sealed class CommitFormatCheckerTests
     public async Task Should_throw_on_empty_or_whitespace_input(string input)
     {
         // Act & Assert
-        await Assert.ThrowsAsync<ArgumentException>(() => new CommitFormatChecker().CheckAsync(input));
+        await Assert.ThrowsAsync<ArgumentException>(() => new CommitFormatChecker().CheckAsync(input, ct: TestContext.Current.CancellationToken));
     }
 
     [Fact]
     public async Task Should_throw_on_null_input()
     {
         // Act & Assert
-        await Assert.ThrowsAsync<ArgumentNullException>(() => new CommitFormatChecker().CheckAsync(null!));
+        await Assert.ThrowsAsync<ArgumentNullException>(() => new CommitFormatChecker().CheckAsync(null!, ct: TestContext.Current.CancellationToken));
     }
 
     [Theory]
@@ -188,7 +188,7 @@ public sealed class CommitFormatCheckerTests
         var message = $"{type}: do something";
 
         // Act
-        var result = await new CommitFormatChecker().CheckAsync(message);
+        var result = await new CommitFormatChecker().CheckAsync(message, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -201,7 +201,7 @@ public sealed class CommitFormatCheckerTests
         var message = "feat: add login\r\n\r\nThis is the body.";
 
         // Act
-        var result = await new CommitFormatChecker().CheckAsync(message);
+        var result = await new CommitFormatChecker().CheckAsync(message, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.StartsWith("✅", result);

@@ -31,7 +31,7 @@ public sealed class CSharpMemberOrderingCheckerTests
             """;
 
         // Act
-        var result = await new CSharpMemberOrderingChecker().CheckAsync(source);
+        var result = await new CSharpMemberOrderingChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -50,7 +50,7 @@ public sealed class CSharpMemberOrderingCheckerTests
             """;
 
         // Act
-        var result = await new CSharpMemberOrderingChecker().CheckAsync(source);
+        var result = await new CSharpMemberOrderingChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -74,7 +74,7 @@ public sealed class CSharpMemberOrderingCheckerTests
             """;
 
         // Act
-        var result = await new CSharpMemberOrderingChecker().CheckAsync(source);
+        var result = await new CSharpMemberOrderingChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -98,7 +98,7 @@ public sealed class CSharpMemberOrderingCheckerTests
             """;
 
         // Act
-        var result = await new CSharpMemberOrderingChecker().CheckAsync(source);
+        var result = await new CSharpMemberOrderingChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -122,7 +122,7 @@ public sealed class CSharpMemberOrderingCheckerTests
             """;
 
         // Act
-        var result = await new CSharpMemberOrderingChecker().CheckAsync(source);
+        var result = await new CSharpMemberOrderingChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -146,7 +146,7 @@ public sealed class CSharpMemberOrderingCheckerTests
             """;
 
         // Act
-        var result = await new CSharpMemberOrderingChecker().CheckAsync(source);
+        var result = await new CSharpMemberOrderingChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -170,7 +170,7 @@ public sealed class CSharpMemberOrderingCheckerTests
             """;
 
         // Act
-        var result = await new CSharpMemberOrderingChecker().CheckAsync(source);
+        var result = await new CSharpMemberOrderingChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -195,7 +195,7 @@ public sealed class CSharpMemberOrderingCheckerTests
             """;
 
         // Act
-        var result = await new CSharpMemberOrderingChecker().CheckAsync(source);
+        var result = await new CSharpMemberOrderingChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -224,7 +224,7 @@ public sealed class CSharpMemberOrderingCheckerTests
             """;
 
         // Act
-        var result = await new CSharpMemberOrderingChecker().CheckAsync(source);
+        var result = await new CSharpMemberOrderingChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -250,7 +250,7 @@ public sealed class CSharpMemberOrderingCheckerTests
             """;
 
         // Act
-        var result = await new CSharpMemberOrderingChecker().CheckAsync(source);
+        var result = await new CSharpMemberOrderingChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -271,7 +271,7 @@ public sealed class CSharpMemberOrderingCheckerTests
             """;
 
         // Act
-        var result = await new CSharpMemberOrderingChecker().CheckAsync(source);
+        var result = await new CSharpMemberOrderingChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -290,7 +290,7 @@ public sealed class CSharpMemberOrderingCheckerTests
             """;
 
         // Act
-        var result = await new CSharpMemberOrderingChecker().CheckAsync(source);
+        var result = await new CSharpMemberOrderingChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -314,7 +314,7 @@ public sealed class CSharpMemberOrderingCheckerTests
             """;
 
         // Act
-        var result = await new CSharpMemberOrderingChecker().CheckAsync(source);
+        var result = await new CSharpMemberOrderingChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -326,14 +326,14 @@ public sealed class CSharpMemberOrderingCheckerTests
     public async Task Should_throw_on_empty_or_whitespace_input(string input)
     {
         // Act & Assert
-        await Assert.ThrowsAsync<ArgumentException>(() => new CSharpMemberOrderingChecker().CheckAsync(input));
+        await Assert.ThrowsAsync<ArgumentException>(() => new CSharpMemberOrderingChecker().CheckAsync(input, ct: TestContext.Current.CancellationToken));
     }
 
     [Fact]
     public async Task Should_throw_on_null_input()
     {
         // Act & Assert
-        await Assert.ThrowsAsync<ArgumentNullException>(() => new CSharpMemberOrderingChecker().CheckAsync(null!));
+        await Assert.ThrowsAsync<ArgumentNullException>(() => new CSharpMemberOrderingChecker().CheckAsync(null!, ct: TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -345,7 +345,7 @@ public sealed class CSharpMemberOrderingCheckerTests
             """;
 
         // Act
-        var result = await new CSharpMemberOrderingChecker().CheckAsync(source);
+        var result = await new CSharpMemberOrderingChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -367,7 +367,7 @@ public sealed class CSharpMemberOrderingCheckerTests
             """;
 
         // Act
-        var result = await new CSharpMemberOrderingChecker().CheckAsync(source);
+        var result = await new CSharpMemberOrderingChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -386,7 +386,7 @@ public sealed class CSharpMemberOrderingCheckerTests
             """;
 
         // Act
-        var result = await new CSharpMemberOrderingChecker().CheckAsync(source);
+        var result = await new CSharpMemberOrderingChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -410,7 +410,7 @@ public sealed class CSharpMemberOrderingCheckerTests
             """;
 
         // Act
-        var result = await new CSharpMemberOrderingChecker().CheckAsync(source);
+        var result = await new CSharpMemberOrderingChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -435,7 +435,7 @@ public sealed class CSharpMemberOrderingCheckerTests
             """;
 
         // Act
-        var result = await new CSharpMemberOrderingChecker().CheckAsync(source);
+        var result = await new CSharpMemberOrderingChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -454,7 +454,7 @@ public sealed class CSharpMemberOrderingCheckerTests
             """;
 
         // Act
-        var result = await new CSharpMemberOrderingChecker().CheckAsync(source);
+        var result = await new CSharpMemberOrderingChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -479,7 +479,7 @@ public sealed class CSharpMemberOrderingCheckerTests
             """;
 
         // Act
-        var result = await new CSharpMemberOrderingChecker().CheckAsync(source);
+        var result = await new CSharpMemberOrderingChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -501,7 +501,7 @@ public sealed class CSharpMemberOrderingCheckerTests
             """;
 
         // Act
-        var result = await new CSharpMemberOrderingChecker().CheckAsync(source);
+        var result = await new CSharpMemberOrderingChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -522,7 +522,7 @@ public sealed class CSharpMemberOrderingCheckerTests
             """;
 
         // Act
-        var result = await new CSharpMemberOrderingChecker().CheckAsync(source);
+        var result = await new CSharpMemberOrderingChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.StartsWith("❌", result);
@@ -546,7 +546,7 @@ public sealed class CSharpMemberOrderingCheckerTests
             """;
 
         // Act
-        var result = await new CSharpMemberOrderingChecker().CheckAsync(source);
+        var result = await new CSharpMemberOrderingChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -570,7 +570,7 @@ public sealed class CSharpMemberOrderingCheckerTests
             """;
 
         // Act
-        var result = await new CSharpMemberOrderingChecker().CheckAsync(source);
+        var result = await new CSharpMemberOrderingChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -594,7 +594,7 @@ public sealed class CSharpMemberOrderingCheckerTests
             """;
 
         // Act
-        var result = await new CSharpMemberOrderingChecker().CheckAsync(source);
+        var result = await new CSharpMemberOrderingChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -618,7 +618,7 @@ public sealed class CSharpMemberOrderingCheckerTests
             """;
 
         // Act
-        var result = await new CSharpMemberOrderingChecker().CheckAsync(source);
+        var result = await new CSharpMemberOrderingChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -658,7 +658,7 @@ public sealed class CSharpMemberOrderingCheckerTests
             """;
 
         // Act
-        var result = await new CSharpMemberOrderingChecker().CheckAsync(source);
+        var result = await new CSharpMemberOrderingChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -677,7 +677,7 @@ public sealed class CSharpMemberOrderingCheckerTests
             """;
 
         // Act
-        var result = await new CSharpMemberOrderingChecker().CheckAsync(source);
+        var result = await new CSharpMemberOrderingChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -703,7 +703,7 @@ public sealed class CSharpMemberOrderingCheckerTests
             """;
 
         // Act
-        var result = await new CSharpMemberOrderingChecker().CheckAsync(source);
+        var result = await new CSharpMemberOrderingChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.StartsWith("✅", result);
@@ -722,7 +722,7 @@ public sealed class CSharpMemberOrderingCheckerTests
             """;
 
         // Act
-        var result = await new CSharpMemberOrderingChecker().CheckAsync(source);
+        var result = await new CSharpMemberOrderingChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
@@ -746,7 +746,7 @@ public sealed class CSharpMemberOrderingCheckerTests
             """;
 
         // Act
-        var result = await new CSharpMemberOrderingChecker().CheckAsync(source);
+        var result = await new CSharpMemberOrderingChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.DoesNotContain("alphabetical", result);
@@ -770,7 +770,7 @@ public sealed class CSharpMemberOrderingCheckerTests
             """;
 
         // Act
-        var result = await new CSharpMemberOrderingChecker().CheckAsync(source);
+        var result = await new CSharpMemberOrderingChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.DoesNotContain("should appear before", result);
@@ -794,7 +794,7 @@ public sealed class CSharpMemberOrderingCheckerTests
             """;
 
         // Act
-        var result = await new CSharpMemberOrderingChecker().CheckAsync(source);
+        var result = await new CSharpMemberOrderingChecker().CheckAsync(source, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(() =>
