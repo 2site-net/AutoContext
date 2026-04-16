@@ -6,6 +6,7 @@ import type { WorkspaceContextDetector } from './workspace-context-detector.js';
 import type { TreeViewStateResolver } from './tree-view-state-resolver.js';
 import type { TreeViewTooltip } from './tree-view-tooltip.js';
 import type { HealthMonitorServer } from './health-monitor.js';
+import type { McpServerProvider } from './mcp-server-provider.js';
 import type { TreeViewGroupNode } from './types/tree-view-group-node.js';
 import type { McpToolsTreeCategoryNode } from './types/mcp-tools-tree-category-node.js';
 import type { McpToolsTreeNode } from './types/mcp-tools-tree-node.js';
@@ -27,6 +28,7 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
         private readonly stateResolver: TreeViewStateResolver,
         private readonly tooltip: TreeViewTooltip,
         private readonly healthMonitor?: HealthMonitorServer,
+        private readonly serverProvider?: McpServerProvider,
     ) {
         this.treeView = vscode.window.createTreeView(viewIds.Tools, {
             treeDataProvider: this,
@@ -208,7 +210,15 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
         const active = this.countActive(node.children.flatMap(c => c.children));
         item.tooltip = this.tooltip.container(node.name, active, node.totalEntries);
 
-        if (this.healthMonitor) {
+        const status = this.serverProvider?.getGroupStatus(node.name);
+
+        if (status === 'unavailable') {
+            item.iconPath = new vscode.ThemeIcon('circle-filled', new vscode.ThemeColor('disabledForeground'));
+            item.tooltip = `${item.tooltip}\nNot installed`;
+        } else if (status === 'disabled') {
+            item.iconPath = new vscode.ThemeIcon('circle-filled', new vscode.ThemeColor('disabledForeground'));
+            item.tooltip = `${item.tooltip}\nNot active in this workspace`;
+        } else if (this.healthMonitor) {
             if (this.healthMonitor.isGroupHealthy(node.name)) {
                 item.iconPath = new vscode.ThemeIcon('circle-filled', new vscode.ThemeColor('testing.iconPassed'));
             } else if (this.healthMonitor.isGroupPartiallyHealthy(node.name)) {

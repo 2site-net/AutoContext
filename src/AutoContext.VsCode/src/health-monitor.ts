@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { createServer, type Server, type Socket } from 'node:net';
 import { randomUUID } from 'node:crypto';
+import { groupServerCategories } from './ui-constants.js';
 
 /**
  * Monitors MCP server health via a named pipe.
@@ -12,11 +13,7 @@ import { randomUUID } from 'node:crypto';
  * updates the health status accordingly.
  */
 export class HealthMonitorServer implements vscode.Disposable {
-    private static readonly groupCategories: ReadonlyMap<string, readonly string[]> = new Map([
-        ['.NET', ['dotnet']],
-        ['Web', ['typescript']],
-        ['Workspace', ['git', 'editorconfig']],
-    ]);
+    private static readonly groupCategories = groupServerCategories;
 
     private readonly _onDidChange = new vscode.EventEmitter<void>();
     readonly onDidChange = this._onDidChange.event;

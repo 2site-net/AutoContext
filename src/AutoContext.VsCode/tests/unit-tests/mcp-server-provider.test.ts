@@ -8,6 +8,9 @@ import type { WorkspaceContextDetector } from '../../src/workspace-context-detec
 import type { WorkspaceServerManager } from '../../src/workspace-server-manager';
 import type { HealthMonitorServer } from '../../src/health-monitor';
 
+const { existsSyncMock } = vi.hoisted(() => ({ existsSyncMock: vi.fn<(path: string) => boolean>(() => true) }));
+vi.mock('node:fs', () => ({ existsSync: existsSyncMock }));
+
 type StdioDef = InstanceType<typeof McpStdioServerDefinition>;
 
 const extensionPath = '/ext';
@@ -36,6 +39,7 @@ function createProvider(): McpServerProvider {
 beforeEach(() => {
     vi.clearAllMocks();
     __setConfigStore({});
+    existsSyncMock.mockReturnValue(true);
     vi.mocked(fakeDetector.get).mockReturnValue(true);
     vi.mocked(fakeWorkspaceServer.getPipeName).mockReturnValue('autocontext-workspace-abc123');
     vi.mocked(fakeHealthMonitor.getPipeName).mockReturnValue('autocontext-health-abc123');
@@ -215,5 +219,56 @@ describe('McpServerProvider.provideMcpServerDefinitions', () => {
                 d.args!.includes('--health-monitor') && d.args!.includes('autocontext-health-abc123'),
             )).toBe(true);
         });
+    });
+});
+
+describe('McpServerProvider.getGroupStatus', () => {
+    it('returns available when binary exists and context is detected', () => {
+        expect(createProvider().getGroupStatus('.NET')).toBe('available');
+    });
+
+    it('returns unavailable when binary does not exist', () => {
+        existsSyncMock.mockReturnValue(false);
+
+        expect(createProvider().getGroupStatus('.NET')).toBe('unavailable');
+    });
+
+    it('returns disabled when the context key is not detected', () => {
+        vi.mocked(fakeDetector.get).mockImplementation(key => key !== 'hasDotNet');
+
+        expect(createProvider().getGroupStatus('.NET')).toBe('disabled');
+    });
+
+    it('returns available when at least one server in the group is available', () => {
+        // Workspace has git (contextKey: hasGit) and editorconfig (no contextKey).
+        // Even if git is disabled by context, editorconfig keeps the group available.
+        vi.mocked(fakeDetector.get).mockImplementation(key => key !== 'hasGit');
+
+        expect(createProvider().getGroupStatus('Workspace')).toBe('available');
+    });
+
+    it('returns disabled when all tool settings for the group are set to false', () => {
+        __setConfigStore({
+            'autocontext.mcpTools.check_csharp_async_patterns': false,
+            'autocontext.mcpTools.check_csharp_coding_style': false,
+            'autocontext.mcpTools.check_csharp_member_ordering': false,
+            'autocontext.mcpTools.check_csharp_naming_conventions': false,
+            'autocontext.mcpTools.check_csharp_nullable_context': false,
+            'autocontext.mcpTools.check_csharp_project_structure': false,
+            'autocontext.mcpTools.check_csharp_test_style': false,
+            'autocontext.mcpTools.check_nuget_hygiene': false,
+        });
+
+        expect(createProvider().getGroupStatus('.NET')).toBe('disabled');
+    });
+
+    it('returns unavailable for an unknown group', () => {
+        expect(createProvider().getGroupStatus('Unknown')).toBe('unavailable');
+    });
+
+    it('returns unavailable for web when index.js exists but node_modules is missing', () => {
+        existsSyncMock.mockImplementation(p => !String(p).includes('node_modules'));
+
+        expect(createProvider().getGroupStatus('Web')).toBe('unavailable');
     });
 });

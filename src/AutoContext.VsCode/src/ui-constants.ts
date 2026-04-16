@@ -149,6 +149,13 @@ export const mcpTools: readonly McpToolsEntry[] = [
 export const mcpToolGroupOrder: readonly string[] = ['.NET', 'Web', 'Workspace'];
 export const mcpToolCategoryOrder: readonly string[] = ['C#', 'NuGet', 'TypeScript', 'Git', 'EditorConfig'];
 
+/** Maps each tree-view group name to its MCP server category names. */
+export const groupServerCategories: ReadonlyMap<string, readonly string[]> = new Map([
+    ['.NET', ['dotnet']],
+    ['Web', ['typescript']],
+    ['Workspace', ['git', 'editorconfig']],
+]);
+
 // ── MCP Servers ──────────────────────────────────────────────────────
 
 export const mcpServers: readonly McpServerEntry[] = [

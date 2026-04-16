@@ -632,15 +632,15 @@ describe('McpToolsTreeProvider', () => {
         provider.dispose();
     });
 
-    describe('health monitor icons', () => {
-        function createFakeHealthMonitor(overrides: Partial<Record<'isGroupHealthy' | 'isGroupPartiallyHealthy', (g: string) => boolean>> = {}): HealthMonitorServer {
-            return {
-                isGroupHealthy: vi.fn(overrides.isGroupHealthy ?? (() => false)),
-                isGroupPartiallyHealthy: vi.fn(overrides.isGroupPartiallyHealthy ?? (() => false)),
-                onDidChange: vi.fn(() => ({ dispose: vi.fn() })),
-            } as unknown as HealthMonitorServer;
-        }
+    function createFakeHealthMonitor(overrides: Partial<Record<'isGroupHealthy' | 'isGroupPartiallyHealthy', (g: string) => boolean>> = {}): HealthMonitorServer {
+        return {
+            isGroupHealthy: vi.fn(overrides.isGroupHealthy ?? (() => false)),
+            isGroupPartiallyHealthy: vi.fn(overrides.isGroupPartiallyHealthy ?? (() => false)),
+            onDidChange: vi.fn(() => ({ dispose: vi.fn() })),
+        } as unknown as HealthMonitorServer;
+    }
 
+    describe('health monitor icons', () => {
         it('should show green icon when group is fully healthy', () => {
             const hm = createFakeHealthMonitor({
                 isGroupHealthy: () => true,
@@ -717,6 +717,85 @@ describe('McpToolsTreeProvider', () => {
             const provider = new McpToolsTreeProvider(fakeDetector, catalog, stateResolver, tooltip, hm);
 
             expect.soft(hm.onDidChange).toHaveBeenCalledOnce();
+
+            provider.dispose();
+        });
+    });
+
+    describe('group status (gray) icons', () => {
+        function createFakeServerProvider(statusFn: (group: string) => 'unavailable' | 'disabled' | 'available') {
+            return { getGroupStatus: vi.fn(statusFn) } as unknown as import('../../src/mcp-server-provider').McpServerProvider;
+        }
+
+        it('should show gray icon when group status is unavailable', () => {
+            const sp = createFakeServerProvider(() => 'unavailable');
+            const provider = new McpToolsTreeProvider(fakeDetector, catalog, stateResolver, tooltip, undefined, sp);
+            const dotnet = provider.getChildren().find(r => r.kind === 'group' && r.name === '.NET')!;
+            const item = provider.getTreeItem(dotnet);
+
+            expect.soft(item.iconPath).toBeInstanceOf(ThemeIcon);
+            const icon = item.iconPath as InstanceType<typeof ThemeIcon>;
+            expect.soft(icon.id).toBe('circle-filled');
+            expect.soft((icon.color as InstanceType<typeof ThemeColor>).id).toBe('disabledForeground');
+
+            provider.dispose();
+        });
+
+        it('should show gray icon when group status is disabled', () => {
+            const sp = createFakeServerProvider(() => 'disabled');
+            const provider = new McpToolsTreeProvider(fakeDetector, catalog, stateResolver, tooltip, undefined, sp);
+            const dotnet = provider.getChildren().find(r => r.kind === 'group' && r.name === '.NET')!;
+            const item = provider.getTreeItem(dotnet);
+
+            expect.soft(item.iconPath).toBeInstanceOf(ThemeIcon);
+            const icon = item.iconPath as InstanceType<typeof ThemeIcon>;
+            expect.soft(icon.id).toBe('circle-filled');
+            expect.soft((icon.color as InstanceType<typeof ThemeColor>).id).toBe('disabledForeground');
+
+            provider.dispose();
+        });
+
+        it('should append "Not installed" to tooltip when unavailable', () => {
+            const sp = createFakeServerProvider(() => 'unavailable');
+            const provider = new McpToolsTreeProvider(fakeDetector, catalog, stateResolver, tooltip, undefined, sp);
+            const dotnet = provider.getChildren().find(r => r.kind === 'group' && r.name === '.NET')!;
+            const item = provider.getTreeItem(dotnet);
+
+            expect.soft(item.tooltip as string).toContain('Not installed');
+
+            provider.dispose();
+        });
+
+        it('should append "Not active in this workspace" to tooltip when disabled', () => {
+            const sp = createFakeServerProvider(() => 'disabled');
+            const provider = new McpToolsTreeProvider(fakeDetector, catalog, stateResolver, tooltip, undefined, sp);
+            const dotnet = provider.getChildren().find(r => r.kind === 'group' && r.name === '.NET')!;
+            const item = provider.getTreeItem(dotnet);
+
+            expect.soft(item.tooltip as string).toContain('Not active in this workspace');
+
+            provider.dispose();
+        });
+
+        it('should fall through to health monitor icons when status is available', () => {
+            const sp = createFakeServerProvider(() => 'available');
+            const hm = createFakeHealthMonitor({ isGroupHealthy: () => true, isGroupPartiallyHealthy: () => true });
+            const provider = new McpToolsTreeProvider(fakeDetector, catalog, stateResolver, tooltip, hm, sp);
+            const dotnet = provider.getChildren().find(r => r.kind === 'group' && r.name === '.NET')!;
+            const item = provider.getTreeItem(dotnet);
+
+            const icon = item.iconPath as InstanceType<typeof ThemeIcon>;
+            expect.soft((icon.color as InstanceType<typeof ThemeColor>).id).toBe('testing.iconPassed');
+
+            provider.dispose();
+        });
+
+        it('should show no icon when no serverProvider and no healthMonitor', () => {
+            const provider = new McpToolsTreeProvider(fakeDetector, catalog, stateResolver, tooltip);
+            const dotnet = provider.getChildren().find(r => r.kind === 'group' && r.name === '.NET')!;
+            const item = provider.getTreeItem(dotnet);
+
+            expect.soft(item.iconPath).toBeUndefined();
 
             provider.dispose();
         });

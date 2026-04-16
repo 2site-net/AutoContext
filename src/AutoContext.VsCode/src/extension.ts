@@ -57,7 +57,7 @@ export async function activate(context: vscode.ExtensionContext) {
     const mcpServerProvider = new McpServerProvider(context.extensionPath, version, workspaceContextDetector, didChangeEmitter.event, workspaceServer, toolsCatalog, serversCatalog, healthMonitor);
     const stateResolver = new TreeViewStateResolver(workspaceContextDetector);
     const instructionsTreeProvider = new InstructionsTreeProvider(workspaceContextDetector, instructionsCatalog, stateResolver, new TreeViewTooltip('instructions'));
-    const mcpToolsTreeProvider = new McpToolsTreeProvider(workspaceContextDetector, toolsCatalog, stateResolver, new TreeViewTooltip('tools'), healthMonitor);
+    const mcpToolsTreeProvider = new McpToolsTreeProvider(workspaceContextDetector, toolsCatalog, stateResolver, new TreeViewTooltip('tools'), healthMonitor, mcpServerProvider);
 
     const showNotDetected = context.globalState.get<boolean>(commandIds.ShowNotDetected, true);
     instructionsTreeProvider.showNotDetected = showNotDetected;
