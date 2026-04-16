@@ -1,6 +1,6 @@
 ## Auto Configure
 
-AutoContext can scan your workspace and automatically enable the right instructions and tools for your project.
+AutoContext scans your workspace on activation and re-scans whenever the window regains focus. The right instructions and tools are enabled automatically — no manual step is required. You can also trigger a scan manually with the command below.
 
 ### What it detects
 
@@ -20,7 +20,7 @@ The Instructions and MCP Tools panels in the AutoContext activity bar show the e
 
 ### Run auto configure
 
-Open a workspace with your project, then run:
+Auto-configuration runs automatically, but you can also trigger it manually:
 
 [Auto Configure](command:autocontext.auto-configure)
 

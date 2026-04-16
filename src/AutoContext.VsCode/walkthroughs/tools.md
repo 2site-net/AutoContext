@@ -15,6 +15,10 @@ Tools are organized into server categories, each activated by workspace context:
 
 A server category is filtered out entirely if its workspace context is not present or all its tools are disabled. The EditorConfig category is an exception — it is always active regardless of workspace content. Each category exposes one or more MCP tools containing individually toggleable features.
 
+### Enable the MCP servers
+
+When AutoContext detects your workspace, it registers the relevant MCP servers with VS Code. The first time a server is discovered, VS Code prompts you to confirm that you trust and want to start it. Accept the prompt so Copilot can invoke the server tools in agent mode.
+
 ### How it works
 
 When you disable a feature, it is recorded in `.autocontext.json` at your workspace root. The workspace server reads this file and decides how each feature runs. Disabled features are skipped when Copilot invokes the tool — with one exception: if the project's `.editorconfig` contains keys a checker consumes (e.g., `csharp_prefer_braces`), those EditorConfig-backed checks still apply even when the feature is disabled.
