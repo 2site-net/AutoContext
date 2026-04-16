@@ -6,7 +6,7 @@
       "type": "extensionHost",
       "request": "launch",
       "args": ["--extensionDevelopmentPath=${workspaceFolder}/src/AutoContext.VsCode"],
-      "outFiles": ["${workspaceFolder}/src/AutoContext.VsCode/out/**/*.js"],
+      "outFiles": ["${workspaceFolder}/src/AutoContext.VsCode/dist/**/*.js"],
       "preLaunchTask": "compile-ts-only"
     },
     {
@@ -14,8 +14,8 @@
       "type": "extensionHost",
       "request": "launch",
       "args": ["--extensionDevelopmentPath=${workspaceFolder}/src/AutoContext.VsCode"],
-      "outFiles": ["${workspaceFolder}/src/AutoContext.VsCode/out/**/*.js"],
-      "preLaunchTask": "prepare-full-build"
+      "outFiles": ["${workspaceFolder}/src/AutoContext.VsCode/dist/**/*.js"],
+      "preLaunchTask": "local-package"
     }
   ]
 }

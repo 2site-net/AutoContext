@@ -16,9 +16,9 @@
       }
     },
     {
-      "label": "prepare-full-build",
+      "label": "local-package",
       "type": "shell",
-      "command": ".\\build.ps1 Prepare",
+      "command": ".\\build.ps1 Package -Local",
       "options": {
         "cwd": "${workspaceFolder}"
       },
