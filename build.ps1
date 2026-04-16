@@ -194,6 +194,32 @@ function Write-Status {
     Write-Host ('  [{0}] {1}' -f $icon, $Message) -ForegroundColor $color
 }
 
+function Invoke-WithRetry {
+    param(
+        [Parameter(Mandatory)][scriptblock]$ScriptBlock,
+        [scriptblock]$IsRetryable = { $false },
+        [int]$MaxAttempts = 3,
+        [int]$DelaySeconds = 30
+    )
+
+    for ($attempt = 1; $attempt -le $MaxAttempts; $attempt++) {
+        $output = & $ScriptBlock
+        $exitCode = $LASTEXITCODE
+
+        if ($exitCode -eq 0) {
+            return @{ Output = $output; ExitCode = 0 }
+        }
+
+        $retryable = & $IsRetryable $output
+        if (-not $retryable -or $attempt -eq $MaxAttempts) {
+            return @{ Output = $output; ExitCode = $exitCode }
+        }
+
+        Write-Status "Attempt $attempt/$MaxAttempts failed (retryable), waiting ${DelaySeconds}s..." 'INFO'
+        Start-Sleep -Seconds $DelaySeconds
+    }
+}
+
 # ── Help ─────────────────────────────────────────────────────────────────────
 
 function Show-Help {
@@ -590,18 +616,24 @@ function Invoke-VscePublish {
         try {
             foreach ($vsix in $vsixFiles) {
                 Write-Status "Publishing $($vsix.Name)..." 'INFO'
-                $output = npx vsce publish --packagePath $vsix.FullName 2>&1
-                if ($LASTEXITCODE -ne 0) {
-                    if ($output -match 'already exists') {
+                $result = Invoke-WithRetry -ScriptBlock {
+                    npx vsce publish --packagePath $vsix.FullName 2>&1
+                } -IsRetryable {
+                    param($output)
+                    $output -match 'timeout|ETIMEDOUT|ECONNRESET|ECONNREFUSED|503'
+                } -MaxAttempts 4 -DelaySeconds 300
+
+                if ($result.ExitCode -ne 0) {
+                    if ($result.Output -match 'already exists') {
                         Write-Status "Skipped $($vsix.Name) (already published)" 'INFO'
                     }
                     else {
-                        $output | Write-Host
+                        $result.Output | Write-Host
                         throw "Failed to publish $($vsix.Name)."
                     }
                 }
                 else {
-                    $output | Write-Host
+                    $result.Output | Write-Host
                     Write-Status "Published $($vsix.Name)" 'OK'
                 }
             }
