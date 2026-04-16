@@ -4,6 +4,7 @@ import type { McpServersCatalog } from './mcp-servers-catalog.js';
 import type { McpToolsCatalog } from './mcp-tools-catalog.js';
 import type { WorkspaceContextDetector } from './workspace-context-detector.js';
 import type { WorkspaceServerManager } from './workspace-server-manager.js';
+import type { HealthMonitorServer } from './health-monitor.js';
 
 export class McpServerProvider implements vscode.McpServerDefinitionProvider {
     private readonly serversPath: string;
@@ -20,6 +21,7 @@ export class McpServerProvider implements vscode.McpServerDefinitionProvider {
         private readonly workspaceServer: WorkspaceServerManager,
         private readonly toolsCatalog: McpToolsCatalog,
         private readonly serversCatalog: McpServersCatalog,
+        private readonly healthMonitor: HealthMonitorServer,
     ) {
         this.serversPath = join(extensionPath, 'mcp');
         this.ext = process.platform === 'win32' ? '.exe' : '';
@@ -70,6 +72,8 @@ export class McpServerProvider implements vscode.McpServerDefinitionProvider {
                         args.push('--workspace-server', pipeName);
                     }
                 }
+
+                args.push('--health-monitor', this.healthMonitor.getPipeName());
 
                 return new vscode.McpStdioServerDefinition(
                     s.label,

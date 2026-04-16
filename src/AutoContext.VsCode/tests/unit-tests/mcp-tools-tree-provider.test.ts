@@ -1,11 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { __setConfigStore, TreeItemCollapsibleState, TreeItemCheckboxState, workspace, ConfigurationTarget, window } from './__mocks__/vscode';
+import { __setConfigStore, TreeItemCollapsibleState, TreeItemCheckboxState, workspace, ConfigurationTarget, window, ThemeIcon, ThemeColor } from './__mocks__/vscode';
 import { McpToolsTreeProvider } from '../../src/mcp-tools-tree-provider';
 import { TreeViewNodeState } from '../../src/tree-view-node-state';
 import { McpToolsCatalog } from '../../src/mcp-tools-catalog';
 import { mcpTools } from '../../src/ui-constants';
 import { TreeViewStateResolver } from '../../src/tree-view-state-resolver';
 import { TreeViewTooltip } from '../../src/tree-view-tooltip';
+import type { HealthMonitorServer } from '../../src/health-monitor';
 
 const fakeDetector = {
     get: vi.fn((_key: string) => false),
@@ -629,5 +630,95 @@ describe('McpToolsTreeProvider', () => {
         expect.soft(treeView.description).toBe(`${alwaysOn}/${total}`);
 
         provider.dispose();
+    });
+
+    describe('health monitor icons', () => {
+        function createFakeHealthMonitor(overrides: Partial<Record<'isGroupHealthy' | 'isGroupPartiallyHealthy', (g: string) => boolean>> = {}): HealthMonitorServer {
+            return {
+                isGroupHealthy: vi.fn(overrides.isGroupHealthy ?? (() => false)),
+                isGroupPartiallyHealthy: vi.fn(overrides.isGroupPartiallyHealthy ?? (() => false)),
+                onDidChange: vi.fn(() => ({ dispose: vi.fn() })),
+            } as unknown as HealthMonitorServer;
+        }
+
+        it('should show green icon when group is fully healthy', () => {
+            const hm = createFakeHealthMonitor({
+                isGroupHealthy: () => true,
+                isGroupPartiallyHealthy: () => true,
+            });
+
+            const provider = new McpToolsTreeProvider(fakeDetector, catalog, stateResolver, tooltip, hm);
+            const roots = provider.getChildren();
+            const dotnet = roots.find(r => r.kind === 'group' && r.name === '.NET')!;
+            const item = provider.getTreeItem(dotnet);
+
+            expect.soft(item.iconPath).toBeInstanceOf(ThemeIcon);
+            const icon = item.iconPath as InstanceType<typeof ThemeIcon>;
+            expect.soft(icon.id).toBe('circle-filled');
+            expect.soft(icon.color).toBeInstanceOf(ThemeColor);
+            expect.soft((icon.color as InstanceType<typeof ThemeColor>).id).toBe('testing.iconPassed');
+
+            provider.dispose();
+        });
+
+        it('should show yellow icon when group is partially healthy', () => {
+            const hm = createFakeHealthMonitor({
+                isGroupHealthy: () => false,
+                isGroupPartiallyHealthy: () => true,
+            });
+
+            const provider = new McpToolsTreeProvider(fakeDetector, catalog, stateResolver, tooltip, hm);
+            const roots = provider.getChildren();
+            const dotnet = roots.find(r => r.kind === 'group' && r.name === '.NET')!;
+            const item = provider.getTreeItem(dotnet);
+
+            expect.soft(item.iconPath).toBeInstanceOf(ThemeIcon);
+            const icon = item.iconPath as InstanceType<typeof ThemeIcon>;
+            expect.soft(icon.id).toBe('circle-filled');
+            expect.soft(icon.color).toBeInstanceOf(ThemeColor);
+            expect.soft((icon.color as InstanceType<typeof ThemeColor>).id).toBe('testing.iconQueued');
+
+            provider.dispose();
+        });
+
+        it('should show red icon when group is not healthy', () => {
+            const hm = createFakeHealthMonitor({
+                isGroupHealthy: () => false,
+                isGroupPartiallyHealthy: () => false,
+            });
+
+            const provider = new McpToolsTreeProvider(fakeDetector, catalog, stateResolver, tooltip, hm);
+            const roots = provider.getChildren();
+            const dotnet = roots.find(r => r.kind === 'group' && r.name === '.NET')!;
+            const item = provider.getTreeItem(dotnet);
+
+            expect.soft(item.iconPath).toBeInstanceOf(ThemeIcon);
+            const icon = item.iconPath as InstanceType<typeof ThemeIcon>;
+            expect.soft(icon.id).toBe('circle-filled');
+            expect.soft(icon.color).toBeInstanceOf(ThemeColor);
+            expect.soft((icon.color as InstanceType<typeof ThemeColor>).id).toBe('testing.iconFailed');
+
+            provider.dispose();
+        });
+
+        it('should not set iconPath when no health monitor is provided', () => {
+            const provider = new McpToolsTreeProvider(fakeDetector, catalog, stateResolver, tooltip);
+            const roots = provider.getChildren();
+            const dotnet = roots.find(r => r.kind === 'group' && r.name === '.NET')!;
+            const item = provider.getTreeItem(dotnet);
+
+            expect.soft(item.iconPath).toBeUndefined();
+
+            provider.dispose();
+        });
+
+        it('should subscribe to onDidChange and refresh on health change', () => {
+            const hm = createFakeHealthMonitor();
+            const provider = new McpToolsTreeProvider(fakeDetector, catalog, stateResolver, tooltip, hm);
+
+            expect.soft(hm.onDidChange).toHaveBeenCalledOnce();
+
+            provider.dispose();
+        });
     });
 });

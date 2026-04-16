@@ -22,6 +22,7 @@ import { TreeViewStateResolver } from './tree-view-state-resolver.js';
 import { TreeViewTooltip } from './tree-view-tooltip.js';
 import { McpServerProvider } from './mcp-server-provider.js';
 import { WorkspaceServerManager } from './workspace-server-manager.js';
+import { HealthMonitorServer } from './health-monitor.js';
 
 let subscriptions: vscode.Disposable[] | undefined;
 
@@ -52,10 +53,11 @@ export async function activate(context: vscode.ExtensionContext) {
     const decorationManager = new InstructionsDecorationManager(context.extensionPath, configManager, outputChannel);
     const instructionsWriter = new InstructionsConfigWriter(context.extensionPath, configManager, instructionsCatalog, outputChannel);
     const workspaceServer = new WorkspaceServerManager(context.extensionPath, outputChannel, vscode.workspace.workspaceFolders?.[0]?.uri.fsPath);
-    const mcpServerProvider = new McpServerProvider(context.extensionPath, version, workspaceContextDetector, didChangeEmitter.event, workspaceServer, toolsCatalog, serversCatalog);
+    const healthMonitor = new HealthMonitorServer(outputChannel);
+    const mcpServerProvider = new McpServerProvider(context.extensionPath, version, workspaceContextDetector, didChangeEmitter.event, workspaceServer, toolsCatalog, serversCatalog, healthMonitor);
     const stateResolver = new TreeViewStateResolver(workspaceContextDetector);
     const instructionsTreeProvider = new InstructionsTreeProvider(workspaceContextDetector, instructionsCatalog, stateResolver, new TreeViewTooltip('instructions'));
-    const mcpToolsTreeProvider = new McpToolsTreeProvider(workspaceContextDetector, toolsCatalog, stateResolver, new TreeViewTooltip('tools'));
+    const mcpToolsTreeProvider = new McpToolsTreeProvider(workspaceContextDetector, toolsCatalog, stateResolver, new TreeViewTooltip('tools'), healthMonitor);
 
     const showNotDetected = context.globalState.get<boolean>(commandIds.ShowNotDetected, true);
     instructionsTreeProvider.showNotDetected = showNotDetected;
@@ -74,6 +76,7 @@ export async function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(
         didChangeEmitter,
         outputChannel,
+        healthMonitor,
         workspaceServer,
         workspaceContextDetector,
         configManager,
@@ -85,6 +88,7 @@ export async function activate(context: vscode.ExtensionContext) {
         mcpToolsTreeProvider,
     );
 
+    healthMonitor.start();
     workspaceServer.start();
 
     // Register MCP provider early so tools appear in the picker immediately.
@@ -196,7 +200,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
     await logDiagnostics();
 
-    return { mcpServerProvider, configManager, codeLensProvider, contentProvider, workspaceContextDetector, workspaceServer, instructionsTreeProvider, mcpToolsTreeProvider };
+    return { mcpServerProvider, configManager, codeLensProvider, contentProvider, workspaceContextDetector, workspaceServer, healthMonitor, instructionsTreeProvider, mcpToolsTreeProvider };
 }
 
 export function deactivate(): void {

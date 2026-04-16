@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
+using AutoContext.Mcp.Shared;
 using AutoContext.Mcp.Shared.WorkspaceServer;
 using AutoContext.Mcp.DotNet.Tools.NuGet;
 using AutoContext.Mcp.DotNet.Tools.CSharp;
@@ -44,6 +45,30 @@ internal sealed class Program
             .WithStdioServerTransport()
             .WithTools(toolTypes);
 
-        await builder.Build().RunAsync().ConfigureAwait(false);
+        var healthPipe = builder.Configuration["health-monitor"];
+        HealthMonitorClient? healthClient = null;
+
+        if (healthPipe is not null)
+        {
+            try
+            {
+                healthClient = new HealthMonitorClient();
+                await healthClient.ConnectAsync(healthPipe, scope).ConfigureAwait(false);
+            }
+            catch (Exception ex) when (ex is TimeoutException or IOException)
+            {
+                healthClient?.Dispose();
+                healthClient = null;
+            }
+        }
+
+        try
+        {
+            await builder.Build().RunAsync().ConfigureAwait(false);
+        }
+        finally
+        {
+            healthClient?.Dispose();
+        }
     }
 }

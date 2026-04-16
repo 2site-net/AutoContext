@@ -5,6 +5,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Console;
 
+using AutoContext.Mcp.Shared;
 using AutoContext.Mcp.Shared.WorkspaceServer;
 using AutoContext.WorkspaceServer.Hosting;
 using AutoContext.WorkspaceServer.Hosting.EditorConfig;
@@ -26,6 +27,8 @@ builder.Services.Configure<ConsoleLifetimeOptions>(o =>
 
 var scope = builder.Configuration["scope"];
 
+var healthPipe = builder.Configuration["health-monitor"];
+
 if (scope == "editorconfig")
 {
     // MCP stdio mode — registers the get_editorconfig MCP tool.
@@ -36,7 +39,30 @@ if (scope == "editorconfig")
         .WithStdioServerTransport()
         .WithTools([typeof(EditorConfigTool)]);
 
-    await builder.Build().RunAsync().ConfigureAwait(false);
+    HealthMonitorClient? healthClient = null;
+
+    if (healthPipe is not null)
+    {
+        try
+        {
+            healthClient = new HealthMonitorClient();
+            await healthClient.ConnectAsync(healthPipe, scope).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is TimeoutException or IOException)
+        {
+            healthClient?.Dispose();
+            healthClient = null;
+        }
+    }
+
+    try
+    {
+        await builder.Build().RunAsync().ConfigureAwait(false);
+    }
+    finally
+    {
+        healthClient?.Dispose();
+    }
 }
 else if (scope == "git")
 {
@@ -50,7 +76,30 @@ else if (scope == "git")
         .WithStdioServerTransport()
         .WithTools([typeof(GitChecker)]);
 
-    await builder.Build().RunAsync().ConfigureAwait(false);
+    HealthMonitorClient? healthClient = null;
+
+    if (healthPipe is not null)
+    {
+        try
+        {
+            healthClient = new HealthMonitorClient();
+            await healthClient.ConnectAsync(healthPipe, scope).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is TimeoutException or IOException)
+        {
+            healthClient?.Dispose();
+            healthClient = null;
+        }
+    }
+
+    try
+    {
+        await builder.Build().RunAsync().ConfigureAwait(false);
+    }
+    finally
+    {
+        healthClient?.Dispose();
+    }
 }
 else
 {

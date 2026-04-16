@@ -5,6 +5,7 @@ import { parseArgs } from 'node:util';
 import { z } from 'zod';
 import { WorkspaceServerClient } from './features/workspace-server/workspace-server-client.js';
 import { StderrLogger } from './features/logging/logger.js';
+import { HealthMonitorClient } from './features/health-monitor/health-monitor-client.js';
 import { TypeScriptChecker } from './tools/typescript/typescript-checker.js';
 
 const { values } = parseArgs({
@@ -12,6 +13,7 @@ const { values } = parseArgs({
         scope: { type: 'string' },
         'workspace-folder': { type: 'string' },
         'workspace-server': { type: 'string' },
+        'health-monitor': { type: 'string' },
     },
     strict: false,
 });
@@ -34,6 +36,14 @@ const workspaceServer = typeof values['workspace-server'] === 'string' ? values[
 const workspaceServerClient = new WorkspaceServerClient(workspaceServer, 'TypeScript');
 if (workspaceServer) {
     logger.log('Startup', `workspace-server=${workspaceServer}`);
+}
+
+// Connect to the extension's health monitor pipe.  The connection stays
+// alive for the lifetime of the process; when the process exits the OS
+// closes the socket and the extension detects the disconnect.
+const healthPipe = typeof values['health-monitor'] === 'string' ? values['health-monitor'] : undefined;
+if (healthPipe) {
+    new HealthMonitorClient(logger).connect(healthPipe, String(scope));
 }
 
 const { version } = JSON.parse(

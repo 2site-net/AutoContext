@@ -5,6 +5,7 @@ import { mcpToolGroupOrder, mcpToolCategoryOrder, viewIds, treeViewLabels } from
 import type { WorkspaceContextDetector } from './workspace-context-detector.js';
 import type { TreeViewStateResolver } from './tree-view-state-resolver.js';
 import type { TreeViewTooltip } from './tree-view-tooltip.js';
+import type { HealthMonitorServer } from './health-monitor.js';
 import type { TreeViewGroupNode } from './types/tree-view-group-node.js';
 import type { McpToolsTreeCategoryNode } from './types/mcp-tools-tree-category-node.js';
 import type { McpToolsTreeNode } from './types/mcp-tools-tree-node.js';
@@ -25,6 +26,7 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
         private readonly catalog: McpToolsCatalog,
         private readonly stateResolver: TreeViewStateResolver,
         private readonly tooltip: TreeViewTooltip,
+        private readonly healthMonitor?: HealthMonitorServer,
     ) {
         this.treeView = vscode.window.createTreeView(viewIds.Tools, {
             treeDataProvider: this,
@@ -46,6 +48,12 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
                 void this.handleCheckboxChange(e.items);
             }),
         );
+
+        if (healthMonitor) {
+            this.disposables.push(
+                healthMonitor.onDidChange(() => this.refresh()),
+            );
+        }
     }
 
     refresh(): void {
@@ -199,6 +207,17 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
         item.contextValue = 'group';
         const active = this.countActive(node.children.flatMap(c => c.children));
         item.tooltip = this.tooltip.container(node.name, active, node.totalEntries);
+
+        if (this.healthMonitor) {
+            if (this.healthMonitor.isGroupHealthy(node.name)) {
+                item.iconPath = new vscode.ThemeIcon('circle-filled', new vscode.ThemeColor('testing.iconPassed'));
+            } else if (this.healthMonitor.isGroupPartiallyHealthy(node.name)) {
+                item.iconPath = new vscode.ThemeIcon('circle-filled', new vscode.ThemeColor('testing.iconQueued'));
+            } else {
+                item.iconPath = new vscode.ThemeIcon('circle-filled', new vscode.ThemeColor('testing.iconFailed'));
+            }
+        }
+
         return item;
     }
 

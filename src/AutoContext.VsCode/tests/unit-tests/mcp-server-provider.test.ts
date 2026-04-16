@@ -6,6 +6,7 @@ import { McpServersCatalog } from '../../src/mcp-servers-catalog';
 import { mcpTools, mcpServers } from '../../src/ui-constants';
 import type { WorkspaceContextDetector } from '../../src/workspace-context-detector';
 import type { WorkspaceServerManager } from '../../src/workspace-server-manager';
+import type { HealthMonitorServer } from '../../src/health-monitor';
 
 type StdioDef = InstanceType<typeof McpStdioServerDefinition>;
 
@@ -20,12 +21,16 @@ const fakeWorkspaceServer = {
     getPipeName: vi.fn(() => 'autocontext-workspace-abc123'),
 } as unknown as WorkspaceServerManager;
 
+const fakeHealthMonitor = {
+    getPipeName: vi.fn(() => 'autocontext-health-abc123'),
+} as unknown as HealthMonitorServer;
+
 const onDidChange = vi.fn() as unknown as import('vscode').Event<void>;
 const toolsCatalog = new McpToolsCatalog(mcpTools);
 const serversCatalog = new McpServersCatalog(mcpServers);
 
 function createProvider(): McpServerProvider {
-    return new McpServerProvider(extensionPath, version, fakeDetector, onDidChange, fakeWorkspaceServer, toolsCatalog, serversCatalog);
+    return new McpServerProvider(extensionPath, version, fakeDetector, onDidChange, fakeWorkspaceServer, toolsCatalog, serversCatalog, fakeHealthMonitor);
 }
 
 beforeEach(() => {
@@ -33,6 +38,7 @@ beforeEach(() => {
     __setConfigStore({});
     vi.mocked(fakeDetector.get).mockReturnValue(true);
     vi.mocked(fakeWorkspaceServer.getPipeName).mockReturnValue('autocontext-workspace-abc123');
+    vi.mocked(fakeHealthMonitor.getPipeName).mockReturnValue('autocontext-health-abc123');
     workspace.workspaceFolders = [{ uri: { fsPath: '/workspace' } }];
 });
 
@@ -197,6 +203,17 @@ describe('McpServerProvider.provideMcpServerDefinitions', () => {
             const defs = await createProvider().provideMcpServerDefinitions();
 
             expect.soft(defs).toHaveLength(4);
+        });
+    });
+
+    describe('health monitor argument', () => {
+        it('every server receives --health-monitor with the pipe name', async () => {
+            const defs = await createProvider().provideMcpServerDefinitions() as StdioDef[];
+
+            expect(defs).not.toHaveLength(0);
+            expect.soft(defs.every(d =>
+                d.args!.includes('--health-monitor') && d.args!.includes('autocontext-health-abc123'),
+            )).toBe(true);
         });
     });
 });
