@@ -87,10 +87,21 @@ export async function activate(context: vscode.ExtensionContext) {
 
     workspaceServer.start();
 
-    // Settle all async state before registering event handlers and providers.
-    // detect() populates context flags (hasDotNet, hasTypeScript, etc.) that
-    // VS Code reads on the first provideMcpServerDefinitions() query.
+    // Register MCP provider early so tools appear in the picker immediately.
+    // detect() below populates context flags (hasDotNet, hasTypeScript, etc.)
+    // that refine which servers are returned; the onDidChange event fires once
+    // detection completes, prompting VS Code to re-query the full list.
+    context.subscriptions.push(
+        vscode.lm.registerMcpServerDefinitionProvider('AutoContextProvider', mcpServerProvider),
+    );
+
     await workspaceContextDetector.detect();
+
+    // The onDidChange forwarding listener (below) isn't wired yet, so the
+    // change event that detect() fired during commitState() was not forwarded
+    // to the MCP provider.  Notify VS Code explicitly so it re-queries with
+    // the full set of detected servers.
+    didChangeEmitter.fire();
 
     await Promise.all([
         toolsStatusWriter.write(),
@@ -146,7 +157,6 @@ export async function activate(context: vscode.ExtensionContext) {
         }),
         vscode.commands.registerCommand(commandIds.ShowNotDetected, () => setShowNotDetected(true)),
         vscode.commands.registerCommand(commandIds.HideNotDetected, () => setShowNotDetected(false)),
-        vscode.lm.registerMcpServerDefinitionProvider('AutoContextProvider', mcpServerProvider),
     );
 
     const catalogVersions = new Map(

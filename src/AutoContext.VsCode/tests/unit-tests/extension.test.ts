@@ -1,0 +1,165 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { lm, workspace, __emitterInstances } from './__mocks__/vscode';
+
+const { callLog } = vi.hoisted(() => ({ callLog: [] as string[] }));
+
+// ── Module mocks (hoisted) ──────────────────────────────────────────
+
+vi.mock('node:fs', () => ({ existsSync: () => false }));
+
+vi.mock('../../src/metadata-loader', () => ({
+    MetadataLoader: class {
+        getMcpToolsInfo() { return []; }
+        getInstructionsInfo() { return []; }
+    },
+}));
+
+vi.mock('../../src/workspace-context-detector', () => ({
+    WorkspaceContextDetector: class {
+        async detect() { callLog.push('detect'); }
+        onDidChange = () => ({ dispose() {} });
+        get() { return false; }
+        dispose() {}
+    },
+}));
+
+vi.mock('../../src/mcp-tools-config-writer', () => ({
+    McpToolsConfigWriter: class { async write() {} },
+}));
+
+vi.mock('../../src/mcp-tools-catalog', () => ({
+    McpToolsCatalog: class {},
+}));
+
+vi.mock('../../src/instructions-catalog', () => ({
+    InstructionsCatalog: class { all = []; findByFileName() {} },
+}));
+
+vi.mock('../../src/mcp-servers-catalog', () => ({
+    McpServersCatalog: class { all = []; },
+}));
+
+vi.mock('../../src/instructions-exporter', () => ({
+    InstructionsExporter: class {},
+}));
+
+vi.mock('../../src/autocontext-config', () => ({
+    AutoContextConfigManager: class {
+        async removeOrphanedIds() {}
+        async clearStaleDisabledIds() { return []; }
+        onDidChange = () => ({ dispose() {} });
+        dispose() {}
+    },
+}));
+
+vi.mock('../../src/instructions-content-provider', () => ({
+    InstructionsContentProvider: class { dispose() {} },
+    instructionScheme: 'autocontext-instructions',
+}));
+
+vi.mock('../../src/instructions-codelens-provider', () => ({
+    InstructionsCodeLensProvider: class { dispose() {} },
+}));
+
+vi.mock('../../src/instructions-decoration-manager', () => ({
+    InstructionsDecorationManager: class { dispose() {} },
+}));
+
+vi.mock('../../src/instructions-config-writer', () => ({
+    InstructionsConfigWriter: class {
+        async removeOrphanedStagingDirs() {}
+        async write() {}
+        dispose() {}
+    },
+}));
+
+vi.mock('../../src/instructions-diagnostics', () => ({
+    InstructionsDiagnostics: { log: async () => {} },
+}));
+
+vi.mock('../../src/instructions-tree-provider', () => {
+    class InstructionsTreeProvider {
+        showNotDetected = false;
+        dispose() {}
+        static enableInstruction() {}
+        static disableInstruction() {}
+        static deleteOverride() {}
+        static showOriginal() {}
+    }
+    return { InstructionsTreeProvider };
+});
+
+vi.mock('../../src/mcp-tools-tree-provider', () => ({
+    McpToolsTreeProvider: class { showNotDetected = false; dispose() {} },
+}));
+
+vi.mock('../../src/tree-view-state-resolver', () => ({
+    TreeViewStateResolver: class {},
+}));
+
+vi.mock('../../src/tree-view-tooltip', () => ({
+    TreeViewTooltip: class {},
+}));
+
+vi.mock('../../src/mcp-server-provider', () => ({
+    McpServerProvider: class {},
+}));
+
+vi.mock('../../src/workspace-server-manager', () => ({
+    WorkspaceServerManager: class { start() {} dispose() {} },
+}));
+
+vi.mock('../../src/auto-configurer', () => ({
+    AutoConfigurer: class {},
+}));
+
+// ── SUT ─────────────────────────────────────────────────────────────
+
+import { activate } from '../../src/extension';
+
+// ── Helpers ─────────────────────────────────────────────────────────
+
+function fakeContext() {
+    return {
+        extensionPath: '/ext',
+        extension: { packageJSON: { version: '0.0.0-test' } },
+        subscriptions: [],
+        globalState: { get: () => undefined, update: async () => {} },
+    } as unknown as import('vscode').ExtensionContext;
+}
+
+// ── Tests ───────────────────────────────────────────────────────────
+
+beforeEach(() => {
+    callLog.length = 0;
+    __emitterInstances.length = 0;
+    vi.clearAllMocks();
+    workspace.workspaceFolders = [{ uri: { fsPath: '/workspace' } }];
+    lm.registerMcpServerDefinitionProvider.mockImplementation(() => {
+        callLog.push('registerProvider');
+        return { dispose() {} };
+    });
+});
+
+describe('activate — MCP provider registration ordering', () => {
+    it('should register MCP provider before running detect()', async () => {
+        await activate(fakeContext());
+
+        const providerIdx = callLog.indexOf('registerProvider');
+        const detectIdx = callLog.indexOf('detect');
+
+        expect(providerIdx).toBeGreaterThanOrEqual(0);
+        expect(detectIdx).toBeGreaterThanOrEqual(0);
+        expect(providerIdx).toBeLessThan(detectIdx);
+    });
+
+    it('should notify VS Code after workspace detection completes', async () => {
+        await activate(fakeContext());
+
+        // activate() creates one EventEmitter (didChangeEmitter) and fires it
+        // after detect() to prompt VS Code to re-query the MCP provider.
+        const didChangeEmitter = __emitterInstances[0];
+        expect(didChangeEmitter).toBeDefined();
+        expect(didChangeEmitter.fire).toHaveBeenCalledTimes(1);
+    });
+});

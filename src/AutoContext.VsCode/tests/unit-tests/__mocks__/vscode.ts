@@ -41,12 +41,14 @@ export const window = {
     })),
     createQuickPick: vi.fn(() => createMockQuickPick()),
     createTextEditorDecorationType: vi.fn(() => ({ dispose: vi.fn() })),
+    createOutputChannel: vi.fn(() => ({ appendLine: vi.fn(), dispose: vi.fn() })),
     showQuickPick: vi.fn(),
     showInformationMessage: vi.fn(),
     showWarningMessage: vi.fn(),
     showErrorMessage: vi.fn(),
     showTextDocument: vi.fn(),
     onDidChangeActiveTextEditor: vi.fn(() => ({ dispose: vi.fn() })),
+    onDidChangeWindowState: vi.fn(() => ({ dispose: vi.fn() })),
     registerTreeDataProvider: vi.fn(() => ({ dispose: vi.fn() })),
     createTreeView: vi.fn(() => {
         const visibilityListeners: ((e: { visible: boolean }) => void)[] = [];
@@ -106,7 +108,12 @@ export class EventEmitter {
     event = vi.fn(() => ({ dispose: vi.fn() }));
     fire = vi.fn();
     dispose = vi.fn();
+    constructor() {
+        __emitterInstances.push(this);
+    }
 }
+
+export const __emitterInstances: EventEmitter[] = [];
 
 export class ThemeIcon {
     constructor(public readonly id: string, public readonly color?: ThemeColor) {}
