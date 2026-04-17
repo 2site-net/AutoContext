@@ -26,6 +26,9 @@ Tools and instructions are grouped into categories and managed from dedicated si
 
 ```text
 AutoContext.slnx                        # Solution file
+servers.json                            # Server manifest (name + type for each MCP server)
+version.json                            # Canonical version (single source of truth)
+versionize.ps1                          # Version stamping tool (Sync, Export, SyncAndExport)
 src/AutoContext.Mcp.Shared/             # Shared contracts and WorkspaceServer communication layer
   Checkers/                             #   Checker interfaces and CompositeChecker base class
   WorkspaceServer/                      #   WorkspaceServerClient (pipe client)
@@ -161,10 +164,10 @@ The `Tag` action bumps all version numbers, compiles, tests, commits, and create
 The action:
 
 1. Validates the version string (semver: `X.Y.Z` or `X.Y.Z-prerelease`).
-2. Rejects versions lower than the current version in `package.json`.
+2. Rejects versions lower than the current version in `version.json`.
 3. Requires a clean working tree (no uncommitted changes).
 4. Compiles and tests the entire solution — the tag is only created if everything passes.
-5. Updates `package.json`, `package-lock.json`, and `.csproj` files with the new version, then commits.
+5. Updates `version.json`, then runs `versionize.ps1 Sync` to stamp all `package.json`, `package-lock.json`, and `.csproj` files, and `Export` to generate `version.ts` constants for Node.js servers. Commits the result.
 6. Creates an annotated tag (`Release X.Y.Z`).
 
 If the requested version already matches the current version (e.g. after a failed push), the bump and commit are skipped and only the tag is created.
