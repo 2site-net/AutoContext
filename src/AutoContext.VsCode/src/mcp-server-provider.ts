@@ -36,6 +36,9 @@ export class McpServerProvider implements vscode.McpServerDefinitionProvider {
         const config = vscode.workspace.getConfiguration();
         return this.serversCatalog.all
             .filter(s => {
+                if (!this.isBinaryAvailable(s)) {
+                    return false;
+                }
                 if (s.contextKey && !this.workspaceContextDetector.get(s.contextKey)) {
                     return false;
                 }
