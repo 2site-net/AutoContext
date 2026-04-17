@@ -19,7 +19,7 @@
       Test     — run unit tests (without compiling)
       Prepare  — Clean + Compile + Test + copy assets into extension
       Package  — Prepare + dotnet publish + vsce package
-      Publish  — Package + vsce publish
+      Publish  — Package + vsce publish + ovsx publish
       Tag      — Compile + Test + bump versions + git commit + annotated tag
 
     When omitted, defaults to Compile + Test.
@@ -64,7 +64,7 @@
     .\build.ps1 Package -Local                   # Prepare + copy servers (local F5)
     .\build.ps1 Package All                      # Prepare + build all 6 platforms
     .\build.ps1 Package -RuntimeIdentifier win-x64
-    .\build.ps1 Publish                          # Package + publish to Marketplace
+    .\build.ps1 Publish                          # Package + publish to Marketplace + Open VSX
     .\build.ps1 Tag 0.6.0                        # Bump, compile, test, commit, tag
     .\build.ps1 Tag 0.6.0-alpha                  # Prerelease tag
     .\build.ps1 -Clean                           # Delete all build artifacts
@@ -243,7 +243,7 @@ function Show-Help {
     Write-Host '  Test       Run unit tests (without compiling)'
     Write-Host '  Prepare    Clean + Compile + Test + copy assets into extension'
     Write-Host '  Package    Prepare + dotnet publish + vsce package'
-    Write-Host '  Publish    Package + vsce publish'
+    Write-Host '  Publish    Package + vsce publish + ovsx publish'
     Write-Host "  Tag        Compile + Test + bump versions + git commit + annotated tag`n"
 
     Write-Host 'TARGETS' -ForegroundColor Yellow
@@ -684,6 +684,56 @@ function Publish-VscePackage {
     }
 }
 
+function Publish-OvsxPackage {
+    [CmdletBinding(SupportsShouldProcess)]
+    param()
+
+    Write-Section 'Publish to Open VSX'
+
+    $vsixFiles = Get-ChildItem (Join-Path $publishDir '*.vsix') -ErrorAction SilentlyContinue
+    if (-not $vsixFiles -or $vsixFiles.Count -eq 0) {
+        if ($WhatIfPreference) {
+            Write-Status 'No VSIX files (skipped in WhatIf)' 'INFO'
+            return
+        }
+        throw 'No VSIX files found in publish/ directory.'
+    }
+
+    if ($PSCmdlet.ShouldProcess("$($vsixFiles.Count) VSIX file(s)", 'Publish to Open VSX')) {
+        Assert-ExternalCommand 'npx'
+
+        Push-Location $extensionDir
+        try {
+            foreach ($vsix in $vsixFiles) {
+                Write-Status "Publishing $($vsix.Name) to Open VSX..." 'INFO'
+                $result = Invoke-WithRetry -ScriptBlock {
+                    npx ovsx publish $vsix.FullName 2>&1
+                } -IsRetryable {
+                    param($output)
+                    $output -match 'timeout|ETIMEDOUT|ECONNRESET|ECONNREFUSED|503'
+                } -MaxAttempts 4 -DelaySeconds 300
+
+                if ($result.ExitCode -ne 0) {
+                    if ($result.Output -match 'already exists|already published') {
+                        Write-Status "Skipped $($vsix.Name) (already published on Open VSX)" 'INFO'
+                    }
+                    else {
+                        $result.Output | Write-Host
+                        throw "Failed to publish $($vsix.Name) to Open VSX."
+                    }
+                }
+                else {
+                    $result.Output | Write-Host
+                    Write-Status "Published $($vsix.Name) to Open VSX" 'OK'
+                }
+            }
+        }
+        finally {
+            Pop-Location
+        }
+    }
+}
+
 function Resolve-RuntimeIdentifier {
     if ($RuntimeIdentifier) { return $RuntimeIdentifier }
 
@@ -865,6 +915,7 @@ function Invoke-Publish {
     }
 
     Publish-VscePackage
+    Publish-OvsxPackage
 }
 
 function Undo-PreviousTag {

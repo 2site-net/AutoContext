@@ -368,12 +368,12 @@ $testCases = @(
     @{
         Name         = 'Publish (auto-detect RID)'
         Arguments    = 'Publish -WhatIf'
-        ExpectOutput = @('Delete TypeScript output|TypeScript output.*not found', 'Compile TypeScript', 'dotnet build', 'Run TypeScript tests', 'Copy LICENSE', 'dotnet publish', 'vsce package', 'Publish to Marketplace')
+        ExpectOutput = @('Delete TypeScript output|TypeScript output.*not found', 'Compile TypeScript', 'dotnet build', 'Run TypeScript tests', 'Copy LICENSE', 'dotnet publish', 'vsce package', 'Publish to Marketplace', 'Publish to Open VSX')
     }
     @{
         Name         = 'Publish All (6 platforms)'
         Arguments    = 'Publish All -WhatIf'
-        ExpectOutput = @('win-x64', 'linux-x64', 'osx-arm64', 'Publish to Marketplace')
+        ExpectOutput = @('win-x64', 'linux-x64', 'osx-arm64', 'Publish to Marketplace', 'Publish to Open VSX')
     }
 
     # ── Invalid combinations (expect errors) ─────────────────────────────

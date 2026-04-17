@@ -49,6 +49,7 @@ jobs:
       - name: Package and publish
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
+          OVSX_PAT: ${{ secrets.OVSX_PAT }}
         run: pwsh ./build.ps1 Publish All
 
       - name: Create GitHub Release
