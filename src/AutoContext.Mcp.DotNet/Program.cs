@@ -30,20 +30,15 @@ internal sealed class Program
 
         builder.Services.AddSingleton(new WorkspaceServerClient(workspaceServer, "DotNet"));
 
-        Type[] toolTypes = scope switch
+        if (scope is not "dotnet")
         {
-            "dotnet" =>
-            [
-                typeof(CSharpChecker),
-                typeof(NuGetHygieneChecker),
-            ],
-            _ => throw new ArgumentException($"Unknown scope '{scope}'. Valid value: dotnet."),
-        };
+            throw new ArgumentException($"Unknown scope '{scope}'. Valid value: dotnet.");
+        }
 
         builder.Services
             .AddMcpServer()
             .WithStdioServerTransport()
-            .WithTools(toolTypes);
+            .WithTools([typeof(CSharpChecker), typeof(NuGetHygieneChecker)]);
 
         var healthPipe = builder.Configuration["health-monitor"];
         HealthMonitorClient? healthClient = null;
