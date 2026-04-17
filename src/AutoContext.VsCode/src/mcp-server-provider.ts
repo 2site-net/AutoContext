@@ -9,6 +9,8 @@ import type { HealthMonitorServer } from './health-monitor.js';
 import type { McpServerEntry } from './types/mcp-server-entry.js';
 import { serverLabelToScopesMap } from './ui-constants.js';
 
+const extensionId = '2site-net.autocontext';
+
 export class McpServerProvider implements vscode.McpServerDefinitionProvider {
     private readonly serversPath: string;
     private readonly ext: string;
@@ -145,5 +147,19 @@ export class McpServerProvider implements vscode.McpServerDefinitionProvider {
         } else {
             return join(this.serversPath, 'AutoContext.Mcp.DotNet', `AutoContext.Mcp.DotNet${this.ext}`);
         }
+    }
+
+    /**
+     * Returns the VS Code internal definition IDs for all MCP servers under a tree server label.
+     * The ID format is `extensionId/serverLabel` as constructed by VS Code's ext host.
+     */
+    getDefinitionIds(serverLabel: string): string[] {
+        const scopes = serverLabelToScopesMap.get(serverLabel);
+        if (!scopes) { return []; }
+
+        return scopes
+            .map(scope => this.serversCatalog.all.find(s => s.scope === scope))
+            .filter((s): s is McpServerEntry => s !== undefined)
+            .map(s => `${extensionId}/${s.label}`);
     }
 }

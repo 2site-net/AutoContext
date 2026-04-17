@@ -206,26 +206,32 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
 
     private serverLabelItem(node: TreeViewServerLabelNode): vscode.TreeItem {
         const item = new vscode.TreeItem(node.name, vscode.TreeItemCollapsibleState.Expanded);
-        item.contextValue = 'serverNode';
         const active = this.countActive(node.children.flatMap(c => c.children));
         item.tooltip = this.tooltip.container(node.name, active, node.totalEntries);
 
         const status = this.serverProvider?.getServerStatus(node.name);
 
         if (status === 'unavailable') {
+            item.contextValue = 'serverNode.unavailable';
             item.iconPath = new vscode.ThemeIcon('circle-filled', new vscode.ThemeColor('disabledForeground'));
             item.tooltip = `${item.tooltip}\nNot detected`;
         } else if (status === 'disabled') {
+            item.contextValue = 'serverNode.disabled';
             item.iconPath = new vscode.ThemeIcon('circle-filled', new vscode.ThemeColor('disabledForeground'));
             item.tooltip = `${item.tooltip}\nNot active in this workspace`;
         } else if (this.healthMonitor) {
             if (this.healthMonitor.isServerHealthy(node.name)) {
+                item.contextValue = 'serverNode.running';
                 item.iconPath = new vscode.ThemeIcon('circle-filled', new vscode.ThemeColor('testing.iconPassed'));
             } else if (this.healthMonitor.isServerPartiallyHealthy(node.name)) {
+                item.contextValue = 'serverNode.partial';
                 item.iconPath = new vscode.ThemeIcon('circle-filled', new vscode.ThemeColor('testing.iconQueued'));
             } else {
+                item.contextValue = 'serverNode.stopped';
                 item.iconPath = new vscode.ThemeIcon('circle-filled', new vscode.ThemeColor('testing.iconFailed'));
             }
+        } else {
+            item.contextValue = 'serverNode.stopped';
         }
 
         return item;

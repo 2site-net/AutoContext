@@ -161,6 +161,21 @@ export async function activate(context: vscode.ExtensionContext) {
         }),
         vscode.commands.registerCommand(commandIds.ShowNotDetected, () => setShowNotDetected(true)),
         vscode.commands.registerCommand(commandIds.HideNotDetected, () => setShowNotDetected(false)),
+        vscode.commands.registerCommand(commandIds.StartMcpServer, async (node: { name: string }) => {
+            for (const id of mcpServerProvider.getDefinitionIds(node.name)) {
+                await vscode.commands.executeCommand('workbench.mcp.startServer', id, { autoTrustChanges: true });
+            }
+        }),
+        vscode.commands.registerCommand(commandIds.StopMcpServer, async (node: { name: string }) => {
+            for (const id of mcpServerProvider.getDefinitionIds(node.name)) {
+                await vscode.commands.executeCommand('workbench.mcp.stopServer', id);
+            }
+        }),
+        vscode.commands.registerCommand(commandIds.RestartMcpServer, async (node: { name: string }) => {
+            for (const id of mcpServerProvider.getDefinitionIds(node.name)) {
+                await vscode.commands.executeCommand('workbench.mcp.restartServer', id, { autoTrustChanges: true });
+            }
+        }),
     );
 
     const catalogVersions = new Map(

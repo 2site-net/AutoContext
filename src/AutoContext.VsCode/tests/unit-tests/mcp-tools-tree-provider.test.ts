@@ -183,7 +183,7 @@ describe('McpToolsTreeProvider', () => {
         const item = provider.getTreeItem(roots[0]);
 
         expect.soft(item.collapsibleState).toBe(TreeItemCollapsibleState.Expanded);
-        expect.soft(item.contextValue).toBe('serverNode');
+        expect.soft(item.contextValue).toBe('serverNode.stopped');
 
         provider.dispose();
     });
