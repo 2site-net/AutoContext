@@ -1,8 +1,8 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { readFileSync } from 'node:fs';
 import { parseArgs } from 'node:util';
 import { z } from 'zod';
+import { VERSION } from './version.js';
 import { WorkspaceServerClient } from './features/workspace-server/workspace-server-client.js';
 import { StderrLogger } from './features/logging/logger.js';
 import { HealthMonitorClient } from './features/health-monitor/health-monitor-client.js';
@@ -46,13 +46,9 @@ if (healthPipe) {
     new HealthMonitorClient(logger).connect(healthPipe, String(scope));
 }
 
-const { version } = JSON.parse(
-    readFileSync(new URL('../package.json', import.meta.url), 'utf8'),
-) as { version: string };
-
 const server = new McpServer({
     name: 'AutoContext.Mcp.Web',
-    version,
+    version: VERSION,
 });
 
 if (scope === 'typescript') {

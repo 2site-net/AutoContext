@@ -4,6 +4,7 @@
   "type": "module",
   "private": true,
   "scripts": {
+    "prebuild": "pwsh ../../versionize.ps1 Export src/version.ts",
     "build": "tsc -p tsconfig.build.json",
     "start": "node out/index.js"
   },
