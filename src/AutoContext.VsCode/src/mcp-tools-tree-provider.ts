@@ -214,7 +214,7 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
 
         if (status === 'unavailable') {
             item.iconPath = new vscode.ThemeIcon('circle-filled', new vscode.ThemeColor('disabledForeground'));
-            item.tooltip = `${item.tooltip}\nNot installed`;
+            item.tooltip = `${item.tooltip}\nNot detected`;
         } else if (status === 'disabled') {
             item.iconPath = new vscode.ThemeIcon('circle-filled', new vscode.ThemeColor('disabledForeground'));
             item.tooltip = `${item.tooltip}\nNot active in this workspace`;

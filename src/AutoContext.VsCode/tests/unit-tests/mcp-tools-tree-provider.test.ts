@@ -755,13 +755,13 @@ describe('McpToolsTreeProvider', () => {
             provider.dispose();
         });
 
-        it('should append "Not installed" to tooltip when unavailable', () => {
+        it('should append "Not detected" to tooltip when unavailable', () => {
             const sp = createFakeServerProvider(() => 'unavailable');
             const provider = new McpToolsTreeProvider(fakeDetector, catalog, stateResolver, tooltip, undefined, sp);
             const dotnet = provider.getChildren().find(r => r.kind === 'serverNode' && r.name === '.NET')!;
             const item = provider.getTreeItem(dotnet);
 
-            expect.soft(item.tooltip as string).toContain('Not installed');
+            expect.soft(item.tooltip as string).toContain('Not detected');
 
             provider.dispose();
         });
