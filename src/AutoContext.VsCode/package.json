@@ -214,6 +214,12 @@
         "title": "Restart Server",
         "category": "AutoContext",
         "icon": "$(debug-restart)"
+      },
+      {
+        "command": "autocontext.show-mcp-server-output",
+        "title": "Show Output",
+        "category": "AutoContext",
+        "icon": "$(output)"
       }
     ],
     "menus": {
@@ -280,6 +286,10 @@
         },
         {
           "command": "autocontext.restart-mcp-server",
+          "when": "false"
+        },
+        {
+          "command": "autocontext.show-mcp-server-output",
           "when": "false"
         }
       ],
@@ -348,6 +358,11 @@
           "command": "autocontext.restart-mcp-server",
           "when": "view == 'autocontext.mcp-tools-view' && viewItem =~ /^serverNode\\.(running|partial)$/",
           "group": "inline@3"
+        },
+        {
+          "command": "autocontext.show-mcp-server-output",
+          "when": "view == 'autocontext.mcp-tools-view' && viewItem =~ /^serverNode\\.(running|partial|stopped)$/",
+          "group": "inline@4"
         }
       ]
     },

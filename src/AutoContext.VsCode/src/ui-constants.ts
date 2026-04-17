@@ -22,6 +22,7 @@ export const commandIds = {
     StartMcpServer: 'autocontext.start-mcp-server',
     StopMcpServer: 'autocontext.stop-mcp-server',
     RestartMcpServer: 'autocontext.restart-mcp-server',
+    ShowMcpServerOutput: 'autocontext.show-mcp-server-output',
 } as const;
 
 export const viewIds = {
