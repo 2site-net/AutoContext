@@ -634,7 +634,7 @@ function Build-VscePackage {
     }
 }
 
-function Invoke-VscePublish {
+function Publish-VscePackage {
     [CmdletBinding(SupportsShouldProcess)]
     param()
 
@@ -864,7 +864,7 @@ function Invoke-Publish {
         }
     }
 
-    Invoke-VscePublish
+    Publish-VscePackage
 }
 
 function Undo-PreviousTag {
