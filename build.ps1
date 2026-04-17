@@ -344,7 +344,7 @@ function Compare-SemVer {
 
 # ── Core actions ─────────────────────────────────────────────────────────────
 
-function Invoke-CompileTS {
+function Build-TypeScript {
     [CmdletBinding(SupportsShouldProcess)]
     param()
 
@@ -399,7 +399,7 @@ function Invoke-CompileTS {
     }
 }
 
-function Invoke-CompileDotNet {
+function Build-DotNet {
     [CmdletBinding(SupportsShouldProcess)]
     param()
 
@@ -416,7 +416,7 @@ function Invoke-CompileDotNet {
     }
 }
 
-function Invoke-TestTS {
+function Test-TypeScript {
     [CmdletBinding(SupportsShouldProcess)]
     param()
 
@@ -450,7 +450,7 @@ function Invoke-TestTS {
     }
 }
 
-function Invoke-TestDotNet {
+function Test-DotNet {
     [CmdletBinding(SupportsShouldProcess)]
     param()
 
@@ -467,7 +467,7 @@ function Invoke-TestDotNet {
     }
 }
 
-function Invoke-CopyAssets {
+function Copy-AssetsToExtensionFolder {
     [CmdletBinding(SupportsShouldProcess)]
     param()
 
@@ -487,7 +487,7 @@ function Invoke-CopyAssets {
     }
 }
 
-function Invoke-DotNetPackage {
+function Build-DotNetPackage {
     [CmdletBinding(SupportsShouldProcess)]
     param([Parameter(Mandatory)][string]$Rid)
 
@@ -515,7 +515,7 @@ function Invoke-DotNetPackage {
     }
 }
 
-function Invoke-DotNetCopyLocal {
+function Copy-DotNetToServersFolder {
     [CmdletBinding(SupportsShouldProcess)]
     param()
 
@@ -564,7 +564,7 @@ function Sync-WebServerVersion {
     }
 }
 
-function Invoke-WebServerPackage {
+function Copy-WebServerToServersFolder {
     [CmdletBinding(SupportsShouldProcess)]
     param()
 
@@ -603,7 +603,7 @@ function Invoke-WebServerPackage {
     }
 }
 
-function Invoke-VscePackage {
+function Build-VscePackage {
     [CmdletBinding(SupportsShouldProcess)]
     param([Parameter(Mandatory)][string]$Rid)
 
@@ -773,8 +773,8 @@ function Invoke-Compile {
     param([string]$Scope = 'All')
 
     Write-Header 'Compile'
-    if ($Scope -in 'All', 'TS')     { Invoke-CompileTS }
-    if ($Scope -in 'All', 'DotNet') { Invoke-CompileDotNet }
+    if ($Scope -in 'All', 'TS')     { Build-TypeScript }
+    if ($Scope -in 'All', 'DotNet') { Build-DotNet }
 }
 
 function Invoke-Test {
@@ -782,8 +782,8 @@ function Invoke-Test {
     param([string]$Scope = 'All')
 
     Write-Header 'Test'
-    if ($Scope -in 'All', 'TS')     { Invoke-TestTS }
-    if ($Scope -in 'All', 'DotNet') { Invoke-TestDotNet }
+    if ($Scope -in 'All', 'TS')     { Test-TypeScript }
+    if ($Scope -in 'All', 'DotNet') { Test-DotNet }
 }
 
 function Invoke-Prepare {
@@ -795,7 +795,7 @@ function Invoke-Prepare {
     Invoke-Test -Scope 'All'
 
     Write-Header 'Prepare'
-    Invoke-CopyAssets
+    Copy-AssetsToExtensionFolder
 }
 
 function Invoke-Package {
@@ -806,17 +806,17 @@ function Invoke-Package {
 
     Write-Header 'Package'
 
-    Invoke-WebServerPackage
+    Copy-WebServerToServersFolder
 
     if ($Local) {
         # Local dev: copy framework-dependent build output (no publish, no VSIX)
-        Invoke-DotNetCopyLocal
+        Copy-DotNetToServersFolder
     }
     elseif ($Scope -eq 'All') {
         # Explicit "Package All" — build all six platforms
         foreach ($rid in $ridToTarget.Keys) {
-            Invoke-DotNetPackage -Rid $rid
-            Invoke-VscePackage -Rid $rid
+            Build-DotNetPackage -Rid $rid
+            Build-VscePackage -Rid $rid
         }
 
         # Clean up staging directory — each VSIX already contains its server binary
@@ -825,8 +825,8 @@ function Invoke-Package {
     else {
         # Single platform: explicit -RuntimeIdentifier or auto-detect
         $rid = Resolve-RuntimeIdentifier
-        Invoke-DotNetPackage -Rid $rid
-        Invoke-VscePackage -Rid $rid
+        Build-DotNetPackage -Rid $rid
+        Build-VscePackage -Rid $rid
     }
 }
 
@@ -848,7 +848,7 @@ function Invoke-Publish {
     # Explicit "Publish All" = all platforms; otherwise single platform
     $rids = if ($Scope -eq 'All') { $ridToTarget.Keys } else { @(Resolve-RuntimeIdentifier) }
 
-    Invoke-WebServerPackage
+    Copy-WebServerToServersFolder
 
     foreach ($rid in $rids) {
         $vsceTarget = $ridToTarget[$rid]
@@ -859,8 +859,8 @@ function Invoke-Publish {
             Write-Status "Found existing $vsixName — skipping build for $rid" 'INFO'
         }
         else {
-            Invoke-DotNetPackage -Rid $rid
-            Invoke-VscePackage -Rid $rid
+            Build-DotNetPackage -Rid $rid
+            Build-VscePackage -Rid $rid
         }
     }
 
