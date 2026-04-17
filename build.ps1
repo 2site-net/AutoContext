@@ -117,14 +117,26 @@ $vitestConfigPath = if ($vitestConfigs.Count -gt 0) { $vitestConfigs[0].FullName
 $serversDir = Join-Path $extensionDir 'servers'
 $publishDir = Join-Path $extensionDir 'publish'
 
-# Web MCP server directory (TypeScript/Node.js-based server)
-$webServerDir = Join-Path $repoRoot 'src' 'AutoContext.Mcp.Web'
-
-# Read extension version from package.json
-$packageJsonPath = Join-Path $extensionDir 'package.json'
-$extensionVersion = if (Test-Path $packageJsonPath) {
-    (Get-Content $packageJsonPath -Raw | ConvertFrom-Json).version
+# Read canonical version from version.json
+$versionJsonPath = Join-Path $repoRoot 'version.json'
+$extensionVersion = if (Test-Path $versionJsonPath) {
+    (Get-Content $versionJsonPath -Raw | ConvertFrom-Json).version
 }
+$versionizePath = Join-Path $repoRoot 'versionize.ps1'
+
+# Read server manifest (defines which servers to package and their type)
+$serversJsonPath = Join-Path $repoRoot 'servers.json'
+$serverManifest = if (Test-Path $serversJsonPath) {
+    @((Get-Content $serversJsonPath -Raw | ConvertFrom-Json).servers)
+} else { @() }
+
+$nodeServers = @($serverManifest | Where-Object type -eq 'node')
+$dotnetServers = @($serverManifest | Where-Object type -eq 'dotnet')
+
+# Derive .NET server project paths from manifest (convention: src/<name>/<name>.csproj)
+$serverProjectPaths = @($dotnetServers | ForEach-Object {
+    Join-Path $repoRoot 'src' $_.name "$($_.name).csproj"
+})
 
 # Discover solution file (.slnx preferred, .sln fallback)
 $solutionFile = Get-ChildItem $repoRoot -Filter '*.slnx' -File | Select-Object -First 1
@@ -132,20 +144,13 @@ if (-not $solutionFile) {
     $solutionFile = Get-ChildItem $repoRoot -Filter '*.sln' -File | Select-Object -First 1
 }
 
-# Discover .NET project paths from the solution file
+# Discover all .NET project paths from solution (for build, test, and clean)
 $dotnetProjects = @()
 if ($solutionFile -and $solutionFile.Extension -eq '.slnx') {
     [xml]$solutionXml = Get-Content $solutionFile.FullName
     $dotnetProjects = @($solutionXml.SelectNodes('//Project/@Path') |
         ForEach-Object { Join-Path $repoRoot $_.Value })
 }
-
-$serverProjectPaths = @($dotnetProjects | Where-Object {
-    [xml]$csproj = Get-Content $_
-    $outputType = $csproj.SelectSingleNode('//OutputType')?.InnerText
-    $isPackable = $csproj.SelectSingleNode('//IsPackable')?.InnerText
-    $outputType -eq 'Exe' -and $isPackable -ne 'false'
-})
 
 # ── RID → vsce target mapping ───────────────────────────────────────────────
 
@@ -380,17 +385,26 @@ function Build-TypeScript {
             Pop-Location
         }
 
-        if (Test-Path $webServerDir) {
-            Push-Location $webServerDir
-            try {
-                Write-Status 'Installing Web MCP server dependencies...' 'INFO'
-                npm install
-                if ($LASTEXITCODE -ne 0) { throw 'Web MCP server npm install failed.' }
+        foreach ($server in $nodeServers) {
+            $serverDir = Join-Path $repoRoot 'src' $server.name
+            if (-not (Test-Path $serverDir)) { continue }
 
-                Write-Status 'Compiling Web MCP server...' 'INFO'
+            $serverLabel = $server.name
+            Push-Location $serverDir
+            try {
+                Write-Status "Installing $serverLabel dependencies..." 'INFO'
+                npm install
+                if ($LASTEXITCODE -ne 0) { throw "$serverLabel npm install failed." }
+
+                $versionTsPath = Join-Path $serverDir 'src' 'version.ts'
+                Write-Status "Generating $serverLabel version..." 'INFO'
+                & $versionizePath Export $versionTsPath
+                if ($LASTEXITCODE -ne 0) { throw "$serverLabel version generation failed." }
+
+                Write-Status "Compiling $serverLabel..." 'INFO'
                 npx tsc -p ./tsconfig.build.json
-                if ($LASTEXITCODE -ne 0) { throw 'Web MCP server compilation failed.' }
-                Write-Status 'Web MCP server compiled' 'OK'
+                if ($LASTEXITCODE -ne 0) { throw "$serverLabel compilation failed." }
+                Write-Status "$serverLabel compiled" 'OK'
             }
             finally {
                 Pop-Location
@@ -544,62 +558,43 @@ function Copy-DotNetToServersFolder {
     }
 }
 
-function Sync-WebServerVersion {
+function Copy-NodeJsToServersFolder {
     [CmdletBinding(SupportsShouldProcess)]
     param()
 
-    if (-not $extensionVersion) { return }
+    foreach ($server in $nodeServers) {
+        $serverName = $server.name
+        $serverSourceDir = Join-Path $repoRoot 'src' $serverName
 
-    $webPkgPath = Join-Path $webServerDir 'package.json'
-    if (-not (Test-Path $webPkgPath)) { return }
+        Write-Section "Package $serverName"
 
-    $webPkg = Get-Content $webPkgPath -Raw | ConvertFrom-Json
-    if ($webPkg.version -eq $extensionVersion) { return }
-
-    if ($PSCmdlet.ShouldProcess($webPkgPath, "Sync version to $extensionVersion")) {
-        $raw = Get-Content $webPkgPath -Raw
-        $raw = $raw -replace '"version":\s*"[^"]*"', "`"version`": `"$extensionVersion`""
-        Set-Content $webPkgPath $raw -NoNewline
-        Write-Status "Synced Web MCP server version to $extensionVersion" 'OK'
-    }
-}
-
-function Copy-WebServerToServersFolder {
-    [CmdletBinding(SupportsShouldProcess)]
-    param()
-
-    Write-Section 'Package Web MCP server'
-
-    if (-not (Test-Path $webServerDir)) {
-        Write-Status 'Web MCP server directory not found — skipping' 'INFO'
-        return
-    }
-
-    Sync-WebServerVersion
-
-    $outDir = Join-Path $webServerDir 'out'
-    if (-not (Test-Path $outDir)) { throw 'Web MCP server not compiled — run Compile first.' }
-
-    $targetDir = Join-Path $serversDir 'AutoContext.Mcp.Web'
-
-    if ($PSCmdlet.ShouldProcess($targetDir, 'Copy Web MCP server')) {
-        New-Item $targetDir -ItemType Directory -Force | Out-Null
-        Copy-Item (Join-Path $outDir '*') $targetDir -Recurse -Force
-
-        # Copy package.json first so npm install can read it from the target
-        Copy-Item (Join-Path $webServerDir 'package.json') $targetDir -Force
-
-        # Bundle production dependencies
-        Push-Location $webServerDir
-        try {
-            npm install --omit=dev --prefix $targetDir
-            if ($LASTEXITCODE -ne 0) { throw 'npm install for Web MCP server failed.' }
-        }
-        finally {
-            Pop-Location
+        if (-not (Test-Path $serverSourceDir)) {
+            Write-Status "$serverName directory not found — skipping" 'INFO'
+            continue
         }
 
-        Write-Status 'Web MCP server packaged' 'OK'
+        $outDir = Join-Path $serverSourceDir 'out'
+        if (-not (Test-Path $outDir)) { throw "$serverName not compiled — run Compile first." }
+
+        $targetDir = Join-Path $serversDir $serverName
+
+        if ($PSCmdlet.ShouldProcess($targetDir, "Copy $serverName")) {
+            New-Item $targetDir -ItemType Directory -Force | Out-Null
+            Copy-Item (Join-Path $outDir '*') $targetDir -Recurse -Force
+
+            Copy-Item (Join-Path $serverSourceDir 'package.json') $targetDir -Force
+
+            Push-Location $serverSourceDir
+            try {
+                npm install --omit=dev --prefix $targetDir
+                if ($LASTEXITCODE -ne 0) { throw "npm install for $serverName failed." }
+            }
+            finally {
+                Pop-Location
+            }
+
+            Write-Status "$serverName packaged" 'OK'
+        }
     }
 }
 
@@ -752,66 +747,24 @@ function Resolve-RuntimeIdentifier {
 function Update-ProjectVersion {
     [CmdletBinding(SupportsShouldProcess)]
     param(
-        [Parameter(Mandatory)][string]$OldVersion,
         [Parameter(Mandatory)][string]$NewVersion
     )
 
     Write-Section 'Update versions'
 
-    # ── npm projects ──
-    $npmDirs = @($extensionDir)
-    if (Test-Path $webServerDir) { $npmDirs += $webServerDir }
+    if ($PSCmdlet.ShouldProcess($versionJsonPath, "Update version to $NewVersion")) {
+        $raw = Get-Content $versionJsonPath -Raw
+        $raw = $raw -replace '"version":\s*"[^"]*"', "`"version`": `"$NewVersion`""
+        Set-Content $versionJsonPath $raw -NoNewline
+        Write-Status "version.json -> $NewVersion" 'OK'
 
-    foreach ($dir in $npmDirs) {
-        $pkgPath = Join-Path $dir 'package.json'
-        $lockPath = Join-Path $dir 'package-lock.json'
-        $dirName = Split-Path $dir -Leaf
+        & $versionizePath Sync
+        if ($LASTEXITCODE -ne 0) { throw 'versionize.ps1 Sync failed.' }
 
-        if (Test-Path $pkgPath) {
-            if ($PSCmdlet.ShouldProcess($pkgPath, "Update version to $NewVersion")) {
-                $raw = Get-Content $pkgPath -Raw
-                $updated = $raw -replace ('"version":\s*"' + [regex]::Escape($OldVersion) + '"'), "`"version`": `"$NewVersion`""
-                if ($updated -eq $raw) { throw "Version '$OldVersion' not found in $pkgPath" }
-                Set-Content $pkgPath $updated -NoNewline
-                Write-Status "$dirName/package.json -> $NewVersion" 'OK'
-            }
-        }
-
-        if (Test-Path $lockPath) {
-            if ($PSCmdlet.ShouldProcess($lockPath, "Update version to $NewVersion")) {
-                $lockRaw = Get-Content $lockPath -Raw
-
-                # Validate root version before replacing
-                $lockJson = $lockRaw | ConvertFrom-Json -AsHashtable
-                if ($lockJson['version'] -ne $OldVersion) {
-                    throw "package-lock.json root version is '$($lockJson['version'])', expected '$OldVersion'."
-                }
-
-                # Replace only the first two occurrences (root + packages."" entry)
-                $pattern = [regex]::new('"version":\s*"' + [regex]::Escape($OldVersion) + '"')
-                $lockRaw = $pattern.Replace($lockRaw, "`"version`": `"$NewVersion`"", 2)
-                Set-Content $lockPath $lockRaw -NoNewline
-                Write-Status "$dirName/package-lock.json -> $NewVersion" 'OK'
-            }
-        }
-    }
-
-    # ── .csproj files ──
-    foreach ($projectPath in $dotnetProjects) {
-        $projectName = [System.IO.Path]::GetFileNameWithoutExtension($projectPath)
-        if ($PSCmdlet.ShouldProcess($projectPath, "Update version to $NewVersion")) {
-            $raw = Get-Content $projectPath -Raw
-
-            if ($raw -match '<Version>[^<]*</Version>') {
-                $raw = $raw -replace '<Version>[^<]*</Version>', "<Version>$NewVersion</Version>"
-            }
-            else {
-                $propGroupRegex = [regex]::new('(<PropertyGroup>)(\r?\n)')
-                $raw = $propGroupRegex.Replace($raw, "`${1}`${2}    <Version>$NewVersion</Version>`${2}", 1)
-            }
-
-            Set-Content $projectPath $raw -NoNewline
-            Write-Status "$projectName -> $NewVersion" 'OK'
+        foreach ($server in $nodeServers) {
+            $versionTsPath = Join-Path $repoRoot 'src' $server.name 'src' 'version.ts'
+            & $versionizePath Export $versionTsPath
+            if ($LASTEXITCODE -ne 0) { throw "versionize.ps1 Export failed for $($server.name)." }
         }
     }
 }
@@ -841,6 +794,19 @@ function Invoke-Prepare {
     param()
 
     Invoke-Clean
+
+    # Sync all project files to the canonical version before compiling
+    if ($PSCmdlet.ShouldProcess('version.json', 'Sync versions to all projects')) {
+        & $versionizePath Sync
+        if ($LASTEXITCODE -ne 0) { throw 'versionize.ps1 Sync failed.' }
+
+        foreach ($server in $nodeServers) {
+            $versionTsPath = Join-Path $repoRoot 'src' $server.name 'src' 'version.ts'
+            & $versionizePath Export $versionTsPath
+            if ($LASTEXITCODE -ne 0) { throw "versionize.ps1 Export failed for $($server.name)." }
+        }
+    }
+
     Invoke-Compile -Scope 'All'
     Invoke-Test -Scope 'All'
 
@@ -856,7 +822,7 @@ function Invoke-Package {
 
     Write-Header 'Package'
 
-    Copy-WebServerToServersFolder
+    Copy-NodeJsToServersFolder
 
     if ($Local) {
         # Local dev: copy framework-dependent build output (no publish, no VSIX)
@@ -898,7 +864,7 @@ function Invoke-Publish {
     # Explicit "Publish All" = all platforms; otherwise single platform
     $rids = if ($Scope -eq 'All') { $ridToTarget.Keys } else { @(Resolve-RuntimeIdentifier) }
 
-    Copy-WebServerToServersFolder
+    Copy-NodeJsToServersFolder
 
     foreach ($rid in $rids) {
         $vsceTarget = $ridToTarget[$rid]
@@ -1004,7 +970,7 @@ function Invoke-Tag {
     $wasUndone = Undo-PreviousTag -Version $Version
     $currentVersion = if ($wasUndone) {
         # Re-read version from disk since the undo reverted the bump
-        (Get-Content $packageJsonPath -Raw | ConvertFrom-Json).version
+        (Get-Content $versionJsonPath -Raw | ConvertFrom-Json).version
     }
     else {
         $extensionVersion
@@ -1012,7 +978,7 @@ function Invoke-Tag {
 
     # ── Validate version ──
     if (-not $currentVersion) {
-        throw "Cannot read current version from $packageJsonPath"
+        throw "Cannot read current version from $versionJsonPath"
     }
 
     $versionCmp = Compare-SemVer -Current $currentVersion -New $Version
@@ -1035,7 +1001,7 @@ function Invoke-Tag {
     # ── Bump versions + commit (only if version changed) ──
     if ($needsBump) {
         Write-Header 'Bump Versions'
-        Update-ProjectVersion -OldVersion $currentVersion -NewVersion $Version
+        Update-ProjectVersion -NewVersion $Version
 
         Write-Section 'Git commit'
         if ($PSCmdlet.ShouldProcess("version $Version", 'Git commit')) {
@@ -1072,7 +1038,10 @@ function Invoke-Clean {
     $targets = @()
 
     $targets += @{ Path = (Join-Path $extensionDir 'dist');    Label = 'TypeScript output (dist/)' }
-    $targets += @{ Path = (Join-Path $webServerDir 'out');    Label = 'Web MCP server output (out/)' }
+    foreach ($server in $nodeServers) {
+        $serverDir = Join-Path $repoRoot 'src' $server.name
+        $targets += @{ Path = (Join-Path $serverDir 'out'); Label = "$($server.name) output (out/)" }
+    }
     $targets += @{ Path = $serversDir;                          Label = 'Servers (servers/)' }
     $targets += @{ Path = $publishDir;                         Label = 'VSIX packages (publish/)' }
     $targets += @{ Path = (Join-Path $extensionDir 'LICENSE');       Label = 'Extension LICENSE copy' }

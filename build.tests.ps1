@@ -359,7 +359,7 @@ $testCases = @(
     @{
         Name         = 'Package -Local'
         Arguments    = 'Package -Local -WhatIf'
-        ExpectOutput = @('Delete TypeScript output', 'Compile TypeScript', 'dotnet build', 'Copy .NET servers \(local\)', 'Copy Web MCP server')
+        ExpectOutput = @('Delete TypeScript output', 'Compile TypeScript', 'dotnet build', 'Copy .NET servers \(local\)', 'Package AutoContext\.Mcp\.Web')
         RejectOutput = @('dotnet publish', 'vsce package')
     }
 

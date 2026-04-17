@@ -1,0 +1,7 @@
+{
+  "servers": [
+    { "name": "AutoContext.Mcp.DotNet", "type": "dotnet" },
+    { "name": "AutoContext.WorkspaceServer", "type": "dotnet" },
+    { "name": "AutoContext.Mcp.Web", "type": "node" }
+  ]
+}
