@@ -132,25 +132,25 @@ export const instructionsCategoryOrder: readonly string[] = ['General', 'Languag
 // When `toolName` is present the entry is a sub-feature of a composite tool (e.g.
 // `check_csharp_all`); when absent, `key` doubles as the MCP tool name.
 export const mcpTools: readonly McpToolsEntry[] = [
-    { key: 'check_csharp_async_patterns', toolName: 'check_csharp_all', label: 'Async Patterns', category: 'C#', group: '.NET', serverCategory: 'dotnet', contextKeys: ['hasCSharp'] },
-    { key: 'check_csharp_coding_style', toolName: 'check_csharp_all', label: 'Coding Style', category: 'C#', group: '.NET', serverCategory: 'dotnet', contextKeys: ['hasCSharp'] },
-    { key: 'check_csharp_member_ordering', toolName: 'check_csharp_all', label: 'Member Ordering', category: 'C#', group: '.NET', serverCategory: 'dotnet', contextKeys: ['hasCSharp'] },
-    { key: 'check_csharp_naming_conventions', toolName: 'check_csharp_all', label: 'Naming Conventions', category: 'C#', group: '.NET', serverCategory: 'dotnet', contextKeys: ['hasCSharp'] },
-    { key: 'check_csharp_nullable_context', toolName: 'check_csharp_all', label: 'Nullable Context', category: 'C#', group: '.NET', serverCategory: 'dotnet', contextKeys: ['hasCSharp'] },
-    { key: 'check_csharp_project_structure', toolName: 'check_csharp_all', label: 'Project Structure', category: 'C#', group: '.NET', serverCategory: 'dotnet', contextKeys: ['hasCSharp'] },
-    { key: 'check_csharp_test_style', toolName: 'check_csharp_all', label: 'Test Style', category: 'C#', group: '.NET', serverCategory: 'dotnet', contextKeys: ['hasCSharp'] },
-    { key: 'check_nuget_hygiene', label: 'NuGet Hygiene', category: 'NuGet', group: '.NET', serverCategory: 'dotnet', contextKeys: ['hasDotNet'] },
-    { key: 'check_git_commit_content', toolName: 'check_git_all', label: 'Commit Content', category: 'Git', group: 'Workspace', serverCategory: 'git', contextKeys: ['hasGit'] },
-    { key: 'check_git_commit_format', toolName: 'check_git_all', label: 'Commit Format', category: 'Git', group: 'Workspace', serverCategory: 'git', contextKeys: ['hasGit'] },
-    { key: 'get_editorconfig', label: 'EditorConfig', category: 'EditorConfig', group: 'Workspace', serverCategory: 'editorconfig' },
-    { key: 'check_typescript_coding_style', toolName: 'check_typescript_all', label: 'Coding Style', category: 'TypeScript', group: 'Web', serverCategory: 'typescript', contextKeys: ['hasTypeScript'] },
+    { key: 'check_csharp_async_patterns', toolName: 'check_csharp_all', label: 'Async Patterns', category: 'C#', serverLabel: '.NET', scope: 'dotnet', contextKeys: ['hasCSharp'] },
+    { key: 'check_csharp_coding_style', toolName: 'check_csharp_all', label: 'Coding Style', category: 'C#', serverLabel: '.NET', scope: 'dotnet', contextKeys: ['hasCSharp'] },
+    { key: 'check_csharp_member_ordering', toolName: 'check_csharp_all', label: 'Member Ordering', category: 'C#', serverLabel: '.NET', scope: 'dotnet', contextKeys: ['hasCSharp'] },
+    { key: 'check_csharp_naming_conventions', toolName: 'check_csharp_all', label: 'Naming Conventions', category: 'C#', serverLabel: '.NET', scope: 'dotnet', contextKeys: ['hasCSharp'] },
+    { key: 'check_csharp_nullable_context', toolName: 'check_csharp_all', label: 'Nullable Context', category: 'C#', serverLabel: '.NET', scope: 'dotnet', contextKeys: ['hasCSharp'] },
+    { key: 'check_csharp_project_structure', toolName: 'check_csharp_all', label: 'Project Structure', category: 'C#', serverLabel: '.NET', scope: 'dotnet', contextKeys: ['hasCSharp'] },
+    { key: 'check_csharp_test_style', toolName: 'check_csharp_all', label: 'Test Style', category: 'C#', serverLabel: '.NET', scope: 'dotnet', contextKeys: ['hasCSharp'] },
+    { key: 'check_nuget_hygiene', label: 'NuGet Hygiene', category: 'NuGet', serverLabel: '.NET', scope: 'dotnet', contextKeys: ['hasDotNet'] },
+    { key: 'check_git_commit_content', toolName: 'check_git_all', label: 'Commit Content', category: 'Git', serverLabel: 'Workspace', scope: 'git', contextKeys: ['hasGit'] },
+    { key: 'check_git_commit_format', toolName: 'check_git_all', label: 'Commit Format', category: 'Git', serverLabel: 'Workspace', scope: 'git', contextKeys: ['hasGit'] },
+    { key: 'get_editorconfig', label: 'EditorConfig', category: 'EditorConfig', serverLabel: 'Workspace', scope: 'editorconfig' },
+    { key: 'check_typescript_coding_style', toolName: 'check_typescript_all', label: 'Coding Style', category: 'TypeScript', serverLabel: 'Web', scope: 'typescript', contextKeys: ['hasTypeScript'] },
 ];
 
-export const mcpToolGroupOrder: readonly string[] = ['.NET', 'Web', 'Workspace'];
+export const mcpToolServerLabelOrder: readonly string[] = ['.NET', 'Web', 'Workspace'];
 export const mcpToolCategoryOrder: readonly string[] = ['C#', 'NuGet', 'TypeScript', 'Git', 'EditorConfig'];
 
-/** Maps each tree-view group name to its MCP server category names. */
-export const groupServerCategories: ReadonlyMap<string, readonly string[]> = new Map([
+/** Maps each tree-view server label to its MCP server scope values. */
+export const serverLabelToScopesMap: ReadonlyMap<string, readonly string[]> = new Map([
     ['.NET', ['dotnet']],
     ['Web', ['typescript']],
     ['Workspace', ['git', 'editorconfig']],
@@ -159,10 +159,10 @@ export const groupServerCategories: ReadonlyMap<string, readonly string[]> = new
 // ── MCP Servers ──────────────────────────────────────────────────────
 
 export const mcpServers: readonly McpServerEntry[] = [
-    { label: 'AutoContext: DotNet', category: 'dotnet', process: 'dotnet', contextKey: 'hasDotNet' },
-    { label: 'AutoContext: Git', category: 'git', process: 'workspace', contextKey: 'hasGit' },
-    { label: 'AutoContext: EditorConfig', category: 'editorconfig', process: 'workspace' },
-    { label: 'AutoContext: TypeScript', category: 'typescript', process: 'web', contextKey: 'hasTypeScript' },
+    { label: 'AutoContext: DotNet', scope: 'dotnet', server: 'dotnet', contextKey: 'hasDotNet' },
+    { label: 'AutoContext: Git', scope: 'git', server: 'workspace', contextKey: 'hasGit' },
+    { label: 'AutoContext: EditorConfig', scope: 'editorconfig', server: 'workspace' },
+    { label: 'AutoContext: TypeScript', scope: 'typescript', server: 'web', contextKey: 'hasTypeScript' },
 ];
 
 // ── Tree View Labels ─────────────────────────────────────────────────

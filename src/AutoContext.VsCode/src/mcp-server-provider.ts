@@ -7,7 +7,7 @@ import type { WorkspaceContextDetector } from './workspace-context-detector.js';
 import type { WorkspaceServerManager } from './workspace-server-manager.js';
 import type { HealthMonitorServer } from './health-monitor.js';
 import type { McpServerEntry } from './types/mcp-server-entry.js';
-import { groupServerCategories } from './ui-constants.js';
+import { serverLabelToScopesMap } from './ui-constants.js';
 
 export class McpServerProvider implements vscode.McpServerDefinitionProvider {
     private readonly serversPath: string;
@@ -39,7 +39,7 @@ export class McpServerProvider implements vscode.McpServerDefinitionProvider {
                 if (s.contextKey && !this.workspaceContextDetector.get(s.contextKey)) {
                     return false;
                 }
-                const toolSettings = this.toolsCatalog.getSettingIdByCategory(s.category);
+                const toolSettings = this.toolsCatalog.getSettingIdsByScope(s.scope);
                 return toolSettings.length === 0 || toolSettings.some(id => config.get(id) !== false);
             })
             .map(s => {
@@ -48,16 +48,16 @@ export class McpServerProvider implements vscode.McpServerDefinitionProvider {
                 let command: string;
                 const args: string[] = [];
 
-                if (s.process === 'web') {
+                if (s.server === 'web') {
                     command = 'node';
                     args.push(join(this.serversPath, 'AutoContext.Mcp.Web', 'index.js'));
-                } else if (s.process === 'workspace') {
+                } else if (s.server === 'workspace') {
                     command = join(this.serversPath, 'AutoContext.WorkspaceServer', `AutoContext.WorkspaceServer${this.ext}`);
                 } else {
                     command = join(this.serversPath, 'AutoContext.Mcp.DotNet', `AutoContext.Mcp.DotNet${this.ext}`);
                 }
 
-                args.push('--scope', s.category);
+                args.push('--scope', s.scope);
 
                 if (workspaceFolder) {
                     args.push('--workspace-folder', workspaceFolder.uri.fsPath);
@@ -68,7 +68,7 @@ export class McpServerProvider implements vscode.McpServerDefinitionProvider {
                 // servers, since the editorconfig MCP server tool reads .editorconfig files
                 // directly from the workspace.
                 // Giving it the same pipe would create a circular dependency.
-                if (s.category !== 'editorconfig') {
+                if (s.scope !== 'editorconfig') {
                     const pipeName = this.workspaceServer.getPipeName();
 
                     if (pipeName) {
@@ -93,20 +93,20 @@ export class McpServerProvider implements vscode.McpServerDefinitionProvider {
     }
 
     /**
-     * Returns the availability status of a group for use in UI indicators.
-     * - `'unavailable'`: no server binary exists on disk for any category in the group.
+     * Returns the availability status of a server label for use in UI indicators.
+     * - `'unavailable'`: no server binary exists on disk for any scope in the server label.
      * - `'disabled'`: binaries exist but all servers are filtered by context or settings.
      * - `'available'`: at least one server would be launched.
      */
-    getGroupStatus(groupName: string): 'unavailable' | 'disabled' | 'available' {
-        const categories = groupServerCategories.get(groupName);
-        if (!categories) { return 'unavailable'; }
+    getServerStatus(serverLabel: string): 'unavailable' | 'disabled' | 'available' {
+        const scopes = serverLabelToScopesMap.get(serverLabel);
+        if (!scopes) { return 'unavailable'; }
 
         const config = vscode.workspace.getConfiguration();
         let anyBinaryExists = false;
 
-        for (const category of categories) {
-            const serverEntry = this.serversCatalog.all.find(s => s.category === category);
+        for (const scope of scopes) {
+            const serverEntry = this.serversCatalog.all.find(s => s.scope === scope);
             if (!serverEntry) { continue; }
 
             if (!this.isBinaryAvailable(serverEntry)) { continue; }
@@ -114,7 +114,7 @@ export class McpServerProvider implements vscode.McpServerDefinitionProvider {
 
             if (serverEntry.contextKey && !this.workspaceContextDetector.get(serverEntry.contextKey)) { continue; }
 
-            const toolSettings = this.toolsCatalog.getSettingIdByCategory(category);
+            const toolSettings = this.toolsCatalog.getSettingIdsByScope(scope);
             if (toolSettings.length > 0 && toolSettings.every(id => config.get(id) === false)) { continue; }
 
             return 'available';
@@ -127,7 +127,7 @@ export class McpServerProvider implements vscode.McpServerDefinitionProvider {
         if (!existsSync(this.getBinaryPath(server))) { return false; }
 
         // Web servers need node_modules alongside index.js to be runnable.
-        if (server.process === 'web') {
+        if (server.server === 'web') {
             return existsSync(join(this.serversPath, 'AutoContext.Mcp.Web', 'node_modules'));
         }
 
@@ -135,9 +135,9 @@ export class McpServerProvider implements vscode.McpServerDefinitionProvider {
     }
 
     private getBinaryPath(server: McpServerEntry): string {
-        if (server.process === 'web') {
+        if (server.server === 'web') {
             return join(this.serversPath, 'AutoContext.Mcp.Web', 'index.js');
-        } else if (server.process === 'workspace') {
+        } else if (server.server === 'workspace') {
             return join(this.serversPath, 'AutoContext.WorkspaceServer', `AutoContext.WorkspaceServer${this.ext}`);
         } else {
             return join(this.serversPath, 'AutoContext.Mcp.DotNet', `AutoContext.Mcp.DotNet${this.ext}`);

@@ -33,7 +33,7 @@ describe('InstructionsTreeProvider', () => {
         const provider = new InstructionsTreeProvider(fakeDetector, catalog, stateResolver, tooltip);
         const roots = provider.getChildren();
 
-        const names = roots.map(r => r.kind === 'category' ? r.name : '');
+        const names = roots.map(r => r.kind === 'categoryNode' ? r.name : '');
         expect.soft(names).toEqual(['General', 'Languages', '.NET', 'Web', 'Tools']);
 
         provider.dispose();
@@ -42,7 +42,7 @@ describe('InstructionsTreeProvider', () => {
     it('should return instruction nodes as children of a category', () => {
         const provider = new InstructionsTreeProvider(fakeDetector, catalog, stateResolver, tooltip);
         const roots = provider.getChildren();
-        const general = roots.find(r => r.kind === 'category' && r.name === 'General')!;
+        const general = roots.find(r => r.kind === 'categoryNode' && r.name === 'General')!;
         const children = provider.getChildren(general);
 
         expect.soft(children.length).toBeGreaterThan(0);
@@ -54,7 +54,7 @@ describe('InstructionsTreeProvider', () => {
     it('should return no children for an instruction node', () => {
         const provider = new InstructionsTreeProvider(fakeDetector, catalog, stateResolver, tooltip);
         const roots = provider.getChildren();
-        const general = roots.find(r => r.kind === 'category' && r.name === 'General')!;
+        const general = roots.find(r => r.kind === 'categoryNode' && r.name === 'General')!;
         const children = provider.getChildren(general);
         const leaf = children[0];
 
@@ -78,7 +78,7 @@ describe('InstructionsTreeProvider', () => {
 
         const provider = new InstructionsTreeProvider(fakeDetector, catalog, stateResolver, tooltip);
         const roots = provider.getChildren();
-        const languages = roots.find(r => r.kind === 'category' && r.name === 'Languages')!;
+        const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
         const csharp = children.find(c => c.kind === 'instructions' && c.entry.settingId === 'autocontext.instructions.lang.csharp')!;
 
@@ -92,7 +92,7 @@ describe('InstructionsTreeProvider', () => {
 
         const provider = new InstructionsTreeProvider(fakeDetector, catalog, stateResolver, tooltip);
         const roots = provider.getChildren();
-        const languages = roots.find(r => r.kind === 'category' && r.name === 'Languages')!;
+        const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
         const csharp = children.find(c => c.kind === 'instructions' && c.entry.settingId === 'autocontext.instructions.lang.csharp')!;
 
@@ -110,7 +110,7 @@ describe('InstructionsTreeProvider', () => {
 
         const provider = new InstructionsTreeProvider(fakeDetector, catalog, stateResolver, tooltip);
         const roots = provider.getChildren();
-        const languages = roots.find(r => r.kind === 'category' && r.name === 'Languages')!;
+        const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
         const csharp = children.find(c => c.kind === 'instructions' && c.entry.settingId === 'autocontext.instructions.lang.csharp')!;
 
@@ -128,7 +128,7 @@ describe('InstructionsTreeProvider', () => {
 
         const provider = new InstructionsTreeProvider(fakeDetector, catalog, stateResolver, tooltip);
         const roots = provider.getChildren();
-        const languages = roots.find(r => r.kind === 'category' && r.name === 'Languages')!;
+        const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
         const csharp = children.find(c => c.kind === 'instructions' && c.entry.settingId === 'autocontext.instructions.lang.csharp')!;
 
@@ -143,7 +143,7 @@ describe('InstructionsTreeProvider', () => {
     it('should treat always-on entries (no contextKeys) as active when enabled', () => {
         const provider = new InstructionsTreeProvider(fakeDetector, catalog, stateResolver, tooltip);
         const roots = provider.getChildren();
-        const general = roots.find(r => r.kind === 'category' && r.name === 'General')!;
+        const general = roots.find(r => r.kind === 'categoryNode' && r.name === 'General')!;
         const children = provider.getChildren(general);
         const codeReview = children.find(c => c.kind === 'instructions' && c.entry.settingId === 'autocontext.instructions.codeReview')!;
 
@@ -156,7 +156,7 @@ describe('InstructionsTreeProvider', () => {
         const provider = new InstructionsTreeProvider(fakeDetector, catalog, stateResolver, tooltip);
         const roots = provider.getChildren();
 
-        const categories = roots.filter(r => r.kind === 'category').map(r => r.kind === 'category' ? r.name : '');
+        const categories = roots.filter(r => r.kind === 'categoryNode').map(r => r.kind === 'categoryNode' ? r.name : '');
         expect.soft(categories).toEqual(['General', 'Languages', '.NET', 'Web', 'Tools']);
 
         provider.dispose();
@@ -167,7 +167,7 @@ describe('InstructionsTreeProvider', () => {
 
         const provider = new InstructionsTreeProvider(fakeDetector, catalog, stateResolver, tooltip);
         const roots = provider.getChildren();
-        const general = roots.find(r => r.kind === 'category' && r.name === 'General')!;
+        const general = roots.find(r => r.kind === 'categoryNode' && r.name === 'General')!;
         const children = provider.getChildren(general);
         const labels = children.map(c => c.kind === 'instructions' ? c.entry.label : '');
         const expected = catalog.all.filter(e => e.category === 'General').map(e => e.label);
@@ -182,7 +182,7 @@ describe('InstructionsTreeProvider', () => {
 
         const provider = new InstructionsTreeProvider(fakeDetector, catalog, stateResolver, tooltip);
         const roots = provider.getChildren();
-        const languages = roots.find(r => r.kind === 'category' && r.name === 'Languages')!;
+        const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
         const csharp = children.find(c => c.kind === 'instructions' && c.entry.settingId === 'autocontext.instructions.lang.csharp')!;
 
@@ -201,7 +201,7 @@ describe('InstructionsTreeProvider', () => {
         const enrichedCatalog = new InstructionsCatalog(instructionsFiles, metadata);
         const provider = new InstructionsTreeProvider(fakeDetector, enrichedCatalog, stateResolver, tooltip);
         const roots = provider.getChildren();
-        const languages = roots.find(r => r.kind === 'category' && r.name === 'Languages')!;
+        const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
         const csharp = children.find(c => c.kind === 'instructions' && c.entry.settingId === 'autocontext.instructions.lang.csharp')!;
         const treeItem = provider.getTreeItem(csharp);
@@ -217,7 +217,7 @@ describe('InstructionsTreeProvider', () => {
 
         const provider = new InstructionsTreeProvider(fakeDetector, catalog, stateResolver, tooltip);
         const roots = provider.getChildren();
-        const general = roots.find(r => r.kind === 'category' && r.name === 'General')!;
+        const general = roots.find(r => r.kind === 'categoryNode' && r.name === 'General')!;
         const children = provider.getChildren(general);
         const active = children.find(c => c.kind === 'instructions' && c.state === TreeViewNodeState.Enabled)!;
         const treeItem = provider.getTreeItem(active);
@@ -233,7 +233,7 @@ describe('InstructionsTreeProvider', () => {
 
         const provider = new InstructionsTreeProvider(fakeDetector, catalog, stateResolver, tooltip);
         const roots = provider.getChildren();
-        const languages = roots.find(r => r.kind === 'category' && r.name === 'Languages')!;
+        const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
 
         const states = children
@@ -259,7 +259,7 @@ describe('InstructionsTreeProvider', () => {
 
         const provider = new InstructionsTreeProvider(fakeDetector, catalog, stateResolver, tooltip);
         const roots = provider.getChildren();
-        const languages = roots.find(r => r.kind === 'category' && r.name === 'Languages')!;
+        const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
         const csharp = children.find(c => c.kind === 'instructions' && c.entry.settingId === 'autocontext.instructions.lang.csharp')!;
 
@@ -279,7 +279,7 @@ describe('InstructionsTreeProvider', () => {
 
         const provider = new InstructionsTreeProvider(fakeDetector, catalog, stateResolver, tooltip);
         const roots = provider.getChildren();
-        const languages = roots.find(r => r.kind === 'category' && r.name === 'Languages')!;
+        const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
         const csharp = children.find(c => c.kind === 'instructions' && c.entry.settingId === 'autocontext.instructions.lang.csharp')!;
 
@@ -297,7 +297,7 @@ describe('InstructionsTreeProvider', () => {
 
         const provider = new InstructionsTreeProvider(fakeDetector, catalog, stateResolver, tooltip);
         const roots = provider.getChildren();
-        const general = roots.find(r => r.kind === 'category' && r.name === 'General')!;
+        const general = roots.find(r => r.kind === 'categoryNode' && r.name === 'General')!;
         const children = provider.getChildren(general);
         const active = children.find(c => c.kind === 'instructions' && c.state === TreeViewNodeState.Enabled)!;
 
@@ -313,7 +313,7 @@ describe('InstructionsTreeProvider', () => {
 
         const provider = new InstructionsTreeProvider(fakeDetector, catalog, stateResolver, tooltip);
         const roots = provider.getChildren();
-        const languages = roots.find(r => r.kind === 'category' && r.name === 'Languages')!;
+        const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
         const disabled = children.find(c => c.kind === 'instructions' && c.entry.settingId === 'autocontext.instructions.lang.csharp')!;
 
@@ -332,7 +332,7 @@ describe('InstructionsTreeProvider', () => {
         const changelogCatalog = new InstructionsCatalog(instructionsFiles, metadata);
         const provider = new InstructionsTreeProvider(fakeDetector, changelogCatalog, stateResolver, tooltip);
         const roots = provider.getChildren();
-        const languages = roots.find(r => r.kind === 'category' && r.name === 'Languages')!;
+        const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
         const csharp = children.find(c => c.kind === 'instructions' && c.entry.settingId === 'autocontext.instructions.lang.csharp')!;
 
@@ -347,7 +347,7 @@ describe('InstructionsTreeProvider', () => {
 
         const provider = new InstructionsTreeProvider(fakeDetector, catalog, stateResolver, tooltip);
         const roots = provider.getChildren();
-        const general = roots.find(r => r.kind === 'category' && r.name === 'General')!;
+        const general = roots.find(r => r.kind === 'categoryNode' && r.name === 'General')!;
         const children = provider.getChildren(general);
         const active = children.find(c => c.kind === 'instructions' && c.state === TreeViewNodeState.Enabled)!;
 
@@ -363,7 +363,7 @@ describe('InstructionsTreeProvider', () => {
 
         const provider = new InstructionsTreeProvider(fakeDetector, catalog, stateResolver, tooltip);
         const roots = provider.getChildren();
-        const languages = roots.find(r => r.kind === 'category' && r.name === 'Languages')!;
+        const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
         const node = children.find(c => c.kind === 'instructions' && c.entry.settingId === 'autocontext.instructions.lang.csharp')!;
 
@@ -380,7 +380,7 @@ describe('InstructionsTreeProvider', () => {
 
         const provider = new InstructionsTreeProvider(fakeDetector, catalog, stateResolver, tooltip);
         const roots = provider.getChildren();
-        const general = roots.find(r => r.kind === 'category' && r.name === 'General')!;
+        const general = roots.find(r => r.kind === 'categoryNode' && r.name === 'General')!;
         const children = provider.getChildren(general);
         const node = children.find(c => c.kind === 'instructions' && c.state === TreeViewNodeState.Enabled)!;
 
@@ -408,7 +408,7 @@ describe('InstructionsTreeProvider', () => {
 
         const provider = new InstructionsTreeProvider(fakeDetector, catalog, stateResolver, tooltip);
         const roots = provider.getChildren();
-        const languages = roots.find(r => r.kind === 'category' && r.name === 'Languages')!;
+        const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
         const node = children.find(c => c.kind === 'instructions' && c.entry.settingId === 'autocontext.instructions.lang.csharp')!;
 
@@ -426,7 +426,7 @@ describe('InstructionsTreeProvider', () => {
 
         const provider = new InstructionsTreeProvider(fakeDetector, catalog, stateResolver, tooltip);
         const roots = provider.getChildren();
-        const languages = roots.find(r => r.kind === 'category' && r.name === 'Languages')!;
+        const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
         const node = children.find(c => c.kind === 'instructions' && c.entry.settingId === 'autocontext.instructions.lang.csharp')!;
 
@@ -448,7 +448,7 @@ describe('InstructionsTreeProvider', () => {
         provider.enterExportMode();
 
         const roots = provider.getChildren();
-        const general = roots.find(r => r.kind === 'category' && r.name === 'General')!;
+        const general = roots.find(r => r.kind === 'categoryNode' && r.name === 'General')!;
         const children = provider.getChildren(general);
 
         const active = children.find(c => c.kind === 'instructions' && c.state === TreeViewNodeState.Enabled)!;
@@ -467,7 +467,7 @@ describe('InstructionsTreeProvider', () => {
         provider.enterExportMode();
 
         const roots = provider.getChildren();
-        const languages = roots.find(r => r.kind === 'category' && r.name === 'Languages')!;
+        const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
         const notDetected = children.find(c => c.kind === 'instructions' && c.state === TreeViewNodeState.NotDetected)!;
 
@@ -481,7 +481,7 @@ describe('InstructionsTreeProvider', () => {
 
         const provider = new InstructionsTreeProvider(fakeDetector, catalog, stateResolver, tooltip);
         const roots = provider.getChildren();
-        const general = roots.find(r => r.kind === 'category' && r.name === 'General')!;
+        const general = roots.find(r => r.kind === 'categoryNode' && r.name === 'General')!;
         const children = provider.getChildren(general);
         const active = children.find(c => c.kind === 'instructions' && c.state === TreeViewNodeState.Enabled)!;
 
@@ -516,7 +516,7 @@ describe('InstructionsTreeProvider', () => {
         provider.enterExportMode();
 
         const roots = provider.getChildren();
-        const general = roots.find(r => r.kind === 'category' && r.name === 'General')!;
+        const general = roots.find(r => r.kind === 'categoryNode' && r.name === 'General')!;
         const children = provider.getChildren(general);
         const entry = children.find(c => c.kind === 'instructions' && c.entry.settingId === 'autocontext.instructions.codeReview')!;
 
@@ -635,7 +635,7 @@ describe('InstructionsTreeProvider', () => {
         const roots = provider.getChildren();
         // All items are not-detected except context-free ones → categories with only not-detected items are hidden
         for (const cat of roots) {
-            if (cat.kind !== 'category') { continue; }
+            if (cat.kind !== 'categoryNode') { continue; }
             const children = provider.getChildren(cat);
             const notDetected = children.filter(c => c.kind === 'instructions' && c.state === TreeViewNodeState.NotDetected);
             expect.soft(notDetected).toHaveLength(0);
@@ -651,7 +651,7 @@ describe('InstructionsTreeProvider', () => {
         provider.showNotDetected = true;
 
         const roots = provider.getChildren();
-        const languages = roots.find(r => r.kind === 'category' && r.name === 'Languages')!;
+        const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
         const notDetected = children.filter(c => c.kind === 'instructions' && c.state === TreeViewNodeState.NotDetected);
         expect.soft(notDetected.length).toBeGreaterThan(0);
@@ -667,7 +667,7 @@ describe('InstructionsTreeProvider', () => {
 
         const roots = provider.getChildren();
         for (const cat of roots) {
-            if (cat.kind !== 'category') { continue; }
+            if (cat.kind !== 'categoryNode') { continue; }
             const children = provider.getChildren(cat);
             expect.soft(children.length).toBeGreaterThan(0);
         }
@@ -681,7 +681,7 @@ describe('InstructionsTreeProvider', () => {
 
         const provider = new InstructionsTreeProvider(fakeDetector, catalog, stateResolver, tooltip);
         const roots = provider.getChildren();
-        const languages = roots.find(r => r.kind === 'category' && r.name === 'Languages')!;
+        const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
         const overridden = children.find(c => c.kind === 'instructions' && c.entry.settingId === 'autocontext.instructions.lang.csharp')!;
 
@@ -697,7 +697,7 @@ describe('InstructionsTreeProvider', () => {
         const provider = new InstructionsTreeProvider(fakeDetector, catalog, stateResolver, tooltip);
         const roots = provider.getChildren();
 
-        const general = roots.find(r => r.kind === 'category' && r.name === 'General')!;
+        const general = roots.find(r => r.kind === 'categoryNode' && r.name === 'General')!;
         const activeNode = provider.getChildren(general).find(c => c.kind === 'instructions' && c.state === TreeViewNodeState.Enabled)!;
         expect.soft(provider.getTreeItem(activeNode).tooltip).toContain('Active');
 
@@ -709,7 +709,7 @@ describe('InstructionsTreeProvider', () => {
 
         const provider = new InstructionsTreeProvider(fakeDetector, catalog, stateResolver, tooltip);
         const roots = provider.getChildren();
-        const languages = roots.find(r => r.kind === 'category' && r.name === 'Languages')!;
+        const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
         const notDetectedNode = provider.getChildren(languages).find(c => c.kind === 'instructions' && c.state === TreeViewNodeState.NotDetected)!;
         expect.soft(provider.getTreeItem(notDetectedNode).tooltip).toContain('Not detected');
 
@@ -722,7 +722,7 @@ describe('InstructionsTreeProvider', () => {
 
         const provider = new InstructionsTreeProvider(fakeDetector, catalog, stateResolver, tooltip);
         const roots = provider.getChildren();
-        const languages = roots.find(r => r.kind === 'category' && r.name === 'Languages')!;
+        const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
         const disabled = provider.getChildren(languages).find(c => c.kind === 'instructions' && c.state === TreeViewNodeState.Disabled)!;
 
         expect.soft(provider.getTreeItem(disabled).tooltip).toContain('Disabled');
@@ -736,7 +736,7 @@ describe('InstructionsTreeProvider', () => {
 
         const provider = new InstructionsTreeProvider(fakeDetector, catalog, stateResolver, tooltip);
         const roots = provider.getChildren();
-        const languages = roots.find(r => r.kind === 'category' && r.name === 'Languages')!;
+        const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
         const overridden = provider.getChildren(languages).find(c => c.kind === 'instructions' && c.state === TreeViewNodeState.Overridden)!;
 
         expect.soft(provider.getTreeItem(overridden).tooltip).toContain('Overridden');
@@ -750,7 +750,7 @@ describe('InstructionsTreeProvider', () => {
 
         const provider = new InstructionsTreeProvider(fakeDetector, catalog, stateResolver, tooltip);
         const roots = provider.getChildren();
-        const languages = roots.find(r => r.kind === 'category' && r.name === 'Languages')!;
+        const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
         const item = provider.getTreeItem(languages);
         const langEntries = catalog.all.filter(e => e.category === 'Languages');
         const active = langEntries.filter(e => e.settingId !== 'autocontext.instructions.lang.csharp').length;
@@ -765,7 +765,7 @@ describe('InstructionsTreeProvider', () => {
 
         const provider = new InstructionsTreeProvider(fakeDetector, catalog, stateResolver, tooltip);
         const roots = provider.getChildren();
-        const general = roots.find(r => r.kind === 'category' && r.name === 'General')!;
+        const general = roots.find(r => r.kind === 'categoryNode' && r.name === 'General')!;
         const item = provider.getTreeItem(general);
         const generalEntries = catalog.all.filter(e => e.category === 'General');
         const alwaysOn = generalEntries.filter(e => !e.contextKeys || e.contextKeys.length === 0).length;
@@ -781,7 +781,7 @@ describe('InstructionsTreeProvider', () => {
 
         const provider = new InstructionsTreeProvider(fakeDetector, catalog, stateResolver, tooltip);
         const roots = provider.getChildren();
-        const languages = roots.find(r => r.kind === 'category' && r.name === 'Languages')!;
+        const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
         const item = provider.getTreeItem(languages);
         const langEntries = catalog.all.filter(e => e.category === 'Languages');
 
@@ -828,7 +828,7 @@ describe('InstructionsTreeProvider', () => {
         const versionedCatalog = new InstructionsCatalog(instructionsFiles, metadata);
         const provider = new InstructionsTreeProvider(fakeDetector, versionedCatalog, stateResolver, tooltip);
         const roots = provider.getChildren();
-        const languages = roots.find(r => r.kind === 'category' && r.name === 'Languages')!;
+        const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
         const csharp = children.find(c => c.kind === 'instructions' && c.entry.settingId === 'autocontext.instructions.lang.csharp')!;
 
@@ -851,7 +851,7 @@ describe('InstructionsTreeProvider', () => {
         const versionedCatalog = new InstructionsCatalog(instructionsFiles, metadata);
         const provider = new InstructionsTreeProvider(fakeDetector, versionedCatalog, stateResolver, tooltip);
         const roots = provider.getChildren();
-        const languages = roots.find(r => r.kind === 'category' && r.name === 'Languages')!;
+        const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
         const csharp = children.find(c => c.kind === 'instructions' && c.entry.settingId === 'autocontext.instructions.lang.csharp')!;
 
@@ -872,7 +872,7 @@ describe('InstructionsTreeProvider', () => {
         const versionedCatalog = new InstructionsCatalog(instructionsFiles, metadata);
         const provider = new InstructionsTreeProvider(fakeDetector, versionedCatalog, stateResolver, tooltip);
         const roots = provider.getChildren();
-        const languages = roots.find(r => r.kind === 'category' && r.name === 'Languages')!;
+        const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
         const csharp = children.find(c => c.kind === 'instructions' && c.entry.settingId === 'autocontext.instructions.lang.csharp')!;
 
@@ -895,7 +895,7 @@ describe('InstructionsTreeProvider', () => {
         const versionedCatalog = new InstructionsCatalog(instructionsFiles, metadata);
         const provider = new InstructionsTreeProvider(fakeDetector, versionedCatalog, stateResolver, tooltip);
         const roots = provider.getChildren();
-        const languages = roots.find(r => r.kind === 'category' && r.name === 'Languages')!;
+        const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
         const node = children.find(c => c.kind === 'instructions' && c.entry.settingId === 'autocontext.instructions.lang.csharp')!;
 
@@ -924,7 +924,7 @@ describe('InstructionsTreeProvider', () => {
         const versionedCatalog = new InstructionsCatalog(instructionsFiles, metadata);
         const provider = new InstructionsTreeProvider(fakeDetector, versionedCatalog, stateResolver, tooltip);
         const roots = provider.getChildren();
-        const languages = roots.find(r => r.kind === 'category' && r.name === 'Languages')!;
+        const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
         const node = children.find(c => c.kind === 'instructions' && c.entry.settingId === 'autocontext.instructions.lang.csharp')!;
 
@@ -943,7 +943,7 @@ describe('InstructionsTreeProvider', () => {
 
         const provider = new InstructionsTreeProvider(fakeDetector, catalog, stateResolver, tooltip);
         const roots = provider.getChildren();
-        const languages = roots.find(r => r.kind === 'category' && r.name === 'Languages')!;
+        const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
         const node = children.find(c => c.kind === 'instructions' && c.entry.settingId === 'autocontext.instructions.lang.csharp')!;
 

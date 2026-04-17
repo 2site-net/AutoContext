@@ -72,7 +72,7 @@ export class InstructionsTreeProvider implements vscode.TreeDataProvider<TreeEle
     }
 
     getTreeItem(element: TreeElement): vscode.TreeItem {
-        if (element.kind === 'category') {
+        if (element.kind === 'categoryNode') {
             return this.categoryItem(element);
         }
 
@@ -84,7 +84,7 @@ export class InstructionsTreeProvider implements vscode.TreeDataProvider<TreeEle
             return this.getRootCategories();
         }
 
-        if (element.kind === 'category') {
+        if (element.kind === 'categoryNode') {
             return [...element.children];
         }
 
@@ -109,7 +109,7 @@ export class InstructionsTreeProvider implements vscode.TreeDataProvider<TreeEle
         return instructionsCategoryOrder
             .filter(c => presentCategories.has(c))
             .map(name => ({
-                kind: 'category' as const,
+                kind: 'categoryNode' as const,
                 name,
                 children: this.resolveInstructions(name, config, overrides),
             }))
@@ -139,7 +139,7 @@ export class InstructionsTreeProvider implements vscode.TreeDataProvider<TreeEle
 
     private categoryItem(node: InstructionsTreeCategoryNode): vscode.TreeItem {
         const item = new vscode.TreeItem(node.name, vscode.TreeItemCollapsibleState.Expanded);
-        item.contextValue = 'category';
+        item.contextValue = 'categoryNode';
         const active = node.children.filter(n => n.state.isActive()).length;
         const total = this.catalog.all.filter(e => e.category === node.name).length;
         item.tooltip = this.tooltip.container(node.name, active, total);

@@ -16,10 +16,10 @@ const testInstructions: InstructionsFileEntry[] = [
 ];
 
 const testServers: McpServerEntry[] = [
-    { label: 'DotNet', category: 'dotnet', process: 'dotnet', contextKey: 'hasDotNet' },
-    { label: 'Git', category: 'git', process: 'workspace', contextKey: 'hasGit' },
-    { label: 'EditorConfig', category: 'editorconfig', process: 'workspace' },
-    { label: 'TypeScript', category: 'typescript', process: 'web', contextKey: 'hasTypeScript' },
+    { label: 'DotNet', scope: 'dotnet', server: 'dotnet', contextKey: 'hasDotNet' },
+    { label: 'Git', scope: 'git', server: 'workspace', contextKey: 'hasGit' },
+    { label: 'EditorConfig', scope: 'editorconfig', server: 'workspace' },
+    { label: 'TypeScript', scope: 'typescript', server: 'web', contextKey: 'hasTypeScript' },
 ];
 
 function createDetector(): WorkspaceContextDetector {

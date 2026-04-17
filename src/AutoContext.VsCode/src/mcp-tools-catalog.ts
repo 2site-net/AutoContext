@@ -23,7 +23,7 @@ export class McpToolsCatalog {
         return this.metadata?.get(toolName);
     }
 
-    getSettingIdByCategory(serverCategory: string): readonly string[] {
-        return this.entries.filter(t => t.serverCategory === serverCategory).map(t => t.settingId);
+    getSettingIdsByScope(scope: string): readonly string[] {
+        return this.entries.filter(t => t.scope === scope).map(t => t.settingId);
     }
 }

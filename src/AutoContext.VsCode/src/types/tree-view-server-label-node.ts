@@ -1,7 +1,7 @@
 import type { McpToolsTreeCategoryNode } from './mcp-tools-tree-category-node.js';
 
-export interface TreeViewGroupNode {
-    readonly kind: 'group';
+export interface TreeViewServerLabelNode {
+    readonly kind: 'serverNode';
     readonly name: string;
     readonly children: readonly McpToolsTreeCategoryNode[];
     readonly totalEntries: number;

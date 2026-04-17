@@ -222,32 +222,32 @@ describe('McpServerProvider.provideMcpServerDefinitions', () => {
     });
 });
 
-describe('McpServerProvider.getGroupStatus', () => {
+describe('McpServerProvider.getServerStatus', () => {
     it('returns available when binary exists and context is detected', () => {
-        expect(createProvider().getGroupStatus('.NET')).toBe('available');
+        expect(createProvider().getServerStatus('.NET')).toBe('available');
     });
 
     it('returns unavailable when binary does not exist', () => {
         existsSyncMock.mockReturnValue(false);
 
-        expect(createProvider().getGroupStatus('.NET')).toBe('unavailable');
+        expect(createProvider().getServerStatus('.NET')).toBe('unavailable');
     });
 
     it('returns disabled when the context key is not detected', () => {
         vi.mocked(fakeDetector.get).mockImplementation(key => key !== 'hasDotNet');
 
-        expect(createProvider().getGroupStatus('.NET')).toBe('disabled');
+        expect(createProvider().getServerStatus('.NET')).toBe('disabled');
     });
 
-    it('returns available when at least one server in the group is available', () => {
+    it('returns available when at least one scope in the server is available', () => {
         // Workspace has git (contextKey: hasGit) and editorconfig (no contextKey).
-        // Even if git is disabled by context, editorconfig keeps the group available.
+        // Even if git is disabled by context, editorconfig keeps the server available.
         vi.mocked(fakeDetector.get).mockImplementation(key => key !== 'hasGit');
 
-        expect(createProvider().getGroupStatus('Workspace')).toBe('available');
+        expect(createProvider().getServerStatus('Workspace')).toBe('available');
     });
 
-    it('returns disabled when all tool settings for the group are set to false', () => {
+    it('returns disabled when all tool settings for the server are set to false', () => {
         __setConfigStore({
             'autocontext.mcpTools.check_csharp_async_patterns': false,
             'autocontext.mcpTools.check_csharp_coding_style': false,
@@ -259,16 +259,16 @@ describe('McpServerProvider.getGroupStatus', () => {
             'autocontext.mcpTools.check_nuget_hygiene': false,
         });
 
-        expect(createProvider().getGroupStatus('.NET')).toBe('disabled');
+        expect(createProvider().getServerStatus('.NET')).toBe('disabled');
     });
 
-    it('returns unavailable for an unknown group', () => {
-        expect(createProvider().getGroupStatus('Unknown')).toBe('unavailable');
+    it('returns unavailable for an unknown server label', () => {
+        expect(createProvider().getServerStatus('Unknown')).toBe('unavailable');
     });
 
     it('returns unavailable for web when index.js exists but node_modules is missing', () => {
         existsSyncMock.mockImplementation(p => !String(p).includes('node_modules'));
 
-        expect(createProvider().getGroupStatus('Web')).toBe('unavailable');
+        expect(createProvider().getServerStatus('Web')).toBe('unavailable');
     });
 });

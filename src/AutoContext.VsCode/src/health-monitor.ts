@@ -1,19 +1,19 @@
 import * as vscode from 'vscode';
 import { createServer, type Server, type Socket } from 'node:net';
 import { randomUUID } from 'node:crypto';
-import { groupServerCategories } from './ui-constants.js';
+import { serverLabelToScopesMap } from './ui-constants.js';
 
 /**
  * Monitors MCP server health via a named pipe.
  *
- * Each MCP server connects to the pipe on startup and sends its category
+ * Each MCP server connects to the pipe on startup and sends its scope
  * name (e.g. "dotnet", "typescript", "git", "editorconfig") as a UTF-8
  * string.  The connection is kept alive for the lifetime of the server.
  * When the server process exits, the socket closes, and the monitor
  * updates the health status accordingly.
  */
 export class HealthMonitorServer implements vscode.Disposable {
-    private static readonly groupCategories = groupServerCategories;
+    private static readonly serverLabelToScopesMap = serverLabelToScopesMap;
 
     private readonly _onDidChange = new vscode.EventEmitter<void>();
     readonly onDidChange = this._onDidChange.event;
@@ -32,29 +32,29 @@ export class HealthMonitorServer implements vscode.Disposable {
     }
 
     /**
-     * Returns `true` if at least one connection is active for the given category.
+     * Returns `true` if at least one connection is active for the given scope.
      */
-    isRunning(category: string): boolean {
-        const sockets = this.connections.get(category);
+    isRunning(scope: string): boolean {
+        const sockets = this.connections.get(scope);
         return sockets !== undefined && sockets.size > 0;
     }
 
     /**
-     * Returns `true` if all categories in the group have at least one active connection.
+     * Returns `true` if all scopes in the server label have at least one active connection.
      */
-    isGroupHealthy(group: string): boolean {
-        const categories = HealthMonitorServer.groupCategories.get(group);
-        if (!categories) { return false; }
-        return categories.every(c => this.isRunning(c));
+    isServerHealthy(serverLabel: string): boolean {
+        const scopes = HealthMonitorServer.serverLabelToScopesMap.get(serverLabel);
+        if (!scopes) { return false; }
+        return scopes.every(c => this.isRunning(c));
     }
 
     /**
-     * Returns `true` if at least one category in the group has an active connection.
+     * Returns `true` if at least one scope in the server label has an active connection.
      */
-    isGroupPartiallyHealthy(group: string): boolean {
-        const categories = HealthMonitorServer.groupCategories.get(group);
-        if (!categories) { return false; }
-        return categories.some(c => this.isRunning(c));
+    isServerPartiallyHealthy(serverLabel: string): boolean {
+        const scopes = HealthMonitorServer.serverLabelToScopesMap.get(serverLabel);
+        if (!scopes) { return false; }
+        return scopes.some(c => this.isRunning(c));
     }
 
     /**
@@ -66,25 +66,25 @@ export class HealthMonitorServer implements vscode.Disposable {
             : `/tmp/CoreFxPipe_${this.pipeName}`;
 
         this.server = createServer((socket: Socket) => {
-            let category = '';
+            let scope = '';
 
             socket.on('data', (data: Buffer) => {
-                // The server sends its category name as the first (and only) message.
-                if (!category) {
-                    category = data.toString('utf8').trim();
-                    this.addConnection(category, socket);
+                // The server sends its scope name as the first (and only) message.
+                if (!scope) {
+                    scope = data.toString('utf8').trim();
+                    this.addConnection(scope, socket);
                 }
             });
 
             socket.on('close', () => {
-                if (category) {
-                    this.removeConnection(category, socket);
+                if (scope) {
+                    this.removeConnection(scope, socket);
                 }
             });
 
             socket.on('error', () => {
-                if (category) {
-                    this.removeConnection(category, socket);
+                if (scope) {
+                    this.removeConnection(scope, socket);
                 }
             });
         });
@@ -98,30 +98,30 @@ export class HealthMonitorServer implements vscode.Disposable {
         });
     }
 
-    private addConnection(category: string, socket: Socket): void {
-        let sockets = this.connections.get(category);
+    private addConnection(scope: string, socket: Socket): void {
+        let sockets = this.connections.get(scope);
         if (!sockets) {
             sockets = new Set();
-            this.connections.set(category, sockets);
+            this.connections.set(scope, sockets);
         }
 
         const wasEmpty = sockets.size === 0;
         sockets.add(socket);
 
         if (wasEmpty) {
-            this.outputChannel.appendLine(`[HealthMonitor] ${category}: connected`);
+            this.outputChannel.appendLine(`[HealthMonitor] ${scope}: connected`);
             this._onDidChange.fire();
         }
     }
 
-    private removeConnection(category: string, socket: Socket): void {
-        const sockets = this.connections.get(category);
+    private removeConnection(scope: string, socket: Socket): void {
+        const sockets = this.connections.get(scope);
         if (!sockets) { return; }
 
         sockets.delete(socket);
 
         if (sockets.size === 0) {
-            this.outputChannel.appendLine(`[HealthMonitor] ${category}: disconnected`);
+            this.outputChannel.appendLine(`[HealthMonitor] ${scope}: disconnected`);
             this._onDidChange.fire();
         }
     }

@@ -14,10 +14,10 @@ function pipePath(pipeName: string): string {
         : `/tmp/CoreFxPipe_${pipeName}`;
 }
 
-function connectAndSend(pipe: string, category: string): Promise<Socket> {
+function connectAndSend(pipe: string, scope: string): Promise<Socket> {
     return new Promise((resolve, reject) => {
         const socket = connect(pipePath(pipe), () => {
-            socket.write(category, () => resolve(socket));
+            socket.write(scope, () => resolve(socket));
         });
         socket.on('error', reject);
     });
@@ -108,48 +108,48 @@ describe('HealthMonitorServer', () => {
         expect(emitter.fire.mock.calls.length).toBeGreaterThan(callsAfterConnect);
     });
 
-    describe('group health', () => {
-        it('should report group healthy when all categories are running', async () => {
+    describe('server health', () => {
+        it('should report server healthy when all scopes are running', async () => {
             const s1 = await connectAndSend(monitor.getPipeName(), 'git');
             await waitFor(() => monitor.isRunning('git'));
 
             const s2 = await connectAndSend(monitor.getPipeName(), 'editorconfig');
             await waitFor(() => monitor.isRunning('editorconfig'));
 
-            expect(monitor.isGroupHealthy('Workspace')).toBe(true);
-            expect(monitor.isGroupPartiallyHealthy('Workspace')).toBe(true);
+            expect(monitor.isServerHealthy('Workspace')).toBe(true);
+            expect(monitor.isServerPartiallyHealthy('Workspace')).toBe(true);
 
             s1.destroy();
             s2.destroy();
         });
 
-        it('should report group partially healthy when only some categories are running', async () => {
+        it('should report server partially healthy when only some scopes are running', async () => {
             const socket = await connectAndSend(monitor.getPipeName(), 'git');
             await waitFor(() => monitor.isRunning('git'));
 
-            expect(monitor.isGroupHealthy('Workspace')).toBe(false);
-            expect(monitor.isGroupPartiallyHealthy('Workspace')).toBe(true);
+            expect(monitor.isServerHealthy('Workspace')).toBe(false);
+            expect(monitor.isServerPartiallyHealthy('Workspace')).toBe(true);
 
             socket.destroy();
         });
 
-        it('should report group not healthy when no categories are running', () => {
-            expect(monitor.isGroupHealthy('Workspace')).toBe(false);
-            expect(monitor.isGroupPartiallyHealthy('Workspace')).toBe(false);
+        it('should report server not healthy when no scopes are running', () => {
+            expect(monitor.isServerHealthy('Workspace')).toBe(false);
+            expect(monitor.isServerPartiallyHealthy('Workspace')).toBe(false);
         });
 
-        it('should report single-category group as healthy when running', async () => {
+        it('should report single-scope server as healthy when running', async () => {
             const socket = await connectAndSend(monitor.getPipeName(), 'dotnet');
             await waitFor(() => monitor.isRunning('dotnet'));
 
-            expect(monitor.isGroupHealthy('.NET')).toBe(true);
+            expect(monitor.isServerHealthy('.NET')).toBe(true);
 
             socket.destroy();
         });
 
-        it('should return false for unknown group', () => {
-            expect(monitor.isGroupHealthy('Unknown')).toBe(false);
-            expect(monitor.isGroupPartiallyHealthy('Unknown')).toBe(false);
+        it('should return false for unknown server label', () => {
+            expect(monitor.isServerHealthy('Unknown')).toBe(false);
+            expect(monitor.isServerPartiallyHealthy('Unknown')).toBe(false);
         });
     });
 

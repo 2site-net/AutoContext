@@ -1,10 +1,10 @@
 // Reads per-project .mcp-tools.json files, merges them into a single manifest
-// keyed by server category, validates against the ui-constants catalog, and
+// keyed by scope, validates against the ui-constants catalog, and
 // writes the result to .mcp-tools.json at the extension root.
 // Self-executable: tsx src/mcp-tools-manifest.ts
 //
-// Input / output shape (per server category):
-//   { "<serverCategory>": [ { "name", "description", "version", "features"?: [...] } ] }
+// Input / output shape (per scope):
+//   { "<scope>": [ { "name", "description", "version", "features"?: [...] } ] }
 
 import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -40,12 +40,12 @@ export function mergeManifests(root: string, exclude: string): McpToolsManifest 
     for (const fullPath of findProjectManifests(root, exclude)) {
         const content: McpToolsManifest = JSON.parse(readFileSync(fullPath, 'utf-8'));
 
-        for (const [category, tools] of Object.entries(content)) {
-            if (merged[category]) {
-                throw new Error(`Duplicate server category '${category}' found in ${fullPath}. Each category must belong to a single project.`);
+        for (const [scope, tools] of Object.entries(content)) {
+            if (merged[scope]) {
+                throw new Error(`Duplicate scope '${scope}' found in ${fullPath}. Each scope must belong to a single project.`);
             }
 
-            merged[category] = tools;
+            merged[scope] = tools;
         }
     }
 
@@ -132,6 +132,6 @@ if (process.argv[1]?.replace(/\\/g, '/').endsWith('/src/mcp-tools-manifest.ts'))
 
     const toolCount = Object.values(manifest)
         .reduce((sum, tools) => sum + tools.length, 0);
-    const categories = Object.keys(manifest).join(', ');
-    console.log(`Generated MCP tools manifest: ${toolCount} tools across [${categories}].`);
+    const scopes = Object.keys(manifest).join(', ');
+    console.log(`Generated MCP tools manifest: ${toolCount} tools across [${scopes}].`);
 }

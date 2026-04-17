@@ -3,7 +3,7 @@ export interface McpToolsEntry {
     toolName?: string;
     label: string;
     category: string;
-    group: string;
-    serverCategory: string;
+    serverLabel: string;
+    scope: string;
     contextKeys?: readonly string[];
 }

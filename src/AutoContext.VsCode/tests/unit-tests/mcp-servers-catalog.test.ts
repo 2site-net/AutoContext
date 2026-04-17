@@ -3,9 +3,9 @@ import { McpServersCatalog } from '../../src/mcp-servers-catalog';
 import type { McpServerEntry } from '../../src/types/mcp-server-entry';
 
 const testEntries: readonly McpServerEntry[] = [
-    { label: 'Server A', category: 'alpha', process: 'dotnet', contextKey: 'hasAlpha' },
-    { label: 'Server B', category: 'beta', process: 'web' },
-    { label: 'Server C', category: 'gamma', process: 'workspace', contextKey: 'hasGamma' },
+    { label: 'Server A', scope: 'alpha', server: 'dotnet', contextKey: 'hasAlpha' },
+    { label: 'Server B', scope: 'beta', server: 'web' },
+    { label: 'Server C', scope: 'gamma', server: 'workspace', contextKey: 'hasGamma' },
 ];
 
 describe('McpServersCatalog', () => {

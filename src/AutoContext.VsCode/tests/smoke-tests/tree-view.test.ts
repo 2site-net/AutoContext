@@ -9,7 +9,7 @@ suite('Instructions Tree View Smoke Tests', () => {
 
         assert.ok(roots.length > 0, 'Tree view should return at least one root category');
         assert.ok(
-            roots.every((r: { kind: string }) => r.kind === 'category'),
+            roots.every((r: { kind: string }) => r.kind === 'categoryNode'),
             'All root elements should be category nodes',
         );
     });
@@ -31,7 +31,7 @@ suite('Instructions Tree View Smoke Tests', () => {
     test('tree items should have labels and icons', async () => {
         const { exports } = await activatedExtension();
         const roots = exports.instructionsTreeProvider.getChildren();
-        const general = roots.find((r: { kind: string; name: string }) => r.kind === 'category' && r.name === 'General');
+        const general = roots.find((r: { kind: string; name: string }) => r.kind === 'categoryNode' && r.name === 'General');
         assert.ok(general, 'General category should exist');
 
         const children = exports.instructionsTreeProvider.getChildren(general);
@@ -45,7 +45,7 @@ suite('Instructions Tree View Smoke Tests', () => {
     test('instruction items should have a command to open virtual document', async () => {
         const { exports } = await activatedExtension();
         const roots = exports.instructionsTreeProvider.getChildren();
-        const general = roots.find((r: { kind: string; name: string }) => r.kind === 'category' && r.name === 'General');
+        const general = roots.find((r: { kind: string; name: string }) => r.kind === 'categoryNode' && r.name === 'General');
         const children = exports.instructionsTreeProvider.getChildren(general);
         const item = exports.instructionsTreeProvider.getTreeItem(children[0]);
 
@@ -60,7 +60,7 @@ suite('Instructions Tree View Smoke Tests', () => {
         exports.instructionsTreeProvider.enterExportMode();
 
         const roots = exports.instructionsTreeProvider.getChildren();
-        const general = roots.find((r: { kind: string; name: string }) => r.kind === 'category' && r.name === 'General');
+        const general = roots.find((r: { kind: string; name: string }) => r.kind === 'categoryNode' && r.name === 'General');
         const children = exports.instructionsTreeProvider.getChildren(general);
         const active = children.find((c: { state: { value: string } }) => c.state.value === 'enabled');
 
@@ -79,7 +79,7 @@ suite('Instructions Tree View Smoke Tests', () => {
         exports.instructionsTreeProvider.cancelExportMode();
 
         const roots = exports.instructionsTreeProvider.getChildren();
-        const general = roots.find((r: { kind: string; name: string }) => r.kind === 'category' && r.name === 'General');
+        const general = roots.find((r: { kind: string; name: string }) => r.kind === 'categoryNode' && r.name === 'General');
         const children = exports.instructionsTreeProvider.getChildren(general);
 
         for (const child of children) {
@@ -114,7 +114,7 @@ suite('Instructions Tree View Smoke Tests', () => {
 
         try {
             const roots = exports.instructionsTreeProvider.getChildren();
-            const general = roots.find((r: { kind: string; name: string }) => r.kind === 'category' && r.name === 'General');
+            const general = roots.find((r: { kind: string; name: string }) => r.kind === 'categoryNode' && r.name === 'General');
             const children = exports.instructionsTreeProvider.getChildren(general);
             const disabled = children.find(
                 (c: { kind: string; entry: { settingId: string }; state: { value: string } }) =>
@@ -137,7 +137,7 @@ suite('Instructions Tree View Smoke Tests', () => {
         const { exports } = await activatedExtension();
 
         const roots = exports.instructionsTreeProvider.getChildren();
-        const general = roots.find((r: { kind: string; name: string }) => r.kind === 'category' && r.name === 'General');
+        const general = roots.find((r: { kind: string; name: string }) => r.kind === 'categoryNode' && r.name === 'General');
         const children = exports.instructionsTreeProvider.getChildren(general);
         const active = children.find((c: { kind: string; state: { value: string } }) => c.kind === 'instructions' && c.state.value === 'enabled');
 
@@ -172,7 +172,7 @@ suite('Instructions Tree View Smoke Tests', () => {
     test('instruction tooltips should contain setting ID', async () => {
         const { exports } = await activatedExtension();
         const roots = exports.instructionsTreeProvider.getChildren();
-        const general = roots.find((r: { kind: string; name: string }) => r.kind === 'category' && r.name === 'General');
+        const general = roots.find((r: { kind: string; name: string }) => r.kind === 'categoryNode' && r.name === 'General');
         assert.ok(general, 'General category should exist');
         const children = exports.instructionsTreeProvider.getChildren(general);
 
@@ -187,7 +187,7 @@ suite('Instructions Tree View Smoke Tests', () => {
     test('enabled items should have correct context value and icon', async () => {
         const { exports } = await activatedExtension();
         const roots = exports.instructionsTreeProvider.getChildren();
-        const general = roots.find((r: { kind: string; name: string }) => r.kind === 'category' && r.name === 'General');
+        const general = roots.find((r: { kind: string; name: string }) => r.kind === 'categoryNode' && r.name === 'General');
         const children = exports.instructionsTreeProvider.getChildren(general);
         const enabled = children.find((c: { state: { value: string } }) => c.state.value === 'enabled');
 
@@ -221,7 +221,7 @@ suite('Instructions Tree View Smoke Tests', () => {
     test('category tooltips should show active count', async () => {
         const { exports } = await activatedExtension();
         const roots = exports.instructionsTreeProvider.getChildren();
-        const general = roots.find((r: { kind: string; name: string }) => r.kind === 'category' && r.name === 'General');
+        const general = roots.find((r: { kind: string; name: string }) => r.kind === 'categoryNode' && r.name === 'General');
         assert.ok(general, 'General category should exist');
         const catItem = exports.instructionsTreeProvider.getTreeItem(general);
         const tip = catItem.tooltip as string;

@@ -3,9 +3,9 @@ import { McpToolsCatalog } from '../../src/mcp-tools-catalog';
 import type { McpToolsEntry } from '../../src/types/mcp-tools-entry';
 
 const testEntries: readonly McpToolsEntry[] = [
-    { key: 'alpha', label: 'Alpha', category: 'C#', group: '.NET', serverCategory: 'dotnet' },
-    { key: 'beta', label: 'Beta', category: 'NuGet', group: '.NET', serverCategory: 'dotnet' },
-    { key: 'gamma', label: 'Gamma', category: 'Git', group: 'Workspace', serverCategory: 'git' },
+    { key: 'alpha', label: 'Alpha', category: 'C#', serverLabel: '.NET', scope: 'dotnet' },
+    { key: 'beta', label: 'Beta', category: 'NuGet', serverLabel: '.NET', scope: 'dotnet' },
+    { key: 'gamma', label: 'Gamma', category: 'Git', serverLabel: 'Workspace', scope: 'git' },
 ];
 
 describe('McpToolsCatalog', () => {
@@ -22,22 +22,22 @@ describe('McpToolsCatalog', () => {
         expect.soft(catalog.count).toBe(3);
     });
 
-    it('should return setting ids for a matching server category', () => {
+    it('should return setting ids for a matching scope', () => {
         const catalog = new McpToolsCatalog(testEntries);
 
-        expect.soft(catalog.getSettingIdByCategory('dotnet')).toEqual(['autocontext.mcpTools.alpha', 'autocontext.mcpTools.beta']);
+        expect.soft(catalog.getSettingIdsByScope('dotnet')).toEqual(['autocontext.mcpTools.alpha', 'autocontext.mcpTools.beta']);
     });
 
-    it('should return setting ids for git server category', () => {
+    it('should return setting ids for git scope', () => {
         const catalog = new McpToolsCatalog(testEntries);
 
-        expect.soft(catalog.getSettingIdByCategory('git')).toEqual(['autocontext.mcpTools.gamma']);
+        expect.soft(catalog.getSettingIdsByScope('git')).toEqual(['autocontext.mcpTools.gamma']);
     });
 
-    it('should return empty array for unknown server category', () => {
+    it('should return empty array for unknown scope', () => {
         const catalog = new McpToolsCatalog(testEntries);
 
-        expect.soft(catalog.getSettingIdByCategory('unknown')).toEqual([]);
+        expect.soft(catalog.getSettingIdsByScope('unknown')).toEqual([]);
     });
 
     it('should return empty array for empty catalog', () => {
@@ -45,7 +45,7 @@ describe('McpToolsCatalog', () => {
 
         expect.soft(catalog.all).toEqual([]);
         expect.soft(catalog.count).toBe(0);
-        expect.soft(catalog.getSettingIdByCategory('dotnet')).toEqual([]);
+        expect.soft(catalog.getSettingIdsByScope('dotnet')).toEqual([]);
     });
 
     it('should enrich entries with metadata when provided', () => {
