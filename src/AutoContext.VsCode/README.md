@@ -76,7 +76,7 @@ No .NET runtime is required — the extension ships self-contained executables.
 
 ## Installation
 
-Install the platform-specific `.vsix` for your OS from the Extensions view (**Install from VSIX…**) or from the command line:
+Install from the [VS Code Marketplace](https://marketplace.visualstudio.com/) or [Open VSX](https://open-vsx.org/), or install a platform-specific `.vsix` manually from the Extensions view (**Install from VSIX…**) or from the command line:
 
 ```sh
 code --install-extension AutoContext-win32-x64-0.5.0.vsix

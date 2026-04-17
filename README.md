@@ -135,12 +135,19 @@ in `src/AutoContext.VsCode/.vscode-test/`.
 
 Available targets: `win-x64`, `win-arm64`, `linux-x64`, `linux-arm64`, `osx-x64`, `osx-arm64`.
 
-Publish to the VS Code Marketplace (requires a [Personal Access Token](https://dev.azure.com/_usersSettings/tokens) with **Marketplace → Manage** scope):
+Publish to the VS Code Marketplace and [Open VSX](https://open-vsx.org/) registry:
 
 ```powershell
 ./build.ps1 Publish           # current platform
 ./build.ps1 Publish All       # all 6 platforms
 ```
+
+Publishing requires two Personal Access Tokens set as environment variables:
+
+| Variable   | Source | Scope |
+|------------|--------|-------|
+| `VSCE_PAT` | [Azure DevOps](https://dev.azure.com/_usersSettings/tokens) | **Marketplace → Manage** |
+| `OVSX_PAT` | [Open VSX](https://open-vsx.org/) → Access Tokens | publish access |
 
 ## Releasing
 
