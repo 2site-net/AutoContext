@@ -21,11 +21,11 @@ import type { ChatInstructions } from './types/chat-instructions.js';
 function buildWhenClause(entry: CatalogEntry): string {
     const parts = [entry.contextKey];
 
-    const ctxKeys = ContextKeys.forEntry(entry);
-    if (ctxKeys.length === 1) {
-        parts.push(`autocontext.workspace.${ctxKeys[0]}`);
-    } else if (ctxKeys.length > 1) {
-        parts.push(`(${ctxKeys.map(k => `autocontext.workspace.${k}`).join(' || ')})`);
+    const flags = ContextKeys.forEntry(entry);
+    if (flags.length === 1) {
+        parts.push(`autocontext.workspace.${flags[0]}`);
+    } else if (flags.length > 1) {
+        parts.push(`(${flags.map(k => `autocontext.workspace.${k}`).join(' || ')})`);
     }
 
     parts.push(`!${ContextKeys.overrideKey(entry.contextKey)}`);

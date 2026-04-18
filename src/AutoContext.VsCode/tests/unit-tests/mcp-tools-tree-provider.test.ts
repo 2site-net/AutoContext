@@ -575,7 +575,7 @@ describe('McpToolsTreeProvider', () => {
         const workspace = roots.find(r => r.kind === 'serverNode' && r.name === 'Workspace')!;
         const item = provider.getTreeItem(workspace);
         const workspaceEntries = catalog.all.filter(e => e.serverLabel === 'Workspace');
-        const alwaysOn = workspaceEntries.filter(e => !e.contextKeys || e.contextKeys.length === 0).length;
+        const alwaysOn = workspaceEntries.filter(e => !e.workspaceFlags || e.workspaceFlags.length === 0).length;
 
         expect.soft(item.tooltip).toBe(`Workspace\n${alwaysOn}/${workspaceEntries.length} features enabled`);
 
@@ -636,7 +636,7 @@ describe('McpToolsTreeProvider', () => {
         const provider = new McpToolsTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager);
         const treeView = vi.mocked(window.createTreeView).mock.results.at(-1)!.value;
         const total = catalog.count;
-        const alwaysOn = catalog.all.filter(e => !e.contextKeys || e.contextKeys.length === 0).length;
+        const alwaysOn = catalog.all.filter(e => !e.workspaceFlags || e.workspaceFlags.length === 0).length;
 
         expect.soft(treeView.description).toBe(`${alwaysOn}/${total}`);
 

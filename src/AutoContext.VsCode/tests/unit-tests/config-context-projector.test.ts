@@ -11,12 +11,12 @@ import type { McpToolsEntry } from '../../src/types/mcp-tools-entry';
 
 const testInstructions: InstructionsFileEntry[] = [
     { key: 'codeReview', fileName: 'code-review.instructions.md', label: 'Code Review', category: 'General' },
-    { key: 'lang.csharp', fileName: 'lang-csharp.instructions.md', label: 'C#', category: 'Languages', contextKeys: ['hasCSharp'] },
+    { key: 'lang.csharp', fileName: 'lang-csharp.instructions.md', label: 'C#', category: 'Languages', workspaceFlags: ['hasCSharp'] },
 ];
 
 const testTools: McpToolsEntry[] = [
-    { key: 'check_csharp_coding_style', toolName: 'check_csharp_all', label: 'C# Coding Style', category: '.NET', serverLabel: '.NET', scope: 'dotnet', contextKeys: ['hasCSharp'] },
-    { key: 'check_csharp_async_patterns', toolName: 'check_csharp_all', label: 'C# Async', category: '.NET', serverLabel: '.NET', scope: 'dotnet', contextKeys: ['hasCSharp'] },
+    { key: 'check_csharp_coding_style', toolName: 'check_csharp_all', label: 'C# Coding Style', category: '.NET', serverLabel: '.NET', scope: 'dotnet', workspaceFlags: ['hasCSharp'] },
+    { key: 'check_csharp_async_patterns', toolName: 'check_csharp_all', label: 'C# Async', category: '.NET', serverLabel: '.NET', scope: 'dotnet', workspaceFlags: ['hasCSharp'] },
     { key: 'get_editorconfig', label: 'EditorConfig', category: 'Workspace', serverLabel: 'Workspace', scope: 'editorconfig' },
 ];
 

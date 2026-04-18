@@ -12,7 +12,7 @@ export class InstructionsCatalogEntry implements CatalogEntry {
     readonly fileName: string;
     readonly label: string;
     readonly category: string;
-    readonly contextKeys?: readonly string[];
+    readonly workspaceFlags?: readonly string[];
     readonly description?: string;
     readonly version?: string;
     readonly hasChangelog: boolean;
@@ -22,7 +22,7 @@ export class InstructionsCatalogEntry implements CatalogEntry {
         this.fileName = data.fileName;
         this.label = data.label;
         this.category = data.category;
-        this.contextKeys = data.contextKeys;
+        this.workspaceFlags = data.workspaceFlags;
         this.description = metadata?.description;
         this.version = metadata?.version;
         this.hasChangelog = metadata?.hasChangelog ?? false;

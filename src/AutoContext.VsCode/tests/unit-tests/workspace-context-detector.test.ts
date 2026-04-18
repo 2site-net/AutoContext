@@ -12,7 +12,7 @@ const mockOutputChannel = { appendLine: vi.fn() } as unknown as import('vscode')
 
 const testInstructions: InstructionsFileEntry[] = [
     { key: 'copilot', fileName: 'copilot.instructions.md', label: 'Copilot', category: 'general' },
-    { key: 'dotnet.codingStandards', fileName: 'dotnet-coding-standards.instructions.md', label: '.NET Standards', category: 'dotnet', contextKeys: ['hasDotNet'] },
+    { key: 'dotnet.codingStandards', fileName: 'dotnet-coding-standards.instructions.md', label: '.NET Standards', category: 'dotnet', workspaceFlags: ['hasDotNet'] },
 ];
 
 const testServers: McpServerEntry[] = [

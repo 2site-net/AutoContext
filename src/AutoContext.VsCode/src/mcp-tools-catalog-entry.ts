@@ -14,7 +14,7 @@ export class McpToolsCatalogEntry implements CatalogEntry {
     readonly category: string;
     readonly serverLabel: string;
     readonly scope: string;
-    readonly contextKeys?: readonly string[];
+    readonly workspaceFlags?: readonly string[];
     readonly description?: string;
     readonly version?: string;
 
@@ -26,7 +26,7 @@ export class McpToolsCatalogEntry implements CatalogEntry {
         this.category = data.category;
         this.serverLabel = data.serverLabel;
         this.scope = data.scope;
-        this.contextKeys = data.contextKeys;
+        this.workspaceFlags = data.workspaceFlags;
         this.description = metadata?.description;
         this.version = metadata?.version;
     }

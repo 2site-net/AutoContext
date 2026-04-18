@@ -15,8 +15,8 @@ export class TreeViewStateResolver {
         config: AutoContextConfig,
         overrides?: ReadonlySet<string>,
     ): TreeViewNodeState {
-        const ctxKeys = ContextKeys.forEntry(entry);
-        if (ctxKeys.length > 0 && !ctxKeys.some(k => this.detector.get(k))) {
+        const flags = ContextKeys.forEntry(entry);
+        if (flags.length > 0 && !flags.some(k => this.detector.get(k))) {
             return TreeViewNodeState.NotDetected;
         }
 

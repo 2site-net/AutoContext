@@ -777,7 +777,7 @@ describe('InstructionsTreeProvider', () => {
         const general = roots.find(r => r.kind === 'categoryNode' && r.name === 'General')!;
         const item = provider.getTreeItem(general);
         const generalEntries = catalog.all.filter(e => e.category === 'General');
-        const alwaysOn = generalEntries.filter(e => !e.contextKeys || e.contextKeys.length === 0).length;
+        const alwaysOn = generalEntries.filter(e => !e.workspaceFlags || e.workspaceFlags.length === 0).length;
 
         expect.soft(item.tooltip).toBe(`General\n${alwaysOn}/${generalEntries.length} active`);
 
@@ -819,7 +819,7 @@ describe('InstructionsTreeProvider', () => {
         const provider = new InstructionsTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager);
         const treeView = vi.mocked(window.createTreeView).mock.results.at(-1)!.value;
         const total = catalog.count;
-        const alwaysOn = catalog.all.filter(e => !e.contextKeys || e.contextKeys.length === 0).length;
+        const alwaysOn = catalog.all.filter(e => !e.workspaceFlags || e.workspaceFlags.length === 0).length;
 
         expect.soft(treeView.description).toBe(`${alwaysOn}/${total}`);
 

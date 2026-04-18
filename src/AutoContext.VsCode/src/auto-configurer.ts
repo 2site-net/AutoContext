@@ -15,8 +15,8 @@ export class AutoConfigurer {
 
         // Apply instruction enable/disable changes individually.
         for (const entry of instructionsCatalog.all) {
-            const keys = ContextKeys.forEntry(entry);
-            const relevant = keys.length === 0 || keys.some(k => detector.get(k));
+            const flags = ContextKeys.forEntry(entry);
+            const relevant = flags.length === 0 || flags.some(k => detector.get(k));
             if (relevant) { enabled++; }
 
             const currentlyEnabled = currentConfig.instructions?.[entry.fileName]?.enabled !== false;
@@ -30,8 +30,8 @@ export class AutoConfigurer {
         const newTools: Record<string, McpToolConfig | false> = {};
 
         for (const entry of toolsCatalog.all) {
-            const keys = ContextKeys.forEntry(entry);
-            const relevant = keys.length === 0 || keys.some(k => detector.get(k));
+            const flags = ContextKeys.forEntry(entry);
+            const relevant = flags.length === 0 || flags.some(k => detector.get(k));
             const catalogEntry = entry as McpToolsCatalogEntry;
 
             if (!catalogEntry.featureName) {
