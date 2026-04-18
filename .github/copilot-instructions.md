@@ -11,7 +11,7 @@ project's build infrastructure. Never invoke tools directly.
 | Unit-test everything | `.\build.ps1 Test` |
 | Unit-test TypeScript only | `.\build.ps1 Test TS` |
 | Unit-test .NET only | `.\build.ps1 Test DotNet` |
-| Smoke-test the VS Code extension | `npm run test:smoke` from `src/AutoContext.VsCode/` |
+| Smoke-test the VS Code extension | `.\build.ps1 Test -Smoke` |
 | Prepare (clean + compile + test + copy assets) | `.\build.ps1 Prepare` |
 | Package | `.\build.ps1 Package` |
 

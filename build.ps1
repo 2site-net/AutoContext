@@ -51,6 +51,11 @@
     .NET runtime identifier for Package/Publish (e.g. win-x64, osx-arm64).
     Mutually exclusive with Target 'All'.
 
+.PARAMETER Smoke
+    For Test only. Run VS Code smoke tests instead of unit tests.
+    Compiles first, then launches the extension in a real VS Code
+    instance via vscode-test.
+
 .PARAMETER Help
     Show usage information.
 
@@ -59,6 +64,7 @@
     .\build.ps1 Compile                          # Compile TS + .NET
     .\build.ps1 Compile TS                       # Compile TypeScript only
     .\build.ps1 Test DotNet                      # Test .NET only
+    .\build.ps1 Test -Smoke                      # Run VS Code smoke tests
     .\build.ps1 Prepare                          # Clean + Compile + Test + copy assets
     .\build.ps1 Package                          # Prepare + build for current platform
     .\build.ps1 Package -Local                   # Prepare + copy servers (local F5)
@@ -96,6 +102,8 @@ param(
     [switch]$Local,
 
     [string]$RuntimeIdentifier,
+
+    [switch]$Smoke,
 
     [switch]$Help
 )
@@ -240,7 +248,7 @@ function Show-Help {
     Write-Host "`nAutoContext Build Orchestrator`n" -ForegroundColor Cyan
 
     Write-Host 'SYNTAX' -ForegroundColor Yellow
-    Write-Host "  .\build.ps1 [Action] [Target] [-Clean] [-Local] [-RuntimeIdentifier <rid>] [-WhatIf] [-Help]`n"
+    Write-Host "  .\build.ps1 [Action] [Target] [-Clean] [-Local] [-Smoke] [-RuntimeIdentifier <rid>] [-WhatIf] [-Help]`n"
 
     Write-Host 'ACTIONS' -ForegroundColor Yellow
     Write-Host '  (none)     Compile + Test (all sources)'
@@ -260,6 +268,7 @@ function Show-Help {
     Write-Host 'SWITCHES' -ForegroundColor Yellow
     Write-Host '  -Clean                Delete build artifacts (combinable with Compile/Test)'
     Write-Host '  -Local                Copy server binaries for local F5 (Package only)'
+    Write-Host '  -Smoke                Run VS Code smoke tests (Test only)'
     Write-Host '  -RuntimeIdentifier    .NET RID for Package/Publish (e.g. win-x64)'
     Write-Host '  -WhatIf               Preview changes without executing (works with any action and switch)'
     Write-Host "  -Help                 Show this help`n"
@@ -268,6 +277,7 @@ function Show-Help {
     Write-Host '  .\build.ps1                                   # Compile + Test'
     Write-Host '  .\build.ps1 Compile TS                        # TypeScript only'
     Write-Host '  .\build.ps1 Test DotNet                       # .NET tests only'
+    Write-Host '  .\build.ps1 Test -Smoke                       # VS Code smoke tests'
     Write-Host '  .\build.ps1 Package                           # Current platform'
     Write-Host '  .\build.ps1 Package -Local                    # Prepare + copy servers (F5)'
     Write-Host '  .\build.ps1 Package All                       # All 6 platforms'
@@ -478,6 +488,47 @@ function Test-DotNet {
         dotnet test $solutionFile.FullName -c Release --no-build
         if ($LASTEXITCODE -ne 0) { throw '.NET tests failed.' }
         Write-Status '.NET tests passed' 'OK'
+    }
+}
+
+function Test-Smoke {
+    [CmdletBinding(SupportsShouldProcess)]
+    param()
+
+    Write-Section 'Smoke-test VS Code extension'
+
+    # Smoke tests require a full compile first
+    Invoke-Compile -Scope 'TS'
+
+    if ($PSCmdlet.ShouldProcess('vscode-test', 'Run VS Code smoke tests')) {
+        Assert-ExternalCommand 'npx'
+
+        Push-Location $extensionDir
+        try {
+            # Compile smoke-test TypeScript (Mocha/CJS)
+            npx tsc -p tests/smoke-tests/tsconfig.json
+            if ($LASTEXITCODE -ne 0) { throw 'Smoke-test TypeScript compilation failed.' }
+            Write-Status 'Smoke-test TypeScript compiled' 'OK'
+
+            # Emit CJS package.json for dist output
+            $smokeDistDir = Join-Path $extensionDir 'dist' 'tests' 'smoke-tests'
+            $packageJsonPath = Join-Path $smokeDistDir 'package.json'
+            Set-Content -LiteralPath $packageJsonPath -Value '{"type":"commonjs"}' -NoNewline
+
+            # Ensure .git directory exists in mixed workspace fixture
+            $mixedGitDir = Join-Path $extensionDir 'tests' 'workspaces' 'mixed' '.git'
+            if (-not (Test-Path $mixedGitDir)) {
+                New-Item -ItemType Directory -Path $mixedGitDir -Force | Out-Null
+            }
+
+            # Run vscode-test
+            npx vscode-test --config tests/.vscode-test.mjs
+            if ($LASTEXITCODE -ne 0) { throw 'VS Code smoke tests failed.' }
+            Write-Status 'VS Code smoke tests passed' 'OK'
+        }
+        finally {
+            Pop-Location
+        }
     }
 }
 
@@ -783,6 +834,12 @@ function Invoke-Compile {
 function Invoke-Test {
     [CmdletBinding(SupportsShouldProcess)]
     param([string]$Scope = 'All')
+
+    if ($Smoke) {
+        Write-Header 'Smoke Test'
+        Test-Smoke
+        return
+    }
 
     Write-Header 'Test'
     if ($Scope -in 'All', 'TS')     { Test-TypeScript }
@@ -1100,6 +1157,14 @@ if ($RuntimeIdentifier -and $Target -eq 'All') {
 
 if ($Local -and $Action -ne 'Package') {
     throw '-Local is only valid with the Package action.'
+}
+
+if ($Smoke -and $Action -ne 'Test') {
+    throw '-Smoke is only valid with the Test action. Usage: .\build.ps1 Test -Smoke'
+}
+
+if ($Smoke -and $Target -and $Target -ne 'All') {
+    throw '-Smoke cannot be combined with Target. Usage: .\build.ps1 Test -Smoke'
 }
 
 if ($Local -and $RuntimeIdentifier) {
