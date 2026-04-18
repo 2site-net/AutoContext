@@ -8,7 +8,15 @@ import type { McpToolConfig } from './types/autocontext-config.js';
 import type { McpToolsCatalogEntry } from './mcp-tools-catalog-entry.js';
 
 export class AutoConfigurer {
-    static async configure(detector: WorkspaceContextDetector, instructionsCatalog: InstructionsCatalog, toolsCatalog: McpToolsCatalog, configManager: AutoContextConfigManager): Promise<void> {
+    constructor(
+        private readonly detector: WorkspaceContextDetector,
+        private readonly instructionsCatalog: InstructionsCatalog,
+        private readonly toolsCatalog: McpToolsCatalog,
+        private readonly configManager: AutoContextConfigManager,
+    ) {}
+
+    async run(): Promise<void> {
+        const { detector, instructionsCatalog, toolsCatalog, configManager } = this;
         const currentConfig = await configManager.read();
         const allEntries = [...instructionsCatalog.all, ...toolsCatalog.all];
         let enabled = 0;

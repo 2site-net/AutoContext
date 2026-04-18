@@ -26,14 +26,14 @@ beforeEach(() => {
     vi.mocked(fakeDetector.get).mockReset();
 });
 
-describe('AutoConfigurer.configure', () => {
+describe('AutoConfigurer', () => {
     const instructionsCatalog = new InstructionsCatalog(instructionsFiles);
     const catalog = new McpToolsCatalog(mcpTools);
 
     it('should disable context-dependent entries when nothing is detected', async () => {
         vi.mocked(fakeDetector.get).mockReturnValue(false);
 
-        await AutoConfigurer.configure(fakeDetector, instructionsCatalog, catalog, fakeConfigManager);
+        await new AutoConfigurer(fakeDetector, instructionsCatalog, catalog, fakeConfigManager).run();
 
         const setInstructionEnabled = vi.mocked(fakeConfigManager.setInstructionEnabled);
         const calls = setInstructionEnabled.mock.calls;
@@ -53,7 +53,7 @@ describe('AutoConfigurer.configure', () => {
     it('should not disable .NET entries when hasDotNet and hasCSharp are detected', async () => {
         vi.mocked(fakeDetector.get).mockImplementation((key: string) => key === 'hasDotNet' || key === 'hasCSharp');
 
-        await AutoConfigurer.configure(fakeDetector, instructionsCatalog, catalog, fakeConfigManager);
+        await new AutoConfigurer(fakeDetector, instructionsCatalog, catalog, fakeConfigManager).run();
 
         const setInstructionEnabled = vi.mocked(fakeConfigManager.setInstructionEnabled);
         const disabledFileNames = setInstructionEnabled.mock.calls
@@ -76,7 +76,7 @@ describe('AutoConfigurer.configure', () => {
     it('should show an info message with the count of enabled items', async () => {
         vi.mocked(fakeDetector.get).mockReturnValue(false);
 
-        await AutoConfigurer.configure(fakeDetector, instructionsCatalog, catalog, fakeConfigManager);
+        await new AutoConfigurer(fakeDetector, instructionsCatalog, catalog, fakeConfigManager).run();
 
         const allEntries = [...instructionsCatalog.all, ...catalog.all];
         const alwaysOnCount = allEntries.filter(e => ContextKeys.forEntry(e).length === 0).length;
@@ -91,7 +91,7 @@ describe('AutoConfigurer.configure', () => {
         currentConfig = { instructions: { 'dotnet-async-await.instructions.md': { enabled: false } } };
         vi.mocked(fakeDetector.get).mockReturnValue(false);
 
-        await AutoConfigurer.configure(fakeDetector, instructionsCatalog, catalog, fakeConfigManager);
+        await new AutoConfigurer(fakeDetector, instructionsCatalog, catalog, fakeConfigManager).run();
 
         const setInstructionEnabled = vi.mocked(fakeConfigManager.setInstructionEnabled);
         const updatedFileNames = setInstructionEnabled.mock.calls.map(([fileName]) => fileName);

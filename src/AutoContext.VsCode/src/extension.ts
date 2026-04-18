@@ -126,7 +126,7 @@ export async function activate(context: vscode.ExtensionContext) {
         vscode.workspace.registerTextDocumentContentProvider(instructionScheme, contentProvider),
         vscode.languages.registerCodeLensProvider({ scheme: instructionScheme }, codeLensProvider),
         // Workspace auto-configuration (instructions + tools)
-        vscode.commands.registerCommand(commandIds.AutoConfigure, async () => { await AutoConfigurer.configure(workspaceContextDetector, instructionsCatalog, toolsCatalog, configManager); }),
+        vscode.commands.registerCommand(commandIds.AutoConfigure, async () => { await new AutoConfigurer(workspaceContextDetector, instructionsCatalog, toolsCatalog, configManager).run(); }),
         // CodeLens (internal)
         vscode.commands.registerCommand(commandIds.ToggleInstruction, (fileName: string, id: string) =>
             configManager.toggleInstruction(fileName, id, instructionsCatalog.findByFileName(fileName)?.version)),
