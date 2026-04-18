@@ -34,18 +34,6 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Install extension dependencies
-        working-directory: src/AutoContext.VsCode
-        run: npm ci
-
-      - name: Install web MCP server dependencies
-        working-directory: src/AutoContext.Mcp.Web
-        run: npm ci
-
-      - name: Set version in package.json
-        working-directory: src/AutoContext.VsCode
-        run: npm version "$GITHUB_REF_NAME" --no-git-tag-version --allow-same-version
-
       - name: Package and publish
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}

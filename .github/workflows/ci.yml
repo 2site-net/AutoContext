@@ -26,13 +26,5 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Install extension dependencies
-        working-directory: src/AutoContext.VsCode
-        run: npm ci
-
-      - name: Install web MCP server dependencies
-        working-directory: src/AutoContext.Mcp.Web
-        run: npm ci
-
       - name: Build and test
         run: pwsh ./build.ps1
