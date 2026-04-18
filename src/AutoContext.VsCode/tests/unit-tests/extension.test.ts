@@ -28,7 +28,7 @@ vi.mock('../../src/mcp-tools-config-writer', () => ({
 }));
 
 vi.mock('../../src/mcp-tools-catalog', () => ({
-    McpToolsCatalog: class {},
+    McpToolsCatalog: class { all = []; },
 }));
 
 vi.mock('../../src/instructions-catalog', () => ({
@@ -45,6 +45,7 @@ vi.mock('../../src/instructions-exporter', () => ({
 
 vi.mock('../../src/autocontext-config', () => ({
     AutoContextConfigManager: class {
+        async read() { return {}; }
         async removeOrphanedIds() {}
         async clearStaleDisabledIds() { return []; }
         onDidChange = () => ({ dispose() {} });

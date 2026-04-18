@@ -15,6 +15,7 @@ import { InstructionsCodeLensProvider } from './instructions-codelens-provider.j
 import { InstructionsDecorationManager } from './instructions-decoration-manager.js';
 import { InstructionsConfigWriter } from './instructions-config-writer.js';
 import { InstructionsDiagnostics } from './instructions-diagnostics.js';
+import { ConfigContextProjector } from './config-context-projector.js';
 import { InstructionsTreeProvider } from './instructions-tree-provider.js';
 import { MetadataLoader } from './metadata-loader.js';
 import { McpToolsTreeProvider } from './mcp-tools-tree-provider.js';
@@ -52,6 +53,7 @@ export async function activate(context: vscode.ExtensionContext) {
     const codeLensProvider = new InstructionsCodeLensProvider(context.extensionPath, configManager, workspaceContextDetector, instructionsCatalog, outputChannel);
     const decorationManager = new InstructionsDecorationManager(context.extensionPath, configManager, outputChannel);
     const instructionsWriter = new InstructionsConfigWriter(context.extensionPath, configManager, instructionsCatalog, outputChannel);
+    const configProjector = new ConfigContextProjector(configManager, instructionsCatalog, toolsCatalog);
     const workspaceServer = new WorkspaceServerManager(context.extensionPath, outputChannel, vscode.workspace.workspaceFolders?.[0]?.uri.fsPath);
     const healthMonitor = new HealthMonitorServer(outputChannel);
     const mcpServerProvider = new McpServerProvider(context.extensionPath, version, workspaceContextDetector, didChangeEmitter.event, workspaceServer, toolsCatalog, serversCatalog, healthMonitor);
@@ -84,6 +86,7 @@ export async function activate(context: vscode.ExtensionContext) {
         codeLensProvider,
         decorationManager,
         instructionsWriter,
+        configProjector,
         instructionsTreeProvider,
         mcpToolsTreeProvider,
     );
@@ -108,6 +111,7 @@ export async function activate(context: vscode.ExtensionContext) {
     didChangeEmitter.fire();
 
     await Promise.all([
+        configProjector.project(),
         toolsStatusWriter.write(),
         instructionsWriter.removeOrphanedStagingDirs(),
         configManager.removeOrphanedIds(),
