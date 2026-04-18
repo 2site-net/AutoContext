@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { writeFile, unlink, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { InstructionsParser } from './instructions-parser.js';
-import type { AutoContextConfig, InstructionFileConfig, McpToolConfig } from './types/autocontext-config.js';
+import type { AutoContextConfig, InstructionsFileConfig, McpToolConfig } from './types/autocontext-config.js';
 
 const configFileName = '.autocontext.json';
 
@@ -406,9 +406,9 @@ export class AutoContextConfigManager implements vscode.Disposable {
 
         const rawInstructions = parsed.instructions as Record<string, Record<string, unknown>> | undefined;
         if (rawInstructions && typeof rawInstructions === 'object') {
-            const instructions: Record<string, InstructionFileConfig> = {};
+            const instructions: Record<string, InstructionsFileConfig> = {};
             for (const [fileName, raw] of Object.entries(rawInstructions)) {
-                const entry: InstructionFileConfig = {};
+                const entry: InstructionsFileConfig = {};
                 if (typeof raw.version === 'string') {
                     entry.version = raw.version;
                 }

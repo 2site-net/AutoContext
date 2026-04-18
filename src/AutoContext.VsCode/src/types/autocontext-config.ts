@@ -3,11 +3,11 @@ export interface AutoContextConfig {
     diagnostic?: {
         warnOnMissingId?: boolean;
     };
-    instructions?: Record<string, InstructionFileConfig>;
+    instructions?: Record<string, InstructionsFileConfig>;
     mcpTools?: Record<string, McpToolConfig | false>;
 }
 
-export interface InstructionFileConfig {
+export interface InstructionsFileConfig {
     enabled?: false;
     version?: string;
     disabledInstructions?: string[];
