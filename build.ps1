@@ -141,6 +141,9 @@ $serverManifest = if (Test-Path $serversJsonPath) {
 $nodeServers = @($serverManifest | Where-Object type -eq 'node')
 $dotnetServers = @($serverManifest | Where-Object type -eq 'dotnet')
 
+# In CI, use 'npm ci' for deterministic lockfile-exact installs
+$npmInstallCmd = if ($env:CI) { 'ci' } else { 'install' }
+
 # Derive .NET server project paths from manifest (convention: src/<name>/<name>.csproj)
 $serverProjectPaths = @($dotnetServers | ForEach-Object {
     Join-Path $repoRoot 'src' $_.name "$($_.name).csproj"
@@ -373,7 +376,7 @@ function Build-TypeScript {
         Push-Location $extensionDir
         try {
             Write-Status 'Installing extension dependencies...' 'INFO'
-            npm install
+            npm $npmInstallCmd
             if ($LASTEXITCODE -ne 0) { throw 'Extension npm install failed.' }
 
             Write-Status 'Generating chat-instructions manifest...' 'INFO'
@@ -403,7 +406,7 @@ function Build-TypeScript {
             Push-Location $serverDir
             try {
                 Write-Status "Installing $serverLabel dependencies..." 'INFO'
-                npm install
+                npm $npmInstallCmd
                 if ($LASTEXITCODE -ne 0) { throw "$serverLabel npm install failed." }
 
                 $versionTsPath = Join-Path $serverDir 'src' 'version.ts'
@@ -634,15 +637,18 @@ function Copy-NodeJsToServersFolder {
             Copy-Item (Join-Path $outDir '*') $targetDir -Recurse -Force
 
             Copy-Item (Join-Path $serverSourceDir 'package.json') $targetDir -Force
+            Copy-Item (Join-Path $serverSourceDir 'package-lock.json') $targetDir -Force
 
-            Push-Location $serverSourceDir
+            Push-Location $targetDir
             try {
-                npm install --omit=dev --prefix $targetDir
-                if ($LASTEXITCODE -ne 0) { throw "npm install for $serverName failed." }
+                npm ci --omit=dev
+                if ($LASTEXITCODE -ne 0) { throw "npm ci for $serverName failed." }
             }
             finally {
                 Pop-Location
             }
+
+            Remove-Item (Join-Path $targetDir 'package-lock.json') -Force
 
             Write-Status "$serverName packaged" 'OK'
         }
