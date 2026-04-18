@@ -7,7 +7,7 @@ import { mcpTools, mcpServers } from '../../src/ui-constants';
 import type { WorkspaceContextDetector } from '../../src/workspace-context-detector';
 import type { WorkspaceServerManager } from '../../src/workspace-server-manager';
 import type { HealthMonitorServer } from '../../src/health-monitor';
-import type { AutoContextConfig } from '../../src/autocontext-config';
+import type { AutoContextConfig } from '../../src/types/autocontext-config';
 import type { AutoContextConfigManager } from '../../src/autocontext-config';
 
 const { existsSyncMock } = vi.hoisted(() => ({ existsSyncMock: vi.fn<(path: string) => boolean>(() => true) }));

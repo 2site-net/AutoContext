@@ -5,7 +5,7 @@ import { ContextKeys } from '../../src/context-keys';
 import { InstructionsCatalog } from '../../src/instructions-catalog';
 import { McpToolsCatalog } from '../../src/mcp-tools-catalog';
 import { instructionsFiles, mcpTools } from '../../src/ui-constants';
-import type { AutoContextConfig } from '../../src/autocontext-config';
+import type { AutoContextConfig } from '../../src/types/autocontext-config';
 import type { AutoContextConfigManager } from '../../src/autocontext-config';
 
 const fakeDetector = {
@@ -43,7 +43,7 @@ describe('AutoConfigurer', () => {
         // Every disabled call should pass false
         const disabledCalls = calls.filter(([, value]) => value === false);
         expect.soft(disabledCalls.length).toBeGreaterThan(0);
-        // All disabled calls must be for entries that have contextKeys
+        // All disabled calls must be for entries that have workspaceFlags
         for (const [fileName] of disabledCalls) {
             const entry = instructionsCatalog.findByFileName(fileName)!;
             expect.soft(ContextKeys.forEntry(entry).length).toBeGreaterThan(0);

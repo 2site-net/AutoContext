@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { TreeItemCollapsibleState, TreeItemCheckboxState, workspace, commands, Uri, window } from './__mocks__/vscode';
 import { InstructionsTreeProvider } from '../../src/instructions-tree-provider';
-import type { AutoContextConfig } from '../../src/autocontext-config';
+import type { AutoContextConfig } from '../../src/types/autocontext-config';
 import type { AutoContextConfigManager } from '../../src/autocontext-config';
 import type { InstructionsTreeNode } from '../../src/types/instructions-tree-node';
 import { TreeViewNodeState } from '../../src/tree-view-node-state';
