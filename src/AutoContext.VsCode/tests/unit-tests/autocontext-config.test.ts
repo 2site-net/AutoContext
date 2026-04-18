@@ -56,8 +56,9 @@ describe('AutoContextConfigManager', () => {
     it('should read disabled instructions from config file', async () => {
         vi.mocked(readFile).mockResolvedValue(JSON.stringify({
             instructions: {
-                disabled: {
-                    'code-review.instructions.md': ['INST0001'],
+                'code-review.instructions.md': {
+                    version: '0.5',
+                    'disabled-instructions': ['INST0001'],
                 },
             },
         }));
@@ -81,8 +82,9 @@ describe('AutoContextConfigManager', () => {
     it('should detect when any instructions are disabled', async () => {
         vi.mocked(readFile).mockResolvedValue(JSON.stringify({
             instructions: {
-                disabled: {
-                    'code-review.instructions.md': ['INST0001'],
+                'code-review.instructions.md': {
+                    version: '0.5',
+                    'disabled-instructions': ['INST0001'],
                 },
             },
         }));
@@ -116,14 +118,18 @@ describe('AutoContextConfigManager', () => {
 
         const parsed = JSON.parse(content as string);
 
-        expect.soft(parsed.instructions.disabled['code-review.instructions.md']).toEqual(['INST0001']);
+        expect.soft(parsed.instructions['code-review.instructions.md']).toEqual({
+            version: '0.5',
+            'disabled-instructions': ['INST0001'],
+        });
     });
 
     it('should toggle an instruction off (re-enable it)', async () => {
         vi.mocked(readFile).mockResolvedValue(JSON.stringify({
             instructions: {
-                disabled: {
-                    'code-review.instructions.md': ['INST0001'],
+                'code-review.instructions.md': {
+                    version: '0.5',
+                    'disabled-instructions': ['INST0001'],
                 },
             },
         }));
@@ -158,9 +164,13 @@ describe('AutoContextConfigManager', () => {
     it('should reset all instructions for a specific file', async () => {
         vi.mocked(readFile).mockResolvedValue(JSON.stringify({
             instructions: {
-                disabled: {
-                    'code-review.instructions.md': ['INST0001', 'INST0002'],
-                    'dotnet-async-await.instructions.md': ['INST0003'],
+                'code-review.instructions.md': {
+                    version: '0.5',
+                    'disabled-instructions': ['INST0001', 'INST0002'],
+                },
+                'dotnet-async-await.instructions.md': {
+                    version: '0.5',
+                    'disabled-instructions': ['INST0003'],
                 },
             },
         }));
@@ -174,15 +184,19 @@ describe('AutoContextConfigManager', () => {
 
         const parsed = JSON.parse(writeCalls[0][1] as string);
 
-        expect(parsed.instructions.disabled['code-review.instructions.md']).toBeUndefined();
-        expect.soft(parsed.instructions.disabled['dotnet-async-await.instructions.md']).toEqual(['INST0003']);
+        expect(parsed.instructions['code-review.instructions.md']).toBeUndefined();
+        expect.soft(parsed.instructions['dotnet-async-await.instructions.md']).toEqual({
+            version: '0.5',
+            'disabled-instructions': ['INST0003'],
+        });
     });
 
     it('should delete file when resetting the last file with disabled instructions', async () => {
         vi.mocked(readFile).mockResolvedValue(JSON.stringify({
             instructions: {
-                disabled: {
-                    'code-review.instructions.md': ['INST0001'],
+                'code-review.instructions.md': {
+                    version: '0.5',
+                    'disabled-instructions': ['INST0001'],
                 },
             },
         }));
@@ -207,8 +221,9 @@ describe('AutoContextConfigManager', () => {
         vi.mocked(readFile).mockResolvedValue(JSON.stringify({
             version: '0.5.0',
             instructions: {
-                disabled: {
-                    'code-review.instructions.md': ['INST0001'],
+                'code-review.instructions.md': {
+                    version: '0.5',
+                    'disabled-instructions': ['INST0001'],
                 },
             },
         }));
@@ -220,11 +235,13 @@ describe('AutoContextConfigManager', () => {
         expect.soft(vi.mocked(writeFile)).not.toHaveBeenCalled();
     });
 
-    it('should write disabled tools to config', async () => {
+    it('should write mcp tools to config', async () => {
         vi.mocked(readFile).mockResolvedValue('{}');
 
         const manager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
-        await manager.setDisabledTools(['check_csharp_coding_style']);
+        await manager.setMcpTools({
+            check_csharp_all: { disabledFeatures: ['check_csharp_coding_style'] },
+        });
 
         const writeCalls = vi.mocked(writeFile).mock.calls;
 
@@ -232,16 +249,22 @@ describe('AutoContextConfigManager', () => {
 
         const parsed = JSON.parse(writeCalls[0][1] as string);
 
-        expect.soft(parsed["mcp-tools"].disabled).toEqual(['check_csharp_coding_style']);
+        expect.soft(parsed['mcp-tools']).toEqual({
+            check_csharp_all: { 'disabled-features': ['check_csharp_coding_style'] },
+        });
     });
 
-    it('should skip write when disabled tools have not changed', async () => {
+    it('should skip write when mcp tools have not changed', async () => {
         vi.mocked(readFile).mockResolvedValue(JSON.stringify({
-            "mcp-tools": { disabled: ['check_csharp_coding_style'] },
+            'mcp-tools': {
+                check_csharp_all: { 'disabled-features': ['check_csharp_coding_style'] },
+            },
         }));
 
         const manager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
-        await manager.setDisabledTools(['check_csharp_coding_style']);
+        await manager.setMcpTools({
+            check_csharp_all: { disabledFeatures: ['check_csharp_coding_style'] },
+        });
 
         expect(vi.mocked(writeFile)).not.toHaveBeenCalled();
         expect.soft(vi.mocked(unlink)).not.toHaveBeenCalled();
@@ -249,12 +272,19 @@ describe('AutoContextConfigManager', () => {
 
     it('should remove tools section when all tools are enabled', async () => {
         vi.mocked(readFile).mockResolvedValue(JSON.stringify({
-            "mcp-tools": { disabled: ['check_csharp_coding_style'] },
-            instructions: { disabled: { 'code-review.instructions.md': ['INST0001'] } },
+            'mcp-tools': {
+                check_csharp_all: { 'disabled-features': ['check_csharp_coding_style'] },
+            },
+            instructions: {
+                'code-review.instructions.md': {
+                    version: '0.5',
+                    'disabled-instructions': ['INST0001'],
+                },
+            },
         }));
 
         const manager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
-        await manager.setDisabledTools([]);
+        await manager.setMcpTools({});
 
         const writeCalls = vi.mocked(writeFile).mock.calls;
 
@@ -262,17 +292,19 @@ describe('AutoContextConfigManager', () => {
 
         const parsed = JSON.parse(writeCalls[0][1] as string);
 
-        expect(parsed["mcp-tools"]).toBeUndefined();
+        expect(parsed['mcp-tools']).toBeUndefined();
         expect.soft(parsed.instructions).toBeDefined();
     });
 
     it('should delete file when clearing tools and no other config exists', async () => {
         vi.mocked(readFile).mockResolvedValue(JSON.stringify({
-            "mcp-tools": { disabled: ['check_csharp_coding_style'] },
+            'mcp-tools': {
+                check_csharp_all: { 'disabled-features': ['check_csharp_coding_style'] },
+            },
         }));
 
         const manager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
-        await manager.setDisabledTools([]);
+        await manager.setMcpTools({});
 
         expect(vi.mocked(unlink)).toHaveBeenCalled();
         expect.soft(vi.mocked(writeFile)).not.toHaveBeenCalled();
@@ -280,21 +312,38 @@ describe('AutoContextConfigManager', () => {
 
     it('should preserve other config sections when writing tools', async () => {
         vi.mocked(readFile).mockResolvedValue(JSON.stringify({
-            instructions: { disabled: { 'code-review.instructions.md': ['INST0001'] } },
+            instructions: {
+                'code-review.instructions.md': {
+                    version: '0.5',
+                    'disabled-instructions': ['INST0001'],
+                },
+            },
         }));
 
         const manager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
-        await manager.setDisabledTools(['check_csharp_async_patterns']);
+        await manager.setMcpTools({
+            check_csharp_all: { disabledFeatures: ['check_csharp_async_patterns'] },
+        });
 
         const parsed = JSON.parse(vi.mocked(writeFile).mock.calls[0][1] as string);
 
-        expect(parsed["mcp-tools"].disabled).toEqual(['check_csharp_async_patterns']);
-        expect.soft(parsed.instructions.disabled['code-review.instructions.md']).toEqual(['INST0001']);
+        expect(parsed['mcp-tools']).toEqual({
+            check_csharp_all: { 'disabled-features': ['check_csharp_async_patterns'] },
+        });
+        expect.soft(parsed.instructions['code-review.instructions.md']).toEqual({
+            version: '0.5',
+            'disabled-instructions': ['INST0001'],
+        });
     });
 
     it('should return cached config on repeated reads without re-reading disk', async () => {
         vi.mocked(readFile).mockResolvedValue(JSON.stringify({
-            instructions: { disabled: { 'code-review.instructions.md': ['INST0001'] } },
+            instructions: {
+                'code-review.instructions.md': {
+                    version: '0.5',
+                    'disabled-instructions': ['INST0001'],
+                },
+            },
         }));
 
         const manager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
@@ -319,11 +368,12 @@ describe('AutoContextConfigManager', () => {
         expect.soft(readFile).toHaveBeenCalledTimes(2);
     });
 
-    it('should read disabled instructions from versioned format', async () => {
+    it('should read disabled instructions with multiple IDs', async () => {
         vi.mocked(readFile).mockResolvedValue(JSON.stringify({
             instructions: {
-                disabled: {
-                    'code-review.instructions.md': { version: '1.0', ids: ['INST0001', 'INST0002'] },
+                'code-review.instructions.md': {
+                    version: '1.0',
+                    'disabled-instructions': ['INST0001', 'INST0002'],
                 },
             },
         }));
@@ -336,21 +386,7 @@ describe('AutoContextConfigManager', () => {
         expect.soft(disabled.size).toBe(2);
     });
 
-    it('should detect disabled instructions in versioned format', async () => {
-        vi.mocked(readFile).mockResolvedValue(JSON.stringify({
-            instructions: {
-                disabled: {
-                    'code-review.instructions.md': { version: '1.0', ids: ['INST0001'] },
-                },
-            },
-        }));
-
-        const manager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
-
-        expect.soft(await manager.hasAnyDisabledInstructions()).toBe(true);
-    });
-
-    it('should write versioned format when instruction version is provided', async () => {
+    it('should write version from instruction file when provided', async () => {
         vi.mocked(readFile).mockResolvedValue('{}');
 
         const manager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
@@ -359,13 +395,13 @@ describe('AutoContextConfigManager', () => {
         const writeCalls = vi.mocked(writeFile).mock.calls;
         const parsed = JSON.parse(writeCalls[0][1] as string);
 
-        expect.soft(parsed.instructions.disabled['code-review.instructions.md']).toEqual({
+        expect.soft(parsed.instructions['code-review.instructions.md']).toEqual({
             version: '1.2',
-            ids: ['INST0001'],
+            'disabled-instructions': ['INST0001'],
         });
     });
 
-    it('should write plain array when no instruction version is provided', async () => {
+    it('should use extension version when no instruction version is provided', async () => {
         vi.mocked(readFile).mockResolvedValue('{}');
 
         const manager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
@@ -374,15 +410,22 @@ describe('AutoContextConfigManager', () => {
         const writeCalls = vi.mocked(writeFile).mock.calls;
         const parsed = JSON.parse(writeCalls[0][1] as string);
 
-        expect.soft(parsed.instructions.disabled['code-review.instructions.md']).toEqual(['INST0001']);
+        expect.soft(parsed.instructions['code-review.instructions.md']).toEqual({
+            version: '0.5',
+            'disabled-instructions': ['INST0001'],
+        });
     });
 
     it('should clear stale disabled IDs when MINOR version advances', async () => {
         vi.mocked(readFile).mockResolvedValue(JSON.stringify({
             instructions: {
-                disabled: {
-                    'code-review.instructions.md': { version: '1.0', ids: ['INST0001'] },
-                    'lang-csharp.instructions.md': { version: '1.0', ids: ['INST0005'] },
+                'code-review.instructions.md': {
+                    version: '1.0',
+                    'disabled-instructions': ['INST0001'],
+                },
+                'lang-csharp.instructions.md': {
+                    version: '1.0',
+                    'disabled-instructions': ['INST0005'],
                 },
             },
         }));
@@ -398,18 +441,19 @@ describe('AutoContextConfigManager', () => {
         const writeCalls = vi.mocked(writeFile).mock.calls;
         const parsed = JSON.parse(writeCalls[0][1] as string);
 
-        expect(parsed.instructions.disabled['code-review.instructions.md']).toBeUndefined();
-        expect.soft(parsed.instructions.disabled['lang-csharp.instructions.md']).toEqual({
+        expect(parsed.instructions['code-review.instructions.md']).toBeUndefined();
+        expect.soft(parsed.instructions['lang-csharp.instructions.md']).toEqual({
             version: '1.0',
-            ids: ['INST0005'],
+            'disabled-instructions': ['INST0005'],
         });
     });
 
     it('should clear stale disabled IDs when MAJOR version advances', async () => {
         vi.mocked(readFile).mockResolvedValue(JSON.stringify({
             instructions: {
-                disabled: {
-                    'code-review.instructions.md': { version: '1.0', ids: ['INST0001'] },
+                'code-review.instructions.md': {
+                    version: '1.0',
+                    'disabled-instructions': ['INST0001'],
                 },
             },
         }));
@@ -426,8 +470,9 @@ describe('AutoContextConfigManager', () => {
     it('should return empty array when no stale disabled IDs exist', async () => {
         vi.mocked(readFile).mockResolvedValue(JSON.stringify({
             instructions: {
-                disabled: {
-                    'code-review.instructions.md': { version: '1.0', ids: ['INST0001'] },
+                'code-review.instructions.md': {
+                    version: '1.0',
+                    'disabled-instructions': ['INST0001'],
                 },
             },
         }));
@@ -442,11 +487,12 @@ describe('AutoContextConfigManager', () => {
         expect.soft(vi.mocked(unlink)).not.toHaveBeenCalled();
     });
 
-    it('should toggle off from versioned format preserving version', async () => {
+    it('should toggle off preserving version from existing entry', async () => {
         vi.mocked(readFile).mockResolvedValue(JSON.stringify({
             instructions: {
-                disabled: {
-                    'code-review.instructions.md': { version: '1.0', ids: ['INST0001', 'INST0002'] },
+                'code-review.instructions.md': {
+                    version: '1.0',
+                    'disabled-instructions': ['INST0001', 'INST0002'],
                 },
             },
         }));
@@ -457,38 +503,51 @@ describe('AutoContextConfigManager', () => {
         const writeCalls = vi.mocked(writeFile).mock.calls;
         const parsed = JSON.parse(writeCalls[0][1] as string);
 
-        expect.soft(parsed.instructions.disabled['code-review.instructions.md']).toEqual({
+        expect.soft(parsed.instructions['code-review.instructions.md']).toEqual({
             version: '1.0',
-            ids: ['INST0002'],
+            'disabled-instructions': ['INST0002'],
         });
     });
 
-    it('should preserve version when toggling without instructionVersion param', async () => {
-        vi.mocked(readFile).mockResolvedValue(JSON.stringify({
-            instructions: {
-                disabled: {
-                    'code-review.instructions.md': { version: '1.0', ids: ['INST0001', 'INST0002'] },
-                },
-            },
-        }));
+    it('should write mcp tools with false for entirely disabled standalone tools', async () => {
+        vi.mocked(readFile).mockResolvedValue('{}');
 
         const manager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
-        await manager.toggleInstruction('code-review.instructions.md', 'INST0001');
+        await manager.setMcpTools({ check_nuget_hygiene: false });
 
         const writeCalls = vi.mocked(writeFile).mock.calls;
         const parsed = JSON.parse(writeCalls[0][1] as string);
 
-        expect.soft(parsed.instructions.disabled['code-review.instructions.md']).toEqual({
-            version: '1.0',
-            ids: ['INST0002'],
+        expect.soft(parsed['mcp-tools']).toEqual({ check_nuget_hygiene: false });
+    });
+
+    it('should write mcp tools with enabled false and disabled-features when parent fully disabled', async () => {
+        vi.mocked(readFile).mockResolvedValue('{}');
+
+        const manager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
+        await manager.setMcpTools({
+            check_csharp_all: {
+                enabled: false,
+                disabledFeatures: ['check_csharp_coding_style', 'check_csharp_async_patterns'],
+            },
+        });
+
+        const writeCalls = vi.mocked(writeFile).mock.calls;
+        const parsed = JSON.parse(writeCalls[0][1] as string);
+
+        expect.soft(parsed['mcp-tools']).toEqual({
+            check_csharp_all: {
+                enabled: false,
+                'disabled-features': ['check_csharp_coding_style', 'check_csharp_async_patterns'],
+            },
         });
     });
 
-    it('should skip non-versioned entries during stale check', async () => {
+    it('should skip entries without disabled instructions during stale check', async () => {
         vi.mocked(readFile).mockResolvedValue(JSON.stringify({
             instructions: {
-                disabled: {
-                    'code-review.instructions.md': ['INST0001'],
+                'code-review.instructions.md': {
+                    version: '1.0',
                 },
             },
         }));
@@ -501,5 +560,23 @@ describe('AutoContextConfigManager', () => {
         expect(cleared).toEqual([]);
         expect(vi.mocked(writeFile)).not.toHaveBeenCalled();
         expect.soft(vi.mocked(unlink)).not.toHaveBeenCalled();
+    });
+
+    it('should not clear disabled IDs when entry has no version', async () => {
+        vi.mocked(readFile).mockResolvedValue(JSON.stringify({
+            instructions: {
+                'code-review.instructions.md': {
+                    'disabled-instructions': ['INST0001'],
+                },
+            },
+        }));
+
+        const manager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
+        const cleared = await manager.clearStaleDisabledIds(new Map([
+            ['code-review.instructions.md', '1.0.5'],
+        ]));
+
+        expect(cleared).toEqual([]);
+        expect(vi.mocked(writeFile)).not.toHaveBeenCalled();
     });
 });

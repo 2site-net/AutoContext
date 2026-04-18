@@ -47,7 +47,11 @@ describe('McpToolsConfigWriter', () => {
         expect(filePath).toMatch(/\.autocontext\.json$/);
 
         const parsed = JSON.parse(content as string);
-        expect.soft(parsed["mcp-tools"].disabled).toEqual(['check_csharp_coding_style']);
+        expect.soft(parsed["mcp-tools"]).toEqual({
+            "check_csharp_all": {
+                "disabled-features": ["check_csharp_coding_style"],
+            },
+        });
     });
 
     it('should not write when nothing changed', async () => {
@@ -58,7 +62,13 @@ describe('McpToolsConfigWriter', () => {
         vi.mocked(readFile).mockImplementation(async (path: unknown) => {
             const pathStr = String(path);
             if (pathStr.endsWith('.autocontext.json')) {
-                return JSON.stringify({ "mcp-tools": { disabled: ['check_csharp_coding_style'] } });
+                return JSON.stringify({
+                    "mcp-tools": {
+                        "check_csharp_all": {
+                            "disabled-features": ["check_csharp_coding_style"],
+                        },
+                    },
+                });
             }
             return '';
         });
@@ -76,7 +86,13 @@ describe('McpToolsConfigWriter', () => {
         vi.mocked(readFile).mockImplementation(async (path: unknown) => {
             const pathStr = String(path);
             if (pathStr.endsWith('.autocontext.json')) {
-                return JSON.stringify({ "mcp-tools": { disabled: ['check_csharp_coding_style'] } });
+                return JSON.stringify({
+                    "mcp-tools": {
+                        "check_csharp_all": {
+                            "disabled-features": ["check_csharp_coding_style"],
+                        },
+                    },
+                });
             }
             return '';
         });

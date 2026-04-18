@@ -37,11 +37,65 @@ internal sealed class McpToolsConfig(IConfiguration configuration)
             var json = File.ReadAllText(configPath);
             using var doc = JsonDocument.Parse(json);
 
-            if (doc.RootElement.TryGetProperty("mcp-tools", out var toolsElement)
-                && toolsElement.TryGetProperty("disabled", out var disabledArray)
-                && disabledArray.ValueKind == JsonValueKind.Array)
+            if (!doc.RootElement.TryGetProperty("mcp-tools", out var toolsElement)
+                || toolsElement.ValueKind != JsonValueKind.Object)
             {
-                foreach (var item in disabledArray.EnumerateArray())
+                return true;
+            }
+
+            // Check if the tool itself is a top-level entry.
+            if (toolsElement.TryGetProperty(toolName, out var entry))
+            {
+                // { "tool": false } — entirely disabled.
+                if (entry.ValueKind == JsonValueKind.False)
+                {
+                    return false;
+                }
+
+                // { "tool": { "enabled": false } } — entirely disabled.
+                if (entry.ValueKind == JsonValueKind.Object
+                    && entry.TryGetProperty("enabled", out var enabledProp)
+                    && enabledProp.ValueKind == JsonValueKind.False)
+                {
+                    return false;
+                }
+            }
+
+            // Check if the tool appears in any entry's disabled-features array.
+            foreach (var prop in toolsElement.EnumerateObject())
+            {
+                if (prop.Value.ValueKind != JsonValueKind.Object)
+                {
+                    continue;
+                }
+
+                // If the parent is entirely disabled, its features are also disabled.
+                if (prop.Value.TryGetProperty("enabled", out var parentEnabled)
+                    && parentEnabled.ValueKind == JsonValueKind.False)
+                {
+                    if (prop.Value.TryGetProperty("disabled-features", out var allFeatures)
+                        && allFeatures.ValueKind == JsonValueKind.Array)
+                    {
+                        foreach (var item in allFeatures.EnumerateArray())
+                        {
+                            if (item.ValueKind == JsonValueKind.String
+                                && string.Equals(item.GetString(), toolName, StringComparison.Ordinal))
+                            {
+                                return false;
+                            }
+                        }
+                    }
+
+                    continue;
+                }
+
+                if (!prop.Value.TryGetProperty("disabled-features", out var disabledFeatures)
+                    || disabledFeatures.ValueKind != JsonValueKind.Array)
+                {
+                    continue;
+                }
+
+                foreach (var item in disabledFeatures.EnumerateArray())
                 {
                     if (item.ValueKind == JsonValueKind.String
                         && string.Equals(item.GetString(), toolName, StringComparison.Ordinal))

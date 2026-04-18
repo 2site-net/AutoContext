@@ -5,7 +5,6 @@ import { createHash } from 'node:crypto';
 import type { InstructionsCatalog } from './instructions-catalog.js';
 import { InstructionsParser } from './instructions-parser.js';
 import type { AutoContextConfigManager } from './autocontext-config.js';
-import type { VersionedDisabledIds } from './types/versioned-disabled-ids.js';
 
 /**
  * Generates normalized instruction files with disabled instructions removed
@@ -73,12 +72,10 @@ export class InstructionsConfigWriter implements vscode.Disposable {
         await mkdir(this.stagingDir, { recursive: true });
 
         const config = await this.configManager.read();
-        const disabledInstructionsMap = config.instructions?.disabled ?? {};
 
         await Promise.all(this.catalog.all.map(entry => {
-            const raw = disabledInstructionsMap[entry.fileName];
-            const disabledIds = InstructionsConfigWriter.resolveIds(raw);
-            const disabled = disabledIds.length > 0
+            const disabledIds = config.instructions?.[entry.fileName]?.disabledInstructions;
+            const disabled = disabledIds && disabledIds.length > 0
                 ? new Set(disabledIds)
                 : undefined;
             return this.writeNormalized(entry.fileName, disabled);
@@ -208,10 +205,4 @@ export class InstructionsConfigWriter implements vscode.Disposable {
         }
     }
 
-    private static resolveIds(entry: string[] | VersionedDisabledIds | undefined): string[] {
-        if (!entry) {
-            return [];
-        }
-        return Array.isArray(entry) ? entry : entry.ids;
-    }
 }

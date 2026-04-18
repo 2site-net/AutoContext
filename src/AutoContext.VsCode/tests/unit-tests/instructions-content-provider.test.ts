@@ -53,7 +53,14 @@ describe('InstructionsContentProvider', () => {
         vi.mocked(readFile).mockImplementation(async (path: unknown) => {
             const pathStr = String(path);
             if (pathStr.endsWith('.autocontext.json')) {
-                return JSON.stringify({ instructions: { disabled: { 'test.instructions.md': [firstInstructionId] } } });
+                return JSON.stringify({
+                    instructions: {
+                        'test.instructions.md': {
+                            version: '0.5',
+                            'disabled-instructions': [firstInstructionId],
+                        },
+                    },
+                });
             }
             return testContent;
         });

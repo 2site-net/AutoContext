@@ -1,14 +1,20 @@
-import type { VersionedDisabledIds } from './versioned-disabled-ids.js';
-
 export interface AutoContextConfig {
     version?: string;
     diagnostic?: {
         warnOnMissingId?: boolean;
     };
-    instructions?: {
-        disabled?: Record<string, string[] | VersionedDisabledIds>;
-    };
-    mcpTools?: {
-        disabled?: string[];
-    };
+    instructions?: Record<string, InstructionFileConfig>;
+    mcpTools?: Record<string, McpToolConfig | false>;
+}
+
+export interface InstructionFileConfig {
+    enabled?: false;
+    version?: string;
+    disabledInstructions?: string[];
+}
+
+export interface McpToolConfig {
+    enabled?: false;
+    version?: string;
+    disabledFeatures?: string[];
 }

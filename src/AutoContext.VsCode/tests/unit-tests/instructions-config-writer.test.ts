@@ -93,7 +93,12 @@ describe('InstructionsConfigWriter', () => {
             const pathStr = String(path);
             if (pathStr.endsWith('.autocontext.json')) {
                 return JSON.stringify({
-                    instructions: { disabled: { [targetFileName]: [firstId] } },
+                    instructions: {
+                        [targetFileName]: {
+                            version: '0.5',
+                            'disabled-instructions': [firstId],
+                        },
+                    },
                 });
             }
             return testContent;

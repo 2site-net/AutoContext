@@ -78,7 +78,12 @@ describe('InstructionsDecorationManager', () => {
             const pathStr = String(path);
             if (pathStr.endsWith('.autocontext.json')) {
                 return JSON.stringify({
-                    instructions: { disabled: { 'test.instructions.md': [firstId] } },
+                    instructions: {
+                        'test.instructions.md': {
+                            version: '0.5',
+                            'disabled-instructions': [firstId],
+                        },
+                    },
                 });
             }
             return testContent;

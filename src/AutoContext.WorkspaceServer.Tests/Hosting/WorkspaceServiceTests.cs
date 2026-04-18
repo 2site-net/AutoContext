@@ -265,7 +265,7 @@ public sealed class WorkspaceServiceTests : IDisposable
             """
             {
                 "mcp-tools": {
-                    "disabled": ["check-style"]
+                    "check-style": false
                 }
             }
             """,
@@ -318,7 +318,7 @@ public sealed class WorkspaceServiceTests : IDisposable
             """
             {
                 "mcp-tools": {
-                    "disabled": ["check-style"]
+                    "check-style": false
                 }
             }
             """,
@@ -375,7 +375,8 @@ public sealed class WorkspaceServiceTests : IDisposable
             """
             {
                 "mcp-tools": {
-                    "disabled": ["disabled-with-keys", "disabled-no-keys"]
+                    "disabled-with-keys": false,
+                    "disabled-no-keys": false
                 }
             }
             """,
