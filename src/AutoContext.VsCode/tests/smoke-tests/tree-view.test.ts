@@ -181,8 +181,8 @@ suite('Instructions Tree View Smoke Tests', () => {
         for (const child of children) {
             const item = exports.instructionsTreeProvider.getTreeItem(child);
             const tip = item.tooltip as string;
-            assert.ok(tip.includes('Setting:'), `Tooltip should contain 'Setting:' prefix`);
-            assert.ok(tip.includes(child.entry.settingId), `Tooltip should contain setting ID '${child.entry.settingId}'`);
+            assert.ok(tip.includes('Context Key:'), `Tooltip should contain 'Context Key:' prefix`);
+            assert.ok(tip.includes(child.entry.contextKey), `Tooltip should contain context key '${child.entry.contextKey}'`);
         }
     });
 

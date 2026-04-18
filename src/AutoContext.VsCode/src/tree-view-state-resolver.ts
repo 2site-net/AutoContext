@@ -28,7 +28,7 @@ export class TreeViewStateResolver {
             return TreeViewNodeState.Disabled;
         }
 
-        if (overrides?.has(entry.settingId)) {
+        if (overrides?.has(entry.contextKey)) {
             return TreeViewNodeState.Overridden;
         }
 

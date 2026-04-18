@@ -19,7 +19,7 @@ import type { CatalogEntry } from './types/catalog-entry.js';
 import type { ChatInstructions } from './types/chat-instructions.js';
 
 function buildWhenClause(entry: CatalogEntry): string {
-    const parts = [entry.settingId];
+    const parts = [entry.contextKey];
 
     const ctxKeys = ContextKeys.forEntry(entry);
     if (ctxKeys.length === 1) {
@@ -28,7 +28,7 @@ function buildWhenClause(entry: CatalogEntry): string {
         parts.push(`(${ctxKeys.map(k => `autocontext.workspace.${k}`).join(' || ')})`);
     }
 
-    parts.push(`!${ContextKeys.overrideKey(entry.settingId)}`);
+    parts.push(`!${ContextKeys.overrideKey(entry.contextKey)}`);
 
     return parts.join(' && ');
 }

@@ -428,7 +428,7 @@ describe('WorkspaceContextDetector', () => {
         });
 
         describe('override detection', () => {
-            it('should populate overriddenSettingIds for matching instruction files', async () => {
+            it('should populate overriddenContextKeys for matching instruction files', async () => {
                 stubFindFiles({
                     '.github/instructions/*.instructions.md': [
                         '/.github/instructions/dotnet-coding-standards.instructions.md',
@@ -438,7 +438,7 @@ describe('WorkspaceContextDetector', () => {
                 const det = createDetector();
                 await det.detect();
 
-                expect(det.getOverriddenSettingIds().has('autocontext.instructions.dotnet.codingStandards')).toBe(true);
+                expect(det.getOverriddenContextKeys().has('autocontext.instructions.dotnet.codingStandards')).toBe(true);
             });
 
             it('should not include unknown override files', async () => {
@@ -451,7 +451,7 @@ describe('WorkspaceContextDetector', () => {
                 const det = createDetector();
                 await det.detect();
 
-                expect(det.getOverriddenSettingIds().size).toBe(0);
+                expect(det.getOverriddenContextKeys().size).toBe(0);
             });
 
             it('should clear overridden IDs between detections', async () => {
@@ -462,12 +462,12 @@ describe('WorkspaceContextDetector', () => {
                 });
                 const det = createDetector();
                 await det.detect();
-                expect(det.getOverriddenSettingIds().size).toBe(1);
+                expect(det.getOverriddenContextKeys().size).toBe(1);
 
                 stubFindFiles({});
                 await det.detect();
 
-                expect(det.getOverriddenSettingIds().size).toBe(0);
+                expect(det.getOverriddenContextKeys().size).toBe(0);
             });
         });
 
@@ -616,7 +616,7 @@ describe('WorkspaceContextDetector', () => {
             const det = createDetector();
             const { override } = getWatchers();
             await det.detect();
-            expect(det.getOverriddenSettingIds().size).toBe(0);
+            expect(det.getOverriddenContextKeys().size).toBe(0);
 
             stubFindFiles({
                 '.github/instructions/*.instructions.md': [
@@ -627,7 +627,7 @@ describe('WorkspaceContextDetector', () => {
             fireEvent(override, 'create', '/.github/instructions/dotnet-coding-standards.instructions.md');
             await vi.advanceTimersByTimeAsync(500);
 
-            expect(det.getOverriddenSettingIds().has('autocontext.instructions.dotnet.codingStandards')).toBe(true);
+            expect(det.getOverriddenContextKeys().has('autocontext.instructions.dotnet.codingStandards')).toBe(true);
         });
 
         it('should fall back to full detect when no prior scan exists', async () => {
@@ -713,7 +713,7 @@ describe('WorkspaceContextDetector', () => {
             const det = createDetector();
             await det.detect();
 
-            expect(det.getOverriddenSettingIds().has('autocontext.instructions.dotnet.codingStandards')).toBe(true);
+            expect(det.getOverriddenContextKeys().has('autocontext.instructions.dotnet.codingStandards')).toBe(true);
         });
     });
 

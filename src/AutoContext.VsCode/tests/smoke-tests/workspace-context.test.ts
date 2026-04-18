@@ -9,11 +9,11 @@ suite('Workspace Context Detector Smoke Tests', () => {
         assert.ok(exports.workspaceContextDetector.get('hasTypeScript'), 'Should detect TypeScript');
     });
 
-    test('should return empty overridden setting IDs by default', async () => {
+    test('should return empty overridden context keys by default', async () => {
         const { exports } = await activatedExtension();
         await exports.workspaceContextDetector.detect();
-        const overridden = exports.workspaceContextDetector.getOverriddenSettingIds();
+        const overridden = exports.workspaceContextDetector.getOverriddenContextKeys();
 
-        assert.strictEqual(overridden.size, 0, 'No overridden settings expected in extension workspace');
+        assert.strictEqual(overridden.size, 0, 'No overridden context keys expected in extension workspace');
     });
 });

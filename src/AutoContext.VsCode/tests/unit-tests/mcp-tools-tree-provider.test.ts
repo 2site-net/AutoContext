@@ -144,7 +144,7 @@ describe('McpToolsTreeProvider', () => {
         const provider = new McpToolsTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager);
         const features = getFeatures(provider, '.NET', 'C#', 'check_csharp_all');
 
-        const asyncTool = features.find(c => c.kind === 'mcpToolFeatureNode' && c.entry.settingId === 'autocontext.mcpTools.check_csharp_async_patterns');
+        const asyncTool = features.find(c => c.kind === 'mcpToolFeatureNode' && c.entry.contextKey === 'autocontext.mcpTools.check_csharp_async_patterns');
         expect.soft(asyncTool?.kind === 'mcpToolFeatureNode' && asyncTool.state).toBe(TreeViewNodeState.Disabled);
 
         provider.dispose();
@@ -168,7 +168,7 @@ describe('McpToolsTreeProvider', () => {
 
         const provider = new McpToolsTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager);
         const features = getFeatures(provider, '.NET', 'C#', 'check_csharp_all');
-        const asyncTool = features.find(c => c.kind === 'mcpToolFeatureNode' && c.entry.settingId === 'autocontext.mcpTools.check_csharp_async_patterns')!;
+        const asyncTool = features.find(c => c.kind === 'mcpToolFeatureNode' && c.entry.contextKey === 'autocontext.mcpTools.check_csharp_async_patterns')!;
         const item = provider.getTreeItem(asyncTool);
 
         expect.soft(item.checkboxState).toBe(TreeItemCheckboxState.Unchecked);
@@ -398,7 +398,7 @@ describe('McpToolsTreeProvider', () => {
         const enrichedCatalog = new McpToolsCatalog(mcpTools, metadata);
         const provider = new McpToolsTreeProvider(fakeDetector, enrichedCatalog, stateResolver, tooltip, fakeConfigManager);
         const features = getFeatures(provider, '.NET', 'C#', 'check_csharp_all');
-        const asyncFeature = features.find(f => f.kind === 'mcpToolFeatureNode' && f.entry.settingId === 'autocontext.mcpTools.check_csharp_async_patterns')!;
+        const asyncFeature = features.find(f => f.kind === 'mcpToolFeatureNode' && f.entry.contextKey === 'autocontext.mcpTools.check_csharp_async_patterns')!;
         const item = provider.getTreeItem(asyncFeature);
 
         expect.soft(item.tooltip).toContain('Detects async anti-patterns');
@@ -455,7 +455,7 @@ describe('McpToolsTreeProvider', () => {
 
         const provider = new McpToolsTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager);
         const features = getFeatures(provider, '.NET', 'C#', 'check_csharp_all');
-        const asyncTool = features.find(c => c.kind === 'mcpToolFeatureNode' && c.entry.settingId === 'autocontext.mcpTools.check_csharp_async_patterns')!;
+        const asyncTool = features.find(c => c.kind === 'mcpToolFeatureNode' && c.entry.contextKey === 'autocontext.mcpTools.check_csharp_async_patterns')!;
 
         const treeView = vi.mocked(window.createTreeView).mock.results.at(-1)!.value;
         const checkboxCallback = vi.mocked(treeView.onDidChangeCheckboxState).mock.calls[0][0] as (e: { items: [typeof asyncTool, TreeItemCheckboxState][] }) => void;
@@ -593,7 +593,7 @@ describe('McpToolsTreeProvider', () => {
         const csharp = categories.find(r => r.kind === 'categoryNode' && r.name === 'C#')!;
         const item = provider.getTreeItem(csharp);
         const csharpEntries = catalog.all.filter(e => e.category === 'C#');
-        const enabled = csharpEntries.filter(e => e.settingId !== 'autocontext.mcpTools.check_csharp_async_patterns').length;
+        const enabled = csharpEntries.filter(e => e.contextKey !== 'autocontext.mcpTools.check_csharp_async_patterns').length;
 
         expect.soft(item.tooltip).toBe(`C#\n${enabled}/${csharpEntries.length} features enabled`);
 
@@ -623,7 +623,7 @@ describe('McpToolsTreeProvider', () => {
         const provider = new McpToolsTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager);
         const treeView = vi.mocked(window.createTreeView).mock.results.at(-1)!.value;
         const total = catalog.count;
-        const enabled = catalog.all.filter(e => e.settingId !== 'autocontext.mcpTools.check_csharp_async_patterns').length;
+        const enabled = catalog.all.filter(e => e.contextKey !== 'autocontext.mcpTools.check_csharp_async_patterns').length;
 
         expect.soft(treeView.description).toBe(`${enabled}/${total}`);
 

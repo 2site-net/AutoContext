@@ -15,10 +15,10 @@ describe('InstructionsCatalogEntry', () => {
         expect(entry.targetPath).toBe('.github/instructions/dotnet-testing.instructions.md');
     });
 
-    it('should compute settingId from key', () => {
+    it('should compute contextKey from key', () => {
         const entry = new InstructionsCatalogEntry({ key: 'lang.csharp', fileName: 'lang-csharp.instructions.md', label: 'C#', category: 'Languages' });
 
-        expect(entry.settingId).toBe('autocontext.instructions.lang.csharp');
+        expect(entry.contextKey).toBe('autocontext.instructions.lang.csharp');
     });
 });
 
@@ -27,7 +27,7 @@ describe('InstructionsCatalog', () => {
         const catalog = new InstructionsCatalog(testData);
 
         expect(catalog.all).toHaveLength(3);
-        expect(catalog.all[0].settingId).toBe('autocontext.instructions.alpha');
+        expect(catalog.all[0].contextKey).toBe('autocontext.instructions.alpha');
     });
 
     it('should return the correct count', () => {
@@ -41,7 +41,7 @@ describe('InstructionsCatalog', () => {
 
         const entry = catalog.findByFileName('beta.instructions.md');
         expect(entry).toBeDefined();
-        expect(entry!.settingId).toBe('autocontext.instructions.beta');
+        expect(entry!.contextKey).toBe('autocontext.instructions.beta');
     });
 
     it('should return undefined for an unknown file name', () => {
@@ -52,7 +52,7 @@ describe('InstructionsCatalog', () => {
 
     it('should have unique setting ids', () => {
         const catalog = new InstructionsCatalog(testData);
-        const ids = catalog.all.map(i => i.settingId);
+        const ids = catalog.all.map(i => i.contextKey);
 
         expect(new Set(ids).size).toBe(ids.length);
     });

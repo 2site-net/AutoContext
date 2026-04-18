@@ -6,7 +6,7 @@ const catalog = new McpToolsCatalog(mcpTools);
 
 describe('tools catalog', () => {
     it('should have unique setting ids', () => {
-        const ids = catalog.all.map(t => t.settingId);
+        const ids = catalog.all.map(t => t.contextKey);
 
         expect.soft(new Set(ids).size).toBe(ids.length);
     });

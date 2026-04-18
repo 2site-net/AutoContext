@@ -180,12 +180,12 @@ suite('MCP Tools Tree View Smoke Tests', () => {
                     for (const feature of exports.mcpToolsTreeProvider.getChildren(tool)) {
                         const item = exports.mcpToolsTreeProvider.getTreeItem(feature);
                         assert.ok(
-                            (item.tooltip as string).includes('Setting:'),
-                            `Feature tooltip should contain 'Setting:' prefix`,
+                            (item.tooltip as string).includes('Context Key:'),
+                            `Feature tooltip should contain 'Context Key:' prefix`,
                         );
                         assert.ok(
-                            (item.tooltip as string).includes(feature.entry.settingId),
-                            `Feature tooltip should contain setting ID '${feature.entry.settingId}'`,
+                            (item.tooltip as string).includes(feature.entry.contextKey),
+                            `Feature tooltip should contain context key '${feature.entry.contextKey}'`,
                         );
                     }
                 }

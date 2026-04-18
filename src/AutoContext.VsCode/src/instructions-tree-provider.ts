@@ -56,9 +56,9 @@ export class InstructionsTreeProvider implements vscode.TreeDataProvider<TreeEle
                 for (const [item, state] of e.items) {
                     if (item.kind === 'instructions') {
                         if (state === vscode.TreeItemCheckboxState.Checked) {
-                            this._checkedEntries.add(item.entry.settingId);
+                            this._checkedEntries.add(item.entry.contextKey);
                         } else {
-                            this._checkedEntries.delete(item.entry.settingId);
+                            this._checkedEntries.delete(item.entry.contextKey);
                         }
                     }
                 }
@@ -72,7 +72,7 @@ export class InstructionsTreeProvider implements vscode.TreeDataProvider<TreeEle
     }
 
     private updateDescription(): void {
-        const overrides = this.detector.getOverriddenSettingIds();
+        const overrides = this.detector.getOverriddenContextKeys();
         const states = this.catalog.all.map(e => this.stateResolver.resolve(e, this._config, overrides));
         this.treeView.description = this.tooltip.description(states.filter(s => s.isActive()).length, this.catalog.count);
     }
@@ -108,7 +108,7 @@ export class InstructionsTreeProvider implements vscode.TreeDataProvider<TreeEle
     }
 
     private getRootCategories(): InstructionsTreeCategoryNode[] {
-        const overrides = this.detector.getOverriddenSettingIds();
+        const overrides = this.detector.getOverriddenContextKeys();
         const presentCategories = new Set(this.catalog.all.map(e => e.category));
 
         return instructionsCategoryOrder
@@ -176,13 +176,13 @@ export class InstructionsTreeProvider implements vscode.TreeDataProvider<TreeEle
         }
 
         if (this._exportMode && (node.state === TreeViewNodeState.Enabled || node.state === TreeViewNodeState.Disabled)) {
-            item.checkboxState = this._checkedEntries.has(node.entry.settingId)
+            item.checkboxState = this._checkedEntries.has(node.entry.contextKey)
                 ? vscode.TreeItemCheckboxState.Checked
                 : vscode.TreeItemCheckboxState.Unchecked;
         }
 
         item.tooltip = this.tooltip.leaf(
-            node.entry.label, node.state, node.entry.settingId, node.entry.description, node.entry.version,
+            node.entry.label, node.state, node.entry.contextKey, node.entry.description, node.entry.version,
             node.isOutdated ? treeViewLabels.outdatedTooltip : undefined,
         );
 
@@ -221,7 +221,7 @@ export class InstructionsTreeProvider implements vscode.TreeDataProvider<TreeEle
     }
 
     getCheckedEntries(): readonly InstructionsCatalogEntry[] {
-        return this.catalog.all.filter(e => this._checkedEntries.has(e.settingId));
+        return this.catalog.all.filter(e => this._checkedEntries.has(e.contextKey));
     }
 
     async enableInstruction(node: InstructionsTreeNode): Promise<void> {

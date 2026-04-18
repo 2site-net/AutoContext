@@ -1,5 +1,5 @@
 export interface CatalogEntry {
-    settingId: string;
+    contextKey: string;
     label: string;
     category: string;
     contextKeys?: readonly string[];

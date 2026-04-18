@@ -280,7 +280,7 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
                 : vscode.TreeItemCheckboxState.Unchecked;
         }
 
-        item.tooltip = this.tooltip.leaf(entry.label, state, entry.settingId, entry.description, entry.version);
+        item.tooltip = this.tooltip.leaf(entry.label, state, entry.contextKey, entry.description, entry.version);
         return item;
     }
 
@@ -296,7 +296,7 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
                 : vscode.TreeItemCheckboxState.Unchecked;
         }
 
-        item.tooltip = this.tooltip.leaf(node.entry.label, node.state, node.entry.settingId, node.entry.description, node.entry.version);
+        item.tooltip = this.tooltip.leaf(node.entry.label, node.state, node.entry.contextKey, node.entry.description, node.entry.version);
         return item;
     }
 

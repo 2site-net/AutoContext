@@ -21,33 +21,33 @@ describe('ContextKeys.overrideKey', () => {
 
 describe('ContextKeys.forEntry', () => {
     it('should return empty array for always-on instructions', () => {
-        const codeReview = instructionsCatalog.all.find(i => i.settingId === 'autocontext.instructions.codeReview')!;
+        const codeReview = instructionsCatalog.all.find(i => i.contextKey === 'autocontext.instructions.codeReview')!;
 
         expect.soft(ContextKeys.forEntry(codeReview)).toEqual([]);
     });
 
     it('should return context keys for workspace-specific instructions', () => {
-        const asyncAwait = instructionsCatalog.all.find(i => i.settingId === 'autocontext.instructions.dotnet.asyncAwait')!;
+        const asyncAwait = instructionsCatalog.all.find(i => i.contextKey === 'autocontext.instructions.dotnet.asyncAwait')!;
 
         expect.soft(ContextKeys.forEntry(asyncAwait)).toEqual(['hasDotNet']);
     });
 
     it('should return multiple context keys for OR conditions', () => {
-        const js = instructionsCatalog.all.find(i => i.settingId === 'autocontext.instructions.lang.javascript')!;
+        const js = instructionsCatalog.all.find(i => i.contextKey === 'autocontext.instructions.lang.javascript')!;
 
         expect.soft(ContextKeys.forEntry(js)).toEqual(['hasJavaScript', 'hasTypeScript']);
     });
 
     it('should return context keys for tools', () => {
-        const codingStyle = toolsCatalog.all.find(t => t.settingId === 'autocontext.mcpTools.check_csharp_coding_style')!;
-        const commitFormat = toolsCatalog.all.find(t => t.settingId === 'autocontext.mcpTools.check_git_commit_format')!;
+        const codingStyle = toolsCatalog.all.find(t => t.contextKey === 'autocontext.mcpTools.check_csharp_coding_style')!;
+        const commitFormat = toolsCatalog.all.find(t => t.contextKey === 'autocontext.mcpTools.check_git_commit_format')!;
 
         expect(ContextKeys.forEntry(codingStyle)).toEqual(['hasCSharp']);
         expect.soft(ContextKeys.forEntry(commitFormat)).toEqual(['hasGit']);
     });
 
     it('should return empty array for the editorconfig tool', () => {
-        const editorconfig = toolsCatalog.all.find(t => t.settingId === 'autocontext.mcpTools.get_editorconfig')!;
+        const editorconfig = toolsCatalog.all.find(t => t.contextKey === 'autocontext.mcpTools.get_editorconfig')!;
 
         expect.soft(ContextKeys.forEntry(editorconfig)).toEqual([]);
     });
@@ -62,7 +62,7 @@ describe('ContextKeys.forEntry', () => {
 
         expect(instructionsCatalog.count).toBeGreaterThan(0);
         expect.soft(instructionsCatalog.all.every(entry =>
-            alwaysOn.has(entry.settingId)
+            alwaysOn.has(entry.contextKey)
                 ? ContextKeys.forEntry(entry).length === 0
                 : ContextKeys.forEntry(entry).length > 0,
         )).toBe(true);

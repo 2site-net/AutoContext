@@ -252,7 +252,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
     private readonly _onDidDetect = new vscode.EventEmitter<void>();
     private readonly _state = new Map<string, boolean>();
     private readonly _baseFlags = new Map<string, boolean>();
-    private readonly _overriddenSettingIds = new Set<string>();
+    private readonly _overriddenContextKeys = new Set<string>();
     private _overriddenFileNames = new Set<string>();
     private _overrideVersions = new Map<string, string | undefined>();
     private _pendingEvents: PendingEvent[] = [];
@@ -264,8 +264,8 @@ export class WorkspaceContextDetector implements vscode.Disposable {
         return this._state.get(key) ?? false;
     }
 
-    getOverriddenSettingIds(): ReadonlySet<string> {
-        return this._overriddenSettingIds;
+    getOverriddenContextKeys(): ReadonlySet<string> {
+        return this._overriddenContextKeys;
     }
 
     getOverrideVersion(fileName: string): string | undefined {
@@ -566,10 +566,10 @@ export class WorkspaceContextDetector implements vscode.Disposable {
 
         this._overriddenFileNames = overrides.fileNames;
         this._overrideVersions = overrides.versions;
-        this._overriddenSettingIds.clear();
+        this._overriddenContextKeys.clear();
         for (const i of this.instructionsCatalog.all) {
             if (overrides.fileNames.has(i.fileName)) {
-                this._overriddenSettingIds.add(i.settingId);
+                this._overriddenContextKeys.add(i.contextKey);
             }
         }
 
@@ -589,7 +589,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
                 setContext(`autocontext.workspace.${key}`, value),
             ),
             ...this.instructionsCatalog.all.map(i =>
-                setContext(ContextKeys.overrideKey(i.settingId), overrides.fileNames.has(i.fileName)),
+                setContext(ContextKeys.overrideKey(i.contextKey), overrides.fileNames.has(i.fileName)),
             ),
         ]).catch(err => this.outputChannel.appendLine(`[Detection] Failed to set context keys: ${err instanceof Error ? err.message : err}`));
     }

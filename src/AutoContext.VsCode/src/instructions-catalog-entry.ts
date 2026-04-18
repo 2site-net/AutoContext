@@ -8,7 +8,7 @@ export interface InstructionsMetadataEntry {
 }
 
 export class InstructionsCatalogEntry implements CatalogEntry {
-    readonly settingId: string;
+    readonly contextKey: string;
     readonly fileName: string;
     readonly label: string;
     readonly category: string;
@@ -18,7 +18,7 @@ export class InstructionsCatalogEntry implements CatalogEntry {
     readonly hasChangelog: boolean;
 
     constructor(data: InstructionsFileEntry, metadata?: InstructionsMetadataEntry) {
-        this.settingId = `autocontext.instructions.${data.key}`;
+        this.contextKey = `autocontext.instructions.${data.key}`;
         this.fileName = data.fileName;
         this.label = data.label;
         this.category = data.category;

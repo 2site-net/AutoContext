@@ -41,7 +41,7 @@ export class InstructionsCodeLensProvider implements vscode.CodeLensProvider, vs
                 return [];
             }
 
-            if (this.detector.getOverriddenSettingIds().has(entry.settingId)) {
+            if (this.detector.getOverriddenContextKeys().has(entry.contextKey)) {
                 return [];
             }
         }

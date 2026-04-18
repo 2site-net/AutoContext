@@ -1,13 +1,6 @@
 import { vi } from 'vitest';
 
-const configStore: Record<string, unknown> = {};
-
 export const workspace = {
-    getConfiguration: vi.fn(() => ({
-        get: vi.fn(<T>(key: string, defaultValue?: T): T | undefined =>
-            key in configStore ? configStore[key] as T : defaultValue),
-        update: vi.fn(),
-    })),
     createFileSystemWatcher: vi.fn(() => ({
         onDidCreate: vi.fn(),
         onDidChange: vi.fn(),

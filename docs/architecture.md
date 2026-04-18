@@ -144,7 +144,7 @@ When multiple sources disagree, the following precedence applies:
 |----------|--------|------|
 | 1 | `.editorconfig` | Drives enforcement direction — checkers enforce whatever EditorConfig says. Instruction defaults yield to EditorConfig values. |
 | 2 | Instruction files | Provide default coding guidance. Style rules in instructions are fallback defaults, not absolutes. |
-| 3 | VS Code settings / `.autocontext.json` | Control which tools and instructions are active. |
+| 3 | `.autocontext.json` | Controls which tools and instructions are active. |
 | 4 | Workspace context | Determines which servers and instructions are registered at all. |
 
 See the "EditorConfig wins" rule in `copilot.instructions.md` for the user-facing statement of this precedence.
@@ -174,7 +174,7 @@ Instructions are **workspace-aware** — they are only injected into Copilot's c
 
 ### Toggling
 
-The **Instructions** sidebar panel groups instructions by category and lets you enable or disable each one via inline actions. Toggling an instruction off sets its VS Code setting (e.g., `autocontext.instructions.dotnet.csharp`) to `false`, and the activation flow excludes it from the normalized output.
+The **Instructions** sidebar panel groups instructions by category and lets you enable or disable each one via inline actions. Toggling an instruction off writes the disabled state to `.autocontext.json`, and the activation flow excludes it from the normalized output.
 
 ### Per-Instruction Disable
 
@@ -201,7 +201,7 @@ Copilot never reads the raw instruction files. Three directories form a write-th
 
 - **`instructions/`** — the authored source files. Each rule is tagged with an `[INSTxxxx]` identifier used for per-rule disable and CodeLens UI. These files are never served to Copilot directly.
 - **`instructions/.workspaces/<hash>/`** — per-workspace staging. Each VS Code window writes its own normalized copy here, keyed by a SHA-256 hash of the workspace root path. Normalization strips `[INSTxxxx]` tags and removes disabled rules entirely. The staging layer exists because multiple VS Code windows share a single extension directory — without it, windows with different configurations would overwrite each other's output. Orphaned staging directories (from closed windows, older than one hour) are garbage-collected on activation.
-- **`instructions/.generated/`** — the live output that Copilot's `chatInstructions` reads. After staging, files are promoted here with a content-comparison guard (`copyIfChanged`) so identical content is never rewritten. Each file has a `when` clause that combines the instruction's VS Code setting toggle and the workspace context key — Copilot only sees files relevant to the current workspace.
+- **`instructions/.generated/`** — the live output that Copilot's `chatInstructions` reads. After staging, files are promoted here with a content-comparison guard (`copyIfChanged`) so identical content is never rewritten. Each file has a `when` clause that combines the instruction's context key (projected from `.autocontext.json` by `ConfigContextProjector`) and the workspace context key — Copilot only sees files relevant to the current workspace.
 
 On activation (and on configuration or window-focus changes), `InstructionsConfigWriter.write()` runs the full source → staging → promotion cycle. Content-comparison guards at both stages make re-runs essentially free when nothing changed.
 

@@ -20,7 +20,7 @@ const mockOutputChannel = { appendLine: vi.fn() } as unknown as import('vscode')
 
 const fakeDetector = {
     get: vi.fn((_key: string) => false),
-    getOverriddenSettingIds: vi.fn(() => new Set<string>()),
+    getOverriddenContextKeys: vi.fn(() => new Set<string>()),
     onDidDetect: vi.fn(() => ({ dispose: vi.fn() })),
 } as unknown as import('../../src/workspace-context-detector').WorkspaceContextDetector;
 
@@ -161,7 +161,7 @@ describe('InstructionsCodeLensProvider', () => {
 
     it('should return empty array for overridden instructions', async () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
-        vi.mocked(fakeDetector.getOverriddenSettingIds).mockReturnValue(new Set(['autocontext.instructions.lang.csharp']));
+        vi.mocked(fakeDetector.getOverriddenContextKeys).mockReturnValue(new Set(['autocontext.instructions.lang.csharp']));
         vi.mocked(readFile).mockImplementation(async (path: unknown) => {
             const pathStr = String(path);
             if (pathStr.endsWith('.autocontext.json')) return '{}';

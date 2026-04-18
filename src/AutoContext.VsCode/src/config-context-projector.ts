@@ -24,10 +24,10 @@ export class ConfigContextProjector implements vscode.Disposable {
 
         await Promise.all([
             ...this.instructionsCatalog.all.map(entry =>
-                setContext(entry.settingId, config.instructions?.[entry.fileName]?.enabled !== false),
+                setContext(entry.contextKey, config.instructions?.[entry.fileName]?.enabled !== false),
             ),
             ...this.toolsCatalog.all.map(entry =>
-                setContext(entry.settingId, ConfigContextProjector.isToolEnabled(config, entry.toolName, entry.featureName)),
+                setContext(entry.contextKey, ConfigContextProjector.isToolEnabled(config, entry.toolName, entry.featureName)),
             ),
         ]);
     }

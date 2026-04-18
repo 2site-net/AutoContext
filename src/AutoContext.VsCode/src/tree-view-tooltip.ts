@@ -14,11 +14,11 @@ export class TreeViewTooltip {
         return lines.join('\n');
     }
 
-    leaf(label: string, state: TreeViewNodeState, settingId: string, description?: string, version?: string, stateLabel?: string): string {
+    leaf(label: string, state: TreeViewNodeState, contextKey: string, description?: string, version?: string, stateLabel?: string): string {
         const heading = version ? `${label} v${version}` : label;
         const lines = [`${heading} (${stateLabel ?? this.stateDescription(state)})`];
         if (description) { lines.push(description); }
-        lines.push(`${treeViewLabels.settingPrefix} ${settingId}`);
+        lines.push(`${treeViewLabels.contextKeyPrefix} ${contextKey}`);
         return lines.join('\n');
     }
 

@@ -45,7 +45,7 @@ export const globalStateKeys = {
 // Within each category, entries are sorted alphabetically by label.
 // package.json (chatInstructions) should follow the same order.
 //
-// Each entry's `key` is expanded to a full `settingId` (`autocontext.instructions.<key>`)
+// Each entry's `key` is expanded to a full `contextKey` (`autocontext.instructions.<key>`)
 // by `InstructionsCatalogEntry` at construction time — see `InstructionsCatalog`.
 export const instructionsFiles: readonly InstructionsFileEntry[] = [
     { key: 'codeReview', fileName: 'code-review.instructions.md', label: 'Code Review', category: 'General' },
@@ -131,7 +131,7 @@ export const instructionsCategoryOrder: readonly string[] = ['General', 'Languag
 
 // ── MCP Tools ────────────────────────────────────────────────────────
 
-// Each entry's `key` is expanded to a full `settingId` (`autocontext.mcpTools.<key>`) by
+// Each entry's `key` is expanded to a full `contextKey` (`autocontext.mcpTools.<key>`) by
 // `McpToolsCatalogEntry` at construction time — see `McpToolsCatalog`.
 // When `toolName` is present the entry is a sub-feature of a composite tool (e.g.
 // `check_csharp_all`); when absent, `key` doubles as the MCP tool name.
@@ -184,5 +184,5 @@ export const treeViewLabels = {
     outdatedTooltip: 'Overridden — the local file is outdated, a newer version is available',
     overridden: 'overridden',
     overriddenTooltip: 'Overridden — using a local file instead of AutoContext\'s version',
-    settingPrefix: 'Setting:',
+    contextKeyPrefix: 'Context Key:',
 } as const;
