@@ -4,6 +4,15 @@ import type { InstructionsCatalog } from './instructions-catalog.js';
 import type { McpToolsCatalog } from './mcp-tools-catalog.js';
 import type { AutoContextConfig } from './types/autocontext-config.js';
 
+export function isToolEnabled(config: AutoContextConfig, toolName: string, featureName?: string): boolean {
+    const entry = config.mcpTools?.[toolName];
+    if (entry === undefined) return true;
+    if (entry === false) return false;
+    if (entry.enabled === false) return false;
+    if (featureName && entry.disabledFeatures?.includes(featureName)) return false;
+    return true;
+}
+
 export class ConfigContextProjector implements vscode.Disposable {
     private readonly disposables: vscode.Disposable[] = [];
 
@@ -27,18 +36,9 @@ export class ConfigContextProjector implements vscode.Disposable {
                 setContext(entry.contextKey, config.instructions?.[entry.fileName]?.enabled !== false),
             ),
             ...this.toolsCatalog.all.map(entry =>
-                setContext(entry.contextKey, ConfigContextProjector.isToolEnabled(config, entry.toolName, entry.featureName)),
+                setContext(entry.contextKey, isToolEnabled(config, entry.toolName, entry.featureName)),
             ),
         ]);
-    }
-
-    static isToolEnabled(config: AutoContextConfig, toolName: string, featureName?: string): boolean {
-        const entry = config.mcpTools?.[toolName];
-        if (entry === undefined) return true;
-        if (entry === false) return false;
-        if (entry.enabled === false) return false;
-        if (featureName && entry.disabledFeatures?.includes(featureName)) return false;
-        return true;
     }
 
     dispose(): void {

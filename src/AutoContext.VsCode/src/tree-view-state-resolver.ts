@@ -5,7 +5,7 @@ import type { WorkspaceContextDetector } from './workspace-context-detector.js';
 import type { AutoContextConfig } from './types/autocontext-config.js';
 import { InstructionsCatalogEntry } from './instructions-catalog-entry.js';
 import type { McpToolsCatalogEntry } from './mcp-tools-catalog-entry.js';
-import { ConfigContextProjector } from './config-context-projector.js';
+import { isToolEnabled } from './config-context-projector.js';
 
 export class TreeViewStateResolver {
     constructor(private readonly detector: WorkspaceContextDetector) {}
@@ -22,7 +22,7 @@ export class TreeViewStateResolver {
 
         const isEnabled = entry instanceof InstructionsCatalogEntry
             ? config.instructions?.[entry.fileName]?.enabled !== false
-            : ConfigContextProjector.isToolEnabled(config, (entry as McpToolsCatalogEntry).toolName, (entry as McpToolsCatalogEntry).featureName);
+            : isToolEnabled(config, (entry as McpToolsCatalogEntry).toolName, (entry as McpToolsCatalogEntry).featureName);
 
         if (!isEnabled) {
             return TreeViewNodeState.Disabled;

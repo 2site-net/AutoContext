@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { commands } from './__mocks__/vscode';
 
-import { ConfigContextProjector } from '../../src/config-context-projector';
+import { ConfigContextProjector, isToolEnabled } from '../../src/config-context-projector';
 import { InstructionsCatalog } from '../../src/instructions-catalog';
 import { McpToolsCatalog } from '../../src/mcp-tools-catalog';
 import type { AutoContextConfig } from '../../src/types/autocontext-config';
@@ -126,46 +126,46 @@ describe('ConfigContextProjector', () => {
     });
 });
 
-describe('ConfigContextProjector.isToolEnabled', () => {
+describe('isToolEnabled', () => {
     it('should return true when no tools config exists', () => {
-        expect.soft(ConfigContextProjector.isToolEnabled({}, 'check_csharp_all', 'check_csharp_coding_style')).toBe(true);
+        expect.soft(isToolEnabled({}, 'check_csharp_all', 'check_csharp_coding_style')).toBe(true);
     });
 
     it('should return false for standalone tool set to false', () => {
-        expect.soft(ConfigContextProjector.isToolEnabled(
+        expect.soft(isToolEnabled(
             { mcpTools: { get_editorconfig: false } }, 'get_editorconfig',
         )).toBe(false);
     });
 
     it('should return false for tool with enabled false', () => {
-        expect.soft(ConfigContextProjector.isToolEnabled(
+        expect.soft(isToolEnabled(
             { mcpTools: { get_editorconfig: { enabled: false } } }, 'get_editorconfig',
         )).toBe(false);
     });
 
     it('should return false for feature when parent disabled', () => {
-        expect.soft(ConfigContextProjector.isToolEnabled(
+        expect.soft(isToolEnabled(
             { mcpTools: { check_csharp_all: { enabled: false, disabledFeatures: ['check_csharp_coding_style'] } } },
             'check_csharp_all', 'check_csharp_coding_style',
         )).toBe(false);
     });
 
     it('should return false for feature in disabled list', () => {
-        expect.soft(ConfigContextProjector.isToolEnabled(
+        expect.soft(isToolEnabled(
             { mcpTools: { check_csharp_all: { disabledFeatures: ['check_csharp_coding_style'] } } },
             'check_csharp_all', 'check_csharp_coding_style',
         )).toBe(false);
     });
 
     it('should return true for feature not in disabled list', () => {
-        expect.soft(ConfigContextProjector.isToolEnabled(
+        expect.soft(isToolEnabled(
             { mcpTools: { check_csharp_all: { disabledFeatures: ['check_csharp_async_patterns'] } } },
             'check_csharp_all', 'check_csharp_coding_style',
         )).toBe(true);
     });
 
     it('should return true for standalone tool with no config entry', () => {
-        expect.soft(ConfigContextProjector.isToolEnabled(
+        expect.soft(isToolEnabled(
             { mcpTools: { check_csharp_all: false } }, 'get_editorconfig',
         )).toBe(true);
     });

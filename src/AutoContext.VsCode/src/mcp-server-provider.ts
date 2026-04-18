@@ -10,7 +10,7 @@ import type { McpServerEntry } from './types/mcp-server-entry.js';
 import { serverLabelToScopesMap } from './ui-constants.js';
 import type { AutoContextConfigManager } from './autocontext-config.js';
 import type { AutoContextConfig } from './types/autocontext-config.js';
-import { ConfigContextProjector } from './config-context-projector.js';
+import { isToolEnabled } from './config-context-projector.js';
 
 const extensionId = '2site-net.autocontext';
 
@@ -58,7 +58,7 @@ export class McpServerProvider implements vscode.McpServerDefinitionProvider {
                     return false;
                 }
                 const toolEntries = this.toolsCatalog.getEntriesByScope(s.scope);
-                return toolEntries.length === 0 || toolEntries.some(e => ConfigContextProjector.isToolEnabled(this._config, e.toolName, e.featureName));
+                return toolEntries.length === 0 || toolEntries.some(e => isToolEnabled(this._config, e.toolName, e.featureName));
             })
             .map(s => {
                 const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
@@ -132,7 +132,7 @@ export class McpServerProvider implements vscode.McpServerDefinitionProvider {
             if (serverEntry.contextKey && !this.workspaceContextDetector.get(serverEntry.contextKey)) { continue; }
 
             const toolEntries = this.toolsCatalog.getEntriesByScope(scope);
-            if (toolEntries.length > 0 && toolEntries.every(e => !ConfigContextProjector.isToolEnabled(this._config, e.toolName, e.featureName))) { continue; }
+            if (toolEntries.length > 0 && toolEntries.every(e => !isToolEnabled(this._config, e.toolName, e.featureName))) { continue; }
 
             return 'available';
         }
