@@ -5,9 +5,9 @@
 // Example output:
 //   { "path": "./instructions/copilot.instructions.md" },
 //   { "path": "./instructions/.generated/code-review.instructions.md",
-//     "when": "config.autocontext.instructions.codeReview && !autocontext.override.codeReview" },
+//     "when": "autocontext.instructions.codeReview && !autocontext.override.codeReview" },
 //   { "path": "./instructions/.generated/testing.instructions.md",
-//     "when": "config.autocontext.instructions.testing && (autocontext.workspace.hasDotNetTesting || autocontext.workspace.hasWebTesting) && !autocontext.override.testing" }
+//     "when": "autocontext.instructions.testing && (autocontext.workspace.hasDotNetTesting || autocontext.workspace.hasWebTesting) && !autocontext.override.testing" }
 
 import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -19,7 +19,7 @@ import type { CatalogEntry } from './types/catalog-entry.js';
 import type { ChatInstructions } from './types/chat-instructions.js';
 
 function buildWhenClause(entry: CatalogEntry): string {
-    const parts = [`config.${entry.settingId}`];
+    const parts = [entry.settingId];
 
     const ctxKeys = ContextKeys.forEntry(entry);
     if (ctxKeys.length === 1) {
