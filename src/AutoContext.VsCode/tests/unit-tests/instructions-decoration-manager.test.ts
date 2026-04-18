@@ -12,31 +12,18 @@ vi.mock('node:fs/promises', () => ({
     stat: vi.fn(async () => ({ mtimeMs: 1 })),
 }));
 
-import { workspace, window as vscodeWindow } from './__mocks__/vscode';
+import { workspace, window as vscodeWindow } from './_fakes/fake-vscode';
+import { createFakeOutputChannel } from './_fakes';
+import { testInstructionsContent } from './_fixtures';
+import { makeEditor } from './_utils';
 
-const mockOutputChannel = { appendLine: vi.fn() } as unknown as import('vscode').OutputChannel;
+const mockOutputChannel = createFakeOutputChannel();
 
 beforeEach(() => {
     vi.clearAllMocks();
     InstructionsParser['fileCache'].clear();
     workspace.workspaceFolders = [{ uri: { fsPath: '/workspace' } }];
 });
-
-const testContent = `---
-description: "Test"
----
-# Test
-
-- [INST0001] **Do** always use curly braces.
-- [INST0002] **Don't** use async void.
-`;
-
-function makeEditor(scheme: string, path: string) {
-    return {
-        document: { uri: { scheme, path } },
-        setDecorations: vi.fn(),
-    } as unknown as import('vscode').TextEditor;
-}
 
 describe('InstructionsDecorationManager', () => {
     it('should not set decorations for non-instruction editors', async () => {
@@ -55,7 +42,7 @@ describe('InstructionsDecorationManager', () => {
         vi.mocked(readFile).mockImplementation(async (path: unknown) => {
             const pathStr = String(path);
             if (pathStr.endsWith('.autocontext.json')) return '{}';
-            return testContent;
+            return testInstructionsContent;
         });
 
         const configManager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
@@ -71,7 +58,7 @@ describe('InstructionsDecorationManager', () => {
     });
 
     it('should set decoration ranges for disabled instructions', async () => {
-        const { instructions: parsedInstructions } = InstructionsParser.parse(testContent);
+        const { instructions: parsedInstructions } = InstructionsParser.parse(testInstructionsContent);
         const firstId = parsedInstructions[0].id;
 
         vi.mocked(readFile).mockImplementation(async (path: unknown) => {
@@ -86,7 +73,7 @@ describe('InstructionsDecorationManager', () => {
                     },
                 });
             }
-            return testContent;
+            return testInstructionsContent;
         });
 
         const configManager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
@@ -109,7 +96,7 @@ describe('InstructionsDecorationManager', () => {
         vi.mocked(readFile).mockImplementation(async (path: unknown) => {
             const pathStr = String(path);
             if (pathStr.endsWith('.autocontext.json')) return '{}';
-            return testContent;
+            return testInstructionsContent;
         });
 
         const editor1 = makeEditor(instructionScheme, 'test.instructions.md');

@@ -11,9 +11,11 @@ vi.mock('node:fs/promises', () => ({
     stat: vi.fn(async () => ({ mtimeMs: 1 })),
 }));
 
-import { workspace, Uri } from './__mocks__/vscode';
+import { workspace, Uri } from './_fakes/fake-vscode';
+import { createFakeOutputChannel } from './_fakes';
+import { testInstructionsContent } from './_fixtures';
 
-const mockOutputChannel = { appendLine: vi.fn() } as unknown as import('vscode').OutputChannel;
+const mockOutputChannel = createFakeOutputChannel();
 
 beforeEach(() => {
     vi.clearAllMocks();
@@ -21,21 +23,12 @@ beforeEach(() => {
     workspace.workspaceFolders = [{ uri: { fsPath: '/workspace' } }];
 });
 
-const testContent = `---
-description: "Test"
----
-# Test
-
-- [INST0001] **Do** always use curly braces.
-- [INST0002] **Don't** use async void.
-`;
-
 describe('InstructionsContentProvider', () => {
     it('should return file content unchanged when no instructions are disabled', async () => {
         vi.mocked(readFile).mockImplementation(async (path: unknown) => {
             const pathStr = String(path);
             if (pathStr.endsWith('.autocontext.json')) return '{}';
-            return testContent;
+            return testInstructionsContent;
         });
 
         const configManager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
@@ -43,11 +36,11 @@ describe('InstructionsContentProvider', () => {
         const uri = { scheme: instructionScheme, path: 'test.instructions.md' } as unknown as import('vscode').Uri;
         const result = await provider.provideTextDocumentContent(uri);
 
-        expect.soft(result).toBe(testContent);
+        expect.soft(result).toBe(testInstructionsContent);
     });
 
     it('should insert [DISABLED] tag for disabled instructions', async () => {
-        const { instructions: parsedInstructions } = InstructionsParser.parse(testContent);
+        const { instructions: parsedInstructions } = InstructionsParser.parse(testInstructionsContent);
         const firstInstructionId = parsedInstructions[0].id;
 
         vi.mocked(readFile).mockImplementation(async (path: unknown) => {
@@ -62,7 +55,7 @@ describe('InstructionsContentProvider', () => {
                     },
                 });
             }
-            return testContent;
+            return testInstructionsContent;
         });
 
         const configManager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);

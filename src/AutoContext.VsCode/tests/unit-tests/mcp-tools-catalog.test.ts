@@ -1,41 +1,35 @@
 import { describe, it, expect } from 'vitest';
 import { McpToolsCatalog } from '../../src/mcp-tools-catalog';
-import type { McpToolsEntry } from '../../src/types/mcp-tools-entry';
-
-const testEntries: readonly McpToolsEntry[] = [
-    { key: 'alpha', label: 'Alpha', category: 'C#', serverLabel: '.NET', scope: 'dotnet' },
-    { key: 'beta', label: 'Beta', category: 'NuGet', serverLabel: '.NET', scope: 'dotnet' },
-    { key: 'gamma', label: 'Gamma', category: 'Git', serverLabel: 'Workspace', scope: 'git' },
-];
+import { mcpToolsTestEntries } from './_fixtures';
 
 describe('McpToolsCatalog', () => {
     it('should expose all entries', () => {
-        const catalog = new McpToolsCatalog(testEntries);
+        const catalog = new McpToolsCatalog(mcpToolsTestEntries);
 
         expect.soft(catalog.count).toBe(3);
         expect.soft(catalog.all[0].contextKey).toBe('autocontext.mcpTools.alpha');
     });
 
     it('should return the correct count', () => {
-        const catalog = new McpToolsCatalog(testEntries);
+        const catalog = new McpToolsCatalog(mcpToolsTestEntries);
 
         expect.soft(catalog.count).toBe(3);
     });
 
     it('should return setting ids for a matching scope', () => {
-        const catalog = new McpToolsCatalog(testEntries);
+        const catalog = new McpToolsCatalog(mcpToolsTestEntries);
 
         expect.soft(catalog.getContextKeysByScope('dotnet')).toEqual(['autocontext.mcpTools.alpha', 'autocontext.mcpTools.beta']);
     });
 
     it('should return setting ids for git scope', () => {
-        const catalog = new McpToolsCatalog(testEntries);
+        const catalog = new McpToolsCatalog(mcpToolsTestEntries);
 
         expect.soft(catalog.getContextKeysByScope('git')).toEqual(['autocontext.mcpTools.gamma']);
     });
 
     it('should return empty array for unknown scope', () => {
-        const catalog = new McpToolsCatalog(testEntries);
+        const catalog = new McpToolsCatalog(mcpToolsTestEntries);
 
         expect.soft(catalog.getContextKeysByScope('unknown')).toEqual([]);
     });
@@ -53,7 +47,7 @@ describe('McpToolsCatalog', () => {
             ['alpha', { description: 'Alpha tool', version: '1.0.0' }],
             ['gamma', { description: 'Gamma tool', version: '2.0.0' }],
         ]);
-        const catalog = new McpToolsCatalog(testEntries, metadata);
+        const catalog = new McpToolsCatalog(mcpToolsTestEntries, metadata);
 
         expect.soft(catalog.all[0].description).toBe('Alpha tool');
         expect.soft(catalog.all[0].version).toBe('1.0.0');
@@ -64,7 +58,7 @@ describe('McpToolsCatalog', () => {
     });
 
     it('should leave metadata undefined when no metadata map is provided', () => {
-        const catalog = new McpToolsCatalog(testEntries);
+        const catalog = new McpToolsCatalog(mcpToolsTestEntries);
 
         expect.soft(catalog.all[0].description).toBeUndefined();
         expect.soft(catalog.all[0].version).toBeUndefined();
@@ -74,7 +68,7 @@ describe('McpToolsCatalog', () => {
         const metadata = new Map([
             ['alpha', { description: 'Alpha tool', version: '1.0.0' }],
         ]);
-        const catalog = new McpToolsCatalog(testEntries, metadata);
+        const catalog = new McpToolsCatalog(mcpToolsTestEntries, metadata);
 
         expect.soft(catalog.getMetadata('alpha')).toEqual({ description: 'Alpha tool', version: '1.0.0' });
         expect.soft(catalog.getMetadata('unknown')).toBeUndefined();

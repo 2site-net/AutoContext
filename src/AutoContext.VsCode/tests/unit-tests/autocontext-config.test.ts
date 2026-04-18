@@ -14,9 +14,10 @@ vi.mock('node:fs/promises', () => ({
     unlink: vi.fn().mockResolvedValue(undefined),
 }));
 
-import { workspace } from './__mocks__/vscode';
+import { workspace } from './_fakes/fake-vscode';
+import { createFakeOutputChannel } from './_fakes';
 
-const mockOutputChannel = { appendLine: vi.fn() } as unknown as import('vscode').OutputChannel;
+const mockOutputChannel = createFakeOutputChannel();
 
 beforeEach(() => {
     vi.clearAllMocks();

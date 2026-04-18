@@ -1,23 +1,17 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { window } from './__mocks__/vscode';
+import { window } from './_fakes/fake-vscode';
 import { AutoConfigurer } from '../../src/auto-configurer';
 import { ContextKeys } from '../../src/context-keys';
 import { InstructionsCatalog } from '../../src/instructions-catalog';
 import { McpToolsCatalog } from '../../src/mcp-tools-catalog';
 import { instructionsFiles, mcpTools } from '../../src/ui-constants';
 import type { AutoContextConfig } from '../../src/types/autocontext-config';
-import type { AutoContextConfigManager } from '../../src/autocontext-config';
+import { createFakeDetector, createFakeConfigManager } from './_fakes';
 
-const fakeDetector = {
-    get: vi.fn((_key: string) => false),
-} as unknown as import('../../src/workspace-context-detector').WorkspaceContextDetector;
+const fakeDetector = createFakeDetector();
 
 let currentConfig: AutoContextConfig = {};
-const fakeConfigManager = {
-    read: vi.fn(async () => currentConfig),
-    setInstructionEnabled: vi.fn(async () => {}),
-    setMcpTools: vi.fn(async () => {}),
-} as unknown as AutoContextConfigManager;
+const fakeConfigManager = createFakeConfigManager();
 
 beforeEach(() => {
     vi.clearAllMocks();

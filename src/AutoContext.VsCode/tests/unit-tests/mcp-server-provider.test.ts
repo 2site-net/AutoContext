@@ -1,14 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { workspace, McpStdioServerDefinition } from './__mocks__/vscode';
+import { workspace, McpStdioServerDefinition } from './_fakes/fake-vscode';
 import { McpServerProvider } from '../../src/mcp-server-provider';
 import { McpToolsCatalog } from '../../src/mcp-tools-catalog';
 import { McpServersCatalog } from '../../src/mcp-servers-catalog';
 import { mcpTools, mcpServers } from '../../src/ui-constants';
-import type { WorkspaceContextDetector } from '../../src/workspace-context-detector';
-import type { WorkspaceServerManager } from '../../src/workspace-server-manager';
-import type { HealthMonitorServer } from '../../src/health-monitor';
 import type { AutoContextConfig } from '../../src/types/autocontext-config';
-import type { AutoContextConfigManager } from '../../src/autocontext-config';
+import { createFakeDetector, createFakeConfigManager, createFakeWorkspaceServer, createFakeHealthMonitor } from './_fakes';
 
 const { existsSyncMock } = vi.hoisted(() => ({ existsSyncMock: vi.fn<(path: string) => boolean>(() => true) }));
 vi.mock('node:fs', () => ({ existsSync: existsSyncMock }));
@@ -18,28 +15,16 @@ type StdioDef = InstanceType<typeof McpStdioServerDefinition>;
 const extensionPath = '/ext';
 const version = '1.0.0';
 
-const fakeDetector = {
-    get: vi.fn((_key: string) => true),
-} as unknown as WorkspaceContextDetector;
-
-const fakeWorkspaceServer = {
-    getPipeName: vi.fn(() => 'autocontext-workspace-abc123'),
-} as unknown as WorkspaceServerManager;
-
-const fakeHealthMonitor = {
-    getPipeName: vi.fn(() => 'autocontext-health-abc123'),
-} as unknown as HealthMonitorServer;
+const fakeDetector = createFakeDetector();
+const fakeWorkspaceServer = createFakeWorkspaceServer();
+const fakeHealthMonitor = createFakeHealthMonitor();
 
 const onDidChange = vi.fn() as unknown as import('vscode').Event<void>;
 const toolsCatalog = new McpToolsCatalog(mcpTools);
 const serversCatalog = new McpServersCatalog(mcpServers);
 
 let currentConfig: AutoContextConfig = {};
-const fakeConfigManager = {
-    readSync: vi.fn(() => currentConfig),
-    read: vi.fn(async () => currentConfig),
-    onDidChange: vi.fn(() => ({ dispose: vi.fn() })),
-} as unknown as AutoContextConfigManager;
+const fakeConfigManager = createFakeConfigManager();
 
 function createProvider(): McpServerProvider {
     return new McpServerProvider(extensionPath, version, fakeDetector, onDidChange, fakeWorkspaceServer, toolsCatalog, serversCatalog, fakeHealthMonitor, fakeConfigManager);

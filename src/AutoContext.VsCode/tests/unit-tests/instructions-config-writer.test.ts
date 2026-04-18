@@ -18,24 +18,17 @@ vi.mock('node:fs/promises', () => ({
     access: vi.fn(async () => undefined),
 }));
 
-import { workspace } from './__mocks__/vscode';
+import { workspace } from './_fakes/fake-vscode';
+import { createFakeOutputChannel } from './_fakes';
+import { testInstructionsContent } from './_fixtures';
 
-const mockOutputChannel = { appendLine: vi.fn() } as unknown as import('vscode').OutputChannel;
+const mockOutputChannel = createFakeOutputChannel();
 
 beforeEach(() => {
     vi.clearAllMocks();
     InstructionsParser['fileCache'].clear();
     workspace.workspaceFolders = [{ uri: { fsPath: '/workspace' } }];
 });
-
-const testContent = `---
-description: "Test"
----
-# Test
-
-- [INST0001] **Do** always use curly braces.
-- [INST0002] **Don't** use async void.
-`;
 
 describe('InstructionsConfigWriter', () => {
     const catalog = new InstructionsCatalog(instructionsFiles);
@@ -44,7 +37,7 @@ describe('InstructionsConfigWriter', () => {
         vi.mocked(readFile).mockImplementation(async (path: unknown) => {
             const pathStr = String(path);
             if (pathStr.endsWith('.autocontext.json')) return '{}';
-            return testContent;
+            return testInstructionsContent;
         });
 
         const configManager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
@@ -63,7 +56,7 @@ describe('InstructionsConfigWriter', () => {
         vi.mocked(readFile).mockImplementation(async (path: unknown) => {
             const pathStr = String(path);
             if (pathStr.endsWith('.autocontext.json')) return '{}';
-            return testContent;
+            return testInstructionsContent;
         });
 
         const configManager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
@@ -85,7 +78,7 @@ describe('InstructionsConfigWriter', () => {
     });
 
     it('should write filtered content with disabled instructions removed', async () => {
-        const { instructions: parsedInstructions } = InstructionsParser.parse(testContent);
+        const { instructions: parsedInstructions } = InstructionsParser.parse(testInstructionsContent);
         const firstId = parsedInstructions[0].id;
         const targetFileName = catalog.all[0].fileName;
 
@@ -101,7 +94,7 @@ describe('InstructionsConfigWriter', () => {
                     },
                 });
             }
-            return testContent;
+            return testInstructionsContent;
         });
 
         const configManager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);

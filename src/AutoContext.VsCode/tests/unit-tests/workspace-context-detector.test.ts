@@ -1,47 +1,19 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { workspace, commands } from './__mocks__/vscode';
+import { workspace, commands } from './_fakes/fake-vscode';
 import { WorkspaceContextDetector } from '../../src/workspace-context-detector';
 import { InstructionsCatalog } from '../../src/instructions-catalog';
 import { McpServersCatalog } from '../../src/mcp-servers-catalog';
-import type { McpServerEntry } from '../../src/types/mcp-server-entry';
-import type { InstructionsFileEntry } from '../../src/types/instructions-file-entry';
+import { createFakeOutputChannel, fakeUri, stubFindFiles, stubReadFile } from './_fakes';
+import { detectorTestInstructions, detectorTestServers } from './_fixtures';
 
-const fakeUri = (p: string) => ({ path: p, scheme: 'file', fsPath: p, toString: () => `file://${p}` });
-
-const mockOutputChannel = { appendLine: vi.fn() } as unknown as import('vscode').OutputChannel;
-
-const testInstructions: InstructionsFileEntry[] = [
-    { key: 'copilot', fileName: 'copilot.instructions.md', label: 'Copilot', category: 'general' },
-    { key: 'dotnet.codingStandards', fileName: 'dotnet-coding-standards.instructions.md', label: '.NET Standards', category: 'dotnet', workspaceFlags: ['hasDotNet'] },
-];
-
-const testServers: McpServerEntry[] = [
-    { label: 'DotNet', scope: 'dotnet', server: 'dotnet', contextKey: 'hasDotNet' },
-    { label: 'Git', scope: 'git', server: 'workspace', contextKey: 'hasGit' },
-    { label: 'EditorConfig', scope: 'editorconfig', server: 'workspace' },
-    { label: 'TypeScript', scope: 'typescript', server: 'web', contextKey: 'hasTypeScript' },
-];
+const mockOutputChannel = createFakeOutputChannel();
 
 function createDetector(): WorkspaceContextDetector {
     return new WorkspaceContextDetector(
-        new InstructionsCatalog(testInstructions),
-        new McpServersCatalog(testServers),
+        new InstructionsCatalog(detectorTestInstructions),
+        new McpServersCatalog(detectorTestServers),
         mockOutputChannel,
     );
-}
-
-function stubFindFiles(mapping: Record<string, string[]>): void {
-    (workspace.findFiles as ReturnType<typeof vi.fn>).mockImplementation(
-        async (pattern: unknown) => (mapping[pattern as string] ?? []).map(f => fakeUri(f)),
-    );
-}
-
-function stubReadFile(mapping: Record<string, string>): void {
-    const encoder = new TextEncoder();
-    (workspace.fs.readFile as ReturnType<typeof vi.fn>).mockImplementation(async (uri: unknown) => {
-        const content = mapping[(uri as { path: string }).path];
-        return content !== undefined ? encoder.encode(content) : new Uint8Array();
-    });
 }
 
 beforeEach(() => {

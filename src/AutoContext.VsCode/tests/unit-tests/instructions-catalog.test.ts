@@ -1,12 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { InstructionsCatalogEntry } from '../../src/instructions-catalog-entry';
 import { InstructionsCatalog } from '../../src/instructions-catalog';
-
-const testData = [
-    { key: 'alpha', fileName: 'alpha.instructions.md', label: 'Alpha', category: 'General' },
-    { key: 'beta', fileName: 'beta.instructions.md', label: 'Beta', category: '.NET' },
-    { key: 'gamma', fileName: 'gamma.instructions.md', label: 'Gamma', category: 'Web' },
-] as const;
+import { catalogTestEntries } from './_fixtures';
 
 describe('InstructionsCatalogEntry', () => {
     it('should map files to .github/instructions/', () => {
@@ -24,20 +19,20 @@ describe('InstructionsCatalogEntry', () => {
 
 describe('InstructionsCatalog', () => {
     it('should expose all entries', () => {
-        const catalog = new InstructionsCatalog(testData);
+        const catalog = new InstructionsCatalog(catalogTestEntries);
 
         expect(catalog.all).toHaveLength(3);
         expect(catalog.all[0].contextKey).toBe('autocontext.instructions.alpha');
     });
 
     it('should return the correct count', () => {
-        const catalog = new InstructionsCatalog(testData);
+        const catalog = new InstructionsCatalog(catalogTestEntries);
 
         expect(catalog.count).toBe(3);
     });
 
     it('should find an entry by file name', () => {
-        const catalog = new InstructionsCatalog(testData);
+        const catalog = new InstructionsCatalog(catalogTestEntries);
 
         const entry = catalog.findByFileName('beta.instructions.md');
         expect(entry).toBeDefined();
@@ -45,13 +40,13 @@ describe('InstructionsCatalog', () => {
     });
 
     it('should return undefined for an unknown file name', () => {
-        const catalog = new InstructionsCatalog(testData);
+        const catalog = new InstructionsCatalog(catalogTestEntries);
 
         expect(catalog.findByFileName('nonexistent.md')).toBeUndefined();
     });
 
     it('should have unique setting ids', () => {
-        const catalog = new InstructionsCatalog(testData);
+        const catalog = new InstructionsCatalog(catalogTestEntries);
         const ids = catalog.all.map(i => i.contextKey);
 
         expect(new Set(ids).size).toBe(ids.length);
@@ -70,7 +65,7 @@ describe('InstructionsCatalog', () => {
             ['alpha.instructions.md', { description: 'Alpha desc', version: '1.0.0' }],
             ['gamma.instructions.md', { description: 'Gamma desc', version: '2.0.0' }],
         ]);
-        const catalog = new InstructionsCatalog(testData, metadata);
+        const catalog = new InstructionsCatalog(catalogTestEntries, metadata);
 
         expect.soft(catalog.all[0].description).toBe('Alpha desc');
         expect.soft(catalog.all[0].version).toBe('1.0.0');
@@ -81,14 +76,14 @@ describe('InstructionsCatalog', () => {
     });
 
     it('should leave metadata undefined when no metadata map is provided', () => {
-        const catalog = new InstructionsCatalog(testData);
+        const catalog = new InstructionsCatalog(catalogTestEntries);
 
         expect.soft(catalog.all[0].description).toBeUndefined();
         expect.soft(catalog.all[0].version).toBeUndefined();
     });
 
     it('should default hasChangelog to false when not in metadata', () => {
-        const catalog = new InstructionsCatalog(testData);
+        const catalog = new InstructionsCatalog(catalogTestEntries);
 
         expect.soft(catalog.all[0].hasChangelog).toBe(false);
         expect.soft(catalog.all[1].hasChangelog).toBe(false);
@@ -99,7 +94,7 @@ describe('InstructionsCatalog', () => {
             ['alpha.instructions.md', { hasChangelog: true }],
             ['gamma.instructions.md', { hasChangelog: false }],
         ]);
-        const catalog = new InstructionsCatalog(testData, metadata);
+        const catalog = new InstructionsCatalog(catalogTestEntries, metadata);
 
         expect.soft(catalog.all[0].hasChangelog).toBe(true);
         expect.soft(catalog.all[1].hasChangelog).toBe(false);

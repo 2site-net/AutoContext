@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { lm, workspace, __emitterInstances } from './__mocks__/vscode';
+import { lm, workspace, __emitterInstances } from './_fakes/fake-vscode';
 
 const { callLog } = vi.hoisted(() => ({ callLog: [] as string[] }));
 
@@ -114,17 +114,7 @@ vi.mock('../../src/auto-configurer', () => ({
 // ── SUT ─────────────────────────────────────────────────────────────
 
 import { activate } from '../../src/extension';
-
-// ── Helpers ─────────────────────────────────────────────────────────
-
-function fakeContext() {
-    return {
-        extensionPath: '/ext',
-        extension: { packageJSON: { version: '0.0.0-test' } },
-        subscriptions: [],
-        globalState: { get: () => undefined, update: async () => {} },
-    } as unknown as import('vscode').ExtensionContext;
-}
+import { createFakeExtensionContext } from './_fakes';
 
 // ── Tests ───────────────────────────────────────────────────────────
 
@@ -141,7 +131,7 @@ beforeEach(() => {
 
 describe('activate — MCP provider registration ordering', () => {
     it('should register MCP provider before running detect()', async () => {
-        await activate(fakeContext());
+        await activate(createFakeExtensionContext());
 
         const providerIdx = callLog.indexOf('registerProvider');
         const detectIdx = callLog.indexOf('detect');
@@ -152,7 +142,7 @@ describe('activate — MCP provider registration ordering', () => {
     });
 
     it('should notify VS Code after workspace detection completes', async () => {
-        await activate(fakeContext());
+        await activate(createFakeExtensionContext());
 
         // activate() creates one EventEmitter (didChangeEmitter) and fires it
         // after detect() to prompt VS Code to re-query the MCP provider.

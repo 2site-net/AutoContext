@@ -14,15 +14,13 @@ vi.mock('node:fs/promises', () => ({
     stat: vi.fn(async () => ({ mtimeMs: 1 })),
 }));
 
-import { workspace } from './__mocks__/vscode';
+import { workspace } from './_fakes/fake-vscode';
+import { createFakeOutputChannel, createFakeDetector } from './_fakes';
+import { testInstructionsContent } from './_fixtures';
+import { makeDocument } from './_utils';
 
-const mockOutputChannel = { appendLine: vi.fn() } as unknown as import('vscode').OutputChannel;
-
-const fakeDetector = {
-    get: vi.fn((_key: string) => false),
-    getOverriddenContextKeys: vi.fn(() => new Set<string>()),
-    onDidDetect: vi.fn(() => ({ dispose: vi.fn() })),
-} as unknown as import('../../src/workspace-context-detector').WorkspaceContextDetector;
+const mockOutputChannel = createFakeOutputChannel();
+const fakeDetector = createFakeDetector();
 
 beforeEach(() => {
     vi.clearAllMocks();
@@ -30,19 +28,6 @@ beforeEach(() => {
     InstructionsParser['fileCache'].clear();
     workspace.workspaceFolders = [{ uri: { fsPath: '/workspace' } }];
 });
-
-const testContent = `---
-description: "Test"
----
-# Test
-
-- [INST0001] **Do** always use curly braces.
-- [INST0002] **Don't** use async void.
-`;
-
-function makeDocument(scheme: string, path: string) {
-    return { uri: { scheme, path } } as unknown as import('vscode').TextDocument;
-}
 
 describe('InstructionsCodeLensProvider', () => {
     const catalog = new InstructionsCatalog(instructionsFiles);
@@ -62,7 +47,7 @@ describe('InstructionsCodeLensProvider', () => {
         vi.mocked(readFile).mockImplementation(async (path: unknown) => {
             const pathStr = String(path);
             if (pathStr.endsWith('.autocontext.json')) return '{}';
-            return testContent;
+            return testInstructionsContent;
         });
 
         const configManager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
@@ -70,7 +55,7 @@ describe('InstructionsCodeLensProvider', () => {
 
         const lenses = await provider.provideCodeLenses(makeDocument(instructionScheme, 'test.instructions.md'));
 
-        const { instructions: parsedInstructions } = InstructionsParser.parse(testContent);
+        const { instructions: parsedInstructions } = InstructionsParser.parse(testInstructionsContent);
         expect(lenses).toHaveLength(parsedInstructions.length);
         expect.soft(lenses.every(lens => {
             const cmd = lens.command as { title: string; command: string };
@@ -79,7 +64,7 @@ describe('InstructionsCodeLensProvider', () => {
     });
 
     it('should show Enable Instruction for disabled instructions', async () => {
-        const { instructions: parsedInstructions } = InstructionsParser.parse(testContent);
+        const { instructions: parsedInstructions } = InstructionsParser.parse(testInstructionsContent);
         const firstId = parsedInstructions[0].id;
 
         vi.mocked(readFile).mockImplementation(async (path: unknown) => {
@@ -94,7 +79,7 @@ describe('InstructionsCodeLensProvider', () => {
                     },
                 });
             }
-            return testContent;
+            return testInstructionsContent;
         });
 
         const configManager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
@@ -113,7 +98,7 @@ describe('InstructionsCodeLensProvider', () => {
     });
 
     it('should include Reset All Instructions lens when instructions are disabled', async () => {
-        const { instructions: parsedInstructions } = InstructionsParser.parse(testContent);
+        const { instructions: parsedInstructions } = InstructionsParser.parse(testInstructionsContent);
         const firstId = parsedInstructions[0].id;
 
         vi.mocked(readFile).mockImplementation(async (path: unknown) => {
@@ -128,7 +113,7 @@ describe('InstructionsCodeLensProvider', () => {
                     },
                 });
             }
-            return testContent;
+            return testInstructionsContent;
         });
 
         const configManager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
@@ -147,7 +132,7 @@ describe('InstructionsCodeLensProvider', () => {
         vi.mocked(readFile).mockImplementation(async (path: unknown) => {
             const pathStr = String(path);
             if (pathStr.endsWith('.autocontext.json')) return '{}';
-            return testContent;
+            return testInstructionsContent;
         });
 
         const configManager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
@@ -165,7 +150,7 @@ describe('InstructionsCodeLensProvider', () => {
         vi.mocked(readFile).mockImplementation(async (path: unknown) => {
             const pathStr = String(path);
             if (pathStr.endsWith('.autocontext.json')) return '{}';
-            return testContent;
+            return testInstructionsContent;
         });
 
         const configManager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
@@ -181,7 +166,7 @@ describe('InstructionsCodeLensProvider', () => {
         vi.mocked(readFile).mockImplementation(async (path: unknown) => {
             const pathStr = String(path);
             if (pathStr.endsWith('.autocontext.json')) return '{}';
-            return testContent;
+            return testInstructionsContent;
         });
 
         const configManager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);

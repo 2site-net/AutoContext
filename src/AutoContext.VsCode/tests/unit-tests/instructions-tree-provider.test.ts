@@ -1,32 +1,22 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { TreeItemCollapsibleState, TreeItemCheckboxState, workspace, commands, Uri, window } from './__mocks__/vscode';
+import { TreeItemCollapsibleState, TreeItemCheckboxState, workspace, commands, Uri, window } from './_fakes/fake-vscode';
 import { InstructionsTreeProvider } from '../../src/instructions-tree-provider';
 import type { AutoContextConfig } from '../../src/types/autocontext-config';
-import type { AutoContextConfigManager } from '../../src/autocontext-config';
 import type { InstructionsTreeNode } from '../../src/types/instructions-tree-node';
 import { TreeViewNodeState } from '../../src/tree-view-node-state';
 import { InstructionsCatalog } from '../../src/instructions-catalog';
 import { instructionsFiles, contextKeys } from '../../src/ui-constants';
 import { TreeViewStateResolver } from '../../src/tree-view-state-resolver';
 import { TreeViewTooltip } from '../../src/tree-view-tooltip';
+import { createFakeDetector, createFakeConfigManager } from './_fakes';
 
-const fakeDetector = {
-    get: vi.fn((_key: string) => false),
-    getOverriddenContextKeys: vi.fn(() => new Set<string>()),
-    getOverrideVersion: vi.fn((_fileName: string) => undefined as string | undefined),
-    onDidDetect: vi.fn(() => ({ dispose: vi.fn() })),
-} as unknown as import('../../src/workspace-context-detector').WorkspaceContextDetector;
+const fakeDetector = createFakeDetector();
 
 const stateResolver = new TreeViewStateResolver(fakeDetector);
 const tooltip = new TreeViewTooltip('instructions');
 
 let currentConfig: AutoContextConfig = {};
-const fakeConfigManager = {
-    readSync: vi.fn(() => currentConfig),
-    read: vi.fn(async () => currentConfig),
-    onDidChange: vi.fn(() => ({ dispose: vi.fn() })),
-    setInstructionEnabled: vi.fn(async () => {}),
-} as unknown as AutoContextConfigManager;
+const fakeConfigManager = createFakeConfigManager();
 
 beforeEach(() => {
     vi.clearAllMocks();

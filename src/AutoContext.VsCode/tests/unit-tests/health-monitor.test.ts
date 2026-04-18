@@ -1,36 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { __emitterInstances } from './__mocks__/vscode';
-import { connect, type Socket } from 'node:net';
+import { __emitterInstances } from './_fakes/fake-vscode';
 import { HealthMonitorServer } from '../../src/health-monitor';
+import { createFakeOutputChannel } from './_fakes';
+import { pipePath, connectAndSend } from './_utils/pipe-helpers';
+import { waitFor } from './_utils/wait-for';
 
-const fakeOutputChannel = {
-    appendLine: vi.fn(),
-    dispose: vi.fn(),
-} as unknown as import('vscode').OutputChannel;
-
-function pipePath(pipeName: string): string {
-    return process.platform === 'win32'
-        ? `\\\\.\\pipe\\${pipeName}`
-        : `/tmp/CoreFxPipe_${pipeName}`;
-}
-
-function connectAndSend(pipe: string, scope: string): Promise<Socket> {
-    return new Promise((resolve, reject) => {
-        const socket = connect(pipePath(pipe), () => {
-            socket.write(scope, () => resolve(socket));
-        });
-        socket.on('error', reject);
-    });
-}
-
-/** Poll a condition until it becomes true (or timeout). */
-async function waitFor(condition: () => boolean, ms = 2000, interval = 10): Promise<void> {
-    const start = Date.now();
-    while (!condition()) {
-        if (Date.now() - start > ms) { throw new Error('waitFor timeout'); }
-        await new Promise(r => setTimeout(r, interval));
-    }
-}
+const fakeOutputChannel = createFakeOutputChannel();
 
 describe('HealthMonitorServer', () => {
     let monitor: HealthMonitorServer;

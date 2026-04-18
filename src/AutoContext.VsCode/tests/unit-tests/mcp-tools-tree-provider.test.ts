@@ -1,30 +1,21 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { TreeItemCollapsibleState, TreeItemCheckboxState, window, ThemeIcon, ThemeColor } from './__mocks__/vscode';
+import { TreeItemCollapsibleState, TreeItemCheckboxState, window, ThemeIcon, ThemeColor } from './_fakes/fake-vscode';
 import { McpToolsTreeProvider } from '../../src/mcp-tools-tree-provider';
 import type { AutoContextConfig } from '../../src/types/autocontext-config';
-import type { AutoContextConfigManager } from '../../src/autocontext-config';
 import { TreeViewNodeState } from '../../src/tree-view-node-state';
 import { McpToolsCatalog } from '../../src/mcp-tools-catalog';
 import { mcpTools } from '../../src/ui-constants';
 import { TreeViewStateResolver } from '../../src/tree-view-state-resolver';
 import { TreeViewTooltip } from '../../src/tree-view-tooltip';
-import type { HealthMonitorServer } from '../../src/health-monitor';
+import { createFakeDetector, createFakeConfigManager, createFakeHealthMonitor } from './_fakes';
 
-const fakeDetector = {
-    get: vi.fn((_key: string) => false),
-    onDidDetect: vi.fn(() => ({ dispose: vi.fn() })),
-} as unknown as import('../../src/workspace-context-detector').WorkspaceContextDetector;
+const fakeDetector = createFakeDetector();
 
 const stateResolver = new TreeViewStateResolver(fakeDetector);
 const tooltip = new TreeViewTooltip('tools');
 
 let currentConfig: AutoContextConfig = {};
-const fakeConfigManager = {
-    readSync: vi.fn(() => currentConfig),
-    read: vi.fn(async () => currentConfig),
-    onDidChange: vi.fn(() => ({ dispose: vi.fn() })),
-    setMcpToolEnabled: vi.fn(async () => {}),
-} as unknown as AutoContextConfigManager;
+const fakeConfigManager = createFakeConfigManager();
 
 beforeEach(() => {
     vi.clearAllMocks();
@@ -642,14 +633,6 @@ describe('McpToolsTreeProvider', () => {
 
         provider.dispose();
     });
-
-    function createFakeHealthMonitor(overrides: Partial<Record<'isServerHealthy' | 'isServerPartiallyHealthy', (g: string) => boolean>> = {}): HealthMonitorServer {
-        return {
-            isServerHealthy: vi.fn(overrides.isServerHealthy ?? (() => false)),
-            isServerPartiallyHealthy: vi.fn(overrides.isServerPartiallyHealthy ?? (() => false)),
-            onDidChange: vi.fn(() => ({ dispose: vi.fn() })),
-        } as unknown as HealthMonitorServer;
-    }
 
     describe('health monitor icons', () => {
         it('should show green icon when server is fully healthy', () => {

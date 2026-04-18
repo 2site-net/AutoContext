@@ -1,44 +1,21 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { commands } from './__mocks__/vscode';
+import { commands } from './_fakes/fake-vscode';
 
 import { ConfigContextProjector, isToolEnabled } from '../../src/config-context-projector';
 import { InstructionsCatalog } from '../../src/instructions-catalog';
 import { McpToolsCatalog } from '../../src/mcp-tools-catalog';
 import type { AutoContextConfig } from '../../src/types/autocontext-config';
-import type { AutoContextConfigManager } from '../../src/autocontext-config';
-import type { InstructionsFileEntry } from '../../src/types/instructions-file-entry';
-import type { McpToolsEntry } from '../../src/types/mcp-tools-entry';
-
-const testInstructions: InstructionsFileEntry[] = [
-    { key: 'codeReview', fileName: 'code-review.instructions.md', label: 'Code Review', category: 'General' },
-    { key: 'lang.csharp', fileName: 'lang-csharp.instructions.md', label: 'C#', category: 'Languages', workspaceFlags: ['hasCSharp'] },
-];
-
-const testTools: McpToolsEntry[] = [
-    { key: 'check_csharp_coding_style', toolName: 'check_csharp_all', label: 'C# Coding Style', category: '.NET', serverLabel: '.NET', scope: 'dotnet', workspaceFlags: ['hasCSharp'] },
-    { key: 'check_csharp_async_patterns', toolName: 'check_csharp_all', label: 'C# Async', category: '.NET', serverLabel: '.NET', scope: 'dotnet', workspaceFlags: ['hasCSharp'] },
-    { key: 'get_editorconfig', label: 'EditorConfig', category: 'Workspace', serverLabel: 'Workspace', scope: 'editorconfig' },
-];
-
-function createMockConfigManager(config: AutoContextConfig): AutoContextConfigManager {
-    return {
-        read: vi.fn().mockResolvedValue(config),
-        onDidChange: vi.fn(() => ({ dispose: vi.fn() })),
-    } as unknown as AutoContextConfigManager;
-}
-
-function findSetContextCall(key: string): [string, string, boolean] | undefined {
-    return vi.mocked(commands.executeCommand).mock.calls
-        .find(c => c[0] === 'setContext' && c[1] === key) as [string, string, boolean] | undefined;
-}
+import { createMockConfigManager } from './_fakes';
+import { projectorTestInstructions, projectorTestTools } from './_fixtures';
+import { findSetContextCall } from './_utils';
 
 beforeEach(() => {
     vi.clearAllMocks();
 });
 
 describe('ConfigContextProjector', () => {
-    const catalog = new InstructionsCatalog(testInstructions);
-    const toolsCatalog = new McpToolsCatalog(testTools);
+    const catalog = new InstructionsCatalog(projectorTestInstructions);
+    const toolsCatalog = new McpToolsCatalog(projectorTestTools);
 
     it('should set all context keys to true when config is empty', async () => {
         const projector = new ConfigContextProjector(createMockConfigManager({}), catalog, toolsCatalog);
