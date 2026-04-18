@@ -352,8 +352,6 @@ export class AutoContextConfigManager implements vscode.Disposable {
             return;
         }
 
-        this.cachedConfig = undefined;
-
         const isEmpty = !config.instructions && !config.diagnostic && !config.mcpTools;
         if (isEmpty) {
             try {
@@ -361,6 +359,8 @@ export class AutoContextConfigManager implements vscode.Disposable {
             } catch {
                 // File didn't exist — nothing to delete.
             }
+            this.cachedConfig = {};
+            this.didChangeEmitter.fire();
             return;
         }
 
@@ -371,6 +371,8 @@ export class AutoContextConfigManager implements vscode.Disposable {
         if (config.mcpTools) ordered.mcpTools = config.mcpTools;
 
         await writeFile(path, JSON.stringify(AutoContextConfigManager.toDisk(ordered), null, 4) + '\n', 'utf-8');
+        this.cachedConfig = ordered;
+        this.didChangeEmitter.fire();
     }
 
     /** Removes an instruction entry if it has returned to the default state. */

@@ -355,18 +355,18 @@ describe('AutoContextConfigManager', () => {
         expect.soft(readFile).toHaveBeenCalledTimes(1);
     });
 
-    it('should invalidate cache after writing config', async () => {
+    it('should use cached config after writing', async () => {
         vi.mocked(readFile).mockResolvedValue('{}');
 
         const manager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
         await manager.read();
         await manager.toggleInstruction('code-review.instructions.md', 'INST0001');
 
-        // toggleInstruction calls read() (cache hit) then writeConfig() (invalidates).
-        // Next read() should re-read from disk.
+        // toggleInstruction calls read() (cache hit) then writeConfig() which
+        // caches the new config. Next read() should also hit the cache.
         await manager.read();
 
-        expect.soft(readFile).toHaveBeenCalledTimes(2);
+        expect.soft(readFile).toHaveBeenCalledTimes(1);
     });
 
     it('should read disabled instructions with multiple IDs', async () => {
