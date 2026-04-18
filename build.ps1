@@ -656,6 +656,55 @@ function Copy-NodeJsToServersFolder {
     }
 }
 
+function Build-NodeJsBundle {
+    [CmdletBinding(SupportsShouldProcess)]
+    param()
+
+    foreach ($server in $nodeServers) {
+        $serverName = $server.name
+        $targetDir = Join-Path $serversDir $serverName
+
+        if (-not (Test-Path $targetDir)) {
+            Write-Status "$serverName not found in servers — skipping bundle" 'INFO'
+            continue
+        }
+
+        Write-Section "Bundle $serverName"
+
+        $entryPoint = Join-Path $targetDir 'index.js'
+        if (-not (Test-Path $entryPoint)) { throw "Entry point not found: $entryPoint" }
+
+        if ($PSCmdlet.ShouldProcess($targetDir, "Bundle $serverName with esbuild")) {
+            $bundleFile = Join-Path $targetDir 'index.bundle.js'
+            $serverSourceDir = Join-Path $repoRoot 'src' $serverName
+
+            # Run npx from the source directory where esbuild is a devDependency
+            Push-Location $serverSourceDir
+            try {
+                npx esbuild $entryPoint --bundle --platform=node --format=esm --outfile=$bundleFile
+                if ($LASTEXITCODE -ne 0) { throw "esbuild bundle failed for $serverName." }
+            }
+            finally {
+                Pop-Location
+            }
+
+            # Replace original with bundle
+            Remove-Item $entryPoint -Force
+            Rename-Item $bundleFile 'index.js'
+
+            # Remove everything that's now inlined
+            $keep = @('index.js')
+            Get-ChildItem $targetDir -Exclude $keep | Remove-Item -Recurse -Force
+
+            # ESM bundle requires a package.json with type=module so Node.js
+            # treats .js as ES modules regardless of parent directory layout.
+            '{"type":"module"}' | Set-Content (Join-Path $targetDir 'package.json') -Encoding utf8NoBOM
+
+            Write-Status "$serverName bundled" 'OK'
+        }
+    }
+}
+
 function Build-VscePackage {
     [CmdletBinding(SupportsShouldProcess)]
     param([Parameter(Mandatory)][string]$Rid)
@@ -893,6 +942,8 @@ function Invoke-Package {
         Copy-DotNetToServersFolder
     }
     elseif ($Scope -eq 'All') {
+        Build-NodeJsBundle
+
         # Explicit "Package All" — build all six platforms
         foreach ($rid in $ridToTarget.Keys) {
             Build-DotNetPackage -Rid $rid
@@ -903,6 +954,8 @@ function Invoke-Package {
         if (Test-Path $serversDir) { Remove-Item $serversDir -Recurse -Force }
     }
     else {
+        Build-NodeJsBundle
+
         # Single platform: explicit -RuntimeIdentifier or auto-detect
         $rid = Resolve-RuntimeIdentifier
         Build-DotNetPackage -Rid $rid
@@ -929,6 +982,7 @@ function Invoke-Publish {
     $rids = if ($Scope -eq 'All') { $ridToTarget.Keys } else { @(Resolve-RuntimeIdentifier) }
 
     Copy-NodeJsToServersFolder
+    Build-NodeJsBundle
 
     foreach ($rid in $rids) {
         $vsceTarget = $ridToTarget[$rid]
