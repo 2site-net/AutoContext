@@ -108,7 +108,7 @@ vi.mock('../../src/workspace-server-manager', () => ({
 }));
 
 vi.mock('../../src/auto-configurer', () => ({
-    AutoConfigurer: class {},
+    AutoConfigurer: class { async run() {} },
 }));
 
 // ── SUT ─────────────────────────────────────────────────────────────

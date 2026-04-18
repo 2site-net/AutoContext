@@ -32,6 +32,14 @@ suite('Extension Smoke Tests', () => {
             'autocontext.cancel-export',
             'autocontext.show-not-detected',
             'autocontext.hide-not-detected',
+            'autocontext.delete-override',
+            'autocontext.show-original',
+            'autocontext.show-changelog',
+            'autocontext.show-whats-new',
+            'autocontext.start-mcp-server',
+            'autocontext.stop-mcp-server',
+            'autocontext.restart-mcp-server',
+            'autocontext.show-mcp-server-output',
         ];
         const missing = expected.filter(cmd => !allCommands.includes(cmd));
 
