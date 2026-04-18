@@ -15,7 +15,7 @@ AutoContext provides two complementary capabilities:
 - **Chat Instructions** — Curated Markdown guidelines covering .NET, TypeScript, Web frameworks, Git, scripting, and more. Instructions are workspace-aware — only the ones relevant to your project are injected into Copilot's context. Individual rules within any instruction file can be disabled without turning off the entire file.
 - **MCP Tool Checks** — Quality checks that Copilot can invoke in Agent mode to validate code style, naming conventions, async patterns, NuGet hygiene, commit messages, and more. Checkers read `.editorconfig` properties and enforce whichever direction the project specifies.
 
-Tools and instructions are grouped into categories and managed from dedicated sidebar panels — individually toggled, auto-configured based on workspace detection, or exported to `.github/instructions/` for team sharing. Exported instructions are tracked for staleness and flagged when newer built-in versions are available.
+Tools and instructions are grouped into categories and managed from dedicated sidebar panels — individually toggled, auto-configured based on workspace detection, or exported to `.github/instructions/` for team sharing. Exported instructions are tracked for staleness and flagged when newer built-in versions are available. MCP servers are health-monitored via a named-pipe protocol, with live status indicators and inline start/stop/restart controls in the sidebar.
 
 ## Build Prerequisites
 
@@ -31,7 +31,9 @@ version.json                            # Canonical version (single source of tr
 versionize.ps1                          # Version stamping tool (Sync, Export, SyncAndExport)
 src/AutoContext.Mcp.Shared/             # Shared contracts and WorkspaceServer communication layer
   Checkers/                             #   Checker interfaces and CompositeChecker base class
+  HealthMonitorClient.cs                #   Named-pipe client that reports server health to the extension
   WorkspaceServer/                      #   WorkspaceServerClient (pipe client)
+    Logging/                            #     LogRequest/LogResponse wire types for centralized logging
     McpTools/                           #     Wire-contract types (McpToolsRequest, McpToolsResponse)
 src/AutoContext.WorkspaceServer/        # Handles cross-cutting workspace tasks and hosts technology-agnostic MCP tools
   Tools/                                #   MCP-facing entry points (EditorConfig tool, Git checkers)
@@ -39,7 +41,10 @@ src/AutoContext.WorkspaceServer/        # Handles cross-cutting workspace tasks 
 src/AutoContext.Mcp.DotNet/             # Provides MCP tools server for .NET development (e.g. C#, NuGet)
   Tools/                                #   CSharp/ and NuGet/ checker implementations
 src/AutoContext.Mcp.Web/                # Provides MCP tools server for web development (e.g. TypeScript)
-  src/tools/                            #   TypeScript checker implementations
+  src/                                  #   TypeScript source code
+    features/                           #     Shared infrastructure (checkers, health monitor, logging, workspace server client)
+    tools/                              #     TypeScript checker implementations
+  tests/                                #   Vitest tests
 src/AutoContext.VsCode/                 # VS Code extension for instructions, tool orchestration, and workspace detection
 src/AutoContext.Mcp.DotNet.Tests/       # Tests for the .NET MCP server
 src/AutoContext.WorkspaceServer.Tests/  # Tests for the workspace server
@@ -65,7 +70,9 @@ If you have the .NET 10 SDK installed and have cloned this repo, you can registe
         "${workspaceFolder}/src/AutoContext.Mcp.DotNet/AutoContext.Mcp.DotNet.csproj",
         "--",
         "--scope",
-        "dotnet"
+        "dotnet",
+        "--workspace-folder",
+        "${workspaceFolder}"
       ]
     },
     "git-AutoContext": {
@@ -77,7 +84,9 @@ If you have the .NET 10 SDK installed and have cloned this repo, you can registe
         "${workspaceFolder}/src/AutoContext.WorkspaceServer/AutoContext.WorkspaceServer.csproj",
         "--",
         "--scope",
-        "git"
+        "git",
+        "--workspace-folder",
+        "${workspaceFolder}"
       ]
     },
     "editorconfig-AutoContext": {
@@ -89,7 +98,9 @@ If you have the .NET 10 SDK installed and have cloned this repo, you can registe
         "${workspaceFolder}/src/AutoContext.WorkspaceServer/AutoContext.WorkspaceServer.csproj",
         "--",
         "--scope",
-        "editorconfig"
+        "editorconfig",
+        "--workspace-folder",
+        "${workspaceFolder}"
       ]
     },
     "typescript-AutoContext": {
@@ -98,14 +109,16 @@ If you have the .NET 10 SDK installed and have cloned this repo, you can registe
       "args": [
         "${workspaceFolder}/src/AutoContext.Mcp.Web/out/index.js",
         "--scope",
-        "typescript"
+        "typescript",
+        "--workspace-folder",
+        "${workspaceFolder}"
       ]
     }
   }
 }
 ```
 
-> **Note:** The TypeScript server requires a prior build: `cd src/AutoContext.Mcp.Web && npm install && npm run build`. When configured manually, EditorConfig properties are not resolved (the `--workspace-server` argument is omitted); checkers fall back to their built-in defaults.
+> **Note:** The TypeScript server requires a prior build: `cd src/AutoContext.Mcp.Web && npm install && npm run build`. When configured manually, the `--workspace-server` and `--health-monitor` arguments are omitted; checkers fall back to their built-in defaults for EditorConfig properties, and health monitoring and centralized logging are unavailable.
 
 ## Testing
 
@@ -119,10 +132,8 @@ If you have the .NET 10 SDK installed and have cloned this repo, you can registe
 
 Smoke tests launch a real VS Code instance, load the extension, and verify activation and command registration:
 
-```sh
-cd src/AutoContext.VsCode
-npm install
-npm run test:smoke
+```powershell
+./build.ps1 Test -Smoke
 ```
 
 A VS Code installation is downloaded automatically on the first run and cached

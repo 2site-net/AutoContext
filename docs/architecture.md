@@ -63,9 +63,10 @@ flowchart TB
         generated --> copilot(("Copilot"))
         whenEval -->|"filter which<br/>files are active"| copilot
 
+        healthMon["HealthMonitor<br/>Server"] -->|"server status"| trees
         wsMgr["WorkspaceServer<br/>Manager"] -->|"pipe name"| serverProv
         catalogs --> serverProv
-        serverProv -->|"server definitions<br/>(--workspace-server pipe)"| mcpHost["VS Code MCP Host"]
+        serverProv -->|"server definitions<br/>(--workspace-server pipe<br/>--health-monitor pipe)"| mcpHost["VS Code MCP Host"]
     end
 
     wsMgr -.->|"spawn<br/>(named pipe)"| sidecar
@@ -82,6 +83,7 @@ flowchart TB
     end
 
     checkers <-.->|"named pipe:<br/>decisions + properties"| sidecar
+    servers -.->|"named pipe:<br/>health heartbeat"| healthMon
     report -.-> copilot
 ```
 
@@ -91,7 +93,8 @@ The diagram reads top-to-bottom: **build artifacts** feed into the **extension p
 - **WorkspaceContextDetector** scans workspace files and sets context keys, which drive MCP server registration (`McpServerProvider`), instruction filtering (`when`-clause evaluation against `chatInstructions` in `package.json`), and tree views (detected state + override file versions for staleness comparison).
 - **`.autocontext.json`** is the single source of truth for user configuration. `AutoContextConfigManager` reads and writes tool on/off toggles, disabled instruction IDs, and per-instruction disable lists. WorkspaceServer reads the same file for per-tool enable/disable decisions. MCP servers are separate OS processes — this file is how toggle state crosses the process boundary.
 - **`.generated/`** files are what Copilot actually reads — they are the instruction source files with `[INSTxxxx]` tags stripped and disabled rules removed. VS Code's `when`-clause engine evaluates the context keys to decide which `.generated/` files are active for a given workspace.
-- **MCP servers** connect to the WorkspaceServer sidecar over a named pipe to get feature decisions and resolved `.editorconfig` properties, then run their checkers and return reports to Copilot.
+- **HealthMonitorServer** runs a named pipe that each MCP server connects to on startup. The server sends its scope name as a heartbeat; the extension tracks active connections and exposes running/partial/stopped status on tree view server nodes.
+- **MCP servers** connect to the WorkspaceServer sidecar over a named pipe to get feature decisions and resolved `.editorconfig` properties, then run their checkers and return reports to Copilot. They also connect to the health monitor pipe to report their liveness.
 
 The [Activation Flow](#activation-flow) section below describes the exact ordering and parallelism of the startup steps. The [Runtime Flow](#runtime-flow) section describes what happens when Copilot calls a tool.
 
@@ -103,21 +106,29 @@ When the extension activates, the following steps execute:
 
 **Phase 1 — Metadata & Catalogs** — `MetadataLoader` reads the merged `.mcp-tools.json` manifest (tool name, description, version) and parses YAML frontmatter from every instruction file (description, version). It also checks for a `.CHANGELOG.md` companion file for each instruction, recording `hasChangelog` so the tree view can offer a changelog command. The results are passed to `McpToolsCatalog`, `InstructionsCatalog`, and `McpServersCatalog`, which enrich the raw `ui-constants` data with metadata and serve as the single source of truth for all downstream consumers (tree views, tooltips, the instruction writer, and the server provider).
 
-**Phase 2 — `WorkspaceServerManager.start()`** — spawns `AutoContext.WorkspaceServer` in named-pipe mode (see [Projects](#projects)). Each VS Code window gets its own pipe (`autocontext-workspace-<random>`) and its own server process, so multiple windows are fully isolated. The pipe name is injected into every MCP server definition via `--workspace-server`.
+**Phase 2 — Start services** — `HealthMonitorServer.start()` creates a named pipe (`autocontext-health-<random>`) that MCP servers will connect to for liveness reporting. Then `WorkspaceServerManager.start()` spawns `AutoContext.WorkspaceServer` in named-pipe mode (see [Projects](#projects)). Each VS Code window gets its own workspace pipe (`autocontext-workspace-<random>`) and its own server process, so multiple windows are fully isolated.
 
-**Phase 3 (parallel)** — the following three operations run concurrently via `Promise.all()`:
+**Phase 3 — Register MCP provider** — `McpServerProvider` is registered with VS Code **before** workspace detection so tools appear in the picker immediately. Each server definition includes `--workspace-server <pipe>` (except the EditorConfig scope, to avoid circular dependency) and `--health-monitor <pipe>` arguments.
 
-- **`WorkspaceContextDetector.detect()`** — scans the workspace for project files, `package.json` dependencies, and directory markers. Sets VS Code context keys that control both server registration and instruction injection. Also scans `.github/instructions/` for override files, parsing their frontmatter to extract version numbers for staleness comparison (see [Override Staleness](#override-staleness)).
+**Phase 4 — Workspace detection** — `WorkspaceContextDetector.detect()` scans the workspace for project files, `package.json` dependencies, and directory markers. Sets VS Code context keys that control both server registration and instruction injection. Also scans `.github/instructions/` for override files, parsing their frontmatter to extract version numbers for staleness comparison (see [Override Staleness](#override-staleness)).
+
+**Phase 5 — Notify MCP host** — fires a change event to tell VS Code about the newly detected servers. This explicit fire is needed because the `onDidChange` forwarding was not yet wired during `detect()`.
+
+**Phase 6 (parallel)** — the following three operations run concurrently via `Promise.all()`:
+
+- **`ConfigContextProjector.project()`** — projects config state to VS Code context keys for all instructions and tools.
 - **`InstructionsConfigWriter.removeOrphanedStagingDirs()`** — deletes per-workspace staging directories older than one hour that belong to other VS Code windows.
 - **`ConfigManager.removeOrphanedIds()`** — cleans disabled-instruction IDs from `.autocontext.json` that no longer match any instruction in the current extension version.
 
-**Phase 4 — `clearStaleDisabledIds()`** — compares the MAJOR.MINOR version stored alongside each file's disabled instruction IDs in `.autocontext.json` against the current catalog version. If the file's version has advanced (rules may have been renumbered or removed), all disabled IDs for that file are cleared and the user is notified. Patch-only bumps are ignored because they preserve rule IDs. See [Versioning Semantics](#versioning-semantics) for the version-level contract.
+**Phase 7 — Register commands & listeners** — registers all 18 commands (auto-configure, toggle/reset/enable/disable instructions, export mode, delete override, show original, show changelog, show what's new, show/hide not detected, start/stop/restart/show-output MCP servers). Also wires event listeners: config changes trigger diagnostic logging and MCP re-registration; window focus and workspace trust changes trigger instruction re-writing.
 
-**Phase 5 — `InstructionsConfigWriter.write()`** — normalizes all instruction files into `instructions/.generated/`, stripping `[INSTxxxx]` tag identifiers and removing any individually disabled instruction bullets. Copilot always reads from the normalized output, so neither tags nor disabled content are visible to the model. Runs after phases 3–4 complete because it depends on workspace detection, config state, and stale-ID clearing.
+**Phase 8 — `clearStaleDisabledIds()`** — compares the MAJOR.MINOR version stored alongside each file's disabled instruction IDs in `.autocontext.json` against the current catalog version. If the file's version has advanced (rules may have been renumbered or removed), all disabled IDs for that file are cleared and the user is notified. Patch-only bumps are ignored because they preserve rule IDs. See [Versioning Semantics](#versioning-semantics) for the version-level contract.
 
-**Phase 6 — Extension upgrade detection** — compares the running extension version against `lastSeenVersion` in global state. If the version differs, a badge is set on the Instructions tree view (`"New version available"`) that auto-dismisses when the user next reveals the panel. The `HasWhatsNew` context key is also set if the extension ships a `CHANGELOG.md`, enabling the "Show What's New" command.
+**Phase 9 — `InstructionsConfigWriter.write()`** — normalizes all instruction files into `instructions/.generated/`, stripping `[INSTxxxx]` tag identifiers and removing any individually disabled instruction bullets. Copilot always reads from the normalized output, so neither tags nor disabled content are visible to the model. Runs after phases 6–8 complete because it depends on workspace detection, config state, and stale-ID clearing.
 
-**Phase 7 — `logDiagnostics()`** — parses every instruction file and logs warnings (e.g., missing `[INSTxxxx]` IDs) to the **AutoContext** Output channel.
+**Phase 10 — Extension upgrade detection** — compares the running extension version against `lastSeenVersion` in global state. If the version differs, a badge is set on the Instructions tree view (`"New version available"`) that auto-dismisses when the user next reveals the panel. The `HasWhatsNew` context key is also set if the extension ships a `CHANGELOG.md`, enabling the "Show What's New" command.
+
+**Phase 11 — `logDiagnostics()`** — parses every instruction file and logs warnings (e.g., missing `[INSTxxxx]` IDs) to the **AutoContext** Output channel.
 
 ## Runtime Flow
 
@@ -133,6 +144,53 @@ When Copilot invokes an MCP tool (e.g., `check_csharp_all`):
 5. The composite checker returns a combined report (✅ pass or ❌ violations found).
 
 MCP servers never read `.autocontext.json` directly — all tool orchestration decisions are centralized in WorkspaceServer so the config format and decision logic can evolve in one place.
+
+---
+
+## Health Monitoring
+
+Each MCP server connects to the extension's `HealthMonitorServer` on startup via a named pipe (`autocontext-health-<random>`). The protocol is intentionally minimal:
+
+1. The extension creates a `net.createServer()` listening on the health pipe.
+2. Each MCP server process connects and sends its **scope name** (e.g., `"dotnet"`, `"git"`, `"editorconfig"`, `"typescript"`) as the first and only data message.
+3. The connection is kept alive for the lifetime of the server process. When the server exits, the OS closes the socket and the extension detects disconnect.
+
+The extension tracks active connections per scope in a `Map<string, Set<Socket>>` and exposes three query methods:
+
+- `isRunning(scope)` — true if the scope has at least one active connection.
+- `isServerHealthy(serverLabel)` — true if **all** scopes for that server label are healthy (e.g., `Workspace` requires both `git` and `editorconfig`).
+- `isServerPartiallyHealthy(serverLabel)` — true if **at least one** scope for that label is healthy.
+
+The `McpToolsTreeProvider` uses these methods to display server status on tree nodes:
+
+| Status | Context Value | Shown When |
+|--------|---------------|------------|
+| **Running** | `serverNode.running` | All scopes healthy |
+| **Partial** | `serverNode.partial` | Some scopes healthy |
+| **Stopped** | `serverNode.stopped` | No scopes healthy |
+
+Inline actions on server nodes allow the user to **Start**, **Stop**, **Restart**, or **Show Output** for each server directly from the sidebar. These commands delegate to VS Code's built-in `workbench.mcp.startServer`, `workbench.mcp.stopServer`, `workbench.mcp.restartServer`, and `workbench.mcp.showOutput` commands.
+
+On the server side, `HealthMonitorClient` (in `Mcp.Shared` for .NET, mirrored in `Mcp.Web` for Node.js) connects to the pipe using the `--health-monitor <pipeName>` argument. Connection failures are non-fatal — health monitoring is a best-effort diagnostic, not a prerequisite for tool operation.
+
+---
+
+## Incremental Workspace Detection
+
+After the initial full scan (`detect()`), `WorkspaceContextDetector` uses three file-system watchers to maintain detection state incrementally:
+
+- **Existence watcher** — watches for creation/deletion of source files by extension (e.g., `.ts`, `.cs`, `.razor`).
+- **Content watcher** — watches project manifests (`package.json`, `*.csproj`, etc.) for content changes that may add or remove framework dependencies.
+- **Override watcher** — watches `.github/instructions/*.instructions.md` for user overrides.
+
+When a watcher fires, the detector performs a targeted re-scan with 500ms debouncing:
+
+- Only re-globs flags affected by deletions.
+- Only re-scans npm or .NET content when their manifests change.
+- Re-uses cached base flags for unchanged categories.
+- Falls back to a full `detect()` if no prior scan exists.
+
+Window focus changes also trigger an `InstructionsConfigWriter.write()` to ensure normalized instruction files are up to date when the user returns to a window.
 
 ---
 
@@ -277,9 +335,10 @@ A shared class library and three executables make up the server side:
 
 - **`AutoContext.Mcp.Shared`** — Shared contracts and communication layer for the .NET MCP servers. Contains:
   - `Checkers/` — `IChecker` and `IEditorConfigFilter` interfaces, and the `CompositeChecker` abstract base that orchestrates sub-checkers, resolves tool modes and EditorConfig data via a single pipe call, and collects the combined report.
-  - `WorkspaceServer/` — `WorkspaceServerClient` (named-pipe client for querying WorkspaceServer) and a nested `McpTools/` subfolder containing the wire-contract types (`McpToolsRequest`, `McpToolsResponse`). The request carries tool names, an optional file path, and optional EditorConfig keys; the response returns two flat maps — tool enabled/disabled status and resolved EditorConfig properties. Both sides of the pipe share these types — they are the single source of truth.
-- **`AutoContext.Mcp.DotNet`** — .NET-based MCP server. Handles the DotNet scope. Contains `Tools/CSharp/` (C# checkers) and `Tools/NuGet/` (NuGet hygiene). C# checkers resolve `.editorconfig` properties via the workspace server and use them to drive enforcement direction (e.g., brace style, namespace style).
-- **`AutoContext.Mcp.Web`** — Node.js-based MCP server. Handles the TypeScript scope. Mirrors the .NET structure: `features/checkers/` (shared interfaces and `CompositeChecker` base), `features/logging/` (logger), `features/workspace-server/` (`WorkspaceServerClient` and nested `mcp-tools/` wire types), and `tools/typescript/` (checkers).
+  - `HealthMonitorClient.cs` — Named-pipe client that connects to the extension's `HealthMonitorServer`. Sends the server's scope name (e.g., `"dotnet"`, `"git"`) on connect and keeps the connection alive. When the process exits, the OS closes the pipe and the extension detects disconnect.
+  - `WorkspaceServer/` — `WorkspaceServerClient` (named-pipe client for querying WorkspaceServer) and two nested subfolders: `Logging/` containing the `LogRequest`/`LogResponse` wire types for centralized logging via the workspace pipe, and `McpTools/` containing `McpToolsRequest`/`McpToolsResponse`. The request carries tool names, an optional file path, and optional EditorConfig keys; the response returns two flat maps — tool enabled/disabled status and resolved EditorConfig properties. Both sides of the pipe share these types — they are the single source of truth.
+- **`AutoContext.Mcp.DotNet`** — .NET-based MCP server. Handles the DotNet scope. Contains `Tools/CSharp/` (C# checkers) and `Tools/NuGet/` (NuGet hygiene). C# checkers resolve `.editorconfig` properties via the workspace server and use them to drive enforcement direction (e.g., brace style, namespace style). Connects to the health monitor pipe on startup via `HealthMonitorClient`.
+- **`AutoContext.Mcp.Web`** — Node.js-based MCP server. Handles the TypeScript scope. Mirrors the .NET structure: `features/checkers/` (shared interfaces and `CompositeChecker` base), `features/health-monitor/` (`HealthMonitorClient` — Node.js equivalent of the .NET client), `features/logging/` (logger), `features/workspace-server/` (`WorkspaceServerClient` and nested `logging/` + `mcp-tools/` wire types), and `tools/typescript/` (checkers). Connects to the health monitor pipe on startup.
 - **`AutoContext.WorkspaceServer`** — Handles cross-cutting workspace tasks and hosts technology-agnostic MCP tools. Multi-mode .NET executable with two folder layers:
   - `Tools/` — MCP-facing entry points (the tools Copilot calls). Contains `EditorConfig/EditorConfigTool` and `Git/` checkers.
   - `Hosting/` — Named-pipe server infrastructure and domain logic. At the top level: `WorkspaceService` (dispatch), `IRequestHandler`, and the `WorkspaceRequest` envelope. Subfolders contain feature handlers: `EditorConfig/` owns property resolution (`EditorConfigResolver`) and the named-pipe request handler; `McpTools/` owns tool orchestration (enable/disable decisions via `McpToolsConfig`, request handling via `McpToolsRequestHandler`).

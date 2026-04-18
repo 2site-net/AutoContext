@@ -1,6 +1,6 @@
 ## Auto Configure
 
-AutoContext scans your workspace on activation and re-scans whenever the window regains focus. The right instructions and tools are enabled automatically — no manual step is required. You can also trigger a scan manually with the command below.
+AutoContext scans your workspace on activation and maintains detection state incrementally via file-system watchers — changes to source files or project manifests trigger targeted re-scans. The right instructions and tools are enabled automatically — no manual step is required. You can also trigger a full scan manually with the command below.
 
 ### What it detects
 

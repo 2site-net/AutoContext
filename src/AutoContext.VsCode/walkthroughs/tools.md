@@ -19,6 +19,10 @@ A server category is filtered out entirely if its workspace context is not prese
 
 When AutoContext detects your workspace, it registers the relevant MCP servers with VS Code. The first time a server is discovered, VS Code prompts you to confirm that you trust and want to start it. Accept the prompt so Copilot can invoke the server tools in agent mode.
 
+### Server health monitoring
+
+Each MCP server reports its liveness via a health monitoring pipe. Server nodes in the MCP Tools panel show a live status indicator — **running**, **partially running**, or **stopped**. Use the inline **Start**, **Stop**, **Restart**, and **Show Output** actions on each server node to manage servers directly from the sidebar.
+
 ### How it works
 
 When you disable a feature, it is recorded in `.autocontext.json` at your workspace root. The workspace server reads this file and decides how each feature runs. Disabled features are skipped when Copilot invokes the tool — with one exception: if the project's `.editorconfig` contains keys a checker consumes (e.g., `csharp_prefer_braces`), those EditorConfig-backed checks still apply even when the feature is disabled.
