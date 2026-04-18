@@ -254,12 +254,6 @@ describe('McpServerProvider.getServerStatus', () => {
         expect(createProvider().getServerStatus('Unknown')).toBe('unavailable');
     });
 
-    it('returns unavailable for web when index.js exists but node_modules is missing', () => {
-        existsSyncMock.mockImplementation(p => !String(p).includes('node_modules'));
-
-        expect(createProvider().getServerStatus('Web')).toBe('unavailable');
-    });
-
     it('should log to outputChannel when configManager.read rejects in onDidChange', async () => {
         let onDidChangeCallback!: () => void;
         const failingConfigManager = {

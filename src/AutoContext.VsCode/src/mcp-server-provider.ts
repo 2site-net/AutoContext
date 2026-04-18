@@ -144,14 +144,7 @@ export class McpServerProvider implements vscode.McpServerDefinitionProvider {
     }
 
     private isBinaryAvailable(server: McpServerEntry): boolean {
-        if (!existsSync(this.getBinaryPath(server))) { return false; }
-
-        // Web servers need node_modules alongside index.js to be runnable.
-        if (server.server === 'web') {
-            return existsSync(join(this.serversPath, 'AutoContext.Mcp.Web', 'node_modules'));
-        }
-
-        return true;
+        return existsSync(this.getBinaryPath(server));
     }
 
     private getBinaryPath(server: McpServerEntry): string {

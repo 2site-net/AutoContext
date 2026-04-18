@@ -681,7 +681,7 @@ function Build-NodeJsBundle {
             # Run npx from the source directory where esbuild is a devDependency
             Push-Location $serverSourceDir
             try {
-                npx esbuild $entryPoint --bundle --platform=node --format=esm --outfile=$bundleFile
+                npx esbuild $entryPoint --bundle --platform=node --format=esm --external:typescript --outfile=$bundleFile
                 if ($LASTEXITCODE -ne 0) { throw "esbuild bundle failed for $serverName." }
             }
             finally {
@@ -692,9 +692,18 @@ function Build-NodeJsBundle {
             Remove-Item $entryPoint -Force
             Rename-Item $bundleFile 'index.js'
 
-            # Remove everything that's now inlined
-            $keep = @('index.js')
+            # Remove everything except the bundle and its remaining dependencies
+            $keep = @('index.js', 'node_modules', 'package.json')
             Get-ChildItem $targetDir -Exclude $keep | Remove-Item -Recurse -Force
+
+            # Prune node_modules to only externalized packages
+            $nodeModulesDir = Join-Path $targetDir 'node_modules'
+            if (Test-Path $nodeModulesDir) {
+                $externalPackages = @('typescript')
+                Get-ChildItem $nodeModulesDir -Directory |
+                    Where-Object { $_.Name -notin $externalPackages } |
+                    Remove-Item -Recurse -Force
+            }
 
             # ESM bundle requires a package.json with type=module so Node.js
             # treats .js as ES modules regardless of parent directory layout.
