@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { TreeItemCollapsibleState, TreeItemCheckboxState, window, ThemeIcon, ThemeColor } from './__mocks__/vscode';
 import { McpToolsTreeProvider } from '../../src/mcp-tools-tree-provider';
-import type { AutoContextConfig } from '../../src/autocontext-config';
+import type { AutoContextConfig } from '../../src/types/autocontext-config';
 import type { AutoContextConfigManager } from '../../src/autocontext-config';
 import { TreeViewNodeState } from '../../src/tree-view-node-state';
 import { McpToolsCatalog } from '../../src/mcp-tools-catalog';
