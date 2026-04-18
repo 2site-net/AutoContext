@@ -247,13 +247,3 @@ export const Uri = {
         };
     }),
 };
-
-/**
- * Preload config values for `workspace.getConfiguration().get()`.
- */
-export function __setConfigStore(values: Record<string, unknown>): void {
-    for (const key of Object.keys(configStore)) {
-        delete configStore[key];
-    }
-    Object.assign(configStore, values);
-}

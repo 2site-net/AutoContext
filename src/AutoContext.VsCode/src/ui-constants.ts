@@ -43,7 +43,7 @@ export const globalStateKeys = {
 
 // Category order: General → Languages → Platforms (.NET, Web) → Tools.
 // Within each category, entries are sorted alphabetically by label.
-// package.json (chatInstructions + configuration.properties) should follow the same order.
+// package.json (chatInstructions) should follow the same order.
 //
 // Each entry's `key` is expanded to a full `settingId` (`autocontext.instructions.<key>`)
 // by `InstructionsCatalogEntry` at construction time — see `InstructionsCatalog`.

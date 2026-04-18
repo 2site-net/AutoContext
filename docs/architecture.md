@@ -52,9 +52,8 @@ flowchart TB
         detector -->|"context keys<br/>+ overrides"| whenEval["when-clause<br/>evaluation"]
         pkgJson --> whenEval
 
-        settings["VS Code<br/>settings"] --> toolsWriter["McpTools<br/>ConfigWriter"]
-        catalogs --> toolsWriter
-        toolsWriter --> acJson[".autocontext.json"]
+        trees -->|"enable/disable<br/>toggles"| cfgMgr["AutoContext<br/>ConfigManager"]
+        cfgMgr --> acJson[".autocontext.json"]
 
         instrSrc["instruction<br/>source files"] --> instrWriter["Instructions<br/>ConfigWriter"]
         acJson -->|"disabled IDs<br/>(via ConfigManager)"| instrWriter
@@ -88,9 +87,9 @@ flowchart TB
 
 The diagram reads top-to-bottom: **build artifacts** feed into the **extension process**, which spawns and configures the **WorkspaceServer sidecar** and **MCP servers**. Dotted lines cross process boundaries. Key connections to follow:
 
-- **Catalogs** are the central hub — built from `ui-constants` + `MetadataLoader` output, they feed into tree views, config writers, the detector, and the server provider.
+- **Catalogs** are the central hub — built from `ui-constants` + `MetadataLoader` output, they feed into tree views, the detector, and the server provider.
 - **WorkspaceContextDetector** scans workspace files and sets context keys, which drive MCP server registration (`McpServerProvider`), instruction filtering (`when`-clause evaluation against `chatInstructions` in `package.json`), and tree views (detected state + override file versions for staleness comparison).
-- **`.autocontext.json`** bridges the extension and WorkspaceServer. The extension writes tool on/off toggles and disabled instruction IDs; WorkspaceServer reads them for per-tool enable/disable decisions. MCP servers are separate OS processes and cannot read VS Code settings — this file is how toggle state crosses the process boundary.
+- **`.autocontext.json`** is the single source of truth for user configuration. `AutoContextConfigManager` reads and writes tool on/off toggles, disabled instruction IDs, and per-instruction disable lists. WorkspaceServer reads the same file for per-tool enable/disable decisions. MCP servers are separate OS processes — this file is how toggle state crosses the process boundary.
 - **`.generated/`** files are what Copilot actually reads — they are the instruction source files with `[INSTxxxx]` tags stripped and disabled rules removed. VS Code's `when`-clause engine evaluates the context keys to decide which `.generated/` files are active for a given workspace.
 - **MCP servers** connect to the WorkspaceServer sidecar over a named pipe to get feature decisions and resolved `.editorconfig` properties, then run their checkers and return reports to Copilot.
 
@@ -102,14 +101,13 @@ The [Activation Flow](#activation-flow) section below describes the exact orderi
 
 When the extension activates, the following steps execute:
 
-**Phase 1 — Metadata & Catalogs** — `MetadataLoader` reads the merged `.mcp-tools.json` manifest (tool name, description, version) and parses YAML frontmatter from every instruction file (description, version). It also checks for a `.CHANGELOG.md` companion file for each instruction, recording `hasChangelog` so the tree view can offer a changelog command. The results are passed to `McpToolsCatalog`, `InstructionsCatalog`, and `McpServersCatalog`, which enrich the raw `ui-constants` data with metadata and serve as the single source of truth for all downstream consumers (tree views, tooltips, config writers, server provider).
+**Phase 1 — Metadata & Catalogs** — `MetadataLoader` reads the merged `.mcp-tools.json` manifest (tool name, description, version) and parses YAML frontmatter from every instruction file (description, version). It also checks for a `.CHANGELOG.md` companion file for each instruction, recording `hasChangelog` so the tree view can offer a changelog command. The results are passed to `McpToolsCatalog`, `InstructionsCatalog`, and `McpServersCatalog`, which enrich the raw `ui-constants` data with metadata and serve as the single source of truth for all downstream consumers (tree views, tooltips, the instruction writer, and the server provider).
 
 **Phase 2 — `WorkspaceServerManager.start()`** — spawns `AutoContext.WorkspaceServer` in named-pipe mode (see [Projects](#projects)). Each VS Code window gets its own pipe (`autocontext-workspace-<random>`) and its own server process, so multiple windows are fully isolated. The pipe name is injected into every MCP server definition via `--workspace-server`.
 
-**Phase 3 (parallel)** — the following four operations run concurrently via `Promise.all()`:
+**Phase 3 (parallel)** — the following three operations run concurrently via `Promise.all()`:
 
 - **`WorkspaceContextDetector.detect()`** — scans the workspace for project files, `package.json` dependencies, and directory markers. Sets VS Code context keys that control both server registration and instruction injection. Also scans `.github/instructions/` for override files, parsing their frontmatter to extract version numbers for staleness comparison (see [Override Staleness](#override-staleness)).
-- **`McpToolsConfigWriter.write()`** — persists the user's tool on/off toggles from VS Code settings into `.autocontext.json`. MCP servers are separate processes that cannot access VS Code settings, so `.autocontext.json` is how the WorkspaceServer knows which features to enable or disable at runtime.
 - **`InstructionsConfigWriter.removeOrphanedStagingDirs()`** — deletes per-workspace staging directories older than one hour that belong to other VS Code windows.
 - **`ConfigManager.removeOrphanedIds()`** — cleans disabled-instruction IDs from `.autocontext.json` that no longer match any instruction in the current extension version.
 
@@ -243,7 +241,7 @@ Each instruction file carries YAML frontmatter (`name`, `description`, optional 
 
 ### MetadataLoader
 
-At activation (Phase 1), `MetadataLoader` reads the merged `.mcp-tools.json` for tool metadata and parses frontmatter from every instruction file. It also probes for a `.CHANGELOG.md` companion file for each instruction and records `hasChangelog` on the metadata entry. The enriched data is passed to `McpToolsCatalog` and `InstructionsCatalog`, which serve as the single source of truth for tree views, tooltips, config writers, and the MCP server provider.
+At activation (Phase 1), `MetadataLoader` reads the merged `.mcp-tools.json` for tool metadata and parses frontmatter from every instruction file. It also probes for a `.CHANGELOG.md` companion file for each instruction and records `hasChangelog` on the metadata entry. The enriched data is passed to `McpToolsCatalog` and `InstructionsCatalog`, which serve as the single source of truth for tree views, tooltips, the instruction writer, and the MCP server provider.
 
 ### Versioning Semantics
 

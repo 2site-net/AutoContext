@@ -107,18 +107,18 @@ suite('Instructions Tree View Smoke Tests', () => {
         exports.instructionsTreeProvider.cancelExportMode();
     });
 
-    test('enable command should update setting to true', async () => {
+    test('enable command should update config to enabled', async () => {
         const { exports } = await activatedExtension();
 
-        await vscode.workspace.getConfiguration().update('autocontext.instructions.designPrinciples', false, vscode.ConfigurationTarget.Global);
+        await exports.configManager.setInstructionEnabled('design-principles.instructions.md', false);
 
         try {
             const roots = exports.instructionsTreeProvider.getChildren();
             const general = roots.find((r: { kind: string; name: string }) => r.kind === 'categoryNode' && r.name === 'General');
             const children = exports.instructionsTreeProvider.getChildren(general);
             const disabled = children.find(
-                (c: { kind: string; entry: { settingId: string }; state: { value: string } }) =>
-                    c.kind === 'instructions' && c.entry.settingId === 'autocontext.instructions.designPrinciples',
+                (c: { kind: string; entry: { fileName: string }; state: { value: string } }) =>
+                    c.kind === 'instructions' && c.entry.fileName === 'design-principles.instructions.md',
             );
 
             assert.ok(disabled, 'Design Principles should be found');
@@ -126,14 +126,15 @@ suite('Instructions Tree View Smoke Tests', () => {
 
             await vscode.commands.executeCommand('autocontext.enable-instruction', disabled);
 
-            const value = vscode.workspace.getConfiguration().get<boolean>('autocontext.instructions.designPrinciples');
-            assert.strictEqual(value, true, 'Setting should be true after enable');
+            const config = exports.configManager.readSync();
+            const entry = config.instructions?.['design-principles.instructions.md'];
+            assert.ok(!entry || entry.enabled !== false, 'Instruction should be enabled after enable command');
         } finally {
-            await vscode.workspace.getConfiguration().update('autocontext.instructions.designPrinciples', undefined, vscode.ConfigurationTarget.Global);
+            await exports.configManager.setInstructionEnabled('design-principles.instructions.md', true);
         }
     });
 
-    test('disable command should update setting to false', async () => {
+    test('disable command should update config to disabled', async () => {
         const { exports } = await activatedExtension();
 
         const roots = exports.instructionsTreeProvider.getChildren();
@@ -146,10 +147,11 @@ suite('Instructions Tree View Smoke Tests', () => {
         try {
             await vscode.commands.executeCommand('autocontext.disable-instruction', active);
 
-            const value = vscode.workspace.getConfiguration().get<boolean>(active.entry.settingId);
-            assert.strictEqual(value, false, 'Setting should be false after disable');
+            const config = exports.configManager.readSync();
+            const entry = config.instructions?.[active.entry.fileName];
+            assert.strictEqual(entry?.enabled, false, 'Instruction should be disabled after disable command');
         } finally {
-            await vscode.workspace.getConfiguration().update(active.entry.settingId, undefined, vscode.ConfigurationTarget.Global);
+            await exports.configManager.setInstructionEnabled(active.entry.fileName, true);
         }
     });
 
