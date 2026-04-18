@@ -23,10 +23,6 @@ vi.mock('../../src/workspace-context-detector', () => ({
     },
 }));
 
-vi.mock('../../src/mcp-tools-config-writer', () => ({
-    McpToolsConfigWriter: class { async write() {} },
-}));
-
 vi.mock('../../src/mcp-tools-catalog', () => ({
     McpToolsCatalog: class { all = []; },
 }));
@@ -46,6 +42,7 @@ vi.mock('../../src/instructions-exporter', () => ({
 vi.mock('../../src/autocontext-config', () => ({
     AutoContextConfigManager: class {
         async read() { return {}; }
+        readSync() { return {}; }
         async removeOrphanedIds() {}
         async clearStaleDisabledIds() { return []; }
         onDidChange = () => ({ dispose() {} });
@@ -82,8 +79,8 @@ vi.mock('../../src/instructions-tree-provider', () => {
     class InstructionsTreeProvider {
         showNotDetected = false;
         dispose() {}
-        static enableInstruction() {}
-        static disableInstruction() {}
+        enableInstruction() {}
+        disableInstruction() {}
         static deleteOverride() {}
         static showOriginal() {}
     }
@@ -103,7 +100,7 @@ vi.mock('../../src/tree-view-tooltip', () => ({
 }));
 
 vi.mock('../../src/mcp-server-provider', () => ({
-    McpServerProvider: class {},
+    McpServerProvider: class { dispose() {} },
 }));
 
 vi.mock('../../src/workspace-server-manager', () => ({

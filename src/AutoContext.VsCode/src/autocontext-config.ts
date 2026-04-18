@@ -32,6 +32,10 @@ export class AutoContextConfigManager implements vscode.Disposable {
         this.didChangeEmitter.fire();
     }
 
+    readSync(): AutoContextConfig {
+        return this.cachedConfig ?? {};
+    }
+
     async read(): Promise<AutoContextConfig> {
         if (this.cachedConfig !== undefined) {
             return this.cachedConfig;
@@ -140,6 +144,82 @@ export class AutoContextConfigManager implements vscode.Disposable {
             delete entry.disabledInstructions;
 
             AutoContextConfigManager.pruneInstructionEntry(config, fileName);
+            await this.writeConfig(config);
+        });
+    }
+
+    async setInstructionEnabled(fileName: string, enabled: boolean): Promise<void> {
+        return this.enqueue(async () => {
+            const config = await this.read();
+            config.instructions ??= {};
+
+            if (enabled) {
+                const entry = config.instructions[fileName];
+                if (entry?.enabled === false) {
+                    delete entry.enabled;
+                    AutoContextConfigManager.pruneInstructionEntry(config, fileName);
+                }
+            } else {
+                const existing = config.instructions[fileName] ?? {};
+                config.instructions[fileName] = { ...existing, enabled: false };
+            }
+
+            await this.writeConfig(config);
+        });
+    }
+
+    async setMcpToolEnabled(toolName: string, featureName: string | undefined, enabled: boolean): Promise<void> {
+        return this.enqueue(async () => {
+            const config = await this.read();
+            config.mcpTools ??= {};
+
+            if (!featureName) {
+                // Leaf tool — enable or disable the whole tool entry.
+                if (!enabled) {
+                    config.mcpTools[toolName] = false;
+                } else {
+                    const current = config.mcpTools[toolName];
+                    if (current === false) {
+                        delete config.mcpTools[toolName];
+                    } else if (current?.enabled === false) {
+                        delete current.enabled;
+                        if (Object.keys(current).length === 0) {
+                            delete config.mcpTools[toolName];
+                        }
+                    }
+                }
+            } else {
+                // Feature — add to or remove from disabledFeatures.
+                if (!enabled) {
+                    const current = config.mcpTools[toolName];
+                    if (current !== false) {
+                        const entry: McpToolConfig = current ?? {};
+                        const arr = entry.disabledFeatures ?? [];
+                        if (!arr.includes(featureName)) {
+                            entry.disabledFeatures = [...arr, featureName];
+                        }
+                        config.mcpTools[toolName] = entry;
+                    }
+                } else {
+                    const current = config.mcpTools[toolName];
+                    if (current !== false && current !== undefined) {
+                        const filtered = (current.disabledFeatures ?? []).filter(f => f !== featureName);
+                        if (filtered.length > 0) {
+                            current.disabledFeatures = filtered;
+                        } else {
+                            delete current.disabledFeatures;
+                        }
+                        if (Object.keys(current).length === 0) {
+                            delete config.mcpTools[toolName];
+                        }
+                    }
+                }
+            }
+
+            if (config.mcpTools && Object.keys(config.mcpTools).length === 0) {
+                delete config.mcpTools;
+            }
+
             await this.writeConfig(config);
         });
     }

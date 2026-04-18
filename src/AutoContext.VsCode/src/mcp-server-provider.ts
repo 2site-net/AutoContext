@@ -8,6 +8,9 @@ import type { WorkspaceServerManager } from './workspace-server-manager.js';
 import type { HealthMonitorServer } from './health-monitor.js';
 import type { McpServerEntry } from './types/mcp-server-entry.js';
 import { serverLabelToScopesMap } from './ui-constants.js';
+import type { AutoContextConfigManager } from './autocontext-config.js';
+import type { AutoContextConfig } from './types/autocontext-config.js';
+import { ConfigContextProjector } from './config-context-projector.js';
 
 const extensionId = '2site-net.autocontext';
 
@@ -15,6 +18,8 @@ export class McpServerProvider implements vscode.McpServerDefinitionProvider {
     private readonly serversPath: string;
     private readonly ext: string;
     private readonly version: string;
+    private _config: AutoContextConfig;
+    private readonly disposable: vscode.Disposable;
 
     readonly onDidChangeMcpServerDefinitions: vscode.Event<void>;
 
@@ -27,15 +32,23 @@ export class McpServerProvider implements vscode.McpServerDefinitionProvider {
         private readonly toolsCatalog: McpToolsCatalog,
         private readonly serversCatalog: McpServersCatalog,
         private readonly healthMonitor: HealthMonitorServer,
+        configManager: AutoContextConfigManager,
     ) {
         this.serversPath = join(extensionPath, 'servers');
         this.ext = process.platform === 'win32' ? '.exe' : '';
         this.version = version;
+        this._config = configManager.readSync();
         this.onDidChangeMcpServerDefinitions = onDidChange;
+        this.disposable = configManager.onDidChange(() => {
+            void configManager.read().then(c => { this._config = c; });
+        });
+    }
+
+    dispose(): void {
+        this.disposable.dispose();
     }
 
     async provideMcpServerDefinitions(): Promise<vscode.McpServerDefinition[]> {
-        const config = vscode.workspace.getConfiguration();
         return this.serversCatalog.all
             .filter(s => {
                 if (!this.isBinaryAvailable(s)) {
@@ -44,8 +57,8 @@ export class McpServerProvider implements vscode.McpServerDefinitionProvider {
                 if (s.contextKey && !this.workspaceContextDetector.get(s.contextKey)) {
                     return false;
                 }
-                const toolSettings = this.toolsCatalog.getSettingIdsByScope(s.scope);
-                return toolSettings.length === 0 || toolSettings.some(id => config.get(id) !== false);
+                const toolEntries = this.toolsCatalog.getEntriesByScope(s.scope);
+                return toolEntries.length === 0 || toolEntries.some(e => ConfigContextProjector.isToolEnabled(this._config, e.toolName, e.featureName));
             })
             .map(s => {
                 const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
@@ -107,7 +120,6 @@ export class McpServerProvider implements vscode.McpServerDefinitionProvider {
         const scopes = serverLabelToScopesMap.get(serverLabel);
         if (!scopes) { return 'unavailable'; }
 
-        const config = vscode.workspace.getConfiguration();
         let anyBinaryExists = false;
 
         for (const scope of scopes) {
@@ -119,8 +131,8 @@ export class McpServerProvider implements vscode.McpServerDefinitionProvider {
 
             if (serverEntry.contextKey && !this.workspaceContextDetector.get(serverEntry.contextKey)) { continue; }
 
-            const toolSettings = this.toolsCatalog.getSettingIdsByScope(scope);
-            if (toolSettings.length > 0 && toolSettings.every(id => config.get(id) === false)) { continue; }
+            const toolEntries = this.toolsCatalog.getEntriesByScope(scope);
+            if (toolEntries.length > 0 && toolEntries.every(e => !ConfigContextProjector.isToolEnabled(this._config, e.toolName, e.featureName))) { continue; }
 
             return 'available';
         }

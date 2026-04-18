@@ -26,4 +26,8 @@ export class McpToolsCatalog {
     getSettingIdsByScope(scope: string): readonly string[] {
         return this.entries.filter(t => t.scope === scope).map(t => t.settingId);
     }
+
+    getEntriesByScope(scope: string): readonly McpToolsCatalogEntry[] {
+        return this.entries.filter(t => t.scope === scope);
+    }
 }

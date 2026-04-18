@@ -10,6 +10,8 @@ import type { TreeViewTooltip } from './tree-view-tooltip.js';
 import type { InstructionsTreeCategoryNode } from './types/instructions-tree-category-node.js';
 import type { InstructionsTreeNode } from './types/instructions-tree-node.js';
 import { SemVer } from './semver.js';
+import type { AutoContextConfigManager } from './autocontext-config.js';
+import type { AutoContextConfig } from './types/autocontext-config.js';
 
 type TreeElement = InstructionsTreeCategoryNode | InstructionsTreeNode;
 
@@ -23,13 +25,17 @@ export class InstructionsTreeProvider implements vscode.TreeDataProvider<TreeEle
     private readonly _checkedEntries = new Set<string>();
     private readonly treeView: vscode.TreeView<TreeElement>;
     private readonly disposables: vscode.Disposable[] = [];
+    private _config: AutoContextConfig;
 
     constructor(
         private readonly detector: WorkspaceContextDetector,
         private readonly catalog: InstructionsCatalog,
         private readonly stateResolver: TreeViewStateResolver,
         private readonly tooltip: TreeViewTooltip,
+        private readonly configManager: AutoContextConfigManager,
     ) {
+        this._config = configManager.readSync();
+
         this.treeView = vscode.window.createTreeView(viewIds.Instructions, {
             treeDataProvider: this,
         });
@@ -40,10 +46,11 @@ export class InstructionsTreeProvider implements vscode.TreeDataProvider<TreeEle
             this.treeView,
             this._onDidChangeTreeData,
             detector.onDidDetect(() => this.refresh()),
-            vscode.workspace.onDidChangeConfiguration(e => {
-                if (e.affectsConfiguration('autocontext.instructions')) {
+            configManager.onDidChange(() => {
+                void configManager.read().then(c => {
+                    this._config = c;
                     this.refresh();
-                }
+                });
             }),
             this.treeView.onDidChangeCheckboxState(e => {
                 for (const [item, state] of e.items) {
@@ -65,9 +72,8 @@ export class InstructionsTreeProvider implements vscode.TreeDataProvider<TreeEle
     }
 
     private updateDescription(): void {
-        const config = vscode.workspace.getConfiguration();
         const overrides = this.detector.getOverriddenSettingIds();
-        const states = this.catalog.all.map(e => this.stateResolver.resolve(e, config, overrides));
+        const states = this.catalog.all.map(e => this.stateResolver.resolve(e, this._config, overrides));
         this.treeView.description = this.tooltip.description(states.filter(s => s.isActive()).length, this.catalog.count);
     }
 
@@ -102,7 +108,6 @@ export class InstructionsTreeProvider implements vscode.TreeDataProvider<TreeEle
     }
 
     private getRootCategories(): InstructionsTreeCategoryNode[] {
-        const config = vscode.workspace.getConfiguration();
         const overrides = this.detector.getOverriddenSettingIds();
         const presentCategories = new Set(this.catalog.all.map(e => e.category));
 
@@ -111,20 +116,19 @@ export class InstructionsTreeProvider implements vscode.TreeDataProvider<TreeEle
             .map(name => ({
                 kind: 'categoryNode' as const,
                 name,
-                children: this.resolveInstructions(name, config, overrides),
+                children: this.resolveInstructions(name, overrides),
             }))
             .filter(c => c.children.length > 0);
     }
 
     private resolveInstructions(
         category: string,
-        config: vscode.WorkspaceConfiguration,
         overrides: ReadonlySet<string>,
     ): InstructionsTreeNode[] {
         return this.catalog.all
             .filter(e => e.category === category)
             .map(entry => {
-                const state = this.stateResolver.resolve(entry, config, overrides);
+                const state = this.stateResolver.resolve(entry, this._config, overrides);
                 const overrideVersion = state === TreeViewNodeState.Overridden
                     ? this.detector.getOverrideVersion(entry.fileName)
                     : undefined;
@@ -220,12 +224,12 @@ export class InstructionsTreeProvider implements vscode.TreeDataProvider<TreeEle
         return this.catalog.all.filter(e => this._checkedEntries.has(e.settingId));
     }
 
-    static async enableInstruction(node: InstructionsTreeNode): Promise<void> {
-        await vscode.workspace.getConfiguration().update(node.entry.settingId, true, vscode.ConfigurationTarget.Global);
+    async enableInstruction(node: InstructionsTreeNode): Promise<void> {
+        await this.configManager.setInstructionEnabled(node.entry.fileName, true);
     }
 
-    static async disableInstruction(node: InstructionsTreeNode): Promise<void> {
-        await vscode.workspace.getConfiguration().update(node.entry.settingId, false, vscode.ConfigurationTarget.Global);
+    async disableInstruction(node: InstructionsTreeNode): Promise<void> {
+        await this.configManager.setInstructionEnabled(node.entry.fileName, false);
     }
 
     static async deleteOverride(node: InstructionsTreeNode): Promise<void> {

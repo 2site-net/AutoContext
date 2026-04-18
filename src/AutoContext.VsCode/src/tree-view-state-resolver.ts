@@ -1,15 +1,18 @@
-import * as vscode from 'vscode';
 import { ContextKeys } from './context-keys.js';
 import { TreeViewNodeState } from './tree-view-node-state.js';
 import type { CatalogEntry } from './types/catalog-entry.js';
 import type { WorkspaceContextDetector } from './workspace-context-detector.js';
+import type { AutoContextConfig } from './types/autocontext-config.js';
+import { InstructionsCatalogEntry } from './instructions-catalog-entry.js';
+import type { McpToolsCatalogEntry } from './mcp-tools-catalog-entry.js';
+import { ConfigContextProjector } from './config-context-projector.js';
 
 export class TreeViewStateResolver {
     constructor(private readonly detector: WorkspaceContextDetector) {}
 
     resolve(
         entry: CatalogEntry,
-        config: vscode.WorkspaceConfiguration,
+        config: AutoContextConfig,
         overrides?: ReadonlySet<string>,
     ): TreeViewNodeState {
         const ctxKeys = ContextKeys.forEntry(entry);
@@ -17,7 +20,11 @@ export class TreeViewStateResolver {
             return TreeViewNodeState.NotDetected;
         }
 
-        if (!config.get<boolean>(entry.settingId, true)) {
+        const isEnabled = entry instanceof InstructionsCatalogEntry
+            ? config.instructions?.[entry.fileName]?.enabled !== false
+            : ConfigContextProjector.isToolEnabled(config, (entry as McpToolsCatalogEntry).toolName, (entry as McpToolsCatalogEntry).featureName);
+
+        if (!isEnabled) {
             return TreeViewNodeState.Disabled;
         }
 

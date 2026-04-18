@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { workspace, McpStdioServerDefinition, __setConfigStore } from './__mocks__/vscode';
+import { workspace, McpStdioServerDefinition } from './__mocks__/vscode';
 import { McpServerProvider } from '../../src/mcp-server-provider';
 import { McpToolsCatalog } from '../../src/mcp-tools-catalog';
 import { McpServersCatalog } from '../../src/mcp-servers-catalog';
@@ -7,6 +7,8 @@ import { mcpTools, mcpServers } from '../../src/ui-constants';
 import type { WorkspaceContextDetector } from '../../src/workspace-context-detector';
 import type { WorkspaceServerManager } from '../../src/workspace-server-manager';
 import type { HealthMonitorServer } from '../../src/health-monitor';
+import type { AutoContextConfig } from '../../src/autocontext-config';
+import type { AutoContextConfigManager } from '../../src/autocontext-config';
 
 const { existsSyncMock } = vi.hoisted(() => ({ existsSyncMock: vi.fn<(path: string) => boolean>(() => true) }));
 vi.mock('node:fs', () => ({ existsSync: existsSyncMock }));
@@ -32,13 +34,22 @@ const onDidChange = vi.fn() as unknown as import('vscode').Event<void>;
 const toolsCatalog = new McpToolsCatalog(mcpTools);
 const serversCatalog = new McpServersCatalog(mcpServers);
 
+let currentConfig: AutoContextConfig = {};
+const fakeConfigManager = {
+    readSync: vi.fn(() => currentConfig),
+    read: vi.fn(async () => currentConfig),
+    onDidChange: vi.fn(() => ({ dispose: vi.fn() })),
+} as unknown as AutoContextConfigManager;
+
 function createProvider(): McpServerProvider {
-    return new McpServerProvider(extensionPath, version, fakeDetector, onDidChange, fakeWorkspaceServer, toolsCatalog, serversCatalog, fakeHealthMonitor);
+    return new McpServerProvider(extensionPath, version, fakeDetector, onDidChange, fakeWorkspaceServer, toolsCatalog, serversCatalog, fakeHealthMonitor, fakeConfigManager);
 }
 
 beforeEach(() => {
     vi.clearAllMocks();
-    __setConfigStore({});
+    currentConfig = {};
+    vi.mocked(fakeConfigManager.readSync).mockImplementation(() => currentConfig);
+    vi.mocked(fakeConfigManager.onDidChange).mockReturnValue({ dispose: vi.fn() });
     existsSyncMock.mockReturnValue(true);
     vi.mocked(fakeDetector.get).mockReturnValue(true);
     vi.mocked(fakeWorkspaceServer.getPipeName).mockReturnValue('autocontext-workspace-abc123');
@@ -163,10 +174,7 @@ describe('McpServerProvider.provideMcpServerDefinitions', () => {
         });
 
         it('server is excluded when all its tools are disabled', async () => {
-            __setConfigStore({
-                'autocontext.mcpTools.check_git_commit_content': false,
-                'autocontext.mcpTools.check_git_commit_format': false,
-            });
+            currentConfig = { mcpTools: { check_git_all: { disabledFeatures: ['check_git_commit_content', 'check_git_commit_format'] } } };
 
             const defs = await createProvider().provideMcpServerDefinitions() as StdioDef[];
             const categories = defs.map(d => d.args![d.args!.indexOf('--scope') + 1]);
@@ -175,9 +183,7 @@ describe('McpServerProvider.provideMcpServerDefinitions', () => {
         });
 
         it('server is included when at least one tool is enabled', async () => {
-            __setConfigStore({
-                'autocontext.mcpTools.check_git_commit_content': false,
-            });
+            currentConfig = { mcpTools: { check_git_all: { disabledFeatures: ['check_git_commit_content'] } } };
 
             const defs = await createProvider().provideMcpServerDefinitions() as StdioDef[];
             const categories = defs.map(d => d.args![d.args!.indexOf('--scope') + 1]);
@@ -248,16 +254,12 @@ describe('McpServerProvider.getServerStatus', () => {
     });
 
     it('returns disabled when all tool settings for the server are set to false', () => {
-        __setConfigStore({
-            'autocontext.mcpTools.check_csharp_async_patterns': false,
-            'autocontext.mcpTools.check_csharp_coding_style': false,
-            'autocontext.mcpTools.check_csharp_member_ordering': false,
-            'autocontext.mcpTools.check_csharp_naming_conventions': false,
-            'autocontext.mcpTools.check_csharp_nullable_context': false,
-            'autocontext.mcpTools.check_csharp_project_structure': false,
-            'autocontext.mcpTools.check_csharp_test_style': false,
-            'autocontext.mcpTools.check_nuget_hygiene': false,
-        });
+        currentConfig = {
+            mcpTools: {
+                check_csharp_all: { disabledFeatures: ['check_csharp_async_patterns', 'check_csharp_coding_style', 'check_csharp_member_ordering', 'check_csharp_naming_conventions', 'check_csharp_nullable_context', 'check_csharp_project_structure', 'check_csharp_test_style'] },
+                check_nuget_hygiene: false,
+            },
+        };
 
         expect(createProvider().getServerStatus('.NET')).toBe('disabled');
     });
