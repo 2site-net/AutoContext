@@ -51,13 +51,13 @@ export async function activate(context: vscode.ExtensionContext) {
     const codeLensProvider = new InstructionsCodeLensProvider(context.extensionPath, configManager, workspaceContextDetector, instructionsCatalog, outputChannel);
     const decorationManager = new InstructionsDecorationManager(context.extensionPath, configManager, outputChannel);
     const instructionsWriter = new InstructionsConfigWriter(context.extensionPath, configManager, instructionsCatalog, outputChannel);
-    const configProjector = new ConfigContextProjector(configManager, instructionsCatalog, toolsCatalog);
+    const configProjector = new ConfigContextProjector(configManager, instructionsCatalog, toolsCatalog, outputChannel);
     const workspaceServer = new WorkspaceServerManager(context.extensionPath, outputChannel, vscode.workspace.workspaceFolders?.[0]?.uri.fsPath);
     const healthMonitor = new HealthMonitorServer(outputChannel);
-    const mcpServerProvider = new McpServerProvider(context.extensionPath, version, workspaceContextDetector, didChangeEmitter.event, workspaceServer, toolsCatalog, serversCatalog, healthMonitor, configManager);
+    const mcpServerProvider = new McpServerProvider(context.extensionPath, version, workspaceContextDetector, didChangeEmitter.event, workspaceServer, toolsCatalog, serversCatalog, healthMonitor, configManager, outputChannel);
     const stateResolver = new TreeViewStateResolver(workspaceContextDetector);
-    const instructionsTreeProvider = new InstructionsTreeProvider(workspaceContextDetector, instructionsCatalog, stateResolver, new TreeViewTooltip('instructions'), configManager);
-    const mcpToolsTreeProvider = new McpToolsTreeProvider(workspaceContextDetector, toolsCatalog, stateResolver, new TreeViewTooltip('tools'), configManager, healthMonitor, mcpServerProvider);
+    const instructionsTreeProvider = new InstructionsTreeProvider(workspaceContextDetector, instructionsCatalog, stateResolver, new TreeViewTooltip('instructions'), configManager, outputChannel);
+    const mcpToolsTreeProvider = new McpToolsTreeProvider(workspaceContextDetector, toolsCatalog, stateResolver, new TreeViewTooltip('tools'), configManager, outputChannel, healthMonitor, mcpServerProvider);
 
     const showNotDetected = context.globalState.get<boolean>(commandIds.ShowNotDetected, true);
     instructionsTreeProvider.showNotDetected = showNotDetected;
@@ -132,14 +132,22 @@ export async function activate(context: vscode.ExtensionContext) {
             configManager.toggleInstruction(fileName, id, instructionsCatalog.findByFileName(fileName)?.version)),
         vscode.commands.registerCommand(commandIds.ResetInstructions, (fileName: string) =>
             configManager.resetInstructions(fileName)),
-        configManager.onDidChange(() => void logDiagnostics()),
+        configManager.onDidChange(() =>
+            void logDiagnostics().catch(err =>
+                outputChannel.appendLine(`[Diagnostics] Failed to log diagnostics: ${err instanceof Error ? err.message : err}`),
+            ),
+        ),
         vscode.window.onDidChangeWindowState(e => {
             if (e.focused) {
-                void instructionsWriter.write();
+                void instructionsWriter.write().catch(err =>
+                    outputChannel.appendLine(`[InstructionsWriter] Failed to write on focus: ${err instanceof Error ? err.message : err}`),
+                );
             }
         }),
         vscode.workspace.onDidGrantWorkspaceTrust(() => {
-            void instructionsWriter.write();
+            void instructionsWriter.write().catch(err =>
+                outputChannel.appendLine(`[InstructionsWriter] Failed to write on trust grant: ${err instanceof Error ? err.message : err}`),
+            );
         }),
         configManager.onDidChange(() => didChangeEmitter.fire()),
         workspaceContextDetector.onDidChange(() => didChangeEmitter.fire()),

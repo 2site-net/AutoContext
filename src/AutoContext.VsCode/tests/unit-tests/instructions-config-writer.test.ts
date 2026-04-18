@@ -202,4 +202,56 @@ More prose below.
 
         expect.soft(() => writer.dispose()).not.toThrow();
     });
+
+    it('should log to outputChannel when write fails via workspace folder change', async () => {
+        vi.mocked(readFile).mockResolvedValue('{}');
+
+        const failingConfigManager = {
+            read: vi.fn().mockRejectedValue(new Error('read boom')),
+            readSync: vi.fn(() => ({})),
+            onDidChange: vi.fn(() => ({ dispose: vi.fn() })),
+        } as unknown as AutoContextConfigManager;
+
+        const oc = createFakeOutputChannel();
+        const _writer = new InstructionsConfigWriter('/ext', failingConfigManager, catalog, oc);
+
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        const wsFolderCallback = (workspace.onDidChangeWorkspaceFolders as any).mock.calls.at(-1)![0] as () => void;
+        wsFolderCallback();
+
+        await vi.waitFor(() => {
+            expect(oc.appendLine).toHaveBeenCalledWith(
+                expect.stringContaining('[InstructionsWriter] Failed to write on workspace change'),
+            );
+        });
+
+        _writer.dispose();
+    });
+
+    it('should log to outputChannel when write fails via config change debounce', async () => {
+        vi.useFakeTimers();
+        vi.mocked(readFile).mockResolvedValue('{}');
+
+        const failingConfigManager = {
+            read: vi.fn().mockRejectedValue(new Error('read boom')),
+            readSync: vi.fn(() => ({})),
+            onDidChange: vi.fn(() => ({ dispose: vi.fn() })),
+        } as unknown as AutoContextConfigManager;
+
+        const oc = createFakeOutputChannel();
+        const _writer = new InstructionsConfigWriter('/ext', failingConfigManager, catalog, oc);
+
+        const configChangeCallback = vi.mocked(failingConfigManager.onDidChange).mock.calls[0][0] as () => void;
+        configChangeCallback();
+        await vi.advanceTimersByTimeAsync(250);
+
+        await vi.waitFor(() => {
+            expect(oc.appendLine).toHaveBeenCalledWith(
+                expect.stringContaining('[InstructionsWriter] Failed to write on config change'),
+            );
+        });
+
+        vi.useRealTimers();
+        _writer.dispose();
+    });
 });

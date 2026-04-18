@@ -17,7 +17,9 @@ export class InstructionsDecorationManager implements vscode.Disposable {
             this.decorationType,
             vscode.window.onDidChangeActiveTextEditor(editor => {
                 if (editor) {
-                    void this.applyDecorations(editor);
+                    void this.applyDecorations(editor).catch(err =>
+                        this.outputChannel.appendLine(`[Decorations] Failed to apply decorations: ${err instanceof Error ? err.message : err}`),
+                    );
                 }
             }),
             configManager.onDidChange(() => this.refreshAll()),
@@ -53,7 +55,9 @@ export class InstructionsDecorationManager implements vscode.Disposable {
 
     refreshAll(): void {
         for (const editor of vscode.window.visibleTextEditors) {
-            void this.applyDecorations(editor);
+            void this.applyDecorations(editor).catch(err =>
+                this.outputChannel.appendLine(`[Decorations] Failed to apply decorations: ${err instanceof Error ? err.message : err}`),
+            );
         }
     }
 

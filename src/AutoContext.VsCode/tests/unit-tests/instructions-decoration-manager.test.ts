@@ -114,4 +114,47 @@ describe('InstructionsDecorationManager', () => {
         expect((editor1 as unknown as { setDecorations: ReturnType<typeof vi.fn> }).setDecorations).toHaveBeenCalled();
         expect.soft((editor2 as unknown as { setDecorations: ReturnType<typeof vi.fn> }).setDecorations).not.toHaveBeenCalled();
     });
+
+    it('should log to outputChannel when applyDecorations fails in onDidChangeActiveTextEditor', async () => {
+        vi.mocked(readFile).mockResolvedValue(testInstructionsContent);
+
+        const failingConfigManager = {
+            getDisabledInstructions: vi.fn().mockRejectedValue(new Error('config boom')),
+            onDidChange: vi.fn(() => ({ dispose: vi.fn() })),
+        } as unknown as AutoContextConfigManager;
+
+        const oc = createFakeOutputChannel();
+        const _manager = new InstructionsDecorationManager('/ext', failingConfigManager, oc);
+
+        const editorCallback = vi.mocked(vscodeWindow.onDidChangeActiveTextEditor).mock.calls.at(-1)![0] as (e: unknown) => void;
+        editorCallback(makeEditor(instructionScheme, 'test.instructions.md'));
+
+        await vi.waitFor(() => {
+            expect(oc.appendLine).toHaveBeenCalledWith(
+                expect.stringContaining('[Decorations] Failed to apply decorations: config boom'),
+            );
+        });
+    });
+
+    it('should log to outputChannel when applyDecorations fails in refreshAll', async () => {
+        vi.mocked(readFile).mockResolvedValue(testInstructionsContent);
+
+        const failingConfigManager = {
+            getDisabledInstructions: vi.fn().mockRejectedValue(new Error('config boom')),
+            onDidChange: vi.fn(() => ({ dispose: vi.fn() })),
+        } as unknown as AutoContextConfigManager;
+
+        const oc = createFakeOutputChannel();
+        const manager = new InstructionsDecorationManager('/ext', failingConfigManager, oc);
+
+        const editor = makeEditor(instructionScheme, 'test.instructions.md');
+        vscodeWindow.visibleTextEditors = [editor] as unknown[];
+        manager.refreshAll();
+
+        await vi.waitFor(() => {
+            expect(oc.appendLine).toHaveBeenCalledWith(
+                expect.stringContaining('[Decorations] Failed to apply decorations: config boom'),
+            );
+        });
+    });
 });

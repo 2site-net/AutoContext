@@ -20,9 +20,14 @@ export class ConfigContextProjector implements vscode.Disposable {
         private readonly configManager: AutoContextConfigManager,
         private readonly instructionsCatalog: InstructionsCatalog,
         private readonly toolsCatalog: McpToolsCatalog,
+        private readonly outputChannel: vscode.OutputChannel,
     ) {
         this.disposables.push(
-            configManager.onDidChange(() => void this.project()),
+            configManager.onDidChange(() =>
+                void this.project().catch(err =>
+                    this.outputChannel.appendLine(`[ConfigProjector] Failed to project config: ${err instanceof Error ? err.message : err}`),
+                ),
+            ),
         );
     }
 

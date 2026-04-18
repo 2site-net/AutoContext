@@ -36,7 +36,9 @@ export class InstructionsConfigWriter implements vscode.Disposable {
             configManager.onDidChange(() => this.scheduleWrite()),
             vscode.workspace.onDidChangeWorkspaceFolders(() => {
                 this.stagingDir = join(this.extensionPath, 'instructions', '.workspaces', InstructionsConfigWriter.workspaceHash());
-                void this.write();
+                void this.write().catch(err =>
+                    this.outputChannel.appendLine(`[InstructionsWriter] Failed to write on workspace change: ${err instanceof Error ? err.message : err}`),
+                );
             }),
         );
     }
@@ -47,7 +49,9 @@ export class InstructionsConfigWriter implements vscode.Disposable {
         }
         this.debounceTimer = setTimeout(() => {
             this.debounceTimer = undefined;
-            void this.write();
+            void this.write().catch(err =>
+                this.outputChannel.appendLine(`[InstructionsWriter] Failed to write on config change: ${err instanceof Error ? err.message : err}`),
+            );
         }, 250);
     }
 

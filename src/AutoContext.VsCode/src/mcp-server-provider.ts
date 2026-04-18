@@ -33,6 +33,7 @@ export class McpServerProvider implements vscode.McpServerDefinitionProvider {
         private readonly serversCatalog: McpServersCatalog,
         private readonly healthMonitor: HealthMonitorServer,
         configManager: AutoContextConfigManager,
+        private readonly outputChannel: vscode.OutputChannel,
     ) {
         this.serversPath = join(extensionPath, 'servers');
         this.ext = process.platform === 'win32' ? '.exe' : '';
@@ -40,7 +41,9 @@ export class McpServerProvider implements vscode.McpServerDefinitionProvider {
         this._config = configManager.readSync();
         this.onDidChangeMcpServerDefinitions = onDidChange;
         this.disposable = configManager.onDidChange(() => {
-            void configManager.read().then(c => { this._config = c; });
+            void configManager.read().then(c => { this._config = c; }).catch(err =>
+                this.outputChannel.appendLine(`[McpServerProvider] Failed to update config: ${err instanceof Error ? err.message : err}`),
+            );
         });
     }
 

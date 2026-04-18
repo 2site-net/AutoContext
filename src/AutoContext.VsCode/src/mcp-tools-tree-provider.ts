@@ -31,6 +31,7 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
         private readonly stateResolver: TreeViewStateResolver,
         private readonly tooltip: TreeViewTooltip,
         private readonly configManager: AutoContextConfigManager,
+        private readonly outputChannel: vscode.OutputChannel,
         private readonly healthMonitor?: HealthMonitorServer,
         private readonly serverProvider?: McpServerProvider,
     ) {
@@ -51,10 +52,14 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
                 void configManager.read().then(c => {
                     this._config = c;
                     this.refresh();
-                });
+                }).catch(err =>
+                    this.outputChannel.appendLine(`[McpToolsTree] Failed to update config: ${err instanceof Error ? err.message : err}`),
+                );
             }),
             this.treeView.onDidChangeCheckboxState(e => {
-                void this.handleCheckboxChange(e.items);
+                void this.handleCheckboxChange(e.items).catch(err =>
+                    this.outputChannel.appendLine(`[McpToolsTree] Failed to handle checkbox change: ${err instanceof Error ? err.message : err}`),
+                );
             }),
         );
 

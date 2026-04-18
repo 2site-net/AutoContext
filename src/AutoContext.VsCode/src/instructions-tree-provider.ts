@@ -33,6 +33,7 @@ export class InstructionsTreeProvider implements vscode.TreeDataProvider<TreeEle
         private readonly stateResolver: TreeViewStateResolver,
         private readonly tooltip: TreeViewTooltip,
         private readonly configManager: AutoContextConfigManager,
+        private readonly outputChannel: vscode.OutputChannel,
     ) {
         this._config = configManager.readSync();
 
@@ -51,7 +52,9 @@ export class InstructionsTreeProvider implements vscode.TreeDataProvider<TreeEle
                 void configManager.read().then(c => {
                     this._config = c;
                     this.refresh();
-                });
+                }).catch(err =>
+                    this.outputChannel.appendLine(`[InstructionsTree] Failed to update config: ${err instanceof Error ? err.message : err}`),
+                );
             }),
             this.treeView.onDidChangeCheckboxState(e => {
                 for (const [item, state] of e.items) {

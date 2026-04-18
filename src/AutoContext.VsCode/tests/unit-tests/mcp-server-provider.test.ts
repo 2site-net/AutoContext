@@ -5,7 +5,7 @@ import { McpToolsCatalog } from '../../src/mcp-tools-catalog';
 import { McpServersCatalog } from '../../src/mcp-servers-catalog';
 import { mcpTools, mcpServers } from '../../src/ui-constants';
 import type { AutoContextConfig } from '../../src/types/autocontext-config';
-import { createFakeDetector, createFakeConfigManager, createFakeWorkspaceServer, createFakeHealthMonitor } from './_fakes';
+import { createFakeDetector, createFakeConfigManager, createFakeWorkspaceServer, createFakeHealthMonitor, createFakeOutputChannel } from './_fakes';
 
 const { existsSyncMock } = vi.hoisted(() => ({ existsSyncMock: vi.fn<(path: string) => boolean>(() => true) }));
 vi.mock('node:fs', () => ({ existsSync: existsSyncMock }));
@@ -18,6 +18,7 @@ const version = '1.0.0';
 const fakeDetector = createFakeDetector();
 const fakeWorkspaceServer = createFakeWorkspaceServer();
 const fakeHealthMonitor = createFakeHealthMonitor();
+const outputChannel = createFakeOutputChannel();
 
 const onDidChange = vi.fn() as unknown as import('vscode').Event<void>;
 const toolsCatalog = new McpToolsCatalog(mcpTools);
@@ -27,7 +28,7 @@ let currentConfig: AutoContextConfig = {};
 const fakeConfigManager = createFakeConfigManager();
 
 function createProvider(): McpServerProvider {
-    return new McpServerProvider(extensionPath, version, fakeDetector, onDidChange, fakeWorkspaceServer, toolsCatalog, serversCatalog, fakeHealthMonitor, fakeConfigManager);
+    return new McpServerProvider(extensionPath, version, fakeDetector, onDidChange, fakeWorkspaceServer, toolsCatalog, serversCatalog, fakeHealthMonitor, fakeConfigManager, outputChannel);
 }
 
 beforeEach(() => {
@@ -257,5 +258,26 @@ describe('McpServerProvider.getServerStatus', () => {
         existsSyncMock.mockImplementation(p => !String(p).includes('node_modules'));
 
         expect(createProvider().getServerStatus('Web')).toBe('unavailable');
+    });
+
+    it('should log to outputChannel when configManager.read rejects in onDidChange', async () => {
+        let onDidChangeCallback!: () => void;
+        const failingConfigManager = {
+            readSync: vi.fn(() => ({})),
+            read: vi.fn().mockRejectedValue(new Error('read boom')),
+            onDidChange: vi.fn((cb: () => void) => { onDidChangeCallback = cb; return { dispose: vi.fn() }; }),
+        } as unknown as import('../../src/autocontext-config').AutoContextConfigManager;
+
+        const oc = createFakeOutputChannel();
+        const provider = new McpServerProvider(extensionPath, version, fakeDetector, onDidChange, fakeWorkspaceServer, toolsCatalog, serversCatalog, fakeHealthMonitor, failingConfigManager, oc);
+
+        onDidChangeCallback();
+        await vi.waitFor(() => {
+            expect(oc.appendLine).toHaveBeenCalledWith(
+                expect.stringContaining('[McpServerProvider] Failed to update config: read boom'),
+            );
+        });
+
+        provider.dispose();
     });
 });
