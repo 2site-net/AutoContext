@@ -714,6 +714,43 @@ function Build-NodeJsBundle {
     }
 }
 
+function Build-ExtensionBundle {
+    [CmdletBinding(SupportsShouldProcess)]
+    param()
+
+    $distDir = Join-Path $extensionDir 'dist'
+    $entryPoint = Join-Path $distDir 'extension.js'
+
+    if (-not (Test-Path $entryPoint)) { throw "Extension entry point not found: $entryPoint" }
+
+    Write-Section 'Bundle extension'
+
+    if ($PSCmdlet.ShouldProcess($distDir, 'Bundle extension with esbuild')) {
+        $bundleFile = Join-Path $distDir 'extension.bundle.js'
+
+        Push-Location $extensionDir
+        try {
+            npx esbuild $entryPoint --bundle --platform=node --format=esm --external:vscode --outfile=$bundleFile
+            if ($LASTEXITCODE -ne 0) { throw 'esbuild bundle failed for extension.' }
+        }
+        finally {
+            Pop-Location
+        }
+
+        # Replace original with bundle
+        Remove-Item $entryPoint -Force
+        Rename-Item $bundleFile 'extension.js'
+
+        # Remove all other files — they are now inlined
+        Get-ChildItem $distDir -Recurse -File |
+            Where-Object { $_.FullName -ne (Join-Path $distDir 'extension.js') } |
+            Remove-Item -Force
+        Get-ChildItem $distDir -Recurse -Directory | Remove-Item -Recurse -Force
+
+        Write-Status 'Extension bundled' 'OK'
+    }
+}
+
 function Build-VscePackage {
     [CmdletBinding(SupportsShouldProcess)]
     param([Parameter(Mandatory)][string]$Rid)
@@ -952,6 +989,7 @@ function Invoke-Package {
     }
     elseif ($Scope -eq 'All') {
         Build-NodeJsBundle
+        Build-ExtensionBundle
 
         # Explicit "Package All" — build all six platforms
         foreach ($rid in $ridToTarget.Keys) {
@@ -964,6 +1002,7 @@ function Invoke-Package {
     }
     else {
         Build-NodeJsBundle
+        Build-ExtensionBundle
 
         # Single platform: explicit -RuntimeIdentifier or auto-detect
         $rid = Resolve-RuntimeIdentifier
@@ -992,6 +1031,7 @@ function Invoke-Publish {
 
     Copy-NodeJsToServersFolder
     Build-NodeJsBundle
+    Build-ExtensionBundle
 
     foreach ($rid in $rids) {
         $vsceTarget = $ridToTarget[$rid]
