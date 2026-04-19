@@ -205,13 +205,15 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
         return states.filter(s => s.isActive()).length;
     }
 
-    private checkboxForParent(features: readonly McpToolsTreeFeatureNode[]): vscode.TreeItemCheckboxState | undefined {
+    private checkboxForParent(toolName: string, features: readonly McpToolsTreeFeatureNode[]): vscode.TreeItemCheckboxState | undefined {
         const detected = features.filter(t => t.state !== TreeViewNodeState.NotDetected);
         if (detected.length === 0) { return undefined; }
 
-        return detected.every(t => t.state.isActive())
-            ? vscode.TreeItemCheckboxState.Checked
-            : vscode.TreeItemCheckboxState.Unchecked;
+        const entry = this._config.mcpTools?.[toolName];
+        const isDisabled = entry === false || (typeof entry === 'object' && entry.enabled === false);
+        return isDisabled
+            ? vscode.TreeItemCheckboxState.Unchecked
+            : vscode.TreeItemCheckboxState.Checked;
     }
 
     private serverLabelItem(node: TreeViewServerLabelNode): vscode.TreeItem {
@@ -262,7 +264,7 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
 
         const item = new vscode.TreeItem(node.toolName, vscode.TreeItemCollapsibleState.Expanded);
         item.contextValue = 'mcpToolNode';
-        item.checkboxState = this.checkboxForParent(node.features);
+        item.checkboxState = this.checkboxForParent(node.toolName, node.features);
         const active = node.features.filter(f => f.state.isActive()).length;
         const metadata = this.catalog.getMetadata(node.toolName);
         item.tooltip = this.tooltip.container(node.toolName, active, node.features.length, metadata?.description, metadata?.version);
@@ -308,10 +310,20 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
     private async handleCheckboxChange(items: ReadonlyArray<readonly [TreeElement, vscode.TreeItemCheckboxState]>): Promise<void> {
         const enabled = (s: vscode.TreeItemCheckboxState) => s === vscode.TreeItemCheckboxState.Checked;
 
+        // When VS Code propagates a parent toggle, both the parent and all its
+        // children appear in `items`.  Collect toggled parent tool names so we
+        // can skip the children that were only included because of propagation.
+        const toggledParents = new Set(
+            items
+                .filter(([el]) => el.kind === 'mcpToolNode' && (el as McpToolsTreeNode).features.length > 0)
+                .map(([el]) => (el as McpToolsTreeNode).toolName),
+        );
+
         const updates: Promise<void>[] = [];
 
         for (const [element, state] of items) {
             if (element.kind === 'mcpToolFeatureNode') {
+                if (toggledParents.has(element.entry.toolName)) { continue; }
                 updates.push(this.configManager.setMcpToolEnabled(element.entry.toolName, element.entry.featureName, enabled(state)));
                 continue;
             }
@@ -322,10 +334,7 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
                 const entry = this.catalog.all.find(e => e.toolName === element.toolName && !e.featureName)!;
                 updates.push(this.configManager.setMcpToolEnabled(entry.toolName, undefined, enabled(state)));
             } else {
-                for (const sub of element.features) {
-                    if (sub.state === TreeViewNodeState.NotDetected) { continue; }
-                    updates.push(this.configManager.setMcpToolEnabled(sub.entry.toolName, sub.entry.featureName, enabled(state)));
-                }
+                updates.push(this.configManager.setMcpToolEnabled(element.toolName, undefined, enabled(state)));
             }
         }
 

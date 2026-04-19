@@ -580,4 +580,112 @@ describe('AutoContextConfigManager', () => {
         expect(cleared).toEqual([]);
         expect(vi.mocked(writeFile)).not.toHaveBeenCalled();
     });
+
+    it('should set leaf tool to false when disabling via setMcpToolEnabled', async () => {
+        vi.mocked(readFile).mockResolvedValue('{}');
+
+        const manager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
+        await manager.setMcpToolEnabled('check_nuget_hygiene', undefined, false);
+
+        const parsed = JSON.parse(vi.mocked(writeFile).mock.calls[0][1] as string);
+
+        expect.soft(parsed['mcp-tools']).toEqual({ check_nuget_hygiene: false });
+    });
+
+    it('should set enabled:false preserving disabled-features when disabling parent tool', async () => {
+        vi.mocked(readFile).mockResolvedValue(JSON.stringify({
+            'mcp-tools': {
+                check_csharp_all: {
+                    'disabled-features': ['check_csharp_coding_style'],
+                },
+            },
+        }));
+
+        const manager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
+        await manager.setMcpToolEnabled('check_csharp_all', undefined, false);
+
+        const parsed = JSON.parse(vi.mocked(writeFile).mock.calls[0][1] as string);
+
+        expect.soft(parsed['mcp-tools']).toEqual({
+            check_csharp_all: {
+                enabled: false,
+                'disabled-features': ['check_csharp_coding_style'],
+            },
+        });
+    });
+
+    it('should produce enabled:false with all disabled-features after sequential feature+parent disables', async () => {
+        vi.mocked(readFile).mockResolvedValue('{}');
+
+        const manager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
+        await manager.setMcpToolEnabled('check_csharp_all', 'check_csharp_coding_style', false);
+        await manager.setMcpToolEnabled('check_csharp_all', 'check_csharp_async_patterns', false);
+        await manager.setMcpToolEnabled('check_csharp_all', undefined, false);
+
+        const lastCall = vi.mocked(writeFile).mock.calls.at(-1)!;
+        const parsed = JSON.parse(lastCall[1] as string);
+
+        expect.soft(parsed['mcp-tools']).toEqual({
+            check_csharp_all: {
+                enabled: false,
+                'disabled-features': ['check_csharp_coding_style', 'check_csharp_async_patterns'],
+            },
+        });
+    });
+
+    it('should upgrade shorthand false to object when disabling a feature', async () => {
+        vi.mocked(readFile).mockResolvedValue(JSON.stringify({
+            'mcp-tools': {
+                check_csharp_all: false,
+            },
+        }));
+
+        const manager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
+        await manager.setMcpToolEnabled('check_csharp_all', 'check_csharp_coding_style', false);
+
+        const parsed = JSON.parse(vi.mocked(writeFile).mock.calls[0][1] as string);
+
+        expect.soft(parsed['mcp-tools']).toEqual({
+            check_csharp_all: {
+                enabled: false,
+                'disabled-features': ['check_csharp_coding_style'],
+            },
+        });
+    });
+
+    it('should upgrade shorthand false to object when enabling a feature', async () => {
+        vi.mocked(readFile).mockResolvedValue(JSON.stringify({
+            'mcp-tools': {
+                check_csharp_all: false,
+            },
+        }));
+
+        const manager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
+        await manager.setMcpToolEnabled('check_csharp_all', 'check_csharp_coding_style', true);
+
+        const parsed = JSON.parse(vi.mocked(writeFile).mock.calls[0][1] as string);
+
+        expect.soft(parsed['mcp-tools']).toEqual({
+            check_csharp_all: {
+                enabled: false,
+            },
+        });
+    });
+
+    it('should remove enabled:false and clean up when re-enabling parent tool', async () => {
+        vi.mocked(readFile).mockResolvedValue(JSON.stringify({
+            'mcp-tools': {
+                check_csharp_all: {
+                    enabled: false,
+                    'disabled-features': ['check_csharp_coding_style'],
+                },
+            },
+        }));
+
+        const manager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
+        await manager.setMcpToolEnabled('check_csharp_all', 'check_csharp_coding_style', true);
+        await manager.setMcpToolEnabled('check_csharp_all', undefined, true);
+
+        expect.soft(vi.mocked(unlink)).toHaveBeenCalled();
+    });
 });

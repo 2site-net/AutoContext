@@ -7,9 +7,14 @@ import type { AutoContextConfig } from './types/autocontext-config.js';
 export function isToolEnabled(config: AutoContextConfig, toolName: string, featureName?: string): boolean {
     const entry = config.mcpTools?.[toolName];
     if (entry === undefined) return true;
+    if (featureName) {
+        // Features are independent of the parent's enabled state.
+        // `entry === false` (shorthand) has no disabledFeatures → feature is enabled.
+        if (entry === false) return true;
+        return !entry.disabledFeatures?.includes(featureName);
+    }
     if (entry === false) return false;
     if (entry.enabled === false) return false;
-    if (featureName && entry.disabledFeatures?.includes(featureName)) return false;
     return true;
 }
 

@@ -144,11 +144,18 @@ describe('isToolEnabled', () => {
         )).toBe(false);
     });
 
-    it('should return false for feature when parent disabled', () => {
+    it('should return false for feature in disabled list even when parent is also disabled', () => {
         expect.soft(isToolEnabled(
             { mcpTools: { check_csharp_all: { enabled: false, disabledFeatures: ['check_csharp_coding_style'] } } },
             'check_csharp_all', 'check_csharp_coding_style',
         )).toBe(false);
+    });
+
+    it('should return true for feature not in disabled list even when parent is disabled', () => {
+        expect.soft(isToolEnabled(
+            { mcpTools: { check_csharp_all: { enabled: false, disabledFeatures: ['check_csharp_coding_style'] } } },
+            'check_csharp_all', 'check_csharp_async_patterns',
+        )).toBe(true);
     });
 
     it('should return false for feature in disabled list', () => {
@@ -162,6 +169,12 @@ describe('isToolEnabled', () => {
         expect.soft(isToolEnabled(
             { mcpTools: { check_csharp_all: { disabledFeatures: ['check_csharp_async_patterns'] } } },
             'check_csharp_all', 'check_csharp_coding_style',
+        )).toBe(true);
+    });
+
+    it('should return true for feature when parent is shorthand false', () => {
+        expect.soft(isToolEnabled(
+            { mcpTools: { check_csharp_all: false } }, 'check_csharp_all', 'check_csharp_coding_style',
         )).toBe(true);
     });
 

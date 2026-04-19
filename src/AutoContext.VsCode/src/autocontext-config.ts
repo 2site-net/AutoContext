@@ -176,7 +176,13 @@ export class AutoContextConfigManager implements vscode.Disposable {
             if (!featureName) {
                 // Leaf tool — enable or disable the whole tool entry.
                 if (!enabled) {
-                    config.mcpTools[toolName] = false;
+                    const current = config.mcpTools[toolName];
+                    if (current !== false && current !== undefined && Object.keys(current).length > 0) {
+                        // Preserve existing config (e.g. disabledFeatures) and mark disabled.
+                        current.enabled = false;
+                    } else {
+                        config.mcpTools[toolName] = false;
+                    }
                 } else {
                     const current = config.mcpTools[toolName];
                     if (current === false) {
@@ -191,18 +197,26 @@ export class AutoContextConfigManager implements vscode.Disposable {
             } else {
                 // Feature — add to or remove from disabledFeatures.
                 if (!enabled) {
-                    const current = config.mcpTools[toolName];
-                    if (current !== false) {
-                        const entry: McpToolConfig = current ?? {};
-                        const arr = entry.disabledFeatures ?? [];
-                        if (!arr.includes(featureName)) {
-                            entry.disabledFeatures = [...arr, featureName];
-                        }
-                        config.mcpTools[toolName] = entry;
+                    let current = config.mcpTools[toolName];
+                    // Upgrade shorthand `false` to an object so we can store disabledFeatures.
+                    if (current === false) {
+                        current = { enabled: false };
+                        config.mcpTools[toolName] = current;
                     }
+                    const entry: McpToolConfig = current ?? {};
+                    const arr = entry.disabledFeatures ?? [];
+                    if (!arr.includes(featureName)) {
+                        entry.disabledFeatures = [...arr, featureName];
+                    }
+                    config.mcpTools[toolName] = entry;
                 } else {
-                    const current = config.mcpTools[toolName];
-                    if (current !== false && current !== undefined) {
+                    let current = config.mcpTools[toolName];
+                    // Upgrade shorthand `false` to an object so we can modify disabledFeatures.
+                    if (current === false) {
+                        current = { enabled: false };
+                        config.mcpTools[toolName] = current;
+                    }
+                    if (current !== undefined) {
                         const filtered = (current.disabledFeatures ?? []).filter(f => f !== featureName);
                         if (filtered.length > 0) {
                             current.disabledFeatures = filtered;

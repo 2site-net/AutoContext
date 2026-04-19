@@ -218,9 +218,51 @@ describe('McpToolsTreeProvider', () => {
         provider.dispose();
     });
 
-    it('should show MCP tool checkbox unchecked when any feature is disabled', () => {
+    it('should show MCP tool checkbox checked when some features are disabled', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
         currentConfig = { mcpTools: { check_csharp_all: { disabledFeatures: ['check_csharp_async_patterns'] } } };
+
+        const provider = new McpToolsTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
+        const tools = getMcpTools(provider, '.NET', 'C#');
+        const item = provider.getTreeItem(tools[0]);
+
+        expect.soft(item.checkboxState).toBe(TreeItemCheckboxState.Checked);
+
+        provider.dispose();
+    });
+
+    it('should show MCP tool checkbox checked when all features are disabled but parent is not', () => {
+        vi.mocked(fakeDetector.get).mockReturnValue(true);
+        const allFeatures = catalog.all
+            .filter(e => e.toolName === 'check_csharp_all' && e.featureName)
+            .map(e => e.featureName!);
+        currentConfig = { mcpTools: { check_csharp_all: { disabledFeatures: allFeatures } } };
+
+        const provider = new McpToolsTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
+        const tools = getMcpTools(provider, '.NET', 'C#');
+        const item = provider.getTreeItem(tools[0]);
+
+        expect.soft(item.checkboxState).toBe(TreeItemCheckboxState.Checked);
+
+        provider.dispose();
+    });
+
+    it('should show MCP tool checkbox unchecked when parent has enabled:false', () => {
+        vi.mocked(fakeDetector.get).mockReturnValue(true);
+        currentConfig = { mcpTools: { check_csharp_all: { enabled: false } } };
+
+        const provider = new McpToolsTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
+        const tools = getMcpTools(provider, '.NET', 'C#');
+        const item = provider.getTreeItem(tools[0]);
+
+        expect.soft(item.checkboxState).toBe(TreeItemCheckboxState.Unchecked);
+
+        provider.dispose();
+    });
+
+    it('should show MCP tool checkbox unchecked when parent entry is false', () => {
+        vi.mocked(fakeDetector.get).mockReturnValue(true);
+        currentConfig = { mcpTools: { check_csharp_all: false } };
 
         const provider = new McpToolsTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
         const tools = getMcpTools(provider, '.NET', 'C#');
@@ -464,41 +506,46 @@ describe('McpToolsTreeProvider', () => {
         provider.dispose();
     });
 
-    it('should update all detected features when handleCheckboxChange fires for a parent MCP tool', async () => {
+    it('should update only parent enabled flag when handleCheckboxChange fires for a parent MCP tool', async () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
 
         const provider = new McpToolsTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
         const tools = getMcpTools(provider, '.NET', 'C#');
         const csharpTool = tools.find(r => r.kind === 'mcpToolNode' && r.toolName === 'check_csharp_all')!;
+        const features = getFeatures(provider, '.NET', 'C#', 'check_csharp_all');
 
         const treeView = vi.mocked(window.createTreeView).mock.results.at(-1)!.value;
-        const checkboxCallback = vi.mocked(treeView.onDidChangeCheckboxState).mock.calls[0][0] as (e: { items: [typeof csharpTool, TreeItemCheckboxState][] }) => void;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const checkboxCallback = vi.mocked(treeView.onDidChangeCheckboxState).mock.calls[0][0] as (e: { items: [any, TreeItemCheckboxState][] }) => void;
 
-        checkboxCallback({ items: [[csharpTool, TreeItemCheckboxState.Unchecked]] });
+        // Simulate VS Code propagation: parent + all children in the same event.
+        const propagatedItems: [any, TreeItemCheckboxState][] = [
+            [csharpTool, TreeItemCheckboxState.Unchecked],
+            ...features.map(f => [f, TreeItemCheckboxState.Unchecked] as [any, TreeItemCheckboxState]),
+        ];
+        checkboxCallback({ items: propagatedItems });
         await Promise.resolve();
 
-        const features = getFeatures(provider, '.NET', 'C#', 'check_csharp_all');
-        for (const sub of features) {
-            if (sub.kind === 'mcpToolFeatureNode') {
-                expect.soft(vi.mocked(fakeConfigManager.setMcpToolEnabled)).toHaveBeenCalledWith(
-                    sub.entry.toolName,
-                    sub.entry.featureName,
-                    false,
-                );
-            }
-        }
+        // Only the parent-level enabled flag should be set.
+        expect.soft(vi.mocked(fakeConfigManager.setMcpToolEnabled)).toHaveBeenCalledWith(
+            'check_csharp_all',
+            undefined,
+            false,
+        );
+
+        // Features should NOT be cascaded — children are skipped when parent is in the batch.
+        expect.soft(vi.mocked(fakeConfigManager.setMcpToolEnabled)).toHaveBeenCalledTimes(1);
 
         provider.dispose();
     });
 
-    it('should skip not-detected features when MCP tool bulk toggle fires', async () => {
-        // hasCSharp=true so C# features are detected; hasTypeScript=false so TypeScript features are not.
+    it('should update only parent enabled flag even when all features are not-detected', async () => {
+        // hasTypeScript=false so TypeScript features are not detected.
         vi.mocked(fakeDetector.get).mockImplementation((key: string) => key === 'hasCSharp');
 
         const provider = new McpToolsTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
         const tools = getMcpTools(provider, 'Web', 'TypeScript');
 
-        // TypeScript MCP tool: all features are not-detected (hasTypeScript=false)
         const tsTool = tools.find(r => r.kind === 'mcpToolNode' && r.toolName === 'check_typescript_all')!;
 
         const treeView = vi.mocked(window.createTreeView).mock.results.at(-1)!.value;
@@ -507,17 +554,15 @@ describe('McpToolsTreeProvider', () => {
         checkboxCallback({ items: [[tsTool, TreeItemCheckboxState.Checked]] });
         await Promise.resolve();
 
-        // No TypeScript features should have been updated since they are all not-detected
-        const features = provider.getChildren(tsTool);
-        for (const sub of features) {
-            if (sub.kind === 'mcpToolFeatureNode') {
-                expect.soft(vi.mocked(fakeConfigManager.setMcpToolEnabled)).not.toHaveBeenCalledWith(
-                    sub.entry.toolName,
-                    sub.entry.featureName,
-                    expect.anything(),
-                );
-            }
-        }
+        // Parent-level enabled flag should be set.
+        expect.soft(vi.mocked(fakeConfigManager.setMcpToolEnabled)).toHaveBeenCalledWith(
+            'check_typescript_all',
+            undefined,
+            true,
+        );
+
+        // Only 1 call total (just the parent).
+        expect.soft(vi.mocked(fakeConfigManager.setMcpToolEnabled)).toHaveBeenCalledTimes(1);
 
         provider.dispose();
     });
