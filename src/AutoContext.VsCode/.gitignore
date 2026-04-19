@@ -2,6 +2,7 @@ servers/
 dist/
 node_modules/
 publish/
+*.vsix
 instructions/.generated/
 instructions/.workspaces/
 .mcp-tools.json
