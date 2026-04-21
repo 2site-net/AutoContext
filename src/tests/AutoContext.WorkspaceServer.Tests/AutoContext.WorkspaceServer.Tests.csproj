@@ -19,7 +19,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\AutoContext.WorkspaceServer\AutoContext.WorkspaceServer.csproj" />
+    <ProjectReference Include="..\..\AutoContext.WorkspaceServer\AutoContext.WorkspaceServer.csproj" />
   </ItemGroup>
 
 </Project>

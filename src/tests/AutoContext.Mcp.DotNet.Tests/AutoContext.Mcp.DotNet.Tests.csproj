@@ -19,7 +19,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\AutoContext.Mcp.DotNet\AutoContext.Mcp.DotNet.csproj" />
+    <ProjectReference Include="..\..\AutoContext.Mcp.DotNet\AutoContext.Mcp.DotNet.csproj" />
   </ItemGroup>
 
 </Project>

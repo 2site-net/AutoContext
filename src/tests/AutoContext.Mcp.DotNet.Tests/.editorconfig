@@ -1,0 +1,5 @@
+# Legacy project — slated for deletion as part of the centralized-MCP migration.
+# Suppress CA1307 to avoid mass-rewriting hundreds of pre-existing assertions
+# that already work correctly in this Tests project.
+[*.cs]
+dotnet_diagnostic.CA1307.severity = none

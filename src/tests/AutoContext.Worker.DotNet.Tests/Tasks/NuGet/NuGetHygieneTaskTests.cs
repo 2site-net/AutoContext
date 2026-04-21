@@ -39,7 +39,7 @@ public sealed class NuGetHygieneTaskTests
         Assert.Multiple(() =>
         {
             Assert.True(passed);
-            Assert.StartsWith("✅", report);
+            Assert.StartsWith("✅", report, StringComparison.Ordinal);
         });
     }
 
@@ -63,8 +63,8 @@ public sealed class NuGetHygieneTaskTests
         Assert.Multiple(() =>
         {
             Assert.False(passed);
-            Assert.StartsWith("❌", report);
-            Assert.Contains("Duplicate PackageReference 'Moq'", report);
+            Assert.StartsWith("❌", report, StringComparison.Ordinal);
+            Assert.Contains("Duplicate PackageReference 'Moq'", report, StringComparison.Ordinal);
         });
     }
 
@@ -85,7 +85,7 @@ public sealed class NuGetHygieneTaskTests
         var (_, report) = await RunAsync(csproj);
 
         // Assert
-        Assert.DoesNotContain("Duplicate", report);
+        Assert.DoesNotContain("Duplicate", report, StringComparison.Ordinal);
     }
 
     [Theory]
@@ -111,9 +111,9 @@ public sealed class NuGetHygieneTaskTests
         Assert.Multiple(() =>
         {
             Assert.False(passed);
-            Assert.StartsWith("❌", report);
-            Assert.Contains("floating or range version", report);
-            Assert.Contains("Pin to an exact version", report);
+            Assert.StartsWith("❌", report, StringComparison.Ordinal);
+            Assert.Contains("floating or range version", report, StringComparison.Ordinal);
+            Assert.Contains("Pin to an exact version", report, StringComparison.Ordinal);
         });
     }
 
@@ -133,7 +133,7 @@ public sealed class NuGetHygieneTaskTests
         var (_, report) = await RunAsync(csproj);
 
         // Assert
-        Assert.DoesNotContain("floating", report);
+        Assert.DoesNotContain("floating", report, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -155,8 +155,8 @@ public sealed class NuGetHygieneTaskTests
         Assert.Multiple(() =>
         {
             Assert.False(passed);
-            Assert.StartsWith("❌", report);
-            Assert.Contains("no Version specified", report);
+            Assert.StartsWith("❌", report, StringComparison.Ordinal);
+            Assert.Contains("no Version specified", report, StringComparison.Ordinal);
         });
     }
 
@@ -179,7 +179,7 @@ public sealed class NuGetHygieneTaskTests
         var (_, report) = await RunAsync(csproj);
 
         // Assert
-        Assert.DoesNotContain("no Version specified", report);
+        Assert.DoesNotContain("no Version specified", report, StringComparison.Ordinal);
     }
 
     [Theory]
@@ -204,8 +204,8 @@ public sealed class NuGetHygieneTaskTests
         Assert.Multiple(() =>
         {
             Assert.False(passed);
-            Assert.StartsWith("❌", report);
-            Assert.Contains(alternative, report);
+            Assert.StartsWith("❌", report, StringComparison.Ordinal);
+            Assert.Contains(alternative, report, StringComparison.Ordinal);
         });
     }
 
@@ -225,7 +225,7 @@ public sealed class NuGetHygieneTaskTests
         var (_, report) = await RunAsync(csproj);
 
         // Assert
-        Assert.DoesNotContain("built-in", report);
+        Assert.DoesNotContain("built-in", report, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -249,11 +249,11 @@ public sealed class NuGetHygieneTaskTests
         Assert.Multiple(() =>
         {
             Assert.False(passed);
-            Assert.StartsWith("❌", report);
-            Assert.Contains("Duplicate", report);
-            Assert.Contains("floating or range version", report);
-            Assert.Contains("no Version specified", report);
-            Assert.Contains("built-in .NET alternative", report);
+            Assert.StartsWith("❌", report, StringComparison.Ordinal);
+            Assert.Contains("Duplicate", report, StringComparison.Ordinal);
+            Assert.Contains("floating or range version", report, StringComparison.Ordinal);
+            Assert.Contains("no Version specified", report, StringComparison.Ordinal);
+            Assert.Contains("built-in .NET alternative", report, StringComparison.Ordinal);
         });
     }
 
@@ -278,7 +278,7 @@ public sealed class NuGetHygieneTaskTests
         Assert.Multiple(() =>
         {
             Assert.True(passed);
-            Assert.StartsWith("✅", report);
+            Assert.StartsWith("✅", report, StringComparison.Ordinal);
         });
     }
 
@@ -295,8 +295,8 @@ public sealed class NuGetHygieneTaskTests
         Assert.Multiple(() =>
         {
             Assert.False(passed);
-            Assert.StartsWith("❌", report);
-            Assert.Contains("Failed to parse", report);
+            Assert.StartsWith("❌", report, StringComparison.Ordinal);
+            Assert.Contains("Failed to parse", report, StringComparison.Ordinal);
         });
     }
 
@@ -317,7 +317,7 @@ public sealed class NuGetHygieneTaskTests
         var (_, report) = await RunAsync(csproj);
 
         // Assert
-        Assert.Contains("Duplicate", report);
+        Assert.Contains("Duplicate", report, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -338,7 +338,7 @@ public sealed class NuGetHygieneTaskTests
         Assert.Multiple(() =>
         {
             Assert.True(passed);
-            Assert.StartsWith("✅", report);
+            Assert.StartsWith("✅", report, StringComparison.Ordinal);
         });
     }
 
@@ -358,7 +358,7 @@ public sealed class NuGetHygieneTaskTests
         var (_, report) = await RunAsync(csproj);
 
         // Assert
-        Assert.Contains("built-in .NET alternative", report);
+        Assert.Contains("built-in .NET alternative", report, StringComparison.Ordinal);
     }
 
     [Theory]

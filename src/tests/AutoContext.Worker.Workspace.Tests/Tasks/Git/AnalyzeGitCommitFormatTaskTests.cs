@@ -17,7 +17,7 @@ public sealed class AnalyzeGitCommitFormatTaskTests
         // Assert
         Assert.Multiple(
             () => Assert.True(output.GetProperty("passed").GetBoolean()),
-            () => Assert.StartsWith("✅", output.GetProperty("report").GetString()));
+            () => Assert.StartsWith("✅", output.GetProperty("report").GetString(), StringComparison.Ordinal));
     }
 
     [Theory]
@@ -32,7 +32,7 @@ public sealed class AnalyzeGitCommitFormatTaskTests
         // Assert
         Assert.Multiple(
             () => Assert.False(output.GetProperty("passed").GetBoolean()),
-            () => Assert.Contains("Conventional Commits format", output.GetProperty("report").GetString()));
+            () => Assert.Contains("Conventional Commits format", output.GetProperty("report").GetString(), StringComparison.Ordinal));
     }
 
     [Fact]
@@ -47,7 +47,7 @@ public sealed class AnalyzeGitCommitFormatTaskTests
         // Assert
         Assert.Multiple(
             () => Assert.False(output.GetProperty("passed").GetBoolean()),
-            () => Assert.Contains("maximum is 50", output.GetProperty("report").GetString()));
+            () => Assert.Contains("maximum is 50", output.GetProperty("report").GetString(), StringComparison.Ordinal));
     }
 
     [Fact]
@@ -62,7 +62,7 @@ public sealed class AnalyzeGitCommitFormatTaskTests
         // Assert
         Assert.Multiple(
             () => Assert.False(output.GetProperty("passed").GetBoolean()),
-            () => Assert.Contains("blank line", output.GetProperty("report").GetString()));
+            () => Assert.Contains("blank line", output.GetProperty("report").GetString(), StringComparison.Ordinal));
     }
 
     [Fact]
@@ -77,7 +77,7 @@ public sealed class AnalyzeGitCommitFormatTaskTests
         // Assert
         Assert.Multiple(
             () => Assert.False(output.GetProperty("passed").GetBoolean()),
-            () => Assert.Contains("maximum is 72", output.GetProperty("report").GetString()));
+            () => Assert.Contains("maximum is 72", output.GetProperty("report").GetString(), StringComparison.Ordinal));
     }
 
     [Fact]

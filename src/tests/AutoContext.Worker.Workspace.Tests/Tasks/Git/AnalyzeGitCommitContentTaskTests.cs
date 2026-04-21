@@ -14,7 +14,7 @@ public sealed class AnalyzeGitCommitContentTaskTests
         // Assert
         Assert.Multiple(
             () => Assert.True(output.GetProperty("passed").GetBoolean()),
-            () => Assert.Contains("no body", output.GetProperty("report").GetString()));
+            () => Assert.Contains("no body", output.GetProperty("report").GetString(), StringComparison.Ordinal));
     }
 
     [Fact]
@@ -42,7 +42,7 @@ public sealed class AnalyzeGitCommitContentTaskTests
         // Assert
         Assert.Multiple(
             () => Assert.False(output.GetProperty("passed").GetBoolean()),
-            () => Assert.Contains("bullet", output.GetProperty("report").GetString()));
+            () => Assert.Contains("bullet", output.GetProperty("report").GetString(), StringComparison.Ordinal));
     }
 
     [Fact]
@@ -57,7 +57,7 @@ public sealed class AnalyzeGitCommitContentTaskTests
         // Assert
         Assert.Multiple(
             () => Assert.False(output.GetProperty("passed").GetBoolean()),
-            () => Assert.Contains("sensitive", output.GetProperty("report").GetString()));
+            () => Assert.Contains("sensitive", output.GetProperty("report").GetString(), StringComparison.Ordinal));
     }
 
     [Fact]

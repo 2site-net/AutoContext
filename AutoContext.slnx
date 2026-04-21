@@ -9,8 +9,8 @@
     <Project Path="src/AutoContext.Mcp.DotNet/AutoContext.Mcp.DotNet.csproj" />
   </Folder>
   <Folder Name="/tests/">
-    <Project Path="src/AutoContext.WorkspaceServer.Tests/AutoContext.WorkspaceServer.Tests.csproj" />
-    <Project Path="src/AutoContext.Mcp.DotNet.Tests/AutoContext.Mcp.DotNet.Tests.csproj" />
+    <Project Path="src/tests/AutoContext.WorkspaceServer.Tests/AutoContext.WorkspaceServer.Tests.csproj" />
+    <Project Path="src/tests/AutoContext.Mcp.DotNet.Tests/AutoContext.Mcp.DotNet.Tests.csproj" />
     <Project Path="src/tests/AutoContext.Worker.Testing/AutoContext.Worker.Testing.csproj" />
     <Project Path="src/tests/AutoContext.Worker.Shared.Tests/AutoContext.Worker.Shared.Tests.csproj" />
     <Project Path="src/tests/AutoContext.Worker.Workspace.Tests/AutoContext.Worker.Workspace.Tests.csproj" />

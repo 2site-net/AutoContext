@@ -34,7 +34,7 @@ public sealed class AnalyzeCSharpNamingConventionsTaskTests
         var (_, result) = await new AnalyzeCSharpNamingConventionsTask().GetReportAsync(new { content = source });
 
         // Assert
-        Assert.StartsWith("✅", result);
+        Assert.StartsWith("✅", result, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -51,9 +51,9 @@ public sealed class AnalyzeCSharpNamingConventionsTaskTests
         // Assert
         Assert.Multiple(() =>
         {
-            Assert.StartsWith("❌", result);
-            Assert.Contains("'I'", result);
-            Assert.Contains("DataService", result);
+            Assert.StartsWith("❌", result, StringComparison.Ordinal);
+            Assert.Contains("'I'", result, StringComparison.Ordinal);
+            Assert.Contains("DataService", result, StringComparison.Ordinal);
         });
     }
 
@@ -69,7 +69,7 @@ public sealed class AnalyzeCSharpNamingConventionsTaskTests
         var (_, result) = await new AnalyzeCSharpNamingConventionsTask().GetReportAsync(new { content = source });
 
         // Assert
-        Assert.DoesNotContain("Interface", result);
+        Assert.DoesNotContain("Interface", result, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -86,8 +86,8 @@ public sealed class AnalyzeCSharpNamingConventionsTaskTests
         // Assert
         Assert.Multiple(() =>
         {
-            Assert.StartsWith("❌", result);
-            Assert.Contains("'I' followed by an uppercase letter", result);
+            Assert.StartsWith("❌", result, StringComparison.Ordinal);
+            Assert.Contains("'I' followed by an uppercase letter", result, StringComparison.Ordinal);
         });
     }
 
@@ -109,9 +109,9 @@ public sealed class AnalyzeCSharpNamingConventionsTaskTests
         // Assert
         Assert.Multiple(() =>
         {
-            Assert.StartsWith("❌", result);
-            Assert.Contains("Extensions", result);
-            Assert.Contains("StringHelper", result);
+            Assert.StartsWith("❌", result, StringComparison.Ordinal);
+            Assert.Contains("Extensions", result, StringComparison.Ordinal);
+            Assert.Contains("StringHelper", result, StringComparison.Ordinal);
         });
     }
 
@@ -131,7 +131,7 @@ public sealed class AnalyzeCSharpNamingConventionsTaskTests
         var (_, result) = await new AnalyzeCSharpNamingConventionsTask().GetReportAsync(new { content = source });
 
         // Assert
-        Assert.DoesNotContain("StringExtensions", result);
+        Assert.DoesNotContain("StringExtensions", result, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -150,7 +150,7 @@ public sealed class AnalyzeCSharpNamingConventionsTaskTests
         var (_, result) = await new AnalyzeCSharpNamingConventionsTask().GetReportAsync(new { content = source });
 
         // Assert
-        Assert.DoesNotContain("Extension", result);
+        Assert.DoesNotContain("Extension", result, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -170,9 +170,9 @@ public sealed class AnalyzeCSharpNamingConventionsTaskTests
         // Assert
         Assert.Multiple(() =>
         {
-            Assert.StartsWith("❌", result);
-            Assert.Contains("'Async'", result);
-            Assert.Contains("LoadData", result);
+            Assert.StartsWith("❌", result, StringComparison.Ordinal);
+            Assert.Contains("'Async'", result, StringComparison.Ordinal);
+            Assert.Contains("LoadData", result, StringComparison.Ordinal);
         });
     }
 
@@ -191,7 +191,7 @@ public sealed class AnalyzeCSharpNamingConventionsTaskTests
         var (_, result) = await new AnalyzeCSharpNamingConventionsTask().GetReportAsync(new { content = source });
 
         // Assert
-        Assert.DoesNotContain("suffixed with 'Async'", result);
+        Assert.DoesNotContain("suffixed with 'Async'", result, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -214,7 +214,7 @@ public sealed class AnalyzeCSharpNamingConventionsTaskTests
         var (_, result) = await new AnalyzeCSharpNamingConventionsTask().GetReportAsync(new { content = source });
 
         // Assert
-        Assert.DoesNotContain("suffixed with 'Async'", result);
+        Assert.DoesNotContain("suffixed with 'Async'", result, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -232,7 +232,7 @@ public sealed class AnalyzeCSharpNamingConventionsTaskTests
         var (_, result) = await new AnalyzeCSharpNamingConventionsTask().GetReportAsync(new { content = source });
 
         // Assert
-        Assert.DoesNotContain("suffixed with 'Async'", result);
+        Assert.DoesNotContain("suffixed with 'Async'", result, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -251,7 +251,7 @@ public sealed class AnalyzeCSharpNamingConventionsTaskTests
         var (_, result) = await new AnalyzeCSharpNamingConventionsTask().GetReportAsync(new { content = source });
 
         // Assert
-        Assert.DoesNotContain("suffixed with 'Async'", result);
+        Assert.DoesNotContain("suffixed with 'Async'", result, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -271,9 +271,9 @@ public sealed class AnalyzeCSharpNamingConventionsTaskTests
         // Assert
         Assert.Multiple(() =>
         {
-            Assert.StartsWith("❌", result);
-            Assert.Contains("_camelCase", result);
-            Assert.Contains("retryCount", result);
+            Assert.StartsWith("❌", result, StringComparison.Ordinal);
+            Assert.Contains("_camelCase", result, StringComparison.Ordinal);
+            Assert.Contains("retryCount", result, StringComparison.Ordinal);
         });
     }
 
@@ -294,8 +294,8 @@ public sealed class AnalyzeCSharpNamingConventionsTaskTests
         // Assert
         Assert.Multiple(() =>
         {
-            Assert.StartsWith("❌", result);
-            Assert.Contains("_camelCase", result);
+            Assert.StartsWith("❌", result, StringComparison.Ordinal);
+            Assert.Contains("_camelCase", result, StringComparison.Ordinal);
         });
     }
 
@@ -314,7 +314,7 @@ public sealed class AnalyzeCSharpNamingConventionsTaskTests
         var (_, result) = await new AnalyzeCSharpNamingConventionsTask().GetReportAsync(new { content = source });
 
         // Assert
-        Assert.DoesNotContain("_camelCase", result);
+        Assert.DoesNotContain("_camelCase", result, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -332,7 +332,7 @@ public sealed class AnalyzeCSharpNamingConventionsTaskTests
         var (_, result) = await new AnalyzeCSharpNamingConventionsTask().GetReportAsync(new { content = source });
 
         // Assert
-        Assert.DoesNotContain("_camelCase", result);
+        Assert.DoesNotContain("_camelCase", result, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -350,7 +350,7 @@ public sealed class AnalyzeCSharpNamingConventionsTaskTests
         var (_, result) = await new AnalyzeCSharpNamingConventionsTask().GetReportAsync(new { content = source });
 
         // Assert
-        Assert.DoesNotContain("_camelCase", result);
+        Assert.DoesNotContain("_camelCase", result, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -367,9 +367,9 @@ public sealed class AnalyzeCSharpNamingConventionsTaskTests
         // Assert
         Assert.Multiple(() =>
         {
-            Assert.StartsWith("❌", result);
-            Assert.Contains("PascalCase", result);
-            Assert.Contains("myService", result);
+            Assert.StartsWith("❌", result, StringComparison.Ordinal);
+            Assert.Contains("PascalCase", result, StringComparison.Ordinal);
+            Assert.Contains("myService", result, StringComparison.Ordinal);
         });
     }
 
@@ -390,9 +390,9 @@ public sealed class AnalyzeCSharpNamingConventionsTaskTests
         // Assert
         Assert.Multiple(() =>
         {
-            Assert.StartsWith("❌", result);
-            Assert.Contains("PascalCase", result);
-            Assert.Contains("doWork", result);
+            Assert.StartsWith("❌", result, StringComparison.Ordinal);
+            Assert.Contains("PascalCase", result, StringComparison.Ordinal);
+            Assert.Contains("doWork", result, StringComparison.Ordinal);
         });
     }
 
@@ -413,9 +413,9 @@ public sealed class AnalyzeCSharpNamingConventionsTaskTests
         // Assert
         Assert.Multiple(() =>
         {
-            Assert.StartsWith("❌", result);
-            Assert.Contains("PascalCase", result);
-            Assert.Contains("value", result);
+            Assert.StartsWith("❌", result, StringComparison.Ordinal);
+            Assert.Contains("PascalCase", result, StringComparison.Ordinal);
+            Assert.Contains("value", result, StringComparison.Ordinal);
         });
     }
 
@@ -436,9 +436,9 @@ public sealed class AnalyzeCSharpNamingConventionsTaskTests
         // Assert
         Assert.Multiple(() =>
         {
-            Assert.StartsWith("❌", result);
-            Assert.Contains("camelCase", result);
-            Assert.Contains("Value", result);
+            Assert.StartsWith("❌", result, StringComparison.Ordinal);
+            Assert.Contains("camelCase", result, StringComparison.Ordinal);
+            Assert.Contains("Value", result, StringComparison.Ordinal);
         });
     }
 
@@ -459,8 +459,8 @@ public sealed class AnalyzeCSharpNamingConventionsTaskTests
         // Assert
         Assert.Multiple(() =>
         {
-            Assert.StartsWith("❌", result);
-            Assert.Contains("camelCase", result);
+            Assert.StartsWith("❌", result, StringComparison.Ordinal);
+            Assert.Contains("camelCase", result, StringComparison.Ordinal);
         });
     }
 
@@ -479,7 +479,7 @@ public sealed class AnalyzeCSharpNamingConventionsTaskTests
         var (_, result) = await new AnalyzeCSharpNamingConventionsTask().GetReportAsync(new { content = source });
 
         // Assert
-        Assert.DoesNotContain("camelCase", result);
+        Assert.DoesNotContain("camelCase", result, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -498,7 +498,7 @@ public sealed class AnalyzeCSharpNamingConventionsTaskTests
         var (_, result) = await new AnalyzeCSharpNamingConventionsTask().GetReportAsync(new { content = source });
 
         // Assert
-        Assert.DoesNotContain("camelCase", result);
+        Assert.DoesNotContain("camelCase", result, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -516,7 +516,7 @@ public sealed class AnalyzeCSharpNamingConventionsTaskTests
         var (_, result) = await new AnalyzeCSharpNamingConventionsTask().GetReportAsync(new { content = source });
 
         // Assert
-        Assert.DoesNotContain("camelCase", result);
+        Assert.DoesNotContain("camelCase", result, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -533,8 +533,8 @@ public sealed class AnalyzeCSharpNamingConventionsTaskTests
         // Assert
         Assert.Multiple(() =>
         {
-            Assert.StartsWith("❌", result);
-            Assert.Contains("PascalCase", result);
+            Assert.StartsWith("❌", result, StringComparison.Ordinal);
+            Assert.Contains("PascalCase", result, StringComparison.Ordinal);
         });
     }
 
@@ -571,9 +571,9 @@ public sealed class AnalyzeCSharpNamingConventionsTaskTests
         // Assert
         Assert.Multiple(() =>
         {
-            Assert.StartsWith("❌", result);
-            Assert.Contains("PascalCase", result);
-            Assert.Contains("changed", result);
+            Assert.StartsWith("❌", result, StringComparison.Ordinal);
+            Assert.Contains("PascalCase", result, StringComparison.Ordinal);
+            Assert.Contains("changed", result, StringComparison.Ordinal);
         });
     }
 
@@ -598,9 +598,9 @@ public sealed class AnalyzeCSharpNamingConventionsTaskTests
         // Assert
         Assert.Multiple(() =>
         {
-            Assert.StartsWith("❌", result);
-            Assert.Contains("PascalCase", result);
-            Assert.Contains("changed", result);
+            Assert.StartsWith("❌", result, StringComparison.Ordinal);
+            Assert.Contains("PascalCase", result, StringComparison.Ordinal);
+            Assert.Contains("changed", result, StringComparison.Ordinal);
         });
     }
 
@@ -619,6 +619,6 @@ public sealed class AnalyzeCSharpNamingConventionsTaskTests
         var (_, result) = await new AnalyzeCSharpNamingConventionsTask().GetReportAsync(new { content = source });
 
         // Assert
-        Assert.DoesNotContain("PascalCase", result);
+        Assert.DoesNotContain("PascalCase", result, StringComparison.Ordinal);
     }
 }

@@ -70,7 +70,7 @@ public sealed class McpToolServiceTests
                 () => Assert.Equal("does_not_exist", response.GetProperty("mcpTask").GetString()),
                 () => Assert.Equal("error", response.GetProperty("status").GetString()),
                 () => Assert.Equal(JsonValueKind.Null, response.GetProperty("output").ValueKind),
-                () => Assert.Contains("Unknown task", response.GetProperty("error").GetString()));
+                () => Assert.Contains("Unknown task", response.GetProperty("error").GetString(), StringComparison.Ordinal));
         }
         finally
         {
@@ -100,7 +100,7 @@ public sealed class McpToolServiceTests
             // Assert
             Assert.Multiple(
                 () => Assert.Equal("error", response.GetProperty("status").GetString()),
-                () => Assert.Contains("kaboom", response.GetProperty("error").GetString()));
+                () => Assert.Contains("kaboom", response.GetProperty("error").GetString(), StringComparison.Ordinal));
         }
         finally
         {
