@@ -1,4 +1,4 @@
-namespace AutoContext.Worker.Workspace.Hosting;
+namespace AutoContext.Worker.Hosting;
 
 using System.Buffers.Binary;
 
@@ -6,15 +6,24 @@ using System.Buffers.Binary;
 /// Length-prefixed binary framing helpers for the worker pipe protocol:
 /// 4-byte little-endian payload length followed by that many UTF-8 JSON bytes.
 /// </summary>
-internal static class PipeFraming
+public static class PipeFraming
 {
+    /// <summary>
+    /// Maximum payload size accepted by <see cref="ReadMessageAsync"/>.
+    /// Caps allocation when a corrupted or hostile header arrives; tasks
+    /// exchanged on this pipe are small JSON envelopes well below this limit.
+    /// </summary>
+    public const int MaxMessageBytes = 64 * 1024 * 1024; // 64 MiB
+
     /// <summary>
     /// Reads one length-prefixed message from <paramref name="stream"/>.
     /// Returns <see langword="null"/> when the connection is closed before
     /// a full header is received.
     /// </summary>
-    internal static async Task<byte[]?> ReadMessageAsync(Stream stream, CancellationToken ct)
+    public static async Task<byte[]?> ReadMessageAsync(Stream stream, CancellationToken ct)
     {
+        ArgumentNullException.ThrowIfNull(stream);
+
         var header = new byte[4];
         var headerRead = await ReadExactAsync(stream, header, ct).ConfigureAwait(false);
 
@@ -30,6 +39,12 @@ internal static class PipeFraming
             return [];
         }
 
+        if (length > MaxMessageBytes)
+        {
+            throw new InvalidDataException(
+                $"Pipe message length {length} exceeds the maximum of {MaxMessageBytes} bytes.");
+        }
+
         var payload = new byte[length];
         var payloadRead = await ReadExactAsync(stream, payload, ct).ConfigureAwait(false);
 
@@ -39,8 +54,11 @@ internal static class PipeFraming
     /// <summary>
     /// Writes <paramref name="payload"/> as one length-prefixed message.
     /// </summary>
-    internal static async Task WriteMessageAsync(Stream stream, byte[] payload, CancellationToken ct)
+    public static async Task WriteMessageAsync(Stream stream, byte[] payload, CancellationToken ct)
     {
+        ArgumentNullException.ThrowIfNull(stream);
+        ArgumentNullException.ThrowIfNull(payload);
+
         var message = new byte[4 + payload.Length];
         BinaryPrimitives.WriteInt32LittleEndian(message, payload.Length);
         payload.CopyTo(message.AsSpan(4));

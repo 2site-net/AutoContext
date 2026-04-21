@@ -1,4 +1,4 @@
-namespace AutoContext.Worker.Workspace.Hosting;
+namespace AutoContext.Worker.Hosting;
 
 using System.Diagnostics.CodeAnalysis;
 using System.IO.Pipes;
@@ -32,22 +32,25 @@ using Microsoft.Extensions.Options;
 /// <see cref="Task"/> and immediately returns to <c>WaitForConnectionAsync</c>.
 /// </para>
 /// </remarks>
-internal sealed partial class McpToolService : BackgroundService
+public sealed partial class McpToolService : BackgroundService
 {
-    internal const string ReadyMarker = "[AutoContext.Worker.Workspace] Ready.";
-
-    internal static JsonSerializerOptions WireJsonOptions { get; } = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        WriteIndented = false,
-    };
+    /// <summary>
+    /// JSON serialization options used for every wire envelope read/written
+    /// by this service. camelCase property naming, no indentation. Frozen at
+    /// initialization so misuse (mutation after first serialization) fails fast
+    /// instead of silently freezing whatever state happened to be set.
+    /// </summary>
+    public static JsonSerializerOptions WireJsonOptions { get; } = CreateWireJsonOptions();
 
     private readonly ILogger<McpToolService> _logger;
-    private readonly WorkerOptions _options;
+    private readonly WorkerHostOptions _options;
     private readonly Dictionary<string, IMcpTask> _tasks;
 
+    /// <summary>
+    /// Creates a new <see cref="McpToolService"/>.
+    /// </summary>
     public McpToolService(
-        IOptions<WorkerOptions> options,
+        IOptions<WorkerHostOptions> options,
         IEnumerable<IMcpTask> tasks,
         ILogger<McpToolService> logger)
     {
@@ -57,7 +60,16 @@ internal sealed partial class McpToolService : BackgroundService
 
         _options = options.Value;
         _logger = logger;
-        _tasks = tasks.ToDictionary(t => t.TaskName, StringComparer.Ordinal);
+        _tasks = [];
+
+        foreach (var task in tasks)
+        {
+            if (!_tasks.TryAdd(task.TaskName, task))
+            {
+                throw new InvalidOperationException(
+                    $"Duplicate IMcpTask registration for task name '{task.TaskName}'.");
+            }
+        }
     }
 
     /// <inheritdoc />
@@ -68,6 +80,14 @@ internal sealed partial class McpToolService : BackgroundService
         if (string.IsNullOrWhiteSpace(pipeName))
         {
             throw new InvalidOperationException("Missing required configuration: --pipe");
+        }
+
+        var readyMarker = _options.ReadyMarker;
+
+        if (string.IsNullOrWhiteSpace(readyMarker))
+        {
+            throw new InvalidOperationException(
+                $"Missing required configuration: {nameof(WorkerHostOptions)}.{nameof(WorkerHostOptions.ReadyMarker)}");
         }
 
         LogStarting(_logger, pipeName);
@@ -94,7 +114,7 @@ internal sealed partial class McpToolService : BackgroundService
                         // worker stderr for this exact marker to know the named pipe is
                         // listening. ILogger output is routed elsewhere and would miss the
                         // contract — this call MUST stay on Console.Error.
-                        return Console.Error.WriteLineAsync(ReadyMarker);
+                        return Console.Error.WriteLineAsync(readyMarker);
                     },
                     stoppingToken).ConfigureAwait(false);
 
@@ -112,6 +132,8 @@ internal sealed partial class McpToolService : BackgroundService
         }
     }
 
+    [SuppressMessage("Reliability", "CA2000",
+        Justification = "Ownership is transferred to the caller on success via `ownsPipe = false`; on any other path the pipe is disposed in the finally block.")]
     private static async Task<NamedPipeServerStream?> AcceptConnectionAsync(
         string pipeName,
         Func<Task> onListening,
@@ -137,7 +159,21 @@ internal sealed partial class McpToolService : BackgroundService
 
             var waitTask = pipe.WaitForConnectionAsync(ct);
 
-            await onListening().ConfigureAwait(false);
+            try
+            {
+                await onListening().ConfigureAwait(false);
+            }
+            catch
+            {
+                // Always observe the in-flight wait so it doesn't surface as an
+                // unobserved task exception when the pipe is disposed below.
+                // Any exception from waitTask is expected here (pipe about to be
+                // disposed via the finally block) and is discarded in favour of
+                // the original onListening failure propagated below.
+                await ObserveAndIgnoreAsync(waitTask).ConfigureAwait(false);
+                throw;
+            }
+
             await waitTask.ConfigureAwait(false);
 
             ownsPipe = false;
@@ -189,13 +225,15 @@ internal sealed partial class McpToolService : BackgroundService
         {
             // Shutdown — exit silently.
         }
-        catch (IOException)
+        catch (IOException ex)
         {
-            // Client disconnected mid-call — exit silently.
+            // Client disconnected mid-call — log at debug for diagnostics.
+            LogConnectionDropped(_logger, ex);
         }
-        catch (ObjectDisposedException)
+        catch (ObjectDisposedException ex)
         {
-            // Pipe disposed during shutdown — exit silently.
+            // Pipe disposed during shutdown — log at debug for diagnostics.
+            LogConnectionDropped(_logger, ex);
         }
     }
 
@@ -259,7 +297,7 @@ internal sealed partial class McpToolService : BackgroundService
 
         // Merge editorconfig.<key> properties into data so tasks see a single payload.
         var merged = hasData
-            ? (JsonObject)JsonNode.Parse(dataElement.GetRawText())!
+            ? JsonNode.Parse(dataElement.GetRawText()) as JsonObject ?? []
             : [];
 
         foreach (var prop in ec.EnumerateObject())
@@ -300,10 +338,44 @@ internal sealed partial class McpToolService : BackgroundService
     }
 
     [LoggerMessage(Level = LogLevel.Information,
-        Message = "Workspace worker listening on pipe: {PipeName}")]
+        Message = "Worker listening on pipe: {PipeName}")]
     private static partial void LogStarting(ILogger logger, string pipeName);
 
     [LoggerMessage(Level = LogLevel.Warning,
         Message = "Task '{TaskName}' threw an unhandled exception.")]
     private static partial void LogTaskFailed(ILogger logger, string taskName, Exception exception);
+
+    [LoggerMessage(Level = LogLevel.Debug,
+        Message = "Pipe connection ended without a complete request/response exchange.")]
+    private static partial void LogConnectionDropped(ILogger logger, Exception exception);
+
+    private static JsonSerializerOptions CreateWireJsonOptions()
+    {
+        var options = new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            WriteIndented = false,
+        };
+
+        options.MakeReadOnly(populateMissingResolver: true);
+
+        return options;
+    }
+
+    private static async Task ObserveAndIgnoreAsync(Task task)
+    {
+        try
+        {
+            await task.ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        catch (IOException)
+        {
+        }
+        catch (ObjectDisposedException)
+        {
+        }
+    }
 }

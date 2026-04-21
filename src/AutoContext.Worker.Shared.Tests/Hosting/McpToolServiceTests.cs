@@ -1,17 +1,19 @@
-namespace AutoContext.Worker.Workspace.Tests.Hosting;
+namespace AutoContext.Worker.Shared.Tests.Hosting;
 
 using System.IO.Pipes;
 using System.Text.Json;
 
 using AutoContext.Mcp.Abstractions;
-using AutoContext.Worker.Workspace.Hosting;
-using AutoContext.Worker.Workspace.Tests._Fakes;
+using AutoContext.Worker.Hosting;
+using AutoContext.Worker.Shared.Tests.Testing.Fakes;
 
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 
 public sealed class McpToolServiceTests
 {
+    private const string TestReadyMarker = "[AutoContext.Worker.Tests] Ready.";
+
     [Fact]
     public async Task Should_dispatch_request_to_matching_task_and_return_ok_envelope()
     {
@@ -40,7 +42,7 @@ public sealed class McpToolServiceTests
         }
         finally
         {
-            await sut.StopAsync(CancellationToken.None);
+            await sut.StopAsync(ct);
         }
     }
 
@@ -72,7 +74,7 @@ public sealed class McpToolServiceTests
         }
         finally
         {
-            await sut.StopAsync(CancellationToken.None);
+            await sut.StopAsync(ct);
         }
     }
 
@@ -102,13 +104,17 @@ public sealed class McpToolServiceTests
         }
         finally
         {
-            await sut.StopAsync(CancellationToken.None);
+            await sut.StopAsync(ct);
         }
     }
 
     private static McpToolService CreateSut(string pipeName, IMcpTask[] tasks)
     {
-        var options = Options.Create(new WorkerOptions { Pipe = pipeName, WorkspaceRoot = "." });
+        var options = Options.Create(new WorkerHostOptions
+        {
+            Pipe = pipeName,
+            ReadyMarker = TestReadyMarker,
+        });
 
         return new McpToolService(options, tasks, NullLogger<McpToolService>.Instance);
     }

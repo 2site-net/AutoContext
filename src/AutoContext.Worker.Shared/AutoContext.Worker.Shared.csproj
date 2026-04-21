@@ -1,0 +1,34 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Version>0.8.0</Version>
+    <TargetFramework>net10.0</TargetFramework>
+    <!--
+      Project name is AutoContext.Worker.Shared, but consumers use the
+      shared hosting types as AutoContext.Worker.Hosting.* (the ".Shared"
+      suffix is a packaging detail, not a public namespace segment).
+    -->
+    <RootNamespace>AutoContext.Worker</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="AutoContext.Worker.Shared.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\AutoContext.Mcp.Abstractions\AutoContext.Mcp.Abstractions.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--
+      Library only consumes BackgroundService / IHostedService from the
+      hosting abstractions. Full Microsoft.Extensions.Hosting (DI, config,
+      logging, console lifetime) is brought in by the worker host projects
+      that consume this library, not by the library itself.
+    -->
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.5" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.5" />
+    <PackageReference Include="Microsoft.Extensions.Options" Version="10.0.5" />
+  </ItemGroup>
+
+</Project>

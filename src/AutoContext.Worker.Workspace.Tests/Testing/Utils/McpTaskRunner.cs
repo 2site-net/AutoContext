@@ -1,4 +1,4 @@
-namespace AutoContext.Worker.Workspace.Tests._Utils;
+namespace AutoContext.Worker.Workspace.Tests.Testing.Utils;
 
 using System.Text.Json;
 
