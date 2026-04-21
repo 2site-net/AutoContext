@@ -260,7 +260,7 @@ internal sealed partial class McpToolService : BackgroundService
         // Merge editorconfig.<key> properties into data so tasks see a single payload.
         var merged = hasData
             ? (JsonObject)JsonNode.Parse(dataElement.GetRawText())!
-            : new JsonObject();
+            : [];
 
         foreach (var prop in ec.EnumerateObject())
         {
