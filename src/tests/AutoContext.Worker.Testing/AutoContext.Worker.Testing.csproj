@@ -16,7 +16,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\AutoContext.Mcp.Abstractions\AutoContext.Mcp.Abstractions.csproj" />
+    <ProjectReference Include="..\..\AutoContext.Mcp.Abstractions\AutoContext.Mcp.Abstractions.csproj" />
   </ItemGroup>
 
 </Project>

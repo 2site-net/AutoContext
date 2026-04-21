@@ -19,8 +19,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\AutoContext.Worker.Workspace\AutoContext.Worker.Workspace.csproj" />
-    <ProjectReference Include="..\AutoContext.Worker.Testing\AutoContext.Worker.Testing.csproj" />
+    <ProjectReference Include="..\..\AutoContext.Worker.Shared\AutoContext.Worker.Shared.csproj" />
   </ItemGroup>
 
 </Project>
