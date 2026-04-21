@@ -1,0 +1,15 @@
+namespace AutoContext.Worker.Workspace.Tests._Fakes;
+
+using System.Text.Json;
+
+using AutoContext.Mcp.Abstractions;
+
+internal sealed class ThrowingTaskFake : IMcpTask
+{
+    public string TaskName => "boom";
+
+    public Task<JsonElement> ExecuteAsync(JsonElement data, CancellationToken ct)
+    {
+        throw new InvalidOperationException("kaboom");
+    }
+}

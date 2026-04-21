@@ -1,11 +1,14 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/AutoContext.Mcp.Abstractions/AutoContext.Mcp.Abstractions.csproj" />
     <Project Path="src/AutoContext.Mcp.Shared/AutoContext.Mcp.Shared.csproj" />
     <Project Path="src/AutoContext.WorkspaceServer/AutoContext.WorkspaceServer.csproj" />
+    <Project Path="src/AutoContext.Worker.Workspace/AutoContext.Worker.Workspace.csproj" />
     <Project Path="src/AutoContext.Mcp.DotNet/AutoContext.Mcp.DotNet.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="src/AutoContext.WorkspaceServer.Tests/AutoContext.WorkspaceServer.Tests.csproj" />
+    <Project Path="src/AutoContext.Worker.Workspace.Tests/AutoContext.Worker.Workspace.Tests.csproj" />
     <Project Path="src/AutoContext.Mcp.DotNet.Tests/AutoContext.Mcp.DotNet.Tests.csproj" />
   </Folder>
 </Solution>
