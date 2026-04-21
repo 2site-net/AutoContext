@@ -371,7 +371,7 @@ public sealed class NuGetHygieneTaskTests
 
         // Act & Assert
         await Assert.ThrowsAsync<InvalidOperationException>(
-            () => McpTaskRunner.RunAsync(sut, new { content = input }));
+            () => sut.ExecuteAsync(new { content = input }));
     }
 
     [Fact]
@@ -382,7 +382,7 @@ public sealed class NuGetHygieneTaskTests
 
         // Act & Assert
         await Assert.ThrowsAsync<InvalidOperationException>(
-            () => McpTaskRunner.RunAsync(sut, new { }));
+            () => sut.ExecuteAsync(new { }));
     }
 
     [Fact]
@@ -393,13 +393,13 @@ public sealed class NuGetHygieneTaskTests
 
         // Act & Assert
         await Assert.ThrowsAsync<InvalidOperationException>(
-            () => McpTaskRunner.RunAsync(sut, new { content = 42 }));
+            () => sut.ExecuteAsync(new { content = 42 }));
     }
 
     private static async Task<(bool Passed, string Report)> RunAsync(string content)
     {
         var sut = new NuGetHygieneTask();
-        var output = await McpTaskRunner.RunAsync(sut, new { content });
+        var output = await sut.ExecuteAsync(new { content });
 
         var passed = output.GetProperty("passed").GetBoolean();
         var report = output.GetProperty("report").GetString()!;

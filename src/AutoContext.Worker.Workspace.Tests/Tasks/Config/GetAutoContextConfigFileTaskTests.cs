@@ -158,6 +158,6 @@ public sealed class GetAutoContextConfigFileTaskTests : IDisposable
     {
         var options = Options.Create(new WorkerOptions { WorkspaceRoot = _workspace.RootPath });
 
-        return McpTaskRunner.RunAsync(new GetAutoContextConfigFileTask(options), new { });
+        return new GetAutoContextConfigFileTask(options).ExecuteAsync(new { });
     }
 }

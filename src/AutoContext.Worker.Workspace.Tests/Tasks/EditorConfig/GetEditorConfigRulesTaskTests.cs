@@ -21,7 +21,7 @@ public sealed class GetEditorConfigRulesTaskTests : IDisposable
         var filePath = await _workspace.WriteFileAsync("Foo.cs", string.Empty, ct);
 
         // Act
-        var output = await McpTaskRunner.RunAsync(new GetEditorConfigRulesTask(), new
+        var output = await new GetEditorConfigRulesTask().ExecuteAsync(new
         {
             path = filePath,
             keys = FilteredKeys,
@@ -43,7 +43,7 @@ public sealed class GetEditorConfigRulesTaskTests : IDisposable
         var filePath = await _workspace.WriteFileAsync("Foo.cs", string.Empty, ct);
 
         // Act
-        var output = await McpTaskRunner.RunAsync(new GetEditorConfigRulesTask(), new { path = filePath });
+        var output = await new GetEditorConfigRulesTask().ExecuteAsync(new { path = filePath });
 
         // Assert
         Assert.Equal("tab", output.GetProperty("indent_style").GetString());
@@ -54,6 +54,6 @@ public sealed class GetEditorConfigRulesTaskTests : IDisposable
     {
         // Act + Assert
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            McpTaskRunner.RunAsync(new GetEditorConfigRulesTask(), new { }));
+            new GetEditorConfigRulesTask().ExecuteAsync(new { }));
     }
 }

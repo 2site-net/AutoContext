@@ -9,7 +9,7 @@ public sealed class AnalyzeGitCommitContentTaskTests
     public async Task Should_pass_when_no_body_present()
     {
         // Act
-        var output = await McpTaskRunner.RunAsync(new AnalyzeGitCommitContentTask(), new { content = "feat: add login" });
+        var output = await new AnalyzeGitCommitContentTask().ExecuteAsync(new { content = "feat: add login" });
 
         // Assert
         Assert.Multiple(
@@ -24,7 +24,7 @@ public sealed class AnalyzeGitCommitContentTaskTests
         var content = "feat: add login\n\nDescribe the new behavior in plain prose.\n";
 
         // Act
-        var output = await McpTaskRunner.RunAsync(new AnalyzeGitCommitContentTask(), new { content });
+        var output = await new AnalyzeGitCommitContentTask().ExecuteAsync(new { content });
 
         // Assert
         Assert.True(output.GetProperty("passed").GetBoolean());
@@ -37,7 +37,7 @@ public sealed class AnalyzeGitCommitContentTaskTests
         var content = "feat: x\n\n- first bullet\n- second bullet\n";
 
         // Act
-        var output = await McpTaskRunner.RunAsync(new AnalyzeGitCommitContentTask(), new { content });
+        var output = await new AnalyzeGitCommitContentTask().ExecuteAsync(new { content });
 
         // Assert
         Assert.Multiple(
@@ -52,7 +52,7 @@ public sealed class AnalyzeGitCommitContentTaskTests
         var content = "feat: x\n\nUses password=secret123 to connect.\n";
 
         // Act
-        var output = await McpTaskRunner.RunAsync(new AnalyzeGitCommitContentTask(), new { content });
+        var output = await new AnalyzeGitCommitContentTask().ExecuteAsync(new { content });
 
         // Assert
         Assert.Multiple(
@@ -65,6 +65,6 @@ public sealed class AnalyzeGitCommitContentTaskTests
     {
         // Act + Assert
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            McpTaskRunner.RunAsync(new AnalyzeGitCommitContentTask(), new { }));
+            new AnalyzeGitCommitContentTask().ExecuteAsync(new { }));
     }
 }

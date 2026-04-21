@@ -12,7 +12,7 @@ public sealed class AnalyzeGitCommitFormatTaskTests
     public async Task Should_pass_for_valid_subject(string subject)
     {
         // Act
-        var output = await McpTaskRunner.RunAsync(new AnalyzeGitCommitFormatTask(), new { content = subject });
+        var output = await new AnalyzeGitCommitFormatTask().ExecuteAsync(new { content = subject });
 
         // Assert
         Assert.Multiple(
@@ -27,7 +27,7 @@ public sealed class AnalyzeGitCommitFormatTaskTests
     public async Task Should_fail_for_invalid_subject(string subject)
     {
         // Act
-        var output = await McpTaskRunner.RunAsync(new AnalyzeGitCommitFormatTask(), new { content = subject });
+        var output = await new AnalyzeGitCommitFormatTask().ExecuteAsync(new { content = subject });
 
         // Assert
         Assert.Multiple(
@@ -42,7 +42,7 @@ public sealed class AnalyzeGitCommitFormatTaskTests
         var subject = "feat: " + new string('a', 50);
 
         // Act
-        var output = await McpTaskRunner.RunAsync(new AnalyzeGitCommitFormatTask(), new { content = subject });
+        var output = await new AnalyzeGitCommitFormatTask().ExecuteAsync(new { content = subject });
 
         // Assert
         Assert.Multiple(
@@ -57,7 +57,7 @@ public sealed class AnalyzeGitCommitFormatTaskTests
         var content = "feat: add login\nbody starts here without blank line\n";
 
         // Act
-        var output = await McpTaskRunner.RunAsync(new AnalyzeGitCommitFormatTask(), new { content });
+        var output = await new AnalyzeGitCommitFormatTask().ExecuteAsync(new { content });
 
         // Assert
         Assert.Multiple(
@@ -72,7 +72,7 @@ public sealed class AnalyzeGitCommitFormatTaskTests
         var content = "feat: x\n\n" + new string('y', 73);
 
         // Act
-        var output = await McpTaskRunner.RunAsync(new AnalyzeGitCommitFormatTask(), new { content });
+        var output = await new AnalyzeGitCommitFormatTask().ExecuteAsync(new { content });
 
         // Assert
         Assert.Multiple(
@@ -85,6 +85,6 @@ public sealed class AnalyzeGitCommitFormatTaskTests
     {
         // Act + Assert
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            McpTaskRunner.RunAsync(new AnalyzeGitCommitFormatTask(), new { }));
+            new AnalyzeGitCommitFormatTask().ExecuteAsync(new { }));
     }
 }
