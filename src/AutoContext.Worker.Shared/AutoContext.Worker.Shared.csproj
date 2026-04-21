@@ -3,11 +3,6 @@
   <PropertyGroup>
     <Version>0.8.0</Version>
     <TargetFramework>net10.0</TargetFramework>
-    <!--
-      Project name is AutoContext.Worker.Shared, but consumers use the
-      shared hosting types as AutoContext.Worker.Hosting.* (the ".Shared"
-      suffix is a packaging detail, not a public namespace segment).
-    -->
     <RootNamespace>AutoContext.Worker</RootNamespace>
   </PropertyGroup>
 
