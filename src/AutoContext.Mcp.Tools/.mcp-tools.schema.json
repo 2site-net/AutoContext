@@ -1,0 +1,292 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://autocontext.dev/schemas/mcp-tools.schema.json",
+    "title": "AutoContext MCP Tools manifest",
+    "description": "Single source of truth for AutoContext's MCP Tools and MCP Tasks. Top-level keys other than '$schema' and 'schemaVersion' name a worker process (lowercase identifier, e.g. 'dotnet', 'workspace', 'web') and hold an array of group definitions.",
+    "type": "object",
+    "properties": {
+        "$schema": {
+            "type": "string",
+            "description": "Path or URL to this schema file. Enables editor IntelliSense."
+        },
+        "schemaVersion": {
+            "type": "string",
+            "const": "1",
+            "description": "Manifest format version. Bumped on breaking changes."
+        }
+    },
+    "required": [
+        "schemaVersion"
+    ],
+    "patternProperties": {
+        "^[a-z][a-z0-9]*$": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+                "$ref": "#/$defs/group"
+            },
+            "description": "Groups owned by one worker process. The key is the worker name (e.g. 'dotnet')."
+        }
+    },
+    "additionalProperties": false,
+    "$defs": {
+        "group": {
+            "type": "object",
+            "title": "Group",
+            "description": "A worker-owned bundle of MCP Tools (Copilot-facing) plus the MCP Tasks they dispatch (worker-facing).",
+            "additionalProperties": false,
+            "required": [
+                "tag",
+                "description",
+                "endpoint",
+                "tools",
+                "tasks"
+            ],
+            "properties": {
+                "tag": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "UI label for the group (display only).",
+                    "examples": [
+                        ".NET",
+                        "Workspace",
+                        "Web"
+                    ]
+                },
+                "description": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Group-level description shown in the extension UI."
+                },
+                "endpoint": {
+                    "type": "string",
+                    "pattern": "^[a-z0-9][a-z0-9.-]*$",
+                    "description": "Transport-agnostic endpoint identifier for the worker process. Today: a Windows named pipe name in kebab-case (dots allowed for namespacing).",
+                    "examples": [
+                        "autocontext.dotnet-worker",
+                        "autocontext.workspace-worker",
+                        "autocontext.web-worker"
+                    ]
+                },
+                "tools": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                        "$ref": "#/$defs/tool"
+                    },
+                    "description": "MCP Tool definitions \u2014 what Copilot sees."
+                },
+                "tasks": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                        "$ref": "#/$defs/task"
+                    },
+                    "description": "MCP Task definitions \u2014 what the worker executes. Every task here must be referenced by at least one tool, and every tool task reference must point to a task here."
+                }
+            }
+        },
+        "tool": {
+            "type": "object",
+            "title": "MCP Tool",
+            "description": "An MCP Tool: the Copilot-facing surface. Dispatches one or more MCP Tasks when invoked.",
+            "additionalProperties": false,
+            "required": [
+                "tag",
+                "description",
+                "definition",
+                "tasks"
+            ],
+            "properties": {
+                "tag": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "UI label for the MCP Tool (display only).",
+                    "examples": [
+                        "C#",
+                        "NuGet",
+                        "Git",
+                        "EditorConfig",
+                        "TypeScript"
+                    ]
+                },
+                "description": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "AutoContext-side description shown in the extension UI. Distinct from definition.description, which is shown to Copilot."
+                },
+                "definition": {
+                    "$ref": "#/$defs/toolDefinition"
+                },
+                "workspaceFlags": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "pattern": "^[a-z][a-zA-Z0-9]*$"
+                    },
+                    "description": "Capability flags the workspace must have for this tool to be registered. Empty array = always register.",
+                    "examples": [
+                        [
+                            "hasCSharp"
+                        ],
+                        [
+                            "hasGit"
+                        ],
+                        [
+                            "hasTypeScript"
+                        ]
+                    ]
+                },
+                "tasks": {
+                    "type": "array",
+                    "minItems": 1,
+                    "uniqueItems": true,
+                    "items": {
+                        "$ref": "#/$defs/taskName"
+                    },
+                    "description": "MCP Task names dispatched when this tool is invoked. Each must reference a task in the sibling tasks[] array."
+                }
+            }
+        },
+        "toolDefinition": {
+            "type": "object",
+            "title": "MCP Tool definition (Copilot-facing)",
+            "description": "The MCP-facing contract: how the tool appears to Copilot. Passed to McpServerToolCreateOptions at registration time.",
+            "additionalProperties": false,
+            "required": [
+                "name",
+                "description",
+                "parameters"
+            ],
+            "properties": {
+                "name": {
+                    "$ref": "#/$defs/toolName"
+                },
+                "description": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "MCP Tool description shown to Copilot. Should clearly state what the tool does, when to use it, and what to pass as input \u2014 Copilot uses this to decide whether to call the tool."
+                },
+                "parameters": {
+                    "type": "object",
+                    "minProperties": 1,
+                    "additionalProperties": {
+                        "$ref": "#/$defs/parameter"
+                    },
+                    "propertyNames": {
+                        "pattern": "^[a-z][a-zA-Z0-9]*$"
+                    },
+                    "description": "Parameter map (camelCase names) \u2192 parameter spec. Transformed into JSON Schema (type: object, properties, required) and advertised as the MCP inputSchema for this tool."
+                }
+            }
+        },
+        "parameter": {
+            "type": "object",
+            "title": "Tool parameter",
+            "description": "One parameter inside a tool's inputSchema.",
+            "additionalProperties": false,
+            "required": [
+                "type",
+                "description"
+            ],
+            "properties": {
+                "type": {
+                    "type": "string",
+                    "enum": [
+                        "string",
+                        "number",
+                        "boolean",
+                        "array",
+                        "object"
+                    ],
+                    "description": "JSON Schema primitive type for this parameter."
+                },
+                "description": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Parameter description shown to Copilot. Should be unambiguous about what value to provide."
+                },
+                "required": {
+                    "type": "boolean",
+                    "const": true,
+                    "description": "Set to true on required parameters. Omit entirely for optional parameters \u2014 do not write 'required: false'."
+                }
+            }
+        },
+        "task": {
+            "type": "object",
+            "title": "MCP Task",
+            "description": "An MCP Task: the worker-facing execution unit. Dispatched by McpToolClient over a named pipe to its group's worker.",
+            "additionalProperties": false,
+            "required": [
+                "name",
+                "version"
+            ],
+            "properties": {
+                "name": {
+                    "$ref": "#/$defs/taskName"
+                },
+                "description": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Optional. Shown in the extension UI. May be omitted for single-task MCP Tools where the tool description suffices."
+                },
+                "version": {
+                    "type": "string",
+                    "pattern": "^\\d+\\.\\d+\\.\\d+$",
+                    "description": "Semantic version (MAJOR.MINOR.PATCH). Bumped when the task's behavior or output changes.",
+                    "examples": [
+                        "1.0.0",
+                        "0.1.0"
+                    ]
+                },
+                "priority": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "description": "Parallelism grouping within an MCP Tool invocation. Tasks with the same nonzero priority run concurrently (Task.WhenAll); priority groups execute in ascending order. Omit or 0 = sequential after all prioritized groups.",
+                    "examples": [
+                        1,
+                        2
+                    ]
+                },
+                "editorconfig": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "pattern": "^[a-z][a-z0-9_]*$"
+                    },
+                    "uniqueItems": true,
+                    "description": "EditorConfig keys this task consumes (snake_case identifiers we don't own). McpToolClient resolves these against the file's effective .editorconfig and ships them in the wire envelope's editorconfig field.",
+                    "examples": [
+                        [
+                            "csharp_prefer_braces",
+                            "csharp_style_namespace_declarations"
+                        ]
+                    ]
+                }
+            }
+        },
+        "toolName": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*$",
+            "title": "MCP Tool name",
+            "description": "MCP Tool identifier (snake_case). Must be unique across the entire manifest.",
+            "examples": [
+                "analyze_csharp_code",
+                "analyze_nuget_references",
+                "analyze_git_commit_message"
+            ]
+        },
+        "taskName": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*$",
+            "title": "MCP Task name",
+            "description": "MCP Task identifier (snake_case). Must be unique within its group.",
+            "examples": [
+                "check_csharp_coding_style",
+                "check_nuget_hygiene",
+                "get_editorconfig"
+            ]
+        }
+    }
+}
