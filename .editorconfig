@@ -504,37 +504,4 @@ dotnet_diagnostic.IDE0301.severity = error              # Use collection express
 dotnet_diagnostic.IDE0302.severity = error              # Use collection expression for stackalloc
 dotnet_diagnostic.IDE0305.severity = warning            # Use collection expression for fluent
 
-# ------------------------------------------------------------
-# Test projects
-# ------------------------------------------------------------
-[{*Tests.cs,*Tests.*.cs}]
-# ------------------------------------------------------------
-# Disable specific diagnostics that are not relevant or too noisy in test projects
-# ------------------------------------------------------------
-
-# Disable CA2007 - xUnit1030 conflicts with ConfigureAwait(false)
-dotnet_diagnostic.CA2007.severity = none
-
-# Disable CA1707 - Identifiers should not contain underscores (test method names)
-dotnet_diagnostic.CA1707.severity = none
-
-# Disable CA1307 - Assert methods don't need StringComparison
-dotnet_diagnostic.CA1307.severity = none
-
-# Disable IDE0022 - Use expression body for methods (test readability)
-dotnet_diagnostic.IDE0022.severity = none
-
-# Disable CA1062 - Validate arguments of public methods (test methods don't need null checks)
-dotnet_diagnostic.CA1062.severity = none
-
-# ------------------------------------------------------------
-# ReSharper
-# ------------------------------------------------------------
-
-# Disable "Class is never instantiated" warning in test projects
-resharper_class_never_instantiated_global_highlighting = none
-
-[*Fixture.cs]
-dotnet_diagnostic.CA1822.severity = none
-
 # End of .editorconfig
