@@ -1,4 +1,4 @@
-namespace AutoContext.Mcp.Abstractions;
+namespace AutoContext.Mcp;
 
 using System.Text.Json;
 

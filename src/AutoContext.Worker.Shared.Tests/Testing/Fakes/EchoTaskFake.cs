@@ -2,7 +2,7 @@ namespace AutoContext.Worker.Shared.Tests.Testing.Fakes;
 
 using System.Text.Json;
 
-using AutoContext.Mcp.Abstractions;
+using AutoContext.Mcp;
 
 internal sealed class EchoTaskFake : IMcpTask
 {

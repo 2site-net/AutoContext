@@ -4,7 +4,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 
-using AutoContext.Mcp.Abstractions;
+using AutoContext.Mcp;
 
 /// <summary>
 /// <c>analyze_git_commit_format</c> — enforces commit format rules from

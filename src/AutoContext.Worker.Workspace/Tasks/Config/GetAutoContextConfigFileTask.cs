@@ -3,7 +3,7 @@ namespace AutoContext.Worker.Workspace.Tasks.Config;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
-using AutoContext.Mcp.Abstractions;
+using AutoContext.Mcp;
 using AutoContext.Worker.Workspace.Hosting;
 
 using Microsoft.Extensions.Options;

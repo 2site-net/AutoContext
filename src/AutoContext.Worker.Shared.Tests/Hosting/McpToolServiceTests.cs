@@ -3,7 +3,7 @@ namespace AutoContext.Worker.Shared.Tests.Hosting;
 using System.IO.Pipes;
 using System.Text.Json;
 
-using AutoContext.Mcp.Abstractions;
+using AutoContext.Mcp;
 using AutoContext.Worker.Hosting;
 using AutoContext.Worker.Shared.Tests.Testing.Fakes;
 

@@ -2,7 +2,7 @@ namespace AutoContext.Worker.Workspace.Tests.Testing.Utils;
 
 using System.Text.Json;
 
-using AutoContext.Mcp.Abstractions;
+using AutoContext.Mcp;
 
 /// <summary>
 /// Test helpers for invoking <see cref="IMcpTask"/> implementations with a JSON payload.

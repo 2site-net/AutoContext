@@ -5,7 +5,7 @@ using System.IO.Pipes;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
-using AutoContext.Mcp.Abstractions;
+using AutoContext.Mcp;
 
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;

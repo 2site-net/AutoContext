@@ -1,6 +1,6 @@
 namespace AutoContext.Worker.Workspace;
 
-using AutoContext.Mcp.Abstractions;
+using AutoContext.Mcp;
 using AutoContext.Worker.Hosting;
 using AutoContext.Worker.Workspace.Hosting;
 using AutoContext.Worker.Workspace.Tasks.Config;
