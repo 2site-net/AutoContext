@@ -16,14 +16,17 @@
 
   <ItemGroup>
     <!--
-      Library only consumes BackgroundService / IHostedService from the
-      hosting abstractions. Full Microsoft.Extensions.Hosting (DI, config,
-      logging, console lifetime) is brought in by the worker host projects
-      that consume this library, not by the library itself.
+      Worker.Shared owns both the BackgroundService-based pipe server
+      (McpToolService) and the standard worker-host bootstrap
+      (WorkerHostBuilderExtensions.ConfigureWorkerHost) that wires the
+      `pipe` switch, the in-memory ready marker, and WorkerHostOptions
+      binding. The full Microsoft.Extensions.Hosting package is required
+      for HostApplicationBuilder and the configuration extensions
+      (AddCommandLine, AddInMemoryCollection,
+      services.Configure&lt;T&gt;(IConfiguration)); it transitively brings in
+      Hosting.Abstractions, Logging.Abstractions, and Options.
     -->
-    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.5" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.5" />
-    <PackageReference Include="Microsoft.Extensions.Options" Version="10.0.5" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.5" />
   </ItemGroup>
 
 </Project>

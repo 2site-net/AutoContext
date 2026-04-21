@@ -7,7 +7,6 @@ using AutoContext.Worker.Workspace.Tasks.Config;
 using AutoContext.Worker.Workspace.Tasks.EditorConfig;
 using AutoContext.Worker.Workspace.Tasks.Git;
 
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
@@ -26,24 +25,12 @@ internal static class Program
 
     internal static Task Main(string[] args)
     {
-        var builder = Host.CreateApplicationBuilder(args);
+        var builder = Host.CreateApplicationBuilder(args)
+            .ConfigureWorkerHost(args, ReadyMarker, new Dictionary<string, string>
+            {
+                ["--workspace-root"] = nameof(WorkerOptions.WorkspaceRoot),
+            });
 
-        builder.Configuration.AddCommandLine(args, new Dictionary<string, string>
-        {
-            ["--pipe"] = nameof(WorkerHostOptions.Pipe),
-            ["--workspace-root"] = nameof(WorkerOptions.WorkspaceRoot),
-        });
-
-        builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
-        {
-            // Seed the ready marker via configuration so the binder can populate
-            // WorkerHostOptions.ReadyMarker (an init-only property). A
-            // Configure(action) lambda would fail with CS8852 because init-only
-            // setters can't be invoked from outside an object initializer.
-            [nameof(WorkerHostOptions.ReadyMarker)] = ReadyMarker,
-        });
-
-        builder.Services.Configure<WorkerHostOptions>(builder.Configuration);
         builder.Services.Configure<WorkerOptions>(builder.Configuration);
 
         builder.Services.AddSingleton<IMcpTask, AnalyzeGitCommitFormatTask>();
@@ -53,8 +40,7 @@ internal static class Program
 
         builder.Services.AddHostedService<McpToolService>();
 
-        var host = builder.Build();
-
-        return host.RunAsync();
+        return builder.Build().RunAsync();
     }
 }
+

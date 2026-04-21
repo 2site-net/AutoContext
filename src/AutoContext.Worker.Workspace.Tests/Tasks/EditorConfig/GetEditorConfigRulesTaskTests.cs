@@ -1,5 +1,6 @@
 namespace AutoContext.Worker.Workspace.Tests.Tasks.EditorConfig;
 
+using AutoContext.Worker.Testing;
 using AutoContext.Worker.Workspace.Tasks.EditorConfig;
 using AutoContext.Worker.Workspace.Tests.Testing.Utils;
 

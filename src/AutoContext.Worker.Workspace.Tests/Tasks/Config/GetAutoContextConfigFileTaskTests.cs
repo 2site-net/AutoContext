@@ -2,6 +2,7 @@ namespace AutoContext.Worker.Workspace.Tests.Tasks.Config;
 
 using System.Text.Json;
 
+using AutoContext.Worker.Testing;
 using AutoContext.Worker.Workspace.Hosting;
 using AutoContext.Worker.Workspace.Tasks.Config;
 using AutoContext.Worker.Workspace.Tests.Testing.Utils;
