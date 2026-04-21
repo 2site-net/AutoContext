@@ -1,6 +1,7 @@
 namespace AutoContext.Worker.DotNet;
 
 using AutoContext.Mcp;
+using AutoContext.Worker.DotNet.Tasks.CSharp;
 using AutoContext.Worker.DotNet.Tasks.NuGet;
 using AutoContext.Worker.Hosting;
 
@@ -26,6 +27,7 @@ internal static class Program
             .ConfigureWorkerHost(args, ReadyMarker);
 
         builder.Services.AddSingleton<IMcpTask, NuGetHygieneTask>();
+        builder.Services.AddSingleton<IMcpTask, AnalyzeCSharpNamingConventionsTask>();
 
         builder.Services.AddHostedService<McpToolService>();
 

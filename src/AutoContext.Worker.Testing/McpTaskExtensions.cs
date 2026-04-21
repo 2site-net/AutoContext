@@ -27,4 +27,20 @@ public static class McpTaskExtensions
 
         return task.ExecuteAsync(element, TestContext.Current.CancellationToken);
     }
+
+    /// <summary>
+    /// Convenience over <see cref="ExecuteAsync(IMcpTask, object)"/> for tasks
+    /// that return the standard <c>{ "passed": &lt;bool&gt;, "report": &lt;string&gt; }</c>
+    /// envelope. Returns the deserialised pair so test code never has to reach
+    /// into the raw <see cref="JsonElement"/>.
+    /// </summary>
+    public static async Task<(bool Passed, string Report)> GetReportAsync(this IMcpTask task, object data)
+    {
+        var output = await task.ExecuteAsync(data).ConfigureAwait(false);
+
+        var passed = output.GetProperty("passed").GetBoolean();
+        var report = output.GetProperty("report").GetString()!;
+
+        return (passed, report);
+    }
 }
