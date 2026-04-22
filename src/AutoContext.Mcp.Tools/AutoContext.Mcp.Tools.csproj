@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Version>0.8.0</Version>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>AutoContext.Mcp.Tools</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="AutoContext.Mcp.Tools.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\AutoContext.Mcp.Abstractions\AutoContext.Mcp.Abstractions.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="JsonSchema.Net" Version="9.2.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include=".mcp-tools.schema.json" LogicalName="AutoContext.Mcp.Tools.mcp-tools.schema.json" />
+  </ItemGroup>
+
+</Project>

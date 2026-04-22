@@ -7,6 +7,7 @@
     <Project Path="src/AutoContext.Worker.Workspace/AutoContext.Worker.Workspace.csproj" />
     <Project Path="src/AutoContext.Worker.DotNet/AutoContext.Worker.DotNet.csproj" />
     <Project Path="src/AutoContext.Mcp.DotNet/AutoContext.Mcp.DotNet.csproj" />
+    <Project Path="src/AutoContext.Mcp.Tools/AutoContext.Mcp.Tools.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="src/tests/AutoContext.WorkspaceServer.Tests/AutoContext.WorkspaceServer.Tests.csproj" />
@@ -15,5 +16,6 @@
     <Project Path="src/tests/AutoContext.Worker.Shared.Tests/AutoContext.Worker.Shared.Tests.csproj" />
     <Project Path="src/tests/AutoContext.Worker.Workspace.Tests/AutoContext.Worker.Workspace.Tests.csproj" />
     <Project Path="src/tests/AutoContext.Worker.DotNet.Tests/AutoContext.Worker.DotNet.Tests.csproj" />
+    <Project Path="src/tests/AutoContext.Mcp.Tools.Tests/AutoContext.Mcp.Tools.Tests.csproj" />
   </Folder>
 </Solution>
