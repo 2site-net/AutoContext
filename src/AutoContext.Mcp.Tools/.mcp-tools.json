@@ -64,7 +64,7 @@
                         "hasDotNet"
                     ],
                     "tasks": [
-                        "check_nuget_hygiene"
+                        "analyze_nuget_hygiene"
                     ]
                 }
             ],
@@ -121,7 +121,7 @@
                     "priority": 1
                 },
                 {
-                    "name": "check_nuget_hygiene",
+                    "name": "analyze_nuget_hygiene",
                     "description": "Enforces NuGet hygiene rules from dotnet-nuget.instructions.md: no duplicate PackageReference entries, no floating or wildcard versions, no PackageReference without a Version attribute (unless Central Package Management is in use), and flags packages that have a built-in .NET equivalent.",
                     "version": "0.1.0"
                 }

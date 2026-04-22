@@ -8,7 +8,7 @@ using System.Xml.Linq;
 using AutoContext.Mcp;
 
 /// <summary>
-/// <c>check_nuget_hygiene</c> — enforces NuGet hygiene rules from
+/// <c>analyze_nuget_hygiene</c> — enforces NuGet hygiene rules from
 /// <c>dotnet-nuget.instructions.md</c>: no duplicate references, no floating
 /// versions, no missing versions (unless Central Package Management), and
 /// flags packages that have well-known built-in .NET alternatives.
@@ -17,7 +17,7 @@ using AutoContext.Mcp;
 /// Request <c>data</c>:  <c>{ "content": "&lt;csproj-xml&gt;" }</c><br/>
 /// Response <c>output</c>: <c>{ "passed": &lt;bool&gt;, "report": "&lt;markdown&gt;" }</c>
 /// </remarks>
-internal sealed class NuGetHygieneTask : IMcpTask
+internal sealed class AnalyzeNuGetHygieneTask : IMcpTask
 {
     /// <summary>
     /// Maps package names (case-insensitive) to their built-in .NET alternative.
@@ -33,7 +33,7 @@ internal sealed class NuGetHygieneTask : IMcpTask
         ["Dapper"] = "Entity Framework Core or ADO.NET",
     };
 
-    public string TaskName => "check_nuget_hygiene";
+    public string TaskName => "analyze_nuget_hygiene";
 
     public Task<JsonElement> ExecuteAsync(JsonElement data, CancellationToken ct)
     {

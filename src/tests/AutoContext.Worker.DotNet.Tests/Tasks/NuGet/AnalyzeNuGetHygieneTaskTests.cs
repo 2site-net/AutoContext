@@ -5,16 +5,16 @@ using System.Text.Json;
 using AutoContext.Worker.DotNet.Tasks.NuGet;
 using AutoContext.Worker.Testing;
 
-public sealed class NuGetHygieneTaskTests
+public sealed class AnalyzeNuGetHygieneTaskTests
 {
     [Fact]
     public void Should_expose_task_name()
     {
         // Arrange
-        var sut = new NuGetHygieneTask();
+        var sut = new AnalyzeNuGetHygieneTask();
 
         // Act & Assert
-        Assert.Equal("check_nuget_hygiene", sut.TaskName);
+        Assert.Equal("analyze_nuget_hygiene", sut.TaskName);
     }
 
     [Fact]
@@ -367,7 +367,7 @@ public sealed class NuGetHygieneTaskTests
     public async Task Should_throw_on_empty_or_whitespace_content(string input)
     {
         // Arrange
-        var sut = new NuGetHygieneTask();
+        var sut = new AnalyzeNuGetHygieneTask();
 
         // Act & Assert
         await Assert.ThrowsAsync<InvalidOperationException>(
@@ -378,7 +378,7 @@ public sealed class NuGetHygieneTaskTests
     public async Task Should_throw_when_content_property_missing()
     {
         // Arrange
-        var sut = new NuGetHygieneTask();
+        var sut = new AnalyzeNuGetHygieneTask();
 
         // Act & Assert
         await Assert.ThrowsAsync<InvalidOperationException>(
@@ -389,7 +389,7 @@ public sealed class NuGetHygieneTaskTests
     public async Task Should_throw_when_content_property_not_a_string()
     {
         // Arrange
-        var sut = new NuGetHygieneTask();
+        var sut = new AnalyzeNuGetHygieneTask();
 
         // Act & Assert
         await Assert.ThrowsAsync<InvalidOperationException>(
@@ -398,7 +398,7 @@ public sealed class NuGetHygieneTaskTests
 
     private static async Task<(bool Passed, string Report)> RunAsync(string content)
     {
-        var sut = new NuGetHygieneTask();
+        var sut = new AnalyzeNuGetHygieneTask();
         var output = await sut.ExecuteAsync(new { content });
 
         var passed = output.GetProperty("passed").GetBoolean();

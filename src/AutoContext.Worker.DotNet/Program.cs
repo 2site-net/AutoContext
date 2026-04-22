@@ -26,7 +26,7 @@ internal static class Program
         var builder = Host.CreateApplicationBuilder(args)
             .ConfigureWorkerHost(args, ReadyMarker);
 
-        builder.Services.AddSingleton<IMcpTask, NuGetHygieneTask>();
+        builder.Services.AddSingleton<IMcpTask, AnalyzeNuGetHygieneTask>();
         builder.Services.AddSingleton<IMcpTask, AnalyzeCSharpNamingConventionsTask>();
 
         builder.Services.AddHostedService<McpToolService>();

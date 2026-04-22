@@ -73,7 +73,7 @@ public sealed class GetAutoContextConfigFileTaskTests : IDisposable
                 "analyze_nuget_references": {
                   "enabled": true,
                   "version": "1.0.0",
-                  "disabledTasks": ["check_nuget_hygiene"]
+                  "disabledTasks": ["analyze_nuget_hygiene"]
                 }
               }
             }
@@ -89,7 +89,7 @@ public sealed class GetAutoContextConfigFileTaskTests : IDisposable
         Assert.Multiple(
             () => Assert.True(entry.GetProperty("enabled").GetBoolean()),
             () => Assert.Equal("1.0.0", entry.GetProperty("version").GetString()),
-            () => Assert.Equal(["check_nuget_hygiene"], disabled));
+            () => Assert.Equal(["analyze_nuget_hygiene"], disabled));
     }
 
     [Fact]
@@ -101,7 +101,7 @@ public sealed class GetAutoContextConfigFileTaskTests : IDisposable
               "mcp-tools": {
                 "analyze_nuget_references": {
                   "enabled": true,
-                  "disabled-features": ["check_nuget_hygiene"]
+                  "disabled-features": ["analyze_nuget_hygiene"]
                 }
               }
             }
@@ -116,7 +116,7 @@ public sealed class GetAutoContextConfigFileTaskTests : IDisposable
         // Assert
         Assert.Multiple(
             () => Assert.True(entry.GetProperty("enabled").GetBoolean()),
-            () => Assert.Equal(["check_nuget_hygiene"], disabledLegacy));
+            () => Assert.Equal(["analyze_nuget_hygiene"], disabledLegacy));
     }
 
     [Fact]
