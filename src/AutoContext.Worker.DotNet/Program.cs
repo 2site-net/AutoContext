@@ -28,7 +28,12 @@ internal static class Program
 
         builder.Services.AddSingleton<IMcpTask, AnalyzeNuGetHygieneTask>();
         builder.Services.AddSingleton<IMcpTask, AnalyzeCSharpAsyncPatternsTask>();
+        builder.Services.AddSingleton<IMcpTask, AnalyzeCSharpCodingStyleTask>();
+        builder.Services.AddSingleton<IMcpTask, AnalyzeCSharpMemberOrderingTask>();
         builder.Services.AddSingleton<IMcpTask, AnalyzeCSharpNamingConventionsTask>();
+        builder.Services.AddSingleton<IMcpTask, AnalyzeCSharpNullableContextTask>();
+        builder.Services.AddSingleton<IMcpTask, AnalyzeCSharpProjectStructureTask>();
+        builder.Services.AddSingleton<IMcpTask, AnalyzeCSharpTestStyleTask>();
 
         builder.Services.AddHostedService<McpToolService>();
 
