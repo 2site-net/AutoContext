@@ -107,6 +107,10 @@ vi.mock('../../src/workspace-server-manager', () => ({
     WorkspaceServerManager: class { start() {} dispose() {} },
 }));
 
+vi.mock('../../src/worker-manager', () => ({
+    WorkerManager: class { start() {} dispose() {} whenWorkspaceReady() { return Promise.resolve(); } getEndpointSuffix() { return 'test'; } },
+}));
+
 vi.mock('../../src/auto-configurer', () => ({
     AutoConfigurer: class { async run() {} },
 }));
