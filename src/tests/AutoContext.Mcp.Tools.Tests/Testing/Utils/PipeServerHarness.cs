@@ -14,33 +14,63 @@ internal static class PipeServerHarness
         Func<byte[], byte[]?> handler,
         CancellationToken ct) =>
         Task.Run(
-            async () =>
-            {
-                var server = new NamedPipeServerStream(
-                    endpoint,
-                    PipeDirection.InOut,
-                    maxNumberOfServerInstances: 1,
-                    PipeTransmissionMode.Byte,
-                    PipeOptions.Asynchronous);
-
-                await using (server.ConfigureAwait(false))
-                {
-                    await server.WaitForConnectionAsync(ct).ConfigureAwait(false);
-
-                    var requestBytes = await PipeFraming.ReadMessageAsync(server, ct).ConfigureAwait(false);
-                    if (requestBytes is null)
-                    {
-                        return;
-                    }
-
-                    var responseBytes = handler(requestBytes);
-                    if (responseBytes is null)
-                    {
-                        return;
-                    }
-
-                    await PipeFraming.WriteMessageAsync(server, responseBytes, ct).ConfigureAwait(false);
-                }
-            },
+            () => HandleOneAsync(endpoint, maxInstances: 1, handler, ct),
             ct);
+
+    /// <summary>
+    /// Spins up <paramref name="connectionCount"/> server instances on the
+    /// same endpoint, each handling one request synchronously via
+    /// <paramref name="handler"/>. The handler may be invoked concurrently
+    /// — implementations must be thread-safe.
+    /// </summary>
+    public static Task RunMultiAsync(
+        string endpoint,
+        int connectionCount,
+        Func<byte[], byte[]?> handler,
+        CancellationToken ct)
+    {
+        var pending = new Task[connectionCount];
+
+        for (var i = 0; i < connectionCount; i++)
+        {
+            pending[i] = Task.Run(
+                () => HandleOneAsync(endpoint, connectionCount, handler, ct),
+                ct);
+        }
+
+        return Task.WhenAll(pending);
+    }
+
+    private static async Task HandleOneAsync(
+        string endpoint,
+        int maxInstances,
+        Func<byte[], byte[]?> handler,
+        CancellationToken ct)
+    {
+        var server = new NamedPipeServerStream(
+            endpoint,
+            PipeDirection.InOut,
+            maxNumberOfServerInstances: maxInstances,
+            PipeTransmissionMode.Byte,
+            PipeOptions.Asynchronous);
+
+        await using (server.ConfigureAwait(false))
+        {
+            await server.WaitForConnectionAsync(ct).ConfigureAwait(false);
+
+            var requestBytes = await PipeFraming.ReadMessageAsync(server, ct).ConfigureAwait(false);
+            if (requestBytes is null)
+            {
+                return;
+            }
+
+            var responseBytes = handler(requestBytes);
+            if (responseBytes is null)
+            {
+                return;
+            }
+
+            await PipeFraming.WriteMessageAsync(server, responseBytes, ct).ConfigureAwait(false);
+        }
+    }
 }
