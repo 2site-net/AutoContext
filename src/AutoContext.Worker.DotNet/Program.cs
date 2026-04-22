@@ -27,6 +27,7 @@ internal static class Program
             .ConfigureWorkerHost(args, ReadyMarker);
 
         builder.Services.AddSingleton<IMcpTask, AnalyzeNuGetHygieneTask>();
+        builder.Services.AddSingleton<IMcpTask, AnalyzeCSharpAsyncPatternsTask>();
         builder.Services.AddSingleton<IMcpTask, AnalyzeCSharpNamingConventionsTask>();
 
         builder.Services.AddHostedService<McpToolService>();
