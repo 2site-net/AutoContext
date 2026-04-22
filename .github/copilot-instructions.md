@@ -1,3 +1,9 @@
+# Instruction Precedence
+
+- **Do** treat the instruction files inside `src/AutoContext.VsCode/instructions/` as the **authoritative source**.
+- **Do** prefer the in-repo files over any instructions injected by an installed AutoContext VS Code extension (e.g. `c:\Users\<user>\.vscode\extensions\2site-net.autocontext-*\instructions\`) — those are the versions being actively edited and shipped from this workspace.
+- **Don't** follow installed-extension instructions when they disagree with the in-repo copies.
+
 # Build & Test
 
 All compilation, testing, linting, and packaging MUST go through the
