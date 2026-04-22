@@ -2,6 +2,7 @@
 
   <PropertyGroup>
     <Version>0.8.0</Version>
+    <OutputType>Exe</OutputType>
     <TargetFramework>net10.0</TargetFramework>
     <RootNamespace>AutoContext.Mcp.Tools</RootNamespace>
   </PropertyGroup>
@@ -17,10 +18,13 @@
 
   <ItemGroup>
     <PackageReference Include="JsonSchema.Net" Version="9.2.0" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.5" />
+    <PackageReference Include="ModelContextProtocol" Version="1.2.0" />
   </ItemGroup>
 
   <ItemGroup>
     <EmbeddedResource Include=".mcp-tools.schema.json" LogicalName="AutoContext.Mcp.Tools.mcp-tools.schema.json" />
+    <EmbeddedResource Include=".mcp-tools.json" LogicalName="AutoContext.Mcp.Tools.mcp-tools.json" />
   </ItemGroup>
 
 </Project>
