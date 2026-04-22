@@ -15,14 +15,14 @@ dotnet_diagnostic.IDE0022.severity = none
 # Disable CA1062 - Validate arguments of public methods (test methods don't need null checks)
 dotnet_diagnostic.CA1062.severity = none
 
+# Disable CA1822 - Mark members as static (test methods are instance methods by convention)
+dotnet_diagnostic.CA1822.severity = none
+
 # ------------------------------------------------------------
 # ReSharper
 # ------------------------------------------------------------
 
 # Disable "Class is never instantiated" warning in test projects
 resharper_class_never_instantiated_global_highlighting = none
-
-[*Fixture.cs]
-dotnet_diagnostic.CA1822.severity = none
 
 # End of .editorconfig
