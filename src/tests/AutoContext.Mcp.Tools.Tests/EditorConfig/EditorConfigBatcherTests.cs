@@ -1,0 +1,275 @@
+namespace AutoContext.Mcp.Tools.Tests.EditorConfig;
+
+using System.Text.Json;
+
+using AutoContext.Mcp.Tools.EditorConfig;
+using AutoContext.Mcp.Tools.Manifest;
+using AutoContext.Mcp.Tools.Pipe;
+using AutoContext.Mcp.Tools.Tests.Testing.Utils;
+using AutoContext.Mcp.Tools.Wire;
+
+public sealed class EditorConfigBatcherTests
+{
+    private static readonly string[] ExpectedUnion =
+    [
+        "csharp_prefer_braces",
+        "csharp_style_namespace_declarations",
+        "dotnet_sort_system_directives_first",
+    ];
+
+    [Fact]
+    public async Task Should_skip_pipe_call_when_no_task_declares_keys()
+    {
+        // Arrange
+        var client = new WorkerPipeClient(TimeSpan.FromSeconds(1));
+        var batcher = new EditorConfigBatcher(client, "autocontext-test-unbound");
+        var tasks = new ManifestTask[]
+        {
+            BuildTask("task_a"),
+            BuildTask("task_b"),
+        };
+
+        // Act
+        var result = await batcher.ResolveAsync(
+            "/abs/file.cs",
+            tasks,
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Multiple(
+            () => Assert.False(result.ResolutionFailed),
+            () => Assert.Null(result.FailureMessage),
+            () => Assert.Equal(2, result.Slices.Count),
+            () => Assert.Empty(result.Slices["task_a"]),
+            () => Assert.Empty(result.Slices["task_b"]));
+    }
+
+    [Fact]
+    public async Task Should_send_union_of_keys_and_slice_per_task()
+    {
+        // Arrange
+        var endpoint = PipeServerHarness.UniqueEndpoint();
+        var client = new WorkerPipeClient(TimeSpan.FromSeconds(5));
+        var batcher = new EditorConfigBatcher(client, endpoint);
+        var tasks = new[]
+        {
+            BuildTask("task_a", "csharp_prefer_braces", "dotnet_sort_system_directives_first"),
+            BuildTask("task_b", "csharp_prefer_braces", "csharp_style_namespace_declarations"),
+        };
+        string[]? observedKeys = null;
+        string? observedPath = null;
+        var serverTask = PipeServerHarness.RunOneShotAsync(
+            endpoint,
+            handler: requestBytes =>
+            {
+                var request = JsonSerializer.Deserialize<JsonElement>(requestBytes);
+                Assert.Equal(EditorConfigBatcher.ResolveTaskName, request.GetProperty("mcpTask").GetString());
+
+                var data = request.GetProperty("data");
+                observedPath = data.GetProperty("path").GetString();
+                observedKeys = [.. data.GetProperty("keys").EnumerateArray().Select(k => k.GetString() ?? string.Empty)];
+
+                var serverResponse = new TaskWireResponse
+                {
+                    McpTask = EditorConfigBatcher.ResolveTaskName,
+                    Status = TaskWireResponse.StatusOk,
+                    Output = JsonSerializer.SerializeToElement(new Dictionary<string, string>
+                    {
+                        ["csharp_prefer_braces"] = "true",
+                        ["dotnet_sort_system_directives_first"] = "true",
+                    }),
+                    Error = string.Empty,
+                };
+
+                return JsonSerializer.SerializeToUtf8Bytes(serverResponse);
+            },
+            ct: TestContext.Current.CancellationToken);
+
+        // Act
+        var result = await batcher.ResolveAsync(
+            "/abs/Foo.cs",
+            tasks,
+            TestContext.Current.CancellationToken);
+        await serverTask;
+
+        // Assert
+        Assert.Multiple(
+            () => Assert.False(result.ResolutionFailed),
+            () => Assert.Equal("/abs/Foo.cs", observedPath),
+            () => Assert.Equal(ExpectedUnion, observedKeys),
+            () => Assert.Equal(2, result.Slices["task_a"].Count),
+            () => Assert.Equal("true", result.Slices["task_a"]["csharp_prefer_braces"]),
+            () => Assert.Equal("true", result.Slices["task_a"]["dotnet_sort_system_directives_first"]),
+            () => Assert.Single(result.Slices["task_b"]),
+            () => Assert.Equal("true", result.Slices["task_b"]["csharp_prefer_braces"]));
+    }
+
+    [Fact]
+    public async Task Should_degrade_to_empty_slices_on_worker_error()
+    {
+        // Arrange
+        var endpoint = PipeServerHarness.UniqueEndpoint();
+        var client = new WorkerPipeClient(TimeSpan.FromSeconds(5));
+        var batcher = new EditorConfigBatcher(client, endpoint);
+        var tasks = new[] { BuildTask("task_a", "csharp_prefer_braces") };
+        var serverTask = PipeServerHarness.RunOneShotAsync(
+            endpoint,
+            handler: _ =>
+            {
+                var serverResponse = new TaskWireResponse
+                {
+                    McpTask = EditorConfigBatcher.ResolveTaskName,
+                    Status = TaskWireResponse.StatusError,
+                    Output = null,
+                    Error = "parse failure",
+                };
+
+                return JsonSerializer.SerializeToUtf8Bytes(serverResponse);
+            },
+            ct: TestContext.Current.CancellationToken);
+
+        // Act
+        var result = await batcher.ResolveAsync(
+            "/abs/Foo.cs",
+            tasks,
+            TestContext.Current.CancellationToken);
+        await serverTask;
+
+        // Assert
+        Assert.Multiple(
+            () => Assert.True(result.ResolutionFailed),
+            () => Assert.Equal("parse failure", result.FailureMessage),
+            () => Assert.Single(result.Slices),
+            () => Assert.Empty(result.Slices["task_a"]));
+    }
+
+    [Fact]
+    public async Task Should_degrade_when_worker_returns_response_for_unexpected_task()
+    {
+        // Arrange
+        var endpoint = PipeServerHarness.UniqueEndpoint();
+        var client = new WorkerPipeClient(TimeSpan.FromSeconds(5));
+        var batcher = new EditorConfigBatcher(client, endpoint);
+        var tasks = new[] { BuildTask("task_a", "csharp_prefer_braces") };
+        var serverTask = PipeServerHarness.RunOneShotAsync(
+            endpoint,
+            handler: _ =>
+            {
+                var serverResponse = new TaskWireResponse
+                {
+                    McpTask = "wrong_task",
+                    Status = TaskWireResponse.StatusOk,
+                    Output = JsonSerializer.SerializeToElement(new { }),
+                    Error = string.Empty,
+                };
+
+                return JsonSerializer.SerializeToUtf8Bytes(serverResponse);
+            },
+            ct: TestContext.Current.CancellationToken);
+
+        // Act
+        var result = await batcher.ResolveAsync(
+            "/abs/Foo.cs",
+            tasks,
+            TestContext.Current.CancellationToken);
+        await serverTask;
+
+        // Assert
+        Assert.Multiple(
+            () => Assert.True(result.ResolutionFailed),
+            () => Assert.NotNull(result.FailureMessage),
+            () => Assert.Contains("wrong_task", result.FailureMessage!, StringComparison.Ordinal),
+            () => Assert.Empty(result.Slices["task_a"]));
+    }
+
+    [Fact]
+    public async Task Should_degrade_to_empty_slices_on_pipe_failure()
+    {
+        // Arrange
+        var client = new WorkerPipeClient(TimeSpan.FromMilliseconds(150));
+        var batcher = new EditorConfigBatcher(client, "autocontext-test-unbound-" + Guid.NewGuid().ToString("N"));
+        var tasks = new[] { BuildTask("task_a", "csharp_prefer_braces") };
+
+        // Act
+        var result = await batcher.ResolveAsync(
+            "/abs/Foo.cs",
+            tasks,
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Multiple(
+            () => Assert.True(result.ResolutionFailed),
+            () => Assert.NotNull(result.FailureMessage),
+            () => Assert.Empty(result.Slices["task_a"]));
+    }
+
+    [Fact]
+    public async Task Should_return_empty_slices_when_worker_output_is_not_object()
+    {
+        // Arrange
+        var endpoint = PipeServerHarness.UniqueEndpoint();
+        var client = new WorkerPipeClient(TimeSpan.FromSeconds(5));
+        var batcher = new EditorConfigBatcher(client, endpoint);
+        var tasks = new[] { BuildTask("task_a", "csharp_prefer_braces") };
+        var serverTask = PipeServerHarness.RunOneShotAsync(
+            endpoint,
+            handler: _ =>
+            {
+                var serverResponse = new TaskWireResponse
+                {
+                    McpTask = EditorConfigBatcher.ResolveTaskName,
+                    Status = TaskWireResponse.StatusOk,
+                    Output = JsonSerializer.SerializeToElement("not-an-object"),
+                    Error = string.Empty,
+                };
+
+                return JsonSerializer.SerializeToUtf8Bytes(serverResponse);
+            },
+            ct: TestContext.Current.CancellationToken);
+
+        // Act
+        var result = await batcher.ResolveAsync(
+            "/abs/Foo.cs",
+            tasks,
+            TestContext.Current.CancellationToken);
+        await serverTask;
+
+        // Assert
+        Assert.Multiple(
+            () => Assert.False(result.ResolutionFailed),
+            () => Assert.Null(result.FailureMessage),
+            () => Assert.Single(result.Slices),
+            () => Assert.Empty(result.Slices["task_a"]));
+    }
+
+    [Fact]
+    public async Task Should_throw_for_invalid_arguments()
+    {
+        // Arrange
+        var batcher = new EditorConfigBatcher(new WorkerPipeClient(), "autocontext-test");
+
+        // Act + Assert
+        await Assert.ThrowsAsync<ArgumentNullException>(
+            () => batcher.ResolveAsync(null!, [], TestContext.Current.CancellationToken));
+        await Assert.ThrowsAsync<ArgumentException>(
+            () => batcher.ResolveAsync(string.Empty, [], TestContext.Current.CancellationToken));
+        await Assert.ThrowsAsync<ArgumentNullException>(
+            () => batcher.ResolveAsync("/abs/Foo.cs", null!, TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
+    public void Should_validate_constructor_arguments()
+    {
+        Assert.Multiple(
+            () => Assert.Throws<ArgumentNullException>(() => new EditorConfigBatcher(null!)),
+            () => Assert.Throws<ArgumentNullException>(() => new EditorConfigBatcher(new WorkerPipeClient(), null!)),
+            () => Assert.Throws<ArgumentException>(() => new EditorConfigBatcher(new WorkerPipeClient(), string.Empty)));
+    }
+
+    private static ManifestTask BuildTask(string name, params string[] keys) => new()
+    {
+        Name = name,
+        Version = "1.0.0",
+        EditorConfig = keys,
+    };
+}
