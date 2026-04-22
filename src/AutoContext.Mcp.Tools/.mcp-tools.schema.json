@@ -283,9 +283,9 @@
             "title": "MCP Task name",
             "description": "MCP Task identifier (snake_case). Must be unique within its group.",
             "examples": [
-                "check_csharp_coding_style",
+                "analyze_csharp_coding_style",
                 "analyze_nuget_hygiene",
-                "get_editorconfig"
+                "get_editorconfig_rules"
             ]
         }
     }
