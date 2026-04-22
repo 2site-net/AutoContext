@@ -225,13 +225,13 @@
                         "hasTypeScript"
                     ],
                     "tasks": [
-                        "check_typescript_coding_style"
+                        "analyze_typescript_coding_style"
                     ]
                 }
             ],
             "tasks": [
                 {
-                    "name": "check_typescript_coding_style",
+                    "name": "analyze_typescript_coding_style",
                     "description": "Enforces TypeScript coding-style rules from lang-typescript.instructions.md: no any, no enums, no @ts-ignore, no type assertions, no non-null assertions, no unconstrained generics, and no Function/Object/{} types.",
                     "version": "1.0.0"
                 }

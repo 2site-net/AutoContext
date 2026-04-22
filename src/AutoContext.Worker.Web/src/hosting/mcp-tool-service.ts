@@ -1,6 +1,6 @@
 import * as net from 'node:net';
 import * as fs from 'node:fs';
-import type { Socket } from 'node:net';
+import type { Server, Socket } from 'node:net';
 import { readMessage, writeMessage } from './pipe-framing.js';
 import type { McpTask } from './mcp-task.js';
 import type { WorkerHostOptions } from './worker-host-options.js';
@@ -30,6 +30,7 @@ export class McpToolService {
     private readonly inFlight = new Set<Promise<void>>();
     private readonly sockets = new Set<Socket>();
     private readonly stopController = new AbortController();
+    private stopPromise: Promise<void> | undefined;
 
     constructor(options: WorkerHostOptions, tasks: readonly McpTask[]) {
         if (options.pipe.trim() === '') {
@@ -92,15 +93,23 @@ export class McpToolService {
 
     /**
      * Stops accepting new connections and awaits any in-flight
-     * handlers. Safe to call multiple times.
+     * handlers. Safe to call multiple times; concurrent callers share
+     * the same completion promise.
      */
     async stop(): Promise<void> {
+        if (this.stopPromise !== undefined) {
+            return this.stopPromise;
+        }
         const server = this.server;
         if (server === undefined) {
             return;
         }
         this.server = undefined;
+        this.stopPromise = this.stopCore(server);
+        return this.stopPromise;
+    }
 
+    private async stopCore(server: Server): Promise<void> {
         // Abort any mid-flight reads/writes so handlers unwind instead
         // of blocking server.close() indefinitely.
         if (!this.stopController.signal.aborted) {
