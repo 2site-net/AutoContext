@@ -20,13 +20,24 @@ public sealed class WorkerPipeClient
     public static readonly TimeSpan DefaultWaitDeadline = TimeSpan.FromSeconds(30);
 
     private readonly TimeSpan _waitDeadline;
+    private readonly EndpointOptions _endpoints;
 
     public WorkerPipeClient()
-        : this(DefaultWaitDeadline)
+        : this(DefaultWaitDeadline, new EndpointOptions())
     {
     }
 
     public WorkerPipeClient(TimeSpan waitDeadline)
+        : this(waitDeadline, new EndpointOptions())
+    {
+    }
+
+    public WorkerPipeClient(EndpointOptions endpoints)
+        : this(DefaultWaitDeadline, endpoints)
+    {
+    }
+
+    public WorkerPipeClient(TimeSpan waitDeadline, EndpointOptions endpoints)
     {
         if (waitDeadline <= TimeSpan.Zero)
         {
@@ -36,7 +47,10 @@ public sealed class WorkerPipeClient
                 "Wait deadline must be positive.");
         }
 
+        ArgumentNullException.ThrowIfNull(endpoints);
+
         _waitDeadline = waitDeadline;
+        _endpoints = endpoints;
     }
 
     /// <summary>
@@ -54,19 +68,21 @@ public sealed class WorkerPipeClient
         ArgumentNullException.ThrowIfNull(request);
         ArgumentException.ThrowIfNullOrEmpty(request.McpTask);
 
+        var resolvedEndpoint = _endpoints.Resolve(endpoint);
+
         using var deadlineCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
         deadlineCts.CancelAfter(_waitDeadline);
         var token = deadlineCts.Token;
 
         try
         {
-            return await InvokeCoreAsync(endpoint, request, token).ConfigureAwait(false);
+            return await InvokeCoreAsync(resolvedEndpoint, request, token).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (deadlineCts.IsCancellationRequested && !ct.IsCancellationRequested)
         {
             return ErrorResponse(
                 request.McpTask,
-                $"Pipe call to '{endpoint}' exceeded the {_waitDeadline.TotalSeconds:0.##}s wait deadline.");
+                $"Pipe call to '{resolvedEndpoint}' exceeded the {_waitDeadline.TotalSeconds:0.##}s wait deadline.");
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
@@ -76,25 +92,25 @@ public sealed class WorkerPipeClient
         {
             return ErrorResponse(
                 request.McpTask,
-                $"Pipe connect to '{endpoint}' timed out: {ex.Message}");
+                $"Pipe connect to '{resolvedEndpoint}' timed out: {ex.Message}");
         }
         catch (IOException ex)
         {
             return ErrorResponse(
                 request.McpTask,
-                $"Pipe IO failure on '{endpoint}': {ex.Message}");
+                $"Pipe IO failure on '{resolvedEndpoint}': {ex.Message}");
         }
         catch (UnauthorizedAccessException ex)
         {
             return ErrorResponse(
                 request.McpTask,
-                $"Pipe access denied on '{endpoint}': {ex.Message}");
+                $"Pipe access denied on '{resolvedEndpoint}': {ex.Message}");
         }
         catch (JsonException ex)
         {
             return ErrorResponse(
                 request.McpTask,
-                $"Pipe response from '{endpoint}' was not valid JSON: {ex.Message}");
+                $"Pipe response from '{resolvedEndpoint}' was not valid JSON: {ex.Message}");
         }
     }
 

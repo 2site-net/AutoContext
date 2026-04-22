@@ -17,9 +17,15 @@ using Microsoft.Extensions.Logging;
 /// declared MCP Tool over MCP/stdio (dispatching each call to the
 /// appropriate <c>AutoContext.Worker.*</c> over a named pipe), and serves
 /// the manifest itself over the
-/// <see cref="ManifestPipeService.PipeName"/> named pipe so other
+/// <see cref="ManifestPipeService.DefaultPipeName"/> named pipe so other
 /// processes (the VS Code extension, CLI, tests) can read it.
 /// </summary>
+/// <remarks>
+/// Accepts one optional switch: <c>--endpoint-suffix &lt;value&gt;</c>.
+/// When supplied, every pipe name the process opens or connects to has
+/// <c>-&lt;value&gt;</c> appended — this is how the end-to-end smoke
+/// test isolates its pipes from any other running instance.
+/// </remarks>
 internal static class Program
 {
     /// <summary>Stderr ready-marker written once the host has started.</summary>
@@ -27,6 +33,8 @@ internal static class Program
 
     internal static async Task<int> Main(string[] args)
     {
+        var endpoints = new EndpointOptions { Suffix = ParseEndpointSuffix(args) };
+
         var manifestSource = new EmbeddedManifestSource();
         var manifest = ManifestLoader.Parse(manifestSource.Json);
         var validation = ManifestValidator.Validate(manifestSource.Json, manifest);
@@ -59,6 +67,7 @@ internal static class Program
         // implementations without rewriting Main.
         builder.Services.AddSingleton<IManifestSource>(manifestSource);
         builder.Services.AddSingleton(manifest);
+        builder.Services.AddSingleton(endpoints);
         builder.Services.AddSingleton<WorkerPipeClient>();
         builder.Services.AddSingleton<EditorConfigBatcher>();
         builder.Services.AddSingleton<ToolInvoker>();
@@ -78,5 +87,45 @@ internal static class Program
         await builder.Build().RunAsync().ConfigureAwait(false);
 
         return 0;
+    }
+
+    private static string? ParseEndpointSuffix(string[] args)
+    {
+        string? parsedSuffix = null;
+
+        for (var i = 0; i < args.Length; i++)
+        {
+            if (!string.Equals(args[i], "--endpoint-suffix", StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            if (parsedSuffix is not null)
+            {
+                throw new ArgumentException(
+                    "'--endpoint-suffix' can only be supplied once.",
+                    nameof(args));
+            }
+
+            if (i + 1 >= args.Length)
+            {
+                throw new ArgumentException(
+                    "'--endpoint-suffix' was supplied without a value.",
+                    nameof(args));
+            }
+
+            var value = args[i + 1];
+            if (string.IsNullOrWhiteSpace(value) || value.StartsWith("--", StringComparison.Ordinal))
+            {
+                throw new ArgumentException(
+                    "'--endpoint-suffix' requires a non-empty value.",
+                    nameof(args));
+            }
+
+            parsedSuffix = value.Trim();
+            i++;
+        }
+
+        return parsedSuffix;
     }
 }

@@ -4,6 +4,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.IO.Pipes;
 using System.Text;
 
+using AutoContext.Mcp.Tools.Pipe;
 using AutoContext.Worker.Hosting;
 
 using Microsoft.Extensions.Hosting;
@@ -25,18 +26,30 @@ using Microsoft.Extensions.Logging;
 /// </remarks>
 public sealed partial class ManifestPipeService : BackgroundService
 {
-    /// <summary>The well-known pipe name advertised to consumers.</summary>
-    public const string PipeName = "autocontext.mcp-tools-manifest";
+    /// <summary>The base pipe name advertised to consumers.</summary>
+    /// <remarks>
+    /// Effective pipe name is <see cref="EndpointOptions.Resolve"/> applied
+    /// to this base — so a configured suffix turns e.g.
+    /// <c>autocontext.mcp-tools-manifest</c> into
+    /// <c>autocontext.mcp-tools-manifest-test123</c>.
+    /// </remarks>
+    public const string DefaultPipeName = "autocontext.mcp-tools-manifest";
 
     private readonly byte[] _manifestBytes;
+    private readonly string _pipeName;
     private readonly ILogger<ManifestPipeService> _logger;
 
-    public ManifestPipeService(IManifestSource manifestSource, ILogger<ManifestPipeService> logger)
+    public ManifestPipeService(
+        IManifestSource manifestSource,
+        EndpointOptions endpoints,
+        ILogger<ManifestPipeService> logger)
     {
         ArgumentNullException.ThrowIfNull(manifestSource);
+        ArgumentNullException.ThrowIfNull(endpoints);
         ArgumentNullException.ThrowIfNull(logger);
 
         _manifestBytes = Encoding.UTF8.GetBytes(manifestSource.Json);
+        _pipeName = endpoints.Resolve(DefaultPipeName);
         _logger = logger;
     }
 
@@ -70,7 +83,7 @@ public sealed partial class ManifestPipeService : BackgroundService
         try
         {
             server = new NamedPipeServerStream(
-                PipeName,
+                _pipeName,
                 PipeDirection.Out,
                 NamedPipeServerStream.MaxAllowedServerInstances,
                 PipeTransmissionMode.Byte,
@@ -78,7 +91,7 @@ public sealed partial class ManifestPipeService : BackgroundService
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            LogPipeCreateFailed(_logger, ex, PipeName);
+            LogPipeCreateFailed(_logger, ex, _pipeName);
             return false;
         }
 
