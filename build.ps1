@@ -52,9 +52,10 @@
     Mutually exclusive with Target 'All'.
 
 .PARAMETER Smoke
-    For Test only. Run VS Code smoke tests instead of unit tests.
-    Compiles first, then launches the extension in a real VS Code
-    instance via vscode-test.
+    For Test only. Run smoke tests instead of unit tests. Combines with
+    Target: '-Smoke' alone runs TS (VS Code) + .NET smoke, '-Smoke TS'
+    runs the VS Code smoke, '-Smoke DotNet' runs the .NET end-to-end
+    smoke. Compiles first.
 
 .PARAMETER Help
     Show usage information.
@@ -63,8 +64,10 @@
     .\build.ps1                                  # Compile + Test (all)
     .\build.ps1 Compile                          # Compile TS + .NET
     .\build.ps1 Compile TS                       # Compile TypeScript only
-    .\build.ps1 Test DotNet                      # Test .NET only
-    .\build.ps1 Test -Smoke                      # Run VS Code smoke tests
+    .\build.ps1 Test DotNet                      # Test .NET only (unit)
+    .\build.ps1 Test -Smoke                      # Run all smoke tests
+    .\build.ps1 Test -Smoke DotNet               # Run .NET smoke only
+    .\build.ps1 Test -Smoke TS                   # Run VS Code smoke only
     .\build.ps1 Prepare                          # Clean + Compile + Test + copy assets
     .\build.ps1 Package                          # Prepare + build for current platform
     .\build.ps1 Package -Local                   # Prepare + copy servers (local F5)
@@ -272,7 +275,7 @@ function Show-Help {
     Write-Host 'SWITCHES' -ForegroundColor Yellow
     Write-Host '  -Clean                Delete build artifacts (combinable with Compile/Test)'
     Write-Host '  -Local                Copy server binaries for local F5 (Package only)'
-    Write-Host '  -Smoke                Run VS Code smoke tests (Test only)'
+    Write-Host '  -Smoke                Run smoke tests (Test only; combines with Target)'
     Write-Host '  -RuntimeIdentifier    .NET RID for Package/Publish (e.g. win-x64)'
     Write-Host '  -WhatIf               Preview changes without executing (works with any action and switch)'
     Write-Host "  -Help                 Show this help`n"
@@ -281,7 +284,9 @@ function Show-Help {
     Write-Host '  .\build.ps1                                   # Compile + Test'
     Write-Host '  .\build.ps1 Compile TS                        # TypeScript only'
     Write-Host '  .\build.ps1 Test DotNet                       # .NET tests only'
-    Write-Host '  .\build.ps1 Test -Smoke                       # VS Code smoke tests'
+    Write-Host '  .\build.ps1 Test -Smoke                       # All smoke tests (TS + .NET)'
+    Write-Host '  .\build.ps1 Test -Smoke DotNet                # .NET smoke only'
+    Write-Host '  .\build.ps1 Test -Smoke TS                    # VS Code smoke only'
     Write-Host '  .\build.ps1 Package                           # Current platform'
     Write-Host '  .\build.ps1 Package -Local                    # Prepare + copy servers (F5)'
     Write-Host '  .\build.ps1 Package All                       # All 6 platforms'
@@ -486,16 +491,58 @@ function Test-DotNet {
 
     if (-not $solutionFile) { throw 'No .slnx or .sln file found in the repository root.' }
 
-    if ($PSCmdlet.ShouldProcess($solutionFile.Name, 'dotnet test --no-build')) {
+    if ($PSCmdlet.ShouldProcess($solutionFile.Name, 'dotnet test --no-build (unit)')) {
         Assert-ExternalCommand 'dotnet'
 
-        dotnet test $solutionFile.FullName -c Release --no-build
+        dotnet test $solutionFile.FullName -c Release --no-build --filter 'Category!=Smoke'
         if ($LASTEXITCODE -ne 0) { throw '.NET tests failed.' }
         Write-Status '.NET tests passed' 'OK'
     }
 }
 
-function Test-Smoke {
+function Test-DotNetSmoke {
+    [CmdletBinding(SupportsShouldProcess)]
+    param()
+
+    Write-Section 'Smoke-test .NET'
+
+    # Smoke tests spawn real worker + Mcp.Tools executables, so every
+    # .NET project must be compiled first.
+    Invoke-Compile -Scope 'DotNet'
+
+    $smokeTestProjects =
+        Get-ChildItem (Join-Path $repoRoot 'src' 'tests') -Recurse -File -Filter '*.Smoke.cs' |
+        ForEach-Object {
+            $dir = $_.Directory
+            while ($dir -and -not (Get-ChildItem $dir.FullName -File -Filter '*.csproj' | Select-Object -First 1)) {
+                $dir = $dir.Parent
+            }
+
+            if ($dir) {
+                Get-ChildItem $dir.FullName -File -Filter '*.csproj' | Select-Object -First 1
+            }
+        } |
+        Sort-Object FullName -Unique
+
+    if (-not $smokeTestProjects) {
+        throw 'No .NET smoke test projects found (*.Smoke.cs under src/tests).'
+    }
+
+    $projectList = ($smokeTestProjects | ForEach-Object { $_.Name }) -join ', '
+
+    if ($PSCmdlet.ShouldProcess($projectList, 'dotnet test --no-build (smoke)')) {
+        Assert-ExternalCommand 'dotnet'
+
+        foreach ($project in $smokeTestProjects) {
+            dotnet test $project.FullName -c Release --no-build --filter 'Category=Smoke'
+            if ($LASTEXITCODE -ne 0) { throw ".NET smoke tests failed ($($project.Name))." }
+        }
+
+        Write-Status '.NET smoke tests passed' 'OK'
+    }
+}
+
+function Test-VsCodeSmoke {
     [CmdletBinding(SupportsShouldProcess)]
     param()
 
@@ -939,7 +986,8 @@ function Invoke-Test {
 
     if ($Smoke) {
         Write-Header 'Smoke Test'
-        Test-Smoke
+        if ($Scope -in 'All', 'TS')     { Test-VsCodeSmoke }
+        if ($Scope -in 'All', 'DotNet') { Test-DotNetSmoke }
         return
     }
 
@@ -1271,10 +1319,6 @@ if ($Local -and $Action -ne 'Package') {
 
 if ($Smoke -and $Action -ne 'Test') {
     throw '-Smoke is only valid with the Test action. Usage: .\build.ps1 Test -Smoke'
-}
-
-if ($Smoke -and $Target -and $Target -ne 'All') {
-    throw '-Smoke cannot be combined with Target. Usage: .\build.ps1 Test -Smoke'
 }
 
 if ($Local -and $RuntimeIdentifier) {
