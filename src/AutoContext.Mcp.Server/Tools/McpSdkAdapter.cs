@@ -10,19 +10,22 @@ using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 
 /// <summary>
-/// Adapter between the registry-driven dispatch layer
-/// (<see cref="ToolDelegateFactory"/> + <see cref="ToolHandler"/>) and
-/// the MCP SDK's <see cref="WithListToolsHandler"/> /
-/// <see cref="WithCallToolHandler"/> request handlers.
+/// Bridges the MCP SDK's protocol-level <c>tools/list</c> and
+/// <c>tools/call</c> handlers to our registry-driven tool layer. Serves
+/// <c>tools/list</c> from a pre-built list of <see cref="Tool"/> DTOs
+/// and <c>tools/call</c> by looking the tool up in a pre-built
+/// <see cref="ToolHandler"/> map (produced by
+/// <see cref="ToolDelegateFactory"/>, backed by <see cref="ToolInvoker"/>).
 /// </summary>
 /// <remarks>
-/// The architecture's invariant — fully registry-driven tool registration,
-/// no <c>[McpServerTool]</c> bridge classes — is preserved. We can't use
-/// <c>McpServerTool.Create(Delegate, ...)</c> because that derives the
-/// advertised <c>inputSchema</c> from the delegate's method signature,
-/// which is incompatible with our data-driven schema. The protocol-level
-/// list/call handlers expose the <see cref="Tool.InputSchema"/> setter
-/// directly, so we drive both endpoints from the registry.
+/// The architecture's invariant — fully registry-driven tool
+/// registration, no <c>[McpServerTool]</c> bridge classes — is preserved.
+/// We can't use <c>McpServerTool.Create(Delegate, ...)</c> because that
+/// derives the advertised <c>inputSchema</c> from the delegate's method
+/// signature, which is incompatible with our data-driven schema. The
+/// protocol-level list/call handlers expose the
+/// <see cref="Tool.InputSchema"/> setter directly, so we drive both
+/// endpoints from the registry.
 /// </remarks>
 public sealed class McpSdkAdapter
 {

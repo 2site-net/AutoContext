@@ -51,9 +51,9 @@ public sealed class ToolDelegateFactoryTests
         var endpoint = PipeServerHarness.UniqueEndpoint();
         var registry = BuildCatalog(
             ("AutoContext.Worker.Alpha", endpoint, [BuildTool("invoke_tool", "task_x")]));
-        var pipeClient = new WorkerClient(TimeSpan.FromSeconds(5));
-        var batcher = new EditorConfigBatcher(pipeClient, "autocontext-test-workspace-unused");
-        var invoker = new ToolInvoker(pipeClient, batcher);
+        var workerClient = new WorkerClient(TimeSpan.FromSeconds(5));
+        var batcher = new EditorConfigBatcher(workerClient, "autocontext-test-workspace-unused");
+        var invoker = new ToolInvoker(workerClient, batcher);
 
         var serverTask = PipeServerHarness.RunOneShotAsync(
             endpoint,
@@ -96,9 +96,9 @@ public sealed class ToolDelegateFactoryTests
 
     private static ToolInvoker BuildInvoker()
     {
-        var pipeClient = new WorkerClient(TimeSpan.FromSeconds(5));
-        var batcher = new EditorConfigBatcher(pipeClient, "autocontext-test-workspace-unused");
-        return new ToolInvoker(pipeClient, batcher);
+        var workerClient = new WorkerClient(TimeSpan.FromSeconds(5));
+        var batcher = new EditorConfigBatcher(workerClient, "autocontext-test-workspace-unused");
+        return new ToolInvoker(workerClient, batcher);
     }
 
     private static McpWorkersCatalog BuildCatalog(

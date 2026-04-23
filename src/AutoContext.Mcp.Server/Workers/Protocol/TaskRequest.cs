@@ -4,8 +4,8 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 
 /// <summary>
-/// One per-task pipe request. McpToolClient opens one connection per
-/// task in a tool invocation and writes exactly this envelope.
+/// One per-task pipe request. <c>WorkerClient</c> opens one connection
+/// per task in a tool invocation and writes exactly this payload.
 /// </summary>
 public sealed record TaskRequest
 {

@@ -1,8 +1,8 @@
 namespace AutoContext.Mcp.Server.Registry;
 
 /// <summary>
-/// One MCP Task — the worker-facing execution unit dispatched by
-/// <c>McpToolClient</c> over a named pipe to its worker.
+/// One MCP Task — the worker-facing execution unit invoked by
+/// <c>WorkerClient</c> over a named pipe to its worker.
 /// </summary>
 public sealed record McpTaskDefinition
 {

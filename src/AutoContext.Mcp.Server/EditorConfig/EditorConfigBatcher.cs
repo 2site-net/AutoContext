@@ -22,20 +22,20 @@ public sealed class EditorConfigBatcher
     /// <summary>The MCP Task name on Worker.Workspace that resolves EditorConfig keys.</summary>
     public const string ResolveTaskName = "get_editorconfig_rules";
 
-    private readonly WorkerClient _pipeClient;
+    private readonly WorkerClient _workerClient;
     private readonly string _workspaceEndpoint;
 
-    public EditorConfigBatcher(WorkerClient pipeClient)
-        : this(pipeClient, DefaultWorkspaceEndpoint)
+    public EditorConfigBatcher(WorkerClient workerClient)
+        : this(workerClient, DefaultWorkspaceEndpoint)
     {
     }
 
-    public EditorConfigBatcher(WorkerClient pipeClient, string workspaceEndpoint)
+    public EditorConfigBatcher(WorkerClient workerClient, string workspaceEndpoint)
     {
-        ArgumentNullException.ThrowIfNull(pipeClient);
+        ArgumentNullException.ThrowIfNull(workerClient);
         ArgumentException.ThrowIfNullOrEmpty(workspaceEndpoint);
 
-        _pipeClient = pipeClient;
+        _workerClient = workerClient;
         _workspaceEndpoint = workspaceEndpoint;
     }
 
@@ -45,8 +45,8 @@ public sealed class EditorConfigBatcher
     /// then returns a per-task slice. Tasks that declared no keys (or
     /// whose declared keys all came back missing) map to an empty
     /// dictionary. On pipe failure every task maps to an empty dictionary
-    /// — McpToolClient logs the warning and dispatches anyway, matching
-    /// the contract in the architecture doc.
+    /// — <see cref="ToolInvoker"/> logs the warning and proceeds anyway,
+    /// matching the contract in the architecture doc.
     /// </summary>
     public async Task<EditorConfigBatchResult> ResolveAsync(
         string filePath,
@@ -79,7 +79,7 @@ public sealed class EditorConfigBatcher
             EditorConfig = FrozenDictionary<string, string>.Empty,
         };
 
-        var response = await _pipeClient
+        var response = await _workerClient
             .InvokeAsync(_workspaceEndpoint, request, ct)
             .ConfigureAwait(false);
 
@@ -131,8 +131,8 @@ public sealed class EditorConfigBatcher
             return [];
         }
 
-        // Stable order keeps the wire request deterministic and easier to
-        // diff in logs. Ordinal sort matches the comparer above.
+        // Stable order keeps the worker request deterministic and easier
+        // to diff in logs. Ordinal sort matches the comparer above.
         var ordered = new string[union.Count];
         union.CopyTo(ordered);
         Array.Sort(ordered, StringComparer.Ordinal);

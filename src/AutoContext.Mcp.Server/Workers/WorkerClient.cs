@@ -8,12 +8,12 @@ using AutoContext.Mcp.Server.Workers.Transport;
 using AutoContext.Worker.Hosting;
 
 /// <summary>
-/// Writes one per-task wire request to a worker pipe and reads one wire
-/// response. Enforces a single client-side wait deadline guarding against
-/// a hung or dead worker. Any failure (connect, write, read, parse,
-/// timeout, EOF) is mapped to an error <see cref="TaskResponse"/>
-/// rather than thrown — callers compose these into the per-task entries
-/// of the uniform tool-result envelope.
+/// Writes one per-task request to a worker pipe and reads one response.
+/// Enforces a single client-side wait deadline guarding against a hung
+/// or dead worker. Any failure (connect, write, read, parse, timeout,
+/// EOF) is mapped to an error <see cref="TaskResponse"/> rather than
+/// thrown — callers compose these into the per-task entries of the
+/// uniform tool-result envelope.
 /// </summary>
 public sealed class WorkerClient
 {

@@ -5,7 +5,7 @@ using System.Text.Json;
 using AutoContext.Mcp.Server.Tools.Results;
 using AutoContext.Mcp.Server.Workers.Protocol;
 
-public sealed class ToolEnvelopeComposerTests
+public sealed class ToolResultComposerTests
 {
     [Fact]
     public void Should_roll_up_to_ok_when_every_task_succeeded()

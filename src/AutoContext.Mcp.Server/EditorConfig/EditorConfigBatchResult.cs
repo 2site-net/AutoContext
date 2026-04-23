@@ -2,9 +2,10 @@ namespace AutoContext.Mcp.Server.EditorConfig;
 
 /// <summary>
 /// Result of one batched EditorConfig resolve. Even on resolution failure
-/// the per-task slices are present (all empty) so dispatch can proceed —
-/// matching the architecture-doc rule that EditorConfig failures degrade
-/// gracefully rather than cancel the whole tool invocation.
+/// the per-task slices are present (all empty) so the invocation can
+/// proceed — matching the architecture-doc rule that EditorConfig
+/// failures degrade gracefully rather than cancel the whole tool
+/// invocation.
 /// </summary>
 public sealed record EditorConfigBatchResult
 {

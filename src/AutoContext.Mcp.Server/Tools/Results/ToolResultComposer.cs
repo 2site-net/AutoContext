@@ -3,15 +3,15 @@ namespace AutoContext.Mcp.Server.Tools.Results;
 using AutoContext.Mcp.Server.Workers.Protocol;
 
 /// <summary>
-/// Composes per-task wire responses into the uniform tool-result envelope.
-/// Pure logic — no IO. Status rollup is deterministic and matches the
-/// table in <c>docs/architecture-centralized-mcp.md</c>.
+/// Composes per-task worker responses into the uniform tool-result
+/// envelope. Pure logic — no IO. Status rollup is deterministic and
+/// matches the table in <c>docs/architecture-centralized-mcp.md</c>.
 /// </summary>
 public static class ToolResultComposer
 {
     /// <summary>
-    /// Composes a successful-dispatch envelope from per-task wire responses.
-    /// Status is "ok" if every task succeeded, "error" if every task failed,
+    /// Composes a result envelope from per-task worker responses. Status
+    /// is "ok" if every task succeeded, "error" if every task failed,
     /// "partial" otherwise.
     /// </summary>
     public static ToolResultEnvelope Compose(

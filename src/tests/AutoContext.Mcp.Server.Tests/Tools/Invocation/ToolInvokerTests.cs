@@ -98,9 +98,9 @@ public sealed class ToolInvokerTests
             BuildTask("style_task", editorConfig: ["csharp_prefer_braces"]),
             BuildTask("plain_task"));
 
-        var pipeClient = new WorkerClient(TimeSpan.FromSeconds(5));
-        var batcher = new EditorConfigBatcher(pipeClient, workspaceEndpoint);
-        var invoker = new ToolInvoker(pipeClient, batcher);
+        var workerClient = new WorkerClient(TimeSpan.FromSeconds(5));
+        var batcher = new EditorConfigBatcher(workerClient, workspaceEndpoint);
+        var invoker = new ToolInvoker(workerClient, batcher);
 
         var workspaceTask = PipeServerHarness.RunOneShotAsync(
             workspaceEndpoint,
@@ -251,9 +251,9 @@ public sealed class ToolInvokerTests
 
     private static ToolInvoker BuildInvoker()
     {
-        var pipeClient = new WorkerClient(TimeSpan.FromSeconds(5));
-        var batcher = new EditorConfigBatcher(pipeClient, "autocontext-test-workspace-unused");
-        return new ToolInvoker(pipeClient, batcher);
+        var workerClient = new WorkerClient(TimeSpan.FromSeconds(5));
+        var batcher = new EditorConfigBatcher(workerClient, "autocontext-test-workspace-unused");
+        return new ToolInvoker(workerClient, batcher);
     }
 
     private static McpWorker BuildWorker(string endpoint) => new()

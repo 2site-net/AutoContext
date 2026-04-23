@@ -4,7 +4,7 @@ using AutoContext.Mcp.Server.Workers.Protocol;
 
 /// <summary>
 /// Per-task input to <see cref="ToolResultComposer.Compose"/>:
-/// the worker's wire response paired with the elapsed time the client
+/// the worker's response paired with the elapsed time the client
 /// observed for that task.
 /// </summary>
 public sealed record ToolResultComposerInput

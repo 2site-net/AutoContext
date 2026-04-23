@@ -12,10 +12,10 @@ using AutoContext.Mcp.Server.Workers.Protocol;
 
 /// <summary>
 /// Orchestrates one MCP-Tool invocation. Resolves EditorConfig values for
-/// the tool's tasks in a single batched call, dispatches every task
-/// concurrently over a named pipe, and composes the per-task wire
-/// responses into a uniform <see cref="ToolResultEnvelope"/>. Pure
-/// orchestration — no MCP SDK.
+/// the tool's tasks in a single batched call, runs every task
+/// concurrently over a named pipe, and composes the per-task responses
+/// into a uniform <see cref="ToolResultEnvelope"/>. Pure orchestration —
+/// no MCP SDK.
 /// </summary>
 /// <remarks>
 /// All tasks in a tool invocation run concurrently via
@@ -32,15 +32,15 @@ public sealed class ToolInvoker
     private static readonly IReadOnlyDictionary<string, string> EmptyEditorConfig =
         FrozenDictionary<string, string>.Empty;
 
-    private readonly WorkerClient _pipeClient;
+    private readonly WorkerClient _workerClient;
     private readonly EditorConfigBatcher _editorConfigBatcher;
 
-    public ToolInvoker(WorkerClient pipeClient, EditorConfigBatcher editorConfigBatcher)
+    public ToolInvoker(WorkerClient workerClient, EditorConfigBatcher editorConfigBatcher)
     {
-        ArgumentNullException.ThrowIfNull(pipeClient);
+        ArgumentNullException.ThrowIfNull(workerClient);
         ArgumentNullException.ThrowIfNull(editorConfigBatcher);
 
-        _pipeClient = pipeClient;
+        _workerClient = workerClient;
         _editorConfigBatcher = editorConfigBatcher;
     }
 
@@ -146,7 +146,7 @@ public sealed class ToolInvoker
 
         var taskStart = Stopwatch.GetTimestamp();
 
-        var response = await _pipeClient
+        var response = await _workerClient
             .InvokeAsync(endpoint, request, ct)
             .ConfigureAwait(false);
 

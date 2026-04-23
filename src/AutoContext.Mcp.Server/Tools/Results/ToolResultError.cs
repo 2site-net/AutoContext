@@ -3,10 +3,10 @@ namespace AutoContext.Mcp.Server.Tools.Results;
 using System.Text.Json.Serialization;
 
 /// <summary>
-/// One envelope-level error. Populated only when dispatch never happened
-/// (manifest validation rejected input, all tasks failed before dispatch,
-/// malformed wire response, etc.). Per-task failures live in
-/// <see cref="ToolResultEntry.Error"/> instead.
+/// One envelope-level error. Populated only when per-task invocation
+/// never happened (manifest validation rejected input, all tasks failed
+/// before invocation, malformed worker response, etc.). Per-task failures
+/// live in <see cref="ToolResultEntry.Error"/> instead.
 /// </summary>
 public sealed record ToolResultError
 {
