@@ -1,9 +1,8 @@
-namespace AutoContext.Mcp.Tools.Mcp;
+namespace AutoContext.Mcp.Tools.Registry;
 
 using System.Text.Json;
 
 using AutoContext.Mcp.Tools.Dispatch;
-using AutoContext.Mcp.Tools.Registry;
 
 using ModelContextProtocol;
 using ModelContextProtocol.Protocol;

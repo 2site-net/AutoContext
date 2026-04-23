@@ -1,9 +1,7 @@
-namespace AutoContext.Mcp.Tools.Mcp;
+namespace AutoContext.Mcp.Tools.Registry;
 
 using System.Text.Json;
 using System.Text.Json.Nodes;
-
-using AutoContext.Mcp.Tools.Registry;
 
 /// <summary>
 /// Translates a registry's <see cref="McpToolParameter"/> map into the

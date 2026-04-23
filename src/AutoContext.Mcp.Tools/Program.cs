@@ -3,9 +3,8 @@ namespace AutoContext.Mcp.Tools;
 using AutoContext.Mcp.Tools.Dispatch;
 using AutoContext.Mcp.Tools.EditorConfig;
 using AutoContext.Mcp.Tools.Hosting;
-using AutoContext.Mcp.Tools.Mcp;
-using AutoContext.Mcp.Tools.Registry;
 using AutoContext.Mcp.Tools.Pipe;
+using AutoContext.Mcp.Tools.Registry;
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;

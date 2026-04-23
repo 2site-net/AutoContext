@@ -1,9 +1,8 @@
-namespace AutoContext.Mcp.Tools.Tests.Mcp;
+namespace AutoContext.Mcp.Tools.Tests.Registry;
 
 using System.Collections.Generic;
 using System.Text.Json;
 
-using AutoContext.Mcp.Tools.Mcp;
 using AutoContext.Mcp.Tools.Registry;
 
 public sealed class InputSchemaBuilderTests
