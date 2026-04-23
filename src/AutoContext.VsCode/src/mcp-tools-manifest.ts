@@ -28,10 +28,10 @@ interface McpToolEntry {
 type McpToolsManifest = Record<string, McpToolEntry[]>;
 
 function findProjectManifests(root: string, exclude: string): string[] {
-    // TODO: AutoContext.Mcp.Tools declares a duplicate 'dotnet' scope that conflicts
+    // TODO: AutoContext.Mcp.Server declares a duplicate 'dotnet' scope that conflicts
     // with AutoContext.Mcp.DotNet. Exclude it until AutoContext.Mcp.DotNet is deleted
     // as part of the centralized-MCP migration.
-    const ignoredDirs = new Set(['AutoContext.Mcp.Tools']);
+    const ignoredDirs = new Set(['AutoContext.Mcp.Server']);
     return readdirSync(root, { withFileTypes: true })
         .filter(e => e.isDirectory()
             && join(root, e.name) !== exclude

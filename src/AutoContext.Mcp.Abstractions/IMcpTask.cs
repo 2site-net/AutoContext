@@ -7,7 +7,7 @@ using System.Text.Json;
 /// </summary>
 /// <remarks>
 /// MCP Tasks are the worker-facing execution units. Each one is dispatched
-/// over a named pipe by <c>McpToolClient</c> (in <c>AutoContext.Mcp.Tools</c>)
+/// over a named pipe by <c>McpToolClient</c> (in <c>AutoContext.Mcp.Server</c>)
 /// when an MCP Tool that references it is invoked.
 /// <para>
 /// The contract is JSON-native end to end: <paramref name="data"/> is the

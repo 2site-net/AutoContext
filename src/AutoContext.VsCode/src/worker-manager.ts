@@ -28,11 +28,11 @@ interface WorkerSpec {
  * Generates a single random 12-character endpoint suffix at
  * construction time and uses it to build per-window pipe names
  * (e.g. `autocontext.workspace-worker-abc123def456`). The same
- * suffix is later passed to `Mcp.Tools` as `--endpoint-suffix` so
+ * suffix is later passed to `Mcp.Server` as `--endpoint-suffix` so
  * every process in one window talks on the same pipes while a second
  * window stays isolated.
  *
- * `Mcp.Tools` itself is _not_ managed here — VS Code spawns it from
+ * `Mcp.Server` itself is _not_ managed here — VS Code spawns it from
  * the {@link vscode.McpStdioServerDefinition} returned by
  * `McpServerProvider`.
  */

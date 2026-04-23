@@ -1,6 +1,6 @@
 /**
  * An MCP Task is a unit of work dispatched by the centralized MCP server
- * (`AutoContext.Mcp.Tools`) to a worker process via the named-pipe wire
+ * (`AutoContext.Mcp.Server`) to a worker process via the named-pipe wire
  * protocol (see `docs/architecture.md` § "Protocol & Contracts").
  *
  * One connection = one task call. The worker's `McpToolService` reads the

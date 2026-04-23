@@ -506,7 +506,7 @@ function Test-DotNetSmoke {
 
     Write-Section 'Smoke-test .NET'
 
-    # Smoke tests spawn real worker + Mcp.Tools executables, so every
+    # Smoke tests spawn real worker + Mcp.Server executables, so every
     # .NET project must be compiled first.
     Invoke-Compile -Scope 'DotNet'
 
