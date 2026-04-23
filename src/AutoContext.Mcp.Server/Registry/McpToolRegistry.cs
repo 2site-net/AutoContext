@@ -2,7 +2,7 @@ namespace AutoContext.Mcp.Server.Registry;
 
 using System.Text.Json;
 
-using AutoContext.Mcp.Server.Dispatch;
+using AutoContext.Mcp.Server.Tools.Invocation;
 
 using ModelContextProtocol;
 using ModelContextProtocol.Protocol;

@@ -1,4 +1,4 @@
-namespace AutoContext.Mcp.Server.Envelope;
+namespace AutoContext.Mcp.Server.Tools.Results;
 
 using System.Text.Json.Serialization;
 

@@ -1,9 +1,9 @@
-namespace AutoContext.Mcp.Server.Tests.Envelope;
+namespace AutoContext.Mcp.Server.Tests.Tools.Results;
 
 using System.Text.Json;
 
-using AutoContext.Mcp.Server.Envelope;
-using AutoContext.Mcp.Server.Wire;
+using AutoContext.Mcp.Server.Tools.Results;
+using AutoContext.Mcp.Server.Workers.Protocol;
 
 public sealed class ToolEnvelopeComposerTests
 {
@@ -18,7 +18,7 @@ public sealed class ToolEnvelopeComposerTests
         };
 
         // Act
-        var envelope = ToolEnvelopeComposer.Compose("analyze_csharp_code", entries, elapsedMs: 40);
+        var envelope = ToolResultComposer.Compose("analyze_csharp_code", entries, elapsedMs: 40);
 
         // Assert
         Assert.Multiple(
@@ -43,7 +43,7 @@ public sealed class ToolEnvelopeComposerTests
         };
 
         // Act
-        var envelope = ToolEnvelopeComposer.Compose("analyze_csharp_code", entries, elapsedMs: 22);
+        var envelope = ToolResultComposer.Compose("analyze_csharp_code", entries, elapsedMs: 22);
 
         // Assert
         Assert.Multiple(
@@ -65,7 +65,7 @@ public sealed class ToolEnvelopeComposerTests
         };
 
         // Act
-        var envelope = ToolEnvelopeComposer.Compose("analyze_csharp_code", entries, elapsedMs: 22);
+        var envelope = ToolResultComposer.Compose("analyze_csharp_code", entries, elapsedMs: 22);
 
         // Assert
         Assert.Multiple(
@@ -78,23 +78,23 @@ public sealed class ToolEnvelopeComposerTests
     public void Should_normalize_per_task_entry_invariants()
     {
         // Arrange
-        var okWithStrayError = new TaskWireResponse
+        var okWithStrayError = new TaskResponse
         {
             McpTask = "task_ok",
-            Status = TaskWireResponse.StatusOk,
+            Status = TaskResponse.StatusOk,
             Output = JsonElementFrom(@"{""hits"":1}"),
             Error = "should be dropped",
         };
-        var errorWithStrayOutput = new TaskWireResponse
+        var errorWithStrayOutput = new TaskResponse
         {
             McpTask = "task_err",
-            Status = TaskWireResponse.StatusError,
+            Status = TaskResponse.StatusError,
             Output = JsonElementFrom(@"{""hits"":99}"),
             Error = "real error",
         };
 
         // Act
-        var envelope = ToolEnvelopeComposer.Compose(
+        var envelope = ToolResultComposer.Compose(
             "tool",
             [Input(okWithStrayError, elapsedMs: 1), Input(errorWithStrayOutput, elapsedMs: 2)],
             elapsedMs: 3);
@@ -113,7 +113,7 @@ public sealed class ToolEnvelopeComposerTests
     public void Should_propagate_per_task_elapsed_ms()
     {
         // Act
-        var envelope = ToolEnvelopeComposer.Compose(
+        var envelope = ToolResultComposer.Compose(
             "tool",
             [Input(OkResponse("task_a", JsonElementFrom("null")), elapsedMs: 7)],
             elapsedMs: 9);
@@ -134,7 +134,7 @@ public sealed class ToolEnvelopeComposerTests
         };
 
         // Act
-        var envelope = ToolEnvelopeComposer.ComposeFailure("tool", errors, elapsedMs: 5);
+        var envelope = ToolResultComposer.ComposeFailure("tool", errors, elapsedMs: 5);
 
         // Assert
         Assert.Multiple(
@@ -149,14 +149,14 @@ public sealed class ToolEnvelopeComposerTests
     public void Should_reject_empty_errors_list_on_failure()
     {
         Assert.Throws<ArgumentException>(
-            () => ToolEnvelopeComposer.ComposeFailure("tool", [], elapsedMs: 1));
+            () => ToolResultComposer.ComposeFailure("tool", [], elapsedMs: 1));
     }
 
     [Fact]
     public void Should_serialize_to_canonical_camel_case_json()
     {
         // Arrange
-        var envelope = ToolEnvelopeComposer.Compose(
+        var envelope = ToolResultComposer.Compose(
             "analyze_csharp_code",
             [Input(OkResponse("task_a", JsonElementFrom(@"{""ok"":true}")), elapsedMs: 10)],
             elapsedMs: 12);
@@ -181,14 +181,14 @@ public sealed class ToolEnvelopeComposerTests
     public void Should_throw_for_negative_elapsed_ms()
     {
         Assert.Throws<ArgumentOutOfRangeException>(
-            () => ToolEnvelopeComposer.Compose("tool", [], elapsedMs: -1));
+            () => ToolResultComposer.Compose("tool", [], elapsedMs: -1));
     }
 
     [Fact]
     public void Should_roll_up_to_error_when_entries_is_empty()
     {
         // Act
-        var envelope = ToolEnvelopeComposer.Compose("tool", [], elapsedMs: 0);
+        var envelope = ToolResultComposer.Compose("tool", [], elapsedMs: 0);
 
         // Assert
         Assert.Multiple(
@@ -200,21 +200,21 @@ public sealed class ToolEnvelopeComposerTests
             () => Assert.Empty(envelope.Errors));
     }
 
-    private static ToolEnvelopeComposerInput Input(TaskWireResponse response, int elapsedMs) =>
+    private static ToolResultComposerInput Input(TaskResponse response, int elapsedMs) =>
         new() { Response = response, ElapsedMs = elapsedMs };
 
-    private static TaskWireResponse OkResponse(string name, JsonElement output) => new()
+    private static TaskResponse OkResponse(string name, JsonElement output) => new()
     {
         McpTask = name,
-        Status = TaskWireResponse.StatusOk,
+        Status = TaskResponse.StatusOk,
         Output = output,
         Error = string.Empty,
     };
 
-    private static TaskWireResponse ErrorResponse(string name, string error) => new()
+    private static TaskResponse ErrorResponse(string name, string error) => new()
     {
         McpTask = name,
-        Status = TaskWireResponse.StatusError,
+        Status = TaskResponse.StatusError,
         Output = null,
         Error = error,
     };

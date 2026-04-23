@@ -1,4 +1,4 @@
-namespace AutoContext.Mcp.Server.Wire;
+namespace AutoContext.Mcp.Server.Workers.Protocol;
 
 using System.Text.Json;
 
@@ -14,7 +14,7 @@ using System.Text.Json;
 /// attributes so callers can serialize them with default options and still
 /// get canonical camelCase output.
 /// </remarks>
-internal static class WireJsonOptions
+internal static class WorkerJsonOptions
 {
     public static JsonSerializerOptions Instance { get; } = Create();
 

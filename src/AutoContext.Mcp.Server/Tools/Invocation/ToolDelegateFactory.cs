@@ -1,9 +1,9 @@
-namespace AutoContext.Mcp.Server.Dispatch;
+namespace AutoContext.Mcp.Server.Tools.Invocation;
 
 using System.Text.Json;
 
 using AutoContext.Mcp.Server.Registry;
-using AutoContext.Mcp.Server.Wire;
+using AutoContext.Mcp.Server.Workers.Protocol;
 
 /// <summary>
 /// Builds the per-tool dispatch closures consumed by the MCP SDK
@@ -47,7 +47,7 @@ public static class ToolDelegateFactory
                         .InvokeAsync(capturedWorker, capturedTool, data, ct)
                         .ConfigureAwait(false);
 
-                    return JsonSerializer.Serialize(envelope, WireJsonOptions.Instance);
+                    return JsonSerializer.Serialize(envelope, WorkerJsonOptions.Instance);
                 };
             }
         }

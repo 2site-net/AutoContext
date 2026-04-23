@@ -1,9 +1,9 @@
 namespace AutoContext.Mcp.Server;
 
-using AutoContext.Mcp.Server.Dispatch;
+using AutoContext.Mcp.Server.Tools.Invocation;
 using AutoContext.Mcp.Server.EditorConfig;
 using AutoContext.Mcp.Server.Hosting;
-using AutoContext.Mcp.Server.Pipe;
+using AutoContext.Mcp.Server.Workers.Transport;
 using AutoContext.Mcp.Server.Registry;
 
 using Microsoft.Extensions.DependencyInjection;
@@ -64,7 +64,7 @@ internal static class Program
         builder.Services.AddSingleton<IRegistrySource>(registrySource);
         builder.Services.AddSingleton(registry);
         builder.Services.AddSingleton(endpoints);
-        builder.Services.AddSingleton<WorkerPipeClient>();
+        builder.Services.AddSingleton<WorkerClient>();
         builder.Services.AddSingleton<EditorConfigBatcher>();
         builder.Services.AddSingleton<ToolInvoker>();
         builder.Services.AddSingleton<McpToolRegistry>();

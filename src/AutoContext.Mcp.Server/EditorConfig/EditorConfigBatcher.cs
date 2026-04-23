@@ -3,9 +3,9 @@ namespace AutoContext.Mcp.Server.EditorConfig;
 using System.Collections.Frozen;
 using System.Text.Json;
 
-using AutoContext.Mcp.Server.Pipe;
+using AutoContext.Mcp.Server.Workers.Transport;
 using AutoContext.Mcp.Server.Registry;
-using AutoContext.Mcp.Server.Wire;
+using AutoContext.Mcp.Server.Workers.Protocol;
 
 /// <summary>
 /// Resolves EditorConfig values for one tool invocation in a single
@@ -22,15 +22,15 @@ public sealed class EditorConfigBatcher
     /// <summary>The MCP Task name on Worker.Workspace that resolves EditorConfig keys.</summary>
     public const string ResolveTaskName = "get_editorconfig_rules";
 
-    private readonly WorkerPipeClient _pipeClient;
+    private readonly WorkerClient _pipeClient;
     private readonly string _workspaceEndpoint;
 
-    public EditorConfigBatcher(WorkerPipeClient pipeClient)
+    public EditorConfigBatcher(WorkerClient pipeClient)
         : this(pipeClient, DefaultWorkspaceEndpoint)
     {
     }
 
-    public EditorConfigBatcher(WorkerPipeClient pipeClient, string workspaceEndpoint)
+    public EditorConfigBatcher(WorkerClient pipeClient, string workspaceEndpoint)
     {
         ArgumentNullException.ThrowIfNull(pipeClient);
         ArgumentException.ThrowIfNullOrEmpty(workspaceEndpoint);
@@ -70,9 +70,9 @@ public sealed class EditorConfigBatcher
 
         var requestData = JsonSerializer.SerializeToElement(
             new { path = filePath, keys = union },
-            WireJsonOptions.Instance);
+            WorkerJsonOptions.Instance);
 
-        var request = new TaskWireRequest
+        var request = new TaskRequest
         {
             McpTask = ResolveTaskName,
             Data = requestData,
@@ -94,7 +94,7 @@ public sealed class EditorConfigBatcher
             };
         }
 
-        if (!string.Equals(response.Status, TaskWireResponse.StatusOk, StringComparison.Ordinal))
+        if (!string.Equals(response.Status, TaskResponse.StatusOk, StringComparison.Ordinal))
         {
             return new EditorConfigBatchResult
             {

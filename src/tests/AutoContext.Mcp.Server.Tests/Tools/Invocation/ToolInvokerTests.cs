@@ -1,15 +1,15 @@
-namespace AutoContext.Mcp.Server.Tests.Dispatch;
+namespace AutoContext.Mcp.Server.Tests.Tools.Invocation;
 
 using System.Collections.Concurrent;
 using System.Text.Json;
 
-using AutoContext.Mcp.Server.Dispatch;
+using AutoContext.Mcp.Server.Tools.Invocation;
 using AutoContext.Mcp.Server.EditorConfig;
-using AutoContext.Mcp.Server.Envelope;
+using AutoContext.Mcp.Server.Tools.Results;
 using AutoContext.Mcp.Server.Registry;
-using AutoContext.Mcp.Server.Pipe;
+using AutoContext.Mcp.Server.Workers.Transport;
 using AutoContext.Mcp.Server.Tests.Testing.Utils;
-using AutoContext.Mcp.Server.Wire;
+using AutoContext.Mcp.Server.Workers.Protocol;
 
 public sealed class ToolInvokerTests
 {
@@ -98,7 +98,7 @@ public sealed class ToolInvokerTests
             BuildTask("style_task", editorConfig: ["csharp_prefer_braces"]),
             BuildTask("plain_task"));
 
-        var pipeClient = new WorkerPipeClient(TimeSpan.FromSeconds(5));
+        var pipeClient = new WorkerClient(TimeSpan.FromSeconds(5));
         var batcher = new EditorConfigBatcher(pipeClient, workspaceEndpoint);
         var invoker = new ToolInvoker(pipeClient, batcher);
 
@@ -106,20 +106,20 @@ public sealed class ToolInvokerTests
             workspaceEndpoint,
             handler: requestBytes =>
             {
-                var request = JsonSerializer.Deserialize<TaskWireRequest>(
+                var request = JsonSerializer.Deserialize<TaskRequest>(
                     requestBytes,
-                    WireJsonOptions.Instance)!;
+                    WorkerJsonOptions.Instance)!;
                 Assert.Equal(EditorConfigBatcher.ResolveTaskName, request.McpTask);
 
-                var response = new TaskWireResponse
+                var response = new TaskResponse
                 {
                     McpTask = EditorConfigBatcher.ResolveTaskName,
-                    Status = TaskWireResponse.StatusOk,
+                    Status = TaskResponse.StatusOk,
                     Output = JsonSerializer.SerializeToElement(
                         new { csharp_prefer_braces = "true" }),
                     Error = string.Empty,
                 };
-                return JsonSerializer.SerializeToUtf8Bytes(response, WireJsonOptions.Instance);
+                return JsonSerializer.SerializeToUtf8Bytes(response, WorkerJsonOptions.Instance);
             },
             ct: TestContext.Current.CancellationToken);
 
@@ -129,9 +129,9 @@ public sealed class ToolInvokerTests
             connectionCount: 2,
             handler: requestBytes =>
             {
-                var request = JsonSerializer.Deserialize<TaskWireRequest>(
+                var request = JsonSerializer.Deserialize<TaskRequest>(
                     requestBytes,
-                    WireJsonOptions.Instance)!;
+                    WorkerJsonOptions.Instance)!;
                 observedKeys[request.McpTask] = [.. request.EditorConfig.Keys];
                 return OkResponse(requestBytes, output: new { ran = true });
             },
@@ -139,7 +139,7 @@ public sealed class ToolInvokerTests
 
         var data = JsonSerializer.SerializeToElement(
             new { originalPath = @"C:\repo\Foo.cs" },
-            WireJsonOptions.Instance);
+            WorkerJsonOptions.Instance);
 
         // Act
         var envelope = await invoker.InvokeAsync(
@@ -172,9 +172,9 @@ public sealed class ToolInvokerTests
             endpoint,
             handler: requestBytes =>
             {
-                var request = JsonSerializer.Deserialize<TaskWireRequest>(
+                var request = JsonSerializer.Deserialize<TaskRequest>(
                     requestBytes,
-                    WireJsonOptions.Instance)!;
+                    WorkerJsonOptions.Instance)!;
                 foreach (var key in request.EditorConfig.Keys)
                 {
                     observedKeys.Add(key);
@@ -211,20 +211,20 @@ public sealed class ToolInvokerTests
             connectionCount: 2,
             handler: requestBytes =>
             {
-                var request = JsonSerializer.Deserialize<TaskWireRequest>(
+                var request = JsonSerializer.Deserialize<TaskRequest>(
                     requestBytes,
-                    WireJsonOptions.Instance)!;
+                    WorkerJsonOptions.Instance)!;
 
                 if (string.Equals(request.McpTask, "fail_task", StringComparison.Ordinal))
                 {
-                    var error = new TaskWireResponse
+                    var error = new TaskResponse
                     {
                         McpTask = request.McpTask,
-                        Status = TaskWireResponse.StatusError,
+                        Status = TaskResponse.StatusError,
                         Output = null,
                         Error = "boom",
                     };
-                    return JsonSerializer.SerializeToUtf8Bytes(error, WireJsonOptions.Instance);
+                    return JsonSerializer.SerializeToUtf8Bytes(error, WorkerJsonOptions.Instance);
                 }
 
                 return OkResponse(requestBytes, output: new { ran = true });
@@ -251,7 +251,7 @@ public sealed class ToolInvokerTests
 
     private static ToolInvoker BuildInvoker()
     {
-        var pipeClient = new WorkerPipeClient(TimeSpan.FromSeconds(5));
+        var pipeClient = new WorkerClient(TimeSpan.FromSeconds(5));
         var batcher = new EditorConfigBatcher(pipeClient, "autocontext-test-workspace-unused");
         return new ToolInvoker(pipeClient, batcher);
     }
@@ -278,23 +278,23 @@ public sealed class ToolInvokerTests
     };
 
     private static JsonElement EmptyData() =>
-        JsonSerializer.SerializeToElement(new { }, WireJsonOptions.Instance);
+        JsonSerializer.SerializeToElement(new { }, WorkerJsonOptions.Instance);
 
     private static byte[] OkResponse(byte[] requestBytes, object output)
     {
-        var request = JsonSerializer.Deserialize<TaskWireRequest>(
+        var request = JsonSerializer.Deserialize<TaskRequest>(
             requestBytes,
-            WireJsonOptions.Instance)!;
+            WorkerJsonOptions.Instance)!;
 
-        var response = new TaskWireResponse
+        var response = new TaskResponse
         {
             McpTask = request.McpTask,
-            Status = TaskWireResponse.StatusOk,
-            Output = JsonSerializer.SerializeToElement(output, WireJsonOptions.Instance),
+            Status = TaskResponse.StatusOk,
+            Output = JsonSerializer.SerializeToElement(output, WorkerJsonOptions.Instance),
             Error = string.Empty,
         };
 
-        return JsonSerializer.SerializeToUtf8Bytes(response, WireJsonOptions.Instance);
+        return JsonSerializer.SerializeToUtf8Bytes(response, WorkerJsonOptions.Instance);
     }
 
     private sealed class ConcurrencyObserver

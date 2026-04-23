@@ -1,14 +1,14 @@
-namespace AutoContext.Mcp.Server.Tests.Dispatch;
+namespace AutoContext.Mcp.Server.Tests.Tools.Invocation;
 
 using System.Text.Json;
 
-using AutoContext.Mcp.Server.Dispatch;
+using AutoContext.Mcp.Server.Tools.Invocation;
 using AutoContext.Mcp.Server.EditorConfig;
-using AutoContext.Mcp.Server.Envelope;
+using AutoContext.Mcp.Server.Tools.Results;
 using AutoContext.Mcp.Server.Registry;
-using AutoContext.Mcp.Server.Pipe;
+using AutoContext.Mcp.Server.Workers.Transport;
 using AutoContext.Mcp.Server.Tests.Testing.Utils;
-using AutoContext.Mcp.Server.Wire;
+using AutoContext.Mcp.Server.Workers.Protocol;
 
 public sealed class ToolDelegateFactoryTests
 {
@@ -51,7 +51,7 @@ public sealed class ToolDelegateFactoryTests
         var endpoint = PipeServerHarness.UniqueEndpoint();
         var registry = BuildCatalog(
             ("AutoContext.Worker.Alpha", endpoint, [BuildTool("invoke_tool", "task_x")]));
-        var pipeClient = new WorkerPipeClient(TimeSpan.FromSeconds(5));
+        var pipeClient = new WorkerClient(TimeSpan.FromSeconds(5));
         var batcher = new EditorConfigBatcher(pipeClient, "autocontext-test-workspace-unused");
         var invoker = new ToolInvoker(pipeClient, batcher);
 
@@ -59,24 +59,24 @@ public sealed class ToolDelegateFactoryTests
             endpoint,
             handler: requestBytes =>
             {
-                var request = JsonSerializer.Deserialize<TaskWireRequest>(
+                var request = JsonSerializer.Deserialize<TaskRequest>(
                     requestBytes,
-                    WireJsonOptions.Instance)!;
+                    WorkerJsonOptions.Instance)!;
 
-                var response = new TaskWireResponse
+                var response = new TaskResponse
                 {
                     McpTask = request.McpTask,
-                    Status = TaskWireResponse.StatusOk,
+                    Status = TaskResponse.StatusOk,
                     Output = JsonSerializer.SerializeToElement(new { ok = true }),
                     Error = string.Empty,
                 };
 
-                return JsonSerializer.SerializeToUtf8Bytes(response, WireJsonOptions.Instance);
+                return JsonSerializer.SerializeToUtf8Bytes(response, WorkerJsonOptions.Instance);
             },
             ct: TestContext.Current.CancellationToken);
 
         var delegates = ToolDelegateFactory.Build(registry, invoker);
-        var data = JsonSerializer.SerializeToElement(new { }, WireJsonOptions.Instance);
+        var data = JsonSerializer.SerializeToElement(new { }, WorkerJsonOptions.Instance);
 
         // Act
         var handler = delegates["invoke_tool"];
@@ -96,7 +96,7 @@ public sealed class ToolDelegateFactoryTests
 
     private static ToolInvoker BuildInvoker()
     {
-        var pipeClient = new WorkerPipeClient(TimeSpan.FromSeconds(5));
+        var pipeClient = new WorkerClient(TimeSpan.FromSeconds(5));
         var batcher = new EditorConfigBatcher(pipeClient, "autocontext-test-workspace-unused");
         return new ToolInvoker(pipeClient, batcher);
     }

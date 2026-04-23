@@ -1,14 +1,14 @@
-namespace AutoContext.Mcp.Server.Dispatch;
+namespace AutoContext.Mcp.Server.Tools.Invocation;
 
 using System.Collections.Frozen;
 using System.Diagnostics;
 using System.Text.Json;
 
 using AutoContext.Mcp.Server.EditorConfig;
-using AutoContext.Mcp.Server.Envelope;
-using AutoContext.Mcp.Server.Pipe;
+using AutoContext.Mcp.Server.Tools.Results;
+using AutoContext.Mcp.Server.Workers.Transport;
 using AutoContext.Mcp.Server.Registry;
-using AutoContext.Mcp.Server.Wire;
+using AutoContext.Mcp.Server.Workers.Protocol;
 
 /// <summary>
 /// Orchestrates one MCP-Tool invocation. Resolves EditorConfig values for
@@ -32,10 +32,10 @@ public sealed class ToolInvoker
     private static readonly IReadOnlyDictionary<string, string> EmptyEditorConfig =
         FrozenDictionary<string, string>.Empty;
 
-    private readonly WorkerPipeClient _pipeClient;
+    private readonly WorkerClient _pipeClient;
     private readonly EditorConfigBatcher _editorConfigBatcher;
 
-    public ToolInvoker(WorkerPipeClient pipeClient, EditorConfigBatcher editorConfigBatcher)
+    public ToolInvoker(WorkerClient pipeClient, EditorConfigBatcher editorConfigBatcher)
     {
         ArgumentNullException.ThrowIfNull(pipeClient);
         ArgumentNullException.ThrowIfNull(editorConfigBatcher);
@@ -63,7 +63,7 @@ public sealed class ToolInvoker
         var tasks = tool.Tasks;
         var slices = await ResolveEditorConfigAsync(data, tasks, ct).ConfigureAwait(false);
 
-        var entries = new ToolEnvelopeComposerInput[tasks.Count];
+        var entries = new ToolResultComposerInput[tasks.Count];
 
         if (tasks.Count == 1)
         {
@@ -82,7 +82,7 @@ public sealed class ToolInvoker
             await Task.WhenAll(pending).ConfigureAwait(false);
         }
 
-        return ToolEnvelopeComposer.Compose(
+        return ToolResultComposer.Compose(
             tool.Name,
             entries,
             ElapsedMs(startTimestamp));
@@ -126,7 +126,7 @@ public sealed class ToolInvoker
         IReadOnlyList<McpTaskDefinition> tasks,
         JsonElement data,
         IReadOnlyDictionary<string, IReadOnlyDictionary<string, string>> slices,
-        ToolEnvelopeComposerInput[] entries,
+        ToolResultComposerInput[] entries,
         int index,
         CancellationToken ct)
     {
@@ -137,7 +137,7 @@ public sealed class ToolInvoker
             editorConfig = EmptyEditorConfig;
         }
 
-        var request = new TaskWireRequest
+        var request = new TaskRequest
         {
             McpTask = task.Name,
             Data = data,
@@ -150,7 +150,7 @@ public sealed class ToolInvoker
             .InvokeAsync(endpoint, request, ct)
             .ConfigureAwait(false);
 
-        entries[index] = new ToolEnvelopeComposerInput
+        entries[index] = new ToolResultComposerInput
         {
             Response = response,
             ElapsedMs = ElapsedMs(taskStart),

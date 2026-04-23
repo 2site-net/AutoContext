@@ -1,4 +1,4 @@
-namespace AutoContext.Mcp.Server.Dispatch;
+namespace AutoContext.Mcp.Server.Tools.Invocation;
 
 using System.Text.Json;
 

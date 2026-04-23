@@ -1,43 +1,43 @@
-namespace AutoContext.Mcp.Server.Tests.Pipe;
+namespace AutoContext.Mcp.Server.Tests.Workers.Transport;
 
 using System.Collections.Frozen;
 using System.IO.Pipes;
 using System.Text.Json;
 
-using AutoContext.Mcp.Server.Pipe;
+using AutoContext.Mcp.Server.Workers.Transport;
 using AutoContext.Mcp.Server.Tests.Testing.Utils;
-using AutoContext.Mcp.Server.Wire;
+using AutoContext.Mcp.Server.Workers.Protocol;
 using AutoContext.Worker.Hosting;
 
-public sealed class WorkerPipeClientTests
+public sealed class WorkerClientTests
 {
     [Fact]
     public async Task Should_round_trip_request_and_response()
     {
         // Arrange
         var endpoint = PipeServerHarness.UniqueEndpoint();
-        var client = new WorkerPipeClient(TimeSpan.FromSeconds(5));
+        var client = new WorkerClient(TimeSpan.FromSeconds(5));
         var serverTask = PipeServerHarness.RunOneShotAsync(
             endpoint,
             handler: requestBytes =>
             {
-                var request = JsonSerializer.Deserialize<TaskWireRequest>(
+                var request = JsonSerializer.Deserialize<TaskRequest>(
                     requestBytes,
-                    WireJsonOptions.Instance);
+                    WorkerJsonOptions.Instance);
                 Assert.NotNull(request);
                 Assert.Equal("check_csharp_coding_style", request.McpTask);
 
-                var serverResponse = new TaskWireResponse
+                var serverResponse = new TaskResponse
                 {
                     McpTask = request.McpTask,
-                    Status = TaskWireResponse.StatusOk,
+                    Status = TaskResponse.StatusOk,
                     Output = JsonSerializer.SerializeToElement(new { passed = true }),
                     Error = string.Empty,
                 };
 
                 return JsonSerializer.SerializeToUtf8Bytes(
                     serverResponse,
-                    WireJsonOptions.Instance);
+                    WorkerJsonOptions.Instance);
             },
             ct: TestContext.Current.CancellationToken);
 
@@ -50,7 +50,7 @@ public sealed class WorkerPipeClientTests
 
         // Assert
         Assert.Multiple(
-            () => Assert.Equal(TaskWireResponse.StatusOk, response.Status),
+            () => Assert.Equal(TaskResponse.StatusOk, response.Status),
             () => Assert.Equal(string.Empty, response.Error),
             () => Assert.NotNull(response.Output),
             () => Assert.True(response.Output!.Value.GetProperty("passed").GetBoolean()));
@@ -61,7 +61,7 @@ public sealed class WorkerPipeClientTests
     {
         // Arrange
         var endpoint = PipeServerHarness.UniqueEndpoint();
-        var client = new WorkerPipeClient(TimeSpan.FromSeconds(5));
+        var client = new WorkerClient(TimeSpan.FromSeconds(5));
         var serverTask = PipeServerHarness.RunOneShotAsync(
             endpoint,
             handler: _ => null,
@@ -76,7 +76,7 @@ public sealed class WorkerPipeClientTests
 
         // Assert
         Assert.Multiple(
-            () => Assert.Equal(TaskWireResponse.StatusError, response.Status),
+            () => Assert.Equal(TaskResponse.StatusError, response.Status),
             () => Assert.Equal("task_x", response.McpTask),
             () => Assert.Contains("closed the pipe", response.Error, StringComparison.Ordinal));
     }
@@ -86,7 +86,7 @@ public sealed class WorkerPipeClientTests
     {
         // Arrange
         var endpoint = PipeServerHarness.UniqueEndpoint();
-        var client = new WorkerPipeClient(TimeSpan.FromMilliseconds(150));
+        var client = new WorkerClient(TimeSpan.FromMilliseconds(150));
         using var serverGate = new CancellationTokenSource();
         var serverTask = RunHangingServerAsync(endpoint, serverGate.Token);
 
@@ -98,7 +98,7 @@ public sealed class WorkerPipeClientTests
 
         // Assert
         Assert.Multiple(
-            () => Assert.Equal(TaskWireResponse.StatusError, response.Status),
+            () => Assert.Equal(TaskResponse.StatusError, response.Status),
             () => Assert.Contains("wait deadline", response.Error, StringComparison.Ordinal));
 
         await serverGate.CancelAsync();
@@ -110,7 +110,7 @@ public sealed class WorkerPipeClientTests
     {
         // Arrange
         var endpoint = PipeServerHarness.UniqueEndpoint();
-        var client = new WorkerPipeClient(TimeSpan.FromSeconds(5));
+        var client = new WorkerClient(TimeSpan.FromSeconds(5));
         var serverTask = PipeServerHarness.RunOneShotAsync(
             endpoint,
             handler: _ => "not json"u8.ToArray(),
@@ -125,7 +125,7 @@ public sealed class WorkerPipeClientTests
 
         // Assert
         Assert.Multiple(
-            () => Assert.Equal(TaskWireResponse.StatusError, response.Status),
+            () => Assert.Equal(TaskResponse.StatusError, response.Status),
             () => Assert.Contains("not valid JSON", response.Error, StringComparison.Ordinal));
     }
 
@@ -134,7 +134,7 @@ public sealed class WorkerPipeClientTests
     {
         // Arrange
         var endpoint = PipeServerHarness.UniqueEndpoint();
-        var client = new WorkerPipeClient(TimeSpan.FromSeconds(30));
+        var client = new WorkerClient(TimeSpan.FromSeconds(30));
         using var cts = new CancellationTokenSource();
         await cts.CancelAsync();
 
@@ -147,15 +147,15 @@ public sealed class WorkerPipeClientTests
     public void Should_reject_non_positive_wait_deadline()
     {
         Assert.Multiple(
-            () => Assert.Throws<ArgumentOutOfRangeException>(() => new WorkerPipeClient(TimeSpan.Zero)),
-            () => Assert.Throws<ArgumentOutOfRangeException>(() => new WorkerPipeClient(TimeSpan.FromMilliseconds(-1))));
+            () => Assert.Throws<ArgumentOutOfRangeException>(() => new WorkerClient(TimeSpan.Zero)),
+            () => Assert.Throws<ArgumentOutOfRangeException>(() => new WorkerClient(TimeSpan.FromMilliseconds(-1))));
     }
 
     [Fact]
     public async Task Should_reject_null_or_empty_endpoint()
     {
         // Arrange
-        var client = new WorkerPipeClient();
+        var client = new WorkerClient();
 
         // Act + Assert
         await Assert.ThrowsAsync<ArgumentNullException>(
@@ -168,8 +168,8 @@ public sealed class WorkerPipeClientTests
     public async Task Should_reject_request_with_empty_mcp_task()
     {
         // Arrange
-        var client = new WorkerPipeClient();
-        var badRequest = new TaskWireRequest
+        var client = new WorkerClient();
+        var badRequest = new TaskRequest
         {
             McpTask = string.Empty,
             Data = JsonSerializer.SerializeToElement(new { }),
@@ -181,7 +181,7 @@ public sealed class WorkerPipeClientTests
             () => client.InvokeAsync("autocontext-test", badRequest, TestContext.Current.CancellationToken));
     }
 
-    private static TaskWireRequest BuildRequest(string mcpTask) => new()
+    private static TaskRequest BuildRequest(string mcpTask) => new()
     {
         McpTask = mcpTask,
         Data = JsonSerializer.SerializeToElement(new { content = "hello" }),

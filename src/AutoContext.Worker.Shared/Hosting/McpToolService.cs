@@ -40,7 +40,7 @@ public sealed partial class McpToolService : BackgroundService
     /// initialization so misuse (mutation after first serialization) fails fast
     /// instead of silently freezing whatever state happened to be set.
     /// </summary>
-    public static JsonSerializerOptions WireJsonOptions { get; } = CreateWireJsonOptions();
+    public static JsonSerializerOptions WorkerJsonOptions { get; } = CreateWorkerJsonOptions();
 
     private readonly ILogger<McpToolService> _logger;
     private readonly WorkerHostOptions _options;
@@ -321,7 +321,7 @@ public sealed partial class McpToolService : BackgroundService
             ["error"] = string.Empty,
         };
 
-        return JsonSerializer.SerializeToUtf8Bytes(response, WireJsonOptions);
+        return JsonSerializer.SerializeToUtf8Bytes(response, WorkerJsonOptions);
     }
 
     internal static byte[] BuildErrorResponse(string taskName, string error)
@@ -334,7 +334,7 @@ public sealed partial class McpToolService : BackgroundService
             ["error"] = error,
         };
 
-        return JsonSerializer.SerializeToUtf8Bytes(response, WireJsonOptions);
+        return JsonSerializer.SerializeToUtf8Bytes(response, WorkerJsonOptions);
     }
 
     [LoggerMessage(Level = LogLevel.Information,
@@ -349,7 +349,7 @@ public sealed partial class McpToolService : BackgroundService
         Message = "Pipe connection ended without a complete request/response exchange.")]
     private static partial void LogConnectionDropped(ILogger logger, Exception exception);
 
-    private static JsonSerializerOptions CreateWireJsonOptions()
+    private static JsonSerializerOptions CreateWorkerJsonOptions()
     {
         var options = new JsonSerializerOptions
         {

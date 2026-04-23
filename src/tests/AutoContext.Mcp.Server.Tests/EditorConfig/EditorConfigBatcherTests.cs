@@ -3,10 +3,10 @@ namespace AutoContext.Mcp.Server.Tests.EditorConfig;
 using System.Text.Json;
 
 using AutoContext.Mcp.Server.EditorConfig;
-using AutoContext.Mcp.Server.Pipe;
+using AutoContext.Mcp.Server.Workers.Transport;
 using AutoContext.Mcp.Server.Registry;
 using AutoContext.Mcp.Server.Tests.Testing.Utils;
-using AutoContext.Mcp.Server.Wire;
+using AutoContext.Mcp.Server.Workers.Protocol;
 
 public sealed class EditorConfigBatcherTests
 {
@@ -21,7 +21,7 @@ public sealed class EditorConfigBatcherTests
     public async Task Should_skip_pipe_call_when_no_task_declares_keys()
     {
         // Arrange
-        var client = new WorkerPipeClient(TimeSpan.FromSeconds(1));
+        var client = new WorkerClient(TimeSpan.FromSeconds(1));
         var batcher = new EditorConfigBatcher(client, "autocontext-test-unbound");
         var tasks = new McpTaskDefinition[]
         {
@@ -49,7 +49,7 @@ public sealed class EditorConfigBatcherTests
     {
         // Arrange
         var endpoint = PipeServerHarness.UniqueEndpoint();
-        var client = new WorkerPipeClient(TimeSpan.FromSeconds(5));
+        var client = new WorkerClient(TimeSpan.FromSeconds(5));
         var batcher = new EditorConfigBatcher(client, endpoint);
         var tasks = new[]
         {
@@ -69,10 +69,10 @@ public sealed class EditorConfigBatcherTests
                 observedPath = data.GetProperty("path").GetString();
                 observedKeys = [.. data.GetProperty("keys").EnumerateArray().Select(k => k.GetString() ?? string.Empty)];
 
-                var serverResponse = new TaskWireResponse
+                var serverResponse = new TaskResponse
                 {
                     McpTask = EditorConfigBatcher.ResolveTaskName,
-                    Status = TaskWireResponse.StatusOk,
+                    Status = TaskResponse.StatusOk,
                     Output = JsonSerializer.SerializeToElement(new Dictionary<string, string>
                     {
                         ["csharp_prefer_braces"] = "true",
@@ -109,17 +109,17 @@ public sealed class EditorConfigBatcherTests
     {
         // Arrange
         var endpoint = PipeServerHarness.UniqueEndpoint();
-        var client = new WorkerPipeClient(TimeSpan.FromSeconds(5));
+        var client = new WorkerClient(TimeSpan.FromSeconds(5));
         var batcher = new EditorConfigBatcher(client, endpoint);
         var tasks = new[] { BuildTask("task_a", "csharp_prefer_braces") };
         var serverTask = PipeServerHarness.RunOneShotAsync(
             endpoint,
             handler: _ =>
             {
-                var serverResponse = new TaskWireResponse
+                var serverResponse = new TaskResponse
                 {
                     McpTask = EditorConfigBatcher.ResolveTaskName,
-                    Status = TaskWireResponse.StatusError,
+                    Status = TaskResponse.StatusError,
                     Output = null,
                     Error = "parse failure",
                 };
@@ -148,17 +148,17 @@ public sealed class EditorConfigBatcherTests
     {
         // Arrange
         var endpoint = PipeServerHarness.UniqueEndpoint();
-        var client = new WorkerPipeClient(TimeSpan.FromSeconds(5));
+        var client = new WorkerClient(TimeSpan.FromSeconds(5));
         var batcher = new EditorConfigBatcher(client, endpoint);
         var tasks = new[] { BuildTask("task_a", "csharp_prefer_braces") };
         var serverTask = PipeServerHarness.RunOneShotAsync(
             endpoint,
             handler: _ =>
             {
-                var serverResponse = new TaskWireResponse
+                var serverResponse = new TaskResponse
                 {
                     McpTask = "wrong_task",
-                    Status = TaskWireResponse.StatusOk,
+                    Status = TaskResponse.StatusOk,
                     Output = JsonSerializer.SerializeToElement(new { }),
                     Error = string.Empty,
                 };
@@ -186,7 +186,7 @@ public sealed class EditorConfigBatcherTests
     public async Task Should_degrade_to_empty_slices_on_pipe_failure()
     {
         // Arrange
-        var client = new WorkerPipeClient(TimeSpan.FromMilliseconds(150));
+        var client = new WorkerClient(TimeSpan.FromMilliseconds(150));
         var batcher = new EditorConfigBatcher(client, "autocontext-test-unbound-" + Guid.NewGuid().ToString("N"));
         var tasks = new[] { BuildTask("task_a", "csharp_prefer_braces") };
 
@@ -208,17 +208,17 @@ public sealed class EditorConfigBatcherTests
     {
         // Arrange
         var endpoint = PipeServerHarness.UniqueEndpoint();
-        var client = new WorkerPipeClient(TimeSpan.FromSeconds(5));
+        var client = new WorkerClient(TimeSpan.FromSeconds(5));
         var batcher = new EditorConfigBatcher(client, endpoint);
         var tasks = new[] { BuildTask("task_a", "csharp_prefer_braces") };
         var serverTask = PipeServerHarness.RunOneShotAsync(
             endpoint,
             handler: _ =>
             {
-                var serverResponse = new TaskWireResponse
+                var serverResponse = new TaskResponse
                 {
                     McpTask = EditorConfigBatcher.ResolveTaskName,
-                    Status = TaskWireResponse.StatusOk,
+                    Status = TaskResponse.StatusOk,
                     Output = JsonSerializer.SerializeToElement("not-an-object"),
                     Error = string.Empty,
                 };
@@ -246,7 +246,7 @@ public sealed class EditorConfigBatcherTests
     public async Task Should_throw_for_invalid_arguments()
     {
         // Arrange
-        var batcher = new EditorConfigBatcher(new WorkerPipeClient(), "autocontext-test");
+        var batcher = new EditorConfigBatcher(new WorkerClient(), "autocontext-test");
 
         // Act + Assert
         await Assert.ThrowsAsync<ArgumentNullException>(
@@ -262,8 +262,8 @@ public sealed class EditorConfigBatcherTests
     {
         Assert.Multiple(
             () => Assert.Throws<ArgumentNullException>(() => new EditorConfigBatcher(null!)),
-            () => Assert.Throws<ArgumentNullException>(() => new EditorConfigBatcher(new WorkerPipeClient(), null!)),
-            () => Assert.Throws<ArgumentException>(() => new EditorConfigBatcher(new WorkerPipeClient(), string.Empty)));
+            () => Assert.Throws<ArgumentNullException>(() => new EditorConfigBatcher(new WorkerClient(), null!)),
+            () => Assert.Throws<ArgumentException>(() => new EditorConfigBatcher(new WorkerClient(), string.Empty)));
     }
 
     private static McpTaskDefinition BuildTask(string name, params string[] keys) => new()

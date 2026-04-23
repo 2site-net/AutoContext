@@ -2,7 +2,7 @@ namespace AutoContext.Mcp.Server.Tests.Smoke;
 
 using System.Text.Json;
 
-using AutoContext.Mcp.Server.Envelope;
+using AutoContext.Mcp.Server.Tools.Results;
 
 using ModelContextProtocol.Client;
 using ModelContextProtocol.Protocol;

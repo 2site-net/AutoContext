@@ -1,4 +1,4 @@
-namespace AutoContext.Mcp.Server.Pipe;
+namespace AutoContext.Mcp.Server.Workers.Transport;
 
 /// <summary>
 /// Runtime knob that lets <c>Mcp.Server</c> override every named-pipe

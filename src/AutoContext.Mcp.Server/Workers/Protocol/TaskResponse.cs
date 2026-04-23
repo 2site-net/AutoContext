@@ -1,4 +1,4 @@
-namespace AutoContext.Mcp.Server.Wire;
+namespace AutoContext.Mcp.Server.Workers.Protocol;
 
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -8,7 +8,7 @@ using System.Text.Json.Serialization;
 /// regardless of success or failure — <see cref="Output"/> is null on
 /// error and <see cref="Error"/> is empty on success.
 /// </summary>
-public sealed record TaskWireResponse
+public sealed record TaskResponse
 {
     public const string StatusOk = "ok";
     public const string StatusError = "error";

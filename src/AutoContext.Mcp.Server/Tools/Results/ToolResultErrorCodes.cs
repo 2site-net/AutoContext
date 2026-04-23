@@ -1,4 +1,4 @@
-namespace AutoContext.Mcp.Server.Envelope;
+namespace AutoContext.Mcp.Server.Tools.Results;
 
 /// <summary>
 /// Fixed vocabulary for <see cref="ToolResultError.Code"/>. Mirrors the

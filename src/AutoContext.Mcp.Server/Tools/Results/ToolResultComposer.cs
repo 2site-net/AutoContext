@@ -1,13 +1,13 @@
-namespace AutoContext.Mcp.Server.Envelope;
+namespace AutoContext.Mcp.Server.Tools.Results;
 
-using AutoContext.Mcp.Server.Wire;
+using AutoContext.Mcp.Server.Workers.Protocol;
 
 /// <summary>
 /// Composes per-task wire responses into the uniform tool-result envelope.
 /// Pure logic — no IO. Status rollup is deterministic and matches the
 /// table in <c>docs/architecture-centralized-mcp.md</c>.
 /// </summary>
-public static class ToolEnvelopeComposer
+public static class ToolResultComposer
 {
     /// <summary>
     /// Composes a successful-dispatch envelope from per-task wire responses.
@@ -16,7 +16,7 @@ public static class ToolEnvelopeComposer
     /// </summary>
     public static ToolResultEnvelope Compose(
         string tool,
-        IReadOnlyList<ToolEnvelopeComposerInput> entries,
+        IReadOnlyList<ToolResultComposerInput> entries,
         int elapsedMs)
     {
         ArgumentException.ThrowIfNullOrEmpty(tool);
@@ -49,7 +49,7 @@ public static class ToolEnvelopeComposer
 
             var ok = string.Equals(
                 input.Response.Status,
-                TaskWireResponse.StatusOk,
+                TaskResponse.StatusOk,
                 StringComparison.Ordinal);
 
             if (ok)

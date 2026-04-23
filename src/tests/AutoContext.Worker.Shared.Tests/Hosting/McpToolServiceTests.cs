@@ -124,7 +124,7 @@ public sealed class McpToolServiceTests
         await using var client = new NamedPipeClientStream(".", pipeName, PipeDirection.InOut, PipeOptions.Asynchronous);
         await client.ConnectAsync(5000, ct);
 
-        var bytes = JsonSerializer.SerializeToUtf8Bytes(request, McpToolService.WireJsonOptions);
+        var bytes = JsonSerializer.SerializeToUtf8Bytes(request, McpToolService.WorkerJsonOptions);
         await PipeFraming.WriteMessageAsync(client, bytes, ct);
 
         var responseBytes = await PipeFraming.ReadMessageAsync(client, ct);

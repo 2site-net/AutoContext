@@ -1,20 +1,20 @@
-namespace AutoContext.Mcp.Server.Pipe;
+namespace AutoContext.Mcp.Server.Workers.Transport;
 
 using System.IO.Pipes;
 using System.Text.Json;
 
-using AutoContext.Mcp.Server.Wire;
+using AutoContext.Mcp.Server.Workers.Protocol;
 using AutoContext.Worker.Hosting;
 
 /// <summary>
 /// Writes one per-task wire request to a worker pipe and reads one wire
 /// response. Enforces a single client-side wait deadline guarding against
 /// a hung or dead worker. Any failure (connect, write, read, parse,
-/// timeout, EOF) is mapped to an error <see cref="TaskWireResponse"/>
+/// timeout, EOF) is mapped to an error <see cref="TaskResponse"/>
 /// rather than thrown — callers compose these into the per-task entries
 /// of the uniform tool-result envelope.
 /// </summary>
-public sealed class WorkerPipeClient
+public sealed class WorkerClient
 {
     /// <summary>Default wait deadline for connect + read.</summary>
     public static readonly TimeSpan DefaultWaitDeadline = TimeSpan.FromSeconds(30);
@@ -22,22 +22,22 @@ public sealed class WorkerPipeClient
     private readonly TimeSpan _waitDeadline;
     private readonly EndpointOptions _endpoints;
 
-    public WorkerPipeClient()
+    public WorkerClient()
         : this(DefaultWaitDeadline, new EndpointOptions())
     {
     }
 
-    public WorkerPipeClient(TimeSpan waitDeadline)
+    public WorkerClient(TimeSpan waitDeadline)
         : this(waitDeadline, new EndpointOptions())
     {
     }
 
-    public WorkerPipeClient(EndpointOptions endpoints)
+    public WorkerClient(EndpointOptions endpoints)
         : this(DefaultWaitDeadline, endpoints)
     {
     }
 
-    public WorkerPipeClient(TimeSpan waitDeadline, EndpointOptions endpoints)
+    public WorkerClient(TimeSpan waitDeadline, EndpointOptions endpoints)
     {
         if (waitDeadline <= TimeSpan.Zero)
         {
@@ -59,9 +59,9 @@ public sealed class WorkerPipeClient
     /// describing the pipe failure. Never throws for IO/timeout/parse
     /// failures; only throws for caller-side argument errors.
     /// </summary>
-    public async Task<TaskWireResponse> InvokeAsync(
+    public async Task<TaskResponse> InvokeAsync(
         string endpoint,
-        TaskWireRequest request,
+        TaskRequest request,
         CancellationToken ct)
     {
         ArgumentException.ThrowIfNullOrEmpty(endpoint);
@@ -114,9 +114,9 @@ public sealed class WorkerPipeClient
         }
     }
 
-    private static async Task<TaskWireResponse> InvokeCoreAsync(
+    private static async Task<TaskResponse> InvokeCoreAsync(
         string endpoint,
-        TaskWireRequest request,
+        TaskRequest request,
         CancellationToken token)
     {
         var pipe = new NamedPipeClientStream(
@@ -131,7 +131,7 @@ public sealed class WorkerPipeClient
 
             var requestBytes = JsonSerializer.SerializeToUtf8Bytes(
                 request,
-                WireJsonOptions.Instance);
+                WorkerJsonOptions.Instance);
 
             await PipeFraming.WriteMessageAsync(pipe, requestBytes, token).ConfigureAwait(false);
 
@@ -144,9 +144,9 @@ public sealed class WorkerPipeClient
                     $"Worker on '{endpoint}' closed the pipe before sending a response.");
             }
 
-            var response = JsonSerializer.Deserialize<TaskWireResponse>(
+            var response = JsonSerializer.Deserialize<TaskResponse>(
                 responseBytes,
-                WireJsonOptions.Instance);
+                WorkerJsonOptions.Instance);
 
             if (response is null)
             {
@@ -159,10 +159,10 @@ public sealed class WorkerPipeClient
         }
     }
 
-    private static TaskWireResponse ErrorResponse(string mcpTask, string message) => new()
+    private static TaskResponse ErrorResponse(string mcpTask, string message) => new()
     {
         McpTask = mcpTask,
-        Status = TaskWireResponse.StatusError,
+        Status = TaskResponse.StatusError,
         Output = null,
         Error = message,
     };
