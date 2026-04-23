@@ -1,11 +1,11 @@
-namespace AutoContext.Mcp.Server.Tests.Workers.Transport;
+namespace AutoContext.Mcp.Server.Tests.Workers;
 
 using System.Collections.Frozen;
 using System.IO.Pipes;
 using System.Text.Json;
 
-using AutoContext.Mcp.Server.Workers.Transport;
 using AutoContext.Mcp.Server.Tests.Testing.Utils;
+using AutoContext.Mcp.Server.Workers;
 using AutoContext.Mcp.Server.Workers.Protocol;
 using AutoContext.Worker.Hosting;
 

@@ -1,9 +1,10 @@
-namespace AutoContext.Mcp.Server.Workers.Transport;
+namespace AutoContext.Mcp.Server.Workers;
 
 using System.IO.Pipes;
 using System.Text.Json;
 
 using AutoContext.Mcp.Server.Workers.Protocol;
+using AutoContext.Mcp.Server.Workers.Transport;
 using AutoContext.Worker.Hosting;
 
 /// <summary>

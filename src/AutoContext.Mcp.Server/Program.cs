@@ -1,10 +1,12 @@
 namespace AutoContext.Mcp.Server;
 
-using AutoContext.Mcp.Server.Tools.Invocation;
 using AutoContext.Mcp.Server.EditorConfig;
 using AutoContext.Mcp.Server.Hosting;
-using AutoContext.Mcp.Server.Workers.Transport;
 using AutoContext.Mcp.Server.Registry;
+using AutoContext.Mcp.Server.Tools;
+using AutoContext.Mcp.Server.Tools.Invocation;
+using AutoContext.Mcp.Server.Workers;
+using AutoContext.Mcp.Server.Workers.Transport;
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -67,7 +69,7 @@ internal static class Program
         builder.Services.AddSingleton<WorkerClient>();
         builder.Services.AddSingleton<EditorConfigBatcher>();
         builder.Services.AddSingleton<ToolInvoker>();
-        builder.Services.AddSingleton<McpToolRegistry>();
+        builder.Services.AddSingleton<McpSdkAdapter>();
 
         builder.Services.AddHostedService(_ => new ReadyMarkerService(ReadyMarker));
 
@@ -75,9 +77,9 @@ internal static class Program
             .AddMcpServer()
             .WithStdioServerTransport()
             .WithListToolsHandler((ctx, ct) =>
-                ctx.Server.Services!.GetRequiredService<McpToolRegistry>().HandleListToolsAsync(ctx, ct))
+                ctx.Server.Services!.GetRequiredService<McpSdkAdapter>().HandleListToolsAsync(ctx, ct))
             .WithCallToolHandler((ctx, ct) =>
-                ctx.Server.Services!.GetRequiredService<McpToolRegistry>().HandleCallToolAsync(ctx, ct));
+                ctx.Server.Services!.GetRequiredService<McpSdkAdapter>().HandleCallToolAsync(ctx, ct));
 
         await builder.Build().RunAsync().ConfigureAwait(false);
 

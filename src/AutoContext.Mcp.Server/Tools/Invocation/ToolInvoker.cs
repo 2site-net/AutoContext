@@ -5,9 +5,9 @@ using System.Diagnostics;
 using System.Text.Json;
 
 using AutoContext.Mcp.Server.EditorConfig;
-using AutoContext.Mcp.Server.Tools.Results;
-using AutoContext.Mcp.Server.Workers.Transport;
 using AutoContext.Mcp.Server.Registry;
+using AutoContext.Mcp.Server.Tools.Results;
+using AutoContext.Mcp.Server.Workers;
 using AutoContext.Mcp.Server.Workers.Protocol;
 
 /// <summary>

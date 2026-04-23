@@ -1,7 +1,8 @@
-namespace AutoContext.Mcp.Server.Registry;
+namespace AutoContext.Mcp.Server.Tools;
 
 using System.Text.Json;
 
+using AutoContext.Mcp.Server.Registry;
 using AutoContext.Mcp.Server.Tools.Invocation;
 
 using ModelContextProtocol;
@@ -23,12 +24,12 @@ using ModelContextProtocol.Server;
 /// list/call handlers expose the <see cref="Tool.InputSchema"/> setter
 /// directly, so we drive both endpoints from the registry.
 /// </remarks>
-public sealed class McpToolRegistry
+public sealed class McpSdkAdapter
 {
     private readonly IReadOnlyList<Tool> _tools;
     private readonly IReadOnlyDictionary<string, ToolHandler> _handlers;
 
-    public McpToolRegistry(McpWorkersCatalog registry, ToolInvoker invoker)
+    public McpSdkAdapter(McpWorkersCatalog registry, ToolInvoker invoker)
     {
         ArgumentNullException.ThrowIfNull(registry);
         ArgumentNullException.ThrowIfNull(invoker);

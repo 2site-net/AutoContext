@@ -3,9 +3,9 @@ namespace AutoContext.Mcp.Server.Tests.EditorConfig;
 using System.Text.Json;
 
 using AutoContext.Mcp.Server.EditorConfig;
-using AutoContext.Mcp.Server.Workers.Transport;
 using AutoContext.Mcp.Server.Registry;
 using AutoContext.Mcp.Server.Tests.Testing.Utils;
+using AutoContext.Mcp.Server.Workers;
 using AutoContext.Mcp.Server.Workers.Protocol;
 
 public sealed class EditorConfigBatcherTests

@@ -3,12 +3,12 @@ namespace AutoContext.Mcp.Server.Tests.Tools.Invocation;
 using System.Collections.Concurrent;
 using System.Text.Json;
 
-using AutoContext.Mcp.Server.Tools.Invocation;
 using AutoContext.Mcp.Server.EditorConfig;
-using AutoContext.Mcp.Server.Tools.Results;
 using AutoContext.Mcp.Server.Registry;
-using AutoContext.Mcp.Server.Workers.Transport;
 using AutoContext.Mcp.Server.Tests.Testing.Utils;
+using AutoContext.Mcp.Server.Tools.Invocation;
+using AutoContext.Mcp.Server.Tools.Results;
+using AutoContext.Mcp.Server.Workers;
 using AutoContext.Mcp.Server.Workers.Protocol;
 
 public sealed class ToolInvokerTests
