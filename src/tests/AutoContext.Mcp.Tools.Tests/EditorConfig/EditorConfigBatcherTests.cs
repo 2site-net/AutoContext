@@ -3,8 +3,8 @@ namespace AutoContext.Mcp.Tools.Tests.EditorConfig;
 using System.Text.Json;
 
 using AutoContext.Mcp.Tools.EditorConfig;
-using AutoContext.Mcp.Tools.Manifest;
 using AutoContext.Mcp.Tools.Pipe;
+using AutoContext.Mcp.Tools.Registry;
 using AutoContext.Mcp.Tools.Tests.Testing.Utils;
 using AutoContext.Mcp.Tools.Wire;
 
@@ -23,7 +23,7 @@ public sealed class EditorConfigBatcherTests
         // Arrange
         var client = new WorkerPipeClient(TimeSpan.FromSeconds(1));
         var batcher = new EditorConfigBatcher(client, "autocontext-test-unbound");
-        var tasks = new ManifestTask[]
+        var tasks = new McpTaskDefinition[]
         {
             BuildTask("task_a"),
             BuildTask("task_b"),
@@ -266,10 +266,9 @@ public sealed class EditorConfigBatcherTests
             () => Assert.Throws<ArgumentException>(() => new EditorConfigBatcher(new WorkerPipeClient(), string.Empty)));
     }
 
-    private static ManifestTask BuildTask(string name, params string[] keys) => new()
+    private static McpTaskDefinition BuildTask(string name, params string[] keys) => new()
     {
         Name = name,
-        Version = "1.0.0",
         EditorConfig = keys,
     };
 }

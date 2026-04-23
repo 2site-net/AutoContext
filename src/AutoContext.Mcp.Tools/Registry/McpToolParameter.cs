@@ -1,9 +1,9 @@
-namespace AutoContext.Mcp.Tools.Manifest;
+namespace AutoContext.Mcp.Tools.Registry;
 
 /// <summary>
 /// One parameter inside an MCP Tool's input schema.
 /// </summary>
-public sealed record ManifestParameter
+public sealed record McpToolParameter
 {
     /// <summary>JSON Schema primitive type (e.g. <c>"string"</c>, <c>"number"</c>).</summary>
     public required string Type { get; init; }

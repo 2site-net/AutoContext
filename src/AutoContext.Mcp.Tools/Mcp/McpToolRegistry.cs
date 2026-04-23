@@ -3,39 +3,39 @@ namespace AutoContext.Mcp.Tools.Mcp;
 using System.Text.Json;
 
 using AutoContext.Mcp.Tools.Dispatch;
-using AutoContext.Mcp.Tools.Manifest;
+using AutoContext.Mcp.Tools.Registry;
 
 using ModelContextProtocol;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 
 /// <summary>
-/// Adapter between the manifest-driven dispatch layer
+/// Adapter between the registry-driven dispatch layer
 /// (<see cref="ToolDelegateFactory"/> + <see cref="ToolHandler"/>) and
 /// the MCP SDK's <see cref="WithListToolsHandler"/> /
 /// <see cref="WithCallToolHandler"/> request handlers.
 /// </summary>
 /// <remarks>
-/// The architecture's invariant — fully manifest-driven tool registration,
+/// The architecture's invariant — fully registry-driven tool registration,
 /// no <c>[McpServerTool]</c> bridge classes — is preserved. We can't use
 /// <c>McpServerTool.Create(Delegate, ...)</c> because that derives the
 /// advertised <c>inputSchema</c> from the delegate's method signature,
 /// which is incompatible with our data-driven schema. The protocol-level
 /// list/call handlers expose the <see cref="Tool.InputSchema"/> setter
-/// directly, so we drive both endpoints from the manifest.
+/// directly, so we drive both endpoints from the registry.
 /// </remarks>
 public sealed class McpToolRegistry
 {
     private readonly IReadOnlyList<Tool> _tools;
     private readonly IReadOnlyDictionary<string, ToolHandler> _handlers;
 
-    public McpToolRegistry(Manifest manifest, ToolInvoker invoker)
+    public McpToolRegistry(McpWorkersCatalog registry, ToolInvoker invoker)
     {
-        ArgumentNullException.ThrowIfNull(manifest);
+        ArgumentNullException.ThrowIfNull(registry);
         ArgumentNullException.ThrowIfNull(invoker);
 
-        _handlers = ToolDelegateFactory.Build(manifest, invoker);
-        _tools = BuildProtocolTools(manifest);
+        _handlers = ToolDelegateFactory.Build(registry, invoker);
+        _tools = BuildProtocolTools(registry);
     }
 
     /// <summary>Handler for <c>tools/list</c>.</summary>
@@ -81,23 +81,20 @@ public sealed class McpToolRegistry
         };
     }
 
-    private static List<Tool> BuildProtocolTools(Manifest manifest)
+    private static List<Tool> BuildProtocolTools(McpWorkersCatalog registry)
     {
         var tools = new List<Tool>();
 
-        foreach (var groups in manifest.Workers.Values)
+        foreach (var worker in registry.Workers)
         {
-            foreach (var group in groups)
+            foreach (var tool in worker.Tools)
             {
-                foreach (var tool in group.Tools)
+                tools.Add(new Tool
                 {
-                    tools.Add(new Tool
-                    {
-                        Name = tool.Definition.Name,
-                        Description = tool.Definition.Description,
-                        InputSchema = InputSchemaBuilder.Build(tool.Definition.Parameters),
-                    });
-                }
+                    Name = tool.Name,
+                    Description = tool.Description,
+                    InputSchema = InputSchemaBuilder.Build(tool.Parameters),
+                });
             }
         }
 

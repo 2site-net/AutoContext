@@ -1,0 +1,119 @@
+{
+    "schemaVersion": "1",
+    "tools": [
+        {
+            "category": ".NET",
+            "description": "Code-quality and dependency-hygiene tools for .NET projects.",
+            "definitions": [
+                {
+                    "name": "analyze_csharp_code",
+                    "category": "C#",
+                    "description": "Analyzes a C# source file for style, naming, async/await patterns, nullable safety, and structural issues.",
+                    "workspaceFlags": [
+                        "hasCSharp"
+                    ],
+                    "tasks": [
+                        {
+                            "name": "analyze_csharp_async_patterns",
+                            "description": "Enforces async/await rules from dotnet-async-await.instructions.md: no async void (except event handlers), public async APIs require a CancellationToken parameter, and await expressions in non-test code use .ConfigureAwait(false)."
+                        },
+                        {
+                            "name": "analyze_csharp_coding_style",
+                            "description": "Enforces code-style rules from lang-csharp.instructions.md: no regions or decorative comments, mandatory braces, blank lines before control flow, expression-body arrow placement, XML doc comments on public and protected members, System.* using ordering, and expression-body style for methods and properties."
+                        },
+                        {
+                            "name": "analyze_csharp_member_ordering",
+                            "description": "Enforces type member ordering from lang-csharp.instructions.md: by member kind, then by access level, then static-before-instance."
+                        },
+                        {
+                            "name": "analyze_csharp_naming_conventions",
+                            "description": "Enforces naming conventions from lang-csharp.instructions.md and dotnet-coding-standards.instructions.md: I prefix on interfaces, Extensions suffix on extension classes, Async suffix on async methods, _camelCase for private instance fields, PascalCase for types, methods, properties, and events, and camelCase for parameters."
+                        },
+                        {
+                            "name": "analyze_csharp_nullable_context",
+                            "description": "Enforces nullable-safety rules from lang-csharp.instructions.md: no #nullable disable directives, and no use of the null-forgiving (!) operator to suppress warnings."
+                        },
+                        {
+                            "name": "analyze_csharp_project_structure",
+                            "description": "Enforces project-structure rules from dotnet-coding-standards.instructions.md: file-scoped namespaces, single type per file, file name matches type name, and no #pragma warning disable."
+                        },
+                        {
+                            "name": "analyze_csharp_test_style",
+                            "description": "Enforces test-style rules from testing.instructions.md and dotnet-xunit.instructions.md: test class and method naming, no XML doc comments, Assert.Multiple for multi-assertion tests, no ConfigureAwait, and structure mirroring (file name, namespace) against the production project."
+                        }
+                    ]
+                },
+                {
+                    "name": "analyze_nuget_references",
+                    "category": "NuGet",
+                    "description": "Analyzes NuGet package references for hygiene issues.",
+                    "workspaceFlags": [
+                        "hasDotNet"
+                    ],
+                    "tasks": [
+                        {
+                            "name": "analyze_nuget_hygiene",
+                            "description": "Enforces NuGet hygiene rules from dotnet-nuget.instructions.md: no duplicate PackageReference entries, no floating or wildcard versions, no PackageReference without a Version attribute (unless Central Package Management is in use), and flags packages that have a built-in .NET equivalent."
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "category": "Workspace",
+            "description": "Repository-level tools that operate on Git history and EditorConfig settings, independent of any specific language.",
+            "definitions": [
+                {
+                    "name": "analyze_git_commit_message",
+                    "category": "Git",
+                    "description": "Validates a Git commit message against project conventions for format and content.",
+                    "workspaceFlags": [
+                        "hasGit"
+                    ],
+                    "tasks": [
+                        {
+                            "name": "analyze_git_commit_format",
+                            "description": "Enforces commit-format rules from git-commit-format.instructions.md: Conventional Commits structure (type, scope, subject) and line-length limits."
+                        },
+                        {
+                            "name": "analyze_git_commit_content",
+                            "description": "Enforces commit-content rules from git-commit-format.instructions.md: detects anti-patterns in the message body — vague summaries, repeated bullets, change-log spam, and similar low-signal content."
+                        }
+                    ]
+                },
+                {
+                    "name": "read_editorconfig_properties",
+                    "category": "EditorConfig",
+                    "description": "Resolves the effective .editorconfig properties that apply to a specific file.",
+                    "workspaceFlags": [],
+                    "tasks": [
+                        {
+                            "name": "get_editorconfig_rules",
+                            "description": "Resolves effective .editorconfig properties for a given file path by walking the directory tree, evaluating glob patterns, and applying section cascading."
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "category": "Web",
+            "description": "Code-quality tools for web stacks.",
+            "definitions": [
+                {
+                    "name": "analyze_typescript_code",
+                    "category": "TypeScript",
+                    "description": "Analyzes a TypeScript source file for coding-style issues.",
+                    "workspaceFlags": [
+                        "hasTypeScript"
+                    ],
+                    "tasks": [
+                        {
+                            "name": "analyze_typescript_coding_style",
+                            "description": "Enforces TypeScript coding-style rules from lang-typescript.instructions.md: no any, no enums, no @ts-ignore, no type assertions, no non-null assertions, no unconstrained generics, and no Function/Object/{} types."
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}

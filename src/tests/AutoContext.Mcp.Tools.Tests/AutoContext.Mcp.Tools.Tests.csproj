@@ -23,7 +23,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include="..\..\AutoContext.Mcp.Tools\.mcp-tools.json" LogicalName="AutoContext.Mcp.Tools.Tests.real-manifest.json" />
+    <EmbeddedResource Include="..\..\AutoContext.Mcp.Tools\mcp-workers-registry.json" LogicalName="mcp-workers-registry.json" />
   </ItemGroup>
 
 </Project>

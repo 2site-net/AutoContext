@@ -5,7 +5,7 @@ using System.Text.Json;
 using AutoContext.Mcp.Tools.Dispatch;
 using AutoContext.Mcp.Tools.EditorConfig;
 using AutoContext.Mcp.Tools.Envelope;
-using AutoContext.Mcp.Tools.Manifest;
+using AutoContext.Mcp.Tools.Registry;
 using AutoContext.Mcp.Tools.Pipe;
 using AutoContext.Mcp.Tools.Tests.Testing.Utils;
 using AutoContext.Mcp.Tools.Wire;
@@ -13,16 +13,16 @@ using AutoContext.Mcp.Tools.Wire;
 public sealed class ToolDelegateFactoryTests
 {
     [Fact]
-    public void Should_build_delegate_per_tool_keyed_by_definition_name()
+    public void Should_build_delegate_per_tool_keyed_by_name()
     {
         // Arrange
-        var manifest = BuildManifest(
-            ("group_a", [BuildTool("tool_one", "task_one")]),
-            ("group_b", [BuildTool("tool_two", "task_two")]));
+        var registry = BuildCatalog(
+            ("AutoContext.Worker.Alpha", "autocontext.worker-alpha", [BuildTool("tool_one", "task_one")]),
+            ("AutoContext.Worker.Beta", "autocontext.worker-beta", [BuildTool("tool_two", "task_two")]));
         var invoker = BuildInvoker();
 
         // Act
-        var delegates = ToolDelegateFactory.Build(manifest, invoker);
+        var delegates = ToolDelegateFactory.Build(registry, invoker);
 
         // Assert
         Assert.Multiple(
@@ -35,13 +35,13 @@ public sealed class ToolDelegateFactoryTests
     public void Should_throw_on_duplicate_tool_names()
     {
         // Arrange
-        var manifest = BuildManifest(
-            ("group_a", [BuildTool("dup_tool", "task_a")]),
-            ("group_b", [BuildTool("dup_tool", "task_b")]));
+        var registry = BuildCatalog(
+            ("AutoContext.Worker.Alpha", "autocontext.worker-alpha", [BuildTool("dup_tool", "task_a")]),
+            ("AutoContext.Worker.Beta", "autocontext.worker-beta", [BuildTool("dup_tool", "task_b")]));
         var invoker = BuildInvoker();
 
         // Act + Assert
-        Assert.Throws<InvalidOperationException>(() => ToolDelegateFactory.Build(manifest, invoker));
+        Assert.Throws<InvalidOperationException>(() => ToolDelegateFactory.Build(registry, invoker));
     }
 
     [Fact]
@@ -49,9 +49,8 @@ public sealed class ToolDelegateFactoryTests
     {
         // Arrange
         var endpoint = PipeServerHarness.UniqueEndpoint();
-        var manifest = BuildManifest(
-            ("group_a", [BuildTool("invoke_tool", "task_x")]),
-            endpoint);
+        var registry = BuildCatalog(
+            ("AutoContext.Worker.Alpha", endpoint, [BuildTool("invoke_tool", "task_x")]));
         var pipeClient = new WorkerPipeClient(TimeSpan.FromSeconds(5));
         var batcher = new EditorConfigBatcher(pipeClient, "autocontext-test-workspace-unused");
         var invoker = new ToolInvoker(pipeClient, batcher);
@@ -76,7 +75,7 @@ public sealed class ToolDelegateFactoryTests
             },
             ct: TestContext.Current.CancellationToken);
 
-        var delegates = ToolDelegateFactory.Build(manifest, invoker);
+        var delegates = ToolDelegateFactory.Build(registry, invoker);
         var data = JsonSerializer.SerializeToElement(new { }, WireJsonOptions.Instance);
 
         // Act
@@ -102,75 +101,43 @@ public sealed class ToolDelegateFactoryTests
         return new ToolInvoker(pipeClient, batcher);
     }
 
-    private static Manifest BuildManifest(
-        params (string Name, IReadOnlyList<ManifestTool> Tools)[] groups) =>
-        BuildManifest(groups, endpoint: "autocontext-test-unused");
-
-    private static Manifest BuildManifest(
-        (string Name, IReadOnlyList<ManifestTool> Tools) singleGroup,
-        string endpoint) =>
-        BuildManifest([singleGroup], endpoint);
-
-    private static Manifest BuildManifest(
-        (string Name, IReadOnlyList<ManifestTool> Tools)[] groups,
-        string endpoint)
+    private static McpWorkersCatalog BuildCatalog(
+        params (string Name, string Endpoint, IReadOnlyList<McpToolDefinition> Definitions)[] workers)
     {
-        var manifestGroups = new List<ManifestGroup>(groups.Length);
+        var list = new List<McpWorker>(workers.Length);
 
-        foreach (var (name, tools) in groups)
+        foreach (var (name, endpoint, definitions) in workers)
         {
-            var taskNames = new HashSet<string>(StringComparer.Ordinal);
-
-            foreach (var tool in tools)
+            list.Add(new McpWorker
             {
-                foreach (var taskName in tool.Tasks)
-                {
-                    taskNames.Add(taskName);
-                }
-            }
-
-            var tasks = new List<ManifestTask>(taskNames.Count);
-
-            foreach (var taskName in taskNames)
-            {
-                tasks.Add(new ManifestTask
-                {
-                    Name = taskName,
-                    Version = "1.0.0",
-                    Priority = 0,
-                });
-            }
-
-            manifestGroups.Add(new ManifestGroup
-            {
-                Tag = name,
-                Description = "Test group.",
+                Name = name,
                 Endpoint = endpoint,
-                Tools = tools,
-                Tasks = tasks,
+                Tools = definitions,
             });
         }
 
-        return new Manifest
+        return new McpWorkersCatalog
         {
             SchemaVersion = "1",
-            Workers = new Dictionary<string, IReadOnlyList<ManifestGroup>>(StringComparer.Ordinal)
-            {
-                ["test"] = manifestGroups,
-            },
+            Workers = list,
         };
     }
 
-    private static ManifestTool BuildTool(string name, params string[] tasks) => new()
+    private static McpToolDefinition BuildTool(string name, params string[] taskNames)
     {
-        Tag = "test-tool",
-        Description = "Test tool.",
-        Definition = new ManifestToolDefinition
+        var tasks = new List<McpTaskDefinition>(taskNames.Length);
+
+        foreach (var taskName in taskNames)
+        {
+            tasks.Add(new McpTaskDefinition { Name = taskName });
+        }
+
+        return new McpToolDefinition
         {
             Name = name,
-            Description = "Test definition.",
-            Parameters = new Dictionary<string, ManifestParameter>(StringComparer.Ordinal),
-        },
-        Tasks = tasks,
-    };
+            Description = "Test tool.",
+            Parameters = new Dictionary<string, McpToolParameter>(StringComparer.Ordinal),
+            Tasks = tasks,
+        };
+    }
 }

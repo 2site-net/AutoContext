@@ -4,26 +4,26 @@ using System.IO;
 using System.Reflection;
 
 /// <summary>
-/// Provides the raw <c>.mcp-tools.json</c> JSON text. Decoupled from any
-/// concrete loading strategy (embedded resource, disk, in-memory) so tests
-/// can inject a synthetic manifest.
+/// Provides the raw <c>mcp-workers-registry.json</c> JSON text. Decoupled from
+/// any concrete loading strategy (embedded resource, disk, in-memory) so tests
+/// can inject a synthetic registry.
 /// </summary>
-public interface IManifestSource
+public interface IRegistrySource
 {
-    /// <summary>The raw, unparsed manifest JSON.</summary>
+    /// <summary>The raw, unparsed registry JSON.</summary>
     string Json { get; }
 }
 
 /// <summary>
-/// Loads <c>.mcp-tools.json</c> from this assembly's embedded resources.
+/// Loads <c>mcp-workers-registry.json</c> from this assembly's embedded resources.
 /// </summary>
-public sealed class EmbeddedManifestSource : IManifestSource
+public sealed class RegistryEmbeddedResource : IRegistrySource
 {
-    private const string EmbeddedResourceName = "AutoContext.Mcp.Tools.mcp-tools.json";
+    private const string EmbeddedResourceName = "AutoContext.Mcp.Tools.mcp-workers-registry.json";
 
-    public EmbeddedManifestSource()
+    public RegistryEmbeddedResource()
     {
-        var assembly = typeof(EmbeddedManifestSource).Assembly;
+        var assembly = typeof(RegistryEmbeddedResource).Assembly;
         Json = ReadResource(assembly, EmbeddedResourceName);
     }
 

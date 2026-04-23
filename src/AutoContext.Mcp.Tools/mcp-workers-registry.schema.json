@@ -1,0 +1,153 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://autocontext.dev/schemas/mcp-workers-registry.schema.json",
+    "title": "AutoContext MCP Tools registry",
+    "description": "Execution registry: worker entries with pipe endpoints, the MCP Tools each worker exposes, and the MCP Tasks each tool dispatches.",
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+        "schemaVersion",
+        "workers"
+    ],
+    "properties": {
+        "$schema": {
+            "type": "string",
+            "description": "Path or URL to this schema file. Enables editor IntelliSense."
+        },
+        "schemaVersion": {
+            "type": "string",
+            "const": "1",
+            "description": "Registry format version. Bumped on breaking changes."
+        },
+        "workers": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+                "$ref": "#/$defs/worker"
+            },
+            "description": "Worker entries \u2014 one per AutoContext.Worker.* process."
+        }
+    },
+    "$defs": {
+        "worker": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+                "name",
+                "endpoint",
+                "tools"
+            ],
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "pattern": "^AutoContext\\.Worker\\.[A-Z][A-Za-z0-9]*$",
+                    "description": "Full project name (e.g. 'AutoContext.Worker.DotNet')."
+                },
+                "endpoint": {
+                    "type": "string",
+                    "pattern": "^[a-z0-9][a-z0-9.-]*$",
+                    "description": "Transport-agnostic endpoint identifier (today: a Windows named pipe name in kebab-case)."
+                },
+                "tools": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                        "$ref": "#/$defs/toolDefinition"
+                    },
+                    "description": "MCP Tool definitions exposed by this worker."
+                }
+            }
+        },
+        "toolDefinition": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+                "name",
+                "description",
+                "parameters",
+                "tasks"
+            ],
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "pattern": "^[a-z][a-z0-9_]*$",
+                    "description": "MCP Tool name (snake_case). Unique across the whole registry."
+                },
+                "description": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "MCP Tool description shown to Copilot."
+                },
+                "parameters": {
+                    "type": "object",
+                    "minProperties": 1,
+                    "additionalProperties": {
+                        "$ref": "#/$defs/parameter"
+                    },
+                    "propertyNames": {
+                        "pattern": "^[a-z][a-zA-Z0-9]*$"
+                    },
+                    "description": "Parameter map (camelCase names) \u2192 parameter spec."
+                },
+                "tasks": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                        "$ref": "#/$defs/task"
+                    },
+                    "description": "MCP Tasks dispatched when this tool is invoked."
+                }
+            }
+        },
+        "parameter": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+                "type",
+                "description"
+            ],
+            "properties": {
+                "type": {
+                    "type": "string",
+                    "enum": [
+                        "string",
+                        "number",
+                        "boolean",
+                        "array",
+                        "object"
+                    ]
+                },
+                "description": {
+                    "type": "string",
+                    "minLength": 1
+                },
+                "required": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "task": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+                "name"
+            ],
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "pattern": "^[a-z][a-z0-9_]*$",
+                    "description": "MCP Task identifier (snake_case)."
+                },
+                "editorconfig": {
+                    "type": "array",
+                    "uniqueItems": true,
+                    "items": {
+                        "type": "string",
+                        "pattern": "^[a-z][a-z0-9_]*$"
+                    },
+                    "description": "EditorConfig keys this task consumes."
+                }
+            }
+        }
+    }
+}

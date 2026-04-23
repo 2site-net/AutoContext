@@ -1,14 +1,14 @@
-namespace AutoContext.Mcp.Tools.Manifest;
+namespace AutoContext.Mcp.Tools.Registry;
 
 /// <summary>
-/// Outcome of validating a <see cref="Manifest"/> via <see cref="ManifestValidator"/>.
+/// Outcome of validating a <see cref="McpWorkersCatalog"/> via <see cref="RegistrySchemeValidator"/>.
 /// </summary>
-public sealed record ManifestValidationResult
+public sealed record RegistrySchemeValidatorResult
 {
     /// <summary>
     /// Creates a new validation result.
     /// </summary>
-    public ManifestValidationResult(IReadOnlyList<string> errors)
+    public RegistrySchemeValidatorResult(IReadOnlyList<string> errors)
     {
         ArgumentNullException.ThrowIfNull(errors);
         Errors = errors;

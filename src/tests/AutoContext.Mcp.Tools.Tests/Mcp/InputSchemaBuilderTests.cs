@@ -3,8 +3,8 @@ namespace AutoContext.Mcp.Tools.Tests.Mcp;
 using System.Collections.Generic;
 using System.Text.Json;
 
-using AutoContext.Mcp.Tools.Manifest;
 using AutoContext.Mcp.Tools.Mcp;
+using AutoContext.Mcp.Tools.Registry;
 
 public sealed class InputSchemaBuilderTests
 {
@@ -12,7 +12,7 @@ public sealed class InputSchemaBuilderTests
     public void Should_emit_object_root_with_typed_properties()
     {
         // Arrange
-        var parameters = new Dictionary<string, ManifestParameter>
+        var parameters = new Dictionary<string, McpToolParameter>
         {
             ["content"] = new()
             {
@@ -40,7 +40,7 @@ public sealed class InputSchemaBuilderTests
     public void Should_emit_all_parameter_names()
     {
         // Arrange
-        var parameters = new Dictionary<string, ManifestParameter>
+        var parameters = new Dictionary<string, McpToolParameter>
         {
             ["c"] = new() { Type = "number", Description = "C", Required = true },
             ["b"] = new() { Type = "string", Description = "B" },
@@ -62,7 +62,7 @@ public sealed class InputSchemaBuilderTests
     public void Should_omit_required_array_when_no_parameter_is_required()
     {
         // Arrange
-        var parameters = new Dictionary<string, ManifestParameter>
+        var parameters = new Dictionary<string, McpToolParameter>
         {
             ["x"] = new() { Type = "string", Description = "X" },
         };
@@ -78,7 +78,7 @@ public sealed class InputSchemaBuilderTests
     public void Should_emit_empty_properties_object_when_parameters_are_empty()
     {
         // Arrange
-        var parameters = new Dictionary<string, ManifestParameter>();
+        var parameters = new Dictionary<string, McpToolParameter>();
 
         // Act
         var schema = InputSchemaBuilder.Build(parameters);

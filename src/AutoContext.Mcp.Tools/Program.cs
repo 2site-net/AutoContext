@@ -3,8 +3,8 @@ namespace AutoContext.Mcp.Tools;
 using AutoContext.Mcp.Tools.Dispatch;
 using AutoContext.Mcp.Tools.EditorConfig;
 using AutoContext.Mcp.Tools.Hosting;
-using AutoContext.Mcp.Tools.Manifest;
 using AutoContext.Mcp.Tools.Mcp;
+using AutoContext.Mcp.Tools.Registry;
 using AutoContext.Mcp.Tools.Pipe;
 
 using Microsoft.Extensions.DependencyInjection;
@@ -13,12 +13,9 @@ using Microsoft.Extensions.Logging;
 
 /// <summary>
 /// <c>AutoContext.Mcp.Tools</c> entry point. Standalone process that
-/// loads the embedded <c>.mcp-tools.json</c> manifest, exposes every
-/// declared MCP Tool over MCP/stdio (dispatching each call to the
-/// appropriate <c>AutoContext.Worker.*</c> over a named pipe), and serves
-/// the manifest itself over the
-/// <see cref="ManifestPipeService.DefaultPipeName"/> named pipe so other
-/// processes (the VS Code extension, CLI, tests) can read it.
+/// loads the embedded <c>mcp-workers-registry.json</c> registry and exposes
+/// every declared MCP Tool over MCP/stdio (dispatching each call to the
+/// appropriate <c>AutoContext.Worker.*</c> over a named pipe).
 /// </summary>
 /// <remarks>
 /// Accepts one optional switch: <c>--endpoint-suffix &lt;value&gt;</c>.
@@ -35,13 +32,13 @@ internal static class Program
     {
         var endpoints = new EndpointOptions { Suffix = ParseEndpointSuffix(args) };
 
-        var manifestSource = new EmbeddedManifestSource();
-        var manifest = ManifestLoader.Parse(manifestSource.Json);
-        var validation = ManifestValidator.Validate(manifestSource.Json, manifest);
+        var registrySource = new RegistryEmbeddedResource();
+        var registry = RegistryLoader.Parse(registrySource.Json);
+        var validation = RegistrySchemeValidator.Validate(registrySource.Json, registry);
 
         if (!validation.IsValid)
         {
-            await Console.Error.WriteLineAsync("[AutoContext.Mcp.Tools] Manifest validation failed:")
+            await Console.Error.WriteLineAsync("[AutoContext.Mcp.Tools] Registry validation failed:")
                 .ConfigureAwait(false);
 
             foreach (var error in validation.Errors)
@@ -65,15 +62,14 @@ internal static class Program
         // Core graph wired through DI so the host disposes anything
         // that becomes IDisposable in the future and tests can swap
         // implementations without rewriting Main.
-        builder.Services.AddSingleton<IManifestSource>(manifestSource);
-        builder.Services.AddSingleton(manifest);
+        builder.Services.AddSingleton<IRegistrySource>(registrySource);
+        builder.Services.AddSingleton(registry);
         builder.Services.AddSingleton(endpoints);
         builder.Services.AddSingleton<WorkerPipeClient>();
         builder.Services.AddSingleton<EditorConfigBatcher>();
         builder.Services.AddSingleton<ToolInvoker>();
         builder.Services.AddSingleton<McpToolRegistry>();
 
-        builder.Services.AddHostedService<ManifestPipeService>();
         builder.Services.AddHostedService(_ => new ReadyMarkerService(ReadyMarker));
 
         builder.Services

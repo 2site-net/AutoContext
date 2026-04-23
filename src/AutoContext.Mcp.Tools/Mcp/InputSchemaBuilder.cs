@@ -3,10 +3,10 @@ namespace AutoContext.Mcp.Tools.Mcp;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
-using AutoContext.Mcp.Tools.Manifest;
+using AutoContext.Mcp.Tools.Registry;
 
 /// <summary>
-/// Translates a manifest's <see cref="ManifestParameter"/> map into the
+/// Translates a registry's <see cref="McpToolParameter"/> map into the
 /// <c>{ "type": "object", "properties": {...}, "required": [...] }</c>
 /// JSON Schema shape advertised to MCP clients as a tool's
 /// <c>inputSchema</c>.
@@ -22,7 +22,7 @@ public static class InputSchemaBuilder
     /// <summary>
     /// Builds the input schema for the supplied <paramref name="parameters"/>.
     /// </summary>
-    public static JsonElement Build(IReadOnlyDictionary<string, ManifestParameter> parameters)
+    public static JsonElement Build(IReadOnlyDictionary<string, McpToolParameter> parameters)
     {
         ArgumentNullException.ThrowIfNull(parameters);
 

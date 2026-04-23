@@ -3,8 +3,8 @@ namespace AutoContext.Mcp.Tools.EditorConfig;
 using System.Collections.Frozen;
 using System.Text.Json;
 
-using AutoContext.Mcp.Tools.Manifest;
 using AutoContext.Mcp.Tools.Pipe;
+using AutoContext.Mcp.Tools.Registry;
 using AutoContext.Mcp.Tools.Wire;
 
 /// <summary>
@@ -17,7 +17,7 @@ using AutoContext.Mcp.Tools.Wire;
 public sealed class EditorConfigBatcher
 {
     /// <summary>The pipe-name value used by Worker.Workspace.</summary>
-    public const string DefaultWorkspaceEndpoint = "autocontext.workspace-worker";
+    public const string DefaultWorkspaceEndpoint = "autocontext.worker-workspace";
 
     /// <summary>The MCP Task name on Worker.Workspace that resolves EditorConfig keys.</summary>
     public const string ResolveTaskName = "get_editorconfig_rules";
@@ -40,7 +40,7 @@ public sealed class EditorConfigBatcher
     }
 
     /// <summary>
-    /// Resolves the union of <see cref="ManifestTask.EditorConfig"/> keys
+    /// Resolves the union of <see cref="McpTaskDefinition.EditorConfig"/> keys
     /// across <paramref name="tasks"/> for <paramref name="filePath"/>,
     /// then returns a per-task slice. Tasks that declared no keys (or
     /// whose declared keys all came back missing) map to an empty
@@ -50,7 +50,7 @@ public sealed class EditorConfigBatcher
     /// </summary>
     public async Task<EditorConfigBatchResult> ResolveAsync(
         string filePath,
-        IReadOnlyList<ManifestTask> tasks,
+        IReadOnlyList<McpTaskDefinition> tasks,
         CancellationToken ct)
     {
         ArgumentException.ThrowIfNullOrEmpty(filePath);
@@ -114,7 +114,7 @@ public sealed class EditorConfigBatcher
         };
     }
 
-    private static string[] CollectUnion(IReadOnlyList<ManifestTask> tasks)
+    private static string[] CollectUnion(IReadOnlyList<McpTaskDefinition> tasks)
     {
         var union = new HashSet<string>(StringComparer.Ordinal);
 
@@ -141,7 +141,7 @@ public sealed class EditorConfigBatcher
     }
 
     private static FrozenDictionary<string, IReadOnlyDictionary<string, string>> BuildEmptySlices(
-        IReadOnlyList<ManifestTask> tasks)
+        IReadOnlyList<McpTaskDefinition> tasks)
     {
         var slices = new Dictionary<string, IReadOnlyDictionary<string, string>>(
             tasks.Count,
@@ -156,7 +156,7 @@ public sealed class EditorConfigBatcher
     }
 
     private static FrozenDictionary<string, IReadOnlyDictionary<string, string>> BuildSlices(
-        IReadOnlyList<ManifestTask> tasks,
+        IReadOnlyList<McpTaskDefinition> tasks,
         IReadOnlyDictionary<string, string> resolved)
     {
         var slices = new Dictionary<string, IReadOnlyDictionary<string, string>>(

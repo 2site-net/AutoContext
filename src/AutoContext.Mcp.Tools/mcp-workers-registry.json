@@ -1,0 +1,149 @@
+{
+    "schemaVersion": "1",
+    "workers": [
+        {
+            "name": "AutoContext.Worker.DotNet",
+            "endpoint": "autocontext.worker-dotnet",
+            "tools": [
+                {
+                    "name": "analyze_csharp_code",
+                    "description": "Runs every enabled C# code-quality check on a single source file and returns one combined report. Covers coding style, member ordering, naming, async/await patterns, nullable safety, project structure, and (for test files) test conventions. Use this whenever generating, editing, or reviewing C# code. Pass the source as content and the file's absolute path as originalPath. When checking a test file, also pass the production type's namespace as originalNamespace and the test file path as comparedPath so test-style rules can verify the mirror structure.",
+                    "parameters": {
+                        "content": {
+                            "type": "string",
+                            "description": "The C# source code to check.",
+                            "required": true
+                        },
+                        "originalPath": {
+                            "type": "string",
+                            "description": "Absolute path of the file whose source is in content."
+                        },
+                        "originalNamespace": {
+                            "type": "string",
+                            "description": "Namespace of the type in the original file (e.g. 'MyApp.Services')."
+                        },
+                        "comparedPath": {
+                            "type": "string",
+                            "description": "Absolute path of the test file being compared against the original (used by test-style rules)."
+                        }
+                    },
+                    "tasks": [
+                        {
+                            "name": "analyze_csharp_async_patterns"
+                        },
+                        {
+                            "name": "analyze_csharp_coding_style",
+                            "editorconfig": [
+                                "csharp_prefer_braces",
+                                "dotnet_sort_system_directives_first",
+                                "csharp_style_expression_bodied_methods",
+                                "csharp_style_expression_bodied_properties"
+                            ]
+                        },
+                        {
+                            "name": "analyze_csharp_member_ordering"
+                        },
+                        {
+                            "name": "analyze_csharp_naming_conventions"
+                        },
+                        {
+                            "name": "analyze_csharp_nullable_context"
+                        },
+                        {
+                            "name": "analyze_csharp_project_structure",
+                            "editorconfig": [
+                                "csharp_style_namespace_declarations"
+                            ]
+                        },
+                        {
+                            "name": "analyze_csharp_test_style"
+                        }
+                    ]
+                },
+                {
+                    "name": "analyze_nuget_references",
+                    "description": "Inspects a .csproj file's PackageReference entries for hygiene issues: duplicate references, floating or wildcard versions (e.g. '*' or version ranges), missing Version attributes (unless Central Package Management is enabled via ManagePackageVersionsCentrally), and packages that have a built-in .NET equivalent. Use this whenever adding, updating, or reviewing NuGet dependencies. Pass the full .csproj XML as content.",
+                    "parameters": {
+                        "content": {
+                            "type": "string",
+                            "description": "The full XML content of the .csproj file to inspect.",
+                            "required": true
+                        }
+                    },
+                    "tasks": [
+                        {
+                            "name": "analyze_nuget_hygiene"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "AutoContext.Worker.Workspace",
+            "endpoint": "autocontext.worker-workspace",
+            "tools": [
+                {
+                    "name": "analyze_git_commit_message",
+                    "description": "Validates a Git commit message against project conventions. Covers Conventional Commits format (type, scope, subject, line lengths) and content best practices (no anti-patterns in the body). Use this before creating any commit. Pass the full message — subject and body — as content.",
+                    "parameters": {
+                        "content": {
+                            "type": "string",
+                            "description": "The full commit message to validate.",
+                            "required": true
+                        }
+                    },
+                    "tasks": [
+                        {
+                            "name": "analyze_git_commit_format"
+                        },
+                        {
+                            "name": "analyze_git_commit_content"
+                        }
+                    ]
+                },
+                {
+                    "name": "read_editorconfig_properties",
+                    "description": "Resolves the effective .editorconfig properties for a single file by walking up the directory tree, evaluating glob patterns, and applying section cascading. Returns the final flat key/value map that applies to that file. Use this when you need to know the coding-style rules (indent style, charset, end-of-line, language-specific keys) in force at a particular file path. Pass the file's absolute path.",
+                    "parameters": {
+                        "path": {
+                            "type": "string",
+                            "description": "Absolute path to the file whose effective .editorconfig properties should be resolved.",
+                            "required": true
+                        }
+                    },
+                    "tasks": [
+                        {
+                            "name": "get_editorconfig_rules"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "AutoContext.Worker.Web",
+            "endpoint": "autocontext.worker-web",
+            "tools": [
+                {
+                    "name": "analyze_typescript_code",
+                    "description": "Runs every enabled TypeScript code-quality check on a single source file and returns one combined report. Flags anti-patterns including any, enums, @ts-ignore, type assertions, non-null assertions, unconstrained generics, and the Function/Object/{} types. Use this whenever generating, editing, or reviewing TypeScript code. Pass the source as content and the file's absolute path as originalPath.",
+                    "parameters": {
+                        "content": {
+                            "type": "string",
+                            "description": "The TypeScript source code to check.",
+                            "required": true
+                        },
+                        "originalPath": {
+                            "type": "string",
+                            "description": "Absolute path of the file whose source is in content."
+                        }
+                    },
+                    "tasks": [
+                        {
+                            "name": "analyze_typescript_coding_style"
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}

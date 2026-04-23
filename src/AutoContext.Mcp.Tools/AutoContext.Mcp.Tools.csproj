@@ -23,8 +23,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include=".mcp-tools.schema.json" LogicalName="AutoContext.Mcp.Tools.mcp-tools.schema.json" />
-    <EmbeddedResource Include=".mcp-tools.json" LogicalName="AutoContext.Mcp.Tools.mcp-tools.json" />
+    <EmbeddedResource Include="mcp-workers-registry.schema.json" />
+    <EmbeddedResource Include="mcp-workers-registry.json" />
   </ItemGroup>
 
 </Project>

@@ -1,13 +1,12 @@
 namespace AutoContext.Mcp.Tools.Tests.Dispatch;
 
 using System.Collections.Concurrent;
-using System.Diagnostics;
 using System.Text.Json;
 
 using AutoContext.Mcp.Tools.Dispatch;
 using AutoContext.Mcp.Tools.EditorConfig;
 using AutoContext.Mcp.Tools.Envelope;
-using AutoContext.Mcp.Tools.Manifest;
+using AutoContext.Mcp.Tools.Registry;
 using AutoContext.Mcp.Tools.Pipe;
 using AutoContext.Mcp.Tools.Tests.Testing.Utils;
 using AutoContext.Mcp.Tools.Wire;
@@ -19,12 +18,8 @@ public sealed class ToolInvokerTests
     {
         // Arrange
         var endpoint = PipeServerHarness.UniqueEndpoint();
-        var group = BuildGroup(
-            endpoint,
-            BuildTask("task_a", priority: 0),
-            BuildTask("task_b", priority: 0),
-            BuildTask("task_c", priority: 0));
-        var tool = BuildTool("compose_tool", "task_a", "task_b", "task_c");
+        var worker = BuildWorker(endpoint);
+        var tool = BuildTool("compose_tool", BuildTask("task_a"), BuildTask("task_b"), BuildTask("task_c"));
         var invoker = BuildInvoker();
 
         var serverTask = PipeServerHarness.RunMultiAsync(
@@ -35,7 +30,7 @@ public sealed class ToolInvokerTests
 
         // Act
         var envelope = await invoker.InvokeAsync(
-            group,
+            worker,
             tool,
             EmptyData(),
             TestContext.Current.CancellationToken);
@@ -55,15 +50,12 @@ public sealed class ToolInvokerTests
     }
 
     [Fact]
-    public async Task Should_run_same_priority_tasks_in_parallel()
+    public async Task Should_run_multiple_tasks_concurrently()
     {
         // Arrange
         var endpoint = PipeServerHarness.UniqueEndpoint();
-        var group = BuildGroup(
-            endpoint,
-            BuildTask("p1_a", priority: 1),
-            BuildTask("p1_b", priority: 1));
-        var tool = BuildTool("parallel_tool", "p1_a", "p1_b");
+        var worker = BuildWorker(endpoint);
+        var tool = BuildTool("parallel_tool", BuildTask("task_a"), BuildTask("task_b"));
         var invoker = BuildInvoker();
 
         var observed = new ConcurrencyObserver();
@@ -81,7 +73,7 @@ public sealed class ToolInvokerTests
 
         // Act
         var envelope = await invoker.InvokeAsync(
-            group,
+            worker,
             tool,
             EmptyData(),
             TestContext.Current.CancellationToken);
@@ -94,105 +86,17 @@ public sealed class ToolInvokerTests
     }
 
     [Fact]
-    public async Task Should_run_priority_groups_in_ascending_order()
-    {
-        // Arrange
-        var endpoint = PipeServerHarness.UniqueEndpoint();
-        var group = BuildGroup(
-            endpoint,
-            BuildTask("first", priority: 1),
-            BuildTask("second", priority: 2));
-        var tool = BuildTool("ordered_tool", "first", "second");
-        var invoker = BuildInvoker();
-
-        var startOrder = new ConcurrentQueue<string>();
-        var serverTask = PipeServerHarness.RunMultiAsync(
-            endpoint,
-            connectionCount: 2,
-            handler: requestBytes =>
-            {
-                var request = JsonSerializer.Deserialize<TaskWireRequest>(
-                    requestBytes,
-                    WireJsonOptions.Instance)!;
-                startOrder.Enqueue(request.McpTask);
-                Thread.Sleep(20);
-                return OkResponse(requestBytes, output: new { ran = true });
-            },
-            ct: TestContext.Current.CancellationToken);
-
-        // Act
-        var envelope = await invoker.InvokeAsync(
-            group,
-            tool,
-            EmptyData(),
-            TestContext.Current.CancellationToken);
-        await serverTask;
-
-        var observed = startOrder.ToArray();
-
-        // Assert
-        Assert.Multiple(
-            () => Assert.Equal(ToolResultEnvelope.StatusOk, envelope.Status),
-            () => Assert.Equal(["first", "second"], observed));
-    }
-
-    [Fact]
-    public async Task Should_run_zero_priority_tasks_after_prioritized_groups()
-    {
-        // Arrange
-        var endpoint = PipeServerHarness.UniqueEndpoint();
-        var group = BuildGroup(
-            endpoint,
-            BuildTask("trailing", priority: 0),
-            BuildTask("urgent", priority: 1));
-        var tool = BuildTool("trailing_tool", "trailing", "urgent");
-        var invoker = BuildInvoker();
-
-        var startOrder = new ConcurrentQueue<string>();
-        var serverTask = PipeServerHarness.RunMultiAsync(
-            endpoint,
-            connectionCount: 2,
-            handler: requestBytes =>
-            {
-                var request = JsonSerializer.Deserialize<TaskWireRequest>(
-                    requestBytes,
-                    WireJsonOptions.Instance)!;
-                startOrder.Enqueue(request.McpTask);
-                Thread.Sleep(20);
-                return OkResponse(requestBytes, output: new { ran = true });
-            },
-            ct: TestContext.Current.CancellationToken);
-
-        // Act
-        var envelope = await invoker.InvokeAsync(
-            group,
-            tool,
-            EmptyData(),
-            TestContext.Current.CancellationToken);
-        await serverTask;
-
-        var observed = startOrder.ToArray();
-
-        // Assert
-        Assert.Multiple(
-            () => Assert.Equal(ToolResultEnvelope.StatusOk, envelope.Status),
-            () => Assert.Equal(["urgent", "trailing"], observed),
-            () => Assert.Equal("trailing", envelope.Result[0].Task),
-            () => Assert.Equal("urgent", envelope.Result[1].Task));
-    }
-
-    [Fact]
     public async Task Should_inject_per_task_editorconfig_slice()
     {
         // Arrange
         var workspaceEndpoint = PipeServerHarness.UniqueEndpoint();
         var toolEndpoint = PipeServerHarness.UniqueEndpoint();
 
-        var group = BuildGroup(
-            toolEndpoint,
-            BuildTask("style_task", priority: 1, editorConfig: ["csharp_prefer_braces"]),
-            BuildTask("plain_task", priority: 1));
-        var tool = BuildTool("editorconfig_tool", "style_task", "plain_task");
+        var worker = BuildWorker(toolEndpoint);
+        var tool = BuildTool(
+            "editorconfig_tool",
+            BuildTask("style_task", editorConfig: ["csharp_prefer_braces"]),
+            BuildTask("plain_task"));
 
         var pipeClient = new WorkerPipeClient(TimeSpan.FromSeconds(5));
         var batcher = new EditorConfigBatcher(pipeClient, workspaceEndpoint);
@@ -239,7 +143,7 @@ public sealed class ToolInvokerTests
 
         // Act
         var envelope = await invoker.InvokeAsync(
-            group,
+            worker,
             tool,
             data,
             TestContext.Current.CancellationToken);
@@ -257,10 +161,10 @@ public sealed class ToolInvokerTests
     {
         // Arrange
         var endpoint = PipeServerHarness.UniqueEndpoint();
-        var group = BuildGroup(
-            endpoint,
-            BuildTask("style_task", priority: 1, editorConfig: ["csharp_prefer_braces"]));
-        var tool = BuildTool("no_path_tool", "style_task");
+        var worker = BuildWorker(endpoint);
+        var tool = BuildTool(
+            "no_path_tool",
+            BuildTask("style_task", editorConfig: ["csharp_prefer_braces"]));
         var invoker = BuildInvoker();
 
         var observedKeys = new ConcurrentBag<string>();
@@ -281,7 +185,7 @@ public sealed class ToolInvokerTests
 
         // Act
         var envelope = await invoker.InvokeAsync(
-            group,
+            worker,
             tool,
             EmptyData(),
             TestContext.Current.CancellationToken);
@@ -298,11 +202,8 @@ public sealed class ToolInvokerTests
     {
         // Arrange
         var endpoint = PipeServerHarness.UniqueEndpoint();
-        var group = BuildGroup(
-            endpoint,
-            BuildTask("ok_task", priority: 1),
-            BuildTask("fail_task", priority: 1));
-        var tool = BuildTool("partial_tool", "ok_task", "fail_task");
+        var worker = BuildWorker(endpoint);
+        var tool = BuildTool("partial_tool", BuildTask("ok_task"), BuildTask("fail_task"));
         var invoker = BuildInvoker();
 
         var serverTask = PipeServerHarness.RunMultiAsync(
@@ -332,7 +233,7 @@ public sealed class ToolInvokerTests
 
         // Act
         var envelope = await invoker.InvokeAsync(
-            group,
+            worker,
             tool,
             EmptyData(),
             TestContext.Current.CancellationToken);
@@ -348,23 +249,6 @@ public sealed class ToolInvokerTests
             () => Assert.Equal("boom", envelope.Result[1].Error));
     }
 
-    [Fact]
-    public async Task Should_throw_when_tool_references_unknown_task()
-    {
-        // Arrange
-        var group = BuildGroup(PipeServerHarness.UniqueEndpoint());
-        var tool = BuildTool("ghost_tool", "missing_task");
-        var invoker = BuildInvoker();
-
-        // Act + Assert
-        await Assert.ThrowsAsync<InvalidOperationException>(
-            () => invoker.InvokeAsync(
-                group,
-                tool,
-                EmptyData(),
-                TestContext.Current.CancellationToken));
-    }
-
     private static ToolInvoker BuildInvoker()
     {
         var pipeClient = new WorkerPipeClient(TimeSpan.FromSeconds(5));
@@ -372,33 +256,24 @@ public sealed class ToolInvokerTests
         return new ToolInvoker(pipeClient, batcher);
     }
 
-    private static ManifestGroup BuildGroup(string endpoint, params ManifestTask[] tasks) => new()
+    private static McpWorker BuildWorker(string endpoint) => new()
     {
-        Tag = "test-group",
-        Description = "Test group.",
+        Name = "AutoContext.Worker.Test",
         Endpoint = endpoint,
         Tools = [],
-        Tasks = tasks,
     };
 
-    private static ManifestTask BuildTask(string name, int priority, IReadOnlyList<string>? editorConfig = null) => new()
+    private static McpTaskDefinition BuildTask(string name, IReadOnlyList<string>? editorConfig = null) => new()
     {
         Name = name,
-        Version = "1.0.0",
-        Priority = priority,
         EditorConfig = editorConfig ?? [],
     };
 
-    private static ManifestTool BuildTool(string name, params string[] tasks) => new()
+    private static McpToolDefinition BuildTool(string name, params McpTaskDefinition[] tasks) => new()
     {
-        Tag = "test-tool",
+        Name = name,
         Description = "Test tool.",
-        Definition = new ManifestToolDefinition
-        {
-            Name = name,
-            Description = "Test definition.",
-            Parameters = new Dictionary<string, ManifestParameter>(StringComparer.Ordinal),
-        },
+        Parameters = new Dictionary<string, McpToolParameter>(StringComparer.Ordinal),
         Tasks = tasks,
     };
 
