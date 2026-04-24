@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { EventEmitter } from 'node:events';
 import { PassThrough } from 'node:stream';
 import { createFakeOutputChannel } from './_fakes';
+import { ServersManifest } from '../../src/servers-manifest';
 
 const spawnMock = vi.fn();
 
@@ -11,6 +12,15 @@ vi.mock('node:child_process', () => ({
 
 // Import after mocks so the module picks up the mocked spawn.
 const { WorkerManager } = await import('../../src/worker-manager');
+
+const fakeManifest = new ServersManifest(
+    [
+        { id: 'workspace', name: 'AutoContext.Worker.Workspace', type: 'dotnet' },
+        { id: 'dotnet', name: 'AutoContext.Worker.DotNet', type: 'dotnet' },
+        { id: 'web', name: 'AutoContext.Worker.Web', type: 'node' },
+    ],
+    new Set(['workspace', 'dotnet', 'web']),
+);
 
 interface FakeChild extends EventEmitter {
     stdout: PassThrough;
@@ -34,7 +44,7 @@ describe('WorkerManager', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         spawnMock.mockImplementation(() => createFakeChild());
-        manager = new WorkerManager('/ext', outputChannel, '/workspace');
+        manager = new WorkerManager('/ext', outputChannel, '/workspace', fakeManifest);
     });
 
     afterEach(() => {
@@ -46,7 +56,7 @@ describe('WorkerManager', () => {
     });
 
     it('should give a distinct suffix per instance', () => {
-        const other = new WorkerManager('/ext', outputChannel, '/workspace');
+        const other = new WorkerManager('/ext', outputChannel, '/workspace', fakeManifest);
 
         expect(other.getEndpointSuffix()).not.toBe(manager.getEndpointSuffix());
 
@@ -90,7 +100,7 @@ describe('WorkerManager', () => {
     });
 
     it('should omit --workspace-root when no workspace root is given', () => {
-        const mgr = new WorkerManager('/ext', outputChannel, undefined);
+        const mgr = new WorkerManager('/ext', outputChannel, undefined, fakeManifest);
         mgr.start();
 
         const workspaceCall = spawnMock.mock.calls.find(c => (c[0] as string).includes('Worker.Workspace'));
@@ -108,7 +118,7 @@ describe('WorkerManager', () => {
             return child;
         });
 
-        const mgr = new WorkerManager('/ext', outputChannel, '/workspace');
+        const mgr = new WorkerManager('/ext', outputChannel, '/workspace', fakeManifest);
         mgr.start();
         const workspaceChild = children[0];
         workspaceChild.stderr.write('hello from workspace\n');
@@ -128,7 +138,7 @@ describe('WorkerManager', () => {
             return child;
         });
 
-        const mgr = new WorkerManager('/ext', outputChannel, '/workspace');
+        const mgr = new WorkerManager('/ext', outputChannel, '/workspace', fakeManifest);
         mgr.start();
         let resolved = false;
         void mgr.whenWorkspaceReady().then(() => { resolved = true; });
@@ -150,7 +160,7 @@ describe('WorkerManager', () => {
             return child;
         });
 
-        const mgr = new WorkerManager('/ext', outputChannel, '/workspace');
+        const mgr = new WorkerManager('/ext', outputChannel, '/workspace', fakeManifest);
         mgr.start();
         mgr.dispose();
 

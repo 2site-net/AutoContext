@@ -591,6 +591,7 @@ function Copy-AssetsToExtensionFolder {
         @{ Source = 'LICENSE';        Label = 'LICENSE' }
         @{ Source = 'COMMERCIAL.md';  Label = 'COMMERCIAL.md' }
         @{ Source = 'TRADEMARKS.md';  Label = 'TRADEMARKS.md' }
+        @{ Source = 'servers.json';   Label = 'servers.json' }
     )
 
     foreach ($asset in $assets) {

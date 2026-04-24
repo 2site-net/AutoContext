@@ -23,6 +23,7 @@ import { TreeViewTooltip } from './tree-view-tooltip.js';
 import { McpServerProvider } from './mcp-server-provider.js';
 import { WorkspaceServerManager } from './workspace-server-manager.js';
 import { WorkerManager } from './worker-manager.js';
+import { ServersManifest } from './servers-manifest.js';
 import { HealthMonitorServer } from './health-monitor.js';
 
 let subscriptions: vscode.Disposable[] | undefined;
@@ -54,7 +55,8 @@ export async function activate(context: vscode.ExtensionContext) {
     const instructionsWriter = new InstructionsConfigWriter(context.extensionPath, configManager, instructionsCatalog, outputChannel);
     const configProjector = new ConfigContextProjector(configManager, instructionsCatalog, toolsCatalog, outputChannel);
     const workspaceServer = new WorkspaceServerManager(context.extensionPath, outputChannel, vscode.workspace.workspaceFolders?.[0]?.uri.fsPath);
-    const workerManager = new WorkerManager(context.extensionPath, outputChannel, vscode.workspace.workspaceFolders?.[0]?.uri.fsPath);
+    const serversManifest = ServersManifest.load(context.extensionPath);
+    const workerManager = new WorkerManager(context.extensionPath, outputChannel, vscode.workspace.workspaceFolders?.[0]?.uri.fsPath, serversManifest);
     const healthMonitor = new HealthMonitorServer(outputChannel);
     const mcpServerProvider = new McpServerProvider(context.extensionPath, version, workspaceContextDetector, didChangeEmitter.event, workspaceServer, toolsCatalog, serversCatalog, healthMonitor, configManager, outputChannel);
     const stateResolver = new TreeViewStateResolver(workspaceContextDetector);

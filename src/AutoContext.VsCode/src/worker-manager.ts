@@ -4,6 +4,7 @@ import { spawn, type ChildProcess } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { createInterface } from 'node:readline';
 import { formatEndpoint } from './endpoint-formatter.js';
+import { type ServersManifest } from './servers-manifest.js';
 
 /**
  * A worker the extension spawns and keeps alive for the lifetime of
@@ -48,8 +49,10 @@ export class WorkerManager implements vscode.Disposable {
         private readonly extensionPath: string,
         private readonly outputChannel: vscode.OutputChannel,
         private readonly workspaceRoot: string | undefined,
+        private readonly serversManifest: ServersManifest,
     ) {
-        for (const identity of ['Worker.Workspace', 'Worker.DotNet', 'Worker.Web']) {
+        for (const entry of serversManifest.workers()) {
+            const identity = entry.name.replace(/^AutoContext\./, '');
             const promise = new Promise<void>(resolve => this.readyResolvers.set(identity, resolve));
             this.readyPromises.set(identity, promise);
         }
@@ -69,7 +72,7 @@ export class WorkerManager implements vscode.Disposable {
         return this.readyPromises.get('Worker.Workspace')!;
     }
 
-    /** Spawns all three workers. Idempotent. */
+    /** Spawns all worker processes listed in the servers manifest. Idempotent. */
     start(): void {
         if (this.started) {
             return;
@@ -79,38 +82,31 @@ export class WorkerManager implements vscode.Disposable {
         const exeSuffix = process.platform === 'win32' ? '.exe' : '';
         const serversPath = join(this.extensionPath, 'servers');
 
-        const workspacePipe = formatEndpoint('workspace', this.endpointSuffix);
-        const dotnetPipe = formatEndpoint('dotnet', this.endpointSuffix);
-        const webPipe = formatEndpoint('web', this.endpointSuffix);
+        const specs: WorkerSpec[] = this.serversManifest.workers().map(entry => {
+            const identity = entry.name.replace(/^AutoContext\./, '');
+            const pipe = formatEndpoint(entry.id, this.endpointSuffix);
+            const serverDir = join(serversPath, entry.name);
 
-        const workspaceArgs = ['--pipe', workspacePipe];
-        if (this.workspaceRoot) {
-            workspaceArgs.push('--workspace-root', this.workspaceRoot);
-        }
+            const command = entry.type === 'node'
+                ? 'node'
+                : join(serverDir, `${entry.name}${exeSuffix}`);
 
-        const specs: WorkerSpec[] = [
-            {
-                identity: 'Worker.Workspace',
-                pipeName: workspacePipe,
-                readyMarker: '[AutoContext.Worker.Workspace] Ready.',
-                command: join(serversPath, 'AutoContext.Worker.Workspace', `AutoContext.Worker.Workspace${exeSuffix}`),
-                args: workspaceArgs,
-            },
-            {
-                identity: 'Worker.DotNet',
-                pipeName: dotnetPipe,
-                readyMarker: '[AutoContext.Worker.DotNet] Ready.',
-                command: join(serversPath, 'AutoContext.Worker.DotNet', `AutoContext.Worker.DotNet${exeSuffix}`),
-                args: ['--pipe', dotnetPipe],
-            },
-            {
-                identity: 'Worker.Web',
-                pipeName: webPipe,
-                readyMarker: '[AutoContext.Worker.Web] Ready.',
-                command: 'node',
-                args: [join(serversPath, 'AutoContext.Worker.Web', 'index.js'), '--pipe', webPipe],
-            },
-        ];
+            const args: string[] = entry.type === 'node'
+                ? [join(serverDir, 'index.js'), '--pipe', pipe]
+                : ['--pipe', pipe];
+
+            if (entry.id === 'workspace' && this.workspaceRoot) {
+                args.push('--workspace-root', this.workspaceRoot);
+            }
+
+            return {
+                identity,
+                pipeName: pipe,
+                readyMarker: `[${entry.name}] Ready.`,
+                command,
+                args,
+            };
+        });
 
         for (const spec of specs) {
             this.spawnWorker(spec);

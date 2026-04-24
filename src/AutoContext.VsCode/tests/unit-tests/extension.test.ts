@@ -107,6 +107,14 @@ vi.mock('../../src/workspace-server-manager', () => ({
     WorkspaceServerManager: class { start() {} dispose() {} },
 }));
 
+vi.mock('../../src/servers-manifest', () => ({
+    ServersManifest: class {
+        static load() { return new this([], new Set()); }
+        constructor() {}
+        workers() { return []; }
+    },
+}));
+
 vi.mock('../../src/worker-manager', () => ({
     WorkerManager: class { start() {} dispose() {} whenWorkspaceReady() { return Promise.resolve(); } getEndpointSuffix() { return 'test'; } },
 }));
