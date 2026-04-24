@@ -56,4 +56,16 @@ export class ServersManifest {
                 s.id !== undefined && this.workerIds.has(s.id),
         );
     }
+
+    /**
+     * Returns the `AutoContext.Mcp.Server` entry (id `mcp-server`) — the
+     * single MCP surface VS Code spawns. Throws if missing.
+     */
+    mcpServer(): ServerEntry & { id: string } {
+        const entry = this.allServers.find(s => s.id === 'mcp-server');
+        if (!entry) {
+            throw new Error("servers.json is missing an entry with id 'mcp-server'.");
+        }
+        return entry as ServerEntry & { id: string };
+    }
 }

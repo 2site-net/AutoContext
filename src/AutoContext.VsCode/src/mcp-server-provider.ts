@@ -1,22 +1,31 @@
 import * as vscode from 'vscode';
 import { join } from 'node:path';
 import { existsSync } from 'node:fs';
-import type { McpServersCatalog } from './mcp-servers-catalog.js';
 import type { McpToolsCatalog } from './mcp-tools-catalog.js';
-import type { WorkspaceContextDetector } from './workspace-context-detector.js';
-import type { WorkspaceServerManager } from './workspace-server-manager.js';
 import type { HealthMonitorServer } from './health-monitor.js';
-import type { McpServerEntry } from './types/mcp-server-entry.js';
-import { serverLabelToScopesMap } from './ui-constants.js';
+import type { ServersManifest } from './servers-manifest.js';
+import type { WorkerManager } from './worker-manager.js';
 import type { AutoContextConfigManager } from './autocontext-config.js';
 import type { AutoContextConfig } from './types/autocontext-config.js';
 import { isToolEnabled } from './config-context-projector.js';
 
 const extensionId = '2site-net.autocontext';
 
+/**
+ * Label of the single `McpStdioServerDefinition` this provider returns.
+ * VS Code exposes the definition to the rest of the system via the id
+ * `${extensionId}/${mcpServerDefinitionLabel}`.
+ */
+const mcpServerDefinitionLabel = 'AutoContext';
+
+/**
+ * Registers the single `AutoContext.Mcp.Server` MCP surface with VS Code.
+ * Mcp.Server fronts every tool across every worker; per-scope gating and
+ * per-tool dispatch live inside Mcp.Server itself, so this provider has
+ * no knowledge of scopes, workers, or workspace context.
+ */
 export class McpServerProvider implements vscode.McpServerDefinitionProvider {
-    private readonly serversPath: string;
-    private readonly ext: string;
+    private readonly mcpServerBinary: string;
     private readonly version: string;
     private _config: AutoContextConfig;
     private readonly disposable: vscode.Disposable;
@@ -26,17 +35,17 @@ export class McpServerProvider implements vscode.McpServerDefinitionProvider {
     constructor(
         extensionPath: string,
         version: string,
-        private readonly workspaceContextDetector: WorkspaceContextDetector,
         onDidChange: vscode.Event<void>,
-        private readonly workspaceServer: WorkspaceServerManager,
         private readonly toolsCatalog: McpToolsCatalog,
-        private readonly serversCatalog: McpServersCatalog,
         private readonly healthMonitor: HealthMonitorServer,
+        private readonly workerManager: WorkerManager,
+        serversManifest: ServersManifest,
         configManager: AutoContextConfigManager,
         private readonly outputChannel: vscode.OutputChannel,
     ) {
-        this.serversPath = join(extensionPath, 'servers');
-        this.ext = process.platform === 'win32' ? '.exe' : '';
+        const mcpServerEntry = serversManifest.mcpServer();
+        const ext = process.platform === 'win32' ? '.exe' : '';
+        this.mcpServerBinary = join(extensionPath, 'servers', mcpServerEntry.name, `${mcpServerEntry.name}${ext}`);
         this.version = version;
         this._config = configManager.readSync();
         this.onDidChangeMcpServerDefinitions = onDidChange;
@@ -52,61 +61,25 @@ export class McpServerProvider implements vscode.McpServerDefinitionProvider {
     }
 
     async provideMcpServerDefinitions(): Promise<vscode.McpServerDefinition[]> {
-        return this.serversCatalog.all
-            .filter(s => {
-                if (!this.isBinaryAvailable(s)) {
-                    return false;
-                }
-                if (s.contextKey && !this.workspaceContextDetector.get(s.contextKey)) {
-                    return false;
-                }
-                const toolEntries = this.toolsCatalog.getEntriesByScope(s.scope);
-                return toolEntries.length === 0 || toolEntries.some(e => isToolEnabled(this._config, e.toolName, e.featureName));
-            })
-            .map(s => {
-                const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+        if (!existsSync(this.mcpServerBinary)) {
+            return [];
+        }
+        if (!this.anyToolEnabled()) {
+            return [];
+        }
 
-                let command: string;
-                const args: string[] = [];
+        const args: string[] = [
+            '--endpoint-suffix', this.workerManager.getEndpointSuffix(),
+            '--health-monitor', this.healthMonitor.getPipeName(),
+        ];
 
-                if (s.server === 'web') {
-                    command = 'node';
-                    args.push(join(this.serversPath, 'AutoContext.Mcp.Web', 'index.js'));
-                } else if (s.server === 'workspace') {
-                    command = join(this.serversPath, 'AutoContext.WorkspaceServer', `AutoContext.WorkspaceServer${this.ext}`);
-                } else {
-                    command = join(this.serversPath, 'AutoContext.Mcp.DotNet', `AutoContext.Mcp.DotNet${this.ext}`);
-                }
-
-                args.push('--scope', s.scope);
-
-                if (workspaceFolder) {
-                    args.push('--workspace-folder', workspaceFolder.uri.fsPath);
-                }
-
-                // Some MCP server tools require EditorConfig data from the workspace-server
-                // sidecar. We pass the --workspace-server pipe only to non-editorconfig
-                // servers, since the editorconfig MCP server tool reads .editorconfig files
-                // directly from the workspace.
-                // Giving it the same pipe would create a circular dependency.
-                if (s.scope !== 'editorconfig') {
-                    const pipeName = this.workspaceServer.getPipeName();
-
-                    if (pipeName) {
-                        args.push('--workspace-server', pipeName);
-                    }
-                }
-
-                args.push('--health-monitor', this.healthMonitor.getPipeName());
-
-                return new vscode.McpStdioServerDefinition(
-                    s.label,
-                    command,
-                    args,
-                    undefined,
-                    this.version,
-                );
-            });
+        return [new vscode.McpStdioServerDefinition(
+            mcpServerDefinitionLabel,
+            this.mcpServerBinary,
+            args,
+            undefined,
+            this.version,
+        )];
     }
 
     async resolveMcpServerDefinition(server: vscode.McpServerDefinition): Promise<vscode.McpServerDefinition> {
@@ -114,60 +87,31 @@ export class McpServerProvider implements vscode.McpServerDefinitionProvider {
     }
 
     /**
-     * Returns the availability status of a server label for use in UI indicators.
-     * - `'unavailable'`: no server binary exists on disk for any scope in the server label.
-     * - `'disabled'`: binaries exist but all servers are filtered by context or settings.
-     * - `'available'`: at least one server would be launched.
+     * Returns the availability status of a (legacy) server label for use in
+     * UI indicators. Every legacy label now resolves to the same single
+     * Mcp.Server binary; the UI-side collapse happens in a later phase.
+     *
+     * - `'unavailable'`: the Mcp.Server binary does not exist on disk.
+     * - `'disabled'`: the binary exists but every tool is disabled in settings.
+     * - `'available'`: the binary exists and at least one tool is enabled.
      */
-    getServerStatus(serverLabel: string): 'unavailable' | 'disabled' | 'available' {
-        const scopes = serverLabelToScopesMap.get(serverLabel);
-        if (!scopes) { return 'unavailable'; }
-
-        let anyBinaryExists = false;
-
-        for (const scope of scopes) {
-            const serverEntry = this.serversCatalog.all.find(s => s.scope === scope);
-            if (!serverEntry) { continue; }
-
-            if (!this.isBinaryAvailable(serverEntry)) { continue; }
-            anyBinaryExists = true;
-
-            if (serverEntry.contextKey && !this.workspaceContextDetector.get(serverEntry.contextKey)) { continue; }
-
-            const toolEntries = this.toolsCatalog.getEntriesByScope(scope);
-            if (toolEntries.length > 0 && toolEntries.every(e => !isToolEnabled(this._config, e.toolName, e.featureName))) { continue; }
-
-            return 'available';
+    getServerStatus(_serverLabel: string): 'unavailable' | 'disabled' | 'available' {
+        if (!existsSync(this.mcpServerBinary)) {
+            return 'unavailable';
         }
-
-        return anyBinaryExists ? 'disabled' : 'unavailable';
-    }
-
-    private isBinaryAvailable(server: McpServerEntry): boolean {
-        return existsSync(this.getBinaryPath(server));
-    }
-
-    private getBinaryPath(server: McpServerEntry): string {
-        if (server.server === 'web') {
-            return join(this.serversPath, 'AutoContext.Mcp.Web', 'index.js');
-        } else if (server.server === 'workspace') {
-            return join(this.serversPath, 'AutoContext.WorkspaceServer', `AutoContext.WorkspaceServer${this.ext}`);
-        } else {
-            return join(this.serversPath, 'AutoContext.Mcp.DotNet', `AutoContext.Mcp.DotNet${this.ext}`);
-        }
+        return this.anyToolEnabled() ? 'available' : 'disabled';
     }
 
     /**
-     * Returns the VS Code internal definition IDs for all MCP servers under a tree server label.
-     * The ID format is `extensionId/serverLabel` as constructed by VS Code's ext host.
+     * Returns the VS Code internal definition IDs a tree node's command
+     * should target. All legacy labels map to the single Mcp.Server
+     * definition id until the UI is collapsed.
      */
-    getDefinitionIds(serverLabel: string): string[] {
-        const scopes = serverLabelToScopesMap.get(serverLabel);
-        if (!scopes) { return []; }
+    getDefinitionIds(_serverLabel: string): string[] {
+        return [`${extensionId}/${mcpServerDefinitionLabel}`];
+    }
 
-        return scopes
-            .map(scope => this.serversCatalog.all.find(s => s.scope === scope))
-            .filter((s): s is McpServerEntry => s !== undefined)
-            .map(s => `${extensionId}/${s.label}`);
+    private anyToolEnabled(): boolean {
+        return this.toolsCatalog.all.some(e => isToolEnabled(this._config, e.toolName, e.featureName));
     }
 }
