@@ -6,7 +6,8 @@
             "description": "Code-quality and dependency-hygiene tools for .NET projects.",
             "when": [
                 "hasDotNet"
-            ]
+            ],
+            "workerId": "dotnet"
         },
         {
             "name": "C#",
@@ -21,7 +22,8 @@
         },
         {
             "name": "Workspace",
-            "description": "Repository-level tools independent of any specific language."
+            "description": "Repository-level tools independent of any specific language.",
+            "workerId": "workspace"
         },
         {
             "name": "Git",
@@ -36,7 +38,8 @@
         },
         {
             "name": "Web",
-            "description": "Code-quality tools for web stacks."
+            "description": "Code-quality tools for web stacks.",
+            "workerId": "web"
         },
         {
             "name": "TypeScript",
