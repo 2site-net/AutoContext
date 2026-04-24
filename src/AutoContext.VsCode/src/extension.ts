@@ -117,6 +117,25 @@ export async function activate(context: vscode.ExtensionContext) {
     // the full set of detected servers.
     didChangeEmitter.fire();
 
+    // Gate any config-dependent work on Worker.Workspace being up. Config
+    // reads will move to Worker.Workspace in Phase 6b, so this wire-up is
+    // in place now. Soft 30 s timeout avoids hanging activation if the
+    // worker fails to signal ready.
+    let workspaceReadyTimedOut = false;
+    let workspaceReadyTimeout: ReturnType<typeof setTimeout> | undefined;
+    await Promise.race([
+        workerManager.whenWorkspaceReady().then(() => clearTimeout(workspaceReadyTimeout)),
+        new Promise<void>(resolve => {
+            workspaceReadyTimeout = setTimeout(() => {
+                workspaceReadyTimedOut = true;
+                resolve();
+            }, 30_000);
+        }),
+    ]);
+    if (workspaceReadyTimedOut) {
+        outputChannel.appendLine('[WorkerManager] Timed out waiting for Worker.Workspace ready marker; continuing activation.');
+    }
+
     await Promise.all([
         configProjector.project(),
         instructionsWriter.removeOrphanedStagingDirs(),

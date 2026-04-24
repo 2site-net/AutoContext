@@ -75,9 +75,9 @@ describe('WorkerManager', () => {
         const dotnetCall = commands.find(c => c.cmd.includes('Worker.DotNet'));
         const webCall = commands.find(c => c.cmd === 'node');
 
-        expect(workspaceCall?.args).toContain(`autocontext.workspace-worker-${suffix}`);
-        expect(dotnetCall?.args).toContain(`autocontext.dotnet-worker-${suffix}`);
-        expect(webCall?.args).toContain(`autocontext.web-worker-${suffix}`);
+        expect(workspaceCall?.args).toContain(`autocontext.worker-workspace-${suffix}`);
+        expect(dotnetCall?.args).toContain(`autocontext.worker-dotnet-${suffix}`);
+        expect(webCall?.args).toContain(`autocontext.worker-web-${suffix}`);
     });
 
     it('should pass --workspace-root to Worker.Workspace when provided', () => {

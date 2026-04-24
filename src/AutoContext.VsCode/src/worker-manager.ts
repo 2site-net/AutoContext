@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import { spawn, type ChildProcess } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { createInterface } from 'node:readline';
+import { formatEndpoint } from './endpoint-formatter.js';
 
 /**
  * A worker the extension spawns and keeps alive for the lifetime of
@@ -78,9 +79,9 @@ export class WorkerManager implements vscode.Disposable {
         const exeSuffix = process.platform === 'win32' ? '.exe' : '';
         const serversPath = join(this.extensionPath, 'servers');
 
-        const workspacePipe = `autocontext.workspace-worker-${this.endpointSuffix}`;
-        const dotnetPipe = `autocontext.dotnet-worker-${this.endpointSuffix}`;
-        const webPipe = `autocontext.web-worker-${this.endpointSuffix}`;
+        const workspacePipe = formatEndpoint('workspace', this.endpointSuffix);
+        const dotnetPipe = formatEndpoint('dotnet', this.endpointSuffix);
+        const webPipe = formatEndpoint('web', this.endpointSuffix);
 
         const workspaceArgs = ['--pipe', workspacePipe];
         if (this.workspaceRoot) {
@@ -134,7 +135,11 @@ export class WorkerManager implements vscode.Disposable {
             rl.on('line', (line: string) => {
                 this.outputChannel.appendLine(`[${spec.identity}] ${line}`);
                 if (line === spec.readyMarker) {
-                    this.readyResolvers.get(spec.identity)?.();
+                    const resolve = this.readyResolvers.get(spec.identity);
+                    if (resolve) {
+                        this.readyResolvers.delete(spec.identity);
+                        resolve();
+                    }
                 }
             });
         }
