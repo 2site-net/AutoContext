@@ -2,16 +2,14 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { workspace, commands } from './_fakes/fake-vscode';
 import { WorkspaceContextDetector } from '../../src/workspace-context-detector';
 import { InstructionsCatalog } from '../../src/instructions-catalog';
-import { McpServersCatalog } from '../../src/mcp-servers-catalog';
 import { createFakeOutputChannel, fakeUri, stubFindFiles, stubReadFile } from './_fakes';
-import { detectorTestInstructions, detectorTestServers } from './_fixtures';
+import { detectorTestInstructions } from './_fixtures';
 
 const mockOutputChannel = createFakeOutputChannel();
 
 function createDetector(): WorkspaceContextDetector {
     return new WorkspaceContextDetector(
         new InstructionsCatalog(detectorTestInstructions),
-        new McpServersCatalog(detectorTestServers),
         mockOutputChannel,
     );
 }

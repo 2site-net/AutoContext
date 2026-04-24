@@ -4,8 +4,7 @@ import { existsSync } from 'node:fs';
 import { WorkspaceContextDetector } from './workspace-context-detector.js';
 import { McpToolsCatalog } from './mcp-tools-catalog.js';
 import { InstructionsCatalog } from './instructions-catalog.js';
-import { McpServersCatalog } from './mcp-servers-catalog.js';
-import { mcpTools, instructionsFiles, mcpServers, commandIds, contextKeys, globalStateKeys } from './ui-constants.js';
+import { mcpTools, instructionsFiles, commandIds, contextKeys, globalStateKeys } from './ui-constants.js';
 import { AutoConfigurer } from './auto-configurer.js';
 import { InstructionsExporter } from './instructions-exporter.js';
 import { AutoContextConfigManager } from './autocontext-config.js';
@@ -44,10 +43,9 @@ export async function activate(context: vscode.ExtensionContext) {
 
     const toolsCatalog = new McpToolsCatalog(mcpTools, toolsMetadata);
     const instructionsCatalog = new InstructionsCatalog(instructionsFiles, instructionsMetadata);
-    const serversCatalog = new McpServersCatalog(mcpServers);
     const instructionsExporter = new InstructionsExporter(context.extensionPath);
     const outputChannel = vscode.window.createOutputChannel('AutoContext');
-    const workspaceContextDetector = new WorkspaceContextDetector(instructionsCatalog, serversCatalog, outputChannel);
+    const workspaceContextDetector = new WorkspaceContextDetector(instructionsCatalog, outputChannel);
     const configManager = new AutoContextConfigManager(context.extensionPath, version, outputChannel);
     const contentProvider = new InstructionsContentProvider(context.extensionPath, configManager, outputChannel);
     const codeLensProvider = new InstructionsCodeLensProvider(context.extensionPath, configManager, workspaceContextDetector, instructionsCatalog, outputChannel);
@@ -179,7 +177,6 @@ export async function activate(context: vscode.ExtensionContext) {
             );
         }),
         configManager.onDidChange(() => didChangeEmitter.fire()),
-        workspaceContextDetector.onDidChange(() => didChangeEmitter.fire()),
         vscode.commands.registerCommand(commandIds.EnableInstruction, (node) => instructionsTreeProvider.enableInstruction(node)),
         vscode.commands.registerCommand(commandIds.DisableInstruction, (node) => instructionsTreeProvider.disableInstruction(node)),
         vscode.commands.registerCommand(commandIds.DeleteOverride, InstructionsTreeProvider.deleteOverride),

@@ -1,5 +1,4 @@
 import type { McpToolsEntry } from './types/mcp-tools-entry.js';
-import type { McpServerEntry } from './types/mcp-server-entry.js';
 import type { InstructionsFileEntry } from './types/instructions-file-entry.js';
 
 // ── Extension identifiers ────────────────────────────────────────────
@@ -159,15 +158,6 @@ export const serverLabelToScopesMap: ReadonlyMap<string, readonly string[]> = ne
     ['Web', ['typescript']],
     ['Workspace', ['git', 'editorconfig']],
 ]);
-
-// ── MCP Servers ──────────────────────────────────────────────────────
-
-export const mcpServers: readonly McpServerEntry[] = [
-    { label: 'AutoContext: DotNet', scope: 'dotnet', server: 'dotnet', contextKey: 'hasDotNet' },
-    { label: 'AutoContext: Git', scope: 'git', server: 'workspace', contextKey: 'hasGit' },
-    { label: 'AutoContext: EditorConfig', scope: 'editorconfig', server: 'workspace' },
-    { label: 'AutoContext: TypeScript', scope: 'typescript', server: 'web', contextKey: 'hasTypeScript' },
-];
 
 // ── Tree View Labels ─────────────────────────────────────────────────
 

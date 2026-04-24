@@ -31,10 +31,6 @@ vi.mock('../../src/instructions-catalog', () => ({
     InstructionsCatalog: class { all = []; findByFileName() {} },
 }));
 
-vi.mock('../../src/mcp-servers-catalog', () => ({
-    McpServersCatalog: class { all = []; },
-}));
-
 vi.mock('../../src/instructions-exporter', () => ({
     InstructionsExporter: class {},
 }));
@@ -109,8 +105,7 @@ vi.mock('../../src/workspace-server-manager', () => ({
 
 vi.mock('../../src/servers-manifest', () => ({
     ServersManifest: class {
-        static load() { return new this([], new Set()); }
-        constructor() {}
+        static load() { return new this(); }
         workers() { return []; }
     },
 }));

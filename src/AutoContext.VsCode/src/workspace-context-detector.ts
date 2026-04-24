@@ -1,7 +1,6 @@
 import * as vscode from 'vscode';
 import type { InstructionsCatalog } from './instructions-catalog.js';
 import { ContextKeys } from './context-keys.js';
-import type { McpServersCatalog } from './mcp-servers-catalog.js';
 import { InstructionsParser } from './instructions-parser.js';
 
 // --- File-system watcher globs ---
@@ -248,7 +247,6 @@ interface PendingEvent {
 export class WorkspaceContextDetector implements vscode.Disposable {
     private readonly disposables: vscode.Disposable[] = [];
     private debounceTimer: ReturnType<typeof setTimeout> | undefined;
-    private readonly _onDidChange = new vscode.EventEmitter<void>();
     private readonly _onDidDetect = new vscode.EventEmitter<void>();
     private readonly _state = new Map<string, boolean>();
     private readonly _baseFlags = new Map<string, boolean>();
@@ -257,7 +255,6 @@ export class WorkspaceContextDetector implements vscode.Disposable {
     private _overrideVersions = new Map<string, string | undefined>();
     private _pendingEvents: PendingEvent[] = [];
 
-    readonly onDidChange = this._onDidChange.event;
     readonly onDidDetect = this._onDidDetect.event;
 
     get(key: string): boolean {
@@ -274,7 +271,6 @@ export class WorkspaceContextDetector implements vscode.Disposable {
 
     constructor(
         private readonly instructionsCatalog: InstructionsCatalog,
-        private readonly serversCatalog: McpServersCatalog,
         private readonly outputChannel: vscode.OutputChannel,
     ) {
         const existenceWatcher = vscode.workspace.createFileSystemWatcher(existenceWatchGlob);
@@ -556,10 +552,6 @@ export class WorkspaceContextDetector implements vscode.Disposable {
     ): Promise<void> {
         // Update in-memory state first so tree views always reflect detection
         // results, even if VS Code context-key writes fail.
-        const serverChanged = this.serversCatalog.all.some(s =>
-            s.contextKey !== undefined && this._state.get(s.contextKey) !== flags[s.contextKey as string],
-        );
-
         for (const [k, v] of Object.entries(flags)) {
             this._state.set(k, v);
         }
@@ -571,10 +563,6 @@ export class WorkspaceContextDetector implements vscode.Disposable {
             if (overrides.fileNames.has(i.fileName)) {
                 this._overriddenContextKeys.add(i.contextKey);
             }
-        }
-
-        if (serverChanged) {
-            this._onDidChange.fire();
         }
 
         this._onDidDetect.fire();
@@ -598,7 +586,6 @@ export class WorkspaceContextDetector implements vscode.Disposable {
         if (this.debounceTimer !== undefined) {
             clearTimeout(this.debounceTimer);
         }
-        this._onDidChange.dispose();
         this._onDidDetect.dispose();
         this.disposables.forEach(d => d.dispose());
     }
