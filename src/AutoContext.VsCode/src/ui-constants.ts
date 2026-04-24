@@ -133,7 +133,7 @@ export const instructionsCategoryOrder: readonly string[] = ['General', 'Languag
 
 // Each entry's `key` is expanded to a full `contextKey` (`autocontext.mcpTools.<key>`) by
 // `McpToolsCatalogEntry` at construction time — see `McpToolsCatalog`.
-// When `toolName` is present the entry is a sub-feature of a composite tool (e.g.
+// When `toolName` is present the entry is a task of a composite tool (e.g.
 // `check_csharp_all`); when absent, `key` doubles as the MCP tool name.
 export const mcpTools: readonly McpToolsEntry[] = [
     { key: 'check_csharp_async_patterns', toolName: 'check_csharp_all', label: 'Async Patterns', category: 'C#', serverLabel: '.NET', scope: 'dotnet', workspaceFlags: ['hasCSharp'] },
@@ -177,7 +177,7 @@ export const treeViewLabels = {
     disabled: 'disabled',
     disabledTooltip: 'Disabled — turned off in settings',
     enabledTooltip: 'Enabled — available to Copilot',
-    featuresEnabledTooltip: 'features enabled',
+    tasksEnabledTooltip: 'tasks enabled',
     notDetected: 'not detected',
     notDetectedTooltip: 'Not detected — workspace lacks matching files',
     outdated: 'overridden (outdated)',

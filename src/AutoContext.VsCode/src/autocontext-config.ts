@@ -168,17 +168,17 @@ export class AutoContextConfigManager implements vscode.Disposable {
         });
     }
 
-    async setMcpToolEnabled(toolName: string, featureName: string | undefined, enabled: boolean): Promise<void> {
+    async setMcpToolEnabled(toolName: string, taskName: string | undefined, enabled: boolean): Promise<void> {
         return this.enqueue(async () => {
             const config = await this.read();
             config.mcpTools ??= {};
 
-            if (!featureName) {
+            if (!taskName) {
                 // Leaf tool — enable or disable the whole tool entry.
                 if (!enabled) {
                     const current = config.mcpTools[toolName];
                     if (current !== false && current !== undefined && Object.keys(current).length > 0) {
-                        // Preserve existing config (e.g. disabledFeatures) and mark disabled.
+                        // Preserve existing config (e.g. disabledTasks) and mark disabled.
                         current.enabled = false;
                     } else {
                         config.mcpTools[toolName] = false;
@@ -195,33 +195,33 @@ export class AutoContextConfigManager implements vscode.Disposable {
                     }
                 }
             } else {
-                // Feature — add to or remove from disabledFeatures.
+                // Task — add to or remove from disabledTasks.
                 if (!enabled) {
                     let current = config.mcpTools[toolName];
-                    // Upgrade shorthand `false` to an object so we can store disabledFeatures.
+                    // Upgrade shorthand `false` to an object so we can store disabledTasks.
                     if (current === false) {
                         current = { enabled: false };
                         config.mcpTools[toolName] = current;
                     }
                     const entry: McpToolConfig = current ?? {};
-                    const arr = entry.disabledFeatures ?? [];
-                    if (!arr.includes(featureName)) {
-                        entry.disabledFeatures = [...arr, featureName];
+                    const arr = entry.disabledTasks ?? [];
+                    if (!arr.includes(taskName)) {
+                        entry.disabledTasks = [...arr, taskName];
                     }
                     config.mcpTools[toolName] = entry;
                 } else {
                     let current = config.mcpTools[toolName];
-                    // Upgrade shorthand `false` to an object so we can modify disabledFeatures.
+                    // Upgrade shorthand `false` to an object so we can modify disabledTasks.
                     if (current === false) {
                         current = { enabled: false };
                         config.mcpTools[toolName] = current;
                     }
                     if (current !== undefined) {
-                        const filtered = (current.disabledFeatures ?? []).filter(f => f !== featureName);
+                        const filtered = (current.disabledTasks ?? []).filter(f => f !== taskName);
                         if (filtered.length > 0) {
-                            current.disabledFeatures = filtered;
+                            current.disabledTasks = filtered;
                         } else {
-                            delete current.disabledFeatures;
+                            delete current.disabledTasks;
                         }
                         if (Object.keys(current).length === 0) {
                             delete config.mcpTools[toolName];
@@ -408,7 +408,7 @@ export class AutoContextConfigManager implements vscode.Disposable {
         }
     }
 
-    /** Converts on-disk JSON (kebab-case keys) to the internal camelCase model. */
+    /** Converts on-disk JSON to the internal model. */
     private static fromDisk(parsed: Record<string, unknown>): AutoContextConfig {
         const config: AutoContextConfig = {};
 
@@ -431,7 +431,7 @@ export class AutoContextConfigManager implements vscode.Disposable {
                 if (raw.enabled === false) {
                     entry.enabled = false;
                 }
-                const disabledIds = raw['disabled-instructions'] as string[] | undefined;
+                const disabledIds = raw.disabledInstructions as string[] | undefined;
                 if (disabledIds && disabledIds.length > 0) {
                     entry.disabledInstructions = disabledIds;
                 }
@@ -442,7 +442,7 @@ export class AutoContextConfigManager implements vscode.Disposable {
             }
         }
 
-        const rawTools = parsed['mcp-tools'] as Record<string, Record<string, unknown> | false> | undefined;
+        const rawTools = parsed.mcpTools as Record<string, Record<string, unknown> | false> | undefined;
         if (rawTools && typeof rawTools === 'object') {
             const mcpTools: Record<string, McpToolConfig | false> = {};
             for (const [toolName, raw] of Object.entries(rawTools)) {
@@ -456,9 +456,9 @@ export class AutoContextConfigManager implements vscode.Disposable {
                     if (typeof raw.version === 'string') {
                         entry.version = raw.version;
                     }
-                    const disabledFeatures = raw['disabled-features'] as string[] | undefined;
-                    if (disabledFeatures && disabledFeatures.length > 0) {
-                        entry.disabledFeatures = disabledFeatures;
+                    const disabledTasks = raw.disabledTasks as string[] | undefined;
+                    if (disabledTasks && disabledTasks.length > 0) {
+                        entry.disabledTasks = disabledTasks;
                     }
                     mcpTools[toolName] = entry;
                 }
@@ -471,7 +471,7 @@ export class AutoContextConfigManager implements vscode.Disposable {
         return config;
     }
 
-    /** Converts the internal camelCase model to on-disk JSON (kebab-case keys). */
+    /** Converts the internal model to on-disk JSON. Keys are camelCase. */
     private static toDisk(config: AutoContextConfig): Record<string, unknown> {
         const output: Record<string, unknown> = {};
 
@@ -493,7 +493,7 @@ export class AutoContextConfigManager implements vscode.Disposable {
                     raw.enabled = false;
                 }
                 if (entry.disabledInstructions && entry.disabledInstructions.length > 0) {
-                    raw['disabled-instructions'] = entry.disabledInstructions;
+                    raw.disabledInstructions = entry.disabledInstructions;
                 }
                 instructions[fileName] = raw;
             }
@@ -513,13 +513,13 @@ export class AutoContextConfigManager implements vscode.Disposable {
                     if (entry.version) {
                         raw.version = entry.version;
                     }
-                    if (entry.disabledFeatures && entry.disabledFeatures.length > 0) {
-                        raw['disabled-features'] = entry.disabledFeatures;
+                    if (entry.disabledTasks && entry.disabledTasks.length > 0) {
+                        raw.disabledTasks = entry.disabledTasks;
                     }
                     tools[toolName] = raw;
                 }
             }
-            output['mcp-tools'] = tools;
+            output.mcpTools = tools;
         }
 
         return output;
@@ -551,7 +551,7 @@ export class AutoContextConfigManager implements vscode.Disposable {
             }
             if (va.enabled !== vb.enabled
                 || va.version !== vb.version
-                || !AutoContextConfigManager.arraysEqual(va.disabledFeatures ?? [], vb.disabledFeatures ?? [])) {
+                || !AutoContextConfigManager.arraysEqual(va.disabledTasks ?? [], vb.disabledTasks ?? [])) {
                 return false;
             }
         }

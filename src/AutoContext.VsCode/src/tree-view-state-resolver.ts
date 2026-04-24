@@ -22,7 +22,7 @@ export class TreeViewStateResolver {
 
         const isEnabled = entry instanceof InstructionsCatalogEntry
             ? config.instructions?.[entry.fileName]?.enabled !== false
-            : isToolEnabled(config, (entry as McpToolsCatalogEntry).toolName, (entry as McpToolsCatalogEntry).featureName);
+            : isToolEnabled(config, (entry as McpToolsCatalogEntry).toolName, (entry as McpToolsCatalogEntry).taskName);
 
         if (!isEnabled) {
             return TreeViewNodeState.Disabled;

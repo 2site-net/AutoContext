@@ -45,7 +45,7 @@ suite('MCP Tools Tree View Smoke Tests', () => {
         }
     });
 
-    test('composite tools should have feature children', async () => {
+    test('composite tools should have task children', async () => {
         const { exports } = await activatedExtension();
         const roots = exports.mcpToolsTreeProvider.getChildren();
         let compositeCount = 0;
@@ -53,20 +53,20 @@ suite('MCP Tools Tree View Smoke Tests', () => {
         for (const serverNode of roots) {
             for (const category of exports.mcpToolsTreeProvider.getChildren(serverNode)) {
                 for (const tool of exports.mcpToolsTreeProvider.getChildren(category)) {
-                    if (tool.features && tool.features.length > 0) {
+                    if (tool.tasks && tool.tasks.length > 0) {
                         compositeCount++;
-                        const features = exports.mcpToolsTreeProvider.getChildren(tool);
-                        assert.ok(features.length > 0, `Composite tool '${tool.toolName}' should have visible features`);
+                        const tasks = exports.mcpToolsTreeProvider.getChildren(tool);
+                        assert.ok(tasks.length > 0, `Composite tool '${tool.toolName}' should have visible tasks`);
                         assert.ok(
-                            features.every((f: { kind: string }) => f.kind === 'mcpToolFeatureNode'),
-                            `All children of '${tool.toolName}' should be mcpToolFeatureNode nodes`,
+                            tasks.every((f: { kind: string }) => f.kind === 'mcpTaskNode'),
+                            `All children of '${tool.toolName}' should be mcpTaskNode nodes`,
                         );
                     }
                 }
             }
         }
 
-        assert.ok(compositeCount > 0, 'Should have at least one composite tool with features');
+        assert.ok(compositeCount > 0, 'Should have at least one composite tool with tasks');
     });
 
     test('tree items should have labels', async () => {
@@ -84,7 +84,7 @@ suite('MCP Tools Tree View Smoke Tests', () => {
         }
     });
 
-    test('detected feature items should have checkboxes', async () => {
+    test('detected task items should have checkboxes', async () => {
         const { exports } = await activatedExtension();
         await exports.workspaceContextDetector.detect();
 
@@ -94,14 +94,14 @@ suite('MCP Tools Tree View Smoke Tests', () => {
         for (const serverNode of roots) {
             for (const category of exports.mcpToolsTreeProvider.getChildren(serverNode)) {
                 for (const tool of exports.mcpToolsTreeProvider.getChildren(category)) {
-                    const features = exports.mcpToolsTreeProvider.getChildren(tool);
-                    for (const feature of features) {
-                        const item = exports.mcpToolsTreeProvider.getTreeItem(feature);
-                        if (feature.state.value !== 'notDetected') {
+                    const tasks = exports.mcpToolsTreeProvider.getChildren(tool);
+                    for (const task of tasks) {
+                        const item = exports.mcpToolsTreeProvider.getTreeItem(task);
+                        if (task.state.value !== 'notDetected') {
                             assert.ok(
                                 item.checkboxState === vscode.TreeItemCheckboxState.Checked
                                 || item.checkboxState === vscode.TreeItemCheckboxState.Unchecked,
-                                `Detected feature '${item.label}' should have a checkbox`,
+                                `Detected task '${item.label}' should have a checkbox`,
                             );
                             checked++;
                         }
@@ -110,7 +110,7 @@ suite('MCP Tools Tree View Smoke Tests', () => {
             }
         }
 
-        assert.ok(checked > 0, 'Should have at least one detected feature with a checkbox');
+        assert.ok(checked > 0, 'Should have at least one detected task with a checkbox');
     });
 
     test('not-detected items should show description and icon', async () => {
@@ -121,19 +121,19 @@ suite('MCP Tools Tree View Smoke Tests', () => {
         for (const serverNode of roots) {
             for (const category of exports.mcpToolsTreeProvider.getChildren(serverNode)) {
                 for (const tool of exports.mcpToolsTreeProvider.getChildren(category)) {
-                    // Leaf tools (no features)
-                    if ((!tool.features || tool.features.length === 0) && tool.leafState?.value === 'notDetected') {
+                    // Leaf tools (no tasks)
+                    if ((!tool.tasks || tool.tasks.length === 0) && tool.leafState?.value === 'notDetected') {
                         const item = exports.mcpToolsTreeProvider.getTreeItem(tool);
                         assert.ok(item.description, `Not-detected leaf tool '${tool.toolName}' should have a description`);
                         assert.ok(item.iconPath, `Not-detected leaf tool '${tool.toolName}' should have an icon`);
                         notDetectedCount++;
                     }
-                    // Features
-                    for (const feature of exports.mcpToolsTreeProvider.getChildren(tool)) {
-                        if (feature.state.value === 'notDetected') {
-                            const item = exports.mcpToolsTreeProvider.getTreeItem(feature);
-                            assert.ok(item.description, `Not-detected feature '${feature.entry.label}' should have a description`);
-                            assert.ok(item.iconPath, `Not-detected feature '${feature.entry.label}' should have an icon`);
+                    // Tasks
+                    for (const task of exports.mcpToolsTreeProvider.getChildren(tool)) {
+                        if (task.state.value === 'notDetected') {
+                            const item = exports.mcpToolsTreeProvider.getTreeItem(task);
+                            assert.ok(item.description, `Not-detected task '${task.entry.label}' should have a description`);
+                            assert.ok(item.iconPath, `Not-detected task '${task.entry.label}' should have an icon`);
                             notDetectedCount++;
                         }
                     }
@@ -161,31 +161,31 @@ suite('MCP Tools Tree View Smoke Tests', () => {
                     const toolItem = exports.mcpToolsTreeProvider.getTreeItem(tool);
                     assert.ok(toolItem.tooltip, `Tool '${tool.toolName}' should have a tooltip`);
 
-                    for (const feature of exports.mcpToolsTreeProvider.getChildren(tool)) {
-                        const featureItem = exports.mcpToolsTreeProvider.getTreeItem(feature);
-                        assert.ok(featureItem.tooltip, `Feature '${feature.entry.label}' should have a tooltip`);
+                    for (const task of exports.mcpToolsTreeProvider.getChildren(tool)) {
+                        const taskItem = exports.mcpToolsTreeProvider.getTreeItem(task);
+                        assert.ok(taskItem.tooltip, `task '${task.entry.label}' should have a tooltip`);
                     }
                 }
             }
         }
     });
 
-    test('feature tooltips should contain setting ID', async () => {
+    test('task tooltips should contain setting ID', async () => {
         const { exports } = await activatedExtension();
         const roots = exports.mcpToolsTreeProvider.getChildren();
 
         for (const serverNode of roots) {
             for (const category of exports.mcpToolsTreeProvider.getChildren(serverNode)) {
                 for (const tool of exports.mcpToolsTreeProvider.getChildren(category)) {
-                    for (const feature of exports.mcpToolsTreeProvider.getChildren(tool)) {
-                        const item = exports.mcpToolsTreeProvider.getTreeItem(feature);
+                    for (const task of exports.mcpToolsTreeProvider.getChildren(tool)) {
+                        const item = exports.mcpToolsTreeProvider.getTreeItem(task);
                         assert.ok(
                             (item.tooltip as string).includes('Context Key:'),
-                            `Feature tooltip should contain 'Context Key:' prefix`,
+                            `task tooltip should contain 'Context Key:' prefix`,
                         );
                         assert.ok(
-                            (item.tooltip as string).includes(feature.entry.contextKey),
-                            `Feature tooltip should contain context key '${feature.entry.contextKey}'`,
+                            (item.tooltip as string).includes(task.entry.contextKey),
+                            `task tooltip should contain context key '${task.entry.contextKey}'`,
                         );
                     }
                 }

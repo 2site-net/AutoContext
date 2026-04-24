@@ -9,7 +9,7 @@ export interface McpToolsMetadataEntry {
 export class McpToolsCatalogEntry implements CatalogEntry {
     readonly contextKey: string;
     readonly toolName: string;
-    readonly featureName?: string;
+    readonly taskName?: string;
     readonly label: string;
     readonly category: string;
     readonly serverLabel: string;
@@ -21,7 +21,7 @@ export class McpToolsCatalogEntry implements CatalogEntry {
     constructor(data: McpToolsEntry, metadata?: McpToolsMetadataEntry) {
         this.contextKey = `autocontext.mcpTools.${data.key}`;
         this.toolName = data.toolName ?? data.key;
-        this.featureName = data.toolName ? data.key : undefined;
+        this.taskName = data.toolName ? data.key : undefined;
         this.label = data.label;
         this.category = data.category;
         this.serverLabel = data.serverLabel;

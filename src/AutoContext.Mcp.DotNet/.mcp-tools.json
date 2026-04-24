@@ -4,7 +4,7 @@
       "name": "check_csharp_all",
       "description": "Aggregate tool that runs all enabled C# source-code checkers and returns a single combined report. Covers code style, member ordering, naming conventions, async patterns, nullable context, project structure, and test style.",
       "version": "0.1.0",
-      "features": [
+      "tasks": [
         {
           "name": "check_csharp_async_patterns",
           "description": "Enforces async/await rules from dotnet-async-await.instructions.md: no async void (except event handlers), public async APIs require a CancellationToken parameter, and all await expressions in non-test code must use .ConfigureAwait(false).",

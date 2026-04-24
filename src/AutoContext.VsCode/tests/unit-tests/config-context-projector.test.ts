@@ -55,10 +55,10 @@ describe('ConfigContextProjector', () => {
         expect.soft(findSetContextCall('autocontext.mcpTools.check_csharp_coding_style')?.[2]).toBe(true);
     });
 
-    it('should set feature context key to false when in disabled-features list', async () => {
+    it('should set task context key to false when in disabledTasks list', async () => {
         const projector = new ConfigContextProjector(
             createMockConfigManager({
-                mcpTools: { check_csharp_all: { disabledFeatures: ['check_csharp_coding_style'] } },
+                mcpTools: { check_csharp_all: { disabledTasks: ['check_csharp_coding_style'] } },
             }),
             catalog,
             toolsCatalog,
@@ -70,13 +70,13 @@ describe('ConfigContextProjector', () => {
         expect.soft(findSetContextCall('autocontext.mcpTools.check_csharp_async_patterns')?.[2]).toBe(true);
     });
 
-    it('should disable all features when parent has enabled false', async () => {
+    it('should disable all tasks when parent has enabled false', async () => {
         const projector = new ConfigContextProjector(
             createMockConfigManager({
                 mcpTools: {
                     check_csharp_all: {
                         enabled: false,
-                        disabledFeatures: ['check_csharp_coding_style', 'check_csharp_async_patterns'],
+                        disabledTasks: ['check_csharp_coding_style', 'check_csharp_async_patterns'],
                     },
                 },
             }),
@@ -144,35 +144,35 @@ describe('isToolEnabled', () => {
         )).toBe(false);
     });
 
-    it('should return false for feature in disabled list even when parent is also disabled', () => {
+    it('should return false for task in disabled list even when parent is also disabled', () => {
         expect.soft(isToolEnabled(
-            { mcpTools: { check_csharp_all: { enabled: false, disabledFeatures: ['check_csharp_coding_style'] } } },
+            { mcpTools: { check_csharp_all: { enabled: false, disabledTasks: ['check_csharp_coding_style'] } } },
             'check_csharp_all', 'check_csharp_coding_style',
         )).toBe(false);
     });
 
-    it('should return true for feature not in disabled list even when parent is disabled', () => {
+    it('should return true for task not in disabled list even when parent is disabled', () => {
         expect.soft(isToolEnabled(
-            { mcpTools: { check_csharp_all: { enabled: false, disabledFeatures: ['check_csharp_coding_style'] } } },
+            { mcpTools: { check_csharp_all: { enabled: false, disabledTasks: ['check_csharp_coding_style'] } } },
             'check_csharp_all', 'check_csharp_async_patterns',
         )).toBe(true);
     });
 
-    it('should return false for feature in disabled list', () => {
+    it('should return false for task in disabled list', () => {
         expect.soft(isToolEnabled(
-            { mcpTools: { check_csharp_all: { disabledFeatures: ['check_csharp_coding_style'] } } },
+            { mcpTools: { check_csharp_all: { disabledTasks: ['check_csharp_coding_style'] } } },
             'check_csharp_all', 'check_csharp_coding_style',
         )).toBe(false);
     });
 
-    it('should return true for feature not in disabled list', () => {
+    it('should return true for task not in disabled list', () => {
         expect.soft(isToolEnabled(
-            { mcpTools: { check_csharp_all: { disabledFeatures: ['check_csharp_async_patterns'] } } },
+            { mcpTools: { check_csharp_all: { disabledTasks: ['check_csharp_async_patterns'] } } },
             'check_csharp_all', 'check_csharp_coding_style',
         )).toBe(true);
     });
 
-    it('should return true for feature when parent is shorthand false', () => {
+    it('should return true for task when parent is shorthand false', () => {
         expect.soft(isToolEnabled(
             { mcpTools: { check_csharp_all: false } }, 'check_csharp_all', 'check_csharp_coding_style',
         )).toBe(true);

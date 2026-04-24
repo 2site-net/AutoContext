@@ -4,7 +4,7 @@
       "name": "check_git_all",
       "description": "Aggregate tool that runs all enabled Git commit validators and returns a single combined report.",
       "version": "0.1.0",
-      "features": [
+      "tasks": [
         {
           "name": "check_git_commit_content",
           "description": "Enforces commit content rules from git-commit-format.instructions.md: detects anti-patterns in the commit message body.",

@@ -29,7 +29,7 @@ export class TreeViewTooltip {
     private get containerSuffix(): string {
         return this.kind === 'instructions'
             ? treeViewLabels.activeSuffix
-            : treeViewLabels.featuresEnabledTooltip;
+            : treeViewLabels.tasksEnabledTooltip;
     }
 
     private stateDescription(state: TreeViewNodeState): string {

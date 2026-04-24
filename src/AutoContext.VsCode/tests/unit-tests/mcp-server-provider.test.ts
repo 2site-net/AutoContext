@@ -56,18 +56,18 @@ beforeEach(() => {
 
 function buildAllDisabledConfig(): AutoContextConfig {
     const mcpToolsConfig: NonNullable<AutoContextConfig['mcpTools']> = {};
-    const featureMap = new Map<string, string[]>();
+    const taskMap = new Map<string, string[]>();
     for (const entry of toolsCatalog.all) {
-        if (entry.featureName) {
-            const features = featureMap.get(entry.toolName) ?? [];
-            features.push(entry.featureName);
-            featureMap.set(entry.toolName, features);
+        if (entry.taskName) {
+            const tasks = taskMap.get(entry.toolName) ?? [];
+            tasks.push(entry.taskName);
+            taskMap.set(entry.toolName, tasks);
         } else {
             mcpToolsConfig[entry.toolName] = false;
         }
     }
-    for (const [tool, disabledFeatures] of featureMap) {
-        mcpToolsConfig[tool] = { disabledFeatures };
+    for (const [tool, disabledTasks] of taskMap) {
+        mcpToolsConfig[tool] = { disabledTasks };
     }
     return { mcpTools: mcpToolsConfig };
 }

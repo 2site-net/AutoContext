@@ -16,5 +16,5 @@ export interface InstructionsFileConfig {
 export interface McpToolConfig {
     enabled?: false;
     version?: string;
-    disabledFeatures?: string[];
+    disabledTasks?: string[];
 }

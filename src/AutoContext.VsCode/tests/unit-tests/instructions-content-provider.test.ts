@@ -50,7 +50,7 @@ describe('InstructionsContentProvider', () => {
                     instructions: {
                         'test.instructions.md': {
                             version: '0.5',
-                            'disabled-instructions': [firstInstructionId],
+                            'disabledInstructions': [firstInstructionId],
                         },
                     },
                 });

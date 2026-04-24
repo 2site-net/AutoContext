@@ -93,33 +93,6 @@ public sealed class GetAutoContextConfigFileTaskTests : IDisposable
     }
 
     [Fact]
-    public async Task Should_accept_legacy_kebab_keys_on_input()
-    {
-        // Arrange
-        _workspace.WriteFile(".autocontext.json", """
-            {
-              "mcp-tools": {
-                "analyze_nuget_references": {
-                  "enabled": true,
-                  "disabled-features": ["analyze_nuget_hygiene"]
-                }
-              }
-            }
-            """);
-
-        // Act
-        var output = await ExecuteAsync();
-        var entry = output.GetProperty("mcpTools").GetProperty("analyze_nuget_references");
-        var disabledLegacy = entry.GetProperty("disabledTasks").EnumerateArray()
-            .Select(e => e.GetString() ?? string.Empty).ToArray();
-
-        // Assert
-        Assert.Multiple(
-            () => Assert.True(entry.GetProperty("enabled").GetBoolean()),
-            () => Assert.Equal(["analyze_nuget_hygiene"], disabledLegacy));
-    }
-
-    [Fact]
     public async Task Should_scope_disabledTasks_per_parent()
     {
         // Arrange

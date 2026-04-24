@@ -8,7 +8,7 @@ interface ManifestTool {
     name: string;
     description: string;
     version: string;
-    features?: ManifestTool[];
+    tasks?: ManifestTool[];
 }
 
 export class MetadataLoader {
@@ -23,9 +23,9 @@ export class MetadataLoader {
         for (const tools of Object.values(manifest)) {
             for (const tool of tools) {
                 metadata.set(tool.name, { description: tool.description, version: tool.version });
-                if (tool.features) {
-                    for (const feature of tool.features) {
-                        metadata.set(feature.name, { description: feature.description, version: feature.version });
+                if (tool.tasks) {
+                    for (const task of tool.tasks) {
+                        metadata.set(task.name, { description: task.description, version: task.version });
                     }
                 }
             }

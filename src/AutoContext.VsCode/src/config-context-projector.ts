@@ -4,14 +4,14 @@ import type { InstructionsCatalog } from './instructions-catalog.js';
 import type { McpToolsCatalog } from './mcp-tools-catalog.js';
 import type { AutoContextConfig } from './types/autocontext-config.js';
 
-export function isToolEnabled(config: AutoContextConfig, toolName: string, featureName?: string): boolean {
+export function isToolEnabled(config: AutoContextConfig, toolName: string, taskName?: string): boolean {
     const entry = config.mcpTools?.[toolName];
     if (entry === undefined) return true;
-    if (featureName) {
-        // Features are independent of the parent's enabled state.
-        // `entry === false` (shorthand) has no disabledFeatures → feature is enabled.
+    if (taskName) {
+        // Tasks are independent of the parent's enabled state.
+        // `entry === false` (shorthand) has no disabledTasks → task is enabled.
         if (entry === false) return true;
-        return !entry.disabledFeatures?.includes(featureName);
+        return !entry.disabledTasks?.includes(taskName);
     }
     if (entry === false) return false;
     if (entry.enabled === false) return false;
@@ -46,7 +46,7 @@ export class ConfigContextProjector implements vscode.Disposable {
                 setContext(entry.contextKey, config.instructions?.[entry.fileName]?.enabled !== false),
             ),
             ...this.toolsCatalog.all.map(entry =>
-                setContext(entry.contextKey, isToolEnabled(config, entry.toolName, entry.featureName)),
+                setContext(entry.contextKey, isToolEnabled(config, entry.toolName, entry.taskName)),
             ),
         ]);
     }

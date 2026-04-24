@@ -37,7 +37,7 @@ internal sealed class McpToolsConfig(IConfiguration configuration)
             var json = File.ReadAllText(configPath);
             using var doc = JsonDocument.Parse(json);
 
-            if (!doc.RootElement.TryGetProperty("mcp-tools", out var toolsElement)
+            if (!doc.RootElement.TryGetProperty("mcpTools", out var toolsElement)
                 || toolsElement.ValueKind != JsonValueKind.Object)
             {
                 return true;
@@ -61,7 +61,7 @@ internal sealed class McpToolsConfig(IConfiguration configuration)
                 }
             }
 
-            // Check if the tool appears in any entry's disabled-features array.
+            // Check if the tool appears in any entry's disabledTasks array.
             foreach (var prop in toolsElement.EnumerateObject())
             {
                 if (prop.Value.ValueKind != JsonValueKind.Object)
@@ -69,14 +69,14 @@ internal sealed class McpToolsConfig(IConfiguration configuration)
                     continue;
                 }
 
-                // If the parent is entirely disabled, its features are also disabled.
+                // If the parent is entirely disabled, its tasks are also disabled.
                 if (prop.Value.TryGetProperty("enabled", out var parentEnabled)
                     && parentEnabled.ValueKind == JsonValueKind.False)
                 {
-                    if (prop.Value.TryGetProperty("disabled-features", out var allFeatures)
-                        && allFeatures.ValueKind == JsonValueKind.Array)
+                    if (prop.Value.TryGetProperty("disabledTasks", out var allTasks)
+                        && allTasks.ValueKind == JsonValueKind.Array)
                     {
-                        foreach (var item in allFeatures.EnumerateArray())
+                        foreach (var item in allTasks.EnumerateArray())
                         {
                             if (item.ValueKind == JsonValueKind.String
                                 && string.Equals(item.GetString(), toolName, StringComparison.Ordinal))
@@ -89,13 +89,13 @@ internal sealed class McpToolsConfig(IConfiguration configuration)
                     continue;
                 }
 
-                if (!prop.Value.TryGetProperty("disabled-features", out var disabledFeatures)
-                    || disabledFeatures.ValueKind != JsonValueKind.Array)
+                if (!prop.Value.TryGetProperty("disabledTasks", out var disabledTasks)
+                    || disabledTasks.ValueKind != JsonValueKind.Array)
                 {
                     continue;
                 }
 
-                foreach (var item in disabledFeatures.EnumerateArray())
+                foreach (var item in disabledTasks.EnumerateArray())
                 {
                     if (item.ValueKind == JsonValueKind.String
                         && string.Equals(item.GetString(), toolName, StringComparison.Ordinal))

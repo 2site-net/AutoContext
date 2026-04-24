@@ -112,6 +112,6 @@ export class McpServerProvider implements vscode.McpServerDefinitionProvider {
     }
 
     private anyToolEnabled(): boolean {
-        return this.toolsCatalog.all.some(e => isToolEnabled(this._config, e.toolName, e.featureName));
+        return this.toolsCatalog.all.some(e => isToolEnabled(this._config, e.toolName, e.taskName));
     }
 }

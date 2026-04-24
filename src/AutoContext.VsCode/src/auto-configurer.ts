@@ -42,7 +42,7 @@ export class AutoConfigurer {
             const relevant = flags.length === 0 || flags.some(k => detector.get(k));
             const catalogEntry = entry as McpToolsCatalogEntry;
 
-            if (!catalogEntry.featureName) {
+            if (!catalogEntry.taskName) {
                 // Leaf tool
                 if (!relevant) {
                     newTools[catalogEntry.toolName] = false;
@@ -58,18 +58,18 @@ export class AutoConfigurer {
                     enabled++;
                 }
             } else {
-                // Feature — accumulate into parent tool's disabledFeatures.
+                // Task — accumulate into parent tool's disabledTasks.
                 if (!relevant) {
                     const existing = newTools[catalogEntry.toolName];
                     if (existing !== false) {
                         const toolEntry: McpToolConfig = (existing as McpToolConfig) ?? {};
-                        const arr = toolEntry.disabledFeatures ?? [];
-                        toolEntry.disabledFeatures = [...arr, catalogEntry.featureName];
+                        const arr = toolEntry.disabledTasks ?? [];
+                        toolEntry.disabledTasks = [...arr, catalogEntry.taskName];
                         newTools[catalogEntry.toolName] = toolEntry;
                     }
                 } else {
                     enabled++;
-                    // Nothing to add for enabled features — absence from disabledFeatures means enabled.
+                    // Nothing to add for enabled tasks — absence from disabledTasks means enabled.
                 }
             }
         }

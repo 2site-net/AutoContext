@@ -264,7 +264,7 @@ public sealed class WorkspaceServiceTests : IDisposable
             Path.Combine(_tempRoot, ".autocontext.json"),
             """
             {
-                "mcp-tools": {
+                "mcpTools": {
                     "check-style": false
                 }
             }
@@ -317,7 +317,7 @@ public sealed class WorkspaceServiceTests : IDisposable
             Path.Combine(_tempRoot, ".autocontext.json"),
             """
             {
-                "mcp-tools": {
+                "mcpTools": {
                     "check-style": false
                 }
             }
@@ -374,7 +374,7 @@ public sealed class WorkspaceServiceTests : IDisposable
             Path.Combine(_tempRoot, ".autocontext.json"),
             """
             {
-                "mcp-tools": {
+                "mcpTools": {
                     "disabled-with-keys": false,
                     "disabled-no-keys": false
                 }

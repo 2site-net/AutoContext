@@ -68,7 +68,7 @@ describe('InstructionsDecorationManager', () => {
                     instructions: {
                         'test.instructions.md': {
                             version: '0.5',
-                            'disabled-instructions': [firstId],
+                            'disabledInstructions': [firstId],
                         },
                     },
                 });

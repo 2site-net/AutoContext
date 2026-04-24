@@ -15,9 +15,8 @@ using Microsoft.Extensions.Options;
 /// <remarks>
 /// See architecture-centralized-mcp.md §4. Per-parent scoping for
 /// <c>disabledTasks</c>; <c>false</c> shorthand expanded to
-/// <c>{ "enabled": false, "disabledTasks": [] }</c>; both kebab-case
-/// (<c>mcp-tools</c> / <c>disabled-features</c>) and camelCase keys are
-/// accepted on input during the transition.
+/// <c>{ "enabled": false, "disabledTasks": [] }</c>. Keys are camelCase
+/// (<c>mcpTools</c>, <c>disabledTasks</c>, <c>disabledInstructions</c>).
 /// </remarks>
 internal sealed class GetAutoContextConfigFileTask : IMcpTask
 {
@@ -76,14 +75,9 @@ internal sealed class GetAutoContextConfigFileTask : IMcpTask
             return null;
         }
 
-        if (root.TryGetProperty("mcpTools", out var camel))
+        if (root.TryGetProperty("mcpTools", out var tools))
         {
-            return camel;
-        }
-
-        if (root.TryGetProperty("mcp-tools", out var kebab))
-        {
-            return kebab;
+            return tools;
         }
 
         return null;
@@ -158,9 +152,8 @@ internal sealed class GetAutoContextConfigFileTask : IMcpTask
     {
         var array = new JsonArray();
 
-        // Prefer camelCase, fall back to legacy kebab.
-        if (!entry.TryGetProperty("disabledTasks", out var list)
-            && !entry.TryGetProperty("disabled-features", out list))
+        // Prefer camelCase.
+        if (!entry.TryGetProperty("disabledTasks", out var list))
         {
             return array;
         }

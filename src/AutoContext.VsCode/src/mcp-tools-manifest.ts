@@ -4,7 +4,7 @@
 // Self-executable: tsx src/mcp-tools-manifest.ts
 //
 // Input / output shape (per scope):
-//   { "<scope>": [ { "name", "description", "version", "features"?: [...] } ] }
+//   { "<scope>": [ { "name", "description", "version", "tasks"?: [...] } ] }
 
 import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -12,7 +12,7 @@ import { fileURLToPath } from 'node:url';
 import { mcpTools } from './ui-constants.js';
 import { SemVer } from './semver.js';
 
-interface McpToolFeature {
+interface McpToolTask {
     name: string;
     description: string;
     version: string;
@@ -22,7 +22,7 @@ interface McpToolEntry {
     name: string;
     description: string;
     version: string;
-    features?: McpToolFeature[];
+    tasks?: McpToolTask[];
 }
 
 type McpToolsManifest = Record<string, McpToolEntry[]>;
@@ -59,20 +59,20 @@ export function mergeManifests(root: string, exclude: string): McpToolsManifest 
 }
 
 export function validate(manifest: McpToolsManifest): void {
-    // Collect all leaf keys: feature names from composite tools, tool keys from standalone tools.
+    // Collect all leaf keys: task names from composite tools, tool keys from standalone tools.
     const leafKeys = new Set<string>();
     // Collect composite tool names for cross-checking against toolName references.
     const compositeToolNames = new Set<string>();
 
     for (const tools of Object.values(manifest)) {
         for (const tool of tools) {
-            if (tool.features) {
+            if (tool.tasks) {
                 compositeToolNames.add(tool.name);
-                for (const feature of tool.features) {
-                    if (leafKeys.has(feature.name)) {
-                        throw new Error(`Duplicate feature name '${feature.name}' in manifest.`);
+                for (const task of tool.tasks) {
+                    if (leafKeys.has(task.name)) {
+                        throw new Error(`Duplicate task name '${task.name}' in manifest.`);
                     }
-                    leafKeys.add(feature.name);
+                    leafKeys.add(task.name);
                 }
             } else {
                 if (leafKeys.has(tool.name)) {
@@ -93,9 +93,9 @@ export function validate(manifest: McpToolsManifest): void {
             if (!SemVer.isValid(tool.version)) {
                 errors.push(`Invalid version '${tool.version}' on tool '${tool.name}'. Expected semver format (e.g. 1.0.0 or 1.0.0-beta.1).`);
             }
-            for (const feature of tool.features ?? []) {
-                if (!SemVer.isValid(feature.version)) {
-                    errors.push(`Invalid version '${feature.version}' on feature '${feature.name}' (tool '${tool.name}'). Expected semver format (e.g. 1.0.0 or 1.0.0-beta.1).`);
+            for (const task of tool.tasks ?? []) {
+                if (!SemVer.isValid(task.version)) {
+                    errors.push(`Invalid version '${task.version}' on task '${task.name}' (tool '${tool.name}'). Expected semver format (e.g. 1.0.0 or 1.0.0-beta.1).`);
                 }
             }
         }
