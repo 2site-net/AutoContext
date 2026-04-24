@@ -17,8 +17,8 @@ public sealed class ToolDelegateFactoryTests
     {
         // Arrange
         var registry = BuildCatalog(
-            ("AutoContext.Worker.Alpha", "autocontext.worker-alpha", [BuildTool("tool_one", "task_one")]),
-            ("AutoContext.Worker.Beta", "autocontext.worker-beta", [BuildTool("tool_two", "task_two")]));
+            ("alpha", "AutoContext.Worker.Alpha", [BuildTool("tool_one", "task_one")]),
+            ("beta", "AutoContext.Worker.Beta", [BuildTool("tool_two", "task_two")]));
         var invoker = BuildInvoker();
 
         // Act
@@ -36,8 +36,8 @@ public sealed class ToolDelegateFactoryTests
     {
         // Arrange
         var registry = BuildCatalog(
-            ("AutoContext.Worker.Alpha", "autocontext.worker-alpha", [BuildTool("dup_tool", "task_a")]),
-            ("AutoContext.Worker.Beta", "autocontext.worker-beta", [BuildTool("dup_tool", "task_b")]));
+            ("alpha", "AutoContext.Worker.Alpha", [BuildTool("dup_tool", "task_a")]),
+            ("beta", "AutoContext.Worker.Beta", [BuildTool("dup_tool", "task_b")]));
         var invoker = BuildInvoker();
 
         // Act + Assert
@@ -48,15 +48,16 @@ public sealed class ToolDelegateFactoryTests
     public async Task Should_return_serialized_envelope_json_when_delegate_invoked()
     {
         // Arrange
-        var endpoint = PipeServerHarness.UniqueEndpoint();
+        var workerId = PipeServerHarness.UniqueWorkerId();
+        var pipeName = PipeServerHarness.PipeNameFor(workerId);
         var registry = BuildCatalog(
-            ("AutoContext.Worker.Alpha", endpoint, [BuildTool("invoke_tool", "task_x")]));
+            (workerId, "AutoContext.Worker.Alpha", [BuildTool("invoke_tool", "task_x")]));
         var workerClient = new WorkerClient(TimeSpan.FromSeconds(5));
         var batcher = new EditorConfigBatcher(workerClient, "autocontext-test-workspace-unused");
         var invoker = new ToolInvoker(workerClient, batcher);
 
         var serverTask = PipeServerHarness.RunOneShotAsync(
-            endpoint,
+            pipeName,
             handler: requestBytes =>
             {
                 var request = JsonSerializer.Deserialize<TaskRequest>(
@@ -102,16 +103,16 @@ public sealed class ToolDelegateFactoryTests
     }
 
     private static McpWorkersCatalog BuildCatalog(
-        params (string Name, string Endpoint, IReadOnlyList<McpToolDefinition> Definitions)[] workers)
+        params (string Id, string Name, IReadOnlyList<McpToolDefinition> Definitions)[] workers)
     {
         var list = new List<McpWorker>(workers.Length);
 
-        foreach (var (name, endpoint, definitions) in workers)
+        foreach (var (id, name, definitions) in workers)
         {
             list.Add(new McpWorker
             {
+                Id = id,
                 Name = name,
-                Endpoint = endpoint,
                 Tools = definitions,
             });
         }

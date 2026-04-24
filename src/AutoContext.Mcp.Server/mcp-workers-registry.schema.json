@@ -2,7 +2,7 @@
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "$id": "https://autocontext.dev/schemas/mcp-workers-registry.schema.json",
     "title": "AutoContext MCP Tools registry",
-    "description": "Execution registry: worker entries with pipe endpoints, the MCP Tools each worker exposes, and the MCP Tasks each tool dispatches.",
+    "description": "Execution registry: worker entries, the MCP Tools each worker exposes, and the MCP Tasks each tool dispatches.",
     "type": "object",
     "additionalProperties": false,
     "required": [
@@ -33,20 +33,20 @@
             "type": "object",
             "additionalProperties": false,
             "required": [
+                "id",
                 "name",
-                "endpoint",
                 "tools"
             ],
             "properties": {
+                "id": {
+                    "type": "string",
+                    "pattern": "^[a-z][a-z0-9-]*$",
+                    "description": "Short worker identifier (kebab-case, lowercase). Used to compose the named-pipe endpoint as 'autocontext.worker-<id>[-<suffix>]'. Unique across the registry."
+                },
                 "name": {
                     "type": "string",
                     "pattern": "^AutoContext\\.Worker\\.[A-Z][A-Za-z0-9]*$",
-                    "description": "Full project name (e.g. 'AutoContext.Worker.DotNet')."
-                },
-                "endpoint": {
-                    "type": "string",
-                    "pattern": "^[a-z0-9][a-z0-9.-]*$",
-                    "description": "Transport-agnostic endpoint identifier (today: a Windows named pipe name in kebab-case)."
+                    "description": "Full project name (e.g. 'AutoContext.Worker.DotNet'). Used in logs and error messages. Unique across the registry."
                 },
                 "tools": {
                     "type": "array",

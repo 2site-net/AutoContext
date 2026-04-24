@@ -25,8 +25,8 @@ public sealed class RegistrySchemeValidatorTests
             {
               "schemaVersion": "1",
               "workers": [{
+                "id": "dotnet",
                 "name": "AutoContext.Worker.DotNet",
-                "endpoint": "autocontext.worker-dotnet",
                 "tools": [{
                   "name": "analyze_nuget_references",
                   "description": "x",
@@ -57,8 +57,8 @@ public sealed class RegistrySchemeValidatorTests
               "schemaVersion": "1",
               "workers": [
                 {
+                  "id": "dotnet",
                   "name": "AutoContext.Worker.DotNet",
-                  "endpoint": "autocontext.worker-dotnet",
                   "tools": [{
                     "name": "analyze_shared_name",
                     "description": "x",
@@ -67,8 +67,8 @@ public sealed class RegistrySchemeValidatorTests
                   }]
                 },
                 {
+                  "id": "web",
                   "name": "AutoContext.Worker.Web",
-                  "endpoint": "autocontext.worker-web",
                   "tools": [{
                     "name": "analyze_shared_name",
                     "description": "x",
@@ -89,7 +89,7 @@ public sealed class RegistrySchemeValidatorTests
     }
 
     [Fact]
-    public void Should_detect_duplicate_worker_endpoint()
+    public void Should_detect_duplicate_worker_id()
     {
         // Arrange
         const string json = """
@@ -97,8 +97,8 @@ public sealed class RegistrySchemeValidatorTests
               "schemaVersion": "1",
               "workers": [
                 {
+                  "id": "shared",
                   "name": "AutoContext.Worker.DotNet",
-                  "endpoint": "autocontext.worker-shared",
                   "tools": [{
                     "name": "analyze_one",
                     "description": "x",
@@ -107,8 +107,8 @@ public sealed class RegistrySchemeValidatorTests
                   }]
                 },
                 {
+                  "id": "shared",
                   "name": "AutoContext.Worker.Web",
-                  "endpoint": "autocontext.worker-shared",
                   "tools": [{
                     "name": "analyze_two",
                     "description": "x",
@@ -125,19 +125,19 @@ public sealed class RegistrySchemeValidatorTests
         var result = RegistrySchemeValidator.Validate(json, registry);
 
         // Assert
-        Assert.Contains(result.Errors, e => e.Contains("Duplicate worker endpoint 'autocontext.worker-shared'", StringComparison.Ordinal));
+        Assert.Contains(result.Errors, e => e.Contains("Duplicate worker id 'shared'", StringComparison.Ordinal));
     }
 
     [Fact]
-    public void Should_detect_schema_violation_on_bad_endpoint()
+    public void Should_detect_schema_violation_on_bad_name()
     {
-        // Arrange — uppercase endpoint violates pattern ^[a-z0-9][a-z0-9.-]*$
+        // Arrange — worker name missing the required 'AutoContext.Worker.' prefix
         const string json = """
             {
               "schemaVersion": "1",
               "workers": [{
-                "name": "AutoContext.Worker.DotNet",
-                "endpoint": "AutoContext.WorkerDotnet",
+                "id": "dotnet",
+                "name": "SomeOtherWorker",
                 "tools": [{
                   "name": "analyze_nuget_references",
                   "description": "x",

@@ -6,6 +6,7 @@ using System.Text.Json;
 using AutoContext.Mcp.Server.Registry;
 using AutoContext.Mcp.Server.Workers;
 using AutoContext.Mcp.Server.Workers.Protocol;
+using AutoContext.Mcp.Server.Workers.Transport;
 
 /// <summary>
 /// Resolves EditorConfig values for one tool invocation in a single
@@ -17,7 +18,7 @@ using AutoContext.Mcp.Server.Workers.Protocol;
 public sealed class EditorConfigBatcher
 {
     /// <summary>The pipe-name value used by Worker.Workspace.</summary>
-    public const string DefaultWorkspaceEndpoint = "autocontext.worker-workspace";
+    public static readonly string DefaultWorkspaceEndpoint = EndpointFormatter.Format("workspace");
 
     /// <summary>The MCP Task name on Worker.Workspace that resolves EditorConfig keys.</summary>
     public const string ResolveTaskName = "get_editorconfig_rules";

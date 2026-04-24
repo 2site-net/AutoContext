@@ -98,7 +98,7 @@ public static class RegistrySchemeValidator
     private static void ValidateCrossReferences(McpWorkersCatalog registry, List<string> errors)
     {
         var workerNames = new HashSet<string>(StringComparer.Ordinal);
-        var workerEndpoints = new HashSet<string>(StringComparer.Ordinal);
+        var workerIds = new HashSet<string>(StringComparer.Ordinal);
         var toolNames = new Dictionary<string, string>(StringComparer.Ordinal);
 
         for (var workerIndex = 0; workerIndex < registry.Workers.Count; workerIndex++)
@@ -111,9 +111,9 @@ public static class RegistrySchemeValidator
                 errors.Add($"Duplicate worker name '{worker.Name}' at {workerPath}.");
             }
 
-            if (!workerEndpoints.Add(worker.Endpoint))
+            if (!workerIds.Add(worker.Id))
             {
-                errors.Add($"Duplicate worker endpoint '{worker.Endpoint}' at {workerPath}.");
+                errors.Add($"Duplicate worker id '{worker.Id}' at {workerPath}.");
             }
 
             ValidateWorker(workerPath, worker, toolNames, errors);

@@ -46,8 +46,8 @@ public sealed class RegistryLoaderTests
             {
               "schemaVersion": "1",
               "workers": [{
+                "id": "workspace",
                 "name": "AutoContext.Worker.Workspace",
-                "endpoint": "autocontext.worker-workspace",
                 "tools": [{
                   "name": "read_editorconfig_properties",
                   "description": "x",

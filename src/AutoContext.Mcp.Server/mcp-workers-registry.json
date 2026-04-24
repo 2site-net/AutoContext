@@ -2,8 +2,8 @@
     "schemaVersion": "1",
     "workers": [
         {
+            "id": "dotnet",
             "name": "AutoContext.Worker.DotNet",
-            "endpoint": "autocontext.worker-dotnet",
             "tools": [
                 {
                     "name": "analyze_csharp_code",
@@ -79,8 +79,8 @@
             ]
         },
         {
+            "id": "workspace",
             "name": "AutoContext.Worker.Workspace",
-            "endpoint": "autocontext.worker-workspace",
             "tools": [
                 {
                     "name": "analyze_git_commit_message",
@@ -120,8 +120,8 @@
             ]
         },
         {
+            "id": "web",
             "name": "AutoContext.Worker.Web",
-            "endpoint": "autocontext.worker-web",
             "tools": [
                 {
                     "name": "analyze_typescript_code",

@@ -17,13 +17,14 @@ public sealed class ToolInvokerTests
     public async Task Should_compose_uniform_envelope_with_declared_task_order()
     {
         // Arrange
-        var endpoint = PipeServerHarness.UniqueEndpoint();
-        var worker = BuildWorker(endpoint);
+        var workerId = PipeServerHarness.UniqueWorkerId();
+        var pipeName = PipeServerHarness.PipeNameFor(workerId);
+        var worker = BuildWorker(workerId);
         var tool = BuildTool("compose_tool", BuildTask("task_a"), BuildTask("task_b"), BuildTask("task_c"));
         var invoker = BuildInvoker();
 
         var serverTask = PipeServerHarness.RunMultiAsync(
-            endpoint,
+            pipeName,
             connectionCount: 3,
             handler: requestBytes => OkResponse(requestBytes, output: new { ran = true }),
             ct: TestContext.Current.CancellationToken);
@@ -53,14 +54,15 @@ public sealed class ToolInvokerTests
     public async Task Should_run_multiple_tasks_concurrently()
     {
         // Arrange
-        var endpoint = PipeServerHarness.UniqueEndpoint();
-        var worker = BuildWorker(endpoint);
+        var workerId = PipeServerHarness.UniqueWorkerId();
+        var pipeName = PipeServerHarness.PipeNameFor(workerId);
+        var worker = BuildWorker(workerId);
         var tool = BuildTool("parallel_tool", BuildTask("task_a"), BuildTask("task_b"));
         var invoker = BuildInvoker();
 
         var observed = new ConcurrencyObserver();
         var serverTask = PipeServerHarness.RunMultiAsync(
-            endpoint,
+            pipeName,
             connectionCount: 2,
             handler: requestBytes =>
             {
@@ -90,9 +92,10 @@ public sealed class ToolInvokerTests
     {
         // Arrange
         var workspaceEndpoint = PipeServerHarness.UniqueEndpoint();
-        var toolEndpoint = PipeServerHarness.UniqueEndpoint();
+        var toolWorkerId = PipeServerHarness.UniqueWorkerId();
+        var toolPipeName = PipeServerHarness.PipeNameFor(toolWorkerId);
 
-        var worker = BuildWorker(toolEndpoint);
+        var worker = BuildWorker(toolWorkerId);
         var tool = BuildTool(
             "editorconfig_tool",
             BuildTask("style_task", editorConfig: ["csharp_prefer_braces"]),
@@ -125,7 +128,7 @@ public sealed class ToolInvokerTests
 
         var observedKeys = new ConcurrentDictionary<string, string[]>();
         var toolServerTask = PipeServerHarness.RunMultiAsync(
-            toolEndpoint,
+            toolPipeName,
             connectionCount: 2,
             handler: requestBytes =>
             {
@@ -160,8 +163,9 @@ public sealed class ToolInvokerTests
     public async Task Should_skip_editorconfig_when_path_is_missing()
     {
         // Arrange
-        var endpoint = PipeServerHarness.UniqueEndpoint();
-        var worker = BuildWorker(endpoint);
+        var workerId = PipeServerHarness.UniqueWorkerId();
+        var pipeName = PipeServerHarness.PipeNameFor(workerId);
+        var worker = BuildWorker(workerId);
         var tool = BuildTool(
             "no_path_tool",
             BuildTask("style_task", editorConfig: ["csharp_prefer_braces"]));
@@ -169,7 +173,7 @@ public sealed class ToolInvokerTests
 
         var observedKeys = new ConcurrentBag<string>();
         var serverTask = PipeServerHarness.RunOneShotAsync(
-            endpoint,
+            pipeName,
             handler: requestBytes =>
             {
                 var request = JsonSerializer.Deserialize<TaskRequest>(
@@ -201,13 +205,14 @@ public sealed class ToolInvokerTests
     public async Task Should_isolate_pipe_failures_per_task()
     {
         // Arrange
-        var endpoint = PipeServerHarness.UniqueEndpoint();
-        var worker = BuildWorker(endpoint);
+        var workerId = PipeServerHarness.UniqueWorkerId();
+        var pipeName = PipeServerHarness.PipeNameFor(workerId);
+        var worker = BuildWorker(workerId);
         var tool = BuildTool("partial_tool", BuildTask("ok_task"), BuildTask("fail_task"));
         var invoker = BuildInvoker();
 
         var serverTask = PipeServerHarness.RunMultiAsync(
-            endpoint,
+            pipeName,
             connectionCount: 2,
             handler: requestBytes =>
             {
@@ -256,10 +261,10 @@ public sealed class ToolInvokerTests
         return new ToolInvoker(workerClient, batcher);
     }
 
-    private static McpWorker BuildWorker(string endpoint) => new()
+    private static McpWorker BuildWorker(string workerId) => new()
     {
+        Id = workerId,
         Name = "AutoContext.Worker.Test",
-        Endpoint = endpoint,
         Tools = [],
     };
 

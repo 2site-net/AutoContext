@@ -2,12 +2,26 @@ namespace AutoContext.Mcp.Server.Tests.Testing.Utils;
 
 using System.IO.Pipes;
 
+using AutoContext.Mcp.Server.Workers.Transport;
 using AutoContext.Worker.Hosting;
 
 internal static class PipeServerHarness
 {
     public static string UniqueEndpoint() =>
         $"autocontext-test-{Guid.NewGuid():N}";
+
+    /// <summary>
+    /// Returns a unique, schema-valid worker <c>id</c> (kebab-case,
+    /// lowercase) for tests that drive flows through
+    /// <c>McpWorker</c> whose endpoint is derived from the id via
+    /// <see cref="EndpointFormatter.Format"/>.
+    /// </summary>
+    public static string UniqueWorkerId() =>
+        $"test-{Guid.NewGuid():N}";
+
+    /// <summary>Composes the pipe name production code would derive for <paramref name="workerId"/>.</summary>
+    public static string PipeNameFor(string workerId) =>
+        EndpointFormatter.Format(workerId);
 
     public static Task RunOneShotAsync(
         string endpoint,
