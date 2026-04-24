@@ -1,11 +1,36 @@
 {
-  "servers": [
-    { "name": "AutoContext.Mcp.DotNet", "type": "dotnet" },
-    { "name": "AutoContext.WorkspaceServer", "type": "dotnet" },
-    { "name": "AutoContext.Mcp.Web", "type": "node" },
-    { "name": "AutoContext.Mcp.Server", "type": "dotnet" },
-    { "name": "AutoContext.Worker.Workspace", "type": "dotnet" },
-    { "name": "AutoContext.Worker.DotNet", "type": "dotnet" },
-    { "name": "AutoContext.Worker.Web", "type": "node" }
-  ]
+    "servers": [
+        {
+            "name": "AutoContext.Mcp.DotNet",
+            "type": "dotnet"
+        },
+        {
+            "name": "AutoContext.WorkspaceServer",
+            "type": "dotnet"
+        },
+        {
+            "name": "AutoContext.Mcp.Web",
+            "type": "node"
+        },
+        {
+            "id": "mcp-server",
+            "name": "AutoContext.Mcp.Server",
+            "type": "dotnet"
+        },
+        {
+            "id": "workspace",
+            "name": "AutoContext.Worker.Workspace",
+            "type": "dotnet"
+        },
+        {
+            "id": "dotnet",
+            "name": "AutoContext.Worker.DotNet",
+            "type": "dotnet"
+        },
+        {
+            "id": "web",
+            "name": "AutoContext.Worker.Web",
+            "type": "node"
+        }
+    ]
 }
