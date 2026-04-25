@@ -21,22 +21,6 @@
             "description": "NuGet package analysis."
         },
         {
-            "name": "Workspace",
-            "description": "Repository-level tools independent of any specific language.",
-            "workerId": "workspace"
-        },
-        {
-            "name": "Git",
-            "description": "Git commit analysis.",
-            "when": [
-                "hasGit"
-            ]
-        },
-        {
-            "name": "EditorConfig",
-            "description": "EditorConfig resolution."
-        },
-        {
             "name": "Web",
             "description": "Code-quality tools for web stacks.",
             "workerId": "web"
@@ -46,6 +30,22 @@
             "description": "TypeScript-specific analysis.",
             "when": [
                 "hasTypeScript"
+            ]
+        },
+        {
+            "name": "Workspace",
+            "description": "Repository-level tools independent of any specific language.",
+            "workerId": "workspace"
+        },
+        {
+            "name": "EditorConfig",
+            "description": "EditorConfig resolution."
+        },
+        {
+            "name": "Git",
+            "description": "Git commit analysis.",
+            "when": [
+                "hasGit"
             ]
         }
     ],

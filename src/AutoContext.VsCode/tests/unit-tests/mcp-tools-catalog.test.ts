@@ -16,30 +16,35 @@ describe('McpToolsCatalog', () => {
         expect.soft(catalog.count).toBe(3);
     });
 
-    it('should return setting ids for a matching scope', () => {
-        const catalog = new McpToolsCatalog(mcpToolsTestEntries);
-
-        expect.soft(catalog.getContextKeysByScope('dotnet')).toEqual(['autocontext.mcpTools.alpha', 'autocontext.mcpTools.beta']);
-    });
-
-    it('should return setting ids for git scope', () => {
-        const catalog = new McpToolsCatalog(mcpToolsTestEntries);
-
-        expect.soft(catalog.getContextKeysByScope('git')).toEqual(['autocontext.mcpTools.gamma']);
-    });
-
-    it('should return empty array for unknown scope', () => {
-        const catalog = new McpToolsCatalog(mcpToolsTestEntries);
-
-        expect.soft(catalog.getContextKeysByScope('unknown')).toEqual([]);
-    });
-
-    it('should return empty array for empty catalog', () => {
+    it('should return empty arrays for empty catalog', () => {
         const catalog = new McpToolsCatalog([]);
 
         expect.soft(catalog.all).toEqual([]);
         expect.soft(catalog.count).toBe(0);
-        expect.soft(catalog.getContextKeysByScope('dotnet')).toEqual([]);
+    });
+
+    it('should derive serverLabelOrder from entries when not supplied', () => {
+        const catalog = new McpToolsCatalog(mcpToolsTestEntries);
+
+        expect.soft([...catalog.serverLabelOrder]).toEqual(['.NET', 'Workspace']);
+    });
+
+    it('should derive categoryOrder from entries when not supplied', () => {
+        const catalog = new McpToolsCatalog(mcpToolsTestEntries);
+
+        expect.soft([...catalog.categoryOrder]).toEqual(['C#', 'NuGet', 'Git']);
+    });
+
+    it('should accept supplied ordering and worker map', () => {
+        const catalog = new McpToolsCatalog(mcpToolsTestEntries, {
+            serverLabelOrder: ['Workspace', '.NET'],
+            categoryOrder: ['Git', 'C#', 'NuGet'],
+            serverLabelToWorkerIdMap: new Map([['.NET', 'dotnet'], ['Workspace', 'workspace']]),
+        });
+
+        expect.soft([...catalog.serverLabelOrder]).toEqual(['Workspace', '.NET']);
+        expect.soft([...catalog.categoryOrder]).toEqual(['Git', 'C#', 'NuGet']);
+        expect.soft(catalog.serverLabelToWorkerIdMap.get('.NET')).toBe('dotnet');
     });
 
     it('should enrich entries with metadata when provided', () => {
@@ -47,7 +52,7 @@ describe('McpToolsCatalog', () => {
             ['alpha', { description: 'Alpha tool' }],
             ['gamma', { description: 'Gamma tool' }],
         ]);
-        const catalog = new McpToolsCatalog(mcpToolsTestEntries, metadata);
+        const catalog = new McpToolsCatalog(mcpToolsTestEntries, { metadata });
 
         expect.soft(catalog.all[0].description).toBe('Alpha tool');
         expect.soft(catalog.all[1].description).toBeUndefined();
@@ -64,7 +69,7 @@ describe('McpToolsCatalog', () => {
         const metadata = new Map([
             ['alpha', { description: 'Alpha tool' }],
         ]);
-        const catalog = new McpToolsCatalog(mcpToolsTestEntries, metadata);
+        const catalog = new McpToolsCatalog(mcpToolsTestEntries, { metadata });
 
         expect.soft(catalog.getMetadata('alpha')).toEqual({ description: 'Alpha tool' });
         expect.soft(catalog.getMetadata('unknown')).toBeUndefined();

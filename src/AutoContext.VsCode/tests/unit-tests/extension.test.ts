@@ -9,8 +9,21 @@ vi.mock('node:fs', () => ({ existsSync: () => false }));
 
 vi.mock('../../src/metadata-loader', () => ({
     MetadataLoader: class {
-        getMcpToolsInfo() { return []; }
         getInstructionsInfo() { return []; }
+    },
+}));
+
+vi.mock('../../src/mcp-tools-manifest-loader', () => ({
+    McpToolsManifestLoader: class {
+        load() {
+            return {
+                entries: [],
+                descriptions: new Map(),
+                serverLabelOrder: [],
+                categoryOrder: [],
+                serverLabelToWorkerIdMap: new Map(),
+            };
+        }
     },
 }));
 

@@ -1,42 +1,10 @@
 import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { InstructionsParser } from './instructions-parser.js';
-import type { McpToolsMetadataEntry } from './mcp-tools-catalog-entry.js';
 import type { InstructionsMetadataEntry } from './instructions-catalog-entry.js';
-
-interface McpTaskManifest {
-    name: string;
-    description: string;
-}
-
-interface McpToolManifest {
-    name: string;
-    description: string;
-    tasks?: McpTaskManifest[];
-}
-
-interface McpToolsManifest {
-    tools: McpToolManifest[];
-}
 
 export class MetadataLoader {
     constructor(private readonly extensionPath: string) {}
-
-    getMcpToolsInfo(): ReadonlyMap<string, McpToolsMetadataEntry> {
-        const manifest: McpToolsManifest = JSON.parse(
-            readFileSync(join(this.extensionPath, 'mcp-tools-manifest.json'), 'utf-8'),
-        );
-        const metadata = new Map<string, McpToolsMetadataEntry>();
-
-        for (const tool of manifest.tools) {
-            metadata.set(tool.name, { description: tool.description });
-            for (const task of tool.tasks ?? []) {
-                metadata.set(task.name, { description: task.description });
-            }
-        }
-
-        return metadata;
-    }
 
     getInstructionsInfo(files: readonly { fileName: string }[]): ReadonlyMap<string, InstructionsMetadataEntry> {
         const metadata = new Map<string, InstructionsMetadataEntry>();

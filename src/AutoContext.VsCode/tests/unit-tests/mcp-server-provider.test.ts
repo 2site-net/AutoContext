@@ -1,15 +1,19 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { join } from 'node:path';
 import { McpStdioServerDefinition } from './_fakes/fake-vscode';
 import { McpServerProvider } from '../../src/mcp-server-provider';
 import { McpToolsCatalog } from '../../src/mcp-tools-catalog';
+import { McpToolsManifestLoader } from '../../src/mcp-tools-manifest-loader';
 import { ServersManifest } from '../../src/servers-manifest';
-import { mcpTools } from '../../src/ui-constants';
 import type { AutoContextConfig } from '../../src/types/autocontext-config';
 import type { WorkerManager } from '../../src/worker-manager';
 import { createFakeConfigManager, createFakeHealthMonitor, createFakeOutputChannel } from './_fakes';
 
 const { existsSyncMock } = vi.hoisted(() => ({ existsSyncMock: vi.fn<(path: string) => boolean>(() => true) }));
-vi.mock('node:fs', () => ({ existsSync: existsSyncMock }));
+vi.mock('node:fs', async () => {
+    const actual = await vi.importActual<typeof import('node:fs')>('node:fs');
+    return { ...actual, existsSync: existsSyncMock };
+});
 
 type StdioDef = InstanceType<typeof McpStdioServerDefinition>;
 
@@ -20,6 +24,7 @@ const fakeHealthMonitor = createFakeHealthMonitor();
 const outputChannel = createFakeOutputChannel();
 
 const onDidChange = vi.fn() as unknown as import('vscode').Event<void>;
+const mcpTools = new McpToolsManifestLoader(join(__dirname, '..', '..')).load().entries;
 const toolsCatalog = new McpToolsCatalog(mcpTools);
 const serversManifest = new ServersManifest(
     [{ id: 'mcp-server', name: 'AutoContext.Mcp.Server', type: 'dotnet' }],

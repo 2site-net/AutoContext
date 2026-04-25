@@ -1,10 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { join } from 'node:path';
 import { window } from './_fakes/fake-vscode';
 import { AutoConfigurer } from '../../src/auto-configurer';
 import { ContextKeys } from '../../src/context-keys';
 import { InstructionsCatalog } from '../../src/instructions-catalog';
 import { McpToolsCatalog } from '../../src/mcp-tools-catalog';
-import { instructionsFiles, mcpTools } from '../../src/ui-constants';
+import { McpToolsManifestLoader } from '../../src/mcp-tools-manifest-loader';
+import { instructionsFiles } from '../../src/ui-constants';
 import type { AutoContextConfig } from '../../src/types/autocontext-config';
 import { createFakeDetector, createFakeConfigManager } from './_fakes';
 
@@ -22,7 +24,12 @@ beforeEach(() => {
 
 describe('AutoConfigurer', () => {
     const instructionsCatalog = new InstructionsCatalog(instructionsFiles);
-    const catalog = new McpToolsCatalog(mcpTools);
+    const manifestData = new McpToolsManifestLoader(join(__dirname, '..', '..')).load();
+    const catalog = new McpToolsCatalog(manifestData.entries, {
+        serverLabelOrder: manifestData.serverLabelOrder,
+        categoryOrder: manifestData.categoryOrder,
+        serverLabelToWorkerIdMap: manifestData.serverLabelToWorkerIdMap,
+    });
 
     it('should disable context-dependent entries when nothing is detected', async () => {
         vi.mocked(fakeDetector.get).mockReturnValue(false);

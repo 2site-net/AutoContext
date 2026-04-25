@@ -1,20 +1,22 @@
 import * as vscode from 'vscode';
 import { createServer, type Server, type Socket } from 'node:net';
 import { randomUUID } from 'node:crypto';
-import { serverLabelToScopesMap } from './ui-constants.js';
 
 /**
- * Monitors MCP server health via a named pipe.
+ * Monitors MCP worker health via a named pipe.
  *
- * Each MCP server connects to the pipe on startup and sends its scope
- * name (e.g. "dotnet", "typescript", "git", "editorconfig") as a UTF-8
- * string.  The connection is kept alive for the lifetime of the server.
- * When the server process exits, the socket closes, and the monitor
- * updates the health status accordingly.
+ * Each worker connects to the pipe on startup and sends its worker id
+ * (e.g. "dotnet", "web", "workspace") as a UTF-8 string. The connection
+ * is kept alive for the lifetime of the worker; when its process exits
+ * the socket closes and the monitor updates the health status.
+ *
+ * NOTE: this surface is in a transitional state — `Mcp.Server` ignores
+ * the `--health-monitor` argument and the workers don't yet connect, so
+ * the monitor reports nothing as running at runtime. The wiring will be
+ * redesigned later; the API exposed here is the minimum the tree
+ * provider needs.
  */
 export class HealthMonitorServer implements vscode.Disposable {
-    private static readonly serverLabelToScopesMap = serverLabelToScopesMap;
-
     private readonly _onDidChange = new vscode.EventEmitter<void>();
     readonly onDidChange = this._onDidChange.event;
 
@@ -22,39 +24,35 @@ export class HealthMonitorServer implements vscode.Disposable {
     private readonly connections = new Map<string, Set<Socket>>();
     private server: Server | undefined;
 
-    constructor(private readonly outputChannel: vscode.OutputChannel) {}
+    constructor(
+        private readonly outputChannel: vscode.OutputChannel,
+        private readonly serverLabelToWorkerIdMap: ReadonlyMap<string, string> = new Map(),
+    ) {}
 
     /**
-     * The pipe name MCP servers should connect to.
+     * The pipe name workers should connect to.
      */
     getPipeName(): string {
         return this.pipeName;
     }
 
     /**
-     * Returns `true` if at least one connection is active for the given scope.
+     * Returns `true` if at least one connection is active for the given worker id.
      */
-    isRunning(scope: string): boolean {
-        const sockets = this.connections.get(scope);
+    isRunning(workerId: string): boolean {
+        const sockets = this.connections.get(workerId);
         return sockets !== undefined && sockets.size > 0;
     }
 
     /**
-     * Returns `true` if all scopes in the server label have at least one active connection.
+     * Returns `true` if the worker that backs the given tree-view server
+     * label currently has at least one active connection. Returns `false`
+     * for unknown labels.
      */
-    isServerHealthy(serverLabel: string): boolean {
-        const scopes = HealthMonitorServer.serverLabelToScopesMap.get(serverLabel);
-        if (!scopes) { return false; }
-        return scopes.every(c => this.isRunning(c));
-    }
-
-    /**
-     * Returns `true` if at least one scope in the server label has an active connection.
-     */
-    isServerPartiallyHealthy(serverLabel: string): boolean {
-        const scopes = HealthMonitorServer.serverLabelToScopesMap.get(serverLabel);
-        if (!scopes) { return false; }
-        return scopes.some(c => this.isRunning(c));
+    isRunningServerLabel(serverLabel: string): boolean {
+        const workerId = this.serverLabelToWorkerIdMap.get(serverLabel);
+        if (workerId === undefined) { return false; }
+        return this.isRunning(workerId);
     }
 
     /**
@@ -66,25 +64,25 @@ export class HealthMonitorServer implements vscode.Disposable {
             : `/tmp/CoreFxPipe_${this.pipeName}`;
 
         this.server = createServer((socket: Socket) => {
-            let scope = '';
+            let workerId = '';
 
             socket.on('data', (data: Buffer) => {
-                // The server sends its scope name as the first (and only) message.
-                if (!scope) {
-                    scope = data.toString('utf8').trim();
-                    this.addConnection(scope, socket);
+                // The worker sends its id as the first (and only) message.
+                if (!workerId) {
+                    workerId = data.toString('utf8').trim();
+                    this.addConnection(workerId, socket);
                 }
             });
 
             socket.on('close', () => {
-                if (scope) {
-                    this.removeConnection(scope, socket);
+                if (workerId) {
+                    this.removeConnection(workerId, socket);
                 }
             });
 
             socket.on('error', () => {
-                if (scope) {
-                    this.removeConnection(scope, socket);
+                if (workerId) {
+                    this.removeConnection(workerId, socket);
                 }
             });
         });
@@ -98,30 +96,30 @@ export class HealthMonitorServer implements vscode.Disposable {
         });
     }
 
-    private addConnection(scope: string, socket: Socket): void {
-        let sockets = this.connections.get(scope);
+    private addConnection(workerId: string, socket: Socket): void {
+        let sockets = this.connections.get(workerId);
         if (!sockets) {
             sockets = new Set();
-            this.connections.set(scope, sockets);
+            this.connections.set(workerId, sockets);
         }
 
         const wasEmpty = sockets.size === 0;
         sockets.add(socket);
 
         if (wasEmpty) {
-            this.outputChannel.appendLine(`[HealthMonitor] ${scope}: connected`);
+            this.outputChannel.appendLine(`[HealthMonitor] ${workerId}: connected`);
             this._onDidChange.fire();
         }
     }
 
-    private removeConnection(scope: string, socket: Socket): void {
-        const sockets = this.connections.get(scope);
+    private removeConnection(workerId: string, socket: Socket): void {
+        const sockets = this.connections.get(workerId);
         if (!sockets) { return; }
 
         sockets.delete(socket);
 
         if (sockets.size === 0) {
-            this.outputChannel.appendLine(`[HealthMonitor] ${scope}: disconnected`);
+            this.outputChannel.appendLine(`[HealthMonitor] ${workerId}: disconnected`);
             this._onDidChange.fire();
         }
     }

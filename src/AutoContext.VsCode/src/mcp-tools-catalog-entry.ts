@@ -1,9 +1,6 @@
 import type { CatalogEntry } from './types/catalog-entry.js';
 import type { McpToolsEntry } from './types/mcp-tools-entry.js';
-
-export interface McpToolsMetadataEntry {
-    readonly description?: string;
-}
+import type { McpToolsMetadataEntry } from './types/mcp-tools-metadata-entry.js';
 
 export class McpToolsCatalogEntry implements CatalogEntry {
     readonly contextKey: string;
@@ -12,7 +9,6 @@ export class McpToolsCatalogEntry implements CatalogEntry {
     readonly label: string;
     readonly category: string;
     readonly serverLabel: string;
-    readonly scope: string;
     readonly workspaceFlags?: readonly string[];
     readonly description?: string;
 
@@ -23,7 +19,6 @@ export class McpToolsCatalogEntry implements CatalogEntry {
         this.label = data.label;
         this.category = data.category;
         this.serverLabel = data.serverLabel;
-        this.scope = data.scope;
         this.workspaceFlags = data.workspaceFlags;
         this.description = metadata?.description;
     }

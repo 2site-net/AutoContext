@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import type { McpToolsCatalog } from './mcp-tools-catalog.js';
 import { TreeViewNodeState } from './tree-view-node-state.js';
-import { mcpToolServerLabelOrder, mcpToolCategoryOrder, viewIds, treeViewLabels } from './ui-constants.js';
+import { viewIds, treeViewLabels } from './ui-constants.js';
 import type { WorkspaceContextDetector } from './workspace-context-detector.js';
 import type { TreeViewStateResolver } from './tree-view-state-resolver.js';
 import type { TreeViewTooltip } from './tree-view-tooltip.js';
@@ -115,7 +115,7 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
     private buildTree(): TreeViewServerLabelNode[] {
         const presentServerLabels = new Set(this.catalog.all.map(e => e.serverLabel));
 
-        return mcpToolServerLabelOrder
+        return this.catalog.serverLabelOrder
             .filter(g => presentServerLabels.has(g))
             .map(name => {
                 const children = this.resolveCategories(name, this._config);
@@ -133,7 +133,7 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
         const presentCategories = new Set(
             this.catalog.all.filter(e => e.serverLabel === serverLabel).map(e => e.category),
         );
-        return mcpToolCategoryOrder
+        return this.catalog.categoryOrder
             .filter(c => presentCategories.has(c))
             .map(name => {
                 const children = this.resolveTools(name, config);
@@ -224,12 +224,9 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
             item.iconPath = new vscode.ThemeIcon('circle-filled', new vscode.ThemeColor('disabledForeground'));
             item.tooltip = `${item.tooltip}\nNot active in this workspace`;
         } else if (this.healthMonitor) {
-            if (this.healthMonitor.isServerHealthy(node.name)) {
+            if (this.healthMonitor.isRunningServerLabel(node.name)) {
                 item.contextValue = 'serverNode.running';
                 item.iconPath = new vscode.ThemeIcon('circle-filled', new vscode.ThemeColor('testing.iconPassed'));
-            } else if (this.healthMonitor.isServerPartiallyHealthy(node.name)) {
-                item.contextValue = 'serverNode.partial';
-                item.iconPath = new vscode.ThemeIcon('circle-filled', new vscode.ThemeColor('testing.iconQueued'));
             } else {
                 item.contextValue = 'serverNode.stopped';
                 item.iconPath = new vscode.ThemeIcon('circle-filled', new vscode.ThemeColor('testing.iconFailed'));

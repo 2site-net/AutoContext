@@ -4,7 +4,7 @@ import { existsSync } from 'node:fs';
 import { WorkspaceContextDetector } from './workspace-context-detector.js';
 import { McpToolsCatalog } from './mcp-tools-catalog.js';
 import { InstructionsCatalog } from './instructions-catalog.js';
-import { mcpTools, instructionsFiles, commandIds, contextKeys, globalStateKeys } from './ui-constants.js';
+import { instructionsFiles, commandIds, contextKeys, globalStateKeys } from './ui-constants.js';
 import { AutoConfigurer } from './auto-configurer.js';
 import { InstructionsExporter } from './instructions-exporter.js';
 import { AutoContextConfigManager } from './autocontext-config.js';
@@ -16,6 +16,7 @@ import { InstructionsDiagnostics } from './instructions-diagnostics.js';
 import { ConfigContextProjector } from './config-context-projector.js';
 import { InstructionsTreeProvider } from './instructions-tree-provider.js';
 import { MetadataLoader } from './metadata-loader.js';
+import { McpToolsManifestLoader } from './mcp-tools-manifest-loader.js';
 import { McpToolsTreeProvider } from './mcp-tools-tree-provider.js';
 import { TreeViewStateResolver } from './tree-view-state-resolver.js';
 import { TreeViewTooltip } from './tree-view-tooltip.js';
@@ -37,10 +38,15 @@ export async function activate(context: vscode.ExtensionContext) {
     const didChangeEmitter = new vscode.EventEmitter<void>();
 
     const metadataLoader = new MetadataLoader(context.extensionPath);
-    const toolsMetadata = metadataLoader.getMcpToolsInfo();
+    const mcpToolsCatalogData = new McpToolsManifestLoader(context.extensionPath).load();
     const instructionsMetadata = metadataLoader.getInstructionsInfo(instructionsFiles);
 
-    const toolsCatalog = new McpToolsCatalog(mcpTools, toolsMetadata);
+    const toolsCatalog = new McpToolsCatalog(mcpToolsCatalogData.entries, {
+        metadata: mcpToolsCatalogData.descriptions,
+        serverLabelOrder: mcpToolsCatalogData.serverLabelOrder,
+        categoryOrder: mcpToolsCatalogData.categoryOrder,
+        serverLabelToWorkerIdMap: mcpToolsCatalogData.serverLabelToWorkerIdMap,
+    });
     const instructionsCatalog = new InstructionsCatalog(instructionsFiles, instructionsMetadata);
     const instructionsExporter = new InstructionsExporter(context.extensionPath);
     const outputChannel = vscode.window.createOutputChannel('AutoContext');
@@ -53,7 +59,7 @@ export async function activate(context: vscode.ExtensionContext) {
     const configProjector = new ConfigContextProjector(configManager, instructionsCatalog, toolsCatalog, outputChannel);
     const serversManifest = ServersManifest.load(context.extensionPath);
     const workerManager = new WorkerManager(context.extensionPath, outputChannel, vscode.workspace.workspaceFolders?.[0]?.uri.fsPath, serversManifest);
-    const healthMonitor = new HealthMonitorServer(outputChannel);
+    const healthMonitor = new HealthMonitorServer(outputChannel, mcpToolsCatalogData.serverLabelToWorkerIdMap);
     const mcpServerProvider = new McpServerProvider(context.extensionPath, version, didChangeEmitter.event, toolsCatalog, healthMonitor, workerManager, serversManifest, configManager, outputChannel);
     const stateResolver = new TreeViewStateResolver(workspaceContextDetector);
 

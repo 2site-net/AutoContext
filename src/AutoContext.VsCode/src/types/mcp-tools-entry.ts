@@ -4,6 +4,5 @@ export interface McpToolsEntry {
     label: string;
     category: string;
     serverLabel: string;
-    scope: string;
     workspaceFlags?: readonly string[];
 }

@@ -1,11 +1,13 @@
 import { describe, it, expect } from 'vitest';
+import { join } from 'node:path';
 import { ContextKeys } from '../../src/context-keys';
-import { instructionsFiles, mcpTools } from '../../src/ui-constants';
+import { instructionsFiles } from '../../src/ui-constants';
 import { InstructionsCatalog } from '../../src/instructions-catalog';
 import { McpToolsCatalog } from '../../src/mcp-tools-catalog';
+import { McpToolsManifestLoader } from '../../src/mcp-tools-manifest-loader';
 
 const instructionsCatalog = new InstructionsCatalog(instructionsFiles);
-const toolsCatalog = new McpToolsCatalog(mcpTools);
+const toolsCatalog = new McpToolsCatalog(new McpToolsManifestLoader(join(__dirname, '..', '..')).load().entries);
 
 describe('ContextKeys.overrideKey', () => {
     it('should strip the settings prefix and prepend the override prefix', () => {
@@ -42,7 +44,7 @@ describe('ContextKeys.forEntry', () => {
         const codingStyle = toolsCatalog.all.find(t => t.contextKey === 'autocontext.mcpTools.analyze_csharp_coding_style')!;
         const commitFormat = toolsCatalog.all.find(t => t.contextKey === 'autocontext.mcpTools.analyze_git_commit_format')!;
 
-        expect(ContextKeys.forEntry(codingStyle)).toEqual(['hasCSharp']);
+        expect(ContextKeys.forEntry(codingStyle)).toEqual(['hasDotNet', 'hasCSharp']);
         expect.soft(ContextKeys.forEntry(commitFormat)).toEqual(['hasGit']);
     });
 

@@ -83,48 +83,37 @@ describe('HealthMonitorServer', () => {
         expect(emitter.fire.mock.calls.length).toBeGreaterThan(callsAfterConnect);
     });
 
-    describe('server health', () => {
-        it('should report server healthy when all scopes are running', async () => {
-            const s1 = await connectAndSend(monitor.getPipeName(), 'git');
-            await waitFor(() => monitor.isRunning('git'));
+    describe('server label mapping', () => {
+        it('should report a server-label as running when its mapped worker is connected', async () => {
+            const monitorWithMap = new HealthMonitorServer(
+                fakeOutputChannel,
+                new Map([['.NET', 'dotnet']]),
+            );
+            monitorWithMap.start();
 
-            const s2 = await connectAndSend(monitor.getPipeName(), 'editorconfig');
-            await waitFor(() => monitor.isRunning('editorconfig'));
+            const socket = await connectAndSend(monitorWithMap.getPipeName(), 'dotnet');
+            await waitFor(() => monitorWithMap.isRunning('dotnet'));
 
-            expect(monitor.isServerHealthy('Workspace')).toBe(true);
-            expect(monitor.isServerPartiallyHealthy('Workspace')).toBe(true);
-
-            s1.destroy();
-            s2.destroy();
-        });
-
-        it('should report server partially healthy when only some scopes are running', async () => {
-            const socket = await connectAndSend(monitor.getPipeName(), 'git');
-            await waitFor(() => monitor.isRunning('git'));
-
-            expect(monitor.isServerHealthy('Workspace')).toBe(false);
-            expect(monitor.isServerPartiallyHealthy('Workspace')).toBe(true);
+            expect(monitorWithMap.isRunningServerLabel('.NET')).toBe(true);
 
             socket.destroy();
+            monitorWithMap.dispose();
         });
 
-        it('should report server not healthy when no scopes are running', () => {
-            expect(monitor.isServerHealthy('Workspace')).toBe(false);
-            expect(monitor.isServerPartiallyHealthy('Workspace')).toBe(false);
+        it('should report a server-label as not running when its worker is absent', () => {
+            const monitorWithMap = new HealthMonitorServer(
+                fakeOutputChannel,
+                new Map([['.NET', 'dotnet']]),
+            );
+            monitorWithMap.start();
+
+            expect(monitorWithMap.isRunningServerLabel('.NET')).toBe(false);
+
+            monitorWithMap.dispose();
         });
 
-        it('should report single-scope server as healthy when running', async () => {
-            const socket = await connectAndSend(monitor.getPipeName(), 'dotnet');
-            await waitFor(() => monitor.isRunning('dotnet'));
-
-            expect(monitor.isServerHealthy('.NET')).toBe(true);
-
-            socket.destroy();
-        });
-
-        it('should return false for unknown server label', () => {
-            expect(monitor.isServerHealthy('Unknown')).toBe(false);
-            expect(monitor.isServerPartiallyHealthy('Unknown')).toBe(false);
+        it('should return false for an unknown server label', () => {
+            expect(monitor.isRunningServerLabel('Unknown')).toBe(false);
         });
     });
 

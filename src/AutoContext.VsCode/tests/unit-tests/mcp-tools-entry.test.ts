@@ -1,8 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { mcpTools } from '../../src/ui-constants';
+import { join } from 'node:path';
 import { McpToolsCatalog } from '../../src/mcp-tools-catalog';
+import { McpToolsManifestLoader } from '../../src/mcp-tools-manifest-loader';
 
-const catalog = new McpToolsCatalog(mcpTools);
+const manifestData = new McpToolsManifestLoader(join(__dirname, '..', '..')).load();
+const catalog = new McpToolsCatalog(manifestData.entries);
 
 describe('tools catalog', () => {
     it('should have unique setting ids', () => {
@@ -12,7 +14,7 @@ describe('tools catalog', () => {
     });
 
     it('should have unique keys', () => {
-        const keys = mcpTools.map(t => t.key);
+        const keys = manifestData.entries.map(t => t.key);
 
         expect.soft(new Set(keys).size).toBe(keys.length);
     });

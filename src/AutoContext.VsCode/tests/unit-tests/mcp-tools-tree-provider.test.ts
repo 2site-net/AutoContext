@@ -1,13 +1,22 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { join } from 'node:path';
 import { TreeItemCollapsibleState, TreeItemCheckboxState, window, ThemeIcon, ThemeColor } from './_fakes/fake-vscode';
 import { McpToolsTreeProvider } from '../../src/mcp-tools-tree-provider';
 import type { AutoContextConfig } from '../../src/types/autocontext-config';
 import { TreeViewNodeState } from '../../src/tree-view-node-state';
 import { McpToolsCatalog } from '../../src/mcp-tools-catalog';
-import { mcpTools } from '../../src/ui-constants';
+import { McpToolsManifestLoader } from '../../src/mcp-tools-manifest-loader';
 import { TreeViewStateResolver } from '../../src/tree-view-state-resolver';
 import { TreeViewTooltip } from '../../src/tree-view-tooltip';
 import { createFakeDetector, createFakeConfigManager, createFakeHealthMonitor, createFakeOutputChannel } from './_fakes';
+
+const manifestData = new McpToolsManifestLoader(join(__dirname, '..', '..')).load();
+const mcpTools = manifestData.entries;
+const catalogOptions = {
+    serverLabelOrder: manifestData.serverLabelOrder,
+    categoryOrder: manifestData.categoryOrder,
+    serverLabelToWorkerIdMap: manifestData.serverLabelToWorkerIdMap,
+};
 
 const fakeDetector = createFakeDetector();
 const outputChannel = createFakeOutputChannel();
@@ -27,7 +36,7 @@ beforeEach(() => {
 });
 
 describe('McpToolsTreeProvider', () => {
-    const catalog = new McpToolsCatalog(mcpTools);
+    const catalog = new McpToolsCatalog(mcpTools, catalogOptions);
 
     /** Navigate: root → serverLabel → category → MCP tools */
     function getMcpTools(provider: McpToolsTreeProvider, serverLabelName: string, categoryName: string) {
@@ -408,7 +417,7 @@ describe('McpToolsTreeProvider', () => {
         const metadata = new Map([
             ['analyze_csharp_async_patterns', { description: 'Detects async anti-patterns' }],
         ]);
-        const enrichedCatalog = new McpToolsCatalog(mcpTools, metadata);
+        const enrichedCatalog = new McpToolsCatalog(mcpTools, { ...catalogOptions, metadata });
         const provider = new McpToolsTreeProvider(fakeDetector, enrichedCatalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
         const tasks = getTasks(provider, '.NET', 'C#', 'analyze_csharp_code');
         const asyncTask = tasks.find(f => f.kind === 'mcpTaskNode' && f.entry.contextKey === 'autocontext.mcpTools.analyze_csharp_async_patterns')!;
@@ -450,7 +459,7 @@ describe('McpToolsTreeProvider', () => {
         const metadata = new Map([
             ['analyze_csharp_code', { description: 'Runs all C# checks' }],
         ]);
-        const enrichedCatalog = new McpToolsCatalog(mcpTools, metadata);
+        const enrichedCatalog = new McpToolsCatalog(mcpTools, { ...catalogOptions, metadata });
         const provider = new McpToolsTreeProvider(fakeDetector, enrichedCatalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
         const tools = getMcpTools(provider, '.NET', 'C#');
         const item = provider.getTreeItem(tools[0]);
@@ -635,11 +644,8 @@ describe('McpToolsTreeProvider', () => {
     });
 
     describe('health monitor icons', () => {
-        it('should show green icon when server is fully healthy', () => {
-            const hm = createFakeHealthMonitor({
-                isServerHealthy: () => true,
-                isServerPartiallyHealthy: () => true,
-            });
+        it('should show green icon when server label is running', () => {
+            const hm = createFakeHealthMonitor({ isRunningServerLabel: () => true });
 
             const provider = new McpToolsTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel, hm);
             const roots = provider.getChildren();
@@ -655,31 +661,8 @@ describe('McpToolsTreeProvider', () => {
             provider.dispose();
         });
 
-        it('should show yellow icon when server is partially healthy', () => {
-            const hm = createFakeHealthMonitor({
-                isServerHealthy: () => false,
-                isServerPartiallyHealthy: () => true,
-            });
-
-            const provider = new McpToolsTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel, hm);
-            const roots = provider.getChildren();
-            const dotnet = roots.find(r => r.kind === 'serverNode' && r.name === '.NET')!;
-            const item = provider.getTreeItem(dotnet);
-
-            expect.soft(item.iconPath).toBeInstanceOf(ThemeIcon);
-            const icon = item.iconPath as InstanceType<typeof ThemeIcon>;
-            expect.soft(icon.id).toBe('circle-filled');
-            expect.soft(icon.color).toBeInstanceOf(ThemeColor);
-            expect.soft((icon.color as InstanceType<typeof ThemeColor>).id).toBe('testing.iconQueued');
-
-            provider.dispose();
-        });
-
-        it('should show red icon when server is not healthy', () => {
-            const hm = createFakeHealthMonitor({
-                isServerHealthy: () => false,
-                isServerPartiallyHealthy: () => false,
-            });
+        it('should show red icon when server label is not running', () => {
+            const hm = createFakeHealthMonitor({ isRunningServerLabel: () => false });
 
             const provider = new McpToolsTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel, hm);
             const roots = provider.getChildren();
@@ -773,7 +756,7 @@ describe('McpToolsTreeProvider', () => {
 
         it('should fall through to health monitor icons when status is available', () => {
             const sp = createFakeServerProvider(() => 'available');
-            const hm = createFakeHealthMonitor({ isServerHealthy: () => true, isServerPartiallyHealthy: () => true });
+            const hm = createFakeHealthMonitor({ isRunningServerLabel: () => true });
             const provider = new McpToolsTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel, hm, sp);
             const dotnet = provider.getChildren().find(r => r.kind === 'serverNode' && r.name === '.NET')!;
             const item = provider.getTreeItem(dotnet);
