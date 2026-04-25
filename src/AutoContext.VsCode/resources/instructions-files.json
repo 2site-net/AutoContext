@@ -1,0 +1,787 @@
+{
+    "schemaVersion": "1",
+    "categories": [
+        {
+            "name": "General",
+            "description": "Cross-cutting guidance that applies across languages and stacks."
+        },
+        {
+            "name": "Languages",
+            "description": "Language-specific style, idioms, and conventions."
+        },
+        {
+            "name": ".NET",
+            "description": ".NET ecosystem coding standards, frameworks, and data access."
+        },
+        {
+            "name": "Web",
+            "description": "Web frameworks, front-end stacks, and JavaScript/TypeScript test runners."
+        },
+        {
+            "name": "Tools",
+            "description": "Developer tooling and platform conventions."
+        }
+    ],
+    "instructions": [
+        {
+            "label": "Code Review",
+            "name": "code-review.instructions.md",
+            "categories": [
+                "General"
+            ]
+        },
+        {
+            "label": "Design Principles",
+            "name": "design-principles.instructions.md",
+            "categories": [
+                "General"
+            ]
+        },
+        {
+            "label": "REST API Design",
+            "name": "rest-api-design.instructions.md",
+            "categories": [
+                "General"
+            ]
+        },
+        {
+            "label": "Testing",
+            "name": "testing.instructions.md",
+            "categories": [
+                "General"
+            ],
+            "activationFlags": [
+                "hasDotNetTesting",
+                "hasWebTesting"
+            ]
+        },
+        {
+            "label": "Bash",
+            "name": "lang-bash.instructions.md",
+            "categories": [
+                "Languages"
+            ],
+            "activationFlags": [
+                "hasBash"
+            ]
+        },
+        {
+            "label": "Batch (CMD)",
+            "name": "lang-batch.instructions.md",
+            "categories": [
+                "Languages"
+            ],
+            "activationFlags": [
+                "hasBatch"
+            ]
+        },
+        {
+            "label": "C",
+            "name": "lang-c.instructions.md",
+            "categories": [
+                "Languages"
+            ],
+            "activationFlags": [
+                "hasC"
+            ]
+        },
+        {
+            "label": "C#",
+            "name": "lang-csharp.instructions.md",
+            "categories": [
+                "Languages"
+            ],
+            "activationFlags": [
+                "hasCSharp"
+            ]
+        },
+        {
+            "label": "C++",
+            "name": "lang-cpp.instructions.md",
+            "categories": [
+                "Languages"
+            ],
+            "activationFlags": [
+                "hasCpp"
+            ]
+        },
+        {
+            "label": "CSS",
+            "name": "lang-css.instructions.md",
+            "categories": [
+                "Languages"
+            ],
+            "activationFlags": [
+                "hasCss"
+            ]
+        },
+        {
+            "label": "Dart",
+            "name": "lang-dart.instructions.md",
+            "categories": [
+                "Languages"
+            ],
+            "activationFlags": [
+                "hasDart"
+            ]
+        },
+        {
+            "label": "F#",
+            "name": "lang-fsharp.instructions.md",
+            "categories": [
+                "Languages"
+            ],
+            "activationFlags": [
+                "hasFSharp"
+            ]
+        },
+        {
+            "label": "Go",
+            "name": "lang-go.instructions.md",
+            "categories": [
+                "Languages"
+            ],
+            "activationFlags": [
+                "hasGo"
+            ]
+        },
+        {
+            "label": "GraphQL",
+            "name": "lang-graphql.instructions.md",
+            "categories": [
+                "Languages"
+            ],
+            "activationFlags": [
+                "hasGraphql"
+            ]
+        },
+        {
+            "label": "Groovy",
+            "name": "lang-groovy.instructions.md",
+            "categories": [
+                "Languages"
+            ],
+            "activationFlags": [
+                "hasGroovy"
+            ]
+        },
+        {
+            "label": "HTML",
+            "name": "lang-html.instructions.md",
+            "categories": [
+                "Languages"
+            ],
+            "activationFlags": [
+                "hasHtml"
+            ]
+        },
+        {
+            "label": "Java",
+            "name": "lang-java.instructions.md",
+            "categories": [
+                "Languages"
+            ],
+            "activationFlags": [
+                "hasJava"
+            ]
+        },
+        {
+            "label": "JavaScript",
+            "name": "lang-javascript.instructions.md",
+            "categories": [
+                "Languages"
+            ],
+            "activationFlags": [
+                "hasJavaScript",
+                "hasTypeScript"
+            ]
+        },
+        {
+            "label": "Kotlin",
+            "name": "lang-kotlin.instructions.md",
+            "categories": [
+                "Languages"
+            ],
+            "activationFlags": [
+                "hasKotlin"
+            ]
+        },
+        {
+            "label": "Lua",
+            "name": "lang-lua.instructions.md",
+            "categories": [
+                "Languages"
+            ],
+            "activationFlags": [
+                "hasLua"
+            ]
+        },
+        {
+            "label": "PHP",
+            "name": "lang-php.instructions.md",
+            "categories": [
+                "Languages"
+            ],
+            "activationFlags": [
+                "hasPhp"
+            ]
+        },
+        {
+            "label": "PowerShell",
+            "name": "lang-powershell.instructions.md",
+            "categories": [
+                "Languages"
+            ],
+            "activationFlags": [
+                "hasPowerShell"
+            ]
+        },
+        {
+            "label": "Python",
+            "name": "lang-python.instructions.md",
+            "categories": [
+                "Languages"
+            ],
+            "activationFlags": [
+                "hasPython"
+            ]
+        },
+        {
+            "label": "Ruby",
+            "name": "lang-ruby.instructions.md",
+            "categories": [
+                "Languages"
+            ],
+            "activationFlags": [
+                "hasRuby"
+            ]
+        },
+        {
+            "label": "Rust",
+            "name": "lang-rust.instructions.md",
+            "categories": [
+                "Languages"
+            ],
+            "activationFlags": [
+                "hasRust"
+            ]
+        },
+        {
+            "label": "Scala",
+            "name": "lang-scala.instructions.md",
+            "categories": [
+                "Languages"
+            ],
+            "activationFlags": [
+                "hasScala"
+            ]
+        },
+        {
+            "label": "SQL",
+            "name": "lang-sql.instructions.md",
+            "categories": [
+                "Languages"
+            ]
+        },
+        {
+            "label": "Swift",
+            "name": "lang-swift.instructions.md",
+            "categories": [
+                "Languages"
+            ],
+            "activationFlags": [
+                "hasSwift"
+            ]
+        },
+        {
+            "label": "TypeScript",
+            "name": "lang-typescript.instructions.md",
+            "categories": [
+                "Languages"
+            ],
+            "activationFlags": [
+                "hasTypeScript"
+            ]
+        },
+        {
+            "label": "VB.NET",
+            "name": "lang-vbnet.instructions.md",
+            "categories": [
+                "Languages"
+            ],
+            "activationFlags": [
+                "hasVbNet"
+            ]
+        },
+        {
+            "label": "YAML",
+            "name": "lang-yaml.instructions.md",
+            "categories": [
+                "Languages"
+            ],
+            "activationFlags": [
+                "hasYaml"
+            ]
+        },
+        {
+            "label": ".NET MAUI",
+            "name": "dotnet-maui.instructions.md",
+            "categories": [
+                ".NET"
+            ],
+            "activationFlags": [
+                "hasMaui"
+            ]
+        },
+        {
+            "label": "ASP.NET Core",
+            "name": "dotnet-aspnetcore.instructions.md",
+            "categories": [
+                ".NET"
+            ],
+            "activationFlags": [
+                "hasAspNetCore"
+            ]
+        },
+        {
+            "label": "ASP.NET Web Forms",
+            "name": "dotnet-aspx.instructions.md",
+            "categories": [
+                ".NET"
+            ],
+            "activationFlags": [
+                "hasWebForms"
+            ]
+        },
+        {
+            "label": "Async/Await",
+            "name": "dotnet-async-await.instructions.md",
+            "categories": [
+                ".NET"
+            ],
+            "activationFlags": [
+                "hasDotNet"
+            ]
+        },
+        {
+            "label": "Blazor",
+            "name": "dotnet-blazor.instructions.md",
+            "categories": [
+                ".NET"
+            ],
+            "activationFlags": [
+                "hasBlazor"
+            ]
+        },
+        {
+            "label": "Coding Standards",
+            "name": "dotnet-coding-standards.instructions.md",
+            "categories": [
+                ".NET"
+            ],
+            "activationFlags": [
+                "hasDotNet"
+            ]
+        },
+        {
+            "label": "Core (DI, Logging, Config, Security)",
+            "name": "dotnet-core.instructions.md",
+            "categories": [
+                ".NET"
+            ],
+            "activationFlags": [
+                "hasDotNet"
+            ]
+        },
+        {
+            "label": "Dapper",
+            "name": "dotnet-dapper.instructions.md",
+            "categories": [
+                ".NET"
+            ],
+            "activationFlags": [
+                "hasDapper"
+            ]
+        },
+        {
+            "label": "Debugging",
+            "name": "dotnet-debugging.instructions.md",
+            "categories": [
+                ".NET"
+            ],
+            "activationFlags": [
+                "hasDotNet"
+            ]
+        },
+        {
+            "label": "Entity Framework Core",
+            "name": "dotnet-entity-framework-core.instructions.md",
+            "categories": [
+                ".NET"
+            ],
+            "activationFlags": [
+                "hasEntityFrameworkCore"
+            ]
+        },
+        {
+            "label": "gRPC",
+            "name": "dotnet-grpc.instructions.md",
+            "categories": [
+                ".NET"
+            ],
+            "activationFlags": [
+                "hasGrpc"
+            ]
+        },
+        {
+            "label": "Mediator / CQRS",
+            "name": "dotnet-mediator-cqrs.instructions.md",
+            "categories": [
+                ".NET"
+            ],
+            "activationFlags": [
+                "hasMediatR"
+            ]
+        },
+        {
+            "label": "MongoDB",
+            "name": "dotnet-mongodb.instructions.md",
+            "categories": [
+                ".NET"
+            ],
+            "activationFlags": [
+                "hasMongoDb"
+            ]
+        },
+        {
+            "label": "MSTest",
+            "name": "dotnet-mstest.instructions.md",
+            "categories": [
+                ".NET"
+            ],
+            "activationFlags": [
+                "hasMsTest"
+            ]
+        },
+        {
+            "label": "MySQL",
+            "name": "dotnet-mysql.instructions.md",
+            "categories": [
+                ".NET"
+            ],
+            "activationFlags": [
+                "hasMySql"
+            ]
+        },
+        {
+            "label": "NuGet",
+            "name": "dotnet-nuget.instructions.md",
+            "categories": [
+                ".NET"
+            ],
+            "activationFlags": [
+                "hasDotNet"
+            ]
+        },
+        {
+            "label": "NUnit",
+            "name": "dotnet-nunit.instructions.md",
+            "categories": [
+                ".NET"
+            ],
+            "activationFlags": [
+                "hasNUnit"
+            ]
+        },
+        {
+            "label": "Oracle",
+            "name": "dotnet-oracle.instructions.md",
+            "categories": [
+                ".NET"
+            ],
+            "activationFlags": [
+                "hasOracle"
+            ]
+        },
+        {
+            "label": "Performance & Memory",
+            "name": "dotnet-performance-memory.instructions.md",
+            "categories": [
+                ".NET"
+            ],
+            "activationFlags": [
+                "hasDotNet"
+            ]
+        },
+        {
+            "label": "PostgreSQL",
+            "name": "dotnet-postgresql.instructions.md",
+            "categories": [
+                ".NET"
+            ],
+            "activationFlags": [
+                "hasPostgres"
+            ]
+        },
+        {
+            "label": "Razor",
+            "name": "dotnet-razor.instructions.md",
+            "categories": [
+                ".NET"
+            ],
+            "activationFlags": [
+                "hasRazor"
+            ]
+        },
+        {
+            "label": "Redis",
+            "name": "dotnet-redis.instructions.md",
+            "categories": [
+                ".NET"
+            ],
+            "activationFlags": [
+                "hasRedis"
+            ]
+        },
+        {
+            "label": "SignalR",
+            "name": "dotnet-signalr.instructions.md",
+            "categories": [
+                ".NET"
+            ],
+            "activationFlags": [
+                "hasSignalR"
+            ]
+        },
+        {
+            "label": "SQL Server",
+            "name": "dotnet-sql-server.instructions.md",
+            "categories": [
+                ".NET"
+            ],
+            "activationFlags": [
+                "hasSqlServer"
+            ]
+        },
+        {
+            "label": "SQLite",
+            "name": "dotnet-sqlite.instructions.md",
+            "categories": [
+                ".NET"
+            ],
+            "activationFlags": [
+                "hasSqlite"
+            ]
+        },
+        {
+            "label": "Testing",
+            "name": "dotnet-testing.instructions.md",
+            "categories": [
+                ".NET"
+            ],
+            "activationFlags": [
+                "hasDotNetTesting"
+            ]
+        },
+        {
+            "label": "Unity",
+            "name": "dotnet-unity.instructions.md",
+            "categories": [
+                ".NET"
+            ],
+            "activationFlags": [
+                "hasUnity"
+            ]
+        },
+        {
+            "label": "Windows Forms",
+            "name": "dotnet-winforms.instructions.md",
+            "categories": [
+                ".NET"
+            ],
+            "activationFlags": [
+                "hasWinForms"
+            ]
+        },
+        {
+            "label": "WPF",
+            "name": "dotnet-wpf.instructions.md",
+            "categories": [
+                ".NET"
+            ],
+            "activationFlags": [
+                "hasWpf"
+            ]
+        },
+        {
+            "label": "XAML",
+            "name": "dotnet-xaml.instructions.md",
+            "categories": [
+                ".NET"
+            ],
+            "activationFlags": [
+                "hasXaml"
+            ]
+        },
+        {
+            "label": "xUnit",
+            "name": "dotnet-xunit.instructions.md",
+            "categories": [
+                ".NET"
+            ],
+            "activationFlags": [
+                "hasXunit"
+            ]
+        },
+        {
+            "label": "Angular",
+            "name": "web-angular.instructions.md",
+            "categories": [
+                "Web"
+            ],
+            "activationFlags": [
+                "hasAngular"
+            ]
+        },
+        {
+            "label": "Cypress",
+            "name": "web-cypress.instructions.md",
+            "categories": [
+                "Web"
+            ],
+            "activationFlags": [
+                "hasCypress"
+            ]
+        },
+        {
+            "label": "Jasmine",
+            "name": "web-jasmine.instructions.md",
+            "categories": [
+                "Web"
+            ],
+            "activationFlags": [
+                "hasJasmine"
+            ]
+        },
+        {
+            "label": "Jest",
+            "name": "web-jest.instructions.md",
+            "categories": [
+                "Web"
+            ],
+            "activationFlags": [
+                "hasJest"
+            ]
+        },
+        {
+            "label": "Mocha",
+            "name": "web-mocha.instructions.md",
+            "categories": [
+                "Web"
+            ],
+            "activationFlags": [
+                "hasMocha"
+            ]
+        },
+        {
+            "label": "Next.js",
+            "name": "web-nextjs.instructions.md",
+            "categories": [
+                "Web"
+            ],
+            "activationFlags": [
+                "hasNextJs"
+            ]
+        },
+        {
+            "label": "Node.js",
+            "name": "web-nodejs.instructions.md",
+            "categories": [
+                "Web"
+            ],
+            "activationFlags": [
+                "hasNodeJs"
+            ]
+        },
+        {
+            "label": "Playwright",
+            "name": "web-playwright.instructions.md",
+            "categories": [
+                "Web"
+            ],
+            "activationFlags": [
+                "hasPlaywright"
+            ]
+        },
+        {
+            "label": "React",
+            "name": "web-react.instructions.md",
+            "categories": [
+                "Web"
+            ],
+            "activationFlags": [
+                "hasReact"
+            ]
+        },
+        {
+            "label": "Svelte",
+            "name": "web-svelte.instructions.md",
+            "categories": [
+                "Web"
+            ],
+            "activationFlags": [
+                "hasSvelte"
+            ]
+        },
+        {
+            "label": "Testing",
+            "name": "web-testing.instructions.md",
+            "categories": [
+                "Web"
+            ],
+            "activationFlags": [
+                "hasWebTesting"
+            ]
+        },
+        {
+            "label": "Vitest",
+            "name": "web-vitest.instructions.md",
+            "categories": [
+                "Web"
+            ],
+            "activationFlags": [
+                "hasVitest"
+            ]
+        },
+        {
+            "label": "Vue.js",
+            "name": "web-vue.instructions.md",
+            "categories": [
+                "Web"
+            ],
+            "activationFlags": [
+                "hasVue"
+            ]
+        },
+        {
+            "label": "Commit Format",
+            "name": "git-commit-format.instructions.md",
+            "categories": [
+                "Tools"
+            ],
+            "activationFlags": [
+                "hasGit"
+            ]
+        },
+        {
+            "label": "Docker",
+            "name": "docker.instructions.md",
+            "categories": [
+                "Tools"
+            ],
+            "activationFlags": [
+                "hasDocker"
+            ]
+        }
+    ]
+}
