@@ -5,7 +5,6 @@ publish/
 *.vsix
 instructions/.generated/
 instructions/.workspaces/
-.mcp-tools.json
 .vscode-test/
 LICENSE
 COMMERCIAL.md

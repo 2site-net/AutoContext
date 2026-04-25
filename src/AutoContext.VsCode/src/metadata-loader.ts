@@ -4,30 +4,34 @@ import { InstructionsParser } from './instructions-parser.js';
 import type { McpToolsMetadataEntry } from './mcp-tools-catalog-entry.js';
 import type { InstructionsMetadataEntry } from './instructions-catalog-entry.js';
 
-interface ManifestTool {
+interface McpTaskManifest {
     name: string;
     description: string;
-    version: string;
-    tasks?: ManifestTool[];
+}
+
+interface McpToolManifest {
+    name: string;
+    description: string;
+    tasks?: McpTaskManifest[];
+}
+
+interface McpToolsManifest {
+    tools: McpToolManifest[];
 }
 
 export class MetadataLoader {
     constructor(private readonly extensionPath: string) {}
 
     getMcpToolsInfo(): ReadonlyMap<string, McpToolsMetadataEntry> {
-        const manifest: Record<string, ManifestTool[]> = JSON.parse(
-            readFileSync(join(this.extensionPath, '.mcp-tools.json'), 'utf-8'),
+        const manifest: McpToolsManifest = JSON.parse(
+            readFileSync(join(this.extensionPath, 'mcp-tools-manifest.json'), 'utf-8'),
         );
         const metadata = new Map<string, McpToolsMetadataEntry>();
 
-        for (const tools of Object.values(manifest)) {
-            for (const tool of tools) {
-                metadata.set(tool.name, { description: tool.description, version: tool.version });
-                if (tool.tasks) {
-                    for (const task of tool.tasks) {
-                        metadata.set(task.name, { description: task.description, version: task.version });
-                    }
-                }
+        for (const tool of manifest.tools) {
+            metadata.set(tool.name, { description: tool.description });
+            for (const task of tool.tasks ?? []) {
+                metadata.set(task.name, { description: task.description });
             }
         }
 

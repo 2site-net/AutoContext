@@ -44,33 +44,29 @@ describe('McpToolsCatalog', () => {
 
     it('should enrich entries with metadata when provided', () => {
         const metadata = new Map([
-            ['alpha', { description: 'Alpha tool', version: '1.0.0' }],
-            ['gamma', { description: 'Gamma tool', version: '2.0.0' }],
+            ['alpha', { description: 'Alpha tool' }],
+            ['gamma', { description: 'Gamma tool' }],
         ]);
         const catalog = new McpToolsCatalog(mcpToolsTestEntries, metadata);
 
         expect.soft(catalog.all[0].description).toBe('Alpha tool');
-        expect.soft(catalog.all[0].version).toBe('1.0.0');
         expect.soft(catalog.all[1].description).toBeUndefined();
-        expect.soft(catalog.all[1].version).toBeUndefined();
         expect.soft(catalog.all[2].description).toBe('Gamma tool');
-        expect.soft(catalog.all[2].version).toBe('2.0.0');
     });
 
     it('should leave metadata undefined when no metadata map is provided', () => {
         const catalog = new McpToolsCatalog(mcpToolsTestEntries);
 
         expect.soft(catalog.all[0].description).toBeUndefined();
-        expect.soft(catalog.all[0].version).toBeUndefined();
     });
 
     it('should return tool metadata by name', () => {
         const metadata = new Map([
-            ['alpha', { description: 'Alpha tool', version: '1.0.0' }],
+            ['alpha', { description: 'Alpha tool' }],
         ]);
         const catalog = new McpToolsCatalog(mcpToolsTestEntries, metadata);
 
-        expect.soft(catalog.getMetadata('alpha')).toEqual({ description: 'Alpha tool', version: '1.0.0' });
+        expect.soft(catalog.getMetadata('alpha')).toEqual({ description: 'Alpha tool' });
         expect.soft(catalog.getMetadata('unknown')).toBeUndefined();
     });
 });

@@ -13,14 +13,14 @@ using System.Text.Json;
 /// The contract is JSON-native end to end: <paramref name="data"/> is the
 /// payload Copilot supplied to the parent MCP Tool, and the return value
 /// is whatever JSON the task wants to surface (per-tool <c>outputSchema</c>
-/// in <c>.mcp-tools.json</c> documents the shape).
+/// in <c>mcp-tools-manifest.json</c> documents the shape).
 /// </para>
 /// </remarks>
 public interface IMcpTask
 {
     /// <summary>
     /// Snake_case identifier matching the task's <c>name</c> in
-    /// <c>.mcp-tools.json</c>.
+    /// <c>mcp-tools-manifest.json</c>.
     /// </summary>
     string TaskName { get; }
 
@@ -29,7 +29,7 @@ public interface IMcpTask
     /// </summary>
     /// <param name="data">
     /// The JSON payload from the parent MCP Tool invocation. EditorConfig
-    /// values declared by the task in <c>.mcp-tools.json</c> are merged in
+    /// values declared by the task in <c>mcp-tools-manifest.json</c> are merged in
     /// as flat properties prefixed with <c>editorconfig.</c> (e.g.
     /// <c>data["editorconfig.indent_style"]</c>); missing keys are simply
     /// absent.

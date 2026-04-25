@@ -3,7 +3,6 @@ import type { McpToolsEntry } from './types/mcp-tools-entry.js';
 
 export interface McpToolsMetadataEntry {
     readonly description?: string;
-    readonly version?: string;
 }
 
 export class McpToolsCatalogEntry implements CatalogEntry {
@@ -16,7 +15,6 @@ export class McpToolsCatalogEntry implements CatalogEntry {
     readonly scope: string;
     readonly workspaceFlags?: readonly string[];
     readonly description?: string;
-    readonly version?: string;
 
     constructor(data: McpToolsEntry, metadata?: McpToolsMetadataEntry) {
         this.contextKey = `autocontext.mcpTools.${data.key}`;
@@ -28,6 +26,5 @@ export class McpToolsCatalogEntry implements CatalogEntry {
         this.scope = data.scope;
         this.workspaceFlags = data.workspaceFlags;
         this.description = metadata?.description;
-        this.version = metadata?.version;
     }
 }

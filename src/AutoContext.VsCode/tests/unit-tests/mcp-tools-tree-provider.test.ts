@@ -402,11 +402,11 @@ describe('McpToolsTreeProvider', () => {
         provider.dispose();
     });
 
-    it('should include description and version in task tooltip when metadata is provided', () => {
+    it('should include description in task tooltip when metadata is provided', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
 
         const metadata = new Map([
-            ['analyze_csharp_async_patterns', { description: 'Detects async anti-patterns', version: '1.2.0' }],
+            ['analyze_csharp_async_patterns', { description: 'Detects async anti-patterns' }],
         ]);
         const enrichedCatalog = new McpToolsCatalog(mcpTools, metadata);
         const provider = new McpToolsTreeProvider(fakeDetector, enrichedCatalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
@@ -415,7 +415,6 @@ describe('McpToolsTreeProvider', () => {
         const item = provider.getTreeItem(asyncTask);
 
         expect.soft(item.tooltip).toContain('Detects async anti-patterns');
-        expect.soft(item.tooltip).toContain('v1.2.0');
 
         provider.dispose();
     });
@@ -445,11 +444,11 @@ describe('McpToolsTreeProvider', () => {
         provider.dispose();
     });
 
-    it('should include description and version in parent tool tooltip when metadata is provided', () => {
+    it('should include description in parent tool tooltip when metadata is provided', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
 
         const metadata = new Map([
-            ['analyze_csharp_code', { description: 'Runs all C# checks', version: '0.1.0' }],
+            ['analyze_csharp_code', { description: 'Runs all C# checks' }],
         ]);
         const enrichedCatalog = new McpToolsCatalog(mcpTools, metadata);
         const provider = new McpToolsTreeProvider(fakeDetector, enrichedCatalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
@@ -457,7 +456,6 @@ describe('McpToolsTreeProvider', () => {
         const item = provider.getTreeItem(tools[0]);
 
         expect.soft(item.tooltip).toContain('Runs all C# checks');
-        expect.soft(item.tooltip).toContain('v0.1.0');
         expect.soft(item.tooltip).toContain('tasks enabled');
 
         provider.dispose();
