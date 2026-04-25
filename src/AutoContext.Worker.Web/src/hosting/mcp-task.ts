@@ -13,7 +13,7 @@
  */
 export interface McpTask {
     /**
-     * Snake-case task identifier matching `mcp-tools-manifest.json`. Sent on the
+     * Snake-case task identifier matching `mcp-tools.json`. Sent on the
      * wire as `mcpTask`. Must be unique within a worker.
      */
     readonly taskName: string;

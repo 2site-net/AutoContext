@@ -26,7 +26,7 @@ function mockManifests(servers: unknown, categories: unknown): void {
     readFileSyncMock.mockImplementation((path) => {
         const p = path.toString();
         if (p.endsWith('servers.json')) { return JSON.stringify({ servers }); }
-        if (p.endsWith('mcp-tools-manifest.json')) { return JSON.stringify({ categories }); }
+        if (p.endsWith('mcp-tools.json')) { return JSON.stringify({ categories }); }
         throw new Error(`Unexpected path: ${p}`);
     });
 }

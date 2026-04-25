@@ -30,7 +30,7 @@ interface JsonMcpToolsManifest {
 }
 
 /**
- * Loads `mcp-tools-manifest.json` from the extension folder and projects
+ * Loads `resources/mcp-tools.json` from the extension folder and projects
  * it into a fully-resolved `McpToolsManifest` instance. The manifest is
  * the single source of truth for tool/task identity, categorisation,
  * worker mapping, and workspace-flag gating.
@@ -40,7 +40,7 @@ export class McpToolsManifestLoader {
 
     load(): McpToolsManifest {
         const json: JsonMcpToolsManifest = JSON.parse(
-            readFileSync(join(this.extensionPath, 'mcp-tools-manifest.json'), 'utf-8'),
+            readFileSync(join(this.extensionPath, 'resources', 'mcp-tools.json'), 'utf-8'),
         );
 
         const categories = json.categories.map(c =>
@@ -69,18 +69,18 @@ export class McpToolsManifestLoader {
         categoryByName: ReadonlyMap<string, McpCategoryEntry>,
     ): void {
         if (categoryNames.length === 0) {
-            throw new Error(`mcp-tools-manifest.json: tool '${toolName}' has no categories; the first category must be a top-level category (one with a 'workerId').`);
+            throw new Error(`mcp-tools.json: tool '${toolName}' has no categories; the first category must be a top-level category (one with a 'workerId').`);
         }
 
         for (const name of categoryNames) {
             if (!categoryByName.has(name)) {
-                throw new Error(`mcp-tools-manifest.json: tool '${toolName}' references unknown category '${name}'.`);
+                throw new Error(`mcp-tools.json: tool '${toolName}' references unknown category '${name}'.`);
             }
         }
 
         const topLevel = categoryByName.get(categoryNames[0])!;
         if (!topLevel.isTopLevel) {
-            throw new Error(`mcp-tools-manifest.json: tool '${toolName}' uses '${categoryNames[0]}' as its top-level category, but that category has no 'workerId'. The first entry in 'categories' must be a top-level category.`);
+            throw new Error(`mcp-tools.json: tool '${toolName}' uses '${categoryNames[0]}' as its top-level category, but that category has no 'workerId'. The first entry in 'categories' must be a top-level category.`);
         }
     }
 }

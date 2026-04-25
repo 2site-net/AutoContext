@@ -2,7 +2,7 @@ import type { ServerEntry } from './server-entry.js';
 
 /**
  * Derived view of `servers.json` cross-referenced with
- * `mcp-tools-manifest.json`. `workers` contains the servers whose `id`
+ * `resources/mcp-tools.json`. `workers` contains the servers whose `id`
  * is a `workerId` in the tools manifest; `mcpServer` is the single
  * `AutoContext.Mcp.Server` entry VS Code spawns.
  */

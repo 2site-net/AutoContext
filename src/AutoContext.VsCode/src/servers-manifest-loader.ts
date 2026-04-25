@@ -17,7 +17,7 @@ interface RawToolsManifest {
 
 /**
  * Loads `servers.json` and cross-references it with
- * `mcp-tools-manifest.json` to produce a {@link ServersManifest}.
+ * `resources/mcp-tools.json` to produce a {@link ServersManifest}.
  */
 export class ServersManifestLoader {
     constructor(private readonly extensionPath: string) {}
@@ -27,7 +27,7 @@ export class ServersManifestLoader {
             readFileSync(join(this.extensionPath, 'servers.json'), 'utf-8'),
         );
         const rawTools: RawToolsManifest = JSON.parse(
-            readFileSync(join(this.extensionPath, 'mcp-tools-manifest.json'), 'utf-8'),
+            readFileSync(join(this.extensionPath, 'resources', 'mcp-tools.json'), 'utf-8'),
         );
 
         const workerIds = new Set(

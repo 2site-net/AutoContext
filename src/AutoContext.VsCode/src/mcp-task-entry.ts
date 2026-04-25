@@ -3,7 +3,7 @@ import { McpToolRuntimeInfo } from './mcp-tool-runtime-info.js';
 import type { McpToolEntry } from './mcp-tool-entry.js';
 
 /**
- * A task declared under a tool in `mcp-tools-manifest.json`. Each task
+ * A task declared under a tool in `resources/mcp-tools.json`. Each task
  * has its own context key (`autocontext.mcpTools.<tool>.<task>`) and
  * holds a back-reference to its parent tool.
  */

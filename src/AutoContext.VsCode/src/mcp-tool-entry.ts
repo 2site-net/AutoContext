@@ -9,7 +9,7 @@ export interface McpTaskInit {
 }
 
 /**
- * A tool from `mcp-tools-manifest.json`. Tools belong to one or more
+ * A tool from `resources/mcp-tools.json`. Tools belong to one or more
  * categories — the first is the top-level (worker) category, the last
  * is the leaf category used to group it in the tree. Tasks (if any)
  * are constructed eagerly in the constructor so they can hold a

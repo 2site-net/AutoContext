@@ -2,7 +2,7 @@ import type { McpCategoryEntry } from './mcp-category-entry.js';
 import type { McpToolEntry } from './mcp-tool-entry.js';
 
 /**
- * Fully-resolved, in-memory representation of `mcp-tools-manifest.json`.
+ * Fully-resolved, in-memory representation of `resources/mcp-tools.json`.
  * Built by `McpToolsManifestLoader.load()`.
  */
 export class McpToolsManifest {
