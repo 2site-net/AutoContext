@@ -263,7 +263,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
     await logDiagnostics();
 
-    return { mcpServerProvider, configManager, codeLensProvider, contentProvider, workspaceContextDetector, workspaceServer, healthMonitor, instructionsTreeProvider, mcpToolsTreeProvider };
+    return { mcpServerProvider, configManager, codeLensProvider, contentProvider, workspaceContextDetector, workspaceServer, workerManager, healthMonitor, instructionsTreeProvider, mcpToolsTreeProvider };
 }
 
 export function deactivate(): void {
