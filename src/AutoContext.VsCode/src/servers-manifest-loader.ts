@@ -41,14 +41,16 @@ export class ServersManifestLoader {
                 s.id !== undefined && workerIds.has(s.id),
         );
 
-        const mcpServerEntry = rawServers.servers.find(s => s.id === 'mcp-server');
+        const mcpServerEntry = rawServers.servers.find(
+            (s): s is ServerEntry & { id: string } => s.id === 'mcp-server',
+        );
         if (!mcpServerEntry) {
             throw new Error("servers.json is missing an entry with id 'mcp-server'.");
         }
 
         return {
             workers,
-            mcpServer: mcpServerEntry as ServerEntry & { id: string },
+            mcpServer: mcpServerEntry,
         };
     }
 }
