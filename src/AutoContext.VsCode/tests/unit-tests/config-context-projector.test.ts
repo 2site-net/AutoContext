@@ -2,29 +2,46 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 import { ConfigContextProjector, isToolEnabled } from '../../src/config-context-projector';
 import { InstructionsCatalog } from '../../src/instructions-catalog';
-import { McpToolsCatalog } from '../../src/mcp-tools-catalog';
+import { McpCategoryEntry } from '../../src/mcp-category-entry';
+import { McpToolEntry } from '../../src/mcp-tool-entry';
+import { McpToolsManifest } from '../../src/mcp-tools-manifest';
 import { createFakeOutputChannel, createMockConfigManager } from './_fakes';
-import { projectorTestInstructions, projectorTestTools } from './_fixtures';
+import { projectorTestInstructions } from './_fixtures';
 import { findSetContextCall } from './_utils';
 
 beforeEach(() => {
     vi.clearAllMocks();
 });
 
+function buildProjectorManifest(): McpToolsManifest {
+    const dotnet = new McpCategoryEntry('.NET', undefined, 'dotnet', []);
+    const workspace = new McpCategoryEntry('Workspace', undefined, 'workspace', []);
+    const tools: McpToolEntry[] = [
+        new McpToolEntry('analyze_csharp_code', undefined, [dotnet], [
+            { name: 'analyze_csharp_coding_style' },
+            { name: 'analyze_csharp_async_patterns' },
+        ]),
+        new McpToolEntry('read_editorconfig_properties', undefined, [workspace], [
+            { name: 'get_editorconfig_rules' },
+        ]),
+    ];
+    return new McpToolsManifest(tools, [dotnet, workspace]);
+}
+
 describe('ConfigContextProjector', () => {
     const catalog = new InstructionsCatalog(projectorTestInstructions);
-    const toolsCatalog = new McpToolsCatalog(projectorTestTools);
+    const toolsManifest = buildProjectorManifest();
     const outputChannel = createFakeOutputChannel();
 
     it('should set all context keys to true when config is empty', async () => {
-        const projector = new ConfigContextProjector(createMockConfigManager({}), catalog, toolsCatalog, outputChannel);
+        const projector = new ConfigContextProjector(createMockConfigManager({}), catalog, toolsManifest, outputChannel);
         await projector.project();
 
         expect(findSetContextCall('autocontext.instructions.codeReview')?.[2]).toBe(true);
         expect(findSetContextCall('autocontext.instructions.lang.csharp')?.[2]).toBe(true);
-        expect(findSetContextCall('autocontext.mcpTools.analyze_csharp_coding_style')?.[2]).toBe(true);
-        expect(findSetContextCall('autocontext.mcpTools.analyze_csharp_async_patterns')?.[2]).toBe(true);
-        expect.soft(findSetContextCall('autocontext.mcpTools.get_editorconfig_rules')?.[2]).toBe(true);
+        expect(findSetContextCall('autocontext.mcpTools.analyze_csharp_code.analyze_csharp_coding_style')?.[2]).toBe(true);
+        expect(findSetContextCall('autocontext.mcpTools.analyze_csharp_code.analyze_csharp_async_patterns')?.[2]).toBe(true);
+        expect.soft(findSetContextCall('autocontext.mcpTools.read_editorconfig_properties.get_editorconfig_rules')?.[2]).toBe(true);
     });
 
     it('should set instruction context key to false when disabled', async () => {
@@ -33,7 +50,7 @@ describe('ConfigContextProjector', () => {
                 instructions: { 'code-review.instructions.md': { enabled: false } },
             }),
             catalog,
-            toolsCatalog,
+            toolsManifest,
             outputChannel,
         );
         await projector.project();
@@ -48,13 +65,13 @@ describe('ConfigContextProjector', () => {
                 mcpTools: { read_editorconfig_properties: { disabledTasks: ['get_editorconfig_rules'] } },
             }),
             catalog,
-            toolsCatalog,
+            toolsManifest,
             outputChannel,
         );
         await projector.project();
 
-        expect(findSetContextCall('autocontext.mcpTools.get_editorconfig_rules')?.[2]).toBe(false);
-        expect.soft(findSetContextCall('autocontext.mcpTools.analyze_csharp_coding_style')?.[2]).toBe(true);
+        expect(findSetContextCall('autocontext.mcpTools.read_editorconfig_properties.get_editorconfig_rules')?.[2]).toBe(false);
+        expect.soft(findSetContextCall('autocontext.mcpTools.analyze_csharp_code.analyze_csharp_coding_style')?.[2]).toBe(true);
     });
 
     it('should set task context key to false when in disabledTasks list', async () => {
@@ -63,13 +80,13 @@ describe('ConfigContextProjector', () => {
                 mcpTools: { analyze_csharp_code: { disabledTasks: ['analyze_csharp_coding_style'] } },
             }),
             catalog,
-            toolsCatalog,
+            toolsManifest,
             outputChannel,
         );
         await projector.project();
 
-        expect(findSetContextCall('autocontext.mcpTools.analyze_csharp_coding_style')?.[2]).toBe(false);
-        expect.soft(findSetContextCall('autocontext.mcpTools.analyze_csharp_async_patterns')?.[2]).toBe(true);
+        expect(findSetContextCall('autocontext.mcpTools.analyze_csharp_code.analyze_csharp_coding_style')?.[2]).toBe(false);
+        expect.soft(findSetContextCall('autocontext.mcpTools.analyze_csharp_code.analyze_csharp_async_patterns')?.[2]).toBe(true);
     });
 
     it('should disable all tasks when parent has enabled false', async () => {
@@ -83,13 +100,13 @@ describe('ConfigContextProjector', () => {
                 },
             }),
             catalog,
-            toolsCatalog,
+            toolsManifest,
             outputChannel,
         );
         await projector.project();
 
-        expect(findSetContextCall('autocontext.mcpTools.analyze_csharp_coding_style')?.[2]).toBe(false);
-        expect.soft(findSetContextCall('autocontext.mcpTools.analyze_csharp_async_patterns')?.[2]).toBe(false);
+        expect(findSetContextCall('autocontext.mcpTools.analyze_csharp_code.analyze_csharp_coding_style')?.[2]).toBe(false);
+        expect.soft(findSetContextCall('autocontext.mcpTools.analyze_csharp_code.analyze_csharp_async_patterns')?.[2]).toBe(false);
     });
 
     it('should keep instruction enabled when entry exists but is not disabled', async () => {
@@ -100,7 +117,7 @@ describe('ConfigContextProjector', () => {
                 },
             }),
             catalog,
-            toolsCatalog,
+            toolsManifest,
             outputChannel,
         );
         await projector.project();
@@ -116,7 +133,7 @@ describe('ConfigContextProjector', () => {
         } as unknown as import('../../src/autocontext-config').AutoContextConfigManager;
 
         const oc = createFakeOutputChannel();
-        const _projector = new ConfigContextProjector(failingManager, catalog, toolsCatalog, oc);
+        const _projector = new ConfigContextProjector(failingManager, catalog, toolsManifest, oc);
 
         onDidChangeCallback();
         await vi.waitFor(() => {

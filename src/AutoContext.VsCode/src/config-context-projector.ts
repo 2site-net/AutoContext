@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import type { AutoContextConfigManager } from './autocontext-config.js';
 import type { InstructionsCatalog } from './instructions-catalog.js';
-import type { McpToolsCatalog } from './mcp-tools-catalog.js';
+import type { McpToolsManifest } from './mcp-tools-manifest.js';
 import type { AutoContextConfig } from './types/autocontext-config.js';
 
 export function isToolEnabled(config: AutoContextConfig, toolName: string, taskName?: string): boolean {
@@ -24,7 +24,7 @@ export class ConfigContextProjector implements vscode.Disposable {
     constructor(
         private readonly configManager: AutoContextConfigManager,
         private readonly instructionsCatalog: InstructionsCatalog,
-        private readonly toolsCatalog: McpToolsCatalog,
+        private readonly toolsManifest: McpToolsManifest,
         private readonly outputChannel: vscode.OutputChannel,
     ) {
         this.disposables.push(
@@ -41,13 +41,22 @@ export class ConfigContextProjector implements vscode.Disposable {
         const setContext = (key: string, value: boolean): Thenable<void> =>
             vscode.commands.executeCommand('setContext', key, value);
 
+        const toolKeys: Thenable<void>[] = [];
+        for (const tool of this.toolsManifest.tools) {
+            if (tool.tasks.length === 0) {
+                toolKeys.push(setContext(tool.runtimeInfo.contextKey, isToolEnabled(config, tool.name)));
+            } else {
+                for (const task of tool.tasks) {
+                    toolKeys.push(setContext(task.runtimeInfo.contextKey, isToolEnabled(config, tool.name, task.name)));
+                }
+            }
+        }
+
         await Promise.all([
             ...this.instructionsCatalog.all.map(entry =>
                 setContext(entry.contextKey, config.instructions?.[entry.fileName]?.enabled !== false),
             ),
-            ...this.toolsCatalog.all.map(entry =>
-                setContext(entry.contextKey, isToolEnabled(config, entry.toolName, entry.taskName)),
-            ),
+            ...toolKeys,
         ]);
     }
 

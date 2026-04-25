@@ -2,7 +2,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { join } from 'node:path';
 import { McpStdioServerDefinition } from './_fakes/fake-vscode';
 import { McpServerProvider } from '../../src/mcp-server-provider';
-import { McpToolsCatalog } from '../../src/mcp-tools-catalog';
 import { McpToolsManifestLoader } from '../../src/mcp-tools-manifest-loader';
 import type { ServersManifest } from '../../src/types/servers-manifest';
 import type { AutoContextConfig } from '../../src/types/autocontext-config';
@@ -25,7 +24,6 @@ const outputChannel = createFakeOutputChannel();
 
 const onDidChange = vi.fn() as unknown as import('vscode').Event<void>;
 const mcpToolsManifest = new McpToolsManifestLoader(join(__dirname, '..', '..')).load();
-const toolsCatalog = new McpToolsCatalog(mcpToolsManifest);
 const serversManifest: ServersManifest = {
     workers: [],
     mcpServer: { id: 'mcp-server', name: 'AutoContext.Mcp.Server', type: 'dotnet' },
@@ -40,7 +38,7 @@ function createProvider(): McpServerProvider {
         extensionPath,
         version,
         onDidChange,
-        toolsCatalog,
+        mcpToolsManifest,
         fakeHealthMonitor,
         fakeWorkerManager,
         serversManifest,
@@ -61,18 +59,12 @@ beforeEach(() => {
 
 function buildAllDisabledConfig(): AutoContextConfig {
     const mcpToolsConfig: NonNullable<AutoContextConfig['mcpTools']> = {};
-    const taskMap = new Map<string, string[]>();
-    for (const entry of toolsCatalog.all) {
-        if (entry.taskName) {
-            const tasks = taskMap.get(entry.toolName) ?? [];
-            tasks.push(entry.taskName);
-            taskMap.set(entry.toolName, tasks);
+    for (const tool of mcpToolsManifest.tools) {
+        if (tool.tasks.length === 0) {
+            mcpToolsConfig[tool.name] = false;
         } else {
-            mcpToolsConfig[entry.toolName] = false;
+            mcpToolsConfig[tool.name] = { disabledTasks: tool.tasks.map(t => t.name) };
         }
-    }
-    for (const [tool, disabledTasks] of taskMap) {
-        mcpToolsConfig[tool] = { disabledTasks };
     }
     return { mcpTools: mcpToolsConfig };
 }
@@ -187,7 +179,7 @@ describe('McpServerProvider config updates', () => {
             extensionPath,
             version,
             onDidChange,
-            toolsCatalog,
+            mcpToolsManifest,
             fakeHealthMonitor,
             fakeWorkerManager,
             serversManifest,

@@ -2,7 +2,6 @@ import * as vscode from 'vscode';
 import { join } from 'node:path';
 import { existsSync } from 'node:fs';
 import { WorkspaceContextDetector } from './workspace-context-detector.js';
-import { McpToolsCatalog } from './mcp-tools-catalog.js';
 import { InstructionsCatalog } from './instructions-catalog.js';
 import { instructionsFiles, commandIds, contextKeys, globalStateKeys } from './ui-constants.js';
 import { AutoConfigurer } from './auto-configurer.js';
@@ -41,7 +40,6 @@ export async function activate(context: vscode.ExtensionContext) {
     const mcpToolsManifest = new McpToolsManifestLoader(context.extensionPath).load();
     const instructionsMetadata = metadataLoader.getInstructionsInfo(instructionsFiles);
 
-    const toolsCatalog = new McpToolsCatalog(mcpToolsManifest);
     const instructionsCatalog = new InstructionsCatalog(instructionsFiles, instructionsMetadata);
     const instructionsExporter = new InstructionsExporter(context.extensionPath);
     const outputChannel = vscode.window.createOutputChannel('AutoContext');
@@ -51,12 +49,12 @@ export async function activate(context: vscode.ExtensionContext) {
     const codeLensProvider = new InstructionsCodeLensProvider(context.extensionPath, configManager, workspaceContextDetector, instructionsCatalog, outputChannel);
     const decorationManager = new InstructionsDecorationManager(context.extensionPath, configManager, outputChannel);
     const instructionsWriter = new InstructionsConfigWriter(context.extensionPath, configManager, instructionsCatalog, outputChannel);
-    const configProjector = new ConfigContextProjector(configManager, instructionsCatalog, toolsCatalog, outputChannel);
+    const configProjector = new ConfigContextProjector(configManager, instructionsCatalog, mcpToolsManifest, outputChannel);
     const serversManifest = new ServersManifestLoader(context.extensionPath).load();
     const workerManager = new WorkerManager(context.extensionPath, outputChannel, vscode.workspace.workspaceFolders?.[0]?.uri.fsPath, serversManifest);
     const healthMonitor = new HealthMonitorServer(outputChannel,
         new Map(mcpToolsManifest.topCategories.map(c => [c.name, c.workerId!])));
-    const mcpServerProvider = new McpServerProvider(context.extensionPath, version, didChangeEmitter.event, toolsCatalog, healthMonitor, workerManager, serversManifest, configManager, outputChannel);
+    const mcpServerProvider = new McpServerProvider(context.extensionPath, version, didChangeEmitter.event, mcpToolsManifest, healthMonitor, workerManager, serversManifest, configManager, outputChannel);
     const stateResolver = new TreeViewStateResolver(workspaceContextDetector);
 
     // Pre-read the config so tree providers get the real config on first render.
@@ -151,7 +149,7 @@ export async function activate(context: vscode.ExtensionContext) {
         vscode.workspace.registerTextDocumentContentProvider(instructionScheme, contentProvider),
         vscode.languages.registerCodeLensProvider({ scheme: instructionScheme }, codeLensProvider),
         // Workspace auto-configuration (instructions + tools)
-        vscode.commands.registerCommand(commandIds.AutoConfigure, async () => { await new AutoConfigurer(workspaceContextDetector, instructionsCatalog, toolsCatalog, configManager).run(); }),
+        vscode.commands.registerCommand(commandIds.AutoConfigure, async () => { await new AutoConfigurer(workspaceContextDetector, instructionsCatalog, mcpToolsManifest, configManager).run(); }),
         // CodeLens (internal)
         vscode.commands.registerCommand(commandIds.ToggleInstruction, (fileName: string, id: string) =>
             configManager.toggleInstruction(fileName, id, instructionsCatalog.findByFileName(fileName)?.version)),

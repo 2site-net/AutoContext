@@ -4,7 +4,6 @@ import { window } from './_fakes/fake-vscode';
 import { AutoConfigurer } from '../../src/auto-configurer';
 import { ContextKeys } from '../../src/context-keys';
 import { InstructionsCatalog } from '../../src/instructions-catalog';
-import { McpToolsCatalog } from '../../src/mcp-tools-catalog';
 import { McpToolsManifestLoader } from '../../src/mcp-tools-manifest-loader';
 import { instructionsFiles } from '../../src/ui-constants';
 import type { AutoContextConfig } from '../../src/types/autocontext-config';
@@ -25,12 +24,11 @@ beforeEach(() => {
 describe('AutoConfigurer', () => {
     const instructionsCatalog = new InstructionsCatalog(instructionsFiles);
     const manifest = new McpToolsManifestLoader(join(__dirname, '..', '..')).load();
-    const catalog = new McpToolsCatalog(manifest);
 
     it('should disable context-dependent entries when nothing is detected', async () => {
         vi.mocked(fakeDetector.get).mockReturnValue(false);
 
-        await new AutoConfigurer(fakeDetector, instructionsCatalog, catalog, fakeConfigManager).run();
+        await new AutoConfigurer(fakeDetector, instructionsCatalog, manifest, fakeConfigManager).run();
 
         const setInstructionEnabled = vi.mocked(fakeConfigManager.setInstructionEnabled);
         const calls = setInstructionEnabled.mock.calls;
@@ -50,7 +48,7 @@ describe('AutoConfigurer', () => {
     it('should not disable .NET entries when hasDotNet and hasCSharp are detected', async () => {
         vi.mocked(fakeDetector.get).mockImplementation((key: string) => key === 'hasDotNet' || key === 'hasCSharp');
 
-        await new AutoConfigurer(fakeDetector, instructionsCatalog, catalog, fakeConfigManager).run();
+        await new AutoConfigurer(fakeDetector, instructionsCatalog, manifest, fakeConfigManager).run();
 
         const setInstructionEnabled = vi.mocked(fakeConfigManager.setInstructionEnabled);
         const disabledFileNames = setInstructionEnabled.mock.calls
@@ -73,13 +71,19 @@ describe('AutoConfigurer', () => {
     it('should show an info message with the count of enabled items', async () => {
         vi.mocked(fakeDetector.get).mockReturnValue(false);
 
-        await new AutoConfigurer(fakeDetector, instructionsCatalog, catalog, fakeConfigManager).run();
+        await new AutoConfigurer(fakeDetector, instructionsCatalog, manifest, fakeConfigManager).run();
 
-        const allEntries = [...instructionsCatalog.all, ...catalog.all];
-        const alwaysOnCount = allEntries.filter(e => ContextKeys.forEntry(e).length === 0).length;
+        const allInstructions = instructionsCatalog.all;
+        const totalToolItems = manifest.tools.reduce((acc, t) => acc + Math.max(1, t.tasks.length), 0);
+        const totalItems = allInstructions.length + totalToolItems;
+        const instructionAlwaysOn = allInstructions.filter(e => ContextKeys.forEntry(e).length === 0).length;
+        const toolAlwaysOn = manifest.tools
+            .filter(t => t.workspaceFlags.length === 0)
+            .reduce((acc, t) => acc + Math.max(1, t.tasks.length), 0);
+        const alwaysOnCount = instructionAlwaysOn + toolAlwaysOn;
 
         expect.soft(window.showInformationMessage).toHaveBeenCalledWith(
-            `AutoContext: Enabled ${alwaysOnCount} of ${allEntries.length} items for this workspace.`,
+            `AutoContext: Enabled ${alwaysOnCount} of ${totalItems} items for this workspace.`,
         );
     });
 
@@ -88,7 +92,7 @@ describe('AutoConfigurer', () => {
         currentConfig = { instructions: { 'dotnet-async-await.instructions.md': { enabled: false } } };
         vi.mocked(fakeDetector.get).mockReturnValue(false);
 
-        await new AutoConfigurer(fakeDetector, instructionsCatalog, catalog, fakeConfigManager).run();
+        await new AutoConfigurer(fakeDetector, instructionsCatalog, manifest, fakeConfigManager).run();
 
         const setInstructionEnabled = vi.mocked(fakeConfigManager.setInstructionEnabled);
         const updatedFileNames = setInstructionEnabled.mock.calls.map(([fileName]) => fileName);

@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { join } from 'node:path';
 import { existsSync } from 'node:fs';
-import type { McpToolsCatalog } from './mcp-tools-catalog.js';
+import type { McpToolsManifest } from './mcp-tools-manifest.js';
 import type { HealthMonitorServer } from './health-monitor.js';
 import type { ServersManifest } from './types/servers-manifest.js';
 import type { WorkerManager } from './worker-manager.js';
@@ -36,7 +36,7 @@ export class McpServerProvider implements vscode.McpServerDefinitionProvider {
         extensionPath: string,
         version: string,
         onDidChange: vscode.Event<void>,
-        private readonly toolsCatalog: McpToolsCatalog,
+        private readonly toolsManifest: McpToolsManifest,
         private readonly healthMonitor: HealthMonitorServer,
         private readonly workerManager: WorkerManager,
         serversManifest: ServersManifest,
@@ -112,6 +112,15 @@ export class McpServerProvider implements vscode.McpServerDefinitionProvider {
     }
 
     private anyToolEnabled(): boolean {
-        return this.toolsCatalog.all.some(e => isToolEnabled(this._config, e.toolName, e.taskName));
+        for (const tool of this.toolsManifest.tools) {
+            if (tool.tasks.length === 0) {
+                if (isToolEnabled(this._config, tool.name)) { return true; }
+                continue;
+            }
+            for (const task of tool.tasks) {
+                if (isToolEnabled(this._config, tool.name, task.name)) { return true; }
+            }
+        }
+        return false;
     }
 }
