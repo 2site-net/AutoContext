@@ -121,8 +121,8 @@ suite('MCP Tools Tree View Smoke Tests', () => {
         for (const serverNode of roots) {
             for (const category of exports.mcpToolsTreeProvider.getChildren(serverNode)) {
                 for (const tool of exports.mcpToolsTreeProvider.getChildren(category)) {
-                    // Leaf tools (no tasks)
-                    if ((!tool.tasks || tool.tasks.length === 0) && tool.leafState?.value === 'notDetected') {
+                    // Leaf tools (single task whose name matches the tool name)
+                    if (tool.isLeaf && tool.tasks[0]?.state.value === 'notDetected') {
                         const item = exports.mcpToolsTreeProvider.getTreeItem(tool);
                         assert.ok(item.description, `Not-detected leaf tool '${tool.toolName}' should have a description`);
                         assert.ok(item.iconPath, `Not-detected leaf tool '${tool.toolName}' should have an icon`);
