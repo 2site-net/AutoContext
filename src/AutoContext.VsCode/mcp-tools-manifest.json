@@ -4,7 +4,7 @@
         {
             "name": ".NET",
             "description": "Code-quality and dependency-hygiene tools for .NET projects.",
-            "when": [
+            "activationFlags": [
                 "hasDotNet"
             ],
             "workerId": "dotnet"
@@ -12,7 +12,7 @@
         {
             "name": "C#",
             "description": "C#-specific analysis.",
-            "when": [
+            "activationFlags": [
                 "hasCSharp"
             ]
         },
@@ -28,7 +28,7 @@
         {
             "name": "TypeScript",
             "description": "TypeScript-specific analysis.",
-            "when": [
+            "activationFlags": [
                 "hasTypeScript"
             ]
         },
@@ -44,7 +44,7 @@
         {
             "name": "Git",
             "description": "Git commit analysis.",
-            "when": [
+            "activationFlags": [
                 "hasGit"
             ]
         }

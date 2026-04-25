@@ -19,7 +19,7 @@ interface JsonMcpTool {
 interface JsonMcpCategory {
     name: string;
     description?: string;
-    when?: readonly string[];
+    activationFlags?: readonly string[];
     workerId?: string;
 }
 
@@ -44,7 +44,7 @@ export class McpToolsManifestLoader {
         );
 
         const categories = json.categories.map(c =>
-            new McpCategoryEntry(c.name, c.description, c.workerId, c.when ?? []),
+            new McpCategoryEntry(c.name, c.description, c.workerId, c.activationFlags ?? []),
         );
         const categoryByName = new Map<string, McpCategoryEntry>(
             categories.map(c => [c.name, c]),

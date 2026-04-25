@@ -575,7 +575,7 @@ describe('McpToolsTreeProvider', () => {
         const item = provider.getTreeItem(workspace);
         const workspaceTools = toolsInTopCategory('Workspace');
         const total = countItems(workspaceTools);
-        const alwaysOn = countItems(workspaceTools.filter(t => t.workspaceFlags.length === 0));
+        const alwaysOn = countItems(workspaceTools.filter(t => t.activationFlags.length === 0));
 
         expect.soft(item.tooltip).toBe(`Workspace\n${alwaysOn}/${total} tasks enabled`);
 
@@ -637,7 +637,7 @@ describe('McpToolsTreeProvider', () => {
         const provider = new McpToolsTreeProvider(fakeDetector, manifest, stateResolver, tooltip, fakeConfigManager, outputChannel);
         const treeView = vi.mocked(window.createTreeView).mock.results.at(-1)!.value;
         const total = countItems(manifest.tools);
-        const alwaysOn = countItems(manifest.tools.filter(t => t.workspaceFlags.length === 0));
+        const alwaysOn = countItems(manifest.tools.filter(t => t.activationFlags.length === 0));
 
         expect.soft(treeView.description).toBe(`${alwaysOn}/${total}`);
 

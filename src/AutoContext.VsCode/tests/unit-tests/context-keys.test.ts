@@ -43,14 +43,14 @@ describe('ContextKeys.forEntry', () => {
         const codingStyleTool = toolsManifest.toolByName('analyze_csharp_code')!;
         const commitFormatTool = toolsManifest.toolByName('analyze_git_commit_message')!;
 
-        expect(codingStyleTool.workspaceFlags).toEqual(['hasDotNet', 'hasCSharp']);
-        expect.soft(commitFormatTool.workspaceFlags).toEqual(['hasGit']);
+        expect(codingStyleTool.activationFlags).toEqual(['hasDotNet', 'hasCSharp']);
+        expect.soft(commitFormatTool.activationFlags).toEqual(['hasGit']);
     });
 
     it('should return empty array for the editorconfig tool', () => {
         const editorconfigTool = toolsManifest.toolByName('read_editorconfig_properties')!;
 
-        expect.soft(editorconfigTool.workspaceFlags).toEqual([]);
+        expect.soft(editorconfigTool.activationFlags).toEqual([]);
     });
 
     it('should have a mapping for every instruction with a workspace when clause', () => {

@@ -18,7 +18,7 @@ export interface McpTaskInit {
 export class McpToolEntry extends McpItemEntry {
     readonly #runtimeInfo: McpToolRuntimeInfo;
     readonly #tasks: readonly McpTaskEntry[];
-    #workspaceFlags?: readonly string[];
+    #activationFlags?: readonly string[];
 
     constructor(
         name: string,
@@ -47,9 +47,9 @@ export class McpToolEntry extends McpItemEntry {
         return this.categories[this.categories.length - 1];
     }
 
-    /** Union of `when` flags from every category this tool belongs to. */
-    get workspaceFlags(): readonly string[] {
-        return this.#workspaceFlags ??=
-            [...new Set(this.categories.flatMap(c => c.when))];
+    /** Union of activation flags from every category this tool belongs to. The tool is shown when ANY of these workspace flags is detected (logical OR); empty means always-on. */
+    get activationFlags(): readonly string[] {
+        return this.#activationFlags ??=
+            [...new Set(this.categories.flatMap(c => c.activationFlags))];
     }
 }

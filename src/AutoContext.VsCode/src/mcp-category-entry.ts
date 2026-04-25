@@ -11,7 +11,7 @@ export class McpCategoryEntry extends McpItemEntry {
         name: string,
         description: string | undefined,
         readonly workerId: string | undefined,
-        readonly when: readonly string[],
+        readonly activationFlags: readonly string[],
     ) {
         super(name, description);
     }

@@ -34,7 +34,7 @@ export class TreeViewStateResolver {
     }
 
     resolveTask(tool: McpToolEntry, task: McpTaskEntry, config: AutoContextConfig): TreeViewNodeState {
-        const flags = tool.workspaceFlags;
+        const flags = tool.activationFlags;
         if (flags.length > 0 && !flags.some(k => this.detector.get(k))) {
             return TreeViewNodeState.NotDetected;
         }

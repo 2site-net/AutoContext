@@ -38,7 +38,7 @@ export class AutoConfigurer {
         const newTools: Record<string, McpToolConfig | false> = {};
 
         for (const tool of toolsManifest.tools) {
-            const flags = tool.workspaceFlags;
+            const flags = tool.activationFlags;
             const relevant = flags.length === 0 || flags.some(k => detector.get(k));
 
             if (tool.tasks.length === 0) {

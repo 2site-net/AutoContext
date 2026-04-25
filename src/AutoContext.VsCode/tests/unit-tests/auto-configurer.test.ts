@@ -78,7 +78,7 @@ describe('AutoConfigurer', () => {
         const totalItems = allInstructions.length + totalToolItems;
         const instructionAlwaysOn = allInstructions.filter(e => ContextKeys.forEntry(e).length === 0).length;
         const toolAlwaysOn = manifest.tools
-            .filter(t => t.workspaceFlags.length === 0)
+            .filter(t => t.activationFlags.length === 0)
             .reduce((acc, t) => acc + Math.max(1, t.tasks.length), 0);
         const alwaysOnCount = instructionAlwaysOn + toolAlwaysOn;
 
