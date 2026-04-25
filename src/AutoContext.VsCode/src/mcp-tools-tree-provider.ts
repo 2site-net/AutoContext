@@ -1,5 +1,7 @@
 import * as vscode from 'vscode';
-import type { McpToolsCatalog } from './mcp-tools-catalog.js';
+import type { McpToolsManifest } from './mcp-tools-manifest.js';
+import type { McpToolEntry } from './mcp-tool-entry.js';
+import type { McpCategoryEntry } from './mcp-category-entry.js';
 import { TreeViewNodeState } from './tree-view-node-state.js';
 import { viewIds, treeViewLabels } from './ui-constants.js';
 import type { WorkspaceContextDetector } from './workspace-context-detector.js';
@@ -27,7 +29,7 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
 
     constructor(
         detector: WorkspaceContextDetector,
-        private readonly catalog: McpToolsCatalog,
+        private readonly manifest: McpToolsManifest,
         private readonly stateResolver: TreeViewStateResolver,
         private readonly tooltip: TreeViewTooltip,
         private readonly configManager: AutoContextConfigManager,
@@ -76,8 +78,9 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
     }
 
     private updateDescription(): void {
-        const states = this.catalog.all.map(e => this.stateResolver.resolve(e, this._config));
-        this.treeView.description = this.tooltip.description(states.filter(s => s.isActive()).length, this.catalog.count);
+        const allTasks = this.manifest.tools.flatMap(t => t.tasks);
+        const states = allTasks.map(t => this.stateResolver.resolveTask(t.tool, t, this._config));
+        this.treeView.description = this.tooltip.description(states.filter(s => s.isActive()).length, allTasks.length);
     }
 
     getTreeItem(element: TreeElement): vscode.TreeItem {
@@ -113,69 +116,67 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
     }
 
     private buildTree(): TreeViewServerLabelNode[] {
-        return [...new Set(this.catalog.all.map(e => e.workerCategory.name))]
-            .map(name => {
-                const children = this.resolveCategories(name, this._config);
+        return this.manifest.topCategories
+            .map(topCat => {
+                const children = this.resolveCategories(topCat, this._config);
+                const totalEntries = this.manifest.tools
+                    .filter(t => t.firstCategory === topCat)
+                    .reduce((sum, t) => sum + t.tasks.length, 0);
                 return {
                     kind: 'serverNode' as const,
-                    name,
+                    name: topCat.name,
                     children,
-                    totalEntries: this.catalog.all.filter(e => e.workerCategory.name === name).length,
+                    totalEntries,
                 };
             })
             .filter(g => g.children.length > 0);
     }
 
-    private resolveCategories(serverLabel: string, config: AutoContextConfig): McpToolsTreeCategoryNode[] {
-        return [...new Set(
-            this.catalog.all.filter(e => e.workerCategory.name === serverLabel).map(e => e.leafCategory.name),
-        )]
-            .map(name => {
-                const children = this.resolveTools(name, config);
+    private resolveCategories(topCat: McpCategoryEntry, config: AutoContextConfig): McpToolsTreeCategoryNode[] {
+        const toolsUnder = this.manifest.tools.filter(t => t.firstCategory === topCat);
+        const subCatsUsed = new Set(toolsUnder.map(t => t.lastCategory));
+
+        return this.manifest.subCategories
+            .filter(sc => subCatsUsed.has(sc))
+            .map(subCat => {
+                const toolsInSubCat = toolsUnder.filter(t => t.lastCategory === subCat);
+                const children = this.resolveTools(toolsInSubCat, subCat, config);
+                const totalEntries = toolsInSubCat.reduce((sum, t) => sum + t.tasks.length, 0);
                 return {
                     kind: 'categoryNode' as const,
-                    serverLabel,
-                    name,
+                    serverLabel: topCat.name,
+                    name: subCat.name,
                     children,
-                    totalEntries: this.catalog.all.filter(e => e.leafCategory.name === name).length,
+                    totalEntries,
                 };
             })
             .filter(c => c.children.length > 0);
     }
 
-    private resolveTools(category: string, config: AutoContextConfig): McpToolsTreeNode[] {
-        const toolNames = [...new Set(
-            this.catalog.all
-                .filter(e => e.leafCategory.name === category)
-                .map(e => e.toolName),
-        )];
-
-        return toolNames
-            .map(toolName => {
-                const tasks = this.resolveTasks(toolName, config);
-                const isLeaf = tasks.length === 1 && tasks[0].entry.taskName === toolName;
+    private resolveTools(tools: readonly McpToolEntry[], subCat: McpCategoryEntry, config: AutoContextConfig): McpToolsTreeNode[] {
+        return tools
+            .map(tool => {
+                const tasks = this.resolveTasks(tool, config);
+                const isLeaf = tasks.length === 1 && tasks[0].task.name === tool.name;
                 return {
                     kind: 'mcpToolNode' as const,
-                    toolName,
-                    category,
+                    tool,
+                    category: subCat.name,
                     tasks,
                     isLeaf,
                 };
             })
-            // A tool with no tasks does nothing, so hide it.
             .filter(n => n.tasks.length > 0)
             .filter(n => this._showNotDetected
                 || n.tasks.some(f => f.state !== TreeViewNodeState.NotDetected));
     }
 
-    private resolveTasks(toolName: string, config: AutoContextConfig): McpTaskTreeNode[] {
-        return this.catalog.all
-            .filter(e => e.toolName === toolName && e.taskName !== undefined)
-            .map(entry => ({
-                kind: 'mcpTaskNode' as const,
-                entry,
-                state: this.stateResolver.resolve(entry, config),
-            }));
+    private resolveTasks(tool: McpToolEntry, config: AutoContextConfig): McpTaskTreeNode[] {
+        return tool.tasks.map(task => ({
+            kind: 'mcpTaskNode' as const,
+            task,
+            state: this.stateResolver.resolveTask(tool, task, config),
+        }));
     }
 
     private getVisibleTasks(node: McpToolsTreeNode): McpTaskTreeNode[] {
@@ -246,18 +247,17 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
             return this.leafMcpToolItem(node);
         }
 
-        const item = new vscode.TreeItem(node.toolName, vscode.TreeItemCollapsibleState.Expanded);
+        const item = new vscode.TreeItem(node.tool.name, vscode.TreeItemCollapsibleState.Expanded);
         item.contextValue = 'mcpToolNode';
-        item.checkboxState = this.checkboxForParent(node.toolName, node.tasks);
+        item.checkboxState = this.checkboxForParent(node.tool.name, node.tasks);
         const active = node.tasks.filter(f => f.state.isActive()).length;
-        const description = this.catalog.getDescription(node.toolName);
-        item.tooltip = this.tooltip.container(node.toolName, active, node.tasks.length, description);
+        item.tooltip = this.tooltip.container(node.tool.name, active, node.tasks.length, node.tool.description);
         return item;
     }
 
     private leafMcpToolItem(node: McpToolsTreeNode): vscode.TreeItem {
         const task = node.tasks[0];
-        const item = new vscode.TreeItem(node.toolName, vscode.TreeItemCollapsibleState.None);
+        const item = new vscode.TreeItem(node.tool.name, vscode.TreeItemCollapsibleState.None);
         item.contextValue = 'mcpToolNode';
 
         if (task.state === TreeViewNodeState.NotDetected) {
@@ -269,12 +269,12 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
                 : vscode.TreeItemCheckboxState.Unchecked;
         }
 
-        item.tooltip = this.tooltip.leaf(task.entry.label, task.state, task.entry.contextKey, task.entry.description);
+        item.tooltip = this.tooltip.leaf(task.task.name, task.state, task.task.runtimeInfo.contextKey, task.task.description);
         return item;
     }
 
     private taskItem(node: McpTaskTreeNode): vscode.TreeItem {
-        const item = new vscode.TreeItem(node.entry.label, vscode.TreeItemCollapsibleState.None);
+        const item = new vscode.TreeItem(node.task.name, vscode.TreeItemCollapsibleState.None);
 
         if (node.state === TreeViewNodeState.NotDetected) {
             item.iconPath = new vscode.ThemeIcon('circle-slash', new vscode.ThemeColor('disabledForeground'));
@@ -285,7 +285,7 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
                 : vscode.TreeItemCheckboxState.Unchecked;
         }
 
-        item.tooltip = this.tooltip.leaf(node.entry.label, node.state, node.entry.contextKey, node.entry.description);
+        item.tooltip = this.tooltip.leaf(node.task.name, node.state, node.task.runtimeInfo.contextKey, node.task.description);
         return item;
     }
 
@@ -298,21 +298,21 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
         const toggledParents = new Set(
             items
                 .filter(([el]) => el.kind === 'mcpToolNode' && (el as McpToolsTreeNode).tasks.length > 0)
-                .map(([el]) => (el as McpToolsTreeNode).toolName),
+                .map(([el]) => (el as McpToolsTreeNode).tool.name),
         );
 
         const updates: Promise<void>[] = [];
 
         for (const [element, state] of items) {
             if (element.kind === 'mcpTaskNode') {
-                if (toggledParents.has(element.entry.toolName)) { continue; }
-                updates.push(this.configManager.setMcpToolEnabled(element.entry.toolName, element.entry.taskName, enabled(state)));
+                if (toggledParents.has(element.task.tool.name)) { continue; }
+                updates.push(this.configManager.setMcpToolEnabled(element.task.tool.name, element.task.name, enabled(state)));
                 continue;
             }
 
             if (element.kind !== 'mcpToolNode') { continue; }
 
-            updates.push(this.configManager.setMcpToolEnabled(element.toolName, undefined, enabled(state)));
+            updates.push(this.configManager.setMcpToolEnabled(element.tool.name, undefined, enabled(state)));
         }
 
         await Promise.all(updates);

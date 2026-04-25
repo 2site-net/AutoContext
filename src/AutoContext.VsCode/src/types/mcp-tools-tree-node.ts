@@ -1,8 +1,9 @@
 import type { McpTaskTreeNode } from './mcp-task-tree-node.js';
+import type { McpToolEntry } from '../mcp-tool-entry.js';
 
 export interface McpToolsTreeNode {
     readonly kind: 'mcpToolNode';
-    readonly toolName: string;
+    readonly tool: McpToolEntry;
     readonly category: string;
     readonly tasks: readonly McpTaskTreeNode[];
     /**
