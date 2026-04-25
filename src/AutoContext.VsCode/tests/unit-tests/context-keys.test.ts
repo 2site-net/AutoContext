@@ -7,7 +7,7 @@ import { McpToolsCatalog } from '../../src/mcp-tools-catalog';
 import { McpToolsManifestLoader } from '../../src/mcp-tools-manifest-loader';
 
 const instructionsCatalog = new InstructionsCatalog(instructionsFiles);
-const toolsCatalog = new McpToolsCatalog(new McpToolsManifestLoader(join(__dirname, '..', '..')).load().entries);
+const toolsCatalog = new McpToolsCatalog(new McpToolsManifestLoader(join(__dirname, '..', '..')).load());
 
 describe('ContextKeys.overrideKey', () => {
     it('should strip the settings prefix and prepend the override prefix', () => {

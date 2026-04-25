@@ -10,13 +10,7 @@ import { TreeViewStateResolver } from '../../src/tree-view-state-resolver';
 import { TreeViewTooltip } from '../../src/tree-view-tooltip';
 import { createFakeDetector, createFakeConfigManager, createFakeHealthMonitor, createFakeOutputChannel } from './_fakes';
 
-const manifestData = new McpToolsManifestLoader(join(__dirname, '..', '..')).load();
-const mcpTools = manifestData.entries;
-const catalogOptions = {
-    serverLabelOrder: manifestData.serverLabelOrder,
-    categoryOrder: manifestData.categoryOrder,
-    serverLabelToWorkerIdMap: manifestData.serverLabelToWorkerIdMap,
-};
+const manifest = new McpToolsManifestLoader(join(__dirname, '..', '..')).load();
 
 const fakeDetector = createFakeDetector();
 const outputChannel = createFakeOutputChannel();
@@ -36,7 +30,7 @@ beforeEach(() => {
 });
 
 describe('McpToolsTreeProvider', () => {
-    const catalog = new McpToolsCatalog(mcpTools, catalogOptions);
+    const catalog = new McpToolsCatalog(manifest);
 
     /** Navigate: root → serverLabel → category → MCP tools */
     function getMcpTools(provider: McpToolsTreeProvider, serverLabelName: string, categoryName: string) {
@@ -414,16 +408,15 @@ describe('McpToolsTreeProvider', () => {
     it('should include description in task tooltip when descriptions are provided', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
 
-        const descriptions = new Map([
-            ['analyze_csharp_async_patterns', 'Detects async anti-patterns'],
-        ]);
-        const enrichedCatalog = new McpToolsCatalog(mcpTools, { ...catalogOptions, descriptions });
-        const provider = new McpToolsTreeProvider(fakeDetector, enrichedCatalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
+        const provider = new McpToolsTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
         const tasks = getTasks(provider, '.NET', 'C#', 'analyze_csharp_code');
         const asyncTask = tasks.find(f => f.kind === 'mcpTaskNode' && f.entry.contextKey === 'autocontext.mcpTools.analyze_csharp_async_patterns')!;
         const item = provider.getTreeItem(asyncTask);
 
-        expect.soft(item.tooltip).toContain('Detects async anti-patterns');
+        // Description comes from the manifest JSON, exposed on the entry.
+        const expected = manifest.toolByName('analyze_csharp_code')!
+            .tasks.find(t => t.name === 'analyze_csharp_async_patterns')!.description!;
+        expect.soft(item.tooltip).toContain(expected);
 
         provider.dispose();
     });
@@ -456,15 +449,13 @@ describe('McpToolsTreeProvider', () => {
     it('should include description in parent tool tooltip when descriptions are provided', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
 
-        const descriptions = new Map([
-            ['analyze_csharp_code', 'Runs all C# checks'],
-        ]);
-        const enrichedCatalog = new McpToolsCatalog(mcpTools, { ...catalogOptions, descriptions });
-        const provider = new McpToolsTreeProvider(fakeDetector, enrichedCatalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
+        const provider = new McpToolsTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
         const tools = getMcpTools(provider, '.NET', 'C#');
         const item = provider.getTreeItem(tools[0]);
 
-        expect.soft(item.tooltip).toContain('Runs all C# checks');
+        // Description comes from the manifest JSON, exposed on the tool entry.
+        const expected = manifest.toolByName('analyze_csharp_code')!.description!;
+        expect.soft(item.tooltip).toContain(expected);
         expect.soft(item.tooltip).toContain('tasks enabled');
 
         provider.dispose();

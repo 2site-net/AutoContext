@@ -24,8 +24,8 @@ const fakeHealthMonitor = createFakeHealthMonitor();
 const outputChannel = createFakeOutputChannel();
 
 const onDidChange = vi.fn() as unknown as import('vscode').Event<void>;
-const mcpTools = new McpToolsManifestLoader(join(__dirname, '..', '..')).load().entries;
-const toolsCatalog = new McpToolsCatalog(mcpTools);
+const mcpToolsManifest = new McpToolsManifestLoader(join(__dirname, '..', '..')).load();
+const toolsCatalog = new McpToolsCatalog(mcpToolsManifest);
 const serversManifest: ServersManifest = {
     workers: [],
     mcpServer: { id: 'mcp-server', name: 'AutoContext.Mcp.Server', type: 'dotnet' },

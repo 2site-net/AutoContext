@@ -1,144 +1,75 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import type { McpCategory } from './types/mcp-category.js';
-import type { McpToolsCatalogData } from './types/mcp-tools-catalog-data.js';
-import type { McpToolsEntry } from './types/mcp-tools-entry.js';
+import { McpCategoryEntry } from './mcp-category-entry.js';
+import { McpToolEntry, type McpTaskInit } from './mcp-tool-entry.js';
+import { McpToolsManifest } from './mcp-tools-manifest.js';
 
-interface McpTaskManifest {
+interface JsonMcpTask {
     name: string;
     description: string;
 }
 
-interface McpToolManifest {
+interface JsonMcpTool {
     name: string;
     description: string;
     categories: readonly string[];
-    tasks?: readonly McpTaskManifest[];
+    tasks?: readonly JsonMcpTask[];
 }
 
-interface McpCategoryManifest {
+interface JsonMcpCategory {
     name: string;
     description?: string;
     when?: readonly string[];
     workerId?: string;
 }
 
-interface McpToolsManifest {
+interface JsonMcpToolsManifest {
     schemaVersion?: string;
-    categories: readonly McpCategoryManifest[];
-    tools: readonly McpToolManifest[];
+    categories: readonly JsonMcpCategory[];
+    tools: readonly JsonMcpTool[];
 }
 
 /**
  * Loads `mcp-tools-manifest.json` from the extension folder and projects
- * it into the shape the rest of the extension expects. The manifest is
+ * it into a fully-resolved `McpToolsManifest` instance. The manifest is
  * the single source of truth for tool/task identity, categorisation,
  * worker mapping, and workspace-flag gating.
  */
 export class McpToolsManifestLoader {
     constructor(private readonly extensionPath: string) {}
 
-    load(): McpToolsCatalogData {
-        const manifest: McpToolsManifest = JSON.parse(
+    load(): McpToolsManifest {
+        const json: JsonMcpToolsManifest = JSON.parse(
             readFileSync(join(this.extensionPath, 'mcp-tools-manifest.json'), 'utf-8'),
         );
 
-        const categoryByName = new Map<string, McpCategory>(
-            manifest.categories.map(c => [c.name, {
-                name: c.name,
-                workerId: c.workerId,
-                when: c.when,
-                description: c.description,
-            }]),
+        const categories = json.categories.map(c =>
+            new McpCategoryEntry(c.name, c.description, c.workerId, c.when ?? []),
         );
-        const serverLabelOrder: string[] = [];
-        const categoryOrder: string[] = [];
-        const serverLabelToWorkerIdMap = new Map<string, string>();
+        const categoryByName = new Map<string, McpCategoryEntry>(
+            categories.map(c => [c.name, c]),
+        );
 
-        for (const category of manifest.categories) {
-            if (category.workerId) {
-                serverLabelOrder.push(category.name);
-                serverLabelToWorkerIdMap.set(category.name, category.workerId);
-            } else {
-                categoryOrder.push(category.name);
-            }
-        }
+        const tools = json.tools.map(t => {
+            McpToolsManifestLoader.#validateToolCategories(t.name, t.categories, categoryByName);
+            const toolCategories = t.categories.map(name => categoryByName.get(name)!);
+            const tasks: readonly McpTaskInit[] = t.tasks?.map(k => ({
+                name: k.name,
+                description: k.description,
+            })) ?? [];
+            return new McpToolEntry(t.name, t.description, toolCategories, tasks);
+        });
 
-        const entries: McpToolsEntry[] = [];
-        const descriptions = new Map<string, string>();
-
-        for (const tool of manifest.tools) {
-            descriptions.set(tool.name, tool.description);
-
-            McpToolsManifestLoader.#validateToolCategories(tool.name, tool.categories, categoryByName);
-            const workerCategory = categoryByName.get(tool.categories[0])!;
-            const leafCategory = categoryByName.get(tool.categories[tool.categories.length - 1])!;
-            const workspaceFlags = McpToolsManifestLoader.#unionOfWhenFlags(tool.categories, categoryByName);
-
-            if (!tool.tasks || tool.tasks.length === 0) {
-                entries.push(McpToolsManifestLoader.#buildEntry(tool.name, undefined, workerCategory, leafCategory, workspaceFlags));
-                continue;
-            }
-
-            for (const task of tool.tasks) {
-                descriptions.set(task.name, task.description);
-                entries.push(McpToolsManifestLoader.#buildEntry(task.name, tool.name, workerCategory, leafCategory, workspaceFlags));
-            }
-        }
-
-        return {
-            entries,
-            descriptions,
-            serverLabelOrder,
-            categoryOrder,
-            serverLabelToWorkerIdMap,
-        };
-    }
-
-    static #buildEntry(
-        key: string,
-        toolName: string | undefined,
-        workerCategory: McpCategory,
-        leafCategory: McpCategory,
-        workspaceFlags: readonly string[],
-    ): McpToolsEntry {
-        // Per the user-visible UI, raw task names are used as labels — the
-        // manifest deliberately doesn't carry separate UI labels.
-        return {
-            key,
-            toolName,
-            label: key,
-            leafCategory,
-            workerCategory,
-            workspaceFlags: workspaceFlags.length > 0 ? workspaceFlags : undefined,
-        };
-    }
-
-    static #unionOfWhenFlags(
-        categoryNames: readonly string[],
-        categoryByName: ReadonlyMap<string, McpCategory>,
-    ): readonly string[] {
-        const seen = new Set<string>();
-
-        for (const name of categoryNames) {
-            const category = categoryByName.get(name);
-            if (!category?.when) { continue; }
-
-            for (const flag of category.when) {
-                seen.add(flag);
-            }
-        }
-
-        return [...seen];
+        return new McpToolsManifest(tools, categories);
     }
 
     static #validateToolCategories(
         toolName: string,
         categoryNames: readonly string[],
-        categoryByName: ReadonlyMap<string, McpCategory>,
+        categoryByName: ReadonlyMap<string, McpCategoryEntry>,
     ): void {
         if (categoryNames.length === 0) {
-            throw new Error(`mcp-tools-manifest.json: tool '${toolName}' has no categories; the first category must be a server-label category (one with a 'workerId').`);
+            throw new Error(`mcp-tools-manifest.json: tool '${toolName}' has no categories; the first category must be a top-level category (one with a 'workerId').`);
         }
 
         for (const name of categoryNames) {
@@ -147,10 +78,9 @@ export class McpToolsManifestLoader {
             }
         }
 
-        const serverLabel = categoryNames[0];
-        const serverCategory = categoryByName.get(serverLabel)!;
-        if (!serverCategory.workerId) {
-            throw new Error(`mcp-tools-manifest.json: tool '${toolName}' uses '${serverLabel}' as its server label, but that category has no 'workerId'. The first entry in 'categories' must be a server-label category.`);
+        const topLevel = categoryByName.get(categoryNames[0])!;
+        if (!topLevel.isTopLevel) {
+            throw new Error(`mcp-tools-manifest.json: tool '${toolName}' uses '${categoryNames[0]}' as its top-level category, but that category has no 'workerId'. The first entry in 'categories' must be a top-level category.`);
         }
     }
 }

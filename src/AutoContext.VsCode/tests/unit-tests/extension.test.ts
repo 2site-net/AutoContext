@@ -17,11 +17,11 @@ vi.mock('../../src/mcp-tools-manifest-loader', () => ({
     McpToolsManifestLoader: class {
         load() {
             return {
-                entries: [],
-                descriptions: new Map(),
-                serverLabelOrder: [],
-                categoryOrder: [],
-                serverLabelToWorkerIdMap: new Map(),
+                tools: [],
+                categories: [],
+                topCategories: [],
+                subCategories: [],
+                toolByName: () => undefined,
             };
         }
     },

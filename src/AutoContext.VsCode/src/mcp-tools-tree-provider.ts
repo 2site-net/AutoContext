@@ -113,10 +113,7 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
     }
 
     private buildTree(): TreeViewServerLabelNode[] {
-        const presentServerLabels = new Set(this.catalog.all.map(e => e.workerCategory.name));
-
-        return this.catalog.serverLabelOrder
-            .filter(g => presentServerLabels.has(g))
+        return [...new Set(this.catalog.all.map(e => e.workerCategory.name))]
             .map(name => {
                 const children = this.resolveCategories(name, this._config);
                 return {
@@ -130,11 +127,9 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
     }
 
     private resolveCategories(serverLabel: string, config: AutoContextConfig): McpToolsTreeCategoryNode[] {
-        const presentCategories = new Set(
+        return [...new Set(
             this.catalog.all.filter(e => e.workerCategory.name === serverLabel).map(e => e.leafCategory.name),
-        );
-        return this.catalog.categoryOrder
-            .filter(c => presentCategories.has(c))
+        )]
             .map(name => {
                 const children = this.resolveTools(name, config);
                 return {

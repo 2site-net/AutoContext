@@ -24,12 +24,8 @@ beforeEach(() => {
 
 describe('AutoConfigurer', () => {
     const instructionsCatalog = new InstructionsCatalog(instructionsFiles);
-    const manifestData = new McpToolsManifestLoader(join(__dirname, '..', '..')).load();
-    const catalog = new McpToolsCatalog(manifestData.entries, {
-        serverLabelOrder: manifestData.serverLabelOrder,
-        categoryOrder: manifestData.categoryOrder,
-        serverLabelToWorkerIdMap: manifestData.serverLabelToWorkerIdMap,
-    });
+    const manifest = new McpToolsManifestLoader(join(__dirname, '..', '..')).load();
+    const catalog = new McpToolsCatalog(manifest);
 
     it('should disable context-dependent entries when nothing is detected', async () => {
         vi.mocked(fakeDetector.get).mockReturnValue(false);

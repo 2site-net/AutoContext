@@ -23,30 +23,6 @@ describe('McpToolsCatalog', () => {
         expect.soft(catalog.count).toBe(0);
     });
 
-    it('should derive serverLabelOrder from entries when not supplied', () => {
-        const catalog = new McpToolsCatalog(mcpToolsTestEntries);
-
-        expect.soft([...catalog.serverLabelOrder]).toEqual(['.NET', 'Workspace']);
-    });
-
-    it('should derive categoryOrder from entries when not supplied', () => {
-        const catalog = new McpToolsCatalog(mcpToolsTestEntries);
-
-        expect.soft([...catalog.categoryOrder]).toEqual(['C#', 'NuGet', 'Git']);
-    });
-
-    it('should accept supplied ordering and worker map', () => {
-        const catalog = new McpToolsCatalog(mcpToolsTestEntries, {
-            serverLabelOrder: ['Workspace', '.NET'],
-            categoryOrder: ['Git', 'C#', 'NuGet'],
-            serverLabelToWorkerIdMap: new Map([['.NET', 'dotnet'], ['Workspace', 'workspace']]),
-        });
-
-        expect.soft([...catalog.serverLabelOrder]).toEqual(['Workspace', '.NET']);
-        expect.soft([...catalog.categoryOrder]).toEqual(['Git', 'C#', 'NuGet']);
-        expect.soft(catalog.serverLabelToWorkerIdMap.get('.NET')).toBe('dotnet');
-    });
-
     it('should enrich entries with descriptions when provided', () => {
         const descriptions = new Map([
             ['alpha', 'Alpha tool'],
