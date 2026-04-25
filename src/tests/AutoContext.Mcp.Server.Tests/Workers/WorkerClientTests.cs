@@ -25,7 +25,7 @@ public sealed class WorkerClientTests
                     requestBytes,
                     WorkerJsonOptions.Instance);
                 Assert.NotNull(request);
-                Assert.Equal("check_csharp_coding_style", request.McpTask);
+                Assert.Equal("analyze_csharp_coding_style", request.McpTask);
 
                 var serverResponse = new TaskResponse
                 {
@@ -44,7 +44,7 @@ public sealed class WorkerClientTests
         // Act
         var response = await client.InvokeAsync(
             endpoint,
-            BuildRequest("check_csharp_coding_style"),
+            BuildRequest("analyze_csharp_coding_style"),
             TestContext.Current.CancellationToken);
         await serverTask;
 

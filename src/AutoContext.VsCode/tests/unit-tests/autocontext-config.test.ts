@@ -241,7 +241,7 @@ describe('AutoContextConfigManager', () => {
 
         const manager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
         await manager.setMcpTools({
-            check_csharp_all: { disabledTasks: ['check_csharp_coding_style'] },
+            analyze_csharp_code: { disabledTasks: ['analyze_csharp_coding_style'] },
         });
 
         const writeCalls = vi.mocked(writeFile).mock.calls;
@@ -251,20 +251,20 @@ describe('AutoContextConfigManager', () => {
         const parsed = JSON.parse(writeCalls[0][1] as string);
 
         expect.soft(parsed['mcpTools']).toEqual({
-            check_csharp_all: { 'disabledTasks': ['check_csharp_coding_style'] },
+            analyze_csharp_code: { 'disabledTasks': ['analyze_csharp_coding_style'] },
         });
     });
 
     it('should skip write when mcp tools have not changed', async () => {
         vi.mocked(readFile).mockResolvedValue(JSON.stringify({
             'mcpTools': {
-                check_csharp_all: { 'disabledTasks': ['check_csharp_coding_style'] },
+                analyze_csharp_code: { 'disabledTasks': ['analyze_csharp_coding_style'] },
             },
         }));
 
         const manager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
         await manager.setMcpTools({
-            check_csharp_all: { disabledTasks: ['check_csharp_coding_style'] },
+            analyze_csharp_code: { disabledTasks: ['analyze_csharp_coding_style'] },
         });
 
         expect(vi.mocked(writeFile)).not.toHaveBeenCalled();
@@ -274,7 +274,7 @@ describe('AutoContextConfigManager', () => {
     it('should remove tools section when all tools are enabled', async () => {
         vi.mocked(readFile).mockResolvedValue(JSON.stringify({
             'mcpTools': {
-                check_csharp_all: { 'disabledTasks': ['check_csharp_coding_style'] },
+                analyze_csharp_code: { 'disabledTasks': ['analyze_csharp_coding_style'] },
             },
             instructions: {
                 'code-review.instructions.md': {
@@ -300,7 +300,7 @@ describe('AutoContextConfigManager', () => {
     it('should delete file when clearing tools and no other config exists', async () => {
         vi.mocked(readFile).mockResolvedValue(JSON.stringify({
             'mcpTools': {
-                check_csharp_all: { 'disabledTasks': ['check_csharp_coding_style'] },
+                analyze_csharp_code: { 'disabledTasks': ['analyze_csharp_coding_style'] },
             },
         }));
 
@@ -323,13 +323,13 @@ describe('AutoContextConfigManager', () => {
 
         const manager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
         await manager.setMcpTools({
-            check_csharp_all: { disabledTasks: ['check_csharp_async_patterns'] },
+            analyze_csharp_code: { disabledTasks: ['analyze_csharp_async_patterns'] },
         });
 
         const parsed = JSON.parse(vi.mocked(writeFile).mock.calls[0][1] as string);
 
         expect(parsed['mcpTools']).toEqual({
-            check_csharp_all: { 'disabledTasks': ['check_csharp_async_patterns'] },
+            analyze_csharp_code: { 'disabledTasks': ['analyze_csharp_async_patterns'] },
         });
         expect.soft(parsed.instructions['code-review.instructions.md']).toEqual({
             version: '0.5',
@@ -514,12 +514,12 @@ describe('AutoContextConfigManager', () => {
         vi.mocked(readFile).mockResolvedValue('{}');
 
         const manager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
-        await manager.setMcpTools({ check_nuget_hygiene: false });
+        await manager.setMcpTools({ analyze_nuget_hygiene: false });
 
         const writeCalls = vi.mocked(writeFile).mock.calls;
         const parsed = JSON.parse(writeCalls[0][1] as string);
 
-        expect.soft(parsed['mcpTools']).toEqual({ check_nuget_hygiene: false });
+        expect.soft(parsed['mcpTools']).toEqual({ analyze_nuget_hygiene: false });
     });
 
     it('should write mcp tools with enabled false and disabledTasks when parent fully disabled', async () => {
@@ -527,9 +527,9 @@ describe('AutoContextConfigManager', () => {
 
         const manager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
         await manager.setMcpTools({
-            check_csharp_all: {
+            analyze_csharp_code: {
                 enabled: false,
-                disabledTasks: ['check_csharp_coding_style', 'check_csharp_async_patterns'],
+                disabledTasks: ['analyze_csharp_coding_style', 'analyze_csharp_async_patterns'],
             },
         });
 
@@ -537,9 +537,9 @@ describe('AutoContextConfigManager', () => {
         const parsed = JSON.parse(writeCalls[0][1] as string);
 
         expect.soft(parsed['mcpTools']).toEqual({
-            check_csharp_all: {
+            analyze_csharp_code: {
                 enabled: false,
-                'disabledTasks': ['check_csharp_coding_style', 'check_csharp_async_patterns'],
+                'disabledTasks': ['analyze_csharp_coding_style', 'analyze_csharp_async_patterns'],
             },
         });
     });
@@ -585,31 +585,31 @@ describe('AutoContextConfigManager', () => {
         vi.mocked(readFile).mockResolvedValue('{}');
 
         const manager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
-        await manager.setMcpToolEnabled('check_nuget_hygiene', undefined, false);
+        await manager.setMcpToolEnabled('analyze_nuget_hygiene', undefined, false);
 
         const parsed = JSON.parse(vi.mocked(writeFile).mock.calls[0][1] as string);
 
-        expect.soft(parsed['mcpTools']).toEqual({ check_nuget_hygiene: false });
+        expect.soft(parsed['mcpTools']).toEqual({ analyze_nuget_hygiene: false });
     });
 
     it('should set enabled:false preserving disabledTasks when disabling parent tool', async () => {
         vi.mocked(readFile).mockResolvedValue(JSON.stringify({
             'mcpTools': {
-                check_csharp_all: {
-                    'disabledTasks': ['check_csharp_coding_style'],
+                analyze_csharp_code: {
+                    'disabledTasks': ['analyze_csharp_coding_style'],
                 },
             },
         }));
 
         const manager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
-        await manager.setMcpToolEnabled('check_csharp_all', undefined, false);
+        await manager.setMcpToolEnabled('analyze_csharp_code', undefined, false);
 
         const parsed = JSON.parse(vi.mocked(writeFile).mock.calls[0][1] as string);
 
         expect.soft(parsed['mcpTools']).toEqual({
-            check_csharp_all: {
+            analyze_csharp_code: {
                 enabled: false,
-                'disabledTasks': ['check_csharp_coding_style'],
+                'disabledTasks': ['analyze_csharp_coding_style'],
             },
         });
     });
@@ -618,17 +618,17 @@ describe('AutoContextConfigManager', () => {
         vi.mocked(readFile).mockResolvedValue('{}');
 
         const manager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
-        await manager.setMcpToolEnabled('check_csharp_all', 'check_csharp_coding_style', false);
-        await manager.setMcpToolEnabled('check_csharp_all', 'check_csharp_async_patterns', false);
-        await manager.setMcpToolEnabled('check_csharp_all', undefined, false);
+        await manager.setMcpToolEnabled('analyze_csharp_code', 'analyze_csharp_coding_style', false);
+        await manager.setMcpToolEnabled('analyze_csharp_code', 'analyze_csharp_async_patterns', false);
+        await manager.setMcpToolEnabled('analyze_csharp_code', undefined, false);
 
         const lastCall = vi.mocked(writeFile).mock.calls.at(-1)!;
         const parsed = JSON.parse(lastCall[1] as string);
 
         expect.soft(parsed['mcpTools']).toEqual({
-            check_csharp_all: {
+            analyze_csharp_code: {
                 enabled: false,
-                'disabledTasks': ['check_csharp_coding_style', 'check_csharp_async_patterns'],
+                'disabledTasks': ['analyze_csharp_coding_style', 'analyze_csharp_async_patterns'],
             },
         });
     });
@@ -636,19 +636,19 @@ describe('AutoContextConfigManager', () => {
     it('should upgrade shorthand false to object when disabling a task', async () => {
         vi.mocked(readFile).mockResolvedValue(JSON.stringify({
             'mcpTools': {
-                check_csharp_all: false,
+                analyze_csharp_code: false,
             },
         }));
 
         const manager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
-        await manager.setMcpToolEnabled('check_csharp_all', 'check_csharp_coding_style', false);
+        await manager.setMcpToolEnabled('analyze_csharp_code', 'analyze_csharp_coding_style', false);
 
         const parsed = JSON.parse(vi.mocked(writeFile).mock.calls[0][1] as string);
 
         expect.soft(parsed['mcpTools']).toEqual({
-            check_csharp_all: {
+            analyze_csharp_code: {
                 enabled: false,
-                'disabledTasks': ['check_csharp_coding_style'],
+                'disabledTasks': ['analyze_csharp_coding_style'],
             },
         });
     });
@@ -656,17 +656,17 @@ describe('AutoContextConfigManager', () => {
     it('should upgrade shorthand false to object when enabling a task', async () => {
         vi.mocked(readFile).mockResolvedValue(JSON.stringify({
             'mcpTools': {
-                check_csharp_all: false,
+                analyze_csharp_code: false,
             },
         }));
 
         const manager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
-        await manager.setMcpToolEnabled('check_csharp_all', 'check_csharp_coding_style', true);
+        await manager.setMcpToolEnabled('analyze_csharp_code', 'analyze_csharp_coding_style', true);
 
         const parsed = JSON.parse(vi.mocked(writeFile).mock.calls[0][1] as string);
 
         expect.soft(parsed['mcpTools']).toEqual({
-            check_csharp_all: {
+            analyze_csharp_code: {
                 enabled: false,
             },
         });
@@ -675,16 +675,16 @@ describe('AutoContextConfigManager', () => {
     it('should remove enabled:false and clean up when re-enabling parent tool', async () => {
         vi.mocked(readFile).mockResolvedValue(JSON.stringify({
             'mcpTools': {
-                check_csharp_all: {
+                analyze_csharp_code: {
                     enabled: false,
-                    'disabledTasks': ['check_csharp_coding_style'],
+                    'disabledTasks': ['analyze_csharp_coding_style'],
                 },
             },
         }));
 
         const manager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
-        await manager.setMcpToolEnabled('check_csharp_all', 'check_csharp_coding_style', true);
-        await manager.setMcpToolEnabled('check_csharp_all', undefined, true);
+        await manager.setMcpToolEnabled('analyze_csharp_code', 'analyze_csharp_coding_style', true);
+        await manager.setMcpToolEnabled('analyze_csharp_code', undefined, true);
 
         expect.soft(vi.mocked(unlink)).toHaveBeenCalled();
     });

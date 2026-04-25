@@ -1,17 +1,17 @@
 {
   "git": [
     {
-      "name": "check_git_all",
+      "name": "analyze_git_commit_message",
       "description": "Aggregate tool that runs all enabled Git commit validators and returns a single combined report.",
       "version": "0.1.0",
       "tasks": [
         {
-          "name": "check_git_commit_content",
+          "name": "analyze_git_commit_content",
           "description": "Enforces commit content rules from git-commit-format.instructions.md: detects anti-patterns in the commit message body.",
           "version": "1.0.0"
         },
         {
-          "name": "check_git_commit_format",
+          "name": "analyze_git_commit_format",
           "description": "Enforces commit format rules from git-commit-format.instructions.md: Conventional Commits structure and line-length limits.",
           "version": "1.0.0"
         }
@@ -20,9 +20,16 @@
   ],
   "editorconfig": [
     {
-      "name": "get_editorconfig",
-      "description": "Resolves effective .editorconfig properties for a given file path by walking the directory tree, evaluating glob patterns and section cascading, and returning final key-value pairs.",
-      "version": "1.0.0"
+      "name": "read_editorconfig_properties",
+      "description": "Resolves the effective .editorconfig properties for a single file by walking up the directory tree, evaluating glob patterns, and applying section cascading.",
+      "version": "0.1.0",
+      "tasks": [
+        {
+          "name": "get_editorconfig_rules",
+          "description": "Returns the effective .editorconfig key/value map that applies to a given file path.",
+          "version": "1.0.0"
+        }
+      ]
     }
   ]
 }

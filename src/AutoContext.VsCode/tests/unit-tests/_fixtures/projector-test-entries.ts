@@ -7,7 +7,7 @@ export const projectorTestInstructions: InstructionsFileEntry[] = [
 ];
 
 export const projectorTestTools: McpToolsEntry[] = [
-    { key: 'check_csharp_coding_style', toolName: 'check_csharp_all', label: 'C# Coding Style', category: '.NET', serverLabel: '.NET', scope: 'dotnet', workspaceFlags: ['hasCSharp'] },
-    { key: 'check_csharp_async_patterns', toolName: 'check_csharp_all', label: 'C# Async', category: '.NET', serverLabel: '.NET', scope: 'dotnet', workspaceFlags: ['hasCSharp'] },
-    { key: 'get_editorconfig', label: 'EditorConfig', category: 'Workspace', serverLabel: 'Workspace', scope: 'editorconfig' },
+    { key: 'analyze_csharp_coding_style', toolName: 'analyze_csharp_code', label: 'C# Coding Style', category: '.NET', serverLabel: '.NET', scope: 'dotnet', workspaceFlags: ['hasCSharp'] },
+    { key: 'analyze_csharp_async_patterns', toolName: 'analyze_csharp_code', label: 'C# Async', category: '.NET', serverLabel: '.NET', scope: 'dotnet', workspaceFlags: ['hasCSharp'] },
+    { key: 'get_editorconfig_rules', toolName: 'read_editorconfig_properties', label: 'EditorConfig', category: 'Workspace', serverLabel: 'Workspace', scope: 'editorconfig' },
 ];

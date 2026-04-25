@@ -22,9 +22,9 @@ describe('ConfigContextProjector', () => {
 
         expect(findSetContextCall('autocontext.instructions.codeReview')?.[2]).toBe(true);
         expect(findSetContextCall('autocontext.instructions.lang.csharp')?.[2]).toBe(true);
-        expect(findSetContextCall('autocontext.mcpTools.check_csharp_coding_style')?.[2]).toBe(true);
-        expect(findSetContextCall('autocontext.mcpTools.check_csharp_async_patterns')?.[2]).toBe(true);
-        expect.soft(findSetContextCall('autocontext.mcpTools.get_editorconfig')?.[2]).toBe(true);
+        expect(findSetContextCall('autocontext.mcpTools.analyze_csharp_coding_style')?.[2]).toBe(true);
+        expect(findSetContextCall('autocontext.mcpTools.analyze_csharp_async_patterns')?.[2]).toBe(true);
+        expect.soft(findSetContextCall('autocontext.mcpTools.get_editorconfig_rules')?.[2]).toBe(true);
     });
 
     it('should set instruction context key to false when disabled', async () => {
@@ -42,23 +42,10 @@ describe('ConfigContextProjector', () => {
         expect.soft(findSetContextCall('autocontext.instructions.lang.csharp')?.[2]).toBe(true);
     });
 
-    it('should set standalone tool context key to false when disabled', async () => {
-        const projector = new ConfigContextProjector(
-            createMockConfigManager({ mcpTools: { get_editorconfig: false } }),
-            catalog,
-            toolsCatalog,
-            outputChannel,
-        );
-        await projector.project();
-
-        expect(findSetContextCall('autocontext.mcpTools.get_editorconfig')?.[2]).toBe(false);
-        expect.soft(findSetContextCall('autocontext.mcpTools.check_csharp_coding_style')?.[2]).toBe(true);
-    });
-
-    it('should set task context key to false when in disabledTasks list', async () => {
+    it('should set task context key to false when parent disables the task', async () => {
         const projector = new ConfigContextProjector(
             createMockConfigManager({
-                mcpTools: { check_csharp_all: { disabledTasks: ['check_csharp_coding_style'] } },
+                mcpTools: { read_editorconfig_properties: { disabledTasks: ['get_editorconfig_rules'] } },
             }),
             catalog,
             toolsCatalog,
@@ -66,17 +53,32 @@ describe('ConfigContextProjector', () => {
         );
         await projector.project();
 
-        expect(findSetContextCall('autocontext.mcpTools.check_csharp_coding_style')?.[2]).toBe(false);
-        expect.soft(findSetContextCall('autocontext.mcpTools.check_csharp_async_patterns')?.[2]).toBe(true);
+        expect(findSetContextCall('autocontext.mcpTools.get_editorconfig_rules')?.[2]).toBe(false);
+        expect.soft(findSetContextCall('autocontext.mcpTools.analyze_csharp_coding_style')?.[2]).toBe(true);
+    });
+
+    it('should set task context key to false when in disabledTasks list', async () => {
+        const projector = new ConfigContextProjector(
+            createMockConfigManager({
+                mcpTools: { analyze_csharp_code: { disabledTasks: ['analyze_csharp_coding_style'] } },
+            }),
+            catalog,
+            toolsCatalog,
+            outputChannel,
+        );
+        await projector.project();
+
+        expect(findSetContextCall('autocontext.mcpTools.analyze_csharp_coding_style')?.[2]).toBe(false);
+        expect.soft(findSetContextCall('autocontext.mcpTools.analyze_csharp_async_patterns')?.[2]).toBe(true);
     });
 
     it('should disable all tasks when parent has enabled false', async () => {
         const projector = new ConfigContextProjector(
             createMockConfigManager({
                 mcpTools: {
-                    check_csharp_all: {
+                    analyze_csharp_code: {
                         enabled: false,
-                        disabledTasks: ['check_csharp_coding_style', 'check_csharp_async_patterns'],
+                        disabledTasks: ['analyze_csharp_coding_style', 'analyze_csharp_async_patterns'],
                     },
                 },
             }),
@@ -86,8 +88,8 @@ describe('ConfigContextProjector', () => {
         );
         await projector.project();
 
-        expect(findSetContextCall('autocontext.mcpTools.check_csharp_coding_style')?.[2]).toBe(false);
-        expect.soft(findSetContextCall('autocontext.mcpTools.check_csharp_async_patterns')?.[2]).toBe(false);
+        expect(findSetContextCall('autocontext.mcpTools.analyze_csharp_coding_style')?.[2]).toBe(false);
+        expect.soft(findSetContextCall('autocontext.mcpTools.analyze_csharp_async_patterns')?.[2]).toBe(false);
     });
 
     it('should keep instruction enabled when entry exists but is not disabled', async () => {
@@ -129,58 +131,58 @@ describe('ConfigContextProjector', () => {
 
 describe('isToolEnabled', () => {
     it('should return true when no tools config exists', () => {
-        expect.soft(isToolEnabled({}, 'check_csharp_all', 'check_csharp_coding_style')).toBe(true);
+        expect.soft(isToolEnabled({}, 'analyze_csharp_code', 'analyze_csharp_coding_style')).toBe(true);
     });
 
     it('should return false for standalone tool set to false', () => {
         expect.soft(isToolEnabled(
-            { mcpTools: { get_editorconfig: false } }, 'get_editorconfig',
+            { mcpTools: { get_editorconfig_rules: false } }, 'get_editorconfig_rules',
         )).toBe(false);
     });
 
     it('should return false for tool with enabled false', () => {
         expect.soft(isToolEnabled(
-            { mcpTools: { get_editorconfig: { enabled: false } } }, 'get_editorconfig',
+            { mcpTools: { get_editorconfig_rules: { enabled: false } } }, 'get_editorconfig_rules',
         )).toBe(false);
     });
 
     it('should return false for task in disabled list even when parent is also disabled', () => {
         expect.soft(isToolEnabled(
-            { mcpTools: { check_csharp_all: { enabled: false, disabledTasks: ['check_csharp_coding_style'] } } },
-            'check_csharp_all', 'check_csharp_coding_style',
+            { mcpTools: { analyze_csharp_code: { enabled: false, disabledTasks: ['analyze_csharp_coding_style'] } } },
+            'analyze_csharp_code', 'analyze_csharp_coding_style',
         )).toBe(false);
     });
 
     it('should return true for task not in disabled list even when parent is disabled', () => {
         expect.soft(isToolEnabled(
-            { mcpTools: { check_csharp_all: { enabled: false, disabledTasks: ['check_csharp_coding_style'] } } },
-            'check_csharp_all', 'check_csharp_async_patterns',
+            { mcpTools: { analyze_csharp_code: { enabled: false, disabledTasks: ['analyze_csharp_coding_style'] } } },
+            'analyze_csharp_code', 'analyze_csharp_async_patterns',
         )).toBe(true);
     });
 
     it('should return false for task in disabled list', () => {
         expect.soft(isToolEnabled(
-            { mcpTools: { check_csharp_all: { disabledTasks: ['check_csharp_coding_style'] } } },
-            'check_csharp_all', 'check_csharp_coding_style',
+            { mcpTools: { analyze_csharp_code: { disabledTasks: ['analyze_csharp_coding_style'] } } },
+            'analyze_csharp_code', 'analyze_csharp_coding_style',
         )).toBe(false);
     });
 
     it('should return true for task not in disabled list', () => {
         expect.soft(isToolEnabled(
-            { mcpTools: { check_csharp_all: { disabledTasks: ['check_csharp_async_patterns'] } } },
-            'check_csharp_all', 'check_csharp_coding_style',
+            { mcpTools: { analyze_csharp_code: { disabledTasks: ['analyze_csharp_async_patterns'] } } },
+            'analyze_csharp_code', 'analyze_csharp_coding_style',
         )).toBe(true);
     });
 
     it('should return true for task when parent is shorthand false', () => {
         expect.soft(isToolEnabled(
-            { mcpTools: { check_csharp_all: false } }, 'check_csharp_all', 'check_csharp_coding_style',
+            { mcpTools: { analyze_csharp_code: false } }, 'analyze_csharp_code', 'analyze_csharp_coding_style',
         )).toBe(true);
     });
 
     it('should return true for standalone tool with no config entry', () => {
         expect.soft(isToolEnabled(
-            { mcpTools: { check_csharp_all: false } }, 'get_editorconfig',
+            { mcpTools: { analyze_csharp_code: false } }, 'get_editorconfig_rules',
         )).toBe(true);
     });
 });

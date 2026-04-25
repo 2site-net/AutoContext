@@ -63,8 +63,8 @@ describe('AutoConfigurer', () => {
         const setMcpTools = vi.mocked(fakeConfigManager.setMcpTools);
         expect.soft(setMcpTools).toHaveBeenCalledOnce();
         const [newTools] = setMcpTools.mock.calls[0];
-        // check_csharp_all is a parent tool — should NOT be set to false
-        expect.soft(newTools['check_csharp_all']).not.toBe(false);
+        // analyze_csharp_code is a parent tool — should NOT be set to false
+        expect.soft(newTools['analyze_csharp_code']).not.toBe(false);
     });
 
     it('should show an info message with the count of enabled items', async () => {

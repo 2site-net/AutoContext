@@ -133,20 +133,20 @@ export const instructionsCategoryOrder: readonly string[] = ['General', 'Languag
 // Each entry's `key` is expanded to a full `contextKey` (`autocontext.mcpTools.<key>`) by
 // `McpToolsCatalogEntry` at construction time — see `McpToolsCatalog`.
 // When `toolName` is present the entry is a task of a composite tool (e.g.
-// `check_csharp_all`); when absent, `key` doubles as the MCP tool name.
+// `analyze_csharp_code`); when absent, `key` doubles as the MCP tool name.
 export const mcpTools: readonly McpToolsEntry[] = [
-    { key: 'check_csharp_async_patterns', toolName: 'check_csharp_all', label: 'Async Patterns', category: 'C#', serverLabel: '.NET', scope: 'dotnet', workspaceFlags: ['hasCSharp'] },
-    { key: 'check_csharp_coding_style', toolName: 'check_csharp_all', label: 'Coding Style', category: 'C#', serverLabel: '.NET', scope: 'dotnet', workspaceFlags: ['hasCSharp'] },
-    { key: 'check_csharp_member_ordering', toolName: 'check_csharp_all', label: 'Member Ordering', category: 'C#', serverLabel: '.NET', scope: 'dotnet', workspaceFlags: ['hasCSharp'] },
-    { key: 'check_csharp_naming_conventions', toolName: 'check_csharp_all', label: 'Naming Conventions', category: 'C#', serverLabel: '.NET', scope: 'dotnet', workspaceFlags: ['hasCSharp'] },
-    { key: 'check_csharp_nullable_context', toolName: 'check_csharp_all', label: 'Nullable Context', category: 'C#', serverLabel: '.NET', scope: 'dotnet', workspaceFlags: ['hasCSharp'] },
-    { key: 'check_csharp_project_structure', toolName: 'check_csharp_all', label: 'Project Structure', category: 'C#', serverLabel: '.NET', scope: 'dotnet', workspaceFlags: ['hasCSharp'] },
-    { key: 'check_csharp_test_style', toolName: 'check_csharp_all', label: 'Test Style', category: 'C#', serverLabel: '.NET', scope: 'dotnet', workspaceFlags: ['hasCSharp'] },
-    { key: 'check_nuget_hygiene', label: 'NuGet Hygiene', category: 'NuGet', serverLabel: '.NET', scope: 'dotnet', workspaceFlags: ['hasDotNet'] },
-    { key: 'check_git_commit_content', toolName: 'check_git_all', label: 'Commit Content', category: 'Git', serverLabel: 'Workspace', scope: 'git', workspaceFlags: ['hasGit'] },
-    { key: 'check_git_commit_format', toolName: 'check_git_all', label: 'Commit Format', category: 'Git', serverLabel: 'Workspace', scope: 'git', workspaceFlags: ['hasGit'] },
-    { key: 'get_editorconfig', label: 'EditorConfig', category: 'EditorConfig', serverLabel: 'Workspace', scope: 'editorconfig' },
-    { key: 'check_typescript_coding_style', toolName: 'check_typescript_all', label: 'Coding Style', category: 'TypeScript', serverLabel: 'Web', scope: 'typescript', workspaceFlags: ['hasTypeScript'] },
+    { key: 'analyze_csharp_async_patterns', toolName: 'analyze_csharp_code', label: 'Async Patterns', category: 'C#', serverLabel: '.NET', scope: 'dotnet', workspaceFlags: ['hasCSharp'] },
+    { key: 'analyze_csharp_coding_style', toolName: 'analyze_csharp_code', label: 'Coding Style', category: 'C#', serverLabel: '.NET', scope: 'dotnet', workspaceFlags: ['hasCSharp'] },
+    { key: 'analyze_csharp_member_ordering', toolName: 'analyze_csharp_code', label: 'Member Ordering', category: 'C#', serverLabel: '.NET', scope: 'dotnet', workspaceFlags: ['hasCSharp'] },
+    { key: 'analyze_csharp_naming_conventions', toolName: 'analyze_csharp_code', label: 'Naming Conventions', category: 'C#', serverLabel: '.NET', scope: 'dotnet', workspaceFlags: ['hasCSharp'] },
+    { key: 'analyze_csharp_nullable_context', toolName: 'analyze_csharp_code', label: 'Nullable Context', category: 'C#', serverLabel: '.NET', scope: 'dotnet', workspaceFlags: ['hasCSharp'] },
+    { key: 'analyze_csharp_project_structure', toolName: 'analyze_csharp_code', label: 'Project Structure', category: 'C#', serverLabel: '.NET', scope: 'dotnet', workspaceFlags: ['hasCSharp'] },
+    { key: 'analyze_csharp_test_style', toolName: 'analyze_csharp_code', label: 'Test Style', category: 'C#', serverLabel: '.NET', scope: 'dotnet', workspaceFlags: ['hasCSharp'] },
+    { key: 'analyze_nuget_hygiene', toolName: 'analyze_nuget_references', label: 'NuGet Hygiene', category: 'NuGet', serverLabel: '.NET', scope: 'dotnet', workspaceFlags: ['hasDotNet'] },
+    { key: 'analyze_git_commit_content', toolName: 'analyze_git_commit_message', label: 'Commit Content', category: 'Git', serverLabel: 'Workspace', scope: 'git', workspaceFlags: ['hasGit'] },
+    { key: 'analyze_git_commit_format', toolName: 'analyze_git_commit_message', label: 'Commit Format', category: 'Git', serverLabel: 'Workspace', scope: 'git', workspaceFlags: ['hasGit'] },
+    { key: 'get_editorconfig_rules', toolName: 'read_editorconfig_properties', label: 'EditorConfig', category: 'EditorConfig', serverLabel: 'Workspace', scope: 'editorconfig' },
+    { key: 'analyze_typescript_coding_style', toolName: 'analyze_typescript_code', label: 'Coding Style', category: 'TypeScript', serverLabel: 'Web', scope: 'typescript', workspaceFlags: ['hasTypeScript'] },
 ];
 
 export const mcpToolServerLabelOrder: readonly string[] = ['.NET', 'Web', 'Workspace'];

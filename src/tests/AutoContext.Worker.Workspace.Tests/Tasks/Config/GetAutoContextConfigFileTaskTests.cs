@@ -101,7 +101,7 @@ public sealed class GetAutoContextConfigFileTaskTests : IDisposable
               "mcpTools": {
                 "analyze_csharp_code": {
                   "enabled": true,
-                  "disabledTasks": ["check_csharp_coding_style"]
+                  "disabledTasks": ["analyze_csharp_coding_style"]
                 },
                 "analyze_nuget_references": {
                   "enabled": true,
@@ -123,7 +123,7 @@ public sealed class GetAutoContextConfigFileTaskTests : IDisposable
 
         // Assert
         Assert.Multiple(
-            () => Assert.Equal(["check_csharp_coding_style"], csDisabled),
+            () => Assert.Equal(["analyze_csharp_coding_style"], csDisabled),
             () => Assert.Empty(nugetDisabled));
     }
 
