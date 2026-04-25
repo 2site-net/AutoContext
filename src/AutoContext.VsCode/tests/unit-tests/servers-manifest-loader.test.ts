@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-const { readFileSyncMock } = vi.hoisted(() => ({ readFileSyncMock: vi.fn<(path: string, encoding: string) => string>() }));
+const { readFileSyncMock } = vi.hoisted(() => ({ readFileSyncMock: vi.fn<typeof import('node:fs').readFileSync>() }));
 vi.mock('node:fs', async () => {
     const actual = await vi.importActual<typeof import('node:fs')>('node:fs');
     return { ...actual, readFileSync: readFileSyncMock };
@@ -23,10 +23,11 @@ const toolsCategories = [
 ];
 
 function mockManifests(servers: unknown, categories: unknown): void {
-    readFileSyncMock.mockImplementation((path: string) => {
-        if (path.endsWith('servers.json')) { return JSON.stringify({ servers }); }
-        if (path.endsWith('mcp-tools-manifest.json')) { return JSON.stringify({ categories }); }
-        throw new Error(`Unexpected path: ${path}`);
+    readFileSyncMock.mockImplementation((path) => {
+        const p = path.toString();
+        if (p.endsWith('servers.json')) { return JSON.stringify({ servers }); }
+        if (p.endsWith('mcp-tools-manifest.json')) { return JSON.stringify({ categories }); }
+        throw new Error(`Unexpected path: ${p}`);
     });
 }
 
