@@ -3,11 +3,10 @@ import { join } from 'node:path';
 import { ContextKeys } from '../../src/context-keys';
 import { instructionsFiles } from '../../src/ui-constants';
 import { InstructionsCatalog } from '../../src/instructions-catalog';
-import { McpToolsCatalog } from '../../src/mcp-tools-catalog';
 import { McpToolsManifestLoader } from '../../src/mcp-tools-manifest-loader';
 
 const instructionsCatalog = new InstructionsCatalog(instructionsFiles);
-const toolsCatalog = new McpToolsCatalog(new McpToolsManifestLoader(join(__dirname, '..', '..')).load());
+const toolsManifest = new McpToolsManifestLoader(join(__dirname, '..', '..')).load();
 
 describe('ContextKeys.overrideKey', () => {
     it('should strip the settings prefix and prepend the override prefix', () => {
@@ -41,17 +40,17 @@ describe('ContextKeys.forEntry', () => {
     });
 
     it('should return context keys for tools', () => {
-        const codingStyle = toolsCatalog.all.find(t => t.contextKey === 'autocontext.mcpTools.analyze_csharp_coding_style')!;
-        const commitFormat = toolsCatalog.all.find(t => t.contextKey === 'autocontext.mcpTools.analyze_git_commit_format')!;
+        const codingStyleTool = toolsManifest.toolByName('analyze_csharp_code')!;
+        const commitFormatTool = toolsManifest.toolByName('analyze_git_commit_message')!;
 
-        expect(ContextKeys.forEntry(codingStyle)).toEqual(['hasDotNet', 'hasCSharp']);
-        expect.soft(ContextKeys.forEntry(commitFormat)).toEqual(['hasGit']);
+        expect(codingStyleTool.workspaceFlags).toEqual(['hasDotNet', 'hasCSharp']);
+        expect.soft(commitFormatTool.workspaceFlags).toEqual(['hasGit']);
     });
 
     it('should return empty array for the editorconfig tool', () => {
-        const editorconfig = toolsCatalog.all.find(t => t.contextKey === 'autocontext.mcpTools.get_editorconfig_rules')!;
+        const editorconfigTool = toolsManifest.toolByName('read_editorconfig_properties')!;
 
-        expect.soft(ContextKeys.forEntry(editorconfig)).toEqual([]);
+        expect.soft(editorconfigTool.workspaceFlags).toEqual([]);
     });
 
     it('should have a mapping for every instruction with a workspace when clause', () => {

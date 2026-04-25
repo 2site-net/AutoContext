@@ -1,10 +1,8 @@
 import { ContextKeys } from './context-keys.js';
 import { TreeViewNodeState } from './tree-view-node-state.js';
-import type { CatalogEntry } from './types/catalog-entry.js';
 import type { WorkspaceContextDetector } from './workspace-context-detector.js';
 import type { AutoContextConfig } from './types/autocontext-config.js';
 import { InstructionsCatalogEntry } from './instructions-catalog-entry.js';
-import type { McpToolsCatalogEntry } from './mcp-tools-catalog-entry.js';
 import type { McpToolEntry } from './mcp-tool-entry.js';
 import type { McpTaskEntry } from './mcp-task-entry.js';
 import { isToolEnabled } from './config-context-projector.js';
@@ -13,7 +11,7 @@ export class TreeViewStateResolver {
     constructor(private readonly detector: WorkspaceContextDetector) {}
 
     resolve(
-        entry: CatalogEntry,
+        entry: InstructionsCatalogEntry,
         config: AutoContextConfig,
         overrides?: ReadonlySet<string>,
     ): TreeViewNodeState {
@@ -22,9 +20,7 @@ export class TreeViewStateResolver {
             return TreeViewNodeState.NotDetected;
         }
 
-        const isEnabled = entry instanceof InstructionsCatalogEntry
-            ? config.instructions?.[entry.fileName]?.enabled !== false
-            : isToolEnabled(config, (entry as McpToolsCatalogEntry).toolName, (entry as McpToolsCatalogEntry).taskName);
+        const isEnabled = config.instructions?.[entry.fileName]?.enabled !== false;
 
         if (!isEnabled) {
             return TreeViewNodeState.Disabled;

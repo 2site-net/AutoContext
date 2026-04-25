@@ -4,8 +4,8 @@ import { TreeItemCollapsibleState, TreeItemCheckboxState, window, ThemeIcon, The
 import { McpToolsTreeProvider } from '../../src/mcp-tools-tree-provider';
 import type { AutoContextConfig } from '../../src/types/autocontext-config';
 import { TreeViewNodeState } from '../../src/tree-view-node-state';
-import { McpToolsCatalog } from '../../src/mcp-tools-catalog';
 import { McpToolsManifestLoader } from '../../src/mcp-tools-manifest-loader';
+import type { McpToolEntry } from '../../src/mcp-tool-entry';
 import { TreeViewStateResolver } from '../../src/tree-view-state-resolver';
 import { TreeViewTooltip } from '../../src/tree-view-tooltip';
 import { createFakeDetector, createFakeConfigManager, createFakeHealthMonitor, createFakeOutputChannel } from './_fakes';
@@ -30,7 +30,17 @@ beforeEach(() => {
 });
 
 describe('McpToolsTreeProvider', () => {
-    const catalog = new McpToolsCatalog(manifest);
+    /** Sum of (max(1, tasks.length)) over `tools` — one entry per task, or one for parent-only tools. */
+    const countItems = (tools: readonly McpToolEntry[]) =>
+        tools.reduce((acc, t) => acc + Math.max(1, t.tasks.length), 0);
+
+    /** Filter tools whose first (worker) category matches the given name. */
+    const toolsInTopCategory = (name: string) =>
+        manifest.tools.filter(t => t.firstCategory.name === name);
+
+    /** Filter tools whose last (leaf) category matches the given name. */
+    const toolsInSubCategory = (name: string) =>
+        manifest.tools.filter(t => t.lastCategory.name === name);
 
     /** Navigate: root → serverLabel → category → MCP tools */
     function getMcpTools(provider: McpToolsTreeProvider, serverLabelName: string, categoryName: string) {
@@ -226,9 +236,7 @@ describe('McpToolsTreeProvider', () => {
 
     it('should show MCP tool checkbox checked when all tasks are disabled but parent is not', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
-        const allTasks = catalog.all
-            .filter(e => e.toolName === 'analyze_csharp_code' && e.taskName)
-            .map(e => e.taskName!);
+        const allTasks = manifest.toolByName('analyze_csharp_code')!.tasks.map(t => t.name);
         currentConfig = { mcpTools: { analyze_csharp_code: { disabledTasks: allTasks } } };
 
         const provider = new McpToolsTreeProvider(fakeDetector, manifest, stateResolver, tooltip, fakeConfigManager, outputChannel);
@@ -551,9 +559,9 @@ describe('McpToolsTreeProvider', () => {
         const roots = provider.getChildren();
         const dotnet = roots.find(r => r.kind === 'serverNode' && r.name === '.NET')!;
         const item = provider.getTreeItem(dotnet);
-        const dotnetEntries = catalog.all.filter(e => e.workerCategory.name === '.NET');
+        const total = countItems(toolsInTopCategory('.NET'));
 
-        expect.soft(item.tooltip).toBe(`.NET\n${dotnetEntries.length}/${dotnetEntries.length} tasks enabled`);
+        expect.soft(item.tooltip).toBe(`.NET\n${total}/${total} tasks enabled`);
 
         provider.dispose();
     });
@@ -565,10 +573,11 @@ describe('McpToolsTreeProvider', () => {
         const roots = provider.getChildren();
         const workspace = roots.find(r => r.kind === 'serverNode' && r.name === 'Workspace')!;
         const item = provider.getTreeItem(workspace);
-        const workspaceEntries = catalog.all.filter(e => e.workerCategory.name === 'Workspace');
-        const alwaysOn = workspaceEntries.filter(e => !e.workspaceFlags || e.workspaceFlags.length === 0).length;
+        const workspaceTools = toolsInTopCategory('Workspace');
+        const total = countItems(workspaceTools);
+        const alwaysOn = countItems(workspaceTools.filter(t => t.workspaceFlags.length === 0));
 
-        expect.soft(item.tooltip).toBe(`Workspace\n${alwaysOn}/${workspaceEntries.length} tasks enabled`);
+        expect.soft(item.tooltip).toBe(`Workspace\n${alwaysOn}/${total} tasks enabled`);
 
         provider.dispose();
     });
@@ -583,10 +592,11 @@ describe('McpToolsTreeProvider', () => {
         const categories = provider.getChildren(dotnet);
         const csharp = categories.find(r => r.kind === 'categoryNode' && r.name === 'C#')!;
         const item = provider.getTreeItem(csharp);
-        const csharpEntries = catalog.all.filter(e => e.leafCategory.name === 'C#');
-        const enabled = csharpEntries.filter(e => e.contextKey !== 'autocontext.mcpTools.analyze_csharp_async_patterns').length;
+        const csharpTools = toolsInSubCategory('C#');
+        const total = countItems(csharpTools);
+        const enabled = total - 1; // analyze_csharp_async_patterns is disabled
 
-        expect.soft(item.tooltip).toBe(`C#\n${enabled}/${csharpEntries.length} tasks enabled`);
+        expect.soft(item.tooltip).toBe(`C#\n${enabled}/${total} tasks enabled`);
 
         provider.dispose();
     });
@@ -600,9 +610,9 @@ describe('McpToolsTreeProvider', () => {
         const categories = provider.getChildren(dotnet);
         const csharp = categories.find(r => r.kind === 'categoryNode' && r.name === 'C#')!;
         const item = provider.getTreeItem(csharp);
-        const csharpEntries = catalog.all.filter(e => e.leafCategory.name === 'C#');
+        const total = countItems(toolsInSubCategory('C#'));
 
-        expect.soft(item.tooltip).toBe(`C#\n0/${csharpEntries.length} tasks enabled`);
+        expect.soft(item.tooltip).toBe(`C#\n0/${total} tasks enabled`);
 
         provider.dispose();
     });
@@ -613,8 +623,8 @@ describe('McpToolsTreeProvider', () => {
 
         const provider = new McpToolsTreeProvider(fakeDetector, manifest, stateResolver, tooltip, fakeConfigManager, outputChannel);
         const treeView = vi.mocked(window.createTreeView).mock.results.at(-1)!.value;
-        const total = catalog.count;
-        const enabled = catalog.all.filter(e => e.contextKey !== 'autocontext.mcpTools.analyze_csharp_async_patterns').length;
+        const total = countItems(manifest.tools);
+        const enabled = total - 1; // analyze_csharp_async_patterns is disabled
 
         expect.soft(treeView.description).toBe(`${enabled}/${total}`);
 
@@ -626,8 +636,8 @@ describe('McpToolsTreeProvider', () => {
 
         const provider = new McpToolsTreeProvider(fakeDetector, manifest, stateResolver, tooltip, fakeConfigManager, outputChannel);
         const treeView = vi.mocked(window.createTreeView).mock.results.at(-1)!.value;
-        const total = catalog.count;
-        const alwaysOn = catalog.all.filter(e => !e.workspaceFlags || e.workspaceFlags.length === 0).length;
+        const total = countItems(manifest.tools);
+        const alwaysOn = countItems(manifest.tools.filter(t => t.workspaceFlags.length === 0));
 
         expect.soft(treeView.description).toBe(`${alwaysOn}/${total}`);
 

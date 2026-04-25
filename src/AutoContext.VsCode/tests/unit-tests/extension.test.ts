@@ -36,10 +36,6 @@ vi.mock('../../src/workspace-context-detector', () => ({
     },
 }));
 
-vi.mock('../../src/mcp-tools-catalog', () => ({
-    McpToolsCatalog: class { all = []; },
-}));
-
 vi.mock('../../src/instructions-catalog', () => ({
     InstructionsCatalog: class { all = []; findByFileName() {} },
 }));
