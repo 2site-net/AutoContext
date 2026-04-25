@@ -47,31 +47,31 @@ describe('McpToolsCatalog', () => {
         expect.soft(catalog.serverLabelToWorkerIdMap.get('.NET')).toBe('dotnet');
     });
 
-    it('should enrich entries with metadata when provided', () => {
-        const metadata = new Map([
-            ['alpha', { description: 'Alpha tool' }],
-            ['gamma', { description: 'Gamma tool' }],
+    it('should enrich entries with descriptions when provided', () => {
+        const descriptions = new Map([
+            ['alpha', 'Alpha tool'],
+            ['gamma', 'Gamma tool'],
         ]);
-        const catalog = new McpToolsCatalog(mcpToolsTestEntries, { metadata });
+        const catalog = new McpToolsCatalog(mcpToolsTestEntries, { descriptions });
 
         expect.soft(catalog.all[0].description).toBe('Alpha tool');
         expect.soft(catalog.all[1].description).toBeUndefined();
         expect.soft(catalog.all[2].description).toBe('Gamma tool');
     });
 
-    it('should leave metadata undefined when no metadata map is provided', () => {
+    it('should leave descriptions undefined when no descriptions map is provided', () => {
         const catalog = new McpToolsCatalog(mcpToolsTestEntries);
 
         expect.soft(catalog.all[0].description).toBeUndefined();
     });
 
-    it('should return tool metadata by name', () => {
-        const metadata = new Map([
-            ['alpha', { description: 'Alpha tool' }],
+    it('should return tool description by name', () => {
+        const descriptions = new Map([
+            ['alpha', 'Alpha tool'],
         ]);
-        const catalog = new McpToolsCatalog(mcpToolsTestEntries, { metadata });
+        const catalog = new McpToolsCatalog(mcpToolsTestEntries, { descriptions });
 
-        expect.soft(catalog.getMetadata('alpha')).toEqual({ description: 'Alpha tool' });
-        expect.soft(catalog.getMetadata('unknown')).toBeUndefined();
+        expect.soft(catalog.getDescription('alpha')).toBe('Alpha tool');
+        expect.soft(catalog.getDescription('unknown')).toBeUndefined();
     });
 });

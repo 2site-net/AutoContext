@@ -1,4 +1,3 @@
-import type { McpToolsMetadataEntry } from './mcp-tools-metadata-entry.js';
 import type { McpToolsEntry } from './mcp-tools-entry.js';
 
 /**
@@ -9,8 +8,8 @@ import type { McpToolsEntry } from './mcp-tools-entry.js';
 export interface McpToolsCatalogData {
     /** Flat list of catalog entries (one per task, or one per task-less tool). */
     readonly entries: readonly McpToolsEntry[];
-    /** Per-tool / per-task description metadata used for tooltips. */
-    readonly descriptions: ReadonlyMap<string, McpToolsMetadataEntry>;
+    /** Per-tool / per-task description text used for tooltips. */
+    readonly descriptions: ReadonlyMap<string, string>;
     /** Top-level category names (with `workerId`), in manifest declaration order. */
     readonly serverLabelOrder: readonly string[];
     /** Sub-category names (without `workerId`), in manifest declaration order. */

@@ -42,7 +42,7 @@ export async function activate(context: vscode.ExtensionContext) {
     const instructionsMetadata = metadataLoader.getInstructionsInfo(instructionsFiles);
 
     const toolsCatalog = new McpToolsCatalog(mcpToolsCatalogData.entries, {
-        metadata: mcpToolsCatalogData.descriptions,
+        descriptions: mcpToolsCatalogData.descriptions,
         serverLabelOrder: mcpToolsCatalogData.serverLabelOrder,
         categoryOrder: mcpToolsCatalogData.categoryOrder,
         serverLabelToWorkerIdMap: mcpToolsCatalogData.serverLabelToWorkerIdMap,

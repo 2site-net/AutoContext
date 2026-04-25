@@ -411,13 +411,13 @@ describe('McpToolsTreeProvider', () => {
         provider.dispose();
     });
 
-    it('should include description in task tooltip when metadata is provided', () => {
+    it('should include description in task tooltip when descriptions are provided', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
 
-        const metadata = new Map([
-            ['analyze_csharp_async_patterns', { description: 'Detects async anti-patterns' }],
+        const descriptions = new Map([
+            ['analyze_csharp_async_patterns', 'Detects async anti-patterns'],
         ]);
-        const enrichedCatalog = new McpToolsCatalog(mcpTools, { ...catalogOptions, metadata });
+        const enrichedCatalog = new McpToolsCatalog(mcpTools, { ...catalogOptions, descriptions });
         const provider = new McpToolsTreeProvider(fakeDetector, enrichedCatalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
         const tasks = getTasks(provider, '.NET', 'C#', 'analyze_csharp_code');
         const asyncTask = tasks.find(f => f.kind === 'mcpTaskNode' && f.entry.contextKey === 'autocontext.mcpTools.analyze_csharp_async_patterns')!;
@@ -453,13 +453,13 @@ describe('McpToolsTreeProvider', () => {
         provider.dispose();
     });
 
-    it('should include description in parent tool tooltip when metadata is provided', () => {
+    it('should include description in parent tool tooltip when descriptions are provided', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
 
-        const metadata = new Map([
-            ['analyze_csharp_code', { description: 'Runs all C# checks' }],
+        const descriptions = new Map([
+            ['analyze_csharp_code', 'Runs all C# checks'],
         ]);
-        const enrichedCatalog = new McpToolsCatalog(mcpTools, { ...catalogOptions, metadata });
+        const enrichedCatalog = new McpToolsCatalog(mcpTools, { ...catalogOptions, descriptions });
         const provider = new McpToolsTreeProvider(fakeDetector, enrichedCatalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
         const tools = getMcpTools(provider, '.NET', 'C#');
         const item = provider.getTreeItem(tools[0]);
@@ -560,7 +560,7 @@ describe('McpToolsTreeProvider', () => {
         const roots = provider.getChildren();
         const dotnet = roots.find(r => r.kind === 'serverNode' && r.name === '.NET')!;
         const item = provider.getTreeItem(dotnet);
-        const dotnetEntries = catalog.all.filter(e => e.serverLabel === '.NET');
+        const dotnetEntries = catalog.all.filter(e => e.workerCategory.name === '.NET');
 
         expect.soft(item.tooltip).toBe(`.NET\n${dotnetEntries.length}/${dotnetEntries.length} tasks enabled`);
 
@@ -574,7 +574,7 @@ describe('McpToolsTreeProvider', () => {
         const roots = provider.getChildren();
         const workspace = roots.find(r => r.kind === 'serverNode' && r.name === 'Workspace')!;
         const item = provider.getTreeItem(workspace);
-        const workspaceEntries = catalog.all.filter(e => e.serverLabel === 'Workspace');
+        const workspaceEntries = catalog.all.filter(e => e.workerCategory.name === 'Workspace');
         const alwaysOn = workspaceEntries.filter(e => !e.workspaceFlags || e.workspaceFlags.length === 0).length;
 
         expect.soft(item.tooltip).toBe(`Workspace\n${alwaysOn}/${workspaceEntries.length} tasks enabled`);

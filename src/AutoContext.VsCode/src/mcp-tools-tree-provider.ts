@@ -113,7 +113,7 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
     }
 
     private buildTree(): TreeViewServerLabelNode[] {
-        const presentServerLabels = new Set(this.catalog.all.map(e => e.serverLabel));
+        const presentServerLabels = new Set(this.catalog.all.map(e => e.workerCategory.name));
 
         return this.catalog.serverLabelOrder
             .filter(g => presentServerLabels.has(g))
@@ -123,7 +123,7 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
                     kind: 'serverNode' as const,
                     name,
                     children,
-                    totalEntries: this.catalog.all.filter(e => e.serverLabel === name).length,
+                    totalEntries: this.catalog.all.filter(e => e.workerCategory.name === name).length,
                 };
             })
             .filter(g => g.children.length > 0);
@@ -131,7 +131,7 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
 
     private resolveCategories(serverLabel: string, config: AutoContextConfig): McpToolsTreeCategoryNode[] {
         const presentCategories = new Set(
-            this.catalog.all.filter(e => e.serverLabel === serverLabel).map(e => e.category),
+            this.catalog.all.filter(e => e.workerCategory.name === serverLabel).map(e => e.category),
         );
         return this.catalog.categoryOrder
             .filter(c => presentCategories.has(c))
@@ -255,8 +255,8 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
         item.contextValue = 'mcpToolNode';
         item.checkboxState = this.checkboxForParent(node.toolName, node.tasks);
         const active = node.tasks.filter(f => f.state.isActive()).length;
-        const metadata = this.catalog.getMetadata(node.toolName);
-        item.tooltip = this.tooltip.container(node.toolName, active, node.tasks.length, metadata?.description);
+        const description = this.catalog.getDescription(node.toolName);
+        item.tooltip = this.tooltip.container(node.toolName, active, node.tasks.length, description);
         return item;
     }
 

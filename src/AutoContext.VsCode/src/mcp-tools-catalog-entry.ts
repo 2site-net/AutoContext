@@ -1,25 +1,30 @@
 import type { CatalogEntry } from './types/catalog-entry.js';
+import type { McpCategory } from './types/mcp-category.js';
 import type { McpToolsEntry } from './types/mcp-tools-entry.js';
-import type { McpToolsMetadataEntry } from './types/mcp-tools-metadata-entry.js';
 
 export class McpToolsCatalogEntry implements CatalogEntry {
     readonly contextKey: string;
     readonly toolName: string;
     readonly taskName?: string;
     readonly label: string;
-    readonly category: string;
-    readonly serverLabel: string;
+    readonly leafCategory: McpCategory;
+    readonly workerCategory: McpCategory;
     readonly workspaceFlags?: readonly string[];
     readonly description?: string;
 
-    constructor(data: McpToolsEntry, metadata?: McpToolsMetadataEntry) {
+    constructor(data: McpToolsEntry, description?: string) {
         this.contextKey = `autocontext.mcpTools.${data.key}`;
         this.toolName = data.toolName ?? data.key;
         this.taskName = data.toolName ? data.key : undefined;
         this.label = data.label;
-        this.category = data.category;
-        this.serverLabel = data.serverLabel;
+        this.leafCategory = data.leafCategory;
+        this.workerCategory = data.workerCategory;
         this.workspaceFlags = data.workspaceFlags;
-        this.description = metadata?.description;
+        this.description = description;
+    }
+
+    /** Required by {@link CatalogEntry}; delegates to the leaf category's name. */
+    get category(): string {
+        return this.leafCategory.name;
     }
 }

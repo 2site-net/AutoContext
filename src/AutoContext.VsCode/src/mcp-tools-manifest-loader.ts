@@ -1,8 +1,8 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import type { McpCategory } from './types/mcp-category.js';
 import type { McpToolsCatalogData } from './types/mcp-tools-catalog-data.js';
 import type { McpToolsEntry } from './types/mcp-tools-entry.js';
-import type { McpToolsMetadataEntry } from './types/mcp-tools-metadata-entry.js';
 
 interface McpTaskManifest {
     name: string;
@@ -43,7 +43,14 @@ export class McpToolsManifestLoader {
             readFileSync(join(this.extensionPath, 'mcp-tools-manifest.json'), 'utf-8'),
         );
 
-        const categoryByName = new Map(manifest.categories.map(c => [c.name, c]));
+        const categoryByName = new Map<string, McpCategory>(
+            manifest.categories.map(c => [c.name, {
+                name: c.name,
+                workerId: c.workerId,
+                when: c.when,
+                description: c.description,
+            }]),
+        );
         const serverLabelOrder: string[] = [];
         const categoryOrder: string[] = [];
         const serverLabelToWorkerIdMap = new Map<string, string>();
@@ -58,24 +65,24 @@ export class McpToolsManifestLoader {
         }
 
         const entries: McpToolsEntry[] = [];
-        const descriptions = new Map<string, McpToolsMetadataEntry>();
+        const descriptions = new Map<string, string>();
 
         for (const tool of manifest.tools) {
-            descriptions.set(tool.name, { description: tool.description });
+            descriptions.set(tool.name, tool.description);
 
-            const serverLabel = tool.categories[0];
-            const leafCategory = tool.categories[tool.categories.length - 1];
             McpToolsManifestLoader.#validateToolCategories(tool.name, tool.categories, categoryByName);
+            const workerCategory = categoryByName.get(tool.categories[0])!;
+            const leafCategory = categoryByName.get(tool.categories[tool.categories.length - 1])!;
             const workspaceFlags = McpToolsManifestLoader.#unionOfWhenFlags(tool.categories, categoryByName);
 
             if (!tool.tasks || tool.tasks.length === 0) {
-                entries.push(McpToolsManifestLoader.#buildEntry(tool.name, undefined, serverLabel, leafCategory, workspaceFlags));
+                entries.push(McpToolsManifestLoader.#buildEntry(tool.name, undefined, workerCategory, leafCategory, workspaceFlags));
                 continue;
             }
 
             for (const task of tool.tasks) {
-                descriptions.set(task.name, { description: task.description });
-                entries.push(McpToolsManifestLoader.#buildEntry(task.name, tool.name, serverLabel, leafCategory, workspaceFlags));
+                descriptions.set(task.name, task.description);
+                entries.push(McpToolsManifestLoader.#buildEntry(task.name, tool.name, workerCategory, leafCategory, workspaceFlags));
             }
         }
 
@@ -91,8 +98,8 @@ export class McpToolsManifestLoader {
     static #buildEntry(
         key: string,
         toolName: string | undefined,
-        serverLabel: string,
-        category: string,
+        workerCategory: McpCategory,
+        leafCategory: McpCategory,
         workspaceFlags: readonly string[],
     ): McpToolsEntry {
         // Per the user-visible UI, raw task names are used as labels — the
@@ -101,15 +108,15 @@ export class McpToolsManifestLoader {
             key,
             toolName,
             label: key,
-            category,
-            serverLabel,
+            leafCategory,
+            workerCategory,
             workspaceFlags: workspaceFlags.length > 0 ? workspaceFlags : undefined,
         };
     }
 
     static #unionOfWhenFlags(
         categoryNames: readonly string[],
-        categoryByName: ReadonlyMap<string, McpCategoryManifest>,
+        categoryByName: ReadonlyMap<string, McpCategory>,
     ): readonly string[] {
         const seen = new Set<string>();
 
@@ -128,7 +135,7 @@ export class McpToolsManifestLoader {
     static #validateToolCategories(
         toolName: string,
         categoryNames: readonly string[],
-        categoryByName: ReadonlyMap<string, McpCategoryManifest>,
+        categoryByName: ReadonlyMap<string, McpCategory>,
     ): void {
         if (categoryNames.length === 0) {
             throw new Error(`mcp-tools-manifest.json: tool '${toolName}' has no categories; the first category must be a server-label category (one with a 'workerId').`);

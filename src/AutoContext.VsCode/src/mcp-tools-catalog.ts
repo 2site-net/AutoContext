@@ -1,18 +1,17 @@
 import { McpToolsCatalogEntry } from './mcp-tools-catalog-entry.js';
 import type { McpToolsCatalogOptions } from './types/mcp-tools-catalog-options.js';
 import type { McpToolsEntry } from './types/mcp-tools-entry.js';
-import type { McpToolsMetadataEntry } from './types/mcp-tools-metadata-entry.js';
 
 export class McpToolsCatalog {
     private readonly entries: readonly McpToolsCatalogEntry[];
-    private readonly metadata?: ReadonlyMap<string, McpToolsMetadataEntry>;
+    private readonly descriptions?: ReadonlyMap<string, string>;
     readonly serverLabelOrder: readonly string[];
     readonly categoryOrder: readonly string[];
     readonly serverLabelToWorkerIdMap: ReadonlyMap<string, string>;
 
     constructor(data: readonly McpToolsEntry[], options: McpToolsCatalogOptions = {}) {
-        this.entries = data.map(d => new McpToolsCatalogEntry(d, options.metadata?.get(d.key)));
-        this.metadata = options.metadata;
+        this.entries = data.map(d => new McpToolsCatalogEntry(d, options.descriptions?.get(d.key)));
+        this.descriptions = options.descriptions;
         this.serverLabelOrder = options.serverLabelOrder ?? this.derivedServerLabelOrder();
         this.categoryOrder = options.categoryOrder ?? this.derivedCategoryOrder();
         this.serverLabelToWorkerIdMap = options.serverLabelToWorkerIdMap ?? new Map();
@@ -26,15 +25,15 @@ export class McpToolsCatalog {
         return this.entries.length;
     }
 
-    getMetadata(toolName: string): McpToolsMetadataEntry | undefined {
-        return this.metadata?.get(toolName);
+    getDescription(toolOrTaskName: string): string | undefined {
+        return this.descriptions?.get(toolOrTaskName);
     }
 
     private derivedServerLabelOrder(): readonly string[] {
-        return [...new Set(this.entries.map(e => e.serverLabel))];
+        return [...new Set(this.entries.map(e => e.workerCategory.name))];
     }
 
     private derivedCategoryOrder(): readonly string[] {
-        return [...new Set(this.entries.map(e => e.category))];
+        return [...new Set(this.entries.map(e => e.leafCategory.name))];
     }
 }
