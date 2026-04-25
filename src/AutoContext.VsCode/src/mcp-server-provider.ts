@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { existsSync } from 'node:fs';
 import type { McpToolsCatalog } from './mcp-tools-catalog.js';
 import type { HealthMonitorServer } from './health-monitor.js';
-import type { ServersManifest } from './servers-manifest.js';
+import type { ServersManifest } from './types/servers-manifest.js';
 import type { WorkerManager } from './worker-manager.js';
 import type { AutoContextConfigManager } from './autocontext-config.js';
 import type { AutoContextConfig } from './types/autocontext-config.js';
@@ -43,7 +43,7 @@ export class McpServerProvider implements vscode.McpServerDefinitionProvider {
         configManager: AutoContextConfigManager,
         private readonly outputChannel: vscode.OutputChannel,
     ) {
-        const mcpServerEntry = serversManifest.mcpServer();
+        const mcpServerEntry = serversManifest.mcpServer;
         const ext = process.platform === 'win32' ? '.exe' : '';
         this.mcpServerBinary = join(extensionPath, 'servers', mcpServerEntry.name, `${mcpServerEntry.name}${ext}`);
         this.version = version;

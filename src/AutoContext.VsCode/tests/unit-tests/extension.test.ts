@@ -112,10 +112,14 @@ vi.mock('../../src/mcp-server-provider', () => ({
     McpServerProvider: class { dispose() {} },
 }));
 
-vi.mock('../../src/servers-manifest', () => ({
-    ServersManifest: class {
-        static load() { return new this(); }
-        workers() { return []; }
+vi.mock('../../src/servers-manifest-loader', () => ({
+    ServersManifestLoader: class {
+        load() {
+            return {
+                workers: [],
+                mcpServer: { id: 'mcp-server', name: 'AutoContext.Mcp.Server', type: 'dotnet' },
+            };
+        }
     },
 }));
 

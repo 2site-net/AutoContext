@@ -4,7 +4,7 @@ import { spawn, type ChildProcess } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { createInterface } from 'node:readline';
 import { formatEndpoint } from './endpoint-formatter.js';
-import { type ServersManifest } from './servers-manifest.js';
+import type { ServersManifest } from './types/servers-manifest.js';
 
 /**
  * A worker the extension spawns and keeps alive for the lifetime of
@@ -51,7 +51,7 @@ export class WorkerManager implements vscode.Disposable {
         private readonly workspaceRoot: string | undefined,
         private readonly serversManifest: ServersManifest,
     ) {
-        for (const entry of serversManifest.workers()) {
+        for (const entry of serversManifest.workers) {
             const identity = entry.name.replace(/^AutoContext\./, '');
             const promise = new Promise<void>(resolve => this.readyResolvers.set(identity, resolve));
             this.readyPromises.set(identity, promise);
@@ -82,7 +82,7 @@ export class WorkerManager implements vscode.Disposable {
         const exeSuffix = process.platform === 'win32' ? '.exe' : '';
         const serversPath = join(this.extensionPath, 'servers');
 
-        const specs: WorkerSpec[] = this.serversManifest.workers().map(entry => {
+        const specs: WorkerSpec[] = this.serversManifest.workers.map(entry => {
             const identity = entry.name.replace(/^AutoContext\./, '');
             const pipe = formatEndpoint(entry.id, this.endpointSuffix);
             const serverDir = join(serversPath, entry.name);

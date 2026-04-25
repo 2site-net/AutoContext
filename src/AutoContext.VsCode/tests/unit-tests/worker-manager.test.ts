@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { EventEmitter } from 'node:events';
 import { PassThrough } from 'node:stream';
 import { createFakeOutputChannel } from './_fakes';
-import { ServersManifest } from '../../src/servers-manifest';
+import type { ServersManifest } from '../../src/types/servers-manifest';
 
 const spawnMock = vi.fn();
 
@@ -13,14 +13,14 @@ vi.mock('node:child_process', () => ({
 // Import after mocks so the module picks up the mocked spawn.
 const { WorkerManager } = await import('../../src/worker-manager');
 
-const fakeManifest = new ServersManifest(
-    [
+const fakeManifest: ServersManifest = {
+    workers: [
         { id: 'workspace', name: 'AutoContext.Worker.Workspace', type: 'dotnet' },
         { id: 'dotnet', name: 'AutoContext.Worker.DotNet', type: 'dotnet' },
         { id: 'web', name: 'AutoContext.Worker.Web', type: 'node' },
     ],
-    new Set(['workspace', 'dotnet', 'web']),
-);
+    mcpServer: { id: 'mcp-server', name: 'AutoContext.Mcp.Server', type: 'dotnet' },
+};
 
 interface FakeChild extends EventEmitter {
     stdout: PassThrough;
