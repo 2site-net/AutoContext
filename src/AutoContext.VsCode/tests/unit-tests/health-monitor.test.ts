@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { __emitterInstances } from './_fakes/fake-vscode';
 import { HealthMonitorServer } from '../../src/health-monitor';
 import { createFakeOutputChannel } from './_fakes';
-import { pipePath, connectAndSend } from './_utils/pipe-helpers';
+import { connectAndSend } from './_utils/pipe-helpers';
 import { waitFor } from './_utils/wait-for';
 
 const fakeOutputChannel = createFakeOutputChannel();
@@ -81,40 +81,6 @@ describe('HealthMonitorServer', () => {
         await waitFor(() => !monitor.isRunning('git'));
 
         expect(emitter.fire.mock.calls.length).toBeGreaterThan(callsAfterConnect);
-    });
-
-    describe('server label mapping', () => {
-        it('should report a server-label as running when its mapped worker is connected', async () => {
-            const monitorWithMap = new HealthMonitorServer(
-                fakeOutputChannel,
-                new Map([['.NET', 'dotnet']]),
-            );
-            monitorWithMap.start();
-
-            const socket = await connectAndSend(monitorWithMap.getPipeName(), 'dotnet');
-            await waitFor(() => monitorWithMap.isRunning('dotnet'));
-
-            expect(monitorWithMap.isRunningServerLabel('.NET')).toBe(true);
-
-            socket.destroy();
-            monitorWithMap.dispose();
-        });
-
-        it('should report a server-label as not running when its worker is absent', () => {
-            const monitorWithMap = new HealthMonitorServer(
-                fakeOutputChannel,
-                new Map([['.NET', 'dotnet']]),
-            );
-            monitorWithMap.start();
-
-            expect(monitorWithMap.isRunningServerLabel('.NET')).toBe(false);
-
-            monitorWithMap.dispose();
-        });
-
-        it('should return false for an unknown server label', () => {
-            expect(monitor.isRunningServerLabel('Unknown')).toBe(false);
-        });
     });
 
     it('should return a pipe name', () => {

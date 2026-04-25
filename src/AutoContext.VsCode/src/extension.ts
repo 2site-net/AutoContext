@@ -52,8 +52,7 @@ export async function activate(context: vscode.ExtensionContext) {
     const configProjector = new ConfigContextProjector(configManager, instructionsCatalog, mcpToolsManifest, outputChannel);
     const serversManifest = new ServersManifestLoader(context.extensionPath).load();
     const workerManager = new WorkerManager(context.extensionPath, outputChannel, vscode.workspace.workspaceFolders?.[0]?.uri.fsPath, serversManifest);
-    const healthMonitor = new HealthMonitorServer(outputChannel,
-        new Map(mcpToolsManifest.topCategories.map(c => [c.name, c.workerId!])));
+    const healthMonitor = new HealthMonitorServer(outputChannel);
     const mcpServerProvider = new McpServerProvider(context.extensionPath, version, didChangeEmitter.event, mcpToolsManifest, healthMonitor, workerManager, serversManifest, configManager, outputChannel);
     const stateResolver = new TreeViewStateResolver(workspaceContextDetector);
 

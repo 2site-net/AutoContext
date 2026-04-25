@@ -646,7 +646,7 @@ describe('McpToolsTreeProvider', () => {
 
     describe('health monitor icons', () => {
         it('should show green icon when server label is running', () => {
-            const hm = createFakeHealthMonitor({ isRunningServerLabel: () => true });
+            const hm = createFakeHealthMonitor({ isRunning: () => true });
 
             const provider = new McpToolsTreeProvider(fakeDetector, manifest, stateResolver, tooltip, fakeConfigManager, outputChannel, hm);
             const roots = provider.getChildren();
@@ -663,7 +663,7 @@ describe('McpToolsTreeProvider', () => {
         });
 
         it('should show red icon when server label is not running', () => {
-            const hm = createFakeHealthMonitor({ isRunningServerLabel: () => false });
+            const hm = createFakeHealthMonitor({ isRunning: () => false });
 
             const provider = new McpToolsTreeProvider(fakeDetector, manifest, stateResolver, tooltip, fakeConfigManager, outputChannel, hm);
             const roots = provider.getChildren();
@@ -757,7 +757,7 @@ describe('McpToolsTreeProvider', () => {
 
         it('should fall through to health monitor icons when status is available', () => {
             const sp = createFakeServerProvider(() => 'available');
-            const hm = createFakeHealthMonitor({ isRunningServerLabel: () => true });
+            const hm = createFakeHealthMonitor({ isRunning: () => true });
             const provider = new McpToolsTreeProvider(fakeDetector, manifest, stateResolver, tooltip, fakeConfigManager, outputChannel, hm, sp);
             const dotnet = provider.getChildren().find(r => r.kind === 'serverNode' && r.name === '.NET')!;
             const item = provider.getTreeItem(dotnet);

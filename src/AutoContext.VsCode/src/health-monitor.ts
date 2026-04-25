@@ -26,7 +26,6 @@ export class HealthMonitorServer implements vscode.Disposable {
 
     constructor(
         private readonly outputChannel: vscode.OutputChannel,
-        private readonly serverLabelToWorkerIdMap: ReadonlyMap<string, string> = new Map(),
     ) {}
 
     /**
@@ -42,17 +41,6 @@ export class HealthMonitorServer implements vscode.Disposable {
     isRunning(workerId: string): boolean {
         const sockets = this.connections.get(workerId);
         return sockets !== undefined && sockets.size > 0;
-    }
-
-    /**
-     * Returns `true` if the worker that backs the given tree-view server
-     * label currently has at least one active connection. Returns `false`
-     * for unknown labels.
-     */
-    isRunningServerLabel(serverLabel: string): boolean {
-        const workerId = this.serverLabelToWorkerIdMap.get(serverLabel);
-        if (workerId === undefined) { return false; }
-        return this.isRunning(workerId);
     }
 
     /**

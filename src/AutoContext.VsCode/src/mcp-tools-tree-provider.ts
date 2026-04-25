@@ -125,6 +125,7 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
                 return {
                     kind: 'serverNode' as const,
                     name: topCat.name,
+                    workerId: topCat.workerId,
                     children,
                     totalEntries,
                 };
@@ -220,7 +221,7 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
             item.iconPath = new vscode.ThemeIcon('circle-filled', new vscode.ThemeColor('disabledForeground'));
             item.tooltip = `${item.tooltip}\nNot active in this workspace`;
         } else if (this.healthMonitor) {
-            if (this.healthMonitor.isRunningServerLabel(node.name)) {
+            if (node.workerId !== undefined && this.healthMonitor.isRunning(node.workerId)) {
                 item.contextValue = 'serverNode.running';
                 item.iconPath = new vscode.ThemeIcon('circle-filled', new vscode.ThemeColor('testing.iconPassed'));
             } else {
