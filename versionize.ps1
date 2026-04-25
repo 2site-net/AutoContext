@@ -21,9 +21,9 @@
     constant is written.
 
 .EXAMPLE
-    .\versionize.ps1 Export  src/AutoContext.Mcp.Web/src/version.ts
+    .\versionize.ps1 Export  src/AutoContext.Worker.Web/src/version.ts
     .\versionize.ps1 Sync
-    .\versionize.ps1 SyncAndExport src/AutoContext.Mcp.Web/src/version.ts
+    .\versionize.ps1 SyncAndExport src/AutoContext.Worker.Web/src/version.ts
 #>
 
 [CmdletBinding()]

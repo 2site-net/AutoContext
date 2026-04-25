@@ -20,7 +20,6 @@ import { McpToolsTreeProvider } from './mcp-tools-tree-provider.js';
 import { TreeViewStateResolver } from './tree-view-state-resolver.js';
 import { TreeViewTooltip } from './tree-view-tooltip.js';
 import { McpServerProvider } from './mcp-server-provider.js';
-import { WorkspaceServerManager } from './workspace-server-manager.js';
 import { WorkerManager } from './worker-manager.js';
 import { ServersManifest } from './servers-manifest.js';
 import { HealthMonitorServer } from './health-monitor.js';
@@ -52,7 +51,6 @@ export async function activate(context: vscode.ExtensionContext) {
     const decorationManager = new InstructionsDecorationManager(context.extensionPath, configManager, outputChannel);
     const instructionsWriter = new InstructionsConfigWriter(context.extensionPath, configManager, instructionsCatalog, outputChannel);
     const configProjector = new ConfigContextProjector(configManager, instructionsCatalog, toolsCatalog, outputChannel);
-    const workspaceServer = new WorkspaceServerManager(context.extensionPath, outputChannel, vscode.workspace.workspaceFolders?.[0]?.uri.fsPath);
     const serversManifest = ServersManifest.load(context.extensionPath);
     const workerManager = new WorkerManager(context.extensionPath, outputChannel, vscode.workspace.workspaceFolders?.[0]?.uri.fsPath, serversManifest);
     const healthMonitor = new HealthMonitorServer(outputChannel);
@@ -83,7 +81,6 @@ export async function activate(context: vscode.ExtensionContext) {
         didChangeEmitter,
         outputChannel,
         healthMonitor,
-        workspaceServer,
         workerManager,
         workspaceContextDetector,
         configManager,
@@ -98,7 +95,6 @@ export async function activate(context: vscode.ExtensionContext) {
     );
 
     healthMonitor.start();
-    workspaceServer.start();
     workerManager.start();
 
     // Register MCP provider early so tools appear in the picker immediately.
@@ -263,7 +259,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
     await logDiagnostics();
 
-    return { mcpServerProvider, configManager, codeLensProvider, contentProvider, workspaceContextDetector, workspaceServer, workerManager, healthMonitor, instructionsTreeProvider, mcpToolsTreeProvider };
+    return { mcpServerProvider, configManager, codeLensProvider, contentProvider, workspaceContextDetector, workerManager, healthMonitor, instructionsTreeProvider, mcpToolsTreeProvider };
 }
 
 export function deactivate(): void {

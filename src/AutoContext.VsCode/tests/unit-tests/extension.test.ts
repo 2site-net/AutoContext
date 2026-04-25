@@ -99,10 +99,6 @@ vi.mock('../../src/mcp-server-provider', () => ({
     McpServerProvider: class { dispose() {} },
 }));
 
-vi.mock('../../src/workspace-server-manager', () => ({
-    WorkspaceServerManager: class { start() {} dispose() {} },
-}));
-
 vi.mock('../../src/servers-manifest', () => ({
     ServersManifest: class {
         static load() { return new this(); }

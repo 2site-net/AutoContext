@@ -3,9 +3,6 @@ import { ServersManifest } from '../../src/servers-manifest';
 import type { ServerEntry } from '../../src/types/server-entry';
 
 const allServers: ServerEntry[] = [
-    { name: 'AutoContext.Mcp.DotNet', type: 'dotnet' },
-    { name: 'AutoContext.WorkspaceServer', type: 'dotnet' },
-    { name: 'AutoContext.Mcp.Web', type: 'node' },
     { id: 'mcp-server', name: 'AutoContext.Mcp.Server', type: 'dotnet' },
     { id: 'workspace', name: 'AutoContext.Worker.Workspace', type: 'dotnet' },
     { id: 'dotnet', name: 'AutoContext.Worker.DotNet', type: 'dotnet' },
