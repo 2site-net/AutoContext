@@ -592,7 +592,7 @@ describe('McpToolsTreeProvider', () => {
         const categories = provider.getChildren(dotnet);
         const csharp = categories.find(r => r.kind === 'categoryNode' && r.name === 'C#')!;
         const item = provider.getTreeItem(csharp);
-        const csharpEntries = catalog.all.filter(e => e.category === 'C#');
+        const csharpEntries = catalog.all.filter(e => e.leafCategory.name === 'C#');
         const enabled = csharpEntries.filter(e => e.contextKey !== 'autocontext.mcpTools.analyze_csharp_async_patterns').length;
 
         expect.soft(item.tooltip).toBe(`C#\n${enabled}/${csharpEntries.length} tasks enabled`);
@@ -609,7 +609,7 @@ describe('McpToolsTreeProvider', () => {
         const categories = provider.getChildren(dotnet);
         const csharp = categories.find(r => r.kind === 'categoryNode' && r.name === 'C#')!;
         const item = provider.getTreeItem(csharp);
-        const csharpEntries = catalog.all.filter(e => e.category === 'C#');
+        const csharpEntries = catalog.all.filter(e => e.leafCategory.name === 'C#');
 
         expect.soft(item.tooltip).toBe(`C#\n0/${csharpEntries.length} tasks enabled`);
 

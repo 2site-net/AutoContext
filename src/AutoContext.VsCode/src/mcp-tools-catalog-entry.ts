@@ -22,9 +22,4 @@ export class McpToolsCatalogEntry implements CatalogEntry {
         this.workspaceFlags = data.workspaceFlags;
         this.description = description;
     }
-
-    /** Required by {@link CatalogEntry}; delegates to the leaf category's name. */
-    get category(): string {
-        return this.leafCategory.name;
-    }
 }

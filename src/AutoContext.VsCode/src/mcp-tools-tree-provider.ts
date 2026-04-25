@@ -131,7 +131,7 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
 
     private resolveCategories(serverLabel: string, config: AutoContextConfig): McpToolsTreeCategoryNode[] {
         const presentCategories = new Set(
-            this.catalog.all.filter(e => e.workerCategory.name === serverLabel).map(e => e.category),
+            this.catalog.all.filter(e => e.workerCategory.name === serverLabel).map(e => e.leafCategory.name),
         );
         return this.catalog.categoryOrder
             .filter(c => presentCategories.has(c))
@@ -142,7 +142,7 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
                     serverLabel,
                     name,
                     children,
-                    totalEntries: this.catalog.all.filter(e => e.category === name).length,
+                    totalEntries: this.catalog.all.filter(e => e.leafCategory.name === name).length,
                 };
             })
             .filter(c => c.children.length > 0);
@@ -151,7 +151,7 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
     private resolveTools(category: string, config: AutoContextConfig): McpToolsTreeNode[] {
         const toolNames = [...new Set(
             this.catalog.all
-                .filter(e => e.category === category)
+                .filter(e => e.leafCategory.name === category)
                 .map(e => e.toolName),
         )];
 
