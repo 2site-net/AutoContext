@@ -24,10 +24,16 @@ using Microsoft.Extensions.Logging;
 /// <c>-&lt;value&gt;</c> appended — this is how the end-to-end smoke
 /// test isolates its pipes from any other running instance.
 /// </remarks>
-internal static class Program
+internal static partial class Program
 {
     /// <summary>Stderr ready-marker written once the host has started.</summary>
     internal const string ReadyMarker = "[AutoContext.Mcp.Server] Ready.";
+
+    [LoggerMessage(EventId = 1, Level = LogLevel.Critical, Message = "Registry validation failed:")]
+    private static partial void LogRegistryValidationFailed(ILogger logger);
+
+    [LoggerMessage(EventId = 2, Level = LogLevel.Critical, Message = "  - {Error}")]
+    private static partial void LogRegistryValidationError(ILogger logger, string error);
 
     internal static async Task<int> Main(string[] args)
     {
@@ -36,19 +42,6 @@ internal static class Program
         var registrySource = new RegistryEmbeddedResource();
         var registry = RegistryLoader.Parse(registrySource.Json);
         var validation = RegistrySchemeValidator.Validate(registrySource.Json, registry);
-
-        if (!validation.IsValid)
-        {
-            await Console.Error.WriteLineAsync("[AutoContext.Mcp.Server] Registry validation failed:")
-                .ConfigureAwait(false);
-
-            foreach (var error in validation.Errors)
-            {
-                await Console.Error.WriteLineAsync($"  - {error}").ConfigureAwait(false);
-            }
-
-            return 1;
-        }
 
         var builder = Host.CreateApplicationBuilder(args);
 
@@ -81,7 +74,25 @@ internal static class Program
             .WithCallToolHandler((ctx, ct) =>
                 ctx.Server.Services!.GetRequiredService<McpSdkAdapter>().HandleCallToolAsync(ctx, ct));
 
-        await builder.Build().RunAsync().ConfigureAwait(false);
+        var host = builder.Build();
+
+        if (!validation.IsValid)
+        {
+            var logger = host.Services.GetRequiredService<ILoggerFactory>().CreateLogger("AutoContext.Mcp.Server");
+
+            LogRegistryValidationFailed(logger);
+
+            foreach (var error in validation.Errors)
+            {
+                LogRegistryValidationError(logger, error);
+            }
+
+            await ((IAsyncDisposable)host).DisposeAsync().ConfigureAwait(false);
+
+            return 1;
+        }
+
+        await host.RunAsync().ConfigureAwait(false);
 
         return 0;
     }
