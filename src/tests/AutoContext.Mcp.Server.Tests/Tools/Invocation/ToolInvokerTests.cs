@@ -11,6 +11,8 @@ using AutoContext.Mcp.Server.Tools.Results;
 using AutoContext.Mcp.Server.Workers;
 using AutoContext.Mcp.Server.Workers.Protocol;
 
+using Microsoft.Extensions.Logging.Abstractions;
+
 public sealed class ToolInvokerTests
 {
     [Fact]
@@ -102,7 +104,7 @@ public sealed class ToolInvokerTests
             BuildTask("plain_task"));
 
         var workerClient = new WorkerClient(TimeSpan.FromSeconds(5));
-        var batcher = new EditorConfigBatcher(workerClient, workspaceEndpoint);
+        var batcher = new EditorConfigBatcher(workerClient, workspaceEndpoint, NullLogger<EditorConfigBatcher>.Instance);
         var invoker = new ToolInvoker(workerClient, batcher);
 
         var workspaceTask = PipeServerHarness.RunOneShotAsync(
@@ -257,7 +259,7 @@ public sealed class ToolInvokerTests
     private static ToolInvoker BuildInvoker()
     {
         var workerClient = new WorkerClient(TimeSpan.FromSeconds(5));
-        var batcher = new EditorConfigBatcher(workerClient, "autocontext-test-workspace-unused");
+        var batcher = new EditorConfigBatcher(workerClient, "autocontext-test-workspace-unused", NullLogger<EditorConfigBatcher>.Instance);
         return new ToolInvoker(workerClient, batcher);
     }
 

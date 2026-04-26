@@ -8,6 +8,8 @@ using AutoContext.Mcp.Server.Workers;
 using AutoContext.Mcp.Server.Workers.Protocol;
 using AutoContext.Mcp.Server.Workers.Transport;
 
+using Microsoft.Extensions.Logging;
+
 /// <summary>
 /// Resolves EditorConfig values for one tool invocation in a single
 /// batched pipe call to <c>Worker.Workspace</c>'s
@@ -15,7 +17,7 @@ using AutoContext.Mcp.Server.Workers.Transport;
 /// across the supplied tasks, then slices the result per task so each
 /// task receives only the keys it asked for.
 /// </summary>
-public sealed class EditorConfigBatcher
+public sealed partial class EditorConfigBatcher
 {
     /// <summary>The pipe-name value used by Worker.Workspace.</summary>
     public static readonly string DefaultWorkspaceEndpoint = EndpointFormatter.Format("workspace");
@@ -25,19 +27,25 @@ public sealed class EditorConfigBatcher
 
     private readonly WorkerClient _workerClient;
     private readonly string _workspaceEndpoint;
+    private readonly ILogger<EditorConfigBatcher> _logger;
 
-    public EditorConfigBatcher(WorkerClient workerClient)
-        : this(workerClient, DefaultWorkspaceEndpoint)
+    public EditorConfigBatcher(WorkerClient workerClient, ILogger<EditorConfigBatcher> logger)
+        : this(workerClient, DefaultWorkspaceEndpoint, logger)
     {
     }
 
-    public EditorConfigBatcher(WorkerClient workerClient, string workspaceEndpoint)
+    public EditorConfigBatcher(
+        WorkerClient workerClient,
+        string workspaceEndpoint,
+        ILogger<EditorConfigBatcher> logger)
     {
         ArgumentNullException.ThrowIfNull(workerClient);
         ArgumentException.ThrowIfNullOrEmpty(workspaceEndpoint);
+        ArgumentNullException.ThrowIfNull(logger);
 
         _workerClient = workerClient;
         _workspaceEndpoint = workspaceEndpoint;
+        _logger = logger;
     }
 
     /// <summary>
@@ -102,6 +110,26 @@ public sealed class EditorConfigBatcher
                 Slices = BuildEmptySlices(tasks),
                 ResolutionFailed = true,
                 FailureMessage = response.Error,
+            };
+        }
+
+        // Distinguish "worker had nothing to say" (null / JSON null /
+        // missing — legitimate "no rules apply") from "worker returned
+        // a non-object payload" (a contract violation we want to surface
+        // instead of silently swallowing).
+        if (response.Output is { } element &&
+            element.ValueKind != JsonValueKind.Null &&
+            element.ValueKind != JsonValueKind.Undefined &&
+            element.ValueKind != JsonValueKind.Object)
+        {
+            LogNonObjectOutput(_logger, ResolveTaskName, element.ValueKind);
+
+            return new EditorConfigBatchResult
+            {
+                Slices = BuildEmptySlices(tasks),
+                ResolutionFailed = true,
+                FailureMessage =
+                    $"Worker returned non-object output for task '{ResolveTaskName}' (kind: {element.ValueKind}); expected a JSON object.",
             };
         }
 
@@ -209,4 +237,8 @@ public sealed class EditorConfigBatcher
 
         return map;
     }
+
+    [LoggerMessage(Level = LogLevel.Warning,
+        Message = "Worker returned non-object output for task '{TaskName}' (kind: {ValueKind}); expected a JSON object.")]
+    private static partial void LogNonObjectOutput(ILogger logger, string taskName, JsonValueKind valueKind);
 }
