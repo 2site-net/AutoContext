@@ -159,6 +159,134 @@ public sealed class RegistrySchemeValidatorTests
     }
 
     [Fact]
+    public void Should_detect_empty_workers_array()
+    {
+        // Arrange — schema would also reject this, but we want a runtime guard
+        // in case the schema is bypassed or its minItems constraint regresses.
+        const string json = """
+            {
+              "schemaVersion": "1",
+              "workers": []
+            }
+            """;
+        var registry = new McpWorkersCatalog
+        {
+            SchemaVersion = "1",
+            Workers = [],
+        };
+
+        // Act
+        var result = RegistrySchemeValidator.Validate(json, registry);
+
+        // Assert
+        Assert.Contains(result.Errors, e => e.Contains("Registry contains no workers", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Should_detect_worker_with_no_tools()
+    {
+        // Arrange — bypass the schema by constructing the catalog directly
+        // to verify the cross-reference check fires independently.
+        var registry = new McpWorkersCatalog
+        {
+            SchemaVersion = "1",
+            Workers =
+            [
+                new McpWorker
+                {
+                    Id = "dotnet",
+                    Name = "AutoContext.Worker.DotNet",
+                    Tools = [],
+                },
+            ],
+        };
+
+        // Act — pass valid JSON so we isolate the cross-reference check.
+        var result = RegistrySchemeValidator.Validate(RegistryEmbeddedResourceLoader.Json, registry);
+
+        // Assert
+        Assert.Contains(result.Errors, e => e.Contains("declares no tools", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Should_detect_tool_with_no_tasks()
+    {
+        // Arrange
+        var registry = new McpWorkersCatalog
+        {
+            SchemaVersion = "1",
+            Workers =
+            [
+                new McpWorker
+                {
+                    Id = "dotnet",
+                    Name = "AutoContext.Worker.DotNet",
+                    Tools =
+                    [
+                        new McpToolDefinition
+                        {
+                            Name = "analyze_something",
+                            Description = "x",
+                            Parameters = new Dictionary<string, McpToolParameter>
+                            {
+                                ["content"] = new McpToolParameter { Type = "string", Description = "x", Required = true },
+                            },
+                            Tasks = [],
+                        },
+                    ],
+                },
+            ],
+        };
+
+        // Act
+        var result = RegistrySchemeValidator.Validate(RegistryEmbeddedResourceLoader.Json, registry);
+
+        // Assert
+        Assert.Contains(result.Errors, e => e.Contains("declares no tasks", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Should_detect_non_numeric_schema_version()
+    {
+        // Arrange — bypass the schema by constructing the catalog directly so
+        // the cross-reference check is exercised in isolation. The runtime
+        // guard asserts the *shape* of schemaVersion (must be a non-negative
+        // integer); equality with a specific value is enforced by the schema
+        // itself (`const: "1"`).
+        var registry = new McpWorkersCatalog
+        {
+            SchemaVersion = "not-a-version",
+            Workers =
+            [
+                new McpWorker
+                {
+                    Id = "dotnet",
+                    Name = "AutoContext.Worker.DotNet",
+                    Tools =
+                    [
+                        new McpToolDefinition
+                        {
+                            Name = "analyze_something",
+                            Description = "x",
+                            Parameters = new Dictionary<string, McpToolParameter>
+                            {
+                                ["content"] = new McpToolParameter { Type = "string", Description = "x", Required = true },
+                            },
+                            Tasks = [new McpTaskDefinition { Name = "task_a" }],
+                        },
+                    ],
+                },
+            ],
+        };
+
+        // Act
+        var result = RegistrySchemeValidator.Validate(RegistryEmbeddedResourceLoader.Json, registry);
+
+        // Assert
+        Assert.Contains(result.Errors, e => e.Contains("schemaVersion 'not-a-version'", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void Should_throw_ArgumentNullException_for_null_inputs()
     {
         var registry = RegistryLoader.Parse(RegistryEmbeddedResourceLoader.Json);

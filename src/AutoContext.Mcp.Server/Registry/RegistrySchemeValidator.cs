@@ -1,6 +1,7 @@
 namespace AutoContext.Mcp.Server.Registry;
 
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Text.Json;
 
@@ -18,7 +19,18 @@ using Json.Schema;
 ///   <item><description><b>Duplicate tool name</b>: two MCP Tools share a <c>name</c> anywhere in the registry.</description></item>
 ///   <item><description><b>Duplicate task name</b>: two MCP Tasks share a <c>name</c> within the same tool.</description></item>
 ///   <item><description><b>Duplicate worker name</b>: two worker entries share a <c>name</c> or an <c>endpoint</c>.</description></item>
+///   <item><description><b>Empty collections</b>: registry has no workers, a worker has no tools, or a tool has no tasks.</description></item>
+///   <item><description><b>Schema version shape</b>: <c>schemaVersion</c> isn't parseable as a non-negative integer.</description></item>
 /// </list>
+/// <para>
+/// The emptiness and schema-version-shape checks duplicate constraints in the JSON Schema; they
+/// are kept as belt-and-braces guards so a regression in the schema (or a future loosening of it)
+/// cannot silently produce a registry that registers zero MCP tools — or a registry whose
+/// <c>schemaVersion</c> is some arbitrary string. We deliberately don't double-check
+/// <c>schemaVersion</c> against a specific expected value: the schema's <c>const: "1"</c>
+/// already enforces equality, and any duplicate runtime check would have to compare against
+/// the same constant.
+/// </para>
 /// </remarks>
 public static class RegistrySchemeValidator
 {
@@ -101,6 +113,17 @@ public static class RegistrySchemeValidator
         var workerIds = new HashSet<string>(StringComparer.Ordinal);
         var toolNames = new Dictionary<string, string>(StringComparer.Ordinal);
 
+        if (!int.TryParse(registry.SchemaVersion, NumberStyles.None, CultureInfo.InvariantCulture, out _))
+        {
+            errors.Add(
+                $"Registry schemaVersion '{registry.SchemaVersion}' is not a non-negative integer.");
+        }
+
+        if (registry.Workers.Count == 0)
+        {
+            errors.Add("Registry contains no workers; at least one worker entry is required.");
+        }
+
         for (var workerIndex = 0; workerIndex < registry.Workers.Count; workerIndex++)
         {
             var worker = registry.Workers[workerIndex];
@@ -126,6 +149,11 @@ public static class RegistrySchemeValidator
         Dictionary<string, string> toolNames,
         List<string> errors)
     {
+        if (worker.Tools.Count == 0)
+        {
+            errors.Add($"Worker at {workerPath} declares no tools; at least one tool is required.");
+        }
+
         for (var definitionIndex = 0; definitionIndex < worker.Tools.Count; definitionIndex++)
         {
             var tool = worker.Tools[definitionIndex];
@@ -139,6 +167,11 @@ public static class RegistrySchemeValidator
             else
             {
                 toolNames[tool.Name] = toolPath;
+            }
+
+            if (tool.Tasks.Count == 0)
+            {
+                errors.Add($"Tool {toolPath} declares no tasks; at least one task is required.");
             }
 
             var declaredTaskNames = new HashSet<string>(StringComparer.Ordinal);
