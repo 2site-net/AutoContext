@@ -16,6 +16,18 @@ function hasExportModifier(node: ts.Node): boolean {
     return modifiers?.some(m => m.kind === ts.SyntaxKind.ExportKeyword) ?? false;
 }
 
+/**
+ * Returns true when a type node represents the `const` keyword used in
+ * an `as const` assertion. Uses the AST shape rather than `getText()`
+ * so the check is self-documenting and independent of source-text
+ * representation.
+ */
+function isConstAssertion(typeNode: ts.TypeNode): boolean {
+    return ts.isTypeReferenceNode(typeNode)
+        && ts.isIdentifier(typeNode.typeName)
+        && typeNode.typeName.text === 'const';
+}
+
 function checkTsIgnoreComments(sourceFile: ts.SourceFile, violations: Violation[]): void {
     const text = sourceFile.getFullText();
     const pattern = /\/\/\s*@ts-ignore\b/g;
@@ -144,7 +156,7 @@ function findViolations(content: string): readonly Violation[] {
         }
 
         // [typescript INST0018]: as type assertions (skip as const)
-        if (ts.isAsExpression(node) && node.type.getText(sourceFile) !== 'const') {
+        if (ts.isAsExpression(node) && !isConstAssertion(node.type)) {
             violations.push({
                 line: lineOf(sourceFile, node.getStart(sourceFile)),
                 message: 'Avoid type assertions (`as`) — narrow with `typeof`, `instanceof`, `in`, or type guards instead.',
