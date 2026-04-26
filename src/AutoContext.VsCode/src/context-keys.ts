@@ -9,6 +9,6 @@ export class ContextKeys {
     }
 
     static forEntry(entry: CatalogEntry): readonly string[] {
-        return entry.workspaceFlags ?? [];
+        return entry.activationFlags ?? [];
     }
 }

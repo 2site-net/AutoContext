@@ -5,5 +5,5 @@
  */
 export interface CatalogEntry {
     readonly contextKey: string;
-    readonly workspaceFlags?: readonly string[];
+    readonly activationFlags?: readonly string[];
 }
