@@ -17,7 +17,7 @@ import type { AutoContextConfigManager } from './autocontext-config.js';
  * - On window focus: full write() (re-reads config, re-stages, promotes — caching makes
  *   this near-free when nothing changed, but catches missed watcher events)
  */
-export class InstructionsConfigWriter implements vscode.Disposable {
+export class InstructionsFilesManager implements vscode.Disposable {
     private readonly generatedRoot: string;
     private stagingDir: string;
     private readonly disposables: vscode.Disposable[] = [];
@@ -31,11 +31,11 @@ export class InstructionsConfigWriter implements vscode.Disposable {
         private readonly outputChannel: vscode.OutputChannel,
     ) {
         this.generatedRoot = join(extensionPath, 'instructions', '.generated');
-        this.stagingDir = join(extensionPath, 'instructions', '.workspaces', InstructionsConfigWriter.workspaceHash());
+        this.stagingDir = join(extensionPath, 'instructions', '.workspaces', InstructionsFilesManager.workspaceHash());
         this.disposables.push(
             configManager.onDidChange(() => this.scheduleWrite()),
             vscode.workspace.onDidChangeWorkspaceFolders(() => {
-                this.stagingDir = join(this.extensionPath, 'instructions', '.workspaces', InstructionsConfigWriter.workspaceHash());
+                this.stagingDir = join(this.extensionPath, 'instructions', '.workspaces', InstructionsFilesManager.workspaceHash());
                 void this.write().catch(err =>
                     this.outputChannel.appendLine(`[InstructionsWriter] Failed to write on workspace change: ${err instanceof Error ? err.message : err}`),
                 );
@@ -95,7 +95,7 @@ export class InstructionsConfigWriter implements vscode.Disposable {
         await Promise.all(this.manifest.instructions.map(entry => {
             const staged = join(this.stagingDir, entry.name);
             const live = join(this.generatedRoot, entry.name);
-            return InstructionsConfigWriter.copyIfChanged(staged, live);
+            return InstructionsFilesManager.copyIfChanged(staged, live);
         }));
     }
 
@@ -107,7 +107,7 @@ export class InstructionsConfigWriter implements vscode.Disposable {
             return;
         }
 
-        const currentHash = InstructionsConfigWriter.workspaceHash();
+        const currentHash = InstructionsFilesManager.workspaceHash();
         const oneHourAgo = Date.now() - 60 * 60 * 1000;
         let entries: string[];
         try {
@@ -172,14 +172,14 @@ export class InstructionsConfigWriter implements vscode.Disposable {
             content = lines.filter((_, i) => !linesToRemove.has(i)).join('\n');
         }
 
-        content = InstructionsConfigWriter.stripInstructionIds(content);
-        await InstructionsConfigWriter.writeIfChanged(dest, content);
+        content = InstructionsFilesManager.stripInstructionIds(content);
+        await InstructionsFilesManager.writeIfChanged(dest, content);
     }
 
     private static readonly instructionIdTag = /\[INST\d{4}\]\s*/g;
 
     private static stripInstructionIds(content: string): string {
-        return content.replace(InstructionsConfigWriter.instructionIdTag, '');
+        return content.replace(InstructionsFilesManager.instructionIdTag, '');
     }
 
     private static workspaceHash(): string {
@@ -203,7 +203,7 @@ export class InstructionsConfigWriter implements vscode.Disposable {
     private static async copyIfChanged(src: string, dest: string): Promise<void> {
         try {
             const content = await readFile(src, 'utf-8');
-            await InstructionsConfigWriter.writeIfChanged(dest, content);
+            await InstructionsFilesManager.writeIfChanged(dest, content);
         } catch {
             // Source read failed — skip.
         }

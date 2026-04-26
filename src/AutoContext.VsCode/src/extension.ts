@@ -10,7 +10,7 @@ import { AutoContextConfigManager } from './autocontext-config.js';
 import { InstructionsRulesDocumentProvider, instructionScheme } from './instructions-rules-document-provider.js';
 import { InstructionsRulesCodeLensProvider } from './instructions-rules-codelens-provider.js';
 import { InstructionsRulesDecorationManager } from './instructions-rules-decoration-manager.js';
-import { InstructionsConfigWriter } from './instructions-config-writer.js';
+import { InstructionsFilesManager } from './instructions-files-manager.js';
 import { InstructionsFileParserLogger } from './instructions-file-parser-logger.js';
 import { ConfigContextProjector } from './config-context-projector.js';
 import { InstructionsFilesTreeProvider } from './instructions-files-tree-provider.js';
@@ -48,7 +48,7 @@ export async function activate(context: vscode.ExtensionContext) {
     const contentProvider = new InstructionsRulesDocumentProvider(context.extensionPath, configManager, outputChannel);
     const codeLensProvider = new InstructionsRulesCodeLensProvider(context.extensionPath, configManager, workspaceContextDetector, instructionsManifest, outputChannel);
     const decorationManager = new InstructionsRulesDecorationManager(context.extensionPath, configManager, outputChannel);
-    const instructionsWriter = new InstructionsConfigWriter(context.extensionPath, configManager, instructionsManifest, outputChannel);
+    const instructionsWriter = new InstructionsFilesManager(context.extensionPath, configManager, instructionsManifest, outputChannel);
     const configProjector = new ConfigContextProjector(configManager, instructionsManifest, mcpToolsManifest, outputChannel);
     const serversManifest = new ServersManifestLoader(context.extensionPath).load();
     const workerManager = new WorkerManager(context.extensionPath, outputChannel, vscode.workspace.workspaceFolders?.[0]?.uri.fsPath, serversManifest);

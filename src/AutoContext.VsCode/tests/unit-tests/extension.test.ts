@@ -72,8 +72,8 @@ vi.mock('../../src/instructions-rules-decoration-manager', () => ({
     InstructionsRulesDecorationManager: class { dispose() {} },
 }));
 
-vi.mock('../../src/instructions-config-writer', () => ({
-    InstructionsConfigWriter: class {
+vi.mock('../../src/instructions-files-manager', () => ({
+    InstructionsFilesManager: class {
         async removeOrphanedStagingDirs() {}
         async write() {}
         dispose() {}
