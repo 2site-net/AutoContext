@@ -48,7 +48,6 @@ export class InstructionsFilesTreeProvider implements vscode.TreeDataProvider<Tr
             this._onDidChangeTreeData,
             detector.onDidDetect(() => this.refresh()),
             configManager.onDidChange(() => {
-                this._config = configManager.readSync();
                 void configManager.read().then(c => {
                     this._config = c;
                     this.refresh();

@@ -955,6 +955,30 @@ describe('InstructionsFilesTreeProvider', () => {
         provider.dispose();
     });
 
+    it('should not call readSync when config changes — only the async read should be used', async () => {
+        let onDidChangeCallback!: () => void;
+        const trackingConfigManager = {
+            readSync: vi.fn(() => ({})),
+            read: vi.fn().mockResolvedValue({}),
+            onDidChange: vi.fn((cb: () => void) => { onDidChangeCallback = cb; return { dispose: vi.fn() }; }),
+        } as unknown as import('../../src/autocontext-config').AutoContextConfigManager;
+
+        const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, trackingConfigManager, outputChannel);
+        const readSyncCallCount = vi.mocked(trackingConfigManager.readSync).mock.calls.length;
+
+        onDidChangeCallback();
+        await vi.waitFor(() => {
+            expect(vi.mocked(trackingConfigManager.read)).toHaveBeenCalled();
+        });
+
+        // readSync must not be called again inside the onDidChange handler —
+        // doing so would briefly push stale config into _config before the
+        // async read resolves, which can cause a ghost render with wrong state.
+        expect.soft(vi.mocked(trackingConfigManager.readSync).mock.calls.length).toBe(readSyncCallCount);
+
+        provider.dispose();
+    });
+
     it('should log to outputChannel when configManager.read rejects in onDidChange', async () => {
         let onDidChangeCallback!: () => void;
         const failingConfigManager = {
