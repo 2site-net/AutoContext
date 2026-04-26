@@ -38,10 +38,10 @@ describe('AutoConfigurer', () => {
         const disabledCalls = calls.filter(([, value]) => value === false);
         expect.soft(disabledCalls.length).toBeGreaterThan(0);
         // All disabled calls must be for entries that have activationFlags
-        for (const [fileName] of disabledCalls) {
-            const entry = instructionsManifest.findByName(fileName)!;
-            expect.soft(entry.activationFlags.length).toBeGreaterThan(0);
-        }
+        const disabledEntryFlagCounts = disabledCalls.map(
+            ([fileName]) => instructionsManifest.findByName(fileName)!.activationFlags.length,
+        );
+        expect.soft(disabledEntryFlagCounts.every((n) => n > 0)).toBe(true);
     });
 
     it('should not disable .NET entries when hasDotNet and hasCSharp are detected', async () => {

@@ -248,12 +248,13 @@ describe('InstructionsFilesTreeProvider', () => {
         const firstNotDetectedIndex = states.indexOf(TreeViewNodeState.NotDetected);
         const lastActiveIndex = states.lastIndexOf(TreeViewNodeState.Enabled);
 
-        if (lastActiveIndex !== -1 && firstDisabledIndex !== -1) {
-            expect.soft(lastActiveIndex).toBeLessThan(firstDisabledIndex);
-        }
-        if (firstDisabledIndex !== -1 && firstNotDetectedIndex !== -1) {
-            expect.soft(firstDisabledIndex).toBeLessThan(firstNotDetectedIndex);
-        }
+        // Setup guarantees at least one entry of each state exists.
+        expect.soft(lastActiveIndex).toBeGreaterThanOrEqual(0);
+        expect.soft(firstDisabledIndex).toBeGreaterThanOrEqual(0);
+        expect.soft(firstNotDetectedIndex).toBeGreaterThanOrEqual(0);
+
+        expect.soft(lastActiveIndex).toBeLessThan(firstDisabledIndex);
+        expect.soft(firstDisabledIndex).toBeLessThan(firstNotDetectedIndex);
 
         provider.dispose();
     });
@@ -523,9 +524,9 @@ describe('InstructionsFilesTreeProvider', () => {
 
         // Simulate checkbox toggle by accessing the internal checked set
         // In production, this is driven by onDidChangeCheckboxState
-        if (entry.kind === 'instructions') {
-            (provider as unknown as { _checkedEntries: Set<string> })._checkedEntries.add(entry.entry.runtimeInfo.contextKey);
-        }
+        expect.soft(entry.kind).toBe('instructions');
+        const instructionsEntry = entry as Extract<typeof entry, { kind: 'instructions' }>;
+        (provider as unknown as { _checkedEntries: Set<string> })._checkedEntries.add(instructionsEntry.entry.runtimeInfo.contextKey);
 
         const checked = provider.getCheckedEntries();
         expect.soft(checked.length).toBe(1);
@@ -635,12 +636,11 @@ describe('InstructionsFilesTreeProvider', () => {
 
         const roots = provider.getChildren();
         // All items are not-detected except context-free ones → categories with only not-detected items are hidden
-        for (const cat of roots) {
-            if (cat.kind !== 'categoryNode') { continue; }
-            const children = provider.getChildren(cat);
-            const notDetected = children.filter(c => c.kind === 'instructions' && c.state === TreeViewNodeState.NotDetected);
-            expect.soft(notDetected).toHaveLength(0);
-        }
+        const categories = roots.filter((r) => r.kind === 'categoryNode');
+        const notDetectedPerCategory = categories.map((cat) =>
+            provider.getChildren(cat).filter((c) => c.kind === 'instructions' && c.state === TreeViewNodeState.NotDetected).length,
+        );
+        expect.soft(notDetectedPerCategory.every((n) => n === 0)).toBe(true);
 
         provider.dispose();
     });
@@ -667,11 +667,10 @@ describe('InstructionsFilesTreeProvider', () => {
         provider.showNotDetected = false;
 
         const roots = provider.getChildren();
-        for (const cat of roots) {
-            if (cat.kind !== 'categoryNode') { continue; }
-            const children = provider.getChildren(cat);
-            expect.soft(children.length).toBeGreaterThan(0);
-        }
+        const categoryChildCounts = roots
+            .filter((cat) => cat.kind === 'categoryNode')
+            .map((cat) => provider.getChildren(cat).length);
+        expect.soft(categoryChildCounts.every((n) => n > 0)).toBe(true);
 
         provider.dispose();
     });

@@ -1,4 +1,4 @@
-import { describe, it, expect, afterEach } from 'vitest';
+import { describe, it, expect, afterEach, onTestFinished } from 'vitest';
 import * as net from 'node:net';
 import * as fs from 'node:fs';
 import { randomUUID } from 'node:crypto';
@@ -193,17 +193,15 @@ describe('McpToolService', () => {
 
     it('handles multiple concurrent connections independently', async () => {
         const { pipe } = await startService([new EchoTask()]);
+        const indices = [0, 1, 2, 3, 4];
 
         const responses = await Promise.all(
-            [0, 1, 2, 3, 4].map((i) =>
-                sendRequest(pipe, { mcpTask: 'echo', data: { i } }),
-            ),
+            indices.map((i) => sendRequest(pipe, { mcpTask: 'echo', data: { i } })),
         );
 
-        for (let i = 0; i < responses.length; i++) {
-            expect(responses[i]!['status']).toBe('ok');
-            expect(responses[i]!['output']).toEqual({ echoed: { i } });
-        }
+        const summary = responses.map((r) => ({ status: r['status'], output: r['output'] }));
+        const expected = indices.map((i) => ({ status: 'ok', output: { echoed: { i } } }));
+        expect(summary).toEqual(expected);
     });
 
     it('returns a sensible error envelope when a task throws a non-Error value', async () => {
@@ -308,21 +306,20 @@ describe('McpToolService', () => {
 
             // Create a live listener occupying the path.
             const blocker = net.createServer();
+            onTestFinished(async () => {
+                await new Promise<void>((resolve) => blocker.close(() => resolve()));
+            });
             await new Promise<void>((resolve, reject) => {
                 blocker.once('listening', () => resolve());
                 blocker.once('error', reject);
                 blocker.listen(pipe);
             });
 
-            try {
-                const service = new McpToolService(
-                    { pipe, readyMarker: '[test] Ready.' },
-                    [new EchoTask()],
-                );
-                await expect(service.start(new AbortController().signal)).rejects.toThrow();
-            } finally {
-                await new Promise<void>((resolve) => blocker.close(() => resolve()));
-            }
+            const service = new McpToolService(
+                { pipe, readyMarker: '[test] Ready.' },
+                [new EchoTask()],
+            );
+            await expect(service.start(new AbortController().signal)).rejects.toThrow();
         },
     );
 });
