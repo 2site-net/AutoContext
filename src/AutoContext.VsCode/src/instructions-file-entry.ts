@@ -1,6 +1,5 @@
 import { InstructionsFileItemEntry } from './instructions-file-item-entry.js';
 import type { InstructionsFileCategoryEntry } from './instructions-file-category-entry.js';
-import type { CatalogEntry } from './types/catalog-entry.js';
 import type { InstructionsFileMetadata } from './types/instructions-file-metadata.js';
 
 /**
@@ -11,7 +10,7 @@ import type { InstructionsFileMetadata } from './types/instructions-file-metadat
  * suffix and is used to build the user-facing `contextKey`
  * (`autocontext.instructions.<key>`).
  */
-export class InstructionsFileEntry extends InstructionsFileItemEntry implements CatalogEntry {
+export class InstructionsFileEntry extends InstructionsFileItemEntry {
     readonly key: string;
     readonly contextKey: string;
     readonly label: string;

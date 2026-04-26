@@ -16,10 +16,10 @@ import { fileURLToPath } from 'node:url';
 import { InstructionsFilesManifestLoader } from './instructions-files-manifest-loader.js';
 import { InstructionsFilesManifest } from './instructions-files-manifest.js';
 import { ContextKeys } from './context-keys.js';
-import type { CatalogEntry } from './types/catalog-entry.js';
+import type { InstructionsFileEntry } from './instructions-file-entry.js';
 import type { ChatInstructions } from './types/chat-instructions.js';
 
-function buildWhenClause(entry: CatalogEntry): string {
+function buildWhenClause(entry: InstructionsFileEntry): string {
     const parts = [entry.contextKey];
 
     const flags = ContextKeys.forEntry(entry);
