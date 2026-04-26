@@ -1,13 +1,13 @@
 import * as vscode from 'vscode';
 import { join } from 'node:path';
-import { InstructionsParser } from './instructions-parser.js';
+import { InstructionsFileParser } from './instructions-file-parser.js';
 import type { InstructionsFilesManifest } from './instructions-files-manifest.js';
-import { instructionScheme } from './instructions-content-provider.js';
+import { instructionScheme } from './instructions-rules-document-provider.js';
 import type { AutoContextConfigManager } from './autocontext-config.js';
 import type { WorkspaceContextDetector } from './workspace-context-detector.js';
 import { commandIds } from './ui-constants.js';
 
-export class InstructionsCodeLensProvider implements vscode.CodeLensProvider, vscode.Disposable {
+export class InstructionsRulesCodeLensProvider implements vscode.CodeLensProvider, vscode.Disposable {
     private readonly didChangeEmitter = new vscode.EventEmitter<void>();
     readonly onDidChangeCodeLenses = this.didChangeEmitter.event;
     private readonly disposables: vscode.Disposable[] = [];
@@ -49,7 +49,7 @@ export class InstructionsCodeLensProvider implements vscode.CodeLensProvider, vs
 
         let instructions;
         try {
-            ({ result: { instructions } } = await InstructionsParser.fromFile(filePath));
+            ({ result: { instructions } } = await InstructionsFileParser.fromFile(filePath));
         } catch (err) {
             this.outputChannel.appendLine(`[Instructions] Failed to parse ${fileName}: ${err instanceof Error ? err.message : err}`);
             return [];

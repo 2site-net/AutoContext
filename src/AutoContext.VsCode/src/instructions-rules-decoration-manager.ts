@@ -1,10 +1,10 @@
 import * as vscode from 'vscode';
 import { join } from 'node:path';
-import { InstructionsParser } from './instructions-parser.js';
-import { instructionScheme } from './instructions-content-provider.js';
+import { InstructionsFileParser } from './instructions-file-parser.js';
+import { instructionScheme } from './instructions-rules-document-provider.js';
 import type { AutoContextConfigManager } from './autocontext-config.js';
 
-export class InstructionsDecorationManager implements vscode.Disposable {
+export class InstructionsRulesDecorationManager implements vscode.Disposable {
     private readonly decorationType = vscode.window.createTextEditorDecorationType({ opacity: '0.4' });
     private readonly disposables: vscode.Disposable[] = [];
 
@@ -36,7 +36,7 @@ export class InstructionsDecorationManager implements vscode.Disposable {
 
         let instructions;
         try {
-            ({ result: { instructions } } = await InstructionsParser.fromFile(filePath));
+            ({ result: { instructions } } = await InstructionsFileParser.fromFile(filePath));
         } catch (err) {
             this.outputChannel.appendLine(`[Instructions] Failed to parse ${fileName}: ${err instanceof Error ? err.message : err}`);
             return;

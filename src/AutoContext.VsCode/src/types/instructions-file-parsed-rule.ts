@@ -1,4 +1,4 @@
-export interface InstructionsParsedInstruction {
+export interface InstructionsFileParsedRule {
     readonly id: string | undefined;
     readonly text: string;
     readonly startLine: number;

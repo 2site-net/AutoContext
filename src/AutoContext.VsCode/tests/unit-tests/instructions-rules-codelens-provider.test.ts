@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-import { InstructionsCodeLensProvider } from '../../src/instructions-codelens-provider';
+import { InstructionsRulesCodeLensProvider } from '../../src/instructions-rules-codelens-provider';
 import { AutoContextConfigManager } from '../../src/autocontext-config';
-import { instructionScheme } from '../../src/instructions-content-provider';
-import { InstructionsParser } from '../../src/instructions-parser';
+import { instructionScheme } from '../../src/instructions-rules-document-provider';
+import { InstructionsFileParser } from '../../src/instructions-file-parser';
 import { InstructionsFilesManifestLoader } from '../../src/instructions-files-manifest-loader';
 import { commandIds } from '../../src/ui-constants';
 import { join } from 'node:path';
@@ -26,18 +26,18 @@ const fakeDetector = createFakeDetector();
 beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(fakeDetector.get).mockReset();
-    InstructionsParser['fileCache'].clear();
+    InstructionsFileParser['fileCache'].clear();
     workspace.workspaceFolders = [{ uri: { fsPath: '/workspace' } }];
 });
 
-describe('InstructionsCodeLensProvider', () => {
+describe('InstructionsRulesCodeLensProvider', () => {
     const catalog = new InstructionsFilesManifestLoader(join(__dirname, '..', '..')).load();
 
     it('should return empty array for non-instruction documents', async () => {
         vi.mocked(readFile).mockResolvedValue('{}');
 
         const configManager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
-        const provider = new InstructionsCodeLensProvider('/ext', configManager, fakeDetector, catalog, mockOutputChannel);
+        const provider = new InstructionsRulesCodeLensProvider('/ext', configManager, fakeDetector, catalog, mockOutputChannel);
 
         const lenses = await provider.provideCodeLenses(makeDocument('file', 'test.md'));
 
@@ -52,11 +52,11 @@ describe('InstructionsCodeLensProvider', () => {
         });
 
         const configManager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
-        const provider = new InstructionsCodeLensProvider('/ext', configManager, fakeDetector, catalog, mockOutputChannel);
+        const provider = new InstructionsRulesCodeLensProvider('/ext', configManager, fakeDetector, catalog, mockOutputChannel);
 
         const lenses = await provider.provideCodeLenses(makeDocument(instructionScheme, 'test.instructions.md'));
 
-        const { instructions: parsedInstructions } = InstructionsParser.parse(testInstructionsContent);
+        const { instructions: parsedInstructions } = InstructionsFileParser.parse(testInstructionsContent);
         expect(lenses).toHaveLength(parsedInstructions.length);
         expect.soft(lenses.every(lens => {
             const cmd = lens.command as { title: string; command: string };
@@ -65,7 +65,7 @@ describe('InstructionsCodeLensProvider', () => {
     });
 
     it('should show Enable Instruction for disabled instructions', async () => {
-        const { instructions: parsedInstructions } = InstructionsParser.parse(testInstructionsContent);
+        const { instructions: parsedInstructions } = InstructionsFileParser.parse(testInstructionsContent);
         const firstId = parsedInstructions[0].id;
 
         vi.mocked(readFile).mockImplementation(async (path: unknown) => {
@@ -84,7 +84,7 @@ describe('InstructionsCodeLensProvider', () => {
         });
 
         const configManager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
-        const provider = new InstructionsCodeLensProvider('/ext', configManager, fakeDetector, catalog, mockOutputChannel);
+        const provider = new InstructionsRulesCodeLensProvider('/ext', configManager, fakeDetector, catalog, mockOutputChannel);
 
         const lenses = await provider.provideCodeLenses(makeDocument(instructionScheme, 'test.instructions.md'));
 
@@ -99,7 +99,7 @@ describe('InstructionsCodeLensProvider', () => {
     });
 
     it('should include Reset All Instructions lens when instructions are disabled', async () => {
-        const { instructions: parsedInstructions } = InstructionsParser.parse(testInstructionsContent);
+        const { instructions: parsedInstructions } = InstructionsFileParser.parse(testInstructionsContent);
         const firstId = parsedInstructions[0].id;
 
         vi.mocked(readFile).mockImplementation(async (path: unknown) => {
@@ -118,7 +118,7 @@ describe('InstructionsCodeLensProvider', () => {
         });
 
         const configManager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
-        const provider = new InstructionsCodeLensProvider('/ext', configManager, fakeDetector, catalog, mockOutputChannel);
+        const provider = new InstructionsRulesCodeLensProvider('/ext', configManager, fakeDetector, catalog, mockOutputChannel);
 
         const lenses = await provider.provideCodeLenses(makeDocument(instructionScheme, 'test.instructions.md'));
 
@@ -137,7 +137,7 @@ describe('InstructionsCodeLensProvider', () => {
         });
 
         const configManager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
-        const provider = new InstructionsCodeLensProvider('/ext', configManager, fakeDetector, catalog, mockOutputChannel);
+        const provider = new InstructionsRulesCodeLensProvider('/ext', configManager, fakeDetector, catalog, mockOutputChannel);
 
         const lenses = await provider.provideCodeLenses(makeDocument(instructionScheme, 'test.instructions.md'));
 
@@ -155,7 +155,7 @@ describe('InstructionsCodeLensProvider', () => {
         });
 
         const configManager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
-        const provider = new InstructionsCodeLensProvider('/ext', configManager, fakeDetector, catalog, mockOutputChannel);
+        const provider = new InstructionsRulesCodeLensProvider('/ext', configManager, fakeDetector, catalog, mockOutputChannel);
 
         const lenses = await provider.provideCodeLenses(makeDocument(instructionScheme, 'lang-csharp.instructions.md'));
 
@@ -171,7 +171,7 @@ describe('InstructionsCodeLensProvider', () => {
         });
 
         const configManager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
-        const provider = new InstructionsCodeLensProvider('/ext', configManager, fakeDetector, catalog, mockOutputChannel);
+        const provider = new InstructionsRulesCodeLensProvider('/ext', configManager, fakeDetector, catalog, mockOutputChannel);
 
         const lenses = await provider.provideCodeLenses(makeDocument(instructionScheme, 'lang-csharp.instructions.md'));
 

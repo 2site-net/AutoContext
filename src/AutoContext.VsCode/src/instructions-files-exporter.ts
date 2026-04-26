@@ -1,8 +1,8 @@
 import * as vscode from 'vscode';
 import type { InstructionsFileEntry } from './instructions-file-entry.js';
-import { instructionScheme } from './instructions-content-provider.js';
+import { instructionScheme } from './instructions-rules-document-provider.js';
 
-export class InstructionsExporter {
+export class InstructionsFilesExporter {
     constructor(private readonly extensionPath: string) {}
 
     async export(entries: readonly InstructionsFileEntry[]): Promise<void> {
@@ -14,7 +14,7 @@ export class InstructionsExporter {
 
         for (const entry of entries) {
             const targetUri = vscode.Uri.joinPath(rootUri, entry.targetPath);
-            const exists = await InstructionsExporter.fileExists(targetUri);
+            const exists = await InstructionsFilesExporter.fileExists(targetUri);
 
             if (exists) {
                 const action = await vscode.window.showWarningMessage(
@@ -26,8 +26,8 @@ export class InstructionsExporter {
                 if (action !== 'Overwrite') { continue; }
             }
 
-            await InstructionsExporter.copyInstruction(this.extensionPath, entry, targetUri);
-            await InstructionsExporter.closeVirtualDocument(entry.name);
+            await InstructionsFilesExporter.copyInstruction(this.extensionPath, entry, targetUri);
+            await InstructionsFilesExporter.closeVirtualDocument(entry.name);
             exportedCount++;
         }
 

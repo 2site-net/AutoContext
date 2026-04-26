@@ -3,7 +3,7 @@ import { readFile, writeFile, mkdir, readdir, stat, rm, access } from 'node:fs/p
 import { join } from 'node:path';
 import { createHash } from 'node:crypto';
 import type { InstructionsFilesManifest } from './instructions-files-manifest.js';
-import { InstructionsParser } from './instructions-parser.js';
+import { InstructionsFileParser } from './instructions-file-parser.js';
 import type { AutoContextConfigManager } from './autocontext-config.js';
 
 /**
@@ -150,7 +150,7 @@ export class InstructionsConfigWriter implements vscode.Disposable {
         let content: string;
         let parsedResult;
         try {
-            ({ content, result: parsedResult } = await InstructionsParser.fromFile(src));
+            ({ content, result: parsedResult } = await InstructionsFileParser.fromFile(src));
         } catch (err) {
             this.outputChannel.appendLine(`[Instructions] Failed to parse ${fileName}: ${err instanceof Error ? err.message : err}`);
             return;

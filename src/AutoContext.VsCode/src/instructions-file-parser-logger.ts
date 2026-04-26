@@ -1,10 +1,10 @@
 import * as vscode from 'vscode';
 import { join } from 'node:path';
 import type { InstructionsFilesManifest } from './instructions-files-manifest.js';
-import { InstructionsParser } from './instructions-parser.js';
+import { InstructionsFileParser } from './instructions-file-parser.js';
 import type { AutoContextConfigManager } from './autocontext-config.js';
 
-export class InstructionsDiagnostics {
+export class InstructionsFileParserLogger {
     static async log(outputChannel: vscode.OutputChannel, extensionPath: string, configManager: AutoContextConfigManager, manifest: InstructionsFilesManifest): Promise<void> {
         outputChannel.clear();
         const config = await configManager.read();
@@ -13,7 +13,7 @@ export class InstructionsDiagnostics {
         for (const entry of manifest.instructions) {
             let diagnostics;
             try {
-                ({ result: { diagnostics } } = await InstructionsParser.fromFile(join(extensionPath, 'instructions', entry.name)));
+                ({ result: { diagnostics } } = await InstructionsFileParser.fromFile(join(extensionPath, 'instructions', entry.name)));
             } catch (err) {
                 outputChannel.appendLine(`[Instructions] Failed to parse ${entry.name}: ${err instanceof Error ? err.message : err}`);
                 continue;

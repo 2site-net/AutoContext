@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-import { InstructionsContentProvider, instructionScheme } from '../../src/instructions-content-provider';
+import { InstructionsRulesDocumentProvider, instructionScheme } from '../../src/instructions-rules-document-provider';
 import { AutoContextConfigManager } from '../../src/autocontext-config';
-import { InstructionsParser } from '../../src/instructions-parser';
+import { InstructionsFileParser } from '../../src/instructions-file-parser';
 
 import { readFile, stat } from 'node:fs/promises';
 
@@ -19,11 +19,11 @@ const mockOutputChannel = createFakeOutputChannel();
 
 beforeEach(() => {
     vi.clearAllMocks();
-    InstructionsParser['fileCache'].clear();
+    InstructionsFileParser['fileCache'].clear();
     workspace.workspaceFolders = [{ uri: { fsPath: '/workspace' } }];
 });
 
-describe('InstructionsContentProvider', () => {
+describe('InstructionsRulesDocumentProvider', () => {
     it('should return file content unchanged when no instructions are disabled', async () => {
         vi.mocked(readFile).mockImplementation(async (path: unknown) => {
             const pathStr = String(path);
@@ -32,7 +32,7 @@ describe('InstructionsContentProvider', () => {
         });
 
         const configManager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
-        const provider = new InstructionsContentProvider('/ext', configManager, mockOutputChannel);
+        const provider = new InstructionsRulesDocumentProvider('/ext', configManager, mockOutputChannel);
         const uri = { scheme: instructionScheme, path: 'test.instructions.md' } as unknown as import('vscode').Uri;
         const result = await provider.provideTextDocumentContent(uri);
 
@@ -40,7 +40,7 @@ describe('InstructionsContentProvider', () => {
     });
 
     it('should insert [DISABLED] tag for disabled instructions', async () => {
-        const { instructions: parsedInstructions } = InstructionsParser.parse(testInstructionsContent);
+        const { instructions: parsedInstructions } = InstructionsFileParser.parse(testInstructionsContent);
         const firstInstructionId = parsedInstructions[0].id;
 
         vi.mocked(readFile).mockImplementation(async (path: unknown) => {
@@ -59,7 +59,7 @@ describe('InstructionsContentProvider', () => {
         });
 
         const configManager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
-        const provider = new InstructionsContentProvider('/ext', configManager, mockOutputChannel);
+        const provider = new InstructionsRulesDocumentProvider('/ext', configManager, mockOutputChannel);
         const uri = { scheme: instructionScheme, path: 'test.instructions.md' } as unknown as import('vscode').Uri;
         const result = await provider.provideTextDocumentContent(uri);
 
@@ -71,7 +71,7 @@ describe('InstructionsContentProvider', () => {
         vi.mocked(readFile).mockResolvedValue('{}');
 
         const configManager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
-        const provider = new InstructionsContentProvider('/ext', configManager, mockOutputChannel);
+        const provider = new InstructionsRulesDocumentProvider('/ext', configManager, mockOutputChannel);
         provider.buildUri('code-review.instructions.md');
 
         expect.soft(Uri.from).toHaveBeenCalledWith({

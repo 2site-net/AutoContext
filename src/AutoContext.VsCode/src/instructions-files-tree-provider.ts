@@ -2,18 +2,18 @@ import * as vscode from 'vscode';
 import type { InstructionsFilesManifest } from './instructions-files-manifest.js';
 import { TreeViewNodeState } from './tree-view-node-state.js';
 import { viewIds, contextKeys, treeViewLabels } from './ui-constants.js';
-import { instructionScheme } from './instructions-content-provider.js';
+import { instructionScheme } from './instructions-rules-document-provider.js';
 import type { WorkspaceContextDetector } from './workspace-context-detector.js';
 import type { InstructionsFileEntry } from './instructions-file-entry.js';
 import type { TreeViewStateResolver } from './tree-view-state-resolver.js';
 import type { TreeViewTooltip } from './tree-view-tooltip.js';
-import type { InstructionsTreeCategoryNode } from './types/instructions-tree-category-node.js';
-import type { InstructionsTreeNode } from './types/instructions-tree-node.js';
+import type { InstructionsFileCategoryTreeNode } from './types/instructions-file-category-tree-node.js';
+import type { InstructionsFileTreeNode } from './types/instructions-file-tree-node.js';
 import { SemVer } from './semver.js';
 import type { AutoContextConfigManager } from './autocontext-config.js';
 import type { AutoContextConfig } from './types/autocontext-config.js';
 
-type TreeElement = InstructionsTreeCategoryNode | InstructionsTreeNode;
+type TreeElement = InstructionsFileCategoryTreeNode | InstructionsFileTreeNode;
 
 export class InstructionsFilesTreeProvider implements vscode.TreeDataProvider<TreeElement>, vscode.Disposable {
 
@@ -111,7 +111,7 @@ export class InstructionsFilesTreeProvider implements vscode.TreeDataProvider<Tr
         this.refresh();
     }
 
-    private getRootCategories(): InstructionsTreeCategoryNode[] {
+    private getRootCategories(): InstructionsFileCategoryTreeNode[] {
         const overrides = this.detector.getOverriddenContextKeys();
         const presentCategories = new Set(this.manifest.instructions.map(e => e.firstCategory.name));
 
@@ -129,7 +129,7 @@ export class InstructionsFilesTreeProvider implements vscode.TreeDataProvider<Tr
     private resolveInstructions(
         category: string,
         overrides: ReadonlySet<string>,
-    ): InstructionsTreeNode[] {
+    ): InstructionsFileTreeNode[] {
         return this.manifest.instructions
             .filter(e => e.firstCategory.name === category)
             .map(entry => {
@@ -146,7 +146,7 @@ export class InstructionsFilesTreeProvider implements vscode.TreeDataProvider<Tr
             .sort((a, b) => a.state.sortOrder - b.state.sortOrder);
     }
 
-    private categoryItem(node: InstructionsTreeCategoryNode): vscode.TreeItem {
+    private categoryItem(node: InstructionsFileCategoryTreeNode): vscode.TreeItem {
         const item = new vscode.TreeItem(node.name, vscode.TreeItemCollapsibleState.Expanded);
         item.contextValue = 'categoryNode';
         const active = node.children.filter(n => n.state.isActive()).length;
@@ -155,7 +155,7 @@ export class InstructionsFilesTreeProvider implements vscode.TreeDataProvider<Tr
         return item;
     }
 
-    private instructionItem(node: InstructionsTreeNode): vscode.TreeItem {
+    private instructionItem(node: InstructionsFileTreeNode): vscode.TreeItem {
         const item = new vscode.TreeItem(node.entry.label, vscode.TreeItemCollapsibleState.None);
 
         item.contextValue = `instruction.${node.state.value}${node.isOutdated ? '.outdated' : ''}${node.entry.hasChangelog ? '.hasChangelog' : ''}`;
@@ -229,15 +229,15 @@ export class InstructionsFilesTreeProvider implements vscode.TreeDataProvider<Tr
         return this.manifest.instructions.filter(e => this._checkedEntries.has(e.runtimeInfo.contextKey));
     }
 
-    async enableInstruction(node: InstructionsTreeNode): Promise<void> {
+    async enableInstruction(node: InstructionsFileTreeNode): Promise<void> {
         await this.configManager.setInstructionEnabled(node.entry.name, true);
     }
 
-    async disableInstruction(node: InstructionsTreeNode): Promise<void> {
+    async disableInstruction(node: InstructionsFileTreeNode): Promise<void> {
         await this.configManager.setInstructionEnabled(node.entry.name, false);
     }
 
-    static async deleteOverride(node: InstructionsTreeNode): Promise<void> {
+    static async deleteOverride(node: InstructionsFileTreeNode): Promise<void> {
         const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
         if (!workspaceFolder) { return; }
 
@@ -262,7 +262,7 @@ export class InstructionsFilesTreeProvider implements vscode.TreeDataProvider<Tr
         await vscode.workspace.fs.delete(targetUri);
     }
 
-    static async showOriginal(node: InstructionsTreeNode): Promise<void> {
+    static async showOriginal(node: InstructionsFileTreeNode): Promise<void> {
         const uri = vscode.Uri.from({ scheme: instructionScheme, path: node.entry.name });
         await vscode.commands.executeCommand('vscode.open', uri);
     }

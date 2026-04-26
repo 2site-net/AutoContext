@@ -1,7 +1,7 @@
 import { readFile, stat } from 'node:fs/promises';
-import type { InstructionsParsedInstruction } from './types/instructions-parsed-instruction.js';
-import type { InstructionsDiagnostic } from './types/instructions-diagnostic.js';
-import type { InstructionsParsedResult, InstructionsFrontmatter } from './types/instructions-parsed-result.js';
+import type { InstructionsFileParsedRule } from './types/instructions-file-parsed-rule.js';
+import type { InstructionsFileParserDiagnostic } from './types/instructions-file-parser-diagnostic.js';
+import type { InstructionsFileParsedRulesResult, InstructionsFileParsedFrontmatter } from './types/instructions-file-parsed-rules-result.js';
 import type { InstructionsFileParsedResult } from './types/instructions-file-parsed-result.js';
 import { SemVer } from './semver.js';
 
@@ -10,8 +10,8 @@ const malformedIdPattern = /^[-*]\s\[(?!INST\d{4}\])[^\]]*\]\s*\*\*(Do|Don't)\*\
 const frontmatterPattern = /^---\r?\n([\s\S]*?)\r?\n---/;
 const frontmatterFieldPattern = /^(\w+):\s*"?([^"\r\n]*)"?\s*$/;
 
-export class InstructionsParser {
-    private static readonly fileCache = new Map<string, { mtimeMs: number; content: string; result: InstructionsParsedResult }>();
+export class InstructionsFileParser {
+    private static readonly fileCache = new Map<string, { mtimeMs: number; content: string; result: InstructionsFileParsedRulesResult }>();
 
     static async fromFile(filePath: string): Promise<InstructionsFileParsedResult> {
         const mtimeMs = (await stat(filePath)).mtimeMs;
@@ -25,11 +25,11 @@ export class InstructionsParser {
         return { content, result };
     }
 
-    static parse(content: string): InstructionsParsedResult {
+    static parse(content: string): InstructionsFileParsedRulesResult {
         const frontmatter = this.parseFrontmatter(content);
         const lines = content.split('\n');
-        const instructions: InstructionsParsedInstruction[] = [];
-        const diagnostics: InstructionsDiagnostic[] = [];
+        const instructions: InstructionsFileParsedRule[] = [];
+        const diagnostics: InstructionsFileParserDiagnostic[] = [];
         const seenIds = new Map<string, number>();
         let instructionStart = -1;
         let instructionLines: string[] = [];
@@ -95,7 +95,7 @@ export class InstructionsParser {
         return { frontmatter, instructions, diagnostics };
     }
 
-    static parseFrontmatter(content: string): InstructionsFrontmatter {
+    static parseFrontmatter(content: string): InstructionsFileParsedFrontmatter {
         const match = frontmatterPattern.exec(content);
         if (!match) {
             return {};
@@ -124,7 +124,7 @@ export class InstructionsParser {
         lines: readonly string[],
         startLine: number,
         endLine: number,
-    ): InstructionsParsedInstruction {
+    ): InstructionsFileParsedRule {
         let end = lines.length;
 
         while (end > 0 && lines[end - 1].trim() === '') {

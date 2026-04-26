@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 import { InstructionsConfigWriter } from '../../src/instructions-config-writer';
 import { AutoContextConfigManager } from '../../src/autocontext-config';
-import { InstructionsParser } from '../../src/instructions-parser';
+import { InstructionsFileParser } from '../../src/instructions-file-parser';
 import { InstructionsFilesManifestLoader } from '../../src/instructions-files-manifest-loader';
 import { join } from 'node:path';
 
@@ -26,7 +26,7 @@ const mockOutputChannel = createFakeOutputChannel();
 
 beforeEach(() => {
     vi.clearAllMocks();
-    InstructionsParser['fileCache'].clear();
+    InstructionsFileParser['fileCache'].clear();
     workspace.workspaceFolders = [{ uri: { fsPath: '/workspace' } }];
 });
 
@@ -78,7 +78,7 @@ describe('InstructionsConfigWriter', () => {
     });
 
     it('should write filtered content with disabled instructions removed', async () => {
-        const { instructions: parsedInstructions } = InstructionsParser.parse(testInstructionsContent);
+        const { instructions: parsedInstructions } = InstructionsFileParser.parse(testInstructionsContent);
         const firstId = parsedInstructions[0].id;
         const targetFileName = catalog.instructions[0].name;
 

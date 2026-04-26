@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import type { InstructionsFilesManifest } from './instructions-files-manifest.js';
-import { InstructionsParser } from './instructions-parser.js';
+import { InstructionsFileParser } from './instructions-file-parser.js';
 
 // --- File-system watcher globs ---
 
@@ -535,7 +535,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
                 fileNames.add(matchName);
                 try {
                     const content = decoder.decode(await vscode.workspace.fs.readFile(uri));
-                    versions.set(matchName, InstructionsParser.parseFrontmatter(content).version);
+                    versions.set(matchName, InstructionsFileParser.parseFrontmatter(content).version);
                 } catch {
                     versions.set(matchName, undefined);
                 }

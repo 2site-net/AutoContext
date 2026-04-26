@@ -1,11 +1,11 @@
 import * as vscode from 'vscode';
 import { join } from 'node:path';
-import { InstructionsParser } from './instructions-parser.js';
+import { InstructionsFileParser } from './instructions-file-parser.js';
 import type { AutoContextConfigManager } from './autocontext-config.js';
 
 export const instructionScheme = 'autocontext-instructions';
 
-export class InstructionsContentProvider implements vscode.TextDocumentContentProvider, vscode.Disposable {
+export class InstructionsRulesDocumentProvider implements vscode.TextDocumentContentProvider, vscode.Disposable {
     private readonly didChangeEmitter = new vscode.EventEmitter<vscode.Uri>();
     readonly onDidChange = this.didChangeEmitter.event;
     private readonly disposables: vscode.Disposable[] = [];
@@ -28,7 +28,7 @@ export class InstructionsContentProvider implements vscode.TextDocumentContentPr
         let content: string;
         let instructions;
         try {
-            ({ content, result: { instructions } } = await InstructionsParser.fromFile(filePath));
+            ({ content, result: { instructions } } = await InstructionsFileParser.fromFile(filePath));
         } catch (err) {
             this.outputChannel.appendLine(`[Instructions] Failed to parse ${fileName}: ${err instanceof Error ? err.message : err}`);
             return `Unable to read instruction file: ${fileName}`;

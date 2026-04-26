@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { TreeItemCollapsibleState, TreeItemCheckboxState, workspace, commands, Uri, window } from './_fakes/fake-vscode';
 import { InstructionsFilesTreeProvider } from '../../src/instructions-files-tree-provider';
 import type { AutoContextConfig } from '../../src/types/autocontext-config';
-import type { InstructionsTreeNode } from '../../src/types/instructions-tree-node';
+import type { InstructionsFileTreeNode } from '../../src/types/instructions-file-tree-node';
 import { TreeViewNodeState } from '../../src/tree-view-node-state';
 import { contextKeys } from '../../src/ui-constants';
 import { InstructionsFilesManifestLoader } from '../../src/instructions-files-manifest-loader';
@@ -371,7 +371,7 @@ describe('InstructionsFilesTreeProvider', () => {
         const children = provider.getChildren(languages);
         const node = children.find(c => c.kind === 'instructions' && c.entry.runtimeInfo.contextKey === 'autocontext.instructions.lang-csharp')!;
 
-        await provider.enableInstruction(node as InstructionsTreeNode);
+        await provider.enableInstruction(node as InstructionsFileTreeNode);
 
         expect.soft(vi.mocked(fakeConfigManager.setInstructionEnabled)).toHaveBeenCalledWith('lang-csharp.instructions.md', true);
 
@@ -387,7 +387,7 @@ describe('InstructionsFilesTreeProvider', () => {
         const children = provider.getChildren(general);
         const node = children.find(c => c.kind === 'instructions' && c.state === TreeViewNodeState.Enabled)!;
 
-        await provider.disableInstruction(node as InstructionsTreeNode);
+        await provider.disableInstruction(node as InstructionsFileTreeNode);
 
         expect.soft(vi.mocked(fakeConfigManager.setInstructionEnabled)).toHaveBeenCalledWith(
             node.kind === 'instructions' ? node.entry.name : '',
@@ -413,7 +413,7 @@ describe('InstructionsFilesTreeProvider', () => {
         const children = provider.getChildren(languages);
         const node = children.find(c => c.kind === 'instructions' && c.entry.runtimeInfo.contextKey === 'autocontext.instructions.lang-csharp')!;
 
-        await InstructionsFilesTreeProvider.deleteOverride(node as InstructionsTreeNode);
+        await InstructionsFilesTreeProvider.deleteOverride(node as InstructionsFileTreeNode);
 
         expect.soft(window.tabGroups.close).toHaveBeenCalledWith(matchingTab);
         expect.soft(workspace.fs.delete).toHaveBeenCalled();
@@ -431,7 +431,7 @@ describe('InstructionsFilesTreeProvider', () => {
         const children = provider.getChildren(languages);
         const node = children.find(c => c.kind === 'instructions' && c.entry.runtimeInfo.contextKey === 'autocontext.instructions.lang-csharp')!;
 
-        await InstructionsFilesTreeProvider.showOriginal(node as InstructionsTreeNode);
+        await InstructionsFilesTreeProvider.showOriginal(node as InstructionsFileTreeNode);
 
         expect.soft(commands.executeCommand).toHaveBeenCalledWith(
             'vscode.open',
@@ -900,7 +900,7 @@ describe('InstructionsFilesTreeProvider', () => {
         const children = provider.getChildren(languages);
         const node = children.find(c => c.kind === 'instructions' && c.entry.runtimeInfo.contextKey === 'autocontext.instructions.lang-csharp')!;
 
-        await InstructionsFilesTreeProvider.deleteOverride(node as InstructionsTreeNode);
+        await InstructionsFilesTreeProvider.deleteOverride(node as InstructionsFileTreeNode);
 
         expect.soft(window.showWarningMessage).toHaveBeenCalledWith(
             expect.stringContaining('(v1.0.0) is behind AutoContext\'s version (v1.1.0)'),
@@ -929,7 +929,7 @@ describe('InstructionsFilesTreeProvider', () => {
         const children = provider.getChildren(languages);
         const node = children.find(c => c.kind === 'instructions' && c.entry.runtimeInfo.contextKey === 'autocontext.instructions.lang-csharp')!;
 
-        await InstructionsFilesTreeProvider.deleteOverride(node as InstructionsTreeNode);
+        await InstructionsFilesTreeProvider.deleteOverride(node as InstructionsFileTreeNode);
 
         expect.soft(workspace.fs.delete).not.toHaveBeenCalled();
 
@@ -948,7 +948,7 @@ describe('InstructionsFilesTreeProvider', () => {
         const children = provider.getChildren(languages);
         const node = children.find(c => c.kind === 'instructions' && c.entry.runtimeInfo.contextKey === 'autocontext.instructions.lang-csharp')!;
 
-        await InstructionsFilesTreeProvider.deleteOverride(node as InstructionsTreeNode);
+        await InstructionsFilesTreeProvider.deleteOverride(node as InstructionsFileTreeNode);
 
         expect.soft(window.showWarningMessage).not.toHaveBeenCalled();
         expect.soft(workspace.fs.delete).toHaveBeenCalled();

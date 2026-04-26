@@ -5,13 +5,13 @@ import { WorkspaceContextDetector } from './workspace-context-detector.js';
 import { InstructionsFilesManifestLoader } from './instructions-files-manifest-loader.js';
 import { commandIds, contextKeys, globalStateKeys } from './ui-constants.js';
 import { AutoConfigurer } from './auto-configurer.js';
-import { InstructionsExporter } from './instructions-exporter.js';
+import { InstructionsFilesExporter } from './instructions-files-exporter.js';
 import { AutoContextConfigManager } from './autocontext-config.js';
-import { InstructionsContentProvider, instructionScheme } from './instructions-content-provider.js';
-import { InstructionsCodeLensProvider } from './instructions-codelens-provider.js';
-import { InstructionsDecorationManager } from './instructions-decoration-manager.js';
+import { InstructionsRulesDocumentProvider, instructionScheme } from './instructions-rules-document-provider.js';
+import { InstructionsRulesCodeLensProvider } from './instructions-rules-codelens-provider.js';
+import { InstructionsRulesDecorationManager } from './instructions-rules-decoration-manager.js';
 import { InstructionsConfigWriter } from './instructions-config-writer.js';
-import { InstructionsDiagnostics } from './instructions-diagnostics.js';
+import { InstructionsFileParserLogger } from './instructions-file-parser-logger.js';
 import { ConfigContextProjector } from './config-context-projector.js';
 import { InstructionsFilesTreeProvider } from './instructions-files-tree-provider.js';
 import { MetadataLoader } from './metadata-loader.js';
@@ -41,13 +41,13 @@ export async function activate(context: vscode.ExtensionContext) {
     const instructionsMetadata = metadataLoader.getInstructionsInfo();
 
     const instructionsManifest = new InstructionsFilesManifestLoader(context.extensionPath).load(instructionsMetadata);
-    const instructionsExporter = new InstructionsExporter(context.extensionPath);
+    const instructionsExporter = new InstructionsFilesExporter(context.extensionPath);
     const outputChannel = vscode.window.createOutputChannel('AutoContext');
     const workspaceContextDetector = new WorkspaceContextDetector(instructionsManifest, outputChannel);
     const configManager = new AutoContextConfigManager(context.extensionPath, version, outputChannel);
-    const contentProvider = new InstructionsContentProvider(context.extensionPath, configManager, outputChannel);
-    const codeLensProvider = new InstructionsCodeLensProvider(context.extensionPath, configManager, workspaceContextDetector, instructionsManifest, outputChannel);
-    const decorationManager = new InstructionsDecorationManager(context.extensionPath, configManager, outputChannel);
+    const contentProvider = new InstructionsRulesDocumentProvider(context.extensionPath, configManager, outputChannel);
+    const codeLensProvider = new InstructionsRulesCodeLensProvider(context.extensionPath, configManager, workspaceContextDetector, instructionsManifest, outputChannel);
+    const decorationManager = new InstructionsRulesDecorationManager(context.extensionPath, configManager, outputChannel);
     const instructionsWriter = new InstructionsConfigWriter(context.extensionPath, configManager, instructionsManifest, outputChannel);
     const configProjector = new ConfigContextProjector(configManager, instructionsManifest, mcpToolsManifest, outputChannel);
     const serversManifest = new ServersManifestLoader(context.extensionPath).load();
@@ -74,7 +74,7 @@ export async function activate(context: vscode.ExtensionContext) {
         void vscode.commands.executeCommand('setContext', commandIds.ShowNotDetected, value);
     };
 
-    const logDiagnostics = () => InstructionsDiagnostics.log(outputChannel, context.extensionPath, configManager, instructionsManifest);
+    const logDiagnostics = () => InstructionsFileParserLogger.log(outputChannel, context.extensionPath, configManager, instructionsManifest);
 
     context.subscriptions.push(
         didChangeEmitter,

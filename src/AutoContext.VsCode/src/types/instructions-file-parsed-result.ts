@@ -1,6 +1,6 @@
-import type { InstructionsParsedResult } from './instructions-parsed-result.js';
+import type { InstructionsFileParsedRulesResult } from './instructions-file-parsed-rules-result.js';
 
 export interface InstructionsFileParsedResult {
     readonly content: string;
-    readonly result: InstructionsParsedResult;
+    readonly result: InstructionsFileParsedRulesResult;
 }

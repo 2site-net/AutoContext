@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { writeFile, unlink, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { InstructionsParser } from './instructions-parser.js';
+import { InstructionsFileParser } from './instructions-file-parser.js';
 import type { AutoContextConfig, InstructionsFileConfig, McpToolConfig } from './types/autocontext-config.js';
 
 const configFileName = '.autocontext.json';
@@ -256,7 +256,7 @@ export class AutoContextConfigManager implements vscode.Disposable {
                 try {
                     const filePath = join(this.extensionPath, 'instructions', fileName);
                     const content = await readFile(filePath, 'utf-8');
-                    const { instructions } = InstructionsParser.parse(content);
+                    const { instructions } = InstructionsFileParser.parse(content);
                     const validIds = new Set(
                         instructions.map(r => r.id).filter((id): id is string => id !== undefined),
                     );

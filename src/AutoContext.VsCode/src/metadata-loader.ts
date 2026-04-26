@@ -1,6 +1,6 @@
 import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { InstructionsParser } from './instructions-parser.js';
+import { InstructionsFileParser } from './instructions-file-parser.js';
 import type { InstructionsFileMetadata } from './types/instructions-file-metadata.js';
 
 export class MetadataLoader {
@@ -19,7 +19,7 @@ export class MetadataLoader {
             if (!fileName.endsWith('.instructions.md')) { continue; }
 
             const content = readFileSync(join(instructionsDir, fileName), 'utf-8');
-            const { frontmatter } = InstructionsParser.parse(content);
+            const { frontmatter } = InstructionsFileParser.parse(content);
             const changelogName = fileName.replace('.instructions.md', '.CHANGELOG.md');
             const hasChangelog = existsSync(join(instructionsDir, changelogName));
             if (frontmatter.description || frontmatter.version || hasChangelog) {

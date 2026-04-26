@@ -44,8 +44,8 @@ vi.mock('../../src/instructions-files-manifest-loader', () => ({
     },
 }));
 
-vi.mock('../../src/instructions-exporter', () => ({
-    InstructionsExporter: class {},
+vi.mock('../../src/instructions-files-exporter', () => ({
+    InstructionsFilesExporter: class {},
 }));
 
 vi.mock('../../src/autocontext-config', () => ({
@@ -59,17 +59,17 @@ vi.mock('../../src/autocontext-config', () => ({
     },
 }));
 
-vi.mock('../../src/instructions-content-provider', () => ({
-    InstructionsContentProvider: class { dispose() {} },
+vi.mock('../../src/instructions-rules-document-provider', () => ({
+    InstructionsRulesDocumentProvider: class { dispose() {} },
     instructionScheme: 'autocontext-instructions',
 }));
 
-vi.mock('../../src/instructions-codelens-provider', () => ({
-    InstructionsCodeLensProvider: class { dispose() {} },
+vi.mock('../../src/instructions-rules-codelens-provider', () => ({
+    InstructionsRulesCodeLensProvider: class { dispose() {} },
 }));
 
-vi.mock('../../src/instructions-decoration-manager', () => ({
-    InstructionsDecorationManager: class { dispose() {} },
+vi.mock('../../src/instructions-rules-decoration-manager', () => ({
+    InstructionsRulesDecorationManager: class { dispose() {} },
 }));
 
 vi.mock('../../src/instructions-config-writer', () => ({
@@ -80,8 +80,8 @@ vi.mock('../../src/instructions-config-writer', () => ({
     },
 }));
 
-vi.mock('../../src/instructions-diagnostics', () => ({
-    InstructionsDiagnostics: { log: async () => {} },
+vi.mock('../../src/instructions-file-parser-logger', () => ({
+    InstructionsFileParserLogger: { log: async () => {} },
 }));
 
 vi.mock('../../src/instructions-files-tree-provider', () => {

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { InstructionsParser } from '../../src/instructions-parser';
+import { InstructionsFileParser } from '../../src/instructions-file-parser';
 import { singleInstructionDoc, multiInstructionDoc, starBulletDoc, sectionedDoc } from './_fixtures';
 
 import { readFile, stat } from 'node:fs/promises';
@@ -12,12 +12,12 @@ vi.mock('node:fs/promises', () => ({
 beforeEach(() => {
     vi.clearAllMocks();
     // Clear the static file cache between tests to avoid cross-test pollution.
-    InstructionsParser['fileCache'].clear();
+    InstructionsFileParser['fileCache'].clear();
 });
 
 describe('parseInstructions', () => {
     it('should parse a single instruction with ID', () => {
-        const { instructions } = InstructionsParser.parse(singleInstructionDoc);
+        const { instructions } = InstructionsFileParser.parse(singleInstructionDoc);
 
         expect.soft(instructions).toHaveLength(1);
         expect.soft(instructions[0]?.text).toBe('- [INST0001] **Do** always use curly braces for control flow statements.');
@@ -35,7 +35,7 @@ name: "my-instruction (v1.2.3)"
 
 - [INST0001] **Do** something.
 `;
-        const { frontmatter } = InstructionsParser.parse(content);
+        const { frontmatter } = InstructionsFileParser.parse(content);
 
         expect.soft(frontmatter.description).toBe('My instruction file');
         expect.soft(frontmatter.version).toBe('1.2.3');
@@ -51,7 +51,7 @@ name: "scoped (v1.0.0)"
 
 - [INST0001] **Do** something.
 `;
-        const { frontmatter } = InstructionsParser.parse(content);
+        const { frontmatter } = InstructionsFileParser.parse(content);
 
         expect.soft(frontmatter.description).toBe('Scoped instructions');
         expect.soft(frontmatter.version).toBe('1.0.0');
@@ -62,7 +62,7 @@ name: "scoped (v1.0.0)"
 
 - [INST0001] **Do** something.
 `;
-        const { frontmatter } = InstructionsParser.parse(content);
+        const { frontmatter } = InstructionsFileParser.parse(content);
 
         expect.soft(frontmatter.description).toBeUndefined();
         expect.soft(frontmatter.version).toBeUndefined();
@@ -76,14 +76,14 @@ description: "Only description"
 
 - [INST0001] **Do** something.
 `;
-        const { frontmatter } = InstructionsParser.parse(content);
+        const { frontmatter } = InstructionsFileParser.parse(content);
 
         expect.soft(frontmatter.description).toBe('Only description');
         expect.soft(frontmatter.version).toBeUndefined();
     });
 
     it('should parse multiple instructions', () => {
-        const { instructions } = InstructionsParser.parse(multiInstructionDoc);
+        const { instructions } = InstructionsFileParser.parse(multiInstructionDoc);
 
         expect.soft(instructions).toHaveLength(3);
         expect.soft(instructions[0]?.text).toContain('write true');
@@ -92,14 +92,14 @@ description: "Only description"
     });
 
     it('should extract description from existing fixtures', () => {
-        const { frontmatter } = InstructionsParser.parse(singleInstructionDoc);
+        const { frontmatter } = InstructionsFileParser.parse(singleInstructionDoc);
 
         expect.soft(frontmatter.description).toBe('Test');
         expect.soft(frontmatter.version).toBeUndefined();
     });
 
     it('should handle * bullet style with IDs', () => {
-        const { instructions } = InstructionsParser.parse(starBulletDoc);
+        const { instructions } = InstructionsFileParser.parse(starBulletDoc);
 
         expect.soft(instructions).toHaveLength(2);
         expect.soft(instructions[0]?.id).toBe('INST0001');
@@ -109,7 +109,7 @@ description: "Only description"
     });
 
     it('should parse instructions across sections', () => {
-        const { instructions } = InstructionsParser.parse(sectionedDoc);
+        const { instructions } = InstructionsFileParser.parse(sectionedDoc);
 
         expect.soft(instructions).toHaveLength(3);
         expect.soft(instructions[0]?.text).toContain('leading underscore');
@@ -118,15 +118,15 @@ description: "Only description"
     });
 
     it('should assign unique IDs to distinct instructions', () => {
-        const { instructions } = InstructionsParser.parse(multiInstructionDoc);
+        const { instructions } = InstructionsFileParser.parse(multiInstructionDoc);
         const ids = instructions.map(r => r.id);
 
         expect.soft(new Set(ids).size).toBe(ids.length);
     });
 
     it('should produce deterministic IDs', () => {
-        const { instructions: first } = InstructionsParser.parse(multiInstructionDoc);
-        const { instructions: second } = InstructionsParser.parse(multiInstructionDoc);
+        const { instructions: first } = InstructionsFileParser.parse(multiInstructionDoc);
+        const { instructions: second } = InstructionsFileParser.parse(multiInstructionDoc);
 
         expect.soft(first.map(r => r.id)).toEqual(second.map(r => r.id));
     });
@@ -140,12 +140,12 @@ description: "Test"
 Some paragraph text.
 `;
 
-        expect.soft(InstructionsParser.parse(content).instructions).toHaveLength(0);
+        expect.soft(InstructionsFileParser.parse(content).instructions).toHaveLength(0);
     });
 
     it('should handle CRLF line endings', () => {
         const content = '# Test\r\n\r\n- [INST0001] **Do** use CRLF.\r\n- [INST0002] **Don\'t** mix line endings.\r\n';
-        const { instructions } = InstructionsParser.parse(content);
+        const { instructions } = InstructionsFileParser.parse(content);
 
         expect.soft(instructions).toHaveLength(2);
         expect.soft(instructions[0]?.text).toContain('use CRLF');
@@ -154,7 +154,7 @@ Some paragraph text.
 
     it('should handle trailing blank lines at end of file', () => {
         const content = '# Test\n\n- [INST0001] **Do** something.\n\n\n\n';
-        const { instructions } = InstructionsParser.parse(content);
+        const { instructions } = InstructionsFileParser.parse(content);
 
         expect(instructions).toHaveLength(1);
         expect.soft(instructions[0].text).toBe('- [INST0001] **Do** something.');
@@ -169,7 +169,7 @@ Some paragraph text.
 
 Some paragraph.
 `;
-        const { instructions } = InstructionsParser.parse(content);
+        const { instructions } = InstructionsFileParser.parse(content);
 
         expect(instructions).toHaveLength(1);
         expect.soft(instructions[0].text).toBe('- [INST0001] **Do** instruction one.');
@@ -182,7 +182,7 @@ Some paragraph.
   for all control flow statements.
 - [INST0002] **Don't** nest ternaries.
 `;
-        const { instructions } = InstructionsParser.parse(content);
+        const { instructions } = InstructionsFileParser.parse(content);
 
         expect.soft(instructions).toHaveLength(2);
         expect.soft(instructions[0]?.text).toContain('for all control flow statements');
@@ -191,7 +191,7 @@ Some paragraph.
 
     it('should set id to undefined for instructions without an ID tag', () => {
         const content = '# Test\n\n- **Do** something without an ID.\n';
-        const { instructions } = InstructionsParser.parse(content);
+        const { instructions } = InstructionsFileParser.parse(content);
 
         expect(instructions).toHaveLength(1);
         expect.soft(instructions[0].id).toBeUndefined();
@@ -199,7 +199,7 @@ Some paragraph.
 
     it('should emit missing-id diagnostic for instructions without an ID tag', () => {
         const content = '# Test\n\n- **Do** something without an ID.\n';
-        const { diagnostics } = InstructionsParser.parse(content);
+        const { diagnostics } = InstructionsFileParser.parse(content);
 
         expect.soft(diagnostics).toHaveLength(1);
         expect.soft(diagnostics[0]?.kind).toBe('missing-id');
@@ -212,7 +212,7 @@ Some paragraph.
 - [INST0001] **Do** first thing.
 - [INST0001] **Do** second thing.
 `;
-        const { diagnostics } = InstructionsParser.parse(content);
+        const { diagnostics } = InstructionsFileParser.parse(content);
 
         const dup = diagnostics.find(d => d.kind === 'duplicate-id');
         expect(dup).toBeDefined();
@@ -221,7 +221,7 @@ Some paragraph.
 
     it('should emit malformed-id diagnostic for invalid ID tags', () => {
         const content = '# Test\n\n- [WRONG] **Do** something.\n';
-        const { diagnostics } = InstructionsParser.parse(content);
+        const { diagnostics } = InstructionsFileParser.parse(content);
 
         const malformed = diagnostics.find(d => d.kind === 'malformed-id');
         expect(malformed).toBeDefined();
@@ -229,14 +229,14 @@ Some paragraph.
     });
 
     it('should emit no diagnostics for well-formed instructions with IDs', () => {
-        const { diagnostics } = InstructionsParser.parse(multiInstructionDoc);
+        const { diagnostics } = InstructionsFileParser.parse(multiInstructionDoc);
 
         expect.soft(diagnostics).toHaveLength(0);
     });
 
     it('should not emit malformed-id diagnostic for markdown links', () => {
         const content = '# Test\n\n- [Reference](https://example.com) for more info.\n';
-        const { diagnostics } = InstructionsParser.parse(content);
+        const { diagnostics } = InstructionsFileParser.parse(content);
 
         expect.soft(diagnostics.filter(d => d.kind === 'malformed-id')).toHaveLength(0);
     });
@@ -247,7 +247,7 @@ describe('fromFile', () => {
         vi.mocked(stat).mockResolvedValue({ mtimeMs: 1000 } as Awaited<ReturnType<typeof stat>>);
         vi.mocked(readFile).mockResolvedValue(singleInstructionDoc);
 
-        const { content, result } = await InstructionsParser.fromFile('/ext/instructions/test.md');
+        const { content, result } = await InstructionsFileParser.fromFile('/ext/instructions/test.md');
 
         expect.soft(content).toBe(singleInstructionDoc);
         expect.soft(result.instructions).toHaveLength(1);
@@ -258,8 +258,8 @@ describe('fromFile', () => {
         vi.mocked(stat).mockResolvedValue({ mtimeMs: 1000 } as Awaited<ReturnType<typeof stat>>);
         vi.mocked(readFile).mockResolvedValue(singleInstructionDoc);
 
-        await InstructionsParser.fromFile('/ext/instructions/test.md');
-        await InstructionsParser.fromFile('/ext/instructions/test.md');
+        await InstructionsFileParser.fromFile('/ext/instructions/test.md');
+        await InstructionsFileParser.fromFile('/ext/instructions/test.md');
 
         expect.soft(readFile).toHaveBeenCalledTimes(1);
     });
@@ -268,10 +268,10 @@ describe('fromFile', () => {
         vi.mocked(readFile).mockResolvedValue(singleInstructionDoc);
 
         vi.mocked(stat).mockResolvedValue({ mtimeMs: 1000 } as Awaited<ReturnType<typeof stat>>);
-        await InstructionsParser.fromFile('/ext/instructions/test.md');
+        await InstructionsFileParser.fromFile('/ext/instructions/test.md');
 
         vi.mocked(stat).mockResolvedValue({ mtimeMs: 2000 } as Awaited<ReturnType<typeof stat>>);
-        await InstructionsParser.fromFile('/ext/instructions/test.md');
+        await InstructionsFileParser.fromFile('/ext/instructions/test.md');
 
         expect.soft(readFile).toHaveBeenCalledTimes(2);
     });
