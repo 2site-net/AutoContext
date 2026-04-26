@@ -74,4 +74,16 @@ describe('ServersManifestLoader.load()', () => {
 
         expect(() => new ServersManifestLoader('/ext').load()).toThrow(/mcp-server/);
     });
+
+    it('throws a contextualised error when servers.json contains malformed JSON', () => {
+        readFileSyncMock.mockImplementation((path) => {
+            const p = path.toString();
+            if (p.endsWith('servers.json')) { return '{ not valid json'; }
+            if (p.endsWith('mcp-tools.json')) { return JSON.stringify({ categories: [] }); }
+            throw new Error(`Unexpected path: ${p}`);
+        });
+
+        expect(() => new ServersManifestLoader('/ext').load())
+            .toThrow(/Failed to parse JSON from .+servers\.json/);
+    });
 });

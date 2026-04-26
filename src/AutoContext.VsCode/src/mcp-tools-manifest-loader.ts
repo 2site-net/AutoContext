@@ -1,8 +1,8 @@
-import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { McpCategoryEntry } from './mcp-category-entry.js';
 import { McpToolEntry, type McpTaskInit } from './mcp-tool-entry.js';
 import { McpToolsManifest } from './mcp-tools-manifest.js';
+import { JsonFile } from './json-file.js';
 
 interface JsonMcpTask {
     name: string;
@@ -39,8 +39,8 @@ export class McpToolsManifestLoader {
     constructor(private readonly extensionPath: string) {}
 
     load(): McpToolsManifest {
-        const json: JsonMcpToolsManifest = JSON.parse(
-            readFileSync(join(this.extensionPath, 'resources', 'mcp-tools.json'), 'utf-8'),
+        const json = JsonFile.fromUtf8<JsonMcpToolsManifest>(
+            join(this.extensionPath, 'resources', 'mcp-tools.json'),
         );
 
         const categories = json.categories.map(c =>

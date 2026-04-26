@@ -1,7 +1,7 @@
-import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { ServerEntry } from './types/server-entry.js';
 import type { ServersManifest } from './types/servers-manifest.js';
+import { JsonFile } from './json-file.js';
 
 interface RawServersFile {
     servers: ServerEntry[];
@@ -23,11 +23,11 @@ export class ServersManifestLoader {
     constructor(private readonly extensionPath: string) {}
 
     load(): ServersManifest {
-        const rawServers: RawServersFile = JSON.parse(
-            readFileSync(join(this.extensionPath, 'resources', 'servers.json'), 'utf-8'),
+        const rawServers = JsonFile.fromUtf8<RawServersFile>(
+            join(this.extensionPath, 'resources', 'servers.json'),
         );
-        const rawTools: RawToolsManifest = JSON.parse(
-            readFileSync(join(this.extensionPath, 'resources', 'mcp-tools.json'), 'utf-8'),
+        const rawTools = JsonFile.fromUtf8<RawToolsManifest>(
+            join(this.extensionPath, 'resources', 'mcp-tools.json'),
         );
 
         const workerIds = new Set(

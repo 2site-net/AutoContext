@@ -1,9 +1,9 @@
-import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { InstructionsFileCategoryEntry } from './instructions-file-category-entry.js';
 import { InstructionsFileEntry } from './instructions-file-entry.js';
 import type { InstructionsFileMetadata } from './types/instructions-file-metadata.js';
 import { InstructionsFilesManifest } from './instructions-files-manifest.js';
+import { JsonFile } from './json-file.js';
 
 interface JsonInstructionsFile {
     label: string;
@@ -33,8 +33,8 @@ export class InstructionsFilesManifestLoader {
     constructor(private readonly extensionPath: string) {}
 
     load(metadata?: ReadonlyMap<string, InstructionsFileMetadata>): InstructionsFilesManifest {
-        const json: JsonInstructionsFilesManifest = JSON.parse(
-            readFileSync(join(this.extensionPath, 'resources', 'instructions-files.json'), 'utf-8'),
+        const json = JsonFile.fromUtf8<JsonInstructionsFilesManifest>(
+            join(this.extensionPath, 'resources', 'instructions-files.json'),
         );
 
         const categories = json.categories.map(c =>
