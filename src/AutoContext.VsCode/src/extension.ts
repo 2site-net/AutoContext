@@ -25,7 +25,7 @@ import { WorkerManager } from './worker-manager.js';
 import { ServersManifestLoader } from './servers-manifest-loader.js';
 import { HealthMonitorServer } from './health-monitor.js';
 import { OutputChannelLogger } from './output-channel-logger.js';
-import { LogCategory, LogLevel } from './types/logger.js';
+import { LogCategory } from './types/logger.js';
 
 let subscriptions: vscode.Disposable[] | undefined;
 
@@ -45,7 +45,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
     const instructionsManifest = new InstructionsFilesManifestLoader(context.extensionPath).load(instructionsMetadata);
     const instructionsExporter = new InstructionsFilesExporter(context.extensionPath);
-    const rootLogger = OutputChannelLogger.create(EXTENSION_NAME, LogLevel.Info);
+    const rootLogger = OutputChannelLogger.create(EXTENSION_NAME);
     const workspaceContextDetector = new WorkspaceContextDetector(instructionsManifest, rootLogger.forCategory(LogCategory.Detection));
     const configManager = new AutoContextConfigManager(context.extensionPath, version, rootLogger.forCategory(LogCategory.Config));
     const contentProvider = new InstructionsViewerDocumentProvider(context.extensionPath, configManager, rootLogger.forCategory(LogCategory.Instructions));

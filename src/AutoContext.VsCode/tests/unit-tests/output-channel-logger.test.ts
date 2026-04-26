@@ -1,21 +1,28 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { OutputChannelLogger } from '../../src/output-channel-logger';
-import { LogLevel, LogCategory } from '../../src/types/logger';
+import { LogCategory } from '../../src/types/logger';
 import type * as vscode from 'vscode';
 
 vi.mock('vscode', async () => await import('./_fakes/fake-vscode'));
 
-function fakeChannel(name = 'test'): vscode.OutputChannel {
+function fakeChannel(name = 'test'): vscode.LogOutputChannel {
     return {
         name,
+        logLevel: 1, // vscode.LogLevel.Trace — permissive so write() always reaches the spies
+        onDidChangeLogLevel: vi.fn(),
         append: vi.fn(),
         appendLine: vi.fn(),
-        clear: vi.fn(),
-        dispose: vi.fn(),
-        hide: vi.fn(),
-        show: vi.fn(),
         replace: vi.fn(),
-    } as unknown as vscode.OutputChannel;
+        clear: vi.fn(),
+        show: vi.fn(),
+        hide: vi.fn(),
+        dispose: vi.fn(),
+        trace: vi.fn(),
+        debug: vi.fn(),
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+    } as unknown as vscode.LogOutputChannel;
 }
 
 beforeEach(() => {
@@ -23,49 +30,35 @@ beforeEach(() => {
 });
 
 describe('OutputChannelLogger', () => {
-    it('should write a level-prefixed line for info', () => {
+    it('should forward info to the channel info method', () => {
         const channel = fakeChannel();
         const logger = new OutputChannelLogger(channel);
 
         logger.info('hello');
 
-        expect(channel.appendLine).toHaveBeenCalledWith('[info] hello');
+        expect(channel.info).toHaveBeenCalledExactlyOnceWith('hello');
     });
 
-    it('should include the category when set', () => {
+    it('should prepend the category when set', () => {
         const channel = fakeChannel();
         const logger = new OutputChannelLogger(channel, LogCategory.Config);
 
         logger.warn('something off');
 
-        expect(channel.appendLine).toHaveBeenCalledWith('[warn] [Config] something off');
+        expect(channel.warn).toHaveBeenCalledExactlyOnceWith('[Config] something off');
     });
 
-    it('should append the error stack after the message when present', () => {
+    it('should pass an Error instance through as a trailing argument so the channel can render its stack', () => {
         const channel = fakeChannel();
         const logger = new OutputChannelLogger(channel, LogCategory.Diagnostics);
         const error = new Error('parse failed');
-        error.stack = 'Error: parse failed\n    at foo';
 
         logger.error('Failed to log diagnostics', error);
 
-        expect(channel.appendLine).toHaveBeenCalledWith(
-            '[error] [Diagnostics] Failed to log diagnostics: Error: parse failed\n    at foo',
-        );
+        expect(channel.error).toHaveBeenCalledExactlyOnceWith('[Diagnostics] Failed to log diagnostics', error);
     });
 
-    it('should fall back to the error message when stack is missing', () => {
-        const channel = fakeChannel();
-        const logger = new OutputChannelLogger(channel);
-        const error = new Error('parse failed');
-        error.stack = undefined;
-
-        logger.error('Failed', error);
-
-        expect(channel.appendLine).toHaveBeenCalledWith('[error] Failed: parse failed');
-    });
-
-    it('should coerce non-Error error values via String', () => {
+    it('should pass non-Error error values through as a trailing argument', () => {
         const channel = fakeChannel();
         const logger = new OutputChannelLogger(channel);
 
@@ -73,14 +66,14 @@ describe('OutputChannelLogger', () => {
         logger.error('two', 42);
         logger.error('three', null);
 
-        expect(channel.appendLine).toHaveBeenNthCalledWith(1, '[error] one: plain string');
-        expect(channel.appendLine).toHaveBeenNthCalledWith(2, '[error] two: 42');
-        expect(channel.appendLine).toHaveBeenNthCalledWith(3, '[error] three: null');
+        expect(channel.error).toHaveBeenNthCalledWith(1, 'one', 'plain string');
+        expect(channel.error).toHaveBeenNthCalledWith(2, 'two', 42);
+        expect(channel.error).toHaveBeenNthCalledWith(3, 'three', null);
     });
 
-    it('should suppress lines below the configured minimum level', () => {
+    it('should route every level to the matching channel method', () => {
         const channel = fakeChannel();
-        const logger = new OutputChannelLogger(channel, undefined, LogLevel.Warn);
+        const logger = new OutputChannelLogger(channel);
 
         logger.trace('t');
         logger.debug('d');
@@ -88,28 +81,21 @@ describe('OutputChannelLogger', () => {
         logger.warn('w');
         logger.error('e');
 
-        expect(channel.appendLine).toHaveBeenCalledTimes(2);
-        expect(channel.appendLine).toHaveBeenNthCalledWith(1, '[warn] w');
-        expect(channel.appendLine).toHaveBeenNthCalledWith(2, '[error] e');
-    });
-
-    it('should suppress every line when level is Off', () => {
-        const channel = fakeChannel();
-        const logger = new OutputChannelLogger(channel, undefined, LogLevel.Off);
-
-        logger.error('e');
-
-        expect(channel.appendLine).not.toHaveBeenCalled();
+        expect(channel.trace).toHaveBeenCalledExactlyOnceWith('t');
+        expect(channel.debug).toHaveBeenCalledExactlyOnceWith('d');
+        expect(channel.info).toHaveBeenCalledExactlyOnceWith('i');
+        expect(channel.warn).toHaveBeenCalledExactlyOnceWith('w');
+        expect(channel.error).toHaveBeenCalledExactlyOnceWith('e');
     });
 
     it('forCategory should produce a child that writes to the same channel with a new category', () => {
         const channel = fakeChannel();
-        const root = new OutputChannelLogger(channel, undefined, LogLevel.Trace);
+        const root = new OutputChannelLogger(channel);
 
         const child = root.forCategory(LogCategory.HealthMonitor);
         child.debug('connected');
 
-        expect(channel.appendLine).toHaveBeenCalledWith('[debug] [HealthMonitor] connected');
+        expect(channel.debug).toHaveBeenCalledExactlyOnceWith('[HealthMonitor] connected');
     });
 
     it('forCategory should accept a freeform string for dynamic categories', () => {
@@ -119,7 +105,7 @@ describe('OutputChannelLogger', () => {
         const child = root.forCategory('Worker.DotNet');
         child.info('started');
 
-        expect(channel.appendLine).toHaveBeenCalledWith('[info] [Worker.DotNet] started');
+        expect(channel.info).toHaveBeenCalledExactlyOnceWith('[Worker.DotNet] started');
     });
 
     it('forCategory called on a child should replace, not append, the category', () => {
@@ -128,19 +114,7 @@ describe('OutputChannelLogger', () => {
 
         root.forCategory(LogCategory.Config).forCategory(LogCategory.Diagnostics).info('m');
 
-        expect(channel.appendLine).toHaveBeenCalledWith('[info] [Diagnostics] m');
-    });
-
-    it('forCategory should propagate the minimum level to children', () => {
-        const channel = fakeChannel();
-        const root = new OutputChannelLogger(channel, undefined, LogLevel.Error);
-
-        const child = root.forCategory(LogCategory.WorkerManager);
-        child.info('ignored');
-        child.error('kept');
-
-        expect(channel.appendLine).toHaveBeenCalledOnce();
-        expect(channel.appendLine).toHaveBeenCalledWith('[error] [WorkerManager] kept');
+        expect(channel.info).toHaveBeenCalledExactlyOnceWith('[Diagnostics] m');
     });
 
     it('clear should clear the underlying channel', () => {
@@ -156,7 +130,7 @@ describe('OutputChannelLogger', () => {
         const root = fakeChannel('root');
         const sibling = fakeChannel('sibling');
         const factory = vi.fn(() => sibling);
-        const logger = new OutputChannelLogger(root, undefined, LogLevel.Info, undefined, factory);
+        const logger = new OutputChannelLogger(root, undefined, undefined, factory);
 
         logger.forChannel('sibling').forCategory(LogCategory.Config).clear();
 
@@ -168,20 +142,20 @@ describe('OutputChannelLogger', () => {
         const root = fakeChannel('root');
         const sibling = fakeChannel('sibling');
         const factory = vi.fn(() => sibling);
-        const logger = new OutputChannelLogger(root, undefined, LogLevel.Info, undefined, factory);
+        const logger = new OutputChannelLogger(root, undefined, undefined, factory);
 
         logger.forChannel('sibling').info('hi');
 
         expect(factory).toHaveBeenCalledExactlyOnceWith('sibling');
-        expect(sibling.appendLine).toHaveBeenCalledWith('[info] hi');
-        expect(root.appendLine).not.toHaveBeenCalled();
+        expect(sibling.info).toHaveBeenCalledExactlyOnceWith('hi');
+        expect(root.info).not.toHaveBeenCalled();
     });
 
     it('forChannel should cache and return loggers backed by the same channel for repeated names', () => {
         const root = fakeChannel('root');
         const sibling = fakeChannel('sibling');
         const factory = vi.fn(() => sibling);
-        const logger = new OutputChannelLogger(root, undefined, LogLevel.Info, undefined, factory);
+        const logger = new OutputChannelLogger(root, undefined, undefined, factory);
 
         logger.forChannel('sibling').info('first');
         logger.forChannel('sibling').warn('second');
@@ -189,33 +163,20 @@ describe('OutputChannelLogger', () => {
         logger.forCategory(LogCategory.Config).forChannel('sibling').error('third');
 
         expect(factory).toHaveBeenCalledOnce();
-        expect(sibling.appendLine).toHaveBeenNthCalledWith(1, '[info] first');
-        expect(sibling.appendLine).toHaveBeenNthCalledWith(2, '[warn] second');
-        expect(sibling.appendLine).toHaveBeenNthCalledWith(3, '[error] third');
+        expect(sibling.info).toHaveBeenCalledExactlyOnceWith('first');
+        expect(sibling.warn).toHaveBeenCalledExactlyOnceWith('second');
+        expect(sibling.error).toHaveBeenCalledExactlyOnceWith('third');
     });
 
     it('forChannel called with the root channel name should return the root channel from the cache', () => {
         const root = fakeChannel('AutoContext');
         const factory = vi.fn();
-        const logger = new OutputChannelLogger(root, undefined, LogLevel.Info, undefined, factory);
+        const logger = new OutputChannelLogger(root, undefined, undefined, factory);
 
         logger.forChannel('AutoContext').info('echo');
 
         expect(factory).not.toHaveBeenCalled();
-        expect(root.appendLine).toHaveBeenCalledWith('[info] echo');
-    });
-
-    it('forChannel should propagate the minimum level to the new channel logger', () => {
-        const root = fakeChannel('root');
-        const sibling = fakeChannel('sibling');
-        const factory = vi.fn(() => sibling);
-        const logger = new OutputChannelLogger(root, undefined, LogLevel.Error, undefined, factory);
-
-        const channelLogger = logger.forChannel('sibling');
-        channelLogger.info('ignored');
-        channelLogger.error('kept');
-
-        expect(sibling.appendLine).toHaveBeenCalledExactlyOnceWith('[error] kept');
+        expect(root.info).toHaveBeenCalledExactlyOnceWith('echo');
     });
 
     it('dispose should dispose every channel created through the logger tree', () => {
@@ -223,7 +184,7 @@ describe('OutputChannelLogger', () => {
         const a = fakeChannel('a');
         const b = fakeChannel('b');
         const factory = vi.fn((name: string) => (name === 'a' ? a : b));
-        const logger = new OutputChannelLogger(root, undefined, LogLevel.Info, undefined, factory);
+        const logger = new OutputChannelLogger(root, undefined, undefined, factory);
 
         logger.forChannel('a');
         logger.forChannel('b');
