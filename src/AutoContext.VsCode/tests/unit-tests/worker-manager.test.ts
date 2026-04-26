@@ -167,4 +167,14 @@ describe('WorkerManager', () => {
         expect(children).toHaveLength(3);
         expect(children.every(c => c.kill.mock.calls.length === 1)).toBe(true);
     });
+
+    it('should reject pending whenWorkspaceReady() waiters on dispose', async () => {
+        const mgr = new WorkerManager('/ext', outputChannel, '/workspace', fakeManifest);
+        mgr.start();
+
+        const ready = mgr.whenWorkspaceReady();
+        mgr.dispose();
+
+        await expect(ready).rejects.toThrow(/disposed before worker became ready/);
+    });
 });

@@ -119,7 +119,12 @@ export async function activate(context: vscode.ExtensionContext) {
     let workspaceReadyTimedOut = false;
     let workspaceReadyTimeout: ReturnType<typeof setTimeout> | undefined;
     await Promise.race([
-        workerManager.whenWorkspaceReady().then(() => clearTimeout(workspaceReadyTimeout)),
+        workerManager.whenWorkspaceReady()
+            .then(() => clearTimeout(workspaceReadyTimeout))
+            // If the manager is disposed before the worker signals ready,
+            // whenWorkspaceReady() rejects. The activation flow has already
+            // moved on (or will, via the timeout branch); just absorb it.
+            .catch(() => clearTimeout(workspaceReadyTimeout)),
         new Promise<void>(resolve => {
             workspaceReadyTimeout = setTimeout(() => {
                 workspaceReadyTimedOut = true;

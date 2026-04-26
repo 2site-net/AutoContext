@@ -42,8 +42,9 @@ export class WorkerManager implements vscode.Disposable {
     private readonly endpointSuffix = randomUUID().replace(/-/g, '').slice(0, 12);
     private readonly children: ChildProcess[] = [];
     private readonly readyPromises = new Map<string, Promise<void>>();
-    private readonly readyResolvers = new Map<string, () => void>();
+    private readonly readyResolvers = new Map<string, { resolve: () => void; reject: (err: Error) => void }>();
     private started = false;
+    private disposed = false;
 
     constructor(
         private readonly extensionPath: string,
@@ -53,7 +54,12 @@ export class WorkerManager implements vscode.Disposable {
     ) {
         for (const entry of serversManifest.workers) {
             const identity = entry.name.replace(/^AutoContext\./, '');
-            const promise = new Promise<void>(resolve => this.readyResolvers.set(identity, resolve));
+            const promise = new Promise<void>((resolve, reject) =>
+                this.readyResolvers.set(identity, { resolve, reject }));
+            // Swallow rejection on the stored promise so callers that never
+            // attach a handler (or attach only via Promise.race) don't surface
+            // an unhandled rejection when dispose() rejects pending waiters.
+            promise.catch(() => { /* see whenWorkspaceReady() */ });
             this.readyPromises.set(identity, promise);
         }
     }
@@ -114,6 +120,19 @@ export class WorkerManager implements vscode.Disposable {
     }
 
     dispose(): void {
+        if (this.disposed) {
+            return;
+        }
+        this.disposed = true;
+
+        // Release any callers awaiting a worker's ready marker — without
+        // this, a caller that hits dispose() before the worker emitted
+        // its ready line would hang forever.
+        for (const [, { reject }] of this.readyResolvers) {
+            reject(new Error('WorkerManager disposed before worker became ready.'));
+        }
+        this.readyResolvers.clear();
+
         for (const child of this.children) {
             child.kill();
         }
@@ -131,10 +150,10 @@ export class WorkerManager implements vscode.Disposable {
             rl.on('line', (line: string) => {
                 this.outputChannel.appendLine(`[${spec.identity}] ${line}`);
                 if (line === spec.readyMarker) {
-                    const resolve = this.readyResolvers.get(spec.identity);
-                    if (resolve) {
+                    const entry = this.readyResolvers.get(spec.identity);
+                    if (entry) {
                         this.readyResolvers.delete(spec.identity);
-                        resolve();
+                        entry.resolve();
                     }
                 }
             });
