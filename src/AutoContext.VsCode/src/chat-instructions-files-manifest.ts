@@ -15,21 +15,20 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { InstructionsFilesManifestLoader } from './instructions-files-manifest-loader.js';
 import { InstructionsFilesManifest } from './instructions-files-manifest.js';
-import { ContextKeys } from './context-keys.js';
 import type { InstructionsFileEntry } from './instructions-file-entry.js';
 import type { ChatInstructions } from './types/chat-instructions.js';
 
 function buildWhenClause(entry: InstructionsFileEntry): string {
-    const parts = [entry.contextKey];
+    const parts = [entry.runtimeInfo.contextKey];
 
-    const flags = ContextKeys.forEntry(entry);
+    const flags = entry.activationFlags;
     if (flags.length === 1) {
         parts.push(`autocontext.workspace.${flags[0]}`);
     } else if (flags.length > 1) {
         parts.push(`(${flags.map(k => `autocontext.workspace.${k}`).join(' || ')})`);
     }
 
-    parts.push(`!${ContextKeys.overrideKey(entry.contextKey)}`);
+    parts.push(`!${entry.runtimeInfo.overrideKey}`);
 
     return parts.join(' && ');
 }

@@ -1,6 +1,5 @@
 import * as vscode from 'vscode';
 import type { InstructionsFilesManifest } from './instructions-files-manifest.js';
-import { ContextKeys } from './context-keys.js';
 import { InstructionsParser } from './instructions-parser.js';
 
 // --- File-system watcher globs ---
@@ -561,7 +560,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
         this._overriddenContextKeys.clear();
         for (const i of this.instructionsManifest.instructions) {
             if (overrides.fileNames.has(i.name)) {
-                this._overriddenContextKeys.add(i.contextKey);
+                this._overriddenContextKeys.add(i.runtimeInfo.contextKey);
             }
         }
 
@@ -577,7 +576,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
                 setContext(`autocontext.workspace.${key}`, value),
             ),
             ...this.instructionsManifest.instructions.map(i =>
-                setContext(ContextKeys.overrideKey(i.contextKey), overrides.fileNames.has(i.name)),
+                setContext(i.runtimeInfo.overrideKey, overrides.fileNames.has(i.name)),
             ),
         ]).catch(err => this.outputChannel.appendLine(`[Detection] Failed to set context keys: ${err instanceof Error ? err.message : err}`));
     }

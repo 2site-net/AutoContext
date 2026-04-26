@@ -1,5 +1,6 @@
 import { InstructionsFileItemEntry } from './instructions-file-item-entry.js';
 import type { InstructionsFileCategoryEntry } from './instructions-file-category-entry.js';
+import { InstructionsFileRuntimeInfo } from './instructions-file-runtime-info.js';
 import type { InstructionsFileMetadata } from './types/instructions-file-metadata.js';
 
 /**
@@ -7,12 +8,11 @@ import type { InstructionsFileMetadata } from './types/instructions-file-metadat
  *
  * `name` is the full filename (e.g. `lang-csharp.instructions.md`).
  * `key` is derived from `name` by stripping the `.instructions.md`
- * suffix and is used to build the user-facing `contextKey`
- * (`autocontext.instructions.<key>`).
+ * suffix; runtime context-key concerns live on `runtimeInfo`.
  */
 export class InstructionsFileEntry extends InstructionsFileItemEntry {
     readonly key: string;
-    readonly contextKey: string;
+    readonly #runtimeInfo: InstructionsFileRuntimeInfo;
     readonly label: string;
     readonly version?: string;
     readonly hasChangelog: boolean;
@@ -21,15 +21,19 @@ export class InstructionsFileEntry extends InstructionsFileItemEntry {
         name: string,
         label: string,
         readonly categories: readonly InstructionsFileCategoryEntry[],
-        readonly activationFlags?: readonly string[],
+        readonly activationFlags: readonly string[] = [],
         metadata?: InstructionsFileMetadata,
     ) {
         super(name, metadata?.description);
         this.key = name.replace(/\.instructions\.md$/, '');
-        this.contextKey = `autocontext.instructions.${this.key}`;
+        this.#runtimeInfo = new InstructionsFileRuntimeInfo(this.key);
         this.label = label;
         this.version = metadata?.version;
         this.hasChangelog = metadata?.hasChangelog ?? false;
+    }
+
+    get runtimeInfo(): InstructionsFileRuntimeInfo {
+        return this.#runtimeInfo;
     }
 
     get firstCategory(): InstructionsFileCategoryEntry {

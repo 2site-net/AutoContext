@@ -184,8 +184,8 @@ suite('MCP Tools Tree View Smoke Tests', () => {
                             `task tooltip should contain 'Context Key:' prefix`,
                         );
                         assert.ok(
-                            (item.tooltip as string).includes(task.entry.contextKey),
-                            `task tooltip should contain context key '${task.entry.contextKey}'`,
+                            (item.tooltip as string).includes(task.entry.runtimeInfo.contextKey),
+                            `task tooltip should contain context key '${task.entry.runtimeInfo.contextKey}'`,
                         );
                     }
                 }

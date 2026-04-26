@@ -1,4 +1,3 @@
-import { ContextKeys } from './context-keys.js';
 import { TreeViewNodeState } from './tree-view-node-state.js';
 import type { WorkspaceContextDetector } from './workspace-context-detector.js';
 import type { AutoContextConfig } from './types/autocontext-config.js';
@@ -15,7 +14,7 @@ export class TreeViewStateResolver {
         config: AutoContextConfig,
         overrides?: ReadonlySet<string>,
     ): TreeViewNodeState {
-        const flags = ContextKeys.forEntry(entry);
+        const flags = entry.activationFlags;
         if (flags.length > 0 && !flags.some(k => this.detector.get(k))) {
             return TreeViewNodeState.NotDetected;
         }
@@ -26,7 +25,7 @@ export class TreeViewStateResolver {
             return TreeViewNodeState.Disabled;
         }
 
-        if (overrides?.has(entry.contextKey)) {
+        if (overrides?.has(entry.runtimeInfo.contextKey)) {
             return TreeViewNodeState.Overridden;
         }
 

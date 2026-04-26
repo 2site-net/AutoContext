@@ -15,7 +15,7 @@ describe('InstructionsFileEntry', () => {
         const entry = makeInstructionsFileEntry('lang-csharp.instructions.md', 'C#', ['Languages']);
 
         expect(entry.key).toBe('lang-csharp');
-        expect(entry.contextKey).toBe('autocontext.instructions.lang-csharp');
+        expect(entry.runtimeInfo.contextKey).toBe('autocontext.instructions.lang-csharp');
     });
 
     it('should expose firstCategory', () => {
@@ -31,7 +31,7 @@ describe('InstructionsFilesManifest', () => {
         const manifest = makeInstructionsFilesManifest(catalogTestEntries);
 
         expect(manifest.instructions).toHaveLength(3);
-        expect(manifest.instructions[0].contextKey).toBe('autocontext.instructions.alpha');
+        expect(manifest.instructions[0].runtimeInfo.contextKey).toBe('autocontext.instructions.alpha');
     });
 
     it('should return the correct count', () => {
@@ -45,7 +45,7 @@ describe('InstructionsFilesManifest', () => {
 
         const entry = manifest.findByName('beta.instructions.md');
         expect(entry).toBeDefined();
-        expect(entry!.contextKey).toBe('autocontext.instructions.beta');
+        expect(entry!.runtimeInfo.contextKey).toBe('autocontext.instructions.beta');
     });
 
     it('should return undefined for an unknown name', () => {
@@ -56,7 +56,7 @@ describe('InstructionsFilesManifest', () => {
 
     it('should have unique context keys', () => {
         const manifest = makeInstructionsFilesManifest(catalogTestEntries);
-        const ids = manifest.instructions.map(i => i.contextKey);
+        const ids = manifest.instructions.map(i => i.runtimeInfo.contextKey);
 
         expect(new Set(ids).size).toBe(ids.length);
     });

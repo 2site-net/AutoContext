@@ -182,7 +182,7 @@ suite('Instructions Tree View Smoke Tests', () => {
             const item = exports.instructionsTreeProvider.getTreeItem(child);
             const tip = item.tooltip as string;
             assert.ok(tip.includes('Context Key:'), `Tooltip should contain 'Context Key:' prefix`);
-            assert.ok(tip.includes(child.entry.contextKey), `Tooltip should contain context key '${child.entry.contextKey}'`);
+            assert.ok(tip.includes(child.entry.runtimeInfo.contextKey), `Tooltip should contain context key '${child.entry.runtimeInfo.contextKey}'`);
         }
     });
 

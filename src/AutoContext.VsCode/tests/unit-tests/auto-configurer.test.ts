@@ -2,7 +2,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { join } from 'node:path';
 import { window } from './_fakes/fake-vscode';
 import { AutoConfigurer } from '../../src/auto-configurer';
-import { ContextKeys } from '../../src/context-keys';
 import { InstructionsFilesManifestLoader } from '../../src/instructions-files-manifest-loader';
 import { McpToolsManifestLoader } from '../../src/mcp-tools-manifest-loader';
 import type { AutoContextConfig } from '../../src/types/autocontext-config';
@@ -41,7 +40,7 @@ describe('AutoConfigurer', () => {
         // All disabled calls must be for entries that have activationFlags
         for (const [fileName] of disabledCalls) {
             const entry = instructionsManifest.findByName(fileName)!;
-            expect.soft(ContextKeys.forEntry(entry).length).toBeGreaterThan(0);
+            expect.soft(entry.activationFlags.length).toBeGreaterThan(0);
         }
     });
 
@@ -76,7 +75,7 @@ describe('AutoConfigurer', () => {
         const allInstructions = instructionsManifest.instructions;
         const totalToolItems = manifest.tools.reduce((acc, t) => acc + Math.max(1, t.tasks.length), 0);
         const totalItems = allInstructions.length + totalToolItems;
-        const instructionAlwaysOn = allInstructions.filter(e => ContextKeys.forEntry(e).length === 0).length;
+        const instructionAlwaysOn = allInstructions.filter(e => e.activationFlags.length === 0).length;
         const toolAlwaysOn = manifest.tools
             .filter(t => t.activationFlags.length === 0)
             .reduce((acc, t) => acc + Math.max(1, t.tasks.length), 0);

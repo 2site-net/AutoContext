@@ -84,7 +84,7 @@ describe('InstructionsFilesTreeProvider', () => {
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
-        const csharp = children.find(c => c.kind === 'instructions' && c.entry.contextKey === 'autocontext.instructions.lang-csharp')!;
+        const csharp = children.find(c => c.kind === 'instructions' && c.entry.runtimeInfo.contextKey === 'autocontext.instructions.lang-csharp')!;
 
         expect.soft(csharp.kind === 'instructions' && csharp.state).toBe(TreeViewNodeState.Enabled);
 
@@ -98,7 +98,7 @@ describe('InstructionsFilesTreeProvider', () => {
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
-        const csharp = children.find(c => c.kind === 'instructions' && c.entry.contextKey === 'autocontext.instructions.lang-csharp')!;
+        const csharp = children.find(c => c.kind === 'instructions' && c.entry.runtimeInfo.contextKey === 'autocontext.instructions.lang-csharp')!;
 
         expect.soft(csharp.kind === 'instructions' && csharp.state).toBe(TreeViewNodeState.NotDetected);
 
@@ -116,7 +116,7 @@ describe('InstructionsFilesTreeProvider', () => {
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
-        const csharp = children.find(c => c.kind === 'instructions' && c.entry.contextKey === 'autocontext.instructions.lang-csharp')!;
+        const csharp = children.find(c => c.kind === 'instructions' && c.entry.runtimeInfo.contextKey === 'autocontext.instructions.lang-csharp')!;
 
         expect.soft(csharp.kind === 'instructions' && csharp.state).toBe(TreeViewNodeState.Disabled);
 
@@ -134,7 +134,7 @@ describe('InstructionsFilesTreeProvider', () => {
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
-        const csharp = children.find(c => c.kind === 'instructions' && c.entry.contextKey === 'autocontext.instructions.lang-csharp')!;
+        const csharp = children.find(c => c.kind === 'instructions' && c.entry.runtimeInfo.contextKey === 'autocontext.instructions.lang-csharp')!;
 
         expect.soft(csharp.kind === 'instructions' && csharp.state).toBe(TreeViewNodeState.Overridden);
 
@@ -149,7 +149,7 @@ describe('InstructionsFilesTreeProvider', () => {
         const roots = provider.getChildren();
         const general = roots.find(r => r.kind === 'categoryNode' && r.name === 'General')!;
         const children = provider.getChildren(general);
-        const codeReview = children.find(c => c.kind === 'instructions' && c.entry.contextKey === 'autocontext.instructions.code-review')!;
+        const codeReview = children.find(c => c.kind === 'instructions' && c.entry.runtimeInfo.contextKey === 'autocontext.instructions.code-review')!;
 
         expect.soft(codeReview.kind === 'instructions' && codeReview.state).toBe(TreeViewNodeState.Enabled);
 
@@ -188,7 +188,7 @@ describe('InstructionsFilesTreeProvider', () => {
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
-        const csharp = children.find(c => c.kind === 'instructions' && c.entry.contextKey === 'autocontext.instructions.lang-csharp')!;
+        const csharp = children.find(c => c.kind === 'instructions' && c.entry.runtimeInfo.contextKey === 'autocontext.instructions.lang-csharp')!;
 
         const treeItem = provider.getTreeItem(csharp);
         expect.soft(treeItem.tooltip).toContain('autocontext.instructions.lang-csharp');
@@ -207,7 +207,7 @@ describe('InstructionsFilesTreeProvider', () => {
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
-        const csharp = children.find(c => c.kind === 'instructions' && c.entry.contextKey === 'autocontext.instructions.lang-csharp')!;
+        const csharp = children.find(c => c.kind === 'instructions' && c.entry.runtimeInfo.contextKey === 'autocontext.instructions.lang-csharp')!;
         const treeItem = provider.getTreeItem(csharp);
 
         expect.soft(treeItem.tooltip).toContain('C# coding guidelines');
@@ -265,7 +265,7 @@ describe('InstructionsFilesTreeProvider', () => {
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
-        const csharp = children.find(c => c.kind === 'instructions' && c.entry.contextKey === 'autocontext.instructions.lang-csharp')!;
+        const csharp = children.find(c => c.kind === 'instructions' && c.entry.runtimeInfo.contextKey === 'autocontext.instructions.lang-csharp')!;
 
         const treeItem = provider.getTreeItem(csharp);
         expect.soft(treeItem.command).toBeDefined();
@@ -285,7 +285,7 @@ describe('InstructionsFilesTreeProvider', () => {
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
-        const csharp = children.find(c => c.kind === 'instructions' && c.entry.contextKey === 'autocontext.instructions.lang-csharp')!;
+        const csharp = children.find(c => c.kind === 'instructions' && c.entry.runtimeInfo.contextKey === 'autocontext.instructions.lang-csharp')!;
 
         const treeItem = provider.getTreeItem(csharp);
         expect.soft(treeItem.command).toBeDefined();
@@ -319,7 +319,7 @@ describe('InstructionsFilesTreeProvider', () => {
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
-        const disabled = children.find(c => c.kind === 'instructions' && c.entry.contextKey === 'autocontext.instructions.lang-csharp')!;
+        const disabled = children.find(c => c.kind === 'instructions' && c.entry.runtimeInfo.contextKey === 'autocontext.instructions.lang-csharp')!;
 
         const treeItem = provider.getTreeItem(disabled);
         expect.soft(treeItem.contextValue).toBe('instruction.disabled');
@@ -338,7 +338,7 @@ describe('InstructionsFilesTreeProvider', () => {
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
-        const csharp = children.find(c => c.kind === 'instructions' && c.entry.contextKey === 'autocontext.instructions.lang-csharp')!;
+        const csharp = children.find(c => c.kind === 'instructions' && c.entry.runtimeInfo.contextKey === 'autocontext.instructions.lang-csharp')!;
 
         const treeItem = provider.getTreeItem(csharp);
         expect.soft(treeItem.contextValue).toBe('instruction.enabled.hasChangelog');
@@ -369,7 +369,7 @@ describe('InstructionsFilesTreeProvider', () => {
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
-        const node = children.find(c => c.kind === 'instructions' && c.entry.contextKey === 'autocontext.instructions.lang-csharp')!;
+        const node = children.find(c => c.kind === 'instructions' && c.entry.runtimeInfo.contextKey === 'autocontext.instructions.lang-csharp')!;
 
         await provider.enableInstruction(node as InstructionsTreeNode);
 
@@ -411,7 +411,7 @@ describe('InstructionsFilesTreeProvider', () => {
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
-        const node = children.find(c => c.kind === 'instructions' && c.entry.contextKey === 'autocontext.instructions.lang-csharp')!;
+        const node = children.find(c => c.kind === 'instructions' && c.entry.runtimeInfo.contextKey === 'autocontext.instructions.lang-csharp')!;
 
         await InstructionsFilesTreeProvider.deleteOverride(node as InstructionsTreeNode);
 
@@ -429,7 +429,7 @@ describe('InstructionsFilesTreeProvider', () => {
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
-        const node = children.find(c => c.kind === 'instructions' && c.entry.contextKey === 'autocontext.instructions.lang-csharp')!;
+        const node = children.find(c => c.kind === 'instructions' && c.entry.runtimeInfo.contextKey === 'autocontext.instructions.lang-csharp')!;
 
         await InstructionsFilesTreeProvider.showOriginal(node as InstructionsTreeNode);
 
@@ -519,17 +519,17 @@ describe('InstructionsFilesTreeProvider', () => {
         const roots = provider.getChildren();
         const general = roots.find(r => r.kind === 'categoryNode' && r.name === 'General')!;
         const children = provider.getChildren(general);
-        const entry = children.find(c => c.kind === 'instructions' && c.entry.contextKey === 'autocontext.instructions.code-review')!;
+        const entry = children.find(c => c.kind === 'instructions' && c.entry.runtimeInfo.contextKey === 'autocontext.instructions.code-review')!;
 
         // Simulate checkbox toggle by accessing the internal checked set
         // In production, this is driven by onDidChangeCheckboxState
         if (entry.kind === 'instructions') {
-            (provider as unknown as { _checkedEntries: Set<string> })._checkedEntries.add(entry.entry.contextKey);
+            (provider as unknown as { _checkedEntries: Set<string> })._checkedEntries.add(entry.entry.runtimeInfo.contextKey);
         }
 
         const checked = provider.getCheckedEntries();
         expect.soft(checked.length).toBe(1);
-        expect.soft(checked[0].contextKey).toBe('autocontext.instructions.code-review');
+        expect.soft(checked[0].runtimeInfo.contextKey).toBe('autocontext.instructions.code-review');
 
         provider.dispose();
     });
@@ -684,7 +684,7 @@ describe('InstructionsFilesTreeProvider', () => {
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
-        const overridden = children.find(c => c.kind === 'instructions' && c.entry.contextKey === 'autocontext.instructions.lang-csharp')!;
+        const overridden = children.find(c => c.kind === 'instructions' && c.entry.runtimeInfo.contextKey === 'autocontext.instructions.lang-csharp')!;
 
         const treeItem = provider.getTreeItem(overridden);
         expect.soft(treeItem.contextValue).toBe('instruction.overridden');
@@ -754,7 +754,7 @@ describe('InstructionsFilesTreeProvider', () => {
         const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
         const item = provider.getTreeItem(languages);
         const langEntries = catalog.instructions.filter(e => e.firstCategory.name === 'Languages');
-        const active = langEntries.filter(e => e.contextKey !== 'autocontext.instructions.lang-csharp').length;
+        const active = langEntries.filter(e => e.runtimeInfo.contextKey !== 'autocontext.instructions.lang-csharp').length;
 
         expect.soft(item.tooltip).toBe(`Languages\n${active}/${langEntries.length} active`);
 
@@ -798,7 +798,7 @@ describe('InstructionsFilesTreeProvider', () => {
         const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
         const treeView = vi.mocked(window.createTreeView).mock.results.at(-1)!.value;
         const total = catalog.count;
-        const enabled = catalog.instructions.filter(e => e.contextKey !== 'autocontext.instructions.lang-csharp').length;
+        const enabled = catalog.instructions.filter(e => e.runtimeInfo.contextKey !== 'autocontext.instructions.lang-csharp').length;
 
         expect.soft(treeView.description).toBe(`${enabled}/${total}`);
 
@@ -831,7 +831,7 @@ describe('InstructionsFilesTreeProvider', () => {
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
-        const csharp = children.find(c => c.kind === 'instructions' && c.entry.contextKey === 'autocontext.instructions.lang-csharp')!;
+        const csharp = children.find(c => c.kind === 'instructions' && c.entry.runtimeInfo.contextKey === 'autocontext.instructions.lang-csharp')!;
 
         const treeItem = provider.getTreeItem(csharp);
         expect.soft(treeItem.description).toBe('overridden (outdated)');
@@ -854,7 +854,7 @@ describe('InstructionsFilesTreeProvider', () => {
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
-        const csharp = children.find(c => c.kind === 'instructions' && c.entry.contextKey === 'autocontext.instructions.lang-csharp')!;
+        const csharp = children.find(c => c.kind === 'instructions' && c.entry.runtimeInfo.contextKey === 'autocontext.instructions.lang-csharp')!;
 
         const treeItem = provider.getTreeItem(csharp);
         expect.soft(treeItem.description).toBe('overridden');
@@ -875,7 +875,7 @@ describe('InstructionsFilesTreeProvider', () => {
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
-        const csharp = children.find(c => c.kind === 'instructions' && c.entry.contextKey === 'autocontext.instructions.lang-csharp')!;
+        const csharp = children.find(c => c.kind === 'instructions' && c.entry.runtimeInfo.contextKey === 'autocontext.instructions.lang-csharp')!;
 
         const treeItem = provider.getTreeItem(csharp);
         expect.soft(treeItem.description).toBe('overridden');
@@ -898,7 +898,7 @@ describe('InstructionsFilesTreeProvider', () => {
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
-        const node = children.find(c => c.kind === 'instructions' && c.entry.contextKey === 'autocontext.instructions.lang-csharp')!;
+        const node = children.find(c => c.kind === 'instructions' && c.entry.runtimeInfo.contextKey === 'autocontext.instructions.lang-csharp')!;
 
         await InstructionsFilesTreeProvider.deleteOverride(node as InstructionsTreeNode);
 
@@ -927,7 +927,7 @@ describe('InstructionsFilesTreeProvider', () => {
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
-        const node = children.find(c => c.kind === 'instructions' && c.entry.contextKey === 'autocontext.instructions.lang-csharp')!;
+        const node = children.find(c => c.kind === 'instructions' && c.entry.runtimeInfo.contextKey === 'autocontext.instructions.lang-csharp')!;
 
         await InstructionsFilesTreeProvider.deleteOverride(node as InstructionsTreeNode);
 
@@ -946,7 +946,7 @@ describe('InstructionsFilesTreeProvider', () => {
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
-        const node = children.find(c => c.kind === 'instructions' && c.entry.contextKey === 'autocontext.instructions.lang-csharp')!;
+        const node = children.find(c => c.kind === 'instructions' && c.entry.runtimeInfo.contextKey === 'autocontext.instructions.lang-csharp')!;
 
         await InstructionsFilesTreeProvider.deleteOverride(node as InstructionsTreeNode);
 

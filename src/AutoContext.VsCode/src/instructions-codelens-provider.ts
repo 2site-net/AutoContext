@@ -2,7 +2,6 @@ import * as vscode from 'vscode';
 import { join } from 'node:path';
 import { InstructionsParser } from './instructions-parser.js';
 import type { InstructionsFilesManifest } from './instructions-files-manifest.js';
-import { ContextKeys } from './context-keys.js';
 import { instructionScheme } from './instructions-content-provider.js';
 import type { AutoContextConfigManager } from './autocontext-config.js';
 import type { WorkspaceContextDetector } from './workspace-context-detector.js';
@@ -36,12 +35,12 @@ export class InstructionsCodeLensProvider implements vscode.CodeLensProvider, vs
 
         const entry = this.manifest.findByName(fileName);
         if (entry) {
-            const flags = ContextKeys.forEntry(entry);
+            const flags = entry.activationFlags;
             if (flags.length > 0 && !flags.some(k => this.detector.get(k))) {
                 return [];
             }
 
-            if (this.detector.getOverriddenContextKeys().has(entry.contextKey)) {
+            if (this.detector.getOverriddenContextKeys().has(entry.runtimeInfo.contextKey)) {
                 return [];
             }
         }

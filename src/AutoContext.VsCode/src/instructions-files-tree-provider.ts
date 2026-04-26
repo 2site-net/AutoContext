@@ -60,9 +60,9 @@ export class InstructionsFilesTreeProvider implements vscode.TreeDataProvider<Tr
                 for (const [item, state] of e.items) {
                     if (item.kind === 'instructions') {
                         if (state === vscode.TreeItemCheckboxState.Checked) {
-                            this._checkedEntries.add(item.entry.contextKey);
+                            this._checkedEntries.add(item.entry.runtimeInfo.contextKey);
                         } else {
-                            this._checkedEntries.delete(item.entry.contextKey);
+                            this._checkedEntries.delete(item.entry.runtimeInfo.contextKey);
                         }
                     }
                 }
@@ -181,13 +181,13 @@ export class InstructionsFilesTreeProvider implements vscode.TreeDataProvider<Tr
         }
 
         if (this._exportMode && (node.state === TreeViewNodeState.Enabled || node.state === TreeViewNodeState.Disabled)) {
-            item.checkboxState = this._checkedEntries.has(node.entry.contextKey)
+            item.checkboxState = this._checkedEntries.has(node.entry.runtimeInfo.contextKey)
                 ? vscode.TreeItemCheckboxState.Checked
                 : vscode.TreeItemCheckboxState.Unchecked;
         }
 
         item.tooltip = this.tooltip.leaf(
-            node.entry.label, node.state, node.entry.contextKey, node.entry.description, node.entry.version,
+            node.entry.label, node.state, node.entry.runtimeInfo.contextKey, node.entry.description, node.entry.version,
             node.isOutdated ? treeViewLabels.outdatedTooltip : undefined,
         );
 
@@ -226,7 +226,7 @@ export class InstructionsFilesTreeProvider implements vscode.TreeDataProvider<Tr
     }
 
     getCheckedEntries(): readonly InstructionsFileEntry[] {
-        return this.manifest.instructions.filter(e => this._checkedEntries.has(e.contextKey));
+        return this.manifest.instructions.filter(e => this._checkedEntries.has(e.runtimeInfo.contextKey));
     }
 
     async enableInstruction(node: InstructionsTreeNode): Promise<void> {

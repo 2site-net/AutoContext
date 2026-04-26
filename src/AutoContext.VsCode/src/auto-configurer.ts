@@ -1,7 +1,6 @@
 import * as vscode from 'vscode';
 import type { InstructionsFilesManifest } from './instructions-files-manifest.js';
 import type { McpToolsManifest } from './mcp-tools-manifest.js';
-import { ContextKeys } from './context-keys.js';
 import type { WorkspaceContextDetector } from './workspace-context-detector.js';
 import type { AutoContextConfigManager } from './autocontext-config.js';
 import type { McpToolConfig } from './types/autocontext-config.js';
@@ -23,7 +22,7 @@ export class AutoConfigurer {
 
         // Apply instruction enable/disable changes individually.
         for (const entry of instructionsManifest.instructions) {
-            const flags = ContextKeys.forEntry(entry);
+            const flags = entry.activationFlags;
             const relevant = flags.length === 0 || flags.some(k => detector.get(k));
             if (relevant) { enabled++; }
 
