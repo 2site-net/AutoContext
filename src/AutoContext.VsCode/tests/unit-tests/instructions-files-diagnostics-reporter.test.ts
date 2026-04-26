@@ -4,6 +4,7 @@ import type {
     InstructionsFilesDiagnosticRecord,
     InstructionsFilesDiagnosticsRunner,
 } from '../../src/instructions-files-diagnostics-runner';
+import { LogCategory } from '../../src/types/logger';
 import { createFakeLogger } from './_fakes';
 
 vi.mock('vscode', async () => await import('./_fakes/fake-vscode'));
@@ -16,19 +17,28 @@ beforeEach(() => {
     vi.clearAllMocks();
 });
 
-describe('InstructionsFilesDiagnosticsReporter.report', () => {
-    it('should log an empty-result info line and nothing else when there are no records', async () => {
+describe('InstructionsFilesDiagnosticsReporter', () => {
+    it('should request its own channel and Instructions category from the parent logger', () => {
+        const parent = createFakeLogger();
+
+        new InstructionsFilesDiagnosticsReporter(fakeRunner([]), parent);
+
+        expect(parent.forChannel).toHaveBeenCalledWith('AutoContext: Instructions');
+        expect(parent.forCategory).toHaveBeenCalledWith(LogCategory.Instructions);
+    });
+
+    it('should clear the channel before writing new records', async () => {
         const logger = createFakeLogger();
         const reporter = new InstructionsFilesDiagnosticsReporter(fakeRunner([]), logger);
 
         await reporter.report();
 
-        expect(logger.info).toHaveBeenCalledExactlyOnceWith('No instruction-file diagnostics to report.');
+        expect(logger.clear).toHaveBeenCalledOnce();
         expect(logger.warn).not.toHaveBeenCalled();
         expect(logger.error).not.toHaveBeenCalled();
     });
 
-    it('should emit a header followed by an error line for parse-error records', async () => {
+    it('should emit an error line for parse-error records', async () => {
         const logger = createFakeLogger();
         const reporter = new InstructionsFilesDiagnosticsReporter(
             fakeRunner([{ kind: 'parse-error', entry: 'a.instructions.md', message: 'boom' }]),
@@ -37,7 +47,6 @@ describe('InstructionsFilesDiagnosticsReporter.report', () => {
 
         await reporter.report();
 
-        expect(logger.info).toHaveBeenCalledExactlyOnceWith('Reporting 1 instruction-file diagnostic:');
         expect(logger.error).toHaveBeenCalledExactlyOnceWith('Failed to parse a.instructions.md: boom');
         expect(logger.warn).not.toHaveBeenCalled();
     });
@@ -54,10 +63,28 @@ describe('InstructionsFilesDiagnosticsReporter.report', () => {
 
         await reporter.report();
 
-        expect(logger.info).toHaveBeenCalledExactlyOnceWith('Reporting 2 instruction-file diagnostics:');
         expect(logger.warn).toHaveBeenNthCalledWith(1, 'a.instructions.md:5 — dup');
         expect(logger.warn).toHaveBeenNthCalledWith(2, 'b.instructions.md:1 — bad');
         expect(logger.error).not.toHaveBeenCalled();
+    });
+
+    it('should clear before emitting any diagnostic lines', async () => {
+        const logger = createFakeLogger();
+        const callOrder: string[] = [];
+        vi.mocked(logger.clear).mockImplementation(() => { callOrder.push('clear'); });
+        vi.mocked(logger.warn).mockImplementation(() => { callOrder.push('warn'); });
+        vi.mocked(logger.error).mockImplementation(() => { callOrder.push('error'); });
+        const reporter = new InstructionsFilesDiagnosticsReporter(
+            fakeRunner([
+                { kind: 'parse-error', entry: 'a.instructions.md', message: 'boom' },
+                { kind: 'duplicate-id', entry: 'b.instructions.md', line: 0, message: 'dup' },
+            ]),
+            logger,
+        );
+
+        await reporter.report();
+
+        expect(callOrder).toEqual(['clear', 'error', 'warn']);
     });
 
     it('should delegate collection to the injected runner', async () => {

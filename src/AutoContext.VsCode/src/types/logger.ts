@@ -66,4 +66,25 @@ export interface Logger {
      * append to) the existing category.
      */
     forCategory(category: LogCategory | string): Logger;
+
+    /**
+     * Returns a logger bound to a sibling output channel with the given
+     * name. The channel is created on first request and cached at the
+     * root logger so repeated calls — from anywhere in the parent/child
+     * tree — return loggers backed by the same channel. The returned
+     * logger has no category by default; chain `.forCategory(...)` if
+     * needed. The root logger owns disposal of every channel created
+     * this way.
+     */
+    forChannel(name: string): Logger;
+
+    /**
+     * Clears the output channel this logger writes to. The channel may
+     * be shared with sibling loggers — anything else derived from the
+     * same {@link forChannel} name or chained off this logger via
+     * {@link forCategory} writes to the same channel and will lose its
+     * history too. Reserve `clear()` for loggers bound to a dedicated
+     * channel obtained via {@link forChannel}.
+     */
+    clear(): void;
 }

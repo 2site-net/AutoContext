@@ -1,31 +1,28 @@
 import type { InstructionsFilesDiagnosticsRunner } from './instructions-files-diagnostics-runner.js';
-import type { Logger } from './types/logger.js';
+import { LogCategory, type Logger } from './types/logger.js';
 
 /**
- * Logger sink for instruction-file diagnostics. Collects records via
- * the injected {@link InstructionsFilesDiagnosticsRunner} and emits
- * one line per record through the unified extension {@link Logger}.
- *
- * Each `report()` opens with a header line so multiple runs remain
- * visually separable in the output channel — replaces the previous
- * dedicated channel + `clear()` approach, which both wiped history
- * and fragmented logging across two channels.
+ * Logger sink for instruction-file diagnostics. Owns a dedicated
+ * `'AutoContext: Instructions'` output channel obtained via
+ * {@link Logger.forChannel} so {@link Logger.clear} only wipes
+ * diagnostic lines — never unrelated activation/worker output on the
+ * shared `'AutoContext'` channel. The channel is cached and disposed
+ * by the root logger; the reporter itself owns no resources.
  */
 export class InstructionsFilesDiagnosticsReporter {
+    private readonly logger: Logger;
+
     constructor(
         private readonly runner: InstructionsFilesDiagnosticsRunner,
-        private readonly logger: Logger,
-    ) {}
+        parentLogger: Logger,
+    ) {
+        this.logger = parentLogger.forChannel('AutoContext: Instructions').forCategory(LogCategory.Instructions);
+    }
 
     async report(): Promise<void> {
+        this.logger.clear();
         const records = await this.runner.collect();
 
-        if (records.length === 0) {
-            this.logger.info('No instruction-file diagnostics to report.');
-            return;
-        }
-
-        this.logger.info(`Reporting ${records.length} instruction-file diagnostic${records.length === 1 ? '' : 's'}:`);
         for (const record of records) {
             if (record.kind === 'parse-error') {
                 this.logger.error(`Failed to parse ${record.entry}: ${record.message}`);

@@ -5,9 +5,9 @@ import type * as vscode from 'vscode';
 
 vi.mock('vscode', async () => await import('./_fakes/fake-vscode'));
 
-function fakeChannel(): vscode.OutputChannel {
+function fakeChannel(name = 'test'): vscode.OutputChannel {
     return {
-        name: 'test',
+        name,
         append: vi.fn(),
         appendLine: vi.fn(),
         clear: vi.fn(),
@@ -141,5 +141,96 @@ describe('OutputChannelLogger', () => {
 
         expect(channel.appendLine).toHaveBeenCalledOnce();
         expect(channel.appendLine).toHaveBeenCalledWith('[error] [WorkerManager] kept');
+    });
+
+    it('clear should clear the underlying channel', () => {
+        const channel = fakeChannel();
+        const logger = new OutputChannelLogger(channel);
+
+        logger.clear();
+
+        expect(channel.clear).toHaveBeenCalledOnce();
+    });
+
+    it('clear on a child should clear the channel that child writes to', () => {
+        const root = fakeChannel('root');
+        const sibling = fakeChannel('sibling');
+        const factory = vi.fn(() => sibling);
+        const logger = new OutputChannelLogger(root, undefined, LogLevel.Info, undefined, factory);
+
+        logger.forChannel('sibling').forCategory(LogCategory.Config).clear();
+
+        expect(sibling.clear).toHaveBeenCalledOnce();
+        expect(root.clear).not.toHaveBeenCalled();
+    });
+
+    it('forChannel should create a new channel on first request and write to it', () => {
+        const root = fakeChannel('root');
+        const sibling = fakeChannel('sibling');
+        const factory = vi.fn(() => sibling);
+        const logger = new OutputChannelLogger(root, undefined, LogLevel.Info, undefined, factory);
+
+        logger.forChannel('sibling').info('hi');
+
+        expect(factory).toHaveBeenCalledExactlyOnceWith('sibling');
+        expect(sibling.appendLine).toHaveBeenCalledWith('[info] hi');
+        expect(root.appendLine).not.toHaveBeenCalled();
+    });
+
+    it('forChannel should cache and return loggers backed by the same channel for repeated names', () => {
+        const root = fakeChannel('root');
+        const sibling = fakeChannel('sibling');
+        const factory = vi.fn(() => sibling);
+        const logger = new OutputChannelLogger(root, undefined, LogLevel.Info, undefined, factory);
+
+        logger.forChannel('sibling').info('first');
+        logger.forChannel('sibling').warn('second');
+        // calling from a derived child must hit the same cache
+        logger.forCategory(LogCategory.Config).forChannel('sibling').error('third');
+
+        expect(factory).toHaveBeenCalledOnce();
+        expect(sibling.appendLine).toHaveBeenNthCalledWith(1, '[info] first');
+        expect(sibling.appendLine).toHaveBeenNthCalledWith(2, '[warn] second');
+        expect(sibling.appendLine).toHaveBeenNthCalledWith(3, '[error] third');
+    });
+
+    it('forChannel called with the root channel name should return the root channel from the cache', () => {
+        const root = fakeChannel('AutoContext');
+        const factory = vi.fn();
+        const logger = new OutputChannelLogger(root, undefined, LogLevel.Info, undefined, factory);
+
+        logger.forChannel('AutoContext').info('echo');
+
+        expect(factory).not.toHaveBeenCalled();
+        expect(root.appendLine).toHaveBeenCalledWith('[info] echo');
+    });
+
+    it('forChannel should propagate the minimum level to the new channel logger', () => {
+        const root = fakeChannel('root');
+        const sibling = fakeChannel('sibling');
+        const factory = vi.fn(() => sibling);
+        const logger = new OutputChannelLogger(root, undefined, LogLevel.Error, undefined, factory);
+
+        const channelLogger = logger.forChannel('sibling');
+        channelLogger.info('ignored');
+        channelLogger.error('kept');
+
+        expect(sibling.appendLine).toHaveBeenCalledExactlyOnceWith('[error] kept');
+    });
+
+    it('dispose should dispose every channel created through the logger tree', () => {
+        const root = fakeChannel('root');
+        const a = fakeChannel('a');
+        const b = fakeChannel('b');
+        const factory = vi.fn((name: string) => (name === 'a' ? a : b));
+        const logger = new OutputChannelLogger(root, undefined, LogLevel.Info, undefined, factory);
+
+        logger.forChannel('a');
+        logger.forChannel('b');
+        logger.dispose();
+
+        expect(root.dispose).toHaveBeenCalledOnce();
+        expect(a.dispose).toHaveBeenCalledOnce();
+        expect(b.dispose).toHaveBeenCalledOnce();
     });
 });

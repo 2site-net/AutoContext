@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { existsSync } from 'node:fs';
 import { WorkspaceContextDetector } from './workspace-context-detector.js';
 import { InstructionsFilesManifestLoader } from './instructions-files-manifest-loader.js';
-import { commandIds, contextKeys, globalStateKeys } from './ui-constants.js';
+import { commandIds, contextKeys, globalStateKeys, EXTENSION_NAME } from './ui-constants.js';
 import { AutoConfigurer } from './auto-configurer.js';
 import { InstructionsFilesExporter } from './instructions-files-exporter.js';
 import { AutoContextConfigManager } from './autocontext-config.js';
@@ -45,8 +45,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
     const instructionsManifest = new InstructionsFilesManifestLoader(context.extensionPath).load(instructionsMetadata);
     const instructionsExporter = new InstructionsFilesExporter(context.extensionPath);
-    const outputChannel = vscode.window.createOutputChannel('AutoContext');
-    const rootLogger = new OutputChannelLogger(outputChannel, undefined, LogLevel.Info);
+    const rootLogger = OutputChannelLogger.create(EXTENSION_NAME, LogLevel.Info);
     const workspaceContextDetector = new WorkspaceContextDetector(instructionsManifest, rootLogger.forCategory(LogCategory.Detection));
     const configManager = new AutoContextConfigManager(context.extensionPath, version, rootLogger.forCategory(LogCategory.Config));
     const contentProvider = new InstructionsViewerDocumentProvider(context.extensionPath, configManager, rootLogger.forCategory(LogCategory.Instructions));
@@ -81,12 +80,12 @@ export async function activate(context: vscode.ExtensionContext) {
     const diagnosticsLogger = rootLogger.forCategory(LogCategory.Diagnostics);
     const writerLogger = rootLogger.forCategory(LogCategory.InstructionsWriter);
     const diagnosticsRunner = new InstructionsFilesDiagnosticsRunner(context.extensionPath, configManager, instructionsManifest);
-    const diagnosticsReporter = new InstructionsFilesDiagnosticsReporter(diagnosticsRunner, diagnosticsLogger);
+    const diagnosticsReporter = new InstructionsFilesDiagnosticsReporter(diagnosticsRunner, rootLogger);
     const logDiagnostics = () => diagnosticsReporter.report();
 
     context.subscriptions.push(
         didChangeEmitter,
-        outputChannel,
+        rootLogger,
         healthMonitor,
         workerManager,
         workspaceContextDetector,

@@ -1,5 +1,7 @@
 // ── Extension identifiers ────────────────────────────────────────────
 
+export const EXTENSION_NAME = 'AutoContext';
+
 export const commandIds = {
     AutoConfigure: 'autocontext.auto-configure',
     ShowNotDetected: 'autocontext.show-not-detected',
