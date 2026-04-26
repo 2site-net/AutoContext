@@ -73,6 +73,15 @@ describe('pipe-framing', () => {
         await expect(readMessage(stream)).rejects.toThrow(/exceeds the maximum/);
     });
 
+    it('throws when the announced length is negative', async () => {
+        const stream = new PassThrough();
+        const header = Buffer.allocUnsafe(4);
+        header.writeInt32LE(-1, 0);
+        stream.write(header);
+
+        await expect(readMessage(stream)).rejects.toThrow(/negative/);
+    });
+
     it('reads two back-to-back messages from the same stream', async () => {
         const stream = new PassThrough();
         const first = Buffer.from('first', 'utf8');

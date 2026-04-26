@@ -34,7 +34,13 @@ public static class PipeFraming
 
         var length = BinaryPrimitives.ReadInt32LittleEndian(header);
 
-        if (length <= 0)
+        if (length < 0)
+        {
+            throw new InvalidDataException(
+                $"Pipe message length {length} is negative; header is corrupt.");
+        }
+
+        if (length == 0)
         {
             return [];
         }

@@ -29,7 +29,11 @@ export async function readMessage(stream: Readable, signal?: AbortSignal): Promi
 
     const length = header.readInt32LE(0);
 
-    if (length <= 0) {
+    if (length < 0) {
+        throw new Error(`Pipe message length ${length} is negative; header is corrupt.`);
+    }
+
+    if (length === 0) {
         return Buffer.alloc(0);
     }
 
