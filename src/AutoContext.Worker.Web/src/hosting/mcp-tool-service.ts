@@ -145,10 +145,21 @@ export class McpToolService {
 
             const responseBytes = await this.dispatch(requestBytes, linkedSignal);
             await channel.write(responseBytes, linkedSignal);
-        } catch {
-            // Client disconnect, abort, or parse failure — the wire is already
-            // broken; nothing more to report back. Matches C# behavior
-            // (swallow IOException/ObjectDisposedException at this boundary).
+        } catch (ex) {
+            // `dispatch()` converts task/parse failures into structured
+            // error envelopes, so the only errors that reach this catch
+            // are channel-level: peer disconnect, signal abort, or the
+            // pipe being torn down mid-transfer (all expected), or
+            // protocol corruption / unexpected stream failures (real
+            // bugs). Surface the latter to stderr instead of swallowing
+            // them. Matches C# behavior of only tolerating
+            // IOException/ObjectDisposedException at this boundary.
+            if (!isExpectedConnectionError(ex)) {
+                const { name, message } = describeError(ex);
+                process.stderr.write(
+                    `[McpToolService] Unexpected error in connection handler: ${name}: ${message}\n`,
+                );
+            }
         } finally {
             socket.end();
             socket.destroy();
@@ -193,6 +204,26 @@ function describeError(ex: unknown): { name: string; message: string } {
         return { name: ex.name || 'Error', message: ex.message || String(ex) };
     }
     return { name: 'Error', message: ex === null ? 'null' : String(ex) };
+}
+
+/**
+ * Returns true for the small set of errors that are an expected part
+ * of normal pipe-server lifecycle: the abort signal firing, the peer
+ * closing the connection, or the pipe being torn down mid-write.
+ * Anything else is treated as a real bug and surfaced to stderr.
+ */
+function isExpectedConnectionError(ex: unknown): boolean {
+    if (!(ex instanceof Error)) {
+        return false;
+    }
+    if (ex.name === 'AbortError') {
+        return true;
+    }
+    const code = (ex as NodeJS.ErrnoException).code;
+    return code === 'ECONNRESET'
+        || code === 'EPIPE'
+        || code === 'ERR_STREAM_PREMATURE_CLOSE'
+        || code === 'ERR_STREAM_DESTROYED';
 }
 
 async function listenWithStaleRecovery(server: net.Server, pipePath: string): Promise<void> {
