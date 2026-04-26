@@ -70,6 +70,15 @@ class NullThrowingTask implements McpTask {
     }
 }
 
+class BigIntTask implements McpTask {
+    readonly taskName = 'bigint';
+    async execute(): Promise<unknown> {
+        // BigInt cannot be serialized by JSON.stringify — exercises the
+        // guarded-stringify path in buildSuccessResponse.
+        return { big: 1n };
+    }
+}
+
 describe('McpToolService', () => {
     const services: McpToolService[] = [];
     const controllers: AbortController[] = [];
@@ -212,6 +221,16 @@ describe('McpToolService', () => {
         expect(response['status']).toBe('error');
         expect(response['mcpTask']).toBe('null-throw');
         expect(response['error']).toMatch(/Task threw Error: null/);
+    });
+
+    it('returns an error envelope when task output is not JSON-serializable', async () => {
+        const { pipe } = await startService([new BigIntTask()]);
+
+        const response = await sendRequest(pipe, { mcpTask: 'bigint', data: {} });
+
+        expect(response['status']).toBe('error');
+        expect(response['mcpTask']).toBe('bigint');
+        expect(response['error']).toMatch(/not JSON-serializable/);
     });
 
     it('stop() completes promptly when a handler is mid-read', async () => {

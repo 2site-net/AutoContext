@@ -314,15 +314,28 @@ function buildTaskData(request: Record<string, unknown>): Record<string, unknown
 }
 
 function buildSuccessResponse(taskName: string, output: unknown): Buffer {
-    return Buffer.from(
-        JSON.stringify({
+    // `JSON.stringify` throws on `BigInt`, circular references, and a
+    // few other shapes. Without this guard those would propagate up to
+    // the dispatcher's catch and be reported as `Task threw …`, which
+    // is misleading — the task succeeded; only the response could not
+    // be serialized. Synthesize a clear error envelope instead so the
+    // client sees the real cause.
+    let payload: string;
+    try {
+        payload = JSON.stringify({
             mcpTask: taskName,
             status: 'ok',
             output: output ?? null,
             error: '',
-        }),
-        'utf8',
-    );
+        });
+    } catch (ex) {
+        const { name, message } = describeError(ex);
+        return buildErrorResponse(
+            taskName,
+            `Task output is not JSON-serializable: ${name}: ${message}`,
+        );
+    }
+    return Buffer.from(payload, 'utf8');
 }
 
 function buildErrorResponse(taskName: string, error: string): Buffer {
