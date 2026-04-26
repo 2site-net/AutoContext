@@ -386,7 +386,7 @@ function Build-TypeScript {
             if ($LASTEXITCODE -ne 0) { throw 'Extension npm install failed.' }
 
             Write-Status 'Generating chat-instructions manifest...' 'INFO'
-            npx tsx src/chat-instructions-files-manifest.ts
+            npx tsx src/package-instructions-manifest-generator.ts
             if ($LASTEXITCODE -ne 0) { throw 'Chat-instructions manifest generation failed.' }
             Write-Status 'Chat-instructions manifest generated' 'OK'
 

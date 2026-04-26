@@ -1,7 +1,7 @@
 // Builds the chatInstructions manifest from the instructions-files
 // manifest and writes it to the contributes.chatInstructions field in
 // package.json.
-// Self-executable: tsx src/chat-instructions-files-manifest.ts
+// Self-executable: tsx src/package-instructions-manifest-generator.ts
 //
 // Example output:
 //   { "path": "./instructions/copilot.instructions.md" },
@@ -16,7 +16,7 @@ import { fileURLToPath } from 'node:url';
 import { InstructionsFilesManifestLoader } from './instructions-files-manifest-loader.js';
 import { InstructionsFilesManifest } from './instructions-files-manifest.js';
 import type { InstructionsFileEntry } from './instructions-file-entry.js';
-import type { ChatInstructions } from './types/chat-instructions.js';
+import type { PackageInstructionsFileEntry } from './types/package-instructions-file-entry.js';
 
 function buildWhenClause(entry: InstructionsFileEntry): string {
     const parts = [entry.runtimeInfo.contextKey];
@@ -33,7 +33,7 @@ function buildWhenClause(entry: InstructionsFileEntry): string {
     return parts.join(' && ');
 }
 
-export function buildChatInstructions(manifest: InstructionsFilesManifest): ChatInstructions[] {
+export function buildChatInstructions(manifest: InstructionsFilesManifest): PackageInstructionsFileEntry[] {
     return [
         { path: './instructions/copilot.instructions.md' },
         ...manifest.instructions.map(entry => ({
@@ -43,7 +43,7 @@ export function buildChatInstructions(manifest: InstructionsFilesManifest): Chat
     ];
 }
 
-if (process.argv[1]?.replace(/\\/g, '/').endsWith('/src/chat-instructions-files-manifest.ts')) {
+if (process.argv[1]?.replace(/\\/g, '/').endsWith('/src/package-instructions-manifest-generator.ts')) {
     const root = join(dirname(fileURLToPath(import.meta.url)), '..');
     const pkgPath = join(root, 'package.json');
     const pkg = JSON.parse(readFileSync(pkgPath, 'utf-8'));
