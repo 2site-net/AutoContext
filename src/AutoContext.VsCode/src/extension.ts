@@ -24,6 +24,8 @@ import { McpServerProvider } from './mcp-server-provider.js';
 import { WorkerManager } from './worker-manager.js';
 import { ServersManifestLoader } from './servers-manifest-loader.js';
 import { HealthMonitorServer } from './health-monitor.js';
+import { OutputChannelLogger } from './output-channel-logger.js';
+import { LogCategory, LogLevel } from './types/logger.js';
 
 let subscriptions: vscode.Disposable[] | undefined;
 
@@ -44,24 +46,25 @@ export async function activate(context: vscode.ExtensionContext) {
     const instructionsManifest = new InstructionsFilesManifestLoader(context.extensionPath).load(instructionsMetadata);
     const instructionsExporter = new InstructionsFilesExporter(context.extensionPath);
     const outputChannel = vscode.window.createOutputChannel('AutoContext');
-    const workspaceContextDetector = new WorkspaceContextDetector(instructionsManifest, outputChannel);
-    const configManager = new AutoContextConfigManager(context.extensionPath, version, outputChannel);
-    const contentProvider = new InstructionsViewerDocumentProvider(context.extensionPath, configManager, outputChannel);
-    const codeLensProvider = new InstructionsViewerCodeLensProvider(context.extensionPath, configManager, workspaceContextDetector, instructionsManifest, outputChannel);
-    const decorationManager = new InstructionsViewerDecorationManager(context.extensionPath, configManager, outputChannel);
-    const instructionsWriter = new InstructionsFilesManager(context.extensionPath, configManager, instructionsManifest, outputChannel);
-    const configProjector = new ConfigContextProjector(configManager, instructionsManifest, mcpToolsManifest, outputChannel);
+    const rootLogger = new OutputChannelLogger(outputChannel, undefined, LogLevel.Info);
+    const workspaceContextDetector = new WorkspaceContextDetector(instructionsManifest, rootLogger.forCategory(LogCategory.Detection));
+    const configManager = new AutoContextConfigManager(context.extensionPath, version, rootLogger.forCategory(LogCategory.Config));
+    const contentProvider = new InstructionsViewerDocumentProvider(context.extensionPath, configManager, rootLogger.forCategory(LogCategory.Instructions));
+    const codeLensProvider = new InstructionsViewerCodeLensProvider(context.extensionPath, configManager, workspaceContextDetector, instructionsManifest, rootLogger.forCategory(LogCategory.Instructions));
+    const decorationManager = new InstructionsViewerDecorationManager(context.extensionPath, configManager, rootLogger.forCategory(LogCategory.Decorations));
+    const instructionsWriter = new InstructionsFilesManager(context.extensionPath, configManager, instructionsManifest, rootLogger.forCategory(LogCategory.InstructionsWriter));
+    const configProjector = new ConfigContextProjector(configManager, instructionsManifest, mcpToolsManifest, rootLogger.forCategory(LogCategory.ConfigProjector));
     const serversManifest = new ServersManifestLoader(context.extensionPath).load();
-    const workerManager = new WorkerManager(context.extensionPath, outputChannel, vscode.workspace.workspaceFolders?.[0]?.uri.fsPath, serversManifest);
-    const healthMonitor = new HealthMonitorServer(outputChannel);
-    const mcpServerProvider = new McpServerProvider(context.extensionPath, version, didChangeEmitter.event, mcpToolsManifest, healthMonitor, workerManager, serversManifest, configManager, outputChannel);
+    const workerManager = new WorkerManager(context.extensionPath, rootLogger.forCategory(LogCategory.WorkerManager), vscode.workspace.workspaceFolders?.[0]?.uri.fsPath, serversManifest);
+    const healthMonitor = new HealthMonitorServer(rootLogger.forCategory(LogCategory.HealthMonitor));
+    const mcpServerProvider = new McpServerProvider(context.extensionPath, version, didChangeEmitter.event, mcpToolsManifest, healthMonitor, workerManager, serversManifest, configManager, rootLogger.forCategory(LogCategory.McpServerProvider));
     const stateResolver = new TreeViewStateResolver(workspaceContextDetector);
 
     // Pre-read the config so tree providers get the real config on first render.
     await configManager.read();
 
-    const instructionsTreeProvider = new InstructionsFilesTreeProvider(workspaceContextDetector, instructionsManifest, stateResolver, new TreeViewTooltip('instructions'), configManager, outputChannel);
-    const mcpToolsTreeProvider = new McpToolsTreeProvider(workspaceContextDetector, mcpToolsManifest, stateResolver, new TreeViewTooltip('tools'), configManager, outputChannel, healthMonitor, mcpServerProvider);
+    const instructionsTreeProvider = new InstructionsFilesTreeProvider(workspaceContextDetector, instructionsManifest, stateResolver, new TreeViewTooltip('instructions'), configManager, rootLogger.forCategory(LogCategory.InstructionsTree));
+    const mcpToolsTreeProvider = new McpToolsTreeProvider(workspaceContextDetector, mcpToolsManifest, stateResolver, new TreeViewTooltip('tools'), configManager, rootLogger.forCategory(LogCategory.McpToolsTree), healthMonitor, mcpServerProvider);
 
     const showNotDetected = context.globalState.get<boolean>(commandIds.ShowNotDetected, true);
     instructionsTreeProvider.showNotDetected = showNotDetected;
@@ -75,8 +78,10 @@ export async function activate(context: vscode.ExtensionContext) {
         void vscode.commands.executeCommand('setContext', commandIds.ShowNotDetected, value);
     };
 
+    const diagnosticsLogger = rootLogger.forCategory(LogCategory.Diagnostics);
+    const writerLogger = rootLogger.forCategory(LogCategory.InstructionsWriter);
     const diagnosticsRunner = new InstructionsFilesDiagnosticsRunner(context.extensionPath, configManager, instructionsManifest);
-    const diagnosticsReporter = new InstructionsFilesDiagnosticsReporter(diagnosticsRunner);
+    const diagnosticsReporter = new InstructionsFilesDiagnosticsReporter(diagnosticsRunner, diagnosticsLogger);
     const logDiagnostics = () => diagnosticsReporter.report();
 
     context.subscriptions.push(
@@ -94,7 +99,6 @@ export async function activate(context: vscode.ExtensionContext) {
         instructionsTreeProvider,
         mcpToolsTreeProvider,
         mcpServerProvider,
-        diagnosticsReporter,
     );
 
     healthMonitor.start();
@@ -137,7 +141,7 @@ export async function activate(context: vscode.ExtensionContext) {
         }),
     ]);
     if (workspaceReadyTimedOut) {
-        outputChannel.appendLine('[WorkerManager] Timed out waiting for Worker.Workspace ready marker; continuing activation.');
+        rootLogger.forCategory(LogCategory.Activation).warn('Timed out waiting for Worker.Workspace ready marker; continuing activation.');
     }
 
     await Promise.all([
@@ -165,19 +169,19 @@ export async function activate(context: vscode.ExtensionContext) {
             configManager.resetInstructions(fileName)),
         configManager.onDidChange(() =>
             void logDiagnostics().catch(err =>
-                outputChannel.appendLine(`[Diagnostics] Failed to log diagnostics: ${err instanceof Error ? err.message : err}`),
+                diagnosticsLogger.error('Failed to log diagnostics', err),
             ),
         ),
         vscode.window.onDidChangeWindowState(e => {
             if (e.focused) {
                 void instructionsWriter.write().catch(err =>
-                    outputChannel.appendLine(`[InstructionsWriter] Failed to write on focus: ${err instanceof Error ? err.message : err}`),
+                    writerLogger.error('Failed to write on focus', err),
                 );
             }
         }),
         vscode.workspace.onDidGrantWorkspaceTrust(() => {
             void instructionsWriter.write().catch(err =>
-                outputChannel.appendLine(`[InstructionsWriter] Failed to write on trust grant: ${err instanceof Error ? err.message : err}`),
+                writerLogger.error('Failed to write on trust grant', err),
             );
         }),
         configManager.onDidChange(() => didChangeEmitter.fire()),

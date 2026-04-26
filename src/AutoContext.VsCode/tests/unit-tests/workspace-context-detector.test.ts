@@ -1,15 +1,15 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { workspace, commands } from './_fakes/fake-vscode';
 import { WorkspaceContextDetector } from '../../src/workspace-context-detector';
-import { createFakeOutputChannel, fakeUri, stubFindFiles, stubReadFile } from './_fakes';
+import { createFakeLogger, fakeUri, stubFindFiles, stubReadFile } from './_fakes';
 import { detectorTestInstructions, makeInstructionsFilesManifest } from './_fixtures';
 
-const mockOutputChannel = createFakeOutputChannel();
+const mockLogger = createFakeLogger();
 
 function createDetector(): WorkspaceContextDetector {
     return new WorkspaceContextDetector(
         makeInstructionsFilesManifest(detectorTestInstructions),
-        mockOutputChannel,
+        mockLogger,
     );
 }
 

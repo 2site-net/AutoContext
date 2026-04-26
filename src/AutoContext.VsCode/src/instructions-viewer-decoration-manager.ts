@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import { InstructionsFileParser } from './instructions-file-parser.js';
 import { instructionScheme } from './instructions-viewer-document-provider.js';
 import type { AutoContextConfigManager } from './autocontext-config.js';
+import type { Logger } from './types/logger.js';
 
 export class InstructionsViewerDecorationManager implements vscode.Disposable {
     private readonly decorationType = vscode.window.createTextEditorDecorationType({ opacity: '0.4' });
@@ -11,14 +12,14 @@ export class InstructionsViewerDecorationManager implements vscode.Disposable {
     constructor(
         private readonly extensionPath: string,
         private readonly configManager: AutoContextConfigManager,
-        private readonly outputChannel: vscode.OutputChannel,
+        private readonly logger: Logger,
     ) {
         this.disposables.push(
             this.decorationType,
             vscode.window.onDidChangeActiveTextEditor(editor => {
                 if (editor) {
                     void this.applyDecorations(editor).catch(err =>
-                        this.outputChannel.appendLine(`[Decorations] Failed to apply decorations: ${err instanceof Error ? err.message : err}`),
+                        this.logger.error('Failed to apply decorations', err),
                     );
                 }
             }),
@@ -38,7 +39,7 @@ export class InstructionsViewerDecorationManager implements vscode.Disposable {
         try {
             ({ result: { instructions } } = await InstructionsFileParser.fromFile(filePath));
         } catch (err) {
-            this.outputChannel.appendLine(`[Instructions] Failed to parse ${fileName}: ${err instanceof Error ? err.message : err}`);
+            this.logger.error(`Failed to parse ${fileName}`, err);
             return;
         }
         const disabledIds = await this.configManager.getDisabledInstructions(fileName);
@@ -56,7 +57,7 @@ export class InstructionsViewerDecorationManager implements vscode.Disposable {
     refreshAll(): void {
         for (const editor of vscode.window.visibleTextEditors) {
             void this.applyDecorations(editor).catch(err =>
-                this.outputChannel.appendLine(`[Decorations] Failed to apply decorations: ${err instanceof Error ? err.message : err}`),
+                this.logger.error('Failed to apply decorations', err),
             );
         }
     }

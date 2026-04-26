@@ -1,4 +1,4 @@
-export { createFakeOutputChannel } from './fake-output-channel';
+export { createFakeLogger } from './fake-logger';
 export { createFakeDetector } from './fake-detector';
 export { createFakeConfigManager, createMockConfigManager } from './fake-config-manager';
 export { createFakeHealthMonitor } from './fake-health-monitor';

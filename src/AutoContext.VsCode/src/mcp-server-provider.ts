@@ -8,6 +8,7 @@ import type { WorkerManager } from './worker-manager.js';
 import type { AutoContextConfigManager } from './autocontext-config.js';
 import type { AutoContextConfig } from './types/autocontext-config.js';
 import { isToolEnabled } from './config-context-projector.js';
+import type { Logger } from './types/logger.js';
 
 const extensionId = '2site-net.autocontext';
 
@@ -41,7 +42,7 @@ export class McpServerProvider implements vscode.McpServerDefinitionProvider {
         private readonly workerManager: WorkerManager,
         serversManifest: ServersManifest,
         configManager: AutoContextConfigManager,
-        private readonly outputChannel: vscode.OutputChannel,
+        private readonly logger: Logger,
     ) {
         const mcpServerEntry = serversManifest.mcpServer;
         const ext = process.platform === 'win32' ? '.exe' : '';
@@ -51,7 +52,7 @@ export class McpServerProvider implements vscode.McpServerDefinitionProvider {
         this.onDidChangeMcpServerDefinitions = onDidChange;
         this.disposable = configManager.onDidChange(() => {
             void configManager.read().then(c => { this._config = c; }).catch(err =>
-                this.outputChannel.appendLine(`[McpServerProvider] Failed to update config: ${err instanceof Error ? err.message : err}`),
+                this.logger.error('Failed to update config', err),
             );
         });
     }

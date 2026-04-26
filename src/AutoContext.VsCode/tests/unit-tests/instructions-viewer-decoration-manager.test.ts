@@ -13,11 +13,11 @@ vi.mock('node:fs/promises', () => ({
 }));
 
 import { workspace, window as vscodeWindow } from './_fakes/fake-vscode';
-import { createFakeOutputChannel } from './_fakes';
+import { createFakeLogger } from './_fakes';
 import { testInstructionsContent } from './_fixtures';
 import { makeEditor } from './_utils';
 
-const mockOutputChannel = createFakeOutputChannel();
+const mockLogger = createFakeLogger();
 
 beforeEach(() => {
     vi.clearAllMocks();
@@ -29,8 +29,8 @@ describe('InstructionsViewerDecorationManager', () => {
     it('should not set decorations for non-instruction editors', async () => {
         vi.mocked(readFile).mockResolvedValue('{}');
 
-        const configManager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
-        const manager = new InstructionsViewerDecorationManager('/ext', configManager, mockOutputChannel);
+        const configManager = new AutoContextConfigManager('/ext', '0.5.0', mockLogger);
+        const manager = new InstructionsViewerDecorationManager('/ext', configManager, mockLogger);
 
         const editor = makeEditor('file', '/some/file.ts');
         await manager.applyDecorations(editor);
@@ -45,8 +45,8 @@ describe('InstructionsViewerDecorationManager', () => {
             return testInstructionsContent;
         });
 
-        const configManager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
-        const manager = new InstructionsViewerDecorationManager('/ext', configManager, mockOutputChannel);
+        const configManager = new AutoContextConfigManager('/ext', '0.5.0', mockLogger);
+        const manager = new InstructionsViewerDecorationManager('/ext', configManager, mockLogger);
 
         const editor = makeEditor(instructionScheme, 'test.instructions.md');
         await manager.applyDecorations(editor);
@@ -76,8 +76,8 @@ describe('InstructionsViewerDecorationManager', () => {
             return testInstructionsContent;
         });
 
-        const configManager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
-        const manager = new InstructionsViewerDecorationManager('/ext', configManager, mockOutputChannel);
+        const configManager = new AutoContextConfigManager('/ext', '0.5.0', mockLogger);
+        const manager = new InstructionsViewerDecorationManager('/ext', configManager, mockLogger);
 
         const editor = makeEditor(instructionScheme, 'test.instructions.md');
         await manager.applyDecorations(editor);
@@ -103,8 +103,8 @@ describe('InstructionsViewerDecorationManager', () => {
         const editor2 = makeEditor('file', '/some/file.ts');
         vscodeWindow.visibleTextEditors = [editor1, editor2] as unknown[];
 
-        const configManager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
-        const manager = new InstructionsViewerDecorationManager('/ext', configManager, mockOutputChannel);
+        const configManager = new AutoContextConfigManager('/ext', '0.5.0', mockLogger);
+        const manager = new InstructionsViewerDecorationManager('/ext', configManager, mockLogger);
         manager.refreshAll();
 
         // refreshAll fires void (fire-and-forget) async applyDecorations calls;
@@ -115,7 +115,7 @@ describe('InstructionsViewerDecorationManager', () => {
         expect.soft((editor2 as unknown as { setDecorations: ReturnType<typeof vi.fn> }).setDecorations).not.toHaveBeenCalled();
     });
 
-    it('should log to outputChannel when applyDecorations fails in onDidChangeActiveTextEditor', async () => {
+    it('should log to logger when applyDecorations fails in onDidChangeActiveTextEditor', async () => {
         vi.mocked(readFile).mockResolvedValue(testInstructionsContent);
 
         const failingConfigManager = {
@@ -123,20 +123,21 @@ describe('InstructionsViewerDecorationManager', () => {
             onDidChange: vi.fn(() => ({ dispose: vi.fn() })),
         } as unknown as AutoContextConfigManager;
 
-        const oc = createFakeOutputChannel();
+        const oc = createFakeLogger();
         const _manager = new InstructionsViewerDecorationManager('/ext', failingConfigManager, oc);
 
         const editorCallback = vi.mocked(vscodeWindow.onDidChangeActiveTextEditor).mock.calls.at(-1)![0] as (e: unknown) => void;
         editorCallback(makeEditor(instructionScheme, 'test.instructions.md'));
 
         await vi.waitFor(() => {
-            expect(oc.appendLine).toHaveBeenCalledWith(
-                expect.stringContaining('[Decorations] Failed to apply decorations: config boom'),
+            expect(oc.error).toHaveBeenCalledWith(
+                'Failed to apply decorations',
+                expect.objectContaining({ message: 'config boom' }),
             );
         });
     });
 
-    it('should log to outputChannel when applyDecorations fails in refreshAll', async () => {
+    it('should log to logger when applyDecorations fails in refreshAll', async () => {
         vi.mocked(readFile).mockResolvedValue(testInstructionsContent);
 
         const failingConfigManager = {
@@ -144,7 +145,7 @@ describe('InstructionsViewerDecorationManager', () => {
             onDidChange: vi.fn(() => ({ dispose: vi.fn() })),
         } as unknown as AutoContextConfigManager;
 
-        const oc = createFakeOutputChannel();
+        const oc = createFakeLogger();
         const manager = new InstructionsViewerDecorationManager('/ext', failingConfigManager, oc);
 
         const editor = makeEditor(instructionScheme, 'test.instructions.md');
@@ -152,8 +153,9 @@ describe('InstructionsViewerDecorationManager', () => {
         manager.refreshAll();
 
         await vi.waitFor(() => {
-            expect(oc.appendLine).toHaveBeenCalledWith(
-                expect.stringContaining('[Decorations] Failed to apply decorations: config boom'),
+            expect(oc.error).toHaveBeenCalledWith(
+                'Failed to apply decorations',
+                expect.objectContaining({ message: 'config boom' }),
             );
         });
     });

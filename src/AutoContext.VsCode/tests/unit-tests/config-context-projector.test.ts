@@ -4,7 +4,7 @@ import { ConfigContextProjector, isToolEnabled } from '../../src/config-context-
 import { McpCategoryEntry } from '../../src/mcp-category-entry';
 import { McpToolEntry } from '../../src/mcp-tool-entry';
 import { McpToolsManifest } from '../../src/mcp-tools-manifest';
-import { createFakeOutputChannel, createMockConfigManager } from './_fakes';
+import { createFakeLogger, createMockConfigManager } from './_fakes';
 import { makeInstructionsFilesManifest, projectorTestInstructions } from './_fixtures';
 import { findSetContextCall } from './_utils';
 
@@ -30,10 +30,10 @@ function buildProjectorManifest(): McpToolsManifest {
 describe('ConfigContextProjector', () => {
     const catalog = makeInstructionsFilesManifest(projectorTestInstructions);
     const toolsManifest = buildProjectorManifest();
-    const outputChannel = createFakeOutputChannel();
+    const logger = createFakeLogger();
 
     it('should set all context keys to true when config is empty', async () => {
-        const projector = new ConfigContextProjector(createMockConfigManager({}), catalog, toolsManifest, outputChannel);
+        const projector = new ConfigContextProjector(createMockConfigManager({}), catalog, toolsManifest, logger);
         await projector.project();
 
         expect(findSetContextCall('autocontext.instructions.code-review')?.[2]).toBe(true);
@@ -50,7 +50,7 @@ describe('ConfigContextProjector', () => {
             }),
             catalog,
             toolsManifest,
-            outputChannel,
+            logger,
         );
         await projector.project();
 
@@ -65,7 +65,7 @@ describe('ConfigContextProjector', () => {
             }),
             catalog,
             toolsManifest,
-            outputChannel,
+            logger,
         );
         await projector.project();
 
@@ -80,7 +80,7 @@ describe('ConfigContextProjector', () => {
             }),
             catalog,
             toolsManifest,
-            outputChannel,
+            logger,
         );
         await projector.project();
 
@@ -100,7 +100,7 @@ describe('ConfigContextProjector', () => {
             }),
             catalog,
             toolsManifest,
-            outputChannel,
+            logger,
         );
         await projector.project();
 
@@ -117,27 +117,28 @@ describe('ConfigContextProjector', () => {
             }),
             catalog,
             toolsManifest,
-            outputChannel,
+            logger,
         );
         await projector.project();
 
         expect.soft(findSetContextCall('autocontext.instructions.code-review')?.[2]).toBe(true);
     });
 
-    it('should log to outputChannel when project fails via onDidChange', async () => {
+    it('should log to logger when project fails via onDidChange', async () => {
         let onDidChangeCallback!: () => void;
         const failingManager = {
             read: vi.fn().mockRejectedValue(new Error('read boom')),
             onDidChange: vi.fn((cb: () => void) => { onDidChangeCallback = cb; return { dispose: vi.fn() }; }),
         } as unknown as import('../../src/autocontext-config').AutoContextConfigManager;
 
-        const oc = createFakeOutputChannel();
+        const oc = createFakeLogger();
         const _projector = new ConfigContextProjector(failingManager, catalog, toolsManifest, oc);
 
         onDidChangeCallback();
         await vi.waitFor(() => {
-            expect(oc.appendLine).toHaveBeenCalledWith(
-                expect.stringContaining('[ConfigProjector] Failed to project config: read boom'),
+            expect(oc.error).toHaveBeenCalledWith(
+                'Failed to project config',
+                expect.objectContaining({ message: 'read boom' }),
             );
         });
 

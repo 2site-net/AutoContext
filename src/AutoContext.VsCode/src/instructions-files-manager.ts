@@ -5,6 +5,7 @@ import { createHash } from 'node:crypto';
 import type { InstructionsFilesManifest } from './instructions-files-manifest.js';
 import { InstructionsFileParser } from './instructions-file-parser.js';
 import type { AutoContextConfigManager } from './autocontext-config.js';
+import type { Logger } from './types/logger.js';
 
 /**
  * Generates normalized instruction files with disabled instructions removed
@@ -28,7 +29,7 @@ export class InstructionsFilesManager implements vscode.Disposable {
         private readonly extensionPath: string,
         private readonly configManager: AutoContextConfigManager,
         private readonly manifest: InstructionsFilesManifest,
-        private readonly outputChannel: vscode.OutputChannel,
+        private readonly logger: Logger,
     ) {
         this.generatedRoot = join(extensionPath, 'instructions', '.generated');
         this.stagingDir = join(extensionPath, 'instructions', '.workspaces', InstructionsFilesManager.workspaceHash());
@@ -37,7 +38,7 @@ export class InstructionsFilesManager implements vscode.Disposable {
             vscode.workspace.onDidChangeWorkspaceFolders(() => {
                 this.stagingDir = join(this.extensionPath, 'instructions', '.workspaces', InstructionsFilesManager.workspaceHash());
                 void this.write().catch(err =>
-                    this.outputChannel.appendLine(`[InstructionsWriter] Failed to write on workspace change: ${err instanceof Error ? err.message : err}`),
+                    this.logger.error('Failed to write on workspace change', err),
                 );
             }),
         );
@@ -50,7 +51,7 @@ export class InstructionsFilesManager implements vscode.Disposable {
         this.debounceTimer = setTimeout(() => {
             this.debounceTimer = undefined;
             void this.write().catch(err =>
-                this.outputChannel.appendLine(`[InstructionsWriter] Failed to write on config change: ${err instanceof Error ? err.message : err}`),
+                this.logger.error('Failed to write on config change', err),
             );
         }, 250);
     }
@@ -152,7 +153,7 @@ export class InstructionsFilesManager implements vscode.Disposable {
         try {
             ({ content, result: parsedResult } = await InstructionsFileParser.fromFile(src));
         } catch (err) {
-            this.outputChannel.appendLine(`[Instructions] Failed to parse ${fileName}: ${err instanceof Error ? err.message : err}`);
+            this.logger.error(`Failed to parse ${fileName}`, err);
             return;
         }
 

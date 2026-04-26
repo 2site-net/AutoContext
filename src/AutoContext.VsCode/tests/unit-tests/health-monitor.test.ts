@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { __emitterInstances } from './_fakes/fake-vscode';
 import { HealthMonitorServer } from '../../src/health-monitor';
-import { createFakeOutputChannel } from './_fakes';
+import { createFakeLogger } from './_fakes';
 import { connectAndSend } from './_utils/pipe-helpers';
 import { waitFor } from './_utils/wait-for';
 
-const fakeOutputChannel = createFakeOutputChannel();
+const fakeOutputChannel = createFakeLogger();
 
 describe('HealthMonitorServer', () => {
     let monitor: HealthMonitorServer;

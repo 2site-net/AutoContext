@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { createServer, type Server, type Socket } from 'node:net';
 import { randomUUID } from 'node:crypto';
+import type { Logger } from './types/logger.js';
 
 /**
  * Monitors MCP worker health via a named pipe.
@@ -25,7 +26,7 @@ export class HealthMonitorServer implements vscode.Disposable {
     private server: Server | undefined;
 
     constructor(
-        private readonly outputChannel: vscode.OutputChannel,
+        private readonly logger: Logger,
     ) {}
 
     /**
@@ -76,11 +77,11 @@ export class HealthMonitorServer implements vscode.Disposable {
         });
 
         this.server.on('error', (err) => {
-            this.outputChannel.appendLine(`[HealthMonitor] Pipe server error: ${err.message}`);
+            this.logger.error('Pipe server error', err);
         });
 
         this.server.listen(pipePath, () => {
-            this.outputChannel.appendLine(`[HealthMonitor] Listening on pipe: ${this.pipeName}`);
+            this.logger.info(`Listening on pipe: ${this.pipeName}`);
         });
     }
 
@@ -95,7 +96,7 @@ export class HealthMonitorServer implements vscode.Disposable {
         sockets.add(socket);
 
         if (wasEmpty) {
-            this.outputChannel.appendLine(`[HealthMonitor] ${workerId}: connected`);
+            this.logger.info(`${workerId}: connected`);
             this._onDidChange.fire();
         }
     }
@@ -107,7 +108,7 @@ export class HealthMonitorServer implements vscode.Disposable {
         sockets.delete(socket);
 
         if (sockets.size === 0) {
-            this.outputChannel.appendLine(`[HealthMonitor] ${workerId}: disconnected`);
+            this.logger.info(`${workerId}: disconnected`);
             this._onDidChange.fire();
         }
     }

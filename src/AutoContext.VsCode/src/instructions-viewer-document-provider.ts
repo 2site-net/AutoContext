@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { join } from 'node:path';
 import { InstructionsFileParser } from './instructions-file-parser.js';
 import type { AutoContextConfigManager } from './autocontext-config.js';
+import type { Logger } from './types/logger.js';
 
 export const instructionScheme = 'autocontext-instructions';
 
@@ -13,7 +14,7 @@ export class InstructionsViewerDocumentProvider implements vscode.TextDocumentCo
     constructor(
         private readonly extensionPath: string,
         private readonly configManager: AutoContextConfigManager,
-        private readonly outputChannel: vscode.OutputChannel,
+        private readonly logger: Logger,
     ) {
         this.disposables.push(
             this.didChangeEmitter,
@@ -30,7 +31,7 @@ export class InstructionsViewerDocumentProvider implements vscode.TextDocumentCo
         try {
             ({ content, result: { instructions } } = await InstructionsFileParser.fromFile(filePath));
         } catch (err) {
-            this.outputChannel.appendLine(`[Instructions] Failed to parse ${fileName}: ${err instanceof Error ? err.message : err}`);
+            this.logger.error(`Failed to parse ${fileName}`, err);
             return `Unable to read instruction file: ${fileName}`;
         }
 

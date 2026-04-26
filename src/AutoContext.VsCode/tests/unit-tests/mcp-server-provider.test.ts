@@ -6,7 +6,7 @@ import { McpToolsManifestLoader } from '../../src/mcp-tools-manifest-loader';
 import type { ServersManifest } from '../../src/types/servers-manifest';
 import type { AutoContextConfig } from '../../src/types/autocontext-config';
 import type { WorkerManager } from '../../src/worker-manager';
-import { createFakeConfigManager, createFakeHealthMonitor, createFakeOutputChannel } from './_fakes';
+import { createFakeConfigManager, createFakeHealthMonitor, createFakeLogger } from './_fakes';
 
 const { existsSyncMock } = vi.hoisted(() => ({ existsSyncMock: vi.fn<(path: string) => boolean>(() => true) }));
 vi.mock('node:fs', async () => {
@@ -20,7 +20,7 @@ const extensionPath = '/ext';
 const version = '1.0.0';
 
 const fakeHealthMonitor = createFakeHealthMonitor();
-const outputChannel = createFakeOutputChannel();
+const logger = createFakeLogger();
 
 const onDidChange = vi.fn() as unknown as import('vscode').Event<void>;
 const mcpToolsManifest = new McpToolsManifestLoader(join(__dirname, '..', '..')).load();
@@ -43,7 +43,7 @@ function createProvider(): McpServerProvider {
         fakeWorkerManager,
         serversManifest,
         fakeConfigManager,
-        outputChannel,
+        logger,
     );
 }
 
@@ -174,7 +174,7 @@ describe('McpServerProvider config updates', () => {
             onDidChange: vi.fn((cb: () => void) => { onDidChangeCallback = cb; return { dispose: vi.fn() }; }),
         } as unknown as import('../../src/autocontext-config').AutoContextConfigManager;
 
-        const oc = createFakeOutputChannel();
+        const oc = createFakeLogger();
         const provider = new McpServerProvider(
             extensionPath,
             version,
@@ -189,8 +189,9 @@ describe('McpServerProvider config updates', () => {
 
         onDidChangeCallback();
         await vi.waitFor(() => {
-            expect(oc.appendLine).toHaveBeenCalledWith(
-                expect.stringContaining('[McpServerProvider] Failed to update config: read boom'),
+            expect(oc.error).toHaveBeenCalledWith(
+                'Failed to update config',
+                expect.objectContaining({ message: 'read boom' }),
             );
         });
 

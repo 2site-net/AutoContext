@@ -5,6 +5,7 @@ import { randomUUID } from 'node:crypto';
 import { createInterface } from 'node:readline';
 import { formatEndpoint } from './endpoint-formatter.js';
 import type { ServersManifest } from './types/servers-manifest.js';
+import type { Logger } from './types/logger.js';
 
 /**
  * A worker the extension spawns and keeps alive for the lifetime of
@@ -48,7 +49,7 @@ export class WorkerManager implements vscode.Disposable {
 
     constructor(
         private readonly extensionPath: string,
-        private readonly outputChannel: vscode.OutputChannel,
+        private readonly logger: Logger,
         private readonly workspaceRoot: string | undefined,
         private readonly serversManifest: ServersManifest,
     ) {
@@ -140,6 +141,7 @@ export class WorkerManager implements vscode.Disposable {
     }
 
     private spawnWorker(spec: WorkerSpec): void {
+        const workerLogger = this.logger.forCategory(spec.identity);
         const child = spawn(spec.command, [...spec.args], {
             stdio: ['ignore', 'pipe', 'pipe'],
         });
@@ -148,7 +150,7 @@ export class WorkerManager implements vscode.Disposable {
         if (child.stderr) {
             const rl = createInterface({ input: child.stderr });
             rl.on('line', (line: string) => {
-                this.outputChannel.appendLine(`[${spec.identity}] ${line}`);
+                workerLogger.info(line);
                 if (line === spec.readyMarker) {
                     const entry = this.readyResolvers.get(spec.identity);
                     if (entry) {
@@ -160,11 +162,11 @@ export class WorkerManager implements vscode.Disposable {
         }
 
         child.on('error', (err) => {
-            this.outputChannel.appendLine(`[${spec.identity}] Failed to start: ${err.message}`);
+            workerLogger.error('Failed to start', err);
         });
 
         child.on('exit', (code) => {
-            this.outputChannel.appendLine(`[${spec.identity}] Exited with code ${code}`);
+            workerLogger.info(`Exited with code ${code}`);
         });
     }
 }

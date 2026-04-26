@@ -3,6 +3,7 @@ import { writeFile, unlink, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { InstructionsFileParser } from './instructions-file-parser.js';
 import type { AutoContextConfig, InstructionsFileConfig, McpToolConfig } from './types/autocontext-config.js';
+import type { Logger } from './types/logger.js';
 
 const configFileName = '.autocontext.json';
 
@@ -17,7 +18,7 @@ export class AutoContextConfigManager implements vscode.Disposable {
     constructor(
         private readonly extensionPath: string,
         private readonly extensionVersion: string,
-        private readonly outputChannel: vscode.OutputChannel,
+        private readonly logger: Logger,
     ) {
         const watcher = vscode.workspace.createFileSystemWatcher(`**/${configFileName}`);
         watcher.onDidChange(() => this.invalidate());
@@ -62,7 +63,7 @@ export class AutoContextConfigManager implements vscode.Disposable {
                 this.hasLoggedNotFound = true;
             }
 
-            this.outputChannel.appendLine(`[Config] Failed to read config: ${err instanceof Error ? err.message : err}`);
+            this.logger.error('Failed to read config', err);
 
             return {};
         }

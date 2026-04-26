@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import type { InstructionsFilesManifest } from './instructions-files-manifest.js';
 import { InstructionsFileParser } from './instructions-file-parser.js';
+import type { Logger } from './types/logger.js';
 
 // --- File-system watcher globs ---
 
@@ -270,7 +271,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
 
     constructor(
         private readonly instructionsManifest: InstructionsFilesManifest,
-        private readonly outputChannel: vscode.OutputChannel,
+        private readonly logger: Logger,
     ) {
         const existenceWatcher = vscode.workspace.createFileSystemWatcher(existenceWatchGlob);
 
@@ -347,7 +348,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
             const overrides = await this.scanOverrides();
             await this.commitState(flags, overrides);
         } catch (error) {
-            this.outputChannel.appendLine(`[Detection] Workspace detection failed: ${error instanceof Error ? error.message : error}`);
+            this.logger.error('Workspace detection failed', error);
         }
     }
 
@@ -452,7 +453,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
 
             await this.commitState(flags, overrides);
         } catch (error) {
-            this.outputChannel.appendLine(`[Detection] Incremental detection failed: ${error instanceof Error ? error.message : error}`);
+            this.logger.error('Incremental detection failed', error);
         }
     }
 
@@ -578,7 +579,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
             ...this.instructionsManifest.instructions.map(i =>
                 setContext(i.runtimeInfo.overrideKey, overrides.fileNames.has(i.name)),
             ),
-        ]).catch(err => this.outputChannel.appendLine(`[Detection] Failed to set context keys: ${err instanceof Error ? err.message : err}`));
+        ]).catch(err => this.logger.error('Failed to set context keys', err));
     }
 
     dispose(): void {

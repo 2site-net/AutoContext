@@ -4,22 +4,9 @@ import type {
     InstructionsFilesDiagnosticRecord,
     InstructionsFilesDiagnosticsRunner,
 } from '../../src/instructions-files-diagnostics-runner';
-import type * as vscode from 'vscode';
+import { createFakeLogger } from './_fakes';
 
 vi.mock('vscode', async () => await import('./_fakes/fake-vscode'));
-
-function fakeChannel(): vscode.OutputChannel {
-    return {
-        name: 'test',
-        append: vi.fn(),
-        appendLine: vi.fn(),
-        clear: vi.fn(),
-        dispose: vi.fn(),
-        hide: vi.fn(),
-        show: vi.fn(),
-        replace: vi.fn(),
-    } as unknown as vscode.OutputChannel;
-}
 
 function fakeRunner(records: InstructionsFilesDiagnosticRecord[]): InstructionsFilesDiagnosticsRunner {
     return { collect: vi.fn(async () => records) } as unknown as InstructionsFilesDiagnosticsRunner;
@@ -30,73 +17,55 @@ beforeEach(() => {
 });
 
 describe('InstructionsFilesDiagnosticsReporter.report', () => {
-    it('should clear the channel before writing new records', async () => {
-        const channel = fakeChannel();
-        const reporter = new InstructionsFilesDiagnosticsReporter(fakeRunner([]), channel);
+    it('should log an empty-result info line and nothing else when there are no records', async () => {
+        const logger = createFakeLogger();
+        const reporter = new InstructionsFilesDiagnosticsReporter(fakeRunner([]), logger);
 
         await reporter.report();
 
-        expect(channel.clear).toHaveBeenCalledOnce();
-        expect(channel.appendLine).not.toHaveBeenCalled();
+        expect(logger.info).toHaveBeenCalledExactlyOnceWith('No instruction-file diagnostics to report.');
+        expect(logger.warn).not.toHaveBeenCalled();
+        expect(logger.error).not.toHaveBeenCalled();
     });
 
-    it('should format parse-error records with the [Instructions] prefix', async () => {
-        const channel = fakeChannel();
+    it('should emit a header followed by an error line for parse-error records', async () => {
+        const logger = createFakeLogger();
         const reporter = new InstructionsFilesDiagnosticsReporter(
             fakeRunner([{ kind: 'parse-error', entry: 'a.instructions.md', message: 'boom' }]),
-            channel,
+            logger,
         );
 
         await reporter.report();
 
-        expect(channel.appendLine).toHaveBeenCalledExactlyOnceWith(
-            '[Instructions] Failed to parse a.instructions.md: boom',
-        );
+        expect(logger.info).toHaveBeenCalledExactlyOnceWith('Reporting 1 instruction-file diagnostic:');
+        expect(logger.error).toHaveBeenCalledExactlyOnceWith('Failed to parse a.instructions.md: boom');
+        expect(logger.warn).not.toHaveBeenCalled();
     });
 
-    it('should format parser diagnostics with [warn] prefix and 1-based line', async () => {
-        const channel = fakeChannel();
+    it('should emit warn lines with 1-based line numbers for parser diagnostics', async () => {
+        const logger = createFakeLogger();
         const reporter = new InstructionsFilesDiagnosticsReporter(
             fakeRunner([
                 { kind: 'duplicate-id', entry: 'a.instructions.md', line: 4, message: 'dup' },
                 { kind: 'malformed-id', entry: 'b.instructions.md', line: 0, message: 'bad' },
             ]),
-            channel,
+            logger,
         );
 
         await reporter.report();
 
-        expect(channel.appendLine).toHaveBeenNthCalledWith(1, '[warn] a.instructions.md:5 — dup');
-        expect(channel.appendLine).toHaveBeenNthCalledWith(2, '[warn] b.instructions.md:1 — bad');
+        expect(logger.info).toHaveBeenCalledExactlyOnceWith('Reporting 2 instruction-file diagnostics:');
+        expect(logger.warn).toHaveBeenNthCalledWith(1, 'a.instructions.md:5 — dup');
+        expect(logger.warn).toHaveBeenNthCalledWith(2, 'b.instructions.md:1 — bad');
+        expect(logger.error).not.toHaveBeenCalled();
     });
 
     it('should delegate collection to the injected runner', async () => {
         const runner = fakeRunner([]);
-        const reporter = new InstructionsFilesDiagnosticsReporter(runner, fakeChannel());
+        const reporter = new InstructionsFilesDiagnosticsReporter(runner, createFakeLogger());
 
         await reporter.report();
 
         expect(runner.collect).toHaveBeenCalledOnce();
-    });
-
-    it('should not dispose an externally-injected channel', () => {
-        const channel = fakeChannel();
-        const reporter = new InstructionsFilesDiagnosticsReporter(fakeRunner([]), channel);
-
-        reporter.dispose();
-
-        expect(channel.dispose).not.toHaveBeenCalled();
-    });
-
-    it('should dispose the owned channel when none is injected', async () => {
-        const fakeVscode = await import('./_fakes/fake-vscode');
-        const ownedChannel = fakeChannel();
-        vi.mocked(fakeVscode.window.createOutputChannel).mockReturnValueOnce(ownedChannel);
-
-        const reporter = new InstructionsFilesDiagnosticsReporter(fakeRunner([]));
-
-        reporter.dispose();
-
-        expect(ownedChannel.dispose).toHaveBeenCalledOnce();
     });
 });

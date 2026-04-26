@@ -16,11 +16,11 @@ vi.mock('node:fs/promises', () => ({
 }));
 
 import { workspace } from './_fakes/fake-vscode';
-import { createFakeOutputChannel, createFakeDetector } from './_fakes';
+import { createFakeLogger, createFakeDetector } from './_fakes';
 import { testInstructionsContent } from './_fixtures';
 import { makeDocument } from './_utils';
 
-const mockOutputChannel = createFakeOutputChannel();
+const mockLogger = createFakeLogger();
 const fakeDetector = createFakeDetector();
 
 beforeEach(() => {
@@ -36,8 +36,8 @@ describe('InstructionsViewerCodeLensProvider', () => {
     it('should return empty array for non-instruction documents', async () => {
         vi.mocked(readFile).mockResolvedValue('{}');
 
-        const configManager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
-        const provider = new InstructionsViewerCodeLensProvider('/ext', configManager, fakeDetector, catalog, mockOutputChannel);
+        const configManager = new AutoContextConfigManager('/ext', '0.5.0', mockLogger);
+        const provider = new InstructionsViewerCodeLensProvider('/ext', configManager, fakeDetector, catalog, mockLogger);
 
         const lenses = await provider.provideCodeLenses(makeDocument('file', 'test.md'));
 
@@ -51,8 +51,8 @@ describe('InstructionsViewerCodeLensProvider', () => {
             return testInstructionsContent;
         });
 
-        const configManager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
-        const provider = new InstructionsViewerCodeLensProvider('/ext', configManager, fakeDetector, catalog, mockOutputChannel);
+        const configManager = new AutoContextConfigManager('/ext', '0.5.0', mockLogger);
+        const provider = new InstructionsViewerCodeLensProvider('/ext', configManager, fakeDetector, catalog, mockLogger);
 
         const lenses = await provider.provideCodeLenses(makeDocument(instructionScheme, 'test.instructions.md'));
 
@@ -83,8 +83,8 @@ describe('InstructionsViewerCodeLensProvider', () => {
             return testInstructionsContent;
         });
 
-        const configManager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
-        const provider = new InstructionsViewerCodeLensProvider('/ext', configManager, fakeDetector, catalog, mockOutputChannel);
+        const configManager = new AutoContextConfigManager('/ext', '0.5.0', mockLogger);
+        const provider = new InstructionsViewerCodeLensProvider('/ext', configManager, fakeDetector, catalog, mockLogger);
 
         const lenses = await provider.provideCodeLenses(makeDocument(instructionScheme, 'test.instructions.md'));
 
@@ -117,8 +117,8 @@ describe('InstructionsViewerCodeLensProvider', () => {
             return testInstructionsContent;
         });
 
-        const configManager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
-        const provider = new InstructionsViewerCodeLensProvider('/ext', configManager, fakeDetector, catalog, mockOutputChannel);
+        const configManager = new AutoContextConfigManager('/ext', '0.5.0', mockLogger);
+        const provider = new InstructionsViewerCodeLensProvider('/ext', configManager, fakeDetector, catalog, mockLogger);
 
         const lenses = await provider.provideCodeLenses(makeDocument(instructionScheme, 'test.instructions.md'));
 
@@ -136,8 +136,8 @@ describe('InstructionsViewerCodeLensProvider', () => {
             return testInstructionsContent;
         });
 
-        const configManager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
-        const provider = new InstructionsViewerCodeLensProvider('/ext', configManager, fakeDetector, catalog, mockOutputChannel);
+        const configManager = new AutoContextConfigManager('/ext', '0.5.0', mockLogger);
+        const provider = new InstructionsViewerCodeLensProvider('/ext', configManager, fakeDetector, catalog, mockLogger);
 
         const lenses = await provider.provideCodeLenses(makeDocument(instructionScheme, 'test.instructions.md'));
 
@@ -154,8 +154,8 @@ describe('InstructionsViewerCodeLensProvider', () => {
             return testInstructionsContent;
         });
 
-        const configManager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
-        const provider = new InstructionsViewerCodeLensProvider('/ext', configManager, fakeDetector, catalog, mockOutputChannel);
+        const configManager = new AutoContextConfigManager('/ext', '0.5.0', mockLogger);
+        const provider = new InstructionsViewerCodeLensProvider('/ext', configManager, fakeDetector, catalog, mockLogger);
 
         const lenses = await provider.provideCodeLenses(makeDocument(instructionScheme, 'lang-csharp.instructions.md'));
 
@@ -170,8 +170,8 @@ describe('InstructionsViewerCodeLensProvider', () => {
             return testInstructionsContent;
         });
 
-        const configManager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
-        const provider = new InstructionsViewerCodeLensProvider('/ext', configManager, fakeDetector, catalog, mockOutputChannel);
+        const configManager = new AutoContextConfigManager('/ext', '0.5.0', mockLogger);
+        const provider = new InstructionsViewerCodeLensProvider('/ext', configManager, fakeDetector, catalog, mockLogger);
 
         const lenses = await provider.provideCodeLenses(makeDocument(instructionScheme, 'lang-csharp.instructions.md'));
 

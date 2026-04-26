@@ -3,6 +3,7 @@ import type { AutoContextConfigManager } from './autocontext-config.js';
 import type { InstructionsFilesManifest } from './instructions-files-manifest.js';
 import type { McpToolsManifest } from './mcp-tools-manifest.js';
 import type { AutoContextConfig } from './types/autocontext-config.js';
+import type { Logger } from './types/logger.js';
 
 export function isToolEnabled(config: AutoContextConfig, toolName: string, taskName?: string): boolean {
     const entry = config.mcpTools?.[toolName];
@@ -25,12 +26,12 @@ export class ConfigContextProjector implements vscode.Disposable {
         private readonly configManager: AutoContextConfigManager,
         private readonly instructionsManifest: InstructionsFilesManifest,
         private readonly toolsManifest: McpToolsManifest,
-        private readonly outputChannel: vscode.OutputChannel,
+        private readonly logger: Logger,
     ) {
         this.disposables.push(
             configManager.onDidChange(() =>
                 void this.project().catch(err =>
-                    this.outputChannel.appendLine(`[ConfigProjector] Failed to project config: ${err instanceof Error ? err.message : err}`),
+                    this.logger.error('Failed to project config', err),
                 ),
             ),
         );

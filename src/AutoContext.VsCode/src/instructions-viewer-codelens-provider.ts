@@ -6,6 +6,7 @@ import { instructionScheme } from './instructions-viewer-document-provider.js';
 import type { AutoContextConfigManager } from './autocontext-config.js';
 import type { WorkspaceContextDetector } from './workspace-context-detector.js';
 import { commandIds } from './ui-constants.js';
+import type { Logger } from './types/logger.js';
 
 export class InstructionsViewerCodeLensProvider implements vscode.CodeLensProvider, vscode.Disposable {
     private readonly didChangeEmitter = new vscode.EventEmitter<void>();
@@ -17,7 +18,7 @@ export class InstructionsViewerCodeLensProvider implements vscode.CodeLensProvid
         private readonly configManager: AutoContextConfigManager,
         private readonly detector: WorkspaceContextDetector,
         private readonly manifest: InstructionsFilesManifest,
-        private readonly outputChannel: vscode.OutputChannel,
+        private readonly logger: Logger,
     ) {
         this.disposables.push(
             this.didChangeEmitter,
@@ -51,7 +52,7 @@ export class InstructionsViewerCodeLensProvider implements vscode.CodeLensProvid
         try {
             ({ result: { instructions } } = await InstructionsFileParser.fromFile(filePath));
         } catch (err) {
-            this.outputChannel.appendLine(`[Instructions] Failed to parse ${fileName}: ${err instanceof Error ? err.message : err}`);
+            this.logger.error(`Failed to parse ${fileName}`, err);
             return [];
         }
         const disabledIds = await this.configManager.getDisabledInstructions(fileName);

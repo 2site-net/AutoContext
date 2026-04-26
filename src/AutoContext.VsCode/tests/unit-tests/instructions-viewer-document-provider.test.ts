@@ -12,10 +12,10 @@ vi.mock('node:fs/promises', () => ({
 }));
 
 import { workspace, Uri } from './_fakes/fake-vscode';
-import { createFakeOutputChannel } from './_fakes';
+import { createFakeLogger } from './_fakes';
 import { testInstructionsContent } from './_fixtures';
 
-const mockOutputChannel = createFakeOutputChannel();
+const mockLogger = createFakeLogger();
 
 beforeEach(() => {
     vi.clearAllMocks();
@@ -31,8 +31,8 @@ describe('InstructionsViewerDocumentProvider', () => {
             return testInstructionsContent;
         });
 
-        const configManager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
-        const provider = new InstructionsViewerDocumentProvider('/ext', configManager, mockOutputChannel);
+        const configManager = new AutoContextConfigManager('/ext', '0.5.0', mockLogger);
+        const provider = new InstructionsViewerDocumentProvider('/ext', configManager, mockLogger);
         const uri = { scheme: instructionScheme, path: 'test.instructions.md' } as unknown as import('vscode').Uri;
         const result = await provider.provideTextDocumentContent(uri);
 
@@ -58,8 +58,8 @@ describe('InstructionsViewerDocumentProvider', () => {
             return testInstructionsContent;
         });
 
-        const configManager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
-        const provider = new InstructionsViewerDocumentProvider('/ext', configManager, mockOutputChannel);
+        const configManager = new AutoContextConfigManager('/ext', '0.5.0', mockLogger);
+        const provider = new InstructionsViewerDocumentProvider('/ext', configManager, mockLogger);
         const uri = { scheme: instructionScheme, path: 'test.instructions.md' } as unknown as import('vscode').Uri;
         const result = await provider.provideTextDocumentContent(uri);
 
@@ -70,8 +70,8 @@ describe('InstructionsViewerDocumentProvider', () => {
     it('should build URI with the correct scheme', () => {
         vi.mocked(readFile).mockResolvedValue('{}');
 
-        const configManager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
-        const provider = new InstructionsViewerDocumentProvider('/ext', configManager, mockOutputChannel);
+        const configManager = new AutoContextConfigManager('/ext', '0.5.0', mockLogger);
+        const provider = new InstructionsViewerDocumentProvider('/ext', configManager, mockLogger);
         provider.buildUri('code-review.instructions.md');
 
         expect.soft(Uri.from).toHaveBeenCalledWith({

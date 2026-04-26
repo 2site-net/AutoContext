@@ -12,6 +12,7 @@ import type { InstructionsFileTreeNode } from './types/instructions-file-tree-no
 import { SemVer } from './semver.js';
 import type { AutoContextConfigManager } from './autocontext-config.js';
 import type { AutoContextConfig } from './types/autocontext-config.js';
+import type { Logger } from './types/logger.js';
 
 type TreeElement = InstructionsFileCategoryTreeNode | InstructionsFileTreeNode;
 
@@ -33,7 +34,7 @@ export class InstructionsFilesTreeProvider implements vscode.TreeDataProvider<Tr
         private readonly stateResolver: TreeViewStateResolver,
         private readonly tooltip: TreeViewTooltip,
         private readonly configManager: AutoContextConfigManager,
-        private readonly outputChannel: vscode.OutputChannel,
+        private readonly logger: Logger,
     ) {
         this._config = configManager.readSync();
 
@@ -52,7 +53,7 @@ export class InstructionsFilesTreeProvider implements vscode.TreeDataProvider<Tr
                     this._config = c;
                     this.refresh();
                 }).catch(err =>
-                    this.outputChannel.appendLine(`[InstructionsTree] Failed to update config: ${err instanceof Error ? err.message : err}`),
+                    this.logger.error('Failed to update config', err),
                 );
             }),
             this.treeView.onDidChangeCheckboxState(e => {

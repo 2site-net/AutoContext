@@ -1,43 +1,37 @@
-import * as vscode from 'vscode';
 import type { InstructionsFilesDiagnosticsRunner } from './instructions-files-diagnostics-runner.js';
+import type { Logger } from './types/logger.js';
 
 /**
- * Output-channel sink for instruction-file diagnostics. Owns a dedicated
- * `'AutoContext: Instructions'` output channel so `clear()` only wipes
- * diagnostic lines — never unrelated activation/worker output on the
- * shared `'AutoContext'` channel. Collects records via the injected
- * {@link InstructionsFilesDiagnosticsRunner} and formats one line per
- * record; kept as a thin presentation layer so the runner stays free of
- * any VS Code dependency.
+ * Logger sink for instruction-file diagnostics. Collects records via
+ * the injected {@link InstructionsFilesDiagnosticsRunner} and emits
+ * one line per record through the unified extension {@link Logger}.
+ *
+ * Each `report()` opens with a header line so multiple runs remain
+ * visually separable in the output channel — replaces the previous
+ * dedicated channel + `clear()` approach, which both wiped history
+ * and fragmented logging across two channels.
  */
-export class InstructionsFilesDiagnosticsReporter implements vscode.Disposable {
-    private readonly outputChannel: vscode.OutputChannel;
-    private readonly ownsChannel: boolean;
-
+export class InstructionsFilesDiagnosticsReporter {
     constructor(
         private readonly runner: InstructionsFilesDiagnosticsRunner,
-        outputChannel?: vscode.OutputChannel,
-    ) {
-        this.ownsChannel = outputChannel === undefined;
-        this.outputChannel = outputChannel ?? vscode.window.createOutputChannel('AutoContext: Instructions');
-    }
+        private readonly logger: Logger,
+    ) {}
 
     async report(): Promise<void> {
-        this.outputChannel.clear();
         const records = await this.runner.collect();
 
+        if (records.length === 0) {
+            this.logger.info('No instruction-file diagnostics to report.');
+            return;
+        }
+
+        this.logger.info(`Reporting ${records.length} instruction-file diagnostic${records.length === 1 ? '' : 's'}:`);
         for (const record of records) {
             if (record.kind === 'parse-error') {
-                this.outputChannel.appendLine(`[Instructions] Failed to parse ${record.entry}: ${record.message}`);
+                this.logger.error(`Failed to parse ${record.entry}: ${record.message}`);
             } else {
-                this.outputChannel.appendLine(`[warn] ${record.entry}:${record.line + 1} — ${record.message}`);
+                this.logger.warn(`${record.entry}:${record.line + 1} — ${record.message}`);
             }
-        }
-    }
-
-    dispose(): void {
-        if (this.ownsChannel) {
-            this.outputChannel.dispose();
         }
     }
 }
