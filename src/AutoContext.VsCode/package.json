@@ -372,15 +372,15 @@
       },
       {
         "path": "./instructions/.generated/code-review.instructions.md",
-        "when": "autocontext.instructions.codeReview && !autocontext.override.codeReview"
+        "when": "autocontext.instructions.code-review && !autocontext.override.code-review"
       },
       {
         "path": "./instructions/.generated/design-principles.instructions.md",
-        "when": "autocontext.instructions.designPrinciples && !autocontext.override.designPrinciples"
+        "when": "autocontext.instructions.design-principles && !autocontext.override.design-principles"
       },
       {
         "path": "./instructions/.generated/rest-api-design.instructions.md",
-        "when": "autocontext.instructions.restApiDesign && !autocontext.override.restApiDesign"
+        "when": "autocontext.instructions.rest-api-design && !autocontext.override.rest-api-design"
       },
       {
         "path": "./instructions/.generated/testing.instructions.md",
@@ -388,291 +388,291 @@
       },
       {
         "path": "./instructions/.generated/lang-bash.instructions.md",
-        "when": "autocontext.instructions.lang.bash && autocontext.workspace.hasBash && !autocontext.override.lang.bash"
+        "when": "autocontext.instructions.lang-bash && autocontext.workspace.hasBash && !autocontext.override.lang-bash"
       },
       {
         "path": "./instructions/.generated/lang-batch.instructions.md",
-        "when": "autocontext.instructions.lang.batch && autocontext.workspace.hasBatch && !autocontext.override.lang.batch"
+        "when": "autocontext.instructions.lang-batch && autocontext.workspace.hasBatch && !autocontext.override.lang-batch"
       },
       {
         "path": "./instructions/.generated/lang-c.instructions.md",
-        "when": "autocontext.instructions.lang.c && autocontext.workspace.hasC && !autocontext.override.lang.c"
+        "when": "autocontext.instructions.lang-c && autocontext.workspace.hasC && !autocontext.override.lang-c"
       },
       {
         "path": "./instructions/.generated/lang-csharp.instructions.md",
-        "when": "autocontext.instructions.lang.csharp && autocontext.workspace.hasCSharp && !autocontext.override.lang.csharp"
+        "when": "autocontext.instructions.lang-csharp && autocontext.workspace.hasCSharp && !autocontext.override.lang-csharp"
       },
       {
         "path": "./instructions/.generated/lang-cpp.instructions.md",
-        "when": "autocontext.instructions.lang.cpp && autocontext.workspace.hasCpp && !autocontext.override.lang.cpp"
+        "when": "autocontext.instructions.lang-cpp && autocontext.workspace.hasCpp && !autocontext.override.lang-cpp"
       },
       {
         "path": "./instructions/.generated/lang-css.instructions.md",
-        "when": "autocontext.instructions.lang.css && autocontext.workspace.hasCss && !autocontext.override.lang.css"
+        "when": "autocontext.instructions.lang-css && autocontext.workspace.hasCss && !autocontext.override.lang-css"
       },
       {
         "path": "./instructions/.generated/lang-dart.instructions.md",
-        "when": "autocontext.instructions.lang.dart && autocontext.workspace.hasDart && !autocontext.override.lang.dart"
+        "when": "autocontext.instructions.lang-dart && autocontext.workspace.hasDart && !autocontext.override.lang-dart"
       },
       {
         "path": "./instructions/.generated/lang-fsharp.instructions.md",
-        "when": "autocontext.instructions.lang.fsharp && autocontext.workspace.hasFSharp && !autocontext.override.lang.fsharp"
+        "when": "autocontext.instructions.lang-fsharp && autocontext.workspace.hasFSharp && !autocontext.override.lang-fsharp"
       },
       {
         "path": "./instructions/.generated/lang-go.instructions.md",
-        "when": "autocontext.instructions.lang.go && autocontext.workspace.hasGo && !autocontext.override.lang.go"
+        "when": "autocontext.instructions.lang-go && autocontext.workspace.hasGo && !autocontext.override.lang-go"
       },
       {
         "path": "./instructions/.generated/lang-graphql.instructions.md",
-        "when": "autocontext.instructions.lang.graphql && autocontext.workspace.hasGraphql && !autocontext.override.lang.graphql"
+        "when": "autocontext.instructions.lang-graphql && autocontext.workspace.hasGraphql && !autocontext.override.lang-graphql"
       },
       {
         "path": "./instructions/.generated/lang-groovy.instructions.md",
-        "when": "autocontext.instructions.lang.groovy && autocontext.workspace.hasGroovy && !autocontext.override.lang.groovy"
+        "when": "autocontext.instructions.lang-groovy && autocontext.workspace.hasGroovy && !autocontext.override.lang-groovy"
       },
       {
         "path": "./instructions/.generated/lang-html.instructions.md",
-        "when": "autocontext.instructions.lang.html && autocontext.workspace.hasHtml && !autocontext.override.lang.html"
+        "when": "autocontext.instructions.lang-html && autocontext.workspace.hasHtml && !autocontext.override.lang-html"
       },
       {
         "path": "./instructions/.generated/lang-java.instructions.md",
-        "when": "autocontext.instructions.lang.java && autocontext.workspace.hasJava && !autocontext.override.lang.java"
+        "when": "autocontext.instructions.lang-java && autocontext.workspace.hasJava && !autocontext.override.lang-java"
       },
       {
         "path": "./instructions/.generated/lang-javascript.instructions.md",
-        "when": "autocontext.instructions.lang.javascript && (autocontext.workspace.hasJavaScript || autocontext.workspace.hasTypeScript) && !autocontext.override.lang.javascript"
+        "when": "autocontext.instructions.lang-javascript && (autocontext.workspace.hasJavaScript || autocontext.workspace.hasTypeScript) && !autocontext.override.lang-javascript"
       },
       {
         "path": "./instructions/.generated/lang-kotlin.instructions.md",
-        "when": "autocontext.instructions.lang.kotlin && autocontext.workspace.hasKotlin && !autocontext.override.lang.kotlin"
+        "when": "autocontext.instructions.lang-kotlin && autocontext.workspace.hasKotlin && !autocontext.override.lang-kotlin"
       },
       {
         "path": "./instructions/.generated/lang-lua.instructions.md",
-        "when": "autocontext.instructions.lang.lua && autocontext.workspace.hasLua && !autocontext.override.lang.lua"
+        "when": "autocontext.instructions.lang-lua && autocontext.workspace.hasLua && !autocontext.override.lang-lua"
       },
       {
         "path": "./instructions/.generated/lang-php.instructions.md",
-        "when": "autocontext.instructions.lang.php && autocontext.workspace.hasPhp && !autocontext.override.lang.php"
+        "when": "autocontext.instructions.lang-php && autocontext.workspace.hasPhp && !autocontext.override.lang-php"
       },
       {
         "path": "./instructions/.generated/lang-powershell.instructions.md",
-        "when": "autocontext.instructions.lang.powershell && autocontext.workspace.hasPowerShell && !autocontext.override.lang.powershell"
+        "when": "autocontext.instructions.lang-powershell && autocontext.workspace.hasPowerShell && !autocontext.override.lang-powershell"
       },
       {
         "path": "./instructions/.generated/lang-python.instructions.md",
-        "when": "autocontext.instructions.lang.python && autocontext.workspace.hasPython && !autocontext.override.lang.python"
+        "when": "autocontext.instructions.lang-python && autocontext.workspace.hasPython && !autocontext.override.lang-python"
       },
       {
         "path": "./instructions/.generated/lang-ruby.instructions.md",
-        "when": "autocontext.instructions.lang.ruby && autocontext.workspace.hasRuby && !autocontext.override.lang.ruby"
+        "when": "autocontext.instructions.lang-ruby && autocontext.workspace.hasRuby && !autocontext.override.lang-ruby"
       },
       {
         "path": "./instructions/.generated/lang-rust.instructions.md",
-        "when": "autocontext.instructions.lang.rust && autocontext.workspace.hasRust && !autocontext.override.lang.rust"
+        "when": "autocontext.instructions.lang-rust && autocontext.workspace.hasRust && !autocontext.override.lang-rust"
       },
       {
         "path": "./instructions/.generated/lang-scala.instructions.md",
-        "when": "autocontext.instructions.lang.scala && autocontext.workspace.hasScala && !autocontext.override.lang.scala"
+        "when": "autocontext.instructions.lang-scala && autocontext.workspace.hasScala && !autocontext.override.lang-scala"
       },
       {
         "path": "./instructions/.generated/lang-sql.instructions.md",
-        "when": "autocontext.instructions.lang.sql && !autocontext.override.lang.sql"
+        "when": "autocontext.instructions.lang-sql && !autocontext.override.lang-sql"
       },
       {
         "path": "./instructions/.generated/lang-swift.instructions.md",
-        "when": "autocontext.instructions.lang.swift && autocontext.workspace.hasSwift && !autocontext.override.lang.swift"
+        "when": "autocontext.instructions.lang-swift && autocontext.workspace.hasSwift && !autocontext.override.lang-swift"
       },
       {
         "path": "./instructions/.generated/lang-typescript.instructions.md",
-        "when": "autocontext.instructions.lang.typescript && autocontext.workspace.hasTypeScript && !autocontext.override.lang.typescript"
+        "when": "autocontext.instructions.lang-typescript && autocontext.workspace.hasTypeScript && !autocontext.override.lang-typescript"
       },
       {
         "path": "./instructions/.generated/lang-vbnet.instructions.md",
-        "when": "autocontext.instructions.lang.vbnet && autocontext.workspace.hasVbNet && !autocontext.override.lang.vbnet"
+        "when": "autocontext.instructions.lang-vbnet && autocontext.workspace.hasVbNet && !autocontext.override.lang-vbnet"
       },
       {
         "path": "./instructions/.generated/lang-yaml.instructions.md",
-        "when": "autocontext.instructions.lang.yaml && autocontext.workspace.hasYaml && !autocontext.override.lang.yaml"
+        "when": "autocontext.instructions.lang-yaml && autocontext.workspace.hasYaml && !autocontext.override.lang-yaml"
       },
       {
         "path": "./instructions/.generated/dotnet-maui.instructions.md",
-        "when": "autocontext.instructions.dotnet.maui && autocontext.workspace.hasMaui && !autocontext.override.dotnet.maui"
+        "when": "autocontext.instructions.dotnet-maui && autocontext.workspace.hasMaui && !autocontext.override.dotnet-maui"
       },
       {
         "path": "./instructions/.generated/dotnet-aspnetcore.instructions.md",
-        "when": "autocontext.instructions.dotnet.aspnetCore && autocontext.workspace.hasAspNetCore && !autocontext.override.dotnet.aspnetCore"
+        "when": "autocontext.instructions.dotnet-aspnetcore && autocontext.workspace.hasAspNetCore && !autocontext.override.dotnet-aspnetcore"
       },
       {
         "path": "./instructions/.generated/dotnet-aspx.instructions.md",
-        "when": "autocontext.instructions.dotnet.aspx && autocontext.workspace.hasWebForms && !autocontext.override.dotnet.aspx"
+        "when": "autocontext.instructions.dotnet-aspx && autocontext.workspace.hasWebForms && !autocontext.override.dotnet-aspx"
       },
       {
         "path": "./instructions/.generated/dotnet-async-await.instructions.md",
-        "when": "autocontext.instructions.dotnet.asyncAwait && autocontext.workspace.hasDotNet && !autocontext.override.dotnet.asyncAwait"
+        "when": "autocontext.instructions.dotnet-async-await && autocontext.workspace.hasDotNet && !autocontext.override.dotnet-async-await"
       },
       {
         "path": "./instructions/.generated/dotnet-blazor.instructions.md",
-        "when": "autocontext.instructions.dotnet.blazor && autocontext.workspace.hasBlazor && !autocontext.override.dotnet.blazor"
+        "when": "autocontext.instructions.dotnet-blazor && autocontext.workspace.hasBlazor && !autocontext.override.dotnet-blazor"
       },
       {
         "path": "./instructions/.generated/dotnet-coding-standards.instructions.md",
-        "when": "autocontext.instructions.dotnet.codingStandards && autocontext.workspace.hasDotNet && !autocontext.override.dotnet.codingStandards"
+        "when": "autocontext.instructions.dotnet-coding-standards && autocontext.workspace.hasDotNet && !autocontext.override.dotnet-coding-standards"
       },
       {
         "path": "./instructions/.generated/dotnet-core.instructions.md",
-        "when": "autocontext.instructions.dotnet.core && autocontext.workspace.hasDotNet && !autocontext.override.dotnet.core"
+        "when": "autocontext.instructions.dotnet-core && autocontext.workspace.hasDotNet && !autocontext.override.dotnet-core"
       },
       {
         "path": "./instructions/.generated/dotnet-dapper.instructions.md",
-        "when": "autocontext.instructions.dotnet.dapper && autocontext.workspace.hasDapper && !autocontext.override.dotnet.dapper"
+        "when": "autocontext.instructions.dotnet-dapper && autocontext.workspace.hasDapper && !autocontext.override.dotnet-dapper"
       },
       {
         "path": "./instructions/.generated/dotnet-debugging.instructions.md",
-        "when": "autocontext.instructions.dotnet.debugging && autocontext.workspace.hasDotNet && !autocontext.override.dotnet.debugging"
+        "when": "autocontext.instructions.dotnet-debugging && autocontext.workspace.hasDotNet && !autocontext.override.dotnet-debugging"
       },
       {
         "path": "./instructions/.generated/dotnet-entity-framework-core.instructions.md",
-        "when": "autocontext.instructions.dotnet.entityFrameworkCore && autocontext.workspace.hasEntityFrameworkCore && !autocontext.override.dotnet.entityFrameworkCore"
+        "when": "autocontext.instructions.dotnet-entity-framework-core && autocontext.workspace.hasEntityFrameworkCore && !autocontext.override.dotnet-entity-framework-core"
       },
       {
         "path": "./instructions/.generated/dotnet-grpc.instructions.md",
-        "when": "autocontext.instructions.dotnet.grpc && autocontext.workspace.hasGrpc && !autocontext.override.dotnet.grpc"
+        "when": "autocontext.instructions.dotnet-grpc && autocontext.workspace.hasGrpc && !autocontext.override.dotnet-grpc"
       },
       {
         "path": "./instructions/.generated/dotnet-mediator-cqrs.instructions.md",
-        "when": "autocontext.instructions.dotnet.mediatorCqrs && autocontext.workspace.hasMediatR && !autocontext.override.dotnet.mediatorCqrs"
+        "when": "autocontext.instructions.dotnet-mediator-cqrs && autocontext.workspace.hasMediatR && !autocontext.override.dotnet-mediator-cqrs"
       },
       {
         "path": "./instructions/.generated/dotnet-mongodb.instructions.md",
-        "when": "autocontext.instructions.dotnet.mongodb && autocontext.workspace.hasMongoDb && !autocontext.override.dotnet.mongodb"
+        "when": "autocontext.instructions.dotnet-mongodb && autocontext.workspace.hasMongoDb && !autocontext.override.dotnet-mongodb"
       },
       {
         "path": "./instructions/.generated/dotnet-mstest.instructions.md",
-        "when": "autocontext.instructions.dotnet.mstest && autocontext.workspace.hasMsTest && !autocontext.override.dotnet.mstest"
+        "when": "autocontext.instructions.dotnet-mstest && autocontext.workspace.hasMsTest && !autocontext.override.dotnet-mstest"
       },
       {
         "path": "./instructions/.generated/dotnet-mysql.instructions.md",
-        "when": "autocontext.instructions.dotnet.mysql && autocontext.workspace.hasMySql && !autocontext.override.dotnet.mysql"
+        "when": "autocontext.instructions.dotnet-mysql && autocontext.workspace.hasMySql && !autocontext.override.dotnet-mysql"
       },
       {
         "path": "./instructions/.generated/dotnet-nuget.instructions.md",
-        "when": "autocontext.instructions.dotnet.nuget && autocontext.workspace.hasDotNet && !autocontext.override.dotnet.nuget"
+        "when": "autocontext.instructions.dotnet-nuget && autocontext.workspace.hasDotNet && !autocontext.override.dotnet-nuget"
       },
       {
         "path": "./instructions/.generated/dotnet-nunit.instructions.md",
-        "when": "autocontext.instructions.dotnet.nunit && autocontext.workspace.hasNUnit && !autocontext.override.dotnet.nunit"
+        "when": "autocontext.instructions.dotnet-nunit && autocontext.workspace.hasNUnit && !autocontext.override.dotnet-nunit"
       },
       {
         "path": "./instructions/.generated/dotnet-oracle.instructions.md",
-        "when": "autocontext.instructions.dotnet.oracle && autocontext.workspace.hasOracle && !autocontext.override.dotnet.oracle"
+        "when": "autocontext.instructions.dotnet-oracle && autocontext.workspace.hasOracle && !autocontext.override.dotnet-oracle"
       },
       {
         "path": "./instructions/.generated/dotnet-performance-memory.instructions.md",
-        "when": "autocontext.instructions.dotnet.performanceMemory && autocontext.workspace.hasDotNet && !autocontext.override.dotnet.performanceMemory"
+        "when": "autocontext.instructions.dotnet-performance-memory && autocontext.workspace.hasDotNet && !autocontext.override.dotnet-performance-memory"
       },
       {
         "path": "./instructions/.generated/dotnet-postgresql.instructions.md",
-        "when": "autocontext.instructions.dotnet.postgresql && autocontext.workspace.hasPostgres && !autocontext.override.dotnet.postgresql"
+        "when": "autocontext.instructions.dotnet-postgresql && autocontext.workspace.hasPostgres && !autocontext.override.dotnet-postgresql"
       },
       {
         "path": "./instructions/.generated/dotnet-razor.instructions.md",
-        "when": "autocontext.instructions.dotnet.razor && autocontext.workspace.hasRazor && !autocontext.override.dotnet.razor"
+        "when": "autocontext.instructions.dotnet-razor && autocontext.workspace.hasRazor && !autocontext.override.dotnet-razor"
       },
       {
         "path": "./instructions/.generated/dotnet-redis.instructions.md",
-        "when": "autocontext.instructions.dotnet.redis && autocontext.workspace.hasRedis && !autocontext.override.dotnet.redis"
+        "when": "autocontext.instructions.dotnet-redis && autocontext.workspace.hasRedis && !autocontext.override.dotnet-redis"
       },
       {
         "path": "./instructions/.generated/dotnet-signalr.instructions.md",
-        "when": "autocontext.instructions.dotnet.signalR && autocontext.workspace.hasSignalR && !autocontext.override.dotnet.signalR"
+        "when": "autocontext.instructions.dotnet-signalr && autocontext.workspace.hasSignalR && !autocontext.override.dotnet-signalr"
       },
       {
         "path": "./instructions/.generated/dotnet-sql-server.instructions.md",
-        "when": "autocontext.instructions.dotnet.sqlServer && autocontext.workspace.hasSqlServer && !autocontext.override.dotnet.sqlServer"
+        "when": "autocontext.instructions.dotnet-sql-server && autocontext.workspace.hasSqlServer && !autocontext.override.dotnet-sql-server"
       },
       {
         "path": "./instructions/.generated/dotnet-sqlite.instructions.md",
-        "when": "autocontext.instructions.dotnet.sqlite && autocontext.workspace.hasSqlite && !autocontext.override.dotnet.sqlite"
+        "when": "autocontext.instructions.dotnet-sqlite && autocontext.workspace.hasSqlite && !autocontext.override.dotnet-sqlite"
       },
       {
         "path": "./instructions/.generated/dotnet-testing.instructions.md",
-        "when": "autocontext.instructions.dotnet.testing && autocontext.workspace.hasDotNetTesting && !autocontext.override.dotnet.testing"
+        "when": "autocontext.instructions.dotnet-testing && autocontext.workspace.hasDotNetTesting && !autocontext.override.dotnet-testing"
       },
       {
         "path": "./instructions/.generated/dotnet-unity.instructions.md",
-        "when": "autocontext.instructions.dotnet.unity && autocontext.workspace.hasUnity && !autocontext.override.dotnet.unity"
+        "when": "autocontext.instructions.dotnet-unity && autocontext.workspace.hasUnity && !autocontext.override.dotnet-unity"
       },
       {
         "path": "./instructions/.generated/dotnet-winforms.instructions.md",
-        "when": "autocontext.instructions.dotnet.winForms && autocontext.workspace.hasWinForms && !autocontext.override.dotnet.winForms"
+        "when": "autocontext.instructions.dotnet-winforms && autocontext.workspace.hasWinForms && !autocontext.override.dotnet-winforms"
       },
       {
         "path": "./instructions/.generated/dotnet-wpf.instructions.md",
-        "when": "autocontext.instructions.dotnet.wpf && autocontext.workspace.hasWpf && !autocontext.override.dotnet.wpf"
+        "when": "autocontext.instructions.dotnet-wpf && autocontext.workspace.hasWpf && !autocontext.override.dotnet-wpf"
       },
       {
         "path": "./instructions/.generated/dotnet-xaml.instructions.md",
-        "when": "autocontext.instructions.dotnet.xaml && autocontext.workspace.hasXaml && !autocontext.override.dotnet.xaml"
+        "when": "autocontext.instructions.dotnet-xaml && autocontext.workspace.hasXaml && !autocontext.override.dotnet-xaml"
       },
       {
         "path": "./instructions/.generated/dotnet-xunit.instructions.md",
-        "when": "autocontext.instructions.dotnet.xunit && autocontext.workspace.hasXunit && !autocontext.override.dotnet.xunit"
+        "when": "autocontext.instructions.dotnet-xunit && autocontext.workspace.hasXunit && !autocontext.override.dotnet-xunit"
       },
       {
         "path": "./instructions/.generated/web-angular.instructions.md",
-        "when": "autocontext.instructions.web.angular && autocontext.workspace.hasAngular && !autocontext.override.web.angular"
+        "when": "autocontext.instructions.web-angular && autocontext.workspace.hasAngular && !autocontext.override.web-angular"
       },
       {
         "path": "./instructions/.generated/web-cypress.instructions.md",
-        "when": "autocontext.instructions.web.cypress && autocontext.workspace.hasCypress && !autocontext.override.web.cypress"
+        "when": "autocontext.instructions.web-cypress && autocontext.workspace.hasCypress && !autocontext.override.web-cypress"
       },
       {
         "path": "./instructions/.generated/web-jasmine.instructions.md",
-        "when": "autocontext.instructions.web.jasmine && autocontext.workspace.hasJasmine && !autocontext.override.web.jasmine"
+        "when": "autocontext.instructions.web-jasmine && autocontext.workspace.hasJasmine && !autocontext.override.web-jasmine"
       },
       {
         "path": "./instructions/.generated/web-jest.instructions.md",
-        "when": "autocontext.instructions.web.jest && autocontext.workspace.hasJest && !autocontext.override.web.jest"
+        "when": "autocontext.instructions.web-jest && autocontext.workspace.hasJest && !autocontext.override.web-jest"
       },
       {
         "path": "./instructions/.generated/web-mocha.instructions.md",
-        "when": "autocontext.instructions.web.mocha && autocontext.workspace.hasMocha && !autocontext.override.web.mocha"
+        "when": "autocontext.instructions.web-mocha && autocontext.workspace.hasMocha && !autocontext.override.web-mocha"
       },
       {
         "path": "./instructions/.generated/web-nextjs.instructions.md",
-        "when": "autocontext.instructions.web.nextJs && autocontext.workspace.hasNextJs && !autocontext.override.web.nextJs"
+        "when": "autocontext.instructions.web-nextjs && autocontext.workspace.hasNextJs && !autocontext.override.web-nextjs"
       },
       {
         "path": "./instructions/.generated/web-nodejs.instructions.md",
-        "when": "autocontext.instructions.web.nodeJs && autocontext.workspace.hasNodeJs && !autocontext.override.web.nodeJs"
+        "when": "autocontext.instructions.web-nodejs && autocontext.workspace.hasNodeJs && !autocontext.override.web-nodejs"
       },
       {
         "path": "./instructions/.generated/web-playwright.instructions.md",
-        "when": "autocontext.instructions.web.playwright && autocontext.workspace.hasPlaywright && !autocontext.override.web.playwright"
+        "when": "autocontext.instructions.web-playwright && autocontext.workspace.hasPlaywright && !autocontext.override.web-playwright"
       },
       {
         "path": "./instructions/.generated/web-react.instructions.md",
-        "when": "autocontext.instructions.web.react && autocontext.workspace.hasReact && !autocontext.override.web.react"
+        "when": "autocontext.instructions.web-react && autocontext.workspace.hasReact && !autocontext.override.web-react"
       },
       {
         "path": "./instructions/.generated/web-svelte.instructions.md",
-        "when": "autocontext.instructions.web.svelte && autocontext.workspace.hasSvelte && !autocontext.override.web.svelte"
+        "when": "autocontext.instructions.web-svelte && autocontext.workspace.hasSvelte && !autocontext.override.web-svelte"
       },
       {
         "path": "./instructions/.generated/web-testing.instructions.md",
-        "when": "autocontext.instructions.web.testing && autocontext.workspace.hasWebTesting && !autocontext.override.web.testing"
+        "when": "autocontext.instructions.web-testing && autocontext.workspace.hasWebTesting && !autocontext.override.web-testing"
       },
       {
         "path": "./instructions/.generated/web-vitest.instructions.md",
-        "when": "autocontext.instructions.web.vitest && autocontext.workspace.hasVitest && !autocontext.override.web.vitest"
+        "when": "autocontext.instructions.web-vitest && autocontext.workspace.hasVitest && !autocontext.override.web-vitest"
       },
       {
         "path": "./instructions/.generated/web-vue.instructions.md",
-        "when": "autocontext.instructions.web.vue && autocontext.workspace.hasVue && !autocontext.override.web.vue"
+        "when": "autocontext.instructions.web-vue && autocontext.workspace.hasVue && !autocontext.override.web-vue"
       },
       {
         "path": "./instructions/.generated/git-commit-format.instructions.md",
-        "when": "autocontext.instructions.git.commitFormat && autocontext.workspace.hasGit && !autocontext.override.git.commitFormat"
+        "when": "autocontext.instructions.git-commit-format && autocontext.workspace.hasGit && !autocontext.override.git-commit-format"
       },
       {
         "path": "./instructions/.generated/docker.instructions.md",

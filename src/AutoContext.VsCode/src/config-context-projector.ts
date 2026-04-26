@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import type { AutoContextConfigManager } from './autocontext-config.js';
-import type { InstructionsCatalog } from './instructions-catalog.js';
+import type { InstructionsFilesManifest } from './instructions-files-manifest.js';
 import type { McpToolsManifest } from './mcp-tools-manifest.js';
 import type { AutoContextConfig } from './types/autocontext-config.js';
 
@@ -23,7 +23,7 @@ export class ConfigContextProjector implements vscode.Disposable {
 
     constructor(
         private readonly configManager: AutoContextConfigManager,
-        private readonly instructionsCatalog: InstructionsCatalog,
+        private readonly instructionsManifest: InstructionsFilesManifest,
         private readonly toolsManifest: McpToolsManifest,
         private readonly outputChannel: vscode.OutputChannel,
     ) {
@@ -53,8 +53,8 @@ export class ConfigContextProjector implements vscode.Disposable {
         }
 
         await Promise.all([
-            ...this.instructionsCatalog.all.map(entry =>
-                setContext(entry.contextKey, config.instructions?.[entry.fileName]?.enabled !== false),
+            ...this.instructionsManifest.instructions.map(entry =>
+                setContext(entry.contextKey, config.instructions?.[entry.name]?.enabled !== false),
             ),
             ...toolKeys,
         ]);

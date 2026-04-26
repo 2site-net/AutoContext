@@ -9,7 +9,7 @@ vi.mock('node:fs', () => ({ existsSync: () => false }));
 
 vi.mock('../../src/metadata-loader', () => ({
     MetadataLoader: class {
-        getInstructionsInfo() { return []; }
+        getInstructionsInfo() { return new Map(); }
     },
 }));
 
@@ -36,8 +36,12 @@ vi.mock('../../src/workspace-context-detector', () => ({
     },
 }));
 
-vi.mock('../../src/instructions-catalog', () => ({
-    InstructionsCatalog: class { all = []; findByFileName() {} },
+vi.mock('../../src/instructions-files-manifest-loader', () => ({
+    InstructionsFilesManifestLoader: class {
+        load() {
+            return { instructions: [], categories: [], count: 0, findByName: () => undefined };
+        }
+    },
 }));
 
 vi.mock('../../src/instructions-exporter', () => ({
@@ -80,8 +84,8 @@ vi.mock('../../src/instructions-diagnostics', () => ({
     InstructionsDiagnostics: { log: async () => {} },
 }));
 
-vi.mock('../../src/instructions-tree-provider', () => {
-    class InstructionsTreeProvider {
+vi.mock('../../src/instructions-files-tree-provider', () => {
+    class InstructionsFilesTreeProvider {
         showNotDetected = false;
         dispose() {}
         enableInstruction() {}
@@ -89,7 +93,7 @@ vi.mock('../../src/instructions-tree-provider', () => {
         static deleteOverride() {}
         static showOriginal() {}
     }
-    return { InstructionsTreeProvider };
+    return { InstructionsFilesTreeProvider };
 });
 
 vi.mock('../../src/mcp-tools-tree-provider', () => ({

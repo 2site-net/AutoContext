@@ -1,12 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 import { ConfigContextProjector, isToolEnabled } from '../../src/config-context-projector';
-import { InstructionsCatalog } from '../../src/instructions-catalog';
 import { McpCategoryEntry } from '../../src/mcp-category-entry';
 import { McpToolEntry } from '../../src/mcp-tool-entry';
 import { McpToolsManifest } from '../../src/mcp-tools-manifest';
 import { createFakeOutputChannel, createMockConfigManager } from './_fakes';
-import { projectorTestInstructions } from './_fixtures';
+import { makeInstructionsFilesManifest, projectorTestInstructions } from './_fixtures';
 import { findSetContextCall } from './_utils';
 
 beforeEach(() => {
@@ -29,7 +28,7 @@ function buildProjectorManifest(): McpToolsManifest {
 }
 
 describe('ConfigContextProjector', () => {
-    const catalog = new InstructionsCatalog(projectorTestInstructions);
+    const catalog = makeInstructionsFilesManifest(projectorTestInstructions);
     const toolsManifest = buildProjectorManifest();
     const outputChannel = createFakeOutputChannel();
 
@@ -37,8 +36,8 @@ describe('ConfigContextProjector', () => {
         const projector = new ConfigContextProjector(createMockConfigManager({}), catalog, toolsManifest, outputChannel);
         await projector.project();
 
-        expect(findSetContextCall('autocontext.instructions.codeReview')?.[2]).toBe(true);
-        expect(findSetContextCall('autocontext.instructions.lang.csharp')?.[2]).toBe(true);
+        expect(findSetContextCall('autocontext.instructions.code-review')?.[2]).toBe(true);
+        expect(findSetContextCall('autocontext.instructions.lang-csharp')?.[2]).toBe(true);
         expect(findSetContextCall('autocontext.mcpTools.analyze_csharp_code.analyze_csharp_coding_style')?.[2]).toBe(true);
         expect(findSetContextCall('autocontext.mcpTools.analyze_csharp_code.analyze_csharp_async_patterns')?.[2]).toBe(true);
         expect.soft(findSetContextCall('autocontext.mcpTools.read_editorconfig_properties.get_editorconfig_rules')?.[2]).toBe(true);
@@ -55,8 +54,8 @@ describe('ConfigContextProjector', () => {
         );
         await projector.project();
 
-        expect(findSetContextCall('autocontext.instructions.codeReview')?.[2]).toBe(false);
-        expect.soft(findSetContextCall('autocontext.instructions.lang.csharp')?.[2]).toBe(true);
+        expect(findSetContextCall('autocontext.instructions.code-review')?.[2]).toBe(false);
+        expect.soft(findSetContextCall('autocontext.instructions.lang-csharp')?.[2]).toBe(true);
     });
 
     it('should set task context key to false when parent disables the task', async () => {
@@ -122,7 +121,7 @@ describe('ConfigContextProjector', () => {
         );
         await projector.project();
 
-        expect.soft(findSetContextCall('autocontext.instructions.codeReview')?.[2]).toBe(true);
+        expect.soft(findSetContextCall('autocontext.instructions.code-review')?.[2]).toBe(true);
     });
 
     it('should log to outputChannel when project fails via onDidChange', async () => {

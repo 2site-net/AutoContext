@@ -1,15 +1,14 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { workspace, commands } from './_fakes/fake-vscode';
 import { WorkspaceContextDetector } from '../../src/workspace-context-detector';
-import { InstructionsCatalog } from '../../src/instructions-catalog';
 import { createFakeOutputChannel, fakeUri, stubFindFiles, stubReadFile } from './_fakes';
-import { detectorTestInstructions } from './_fixtures';
+import { detectorTestInstructions, makeInstructionsFilesManifest } from './_fixtures';
 
 const mockOutputChannel = createFakeOutputChannel();
 
 function createDetector(): WorkspaceContextDetector {
     return new WorkspaceContextDetector(
-        new InstructionsCatalog(detectorTestInstructions),
+        makeInstructionsFilesManifest(detectorTestInstructions),
         mockOutputChannel,
     );
 }
@@ -392,7 +391,7 @@ describe('WorkspaceContextDetector', () => {
                 await det.detect();
 
                 expect(commands.executeCommand).toHaveBeenCalledWith(
-                    'setContext', 'autocontext.override.dotnet.codingStandards', true,
+                    'setContext', 'autocontext.override.dotnet-coding-standards', true,
                 );
             });
         });
@@ -408,7 +407,7 @@ describe('WorkspaceContextDetector', () => {
                 const det = createDetector();
                 await det.detect();
 
-                expect(det.getOverriddenContextKeys().has('autocontext.instructions.dotnet.codingStandards')).toBe(true);
+                expect(det.getOverriddenContextKeys().has('autocontext.instructions.dotnet-coding-standards')).toBe(true);
             });
 
             it('should not include unknown override files', async () => {
@@ -597,7 +596,7 @@ describe('WorkspaceContextDetector', () => {
             fireEvent(override, 'create', '/.github/instructions/dotnet-coding-standards.instructions.md');
             await vi.advanceTimersByTimeAsync(500);
 
-            expect(det.getOverriddenContextKeys().has('autocontext.instructions.dotnet.codingStandards')).toBe(true);
+            expect(det.getOverriddenContextKeys().has('autocontext.instructions.dotnet-coding-standards')).toBe(true);
         });
 
         it('should fall back to full detect when no prior scan exists', async () => {
@@ -683,7 +682,7 @@ describe('WorkspaceContextDetector', () => {
             const det = createDetector();
             await det.detect();
 
-            expect(det.getOverriddenContextKeys().has('autocontext.instructions.dotnet.codingStandards')).toBe(true);
+            expect(det.getOverriddenContextKeys().has('autocontext.instructions.dotnet-coding-standards')).toBe(true);
         });
     });
 

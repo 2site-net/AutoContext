@@ -3,8 +3,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { InstructionsConfigWriter } from '../../src/instructions-config-writer';
 import { AutoContextConfigManager } from '../../src/autocontext-config';
 import { InstructionsParser } from '../../src/instructions-parser';
-import { InstructionsCatalog } from '../../src/instructions-catalog';
-import { instructionsFiles } from '../../src/ui-constants';
+import { InstructionsFilesManifestLoader } from '../../src/instructions-files-manifest-loader';
+import { join } from 'node:path';
 
 import { writeFile, readFile, readdir, stat, rm, access } from 'node:fs/promises';
 
@@ -31,7 +31,7 @@ beforeEach(() => {
 });
 
 describe('InstructionsConfigWriter', () => {
-    const catalog = new InstructionsCatalog(instructionsFiles);
+    const catalog = new InstructionsFilesManifestLoader(join(__dirname, '..', '..')).load();
 
     it('should write all instruction files when no instructions are disabled', async () => {
         vi.mocked(readFile).mockImplementation(async (path: unknown) => {
@@ -80,7 +80,7 @@ describe('InstructionsConfigWriter', () => {
     it('should write filtered content with disabled instructions removed', async () => {
         const { instructions: parsedInstructions } = InstructionsParser.parse(testInstructionsContent);
         const firstId = parsedInstructions[0].id;
-        const targetFileName = catalog.all[0].fileName;
+        const targetFileName = catalog.instructions[0].name;
 
         vi.mocked(readFile).mockImplementation(async (path: unknown) => {
             const pathStr = String(path);

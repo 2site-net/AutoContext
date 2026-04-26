@@ -3,9 +3,8 @@ import { join } from 'node:path';
 import { window } from './_fakes/fake-vscode';
 import { AutoConfigurer } from '../../src/auto-configurer';
 import { ContextKeys } from '../../src/context-keys';
-import { InstructionsCatalog } from '../../src/instructions-catalog';
+import { InstructionsFilesManifestLoader } from '../../src/instructions-files-manifest-loader';
 import { McpToolsManifestLoader } from '../../src/mcp-tools-manifest-loader';
-import { instructionsFiles } from '../../src/ui-constants';
 import type { AutoContextConfig } from '../../src/types/autocontext-config';
 import { createFakeDetector, createFakeConfigManager } from './_fakes';
 
@@ -22,13 +21,14 @@ beforeEach(() => {
 });
 
 describe('AutoConfigurer', () => {
-    const instructionsCatalog = new InstructionsCatalog(instructionsFiles);
-    const manifest = new McpToolsManifestLoader(join(__dirname, '..', '..')).load();
+    const extensionPath = join(__dirname, '..', '..');
+    const instructionsManifest = new InstructionsFilesManifestLoader(extensionPath).load();
+    const manifest = new McpToolsManifestLoader(extensionPath).load();
 
     it('should disable context-dependent entries when nothing is detected', async () => {
         vi.mocked(fakeDetector.get).mockReturnValue(false);
 
-        await new AutoConfigurer(fakeDetector, instructionsCatalog, manifest, fakeConfigManager).run();
+        await new AutoConfigurer(fakeDetector, instructionsManifest, manifest, fakeConfigManager).run();
 
         const setInstructionEnabled = vi.mocked(fakeConfigManager.setInstructionEnabled);
         const calls = setInstructionEnabled.mock.calls;
@@ -38,9 +38,9 @@ describe('AutoConfigurer', () => {
         // Every disabled call should pass false
         const disabledCalls = calls.filter(([, value]) => value === false);
         expect.soft(disabledCalls.length).toBeGreaterThan(0);
-        // All disabled calls must be for entries that have workspaceFlags
+        // All disabled calls must be for entries that have activationFlags
         for (const [fileName] of disabledCalls) {
-            const entry = instructionsCatalog.findByFileName(fileName)!;
+            const entry = instructionsManifest.findByName(fileName)!;
             expect.soft(ContextKeys.forEntry(entry).length).toBeGreaterThan(0);
         }
     });
@@ -48,7 +48,7 @@ describe('AutoConfigurer', () => {
     it('should not disable .NET entries when hasDotNet and hasCSharp are detected', async () => {
         vi.mocked(fakeDetector.get).mockImplementation((key: string) => key === 'hasDotNet' || key === 'hasCSharp');
 
-        await new AutoConfigurer(fakeDetector, instructionsCatalog, manifest, fakeConfigManager).run();
+        await new AutoConfigurer(fakeDetector, instructionsManifest, manifest, fakeConfigManager).run();
 
         const setInstructionEnabled = vi.mocked(fakeConfigManager.setInstructionEnabled);
         const disabledFileNames = setInstructionEnabled.mock.calls
@@ -71,9 +71,9 @@ describe('AutoConfigurer', () => {
     it('should show an info message with the count of enabled items', async () => {
         vi.mocked(fakeDetector.get).mockReturnValue(false);
 
-        await new AutoConfigurer(fakeDetector, instructionsCatalog, manifest, fakeConfigManager).run();
+        await new AutoConfigurer(fakeDetector, instructionsManifest, manifest, fakeConfigManager).run();
 
-        const allInstructions = instructionsCatalog.all;
+        const allInstructions = instructionsManifest.instructions;
         const totalToolItems = manifest.tools.reduce((acc, t) => acc + Math.max(1, t.tasks.length), 0);
         const totalItems = allInstructions.length + totalToolItems;
         const instructionAlwaysOn = allInstructions.filter(e => ContextKeys.forEntry(e).length === 0).length;
@@ -92,7 +92,7 @@ describe('AutoConfigurer', () => {
         currentConfig = { instructions: { 'dotnet-async-await.instructions.md': { enabled: false } } };
         vi.mocked(fakeDetector.get).mockReturnValue(false);
 
-        await new AutoConfigurer(fakeDetector, instructionsCatalog, manifest, fakeConfigManager).run();
+        await new AutoConfigurer(fakeDetector, instructionsManifest, manifest, fakeConfigManager).run();
 
         const setInstructionEnabled = vi.mocked(fakeConfigManager.setInstructionEnabled);
         const updatedFileNames = setInstructionEnabled.mock.calls.map(([fileName]) => fileName);

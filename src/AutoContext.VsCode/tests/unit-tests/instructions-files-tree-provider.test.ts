@@ -1,11 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { TreeItemCollapsibleState, TreeItemCheckboxState, workspace, commands, Uri, window } from './_fakes/fake-vscode';
-import { InstructionsTreeProvider } from '../../src/instructions-tree-provider';
+import { InstructionsFilesTreeProvider } from '../../src/instructions-files-tree-provider';
 import type { AutoContextConfig } from '../../src/types/autocontext-config';
 import type { InstructionsTreeNode } from '../../src/types/instructions-tree-node';
 import { TreeViewNodeState } from '../../src/tree-view-node-state';
-import { InstructionsCatalog } from '../../src/instructions-catalog';
-import { instructionsFiles, contextKeys } from '../../src/ui-constants';
+import { contextKeys } from '../../src/ui-constants';
+import { InstructionsFilesManifestLoader } from '../../src/instructions-files-manifest-loader';
+import { join } from 'node:path';
 import { TreeViewStateResolver } from '../../src/tree-view-state-resolver';
 import { TreeViewTooltip } from '../../src/tree-view-tooltip';
 import { createFakeDetector, createFakeConfigManager, createFakeOutputChannel } from './_fakes';
@@ -29,11 +30,11 @@ beforeEach(() => {
     vi.mocked(fakeDetector.getOverrideVersion).mockReturnValue(undefined);
 });
 
-describe('InstructionsTreeProvider', () => {
-    const catalog = new InstructionsCatalog(instructionsFiles);
+describe('InstructionsFilesTreeProvider', () => {
+    const catalog = new InstructionsFilesManifestLoader(join(__dirname, '..', '..')).load();
 
     it('should return category nodes as root elements', () => {
-        const provider = new InstructionsTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
+        const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
         const roots = provider.getChildren();
 
         const names = roots.map(r => r.kind === 'categoryNode' ? r.name : '');
@@ -43,7 +44,7 @@ describe('InstructionsTreeProvider', () => {
     });
 
     it('should return instruction nodes as children of a category', () => {
-        const provider = new InstructionsTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
+        const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
         const roots = provider.getChildren();
         const general = roots.find(r => r.kind === 'categoryNode' && r.name === 'General')!;
         const children = provider.getChildren(general);
@@ -55,7 +56,7 @@ describe('InstructionsTreeProvider', () => {
     });
 
     it('should return no children for an instruction node', () => {
-        const provider = new InstructionsTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
+        const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
         const roots = provider.getChildren();
         const general = roots.find(r => r.kind === 'categoryNode' && r.name === 'General')!;
         const children = provider.getChildren(general);
@@ -67,7 +68,7 @@ describe('InstructionsTreeProvider', () => {
     });
 
     it('should show category items as expanded', () => {
-        const provider = new InstructionsTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
+        const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
         const roots = provider.getChildren();
         const treeItem = provider.getTreeItem(roots[0]);
 
@@ -79,11 +80,11 @@ describe('InstructionsTreeProvider', () => {
     it('should mark instructions as active when config is enabled and context keys match', () => {
         vi.mocked(fakeDetector.get).mockImplementation((key: string) => key === 'hasCSharp');
 
-        const provider = new InstructionsTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
+        const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
-        const csharp = children.find(c => c.kind === 'instructions' && c.entry.contextKey === 'autocontext.instructions.lang.csharp')!;
+        const csharp = children.find(c => c.kind === 'instructions' && c.entry.contextKey === 'autocontext.instructions.lang-csharp')!;
 
         expect.soft(csharp.kind === 'instructions' && csharp.state).toBe(TreeViewNodeState.Enabled);
 
@@ -93,11 +94,11 @@ describe('InstructionsTreeProvider', () => {
     it('should mark instructions as not detected when context keys do not match', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(false);
 
-        const provider = new InstructionsTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
+        const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
-        const csharp = children.find(c => c.kind === 'instructions' && c.entry.contextKey === 'autocontext.instructions.lang.csharp')!;
+        const csharp = children.find(c => c.kind === 'instructions' && c.entry.contextKey === 'autocontext.instructions.lang-csharp')!;
 
         expect.soft(csharp.kind === 'instructions' && csharp.state).toBe(TreeViewNodeState.NotDetected);
 
@@ -111,11 +112,11 @@ describe('InstructionsTreeProvider', () => {
         vi.mocked(fakeDetector.get).mockImplementation((key: string) => key === 'hasCSharp');
         currentConfig = { instructions: { 'lang-csharp.instructions.md': { enabled: false } } };
 
-        const provider = new InstructionsTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
+        const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
-        const csharp = children.find(c => c.kind === 'instructions' && c.entry.contextKey === 'autocontext.instructions.lang.csharp')!;
+        const csharp = children.find(c => c.kind === 'instructions' && c.entry.contextKey === 'autocontext.instructions.lang-csharp')!;
 
         expect.soft(csharp.kind === 'instructions' && csharp.state).toBe(TreeViewNodeState.Disabled);
 
@@ -127,13 +128,13 @@ describe('InstructionsTreeProvider', () => {
 
     it('should mark instructions as overridden when contextKey is in overrides', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
-        vi.mocked(fakeDetector.getOverriddenContextKeys).mockReturnValue(new Set(['autocontext.instructions.lang.csharp']));
+        vi.mocked(fakeDetector.getOverriddenContextKeys).mockReturnValue(new Set(['autocontext.instructions.lang-csharp']));
 
-        const provider = new InstructionsTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
+        const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
-        const csharp = children.find(c => c.kind === 'instructions' && c.entry.contextKey === 'autocontext.instructions.lang.csharp')!;
+        const csharp = children.find(c => c.kind === 'instructions' && c.entry.contextKey === 'autocontext.instructions.lang-csharp')!;
 
         expect.soft(csharp.kind === 'instructions' && csharp.state).toBe(TreeViewNodeState.Overridden);
 
@@ -144,11 +145,11 @@ describe('InstructionsTreeProvider', () => {
     });
 
     it('should treat always-on entries (no contextKeys) as active when enabled', () => {
-        const provider = new InstructionsTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
+        const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
         const roots = provider.getChildren();
         const general = roots.find(r => r.kind === 'categoryNode' && r.name === 'General')!;
         const children = provider.getChildren(general);
-        const codeReview = children.find(c => c.kind === 'instructions' && c.entry.contextKey === 'autocontext.instructions.codeReview')!;
+        const codeReview = children.find(c => c.kind === 'instructions' && c.entry.contextKey === 'autocontext.instructions.code-review')!;
 
         expect.soft(codeReview.kind === 'instructions' && codeReview.state).toBe(TreeViewNodeState.Enabled);
 
@@ -156,7 +157,7 @@ describe('InstructionsTreeProvider', () => {
     });
 
     it('should preserve category order from the registry', () => {
-        const provider = new InstructionsTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
+        const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
         const roots = provider.getChildren();
 
         const categories = roots.filter(r => r.kind === 'categoryNode').map(r => r.kind === 'categoryNode' ? r.name : '');
@@ -168,12 +169,12 @@ describe('InstructionsTreeProvider', () => {
     it('should sort instructions within a category by label (matching registry order)', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
 
-        const provider = new InstructionsTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
+        const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
         const roots = provider.getChildren();
         const general = roots.find(r => r.kind === 'categoryNode' && r.name === 'General')!;
         const children = provider.getChildren(general);
         const labels = children.map(c => c.kind === 'instructions' ? c.entry.label : '');
-        const expected = catalog.all.filter(e => e.category === 'General').map(e => e.label);
+        const expected = catalog.instructions.filter(e => e.firstCategory.name === 'General').map(e => e.label);
 
         expect.soft(labels).toEqual(expected);
 
@@ -183,14 +184,14 @@ describe('InstructionsTreeProvider', () => {
     it('should include tooltip with setting ID', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
 
-        const provider = new InstructionsTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
+        const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
-        const csharp = children.find(c => c.kind === 'instructions' && c.entry.contextKey === 'autocontext.instructions.lang.csharp')!;
+        const csharp = children.find(c => c.kind === 'instructions' && c.entry.contextKey === 'autocontext.instructions.lang-csharp')!;
 
         const treeItem = provider.getTreeItem(csharp);
-        expect.soft(treeItem.tooltip).toContain('autocontext.instructions.lang.csharp');
+        expect.soft(treeItem.tooltip).toContain('autocontext.instructions.lang-csharp');
 
         provider.dispose();
     });
@@ -201,12 +202,12 @@ describe('InstructionsTreeProvider', () => {
         const metadata = new Map([
             ['lang-csharp.instructions.md', { description: 'C# coding guidelines', version: '1.0.0' }],
         ]);
-        const enrichedCatalog = new InstructionsCatalog(instructionsFiles, metadata);
-        const provider = new InstructionsTreeProvider(fakeDetector, enrichedCatalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
+        const enrichedCatalog = new InstructionsFilesManifestLoader(join(__dirname, '..', '..')).load(metadata);
+        const provider = new InstructionsFilesTreeProvider(fakeDetector, enrichedCatalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
-        const csharp = children.find(c => c.kind === 'instructions' && c.entry.contextKey === 'autocontext.instructions.lang.csharp')!;
+        const csharp = children.find(c => c.kind === 'instructions' && c.entry.contextKey === 'autocontext.instructions.lang-csharp')!;
         const treeItem = provider.getTreeItem(csharp);
 
         expect.soft(treeItem.tooltip).toContain('C# coding guidelines');
@@ -218,7 +219,7 @@ describe('InstructionsTreeProvider', () => {
     it('should not include version in tooltip when metadata is absent', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
 
-        const provider = new InstructionsTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
+        const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
         const roots = provider.getChildren();
         const general = roots.find(r => r.kind === 'categoryNode' && r.name === 'General')!;
         const children = provider.getChildren(general);
@@ -234,7 +235,7 @@ describe('InstructionsTreeProvider', () => {
         vi.mocked(fakeDetector.get).mockImplementation((key: string) => key === 'hasCSharp' || key === 'hasTypeScript');
         currentConfig = { instructions: { 'lang-csharp.instructions.md': { enabled: false } } };
 
-        const provider = new InstructionsTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
+        const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
@@ -260,31 +261,31 @@ describe('InstructionsTreeProvider', () => {
     it('should set a command on instruction items to open the virtual document', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
 
-        const provider = new InstructionsTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
+        const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
-        const csharp = children.find(c => c.kind === 'instructions' && c.entry.contextKey === 'autocontext.instructions.lang.csharp')!;
+        const csharp = children.find(c => c.kind === 'instructions' && c.entry.contextKey === 'autocontext.instructions.lang-csharp')!;
 
         const treeItem = provider.getTreeItem(csharp);
         expect.soft(treeItem.command).toBeDefined();
         expect.soft(treeItem.command!.command).toBe('vscode.open');
         expect.soft(treeItem.command!.arguments![0].scheme).toBe('autocontext-instructions');
-        expect.soft(treeItem.command!.arguments![0].path).toBe(csharp.kind === 'instructions' ? csharp.entry.fileName : '');
+        expect.soft(treeItem.command!.arguments![0].path).toBe(csharp.kind === 'instructions' ? csharp.entry.name : '');
 
         provider.dispose();
     });
 
     it('should open the workspace override file for overridden items', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
-        vi.mocked(fakeDetector.getOverriddenContextKeys).mockReturnValue(new Set(['autocontext.instructions.lang.csharp']));
+        vi.mocked(fakeDetector.getOverriddenContextKeys).mockReturnValue(new Set(['autocontext.instructions.lang-csharp']));
         workspace.workspaceFolders = [{ uri: { path: '/workspace', scheme: 'file' } }];
 
-        const provider = new InstructionsTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
+        const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
-        const csharp = children.find(c => c.kind === 'instructions' && c.entry.contextKey === 'autocontext.instructions.lang.csharp')!;
+        const csharp = children.find(c => c.kind === 'instructions' && c.entry.contextKey === 'autocontext.instructions.lang-csharp')!;
 
         const treeItem = provider.getTreeItem(csharp);
         expect.soft(treeItem.command).toBeDefined();
@@ -298,7 +299,7 @@ describe('InstructionsTreeProvider', () => {
     it('should set contextValue to instruction.enabled for active items', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
 
-        const provider = new InstructionsTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
+        const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
         const roots = provider.getChildren();
         const general = roots.find(r => r.kind === 'categoryNode' && r.name === 'General')!;
         const children = provider.getChildren(general);
@@ -314,11 +315,11 @@ describe('InstructionsTreeProvider', () => {
         vi.mocked(fakeDetector.get).mockImplementation((key: string) => key === 'hasCSharp');
         currentConfig = { instructions: { 'lang-csharp.instructions.md': { enabled: false } } };
 
-        const provider = new InstructionsTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
+        const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
-        const disabled = children.find(c => c.kind === 'instructions' && c.entry.contextKey === 'autocontext.instructions.lang.csharp')!;
+        const disabled = children.find(c => c.kind === 'instructions' && c.entry.contextKey === 'autocontext.instructions.lang-csharp')!;
 
         const treeItem = provider.getTreeItem(disabled);
         expect.soft(treeItem.contextValue).toBe('instruction.disabled');
@@ -332,12 +333,12 @@ describe('InstructionsTreeProvider', () => {
         const metadata = new Map([
             ['lang-csharp.instructions.md', { description: 'C#', version: '1.0.0', hasChangelog: true }],
         ]);
-        const changelogCatalog = new InstructionsCatalog(instructionsFiles, metadata);
-        const provider = new InstructionsTreeProvider(fakeDetector, changelogCatalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
+        const changelogCatalog = new InstructionsFilesManifestLoader(join(__dirname, '..', '..')).load(metadata);
+        const provider = new InstructionsFilesTreeProvider(fakeDetector, changelogCatalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
-        const csharp = children.find(c => c.kind === 'instructions' && c.entry.contextKey === 'autocontext.instructions.lang.csharp')!;
+        const csharp = children.find(c => c.kind === 'instructions' && c.entry.contextKey === 'autocontext.instructions.lang-csharp')!;
 
         const treeItem = provider.getTreeItem(csharp);
         expect.soft(treeItem.contextValue).toBe('instruction.enabled.hasChangelog');
@@ -348,7 +349,7 @@ describe('InstructionsTreeProvider', () => {
     it('should not append .hasChangelog when entry has no changelog', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
 
-        const provider = new InstructionsTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
+        const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
         const roots = provider.getChildren();
         const general = roots.find(r => r.kind === 'categoryNode' && r.name === 'General')!;
         const children = provider.getChildren(general);
@@ -364,11 +365,11 @@ describe('InstructionsTreeProvider', () => {
         vi.mocked(fakeDetector.get).mockImplementation((key: string) => key === 'hasCSharp');
         currentConfig = { instructions: { 'lang-csharp.instructions.md': { enabled: false } } };
 
-        const provider = new InstructionsTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
+        const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
-        const node = children.find(c => c.kind === 'instructions' && c.entry.contextKey === 'autocontext.instructions.lang.csharp')!;
+        const node = children.find(c => c.kind === 'instructions' && c.entry.contextKey === 'autocontext.instructions.lang-csharp')!;
 
         await provider.enableInstruction(node as InstructionsTreeNode);
 
@@ -380,7 +381,7 @@ describe('InstructionsTreeProvider', () => {
     it('should update setting to false when disableInstruction is called', async () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
 
-        const provider = new InstructionsTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
+        const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
         const roots = provider.getChildren();
         const general = roots.find(r => r.kind === 'categoryNode' && r.name === 'General')!;
         const children = provider.getChildren(general);
@@ -389,7 +390,7 @@ describe('InstructionsTreeProvider', () => {
         await provider.disableInstruction(node as InstructionsTreeNode);
 
         expect.soft(vi.mocked(fakeConfigManager.setInstructionEnabled)).toHaveBeenCalledWith(
-            node.kind === 'instructions' ? node.entry.fileName : '',
+            node.kind === 'instructions' ? node.entry.name : '',
             false,
         );
 
@@ -398,7 +399,7 @@ describe('InstructionsTreeProvider', () => {
 
     it('should delete the override file and close its tab when deleteOverride is called', async () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
-        vi.mocked(fakeDetector.getOverriddenContextKeys).mockReturnValue(new Set(['autocontext.instructions.lang.csharp']));
+        vi.mocked(fakeDetector.getOverriddenContextKeys).mockReturnValue(new Set(['autocontext.instructions.lang-csharp']));
         workspace.workspaceFolders = [{ uri: { path: '/workspace', scheme: 'file' } }];
 
         const folder = workspace.workspaceFolders[0] as { uri: { path: string; scheme: string } };
@@ -406,13 +407,13 @@ describe('InstructionsTreeProvider', () => {
         const matchingTab = { input: { uri: { toString: () => targetUri.toString() } } };
         window.tabGroups.all = [{ tabs: [matchingTab] }];
 
-        const provider = new InstructionsTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
+        const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
-        const node = children.find(c => c.kind === 'instructions' && c.entry.contextKey === 'autocontext.instructions.lang.csharp')!;
+        const node = children.find(c => c.kind === 'instructions' && c.entry.contextKey === 'autocontext.instructions.lang-csharp')!;
 
-        await InstructionsTreeProvider.deleteOverride(node as InstructionsTreeNode);
+        await InstructionsFilesTreeProvider.deleteOverride(node as InstructionsTreeNode);
 
         expect.soft(window.tabGroups.close).toHaveBeenCalledWith(matchingTab);
         expect.soft(workspace.fs.delete).toHaveBeenCalled();
@@ -422,15 +423,15 @@ describe('InstructionsTreeProvider', () => {
 
     it('should open the virtual document when showOriginal is called on overridden item', async () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
-        vi.mocked(fakeDetector.getOverriddenContextKeys).mockReturnValue(new Set(['autocontext.instructions.lang.csharp']));
+        vi.mocked(fakeDetector.getOverriddenContextKeys).mockReturnValue(new Set(['autocontext.instructions.lang-csharp']));
 
-        const provider = new InstructionsTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
+        const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
-        const node = children.find(c => c.kind === 'instructions' && c.entry.contextKey === 'autocontext.instructions.lang.csharp')!;
+        const node = children.find(c => c.kind === 'instructions' && c.entry.contextKey === 'autocontext.instructions.lang-csharp')!;
 
-        await InstructionsTreeProvider.showOriginal(node as InstructionsTreeNode);
+        await InstructionsFilesTreeProvider.showOriginal(node as InstructionsTreeNode);
 
         expect.soft(commands.executeCommand).toHaveBeenCalledWith(
             'vscode.open',
@@ -444,7 +445,7 @@ describe('InstructionsTreeProvider', () => {
         vi.mocked(fakeDetector.get).mockImplementation((key: string) => key === 'hasCSharp');
         currentConfig = { instructions: { 'design-principles.instructions.md': { enabled: false } } };
 
-        const provider = new InstructionsTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
+        const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
         provider.enterExportMode();
 
         const roots = provider.getChildren();
@@ -463,7 +464,7 @@ describe('InstructionsTreeProvider', () => {
     it('should not show checkboxes on not-detected or overridden items in export mode', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(false);
 
-        const provider = new InstructionsTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
+        const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
         provider.enterExportMode();
 
         const roots = provider.getChildren();
@@ -479,7 +480,7 @@ describe('InstructionsTreeProvider', () => {
     it('should not show checkboxes when not in export mode', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
 
-        const provider = new InstructionsTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
+        const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
         const roots = provider.getChildren();
         const general = roots.find(r => r.kind === 'categoryNode' && r.name === 'General')!;
         const children = provider.getChildren(general);
@@ -491,7 +492,7 @@ describe('InstructionsTreeProvider', () => {
     });
 
     it('should set export mode context key when entering export mode', () => {
-        const provider = new InstructionsTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
+        const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
         provider.enterExportMode();
 
         expect.soft(commands.executeCommand).toHaveBeenCalledWith('setContext', contextKeys.ExportMode, true);
@@ -500,7 +501,7 @@ describe('InstructionsTreeProvider', () => {
     });
 
     it('should clear export mode context key when canceling export mode', () => {
-        const provider = new InstructionsTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
+        const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
         provider.enterExportMode();
         provider.cancelExportMode();
 
@@ -512,13 +513,13 @@ describe('InstructionsTreeProvider', () => {
     it('should return checked entries from getCheckedEntries', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
 
-        const provider = new InstructionsTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
+        const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
         provider.enterExportMode();
 
         const roots = provider.getChildren();
         const general = roots.find(r => r.kind === 'categoryNode' && r.name === 'General')!;
         const children = provider.getChildren(general);
-        const entry = children.find(c => c.kind === 'instructions' && c.entry.contextKey === 'autocontext.instructions.codeReview')!;
+        const entry = children.find(c => c.kind === 'instructions' && c.entry.contextKey === 'autocontext.instructions.code-review')!;
 
         // Simulate checkbox toggle by accessing the internal checked set
         // In production, this is driven by onDidChangeCheckboxState
@@ -528,7 +529,7 @@ describe('InstructionsTreeProvider', () => {
 
         const checked = provider.getCheckedEntries();
         expect.soft(checked.length).toBe(1);
-        expect.soft(checked[0].contextKey).toBe('autocontext.instructions.codeReview');
+        expect.soft(checked[0].contextKey).toBe('autocontext.instructions.code-review');
 
         provider.dispose();
     });
@@ -536,10 +537,10 @@ describe('InstructionsTreeProvider', () => {
     it('should clear checked entries when canceling export mode', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
 
-        const provider = new InstructionsTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
+        const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
         provider.enterExportMode();
 
-        (provider as unknown as { _checkedEntries: Set<string> })._checkedEntries.add('autocontext.instructions.codeReview');
+        (provider as unknown as { _checkedEntries: Set<string> })._checkedEntries.add('autocontext.instructions.code-review');
         expect.soft(provider.getCheckedEntries().length).toBe(1);
 
         provider.cancelExportMode();
@@ -551,7 +552,7 @@ describe('InstructionsTreeProvider', () => {
     it('should set badge on tree view when setBadge is called with a positive value', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
 
-        const provider = new InstructionsTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
+        const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
         provider.setBadge(1, 'New version available');
 
         const treeView = vi.mocked(window.createTreeView).mock.results.at(-1)!.value;
@@ -563,7 +564,7 @@ describe('InstructionsTreeProvider', () => {
     it('should clear badge on tree view when setBadge is called with zero', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
 
-        const provider = new InstructionsTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
+        const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
         provider.setBadge(1, 'New version available');
         provider.setBadge(0, '');
 
@@ -577,7 +578,7 @@ describe('InstructionsTreeProvider', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
         const onDismiss = vi.fn();
 
-        const provider = new InstructionsTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
+        const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
         provider.setBadge(1, 'New version available');
         provider.dismissBadgeOnNextReveal(onDismiss);
 
@@ -593,7 +594,7 @@ describe('InstructionsTreeProvider', () => {
     it('should not clear badge when tree view becomes hidden', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
 
-        const provider = new InstructionsTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
+        const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
         provider.setBadge(1, 'New version available');
         provider.dismissBadgeOnNextReveal();
 
@@ -609,7 +610,7 @@ describe('InstructionsTreeProvider', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
         const onDismiss = vi.fn();
 
-        const provider = new InstructionsTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
+        const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
         provider.setBadge(1, 'New version available');
         provider.dismissBadgeOnNextReveal(onDismiss);
 
@@ -629,7 +630,7 @@ describe('InstructionsTreeProvider', () => {
     it('should hide not-detected instructions when showNotDetected is false', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(false);
 
-        const provider = new InstructionsTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
+        const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
         provider.showNotDetected = false;
 
         const roots = provider.getChildren();
@@ -647,7 +648,7 @@ describe('InstructionsTreeProvider', () => {
     it('should show not-detected instructions when showNotDetected is true', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(false);
 
-        const provider = new InstructionsTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
+        const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
         provider.showNotDetected = true;
 
         const roots = provider.getChildren();
@@ -662,7 +663,7 @@ describe('InstructionsTreeProvider', () => {
     it('should hide empty categories when showNotDetected is false', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(false);
 
-        const provider = new InstructionsTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
+        const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
         provider.showNotDetected = false;
 
         const roots = provider.getChildren();
@@ -677,13 +678,13 @@ describe('InstructionsTreeProvider', () => {
 
     it('should set contextValue to instruction.overridden for overridden items', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
-        vi.mocked(fakeDetector.getOverriddenContextKeys).mockReturnValue(new Set(['autocontext.instructions.lang.csharp']));
+        vi.mocked(fakeDetector.getOverriddenContextKeys).mockReturnValue(new Set(['autocontext.instructions.lang-csharp']));
 
-        const provider = new InstructionsTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
+        const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
-        const overridden = children.find(c => c.kind === 'instructions' && c.entry.contextKey === 'autocontext.instructions.lang.csharp')!;
+        const overridden = children.find(c => c.kind === 'instructions' && c.entry.contextKey === 'autocontext.instructions.lang-csharp')!;
 
         const treeItem = provider.getTreeItem(overridden);
         expect.soft(treeItem.contextValue).toBe('instruction.overridden');
@@ -694,7 +695,7 @@ describe('InstructionsTreeProvider', () => {
     it('should include state description in tooltip for active state', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
 
-        const provider = new InstructionsTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
+        const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
         const roots = provider.getChildren();
 
         const general = roots.find(r => r.kind === 'categoryNode' && r.name === 'General')!;
@@ -707,7 +708,7 @@ describe('InstructionsTreeProvider', () => {
     it('should include state description in tooltip for not-detected state', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(false);
 
-        const provider = new InstructionsTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
+        const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
         const notDetectedNode = provider.getChildren(languages).find(c => c.kind === 'instructions' && c.state === TreeViewNodeState.NotDetected)!;
@@ -720,7 +721,7 @@ describe('InstructionsTreeProvider', () => {
         vi.mocked(fakeDetector.get).mockImplementation((key: string) => key === 'hasCSharp');
         currentConfig = { instructions: { 'lang-csharp.instructions.md': { enabled: false } } };
 
-        const provider = new InstructionsTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
+        const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
         const disabled = provider.getChildren(languages).find(c => c.kind === 'instructions' && c.state === TreeViewNodeState.Disabled)!;
@@ -732,9 +733,9 @@ describe('InstructionsTreeProvider', () => {
 
     it('should include state description in tooltip for overridden state', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
-        vi.mocked(fakeDetector.getOverriddenContextKeys).mockReturnValue(new Set(['autocontext.instructions.lang.csharp']));
+        vi.mocked(fakeDetector.getOverriddenContextKeys).mockReturnValue(new Set(['autocontext.instructions.lang-csharp']));
 
-        const provider = new InstructionsTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
+        const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
         const overridden = provider.getChildren(languages).find(c => c.kind === 'instructions' && c.state === TreeViewNodeState.Overridden)!;
@@ -748,12 +749,12 @@ describe('InstructionsTreeProvider', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
         currentConfig = { instructions: { 'lang-csharp.instructions.md': { enabled: false } } };
 
-        const provider = new InstructionsTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
+        const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
         const item = provider.getTreeItem(languages);
-        const langEntries = catalog.all.filter(e => e.category === 'Languages');
-        const active = langEntries.filter(e => e.contextKey !== 'autocontext.instructions.lang.csharp').length;
+        const langEntries = catalog.instructions.filter(e => e.firstCategory.name === 'Languages');
+        const active = langEntries.filter(e => e.contextKey !== 'autocontext.instructions.lang-csharp').length;
 
         expect.soft(item.tooltip).toBe(`Languages\n${active}/${langEntries.length} active`);
 
@@ -763,12 +764,12 @@ describe('InstructionsTreeProvider', () => {
     it('should show active/total count in category tooltip with not-detected entries', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(false);
 
-        const provider = new InstructionsTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
+        const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
         const roots = provider.getChildren();
         const general = roots.find(r => r.kind === 'categoryNode' && r.name === 'General')!;
         const item = provider.getTreeItem(general);
-        const generalEntries = catalog.all.filter(e => e.category === 'General');
-        const alwaysOn = generalEntries.filter(e => !e.workspaceFlags || e.workspaceFlags.length === 0).length;
+        const generalEntries = catalog.instructions.filter(e => e.firstCategory.name === 'General');
+        const alwaysOn = generalEntries.filter(e => !e.activationFlags || e.activationFlags.length === 0).length;
 
         expect.soft(item.tooltip).toBe(`General\n${alwaysOn}/${generalEntries.length} active`);
 
@@ -777,13 +778,13 @@ describe('InstructionsTreeProvider', () => {
 
     it('should count overridden instructions as active in category tooltip', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
-        vi.mocked(fakeDetector.getOverriddenContextKeys).mockReturnValue(new Set(['autocontext.instructions.lang.csharp']));
+        vi.mocked(fakeDetector.getOverriddenContextKeys).mockReturnValue(new Set(['autocontext.instructions.lang-csharp']));
 
-        const provider = new InstructionsTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
+        const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
         const item = provider.getTreeItem(languages);
-        const langEntries = catalog.all.filter(e => e.category === 'Languages');
+        const langEntries = catalog.instructions.filter(e => e.firstCategory.name === 'Languages');
 
         expect.soft(item.tooltip).toBe(`Languages\n${langEntries.length}/${langEntries.length} active`);
 
@@ -794,10 +795,10 @@ describe('InstructionsTreeProvider', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
         currentConfig = { instructions: { 'lang-csharp.instructions.md': { enabled: false } } };
 
-        const provider = new InstructionsTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
+        const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
         const treeView = vi.mocked(window.createTreeView).mock.results.at(-1)!.value;
         const total = catalog.count;
-        const enabled = catalog.all.filter(e => e.contextKey !== 'autocontext.instructions.lang.csharp').length;
+        const enabled = catalog.instructions.filter(e => e.contextKey !== 'autocontext.instructions.lang-csharp').length;
 
         expect.soft(treeView.description).toBe(`${enabled}/${total}`);
 
@@ -807,10 +808,10 @@ describe('InstructionsTreeProvider', () => {
     it('should exclude not-detected entries from enabled count in description', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(false);
 
-        const provider = new InstructionsTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
+        const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
         const treeView = vi.mocked(window.createTreeView).mock.results.at(-1)!.value;
         const total = catalog.count;
-        const alwaysOn = catalog.all.filter(e => !e.workspaceFlags || e.workspaceFlags.length === 0).length;
+        const alwaysOn = catalog.instructions.filter(e => !e.activationFlags || e.activationFlags.length === 0).length;
 
         expect.soft(treeView.description).toBe(`${alwaysOn}/${total}`);
 
@@ -819,18 +820,18 @@ describe('InstructionsTreeProvider', () => {
 
     it('should show outdated description when override version is behind built-in', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
-        vi.mocked(fakeDetector.getOverriddenContextKeys).mockReturnValue(new Set(['autocontext.instructions.lang.csharp']));
+        vi.mocked(fakeDetector.getOverriddenContextKeys).mockReturnValue(new Set(['autocontext.instructions.lang-csharp']));
         vi.mocked(fakeDetector.getOverrideVersion).mockImplementation(
             (fileName: string) => fileName === 'lang-csharp.instructions.md' ? '1.0.0' : undefined,
         );
 
         const metadata = new Map([['lang-csharp.instructions.md', { version: '1.1.0' }]]);
-        const versionedCatalog = new InstructionsCatalog(instructionsFiles, metadata);
-        const provider = new InstructionsTreeProvider(fakeDetector, versionedCatalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
+        const versionedCatalog = new InstructionsFilesManifestLoader(join(__dirname, '..', '..')).load(metadata);
+        const provider = new InstructionsFilesTreeProvider(fakeDetector, versionedCatalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
-        const csharp = children.find(c => c.kind === 'instructions' && c.entry.contextKey === 'autocontext.instructions.lang.csharp')!;
+        const csharp = children.find(c => c.kind === 'instructions' && c.entry.contextKey === 'autocontext.instructions.lang-csharp')!;
 
         const treeItem = provider.getTreeItem(csharp);
         expect.soft(treeItem.description).toBe('overridden (outdated)');
@@ -842,18 +843,18 @@ describe('InstructionsTreeProvider', () => {
 
     it('should show standard overridden tooltip when override version matches built-in', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
-        vi.mocked(fakeDetector.getOverriddenContextKeys).mockReturnValue(new Set(['autocontext.instructions.lang.csharp']));
+        vi.mocked(fakeDetector.getOverriddenContextKeys).mockReturnValue(new Set(['autocontext.instructions.lang-csharp']));
         vi.mocked(fakeDetector.getOverrideVersion).mockImplementation(
             (fileName: string) => fileName === 'lang-csharp.instructions.md' ? '1.0.0' : undefined,
         );
 
         const metadata = new Map([['lang-csharp.instructions.md', { version: '1.0.0' }]]);
-        const versionedCatalog = new InstructionsCatalog(instructionsFiles, metadata);
-        const provider = new InstructionsTreeProvider(fakeDetector, versionedCatalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
+        const versionedCatalog = new InstructionsFilesManifestLoader(join(__dirname, '..', '..')).load(metadata);
+        const provider = new InstructionsFilesTreeProvider(fakeDetector, versionedCatalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
-        const csharp = children.find(c => c.kind === 'instructions' && c.entry.contextKey === 'autocontext.instructions.lang.csharp')!;
+        const csharp = children.find(c => c.kind === 'instructions' && c.entry.contextKey === 'autocontext.instructions.lang-csharp')!;
 
         const treeItem = provider.getTreeItem(csharp);
         expect.soft(treeItem.description).toBe('overridden');
@@ -865,16 +866,16 @@ describe('InstructionsTreeProvider', () => {
 
     it('should not show outdated when override has no version in frontmatter', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
-        vi.mocked(fakeDetector.getOverriddenContextKeys).mockReturnValue(new Set(['autocontext.instructions.lang.csharp']));
+        vi.mocked(fakeDetector.getOverriddenContextKeys).mockReturnValue(new Set(['autocontext.instructions.lang-csharp']));
         vi.mocked(fakeDetector.getOverrideVersion).mockReturnValue(undefined);
 
         const metadata = new Map([['lang-csharp.instructions.md', { version: '1.1.0' }]]);
-        const versionedCatalog = new InstructionsCatalog(instructionsFiles, metadata);
-        const provider = new InstructionsTreeProvider(fakeDetector, versionedCatalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
+        const versionedCatalog = new InstructionsFilesManifestLoader(join(__dirname, '..', '..')).load(metadata);
+        const provider = new InstructionsFilesTreeProvider(fakeDetector, versionedCatalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
-        const csharp = children.find(c => c.kind === 'instructions' && c.entry.contextKey === 'autocontext.instructions.lang.csharp')!;
+        const csharp = children.find(c => c.kind === 'instructions' && c.entry.contextKey === 'autocontext.instructions.lang-csharp')!;
 
         const treeItem = provider.getTreeItem(csharp);
         expect.soft(treeItem.description).toBe('overridden');
@@ -884,7 +885,7 @@ describe('InstructionsTreeProvider', () => {
 
     it('should show warning dialog when deleting an outdated override', async () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
-        vi.mocked(fakeDetector.getOverriddenContextKeys).mockReturnValue(new Set(['autocontext.instructions.lang.csharp']));
+        vi.mocked(fakeDetector.getOverriddenContextKeys).mockReturnValue(new Set(['autocontext.instructions.lang-csharp']));
         vi.mocked(fakeDetector.getOverrideVersion).mockImplementation(
             (fileName: string) => fileName === 'lang-csharp.instructions.md' ? '1.0.0' : undefined,
         );
@@ -892,14 +893,14 @@ describe('InstructionsTreeProvider', () => {
         vi.mocked(window.showWarningMessage).mockResolvedValue('Delete' as never);
 
         const metadata = new Map([['lang-csharp.instructions.md', { version: '1.1.0' }]]);
-        const versionedCatalog = new InstructionsCatalog(instructionsFiles, metadata);
-        const provider = new InstructionsTreeProvider(fakeDetector, versionedCatalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
+        const versionedCatalog = new InstructionsFilesManifestLoader(join(__dirname, '..', '..')).load(metadata);
+        const provider = new InstructionsFilesTreeProvider(fakeDetector, versionedCatalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
-        const node = children.find(c => c.kind === 'instructions' && c.entry.contextKey === 'autocontext.instructions.lang.csharp')!;
+        const node = children.find(c => c.kind === 'instructions' && c.entry.contextKey === 'autocontext.instructions.lang-csharp')!;
 
-        await InstructionsTreeProvider.deleteOverride(node as InstructionsTreeNode);
+        await InstructionsFilesTreeProvider.deleteOverride(node as InstructionsTreeNode);
 
         expect.soft(window.showWarningMessage).toHaveBeenCalledWith(
             expect.stringContaining('(v1.0.0) is behind AutoContext\'s version (v1.1.0)'),
@@ -913,7 +914,7 @@ describe('InstructionsTreeProvider', () => {
 
     it('should not delete override when user cancels the outdated warning dialog', async () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
-        vi.mocked(fakeDetector.getOverriddenContextKeys).mockReturnValue(new Set(['autocontext.instructions.lang.csharp']));
+        vi.mocked(fakeDetector.getOverriddenContextKeys).mockReturnValue(new Set(['autocontext.instructions.lang-csharp']));
         vi.mocked(fakeDetector.getOverrideVersion).mockImplementation(
             (fileName: string) => fileName === 'lang-csharp.instructions.md' ? '1.0.0' : undefined,
         );
@@ -921,14 +922,14 @@ describe('InstructionsTreeProvider', () => {
         vi.mocked(window.showWarningMessage).mockResolvedValue(undefined as never);
 
         const metadata = new Map([['lang-csharp.instructions.md', { version: '1.1.0' }]]);
-        const versionedCatalog = new InstructionsCatalog(instructionsFiles, metadata);
-        const provider = new InstructionsTreeProvider(fakeDetector, versionedCatalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
+        const versionedCatalog = new InstructionsFilesManifestLoader(join(__dirname, '..', '..')).load(metadata);
+        const provider = new InstructionsFilesTreeProvider(fakeDetector, versionedCatalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
-        const node = children.find(c => c.kind === 'instructions' && c.entry.contextKey === 'autocontext.instructions.lang.csharp')!;
+        const node = children.find(c => c.kind === 'instructions' && c.entry.contextKey === 'autocontext.instructions.lang-csharp')!;
 
-        await InstructionsTreeProvider.deleteOverride(node as InstructionsTreeNode);
+        await InstructionsFilesTreeProvider.deleteOverride(node as InstructionsTreeNode);
 
         expect.soft(workspace.fs.delete).not.toHaveBeenCalled();
 
@@ -937,17 +938,17 @@ describe('InstructionsTreeProvider', () => {
 
     it('should skip warning dialog when deleting a non-outdated override', async () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
-        vi.mocked(fakeDetector.getOverriddenContextKeys).mockReturnValue(new Set(['autocontext.instructions.lang.csharp']));
+        vi.mocked(fakeDetector.getOverriddenContextKeys).mockReturnValue(new Set(['autocontext.instructions.lang-csharp']));
         vi.mocked(fakeDetector.getOverrideVersion).mockReturnValue(undefined);
         workspace.workspaceFolders = [{ uri: { path: '/workspace', scheme: 'file' } }];
 
-        const provider = new InstructionsTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
+        const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, outputChannel);
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
-        const node = children.find(c => c.kind === 'instructions' && c.entry.contextKey === 'autocontext.instructions.lang.csharp')!;
+        const node = children.find(c => c.kind === 'instructions' && c.entry.contextKey === 'autocontext.instructions.lang-csharp')!;
 
-        await InstructionsTreeProvider.deleteOverride(node as InstructionsTreeNode);
+        await InstructionsFilesTreeProvider.deleteOverride(node as InstructionsTreeNode);
 
         expect.soft(window.showWarningMessage).not.toHaveBeenCalled();
         expect.soft(workspace.fs.delete).toHaveBeenCalled();
@@ -964,7 +965,7 @@ describe('InstructionsTreeProvider', () => {
         } as unknown as import('../../src/autocontext-config').AutoContextConfigManager;
 
         const oc = createFakeOutputChannel();
-        const provider = new InstructionsTreeProvider(fakeDetector, catalog, stateResolver, tooltip, failingConfigManager, oc);
+        const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, failingConfigManager, oc);
 
         onDidChangeCallback();
         await vi.waitFor(() => {

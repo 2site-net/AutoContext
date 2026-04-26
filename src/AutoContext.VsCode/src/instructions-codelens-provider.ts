@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { join } from 'node:path';
 import { InstructionsParser } from './instructions-parser.js';
-import type { InstructionsCatalog } from './instructions-catalog.js';
+import type { InstructionsFilesManifest } from './instructions-files-manifest.js';
 import { ContextKeys } from './context-keys.js';
 import { instructionScheme } from './instructions-content-provider.js';
 import type { AutoContextConfigManager } from './autocontext-config.js';
@@ -17,7 +17,7 @@ export class InstructionsCodeLensProvider implements vscode.CodeLensProvider, vs
         private readonly extensionPath: string,
         private readonly configManager: AutoContextConfigManager,
         private readonly detector: WorkspaceContextDetector,
-        private readonly catalog: InstructionsCatalog,
+        private readonly manifest: InstructionsFilesManifest,
         private readonly outputChannel: vscode.OutputChannel,
     ) {
         this.disposables.push(
@@ -34,7 +34,7 @@ export class InstructionsCodeLensProvider implements vscode.CodeLensProvider, vs
 
         const fileName = document.uri.path;
 
-        const entry = this.catalog.findByFileName(fileName);
+        const entry = this.manifest.findByName(fileName);
         if (entry) {
             const flags = ContextKeys.forEntry(entry);
             if (flags.length > 0 && !flags.some(k => this.detector.get(k))) {

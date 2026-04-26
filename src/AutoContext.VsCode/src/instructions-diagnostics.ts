@@ -1,21 +1,21 @@
 import * as vscode from 'vscode';
 import { join } from 'node:path';
-import type { InstructionsCatalog } from './instructions-catalog.js';
+import type { InstructionsFilesManifest } from './instructions-files-manifest.js';
 import { InstructionsParser } from './instructions-parser.js';
 import type { AutoContextConfigManager } from './autocontext-config.js';
 
 export class InstructionsDiagnostics {
-    static async log(outputChannel: vscode.OutputChannel, extensionPath: string, configManager: AutoContextConfigManager, catalog: InstructionsCatalog): Promise<void> {
+    static async log(outputChannel: vscode.OutputChannel, extensionPath: string, configManager: AutoContextConfigManager, manifest: InstructionsFilesManifest): Promise<void> {
         outputChannel.clear();
         const config = await configManager.read();
         const warnOnMissingId = config.diagnostic?.warnOnMissingId === true;
 
-        for (const entry of catalog.all) {
+        for (const entry of manifest.instructions) {
             let diagnostics;
             try {
-                ({ result: { diagnostics } } = await InstructionsParser.fromFile(join(extensionPath, 'instructions', entry.fileName)));
+                ({ result: { diagnostics } } = await InstructionsParser.fromFile(join(extensionPath, 'instructions', entry.name)));
             } catch (err) {
-                outputChannel.appendLine(`[Instructions] Failed to parse ${entry.fileName}: ${err instanceof Error ? err.message : err}`);
+                outputChannel.appendLine(`[Instructions] Failed to parse ${entry.name}: ${err instanceof Error ? err.message : err}`);
                 continue;
             }
 
@@ -24,7 +24,7 @@ export class InstructionsDiagnostics {
                     continue;
                 }
 
-                outputChannel.appendLine(`[warn] ${entry.fileName}:${d.line + 1} — ${d.message}`);
+                outputChannel.appendLine(`[warn] ${entry.name}:${d.line + 1} — ${d.message}`);
             }
         }
     }

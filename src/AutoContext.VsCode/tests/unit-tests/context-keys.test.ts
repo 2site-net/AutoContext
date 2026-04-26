@@ -1,12 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import { join } from 'node:path';
 import { ContextKeys } from '../../src/context-keys';
-import { instructionsFiles } from '../../src/ui-constants';
-import { InstructionsCatalog } from '../../src/instructions-catalog';
+import { InstructionsFilesManifestLoader } from '../../src/instructions-files-manifest-loader';
 import { McpToolsManifestLoader } from '../../src/mcp-tools-manifest-loader';
 
-const instructionsCatalog = new InstructionsCatalog(instructionsFiles);
-const toolsManifest = new McpToolsManifestLoader(join(__dirname, '..', '..')).load();
+const extensionPath = join(__dirname, '..', '..');
+const instructionsManifest = new InstructionsFilesManifestLoader(extensionPath).load();
+const toolsManifest = new McpToolsManifestLoader(extensionPath).load();
 
 describe('ContextKeys.overrideKey', () => {
     it('should strip the settings prefix and prepend the override prefix', () => {
@@ -15,26 +15,26 @@ describe('ContextKeys.overrideKey', () => {
     });
 
     it('should handle nested setting ids', () => {
-        expect.soft(ContextKeys.overrideKey('autocontext.instructions.dotnet.asyncAwait'))
-            .toBe('autocontext.override.dotnet.asyncAwait');
+        expect.soft(ContextKeys.overrideKey('autocontext.instructions.dotnet-async-await'))
+            .toBe('autocontext.override.dotnet-async-await');
     });
 });
 
 describe('ContextKeys.forEntry', () => {
     it('should return empty array for always-on instructions', () => {
-        const codeReview = instructionsCatalog.all.find(i => i.contextKey === 'autocontext.instructions.codeReview')!;
+        const codeReview = instructionsManifest.findByName('code-review.instructions.md')!;
 
         expect.soft(ContextKeys.forEntry(codeReview)).toEqual([]);
     });
 
     it('should return context keys for workspace-specific instructions', () => {
-        const asyncAwait = instructionsCatalog.all.find(i => i.contextKey === 'autocontext.instructions.dotnet.asyncAwait')!;
+        const asyncAwait = instructionsManifest.findByName('dotnet-async-await.instructions.md')!;
 
         expect.soft(ContextKeys.forEntry(asyncAwait)).toEqual(['hasDotNet']);
     });
 
     it('should return multiple context keys for OR conditions', () => {
-        const js = instructionsCatalog.all.find(i => i.contextKey === 'autocontext.instructions.lang.javascript')!;
+        const js = instructionsManifest.findByName('lang-javascript.instructions.md')!;
 
         expect.soft(ContextKeys.forEntry(js)).toEqual(['hasJavaScript', 'hasTypeScript']);
     });
@@ -55,14 +55,14 @@ describe('ContextKeys.forEntry', () => {
 
     it('should have a mapping for every instruction with a workspace when clause', () => {
         const alwaysOn = new Set([
-            'autocontext.instructions.codeReview',
-            'autocontext.instructions.designPrinciples',
-            'autocontext.instructions.restApiDesign',
-            'autocontext.instructions.lang.sql',
+            'autocontext.instructions.code-review',
+            'autocontext.instructions.design-principles',
+            'autocontext.instructions.rest-api-design',
+            'autocontext.instructions.lang-sql',
         ]);
 
-        expect(instructionsCatalog.count).toBeGreaterThan(0);
-        expect.soft(instructionsCatalog.all.every(entry =>
+        expect(instructionsManifest.count).toBeGreaterThan(0);
+        expect.soft(instructionsManifest.instructions.every(entry =>
             alwaysOn.has(entry.contextKey)
                 ? ContextKeys.forEntry(entry).length === 0
                 : ContextKeys.forEntry(entry).length > 0,

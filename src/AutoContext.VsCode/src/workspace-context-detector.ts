@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import type { InstructionsCatalog } from './instructions-catalog.js';
+import type { InstructionsFilesManifest } from './instructions-files-manifest.js';
 import { ContextKeys } from './context-keys.js';
 import { InstructionsParser } from './instructions-parser.js';
 
@@ -270,7 +270,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
     }
 
     constructor(
-        private readonly instructionsCatalog: InstructionsCatalog,
+        private readonly instructionsManifest: InstructionsFilesManifest,
         private readonly outputChannel: vscode.OutputChannel,
     ) {
         const existenceWatcher = vscode.workspace.createFileSystemWatcher(existenceWatchGlob);
@@ -532,7 +532,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
             const segments = uri.path.split('/');
             const matchName = segments[segments.length - 1];
 
-            if (this.instructionsCatalog.findByFileName(matchName)) {
+            if (this.instructionsManifest.findByName(matchName)) {
                 fileNames.add(matchName);
                 try {
                     const content = decoder.decode(await vscode.workspace.fs.readFile(uri));
@@ -559,8 +559,8 @@ export class WorkspaceContextDetector implements vscode.Disposable {
         this._overriddenFileNames = overrides.fileNames;
         this._overrideVersions = overrides.versions;
         this._overriddenContextKeys.clear();
-        for (const i of this.instructionsCatalog.all) {
-            if (overrides.fileNames.has(i.fileName)) {
+        for (const i of this.instructionsManifest.instructions) {
+            if (overrides.fileNames.has(i.name)) {
                 this._overriddenContextKeys.add(i.contextKey);
             }
         }
@@ -576,8 +576,8 @@ export class WorkspaceContextDetector implements vscode.Disposable {
             ...Object.entries(flags).map(([key, value]) =>
                 setContext(`autocontext.workspace.${key}`, value),
             ),
-            ...this.instructionsCatalog.all.map(i =>
-                setContext(ContextKeys.overrideKey(i.contextKey), overrides.fileNames.has(i.fileName)),
+            ...this.instructionsManifest.instructions.map(i =>
+                setContext(ContextKeys.overrideKey(i.contextKey), overrides.fileNames.has(i.name)),
             ),
         ]).catch(err => this.outputChannel.appendLine(`[Detection] Failed to set context keys: ${err instanceof Error ? err.message : err}`));
     }

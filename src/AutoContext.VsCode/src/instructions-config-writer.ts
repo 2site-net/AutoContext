@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { readFile, writeFile, mkdir, readdir, stat, rm, access } from 'node:fs/promises';
 import { join } from 'node:path';
 import { createHash } from 'node:crypto';
-import type { InstructionsCatalog } from './instructions-catalog.js';
+import type { InstructionsFilesManifest } from './instructions-files-manifest.js';
 import { InstructionsParser } from './instructions-parser.js';
 import type { AutoContextConfigManager } from './autocontext-config.js';
 
@@ -27,7 +27,7 @@ export class InstructionsConfigWriter implements vscode.Disposable {
     constructor(
         private readonly extensionPath: string,
         private readonly configManager: AutoContextConfigManager,
-        private readonly catalog: InstructionsCatalog,
+        private readonly manifest: InstructionsFilesManifest,
         private readonly outputChannel: vscode.OutputChannel,
     ) {
         this.generatedRoot = join(extensionPath, 'instructions', '.generated');
@@ -77,12 +77,12 @@ export class InstructionsConfigWriter implements vscode.Disposable {
 
         const config = await this.configManager.read();
 
-        await Promise.all(this.catalog.all.map(entry => {
-            const disabledIds = config.instructions?.[entry.fileName]?.disabledInstructions;
+        await Promise.all(this.manifest.instructions.map(entry => {
+            const disabledIds = config.instructions?.[entry.name]?.disabledInstructions;
             const disabled = disabledIds && disabledIds.length > 0
                 ? new Set(disabledIds)
                 : undefined;
-            return this.writeNormalized(entry.fileName, disabled);
+            return this.writeNormalized(entry.name, disabled);
         }));
 
         await this.promote();
@@ -92,9 +92,9 @@ export class InstructionsConfigWriter implements vscode.Disposable {
     private async promote(): Promise<void> {
         await mkdir(this.generatedRoot, { recursive: true });
 
-        await Promise.all(this.catalog.all.map(entry => {
-            const staged = join(this.stagingDir, entry.fileName);
-            const live = join(this.generatedRoot, entry.fileName);
+        await Promise.all(this.manifest.instructions.map(entry => {
+            const staged = join(this.stagingDir, entry.name);
+            const live = join(this.generatedRoot, entry.name);
             return InstructionsConfigWriter.copyIfChanged(staged, live);
         }));
     }

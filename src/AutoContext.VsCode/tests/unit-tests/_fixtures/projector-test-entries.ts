@@ -1,6 +1,7 @@
-import type { InstructionsFileEntry } from '../../../src/types/instructions-file-entry';
+import type { InstructionsFileEntry } from '../../../src/instructions-file-entry';
+import { makeInstructionsFileEntry } from './make-entry';
 
 export const projectorTestInstructions: InstructionsFileEntry[] = [
-    { key: 'codeReview', fileName: 'code-review.instructions.md', label: 'Code Review', category: 'General' },
-    { key: 'lang.csharp', fileName: 'lang-csharp.instructions.md', label: 'C#', category: 'Languages', workspaceFlags: ['hasCSharp'] },
+    makeInstructionsFileEntry('code-review.instructions.md', 'Code Review', ['General']),
+    makeInstructionsFileEntry('lang-csharp.instructions.md', 'C#', ['Languages'], ['hasCSharp']),
 ];

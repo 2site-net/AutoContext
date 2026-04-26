@@ -1,11 +1,11 @@
 import * as vscode from 'vscode';
-import type { InstructionsCatalogEntry } from './instructions-catalog-entry.js';
+import type { InstructionsFileEntry } from './instructions-file-entry.js';
 import { instructionScheme } from './instructions-content-provider.js';
 
 export class InstructionsExporter {
     constructor(private readonly extensionPath: string) {}
 
-    async export(entries: readonly InstructionsCatalogEntry[]): Promise<void> {
+    async export(entries: readonly InstructionsFileEntry[]): Promise<void> {
         const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
         if (!workspaceFolder || entries.length === 0) { return; }
 
@@ -27,7 +27,7 @@ export class InstructionsExporter {
             }
 
             await InstructionsExporter.copyInstruction(this.extensionPath, entry, targetUri);
-            await InstructionsExporter.closeVirtualDocument(entry.fileName);
+            await InstructionsExporter.closeVirtualDocument(entry.name);
             exportedCount++;
         }
 
@@ -36,8 +36,8 @@ export class InstructionsExporter {
         }
     }
 
-    private static async copyInstruction(extensionPath: string, entry: InstructionsCatalogEntry, targetUri: vscode.Uri): Promise<void> {
-        const sourceUri = vscode.Uri.file(`${extensionPath}/instructions/.generated/${entry.fileName}`);
+    private static async copyInstruction(extensionPath: string, entry: InstructionsFileEntry, targetUri: vscode.Uri): Promise<void> {
+        const sourceUri = vscode.Uri.file(`${extensionPath}/instructions/.generated/${entry.name}`);
         const content = await vscode.workspace.fs.readFile(sourceUri);
 
         await vscode.workspace.fs.writeFile(targetUri, content);

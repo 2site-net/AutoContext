@@ -117,8 +117,8 @@ suite('Instructions Tree View Smoke Tests', () => {
             const general = roots.find((r: { kind: string; name: string }) => r.kind === 'categoryNode' && r.name === 'General');
             const children = exports.instructionsTreeProvider.getChildren(general);
             const disabled = children.find(
-                (c: { kind: string; entry: { fileName: string }; state: { value: string } }) =>
-                    c.kind === 'instructions' && c.entry.fileName === 'design-principles.instructions.md',
+                (c: { kind: string; entry: { name: string }; state: { value: string } }) =>
+                    c.kind === 'instructions' && c.entry.name === 'design-principles.instructions.md',
             );
 
             assert.ok(disabled, 'Design Principles should be found');
@@ -148,10 +148,10 @@ suite('Instructions Tree View Smoke Tests', () => {
             await vscode.commands.executeCommand('autocontext.disable-instruction', active);
 
             const config = exports.configManager.readSync();
-            const entry = config.instructions?.[active.entry.fileName];
+            const entry = config.instructions?.[active.entry.name];
             assert.strictEqual(entry?.enabled, false, 'Instruction should be disabled after disable command');
         } finally {
-            await exports.configManager.setInstructionEnabled(active.entry.fileName, true);
+            await exports.configManager.setInstructionEnabled(active.entry.name, true);
         }
     });
 

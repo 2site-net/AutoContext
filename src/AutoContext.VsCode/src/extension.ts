@@ -2,8 +2,8 @@ import * as vscode from 'vscode';
 import { join } from 'node:path';
 import { existsSync } from 'node:fs';
 import { WorkspaceContextDetector } from './workspace-context-detector.js';
-import { InstructionsCatalog } from './instructions-catalog.js';
-import { instructionsFiles, commandIds, contextKeys, globalStateKeys } from './ui-constants.js';
+import { InstructionsFilesManifestLoader } from './instructions-files-manifest-loader.js';
+import { commandIds, contextKeys, globalStateKeys } from './ui-constants.js';
 import { AutoConfigurer } from './auto-configurer.js';
 import { InstructionsExporter } from './instructions-exporter.js';
 import { AutoContextConfigManager } from './autocontext-config.js';
@@ -13,7 +13,7 @@ import { InstructionsDecorationManager } from './instructions-decoration-manager
 import { InstructionsConfigWriter } from './instructions-config-writer.js';
 import { InstructionsDiagnostics } from './instructions-diagnostics.js';
 import { ConfigContextProjector } from './config-context-projector.js';
-import { InstructionsTreeProvider } from './instructions-tree-provider.js';
+import { InstructionsFilesTreeProvider } from './instructions-files-tree-provider.js';
 import { MetadataLoader } from './metadata-loader.js';
 import { McpToolsManifestLoader } from './mcp-tools-manifest-loader.js';
 import { McpToolsTreeProvider } from './mcp-tools-tree-provider.js';
@@ -38,18 +38,18 @@ export async function activate(context: vscode.ExtensionContext) {
 
     const metadataLoader = new MetadataLoader(context.extensionPath);
     const mcpToolsManifest = new McpToolsManifestLoader(context.extensionPath).load();
-    const instructionsMetadata = metadataLoader.getInstructionsInfo(instructionsFiles);
+    const instructionsMetadata = metadataLoader.getInstructionsInfo();
 
-    const instructionsCatalog = new InstructionsCatalog(instructionsFiles, instructionsMetadata);
+    const instructionsManifest = new InstructionsFilesManifestLoader(context.extensionPath).load(instructionsMetadata);
     const instructionsExporter = new InstructionsExporter(context.extensionPath);
     const outputChannel = vscode.window.createOutputChannel('AutoContext');
-    const workspaceContextDetector = new WorkspaceContextDetector(instructionsCatalog, outputChannel);
+    const workspaceContextDetector = new WorkspaceContextDetector(instructionsManifest, outputChannel);
     const configManager = new AutoContextConfigManager(context.extensionPath, version, outputChannel);
     const contentProvider = new InstructionsContentProvider(context.extensionPath, configManager, outputChannel);
-    const codeLensProvider = new InstructionsCodeLensProvider(context.extensionPath, configManager, workspaceContextDetector, instructionsCatalog, outputChannel);
+    const codeLensProvider = new InstructionsCodeLensProvider(context.extensionPath, configManager, workspaceContextDetector, instructionsManifest, outputChannel);
     const decorationManager = new InstructionsDecorationManager(context.extensionPath, configManager, outputChannel);
-    const instructionsWriter = new InstructionsConfigWriter(context.extensionPath, configManager, instructionsCatalog, outputChannel);
-    const configProjector = new ConfigContextProjector(configManager, instructionsCatalog, mcpToolsManifest, outputChannel);
+    const instructionsWriter = new InstructionsConfigWriter(context.extensionPath, configManager, instructionsManifest, outputChannel);
+    const configProjector = new ConfigContextProjector(configManager, instructionsManifest, mcpToolsManifest, outputChannel);
     const serversManifest = new ServersManifestLoader(context.extensionPath).load();
     const workerManager = new WorkerManager(context.extensionPath, outputChannel, vscode.workspace.workspaceFolders?.[0]?.uri.fsPath, serversManifest);
     const healthMonitor = new HealthMonitorServer(outputChannel);
@@ -59,7 +59,7 @@ export async function activate(context: vscode.ExtensionContext) {
     // Pre-read the config so tree providers get the real config on first render.
     await configManager.read();
 
-    const instructionsTreeProvider = new InstructionsTreeProvider(workspaceContextDetector, instructionsCatalog, stateResolver, new TreeViewTooltip('instructions'), configManager, outputChannel);
+    const instructionsTreeProvider = new InstructionsFilesTreeProvider(workspaceContextDetector, instructionsManifest, stateResolver, new TreeViewTooltip('instructions'), configManager, outputChannel);
     const mcpToolsTreeProvider = new McpToolsTreeProvider(workspaceContextDetector, mcpToolsManifest, stateResolver, new TreeViewTooltip('tools'), configManager, outputChannel, healthMonitor, mcpServerProvider);
 
     const showNotDetected = context.globalState.get<boolean>(commandIds.ShowNotDetected, true);
@@ -74,7 +74,7 @@ export async function activate(context: vscode.ExtensionContext) {
         void vscode.commands.executeCommand('setContext', commandIds.ShowNotDetected, value);
     };
 
-    const logDiagnostics = () => InstructionsDiagnostics.log(outputChannel, context.extensionPath, configManager, instructionsCatalog);
+    const logDiagnostics = () => InstructionsDiagnostics.log(outputChannel, context.extensionPath, configManager, instructionsManifest);
 
     context.subscriptions.push(
         didChangeEmitter,
@@ -148,10 +148,10 @@ export async function activate(context: vscode.ExtensionContext) {
         vscode.workspace.registerTextDocumentContentProvider(instructionScheme, contentProvider),
         vscode.languages.registerCodeLensProvider({ scheme: instructionScheme }, codeLensProvider),
         // Workspace auto-configuration (instructions + tools)
-        vscode.commands.registerCommand(commandIds.AutoConfigure, async () => { await new AutoConfigurer(workspaceContextDetector, instructionsCatalog, mcpToolsManifest, configManager).run(); }),
+        vscode.commands.registerCommand(commandIds.AutoConfigure, async () => { await new AutoConfigurer(workspaceContextDetector, instructionsManifest, mcpToolsManifest, configManager).run(); }),
         // CodeLens (internal)
         vscode.commands.registerCommand(commandIds.ToggleInstruction, (fileName: string, id: string) =>
-            configManager.toggleInstruction(fileName, id, instructionsCatalog.findByFileName(fileName)?.version)),
+            configManager.toggleInstruction(fileName, id, instructionsManifest.findByName(fileName)?.version)),
         vscode.commands.registerCommand(commandIds.ResetInstructions, (fileName: string) =>
             configManager.resetInstructions(fileName)),
         configManager.onDidChange(() =>
@@ -174,10 +174,10 @@ export async function activate(context: vscode.ExtensionContext) {
         configManager.onDidChange(() => didChangeEmitter.fire()),
         vscode.commands.registerCommand(commandIds.EnableInstruction, (node) => instructionsTreeProvider.enableInstruction(node)),
         vscode.commands.registerCommand(commandIds.DisableInstruction, (node) => instructionsTreeProvider.disableInstruction(node)),
-        vscode.commands.registerCommand(commandIds.DeleteOverride, InstructionsTreeProvider.deleteOverride),
-        vscode.commands.registerCommand(commandIds.ShowOriginal, InstructionsTreeProvider.showOriginal),
-        vscode.commands.registerCommand(commandIds.ShowChangelog, async (node: { entry: { fileName: string } }) => {
-            const changelogName = node.entry.fileName.replace('.instructions.md', '.CHANGELOG.md');
+        vscode.commands.registerCommand(commandIds.DeleteOverride, InstructionsFilesTreeProvider.deleteOverride),
+        vscode.commands.registerCommand(commandIds.ShowOriginal, InstructionsFilesTreeProvider.showOriginal),
+        vscode.commands.registerCommand(commandIds.ShowChangelog, async (node: { entry: { name: string } }) => {
+            const changelogName = node.entry.name.replace('.instructions.md', '.CHANGELOG.md');
             const uri = vscode.Uri.file(join(context.extensionPath, 'instructions', changelogName));
             await vscode.commands.executeCommand('markdown.showPreview', uri);
         }),
@@ -222,9 +222,9 @@ export async function activate(context: vscode.ExtensionContext) {
     );
 
     const catalogVersions = new Map(
-        instructionsCatalog.all
+        instructionsManifest.instructions
             .filter(e => e.version !== undefined)
-            .map(e => [e.fileName, e.version!]),
+            .map(e => [e.name, e.version!]),
     );
 
     const clearedFiles = await configManager.clearStaleDisabledIds(catalogVersions);

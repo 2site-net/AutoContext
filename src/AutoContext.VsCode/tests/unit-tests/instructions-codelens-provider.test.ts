@@ -4,8 +4,9 @@ import { InstructionsCodeLensProvider } from '../../src/instructions-codelens-pr
 import { AutoContextConfigManager } from '../../src/autocontext-config';
 import { instructionScheme } from '../../src/instructions-content-provider';
 import { InstructionsParser } from '../../src/instructions-parser';
-import { InstructionsCatalog } from '../../src/instructions-catalog';
-import { instructionsFiles, commandIds } from '../../src/ui-constants';
+import { InstructionsFilesManifestLoader } from '../../src/instructions-files-manifest-loader';
+import { commandIds } from '../../src/ui-constants';
+import { join } from 'node:path';
 
 import { readFile } from 'node:fs/promises';
 
@@ -30,7 +31,7 @@ beforeEach(() => {
 });
 
 describe('InstructionsCodeLensProvider', () => {
-    const catalog = new InstructionsCatalog(instructionsFiles);
+    const catalog = new InstructionsFilesManifestLoader(join(__dirname, '..', '..')).load();
 
     it('should return empty array for non-instruction documents', async () => {
         vi.mocked(readFile).mockResolvedValue('{}');
@@ -146,7 +147,7 @@ describe('InstructionsCodeLensProvider', () => {
 
     it('should return empty array for overridden instructions', async () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
-        vi.mocked(fakeDetector.getOverriddenContextKeys).mockReturnValue(new Set(['autocontext.instructions.lang.csharp']));
+        vi.mocked(fakeDetector.getOverriddenContextKeys).mockReturnValue(new Set(['autocontext.instructions.lang-csharp']));
         vi.mocked(readFile).mockImplementation(async (path: unknown) => {
             const pathStr = String(path);
             if (pathStr.endsWith('.autocontext.json')) return '{}';

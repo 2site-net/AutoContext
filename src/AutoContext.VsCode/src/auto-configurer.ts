@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import type { InstructionsCatalog } from './instructions-catalog.js';
+import type { InstructionsFilesManifest } from './instructions-files-manifest.js';
 import type { McpToolsManifest } from './mcp-tools-manifest.js';
 import { ContextKeys } from './context-keys.js';
 import type { WorkspaceContextDetector } from './workspace-context-detector.js';
@@ -9,27 +9,27 @@ import type { McpToolConfig } from './types/autocontext-config.js';
 export class AutoConfigurer {
     constructor(
         private readonly detector: WorkspaceContextDetector,
-        private readonly instructionsCatalog: InstructionsCatalog,
+        private readonly instructionsManifest: InstructionsFilesManifest,
         private readonly toolsManifest: McpToolsManifest,
         private readonly configManager: AutoContextConfigManager,
     ) {}
 
     async run(): Promise<void> {
-        const { detector, instructionsCatalog, toolsManifest, configManager } = this;
+        const { detector, instructionsManifest, toolsManifest, configManager } = this;
         const currentConfig = await configManager.read();
         const totalToolItems = toolsManifest.tools.reduce((acc, t) => acc + Math.max(1, t.tasks.length), 0);
-        const totalItems = instructionsCatalog.count + totalToolItems;
+        const totalItems = instructionsManifest.count + totalToolItems;
         let enabled = 0;
 
         // Apply instruction enable/disable changes individually.
-        for (const entry of instructionsCatalog.all) {
+        for (const entry of instructionsManifest.instructions) {
             const flags = ContextKeys.forEntry(entry);
             const relevant = flags.length === 0 || flags.some(k => detector.get(k));
             if (relevant) { enabled++; }
 
-            const currentlyEnabled = currentConfig.instructions?.[entry.fileName]?.enabled !== false;
+            const currentlyEnabled = currentConfig.instructions?.[entry.name]?.enabled !== false;
             if (relevant !== currentlyEnabled) {
-                await configManager.setInstructionEnabled(entry.fileName, relevant);
+                await configManager.setInstructionEnabled(entry.name, relevant);
             }
         }
 
