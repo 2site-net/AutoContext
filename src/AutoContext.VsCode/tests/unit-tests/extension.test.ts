@@ -80,8 +80,8 @@ vi.mock('../../src/instructions-files-manager', () => ({
     },
 }));
 
-vi.mock('../../src/instructions-file-parser-logger', () => ({
-    InstructionsFileParserLogger: { log: async () => {} },
+vi.mock('../../src/instructions-files-diagnostics-reporter', () => ({
+    InstructionsFilesDiagnosticsReporter: class { async report() {} },
 }));
 
 vi.mock('../../src/instructions-files-tree-provider', () => {

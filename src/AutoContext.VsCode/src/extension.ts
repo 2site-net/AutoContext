@@ -11,7 +11,8 @@ import { InstructionsViewerDocumentProvider, instructionScheme } from './instruc
 import { InstructionsViewerCodeLensProvider } from './instructions-viewer-codelens-provider.js';
 import { InstructionsViewerDecorationManager } from './instructions-viewer-decoration-manager.js';
 import { InstructionsFilesManager } from './instructions-files-manager.js';
-import { InstructionsFileParserLogger } from './instructions-file-parser-logger.js';
+import { InstructionsFilesDiagnosticsReporter } from './instructions-files-diagnostics-reporter.js';
+import { InstructionsFilesDiagnosticsRunner } from './instructions-files-diagnostics-runner.js';
 import { ConfigContextProjector } from './config-context-projector.js';
 import { InstructionsFilesTreeProvider } from './instructions-files-tree-provider.js';
 import { MetadataLoader } from './metadata-loader.js';
@@ -74,7 +75,9 @@ export async function activate(context: vscode.ExtensionContext) {
         void vscode.commands.executeCommand('setContext', commandIds.ShowNotDetected, value);
     };
 
-    const logDiagnostics = () => InstructionsFileParserLogger.log(outputChannel, context.extensionPath, configManager, instructionsManifest);
+    const diagnosticsRunner = new InstructionsFilesDiagnosticsRunner(context.extensionPath, configManager, instructionsManifest);
+    const diagnosticsReporter = new InstructionsFilesDiagnosticsReporter(diagnosticsRunner);
+    const logDiagnostics = () => diagnosticsReporter.report();
 
     context.subscriptions.push(
         didChangeEmitter,
@@ -91,6 +94,7 @@ export async function activate(context: vscode.ExtensionContext) {
         instructionsTreeProvider,
         mcpToolsTreeProvider,
         mcpServerProvider,
+        diagnosticsReporter,
     );
 
     healthMonitor.start();

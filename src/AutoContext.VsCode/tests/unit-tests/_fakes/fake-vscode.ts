@@ -34,7 +34,7 @@ export const window = {
     })),
     createQuickPick: vi.fn(() => createMockQuickPick()),
     createTextEditorDecorationType: vi.fn(() => ({ dispose: vi.fn() })),
-    createOutputChannel: vi.fn(() => ({ appendLine: vi.fn(), dispose: vi.fn() })),
+    createOutputChannel: vi.fn(() => ({ appendLine: vi.fn(), clear: vi.fn(), dispose: vi.fn() })),
     showQuickPick: vi.fn(),
     showInformationMessage: vi.fn(),
     showWarningMessage: vi.fn(),
