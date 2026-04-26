@@ -38,20 +38,36 @@ public static class ToolDelegateFactory
                         $"Registry contains duplicate MCP Tool name '{name}'.");
                 }
 
-                var capturedWorker = worker;
-                var capturedTool = tool;
-
-                delegates[name] = async (data, ct) =>
-                {
-                    var envelope = await invoker
-                        .InvokeAsync(capturedWorker, capturedTool, data, ct)
-                        .ConfigureAwait(false);
-
-                    return JsonSerializer.Serialize(envelope, WorkerJsonOptions.Instance);
-                };
+                delegates[name] = CreateHandler(invoker, worker, tool);
             }
         }
 
         return delegates;
+    }
+
+    /// <summary>
+    /// Builds a single per-tool handler. Constructing the closure
+    /// inside a dedicated static method makes the
+    /// <see cref="McpWorker"/> + <see cref="McpToolDefinition"/> capture
+    /// explicit through the parameter list, so there is no enclosing
+    /// loop variable to misbind. This is defensive against future
+    /// refactors of the <c>foreach</c> in <see cref="Build"/> — e.g. a
+    /// switch to an index-based <c>for</c> over an indexable collection,
+    /// or inlining the body — that could otherwise re-introduce the
+    /// classic closure-over-loop-variable bug.
+    /// </summary>
+    private static ToolHandler CreateHandler(
+        ToolInvoker invoker,
+        McpWorker worker,
+        McpToolDefinition tool)
+    {
+        return async (data, ct) =>
+        {
+            var envelope = await invoker
+                .InvokeAsync(worker, tool, data, ct)
+                .ConfigureAwait(false);
+
+            return JsonSerializer.Serialize(envelope, WorkerJsonOptions.Instance);
+        };
     }
 }

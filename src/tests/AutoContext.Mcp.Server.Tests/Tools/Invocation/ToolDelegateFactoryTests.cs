@@ -97,6 +97,71 @@ public sealed class ToolDelegateFactoryTests
             () => Assert.Equal("task_x", root.GetProperty("result")[0].GetProperty("task").GetString()));
     }
 
+    [Fact]
+    public async Task Should_route_each_delegate_to_its_own_worker_pipe()
+    {
+        // Regression: the per-tool delegate must capture and dispatch to
+        // *its own* worker. A closure-over-loop-variable bug would make
+        // every delegate route to the last-iterated worker's pipe, so
+        // the alpha tool would surface beta's `servedBy` marker.
+        // Arrange
+        var alphaWorkerId = PipeServerHarness.UniqueWorkerId();
+        var betaWorkerId = PipeServerHarness.UniqueWorkerId();
+        var alphaPipeName = PipeServerHarness.PipeNameFor(alphaWorkerId);
+        var betaPipeName = PipeServerHarness.PipeNameFor(betaWorkerId);
+
+        var registry = BuildCatalog(
+            (alphaWorkerId, "AutoContext.Worker.Alpha", [BuildTool("alpha_tool", "task_alpha")]),
+            (betaWorkerId, "AutoContext.Worker.Beta", [BuildTool("beta_tool", "task_beta")]));
+
+        var workerClient = new WorkerClient(TimeSpan.FromSeconds(5));
+        var batcher = new EditorConfigBatcher(workerClient, "autocontext-test-workspace-unused", NullLogger<EditorConfigBatcher>.Instance);
+        var invoker = new ToolInvoker(workerClient, batcher);
+
+        var alphaServerTask = PipeServerHarness.RunOneShotAsync(
+            alphaPipeName,
+            handler: requestBytes => BuildMarkedResponse(requestBytes, servedBy: "alpha"),
+            ct: TestContext.Current.CancellationToken);
+        var betaServerTask = PipeServerHarness.RunOneShotAsync(
+            betaPipeName,
+            handler: requestBytes => BuildMarkedResponse(requestBytes, servedBy: "beta"),
+            ct: TestContext.Current.CancellationToken);
+
+        var delegates = ToolDelegateFactory.Build(registry, invoker);
+        var data = JsonSerializer.SerializeToElement(new { }, WorkerJsonOptions.Instance);
+
+        // Act
+        var alphaJson = await delegates["alpha_tool"](data, TestContext.Current.CancellationToken);
+        var betaJson = await delegates["beta_tool"](data, TestContext.Current.CancellationToken);
+        await alphaServerTask;
+        await betaServerTask;
+
+        using var alphaDoc = JsonDocument.Parse(alphaJson);
+        using var betaDoc = JsonDocument.Parse(betaJson);
+
+        // Assert
+        Assert.Multiple(
+            () => Assert.Equal("alpha", alphaDoc.RootElement.GetProperty("result")[0].GetProperty("output").GetProperty("servedBy").GetString()),
+            () => Assert.Equal("beta", betaDoc.RootElement.GetProperty("result")[0].GetProperty("output").GetProperty("servedBy").GetString()));
+    }
+
+    private static byte[] BuildMarkedResponse(byte[] requestBytes, string servedBy)
+    {
+        var request = JsonSerializer.Deserialize<TaskRequest>(
+            requestBytes,
+            WorkerJsonOptions.Instance)!;
+
+        var response = new TaskResponse
+        {
+            McpTask = request.McpTask,
+            Status = TaskResponse.StatusOk,
+            Output = JsonSerializer.SerializeToElement(new { servedBy }),
+            Error = string.Empty,
+        };
+
+        return JsonSerializer.SerializeToUtf8Bytes(response, WorkerJsonOptions.Instance);
+    }
+
     private static ToolInvoker BuildInvoker()
     {
         var workerClient = new WorkerClient(TimeSpan.FromSeconds(5));
