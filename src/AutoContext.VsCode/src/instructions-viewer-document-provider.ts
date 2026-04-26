@@ -5,7 +5,7 @@ import type { AutoContextConfigManager } from './autocontext-config.js';
 
 export const instructionScheme = 'autocontext-instructions';
 
-export class InstructionsRulesDocumentProvider implements vscode.TextDocumentContentProvider, vscode.Disposable {
+export class InstructionsViewerDocumentProvider implements vscode.TextDocumentContentProvider, vscode.Disposable {
     private readonly didChangeEmitter = new vscode.EventEmitter<vscode.Uri>();
     readonly onDidChange = this.didChangeEmitter.event;
     private readonly disposables: vscode.Disposable[] = [];

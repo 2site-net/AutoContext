@@ -1,8 +1,8 @@
 import { readFile, stat } from 'node:fs/promises';
-import type { InstructionsFileParsedRule } from './types/instructions-file-parsed-rule.js';
+import type { InstructionsFileParsedSpan } from './types/instructions-file-parsed-span.js';
 import type { InstructionsFileParserDiagnostic } from './types/instructions-file-parser-diagnostic.js';
-import type { InstructionsFileParsedRulesResult, InstructionsFileParsedFrontmatter } from './types/instructions-file-parsed-rules-result.js';
-import type { InstructionsFileParsedResult } from './types/instructions-file-parsed-result.js';
+import type { InstructionsFileParsedResult, InstructionsFileParsedFrontmatter } from './types/instructions-file-parsed-result.js';
+import type { InstructionsFileParsedCachedResult } from './types/instructions-file-parsed-cached-result.js';
 import { SemVer } from './semver.js';
 
 const instructionBulletPattern = /^[-*]\s(?:\[(INST\d{4})\]\s*)?\*\*(Do|Don't)\*\*/;
@@ -11,9 +11,9 @@ const frontmatterPattern = /^---\r?\n([\s\S]*?)\r?\n---/;
 const frontmatterFieldPattern = /^(\w+):\s*"?([^"\r\n]*)"?\s*$/;
 
 export class InstructionsFileParser {
-    private static readonly fileCache = new Map<string, { mtimeMs: number; content: string; result: InstructionsFileParsedRulesResult }>();
+    private static readonly fileCache = new Map<string, { mtimeMs: number; content: string; result: InstructionsFileParsedResult }>();
 
-    static async fromFile(filePath: string): Promise<InstructionsFileParsedResult> {
+    static async fromFile(filePath: string): Promise<InstructionsFileParsedCachedResult> {
         const mtimeMs = (await stat(filePath)).mtimeMs;
         const cached = this.fileCache.get(filePath);
         if (cached && cached.mtimeMs === mtimeMs) {
@@ -25,10 +25,10 @@ export class InstructionsFileParser {
         return { content, result };
     }
 
-    static parse(content: string): InstructionsFileParsedRulesResult {
+    static parse(content: string): InstructionsFileParsedResult {
         const frontmatter = this.parseFrontmatter(content);
         const lines = content.split('\n');
-        const instructions: InstructionsFileParsedRule[] = [];
+        const instructions: InstructionsFileParsedSpan[] = [];
         const diagnostics: InstructionsFileParserDiagnostic[] = [];
         const seenIds = new Map<string, number>();
         let instructionStart = -1;
@@ -124,7 +124,7 @@ export class InstructionsFileParser {
         lines: readonly string[],
         startLine: number,
         endLine: number,
-    ): InstructionsFileParsedRule {
+    ): InstructionsFileParsedSpan {
         let end = lines.length;
 
         while (end > 0 && lines[end - 1].trim() === '') {

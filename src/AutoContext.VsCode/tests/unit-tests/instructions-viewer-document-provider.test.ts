@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-import { InstructionsRulesDocumentProvider, instructionScheme } from '../../src/instructions-rules-document-provider';
+import { InstructionsViewerDocumentProvider, instructionScheme } from '../../src/instructions-viewer-document-provider';
 import { AutoContextConfigManager } from '../../src/autocontext-config';
 import { InstructionsFileParser } from '../../src/instructions-file-parser';
 
@@ -23,7 +23,7 @@ beforeEach(() => {
     workspace.workspaceFolders = [{ uri: { fsPath: '/workspace' } }];
 });
 
-describe('InstructionsRulesDocumentProvider', () => {
+describe('InstructionsViewerDocumentProvider', () => {
     it('should return file content unchanged when no instructions are disabled', async () => {
         vi.mocked(readFile).mockImplementation(async (path: unknown) => {
             const pathStr = String(path);
@@ -32,7 +32,7 @@ describe('InstructionsRulesDocumentProvider', () => {
         });
 
         const configManager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
-        const provider = new InstructionsRulesDocumentProvider('/ext', configManager, mockOutputChannel);
+        const provider = new InstructionsViewerDocumentProvider('/ext', configManager, mockOutputChannel);
         const uri = { scheme: instructionScheme, path: 'test.instructions.md' } as unknown as import('vscode').Uri;
         const result = await provider.provideTextDocumentContent(uri);
 
@@ -59,7 +59,7 @@ describe('InstructionsRulesDocumentProvider', () => {
         });
 
         const configManager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
-        const provider = new InstructionsRulesDocumentProvider('/ext', configManager, mockOutputChannel);
+        const provider = new InstructionsViewerDocumentProvider('/ext', configManager, mockOutputChannel);
         const uri = { scheme: instructionScheme, path: 'test.instructions.md' } as unknown as import('vscode').Uri;
         const result = await provider.provideTextDocumentContent(uri);
 
@@ -71,7 +71,7 @@ describe('InstructionsRulesDocumentProvider', () => {
         vi.mocked(readFile).mockResolvedValue('{}');
 
         const configManager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
-        const provider = new InstructionsRulesDocumentProvider('/ext', configManager, mockOutputChannel);
+        const provider = new InstructionsViewerDocumentProvider('/ext', configManager, mockOutputChannel);
         provider.buildUri('code-review.instructions.md');
 
         expect.soft(Uri.from).toHaveBeenCalledWith({

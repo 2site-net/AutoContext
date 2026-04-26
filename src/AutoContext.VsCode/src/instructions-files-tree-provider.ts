@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import type { InstructionsFilesManifest } from './instructions-files-manifest.js';
 import { TreeViewNodeState } from './tree-view-node-state.js';
 import { viewIds, contextKeys, treeViewLabels } from './ui-constants.js';
-import { instructionScheme } from './instructions-rules-document-provider.js';
+import { instructionScheme } from './instructions-viewer-document-provider.js';
 import type { WorkspaceContextDetector } from './workspace-context-detector.js';
 import type { InstructionsFileEntry } from './instructions-file-entry.js';
 import type { TreeViewStateResolver } from './tree-view-state-resolver.js';

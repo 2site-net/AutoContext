@@ -1,6 +1,13 @@
-import type { InstructionsFileParsedRulesResult } from './instructions-file-parsed-rules-result.js';
+import type { InstructionsFileParsedSpan } from './instructions-file-parsed-span.js';
+import type { InstructionsFileParserDiagnostic } from './instructions-file-parser-diagnostic.js';
+
+export interface InstructionsFileParsedFrontmatter {
+    readonly description?: string;
+    readonly version?: string;
+}
 
 export interface InstructionsFileParsedResult {
-    readonly content: string;
-    readonly result: InstructionsFileParsedRulesResult;
+    readonly frontmatter: InstructionsFileParsedFrontmatter;
+    readonly instructions: readonly InstructionsFileParsedSpan[];
+    readonly diagnostics: readonly InstructionsFileParserDiagnostic[];
 }

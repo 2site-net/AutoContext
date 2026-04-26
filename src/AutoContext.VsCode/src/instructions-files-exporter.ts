@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import type { InstructionsFileEntry } from './instructions-file-entry.js';
-import { instructionScheme } from './instructions-rules-document-provider.js';
+import { instructionScheme } from './instructions-viewer-document-provider.js';
 
 export class InstructionsFilesExporter {
     constructor(private readonly extensionPath: string) {}

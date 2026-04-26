@@ -1,10 +1,10 @@
 import * as vscode from 'vscode';
 import { join } from 'node:path';
 import { InstructionsFileParser } from './instructions-file-parser.js';
-import { instructionScheme } from './instructions-rules-document-provider.js';
+import { instructionScheme } from './instructions-viewer-document-provider.js';
 import type { AutoContextConfigManager } from './autocontext-config.js';
 
-export class InstructionsRulesDecorationManager implements vscode.Disposable {
+export class InstructionsViewerDecorationManager implements vscode.Disposable {
     private readonly decorationType = vscode.window.createTextEditorDecorationType({ opacity: '0.4' });
     private readonly disposables: vscode.Disposable[] = [];
 

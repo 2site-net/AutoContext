@@ -2,12 +2,12 @@ import * as vscode from 'vscode';
 import { join } from 'node:path';
 import { InstructionsFileParser } from './instructions-file-parser.js';
 import type { InstructionsFilesManifest } from './instructions-files-manifest.js';
-import { instructionScheme } from './instructions-rules-document-provider.js';
+import { instructionScheme } from './instructions-viewer-document-provider.js';
 import type { AutoContextConfigManager } from './autocontext-config.js';
 import type { WorkspaceContextDetector } from './workspace-context-detector.js';
 import { commandIds } from './ui-constants.js';
 
-export class InstructionsRulesCodeLensProvider implements vscode.CodeLensProvider, vscode.Disposable {
+export class InstructionsViewerCodeLensProvider implements vscode.CodeLensProvider, vscode.Disposable {
     private readonly didChangeEmitter = new vscode.EventEmitter<void>();
     readonly onDidChangeCodeLenses = this.didChangeEmitter.event;
     private readonly disposables: vscode.Disposable[] = [];

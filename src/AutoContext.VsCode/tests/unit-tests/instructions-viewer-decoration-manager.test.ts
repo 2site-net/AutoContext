@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-import { InstructionsRulesDecorationManager } from '../../src/instructions-rules-decoration-manager';
+import { InstructionsViewerDecorationManager } from '../../src/instructions-viewer-decoration-manager';
 import { AutoContextConfigManager } from '../../src/autocontext-config';
-import { instructionScheme } from '../../src/instructions-rules-document-provider';
+import { instructionScheme } from '../../src/instructions-viewer-document-provider';
 import { InstructionsFileParser } from '../../src/instructions-file-parser';
 
 import { readFile, stat } from 'node:fs/promises';
@@ -25,12 +25,12 @@ beforeEach(() => {
     workspace.workspaceFolders = [{ uri: { fsPath: '/workspace' } }];
 });
 
-describe('InstructionsRulesDecorationManager', () => {
+describe('InstructionsViewerDecorationManager', () => {
     it('should not set decorations for non-instruction editors', async () => {
         vi.mocked(readFile).mockResolvedValue('{}');
 
         const configManager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
-        const manager = new InstructionsRulesDecorationManager('/ext', configManager, mockOutputChannel);
+        const manager = new InstructionsViewerDecorationManager('/ext', configManager, mockOutputChannel);
 
         const editor = makeEditor('file', '/some/file.ts');
         await manager.applyDecorations(editor);
@@ -46,7 +46,7 @@ describe('InstructionsRulesDecorationManager', () => {
         });
 
         const configManager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
-        const manager = new InstructionsRulesDecorationManager('/ext', configManager, mockOutputChannel);
+        const manager = new InstructionsViewerDecorationManager('/ext', configManager, mockOutputChannel);
 
         const editor = makeEditor(instructionScheme, 'test.instructions.md');
         await manager.applyDecorations(editor);
@@ -77,7 +77,7 @@ describe('InstructionsRulesDecorationManager', () => {
         });
 
         const configManager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
-        const manager = new InstructionsRulesDecorationManager('/ext', configManager, mockOutputChannel);
+        const manager = new InstructionsViewerDecorationManager('/ext', configManager, mockOutputChannel);
 
         const editor = makeEditor(instructionScheme, 'test.instructions.md');
         await manager.applyDecorations(editor);
@@ -104,7 +104,7 @@ describe('InstructionsRulesDecorationManager', () => {
         vscodeWindow.visibleTextEditors = [editor1, editor2] as unknown[];
 
         const configManager = new AutoContextConfigManager('/ext', '0.5.0', mockOutputChannel);
-        const manager = new InstructionsRulesDecorationManager('/ext', configManager, mockOutputChannel);
+        const manager = new InstructionsViewerDecorationManager('/ext', configManager, mockOutputChannel);
         manager.refreshAll();
 
         // refreshAll fires void (fire-and-forget) async applyDecorations calls;
@@ -124,7 +124,7 @@ describe('InstructionsRulesDecorationManager', () => {
         } as unknown as AutoContextConfigManager;
 
         const oc = createFakeOutputChannel();
-        const _manager = new InstructionsRulesDecorationManager('/ext', failingConfigManager, oc);
+        const _manager = new InstructionsViewerDecorationManager('/ext', failingConfigManager, oc);
 
         const editorCallback = vi.mocked(vscodeWindow.onDidChangeActiveTextEditor).mock.calls.at(-1)![0] as (e: unknown) => void;
         editorCallback(makeEditor(instructionScheme, 'test.instructions.md'));
@@ -145,7 +145,7 @@ describe('InstructionsRulesDecorationManager', () => {
         } as unknown as AutoContextConfigManager;
 
         const oc = createFakeOutputChannel();
-        const manager = new InstructionsRulesDecorationManager('/ext', failingConfigManager, oc);
+        const manager = new InstructionsViewerDecorationManager('/ext', failingConfigManager, oc);
 
         const editor = makeEditor(instructionScheme, 'test.instructions.md');
         vscodeWindow.visibleTextEditors = [editor] as unknown[];

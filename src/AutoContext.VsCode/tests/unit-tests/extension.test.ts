@@ -59,17 +59,17 @@ vi.mock('../../src/autocontext-config', () => ({
     },
 }));
 
-vi.mock('../../src/instructions-rules-document-provider', () => ({
-    InstructionsRulesDocumentProvider: class { dispose() {} },
+vi.mock('../../src/instructions-viewer-document-provider', () => ({
+    InstructionsViewerDocumentProvider: class { dispose() {} },
     instructionScheme: 'autocontext-instructions',
 }));
 
-vi.mock('../../src/instructions-rules-codelens-provider', () => ({
-    InstructionsRulesCodeLensProvider: class { dispose() {} },
+vi.mock('../../src/instructions-viewer-codelens-provider', () => ({
+    InstructionsViewerCodeLensProvider: class { dispose() {} },
 }));
 
-vi.mock('../../src/instructions-rules-decoration-manager', () => ({
-    InstructionsRulesDecorationManager: class { dispose() {} },
+vi.mock('../../src/instructions-viewer-decoration-manager', () => ({
+    InstructionsViewerDecorationManager: class { dispose() {} },
 }));
 
 vi.mock('../../src/instructions-files-manager', () => ({
