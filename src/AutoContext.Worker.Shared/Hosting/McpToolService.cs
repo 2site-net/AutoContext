@@ -276,12 +276,24 @@ public sealed partial class McpToolService : BackgroundService
         {
             return BuildErrorResponse(taskName ?? "", $"Malformed request JSON: {ex.Message}");
         }
-        catch (Exception ex)
+        catch (Exception ex) when (!IsCritical(ex))
         {
             LogTaskFailed(_logger, taskName ?? "<unknown>", ex);
             return BuildErrorResponse(taskName ?? "", $"Task threw {ex.GetType().Name}: {ex.Message}");
         }
     }
+
+    /// <summary>
+    /// Critical exceptions that indicate the process is in an
+    /// unrecoverable state. These must escape the task-dispatch
+    /// catch-all so the host can fail fast instead of silently
+    /// converting them into a per-task error envelope.
+    /// </summary>
+    private static bool IsCritical(Exception ex) =>
+        ex is OutOfMemoryException
+            or StackOverflowException
+            or AccessViolationException
+            or ThreadAbortException;
 
     private static JsonElement BuildTaskData(JsonElement root)
     {

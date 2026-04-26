@@ -108,6 +108,44 @@ public sealed class McpToolServiceTests
         }
     }
 
+    [Fact]
+    public async Task Should_let_critical_exceptions_escape_dispatcher()
+    {
+        // Arrange
+        var ct = TestContext.Current.CancellationToken;
+        var pipeName = $"ac-test-{Guid.NewGuid():N}";
+        using var sut = CreateSut(pipeName, [new CriticalThrowingTaskFake()]);
+        await sut.StartAsync(ct);
+
+        try
+        {
+            // Act + Assert: a critical exception (e.g. OutOfMemoryException)
+            // must NOT be converted into an error envelope. The dispatcher
+            // re-throws, the connection drops without writing a response,
+            // and the client observes a null read.
+            await using var client = new NamedPipeClientStream(".", pipeName, PipeDirection.InOut, PipeOptions.Asynchronous);
+            await client.ConnectAsync(5000, ct);
+
+            var bytes = JsonSerializer.SerializeToUtf8Bytes(
+                new
+                {
+                    mcpTask = "critical_boom",
+                    data = new { },
+                    editorconfig = new { },
+                },
+                McpToolService.WorkerJsonOptions);
+            var channel = new WorkerProtocolChannel(client);
+            await channel.WriteAsync(bytes, ct);
+
+            var responseBytes = await channel.ReadAsync(ct);
+            Assert.Null(responseBytes);
+        }
+        finally
+        {
+            await sut.StopAsync(ct);
+        }
+    }
+
     private static McpToolService CreateSut(string pipeName, IMcpTask[] tasks)
     {
         var options = Options.Create(new WorkerHostOptions
