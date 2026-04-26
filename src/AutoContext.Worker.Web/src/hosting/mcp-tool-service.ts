@@ -1,7 +1,7 @@
 import * as net from 'node:net';
 import * as fs from 'node:fs';
 import type { Server, Socket } from 'node:net';
-import { readMessage, writeMessage } from './pipe-framing.js';
+import { WorkerProtocolChannel } from './worker-protocol-channel.js';
 import type { McpTask } from './mcp-task.js';
 import type { WorkerHostOptions } from './worker-host-options.js';
 
@@ -137,13 +137,14 @@ export class McpToolService {
         // leak listeners on long-lived signals.
         const linkedSignal = AbortSignal.any([signal, this.stopController.signal]);
         try {
-            const requestBytes = await readMessage(socket, linkedSignal);
+            const channel = new WorkerProtocolChannel(socket);
+            const requestBytes = await channel.read(linkedSignal);
             if (requestBytes === null) {
                 return;
             }
 
             const responseBytes = await this.dispatch(requestBytes, linkedSignal);
-            await writeMessage(socket, responseBytes, linkedSignal);
+            await channel.write(responseBytes, linkedSignal);
         } catch {
             // Client disconnect, abort, or parse failure — the wire is already
             // broken; nothing more to report back. Matches C# behavior

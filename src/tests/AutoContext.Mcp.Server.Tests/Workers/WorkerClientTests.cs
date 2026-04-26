@@ -202,7 +202,8 @@ public sealed class WorkerClientTests
                 await using (server.ConfigureAwait(false))
                 {
                     await server.WaitForConnectionAsync(gate).ConfigureAwait(false);
-                    _ = await PipeFraming.ReadMessageAsync(server, gate).ConfigureAwait(false);
+                    var channel = new WorkerProtocolChannel(server);
+                    _ = await channel.ReadAsync(gate).ConfigureAwait(false);
 
                     try
                     {

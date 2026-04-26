@@ -72,7 +72,8 @@ internal static class PipeServerHarness
         {
             await server.WaitForConnectionAsync(ct).ConfigureAwait(false);
 
-            var requestBytes = await PipeFraming.ReadMessageAsync(server, ct).ConfigureAwait(false);
+            var channel = new WorkerProtocolChannel(server);
+            var requestBytes = await channel.ReadAsync(ct).ConfigureAwait(false);
             if (requestBytes is null)
             {
                 return;
@@ -84,7 +85,7 @@ internal static class PipeServerHarness
                 return;
             }
 
-            await PipeFraming.WriteMessageAsync(server, responseBytes, ct).ConfigureAwait(false);
+            await channel.WriteAsync(responseBytes, ct).ConfigureAwait(false);
         }
     }
 }

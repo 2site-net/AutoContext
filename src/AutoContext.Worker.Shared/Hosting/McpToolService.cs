@@ -209,7 +209,8 @@ public sealed partial class McpToolService : BackgroundService
         {
             await using (pipe.ConfigureAwait(false))
             {
-                var requestBytes = await PipeFraming.ReadMessageAsync(pipe, ct).ConfigureAwait(false);
+                var channel = new WorkerProtocolChannel(pipe);
+                var requestBytes = await channel.ReadAsync(ct).ConfigureAwait(false);
 
                 if (requestBytes is null)
                 {
@@ -218,7 +219,7 @@ public sealed partial class McpToolService : BackgroundService
 
                 var responseBytes = await DispatchAsync(requestBytes, ct).ConfigureAwait(false);
 
-                await PipeFraming.WriteMessageAsync(pipe, responseBytes, ct).ConfigureAwait(false);
+                await channel.WriteAsync(responseBytes, ct).ConfigureAwait(false);
             }
         }
         catch (OperationCanceledException)

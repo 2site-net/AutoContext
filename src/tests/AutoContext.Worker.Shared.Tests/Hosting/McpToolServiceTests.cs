@@ -125,9 +125,10 @@ public sealed class McpToolServiceTests
         await client.ConnectAsync(5000, ct);
 
         var bytes = JsonSerializer.SerializeToUtf8Bytes(request, McpToolService.WorkerJsonOptions);
-        await PipeFraming.WriteMessageAsync(client, bytes, ct);
+        var channel = new WorkerProtocolChannel(client);
+        await channel.WriteAsync(bytes, ct);
 
-        var responseBytes = await PipeFraming.ReadMessageAsync(client, ct);
+        var responseBytes = await channel.ReadAsync(ct);
         Assert.NotNull(responseBytes);
 
         return JsonDocument.Parse(responseBytes!).RootElement.Clone();

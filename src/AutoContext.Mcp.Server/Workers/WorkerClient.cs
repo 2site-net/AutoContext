@@ -134,9 +134,10 @@ public sealed class WorkerClient
                 request,
                 WorkerJsonOptions.Instance);
 
-            await PipeFraming.WriteMessageAsync(pipe, requestBytes, token).ConfigureAwait(false);
+            var channel = new WorkerProtocolChannel(pipe);
+            await channel.WriteAsync(requestBytes, token).ConfigureAwait(false);
 
-            var responseBytes = await PipeFraming.ReadMessageAsync(pipe, token).ConfigureAwait(false);
+            var responseBytes = await channel.ReadAsync(token).ConfigureAwait(false);
 
             if (responseBytes is null)
             {

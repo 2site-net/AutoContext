@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { McpTask } from '../../src/hosting/mcp-task.js';
 import { McpToolService } from '../../src/hosting/mcp-tool-service.js';
-import { readMessage, writeMessage } from '../../src/hosting/pipe-framing.js';
+import { WorkerProtocolChannel } from '../../src/hosting/worker-protocol-channel.js';
 
 function makeEndpoint(): string {
     const id = randomUUID();
@@ -26,9 +26,10 @@ async function sendRequest(pipe: string, request: unknown): Promise<Record<strin
     const payload = typeof request === 'string'
         ? Buffer.from(request, 'utf8')
         : Buffer.from(JSON.stringify(request), 'utf8');
-    await writeMessage(socket, payload);
+    const channel = new WorkerProtocolChannel(socket);
+    await channel.write(payload);
 
-    const response = await readMessage(socket);
+    const response = await channel.read();
     socket.end();
     socket.destroy();
 
@@ -227,7 +228,7 @@ describe('McpToolService', () => {
         await service.start(controller.signal);
 
         // Open a connection but never send a message. The server handler
-        // is now blocked inside readMessage waiting for bytes.
+        // is now blocked inside channel.read() waiting for bytes.
         const socket = net.createConnection(pipe);
         await new Promise<void>((resolve, reject) => {
             socket.once('connect', resolve);
@@ -260,8 +261,8 @@ describe('McpToolService', () => {
             socket.once('connect', resolve);
             socket.once('error', reject);
         });
-        await writeMessage(
-            socket,
+        const channel = new WorkerProtocolChannel(socket);
+        await channel.write(
             Buffer.from(JSON.stringify({ mcpTask: 'hang', data: {} }), 'utf8'),
         );
 
