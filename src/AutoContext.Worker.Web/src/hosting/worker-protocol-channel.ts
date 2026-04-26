@@ -73,29 +73,33 @@ export class WorkerProtocolChannel {
 
         const stream = this.stream;
         await new Promise<void>((resolve, reject) => {
+            let settled = false;
             let abortListener: (() => void) | undefined;
 
-            const cleanup = (): void => {
-                if (abortListener !== undefined) {
-                    signal?.removeEventListener('abort', abortListener);
+            const settle = (action: () => void): void => {
+                if (settled) {
+                    return;
                 }
+                settled = true;
+                if (abortListener !== undefined && signal !== undefined) {
+                    signal.removeEventListener('abort', abortListener);
+                }
+                action();
             };
 
             if (signal !== undefined) {
                 abortListener = (): void => {
-                    cleanup();
-                    reject(signalAbortError(signal));
+                    settle(() => reject(signalAbortError(signal)));
                 };
                 signal.addEventListener('abort', abortListener, { once: true });
             }
 
             stream.write(message, (err) => {
-                cleanup();
                 if (err !== null && err !== undefined) {
-                    reject(err);
+                    settle(() => reject(err));
                     return;
                 }
-                resolve();
+                settle(() => resolve());
             });
         });
     }

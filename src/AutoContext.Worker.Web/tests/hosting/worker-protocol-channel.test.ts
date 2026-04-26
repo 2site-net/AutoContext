@@ -117,4 +117,31 @@ describe('WorkerProtocolChannel', () => {
 
         await expect(pending).rejects.toThrow();
     });
+
+    it('rejects the write when the signal is already aborted', async () => {
+        const stream = new PassThrough();
+        const channel = new WorkerProtocolChannel(stream);
+        const controller = new AbortController();
+        controller.abort();
+
+        await expect(channel.write(Buffer.from('x'), controller.signal)).rejects.toThrow();
+    });
+
+    it('settles the write exactly once when abort and write complete race', async () => {
+        // Drain the stream synchronously so the write callback fires
+        // immediately, while we abort the signal in the same tick.
+        const stream = new PassThrough();
+        stream.resume();
+        const channel = new WorkerProtocolChannel(stream);
+        const controller = new AbortController();
+
+        const pending = channel.write(Buffer.from('payload'), controller.signal);
+        controller.abort();
+
+        // Whichever arm wins the race, the promise must settle and not
+        // emit an unhandled rejection from a second settle attempt.
+        await pending.catch(() => {});
+        // Give the event loop a tick to flush any stray settle callbacks.
+        await new Promise((resolve) => setImmediate(resolve));
+    });
 });

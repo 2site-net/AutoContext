@@ -50,17 +50,20 @@ async function main(argv: readonly string[]): Promise<void> {
 
     await service.start(controller.signal);
 
-    // Block until the abort signal fires, then let McpToolService's own
-    // abort-listener drain in-flight handlers and close the server.
-    await new Promise<void>((resolve) => {
-        if (controller.signal.aborted) {
-            resolve();
-            return;
-        }
-        controller.signal.addEventListener('abort', () => resolve(), { once: true });
-    });
-
-    await service.stop();
+    try {
+        // Block until the abort signal fires, then let McpToolService's own
+        // abort-listener drain in-flight handlers and close the server.
+        await new Promise<void>((resolve) => {
+            if (controller.signal.aborted) {
+                resolve();
+                return;
+            }
+            controller.signal.addEventListener('abort', () => resolve(), { once: true });
+        });
+    } finally {
+        // Always release the pipe server, even if the wait above throws.
+        await service.stop();
+    }
 }
 
 main(process.argv.slice(2)).catch((err: unknown) => {
