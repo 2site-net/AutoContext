@@ -24,7 +24,7 @@ export class ServersManifestLoader {
 
     load(): ServersManifest {
         const rawServers: RawServersFile = JSON.parse(
-            readFileSync(join(this.extensionPath, 'servers.json'), 'utf-8'),
+            readFileSync(join(this.extensionPath, 'resources', 'servers.json'), 'utf-8'),
         );
         const rawTools: RawToolsManifest = JSON.parse(
             readFileSync(join(this.extensionPath, 'resources', 'mcp-tools.json'), 'utf-8'),

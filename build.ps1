@@ -583,15 +583,15 @@ function Copy-AssetsToExtensionFolder {
     param()
 
     $assets = @(
-        @{ Source = 'LICENSE';        Label = 'LICENSE' }
-        @{ Source = 'COMMERCIAL.md';  Label = 'COMMERCIAL.md' }
-        @{ Source = 'TRADEMARKS.md';  Label = 'TRADEMARKS.md' }
-        @{ Source = 'servers.json';   Label = 'servers.json' }
+        @{ Source = 'LICENSE';        Destination = 'LICENSE';                 Label = 'LICENSE' }
+        @{ Source = 'COMMERCIAL.md';  Destination = 'COMMERCIAL.md';           Label = 'COMMERCIAL.md' }
+        @{ Source = 'TRADEMARKS.md';  Destination = 'TRADEMARKS.md';           Label = 'TRADEMARKS.md' }
+        @{ Source = 'servers.json';   Destination = 'resources/servers.json';  Label = 'servers.json' }
     )
 
     foreach ($asset in $assets) {
         $source      = Join-Path $repoRoot $asset.Source
-        $destination = Join-Path $extensionDir $asset.Source
+        $destination = Join-Path $extensionDir $asset.Destination
         if ($PSCmdlet.ShouldProcess($destination, "Copy $($asset.Label)")) {
             Copy-Item -LiteralPath $source -Destination $destination -Force
             Write-Status "$($asset.Label) copied to extension" 'OK'
