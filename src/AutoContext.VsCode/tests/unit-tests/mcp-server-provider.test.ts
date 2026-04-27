@@ -1,13 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { join } from 'node:path';
-import { McpStdioServerDefinition } from './_fakes/fake-vscode';
+import { McpStdioServerDefinition } from '#testing/fakes/fake-vscode';
 import { McpServerProvider } from '../../src/mcp-server-provider';
 import { McpToolsManifestLoader } from '../../src/mcp-tools-manifest-loader';
 import { ServersManifest } from '../../src/servers-manifest';
 import { ServerEntry } from '../../src/server-entry';
 import type { AutoContextConfig } from '#types/autocontext-config.js';
 import type { WorkerManager } from '../../src/worker-manager';
-import { createFakeConfigManager, createFakeHealthMonitor, createFakeLogger } from './_fakes';
+import { createFakeConfigManager, createFakeHealthMonitor, createFakeLogger } from '#testing/fakes';
 
 const { existsSyncMock } = vi.hoisted(() => ({ existsSyncMock: vi.fn<(path: string) => boolean>(() => true) }));
 vi.mock('node:fs', async () => {

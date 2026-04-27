@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { __emitterInstances } from './_fakes/fake-vscode';
+import { __emitterInstances } from '#testing/fakes/fake-vscode';
 import { HealthMonitorServer } from '../../src/health-monitor';
-import { createFakeLogger } from './_fakes';
-import { connectAndSend } from './_utils/pipe-helpers';
-import { waitFor } from './_utils/wait-for';
+import { createFakeLogger } from '#testing/fakes';
+import { connectAndSend } from '#testing/utils/pipe-helpers';
+import { waitFor } from '#testing/utils/wait-for';
 
 const fakeOutputChannel = createFakeLogger();
 

@@ -3,7 +3,7 @@ import { OutputChannelLogger } from '../../src/output-channel-logger';
 import { LogCategory } from '#types/logger.js';
 import type * as vscode from 'vscode';
 
-vi.mock('vscode', async () => await import('./_fakes/fake-vscode'));
+vi.mock('vscode', async () => await import('#testing/fakes/fake-vscode'));
 
 function fakeChannel(name = 'test'): vscode.LogOutputChannel {
     return {

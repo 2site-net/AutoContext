@@ -88,7 +88,8 @@
     "#types/*.js": {
       "types": "./src/types/*.ts",
       "default": "./dist/types/*.js"
-    }
+    },
+    "#testing/*": "./tests/testing/*"
   },
   "contributes": {
     "mcpServerDefinitionProviders": [

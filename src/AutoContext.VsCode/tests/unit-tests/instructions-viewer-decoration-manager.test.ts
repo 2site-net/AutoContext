@@ -12,10 +12,10 @@ vi.mock('node:fs/promises', () => ({
     stat: vi.fn(async () => ({ mtimeMs: 1 })),
 }));
 
-import { workspace, window as vscodeWindow } from './_fakes/fake-vscode';
-import { createFakeLogger } from './_fakes';
-import { testInstructionsContent } from './_fixtures';
-import { makeEditor } from './_utils';
+import { workspace, window as vscodeWindow } from '#testing/fakes/fake-vscode';
+import { createFakeLogger } from '#testing/fakes';
+import { testInstructionsContent } from '#testing/fixtures';
+import { makeEditor } from '#testing/utils';
 
 const mockLogger = createFakeLogger();
 

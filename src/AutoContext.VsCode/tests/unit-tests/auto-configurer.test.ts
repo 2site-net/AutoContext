@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { join } from 'node:path';
-import { window } from './_fakes/fake-vscode';
+import { window } from '#testing/fakes/fake-vscode';
 import { AutoConfigurer } from '../../src/auto-configurer';
 import { InstructionsFilesManifestLoader } from '../../src/instructions-files-manifest-loader';
 import { McpToolsManifestLoader } from '../../src/mcp-tools-manifest-loader';
 import type { AutoContextConfig } from '#types/autocontext-config.js';
-import { createFakeDetector, createFakeConfigManager } from './_fakes';
+import { createFakeDetector, createFakeConfigManager } from '#testing/fakes';
 
 const fakeDetector = createFakeDetector();
 

@@ -11,9 +11,9 @@ vi.mock('node:fs/promises', () => ({
     stat: vi.fn(async () => ({ mtimeMs: 1 })),
 }));
 
-import { workspace, Uri } from './_fakes/fake-vscode';
-import { createFakeLogger } from './_fakes';
-import { testInstructionsContent } from './_fixtures';
+import { workspace, Uri } from '#testing/fakes/fake-vscode';
+import { createFakeLogger } from '#testing/fakes';
+import { testInstructionsContent } from '#testing/fixtures';
 
 const mockLogger = createFakeLogger();
 

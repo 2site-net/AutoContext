@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { InstructionsFileCategoryEntry } from '../../src/instructions-file-category-entry';
 import { InstructionsFileEntry } from '../../src/instructions-file-entry';
 import { InstructionsFilesManifest } from '../../src/instructions-files-manifest';
-import { catalogTestEntries, makeInstructionsFileEntry, makeInstructionsFilesManifest } from './_fixtures';
+import { catalogTestEntries, makeInstructionsFileEntry, makeInstructionsFilesManifest } from '#testing/fixtures';
 
 describe('InstructionsFileEntry', () => {
     it('should map files to .github/instructions/', () => {

@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { connect, type Socket } from 'node:net';
 import { LogServer } from '../../src/log-server';
-import { createFakeLogger } from './_fakes';
-import { pipePath } from './_utils/pipe-helpers';
-import { waitFor } from './_utils/wait-for';
+import { createFakeLogger } from '#testing/fakes';
+import { pipePath } from '#testing/utils/pipe-helpers';
+import { waitFor } from '#testing/utils/wait-for';
 import type { Logger } from '#types/logger.js';
 
 /**

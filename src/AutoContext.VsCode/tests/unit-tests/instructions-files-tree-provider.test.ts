@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { TreeItemCollapsibleState, TreeItemCheckboxState, workspace, commands, Uri, window } from './_fakes/fake-vscode';
+import { TreeItemCollapsibleState, TreeItemCheckboxState, workspace, commands, Uri, window } from '#testing/fakes/fake-vscode';
 import { InstructionsFilesTreeProvider } from '../../src/instructions-files-tree-provider';
 import type { AutoContextConfig } from '#types/autocontext-config.js';
 import type { InstructionsFileTreeNode } from '#types/instructions-file-tree-node.js';
@@ -9,7 +9,7 @@ import { InstructionsFilesManifestLoader } from '../../src/instructions-files-ma
 import { join } from 'node:path';
 import { TreeViewStateResolver } from '../../src/tree-view-state-resolver';
 import { TreeViewTooltip } from '../../src/tree-view-tooltip';
-import { createFakeDetector, createFakeConfigManager, createFakeLogger } from './_fakes';
+import { createFakeDetector, createFakeConfigManager, createFakeLogger } from '#testing/fakes';
 
 const fakeDetector = createFakeDetector();
 const logger = createFakeLogger();

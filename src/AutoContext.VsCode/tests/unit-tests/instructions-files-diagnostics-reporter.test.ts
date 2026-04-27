@@ -5,9 +5,9 @@ import type {
     InstructionsFilesDiagnosticsRunner,
 } from '../../src/instructions-files-diagnostics-runner';
 import { LogCategory } from '#types/logger.js';
-import { createFakeLogger } from './_fakes';
+import { createFakeLogger } from '#testing/fakes';
 
-vi.mock('vscode', async () => await import('./_fakes/fake-vscode'));
+vi.mock('vscode', async () => await import('#testing/fakes/fake-vscode'));
 
 function fakeRunner(records: InstructionsFilesDiagnosticRecord[]): InstructionsFilesDiagnosticsRunner {
     return { collect: vi.fn(async () => records) } as unknown as InstructionsFilesDiagnosticsRunner;

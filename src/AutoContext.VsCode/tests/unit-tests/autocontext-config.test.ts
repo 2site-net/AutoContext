@@ -14,8 +14,8 @@ vi.mock('node:fs/promises', () => ({
     unlink: vi.fn().mockResolvedValue(undefined),
 }));
 
-import { workspace } from './_fakes/fake-vscode';
-import { createFakeLogger } from './_fakes';
+import { workspace } from '#testing/fakes/fake-vscode';
+import { createFakeLogger } from '#testing/fakes';
 
 const mockLogger = createFakeLogger();
 

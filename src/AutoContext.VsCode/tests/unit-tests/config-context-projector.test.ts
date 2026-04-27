@@ -4,9 +4,9 @@ import { ConfigContextProjector, isToolEnabled } from '../../src/config-context-
 import { McpCategoryEntry } from '../../src/mcp-category-entry';
 import { McpToolEntry } from '../../src/mcp-tool-entry';
 import { McpToolsManifest } from '../../src/mcp-tools-manifest';
-import { createFakeLogger, createMockConfigManager } from './_fakes';
-import { makeInstructionsFilesManifest, projectorTestInstructions } from './_fixtures';
-import { findSetContextCall } from './_utils';
+import { createFakeLogger, createMockConfigManager } from '#testing/fakes';
+import { makeInstructionsFilesManifest, projectorTestInstructions } from '#testing/fixtures';
+import { findSetContextCall } from '#testing/utils';
 
 beforeEach(() => {
     vi.clearAllMocks();
