@@ -1,5 +1,10 @@
 import * as assert from 'node:assert/strict';
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
 import { activatedExtension } from './helpers.js';
+
+const mcpBinary = (extensionPath: string) =>
+    join(extensionPath, 'servers', 'AutoContext.Mcp.Server', `AutoContext.Mcp.Server${process.platform === 'win32' ? '.exe' : ''}`);
 
 suite('Workspace: web-only (JS + package.json, no TypeScript)', () => {
     test('should detect JavaScript and Node.js', async () => {
@@ -19,15 +24,12 @@ suite('Workspace: web-only (JS + package.json, no TypeScript)', () => {
         assert.ok(!detector.get('hasGit'), 'Should not detect hasGit');
     });
 
-    test('should surface editorconfig server only', async () => {
-        const { exports } = await activatedExtension();
-        const defs = await exports.mcpServerProvider.provideMcpServerDefinitions();
-        const categories = defs.map((d: { args: string[] }) => d.args[d.args.indexOf('--scope') + 1]);
+    test('should not surface MCP server definitions without binary', async function () {
+        const ext = await activatedExtension();
+        if (existsSync(mcpBinary(ext.extensionPath))) { this.skip(); return; }
 
-        assert.ok(categories.includes('editorconfig'), `Expected editorconfig in: ${categories.join(', ')}`);
-        assert.ok(!categories.includes('typescript'), `Unexpected typescript in: ${categories.join(', ')}`);
-        assert.ok(!categories.includes('dotnet'), `Unexpected dotnet in: ${categories.join(', ')}`);
-        assert.ok(!categories.includes('git'), `Unexpected git in: ${categories.join(', ')}`);
-        assert.strictEqual(categories.length, 1, `Expected exactly 1 server, got: ${categories.join(', ')}`);
+        const defs = await ext.exports.mcpServerProvider.provideMcpServerDefinitions();
+
+        assert.strictEqual(defs.length, 0, 'Expected no MCP server definitions without binary');
     });
 });

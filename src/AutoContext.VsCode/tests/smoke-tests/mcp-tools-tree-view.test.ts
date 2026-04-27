@@ -124,16 +124,16 @@ suite('MCP Tools Tree View Smoke Tests', () => {
                     // Leaf tools (single task whose name matches the tool name)
                     if (tool.isLeaf && tool.tasks[0]?.state.value === 'notDetected') {
                         const item = exports.mcpToolsTreeProvider.getTreeItem(tool);
-                        assert.ok(item.description, `Not-detected leaf tool '${tool.toolName}' should have a description`);
-                        assert.ok(item.iconPath, `Not-detected leaf tool '${tool.toolName}' should have an icon`);
+                        assert.ok(item.description, `Not-detected leaf tool '${tool.tool.name}' should have a description`);
+                        assert.ok(item.iconPath, `Not-detected leaf tool '${tool.tool.name}' should have an icon`);
                         notDetectedCount++;
                     }
                     // Tasks
                     for (const task of exports.mcpToolsTreeProvider.getChildren(tool)) {
                         if (task.state.value === 'notDetected') {
                             const item = exports.mcpToolsTreeProvider.getTreeItem(task);
-                            assert.ok(item.description, `Not-detected task '${task.entry.label}' should have a description`);
-                            assert.ok(item.iconPath, `Not-detected task '${task.entry.label}' should have an icon`);
+                            assert.ok(item.description, `Not-detected task '${task.task.name}' should have a description`);
+                            assert.ok(item.iconPath, `Not-detected task '${task.task.name}' should have an icon`);
                             notDetectedCount++;
                         }
                     }
@@ -163,7 +163,7 @@ suite('MCP Tools Tree View Smoke Tests', () => {
 
                     for (const task of exports.mcpToolsTreeProvider.getChildren(tool)) {
                         const taskItem = exports.mcpToolsTreeProvider.getTreeItem(task);
-                        assert.ok(taskItem.tooltip, `task '${task.entry.label}' should have a tooltip`);
+                        assert.ok(taskItem.tooltip, `task '${task.task.name}' should have a tooltip`);
                     }
                 }
             }
@@ -184,8 +184,8 @@ suite('MCP Tools Tree View Smoke Tests', () => {
                             `task tooltip should contain 'Context Key:' prefix`,
                         );
                         assert.ok(
-                            (item.tooltip as string).includes(task.entry.runtimeInfo.contextKey),
-                            `task tooltip should contain context key '${task.entry.runtimeInfo.contextKey}'`,
+                            (item.tooltip as string).includes(task.task.runtimeInfo.contextKey),
+                            `task tooltip should contain context key '${task.task.runtimeInfo.contextKey}'`,
                         );
                     }
                 }
