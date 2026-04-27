@@ -7,7 +7,7 @@ import { viewIds, treeViewLabels } from './ui-constants.js';
 import type { WorkspaceContextDetector } from './workspace-context-detector.js';
 import type { TreeViewStateResolver } from './tree-view-state-resolver.js';
 import type { TreeViewTooltip } from './tree-view-tooltip.js';
-import type { HealthMonitorServer } from './health-monitor.js';
+import type { HealthMonitorServer } from './health-monitor-server.js';
 import type { McpServerProvider } from './mcp-server-provider.js';
 import type { TreeViewServerLabelNode } from '#types/tree-view-server-label-node.js';
 import type { McpToolsTreeCategoryNode } from '#types/mcp-tools-tree-category-node.js';

@@ -23,7 +23,7 @@ import { TreeViewTooltip } from './tree-view-tooltip.js';
 import { McpServerProvider } from './mcp-server-provider.js';
 import { WorkerManager } from './worker-manager.js';
 import { ServersManifestLoader } from './servers-manifest-loader.js';
-import { HealthMonitorServer } from './health-monitor.js';
+import { HealthMonitorServer } from './health-monitor-server.js';
 import { LogServer } from './log-server.js';
 import { OutputChannelLogger } from './output-channel-logger.js';
 import { LogCategory } from '#types/logger.js';

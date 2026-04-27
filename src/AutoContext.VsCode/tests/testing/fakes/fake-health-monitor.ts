@@ -1,5 +1,5 @@
 import { vi } from 'vitest';
-import type { HealthMonitorServer } from '../../../src/health-monitor';
+import type { HealthMonitorServer } from '../../../src/health-monitor-server';
 
 export function createFakeHealthMonitor(
     overrides: Partial<Record<'isRunning', (key: string) => boolean>> = {},
