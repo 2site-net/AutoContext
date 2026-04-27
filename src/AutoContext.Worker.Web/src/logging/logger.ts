@@ -83,29 +83,29 @@ export class LogServerLogger implements Logger {
             category: this.category,
             level,
             message,
-            ...(exception !== undefined ? { exception: formatException(exception) } : {}),
+            ...(exception !== undefined ? { exception: LogServerLogger.formatException(exception) } : {}),
             ...(correlationId !== undefined ? { correlationId } : {}),
         };
         this.sink.enqueue(record);
     }
-}
 
-function formatException(value: unknown): string {
-    if (value instanceof Error) {
-        return value.stack !== undefined && value.stack.length > 0
-            ? value.stack
-            : `${value.name}: ${value.message}`;
-    }
-    if (value === null) {
-        return 'null';
-    }
-    if (typeof value === 'object') {
-        try {
-            return JSON.stringify(value);
+    private static formatException(value: unknown): string {
+        if (value instanceof Error) {
+            return value.stack !== undefined && value.stack.length > 0
+                ? value.stack
+                : `${value.name}: ${value.message}`;
         }
-        catch {
-            return String(value);
+        if (value === null) {
+            return 'null';
         }
+        if (typeof value === 'object') {
+            try {
+                return JSON.stringify(value);
+            }
+            catch {
+                return String(value);
+            }
+        }
+        return String(value);
     }
-    return String(value);
 }

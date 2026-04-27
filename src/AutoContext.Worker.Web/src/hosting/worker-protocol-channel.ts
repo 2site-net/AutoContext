@@ -65,7 +65,7 @@ export class WorkerProtocolChannel {
      * length-prefixed message.
      */
     async write(payload: Buffer, signal?: AbortSignal): Promise<void> {
-        throwIfAborted(signal);
+        WorkerProtocolChannel.throwIfAborted(signal);
 
         const message = Buffer.allocUnsafe(4 + payload.length);
         message.writeInt32LE(payload.length, 0);
@@ -89,7 +89,7 @@ export class WorkerProtocolChannel {
 
             if (signal !== undefined) {
                 abortListener = (): void => {
-                    settle(() => reject(signalAbortError(signal)));
+                    settle(() => reject(WorkerProtocolChannel.signalAbortError(signal)));
                 };
                 signal.addEventListener('abort', abortListener, { once: true });
             }
@@ -108,7 +108,7 @@ export class WorkerProtocolChannel {
         const stream = this.stream;
         return new Promise((resolve, reject) => {
             if (signal?.aborted === true) {
-                reject(signalAbortError(signal));
+                reject(WorkerProtocolChannel.signalAbortError(signal));
                 return;
             }
 
@@ -166,7 +166,7 @@ export class WorkerProtocolChannel {
             };
 
             const onAbort = (): void => {
-                settle(() => reject(signalAbortError(signal!)));
+                settle(() => reject(WorkerProtocolChannel.signalAbortError(signal!)));
             };
 
             stream.on('readable', onReadable);
@@ -181,20 +181,20 @@ export class WorkerProtocolChannel {
             tryRead();
         });
     }
-}
 
-function throwIfAborted(signal: AbortSignal | undefined): void {
-    if (signal?.aborted === true) {
-        throw signalAbortError(signal);
+    private static throwIfAborted(signal: AbortSignal | undefined): void {
+        if (signal?.aborted === true) {
+            throw WorkerProtocolChannel.signalAbortError(signal);
+        }
     }
-}
 
-function signalAbortError(signal: AbortSignal): Error {
-    const reason: unknown = signal.reason;
-    if (reason instanceof Error) {
-        return reason;
+    private static signalAbortError(signal: AbortSignal): Error {
+        const reason: unknown = signal.reason;
+        if (reason instanceof Error) {
+            return reason;
+        }
+        const err = new Error('The operation was aborted.');
+        err.name = 'AbortError';
+        return err;
     }
-    const err = new Error('The operation was aborted.');
-    err.name = 'AbortError';
-    return err;
 }

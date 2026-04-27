@@ -83,8 +83,8 @@ export class McpToolService {
 
         this.server = server;
 
-        const pipePath = normalizePipePath(this.options.pipe);
-        await listenWithStaleRecovery(server, pipePath);
+        const pipePath = McpToolService.normalizePipePath(this.options.pipe);
+        await McpToolService.listenWithStaleRecovery(server, pipePath);
         process.stderr.write(this.options.readyMarker + '\n');
 
         if (signal.aborted) {
@@ -158,8 +158,8 @@ export class McpToolService {
             // bugs). Surface the latter to stderr instead of swallowing
             // them. Matches C# behavior of only tolerating
             // IOException/ObjectDisposedException at this boundary.
-            if (!isExpectedConnectionError(ex)) {
-                const { name, message } = describeError(ex);
+            if (!McpToolService.isExpectedConnectionError(ex)) {
+                const { name, message } = McpToolService.describeError(ex);
                 process.stderr.write(
                     `[McpToolService] Unexpected error in connection handler: ${name}: ${message}\n`,
                 );
@@ -180,19 +180,19 @@ export class McpToolService {
             request = JSON.parse(requestBytes.toString('utf8'));
         } catch (ex) {
             const message = ex instanceof Error ? ex.message : String(ex);
-            return buildErrorResponse('', `Malformed request JSON: ${message}`);
+            return McpToolService.buildErrorResponse('', `Malformed request JSON: ${message}`);
         }
 
-        if (!isObject(request)) {
-            return buildErrorResponse('', 'Request must be a JSON object.');
+        if (!McpToolService.isObject(request)) {
+            return McpToolService.buildErrorResponse('', 'Request must be a JSON object.');
         }
 
         const rawTaskName = request['mcpTask'];
         if (typeof rawTaskName !== 'string' || rawTaskName.length === 0) {
-            return buildErrorResponse('', "Request is missing required field 'mcpTask'.");
+            return McpToolService.buildErrorResponse('', "Request is missing required field 'mcpTask'.");
         }
         const taskName = rawTaskName;
-        const correlationId = readCorrelationId(request);
+        const correlationId = McpToolService.readCorrelationId(request);
 
         // Run the dispatch — including the catch-all — inside the
         // CorrelationScope so every Logger call made by the
@@ -202,15 +202,15 @@ export class McpToolService {
             try {
                 const task = this.tasks.get(taskName);
                 if (task === undefined) {
-                    return buildErrorResponse(taskName, `Unknown task '${taskName}'.`);
+                    return McpToolService.buildErrorResponse(taskName, `Unknown task '${taskName}'.`);
                 }
-                const data = buildTaskData(request);
+                const data = McpToolService.buildTaskData(request);
                 const output = await task.execute(data, signal);
-                return buildSuccessResponse(taskName, output);
+                return McpToolService.buildSuccessResponse(taskName, output);
             } catch (ex) {
-                const { name, message } = describeError(ex);
+                const { name, message } = McpToolService.describeError(ex);
                 this.logger?.error(`Task '${taskName}' failed: ${name}: ${message}`, ex);
-                return buildErrorResponse(taskName, `Task threw ${name}: ${message}`);
+                return McpToolService.buildErrorResponse(taskName, `Task threw ${name}: ${message}`);
             }
         };
 
@@ -218,164 +218,164 @@ export class McpToolService {
             ? run()
             : CorrelationScope.run(correlationId, run);
     }
-}
 
-function readCorrelationId(request: Record<string, unknown>): string | undefined {
-    const value = request['correlationId'];
-    return typeof value === 'string' && value.length > 0 ? value : undefined;
-}
-
-function describeError(ex: unknown): { name: string; message: string } {
-    if (ex instanceof Error) {
-        return { name: ex.name || 'Error', message: ex.message || String(ex) };
+    private static readCorrelationId(request: Record<string, unknown>): string | undefined {
+        const value = request['correlationId'];
+        return typeof value === 'string' && value.length > 0 ? value : undefined;
     }
-    return { name: 'Error', message: ex === null ? 'null' : String(ex) };
-}
 
-/**
- * Returns true for the small set of errors that are an expected part
- * of normal pipe-server lifecycle: the abort signal firing, the peer
- * closing the connection, or the pipe being torn down mid-write.
- * Anything else is treated as a real bug and surfaced to stderr.
- */
-function isExpectedConnectionError(ex: unknown): boolean {
-    if (!(ex instanceof Error)) {
-        return false;
-    }
-    if (ex.name === 'AbortError') {
-        return true;
-    }
-    const code = (ex as NodeJS.ErrnoException).code;
-    return code === 'ECONNRESET'
-        || code === 'EPIPE'
-        || code === 'ERR_STREAM_PREMATURE_CLOSE'
-        || code === 'ERR_STREAM_DESTROYED';
-}
-
-async function listenWithStaleRecovery(server: net.Server, pipePath: string): Promise<void> {
-    try {
-        await listenOnce(server, pipePath);
-        return;
-    } catch (ex) {
-        const err = ex as NodeJS.ErrnoException;
-        // On Unix, a leftover socket file from a prior crash causes
-        // EADDRINUSE. Probe it by attempting to connect; if nothing is
-        // listening, unlink the stale inode and retry once.
-        if (
-            process.platform === 'win32' ||
-            err.code !== 'EADDRINUSE' ||
-            !pipePath.startsWith('/')
-        ) {
-            throw ex;
+    private static describeError(ex: unknown): { name: string; message: string } {
+        if (ex instanceof Error) {
+            return { name: ex.name || 'Error', message: ex.message || String(ex) };
         }
-        const isStale = await probeStaleSocket(pipePath);
-        if (!isStale) {
-            throw ex;
+        return { name: 'Error', message: ex === null ? 'null' : String(ex) };
+    }
+
+    /**
+     * Returns true for the small set of errors that are an expected part
+     * of normal pipe-server lifecycle: the abort signal firing, the peer
+     * closing the connection, or the pipe being torn down mid-write.
+     * Anything else is treated as a real bug and surfaced to stderr.
+     */
+    private static isExpectedConnectionError(ex: unknown): boolean {
+        if (!(ex instanceof Error)) {
+            return false;
         }
+        if (ex.name === 'AbortError') {
+            return true;
+        }
+        const code = (ex as NodeJS.ErrnoException).code;
+        return code === 'ECONNRESET'
+            || code === 'EPIPE'
+            || code === 'ERR_STREAM_PREMATURE_CLOSE'
+            || code === 'ERR_STREAM_DESTROYED';
+    }
+
+    private static async listenWithStaleRecovery(server: net.Server, pipePath: string): Promise<void> {
         try {
-            fs.unlinkSync(pipePath);
-        } catch {
-            throw ex;
+            await McpToolService.listenOnce(server, pipePath);
+            return;
+        } catch (ex) {
+            const err = ex as NodeJS.ErrnoException;
+            // On Unix, a leftover socket file from a prior crash causes
+            // EADDRINUSE. Probe it by attempting to connect; if nothing is
+            // listening, unlink the stale inode and retry once.
+            if (
+                process.platform === 'win32' ||
+                err.code !== 'EADDRINUSE' ||
+                !pipePath.startsWith('/')
+            ) {
+                throw ex;
+            }
+            const isStale = await McpToolService.probeStaleSocket(pipePath);
+            if (!isStale) {
+                throw ex;
+            }
+            try {
+                fs.unlinkSync(pipePath);
+            } catch {
+                throw ex;
+            }
+            await McpToolService.listenOnce(server, pipePath);
         }
-        await listenOnce(server, pipePath);
     }
-}
 
-function listenOnce(server: net.Server, pipePath: string): Promise<void> {
-    return new Promise<void>((resolve, reject) => {
-        const onError = (err: Error): void => {
-            server.removeListener('listening', onListening);
-            reject(err);
-        };
-        const onListening = (): void => {
-            server.removeListener('error', onError);
-            resolve();
-        };
-        server.once('error', onError);
-        server.once('listening', onListening);
-        server.listen(pipePath);
-    });
-}
-
-function probeStaleSocket(pipePath: string): Promise<boolean> {
-    return new Promise<boolean>((resolve) => {
-        const socket = net.connect(pipePath);
-        const finish = (stale: boolean): void => {
-            socket.removeAllListeners();
-            socket.destroy();
-            resolve(stale);
-        };
-        socket.once('connect', () => finish(false));
-        socket.once('error', (err: NodeJS.ErrnoException) => {
-            finish(err.code === 'ECONNREFUSED' || err.code === 'ENOENT');
+    private static listenOnce(server: net.Server, pipePath: string): Promise<void> {
+        return new Promise<void>((resolve, reject) => {
+            const onError = (err: Error): void => {
+                server.removeListener('listening', onListening);
+                reject(err);
+            };
+            const onListening = (): void => {
+                server.removeListener('error', onError);
+                resolve();
+            };
+            server.once('error', onError);
+            server.once('listening', onListening);
+            server.listen(pipePath);
         });
-    });
-}
-
-function normalizePipePath(pipe: string): string {
-    if (process.platform !== 'win32') {
-        return pipe;
     }
-    if (pipe.startsWith('\\\\.\\pipe\\') || pipe.startsWith('\\\\?\\pipe\\')) {
-        return pipe;
+
+    private static probeStaleSocket(pipePath: string): Promise<boolean> {
+        return new Promise<boolean>((resolve) => {
+            const socket = net.connect(pipePath);
+            const finish = (stale: boolean): void => {
+                socket.removeAllListeners();
+                socket.destroy();
+                resolve(stale);
+            };
+            socket.once('connect', () => finish(false));
+            socket.once('error', (err: NodeJS.ErrnoException) => {
+                finish(err.code === 'ECONNREFUSED' || err.code === 'ENOENT');
+            });
+        });
     }
-    return `\\\\.\\pipe\\${pipe}`;
-}
 
-function buildTaskData(request: Record<string, unknown>): Record<string, unknown> {
-    const data = isObject(request['data']) ? { ...request['data'] } : {};
-    const ec = request['editorconfig'];
+    private static normalizePipePath(pipe: string): string {
+        if (process.platform !== 'win32') {
+            return pipe;
+        }
+        if (pipe.startsWith('\\\\.\\pipe\\') || pipe.startsWith('\\\\?\\pipe\\')) {
+            return pipe;
+        }
+        return `\\\\.\\pipe\\${pipe}`;
+    }
 
-    if (!isObject(ec)) {
+    private static buildTaskData(request: Record<string, unknown>): Record<string, unknown> {
+        const data = McpToolService.isObject(request['data']) ? { ...request['data'] } : {};
+        const ec = request['editorconfig'];
+
+        if (!McpToolService.isObject(ec)) {
+            return data;
+        }
+
+        for (const [key, value] of Object.entries(ec)) {
+            if (typeof value === 'string') {
+                data[`editorconfig.${key}`] = value;
+            }
+        }
+
         return data;
     }
 
-    for (const [key, value] of Object.entries(ec)) {
-        if (typeof value === 'string') {
-            data[`editorconfig.${key}`] = value;
+    private static buildSuccessResponse(taskName: string, output: unknown): Buffer {
+        // `JSON.stringify` throws on `BigInt`, circular references, and a
+        // few other shapes. Without this guard those would propagate up to
+        // the dispatcher's catch and be reported as `Task threw …`, which
+        // is misleading — the task succeeded; only the response could not
+        // be serialized. Synthesize a clear error envelope instead so the
+        // client sees the real cause.
+        let payload: string;
+        try {
+            payload = JSON.stringify({
+                mcpTask: taskName,
+                status: 'ok',
+                output: output ?? null,
+                error: '',
+            });
+        } catch (ex) {
+            const { name, message } = McpToolService.describeError(ex);
+            return McpToolService.buildErrorResponse(
+                taskName,
+                `Task output is not JSON-serializable: ${name}: ${message}`,
+            );
         }
+        return Buffer.from(payload, 'utf8');
     }
 
-    return data;
-}
-
-function buildSuccessResponse(taskName: string, output: unknown): Buffer {
-    // `JSON.stringify` throws on `BigInt`, circular references, and a
-    // few other shapes. Without this guard those would propagate up to
-    // the dispatcher's catch and be reported as `Task threw …`, which
-    // is misleading — the task succeeded; only the response could not
-    // be serialized. Synthesize a clear error envelope instead so the
-    // client sees the real cause.
-    let payload: string;
-    try {
-        payload = JSON.stringify({
-            mcpTask: taskName,
-            status: 'ok',
-            output: output ?? null,
-            error: '',
-        });
-    } catch (ex) {
-        const { name, message } = describeError(ex);
-        return buildErrorResponse(
-            taskName,
-            `Task output is not JSON-serializable: ${name}: ${message}`,
+    private static buildErrorResponse(taskName: string, error: string): Buffer {
+        return Buffer.from(
+            JSON.stringify({
+                mcpTask: taskName,
+                status: 'error',
+                output: null,
+                error,
+            }),
+            'utf8',
         );
     }
-    return Buffer.from(payload, 'utf8');
-}
 
-function buildErrorResponse(taskName: string, error: string): Buffer {
-    return Buffer.from(
-        JSON.stringify({
-            mcpTask: taskName,
-            status: 'error',
-            output: null,
-            error,
-        }),
-        'utf8',
-    );
-}
-
-function isObject(value: unknown): value is Record<string, unknown> {
-    return typeof value === 'object' && value !== null && !Array.isArray(value);
+    private static isObject(value: unknown): value is Record<string, unknown> {
+        return typeof value === 'object' && value !== null && !Array.isArray(value);
+    }
 }

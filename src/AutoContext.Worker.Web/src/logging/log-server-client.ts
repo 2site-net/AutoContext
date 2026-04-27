@@ -127,7 +127,7 @@ export class LogServerClient implements LogSink {
                     this.socket.destroy();
                     this.socket = undefined;
                 }
-                writeStderr(record);
+                LogServerClient.writeStderr(record);
             }
         }
         finally {
@@ -192,7 +192,7 @@ export class LogServerClient implements LogSink {
 
     private trySendGreeting(socket: Socket): Promise<boolean> {
         const greeting: LogGreetingWire = { clientName: this.clientName };
-        return writeLine(socket, JSON.stringify(greeting));
+        return LogServerClient.writeLine(socket, JSON.stringify(greeting));
     }
 
     private tryWritePipe(socket: Socket, record: LogRecord): Promise<boolean> {
@@ -215,31 +215,31 @@ export class LogServerClient implements LogSink {
             // loop honest if the type contract is ever violated.
             return Promise.resolve(false);
         }
-        return writeLine(socket, json);
+        return LogServerClient.writeLine(socket, json);
     }
-}
 
-function writeLine(socket: Socket, json: string): Promise<boolean> {
-    return new Promise<boolean>((resolve) => {
-        if (socket.destroyed || !socket.writable) {
-            resolve(false);
-            return;
-        }
-        socket.write(json + '\n', (err) => {
-            resolve(err === null || err === undefined);
+    private static writeLine(socket: Socket, json: string): Promise<boolean> {
+        return new Promise<boolean>((resolve) => {
+            if (socket.destroyed || !socket.writable) {
+                resolve(false);
+                return;
+            }
+            socket.write(json + '\n', (err) => {
+                resolve(err === null || err === undefined);
+            });
         });
-    });
-}
-
-function writeStderr(record: LogRecord): void {
-    try {
-        const prefix = record.correlationId === undefined ? '' : `[${record.correlationId}] `;
-        process.stderr.write(`${prefix}${record.level}: ${record.category}: ${record.message}\n`);
-        if (record.exception !== undefined) {
-            process.stderr.write(`${record.exception}\n`);
-        }
     }
-    catch {
-        // stderr is gone — nothing we can do.
+
+    private static writeStderr(record: LogRecord): void {
+        try {
+            const prefix = record.correlationId === undefined ? '' : `[${record.correlationId}] `;
+            process.stderr.write(`${prefix}${record.level}: ${record.category}: ${record.message}\n`);
+            if (record.exception !== undefined) {
+                process.stderr.write(`${record.exception}\n`);
+            }
+        }
+        catch {
+            // stderr is gone — nothing we can do.
+        }
     }
 }

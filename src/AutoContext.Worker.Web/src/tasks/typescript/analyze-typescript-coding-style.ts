@@ -6,55 +6,101 @@ interface Violation {
     readonly message: string;
 }
 
-function lineOf(sourceFile: ts.SourceFile, pos: number): number {
-    return sourceFile.getLineAndCharacterOfPosition(pos).line + 1;
-}
-
-function hasExportModifier(node: ts.Node): boolean {
-    if (!ts.canHaveModifiers(node)) return false;
-    const modifiers = ts.getModifiers(node);
-    return modifiers?.some(m => m.kind === ts.SyntaxKind.ExportKeyword) ?? false;
-}
-
 /**
- * Returns true when a type node represents the `const` keyword used in
- * an `as const` assertion. Uses the AST shape rather than `getText()`
- * so the check is self-documenting and independent of source-text
- * representation.
+ * `analyze_typescript_coding_style` — enforces coding-style rules from
+ * `lang-typescript.instructions.md`: no `any`, no enums, no `@ts-ignore`,
+ * no `as` type assertions, no non-null assertions, no unconstrained
+ * generics, no `Function`/`Object`/`{}` types, prefer `interface` over
+ * `type` for object shapes, and explicit return types on exported
+ * functions.
+ *
+ * Request `data`:   `{ "content": "<typescript-source>" }`
+ * Response `output`: `{ "passed": <bool>, "report": "<text>" }`
  */
-function isConstAssertion(typeNode: ts.TypeNode): boolean {
-    return ts.isTypeReferenceNode(typeNode)
-        && ts.isIdentifier(typeNode.typeName)
-        && typeNode.typeName.text === 'const';
-}
+export class AnalyzeTypeScriptCodingStyleTask implements McpTask {
+    readonly taskName = 'analyze_typescript_coding_style';
 
-function checkTsIgnoreComments(sourceFile: ts.SourceFile, violations: Violation[]): void {
-    const text = sourceFile.getFullText();
-    const pattern = /\/\/\s*@ts-ignore\b/g;
-    let match: RegExpExecArray | null;
-    while ((match = pattern.exec(text)) !== null) {
-        violations.push({
-            line: lineOf(sourceFile, match.index),
-            message: 'Use `// @ts-expect-error` instead of `// @ts-ignore` — it errors when the suppression is no longer needed.',
-        });
+    async execute(
+        data: Record<string, unknown>,
+        signal: AbortSignal,
+    ): Promise<unknown> {
+        signal.throwIfAborted();
+
+        const content = data['content'];
+        if (typeof content !== 'string') {
+            throw new Error("'data.content' is required and must be a string.");
+        }
+        if (content.trim().length === 0) {
+            throw new Error("'data.content' must not be empty or whitespace.");
+        }
+
+        const violations = AnalyzeTypeScriptCodingStyleTask.findViolations(content);
+        signal.throwIfAborted();
+        const passed = violations.length === 0;
+        const report = passed
+            ? '✅ TypeScript Coding Style'
+            : AnalyzeTypeScriptCodingStyleTask.formatReport(violations);
+
+        return { passed, report };
     }
-}
 
-function findViolations(content: string): readonly Violation[] {
-    const sourceFile = ts.createSourceFile(
-        'input.ts',
-        content,
-        ts.ScriptTarget.Latest,
-        true,
-        ts.ScriptKind.TS,
-    );
+    private static lineOf(sourceFile: ts.SourceFile, pos: number): number {
+        return sourceFile.getLineAndCharacterOfPosition(pos).line + 1;
+    }
 
-    const violations: Violation[] = [];
+    private static hasExportModifier(node: ts.Node): boolean {
+        if (!ts.canHaveModifiers(node)) return false;
+        const modifiers = ts.getModifiers(node);
+        return modifiers?.some(m => m.kind === ts.SyntaxKind.ExportKeyword) ?? false;
+    }
 
-    // [typescript INST0004]: @ts-ignore in comments (regex — comments are not AST nodes)
-    checkTsIgnoreComments(sourceFile, violations);
+    /**
+     * Returns true when a type node represents the `const` keyword used in
+     * an `as const` assertion. Uses the AST shape rather than `getText()`
+     * so the check is self-documenting and independent of source-text
+     * representation.
+     */
+    private static isConstAssertion(typeNode: ts.TypeNode): boolean {
+        return ts.isTypeReferenceNode(typeNode)
+            && ts.isIdentifier(typeNode.typeName)
+            && typeNode.typeName.text === 'const';
+    }
 
-    function visit(node: ts.Node): void {
+    private static checkTsIgnoreComments(sourceFile: ts.SourceFile, violations: Violation[]): void {
+        const text = sourceFile.getFullText();
+        const pattern = /\/\/\s*@ts-ignore\b/g;
+        let match: RegExpExecArray | null;
+        while ((match = pattern.exec(text)) !== null) {
+            violations.push({
+                line: AnalyzeTypeScriptCodingStyleTask.lineOf(sourceFile, match.index),
+                message: 'Use `// @ts-expect-error` instead of `// @ts-ignore` — it errors when the suppression is no longer needed.',
+            });
+        }
+    }
+
+    private static findViolations(content: string): readonly Violation[] {
+        const sourceFile = ts.createSourceFile(
+            'input.ts',
+            content,
+            ts.ScriptTarget.Latest,
+            true,
+            ts.ScriptKind.TS,
+        );
+
+        const violations: Violation[] = [];
+
+        // [typescript INST0004]: @ts-ignore in comments (regex — comments are not AST nodes)
+        AnalyzeTypeScriptCodingStyleTask.checkTsIgnoreComments(sourceFile, violations);
+
+        AnalyzeTypeScriptCodingStyleTask.visit(sourceFile, sourceFile, violations);
+
+        violations.sort((a, b) => a.line - b.line);
+        return violations;
+    }
+
+    private static visit(node: ts.Node, sourceFile: ts.SourceFile, violations: Violation[]): void {
+        const lineOf = AnalyzeTypeScriptCodingStyleTask.lineOf;
+
         // [typescript INST0011]: enum declarations
         if (ts.isEnumDeclaration(node)) {
             violations.push({
@@ -111,7 +157,7 @@ function findViolations(content: string): readonly Violation[] {
         // [typescript INST0006]: exported function without return type
         if (
             ts.isFunctionDeclaration(node) &&
-            hasExportModifier(node) &&
+            AnalyzeTypeScriptCodingStyleTask.hasExportModifier(node) &&
             !node.type
         ) {
             const name = node.name?.getText(sourceFile) ?? '<anonymous>';
@@ -122,7 +168,7 @@ function findViolations(content: string): readonly Violation[] {
         }
 
         // [typescript INST0006]: exported arrow / function-expression initializers
-        if (ts.isVariableStatement(node) && hasExportModifier(node)) {
+        if (ts.isVariableStatement(node) && AnalyzeTypeScriptCodingStyleTask.hasExportModifier(node)) {
             for (const decl of node.declarationList.declarations) {
                 const init = decl.initializer;
                 if (init && (ts.isArrowFunction(init) || ts.isFunctionExpression(init)) && !init.type) {
@@ -156,7 +202,7 @@ function findViolations(content: string): readonly Violation[] {
         }
 
         // [typescript INST0018]: as type assertions (skip as const)
-        if (ts.isAsExpression(node) && !isConstAssertion(node.type)) {
+        if (ts.isAsExpression(node) && !AnalyzeTypeScriptCodingStyleTask.isConstAssertion(node.type)) {
             violations.push({
                 line: lineOf(sourceFile, node.getStart(sourceFile)),
                 message: 'Avoid type assertions (`as`) — narrow with `typeof`, `instanceof`, `in`, or type guards instead.',
@@ -171,54 +217,11 @@ function findViolations(content: string): readonly Violation[] {
             });
         }
 
-        ts.forEachChild(node, visit);
+        ts.forEachChild(node, child => AnalyzeTypeScriptCodingStyleTask.visit(child, sourceFile, violations));
     }
 
-    visit(sourceFile);
-    violations.sort((a, b) => a.line - b.line);
-    return violations;
-}
-
-function formatReport(violations: readonly Violation[]): string {
-    const lines = violations.map(v => `  Line ${v.line}: ${v.message}`);
-    return `❌ TypeScript Coding Style\n${lines.join('\n')}`;
-}
-
-/**
- * `analyze_typescript_coding_style` — enforces coding-style rules from
- * `lang-typescript.instructions.md`: no `any`, no enums, no `@ts-ignore`,
- * no `as` type assertions, no non-null assertions, no unconstrained
- * generics, no `Function`/`Object`/`{}` types, prefer `interface` over
- * `type` for object shapes, and explicit return types on exported
- * functions.
- *
- * Request `data`:   `{ "content": "<typescript-source>" }`
- * Response `output`: `{ "passed": <bool>, "report": "<text>" }`
- */
-export class AnalyzeTypeScriptCodingStyleTask implements McpTask {
-    readonly taskName = 'analyze_typescript_coding_style';
-
-    async execute(
-        data: Record<string, unknown>,
-        signal: AbortSignal,
-    ): Promise<unknown> {
-        signal.throwIfAborted();
-
-        const content = data['content'];
-        if (typeof content !== 'string') {
-            throw new Error("'data.content' is required and must be a string.");
-        }
-        if (content.trim().length === 0) {
-            throw new Error("'data.content' must not be empty or whitespace.");
-        }
-
-        const violations = findViolations(content);
-        signal.throwIfAborted();
-        const passed = violations.length === 0;
-        const report = passed
-            ? '✅ TypeScript Coding Style'
-            : formatReport(violations);
-
-        return { passed, report };
+    private static formatReport(violations: readonly Violation[]): string {
+        const lines = violations.map(v => `  Line ${v.line}: ${v.message}`);
+        return `❌ TypeScript Coding Style\n${lines.join('\n')}`;
     }
 }
