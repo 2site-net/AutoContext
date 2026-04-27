@@ -11,4 +11,5 @@ internal sealed record LogRecordWire(
     [property: JsonPropertyName("category")] string Category,
     [property: JsonPropertyName("level")] string Level,
     [property: JsonPropertyName("message")] string Message,
-    [property: JsonPropertyName("exception")] string? Exception);
+    [property: JsonPropertyName("exception")] string? Exception,
+    [property: JsonPropertyName("correlationId")] string? CorrelationId);

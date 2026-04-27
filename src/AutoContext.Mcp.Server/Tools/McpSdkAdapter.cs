@@ -71,7 +71,8 @@ public sealed class McpSdkAdapter
         }
 
         var data = ToDataElement(request.Params?.Arguments);
-        var envelopeJson = await handler(data, cancellationToken).ConfigureAwait(false);
+        var correlationId = NewCorrelationId();
+        var envelopeJson = await handler(data, correlationId, cancellationToken).ConfigureAwait(false);
 
         // Deserialize<JsonElement> returns a self-contained element
         // (parsed via JsonElement.ParseValue) — unlike
@@ -105,6 +106,16 @@ public sealed class McpSdkAdapter
     }
 
     private static readonly JsonElement EmptyObject = JsonSerializer.SerializeToElement(new { });
+
+    /// <summary>
+    /// Generates the per-invocation correlation id stamped onto every
+    /// <see cref="Workers.Protocol.TaskRequest"/> dispatched by the
+    /// resulting handler. Eight hex chars from a fresh <see cref="Guid"/>
+    /// — short enough to read in a log line, wide enough (~32 bits) to
+    /// keep collisions vanishingly rare across the lifetime of one
+    /// extension session.
+    /// </summary>
+    private static string NewCorrelationId() => Guid.NewGuid().ToString("N")[..8];
 
     private static JsonElement ToDataElement(IDictionary<string, JsonElement>? arguments)
     {

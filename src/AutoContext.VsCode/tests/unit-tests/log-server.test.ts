@@ -135,6 +135,22 @@ describe('LogServer', () => {
         socket.destroy();
     });
 
+    it('should prefix the message with the correlation id when present', async () => {
+        const socket = await connectAndSend(server.getPipeName(), 'AutoContext.Worker.DotNet', [
+            { category: 'Cat', level: 'Information', message: 'scoped', correlationId: 'abcd1234' },
+        ]);
+
+        await waitFor(() => tree.categories.has('AutoContext: Worker.DotNet::Cat'));
+        const categoryChild = tree.categories.get('AutoContext: Worker.DotNet::Cat')!;
+
+        await waitFor(() =>
+            (categoryChild.info as ReturnType<typeof vi.fn>).mock.calls.length > 0);
+
+        expect(categoryChild.info).toHaveBeenCalledExactlyOnceWith('[abcd1234] scoped', undefined);
+
+        socket.destroy();
+    });
+
     it('should ignore records that arrive before the greeting', async () => {
         const socket = await new Promise<Socket>((resolve, reject) => {
             const s = connect(pipePath(server.getPipeName()), () => {

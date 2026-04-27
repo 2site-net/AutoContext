@@ -19,4 +19,5 @@ internal readonly record struct LogRecord(
     string Category,
     LogLevel Level,
     string Message,
-    Exception? Exception);
+    Exception? Exception,
+    string? CorrelationId);

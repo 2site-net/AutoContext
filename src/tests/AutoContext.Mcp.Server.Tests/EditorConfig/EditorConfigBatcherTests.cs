@@ -36,6 +36,7 @@ public sealed class EditorConfigBatcherTests
         var result = await batcher.ResolveAsync(
             "/abs/file.cs",
             tasks,
+            "corr-test",
             TestContext.Current.CancellationToken);
 
         // Assert
@@ -92,6 +93,7 @@ public sealed class EditorConfigBatcherTests
         var result = await batcher.ResolveAsync(
             "/abs/Foo.cs",
             tasks,
+            "corr-test",
             TestContext.Current.CancellationToken);
         await serverTask;
 
@@ -135,6 +137,7 @@ public sealed class EditorConfigBatcherTests
         var result = await batcher.ResolveAsync(
             "/abs/Foo.cs",
             tasks,
+            "corr-test",
             TestContext.Current.CancellationToken);
         await serverTask;
 
@@ -174,6 +177,7 @@ public sealed class EditorConfigBatcherTests
         var result = await batcher.ResolveAsync(
             "/abs/Foo.cs",
             tasks,
+            "corr-test",
             TestContext.Current.CancellationToken);
         await serverTask;
 
@@ -197,6 +201,7 @@ public sealed class EditorConfigBatcherTests
         var result = await batcher.ResolveAsync(
             "/abs/Foo.cs",
             tasks,
+            "corr-test",
             TestContext.Current.CancellationToken);
 
         // Assert
@@ -234,6 +239,7 @@ public sealed class EditorConfigBatcherTests
         var result = await batcher.ResolveAsync(
             "/abs/Foo.cs",
             tasks,
+            "corr-test",
             TestContext.Current.CancellationToken);
         await serverTask;
 
@@ -254,11 +260,11 @@ public sealed class EditorConfigBatcherTests
 
         // Act + Assert
         await Assert.ThrowsAsync<ArgumentNullException>(
-            () => batcher.ResolveAsync(null!, [], TestContext.Current.CancellationToken));
+            () => batcher.ResolveAsync(null!, [], "corr-test", TestContext.Current.CancellationToken));
         await Assert.ThrowsAsync<ArgumentException>(
-            () => batcher.ResolveAsync(string.Empty, [], TestContext.Current.CancellationToken));
+            () => batcher.ResolveAsync(string.Empty, [], "corr-test", TestContext.Current.CancellationToken));
         await Assert.ThrowsAsync<ArgumentNullException>(
-            () => batcher.ResolveAsync("/abs/Foo.cs", null!, TestContext.Current.CancellationToken));
+            () => batcher.ResolveAsync("/abs/Foo.cs", null!, "corr-test", TestContext.Current.CancellationToken));
     }
 
     [Fact]

@@ -184,7 +184,8 @@ internal sealed class LogServerClient : IAsyncDisposable
                 Category: record.Category,
                 Level: record.Level.ToString(),
                 Message: record.Message,
-                Exception: record.Exception?.ToString());
+                Exception: record.Exception?.ToString(),
+                CorrelationId: record.CorrelationId);
             var json = JsonSerializer.Serialize(wire, LogServerJsonContext.Default.LogRecordWire);
             var bytes = Utf8NoBom.GetBytes(json + "\n");
             await stream.WriteAsync(bytes, ct).ConfigureAwait(false);
@@ -201,7 +202,8 @@ internal sealed class LogServerClient : IAsyncDisposable
     {
         try
         {
-            var line = $"{record.Level}: {record.Category}: {record.Message}";
+            var prefix = record.CorrelationId is null ? string.Empty : $"[{record.CorrelationId}] ";
+            var line = $"{prefix}{record.Level}: {record.Category}: {record.Message}";
             Console.Error.WriteLine(line);
             if (record.Exception is not null)
             {

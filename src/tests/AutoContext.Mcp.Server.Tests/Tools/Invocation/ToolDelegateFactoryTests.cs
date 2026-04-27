@@ -83,7 +83,7 @@ public sealed class ToolDelegateFactoryTests
 
         // Act
         var handler = delegates["invoke_tool"];
-        var json = await handler(data, TestContext.Current.CancellationToken);
+        var json = await handler(data, "corr-test", TestContext.Current.CancellationToken);
         await serverTask;
 
         using var document = JsonDocument.Parse(json);
@@ -131,8 +131,8 @@ public sealed class ToolDelegateFactoryTests
         var data = JsonSerializer.SerializeToElement(new { }, WorkerJsonOptions.Instance);
 
         // Act
-        var alphaJson = await delegates["alpha_tool"](data, TestContext.Current.CancellationToken);
-        var betaJson = await delegates["beta_tool"](data, TestContext.Current.CancellationToken);
+        var alphaJson = await delegates["alpha_tool"](data, "corr-test", TestContext.Current.CancellationToken);
+        var betaJson = await delegates["beta_tool"](data, "corr-test", TestContext.Current.CancellationToken);
         await alphaServerTask;
         await betaServerTask;
 

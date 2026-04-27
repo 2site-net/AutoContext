@@ -53,21 +53,23 @@ public sealed class ToolInvoker
         McpWorker worker,
         McpToolDefinition tool,
         JsonElement data,
+        string correlationId,
         CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(worker);
         ArgumentNullException.ThrowIfNull(tool);
+        ArgumentException.ThrowIfNullOrEmpty(correlationId);
 
         var startTimestamp = Stopwatch.GetTimestamp();
 
         var tasks = tool.Tasks;
-        var slices = await ResolveEditorConfigAsync(data, tasks, ct).ConfigureAwait(false);
+        var slices = await ResolveEditorConfigAsync(data, tasks, correlationId, ct).ConfigureAwait(false);
 
         var entries = new ToolResultComposerInput[tasks.Count];
 
         if (tasks.Count == 1)
         {
-            await DispatchOneAsync(worker.Endpoint, tasks, data, slices, entries, 0, ct)
+            await DispatchOneAsync(worker.Endpoint, tasks, data, slices, entries, 0, correlationId, ct)
                 .ConfigureAwait(false);
         }
         else if (tasks.Count > 1)
@@ -76,7 +78,7 @@ public sealed class ToolInvoker
 
             for (var i = 0; i < tasks.Count; i++)
             {
-                pending[i] = DispatchOneAsync(worker.Endpoint, tasks, data, slices, entries, i, ct);
+                pending[i] = DispatchOneAsync(worker.Endpoint, tasks, data, slices, entries, i, correlationId, ct);
             }
 
             await Task.WhenAll(pending).ConfigureAwait(false);
@@ -91,6 +93,7 @@ public sealed class ToolInvoker
     private async Task<IReadOnlyDictionary<string, IReadOnlyDictionary<string, string>>> ResolveEditorConfigAsync(
         JsonElement data,
         IReadOnlyList<McpTaskDefinition> tasks,
+        string correlationId,
         CancellationToken ct)
     {
         var anyKeys = false;
@@ -115,7 +118,7 @@ public sealed class ToolInvoker
         }
 
         var result = await _editorConfigBatcher
-            .ResolveAsync(path, tasks, ct)
+            .ResolveAsync(path, tasks, correlationId, ct)
             .ConfigureAwait(false);
 
         return result.Slices;
@@ -128,6 +131,7 @@ public sealed class ToolInvoker
         IReadOnlyDictionary<string, IReadOnlyDictionary<string, string>> slices,
         ToolResultComposerInput[] entries,
         int index,
+        string correlationId,
         CancellationToken ct)
     {
         var task = tasks[index];
@@ -142,6 +146,7 @@ public sealed class ToolInvoker
             McpTask = task.Name,
             Data = data,
             EditorConfig = editorConfig,
+            CorrelationId = correlationId,
         };
 
         var taskStart = Stopwatch.GetTimestamp();

@@ -33,7 +33,8 @@ public sealed class LogServerClientTests
             Category: "AutoContext.Demo",
             Level: LogLevel.Information,
             Message: "hello pipe",
-            Exception: null));
+            Exception: null,
+            CorrelationId: null));
 
         var (greeting, records) = await ReadLinesAsync(server, expected: 2, ct);
 
@@ -42,7 +43,33 @@ public sealed class LogServerClientTests
             () => Assert.Equal("AutoContext.Demo", records[0]!["category"]!.GetValue<string>()),
             () => Assert.Equal("Information", records[0]!["level"]!.GetValue<string>()),
             () => Assert.Equal("hello pipe", records[0]!["message"]!.GetValue<string>()),
-            () => Assert.Null(records[0]!["exception"]));
+            () => Assert.Null(records[0]!["exception"]),
+            () => Assert.Null(records[0]!["correlationId"]));
+    }
+
+    [Fact]
+    public async Task Should_propagate_correlation_id_into_wire_record()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var pipeName = NewPipeName();
+
+        await using var server = CreateServer(pipeName);
+        var acceptTask = server.WaitForConnectionAsync(ct);
+
+        await using var client = NewClient(pipeName, "Test.Worker.Corr");
+
+        await acceptTask;
+
+        client.Enqueue(new LogRecord(
+            Category: "AutoContext.Demo",
+            Level: LogLevel.Information,
+            Message: "scoped",
+            Exception: null,
+            CorrelationId: "abcd1234"));
+
+        var (_, records) = await ReadLinesAsync(server, expected: 2, ct);
+
+        Assert.Equal("abcd1234", records[0]!["correlationId"]!.GetValue<string>());
     }
 
     [Fact]
@@ -59,7 +86,7 @@ public sealed class LogServerClientTests
         await acceptTask;
 
         var ex = new InvalidOperationException("boom");
-        client.Enqueue(new LogRecord("Cat", LogLevel.Error, "oh no", ex));
+        client.Enqueue(new LogRecord("Cat", LogLevel.Error, "oh no", ex, CorrelationId: null));
 
         var (_, records) = await ReadLinesAsync(server, expected: 2, ct);
         var serialised = records[0]!["exception"]!.GetValue<string>();
@@ -78,7 +105,7 @@ public sealed class LogServerClientTests
         // Should accept records without blocking and without exceptions.
         for (var i = 0; i < 10; i++)
         {
-            client.Enqueue(new LogRecord("Cat", LogLevel.Trace, $"msg {i}", null));
+            client.Enqueue(new LogRecord("Cat", LogLevel.Trace, $"msg {i}", null, CorrelationId: null));
         }
 
         // DisposeAsync (via await using) must complete cleanly even though
@@ -95,7 +122,7 @@ public sealed class LogServerClientTests
 
         await using (var client = NewClient(pipeName, "Test.Worker.Orphan"))
         {
-            client.Enqueue(new LogRecord("Cat", LogLevel.Information, "stranded", null));
+            client.Enqueue(new LogRecord("Cat", LogLevel.Information, "stranded", null, CorrelationId: null));
         }
 
         sw.Stop();
@@ -145,7 +172,7 @@ public sealed class LogServerClientTests
         Assert.Equal(expected, lines.Count);
 
         var greeting = JsonNode.Parse(lines[0]);
-        var records = lines.Skip(1).Select(JsonNode.Parse).ToList();
+        var records = lines.Skip(1).Select(line => JsonNode.Parse(line)).ToList();
         return (greeting, records);
     }
 

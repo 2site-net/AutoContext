@@ -17,4 +17,15 @@ public sealed record TaskRequest
 
     [JsonPropertyName("editorconfig")]
     public required IReadOnlyDictionary<string, string> EditorConfig { get; init; }
+
+    /// <summary>
+    /// Short opaque id minted once per <c>tools/call</c> invocation by
+    /// <c>McpSdkAdapter</c>. Carried on every per-task <see cref="TaskRequest"/>
+    /// in the same invocation, surfaced into the worker via
+    /// <c>CorrelationScope</c>, and stamped onto every log record so a
+    /// single tool call can be traced end-to-end across the
+    /// extension/server/worker process boundary.
+    /// </summary>
+    [JsonPropertyName("correlationId")]
+    public required string CorrelationId { get; init; }
 }

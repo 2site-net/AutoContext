@@ -36,6 +36,7 @@ public sealed class ToolInvokerTests
             worker,
             tool,
             EmptyData(),
+            "corr-test",
             TestContext.Current.CancellationToken);
         await serverTask;
 
@@ -80,6 +81,7 @@ public sealed class ToolInvokerTests
             worker,
             tool,
             EmptyData(),
+            "corr-test",
             TestContext.Current.CancellationToken);
         await serverTask;
 
@@ -151,6 +153,7 @@ public sealed class ToolInvokerTests
             worker,
             tool,
             data,
+            "corr-test",
             TestContext.Current.CancellationToken);
         await Task.WhenAll(workspaceTask, toolServerTask);
 
@@ -194,6 +197,7 @@ public sealed class ToolInvokerTests
             worker,
             tool,
             EmptyData(),
+            "corr-test",
             TestContext.Current.CancellationToken);
         await serverTask;
 
@@ -243,6 +247,7 @@ public sealed class ToolInvokerTests
             worker,
             tool,
             EmptyData(),
+            "corr-test",
             TestContext.Current.CancellationToken);
         await serverTask;
 

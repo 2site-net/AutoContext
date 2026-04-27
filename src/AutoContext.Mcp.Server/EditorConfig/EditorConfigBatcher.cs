@@ -60,10 +60,12 @@ public sealed partial class EditorConfigBatcher
     public async Task<EditorConfigBatchResult> ResolveAsync(
         string filePath,
         IReadOnlyList<McpTaskDefinition> tasks,
+        string correlationId,
         CancellationToken ct)
     {
         ArgumentException.ThrowIfNullOrEmpty(filePath);
         ArgumentNullException.ThrowIfNull(tasks);
+        ArgumentException.ThrowIfNullOrEmpty(correlationId);
 
         var union = CollectUnion(tasks);
 
@@ -86,6 +88,7 @@ public sealed partial class EditorConfigBatcher
             McpTask = ResolveTaskName,
             Data = requestData,
             EditorConfig = FrozenDictionary<string, string>.Empty,
+            CorrelationId = correlationId,
         };
 
         var response = await _workerClient

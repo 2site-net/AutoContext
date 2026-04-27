@@ -37,7 +37,7 @@ internal sealed class LogServerLogger(string category, LogServerClient client) :
             return;
         }
 
-        _client.Enqueue(new LogRecord(_category, logLevel, message, exception));
+        _client.Enqueue(new LogRecord(_category, logLevel, message, exception, CorrelationScope.Current));
     }
 
     private sealed class NullScope : IDisposable

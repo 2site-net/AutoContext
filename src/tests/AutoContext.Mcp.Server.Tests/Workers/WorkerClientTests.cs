@@ -174,6 +174,7 @@ public sealed class WorkerClientTests
             McpTask = string.Empty,
             Data = JsonSerializer.SerializeToElement(new { }),
             EditorConfig = FrozenDictionary<string, string>.Empty,
+            CorrelationId = "corr-test",
         };
 
         // Act + Assert
@@ -186,6 +187,7 @@ public sealed class WorkerClientTests
         McpTask = mcpTask,
         Data = JsonSerializer.SerializeToElement(new { content = "hello" }),
         EditorConfig = FrozenDictionary<string, string>.Empty,
+        CorrelationId = "corr-test",
     };
 
     private static Task RunHangingServerAsync(string endpoint, CancellationToken gate) =>

@@ -6,6 +6,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 
 using AutoContext.Mcp;
+using AutoContext.Worker.Logging;
 
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -242,11 +243,22 @@ public sealed partial class McpToolService : BackgroundService
         Justification = "Worker boundary: any task failure must be returned as an error envelope, never crash the dispatcher.")]
     private async Task<byte[]> DispatchAsync(byte[] requestBytes, CancellationToken ct)
     {
-        string? taskName = null;
-
+        // Parse the envelope first under its own narrow handler. A
+        // malformed envelope has no correlation id available, so it
+        // can never be scope-correlated — but neither does it execute
+        // any user task, so there's nothing to mis-attribute.
+        JsonDocument doc;
         try
         {
-            using var doc = JsonDocument.Parse(requestBytes);
+            doc = JsonDocument.Parse(requestBytes);
+        }
+        catch (JsonException ex)
+        {
+            return BuildErrorResponse(taskName: "", $"Malformed request JSON: {ex.Message}");
+        }
+
+        using (doc)
+        {
             var root = doc.RootElement;
 
             if (!root.TryGetProperty("mcpTask", out var taskNameElement)
@@ -255,31 +267,42 @@ public sealed partial class McpToolService : BackgroundService
                 return BuildErrorResponse(taskName: "", "Request is missing required field 'mcpTask'.");
             }
 
-            taskName = taskNameElement.GetString()!;
+            var taskName = taskNameElement.GetString()!;
+            var correlationId = TryReadCorrelationId(root);
 
-            if (!_tasks.TryGetValue(taskName, out var task))
+            // Push the per-invocation correlation id BEFORE the inner
+            // try/catch so every ILogger call made inside ExecuteAsync
+            // *and* the LogTaskFailed handler in the catch are both
+            // stamped with the same id on the way out the LogServer pipe.
+            using var scope = correlationId is null
+                ? null
+                : CorrelationScope.Push(correlationId);
+
+            try
             {
-                return BuildErrorResponse(taskName, $"Unknown task '{taskName}'.");
+                if (!_tasks.TryGetValue(taskName, out var task))
+                {
+                    return BuildErrorResponse(taskName, $"Unknown task '{taskName}'.");
+                }
+
+                var data = BuildTaskData(root);
+                var output = await task.ExecuteAsync(data, ct).ConfigureAwait(false);
+
+                return BuildSuccessResponse(taskName, output);
             }
-
-            var data = BuildTaskData(root);
-
-            var output = await task.ExecuteAsync(data, ct).ConfigureAwait(false);
-
-            return BuildSuccessResponse(taskName, output);
-        }
-        catch (OperationCanceledException)
-        {
-            throw;
-        }
-        catch (JsonException ex)
-        {
-            return BuildErrorResponse(taskName ?? "", $"Malformed request JSON: {ex.Message}");
-        }
-        catch (Exception ex) when (!IsCritical(ex))
-        {
-            LogTaskFailed(_logger, taskName ?? "<unknown>", ex);
-            return BuildErrorResponse(taskName ?? "", $"Task threw {ex.GetType().Name}: {ex.Message}");
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch (JsonException ex)
+            {
+                return BuildErrorResponse(taskName, $"Malformed request JSON: {ex.Message}");
+            }
+            catch (Exception ex) when (!IsCritical(ex))
+            {
+                LogTaskFailed(_logger, taskName, ex);
+                return BuildErrorResponse(taskName, $"Task threw {ex.GetType().Name}: {ex.Message}");
+            }
         }
     }
 
@@ -322,6 +345,24 @@ public sealed partial class McpToolService : BackgroundService
         }
 
         return JsonSerializer.SerializeToElement(merged);
+    }
+
+    /// <summary>
+    /// Reads the optional <c>correlationId</c> field from a task request
+    /// envelope. Returns <c>null</c> when the field is absent, empty, or
+    /// not a string — the dispatcher then proceeds without an active
+    /// <see cref="CorrelationScope"/> and log records carry no id.
+    /// </summary>
+    private static string? TryReadCorrelationId(JsonElement root)
+    {
+        if (!root.TryGetProperty("correlationId", out var element)
+            || element.ValueKind != JsonValueKind.String)
+        {
+            return null;
+        }
+
+        var value = element.GetString();
+        return string.IsNullOrEmpty(value) ? null : value;
     }
 
     internal static byte[] BuildSuccessResponse(string taskName, JsonElement output)

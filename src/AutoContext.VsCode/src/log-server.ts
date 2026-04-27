@@ -18,13 +18,17 @@ interface LogGreetingWire {
 /**
  * Wire shape of one NDJSON log record. `level` is the .NET `LogLevel`
  * enum name (`Trace`, `Debug`, `Information`, `Warning`, `Error`,
- * `Critical`).
+ * `Critical`). `correlationId` is the per-`tools/call` short id minted
+ * by the MCP server and threaded through every `TaskRequest` — absent
+ * for log records emitted outside of a task dispatch (e.g. worker
+ * startup).
  */
 interface LogRecordWire {
     readonly category: string;
     readonly level: string;
     readonly message: string;
     readonly exception?: string;
+    readonly correlationId?: string;
 }
 
 /**
@@ -173,7 +177,10 @@ export class LogServer implements vscode.Disposable {
             if (!method || !perWorkerLogger) {
                 return;
             }
-            perWorkerLogger.forCategory(payload.category)[method](payload.message, payload.exception);
+            const message = payload.correlationId
+                ? `[${payload.correlationId}] ${payload.message}`
+                : payload.message;
+            perWorkerLogger.forCategory(payload.category)[method](message, payload.exception);
         });
 
         const cleanup = (): void => {
