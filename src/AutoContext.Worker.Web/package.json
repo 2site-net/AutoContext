@@ -7,7 +7,9 @@
     "#types/*.js": {
       "types": "./src/types/*.ts",
       "default": "./out/types/*.js"
-    }
+    },
+    "#testing/*": "./tests/testing/*",
+    "#src/*": "./src/*"
   },
   "scripts": {
     "prebuild": "pwsh ../../versionize.ps1 Export src/version.ts",

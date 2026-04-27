@@ -5,9 +5,9 @@ import { randomUUID } from 'node:crypto';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { McpTask } from '#types/mcp-task.js';
-import { McpToolService } from '../../src/hosting/mcp-tool-service.js';
-import { WorkerProtocolChannel } from '../../src/hosting/worker-protocol-channel.js';
-import { CorrelationScope } from '../../src/logging/correlation-scope.js';
+import { McpToolService } from '#src/hosting/mcp-tool-service.js';
+import { WorkerProtocolChannel } from '#src/hosting/worker-protocol-channel.js';
+import { CorrelationScope } from '#src/logging/correlation-scope.js';
 import type { Logger } from '#types/logger.js';
 
 function makeEndpoint(): string {

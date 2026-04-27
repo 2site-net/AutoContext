@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { CorrelationScope } from '../../src/logging/correlation-scope.js';
-import { LogServerLogger } from '../../src/logging/logger.js';
+import { CorrelationScope } from '#src/logging/correlation-scope.js';
+import { LogServerLogger } from '#src/logging/logger.js';
 import type { LogRecord } from '#types/log-record.js';
 import type { LogSink } from '#types/log-sink.js';
 

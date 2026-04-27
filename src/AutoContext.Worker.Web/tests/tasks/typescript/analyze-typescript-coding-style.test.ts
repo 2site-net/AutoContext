@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { AnalyzeTypeScriptCodingStyleTask } from '../../../src/tasks/typescript/analyze-typescript-coding-style.js';
+import { AnalyzeTypeScriptCodingStyleTask } from '#src/tasks/typescript/analyze-typescript-coding-style.js';
 
 interface TaskResult {
     readonly passed: boolean;

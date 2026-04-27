@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { CorrelationScope } from '../../src/logging/correlation-scope.js';
+import { CorrelationScope } from '#src/logging/correlation-scope.js';
 
 describe('CorrelationScope', () => {
     it('returns undefined when no scope is active', () => {
