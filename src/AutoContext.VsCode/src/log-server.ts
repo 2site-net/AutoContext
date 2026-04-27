@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { createServer, type Server, type Socket } from 'node:net';
 import { createInterface, type Interface } from 'node:readline';
 import { IdentifierFactory } from './identifier-factory.js';
+import { ServerEntry } from './server-entry.js';
 import type { Logger } from './types/logger.js';
 
 /**
@@ -67,15 +68,6 @@ function levelToMethod(level: string): 'trace' | 'debug' | 'info' | 'warn' | 'er
         case 'None': return undefined;
         default: return 'info';
     }
-}
-
-/**
- * Strips the `AutoContext.` prefix from a worker's `ApplicationName`
- * so the per-worker output channel reads `AutoContext: Worker.DotNet`
- * rather than `AutoContext: AutoContext.Worker.DotNet`.
- */
-function shortenClientId(clientId: string): string {
-    return clientId.replace(/^AutoContext\./, '');
 }
 
 /**
@@ -168,7 +160,7 @@ export class LogServer implements vscode.Disposable {
                     return;
                 }
                 workerId = payload.clientId;
-                perWorkerLogger = this.logger.forChannel(`AutoContext: ${shortenClientId(workerId)}`);
+                perWorkerLogger = this.logger.forChannel(`AutoContext: ${ServerEntry.stripNamePrefix(workerId)}`);
                 return;
             }
 

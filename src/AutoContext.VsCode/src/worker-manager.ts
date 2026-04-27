@@ -55,7 +55,7 @@ export class WorkerManager implements vscode.Disposable {
         private readonly logPipeName?: string,
     ) {
         for (const entry of workers) {
-            const identity = entry.name.replace(/^AutoContext\./, '');
+            const identity = entry.getShortName();
             const promise = new Promise<void>((resolve, reject) =>
                 this.readyResolvers.set(identity, { resolve, reject }));
             // Swallow rejection on the stored promise so callers that never
@@ -91,7 +91,7 @@ export class WorkerManager implements vscode.Disposable {
         const serversPath = join(this.extensionPath, 'servers');
 
         const specs: WorkerSpec[] = this.workers.map(entry => {
-            const identity = entry.name.replace(/^AutoContext\./, '');
+            const identity = entry.getShortName();
             const pipe = formatEndpoint(entry.id, this.endpointSuffix);
             const serverDir = join(serversPath, entry.name);
 

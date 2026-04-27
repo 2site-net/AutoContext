@@ -11,4 +11,17 @@ export class ServerEntry {
         readonly name: string,
         readonly type: 'dotnet' | 'node',
     ) {}
+
+    /**
+     * The name without the `AutoContext.` package prefix
+     * (e.g. `"AutoContext.Worker.DotNet"` → `"Worker.DotNet"`).
+     * Used as a short label in log output and output-channel names.
+     */
+    getShortName(): string {
+        return ServerEntry.stripNamePrefix(this.name);
+    }
+
+    static stripNamePrefix(fullName: string): string {
+        return fullName.replace(/^AutoContext\./, '');
+    }
 }
