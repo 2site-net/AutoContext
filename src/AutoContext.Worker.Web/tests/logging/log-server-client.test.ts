@@ -2,7 +2,7 @@ import { describe, it, expect, afterEach } from 'vitest';
 import * as net from 'node:net';
 import { randomUUID } from 'node:crypto';
 import { LogServerClient } from '../../src/logging/log-server-client.js';
-import type { LogRecord } from '../../src/logging/log-record.js';
+import type { LogRecord } from '../../src/types/log-record.js';
 
 interface PipeReader {
     readonly server: net.Server;

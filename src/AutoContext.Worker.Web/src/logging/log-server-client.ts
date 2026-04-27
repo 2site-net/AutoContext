@@ -1,14 +1,6 @@
 import { connect, type Socket } from 'node:net';
-import type { LogGreetingWire, LogRecord, LogRecordWire } from './log-record.js';
-
-/**
- * Sink that accepts {@link LogRecord} values for delivery. The
- * {@link Logger} facade depends on this surface only, so tests can
- * substitute a buffer without spinning up a pipe.
- */
-export interface LogSink {
-    enqueue(record: LogRecord): void;
-}
+import type { LogGreetingWire, LogRecord, LogRecordWire } from '../types/log-record.js';
+import type { LogSink } from '../types/log-sink.js';
 
 /**
  * Background pipe-client that drains worker {@link LogRecord} values
