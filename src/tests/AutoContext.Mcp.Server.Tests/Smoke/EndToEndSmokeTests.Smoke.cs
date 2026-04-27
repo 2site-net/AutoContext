@@ -37,13 +37,13 @@ public sealed class EndToEndSmokeTests
 
         await using var dotnetWorker = await WorkerProcess.StartAsync(
             SmokePaths.WorkerDotNetExe,
-            $"autocontext.dotnet-worker-{suffix}",
+            $"autocontext.worker-dotnet-{suffix}",
             "[AutoContext.Worker.DotNet] Ready.",
             ct);
 
         await using var workspaceWorker = await WorkerProcess.StartAsync(
             SmokePaths.WorkerWorkspaceExe,
-            $"autocontext.workspace-worker-{suffix}",
+            $"autocontext.worker-workspace-{suffix}",
             "[AutoContext.Worker.Workspace] Ready.",
             ct,
             extraArguments: ["--workspace-root", SmokePaths.WorkspaceRoot]);
@@ -111,6 +111,12 @@ public sealed class EndToEndSmokeTests
         var envelope = JsonSerializer.Deserialize<ToolResultEnvelope>(textBlock.Text)
             ?? throw new InvalidOperationException(
                 $"Tool '{toolName}' returned an empty envelope.");
+
+        if (string.Equals(envelope.Status, ToolResultEnvelope.StatusError, StringComparison.Ordinal))
+        {
+            throw new Xunit.Sdk.XunitException(
+                $"Tool '{toolName}' returned status='error'. Raw envelope:\n{textBlock.Text}");
+        }
 
         return envelope;
     }

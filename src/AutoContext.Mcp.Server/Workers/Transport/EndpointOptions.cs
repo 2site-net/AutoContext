@@ -11,8 +11,8 @@ namespace AutoContext.Mcp.Server.Workers.Transport;
 /// When <see cref="Suffix"/> is <c>null</c> or empty, <see cref="Resolve"/>
 /// returns the base name verbatim — production wiring stays byte-for-byte
 /// identical to hardcoded names. Otherwise the suffix is appended with a
-/// single <c>-</c> separator: <c>autocontext.dotnet-worker</c> +
-/// <c>test123</c> → <c>autocontext.dotnet-worker-test123</c>.
+/// single <c>-</c> separator: <c>autocontext.worker-dotnet</c> +
+/// <c>test123</c> → <c>autocontext.worker-dotnet-test123</c>.
 /// </remarks>
 public sealed class EndpointOptions
 {
