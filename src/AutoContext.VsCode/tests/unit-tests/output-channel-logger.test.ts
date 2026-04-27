@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { OutputChannelLogger } from '../../src/output-channel-logger';
+import { OutputChannelLogger } from '#src/output-channel-logger';
 import { LogCategory } from '#types/logger.js';
 import type * as vscode from 'vscode';
 

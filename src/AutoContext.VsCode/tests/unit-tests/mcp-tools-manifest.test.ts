@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { join } from 'node:path';
-import { McpToolsManifestLoader } from '../../src/mcp-tools-manifest-loader';
+import { McpToolsManifestLoader } from '#src/mcp-tools-manifest-loader';
 
 const manifest = new McpToolsManifestLoader(join(__dirname, '..', '..')).load();
 

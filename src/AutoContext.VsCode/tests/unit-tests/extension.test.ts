@@ -136,7 +136,7 @@ vi.mock('../../src/auto-configurer', () => ({
 
 // ── SUT ─────────────────────────────────────────────────────────────
 
-import { activate } from '../../src/extension';
+import { activate } from '#src/extension';
 import { createFakeExtensionContext } from '#testing/fakes';
 
 // ── Tests ───────────────────────────────────────────────────────────

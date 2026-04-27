@@ -1,13 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { join } from 'node:path';
 import { TreeItemCollapsibleState, TreeItemCheckboxState, window, ThemeIcon, ThemeColor } from '#testing/fakes/fake-vscode';
-import { McpToolsTreeProvider } from '../../src/mcp-tools-tree-provider';
+import { McpToolsTreeProvider } from '#src/mcp-tools-tree-provider';
 import type { AutoContextConfig } from '#types/autocontext-config.js';
-import { TreeViewNodeState } from '../../src/tree-view-node-state';
-import { McpToolsManifestLoader } from '../../src/mcp-tools-manifest-loader';
-import type { McpToolEntry } from '../../src/mcp-tool-entry';
-import { TreeViewStateResolver } from '../../src/tree-view-state-resolver';
-import { TreeViewTooltip } from '../../src/tree-view-tooltip';
+import { TreeViewNodeState } from '#src/tree-view-node-state';
+import { McpToolsManifestLoader } from '#src/mcp-tools-manifest-loader';
+import type { McpToolEntry } from '#src/mcp-tool-entry';
+import { TreeViewStateResolver } from '#src/tree-view-state-resolver';
+import { TreeViewTooltip } from '#src/tree-view-tooltip';
 import { createFakeDetector, createFakeConfigManager, createFakeHealthMonitor, createFakeLogger } from '#testing/fakes';
 
 const manifest = new McpToolsManifestLoader(join(__dirname, '..', '..')).load();

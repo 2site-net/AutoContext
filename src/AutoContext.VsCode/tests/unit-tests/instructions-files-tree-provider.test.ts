@@ -1,14 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { TreeItemCollapsibleState, TreeItemCheckboxState, workspace, commands, Uri, window } from '#testing/fakes/fake-vscode';
-import { InstructionsFilesTreeProvider } from '../../src/instructions-files-tree-provider';
+import { InstructionsFilesTreeProvider } from '#src/instructions-files-tree-provider';
 import type { AutoContextConfig } from '#types/autocontext-config.js';
 import type { InstructionsFileTreeNode } from '#types/instructions-file-tree-node.js';
-import { TreeViewNodeState } from '../../src/tree-view-node-state';
-import { contextKeys } from '../../src/ui-constants';
-import { InstructionsFilesManifestLoader } from '../../src/instructions-files-manifest-loader';
+import { TreeViewNodeState } from '#src/tree-view-node-state';
+import { contextKeys } from '#src/ui-constants';
+import { InstructionsFilesManifestLoader } from '#src/instructions-files-manifest-loader';
 import { join } from 'node:path';
-import { TreeViewStateResolver } from '../../src/tree-view-state-resolver';
-import { TreeViewTooltip } from '../../src/tree-view-tooltip';
+import { TreeViewStateResolver } from '#src/tree-view-state-resolver';
+import { TreeViewTooltip } from '#src/tree-view-tooltip';
 import { createFakeDetector, createFakeConfigManager, createFakeLogger } from '#testing/fakes';
 
 const fakeDetector = createFakeDetector();

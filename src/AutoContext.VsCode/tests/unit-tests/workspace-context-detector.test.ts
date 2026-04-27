@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { workspace, commands } from '#testing/fakes/fake-vscode';
-import { WorkspaceContextDetector } from '../../src/workspace-context-detector';
+import { WorkspaceContextDetector } from '#src/workspace-context-detector';
 import { createFakeLogger, fakeUri, stubFindFiles, stubReadFile } from '#testing/fakes';
 import { detectorTestInstructions, makeInstructionsFilesManifest } from '#testing/fixtures';
 

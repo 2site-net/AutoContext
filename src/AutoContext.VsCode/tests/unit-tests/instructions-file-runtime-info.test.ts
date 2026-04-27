@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { join } from 'node:path';
-import { InstructionsFilesManifestLoader } from '../../src/instructions-files-manifest-loader';
-import { McpToolsManifestLoader } from '../../src/mcp-tools-manifest-loader';
+import { InstructionsFilesManifestLoader } from '#src/instructions-files-manifest-loader';
+import { McpToolsManifestLoader } from '#src/mcp-tools-manifest-loader';
 
 const extensionPath = join(__dirname, '..', '..');
 const instructionsManifest = new InstructionsFilesManifestLoader(extensionPath).load();

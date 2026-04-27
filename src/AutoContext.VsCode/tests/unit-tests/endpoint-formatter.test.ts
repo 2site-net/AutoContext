@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { formatEndpoint } from '../../src/endpoint-formatter';
+import { formatEndpoint } from '#src/endpoint-formatter';
 
 describe('formatEndpoint', () => {
     it('produces the base name when no suffix is given', () => {

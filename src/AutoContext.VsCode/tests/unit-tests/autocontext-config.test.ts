@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-import { AutoContextConfigManager } from '../../src/autocontext-config';
+import { AutoContextConfigManager } from '#src/autocontext-config';
 
 import { writeFile, unlink, readFile } from 'node:fs/promises';
 

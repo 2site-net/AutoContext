@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { __emitterInstances } from '#testing/fakes/fake-vscode';
-import { HealthMonitorServer } from '../../src/health-monitor';
+import { HealthMonitorServer } from '#src/health-monitor';
 import { createFakeLogger } from '#testing/fakes';
 import { connectAndSend } from '#testing/utils/pipe-helpers';
 import { waitFor } from '#testing/utils/wait-for';

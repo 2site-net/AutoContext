@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-import { InstructionsFilesManager } from '../../src/instructions-files-manager';
-import { AutoContextConfigManager } from '../../src/autocontext-config';
-import { InstructionsFileParser } from '../../src/instructions-file-parser';
-import { InstructionsFilesManifestLoader } from '../../src/instructions-files-manifest-loader';
+import { InstructionsFilesManager } from '#src/instructions-files-manager';
+import { AutoContextConfigManager } from '#src/autocontext-config';
+import { InstructionsFileParser } from '#src/instructions-file-parser';
+import { InstructionsFilesManifestLoader } from '#src/instructions-files-manifest-loader';
 import { join } from 'node:path';
 
 import { writeFile, readFile, readdir, stat, rm, access } from 'node:fs/promises';

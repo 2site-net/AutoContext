@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { InstructionsFilesDiagnosticsReporter } from '../../src/instructions-files-diagnostics-reporter';
+import { InstructionsFilesDiagnosticsReporter } from '#src/instructions-files-diagnostics-reporter';
 import type {
     InstructionsFilesDiagnosticRecord,
     InstructionsFilesDiagnosticsRunner,
-} from '../../src/instructions-files-diagnostics-runner';
+} from '#src/instructions-files-diagnostics-runner';
 import { LogCategory } from '#types/logger.js';
 import { createFakeLogger } from '#testing/fakes';
 

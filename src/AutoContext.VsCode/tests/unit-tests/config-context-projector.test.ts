@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-import { ConfigContextProjector, isToolEnabled } from '../../src/config-context-projector';
-import { McpCategoryEntry } from '../../src/mcp-category-entry';
-import { McpToolEntry } from '../../src/mcp-tool-entry';
-import { McpToolsManifest } from '../../src/mcp-tools-manifest';
+import { ConfigContextProjector, isToolEnabled } from '#src/config-context-projector';
+import { McpCategoryEntry } from '#src/mcp-category-entry';
+import { McpToolEntry } from '#src/mcp-tool-entry';
+import { McpToolsManifest } from '#src/mcp-tools-manifest';
 import { createFakeLogger, createMockConfigManager } from '#testing/fakes';
 import { makeInstructionsFilesManifest, projectorTestInstructions } from '#testing/fixtures';
 import { findSetContextCall } from '#testing/utils';

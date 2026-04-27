@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { SemVer } from '../../src/semver';
+import { SemVer } from '#src/semver';
 
 describe('SemVer.isValid', () => {
     it.each`

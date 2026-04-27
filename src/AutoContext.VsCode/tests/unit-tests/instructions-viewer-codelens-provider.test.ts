@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-import { InstructionsViewerCodeLensProvider } from '../../src/instructions-viewer-codelens-provider';
-import { AutoContextConfigManager } from '../../src/autocontext-config';
-import { instructionScheme } from '../../src/instructions-viewer-document-provider';
-import { InstructionsFileParser } from '../../src/instructions-file-parser';
-import { InstructionsFilesManifestLoader } from '../../src/instructions-files-manifest-loader';
-import { commandIds } from '../../src/ui-constants';
+import { InstructionsViewerCodeLensProvider } from '#src/instructions-viewer-codelens-provider';
+import { AutoContextConfigManager } from '#src/autocontext-config';
+import { instructionScheme } from '#src/instructions-viewer-document-provider';
+import { InstructionsFileParser } from '#src/instructions-file-parser';
+import { InstructionsFilesManifestLoader } from '#src/instructions-files-manifest-loader';
+import { commandIds } from '#src/ui-constants';
 import { join } from 'node:path';
 
 import { readFile } from 'node:fs/promises';

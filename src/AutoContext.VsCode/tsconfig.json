@@ -13,7 +13,8 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "paths": {
-      "#testing/*": ["./tests/testing/*"]
+      "#testing/*": ["./tests/testing/*"],
+      "#src/*": ["./src/*"]
     }
   },
   "include": ["src", "tests"],

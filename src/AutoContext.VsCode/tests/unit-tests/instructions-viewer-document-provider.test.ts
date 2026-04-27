@@ -1,10 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-import { InstructionsViewerDocumentProvider, instructionScheme } from '../../src/instructions-viewer-document-provider';
-import { AutoContextConfigManager } from '../../src/autocontext-config';
-import { InstructionsFileParser } from '../../src/instructions-file-parser';
+import { InstructionsViewerDocumentProvider, instructionScheme } from '#src/instructions-viewer-document-provider';
+import { AutoContextConfigManager } from '#src/autocontext-config';
+import { InstructionsFileParser } from '#src/instructions-file-parser';
 
-import { readFile, stat } from 'node:fs/promises';
+import { readFile } from 'node:fs/promises';
 
 vi.mock('node:fs/promises', () => ({
     readFile: vi.fn(),
