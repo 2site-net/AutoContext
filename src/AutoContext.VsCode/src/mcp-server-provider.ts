@@ -42,6 +42,7 @@ export class McpServerProvider implements vscode.McpServerDefinitionProvider {
         private readonly workerManager: WorkerManager,
         serversManifest: ServersManifest,
         configManager: AutoContextConfigManager,
+        private readonly logPipeName: string,
         private readonly logger: Logger,
     ) {
         const mcpServerEntry = serversManifest.mcpServer;
@@ -71,9 +72,14 @@ export class McpServerProvider implements vscode.McpServerDefinitionProvider {
             return [];
         }
 
+        // --log-pipe lets Mcp.Server stream structured logs over the
+        // extension's LogServer pipe (its own AutoContext Output channel),
+        // matching the workers' wire-up. Mcp.Server falls back to stderr
+        // automatically when the switch is absent (e.g. standalone runs).
         const args: string[] = [
             '--endpoint-suffix', this.workerManager.getEndpointSuffix(),
             '--health-monitor', this.healthMonitor.getPipeName(),
+            '--log-pipe', this.logPipeName,
         ];
 
         this.logger.debug(`Returning Mcp.Server definition '${mcpServerDefinitionLabel}' (v${this.version})`);

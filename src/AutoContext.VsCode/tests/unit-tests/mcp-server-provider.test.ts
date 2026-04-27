@@ -43,6 +43,7 @@ function createProvider(): McpServerProvider {
         fakeWorkerManager,
         serversManifest,
         fakeConfigManager,
+        'autocontext-log-abc123',
         logger,
     );
 }
@@ -109,6 +110,12 @@ describe('McpServerProvider.provideMcpServerDefinitions', () => {
         const [def] = (await createProvider().provideMcpServerDefinitions()) as StdioDef[];
 
         expect(def.args).toEqual(expect.arrayContaining(['--health-monitor', 'autocontext-health-abc123']));
+    });
+
+    it('passes --log-pipe with the LogServer pipe name', async () => {
+        const [def] = (await createProvider().provideMcpServerDefinitions()) as StdioDef[];
+
+        expect(def.args).toEqual(expect.arrayContaining(['--log-pipe', 'autocontext-log-abc123']));
     });
 
     it('does not pass --scope, --workspace-folder, or --workspace-server', async () => {
@@ -184,6 +191,7 @@ describe('McpServerProvider config updates', () => {
             fakeWorkerManager,
             serversManifest,
             failingConfigManager,
+            'autocontext-log-abc123',
             oc,
         );
 

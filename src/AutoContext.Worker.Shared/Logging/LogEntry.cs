@@ -15,7 +15,7 @@ using Microsoft.Extensions.Logging;
 /// carry an event id (and matching the change in the LogServer reader)
 /// is the obvious next step if structured filtering arrives later.
 /// </remarks>
-internal readonly record struct LogEntry(
+public readonly record struct LogEntry(
     string Category,
     LogLevel Level,
     string Message,

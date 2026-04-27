@@ -5,6 +5,9 @@ using System.Text.Json;
 using AutoContext.Mcp.Server.Registry;
 using AutoContext.Mcp.Server.Workers.Protocol;
 
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
+
 /// <summary>
 /// Builds the per-tool dispatch closures consumed by the MCP SDK
 /// registration step. Each delegate captures one
@@ -12,7 +15,7 @@ using AutoContext.Mcp.Server.Workers.Protocol;
 /// invokes <see cref="ToolInvoker"/> on call, returning the serialized
 /// result envelope as a JSON string.
 /// </summary>
-public static class ToolDelegateFactory
+public static partial class ToolDelegateFactory
 {
     /// <summary>
     /// Builds the per-tool delegate map keyed by <c>tool.name</c>. Throws
@@ -20,9 +23,18 @@ public static class ToolDelegateFactory
     /// registry validator should have caught this at startup.
     /// </summary>
     public static IReadOnlyDictionary<string, ToolHandler> Build(McpWorkersCatalog registry, ToolInvoker invoker)
+        => Build(registry, invoker, NullLogger.Instance);
+
+    /// <summary>
+    /// Builds the per-tool delegate map keyed by <c>tool.name</c>. Throws
+    /// when two tools across the registry share the same name — the
+    /// registry validator should have caught this at startup.
+    /// </summary>
+    public static IReadOnlyDictionary<string, ToolHandler> Build(McpWorkersCatalog registry, ToolInvoker invoker, ILogger logger)
     {
         ArgumentNullException.ThrowIfNull(registry);
         ArgumentNullException.ThrowIfNull(invoker);
+        ArgumentNullException.ThrowIfNull(logger);
 
         var delegates = new Dictionary<string, ToolHandler>(StringComparer.Ordinal);
 
@@ -34,6 +46,7 @@ public static class ToolDelegateFactory
 
                 if (delegates.ContainsKey(name))
                 {
+                    LogDuplicateToolName(logger, name);
                     throw new InvalidOperationException(
                         $"Registry contains duplicate MCP Tool name '{name}'.");
                 }
@@ -70,4 +83,8 @@ public static class ToolDelegateFactory
             return JsonSerializer.Serialize(envelope, WorkerJsonOptions.Instance);
         };
     }
+
+    [LoggerMessage(EventId = 1, Level = LogLevel.Critical,
+        Message = "Registry contains duplicate MCP Tool name '{ToolName}' while building delegates.")]
+    private static partial void LogDuplicateToolName(ILogger logger, string toolName);
 }

@@ -7,7 +7,7 @@ using Microsoft.Extensions.Logging;
 /// caller's thread (cheap) and hands the resulting <see cref="LogEntry"/>
 /// to <see cref="LoggingClient"/> for off-thread delivery.
 /// </summary>
-internal sealed class PipeLogger(string category, LoggingClient client) : ILogger
+public sealed class PipeLogger(string category, LoggingClient client) : ILogger
 {
     private readonly string _category = category;
     private readonly LoggingClient _client = client;

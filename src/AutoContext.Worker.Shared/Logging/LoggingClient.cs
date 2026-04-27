@@ -25,7 +25,7 @@ using Microsoft.Extensions.Options;
 /// errors) are intentionally swallowed: this type IS the logger of last
 /// resort, so it must never throw.
 /// </remarks>
-internal sealed class LoggingClient : IAsyncDisposable
+public sealed class LoggingClient : IAsyncDisposable
 {
     private const int QueueCapacity = 1024;
     private const int ConnectTimeoutMs = 2000;
@@ -46,13 +46,34 @@ internal sealed class LoggingClient : IAsyncDisposable
     private readonly Task _drainTask;
 
     public LoggingClient(IOptions<WorkerHostOptions> options, IHostEnvironment env)
+        : this(GetPipeName(options), GetClientName(env))
+    {
+    }
+
+    /// <summary>
+    /// Direct constructor for callers that aren't using the worker-host
+    /// bootstrap (e.g. <c>AutoContext.Mcp.Server</c>). Pass <see langword="null"/>
+    /// or empty for <paramref name="pipeName"/> to force stderr fallback.
+    /// </summary>
+    public LoggingClient(string? pipeName, string clientName)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(clientName);
+
+        _pipeName = pipeName ?? string.Empty;
+        _clientName = clientName;
+        _drainTask = Task.Run(() => DrainAsync(_cts.Token));
+    }
+
+    private static string GetPipeName(IOptions<WorkerHostOptions> options)
     {
         ArgumentNullException.ThrowIfNull(options);
-        ArgumentNullException.ThrowIfNull(env);
+        return options.Value.LogPipe;
+    }
 
-        _pipeName = options.Value.LogPipe;
-        _clientName = env.ApplicationName;
-        _drainTask = Task.Run(() => DrainAsync(_cts.Token));
+    private static string GetClientName(IHostEnvironment env)
+    {
+        ArgumentNullException.ThrowIfNull(env);
+        return env.ApplicationName;
     }
 
     /// <summary>

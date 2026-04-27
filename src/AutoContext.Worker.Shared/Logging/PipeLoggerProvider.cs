@@ -12,7 +12,7 @@ using Microsoft.Extensions.Logging;
 /// at runtime whether to ship records over the named pipe or fall back to
 /// stderr.
 /// </summary>
-internal sealed class PipeLoggerProvider : ILoggerProvider
+public sealed class PipeLoggerProvider : ILoggerProvider
 {
     private readonly LoggingClient _client;
     private readonly ConcurrentDictionary<string, PipeLogger> _loggers = new(StringComparer.Ordinal);

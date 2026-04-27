@@ -7,38 +7,54 @@ using AutoContext.Mcp.Server.Workers.Protocol;
 using AutoContext.Mcp.Server.Workers.Transport;
 using AutoContext.Worker.Hosting;
 
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
+
 /// <summary>
 /// Writes one per-task request to a worker pipe and reads one response.
 /// Enforces a single client-side wait deadline guarding against a hung
 /// or dead worker. Any failure (connect, write, read, parse, timeout,
 /// EOF) is mapped to an error <see cref="TaskResponse"/> rather than
 /// thrown — callers compose these into the per-task entries of the
-/// uniform tool-result envelope.
+/// uniform tool-result envelope. Each handled failure is also logged at
+/// <c>Warning</c> so server operators can see worker pipe issues even
+/// though clients only see the synthesized error envelope.
 /// </summary>
-public sealed class WorkerClient
+public sealed partial class WorkerClient
 {
     /// <summary>Default wait deadline for connect + read.</summary>
     public static readonly TimeSpan DefaultWaitDeadline = TimeSpan.FromSeconds(30);
 
     private readonly TimeSpan _waitDeadline;
     private readonly EndpointOptions _endpoints;
+    private readonly ILogger<WorkerClient> _logger;
 
     public WorkerClient()
-        : this(DefaultWaitDeadline, new EndpointOptions())
+        : this(DefaultWaitDeadline, new EndpointOptions(), NullLogger<WorkerClient>.Instance)
     {
     }
 
     public WorkerClient(TimeSpan waitDeadline)
-        : this(waitDeadline, new EndpointOptions())
+        : this(waitDeadline, new EndpointOptions(), NullLogger<WorkerClient>.Instance)
     {
     }
 
     public WorkerClient(EndpointOptions endpoints)
-        : this(DefaultWaitDeadline, endpoints)
+        : this(DefaultWaitDeadline, endpoints, NullLogger<WorkerClient>.Instance)
+    {
+    }
+
+    public WorkerClient(EndpointOptions endpoints, ILogger<WorkerClient> logger)
+        : this(DefaultWaitDeadline, endpoints, logger)
     {
     }
 
     public WorkerClient(TimeSpan waitDeadline, EndpointOptions endpoints)
+        : this(waitDeadline, endpoints, NullLogger<WorkerClient>.Instance)
+    {
+    }
+
+    public WorkerClient(TimeSpan waitDeadline, EndpointOptions endpoints, ILogger<WorkerClient> logger)
     {
         if (waitDeadline <= TimeSpan.Zero)
         {
@@ -49,9 +65,11 @@ public sealed class WorkerClient
         }
 
         ArgumentNullException.ThrowIfNull(endpoints);
+        ArgumentNullException.ThrowIfNull(logger);
 
         _waitDeadline = waitDeadline;
         _endpoints = endpoints;
+        _logger = logger;
     }
 
     /// <summary>
@@ -81,6 +99,7 @@ public sealed class WorkerClient
         }
         catch (OperationCanceledException) when (deadlineCts.IsCancellationRequested && !ct.IsCancellationRequested)
         {
+            LogDeadlineExceeded(_logger, request.McpTask, resolvedEndpoint, _waitDeadline.TotalSeconds);
             return ErrorResponse(
                 request.McpTask,
                 $"Pipe call to '{resolvedEndpoint}' exceeded the {_waitDeadline.TotalSeconds:0.##}s wait deadline.");
@@ -91,24 +110,28 @@ public sealed class WorkerClient
         }
         catch (TimeoutException ex)
         {
+            LogPipeFailure(_logger, request.McpTask, resolvedEndpoint, "connect timed out", ex);
             return ErrorResponse(
                 request.McpTask,
                 $"Pipe connect to '{resolvedEndpoint}' timed out: {ex.Message}");
         }
         catch (IOException ex)
         {
+            LogPipeFailure(_logger, request.McpTask, resolvedEndpoint, "IO failure", ex);
             return ErrorResponse(
                 request.McpTask,
                 $"Pipe IO failure on '{resolvedEndpoint}': {ex.Message}");
         }
         catch (UnauthorizedAccessException ex)
         {
+            LogPipeFailure(_logger, request.McpTask, resolvedEndpoint, "access denied", ex);
             return ErrorResponse(
                 request.McpTask,
                 $"Pipe access denied on '{resolvedEndpoint}': {ex.Message}");
         }
         catch (JsonException ex)
         {
+            LogPipeFailure(_logger, request.McpTask, resolvedEndpoint, "response was not valid JSON", ex);
             return ErrorResponse(
                 request.McpTask,
                 $"Pipe response from '{resolvedEndpoint}' was not valid JSON: {ex.Message}");
@@ -168,4 +191,12 @@ public sealed class WorkerClient
         Output = null,
         Error = message,
     };
+
+    [LoggerMessage(EventId = 1, Level = LogLevel.Warning,
+        Message = "Worker pipe call '{Task}' on '{Endpoint}' failed ({Reason}).")]
+    private static partial void LogPipeFailure(ILogger logger, string task, string endpoint, string reason, Exception ex);
+
+    [LoggerMessage(EventId = 2, Level = LogLevel.Warning,
+        Message = "Worker pipe call '{Task}' on '{Endpoint}' exceeded the {DeadlineSeconds:0.##}s wait deadline.")]
+    private static partial void LogDeadlineExceeded(ILogger logger, string task, string endpoint, double deadlineSeconds);
 }

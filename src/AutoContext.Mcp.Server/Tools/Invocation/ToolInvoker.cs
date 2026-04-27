@@ -10,6 +10,9 @@ using AutoContext.Mcp.Server.Tools.Results;
 using AutoContext.Mcp.Server.Workers;
 using AutoContext.Mcp.Server.Workers.Protocol;
 
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
+
 /// <summary>
 /// Orchestrates one MCP-Tool invocation. Resolves EditorConfig values for
 /// the tool's tasks in a single batched call, runs every task
@@ -24,7 +27,7 @@ using AutoContext.Mcp.Server.Workers.Protocol;
 /// declared order in <see cref="McpToolDefinition.Tasks"/>, regardless of
 /// completion order.
 /// </remarks>
-public sealed class ToolInvoker
+public sealed partial class ToolInvoker
 {
     /// <summary>The <c>data</c> property name probed when resolving EditorConfig.</summary>
     public const string PathParameterName = "originalPath";
@@ -34,14 +37,25 @@ public sealed class ToolInvoker
 
     private readonly WorkerClient _workerClient;
     private readonly EditorConfigBatcher _editorConfigBatcher;
+    private readonly ILogger<ToolInvoker> _logger;
 
     public ToolInvoker(WorkerClient workerClient, EditorConfigBatcher editorConfigBatcher)
+        : this(workerClient, editorConfigBatcher, NullLogger<ToolInvoker>.Instance)
+    {
+    }
+
+    public ToolInvoker(
+        WorkerClient workerClient,
+        EditorConfigBatcher editorConfigBatcher,
+        ILogger<ToolInvoker> logger)
     {
         ArgumentNullException.ThrowIfNull(workerClient);
         ArgumentNullException.ThrowIfNull(editorConfigBatcher);
+        ArgumentNullException.ThrowIfNull(logger);
 
         _workerClient = workerClient;
         _editorConfigBatcher = editorConfigBatcher;
+        _logger = logger;
     }
 
     /// <summary>
@@ -61,6 +75,7 @@ public sealed class ToolInvoker
         ArgumentException.ThrowIfNullOrEmpty(correlationId);
 
         var startTimestamp = Stopwatch.GetTimestamp();
+        LogToolDispatchStarted(_logger, tool.Name, worker.Endpoint, tool.Tasks.Count, correlationId);
 
         var tasks = tool.Tasks;
         var slices = await ResolveEditorConfigAsync(data, tasks, correlationId, ct).ConfigureAwait(false);
@@ -84,10 +99,14 @@ public sealed class ToolInvoker
             await Task.WhenAll(pending).ConfigureAwait(false);
         }
 
+        var elapsedMs = ElapsedMs(startTimestamp);
+
+        LogToolDispatchCompleted(_logger, tool.Name, elapsedMs, tool.Tasks.Count, correlationId);
+
         return ToolResultComposer.Compose(
             tool.Name,
             entries,
-            ElapsedMs(startTimestamp));
+            elapsedMs);
     }
 
     private async Task<IReadOnlyDictionary<string, IReadOnlyDictionary<string, string>>> ResolveEditorConfigAsync(
@@ -151,14 +170,19 @@ public sealed class ToolInvoker
 
         var taskStart = Stopwatch.GetTimestamp();
 
+        LogTaskDispatchStarted(_logger, task.Name, endpoint, correlationId);
+
         var response = await _workerClient
             .InvokeAsync(endpoint, request, ct)
             .ConfigureAwait(false);
 
+        var elapsedMs = ElapsedMs(taskStart);
+        LogTaskDispatchCompleted(_logger, task.Name, endpoint, response.Status, elapsedMs, correlationId);
+
         entries[index] = new ToolResultComposerInput
         {
             Response = response,
-            ElapsedMs = ElapsedMs(taskStart),
+            ElapsedMs = elapsedMs,
         };
     }
 
@@ -212,4 +236,40 @@ public sealed class ToolInvoker
 
         return (int)elapsed;
     }
+
+    [LoggerMessage(EventId = 1, Level = LogLevel.Debug,
+        Message = "Dispatching tool '{ToolName}' to endpoint '{Endpoint}' with {TaskCount} task(s). CorrelationId={CorrelationId}")]
+    private static partial void LogToolDispatchStarted(
+        ILogger logger,
+        string toolName,
+        string endpoint,
+        int taskCount,
+        string correlationId);
+
+    [LoggerMessage(EventId = 2, Level = LogLevel.Information,
+        Message = "Completed tool '{ToolName}' in {ElapsedMs}ms ({TaskCount} task(s)). CorrelationId={CorrelationId}")]
+    private static partial void LogToolDispatchCompleted(
+        ILogger logger,
+        string toolName,
+        int elapsedMs,
+        int taskCount,
+        string correlationId);
+
+    [LoggerMessage(EventId = 3, Level = LogLevel.Debug,
+        Message = "Dispatching MCP task '{TaskName}' to endpoint '{Endpoint}'. CorrelationId={CorrelationId}")]
+    private static partial void LogTaskDispatchStarted(
+        ILogger logger,
+        string taskName,
+        string endpoint,
+        string correlationId);
+
+    [LoggerMessage(EventId = 4, Level = LogLevel.Debug,
+        Message = "Completed MCP task '{TaskName}' from endpoint '{Endpoint}' with status '{Status}' in {ElapsedMs}ms. CorrelationId={CorrelationId}")]
+    private static partial void LogTaskDispatchCompleted(
+        ILogger logger,
+        string taskName,
+        string endpoint,
+        string status,
+        int elapsedMs,
+        string correlationId);
 }

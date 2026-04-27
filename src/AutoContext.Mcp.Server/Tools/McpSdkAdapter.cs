@@ -5,6 +5,9 @@ using System.Text.Json;
 using AutoContext.Mcp.Server.Registry;
 using AutoContext.Mcp.Server.Tools.Invocation;
 
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
+
 using ModelContextProtocol;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
@@ -27,17 +30,28 @@ using ModelContextProtocol.Server;
 /// <see cref="Tool.InputSchema"/> setter directly, so we drive both
 /// endpoints from the registry.
 /// </remarks>
-public sealed class McpSdkAdapter
+public sealed partial class McpSdkAdapter
 {
     private readonly IReadOnlyList<Tool> _tools;
     private readonly IReadOnlyDictionary<string, ToolHandler> _handlers;
+    private readonly ILogger<McpSdkAdapter> _logger;
 
     public McpSdkAdapter(McpWorkersCatalog registry, ToolInvoker invoker)
+        : this(registry, invoker, NullLogger<McpSdkAdapter>.Instance)
+    {
+    }
+
+    public McpSdkAdapter(
+        McpWorkersCatalog registry,
+        ToolInvoker invoker,
+        ILogger<McpSdkAdapter> logger)
     {
         ArgumentNullException.ThrowIfNull(registry);
         ArgumentNullException.ThrowIfNull(invoker);
+        ArgumentNullException.ThrowIfNull(logger);
 
-        _handlers = ToolDelegateFactory.Build(registry, invoker);
+        _logger = logger;
+        _handlers = ToolDelegateFactory.Build(registry, invoker, logger);
         _tools = BuildProtocolTools(registry);
     }
 
@@ -62,16 +76,23 @@ public sealed class McpSdkAdapter
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        var name = request.Params?.Name
-            ?? throw new McpException("tools/call request is missing the 'name' parameter.");
+        var name = request.Params?.Name;
+
+        if (string.IsNullOrEmpty(name))
+        {
+            LogMissingToolName(_logger);
+            throw new McpException("tools/call request is missing the 'name' parameter.");
+        }
 
         if (!_handlers.TryGetValue(name, out var handler))
         {
+            LogUnknownTool(_logger, name);
             throw new McpException($"Unknown MCP Tool '{name}'.");
         }
 
         var data = ToDataElement(request.Params?.Arguments);
         var correlationId = NewCorrelationId();
+        LogToolDispatch(_logger, name, correlationId);
         var envelopeJson = await handler(data, correlationId, cancellationToken).ConfigureAwait(false);
 
         // Deserialize<JsonElement> returns a self-contained element
@@ -126,4 +147,16 @@ public sealed class McpSdkAdapter
 
         return JsonSerializer.SerializeToElement(arguments);
     }
+
+    [LoggerMessage(EventId = 1, Level = LogLevel.Warning,
+        Message = "tools/call request is missing required 'name' parameter.")]
+    private static partial void LogMissingToolName(ILogger logger);
+
+    [LoggerMessage(EventId = 2, Level = LogLevel.Warning,
+        Message = "tools/call requested unknown MCP Tool '{ToolName}'.")]
+    private static partial void LogUnknownTool(ILogger logger, string toolName);
+
+    [LoggerMessage(EventId = 3, Level = LogLevel.Debug,
+        Message = "Dispatching MCP Tool '{ToolName}' with correlation id '{CorrelationId}'.")]
+    private static partial void LogToolDispatch(ILogger logger, string toolName, string correlationId);
 }

@@ -68,7 +68,7 @@ export async function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(logServer);
     const workerManager = new WorkerManager(context.extensionPath, rootLogger.forCategory(LogCategory.WorkerManager), vscode.workspace.workspaceFolders?.[0]?.uri.fsPath, workerEntries, logServer.getPipeName());
     const healthMonitor = new HealthMonitorServer(rootLogger.forCategory(LogCategory.HealthMonitor));
-    const mcpServerProvider = new McpServerProvider(context.extensionPath, version, didChangeEmitter.event, mcpToolsManifest, healthMonitor, workerManager, serversManifest, configManager, rootLogger.forCategory(LogCategory.McpServerProvider));
+    const mcpServerProvider = new McpServerProvider(context.extensionPath, version, didChangeEmitter.event, mcpToolsManifest, healthMonitor, workerManager, serversManifest, configManager, logServer.getPipeName(), rootLogger.forCategory(LogCategory.McpServerProvider));
     const stateResolver = new TreeViewStateResolver(workspaceContextDetector);
 
     // Pre-read the config so tree providers get the real config on first render.
