@@ -38,7 +38,7 @@ public sealed class LogServerClientTests
         var (greeting, records) = await ReadLinesAsync(server, expected: 2, ct);
 
         Assert.Multiple(
-            () => Assert.Equal("Test.Worker.Greet", greeting!["clientId"]!.GetValue<string>()),
+            () => Assert.Equal("Test.Worker.Greet", greeting!["clientName"]!.GetValue<string>()),
             () => Assert.Equal("AutoContext.Demo", records[0]!["category"]!.GetValue<string>()),
             () => Assert.Equal("Information", records[0]!["level"]!.GetValue<string>()),
             () => Assert.Equal("hello pipe", records[0]!["message"]!.GetValue<string>()),
@@ -73,7 +73,7 @@ public sealed class LogServerClientTests
     [Fact]
     public async Task Should_not_throw_when_log_pipe_is_empty()
     {
-        await using var client = NewClient(pipeName: string.Empty, clientId: "Test.Worker.Standalone");
+        await using var client = NewClient(pipeName: string.Empty, clientName: "Test.Worker.Standalone");
 
         // Should accept records without blocking and without exceptions.
         for (var i = 0; i < 10; i++)
@@ -105,10 +105,10 @@ public sealed class LogServerClientTests
             $"DisposeAsync took {sw.Elapsed.TotalSeconds:F2}s — expected < 6s.");
     }
 
-    private static LogServerClient NewClient(string pipeName, string clientId)
+    private static LogServerClient NewClient(string pipeName, string clientName)
     {
         var options = Options.Create(new WorkerHostOptions { LogPipe = pipeName });
-        return new LogServerClient(options, new FakeEnv { ApplicationName = clientId });
+        return new LogServerClient(options, new FakeEnv { ApplicationName = clientName });
     }
 
     private static NamedPipeServerStream CreateServer(string pipeName) => new(

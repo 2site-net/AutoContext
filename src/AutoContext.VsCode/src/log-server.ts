@@ -7,12 +7,12 @@ import type { Logger } from './types/logger.js';
 
 /**
  * Wire shape of the greeting line every worker emits as the first
- * NDJSON line on the pipe. The {@link clientId} is the worker's
+ * NDJSON line on the pipe. The {@link clientName} is the worker's
  * `IHostEnvironment.ApplicationName` (e.g. `AutoContext.Worker.DotNet`)
  * — used to route subsequent records to a per-worker output channel.
  */
 interface LogGreetingWire {
-    readonly clientId: string;
+    readonly clientName: string;
 }
 
 /**
@@ -29,13 +29,13 @@ interface LogRecordWire {
 
 /**
  * Type-guard: a parsed payload is a greeting iff it carries the
- * `clientId` field.
+ * `clientName` field.
  */
 function isGreeting(value: unknown): value is LogGreetingWire {
     return (
         typeof value === 'object' &&
         value !== null &&
-        typeof (value as { clientId?: unknown }).clientId === 'string'
+        typeof (value as { clientName?: unknown }).clientName === 'string'
     );
 }
 
@@ -80,7 +80,7 @@ function levelToMethod(level: string): 'trace' | 'debug' | 'info' | 'warn' | 'er
  * Wire format (per-line, UTF-8, terminated with `\n`):
  *
  *  - Greeting (first line from a connection):
- *    `{ "clientId": "AutoContext.Worker.DotNet" }`
+ *    `{ "clientName": "AutoContext.Worker.DotNet" }`
  *  - Log record (every subsequent line):
  *    `{ "category": "<ILogger category>", "level": "<LogLevel name>",
  *       "message": "<rendered message>", "exception": "<.ToString() text>" }`
@@ -131,7 +131,7 @@ export class LogServer implements vscode.Disposable {
         this.sockets.add(socket);
 
         // Per-connection state — captured by the `line` handler.
-        let workerId: string | undefined;
+        let workerName: string | undefined;
         let perWorkerLogger: Logger | undefined;
 
         const reader = createInterface({ input: socket });
@@ -150,22 +150,22 @@ export class LogServer implements vscode.Disposable {
                 payload = JSON.parse(trimmed);
             }
             catch (err) {
-                this.logger.warn(`Dropping malformed log line from ${workerId ?? 'unknown worker'}: ${trimmed}`, err);
+                this.logger.warn(`Dropping malformed log line from ${workerName ?? 'unknown worker'}: ${trimmed}`, err);
                 return;
             }
 
-            if (!workerId) {
+            if (!workerName) {
                 if (!isGreeting(payload)) {
                     this.logger.warn(`Expected greeting line, got: ${trimmed}`);
                     return;
                 }
-                workerId = payload.clientId;
-                perWorkerLogger = this.logger.forChannel(`AutoContext: ${ServerEntry.stripNamePrefix(workerId)}`);
+                workerName = payload.clientName;
+                perWorkerLogger = this.logger.forChannel(`AutoContext: ${ServerEntry.stripNamePrefix(workerName)}`);
                 return;
             }
 
             if (!isRecord(payload)) {
-                this.logger.warn(`Dropping non-record line from ${workerId}: ${trimmed}`);
+                this.logger.warn(`Dropping non-record line from ${workerName}: ${trimmed}`);
                 return;
             }
 

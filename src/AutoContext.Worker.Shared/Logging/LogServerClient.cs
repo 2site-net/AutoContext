@@ -41,7 +41,7 @@ internal sealed class LogServerClient : IAsyncDisposable
         });
 
     private readonly string _pipeName;
-    private readonly string _clientId;
+    private readonly string _clientName;
     private readonly CancellationTokenSource _cts = new();
     private readonly Task _drainTask;
 
@@ -51,7 +51,7 @@ internal sealed class LogServerClient : IAsyncDisposable
         ArgumentNullException.ThrowIfNull(env);
 
         _pipeName = options.Value.LogPipe;
-        _clientId = env.ApplicationName;
+        _clientName = env.ApplicationName;
         _drainTask = Task.Run(() => DrainAsync(_cts.Token));
     }
 
@@ -163,7 +163,7 @@ internal sealed class LogServerClient : IAsyncDisposable
         try
         {
             var json = JsonSerializer.Serialize(
-                new LogGreetingWire(_clientId),
+                new LogGreetingWire(_clientName),
                 LogServerJsonContext.Default.LogGreetingWire);
             var bytes = Utf8NoBom.GetBytes(json + "\n");
             await stream.WriteAsync(bytes, ct).ConfigureAwait(false);

@@ -8,4 +8,4 @@ using System.Text.Json.Serialization;
 /// route subsequent records to the per-worker output channel.
 /// </summary>
 internal sealed record LogGreetingWire(
-    [property: JsonPropertyName("clientId")] string ClientId);
+    [property: JsonPropertyName("clientName")] string ClientName);

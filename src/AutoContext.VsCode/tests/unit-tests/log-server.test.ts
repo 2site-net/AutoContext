@@ -11,10 +11,10 @@ import type { Logger } from '../../src/types/logger';
  * sequence of NDJSON record bodies, and resolves the socket once every
  * line has been flushed.
  */
-async function connectAndSend(pipe: string, clientId: string, records: object[]): Promise<Socket> {
+async function connectAndSend(pipe: string, clientName: string, records: object[]): Promise<Socket> {
     return new Promise((resolve, reject) => {
         const socket = connect(pipePath(pipe), () => {
-            const lines = [JSON.stringify({ clientId }), ...records.map(r => JSON.stringify(r))];
+            const lines = [JSON.stringify({ clientName }), ...records.map(r => JSON.stringify(r))];
             const payload = lines.map(l => l + '\n').join('');
             socket.write(payload, (err) => err ? reject(err) : resolve(socket));
         });
@@ -69,7 +69,7 @@ describe('LogServer', () => {
         expect(server.getPipeName()).toMatch(/^autocontext-log-[a-f0-9]{12}$/);
     });
 
-    it('should route records to a per-worker channel keyed by greeting clientId', async () => {
+    it('should route records to a per-worker channel keyed by greeting clientName', async () => {
         const socket = await connectAndSend(server.getPipeName(), 'AutoContext.Worker.DotNet', [
             { category: 'Acme.Demo', level: 'Information', message: 'hello world' },
         ]);
@@ -160,7 +160,7 @@ describe('LogServer', () => {
     it('should warn and continue on a malformed JSON line', async () => {
         const socket = await new Promise<Socket>((resolve, reject) => {
             const s = connect(pipePath(server.getPipeName()), () => {
-                s.write(JSON.stringify({ clientId: 'AutoContext.Worker.DotNet' }) + '\n');
+                s.write(JSON.stringify({ clientName: 'AutoContext.Worker.DotNet' }) + '\n');
                 s.write('not-valid-json\n');
                 s.write(JSON.stringify({ category: 'Cat', level: 'Information', message: 'after' }) + '\n',
                     (err) => err ? reject(err) : resolve(s));
