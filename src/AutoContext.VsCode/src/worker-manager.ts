@@ -1,9 +1,9 @@
 import * as vscode from 'vscode';
 import { join } from 'node:path';
 import { spawn, type ChildProcess } from 'node:child_process';
-import { randomUUID } from 'node:crypto';
 import { createInterface } from 'node:readline';
 import { formatEndpoint } from './endpoint-formatter.js';
+import { IdentifierFactory } from './identifier-factory.js';
 import type { ServersManifest } from './types/servers-manifest.js';
 import type { Logger } from './types/logger.js';
 
@@ -40,7 +40,7 @@ interface WorkerSpec {
  * `McpServerProvider`.
  */
 export class WorkerManager implements vscode.Disposable {
-    private readonly endpointSuffix = randomUUID().replace(/-/g, '').slice(0, 12);
+    private readonly endpointSuffix = IdentifierFactory.createRandomId();
     private readonly children: ChildProcess[] = [];
     private readonly readyPromises = new Map<string, Promise<void>>();
     private readonly readyResolvers = new Map<string, { resolve: () => void; reject: (err: Error) => void }>();

@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { createServer, type Server, type Socket } from 'node:net';
-import { randomUUID } from 'node:crypto';
 import { createInterface, type Interface } from 'node:readline';
+import { IdentifierFactory } from './identifier-factory.js';
 import type { Logger } from './types/logger.js';
 
 /**
@@ -100,7 +100,7 @@ function shortenClientId(clientId: string): string {
  * degrades gracefully.
  */
 export class LogServer implements vscode.Disposable {
-    private readonly pipeName = `autocontext-log-${randomUUID().replace(/-/g, '').slice(0, 12)}`;
+    private readonly pipeName = IdentifierFactory.createRandomName('autocontext-log');
     private readonly readers = new Set<Interface>();
     private readonly sockets = new Set<Socket>();
     private server: Server | undefined;

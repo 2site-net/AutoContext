@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { createServer, type Server, type Socket } from 'node:net';
-import { randomUUID } from 'node:crypto';
+import { IdentifierFactory } from './identifier-factory.js';
 import type { Logger } from './types/logger.js';
 
 /**
@@ -21,7 +21,7 @@ export class HealthMonitorServer implements vscode.Disposable {
     private readonly _onDidChange = new vscode.EventEmitter<void>();
     readonly onDidChange = this._onDidChange.event;
 
-    private readonly pipeName = `autocontext-health-${randomUUID().replace(/-/g, '').slice(0, 12)}`;
+    private readonly pipeName = IdentifierFactory.createRandomName('autocontext-health');
     private readonly connections = new Map<string, Set<Socket>>();
     private server: Server | undefined;
 
