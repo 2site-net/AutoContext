@@ -1,10 +1,5 @@
 import * as assert from 'node:assert/strict';
-import { existsSync } from 'node:fs';
-import { join } from 'node:path';
 import { activatedExtension } from './helpers.js';
-
-const mcpBinary = (extensionPath: string) =>
-    join(extensionPath, 'servers', 'AutoContext.Mcp.Server', `AutoContext.Mcp.Server${process.platform === 'win32' ? '.exe' : ''}`);
 
 suite('Workspace: web-only (JS + package.json, no TypeScript)', () => {
     test('should detect JavaScript and Node.js', async () => {
@@ -24,12 +19,10 @@ suite('Workspace: web-only (JS + package.json, no TypeScript)', () => {
         assert.ok(!detector.get('hasGit'), 'Should not detect hasGit');
     });
 
-    test('should not surface MCP server definitions without binary', async function () {
-        const ext = await activatedExtension();
-        if (existsSync(mcpBinary(ext.extensionPath))) { this.skip(); return; }
+    test('should surface MCP server definitions for web-only workspace', async () => {
+        const { exports } = await activatedExtension();
+        const defs = await exports.mcpServerProvider.provideMcpServerDefinitions();
 
-        const defs = await ext.exports.mcpServerProvider.provideMcpServerDefinitions();
-
-        assert.strictEqual(defs.length, 0, 'Expected no MCP server definitions without binary');
+        assert.ok(defs.length > 0, 'Expected at least one MCP server definition for web-only workspace');
     });
 });

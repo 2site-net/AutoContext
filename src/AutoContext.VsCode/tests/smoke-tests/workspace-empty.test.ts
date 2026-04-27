@@ -1,10 +1,5 @@
 import * as assert from 'node:assert/strict';
-import { existsSync } from 'node:fs';
-import { join } from 'node:path';
 import { activatedExtension } from './helpers.js';
-
-const mcpBinary = (extensionPath: string) =>
-    join(extensionPath, 'servers', 'AutoContext.Mcp.Server', `AutoContext.Mcp.Server${process.platform === 'win32' ? '.exe' : ''}`);
 
 suite('Workspace: empty', () => {
     test('should not detect any technology context keys', async () => {
@@ -18,12 +13,10 @@ suite('Workspace: empty', () => {
         assert.ok(!detector.get('hasNodeJs'), 'Should not detect hasNodeJs');
     });
 
-    test('should not surface MCP server definitions without binary', async function () {
-        const ext = await activatedExtension();
-        if (existsSync(mcpBinary(ext.extensionPath))) { this.skip(); return; }
+    test('should surface MCP server definitions even with no detected technology', async () => {
+        const { exports } = await activatedExtension();
+        const defs = await exports.mcpServerProvider.provideMcpServerDefinitions();
 
-        const defs = await ext.exports.mcpServerProvider.provideMcpServerDefinitions();
-
-        assert.strictEqual(defs.length, 0, 'Expected no MCP server definitions without binary');
+        assert.ok(defs.length > 0, 'Expected at least one MCP server definition (binary-gated, not context-gated)');
     });
 });

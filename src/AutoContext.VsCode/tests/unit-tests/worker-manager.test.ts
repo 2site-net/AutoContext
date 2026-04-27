@@ -175,4 +175,66 @@ describe('WorkerManager', () => {
 
         await expect(ready).rejects.toThrow(/disposed before worker became ready/);
     });
+
+    it('should reject whenWorkspaceReady() when the worker emits a spawn error', async () => {
+        const children: FakeChild[] = [];
+        spawnMock.mockImplementation(() => {
+            const child = createFakeChild();
+            children.push(child);
+            return child;
+        });
+
+        const mgr = new WorkerManager('/ext', logger, '/workspace', fakeWorkers);
+        mgr.start();
+
+        const ready = mgr.whenWorkspaceReady();
+        children[0].emit('error', new Error('spawn ENOENT'));
+
+        await expect(ready).rejects.toThrow(/spawn ENOENT/);
+
+        mgr.dispose();
+    });
+
+    it('should reject whenWorkspaceReady() when the worker exits before emitting ready', async () => {
+        const children: FakeChild[] = [];
+        spawnMock.mockImplementation(() => {
+            const child = createFakeChild();
+            children.push(child);
+            return child;
+        });
+
+        const mgr = new WorkerManager('/ext', logger, '/workspace', fakeWorkers);
+        mgr.start();
+
+        const ready = mgr.whenWorkspaceReady();
+        children[0].emit('exit', 1);
+
+        await expect(ready).rejects.toThrow(/exited with code 1 before becoming ready/);
+
+        mgr.dispose();
+    });
+
+    it('should not reject whenWorkspaceReady() when the worker exits cleanly after becoming ready', async () => {
+        const children: FakeChild[] = [];
+        spawnMock.mockImplementation(() => {
+            const child = createFakeChild();
+            children.push(child);
+            return child;
+        });
+
+        const mgr = new WorkerManager('/ext', logger, '/workspace', fakeWorkers);
+        mgr.start();
+
+        const ready = mgr.whenWorkspaceReady();
+        children[0].stderr.write('[AutoContext.Worker.Workspace] Ready.\n');
+        await new Promise(r => setImmediate(r));
+
+        // Once ready resolved, a later exit must not turn the resolved
+        // promise into a rejection.
+        children[0].emit('exit', 0);
+
+        await expect(ready).resolves.toBeUndefined();
+
+        mgr.dispose();
+    });
 });
