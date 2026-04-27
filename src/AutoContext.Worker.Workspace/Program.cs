@@ -9,13 +9,14 @@ using AutoContext.Worker.Workspace.Tasks.Git;
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
 /// <summary>
 /// <c>AutoContext.Worker.Workspace</c> entry point. Standalone process that
 /// owns the workspace-side MCP Tasks (git checks, editorconfig resolution,
 /// <c>.autocontext.json</c> reading) and serves them over a named pipe.
 /// </summary>
-internal static class Program
+internal static partial class Program
 {
     /// <summary>
     /// Stderr ready-marker used by the parent (extension) process to detect
@@ -40,7 +41,21 @@ internal static class Program
 
         builder.Services.AddHostedService<McpToolService>();
 
-        return builder.Build().RunAsync();
+        var host = builder.Build();
+        var logger = host.Services.GetRequiredService<ILoggerFactory>().CreateLogger(typeof(Program).FullName!);
+        LogRegisteredTasks(
+            logger,
+            string.Join(", ",
+                nameof(AnalyzeGitCommitFormatTask),
+                nameof(AnalyzeGitCommitContentTask),
+                nameof(GetEditorConfigRulesTask),
+                nameof(GetAutoContextConfigFileTask)));
+
+        return host.RunAsync();
     }
+
+    [LoggerMessage(Level = LogLevel.Information,
+        Message = "Registered MCP tasks: {Tasks}")]
+    private static partial void LogRegisteredTasks(ILogger logger, string tasks);
 }
 

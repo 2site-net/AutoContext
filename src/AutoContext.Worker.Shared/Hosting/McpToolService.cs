@@ -111,6 +111,8 @@ public sealed partial class McpToolService : BackgroundService
 
                         firstAccept = false;
 
+                        LogReady(_logger, pipeName);
+
                         // Host-handshake contract: the parent (extension) process scrapes
                         // worker stderr for this exact marker to know the named pipe is
                         // listening. ILogger output is routed elsewhere and would miss the
@@ -394,6 +396,10 @@ public sealed partial class McpToolService : BackgroundService
     [LoggerMessage(Level = LogLevel.Information,
         Message = "Worker listening on pipe: {PipeName}")]
     private static partial void LogStarting(ILogger logger, string pipeName);
+
+    [LoggerMessage(Level = LogLevel.Information,
+        Message = "Worker ready marker emitted on pipe: {PipeName}")]
+    private static partial void LogReady(ILogger logger, string pipeName);
 
     [LoggerMessage(Level = LogLevel.Warning,
         Message = "Task '{TaskName}' threw an unhandled exception.")]

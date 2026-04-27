@@ -47,10 +47,13 @@ async function main(argv: readonly string[]): Promise<void> {
     const loggingClient = new LoggingClient(logPipe, CLIENT_NAME);
     const logger = new PipeLogger(loggingClient);
     const serviceLogger = logger.forCategory('AutoContext.Worker.Hosting.McpToolService');
+    const startupLogger = logger.forCategory('AutoContext.Worker.Web.Startup');
+    startupLogger.info(`Arguments parsed (pipe='${pipe}', logPipeEnabled=${logPipe !== ''})`);
 
     const tasks: readonly McpTask[] = [
         new AnalyzeTypeScriptCodingStyleTask(),
     ];
+    startupLogger.info(`Registered MCP tasks: ${tasks.map(t => t.taskName).join(', ')}`);
 
     const service = new McpToolService(
         { pipe, readyMarker: READY_MARKER, logPipe, clientName: CLIENT_NAME },
@@ -89,6 +92,10 @@ async function main(argv: readonly string[]): Promise<void> {
 
 main(process.argv.slice(2)).catch((err: unknown) => {
     const message = err instanceof Error ? err.message : String(err);
+    // Direct stderr write here is intentional: this catch runs when
+    // `main` failed before the logger could be wired (e.g. argument
+    // parsing) or after `loggingClient.dispose()` already ran. We have
+    // no logger to route through, so stderr is the only sink left.
     process.stderr.write(`[AutoContext.Worker.Web] Fatal: ${message}\n`);
     process.exitCode = 1;
 });

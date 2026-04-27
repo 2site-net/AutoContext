@@ -84,8 +84,10 @@ export class McpToolService {
         this.server = server;
 
         const pipePath = McpToolService.normalizePipePath(this.options.pipe);
+        this.logger?.info(`Worker listening on pipe: ${pipePath}`);
         await McpToolService.listenWithStaleRecovery(server, pipePath);
         process.stderr.write(this.options.readyMarker + '\n');
+        this.logger?.info(`Worker ready marker emitted on pipe: ${pipePath}`);
 
         if (signal.aborted) {
             await this.stop();
@@ -155,14 +157,18 @@ export class McpToolService {
             // are channel-level: peer disconnect, signal abort, or the
             // pipe being torn down mid-transfer (all expected), or
             // protocol corruption / unexpected stream failures (real
-            // bugs). Surface the latter to stderr instead of swallowing
-            // them. Matches C# behavior of only tolerating
+            // bugs). Surface the latter through the logger (and stderr
+            // as a last-resort backstop) instead of swallowing them.
+            // Matches C# behavior of only tolerating
             // IOException/ObjectDisposedException at this boundary.
             if (!McpToolService.isExpectedConnectionError(ex)) {
                 const { name, message } = McpToolService.describeError(ex);
-                process.stderr.write(
-                    `[McpToolService] Unexpected error in connection handler: ${name}: ${message}\n`,
-                );
+                this.logger?.error(`Unexpected error in connection handler: ${name}: ${message}`, ex);
+                if (this.logger === undefined) {
+                    process.stderr.write(
+                        `[McpToolService] Unexpected error in connection handler: ${name}: ${message}\n`,
+                    );
+                }
             }
         } finally {
             socket.end();
