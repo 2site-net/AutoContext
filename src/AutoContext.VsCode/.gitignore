@@ -5,6 +5,7 @@ publish/
 *.vsix
 instructions/.generated/
 instructions/.workspaces/
+resources/servers.json
 .vscode-test/
 LICENSE
 COMMERCIAL.md

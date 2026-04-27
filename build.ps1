@@ -55,7 +55,9 @@
     For Test only. Run smoke tests instead of unit tests. Combines with
     Target: '-Smoke' alone runs TS (VS Code) + .NET smoke, '-Smoke TS'
     runs the VS Code smoke, '-Smoke DotNet' runs the .NET end-to-end
-    smoke. Compiles first.
+    smoke. Performs 'Package -Local' first so smoke tests run against the
+    packaged extension layout (server binaries staged under the extension
+    folder).
 
 .PARAMETER Help
     Show usage information.
@@ -501,9 +503,8 @@ function Test-DotNetSmoke {
 
     Write-Section 'Smoke-test .NET'
 
-    # Smoke tests spawn real worker + Mcp.Server executables, so every
-    # .NET project must be compiled first.
-    Invoke-Compile -Scope 'DotNet'
+    # Caller (Invoke-Test -Smoke) is responsible for compiling and staging
+    # the packaged extension layout before invoking this function.
 
     $smokeTestProjects =
         Get-ChildItem (Join-Path $repoRoot 'src' 'tests') -Recurse -File -Filter '*.Smoke.cs' |
@@ -543,8 +544,8 @@ function Test-VsCodeSmoke {
 
     Write-Section 'Smoke-test VS Code extension'
 
-    # Smoke tests require a full compile first
-    Invoke-Compile -Scope 'TS'
+    # Caller (Invoke-Test -Smoke) is responsible for compiling and staging
+    # the packaged extension layout before invoking this function.
 
     if ($PSCmdlet.ShouldProcess('vscode-test', 'Run VS Code smoke tests')) {
         Assert-ExternalCommand 'npx'
@@ -981,6 +982,33 @@ function Invoke-Test {
     param([string]$Scope = 'All')
 
     if ($Smoke) {
+        # Smoke tests exercise the packaged extension layout (server binaries
+        # under <extensionDir>/servers, copied assets, etc.), so stage the
+        # local-package output first. We mirror 'Package -Local' but skip
+        # its unit-test phase: smoke is an integration check that should
+        # not require unit tests to pass first.
+        Invoke-Clean
+
+        if ($PSCmdlet.ShouldProcess('version.json', 'Sync versions to all projects')) {
+            & $versionizePath Sync
+            if ($LASTEXITCODE -ne 0) { throw 'versionize.ps1 Sync failed.' }
+
+            foreach ($server in $nodeServers) {
+                $versionTsPath = Join-Path $repoRoot 'src' $server.name 'src' 'version.ts'
+                & $versionizePath Export $versionTsPath
+                if ($LASTEXITCODE -ne 0) { throw "versionize.ps1 Export failed for $($server.name)." }
+            }
+        }
+
+        Invoke-Compile -Scope 'All'
+
+        Write-Header 'Prepare'
+        Copy-AssetsToExtensionFolder
+
+        Write-Header 'Package'
+        Copy-NodeJsToServersFolder
+        Copy-DotNetToServersFolder
+
         Write-Header 'Smoke Test'
         if ($Scope -in 'All', 'TS')     { Test-VsCodeSmoke }
         if ($Scope -in 'All', 'DotNet') { Test-DotNetSmoke }
