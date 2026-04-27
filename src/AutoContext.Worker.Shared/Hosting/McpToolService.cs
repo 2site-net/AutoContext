@@ -6,7 +6,8 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 
 using AutoContext.Mcp;
-using AutoContext.Worker.Logging;
+using AutoContext.Framework.Logging;
+using AutoContext.Framework.Workers;
 
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;

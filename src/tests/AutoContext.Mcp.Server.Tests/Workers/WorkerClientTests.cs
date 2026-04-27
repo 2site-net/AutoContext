@@ -7,7 +7,7 @@ using System.Text.Json;
 using AutoContext.Mcp.Server.Tests.Testing.Utils;
 using AutoContext.Mcp.Server.Workers;
 using AutoContext.Mcp.Server.Workers.Protocol;
-using AutoContext.Worker.Hosting;
+using AutoContext.Framework.Workers;
 
 public sealed class WorkerClientTests
 {

@@ -4,6 +4,7 @@ using System.IO.Pipes;
 using System.Text.Json;
 
 using AutoContext.Mcp;
+using AutoContext.Framework.Workers;
 using AutoContext.Worker.Hosting;
 using AutoContext.Worker.Shared.Tests.Testing.Fakes;
 

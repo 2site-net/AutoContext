@@ -5,7 +5,7 @@ using System.Text.Json;
 
 using AutoContext.Mcp.Server.Workers.Protocol;
 using AutoContext.Mcp.Server.Workers.Transport;
-using AutoContext.Worker.Hosting;
+using AutoContext.Framework.Workers;
 
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;

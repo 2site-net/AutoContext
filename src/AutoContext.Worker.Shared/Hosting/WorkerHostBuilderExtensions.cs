@@ -1,11 +1,12 @@
 namespace AutoContext.Worker.Hosting;
 
-using AutoContext.Worker.Logging;
+using AutoContext.Framework.Logging;
 
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 /// <summary>
 /// Extension methods that apply the standard worker-host bootstrap shared by
@@ -79,7 +80,12 @@ public static class WorkerHostBuilderExtensions
         // isn't — so workers stay diagnosable in standalone runs too.
         builder.Logging.ClearProviders();
         builder.Logging.SetMinimumLevel(LogLevel.Trace);
-        builder.Services.AddSingleton<LoggingClient>();
+        builder.Services.AddSingleton(sp =>
+        {
+            var options = sp.GetRequiredService<IOptions<WorkerHostOptions>>().Value;
+            var env = sp.GetRequiredService<IHostEnvironment>();
+            return new LoggingClient(options.LogPipe, env.ApplicationName);
+        });
         builder.Services.AddSingleton<ILoggerProvider, PipeLoggerProvider>();
 
         return builder;

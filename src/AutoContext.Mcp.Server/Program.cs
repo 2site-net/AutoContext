@@ -7,7 +7,7 @@ using AutoContext.Mcp.Server.Tools;
 using AutoContext.Mcp.Server.Tools.Invocation;
 using AutoContext.Mcp.Server.Workers;
 using AutoContext.Mcp.Server.Workers.Transport;
-using AutoContext.Worker.Logging;
+using AutoContext.Framework.Logging;
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;

@@ -1,26 +1,21 @@
-namespace AutoContext.Worker.Logging;
+namespace AutoContext.Framework.Logging;
 
 using System.IO.Pipes;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Channels;
 
-using AutoContext.Worker.Hosting;
-
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Options;
-
 /// <summary>
-/// Background pipe-client that drains worker <see cref="LogEntry"/> values
-/// from a bounded channel and writes them as NDJSON over a named pipe to
-/// the extension-side LogServer. When the pipe is unavailable (no
-/// <c>--log-pipe</c> argument, the connect attempt fails, or the pipe
-/// subsequently breaks) the client transparently falls back to writing
-/// each record to stderr in a human-readable single-line format.
+/// Background pipe-client that drains <see cref="LogEntry"/> values from
+/// a bounded channel and writes them as NDJSON over a named pipe to the
+/// extension-side LogServer. When the pipe is unavailable (no pipe name
+/// supplied, the connect attempt fails, or the pipe subsequently breaks)
+/// the client transparently falls back to writing each record to stderr
+/// in a human-readable single-line format.
 /// </summary>
 /// <remarks>
 /// The bounded channel uses <see cref="BoundedChannelFullMode.DropOldest"/>
-/// — log spam can never block worker code or grow memory unbounded. A
+/// — log spam can never block caller code or grow memory unbounded. A
 /// single drain task owns all I/O. Failures (broken pipe, serialisation
 /// errors) are intentionally swallowed: this type IS the logger of last
 /// resort, so it must never throw.
@@ -45,15 +40,10 @@ public sealed class LoggingClient : IAsyncDisposable
     private readonly CancellationTokenSource _cts = new();
     private readonly Task _drainTask;
 
-    public LoggingClient(IOptions<WorkerHostOptions> options, IHostEnvironment env)
-        : this(GetPipeName(options), GetClientName(env))
-    {
-    }
-
     /// <summary>
-    /// Direct constructor for callers that aren't using the worker-host
-    /// bootstrap (e.g. <c>AutoContext.Mcp.Server</c>). Pass <see langword="null"/>
-    /// or empty for <paramref name="pipeName"/> to force stderr fallback.
+    /// Creates a new <see cref="LoggingClient"/>. Pass <see langword="null"/>
+    /// or empty for <paramref name="pipeName"/> to force stderr fallback
+    /// (useful for standalone runs and tests).
     /// </summary>
     public LoggingClient(string? pipeName, string clientName)
     {
@@ -62,18 +52,6 @@ public sealed class LoggingClient : IAsyncDisposable
         _pipeName = pipeName ?? string.Empty;
         _clientName = clientName;
         _drainTask = Task.Run(() => DrainAsync(_cts.Token));
-    }
-
-    private static string GetPipeName(IOptions<WorkerHostOptions> options)
-    {
-        ArgumentNullException.ThrowIfNull(options);
-        return options.Value.LogPipe;
-    }
-
-    private static string GetClientName(IHostEnvironment env)
-    {
-        ArgumentNullException.ThrowIfNull(env);
-        return env.ApplicationName;
     }
 
     /// <summary>

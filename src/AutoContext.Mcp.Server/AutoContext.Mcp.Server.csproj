@@ -13,7 +13,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\AutoContext.Mcp.Abstractions\AutoContext.Mcp.Abstractions.csproj" />
-    <ProjectReference Include="..\AutoContext.Worker.Shared\AutoContext.Worker.Shared.csproj" />
+    <ProjectReference Include="..\AutoContext.Framework\AutoContext.Framework.csproj" />
   </ItemGroup>
 
   <ItemGroup>

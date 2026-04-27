@@ -1,6 +1,7 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/AutoContext.Mcp.Abstractions/AutoContext.Mcp.Abstractions.csproj" />
+    <Project Path="src/AutoContext.Framework/AutoContext.Framework.csproj" />
     <Project Path="src/AutoContext.Worker.Shared/AutoContext.Worker.Shared.csproj" />
     <Project Path="src/AutoContext.Worker.Workspace/AutoContext.Worker.Workspace.csproj" />
     <Project Path="src/AutoContext.Worker.DotNet/AutoContext.Worker.DotNet.csproj" />
@@ -8,6 +9,7 @@
   </Folder>
   <Folder Name="/tests/">
     <Project Path="src/tests/AutoContext.Worker.Testing/AutoContext.Worker.Testing.csproj" />
+    <Project Path="src/tests/AutoContext.Framework.Tests/AutoContext.Framework.Tests.csproj" />
     <Project Path="src/tests/AutoContext.Worker.Shared.Tests/AutoContext.Worker.Shared.Tests.csproj" />
     <Project Path="src/tests/AutoContext.Worker.Workspace.Tests/AutoContext.Worker.Workspace.Tests.csproj" />
     <Project Path="src/tests/AutoContext.Worker.DotNet.Tests/AutoContext.Worker.DotNet.Tests.csproj" />

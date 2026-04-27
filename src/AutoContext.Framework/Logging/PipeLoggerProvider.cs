@@ -1,4 +1,4 @@
-namespace AutoContext.Worker.Logging;
+namespace AutoContext.Framework.Logging;
 
 using System.Collections.Concurrent;
 
@@ -7,10 +7,8 @@ using Microsoft.Extensions.Logging;
 /// <summary>
 /// <see cref="ILoggerProvider"/> that hands out per-category loggers, all
 /// of which enqueue records onto the shared <see cref="LoggingClient"/>.
-/// Registered by <c>WorkerHostBuilderExtensions.ConfigureWorkerHost</c>
-/// for every worker; the underlying <see cref="LoggingClient"/> decides
-/// at runtime whether to ship records over the named pipe or fall back to
-/// stderr.
+/// The underlying <see cref="LoggingClient"/> decides at runtime whether
+/// to ship records over the named pipe or fall back to stderr.
 /// </summary>
 public sealed class PipeLoggerProvider : ILoggerProvider
 {

@@ -3,7 +3,7 @@ namespace AutoContext.Mcp.Server.Tests.Testing.Utils;
 using System.IO.Pipes;
 
 using AutoContext.Mcp.Server.Workers.Transport;
-using AutoContext.Worker.Hosting;
+using AutoContext.Framework.Workers;
 
 internal static class PipeServerHarness
 {

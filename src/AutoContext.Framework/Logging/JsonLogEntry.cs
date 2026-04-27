@@ -1,9 +1,9 @@
-namespace AutoContext.Worker.Logging;
+namespace AutoContext.Framework.Logging;
 
 using System.Text.Json.Serialization;
 
 /// <summary>
-/// Wire shape for one NDJSON log record streamed from a worker to the
+/// Wire shape for one NDJSON log record streamed from a client to the
 /// extension's LogServer. Property names are intentionally lowercased to
 /// keep the serialised payload compact.
 /// </summary>

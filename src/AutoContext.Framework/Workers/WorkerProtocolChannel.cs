@@ -1,4 +1,4 @@
-namespace AutoContext.Worker.Hosting;
+namespace AutoContext.Framework.Workers;
 
 using System.Buffers.Binary;
 

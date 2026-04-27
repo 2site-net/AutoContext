@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Version>0.8.0</Version>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>AutoContext.Framework</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="AutoContext.Framework.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--
+      Logging.Abstractions is enough for ILogger / ILoggerProvider / LogLevel.
+      The pipe transport (NamedPipeClientStream) and Channels are in the BCL,
+      and the Json source-generated context only needs System.Text.Json which
+      is also in the BCL on net10.
+    -->
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.5" />
+  </ItemGroup>
+
+</Project>

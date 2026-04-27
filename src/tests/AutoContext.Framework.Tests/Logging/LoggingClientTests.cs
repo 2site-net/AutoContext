@@ -1,4 +1,4 @@
-namespace AutoContext.Worker.Shared.Tests.Logging;
+namespace AutoContext.Framework.Tests.Logging;
 
 using System.IO.Pipes;
 using System.Text;

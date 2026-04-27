@@ -1,8 +1,8 @@
-namespace AutoContext.Worker.Shared.Tests.Hosting;
+namespace AutoContext.Framework.Tests.Workers;
 
 using System.Buffers.Binary;
 
-using AutoContext.Worker.Hosting;
+using AutoContext.Framework.Workers;
 
 public sealed class WorkerProtocolChannelTests
 {

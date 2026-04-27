@@ -1,4 +1,4 @@
-namespace AutoContext.Worker.Logging;
+namespace AutoContext.Framework.Logging;
 
 using Microsoft.Extensions.Logging;
 
