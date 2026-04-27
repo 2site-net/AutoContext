@@ -8,7 +8,7 @@ import type { McpTask } from '../../src/hosting/mcp-task.js';
 import { McpToolService } from '../../src/hosting/mcp-tool-service.js';
 import { WorkerProtocolChannel } from '../../src/hosting/worker-protocol-channel.js';
 import { CorrelationScope } from '../../src/logging/correlation-scope.js';
-import type { CategoryLogger } from '../../src/logging/logger.js';
+import type { Logger } from '../../src/logging/logger.js';
 
 function makeEndpoint(): string {
     const id = randomUUID();
@@ -367,12 +367,13 @@ describe('McpToolService', () => {
 
     it('logs task failures with the active correlationId', async () => {
         const calls: Array<{ message: string; correlationId: string | undefined }> = [];
-        const logger: CategoryLogger = {
+        const logger: Logger = {
             trace: () => {},
             debug: () => {},
             info: () => {},
             warn: () => {},
             error: (message) => calls.push({ message, correlationId: CorrelationScope.current() }),
+            forCategory() { return logger; },
         };
 
         const pipe = makeEndpoint();

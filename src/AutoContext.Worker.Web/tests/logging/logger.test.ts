@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { CorrelationScope } from '../../src/logging/correlation-scope.js';
-import { Logger } from '../../src/logging/logger.js';
+import { LogServerLogger } from '../../src/logging/logger.js';
 import type { LogRecord } from '../../src/logging/log-record.js';
 import type { LogSink } from '../../src/logging/log-server-client.js';
 
@@ -11,16 +11,25 @@ class BufferSink implements LogSink {
     }
 }
 
-describe('Logger', () => {
-    it('caches the per-category logger instance', () => {
-        const logger = new Logger(new BufferSink());
+describe('LogServerLogger', () => {
+    it('caches the per-category logger instance across the tree', () => {
+        const logger = new LogServerLogger(new BufferSink());
         expect(logger.forCategory('A')).toBe(logger.forCategory('A'));
         expect(logger.forCategory('A')).not.toBe(logger.forCategory('B'));
+        // Cache is shared with derived loggers, so a child can find a sibling category.
+        expect(logger.forCategory('A').forCategory('B')).toBe(logger.forCategory('B'));
+    });
+
+    it('forCategory on a child replaces (does not append) the existing category', () => {
+        const sink = new BufferSink();
+        const root = new LogServerLogger(sink);
+        root.forCategory('Outer').forCategory('Inner').info('hi');
+        expect(sink.records[0]?.category).toBe('Inner');
     });
 
     it('routes each method to the matching .NET LogLevel name', () => {
         const sink = new BufferSink();
-        const log = new Logger(sink).forCategory('Cat');
+        const log = new LogServerLogger(sink).forCategory('Cat');
         log.trace('a');
         log.debug('b');
         log.info('c');
@@ -37,7 +46,7 @@ describe('Logger', () => {
 
     it('captures the active correlation id at emission time', async () => {
         const sink = new BufferSink();
-        const log = new Logger(sink).forCategory('Cat');
+        const log = new LogServerLogger(sink).forCategory('Cat');
 
         log.info('outside');
         await CorrelationScope.run('abcd1234', () => {
@@ -52,7 +61,7 @@ describe('Logger', () => {
     it('formats Error exceptions using the stack', () => {
         const sink = new BufferSink();
         const err = new Error('boom');
-        new Logger(sink).forCategory('Cat').error('fail', err);
+        new LogServerLogger(sink).forCategory('Cat').error('fail', err);
         const record = sink.records[0];
         expect(record).toBeDefined();
         expect(record?.exception).toContain('boom');
@@ -60,7 +69,7 @@ describe('Logger', () => {
 
     it('formats null exceptions as the string "null"', () => {
         const sink = new BufferSink();
-        new Logger(sink).forCategory('Cat').error('fail', null);
+        new LogServerLogger(sink).forCategory('Cat').error('fail', null);
         expect(sink.records[0]?.exception).toBe('null');
     });
 });

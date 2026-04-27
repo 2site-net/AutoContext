@@ -5,7 +5,7 @@ import { WorkerProtocolChannel } from './worker-protocol-channel.js';
 import type { McpTask } from './mcp-task.js';
 import type { WorkerHostOptions } from './worker-host-options.js';
 import { CorrelationScope } from '../logging/correlation-scope.js';
-import type { CategoryLogger } from '../logging/logger.js';
+import type { Logger } from '../logging/logger.js';
 
 /**
  * Named-pipe server that accepts per-task connections and dispatches
@@ -28,14 +28,14 @@ import type { CategoryLogger } from '../logging/logger.js';
 export class McpToolService {
     private readonly options: WorkerHostOptions;
     private readonly tasks: ReadonlyMap<string, McpTask>;
-    private readonly logger: CategoryLogger | undefined;
+    private readonly logger: Logger | undefined;
     private server: net.Server | undefined;
     private readonly inFlight = new Set<Promise<void>>();
     private readonly sockets = new Set<Socket>();
     private readonly stopController = new AbortController();
     private stopPromise: Promise<void> | undefined;
 
-    constructor(options: WorkerHostOptions, tasks: readonly McpTask[], logger?: CategoryLogger) {
+    constructor(options: WorkerHostOptions, tasks: readonly McpTask[], logger?: Logger) {
         if (options.pipe.trim() === '') {
             throw new Error('Missing required configuration: --pipe');
         }
@@ -195,7 +195,7 @@ export class McpToolService {
         const correlationId = readCorrelationId(request);
 
         // Run the dispatch — including the catch-all — inside the
-        // CorrelationScope so every CategoryLogger call made by the
+        // CorrelationScope so every Logger call made by the
         // task and the failure handler is stamped with the same id
         // before reaching the LogServer pipe.
         const run = async (): Promise<Buffer> => {

@@ -2,7 +2,7 @@ import { parseArgs } from 'node:util';
 import { McpToolService } from './hosting/mcp-tool-service.js';
 import type { McpTask } from './hosting/mcp-task.js';
 import { LogServerClient } from './logging/log-server-client.js';
-import { Logger } from './logging/logger.js';
+import { LogServerLogger } from './logging/logger.js';
 import { AnalyzeTypeScriptCodingStyleTask } from './tasks/typescript/analyze-typescript-coding-style.js';
 
 /**
@@ -45,7 +45,7 @@ async function main(argv: readonly string[]): Promise<void> {
     // also flow through the structured channel (or its stderr fallback
     // when --log-pipe was not supplied).
     const logSink = new LogServerClient(logPipe, CLIENT_NAME);
-    const logger = new Logger(logSink);
+    const logger = new LogServerLogger(logSink);
     const serviceLogger = logger.forCategory('AutoContext.Worker.Hosting.McpToolService');
 
     const tasks: readonly McpTask[] = [

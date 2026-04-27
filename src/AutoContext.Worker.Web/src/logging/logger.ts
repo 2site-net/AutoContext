@@ -3,61 +3,91 @@ import type { LogLevel, LogRecord } from './log-record.js';
 import type { LogSink } from './log-server-client.js';
 
 /**
- * Per-category logger handed out by {@link Logger.forCategory}. Every
- * call captures the active {@link CorrelationScope} id at emission
- * time so log records flowing through the shared sink carry the
- * correlation id of the dispatch that produced them.
+ * Worker-side logging facade. A `Logger` is both a leaf (carries the
+ * `trace/debug/info/warn/error` methods) and a factory ({@link
+ * forCategory} returns another `Logger`), so any consumer that takes
+ * a `Logger` can both emit records and derive child loggers without
+ * knowing the concrete implementation.
+ *
+ * Conceptually the same shape as the extension-side `Logger`
+ * interface in `AutoContext.VsCode/src/types/logger.ts`, trimmed for
+ * Worker.Web's needs: there are no per-channel concepts (no
+ * `forChannel`, no `clear`) because every record flows through a
+ * single shared {@link LogSink}.
+ *
+ * Counterpart of `Microsoft.Extensions.Logging.ILogger` on the .NET
+ * side. Each call captures the active {@link CorrelationScope} id at
+ * emission time so log records flowing through the shared sink carry
+ * the correlation id of the dispatch that produced them.
  */
-export interface CategoryLogger {
+export interface Logger {
     trace(message: string, exception?: unknown): void;
     debug(message: string, exception?: unknown): void;
     info(message: string, exception?: unknown): void;
     warn(message: string, exception?: unknown): void;
     error(message: string, exception?: unknown): void;
+
+    /**
+     * Returns a logger bound to the given category. Calling
+     * {@link forCategory} on a derived logger replaces (does not
+     * append to) the existing category — matching the VsCode `Logger`
+     * contract and `ILoggerFactory.CreateLogger` semantics.
+     */
+    forCategory(name: string): Logger;
 }
 
 /**
- * Worker-side logger facade. Hands out per-category loggers, all of
- * which enqueue records onto the shared {@link LogSink}. TypeScript
- * counterpart of `LogServerLoggerProvider` + `LogServerLogger` in
+ * Default {@link Logger} implementation backed by a shared
+ * {@link LogSink} (named pipe with stderr fallback). TypeScript
+ * counterpart of `LogServerLogger` / `LogServerLoggerProvider` in
  * `AutoContext.Worker.Shared`.
+ *
+ * A single per-tree cache keyed by category name is shared between
+ * the root and every logger derived through {@link forCategory}, so
+ * repeated `forCategory(name)` calls — from anywhere in the tree —
+ * return the same instance.
  */
-export class Logger {
-    private readonly cache = new Map<string, CategoryLogger>();
+export class LogServerLogger implements Logger {
+    private readonly sink: LogSink;
+    private readonly category: string;
+    private readonly cache: Map<string, LogServerLogger>;
 
-    constructor(private readonly sink: LogSink) {}
+    constructor(
+        sink: LogSink,
+        category: string = '',
+        cache?: Map<string, LogServerLogger>,
+    ) {
+        this.sink = sink;
+        this.category = category;
+        this.cache = cache ?? new Map();
+    }
 
-    forCategory(name: string): CategoryLogger {
+    trace(message: string, exception?: unknown): void { this.emit('Trace', message, exception); }
+    debug(message: string, exception?: unknown): void { this.emit('Debug', message, exception); }
+    info(message: string, exception?: unknown): void { this.emit('Information', message, exception); }
+    warn(message: string, exception?: unknown): void { this.emit('Warning', message, exception); }
+    error(message: string, exception?: unknown): void { this.emit('Error', message, exception); }
+
+    forCategory(name: string): Logger {
         let cached = this.cache.get(name);
         if (cached === undefined) {
-            cached = createCategoryLogger(name, this.sink);
+            cached = new LogServerLogger(this.sink, name, this.cache);
             this.cache.set(name, cached);
         }
         return cached;
     }
-}
 
-function createCategoryLogger(category: string, sink: LogSink): CategoryLogger {
-    const emit = (level: LogLevel, message: string, exception?: unknown): void => {
+    private emit(level: LogLevel, message: string, exception?: unknown): void {
+        const correlationId = CorrelationScope.current();
         const record: LogRecord = {
-            category,
+            category: this.category,
             level,
             message,
             ...(exception !== undefined ? { exception: formatException(exception) } : {}),
-            ...(CorrelationScope.current() !== undefined
-                ? { correlationId: CorrelationScope.current() }
-                : {}),
+            ...(correlationId !== undefined ? { correlationId } : {}),
         };
-        sink.enqueue(record);
-    };
-
-    return {
-        trace: (m, e) => emit('Trace', m, e),
-        debug: (m, e) => emit('Debug', m, e),
-        info: (m, e) => emit('Information', m, e),
-        warn: (m, e) => emit('Warning', m, e),
-        error: (m, e) => emit('Error', m, e),
-    };
+        this.sink.enqueue(record);
+    }
 }
 
 function formatException(value: unknown): string {
