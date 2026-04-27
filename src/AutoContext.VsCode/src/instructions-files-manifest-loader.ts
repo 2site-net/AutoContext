@@ -1,7 +1,7 @@
 import { join } from 'node:path';
 import { InstructionsFileCategoryEntry } from './instructions-file-category-entry.js';
 import { InstructionsFileEntry } from './instructions-file-entry.js';
-import type { InstructionsFileMetadata } from './types/instructions-file-metadata.js';
+import type { InstructionsFileMetadata } from '#types/instructions-file-metadata.js';
 import { InstructionsFilesManifest } from './instructions-files-manifest.js';
 import { JsonFile } from './json-file.js';
 

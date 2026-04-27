@@ -1,6 +1,6 @@
 import { connect, type Socket } from 'node:net';
-import type { LogGreetingWire, LogRecord, LogRecordWire } from '../types/log-record.js';
-import type { LogSink } from '../types/log-sink.js';
+import type { LogGreetingWire, LogRecord, LogRecordWire } from '#types/log-record.js';
+import type { LogSink } from '#types/log-sink.js';
 
 /**
  * Background pipe-client that drains worker {@link LogRecord} values

@@ -1,8 +1,8 @@
 import { readFile, stat } from 'node:fs/promises';
-import type { InstructionsFileParsedSpan } from './types/instructions-file-parsed-span.js';
-import type { InstructionsFileParserDiagnostic } from './types/instructions-file-parser-diagnostic.js';
-import type { InstructionsFileParsedResult, InstructionsFileParsedFrontmatter } from './types/instructions-file-parsed-result.js';
-import type { InstructionsFileParsedCachedResult } from './types/instructions-file-parsed-cached-result.js';
+import type { InstructionsFileParsedSpan } from '#types/instructions-file-parsed-span.js';
+import type { InstructionsFileParserDiagnostic } from '#types/instructions-file-parser-diagnostic.js';
+import type { InstructionsFileParsedResult, InstructionsFileParsedFrontmatter } from '#types/instructions-file-parsed-result.js';
+import type { InstructionsFileParsedCachedResult } from '#types/instructions-file-parsed-cached-result.js';
 import { SemVer } from './semver.js';
 
 const instructionBulletPattern = /^[-*]\s(?:\[(INST\d{4})\]\s*)?\*\*(Do|Don't)\*\*/;

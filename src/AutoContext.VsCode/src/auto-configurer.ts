@@ -3,7 +3,7 @@ import type { InstructionsFilesManifest } from './instructions-files-manifest.js
 import type { McpToolsManifest } from './mcp-tools-manifest.js';
 import type { WorkspaceContextDetector } from './workspace-context-detector.js';
 import type { AutoContextConfigManager } from './autocontext-config.js';
-import type { McpToolConfig } from './types/autocontext-config.js';
+import type { McpToolConfig } from '#types/autocontext-config.js';
 
 export class AutoConfigurer {
     constructor(

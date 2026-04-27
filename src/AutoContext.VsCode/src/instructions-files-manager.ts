@@ -5,7 +5,7 @@ import { createHash } from 'node:crypto';
 import type { InstructionsFilesManifest } from './instructions-files-manifest.js';
 import { InstructionsFileParser } from './instructions-file-parser.js';
 import type { AutoContextConfigManager } from './autocontext-config.js';
-import type { Logger } from './types/logger.js';
+import type { Logger } from '#types/logger.js';
 
 /**
  * Generates normalized instruction files with disabled instructions removed

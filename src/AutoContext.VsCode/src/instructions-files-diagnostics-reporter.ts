@@ -1,5 +1,5 @@
 import type { InstructionsFilesDiagnosticsRunner } from './instructions-files-diagnostics-runner.js';
-import { LogCategory, type Logger } from './types/logger.js';
+import { LogCategory, type Logger } from '#types/logger.js';
 
 /**
  * Logger sink for instruction-file diagnostics. Owns a dedicated

@@ -2,8 +2,8 @@ import * as vscode from 'vscode';
 import { writeFile, unlink, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { InstructionsFileParser } from './instructions-file-parser.js';
-import type { AutoContextConfig, InstructionsFileConfig, McpToolConfig } from './types/autocontext-config.js';
-import type { Logger } from './types/logger.js';
+import type { AutoContextConfig, InstructionsFileConfig, McpToolConfig } from '#types/autocontext-config.js';
+import type { Logger } from '#types/logger.js';
 
 const configFileName = '.autocontext.json';
 

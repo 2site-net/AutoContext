@@ -1,6 +1,6 @@
 import { parseArgs } from 'node:util';
 import { McpToolService } from './hosting/mcp-tool-service.js';
-import type { McpTask } from './types/mcp-task.js';
+import type { McpTask } from '#types/mcp-task.js';
 import { LogServerClient } from './logging/log-server-client.js';
 import { LogServerLogger } from './logging/logger.js';
 import { AnalyzeTypeScriptCodingStyleTask } from './tasks/typescript/analyze-typescript-coding-style.js';

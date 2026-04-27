@@ -1,7 +1,7 @@
 import { CorrelationScope } from './correlation-scope.js';
-import type { LogLevel, LogRecord } from '../types/log-record.js';
-import type { Logger } from '../types/logger.js';
-import type { LogSink } from '../types/log-sink.js';
+import type { LogLevel, LogRecord } from '#types/log-record.js';
+import type { Logger } from '#types/logger.js';
+import type { LogSink } from '#types/log-sink.js';
 
 /**
  * Default {@link Logger} implementation backed by a shared

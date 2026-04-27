@@ -1,7 +1,7 @@
 import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { InstructionsFileParser } from './instructions-file-parser.js';
-import type { InstructionsFileMetadata } from './types/instructions-file-metadata.js';
+import type { InstructionsFileMetadata } from '#types/instructions-file-metadata.js';
 
 export class MetadataLoader {
     constructor(private readonly extensionPath: string) {}

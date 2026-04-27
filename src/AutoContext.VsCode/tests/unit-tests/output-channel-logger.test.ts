@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { OutputChannelLogger } from '../../src/output-channel-logger';
-import { LogCategory } from '../../src/types/logger';
+import { LogCategory } from '#types/logger.js';
 import type * as vscode from 'vscode';
 
 vi.mock('vscode', async () => await import('./_fakes/fake-vscode'));

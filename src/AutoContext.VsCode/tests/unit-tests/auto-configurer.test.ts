@@ -4,7 +4,7 @@ import { window } from './_fakes/fake-vscode';
 import { AutoConfigurer } from '../../src/auto-configurer';
 import { InstructionsFilesManifestLoader } from '../../src/instructions-files-manifest-loader';
 import { McpToolsManifestLoader } from '../../src/mcp-tools-manifest-loader';
-import type { AutoContextConfig } from '../../src/types/autocontext-config';
+import type { AutoContextConfig } from '#types/autocontext-config.js';
 import { createFakeDetector, createFakeConfigManager } from './_fakes';
 
 const fakeDetector = createFakeDetector();

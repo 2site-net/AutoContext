@@ -4,7 +4,7 @@ import { LogServer } from '../../src/log-server';
 import { createFakeLogger } from './_fakes';
 import { pipePath } from './_utils/pipe-helpers';
 import { waitFor } from './_utils/wait-for';
-import type { Logger } from '../../src/types/logger';
+import type { Logger } from '#types/logger.js';
 
 /**
  * Connects to the LogServer pipe, sends the greeting + an arbitrary

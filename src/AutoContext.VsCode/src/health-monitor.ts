@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { createServer, type Server, type Socket } from 'node:net';
 import { IdentifierFactory } from './identifier-factory.js';
-import type { Logger } from './types/logger.js';
+import type { Logger } from '#types/logger.js';
 
 /**
  * Monitors MCP worker health via a named pipe.

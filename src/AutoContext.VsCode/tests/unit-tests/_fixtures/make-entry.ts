@@ -1,6 +1,6 @@
 import { InstructionsFileCategoryEntry } from '../../../src/instructions-file-category-entry';
 import { InstructionsFileEntry } from '../../../src/instructions-file-entry';
-import type { InstructionsFileMetadata } from '../../../src/types/instructions-file-metadata';
+import type { InstructionsFileMetadata } from '#types/instructions-file-metadata.js';
 import { InstructionsFilesManifest } from '../../../src/instructions-files-manifest';
 
 export function makeInstructionsFileEntry(

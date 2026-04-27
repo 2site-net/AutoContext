@@ -2,10 +2,10 @@ import * as net from 'node:net';
 import * as fs from 'node:fs';
 import type { Server, Socket } from 'node:net';
 import { WorkerProtocolChannel } from './worker-protocol-channel.js';
-import type { McpTask } from '../types/mcp-task.js';
-import type { WorkerHostOptions } from '../types/worker-host-options.js';
+import type { McpTask } from '#types/mcp-task.js';
+import type { WorkerHostOptions } from '#types/worker-host-options.js';
 import { CorrelationScope } from '../logging/correlation-scope.js';
-import type { Logger } from '../types/logger.js';
+import type { Logger } from '#types/logger.js';
 
 /**
  * Named-pipe server that accepts per-task connections and dispatches

@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { InstructionsFileParser } from './instructions-file-parser.js';
 import { instructionScheme } from './instructions-viewer-document-provider.js';
 import type { AutoContextConfigManager } from './autocontext-config.js';
-import type { Logger } from './types/logger.js';
+import type { Logger } from '#types/logger.js';
 
 export class InstructionsViewerDecorationManager implements vscode.Disposable {
     private readonly decorationType = vscode.window.createTextEditorDecorationType({ opacity: '0.4' });

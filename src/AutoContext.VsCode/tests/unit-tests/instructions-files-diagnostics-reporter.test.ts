@@ -4,7 +4,7 @@ import type {
     InstructionsFilesDiagnosticRecord,
     InstructionsFilesDiagnosticsRunner,
 } from '../../src/instructions-files-diagnostics-runner';
-import { LogCategory } from '../../src/types/logger';
+import { LogCategory } from '#types/logger.js';
 import { createFakeLogger } from './_fakes';
 
 vi.mock('vscode', async () => await import('./_fakes/fake-vscode'));

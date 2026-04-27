@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { CorrelationScope } from '../../src/logging/correlation-scope.js';
 import { LogServerLogger } from '../../src/logging/logger.js';
-import type { LogRecord } from '../../src/types/log-record.js';
-import type { LogSink } from '../../src/types/log-sink.js';
+import type { LogRecord } from '#types/log-record.js';
+import type { LogSink } from '#types/log-sink.js';
 
 class BufferSink implements LogSink {
     readonly records: LogRecord[] = [];

@@ -9,13 +9,13 @@ import type { TreeViewStateResolver } from './tree-view-state-resolver.js';
 import type { TreeViewTooltip } from './tree-view-tooltip.js';
 import type { HealthMonitorServer } from './health-monitor.js';
 import type { McpServerProvider } from './mcp-server-provider.js';
-import type { TreeViewServerLabelNode } from './types/tree-view-server-label-node.js';
-import type { McpToolsTreeCategoryNode } from './types/mcp-tools-tree-category-node.js';
-import type { McpToolsTreeNode } from './types/mcp-tools-tree-node.js';
-import type { McpTaskTreeNode } from './types/mcp-task-tree-node.js';
+import type { TreeViewServerLabelNode } from '#types/tree-view-server-label-node.js';
+import type { McpToolsTreeCategoryNode } from '#types/mcp-tools-tree-category-node.js';
+import type { McpToolsTreeNode } from '#types/mcp-tools-tree-node.js';
+import type { McpTaskTreeNode } from '#types/mcp-task-tree-node.js';
 import type { AutoContextConfigManager } from './autocontext-config.js';
-import type { AutoContextConfig } from './types/autocontext-config.js';
-import type { Logger } from './types/logger.js';
+import type { AutoContextConfig } from '#types/autocontext-config.js';
+import type { Logger } from '#types/logger.js';
 
 type TreeElement = TreeViewServerLabelNode | McpToolsTreeCategoryNode | McpToolsTreeNode | McpTaskTreeNode;
 

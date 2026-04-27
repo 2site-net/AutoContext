@@ -3,7 +3,7 @@ import { createServer, type Server, type Socket } from 'node:net';
 import { createInterface, type Interface } from 'node:readline';
 import { IdentifierFactory } from './identifier-factory.js';
 import { ServerEntry } from './server-entry.js';
-import type { Logger } from './types/logger.js';
+import type { Logger } from '#types/logger.js';
 
 /**
  * Wire shape of the greeting line every worker emits as the first

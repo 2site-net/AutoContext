@@ -1,5 +1,5 @@
 import { vi } from 'vitest';
-import type { Logger } from '../../../src/types/logger';
+import type { Logger } from '#types/logger.js';
 
 /**
  * Returns a `Logger` whose level methods are all `vi.fn()` spies.

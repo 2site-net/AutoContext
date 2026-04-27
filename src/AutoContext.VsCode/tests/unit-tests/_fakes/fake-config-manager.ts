@@ -1,6 +1,6 @@
 import { vi } from 'vitest';
 import type { AutoContextConfigManager } from '../../../src/autocontext-config';
-import type { AutoContextConfig } from '../../../src/types/autocontext-config';
+import type { AutoContextConfig } from '#types/autocontext-config.js';
 
 export function createFakeConfigManager(): AutoContextConfigManager {
     return {

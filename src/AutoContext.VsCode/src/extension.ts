@@ -26,7 +26,7 @@ import { ServersManifestLoader } from './servers-manifest-loader.js';
 import { HealthMonitorServer } from './health-monitor.js';
 import { LogServer } from './log-server.js';
 import { OutputChannelLogger } from './output-channel-logger.js';
-import { LogCategory } from './types/logger.js';
+import { LogCategory } from '#types/logger.js';
 
 let subscriptions: vscode.Disposable[] | undefined;
 

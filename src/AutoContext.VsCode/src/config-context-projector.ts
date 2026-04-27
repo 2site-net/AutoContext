@@ -2,8 +2,8 @@ import * as vscode from 'vscode';
 import type { AutoContextConfigManager } from './autocontext-config.js';
 import type { InstructionsFilesManifest } from './instructions-files-manifest.js';
 import type { McpToolsManifest } from './mcp-tools-manifest.js';
-import type { AutoContextConfig } from './types/autocontext-config.js';
-import type { Logger } from './types/logger.js';
+import type { AutoContextConfig } from '#types/autocontext-config.js';
+import type { Logger } from '#types/logger.js';
 
 export function isToolEnabled(config: AutoContextConfig, toolName: string, taskName?: string): boolean {
     const entry = config.mcpTools?.[toolName];

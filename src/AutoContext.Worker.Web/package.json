@@ -3,6 +3,12 @@
   "version": "0.8.0",
   "type": "module",
   "private": true,
+  "imports": {
+    "#types/*.js": {
+      "types": "./src/types/*.ts",
+      "default": "./out/types/*.js"
+    }
+  },
   "scripts": {
     "prebuild": "pwsh ../../versionize.ps1 Export src/version.ts",
     "build": "tsc -p tsconfig.build.json",

@@ -2,11 +2,11 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { InstructionsFilesDiagnosticsRunner } from '../../src/instructions-files-diagnostics-runner';
 import { InstructionsFileParser } from '../../src/instructions-file-parser';
 import { makeInstructionsFileEntry, makeInstructionsFilesManifest } from './_fixtures/make-entry';
-import type { AutoContextConfig } from '../../src/types/autocontext-config';
+import type { AutoContextConfig } from '#types/autocontext-config.js';
 import type { AutoContextConfigManager } from '../../src/autocontext-config';
 import type { InstructionsFilesManifest } from '../../src/instructions-files-manifest';
-import type { InstructionsFileParsedResult } from '../../src/types/instructions-file-parsed-result';
-import type { InstructionsFileParsedCachedResult } from '../../src/types/instructions-file-parsed-cached-result';
+import type { InstructionsFileParsedResult } from '#types/instructions-file-parsed-result.js';
+import type { InstructionsFileParsedCachedResult } from '#types/instructions-file-parsed-cached-result.js';
 
 vi.mock('../../src/instructions-file-parser', () => ({
     InstructionsFileParser: { fromFile: vi.fn() },

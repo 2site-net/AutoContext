@@ -16,7 +16,7 @@ import { fileURLToPath } from 'node:url';
 import { InstructionsFilesManifestLoader } from './instructions-files-manifest-loader.js';
 import { InstructionsFilesManifest } from './instructions-files-manifest.js';
 import type { InstructionsFileEntry } from './instructions-file-entry.js';
-import type { PackageInstructionsFileEntry } from './types/package-instructions-file-entry.js';
+import type { PackageInstructionsFileEntry } from '#types/package-instructions-file-entry.js';
 
 function buildWhenClause(entry: InstructionsFileEntry): string {
     const parts = [entry.runtimeInfo.contextKey];

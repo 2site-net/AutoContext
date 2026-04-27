@@ -5,7 +5,7 @@ import { createInterface } from 'node:readline';
 import { formatEndpoint } from './endpoint-formatter.js';
 import { IdentifierFactory } from './identifier-factory.js';
 import type { ServerEntry } from './server-entry.js';
-import type { Logger } from './types/logger.js';
+import type { Logger } from '#types/logger.js';
 
 /**
  * A worker the extension spawns and keeps alive for the lifetime of

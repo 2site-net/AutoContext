@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { join } from 'node:path';
 import { TreeItemCollapsibleState, TreeItemCheckboxState, window, ThemeIcon, ThemeColor } from './_fakes/fake-vscode';
 import { McpToolsTreeProvider } from '../../src/mcp-tools-tree-provider';
-import type { AutoContextConfig } from '../../src/types/autocontext-config';
+import type { AutoContextConfig } from '#types/autocontext-config.js';
 import { TreeViewNodeState } from '../../src/tree-view-node-state';
 import { McpToolsManifestLoader } from '../../src/mcp-tools-manifest-loader';
 import type { McpToolEntry } from '../../src/mcp-tool-entry';

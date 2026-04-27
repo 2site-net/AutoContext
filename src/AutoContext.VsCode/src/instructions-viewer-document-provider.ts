@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { join } from 'node:path';
 import { InstructionsFileParser } from './instructions-file-parser.js';
 import type { AutoContextConfigManager } from './autocontext-config.js';
-import type { Logger } from './types/logger.js';
+import type { Logger } from '#types/logger.js';
 
 export const instructionScheme = 'autocontext-instructions';
 

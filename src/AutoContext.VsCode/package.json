@@ -84,6 +84,12 @@
     "onStartupFinished"
   ],
   "main": "./dist/extension.js",
+  "imports": {
+    "#types/*.js": {
+      "types": "./src/types/*.ts",
+      "default": "./dist/types/*.js"
+    }
+  },
   "contributes": {
     "mcpServerDefinitionProviders": [
       {

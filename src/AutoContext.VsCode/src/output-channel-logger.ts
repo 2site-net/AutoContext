@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { LogLevel, type LogCategory, type Logger } from './types/logger.js';
+import { LogLevel, type LogCategory, type Logger } from '#types/logger.js';
 
 /**
  * Default {@link Logger} implementation backed by a

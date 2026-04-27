@@ -6,9 +6,9 @@ import type { HealthMonitorServer } from './health-monitor.js';
 import type { ServersManifest } from './servers-manifest.js';
 import type { WorkerManager } from './worker-manager.js';
 import type { AutoContextConfigManager } from './autocontext-config.js';
-import type { AutoContextConfig } from './types/autocontext-config.js';
+import type { AutoContextConfig } from '#types/autocontext-config.js';
 import { isToolEnabled } from './config-context-projector.js';
-import type { Logger } from './types/logger.js';
+import type { Logger } from '#types/logger.js';
 
 const extensionId = '2site-net.autocontext';
 

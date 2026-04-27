@@ -5,7 +5,7 @@ import { McpServerProvider } from '../../src/mcp-server-provider';
 import { McpToolsManifestLoader } from '../../src/mcp-tools-manifest-loader';
 import { ServersManifest } from '../../src/servers-manifest';
 import { ServerEntry } from '../../src/server-entry';
-import type { AutoContextConfig } from '../../src/types/autocontext-config';
+import type { AutoContextConfig } from '#types/autocontext-config.js';
 import type { WorkerManager } from '../../src/worker-manager';
 import { createFakeConfigManager, createFakeHealthMonitor, createFakeLogger } from './_fakes';
 

@@ -1,5 +1,5 @@
 import ts from 'typescript';
-import type { McpTask } from '../../types/mcp-task.js';
+import type { McpTask } from '#types/mcp-task.js';
 
 interface Violation {
     readonly line: number;

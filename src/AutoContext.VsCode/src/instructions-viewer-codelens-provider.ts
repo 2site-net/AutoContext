@@ -6,7 +6,7 @@ import { instructionScheme } from './instructions-viewer-document-provider.js';
 import type { AutoContextConfigManager } from './autocontext-config.js';
 import type { WorkspaceContextDetector } from './workspace-context-detector.js';
 import { commandIds } from './ui-constants.js';
-import type { Logger } from './types/logger.js';
+import type { Logger } from '#types/logger.js';
 
 export class InstructionsViewerCodeLensProvider implements vscode.CodeLensProvider, vscode.Disposable {
     private readonly didChangeEmitter = new vscode.EventEmitter<void>();

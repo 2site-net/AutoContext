@@ -1,7 +1,7 @@
 import { InstructionsFileItemEntry } from './instructions-file-item-entry.js';
 import type { InstructionsFileCategoryEntry } from './instructions-file-category-entry.js';
 import { InstructionsFileRuntimeInfo } from './instructions-file-runtime-info.js';
-import type { InstructionsFileMetadata } from './types/instructions-file-metadata.js';
+import type { InstructionsFileMetadata } from '#types/instructions-file-metadata.js';
 
 /**
  * An instructions file from `resources/instructions-files.json`.

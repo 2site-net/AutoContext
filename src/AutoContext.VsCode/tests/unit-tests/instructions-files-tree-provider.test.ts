@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { TreeItemCollapsibleState, TreeItemCheckboxState, workspace, commands, Uri, window } from './_fakes/fake-vscode';
 import { InstructionsFilesTreeProvider } from '../../src/instructions-files-tree-provider';
-import type { AutoContextConfig } from '../../src/types/autocontext-config';
-import type { InstructionsFileTreeNode } from '../../src/types/instructions-file-tree-node';
+import type { AutoContextConfig } from '#types/autocontext-config.js';
+import type { InstructionsFileTreeNode } from '#types/instructions-file-tree-node.js';
 import { TreeViewNodeState } from '../../src/tree-view-node-state';
 import { contextKeys } from '../../src/ui-constants';
 import { InstructionsFilesManifestLoader } from '../../src/instructions-files-manifest-loader';
