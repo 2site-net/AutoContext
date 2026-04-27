@@ -11,7 +11,7 @@ import type { Logger } from '#types/logger.js';
  * `IHostEnvironment.ApplicationName` (e.g. `AutoContext.Worker.DotNet`)
  * — used to route subsequent records to a per-worker output channel.
  */
-interface LogGreetingWire {
+interface JsonLogGreeting {
     readonly clientName: string;
 }
 
@@ -23,55 +23,12 @@ interface LogGreetingWire {
  * for log records emitted outside of a task dispatch (e.g. worker
  * startup).
  */
-interface LogRecordWire {
+interface JsonLogEntry {
     readonly category: string;
     readonly level: string;
     readonly message: string;
     readonly exception?: string;
     readonly correlationId?: string;
-}
-
-/**
- * Type-guard: a parsed payload is a greeting iff it carries the
- * `clientName` field.
- */
-function isGreeting(value: unknown): value is LogGreetingWire {
-    return (
-        typeof value === 'object' &&
-        value !== null &&
-        typeof (value as { clientName?: unknown }).clientName === 'string'
-    );
-}
-
-/**
- * Type-guard: a parsed payload is a log record iff it carries the
- * three required string fields.
- */
-function isRecord(value: unknown): value is LogRecordWire {
-    if (typeof value !== 'object' || value === null) {
-        return false;
-    }
-    const v = value as { category?: unknown; level?: unknown; message?: unknown };
-    return typeof v.category === 'string' && typeof v.level === 'string' && typeof v.message === 'string';
-}
-
-/**
- * Maps a .NET `LogLevel` string to a {@link Logger} method name.
- * `Critical` and `None` both fall through to `error` (there is no
- * higher level on our facade).
- */
-function levelToMethod(level: string): 'trace' | 'debug' | 'info' | 'warn' | 'error' | undefined {
-    switch (level) {
-        case 'Trace': return 'trace';
-        case 'Debug': return 'debug';
-        case 'Information': return 'info';
-        case 'Warning': return 'warn';
-        case 'Error':
-        case 'Critical':
-            return 'error';
-        case 'None': return undefined;
-        default: return 'info';
-    }
 }
 
 /**
@@ -159,7 +116,7 @@ export class LogServer implements vscode.Disposable {
             }
 
             if (!workerName) {
-                if (!isGreeting(payload)) {
+                if (!LogServer.isGreeting(payload)) {
                     this.logger.warn(`Expected greeting line, got: ${trimmed}`);
                     return;
                 }
@@ -168,12 +125,12 @@ export class LogServer implements vscode.Disposable {
                 return;
             }
 
-            if (!isRecord(payload)) {
+            if (!LogServer.isLogEntry(payload)) {
                 this.logger.warn(`Dropping non-record line from ${workerName}: ${trimmed}`);
                 return;
             }
 
-            const method = levelToMethod(payload.level);
+            const method = LogServer.levelToMethod(payload.level);
             if (!method || !perWorkerLogger) {
                 return;
             }
@@ -207,6 +164,49 @@ export class LogServer implements vscode.Disposable {
         if (this.server) {
             this.server.close();
             this.server = undefined;
+        }
+    }
+
+    /**
+     * Type-guard: a parsed payload is a greeting iff it carries the
+     * `clientName` field.
+     */
+    private static isGreeting(value: unknown): value is JsonLogGreeting {
+        return (
+            typeof value === 'object' &&
+            value !== null &&
+            typeof (value as { clientName?: unknown }).clientName === 'string'
+        );
+    }
+
+    /**
+     * Type-guard: a parsed payload is a log entry iff it carries the
+     * three required string fields.
+     */
+    private static isLogEntry(value: unknown): value is JsonLogEntry {
+        if (typeof value !== 'object' || value === null) {
+            return false;
+        }
+        const v = value as { category?: unknown; level?: unknown; message?: unknown };
+        return typeof v.category === 'string' && typeof v.level === 'string' && typeof v.message === 'string';
+    }
+
+    /**
+     * Maps a .NET `LogLevel` string to a {@link Logger} method name.
+     * `Critical` and `None` both fall through to `error` (there is no
+     * higher level on our facade).
+     */
+    private static levelToMethod(level: string): 'trace' | 'debug' | 'info' | 'warn' | 'error' | undefined {
+        switch (level) {
+            case 'Trace': return 'trace';
+            case 'Debug': return 'debug';
+            case 'Information': return 'info';
+            case 'Warning': return 'warn';
+            case 'Error':
+            case 'Critical':
+                return 'error';
+            case 'None': return undefined;
+            default: return 'info';
         }
     }
 }

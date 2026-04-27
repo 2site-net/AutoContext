@@ -7,13 +7,13 @@ export type LogLevel = 'Trace' | 'Debug' | 'Information' | 'Warning' | 'Error' |
 
 /**
  * In-process record enqueued by every {@link Logger} call. Drained
- * off-thread by `LogServerClient` and either sent over the pipe (the
+ * off-thread by `LoggingClient` and either sent over the pipe (the
  * extension is listening) or written to stderr (fallback).
  *
- * TypeScript counterpart of the C# `LogRecord` readonly struct in
+ * TypeScript counterpart of the C# `LogEntry` readonly struct in
  * `AutoContext.Worker.Logging`.
  */
-export interface LogRecord {
+export interface LogEntry {
     readonly category: string;
     readonly level: LogLevel;
     readonly message: string;
@@ -25,9 +25,9 @@ export interface LogRecord {
  * Wire shape for one NDJSON log record streamed from a worker to the
  * extension's LogServer. Property names are intentionally lowercased
  * to keep the serialized payload compact and to match the
- * `AutoContext.Worker.Shared` C# `LogRecordWire`.
+ * `AutoContext.Worker.Shared` C# `JsonLogEntry`.
  */
-export interface LogRecordWire {
+export interface JsonLogEntry {
     readonly category: string;
     readonly level: string;
     readonly message: string;
@@ -36,10 +36,10 @@ export interface LogRecordWire {
 }
 
 /**
- * Wire shape for the greeting line every `LogServerClient` sends as
+ * Wire shape for the greeting line every `LoggingClient` sends as
  * the very first NDJSON line on the pipe — lets the extension route
  * subsequent records to the per-worker output channel.
  */
-export interface LogGreetingWire {
+export interface JsonLogGreeting {
     readonly clientName: string;
 }

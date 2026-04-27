@@ -1,9 +1,9 @@
 import { connect, type Socket } from 'node:net';
-import type { LogGreetingWire, LogRecord, LogRecordWire } from '#types/log-record.js';
-import type { LogSink } from '#types/log-sink.js';
+import type { JsonLogGreeting, LogEntry, JsonLogEntry } from '#types/log-entry.js';
+import type { LogPoster } from '#types/log-poster.js';
 
 /**
- * Background pipe-client that drains worker {@link LogRecord} values
+ * Background pipe-client that drains worker {@link LogEntry} values
  * from a bounded queue and writes them as NDJSON over a named pipe to
  * the extension-side LogServer. When the pipe is unavailable (no
  * `--log-pipe` argument, the connect attempt fails, or the pipe
@@ -16,16 +16,16 @@ import type { LogSink } from '#types/log-sink.js';
  * intentionally swallowed: this type IS the logger of last resort,
  * so it must never throw.
  *
- * TypeScript counterpart of `LogServerClient` in
+ * TypeScript counterpart of `LoggingClient` in
  * `AutoContext.Worker.Shared`.
  */
-export class LogServerClient implements LogSink {
+export class LoggingClient implements LogPoster {
     private static readonly QUEUE_CAPACITY = 1024;
     private static readonly CONNECT_TIMEOUT_MS = 2000;
 
     private readonly pipeName: string;
     private readonly clientName: string;
-    private readonly queue: LogRecord[] = [];
+    private readonly queue: LogEntry[] = [];
     private readonly waiters: Array<() => void> = [];
     private completed = false;
     private socket: Socket | undefined;
@@ -42,17 +42,17 @@ export class LogServerClient implements LogSink {
     }
 
     /**
-     * Enqueues `record` for off-thread delivery. Never blocks; if the
-     * queue is full the oldest record is dropped.
+     * Enqueues `entry` for off-thread delivery. Never blocks; if the
+     * queue is full the oldest entry is dropped.
      */
-    enqueue(record: LogRecord): void {
+    post(entry: LogEntry): void {
         if (this.completed) {
             return;
         }
-        if (this.queue.length >= LogServerClient.QUEUE_CAPACITY) {
+        if (this.queue.length >= LoggingClient.QUEUE_CAPACITY) {
             this.queue.shift();
         }
-        this.queue.push(record);
+        this.queue.push(entry);
         const waiter = this.waiters.shift();
         if (waiter !== undefined) {
             waiter();
@@ -108,18 +108,18 @@ export class LogServerClient implements LogSink {
 
         try {
             while (true) {
-                const record = await this.dequeue();
-                if (record === undefined) {
+                const entry = await this.dequeue();
+                if (entry === undefined) {
                     return;
                 }
                 if (this.socket !== undefined) {
-                    if (await this.tryWritePipe(this.socket, record)) {
+                    if (await this.tryWritePipe(this.socket, entry)) {
                         continue;
                     }
                     this.socket.destroy();
                     this.socket = undefined;
                 }
-                LogServerClient.writeStderr(record);
+                LoggingClient.writeStderr(entry);
             }
         }
         finally {
@@ -131,14 +131,14 @@ export class LogServerClient implements LogSink {
         }
     }
 
-    private dequeue(): Promise<LogRecord | undefined> {
+    private dequeue(): Promise<LogEntry | undefined> {
         if (this.queue.length > 0) {
             return Promise.resolve(this.queue.shift());
         }
         if (this.completed) {
             return Promise.resolve(undefined);
         }
-        return new Promise<LogRecord | undefined>((resolve) => {
+        return new Promise<LogEntry | undefined>((resolve) => {
             this.waiters.push(() => {
                 if (this.queue.length > 0) {
                     resolve(this.queue.shift());
@@ -175,7 +175,7 @@ export class LogServerClient implements LogSink {
             };
             const onConnect = (): void => settle(sock);
             const onError = (): void => settle(null);
-            const timer = setTimeout(() => settle(null), LogServerClient.CONNECT_TIMEOUT_MS);
+            const timer = setTimeout(() => settle(null), LoggingClient.CONNECT_TIMEOUT_MS);
             timer.unref();
             sock.once('connect', onConnect);
             sock.once('error', onError);
@@ -183,31 +183,31 @@ export class LogServerClient implements LogSink {
     }
 
     private trySendGreeting(socket: Socket): Promise<boolean> {
-        const greeting: LogGreetingWire = { clientName: this.clientName };
-        return LogServerClient.writeLine(socket, JSON.stringify(greeting));
+        const greeting: JsonLogGreeting = { clientName: this.clientName };
+        return LoggingClient.writeLine(socket, JSON.stringify(greeting));
     }
 
-    private tryWritePipe(socket: Socket, record: LogRecord): Promise<boolean> {
-        const wire: LogRecordWire = {
-            category: record.category,
-            level: record.level,
-            message: record.message,
-            ...(record.exception !== undefined ? { exception: record.exception } : {}),
-            ...(record.correlationId !== undefined ? { correlationId: record.correlationId } : {}),
+    private tryWritePipe(socket: Socket, entry: LogEntry): Promise<boolean> {
+        const wire: JsonLogEntry = {
+            category: entry.category,
+            level: entry.level,
+            message: entry.message,
+            ...(entry.exception !== undefined ? { exception: entry.exception } : {}),
+            ...(entry.correlationId !== undefined ? { correlationId: entry.correlationId } : {}),
         };
         let json: string;
         try {
             json = JSON.stringify(wire);
         }
         catch {
-            // Returning false routes the record through the stderr
+            // Returning false routes the entry through the stderr
             // fallback rather than silently losing it. The wire shape
             // contains only strings/undefined so this is essentially
             // unreachable today — the guard is here to keep the drain
             // loop honest if the type contract is ever violated.
             return Promise.resolve(false);
         }
-        return LogServerClient.writeLine(socket, json);
+        return LoggingClient.writeLine(socket, json);
     }
 
     private static writeLine(socket: Socket, json: string): Promise<boolean> {
@@ -222,12 +222,12 @@ export class LogServerClient implements LogSink {
         });
     }
 
-    private static writeStderr(record: LogRecord): void {
+    private static writeStderr(entry: LogEntry): void {
         try {
-            const prefix = record.correlationId === undefined ? '' : `[${record.correlationId}] `;
-            process.stderr.write(`${prefix}${record.level}: ${record.category}: ${record.message}\n`);
-            if (record.exception !== undefined) {
-                process.stderr.write(`${record.exception}\n`);
+            const prefix = entry.correlationId === undefined ? '' : `[${entry.correlationId}] `;
+            process.stderr.write(`${prefix}${entry.level}: ${entry.category}: ${entry.message}\n`);
+            if (entry.exception !== undefined) {
+                process.stderr.write(`${entry.exception}\n`);
             }
         }
         catch {

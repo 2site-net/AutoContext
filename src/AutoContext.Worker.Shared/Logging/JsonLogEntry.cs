@@ -7,7 +7,7 @@ using System.Text.Json.Serialization;
 /// extension's LogServer. Property names are intentionally lowercased to
 /// keep the serialised payload compact.
 /// </summary>
-internal sealed record LogRecordWire(
+internal sealed record JsonLogEntry(
     [property: JsonPropertyName("category")] string Category,
     [property: JsonPropertyName("level")] string Level,
     [property: JsonPropertyName("message")] string Message,

@@ -8,6 +8,6 @@ using System.Text.Json.Serialization;
 /// <c>JsonSerializerOptions</c> allocations).
 /// </summary>
 [JsonSourceGenerationOptions(WriteIndented = false)]
-[JsonSerializable(typeof(LogRecordWire))]
-[JsonSerializable(typeof(LogGreetingWire))]
+[JsonSerializable(typeof(JsonLogEntry))]
+[JsonSerializable(typeof(JsonLogGreeting))]
 internal sealed partial class LogServerJsonContext : JsonSerializerContext;

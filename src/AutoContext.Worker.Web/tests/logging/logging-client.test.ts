@@ -1,8 +1,8 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import * as net from 'node:net';
 import { randomUUID } from 'node:crypto';
-import { LogServerClient } from '#src/logging/log-server-client.js';
-import type { LogRecord } from '#types/log-record.js';
+import { LoggingClient } from '#src/logging/logging-client.js';
+import type { LogEntry } from '#types/log-entry.js';
 
 interface PipeReader {
     readonly server: net.Server;
@@ -72,7 +72,7 @@ async function startPipeReader(): Promise<PipeReader> {
     };
 }
 
-describe('LogServerClient', () => {
+describe('LoggingClient', () => {
     const cleanups: Array<() => Promise<void>> = [];
 
     afterEach(async () => {
@@ -85,11 +85,11 @@ describe('LogServerClient', () => {
         const reader = await startPipeReader();
         cleanups.push(() => reader.close());
 
-        const client = new LogServerClient(reader.pipeName, 'AutoContext.Worker.Web');
+        const client = new LoggingClient(reader.pipeName, 'AutoContext.Worker.Web');
         cleanups.push(() => client.dispose());
 
-        client.enqueue(record('Acme.Demo', 'Information', 'hello world'));
-        client.enqueue({ ...record('Acme.Demo', 'Error', 'oops'), correlationId: 'abcd1234' });
+        client.post(record('Acme.Demo', 'Information', 'hello world'));
+        client.post({ ...record('Acme.Demo', 'Error', 'oops'), correlationId: 'abcd1234' });
 
         // Give the drain loop time to write before tearing the client down.
         await new Promise((r) => setTimeout(r, 50));
@@ -114,10 +114,10 @@ describe('LogServerClient', () => {
     it('omits absent optional fields from the wire payload', async () => {
         const reader = await startPipeReader();
         cleanups.push(() => reader.close());
-        const client = new LogServerClient(reader.pipeName, 'AutoContext.Worker.Web');
+        const client = new LoggingClient(reader.pipeName, 'AutoContext.Worker.Web');
         cleanups.push(() => client.dispose());
 
-        client.enqueue(record('Acme.Demo', 'Information', 'plain'));
+        client.post(record('Acme.Demo', 'Information', 'plain'));
 
         await new Promise((r) => setTimeout(r, 50));
         await client.dispose();
@@ -137,12 +137,12 @@ describe('LogServerClient', () => {
         }) as typeof process.stderr.write;
 
         try {
-            const client = new LogServerClient(
+            const client = new LoggingClient(
                 `actx-web-no-such-${randomUUID()}`.slice(0, 32),
                 'AutoContext.Worker.Web',
             );
             cleanups.push(() => client.dispose());
-            client.enqueue({
+            client.post({
                 ...record('Acme.Demo', 'Warning', 'no pipe here'),
                 correlationId: 'feedface',
             });
@@ -165,9 +165,9 @@ describe('LogServerClient', () => {
         }) as typeof process.stderr.write;
 
         try {
-            const client = new LogServerClient('', 'AutoContext.Worker.Web');
+            const client = new LoggingClient('', 'AutoContext.Worker.Web');
             cleanups.push(() => client.dispose());
-            client.enqueue(record('Acme.Demo', 'Information', 'standalone'));
+            client.post(record('Acme.Demo', 'Information', 'standalone'));
 
             await new Promise((r) => setTimeout(r, 30));
             await client.dispose();
@@ -189,13 +189,13 @@ describe('LogServerClient', () => {
         }) as typeof process.stderr.write;
 
         try {
-            const client = new LogServerClient('', 'AutoContext.Worker.Web');
+            const client = new LoggingClient('', 'AutoContext.Worker.Web');
             cleanups.push(() => client.dispose());
 
             // Saturate well past QUEUE_CAPACITY (1024). The drain loop
             // is async, but the queue cap still bounds peak memory.
             for (let i = 0; i < 5000; i++) {
-                client.enqueue(record('Acme.Demo', 'Information', `m-${i}`));
+                client.post(record('Acme.Demo', 'Information', `m-${i}`));
             }
 
             await new Promise((r) => setTimeout(r, 50));
@@ -212,10 +212,10 @@ describe('LogServerClient', () => {
     });
 
     it('rejects an empty client name', () => {
-        expect(() => new LogServerClient('', '   ')).toThrow(/clientName/);
+        expect(() => new LoggingClient('', '   ')).toThrow(/clientName/);
     });
 });
 
-function record(category: string, level: LogRecord['level'], message: string): LogRecord {
+function record(category: string, level: LogEntry['level'], message: string): LogEntry {
     return { category, level, message };
 }

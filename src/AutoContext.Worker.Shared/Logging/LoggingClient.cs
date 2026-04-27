@@ -11,7 +11,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 
 /// <summary>
-/// Background pipe-client that drains worker <see cref="LogRecord"/> values
+/// Background pipe-client that drains worker <see cref="LogEntry"/> values
 /// from a bounded channel and writes them as NDJSON over a named pipe to
 /// the extension-side LogServer. When the pipe is unavailable (no
 /// <c>--log-pipe</c> argument, the connect attempt fails, or the pipe
@@ -25,14 +25,14 @@ using Microsoft.Extensions.Options;
 /// errors) are intentionally swallowed: this type IS the logger of last
 /// resort, so it must never throw.
 /// </remarks>
-internal sealed class LogServerClient : IAsyncDisposable
+internal sealed class LoggingClient : IAsyncDisposable
 {
     private const int QueueCapacity = 1024;
     private const int ConnectTimeoutMs = 2000;
 
     private static readonly UTF8Encoding Utf8NoBom = new(encoderShouldEmitUTF8Identifier: false);
 
-    private readonly Channel<LogRecord> _queue = Channel.CreateBounded<LogRecord>(
+    private readonly Channel<LogEntry> _queue = Channel.CreateBounded<LogEntry>(
         new BoundedChannelOptions(QueueCapacity)
         {
             FullMode = BoundedChannelFullMode.DropOldest,
@@ -45,7 +45,7 @@ internal sealed class LogServerClient : IAsyncDisposable
     private readonly CancellationTokenSource _cts = new();
     private readonly Task _drainTask;
 
-    public LogServerClient(IOptions<WorkerHostOptions> options, IHostEnvironment env)
+    public LoggingClient(IOptions<WorkerHostOptions> options, IHostEnvironment env)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(env);
@@ -56,10 +56,10 @@ internal sealed class LogServerClient : IAsyncDisposable
     }
 
     /// <summary>
-    /// Enqueues <paramref name="record"/> for off-thread delivery. Never
-    /// blocks; if the queue is full the oldest record is dropped.
+    /// Posts <paramref name="entry"/> for off-thread delivery. Never
+    /// blocks; if the internal buffer is full the oldest entry is dropped.
     /// </summary>
-    public void Enqueue(LogRecord record) => _queue.Writer.TryWrite(record);
+    public void Post(LogEntry entry) => _queue.Writer.TryWrite(entry);
 
     public async ValueTask DisposeAsync()
     {
@@ -104,11 +104,11 @@ internal sealed class LogServerClient : IAsyncDisposable
                 stream = null;
             }
 
-            await foreach (var record in _queue.Reader.ReadAllAsync(ct).ConfigureAwait(false))
+            await foreach (var entry in _queue.Reader.ReadAllAsync(ct).ConfigureAwait(false))
             {
                 if (stream is not null)
                 {
-                    if (await TryWritePipeAsync(stream, record, ct).ConfigureAwait(false))
+                    if (await TryWritePipeAsync(stream, entry, ct).ConfigureAwait(false))
                     {
                         continue;
                     }
@@ -117,7 +117,7 @@ internal sealed class LogServerClient : IAsyncDisposable
                     stream = null;
                 }
 
-                WriteStderr(record);
+                WriteStderr(entry);
             }
         }
         catch (OperationCanceledException)
@@ -163,8 +163,8 @@ internal sealed class LogServerClient : IAsyncDisposable
         try
         {
             var json = JsonSerializer.Serialize(
-                new LogGreetingWire(_clientName),
-                LogServerJsonContext.Default.LogGreetingWire);
+                new JsonLogGreeting(_clientName),
+                LogServerJsonContext.Default.JsonLogGreeting);
             var bytes = Utf8NoBom.GetBytes(json + "\n");
             await stream.WriteAsync(bytes, ct).ConfigureAwait(false);
             await stream.FlushAsync(ct).ConfigureAwait(false);
@@ -176,17 +176,17 @@ internal sealed class LogServerClient : IAsyncDisposable
         }
     }
 
-    private static async Task<bool> TryWritePipeAsync(Stream stream, LogRecord record, CancellationToken ct)
+    private static async Task<bool> TryWritePipeAsync(Stream stream, LogEntry entry, CancellationToken ct)
     {
         try
         {
-            var wire = new LogRecordWire(
-                Category: record.Category,
-                Level: record.Level.ToString(),
-                Message: record.Message,
-                Exception: record.Exception?.ToString(),
-                CorrelationId: record.CorrelationId);
-            var json = JsonSerializer.Serialize(wire, LogServerJsonContext.Default.LogRecordWire);
+            var wire = new JsonLogEntry(
+                Category: entry.Category,
+                Level: entry.Level.ToString(),
+                Message: entry.Message,
+                Exception: entry.Exception?.ToString(),
+                CorrelationId: entry.CorrelationId);
+            var json = JsonSerializer.Serialize(wire, LogServerJsonContext.Default.JsonLogEntry);
             var bytes = Utf8NoBom.GetBytes(json + "\n");
             await stream.WriteAsync(bytes, ct).ConfigureAwait(false);
             await stream.FlushAsync(ct).ConfigureAwait(false);
@@ -198,16 +198,16 @@ internal sealed class LogServerClient : IAsyncDisposable
         }
     }
 
-    private static void WriteStderr(LogRecord record)
+    private static void WriteStderr(LogEntry entry)
     {
         try
         {
-            var prefix = record.CorrelationId is null ? string.Empty : $"[{record.CorrelationId}] ";
-            var line = $"{prefix}{record.Level}: {record.Category}: {record.Message}";
+            var prefix = entry.CorrelationId is null ? string.Empty : $"[{entry.CorrelationId}] ";
+            var line = $"{prefix}{entry.Level}: {entry.Category}: {entry.Message}";
             Console.Error.WriteLine(line);
-            if (record.Exception is not null)
+            if (entry.Exception is not null)
             {
-                Console.Error.WriteLine(record.Exception);
+                Console.Error.WriteLine(entry.Exception);
             }
         }
         catch (IOException)

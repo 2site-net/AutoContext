@@ -1,8 +1,8 @@
 import { parseArgs } from 'node:util';
 import { McpToolService } from './hosting/mcp-tool-service.js';
 import type { McpTask } from '#types/mcp-task.js';
-import { LogServerClient } from './logging/log-server-client.js';
-import { LogServerLogger } from './logging/logger.js';
+import { LoggingClient } from './logging/logging-client.js';
+import { PipeLogger } from './logging/logger.js';
 import { AnalyzeTypeScriptCodingStyleTask } from './tasks/typescript/analyze-typescript-coding-style.js';
 
 /**
@@ -41,11 +41,11 @@ async function main(argv: readonly string[]): Promise<void> {
 
     const logPipe = typeof values['log-pipe'] === 'string' ? values['log-pipe'] : '';
 
-    // Wire the LogServer client first so any startup errors below
+    // Wire the logging client first so any startup errors below
     // also flow through the structured channel (or its stderr fallback
     // when --log-pipe was not supplied).
-    const logSink = new LogServerClient(logPipe, CLIENT_NAME);
-    const logger = new LogServerLogger(logSink);
+    const loggingClient = new LoggingClient(logPipe, CLIENT_NAME);
+    const logger = new PipeLogger(loggingClient);
     const serviceLogger = logger.forCategory('AutoContext.Worker.Hosting.McpToolService');
 
     const tasks: readonly McpTask[] = [
@@ -83,7 +83,7 @@ async function main(argv: readonly string[]): Promise<void> {
     } finally {
         // Always release the pipe server, even if the wait above throws.
         await service.stop();
-        await logSink.dispose();
+        await loggingClient.dispose();
     }
 }
 

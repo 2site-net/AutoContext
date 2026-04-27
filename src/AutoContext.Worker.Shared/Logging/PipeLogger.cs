@@ -4,13 +4,13 @@ using Microsoft.Extensions.Logging;
 
 /// <summary>
 /// Per-category <see cref="ILogger"/> that formats every entry on the
-/// caller's thread (cheap) and hands the resulting <see cref="LogRecord"/>
-/// to <see cref="LogServerClient"/> for off-thread delivery.
+/// caller's thread (cheap) and hands the resulting <see cref="LogEntry"/>
+/// to <see cref="LoggingClient"/> for off-thread delivery.
 /// </summary>
-internal sealed class LogServerLogger(string category, LogServerClient client) : ILogger
+internal sealed class PipeLogger(string category, LoggingClient client) : ILogger
 {
     private readonly string _category = category;
-    private readonly LogServerClient _client = client;
+    private readonly LoggingClient _client = client;
 
     public IDisposable? BeginScope<TState>(TState state) where TState : notnull => NullScope.Instance;
 
@@ -37,7 +37,7 @@ internal sealed class LogServerLogger(string category, LogServerClient client) :
             return;
         }
 
-        _client.Enqueue(new LogRecord(_category, logLevel, message, exception, CorrelationScope.Current));
+        _client.Post(new LogEntry(_category, logLevel, message, exception, CorrelationScope.Current));
     }
 
     private sealed class NullScope : IDisposable

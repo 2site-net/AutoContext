@@ -3,8 +3,8 @@ namespace AutoContext.Worker.Logging;
 /// <summary>
 /// Worker-process holder for the per-invocation correlation id sent on
 /// every <c>TaskRequest</c>. Set by <c>McpToolService</c> for the
-/// duration of a task dispatch and read by <c>LogServerLogger</c> at
-/// log-emission time so every <c>LogRecord</c> carries the id without
+/// duration of a task dispatch and read by <c>PipeLogger</c> at
+/// log-emission time so every <c>LogEntry</c> carries the id without
 /// requiring callers to thread it through their <c>ILogger</c> APIs.
 /// </summary>
 /// <remarks>

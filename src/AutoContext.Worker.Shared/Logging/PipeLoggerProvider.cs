@@ -6,18 +6,18 @@ using Microsoft.Extensions.Logging;
 
 /// <summary>
 /// <see cref="ILoggerProvider"/> that hands out per-category loggers, all
-/// of which enqueue records onto the shared <see cref="LogServerClient"/>.
+/// of which enqueue records onto the shared <see cref="LoggingClient"/>.
 /// Registered by <c>WorkerHostBuilderExtensions.ConfigureWorkerHost</c>
-/// for every worker; the underlying <see cref="LogServerClient"/> decides
+/// for every worker; the underlying <see cref="LoggingClient"/> decides
 /// at runtime whether to ship records over the named pipe or fall back to
 /// stderr.
 /// </summary>
-internal sealed class LogServerLoggerProvider : ILoggerProvider
+internal sealed class PipeLoggerProvider : ILoggerProvider
 {
-    private readonly LogServerClient _client;
-    private readonly ConcurrentDictionary<string, LogServerLogger> _loggers = new(StringComparer.Ordinal);
+    private readonly LoggingClient _client;
+    private readonly ConcurrentDictionary<string, PipeLogger> _loggers = new(StringComparer.Ordinal);
 
-    public LogServerLoggerProvider(LogServerClient client)
+    public PipeLoggerProvider(LoggingClient client)
     {
         ArgumentNullException.ThrowIfNull(client);
 
@@ -25,9 +25,9 @@ internal sealed class LogServerLoggerProvider : ILoggerProvider
     }
 
     public ILogger CreateLogger(string categoryName) =>
-        _loggers.GetOrAdd(categoryName, name => new LogServerLogger(name, _client));
+        _loggers.GetOrAdd(categoryName, name => new PipeLogger(name, _client));
 
-    // The LogServerClient is owned by the DI container (Singleton) and is
+    // The LoggingClient is owned by the DI container (Singleton) and is
     // disposed by the host on shutdown — this provider must NOT dispose it.
     public void Dispose() => _loggers.Clear();
 }

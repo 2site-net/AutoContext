@@ -1,30 +1,30 @@
 import { CorrelationScope } from './correlation-scope.js';
-import type { LogLevel, LogRecord } from '#types/log-record.js';
+import type { LogLevel, LogEntry } from '#types/log-entry.js';
 import type { Logger } from '#types/logger.js';
-import type { LogSink } from '#types/log-sink.js';
+import type { LogPoster } from '#types/log-poster.js';
 
 /**
- * Default {@link Logger} implementation backed by a shared
- * {@link LogSink} (named pipe with stderr fallback). TypeScript
- * counterpart of `LogServerLogger` / `LogServerLoggerProvider` in
- * `AutoContext.Worker.Shared`.
+ * Default {@link Logger} implementation that hands every entry to a
+ * {@link LogPoster} (typically `LoggingClient`, which delivers entries
+ * over a named pipe with stderr fallback). TypeScript counterpart of
+ * `PipeLogger` / `PipeLoggerProvider` in `AutoContext.Worker.Shared`.
  *
  * A single per-tree cache keyed by category name is shared between
  * the root and every logger derived through {@link forCategory}, so
  * repeated `forCategory(name)` calls — from anywhere in the tree —
  * return the same instance.
  */
-export class LogServerLogger implements Logger {
-    private readonly sink: LogSink;
+export class PipeLogger implements Logger {
+    private readonly poster: LogPoster;
     private readonly category: string;
-    private readonly cache: Map<string, LogServerLogger>;
+    private readonly cache: Map<string, PipeLogger>;
 
     constructor(
-        sink: LogSink,
+        poster: LogPoster,
         category: string = '',
-        cache?: Map<string, LogServerLogger>,
+        cache?: Map<string, PipeLogger>,
     ) {
-        this.sink = sink;
+        this.poster = poster;
         this.category = category;
         this.cache = cache ?? new Map();
     }
@@ -38,7 +38,7 @@ export class LogServerLogger implements Logger {
     forCategory(name: string): Logger {
         let cached = this.cache.get(name);
         if (cached === undefined) {
-            cached = new LogServerLogger(this.sink, name, this.cache);
+            cached = new PipeLogger(this.poster, name, this.cache);
             this.cache.set(name, cached);
         }
         return cached;
@@ -46,14 +46,14 @@ export class LogServerLogger implements Logger {
 
     private emit(level: LogLevel, message: string, exception?: unknown): void {
         const correlationId = CorrelationScope.current();
-        const record: LogRecord = {
+        const entry: LogEntry = {
             category: this.category,
             level,
             message,
-            ...(exception !== undefined ? { exception: LogServerLogger.formatException(exception) } : {}),
+            ...(exception !== undefined ? { exception: PipeLogger.formatException(exception) } : {}),
             ...(correlationId !== undefined ? { correlationId } : {}),
         };
-        this.sink.enqueue(record);
+        this.poster.post(entry);
     }
 
     private static formatException(value: unknown): string {

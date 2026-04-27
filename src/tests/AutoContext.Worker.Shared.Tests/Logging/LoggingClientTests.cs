@@ -12,12 +12,12 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
-public sealed class LogServerClientTests
+public sealed class LoggingClientTests
 {
     private static readonly UTF8Encoding Utf8NoBom = new(encoderShouldEmitUTF8Identifier: false);
 
     [Fact]
-    public async Task Should_send_greeting_then_log_record_over_the_pipe()
+    public async Task Should_send_greeting_then_log_entry_over_the_pipe()
     {
         var ct = TestContext.Current.CancellationToken;
         var pipeName = NewPipeName();
@@ -29,7 +29,7 @@ public sealed class LogServerClientTests
 
         await acceptTask;
 
-        client.Enqueue(new LogRecord(
+        client.Post(new LogEntry(
             Category: "AutoContext.Demo",
             Level: LogLevel.Information,
             Message: "hello pipe",
@@ -60,7 +60,7 @@ public sealed class LogServerClientTests
 
         await acceptTask;
 
-        client.Enqueue(new LogRecord(
+        client.Post(new LogEntry(
             Category: "AutoContext.Demo",
             Level: LogLevel.Information,
             Message: "scoped",
@@ -86,7 +86,7 @@ public sealed class LogServerClientTests
         await acceptTask;
 
         var ex = new InvalidOperationException("boom");
-        client.Enqueue(new LogRecord("Cat", LogLevel.Error, "oh no", ex, CorrelationId: null));
+        client.Post(new LogEntry("Cat", LogLevel.Error, "oh no", ex, CorrelationId: null));
 
         var (_, records) = await ReadLinesAsync(server, expected: 2, ct);
         var serialised = records[0]!["exception"]!.GetValue<string>();
@@ -105,7 +105,7 @@ public sealed class LogServerClientTests
         // Should accept records without blocking and without exceptions.
         for (var i = 0; i < 10; i++)
         {
-            client.Enqueue(new LogRecord("Cat", LogLevel.Trace, $"msg {i}", null, CorrelationId: null));
+            client.Post(new LogEntry("Cat", LogLevel.Trace, $"msg {i}", null, CorrelationId: null));
         }
 
         // DisposeAsync (via await using) must complete cleanly even though
@@ -122,7 +122,7 @@ public sealed class LogServerClientTests
 
         await using (var client = NewClient(pipeName, "Test.Worker.Orphan"))
         {
-            client.Enqueue(new LogRecord("Cat", LogLevel.Information, "stranded", null, CorrelationId: null));
+            client.Post(new LogEntry("Cat", LogLevel.Information, "stranded", null, CorrelationId: null));
         }
 
         sw.Stop();
@@ -132,10 +132,10 @@ public sealed class LogServerClientTests
             $"DisposeAsync took {sw.Elapsed.TotalSeconds:F2}s — expected < 6s.");
     }
 
-    private static LogServerClient NewClient(string pipeName, string clientName)
+    private static LoggingClient NewClient(string pipeName, string clientName)
     {
         var options = Options.Create(new WorkerHostOptions { LogPipe = pipeName });
-        return new LogServerClient(options, new FakeEnv { ApplicationName = clientName });
+        return new LoggingClient(options, new FakeEnv { ApplicationName = clientName });
     }
 
     private static NamedPipeServerStream CreateServer(string pipeName) => new(

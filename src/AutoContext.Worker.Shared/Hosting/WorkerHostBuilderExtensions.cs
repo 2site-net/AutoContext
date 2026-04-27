@@ -72,15 +72,15 @@ public static class WorkerHostBuilderExtensions
 
         // Replace the default logging providers (which target stdout — never
         // read by the parent process and capable of blocking the worker once
-        // the OS pipe buffer fills) with a single LogServerLoggerProvider.
+        // the OS pipe buffer fills) with a single PipeLoggerProvider.
         // The provider streams structured records over the --log-pipe named
         // pipe when one is supplied, and falls back to writing to stderr
         // (where the parent's stderr line-handler picks them up) when it
         // isn't — so workers stay diagnosable in standalone runs too.
         builder.Logging.ClearProviders();
         builder.Logging.SetMinimumLevel(LogLevel.Trace);
-        builder.Services.AddSingleton<LogServerClient>();
-        builder.Services.AddSingleton<ILoggerProvider, LogServerLoggerProvider>();
+        builder.Services.AddSingleton<LoggingClient>();
+        builder.Services.AddSingleton<ILoggerProvider, PipeLoggerProvider>();
 
         return builder;
     }
