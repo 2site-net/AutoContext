@@ -63,9 +63,11 @@ export class McpServerProvider implements vscode.McpServerDefinitionProvider {
 
     async provideMcpServerDefinitions(): Promise<vscode.McpServerDefinition[]> {
         if (!existsSync(this.mcpServerBinary)) {
+            this.logger.warn(`Mcp.Server binary not found at '${this.mcpServerBinary}'; returning no MCP server definitions`);
             return [];
         }
         if (!this.anyToolEnabled()) {
+            this.logger.debug('No tools enabled in config; returning no MCP server definitions');
             return [];
         }
 
@@ -74,6 +76,7 @@ export class McpServerProvider implements vscode.McpServerDefinitionProvider {
             '--health-monitor', this.healthMonitor.getPipeName(),
         ];
 
+        this.logger.debug(`Returning Mcp.Server definition '${mcpServerDefinitionLabel}' (v${this.version})`);
         return [new vscode.McpStdioServerDefinition(
             mcpServerDefinitionLabel,
             this.mcpServerBinary,

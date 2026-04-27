@@ -270,8 +270,9 @@ export class AutoContextConfigManager implements vscode.Disposable {
                     } else {
                         entry.disabledInstructions = filtered;
                     }
-                } catch {
+                } catch (err) {
                     // File no longer exists — remove all its IDs.
+                    this.logger.warn(`Instruction file '${fileName}' is missing; clearing ${ids.length} disabled id(s) from config`, err);
                     removed += ids.length;
                     delete entry.disabledInstructions;
                 }
@@ -371,8 +372,9 @@ export class AutoContextConfigManager implements vscode.Disposable {
         if (isEmpty) {
             try {
                 await unlink(path);
-            } catch {
+            } catch (err) {
                 // File didn't exist — nothing to delete.
+                this.logger.debug(`No config file to delete: ${path}`, err);
             }
             this.cachedConfig = {};
             this.didChangeEmitter.fire();

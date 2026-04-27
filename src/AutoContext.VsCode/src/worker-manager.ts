@@ -83,9 +83,11 @@ export class WorkerManager implements vscode.Disposable {
     /** Spawns all worker processes listed in the servers manifest. Idempotent. */
     start(): void {
         if (this.started) {
+            this.logger.debug('start() called again; ignoring (already started)');
             return;
         }
         this.started = true;
+        this.logger.info(`Starting ${this.workers.length} worker(s) with endpoint suffix '${this.endpointSuffix}'`);
 
         const exeSuffix = process.platform === 'win32' ? '.exe' : '';
         const serversPath = join(this.extensionPath, 'servers');
@@ -150,9 +152,11 @@ export class WorkerManager implements vscode.Disposable {
 
     private spawnWorker(spec: WorkerSpec): void {
         const workerLogger = this.logger.forCategory(spec.identity);
+        workerLogger.debug(`Spawning: ${spec.command} ${spec.args.join(' ')}`);
         const child = spawn(spec.command, [...spec.args], {
             stdio: ['ignore', 'pipe', 'pipe'],
         });
+        workerLogger.debug(`Spawned (pid=${child.pid ?? 'unknown'}); waiting for ready marker on '${spec.pipeName}'`);
         this.children.push(child);
 
         if (child.stderr) {
@@ -160,6 +164,7 @@ export class WorkerManager implements vscode.Disposable {
             rl.on('line', (line: string) => {
                 workerLogger.info(line);
                 if (line === spec.readyMarker) {
+                    workerLogger.debug('Ready marker received');
                     const entry = this.readyResolvers.get(spec.identity);
                     if (entry) {
                         this.readyResolvers.delete(spec.identity);

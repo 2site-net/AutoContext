@@ -96,7 +96,7 @@ export class InstructionsFilesManager implements vscode.Disposable {
         await Promise.all(this.manifest.instructions.map(entry => {
             const staged = join(this.stagingDir, entry.name);
             const live = join(this.generatedRoot, entry.name);
-            return InstructionsFilesManager.copyIfChanged(staged, live);
+            return this.copyIfChanged(staged, live);
         }));
     }
 
@@ -104,7 +104,8 @@ export class InstructionsFilesManager implements vscode.Disposable {
         const workspacesDir = join(this.extensionPath, 'instructions', '.workspaces');
         try {
             await access(workspacesDir);
-        } catch {
+        } catch (err) {
+            this.logger.debug(`Staging root not accessible, skipping cleanup: ${workspacesDir}`, err);
             return;
         }
 
@@ -113,7 +114,8 @@ export class InstructionsFilesManager implements vscode.Disposable {
         let entries: string[];
         try {
             entries = await readdir(workspacesDir);
-        } catch {
+        } catch (err) {
+            this.logger.debug(`Failed to list staging root, skipping cleanup: ${workspacesDir}`, err);
             return;
         }
 
@@ -129,8 +131,9 @@ export class InstructionsFilesManager implements vscode.Disposable {
                     return;
                 }
                 await rm(dirPath, { recursive: true });
-            } catch {
-                // Permission error or in-use — skip.
+            } catch (err) {
+                // Permission error or in-use — skip and try again next time.
+                this.logger.debug(`Skipped orphaned staging dir: ${dirPath}`, err);
             }
         }));
     }
@@ -174,7 +177,7 @@ export class InstructionsFilesManager implements vscode.Disposable {
         }
 
         content = InstructionsFilesManager.stripInstructionIds(content);
-        await InstructionsFilesManager.writeIfChanged(dest, content);
+        await this.writeIfChanged(dest, content);
     }
 
     private static readonly instructionIdTag = /\[INST\d{4}\]\s*/g;
@@ -188,26 +191,29 @@ export class InstructionsFilesManager implements vscode.Disposable {
         return createHash('sha256').update(root).digest('hex').slice(0, 12);
     }
 
-    private static async writeIfChanged(dest: string, content: string): Promise<void> {
+    private async writeIfChanged(dest: string, content: string): Promise<void> {
         try {
             const existing = await readFile(dest, 'utf-8');
             if (existing === content) {
                 return;
             }
-        } catch {
+        } catch (err) {
             // File doesn't exist or read failed — fall through to write.
+            this.logger.debug(`No existing file at destination, will create: ${dest}`, err);
         }
 
         await writeFile(dest, content, 'utf-8');
     }
 
-    private static async copyIfChanged(src: string, dest: string): Promise<void> {
+    private async copyIfChanged(src: string, dest: string): Promise<void> {
+        let content: string;
         try {
-            const content = await readFile(src, 'utf-8');
-            await InstructionsFilesManager.writeIfChanged(dest, content);
-        } catch {
-            // Source read failed — skip.
+            content = await readFile(src, 'utf-8');
+        } catch (err) {
+            this.logger.warn(`Failed to copy instruction file from staging to live root: ${src}`, err);
+            return;
         }
+        await this.writeIfChanged(dest, content);
     }
 
 }

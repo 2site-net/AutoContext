@@ -314,6 +314,8 @@ export class WorkspaceContextDetector implements vscode.Disposable {
 
     /** Full workspace scan. Called on activation and as a fallback. */
     async detect(): Promise<void> {
+        const started = Date.now();
+        this.logger.debug('Starting full workspace detection');
         try {
             const flags = {} as Record<string, boolean>;
             for (const f of allFlags) flags[f] = false;
@@ -347,6 +349,8 @@ export class WorkspaceContextDetector implements vscode.Disposable {
 
             const overrides = await this.scanOverrides();
             await this.commitState(flags, overrides);
+            const setCount = Object.values(flags).filter(Boolean).length;
+            this.logger.info(`Full detection complete in ${Date.now() - started}ms: ${setCount} flag(s) set, ${overrides.fileNames.size} override(s)`);
         } catch (error) {
             this.logger.error('Workspace detection failed', error);
         }
@@ -358,9 +362,12 @@ export class WorkspaceContextDetector implements vscode.Disposable {
      */
     private async detectIncremental(events: readonly PendingEvent[]): Promise<void> {
         if (this._baseFlags.size === 0) {
+            this.logger.debug(`Incremental detection received ${events.length} event(s) before any full scan; falling back to full detect()`);
             return this.detect();
         }
 
+        const started = Date.now();
+        this.logger.debug(`Incremental detection: ${events.length} event(s)`);
         try {
             const flags = {} as Record<string, boolean>;
             for (const [k, v] of this._baseFlags) flags[k] = v;
@@ -452,6 +459,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
                 : { fileNames: this._overriddenFileNames, versions: this._overrideVersions };
 
             await this.commitState(flags, overrides);
+            this.logger.debug(`Incremental detection complete in ${Date.now() - started}ms (npm=${scanNpm}, dotnet=${scanDotnet}, overrides=${scanOverrides})`);
         } catch (error) {
             this.logger.error('Incremental detection failed', error);
         }

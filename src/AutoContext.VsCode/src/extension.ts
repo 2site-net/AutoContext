@@ -45,8 +45,10 @@ export async function activate(context: vscode.ExtensionContext) {
     const instructionsMetadata = metadataLoader.getInstructionsInfo();
 
     const instructionsManifest = new InstructionsFilesManifestLoader(context.extensionPath).load(instructionsMetadata);
-    const instructionsExporter = new InstructionsFilesExporter(context.extensionPath);
     const rootLogger = OutputChannelLogger.create(EXTENSION_NAME);
+    const activationLogger = rootLogger.forCategory(LogCategory.Activation);
+    activationLogger.info(`Activating AutoContext v${version}`);
+    const instructionsExporter = new InstructionsFilesExporter(context.extensionPath, rootLogger.forCategory(LogCategory.Instructions));
     const workspaceContextDetector = new WorkspaceContextDetector(instructionsManifest, rootLogger.forCategory(LogCategory.Detection));
     const configManager = new AutoContextConfigManager(context.extensionPath, version, rootLogger.forCategory(LogCategory.Config));
     const contentProvider = new InstructionsViewerDocumentProvider(context.extensionPath, configManager, rootLogger.forCategory(LogCategory.Instructions));
@@ -113,6 +115,8 @@ export async function activate(context: vscode.ExtensionContext) {
     healthMonitor.start();
     workerManager.start();
 
+    activationLogger.debug('Health monitor and worker manager started');
+
     // Register MCP provider early so tools appear in the picker immediately.
     // detect() below populates context flags (hasDotNet, hasTypeScript, etc.)
     // that refine which servers are returned; the onDidChange event fires once
@@ -151,6 +155,8 @@ export async function activate(context: vscode.ExtensionContext) {
     ]);
     if (workspaceReadyTimedOut) {
         rootLogger.forCategory(LogCategory.Activation).warn('Timed out waiting for Worker.Workspace ready marker; continuing activation.');
+    } else {
+        activationLogger.debug('Worker.Workspace ready');
     }
 
     await Promise.all([
@@ -279,6 +285,8 @@ export async function activate(context: vscode.ExtensionContext) {
     void vscode.commands.executeCommand('setContext', contextKeys.HasWhatsNew, hasWhatsNew);
 
     await logDiagnostics();
+
+    activationLogger.info('Activation complete');
 
     return { mcpServerProvider, configManager, codeLensProvider, contentProvider, workspaceContextDetector, workerManager, healthMonitor, instructionsTreeProvider, mcpToolsTreeProvider };
 }

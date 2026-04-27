@@ -1,9 +1,13 @@
 import * as vscode from 'vscode';
 import type { InstructionsFileEntry } from './instructions-file-entry.js';
 import { instructionScheme } from './instructions-viewer-document-provider.js';
+import type { Logger } from '#types/logger.js';
 
 export class InstructionsFilesExporter {
-    constructor(private readonly extensionPath: string) {}
+    constructor(
+        private readonly extensionPath: string,
+        private readonly logger: Logger,
+    ) {}
 
     async export(entries: readonly InstructionsFileEntry[]): Promise<void> {
         const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
@@ -14,7 +18,7 @@ export class InstructionsFilesExporter {
 
         for (const entry of entries) {
             const targetUri = vscode.Uri.joinPath(rootUri, entry.targetPath);
-            const exists = await InstructionsFilesExporter.fileExists(targetUri);
+            const exists = await this.fileExists(targetUri);
 
             if (exists) {
                 const action = await vscode.window.showWarningMessage(
@@ -43,11 +47,12 @@ export class InstructionsFilesExporter {
         await vscode.workspace.fs.writeFile(targetUri, content);
     }
 
-    private static async fileExists(uri: vscode.Uri): Promise<boolean> {
+    private async fileExists(uri: vscode.Uri): Promise<boolean> {
         try {
             await vscode.workspace.fs.stat(uri);
             return true;
-        } catch {
+        } catch (err) {
+            this.logger.debug(`Existence check failed (treating as missing): ${uri.fsPath}`, err);
             return false;
         }
     }
