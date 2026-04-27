@@ -4,6 +4,8 @@ import type { Server, Socket } from 'node:net';
 import { WorkerProtocolChannel } from './worker-protocol-channel.js';
 import type { McpTask } from './mcp-task.js';
 import type { WorkerHostOptions } from './worker-host-options.js';
+import { CorrelationScope } from '../logging/correlation-scope.js';
+import type { CategoryLogger } from '../logging/logger.js';
 
 /**
  * Named-pipe server that accepts per-task connections and dispatches
@@ -26,13 +28,14 @@ import type { WorkerHostOptions } from './worker-host-options.js';
 export class McpToolService {
     private readonly options: WorkerHostOptions;
     private readonly tasks: ReadonlyMap<string, McpTask>;
+    private readonly logger: CategoryLogger | undefined;
     private server: net.Server | undefined;
     private readonly inFlight = new Set<Promise<void>>();
     private readonly sockets = new Set<Socket>();
     private readonly stopController = new AbortController();
     private stopPromise: Promise<void> | undefined;
 
-    constructor(options: WorkerHostOptions, tasks: readonly McpTask[]) {
+    constructor(options: WorkerHostOptions, tasks: readonly McpTask[], logger?: CategoryLogger) {
         if (options.pipe.trim() === '') {
             throw new Error('Missing required configuration: --pipe');
         }
@@ -52,6 +55,7 @@ export class McpToolService {
 
         this.options = options;
         this.tasks = map;
+        this.logger = logger;
     }
 
     /**
@@ -167,36 +171,58 @@ export class McpToolService {
     }
 
     private async dispatch(requestBytes: Buffer, signal: AbortSignal): Promise<Buffer> {
-        let taskName = '';
-
+        // Parse the envelope first under its own narrow handler. A
+        // malformed envelope has no correlation id available, so it
+        // can never be scope-correlated — but neither does it execute
+        // any user task, so there's nothing to mis-attribute.
+        let request: unknown;
         try {
-            const request: unknown = JSON.parse(requestBytes.toString('utf8'));
-            if (!isObject(request)) {
-                return buildErrorResponse('', 'Request must be a JSON object.');
-            }
-
-            const rawTaskName = request['mcpTask'];
-            if (typeof rawTaskName !== 'string' || rawTaskName.length === 0) {
-                return buildErrorResponse('', "Request is missing required field 'mcpTask'.");
-            }
-            taskName = rawTaskName;
-
-            const task = this.tasks.get(taskName);
-            if (task === undefined) {
-                return buildErrorResponse(taskName, `Unknown task '${taskName}'.`);
-            }
-
-            const data = buildTaskData(request);
-            const output = await task.execute(data, signal);
-            return buildSuccessResponse(taskName, output);
+            request = JSON.parse(requestBytes.toString('utf8'));
         } catch (ex) {
-            if (ex instanceof SyntaxError) {
-                return buildErrorResponse(taskName, `Malformed request JSON: ${ex.message}`);
-            }
-            const { name, message } = describeError(ex);
-            return buildErrorResponse(taskName, `Task threw ${name}: ${message}`);
+            const message = ex instanceof Error ? ex.message : String(ex);
+            return buildErrorResponse('', `Malformed request JSON: ${message}`);
         }
+
+        if (!isObject(request)) {
+            return buildErrorResponse('', 'Request must be a JSON object.');
+        }
+
+        const rawTaskName = request['mcpTask'];
+        if (typeof rawTaskName !== 'string' || rawTaskName.length === 0) {
+            return buildErrorResponse('', "Request is missing required field 'mcpTask'.");
+        }
+        const taskName = rawTaskName;
+        const correlationId = readCorrelationId(request);
+
+        // Run the dispatch — including the catch-all — inside the
+        // CorrelationScope so every CategoryLogger call made by the
+        // task and the failure handler is stamped with the same id
+        // before reaching the LogServer pipe.
+        const run = async (): Promise<Buffer> => {
+            try {
+                const task = this.tasks.get(taskName);
+                if (task === undefined) {
+                    return buildErrorResponse(taskName, `Unknown task '${taskName}'.`);
+                }
+                const data = buildTaskData(request);
+                const output = await task.execute(data, signal);
+                return buildSuccessResponse(taskName, output);
+            } catch (ex) {
+                const { name, message } = describeError(ex);
+                this.logger?.error(`Task '${taskName}' failed: ${name}: ${message}`, ex);
+                return buildErrorResponse(taskName, `Task threw ${name}: ${message}`);
+            }
+        };
+
+        return correlationId === undefined
+            ? run()
+            : CorrelationScope.run(correlationId, run);
     }
+}
+
+function readCorrelationId(request: Record<string, unknown>): string | undefined {
+    const value = request['correlationId'];
+    return typeof value === 'string' && value.length > 0 ? value : undefined;
 }
 
 function describeError(ex: unknown): { name: string; message: string } {

@@ -7,6 +7,8 @@ import { join } from 'node:path';
 import type { McpTask } from '../../src/hosting/mcp-task.js';
 import { McpToolService } from '../../src/hosting/mcp-tool-service.js';
 import { WorkerProtocolChannel } from '../../src/hosting/worker-protocol-channel.js';
+import { CorrelationScope } from '../../src/logging/correlation-scope.js';
+import type { CategoryLogger } from '../../src/logging/logger.js';
 
 function makeEndpoint(): string {
     const id = randomUUID();
@@ -341,4 +343,74 @@ describe('McpToolService', () => {
             await expect(service.start(new AbortController().signal)).rejects.toThrow();
         },
     );
+
+    it('threads the request correlationId into CorrelationScope for the task', async () => {
+        let observed: string | undefined = 'unset';
+        class CapturingTask implements McpTask {
+            readonly taskName = 'capture';
+            execute(): Promise<unknown> {
+                observed = CorrelationScope.current();
+                return Promise.resolve({});
+            }
+        }
+
+        const { pipe } = await startService([new CapturingTask()]);
+        const response = await sendRequest(pipe, {
+            mcpTask: 'capture',
+            data: {},
+            correlationId: 'abcd1234',
+        });
+
+        expect(response['status']).toBe('ok');
+        expect(observed).toBe('abcd1234');
+    });
+
+    it('logs task failures with the active correlationId', async () => {
+        const calls: Array<{ message: string; correlationId: string | undefined }> = [];
+        const logger: CategoryLogger = {
+            trace: () => {},
+            debug: () => {},
+            info: () => {},
+            warn: () => {},
+            error: (message) => calls.push({ message, correlationId: CorrelationScope.current() }),
+        };
+
+        const pipe = makeEndpoint();
+        const controller = new AbortController();
+        const service = new McpToolService(
+            { pipe, readyMarker: '[test] Ready.' },
+            [new ThrowingTask()],
+            logger,
+        );
+        services.push(service);
+        controllers.push(controller);
+        await service.start(controller.signal);
+
+        const response = await sendRequest(pipe, {
+            mcpTask: 'throws',
+            data: {},
+            correlationId: 'feedface',
+        });
+
+        expect(response['status']).toBe('error');
+        expect(calls.length).toBe(1);
+        expect(calls[0]?.message).toMatch(/throws/);
+        expect(calls[0]?.correlationId).toBe('feedface');
+    });
+
+    it('proceeds without a scope when the request omits correlationId', async () => {
+        let observed: string | undefined = 'unset';
+        class CapturingTask implements McpTask {
+            readonly taskName = 'capture';
+            execute(): Promise<unknown> {
+                observed = CorrelationScope.current();
+                return Promise.resolve({});
+            }
+        }
+
+        const { pipe } = await startService([new CapturingTask()]);
+        await sendRequest(pipe, { mcpTask: 'capture', data: {} });
+
+        expect(observed).toBeUndefined();
+    });
 });

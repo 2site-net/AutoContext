@@ -22,4 +22,20 @@ export interface WorkerHostOptions {
      * connections. Used by parent processes as a readiness handshake.
      */
     readonly readyMarker: string;
+
+    /**
+     * Optional named pipe the worker connects to for streaming
+     * structured log records (NDJSON) to the parent process. When
+     * omitted (the worker is launched standalone, or the parent did
+     * not pass `--log-pipe`), log output falls back to stderr.
+     */
+    readonly logPipe?: string;
+
+    /**
+     * Identifier sent on the LogServer greeting so the extension can
+     * route this worker's records to a per-worker output channel
+     * (e.g. `AutoContext.Worker.Web`). Counterpart of
+     * `IHostEnvironment.ApplicationName` on the .NET side.
+     */
+    readonly clientName?: string;
 }
