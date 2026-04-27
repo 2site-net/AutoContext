@@ -25,4 +25,12 @@ public sealed class WorkerHostOptions
     /// connections. Used by parent processes as a readiness handshake.
     /// </summary>
     public string ReadyMarker { get; init; } = string.Empty;
+
+    /// <summary>
+    /// Optional named pipe the worker connects to for streaming structured
+    /// log records (NDJSON) to the parent process. When empty (the worker
+    /// is launched standalone, or the parent did not pass <c>--log-pipe</c>),
+    /// log output falls back to stderr.
+    /// </summary>
+    public string LogPipe { get; init; } = string.Empty;
 }

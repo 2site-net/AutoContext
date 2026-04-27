@@ -24,6 +24,7 @@ import { McpServerProvider } from './mcp-server-provider.js';
 import { WorkerManager } from './worker-manager.js';
 import { ServersManifestLoader } from './servers-manifest-loader.js';
 import { HealthMonitorServer } from './health-monitor.js';
+import { LogServer } from './log-server.js';
 import { OutputChannelLogger } from './output-channel-logger.js';
 import { LogCategory } from './types/logger.js';
 
@@ -54,7 +55,10 @@ export async function activate(context: vscode.ExtensionContext) {
     const instructionsWriter = new InstructionsFilesManager(context.extensionPath, configManager, instructionsManifest, rootLogger.forCategory(LogCategory.InstructionsWriter));
     const configProjector = new ConfigContextProjector(configManager, instructionsManifest, mcpToolsManifest, rootLogger.forCategory(LogCategory.ConfigProjector));
     const serversManifest = new ServersManifestLoader(context.extensionPath).load();
-    const workerManager = new WorkerManager(context.extensionPath, rootLogger.forCategory(LogCategory.WorkerManager), vscode.workspace.workspaceFolders?.[0]?.uri.fsPath, serversManifest);
+    const logServer = new LogServer(rootLogger.forCategory(LogCategory.LogServer));
+    logServer.start();
+    context.subscriptions.push(logServer);
+    const workerManager = new WorkerManager(context.extensionPath, rootLogger.forCategory(LogCategory.WorkerManager), vscode.workspace.workspaceFolders?.[0]?.uri.fsPath, serversManifest, logServer.getPipeName());
     const healthMonitor = new HealthMonitorServer(rootLogger.forCategory(LogCategory.HealthMonitor));
     const mcpServerProvider = new McpServerProvider(context.extensionPath, version, didChangeEmitter.event, mcpToolsManifest, healthMonitor, workerManager, serversManifest, configManager, rootLogger.forCategory(LogCategory.McpServerProvider));
     const stateResolver = new TreeViewStateResolver(workspaceContextDetector);

@@ -1,8 +1,11 @@
 namespace AutoContext.Worker.Hosting;
 
+using AutoContext.Worker.Logging;
+
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
 /// <summary>
 /// Extension methods that apply the standard worker-host bootstrap shared by
@@ -47,6 +50,7 @@ public static class WorkerHostBuilderExtensions
         var switchMappings = new Dictionary<string, string>
         {
             ["--pipe"] = nameof(WorkerHostOptions.Pipe),
+            ["--log-pipe"] = nameof(WorkerHostOptions.LogPipe),
         };
 
         if (additionalSwitchMappings is not null)
@@ -65,6 +69,18 @@ public static class WorkerHostBuilderExtensions
         });
 
         builder.Services.Configure<WorkerHostOptions>(builder.Configuration);
+
+        // Replace the default logging providers (which target stdout — never
+        // read by the parent process and capable of blocking the worker once
+        // the OS pipe buffer fills) with a single LogServerLoggerProvider.
+        // The provider streams structured records over the --log-pipe named
+        // pipe when one is supplied, and falls back to writing to stderr
+        // (where the parent's stderr line-handler picks them up) when it
+        // isn't — so workers stay diagnosable in standalone runs too.
+        builder.Logging.ClearProviders();
+        builder.Logging.SetMinimumLevel(LogLevel.Trace);
+        builder.Services.AddSingleton<LogServerClient>();
+        builder.Services.AddSingleton<ILoggerProvider, LogServerLoggerProvider>();
 
         return builder;
     }

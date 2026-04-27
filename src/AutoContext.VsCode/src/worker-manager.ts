@@ -52,6 +52,7 @@ export class WorkerManager implements vscode.Disposable {
         private readonly logger: Logger,
         private readonly workspaceRoot: string | undefined,
         private readonly serversManifest: ServersManifest,
+        private readonly logPipeName?: string,
     ) {
         for (const entry of serversManifest.workers) {
             const identity = entry.name.replace(/^AutoContext\./, '');
@@ -104,6 +105,13 @@ export class WorkerManager implements vscode.Disposable {
 
             if (entry.id === 'workspace' && this.workspaceRoot) {
                 args.push('--workspace-root', this.workspaceRoot);
+            }
+
+            // Workers that understand --log-pipe stream structured
+            // logger output back over the LogServer's named pipe.
+            // Workers that don't simply ignore the flag.
+            if (this.logPipeName) {
+                args.push('--log-pipe', this.logPipeName);
             }
 
             return {

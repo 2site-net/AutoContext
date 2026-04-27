@@ -34,6 +34,7 @@ export const LogCategory = {
     Instructions: 'Instructions',
     InstructionsTree: 'InstructionsTree',
     InstructionsWriter: 'InstructionsWriter',
+    LogServer: 'LogServer',
     McpServerProvider: 'McpServerProvider',
     McpToolsTree: 'McpToolsTree',
     WorkerManager: 'WorkerManager',
