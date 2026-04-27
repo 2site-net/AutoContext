@@ -171,10 +171,20 @@ export class WorkerManager implements vscode.Disposable {
 
         child.on('error', (err) => {
             workerLogger.error('Failed to start', err);
+            const entry = this.readyResolvers.get(spec.identity);
+            if (entry) {
+                this.readyResolvers.delete(spec.identity);
+                entry.reject(err);
+            }
         });
 
         child.on('exit', (code) => {
             workerLogger.info(`Exited with code ${code}`);
+            const entry = this.readyResolvers.get(spec.identity);
+            if (entry) {
+                this.readyResolvers.delete(spec.identity);
+                entry.reject(new Error(`Worker '${spec.identity}' exited with code ${code} before becoming ready.`));
+            }
         });
     }
 }
