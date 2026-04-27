@@ -1,56 +1,37 @@
 import { join } from 'node:path';
-import type { ServerEntry } from './types/server-entry.js';
-import type { ServersManifest } from './types/servers-manifest.js';
+import { ServerEntry } from './server-entry.js';
+import { ServersManifest } from './servers-manifest.js';
 import { JsonFile } from './json-file.js';
 
-interface RawServersFile {
-    servers: ServerEntry[];
+interface JsonServer {
+    id: string;
+    name: string;
+    type: string;
 }
 
-interface RawToolsCategory {
-    workerId?: string;
-}
-
-interface RawToolsManifest {
-    categories: RawToolsCategory[];
+interface JsonServersFile {
+    servers: readonly JsonServer[];
 }
 
 /**
- * Loads `servers.json` and cross-references it with
- * `resources/mcp-tools.json` to produce a {@link ServersManifest}.
+ * Loads `resources/servers.json` from the extension folder and projects
+ * it into a {@link ServersManifest} instance.
  */
 export class ServersManifestLoader {
     constructor(private readonly extensionPath: string) {}
 
     load(): ServersManifest {
-        const rawServers = JsonFile.fromUtf8<RawServersFile>(
+        const json = JsonFile.fromUtf8<JsonServersFile>(
             join(this.extensionPath, 'resources', 'servers.json'),
         );
-        const rawTools = JsonFile.fromUtf8<RawToolsManifest>(
-            join(this.extensionPath, 'resources', 'mcp-tools.json'),
-        );
 
-        const workerIds = new Set(
-            rawTools.categories
-                .filter(c => c.workerId !== undefined)
-                .map(c => c.workerId!),
-        );
+        const entries = json.servers.map(s => {
+            if (s.type !== 'dotnet' && s.type !== 'node') {
+                throw new Error(`servers.json: entry '${s.id}' has unsupported type '${s.type}'.`);
+            }
+            return new ServerEntry(s.id, s.name, s.type);
+        });
 
-        const workers = rawServers.servers.filter(
-            (s): s is ServerEntry & { id: string } =>
-                s.id !== undefined && workerIds.has(s.id),
-        );
-
-        const mcpServerEntry = rawServers.servers.find(
-            (s): s is ServerEntry & { id: string } => s.id === 'mcp-server',
-        );
-        if (!mcpServerEntry) {
-            throw new Error("servers.json is missing an entry with id 'mcp-server'.");
-        }
-
-        return {
-            workers,
-            mcpServer: mcpServerEntry,
-        };
+        return new ServersManifest(entries);
     }
 }

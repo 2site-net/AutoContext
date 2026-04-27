@@ -3,7 +3,8 @@ import { join } from 'node:path';
 import { McpStdioServerDefinition } from './_fakes/fake-vscode';
 import { McpServerProvider } from '../../src/mcp-server-provider';
 import { McpToolsManifestLoader } from '../../src/mcp-tools-manifest-loader';
-import type { ServersManifest } from '../../src/types/servers-manifest';
+import { ServersManifest } from '../../src/servers-manifest';
+import { ServerEntry } from '../../src/server-entry';
 import type { AutoContextConfig } from '../../src/types/autocontext-config';
 import type { WorkerManager } from '../../src/worker-manager';
 import { createFakeConfigManager, createFakeHealthMonitor, createFakeLogger } from './_fakes';
@@ -24,10 +25,9 @@ const logger = createFakeLogger();
 
 const onDidChange = vi.fn() as unknown as import('vscode').Event<void>;
 const mcpToolsManifest = new McpToolsManifestLoader(join(__dirname, '..', '..')).load();
-const serversManifest: ServersManifest = {
-    workers: [],
-    mcpServer: { id: 'mcp-server', name: 'AutoContext.Mcp.Server', type: 'dotnet' },
-};
+const serversManifest: ServersManifest = new ServersManifest([
+    new ServerEntry('mcp-server', 'AutoContext.Mcp.Server', 'dotnet'),
+]);
 const fakeWorkerManager = { getEndpointSuffix: vi.fn(() => 'abc123def456') } as unknown as WorkerManager;
 
 let currentConfig: AutoContextConfig = {};

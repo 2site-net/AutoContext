@@ -55,10 +55,16 @@ export async function activate(context: vscode.ExtensionContext) {
     const instructionsWriter = new InstructionsFilesManager(context.extensionPath, configManager, instructionsManifest, rootLogger.forCategory(LogCategory.InstructionsWriter));
     const configProjector = new ConfigContextProjector(configManager, instructionsManifest, mcpToolsManifest, rootLogger.forCategory(LogCategory.ConfigProjector));
     const serversManifest = new ServersManifestLoader(context.extensionPath).load();
+    const workerIds = new Set(
+        mcpToolsManifest.topCategories
+            .map(c => c.workerId)
+            .filter((id): id is string => id !== undefined),
+    );
+    const workerEntries = serversManifest.servers.filter(s => workerIds.has(s.id));
     const logServer = new LogServer(rootLogger.forCategory(LogCategory.LogServer));
     logServer.start();
     context.subscriptions.push(logServer);
-    const workerManager = new WorkerManager(context.extensionPath, rootLogger.forCategory(LogCategory.WorkerManager), vscode.workspace.workspaceFolders?.[0]?.uri.fsPath, serversManifest, logServer.getPipeName());
+    const workerManager = new WorkerManager(context.extensionPath, rootLogger.forCategory(LogCategory.WorkerManager), vscode.workspace.workspaceFolders?.[0]?.uri.fsPath, workerEntries, logServer.getPipeName());
     const healthMonitor = new HealthMonitorServer(rootLogger.forCategory(LogCategory.HealthMonitor));
     const mcpServerProvider = new McpServerProvider(context.extensionPath, version, didChangeEmitter.event, mcpToolsManifest, healthMonitor, workerManager, serversManifest, configManager, rootLogger.forCategory(LogCategory.McpServerProvider));
     const stateResolver = new TreeViewStateResolver(workspaceContextDetector);

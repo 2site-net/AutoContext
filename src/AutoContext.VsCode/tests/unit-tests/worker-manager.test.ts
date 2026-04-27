@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { EventEmitter } from 'node:events';
 import { PassThrough } from 'node:stream';
 import { createFakeLogger } from './_fakes';
-import type { ServersManifest } from '../../src/types/servers-manifest';
+import { ServerEntry } from '../../src/server-entry';
 
 const spawnMock = vi.fn();
 
@@ -13,14 +13,11 @@ vi.mock('node:child_process', () => ({
 // Import after mocks so the module picks up the mocked spawn.
 const { WorkerManager } = await import('../../src/worker-manager');
 
-const fakeManifest: ServersManifest = {
-    workers: [
-        { id: 'workspace', name: 'AutoContext.Worker.Workspace', type: 'dotnet' },
-        { id: 'dotnet', name: 'AutoContext.Worker.DotNet', type: 'dotnet' },
-        { id: 'web', name: 'AutoContext.Worker.Web', type: 'node' },
-    ],
-    mcpServer: { id: 'mcp-server', name: 'AutoContext.Mcp.Server', type: 'dotnet' },
-};
+const fakeWorkers: ServerEntry[] = [
+    new ServerEntry('workspace', 'AutoContext.Worker.Workspace', 'dotnet'),
+    new ServerEntry('dotnet', 'AutoContext.Worker.DotNet', 'dotnet'),
+    new ServerEntry('web', 'AutoContext.Worker.Web', 'node'),
+];
 
 interface FakeChild extends EventEmitter {
     stdout: PassThrough;
@@ -44,7 +41,7 @@ describe('WorkerManager', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         spawnMock.mockImplementation(() => createFakeChild());
-        manager = new WorkerManager('/ext', logger, '/workspace', fakeManifest);
+        manager = new WorkerManager('/ext', logger, '/workspace', fakeWorkers);
     });
 
     afterEach(() => {
@@ -56,7 +53,7 @@ describe('WorkerManager', () => {
     });
 
     it('should give a distinct suffix per instance', () => {
-        const other = new WorkerManager('/ext', logger, '/workspace', fakeManifest);
+        const other = new WorkerManager('/ext', logger, '/workspace', fakeWorkers);
 
         expect(other.getEndpointSuffix()).not.toBe(manager.getEndpointSuffix());
 
@@ -100,7 +97,7 @@ describe('WorkerManager', () => {
     });
 
     it('should omit --workspace-root when no workspace root is given', () => {
-        const mgr = new WorkerManager('/ext', logger, undefined, fakeManifest);
+        const mgr = new WorkerManager('/ext', logger, undefined, fakeWorkers);
         mgr.start();
 
         const workspaceCall = spawnMock.mock.calls.find(c => (c[0] as string).includes('Worker.Workspace'));
@@ -118,7 +115,7 @@ describe('WorkerManager', () => {
             return child;
         });
 
-        const mgr = new WorkerManager('/ext', logger, '/workspace', fakeManifest);
+        const mgr = new WorkerManager('/ext', logger, '/workspace', fakeWorkers);
         mgr.start();
         const workspaceChild = children[0];
         workspaceChild.stderr.write('hello from workspace\n');
@@ -139,7 +136,7 @@ describe('WorkerManager', () => {
             return child;
         });
 
-        const mgr = new WorkerManager('/ext', logger, '/workspace', fakeManifest);
+        const mgr = new WorkerManager('/ext', logger, '/workspace', fakeWorkers);
         mgr.start();
         let resolved = false;
         void mgr.whenWorkspaceReady().then(() => { resolved = true; });
@@ -161,7 +158,7 @@ describe('WorkerManager', () => {
             return child;
         });
 
-        const mgr = new WorkerManager('/ext', logger, '/workspace', fakeManifest);
+        const mgr = new WorkerManager('/ext', logger, '/workspace', fakeWorkers);
         mgr.start();
         mgr.dispose();
 
@@ -170,7 +167,7 @@ describe('WorkerManager', () => {
     });
 
     it('should reject pending whenWorkspaceReady() waiters on dispose', async () => {
-        const mgr = new WorkerManager('/ext', logger, '/workspace', fakeManifest);
+        const mgr = new WorkerManager('/ext', logger, '/workspace', fakeWorkers);
         mgr.start();
 
         const ready = mgr.whenWorkspaceReady();

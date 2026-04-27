@@ -7,6 +7,8 @@ vi.mock('node:fs', async () => {
 });
 
 const { ServersManifestLoader } = await import('../../src/servers-manifest-loader');
+const { ServersManifest } = await import('../../src/servers-manifest');
+const { ServerEntry } = await import('../../src/server-entry');
 
 const allServers = [
     { id: 'mcp-server', name: 'AutoContext.Mcp.Server', type: 'dotnet' },
@@ -15,18 +17,10 @@ const allServers = [
     { id: 'web', name: 'AutoContext.Worker.Web', type: 'node' },
 ];
 
-const toolsCategories = [
-    { name: 'Workspace', workerId: 'workspace' },
-    { name: 'DotNet', workerId: 'dotnet' },
-    { name: 'Web', workerId: 'web' },
-    { name: 'Git' },
-];
-
-function mockManifests(servers: unknown, categories: unknown): void {
+function mockServers(servers: unknown): void {
     readFileSyncMock.mockImplementation((path) => {
         const p = path.toString();
         if (p.endsWith('servers.json')) { return JSON.stringify({ servers }); }
-        if (p.endsWith('mcp-tools.json')) { return JSON.stringify({ categories }); }
         throw new Error(`Unexpected path: ${p}`);
     });
 }
@@ -36,32 +30,48 @@ beforeEach(() => {
 });
 
 describe('ServersManifestLoader.load()', () => {
-    it('returns only entries whose id appears in the tools manifest worker set', () => {
-        mockManifests(allServers, toolsCategories);
+    it('returns a ServersManifest containing every entry from servers.json', () => {
+        mockServers(allServers);
 
         const manifest = new ServersManifestLoader('/ext').load();
 
-        expect(manifest.workers.map(e => e.id)).toEqual(['workspace', 'dotnet', 'web']);
+        expect(manifest).toBeInstanceOf(ServersManifest);
+        expect(manifest.servers).toHaveLength(4);
+        expect(manifest.servers.every(s => s instanceof ServerEntry)).toBe(true);
+        expect(manifest.servers.map(s => s.id)).toEqual(['mcp-server', 'workspace', 'dotnet', 'web']);
     });
 
-    it('excludes the mcp-server entry from workers', () => {
-        mockManifests(allServers, toolsCategories);
+    it('preserves name and type for each entry', () => {
+        mockServers(allServers);
 
         const manifest = new ServersManifestLoader('/ext').load();
+        const web = manifest.byId('web');
 
-        expect(manifest.workers.find(e => e.id === 'mcp-server')).toBeUndefined();
+        expect(web?.name).toBe('AutoContext.Worker.Web');
+        expect(web?.type).toBe('node');
     });
 
-    it('returns an empty workers array when no tool category declares a workerId', () => {
-        mockManifests(allServers, [{ name: 'Git' }]);
+    it('rejects entries with an unsupported type', () => {
+        mockServers([{ id: 'bad', name: 'Bad', type: 'rust' }]);
 
-        const manifest = new ServersManifestLoader('/ext').load();
-
-        expect(manifest.workers).toHaveLength(0);
+        expect(() => new ServersManifestLoader('/ext').load()).toThrow(/unsupported type 'rust'/);
     });
 
-    it('exposes the mcp-server entry via mcpServer', () => {
-        mockManifests(allServers, toolsCategories);
+    it('throws a contextualised error when servers.json contains malformed JSON', () => {
+        readFileSyncMock.mockImplementation((path) => {
+            const p = path.toString();
+            if (p.endsWith('servers.json')) { return '{ not valid json'; }
+            throw new Error(`Unexpected path: ${p}`);
+        });
+
+        expect(() => new ServersManifestLoader('/ext').load())
+            .toThrow(/Failed to parse JSON from .+servers\.json/);
+    });
+});
+
+describe('ServersManifest', () => {
+    it('exposes mcpServer as a getter', () => {
+        mockServers(allServers);
 
         const manifest = new ServersManifestLoader('/ext').load();
 
@@ -69,21 +79,19 @@ describe('ServersManifestLoader.load()', () => {
         expect(manifest.mcpServer.name).toBe('AutoContext.Mcp.Server');
     });
 
-    it('throws when servers.json has no mcp-server entry', () => {
-        mockManifests(allServers.filter(s => s.id !== 'mcp-server'), toolsCategories);
+    it('throws from mcpServer when servers.json lacks an mcp-server entry', () => {
+        mockServers(allServers.filter(s => s.id !== 'mcp-server'));
 
-        expect(() => new ServersManifestLoader('/ext').load()).toThrow(/mcp-server/);
+        const manifest = new ServersManifestLoader('/ext').load();
+
+        expect(() => manifest.mcpServer).toThrow(/mcp-server/);
     });
 
-    it('throws a contextualised error when servers.json contains malformed JSON', () => {
-        readFileSyncMock.mockImplementation((path) => {
-            const p = path.toString();
-            if (p.endsWith('servers.json')) { return '{ not valid json'; }
-            if (p.endsWith('mcp-tools.json')) { return JSON.stringify({ categories: [] }); }
-            throw new Error(`Unexpected path: ${p}`);
-        });
+    it('returns undefined from byId for an unknown id', () => {
+        mockServers(allServers);
 
-        expect(() => new ServersManifestLoader('/ext').load())
-            .toThrow(/Failed to parse JSON from .+servers\.json/);
+        const manifest = new ServersManifestLoader('/ext').load();
+
+        expect(manifest.byId('nope')).toBeUndefined();
     });
 });

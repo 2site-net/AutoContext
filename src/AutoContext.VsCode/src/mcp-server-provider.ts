@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { existsSync } from 'node:fs';
 import type { McpToolsManifest } from './mcp-tools-manifest.js';
 import type { HealthMonitorServer } from './health-monitor.js';
-import type { ServersManifest } from './types/servers-manifest.js';
+import type { ServersManifest } from './servers-manifest.js';
 import type { WorkerManager } from './worker-manager.js';
 import type { AutoContextConfigManager } from './autocontext-config.js';
 import type { AutoContextConfig } from './types/autocontext-config.js';

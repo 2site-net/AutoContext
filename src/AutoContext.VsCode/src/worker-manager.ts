@@ -4,7 +4,7 @@ import { spawn, type ChildProcess } from 'node:child_process';
 import { createInterface } from 'node:readline';
 import { formatEndpoint } from './endpoint-formatter.js';
 import { IdentifierFactory } from './identifier-factory.js';
-import type { ServersManifest } from './types/servers-manifest.js';
+import type { ServerEntry } from './server-entry.js';
 import type { Logger } from './types/logger.js';
 
 /**
@@ -51,10 +51,10 @@ export class WorkerManager implements vscode.Disposable {
         private readonly extensionPath: string,
         private readonly logger: Logger,
         private readonly workspaceRoot: string | undefined,
-        private readonly serversManifest: ServersManifest,
+        private readonly workers: readonly ServerEntry[],
         private readonly logPipeName?: string,
     ) {
-        for (const entry of serversManifest.workers) {
+        for (const entry of workers) {
             const identity = entry.name.replace(/^AutoContext\./, '');
             const promise = new Promise<void>((resolve, reject) =>
                 this.readyResolvers.set(identity, { resolve, reject }));
@@ -90,7 +90,7 @@ export class WorkerManager implements vscode.Disposable {
         const exeSuffix = process.platform === 'win32' ? '.exe' : '';
         const serversPath = join(this.extensionPath, 'servers');
 
-        const specs: WorkerSpec[] = this.serversManifest.workers.map(entry => {
+        const specs: WorkerSpec[] = this.workers.map(entry => {
             const identity = entry.name.replace(/^AutoContext\./, '');
             const pipe = formatEndpoint(entry.id, this.endpointSuffix);
             const serverDir = join(serversPath, entry.name);
