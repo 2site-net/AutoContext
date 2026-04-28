@@ -2,9 +2,22 @@
 name: "code-review (v1.0.0)"
 description: "Use when reviewing code, giving feedback on a pull request, or auditing a change for correctness, security, and quality."
 ---
-# Code Review Guidelines
 
-## Output Structure
+# Code Review Instructions
+
+## MCP Tool Validation
+
+When reviewing changes, ground every finding in tool output where one
+exists:
+- For each touched `.cs` file, call `analyze_csharp_code`.
+- For each touched `.ts`/`.tsx`/`.js`/`.jsx` file, call `analyze_typescript_code`.
+- For each touched `.csproj`, call `analyze_nuget_references`.
+- For any drafted commit message, call `analyze_git_commit_message`.
+Treat any tool-reported violation as a blocking review finding.
+
+## Rules
+
+### Output Structure
 
 - [INST0001] **Do** cite the specific line or block and explain *why* it is a problem — not just *what* is wrong.
 - [INST0002] **Do** suggest a concrete fix or direction for each finding.
@@ -12,7 +25,7 @@ description: "Use when reviewing code, giving feedback on a pull request, or aud
 - [INST0004] **Don't** rewrite the author's approach because you would have done it differently — only flag concrete problems.
 - [INST0005] **Don't** repeat the same finding on every occurrence — identify the pattern once and note how many times it appears.
 
-## What to Check
+### What to Check
 
 - [INST0006] **Do** check for **correctness** — logic errors, off-by-one, null dereferences, race conditions, incorrect state transitions.
 - [INST0007] **Do** check for **security** — injection vectors, broken auth, sensitive data exposure, insecure defaults.

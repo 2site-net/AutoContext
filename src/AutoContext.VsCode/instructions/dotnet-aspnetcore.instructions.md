@@ -3,7 +3,20 @@ name: "dotnet-aspnetcore (v1.0.0)"
 description: "Use when building ASP.NET Core Web APIs: middleware pipeline, routing, error handling, authentication, model validation, HttpClient, and minimal vs controller-based APIs."
 applyTo: "**/*.{cs,fs,vb}"
 ---
-# ASP.NET Core / Web API Guidelines
+
+# ASP.NET Core / Web API Instructions
+
+## MCP Tool Validation
+
+After editing or generating any C# source file, call the
+`analyze_csharp_code` MCP tool on the changed source. Pass the file
+contents as `content` and the file's absolute path as `originalPath`.
+For test files, also pass the production type's namespace as
+`originalNamespace` and the test file path as `comparedPath`. Treat
+any reported violation as blocking — fix it before reporting the work
+as done.
+
+## Rules
 
 - [INST0001] **Do** keep endpoint handlers and controller actions thin — delegate business logic to injected services; the handler should only map HTTP concerns (route/query params, status codes) to domain calls.
 - [INST0002] **Do** register middleware in the documented order: `UseForwardedHeaders` → `UseHttpsRedirection` → `UseStaticFiles` → `UseRouting` → `UseCors` → `UseAuthentication` → `UseAuthorization` → `UseAntiforgery` → `UseRateLimiter` → endpoints. Misordering `UseAuthorization` before `UseRouting` silently disables endpoint authorization.
@@ -19,7 +32,7 @@ applyTo: "**/*.{cs,fs,vb}"
 - [INST0012] **Don't** call `Task.Run` and immediately `await` it inside a request handler — ASP.NET Core already runs on thread-pool threads, so the extra scheduling adds overhead without benefit.
 - [INST0013] **Don't** store per-request state in `static` fields or singleton services — ASP.NET Core processes many requests concurrently; use `Scoped` services or `HttpContext.Items` for request-scoped data.
 
-## Minimal APIs
+### Minimal APIs
 
 - [INST0014] **Do** prefer Minimal APIs (`app.MapGet`, `app.MapPost`, …) for new endpoints — they have less overhead, simpler testing, and less boilerplate than controller-based APIs. Reserve controllers when you need advanced model binding, `JsonPatch`, or OData support.
 - [INST0015] **Do** return `TypedResults` (e.g., `TypedResults.Ok(value)`, `TypedResults.NotFound()`) instead of `Results` — typed results carry compile-time response metadata for OpenAPI generation and enable type assertions in tests.

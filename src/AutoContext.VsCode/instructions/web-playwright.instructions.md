@@ -3,7 +3,18 @@ name: "web-playwright (v1.0.0)"
 description: "Use when writing, reviewing, or refactoring Playwright end-to-end tests, page objects, or Playwright-specific APIs."
 applyTo: "**/*.{test,spec}.{js,jsx,ts,tsx,mjs,mts}"
 ---
-# Playwright Guidelines
+
+# Playwright Instructions
+
+## MCP Tool Validation
+
+After editing or generating any TypeScript or JavaScript source file,
+call the `analyze_typescript_code` MCP tool on the changed source.
+Pass the file contents as `content` and the file's absolute path as
+`originalPath`. Treat any reported violation as blocking — fix it
+before reporting the work as done.
+
+## Rules
 
 - [INST0001] **Do** use `test` / `expect` from `@playwright/test` — avoid mixing with other assertion libraries.
 - [INST0002] **Do** use auto-waiting locators (`page.getByRole`, `page.getByText`, `page.getByLabel`, `page.getByTestId`) instead of CSS/XPath selectors.

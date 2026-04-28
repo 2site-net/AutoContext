@@ -2,18 +2,31 @@
 name: "dotnet-sqlite (v1.0.0)"
 description: "Use when writing SQLite queries, migrations, or any SQLite data access code in .NET projects."
 ---
-# SQLite Guidelines
+
+# SQLite Instructions
 
 > These instructions target SQLite used in .NET projects with Microsoft.Data.Sqlite or Microsoft.EntityFrameworkCore.Sqlite.
 
-## Security
+## MCP Tool Validation
+
+After editing or generating any C# source file, call the
+`analyze_csharp_code` MCP tool on the changed source. Pass the file
+contents as `content` and the file's absolute path as `originalPath`.
+For test files, also pass the production type's namespace as
+`originalNamespace` and the test file path as `comparedPath`. Treat
+any reported violation as blocking — fix it before reporting the work
+as done.
+
+## Rules
+
+### Security
 
 - [INST0001] **Do** use parameterized queries with `@param` syntax for all dynamic SQL — never concatenate user input into query strings; even local/embedded databases are vulnerable to SQL injection when they accept external input.
 - [INST0002] **Do** set `Mode=ReadOnly` in the connection string when the application only reads data — a read-only connection prevents accidental writes and limits the impact of injection attacks.
 - [INST0003] **Do** protect the database file with OS-level permissions — SQLite databases are plain files; anyone with file-system read access can open and query the data without authentication.
 - [INST0004] **Don't** store secrets (passwords, API keys, tokens) in SQLite tables unless the database file is encrypted — SQLite has no built-in authentication; the file is readable by any process with file-system access.
 
-## Query Design
+### Query Design
 
 - [INST0005] **Do** specify only the columns you need instead of `SELECT *` — `SELECT *` breaks code when schema changes and prevents covering-index-only scans.
 - [INST0006] **Do** use `INSERT OR REPLACE` or `INSERT … ON CONFLICT DO UPDATE` for upserts — SQLite supports both forms; prefer `ON CONFLICT` when you need to update specific columns without replacing the entire row.
@@ -22,7 +35,7 @@ description: "Use when writing SQLite queries, migrations, or any SQLite data ac
 - [INST0009] **Don't** use `NOT IN` with a subquery that can return `NULL` — if any row in the subquery is `NULL`, the entire `NOT IN` predicate evaluates to `NULL` and returns no rows; prefer `NOT EXISTS` instead.
 - [INST0010] **Don't** rely on type enforcement from column declarations — SQLite uses type affinity, not strict typing; a `TEXT` column happily stores an integer unless `STRICT` mode is enabled (SQLite 3.37+).
 
-## Performance
+### Performance
 
 - [INST0011] **Do** add indexes to columns used in `WHERE`, `JOIN`, `ORDER BY`, and `GROUP BY` clauses — missing indexes force full table scans, which matter even on small databases when queries are frequent.
 - [INST0012] **Do** use `EXPLAIN QUERY PLAN` to understand how SQLite executes a query — it shows whether indexes are used, detects full scans, and reveals suboptimal join orders.
@@ -31,7 +44,7 @@ description: "Use when writing SQLite queries, migrations, or any SQLite data ac
 - [INST0015] **Do** set `PRAGMA synchronous = NORMAL` when using WAL mode — `FULL` is the default and issues an `fsync` on every commit; `NORMAL` in WAL mode is safe against corruption from an application crash and only risks data loss on an OS or power failure.
 - [INST0016] **Don't** open multiple long-lived connections from the same process expecting true parallelism — SQLite serialises all writes through a single writer lock; use a pooled connection with `Pooling=true` in the connection string instead.
 
-## Schema & Migrations
+### Schema & Migrations
 
 - [INST0017] **Do** always include `IF NOT EXISTS` / `IF EXISTS` guards in migration scripts — migrations must be idempotent so they can be re-run safely without duplicate-object errors.
 - [INST0018] **Do** use `INTEGER PRIMARY KEY` for rowid aliases — in SQLite, `INTEGER PRIMARY KEY` is an alias for the implicit `rowid` and avoids a redundant B-tree; `INT PRIMARY KEY` does not alias the rowid and creates a separate index.

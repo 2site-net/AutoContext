@@ -2,7 +2,17 @@
 name: "dotnet-nuget (v1.0.0)"
 description: "Use when adding, updating, removing, or reviewing NuGet package references or third-party dependencies in .NET projects."
 ---
-# NuGet Packages & Dependencies Guidelines
+
+# NuGet Packages & Dependencies Instructions
+
+## MCP Tool Validation
+
+After editing any `.csproj` (adding, removing, or updating
+`PackageReference` entries), call the `analyze_nuget_references`
+MCP tool with the full `.csproj` XML as `content`. Treat any reported
+violation as blocking — fix it before reporting the work as done.
+
+## Rules
 
 - [INST0001] **Do** prefer built-in .NET libraries over third-party packages unless they add clear value (e.g., `System.Text.Json` vs `Newtonsoft.Json`).
 - [INST0002] **Do** review package references in each `.csproj`/`.fsproj`.

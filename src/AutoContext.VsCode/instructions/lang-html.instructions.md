@@ -3,11 +3,19 @@ name: "lang-html (v1.0.0)"
 description: "Use when generating or editing HTML markup, structuring documents, adding accessibility attributes, or working with forms and semantic elements."
 applyTo: "**/*.{html,razor,cshtml}"
 ---
-# HTML Guidelines
+
+# HTML Instructions
 
 > These instructions target frontend HTML markup — document structure, accessibility, SEO, and client-side security.
 
-## Structure & Semantics
+## MCP Tool Validation
+
+No corresponding MCP tool is currently available to automatically
+validate this instructions file — apply it manually.
+
+## Rules
+
+### Structure & Semantics
 
 - [INST0001] **Do** use semantic elements (`<nav>`, `<main>`, `<article>`, `<section>`, `<header>`, `<footer>`, `<aside>`) for page structure instead of generic `<div>`s — assistive tech uses these as landmarks for navigation.
 - [INST0002] **Do** use heading levels (`<h1>`–`<h6>`) in logical descending order without skipping levels — screen readers build a document outline from headings.
@@ -19,14 +27,14 @@ applyTo: "**/*.{html,razor,cshtml}"
 - [INST0008] **Don't** use CSS grid or `<div>`s to fake tables, and don't use `<table>` for layout — tables are for data, CSS is for layout.
 - [INST0009] **Don't** use `type="text/css"` on `<link>` or `type="text/javascript"` on `<script>` — they are unnecessary in HTML5.
 
-## Forms
+### Forms
 
 - [INST0010] **Do** associate every form input with a `<label>` using `for`/`id` matching or nesting — don't rely on `placeholder` as a substitute for labels.
 - [INST0011] **Do** group related form controls with `<fieldset>` and provide a `<legend>` — especially for radio button groups and checkbox sets. Screen readers announce the legend as context for each control.
 - [INST0012] **Don't** place interactive elements (links, buttons) inside a `<label>` — it confuses assistive technology and makes the associated input hard to activate.
 - [INST0013] **Don't** use placeholder text as the only label for form fields — it disappears on input, has low contrast, and is often ignored by screen readers.
 
-## Accessibility
+### Accessibility
 
 - [INST0014] **Do** provide descriptive `alt` text on `<img>` elements; use `alt=""` (empty) only for purely decorative images so screen readers skip them.
 - [INST0015] **Do** use `aria-label` or `aria-labelledby` only when a visible text label isn't possible — prefer native HTML labeling over ARIA.
@@ -39,7 +47,7 @@ applyTo: "**/*.{html,razor,cshtml}"
 - [INST0022] **Don't** convey meaning through color alone — always pair color cues with text, icons, or patterns so the information remains accessible to color-blind users.
 - [INST0023] **Don't** set `aria-hidden="true"` on an element that is focusable or contains focusable children — it removes the element from the accessibility tree while leaving it in the tab order, creating an invisible keyboard trap.
 
-## Security
+### Security
 
 - [INST0024] **Do** set a Content Security Policy via `<meta http-equiv="Content-Security-Policy">` or server headers — at minimum restrict `script-src` and `object-src` to mitigate XSS and injection attacks.
 - [INST0025] **Do** add `rel="noopener noreferrer"` on `<a target="_blank">` links to external sites — without `noopener` the opened page can access `window.opener` and redirect the original tab.

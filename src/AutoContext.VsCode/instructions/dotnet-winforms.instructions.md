@@ -3,11 +3,24 @@ name: "dotnet-winforms (v1.0.0)"
 description: "Use when generating or editing Windows Forms code, forms, controls, data binding, or WinForms-specific patterns."
 applyTo: "**/*.{cs,vb}"
 ---
-# Windows Forms Guidelines
+
+# Windows Forms Instructions
 
 > These instructions cover WinForms-specific patterns — form and control design, threading, data binding, layout, validation, and resource management.
 
-## Architecture & Layout
+## MCP Tool Validation
+
+After editing or generating any C# source file, call the
+`analyze_csharp_code` MCP tool on the changed source. Pass the file
+contents as `content` and the file's absolute path as `originalPath`.
+For test files, also pass the production type's namespace as
+`originalNamespace` and the test file path as `comparedPath`. Treat
+any reported violation as blocking — fix it before reporting the work
+as done.
+
+## Rules
+
+### Architecture & Layout
 
 - [INST0001] **Do** keep `Form` classes as thin presentation shells — event handlers should immediately delegate to service or presenter classes, leaving the form responsible only for updating controls and routing input; this keeps business logic independently testable without a live UI host.
 - [INST0002] **Do** use `Control.InvokeAsync` (.NET 9+) to marshal updates to the UI thread from async code — it posts non-blocking to the message queue, returns an awaitable `Task`, and avoids the deadlock risk of `Control.Invoke`; on earlier frameworks check `InvokeRequired` and call `Invoke` if true.
@@ -20,14 +33,14 @@ applyTo: "**/*.{cs,vb}"
 - [INST0009] **Don't** access controls from non-UI threads — WinForms controls are single-threaded (STA); accessing a control from a background thread throws `InvalidOperationException: Cross-thread operation not valid: Control accessed from a thread other than the thread it was created on.`
 - [INST0010] **Don't** use `BackgroundWorker` in new code — Microsoft retained it *"for backward compatibility"* only; `Task` + `async`/`await` with `Control.InvokeAsync` is the modern replacement and integrates cleanly with cancellation, exception propagation, and the `async`/`await` model.
 
-## Data Binding & Grids
+### Data Binding & Grids
 
 - [INST0011] **Do** bind data-aware controls through a `BindingSource` rather than directly to lists or datasets — the official DataGridView documentation calls it the *"preferred data source"* because it provides currency management, sorting, filtering, and change notification for sources that do not implement `IBindingList`.
 - [INST0012] **Do** set `DataGridView.VirtualMode = true` and handle `CellValueNeeded`/`CellValuePushed` events when displaying large collections — in bound mode the control loads all rows into memory, making virtual mode *"necessary to optimize performance"* for very large datasets per the official virtual mode guidance.
 - [INST0013] **Do** use `BindingList<T>` instead of `List<T>` for in-memory editable data sources — it implements `IBindingList` and automatically notifies bound controls of item additions, removals, and property changes without requiring a manual `BindingSource.ResetBindings` call.
 - [INST0014] **Don't** iterate over `DataGridView.Rows` with a `foreach` loop or index the `Rows` collection directly — the Best Practices documentation states: *"Avoid indexing the Rows collection or iterating through it with a foreach loop"* because doing so forces shared rows to become unshared, negating the row-sharing memory optimisation; use row-index-based event arguments or dedicated API methods instead.
 
-## DPI, Startup & Resources
+### DPI, Startup & Resources
 
 - [INST0015] **Do** call `ApplicationConfiguration.Initialize()` as the first statement in `Main` on .NET 6+ — it applies `<ApplicationHighDpiMode>`, `<ApplicationVisualStyles>`, and `<ApplicationDefaultFont>` MSBuild properties to the process before any form is created; omitting it produces compiler warning `WFO0003` and silently falls back to legacy defaults.
 - [INST0016] **Do** set `<ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>` in your `.csproj` — it enables per-child-window DPI notifications and improved comctl32 scaling so each monitor uses its own DPI; the default `SystemAware` mode applies the primary monitor's DPI to all monitors, causing blurry controls on secondary displays.

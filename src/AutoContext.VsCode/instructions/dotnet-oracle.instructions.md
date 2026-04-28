@@ -2,18 +2,31 @@
 name: "dotnet-oracle (v1.0.0)"
 description: "Use when writing Oracle SQL or PL/SQL queries, stored procedures, migrations, or any Oracle data access code in .NET projects."
 ---
-# Oracle Guidelines
+
+# Oracle Instructions
 
 > These instructions target Oracle Database used in .NET projects with Oracle.ManagedDataAccess.Core or Oracle.EntityFrameworkCore.
 
-## Security
+## MCP Tool Validation
+
+After editing or generating any C# source file, call the
+`analyze_csharp_code` MCP tool on the changed source. Pass the file
+contents as `content` and the file's absolute path as `originalPath`.
+For test files, also pass the production type's namespace as
+`originalNamespace` and the test file path as `comparedPath`. Treat
+any reported violation as blocking — fix it before reporting the work
+as done.
+
+## Rules
+
+### Security
 
 - [INST0001] **Do** use bind variables (`:param` syntax) for all dynamic SQL — never concatenate user input into query strings; SQL injection is the primary critical vulnerability in database-backed applications.
 - [INST0002] **Do** grant the minimum privileges needed — prefer `EXECUTE` on PL/SQL packages over direct `SELECT`/`INSERT`/`UPDATE`/`DELETE` on tables; never run the application as `SYS` or `SYSTEM`.
 - [INST0003] **Do** use Oracle wallet or external password stores for credentials instead of embedding passwords in connection strings — plaintext passwords in configuration files are a common audit finding.
 - [INST0004] **Don't** store secrets (passwords, API keys, tokens) in PL/SQL packages, views, or comments — use application-level secrets management; `DBA_SOURCE` exposes all stored PL/SQL source to privileged users.
 
-## Query Design
+### Query Design
 
 - [INST0005] **Do** specify only the columns you need instead of `SELECT *` — `SELECT *` breaks code when schema changes, prevents index-only scans, and wastes bandwidth.
 - [INST0006] **Do** use `MERGE … WHEN MATCHED THEN UPDATE WHEN NOT MATCHED THEN INSERT` for upserts — `MERGE` handles the race condition atomically; a separate `SELECT` + `INSERT` is not atomic and fails under concurrent load.
@@ -23,7 +36,7 @@ description: "Use when writing Oracle SQL or PL/SQL queries, stored procedures, 
 - [INST0010] **Do** use `FETCH FIRST n ROWS ONLY` (Oracle 12c+) for row limiting — it is SQL standard, clearer than wrapping in a subquery with `ROWNUM`, and supports `OFFSET … FETCH` pagination.
 - [INST0011] **Don't** use `NOT IN` with a subquery that can return `NULL` — if any row in the subquery is `NULL`, the entire `NOT IN` predicate evaluates to `NULL` and returns no rows; prefer `NOT EXISTS` instead.
 
-## Performance
+### Performance
 
 - [INST0012] **Do** use `EXPLAIN PLAN FOR` and `DBMS_XPLAN.DISPLAY_CURSOR` to understand actual execution plans — estimated plans can diverge from runtime behaviour; always check actual row counts after execution.
 - [INST0013] **Do** add indexes to columns used in `WHERE`, `JOIN`, `ORDER BY`, and `GROUP BY` clauses — missing indexes are the most common cause of full table scans.
@@ -32,14 +45,14 @@ description: "Use when writing Oracle SQL or PL/SQL queries, stored procedures, 
 - [INST0016] **Don't** apply functions to indexed columns in `WHERE` clauses (e.g., `WHERE TRUNC(created_at) = …`) unless a matching function-based index exists — function calls prevent index range scans and force full table scans.
 - [INST0017] **Don't** use `SELECT … FOR UPDATE` without `SKIP LOCKED` or `NOWAIT` unless you intend to block — the default behaviour waits indefinitely when another session holds the lock, which can stall application threads.
 
-## PL/SQL
+### PL/SQL
 
 - [INST0018] **Do** use packages to group related procedures, functions, types, and cursors — packages provide encapsulation, reduce name collisions, allow private implementation details, and enable the optimizer to pin compiled code in memory.
 - [INST0019] **Do** handle expected errors with named `EXCEPTION` handlers (`WHEN no_data_found`, `WHEN dup_val_on_index`) — catching `OTHERS` without re-raising hides bugs; always re-raise or log unexpected exceptions.
 - [INST0020] **Do** use `RAISE_APPLICATION_ERROR(-20xxx, 'message')` to surface application-level errors — the `-20000` to `-20999` range is reserved for user-defined errors and integrates with .NET `OracleException.Number`.
 - [INST0021] **Don't** use implicit cursors in loops for DML (`INSERT`, `UPDATE`, `DELETE`) when processing many rows — implicit cursors issue one SQL statement per iteration; use `FORALL` with a bulk-collected collection instead.
 
-## Schema & Migrations
+### Schema & Migrations
 
 - [INST0022] **Do** use `TIMESTAMP WITH TIME ZONE` for all date-time columns that must preserve the originating time zone — `DATE` and `TIMESTAMP` store no time-zone information; `TIMESTAMP WITH TIME ZONE` prevents off-by-one-hour bugs across DST boundaries.
 - [INST0023] **Do** use sequences with `GENERATED ALWAYS AS IDENTITY` (Oracle 12c+) for surrogate keys — it is the SQL standard, avoids manual sequence management, and integrates cleanly with EF Core.

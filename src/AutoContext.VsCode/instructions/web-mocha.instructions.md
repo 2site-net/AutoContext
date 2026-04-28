@@ -3,7 +3,18 @@ name: "web-mocha (v1.0.0)"
 description: "Use when writing, reviewing, or refactoring Mocha tests or Mocha-specific configuration."
 applyTo: "**/*.{test,spec}.{js,jsx,ts,tsx,mjs,mts}"
 ---
-# Mocha Guidelines
+
+# Mocha Instructions
+
+## MCP Tool Validation
+
+After editing or generating any TypeScript or JavaScript source file,
+call the `analyze_typescript_code` MCP tool on the changed source.
+Pass the file contents as `content` and the file's absolute path as
+`originalPath`. Treat any reported violation as blocking — fix it
+before reporting the work as done.
+
+## Rules
 
 - [INST0001] **Do** pair Mocha with a dedicated assertion library (Chai, `node:assert`, or `node:assert/strict`) — Mocha provides no built-in assertions.
 - [INST0002] **Do** return a Promise or use `async/await` for async tests — never mix callbacks (`done`) with Promises.

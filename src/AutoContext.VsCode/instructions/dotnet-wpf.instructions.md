@@ -3,11 +3,24 @@ name: "dotnet-wpf (v1.0.0)"
 description: "Use when generating or editing WPF code, XAML views, ViewModels, data bindings, commands, or WPF-specific patterns."
 applyTo: "**/*.{cs,vb,xaml}"
 ---
-# WPF Guidelines
+
+# WPF Instructions
 
 > These instructions cover WPF-specific patterns — MVVM architecture, data binding, threading, performance, and XAML structure.
 
-## MVVM & Commands
+## MCP Tool Validation
+
+After editing or generating any C# source file, call the
+`analyze_csharp_code` MCP tool on the changed source. Pass the file
+contents as `content` and the file's absolute path as `originalPath`.
+For test files, also pass the production type's namespace as
+`originalNamespace` and the test file path as `comparedPath`. Treat
+any reported violation as blocking — fix it before reporting the work
+as done.
+
+## Rules
+
+### MVVM & Commands
 
 - [INST0001] **Do** follow the MVVM pattern — ViewModels must not reference View types; express user interactions through commands and data binding rather than code-behind event handlers, keeping the ViewModel testable without a UI host.
 - [INST0002] **Do** use `ICommand` via `RelayCommand` or `DelegateCommand` (e.g., from CommunityToolkit.Mvvm) for user actions instead of wiring event handlers in code-behind — this decouples the action from the UI and makes ViewModels independently testable.
@@ -17,7 +30,7 @@ applyTo: "**/*.{cs,vb,xaml}"
 - [INST0006] **Don't** call `Window.Show()`, `MessageBox.Show()`, or navigate directly from a ViewModel — use a dialog or navigation service abstraction so the ViewModel remains testable without a live UI host.
 - [INST0007] **Don't** use `FindName()`, `LogicalTreeHelper`, or manual `VisualTreeHelper` traversal to locate child controls — prefer property binding, commands, or attached behaviors, which are the approaches recommended by the WPF stylable controls guidelines.
 
-## Threading & Performance
+### Threading & Performance
 
 - [INST0008] **Do** use `async`/`await` with `Task.Run` for background work in ViewModels and marshal back to the UI thread only for the final property update — never block the UI thread with synchronous I/O or long computations.
 - [INST0009] **Do** call `Freeze()` on `Brush`, `Geometry`, `Transform`, and other `Freezable` objects used repeatedly across elements — frozen objects skip change-notification overhead and can be safely shared across threads.
@@ -28,7 +41,7 @@ applyTo: "**/*.{cs,vb,xaml}"
 - [INST0014] **Don't** update UI-bound properties from a background thread without marshalling to the UI thread — WPF uses a single-threaded apartment (STA) model; accessing UI objects from a non-UI thread throws `InvalidOperationException`.
 - [INST0015] **Don't** disable UI virtualization on item controls with large datasets — avoid setting `VirtualizingStackPanel.IsVirtualizing="False"` or replacing the `ItemsPanel` with a non-virtualizing panel, as this forces all item containers to be created and retained in memory simultaneously.
 
-## Controls & Validation
+### Controls & Validation
 
 - [INST0016] **Do** implement custom control properties that need data binding, animation, style setters, or property value inheritance as `DependencyProperty` — CLR-only properties silently break all WPF property-system features; register with `DependencyProperty.Register` and expose them through a CLR wrapper that calls `GetValue`/`SetValue`.
 - [INST0017] **Do** implement `INotifyDataErrorInfo` on ViewModels that perform input validation — it supersedes `IDataErrorInfo`, supports multiple errors per property, cross-property errors, and async validation; WPF surfaces errors automatically via `ValidatesOnNotifyDataErrors` (which defaults to `true` in bindings).

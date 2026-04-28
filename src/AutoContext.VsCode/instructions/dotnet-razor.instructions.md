@@ -3,7 +3,20 @@ name: "dotnet-razor (v1.0.0)"
 description: "Use when creating or editing Razor component files (.razor), organizing directives, structuring code-behind files, or working with Razor syntax and markup."
 applyTo: "**/*.razor,**/*.razor.cs"
 ---
-# Razor Guidelines
+
+# Razor Instructions
+
+## MCP Tool Validation
+
+After editing or generating any C# source file, call the
+`analyze_csharp_code` MCP tool on the changed source. Pass the file
+contents as `content` and the file's absolute path as `originalPath`.
+For test files, also pass the production type's namespace as
+`originalNamespace` and the test file path as `comparedPath`. Treat
+any reported violation as blocking — fix it before reporting the work
+as done.
+
+## Rules
 
 - [INST0001] **Do** name component files in **PascalCase** matching the component class (e.g., `ProductDetail.razor`); keep one component per `.razor` file.
 - [INST0002] **Do** separate components into dedicated files — `.razor` for markup, `.razor.cs` for code-behind, `.razor.css` for scoped styles — avoid `@code` blocks in `.razor` files.

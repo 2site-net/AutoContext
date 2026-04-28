@@ -3,7 +3,20 @@ name: "dotnet-async-await (v1.0.0)"
 description: "Use when writing async .NET code, Task/ValueTask APIs, CancellationToken, IAsyncEnumerable, IAsyncDisposable, or ConfigureAwait patterns."
 applyTo: "**/*.{cs,fs,vb}"
 ---
-# Async / Await Guidelines
+
+# Async / Await Instructions
+
+## MCP Tool Validation
+
+After editing or generating any C# source file, call the
+`analyze_csharp_code` MCP tool on the changed source. Pass the file
+contents as `content` and the file's absolute path as `originalPath`.
+For test files, also pass the production type's namespace as
+`originalNamespace` and the test file path as `comparedPath`. Treat
+any reported violation as blocking — fix it before reporting the work
+as done.
+
+## Rules
 
 - [INST0001] **Do** write true `async`/`await` code, don't mix sync and async code; follow the async all the way down.
 - [INST0002] **Do** add an optional `CancellationToken ct = default` as the final parameter in public async APIs.

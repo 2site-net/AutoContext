@@ -3,11 +3,22 @@ name: "lang-typescript (v1.0.0)"
 description: "Use when generating or editing TypeScript code, working with types, generics, utility types, or TypeScript-specific patterns."
 applyTo: "**/*.{ts,tsx,mts,cts}"
 ---
-# TypeScript Guidelines
+
+# TypeScript Instructions
 
 > These instructions cover TypeScript-specific patterns — type safety, generics, utility types, and common anti-patterns. JavaScript guidelines also apply to TypeScript files.
 
-## Configuration & Safety
+## MCP Tool Validation
+
+After editing or generating any TypeScript or JavaScript source file,
+call the `analyze_typescript_code` MCP tool on the changed source.
+Pass the file contents as `content` and the file's absolute path as
+`originalPath`. Treat any reported violation as blocking — fix it
+before reporting the work as done.
+
+## Rules
+
+### Configuration & Safety
 
 - [INST0001] **Do** enable `strict: true` in `tsconfig.json` — activates `strictNullChecks`, `noImplicitAny`, `strictFunctionTypes`, and several other checks in one flag; do not patch individual strict flags instead.
 - [INST0002] **Do** use `unknown` instead of `any` for values whose type is not yet determined — `unknown` forces a type check before use; `any` silently disables type checking for that value and everything it touches.
@@ -15,7 +26,7 @@ applyTo: "**/*.{ts,tsx,mts,cts}"
 - [INST0004] **Don't** use `// @ts-ignore` — use `// @ts-expect-error` with a brief explanation instead; it produces a compile error when the suppression is no longer needed, preventing stale suppressions.
 - [INST0005] **Don't** use `any` — it disables type checking entirely for that value; use `unknown` for untyped inputs, proper types for known shapes, or generics for parameterized behaviour.
 
-## Types & Generics
+### Types & Generics
 
 - [INST0006] **Do** add explicit return type annotations to exported functions and methods — prevents type widening, documents intent, and catches code paths that accidentally return `undefined`.
 - [INST0007] **Do** use utility types (`Partial`, `Required`, `Pick`, `Omit`, `Record`, `Readonly`, `ReturnType`, `Parameters`, `Awaited`) to derive types from existing ones rather than writing duplicate type definitions.
@@ -25,7 +36,7 @@ applyTo: "**/*.{ts,tsx,mts,cts}"
 - [INST0011] **Don't** use `enum` — prefer a `const` object with `as const` and a derived `typeof` union for enumerated string values; native enums generate runtime JavaScript, have surprising numeric reverse-mapping, and don't tree-shake cleanly.
 - [INST0012] **Don't** use `Function` (capital F), `Object` (capital O), or `{}` as types — they accept too broadly; use specific function signatures, `object` (lowercase), or `Record<string, unknown>` instead.
 
-## Advanced Patterns
+### Advanced Patterns
 
 - [INST0013] **Do** use `readonly` on properties and `ReadonlyArray<T>` (or `readonly T[]`) for data that should not be mutated after construction — communicates intent and prevents accidental reassignment.
 - [INST0014] **Do** use `never` as an exhaustiveness check at the end of `switch` or `if-else` chains over discriminated unions — assigning an unhandled case to `never` causes a compile error when a new union member is added later.
@@ -35,7 +46,7 @@ applyTo: "**/*.{ts,tsx,mts,cts}"
 - [INST0018] **Don't** use type assertions (`as SomeType`) to silence compiler errors — narrow properly with `typeof`, `instanceof`, `in`, or user-defined type guards; reserve `as` only when you have verified the type through other means and add a comment explaining why.
 - [INST0019] **Don't** use non-null assertions (`!`) without proof — only apply them when you've verified by other means that the value cannot be `null` or `undefined`, and add a comment explaining why.
 
-## File Organization
+### File Organization
 
 - [INST0020] **Do** give each exported `interface` or `type` alias its own file when it represents a standalone concept — mirrors one-type-per-file conventions, keeps modules focused, and makes types easy to locate by filename; a supporting type that exists only to type a field or parameter of a single parent type may stay in the parent type's file (e.g., a string-union `Kind` type alongside the interface whose `kind` field it describes).
 - [INST0021] **Do** keep a `const`-as-`enum` pattern (e.g., `export const Foo = { ... } as const` and its companion `export type Foo = ...`) together with related const objects that share the same pattern in a single file — they form one logical unit; other types that happen to be co-located with const objects but represent independent concepts should still get their own file.

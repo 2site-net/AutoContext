@@ -3,9 +3,22 @@ name: "dotnet-coding-standards (v1.0.0)"
 description: "Use when writing .NET code: design guidelines, naming conventions, input validation, file organization, and API design."
 applyTo: "**/*.{cs,fs,vb}"
 ---
-# Coding Standards
 
-## General
+# .NET Coding Standards Instructions
+
+## MCP Tool Validation
+
+After editing or generating any C# source file, call the
+`analyze_csharp_code` MCP tool on the changed source. Pass the file
+contents as `content` and the file's absolute path as `originalPath`.
+For test files, also pass the production type's namespace as
+`originalNamespace` and the test file path as `comparedPath`. Treat
+any reported violation as blocking — fix it before reporting the work
+as done.
+
+## Rules
+
+### General
 
 - [INST0001] **Do** follow .NET design guidelines and common conventions unless noted below.
 - [INST0002] **Do** use current .NET features when they deliver measurable performance gains.
@@ -16,7 +29,7 @@ applyTo: "**/*.{cs,fs,vb}"
 - [INST0007] **Don't** use an empty or log-only `catch` block when you can use an exception filter (`when`) instead — `catch (IOException e) when (e.HResult == ...)` preserves the original stack trace and avoids swallowing unrelated exceptions.
 - [INST0008] **Don't** call `Console.*` or `Debug.*`; use `ILogger` or `Serilog` in production and `ITestOutputHelper` in tests.
 
-## Naming Conventions
+### Naming Conventions
 
 - [INST0009] **Do** give descriptive names that convey intent — prefer `retriesRemaining` over `n` and `GetUserById` over `GetUser`.
 - [INST0010] **Do** prefix interfaces with `I` (e.g., `IMyType`).
@@ -26,7 +39,7 @@ applyTo: "**/*.{cs,fs,vb}"
 - [INST0014] **Do** use a singular noun for non-flags enum types and a plural noun for flags enum types (e.g., `FileMode` vs `FileAttributes`).
 - [INST0015] **Do** name Boolean properties with an affirmative phrase — optionally prefix with `Is`, `Can`, or `Has` when it adds clarity (e.g., `IsEnabled`, `CanSeek`, `HasChildren`).
 
-## File & Project Organization
+### File & Project Organization
 
 - [INST0016] **Do** keep a single type per file and name the file after that type (e.g., `User.cs` for `User` class).
 - [INST0017] **Do** place each type in a folder that reflects its role and namespace, naming the folder after the namespace.
@@ -34,7 +47,7 @@ applyTo: "**/*.{cs,fs,vb}"
 - [INST0019] **Do** run `dotnet format`, then `dotnet build`, then `dotnet test` after making changes — fix build errors before addressing test failures.
 - [INST0020] **Do** prefer built-in formatting rules (e.g., `IDEXXXXX`, `dotnet`, `csharp`) over StyleCop when they provide sufficient coverage.
 
-## Immutability & API Surface
+### Immutability & API Surface
 
 - [INST0021] **Do** prefer `readonly` fields and `init`-only properties; use `record` for data-carrying types — immutability eliminates accidental mutation bugs.
 - [INST0022] **Do** return `IReadOnlyCollection<T>` or `IEnumerable<T>` from public APIs instead of `List<T>` or other mutable concrete types — callers should not depend on mutability you did not intend.

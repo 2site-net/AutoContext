@@ -3,7 +3,18 @@ name: "web-vitest (v1.0.0)"
 description: "Use when writing, reviewing, or refactoring Vitest tests, mocks, or Vitest-specific APIs."
 applyTo: "**/*.{test,spec}.{js,jsx,ts,tsx,mjs,mts}"
 ---
-# Vitest Guidelines
+
+# Vitest Instructions
+
+## MCP Tool Validation
+
+After editing or generating any TypeScript or JavaScript source file,
+call the `analyze_typescript_code` MCP tool on the changed source.
+Pass the file contents as `content` and the file's absolute path as
+`originalPath`. Treat any reported violation as blocking — fix it
+before reporting the work as done.
+
+## Rules
 
 - [INST0001] **Do** use `test` over `it` for test blocks — but if the existing codebase already uses one consistently, follow the project's convention.
 - [INST0002] **Do** use tagged template syntax for `test.each` with a human-readable label column for test name interpolation.

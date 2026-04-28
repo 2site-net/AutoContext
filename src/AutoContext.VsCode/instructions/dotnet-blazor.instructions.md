@@ -3,9 +3,22 @@ name: "dotnet-blazor (v1.0.0)"
 description: "Use when creating or editing Blazor Razor components, render modes, cascading parameters, EventCallback, Virtualize, or JS interop."
 applyTo: "**/*.razor,**/*.razor.cs"
 ---
-# Blazor Guidelines
 
-## Components & Data Flow
+# Blazor Instructions
+
+## MCP Tool Validation
+
+After editing or generating any C# source file, call the
+`analyze_csharp_code` MCP tool on the changed source. Pass the file
+contents as `content` and the file's absolute path as `originalPath`.
+For test files, also pass the production type's namespace as
+`originalNamespace` and the test file path as `comparedPath`. Treat
+any reported violation as blocking — fix it before reporting the work
+as done.
+
+## Rules
+
+### Components & Data Flow
 
 - [INST0001] **Do** keep UI logic inside Razor components; move data access, business rules, and other cross-cutting concerns to injectable services.
 - [INST0002] **Do** bind data with `[Parameter]`; reserve `[CascadingParameter]` / `<CascadingValue>` for truly global context (auth, theme, culture). Use `IsFixed="true"` when the value never changes.
@@ -15,7 +28,7 @@ applyTo: "**/*.razor,**/*.razor.cs"
 - [INST0006] **Don't** cascade large mutable objects or frequently changing data; publish events or use DI services instead.
 - [INST0007] **Don't** add custom get/set logic to `[Parameter]` or `[CascadingParameter]` properties—declare them as plain auto-properties (`{ get; set; }`) because the framework overwrites them on every render.
 
-## Lifecycle & Performance
+### Lifecycle & Performance
 
 - [INST0008] **Do** override `ShouldRender` or rely on immutable parameters to skip unnecessary rerenders; throttle `StateHasChanged()` calls triggered by timers or streams.
 - [INST0009] **Do** virtualise large lists with `<Virtualize ItemsProvider=...>` or a paging grid.
@@ -27,7 +40,7 @@ applyTo: "**/*.razor,**/*.razor.cs"
 - [INST0015] **Don't** block the renderer thread with heavy CPU work or synchronous I/O—offload with `Task.Run` or a background service.
 - [INST0016] **Don't** store per-user state in singleton services on Blazor Server—circuits share the same instance.
 
-## Rendering & Error Handling
+### Rendering & Error Handling
 
 - [INST0017] **Do** choose render modes deliberately: `Static` for SEO and minimal payload, `Streaming` for progressive hydration, or an interactive mode when client interactivity is required.
 - [INST0018] **Do** use JS interop for DOM-intensive operations (canvas, animations, complex drag-and-drop) and simple client-side interactions that don't require server round-trips (e.g., toggling a dialog).
@@ -39,7 +52,7 @@ applyTo: "**/*.razor,**/*.razor.cs"
 - [INST0024] **Don't** implement business logic in JavaScript — keep it in C# and use JS only for DOM manipulation and client-side UI behavior.
 - [INST0025] **Don't** trigger JS interop in constructors or before the DOM exists; call it from `OnAfterRenderAsync`.
 
-## Forms & Validation
+### Forms & Validation
 
 - [INST0026] **Do** use either `Model=` or `EditContext=` on `<EditForm>`--never both. Use `Model=` for simple cases; use `EditContext=` only when you need manual control (dynamic validation, form reset).
 - [INST0027] **Do** prefer `OnValidSubmit`/`OnInvalidSubmit` over `OnSubmit`--the split callbacks handle validation automatically. Use `OnSubmit` only when custom validation logic is required.

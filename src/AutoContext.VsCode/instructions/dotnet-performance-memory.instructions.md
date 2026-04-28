@@ -3,7 +3,20 @@ name: "dotnet-performance-memory (v1.0.0)"
 description: "Use when benchmarking, optimizing performance, profiling memory, using Span/Memory/ArrayPool/stackalloc, evaluating SIMD/Vector paths, or deciding whether to add instrumentation in .NET."
 applyTo: "**/*.{cs,fs,vb}"
 ---
-# Performance & Memory Guidelines
+
+# Performance & Memory Instructions
+
+## MCP Tool Validation
+
+After editing or generating any C# source file, call the
+`analyze_csharp_code` MCP tool on the changed source. Pass the file
+contents as `content` and the file's absolute path as `originalPath`.
+For test files, also pass the production type's namespace as
+`originalNamespace` and the test file path as `comparedPath`. Treat
+any reported violation as blocking — fix it before reporting the work
+as done.
+
+## Rules
 
 - [INST0001] **Do** prefer simple, readable implementations over premature optimization (e.g., avoid complex LINQ queries when a simple loop suffices).
 - [INST0002] **Do** benchmark every non-trivial optimisation first. Keep the tests in a dedicated `*.Benchmarks` project and use `BenchmarkDotNet`.

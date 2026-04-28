@@ -3,7 +3,20 @@ name: "dotnet-nunit (v1.0.0)"
 description: "Use when writing, reviewing, or refactoring NUnit tests, assertions, or NUnit-specific APIs in .NET."
 applyTo: "**/*Tests*.{cs,fs,vb,razor}"
 ---
-# NUnit Guidelines
+
+# NUnit Instructions
+
+## MCP Tool Validation
+
+After editing or generating any C# source file, call the
+`analyze_csharp_code` MCP tool on the changed source. Pass the file
+contents as `content` and the file's absolute path as `originalPath`.
+For test files, also pass the production type's namespace as
+`originalNamespace` and the test file path as `comparedPath`. Treat
+any reported violation as blocking — fix it before reporting the work
+as done.
+
+## Rules
 
 - [INST0001] **Do** use **NUnit 4** with the constraint-based assertion model (`Assert.That(…, Is.EqualTo(…))`).
 - [INST0002] **Do** use `[TestCase]` for inline parameterised tests and `[TestCaseSource]` for complex or shared data.

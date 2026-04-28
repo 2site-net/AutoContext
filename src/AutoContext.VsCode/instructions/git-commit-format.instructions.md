@@ -2,9 +2,19 @@
 name: "git-commit-format (v1.0.0)"
 description: "Use when writing git commit messages, formatting commit subjects and bodies, or following Conventional Commits."
 ---
-# Git Commit Format
 
-## Format & Structure
+# Git Commit Format Instructions
+
+## MCP Tool Validation
+
+Before proposing any git commit message to the user, call the
+`analyze_git_commit_message` MCP tool with the full drafted message
+(subject and body) as `content`. Fix any reported violation and
+re-validate until it reports clean.
+
+## Rules
+
+### Format & Structure
 
 - [INST0001] **Do** use [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) format: `type(scope): description` (e.g., `feat(auth): add token refresh`, `fix(dns): handle null zone`, `refactor(hub): consolidate middleware`).
 - [INST0002] **Do** review the status of files with `git status` and `git diff` before committing — always run these commands fresh; never reuse output from a previous invocation or conversation turn.
@@ -13,7 +23,7 @@ description: "Use when writing git commit messages, formatting commit subjects a
 - [INST0005] **Do** wrap the body at 72 characters.
 - [INST0006] **Do** separate the subject line from the body with a blank line.
 
-## Content
+### Content
 
 - [INST0007] **Do** use the body to explain what and why as opposed to how.
 - [INST0008] **Do** focus on behavioral changes — what the software does now that it didn't before; only mention implementation details when they are significant to the change (e.g., switching from polling to WebSockets).

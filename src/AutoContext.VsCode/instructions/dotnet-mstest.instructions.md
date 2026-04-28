@@ -3,7 +3,20 @@ name: "dotnet-mstest (v1.0.0)"
 description: "Use when writing, reviewing, or refactoring MSTest tests, test initialization, or MSTest-specific APIs in .NET."
 applyTo: "**/*Tests*.{cs,fs,vb,razor}"
 ---
-# MSTest Guidelines
+
+# MSTest Instructions
+
+## MCP Tool Validation
+
+After editing or generating any C# source file, call the
+`analyze_csharp_code` MCP tool on the changed source. Pass the file
+contents as `content` and the file's absolute path as `originalPath`.
+For test files, also pass the production type's namespace as
+`originalNamespace` and the test file path as `comparedPath`. Treat
+any reported violation as blocking — fix it before reporting the work
+as done.
+
+## Rules
 
 - [INST0001] **Do** use **MSTest v4** with the `[TestClass]` / `[TestMethod]` attribute model.
 - [INST0002] **Do** use `[TestMethod]` + `[DataRow]` for parameterised tests instead of duplicating test methods.

@@ -3,9 +3,17 @@ name: "testing (v1.0.0)"
 description: "Use when writing, reviewing, or refactoring any tests — regardless of language or framework."
 applyTo: "**/*.{test,spec}.{js,jsx,ts,tsx,mjs,mts},**/*Tests*.{cs,fs,vb,razor}"
 ---
-# Testing Strategy
 
-## Workflow & Design
+# Testing Instructions
+
+## MCP Tool Validation
+
+No corresponding MCP tool is currently available to automatically
+validate this instructions file — apply it manually.
+
+## Rules
+
+### Workflow & Design
 
 - [INST0001] **Do** follow TDD (red-green-refactor) — write the failing test first whether adding or refactoring.
 - [INST0002] **Do** keep tests fast, reliable, isolated; focus on behavior ("what") not implementation ("how").
@@ -13,7 +21,7 @@ applyTo: "**/*.{test,spec}.{js,jsx,ts,tsx,mjs,mts},**/*Tests*.{cs,fs,vb,razor}"
 - [INST0004] **Do** validate that all tests pass before considering work complete.
 - [INST0005] **Don't** add test-only code to production; keep helpers inside test projects or inject them via patterns (e.g., decorator).
 
-## Structure & Assertions
+### Structure & Assertions
 
 - [INST0006] **Do** structure every test in AAA (Arrange-Act-Assert) style; place a single blank line between setup, action, and assertion groups. Consecutive bindings and consecutive calls within a group stay together — don't insert blank lines inside a group. In .NET tests `// Arrange` / `// Act` / `// Assert` comments are also acceptable.
 - [INST0007] **Do** keep each test laser-focused: one behavior, minimal mocks. Multiple assertions are fine when they verify facets of the same outcome — group them with the framework's API (see INST0008).

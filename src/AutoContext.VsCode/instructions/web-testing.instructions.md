@@ -3,7 +3,18 @@ name: "web-testing (v1.0.0)"
 description: "Use when writing, reviewing, or refactoring JavaScript/TypeScript tests, test structure, or test organization."
 applyTo: "**/*.{test,spec,cy}.{js,jsx,ts,tsx,mjs,mts}"
 ---
-# Web Testing Strategy
+
+# Web Testing Instructions
+
+## MCP Tool Validation
+
+After editing or generating any TypeScript or JavaScript source file,
+call the `analyze_typescript_code` MCP tool on the changed source.
+Pass the file contents as `content` and the file's absolute path as
+`originalPath`. Treat any reported violation as blocking — fix it
+before reporting the work as done.
+
+## Rules
 
 - [INST0001] **Do** nest `describe` blocks — outer `describe` per class or module, inner `describe` per method or behavior.
 - [INST0002] **Do** prefix test names with `should` or `should not` (e.g. `"should throw when value is null"`, `"should not throw when value is valid"`).

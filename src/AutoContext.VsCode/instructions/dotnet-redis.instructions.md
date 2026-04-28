@@ -3,7 +3,20 @@ name: "dotnet-redis (v1.0.0)"
 description: "Use when working with Redis caching, session storage, pub/sub, or distributed locking in .NET projects."
 applyTo: "**/*.{cs,fs,vb}"
 ---
-# Redis Guidelines
+
+# Redis Instructions
+
+## MCP Tool Validation
+
+After editing or generating any C# source file, call the
+`analyze_csharp_code` MCP tool on the changed source. Pass the file
+contents as `content` and the file's absolute path as `originalPath`.
+For test files, also pass the production type's namespace as
+`originalNamespace` and the test file path as `comparedPath`. Treat
+any reported violation as blocking — fix it before reporting the work
+as done.
+
+## Rules
 
 - [INST0001] **Do** reuse a single `ConnectionMultiplexer` instance per application — it is thread-safe and expensive to create; register it as a singleton.
 - [INST0002] **Do** use short, structured key names with a colon-separated namespace (e.g., `tenant:42:session:abc`) — keeps keys scannable and avoids collisions.

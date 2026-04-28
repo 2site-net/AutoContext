@@ -3,7 +3,18 @@ name: "web-cypress (v1.0.0)"
 description: "Use when writing, reviewing, or refactoring Cypress end-to-end tests, custom commands, or Cypress-specific APIs."
 applyTo: "**/*.{test,spec,cy}.{js,jsx,ts,tsx,mjs,mts}"
 ---
-# Cypress Guidelines
+
+# Cypress Instructions
+
+## MCP Tool Validation
+
+After editing or generating any TypeScript or JavaScript source file,
+call the `analyze_typescript_code` MCP tool on the changed source.
+Pass the file contents as `content` and the file's absolute path as
+`originalPath`. Treat any reported violation as blocking — fix it
+before reporting the work as done.
+
+## Rules
 
 - [INST0001] **Do** use `cy.get('[data-testid="…"]')` or `cy.findByRole` (with `@testing-library/cypress`) — avoid brittle CSS class or structure-based selectors.
 - [INST0002] **Do** rely on Cypress's built-in retry-ability — commands like `cy.get`, `cy.contains`, and `.should()` automatically retry until the assertion passes or times out.
