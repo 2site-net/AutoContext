@@ -17,6 +17,7 @@
       and the Json source-generated context only needs System.Text.Json which
       is also in the BCL on net10.
     -->
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.5" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.5" />
   </ItemGroup>
 

@@ -53,6 +53,7 @@ export class WorkerManager implements vscode.Disposable {
         private readonly workspaceRoot: string | undefined,
         private readonly workers: readonly ServerEntry[],
         private readonly logPipeName?: string,
+        private readonly healthMonitorPipeName?: string,
     ) {
         for (const entry of workers) {
             const identity = entry.getShortName();
@@ -114,6 +115,16 @@ export class WorkerManager implements vscode.Disposable {
             // Workers that don't simply ignore the flag.
             if (this.logPipeName) {
                 args.push('--log-pipe', this.logPipeName);
+            }
+
+            // Workers that understand --health-monitor connect to the
+            // extension's HealthMonitorServer named pipe, write their
+            // worker id, and keep the socket open for the lifetime of
+            // the process. The extension uses the socket close to know
+            // the worker exited. Workers that don't understand the
+            // switch simply ignore it.
+            if (this.healthMonitorPipeName) {
+                args.push('--health-monitor', this.healthMonitorPipeName);
             }
 
             return {

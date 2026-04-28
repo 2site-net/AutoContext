@@ -22,7 +22,8 @@ suite('MCP Server Provider Smoke Tests', () => {
         const defs = await exports.mcpServerProvider.provideMcpServerDefinitions();
 
         const missing = defs.filter((d: { label: string; args: string[] }) =>
-            !d.args.includes('--endpoint-suffix') || !d.args.includes('--health-monitor'));
+            !d.args.includes('--endpoint-suffix') ||
+            !d.args.includes('--health-monitor'));
 
         assert.strictEqual(
             missing.length,

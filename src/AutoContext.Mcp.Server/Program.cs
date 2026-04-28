@@ -7,6 +7,7 @@ using AutoContext.Mcp.Server.Tools;
 using AutoContext.Mcp.Server.Tools.Invocation;
 using AutoContext.Mcp.Server.Workers;
 using AutoContext.Mcp.Server.Workers.Transport;
+using AutoContext.Framework.Hosting;
 using AutoContext.Framework.Logging;
 
 using Microsoft.Extensions.DependencyInjection;
@@ -30,6 +31,12 @@ using Microsoft.Extensions.Logging;
 ///     to the extension-side LogServer over the given named pipe so they
 ///     surface in the AutoContext Output channel. When omitted, log
 ///     records fall back to stderr.</item>
+///   <item><c>--health-monitor &lt;name&gt;</c>: connects to the
+///     extension-side HealthMonitorServer over the given named pipe and
+///     announces this process as the <see cref="HealthClientId"/>
+///     ("mcp-server") so the UI can flip its "running" indicator on
+///     and off as the host starts/exits. Best-effort; skipped when
+///     omitted.</item>
 /// </list>
 /// </remarks>
 internal static partial class Program
@@ -39,6 +46,13 @@ internal static partial class Program
 
     /// <summary>Logging client name reported to the extension's LogServer.</summary>
     internal const string LogClientName = "AutoContext.Mcp.Server";
+
+    /// <summary>
+    /// Stable identifier this process announces over the
+    /// health-monitor pipe. Must match the <c>id</c> the extension's
+    /// servers manifest assigns to <c>AutoContext.Mcp.Server</c>.
+    /// </summary>
+    internal const string HealthClientId = "mcp-server";
 
     [LoggerMessage(EventId = 1, Level = LogLevel.Critical, Message = "Registry validation failed:")]
     private static partial void LogRegistryValidationFailed(ILogger logger);
@@ -50,6 +64,7 @@ internal static partial class Program
     {
         var endpoints = new EndpointOptions { Suffix = ParseSwitch(args, "--endpoint-suffix") };
         var logPipeName = ParseSwitch(args, "--log-pipe");
+        var healthMonitorPipeName = ParseSwitch(args, "--health-monitor");
 
         var registrySource = new RegistryEmbeddedResource();
 
@@ -77,6 +92,15 @@ internal static partial class Program
         builder.Logging.SetMinimumLevel(LogLevel.Trace);
         builder.Services.AddSingleton(_ => new LoggingClient(logPipeName, LogClientName));
         builder.Services.AddSingleton<ILoggerProvider, PipeLoggerProvider>();
+
+        // Liveness signal to the extension's HealthMonitorServer. The
+        // hosted-service contract handles startup/shutdown wiring; the
+        // client is a no-op when --health-monitor was not supplied
+        // (standalone / smoke runs).
+        builder.Services.AddHostedService(sp => new HealthMonitorClient(
+            healthMonitorPipeName ?? string.Empty,
+            HealthClientId,
+            sp.GetRequiredService<ILogger<HealthMonitorClient>>()));
 
         // Core graph wired through DI so the host disposes anything
         // that becomes IDisposable in the future and tests can swap

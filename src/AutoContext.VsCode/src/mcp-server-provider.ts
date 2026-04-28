@@ -2,7 +2,6 @@ import * as vscode from 'vscode';
 import { join } from 'node:path';
 import { existsSync } from 'node:fs';
 import type { McpToolsManifest } from './mcp-tools-manifest.js';
-import type { HealthMonitorServer } from './health-monitor-server.js';
 import type { ServersManifest } from './servers-manifest.js';
 import type { WorkerManager } from './worker-manager.js';
 import type { AutoContextConfigManager } from './autocontext-config.js';
@@ -38,11 +37,11 @@ export class McpServerProvider implements vscode.McpServerDefinitionProvider {
         version: string,
         onDidChange: vscode.Event<void>,
         private readonly toolsManifest: McpToolsManifest,
-        private readonly healthMonitor: HealthMonitorServer,
         private readonly workerManager: WorkerManager,
         serversManifest: ServersManifest,
         configManager: AutoContextConfigManager,
         private readonly logPipeName: string,
+        private readonly healthMonitorPipeName: string,
         private readonly logger: Logger,
     ) {
         const mcpServerEntry = serversManifest.mcpServer;
@@ -76,10 +75,13 @@ export class McpServerProvider implements vscode.McpServerDefinitionProvider {
         // extension's LogServer pipe (its own AutoContext Output channel),
         // matching the workers' wire-up. Mcp.Server falls back to stderr
         // automatically when the switch is absent (e.g. standalone runs).
+        // --health-monitor announces Mcp.Server's liveness to the
+        // extension-side HealthMonitorServer; held open for the
+        // lifetime of the host.
         const args: string[] = [
             '--endpoint-suffix', this.workerManager.getEndpointSuffix(),
-            '--health-monitor', this.healthMonitor.getPipeName(),
             '--log-pipe', this.logPipeName,
+            '--health-monitor', this.healthMonitorPipeName,
         ];
 
         this.logger.debug(`Returning Mcp.Server definition '${mcpServerDefinitionLabel}' (v${this.version})`);

@@ -1,5 +1,6 @@
 namespace AutoContext.Worker.Hosting;
 
+using AutoContext.Framework.Hosting;
 using AutoContext.Framework.Logging;
 
 using Microsoft.Extensions.Configuration;
@@ -37,21 +38,31 @@ public static class WorkerHostBuilderExtensions
     /// <param name="builder">The host builder being configured.</param>
     /// <param name="args">Process command-line arguments (passed through to <c>AddCommandLine</c>).</param>
     /// <param name="readyMarker">Stderr ready-marker emitted once the pipe server is accepting connections.</param>
+    /// <param name="workerId">
+    /// Stable identifier this worker uses to announce itself to the
+    /// extension's <c>HealthMonitorServer</c> (e.g. <c>"dotnet"</c>,
+    /// <c>"workspace"</c>). Hard-coded by each worker's entry point and
+    /// must match the <c>workerId</c> referenced by the extension's
+    /// MCP-tools manifest.
+    /// </param>
     /// <param name="additionalSwitchMappings">Optional extra command-line → configuration-key mappings (e.g. <c>--workspace-root</c>).</param>
     public static HostApplicationBuilder ConfigureWorkerHost(
         this HostApplicationBuilder builder,
         string[] args,
         string readyMarker,
+        string workerId,
         IReadOnlyDictionary<string, string>? additionalSwitchMappings = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(args);
         ArgumentException.ThrowIfNullOrWhiteSpace(readyMarker);
+        ArgumentException.ThrowIfNullOrWhiteSpace(workerId);
 
         var switchMappings = new Dictionary<string, string>
         {
             ["--pipe"] = nameof(WorkerHostOptions.Pipe),
             ["--log-pipe"] = nameof(WorkerHostOptions.LogPipe),
+            ["--health-monitor"] = nameof(WorkerHostOptions.HealthMonitor),
         };
 
         if (additionalSwitchMappings is not null)
@@ -87,6 +98,14 @@ public static class WorkerHostBuilderExtensions
             return new LoggingClient(options.LogPipe, env.ApplicationName);
         });
         builder.Services.AddSingleton<ILoggerProvider, PipeLoggerProvider>();
+
+        // Liveness signal to the extension's HealthMonitorServer. The
+        // hosted-service contract handles startup/shutdown wiring; the
+        // client is a no-op when --health-monitor was not supplied.
+        builder.Services.AddHostedService(sp => new HealthMonitorClient(
+            sp.GetRequiredService<IOptions<WorkerHostOptions>>().Value.HealthMonitor,
+            workerId,
+            sp.GetRequiredService<ILogger<HealthMonitorClient>>()));
 
         return builder;
     }

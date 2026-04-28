@@ -107,6 +107,34 @@ describe('WorkerManager', () => {
         mgr.dispose();
     });
 
+    it('should pass --health-monitor to every worker when supplied', () => {
+        const mgr = new WorkerManager('/ext', logger, '/workspace', fakeWorkers, undefined, 'autocontext-health-xyz');
+        mgr.start();
+
+        const calls = spawnMock.mock.calls.map(c => c[1] as string[]);
+
+        expect(calls.length).toBe(3);
+        for (const args of calls) {
+            expect(args).toContain('--health-monitor');
+            expect(args).toContain('autocontext-health-xyz');
+        }
+
+        mgr.dispose();
+    });
+
+    it('should omit --health-monitor when no health-monitor pipe is supplied', () => {
+        const mgr = new WorkerManager('/ext', logger, '/workspace', fakeWorkers);
+        mgr.start();
+
+        const calls = spawnMock.mock.calls.map(c => c[1] as string[]);
+
+        for (const args of calls) {
+            expect(args).not.toContain('--health-monitor');
+        }
+
+        mgr.dispose();
+    });
+
     it('should forward stderr lines to the output channel with a process-identity prefix', async () => {
         const children: FakeChild[] = [];
         spawnMock.mockImplementation(() => {

@@ -24,10 +24,17 @@ internal static partial class Program
     /// </summary>
     internal const string ReadyMarker = "[AutoContext.Worker.Workspace] Ready.";
 
+    /// <summary>
+    /// Stable identifier this worker uses to announce itself to the
+    /// extension's <c>HealthMonitorServer</c>. Must match the
+    /// <c>workerId</c> referenced by the extension's MCP-tools manifest.
+    /// </summary>
+    internal const string WorkerId = "workspace";
+
     internal static Task Main(string[] args)
     {
         var builder = Host.CreateApplicationBuilder(args)
-            .ConfigureWorkerHost(args, ReadyMarker, new Dictionary<string, string>
+            .ConfigureWorkerHost(args, ReadyMarker, WorkerId, new Dictionary<string, string>
             {
                 ["--workspace-root"] = nameof(WorkerOptions.WorkspaceRoot),
             });

@@ -4,18 +4,21 @@ import { IdentifierFactory } from './identifier-factory.js';
 import type { Logger } from '#types/logger.js';
 
 /**
- * Monitors MCP worker health via a named pipe.
+ * Monitors MCP worker and server health via a named pipe.
  *
- * Each worker connects to the pipe on startup and sends its worker id
- * (e.g. "dotnet", "web", "workspace") as a UTF-8 string. The connection
- * is kept alive for the lifetime of the worker; when its process exits
- * the socket closes and the monitor updates the health status.
+ * Each managed child process (the MCP server and every worker)
+ * connects to the pipe on startup and writes its client id
+ * (`mcp-server`, `dotnet`, `web`, `workspace`) as a UTF-8 string. The
+ * connection is kept alive for the lifetime of the host process; when
+ * the process exits the OS closes the socket and the monitor flips
+ * that client's status to "not running" and fires
+ * {@link onDidChange}.
  *
- * NOTE: this surface is in a transitional state — `Mcp.Server` ignores
- * the `--health-monitor` argument and the workers don't yet connect, so
- * the monitor reports nothing as running at runtime. The wiring will be
- * redesigned later; the API exposed here is the minimum the tree
- * provider needs.
+ * The extension passes the pipe name to every spawned process via
+ * `--health-monitor` (see {@link WorkerManager} for workers and
+ * {@link McpServerProvider} for the MCP server); the client side is
+ * the .NET `HealthMonitorClient` (in `AutoContext.Framework.Hosting`)
+ * and its TypeScript counterpart in `AutoContext.Worker.Web`.
  */
 export class HealthMonitorServer implements vscode.Disposable {
     private readonly _onDidChange = new vscode.EventEmitter<void>();
@@ -57,8 +60,14 @@ export class HealthMonitorServer implements vscode.Disposable {
 
             socket.on('data', (data: Buffer) => {
                 // The worker sends its id as the first (and only) message.
+                // An empty or whitespace-only payload is treated as a
+                // malformed handshake — we leave workerId blank so a later
+                // well-formed write can still identify the connection, and
+                // we never register an empty-string entry.
                 if (!workerId) {
-                    workerId = data.toString('utf8').trim();
+                    const id = data.toString('utf8').trim();
+                    if (id.length === 0) { return; }
+                    workerId = id;
                     this.addConnection(workerId, socket);
                 }
             });

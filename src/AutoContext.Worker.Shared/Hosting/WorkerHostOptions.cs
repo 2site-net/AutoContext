@@ -33,4 +33,14 @@ public sealed class WorkerHostOptions
     /// log output falls back to stderr.
     /// </summary>
     public string LogPipe { get; init; } = string.Empty;
+
+    /// <summary>
+    /// Optional named pipe the worker connects to on startup to announce
+    /// its presence to the extension-side <c>HealthMonitorServer</c>. The
+    /// connection is held open for the lifetime of the worker process and
+    /// the server uses its closure as the worker's exit signal. When empty
+    /// (standalone runs, or the parent did not pass <c>--health-monitor</c>)
+    /// no liveness signal is sent.
+    /// </summary>
+    public string HealthMonitor { get; init; } = string.Empty;
 }

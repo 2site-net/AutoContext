@@ -1,5 +1,6 @@
 import { parseArgs } from 'node:util';
 import { McpTaskDispatcherService } from './hosting/mcp-task-dispatcher-service.js';
+import { HealthMonitorClient } from './hosting/health-monitor-client.js';
 import type { McpTask } from '#types/mcp-task.js';
 import { LoggingClient } from './logging/logging-client.js';
 import { PipeLogger } from './logging/logger.js';
@@ -19,6 +20,13 @@ const READY_MARKER = '[AutoContext.Worker.Web] Ready.';
 const CLIENT_NAME = 'AutoContext.Worker.Web';
 
 /**
+ * Stable identifier this worker uses to announce itself to the
+ * extension's `HealthMonitorServer`. Must match the `workerId`
+ * referenced by the extension's MCP-tools manifest.
+ */
+const WORKER_ID = 'web';
+
+/**
  * AutoContext.Worker.Web entry point. Standalone Node.js process that
  * owns the Web-side MCP Tasks (TypeScript coding-style checks) and
  * serves them over a named pipe. Conceptually the Node sibling of
@@ -30,6 +38,7 @@ async function main(argv: readonly string[]): Promise<void> {
         options: {
             pipe: { type: 'string' },
             'log-pipe': { type: 'string' },
+            'health-monitor': { type: 'string' },
         },
         strict: false,
     });
@@ -40,6 +49,7 @@ async function main(argv: readonly string[]): Promise<void> {
     }
 
     const logPipe = typeof values['log-pipe'] === 'string' ? values['log-pipe'] : '';
+    const healthMonitorPipe = typeof values['health-monitor'] === 'string' ? values['health-monitor'] : '';
 
     // Wire the logging client first so any startup errors below
     // also flow through the structured channel (or its stderr fallback
@@ -47,8 +57,9 @@ async function main(argv: readonly string[]): Promise<void> {
     const loggingClient = new LoggingClient(logPipe, CLIENT_NAME);
     const logger = new PipeLogger(loggingClient);
     const serviceLogger = logger.forCategory('AutoContext.Worker.Hosting.McpTaskDispatcherService');
+    const healthLogger = logger.forCategory('AutoContext.Worker.Hosting.HealthMonitorClient');
     const startupLogger = logger.forCategory('AutoContext.Worker.Web.Startup');
-    startupLogger.info(`Arguments parsed (pipe='${pipe}', logPipeEnabled=${logPipe !== ''})`);
+    startupLogger.info(`Arguments parsed (pipe='${pipe}', logPipeEnabled=${logPipe !== ''}, healthMonitorEnabled=${healthMonitorPipe !== ''})`);
 
     const tasks: readonly McpTask[] = [
         new AnalyzeTypeScriptCodingStyleTask(),
@@ -61,6 +72,8 @@ async function main(argv: readonly string[]): Promise<void> {
         serviceLogger,
     );
 
+    const healthClient = new HealthMonitorClient(healthMonitorPipe, WORKER_ID, healthLogger);
+
     const controller = new AbortController();
     const shutdown = (): void => {
         if (!controller.signal.aborted) {
@@ -72,6 +85,7 @@ async function main(argv: readonly string[]): Promise<void> {
     process.once('SIGTERM', shutdown);
 
     await service.start(controller.signal);
+    await healthClient.start();
 
     try {
         // Block until the abort signal fires, then let McpTaskDispatcherService's own
@@ -86,6 +100,7 @@ async function main(argv: readonly string[]): Promise<void> {
     } finally {
         // Always release the pipe server, even if the wait above throws.
         await service.stop();
+        await healthClient.dispose();
         await loggingClient.dispose();
     }
 }

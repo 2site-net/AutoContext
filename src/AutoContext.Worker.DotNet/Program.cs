@@ -22,10 +22,17 @@ internal static partial class Program
     /// </summary>
     internal const string ReadyMarker = "[AutoContext.Worker.DotNet] Ready.";
 
+    /// <summary>
+    /// Stable identifier this worker uses to announce itself to the
+    /// extension's <c>HealthMonitorServer</c>. Must match the
+    /// <c>workerId</c> referenced by the extension's MCP-tools manifest.
+    /// </summary>
+    internal const string WorkerId = "dotnet";
+
     internal static Task Main(string[] args)
     {
         var builder = Host.CreateApplicationBuilder(args)
-            .ConfigureWorkerHost(args, ReadyMarker);
+            .ConfigureWorkerHost(args, ReadyMarker, WorkerId);
 
         builder.Services.AddSingleton<IMcpTask, AnalyzeNuGetHygieneTask>();
         builder.Services.AddSingleton<IMcpTask, AnalyzeCSharpAsyncPatternsTask>();

@@ -7,7 +7,7 @@ import { ServersManifest } from '#src/servers-manifest';
 import { ServerEntry } from '#src/server-entry';
 import type { AutoContextConfig } from '#types/autocontext-config.js';
 import type { WorkerManager } from '#src/worker-manager';
-import { createFakeConfigManager, createFakeHealthMonitor, createFakeLogger } from '#testing/fakes';
+import { createFakeConfigManager, createFakeLogger } from '#testing/fakes';
 
 const { existsSyncMock } = vi.hoisted(() => ({ existsSyncMock: vi.fn<(path: string) => boolean>(() => true) }));
 vi.mock('node:fs', async () => {
@@ -20,7 +20,6 @@ type StdioDef = InstanceType<typeof McpStdioServerDefinition>;
 const extensionPath = '/ext';
 const version = '1.0.0';
 
-const fakeHealthMonitor = createFakeHealthMonitor();
 const logger = createFakeLogger();
 
 const onDidChange = vi.fn() as unknown as import('vscode').Event<void>;
@@ -39,11 +38,11 @@ function createProvider(): McpServerProvider {
         version,
         onDidChange,
         mcpToolsManifest,
-        fakeHealthMonitor,
         fakeWorkerManager,
         serversManifest,
         fakeConfigManager,
         'autocontext-log-abc123',
+        'autocontext-health-abc123',
         logger,
     );
 }
@@ -54,7 +53,6 @@ beforeEach(() => {
     vi.mocked(fakeConfigManager.readSync).mockImplementation(() => currentConfig);
     vi.mocked(fakeConfigManager.onDidChange).mockReturnValue({ dispose: vi.fn() });
     existsSyncMock.mockReturnValue(true);
-    vi.mocked(fakeHealthMonitor.getPipeName).mockReturnValue('autocontext-health-abc123');
     vi.mocked(fakeWorkerManager.getEndpointSuffix).mockReturnValue('abc123def456');
 });
 
@@ -106,16 +104,16 @@ describe('McpServerProvider.provideMcpServerDefinitions', () => {
         expect(def.args).toEqual(expect.arrayContaining(['--endpoint-suffix', 'abc123def456']));
     });
 
-    it('passes --health-monitor with the health-monitor pipe name', async () => {
-        const [def] = (await createProvider().provideMcpServerDefinitions()) as StdioDef[];
-
-        expect(def.args).toEqual(expect.arrayContaining(['--health-monitor', 'autocontext-health-abc123']));
-    });
-
     it('passes --log-pipe with the LogServer pipe name', async () => {
         const [def] = (await createProvider().provideMcpServerDefinitions()) as StdioDef[];
 
         expect(def.args).toEqual(expect.arrayContaining(['--log-pipe', 'autocontext-log-abc123']));
+    });
+
+    it('passes --health-monitor with the HealthMonitorServer pipe name', async () => {
+        const [def] = (await createProvider().provideMcpServerDefinitions()) as StdioDef[];
+
+        expect(def.args).toEqual(expect.arrayContaining(['--health-monitor', 'autocontext-health-abc123']));
     });
 
     it('does not pass --scope, --workspace-folder, or --workspace-server', async () => {
@@ -187,11 +185,11 @@ describe('McpServerProvider config updates', () => {
             version,
             onDidChange,
             mcpToolsManifest,
-            fakeHealthMonitor,
             fakeWorkerManager,
             serversManifest,
             failingConfigManager,
             'autocontext-log-abc123',
+            'autocontext-health-abc123',
             oc,
         );
 
