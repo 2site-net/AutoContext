@@ -20,13 +20,15 @@ For tier-1 violations, stop generating and surface a warning. For lower-tier con
 > **If unsure** which instruction applies, generate a concise plan explaining the dilemma and stop; await user approval before continuing.
 
 ## Prompt Instructions
+- **Do** read the `README.md` and other documentation files to understand the project structure and requirements.
+- **Do** follow the `## MCP Tool Validation` section of every loaded instructions file before reporting work as done — call the named MCP tool on the changed artifact and treat any reported violation as blocking.
+- **Do** call the `analyze_git_commit_message` MCP tool on every drafted commit message before proposing it; fix any reported violation and re-validate until it reports clean.
+- **Do** call `get_editorconfig` before generating, reformatting, or reviewing code to resolve the project's formatting rules (indent style, indent size, charset, end-of-line, etc.) and follow them.
+- **Do** use cross-platform PowerShell commands and scripts (e.g., `pwsh -Command 'dotnet test; ./scripts/coverage.ps1'`).
+- **Do** respect existing config files (`.editorconfig`, `.gitignore`, `.csproj`, `.fsproj`, `GlobalSuppressions`, etc.); only change them when necessary, with rationale.
+- **Do** act immediately; pause for approval only on multi-file, major-refactor, or multi-phase work.
+- **Do** clean up after yourself – delete any temp or redundant files you create.
+- **Do** fix one category of errors completely before moving to the next.
 - **Don't** run any git command that changes repository state (`git add`, `git rm`, `git commit`, `git push`, `git reset`, `git checkout`, `git merge`, `git rebase`, etc.) without explicit user permission — read-only commands (`git status`, `git diff`, `git log`, `git show`) are fine.
 - **Don't** omit `--gpg-sign` (`-S`) from `git commit` when the repo or global config has `commit.gpgSign = true`; always honour the user's signing settings.
 - **Don't** create markdown report files unless explicitly requested by the user.
-- **Do** act immediately; pause for approval only on multi-file, major-refactor, or multi-phase work.
-- **Do** use cross-platform PowerShell commands and scripts (e.g., `pwsh -Command 'dotnet test; ./scripts/coverage.ps1'`).
-- **Do** respect existing config files (`.editorconfig`, `.gitignore`, `.csproj`, `.fsproj`, `GlobalSuppressions`, etc.); only change them when necessary, with rationale.
-- **Do** call `get_editorconfig` before generating, reformatting, or reviewing code to resolve the project's formatting rules (indent style, indent size, charset, end-of-line, etc.) and follow them.
-- **Do** clean up after yourself – delete any temp or redundant files you create.
-- **Do** read the `README.md` and other documentation files to understand the project structure and requirements.
-- **Do** fix one category of errors completely before moving to the next.
