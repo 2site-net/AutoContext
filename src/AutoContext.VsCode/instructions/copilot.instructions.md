@@ -21,9 +21,8 @@ For tier-1 violations, stop generating and surface a warning. For lower-tier con
 
 ## Prompt Instructions
 - **Do** read the `README.md` and other documentation files to understand the project structure and requirements.
-- **Do** follow the `## MCP Tool Validation` section of every loaded instructions file before reporting work as done — call the named MCP tool on the changed artifact and treat any reported violation as blocking.
-- **Do** call the `analyze_git_commit_message` MCP tool on every drafted commit message before proposing it; fix any reported violation and re-validate until it reports clean.
-- **Do** call `get_editorconfig` before generating, reformatting, or reviewing code to resolve the project's formatting rules (indent style, indent size, charset, end-of-line, etc.) and follow them.
+- **Do** follow the `## MCP Tool Validation` section of every loaded instructions file — call the named MCP tool and treat any reported violation as blocking.
+- **Do** consult the `## Workflow Instruction Triggers` and `## Workflow MCP Tools Triggers` tables below for triggers that don't fire from a file glob.
 - **Do** use cross-platform PowerShell commands and scripts (e.g., `pwsh -Command 'dotnet test; ./scripts/coverage.ps1'`).
 - **Do** respect existing config files (`.editorconfig`, `.gitignore`, `.csproj`, `.fsproj`, `GlobalSuppressions`, etc.); only change them when necessary, with rationale.
 - **Do** act immediately; pause for approval only on multi-file, major-refactor, or multi-phase work.
@@ -32,3 +31,22 @@ For tier-1 violations, stop generating and surface a warning. For lower-tier con
 - **Don't** run any git command that changes repository state (`git add`, `git rm`, `git commit`, `git push`, `git reset`, `git checkout`, `git merge`, `git rebase`, etc.) without explicit user permission — read-only commands (`git status`, `git diff`, `git log`, `git show`) are fine.
 - **Don't** omit `--gpg-sign` (`-S`) from `git commit` when the repo or global config has `commit.gpgSign = true`; always honour the user's signing settings.
 - **Don't** create markdown report files unless explicitly requested by the user.
+
+## Workflow Instruction Triggers
+When the user asks you to do one of these tasks, read the listed instruction file and follow it.
+
+| Trigger                                              | Load                                  |
+|------------------------------------------------------|---------------------------------------|
+| Reviewing a diff, PR, or auditing a change           | `code-review.instructions.md`         |
+| Drafting a git commit message                        | `git-commit-format.instructions.md`   |
+| Writing, reviewing, or planning tests                | `testing.instructions.md`             |
+| Designing or refactoring system structure / DI / SoC | `design-principles.instructions.md`   |
+| Designing or reviewing a REST API                    | `rest-api-design.instructions.md`     |
+
+## Workflow MCP Tools Triggers
+When you do one of these tasks, call the listed MCP tool and fix anything it reports before continuing.
+
+| Trigger                                                                              | Call                            |
+|--------------------------------------------------------------------------------------|---------------------------------|
+| Drafting a git commit message                                                        | `analyze_git_commit_message`    |
+| Generating, reformatting, or reviewing code (resolve indent, charset, EOL, etc.)     | `read_editorconfig_properties`  |
