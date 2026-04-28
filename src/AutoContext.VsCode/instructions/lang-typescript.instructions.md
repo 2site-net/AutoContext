@@ -1,6 +1,6 @@
 ---
 name: "lang-typescript (v1.0.0)"
-description: "Use when generating or editing TypeScript code, working with types, generics, utility types, or TypeScript-specific patterns."
+description: "Apply when writing or reviewing TypeScript code (types, generics, utility types, narrowing, TypeScript-specific patterns)."
 applyTo: "**/*.{ts,tsx,mts,cts}"
 ---
 

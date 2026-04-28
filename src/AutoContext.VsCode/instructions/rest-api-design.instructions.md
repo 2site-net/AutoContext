@@ -1,6 +1,6 @@
 ---
 name: "rest-api-design (v1.0.0)"
-description: "Use when designing or implementing REST APIs: resource naming, HTTP methods, status codes, versioning, pagination, error responses, and caching."
+description: "Apply when designing or reviewing REST APIs (resource naming, HTTP methods, status codes, versioning, pagination, caching)."
 ---
 
 # REST API Design Instructions

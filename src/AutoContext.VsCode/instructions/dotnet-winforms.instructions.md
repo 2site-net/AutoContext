@@ -1,6 +1,6 @@
 ---
 name: "dotnet-winforms (v1.0.0)"
-description: "Use when generating or editing Windows Forms code, forms, controls, data binding, or WinForms-specific patterns."
+description: "Apply when writing or reviewing Windows Forms code (forms, controls, data binding, threading, layout, validation)."
 applyTo: "**/*.{cs,vb}"
 ---
 

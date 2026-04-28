@@ -1,6 +1,6 @@
 ---
 name: "lang-groovy (v1.0.0)"
-description: "Groovy coding style instructions: naming conventions, type safety, closures, GStrings, collections, error handling, Spock testing, and documentation."
+description: "Apply when writing or reviewing Groovy code (naming, type safety, closures, GStrings, collections, Spock testing)."
 applyTo: "**/*.{groovy,gvy}"
 ---
 

@@ -1,6 +1,6 @@
 ---
 name: "lang-java (v1.0.0)"
-description: "Java coding style instructions: naming conventions, type design, error handling, streams, Optional, generics, concurrency, and documentation."
+description: "Apply when writing or reviewing Java code (naming, type design, error handling, streams, Optional, generics, concurrency)."
 applyTo: "**/*.java"
 ---
 

@@ -1,6 +1,6 @@
 ---
 name: "lang-ruby (v1.0.0)"
-description: "Ruby coding style instructions: naming conventions, blocks, error handling, classes, modules, collections, metaprogramming, and documentation."
+description: "Apply when writing or reviewing Ruby code (naming, blocks, error handling, classes, modules, collections, metaprogramming)."
 applyTo: "**/*.rb"
 ---
 

@@ -1,6 +1,6 @@
 ---
 name: "dotnet-async-await (v1.0.0)"
-description: "Use when writing async .NET code, Task/ValueTask APIs, CancellationToken, IAsyncEnumerable, IAsyncDisposable, or ConfigureAwait patterns."
+description: "Apply when writing or reviewing async .NET code (Task/ValueTask, CancellationToken, IAsyncEnumerable, IAsyncDisposable, ConfigureAwait)."
 applyTo: "**/*.{cs,fs,vb}"
 ---
 

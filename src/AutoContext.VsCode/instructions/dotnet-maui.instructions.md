@@ -1,6 +1,6 @@
 ---
 name: "dotnet-maui (v1.0.0)"
-description: "Use when building .NET MAUI apps: MVVM, Shell navigation, data binding, layouts, CollectionView, DI registration, and UI-thread safety."
+description: "Apply when writing or reviewing .NET MAUI apps (MVVM, Shell navigation, data binding, layouts, CollectionView, DI, UI thread)."
 applyTo: "**/*.{cs,xaml}"
 ---
 

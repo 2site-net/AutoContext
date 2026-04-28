@@ -1,6 +1,6 @@
 ---
 name: "lang-javascript (v1.0.0)"
-description: "Use when generating or editing JavaScript or TypeScript code, working with ES modules, async patterns, DOM manipulation, or modern JS/TS features."
+description: "Apply when writing or reviewing JavaScript code (ES modules, async patterns, DOM manipulation, modern features)."
 applyTo: "**/*.{js,jsx,mjs,cjs,ts,tsx,mts,cts}"
 ---
 

@@ -1,6 +1,6 @@
 ---
 name: "lang-powershell (v1.0.0)"
-description: "Use when writing PowerShell scripts, modules, or automation: naming, error handling, pipeline design, security, and module structure."
+description: "Apply when writing or reviewing PowerShell scripts, modules, or automation (naming, error handling, pipelines, security)."
 applyTo: "**/*.{ps1,psm1,psd1}"
 ---
 

@@ -1,6 +1,6 @@
 ---
 name: "dotnet-wpf (v1.0.0)"
-description: "Use when generating or editing WPF code, XAML views, ViewModels, data bindings, commands, or WPF-specific patterns."
+description: "Apply when writing or reviewing WPF code, XAML views, ViewModels, data bindings, commands, or WPF-specific patterns."
 applyTo: "**/*.{cs,vb,xaml}"
 ---
 

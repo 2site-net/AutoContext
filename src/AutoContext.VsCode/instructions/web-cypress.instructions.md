@@ -1,6 +1,6 @@
 ---
 name: "web-cypress (v1.0.0)"
-description: "Use when writing, reviewing, or refactoring Cypress end-to-end tests, custom commands, or Cypress-specific APIs."
+description: "Apply when writing or reviewing Cypress end-to-end tests, custom commands, or Cypress-specific APIs."
 applyTo: "**/*.{test,spec,cy}.{js,jsx,ts,tsx,mjs,mts}"
 ---
 

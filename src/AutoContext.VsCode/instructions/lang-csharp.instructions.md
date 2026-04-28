@@ -1,6 +1,6 @@
 ---
 name: "lang-csharp (v1.0.0)"
-description: "C# code style instructions: member ordering, formatting, language features, nullability, and documentation conventions."
+description: "Apply when writing or reviewing C# code (member ordering, formatting, language features, nullability, XML docs)."
 applyTo: "**/*.cs"
 ---
 

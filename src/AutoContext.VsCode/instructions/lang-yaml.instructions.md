@@ -1,6 +1,6 @@
 ---
 name: "lang-yaml (v1.0.0)"
-description: "Use when writing, reviewing, or troubleshooting YAML files such as CI/CD pipelines, Docker Compose, Kubernetes manifests, or configuration files."
+description: "Apply when writing or reviewing YAML files (CI/CD pipelines, Docker Compose, Kubernetes manifests, configuration)."
 applyTo: "**/*.{yml,yaml}"
 ---
 

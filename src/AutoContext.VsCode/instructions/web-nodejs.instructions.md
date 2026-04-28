@@ -1,6 +1,6 @@
 ---
 name: "web-nodejs (v1.0.0)"
-description: "Use when building Node.js server applications: module design, async patterns, process lifecycle, streams, and security."
+description: "Apply when writing or reviewing Node.js server apps (module design, async patterns, process lifecycle, streams, security)."
 applyTo: "**/*.{js,mjs,cjs,ts,mts,cts}"
 ---
 

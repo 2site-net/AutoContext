@@ -1,6 +1,6 @@
 ---
 name: "dotnet-xunit (v1.0.0)"
-description: "Use when writing, reviewing, or refactoring xUnit tests, test doubles, or xUnit-specific APIs in .NET."
+description: "Apply when writing or reviewing xUnit tests, test doubles, or xUnit-specific APIs in .NET."
 applyTo: "**/*Tests*.{cs,fs,vb,razor}"
 ---
 

@@ -1,6 +1,6 @@
 ---
 name: "web-playwright (v1.0.0)"
-description: "Use when writing, reviewing, or refactoring Playwright end-to-end tests, page objects, or Playwright-specific APIs."
+description: "Apply when writing or reviewing Playwright end-to-end tests, page objects, or Playwright-specific APIs."
 applyTo: "**/*.{test,spec}.{js,jsx,ts,tsx,mjs,mts}"
 ---
 

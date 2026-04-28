@@ -1,6 +1,6 @@
 ---
 name: "dotnet-mediator-cqrs (v1.0.0)"
-description: "Use when implementing CQRS patterns, MediatR handlers, pipelines, or command/query separation in .NET."
+description: "Apply when writing or reviewing CQRS code in .NET (MediatR handlers, pipelines, command/query separation)."
 applyTo: "**/*.{cs,fs,vb}"
 ---
 

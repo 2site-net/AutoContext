@@ -1,6 +1,6 @@
 ---
 name: "web-svelte (v1.0.0)"
-description: "Use when building Svelte or SvelteKit apps: Svelte 5 runes ($state, $derived, $effect, $props), component design, stores, reactivity, SvelteKit routing, form actions, and load functions."
+description: "Apply when writing or reviewing Svelte or SvelteKit apps (Svelte 5 runes, components, stores, routing, form actions, load)."
 applyTo: "**/*.{svelte,js,jsx,mjs,cjs,ts,tsx,mts,cts}"
 ---
 

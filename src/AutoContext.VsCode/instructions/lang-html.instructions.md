@@ -1,6 +1,6 @@
 ---
 name: "lang-html (v1.0.0)"
-description: "Use when generating or editing HTML markup, structuring documents, adding accessibility attributes, or working with forms and semantic elements."
+description: "Apply when writing or reviewing HTML markup (document structure, accessibility attributes, forms, semantic elements)."
 applyTo: "**/*.{html,razor,cshtml}"
 ---
 

@@ -1,6 +1,6 @@
 ---
 name: "dotnet-dapper (v1.0.0)"
-description: "Use when writing data access code with Dapper: raw SQL queries, parameter binding, mapping, multi-mapping, transactions, or connection management in .NET projects."
+description: "Apply when writing or reviewing Dapper data access (raw SQL, parameter binding, mapping, transactions, connection management)."
 ---
 
 # Dapper Instructions

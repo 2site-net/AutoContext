@@ -1,6 +1,6 @@
 ---
 name: "docker (v1.0.0)"
-description: "Use when writing, reviewing, or troubleshooting Dockerfiles, Compose files, container builds, or container deployment configuration."
+description: "Apply when writing or reviewing Dockerfiles, Compose files, container builds, or container deployment configuration."
 applyTo: "**/Dockerfile*,**/docker-compose*.{yml,yaml},**/.dockerignore"
 ---
 

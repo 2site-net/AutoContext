@@ -1,6 +1,6 @@
 ---
 name: "lang-bash (v1.0.0)"
-description: "Use when writing Bash or shell scripts: safety flags, quoting, error handling, portability, and script structure."
+description: "Apply when writing or reviewing Bash or shell scripts (safety flags, quoting, error handling, portability, structure)."
 applyTo: "**/*.{sh,bash}"
 ---
 

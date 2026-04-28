@@ -1,6 +1,6 @@
 ---
 name: "code-review (v1.0.0)"
-description: "Use when reviewing code, giving feedback on a pull request, or auditing a change for correctness, security, and quality."
+description: "Apply when reviewing code, auditing a diff, or giving feedback on a pull request (correctness, security, quality)."
 ---
 
 # Code Review Instructions

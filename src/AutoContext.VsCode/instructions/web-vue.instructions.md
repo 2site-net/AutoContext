@@ -1,6 +1,6 @@
 ---
 name: "web-vue (v1.0.0)"
-description: "Use when building Vue.js apps: Composition API, reactivity (ref/reactive/computed/watch), component design, props/emits, composables, routing, Pinia state management, and template best practices."
+description: "Apply when writing or reviewing Vue.js apps (Composition API, reactivity, components, props/emits, composables, Pinia)."
 applyTo: "**/*.{vue,js,jsx,mjs,cjs,ts,tsx,mts,cts}"
 ---
 

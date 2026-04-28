@@ -1,6 +1,6 @@
 ---
 name: "dotnet-razor (v1.0.0)"
-description: "Use when creating or editing Razor component files (.razor), organizing directives, structuring code-behind files, or working with Razor syntax and markup."
+description: "Apply when writing or reviewing Razor component files (.razor), directives, code-behind, or Razor markup."
 applyTo: "**/*.razor,**/*.razor.cs"
 ---
 

@@ -1,6 +1,6 @@
 ---
 name: "lang-vbnet (v1.0.0)"
-description: "VB.NET code style instructions: naming, module layout, type design, error handling, formatting, and documentation conventions."
+description: "Apply when writing or reviewing VB.NET code (naming, module layout, type design, error handling, formatting, docs)."
 applyTo: "**/*.vb"
 ---
 

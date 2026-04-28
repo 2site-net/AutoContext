@@ -1,6 +1,6 @@
 ---
 name: "dotnet-coding-standards (v1.0.0)"
-description: "Use when writing .NET code: design guidelines, naming conventions, input validation, file organization, and API design."
+description: "Apply when writing or reviewing .NET code (design guidelines, naming, input validation, file organization, API design)."
 applyTo: "**/*.{cs,fs,vb}"
 ---
 

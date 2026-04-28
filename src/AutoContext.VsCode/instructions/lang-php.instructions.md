@@ -1,6 +1,6 @@
 ---
 name: "lang-php (v1.0.0)"
-description: "PHP coding style instructions: naming conventions, type safety, error handling, OOP, functions, security, database access, and documentation."
+description: "Apply when writing or reviewing PHP code (naming, type safety, error handling, OOP, security, database access)."
 applyTo: "**/*.php"
 ---
 

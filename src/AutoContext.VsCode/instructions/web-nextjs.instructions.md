@@ -1,6 +1,6 @@
 ---
 name: "web-nextjs (v1.0.0)"
-description: "Use when building Next.js applications: App Router, Server/Client Components, data fetching, routing, middleware, and rendering strategies."
+description: "Apply when writing or reviewing Next.js apps (App Router, Server/Client Components, data fetching, middleware, rendering)."
 applyTo: "**/*.{js,jsx,ts,tsx,mjs,mts}"
 ---
 

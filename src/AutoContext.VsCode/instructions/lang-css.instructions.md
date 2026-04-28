@@ -1,6 +1,6 @@
 ---
 name: "lang-css (v1.0.0)"
-description: "Use when generating or editing CSS stylesheets, working with selectors, custom properties, layout, responsive design, or accessibility-related styles."
+description: "Apply when writing or reviewing CSS (selectors, custom properties, layout, responsive design, accessibility)."
 applyTo: "**/*.css"
 ---
 

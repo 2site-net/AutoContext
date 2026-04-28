@@ -1,6 +1,6 @@
 ---
 name: "dotnet-entity-framework-core (v1.0.0)"
-description: "Use when working with Entity Framework Core: DbContext lifetime, querying, change tracking, eager/lazy loading, migrations, and bulk operations."
+description: "Apply when writing or reviewing EF Core code (DbContext lifetime, querying, change tracking, eager/lazy loading, migrations)."
 applyTo: "**/*.{cs,fs,vb}"
 ---
 

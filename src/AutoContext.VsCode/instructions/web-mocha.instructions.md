@@ -1,6 +1,6 @@
 ---
 name: "web-mocha (v1.0.0)"
-description: "Use when writing, reviewing, or refactoring Mocha tests or Mocha-specific configuration."
+description: "Apply when writing or reviewing Mocha tests or Mocha-specific configuration."
 applyTo: "**/*.{test,spec}.{js,jsx,ts,tsx,mjs,mts}"
 ---
 

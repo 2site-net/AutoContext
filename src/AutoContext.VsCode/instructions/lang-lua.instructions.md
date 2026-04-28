@@ -1,6 +1,6 @@
 ---
 name: "lang-lua (v1.0.0)"
-description: "Lua coding style instructions: naming conventions, tables, error handling, functions, modules, metatables, performance, and documentation."
+description: "Apply when writing or reviewing Lua code (naming, tables, error handling, functions, modules, metatables, performance)."
 applyTo: "**/*.lua"
 ---
 

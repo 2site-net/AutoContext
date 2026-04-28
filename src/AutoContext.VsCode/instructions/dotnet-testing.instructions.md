@@ -1,6 +1,6 @@
 ---
 name: "dotnet-testing (v1.0.0)"
-description: "Use when writing, reviewing, or refactoring .NET test naming, organization, or test-project conventions."
+description: "Apply when writing or reviewing .NET test naming, organization, or test-project conventions."
 applyTo: "**/*Tests*.{cs,fs,vb,razor}"
 ---
 

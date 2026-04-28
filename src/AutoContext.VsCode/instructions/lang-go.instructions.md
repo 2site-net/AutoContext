@@ -1,6 +1,6 @@
 ---
 name: "lang-go (v1.0.0)"
-description: "Go coding style instructions: naming conventions, error handling, interfaces, concurrency, packages, testing, and documentation."
+description: "Apply when writing or reviewing Go code (naming, error handling, interfaces, concurrency, packages, testing, docs)."
 applyTo: "**/*.go"
 ---
 

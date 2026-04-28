@@ -1,6 +1,6 @@
 ---
 name: "lang-cpp (v1.0.0)"
-description: "C++ coding style instructions: RAII, smart pointers, move semantics, type design, modern features, templates, error handling, STL usage, and concurrency."
+description: "Apply when writing or reviewing C++ code (RAII, smart pointers, move semantics, templates, error handling, STL, concurrency)."
 applyTo: "**/*.{cpp,cxx,cc,h,hpp,hxx,hh}"
 ---
 

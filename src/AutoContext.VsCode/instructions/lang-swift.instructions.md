@@ -1,6 +1,6 @@
 ---
 name: "lang-swift (v1.0.0)"
-description: "Swift coding style instructions: naming conventions, optionals, value types, protocols, concurrency, error handling, collections, and documentation."
+description: "Apply when writing or reviewing Swift code (naming, optionals, value types, protocols, concurrency, error handling)."
 applyTo: "**/*.swift"
 ---
 

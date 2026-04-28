@@ -1,6 +1,6 @@
 ---
 name: "dotnet-blazor (v1.0.0)"
-description: "Use when creating or editing Blazor Razor components, render modes, cascading parameters, EventCallback, Virtualize, or JS interop."
+description: "Apply when writing or reviewing Blazor Razor components (render modes, cascading parameters, EventCallback, Virtualize, JS interop)."
 applyTo: "**/*.razor,**/*.razor.cs"
 ---
 

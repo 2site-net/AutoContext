@@ -1,6 +1,6 @@
 ---
 name: "lang-batch (v1.0.0)"
-description: "Use when writing Windows Batch (CMD) scripts: variable handling, error checking, quoting, and script structure."
+description: "Apply when writing or reviewing Windows Batch (CMD) scripts (variables, error checking, quoting, structure)."
 applyTo: "**/*.{bat,cmd}"
 ---
 

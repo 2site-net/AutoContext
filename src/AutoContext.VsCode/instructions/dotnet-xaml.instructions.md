@@ -1,6 +1,6 @@
 ---
 name: "dotnet-xaml (v1.0.0)"
-description: "Use when writing or reviewing XAML markup for WPF, .NET MAUI, WinUI, Avalonia, or other XAML-based frameworks: layout, data binding, resources, templates, and accessibility."
+description: "Apply when writing or reviewing XAML markup for WPF, .NET MAUI, WinUI, or Avalonia (layout, data binding, resources, templates)."
 applyTo: "**/*.xaml"
 ---
 

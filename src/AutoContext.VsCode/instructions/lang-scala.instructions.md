@@ -1,6 +1,6 @@
 ---
 name: "lang-scala (v1.0.0)"
-description: "Scala coding style instructions: naming conventions, type design, pattern matching, implicits, collections, error handling, concurrency, and documentation."
+description: "Apply when writing or reviewing Scala code (naming, type design, pattern matching, implicits, collections, concurrency)."
 applyTo: "**/*.{scala,sc}"
 ---
 

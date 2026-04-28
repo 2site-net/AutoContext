@@ -1,6 +1,6 @@
 ---
 name: "dotnet-grpc (v1.0.0)"
-description: "Use when defining gRPC services, proto files, client/server implementation, or streaming patterns in .NET."
+description: "Apply when writing or reviewing gRPC services in .NET (.proto files, client/server implementation, streaming patterns)."
 applyTo: "**/*.{cs,fs,vb,proto}"
 ---
 

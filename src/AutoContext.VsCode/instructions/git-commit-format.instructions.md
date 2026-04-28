@@ -1,6 +1,6 @@
 ---
 name: "git-commit-format (v1.0.0)"
-description: "Use when writing git commit messages, formatting commit subjects and bodies, or following Conventional Commits."
+description: "Apply when drafting a git commit message (Conventional Commits subject and body)."
 ---
 
 # Git Commit Format Instructions

@@ -1,6 +1,6 @@
 ---
 name: "lang-graphql (v1.0.0)"
-description: "Use when designing GraphQL schemas, resolvers, queries, mutations, or subscriptions."
+description: "Apply when designing or reviewing GraphQL schemas, resolvers, queries, mutations, or subscriptions."
 applyTo: "**/*.{graphql,gql}"
 ---
 

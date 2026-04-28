@@ -1,6 +1,6 @@
 ---
 name: "lang-sql (v1.0.0)"
-description: "Use when writing SQL queries: naming conventions, formatting, query design, joins, indexing, security, and performance."
+description: "Apply when writing or reviewing SQL queries (naming, formatting, query design, joins, indexing, security, performance)."
 applyTo: "**/*.sql"
 ---
 

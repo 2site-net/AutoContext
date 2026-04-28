@@ -1,6 +1,6 @@
 ---
 name: "web-jasmine (v1.0.0)"
-description: "Use when writing, reviewing, or refactoring Jasmine tests, spies, or Jasmine-specific APIs."
+description: "Apply when writing or reviewing Jasmine tests, spies, or Jasmine-specific APIs."
 applyTo: "**/*.{test,spec}.{js,jsx,ts,tsx,mjs,mts}"
 ---
 

@@ -1,6 +1,6 @@
 ---
 name: "lang-rust (v1.0.0)"
-description: "Rust coding style instructions: naming conventions, ownership, borrowing, error handling, type design, traits, concurrency, and documentation."
+description: "Apply when writing or reviewing Rust code (naming, ownership, borrowing, error handling, type design, traits, concurrency)."
 applyTo: "**/*.rs"
 ---
 

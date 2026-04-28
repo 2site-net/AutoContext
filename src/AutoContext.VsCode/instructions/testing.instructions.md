@@ -1,6 +1,6 @@
 ---
 name: "testing (v1.0.0)"
-description: "Use when writing, reviewing, or refactoring any tests — regardless of language or framework."
+description: "Apply when writing or reviewing tests, regardless of language or framework."
 applyTo: "**/*.{test,spec}.{js,jsx,ts,tsx,mjs,mts},**/*Tests*.{cs,fs,vb,razor}"
 ---
 

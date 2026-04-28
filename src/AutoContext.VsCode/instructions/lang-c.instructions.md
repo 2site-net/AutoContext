@@ -1,6 +1,6 @@
 ---
 name: "lang-c (v1.0.0)"
-description: "C coding style instructions: naming conventions, memory management, pointer safety, const correctness, error handling, header design, and concurrency."
+description: "Apply when writing or reviewing C code (naming, memory management, pointer safety, const correctness, headers, concurrency)."
 applyTo: "**/*.{c,h}"
 ---
 

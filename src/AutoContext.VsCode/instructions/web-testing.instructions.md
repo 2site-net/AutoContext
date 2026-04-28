@@ -1,6 +1,6 @@
 ---
 name: "web-testing (v1.0.0)"
-description: "Use when writing, reviewing, or refactoring JavaScript/TypeScript tests, test structure, or test organization."
+description: "Apply when writing or reviewing JavaScript or TypeScript tests, test structure, or test organization."
 applyTo: "**/*.{test,spec,cy}.{js,jsx,ts,tsx,mjs,mts}"
 ---
 

@@ -1,6 +1,6 @@
 ---
 name: "lang-kotlin (v1.0.0)"
-description: "Kotlin coding style instructions: naming conventions, null safety, type design, scope functions, collections, coroutines, and documentation."
+description: "Apply when writing or reviewing Kotlin code (naming, null safety, type design, scope functions, collections, coroutines)."
 applyTo: "**/*.{kt,kts}"
 ---
 

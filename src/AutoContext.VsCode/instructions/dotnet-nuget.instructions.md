@@ -1,6 +1,6 @@
 ---
 name: "dotnet-nuget (v1.0.0)"
-description: "Use when adding, updating, removing, or reviewing NuGet package references or third-party dependencies in .NET projects."
+description: "Apply when adding, updating, removing, or reviewing NuGet package references in .NET projects."
 ---
 
 # NuGet Packages & Dependencies Instructions

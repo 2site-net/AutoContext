@@ -1,6 +1,6 @@
 ---
 name: "dotnet-core (v1.0.0)"
-description: "Use when writing, reviewing, or refactoring .NET dependency injection, logging, configuration, or security setup."
+description: "Apply when writing or reviewing .NET dependency injection, logging, configuration, or security setup."
 applyTo: "**/*.{cs,fs,vb}"
 ---
 

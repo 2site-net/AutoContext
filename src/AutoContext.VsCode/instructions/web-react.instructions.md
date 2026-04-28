@@ -1,6 +1,6 @@
 ---
 name: "web-react (v1.0.0)"
-description: "Use when generating or editing React components, managing state, writing Hooks, handling effects, rendering lists, or structuring component trees."
+description: "Apply when writing or reviewing React components, Hooks, state, effects, list rendering, or component trees."
 applyTo: "**/*.{js,jsx,mjs,cjs,ts,tsx,mts,cts}"
 ---
 
