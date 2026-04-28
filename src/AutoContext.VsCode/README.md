@@ -17,7 +17,7 @@ AutoContext gives AI coding assistants the right context for your codebase. It p
 - **Export** — Enter export mode from the Instructions panel header, check the instructions you want to export, and confirm. Files are copied to `.github/instructions/` for team sharing. Exported instructions appear as **overridden** in the panel — the workspace-level file takes precedence. Delete the exported file to revert to the built-in version.
 - **Override Staleness Detection** — When a local override in `.github/instructions/` is older than the bundled version, it is flagged as `"overridden (outdated)"` in the tree view. Deleting an outdated override shows a version-comparison dialog and restores the latest built-in version. Use **Show Original** to compare or **Show Changelog** to review what changed.
 - **Upgrade Awareness** — A badge appears on the Instructions panel when the extension updates. Disabled instruction IDs are automatically cleared when an instruction's rule set changes (major or minor version bump), with a notification explaining which files were affected.
-- **Diagnostic Logging** — Tool invocation logs from all MCP servers are routed through the workspace server pipe and surfaced in the **AutoContext** Output channel, prefixed with the server identity.
+- **Diagnostic Logging** — Tool invocation logs from `AutoContext.Mcp.Server` and every worker are streamed over a named-pipe LogServer the extension hosts, and surfaced in the **AutoContext** Output channel prefixed with the source process identity.
 
 ## MCP Tools
 
@@ -25,13 +25,13 @@ Once installed, the following MCP tools are available to GitHub Copilot in Agent
 
 | Category | Tool | Purpose |
 |----------|------|---------|
-| .NET | `check_csharp_all` | Composite C# quality check (style, naming, async, structure, …) |
-| .NET | `check_nuget_hygiene` | Package version and hygiene check |
-| Workspace | `check_git_all` | Conventional Commits format and content check |
-| Workspace | `get_editorconfig` | Resolve effective `.editorconfig` properties for a file |
-| Web | `check_typescript_all` | Composite TypeScript quality check |
+| .NET | `analyze_csharp_code` | Composite C# quality check (style, naming, async, structure, …) |
+| .NET | `analyze_nuget_references` | Package version and hygiene check |
+| Workspace | `analyze_git_commit_message` | Conventional Commits format and content check |
+| Workspace | `read_editorconfig_properties` | Resolve effective `.editorconfig` properties for a file |
+| Web | `analyze_typescript_code` | Composite TypeScript quality check |
 
-Each category maps to a dedicated MCP server. Tools within a category are further organized by sub-category (e.g., C#, NuGet under .NET) and can be toggled individually from the **MCP Tools** panel in the AutoContext sidebar, or via `.autocontext.json` in your workspace root. If all tools for a category are disabled, that server is not registered at all.
+All tools are exposed through a single MCP server (`AutoContext.Mcp.Server`) that dispatches each call to the worker process that owns the tool — `.NET` to `AutoContext.Worker.DotNet`, `Workspace` to `AutoContext.Worker.Workspace`, and `Web` to `AutoContext.Worker.Web`. Tools within a category are further organized by sub-category (e.g., C#, NuGet under .NET) and can be toggled individually from the **MCP Tools** panel in the AutoContext sidebar, or via `.autocontext.json` in your workspace root. If all tools owned by a worker are disabled, that worker is not spawned at all.
 
 ## Sidebar Panels
 
@@ -85,7 +85,7 @@ No .NET runtime is required — the extension ships self-contained executables.
 Install from the [VS Code Marketplace](https://marketplace.visualstudio.com/) or [Open VSX](https://open-vsx.org/), or install a platform-specific `.vsix` manually from the Extensions view (**Install from VSIX…**) or from the command line:
 
 ```sh
-code --install-extension AutoContext-win32-x64-0.5.5.vsix
+code --install-extension AutoContext-win32-x64-0.8.0.vsix
 ```
 
 Once installed, open Agent mode in Copilot Chat and the AutoContext tools will appear in the tools picker. Ask Copilot things like:

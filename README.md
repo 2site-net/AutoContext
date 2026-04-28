@@ -25,100 +25,68 @@ Tools and instructions are grouped into categories and managed from dedicated si
 ## Repository Structure
 
 ```text
-AutoContext.slnx                        # Solution file
-servers.json                            # Server manifest (name + type for each MCP server)
-version.json                            # Canonical version (single source of truth)
-versionize.ps1                          # Version stamping tool (Sync, Export, SyncAndExport)
-src/AutoContext.Mcp.Shared/             # Shared contracts and WorkspaceServer communication layer
-  Checkers/                             #   Checker interfaces and CompositeChecker base class
-  HealthMonitorClient.cs                #   Named-pipe client that reports server health to the extension
-  WorkspaceServer/                      #   WorkspaceServerClient (pipe client)
-    Logging/                            #     LogRequest/LogResponse wire types for centralized logging
-    McpTools/                           #     Wire-contract types (McpToolsRequest, McpToolsResponse)
-src/AutoContext.WorkspaceServer/        # Handles cross-cutting workspace tasks and hosts technology-agnostic MCP tools
-  Tools/                                #   MCP-facing entry points (EditorConfig tool, Git checkers)
-  Hosting/                              #   Named-pipe infrastructure, EditorConfig resolution, MCP tool orchestration
-src/AutoContext.Mcp.DotNet/             # Provides MCP tools server for .NET development (e.g. C#, NuGet)
-  Tools/                                #   CSharp/ and NuGet/ checker implementations
-src/AutoContext.Mcp.Web/                # Provides MCP tools server for web development (e.g. TypeScript)
-  src/                                  #   TypeScript source code
-    features/                           #     Shared infrastructure (checkers, health monitor, logging, workspace server client)
-    tools/                              #     TypeScript checker implementations
-  tests/                                #   Vitest tests
-src/AutoContext.VsCode/                 # VS Code extension for instructions, tool orchestration, and workspace detection
-src/AutoContext.Mcp.DotNet.Tests/       # Tests for the .NET MCP server
-src/AutoContext.WorkspaceServer.Tests/  # Tests for the workspace server
+AutoContext.slnx                          # Solution file
+servers.json                              # Server manifest (id + name + runtime kind for the orchestrator and each worker)
+version.json                              # Canonical version (single source of truth)
+versionize.ps1                            # Version stamping tool (Sync, Export, SyncAndExport)
+src/AutoContext.Mcp.Abstractions/         # IMcpTask contract shared between the orchestrator and every worker
+src/AutoContext.Framework/                # Hosting, structured logging, and worker-side framework primitives
+src/AutoContext.Worker.Shared/            # Shared hosting helpers used by the .NET workers
+src/AutoContext.Mcp.Server/               # Single MCP/stdio orchestrator. Loads the embedded mcp-workers-registry.json,
+                                          # exposes every declared tool to the MCP client, and dispatches each call to the
+                                          # owning AutoContext.Worker.* over a named pipe.
+  Registry/                               #   Registry loader, schema validator, and McpWorkersCatalog
+  Workers/                                #   WorkerClient + Protocol/Transport (named-pipe RPC to the workers)
+  Tools/                                  #   McpSdkAdapter + invocation/results pipeline exposed to MCP clients
+  EditorConfig/                           #   In-process EditorConfig resolution shared by tools that need it
+  mcp-workers-registry.json               #   Embedded registry: every tool, its parameters, and its owning worker
+src/AutoContext.Worker.DotNet/            # .NET worker. Hosts C# and NuGet analyzers (Tasks/CSharp, Tasks/NuGet).
+src/AutoContext.Worker.Workspace/         # .NET worker. Hosts Git, EditorConfig, and Config tasks.
+src/AutoContext.Worker.Web/               # Node.js / TypeScript worker. Hosts the TypeScript analyzer.
+src/AutoContext.VsCode/                   # VS Code extension. Spawns Mcp.Server + every worker, runs the LogServer
+                                          # and HealthMonitorServer pipes, and ships the instructions, sidebar panels,
+                                          # workspace detection, and per-instruction configuration UI.
+src/tests/                                # All test projects (Framework, Worker.Shared, Worker.Workspace,
+                                          # Worker.DotNet, Mcp.Server, plus the Worker.Testing helper library)
 ```
 
 ## Architecture
 
 See [docs/architecture.md](docs/architecture.md) for the full architecture guide — layer pipeline, activation and runtime flows, precedence rules, MCP servers, and tool reference.
 
-## Manual Server Configuration
+## Running Outside VS Code
 
-If you have the .NET 10 SDK installed and have cloned this repo, you can register the servers directly in `.vscode/mcp.json` without the VS Code extension. This is useful for development or for using the latest unreleased server code:
+The canonical way to use AutoContext is through the VS Code extension, which
+spawns `AutoContext.Mcp.Server` (the single MCP/stdio orchestrator) along with
+every `AutoContext.Worker.*` sidecar and wires them together over named pipes.
+
+If you need to use AutoContext from another MCP client, register only the
+orchestrator — it exposes every tool declared in the embedded
+`mcp-workers-registry.json` and dispatches each call to the owning worker:
 
 ```jsonc
 {
   "servers": {
-    "dotnet-AutoContext": {
+    "AutoContext": {
       "type": "stdio",
       "command": "dotnet",
       "args": [
         "run",
         "--project",
-        "${workspaceFolder}/src/AutoContext.Mcp.DotNet/AutoContext.Mcp.DotNet.csproj",
-        "--",
-        "--scope",
-        "dotnet",
-        "--workspace-folder",
-        "${workspaceFolder}"
-      ]
-    },
-    "git-AutoContext": {
-      "type": "stdio",
-      "command": "dotnet",
-      "args": [
-        "run",
-        "--project",
-        "${workspaceFolder}/src/AutoContext.WorkspaceServer/AutoContext.WorkspaceServer.csproj",
-        "--",
-        "--scope",
-        "git",
-        "--workspace-folder",
-        "${workspaceFolder}"
-      ]
-    },
-    "editorconfig-AutoContext": {
-      "type": "stdio",
-      "command": "dotnet",
-      "args": [
-        "run",
-        "--project",
-        "${workspaceFolder}/src/AutoContext.WorkspaceServer/AutoContext.WorkspaceServer.csproj",
-        "--",
-        "--scope",
-        "editorconfig",
-        "--workspace-folder",
-        "${workspaceFolder}"
-      ]
-    },
-    "typescript-AutoContext": {
-      "type": "stdio",
-      "command": "node",
-      "args": [
-        "${workspaceFolder}/src/AutoContext.Mcp.Web/out/index.js",
-        "--scope",
-        "typescript",
-        "--workspace-folder",
-        "${workspaceFolder}"
+        "${workspaceFolder}/src/AutoContext.Mcp.Server/AutoContext.Mcp.Server.csproj"
       ]
     }
   }
 }
 ```
 
-> **Note:** The TypeScript server requires a prior build: `cd src/AutoContext.Mcp.Web && npm install && npm run build`. When configured manually, the `--workspace-server` and `--health-monitor` arguments are omitted; checkers fall back to their built-in defaults for EditorConfig properties, and health monitoring and centralized logging are unavailable.
+> **Note:** The orchestrator expects every worker named in
+> `mcp-workers-registry.json` to already be listening on its named pipe before
+> a tool call is dispatched. The VS Code extension manages this
+> spawn/lifecycle for you (`worker-manager.ts`); standalone setups must
+> launch each `AutoContext.Worker.*` separately and keep them alive. The
+> Node.js worker (`AutoContext.Worker.Web`) requires a prior build:
+> `cd src/AutoContext.Worker.Web && npm install && npm run build`.
 
 ## Testing
 
