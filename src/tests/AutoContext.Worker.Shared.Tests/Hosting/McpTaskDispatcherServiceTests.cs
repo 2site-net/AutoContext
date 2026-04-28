@@ -11,7 +11,7 @@ using AutoContext.Worker.Shared.Tests.Testing.Fakes;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 
-public sealed class McpToolServiceTests
+public sealed class McpTaskDispatcherServiceTests
 {
     private const string TestReadyMarker = "[AutoContext.Worker.Tests] Ready.";
 
@@ -134,7 +134,7 @@ public sealed class McpToolServiceTests
                     data = new { },
                     editorconfig = new { },
                 },
-                McpToolService.WorkerJsonOptions);
+                McpTaskDispatcherService.WorkerJsonOptions);
             var channel = new WorkerProtocolChannel(client);
             await channel.WriteAsync(bytes, ct);
 
@@ -147,7 +147,7 @@ public sealed class McpToolServiceTests
         }
     }
 
-    private static McpToolService CreateSut(string pipeName, IMcpTask[] tasks)
+    private static McpTaskDispatcherService CreateSut(string pipeName, IMcpTask[] tasks)
     {
         var options = Options.Create(new WorkerHostOptions
         {
@@ -155,7 +155,7 @@ public sealed class McpToolServiceTests
             ReadyMarker = TestReadyMarker,
         });
 
-        return new McpToolService(options, tasks, NullLogger<McpToolService>.Instance);
+        return new McpTaskDispatcherService(options, tasks, NullLogger<McpTaskDispatcherService>.Instance);
     }
 
     private static async Task<JsonElement> SendAsync(string pipeName, object request, CancellationToken ct)
@@ -163,7 +163,7 @@ public sealed class McpToolServiceTests
         await using var client = new NamedPipeClientStream(".", pipeName, PipeDirection.InOut, PipeOptions.Asynchronous);
         await client.ConnectAsync(5000, ct);
 
-        var bytes = JsonSerializer.SerializeToUtf8Bytes(request, McpToolService.WorkerJsonOptions);
+        var bytes = JsonSerializer.SerializeToUtf8Bytes(request, McpTaskDispatcherService.WorkerJsonOptions);
         var channel = new WorkerProtocolChannel(client);
         await channel.WriteAsync(bytes, ct);
 

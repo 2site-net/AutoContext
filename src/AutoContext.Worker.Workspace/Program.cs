@@ -39,7 +39,7 @@ internal static partial class Program
         builder.Services.AddSingleton<IMcpTask, GetEditorConfigRulesTask>();
         builder.Services.AddSingleton<IMcpTask, GetAutoContextConfigFileTask>();
 
-        builder.Services.AddHostedService<McpToolService>();
+        builder.Services.AddHostedService<McpTaskDispatcherService>();
 
         var host = builder.Build();
         var logger = host.Services.GetRequiredService<ILoggerFactory>().CreateLogger(typeof(Program).FullName!);

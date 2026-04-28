@@ -8,12 +8,20 @@ import { CorrelationScope } from '../logging/correlation-scope.js';
 import type { Logger } from '#types/logger.js';
 
 /**
- * Named-pipe server that accepts per-task connections and dispatches
- * each one to an {@link McpTask} instance. TypeScript counterpart of
- * the C# `McpToolService` in `AutoContext.Worker.Shared`.
+ * The worker's task runner. Listens on a named pipe for task requests
+ * sent by the MCP server, looks the task up by name in the worker's
+ * registered {@link McpTask} set, executes it, and sends the result
+ * back on the same connection. TypeScript counterpart of the C#
+ * `McpTaskDispatcherService` in `AutoContext.Worker.Shared`.
  *
- * Wire protocol (per-task, see `docs/architecture.md` § "Protocol &
- * Contracts"): 4-byte little-endian length prefix + UTF-8 JSON payload.
+ * Each pipe connection carries exactly one task call: read one request
+ * envelope, run one task, write one response envelope, close. The MCP
+ * server is responsible for fanning a multi-task tool invocation out
+ * across multiple concurrent connections and aggregating the results;
+ * the worker only sees individual task calls.
+ *
+ * Wire protocol (see `docs/architecture.md` § "Protocol & Contracts"):
+ * 4-byte little-endian length prefix + UTF-8 JSON payload.
  *
  * Request:  `{ "mcpTask", "data", "editorconfig" }`
  * Response: `{ "mcpTask", "status", "output", "error" }`
@@ -21,11 +29,8 @@ import type { Logger } from '#types/logger.js';
  * Any `editorconfig` object on the request envelope is flattened into
  * `data` as properties prefixed with `editorconfig.` before the task
  * is invoked, so tasks see a single payload.
- *
- * One connection = one task call. The service spawns a per-connection
- * handler and immediately returns to accepting the next connection.
  */
-export class McpToolService {
+export class McpTaskDispatcherService {
     private readonly options: WorkerHostOptions;
     private readonly tasks: ReadonlyMap<string, McpTask>;
     private readonly logger: Logger | undefined;
@@ -70,7 +75,7 @@ export class McpToolService {
      */
     async start(signal: AbortSignal): Promise<void> {
         if (this.server !== undefined) {
-            throw new Error('McpToolService has already been started.');
+            throw new Error('McpTaskDispatcherService has already been started.');
         }
 
         const server = net.createServer((socket) => {
@@ -83,9 +88,9 @@ export class McpToolService {
 
         this.server = server;
 
-        const pipePath = McpToolService.normalizePipePath(this.options.pipe);
+        const pipePath = McpTaskDispatcherService.normalizePipePath(this.options.pipe);
         this.logger?.info(`Worker listening on pipe: ${pipePath}`);
-        await McpToolService.listenWithStaleRecovery(server, pipePath);
+        await McpTaskDispatcherService.listenWithStaleRecovery(server, pipePath);
         process.stderr.write(this.options.readyMarker + '\n');
         this.logger?.info(`Worker ready marker emitted on pipe: ${pipePath}`);
 
@@ -161,12 +166,12 @@ export class McpToolService {
             // as a last-resort backstop) instead of swallowing them.
             // Matches C# behavior of only tolerating
             // IOException/ObjectDisposedException at this boundary.
-            if (!McpToolService.isExpectedConnectionError(ex)) {
-                const { name, message } = McpToolService.describeError(ex);
+            if (!McpTaskDispatcherService.isExpectedConnectionError(ex)) {
+                const { name, message } = McpTaskDispatcherService.describeError(ex);
                 this.logger?.error(`Unexpected error in connection handler: ${name}: ${message}`, ex);
                 if (this.logger === undefined) {
                     process.stderr.write(
-                        `[McpToolService] Unexpected error in connection handler: ${name}: ${message}\n`,
+                        `[McpTaskDispatcherService] Unexpected error in connection handler: ${name}: ${message}\n`,
                     );
                 }
             }
@@ -186,19 +191,19 @@ export class McpToolService {
             request = JSON.parse(requestBytes.toString('utf8'));
         } catch (ex) {
             const message = ex instanceof Error ? ex.message : String(ex);
-            return McpToolService.buildErrorResponse('', `Malformed request JSON: ${message}`);
+            return McpTaskDispatcherService.buildErrorResponse('', `Malformed request JSON: ${message}`);
         }
 
-        if (!McpToolService.isObject(request)) {
-            return McpToolService.buildErrorResponse('', 'Request must be a JSON object.');
+        if (!McpTaskDispatcherService.isObject(request)) {
+            return McpTaskDispatcherService.buildErrorResponse('', 'Request must be a JSON object.');
         }
 
         const rawTaskName = request['mcpTask'];
         if (typeof rawTaskName !== 'string' || rawTaskName.length === 0) {
-            return McpToolService.buildErrorResponse('', "Request is missing required field 'mcpTask'.");
+            return McpTaskDispatcherService.buildErrorResponse('', "Request is missing required field 'mcpTask'.");
         }
         const taskName = rawTaskName;
-        const correlationId = McpToolService.readCorrelationId(request);
+        const correlationId = McpTaskDispatcherService.readCorrelationId(request);
 
         // Run the dispatch — including the catch-all — inside the
         // CorrelationScope so every Logger call made by the
@@ -208,15 +213,15 @@ export class McpToolService {
             try {
                 const task = this.tasks.get(taskName);
                 if (task === undefined) {
-                    return McpToolService.buildErrorResponse(taskName, `Unknown task '${taskName}'.`);
+                    return McpTaskDispatcherService.buildErrorResponse(taskName, `Unknown task '${taskName}'.`);
                 }
-                const data = McpToolService.buildTaskData(request);
+                const data = McpTaskDispatcherService.buildTaskData(request);
                 const output = await task.execute(data, signal);
-                return McpToolService.buildSuccessResponse(taskName, output);
+                return McpTaskDispatcherService.buildSuccessResponse(taskName, output);
             } catch (ex) {
-                const { name, message } = McpToolService.describeError(ex);
+                const { name, message } = McpTaskDispatcherService.describeError(ex);
                 this.logger?.error(`Task '${taskName}' failed: ${name}: ${message}`, ex);
-                return McpToolService.buildErrorResponse(taskName, `Task threw ${name}: ${message}`);
+                return McpTaskDispatcherService.buildErrorResponse(taskName, `Task threw ${name}: ${message}`);
             }
         };
 
@@ -259,7 +264,7 @@ export class McpToolService {
 
     private static async listenWithStaleRecovery(server: net.Server, pipePath: string): Promise<void> {
         try {
-            await McpToolService.listenOnce(server, pipePath);
+            await McpTaskDispatcherService.listenOnce(server, pipePath);
             return;
         } catch (ex) {
             const err = ex as NodeJS.ErrnoException;
@@ -273,7 +278,7 @@ export class McpToolService {
             ) {
                 throw ex;
             }
-            const isStale = await McpToolService.probeStaleSocket(pipePath);
+            const isStale = await McpTaskDispatcherService.probeStaleSocket(pipePath);
             if (!isStale) {
                 throw ex;
             }
@@ -282,7 +287,7 @@ export class McpToolService {
             } catch {
                 throw ex;
             }
-            await McpToolService.listenOnce(server, pipePath);
+            await McpTaskDispatcherService.listenOnce(server, pipePath);
         }
     }
 
@@ -328,10 +333,10 @@ export class McpToolService {
     }
 
     private static buildTaskData(request: Record<string, unknown>): Record<string, unknown> {
-        const data = McpToolService.isObject(request['data']) ? { ...request['data'] } : {};
+        const data = McpTaskDispatcherService.isObject(request['data']) ? { ...request['data'] } : {};
         const ec = request['editorconfig'];
 
-        if (!McpToolService.isObject(ec)) {
+        if (!McpTaskDispatcherService.isObject(ec)) {
             return data;
         }
 
@@ -360,8 +365,8 @@ export class McpToolService {
                 error: '',
             });
         } catch (ex) {
-            const { name, message } = McpToolService.describeError(ex);
-            return McpToolService.buildErrorResponse(
+            const { name, message } = McpTaskDispatcherService.describeError(ex);
+            return McpTaskDispatcherService.buildErrorResponse(
                 taskName,
                 `Task output is not JSON-serializable: ${name}: ${message}`,
             );

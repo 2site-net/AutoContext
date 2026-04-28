@@ -36,7 +36,7 @@ internal static partial class Program
         builder.Services.AddSingleton<IMcpTask, AnalyzeCSharpProjectStructureTask>();
         builder.Services.AddSingleton<IMcpTask, AnalyzeCSharpTestStyleTask>();
 
-        builder.Services.AddHostedService<McpToolService>();
+        builder.Services.AddHostedService<McpTaskDispatcherService>();
 
         var host = builder.Build();
         var logger = host.Services.GetRequiredService<ILoggerFactory>().CreateLogger(typeof(Program).FullName!);

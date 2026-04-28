@@ -1,5 +1,5 @@
 import { parseArgs } from 'node:util';
-import { McpToolService } from './hosting/mcp-tool-service.js';
+import { McpTaskDispatcherService } from './hosting/mcp-task-dispatcher-service.js';
 import type { McpTask } from '#types/mcp-task.js';
 import { LoggingClient } from './logging/logging-client.js';
 import { PipeLogger } from './logging/logger.js';
@@ -46,7 +46,7 @@ async function main(argv: readonly string[]): Promise<void> {
     // when --log-pipe was not supplied).
     const loggingClient = new LoggingClient(logPipe, CLIENT_NAME);
     const logger = new PipeLogger(loggingClient);
-    const serviceLogger = logger.forCategory('AutoContext.Worker.Hosting.McpToolService');
+    const serviceLogger = logger.forCategory('AutoContext.Worker.Hosting.McpTaskDispatcherService');
     const startupLogger = logger.forCategory('AutoContext.Worker.Web.Startup');
     startupLogger.info(`Arguments parsed (pipe='${pipe}', logPipeEnabled=${logPipe !== ''})`);
 
@@ -55,7 +55,7 @@ async function main(argv: readonly string[]): Promise<void> {
     ];
     startupLogger.info(`Registered MCP tasks: ${tasks.map(t => t.taskName).join(', ')}`);
 
-    const service = new McpToolService(
+    const service = new McpTaskDispatcherService(
         { pipe, readyMarker: READY_MARKER, logPipe, clientName: CLIENT_NAME },
         tasks,
         serviceLogger,
@@ -74,7 +74,7 @@ async function main(argv: readonly string[]): Promise<void> {
     await service.start(controller.signal);
 
     try {
-        // Block until the abort signal fires, then let McpToolService's own
+        // Block until the abort signal fires, then let McpTaskDispatcherService's own
         // abort-listener drain in-flight handlers and close the server.
         await new Promise<void>((resolve) => {
             if (controller.signal.aborted) {

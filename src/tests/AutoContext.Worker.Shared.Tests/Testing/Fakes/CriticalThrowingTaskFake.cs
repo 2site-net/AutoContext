@@ -6,7 +6,7 @@ using System.Text.Json;
 using AutoContext.Mcp;
 
 /// <summary>
-/// Throws a "critical" CLR exception (one that <c>McpToolService</c>
+/// Throws a "critical" CLR exception (one that <c>McpTaskDispatcherService</c>
 /// must let escape rather than convert into an error envelope).
 /// </summary>
 internal sealed class CriticalThrowingTaskFake : IMcpTask

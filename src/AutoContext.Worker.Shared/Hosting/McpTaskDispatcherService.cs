@@ -14,12 +14,21 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 /// <summary>
-/// Named-pipe server that accepts per-task connections and dispatches each
-/// one to an <see cref="IMcpTask"/> instance.
+/// The worker's task runner. Listens on a named pipe for task requests
+/// sent by the MCP server, looks the task up by name in the worker's
+/// registered <see cref="IMcpTask"/> set, executes it, and sends the
+/// result back on the same connection.
 /// </summary>
 /// <remarks>
-/// Wire protocol (per-task, see architecture-centralized-mcp.md §"Protocol &amp; Contracts"):
+/// Each pipe connection carries exactly one task call: read one request
+/// envelope, run one task, write one response envelope, close. The MCP
+/// server is responsible for fanning a multi-task tool invocation out
+/// across multiple concurrent connections and aggregating the results;
+/// the worker only sees individual task calls.
+/// <para>
+/// Wire protocol (see architecture-centralized-mcp.md §"Protocol &amp; Contracts"):
 /// 4-byte little-endian length prefix + UTF-8 JSON payload.
+/// </para>
 /// <para>
 /// Request:  <c>{ "mcpTask", "data", "editorconfig" }</c><br/>
 /// Response: <c>{ "mcpTask", "status", "output", "error" }</c>
@@ -29,12 +38,8 @@ using Microsoft.Extensions.Options;
 /// <c>data</c> as properties prefixed with <c>editorconfig.</c> before the
 /// task is invoked, so tasks see a single payload.
 /// </para>
-/// <para>
-/// One connection = one task call. The service spawns a per-connection
-/// <see cref="Task"/> and immediately returns to <c>WaitForConnectionAsync</c>.
-/// </para>
 /// </remarks>
-public sealed partial class McpToolService : BackgroundService
+public sealed partial class McpTaskDispatcherService : BackgroundService
 {
     /// <summary>
     /// JSON serialization options used for every wire envelope read/written
@@ -44,17 +49,17 @@ public sealed partial class McpToolService : BackgroundService
     /// </summary>
     public static JsonSerializerOptions WorkerJsonOptions { get; } = CreateWorkerJsonOptions();
 
-    private readonly ILogger<McpToolService> _logger;
+    private readonly ILogger<McpTaskDispatcherService> _logger;
     private readonly WorkerHostOptions _options;
     private readonly Dictionary<string, IMcpTask> _tasks;
 
     /// <summary>
-    /// Creates a new <see cref="McpToolService"/>.
+    /// Creates a new <see cref="McpTaskDispatcherService"/>.
     /// </summary>
-    public McpToolService(
+    public McpTaskDispatcherService(
         IOptions<WorkerHostOptions> options,
         IEnumerable<IMcpTask> tasks,
-        ILogger<McpToolService> logger)
+        ILogger<McpTaskDispatcherService> logger)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(tasks);

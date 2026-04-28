@@ -20,7 +20,7 @@ using Microsoft.Extensions.Options;
 /// <see cref="HostApplicationBuilder"/>, call
 /// <see cref="ConfigureWorkerHost"/>, register their own
 /// <see cref="Mcp.IMcpTask"/> implementations, add the
-/// <c>McpToolService</c> hosted service, and run the host.
+/// <c>McpTaskDispatcherService</c> hosted service, and run the host.
 /// <para>
 /// The ready marker is seeded via <c>AddInMemoryCollection</c> rather than
 /// <c>services.Configure(action)</c> because <see cref="WorkerHostOptions.ReadyMarker"/>

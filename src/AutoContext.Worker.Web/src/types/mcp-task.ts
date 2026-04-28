@@ -3,7 +3,7 @@
  * (`AutoContext.Mcp.Server`) to a worker process via the named-pipe wire
  * protocol (see `docs/architecture.md` § "Protocol & Contracts").
  *
- * One connection = one task call. The worker's `McpToolService` reads the
+ * One connection = one task call. The worker's `McpTaskDispatcherService` reads the
  * per-task wire envelope, merges any `editorconfig` slice into `data` as
  * flat `editorconfig.<key>` properties, then invokes {@link execute}.
  *
