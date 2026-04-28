@@ -11,7 +11,7 @@ using AutoContext.Worker.Shared.Tests.Testing.Fakes;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 
-public sealed class McpTaskDispatcherServiceTests
+public sealed class WorkerTaskDispatcherServiceTests
 {
     private const string TestReadyMarker = "[AutoContext.Worker.Tests] Ready.";
 
@@ -134,7 +134,7 @@ public sealed class McpTaskDispatcherServiceTests
                     data = new { },
                     editorconfig = new { },
                 },
-                McpTaskDispatcherService.WorkerJsonOptions);
+                WorkerTaskDispatcherService.WorkerJsonOptions);
             var channel = new WorkerProtocolChannel(client);
             await channel.WriteAsync(bytes, ct);
 
@@ -147,7 +147,7 @@ public sealed class McpTaskDispatcherServiceTests
         }
     }
 
-    private static McpTaskDispatcherService CreateSut(string pipeName, IMcpTask[] tasks)
+    private static WorkerTaskDispatcherService CreateSut(string pipeName, IMcpTask[] tasks)
     {
         var options = Options.Create(new WorkerHostOptions
         {
@@ -155,7 +155,7 @@ public sealed class McpTaskDispatcherServiceTests
             ReadyMarker = TestReadyMarker,
         });
 
-        return new McpTaskDispatcherService(options, tasks, NullLogger<McpTaskDispatcherService>.Instance);
+        return new WorkerTaskDispatcherService(options, tasks, NullLogger<WorkerTaskDispatcherService>.Instance);
     }
 
     private static async Task<JsonElement> SendAsync(string pipeName, object request, CancellationToken ct)
@@ -163,7 +163,7 @@ public sealed class McpTaskDispatcherServiceTests
         await using var client = new NamedPipeClientStream(".", pipeName, PipeDirection.InOut, PipeOptions.Asynchronous);
         await client.ConnectAsync(5000, ct);
 
-        var bytes = JsonSerializer.SerializeToUtf8Bytes(request, McpTaskDispatcherService.WorkerJsonOptions);
+        var bytes = JsonSerializer.SerializeToUtf8Bytes(request, WorkerTaskDispatcherService.WorkerJsonOptions);
         var channel = new WorkerProtocolChannel(client);
         await channel.WriteAsync(bytes, ct);
 

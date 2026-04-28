@@ -3,6 +3,7 @@ namespace AutoContext.Worker.DotNet;
 using AutoContext.Mcp;
 using AutoContext.Worker.DotNet.Tasks.CSharp;
 using AutoContext.Worker.DotNet.Tasks.NuGet;
+using AutoContext.Framework.Workers;
 using AutoContext.Worker.Hosting;
 
 using Microsoft.Extensions.DependencyInjection;
@@ -43,7 +44,7 @@ internal static partial class Program
         builder.Services.AddSingleton<IMcpTask, AnalyzeCSharpProjectStructureTask>();
         builder.Services.AddSingleton<IMcpTask, AnalyzeCSharpTestStyleTask>();
 
-        builder.Services.AddHostedService<McpTaskDispatcherService>();
+        builder.Services.AddHostedService<WorkerTaskDispatcherService>();
 
         var host = builder.Build();
         var logger = host.Services.GetRequiredService<ILoggerFactory>().CreateLogger(typeof(Program).FullName!);

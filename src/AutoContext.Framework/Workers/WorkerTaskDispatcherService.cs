@@ -1,4 +1,4 @@
-namespace AutoContext.Worker.Hosting;
+namespace AutoContext.Framework.Workers;
 
 using System.Diagnostics.CodeAnalysis;
 using System.IO.Pipes;
@@ -7,7 +7,6 @@ using System.Text.Json.Nodes;
 
 using AutoContext.Mcp;
 using AutoContext.Framework.Logging;
-using AutoContext.Framework.Workers;
 
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -39,7 +38,7 @@ using Microsoft.Extensions.Options;
 /// task is invoked, so tasks see a single payload.
 /// </para>
 /// </remarks>
-public sealed partial class McpTaskDispatcherService : BackgroundService
+public sealed partial class WorkerTaskDispatcherService : BackgroundService
 {
     /// <summary>
     /// JSON serialization options used for every wire envelope read/written
@@ -49,17 +48,17 @@ public sealed partial class McpTaskDispatcherService : BackgroundService
     /// </summary>
     public static JsonSerializerOptions WorkerJsonOptions { get; } = CreateWorkerJsonOptions();
 
-    private readonly ILogger<McpTaskDispatcherService> _logger;
+    private readonly ILogger<WorkerTaskDispatcherService> _logger;
     private readonly WorkerHostOptions _options;
     private readonly Dictionary<string, IMcpTask> _tasks;
 
     /// <summary>
-    /// Creates a new <see cref="McpTaskDispatcherService"/>.
+    /// Creates a new <see cref="WorkerTaskDispatcherService"/>.
     /// </summary>
-    public McpTaskDispatcherService(
+    public WorkerTaskDispatcherService(
         IOptions<WorkerHostOptions> options,
         IEnumerable<IMcpTask> tasks,
-        ILogger<McpTaskDispatcherService> logger)
+        ILogger<WorkerTaskDispatcherService> logger)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(tasks);

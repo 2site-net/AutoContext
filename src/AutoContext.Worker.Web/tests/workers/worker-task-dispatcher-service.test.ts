@@ -5,8 +5,8 @@ import { randomUUID } from 'node:crypto';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { McpTask } from '#types/mcp-task.js';
-import { McpTaskDispatcherService } from '#src/hosting/mcp-task-dispatcher-service.js';
-import { WorkerProtocolChannel } from '#src/hosting/worker-protocol-channel.js';
+import { WorkerTaskDispatcherService } from '#src/workers/worker-task-dispatcher-service.js';
+import { WorkerProtocolChannel } from '#src/workers/worker-protocol-channel.js';
 import { CorrelationScope } from '#src/logging/correlation-scope.js';
 import type { Logger } from '#types/logger.js';
 
@@ -81,8 +81,8 @@ class BigIntTask implements McpTask {
     }
 }
 
-describe('McpTaskDispatcherService', () => {
-    const services: McpTaskDispatcherService[] = [];
+describe('WorkerTaskDispatcherService', () => {
+    const services: WorkerTaskDispatcherService[] = [];
     const controllers: AbortController[] = [];
 
     afterEach(async () => {
@@ -96,10 +96,10 @@ describe('McpTaskDispatcherService', () => {
         controllers.length = 0;
     });
 
-    async function startService(tasks: McpTask[]): Promise<{ pipe: string; service: McpTaskDispatcherService }> {
+    async function startService(tasks: McpTask[]): Promise<{ pipe: string; service: WorkerTaskDispatcherService }> {
         const pipe = makeEndpoint();
         const controller = new AbortController();
-        const service = new McpTaskDispatcherService(
+        const service = new WorkerTaskDispatcherService(
             { pipe, readyMarker: '[test] Ready.' },
             tasks,
         );
@@ -110,13 +110,13 @@ describe('McpTaskDispatcherService', () => {
     }
 
     it('throws when the pipe option is blank', () => {
-        expect(() => new McpTaskDispatcherService({ pipe: '   ', readyMarker: 'x' }, [])).toThrow(
+        expect(() => new WorkerTaskDispatcherService({ pipe: '   ', readyMarker: 'x' }, [])).toThrow(
             /--pipe/,
         );
     });
 
     it('throws when the readyMarker option is blank', () => {
-        expect(() => new McpTaskDispatcherService({ pipe: 'p', readyMarker: '' }, [])).toThrow(
+        expect(() => new WorkerTaskDispatcherService({ pipe: 'p', readyMarker: '' }, [])).toThrow(
             /readyMarker/,
         );
     });
@@ -124,7 +124,7 @@ describe('McpTaskDispatcherService', () => {
     it('throws when two tasks register the same name', () => {
         expect(
             () =>
-                new McpTaskDispatcherService(
+                new WorkerTaskDispatcherService(
                     { pipe: 'p', readyMarker: 'x' },
                     [new EchoTask(), new EchoTask()],
                 ),
@@ -238,7 +238,7 @@ describe('McpTaskDispatcherService', () => {
     it('stop() completes promptly when a handler is mid-read', async () => {
         const pipe = makeEndpoint();
         const controller = new AbortController();
-        const service = new McpTaskDispatcherService(
+        const service = new WorkerTaskDispatcherService(
             { pipe, readyMarker: '[test] Ready.' },
             [new EchoTask()],
         );
@@ -267,7 +267,7 @@ describe('McpTaskDispatcherService', () => {
     it('stop() completes promptly when a task is mid-execute', async () => {
         const pipe = makeEndpoint();
         const controller = new AbortController();
-        const service = new McpTaskDispatcherService(
+        const service = new WorkerTaskDispatcherService(
             { pipe, readyMarker: '[test] Ready.' },
             [new HangingTask()],
         );
@@ -306,7 +306,7 @@ describe('McpTaskDispatcherService', () => {
             fs.writeFileSync(pipe, '');
 
             const controller = new AbortController();
-            const service = new McpTaskDispatcherService(
+            const service = new WorkerTaskDispatcherService(
                 { pipe, readyMarker: '[test] Ready.' },
                 [new EchoTask()],
             );
@@ -336,7 +336,7 @@ describe('McpTaskDispatcherService', () => {
                 blocker.listen(pipe);
             });
 
-            const service = new McpTaskDispatcherService(
+            const service = new WorkerTaskDispatcherService(
                 { pipe, readyMarker: '[test] Ready.' },
                 [new EchoTask()],
             );
@@ -378,7 +378,7 @@ describe('McpTaskDispatcherService', () => {
 
         const pipe = makeEndpoint();
         const controller = new AbortController();
-        const service = new McpTaskDispatcherService(
+        const service = new WorkerTaskDispatcherService(
             { pipe, readyMarker: '[test] Ready.' },
             [new ThrowingTask()],
             logger,

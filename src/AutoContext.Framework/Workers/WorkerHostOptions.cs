@@ -1,4 +1,4 @@
-namespace AutoContext.Worker.Hosting;
+namespace AutoContext.Framework.Workers;
 
 /// <summary>
 /// Strongly-typed options for the shared worker host: the named pipe to

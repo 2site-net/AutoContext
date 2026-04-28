@@ -2,7 +2,7 @@ import { AsyncLocalStorage } from 'node:async_hooks';
 
 /**
  * Worker-process holder for the per-invocation correlation id sent on
- * every task request envelope. Set by `McpTaskDispatcherService` for the
+ * every task request envelope. Set by `WorkerTaskDispatcherService` for the
  * duration of a task dispatch and read by the {@link Logger} at
  * log-emission time so every {@link LogEntry} carries the id without
  * requiring callers to thread it through their logging APIs.

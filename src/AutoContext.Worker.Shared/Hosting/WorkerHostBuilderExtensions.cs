@@ -2,6 +2,7 @@ namespace AutoContext.Worker.Hosting;
 
 using AutoContext.Framework.Hosting;
 using AutoContext.Framework.Logging;
+using AutoContext.Framework.Workers;
 
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -21,7 +22,7 @@ using Microsoft.Extensions.Options;
 /// <see cref="HostApplicationBuilder"/>, call
 /// <see cref="ConfigureWorkerHost"/>, register their own
 /// <see cref="Mcp.IMcpTask"/> implementations, add the
-/// <c>McpTaskDispatcherService</c> hosted service, and run the host.
+/// <c>WorkerTaskDispatcherService</c> hosted service, and run the host.
 /// <para>
 /// The ready marker is seeded via <c>AddInMemoryCollection</c> rather than
 /// <c>services.Configure(action)</c> because <see cref="WorkerHostOptions.ReadyMarker"/>

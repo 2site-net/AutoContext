@@ -11,6 +11,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\AutoContext.Mcp.Abstractions\AutoContext.Mcp.Abstractions.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <!--
       Logging.Abstractions is enough for ILogger / ILoggerProvider / LogLevel.
       The pipe transport (NamedPipeClientStream) and Channels are in the BCL,

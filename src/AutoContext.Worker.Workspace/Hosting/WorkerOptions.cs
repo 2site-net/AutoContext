@@ -6,7 +6,7 @@ namespace AutoContext.Worker.Workspace.Hosting;
 /// </summary>
 /// <remarks>
 /// The shared host options (<c>--pipe</c>, ready marker) live on
-/// <see cref="Worker.Hosting.WorkerHostOptions"/>.
+/// <see cref="Framework.Workers.WorkerHostOptions"/>.
 /// </remarks>
 internal sealed class WorkerOptions
 {

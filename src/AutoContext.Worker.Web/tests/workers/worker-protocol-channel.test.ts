@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { PassThrough } from 'node:stream';
-import { WorkerProtocolChannel } from '#src/hosting/worker-protocol-channel.js';
+import { WorkerProtocolChannel } from '#src/workers/worker-protocol-channel.js';
 
 function frame(payload: Buffer): Buffer {
     const header = Buffer.allocUnsafe(4);

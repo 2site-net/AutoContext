@@ -30,7 +30,7 @@ import type { Logger } from '#types/logger.js';
  * `data` as properties prefixed with `editorconfig.` before the task
  * is invoked, so tasks see a single payload.
  */
-export class McpTaskDispatcherService {
+export class WorkerTaskDispatcherService {
     private readonly options: WorkerHostOptions;
     private readonly tasks: ReadonlyMap<string, McpTask>;
     private readonly logger: Logger | undefined;
@@ -75,7 +75,7 @@ export class McpTaskDispatcherService {
      */
     async start(signal: AbortSignal): Promise<void> {
         if (this.server !== undefined) {
-            throw new Error('McpTaskDispatcherService has already been started.');
+            throw new Error('WorkerTaskDispatcherService has already been started.');
         }
 
         const server = net.createServer((socket) => {
@@ -88,9 +88,9 @@ export class McpTaskDispatcherService {
 
         this.server = server;
 
-        const pipePath = McpTaskDispatcherService.normalizePipePath(this.options.pipe);
+        const pipePath = WorkerTaskDispatcherService.normalizePipePath(this.options.pipe);
         this.logger?.info(`Worker listening on pipe: ${pipePath}`);
-        await McpTaskDispatcherService.listenWithStaleRecovery(server, pipePath);
+        await WorkerTaskDispatcherService.listenWithStaleRecovery(server, pipePath);
         process.stderr.write(this.options.readyMarker + '\n');
         this.logger?.info(`Worker ready marker emitted on pipe: ${pipePath}`);
 
@@ -166,12 +166,12 @@ export class McpTaskDispatcherService {
             // as a last-resort backstop) instead of swallowing them.
             // Matches C# behavior of only tolerating
             // IOException/ObjectDisposedException at this boundary.
-            if (!McpTaskDispatcherService.isExpectedConnectionError(ex)) {
-                const { name, message } = McpTaskDispatcherService.describeError(ex);
+            if (!WorkerTaskDispatcherService.isExpectedConnectionError(ex)) {
+                const { name, message } = WorkerTaskDispatcherService.describeError(ex);
                 this.logger?.error(`Unexpected error in connection handler: ${name}: ${message}`, ex);
                 if (this.logger === undefined) {
                     process.stderr.write(
-                        `[McpTaskDispatcherService] Unexpected error in connection handler: ${name}: ${message}\n`,
+                        `[WorkerTaskDispatcherService] Unexpected error in connection handler: ${name}: ${message}\n`,
                     );
                 }
             }
@@ -191,19 +191,19 @@ export class McpTaskDispatcherService {
             request = JSON.parse(requestBytes.toString('utf8'));
         } catch (ex) {
             const message = ex instanceof Error ? ex.message : String(ex);
-            return McpTaskDispatcherService.buildErrorResponse('', `Malformed request JSON: ${message}`);
+            return WorkerTaskDispatcherService.buildErrorResponse('', `Malformed request JSON: ${message}`);
         }
 
-        if (!McpTaskDispatcherService.isObject(request)) {
-            return McpTaskDispatcherService.buildErrorResponse('', 'Request must be a JSON object.');
+        if (!WorkerTaskDispatcherService.isObject(request)) {
+            return WorkerTaskDispatcherService.buildErrorResponse('', 'Request must be a JSON object.');
         }
 
         const rawTaskName = request['mcpTask'];
         if (typeof rawTaskName !== 'string' || rawTaskName.length === 0) {
-            return McpTaskDispatcherService.buildErrorResponse('', "Request is missing required field 'mcpTask'.");
+            return WorkerTaskDispatcherService.buildErrorResponse('', "Request is missing required field 'mcpTask'.");
         }
         const taskName = rawTaskName;
-        const correlationId = McpTaskDispatcherService.readCorrelationId(request);
+        const correlationId = WorkerTaskDispatcherService.readCorrelationId(request);
 
         // Run the dispatch — including the catch-all — inside the
         // CorrelationScope so every Logger call made by the
@@ -213,15 +213,15 @@ export class McpTaskDispatcherService {
             try {
                 const task = this.tasks.get(taskName);
                 if (task === undefined) {
-                    return McpTaskDispatcherService.buildErrorResponse(taskName, `Unknown task '${taskName}'.`);
+                    return WorkerTaskDispatcherService.buildErrorResponse(taskName, `Unknown task '${taskName}'.`);
                 }
-                const data = McpTaskDispatcherService.buildTaskData(request);
+                const data = WorkerTaskDispatcherService.buildTaskData(request);
                 const output = await task.execute(data, signal);
-                return McpTaskDispatcherService.buildSuccessResponse(taskName, output);
+                return WorkerTaskDispatcherService.buildSuccessResponse(taskName, output);
             } catch (ex) {
-                const { name, message } = McpTaskDispatcherService.describeError(ex);
+                const { name, message } = WorkerTaskDispatcherService.describeError(ex);
                 this.logger?.error(`Task '${taskName}' failed: ${name}: ${message}`, ex);
-                return McpTaskDispatcherService.buildErrorResponse(taskName, `Task threw ${name}: ${message}`);
+                return WorkerTaskDispatcherService.buildErrorResponse(taskName, `Task threw ${name}: ${message}`);
             }
         };
 
@@ -264,7 +264,7 @@ export class McpTaskDispatcherService {
 
     private static async listenWithStaleRecovery(server: net.Server, pipePath: string): Promise<void> {
         try {
-            await McpTaskDispatcherService.listenOnce(server, pipePath);
+            await WorkerTaskDispatcherService.listenOnce(server, pipePath);
             return;
         } catch (ex) {
             const err = ex as NodeJS.ErrnoException;
@@ -278,7 +278,7 @@ export class McpTaskDispatcherService {
             ) {
                 throw ex;
             }
-            const isStale = await McpTaskDispatcherService.probeStaleSocket(pipePath);
+            const isStale = await WorkerTaskDispatcherService.probeStaleSocket(pipePath);
             if (!isStale) {
                 throw ex;
             }
@@ -287,7 +287,7 @@ export class McpTaskDispatcherService {
             } catch {
                 throw ex;
             }
-            await McpTaskDispatcherService.listenOnce(server, pipePath);
+            await WorkerTaskDispatcherService.listenOnce(server, pipePath);
         }
     }
 
@@ -333,10 +333,10 @@ export class McpTaskDispatcherService {
     }
 
     private static buildTaskData(request: Record<string, unknown>): Record<string, unknown> {
-        const data = McpTaskDispatcherService.isObject(request['data']) ? { ...request['data'] } : {};
+        const data = WorkerTaskDispatcherService.isObject(request['data']) ? { ...request['data'] } : {};
         const ec = request['editorconfig'];
 
-        if (!McpTaskDispatcherService.isObject(ec)) {
+        if (!WorkerTaskDispatcherService.isObject(ec)) {
             return data;
         }
 
@@ -365,8 +365,8 @@ export class McpTaskDispatcherService {
                 error: '',
             });
         } catch (ex) {
-            const { name, message } = McpTaskDispatcherService.describeError(ex);
-            return McpTaskDispatcherService.buildErrorResponse(
+            const { name, message } = WorkerTaskDispatcherService.describeError(ex);
+            return WorkerTaskDispatcherService.buildErrorResponse(
                 taskName,
                 `Task output is not JSON-serializable: ${name}: ${message}`,
             );

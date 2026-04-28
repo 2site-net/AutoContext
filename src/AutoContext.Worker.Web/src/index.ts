@@ -1,5 +1,5 @@
 import { parseArgs } from 'node:util';
-import { McpTaskDispatcherService } from './hosting/mcp-task-dispatcher-service.js';
+import { WorkerTaskDispatcherService } from './workers/worker-task-dispatcher-service.js';
 import { HealthMonitorClient } from './hosting/health-monitor-client.js';
 import type { McpTask } from '#types/mcp-task.js';
 import { LoggingClient } from './logging/logging-client.js';
@@ -56,7 +56,7 @@ async function main(argv: readonly string[]): Promise<void> {
     // when --log-pipe was not supplied).
     const loggingClient = new LoggingClient(logPipe, CLIENT_NAME);
     const logger = new PipeLogger(loggingClient);
-    const serviceLogger = logger.forCategory('AutoContext.Worker.Hosting.McpTaskDispatcherService');
+    const serviceLogger = logger.forCategory('AutoContext.Framework.Workers.WorkerTaskDispatcherService');
     const healthLogger = logger.forCategory('AutoContext.Worker.Hosting.HealthMonitorClient');
     const startupLogger = logger.forCategory('AutoContext.Worker.Web.Startup');
     startupLogger.info(`Arguments parsed (pipe='${pipe}', logPipeEnabled=${logPipe !== ''}, healthMonitorEnabled=${healthMonitorPipe !== ''})`);
@@ -66,7 +66,7 @@ async function main(argv: readonly string[]): Promise<void> {
     ];
     startupLogger.info(`Registered MCP tasks: ${tasks.map(t => t.taskName).join(', ')}`);
 
-    const service = new McpTaskDispatcherService(
+    const service = new WorkerTaskDispatcherService(
         { pipe, readyMarker: READY_MARKER, logPipe, clientName: CLIENT_NAME },
         tasks,
         serviceLogger,
@@ -88,7 +88,7 @@ async function main(argv: readonly string[]): Promise<void> {
     await healthClient.start();
 
     try {
-        // Block until the abort signal fires, then let McpTaskDispatcherService's own
+        // Block until the abort signal fires, then let WorkerTaskDispatcherService's own
         // abort-listener drain in-flight handlers and close the server.
         await new Promise<void>((resolve) => {
             if (controller.signal.aborted) {
