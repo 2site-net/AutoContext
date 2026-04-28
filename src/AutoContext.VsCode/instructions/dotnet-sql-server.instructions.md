@@ -1,6 +1,7 @@
 ---
 name: "dotnet-sql-server (v1.0.0)"
 description: "Apply when writing or reviewing T-SQL queries, stored procedures, migrations, or data access in .NET projects."
+applyTo: "**/*.{cs,fs,vb}"
 ---
 
 # T-SQL / SQL Server Instructions

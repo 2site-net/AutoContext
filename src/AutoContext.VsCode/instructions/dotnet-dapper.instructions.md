@@ -1,6 +1,7 @@
 ---
 name: "dotnet-dapper (v1.0.0)"
 description: "Apply when writing or reviewing Dapper data access (raw SQL, parameter binding, mapping, transactions, connection management)."
+applyTo: "**/*.{cs,fs,vb}"
 ---
 
 # Dapper Instructions

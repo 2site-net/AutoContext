@@ -1,6 +1,7 @@
 ---
 name: "dotnet-oracle (v1.0.0)"
 description: "Apply when writing or reviewing Oracle SQL, PL/SQL, stored procedures, migrations, or data access in .NET projects."
+applyTo: "**/*.{cs,fs,vb}"
 ---
 
 # Oracle Instructions

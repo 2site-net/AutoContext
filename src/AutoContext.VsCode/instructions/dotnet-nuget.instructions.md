@@ -1,6 +1,7 @@
 ---
 name: "dotnet-nuget (v1.0.0)"
 description: "Apply when adding, updating, removing, or reviewing NuGet package references in .NET projects."
+applyTo: "**/*.{csproj,fsproj,vbproj},**/Directory.Packages.props,**/Directory.Build.props,**/packages.config,**/nuget.config"
 ---
 
 # NuGet Packages & Dependencies Instructions

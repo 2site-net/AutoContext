@@ -1,6 +1,7 @@
 ---
 name: "dotnet-sqlite (v1.0.0)"
 description: "Apply when writing or reviewing SQLite queries, migrations, or data access in .NET projects."
+applyTo: "**/*.{cs,fs,vb}"
 ---
 
 # SQLite Instructions
