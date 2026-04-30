@@ -30,3 +30,14 @@ All `build.ps1` commands run from the repository root.
 
 Run `.\build.ps1 -Help` for the full list of actions, targets, and
 switches (e.g. `-Clean`, `-Local`, `-WhatIf`, `-RuntimeIdentifier`).
+
+# Versioning
+
+- **Don't** modify version numbers anywhere in the codebase without
+  explicit user permission. This includes (but is not limited to)
+  `version.json`, `package.json` `version` fields, `.csproj`
+  `<Version>` / `<VersionPrefix>` properties, instruction-file
+  frontmatter `name: "<id> (vX.Y.Z)"` strings, and any other
+  semver string baked into source. Versions are bumped deliberately
+  by the user via `versionize.ps1`, never opportunistically as part
+  of an unrelated change.
