@@ -7,8 +7,12 @@ using System.Text.RegularExpressions;
 using AutoContext.Mcp;
 
 /// <summary>
-/// <c>analyze_git_commit_content</c> — enforces commit body content rules from
-/// <c>git-commit-format.instructions.md</c>: detects anti-patterns in the body.
+/// <c>analyze_git_commit_content</c> — inspects the <em>prose</em> of a commit
+/// body against <c>git-commit.instructions.md</c>: flags low-signal patterns
+/// such as file-path dumps, change counts, section headers, parameter
+/// enumerations, leaked secrets, and inconsistent or over-nested lists.
+/// Companion to <see cref="AnalyzeGitCommitFormatTask"/>, which judges the
+/// structural shape of the message rather than what it says.
 /// </summary>
 /// <remarks>
 /// Request <c>data</c>:  <c>{ "content": "&lt;commit-message&gt;" }</c><br/>
@@ -77,7 +81,7 @@ internal sealed partial class AnalyzeGitCommitContentTask : IMcpTask
 
         var violations = new List<string>();
 
-        CheckBulletLists(body, violations);
+        CheckListStyle(body, violations);
         CheckFilePaths(body, violations);
         CheckCounts(body, violations);
         CheckSectionHeaders(body, violations);
@@ -92,22 +96,91 @@ internal sealed partial class AnalyzeGitCommitContentTask : IMcpTask
               string.Join('\n', violations.Select((v, i) => $"  {i + 1}. {v}"));
     }
 
-    // [git-commit-format INST0015]: no bullet lists
-    private static void CheckBulletLists(ReadOnlySpan<char> body, List<string> violations)
+    // [git-commit INST0015]: bullet style consistency ('-' only) and nesting depth
+    private static void CheckListStyle(ReadOnlySpan<char> body, List<string> violations)
     {
+        var sawDisallowed = false;
+        var indentLevels = new HashSet<int>();
+
         foreach (var lineRange in body.Split('\n'))
         {
-            if (BulletListRegex().IsMatch(body[lineRange]))
-            {
-                violations.Add(
-                    "Body contains bullet lists (-, *, •). Write prose instead.");
+            var line = body[lineRange];
 
-                return;
+            if (!TryParseBullet(line, out var indent, out var marker))
+            {
+                continue;
             }
+
+            if (marker != '-')
+            {
+                sawDisallowed = true;
+            }
+
+            indentLevels.Add(indent);
+        }
+
+        if (sawDisallowed)
+        {
+            violations.Add(
+                "Body uses non-hyphen bullets ('*', '+', or '•'). " +
+                "Use '-' (hyphen) consistently.");
+        }
+
+        // Count distinct indent widths used by bullet lines. Any indent-style
+        // (2-space, 4-space, tab) maps cleanly: more than two distinct widths
+        // means more than two nesting levels, regardless of width per level.
+        if (indentLevels.Count > 2)
+        {
+            violations.Add(
+                "Body nests lists deeper than two levels. Flatten or rewrite as prose.");
         }
     }
 
-    // [git-commit-format INST0010]: no file paths
+    // Parses "<whitespace><marker><whitespace>..." where marker is '-', '*', or '•'.
+    // Returns false for any other shape. Span-only; allocation-free.
+    private static bool TryParseBullet(ReadOnlySpan<char> line, out int indent, out char marker)
+    {
+        var i = 0;
+
+        while (i < line.Length && (line[i] == ' ' || line[i] == '\t'))
+        {
+            i++;
+        }
+
+        if (i >= line.Length)
+        {
+            indent = 0;
+            marker = '\0';
+            return false;
+        }
+
+        var c = line[i];
+
+        // Recognize every plausible bullet marker so the caller can flag
+        // anything other than '-'. CommonMark / GFM allows '-', '*', '+';
+        // '•' is included because users sometimes paste rendered bullets.
+        if (c is not '-' and not '*' and not '+' and not '\u2022')
+        {
+            indent = 0;
+            marker = '\0';
+            return false;
+        }
+
+        // The marker must be followed by at least one whitespace character;
+        // otherwise '-' is just a hyphenated word like "well-known".
+        if (i + 1 >= line.Length || (line[i + 1] != ' ' && line[i + 1] != '\t'))
+        {
+            indent = 0;
+            marker = '\0';
+            return false;
+        }
+
+        indent = i;
+        marker = c;
+        return true;
+    }
+
+    // [git-commit INST0010]: no file paths
     private static void CheckFilePaths(ReadOnlySpan<char> body, List<string> violations)
     {
         if (FilePathRegex().IsMatch(body))
@@ -117,7 +190,7 @@ internal sealed partial class AnalyzeGitCommitContentTask : IMcpTask
         }
     }
 
-    // [git-commit-format INST0011]: no counts
+    // [git-commit INST0011]: no counts
     private static void CheckCounts(ReadOnlySpan<char> body, List<string> violations)
     {
         if (CountsRegex().IsMatch(body))
@@ -128,7 +201,7 @@ internal sealed partial class AnalyzeGitCommitContentTask : IMcpTask
         }
     }
 
-    // [git-commit-format INST0015]: no section headers
+    // [git-commit INST0015]: no section headers
     private static void CheckSectionHeaders(ReadOnlySpan<char> body, List<string> violations)
     {
         if (SectionHeaderRegex().IsMatch(body))
@@ -139,7 +212,7 @@ internal sealed partial class AnalyzeGitCommitContentTask : IMcpTask
         }
     }
 
-    // [git-commit-format INST0013]: no parameter enumerations
+    // [git-commit INST0013]: no parameter enumerations
     private static void CheckParameterEnumerations(ReadOnlySpan<char> body, List<string> violations)
     {
         if (ParameterEnumRegex().IsMatch(body))
@@ -150,7 +223,7 @@ internal sealed partial class AnalyzeGitCommitContentTask : IMcpTask
         }
     }
 
-    // [git-commit-format INST0016]: no sensitive information
+    // [git-commit INST0016]: no sensitive information
     private static void CheckSensitiveInfo(ReadOnlySpan<char> body, List<string> violations)
     {
         if (SensitiveInfoRegex().IsMatch(body))
@@ -160,11 +233,6 @@ internal sealed partial class AnalyzeGitCommitContentTask : IMcpTask
                 "connection strings). Remove it immediately.");
         }
     }
-
-    [GeneratedRegex(
-        @"^\s*[-*•]\s+",
-        RegexOptions.CultureInvariant)]
-    private static partial Regex BulletListRegex();
 
     [GeneratedRegex(
         @"(?:^|[\s(])(?:[A-Za-z]:\\|/)?(?:[A-Za-z0-9._\-]+[/\\]){2,}[A-Za-z0-9._\-]+",

@@ -31,10 +31,23 @@ public sealed class AnalyzeGitCommitContentTaskTests
     }
 
     [Fact]
-    public async Task Should_report_bullet_lists_in_body()
+    public async Task Should_pass_for_body_with_justified_bullet_list()
     {
         // Arrange
-        var content = "feat: x\n\n- first bullet\n- second bullet\n";
+        var content = "feat: x\n\n- Caching now persists across sessions.\n- Errors surface upstream status codes verbatim.\n";
+
+        // Act
+        var output = await new AnalyzeGitCommitContentTask().ExecuteAsync(new { content });
+
+        // Assert
+        Assert.True(output.GetProperty("passed").GetBoolean());
+    }
+
+    [Fact]
+    public async Task Should_report_star_bullets_in_body()
+    {
+        // Arrange
+        var content = "feat: x\n\n* one behavior change.\n* another behavior change.\n";
 
         // Act
         var output = await new AnalyzeGitCommitContentTask().ExecuteAsync(new { content });
@@ -42,7 +55,36 @@ public sealed class AnalyzeGitCommitContentTaskTests
         // Assert
         Assert.Multiple(
             () => Assert.False(output.GetProperty("passed").GetBoolean()),
-            () => Assert.Contains("bullet", output.GetProperty("report").GetString(), StringComparison.Ordinal));
+            () => Assert.Contains("hyphen", output.GetProperty("report").GetString(), StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public async Task Should_report_lists_nested_deeper_than_two_levels()
+    {
+        // Arrange
+        var content = "feat: x\n\n- top level item.\n  - second level item.\n    - third level item.\n";
+
+        // Act
+        var output = await new AnalyzeGitCommitContentTask().ExecuteAsync(new { content });
+
+        // Assert
+        Assert.Multiple(
+            () => Assert.False(output.GetProperty("passed").GetBoolean()),
+            () => Assert.Contains("two levels", output.GetProperty("report").GetString(), StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task Should_pass_for_two_level_list_with_four_space_indent()
+    {
+        // Arrange — Markdown allows 4-space nesting; only count distinct
+        // indent widths, not absolute spaces.
+        var content = "feat: x\n\n- top level item.\n    - second level item.\n";
+
+        // Act
+        var output = await new AnalyzeGitCommitContentTask().ExecuteAsync(new { content });
+
+        // Assert
+        Assert.True(output.GetProperty("passed").GetBoolean());
     }
 
     [Fact]

@@ -7,9 +7,12 @@ using System.Text.RegularExpressions;
 using AutoContext.Mcp;
 
 /// <summary>
-/// <c>analyze_git_commit_format</c> — enforces commit format rules from
-/// <c>git-commit-format.instructions.md</c>: Conventional Commits structure
-/// and line-length limits.
+/// <c>analyze_git_commit_format</c> — checks the <em>structural</em> shape of a
+/// commit message against <c>git-commit.instructions.md</c>: Conventional
+/// Commits subject grammar (type, optional scope, description), subject and
+/// body line-length limits, and the required blank line between them.
+/// Companion to <see cref="AnalyzeGitCommitContentTask"/>, which judges what
+/// the body says rather than how it is laid out.
 /// </summary>
 /// <remarks>
 /// Request <c>data</c>:  <c>{ "content": "&lt;commit-message&gt;" }</c><br/>
@@ -83,7 +86,7 @@ internal sealed partial class AnalyzeGitCommitFormatTask : IMcpTask
         return Task.FromResult(JsonSerializer.SerializeToElement(output));
     }
 
-    // [git-commit-format INST0001]: Conventional Commits format
+    // [git-commit INST0001]: Conventional Commits format
     private static void ValidateSubjectFormat(ReadOnlySpan<char> subject, List<string> violations)
     {
         if (!SubjectRegex().IsMatch(subject))
@@ -95,7 +98,7 @@ internal sealed partial class AnalyzeGitCommitFormatTask : IMcpTask
         }
     }
 
-    // [git-commit-format INST0004]: subject ≤ 50 characters
+    // [git-commit INST0004]: subject ≤ 50 characters
     private static void ValidateSubjectLength(ReadOnlySpan<char> subject, List<string> violations)
     {
         if (subject.Length > MaxSubjectLength)
@@ -105,7 +108,7 @@ internal sealed partial class AnalyzeGitCommitFormatTask : IMcpTask
         }
     }
 
-    // [git-commit-format INST0006]: blank line between subject and body
+    // [git-commit INST0006]: blank line between subject and body
     private static void ValidateBlankLineAfterSubject(ReadOnlySpan<char> secondLine, List<string> violations)
     {
         if (!secondLine.IsEmpty)
@@ -114,7 +117,7 @@ internal sealed partial class AnalyzeGitCommitFormatTask : IMcpTask
         }
     }
 
-    // [git-commit-format INST0005]: body wrap at 72 characters
+    // [git-commit INST0005]: body wrap at 72 characters
     private static void ValidateBodyLineLength(ReadOnlySpan<char> body, List<string> violations)
     {
         var lineNumber = 3;
