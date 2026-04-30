@@ -112,11 +112,11 @@
             "tasks": [
                 {
                     "name": "analyze_git_commit_format",
-                    "description": "Enforces commit-format rules from git-commit-format.instructions.md: Conventional Commits structure (type, scope, subject) and line-length limits."
+                    "description": "Enforces commit-format rules from git-commit.instructions.md: Conventional Commits structure (type, scope, subject) and line-length limits."
                 },
                 {
                     "name": "analyze_git_commit_content",
-                    "description": "Enforces commit-content rules from git-commit-format.instructions.md: detects anti-patterns in the message body — vague summaries, repeated bullets, change-log spam, and similar low-signal content."
+                    "description": "Enforces commit-content rules from git-commit.instructions.md: detects anti-patterns in the message body — vague summaries, repeated bullets, change-log spam, and similar low-signal content."
                 }
             ]
         },

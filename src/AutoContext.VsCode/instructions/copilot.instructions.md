@@ -38,7 +38,7 @@ When the user asks you to do one of these tasks, read the listed instruction fil
 | Trigger                                              | Load                                  |
 |------------------------------------------------------|---------------------------------------|
 | Reviewing a diff, PR, or auditing a change           | `code-review.instructions.md`         |
-| Drafting a git commit message                        | `git-commit-format.instructions.md`   |
+| Drafting a git commit message                        | `git-commit.instructions.md`          |
 | Writing, reviewing, or planning tests                | `testing.instructions.md`             |
 | Designing or refactoring system structure / DI / SoC | `design-principles.instructions.md`   |
 | Designing or reviewing a REST API                    | `rest-api-design.instructions.md`     |

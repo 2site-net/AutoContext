@@ -679,8 +679,8 @@
         "when": "autocontext.instructions.web-vue && autocontext.workspace.hasVue && !autocontext.override.web-vue"
       },
       {
-        "path": "./instructions/.generated/git-commit-format.instructions.md",
-        "when": "autocontext.instructions.git-commit-format && autocontext.workspace.hasGit && !autocontext.override.git-commit-format"
+        "path": "./instructions/.generated/git-commit.instructions.md",
+        "when": "autocontext.instructions.git-commit && autocontext.workspace.hasGit && !autocontext.override.git-commit"
       },
       {
         "path": "./instructions/.generated/docker.instructions.md",

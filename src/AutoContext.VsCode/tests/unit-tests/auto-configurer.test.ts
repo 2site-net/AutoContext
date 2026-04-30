@@ -57,7 +57,7 @@ describe('AutoConfigurer', () => {
         // .NET async-await should NOT be disabled since hasDotNet is detected
         expect.soft(disabledFileNames).not.toContain('dotnet-async-await.instructions.md');
         // git commit format requires hasGit which is not detected, so it WILL be disabled
-        expect.soft(disabledFileNames).toContain('git-commit-format.instructions.md');
+        expect.soft(disabledFileNames).toContain('git-commit.instructions.md');
 
         // MCP tools: check that C# tools are NOT in the disabled list
         const setMcpTools = vi.mocked(fakeConfigManager.setMcpTools);
