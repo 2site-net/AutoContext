@@ -2,6 +2,7 @@ namespace AutoContext.Mcp.Server.Tools;
 
 using System.Text.Json;
 
+using AutoContext.Mcp.Server.Config;
 using AutoContext.Mcp.Server.Registry;
 using AutoContext.Mcp.Server.Tools.Invocation;
 
@@ -34,10 +35,11 @@ public sealed partial class McpSdkAdapter
 {
     private readonly IReadOnlyList<Tool> _tools;
     private readonly IReadOnlyDictionary<string, ToolHandler> _handlers;
+    private readonly AutoContextConfigSnapshot? _configSnapshot;
     private readonly ILogger<McpSdkAdapter> _logger;
 
     public McpSdkAdapter(McpWorkersCatalog registry, ToolInvoker invoker)
-        : this(registry, invoker, NullLogger<McpSdkAdapter>.Instance)
+        : this(registry, invoker, configSnapshot: null, NullLogger<McpSdkAdapter>.Instance)
     {
     }
 
@@ -45,12 +47,22 @@ public sealed partial class McpSdkAdapter
         McpWorkersCatalog registry,
         ToolInvoker invoker,
         ILogger<McpSdkAdapter> logger)
+        : this(registry, invoker, configSnapshot: null, logger)
+    {
+    }
+
+    public McpSdkAdapter(
+        McpWorkersCatalog registry,
+        ToolInvoker invoker,
+        AutoContextConfigSnapshot? configSnapshot,
+        ILogger<McpSdkAdapter> logger)
     {
         ArgumentNullException.ThrowIfNull(registry);
         ArgumentNullException.ThrowIfNull(invoker);
         ArgumentNullException.ThrowIfNull(logger);
 
         _logger = logger;
+        _configSnapshot = configSnapshot;
         _handlers = ToolDelegateFactory.Build(registry, invoker, logger);
         _tools = BuildProtocolTools(registry);
     }
@@ -63,9 +75,14 @@ public sealed partial class McpSdkAdapter
         ArgumentNullException.ThrowIfNull(request);
         cancellationToken.ThrowIfCancellationRequested();
 
+        var disabled = _configSnapshot?.DisabledTools;
+        var visible = disabled is { Count: > 0 }
+            ? _tools.Where(t => !disabled.Contains(t.Name)).ToList()
+            : (IEnumerable<Tool>)_tools;
+
         return ValueTask.FromResult(new ListToolsResult
         {
-            Tools = [.. _tools],
+            Tools = [.. visible],
         });
     }
 

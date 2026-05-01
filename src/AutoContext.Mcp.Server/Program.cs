@@ -1,5 +1,6 @@
 namespace AutoContext.Mcp.Server;
 
+using AutoContext.Mcp.Server.Config;
 using AutoContext.Mcp.Server.EditorConfig;
 using AutoContext.Mcp.Server.Registry;
 using AutoContext.Mcp.Server.Tools;
@@ -50,6 +51,13 @@ using Microsoft.Extensions.Logging;
 ///         dispatch. Best-effort; skipped when omitted (standalone
 ///         runs and smoke tests fall back to the legacy
 ///         assume-running behaviour).</item>
+///       <item><c>extension-config</c> — extension-side
+///         <c>AutoContextConfigServer</c>; pushes the latest
+///         <c>.autocontext.json</c> disabled-state snapshot so
+///         disabled tools are filtered out of <c>tools/list</c> and
+///         disabled tasks are skipped during dispatch. Best-effort;
+///         skipped when omitted (standalone / smoke runs see no
+///         disabled state).</item>
 ///     </list>
 ///     Duplicate roles, missing <c>=</c> separators, and empty
 ///     keys/values throw. Unknown roles are logged at warn level
@@ -72,6 +80,7 @@ internal static partial class Program
     private const string LogServiceRole = "log";
     private const string HealthMonitorServiceRole = "health-monitor";
     private const string WorkerControlServiceRole = "worker-control";
+    private const string ExtensionConfigServiceRole = "extension-config";
 
     [LoggerMessage(EventId = 1, Level = LogLevel.Critical, Message = "Registry validation failed:")]
     private static partial void LogRegistryValidationFailed(ILogger logger);
@@ -91,6 +100,7 @@ internal static partial class Program
         var logServiceAddress = services.TryGetValue(LogServiceRole, out var logAddr) ? logAddr : null;
         var healthMonitorServiceAddress = services.TryGetValue(HealthMonitorServiceRole, out var healthAddr) ? healthAddr : null;
         var workerControlServiceAddress = services.TryGetValue(WorkerControlServiceRole, out var ctrlAddr) ? ctrlAddr : null;
+        var extensionConfigServiceAddress = services.TryGetValue(ExtensionConfigServiceRole, out var cfgAddr) ? cfgAddr : null;
 
         var registrySource = new RegistryEmbeddedResource();
 
@@ -105,7 +115,7 @@ internal static partial class Program
 
         foreach (var role in services.Keys)
         {
-            if (role is not LogServiceRole and not HealthMonitorServiceRole and not WorkerControlServiceRole)
+            if (role is not LogServiceRole and not HealthMonitorServiceRole and not WorkerControlServiceRole and not ExtensionConfigServiceRole)
             {
                 LogUnknownServiceRole(bootstrapLogger, role);
             }
@@ -150,6 +160,21 @@ internal static partial class Program
         builder.Services.AddSingleton<EditorConfigBatcher>();
         builder.Services.AddSingleton<ToolInvoker>();
         builder.Services.AddSingleton<McpSdkAdapter>();
+
+        // Subscribes to the extension-side AutoContextConfigServer
+        // push channel and keeps AutoContextConfigSnapshot in sync
+        // with .autocontext.json. The snapshot drives both the
+        // tools/list filter (McpSdkAdapter) and the per-task dispatch
+        // filter. Best-effort: when --service extension-config=...
+        // was not supplied (standalone / smoke runs) the client is a
+        // no-op and the snapshot stays at its default "nothing
+        // disabled" value.
+        builder.Services.AddSingleton<AutoContextConfigSnapshot>();
+        builder.Services.AddHostedService(sp => new AutoContextConfigClient(
+            extensionConfigServiceAddress ?? string.Empty,
+            sp.GetRequiredService<AutoContextConfigSnapshot>(),
+            sp,
+            sp.GetRequiredService<ILogger<AutoContextConfigClient>>()));
 
         builder.Services
             .AddMcpServer()
