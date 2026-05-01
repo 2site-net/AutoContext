@@ -1,0 +1,203 @@
+import * as vscode from 'vscode';
+import type { Logger } from '#types/logger.js';
+import { LogCategory } from '#types/logger.js';
+import { WorkspaceContextDetector } from './workspace-context-detector.js';
+import { InstructionsFilesManifestLoader } from './instructions-files-manifest-loader.js';
+import { InstructionsFilesExporter } from './instructions-files-exporter.js';
+import { AutoContextConfigManager } from './autocontext-config-manager.js';
+import { InstructionsViewerDocumentProvider } from './instructions-viewer-document-provider.js';
+import { InstructionsViewerCodeLensProvider } from './instructions-viewer-codelens-provider.js';
+import { InstructionsViewerDecorationManager } from './instructions-viewer-decoration-manager.js';
+import { InstructionsFilesManager } from './instructions-files-manager.js';
+import { InstructionsFilesDiagnosticsReporter } from './instructions-files-diagnostics-reporter.js';
+import { InstructionsFilesDiagnosticsRunner } from './instructions-files-diagnostics-runner.js';
+import { AutoContextProjector } from './autocontext-projector.js';
+import { InstructionsFilesTreeProvider } from './instructions-files-tree-provider.js';
+import { MetadataLoader } from './metadata-loader.js';
+import { McpToolsManifestLoader } from './mcp-tools-manifest-loader.js';
+import { McpToolsTreeProvider } from './mcp-tools-tree-provider.js';
+import { TreeViewStateResolver } from './tree-view-state-resolver.js';
+import { TreeViewTooltip } from './tree-view-tooltip.js';
+import { McpServerProvider } from './mcp-server-provider.js';
+import { WorkerManager } from './worker-manager.js';
+import { ServersManifestLoader } from './servers-manifest-loader.js';
+import { HealthMonitorServer } from './health-monitor-server.js';
+import { LogServer } from './log-server.js';
+import { WorkerControlServer } from './worker-control-server.js';
+import { AutoContextConfigServer } from './autocontext-config-server.js';
+
+/**
+ * Inputs needed to construct the extension's full object graph.
+ *
+ * `composeExtension()` is intentionally synchronous and side-effect-free
+ * beyond `new` calls — anything that needs to await goes into
+ * `runActivationSequence()` instead.
+ */
+export interface CompositionInputs {
+    readonly extensionPath: string;
+    readonly version: string;
+    readonly workspaceRoot: string | undefined;
+    readonly instanceId: string;
+    readonly didChangeEmitter: vscode.EventEmitter<void>;
+    readonly rootLogger: Logger & vscode.Disposable;
+}
+
+/**
+ * The complete wired extension graph returned by `composeExtension()`.
+ *
+ * Tests can construct one of these with fakes/stubs and exercise the
+ * activation sequence or registration step in isolation, without
+ * needing `vi.mock` for module-level wiring.
+ */
+export type ExtensionGraph = ReturnType<typeof composeExtension>;
+
+/**
+ * Pure construction phase of extension activation.
+ *
+ * Builds every long-lived collaborator in a single, linear, synchronous
+ * pass. Does NOT start named-pipe servers, register VS Code surfaces,
+ * read the config from disk, or perform workspace detection — those
+ * are activation-sequence concerns owned by `runActivationSequence()`
+ * and `registerExtensionSurfaces()`.
+ *
+ * Disposables are surfaced via the `disposables` array; the caller
+ * (`activate()`) is responsible for pushing them onto
+ * `context.subscriptions` so VS Code drives teardown.
+ */
+export function composeExtension(inputs: CompositionInputs) {
+    const { extensionPath, version, workspaceRoot, instanceId, didChangeEmitter, rootLogger } = inputs;
+    const log = (cat: LogCategory): Logger => rootLogger.forCategory(cat);
+
+    // 1. Static manifests / metadata (sync JSON reads).
+    const metadataLoader = new MetadataLoader(extensionPath);
+    const mcpToolsManifest = new McpToolsManifestLoader(extensionPath).load();
+    const instructionsManifest = new InstructionsFilesManifestLoader(extensionPath)
+        .load(metadataLoader.getInstructionsInfo());
+    const serversManifest = new ServersManifestLoader(extensionPath).load();
+
+    const workerIds = new Set(
+        mcpToolsManifest.topCategories
+            .map(c => c.workerId)
+            .filter((id): id is string => id !== undefined),
+    );
+    const workerEntries = serversManifest.servers.filter(s => workerIds.has(s.id));
+
+    // 2. Core stateful services.
+    const configManager = new AutoContextConfigManager(extensionPath, version, log(LogCategory.Config));
+    const workspaceContextDetector = new WorkspaceContextDetector(instructionsManifest, log(LogCategory.Detection));
+    const instructionsExporter = new InstructionsFilesExporter(extensionPath, log(LogCategory.Instructions));
+    const instructionsWriter = new InstructionsFilesManager(extensionPath, configManager, instructionsManifest, log(LogCategory.InstructionsWriter));
+    const configProjector = new AutoContextProjector(configManager, instructionsManifest, mcpToolsManifest, log(LogCategory.ConfigProjector));
+
+    // 3. Named-pipe servers (constructed; not started).
+    const logServer = new LogServer(log(LogCategory.LogServer), instanceId);
+    const healthMonitor = new HealthMonitorServer(log(LogCategory.HealthMonitor), instanceId);
+    const workerManager = new WorkerManager(
+        extensionPath,
+        log(LogCategory.WorkerManager),
+        workspaceRoot,
+        workerEntries,
+        instanceId,
+        logServer.getPipeName(),
+        healthMonitor.getPipeName(),
+    );
+    const workerControlServer = new WorkerControlServer(workerManager, workerEntries, instanceId, log(LogCategory.WorkerControl));
+    const autoContextConfigServer = new AutoContextConfigServer(configManager, instanceId, log(LogCategory.ConfigServer));
+
+    // 4. VS Code-facing providers.
+    const contentProvider = new InstructionsViewerDocumentProvider(extensionPath, configManager, log(LogCategory.Instructions));
+    const codeLensProvider = new InstructionsViewerCodeLensProvider(extensionPath, configManager, workspaceContextDetector, instructionsManifest, log(LogCategory.Instructions));
+    const decorationManager = new InstructionsViewerDecorationManager(extensionPath, configManager, log(LogCategory.Decorations));
+    const mcpServerProvider = new McpServerProvider(
+        extensionPath,
+        version,
+        didChangeEmitter.event,
+        mcpToolsManifest,
+        serversManifest,
+        configManager,
+        instanceId,
+        logServer.getPipeName(),
+        healthMonitor.getPipeName(),
+        workerControlServer.getPipeName(),
+        autoContextConfigServer.getPipeName(),
+        log(LogCategory.McpServerProvider),
+    );
+
+    const stateResolver = new TreeViewStateResolver(workspaceContextDetector);
+    const instructionsTreeProvider = new InstructionsFilesTreeProvider(
+        workspaceContextDetector,
+        instructionsManifest,
+        stateResolver,
+        new TreeViewTooltip('instructions'),
+        configManager,
+        log(LogCategory.InstructionsTree),
+    );
+    const mcpToolsTreeProvider = new McpToolsTreeProvider(
+        workspaceContextDetector,
+        mcpToolsManifest,
+        stateResolver,
+        new TreeViewTooltip('tools'),
+        configManager,
+        log(LogCategory.McpToolsTree),
+        healthMonitor,
+        mcpServerProvider,
+    );
+
+    // 5. Diagnostics.
+    const diagnosticsRunner = new InstructionsFilesDiagnosticsRunner(extensionPath, configManager, instructionsManifest);
+    const diagnosticsReporter = new InstructionsFilesDiagnosticsReporter(diagnosticsRunner, rootLogger);
+
+    // Disposables that activate() should push onto context.subscriptions.
+    // Order matches the original extension.ts for behavioural parity.
+    const disposables: readonly vscode.Disposable[] = [
+        didChangeEmitter,
+        rootLogger,
+        logServer,
+        healthMonitor,
+        workerControlServer,
+        autoContextConfigServer,
+        workerManager,
+        workspaceContextDetector,
+        configManager,
+        contentProvider,
+        codeLensProvider,
+        decorationManager,
+        instructionsWriter,
+        configProjector,
+        instructionsTreeProvider,
+        mcpToolsTreeProvider,
+        mcpServerProvider,
+    ];
+
+    return {
+        // Manifests
+        instructionsManifest,
+        mcpToolsManifest,
+        serversManifest,
+        // Core
+        configManager,
+        workspaceContextDetector,
+        instructionsExporter,
+        instructionsWriter,
+        configProjector,
+        // Named-pipe servers
+        logServer,
+        healthMonitor,
+        workerControlServer,
+        autoContextConfigServer,
+        workerManager,
+        // VS Code-facing
+        contentProvider,
+        codeLensProvider,
+        decorationManager,
+        mcpServerProvider,
+        instructionsTreeProvider,
+        mcpToolsTreeProvider,
+        stateResolver,
+        // Diagnostics
+        diagnosticsRunner,
+        diagnosticsReporter,
+        // Lifecycle
+        disposables,
+    };
+}
