@@ -78,21 +78,38 @@ public sealed partial class WorkerControlClient : IAsyncDisposable
     private bool _disposed;
 
     public WorkerControlClient()
-        : this(pipeName: null, DefaultDeadline, NullLogger<WorkerControlClient>.Instance)
+        : this(
+            pipeName: null,
+            DefaultDeadline,
+            NullLogger<WorkerControlClient>.Instance,
+            NullLoggerFactory.Instance)
     {
     }
 
     public WorkerControlClient(string? pipeName)
-        : this(pipeName, DefaultDeadline, NullLogger<WorkerControlClient>.Instance)
+        : this(
+            pipeName,
+            DefaultDeadline,
+            NullLogger<WorkerControlClient>.Instance,
+            NullLoggerFactory.Instance)
     {
     }
 
     public WorkerControlClient(string? pipeName, ILogger<WorkerControlClient> logger)
-        : this(pipeName, DefaultDeadline, logger)
+        : this(pipeName, DefaultDeadline, logger, NullLoggerFactory.Instance)
     {
     }
 
     public WorkerControlClient(string? pipeName, TimeSpan deadline, ILogger<WorkerControlClient> logger)
+        : this(pipeName, deadline, logger, NullLoggerFactory.Instance)
+    {
+    }
+
+    public WorkerControlClient(
+        string? pipeName,
+        TimeSpan deadline,
+        ILogger<WorkerControlClient> logger,
+        ILoggerFactory loggerFactory)
     {
         if (deadline <= TimeSpan.Zero)
         {
@@ -103,6 +120,7 @@ public sealed partial class WorkerControlClient : IAsyncDisposable
         }
 
         ArgumentNullException.ThrowIfNull(logger);
+        ArgumentNullException.ThrowIfNull(loggerFactory);
 
         _deadline = deadline;
         _logger = logger;
@@ -113,7 +131,7 @@ public sealed partial class WorkerControlClient : IAsyncDisposable
             _exchange = new PipePersistentExchangeClient(
                 transport,
                 pipeName,
-                NullLogger<PipePersistentExchangeClient>.Instance);
+                loggerFactory.CreateLogger<PipePersistentExchangeClient>());
         }
     }
 

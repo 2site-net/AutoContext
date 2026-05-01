@@ -155,7 +155,8 @@ internal static partial class Program
         builder.Services.AddSingleton(addresses);
         builder.Services.AddSingleton(sp => new WorkerControlClient(
             workerControlServiceAddress,
-            sp.GetRequiredService<ILogger<WorkerControlClient>>()));
+            sp.GetRequiredService<ILogger<WorkerControlClient>>(),
+            sp.GetRequiredService<ILoggerFactory>()));
         builder.Services.AddSingleton<WorkerClient>();
         builder.Services.AddSingleton<EditorConfigBatcher>();
         builder.Services.AddSingleton(sp => new ToolInvoker(
