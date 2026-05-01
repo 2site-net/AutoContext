@@ -41,7 +41,7 @@ src/AutoContext.Mcp.Server/               # Single MCP/stdio orchestrator. Loads
   EditorConfig/                           #   In-process EditorConfig resolution shared by tools that need it
   mcp-workers-registry.json               #   Embedded registry: every tool, its parameters, and its owning worker
 src/AutoContext.Worker.DotNet/            # .NET worker. Hosts C# and NuGet analyzers (Tasks/CSharp, Tasks/NuGet).
-src/AutoContext.Worker.Workspace/         # .NET worker. Hosts Git, EditorConfig, and Config tasks.
+src/AutoContext.Worker.Workspace/         # .NET worker. Hosts Git and EditorConfig tasks.
 src/AutoContext.Worker.Web/               # Node.js / TypeScript worker. Hosts the TypeScript analyzer.
 src/AutoContext.VsCode/                   # VS Code extension. Spawns Mcp.Server + every worker, runs the LogServer
                                           # and HealthMonitorServer pipes, and ships the instructions, sidebar panels,

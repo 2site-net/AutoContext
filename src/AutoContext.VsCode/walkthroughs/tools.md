@@ -24,7 +24,10 @@ The MCP server and each worker report their liveness via a health monitoring pip
 
 ### How it works
 
-When you disable a tool or one of its tasks, it is recorded in `.autocontext.json` at your workspace root. The extension projects that state into VS Code context keys and uses it to control whether the MCP server is even advertised — if every tool is disabled, no server definition is returned and Copilot has nothing to call. Tasks toggled off are filtered out the same way. Disabled means truly disabled: there is no EditorConfig-only fallback path.
+When you disable a tool or one of its tasks, it is recorded in `.autocontext.json` at your workspace root. Two things happen next:
+
+1. **Sidebar reacts immediately** — the extension projects the state into VS Code context keys so tree icons and `when` clauses update right away.
+2. **MCP server reacts live** — the same change is pushed to the running `AutoContext.Mcp.Server` over a dedicated named pipe. The server filters disabled tools out of its `tools/list` response and skips disabled tasks at dispatch time, then emits an MCP `notifications/tools/list_changed` so VS Code's Quick Pick refreshes — **no server restart required**. As a fast path, when **every** tool is disabled, the extension hides the MCP server definition altogether and Copilot has nothing to call. Disabled means truly disabled: there is no EditorConfig-only fallback path.
 
 ### Toggle tools
 
