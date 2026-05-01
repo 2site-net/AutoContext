@@ -34,7 +34,7 @@ describe('InstructionsFilesTreeProvider', () => {
     const catalog = new InstructionsFilesManifestLoader(join(__dirname, '..', '..')).load();
 
     it('should return category nodes as root elements', () => {
-        const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, logger);
+        const provider = new InstructionsFilesTreeProvider({ detector: fakeDetector, manifest: catalog, stateResolver, tooltip, configManager: fakeConfigManager, logger });
         const roots = provider.getChildren();
 
         const names = roots.map(r => r.kind === 'categoryNode' ? r.name : '');
@@ -44,7 +44,7 @@ describe('InstructionsFilesTreeProvider', () => {
     });
 
     it('should return instruction nodes as children of a category', () => {
-        const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, logger);
+        const provider = new InstructionsFilesTreeProvider({ detector: fakeDetector, manifest: catalog, stateResolver, tooltip, configManager: fakeConfigManager, logger });
         const roots = provider.getChildren();
         const general = roots.find(r => r.kind === 'categoryNode' && r.name === 'General')!;
         const children = provider.getChildren(general);
@@ -56,7 +56,7 @@ describe('InstructionsFilesTreeProvider', () => {
     });
 
     it('should return no children for an instruction node', () => {
-        const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, logger);
+        const provider = new InstructionsFilesTreeProvider({ detector: fakeDetector, manifest: catalog, stateResolver, tooltip, configManager: fakeConfigManager, logger });
         const roots = provider.getChildren();
         const general = roots.find(r => r.kind === 'categoryNode' && r.name === 'General')!;
         const children = provider.getChildren(general);
@@ -68,7 +68,7 @@ describe('InstructionsFilesTreeProvider', () => {
     });
 
     it('should show category items as expanded', () => {
-        const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, logger);
+        const provider = new InstructionsFilesTreeProvider({ detector: fakeDetector, manifest: catalog, stateResolver, tooltip, configManager: fakeConfigManager, logger });
         const roots = provider.getChildren();
         const treeItem = provider.getTreeItem(roots[0]);
 
@@ -80,7 +80,7 @@ describe('InstructionsFilesTreeProvider', () => {
     it('should mark instructions as active when config is enabled and context keys match', () => {
         vi.mocked(fakeDetector.get).mockImplementation((key: string) => key === 'hasCSharp');
 
-        const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, logger);
+        const provider = new InstructionsFilesTreeProvider({ detector: fakeDetector, manifest: catalog, stateResolver, tooltip, configManager: fakeConfigManager, logger });
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
@@ -94,7 +94,7 @@ describe('InstructionsFilesTreeProvider', () => {
     it('should mark instructions as not detected when context keys do not match', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(false);
 
-        const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, logger);
+        const provider = new InstructionsFilesTreeProvider({ detector: fakeDetector, manifest: catalog, stateResolver, tooltip, configManager: fakeConfigManager, logger });
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
@@ -111,7 +111,7 @@ describe('InstructionsFilesTreeProvider', () => {
     it('should mark instructions as disabled when config setting is false', () => {
         vi.mocked(fakeDetector.get).mockImplementation((key: string) => key === 'hasCSharp');
         currentConfig = new AutoContextConfig({ instructions: { 'lang-csharp.instructions.md': { enabled: false } } });
-        const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, logger);
+        const provider = new InstructionsFilesTreeProvider({ detector: fakeDetector, manifest: catalog, stateResolver, tooltip, configManager: fakeConfigManager, logger });
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
@@ -129,7 +129,7 @@ describe('InstructionsFilesTreeProvider', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
         vi.mocked(fakeDetector.getOverriddenContextKeys).mockReturnValue(new Set(['autocontext.instructions.lang-csharp']));
 
-        const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, logger);
+        const provider = new InstructionsFilesTreeProvider({ detector: fakeDetector, manifest: catalog, stateResolver, tooltip, configManager: fakeConfigManager, logger });
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
@@ -144,7 +144,7 @@ describe('InstructionsFilesTreeProvider', () => {
     });
 
     it('should treat always-on entries (no contextKeys) as active when enabled', () => {
-        const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, logger);
+        const provider = new InstructionsFilesTreeProvider({ detector: fakeDetector, manifest: catalog, stateResolver, tooltip, configManager: fakeConfigManager, logger });
         const roots = provider.getChildren();
         const general = roots.find(r => r.kind === 'categoryNode' && r.name === 'General')!;
         const children = provider.getChildren(general);
@@ -156,7 +156,7 @@ describe('InstructionsFilesTreeProvider', () => {
     });
 
     it('should preserve category order from the registry', () => {
-        const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, logger);
+        const provider = new InstructionsFilesTreeProvider({ detector: fakeDetector, manifest: catalog, stateResolver, tooltip, configManager: fakeConfigManager, logger });
         const roots = provider.getChildren();
 
         const categories = roots.filter(r => r.kind === 'categoryNode').map(r => r.kind === 'categoryNode' ? r.name : '');
@@ -168,7 +168,7 @@ describe('InstructionsFilesTreeProvider', () => {
     it('should sort instructions within a category by label (matching registry order)', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
 
-        const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, logger);
+        const provider = new InstructionsFilesTreeProvider({ detector: fakeDetector, manifest: catalog, stateResolver, tooltip, configManager: fakeConfigManager, logger });
         const roots = provider.getChildren();
         const general = roots.find(r => r.kind === 'categoryNode' && r.name === 'General')!;
         const children = provider.getChildren(general);
@@ -183,7 +183,7 @@ describe('InstructionsFilesTreeProvider', () => {
     it('should include tooltip with setting ID', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
 
-        const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, logger);
+        const provider = new InstructionsFilesTreeProvider({ detector: fakeDetector, manifest: catalog, stateResolver, tooltip, configManager: fakeConfigManager, logger });
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
@@ -202,7 +202,7 @@ describe('InstructionsFilesTreeProvider', () => {
             ['lang-csharp.instructions.md', { description: 'C# coding guidelines', version: '1.0.0' }],
         ]);
         const enrichedCatalog = new InstructionsFilesManifestLoader(join(__dirname, '..', '..')).load(metadata);
-        const provider = new InstructionsFilesTreeProvider(fakeDetector, enrichedCatalog, stateResolver, tooltip, fakeConfigManager, logger);
+        const provider = new InstructionsFilesTreeProvider({ detector: fakeDetector, manifest: enrichedCatalog, stateResolver, tooltip, configManager: fakeConfigManager, logger });
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
@@ -218,7 +218,7 @@ describe('InstructionsFilesTreeProvider', () => {
     it('should not include version in tooltip when metadata is absent', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
 
-        const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, logger);
+        const provider = new InstructionsFilesTreeProvider({ detector: fakeDetector, manifest: catalog, stateResolver, tooltip, configManager: fakeConfigManager, logger });
         const roots = provider.getChildren();
         const general = roots.find(r => r.kind === 'categoryNode' && r.name === 'General')!;
         const children = provider.getChildren(general);
@@ -233,7 +233,7 @@ describe('InstructionsFilesTreeProvider', () => {
     it('should sort active instructions before disabled, and disabled before not detected', () => {
         vi.mocked(fakeDetector.get).mockImplementation((key: string) => key === 'hasCSharp' || key === 'hasTypeScript');
         currentConfig = new AutoContextConfig({ instructions: { 'lang-csharp.instructions.md': { enabled: false } } });
-        const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, logger);
+        const provider = new InstructionsFilesTreeProvider({ detector: fakeDetector, manifest: catalog, stateResolver, tooltip, configManager: fakeConfigManager, logger });
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
@@ -260,7 +260,7 @@ describe('InstructionsFilesTreeProvider', () => {
     it('should set a command on instruction items to open the virtual document', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
 
-        const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, logger);
+        const provider = new InstructionsFilesTreeProvider({ detector: fakeDetector, manifest: catalog, stateResolver, tooltip, configManager: fakeConfigManager, logger });
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
@@ -280,7 +280,7 @@ describe('InstructionsFilesTreeProvider', () => {
         vi.mocked(fakeDetector.getOverriddenContextKeys).mockReturnValue(new Set(['autocontext.instructions.lang-csharp']));
         workspace.workspaceFolders = [{ uri: { path: '/workspace', scheme: 'file' } }];
 
-        const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, logger);
+        const provider = new InstructionsFilesTreeProvider({ detector: fakeDetector, manifest: catalog, stateResolver, tooltip, configManager: fakeConfigManager, logger });
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
@@ -298,7 +298,7 @@ describe('InstructionsFilesTreeProvider', () => {
     it('should set contextValue to instruction.enabled for active items', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
 
-        const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, logger);
+        const provider = new InstructionsFilesTreeProvider({ detector: fakeDetector, manifest: catalog, stateResolver, tooltip, configManager: fakeConfigManager, logger });
         const roots = provider.getChildren();
         const general = roots.find(r => r.kind === 'categoryNode' && r.name === 'General')!;
         const children = provider.getChildren(general);
@@ -313,7 +313,7 @@ describe('InstructionsFilesTreeProvider', () => {
     it('should set contextValue to instruction.disabled for disabled items', () => {
         vi.mocked(fakeDetector.get).mockImplementation((key: string) => key === 'hasCSharp');
         currentConfig = new AutoContextConfig({ instructions: { 'lang-csharp.instructions.md': { enabled: false } } });
-        const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, logger);
+        const provider = new InstructionsFilesTreeProvider({ detector: fakeDetector, manifest: catalog, stateResolver, tooltip, configManager: fakeConfigManager, logger });
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
@@ -332,7 +332,7 @@ describe('InstructionsFilesTreeProvider', () => {
             ['lang-csharp.instructions.md', { description: 'C#', version: '1.0.0', hasChangelog: true }],
         ]);
         const changelogCatalog = new InstructionsFilesManifestLoader(join(__dirname, '..', '..')).load(metadata);
-        const provider = new InstructionsFilesTreeProvider(fakeDetector, changelogCatalog, stateResolver, tooltip, fakeConfigManager, logger);
+        const provider = new InstructionsFilesTreeProvider({ detector: fakeDetector, manifest: changelogCatalog, stateResolver, tooltip, configManager: fakeConfigManager, logger });
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
@@ -347,7 +347,7 @@ describe('InstructionsFilesTreeProvider', () => {
     it('should not append .hasChangelog when entry has no changelog', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
 
-        const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, logger);
+        const provider = new InstructionsFilesTreeProvider({ detector: fakeDetector, manifest: catalog, stateResolver, tooltip, configManager: fakeConfigManager, logger });
         const roots = provider.getChildren();
         const general = roots.find(r => r.kind === 'categoryNode' && r.name === 'General')!;
         const children = provider.getChildren(general);
@@ -362,7 +362,7 @@ describe('InstructionsFilesTreeProvider', () => {
     it('should update setting to true when enableInstruction is called', async () => {
         vi.mocked(fakeDetector.get).mockImplementation((key: string) => key === 'hasCSharp');
         currentConfig = new AutoContextConfig({ instructions: { 'lang-csharp.instructions.md': { enabled: false } } });
-        const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, logger);
+        const provider = new InstructionsFilesTreeProvider({ detector: fakeDetector, manifest: catalog, stateResolver, tooltip, configManager: fakeConfigManager, logger });
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
@@ -378,7 +378,7 @@ describe('InstructionsFilesTreeProvider', () => {
     it('should update setting to false when disableInstruction is called', async () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
 
-        const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, logger);
+        const provider = new InstructionsFilesTreeProvider({ detector: fakeDetector, manifest: catalog, stateResolver, tooltip, configManager: fakeConfigManager, logger });
         const roots = provider.getChildren();
         const general = roots.find(r => r.kind === 'categoryNode' && r.name === 'General')!;
         const children = provider.getChildren(general);
@@ -404,7 +404,7 @@ describe('InstructionsFilesTreeProvider', () => {
         const matchingTab = { input: { uri: { toString: () => targetUri.toString() } } };
         window.tabGroups.all = [{ tabs: [matchingTab] }];
 
-        const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, logger);
+        const provider = new InstructionsFilesTreeProvider({ detector: fakeDetector, manifest: catalog, stateResolver, tooltip, configManager: fakeConfigManager, logger });
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
@@ -422,7 +422,7 @@ describe('InstructionsFilesTreeProvider', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
         vi.mocked(fakeDetector.getOverriddenContextKeys).mockReturnValue(new Set(['autocontext.instructions.lang-csharp']));
 
-        const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, logger);
+        const provider = new InstructionsFilesTreeProvider({ detector: fakeDetector, manifest: catalog, stateResolver, tooltip, configManager: fakeConfigManager, logger });
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
@@ -441,7 +441,7 @@ describe('InstructionsFilesTreeProvider', () => {
     it('should show checkboxes on active and disabled items in export mode', () => {
         vi.mocked(fakeDetector.get).mockImplementation((key: string) => key === 'hasCSharp');
         currentConfig = new AutoContextConfig({ instructions: { 'design-principles.instructions.md': { enabled: false } } });
-        const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, logger);
+        const provider = new InstructionsFilesTreeProvider({ detector: fakeDetector, manifest: catalog, stateResolver, tooltip, configManager: fakeConfigManager, logger });
         provider.enterExportMode();
 
         const roots = provider.getChildren();
@@ -460,7 +460,7 @@ describe('InstructionsFilesTreeProvider', () => {
     it('should not show checkboxes on not-detected or overridden items in export mode', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(false);
 
-        const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, logger);
+        const provider = new InstructionsFilesTreeProvider({ detector: fakeDetector, manifest: catalog, stateResolver, tooltip, configManager: fakeConfigManager, logger });
         provider.enterExportMode();
 
         const roots = provider.getChildren();
@@ -476,7 +476,7 @@ describe('InstructionsFilesTreeProvider', () => {
     it('should not show checkboxes when not in export mode', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
 
-        const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, logger);
+        const provider = new InstructionsFilesTreeProvider({ detector: fakeDetector, manifest: catalog, stateResolver, tooltip, configManager: fakeConfigManager, logger });
         const roots = provider.getChildren();
         const general = roots.find(r => r.kind === 'categoryNode' && r.name === 'General')!;
         const children = provider.getChildren(general);
@@ -488,7 +488,7 @@ describe('InstructionsFilesTreeProvider', () => {
     });
 
     it('should set export mode context key when entering export mode', () => {
-        const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, logger);
+        const provider = new InstructionsFilesTreeProvider({ detector: fakeDetector, manifest: catalog, stateResolver, tooltip, configManager: fakeConfigManager, logger });
         provider.enterExportMode();
 
         expect.soft(commands.executeCommand).toHaveBeenCalledWith('setContext', contextKeys.ExportMode, true);
@@ -497,7 +497,7 @@ describe('InstructionsFilesTreeProvider', () => {
     });
 
     it('should clear export mode context key when canceling export mode', () => {
-        const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, logger);
+        const provider = new InstructionsFilesTreeProvider({ detector: fakeDetector, manifest: catalog, stateResolver, tooltip, configManager: fakeConfigManager, logger });
         provider.enterExportMode();
         provider.cancelExportMode();
 
@@ -509,7 +509,7 @@ describe('InstructionsFilesTreeProvider', () => {
     it('should return checked entries from getCheckedEntries', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
 
-        const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, logger);
+        const provider = new InstructionsFilesTreeProvider({ detector: fakeDetector, manifest: catalog, stateResolver, tooltip, configManager: fakeConfigManager, logger });
         provider.enterExportMode();
 
         const roots = provider.getChildren();
@@ -533,7 +533,7 @@ describe('InstructionsFilesTreeProvider', () => {
     it('should clear checked entries when canceling export mode', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
 
-        const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, logger);
+        const provider = new InstructionsFilesTreeProvider({ detector: fakeDetector, manifest: catalog, stateResolver, tooltip, configManager: fakeConfigManager, logger });
         provider.enterExportMode();
 
         (provider as unknown as { _checkedEntries: Set<string> })._checkedEntries.add('autocontext.instructions.code-review');
@@ -548,7 +548,7 @@ describe('InstructionsFilesTreeProvider', () => {
     it('should set badge on tree view when setBadge is called with a positive value', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
 
-        const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, logger);
+        const provider = new InstructionsFilesTreeProvider({ detector: fakeDetector, manifest: catalog, stateResolver, tooltip, configManager: fakeConfigManager, logger });
         provider.setBadge(1, 'New version available');
 
         const treeView = vi.mocked(window.createTreeView).mock.results.at(-1)!.value;
@@ -560,7 +560,7 @@ describe('InstructionsFilesTreeProvider', () => {
     it('should clear badge on tree view when setBadge is called with zero', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
 
-        const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, logger);
+        const provider = new InstructionsFilesTreeProvider({ detector: fakeDetector, manifest: catalog, stateResolver, tooltip, configManager: fakeConfigManager, logger });
         provider.setBadge(1, 'New version available');
         provider.setBadge(0, '');
 
@@ -574,7 +574,7 @@ describe('InstructionsFilesTreeProvider', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
         const onDismiss = vi.fn();
 
-        const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, logger);
+        const provider = new InstructionsFilesTreeProvider({ detector: fakeDetector, manifest: catalog, stateResolver, tooltip, configManager: fakeConfigManager, logger });
         provider.setBadge(1, 'New version available');
         provider.dismissBadgeOnNextReveal(onDismiss);
 
@@ -590,7 +590,7 @@ describe('InstructionsFilesTreeProvider', () => {
     it('should not clear badge when tree view becomes hidden', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
 
-        const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, logger);
+        const provider = new InstructionsFilesTreeProvider({ detector: fakeDetector, manifest: catalog, stateResolver, tooltip, configManager: fakeConfigManager, logger });
         provider.setBadge(1, 'New version available');
         provider.dismissBadgeOnNextReveal();
 
@@ -606,7 +606,7 @@ describe('InstructionsFilesTreeProvider', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
         const onDismiss = vi.fn();
 
-        const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, logger);
+        const provider = new InstructionsFilesTreeProvider({ detector: fakeDetector, manifest: catalog, stateResolver, tooltip, configManager: fakeConfigManager, logger });
         provider.setBadge(1, 'New version available');
         provider.dismissBadgeOnNextReveal(onDismiss);
 
@@ -626,7 +626,7 @@ describe('InstructionsFilesTreeProvider', () => {
     it('should hide not-detected instructions when showNotDetected is false', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(false);
 
-        const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, logger);
+        const provider = new InstructionsFilesTreeProvider({ detector: fakeDetector, manifest: catalog, stateResolver, tooltip, configManager: fakeConfigManager, logger });
         provider.showNotDetected = false;
 
         const roots = provider.getChildren();
@@ -643,7 +643,7 @@ describe('InstructionsFilesTreeProvider', () => {
     it('should show not-detected instructions when showNotDetected is true', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(false);
 
-        const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, logger);
+        const provider = new InstructionsFilesTreeProvider({ detector: fakeDetector, manifest: catalog, stateResolver, tooltip, configManager: fakeConfigManager, logger });
         provider.showNotDetected = true;
 
         const roots = provider.getChildren();
@@ -658,7 +658,7 @@ describe('InstructionsFilesTreeProvider', () => {
     it('should hide empty categories when showNotDetected is false', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(false);
 
-        const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, logger);
+        const provider = new InstructionsFilesTreeProvider({ detector: fakeDetector, manifest: catalog, stateResolver, tooltip, configManager: fakeConfigManager, logger });
         provider.showNotDetected = false;
 
         const roots = provider.getChildren();
@@ -674,7 +674,7 @@ describe('InstructionsFilesTreeProvider', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
         vi.mocked(fakeDetector.getOverriddenContextKeys).mockReturnValue(new Set(['autocontext.instructions.lang-csharp']));
 
-        const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, logger);
+        const provider = new InstructionsFilesTreeProvider({ detector: fakeDetector, manifest: catalog, stateResolver, tooltip, configManager: fakeConfigManager, logger });
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
@@ -689,7 +689,7 @@ describe('InstructionsFilesTreeProvider', () => {
     it('should include state description in tooltip for active state', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
 
-        const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, logger);
+        const provider = new InstructionsFilesTreeProvider({ detector: fakeDetector, manifest: catalog, stateResolver, tooltip, configManager: fakeConfigManager, logger });
         const roots = provider.getChildren();
 
         const general = roots.find(r => r.kind === 'categoryNode' && r.name === 'General')!;
@@ -702,7 +702,7 @@ describe('InstructionsFilesTreeProvider', () => {
     it('should include state description in tooltip for not-detected state', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(false);
 
-        const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, logger);
+        const provider = new InstructionsFilesTreeProvider({ detector: fakeDetector, manifest: catalog, stateResolver, tooltip, configManager: fakeConfigManager, logger });
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
         const notDetectedNode = provider.getChildren(languages).find(c => c.kind === 'instructions' && c.state === TreeViewNodeState.NotDetected)!;
@@ -714,7 +714,7 @@ describe('InstructionsFilesTreeProvider', () => {
     it('should include state description in tooltip for disabled state', () => {
         vi.mocked(fakeDetector.get).mockImplementation((key: string) => key === 'hasCSharp');
         currentConfig = new AutoContextConfig({ instructions: { 'lang-csharp.instructions.md': { enabled: false } } });
-        const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, logger);
+        const provider = new InstructionsFilesTreeProvider({ detector: fakeDetector, manifest: catalog, stateResolver, tooltip, configManager: fakeConfigManager, logger });
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
         const disabled = provider.getChildren(languages).find(c => c.kind === 'instructions' && c.state === TreeViewNodeState.Disabled)!;
@@ -728,7 +728,7 @@ describe('InstructionsFilesTreeProvider', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
         vi.mocked(fakeDetector.getOverriddenContextKeys).mockReturnValue(new Set(['autocontext.instructions.lang-csharp']));
 
-        const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, logger);
+        const provider = new InstructionsFilesTreeProvider({ detector: fakeDetector, manifest: catalog, stateResolver, tooltip, configManager: fakeConfigManager, logger });
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
         const overridden = provider.getChildren(languages).find(c => c.kind === 'instructions' && c.state === TreeViewNodeState.Overridden)!;
@@ -741,7 +741,7 @@ describe('InstructionsFilesTreeProvider', () => {
     it('should show active/total count in category tooltip when all detected', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
         currentConfig = new AutoContextConfig({ instructions: { 'lang-csharp.instructions.md': { enabled: false } } });
-        const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, logger);
+        const provider = new InstructionsFilesTreeProvider({ detector: fakeDetector, manifest: catalog, stateResolver, tooltip, configManager: fakeConfigManager, logger });
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
         const item = provider.getTreeItem(languages);
@@ -756,7 +756,7 @@ describe('InstructionsFilesTreeProvider', () => {
     it('should show active/total count in category tooltip with not-detected entries', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(false);
 
-        const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, logger);
+        const provider = new InstructionsFilesTreeProvider({ detector: fakeDetector, manifest: catalog, stateResolver, tooltip, configManager: fakeConfigManager, logger });
         const roots = provider.getChildren();
         const general = roots.find(r => r.kind === 'categoryNode' && r.name === 'General')!;
         const item = provider.getTreeItem(general);
@@ -772,7 +772,7 @@ describe('InstructionsFilesTreeProvider', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
         vi.mocked(fakeDetector.getOverriddenContextKeys).mockReturnValue(new Set(['autocontext.instructions.lang-csharp']));
 
-        const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, logger);
+        const provider = new InstructionsFilesTreeProvider({ detector: fakeDetector, manifest: catalog, stateResolver, tooltip, configManager: fakeConfigManager, logger });
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
         const item = provider.getTreeItem(languages);
@@ -786,7 +786,7 @@ describe('InstructionsFilesTreeProvider', () => {
     it('should set treeView description to enabled/total count', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
         currentConfig = new AutoContextConfig({ instructions: { 'lang-csharp.instructions.md': { enabled: false } } });
-        const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, logger);
+        const provider = new InstructionsFilesTreeProvider({ detector: fakeDetector, manifest: catalog, stateResolver, tooltip, configManager: fakeConfigManager, logger });
         const treeView = vi.mocked(window.createTreeView).mock.results.at(-1)!.value;
         const total = catalog.count;
         const enabled = catalog.instructions.filter(e => e.runtimeInfo.contextKey !== 'autocontext.instructions.lang-csharp').length;
@@ -799,7 +799,7 @@ describe('InstructionsFilesTreeProvider', () => {
     it('should exclude not-detected entries from enabled count in description', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(false);
 
-        const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, logger);
+        const provider = new InstructionsFilesTreeProvider({ detector: fakeDetector, manifest: catalog, stateResolver, tooltip, configManager: fakeConfigManager, logger });
         const treeView = vi.mocked(window.createTreeView).mock.results.at(-1)!.value;
         const total = catalog.count;
         const alwaysOn = catalog.instructions.filter(e => !e.activationFlags || e.activationFlags.length === 0).length;
@@ -818,7 +818,7 @@ describe('InstructionsFilesTreeProvider', () => {
 
         const metadata = new Map([['lang-csharp.instructions.md', { version: '1.1.0' }]]);
         const versionedCatalog = new InstructionsFilesManifestLoader(join(__dirname, '..', '..')).load(metadata);
-        const provider = new InstructionsFilesTreeProvider(fakeDetector, versionedCatalog, stateResolver, tooltip, fakeConfigManager, logger);
+        const provider = new InstructionsFilesTreeProvider({ detector: fakeDetector, manifest: versionedCatalog, stateResolver, tooltip, configManager: fakeConfigManager, logger });
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
@@ -841,7 +841,7 @@ describe('InstructionsFilesTreeProvider', () => {
 
         const metadata = new Map([['lang-csharp.instructions.md', { version: '1.0.0' }]]);
         const versionedCatalog = new InstructionsFilesManifestLoader(join(__dirname, '..', '..')).load(metadata);
-        const provider = new InstructionsFilesTreeProvider(fakeDetector, versionedCatalog, stateResolver, tooltip, fakeConfigManager, logger);
+        const provider = new InstructionsFilesTreeProvider({ detector: fakeDetector, manifest: versionedCatalog, stateResolver, tooltip, configManager: fakeConfigManager, logger });
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
@@ -862,7 +862,7 @@ describe('InstructionsFilesTreeProvider', () => {
 
         const metadata = new Map([['lang-csharp.instructions.md', { version: '1.1.0' }]]);
         const versionedCatalog = new InstructionsFilesManifestLoader(join(__dirname, '..', '..')).load(metadata);
-        const provider = new InstructionsFilesTreeProvider(fakeDetector, versionedCatalog, stateResolver, tooltip, fakeConfigManager, logger);
+        const provider = new InstructionsFilesTreeProvider({ detector: fakeDetector, manifest: versionedCatalog, stateResolver, tooltip, configManager: fakeConfigManager, logger });
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
@@ -885,7 +885,7 @@ describe('InstructionsFilesTreeProvider', () => {
 
         const metadata = new Map([['lang-csharp.instructions.md', { version: '1.1.0' }]]);
         const versionedCatalog = new InstructionsFilesManifestLoader(join(__dirname, '..', '..')).load(metadata);
-        const provider = new InstructionsFilesTreeProvider(fakeDetector, versionedCatalog, stateResolver, tooltip, fakeConfigManager, logger);
+        const provider = new InstructionsFilesTreeProvider({ detector: fakeDetector, manifest: versionedCatalog, stateResolver, tooltip, configManager: fakeConfigManager, logger });
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
@@ -914,7 +914,7 @@ describe('InstructionsFilesTreeProvider', () => {
 
         const metadata = new Map([['lang-csharp.instructions.md', { version: '1.1.0' }]]);
         const versionedCatalog = new InstructionsFilesManifestLoader(join(__dirname, '..', '..')).load(metadata);
-        const provider = new InstructionsFilesTreeProvider(fakeDetector, versionedCatalog, stateResolver, tooltip, fakeConfigManager, logger);
+        const provider = new InstructionsFilesTreeProvider({ detector: fakeDetector, manifest: versionedCatalog, stateResolver, tooltip, configManager: fakeConfigManager, logger });
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
@@ -933,7 +933,7 @@ describe('InstructionsFilesTreeProvider', () => {
         vi.mocked(fakeDetector.getOverrideVersion).mockReturnValue(undefined);
         workspace.workspaceFolders = [{ uri: { path: '/workspace', scheme: 'file' } }];
 
-        const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, logger);
+        const provider = new InstructionsFilesTreeProvider({ detector: fakeDetector, manifest: catalog, stateResolver, tooltip, configManager: fakeConfigManager, logger });
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
         const children = provider.getChildren(languages);
@@ -955,7 +955,7 @@ describe('InstructionsFilesTreeProvider', () => {
             onDidChange: vi.fn((cb: () => void) => { onDidChangeCallback = cb; return { dispose: vi.fn() }; }),
         } as unknown as import('../../src/autocontext-config-manager').AutoContextConfigManager;
 
-        const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, trackingConfigManager, logger);
+        const provider = new InstructionsFilesTreeProvider({ detector: fakeDetector, manifest: catalog, stateResolver, tooltip, configManager: trackingConfigManager, logger });
         const readSyncCallCount = vi.mocked(trackingConfigManager.readSync).mock.calls.length;
 
         onDidChangeCallback();
@@ -980,7 +980,7 @@ describe('InstructionsFilesTreeProvider', () => {
         } as unknown as import('../../src/autocontext-config-manager').AutoContextConfigManager;
 
         const oc = createFakeLogger();
-        const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, failingConfigManager, oc);
+        const provider = new InstructionsFilesTreeProvider({ detector: fakeDetector, manifest: catalog, stateResolver, tooltip, configManager: failingConfigManager, logger: oc });
 
         onDidChangeCallback();
         await vi.waitFor(() => {

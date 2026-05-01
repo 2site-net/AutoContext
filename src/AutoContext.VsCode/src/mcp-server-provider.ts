@@ -2,10 +2,9 @@ import * as vscode from 'vscode';
 import { join } from 'node:path';
 import { existsSync } from 'node:fs';
 import type { McpToolsManifest } from './mcp-tools-manifest.js';
-import type { ServersManifest } from './servers-manifest.js';
-import type { AutoContextConfigManager } from './autocontext-config-manager.js';
 import type { AutoContextConfig } from './autocontext-config.js';
 import type { Logger } from '#types/logger.js';
+import type { McpServerProviderOptions } from '#types/mcp-server-provider-options.js';
 
 const extensionId = '2site-net.autocontext';
 
@@ -25,29 +24,45 @@ const mcpServerDefinitionLabel = 'AutoContext';
 export class McpServerProvider implements vscode.McpServerDefinitionProvider {
     private readonly mcpServerBinary: string;
     private readonly version: string;
+    private readonly toolsManifest: McpToolsManifest;
+    private readonly instanceId: string;
+    private readonly logServiceAddress: string;
+    private readonly healthMonitorServiceAddress: string;
+    private readonly workerControlServiceAddress: string;
+    private readonly extensionConfigServiceAddress: string;
+    private readonly logger: Logger;
     private _config: AutoContextConfig;
     private readonly disposable: vscode.Disposable;
 
     readonly onDidChangeMcpServerDefinitions: vscode.Event<void>;
 
-    constructor(
-        extensionPath: string,
-        version: string,
-        onDidChange: vscode.Event<void>,
-        private readonly toolsManifest: McpToolsManifest,
-        serversManifest: ServersManifest,
-        configManager: AutoContextConfigManager,
-        private readonly instanceId: string,
-        private readonly logServiceAddress: string,
-        private readonly healthMonitorServiceAddress: string,
-        private readonly workerControlServiceAddress: string,
-        private readonly extensionConfigServiceAddress: string,
-        private readonly logger: Logger,
-    ) {
+    constructor(options: McpServerProviderOptions) {
+        const {
+            extensionPath,
+            version,
+            onDidChange,
+            toolsManifest,
+            serversManifest,
+            configManager,
+            instanceId,
+            logServiceAddress,
+            healthMonitorServiceAddress,
+            workerControlServiceAddress,
+            extensionConfigServiceAddress,
+            logger,
+        } = options;
+
         const mcpServerEntry = serversManifest.mcpServer;
         const ext = process.platform === 'win32' ? '.exe' : '';
         this.mcpServerBinary = join(extensionPath, 'servers', mcpServerEntry.name, `${mcpServerEntry.name}${ext}`);
         this.version = version;
+        this.toolsManifest = toolsManifest;
+        this.instanceId = instanceId;
+        this.logServiceAddress = logServiceAddress;
+        this.healthMonitorServiceAddress = healthMonitorServiceAddress;
+        this.workerControlServiceAddress = workerControlServiceAddress;
+        this.extensionConfigServiceAddress = extensionConfigServiceAddress;
+        this.logger = logger;
         this._config = configManager.readSync();
         this.onDidChangeMcpServerDefinitions = onDidChange;
         this.disposable = configManager.onDidChange(() => {

@@ -37,7 +37,7 @@ describe('InstructionsViewerCodeLensProvider', () => {
         vi.mocked(readFile).mockResolvedValue('{}');
 
         const configManager = new AutoContextConfigManager('/ext', '0.5.0', mockLogger);
-        const provider = new InstructionsViewerCodeLensProvider('/ext', configManager, fakeDetector, catalog, mockLogger);
+        const provider = new InstructionsViewerCodeLensProvider({ extensionPath: '/ext', configManager, detector: fakeDetector, manifest: catalog, logger: mockLogger });
 
         const lenses = await provider.provideCodeLenses(makeDocument('file', 'test.md'));
 
@@ -52,7 +52,7 @@ describe('InstructionsViewerCodeLensProvider', () => {
         });
 
         const configManager = new AutoContextConfigManager('/ext', '0.5.0', mockLogger);
-        const provider = new InstructionsViewerCodeLensProvider('/ext', configManager, fakeDetector, catalog, mockLogger);
+        const provider = new InstructionsViewerCodeLensProvider({ extensionPath: '/ext', configManager, detector: fakeDetector, manifest: catalog, logger: mockLogger });
 
         const lenses = await provider.provideCodeLenses(makeDocument(instructionScheme, 'test.instructions.md'));
 
@@ -84,7 +84,7 @@ describe('InstructionsViewerCodeLensProvider', () => {
         });
 
         const configManager = new AutoContextConfigManager('/ext', '0.5.0', mockLogger);
-        const provider = new InstructionsViewerCodeLensProvider('/ext', configManager, fakeDetector, catalog, mockLogger);
+        const provider = new InstructionsViewerCodeLensProvider({ extensionPath: '/ext', configManager, detector: fakeDetector, manifest: catalog, logger: mockLogger });
 
         const lenses = await provider.provideCodeLenses(makeDocument(instructionScheme, 'test.instructions.md'));
 
@@ -118,7 +118,7 @@ describe('InstructionsViewerCodeLensProvider', () => {
         });
 
         const configManager = new AutoContextConfigManager('/ext', '0.5.0', mockLogger);
-        const provider = new InstructionsViewerCodeLensProvider('/ext', configManager, fakeDetector, catalog, mockLogger);
+        const provider = new InstructionsViewerCodeLensProvider({ extensionPath: '/ext', configManager, detector: fakeDetector, manifest: catalog, logger: mockLogger });
 
         const lenses = await provider.provideCodeLenses(makeDocument(instructionScheme, 'test.instructions.md'));
 
@@ -137,7 +137,7 @@ describe('InstructionsViewerCodeLensProvider', () => {
         });
 
         const configManager = new AutoContextConfigManager('/ext', '0.5.0', mockLogger);
-        const provider = new InstructionsViewerCodeLensProvider('/ext', configManager, fakeDetector, catalog, mockLogger);
+        const provider = new InstructionsViewerCodeLensProvider({ extensionPath: '/ext', configManager, detector: fakeDetector, manifest: catalog, logger: mockLogger });
 
         const lenses = await provider.provideCodeLenses(makeDocument(instructionScheme, 'test.instructions.md'));
 
@@ -155,7 +155,7 @@ describe('InstructionsViewerCodeLensProvider', () => {
         });
 
         const configManager = new AutoContextConfigManager('/ext', '0.5.0', mockLogger);
-        const provider = new InstructionsViewerCodeLensProvider('/ext', configManager, fakeDetector, catalog, mockLogger);
+        const provider = new InstructionsViewerCodeLensProvider({ extensionPath: '/ext', configManager, detector: fakeDetector, manifest: catalog, logger: mockLogger });
 
         const lenses = await provider.provideCodeLenses(makeDocument(instructionScheme, 'lang-csharp.instructions.md'));
 
@@ -171,7 +171,7 @@ describe('InstructionsViewerCodeLensProvider', () => {
         });
 
         const configManager = new AutoContextConfigManager('/ext', '0.5.0', mockLogger);
-        const provider = new InstructionsViewerCodeLensProvider('/ext', configManager, fakeDetector, catalog, mockLogger);
+        const provider = new InstructionsViewerCodeLensProvider({ extensionPath: '/ext', configManager, detector: fakeDetector, manifest: catalog, logger: mockLogger });
 
         const lenses = await provider.provideCodeLenses(makeDocument(instructionScheme, 'lang-csharp.instructions.md'));
 

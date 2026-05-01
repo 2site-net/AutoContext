@@ -5,6 +5,7 @@ import { createInterface } from 'node:readline';
 import { IdentifierFactory } from './identifier-factory.js';
 import type { ServerEntry } from './server-entry.js';
 import type { Logger } from '#types/logger.js';
+import type { WorkerManagerOptions } from '#types/worker-manager-options.js';
 
 /**
  * Static spawn parameters for one worker. Built once at
@@ -70,15 +71,23 @@ export class WorkerManager implements vscode.Disposable {
     private readonly slots = new Map<string, WorkerSlot>();
     private disposed = false;
 
-    constructor(
-        private readonly extensionPath: string,
-        private readonly logger: Logger,
-        private readonly workspaceRoot: string | undefined,
-        private readonly workers: readonly ServerEntry[],
-        private readonly instanceId: string,
-        private readonly logServiceAddress?: string,
-        private readonly healthMonitorServiceAddress?: string,
-    ) {
+    private readonly extensionPath: string;
+    private readonly logger: Logger;
+    private readonly workspaceRoot: string | undefined;
+    private readonly workers: readonly ServerEntry[];
+    private readonly instanceId: string;
+    private readonly logServiceAddress?: string;
+    private readonly healthMonitorServiceAddress?: string;
+
+    constructor(options: WorkerManagerOptions) {
+        this.extensionPath = options.extensionPath;
+        this.logger = options.logger;
+        this.workspaceRoot = options.workspaceRoot;
+        this.workers = options.workers;
+        this.instanceId = options.instanceId;
+        this.logServiceAddress = options.logServiceAddress;
+        this.healthMonitorServiceAddress = options.healthMonitorServiceAddress;
+
         for (const spec of this.buildSpecs()) {
             this.slots.set(spec.identity, { spec });
         }

@@ -32,20 +32,20 @@ let currentConfig: AutoContextConfig = new AutoContextConfig();
 const fakeConfigManager = createFakeConfigManager();
 
 function createProvider(): McpServerProvider {
-    return new McpServerProvider(
+    return new McpServerProvider({
         extensionPath,
         version,
         onDidChange,
-        mcpToolsManifest,
+        toolsManifest: mcpToolsManifest,
         serversManifest,
-        fakeConfigManager,
-        INSTANCE_ID,
-        `autocontext.log#${INSTANCE_ID}`,
-        `autocontext.health-monitor#${INSTANCE_ID}`,
-        `autocontext.worker-control#${INSTANCE_ID}`,
-        `autocontext.extension-config#${INSTANCE_ID}`,
+        configManager: fakeConfigManager,
+        instanceId: INSTANCE_ID,
+        logServiceAddress: `autocontext.log#${INSTANCE_ID}`,
+        healthMonitorServiceAddress: `autocontext.health-monitor#${INSTANCE_ID}`,
+        workerControlServiceAddress: `autocontext.worker-control#${INSTANCE_ID}`,
+        extensionConfigServiceAddress: `autocontext.extension-config#${INSTANCE_ID}`,
         logger,
-    );
+    });
 }
 
 beforeEach(() => {
@@ -192,20 +192,20 @@ describe('McpServerProvider config updates', () => {
         } as unknown as import('../../src/autocontext-config-manager').AutoContextConfigManager;
 
         const oc = createFakeLogger();
-        const provider = new McpServerProvider(
+        const provider = new McpServerProvider({
             extensionPath,
             version,
             onDidChange,
-            mcpToolsManifest,
+            toolsManifest: mcpToolsManifest,
             serversManifest,
-            failingConfigManager,
-            INSTANCE_ID,
-            `autocontext.log#${INSTANCE_ID}`,
-            `autocontext.health-monitor#${INSTANCE_ID}`,
-            `autocontext.worker-control#${INSTANCE_ID}`,
-            `autocontext.extension-config#${INSTANCE_ID}`,
-            oc,
-        );
+            configManager: failingConfigManager,
+            instanceId: INSTANCE_ID,
+            logServiceAddress: `autocontext.log#${INSTANCE_ID}`,
+            healthMonitorServiceAddress: `autocontext.health-monitor#${INSTANCE_ID}`,
+            workerControlServiceAddress: `autocontext.worker-control#${INSTANCE_ID}`,
+            extensionConfigServiceAddress: `autocontext.extension-config#${INSTANCE_ID}`,
+            logger: oc,
+        });
 
         onDidChangeCallback();
         await vi.waitFor(() => {

@@ -92,56 +92,56 @@ export function composeExtension(inputs: CompositionInputs) {
     // 3. Named-pipe servers (constructed; not started).
     const logServer = new LogServer(log(LogCategory.LogServer), instanceId);
     const healthMonitor = new HealthMonitorServer(log(LogCategory.HealthMonitor), instanceId);
-    const workerManager = new WorkerManager(
+    const workerManager = new WorkerManager({
         extensionPath,
-        log(LogCategory.WorkerManager),
+        logger: log(LogCategory.WorkerManager),
         workspaceRoot,
-        workerEntries,
+        workers: workerEntries,
         instanceId,
-        logServer.getPipeName(),
-        healthMonitor.getPipeName(),
-    );
+        logServiceAddress: logServer.getPipeName(),
+        healthMonitorServiceAddress: healthMonitor.getPipeName(),
+    });
     const workerControlServer = new WorkerControlServer(workerManager, workerEntries, instanceId, log(LogCategory.WorkerControl));
     const autoContextConfigServer = new AutoContextConfigServer(configManager, instanceId, log(LogCategory.ConfigServer));
 
     // 4. VS Code-facing providers.
     const contentProvider = new InstructionsViewerDocumentProvider(extensionPath, configManager, log(LogCategory.Instructions));
-    const codeLensProvider = new InstructionsViewerCodeLensProvider(extensionPath, configManager, workspaceContextDetector, instructionsManifest, log(LogCategory.Instructions));
+    const codeLensProvider = new InstructionsViewerCodeLensProvider({ extensionPath, configManager, detector: workspaceContextDetector, manifest: instructionsManifest, logger: log(LogCategory.Instructions) });
     const decorationManager = new InstructionsViewerDecorationManager(extensionPath, configManager, log(LogCategory.Decorations));
-    const mcpServerProvider = new McpServerProvider(
+    const mcpServerProvider = new McpServerProvider({
         extensionPath,
         version,
-        didChangeEmitter.event,
-        mcpToolsManifest,
+        onDidChange: didChangeEmitter.event,
+        toolsManifest: mcpToolsManifest,
         serversManifest,
         configManager,
         instanceId,
-        logServer.getPipeName(),
-        healthMonitor.getPipeName(),
-        workerControlServer.getPipeName(),
-        autoContextConfigServer.getPipeName(),
-        log(LogCategory.McpServerProvider),
-    );
+        logServiceAddress: logServer.getPipeName(),
+        healthMonitorServiceAddress: healthMonitor.getPipeName(),
+        workerControlServiceAddress: workerControlServer.getPipeName(),
+        extensionConfigServiceAddress: autoContextConfigServer.getPipeName(),
+        logger: log(LogCategory.McpServerProvider),
+    });
 
     const stateResolver = new TreeViewStateResolver(workspaceContextDetector);
-    const instructionsTreeProvider = new InstructionsFilesTreeProvider(
-        workspaceContextDetector,
-        instructionsManifest,
+    const instructionsTreeProvider = new InstructionsFilesTreeProvider({
+        detector: workspaceContextDetector,
+        manifest: instructionsManifest,
         stateResolver,
-        new TreeViewTooltip('instructions'),
+        tooltip: new TreeViewTooltip('instructions'),
         configManager,
-        log(LogCategory.InstructionsTree),
-    );
-    const mcpToolsTreeProvider = new McpToolsTreeProvider(
-        workspaceContextDetector,
-        mcpToolsManifest,
+        logger: log(LogCategory.InstructionsTree),
+    });
+    const mcpToolsTreeProvider = new McpToolsTreeProvider({
+        detector: workspaceContextDetector,
+        manifest: mcpToolsManifest,
         stateResolver,
-        new TreeViewTooltip('tools'),
+        tooltip: new TreeViewTooltip('tools'),
         configManager,
-        log(LogCategory.McpToolsTree),
+        logger: log(LogCategory.McpToolsTree),
         healthMonitor,
-        mcpServerProvider,
-    );
+        serverProvider: mcpServerProvider,
+    });
 
     // 5. Diagnostics.
     const diagnosticsRunner = new InstructionsFilesDiagnosticsRunner(extensionPath, configManager, instructionsManifest);

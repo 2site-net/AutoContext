@@ -7,23 +7,30 @@ import type { AutoContextConfigManager } from './autocontext-config-manager.js';
 import type { WorkspaceContextDetector } from './workspace-context-detector.js';
 import { commandIds } from './ui-constants.js';
 import type { Logger } from '#types/logger.js';
+import type { InstructionsViewerCodeLensProviderOptions } from '#types/instructions-viewer-codelens-provider-options.js';
 
 export class InstructionsViewerCodeLensProvider implements vscode.CodeLensProvider, vscode.Disposable {
     private readonly didChangeEmitter = new vscode.EventEmitter<void>();
     readonly onDidChangeCodeLenses = this.didChangeEmitter.event;
     private readonly disposables: vscode.Disposable[] = [];
 
-    constructor(
-        private readonly extensionPath: string,
-        private readonly configManager: AutoContextConfigManager,
-        private readonly detector: WorkspaceContextDetector,
-        private readonly manifest: InstructionsFilesManifest,
-        private readonly logger: Logger,
-    ) {
+    private readonly extensionPath: string;
+    private readonly configManager: AutoContextConfigManager;
+    private readonly detector: WorkspaceContextDetector;
+    private readonly manifest: InstructionsFilesManifest;
+    private readonly logger: Logger;
+
+    constructor(options: InstructionsViewerCodeLensProviderOptions) {
+        this.extensionPath = options.extensionPath;
+        this.configManager = options.configManager;
+        this.detector = options.detector;
+        this.manifest = options.manifest;
+        this.logger = options.logger;
+
         this.disposables.push(
             this.didChangeEmitter,
-            configManager.onDidChange(() => this.didChangeEmitter.fire()),
-            detector.onDidDetect(() => this.didChangeEmitter.fire()),
+            this.configManager.onDidChange(() => this.didChangeEmitter.fire()),
+            this.detector.onDidDetect(() => this.didChangeEmitter.fire()),
         );
     }
 

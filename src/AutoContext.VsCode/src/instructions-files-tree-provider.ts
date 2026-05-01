@@ -13,6 +13,7 @@ import { SemVer } from './semver.js';
 import type { AutoContextConfigManager } from './autocontext-config-manager.js';
 import type { AutoContextConfig } from './autocontext-config.js';
 import type { Logger } from '#types/logger.js';
+import type { InstructionsFilesTreeProviderOptions } from '#types/instructions-files-tree-provider-options.js';
 
 type TreeElement = InstructionsFileCategoryTreeNode | InstructionsFileTreeNode;
 
@@ -28,15 +29,22 @@ export class InstructionsFilesTreeProvider implements vscode.TreeDataProvider<Tr
     private readonly disposables: vscode.Disposable[] = [];
     private _config: AutoContextConfig;
 
-    constructor(
-        private readonly detector: WorkspaceContextDetector,
-        private readonly manifest: InstructionsFilesManifest,
-        private readonly stateResolver: TreeViewStateResolver,
-        private readonly tooltip: TreeViewTooltip,
-        private readonly configManager: AutoContextConfigManager,
-        private readonly logger: Logger,
-    ) {
-        this._config = configManager.readSync();
+    private readonly detector: WorkspaceContextDetector;
+    private readonly manifest: InstructionsFilesManifest;
+    private readonly stateResolver: TreeViewStateResolver;
+    private readonly tooltip: TreeViewTooltip;
+    private readonly configManager: AutoContextConfigManager;
+    private readonly logger: Logger;
+
+    constructor(options: InstructionsFilesTreeProviderOptions) {
+        this.detector = options.detector;
+        this.manifest = options.manifest;
+        this.stateResolver = options.stateResolver;
+        this.tooltip = options.tooltip;
+        this.configManager = options.configManager;
+        this.logger = options.logger;
+
+        this._config = this.configManager.readSync();
 
         this.treeView = vscode.window.createTreeView(viewIds.Instructions, {
             treeDataProvider: this,
@@ -47,9 +55,9 @@ export class InstructionsFilesTreeProvider implements vscode.TreeDataProvider<Tr
         this.disposables.push(
             this.treeView,
             this._onDidChangeTreeData,
-            detector.onDidDetect(() => this.refresh()),
-            configManager.onDidChange(() => {
-                void configManager.read().then(c => {
+            this.detector.onDidDetect(() => this.refresh()),
+            this.configManager.onDidChange(() => {
+                void this.configManager.read().then(c => {
                     this._config = c;
                     this.refresh();
                 }).catch(err =>

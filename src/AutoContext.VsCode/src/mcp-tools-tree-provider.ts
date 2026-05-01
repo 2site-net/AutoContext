@@ -4,7 +4,6 @@ import type { McpToolEntry } from './mcp-tool-entry.js';
 import type { McpCategoryEntry } from './mcp-category-entry.js';
 import { TreeViewNodeState } from './tree-view-node-state.js';
 import { viewIds, treeViewLabels } from './ui-constants.js';
-import type { WorkspaceContextDetector } from './workspace-context-detector.js';
 import type { TreeViewStateResolver } from './tree-view-state-resolver.js';
 import type { TreeViewTooltip } from './tree-view-tooltip.js';
 import type { HealthMonitorServer } from './health-monitor-server.js';
@@ -16,6 +15,7 @@ import type { McpTaskTreeNode } from '#types/mcp-task-tree-node.js';
 import type { AutoContextConfigManager } from './autocontext-config-manager.js';
 import type { AutoContextConfig } from './autocontext-config.js';
 import type { Logger } from '#types/logger.js';
+import type { McpToolsTreeProviderOptions } from '#types/mcp-tools-tree-provider-options.js';
 
 type TreeElement = TreeViewServerLabelNode | McpToolsTreeCategoryNode | McpToolsTreeNode | McpTaskTreeNode;
 
@@ -28,16 +28,34 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
     private readonly disposables: vscode.Disposable[] = [];
     private _config: AutoContextConfig;
 
-    constructor(
-        detector: WorkspaceContextDetector,
-        private readonly manifest: McpToolsManifest,
-        private readonly stateResolver: TreeViewStateResolver,
-        private readonly tooltip: TreeViewTooltip,
-        private readonly configManager: AutoContextConfigManager,
-        private readonly logger: Logger,
-        private readonly healthMonitor?: HealthMonitorServer,
-        private readonly serverProvider?: McpServerProvider,
-    ) {
+    private readonly manifest: McpToolsManifest;
+    private readonly stateResolver: TreeViewStateResolver;
+    private readonly tooltip: TreeViewTooltip;
+    private readonly configManager: AutoContextConfigManager;
+    private readonly logger: Logger;
+    private readonly healthMonitor?: HealthMonitorServer;
+    private readonly serverProvider?: McpServerProvider;
+
+    constructor(options: McpToolsTreeProviderOptions) {
+        const {
+            detector,
+            manifest,
+            stateResolver,
+            tooltip,
+            configManager,
+            logger,
+            healthMonitor,
+            serverProvider,
+        } = options;
+
+        this.manifest = manifest;
+        this.stateResolver = stateResolver;
+        this.tooltip = tooltip;
+        this.configManager = configManager;
+        this.logger = logger;
+        this.healthMonitor = healthMonitor;
+        this.serverProvider = serverProvider;
+
         this._config = configManager.readSync();
 
         this.treeView = vscode.window.createTreeView(viewIds.Tools, {
