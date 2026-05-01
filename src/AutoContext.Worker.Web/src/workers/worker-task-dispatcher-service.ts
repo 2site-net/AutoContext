@@ -1,7 +1,5 @@
-import * as net from 'node:net';
-import * as fs from 'node:fs';
-import type { Server, Socket } from 'node:net';
-import { LengthPrefixedFrameCodec } from 'autocontext-framework-web';
+import type { Socket } from 'node:net';
+import { LengthPrefixedFrameCodec, PipeListener, type BoundPipeListener } from 'autocontext-framework-web';
 import type { McpTask } from '#types/mcp-task.js';
 import type { WorkerHostOptions } from '#types/worker-host-options.js';
 import { CorrelationScope } from '../logging/correlation-scope.js';
@@ -12,7 +10,7 @@ import type { Logger } from '#types/logger.js';
  * sent by the MCP server, looks the task up by name in the worker's
  * registered {@link McpTask} set, executes it, and sends the result
  * back on the same connection. TypeScript counterpart of the C#
- * `McpTaskDispatcherService` in `AutoContext.Worker.Shared`.
+ * `WorkerTaskDispatcherService` in `AutoContext.Framework`.
  *
  * Each pipe connection carries exactly one task call: read one request
  * envelope, run one task, write one response envelope, close. The MCP
@@ -34,10 +32,9 @@ export class WorkerTaskDispatcherService {
     private readonly options: WorkerHostOptions;
     private readonly tasks: ReadonlyMap<string, McpTask>;
     private readonly logger: Logger;
-    private server: net.Server | undefined;
-    private readonly inFlight = new Set<Promise<void>>();
-    private readonly sockets = new Set<Socket>();
     private readonly stopController = new AbortController();
+    private bound: BoundPipeListener | undefined;
+    private runPromise: Promise<void> | undefined;
     private stopPromise: Promise<void> | undefined;
 
     constructor(options: WorkerHostOptions, tasks: readonly McpTask[], logger: Logger) {
@@ -74,30 +71,32 @@ export class WorkerTaskDispatcherService {
      * resolves cleanly.
      */
     async start(signal: AbortSignal): Promise<void> {
-        if (this.server !== undefined) {
+        if (this.bound !== undefined) {
             throw new Error('WorkerTaskDispatcherService has already been started.');
         }
 
-        const server = net.createServer((socket) => {
-            this.sockets.add(socket);
-            socket.once('close', () => this.sockets.delete(socket));
-            const handler = this.handleConnection(socket, signal);
-            this.inFlight.add(handler);
-            void handler.finally(() => this.inFlight.delete(handler));
-        });
+        const listener = new PipeListener(this.options.pipe, this.logger);
 
-        this.server = server;
+        this.logger.info(`Worker listening on pipe: ${this.options.pipe}`);
+        this.bound = await listener.bind();
 
-        const pipePath = WorkerTaskDispatcherService.normalizePipePath(this.options.pipe);
-        this.logger.info(`Worker listening on pipe: ${pipePath}`);
-        await WorkerTaskDispatcherService.listenWithStaleRecovery(server, pipePath);
+        // Host-handshake contract: the parent (extension) process
+        // scrapes worker stderr for this exact marker to know the
+        // named pipe is listening. Logger output is routed elsewhere
+        // and would miss the contract — this call MUST stay on
+        // process.stderr.
         process.stderr.write(this.options.readyMarker + '\n');
-        this.logger.info(`Worker ready marker emitted on pipe: ${pipePath}`);
+        this.logger.info(`Worker ready marker emitted on pipe: ${this.options.pipe}`);
 
         if (signal.aborted) {
             await this.stop();
             return;
         }
+
+        // Run the accept loop in the background. start() resolves now
+        // so the host can return from its setup phase.
+        const runSignal = AbortSignal.any([signal, this.stopController.signal]);
+        this.runPromise = this.bound.run((socket, sig) => this.handleConnection(socket, sig), runSignal);
 
         signal.addEventListener('abort', () => void this.stop(), { once: true });
     }
@@ -111,68 +110,45 @@ export class WorkerTaskDispatcherService {
         if (this.stopPromise !== undefined) {
             return this.stopPromise;
         }
-        const server = this.server;
-        if (server === undefined) {
-            return;
-        }
-        this.server = undefined;
-        this.stopPromise = this.stopCore(server);
+        this.stopPromise = this.stopCore();
         return this.stopPromise;
     }
 
-    private async stopCore(server: Server): Promise<void> {
-        // Abort any mid-flight reads/writes so handlers unwind instead
-        // of blocking server.close() indefinitely.
+    private async stopCore(): Promise<void> {
         if (!this.stopController.signal.aborted) {
             this.stopController.abort();
         }
-
-        // Force-destroy live sockets so pending I/O rejects and the
-        // server's internal handle count drops to zero.
-        for (const socket of this.sockets) {
-            socket.destroy();
+        if (this.runPromise !== undefined) {
+            await this.runPromise.catch(() => undefined);
         }
-        this.sockets.clear();
-
-        await new Promise<void>((resolve) => {
-            server.close(() => resolve());
-        });
-
-        await Promise.allSettled(this.inFlight);
+        if (this.bound !== undefined) {
+            await this.bound.dispose();
+            this.bound = undefined;
+        }
     }
 
     private async handleConnection(socket: Socket, signal: AbortSignal): Promise<void> {
-        // `AbortSignal.any` gives us a signal that fires on either source.
-        // Crucially, its internal listeners are disposed when the combined
-        // signal is garbage-collected, so per-connection linking does not
-        // leak listeners on long-lived signals.
-        const linkedSignal = AbortSignal.any([signal, this.stopController.signal]);
         try {
             const channel = new LengthPrefixedFrameCodec(socket);
-            const requestBytes = await channel.read(linkedSignal);
+            const requestBytes = await channel.read(signal);
             if (requestBytes === null) {
                 return;
             }
 
-            const responseBytes = await this.dispatch(requestBytes, linkedSignal);
-            await channel.write(responseBytes, linkedSignal);
+            const responseBytes = await this.dispatch(requestBytes, signal);
+            await channel.write(responseBytes, signal);
         } catch (ex) {
             // `dispatch()` converts task/parse failures into structured
             // error envelopes, so the only errors that reach this catch
             // are channel-level: peer disconnect, signal abort, or the
             // pipe being torn down mid-transfer (all expected), or
             // protocol corruption / unexpected stream failures (real
-            // bugs). Surface the latter through the logger (and stderr
-            // as a last-resort backstop) instead of swallowing them.
-            // Matches C# behavior of only tolerating
-            // IOException/ObjectDisposedException at this boundary.
+            // bugs). Surface the latter through the logger instead of
+            // swallowing them.
             if (!WorkerTaskDispatcherService.isExpectedConnectionError(ex)) {
                 const { name, message } = WorkerTaskDispatcherService.describeError(ex);
                 this.logger.error(`Unexpected error in connection handler: ${name}: ${message}`, ex);
             }
-        } finally {
-            socket.end();
-            socket.destroy();
         }
     }
 
@@ -241,7 +217,7 @@ export class WorkerTaskDispatcherService {
      * Returns true for the small set of errors that are an expected part
      * of normal pipe-server lifecycle: the abort signal firing, the peer
      * closing the connection, or the pipe being torn down mid-write.
-     * Anything else is treated as a real bug and surfaced to stderr.
+     * Anything else is treated as a real bug and surfaced.
      */
     private static isExpectedConnectionError(ex: unknown): boolean {
         if (!(ex instanceof Error)) {
@@ -255,76 +231,6 @@ export class WorkerTaskDispatcherService {
             || code === 'EPIPE'
             || code === 'ERR_STREAM_PREMATURE_CLOSE'
             || code === 'ERR_STREAM_DESTROYED';
-    }
-
-    private static async listenWithStaleRecovery(server: net.Server, pipePath: string): Promise<void> {
-        try {
-            await WorkerTaskDispatcherService.listenOnce(server, pipePath);
-            return;
-        } catch (ex) {
-            const err = ex as NodeJS.ErrnoException;
-            // On Unix, a leftover socket file from a prior crash causes
-            // EADDRINUSE. Probe it by attempting to connect; if nothing is
-            // listening, unlink the stale inode and retry once.
-            if (
-                process.platform === 'win32' ||
-                err.code !== 'EADDRINUSE' ||
-                !pipePath.startsWith('/')
-            ) {
-                throw ex;
-            }
-            const isStale = await WorkerTaskDispatcherService.probeStaleSocket(pipePath);
-            if (!isStale) {
-                throw ex;
-            }
-            try {
-                fs.unlinkSync(pipePath);
-            } catch {
-                throw ex;
-            }
-            await WorkerTaskDispatcherService.listenOnce(server, pipePath);
-        }
-    }
-
-    private static listenOnce(server: net.Server, pipePath: string): Promise<void> {
-        return new Promise<void>((resolve, reject) => {
-            const onError = (err: Error): void => {
-                server.removeListener('listening', onListening);
-                reject(err);
-            };
-            const onListening = (): void => {
-                server.removeListener('error', onError);
-                resolve();
-            };
-            server.once('error', onError);
-            server.once('listening', onListening);
-            server.listen(pipePath);
-        });
-    }
-
-    private static probeStaleSocket(pipePath: string): Promise<boolean> {
-        return new Promise<boolean>((resolve) => {
-            const socket = net.connect(pipePath);
-            const finish = (stale: boolean): void => {
-                socket.removeAllListeners();
-                socket.destroy();
-                resolve(stale);
-            };
-            socket.once('connect', () => finish(false));
-            socket.once('error', (err: NodeJS.ErrnoException) => {
-                finish(err.code === 'ECONNREFUSED' || err.code === 'ENOENT');
-            });
-        });
-    }
-
-    private static normalizePipePath(pipe: string): string {
-        if (process.platform !== 'win32') {
-            return pipe;
-        }
-        if (pipe.startsWith('\\\\.\\pipe\\') || pipe.startsWith('\\\\?\\pipe\\')) {
-            return pipe;
-        }
-        return `\\\\.\\pipe\\${pipe}`;
     }
 
     private static buildTaskData(request: Record<string, unknown>): Record<string, unknown> {

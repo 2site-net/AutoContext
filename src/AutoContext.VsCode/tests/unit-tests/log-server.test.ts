@@ -54,11 +54,11 @@ describe('LogServer', () => {
     let server: LogServer;
     let tree: ReturnType<typeof createTreeLogger>;
 
-    beforeEach(() => {
+    beforeEach(async () => {
         vi.clearAllMocks();
         tree = createTreeLogger();
         server = new LogServer(tree.root, '0123456789ab');
-        server.start();
+        await server.start();
     });
 
     afterEach(() => {

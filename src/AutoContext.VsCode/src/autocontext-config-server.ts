@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
-import { createServer, type Server, type Socket } from 'node:net';
+import { type Socket } from 'node:net';
+import { BoundPipeListener, LengthPrefixedFrameCodec, PipeListener } from 'autocontext-framework-web';
 import { IdentifierFactory } from './identifier-factory.js';
 import type { AutoContextConfigManager } from './autocontext-config-manager.js';
 import type { McpToolsDisabledSnapshot } from '#types/mcp-tools-disabled-snapshot.js';
@@ -28,13 +29,11 @@ import type { Logger } from '#types/logger.js';
  * construction.
  */
 export class AutoContextConfigServer implements vscode.Disposable {
-    /** Length prefix size in bytes (32-bit little-endian unsigned). */
-    private static readonly HeaderBytes = 4;
-
     private readonly pipeName: string;
-    private readonly sockets = new Set<Socket>();
+    private readonly subscribers = new Set<Socket>();
     private readonly disposables: vscode.Disposable[] = [];
-    private server: Server | undefined;
+    private readonly stopController = new AbortController();
+    private bound: BoundPipeListener | undefined;
 
     constructor(
         private readonly configManager: AutoContextConfigManager,
@@ -57,24 +56,19 @@ export class AutoContextConfigServer implements vscode.Disposable {
     }
 
     /** Starts the named-pipe accept loop. Idempotent. */
-    start(): void {
-        if (this.server) {
+    async start(): Promise<void> {
+        if (this.bound !== undefined) {
             return;
         }
 
-        const pipePath = process.platform === 'win32'
-            ? `\\\\.\\pipe\\${this.pipeName}`
-            : `/tmp/CoreFxPipe_${this.pipeName}`;
+        const listener = new PipeListener(this.pipeName, this.logger);
+        this.bound = await listener.bind();
+        this.logger.info(`Listening on pipe: ${this.pipeName}`);
 
-        this.server = createServer((socket: Socket) => this.handleConnection(socket));
-
-        this.server.on('error', (err) => {
-            this.logger.error('Pipe server error', err);
-        });
-
-        this.server.listen(pipePath, () => {
-            this.logger.info(`Listening on pipe: ${this.pipeName}`);
-        });
+        void this.bound.run(
+            (socket, signal) => this.handleConnection(socket, signal),
+            this.stopController.signal,
+        );
     }
 
     dispose(): void {
@@ -83,64 +77,77 @@ export class AutoContextConfigServer implements vscode.Disposable {
         }
         this.disposables.length = 0;
 
-        for (const socket of this.sockets) {
-            socket.destroy();
+        if (!this.stopController.signal.aborted) {
+            this.stopController.abort();
         }
-        this.sockets.clear();
-
-        if (this.server) {
-            this.server.close();
-            this.server = undefined;
+        if (this.bound !== undefined) {
+            void this.bound.dispose();
+            this.bound = undefined;
         }
+        this.subscribers.clear();
     }
 
-    private handleConnection(socket: Socket): void {
-        this.sockets.add(socket);
-
-        const cleanup = (): void => {
-            this.sockets.delete(socket);
-        };
-        socket.on('close', cleanup);
-        socket.on('error', cleanup);
+    private async handleConnection(socket: Socket, signal: AbortSignal): Promise<void> {
+        this.subscribers.add(socket);
         // Subscribers are read-only; drop anything they send. We still
         // attach a 'data' handler so Node's default behaviour (buffering
         // forever) doesn't accumulate memory if a misbehaving client
         // writes to us.
         socket.on('data', () => { /* discard inbound */ });
 
-        // Push the current snapshot immediately as the handshake frame.
-        void this.sendSnapshot(socket).catch(err =>
-            this.logger.error('Failed to send initial snapshot', err),
-        );
+        try {
+            // Push the current snapshot immediately as the handshake frame.
+            await this.sendSnapshot(socket, signal);
+
+            // Hold the connection open until the peer disconnects or
+            // the listener stops; broadcastCurrent() pushes further
+            // frames in the meantime.
+            await new Promise<void>((resolve) => {
+                const finish = (): void => {
+                    signal.removeEventListener('abort', finish);
+                    resolve();
+                };
+                socket.once('close', finish);
+                socket.once('error', finish);
+                signal.addEventListener('abort', finish, { once: true });
+            });
+        }
+        finally {
+            this.subscribers.delete(socket);
+        }
     }
 
-    private async sendSnapshot(socket: Socket): Promise<void> {
+    private async sendSnapshot(socket: Socket, signal: AbortSignal): Promise<void> {
         if (socket.destroyed) {
             return;
         }
         const config = await this.configManager.read();
-        AutoContextConfigServer.write(socket, config.getToolsDisabledSnapshot());
+        await AutoContextConfigServer.write(socket, config.getToolsDisabledSnapshot(), signal);
     }
 
     private async broadcastCurrent(): Promise<void> {
-        if (this.sockets.size === 0) {
+        if (this.subscribers.size === 0) {
             return;
         }
         const config = await this.configManager.read();
         const snapshot = config.getToolsDisabledSnapshot();
-        for (const socket of this.sockets) {
-            AutoContextConfigServer.write(socket, snapshot);
+        const signal = this.stopController.signal;
+        for (const socket of this.subscribers) {
+            try {
+                await AutoContextConfigServer.write(socket, snapshot, signal);
+            }
+            catch (err) {
+                if (signal.aborted) { return; }
+                this.logger.warn('Failed to push config snapshot to subscriber', err);
+            }
         }
     }
 
-    private static write(socket: Socket, snapshot: McpToolsDisabledSnapshot): void {
+    private static async write(socket: Socket, snapshot: McpToolsDisabledSnapshot, signal: AbortSignal): Promise<void> {
         if (socket.destroyed) {
             return;
         }
-        const payload = Buffer.from(JSON.stringify(snapshot), 'utf8');
-        const message = Buffer.allocUnsafe(AutoContextConfigServer.HeaderBytes + payload.length);
-        message.writeInt32LE(payload.length, 0);
-        payload.copy(message, AutoContextConfigServer.HeaderBytes);
-        socket.write(message);
+        const codec = new LengthPrefixedFrameCodec(socket);
+        await codec.write(Buffer.from(JSON.stringify(snapshot), 'utf8'), signal);
     }
 }

@@ -66,6 +66,7 @@ public sealed class AutoContextConfigClientTests
             pipeName: string.Empty,
             snapshot,
             EmptyServices(),
+            new PipeTransport(NullLogger<PipeTransport>.Instance),
             NullLogger<AutoContextConfigClient>.Instance);
 
         await client.StartAsync(TestContext.Current.CancellationToken);
@@ -105,6 +106,7 @@ public sealed class AutoContextConfigClientTests
             pipeName,
             snapshot,
             EmptyServices(),
+            new PipeTransport(NullLogger<PipeTransport>.Instance),
             NullLogger<AutoContextConfigClient>.Instance);
 
         await client.StartAsync(cts.Token);
@@ -151,6 +153,7 @@ public sealed class AutoContextConfigClientTests
             pipeName,
             snapshot,
             EmptyServices(),
+            new PipeTransport(NullLogger<PipeTransport>.Instance),
             NullLogger<AutoContextConfigClient>.Instance);
 
         await client.StartAsync(cts.Token);
@@ -185,6 +188,7 @@ public sealed class AutoContextConfigClientTests
             pipeName,
             snapshot,
             EmptyServices(),
+            new PipeTransport(NullLogger<PipeTransport>.Instance),
             NullLogger<AutoContextConfigClient>.Instance);
 
         await client.StartAsync(TestContext.Current.CancellationToken);

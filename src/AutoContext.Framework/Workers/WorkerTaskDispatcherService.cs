@@ -1,7 +1,6 @@
 namespace AutoContext.Framework.Workers;
 
 using System.Diagnostics.CodeAnalysis;
-using System.IO.Pipes;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
@@ -11,6 +10,7 @@ using AutoContext.Framework.Transport;
 
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 
 /// <summary>
@@ -99,137 +99,48 @@ public sealed partial class WorkerTaskDispatcherService : BackgroundService
 
         LogStarting(_logger, pipeName);
 
-        var connections = new List<Task>();
-        var firstAccept = true;
-
+        var listener = new PipeListener(pipeName, NullLogger<PipeListener>.Instance);
+        BoundPipeListener bound;
         try
         {
-            while (!stoppingToken.IsCancellationRequested)
-            {
-                var pipe = await AcceptConnectionAsync(
-                    pipeName,
-                    onListening: () =>
-                    {
-                        if (!firstAccept)
-                        {
-                            return Task.CompletedTask;
-                        }
-
-                        firstAccept = false;
-
-                        LogReady(_logger, pipeName);
-
-                        // Host-handshake contract: the parent (extension) process scrapes
-                        // worker stderr for this exact marker to know the named pipe is
-                        // listening. ILogger output is routed elsewhere and would miss the
-                        // contract — this call MUST stay on Console.Error.
-                        return Console.Error.WriteLineAsync(readyMarker);
-                    },
-                    stoppingToken).ConfigureAwait(false);
-
-                if (pipe is null)
-                {
-                    break;
-                }
-
-                connections.Add(HandleConnectionAsync(pipe, stoppingToken));
-            }
+            bound = listener.Bind();
         }
-        finally
+        catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
         {
-            await Task.WhenAll(connections).ConfigureAwait(false);
+            return;
+        }
+
+        await using (bound.ConfigureAwait(false))
+        {
+            LogReady(_logger, pipeName);
+
+            // Host-handshake contract: the parent (extension) process scrapes
+            // worker stderr for this exact marker to know the named pipe is
+            // listening. ILogger output is routed elsewhere and would miss the
+            // contract — this call MUST stay on Console.Error.
+            await Console.Error.WriteLineAsync(readyMarker).ConfigureAwait(false);
+
+            await bound.RunAsync(
+                HandleConnectionAsync,
+                stoppingToken).ConfigureAwait(false);
         }
     }
 
-    [SuppressMessage("Reliability", "CA2000",
-        Justification = "Ownership is transferred to the caller on success via `ownsPipe = false`; on any other path the pipe is disposed in the finally block.")]
-    private static async Task<NamedPipeServerStream?> AcceptConnectionAsync(
-        string pipeName,
-        Func<Task> onListening,
-        CancellationToken ct)
-    {
-        NamedPipeServerStream? pipe = null;
-        var ownsPipe = true;
-        CancellationTokenRegistration registration = default;
-
-        try
-        {
-            pipe = new NamedPipeServerStream(
-                pipeName,
-                PipeDirection.InOut,
-                NamedPipeServerStream.MaxAllowedServerInstances,
-                PipeTransmissionMode.Byte,
-                PipeOptions.Asynchronous);
-
-            // On Windows, WaitForConnectionAsync does not reliably honor the
-            // cancellation token. Disposing the pipe from the cancellation
-            // callback forces the wait to throw.
-            registration = ct.Register(pipe.Dispose);
-
-            var waitTask = pipe.WaitForConnectionAsync(ct);
-
-            try
-            {
-                await onListening().ConfigureAwait(false);
-            }
-            catch
-            {
-                // Always observe the in-flight wait so it doesn't surface as an
-                // unobserved task exception when the pipe is disposed below.
-                // Any exception from waitTask is expected here (pipe about to be
-                // disposed via the finally block) and is discarded in favour of
-                // the original onListening failure propagated below.
-                await ObserveAndIgnoreAsync(waitTask).ConfigureAwait(false);
-                throw;
-            }
-
-            await waitTask.ConfigureAwait(false);
-
-            ownsPipe = false;
-
-            return pipe;
-        }
-        catch (OperationCanceledException)
-        {
-            return null;
-        }
-        catch (IOException) when (ct.IsCancellationRequested)
-        {
-            return null;
-        }
-        catch (ObjectDisposedException) when (ct.IsCancellationRequested)
-        {
-            return null;
-        }
-        finally
-        {
-            await registration.DisposeAsync().ConfigureAwait(false);
-
-            if (ownsPipe && pipe is not null)
-            {
-                await pipe.DisposeAsync().ConfigureAwait(false);
-            }
-        }
-    }
-
-    private async Task HandleConnectionAsync(NamedPipeServerStream pipe, CancellationToken ct)
+    private async Task HandleConnectionAsync(Stream stream, CancellationToken ct)
     {
         try
         {
-            await using (pipe.ConfigureAwait(false))
+            var channel = new LengthPrefixedFrameCodec(stream);
+            var requestBytes = await channel.ReadAsync(ct).ConfigureAwait(false);
+
+            if (requestBytes is null)
             {
-                var channel = new LengthPrefixedFrameCodec(pipe);
-                var requestBytes = await channel.ReadAsync(ct).ConfigureAwait(false);
-
-                if (requestBytes is null)
-                {
-                    return;
-                }
-
-                var responseBytes = await DispatchAsync(requestBytes, ct).ConfigureAwait(false);
-
-                await channel.WriteAsync(responseBytes, ct).ConfigureAwait(false);
+                return;
             }
+
+            var responseBytes = await DispatchAsync(requestBytes, ct).ConfigureAwait(false);
+
+            await channel.WriteAsync(responseBytes, ct).ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {
@@ -426,22 +337,5 @@ public sealed partial class WorkerTaskDispatcherService : BackgroundService
         options.MakeReadOnly(populateMissingResolver: true);
 
         return options;
-    }
-
-    private static async Task ObserveAndIgnoreAsync(Task task)
-    {
-        try
-        {
-            await task.ConfigureAwait(false);
-        }
-        catch (OperationCanceledException)
-        {
-        }
-        catch (IOException)
-        {
-        }
-        catch (ObjectDisposedException)
-        {
-        }
     }
 }

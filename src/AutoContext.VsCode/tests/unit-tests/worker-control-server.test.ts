@@ -60,12 +60,12 @@ describe('WorkerControlServer', () => {
     let ensureRunning: ReturnType<typeof vi.fn>;
     const logger = createFakeLogger();
 
-    beforeEach(() => {
+    beforeEach(async () => {
         vi.clearAllMocks();
         ensureRunning = vi.fn().mockResolvedValue(undefined);
         workerManager = { ensureRunning } as unknown as WorkerManager;
         server = new WorkerControlServer(workerManager, entries, SUFFIX, logger);
-        server.start();
+        await server.start();
     });
 
     afterEach(() => {

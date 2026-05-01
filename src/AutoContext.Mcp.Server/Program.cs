@@ -10,6 +10,7 @@ using AutoContext.Mcp.Server.Workers.Control;
 using AutoContext.Mcp.Server.Workers.Transport;
 using AutoContext.Framework.Hosting;
 using AutoContext.Framework.Logging;
+using AutoContext.Framework.Transport;
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -153,6 +154,7 @@ internal static partial class Program
         builder.Services.AddSingleton<IRegistrySource>(registrySource);
         builder.Services.AddSingleton(registry);
         builder.Services.AddSingleton(addresses);
+        builder.Services.AddSingleton<PipeTransport>();
         builder.Services.AddSingleton(sp => new WorkerControlClient(
             workerControlServiceAddress,
             sp.GetRequiredService<ILogger<WorkerControlClient>>(),
@@ -179,6 +181,7 @@ internal static partial class Program
             extensionConfigServiceAddress ?? string.Empty,
             sp.GetRequiredService<AutoContextConfigSnapshot>(),
             sp,
+            sp.GetRequiredService<PipeTransport>(),
             sp.GetRequiredService<ILogger<AutoContextConfigClient>>()));
 
         builder.Services

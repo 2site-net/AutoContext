@@ -62,7 +62,7 @@ describe('AutoContextConfigServer', () => {
     let slot: ListenerSlot;
     const logger = createFakeLogger();
 
-    beforeEach(() => {
+    beforeEach(async () => {
         vi.clearAllMocks();
         slot = {};
         manager = makeConfigManager(
@@ -75,7 +75,7 @@ describe('AutoContextConfigServer', () => {
             slot,
         );
         server = new AutoContextConfigServer(manager, SUFFIX, logger);
-        server.start();
+        await server.start();
     });
 
     afterEach(() => {

@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
-import { createServer, type Server, type Socket } from 'node:net';
+import { type Socket } from 'node:net';
+import { BoundPipeListener, LengthPrefixedFrameCodec, PipeListener } from 'autocontext-framework-web';
 import { IdentifierFactory } from './identifier-factory.js';
 import type { ServerEntry } from './server-entry.js';
 import type { WorkerManager } from './worker-manager.js';
@@ -52,19 +53,10 @@ interface EnsureRunningResponse {
  * pipe failure to the caller.
  */
 export class WorkerControlServer implements vscode.Disposable {
-    /** Length prefix size in bytes (32-bit little-endian unsigned). */
-    private static readonly HeaderBytes = 4;
-    /**
-     * Maximum payload size accepted by the read loop. Caps allocation
-     * when a corrupted or hostile header arrives; control messages are
-     * tiny JSON envelopes well below this cap.
-     */
-    private static readonly MaxMessageBytes = 1 * 1024 * 1024;
-
     private readonly pipeName: string;
     private readonly idToIdentity = new Map<string, string>();
-    private readonly sockets = new Set<Socket>();
-    private server: Server | undefined;
+    private readonly stopController = new AbortController();
+    private bound: BoundPipeListener | undefined;
 
     /**
      * @param workerManager  Lifecycle owner the server delegates spawn
@@ -99,83 +91,54 @@ export class WorkerControlServer implements vscode.Disposable {
     }
 
     /** Starts the named-pipe accept loop. Idempotent. */
-    start(): void {
-        if (this.server) {
+    async start(): Promise<void> {
+        if (this.bound !== undefined) {
             return;
         }
 
-        const pipePath = process.platform === 'win32'
-            ? `\\\\.\\pipe\\${this.pipeName}`
-            : `/tmp/CoreFxPipe_${this.pipeName}`;
+        const listener = new PipeListener(this.pipeName, this.logger);
+        this.bound = await listener.bind();
+        this.logger.info(`Listening on pipe: ${this.pipeName}`);
 
-        this.server = createServer((socket: Socket) => this.handleConnection(socket));
-
-        this.server.on('error', (err) => {
-            this.logger.error('Pipe server error', err);
-        });
-
-        this.server.listen(pipePath, () => {
-            this.logger.info(`Listening on pipe: ${this.pipeName}`);
-        });
+        void this.bound.run(
+            (socket, signal) => this.handleConnection(socket, signal),
+            this.stopController.signal,
+        );
     }
 
     dispose(): void {
-        for (const socket of this.sockets) {
-            socket.destroy();
+        if (!this.stopController.signal.aborted) {
+            this.stopController.abort();
         }
-        this.sockets.clear();
-
-        if (this.server) {
-            this.server.close();
-            this.server = undefined;
+        if (this.bound !== undefined) {
+            void this.bound.dispose();
+            this.bound = undefined;
         }
     }
 
-    private handleConnection(socket: Socket): void {
-        this.sockets.add(socket);
+    private async handleConnection(socket: Socket, signal: AbortSignal): Promise<void> {
+        const channel = new LengthPrefixedFrameCodec(socket);
 
-        // Per-connection inbound buffer. We accumulate raw bytes from
-        // 'data' and pop framed messages off the front whenever a full
-        // header + payload is available — keeps the read path
-        // back-pressure-friendly without taking on a heavyweight stream
-        // adapter for what is, on the wire, two field-typed JSON shapes.
-        let buffer: Buffer = Buffer.alloc(0);
-
-        socket.on('data', (chunk: Buffer) => {
-            buffer = buffer.length === 0 ? Buffer.from(chunk) : Buffer.concat([buffer, chunk]);
-
-            while (buffer.length >= WorkerControlServer.HeaderBytes) {
-                const length = buffer.readInt32LE(0);
-
-                if (length < 0 || length > WorkerControlServer.MaxMessageBytes) {
-                    this.logger.warn(`Dropping connection: malformed length ${length}`);
-                    socket.destroy();
+        // Persistent multi-request loop. The orchestrator opens one
+        // socket and sends multiple `ensureRunning` requests over its
+        // lifetime, so we keep reading until the peer closes or the
+        // listener is shutting down.
+        try {
+            while (!signal.aborted) {
+                const payload = await channel.read(signal);
+                if (payload === null) {
                     return;
                 }
-
-                if (buffer.length < WorkerControlServer.HeaderBytes + length) {
-                    return; // wait for the rest of the payload
-                }
-
-                const payload = buffer.subarray(
-                    WorkerControlServer.HeaderBytes,
-                    WorkerControlServer.HeaderBytes + length,
-                );
-                buffer = buffer.subarray(WorkerControlServer.HeaderBytes + length);
-
-                void this.dispatch(socket, payload);
+                await this.dispatch(channel, payload, signal);
             }
-        });
-
-        const cleanup = (): void => {
-            this.sockets.delete(socket);
-        };
-
-        socket.on('close', cleanup);
-        socket.on('error', cleanup);
+        }
+        catch (err) {
+            if (signal.aborted) { return; }
+            this.logger.warn('Control connection terminated unexpectedly', err);
+        }
     }
 
-    private async dispatch(socket: Socket, payload: Buffer): Promise<void> {
+    private async dispatch(channel: LengthPrefixedFrameCodec, payload: Buffer, signal: AbortSignal): Promise<void> {
         let request: unknown;
         try {
             request = JSON.parse(payload.toString('utf8'));
@@ -192,32 +155,32 @@ export class WorkerControlServer implements vscode.Disposable {
 
         const identity = this.idToIdentity.get(request.workerId);
         if (!identity) {
-            this.send(socket, {
+            await this.send(channel, {
                 status: 'failed',
                 error: `No worker registered with id '${request.workerId}'.`,
-            });
+            }, signal);
             return;
         }
 
         try {
             await this.workerManager.ensureRunning(identity);
-            this.send(socket, { status: 'ready' });
+            await this.send(channel, { status: 'ready' }, signal);
         }
         catch (err) {
             const message = err instanceof Error ? err.message : String(err);
-            this.send(socket, { status: 'failed', error: message });
+            await this.send(channel, { status: 'failed', error: message }, signal);
         }
     }
 
-    private send(socket: Socket, response: EnsureRunningResponse): void {
-        if (socket.destroyed) {
-            return;
-        }
+    private async send(channel: LengthPrefixedFrameCodec, response: EnsureRunningResponse, signal: AbortSignal): Promise<void> {
         const payload = Buffer.from(JSON.stringify(response), 'utf8');
-        const message = Buffer.allocUnsafe(WorkerControlServer.HeaderBytes + payload.length);
-        message.writeInt32LE(payload.length, 0);
-        payload.copy(message, WorkerControlServer.HeaderBytes);
-        socket.write(message);
+        try {
+            await channel.write(payload, signal);
+        }
+        catch (err) {
+            if (signal.aborted) { return; }
+            this.logger.warn('Failed to write control response', err);
+        }
     }
 
     /**

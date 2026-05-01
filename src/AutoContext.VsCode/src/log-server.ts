@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
-import { createServer, type Server, type Socket } from 'node:net';
-import { createInterface, type Interface } from 'node:readline';
+import { type Socket } from 'node:net';
+import { createInterface } from 'node:readline';
+import { BoundPipeListener, PipeListener } from 'autocontext-framework-web';
 import { IdentifierFactory } from './identifier-factory.js';
 import { ServerEntry } from './server-entry.js';
 import type { Logger } from '#types/logger.js';
@@ -54,9 +55,8 @@ interface JsonLogEntry {
  */
 export class LogServer implements vscode.Disposable {
     private readonly pipeName: string;
-    private readonly readers = new Set<Interface>();
-    private readonly sockets = new Set<Socket>();
-    private server: Server | undefined;
+    private readonly stopController = new AbortController();
+    private bound: BoundPipeListener | undefined;
 
     constructor(
         private readonly logger: Logger,
@@ -71,35 +71,27 @@ export class LogServer implements vscode.Disposable {
     }
 
     /** Starts the named-pipe accept loop. Idempotent. */
-    start(): void {
-        if (this.server) {
+    async start(): Promise<void> {
+        if (this.bound !== undefined) {
             return;
         }
 
-        const pipePath = process.platform === 'win32'
-            ? `\\\\.\\pipe\\${this.pipeName}`
-            : `/tmp/CoreFxPipe_${this.pipeName}`;
+        const listener = new PipeListener(this.pipeName, this.logger);
+        this.bound = await listener.bind();
+        this.logger.info(`Listening on pipe: ${this.pipeName}`);
 
-        this.server = createServer((socket: Socket) => this.handleConnection(socket));
-
-        this.server.on('error', (err) => {
-            this.logger.error('Pipe server error', err);
-        });
-
-        this.server.listen(pipePath, () => {
-            this.logger.info(`Listening on pipe: ${this.pipeName}`);
-        });
+        void this.bound.run(
+            (socket, signal) => this.handleConnection(socket, signal),
+            this.stopController.signal,
+        );
     }
 
-    private handleConnection(socket: Socket): void {
-        this.sockets.add(socket);
-
+    private handleConnection(socket: Socket, signal: AbortSignal): Promise<void> {
         // Per-connection state — captured by the `line` handler.
         let workerName: string | undefined;
         let perWorkerLogger: Logger | undefined;
 
         const reader = createInterface({ input: socket });
-        this.readers.add(reader);
 
         reader.on('line', (line: string) => {
             // Trim only trailing whitespace (e.g. CR on Windows-built
@@ -143,30 +135,26 @@ export class LogServer implements vscode.Disposable {
             perWorkerLogger.forCategory(payload.category)[method](message, payload.exception);
         });
 
-        const cleanup = (): void => {
-            this.readers.delete(reader);
-            this.sockets.delete(socket);
-            reader.close();
-        };
-
-        socket.on('close', cleanup);
-        socket.on('error', cleanup);
+        return new Promise<void>((resolve) => {
+            const finish = (): void => {
+                signal.removeEventListener('abort', finish);
+                reader.close();
+                resolve();
+            };
+            socket.once('close', finish);
+            socket.once('error', finish);
+            signal.addEventListener('abort', finish, { once: true });
+        });
     }
 
     dispose(): void {
-        for (const reader of this.readers) {
-            reader.close();
+        if (!this.stopController.signal.aborted) {
+            this.stopController.abort();
         }
-        this.readers.clear();
-
-        for (const socket of this.sockets) {
-            socket.destroy();
-        }
-        this.sockets.clear();
-
-        if (this.server) {
-            this.server.close();
-            this.server = undefined;
+        // Fire-and-forget OS resource cleanup; vscode.Disposable is sync.
+        if (this.bound !== undefined) {
+            void this.bound.dispose();
+            this.bound = undefined;
         }
     }
 

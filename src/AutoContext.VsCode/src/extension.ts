@@ -51,10 +51,10 @@ export async function activate(context: vscode.ExtensionContext) {
     // 2. Bootstrap — pre-read config (so tree providers render with real
     //    state on first query) and start the named-pipe servers.
     await graph.configManager.read();
-    graph.logServer.start();
-    graph.healthMonitor.start();
-    graph.workerControlServer.start();
-    graph.autoContextConfigServer.start();
+    await graph.logServer.start();
+    await graph.healthMonitor.start();
+    await graph.workerControlServer.start();
+    await graph.autoContextConfigServer.start();
     activationLogger.debug('Health monitor, worker-control, and config servers started; workers spawn on demand');
 
     // 3. Register — wire up all VS Code surfaces.

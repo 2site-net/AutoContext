@@ -1,7 +1,6 @@
 namespace AutoContext.Mcp.Server.Config;
 
 using System.Diagnostics.CodeAnalysis;
-using System.IO.Pipes;
 using System.Text.Json;
 
 using AutoContext.Framework.Transport;
@@ -45,6 +44,7 @@ public sealed partial class AutoContextConfigClient : IHostedService, IAsyncDisp
     private readonly string _pipeName;
     private readonly AutoContextConfigSnapshot _snapshot;
     private readonly IServiceProvider _services;
+    private readonly PipeTransport _transport;
     private readonly ILogger<AutoContextConfigClient> _logger;
     private readonly CancellationTokenSource _cts = new();
     private Task? _runTask;
@@ -53,16 +53,19 @@ public sealed partial class AutoContextConfigClient : IHostedService, IAsyncDisp
         string pipeName,
         AutoContextConfigSnapshot snapshot,
         IServiceProvider services,
+        PipeTransport transport,
         ILogger<AutoContextConfigClient> logger)
     {
         ArgumentNullException.ThrowIfNull(pipeName);
         ArgumentNullException.ThrowIfNull(snapshot);
         ArgumentNullException.ThrowIfNull(services);
+        ArgumentNullException.ThrowIfNull(transport);
         ArgumentNullException.ThrowIfNull(logger);
 
         _pipeName = pipeName;
         _snapshot = snapshot;
         _services = services;
+        _transport = transport;
         _logger = logger;
 
         _snapshot.Changed += OnSnapshotChanged;
@@ -132,18 +135,16 @@ public sealed partial class AutoContextConfigClient : IHostedService, IAsyncDisp
     }
 
     [SuppressMessage("Reliability", "CA2000",
-        Justification = "The pipe is disposed via the using statement on every exit path.")]
+        Justification = "The pipe stream is disposed via the await-using statement on every exit path.")]
     private async Task RunAsync(CancellationToken ct)
     {
         try
         {
-            using var pipe = new NamedPipeClientStream(
-                serverName: ".",
-                pipeName: _pipeName,
-                direction: PipeDirection.In,
-                options: PipeOptions.Asynchronous);
-
-            await pipe.ConnectAsync(ConnectTimeoutMs, ct).ConfigureAwait(false);
+            await using var pipe = await _transport.ConnectAsync(
+                _pipeName,
+                ConnectTimeoutMs,
+                System.IO.Pipes.PipeDirection.In,
+                ct).ConfigureAwait(false);
 
             LogConnected(_logger, _pipeName);
 

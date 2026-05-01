@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
-import { createServer, type Server, type Socket } from 'node:net';
+import { type Socket } from 'node:net';
+import { BoundPipeListener, PipeListener } from 'autocontext-framework-web';
 import { IdentifierFactory } from './identifier-factory.js';
 import type { Logger } from '#types/logger.js';
 
@@ -26,7 +27,8 @@ export class HealthMonitorServer implements vscode.Disposable {
 
     private readonly pipeName: string;
     private readonly connections = new Map<string, Set<Socket>>();
-    private server: Server | undefined;
+    private readonly stopController = new AbortController();
+    private bound: BoundPipeListener | undefined;
 
     constructor(
         private readonly logger: Logger,
@@ -53,47 +55,49 @@ export class HealthMonitorServer implements vscode.Disposable {
     /**
      * Starts the named pipe server.
      */
-    start(): void {
-        const pipePath = process.platform === 'win32'
-            ? `\\\\.\\pipe\\${this.pipeName}`
-            : `/tmp/CoreFxPipe_${this.pipeName}`;
+    async start(): Promise<void> {
+        if (this.bound !== undefined) {
+            return;
+        }
 
-        this.server = createServer((socket: Socket) => {
-            let workerId = '';
+        const listener = new PipeListener(this.pipeName, this.logger);
+        this.bound = await listener.bind();
+        this.logger.info(`Listening on pipe: ${this.pipeName}`);
 
-            socket.on('data', (data: Buffer) => {
-                // The worker sends its id as the first (and only) message.
-                // An empty or whitespace-only payload is treated as a
-                // malformed handshake — we leave workerId blank so a later
-                // well-formed write can still identify the connection, and
-                // we never register an empty-string entry.
-                if (!workerId) {
-                    const id = data.toString('utf8').trim();
-                    if (id.length === 0) { return; }
-                    workerId = id;
-                    this.addConnection(workerId, socket);
-                }
-            });
+        void this.bound.run(
+            (socket, signal) => this.handleConnection(socket, signal),
+            this.stopController.signal,
+        );
+    }
 
-            socket.on('close', () => {
+    private handleConnection(socket: Socket, signal: AbortSignal): Promise<void> {
+        let workerId = '';
+
+        socket.on('data', (data: Buffer) => {
+            // The worker sends its id as the first (and only) message.
+            // An empty or whitespace-only payload is treated as a
+            // malformed handshake — we leave workerId blank so a later
+            // well-formed write can still identify the connection, and
+            // we never register an empty-string entry.
+            if (!workerId) {
+                const id = data.toString('utf8').trim();
+                if (id.length === 0) { return; }
+                workerId = id;
+                this.addConnection(workerId, socket);
+            }
+        });
+
+        return new Promise<void>((resolve) => {
+            const finish = (): void => {
+                signal.removeEventListener('abort', finish);
                 if (workerId) {
                     this.removeConnection(workerId, socket);
                 }
-            });
-
-            socket.on('error', () => {
-                if (workerId) {
-                    this.removeConnection(workerId, socket);
-                }
-            });
-        });
-
-        this.server.on('error', (err) => {
-            this.logger.error('Pipe server error', err);
-        });
-
-        this.server.listen(pipePath, () => {
-            this.logger.info(`Listening on pipe: ${this.pipeName}`);
+                resolve();
+            };
+            socket.once('close', finish);
+            socket.once('error', finish);
+            signal.addEventListener('abort', finish, { once: true });
         });
     }
 
@@ -128,15 +132,12 @@ export class HealthMonitorServer implements vscode.Disposable {
     dispose(): void {
         this._onDidChange.dispose();
 
-        if (this.server) {
-            this.server.close();
-            this.server = undefined;
+        if (!this.stopController.signal.aborted) {
+            this.stopController.abort();
         }
-
-        for (const sockets of this.connections.values()) {
-            for (const socket of sockets) {
-                socket.destroy();
-            }
+        if (this.bound !== undefined) {
+            void this.bound.dispose();
+            this.bound = undefined;
         }
         this.connections.clear();
     }

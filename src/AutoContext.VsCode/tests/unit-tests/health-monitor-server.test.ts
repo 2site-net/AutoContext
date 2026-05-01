@@ -11,11 +11,11 @@ describe('HealthMonitorServer', () => {
     let monitor: HealthMonitorServer;
     let emittersBefore: number;
 
-    beforeEach(() => {
+    beforeEach(async () => {
         vi.clearAllMocks();
         emittersBefore = __emitterInstances.length;
         monitor = new HealthMonitorServer(fakeOutputChannel, '0123456789ab');
-        monitor.start();
+        await monitor.start();
     });
 
     afterEach(() => {
