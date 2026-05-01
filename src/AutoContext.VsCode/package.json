@@ -212,18 +212,6 @@
         "icon": "$(play)"
       },
       {
-        "command": "autocontext.stop-mcp-server",
-        "title": "Stop Server",
-        "category": "AutoContext",
-        "icon": "$(debug-stop)"
-      },
-      {
-        "command": "autocontext.restart-mcp-server",
-        "title": "Restart Server",
-        "category": "AutoContext",
-        "icon": "$(debug-restart)"
-      },
-      {
         "command": "autocontext.show-mcp-server-output",
         "title": "Show Output",
         "category": "AutoContext",
@@ -289,14 +277,6 @@
           "when": "false"
         },
         {
-          "command": "autocontext.stop-mcp-server",
-          "when": "false"
-        },
-        {
-          "command": "autocontext.restart-mcp-server",
-          "when": "false"
-        },
-        {
           "command": "autocontext.show-mcp-server-output",
           "when": "false"
         }
@@ -358,19 +338,9 @@
           "group": "inline@1"
         },
         {
-          "command": "autocontext.stop-mcp-server",
-          "when": "view == 'autocontext.mcp-tools-view' && viewItem =~ /^serverNode\\.(running|partial)$/",
-          "group": "inline@2"
-        },
-        {
-          "command": "autocontext.restart-mcp-server",
-          "when": "view == 'autocontext.mcp-tools-view' && viewItem =~ /^serverNode\\.(running|partial)$/",
-          "group": "inline@3"
-        },
-        {
           "command": "autocontext.show-mcp-server-output",
           "when": "view == 'autocontext.mcp-tools-view' && viewItem =~ /^serverNode\\.(running|partial|stopped)$/",
-          "group": "inline@4"
+          "group": "inline@2"
         }
       ]
     },

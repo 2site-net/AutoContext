@@ -37,13 +37,17 @@ suite('Extension Smoke Tests', () => {
             'autocontext.show-changelog',
             'autocontext.show-whats-new',
             'autocontext.start-mcp-server',
-            'autocontext.stop-mcp-server',
-            'autocontext.restart-mcp-server',
             'autocontext.show-mcp-server-output',
         ];
+        const removed = [
+            'autocontext.stop-mcp-server',
+            'autocontext.restart-mcp-server',
+        ];
         const missing = expected.filter(cmd => !allCommands.includes(cmd));
+        const unexpectedlyPresent = removed.filter(cmd => allCommands.includes(cmd));
 
         assert.ok(missing.length === 0, `Missing commands: ${missing.join(', ')}`);
+        assert.ok(unexpectedlyPresent.length === 0, `Unexpected removed commands: ${unexpectedlyPresent.join(', ')}`);
     });
 
     test('generated instructions should be normalized (tags stripped)', async () => {

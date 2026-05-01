@@ -227,24 +227,6 @@ export async function activate(context: vscode.ExtensionContext) {
                 await vscode.commands.executeCommand('workbench.mcp.showOutput', ids[ids.length - 1]);
             }
         }),
-        vscode.commands.registerCommand(commandIds.StopMcpServer, async (node: { name: string }) => {
-            const ids = mcpServerProvider.getDefinitionIds(node.name);
-            for (const id of ids) {
-                await vscode.commands.executeCommand('workbench.mcp.stopServer', id);
-            }
-            if (ids.length > 0) {
-                await vscode.commands.executeCommand('workbench.mcp.showOutput', ids[ids.length - 1]);
-            }
-        }),
-        vscode.commands.registerCommand(commandIds.RestartMcpServer, async (node: { name: string }) => {
-            const ids = mcpServerProvider.getDefinitionIds(node.name);
-            for (const id of ids) {
-                await vscode.commands.executeCommand('workbench.mcp.restartServer', id, { autoTrustChanges: true });
-            }
-            if (ids.length > 0) {
-                await vscode.commands.executeCommand('workbench.mcp.showOutput', ids[ids.length - 1]);
-            }
-        }),
         vscode.commands.registerCommand(commandIds.ShowMcpServerOutput, async (node: { name: string }) => {
             for (const id of mcpServerProvider.getDefinitionIds(node.name)) {
                 await vscode.commands.executeCommand('workbench.mcp.showOutput', id);

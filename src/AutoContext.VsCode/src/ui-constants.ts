@@ -18,8 +18,6 @@ export const commandIds = {
     ConfirmExport: 'autocontext.confirm-export',
     CancelExport: 'autocontext.cancel-export',
     StartMcpServer: 'autocontext.start-mcp-server',
-    StopMcpServer: 'autocontext.stop-mcp-server',
-    RestartMcpServer: 'autocontext.restart-mcp-server',
     ShowMcpServerOutput: 'autocontext.show-mcp-server-output',
 } as const;
 
