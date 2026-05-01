@@ -25,6 +25,7 @@ import { WorkerManager } from './worker-manager.js';
 import { ServersManifestLoader } from './servers-manifest-loader.js';
 import { HealthMonitorServer } from './health-monitor-server.js';
 import { LogServer } from './log-server.js';
+import { WorkerControlServer } from './worker-control-server.js';
 import { OutputChannelLogger } from './output-channel-logger.js';
 import { LogCategory } from '#types/logger.js';
 
@@ -68,7 +69,8 @@ export async function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(logServer);
     const healthMonitor = new HealthMonitorServer(rootLogger.forCategory(LogCategory.HealthMonitor));
     const workerManager = new WorkerManager(context.extensionPath, rootLogger.forCategory(LogCategory.WorkerManager), vscode.workspace.workspaceFolders?.[0]?.uri.fsPath, workerEntries, logServer.getPipeName(), healthMonitor.getPipeName());
-    const mcpServerProvider = new McpServerProvider(context.extensionPath, version, didChangeEmitter.event, mcpToolsManifest, workerManager, serversManifest, configManager, logServer.getPipeName(), healthMonitor.getPipeName(), rootLogger.forCategory(LogCategory.McpServerProvider));
+    const workerControlServer = new WorkerControlServer(workerManager, workerEntries, workerManager.getEndpointSuffix(), rootLogger.forCategory(LogCategory.WorkerControl));
+    const mcpServerProvider = new McpServerProvider(context.extensionPath, version, didChangeEmitter.event, mcpToolsManifest, workerManager, serversManifest, configManager, logServer.getPipeName(), healthMonitor.getPipeName(), workerControlServer.getPipeName(), rootLogger.forCategory(LogCategory.McpServerProvider));
     const stateResolver = new TreeViewStateResolver(workspaceContextDetector);
 
     // Pre-read the config so tree providers get the real config on first render.
@@ -99,6 +101,7 @@ export async function activate(context: vscode.ExtensionContext) {
         didChangeEmitter,
         rootLogger,
         healthMonitor,
+        workerControlServer,
         workerManager,
         workspaceContextDetector,
         configManager,
@@ -113,9 +116,10 @@ export async function activate(context: vscode.ExtensionContext) {
     );
 
     healthMonitor.start();
+    workerControlServer.start();
     workerManager.start();
 
-    activationLogger.debug('Health monitor and worker manager started');
+    activationLogger.debug('Health monitor, worker-control server, and worker manager started');
 
     // Register MCP provider early so tools appear in the picker immediately.
     // detect() below populates context flags (hasDotNet, hasTypeScript, etc.)

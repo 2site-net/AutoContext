@@ -37,6 +37,7 @@ export const LogCategory = {
     LogServer: 'LogServer',
     McpServerProvider: 'McpServerProvider',
     McpToolsTree: 'McpToolsTree',
+    WorkerControl: 'WorkerControl',
     WorkerManager: 'WorkerManager',
 } as const;
 export type LogCategory = typeof LogCategory[keyof typeof LogCategory];

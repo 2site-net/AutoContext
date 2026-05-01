@@ -42,6 +42,7 @@ export class McpServerProvider implements vscode.McpServerDefinitionProvider {
         configManager: AutoContextConfigManager,
         private readonly logPipeName: string,
         private readonly healthMonitorPipeName: string,
+        private readonly workerControlPipeName: string,
         private readonly logger: Logger,
     ) {
         const mcpServerEntry = serversManifest.mcpServer;
@@ -78,10 +79,13 @@ export class McpServerProvider implements vscode.McpServerDefinitionProvider {
         // --health-monitor announces Mcp.Server's liveness to the
         // extension-side HealthMonitorServer; held open for the
         // lifetime of the host.
+        // --worker-control-pipe lets Mcp.Server ask the extension to
+        // ensure a worker is running before it dispatches a tool call.
         const args: string[] = [
             '--endpoint-suffix', this.workerManager.getEndpointSuffix(),
             '--log-pipe', this.logPipeName,
             '--health-monitor', this.healthMonitorPipeName,
+            '--worker-control-pipe', this.workerControlPipeName,
         ];
 
         this.logger.debug(`Returning Mcp.Server definition '${mcpServerDefinitionLabel}' (v${this.version})`);

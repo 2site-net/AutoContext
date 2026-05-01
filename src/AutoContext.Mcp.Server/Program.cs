@@ -5,6 +5,7 @@ using AutoContext.Mcp.Server.Registry;
 using AutoContext.Mcp.Server.Tools;
 using AutoContext.Mcp.Server.Tools.Invocation;
 using AutoContext.Mcp.Server.Workers;
+using AutoContext.Mcp.Server.Workers.Control;
 using AutoContext.Mcp.Server.Workers.Transport;
 using AutoContext.Framework.Hosting;
 using AutoContext.Framework.Logging;
@@ -36,6 +37,11 @@ using Microsoft.Extensions.Logging;
 ///     ("mcp-server") so the UI can flip its "running" indicator on
 ///     and off as the host starts/exits. Best-effort; skipped when
 ///     omitted.</item>
+///   <item><c>--worker-control-pipe &lt;name&gt;</c>: connects to the
+///     extension-side WorkerControlServer over the given named pipe and
+///     asks it to ensure the target worker is running before each tool
+///     dispatch. Best-effort; skipped when omitted (standalone runs and
+///     smoke tests fall back to the legacy assume-running behavior).</item>
 /// </list>
 /// </remarks>
 internal static partial class Program
@@ -61,6 +67,7 @@ internal static partial class Program
         var endpoints = new EndpointOptions { Suffix = ParseSwitch(args, "--endpoint-suffix") };
         var logPipeName = ParseSwitch(args, "--log-pipe");
         var healthMonitorPipeName = ParseSwitch(args, "--health-monitor");
+        var workerControlPipeName = ParseSwitch(args, "--worker-control-pipe");
 
         var registrySource = new RegistryEmbeddedResource();
 
@@ -104,6 +111,9 @@ internal static partial class Program
         builder.Services.AddSingleton<IRegistrySource>(registrySource);
         builder.Services.AddSingleton(registry);
         builder.Services.AddSingleton(endpoints);
+        builder.Services.AddSingleton(sp => new WorkerControlClient(
+            workerControlPipeName,
+            sp.GetRequiredService<ILogger<WorkerControlClient>>()));
         builder.Services.AddSingleton<WorkerClient>();
         builder.Services.AddSingleton<EditorConfigBatcher>();
         builder.Services.AddSingleton<ToolInvoker>();

@@ -3,6 +3,7 @@ namespace AutoContext.Mcp.Server.Workers;
 using System.IO.Pipes;
 using System.Text.Json;
 
+using AutoContext.Mcp.Server.Workers.Control;
 using AutoContext.Mcp.Server.Workers.Protocol;
 using AutoContext.Mcp.Server.Workers.Transport;
 using AutoContext.Framework.Workers;
@@ -27,34 +28,52 @@ public sealed partial class WorkerClient
 
     private readonly TimeSpan _waitDeadline;
     private readonly EndpointOptions _endpoints;
+    private readonly WorkerControlClient _workerControl;
     private readonly ILogger<WorkerClient> _logger;
 
     public WorkerClient()
-        : this(DefaultWaitDeadline, new EndpointOptions(), NullLogger<WorkerClient>.Instance)
+        : this(DefaultWaitDeadline, new EndpointOptions(), WorkerControlClient.Disabled, NullLogger<WorkerClient>.Instance)
     {
     }
 
     public WorkerClient(TimeSpan waitDeadline)
-        : this(waitDeadline, new EndpointOptions(), NullLogger<WorkerClient>.Instance)
+        : this(waitDeadline, new EndpointOptions(), WorkerControlClient.Disabled, NullLogger<WorkerClient>.Instance)
     {
     }
 
     public WorkerClient(EndpointOptions endpoints)
-        : this(DefaultWaitDeadline, endpoints, NullLogger<WorkerClient>.Instance)
+        : this(DefaultWaitDeadline, endpoints, WorkerControlClient.Disabled, NullLogger<WorkerClient>.Instance)
     {
     }
 
     public WorkerClient(EndpointOptions endpoints, ILogger<WorkerClient> logger)
-        : this(DefaultWaitDeadline, endpoints, logger)
+        : this(DefaultWaitDeadline, endpoints, WorkerControlClient.Disabled, logger)
     {
     }
 
     public WorkerClient(TimeSpan waitDeadline, EndpointOptions endpoints)
-        : this(waitDeadline, endpoints, NullLogger<WorkerClient>.Instance)
+        : this(waitDeadline, endpoints, WorkerControlClient.Disabled, NullLogger<WorkerClient>.Instance)
     {
     }
 
     public WorkerClient(TimeSpan waitDeadline, EndpointOptions endpoints, ILogger<WorkerClient> logger)
+        : this(waitDeadline, endpoints, WorkerControlClient.Disabled, logger)
+    {
+    }
+
+    public WorkerClient(
+        EndpointOptions endpoints,
+        WorkerControlClient workerControl,
+        ILogger<WorkerClient> logger)
+        : this(DefaultWaitDeadline, endpoints, workerControl, logger)
+    {
+    }
+
+    public WorkerClient(
+        TimeSpan waitDeadline,
+        EndpointOptions endpoints,
+        WorkerControlClient workerControl,
+        ILogger<WorkerClient> logger)
     {
         if (waitDeadline <= TimeSpan.Zero)
         {
@@ -65,10 +84,12 @@ public sealed partial class WorkerClient
         }
 
         ArgumentNullException.ThrowIfNull(endpoints);
+        ArgumentNullException.ThrowIfNull(workerControl);
         ArgumentNullException.ThrowIfNull(logger);
 
         _waitDeadline = waitDeadline;
         _endpoints = endpoints;
+        _workerControl = workerControl;
         _logger = logger;
     }
 
@@ -95,7 +116,25 @@ public sealed partial class WorkerClient
 
         try
         {
+            // Ask the extension to ensure the worker is running before
+            // we attempt to connect. No-op when the orchestrator was
+            // launched without a --worker-control-pipe (standalone runs,
+            // smoke tests). Failures are mapped to the same error
+            // envelope shape we use for pipe IO failures so MCP callers
+            // see a consistent contract.
+            if (EndpointFormatter.TryParseId(endpoint, out var workerId))
+            {
+                await _workerControl.EnsureRunningAsync(workerId, token).ConfigureAwait(false);
+            }
+
             return await InvokeCoreAsync(resolvedEndpoint, request, token).ConfigureAwait(false);
+        }
+        catch (WorkerControlException ex)
+        {
+            LogPipeFailure(_logger, request.McpTask, resolvedEndpoint, "worker control denied", ex);
+            return ErrorResponse(
+                request.McpTask,
+                $"Worker control could not start '{ex.WorkerId}': {ex.Message}");
         }
         catch (OperationCanceledException) when (deadlineCts.IsCancellationRequested && !ct.IsCancellationRequested)
         {
