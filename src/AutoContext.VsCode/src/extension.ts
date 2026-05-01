@@ -117,9 +117,8 @@ export async function activate(context: vscode.ExtensionContext) {
 
     healthMonitor.start();
     workerControlServer.start();
-    workerManager.start();
 
-    activationLogger.debug('Health monitor, worker-control server, and worker manager started');
+    activationLogger.debug('Health monitor and worker-control server started; workers spawn on demand');
 
     // Register MCP provider early so tools appear in the picker immediately.
     // detect() below populates context flags (hasDotNet, hasTypeScript, etc.)

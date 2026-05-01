@@ -88,23 +88,29 @@ suite('Health Monitor Smoke Tests', () => {
         await waitFor(() => ext.exports.healthMonitor.isRunning('workspace'), 2000, 'isRunning(workspace)=true');
     });
 
-    test('should report Worker.DotNet as running after activation when the binary is available', async function () {
+    test('should report Worker.DotNet as running once explicitly spawned', async function () {
         const ext = await activatedExtension();
         if (!existsSync(workerBinary(ext.extensionPath, 'AutoContext.Worker.DotNet'))) {
             this.skip();
             return;
         }
 
+        // Workers spawn lazily — trigger one explicitly and then check
+        // that the health pipe sees it.
+        await ext.exports.workerManager.ensureRunning('Worker.DotNet');
+
         await waitFor(() => ext.exports.healthMonitor.isRunning('dotnet'), 8000, 'isRunning(dotnet)=true');
     });
 
-    test('should report Worker.Web as running after activation when the bundle is available', async function () {
+    test('should report Worker.Web as running once explicitly spawned', async function () {
         const ext = await activatedExtension();
         const bundle = join(ext.extensionPath, 'servers', 'AutoContext.Worker.Web', 'index.js');
         if (!existsSync(bundle)) {
             this.skip();
             return;
         }
+
+        await ext.exports.workerManager.ensureRunning('Worker.Web');
 
         await waitFor(() => ext.exports.healthMonitor.isRunning('web'), 8000, 'isRunning(web)=true');
     });

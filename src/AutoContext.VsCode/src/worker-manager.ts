@@ -61,16 +61,15 @@ interface WorkerSlot {
  * `McpServerProvider`.
  *
  * Spawn happens through {@link ensureRunning}, which coalesces
- * concurrent requests for the same worker and respawns
- * automatically after a previous child has exited. {@link start}
- * is a thin bridge that calls {@link ensureRunning} for every
- * registered worker — kept while the orchestrator-side
- * `EnsureRunning` control channel is being introduced.
+ * concurrent requests for the same worker and respawns automatically
+ * after a previous child has exited. There is no eager-start step:
+ * workers are spawned on demand by the orchestrator's worker-control
+ * channel (when a tool call needs them) or by {@link whenWorkspaceReady}
+ * during activation.
  */
 export class WorkerManager implements vscode.Disposable {
     private readonly endpointSuffix = IdentifierFactory.createRandomId();
     private readonly slots = new Map<string, WorkerSlot>();
-    private started = false;
     private disposed = false;
 
     constructor(
@@ -111,27 +110,6 @@ export class WorkerManager implements vscode.Disposable {
      */
     whenWorkspaceReady(): Promise<void> {
         return this.ensureRunning('Worker.Workspace');
-    }
-
-    /**
-     * Bridge for the eager-spawn behavior the extension still relies
-     * on today. Calls {@link ensureRunning} for every registered
-     * worker. Idempotent.
-     */
-    start(): void {
-        if (this.started) {
-            this.logger.debug('start() called again; ignoring (already started)');
-            return;
-        }
-        this.started = true;
-        this.logger.info(`Starting ${this.slots.size} worker(s) with endpoint suffix '${this.endpointSuffix}'`);
-
-        for (const identity of this.slots.keys()) {
-            // Swallow rejections — callers that care await
-            // ensureRunning(identity) (e.g. whenWorkspaceReady())
-            // and surface the error there.
-            void this.ensureRunning(identity).catch(() => { /* see whenWorkspaceReady() */ });
-        }
     }
 
     /**
