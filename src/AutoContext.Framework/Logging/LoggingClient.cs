@@ -5,6 +5,10 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.Channels;
 
+using AutoContext.Framework.Transport;
+
+using Microsoft.Extensions.Logging.Abstractions;
+
 /// <summary>
 /// Background pipe-client that drains <see cref="LogEntry"/> values from
 /// a bounded channel and writes them as NDJSON over a named pipe to the
@@ -37,6 +41,7 @@ public sealed class LoggingClient : IAsyncDisposable
 
     private readonly string _pipeName;
     private readonly string _clientName;
+    private readonly PipeTransport _transport;
     private readonly CancellationTokenSource _cts = new();
     private readonly Task _drainTask;
 
@@ -51,6 +56,7 @@ public sealed class LoggingClient : IAsyncDisposable
 
         _pipeName = pipeName ?? string.Empty;
         _clientName = clientName;
+        _transport = new PipeTransport(NullLogger<PipeTransport>.Instance);
         _drainTask = Task.Run(() => DrainAsync(_cts.Token));
     }
 
@@ -93,7 +99,7 @@ public sealed class LoggingClient : IAsyncDisposable
 
     private async Task DrainAsync(CancellationToken ct)
     {
-        NamedPipeClientStream? stream = await TryConnectAsync(ct).ConfigureAwait(false);
+        Stream? stream = await TryConnectAsync(ct).ConfigureAwait(false);
 
         try
         {
@@ -132,27 +138,23 @@ public sealed class LoggingClient : IAsyncDisposable
         }
     }
 
-    private async Task<NamedPipeClientStream?> TryConnectAsync(CancellationToken ct)
+    private async Task<Stream?> TryConnectAsync(CancellationToken ct)
     {
         if (string.IsNullOrEmpty(_pipeName))
         {
             return null;
         }
 
-        var pipe = new NamedPipeClientStream(
-            serverName: ".",
-            pipeName: _pipeName,
-            direction: PipeDirection.Out,
-            options: PipeOptions.Asynchronous);
-
         try
         {
-            await pipe.ConnectAsync(ConnectTimeoutMs, ct).ConfigureAwait(false);
-            return pipe;
+            return await _transport.ConnectAsync(
+                _pipeName,
+                timeoutMs: ConnectTimeoutMs,
+                direction: PipeDirection.Out,
+                cancellationToken: ct).ConfigureAwait(false);
         }
         catch (Exception ex) when (ex is TimeoutException or IOException or UnauthorizedAccessException or OperationCanceledException)
         {
-            await pipe.DisposeAsync().ConfigureAwait(false);
             return null;
         }
     }

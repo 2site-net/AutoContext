@@ -5,6 +5,7 @@ using System.Text.Json;
 
 using AutoContext.Mcp;
 using AutoContext.Framework.Workers;
+using AutoContext.Framework.Transport;
 using AutoContext.Worker.Hosting;
 using AutoContext.Worker.Shared.Tests.Testing.Fakes;
 
@@ -135,7 +136,7 @@ public sealed class WorkerTaskDispatcherServiceTests
                     editorconfig = new { },
                 },
                 WorkerTaskDispatcherService.WorkerJsonOptions);
-            var channel = new WorkerProtocolChannel(client);
+            var channel = new LengthPrefixedFrameCodec(client);
             await channel.WriteAsync(bytes, ct);
 
             var responseBytes = await channel.ReadAsync(ct);
@@ -164,7 +165,7 @@ public sealed class WorkerTaskDispatcherServiceTests
         await client.ConnectAsync(5000, ct);
 
         var bytes = JsonSerializer.SerializeToUtf8Bytes(request, WorkerTaskDispatcherService.WorkerJsonOptions);
-        var channel = new WorkerProtocolChannel(client);
+        var channel = new LengthPrefixedFrameCodec(client);
         await channel.WriteAsync(bytes, ct);
 
         var responseBytes = await channel.ReadAsync(ct);

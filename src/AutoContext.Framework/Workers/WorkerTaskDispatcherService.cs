@@ -7,6 +7,7 @@ using System.Text.Json.Nodes;
 
 using AutoContext.Mcp;
 using AutoContext.Framework.Logging;
+using AutoContext.Framework.Transport;
 
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -217,7 +218,7 @@ public sealed partial class WorkerTaskDispatcherService : BackgroundService
         {
             await using (pipe.ConfigureAwait(false))
             {
-                var channel = new WorkerProtocolChannel(pipe);
+                var channel = new LengthPrefixedFrameCodec(pipe);
                 var requestBytes = await channel.ReadAsync(ct).ConfigureAwait(false);
 
                 if (requestBytes is null)

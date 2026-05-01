@@ -4,7 +4,7 @@ using System.Collections.Concurrent;
 using System.IO.Pipes;
 using System.Text.Json;
 
-using AutoContext.Framework.Workers;
+using AutoContext.Framework.Transport;
 using AutoContext.Mcp.Server.Workers.Protocol;
 using AutoContext.Mcp.Server.Workers.Transport;
 
@@ -21,7 +21,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 /// <para>
 /// Wire format: 4-byte little-endian payload length followed by that
 /// many UTF-8 JSON bytes — same framing as the worker task pipe (see
-/// <see cref="WorkerProtocolChannel"/>). Connections are persistent: a
+/// <see cref="LengthPrefixedFrameCodec"/>). Connections are persistent: a
 /// single <see cref="NamedPipeClientStream"/> is opened on first use
 /// and reused for every subsequent call. Round-trips are serialized
 /// through a single semaphore (one in-flight request at a time);
@@ -245,7 +245,7 @@ public sealed partial class WorkerControlClient : IAsyncDisposable
     private async Task<EnsureRunningResponse> ExchangeAsync(string workerId, CancellationToken token)
     {
         var pipe = await GetOrConnectPipeAsync(token).ConfigureAwait(false);
-        var channel = new WorkerProtocolChannel(pipe);
+        var channel = new LengthPrefixedFrameCodec(pipe);
 
         var request = new EnsureRunningRequest { WorkerId = workerId };
         var requestBytes = JsonSerializer.SerializeToUtf8Bytes(request, WorkerJsonOptions.Instance);

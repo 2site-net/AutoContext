@@ -1,38 +1,38 @@
-namespace AutoContext.Framework.Workers;
+namespace AutoContext.Framework.Transport;
 
 using System.Buffers.Binary;
 
 /// <summary>
-/// Wire-protocol adapter for the worker pipe: 4-byte little-endian
+/// Wire-protocol adapter for AutoContext pipes: 4-byte little-endian
 /// payload length followed by that many UTF-8 JSON bytes. Wraps an
 /// underlying <see cref="Stream"/> (typically a named-pipe stream) and
 /// exposes message-oriented read/write operations on top of it.
 /// </summary>
 /// <remarks>
-/// This is the contract counterpart of <c>WorkerProtocolChannel</c> in
-/// <c>AutoContext.Worker.Web</c>; the two implementations are
+/// This is the contract counterpart of <c>LengthPrefixedFrameCodec</c>
+/// in <c>AutoContext.Framework.Web</c>; the two implementations are
 /// bit-for-bit symmetric and must be changed together.
 ///
 /// The wrapped stream's lifetime is owned by the caller — this type
 /// neither closes nor disposes it.
 /// </remarks>
-public sealed class WorkerProtocolChannel
+public sealed class LengthPrefixedFrameCodec
 {
     /// <summary>
     /// Maximum payload size accepted by <see cref="ReadAsync"/>.
     /// Caps allocation when a corrupted or hostile header arrives;
-    /// tasks exchanged on this pipe are small JSON envelopes well
-    /// below this limit.
+    /// frames exchanged over AutoContext pipes are small JSON envelopes
+    /// well below this limit.
     /// </summary>
     public const int MaxMessageBytes = 64 * 1024 * 1024; // 64 MiB
 
     private readonly Stream _stream;
 
     /// <summary>
-    /// Wraps <paramref name="stream"/> with the pipe wire protocol.
-    /// The stream is not owned by this instance.
+    /// Wraps <paramref name="stream"/> with the length-prefixed frame
+    /// codec. The stream is not owned by this instance.
     /// </summary>
-    public WorkerProtocolChannel(Stream stream)
+    public LengthPrefixedFrameCodec(Stream stream)
     {
         ArgumentNullException.ThrowIfNull(stream);
 
@@ -40,9 +40,9 @@ public sealed class WorkerProtocolChannel
     }
 
     /// <summary>
-    /// Reads one length-prefixed message from the wrapped stream.
+    /// Reads one length-prefixed frame from the wrapped stream.
     /// Returns <see langword="null"/> when the connection is closed
-    /// before a full header is received.
+    /// before a full frame is received.
     /// </summary>
     public async Task<byte[]?> ReadAsync(CancellationToken ct)
     {
@@ -81,7 +81,7 @@ public sealed class WorkerProtocolChannel
 
     /// <summary>
     /// Writes <paramref name="payload"/> to the wrapped stream as one
-    /// length-prefixed message.
+    /// length-prefixed frame.
     /// </summary>
     public async Task WriteAsync(byte[] payload, CancellationToken ct)
     {

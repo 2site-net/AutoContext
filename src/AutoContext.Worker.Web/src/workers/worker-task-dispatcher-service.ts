@@ -1,7 +1,7 @@
 import * as net from 'node:net';
 import * as fs from 'node:fs';
 import type { Server, Socket } from 'node:net';
-import { WorkerProtocolChannel } from './worker-protocol-channel.js';
+import { LengthPrefixedFrameCodec } from 'autocontext-framework-web';
 import type { McpTask } from '#types/mcp-task.js';
 import type { WorkerHostOptions } from '#types/worker-host-options.js';
 import { CorrelationScope } from '../logging/correlation-scope.js';
@@ -148,7 +148,7 @@ export class WorkerTaskDispatcherService {
         // leak listeners on long-lived signals.
         const linkedSignal = AbortSignal.any([signal, this.stopController.signal]);
         try {
-            const channel = new WorkerProtocolChannel(socket);
+            const channel = new LengthPrefixedFrameCodec(socket);
             const requestBytes = await channel.read(linkedSignal);
             if (requestBytes === null) {
                 return;

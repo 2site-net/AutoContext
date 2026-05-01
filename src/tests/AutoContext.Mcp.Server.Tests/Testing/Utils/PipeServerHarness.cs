@@ -4,6 +4,7 @@ using System.IO.Pipes;
 
 using AutoContext.Mcp.Server.Workers.Transport;
 using AutoContext.Framework.Workers;
+using AutoContext.Framework.Transport;
 
 internal static class PipeServerHarness
 {
@@ -85,7 +86,7 @@ internal static class PipeServerHarness
         {
             await server.WaitForConnectionAsync(ct).ConfigureAwait(false);
 
-            var channel = new WorkerProtocolChannel(server);
+            var channel = new LengthPrefixedFrameCodec(server);
             var requestBytes = await channel.ReadAsync(ct).ConfigureAwait(false);
             if (requestBytes is null)
             {

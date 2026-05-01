@@ -4,7 +4,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.IO.Pipes;
 using System.Text.Json;
 
-using AutoContext.Framework.Workers;
+using AutoContext.Framework.Transport;
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -24,7 +24,7 @@ using ModelContextProtocol.Server;
 /// <remarks>
 /// Wire format: 4-byte little-endian payload length followed by that
 /// many UTF-8 JSON bytes — the same framing used by
-/// <see cref="WorkerProtocolChannel"/>. The first frame is the
+/// <see cref="LengthPrefixedFrameCodec"/>. The first frame is the
 /// handshake; every subsequent frame replaces the snapshot wholesale.
 /// <para>
 /// When constructed without a pipe name (standalone runs of
@@ -147,7 +147,7 @@ public sealed partial class AutoContextConfigClient : IHostedService, IAsyncDisp
 
             LogConnected(_logger, _pipeName);
 
-            var channel = new WorkerProtocolChannel(pipe);
+            var channel = new LengthPrefixedFrameCodec(pipe);
 
             while (!ct.IsCancellationRequested)
             {

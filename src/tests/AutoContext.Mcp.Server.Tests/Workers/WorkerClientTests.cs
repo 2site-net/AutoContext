@@ -7,7 +7,7 @@ using System.Text.Json;
 using AutoContext.Mcp.Server.Tests.Testing.Utils;
 using AutoContext.Mcp.Server.Workers;
 using AutoContext.Mcp.Server.Workers.Protocol;
-using AutoContext.Framework.Workers;
+using AutoContext.Framework.Transport;
 
 public sealed class WorkerClientTests
 {
@@ -208,7 +208,7 @@ public sealed class WorkerClientTests
                 await using (server.ConfigureAwait(false))
                 {
                     await server.WaitForConnectionAsync(gate).ConfigureAwait(false);
-                    var channel = new WorkerProtocolChannel(server);
+                    var channel = new LengthPrefixedFrameCodec(server);
                     _ = await channel.ReadAsync(gate).ConfigureAwait(false);
 
                     try

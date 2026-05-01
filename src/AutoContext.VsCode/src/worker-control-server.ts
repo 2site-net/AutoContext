@@ -40,7 +40,7 @@ interface EnsureRunningResponse {
  *
  * Wire protocol per message: 4-byte little-endian payload length,
  * then that many UTF-8 JSON bytes. Mirrors the worker task pipes —
- * see `WorkerProtocolChannel` in `AutoContext.Framework.Workers` and
+ * see `LengthPrefixedFrameCodec` in `AutoContext.Framework.Transport` and
  * its TypeScript counterpart in `AutoContext.Worker.Web`. Connections
  * are persistent: the orchestrator opens one socket and reuses it
  * for every subsequent `ensureRunning` round trip.

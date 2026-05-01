@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { McpTask } from '#types/mcp-task.js';
 import { WorkerTaskDispatcherService } from '#src/workers/worker-task-dispatcher-service.js';
-import { WorkerProtocolChannel } from '#src/workers/worker-protocol-channel.js';
+import { LengthPrefixedFrameCodec } from 'autocontext-framework-web';
 import { CorrelationScope } from '#src/logging/correlation-scope.js';
 import { NullLogger } from '#src/logging/null-logger.js';
 import type { Logger } from '#types/logger.js';
@@ -29,7 +29,7 @@ async function sendRequest(pipe: string, request: unknown): Promise<Record<strin
     const payload = typeof request === 'string'
         ? Buffer.from(request, 'utf8')
         : Buffer.from(JSON.stringify(request), 'utf8');
-    const channel = new WorkerProtocolChannel(socket);
+    const channel = new LengthPrefixedFrameCodec(socket);
     await channel.write(payload);
 
     const response = await channel.read();
@@ -285,7 +285,7 @@ describe('WorkerTaskDispatcherService', () => {
             socket.once('connect', resolve);
             socket.once('error', reject);
         });
-        const channel = new WorkerProtocolChannel(socket);
+        const channel = new LengthPrefixedFrameCodec(socket);
         await channel.write(
             Buffer.from(JSON.stringify({ mcpTask: 'hang', data: {} }), 'utf8'),
         );

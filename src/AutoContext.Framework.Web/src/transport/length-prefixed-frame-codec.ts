@@ -1,24 +1,24 @@
 import type { Duplex } from 'node:stream';
 
 /**
- * Wire-protocol adapter for the worker pipe: 4-byte little-endian
- * payload length followed by that many UTF-8 JSON bytes. Wraps a
- * Node {@link Duplex} stream (typically a `net.Socket`) and exposes
+ * Wire-protocol adapter for AutoContext pipes: 4-byte little-endian
+ * payload length followed by that many UTF-8 JSON bytes. Wraps a Node
+ * {@link Duplex} stream (typically a `net.Socket`) and exposes
  * message-oriented read/write operations on top of it.
  *
- * This is the contract counterpart of the C# `WorkerProtocolChannel` in
- * `AutoContext.Worker.Shared`; the two implementations are
- * bit-for-bit symmetric and must be changed together.
+ * This is the contract counterpart of the C# `LengthPrefixedFrameCodec`
+ * in `AutoContext.Framework`; the two implementations are bit-for-bit
+ * symmetric and must be changed together.
  *
  * The wrapped stream's lifetime is owned by the caller — this class
  * neither ends nor destroys it.
  */
-export class WorkerProtocolChannel {
+export class LengthPrefixedFrameCodec {
     /**
-     * Maximum payload size accepted by {@link WorkerProtocolChannel.read}.
+     * Maximum payload size accepted by {@link LengthPrefixedFrameCodec.read}.
      * Caps allocation when a corrupted or hostile header arrives;
-     * tasks exchanged on this pipe are small JSON envelopes well
-     * below this limit.
+     * frames exchanged over AutoContext pipes are small JSON envelopes
+     * well below this limit.
      */
     static readonly MAX_MESSAGE_BYTES = 64 * 1024 * 1024;
 
@@ -29,7 +29,7 @@ export class WorkerProtocolChannel {
     }
 
     /**
-     * Reads one length-prefixed message from the wrapped stream.
+     * Reads one length-prefixed frame from the wrapped stream.
      * Returns `null` when the connection is closed before a full
      * header is received. Throws on header overflow or when
      * cancellation is signaled mid-read.
@@ -51,9 +51,9 @@ export class WorkerProtocolChannel {
             return Buffer.alloc(0);
         }
 
-        if (length > WorkerProtocolChannel.MAX_MESSAGE_BYTES) {
+        if (length > LengthPrefixedFrameCodec.MAX_MESSAGE_BYTES) {
             throw new Error(
-                `Pipe message length ${length} exceeds the maximum of ${WorkerProtocolChannel.MAX_MESSAGE_BYTES} bytes.`,
+                `Pipe message length ${length} exceeds the maximum of ${LengthPrefixedFrameCodec.MAX_MESSAGE_BYTES} bytes.`,
             );
         }
 
@@ -62,10 +62,10 @@ export class WorkerProtocolChannel {
 
     /**
      * Writes {@link payload} to the wrapped stream as one
-     * length-prefixed message.
+     * length-prefixed frame.
      */
     async write(payload: Buffer, signal?: AbortSignal): Promise<void> {
-        WorkerProtocolChannel.throwIfAborted(signal);
+        LengthPrefixedFrameCodec.throwIfAborted(signal);
 
         const message = Buffer.allocUnsafe(4 + payload.length);
         message.writeInt32LE(payload.length, 0);
@@ -89,7 +89,7 @@ export class WorkerProtocolChannel {
 
             if (signal !== undefined) {
                 abortListener = (): void => {
-                    settle(() => reject(WorkerProtocolChannel.signalAbortError(signal)));
+                    settle(() => reject(LengthPrefixedFrameCodec.signalAbortError(signal)));
                 };
                 signal.addEventListener('abort', abortListener, { once: true });
             }
@@ -108,7 +108,7 @@ export class WorkerProtocolChannel {
         const stream = this.stream;
         return new Promise((resolve, reject) => {
             if (signal?.aborted === true) {
-                reject(WorkerProtocolChannel.signalAbortError(signal));
+                reject(LengthPrefixedFrameCodec.signalAbortError(signal));
                 return;
             }
 
@@ -166,7 +166,7 @@ export class WorkerProtocolChannel {
             };
 
             const onAbort = (): void => {
-                settle(() => reject(WorkerProtocolChannel.signalAbortError(signal!)));
+                settle(() => reject(LengthPrefixedFrameCodec.signalAbortError(signal!)));
             };
 
             stream.on('readable', onReadable);
@@ -184,7 +184,7 @@ export class WorkerProtocolChannel {
 
     private static throwIfAborted(signal: AbortSignal | undefined): void {
         if (signal?.aborted === true) {
-            throw WorkerProtocolChannel.signalAbortError(signal);
+            throw LengthPrefixedFrameCodec.signalAbortError(signal);
         }
     }
 

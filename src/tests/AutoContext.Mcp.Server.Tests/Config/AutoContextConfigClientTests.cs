@@ -3,7 +3,7 @@ namespace AutoContext.Mcp.Server.Tests.Config;
 using System.IO.Pipes;
 using System.Text.Json;
 
-using AutoContext.Framework.Workers;
+using AutoContext.Framework.Transport;
 using AutoContext.Mcp.Server.Config;
 using AutoContext.Mcp.Server.Tests.Testing.Utils;
 
@@ -41,7 +41,7 @@ public sealed class AutoContextConfigClientTests
             await using (server.ConfigureAwait(false))
             {
                 await server.WaitForConnectionAsync(ct).ConfigureAwait(false);
-                var channel = new WorkerProtocolChannel(server);
+                var channel = new LengthPrefixedFrameCodec(server);
 
                 foreach (var frame in frames)
                 {

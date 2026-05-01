@@ -6,7 +6,7 @@ using System.Text.Json;
 using AutoContext.Mcp.Server.Workers.Control;
 using AutoContext.Mcp.Server.Workers.Protocol;
 using AutoContext.Mcp.Server.Workers.Transport;
-using AutoContext.Framework.Workers;
+using AutoContext.Framework.Transport;
 
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -202,7 +202,7 @@ public sealed partial class WorkerClient
                 request,
                 WorkerJsonOptions.Instance);
 
-            var channel = new WorkerProtocolChannel(pipe);
+            var channel = new LengthPrefixedFrameCodec(pipe);
             await channel.WriteAsync(requestBytes, token).ConfigureAwait(false);
 
             var responseBytes = await channel.ReadAsync(token).ConfigureAwait(false);

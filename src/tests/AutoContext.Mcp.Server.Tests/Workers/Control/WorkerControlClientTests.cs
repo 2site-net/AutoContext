@@ -6,7 +6,7 @@ using System.Text.Json;
 using AutoContext.Mcp.Server.Tests.Testing.Utils;
 using AutoContext.Mcp.Server.Workers.Control;
 using AutoContext.Mcp.Server.Workers.Protocol;
-using AutoContext.Framework.Workers;
+using AutoContext.Framework.Transport;
 
 public sealed class WorkerControlClientTests
 {
@@ -39,7 +39,7 @@ public sealed class WorkerControlClientTests
             await using (server.ConfigureAwait(false))
             {
                 await server.WaitForConnectionAsync(ct).ConfigureAwait(false);
-                var channel = new WorkerProtocolChannel(server);
+                var channel = new LengthPrefixedFrameCodec(server);
 
                 var i = 0;
                 while (!ct.IsCancellationRequested)
