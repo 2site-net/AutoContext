@@ -1,6 +1,5 @@
 namespace AutoContext.Mcp.Server.Workers;
 
-using System.IO.Pipes;
 using System.Text.Json;
 
 using AutoContext.Mcp.Server.Workers.Control;
@@ -188,45 +187,28 @@ public sealed partial class WorkerClient
         TaskRequest request,
         CancellationToken token)
     {
-        var pipe = new NamedPipeClientStream(
-            ".",
-            address,
-            PipeDirection.InOut,
-            PipeOptions.Asynchronous);
+        var transport = new PipeTransport(NullLogger<PipeTransport>.Instance);
+        var exchange = new PipeTransientExchangeClient(transport, address);
+        await using var _ = exchange.ConfigureAwait(false);
 
-        await using (pipe.ConfigureAwait(false))
+        var requestBytes = JsonSerializer.SerializeToUtf8Bytes(
+            request,
+            WorkerJsonOptions.Instance);
+
+        var responseBytes = await exchange.ExchangeAsync(requestBytes, token).ConfigureAwait(false);
+
+        var response = JsonSerializer.Deserialize<TaskResponse>(
+            responseBytes,
+            WorkerJsonOptions.Instance);
+
+        if (response is null)
         {
-            await pipe.ConnectAsync(token).ConfigureAwait(false);
-
-            var requestBytes = JsonSerializer.SerializeToUtf8Bytes(
-                request,
-                WorkerJsonOptions.Instance);
-
-            var channel = new LengthPrefixedFrameCodec(pipe);
-            await channel.WriteAsync(requestBytes, token).ConfigureAwait(false);
-
-            var responseBytes = await channel.ReadAsync(token).ConfigureAwait(false);
-
-            if (responseBytes is null)
-            {
-                return ErrorResponse(
-                    request.McpTask,
-                    $"Worker on '{address}' closed the pipe before sending a response.");
-            }
-
-            var response = JsonSerializer.Deserialize<TaskResponse>(
-                responseBytes,
-                WorkerJsonOptions.Instance);
-
-            if (response is null)
-            {
-                return ErrorResponse(
-                    request.McpTask,
-                    $"Worker on '{address}' returned a null response payload.");
-            }
-
-            return response;
+            return ErrorResponse(
+                request.McpTask,
+                $"Worker on '{address}' returned a null response payload.");
         }
+
+        return response;
     }
 
     private static TaskResponse ErrorResponse(string mcpTask, string message) => new()

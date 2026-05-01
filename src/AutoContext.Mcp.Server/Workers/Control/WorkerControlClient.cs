@@ -1,7 +1,6 @@
 namespace AutoContext.Mcp.Server.Workers.Control;
 
 using System.Collections.Concurrent;
-using System.IO.Pipes;
 using System.Text.Json;
 
 using AutoContext.Framework.Transport;
@@ -20,13 +19,12 @@ using Microsoft.Extensions.Logging.Abstractions;
 /// <remarks>
 /// <para>
 /// Wire format: 4-byte little-endian payload length followed by that
-/// many UTF-8 JSON bytes — same framing as the worker task pipe (see
-/// <see cref="LengthPrefixedFrameCodec"/>). Connections are persistent: a
-/// single <see cref="NamedPipeClientStream"/> is opened on first use
-/// and reused for every subsequent call. Round-trips are serialized
-/// through a single semaphore (one in-flight request at a time);
-/// concurrent calls for the same <c>workerId</c> coalesce onto the
-/// same task.
+/// many UTF-8 JSON bytes — same framing as the worker task pipe.
+/// Composed over <see cref="PipePersistentExchangeClient"/>, which
+/// owns the persistent connection and serializes round-trips through
+/// an internal lock; concurrent callers for the same <c>workerId</c>
+/// coalesce here onto a single shared task so they do not each pay
+/// for a separate round-trip.
 /// </para>
 /// <para>
 /// When constructed without a pipe name (standalone runs of
@@ -55,9 +53,9 @@ public sealed partial class WorkerControlClient : IAsyncDisposable
     /// </summary>
     public static readonly WorkerControlClient Disabled = new();
 
-    private readonly string _pipeName;
     private readonly TimeSpan _deadline;
     private readonly ILogger<WorkerControlClient> _logger;
+    private readonly PipePersistentExchangeClient? _exchange;
 
     /// <summary>
     /// Per-worker coalescing map. While a round-trip for
@@ -77,10 +75,6 @@ public sealed partial class WorkerControlClient : IAsyncDisposable
     /// </remarks>
     private readonly ConcurrentDictionary<string, Lazy<Task<EnsureRunningResponse>>> _inFlight = new();
 
-    /// <summary>Serializes wire-level round-trips on <see cref="_pipe"/>.</summary>
-    private readonly SemaphoreSlim _pipeGate = new(initialCount: 1, maxCount: 1);
-
-    private NamedPipeClientStream? _pipe;
     private bool _disposed;
 
     public WorkerControlClient()
@@ -110,9 +104,17 @@ public sealed partial class WorkerControlClient : IAsyncDisposable
 
         ArgumentNullException.ThrowIfNull(logger);
 
-        _pipeName = pipeName ?? string.Empty;
         _deadline = deadline;
         _logger = logger;
+
+        if (!string.IsNullOrEmpty(pipeName))
+        {
+            var transport = new PipeTransport(NullLogger<PipeTransport>.Instance);
+            _exchange = new PipePersistentExchangeClient(
+                transport,
+                pipeName,
+                NullLogger<PipePersistentExchangeClient>.Instance);
+        }
     }
 
     /// <summary>
@@ -121,7 +123,7 @@ public sealed partial class WorkerControlClient : IAsyncDisposable
     /// <see cref="EnsureRunningAsync"/> succeeds without doing any
     /// work.
     /// </summary>
-    public bool IsNoOp => string.IsNullOrEmpty(_pipeName);
+    public bool IsNoOp => _exchange is null;
 
     /// <summary>
     /// Asks the extension to ensure the worker identified by
@@ -193,15 +195,9 @@ public sealed partial class WorkerControlClient : IAsyncDisposable
         }
         _disposed = true;
 
-        await _pipeGate.WaitAsync().ConfigureAwait(false);
-        try
+        if (_exchange is not null)
         {
-            await ClosePipeAsync().ConfigureAwait(false);
-        }
-        finally
-        {
-            _pipeGate.Release();
-            _pipeGate.Dispose();
+            await _exchange.DisposeAsync().ConfigureAwait(false);
         }
     }
 
@@ -215,105 +211,33 @@ public sealed partial class WorkerControlClient : IAsyncDisposable
         using var deadlineCts = new CancellationTokenSource(_deadline);
         var token = deadlineCts.Token;
 
-        await _pipeGate.WaitAsync(token).ConfigureAwait(false);
-        try
-        {
-            try
-            {
-                return await ExchangeAsync(workerId, token).ConfigureAwait(false);
-            }
-            catch (Exception ex) when (ex is IOException or TimeoutException or UnauthorizedAccessException or JsonException or InvalidDataException)
-            {
-                // Reset the connection so the next call retries cleanly.
-                await ClosePipeAsync().ConfigureAwait(false);
-                throw new WorkerControlException(workerId, ex.Message, ex);
-            }
-            catch (OperationCanceledException) when (deadlineCts.IsCancellationRequested)
-            {
-                await ClosePipeAsync().ConfigureAwait(false);
-                throw new WorkerControlException(
-                    workerId,
-                    $"Worker-control round-trip exceeded the {_deadline.TotalSeconds:0.##}s deadline.");
-            }
-        }
-        finally
-        {
-            _pipeGate.Release();
-        }
-    }
-
-    private async Task<EnsureRunningResponse> ExchangeAsync(string workerId, CancellationToken token)
-    {
-        var pipe = await GetOrConnectPipeAsync(token).ConfigureAwait(false);
-        var channel = new LengthPrefixedFrameCodec(pipe);
-
         var request = new EnsureRunningRequest { WorkerId = workerId };
         var requestBytes = JsonSerializer.SerializeToUtf8Bytes(request, WorkerJsonOptions.Instance);
-        await channel.WriteAsync(requestBytes, token).ConfigureAwait(false);
-
-        var responseBytes = await channel.ReadAsync(token).ConfigureAwait(false)
-            ?? throw new IOException("Worker-control pipe closed before sending a response.");
-
-        var response = JsonSerializer.Deserialize<EnsureRunningResponse>(responseBytes, WorkerJsonOptions.Instance)
-            ?? throw new JsonException("Worker-control response payload was null.");
-
-        return response;
-    }
-
-    private async Task<NamedPipeClientStream> GetOrConnectPipeAsync(CancellationToken token)
-    {
-        if (_pipe is { IsConnected: true })
-        {
-            return _pipe;
-        }
-
-        await ClosePipeAsync().ConfigureAwait(false);
-
-        var pipe = new NamedPipeClientStream(
-            serverName: ".",
-            pipeName: _pipeName,
-            direction: PipeDirection.InOut,
-            options: PipeOptions.Asynchronous);
 
         try
         {
-            await pipe.ConnectAsync(token).ConfigureAwait(false);
-        }
-        catch
-        {
-            await pipe.DisposeAsync().ConfigureAwait(false);
-            throw;
-        }
+            var responseBytes = await _exchange!.ExchangeAsync(requestBytes, token).ConfigureAwait(false);
 
-        _pipe = pipe;
-        LogConnected(_logger, _pipeName);
-        return pipe;
-    }
+            var response = JsonSerializer.Deserialize<EnsureRunningResponse>(
+                responseBytes, WorkerJsonOptions.Instance)
+                ?? throw new JsonException("Worker-control response payload was null.");
 
-    private async Task ClosePipeAsync()
-    {
-        if (_pipe is null)
-        {
-            return;
+            return response;
         }
-
-        var pipe = _pipe;
-        _pipe = null;
-        try
+        catch (Exception ex) when (ex is IOException or TimeoutException
+            or UnauthorizedAccessException or JsonException or InvalidDataException)
         {
-            await pipe.DisposeAsync().ConfigureAwait(false);
+            throw new WorkerControlException(workerId, ex.Message, ex);
         }
-        catch (IOException)
+        catch (OperationCanceledException) when (deadlineCts.IsCancellationRequested)
         {
-            // Already torn down by the OS — nothing to do.
+            throw new WorkerControlException(
+                workerId,
+                $"Worker-control round-trip exceeded the {_deadline.TotalSeconds:0.##}s deadline.");
         }
     }
 
-    [LoggerMessage(EventId = 1, Level = LogLevel.Debug,
-        Message = "Connected to worker-control pipe '{PipeName}'.")]
-    private static partial void LogConnected(ILogger logger, string pipeName);
-
-    [LoggerMessage(EventId = 2, Level = LogLevel.Warning,
+    [LoggerMessage(EventId = 1, Level = LogLevel.Warning,
         Message = "Worker-control EnsureRunning('{WorkerId}') failed: {Message}")]
     private static partial void LogEnsureFailed(ILogger logger, string workerId, string message);
 }
