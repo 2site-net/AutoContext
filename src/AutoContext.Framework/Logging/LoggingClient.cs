@@ -1,49 +1,33 @@
 namespace AutoContext.Framework.Logging;
 
-using System.IO.Pipes;
 using System.Text;
 using System.Text.Json;
-using System.Threading.Channels;
 
 using AutoContext.Framework.Transport;
 
 using Microsoft.Extensions.Logging.Abstractions;
 
 /// <summary>
-/// Background pipe-client that drains <see cref="LogEntry"/> values from
-/// a bounded channel and writes them as NDJSON over a named pipe to the
-/// extension-side LogServer. When the pipe is unavailable (no pipe name
-/// supplied, the connect attempt fails, or the pipe subsequently breaks)
-/// the client transparently falls back to writing each record to stderr
-/// in a human-readable single-line format.
+/// Background pipe-client that drains <see cref="LogEntry"/> values
+/// from a bounded channel and writes them as NDJSON over a named pipe
+/// to the extension-side LogServer. When the pipe is unavailable (no
+/// pipe name, connect attempt fails, or the pipe subsequently breaks)
+/// the client transparently falls back to writing each record to
+/// stderr in a human-readable single-line format.
 /// </summary>
 /// <remarks>
-/// The bounded channel uses <see cref="BoundedChannelFullMode.DropOldest"/>
-/// — log spam can never block caller code or grow memory unbounded. A
-/// single drain task owns all I/O. Failures (broken pipe, serialisation
-/// errors) are intentionally swallowed: this type IS the logger of last
-/// resort, so it must never throw.
+/// Composed over <see cref="PipeStreamingClient{T}"/>. This type owns
+/// the wire shape (NDJSON entry + greeting) and the stderr fallback
+/// format; the streaming primitive owns connect, queue, drain, and
+/// disposal.
 /// </remarks>
 public sealed class LoggingClient : IAsyncDisposable
 {
-    private const int QueueCapacity = 1024;
     private const int ConnectTimeoutMs = 2000;
 
     private static readonly UTF8Encoding Utf8NoBom = new(encoderShouldEmitUTF8Identifier: false);
 
-    private readonly Channel<LogEntry> _queue = Channel.CreateBounded<LogEntry>(
-        new BoundedChannelOptions(QueueCapacity)
-        {
-            FullMode = BoundedChannelFullMode.DropOldest,
-            SingleReader = true,
-            SingleWriter = false,
-        });
-
-    private readonly string _pipeName;
-    private readonly string _clientName;
-    private readonly PipeTransport _transport;
-    private readonly CancellationTokenSource _cts = new();
-    private readonly Task _drainTask;
+    private readonly PipeStreamingClient<LogEntry> _stream;
 
     /// <summary>
     /// Creates a new <see cref="LoggingClient"/>. Pass <see langword="null"/>
@@ -54,149 +38,44 @@ public sealed class LoggingClient : IAsyncDisposable
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(clientName);
 
-        _pipeName = pipeName ?? string.Empty;
-        _clientName = clientName;
-        _transport = new PipeTransport(NullLogger<PipeTransport>.Instance);
-        _drainTask = Task.Run(() => DrainAsync(_cts.Token));
+        var transport = new PipeTransport(NullLogger<PipeTransport>.Instance);
+        _stream = new PipeStreamingClient<LogEntry>(
+            transport,
+            pipeName ?? string.Empty,
+            serialize: SerializeEntry,
+            logger: NullLogger<PipeStreamingClient<LogEntry>>.Instance,
+            greeting: SerializeGreeting(clientName),
+            fallback: WriteStderr,
+            connectTimeoutMs: ConnectTimeoutMs);
     }
 
     /// <summary>
     /// Posts <paramref name="entry"/> for off-thread delivery. Never
     /// blocks; if the internal buffer is full the oldest entry is dropped.
     /// </summary>
-    public void Post(LogEntry entry) => _queue.Writer.TryWrite(entry);
+    public void Post(LogEntry entry) => _stream.Post(entry);
 
-    public async ValueTask DisposeAsync()
+    /// <inheritdoc />
+    public ValueTask DisposeAsync() => _stream.DisposeAsync();
+
+    private static byte[] SerializeGreeting(string clientName)
     {
-        _queue.Writer.TryComplete();
-
-        try
-        {
-            await _drainTask.WaitAsync(TimeSpan.FromSeconds(2)).ConfigureAwait(false);
-        }
-        catch (TimeoutException)
-        {
-            // Drain didn't finish in time — abandon it.
-        }
-        catch (OperationCanceledException)
-        {
-            // Expected during shutdown.
-        }
-
-        await _cts.CancelAsync().ConfigureAwait(false);
-
-        // Only dispose the CTS if the drain task has actually exited.
-        // Disposing while the task is still mid-await would surface as an
-        // ObjectDisposedException on the token — not caught by the drain's
-        // OperationCanceledException handler, leading to an unobserved
-        // task exception. The CTS is one-per-process; letting the GC
-        // reclaim it is harmless.
-        if (_drainTask.IsCompleted)
-        {
-            _cts.Dispose();
-        }
+        var json = JsonSerializer.Serialize(
+            new JsonLogGreeting(clientName),
+            LogServerJsonContext.Default.JsonLogGreeting);
+        return Utf8NoBom.GetBytes(json + "\n");
     }
 
-    private async Task DrainAsync(CancellationToken ct)
+    private static ReadOnlyMemory<byte> SerializeEntry(LogEntry entry)
     {
-        Stream? stream = await TryConnectAsync(ct).ConfigureAwait(false);
-
-        try
-        {
-            if (stream is not null && !await TrySendGreetingAsync(stream, ct).ConfigureAwait(false))
-            {
-                await stream.DisposeAsync().ConfigureAwait(false);
-                stream = null;
-            }
-
-            await foreach (var entry in _queue.Reader.ReadAllAsync(ct).ConfigureAwait(false))
-            {
-                if (stream is not null)
-                {
-                    if (await TryWritePipeAsync(stream, entry, ct).ConfigureAwait(false))
-                    {
-                        continue;
-                    }
-
-                    await stream.DisposeAsync().ConfigureAwait(false);
-                    stream = null;
-                }
-
-                WriteStderr(entry);
-            }
-        }
-        catch (OperationCanceledException)
-        {
-            // Shutdown — fall through.
-        }
-        finally
-        {
-            if (stream is not null)
-            {
-                await stream.DisposeAsync().ConfigureAwait(false);
-            }
-        }
-    }
-
-    private async Task<Stream?> TryConnectAsync(CancellationToken ct)
-    {
-        if (string.IsNullOrEmpty(_pipeName))
-        {
-            return null;
-        }
-
-        try
-        {
-            return await _transport.ConnectAsync(
-                _pipeName,
-                timeoutMs: ConnectTimeoutMs,
-                direction: PipeDirection.Out,
-                cancellationToken: ct).ConfigureAwait(false);
-        }
-        catch (Exception ex) when (ex is TimeoutException or IOException or UnauthorizedAccessException or OperationCanceledException)
-        {
-            return null;
-        }
-    }
-
-    private async Task<bool> TrySendGreetingAsync(Stream stream, CancellationToken ct)
-    {
-        try
-        {
-            var json = JsonSerializer.Serialize(
-                new JsonLogGreeting(_clientName),
-                LogServerJsonContext.Default.JsonLogGreeting);
-            var bytes = Utf8NoBom.GetBytes(json + "\n");
-            await stream.WriteAsync(bytes, ct).ConfigureAwait(false);
-            await stream.FlushAsync(ct).ConfigureAwait(false);
-            return true;
-        }
-        catch (Exception ex) when (ex is IOException or ObjectDisposedException)
-        {
-            return false;
-        }
-    }
-
-    private static async Task<bool> TryWritePipeAsync(Stream stream, LogEntry entry, CancellationToken ct)
-    {
-        try
-        {
-            var wire = new JsonLogEntry(
-                Category: entry.Category,
-                Level: entry.Level.ToString(),
-                Message: entry.Message,
-                Exception: entry.Exception?.ToString(),
-                CorrelationId: entry.CorrelationId);
-            var json = JsonSerializer.Serialize(wire, LogServerJsonContext.Default.JsonLogEntry);
-            var bytes = Utf8NoBom.GetBytes(json + "\n");
-            await stream.WriteAsync(bytes, ct).ConfigureAwait(false);
-            await stream.FlushAsync(ct).ConfigureAwait(false);
-            return true;
-        }
-        catch (Exception ex) when (ex is IOException or ObjectDisposedException)
-        {
-            return false;
-        }
+        var wire = new JsonLogEntry(
+            Category: entry.Category,
+            Level: entry.Level.ToString(),
+            Message: entry.Message,
+            Exception: entry.Exception?.ToString(),
+            CorrelationId: entry.CorrelationId);
+        var json = JsonSerializer.Serialize(wire, LogServerJsonContext.Default.JsonLogEntry);
+        return Utf8NoBom.GetBytes(json + "\n");
     }
 
     private static void WriteStderr(LogEntry entry)

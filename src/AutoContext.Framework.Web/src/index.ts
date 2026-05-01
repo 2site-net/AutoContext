@@ -6,4 +6,7 @@
 export type { Logger } from './logging/logger.js';
 export { NullLogger } from './logging/null-logger.js';
 export { LengthPrefixedFrameCodec } from './transport/length-prefixed-frame-codec.js';
+export { PipeKeepAliveClient } from './transport/pipe-keep-alive-client.js';
+export { PipeStreamingClient } from './transport/pipe-streaming-client.js';
+export type { PipeStreamingClientOptions } from './transport/pipe-streaming-client.js';
 export { PipeTransport } from './transport/pipe-transport.js';

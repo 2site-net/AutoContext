@@ -1,7 +1,7 @@
 import { connect, type NetConnectOpts, type Socket } from 'node:net';
 import { platform } from 'node:os';
 
-import type { Logger } from '#src/logging/logger.js';
+import type { Logger } from '../logging/logger.js';
 
 /**
  * Layer 1 transport primitive for AutoContext named-pipe communication
@@ -96,15 +96,16 @@ export class PipeTransport {
 
     /**
      * Resolves a logical pipe name to the platform-specific path used
-     * by `net.connect`: a Windows named pipe under `\\.\pipe\` or a
-     * Unix domain socket. Absolute paths are passed through unchanged
-     * so that callers retain full control when they need it.
+     * by `net.connect`: a Windows named pipe under `\\.\pipe\` or the
+     * `/tmp/CoreFxPipe_*` socket emitted by .NET `NamedPipeServerStream`
+     * on POSIX. Already-rooted paths (`\\…` on Windows, `/…` on POSIX)
+     * are passed through unchanged so callers retain full control.
      */
     private static resolvePath(pipeName: string): string {
         if (platform() === 'win32') {
             return pipeName.startsWith('\\\\') ? pipeName : `\\\\.\\pipe\\${pipeName}`;
         }
 
-        return pipeName;
+        return pipeName.startsWith('/') ? pipeName : `/tmp/CoreFxPipe_${pipeName}`;
     }
 }
