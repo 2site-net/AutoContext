@@ -31,12 +31,7 @@ public sealed class AutoContextConfigClientTests
         CancellationToken ct) =>
         Task.Run(async () =>
         {
-            var server = new NamedPipeServerStream(
-                pipeName,
-                PipeDirection.Out,
-                maxNumberOfServerInstances: 1,
-                PipeTransmissionMode.Byte,
-                PipeOptions.Asynchronous);
+            var server = PipeServerHarness.Create(pipeName, PipeDirection.Out);
 
             await using (server.ConfigureAwait(false))
             {

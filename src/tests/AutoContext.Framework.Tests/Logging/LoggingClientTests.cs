@@ -5,6 +5,7 @@ using System.Text;
 using System.Text.Json.Nodes;
 
 using AutoContext.Framework.Logging;
+using AutoContext.Framework.Tests.Testing.Utils;
 
 using Microsoft.Extensions.Logging;
 
@@ -131,14 +132,10 @@ public sealed class LoggingClientTests
     private static LoggingClient NewClient(string pipeName, string clientName) =>
         new(pipeName, clientName);
 
-    private static NamedPipeServerStream CreateServer(string pipeName) => new(
-        pipeName,
-        PipeDirection.In,
-        maxNumberOfServerInstances: 1,
-        PipeTransmissionMode.Byte,
-        PipeOptions.Asynchronous);
+    private static NamedPipeServerStream CreateServer(string pipeName) =>
+        TestPipeServer.Create(pipeName, PipeDirection.In);
 
-    private static string NewPipeName() => $"actx-logsrv-test-{Guid.NewGuid():N}"[..32];
+    private static string NewPipeName() => TestPipeServer.UniqueName("actx-logsrv-test");
 
     private static async Task<(JsonNode? Greeting, List<JsonNode?> Records)> ReadLinesAsync(
         Stream stream,

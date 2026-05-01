@@ -1,6 +1,5 @@
 namespace AutoContext.Mcp.Server.Tests.Workers.Control;
 
-using System.IO.Pipes;
 using System.Text.Json;
 
 using AutoContext.Mcp.Server.Tests.Testing.Utils;
@@ -29,12 +28,7 @@ public sealed class WorkerControlClientTests
         Action<int>? onRequest = null) =>
         Task.Run(async () =>
         {
-            var server = new NamedPipeServerStream(
-                pipeName,
-                PipeDirection.InOut,
-                maxNumberOfServerInstances: 1,
-                PipeTransmissionMode.Byte,
-                PipeOptions.Asynchronous);
+            var server = PipeServerHarness.Create(pipeName);
 
             await using (server.ConfigureAwait(false))
             {

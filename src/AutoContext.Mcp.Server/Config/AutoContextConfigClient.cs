@@ -140,11 +140,12 @@ public sealed partial class AutoContextConfigClient : IHostedService, IAsyncDisp
     {
         try
         {
-            await using var pipe = await _transport.ConnectAsync(
+            var pipe = await _transport.ConnectAsync(
                 _pipeName,
                 ConnectTimeoutMs,
                 System.IO.Pipes.PipeDirection.In,
                 ct).ConfigureAwait(false);
+            await using var pipeScope = pipe.ConfigureAwait(false);
 
             LogConnected(_logger, _pipeName);
 

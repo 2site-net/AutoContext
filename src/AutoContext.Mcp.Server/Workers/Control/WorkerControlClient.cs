@@ -100,6 +100,14 @@ public sealed partial class WorkerControlClient : IAsyncDisposable
     {
     }
 
+    public WorkerControlClient(
+        string? pipeName,
+        ILogger<WorkerControlClient> logger,
+        ILoggerFactory loggerFactory)
+        : this(pipeName, DefaultDeadline, logger, loggerFactory)
+    {
+    }
+
     public WorkerControlClient(string? pipeName, TimeSpan deadline, ILogger<WorkerControlClient> logger)
         : this(pipeName, deadline, logger, NullLoggerFactory.Instance)
     {

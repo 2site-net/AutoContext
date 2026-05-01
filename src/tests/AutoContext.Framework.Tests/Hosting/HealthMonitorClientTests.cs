@@ -4,6 +4,7 @@ using System.IO.Pipes;
 using System.Text;
 
 using AutoContext.Framework.Hosting;
+using AutoContext.Framework.Tests.Testing.Utils;
 
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -94,14 +95,10 @@ public sealed class HealthMonitorClientTests
     private static HealthMonitorClient NewClient(string pipeName, string clientId) =>
         new(pipeName, clientId, NullLogger<HealthMonitorClient>.Instance);
 
-    private static NamedPipeServerStream CreateServer(string pipeName) => new(
-        pipeName,
-        PipeDirection.In,
-        maxNumberOfServerInstances: 1,
-        PipeTransmissionMode.Byte,
-        PipeOptions.Asynchronous);
+    private static NamedPipeServerStream CreateServer(string pipeName) =>
+        TestPipeServer.Create(pipeName, PipeDirection.In);
 
-    private static string NewPipeName() => $"actx-health-test-{Guid.NewGuid():N}"[..32];
+    private static string NewPipeName() => TestPipeServer.UniqueName("actx-health-test");
 
     private static async Task<string> ReadClientIdAsync(Stream server, CancellationToken ct)
     {

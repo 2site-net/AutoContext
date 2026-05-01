@@ -60,7 +60,7 @@ public sealed class PipeTransientExchangeClient : IPipeExchangeClient
 
             var response = await codec.ReadAsync(cancellationToken).ConfigureAwait(false)
                 ?? throw new IOException(
-                    $"Pipe '{_pipeName}' closed before sending a response.");
+                    $"Peer closed the pipe '{_pipeName}' before sending a response.");
 
             return response;
         }

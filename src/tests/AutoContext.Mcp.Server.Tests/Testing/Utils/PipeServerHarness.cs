@@ -37,6 +37,25 @@ internal static class PipeServerHarness
     public static string PipeNameFor(string workerId) =>
         ServiceAddressFormatter.Format($"worker-{workerId}", instanceId: null);
 
+    /// <summary>
+    /// Creates a server stream with the framework's production
+    /// listener defaults (<see cref="PipeTransmissionMode.Byte"/>,
+    /// <see cref="PipeOptions.Asynchronous"/>). Tests that need
+    /// imperative inline access to the server use this directly;
+    /// <see cref="RunOneShotAsync"/> / <see cref="RunMultiAsync"/>
+    /// build on it.
+    /// </summary>
+    public static NamedPipeServerStream Create(
+        string pipeName,
+        PipeDirection direction = PipeDirection.InOut,
+        int maxInstances = 1) =>
+        new(
+            pipeName,
+            direction,
+            maxNumberOfServerInstances: maxInstances,
+            PipeTransmissionMode.Byte,
+            PipeOptions.Asynchronous);
+
     public static Task RunOneShotAsync(
         string pipeName,
         Func<byte[], byte[]?> handler,
@@ -75,12 +94,7 @@ internal static class PipeServerHarness
         Func<byte[], byte[]?> handler,
         CancellationToken ct)
     {
-        var server = new NamedPipeServerStream(
-            pipeName,
-            PipeDirection.InOut,
-            maxNumberOfServerInstances: maxInstances,
-            PipeTransmissionMode.Byte,
-            PipeOptions.Asynchronous);
+        var server = Create(pipeName, PipeDirection.InOut, maxInstances);
 
         await using (server.ConfigureAwait(false))
         {

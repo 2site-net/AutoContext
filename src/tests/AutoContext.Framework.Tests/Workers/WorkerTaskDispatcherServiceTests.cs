@@ -1,4 +1,4 @@
-namespace AutoContext.Worker.Shared.Tests.Hosting;
+namespace AutoContext.Framework.Tests.Workers;
 
 using System.IO.Pipes;
 using System.Text.Json;
@@ -6,8 +6,7 @@ using System.Text.Json;
 using AutoContext.Mcp;
 using AutoContext.Framework.Workers;
 using AutoContext.Framework.Transport;
-using AutoContext.Worker.Hosting;
-using AutoContext.Worker.Shared.Tests.Testing.Fakes;
+using AutoContext.Framework.Tests.Testing.Fakes;
 
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
