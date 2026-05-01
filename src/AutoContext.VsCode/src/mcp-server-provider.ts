@@ -42,6 +42,7 @@ export class McpServerProvider implements vscode.McpServerDefinitionProvider {
         private readonly logServiceAddress: string,
         private readonly healthMonitorServiceAddress: string,
         private readonly workerControlServiceAddress: string,
+        private readonly extensionConfigServiceAddress: string,
         private readonly logger: Logger,
     ) {
         const mcpServerEntry = serversManifest.mcpServer;
@@ -81,11 +82,16 @@ export class McpServerProvider implements vscode.McpServerDefinitionProvider {
         // --service worker-control=<address> lets Mcp.Server ask the
         //   extension to ensure a worker is running before it
         //   dispatches a tool call.
+        // --service extension-config=<address> subscribes Mcp.Server
+        //   to the extension's AutoContextConfigServer so it learns
+        //   which tools/tasks the user has disabled in the tree (and
+        //   filters tools/list + dispatch accordingly).
         const args: string[] = [
             '--instance-id', this.instanceId,
             '--service', `log=${this.logServiceAddress}`,
             '--service', `health-monitor=${this.healthMonitorServiceAddress}`,
             '--service', `worker-control=${this.workerControlServiceAddress}`,
+            '--service', `extension-config=${this.extensionConfigServiceAddress}`,
         ];
 
         this.logger.debug(`Returning Mcp.Server definition '${mcpServerDefinitionLabel}' (v${this.version})`);

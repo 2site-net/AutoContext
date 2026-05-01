@@ -19,6 +19,53 @@ export function isToolEnabled(config: AutoContextConfig, toolName: string, taskN
     return true;
 }
 
+/**
+ * Wire-shape of the snapshot pushed by `AutoContextConfigServer` to
+ * subscribers. Keys are MCP Tool names from the registry; values in
+ * `disabledTasks` are MCP Task names belonging to that tool.
+ *
+ * - `disabledTools` lists every tool whose entry resolves to disabled
+ *   (either shorthand `false` or `{ enabled: false }`).
+ * - `disabledTasks` lists per-tool task names recorded in
+ *   `disabledTasks` on the `.autocontext.json` entry. A tool may
+ *   appear in `disabledTasks` regardless of whether it appears in
+ *   `disabledTools` — the parent tool's enabled state and its
+ *   per-task disable list are independent (mirrors
+ *   {@link isToolEnabled}).
+ */
+export interface DisabledStateSnapshot {
+    readonly disabledTools: readonly string[];
+    readonly disabledTasks: Readonly<Record<string, readonly string[]>>;
+}
+
+/**
+ * Projects the canonical `.autocontext.json` config into the
+ * tool/task disabled-state slice consumed by `AutoContext.Mcp.Server`
+ * (and any future subscriber). Pure function — no IO, no logging.
+ */
+export function projectDisabledState(config: AutoContextConfig): DisabledStateSnapshot {
+    const disabledTools: string[] = [];
+    const disabledTasks: Record<string, string[]> = {};
+
+    const tools = config.mcpTools;
+    if (tools) {
+        for (const [name, entry] of Object.entries(tools)) {
+            if (entry === false) {
+                disabledTools.push(name);
+                continue;
+            }
+            if (entry.enabled === false) {
+                disabledTools.push(name);
+            }
+            if (entry.disabledTasks && entry.disabledTasks.length > 0) {
+                disabledTasks[name] = [...entry.disabledTasks];
+            }
+        }
+    }
+
+    return { disabledTools, disabledTasks };
+}
+
 export class ConfigContextProjector implements vscode.Disposable {
     private readonly disposables: vscode.Disposable[] = [];
 

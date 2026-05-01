@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-import { ConfigContextProjector, isToolEnabled } from '#src/config-context-projector';
+import { ConfigContextProjector, isToolEnabled, projectDisabledState } from '#src/config-context-projector';
 import { McpCategoryEntry } from '#src/mcp-category-entry';
 import { McpToolEntry } from '#src/mcp-tool-entry';
 import { McpToolsManifest } from '#src/mcp-tools-manifest';
@@ -201,5 +201,76 @@ describe('isToolEnabled', () => {
         expect.soft(isToolEnabled(
             { mcpTools: { analyze_csharp_code: false } }, 'get_editorconfig_rules',
         )).toBe(true);
+    });
+});
+
+describe('projectDisabledState', () => {
+    it('returns empty lists when mcpTools is missing', () => {
+        const snapshot = projectDisabledState({});
+        expect(snapshot.disabledTools).toEqual([]);
+        expect(snapshot.disabledTasks).toEqual({});
+    });
+
+    it('treats shorthand false as a disabled tool with no disabled tasks', () => {
+        const snapshot = projectDisabledState({ mcpTools: { analyze_csharp_code: false } });
+        expect(snapshot.disabledTools).toEqual(['analyze_csharp_code']);
+        expect(snapshot.disabledTasks).toEqual({});
+    });
+
+    it('treats { enabled: false } as a disabled tool', () => {
+        const snapshot = projectDisabledState({
+            mcpTools: { analyze_csharp_code: { enabled: false } },
+        });
+        expect(snapshot.disabledTools).toEqual(['analyze_csharp_code']);
+        expect(snapshot.disabledTasks).toEqual({});
+    });
+
+    it('records disabledTasks even when the parent tool is enabled', () => {
+        const snapshot = projectDisabledState({
+            mcpTools: { analyze_csharp_code: { disabledTasks: ['analyze_csharp_coding_style'] } },
+        });
+        expect(snapshot.disabledTools).toEqual([]);
+        expect(snapshot.disabledTasks).toEqual({
+            analyze_csharp_code: ['analyze_csharp_coding_style'],
+        });
+    });
+
+    it('records both the disabled parent and disabled tasks when both are set', () => {
+        const snapshot = projectDisabledState({
+            mcpTools: {
+                analyze_csharp_code: {
+                    enabled: false,
+                    disabledTasks: ['analyze_csharp_coding_style', 'analyze_csharp_async_patterns'],
+                },
+            },
+        });
+        expect(snapshot.disabledTools).toEqual(['analyze_csharp_code']);
+        expect(snapshot.disabledTasks).toEqual({
+            analyze_csharp_code: ['analyze_csharp_coding_style', 'analyze_csharp_async_patterns'],
+        });
+    });
+
+    it('skips empty disabledTasks arrays', () => {
+        const snapshot = projectDisabledState({
+            mcpTools: { analyze_csharp_code: { disabledTasks: [] } },
+        });
+        expect(snapshot.disabledTasks).toEqual({});
+    });
+
+    it('omits enabled tools that have no disabled tasks', () => {
+        const snapshot = projectDisabledState({
+            mcpTools: { analyze_csharp_code: { version: '1.0.0' } },
+        });
+        expect(snapshot.disabledTools).toEqual([]);
+        expect(snapshot.disabledTasks).toEqual({});
+    });
+
+    it('does not share disabledTasks references with the source config', () => {
+        const tasks = ['analyze_csharp_coding_style'];
+        const snapshot = projectDisabledState({
+            mcpTools: { analyze_csharp_code: { disabledTasks: tasks } },
+        });
+        tasks.push('mutated');
+        expect(snapshot.disabledTasks['analyze_csharp_code']).toEqual(['analyze_csharp_coding_style']);
     });
 });

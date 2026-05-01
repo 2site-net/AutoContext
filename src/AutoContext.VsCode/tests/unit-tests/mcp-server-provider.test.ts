@@ -43,6 +43,7 @@ function createProvider(): McpServerProvider {
         `autocontext.log#${INSTANCE_ID}`,
         `autocontext.health-monitor#${INSTANCE_ID}`,
         `autocontext.worker-control#${INSTANCE_ID}`,
+        `autocontext.extension-config#${INSTANCE_ID}`,
         logger,
     );
 }
@@ -121,6 +122,12 @@ describe('McpServerProvider.provideMcpServerDefinitions', () => {
         expect(def.args).toEqual(expect.arrayContaining(['--service', `worker-control=autocontext.worker-control#${INSTANCE_ID}`]));
     });
 
+    it('passes --service extension-config=<address> with the AutoContextConfigServer pipe name', async () => {
+        const [def] = (await createProvider().provideMcpServerDefinitions()) as StdioDef[];
+
+        expect(def.args).toEqual(expect.arrayContaining(['--service', `extension-config=autocontext.extension-config#${INSTANCE_ID}`]));
+    });
+
     it('does not pass --scope, --workspace-folder, or --workspace-server', async () => {
         const [def] = (await createProvider().provideMcpServerDefinitions()) as StdioDef[];
 
@@ -196,6 +203,7 @@ describe('McpServerProvider config updates', () => {
             `autocontext.log#${INSTANCE_ID}`,
             `autocontext.health-monitor#${INSTANCE_ID}`,
             `autocontext.worker-control#${INSTANCE_ID}`,
+            `autocontext.extension-config#${INSTANCE_ID}`,
             oc,
         );
 

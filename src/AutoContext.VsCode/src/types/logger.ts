@@ -27,6 +27,7 @@ export const LogCategory = {
     Activation: 'Activation',
     Config: 'Config',
     ConfigProjector: 'ConfigProjector',
+    ConfigServer: 'ConfigServer',
     Decorations: 'Decorations',
     Detection: 'Detection',
     Diagnostics: 'Diagnostics',
