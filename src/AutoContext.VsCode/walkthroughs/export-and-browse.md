@@ -12,6 +12,8 @@ Open the Instructions Panel, click the export icon in the panel header to enter 
 
 Once an instruction file exists in `.github/instructions/`, it appears as **overridden** in the panel with a distinct icon. Clicking an overridden item opens the workspace-level file for editing. Use the **Show Original** inline action to view the built-in version, or **Delete Override** to remove the workspace file and revert to the built-in version.
 
+When a local override is older than the bundled version, it is flagged as **overridden (outdated)**. Use **Show Changelog** to review what changed between the override and the latest built-in version, then either update the override manually or delete it to restore the latest built-in version.
+
 ### Browse and disable individual instructions
 
 Click any instruction in the Instructions Panel to open it in a virtual document with a **Disable Instruction** / **Enable Instruction** CodeLens above each instruction. Click a CodeLens to toggle that instruction. Disabled instructions are dimmed and tagged `[DISABLED]`, and they are excluded from what Copilot receives.

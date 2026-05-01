@@ -1,31 +1,30 @@
 ## MCP Tools
 
-AutoContext registers MCP (Model Context Protocol) servers that expose quality-assurance tools to Copilot. In agent mode, Copilot can call these tools to check your code on the spot.
+AutoContext registers a single MCP (Model Context Protocol) server (`AutoContext.Mcp.Server`) that lets Copilot analyze source files, project manifests, and commit messages against the conventions the chat instructions describe, and resolve the effective `.editorconfig` properties for any path. In agent mode, Copilot calls these tools on the spot — typically before generating, after editing, or while reviewing — and gets back a structured report it can act on. Each call is dispatched to the worker process that owns the tool: .NET, Workspace, or Web.
 
-### Server categories
+### Tool organization
 
-Tools are organized into server categories, each activated by workspace context:
+Tools are grouped by **platform**, **category**, and **tool**, and each platform is activated by workspace context:
 
-| Category | Activates when |
-|----------|----------------|
-| **DotNet** | `.csproj`, `.fsproj`, `.vbproj`, `.sln`, or `.slnx` detected |
-| **Git** | `.git` folder detected |
-| **EditorConfig** | Always active |
-| **TypeScript** | `.ts` files detected |
+| Platform | Categories | Activates when |
+|----------|------------|----------------|
+| **.NET** | C#, NuGet | `.csproj`, `.fsproj`, `.vbproj`, `.sln`, or `.slnx` detected |
+| **Workspace** | Git, EditorConfig | Always active (Git tools surface only when a `.git` folder is present) |
+| **Web** | TypeScript | `.ts` files detected |
 
-A server category is filtered out entirely if its workspace context is not present or all its tools are disabled. The EditorConfig category is an exception — it is always active regardless of workspace content. Each category exposes one or more MCP tools containing individually toggleable features.
+If every tool owned by a worker is disabled, that worker is not spawned at all.
 
-### Enable the MCP servers
+### Enable the MCP server
 
-When AutoContext detects your workspace, it registers the relevant MCP servers with VS Code. The first time a server is discovered, VS Code prompts you to confirm that you trust and want to start it. Accept the prompt so Copilot can invoke the server tools in agent mode.
+When AutoContext detects your workspace, it registers its MCP server with VS Code. The first time the server is discovered, VS Code prompts you to confirm that you trust and want to start it. Accept the prompt so Copilot can invoke the server tools in agent mode.
 
 ### Server health monitoring
 
-Each MCP server reports its liveness via a health monitoring pipe. Server nodes in the MCP Tools panel show a live status indicator — **running**, **partially running**, or **stopped**. Use the inline **Start**, **Stop**, **Restart**, and **Show Output** actions on each server node to manage servers directly from the sidebar.
+The MCP server and each worker report their liveness via a health monitoring pipe. Server nodes in the MCP Tools panel show a live **running** or **stopped** status. Use the inline **Start**, **Stop**, **Restart**, and **Show Output** actions on each server node to manage the server directly from the sidebar.
 
 ### How it works
 
-When you disable a feature, it is recorded in `.autocontext.json` at your workspace root. The workspace server reads this file and decides how each feature runs. Disabled features are skipped when Copilot invokes the tool — with one exception: if the project's `.editorconfig` contains keys a checker consumes (e.g., `csharp_prefer_braces`), those EditorConfig-backed checks still apply even when the feature is disabled.
+When you disable a feature, it is recorded in `.autocontext.json` at your workspace root. The workspace worker reads this file and decides how each feature runs. Disabled features are skipped when Copilot invokes the tool — with one exception: if the project's `.editorconfig` contains keys a checker consumes (e.g., `csharp_prefer_braces`), those EditorConfig-backed checks still apply even when the feature is disabled.
 
 ### Toggle tools
 
