@@ -23,14 +23,14 @@ public sealed class WorkerControlClientTests
     /// <paramref name="handler"/> until the client closes the pipe.
     /// </summary>
     private static Task RunPersistentAsync(
-        string endpoint,
+        string pipeName,
         Func<EnsureRunningRequest, EnsureRunningResponse> handler,
         CancellationToken ct,
         Action<int>? onRequest = null) =>
         Task.Run(async () =>
         {
             var server = new NamedPipeServerStream(
-                endpoint,
+                pipeName,
                 PipeDirection.InOut,
                 maxNumberOfServerInstances: 1,
                 PipeTransmissionMode.Byte,
@@ -75,14 +75,14 @@ public sealed class WorkerControlClientTests
     [Fact]
     public async Task Should_round_trip_a_ready_response()
     {
-        var endpoint = PipeServerHarness.UniqueEndpoint();
-        await using var client = new WorkerControlClient(endpoint);
+        var pipeName = PipeServerHarness.UniquePipeName();
+        await using var client = new WorkerControlClient(pipeName);
 
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
         cts.CancelAfter(TimeSpan.FromSeconds(5));
 
         var serverTask = RunPersistentAsync(
-            endpoint,
+            pipeName,
             request =>
             {
                 Assert.Equal("ensureRunning", request.Type);
@@ -100,14 +100,14 @@ public sealed class WorkerControlClientTests
     [Fact]
     public async Task Should_throw_WorkerControlException_on_failed_response()
     {
-        var endpoint = PipeServerHarness.UniqueEndpoint();
-        await using var client = new WorkerControlClient(endpoint);
+        var pipeName = PipeServerHarness.UniquePipeName();
+        await using var client = new WorkerControlClient(pipeName);
 
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
         cts.CancelAfter(TimeSpan.FromSeconds(5));
 
         var serverTask = RunPersistentAsync(
-            endpoint,
+            pipeName,
             _ => new EnsureRunningResponse
             {
                 Status = EnsureRunningResponse.StatusFailed,
@@ -128,15 +128,15 @@ public sealed class WorkerControlClientTests
     [Fact]
     public async Task Should_reuse_a_single_connection_across_sequential_calls()
     {
-        var endpoint = PipeServerHarness.UniqueEndpoint();
-        await using var client = new WorkerControlClient(endpoint);
+        var pipeName = PipeServerHarness.UniquePipeName();
+        await using var client = new WorkerControlClient(pipeName);
 
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
         cts.CancelAfter(TimeSpan.FromSeconds(5));
 
         var seen = 0;
         var serverTask = RunPersistentAsync(
-            endpoint,
+            pipeName,
             _ => new EnsureRunningResponse { Status = EnsureRunningResponse.StatusReady },
             cts.Token,
             onRequest: _ => Interlocked.Increment(ref seen));
@@ -158,8 +158,8 @@ public sealed class WorkerControlClientTests
     [Fact]
     public async Task Should_coalesce_concurrent_calls_for_the_same_worker()
     {
-        var endpoint = PipeServerHarness.UniqueEndpoint();
-        await using var client = new WorkerControlClient(endpoint);
+        var pipeName = PipeServerHarness.UniquePipeName();
+        await using var client = new WorkerControlClient(pipeName);
 
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
         cts.CancelAfter(TimeSpan.FromSeconds(5));
@@ -168,7 +168,7 @@ public sealed class WorkerControlClientTests
         var observed = 0;
 
         var serverTask = RunPersistentAsync(
-            endpoint,
+            pipeName,
             _ =>
             {
                 Interlocked.Increment(ref observed);
@@ -197,8 +197,8 @@ public sealed class WorkerControlClientTests
     [Fact]
     public async Task Should_not_propagate_one_callers_cancellation_to_a_sibling_call()
     {
-        var endpoint = PipeServerHarness.UniqueEndpoint();
-        await using var client = new WorkerControlClient(endpoint);
+        var pipeName = PipeServerHarness.UniquePipeName();
+        await using var client = new WorkerControlClient(pipeName);
 
         using var serverCts = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
         serverCts.CancelAfter(TimeSpan.FromSeconds(5));
@@ -207,7 +207,7 @@ public sealed class WorkerControlClientTests
         // callers definitely coalesce onto the same in-flight task.
         var gate = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         var serverTask = RunPersistentAsync(
-            endpoint,
+            pipeName,
             _ =>
             {
                 gate.Task.GetAwaiter().GetResult();
@@ -235,7 +235,7 @@ public sealed class WorkerControlClientTests
     [Fact]
     public async Task Should_throw_after_disposal()
     {
-        var client = new WorkerControlClient(PipeServerHarness.UniqueEndpoint());
+        var client = new WorkerControlClient(PipeServerHarness.UniquePipeName());
         await client.DisposeAsync();
 
         await Assert.ThrowsAsync<ObjectDisposedException>(

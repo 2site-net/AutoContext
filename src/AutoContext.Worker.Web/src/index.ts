@@ -36,24 +36,46 @@ async function main(argv: readonly string[]): Promise<void> {
     const { values } = parseArgs({
         args: [...argv],
         options: {
-            pipe: { type: 'string' },
-            'log-pipe': { type: 'string' },
-            'health-monitor': { type: 'string' },
+            'instance-id': { type: 'string' },
+            service: { type: 'string', multiple: true },
         },
         strict: false,
     });
 
-    const pipe = typeof values['pipe'] === 'string' ? values['pipe'] : undefined;
-    if (pipe === undefined || pipe.trim() === '') {
-        throw new Error('Missing required argument: --pipe');
+    const instanceId = typeof values['instance-id'] === 'string' ? values['instance-id'].trim() : '';
+
+    // Worker self-formats its listen address from its compile-time
+    // WORKER_ID + the parsed --instance-id; the extension no longer
+    // passes --pipe.
+    const pipe = instanceId === ''
+        ? `autocontext.worker-${WORKER_ID}`
+        : `autocontext.worker-${WORKER_ID}#${instanceId}`;
+
+    const services = new Map<string, string>();
+    const rawServices = Array.isArray(values['service']) ? values['service'] as string[] : [];
+    for (const entry of rawServices) {
+        if (typeof entry !== 'string') { continue; }
+        const sep = entry.indexOf('=');
+        if (sep <= 0 || sep === entry.length - 1) {
+            throw new Error(`'--service' value '${entry}' must be in '<role>=<address>' form.`);
+        }
+        const role = entry.slice(0, sep).trim();
+        const address = entry.slice(sep + 1).trim();
+        if (role === '' || address === '') {
+            throw new Error(`'--service' value '${entry}' must have a non-empty role and address.`);
+        }
+        if (services.has(role)) {
+            throw new Error(`'--service ${role}=...' was supplied more than once.`);
+        }
+        services.set(role, address);
     }
 
-    const logPipe = typeof values['log-pipe'] === 'string' ? values['log-pipe'] : '';
-    const healthMonitorPipe = typeof values['health-monitor'] === 'string' ? values['health-monitor'] : '';
+    const logPipe = services.get('log') ?? '';
+    const healthMonitorPipe = services.get('health-monitor') ?? '';
 
     // Wire the logging client first so any startup errors below
     // also flow through the structured channel (or its stderr fallback
-    // when --log-pipe was not supplied).
+    // when --service log=... was not supplied).
     const loggingClient = new LoggingClient(logPipe, CLIENT_NAME);
     const logger = new PipeLogger(loggingClient);
     const serviceLogger = logger.forCategory('AutoContext.Framework.Workers.WorkerTaskDispatcherService');

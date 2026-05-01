@@ -28,7 +28,7 @@ using ModelContextProtocol.Server;
 /// signature, which is incompatible with our data-driven schema. The
 /// protocol-level list/call handlers expose the
 /// <see cref="Tool.InputSchema"/> setter directly, so we drive both
-/// endpoints from the registry.
+/// handlers from the registry.
 /// </remarks>
 public sealed partial class McpSdkAdapter
 {

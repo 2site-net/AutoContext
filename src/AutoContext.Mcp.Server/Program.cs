@@ -23,25 +23,38 @@ using Microsoft.Extensions.Logging;
 /// <remarks>
 /// Optional command-line switches:
 /// <list type="bullet">
-///   <item><c>--endpoint-suffix &lt;value&gt;</c>: appends <c>-&lt;value&gt;</c>
-///     to every pipe name the process opens or connects to (used by the
-///     end-to-end smoke test to isolate its pipes from any other running
-///     instance).</item>
-///   <item><c>--log-pipe &lt;name&gt;</c>: streams structured log records
-///     to the extension-side LogServer over the given named pipe so they
-///     surface in the AutoContext Output channel. When omitted, log
-///     records fall back to stderr.</item>
-///   <item><c>--health-monitor &lt;name&gt;</c>: connects to the
-///     extension-side HealthMonitorServer over the given named pipe and
-///     announces this process as the <see cref="HealthClientId"/>
-///     ("mcp-server") so the UI can flip its "running" indicator on
-///     and off as the host starts/exits. Best-effort; skipped when
-///     omitted.</item>
-///   <item><c>--worker-control-pipe &lt;name&gt;</c>: connects to the
-///     extension-side WorkerControlServer over the given named pipe and
-///     asks it to ensure the target worker is running before each tool
-///     dispatch. Best-effort; skipped when omitted (standalone runs and
-///     smoke tests fall back to the legacy assume-running behavior).</item>
+///   <item><c>--instance-id &lt;id&gt;</c>: per-window identifier
+///     (12-hex by convention) the orchestrator uses to format every
+///     pipe address it dials. Shared with the extension and every
+///     spawned worker so processes in one VS Code window agree on
+///     pipe addresses while a second window stays isolated. When
+///     omitted, addresses fall back to the un-suffixed
+///     <c>autocontext.&lt;role&gt;</c> form (standalone runs and
+///     smoke-test isolation are achieved by passing a unique id).</item>
+///   <item><c>--service &lt;role&gt;=&lt;address&gt;</c>: repeatable.
+///     Names an extension-hosted service the orchestrator should
+///     dial. Recognised roles:
+///     <list type="bullet">
+///       <item><c>log</c> — extension-side <c>LogServer</c>;
+///         structured log records are streamed there so they surface
+///         in the AutoContext Output channel. Falls back to stderr
+///         when omitted.</item>
+///       <item><c>health-monitor</c> — extension-side
+///         <c>HealthMonitorServer</c>; the process announces itself
+///         as <see cref="HealthClientId"/> ("mcp-server") so the UI
+///         can flip its "running" indicator on and off as the host
+///         starts/exits. Best-effort; skipped when omitted.</item>
+///       <item><c>worker-control</c> — extension-side
+///         <c>WorkerControlServer</c>; the orchestrator asks it to
+///         ensure the target worker is running before each tool
+///         dispatch. Best-effort; skipped when omitted (standalone
+///         runs and smoke tests fall back to the legacy
+///         assume-running behaviour).</item>
+///     </list>
+///     Duplicate roles, missing <c>=</c> separators, and empty
+///     keys/values throw. Unknown roles are logged at warn level
+///     and ignored (forward compatibility).
+///   </item>
 /// </list>
 /// </remarks>
 internal static partial class Program
@@ -56,18 +69,28 @@ internal static partial class Program
     /// </summary>
     internal const string HealthClientId = "mcp-server";
 
+    private const string LogServiceRole = "log";
+    private const string HealthMonitorServiceRole = "health-monitor";
+    private const string WorkerControlServiceRole = "worker-control";
+
     [LoggerMessage(EventId = 1, Level = LogLevel.Critical, Message = "Registry validation failed:")]
     private static partial void LogRegistryValidationFailed(ILogger logger);
 
     [LoggerMessage(EventId = 2, Level = LogLevel.Critical, Message = "  - {Error}")]
     private static partial void LogRegistryValidationError(ILogger logger, string error);
 
+    [LoggerMessage(EventId = 3, Level = LogLevel.Warning, Message = "Ignoring unknown --service role '{Role}'.")]
+    private static partial void LogUnknownServiceRole(ILogger logger, string role);
+
     internal static async Task<int> Main(string[] args)
     {
-        var endpoints = new EndpointOptions { Suffix = ParseSwitch(args, "--endpoint-suffix") };
-        var logPipeName = ParseSwitch(args, "--log-pipe");
-        var healthMonitorPipeName = ParseSwitch(args, "--health-monitor");
-        var workerControlPipeName = ParseSwitch(args, "--worker-control-pipe");
+        var instanceId = ParseSwitch(args, "--instance-id");
+        var addresses = new ServiceAddressOptions { InstanceId = instanceId };
+        var services = ParseServiceSwitches(args);
+
+        var logServiceAddress = services.TryGetValue(LogServiceRole, out var logAddr) ? logAddr : null;
+        var healthMonitorServiceAddress = services.TryGetValue(HealthMonitorServiceRole, out var healthAddr) ? healthAddr : null;
+        var workerControlServiceAddress = services.TryGetValue(WorkerControlServiceRole, out var ctrlAddr) ? ctrlAddr : null;
 
         var registrySource = new RegistryEmbeddedResource();
 
@@ -80,28 +103,37 @@ internal static partial class Program
 
         var bootstrapLogger = bootstrapLoggerFactory.CreateLogger("AutoContext.Mcp.Server.Startup");
 
+        foreach (var role in services.Keys)
+        {
+            if (role is not LogServiceRole and not HealthMonitorServiceRole and not WorkerControlServiceRole)
+            {
+                LogUnknownServiceRole(bootstrapLogger, role);
+            }
+        }
+
         var registry = RegistryLoader.Parse(registrySource.Json, "embedded resource", bootstrapLogger);
         var validation = RegistrySchemeValidator.Validate(registrySource.Json, registry, bootstrapLogger);
 
         var builder = Host.CreateApplicationBuilder(args);
 
         // Stream structured log records over the extension's LogServer
-        // pipe when --log-pipe is supplied (so Mcp.Server logs land in
-        // their own AutoContext Output channel alongside the workers).
-        // LoggingClient automatically falls back to stderr when the pipe
-        // name is null/empty (standalone / smoke runs), so this wiring is
-        // safe regardless of how the process is launched.
+        // pipe when --service log=<address> is supplied (so Mcp.Server
+        // logs land in their own AutoContext Output channel alongside
+        // the workers). LoggingClient automatically falls back to
+        // stderr when the address is null/empty (standalone / smoke
+        // runs), so this wiring is safe regardless of how the process
+        // is launched.
         builder.Logging.ClearProviders();
         builder.Logging.SetMinimumLevel(LogLevel.Trace);
-        builder.Services.AddSingleton(_ => new LoggingClient(logPipeName, LogClientName));
+        builder.Services.AddSingleton(_ => new LoggingClient(logServiceAddress, LogClientName));
         builder.Services.AddSingleton<ILoggerProvider, PipeLoggerProvider>();
 
         // Liveness signal to the extension's HealthMonitorServer. The
         // hosted-service contract handles startup/shutdown wiring; the
-        // client is a no-op when --health-monitor was not supplied
-        // (standalone / smoke runs).
+        // client is a no-op when --service health-monitor=<address>
+        // was not supplied (standalone / smoke runs).
         builder.Services.AddHostedService(sp => new HealthMonitorClient(
-            healthMonitorPipeName ?? string.Empty,
+            healthMonitorServiceAddress ?? string.Empty,
             HealthClientId,
             sp.GetRequiredService<ILogger<HealthMonitorClient>>()));
 
@@ -110,9 +142,9 @@ internal static partial class Program
         // implementations without rewriting Main.
         builder.Services.AddSingleton<IRegistrySource>(registrySource);
         builder.Services.AddSingleton(registry);
-        builder.Services.AddSingleton(endpoints);
+        builder.Services.AddSingleton(addresses);
         builder.Services.AddSingleton(sp => new WorkerControlClient(
-            workerControlPipeName,
+            workerControlServiceAddress,
             sp.GetRequiredService<ILogger<WorkerControlClient>>()));
         builder.Services.AddSingleton<WorkerClient>();
         builder.Services.AddSingleton<EditorConfigBatcher>();
@@ -188,5 +220,68 @@ internal static partial class Program
         }
 
         return parsed;
+    }
+
+    /// <summary>
+    /// Parses every <c>--service &lt;role&gt;=&lt;address&gt;</c>
+    /// occurrence into a dictionary keyed by role. Throws on duplicate
+    /// roles, missing values, missing <c>=</c> separators, or empty
+    /// keys/values.
+    /// </summary>
+    private static Dictionary<string, string> ParseServiceSwitches(string[] args)
+    {
+        const string SwitchName = "--service";
+        var services = new Dictionary<string, string>(StringComparer.Ordinal);
+
+        for (var i = 0; i < args.Length; i++)
+        {
+            if (!string.Equals(args[i], SwitchName, StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            if (i + 1 >= args.Length)
+            {
+                throw new ArgumentException(
+                    $"'{SwitchName}' was supplied without a value.",
+                    nameof(args));
+            }
+
+            var value = args[i + 1];
+            if (string.IsNullOrWhiteSpace(value) || value.StartsWith("--", StringComparison.Ordinal))
+            {
+                throw new ArgumentException(
+                    $"'{SwitchName}' requires a non-empty value.",
+                    nameof(args));
+            }
+
+            var separatorIndex = value.IndexOf('=', StringComparison.Ordinal);
+            if (separatorIndex <= 0 || separatorIndex == value.Length - 1)
+            {
+                throw new ArgumentException(
+                    $"'{SwitchName}' value '{value}' must be in '<role>=<address>' form.",
+                    nameof(args));
+            }
+
+            var role = value[..separatorIndex].Trim();
+            var address = value[(separatorIndex + 1)..].Trim();
+            if (role.Length == 0 || address.Length == 0)
+            {
+                throw new ArgumentException(
+                    $"'{SwitchName}' value '{value}' must have a non-empty role and address.",
+                    nameof(args));
+            }
+
+            if (!services.TryAdd(role, address))
+            {
+                throw new ArgumentException(
+                    $"'{SwitchName} {role}=...' was supplied more than once.",
+                    nameof(args));
+            }
+
+            i++;
+        }
+
+        return services;
     }
 }

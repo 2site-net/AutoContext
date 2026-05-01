@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { createServer, type Server, type Socket } from 'node:net';
+import { IdentifierFactory } from './identifier-factory.js';
 import type { ServerEntry } from './server-entry.js';
 import type { WorkerManager } from './worker-manager.js';
 import type { Logger } from '#types/logger.js';
@@ -68,28 +69,25 @@ export class WorkerControlServer implements vscode.Disposable {
     /**
      * @param workerManager  Lifecycle owner the server delegates spawn
      *                       requests to.
-     * @param entries        Registered worker entries — used to resolve
-     *                       a short id from the wire (e.g. `"workspace"`)
-     *                       to the slot identity used by
-     *                       {@link WorkerManager.ensureRunning}
-     *                       (e.g. `"Worker.Workspace"`).
-     * @param endpointSuffix The per-window isolation suffix shared
-     *                       with {@link WorkerManager}. Pipe name is
-     *                       `autocontext.worker-control-<suffix>`.
-     * @param logger         Logger for diagnostic output. Failures here
-     *                       are best-effort — the server must not crash
-     *                       the host on bad input.
+     * @param entries     Registered worker entries — used to resolve
+     *                    a short id from the wire (e.g. `"workspace"`)
+     *                    to the slot identity used by
+     *                    {@link WorkerManager.ensureRunning}
+     *                    (e.g. `"Worker.Workspace"`).
+     * @param instanceId  Per-window identifier shared with
+     *                    {@link WorkerManager}. Pipe address is
+     *                    `autocontext.worker-control#<instance-id>`.
+     * @param logger      Logger for diagnostic output. Failures here
+     *                    are best-effort — the server must not crash
+     *                    the host on bad input.
      */
     constructor(
         private readonly workerManager: WorkerManager,
         entries: readonly ServerEntry[],
-        endpointSuffix: string,
+        instanceId: string,
         private readonly logger: Logger,
     ) {
-        if (!endpointSuffix) {
-            throw new Error('WorkerControlServer requires a non-empty endpoint suffix.');
-        }
-        this.pipeName = `autocontext.worker-control-${endpointSuffix}`;
+        this.pipeName = IdentifierFactory.createServiceAddress('worker-control', instanceId);
         for (const entry of entries) {
             this.idToIdentity.set(entry.id, entry.getShortName());
         }

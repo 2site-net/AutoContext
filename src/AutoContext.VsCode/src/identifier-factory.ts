@@ -1,27 +1,48 @@
 import { randomUUID } from 'node:crypto';
 
 /**
- * Centralised producer of the random identifiers and pipe names used
- * across the extension. Every value is derived from a fresh UUID and
- * carries 48 bits of entropy — enough that two VS Code windows running
- * side-by-side will never collide on an endpoint suffix or pipe name.
+ * Centralised producer of the per-window identifier and the named-pipe
+ * "service addresses" used across the extension. Pipe addresses follow
+ * the canonical shape `autocontext.<role>#<instance-id>` where:
+ *
+ * - `<role>` names a logical service (`log`, `health-monitor`,
+ *   `worker-control`, `worker-dotnet`, `worker-workspace`, `worker-web`).
+ * - `<instance-id>` is the 12-hex-character per-window identifier
+ *   produced by {@link IdentifierFactory.createInstanceId} and shared
+ *   by every process in one VS Code window so two windows can run
+ *   side-by-side without colliding on pipe names.
+ *
+ * `#` is intentional and shell-safe mid-token in cmd / pwsh / bash
+ * (the comment behaviour only triggers at the start of a token or
+ * after whitespace).
  */
 export class IdentifierFactory {
     /**
-     * Returns a 12-character lowercase-hex identifier (e.g.
-     * `abc123def456`). Used as the per-window endpoint suffix shared
-     * between the extension and the workers it spawns.
+     * Returns a fresh 12-character lowercase-hex per-window identifier
+     * (e.g. `abc123def456`). Generated once at extension activation
+     * and threaded to every server and child process via the
+     * `--instance-id` switch.
      */
-    static createRandomId(): string {
+    static createInstanceId(): string {
         return randomUUID().replace(/-/g, '').slice(0, 12);
     }
 
     /**
-     * Returns a pipe name of the form `<prefix>-<12-hex>` (e.g.
-     * `autocontext-log-abc123def456`). The 12-hex suffix is generated
-     * fresh on every call.
+     * Formats the canonical Windows named-pipe address for a service
+     * hosted in this extension instance:
+     * `autocontext.<role>#<instance-id>`.
+     *
+     * @param role        Service role (e.g. `log`, `health-monitor`,
+     *                    `worker-control`, `worker-dotnet`).
+     * @param instanceId  Per-window id from {@link createInstanceId}.
      */
-    static createRandomName(prefix: string): string {
-        return `${prefix}-${IdentifierFactory.createRandomId()}`;
+    static createServiceAddress(role: string, instanceId: string): string {
+        if (!role || !role.trim()) {
+            throw new Error('Service role must be a non-empty string.');
+        }
+        if (!instanceId || !instanceId.trim()) {
+            throw new Error('Instance id must be a non-empty string.');
+        }
+        return `autocontext.${role}#${instanceId}`;
     }
 }

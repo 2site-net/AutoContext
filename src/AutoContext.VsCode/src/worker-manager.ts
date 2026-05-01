@@ -2,7 +2,6 @@ import * as vscode from 'vscode';
 import { join } from 'node:path';
 import { spawn, type ChildProcess } from 'node:child_process';
 import { createInterface } from 'node:readline';
-import { formatEndpoint } from './endpoint-formatter.js';
 import { IdentifierFactory } from './identifier-factory.js';
 import type { ServerEntry } from './server-entry.js';
 import type { Logger } from '#types/logger.js';
@@ -14,7 +13,7 @@ import type { Logger } from '#types/logger.js';
 interface WorkerSpec {
     /** Short identity used as the output-channel log prefix. */
     readonly identity: string;
-    /** Full pipe name (including the per-window endpoint suffix). */
+    /** Full pipe name (including the per-window instance id). */
     readonly pipeName: string;
     /** Exact stderr line the worker emits once its pipe server is ready. */
     readonly readyMarker: string;
@@ -49,12 +48,12 @@ interface WorkerSlot {
  * Per-window lifecycle manager for the three `AutoContext.Worker.*`
  * processes (Workspace, DotNet, Web).
  *
- * Generates a single random 12-character endpoint suffix at
- * construction time and uses it to build per-window pipe names
- * (e.g. `autocontext.worker-workspace-abc123def456`). The same
- * suffix is later passed to `Mcp.Server` as `--endpoint-suffix` so
- * every process in one window talks on the same pipes while a second
- * window stays isolated.
+ * Workers self-format their own listen address from
+ * `--instance-id <id>` and their compile-time {@link ServerEntry.id}
+ * (e.g. `autocontext.worker-dotnet#abc123def456`). The same
+ * `instance-id` is also passed to `Mcp.Server` so every process in
+ * one window agrees on every pipe address while a second window
+ * stays isolated.
  *
  * `Mcp.Server` itself is _not_ managed here — VS Code spawns it from
  * the {@link vscode.McpStdioServerDefinition} returned by
@@ -68,7 +67,6 @@ interface WorkerSlot {
  * during activation.
  */
 export class WorkerManager implements vscode.Disposable {
-    private readonly endpointSuffix = IdentifierFactory.createRandomId();
     private readonly slots = new Map<string, WorkerSlot>();
     private disposed = false;
 
@@ -77,17 +75,18 @@ export class WorkerManager implements vscode.Disposable {
         private readonly logger: Logger,
         private readonly workspaceRoot: string | undefined,
         private readonly workers: readonly ServerEntry[],
-        private readonly logPipeName?: string,
-        private readonly healthMonitorPipeName?: string,
+        private readonly instanceId: string,
+        private readonly logServiceAddress?: string,
+        private readonly healthMonitorServiceAddress?: string,
     ) {
         for (const spec of this.buildSpecs()) {
             this.slots.set(spec.identity, { spec });
         }
     }
 
-    /** Per-window suffix appended to every pipe name. */
-    getEndpointSuffix(): string {
-        return this.endpointSuffix;
+    /** Per-window instance id propagated to every spawned worker. */
+    getInstanceId(): string {
+        return this.instanceId;
     }
 
     /**
@@ -178,36 +177,38 @@ export class WorkerManager implements vscode.Disposable {
 
         return this.workers.map(entry => {
             const identity = entry.getShortName();
-            const pipe = formatEndpoint(entry.id, this.endpointSuffix);
+            const pipe = IdentifierFactory.createServiceAddress(`worker-${entry.id}`, this.instanceId);
             const serverDir = join(serversPath, entry.name);
 
             const command = entry.type === 'node'
                 ? 'node'
                 : join(serverDir, `${entry.name}${exeSuffix}`);
 
+            // Worker self-formats its listen address from --instance-id
+            // plus its compile-time worker id; no --pipe needed.
             const args: string[] = entry.type === 'node'
-                ? [join(serverDir, 'index.js'), '--pipe', pipe]
-                : ['--pipe', pipe];
+                ? [join(serverDir, 'index.js'), '--instance-id', this.instanceId]
+                : ['--instance-id', this.instanceId];
 
             if (entry.id === 'workspace' && this.workspaceRoot) {
                 args.push('--workspace-root', this.workspaceRoot);
             }
 
-            // Workers that understand --log-pipe stream structured
-            // logger output back over the LogServer's named pipe.
-            // Workers that don't simply ignore the flag.
-            if (this.logPipeName) {
-                args.push('--log-pipe', this.logPipeName);
+            // Workers that understand --service log=<address> stream
+            // structured logger output back over the LogServer's named
+            // pipe. Workers that don't simply ignore the flag.
+            if (this.logServiceAddress) {
+                args.push('--service', `log=${this.logServiceAddress}`);
             }
 
-            // Workers that understand --health-monitor connect to the
-            // extension's HealthMonitorServer named pipe, write their
-            // worker id, and keep the socket open for the lifetime of
-            // the process. The extension uses the socket close to know
-            // the worker exited. Workers that don't understand the
-            // switch simply ignore it.
-            if (this.healthMonitorPipeName) {
-                args.push('--health-monitor', this.healthMonitorPipeName);
+            // Workers that understand --service health-monitor=<address>
+            // connect to the extension's HealthMonitorServer named pipe,
+            // write their worker id, and keep the socket open for the
+            // lifetime of the process. The extension uses the socket
+            // close to know the worker exited. Workers that don't
+            // understand the switch simply ignore it.
+            if (this.healthMonitorServiceAddress) {
+                args.push('--service', `health-monitor=${this.healthMonitorServiceAddress}`);
             }
 
             return {

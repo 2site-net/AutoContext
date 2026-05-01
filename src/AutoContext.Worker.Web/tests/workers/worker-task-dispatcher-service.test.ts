@@ -10,7 +10,7 @@ import { WorkerProtocolChannel } from '#src/workers/worker-protocol-channel.js';
 import { CorrelationScope } from '#src/logging/correlation-scope.js';
 import type { Logger } from '#types/logger.js';
 
-function makeEndpoint(): string {
+function makePipeName(): string {
     const id = randomUUID();
     if (process.platform === 'win32') {
         return `\\\\.\\pipe\\autocontext-test-${id}`;
@@ -97,7 +97,7 @@ describe('WorkerTaskDispatcherService', () => {
     });
 
     async function startService(tasks: McpTask[]): Promise<{ pipe: string; service: WorkerTaskDispatcherService }> {
-        const pipe = makeEndpoint();
+        const pipe = makePipeName();
         const controller = new AbortController();
         const service = new WorkerTaskDispatcherService(
             { pipe, readyMarker: '[test] Ready.' },
@@ -111,7 +111,7 @@ describe('WorkerTaskDispatcherService', () => {
 
     it('throws when the pipe option is blank', () => {
         expect(() => new WorkerTaskDispatcherService({ pipe: '   ', readyMarker: 'x' }, [])).toThrow(
-            /--pipe/,
+            /pipe/,
         );
     });
 
@@ -236,7 +236,7 @@ describe('WorkerTaskDispatcherService', () => {
     });
 
     it('stop() completes promptly when a handler is mid-read', async () => {
-        const pipe = makeEndpoint();
+        const pipe = makePipeName();
         const controller = new AbortController();
         const service = new WorkerTaskDispatcherService(
             { pipe, readyMarker: '[test] Ready.' },
@@ -265,7 +265,7 @@ describe('WorkerTaskDispatcherService', () => {
     });
 
     it('stop() completes promptly when a task is mid-execute', async () => {
-        const pipe = makeEndpoint();
+        const pipe = makePipeName();
         const controller = new AbortController();
         const service = new WorkerTaskDispatcherService(
             { pipe, readyMarker: '[test] Ready.' },
@@ -299,7 +299,7 @@ describe('WorkerTaskDispatcherService', () => {
     it.skipIf(process.platform === 'win32')(
         'recovers from a stale unix socket file left over from a previous run',
         async () => {
-            const pipe = makeEndpoint();
+            const pipe = makePipeName();
 
             // Create a stale inode at the target path — nothing is
             // listening on it, so it simulates a crashed prior run.
@@ -323,7 +323,7 @@ describe('WorkerTaskDispatcherService', () => {
     it.skipIf(process.platform === 'win32')(
         'fails to start when another server is already listening on the unix socket',
         async () => {
-            const pipe = makeEndpoint();
+            const pipe = makePipeName();
 
             // Create a live listener occupying the path.
             const blocker = net.createServer();
@@ -376,7 +376,7 @@ describe('WorkerTaskDispatcherService', () => {
             forCategory() { return logger; },
         };
 
-        const pipe = makeEndpoint();
+        const pipe = makePipeName();
         const controller = new AbortController();
         const service = new WorkerTaskDispatcherService(
             { pipe, readyMarker: '[test] Ready.' },

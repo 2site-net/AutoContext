@@ -15,10 +15,11 @@ public sealed class WorkerClientTests
     public async Task Should_round_trip_request_and_response()
     {
         // Arrange
-        var endpoint = PipeServerHarness.UniqueEndpoint();
+        var role = PipeServerHarness.UniqueRole();
+        var pipeName = PipeServerHarness.AddressFor(role);
         var client = new WorkerClient(TimeSpan.FromSeconds(5));
         var serverTask = PipeServerHarness.RunOneShotAsync(
-            endpoint,
+            pipeName,
             handler: requestBytes =>
             {
                 var request = JsonSerializer.Deserialize<TaskRequest>(
@@ -43,7 +44,7 @@ public sealed class WorkerClientTests
 
         // Act
         var response = await client.InvokeAsync(
-            endpoint,
+            role,
             BuildRequest("analyze_csharp_coding_style"),
             TestContext.Current.CancellationToken);
         await serverTask;
@@ -60,16 +61,17 @@ public sealed class WorkerClientTests
     public async Task Should_return_error_when_worker_closes_pipe_without_response()
     {
         // Arrange
-        var endpoint = PipeServerHarness.UniqueEndpoint();
+        var role = PipeServerHarness.UniqueRole();
+        var pipeName = PipeServerHarness.AddressFor(role);
         var client = new WorkerClient(TimeSpan.FromSeconds(5));
         var serverTask = PipeServerHarness.RunOneShotAsync(
-            endpoint,
+            pipeName,
             handler: _ => null,
             ct: TestContext.Current.CancellationToken);
 
         // Act
         var response = await client.InvokeAsync(
-            endpoint,
+            role,
             BuildRequest("task_x"),
             TestContext.Current.CancellationToken);
         await serverTask;
@@ -85,14 +87,15 @@ public sealed class WorkerClientTests
     public async Task Should_return_error_when_wait_deadline_elapses()
     {
         // Arrange
-        var endpoint = PipeServerHarness.UniqueEndpoint();
+        var role = PipeServerHarness.UniqueRole();
+        var pipeName = PipeServerHarness.AddressFor(role);
         var client = new WorkerClient(TimeSpan.FromMilliseconds(150));
         using var serverGate = new CancellationTokenSource();
-        var serverTask = RunHangingServerAsync(endpoint, serverGate.Token);
+        var serverTask = RunHangingServerAsync(pipeName, serverGate.Token);
 
         // Act
         var response = await client.InvokeAsync(
-            endpoint,
+            role,
             BuildRequest("task_hung"),
             TestContext.Current.CancellationToken);
 
@@ -109,16 +112,17 @@ public sealed class WorkerClientTests
     public async Task Should_return_error_when_response_is_invalid_json()
     {
         // Arrange
-        var endpoint = PipeServerHarness.UniqueEndpoint();
+        var role = PipeServerHarness.UniqueRole();
+        var pipeName = PipeServerHarness.AddressFor(role);
         var client = new WorkerClient(TimeSpan.FromSeconds(5));
         var serverTask = PipeServerHarness.RunOneShotAsync(
-            endpoint,
+            pipeName,
             handler: _ => "not json"u8.ToArray(),
             ct: TestContext.Current.CancellationToken);
 
         // Act
         var response = await client.InvokeAsync(
-            endpoint,
+            role,
             BuildRequest("task_bad"),
             TestContext.Current.CancellationToken);
         await serverTask;
@@ -133,14 +137,14 @@ public sealed class WorkerClientTests
     public async Task Should_propagate_caller_cancellation()
     {
         // Arrange
-        var endpoint = PipeServerHarness.UniqueEndpoint();
+        var role = PipeServerHarness.UniqueRole();
         var client = new WorkerClient(TimeSpan.FromSeconds(30));
         using var cts = new CancellationTokenSource();
         await cts.CancelAsync();
 
         // Act + Assert
         await Assert.ThrowsAnyAsync<OperationCanceledException>(
-            () => client.InvokeAsync(endpoint, BuildRequest("task_x"), cts.Token));
+            () => client.InvokeAsync(role, BuildRequest("task_x"), cts.Token));
     }
 
     [Fact]
@@ -152,7 +156,7 @@ public sealed class WorkerClientTests
     }
 
     [Fact]
-    public async Task Should_reject_null_or_empty_endpoint()
+    public async Task Should_reject_null_or_empty_role()
     {
         // Arrange
         var client = new WorkerClient();
@@ -190,12 +194,12 @@ public sealed class WorkerClientTests
         CorrelationId = "corr-test",
     };
 
-    private static Task RunHangingServerAsync(string endpoint, CancellationToken gate) =>
+    private static Task RunHangingServerAsync(string pipeName, CancellationToken gate) =>
         Task.Run(
             async () =>
             {
                 var server = new NamedPipeServerStream(
-                    endpoint,
+                    pipeName,
                     PipeDirection.InOut,
                     maxNumberOfServerInstances: 1,
                     PipeTransmissionMode.Byte,

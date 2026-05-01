@@ -48,13 +48,13 @@ internal sealed class WorkerProcess : IAsyncDisposable
         Justification = "Ownership of the Process is transferred to the returned WorkerProcess, which disposes it via DisposeAsync. Failure paths below dispose the process explicitly before throwing.")]
     internal static async Task<WorkerProcess> StartAsync(
         string executablePath,
-        string pipeName,
+        string instanceId,
         string readyMarker,
         CancellationToken cancellationToken,
         IReadOnlyList<string>? extraArguments = null)
     {
         ArgumentException.ThrowIfNullOrEmpty(executablePath);
-        ArgumentException.ThrowIfNullOrEmpty(pipeName);
+        ArgumentException.ThrowIfNullOrEmpty(instanceId);
         ArgumentException.ThrowIfNullOrEmpty(readyMarker);
 
         if (!File.Exists(executablePath))
@@ -83,8 +83,8 @@ internal sealed class WorkerProcess : IAsyncDisposable
 
         try
         {
-            process.StartInfo.ArgumentList.Add("--pipe");
-            process.StartInfo.ArgumentList.Add(pipeName);
+            process.StartInfo.ArgumentList.Add("--instance-id");
+            process.StartInfo.ArgumentList.Add(instanceId);
 
             if (extraArguments is not null)
             {

@@ -52,9 +52,10 @@ public sealed class EditorConfigBatcherTests
     public async Task Should_send_union_of_keys_and_slice_per_task()
     {
         // Arrange
-        var endpoint = PipeServerHarness.UniqueEndpoint();
+        var role = PipeServerHarness.UniqueRole();
+        var pipeName = PipeServerHarness.AddressFor(role);
         var client = new WorkerClient(TimeSpan.FromSeconds(5));
-        var batcher = new EditorConfigBatcher(client, endpoint, Logger);
+        var batcher = new EditorConfigBatcher(client, role, Logger);
         var tasks = new[]
         {
             BuildTask("task_a", "csharp_prefer_braces", "dotnet_sort_system_directives_first"),
@@ -63,7 +64,7 @@ public sealed class EditorConfigBatcherTests
         string[]? observedKeys = null;
         string? observedPath = null;
         var serverTask = PipeServerHarness.RunOneShotAsync(
-            endpoint,
+            pipeName,
             handler: requestBytes =>
             {
                 var request = JsonSerializer.Deserialize<JsonElement>(requestBytes);
@@ -113,12 +114,13 @@ public sealed class EditorConfigBatcherTests
     public async Task Should_degrade_to_empty_slices_on_worker_error()
     {
         // Arrange
-        var endpoint = PipeServerHarness.UniqueEndpoint();
+        var role = PipeServerHarness.UniqueRole();
+        var pipeName = PipeServerHarness.AddressFor(role);
         var client = new WorkerClient(TimeSpan.FromSeconds(5));
-        var batcher = new EditorConfigBatcher(client, endpoint, Logger);
+        var batcher = new EditorConfigBatcher(client, role, Logger);
         var tasks = new[] { BuildTask("task_a", "csharp_prefer_braces") };
         var serverTask = PipeServerHarness.RunOneShotAsync(
-            endpoint,
+            pipeName,
             handler: _ =>
             {
                 var serverResponse = new TaskResponse
@@ -153,12 +155,13 @@ public sealed class EditorConfigBatcherTests
     public async Task Should_degrade_when_worker_returns_response_for_unexpected_task()
     {
         // Arrange
-        var endpoint = PipeServerHarness.UniqueEndpoint();
+        var role = PipeServerHarness.UniqueRole();
+        var pipeName = PipeServerHarness.AddressFor(role);
         var client = new WorkerClient(TimeSpan.FromSeconds(5));
-        var batcher = new EditorConfigBatcher(client, endpoint, Logger);
+        var batcher = new EditorConfigBatcher(client, role, Logger);
         var tasks = new[] { BuildTask("task_a", "csharp_prefer_braces") };
         var serverTask = PipeServerHarness.RunOneShotAsync(
-            endpoint,
+            pipeName,
             handler: _ =>
             {
                 var serverResponse = new TaskResponse
@@ -194,7 +197,7 @@ public sealed class EditorConfigBatcherTests
     {
         // Arrange
         var client = new WorkerClient(TimeSpan.FromMilliseconds(150));
-        var batcher = new EditorConfigBatcher(client, "autocontext-test-unbound-" + Guid.NewGuid().ToString("N"), Logger);
+        var batcher = new EditorConfigBatcher(client, "unbound-" + Guid.NewGuid().ToString("N"), Logger);
         var tasks = new[] { BuildTask("task_a", "csharp_prefer_braces") };
 
         // Act
@@ -215,12 +218,13 @@ public sealed class EditorConfigBatcherTests
     public async Task Should_surface_failure_when_worker_output_is_not_object()
     {
         // Arrange
-        var endpoint = PipeServerHarness.UniqueEndpoint();
+        var role = PipeServerHarness.UniqueRole();
+        var pipeName = PipeServerHarness.AddressFor(role);
         var client = new WorkerClient(TimeSpan.FromSeconds(5));
-        var batcher = new EditorConfigBatcher(client, endpoint, Logger);
+        var batcher = new EditorConfigBatcher(client, role, Logger);
         var tasks = new[] { BuildTask("task_a", "csharp_prefer_braces") };
         var serverTask = PipeServerHarness.RunOneShotAsync(
-            endpoint,
+            pipeName,
             handler: _ =>
             {
                 var serverResponse = new TaskResponse

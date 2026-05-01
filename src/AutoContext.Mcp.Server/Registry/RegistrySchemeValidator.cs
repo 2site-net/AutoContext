@@ -20,7 +20,7 @@ using Microsoft.Extensions.Logging;
 ///   <item><description><b>Schema</b>: registry doesn't conform to the JSON Schema.</description></item>
 ///   <item><description><b>Duplicate tool name</b>: two MCP Tools share a <c>name</c> anywhere in the registry.</description></item>
 ///   <item><description><b>Duplicate task name</b>: two MCP Tasks share a <c>name</c> within the same tool.</description></item>
-///   <item><description><b>Duplicate worker name</b>: two worker entries share a <c>name</c> or an <c>endpoint</c>.</description></item>
+///   <item><description><b>Duplicate worker name</b>: two worker entries share a <c>name</c> or an <c>id</c>.</description></item>
 ///   <item><description><b>Empty collections</b>: registry has no workers, a worker has no tools, or a tool has no tasks.</description></item>
 ///   <item><description><b>Schema version shape</b>: <c>schemaVersion</c> isn't parseable as a non-negative integer.</description></item>
 /// </list>

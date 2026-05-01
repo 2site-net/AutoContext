@@ -95,7 +95,8 @@ public sealed class ToolInvokerTests
     public async Task Should_inject_per_task_editorconfig_slice()
     {
         // Arrange
-        var workspaceEndpoint = PipeServerHarness.UniqueEndpoint();
+        var workspaceRole = PipeServerHarness.UniqueRole();
+        var workspacePipeName = PipeServerHarness.AddressFor(workspaceRole);
         var toolWorkerId = PipeServerHarness.UniqueWorkerId();
         var toolPipeName = PipeServerHarness.PipeNameFor(toolWorkerId);
 
@@ -106,11 +107,11 @@ public sealed class ToolInvokerTests
             BuildTask("plain_task"));
 
         var workerClient = new WorkerClient(TimeSpan.FromSeconds(5));
-        var batcher = new EditorConfigBatcher(workerClient, workspaceEndpoint, NullLogger<EditorConfigBatcher>.Instance);
+        var batcher = new EditorConfigBatcher(workerClient, workspaceRole, NullLogger<EditorConfigBatcher>.Instance);
         var invoker = new ToolInvoker(workerClient, batcher);
 
         var workspaceTask = PipeServerHarness.RunOneShotAsync(
-            workspaceEndpoint,
+            workspacePipeName,
             handler: requestBytes =>
             {
                 var request = JsonSerializer.Deserialize<TaskRequest>(

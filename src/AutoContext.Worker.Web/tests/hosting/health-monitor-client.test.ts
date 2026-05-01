@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { HealthMonitorClient } from '#src/hosting/health-monitor-client.js';
 
-function makeEndpoint(): string {
+function makePipeName(): string {
     if (process.platform === 'win32') {
         return `\\\\.\\pipe\\actx-health-test-${randomUUID()}`;
     }
@@ -86,7 +86,7 @@ describe('HealthMonitorClient', () => {
     });
 
     it('writes the worker id and keeps the socket open', async () => {
-        const pipePath = makeEndpoint();
+        const pipePath = makePipeName();
         const ps = await startServer(pipePath);
         servers.push(ps);
 
@@ -106,7 +106,7 @@ describe('HealthMonitorClient', () => {
     });
 
     it('disconnects on dispose', async () => {
-        const pipePath = makeEndpoint();
+        const pipePath = makePipeName();
         const ps = await startServer(pipePath);
         servers.push(ps);
 
@@ -133,7 +133,7 @@ describe('HealthMonitorClient', () => {
     });
 
     it('does not throw when no server is listening', async () => {
-        const pipePath = makeEndpoint();
+        const pipePath = makePipeName();
         const client = new HealthMonitorClient(pipePath, 'web');
         clients.push(client);
 

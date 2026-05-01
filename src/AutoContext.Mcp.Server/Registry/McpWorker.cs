@@ -7,7 +7,9 @@ using AutoContext.Mcp.Server.Workers.Transport;
 /// <summary>
 /// One worker entry inside the registry — the worker's short identifier,
 /// full project name, and the MCP Tool definitions it exposes. The
-/// transport <see cref="Endpoint"/> is derived from <see cref="Id"/>.
+/// transport <see cref="Role"/> is derived from <see cref="Id"/>, and the
+/// pipe service address is then formatted via
+/// <see cref="ServiceAddressFormatter.Format"/>.
 /// </summary>
 public sealed partial record McpWorker
 {
@@ -39,8 +41,10 @@ public sealed partial record McpWorker
     /// <summary>Full project name (e.g. <c>"AutoContext.Worker.DotNet"</c>).</summary>
     public required string Name { get; init; }
 
-    /// <summary>Transport-agnostic endpoint identifier (today: a named pipe name).</summary>
-    public string Endpoint => EndpointFormatter.Format(Id);
+    /// <summary>Logical role (e.g. <c>"worker-dotnet"</c>) used to
+    /// format this worker's pipe address via
+    /// <see cref="ServiceAddressFormatter.Format"/>.</summary>
+    public string Role => $"worker-{Id}";
 
     /// <summary>MCP Tool definitions exposed by this worker.</summary>
     public required IReadOnlyList<McpToolDefinition> Tools { get; init; }

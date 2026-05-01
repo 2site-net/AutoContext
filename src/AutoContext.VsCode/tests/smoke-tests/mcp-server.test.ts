@@ -16,19 +16,19 @@ suite('MCP Server Provider Smoke Tests', () => {
         assert.ok(defs.length > 0, 'No MCP server definitions returned');
     });
 
-    test('every definition should carry the endpoint-suffix and health-monitor args', async () => {
+    test('every definition should carry the instance-id and health-monitor service args', async () => {
         const { exports } = await activatedExtension();
 
         const defs = await exports.mcpServerProvider.provideMcpServerDefinitions();
 
         const missing = defs.filter((d: { label: string; args: string[] }) =>
-            !d.args.includes('--endpoint-suffix') ||
-            !d.args.includes('--health-monitor'));
+            !d.args.includes('--instance-id') ||
+            !d.args.some((a: string) => a.startsWith('health-monitor=')));
 
         assert.strictEqual(
             missing.length,
             0,
-            `Definitions missing --endpoint-suffix or --health-monitor: ${missing.map((d: { label: string }) => d.label).join(', ')}`,
+            `Definitions missing --instance-id or --service health-monitor=...: ${missing.map((d: { label: string }) => d.label).join(', ')}`,
         );
     });
 

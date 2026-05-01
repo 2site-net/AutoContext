@@ -32,7 +32,7 @@ public sealed class RegistryLoaderTests
 
         // Assert
         Assert.Multiple(
-            () => Assert.Equal("autocontext.worker-dotnet", dotnet.Endpoint),
+            () => Assert.Equal("worker-dotnet", dotnet.Role),
             () => Assert.True(csharp.Parameters["content"].Required),
             () => Assert.False(csharp.Parameters["originalPath"].Required),
             () => Assert.Contains(csharp.Tasks, t => t.Name == "analyze_csharp_coding_style"));

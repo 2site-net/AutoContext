@@ -51,7 +51,7 @@ suite('Health Monitor Smoke Tests', () => {
         const { exports } = await activatedExtension();
         const name = exports.healthMonitor.getPipeName();
 
-        assert.match(name, /^autocontext-health-/, `Expected an autocontext-health-* pipe name, got '${name}'`);
+        assert.match(name, /^autocontext\.health-monitor#/, `Expected an autocontext.health-monitor#* pipe name, got '${name}'`);
     });
 
     test('should accept a pipe connection and report the worker as running', async () => {

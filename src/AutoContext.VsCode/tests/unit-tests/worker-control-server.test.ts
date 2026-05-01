@@ -72,13 +72,13 @@ describe('WorkerControlServer', () => {
         server.dispose();
     });
 
-    it('exposes a deterministic pipe name keyed off the suffix', () => {
-        expect(server.getPipeName()).toBe(`autocontext.worker-control-${SUFFIX}`);
+    it('exposes a deterministic pipe name keyed off the instance id', () => {
+        expect(server.getPipeName()).toBe(`autocontext.worker-control#${SUFFIX}`);
     });
 
-    it('rejects construction when endpoint suffix is empty', () => {
+    it('rejects construction when instance id is empty', () => {
         expect(() => new WorkerControlServer(workerManager, entries, '', logger))
-            .toThrow(/non-empty endpoint suffix/);
+            .toThrow(/Instance id must be a non-empty string/);
     });
 
     it('responds with status: ready and forwards the slot identity to ensureRunning', async () => {

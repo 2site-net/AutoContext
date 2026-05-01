@@ -14,7 +14,7 @@ describe('HealthMonitorServer', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         emittersBefore = __emitterInstances.length;
-        monitor = new HealthMonitorServer(fakeOutputChannel);
+        monitor = new HealthMonitorServer(fakeOutputChannel, '0123456789ab');
         monitor.start();
     });
 
@@ -84,6 +84,6 @@ describe('HealthMonitorServer', () => {
     });
 
     it('should return a pipe name', () => {
-        expect(monitor.getPipeName()).toMatch(/^autocontext-health-[a-f0-9]{12}$/);
+        expect(monitor.getPipeName()).toMatch(/^autocontext\.health-monitor#[a-f0-9]{12}$/);
     });
 });

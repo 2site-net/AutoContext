@@ -27,6 +27,7 @@ import { HealthMonitorServer } from './health-monitor-server.js';
 import { LogServer } from './log-server.js';
 import { WorkerControlServer } from './worker-control-server.js';
 import { OutputChannelLogger } from './output-channel-logger.js';
+import { IdentifierFactory } from './identifier-factory.js';
 import { LogCategory } from '#types/logger.js';
 
 let subscriptions: vscode.Disposable[] | undefined;
@@ -64,13 +65,14 @@ export async function activate(context: vscode.ExtensionContext) {
             .filter((id): id is string => id !== undefined),
     );
     const workerEntries = serversManifest.servers.filter(s => workerIds.has(s.id));
-    const logServer = new LogServer(rootLogger.forCategory(LogCategory.LogServer));
+    const instanceId = IdentifierFactory.createInstanceId();
+    const logServer = new LogServer(rootLogger.forCategory(LogCategory.LogServer), instanceId);
     logServer.start();
     context.subscriptions.push(logServer);
-    const healthMonitor = new HealthMonitorServer(rootLogger.forCategory(LogCategory.HealthMonitor));
-    const workerManager = new WorkerManager(context.extensionPath, rootLogger.forCategory(LogCategory.WorkerManager), vscode.workspace.workspaceFolders?.[0]?.uri.fsPath, workerEntries, logServer.getPipeName(), healthMonitor.getPipeName());
-    const workerControlServer = new WorkerControlServer(workerManager, workerEntries, workerManager.getEndpointSuffix(), rootLogger.forCategory(LogCategory.WorkerControl));
-    const mcpServerProvider = new McpServerProvider(context.extensionPath, version, didChangeEmitter.event, mcpToolsManifest, workerManager, serversManifest, configManager, logServer.getPipeName(), healthMonitor.getPipeName(), workerControlServer.getPipeName(), rootLogger.forCategory(LogCategory.McpServerProvider));
+    const healthMonitor = new HealthMonitorServer(rootLogger.forCategory(LogCategory.HealthMonitor), instanceId);
+    const workerManager = new WorkerManager(context.extensionPath, rootLogger.forCategory(LogCategory.WorkerManager), vscode.workspace.workspaceFolders?.[0]?.uri.fsPath, workerEntries, instanceId, logServer.getPipeName(), healthMonitor.getPipeName());
+    const workerControlServer = new WorkerControlServer(workerManager, workerEntries, instanceId, rootLogger.forCategory(LogCategory.WorkerControl));
+    const mcpServerProvider = new McpServerProvider(context.extensionPath, version, didChangeEmitter.event, mcpToolsManifest, serversManifest, configManager, instanceId, logServer.getPipeName(), healthMonitor.getPipeName(), workerControlServer.getPipeName(), rootLogger.forCategory(LogCategory.McpServerProvider));
     const stateResolver = new TreeViewStateResolver(workspaceContextDetector);
 
     // Pre-read the config so tree providers get the real config on first render.

@@ -3,7 +3,6 @@ import { join } from 'node:path';
 import { existsSync } from 'node:fs';
 import type { McpToolsManifest } from './mcp-tools-manifest.js';
 import type { ServersManifest } from './servers-manifest.js';
-import type { WorkerManager } from './worker-manager.js';
 import type { AutoContextConfigManager } from './autocontext-config.js';
 import type { AutoContextConfig } from '#types/autocontext-config.js';
 import { isToolEnabled } from './config-context-projector.js';
@@ -37,12 +36,12 @@ export class McpServerProvider implements vscode.McpServerDefinitionProvider {
         version: string,
         onDidChange: vscode.Event<void>,
         private readonly toolsManifest: McpToolsManifest,
-        private readonly workerManager: WorkerManager,
         serversManifest: ServersManifest,
         configManager: AutoContextConfigManager,
-        private readonly logPipeName: string,
-        private readonly healthMonitorPipeName: string,
-        private readonly workerControlPipeName: string,
+        private readonly instanceId: string,
+        private readonly logServiceAddress: string,
+        private readonly healthMonitorServiceAddress: string,
+        private readonly workerControlServiceAddress: string,
         private readonly logger: Logger,
     ) {
         const mcpServerEntry = serversManifest.mcpServer;
@@ -72,20 +71,21 @@ export class McpServerProvider implements vscode.McpServerDefinitionProvider {
             return [];
         }
 
-        // --log-pipe lets Mcp.Server stream structured logs over the
-        // extension's LogServer pipe (its own AutoContext Output channel),
-        // matching the workers' wire-up. Mcp.Server falls back to stderr
-        // automatically when the switch is absent (e.g. standalone runs).
-        // --health-monitor announces Mcp.Server's liveness to the
-        // extension-side HealthMonitorServer; held open for the
-        // lifetime of the host.
-        // --worker-control-pipe lets Mcp.Server ask the extension to
-        // ensure a worker is running before it dispatches a tool call.
+        // --instance-id is the per-window identity Mcp.Server uses to
+        //   self-format its outbound worker addresses (one source of
+        //   truth shared with the extension and every worker).
+        // --service log=<address> streams Mcp.Server's structured logs
+        //   to the extension's LogServer (own AutoContext Output channel).
+        // --service health-monitor=<address> announces Mcp.Server's
+        //   liveness; held open for the lifetime of the host.
+        // --service worker-control=<address> lets Mcp.Server ask the
+        //   extension to ensure a worker is running before it
+        //   dispatches a tool call.
         const args: string[] = [
-            '--endpoint-suffix', this.workerManager.getEndpointSuffix(),
-            '--log-pipe', this.logPipeName,
-            '--health-monitor', this.healthMonitorPipeName,
-            '--worker-control-pipe', this.workerControlPipeName,
+            '--instance-id', this.instanceId,
+            '--service', `log=${this.logServiceAddress}`,
+            '--service', `health-monitor=${this.healthMonitorServiceAddress}`,
+            '--service', `worker-control=${this.workerControlServiceAddress}`,
         ];
 
         this.logger.debug(`Returning Mcp.Server definition '${mcpServerDefinitionLabel}' (v${this.version})`);

@@ -75,7 +75,7 @@ public sealed partial class ToolInvoker
         ArgumentException.ThrowIfNullOrEmpty(correlationId);
 
         var startTimestamp = Stopwatch.GetTimestamp();
-        LogToolDispatchStarted(_logger, tool.Name, worker.Endpoint, tool.Tasks.Count, correlationId);
+        LogToolDispatchStarted(_logger, tool.Name, worker.Role, tool.Tasks.Count, correlationId);
 
         var tasks = tool.Tasks;
         var slices = await ResolveEditorConfigAsync(data, tasks, correlationId, ct).ConfigureAwait(false);
@@ -84,7 +84,7 @@ public sealed partial class ToolInvoker
 
         if (tasks.Count == 1)
         {
-            await DispatchOneAsync(worker.Endpoint, tasks, data, slices, entries, 0, correlationId, ct)
+            await DispatchOneAsync(worker.Role, tasks, data, slices, entries, 0, correlationId, ct)
                 .ConfigureAwait(false);
         }
         else if (tasks.Count > 1)
@@ -93,7 +93,7 @@ public sealed partial class ToolInvoker
 
             for (var i = 0; i < tasks.Count; i++)
             {
-                pending[i] = DispatchOneAsync(worker.Endpoint, tasks, data, slices, entries, i, correlationId, ct);
+                pending[i] = DispatchOneAsync(worker.Role, tasks, data, slices, entries, i, correlationId, ct);
             }
 
             await Task.WhenAll(pending).ConfigureAwait(false);
@@ -144,7 +144,7 @@ public sealed partial class ToolInvoker
     }
 
     private async Task DispatchOneAsync(
-        string endpoint,
+        string role,
         IReadOnlyList<McpTaskDefinition> tasks,
         JsonElement data,
         IReadOnlyDictionary<string, IReadOnlyDictionary<string, string>> slices,
@@ -170,14 +170,14 @@ public sealed partial class ToolInvoker
 
         var taskStart = Stopwatch.GetTimestamp();
 
-        LogTaskDispatchStarted(_logger, task.Name, endpoint, correlationId);
+        LogTaskDispatchStarted(_logger, task.Name, role, correlationId);
 
         var response = await _workerClient
-            .InvokeAsync(endpoint, request, ct)
+            .InvokeAsync(role, request, ct)
             .ConfigureAwait(false);
 
         var elapsedMs = ElapsedMs(taskStart);
-        LogTaskDispatchCompleted(_logger, task.Name, endpoint, response.Status, elapsedMs, correlationId);
+        LogTaskDispatchCompleted(_logger, task.Name, role, response.Status, elapsedMs, correlationId);
 
         entries[index] = new ToolResultComposerInput
         {
@@ -238,11 +238,11 @@ public sealed partial class ToolInvoker
     }
 
     [LoggerMessage(EventId = 1, Level = LogLevel.Debug,
-        Message = "Dispatching tool '{ToolName}' to endpoint '{Endpoint}' with {TaskCount} task(s). CorrelationId={CorrelationId}")]
+        Message = "Dispatching tool '{ToolName}' to role '{Role}' with {TaskCount} task(s). CorrelationId={CorrelationId}")]
     private static partial void LogToolDispatchStarted(
         ILogger logger,
         string toolName,
-        string endpoint,
+        string role,
         int taskCount,
         string correlationId);
 
@@ -256,19 +256,19 @@ public sealed partial class ToolInvoker
         string correlationId);
 
     [LoggerMessage(EventId = 3, Level = LogLevel.Debug,
-        Message = "Dispatching MCP task '{TaskName}' to endpoint '{Endpoint}'. CorrelationId={CorrelationId}")]
+        Message = "Dispatching MCP task '{TaskName}' to role '{Role}'. CorrelationId={CorrelationId}")]
     private static partial void LogTaskDispatchStarted(
         ILogger logger,
         string taskName,
-        string endpoint,
+        string role,
         string correlationId);
 
     [LoggerMessage(EventId = 4, Level = LogLevel.Debug,
-        Message = "Completed MCP task '{TaskName}' from endpoint '{Endpoint}' with status '{Status}' in {ElapsedMs}ms. CorrelationId={CorrelationId}")]
+        Message = "Completed MCP task '{TaskName}' from role '{Role}' with status '{Status}' in {ElapsedMs}ms. CorrelationId={CorrelationId}")]
     private static partial void LogTaskDispatchCompleted(
         ILogger logger,
         string taskName,
-        string endpoint,
+        string role,
         string status,
         int elapsedMs,
         string correlationId);

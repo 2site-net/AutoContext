@@ -6,7 +6,6 @@ using System.Text.Json;
 using AutoContext.Mcp.Server.Registry;
 using AutoContext.Mcp.Server.Workers;
 using AutoContext.Mcp.Server.Workers.Protocol;
-using AutoContext.Mcp.Server.Workers.Transport;
 
 using Microsoft.Extensions.Logging;
 
@@ -19,32 +18,32 @@ using Microsoft.Extensions.Logging;
 /// </summary>
 public sealed partial class EditorConfigBatcher
 {
-    /// <summary>The pipe-name value used by Worker.Workspace.</summary>
-    public static readonly string DefaultWorkspaceEndpoint = EndpointFormatter.Format("workspace");
+    /// <summary>The role used to format Worker.Workspace's pipe address.</summary>
+    public const string DefaultWorkspaceRole = "worker-workspace";
 
     /// <summary>The MCP Task name on Worker.Workspace that resolves EditorConfig keys.</summary>
     public const string ResolveTaskName = "get_editorconfig_rules";
 
     private readonly WorkerClient _workerClient;
-    private readonly string _workspaceEndpoint;
+    private readonly string _workspaceRole;
     private readonly ILogger<EditorConfigBatcher> _logger;
 
     public EditorConfigBatcher(WorkerClient workerClient, ILogger<EditorConfigBatcher> logger)
-        : this(workerClient, DefaultWorkspaceEndpoint, logger)
+        : this(workerClient, DefaultWorkspaceRole, logger)
     {
     }
 
     public EditorConfigBatcher(
         WorkerClient workerClient,
-        string workspaceEndpoint,
+        string workspaceRole,
         ILogger<EditorConfigBatcher> logger)
     {
         ArgumentNullException.ThrowIfNull(workerClient);
-        ArgumentException.ThrowIfNullOrEmpty(workspaceEndpoint);
+        ArgumentException.ThrowIfNullOrEmpty(workspaceRole);
         ArgumentNullException.ThrowIfNull(logger);
 
         _workerClient = workerClient;
-        _workspaceEndpoint = workspaceEndpoint;
+        _workspaceRole = workspaceRole;
         _logger = logger;
     }
 
@@ -92,7 +91,7 @@ public sealed partial class EditorConfigBatcher
         };
 
         var response = await _workerClient
-            .InvokeAsync(_workspaceEndpoint, request, ct)
+            .InvokeAsync(_workspaceRole, request, ct)
             .ConfigureAwait(false);
 
         if (!string.Equals(response.McpTask, ResolveTaskName, StringComparison.Ordinal))

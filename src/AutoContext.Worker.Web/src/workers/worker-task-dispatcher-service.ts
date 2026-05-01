@@ -42,7 +42,7 @@ export class WorkerTaskDispatcherService {
 
     constructor(options: WorkerHostOptions, tasks: readonly McpTask[], logger?: Logger) {
         if (options.pipe.trim() === '') {
-            throw new Error('Missing required configuration: --pipe');
+            throw new Error('Missing required configuration: pipe');
         }
         if (options.readyMarker.trim() === '') {
             throw new Error('Missing required configuration: readyMarker');

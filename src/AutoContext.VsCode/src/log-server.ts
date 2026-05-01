@@ -53,14 +53,17 @@ interface JsonLogEntry {
  * degrades gracefully.
  */
 export class LogServer implements vscode.Disposable {
-    private readonly pipeName = IdentifierFactory.createRandomName('autocontext-log');
+    private readonly pipeName: string;
     private readonly readers = new Set<Interface>();
     private readonly sockets = new Set<Socket>();
     private server: Server | undefined;
 
     constructor(
         private readonly logger: Logger,
-    ) {}
+        instanceId: string,
+    ) {
+        this.pipeName = IdentifierFactory.createServiceAddress('log', instanceId);
+    }
 
     /** Pipe name workers must connect to. */
     getPipeName(): string {

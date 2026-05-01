@@ -4,7 +4,8 @@
  * connections.
  *
  * Each `AutoContext.Worker.*` process supplies an instance. `pipe`
- * normally comes from the `--pipe` command-line argument.
+ * is computed from the `--instance-id` command-line argument and the
+ * worker's compile-time worker id.
  * `readyMarker` is process-specific (e.g. `[AutoContext.Worker.Web] Ready.`)
  * and is scraped from the worker's stderr by the parent process to detect
  * that the pipe is up.
@@ -27,7 +28,7 @@ export interface WorkerHostOptions {
      * Optional named pipe the worker connects to for streaming
      * structured log records (NDJSON) to the parent process. When
      * omitted (the worker is launched standalone, or the parent did
-     * not pass `--log-pipe`), log output falls back to stderr.
+     * not pass `--service log=<address>`), log output falls back to stderr.
      */
     readonly logPipe?: string;
 

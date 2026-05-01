@@ -13,6 +13,8 @@ vi.mock('node:child_process', () => ({
 // Import after mocks so the module picks up the mocked spawn.
 const { WorkerManager } = await import('../../src/worker-manager');
 
+const INSTANCE_ID = '0123456789ab';
+
 const fakeWorkers: ServerEntry[] = [
     new ServerEntry('workspace', 'AutoContext.Worker.Workspace', 'dotnet'),
     new ServerEntry('dotnet', 'AutoContext.Worker.DotNet', 'dotnet'),
@@ -50,21 +52,21 @@ describe('WorkerManager', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         spawnMock.mockImplementation(() => createFakeChild());
-        manager = new WorkerManager('/ext', logger, '/workspace', fakeWorkers);
+        manager = new WorkerManager('/ext', logger, '/workspace', fakeWorkers, INSTANCE_ID);
     });
 
     afterEach(() => {
         manager.dispose();
     });
 
-    it('should generate a 12-character hex endpoint suffix', () => {
-        expect(manager.getEndpointSuffix()).toMatch(/^[0-9a-f]{12}$/);
+    it('should expose the instance id', () => {
+        expect(manager.getInstanceId()).toBe(INSTANCE_ID);
     });
 
-    it('should give a distinct suffix per instance', () => {
-        const other = new WorkerManager('/ext', logger, '/workspace', fakeWorkers);
+    it('should accept a different instance id per construction', () => {
+        const other = new WorkerManager('/ext', logger, '/workspace', fakeWorkers, 'cafebabe1234');
 
-        expect(other.getEndpointSuffix()).not.toBe(manager.getEndpointSuffix());
+        expect(other.getInstanceId()).not.toBe(manager.getInstanceId());
 
         other.dispose();
     });
@@ -75,18 +77,25 @@ describe('WorkerManager', () => {
         expect(spawnMock).toHaveBeenCalledTimes(3);
     });
 
-    it('should pass --pipe with the suffixed pipe name to every worker', () => {
+    it('should pass --instance-id and a worker-role pipe address to every worker', () => {
         ensureAll(manager);
 
-        const suffix = manager.getEndpointSuffix();
+        const id = manager.getInstanceId();
         const commands = spawnMock.mock.calls.map(c => ({ cmd: c[0] as string, args: c[1] as string[] }));
         const workspaceCall = commands.find(c => c.cmd.includes('Worker.Workspace'));
         const dotnetCall = commands.find(c => c.cmd.includes('Worker.DotNet'));
         const webCall = commands.find(c => c.cmd === 'node');
 
-        expect(workspaceCall?.args).toContain(`autocontext.worker-workspace-${suffix}`);
-        expect(dotnetCall?.args).toContain(`autocontext.worker-dotnet-${suffix}`);
-        expect(webCall?.args).toContain(`autocontext.worker-web-${suffix}`);
+        for (const call of [workspaceCall, dotnetCall, webCall]) {
+            expect(call?.args).toContain('--instance-id');
+            expect(call?.args).toContain(id);
+        }
+
+        // Workers self-format their listen address from instance-id +
+        // worker-id; the extension no longer passes --pipe.
+        for (const call of [workspaceCall, dotnetCall, webCall]) {
+            expect(call?.args).not.toContain('--pipe');
+        }
     });
 
     it('should pass --workspace-root to Worker.Workspace when provided', () => {
@@ -99,7 +108,7 @@ describe('WorkerManager', () => {
     });
 
     it('should omit --workspace-root when no workspace root is given', () => {
-        const mgr = new WorkerManager('/ext', logger, undefined, fakeWorkers);
+        const mgr = new WorkerManager('/ext', logger, undefined, fakeWorkers, INSTANCE_ID);
         void mgr.ensureRunning('Worker.Workspace').catch(() => { /* readiness not asserted here */ });
 
         const workspaceCall = spawnMock.mock.calls.find(c => (c[0] as string).includes('Worker.Workspace'));
@@ -109,29 +118,29 @@ describe('WorkerManager', () => {
         mgr.dispose();
     });
 
-    it('should pass --health-monitor to every worker when supplied', () => {
-        const mgr = new WorkerManager('/ext', logger, '/workspace', fakeWorkers, undefined, 'autocontext-health-xyz');
+    it('should pass --service health-monitor=<address> to every worker when supplied', () => {
+        const mgr = new WorkerManager('/ext', logger, '/workspace', fakeWorkers, INSTANCE_ID, undefined, 'autocontext.health-monitor#xyz');
         ensureAll(mgr);
 
         const calls = spawnMock.mock.calls.map(c => c[1] as string[]);
 
         expect(calls.length).toBe(3);
         for (const args of calls) {
-            expect(args).toContain('--health-monitor');
-            expect(args).toContain('autocontext-health-xyz');
+            expect(args).toContain('--service');
+            expect(args).toContain('health-monitor=autocontext.health-monitor#xyz');
         }
 
         mgr.dispose();
     });
 
-    it('should omit --health-monitor when no health-monitor pipe is supplied', () => {
-        const mgr = new WorkerManager('/ext', logger, '/workspace', fakeWorkers);
+    it('should omit --service health-monitor=... when no health-monitor address is supplied', () => {
+        const mgr = new WorkerManager('/ext', logger, '/workspace', fakeWorkers, INSTANCE_ID);
         ensureAll(mgr);
 
         const calls = spawnMock.mock.calls.map(c => c[1] as string[]);
 
         for (const args of calls) {
-            expect(args).not.toContain('--health-monitor');
+            expect(args.some(a => a.startsWith('health-monitor='))).toBe(false);
         }
 
         mgr.dispose();
@@ -145,7 +154,7 @@ describe('WorkerManager', () => {
             return child;
         });
 
-        const mgr = new WorkerManager('/ext', logger, '/workspace', fakeWorkers);
+        const mgr = new WorkerManager('/ext', logger, '/workspace', fakeWorkers, INSTANCE_ID);
         void mgr.ensureRunning('Worker.Workspace').catch(() => { /* readiness not asserted here */ });
         const workspaceChild = children[0];
         workspaceChild.stderr.write('hello from workspace\n');
@@ -166,7 +175,7 @@ describe('WorkerManager', () => {
             return child;
         });
 
-        const mgr = new WorkerManager('/ext', logger, '/workspace', fakeWorkers);
+        const mgr = new WorkerManager('/ext', logger, '/workspace', fakeWorkers, INSTANCE_ID);
         let resolved = false;
         void mgr.whenWorkspaceReady().then(() => { resolved = true; });
         const workspaceChild = children[0];
@@ -187,7 +196,7 @@ describe('WorkerManager', () => {
             return child;
         });
 
-        const mgr = new WorkerManager('/ext', logger, '/workspace', fakeWorkers);
+        const mgr = new WorkerManager('/ext', logger, '/workspace', fakeWorkers, INSTANCE_ID);
         ensureAll(mgr);
         mgr.dispose();
 
@@ -196,7 +205,7 @@ describe('WorkerManager', () => {
     });
 
     it('should reject pending whenWorkspaceReady() waiters on dispose', async () => {
-        const mgr = new WorkerManager('/ext', logger, '/workspace', fakeWorkers);
+        const mgr = new WorkerManager('/ext', logger, '/workspace', fakeWorkers, INSTANCE_ID);
 
         const ready = mgr.whenWorkspaceReady();
         mgr.dispose();
@@ -212,7 +221,7 @@ describe('WorkerManager', () => {
             return child;
         });
 
-        const mgr = new WorkerManager('/ext', logger, '/workspace', fakeWorkers);
+        const mgr = new WorkerManager('/ext', logger, '/workspace', fakeWorkers, INSTANCE_ID);
 
         const ready = mgr.whenWorkspaceReady();
         children[0].emit('error', new Error('spawn ENOENT'));
@@ -230,7 +239,7 @@ describe('WorkerManager', () => {
             return child;
         });
 
-        const mgr = new WorkerManager('/ext', logger, '/workspace', fakeWorkers);
+        const mgr = new WorkerManager('/ext', logger, '/workspace', fakeWorkers, INSTANCE_ID);
 
         const ready = mgr.whenWorkspaceReady();
         children[0].emit('exit', 1);
@@ -248,7 +257,7 @@ describe('WorkerManager', () => {
             return child;
         });
 
-        const mgr = new WorkerManager('/ext', logger, '/workspace', fakeWorkers);
+        const mgr = new WorkerManager('/ext', logger, '/workspace', fakeWorkers, INSTANCE_ID);
 
         const ready = mgr.whenWorkspaceReady();
         children[0].stderr.write('[AutoContext.Worker.Workspace] Ready.\n');
@@ -265,7 +274,7 @@ describe('WorkerManager', () => {
 
     describe('ensureRunning', () => {
         it('should coalesce concurrent calls onto the same spawn', async () => {
-            const mgr = new WorkerManager('/ext', logger, '/workspace', fakeWorkers);
+            const mgr = new WorkerManager('/ext', logger, '/workspace', fakeWorkers, INSTANCE_ID);
 
             const a = mgr.ensureRunning('Worker.Workspace');
             const b = mgr.ensureRunning('Worker.Workspace');
@@ -278,7 +287,7 @@ describe('WorkerManager', () => {
         });
 
         it('should reject with a clear error for an unknown worker identity', async () => {
-            const mgr = new WorkerManager('/ext', logger, '/workspace', fakeWorkers);
+            const mgr = new WorkerManager('/ext', logger, '/workspace', fakeWorkers, INSTANCE_ID);
 
             await expect(mgr.ensureRunning('Worker.Bogus')).rejects.toThrow(/No worker registered/);
             expect(spawnMock).not.toHaveBeenCalled();
@@ -294,7 +303,7 @@ describe('WorkerManager', () => {
                 return child;
             });
 
-            const mgr = new WorkerManager('/ext', logger, '/workspace', fakeWorkers);
+            const mgr = new WorkerManager('/ext', logger, '/workspace', fakeWorkers, INSTANCE_ID);
 
             const first = mgr.ensureRunning('Worker.Workspace');
             children[0].stderr.write('[AutoContext.Worker.Workspace] Ready.\n');
@@ -323,7 +332,7 @@ describe('WorkerManager', () => {
                 return child;
             });
 
-            const mgr = new WorkerManager('/ext', logger, '/workspace', fakeWorkers);
+            const mgr = new WorkerManager('/ext', logger, '/workspace', fakeWorkers, INSTANCE_ID);
 
             const first = mgr.ensureRunning('Worker.Workspace');
             children[0].emit('error', new Error('spawn ENOENT'));
@@ -338,7 +347,7 @@ describe('WorkerManager', () => {
         });
 
         it('should reject after dispose without spawning', async () => {
-            const mgr = new WorkerManager('/ext', logger, '/workspace', fakeWorkers);
+            const mgr = new WorkerManager('/ext', logger, '/workspace', fakeWorkers, INSTANCE_ID);
             mgr.dispose();
 
             await expect(mgr.ensureRunning('Worker.Workspace')).rejects.toThrow(/disposed/);

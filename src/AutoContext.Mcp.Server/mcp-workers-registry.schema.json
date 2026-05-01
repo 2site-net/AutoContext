@@ -41,7 +41,7 @@
                 "id": {
                     "type": "string",
                     "pattern": "^[a-z][a-z0-9-]*$",
-                    "description": "Short worker identifier (kebab-case, lowercase). Used to compose the named-pipe endpoint as 'autocontext.worker-<id>[-<suffix>]'. Unique across the registry."
+                    "description": "Short worker identifier (kebab-case, lowercase). Used to compose the worker's named-pipe service address as 'autocontext.worker-<id>[#<instance-id>]'. Unique across the registry."
                 },
                 "name": {
                     "type": "string",

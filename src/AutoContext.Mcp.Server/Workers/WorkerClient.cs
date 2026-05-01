@@ -27,51 +27,51 @@ public sealed partial class WorkerClient
     public static readonly TimeSpan DefaultWaitDeadline = TimeSpan.FromSeconds(30);
 
     private readonly TimeSpan _waitDeadline;
-    private readonly EndpointOptions _endpoints;
+    private readonly ServiceAddressOptions _addresses;
     private readonly WorkerControlClient _workerControl;
     private readonly ILogger<WorkerClient> _logger;
 
     public WorkerClient()
-        : this(DefaultWaitDeadline, new EndpointOptions(), WorkerControlClient.Disabled, NullLogger<WorkerClient>.Instance)
+        : this(DefaultWaitDeadline, new ServiceAddressOptions(), WorkerControlClient.Disabled, NullLogger<WorkerClient>.Instance)
     {
     }
 
     public WorkerClient(TimeSpan waitDeadline)
-        : this(waitDeadline, new EndpointOptions(), WorkerControlClient.Disabled, NullLogger<WorkerClient>.Instance)
+        : this(waitDeadline, new ServiceAddressOptions(), WorkerControlClient.Disabled, NullLogger<WorkerClient>.Instance)
     {
     }
 
-    public WorkerClient(EndpointOptions endpoints)
-        : this(DefaultWaitDeadline, endpoints, WorkerControlClient.Disabled, NullLogger<WorkerClient>.Instance)
+    public WorkerClient(ServiceAddressOptions addresses)
+        : this(DefaultWaitDeadline, addresses, WorkerControlClient.Disabled, NullLogger<WorkerClient>.Instance)
     {
     }
 
-    public WorkerClient(EndpointOptions endpoints, ILogger<WorkerClient> logger)
-        : this(DefaultWaitDeadline, endpoints, WorkerControlClient.Disabled, logger)
+    public WorkerClient(ServiceAddressOptions addresses, ILogger<WorkerClient> logger)
+        : this(DefaultWaitDeadline, addresses, WorkerControlClient.Disabled, logger)
     {
     }
 
-    public WorkerClient(TimeSpan waitDeadline, EndpointOptions endpoints)
-        : this(waitDeadline, endpoints, WorkerControlClient.Disabled, NullLogger<WorkerClient>.Instance)
+    public WorkerClient(TimeSpan waitDeadline, ServiceAddressOptions addresses)
+        : this(waitDeadline, addresses, WorkerControlClient.Disabled, NullLogger<WorkerClient>.Instance)
     {
     }
 
-    public WorkerClient(TimeSpan waitDeadline, EndpointOptions endpoints, ILogger<WorkerClient> logger)
-        : this(waitDeadline, endpoints, WorkerControlClient.Disabled, logger)
+    public WorkerClient(TimeSpan waitDeadline, ServiceAddressOptions addresses, ILogger<WorkerClient> logger)
+        : this(waitDeadline, addresses, WorkerControlClient.Disabled, logger)
     {
     }
 
     public WorkerClient(
-        EndpointOptions endpoints,
+        ServiceAddressOptions addresses,
         WorkerControlClient workerControl,
         ILogger<WorkerClient> logger)
-        : this(DefaultWaitDeadline, endpoints, workerControl, logger)
+        : this(DefaultWaitDeadline, addresses, workerControl, logger)
     {
     }
 
     public WorkerClient(
         TimeSpan waitDeadline,
-        EndpointOptions endpoints,
+        ServiceAddressOptions addresses,
         WorkerControlClient workerControl,
         ILogger<WorkerClient> logger)
     {
@@ -83,32 +83,33 @@ public sealed partial class WorkerClient
                 "Wait deadline must be positive.");
         }
 
-        ArgumentNullException.ThrowIfNull(endpoints);
+        ArgumentNullException.ThrowIfNull(addresses);
         ArgumentNullException.ThrowIfNull(workerControl);
         ArgumentNullException.ThrowIfNull(logger);
 
         _waitDeadline = waitDeadline;
-        _endpoints = endpoints;
+        _addresses = addresses;
         _workerControl = workerControl;
         _logger = logger;
     }
 
     /// <summary>
-    /// Connects to <paramref name="endpoint"/>, writes <paramref name="request"/>,
+    /// Connects to the pipe address derived from <paramref name="role"/>
+    /// (e.g. <c>"worker-dotnet"</c>), writes <paramref name="request"/>,
     /// and returns the worker's response — or a synthesized error response
     /// describing the pipe failure. Never throws for IO/timeout/parse
     /// failures; only throws for caller-side argument errors.
     /// </summary>
     public async Task<TaskResponse> InvokeAsync(
-        string endpoint,
+        string role,
         TaskRequest request,
         CancellationToken ct)
     {
-        ArgumentException.ThrowIfNullOrEmpty(endpoint);
+        ArgumentException.ThrowIfNullOrEmpty(role);
         ArgumentNullException.ThrowIfNull(request);
         ArgumentException.ThrowIfNullOrEmpty(request.McpTask);
 
-        var resolvedEndpoint = _endpoints.Resolve(endpoint);
+        var address = _addresses.Format(role);
 
         using var deadlineCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
         deadlineCts.CancelAfter(_waitDeadline);
@@ -118,30 +119,35 @@ public sealed partial class WorkerClient
         {
             // Ask the extension to ensure the worker is running before
             // we attempt to connect. No-op when the orchestrator was
-            // launched without a --worker-control-pipe (standalone runs,
-            // smoke tests). Failures are mapped to the same error
-            // envelope shape we use for pipe IO failures so MCP callers
-            // see a consistent contract.
-            if (EndpointFormatter.TryParseId(endpoint, out var workerId))
+            // launched without a worker-control service address
+            // (standalone runs, smoke tests). Failures are mapped to
+            // the same error envelope shape we use for pipe IO
+            // failures so MCP callers see a consistent contract.
+            const string WorkerRolePrefix = "worker-";
+            if (role.StartsWith(WorkerRolePrefix, StringComparison.Ordinal))
             {
-                await _workerControl.EnsureRunningAsync(workerId, token).ConfigureAwait(false);
+                var workerId = role[WorkerRolePrefix.Length..];
+                if (workerId.Length > 0)
+                {
+                    await _workerControl.EnsureRunningAsync(workerId, token).ConfigureAwait(false);
+                }
             }
 
-            return await InvokeCoreAsync(resolvedEndpoint, request, token).ConfigureAwait(false);
+            return await InvokeCoreAsync(address, request, token).ConfigureAwait(false);
         }
         catch (WorkerControlException ex)
         {
-            LogPipeFailure(_logger, request.McpTask, resolvedEndpoint, "worker control denied", ex);
+            LogPipeFailure(_logger, request.McpTask, address, "worker control denied", ex);
             return ErrorResponse(
                 request.McpTask,
                 $"Worker control could not start '{ex.WorkerId}': {ex.Message}");
         }
         catch (OperationCanceledException) when (deadlineCts.IsCancellationRequested && !ct.IsCancellationRequested)
         {
-            LogDeadlineExceeded(_logger, request.McpTask, resolvedEndpoint, _waitDeadline.TotalSeconds);
+            LogDeadlineExceeded(_logger, request.McpTask, address, _waitDeadline.TotalSeconds);
             return ErrorResponse(
                 request.McpTask,
-                $"Pipe call to '{resolvedEndpoint}' exceeded the {_waitDeadline.TotalSeconds:0.##}s wait deadline.");
+                $"Pipe call to '{address}' exceeded the {_waitDeadline.TotalSeconds:0.##}s wait deadline.");
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
@@ -149,42 +155,42 @@ public sealed partial class WorkerClient
         }
         catch (TimeoutException ex)
         {
-            LogPipeFailure(_logger, request.McpTask, resolvedEndpoint, "connect timed out", ex);
+            LogPipeFailure(_logger, request.McpTask, address, "connect timed out", ex);
             return ErrorResponse(
                 request.McpTask,
-                $"Pipe connect to '{resolvedEndpoint}' timed out: {ex.Message}");
+                $"Pipe connect to '{address}' timed out: {ex.Message}");
         }
         catch (IOException ex)
         {
-            LogPipeFailure(_logger, request.McpTask, resolvedEndpoint, "IO failure", ex);
+            LogPipeFailure(_logger, request.McpTask, address, "IO failure", ex);
             return ErrorResponse(
                 request.McpTask,
-                $"Pipe IO failure on '{resolvedEndpoint}': {ex.Message}");
+                $"Pipe IO failure on '{address}': {ex.Message}");
         }
         catch (UnauthorizedAccessException ex)
         {
-            LogPipeFailure(_logger, request.McpTask, resolvedEndpoint, "access denied", ex);
+            LogPipeFailure(_logger, request.McpTask, address, "access denied", ex);
             return ErrorResponse(
                 request.McpTask,
-                $"Pipe access denied on '{resolvedEndpoint}': {ex.Message}");
+                $"Pipe access denied on '{address}': {ex.Message}");
         }
         catch (JsonException ex)
         {
-            LogPipeFailure(_logger, request.McpTask, resolvedEndpoint, "response was not valid JSON", ex);
+            LogPipeFailure(_logger, request.McpTask, address, "response was not valid JSON", ex);
             return ErrorResponse(
                 request.McpTask,
-                $"Pipe response from '{resolvedEndpoint}' was not valid JSON: {ex.Message}");
+                $"Pipe response from '{address}' was not valid JSON: {ex.Message}");
         }
     }
 
     private static async Task<TaskResponse> InvokeCoreAsync(
-        string endpoint,
+        string address,
         TaskRequest request,
         CancellationToken token)
     {
         var pipe = new NamedPipeClientStream(
             ".",
-            endpoint,
+            address,
             PipeDirection.InOut,
             PipeOptions.Asynchronous);
 
@@ -205,7 +211,7 @@ public sealed partial class WorkerClient
             {
                 return ErrorResponse(
                     request.McpTask,
-                    $"Worker on '{endpoint}' closed the pipe before sending a response.");
+                    $"Worker on '{address}' closed the pipe before sending a response.");
             }
 
             var response = JsonSerializer.Deserialize<TaskResponse>(
@@ -216,7 +222,7 @@ public sealed partial class WorkerClient
             {
                 return ErrorResponse(
                     request.McpTask,
-                    $"Worker on '{endpoint}' returned a null response payload.");
+                    $"Worker on '{address}' returned a null response payload.");
             }
 
             return response;
@@ -232,10 +238,10 @@ public sealed partial class WorkerClient
     };
 
     [LoggerMessage(EventId = 1, Level = LogLevel.Warning,
-        Message = "Worker pipe call '{Task}' on '{Endpoint}' failed ({Reason}).")]
-    private static partial void LogPipeFailure(ILogger logger, string task, string endpoint, string reason, Exception ex);
+        Message = "Worker pipe call '{Task}' on '{Address}' failed ({Reason}).")]
+    private static partial void LogPipeFailure(ILogger logger, string task, string address, string reason, Exception ex);
 
     [LoggerMessage(EventId = 2, Level = LogLevel.Warning,
-        Message = "Worker pipe call '{Task}' on '{Endpoint}' exceeded the {DeadlineSeconds:0.##}s wait deadline.")]
-    private static partial void LogDeadlineExceeded(ILogger logger, string task, string endpoint, double deadlineSeconds);
+        Message = "Worker pipe call '{Task}' on '{Address}' exceeded the {DeadlineSeconds:0.##}s wait deadline.")]
+    private static partial void LogDeadlineExceeded(ILogger logger, string task, string address, double deadlineSeconds);
 }

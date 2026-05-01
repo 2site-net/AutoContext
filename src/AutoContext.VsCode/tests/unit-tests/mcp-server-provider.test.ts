@@ -6,7 +6,6 @@ import { McpToolsManifestLoader } from '#src/mcp-tools-manifest-loader';
 import { ServersManifest } from '#src/servers-manifest';
 import { ServerEntry } from '#src/server-entry';
 import type { AutoContextConfig } from '#types/autocontext-config.js';
-import type { WorkerManager } from '#src/worker-manager';
 import { createFakeConfigManager, createFakeLogger } from '#testing/fakes';
 
 const { existsSyncMock } = vi.hoisted(() => ({ existsSyncMock: vi.fn<(path: string) => boolean>(() => true) }));
@@ -27,7 +26,7 @@ const mcpToolsManifest = new McpToolsManifestLoader(join(__dirname, '..', '..'))
 const serversManifest: ServersManifest = new ServersManifest([
     new ServerEntry('mcp-server', 'AutoContext.Mcp.Server', 'dotnet'),
 ]);
-const fakeWorkerManager = { getEndpointSuffix: vi.fn(() => 'abc123def456') } as unknown as WorkerManager;
+const INSTANCE_ID = 'abc123def456';
 
 let currentConfig: AutoContextConfig = {};
 const fakeConfigManager = createFakeConfigManager();
@@ -38,12 +37,12 @@ function createProvider(): McpServerProvider {
         version,
         onDidChange,
         mcpToolsManifest,
-        fakeWorkerManager,
         serversManifest,
         fakeConfigManager,
-        'autocontext-log-abc123',
-        'autocontext-health-abc123',
-        'autocontext.worker-control-abc123def456',
+        INSTANCE_ID,
+        `autocontext.log#${INSTANCE_ID}`,
+        `autocontext.health-monitor#${INSTANCE_ID}`,
+        `autocontext.worker-control#${INSTANCE_ID}`,
         logger,
     );
 }
@@ -54,7 +53,6 @@ beforeEach(() => {
     vi.mocked(fakeConfigManager.readSync).mockImplementation(() => currentConfig);
     vi.mocked(fakeConfigManager.onDidChange).mockReturnValue({ dispose: vi.fn() });
     existsSyncMock.mockReturnValue(true);
-    vi.mocked(fakeWorkerManager.getEndpointSuffix).mockReturnValue('abc123def456');
 });
 
 function buildAllDisabledConfig(): AutoContextConfig {
@@ -99,28 +97,28 @@ describe('McpServerProvider.provideMcpServerDefinitions', () => {
         expect(def.command).toContain('AutoContext.Mcp.Server');
     });
 
-    it('passes --endpoint-suffix with the WorkerManager suffix', async () => {
+    it('passes --instance-id with the configured value', async () => {
         const [def] = (await createProvider().provideMcpServerDefinitions()) as StdioDef[];
 
-        expect(def.args).toEqual(expect.arrayContaining(['--endpoint-suffix', 'abc123def456']));
+        expect(def.args).toEqual(expect.arrayContaining(['--instance-id', INSTANCE_ID]));
     });
 
-    it('passes --log-pipe with the LogServer pipe name', async () => {
+    it('passes --service log=<address> with the LogServer pipe name', async () => {
         const [def] = (await createProvider().provideMcpServerDefinitions()) as StdioDef[];
 
-        expect(def.args).toEqual(expect.arrayContaining(['--log-pipe', 'autocontext-log-abc123']));
+        expect(def.args).toEqual(expect.arrayContaining(['--service', `log=autocontext.log#${INSTANCE_ID}`]));
     });
 
-    it('passes --health-monitor with the HealthMonitorServer pipe name', async () => {
+    it('passes --service health-monitor=<address> with the HealthMonitorServer pipe name', async () => {
         const [def] = (await createProvider().provideMcpServerDefinitions()) as StdioDef[];
 
-        expect(def.args).toEqual(expect.arrayContaining(['--health-monitor', 'autocontext-health-abc123']));
+        expect(def.args).toEqual(expect.arrayContaining(['--service', `health-monitor=autocontext.health-monitor#${INSTANCE_ID}`]));
     });
 
-    it('passes --worker-control-pipe with the WorkerControlServer pipe name', async () => {
+    it('passes --service worker-control=<address> with the WorkerControlServer pipe name', async () => {
         const [def] = (await createProvider().provideMcpServerDefinitions()) as StdioDef[];
 
-        expect(def.args).toEqual(expect.arrayContaining(['--worker-control-pipe', 'autocontext.worker-control-abc123def456']));
+        expect(def.args).toEqual(expect.arrayContaining(['--service', `worker-control=autocontext.worker-control#${INSTANCE_ID}`]));
     });
 
     it('does not pass --scope, --workspace-folder, or --workspace-server', async () => {
@@ -192,12 +190,12 @@ describe('McpServerProvider config updates', () => {
             version,
             onDidChange,
             mcpToolsManifest,
-            fakeWorkerManager,
             serversManifest,
             failingConfigManager,
-            'autocontext-log-abc123',
-            'autocontext-health-abc123',
-            'autocontext.worker-control-abc123def456',
+            INSTANCE_ID,
+            `autocontext.log#${INSTANCE_ID}`,
+            `autocontext.health-monitor#${INSTANCE_ID}`,
+            `autocontext.worker-control#${INSTANCE_ID}`,
             oc,
         );
 

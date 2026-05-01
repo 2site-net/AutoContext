@@ -24,13 +24,16 @@ export class HealthMonitorServer implements vscode.Disposable {
     private readonly _onDidChange = new vscode.EventEmitter<void>();
     readonly onDidChange = this._onDidChange.event;
 
-    private readonly pipeName = IdentifierFactory.createRandomName('autocontext-health');
+    private readonly pipeName: string;
     private readonly connections = new Map<string, Set<Socket>>();
     private server: Server | undefined;
 
     constructor(
         private readonly logger: Logger,
-    ) {}
+        instanceId: string,
+    ) {
+        this.pipeName = IdentifierFactory.createServiceAddress('health-monitor', instanceId);
+    }
 
     /**
      * The pipe name workers should connect to.

@@ -12,11 +12,11 @@ function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise
 }
 
 suite('Worker Manager Smoke Tests', () => {
-    test('should generate a per-window endpoint suffix', async () => {
+    test('should generate a per-window instance id', async () => {
         const ext = await activatedExtension();
-        const suffix = ext.exports.workerManager.getEndpointSuffix();
+        const instanceId = ext.exports.workerManager.getInstanceId();
 
-        assert.match(suffix, /^[0-9a-f]{12}$/, 'Endpoint suffix should be 12 hex characters');
+        assert.match(instanceId, /^[0-9a-f]{12}$/, 'Instance id should be 12 hex characters');
     });
 
     test('should reach Worker.Workspace ready when the binary is available', async function () {

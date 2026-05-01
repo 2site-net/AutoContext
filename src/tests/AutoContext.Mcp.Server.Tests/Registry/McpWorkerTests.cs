@@ -21,7 +21,7 @@ public sealed class McpWorkerTests
         };
 
         Assert.Equal(id, worker.Id);
-        Assert.Equal($"autocontext.worker-{id}", worker.Endpoint);
+        Assert.Equal($"worker-{id}", worker.Role);
     }
 
     [Theory]

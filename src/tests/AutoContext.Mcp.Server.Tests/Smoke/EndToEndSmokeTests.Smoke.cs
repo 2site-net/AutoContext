@@ -33,17 +33,20 @@ public sealed class EndToEndSmokeTests
         using var timeoutCts = new CancellationTokenSource(TestTimeout);
         var ct = timeoutCts.Token;
 
-        var suffix = "smoke-" + Guid.NewGuid().ToString("N")[..12];
+        // Per-window instance id used by every process to format its
+        // pipe addresses. Hex characters only — keeps the resulting
+        // pipe names valid on every OS.
+        var instanceId = Guid.NewGuid().ToString("N")[..12];
 
         await using var dotnetWorker = await WorkerProcess.StartAsync(
             SmokePaths.WorkerDotNetExe,
-            $"autocontext.worker-dotnet-{suffix}",
+            instanceId,
             "[AutoContext.Worker.DotNet] Ready.",
             ct);
 
         await using var workspaceWorker = await WorkerProcess.StartAsync(
             SmokePaths.WorkerWorkspaceExe,
-            $"autocontext.worker-workspace-{suffix}",
+            instanceId,
             "[AutoContext.Worker.Workspace] Ready.",
             ct,
             extraArguments: ["--workspace-root", SmokePaths.WorkspaceRoot]);
@@ -52,7 +55,7 @@ public sealed class EndToEndSmokeTests
         {
             Name = "AutoContext.Mcp.Server (smoke)",
             Command = SmokePaths.McpToolsExe,
-            Arguments = ["--endpoint-suffix", suffix],
+            Arguments = ["--instance-id", instanceId],
         };
 
         var transport = new StdioClientTransport(transportOptions);

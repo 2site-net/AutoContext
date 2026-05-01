@@ -57,7 +57,7 @@ describe('LogServer', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         tree = createTreeLogger();
-        server = new LogServer(tree.root);
+        server = new LogServer(tree.root, '0123456789ab');
         server.start();
     });
 
@@ -66,7 +66,7 @@ describe('LogServer', () => {
     });
 
     it('should expose a deterministic pipe name', () => {
-        expect(server.getPipeName()).toMatch(/^autocontext-log-[a-f0-9]{12}$/);
+        expect(server.getPipeName()).toMatch(/^autocontext\.log#[a-f0-9]{12}$/);
     });
 
     it('should route records to a per-worker channel keyed by greeting clientName', async () => {

@@ -6,7 +6,7 @@ import type { LogPoster } from '#types/log-poster.js';
  * Background pipe-client that drains worker {@link LogEntry} values
  * from a bounded queue and writes them as NDJSON over a named pipe to
  * the extension-side LogServer. When the pipe is unavailable (no
- * `--log-pipe` argument, the connect attempt fails, or the pipe
+ * `--service log=<address>` argument, the connect attempt fails, or the pipe
  * subsequently breaks) the client transparently falls back to writing
  * each record to stderr in a human-readable single-line format.
  *
