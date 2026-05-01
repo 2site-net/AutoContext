@@ -24,10 +24,10 @@ The MCP server and each worker report their liveness via a health monitoring pip
 
 ### How it works
 
-When you disable a feature, it is recorded in `.autocontext.json` at your workspace root. The workspace worker reads this file and decides how each feature runs. Disabled features are skipped when Copilot invokes the tool — with one exception: if the project's `.editorconfig` contains keys a checker consumes (e.g., `csharp_prefer_braces`), those EditorConfig-backed checks still apply even when the feature is disabled.
+When you disable a tool or one of its tasks, it is recorded in `.autocontext.json` at your workspace root. The extension projects that state into VS Code context keys and uses it to control whether the MCP server is even advertised — if every tool is disabled, no server definition is returned and Copilot has nothing to call. Tasks toggled off are filtered out the same way. Disabled means truly disabled: there is no EditorConfig-only fallback path.
 
 ### Toggle tools
 
-Use the AutoContext sidebar to enable or disable individual tools. Tools are organized under platform, category, and tool headers — checking an MCP tool toggles all its features at once. Use the `…` menu on the panel header to show or hide items that are not detected in your workspace.
+Use the AutoContext sidebar to enable or disable individual tools and tasks. Tools are organized under platform, category, and tool headers — checking an MCP tool toggles all its tasks at once. Use the `…` menu on the panel header to show or hide items that are not detected in your workspace.
 
 [Open Tools Panel](command:autocontext.mcp-tools-view.focus)
