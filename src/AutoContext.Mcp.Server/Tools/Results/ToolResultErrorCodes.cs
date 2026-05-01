@@ -20,4 +20,7 @@ public static class ToolResultErrorCodes
 
     /// <summary>Every task failed; envelope is <c>error</c> for caller convenience.</summary>
     public const string AllTasksFailed = "allTasksFailed";
+
+    /// <summary>Every task on the tool was disabled by extension config; nothing dispatched.</summary>
+    public const string AllTasksDisabled = "allTasksDisabled";
 }

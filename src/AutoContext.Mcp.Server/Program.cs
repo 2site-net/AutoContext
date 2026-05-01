@@ -158,7 +158,11 @@ internal static partial class Program
             sp.GetRequiredService<ILogger<WorkerControlClient>>()));
         builder.Services.AddSingleton<WorkerClient>();
         builder.Services.AddSingleton<EditorConfigBatcher>();
-        builder.Services.AddSingleton<ToolInvoker>();
+        builder.Services.AddSingleton(sp => new ToolInvoker(
+            sp.GetRequiredService<WorkerClient>(),
+            sp.GetRequiredService<EditorConfigBatcher>(),
+            sp.GetRequiredService<AutoContextConfigSnapshot>(),
+            sp.GetRequiredService<ILogger<ToolInvoker>>()));
         builder.Services.AddSingleton<McpSdkAdapter>();
 
         // Subscribes to the extension-side AutoContextConfigServer

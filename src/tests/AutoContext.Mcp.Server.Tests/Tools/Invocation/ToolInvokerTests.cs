@@ -3,6 +3,7 @@ namespace AutoContext.Mcp.Server.Tests.Tools.Invocation;
 using System.Collections.Concurrent;
 using System.Text.Json;
 
+using AutoContext.Mcp.Server.Config;
 using AutoContext.Mcp.Server.EditorConfig;
 using AutoContext.Mcp.Server.Registry;
 using AutoContext.Mcp.Server.Tests.Testing.Utils;
@@ -262,11 +263,98 @@ public sealed class ToolInvokerTests
             () => Assert.Equal("boom", envelope.Result[1].Error));
     }
 
-    private static ToolInvoker BuildInvoker()
+    [Fact]
+    public async Task Should_skip_disabled_tasks_during_dispatch()
+    {
+        // Arrange
+        var workerId = PipeServerHarness.UniqueWorkerId();
+        var pipeName = PipeServerHarness.PipeNameFor(workerId);
+        var worker = BuildWorker(workerId);
+        var tool = BuildTool("filtered_tool", BuildTask("task_a"), BuildTask("task_b"), BuildTask("task_c"));
+        var snapshot = new AutoContextConfigSnapshot();
+        snapshot.Update(new AutoContextConfigSnapshotDto
+        {
+            DisabledTasks = new Dictionary<string, List<string>>
+            {
+                ["filtered_tool"] = ["task_b"],
+            },
+        });
+        var invoker = BuildInvoker(snapshot);
+
+        var observed = new ConcurrentBag<string>();
+        var serverTask = PipeServerHarness.RunMultiAsync(
+            pipeName,
+            connectionCount: 2,
+            handler: requestBytes =>
+            {
+                var request = JsonSerializer.Deserialize<TaskRequest>(
+                    requestBytes,
+                    WorkerJsonOptions.Instance)!;
+                observed.Add(request.McpTask);
+                return OkResponse(requestBytes, output: new { ran = true });
+            },
+            ct: TestContext.Current.CancellationToken);
+
+        // Act
+        var envelope = await invoker.InvokeAsync(
+            worker,
+            tool,
+            EmptyData(),
+            "corr-test",
+            TestContext.Current.CancellationToken);
+        await serverTask;
+
+        // Assert
+        Assert.Multiple(
+            () => Assert.Equal(ToolResultEnvelope.StatusOk, envelope.Status),
+            () => Assert.Equal(2, envelope.Summary.TaskCount),
+            () => Assert.Equal("task_a", envelope.Result[0].Task),
+            () => Assert.Equal("task_c", envelope.Result[1].Task),
+            () => Assert.DoesNotContain(envelope.Result, r => string.Equals(r.Task, "task_b", StringComparison.Ordinal)),
+            () => Assert.DoesNotContain("task_b", observed));
+    }
+
+    [Fact]
+    public async Task Should_return_empty_result_when_all_tasks_are_disabled()
+    {
+        // Arrange
+        var workerId = PipeServerHarness.UniqueWorkerId();
+        var worker = BuildWorker(workerId);
+        var tool = BuildTool("all_disabled_tool", BuildTask("task_a"), BuildTask("task_b"));
+        var snapshot = new AutoContextConfigSnapshot();
+        snapshot.Update(new AutoContextConfigSnapshotDto
+        {
+            DisabledTasks = new Dictionary<string, List<string>>
+            {
+                ["all_disabled_tool"] = ["task_a", "task_b"],
+            },
+        });
+        var invoker = BuildInvoker(snapshot);
+
+        // Act
+        var envelope = await invoker.InvokeAsync(
+            worker,
+            tool,
+            EmptyData(),
+            "corr-test",
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Multiple(
+            () => Assert.Equal(ToolResultEnvelope.StatusError, envelope.Status),
+            () => Assert.Equal(0, envelope.Summary.TaskCount),
+            () => Assert.Equal(0, envelope.Summary.SuccessCount),
+            () => Assert.Equal(0, envelope.Summary.FailureCount),
+            () => Assert.Empty(envelope.Result),
+            () => Assert.Single(envelope.Errors),
+            () => Assert.Equal(ToolResultErrorCodes.AllTasksDisabled, envelope.Errors[0].Code));
+    }
+
+    private static ToolInvoker BuildInvoker(AutoContextConfigSnapshot? configSnapshot = null)
     {
         var workerClient = new WorkerClient(TimeSpan.FromSeconds(5));
         var batcher = new EditorConfigBatcher(workerClient, "autocontext-test-workspace-unused", NullLogger<EditorConfigBatcher>.Instance);
-        return new ToolInvoker(workerClient, batcher);
+        return new ToolInvoker(workerClient, batcher, configSnapshot, NullLogger<ToolInvoker>.Instance);
     }
 
     private static McpWorker BuildWorker(string workerId) => new()

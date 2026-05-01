@@ -4,6 +4,7 @@ using System.Collections.Frozen;
 using System.Diagnostics;
 using System.Text.Json;
 
+using AutoContext.Mcp.Server.Config;
 using AutoContext.Mcp.Server.EditorConfig;
 using AutoContext.Mcp.Server.Registry;
 using AutoContext.Mcp.Server.Tools.Results;
@@ -15,7 +16,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 /// <summary>
 /// Orchestrates one MCP-Tool invocation. Resolves EditorConfig values for
-/// the tool's tasks in a single batched call, runs every task
+/// the tool's enabled tasks in a single batched call, runs every task
 /// concurrently over a named pipe, and composes the per-task responses
 /// into a uniform <see cref="ToolResultEnvelope"/>. Pure orchestration —
 /// no MCP SDK.
@@ -37,16 +38,26 @@ public sealed partial class ToolInvoker
 
     private readonly WorkerClient _workerClient;
     private readonly EditorConfigBatcher _editorConfigBatcher;
+    private readonly AutoContextConfigSnapshot? _configSnapshot;
     private readonly ILogger<ToolInvoker> _logger;
 
     public ToolInvoker(WorkerClient workerClient, EditorConfigBatcher editorConfigBatcher)
-        : this(workerClient, editorConfigBatcher, NullLogger<ToolInvoker>.Instance)
+        : this(workerClient, editorConfigBatcher, configSnapshot: null, NullLogger<ToolInvoker>.Instance)
     {
     }
 
     public ToolInvoker(
         WorkerClient workerClient,
         EditorConfigBatcher editorConfigBatcher,
+        ILogger<ToolInvoker> logger)
+        : this(workerClient, editorConfigBatcher, configSnapshot: null, logger)
+    {
+    }
+
+    public ToolInvoker(
+        WorkerClient workerClient,
+        EditorConfigBatcher editorConfigBatcher,
+        AutoContextConfigSnapshot? configSnapshot,
         ILogger<ToolInvoker> logger)
     {
         ArgumentNullException.ThrowIfNull(workerClient);
@@ -55,6 +66,7 @@ public sealed partial class ToolInvoker
 
         _workerClient = workerClient;
         _editorConfigBatcher = editorConfigBatcher;
+        _configSnapshot = configSnapshot;
         _logger = logger;
     }
 
@@ -75,9 +87,25 @@ public sealed partial class ToolInvoker
         ArgumentException.ThrowIfNullOrEmpty(correlationId);
 
         var startTimestamp = Stopwatch.GetTimestamp();
-        LogToolDispatchStarted(_logger, tool.Name, worker.Role, tool.Tasks.Count, correlationId);
+        var tasks = ResolveEnabledTasks(tool);
+        LogToolDispatchStarted(_logger, tool.Name, worker.Role, tasks.Count, correlationId);
 
-        var tasks = tool.Tasks;
+        if (tasks.Count == 0)
+        {
+            var elapsedMsForDisabled = ElapsedMs(startTimestamp);
+            LogToolDispatchCompleted(_logger, tool.Name, elapsedMsForDisabled, tasks.Count, correlationId);
+            return ToolResultComposer.ComposeFailure(
+                tool.Name,
+                [
+                    new ToolResultError
+                    {
+                        Code = ToolResultErrorCodes.AllTasksDisabled,
+                        Message = $"All tasks for tool '{tool.Name}' are disabled by extension config.",
+                    },
+                ],
+                elapsedMsForDisabled);
+        }
+
         var slices = await ResolveEditorConfigAsync(data, tasks, correlationId, ct).ConfigureAwait(false);
 
         var entries = new ToolResultComposerInput[tasks.Count];
@@ -101,12 +129,39 @@ public sealed partial class ToolInvoker
 
         var elapsedMs = ElapsedMs(startTimestamp);
 
-        LogToolDispatchCompleted(_logger, tool.Name, elapsedMs, tool.Tasks.Count, correlationId);
+        LogToolDispatchCompleted(_logger, tool.Name, elapsedMs, tasks.Count, correlationId);
 
         return ToolResultComposer.Compose(
             tool.Name,
             entries,
             elapsedMs);
+    }
+
+    private IReadOnlyList<McpTaskDefinition> ResolveEnabledTasks(McpToolDefinition tool)
+    {
+        if (_configSnapshot is null)
+        {
+            return tool.Tasks;
+        }
+
+        if (!_configSnapshot.DisabledTasks.TryGetValue(tool.Name, out var disabled) || disabled.Count == 0)
+        {
+            return tool.Tasks;
+        }
+
+        var enabled = new List<McpTaskDefinition>(tool.Tasks.Count);
+
+        for (var i = 0; i < tool.Tasks.Count; i++)
+        {
+            var task = tool.Tasks[i];
+
+            if (!disabled.Contains(task.Name))
+            {
+                enabled.Add(task);
+            }
+        }
+
+        return enabled;
     }
 
     private async Task<IReadOnlyDictionary<string, IReadOnlyDictionary<string, string>>> ResolveEditorConfigAsync(
