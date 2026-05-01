@@ -8,8 +8,8 @@ import type { ServerEntry } from './server-entry.js';
 import type { Logger } from '#types/logger.js';
 
 /**
- * A worker the extension spawns and keeps alive for the lifetime of
- * the VS Code window.
+ * Static spawn parameters for one worker. Built once at
+ * construction time and reused on every (re)spawn for that worker.
  */
 interface WorkerSpec {
     /** Short identity used as the output-channel log prefix. */
@@ -25,12 +25,33 @@ interface WorkerSpec {
 }
 
 /**
+ * Per-worker lifecycle slot. Holds the static {@link WorkerSpec}
+ * plus the live state for the current spawn (if any). When the
+ * child exits, {@link readyPromise}, {@link resolver}, and
+ * {@link child} are all cleared so the next {@link WorkerManager.ensureRunning}
+ * call respawns cleanly.
+ */
+interface WorkerSlot {
+    readonly spec: WorkerSpec;
+    /** The currently spawned child, or undefined if no worker is alive. */
+    child?: ChildProcess;
+    /**
+     * Resolves when the live child emits its ready marker; rejects
+     * when it fails to start or exits before becoming ready.
+     * Undefined when no spawn is in flight (idle or after exit).
+     */
+    readyPromise?: Promise<void>;
+    /** Bound to {@link readyPromise}; cleared once it settles. */
+    resolver?: { resolve: () => void; reject: (err: Error) => void };
+}
+
+/**
  * Per-window lifecycle manager for the three `AutoContext.Worker.*`
  * processes (Workspace, DotNet, Web).
  *
  * Generates a single random 12-character endpoint suffix at
  * construction time and uses it to build per-window pipe names
- * (e.g. `autocontext.workspace-worker-abc123def456`). The same
+ * (e.g. `autocontext.worker-workspace-abc123def456`). The same
  * suffix is later passed to `Mcp.Server` as `--endpoint-suffix` so
  * every process in one window talks on the same pipes while a second
  * window stays isolated.
@@ -38,12 +59,17 @@ interface WorkerSpec {
  * `Mcp.Server` itself is _not_ managed here — VS Code spawns it from
  * the {@link vscode.McpStdioServerDefinition} returned by
  * `McpServerProvider`.
+ *
+ * Spawn happens through {@link ensureRunning}, which coalesces
+ * concurrent requests for the same worker and respawns
+ * automatically after a previous child has exited. {@link start}
+ * is a thin bridge that calls {@link ensureRunning} for every
+ * registered worker — kept while the orchestrator-side
+ * `EnsureRunning` control channel is being introduced.
  */
 export class WorkerManager implements vscode.Disposable {
     private readonly endpointSuffix = IdentifierFactory.createRandomId();
-    private readonly children: ChildProcess[] = [];
-    private readonly readyPromises = new Map<string, Promise<void>>();
-    private readonly readyResolvers = new Map<string, { resolve: () => void; reject: (err: Error) => void }>();
+    private readonly slots = new Map<string, WorkerSlot>();
     private started = false;
     private disposed = false;
 
@@ -55,15 +81,8 @@ export class WorkerManager implements vscode.Disposable {
         private readonly logPipeName?: string,
         private readonly healthMonitorPipeName?: string,
     ) {
-        for (const entry of workers) {
-            const identity = entry.getShortName();
-            const promise = new Promise<void>((resolve, reject) =>
-                this.readyResolvers.set(identity, { resolve, reject }));
-            // Swallow rejection on the stored promise so callers that never
-            // attach a handler (or attach only via Promise.race) don't surface
-            // an unhandled rejection when dispose() rejects pending waiters.
-            promise.catch(() => { /* see whenWorkspaceReady() */ });
-            this.readyPromises.set(identity, promise);
+        for (const spec of this.buildSpecs()) {
+            this.slots.set(spec.identity, { spec });
         }
     }
 
@@ -73,27 +92,113 @@ export class WorkerManager implements vscode.Disposable {
     }
 
     /**
-     * Resolves when `Worker.Workspace` has emitted its ready marker.
-     * Config reads and EditorConfig resolution depend on this worker,
-     * so callers that need either should await this before proceeding.
+     * Convenience wrapper around `ensureRunning('Worker.Workspace')`.
+     *
+     * `Worker.Workspace` is the only worker the extension itself
+     * depends on at runtime: it owns config reads (`.autocontext.json`,
+     * `.editorconfig` resolution) that the activation flow, the
+     * instructions pipeline, and several UI surfaces consume directly
+     * — none of those go through `Mcp.Server`. The other workers
+     * (DotNet, Web) only serve MCP tool calls and are awaited via the
+     * orchestrator's control channel, never from extension code.
+     *
+     * Keeping this method:
+     * 1. Pins the activation barrier (see `extension.ts`) to a named
+     *    API rather than a stringly-typed `ensureRunning(...)` call,
+     *    so removing the barrier is a discoverable refactor.
+     * 2. Keeps the magic identity `'Worker.Workspace'` confined to
+     *    this file.
      */
     whenWorkspaceReady(): Promise<void> {
-        return this.readyPromises.get('Worker.Workspace')!;
+        return this.ensureRunning('Worker.Workspace');
     }
 
-    /** Spawns all worker processes listed in the servers manifest. Idempotent. */
+    /**
+     * Bridge for the eager-spawn behavior the extension still relies
+     * on today. Calls {@link ensureRunning} for every registered
+     * worker. Idempotent.
+     */
     start(): void {
         if (this.started) {
             this.logger.debug('start() called again; ignoring (already started)');
             return;
         }
         this.started = true;
-        this.logger.info(`Starting ${this.workers.length} worker(s) with endpoint suffix '${this.endpointSuffix}'`);
+        this.logger.info(`Starting ${this.slots.size} worker(s) with endpoint suffix '${this.endpointSuffix}'`);
 
+        for (const identity of this.slots.keys()) {
+            // Swallow rejections — callers that care await
+            // ensureRunning(identity) (e.g. whenWorkspaceReady())
+            // and surface the error there.
+            void this.ensureRunning(identity).catch(() => { /* see whenWorkspaceReady() */ });
+        }
+    }
+
+    /**
+     * Ensures the worker identified by {@link identity} is running and
+     * has emitted its ready marker. Returns the in-flight ready
+     * promise when a spawn is already underway (so concurrent callers
+     * coalesce onto the same process). After a worker has exited the
+     * next call respawns it.
+     *
+     * Rejects when the worker fails to start, exits before becoming
+     * ready, or the manager has been disposed.
+     */
+    ensureRunning(identity: string): Promise<void> {
+        if (this.disposed) {
+            return Promise.reject(new Error('WorkerManager is disposed.'));
+        }
+
+        const slot = this.slots.get(identity);
+        if (!slot) {
+            return Promise.reject(new Error(`No worker registered with identity '${identity}'.`));
+        }
+
+        if (slot.readyPromise) {
+            return slot.readyPromise;
+        }
+
+        slot.readyPromise = new Promise<void>((resolve, reject) => {
+            slot.resolver = { resolve, reject };
+        });
+        // Swallow rejection on the stored promise so callers that never
+        // attach a handler (or attach only via Promise.race) don't surface
+        // an unhandled rejection when dispose() rejects pending waiters.
+        slot.readyPromise.catch(() => { /* see whenWorkspaceReady() */ });
+
+        this.spawnWorker(slot);
+
+        return slot.readyPromise;
+    }
+
+    dispose(): void {
+        if (this.disposed) {
+            return;
+        }
+        this.disposed = true;
+
+        for (const slot of this.slots.values()) {
+            // Release any callers awaiting this worker's ready marker —
+            // without this, a caller that hits dispose() before the
+            // worker emitted its ready line would hang forever.
+            if (slot.resolver) {
+                slot.resolver.reject(new Error('WorkerManager disposed before worker became ready.'));
+                slot.resolver = undefined;
+            }
+            slot.readyPromise = undefined;
+
+            if (slot.child) {
+                slot.child.kill();
+                slot.child = undefined;
+            }
+        }
+    }
+
+    private buildSpecs(): WorkerSpec[] {
         const exeSuffix = process.platform === 'win32' ? '.exe' : '';
         const serversPath = join(this.extensionPath, 'servers');
 
-        const specs: WorkerSpec[] = this.workers.map(entry => {
+        return this.workers.map(entry => {
             const identity = entry.getShortName();
             const pipe = formatEndpoint(entry.id, this.endpointSuffix);
             const serverDir = join(serversPath, entry.name);
@@ -135,40 +240,17 @@ export class WorkerManager implements vscode.Disposable {
                 args,
             };
         });
-
-        for (const spec of specs) {
-            this.spawnWorker(spec);
-        }
     }
 
-    dispose(): void {
-        if (this.disposed) {
-            return;
-        }
-        this.disposed = true;
-
-        // Release any callers awaiting a worker's ready marker — without
-        // this, a caller that hits dispose() before the worker emitted
-        // its ready line would hang forever.
-        for (const [, { reject }] of this.readyResolvers) {
-            reject(new Error('WorkerManager disposed before worker became ready.'));
-        }
-        this.readyResolvers.clear();
-
-        for (const child of this.children) {
-            child.kill();
-        }
-        this.children.length = 0;
-    }
-
-    private spawnWorker(spec: WorkerSpec): void {
+    private spawnWorker(slot: WorkerSlot): void {
+        const spec = slot.spec;
         const workerLogger = this.logger.forCategory(spec.identity);
         workerLogger.debug(`Spawning: ${spec.command} ${spec.args.join(' ')}`);
         const child = spawn(spec.command, [...spec.args], {
             stdio: ['ignore', 'pipe', 'pipe'],
         });
         workerLogger.debug(`Spawned (pid=${child.pid ?? 'unknown'}); waiting for ready marker on '${spec.pipeName}'`);
-        this.children.push(child);
+        slot.child = child;
 
         if (child.stderr) {
             const rl = createInterface({ input: child.stderr });
@@ -176,10 +258,10 @@ export class WorkerManager implements vscode.Disposable {
                 workerLogger.info(line);
                 if (line === spec.readyMarker) {
                     workerLogger.debug('Ready marker received');
-                    const entry = this.readyResolvers.get(spec.identity);
-                    if (entry) {
-                        this.readyResolvers.delete(spec.identity);
-                        entry.resolve();
+                    if (slot.resolver) {
+                        const { resolve } = slot.resolver;
+                        slot.resolver = undefined;
+                        resolve();
                     }
                 }
             });
@@ -187,20 +269,27 @@ export class WorkerManager implements vscode.Disposable {
 
         child.on('error', (err) => {
             workerLogger.error('Failed to start', err);
-            const entry = this.readyResolvers.get(spec.identity);
-            if (entry) {
-                this.readyResolvers.delete(spec.identity);
-                entry.reject(err);
+            if (slot.resolver) {
+                const { reject } = slot.resolver;
+                slot.resolver = undefined;
+                reject(err);
             }
+            // Clear readyPromise so the next ensureRunning() respawns.
+            slot.readyPromise = undefined;
+            slot.child = undefined;
         });
 
         child.on('exit', (code) => {
             workerLogger.info(`Exited with code ${code}`);
-            const entry = this.readyResolvers.get(spec.identity);
-            if (entry) {
-                this.readyResolvers.delete(spec.identity);
-                entry.reject(new Error(`Worker '${spec.identity}' exited with code ${code} before becoming ready.`));
+            if (slot.resolver) {
+                const { reject } = slot.resolver;
+                slot.resolver = undefined;
+                reject(new Error(`Worker '${spec.identity}' exited with code ${code} before becoming ready.`));
             }
+            // Clear readyPromise so the next ensureRunning() respawns.
+            slot.readyPromise = undefined;
+            slot.child = undefined;
         });
     }
 }
+

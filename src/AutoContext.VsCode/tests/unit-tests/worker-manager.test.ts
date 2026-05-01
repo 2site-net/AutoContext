@@ -265,4 +265,101 @@ describe('WorkerManager', () => {
 
         mgr.dispose();
     });
+
+    describe('ensureRunning', () => {
+        it('should coalesce concurrent calls onto the same spawn', async () => {
+            const mgr = new WorkerManager('/ext', logger, '/workspace', fakeWorkers);
+
+            const a = mgr.ensureRunning('Worker.Workspace');
+            const b = mgr.ensureRunning('Worker.Workspace');
+
+            expect(spawnMock).toHaveBeenCalledTimes(1);
+            expect(a).toBe(b);
+
+            mgr.dispose();
+            await expect(a).rejects.toThrow(/disposed/);
+        });
+
+        it('should reuse the in-flight promise when start() and ensureRunning() race', () => {
+            const mgr = new WorkerManager('/ext', logger, '/workspace', fakeWorkers);
+
+            mgr.start();
+            const ready = mgr.ensureRunning('Worker.Workspace');
+
+            // start() already triggered a spawn for every worker; the
+            // ensureRunning() call must not spawn a second workspace child.
+            expect(spawnMock).toHaveBeenCalledTimes(3);
+            expect(ready).toBeInstanceOf(Promise);
+
+            mgr.dispose();
+        });
+
+        it('should respawn after the previous child exits', async () => {
+            const children: FakeChild[] = [];
+            spawnMock.mockImplementation(() => {
+                const child = createFakeChild();
+                children.push(child);
+                return child;
+            });
+
+            const mgr = new WorkerManager('/ext', logger, '/workspace', fakeWorkers);
+
+            const first = mgr.ensureRunning('Worker.Workspace');
+            children[0].stderr.write('[AutoContext.Worker.Workspace] Ready.\n');
+            await new Promise(r => setImmediate(r));
+            await expect(first).resolves.toBeUndefined();
+
+            // Child exits after becoming ready — slot is cleared.
+            children[0].emit('exit', 0);
+
+            const second = mgr.ensureRunning('Worker.Workspace');
+            expect(spawnMock).toHaveBeenCalledTimes(2);
+            expect(second).not.toBe(first);
+
+            children[1].stderr.write('[AutoContext.Worker.Workspace] Ready.\n');
+            await new Promise(r => setImmediate(r));
+            await expect(second).resolves.toBeUndefined();
+
+            mgr.dispose();
+        });
+
+        it('should respawn after a previous spawn failed with an error', async () => {
+            const children: FakeChild[] = [];
+            spawnMock.mockImplementation(() => {
+                const child = createFakeChild();
+                children.push(child);
+                return child;
+            });
+
+            const mgr = new WorkerManager('/ext', logger, '/workspace', fakeWorkers);
+
+            const first = mgr.ensureRunning('Worker.Workspace');
+            children[0].emit('error', new Error('spawn ENOENT'));
+            await expect(first).rejects.toThrow(/spawn ENOENT/);
+
+            const second = mgr.ensureRunning('Worker.Workspace');
+            expect(spawnMock).toHaveBeenCalledTimes(2);
+            expect(second).not.toBe(first);
+
+            mgr.dispose();
+            await expect(second).rejects.toThrow(/disposed/);
+        });
+
+        it('should reject with a clear error for an unknown worker identity', async () => {
+            const mgr = new WorkerManager('/ext', logger, '/workspace', fakeWorkers);
+
+            await expect(mgr.ensureRunning('Worker.Bogus')).rejects.toThrow(/No worker registered/);
+            expect(spawnMock).not.toHaveBeenCalled();
+
+            mgr.dispose();
+        });
+
+        it('should reject after dispose without spawning', async () => {
+            const mgr = new WorkerManager('/ext', logger, '/workspace', fakeWorkers);
+            mgr.dispose();
+
+            await expect(mgr.ensureRunning('Worker.Workspace')).rejects.toThrow(/disposed/);
+            expect(spawnMock).not.toHaveBeenCalled();
+        });
+    });
 });
