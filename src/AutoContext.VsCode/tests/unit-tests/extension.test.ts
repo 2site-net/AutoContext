@@ -48,16 +48,19 @@ vi.mock('../../src/instructions-files-exporter', () => ({
     InstructionsFilesExporter: class {},
 }));
 
-vi.mock('../../src/autocontext-config-manager', () => ({
-    AutoContextConfigManager: class {
-        async read() { return {}; }
-        readSync() { return {}; }
-        async removeOrphanedIds() {}
-        async clearStaleDisabledIds() { return []; }
-        onDidChange = () => ({ dispose() {} });
-        dispose() {}
-    },
-}));
+vi.mock('../../src/autocontext-config-manager', async () => {
+    const { AutoContextConfig } = await import('../../src/autocontext-config');
+    return {
+        AutoContextConfigManager: class {
+            async read() { return new AutoContextConfig(); }
+            readSync() { return new AutoContextConfig(); }
+            async removeOrphanedIds() {}
+            async clearStaleDisabledIds() { return []; }
+            onDidChange = () => ({ dispose() {} });
+            dispose() {}
+        },
+    };
+});
 
 vi.mock('../../src/instructions-viewer-document-provider', () => ({
     InstructionsViewerDocumentProvider: class { dispose() {} },
