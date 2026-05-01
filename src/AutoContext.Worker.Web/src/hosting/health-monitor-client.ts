@@ -25,12 +25,12 @@ export class HealthMonitorClient {
 
     private readonly pipeName: string;
     private readonly workerId: string;
-    private readonly logger: Logger | undefined;
+    private readonly logger: Logger;
     private socket: Socket | undefined;
     private startPromise: Promise<void> | undefined;
     private disposed = false;
 
-    constructor(pipeName: string, workerId: string, logger?: Logger) {
+    constructor(pipeName: string, workerId: string, logger: Logger) {
         if (workerId.trim() === '') {
             throw new Error('workerId must be a non-empty string.');
         }
@@ -76,7 +76,7 @@ export class HealthMonitorClient {
 
     private async startCore(): Promise<void> {
         if (this.pipeName === '') {
-            this.logger?.debug('Health-monitor pipe not configured; skipping liveness signal.');
+            this.logger.debug('Health-monitor pipe not configured; skipping liveness signal.');
             return;
         }
 
@@ -104,12 +104,12 @@ export class HealthMonitorClient {
             socket.on('error', () => { /* see class doc */ });
 
             this.socket = socket;
-            this.logger?.debug(
+            this.logger.debug(
                 `Connected to health-monitor pipe '${this.pipeName}' as worker '${this.workerId}'.`);
         }
         catch (err) {
             const message = err instanceof Error ? err.message : String(err);
-            this.logger?.warn(
+            this.logger.warn(
                 `Failed to connect to health-monitor pipe '${this.pipeName}' as worker '${this.workerId}': ${message}`);
         }
     }

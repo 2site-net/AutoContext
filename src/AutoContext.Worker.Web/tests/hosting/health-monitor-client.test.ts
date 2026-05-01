@@ -4,6 +4,7 @@ import { randomUUID } from 'node:crypto';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { HealthMonitorClient } from '#src/hosting/health-monitor-client.js';
+import { NullLogger } from '#src/logging/null-logger.js';
 
 function makePipeName(): string {
     if (process.platform === 'win32') {
@@ -82,7 +83,7 @@ describe('HealthMonitorClient', () => {
     });
 
     it('throws when workerId is blank', () => {
-        expect(() => new HealthMonitorClient('p', '   ')).toThrow(/workerId/);
+        expect(() => new HealthMonitorClient('p', '   ', NullLogger.instance)).toThrow(/workerId/);
     });
 
     it('writes the worker id and keeps the socket open', async () => {
@@ -90,7 +91,7 @@ describe('HealthMonitorClient', () => {
         const ps = await startServer(pipePath);
         servers.push(ps);
 
-        const client = new HealthMonitorClient(pipePath, 'web');
+        const client = new HealthMonitorClient(pipePath, 'web', NullLogger.instance);
         clients.push(client);
 
         await client.start();
@@ -110,7 +111,7 @@ describe('HealthMonitorClient', () => {
         const ps = await startServer(pipePath);
         servers.push(ps);
 
-        const client = new HealthMonitorClient(pipePath, 'web');
+        const client = new HealthMonitorClient(pipePath, 'web', NullLogger.instance);
         await client.start();
         const socket = await ps.awaitConnection();
 
@@ -124,7 +125,7 @@ describe('HealthMonitorClient', () => {
     });
 
     it('is a no-op when the pipe name is empty', async () => {
-        const client = new HealthMonitorClient('', 'web');
+        const client = new HealthMonitorClient('', 'web', NullLogger.instance);
         clients.push(client);
 
         // start() should resolve without throwing.
@@ -134,7 +135,7 @@ describe('HealthMonitorClient', () => {
 
     it('does not throw when no server is listening', async () => {
         const pipePath = makePipeName();
-        const client = new HealthMonitorClient(pipePath, 'web');
+        const client = new HealthMonitorClient(pipePath, 'web', NullLogger.instance);
         clients.push(client);
 
         // start() swallows the connect failure (best-effort signal).

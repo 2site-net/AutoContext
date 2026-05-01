@@ -48,35 +48,27 @@ public static partial class RegistrySchemeValidator
     public static RegistrySchemeValidatorResult Validate(
         string registryJson,
         McpWorkersCatalog registry,
-        ILogger? logger = null)
+        ILogger logger)
     {
         ArgumentNullException.ThrowIfNull(registryJson);
         ArgumentNullException.ThrowIfNull(registry);
+        ArgumentNullException.ThrowIfNull(logger);
 
-        if (logger is not null)
-        {
-            LogValidationStarting(logger, registry.Workers.Count);
-        }
+        LogValidationStarting(logger, registry.Workers.Count);
 
         var errors = new List<string>();
 
         ValidateAgainstSchema(registryJson, errors, logger);
         ValidateCrossReferences(registry, errors, logger);
 
-        if (logger is not null)
-        {
-            LogValidationFinished(logger, errors.Count);
-        }
+        LogValidationFinished(logger, errors.Count);
 
         return new RegistrySchemeValidatorResult(errors);
     }
 
-    private static void ValidateAgainstSchema(string registryJson, List<string> errors, ILogger? logger)
+    private static void ValidateAgainstSchema(string registryJson, List<string> errors, ILogger logger)
     {
-        if (logger is not null)
-        {
-            LogSchemaValidationStarting(logger);
-        }
+        LogSchemaValidationStarting(logger);
 
         JsonDocument doc;
 
@@ -86,10 +78,7 @@ public static partial class RegistrySchemeValidator
         }
         catch (JsonException ex)
         {
-            if (logger is not null)
-            {
-                LogSchemaJsonInvalid(logger, ex);
-            }
+            LogSchemaJsonInvalid(logger, ex);
 
             errors.Add($"Registry is not valid JSON: {ex.Message}");
             return;
@@ -102,10 +91,7 @@ public static partial class RegistrySchemeValidator
 
             if (result.IsValid)
             {
-                if (logger is not null)
-                {
-                    LogSchemaValidationFinished(logger, 0);
-                }
+                LogSchemaValidationFinished(logger, 0);
 
                 return;
             }
@@ -135,22 +121,16 @@ public static partial class RegistrySchemeValidator
                 errors.Add("Registry failed JSON Schema validation (no further detail).");
             }
 
-            if (logger is not null)
-            {
-                LogSchemaValidationFinished(logger, errors.Count);
-            }
+            LogSchemaValidationFinished(logger, errors.Count);
         }
     }
 
     private static void ValidateCrossReferences(
         McpWorkersCatalog registry,
         List<string> errors,
-        ILogger? logger)
+        ILogger logger)
     {
-        if (logger is not null)
-        {
-            LogCrossReferenceValidationStarting(logger);
-        }
+        LogCrossReferenceValidationStarting(logger);
 
         var workerNames = new HashSet<string>(StringComparer.Ordinal);
         var workerIds = new HashSet<string>(StringComparer.Ordinal);
@@ -187,10 +167,7 @@ public static partial class RegistrySchemeValidator
             ValidateWorker(workerPath, worker, toolNames, errors);
         }
 
-        if (logger is not null)
-        {
-            LogCrossReferenceValidationFinished(logger, errors.Count - startCount);
-        }
+        LogCrossReferenceValidationFinished(logger, errors.Count - startCount);
     }
 
     private static void ValidateWorker(

@@ -8,6 +8,7 @@ import type { McpTask } from '#types/mcp-task.js';
 import { WorkerTaskDispatcherService } from '#src/workers/worker-task-dispatcher-service.js';
 import { WorkerProtocolChannel } from '#src/workers/worker-protocol-channel.js';
 import { CorrelationScope } from '#src/logging/correlation-scope.js';
+import { NullLogger } from '#src/logging/null-logger.js';
 import type { Logger } from '#types/logger.js';
 
 function makePipeName(): string {
@@ -102,6 +103,7 @@ describe('WorkerTaskDispatcherService', () => {
         const service = new WorkerTaskDispatcherService(
             { pipe, readyMarker: '[test] Ready.' },
             tasks,
+            NullLogger.instance,
         );
         services.push(service);
         controllers.push(controller);
@@ -110,13 +112,13 @@ describe('WorkerTaskDispatcherService', () => {
     }
 
     it('throws when the pipe option is blank', () => {
-        expect(() => new WorkerTaskDispatcherService({ pipe: '   ', readyMarker: 'x' }, [])).toThrow(
+        expect(() => new WorkerTaskDispatcherService({ pipe: '   ', readyMarker: 'x' }, [], NullLogger.instance)).toThrow(
             /pipe/,
         );
     });
 
     it('throws when the readyMarker option is blank', () => {
-        expect(() => new WorkerTaskDispatcherService({ pipe: 'p', readyMarker: '' }, [])).toThrow(
+        expect(() => new WorkerTaskDispatcherService({ pipe: 'p', readyMarker: '' }, [], NullLogger.instance)).toThrow(
             /readyMarker/,
         );
     });
@@ -127,6 +129,7 @@ describe('WorkerTaskDispatcherService', () => {
                 new WorkerTaskDispatcherService(
                     { pipe: 'p', readyMarker: 'x' },
                     [new EchoTask(), new EchoTask()],
+                    NullLogger.instance,
                 ),
         ).toThrow(/Duplicate McpTask/);
     });
@@ -241,6 +244,7 @@ describe('WorkerTaskDispatcherService', () => {
         const service = new WorkerTaskDispatcherService(
             { pipe, readyMarker: '[test] Ready.' },
             [new EchoTask()],
+            NullLogger.instance,
         );
         services.push(service);
         controllers.push(controller);
@@ -270,6 +274,7 @@ describe('WorkerTaskDispatcherService', () => {
         const service = new WorkerTaskDispatcherService(
             { pipe, readyMarker: '[test] Ready.' },
             [new HangingTask()],
+            NullLogger.instance,
         );
         services.push(service);
         controllers.push(controller);
@@ -309,6 +314,7 @@ describe('WorkerTaskDispatcherService', () => {
             const service = new WorkerTaskDispatcherService(
                 { pipe, readyMarker: '[test] Ready.' },
                 [new EchoTask()],
+                NullLogger.instance,
             );
             services.push(service);
             controllers.push(controller);
@@ -339,6 +345,7 @@ describe('WorkerTaskDispatcherService', () => {
             const service = new WorkerTaskDispatcherService(
                 { pipe, readyMarker: '[test] Ready.' },
                 [new EchoTask()],
+                NullLogger.instance,
             );
             await expect(service.start(new AbortController().signal)).rejects.toThrow();
         },

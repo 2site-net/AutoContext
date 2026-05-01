@@ -33,14 +33,14 @@ import type { Logger } from '#types/logger.js';
 export class WorkerTaskDispatcherService {
     private readonly options: WorkerHostOptions;
     private readonly tasks: ReadonlyMap<string, McpTask>;
-    private readonly logger: Logger | undefined;
+    private readonly logger: Logger;
     private server: net.Server | undefined;
     private readonly inFlight = new Set<Promise<void>>();
     private readonly sockets = new Set<Socket>();
     private readonly stopController = new AbortController();
     private stopPromise: Promise<void> | undefined;
 
-    constructor(options: WorkerHostOptions, tasks: readonly McpTask[], logger?: Logger) {
+    constructor(options: WorkerHostOptions, tasks: readonly McpTask[], logger: Logger) {
         if (options.pipe.trim() === '') {
             throw new Error('Missing required configuration: pipe');
         }
@@ -89,10 +89,10 @@ export class WorkerTaskDispatcherService {
         this.server = server;
 
         const pipePath = WorkerTaskDispatcherService.normalizePipePath(this.options.pipe);
-        this.logger?.info(`Worker listening on pipe: ${pipePath}`);
+        this.logger.info(`Worker listening on pipe: ${pipePath}`);
         await WorkerTaskDispatcherService.listenWithStaleRecovery(server, pipePath);
         process.stderr.write(this.options.readyMarker + '\n');
-        this.logger?.info(`Worker ready marker emitted on pipe: ${pipePath}`);
+        this.logger.info(`Worker ready marker emitted on pipe: ${pipePath}`);
 
         if (signal.aborted) {
             await this.stop();
@@ -168,12 +168,7 @@ export class WorkerTaskDispatcherService {
             // IOException/ObjectDisposedException at this boundary.
             if (!WorkerTaskDispatcherService.isExpectedConnectionError(ex)) {
                 const { name, message } = WorkerTaskDispatcherService.describeError(ex);
-                this.logger?.error(`Unexpected error in connection handler: ${name}: ${message}`, ex);
-                if (this.logger === undefined) {
-                    process.stderr.write(
-                        `[WorkerTaskDispatcherService] Unexpected error in connection handler: ${name}: ${message}\n`,
-                    );
-                }
+                this.logger.error(`Unexpected error in connection handler: ${name}: ${message}`, ex);
             }
         } finally {
             socket.end();
@@ -220,7 +215,7 @@ export class WorkerTaskDispatcherService {
                 return WorkerTaskDispatcherService.buildSuccessResponse(taskName, output);
             } catch (ex) {
                 const { name, message } = WorkerTaskDispatcherService.describeError(ex);
-                this.logger?.error(`Task '${taskName}' failed: ${name}: ${message}`, ex);
+                this.logger.error(`Task '${taskName}' failed: ${name}: ${message}`, ex);
                 return WorkerTaskDispatcherService.buildErrorResponse(taskName, `Task threw ${name}: ${message}`);
             }
         };

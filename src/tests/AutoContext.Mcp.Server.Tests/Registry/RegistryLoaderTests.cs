@@ -5,13 +5,18 @@ using System.Text.Json;
 
 using AutoContext.Mcp.Server.Registry;
 
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
+
 public sealed class RegistryLoaderTests
 {
+    private static readonly ILogger Logger = NullLogger.Instance;
+
     [Fact]
     public void Should_parse_real_registry()
     {
         // Act
-        var registry = RegistryLoader.Parse(RegistryEmbeddedResourceLoader.Json);
+        var registry = RegistryLoader.Parse(RegistryEmbeddedResourceLoader.Json, Logger);
 
         // Assert
         Assert.Multiple(
@@ -26,7 +31,7 @@ public sealed class RegistryLoaderTests
     public void Should_expose_typed_tool_definitions()
     {
         // Act
-        var registry = RegistryLoader.Parse(RegistryEmbeddedResourceLoader.Json);
+        var registry = RegistryLoader.Parse(RegistryEmbeddedResourceLoader.Json, Logger);
         var dotnet = registry.Workers.Single(w => w.Name == "AutoContext.Worker.DotNet");
         var csharp = dotnet.Tools.Single(t => t.Name == "analyze_csharp_code");
 
@@ -59,7 +64,7 @@ public sealed class RegistryLoaderTests
             """;
 
         // Act
-        var registry = RegistryLoader.Parse(json);
+        var registry = RegistryLoader.Parse(json, Logger);
         var task = registry.Workers[0].Tools[0].Tasks[0];
 
         // Assert
@@ -78,7 +83,7 @@ public sealed class RegistryLoaderTests
         try
         {
             // Act
-            var registry = await RegistryLoader.LoadAsync(path, TestContext.Current.CancellationToken);
+            var registry = await RegistryLoader.LoadAsync(path, Logger, TestContext.Current.CancellationToken);
 
             // Assert
             Assert.Equal("1", registry.SchemaVersion);
@@ -92,18 +97,18 @@ public sealed class RegistryLoaderTests
     [Fact]
     public void Should_throw_JsonException_when_schemaVersion_missing()
     {
-        Assert.Throws<JsonException>(() => RegistryLoader.Parse("""{ "workers": [] }"""));
+        Assert.Throws<JsonException>(() => RegistryLoader.Parse("""{ "workers": [] }""", Logger));
     }
 
     [Fact]
     public void Should_throw_JsonException_when_workers_missing()
     {
-        Assert.Throws<JsonException>(() => RegistryLoader.Parse("""{ "schemaVersion": "1" }"""));
+        Assert.Throws<JsonException>(() => RegistryLoader.Parse("""{ "schemaVersion": "1" }""", Logger));
     }
 
     [Fact]
     public void Should_throw_ArgumentNullException_when_json_is_null()
     {
-        Assert.Throws<ArgumentNullException>(() => RegistryLoader.Parse(null!));
+        Assert.Throws<ArgumentNullException>(() => RegistryLoader.Parse(null!, Logger));
     }
 }

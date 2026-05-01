@@ -21,15 +21,13 @@ public static partial class RegistryLoader
     /// <exception cref="JsonException">If the JSON is malformed or fails type binding.</exception>
     public static McpWorkersCatalog Parse(
         string json,
-        string source = "(memory)",
-        ILogger? logger = null)
+        ILogger logger,
+        string source = "(memory)")
     {
         ArgumentNullException.ThrowIfNull(json);
+        ArgumentNullException.ThrowIfNull(logger);
 
-        if (logger is not null)
-        {
-            LogRegistryParsing(logger, source);
-        }
+        LogRegistryParsing(logger, source);
 
         try
         {
@@ -38,10 +36,7 @@ public static partial class RegistryLoader
         }
         catch (JsonException ex)
         {
-            if (logger is not null)
-            {
-                LogRegistryParseFailed(logger, source, ex);
-            }
+            LogRegistryParseFailed(logger, source, ex);
 
             throw;
         }
@@ -52,15 +47,13 @@ public static partial class RegistryLoader
     /// </summary>
     public static async Task<McpWorkersCatalog> LoadAsync(
         string path,
-        CancellationToken ct,
-        ILogger? logger = null)
+        ILogger logger,
+        CancellationToken ct)
     {
         ArgumentException.ThrowIfNullOrEmpty(path);
+        ArgumentNullException.ThrowIfNull(logger);
 
-        if (logger is not null)
-        {
-            LogRegistryLoadingFromPath(logger, path);
-        }
+        LogRegistryLoadingFromPath(logger, path);
 
         var stream = File.OpenRead(path);
         await using (stream.ConfigureAwait(false))
@@ -72,10 +65,7 @@ public static partial class RegistryLoader
             }
             catch (JsonException ex)
             {
-                if (logger is not null)
-                {
-                    LogRegistryParseFailed(logger, path, ex);
-                }
+                LogRegistryParseFailed(logger, path, ex);
 
                 throw;
             }

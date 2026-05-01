@@ -2,16 +2,21 @@ namespace AutoContext.Mcp.Server.Tests.Registry;
 
 using AutoContext.Mcp.Server.Registry;
 
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
+
 public sealed class RegistrySchemeValidatorTests
 {
+    private static readonly ILogger Logger = NullLogger.Instance;
+
     [Fact]
     public void Real_registry_should_be_valid()
     {
         // Arrange
-        var registry = RegistryLoader.Parse(RegistryEmbeddedResourceLoader.Json);
+        var registry = RegistryLoader.Parse(RegistryEmbeddedResourceLoader.Json, Logger);
 
         // Act
-        var result = RegistrySchemeValidator.Validate(RegistryEmbeddedResourceLoader.Json, registry);
+        var result = RegistrySchemeValidator.Validate(RegistryEmbeddedResourceLoader.Json, registry, Logger);
 
         // Assert
         Assert.True(result.IsValid, string.Join(Environment.NewLine, result.Errors));
@@ -39,10 +44,10 @@ public sealed class RegistrySchemeValidatorTests
               }]
             }
             """;
-        var registry = RegistryLoader.Parse(json);
+        var registry = RegistryLoader.Parse(json, Logger);
 
         // Act
-        var result = RegistrySchemeValidator.Validate(json, registry);
+        var result = RegistrySchemeValidator.Validate(json, registry, Logger);
 
         // Assert
         Assert.Contains(result.Errors, e => e.Contains("Duplicate task name 'analyze_nuget_hygiene'", StringComparison.Ordinal));
@@ -79,10 +84,10 @@ public sealed class RegistrySchemeValidatorTests
               ]
             }
             """;
-        var registry = RegistryLoader.Parse(json);
+        var registry = RegistryLoader.Parse(json, Logger);
 
         // Act
-        var result = RegistrySchemeValidator.Validate(json, registry);
+        var result = RegistrySchemeValidator.Validate(json, registry, Logger);
 
         // Assert
         Assert.Contains(result.Errors, e => e.Contains("Duplicate tool name 'analyze_shared_name'", StringComparison.Ordinal));
@@ -119,10 +124,10 @@ public sealed class RegistrySchemeValidatorTests
               ]
             }
             """;
-        var registry = RegistryLoader.Parse(json);
+        var registry = RegistryLoader.Parse(json, Logger);
 
         // Act
-        var result = RegistrySchemeValidator.Validate(json, registry);
+        var result = RegistrySchemeValidator.Validate(json, registry, Logger);
 
         // Assert
         Assert.Contains(result.Errors, e => e.Contains("Duplicate worker id 'shared'", StringComparison.Ordinal));
@@ -147,10 +152,10 @@ public sealed class RegistrySchemeValidatorTests
               }]
             }
             """;
-        var registry = RegistryLoader.Parse(json);
+        var registry = RegistryLoader.Parse(json, Logger);
 
         // Act
-        var result = RegistrySchemeValidator.Validate(json, registry);
+        var result = RegistrySchemeValidator.Validate(json, registry, Logger);
 
         // Assert
         Assert.Multiple(
@@ -176,7 +181,7 @@ public sealed class RegistrySchemeValidatorTests
         };
 
         // Act
-        var result = RegistrySchemeValidator.Validate(json, registry);
+        var result = RegistrySchemeValidator.Validate(json, registry, Logger);
 
         // Assert
         Assert.Contains(result.Errors, e => e.Contains("Registry contains no workers", StringComparison.Ordinal));
@@ -202,7 +207,7 @@ public sealed class RegistrySchemeValidatorTests
         };
 
         // Act — pass valid JSON so we isolate the cross-reference check.
-        var result = RegistrySchemeValidator.Validate(RegistryEmbeddedResourceLoader.Json, registry);
+        var result = RegistrySchemeValidator.Validate(RegistryEmbeddedResourceLoader.Json, registry, Logger);
 
         // Assert
         Assert.Contains(result.Errors, e => e.Contains("declares no tools", StringComparison.Ordinal));
@@ -239,7 +244,7 @@ public sealed class RegistrySchemeValidatorTests
         };
 
         // Act
-        var result = RegistrySchemeValidator.Validate(RegistryEmbeddedResourceLoader.Json, registry);
+        var result = RegistrySchemeValidator.Validate(RegistryEmbeddedResourceLoader.Json, registry, Logger);
 
         // Assert
         Assert.Contains(result.Errors, e => e.Contains("declares no tasks", StringComparison.Ordinal));
@@ -280,7 +285,7 @@ public sealed class RegistrySchemeValidatorTests
         };
 
         // Act
-        var result = RegistrySchemeValidator.Validate(RegistryEmbeddedResourceLoader.Json, registry);
+        var result = RegistrySchemeValidator.Validate(RegistryEmbeddedResourceLoader.Json, registry, Logger);
 
         // Assert
         Assert.Contains(result.Errors, e => e.Contains("schemaVersion 'not-a-version'", StringComparison.Ordinal));
@@ -289,10 +294,11 @@ public sealed class RegistrySchemeValidatorTests
     [Fact]
     public void Should_throw_ArgumentNullException_for_null_inputs()
     {
-        var registry = RegistryLoader.Parse(RegistryEmbeddedResourceLoader.Json);
+        var registry = RegistryLoader.Parse(RegistryEmbeddedResourceLoader.Json, Logger);
 
         Assert.Multiple(
-            () => Assert.Throws<ArgumentNullException>(() => RegistrySchemeValidator.Validate(null!, registry)),
-            () => Assert.Throws<ArgumentNullException>(() => RegistrySchemeValidator.Validate(RegistryEmbeddedResourceLoader.Json, null!)));
+            () => Assert.Throws<ArgumentNullException>(() => RegistrySchemeValidator.Validate(null!, registry, Logger)),
+            () => Assert.Throws<ArgumentNullException>(() => RegistrySchemeValidator.Validate(RegistryEmbeddedResourceLoader.Json, null!, Logger)),
+            () => Assert.Throws<ArgumentNullException>(() => RegistrySchemeValidator.Validate(RegistryEmbeddedResourceLoader.Json, registry, null!)));
     }
 }

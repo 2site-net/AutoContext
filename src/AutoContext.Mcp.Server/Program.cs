@@ -121,7 +121,7 @@ internal static partial class Program
             }
         }
 
-        var registry = RegistryLoader.Parse(registrySource.Json, "embedded resource", bootstrapLogger);
+        var registry = RegistryLoader.Parse(registrySource.Json, bootstrapLogger, "embedded resource");
         var validation = RegistrySchemeValidator.Validate(registrySource.Json, registry, bootstrapLogger);
 
         var builder = Host.CreateApplicationBuilder(args);
