@@ -147,6 +147,10 @@ $serverManifest = if (Test-Path $serversJsonPath) {
 $nodeServers = @($serverManifest | Where-Object type -eq 'node')
 $dotnetServers = @($serverManifest | Where-Object type -eq 'dotnet')
 
+# Shared TypeScript libraries (no entry point) compiled before extension/servers.
+# Consumers reference them via npm `file:` deps.
+$tsLibraries = @('AutoContext.Framework.Web')
+
 # In CI, use 'npm ci' for deterministic lockfile-exact installs
 $npmInstallCmd = if ($env:CI) { 'ci' } else { 'install' }
 
@@ -380,6 +384,27 @@ function Build-TypeScript {
 
     if ($PSCmdlet.ShouldProcess('chat-instructions manifest + tsc', 'Compile TypeScript')) {
         Assert-ExternalCommand 'npx'
+
+        # Build shared TS libraries first so consumers can resolve them via file: deps.
+        foreach ($libName in $tsLibraries) {
+            $libDir = Join-Path $repoRoot 'src' $libName
+            if (-not (Test-Path $libDir)) { continue }
+
+            Push-Location $libDir
+            try {
+                Write-Status "Installing $libName dependencies..." 'INFO'
+                npm $npmInstallCmd
+                if ($LASTEXITCODE -ne 0) { throw "$libName npm install failed." }
+
+                Write-Status "Compiling $libName..." 'INFO'
+                npx tsc -p ./tsconfig.build.json
+                if ($LASTEXITCODE -ne 0) { throw "$libName compilation failed." }
+                Write-Status "$libName compiled" 'OK'
+            }
+            finally {
+                Pop-Location
+            }
+        }
 
         Push-Location $extensionDir
         try {
@@ -1277,6 +1302,10 @@ function Invoke-Clean {
     $targets = @()
 
     $targets += @{ Path = (Join-Path $extensionDir 'dist');    Label = 'TypeScript output (dist/)' }
+    foreach ($libName in $tsLibraries) {
+        $libDir = Join-Path $repoRoot 'src' $libName
+        $targets += @{ Path = (Join-Path $libDir 'out'); Label = "$libName output (out/)" }
+    }
     foreach ($server in $nodeServers) {
         $serverDir = Join-Path $repoRoot 'src' $server.name
         $targets += @{ Path = (Join-Path $serverDir 'out'); Label = "$($server.name) output (out/)" }

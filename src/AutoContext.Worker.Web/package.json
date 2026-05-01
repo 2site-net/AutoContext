@@ -17,6 +17,7 @@
     "start": "node out/index.js"
   },
   "dependencies": {
+    "autocontext-framework-web": "file:../AutoContext.Framework.Web",
     "typescript": "^5.7.0"
   },
   "devDependencies": {
