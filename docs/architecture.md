@@ -378,7 +378,7 @@ The .NET solution and one Node.js workspace make up the runtime side:
   - `Workers/` — `WorkerClient` (one pipe round-trip per task; 30 s deadline; never throws on IO/timeout/parse failure), `Protocol/` (`TaskRequest`, `TaskResponse`, `WorkerJsonOptions`), `Transport/` (`ServiceAddressOptions` — holds the per-window `InstanceId` and formats `autocontext.<role>#<instance-id>` addresses via `AutoContext.Framework.Workers.ServiceAddressFormatter`).
   - `EditorConfig/` — `EditorConfigBatcher` (one pipe call per `tools/call` to `Worker.Workspace`'s `get_editorconfig_rules` task; results are sliced per task).
 - **`AutoContext.Worker.DotNet`** — .NET worker. Owns the `analyze_csharp_*` and `analyze_nuget_*` tasks (`Tasks/CSharp/` and `Tasks/NuGet/`). `Program.Main` registers each task as a singleton `IMcpTask` and starts `WorkerTaskDispatcherService`.
-- **`AutoContext.Worker.Workspace`** — .NET worker. Owns the `analyze_git_*`, `get_editorconfig_rules`, and `get_autocontext_config_file` tasks (`Tasks/Git/`, `Tasks/EditorConfig/`, `Tasks/Config/`). `Hosting/WorkerOptions.WorkspaceRoot` is the per-window workspace root passed via `--workspace-root`.
+- **`AutoContext.Worker.Workspace`** — .NET worker. Owns the `analyze_git_*` and `get_editorconfig_rules` tasks (`Tasks/Git/`, `Tasks/EditorConfig/`). `Hosting/WorkerOptions.WorkspaceRoot` is the per-window workspace root passed via `--workspace-root` (currently reserved for future workspace-scoped tasks).
 - **`AutoContext.Worker.Web`** — Node.js / TypeScript worker. Owns the `analyze_typescript_coding_style` task. Mirrors the .NET worker structure with TypeScript equivalents of `LoggingClient`, `HealthMonitorClient`, and the dispatcher loop.
 
 ### EditorConfig Resolution

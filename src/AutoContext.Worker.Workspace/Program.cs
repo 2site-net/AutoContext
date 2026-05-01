@@ -4,7 +4,6 @@ using AutoContext.Mcp;
 using AutoContext.Framework.Workers;
 using AutoContext.Worker.Hosting;
 using AutoContext.Worker.Workspace.Hosting;
-using AutoContext.Worker.Workspace.Tasks.Config;
 using AutoContext.Worker.Workspace.Tasks.EditorConfig;
 using AutoContext.Worker.Workspace.Tasks.Git;
 
@@ -14,8 +13,8 @@ using Microsoft.Extensions.Logging;
 
 /// <summary>
 /// <c>AutoContext.Worker.Workspace</c> entry point. Standalone process that
-/// owns the workspace-side MCP Tasks (git checks, editorconfig resolution,
-/// <c>.autocontext.json</c> reading) and serves them over a named pipe.
+/// owns the workspace-side MCP Tasks (git checks, editorconfig resolution)
+/// and serves them over a named pipe.
 /// </summary>
 internal static partial class Program
 {
@@ -45,7 +44,6 @@ internal static partial class Program
         builder.Services.AddSingleton<IMcpTask, AnalyzeGitCommitFormatTask>();
         builder.Services.AddSingleton<IMcpTask, AnalyzeGitCommitContentTask>();
         builder.Services.AddSingleton<IMcpTask, GetEditorConfigRulesTask>();
-        builder.Services.AddSingleton<IMcpTask, GetAutoContextConfigFileTask>();
 
         builder.Services.AddHostedService<WorkerTaskDispatcherService>();
 
@@ -56,8 +54,7 @@ internal static partial class Program
             string.Join(", ",
                 nameof(AnalyzeGitCommitFormatTask),
                 nameof(AnalyzeGitCommitContentTask),
-                nameof(GetEditorConfigRulesTask),
-                nameof(GetAutoContextConfigFileTask)));
+                nameof(GetEditorConfigRulesTask)));
 
         return host.RunAsync();
     }

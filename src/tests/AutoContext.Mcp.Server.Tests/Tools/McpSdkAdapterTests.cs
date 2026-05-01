@@ -9,78 +9,70 @@ using AutoContext.Mcp.Server.Workers;
 
 using Microsoft.Extensions.Logging.Abstractions;
 
-using ModelContextProtocol.Protocol;
-using ModelContextProtocol.Server;
-
 public sealed class McpSdkAdapterTests
 {
     [Fact]
-    public async Task Should_return_all_tools_when_no_config_snapshot_is_supplied()
+    public void Should_return_all_tools_when_no_config_snapshot_is_supplied()
     {
         var registry = BuildCatalog(
             ("alpha", [BuildTool("alpha_tool")]),
             ("beta", [BuildTool("beta_tool")]));
         var adapter = new McpSdkAdapter(registry, BuildInvoker());
 
-        var result = await adapter.HandleListToolsAsync(BuildRequest(), CancellationToken.None);
+        var visible = adapter.ListVisibleTools();
 
         Assert.Multiple(
-            () => Assert.Equal(2, result.Tools.Count),
-            () => Assert.Contains(result.Tools, t => t.Name == "alpha_tool"),
-            () => Assert.Contains(result.Tools, t => t.Name == "beta_tool"));
+            () => Assert.Equal(2, visible.Count),
+            () => Assert.Contains(visible, t => t.Name == "alpha_tool"),
+            () => Assert.Contains(visible, t => t.Name == "beta_tool"));
     }
 
     [Fact]
-    public async Task Should_return_all_tools_when_snapshot_has_nothing_disabled()
+    public void Should_return_all_tools_when_snapshot_has_nothing_disabled()
     {
         var registry = BuildCatalog(("alpha", [BuildTool("alpha_tool"), BuildTool("beta_tool")]));
         var snapshot = new AutoContextConfigSnapshot();
         var adapter = new McpSdkAdapter(registry, BuildInvoker(), snapshot, NullLogger<McpSdkAdapter>.Instance);
 
-        var result = await adapter.HandleListToolsAsync(BuildRequest(), CancellationToken.None);
+        var visible = adapter.ListVisibleTools();
 
-        Assert.Equal(2, result.Tools.Count);
+        Assert.Equal(2, visible.Count);
     }
 
     [Fact]
-    public async Task Should_filter_disabled_tools_from_tools_list()
+    public void Should_filter_disabled_tools_from_tools_list()
     {
         var registry = BuildCatalog(("alpha", [BuildTool("alpha_tool"), BuildTool("beta_tool"), BuildTool("gamma_tool")]));
         var snapshot = new AutoContextConfigSnapshot();
         snapshot.Update(new AutoContextConfigSnapshotDto { DisabledTools = ["beta_tool"] });
         var adapter = new McpSdkAdapter(registry, BuildInvoker(), snapshot, NullLogger<McpSdkAdapter>.Instance);
 
-        var result = await adapter.HandleListToolsAsync(BuildRequest(), CancellationToken.None);
+        var visible = adapter.ListVisibleTools();
 
         Assert.Multiple(
-            () => Assert.Equal(2, result.Tools.Count),
-            () => Assert.DoesNotContain(result.Tools, t => t.Name == "beta_tool"),
-            () => Assert.Contains(result.Tools, t => t.Name == "alpha_tool"),
-            () => Assert.Contains(result.Tools, t => t.Name == "gamma_tool"));
+            () => Assert.Equal(2, visible.Count),
+            () => Assert.DoesNotContain(visible, t => t.Name == "beta_tool"),
+            () => Assert.Contains(visible, t => t.Name == "alpha_tool"),
+            () => Assert.Contains(visible, t => t.Name == "gamma_tool"));
     }
 
     [Fact]
-    public async Task Should_reflect_snapshot_updates_on_subsequent_calls()
+    public void Should_reflect_snapshot_updates_on_subsequent_calls()
     {
         var registry = BuildCatalog(("alpha", [BuildTool("alpha_tool"), BuildTool("beta_tool")]));
         var snapshot = new AutoContextConfigSnapshot();
         var adapter = new McpSdkAdapter(registry, BuildInvoker(), snapshot, NullLogger<McpSdkAdapter>.Instance);
 
-        var before = await adapter.HandleListToolsAsync(BuildRequest(), CancellationToken.None);
+        var before = adapter.ListVisibleTools();
 
         snapshot.Update(new AutoContextConfigSnapshotDto { DisabledTools = ["alpha_tool"] });
-        var after = await adapter.HandleListToolsAsync(BuildRequest(), CancellationToken.None);
+        var after = adapter.ListVisibleTools();
 
         Assert.Multiple(
-            () => Assert.Equal(2, before.Tools.Count),
-            () => Assert.Single(after.Tools),
-            () => Assert.Equal("beta_tool", after.Tools[0].Name));
+            () => Assert.Equal(2, before.Count),
+            () => Assert.Single(after),
+            () => Assert.Equal("beta_tool", after[0].Name));
     }
-
-    private static RequestContext<ListToolsRequestParams> BuildRequest() => new(
-        server: null!,
-        jsonRpcRequest: new JsonRpcRequest { Method = "tools/list" },
-        parameters: new ListToolsRequestParams());
 
     private static ToolInvoker BuildInvoker()
     {

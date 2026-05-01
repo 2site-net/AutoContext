@@ -33,7 +33,7 @@ using ModelContextProtocol.Server;
 /// </remarks>
 public sealed partial class McpSdkAdapter
 {
-    private readonly IReadOnlyList<Tool> _tools;
+    private readonly List<Tool> _tools;
     private readonly IReadOnlyDictionary<string, ToolHandler> _handlers;
     private readonly AutoContextConfigSnapshot? _configSnapshot;
     private readonly ILogger<McpSdkAdapter> _logger;
@@ -75,15 +75,37 @@ public sealed partial class McpSdkAdapter
         ArgumentNullException.ThrowIfNull(request);
         cancellationToken.ThrowIfCancellationRequested();
 
-        var disabled = _configSnapshot?.DisabledTools;
-        var visible = disabled is { Count: > 0 }
-            ? _tools.Where(t => !disabled.Contains(t.Name)).ToList()
-            : (IEnumerable<Tool>)_tools;
-
         return ValueTask.FromResult(new ListToolsResult
         {
-            Tools = [.. visible],
+            Tools = ListVisibleTools(),
         });
+    }
+
+    /// <summary>
+    /// Returns the currently-advertised tool list with disabled tools
+    /// filtered out. Pure function over the catalog and the latest
+    /// config snapshot — testable without an <see cref="McpServer"/>.
+    /// </summary>
+    internal List<Tool> ListVisibleTools()
+    {
+        var disabled = _configSnapshot?.DisabledTools;
+
+        if (disabled is null || disabled.Count == 0)
+        {
+            return [.. _tools];
+        }
+
+        var visible = new List<Tool>(_tools.Count);
+        for (var i = 0; i < _tools.Count; i++)
+        {
+            var tool = _tools[i];
+            if (!disabled.Contains(tool.Name))
+            {
+                visible.Add(tool);
+            }
+        }
+
+        return visible;
     }
 
     /// <summary>Handler for <c>tools/call</c>.</summary>
