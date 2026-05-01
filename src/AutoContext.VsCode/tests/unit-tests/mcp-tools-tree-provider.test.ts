@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { join } from 'node:path';
 import { TreeItemCollapsibleState, TreeItemCheckboxState, window, ThemeIcon, ThemeColor } from '#testing/fakes/fake-vscode';
 import { McpToolsTreeProvider } from '#src/mcp-tools-tree-provider';
-import type { AutoContextConfig } from '#types/autocontext-config.js';
+import { AutoContextConfig } from '#src/autocontext-config.js';
 import { TreeViewNodeState } from '#src/tree-view-node-state';
 import { McpToolsManifestLoader } from '#src/mcp-tools-manifest-loader';
 import type { McpToolEntry } from '#src/mcp-tool-entry';
@@ -18,12 +18,12 @@ const logger = createFakeLogger();
 const stateResolver = new TreeViewStateResolver(fakeDetector);
 const tooltip = new TreeViewTooltip('tools');
 
-let currentConfig: AutoContextConfig = {};
+let currentConfig: AutoContextConfig = new AutoContextConfig();
 const fakeConfigManager = createFakeConfigManager();
 
 beforeEach(() => {
     vi.clearAllMocks();
-    currentConfig = {};
+    currentConfig = new AutoContextConfig();
     vi.mocked(fakeConfigManager.readSync).mockImplementation(() => currentConfig);
     vi.mocked(fakeConfigManager.onDidChange).mockReturnValue({ dispose: vi.fn() });
     vi.mocked(fakeDetector.get).mockReset();
@@ -134,8 +134,7 @@ describe('McpToolsTreeProvider', () => {
 
     it('should mark tasks as disabled when setting is false', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
-        currentConfig = { mcpTools: { analyze_csharp_code: { disabledTasks: ['analyze_csharp_async_patterns'] } } };
-
+        currentConfig = new AutoContextConfig({ mcpTools: { analyze_csharp_code: { disabledTasks: ['analyze_csharp_async_patterns'] } } });
         const provider = new McpToolsTreeProvider(fakeDetector, manifest, stateResolver, tooltip, fakeConfigManager, logger);
         const tasks = getTasks(provider, '.NET', 'C#', 'analyze_csharp_code');
 
@@ -159,8 +158,7 @@ describe('McpToolsTreeProvider', () => {
 
     it('should show checkbox unchecked for disabled tasks', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
-        currentConfig = { mcpTools: { analyze_csharp_code: { disabledTasks: ['analyze_csharp_async_patterns'] } } };
-
+        currentConfig = new AutoContextConfig({ mcpTools: { analyze_csharp_code: { disabledTasks: ['analyze_csharp_async_patterns'] } } });
         const provider = new McpToolsTreeProvider(fakeDetector, manifest, stateResolver, tooltip, fakeConfigManager, logger);
         const tasks = getTasks(provider, '.NET', 'C#', 'analyze_csharp_code');
         const asyncTool = tasks.find(c => c.kind === 'mcpTaskNode' && c.task.name === 'analyze_csharp_async_patterns')!;
@@ -223,8 +221,7 @@ describe('McpToolsTreeProvider', () => {
 
     it('should show MCP tool checkbox checked when some tasks are disabled', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
-        currentConfig = { mcpTools: { analyze_csharp_code: { disabledTasks: ['analyze_csharp_async_patterns'] } } };
-
+        currentConfig = new AutoContextConfig({ mcpTools: { analyze_csharp_code: { disabledTasks: ['analyze_csharp_async_patterns'] } } });
         const provider = new McpToolsTreeProvider(fakeDetector, manifest, stateResolver, tooltip, fakeConfigManager, logger);
         const tools = getMcpTools(provider, '.NET', 'C#');
         const item = provider.getTreeItem(tools[0]);
@@ -237,8 +234,7 @@ describe('McpToolsTreeProvider', () => {
     it('should show MCP tool checkbox checked when all tasks are disabled but parent is not', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
         const allTasks = manifest.toolByName('analyze_csharp_code')!.tasks.map(t => t.name);
-        currentConfig = { mcpTools: { analyze_csharp_code: { disabledTasks: allTasks } } };
-
+        currentConfig = new AutoContextConfig({ mcpTools: { analyze_csharp_code: { disabledTasks: allTasks } } });
         const provider = new McpToolsTreeProvider(fakeDetector, manifest, stateResolver, tooltip, fakeConfigManager, logger);
         const tools = getMcpTools(provider, '.NET', 'C#');
         const item = provider.getTreeItem(tools[0]);
@@ -250,8 +246,7 @@ describe('McpToolsTreeProvider', () => {
 
     it('should show MCP tool checkbox unchecked when parent has enabled:false', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
-        currentConfig = { mcpTools: { analyze_csharp_code: { enabled: false } } };
-
+        currentConfig = new AutoContextConfig({ mcpTools: { analyze_csharp_code: { enabled: false } } });
         const provider = new McpToolsTreeProvider(fakeDetector, manifest, stateResolver, tooltip, fakeConfigManager, logger);
         const tools = getMcpTools(provider, '.NET', 'C#');
         const item = provider.getTreeItem(tools[0]);
@@ -263,8 +258,7 @@ describe('McpToolsTreeProvider', () => {
 
     it('should show MCP tool checkbox unchecked when parent entry is false', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
-        currentConfig = { mcpTools: { analyze_csharp_code: false } };
-
+        currentConfig = new AutoContextConfig({ mcpTools: { analyze_csharp_code: false } });
         const provider = new McpToolsTreeProvider(fakeDetector, manifest, stateResolver, tooltip, fakeConfigManager, logger);
         const tools = getMcpTools(provider, '.NET', 'C#');
         const item = provider.getTreeItem(tools[0]);
@@ -311,8 +305,7 @@ describe('McpToolsTreeProvider', () => {
 
     it('should sort enabled before disabled before not-detected in tasks', () => {
         vi.mocked(fakeDetector.get).mockImplementation((key: string) => key === 'hasCSharp');
-        currentConfig = { mcpTools: { analyze_csharp_code: { disabledTasks: ['analyze_csharp_async_patterns'] } } };
-
+        currentConfig = new AutoContextConfig({ mcpTools: { analyze_csharp_code: { disabledTasks: ['analyze_csharp_async_patterns'] } } });
         const provider = new McpToolsTreeProvider(fakeDetector, manifest, stateResolver, tooltip, fakeConfigManager, logger);
         const tasks = getTasks(provider, '.NET', 'C#', 'analyze_csharp_code');
 
@@ -378,8 +371,7 @@ describe('McpToolsTreeProvider', () => {
 
     it('should include state description in tooltip for disabled tasks', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
-        currentConfig = { mcpTools: { analyze_csharp_code: { disabledTasks: ['analyze_csharp_async_patterns'] } } };
-
+        currentConfig = new AutoContextConfig({ mcpTools: { analyze_csharp_code: { disabledTasks: ['analyze_csharp_async_patterns'] } } });
         const provider = new McpToolsTreeProvider(fakeDetector, manifest, stateResolver, tooltip, fakeConfigManager, logger);
         const tasks = getTasks(provider, '.NET', 'C#', 'analyze_csharp_code');
         const disabled = tasks.find(c => c.kind === 'mcpTaskNode' && c.state === TreeViewNodeState.Disabled)!;
@@ -584,8 +576,7 @@ describe('McpToolsTreeProvider', () => {
 
     it('should show enabled/total count in category tooltip when all detected', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
-        currentConfig = { mcpTools: { analyze_csharp_code: { disabledTasks: ['analyze_csharp_async_patterns'] } } };
-
+        currentConfig = new AutoContextConfig({ mcpTools: { analyze_csharp_code: { disabledTasks: ['analyze_csharp_async_patterns'] } } });
         const provider = new McpToolsTreeProvider(fakeDetector, manifest, stateResolver, tooltip, fakeConfigManager, logger);
         const roots = provider.getChildren();
         const dotnet = roots.find(r => r.kind === 'serverNode' && r.name === '.NET')!;
@@ -619,8 +610,7 @@ describe('McpToolsTreeProvider', () => {
 
     it('should set treeView description to enabled/total count', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
-        currentConfig = { mcpTools: { analyze_csharp_code: { disabledTasks: ['analyze_csharp_async_patterns'] } } };
-
+        currentConfig = new AutoContextConfig({ mcpTools: { analyze_csharp_code: { disabledTasks: ['analyze_csharp_async_patterns'] } } });
         const provider = new McpToolsTreeProvider(fakeDetector, manifest, stateResolver, tooltip, fakeConfigManager, logger);
         const treeView = vi.mocked(window.createTreeView).mock.results.at(-1)!.value;
         const total = countItems(manifest.tools);
@@ -783,10 +773,10 @@ describe('McpToolsTreeProvider', () => {
         it('should log to logger when configManager.read rejects in onDidChange', async () => {
             let onDidChangeCallback!: () => void;
             const failingConfigManager = {
-                readSync: vi.fn(() => ({})),
+                readSync: vi.fn(() => new AutoContextConfig()),
                 read: vi.fn().mockRejectedValue(new Error('read boom')),
                 onDidChange: vi.fn((cb: () => void) => { onDidChangeCallback = cb; return { dispose: vi.fn() }; }),
-            } as unknown as import('../../src/autocontext-config').AutoContextConfigManager;
+            } as unknown as import('../../src/autocontext-config-manager').AutoContextConfigManager;
 
             const oc = createFakeLogger();
             const provider = new McpToolsTreeProvider(fakeDetector, manifest, stateResolver, tooltip, failingConfigManager, oc);

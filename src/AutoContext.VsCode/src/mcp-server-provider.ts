@@ -3,9 +3,8 @@ import { join } from 'node:path';
 import { existsSync } from 'node:fs';
 import type { McpToolsManifest } from './mcp-tools-manifest.js';
 import type { ServersManifest } from './servers-manifest.js';
-import type { AutoContextConfigManager } from './autocontext-config.js';
-import type { AutoContextConfig } from '#types/autocontext-config.js';
-import { isToolEnabled } from './config-context-projector.js';
+import type { AutoContextConfigManager } from './autocontext-config-manager.js';
+import type { AutoContextConfig } from './autocontext-config.js';
 import type { Logger } from '#types/logger.js';
 
 const extensionId = '2site-net.autocontext';
@@ -136,11 +135,11 @@ export class McpServerProvider implements vscode.McpServerDefinitionProvider {
     private anyToolEnabled(): boolean {
         for (const tool of this.toolsManifest.tools) {
             if (tool.tasks.length === 0) {
-                if (isToolEnabled(this._config, tool.name)) { return true; }
+                if (this._config.isToolEnabled(tool.name)) { return true; }
                 continue;
             }
             for (const task of tool.tasks) {
-                if (isToolEnabled(this._config, tool.name, task.name)) { return true; }
+                if (this._config.isToolEnabled(tool.name, task.name)) { return true; }
             }
         }
         return false;

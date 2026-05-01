@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { createHash } from 'node:crypto';
 import type { InstructionsFilesManifest } from './instructions-files-manifest.js';
 import { InstructionsFileParser } from './instructions-file-parser.js';
-import type { AutoContextConfigManager } from './autocontext-config.js';
+import type { AutoContextConfigManager } from './autocontext-config-manager.js';
 import type { Logger } from '#types/logger.js';
 
 /**

@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { join } from 'node:path';
 import { InstructionsFileParser } from './instructions-file-parser.js';
 import { instructionScheme } from './instructions-viewer-document-provider.js';
-import type { AutoContextConfigManager } from './autocontext-config.js';
+import type { AutoContextConfigManager } from './autocontext-config-manager.js';
 import type { Logger } from '#types/logger.js';
 
 export class InstructionsViewerDecorationManager implements vscode.Disposable {

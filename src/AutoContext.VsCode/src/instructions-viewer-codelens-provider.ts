@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { InstructionsFileParser } from './instructions-file-parser.js';
 import type { InstructionsFilesManifest } from './instructions-files-manifest.js';
 import { instructionScheme } from './instructions-viewer-document-provider.js';
-import type { AutoContextConfigManager } from './autocontext-config.js';
+import type { AutoContextConfigManager } from './autocontext-config-manager.js';
 import type { WorkspaceContextDetector } from './workspace-context-detector.js';
 import { commandIds } from './ui-constants.js';
 import type { Logger } from '#types/logger.js';

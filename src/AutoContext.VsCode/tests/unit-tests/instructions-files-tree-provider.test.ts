@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { TreeItemCollapsibleState, TreeItemCheckboxState, workspace, commands, Uri, window } from '#testing/fakes/fake-vscode';
 import { InstructionsFilesTreeProvider } from '#src/instructions-files-tree-provider';
-import type { AutoContextConfig } from '#types/autocontext-config.js';
+import { AutoContextConfig } from '#src/autocontext-config.js';
 import type { InstructionsFileTreeNode } from '#types/instructions-file-tree-node.js';
 import { TreeViewNodeState } from '#src/tree-view-node-state';
 import { contextKeys } from '#src/ui-constants';
@@ -17,12 +17,12 @@ const logger = createFakeLogger();
 const stateResolver = new TreeViewStateResolver(fakeDetector);
 const tooltip = new TreeViewTooltip('instructions');
 
-let currentConfig: AutoContextConfig = {};
+let currentConfig: AutoContextConfig = new AutoContextConfig();
 const fakeConfigManager = createFakeConfigManager();
 
 beforeEach(() => {
     vi.clearAllMocks();
-    currentConfig = {};
+    currentConfig = new AutoContextConfig();
     vi.mocked(fakeConfigManager.readSync).mockImplementation(() => currentConfig);
     vi.mocked(fakeConfigManager.onDidChange).mockReturnValue({ dispose: vi.fn() });
     vi.mocked(fakeDetector.get).mockReset();
@@ -110,8 +110,7 @@ describe('InstructionsFilesTreeProvider', () => {
 
     it('should mark instructions as disabled when config setting is false', () => {
         vi.mocked(fakeDetector.get).mockImplementation((key: string) => key === 'hasCSharp');
-        currentConfig = { instructions: { 'lang-csharp.instructions.md': { enabled: false } } };
-
+        currentConfig = new AutoContextConfig({ instructions: { 'lang-csharp.instructions.md': { enabled: false } } });
         const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, logger);
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
@@ -233,8 +232,7 @@ describe('InstructionsFilesTreeProvider', () => {
 
     it('should sort active instructions before disabled, and disabled before not detected', () => {
         vi.mocked(fakeDetector.get).mockImplementation((key: string) => key === 'hasCSharp' || key === 'hasTypeScript');
-        currentConfig = { instructions: { 'lang-csharp.instructions.md': { enabled: false } } };
-
+        currentConfig = new AutoContextConfig({ instructions: { 'lang-csharp.instructions.md': { enabled: false } } });
         const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, logger);
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
@@ -314,8 +312,7 @@ describe('InstructionsFilesTreeProvider', () => {
 
     it('should set contextValue to instruction.disabled for disabled items', () => {
         vi.mocked(fakeDetector.get).mockImplementation((key: string) => key === 'hasCSharp');
-        currentConfig = { instructions: { 'lang-csharp.instructions.md': { enabled: false } } };
-
+        currentConfig = new AutoContextConfig({ instructions: { 'lang-csharp.instructions.md': { enabled: false } } });
         const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, logger);
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
@@ -364,8 +361,7 @@ describe('InstructionsFilesTreeProvider', () => {
 
     it('should update setting to true when enableInstruction is called', async () => {
         vi.mocked(fakeDetector.get).mockImplementation((key: string) => key === 'hasCSharp');
-        currentConfig = { instructions: { 'lang-csharp.instructions.md': { enabled: false } } };
-
+        currentConfig = new AutoContextConfig({ instructions: { 'lang-csharp.instructions.md': { enabled: false } } });
         const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, logger);
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
@@ -444,8 +440,7 @@ describe('InstructionsFilesTreeProvider', () => {
 
     it('should show checkboxes on active and disabled items in export mode', () => {
         vi.mocked(fakeDetector.get).mockImplementation((key: string) => key === 'hasCSharp');
-        currentConfig = { instructions: { 'design-principles.instructions.md': { enabled: false } } };
-
+        currentConfig = new AutoContextConfig({ instructions: { 'design-principles.instructions.md': { enabled: false } } });
         const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, logger);
         provider.enterExportMode();
 
@@ -718,8 +713,7 @@ describe('InstructionsFilesTreeProvider', () => {
 
     it('should include state description in tooltip for disabled state', () => {
         vi.mocked(fakeDetector.get).mockImplementation((key: string) => key === 'hasCSharp');
-        currentConfig = { instructions: { 'lang-csharp.instructions.md': { enabled: false } } };
-
+        currentConfig = new AutoContextConfig({ instructions: { 'lang-csharp.instructions.md': { enabled: false } } });
         const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, logger);
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
@@ -746,8 +740,7 @@ describe('InstructionsFilesTreeProvider', () => {
 
     it('should show active/total count in category tooltip when all detected', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
-        currentConfig = { instructions: { 'lang-csharp.instructions.md': { enabled: false } } };
-
+        currentConfig = new AutoContextConfig({ instructions: { 'lang-csharp.instructions.md': { enabled: false } } });
         const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, logger);
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
@@ -792,8 +785,7 @@ describe('InstructionsFilesTreeProvider', () => {
 
     it('should set treeView description to enabled/total count', () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
-        currentConfig = { instructions: { 'lang-csharp.instructions.md': { enabled: false } } };
-
+        currentConfig = new AutoContextConfig({ instructions: { 'lang-csharp.instructions.md': { enabled: false } } });
         const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, fakeConfigManager, logger);
         const treeView = vi.mocked(window.createTreeView).mock.results.at(-1)!.value;
         const total = catalog.count;
@@ -961,7 +953,7 @@ describe('InstructionsFilesTreeProvider', () => {
             readSync: vi.fn(() => ({})),
             read: vi.fn().mockResolvedValue({}),
             onDidChange: vi.fn((cb: () => void) => { onDidChangeCallback = cb; return { dispose: vi.fn() }; }),
-        } as unknown as import('../../src/autocontext-config').AutoContextConfigManager;
+        } as unknown as import('../../src/autocontext-config-manager').AutoContextConfigManager;
 
         const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, trackingConfigManager, logger);
         const readSyncCallCount = vi.mocked(trackingConfigManager.readSync).mock.calls.length;
@@ -985,7 +977,7 @@ describe('InstructionsFilesTreeProvider', () => {
             readSync: vi.fn(() => ({})),
             read: vi.fn().mockRejectedValue(new Error('read boom')),
             onDidChange: vi.fn((cb: () => void) => { onDidChangeCallback = cb; return { dispose: vi.fn() }; }),
-        } as unknown as import('../../src/autocontext-config').AutoContextConfigManager;
+        } as unknown as import('../../src/autocontext-config-manager').AutoContextConfigManager;
 
         const oc = createFakeLogger();
         const provider = new InstructionsFilesTreeProvider(fakeDetector, catalog, stateResolver, tooltip, failingConfigManager, oc);

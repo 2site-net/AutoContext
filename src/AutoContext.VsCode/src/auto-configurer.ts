@@ -2,8 +2,8 @@ import * as vscode from 'vscode';
 import type { InstructionsFilesManifest } from './instructions-files-manifest.js';
 import type { McpToolsManifest } from './mcp-tools-manifest.js';
 import type { WorkspaceContextDetector } from './workspace-context-detector.js';
-import type { AutoContextConfigManager } from './autocontext-config.js';
-import type { McpToolConfig } from '#types/autocontext-config.js';
+import type { AutoContextConfigManager } from './autocontext-config-manager.js';
+import type { McpToolConfigEntry } from '#types/mcp-tool-config-entry.js';
 
 export class AutoConfigurer {
     constructor(
@@ -34,7 +34,7 @@ export class AutoConfigurer {
 
         // Build the complete new mcpTools state and write it atomically.
         const currentTools = currentConfig.mcpTools ?? {};
-        const newTools: Record<string, McpToolConfig | false> = {};
+        const newTools: Record<string, McpToolConfigEntry | false> = {};
 
         for (const tool of toolsManifest.tools) {
             const flags = tool.activationFlags;
@@ -50,7 +50,7 @@ export class AutoConfigurer {
                         // Preserve version if present, just remove enabled: false.
                         const { enabled: _, ...rest } = existing;
                         if (Object.keys(rest).length > 0) {
-                            newTools[tool.name] = rest as McpToolConfig;
+                            newTools[tool.name] = rest as McpToolConfigEntry;
                         }
                     }
                     enabled++;
@@ -62,7 +62,7 @@ export class AutoConfigurer {
                 if (!relevant) {
                     const existing = newTools[tool.name];
                     if (existing !== false) {
-                        const toolEntry: McpToolConfig = (existing as McpToolConfig) ?? {};
+                        const toolEntry: McpToolConfigEntry = (existing as McpToolConfigEntry) ?? {};
                         const arr = toolEntry.disabledTasks ?? [];
                         toolEntry.disabledTasks = [...arr, task.name];
                         newTools[tool.name] = toolEntry;

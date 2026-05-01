@@ -13,8 +13,8 @@ import type { TreeViewServerLabelNode } from '#types/tree-view-server-label-node
 import type { McpToolsTreeCategoryNode } from '#types/mcp-tools-tree-category-node.js';
 import type { McpToolsTreeNode } from '#types/mcp-tools-tree-node.js';
 import type { McpTaskTreeNode } from '#types/mcp-task-tree-node.js';
-import type { AutoContextConfigManager } from './autocontext-config.js';
-import type { AutoContextConfig } from '#types/autocontext-config.js';
+import type { AutoContextConfigManager } from './autocontext-config-manager.js';
+import type { AutoContextConfig } from './autocontext-config.js';
 import type { Logger } from '#types/logger.js';
 
 type TreeElement = TreeViewServerLabelNode | McpToolsTreeCategoryNode | McpToolsTreeNode | McpTaskTreeNode;

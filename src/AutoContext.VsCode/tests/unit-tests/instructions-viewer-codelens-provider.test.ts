@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 import { InstructionsViewerCodeLensProvider } from '#src/instructions-viewer-codelens-provider';
-import { AutoContextConfigManager } from '#src/autocontext-config';
+import { AutoContextConfigManager } from '#src/autocontext-config-manager.js';
 import { instructionScheme } from '#src/instructions-viewer-document-provider';
 import { InstructionsFileParser } from '#src/instructions-file-parser';
 import { InstructionsFilesManifestLoader } from '#src/instructions-files-manifest-loader';

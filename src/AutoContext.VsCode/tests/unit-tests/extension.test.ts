@@ -48,7 +48,7 @@ vi.mock('../../src/instructions-files-exporter', () => ({
     InstructionsFilesExporter: class {},
 }));
 
-vi.mock('../../src/autocontext-config', () => ({
+vi.mock('../../src/autocontext-config-manager', () => ({
     AutoContextConfigManager: class {
         async read() { return {}; }
         readSync() { return {}; }

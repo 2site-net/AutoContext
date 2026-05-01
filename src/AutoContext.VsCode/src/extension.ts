@@ -6,14 +6,14 @@ import { InstructionsFilesManifestLoader } from './instructions-files-manifest-l
 import { commandIds, contextKeys, globalStateKeys, EXTENSION_NAME } from './ui-constants.js';
 import { AutoConfigurer } from './auto-configurer.js';
 import { InstructionsFilesExporter } from './instructions-files-exporter.js';
-import { AutoContextConfigManager } from './autocontext-config.js';
+import { AutoContextConfigManager } from './autocontext-config-manager.js';
 import { InstructionsViewerDocumentProvider, instructionScheme } from './instructions-viewer-document-provider.js';
 import { InstructionsViewerCodeLensProvider } from './instructions-viewer-codelens-provider.js';
 import { InstructionsViewerDecorationManager } from './instructions-viewer-decoration-manager.js';
 import { InstructionsFilesManager } from './instructions-files-manager.js';
 import { InstructionsFilesDiagnosticsReporter } from './instructions-files-diagnostics-reporter.js';
 import { InstructionsFilesDiagnosticsRunner } from './instructions-files-diagnostics-runner.js';
-import { ConfigContextProjector } from './config-context-projector.js';
+import { AutoContextProjector } from './autocontext-projector.js';
 import { InstructionsFilesTreeProvider } from './instructions-files-tree-provider.js';
 import { MetadataLoader } from './metadata-loader.js';
 import { McpToolsManifestLoader } from './mcp-tools-manifest-loader.js';
@@ -58,7 +58,7 @@ export async function activate(context: vscode.ExtensionContext) {
     const codeLensProvider = new InstructionsViewerCodeLensProvider(context.extensionPath, configManager, workspaceContextDetector, instructionsManifest, rootLogger.forCategory(LogCategory.Instructions));
     const decorationManager = new InstructionsViewerDecorationManager(context.extensionPath, configManager, rootLogger.forCategory(LogCategory.Decorations));
     const instructionsWriter = new InstructionsFilesManager(context.extensionPath, configManager, instructionsManifest, rootLogger.forCategory(LogCategory.InstructionsWriter));
-    const configProjector = new ConfigContextProjector(configManager, instructionsManifest, mcpToolsManifest, rootLogger.forCategory(LogCategory.ConfigProjector));
+    const configProjector = new AutoContextProjector(configManager, instructionsManifest, mcpToolsManifest, rootLogger.forCategory(LogCategory.ConfigProjector));
     const serversManifest = new ServersManifestLoader(context.extensionPath).load();
     const workerIds = new Set(
         mcpToolsManifest.topCategories

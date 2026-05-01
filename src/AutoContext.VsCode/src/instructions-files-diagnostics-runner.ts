@@ -2,7 +2,7 @@ import { join } from 'node:path';
 import type { InstructionsFilesManifest } from './instructions-files-manifest.js';
 import type { InstructionsFileEntry } from './instructions-file-entry.js';
 import { InstructionsFileParser } from './instructions-file-parser.js';
-import type { AutoContextConfigManager } from './autocontext-config.js';
+import type { AutoContextConfigManager } from './autocontext-config-manager.js';
 import type { InstructionsFileParserDiagnosticKind } from '#types/instructions-file-parser-diagnostic.js';
 
 /**

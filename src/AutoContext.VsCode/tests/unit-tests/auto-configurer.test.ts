@@ -4,17 +4,17 @@ import { window } from '#testing/fakes/fake-vscode';
 import { AutoConfigurer } from '#src/auto-configurer';
 import { InstructionsFilesManifestLoader } from '#src/instructions-files-manifest-loader';
 import { McpToolsManifestLoader } from '#src/mcp-tools-manifest-loader';
-import type { AutoContextConfig } from '#types/autocontext-config.js';
+import { AutoContextConfig } from '#src/autocontext-config.js';
 import { createFakeDetector, createFakeConfigManager } from '#testing/fakes';
 
 const fakeDetector = createFakeDetector();
 
-let currentConfig: AutoContextConfig = {};
+let currentConfig: AutoContextConfig = new AutoContextConfig();
 const fakeConfigManager = createFakeConfigManager();
 
 beforeEach(() => {
     vi.clearAllMocks();
-    currentConfig = {};
+    currentConfig = new AutoContextConfig();
     vi.mocked(fakeConfigManager.read).mockImplementation(async () => currentConfig);
     vi.mocked(fakeDetector.get).mockReset();
 });
@@ -88,7 +88,7 @@ describe('AutoConfigurer', () => {
 
     it('should not call setInstructionEnabled for entries that already match the target state', async () => {
         // Pre-set dotnet-async-await as already disabled
-        currentConfig = { instructions: { 'dotnet-async-await.instructions.md': { enabled: false } } };
+        currentConfig = new AutoContextConfig({ instructions: { 'dotnet-async-await.instructions.md': { enabled: false } } });
         vi.mocked(fakeDetector.get).mockReturnValue(false);
 
         await new AutoConfigurer(fakeDetector, instructionsManifest, manifest, fakeConfigManager).run();

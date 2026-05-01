@@ -10,8 +10,8 @@ import type { TreeViewTooltip } from './tree-view-tooltip.js';
 import type { InstructionsFileCategoryTreeNode } from '#types/instructions-file-category-tree-node.js';
 import type { InstructionsFileTreeNode } from '#types/instructions-file-tree-node.js';
 import { SemVer } from './semver.js';
-import type { AutoContextConfigManager } from './autocontext-config.js';
-import type { AutoContextConfig } from '#types/autocontext-config.js';
+import type { AutoContextConfigManager } from './autocontext-config-manager.js';
+import type { AutoContextConfig } from './autocontext-config.js';
 import type { Logger } from '#types/logger.js';
 
 type TreeElement = InstructionsFileCategoryTreeNode | InstructionsFileTreeNode;

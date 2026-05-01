@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 import { InstructionsViewerDocumentProvider, instructionScheme } from '#src/instructions-viewer-document-provider';
-import { AutoContextConfigManager } from '#src/autocontext-config';
+import { AutoContextConfigManager } from '#src/autocontext-config-manager.js';
 import { InstructionsFileParser } from '#src/instructions-file-parser';
 
 import { readFile } from 'node:fs/promises';

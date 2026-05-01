@@ -5,7 +5,7 @@ import { McpServerProvider } from '#src/mcp-server-provider';
 import { McpToolsManifestLoader } from '#src/mcp-tools-manifest-loader';
 import { ServersManifest } from '#src/servers-manifest';
 import { ServerEntry } from '#src/server-entry';
-import type { AutoContextConfig } from '#types/autocontext-config.js';
+import { AutoContextConfig } from '#src/autocontext-config.js';
 import { createFakeConfigManager, createFakeLogger } from '#testing/fakes';
 
 const { existsSyncMock } = vi.hoisted(() => ({ existsSyncMock: vi.fn<(path: string) => boolean>(() => true) }));
@@ -28,7 +28,7 @@ const serversManifest: ServersManifest = new ServersManifest([
 ]);
 const INSTANCE_ID = 'abc123def456';
 
-let currentConfig: AutoContextConfig = {};
+let currentConfig: AutoContextConfig = new AutoContextConfig();
 const fakeConfigManager = createFakeConfigManager();
 
 function createProvider(): McpServerProvider {
@@ -50,7 +50,7 @@ function createProvider(): McpServerProvider {
 
 beforeEach(() => {
     vi.clearAllMocks();
-    currentConfig = {};
+    currentConfig = new AutoContextConfig();
     vi.mocked(fakeConfigManager.readSync).mockImplementation(() => currentConfig);
     vi.mocked(fakeConfigManager.onDidChange).mockReturnValue({ dispose: vi.fn() });
     existsSyncMock.mockReturnValue(true);
@@ -65,7 +65,7 @@ function buildAllDisabledConfig(): AutoContextConfig {
             mcpToolsConfig[tool.name] = { disabledTasks: tool.tasks.map(t => t.name) };
         }
     }
-    return { mcpTools: mcpToolsConfig };
+    return new AutoContextConfig({ mcpTools: mcpToolsConfig });
 }
 
 describe('McpServerProvider.provideMcpServerDefinitions', () => {
@@ -186,10 +186,10 @@ describe('McpServerProvider config updates', () => {
     it('logs to the output channel when configManager.read rejects', async () => {
         let onDidChangeCallback!: () => void;
         const failingConfigManager = {
-            readSync: vi.fn(() => ({})),
+            readSync: vi.fn(() => new AutoContextConfig()),
             read: vi.fn().mockRejectedValue(new Error('read boom')),
             onDidChange: vi.fn((cb: () => void) => { onDidChangeCallback = cb; return { dispose: vi.fn() }; }),
-        } as unknown as import('../../src/autocontext-config').AutoContextConfigManager;
+        } as unknown as import('../../src/autocontext-config-manager').AutoContextConfigManager;
 
         const oc = createFakeLogger();
         const provider = new McpServerProvider(

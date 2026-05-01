@@ -1,8 +1,8 @@
 import * as vscode from 'vscode';
 import { createServer, type Server, type Socket } from 'node:net';
 import { IdentifierFactory } from './identifier-factory.js';
-import type { AutoContextConfigManager } from './autocontext-config.js';
-import { projectDisabledState, type DisabledStateSnapshot } from './config-context-projector.js';
+import type { AutoContextConfigManager } from './autocontext-config-manager.js';
+import type { McpToolsDisabledSnapshot } from '#types/mcp-tools-disabled-snapshot.js';
 import type { Logger } from '#types/logger.js';
 
 /**
@@ -119,7 +119,7 @@ export class AutoContextConfigServer implements vscode.Disposable {
             return;
         }
         const config = await this.configManager.read();
-        AutoContextConfigServer.write(socket, projectDisabledState(config));
+        AutoContextConfigServer.write(socket, config.getToolsDisabledSnapshot());
     }
 
     private async broadcastCurrent(): Promise<void> {
@@ -127,13 +127,13 @@ export class AutoContextConfigServer implements vscode.Disposable {
             return;
         }
         const config = await this.configManager.read();
-        const snapshot = projectDisabledState(config);
+        const snapshot = config.getToolsDisabledSnapshot();
         for (const socket of this.sockets) {
             AutoContextConfigServer.write(socket, snapshot);
         }
     }
 
-    private static write(socket: Socket, snapshot: DisabledStateSnapshot): void {
+    private static write(socket: Socket, snapshot: McpToolsDisabledSnapshot): void {
         if (socket.destroyed) {
             return;
         }
