@@ -20,7 +20,7 @@ When AutoContext detects your workspace, it registers its MCP server with VS Cod
 
 ### Server health monitoring
 
-The MCP server and each worker report their liveness via a health monitoring pipe. Server nodes in the MCP Tools panel show a live **running** or **stopped** status. Use the inline **Start**, **Stop**, **Restart**, and **Show Output** actions on each server node to manage the server directly from the sidebar.
+The MCP server and each worker report their liveness via a health monitoring pipe. Server nodes in the MCP Tools panel show a live **running** or **stopped** status. Workers spawn lazily: a worker process is only started the first time a tool it owns is invoked (the workspace worker also starts during extension activation, since EditorConfig resolution depends on it). When every tool a worker owns is disabled, that worker process is never started and its server node stays **stopped**. Use the inline **Start** and **Show Output** actions on each server node to bring the MCP server up or open its log.
 
 ### How it works
 

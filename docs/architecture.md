@@ -65,8 +65,9 @@ flowchart TB
 
         logServer["LogServer<br/>(named pipe)"] --> outputCh["AutoContext<br/>Output channels"]
         healthMon["HealthMonitorServer<br/>(named pipe)"] -->|"client status"| trees
-        wm["WorkerManager"] -.->|"spawn"| workers
-        serverProv -->|"server definition<br/>(stdio + --log-pipe<br/>+ --health-monitor)"| mcpHost["VS Code MCP Host"]
+        wcServer["WorkerControlServer<br/>(named pipe)"] -->|"EnsureRunning"| wm["WorkerManager"]
+        wm -.->|"lazy spawn"| workers
+        serverProv -->|"server definition<br/>(stdio + --log-pipe<br/>+ --health-monitor<br/>+ --worker-control-pipe)"| mcpHost["VS Code MCP Host"]
     end
 
     mcpHost -.->|"spawn (stdio)"| mcpServer
@@ -90,6 +91,7 @@ flowchart TB
     mcpServer -.->|"NDJSON log records"| logServer
     workers -.->|"workerId on connect"| healthMon
     mcpServer -.->|"client id on connect"| healthMon
+    mcpServer -.->|"EnsureRunning(workerId)"| wcServer
     sdk -.->|"ToolResultEnvelope (JSON)"| copilot
 ```
 
@@ -98,7 +100,7 @@ The diagram reads top-to-bottom: **build artifacts** feed into the **extension p
 - **`AutoContext.Mcp.Server`** is the only MCP/stdio server Copilot ever talks to. At startup it deserializes its **embedded `mcp-workers-registry.json`** into `McpWorkersCatalog` (per-tool name, parameters, tasks, owning worker id) and registers every tool with the MCP SDK via `McpSdkAdapter`.
 - **`ToolInvoker`** orchestrates one `tools/call`: it (a) computes the union of EditorConfig keys across the tool's tasks, (b) batches a single `get_editorconfig_rules` pipe call to `Worker.Workspace` via `EditorConfigBatcher`, (c) dispatches every task in parallel via `WorkerClient`, and (d) composes the per-task responses into a uniform `ToolResultEnvelope` via `ToolResultComposer`.
 - **`WorkerClient`** opens one `NamedPipeClientStream` per task to `autocontext.worker-<id>` (with a per-window suffix), writes a `TaskRequest`, and reads a `TaskResponse`. A 30-second wait deadline guards against hung workers; any IO/timeout/parse failure is mapped to a synthesized error response so partial results still flow back to Copilot.
-- **`WorkerManager`** (extension-side) spawns each worker listed in `resources/servers.json` whose id is referenced by an enabled tool, passes `--log-pipe` and `--health-monitor` pipe names, and waits for each worker's `Ready.` stderr marker before considering it live.
+- **`WorkerManager`** (extension-side) spawns workers **lazily** through a single `ensureRunning(identity)` gate. There are exactly two spawn triggers: (a) the orchestrator (`AutoContext.Mcp.Server`) sends an `EnsureRunning` request over the `autocontext.worker-control-<suffix>` named pipe before dispatching a `tools/call` to a worker that owns the tool, and (b) `whenWorkspaceReady()` calls `ensureRunning('Worker.Workspace')` during extension activation so EditorConfig resolution is available. `ensureRunning` reads the worker definition from `resources/servers.json`, passes `--log-pipe`, `--health-monitor`, and `--endpoint-suffix` arguments, coalesces concurrent callers onto a single in-flight promise, and waits for the worker's `[<WorkerName>] Ready.` stderr marker before returning.
 - **Catalogs** are the central UI hub — built from `resources/mcp-tools.json` + `MetadataLoader` output, they feed into tree views, the workspace context detector, the server provider, and the instructions writer.
 - **`WorkspaceContextDetector`** scans workspace files and sets context keys, which drive MCP server registration (`McpServerProvider`), instruction filtering (`when`-clause evaluation against `chatInstructions` in `package.json`), and tree views (detected state + override file versions for staleness comparison).
 - **`.autocontext.json`** is the single source of truth for user configuration. `AutoContextConfigManager` reads and writes tool on/off toggles, disabled instruction IDs, and per-instruction disable lists. The orchestrator does not read this file — `McpServerProvider` advertises the entire MCP server only when **at least one** tool is enabled (otherwise it returns no server definitions); per-tool toggle state is projected to VS Code context keys by `ConfigContextProjector` so the sidebar UI and instruction `when` clauses can react.
@@ -116,13 +118,13 @@ When the extension activates, the following phases execute (see `src/AutoContext
 
 **Phase 1 — Manifests & catalogs** — `MetadataLoader` parses YAML frontmatter from every instruction file (description, version, optional `applyTo`) and probes for a sibling `.CHANGELOG.md` (recording `hasChangelog`). `McpToolsManifestLoader` loads `resources/mcp-tools.json`. `InstructionsFilesManifestLoader` and `ServersManifestLoader` build their manifests from disk. The results feed `InstructionsCatalog`, `McpToolsCatalog`, and `McpServersCatalog`, which serve as the single source of truth for downstream consumers (tree views, tooltips, the instruction writer, the server provider).
 
-**Phase 2 — Pipe servers** — `LogServer.start()` creates a named pipe (`autocontext-log-<random>`); `HealthMonitorServer` is constructed (its pipe is created in Phase 4). Both pipe names are random and per-window, so multiple VS Code windows are fully isolated.
+**Phase 2 — Pipe servers** — `LogServer.start()` creates a named pipe (`autocontext-log-<random>`); `HealthMonitorServer` is constructed (its pipe is created in Phase 4). `WorkerControlServer` is also constructed; it owns the `autocontext.worker-control-<suffix>` pipe used by the orchestrator to request lazy worker spawns. All pipe names are random and per-window, so multiple VS Code windows are fully isolated.
 
 **Phase 3 — Worker manager & MCP provider** — `WorkerManager` is constructed with the LogServer + HealthMonitor pipe names. `McpServerProvider` is constructed with the same pipe names plus the manifests, so it can produce a `vscode.McpStdioServerDefinition` for `AutoContext.Mcp.Server` whenever VS Code asks. The provider is registered later in this phase (after detection) but the construction happens first because tree providers depend on it.
 
-**Phase 4 — Start services** — `healthMonitor.start()` opens its named pipe and begins accepting client connections. `workerManager.start()` spawns each worker referenced by an enabled tool, passes `--log-pipe`, `--health-monitor`, and `--endpoint-suffix` arguments, and resolves each worker's "ready" promise when it sees the worker's `[<WorkerName>] Ready.` stderr marker.
+**Phase 4 — Start services** — `healthMonitor.start()` opens its named pipe and begins accepting client connections. `workerControlServer.start()` opens the worker-control pipe so the orchestrator can request lazy worker spawns. No workers are spawned in this phase — workers start on demand when the orchestrator dispatches its first tool call (or, for `Worker.Workspace`, when `whenWorkspaceReady()` is awaited later in activation). The MCP server provider also forwards the `--worker-control-pipe` switch to the orchestrator so it can connect to the control pipe at startup.
 
-**Phase 5 — Register MCP provider** — `vscode.lm.registerMcpServerDefinitionProvider('AutoContextProvider', mcpServerProvider)` is registered **before** workspace detection so tools appear in the picker immediately. The provider returns a `McpStdioServerDefinition` that points VS Code's MCP host at `AutoContext.Mcp.Server`'s binary (with `--log-pipe`, `--health-monitor`, and `--endpoint-suffix`). VS Code then spawns the orchestrator over stdio.
+**Phase 5 — Register MCP provider** — `vscode.lm.registerMcpServerDefinitionProvider('AutoContextProvider', mcpServerProvider)` is registered **before** workspace detection so tools appear in the picker immediately. The provider returns a `McpStdioServerDefinition` that points VS Code's MCP host at `AutoContext.Mcp.Server`'s binary (with `--log-pipe`, `--health-monitor`, `--worker-control-pipe`, and `--endpoint-suffix`). VS Code then spawns the orchestrator over stdio.
 
 **Phase 6 — Workspace detection** — `WorkspaceContextDetector.detect()` scans the workspace for project files, `package.json` dependencies, and directory markers. Sets VS Code context keys that control both server registration and instruction injection. Also scans `.github/instructions/` for override files, parsing their frontmatter to extract version numbers for staleness comparison (see [Override Staleness](#override-staleness)).
 
@@ -136,7 +138,7 @@ When the extension activates, the following phases execute (see `src/AutoContext
 - **`InstructionsFilesManager.removeOrphanedStagingDirs()`** — deletes per-workspace staging directories older than one hour that belong to other VS Code windows.
 - **`AutoContextConfigManager.removeOrphanedIds()`** — cleans disabled-instruction IDs from `.autocontext.json` that no longer match any instruction in the current extension version.
 
-**Phase 10 — Register commands & listeners** — registers all extension commands (auto-configure, toggle/reset/enable/disable instructions, export mode, delete override, show original, show changelog, show what's new, show/hide not detected, start/stop/restart/show-output MCP servers). Wires event listeners: config changes trigger diagnostic logging and MCP re-registration; window focus and workspace trust changes trigger instruction re-writing.
+**Phase 10 — Register commands & listeners** — registers all extension commands (auto-configure, toggle/reset/enable/disable instructions, export mode, delete override, show original, show changelog, show what's new, show/hide not detected, start and show-output for the MCP server). Wires event listeners: config changes trigger diagnostic logging and MCP re-registration; window focus and workspace trust changes trigger instruction re-writing.
 
 **Phase 11 — `clearStaleDisabledIds()`** — compares the MAJOR.MINOR version stored alongside each file's disabled instruction IDs in `.autocontext.json` against the current catalog version. If the file's version has advanced (rules may have been renumbered or removed), all disabled IDs for that file are cleared and the user is notified. Patch-only bumps are ignored because they preserve rule IDs. See [Versioning Semantics](#versioning-semantics) for the version-level contract.
 
@@ -177,9 +179,22 @@ The extension tracks active connections per id and exposes `isRunning(id)` (true
 | **Running** | At least one client with the matching id is connected. |
 | **Stopped** | No client with that id is connected. |
 
-Inline actions on server nodes allow the user to **Start**, **Stop**, **Restart**, or **Show Output** for each server directly from the sidebar. These commands delegate to VS Code's built-in `workbench.mcp.startServer`, `workbench.mcp.stopServer`, `workbench.mcp.restartServer`, and `workbench.mcp.showOutput` commands.
+Inline actions on server nodes allow the user to **Start** the MCP server (when stopped) or **Show Output** for any server directly from the sidebar. These commands delegate to VS Code's built-in `workbench.mcp.startServer` and `workbench.mcp.showOutput` commands. Stop and Restart actions are intentionally not exposed: the MCP server's lifetime is owned by the VS Code MCP host, and worker lifetimes are owned by `WorkerManager` and gated by lazy spawn (see [Worker Control](#worker-control)).
 
 On the .NET side, `HealthMonitorClient` lives in `AutoContext.Framework/Hosting` and is consumed by both the orchestrator and every worker (registered as a hosted service in each `Program.Main`). Connection failures are non-fatal — health monitoring is a best-effort diagnostic, not a prerequisite for tool operation. The orchestrator's liveness is observed exclusively through the health pipe; workers additionally emit a `Ready.` marker to stderr from inside `WorkerTaskDispatcherService` once the pipe server is accepting connections, and `WorkerManager` uses that marker for its `whenReady()` barrier (independent of the health pipe).
+
+---
+
+## Worker Control
+
+Workers are spawned **lazily**. Neither extension activation nor MCP server startup eagerly launches `Worker.DotNet`, `Worker.Workspace`, or `Worker.Web`. Instead, two cooperating components ensure a worker process exists exactly when it is needed:
+
+- **Extension side — `WorkerControlServer`** (`src/worker-control-server.ts`) hosts a per-window named pipe `autocontext.worker-control-<suffix>`. It accepts a single request type, `EnsureRunning { workerId }`, looks up the worker definition in `resources/servers.json`, calls `WorkerManager.ensureRunning(identity)`, and replies once the worker's `Ready.` marker has been observed. Concurrent requests for the same worker are coalesced onto a single in-flight spawn promise, so a burst of `tools/call`s never starts more than one process per worker id.
+- **Orchestrator side — `WorkerControlClient`** (`AutoContext.Mcp.Server/Workers/Control`) connects to that pipe at startup using the `--worker-control-pipe` switch passed in by `McpServerProvider`. Before `ToolInvoker` dispatches any task to a worker, it calls `EnsureRunningAsync(workerId)`, which round-trips a JSON `EnsureRunning` request over the pipe with a bounded deadline. If the orchestrator is launched without `--worker-control-pipe` (e.g., standalone runs outside the extension), the client degrades to a no-op so tools still dispatch to whatever worker is reachable.
+
+The single spawn entry point on the extension side is `WorkerManager.ensureRunning(identity: string): Promise<void>`. It has exactly two callers in production: the worker-control server (orchestrator-driven) and `WorkerManager.whenWorkspaceReady()` (activation-driven, for `Worker.Workspace`). There is no `WorkerManager.start()` and no eager startup loop. When a worker exits, `WorkerManager` clears the cached `readyPromise` so the next `ensureRunning(identity)` respawns it.
+
+The lazy model means a worker whose tools are all disabled in `.autocontext.json` is never spawned: the orchestrator never invokes a tool that would route to it, the worker-control channel is never asked to start it, and its sidebar server node stays **stopped**.
 
 ---
 

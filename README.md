@@ -15,7 +15,7 @@ AutoContext provides two complementary capabilities:
 - **Chat Instructions** — Curated Markdown guidelines covering .NET, TypeScript, Web frameworks, Git, scripting, and more. Instructions are workspace-aware — only the ones relevant to your project are injected into Copilot's context. Individual rules within any instruction file can be disabled without turning off the entire file.
 - **MCP Tool Checks** — Quality checks that Copilot can invoke in Agent mode to validate code style, naming conventions, async patterns, NuGet hygiene, commit messages, and more. Checkers read `.editorconfig` properties and enforce whichever direction the project specifies.
 
-Tools and instructions are grouped into categories and managed from dedicated sidebar panels — individually toggled, auto-configured based on workspace detection, or exported to `.github/instructions/` for team sharing. Exported instructions are tracked for staleness and flagged when newer built-in versions are available. MCP servers are health-monitored via a named-pipe protocol, with live status indicators and inline start/stop/restart controls in the sidebar.
+Tools and instructions are grouped into categories and managed from dedicated sidebar panels — individually toggled, auto-configured based on workspace detection, or exported to `.github/instructions/` for team sharing. Exported instructions are tracked for staleness and flagged when newer built-in versions are available. MCP servers are health-monitored via a named-pipe protocol, with live status indicators and inline Start / Show Output controls in the sidebar; workers spawn lazily on first use.
 
 ## Build Prerequisites
 
