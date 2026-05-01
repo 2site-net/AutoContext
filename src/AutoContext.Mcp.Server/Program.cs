@@ -1,7 +1,6 @@
 namespace AutoContext.Mcp.Server;
 
 using AutoContext.Mcp.Server.EditorConfig;
-using AutoContext.Mcp.Server.Hosting;
 using AutoContext.Mcp.Server.Registry;
 using AutoContext.Mcp.Server.Tools;
 using AutoContext.Mcp.Server.Tools.Invocation;
@@ -41,9 +40,6 @@ using Microsoft.Extensions.Logging;
 /// </remarks>
 internal static partial class Program
 {
-    /// <summary>Stderr ready-marker written once the host has started.</summary>
-    internal const string ReadyMarker = "[AutoContext.Mcp.Server] Ready.";
-
     /// <summary>Logging client name reported to the extension's LogServer.</summary>
     internal const string LogClientName = "AutoContext.Mcp.Server";
 
@@ -112,8 +108,6 @@ internal static partial class Program
         builder.Services.AddSingleton<EditorConfigBatcher>();
         builder.Services.AddSingleton<ToolInvoker>();
         builder.Services.AddSingleton<McpSdkAdapter>();
-
-        builder.Services.AddHostedService(_ => new ReadyMarkerService(ReadyMarker));
 
         builder.Services
             .AddMcpServer()
