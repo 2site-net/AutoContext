@@ -28,7 +28,7 @@ Once installed, the following MCP tools are available to GitHub Copilot in Agent
 | .NET | `analyze_csharp_code` | Composite C# quality check (style, naming, async, structure, …) |
 | .NET | `analyze_nuget_references` | Package version and hygiene check |
 | Workspace | `analyze_git_commit_message` | Conventional Commits format and content check |
-| Workspace | `read_editorconfig_properties` | Resolve effective `.editorconfig` properties for a file |
+| Workspace | `read_editorconfig` | Resolve effective `.editorconfig` properties for a file |
 | Web | `analyze_typescript_code` | Composite TypeScript quality check |
 
 All tools are exposed through a single MCP server (`AutoContext.Mcp.Server`) that dispatches each call to the worker process that owns the tool — `.NET` to `AutoContext.Worker.DotNet`, `Workspace` to `AutoContext.Worker.Workspace`, and `Web` to `AutoContext.Worker.Web`. Tools within a category are further organized by sub-category (e.g., C#, NuGet under .NET) and can be toggled individually from the **MCP Tools** panel in the AutoContext sidebar, or via `.autocontext.json` in your workspace root. If all tools owned by a worker are disabled, that worker is not spawned at all.

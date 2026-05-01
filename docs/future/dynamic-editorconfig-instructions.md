@@ -2,14 +2,15 @@
 
 ## Summary
 
-Replace the current `get_editorconfig` MCP tool with a dynamic instruction
-provider that injects `.editorconfig` rules directly into the Copilot chat
-context — no explicit tool call required.
+Replace the current `read_editorconfig` MCP tool with a dynamic
+instruction provider that injects `.editorconfig` rules directly into the
+Copilot chat context — no explicit tool call required.
 
 ## Current Approach
 
-The `get_editorconfig` MCP tool reads and parses `.editorconfig` files on demand.
-Copilot must call it explicitly before generating or reviewing code. The
+The `read_editorconfig` MCP tool (task `get_editorconfig_rules`)
+reads and parses `.editorconfig` files on demand. Copilot must call it
+explicitly before generating or reviewing code. The
 `copilot.instructions.md` file instructs Copilot to do so, but compliance
 depends on the model following that instruction.
 
@@ -41,5 +42,5 @@ Once `chatPromptFiles` graduates to stable:
 
 1. Bump the `engines.vscode` minimum to the version that stabilized the API.
 2. Implement an `InstructionsProvider` that watches `.editorconfig` files.
-3. Evaluate whether the `get_editorconfig` MCP tool can be retired or kept as a
-   fallback for non-VS Code MCP clients.
+3. Evaluate whether the `read_editorconfig` MCP tool can be retired
+   or kept as a fallback for non-VS Code MCP clients.

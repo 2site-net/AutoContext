@@ -63,7 +63,7 @@ describe('InstructionsFileEntry.activationFlags', () => {
     });
 
     it('should be empty for the editorconfig tool', () => {
-        const editorconfigTool = toolsManifest.toolByName('read_editorconfig_properties')!;
+        const editorconfigTool = toolsManifest.toolByName('read_editorconfig')!;
 
         expect.soft(editorconfigTool.activationFlags).toEqual([]);
     });

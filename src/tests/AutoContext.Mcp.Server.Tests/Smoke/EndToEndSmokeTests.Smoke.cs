@@ -63,7 +63,7 @@ public sealed class EndToEndSmokeTests
         var toolNames = tools.Select(t => t.Name).ToHashSet(StringComparer.Ordinal);
         Assert.Multiple(
             () => Assert.Contains("analyze_csharp_code", toolNames),
-            () => Assert.Contains("read_editorconfig_properties", toolNames));
+            () => Assert.Contains("read_editorconfig", toolNames));
 
         // 2. analyze_csharp_code — exercises Worker.DotNet (7 composite
         //    tasks) and transitively Worker.Workspace (editorconfig
@@ -82,11 +82,11 @@ public sealed class EndToEndSmokeTests
             () => Assert.Equal(7, csharpEnvelope.Summary.TaskCount),
             () => Assert.NotEqual(ToolResultEnvelope.StatusError, csharpEnvelope.Status));
 
-        // 3. read_editorconfig_properties — exercises Worker.Workspace
+        // 3. read_editorconfig — exercises Worker.Workspace
         //    directly (single task, distinct tool).
         var editorConfigEnvelope = await CallToolAsync(
             client,
-            "read_editorconfig_properties",
+            "read_editorconfig",
             new Dictionary<string, object?>
             {
                 ["path"] = typeof(EndToEndSmokeTests).Assembly.Location,
@@ -94,7 +94,7 @@ public sealed class EndToEndSmokeTests
             ct);
 
         Assert.Multiple(
-            () => Assert.Equal("read_editorconfig_properties", editorConfigEnvelope.Tool),
+            () => Assert.Equal("read_editorconfig", editorConfigEnvelope.Tool),
             () => Assert.Equal(1, editorConfigEnvelope.Summary.TaskCount),
             () => Assert.NotEqual(ToolResultEnvelope.StatusError, editorConfigEnvelope.Status));
     }

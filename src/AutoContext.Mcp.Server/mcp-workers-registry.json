@@ -102,7 +102,7 @@
                     ]
                 },
                 {
-                    "name": "read_editorconfig_properties",
+                    "name": "read_editorconfig",
                     "description": "Resolves the effective .editorconfig properties for a single file by walking up the directory tree, evaluating glob patterns, and applying section cascading. Returns the final flat key/value map that applies to that file. Use this when you need to know the coding-style rules (indent style, charset, end-of-line, language-specific keys) in force at a particular file path. Pass the file's absolute path.",
                     "parameters": {
                         "path": {

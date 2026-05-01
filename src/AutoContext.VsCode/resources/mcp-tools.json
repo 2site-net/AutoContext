@@ -121,7 +121,7 @@
             ]
         },
         {
-            "name": "read_editorconfig_properties",
+            "name": "read_editorconfig",
             "description": "Resolves the effective .editorconfig properties that apply to a specific file.",
             "categories": [
                 "Workspace",

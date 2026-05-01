@@ -344,7 +344,7 @@ Today's tool surface (one composite tool per category, plus tasks):
 | .NET / C# | `analyze_csharp_code` (7 tasks: async, coding-style, member-ordering, naming, nullable, project-structure, test-style) | `Worker.DotNet` |
 | .NET / NuGet | `analyze_nuget_references` (1 task: hygiene) | `Worker.DotNet` |
 | Workspace / Git | `analyze_git_commit_message` (2 tasks: format, content) | `Worker.Workspace` |
-| Workspace / EditorConfig | `read_editorconfig_properties` (1 task: `get_editorconfig_rules`) | `Worker.Workspace` |
+| Workspace / EditorConfig | `read_editorconfig` (1 task: `get_editorconfig_rules`) | `Worker.Workspace` |
 | Web / TypeScript | `analyze_typescript_code` (1 task: coding-style) | `Worker.Web` |
 
 ### Projects
@@ -373,7 +373,7 @@ The .NET solution and one Node.js workspace make up the runtime side:
 
 | Caller | Path | Purpose |
 |--------|------|---------|
-| Copilot (directly) | `read_editorconfig_properties` MCP tool → orchestrator → pipe → `GetEditorConfigRulesTask` | Lets the model ask "what `.editorconfig` rules apply to this file?" before generating code. |
+| Copilot (directly) | `read_editorconfig` MCP tool → orchestrator → pipe → `GetEditorConfigRulesTask` | Lets the model ask "what `.editorconfig` rules apply to this file?" before generating code. |
 | Orchestrator (internally) | `ToolInvoker` → `EditorConfigBatcher.ResolveAsync` → pipe → `GetEditorConfigRulesTask` | Runs once per `tools/call` to gather every key declared by the tool's tasks in one round-trip. |
 
 There is no shared in-process resolver and no `IEditorConfigFilter` abstraction — the orchestrator treats EditorConfig as just another worker capability. This keeps `Worker.Workspace` as the single owner of EditorConfig parsing and section cascading, and means the same code paths serve both Copilot calls and internal batching.

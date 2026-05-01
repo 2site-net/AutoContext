@@ -49,7 +49,7 @@ public sealed class RegistryLoaderTests
                 "id": "workspace",
                 "name": "AutoContext.Worker.Workspace",
                 "tools": [{
-                  "name": "read_editorconfig_properties",
+                  "name": "read_editorconfig",
                   "description": "x",
                   "parameters": { "path": { "type": "string", "description": "x", "required": true } },
                   "tasks": [{ "name": "get_editorconfig_rules" }]

@@ -20,7 +20,7 @@ function buildProjectorManifest(): McpToolsManifest {
             { name: 'analyze_csharp_coding_style' },
             { name: 'analyze_csharp_async_patterns' },
         ]),
-        new McpToolEntry('read_editorconfig_properties', undefined, [workspace], [
+        new McpToolEntry('read_editorconfig', undefined, [workspace], [
             { name: 'get_editorconfig_rules' },
         ]),
     ];
@@ -40,7 +40,7 @@ describe('ConfigContextProjector', () => {
         expect(findSetContextCall('autocontext.instructions.lang-csharp')?.[2]).toBe(true);
         expect(findSetContextCall('autocontext.mcpTools.analyze_csharp_code.analyze_csharp_coding_style')?.[2]).toBe(true);
         expect(findSetContextCall('autocontext.mcpTools.analyze_csharp_code.analyze_csharp_async_patterns')?.[2]).toBe(true);
-        expect.soft(findSetContextCall('autocontext.mcpTools.read_editorconfig_properties.get_editorconfig_rules')?.[2]).toBe(true);
+        expect.soft(findSetContextCall('autocontext.mcpTools.read_editorconfig.get_editorconfig_rules')?.[2]).toBe(true);
     });
 
     it('should set instruction context key to false when disabled', async () => {
@@ -61,7 +61,7 @@ describe('ConfigContextProjector', () => {
     it('should set task context key to false when parent disables the task', async () => {
         const projector = new ConfigContextProjector(
             createMockConfigManager({
-                mcpTools: { read_editorconfig_properties: { disabledTasks: ['get_editorconfig_rules'] } },
+                mcpTools: { read_editorconfig: { disabledTasks: ['get_editorconfig_rules'] } },
             }),
             catalog,
             toolsManifest,
@@ -69,7 +69,7 @@ describe('ConfigContextProjector', () => {
         );
         await projector.project();
 
-        expect(findSetContextCall('autocontext.mcpTools.read_editorconfig_properties.get_editorconfig_rules')?.[2]).toBe(false);
+        expect(findSetContextCall('autocontext.mcpTools.read_editorconfig.get_editorconfig_rules')?.[2]).toBe(false);
         expect.soft(findSetContextCall('autocontext.mcpTools.analyze_csharp_code.analyze_csharp_coding_style')?.[2]).toBe(true);
     });
 
