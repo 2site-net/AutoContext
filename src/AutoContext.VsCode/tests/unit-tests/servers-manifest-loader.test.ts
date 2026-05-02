@@ -65,7 +65,7 @@ describe('ServersManifestLoader.load()', () => {
         });
 
         expect(() => new ServersManifestLoader('/ext').load())
-            .toThrow(/Failed to parse JSON from .+servers\.json/);
+            .toThrow(/servers\.json: failed to parse JSON from .+servers\.json/);
     });
 });
 
