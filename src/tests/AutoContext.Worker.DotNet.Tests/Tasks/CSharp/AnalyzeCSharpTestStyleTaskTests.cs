@@ -5,6 +5,15 @@ using AutoContext.Worker.Testing;
 
 public sealed class AnalyzeCSharpTestStyleTaskTests
 {
+    private static (string ProjectDirectory, string ComparedPath) MakeProjectPaths(params string[] relativeSegments)
+    {
+        // Build OS-correct absolute paths without touching the file
+        // system — the analyzer's namespace check is purely textual.
+        var projectDirectory = Path.Combine(Path.GetTempPath(), "AutoContextFakeProj");
+        var comparedPath = Path.Combine([projectDirectory, .. relativeSegments]);
+        return (projectDirectory, comparedPath);
+    }
+
     [Fact]
     public async Task Should_pass_well_styled_test_class()
     {
@@ -529,9 +538,11 @@ public sealed class AnalyzeCSharpTestStyleTaskTests
     }
 
     [Fact]
-    public async Task Should_reject_namespace_not_mirroring_production()
+    public async Task Should_reject_namespace_not_matching_project_structure()
     {
-        // Arrange
+        // Arrange — file at <projectDir>/Services/UserServiceTests.cs
+        // belongs in namespace 'MyApp.Tests.Services' but declares 'Wrong.Namespace'.
+        var (projectDirectory, comparedPath) = MakeProjectPaths("Services", "UserServiceTests.cs");
         var source = """
             namespace Wrong.Namespace;
 
@@ -546,21 +557,29 @@ public sealed class AnalyzeCSharpTestStyleTaskTests
             """;
 
         // Act
-        var (_, result) = await new AnalyzeCSharpTestStyleTask().GetReportAsync(new Dictionary<string, object> { ["content"] = source, ["originalNamespace"] = "MyApp.Services" });
+        var (_, result) = await new AnalyzeCSharpTestStyleTask().GetReportAsync(new Dictionary<string, object>
+        {
+            ["content"] = source,
+            ["comparedPath"] = comparedPath,
+            ["projectDirectory"] = projectDirectory,
+            ["rootNamespace"] = "MyApp.Tests",
+        });
 
         // Assert
         Assert.Multiple(() =>
         {
             Assert.StartsWith("❌", result, StringComparison.Ordinal);
-            Assert.Contains("does not mirror the production namespace", result, StringComparison.Ordinal);
+            Assert.Contains("does not match the project structure", result, StringComparison.Ordinal);
             Assert.Contains("Expected 'MyApp.Tests.Services'", result, StringComparison.Ordinal);
         });
     }
 
     [Fact]
-    public async Task Should_pass_namespace_mirroring_production()
+    public async Task Should_pass_namespace_matching_project_structure()
     {
-        // Arrange
+        // Arrange — file at <projectDir>/Services/UserServiceTests.cs
+        // declares 'MyApp.Tests.Services'. RootNamespace + folder path matches.
+        var (projectDirectory, comparedPath) = MakeProjectPaths("Services", "UserServiceTests.cs");
         var source = """
             namespace MyApp.Tests.Services;
 
@@ -575,16 +594,23 @@ public sealed class AnalyzeCSharpTestStyleTaskTests
             """;
 
         // Act
-        var (_, result) = await new AnalyzeCSharpTestStyleTask().GetReportAsync(new Dictionary<string, object> { ["content"] = source, ["originalNamespace"] = "MyApp.Services" });
+        var (_, result) = await new AnalyzeCSharpTestStyleTask().GetReportAsync(new Dictionary<string, object>
+        {
+            ["content"] = source,
+            ["comparedPath"] = comparedPath,
+            ["projectDirectory"] = projectDirectory,
+            ["rootNamespace"] = "MyApp.Tests",
+        });
 
         // Assert
         Assert.StartsWith("✅", result, StringComparison.Ordinal);
     }
 
     [Fact]
-    public async Task Should_handle_single_segment_production_namespace()
+    public async Task Should_pass_namespace_when_file_is_at_project_root()
     {
-        // Arrange
+        // Arrange — file directly in project root: namespace must equal RootNamespace.
+        var (projectDirectory, comparedPath) = MakeProjectPaths("HelperTests.cs");
         var source = """
             namespace MyApp.Tests;
 
@@ -599,44 +625,23 @@ public sealed class AnalyzeCSharpTestStyleTaskTests
             """;
 
         // Act
-        var (_, result) = await new AnalyzeCSharpTestStyleTask().GetReportAsync(new Dictionary<string, object> { ["content"] = source, ["originalNamespace"] = "MyApp" });
+        var (_, result) = await new AnalyzeCSharpTestStyleTask().GetReportAsync(new Dictionary<string, object>
+        {
+            ["content"] = source,
+            ["comparedPath"] = comparedPath,
+            ["projectDirectory"] = projectDirectory,
+            ["rootNamespace"] = "MyApp.Tests",
+        });
 
         // Assert
         Assert.StartsWith("✅", result, StringComparison.Ordinal);
     }
 
     [Fact]
-    public async Task Should_reject_deep_namespace_mismatch()
+    public async Task Should_pass_namespace_in_deeply_nested_folder()
     {
-        // Arrange
-        var source = """
-            namespace MyApp.Tests.Wrong;
-
-            public sealed class RepoTests
-            {
-                [Fact]
-                public async Task Should_work()
-                {
-                    Assert.True(true);
-                }
-            }
-            """;
-
-        // Act
-        var (_, result) = await new AnalyzeCSharpTestStyleTask().GetReportAsync(new Dictionary<string, object> { ["content"] = source, ["originalNamespace"] = "MyApp.Data.Repositories" });
-
-        // Assert
-        Assert.Multiple(() =>
-        {
-            Assert.StartsWith("❌", result, StringComparison.Ordinal);
-            Assert.Contains("Expected 'MyApp.Tests.Data.Repositories'", result, StringComparison.Ordinal);
-        });
-    }
-
-    [Fact]
-    public async Task Should_pass_deep_namespace_mirroring()
-    {
-        // Arrange
+        // Arrange — file at <projectDir>/Data/Repositories/UserRepoTests.cs
+        var (projectDirectory, comparedPath) = MakeProjectPaths("Data", "Repositories", "UserRepoTests.cs");
         var source = """
             namespace MyApp.Tests.Data.Repositories;
 
@@ -651,14 +656,106 @@ public sealed class AnalyzeCSharpTestStyleTaskTests
             """;
 
         // Act
-        var (_, result) = await new AnalyzeCSharpTestStyleTask().GetReportAsync(new Dictionary<string, object> { ["content"] = source, ["originalNamespace"] = "MyApp.Data.Repositories" });
+        var (_, result) = await new AnalyzeCSharpTestStyleTask().GetReportAsync(new Dictionary<string, object>
+        {
+            ["content"] = source,
+            ["comparedPath"] = comparedPath,
+            ["projectDirectory"] = projectDirectory,
+            ["rootNamespace"] = "MyApp.Tests",
+        });
 
         // Assert
         Assert.StartsWith("✅", result, StringComparison.Ordinal);
     }
 
     [Fact]
-    public async Task Should_skip_namespace_check_when_not_provided()
+    public async Task Should_reject_deeply_nested_namespace_mismatch()
+    {
+        // Arrange
+        var (projectDirectory, comparedPath) = MakeProjectPaths("Data", "Repositories", "RepoTests.cs");
+        var source = """
+            namespace MyApp.Tests.Wrong;
+
+            public sealed class RepoTests
+            {
+                [Fact]
+                public async Task Should_work()
+                {
+                    Assert.True(true);
+                }
+            }
+            """;
+
+        // Act
+        var (_, result) = await new AnalyzeCSharpTestStyleTask().GetReportAsync(new Dictionary<string, object>
+        {
+            ["content"] = source,
+            ["comparedPath"] = comparedPath,
+            ["projectDirectory"] = projectDirectory,
+            ["rootNamespace"] = "MyApp.Tests",
+        });
+
+        // Assert
+        Assert.Multiple(() =>
+        {
+            Assert.StartsWith("❌", result, StringComparison.Ordinal);
+            Assert.Contains("Expected 'MyApp.Tests.Data.Repositories'", result, StringComparison.Ordinal);
+        });
+    }
+
+    [Fact]
+    public async Task Should_fall_back_to_csproj_filename_when_root_namespace_omitted()
+    {
+        // Arrange — when no rootNamespace is provided, the analyzer
+        // derives it from the .csproj filename in projectDirectory
+        // (matching MSBuild's default RootNamespace = AssemblyName behaviour).
+        var projectDirectory = Path.Combine(
+            Path.GetTempPath(),
+            "AutoContextTests_" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(projectDirectory);
+
+        try
+        {
+            await File.WriteAllTextAsync(
+                Path.Combine(projectDirectory, "MyApp.Tests.csproj"),
+                "<Project Sdk=\"Microsoft.NET.Sdk\"></Project>",
+                TestContext.Current.CancellationToken);
+            var subDir = Path.Combine(projectDirectory, "Services");
+            Directory.CreateDirectory(subDir);
+            var comparedPath = Path.Combine(subDir, "UserServiceTests.cs");
+
+            var source = """
+                namespace MyApp.Tests.Services;
+
+                public sealed class UserServiceTests
+                {
+                    [Fact]
+                    public async Task Should_work()
+                    {
+                        Assert.True(true);
+                    }
+                }
+                """;
+
+            // Act — note: rootNamespace is intentionally omitted.
+            var (_, result) = await new AnalyzeCSharpTestStyleTask().GetReportAsync(new Dictionary<string, object>
+            {
+                ["content"] = source,
+                ["comparedPath"] = comparedPath,
+                ["projectDirectory"] = projectDirectory,
+            });
+
+            // Assert
+            Assert.StartsWith("✅", result, StringComparison.Ordinal);
+        }
+        finally
+        {
+            Directory.Delete(projectDirectory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task Should_skip_namespace_check_when_project_directory_is_missing()
     {
         // Arrange
         var source = """
@@ -678,13 +775,14 @@ public sealed class AnalyzeCSharpTestStyleTaskTests
         var (_, result) = await new AnalyzeCSharpTestStyleTask().GetReportAsync(new { content = source });
 
         // Assert
-        Assert.DoesNotContain("mirror", result, StringComparison.Ordinal);
+        Assert.DoesNotContain("does not match the project structure", result, StringComparison.Ordinal);
     }
 
     [Fact]
     public async Task Should_check_namespace_with_block_scoped_namespace()
     {
         // Arrange
+        var (projectDirectory, comparedPath) = MakeProjectPaths("Services", "SomeTests.cs");
         var source = """
             namespace Wrong.Namespace
             {
@@ -700,10 +798,16 @@ public sealed class AnalyzeCSharpTestStyleTaskTests
             """;
 
         // Act
-        var (_, result) = await new AnalyzeCSharpTestStyleTask().GetReportAsync(new Dictionary<string, object> { ["content"] = source, ["originalNamespace"] = "MyApp.Services" });
+        var (_, result) = await new AnalyzeCSharpTestStyleTask().GetReportAsync(new Dictionary<string, object>
+        {
+            ["content"] = source,
+            ["comparedPath"] = comparedPath,
+            ["projectDirectory"] = projectDirectory,
+            ["rootNamespace"] = "MyApp.Tests",
+        });
 
         // Assert
-        Assert.Contains("does not mirror", result, StringComparison.Ordinal);
+        Assert.Contains("does not match the project structure", result, StringComparison.Ordinal);
     }
 
     [Theory]

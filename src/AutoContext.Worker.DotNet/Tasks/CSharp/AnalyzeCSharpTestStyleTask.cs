@@ -12,16 +12,19 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 /// <summary>
 /// <c>analyze_csharp_test_style</c> — enforces test style rules from
-/// <c>testing.instructions.md</c> and <c>dotnet-xunit.instructions.md</c>:
+/// <c>dotnet-testing.instructions.md</c> and <c>dotnet-xunit.instructions.md</c>:
 /// test class naming, test method naming, no XML doc comments,
 /// <c>Assert.Multiple</c> for multi-assertion tests, no
-/// <c>ConfigureAwait</c>, and structure mirroring (file name, namespace)
-/// against the production project.
+/// <c>ConfigureAwait</c>, and namespace conformance to the standard .NET
+/// convention (<c>RootNamespace</c> + folder path within the project).
 /// </summary>
 /// <remarks>
 /// Request <c>data</c>:
-/// <c>{ "content": "&lt;csharp-source&gt;", "comparedPath": "&lt;path&gt;",
-/// "originalNamespace": "&lt;namespace&gt;" }</c><br/>
+/// <c>{ "content": "&lt;csharp-source&gt;", "comparedPath": "&lt;abs-path&gt;",
+/// "projectDirectory": "&lt;abs-path&gt;", "rootNamespace": "&lt;namespace&gt;" }</c><br/>
+/// <c>rootNamespace</c> is optional — when omitted the analyzer derives it
+/// from the first <c>*.csproj</c> file found in <c>projectDirectory</c>
+/// (filename without extension), matching MSBuild's default behaviour.<br/>
 /// Response <c>output</c>: <c>{ "passed": &lt;bool&gt;, "report": "&lt;text&gt;" }</c>
 /// </remarks>
 internal sealed class AnalyzeCSharpTestStyleTask : IMcpTask
@@ -45,10 +48,10 @@ internal sealed class AnalyzeCSharpTestStyleTask : IMcpTask
         }
 
         var comparedPath = data.TryGetString("comparedPath") ?? string.Empty;
-        var fileName = string.IsNullOrEmpty(comparedPath) ? string.Empty : Path.GetFileName(comparedPath);
-        var originalNamespace = data.TryGetString("originalNamespace") ?? string.Empty;
+        var projectDirectory = data.TryGetString("projectDirectory") ?? string.Empty;
+        var rootNamespace = data.TryGetString("rootNamespace") ?? string.Empty;
 
-        var (passed, report) = await BuildReportAsync(content, fileName, originalNamespace, cancellationToken).ConfigureAwait(false);
+        var (passed, report) = await BuildReportAsync(content, comparedPath, projectDirectory, rootNamespace, cancellationToken).ConfigureAwait(false);
 
         var output = new JsonObject
         {
@@ -61,8 +64,9 @@ internal sealed class AnalyzeCSharpTestStyleTask : IMcpTask
 
     private static async Task<(bool Passed, string Report)> BuildReportAsync(
         string content,
-        string fileName,
-        string originalNamespace,
+        string comparedPath,
+        string projectDirectory,
+        string rootNamespace,
         CancellationToken cancellationToken)
     {
         var tree = CSharpSyntaxTree.ParseText(content, cancellationToken: cancellationToken);
@@ -76,8 +80,9 @@ internal sealed class AnalyzeCSharpTestStyleTask : IMcpTask
             return (true, "✅ Test style is correct.");
         }
 
+        var fileName = string.IsNullOrEmpty(comparedPath) ? string.Empty : Path.GetFileName(comparedPath);
         AnalyzeFileNameConvention(fileName, violations);
-        AnalyzeNamespaceMirroring(root, originalNamespace, violations);
+        AnalyzeNamespaceConvention(root, comparedPath, projectDirectory, rootNamespace, violations);
 
         foreach (var testClass in testClasses)
         {
@@ -106,7 +111,7 @@ internal sealed class AnalyzeCSharpTestStyleTask : IMcpTask
         return (false, report);
     }
 
-    // [testing INST0006]: test file name ends with Tests
+    // [dotnet-testing INST0005]: file name follows class name '<UnitUnderTest>Tests'
     private static void AnalyzeFileNameConvention(ReadOnlySpan<char> fileName, List<string> violations)
     {
         if (fileName.IsEmpty || fileName.IsWhiteSpace())
@@ -135,10 +140,15 @@ internal sealed class AnalyzeCSharpTestStyleTask : IMcpTask
         return dotIndex < 0 ? name : name[..dotIndex];
     }
 
-    // [testing INST0006]: test namespace mirrors production
-    private static void AnalyzeNamespaceMirroring(SyntaxNode root, ReadOnlySpan<char> originalNamespace, List<string> violations)
+    // [dotnet-testing INST0001]: namespace follows project structure (RootNamespace + folder path)
+    private static void AnalyzeNamespaceConvention(
+        SyntaxNode root,
+        string comparedPath,
+        string projectDirectory,
+        string rootNamespace,
+        List<string> violations)
     {
-        if (originalNamespace.IsEmpty || originalNamespace.IsWhiteSpace())
+        if (string.IsNullOrWhiteSpace(comparedPath) || string.IsNullOrWhiteSpace(projectDirectory))
         {
             return;
         }
@@ -150,40 +160,74 @@ internal sealed class AnalyzeCSharpTestStyleTask : IMcpTask
             return;
         }
 
-        // Expected pattern: insert ".Tests" after the first segment of the production namespace.
-        // E.g., "MyApp.Services.Users" → "MyApp.Tests.Services.Users"
-        ReadOnlySpan<char> declared = declaredNamespace;
-        var dotIndex = originalNamespace.IndexOf('.');
-        const int testsSuffixLength = 6; // ".Tests".Length
-        bool matches;
+        var resolvedRoot = string.IsNullOrWhiteSpace(rootNamespace)
+            ? DeriveRootNamespaceFromProjectFile(projectDirectory)
+            : rootNamespace;
 
-        if (dotIndex < 0)
+        if (string.IsNullOrWhiteSpace(resolvedRoot))
         {
-            matches = declared.Length == originalNamespace.Length + testsSuffixLength
-                      && declared.StartsWith(originalNamespace, StringComparison.Ordinal)
-                      && declared[originalNamespace.Length..].Equals(".Tests", StringComparison.Ordinal);
-        }
-        else
-        {
-            var first = originalNamespace[..dotIndex];
-            var rest = originalNamespace[dotIndex..];
-
-            matches = declared.Length == first.Length + testsSuffixLength + rest.Length
-                      && declared.StartsWith(first, StringComparison.Ordinal)
-                      && declared[first.Length..].StartsWith(".Tests", StringComparison.Ordinal)
-                      && declared[(first.Length + testsSuffixLength)..].Equals(rest, StringComparison.Ordinal);
+            return;
         }
 
-        if (!matches)
-        {
-            var expectedNamespace = dotIndex < 0
-                ? $"{originalNamespace}.Tests"
-                : $"{originalNamespace[..dotIndex]}.Tests{originalNamespace[dotIndex..]}";
+        var expectedNamespace = ComputeExpectedNamespace(resolvedRoot, projectDirectory, comparedPath);
 
+        if (expectedNamespace is null)
+        {
+            return;
+        }
+
+        if (!string.Equals(declaredNamespace, expectedNamespace, StringComparison.Ordinal))
+        {
             violations.Add(
-                $"Test namespace '{declaredNamespace}' does not mirror the production namespace '{originalNamespace}'. " +
-                $"Expected '{expectedNamespace}'.");
+                $"Namespace '{declaredNamespace}' does not match the project structure. " +
+                $"Expected '{expectedNamespace}' (RootNamespace + folder path).");
         }
+    }
+
+    private static string? DeriveRootNamespaceFromProjectFile(string projectDirectory)
+    {
+        if (!Directory.Exists(projectDirectory))
+        {
+            return null;
+        }
+
+        var projectFile = Directory
+            .EnumerateFiles(projectDirectory, "*.csproj", SearchOption.TopDirectoryOnly)
+            .FirstOrDefault();
+
+        return projectFile is null
+            ? null
+            : Path.GetFileNameWithoutExtension(projectFile);
+    }
+
+    private static string? ComputeExpectedNamespace(string rootNamespace, string projectDirectory, string comparedPath)
+    {
+        var fileDirectory = Path.GetDirectoryName(Path.GetFullPath(comparedPath));
+
+        if (fileDirectory is null)
+        {
+            return null;
+        }
+
+        var projectDir = Path.GetFullPath(projectDirectory);
+        var relative = Path.GetRelativePath(projectDir, fileDirectory);
+
+        if (relative.StartsWith("..", StringComparison.Ordinal))
+        {
+            // File lives outside the declared project directory \u2014 cannot enforce.
+            return null;
+        }
+        if (relative == ".")
+        {
+            return rootNamespace;
+        }
+        var segments = relative.Split(
+            [Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar],
+            StringSplitOptions.RemoveEmptyEntries);
+
+        return segments.Length == 0
+            ? rootNamespace
+            : $"{rootNamespace}.{string.Join('.', segments)}";
     }
 
     private static string? GetDeclaredNamespace(SyntaxNode root)
@@ -210,7 +254,7 @@ internal sealed class AnalyzeCSharpTestStyleTask : IMcpTask
             .OfType<MethodDeclarationSyntax>()
             .Where(TestDetection.HasTestAttribute)];
 
-    // [testing INST0006]: test class suffix Tests
+    // [dotnet-testing INST0002]: test class suffix Tests
     private static void AnalyzeTestClassNaming(TypeDeclarationSyntax testClass, SyntaxTree tree, List<string> violations)
     {
         var name = testClass.Identifier.Text;
@@ -224,7 +268,7 @@ internal sealed class AnalyzeCSharpTestStyleTask : IMcpTask
         }
     }
 
-    // [testing INST0019]: no XML docs on test classes
+    // [dotnet-testing INST0008]: no XML docs on test classes
     private static void AnalyzeTestClassXmlDoc(TypeDeclarationSyntax testClass, SyntaxTree tree, List<string> violations)
     {
         if (!HasXmlDocComment(testClass))
@@ -238,7 +282,7 @@ internal sealed class AnalyzeCSharpTestStyleTask : IMcpTask
             "Rely on descriptive names to convey intent.");
     }
 
-    // [testing INST0006]: test method prefix Should_ / Should_not_
+    // [dotnet-testing INST0002]: test method prefix Should_ / Should_not_
     private static void AnalyzeTestMethodNaming(MethodDeclarationSyntax method, SyntaxTree tree, List<string> violations)
     {
         var name = method.Identifier.Text;
@@ -252,7 +296,7 @@ internal sealed class AnalyzeCSharpTestStyleTask : IMcpTask
         }
     }
 
-    // [testing INST0019]: no XML docs on test methods
+    // [dotnet-testing INST0008]: no XML docs on test methods
     private static void AnalyzeTestMethodXmlDoc(MethodDeclarationSyntax method, SyntaxTree tree, List<string> violations)
     {
         if (!HasXmlDocComment(method))

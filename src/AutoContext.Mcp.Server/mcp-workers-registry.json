@@ -7,7 +7,7 @@
             "tools": [
                 {
                     "name": "analyze_csharp_code",
-                    "description": "Runs every enabled C# code-quality check on a single source file and returns one combined report. Covers coding style, member ordering, naming, async/await patterns, nullable safety, project structure, and (for test files) test conventions. Use this whenever generating, editing, or reviewing C# code. Pass the source as content and the file's absolute path as originalPath. When checking a test file, also pass the production type's namespace as originalNamespace and the test file path as comparedPath so test-style rules can verify the mirror structure.",
+                    "description": "Runs every enabled C# code-quality check on a single source file and returns one combined report. Covers coding style, member ordering, naming, async/await patterns, nullable safety, project structure, and (for test files) test conventions. Use this whenever generating, editing, or reviewing C# code. Pass the source as content and the file's absolute path as originalPath. When checking a test file, also pass comparedPath (absolute path of the test file), projectDirectory (absolute path of the test project's directory), and rootNamespace (the test project's RootNamespace, or omit to fall back to the .csproj filename) so the namespace convention rule can verify the namespace matches RootNamespace + folder path.",
                     "parameters": {
                         "content": {
                             "type": "string",
@@ -18,13 +18,17 @@
                             "type": "string",
                             "description": "Absolute path of the file whose source is in content."
                         },
-                        "originalNamespace": {
-                            "type": "string",
-                            "description": "Namespace of the type in the original file (e.g. 'MyApp.Services')."
-                        },
                         "comparedPath": {
                             "type": "string",
-                            "description": "Absolute path of the test file being compared against the original (used by test-style rules)."
+                            "description": "Absolute path of the test file (used by test-style rules for file-name and namespace checks)."
+                        },
+                        "projectDirectory": {
+                            "type": "string",
+                            "description": "Absolute path of the test project's directory (the folder containing the .csproj). Used to compute the expected namespace from RootNamespace + the file's folder path within the project."
+                        },
+                        "rootNamespace": {
+                            "type": "string",
+                            "description": "The test project's RootNamespace (e.g. 'MyApp.Tests'). When omitted, falls back to the filename (without extension) of the first *.csproj found in projectDirectory, matching MSBuild's default behaviour."
                         }
                     },
                     "tasks": [
