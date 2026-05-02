@@ -13,7 +13,7 @@ import { InstructionsFilesDiagnosticsReporter } from './instructions-files-diagn
 import { InstructionsFilesDiagnosticsRunner } from './instructions-files-diagnostics-runner.js';
 import { AutoContextProjector } from './autocontext-projector.js';
 import { InstructionsFilesTreeProvider } from './instructions-files-tree-provider.js';
-import { MetadataLoader } from './metadata-loader.js';
+import { InstructionsFileMetadataReader } from './instructions-file-metadata-reader.js';
 import { McpToolsManifestLoader } from './mcp-tools-manifest-loader.js';
 import { McpToolsTreeProvider } from './mcp-tools-tree-provider.js';
 import { TreeViewStateResolver } from './tree-view-state-resolver.js';
@@ -69,10 +69,10 @@ export function composeExtension(inputs: CompositionInputs) {
     const log = (cat: LogCategory): ChannelLogger => rootLogger.forCategory(cat);
 
     // 1. Static manifests / metadata (sync JSON reads).
-    const metadataLoader = new MetadataLoader(extensionPath);
+    const metadataReader = new InstructionsFileMetadataReader(extensionPath);
     const mcpToolsManifest = new McpToolsManifestLoader(extensionPath).load();
     const instructionsManifest = new InstructionsFilesManifestLoader(extensionPath)
-        .load(metadataLoader.getInstructionsInfo());
+        .load(metadataReader.readMetadata());
     const serversManifest = new ServersManifestLoader(extensionPath).load();
 
     const workerIds = new Set(

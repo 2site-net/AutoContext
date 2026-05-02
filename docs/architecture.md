@@ -42,7 +42,7 @@ flowchart TB
 
     subgraph ext["VS Code Extension Process"]
         uiToolsLoad --> manifests["Manifests<br/>(Tools · Instructions · Servers)"]
-        instrMeta["instruction frontmatter"] --> metaLoad["MetadataLoader"]
+        instrMeta["instruction frontmatter"] --> metaLoad["InstructionsFileMetadataReader"]
         metaLoad --> manifests
         manifests --> trees["Tree Views + Tooltips"]
 
@@ -107,7 +107,7 @@ The diagram reads top-to-bottom: **build artifacts** feed into the **extension p
 - **`ToolInvoker`** orchestrates one `tools/call`: it (a) consults the latest disabled-task set from `AutoContextConfigSnapshot` and short-circuits with `AllTasksDisabled` when every task for the tool is off, (b) computes the union of EditorConfig keys across the tool's *enabled* tasks, (c) batches a single `get_editorconfig_rules` pipe call to `Worker.Workspace` via `EditorConfigBatcher`, (d) dispatches the enabled tasks in parallel via `WorkerClient`, and (e) composes the per-task responses into a uniform `ToolResultEnvelope` via `ToolResultComposer`.
 - **`WorkerClient`** opens one `NamedPipeClientStream` per task to `autocontext.worker-<id>#<instance-id>` (the per-window instance id keeps multiple VS Code windows isolated), writes a `TaskRequest`, and reads a `TaskResponse`. A 30-second wait deadline guards against hung workers; any IO/timeout/parse failure is mapped to a synthesized error response so partial results still flow back to Copilot.
 - **`WorkerManager`** (extension-side) spawns workers **lazily** through a single `ensureRunning(identity)` gate. There are exactly two spawn triggers: (a) the orchestrator (`AutoContext.Mcp.Server`) sends an `EnsureRunning` request over the `autocontext.worker-control#<instance-id>` named pipe before dispatching a `tools/call` to a worker that owns the tool, and (b) `whenWorkspaceReady()` calls `ensureRunning('Worker.Workspace')` during extension activation so EditorConfig resolution is available. `ensureRunning` reads the worker definition from `resources/servers.json`, passes `--instance-id` plus `--service log=…` and `--service health-monitor=…` (the worker self-formats its listen address from its compile-time worker id + the instance id), coalesces concurrent callers onto a single in-flight promise, and waits for the worker's `[<WorkerName>] Ready.` stderr marker before returning.
-- **Manifests** are the central UI hub — built from `resources/mcp-tools.json`, `resources/instructions-files.json`, `resources/servers.json`, and `MetadataLoader` output, they feed into the tree views, the workspace context detector, the server provider, and the instructions writer.
+- **Manifests** are the central UI hub — built from `resources/mcp-tools.json`, `resources/instructions-files.json`, `resources/servers.json`, and `InstructionsFileMetadataReader` output, they feed into the tree views, the workspace context detector, the server provider, and the instructions writer.
 - **`WorkspaceContextDetector`** scans workspace files and sets context keys, which drive MCP server registration (`McpServerProvider`), instruction filtering (`when`-clause evaluation against `chatInstructions` in `package.json`), and tree views (detected state + override file versions for staleness comparison).
 - **`.autocontext.json`** is the single source of truth for user configuration. `AutoContextConfigManager` is the only writer; it persists per-tool / per-task disabled state, per-instruction disable, per-rule disable lists (`disabledInstructions`), and a `version` stamp per entry. Two separate flows project the file's state to consumers: (1) `AutoContextProjector` translates it into `setContext` keys for VS Code (`autocontext.instructions.*`, `autocontext.mcpTools.*`) so tree icons and instruction `when` clauses react; (2) `AutoContextConfigServer` broadcasts a `disabledTools` / `disabledTasks` snapshot to `AutoContext.Mcp.Server` (see [Disabled-State Push Channel](#disabled-state-push-channel)). `McpServerProvider` still hides the MCP definition entirely when **every** tool is disabled — a fast path that skips spawning the orchestrator when the user has nothing left enabled.
 - **`.generated/`** files are what Copilot actually reads — they are the instruction source files with `[INSTxxxx]` tags stripped and disabled rules removed. VS Code's `when`-clause engine evaluates the context keys to decide which `.generated/` files are active for a given workspace.
@@ -127,7 +127,7 @@ Extension activation (see `src/AutoContext.VsCode/src/extension.ts` and the modu
 
 `composeExtension()` builds the entire object graph in one synchronous, side-effect-free pass:
 
-1. **Static manifests** — `MetadataLoader` parses YAML frontmatter from every instruction file (description, version, optional `applyTo`) and probes for a sibling `.CHANGELOG.md`. `McpToolsManifestLoader`, `InstructionsFilesManifestLoader`, and `ServersManifestLoader` build their respective manifests from `resources/mcp-tools.json`, `resources/instructions-files.json`, and `resources/servers.json`. The result feeds tree views, the writer, the projector, and the server provider.
+1. **Static manifests** — `InstructionsFileMetadataReader` parses YAML frontmatter from every instruction file (description, version, optional `applyTo`) and probes for a sibling `.CHANGELOG.md`. `McpToolsManifestLoader`, `InstructionsFilesManifestLoader`, and `ServersManifestLoader` build their respective manifests from `resources/mcp-tools.json`, `resources/instructions-files.json`, and `resources/servers.json`. The result feeds tree views, the writer, the projector, and the server provider.
 2. **Core stateful services** — `AutoContextConfigManager`, `WorkspaceContextDetector`, `InstructionsFilesExporter`, `InstructionsFilesManager`, and `AutoContextProjector` are constructed (no I/O yet).
 3. **Named-pipe servers** — a single 12-hex per-window `instanceId` is minted by `IdentifierFactory.createInstanceId()` and threaded into every server constructor: `LogServer`, `HealthMonitorServer`, `WorkerManager`, `WorkerControlServer`, and `AutoContextConfigServer`. The instance id keeps multiple VS Code windows fully isolated.
 4. **VS Code-facing providers** — `InstructionsViewerDocumentProvider`, `InstructionsViewerCodeLensProvider`, `InstructionsViewerDecorationManager`, `McpServerProvider`, `InstructionsFilesTreeProvider`, `McpToolsTreeProvider`, and `InstructionsFilesDiagnosticsReporter`.
@@ -277,7 +277,7 @@ Tasks that consume EditorConfig keys today (declared in `mcp-workers-registry.js
 
 AutoContext ships curated Markdown instruction files organized into categories — General, Languages, .NET, Web, and Tools. The full list is defined in `ui-constants.ts`. One always-on file (`copilot.instructions.md`) provides cross-cutting rules; the rest are toggleable.
 
-Each instruction file carries YAML frontmatter with a `name` (including an optional `(vX.Y.Z)` version suffix), `description`, and optional `applyTo` glob. `MetadataLoader` extracts this frontmatter at activation time (see [Activation Flow](#activation-flow) Phase 1), and the metadata is surfaced as rich tooltips in the sidebar panel.
+Each instruction file carries YAML frontmatter with a `name` (including an optional `(vX.Y.Z)` version suffix), `description`, and optional `applyTo` glob. `InstructionsFileMetadataReader` extracts this frontmatter at activation time (see [Activation Flow](#activation-flow) Phase 1), and the metadata is surfaced as rich tooltips in the sidebar panel.
 
 Instructions are **workspace-aware** — they are only injected into Copilot's context when the workspace contains their technology (e.g., .NET instructions require a `.csproj` or `.sln` file). The always-on `copilot.instructions.md` is the only file that is attached unconditionally.
 
@@ -332,7 +332,7 @@ When an instruction's MAJOR.MINOR version advances, its `[INSTxxxx]` IDs may no 
 
 ### Per-Instruction Changelogs
 
-Instruction files can ship with a companion `.CHANGELOG.md` (e.g., `lang-csharp.CHANGELOG.md`). `MetadataLoader` checks for this file at activation and records `hasChangelog` on the catalog entry. When present, a **Show Changelog** inline action appears on the tree item, opening the version history in Markdown preview so users can see what changed between versions.
+Instruction files can ship with a companion `.CHANGELOG.md` (e.g., `lang-csharp.CHANGELOG.md`). `InstructionsFileMetadataReader` checks for this file at activation and records `hasChangelog` on the catalog entry. When present, a **Show Changelog** inline action appears on the tree item, opening the version history in Markdown preview so users can see what changed between versions.
 
 ---
 
@@ -352,7 +352,7 @@ This manifest is the **single source of truth for orchestrator dispatch** — no
 
 ### Instruction Frontmatter
 
-Each instruction file carries YAML frontmatter (`name`, `description`, optional `applyTo`). The version is embedded as a suffix in the `name` field — e.g., `name: "lang-csharp (v1.0.0)"`. `MetadataLoader` extracts it via `SemVer.fromParentheses()` and merges the result into `InstructionsFilesManifest`.
+Each instruction file carries YAML frontmatter (`name`, `description`, optional `applyTo`). The version is embedded as a suffix in the `name` field — e.g., `name: "lang-csharp (v1.0.0)"`. `InstructionsFileMetadataReader` extracts it via `SemVer.fromParentheses()` and merges the result into `InstructionsFilesManifest`.
 
 ### Versioning Semantics
 

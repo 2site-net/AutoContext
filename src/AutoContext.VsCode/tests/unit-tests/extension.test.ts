@@ -7,9 +7,9 @@ const { callLog } = vi.hoisted(() => ({ callLog: [] as string[] }));
 
 vi.mock('node:fs', () => ({ existsSync: () => false }));
 
-vi.mock('../../src/metadata-loader', () => ({
-    MetadataLoader: class {
-        getInstructionsInfo() { return new Map(); }
+vi.mock('../../src/instructions-file-metadata-reader', () => ({
+    InstructionsFileMetadataReader: class {
+        readMetadata() { return new Map(); }
     },
 }));
 

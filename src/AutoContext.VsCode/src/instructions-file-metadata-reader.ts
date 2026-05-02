@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { InstructionsFileParser } from './instructions-file-parser.js';
 import type { InstructionsFileMetadata } from '#types/instructions-file-metadata.js';
 
-export class MetadataLoader {
+export class InstructionsFileMetadataReader {
     constructor(private readonly extensionPath: string) {}
 
     /**
@@ -11,7 +11,7 @@ export class MetadataLoader {
      * `*.instructions.md` file shipped under `instructions/`. Returns
      * a map keyed by file name (e.g. `lang-csharp.instructions.md`).
      */
-    getInstructionsInfo(): ReadonlyMap<string, InstructionsFileMetadata> {
+    readMetadata(): ReadonlyMap<string, InstructionsFileMetadata> {
         const metadata = new Map<string, InstructionsFileMetadata>();
         const instructionsDir = join(this.extensionPath, 'instructions');
 
