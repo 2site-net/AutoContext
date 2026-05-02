@@ -179,7 +179,7 @@ $ridToTarget = @{
     'win-x64'     = 'win32-x64'
     'win-arm64'   = 'win32-arm64'
     'linux-x64'   = 'linux-x64'
-    'linux-arm64'  = 'linux-arm64'
+    'linux-arm64' = 'linux-arm64'
     'osx-x64'     = 'darwin-x64'
     'osx-arm64'   = 'darwin-arm64'
 }
@@ -814,7 +814,11 @@ function Build-ExtensionBundle {
         Get-ChildItem $distDir -Recurse -File |
             Where-Object { $_.FullName -ne (Join-Path $distDir 'extension.js') } |
             Remove-Item -Force
-        Get-ChildItem $distDir -Recurse -Directory | Remove-Item -Recurse -Force
+        # Remove subdirectories leaf-first so a parent's -Recurse delete cannot race
+        # ahead of children still in the streaming pipeline (StrictMode would throw).
+        Get-ChildItem $distDir -Recurse -Directory |
+            Sort-Object -Property { $_.FullName.Length } -Descending |
+            Remove-Item -Force -ErrorAction SilentlyContinue
 
         Write-Status 'Extension bundled' 'OK'
     }
