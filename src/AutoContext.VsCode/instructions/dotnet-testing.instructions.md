@@ -30,3 +30,4 @@ as done.
 ### .NET-Specific Practices
 
 - [INST0007] **Do** distinguish dead code (never called) from test-only code — verify test utilities actually serve a clear purpose before removing them.
+- [INST0008] **Don't** add XML doc comments (`/// <summary>`) to test classes or test methods — rely on descriptive names to convey intent.
