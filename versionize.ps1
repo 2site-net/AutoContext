@@ -75,31 +75,47 @@ function Sync-AllVersions {
     $npmDirs = @(Get-ChildItem (Join-Path $repoRoot 'src') -Filter 'package.json' -Recurse -Depth 1 |
         ForEach-Object { $_.Directory.FullName })
 
+    # ── Pass 1: update package.json files and collect our local package names ──
+    $ourNames = @{}
     foreach ($dir in $npmDirs) {
         $pkgPath = Join-Path $dir 'package.json'
-        $lockPath = Join-Path $dir 'package-lock.json'
         $dirName = Split-Path $dir -Leaf
 
         if (Test-Path $pkgPath) {
             $raw = Get-Content $pkgPath -Raw
+            $pkgJson = $raw | ConvertFrom-Json -AsHashtable
+            if ($pkgJson.ContainsKey('name')) { $ourNames[$pkgJson['name']] = $true }
+
             $updated = $raw -replace '"version":\s*"[^"]*"', "`"version`": `"$version`""
             if ($updated -ne $raw) {
                 Set-Content $pkgPath $updated -NoNewline
                 Write-Host "Synced $dirName/package.json -> $version"
             }
         }
+    }
 
-        if (Test-Path $lockPath) {
-            $lockRaw = Get-Content $lockPath -Raw
-            $lockJson = $lockRaw | ConvertFrom-Json -AsHashtable
-            $currentLockVersion = $lockJson['version']
+    # ── Pass 2: update package-lock.json files ──
+    # Each version slot in a lockfile (root, packages[""], packages["../<sibling>"])
+    # is preceded by a "name": "<our-package>" entry. Anchoring on our known names
+    # avoids touching transitive deps that may coincidentally share the version.
+    foreach ($dir in $npmDirs) {
+        $lockPath = Join-Path $dir 'package-lock.json'
+        $dirName = Split-Path $dir -Leaf
 
-            if ($currentLockVersion -ne $version) {
-                $pattern = [regex]::new('"version":\s*"' + [regex]::Escape($currentLockVersion) + '"')
-                $lockRaw = $pattern.Replace($lockRaw, "`"version`": `"$version`"", 2)
-                Set-Content $lockPath $lockRaw -NoNewline
-                Write-Host "Synced $dirName/package-lock.json -> $version"
-            }
+        if (-not (Test-Path $lockPath)) { continue }
+
+        $lockRaw = Get-Content $lockPath -Raw
+        $original = $lockRaw
+
+        foreach ($name in $ourNames.Keys) {
+            $pattern = [regex]::new(
+                '("name":\s*"' + [regex]::Escape($name) + '",\s*\r?\n\s*"version":\s*")[^"]*(")')
+            $lockRaw = $pattern.Replace($lockRaw, "`${1}$version`${2}")
+        }
+
+        if ($lockRaw -ne $original) {
+            Set-Content $lockPath $lockRaw -NoNewline
+            Write-Host "Synced $dirName/package-lock.json -> $version"
         }
     }
 
