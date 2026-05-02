@@ -1,6 +1,6 @@
 import { PipeKeepAliveClient, PipeTransport } from 'autocontext-framework-web';
 
-import type { Logger } from '#types/logger.js';
+import type { LoggerFacade } from 'autocontext-framework-web';
 
 /**
  * Background pipe-client that announces this worker's identity to the
@@ -23,10 +23,10 @@ import type { Logger } from '#types/logger.js';
 export class HealthMonitorClient {
     private readonly pipeName: string;
     private readonly workerId: string;
-    private readonly logger: Logger;
+    private readonly logger: LoggerFacade;
     private readonly keepAlive: PipeKeepAliveClient;
 
-    constructor(pipeName: string, workerId: string, logger: Logger) {
+    constructor(pipeName: string, workerId: string, logger: LoggerFacade) {
         if (workerId.trim() === '') {
             throw new Error('workerId must be a non-empty string.');
         }

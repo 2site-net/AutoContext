@@ -3,7 +3,7 @@ import { LengthPrefixedFrameCodec, PipeListener, type BoundPipeListener } from '
 import type { McpTask } from '#types/mcp-task.js';
 import type { WorkerHostOptions } from '#types/worker-host-options.js';
 import { CorrelationScope } from '../logging/correlation-scope.js';
-import type { Logger } from '#types/logger.js';
+import type { LoggerFacade } from 'autocontext-framework-web';
 
 /**
  * The worker's task runner. Listens on a named pipe for task requests
@@ -31,13 +31,13 @@ import type { Logger } from '#types/logger.js';
 export class WorkerTaskDispatcherService {
     private readonly options: WorkerHostOptions;
     private readonly tasks: ReadonlyMap<string, McpTask>;
-    private readonly logger: Logger;
+    private readonly logger: LoggerFacade;
     private readonly stopController = new AbortController();
     private bound: BoundPipeListener | undefined;
     private runPromise: Promise<void> | undefined;
     private stopPromise: Promise<void> | undefined;
 
-    constructor(options: WorkerHostOptions, tasks: readonly McpTask[], logger: Logger) {
+    constructor(options: WorkerHostOptions, tasks: readonly McpTask[], logger: LoggerFacade) {
         if (options.pipe.trim() === '') {
             throw new Error('Missing required configuration: pipe');
         }

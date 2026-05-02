@@ -6,7 +6,7 @@
 export type LogLevel = 'Trace' | 'Debug' | 'Information' | 'Warning' | 'Error' | 'Critical';
 
 /**
- * In-process record enqueued by every {@link Logger} call. Drained
+ * In-process record enqueued by every {@link PipeLogger} call. Drained
  * off-thread by `LoggingClient` and either sent over the pipe (the
  * extension is listening) or written to stderr (fallback).
  *

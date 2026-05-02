@@ -4,7 +4,7 @@ import { randomUUID } from 'node:crypto';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { HealthMonitorClient } from '#src/hosting/health-monitor-client.js';
-import { NullLogger } from '#src/logging/null-logger.js';
+import { NullLogger } from 'autocontext-framework-web';
 
 function makePipeName(): string {
     if (process.platform === 'win32') {
