@@ -30,8 +30,15 @@ servers.json                              # Server manifest (id + name + runtime
 version.json                              # Canonical version (single source of truth)
 versionize.ps1                            # Version stamping tool (Sync, Export, SyncAndExport)
 src/AutoContext.Mcp.Abstractions/         # IMcpTask contract shared between the orchestrator and every worker
-src/AutoContext.Framework/                # Hosting, structured logging, and worker-side framework primitives
-src/AutoContext.Worker.Shared/            # Shared hosting helpers used by the .NET workers
+src/AutoContext.Framework/                # .NET framework primitives shared by the orchestrator and every .NET worker:
+                                          # named-pipe transport (Pipes/), structured logging (Logging/), the worker-side
+                                          # task dispatcher (Workers/), and the health-monitor client (Hosting/).
+src/AutoContext.Framework.Web/            # TypeScript counterpart of AutoContext.Framework. Provides the same
+                                          # named-pipe primitives (length-prefixed framing, listener, streaming/keep-alive
+                                          # clients) and a logger contract for the Node-based worker and the VS Code
+                                          # extension to build on.
+src/AutoContext.Worker.Shared/            # Shared hosting helpers used by the .NET workers (host builder, args parsing,
+                                          # service-address wiring).
 src/AutoContext.Mcp.Server/               # Single MCP/stdio orchestrator. Loads the embedded mcp-workers-registry.json,
                                           # exposes every declared tool to the MCP client, and dispatches each call to the
                                           # owning AutoContext.Worker.* over a named pipe.
@@ -42,7 +49,8 @@ src/AutoContext.Mcp.Server/               # Single MCP/stdio orchestrator. Loads
   mcp-workers-registry.json               #   Embedded registry: every tool, its parameters, and its owning worker
 src/AutoContext.Worker.DotNet/            # .NET worker. Hosts C# and NuGet analyzers (Tasks/CSharp, Tasks/NuGet).
 src/AutoContext.Worker.Workspace/         # .NET worker. Hosts Git and EditorConfig tasks.
-src/AutoContext.Worker.Web/               # Node.js / TypeScript worker. Hosts the TypeScript analyzer.
+src/AutoContext.Worker.Web/               # Node.js / TypeScript worker. Hosts the TypeScript analyzer; built on
+                                          # AutoContext.Framework.Web.
 src/AutoContext.VsCode/                   # VS Code extension. Spawns Mcp.Server + every worker, runs the LogServer
                                           # and HealthMonitorServer pipes, and ships the instructions, sidebar panels,
                                           # workspace detection, and per-instruction configuration UI.
