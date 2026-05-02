@@ -1,8 +1,8 @@
 import * as vscode from 'vscode';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
-import type { Logger } from '#types/logger.js';
-import { LogCategory } from '#types/logger.js';
+import type { ChannelLogger } from 'autocontext-framework-web';
+import { LogCategory } from 'autocontext-framework-web';
 import type { ExtensionGraph } from './extension-composition.js';
 import type { WorkerManager } from './worker-manager.js';
 import { contextKeys, globalStateKeys } from './ui-constants.js';
@@ -33,7 +33,7 @@ export async function runActivationSequence(
     graph: ExtensionGraph,
     didChangeEmitter: vscode.EventEmitter<void>,
     version: string,
-    rootLogger: Logger,
+    rootLogger: ChannelLogger,
 ): Promise<void> {
     const activationLog = rootLogger.forCategory(LogCategory.Activation);
 
@@ -85,7 +85,7 @@ export async function runActivationSequence(
     activationLog.info('Activation complete');
 }
 
-async function waitForWorkspaceReady(workerManager: WorkerManager, log: Logger): Promise<void> {
+async function waitForWorkspaceReady(workerManager: WorkerManager, log: ChannelLogger): Promise<void> {
     let timedOut = false;
     let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
 

@@ -5,7 +5,7 @@ import type { TreeViewTooltip } from '../tree-view-tooltip.js';
 import type { AutoContextConfigManager } from '../autocontext-config-manager.js';
 import type { HealthMonitorServer } from '../health-monitor-server.js';
 import type { McpServerProvider } from '../mcp-server-provider.js';
-import type { Logger } from './logger.js';
+import type { ChannelLogger } from 'autocontext-framework-web';
 
 /**
  * Construction options for `McpToolsTreeProvider`.
@@ -16,7 +16,7 @@ export interface McpToolsTreeProviderOptions {
     readonly stateResolver: TreeViewStateResolver;
     readonly tooltip: TreeViewTooltip;
     readonly configManager: AutoContextConfigManager;
-    readonly logger: Logger;
+    readonly logger: ChannelLogger;
     readonly healthMonitor?: HealthMonitorServer;
     readonly serverProvider?: McpServerProvider;
 }

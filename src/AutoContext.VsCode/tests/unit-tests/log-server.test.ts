@@ -4,7 +4,7 @@ import { LogServer } from '#src/log-server';
 import { createFakeLogger } from '#testing/fakes';
 import { pipePath } from '#testing/utils/pipe-helpers';
 import { waitFor } from '#testing/utils/wait-for';
-import type { Logger } from '#types/logger.js';
+import type { ChannelLogger } from 'autocontext-framework-web';
 
 /**
  * Connects to the LogServer pipe, sends the greeting + an arbitrary
@@ -27,11 +27,11 @@ async function connectAndSend(pipe: string, clientName: string, records: object[
  * children with their own spies — needed so the assertions can target
  * the per-worker / per-category child rather than the root.
  */
-function createTreeLogger(): { root: Logger; channels: Map<string, Logger>; categories: Map<string, Logger> } {
-    const channels = new Map<string, Logger>();
-    const categories = new Map<string, Logger>();
+function createTreeLogger(): { root: ChannelLogger; channels: Map<string, ChannelLogger>; categories: Map<string, ChannelLogger> } {
+    const channels = new Map<string, ChannelLogger>();
+    const categories = new Map<string, ChannelLogger>();
 
-    const buildChild = (registry: Map<string, Logger>, key: string): Logger => {
+    const buildChild = (registry: Map<string, ChannelLogger>, key: string): ChannelLogger => {
         const existing = registry.get(key);
         if (existing) { return existing; }
         const child = createFakeLogger();

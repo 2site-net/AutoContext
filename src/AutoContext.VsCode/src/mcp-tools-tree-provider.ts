@@ -14,7 +14,7 @@ import type { McpToolsTreeNode } from '#types/mcp-tools-tree-node.js';
 import type { McpTaskTreeNode } from '#types/mcp-task-tree-node.js';
 import type { AutoContextConfigManager } from './autocontext-config-manager.js';
 import type { AutoContextConfig } from './autocontext-config.js';
-import type { Logger } from '#types/logger.js';
+import type { ChannelLogger } from 'autocontext-framework-web';
 import type { McpToolsTreeProviderOptions } from '#types/mcp-tools-tree-provider-options.js';
 
 type TreeElement = TreeViewServerLabelNode | McpToolsTreeCategoryNode | McpToolsTreeNode | McpTaskTreeNode;
@@ -32,7 +32,7 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
     private readonly stateResolver: TreeViewStateResolver;
     private readonly tooltip: TreeViewTooltip;
     private readonly configManager: AutoContextConfigManager;
-    private readonly logger: Logger;
+    private readonly logger: ChannelLogger;
     private readonly healthMonitor?: HealthMonitorServer;
     private readonly serverProvider?: McpServerProvider;
 

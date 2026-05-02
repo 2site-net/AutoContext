@@ -4,7 +4,6 @@
 // `autocontext-framework-web`.
 
 export type { ChannelLogger } from './logging/channel-logger.js';
-export { ChannelLoggerBase } from './logging/channel-logger-base.js';
 export { LogCategory } from './logging/log-category.js';
 export { LogLevel } from './logging/log-level.js';
 export type { Logger } from './logging/logger.js';

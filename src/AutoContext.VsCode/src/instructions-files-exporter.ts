@@ -1,12 +1,12 @@
 import * as vscode from 'vscode';
 import type { InstructionsFileEntry } from './instructions-file-entry.js';
 import { instructionScheme } from './instructions-viewer-document-provider.js';
-import type { Logger } from '#types/logger.js';
+import type { ChannelLogger } from 'autocontext-framework-web';
 
 export class InstructionsFilesExporter {
     constructor(
         private readonly extensionPath: string,
-        private readonly logger: Logger,
+        private readonly logger: ChannelLogger,
     ) {}
 
     async export(entries: readonly InstructionsFileEntry[]): Promise<void> {

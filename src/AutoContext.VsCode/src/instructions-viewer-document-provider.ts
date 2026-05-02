@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { join } from 'node:path';
 import { InstructionsFileParser } from './instructions-file-parser.js';
 import type { AutoContextConfigManager } from './autocontext-config-manager.js';
-import type { Logger } from '#types/logger.js';
+import type { ChannelLogger } from 'autocontext-framework-web';
 
 export const instructionScheme = 'autocontext-instructions';
 
@@ -14,7 +14,7 @@ export class InstructionsViewerDocumentProvider implements vscode.TextDocumentCo
     constructor(
         private readonly extensionPath: string,
         private readonly configManager: AutoContextConfigManager,
-        private readonly logger: Logger,
+        private readonly logger: ChannelLogger,
     ) {
         this.disposables.push(
             this.didChangeEmitter,

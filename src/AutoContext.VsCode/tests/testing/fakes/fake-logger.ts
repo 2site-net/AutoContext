@@ -1,15 +1,16 @@
 import { vi } from 'vitest';
-import type { Logger } from '#types/logger.js';
+import type { ChannelLogger } from 'autocontext-framework-web';
 
 /**
- * Returns a `Logger` whose level methods are all `vi.fn()` spies.
+ * Returns a `ChannelLogger` whose level methods are all `vi.fn()` spies.
  * `forCategory` and `forChannel` both return the same fake (so child
  * loggers share the same spies, regardless of which channel/category
  * they were derived for). `clear` is also a spy. Tests assert on
  * `logger.error('msg', err)`, `logger.clear()`, etc. directly.
  */
-export function createFakeLogger(): Logger {
-    const logger: Logger = {
+export function createFakeLogger(): ChannelLogger {
+    const logger: ChannelLogger = {
+        log: vi.fn(),
         trace: vi.fn(),
         debug: vi.fn(),
         info: vi.fn(),

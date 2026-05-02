@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { join } from 'node:path';
-import type { Logger } from '#types/logger.js';
-import { LogCategory } from '#types/logger.js';
+import type { ChannelLogger } from 'autocontext-framework-web';
+import { LogCategory } from 'autocontext-framework-web';
 import { commandIds } from './ui-constants.js';
 import { AutoConfigurer } from './auto-configurer.js';
 import { instructionScheme } from './instructions-viewer-document-provider.js';
@@ -23,7 +23,7 @@ export function registerExtensionSurfaces(
     context: vscode.ExtensionContext,
     graph: ExtensionGraph,
     didChangeEmitter: vscode.EventEmitter<void>,
-    rootLogger: Logger,
+    rootLogger: ChannelLogger,
 ): readonly vscode.Disposable[] {
     const {
         configManager,

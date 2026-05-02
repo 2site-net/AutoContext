@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { type Socket } from 'node:net';
 import { BoundPipeListener, PipeListener } from 'autocontext-framework-web';
 import { IdentifierFactory } from './identifier-factory.js';
-import type { Logger } from '#types/logger.js';
+import type { ChannelLogger } from 'autocontext-framework-web';
 
 /**
  * Monitors MCP worker and server health via a named pipe.
@@ -31,7 +31,7 @@ export class HealthMonitorServer implements vscode.Disposable {
     private bound: BoundPipeListener | undefined;
 
     constructor(
-        private readonly logger: Logger,
+        private readonly logger: ChannelLogger,
         instanceId: string,
     ) {
         this.pipeName = IdentifierFactory.createServiceAddress('health-monitor', instanceId);

@@ -5,7 +5,7 @@ import { InstructionsFileParser } from './instructions-file-parser.js';
 import { AutoContextConfig } from './autocontext-config.js';
 import type { InstructionsFileConfigEntry } from '#types/instructions-file-config-entry.js';
 import type { McpToolConfigEntry } from '#types/mcp-tool-config-entry.js';
-import type { Logger } from '#types/logger.js';
+import type { ChannelLogger } from 'autocontext-framework-web';
 
 const configFileName = '.autocontext.json';
 
@@ -20,7 +20,7 @@ export class AutoContextConfigManager implements vscode.Disposable {
     constructor(
         private readonly extensionPath: string,
         private readonly extensionVersion: string,
-        private readonly logger: Logger,
+        private readonly logger: ChannelLogger,
     ) {
         const watcher = vscode.workspace.createFileSystemWatcher(`**/${configFileName}`);
         watcher.onDidChange(() => this.invalidate());

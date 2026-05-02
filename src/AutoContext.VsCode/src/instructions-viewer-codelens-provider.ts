@@ -6,7 +6,7 @@ import { instructionScheme } from './instructions-viewer-document-provider.js';
 import type { AutoContextConfigManager } from './autocontext-config-manager.js';
 import type { WorkspaceContextDetector } from './workspace-context-detector.js';
 import { commandIds } from './ui-constants.js';
-import type { Logger } from '#types/logger.js';
+import type { ChannelLogger } from 'autocontext-framework-web';
 import type { InstructionsViewerCodeLensProviderOptions } from '#types/instructions-viewer-codelens-provider-options.js';
 
 export class InstructionsViewerCodeLensProvider implements vscode.CodeLensProvider, vscode.Disposable {
@@ -18,7 +18,7 @@ export class InstructionsViewerCodeLensProvider implements vscode.CodeLensProvid
     private readonly configManager: AutoContextConfigManager;
     private readonly detector: WorkspaceContextDetector;
     private readonly manifest: InstructionsFilesManifest;
-    private readonly logger: Logger;
+    private readonly logger: ChannelLogger;
 
     constructor(options: InstructionsViewerCodeLensProviderOptions) {
         this.extensionPath = options.extensionPath;

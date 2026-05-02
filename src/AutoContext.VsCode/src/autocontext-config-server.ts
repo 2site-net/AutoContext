@@ -4,7 +4,7 @@ import { BoundPipeListener, LengthPrefixedFrameCodec, PipeListener } from 'autoc
 import { IdentifierFactory } from './identifier-factory.js';
 import type { AutoContextConfigManager } from './autocontext-config-manager.js';
 import type { McpToolsDisabledSnapshot } from '#types/mcp-tools-disabled-snapshot.js';
-import type { Logger } from '#types/logger.js';
+import type { ChannelLogger } from 'autocontext-framework-web';
 
 /**
  * Named-pipe server that broadcasts the current `disabledTools` /
@@ -38,7 +38,7 @@ export class AutoContextConfigServer implements vscode.Disposable {
     constructor(
         private readonly configManager: AutoContextConfigManager,
         instanceId: string,
-        private readonly logger: Logger,
+        private readonly logger: ChannelLogger,
     ) {
         this.pipeName = IdentifierFactory.createServiceAddress('extension-config', instanceId);
         this.disposables.push(

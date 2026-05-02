@@ -12,7 +12,7 @@ import type { InstructionsFileTreeNode } from '#types/instructions-file-tree-nod
 import { SemVer } from './semver.js';
 import type { AutoContextConfigManager } from './autocontext-config-manager.js';
 import type { AutoContextConfig } from './autocontext-config.js';
-import type { Logger } from '#types/logger.js';
+import type { ChannelLogger } from 'autocontext-framework-web';
 import type { InstructionsFilesTreeProviderOptions } from '#types/instructions-files-tree-provider-options.js';
 
 type TreeElement = InstructionsFileCategoryTreeNode | InstructionsFileTreeNode;
@@ -34,7 +34,7 @@ export class InstructionsFilesTreeProvider implements vscode.TreeDataProvider<Tr
     private readonly stateResolver: TreeViewStateResolver;
     private readonly tooltip: TreeViewTooltip;
     private readonly configManager: AutoContextConfigManager;
-    private readonly logger: Logger;
+    private readonly logger: ChannelLogger;
 
     constructor(options: InstructionsFilesTreeProviderOptions) {
         this.detector = options.detector;

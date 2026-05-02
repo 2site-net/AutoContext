@@ -5,7 +5,7 @@ import { createHash } from 'node:crypto';
 import type { InstructionsFilesManifest } from './instructions-files-manifest.js';
 import { InstructionsFileParser } from './instructions-file-parser.js';
 import type { AutoContextConfigManager } from './autocontext-config-manager.js';
-import type { Logger } from '#types/logger.js';
+import type { ChannelLogger } from 'autocontext-framework-web';
 
 /**
  * Generates normalized instruction files with disabled instructions removed
@@ -29,7 +29,7 @@ export class InstructionsFilesManager implements vscode.Disposable {
         private readonly extensionPath: string,
         private readonly configManager: AutoContextConfigManager,
         private readonly manifest: InstructionsFilesManifest,
-        private readonly logger: Logger,
+        private readonly logger: ChannelLogger,
     ) {
         this.generatedRoot = join(extensionPath, 'instructions', '.generated');
         this.stagingDir = join(extensionPath, 'instructions', '.workspaces', InstructionsFilesManager.workspaceHash());

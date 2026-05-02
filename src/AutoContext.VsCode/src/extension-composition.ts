@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
-import type { Logger } from '#types/logger.js';
-import { LogCategory } from '#types/logger.js';
+import type { ChannelLogger } from 'autocontext-framework-web';
+import { LogCategory } from 'autocontext-framework-web';
 import { WorkspaceContextDetector } from './workspace-context-detector.js';
 import { InstructionsFilesManifestLoader } from './instructions-files-manifest-loader.js';
 import { InstructionsFilesExporter } from './instructions-files-exporter.js';
@@ -39,7 +39,7 @@ export interface CompositionInputs {
     readonly workspaceRoot: string | undefined;
     readonly instanceId: string;
     readonly didChangeEmitter: vscode.EventEmitter<void>;
-    readonly rootLogger: Logger & vscode.Disposable;
+    readonly rootLogger: ChannelLogger & vscode.Disposable;
 }
 
 /**
@@ -66,7 +66,7 @@ export type ExtensionGraph = ReturnType<typeof composeExtension>;
  */
 export function composeExtension(inputs: CompositionInputs) {
     const { extensionPath, version, workspaceRoot, instanceId, didChangeEmitter, rootLogger } = inputs;
-    const log = (cat: LogCategory): Logger => rootLogger.forCategory(cat);
+    const log = (cat: LogCategory): ChannelLogger => rootLogger.forCategory(cat);
 
     // 1. Static manifests / metadata (sync JSON reads).
     const metadataLoader = new MetadataLoader(extensionPath);

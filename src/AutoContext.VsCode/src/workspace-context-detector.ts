@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import type { InstructionsFilesManifest } from './instructions-files-manifest.js';
 import { InstructionsFileParser } from './instructions-file-parser.js';
-import type { Logger } from '#types/logger.js';
+import type { ChannelLogger } from 'autocontext-framework-web';
 
 // --- File-system watcher globs ---
 
@@ -271,7 +271,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
 
     constructor(
         private readonly instructionsManifest: InstructionsFilesManifest,
-        private readonly logger: Logger,
+        private readonly logger: ChannelLogger,
     ) {
         const existenceWatcher = vscode.workspace.createFileSystemWatcher(existenceWatchGlob);
 

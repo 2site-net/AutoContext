@@ -4,7 +4,7 @@ import { BoundPipeListener, LengthPrefixedFrameCodec, PipeListener } from 'autoc
 import { IdentifierFactory } from './identifier-factory.js';
 import type { ServerEntry } from './server-entry.js';
 import type { WorkerManager } from './worker-manager.js';
-import type { Logger } from '#types/logger.js';
+import type { ChannelLogger } from 'autocontext-framework-web';
 
 /**
  * Wire shape of an `EnsureRunning` request received over the
@@ -69,7 +69,7 @@ export class WorkerControlServer implements vscode.Disposable {
      * @param instanceId  Per-window identifier shared with
      *                    {@link WorkerManager}. Pipe address is
      *                    `autocontext.worker-control#<instance-id>`.
-     * @param logger      Logger for diagnostic output. Failures here
+     * @param logger      ChannelLogger for diagnostic output. Failures here
      *                    are best-effort — the server must not crash
      *                    the host on bad input.
      */
@@ -77,7 +77,7 @@ export class WorkerControlServer implements vscode.Disposable {
         private readonly workerManager: WorkerManager,
         entries: readonly ServerEntry[],
         instanceId: string,
-        private readonly logger: Logger,
+        private readonly logger: ChannelLogger,
     ) {
         this.pipeName = IdentifierFactory.createServiceAddress('worker-control', instanceId);
         for (const entry of entries) {

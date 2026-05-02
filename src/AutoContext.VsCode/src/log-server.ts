@@ -4,7 +4,7 @@ import { createInterface } from 'node:readline';
 import { BoundPipeListener, PipeListener } from 'autocontext-framework-web';
 import { IdentifierFactory } from './identifier-factory.js';
 import { ServerEntry } from './server-entry.js';
-import type { Logger } from '#types/logger.js';
+import type { ChannelLogger } from 'autocontext-framework-web';
 
 /**
  * Wire shape of the greeting line every worker emits as the first
@@ -59,7 +59,7 @@ export class LogServer implements vscode.Disposable {
     private bound: BoundPipeListener | undefined;
 
     constructor(
-        private readonly logger: Logger,
+        private readonly logger: ChannelLogger,
         instanceId: string,
     ) {
         this.pipeName = IdentifierFactory.createServiceAddress('log', instanceId);
@@ -89,7 +89,7 @@ export class LogServer implements vscode.Disposable {
     private handleConnection(socket: Socket, signal: AbortSignal): Promise<void> {
         // Per-connection state — captured by the `line` handler.
         let workerName: string | undefined;
-        let perWorkerLogger: Logger | undefined;
+        let perWorkerLogger: ChannelLogger | undefined;
 
         const reader = createInterface({ input: socket });
 
@@ -183,7 +183,7 @@ export class LogServer implements vscode.Disposable {
     }
 
     /**
-     * Maps a .NET `LogLevel` string to a {@link Logger} method name.
+     * Maps a .NET `LogLevel` string to a {@link ChannelLogger} method name.
      * `Critical` and `None` both fall through to `error` (there is no
      * higher level on our facade).
      */

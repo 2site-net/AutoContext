@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { OutputChannelLogger } from '#src/output-channel-logger';
-import { LogCategory } from '#types/logger.js';
+import { LogCategory } from 'autocontext-framework-web';
 import type * as vscode from 'vscode';
 
 vi.mock('vscode', async () => await import('#testing/fakes/fake-vscode'));

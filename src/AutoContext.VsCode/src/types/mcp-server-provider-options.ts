@@ -2,7 +2,7 @@ import type * as vscode from 'vscode';
 import type { McpToolsManifest } from '../mcp-tools-manifest.js';
 import type { ServersManifest } from '../servers-manifest.js';
 import type { AutoContextConfigManager } from '../autocontext-config-manager.js';
-import type { Logger } from './logger.js';
+import type { ChannelLogger } from 'autocontext-framework-web';
 
 /**
  * Construction options for `McpServerProvider`.
@@ -19,5 +19,5 @@ export interface McpServerProviderOptions {
     readonly healthMonitorServiceAddress: string;
     readonly workerControlServiceAddress: string;
     readonly extensionConfigServiceAddress: string;
-    readonly logger: Logger;
+    readonly logger: ChannelLogger;
 }

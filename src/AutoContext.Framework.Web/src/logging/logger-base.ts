@@ -12,8 +12,7 @@ import type { Logger } from './logger.js';
  * (`logger.forCategory(...).forCategory(...)`) typecheck without
  * needing a separate `CategoryLogger` interface to anchor the
  * recursion. Concrete logger classes that want to participate in
- * category derivation must extend `LoggerBase` (or a descendant such
- * as {@link ChannelLoggerBase}).
+ * category derivation must extend `LoggerBase`.
  *
  * Extending `LoggerBase` gives a class the narrow sink contract (so
  * it can be wrapped/composed) and the level-method facade — without

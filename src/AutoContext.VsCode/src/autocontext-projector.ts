@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import type { AutoContextConfigManager } from './autocontext-config-manager.js';
 import type { InstructionsFilesManifest } from './instructions-files-manifest.js';
 import type { McpToolsManifest } from './mcp-tools-manifest.js';
-import type { Logger } from '#types/logger.js';
+import type { ChannelLogger } from 'autocontext-framework-web';
 
 export class AutoContextProjector implements vscode.Disposable {
     private readonly disposables: vscode.Disposable[] = [];
@@ -11,7 +11,7 @@ export class AutoContextProjector implements vscode.Disposable {
         private readonly configManager: AutoContextConfigManager,
         private readonly instructionsManifest: InstructionsFilesManifest,
         private readonly toolsManifest: McpToolsManifest,
-        private readonly logger: Logger,
+        private readonly logger: ChannelLogger,
     ) {
         this.disposables.push(
             configManager.onDidChange(() =>

@@ -1,8 +1,8 @@
+import { LoggerBase, LogLevel, type ChannelLogger, type LogCategory } from 'autocontext-framework-web';
 import * as vscode from 'vscode';
-import { LogLevel, type LogCategory, type Logger } from '#types/logger.js';
 
 /**
- * Default {@link Logger} implementation backed by a
+ * Default {@link ChannelLogger} implementation backed by a
  * {@link vscode.LogOutputChannel}. The channel renders the level and
  * an ISO timestamp natively, and exposes a built-in
  * `right-click → "Set Log Level…"` menu in the Output panel for
@@ -16,7 +16,7 @@ import { LogLevel, type LogCategory, type Logger } from '#types/logger.js';
  * and {@link dispose} on the root tears down every channel that was
  * created through it.
  */
-export class OutputChannelLogger implements Logger, vscode.Disposable {
+export class OutputChannelLogger extends LoggerBase implements ChannelLogger, vscode.Disposable {
     private readonly channels: Map<string, vscode.LogOutputChannel>;
     private readonly createChannel: (name: string) => vscode.LogOutputChannel;
 
@@ -26,6 +26,7 @@ export class OutputChannelLogger implements Logger, vscode.Disposable {
         channels?: Map<string, vscode.LogOutputChannel>,
         createChannel?: (name: string) => vscode.LogOutputChannel,
     ) {
+        super();
         this.createChannel = createChannel ?? ((name) => vscode.window.createOutputChannel(name, { log: true }));
         this.channels = channels ?? new Map([[outputChannel.name, outputChannel]]);
     }
@@ -41,17 +42,11 @@ export class OutputChannelLogger implements Logger, vscode.Disposable {
         return new OutputChannelLogger(root);
     }
 
-    trace(message: string, error?: unknown): void { this.write(LogLevel.Trace, message, error); }
-    debug(message: string, error?: unknown): void { this.write(LogLevel.Debug, message, error); }
-    info(message: string, error?: unknown): void { this.write(LogLevel.Info, message, error); }
-    warn(message: string, error?: unknown): void { this.write(LogLevel.Warn, message, error); }
-    error(message: string, error?: unknown): void { this.write(LogLevel.Error, message, error); }
-
-    forCategory(category: LogCategory | string): Logger {
+    override forCategory(category: LogCategory | string): ChannelLogger {
         return new OutputChannelLogger(this.outputChannel, category, this.channels, this.createChannel);
     }
 
-    forChannel(name: string): Logger {
+    forChannel(name: string): ChannelLogger {
         let channel = this.channels.get(name);
         if (channel === undefined) {
             channel = this.createChannel(name);
@@ -78,7 +73,7 @@ export class OutputChannelLogger implements Logger, vscode.Disposable {
         this.channels.clear();
     }
 
-    private write(level: LogLevel, message: string, error?: unknown): void {
+    override log(level: LogLevel, message: string, error?: unknown): void {
         const line = this.category === undefined ? message : `[${this.category}] ${message}`;
         const channel = this.outputChannel;
         let log: (message: string, ...args: unknown[]) => void;
@@ -92,7 +87,7 @@ export class OutputChannelLogger implements Logger, vscode.Disposable {
             case LogLevel.Off:
                 // `Off` is a configuration sentinel, never a call-site level. Reaching this branch
                 // means a caller passed `LogLevel.Off` to one of the level methods (which they
-                // can't — there's no `off()` method) or hand-rolled a `write(Off, …)` call.
+                // can't — there's no `off()` method) or hand-rolled a `log(Off, …)` call.
                 return;
             default: {
                 const exhaustive: never = level;

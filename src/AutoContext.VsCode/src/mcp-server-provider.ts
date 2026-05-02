@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { existsSync } from 'node:fs';
 import type { McpToolsManifest } from './mcp-tools-manifest.js';
 import type { AutoContextConfig } from './autocontext-config.js';
-import type { Logger } from '#types/logger.js';
+import type { ChannelLogger } from 'autocontext-framework-web';
 import type { McpServerProviderOptions } from '#types/mcp-server-provider-options.js';
 
 const extensionId = '2site-net.autocontext';
@@ -30,7 +30,7 @@ export class McpServerProvider implements vscode.McpServerDefinitionProvider {
     private readonly healthMonitorServiceAddress: string;
     private readonly workerControlServiceAddress: string;
     private readonly extensionConfigServiceAddress: string;
-    private readonly logger: Logger;
+    private readonly logger: ChannelLogger;
     private _config: AutoContextConfig;
     private readonly disposable: vscode.Disposable;
 
