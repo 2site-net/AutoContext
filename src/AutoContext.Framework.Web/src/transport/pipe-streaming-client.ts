@@ -39,6 +39,7 @@ export class PipeStreamingClient<T> {
     private readonly serialize: (item: T) => Buffer | Uint8Array;
     private readonly fallback: ((item: T) => void) | undefined;
     private readonly greeting: Buffer | Uint8Array | undefined;
+    private readonly logger: LoggerFacade;
     private readonly queueCapacity: number;
     private readonly connectTimeoutMs: number;
     private readonly queue: T[] = [];
@@ -54,12 +55,10 @@ export class PipeStreamingClient<T> {
         this.serialize = opts.serialize;
         this.fallback = opts.fallback;
         this.greeting = opts.greeting;
+        this.logger = opts.logger;
         this.queueCapacity = opts.queueCapacity ?? PipeStreamingClient.DEFAULT_QUEUE_CAPACITY;
         this.connectTimeoutMs = opts.connectTimeoutMs ?? PipeStreamingClient.DEFAULT_CONNECT_TIMEOUT_MS;
         this.drainTask = this.drain();
-        // Logger reserved for future diagnostic output; recorded via
-        // a no-op debug emit so the parameter is never stale-pruned.
-        opts.logger.debug('PipeStreamingClient drain task started.');
     }
 
     /**
@@ -146,6 +145,7 @@ export class PipeStreamingClient<T> {
                     if (await PipeStreamingClient.tryWrite(this.socket, bytes)) {
                         continue;
                     }
+                    this.logger.debug(`Pipe stream to '${this.pipeName}' broken; routing further items to fallback.`);
                     this.socket.destroy();
                     this.socket = undefined;
                 }
