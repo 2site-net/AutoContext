@@ -11,7 +11,7 @@ import { InstructionsViewerDecorationManager } from './instructions-viewer-decor
 import { InstructionsFilesManager } from './instructions-files-manager.js';
 import { InstructionsFilesDiagnosticsReporter } from './instructions-files-diagnostics-reporter.js';
 import { InstructionsFilesDiagnosticsRunner } from './instructions-files-diagnostics-runner.js';
-import { AutoContextProjector } from './autocontext-projector.js';
+import { AutoContextConfigProjector } from './autocontext-config-projector.js';
 import { InstructionsFilesTreeProvider } from './instructions-files-tree-provider.js';
 import { InstructionsFileMetadataReader } from './instructions-file-metadata-reader.js';
 import { McpToolsManifestLoader } from './mcp-tools-manifest-loader.js';
@@ -87,7 +87,7 @@ export function composeExtension(inputs: CompositionInputs) {
     const workspaceContextDetector = new WorkspaceContextDetector(instructionsManifest, log(LogCategory.Detection));
     const instructionsExporter = new InstructionsFilesExporter(extensionPath, log(LogCategory.Instructions));
     const instructionsWriter = new InstructionsFilesManager(extensionPath, configManager, instructionsManifest, log(LogCategory.InstructionsWriter));
-    const configProjector = new AutoContextProjector(configManager, instructionsManifest, mcpToolsManifest, log(LogCategory.ConfigProjector));
+    const configProjector = new AutoContextConfigProjector(configManager, instructionsManifest, mcpToolsManifest, log(LogCategory.ConfigProjector));
 
     // 3. Named-pipe servers (constructed; not started).
     const logServer = new LogServer(log(LogCategory.LogServer), instanceId);

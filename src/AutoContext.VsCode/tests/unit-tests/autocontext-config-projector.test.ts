@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-import { AutoContextProjector } from '#src/autocontext-projector.js';
+import { AutoContextConfigProjector } from '#src/autocontext-config-projector.js';
 import { McpCategoryEntry } from '#src/mcp-category-entry';
 import { McpToolEntry } from '#src/mcp-tool-entry';
 import { McpToolsManifest } from '#src/mcp-tools-manifest';
@@ -27,13 +27,13 @@ function buildProjectorManifest(): McpToolsManifest {
     return new McpToolsManifest(tools, [dotnet, workspace]);
 }
 
-describe('AutoContextProjector', () => {
+describe('AutoContextConfigProjector', () => {
     const catalog = makeInstructionsFilesManifest(projectorTestInstructions);
     const toolsManifest = buildProjectorManifest();
     const logger = createFakeLogger();
 
     it('should set all context keys to true when config is empty', async () => {
-        const projector = new AutoContextProjector(createMockConfigManager({}), catalog, toolsManifest, logger);
+        const projector = new AutoContextConfigProjector(createMockConfigManager({}), catalog, toolsManifest, logger);
         await projector.project();
 
         expect(findSetContextCall('autocontext.instructions.code-review')?.[2]).toBe(true);
@@ -44,7 +44,7 @@ describe('AutoContextProjector', () => {
     });
 
     it('should set instruction context key to false when disabled', async () => {
-        const projector = new AutoContextProjector(
+        const projector = new AutoContextConfigProjector(
             createMockConfigManager({
                 instructions: { 'code-review.instructions.md': { enabled: false } },
             }),
@@ -59,7 +59,7 @@ describe('AutoContextProjector', () => {
     });
 
     it('should set task context key to false when parent disables the task', async () => {
-        const projector = new AutoContextProjector(
+        const projector = new AutoContextConfigProjector(
             createMockConfigManager({
                 mcpTools: { read_editorconfig: { disabledTasks: ['get_editorconfig_rules'] } },
             }),
@@ -74,7 +74,7 @@ describe('AutoContextProjector', () => {
     });
 
     it('should set task context key to false when in disabledTasks list', async () => {
-        const projector = new AutoContextProjector(
+        const projector = new AutoContextConfigProjector(
             createMockConfigManager({
                 mcpTools: { analyze_csharp_code: { disabledTasks: ['analyze_csharp_coding_style'] } },
             }),
@@ -89,7 +89,7 @@ describe('AutoContextProjector', () => {
     });
 
     it('should disable all tasks when parent has enabled false', async () => {
-        const projector = new AutoContextProjector(
+        const projector = new AutoContextConfigProjector(
             createMockConfigManager({
                 mcpTools: {
                     analyze_csharp_code: {
@@ -109,7 +109,7 @@ describe('AutoContextProjector', () => {
     });
 
     it('should keep instruction enabled when entry exists but is not disabled', async () => {
-        const projector = new AutoContextProjector(
+        const projector = new AutoContextConfigProjector(
             createMockConfigManager({
                 instructions: {
                     'code-review.instructions.md': { version: '0.5', disabledInstructions: ['INST0001'] },
@@ -132,7 +132,7 @@ describe('AutoContextProjector', () => {
         } as unknown as import('../../src/autocontext-config-manager').AutoContextConfigManager;
 
         const oc = createFakeLogger();
-        const _projector = new AutoContextProjector(failingManager, catalog, toolsManifest, oc);
+        const _projector = new AutoContextConfigProjector(failingManager, catalog, toolsManifest, oc);
 
         onDidChangeCallback();
         await vi.waitFor(() => {

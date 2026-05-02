@@ -9,7 +9,7 @@ import type { McpToolsDisabledSnapshot } from '#types/mcp-tools-disabled-snapsho
  * shape that on-disk JSON exposes (so the manager can keep using
  * `config.mcpTools ??= {}` etc.) while the methods centralise the
  * read-side logic that used to live as free functions in
- * `autocontext-projector.ts`.
+ * `autocontext-config-projector.ts`.
  *
  * `AutoContextConfigManager` owns the only writable instance held by
  * the extension; everything else receives it read-only by convention
