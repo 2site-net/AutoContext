@@ -10,7 +10,7 @@ using AutoContext.Mcp.Server.Workers.Control;
 using AutoContext.Mcp.Server.Workers.Transport;
 using AutoContext.Framework.Hosting;
 using AutoContext.Framework.Logging;
-using AutoContext.Framework.Transport;
+using AutoContext.Framework.Pipes;
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;

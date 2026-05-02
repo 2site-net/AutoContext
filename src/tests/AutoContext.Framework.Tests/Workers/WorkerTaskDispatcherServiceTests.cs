@@ -5,7 +5,7 @@ using System.Text.Json;
 
 using AutoContext.Mcp;
 using AutoContext.Framework.Workers;
-using AutoContext.Framework.Transport;
+using AutoContext.Framework.Pipes;
 using AutoContext.Framework.Tests.Testing.Fakes;
 
 using Microsoft.Extensions.Logging.Abstractions;

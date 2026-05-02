@@ -6,7 +6,7 @@ using System.Text.Json.Nodes;
 
 using AutoContext.Mcp;
 using AutoContext.Framework.Logging;
-using AutoContext.Framework.Transport;
+using AutoContext.Framework.Pipes;
 
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;

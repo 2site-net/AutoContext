@@ -3,7 +3,7 @@ namespace AutoContext.Mcp.Server.Config;
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 
-using AutoContext.Framework.Transport;
+using AutoContext.Framework.Pipes;
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;

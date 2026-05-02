@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { PassThrough } from 'node:stream';
-import { LengthPrefixedFrameCodec } from '#src/transport/length-prefixed-frame-codec.js';
+import { LengthPrefixedFrameCodec } from '#src/pipes/length-prefixed-frame-codec.js';
 
 function frame(payload: Buffer): Buffer {
     const header = Buffer.allocUnsafe(4);

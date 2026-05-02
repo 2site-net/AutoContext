@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { PipeKeepAliveClient } from '#src/transport/pipe-keep-alive-client.js';
-import { PipeTransport } from '#src/transport/pipe-transport.js';
-import { PipeListener } from '#src/transport/pipe-listener.js';
+import { PipeKeepAliveClient } from '#src/pipes/pipe-keep-alive-client.js';
+import { PipeTransport } from '#src/pipes/pipe-transport.js';
+import { PipeListener } from '#src/pipes/pipe-listener.js';
 import { createFakeLogger, uniquePipeName, until } from './test-helpers.js';
 
 describe('PipeKeepAliveClient', () => {

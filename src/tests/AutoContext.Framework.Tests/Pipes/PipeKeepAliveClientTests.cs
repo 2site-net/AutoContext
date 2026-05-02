@@ -1,10 +1,10 @@
-namespace AutoContext.Framework.Tests.Transport;
+namespace AutoContext.Framework.Tests.Pipes;
 
 using System.IO.Pipes;
 using System.Text;
 
 using AutoContext.Framework.Tests.Testing.Utils;
-using AutoContext.Framework.Transport;
+using AutoContext.Framework.Pipes;
 
 using Microsoft.Extensions.Logging.Abstractions;
 

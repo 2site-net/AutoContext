@@ -1,8 +1,8 @@
-namespace AutoContext.Framework.Tests.Transport;
+namespace AutoContext.Framework.Tests.Pipes;
 
 using System.Buffers.Binary;
 
-using AutoContext.Framework.Transport;
+using AutoContext.Framework.Pipes;
 
 public sealed class LengthPrefixedFrameCodecTests
 {

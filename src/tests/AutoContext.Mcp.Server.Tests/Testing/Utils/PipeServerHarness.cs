@@ -4,7 +4,7 @@ using System.IO.Pipes;
 
 using AutoContext.Mcp.Server.Workers.Transport;
 using AutoContext.Framework.Workers;
-using AutoContext.Framework.Transport;
+using AutoContext.Framework.Pipes;
 
 internal static class PipeServerHarness
 {

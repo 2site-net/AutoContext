@@ -3,7 +3,7 @@ namespace AutoContext.Mcp.Server.Workers.Control;
 using System.Collections.Concurrent;
 using System.Text.Json;
 
-using AutoContext.Framework.Transport;
+using AutoContext.Framework.Pipes;
 using AutoContext.Mcp.Server.Workers.Protocol;
 using AutoContext.Mcp.Server.Workers.Transport;
 

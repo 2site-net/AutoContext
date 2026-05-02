@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { PipeTransport } from '#src/transport/pipe-transport.js';
-import { PipeListener } from '#src/transport/pipe-listener.js';
+import { PipeTransport } from '#src/pipes/pipe-transport.js';
+import { PipeListener } from '#src/pipes/pipe-listener.js';
 import { createFakeLogger, uniquePipeName } from './test-helpers.js';
 
 describe('PipeTransport', () => {

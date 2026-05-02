@@ -1,4 +1,4 @@
-namespace AutoContext.Framework.Transport;
+namespace AutoContext.Framework.Pipes;
 
 using System.Buffers.Binary;
 

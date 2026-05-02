@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { connect, type Socket } from 'node:net';
-import { PipeListener } from '#src/transport/pipe-listener.js';
+import { PipeListener } from '#src/pipes/pipe-listener.js';
 import { createFakeLogger, uniquePipeName, until } from './test-helpers.js';
 
 function connectAsync(path: string): Promise<Socket> {

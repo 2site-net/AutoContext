@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { PipeStreamingClient } from '#src/transport/pipe-streaming-client.js';
-import { PipeTransport } from '#src/transport/pipe-transport.js';
-import { PipeListener } from '#src/transport/pipe-listener.js';
+import { PipeStreamingClient } from '#src/pipes/pipe-streaming-client.js';
+import { PipeTransport } from '#src/pipes/pipe-transport.js';
+import { PipeListener } from '#src/pipes/pipe-listener.js';
 import { createFakeLogger, uniquePipeName, until } from './test-helpers.js';
 
 interface CapturedEcho {

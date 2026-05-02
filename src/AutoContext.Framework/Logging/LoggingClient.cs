@@ -3,7 +3,7 @@ namespace AutoContext.Framework.Logging;
 using System.Text;
 using System.Text.Json;
 
-using AutoContext.Framework.Transport;
+using AutoContext.Framework.Pipes;
 
 using Microsoft.Extensions.Logging.Abstractions;
 

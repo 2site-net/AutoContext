@@ -3,7 +3,7 @@ namespace AutoContext.Mcp.Server.Tests.Config;
 using System.IO.Pipes;
 using System.Text.Json;
 
-using AutoContext.Framework.Transport;
+using AutoContext.Framework.Pipes;
 using AutoContext.Mcp.Server.Config;
 using AutoContext.Mcp.Server.Tests.Testing.Utils;
 

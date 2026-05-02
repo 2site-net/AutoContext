@@ -2,7 +2,7 @@ namespace AutoContext.Framework.Hosting;
 
 using System.Text;
 
-using AutoContext.Framework.Transport;
+using AutoContext.Framework.Pipes;
 
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;

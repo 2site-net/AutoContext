@@ -1,4 +1,4 @@
-namespace AutoContext.Framework.Transport;
+namespace AutoContext.Framework.Pipes;
 
 /// <summary>
 /// Layer-3 request/response pipe client: send one length-prefixed
