@@ -63,13 +63,14 @@ concepts.**
 The CLI should mirror the **VS Code extension's composition pattern** — not
 adopt a container.
 
-> **Style note:** prefer **classes/types** over free functions. The current
-> `composeExtension` free function is acceptable as-is, but new composition
-> roots, subcommand wirings, and activation/run sequences should be
-> expressed as classes (e.g. `ExtensionComposer`, `CliComposer`,
-> `McpServiceComposer`) with explicit methods (`compose()`, `run()`,
-> `dispose()`). Same manual `new` wiring inside — just packaged as types,
-> not free functions. Over time the extension side can migrate to match.
+> **Style note:** prefer **classes/types** over free functions. New
+> composition roots, subcommand wirings, and activation/run sequences
+> should be expressed as classes (e.g. `ExtensionComposer`,
+> `CliComposer`, `McpServiceComposer`) with explicit methods
+> (`compose()`, `run()`, `dispose()`). Same manual `new` wiring inside
+> — just packaged as types, not free functions. The VS Code host
+> already follows this pattern via `ExtensionComposer`,
+> `ExtensionRegistrar`, and `ExtensionActivator`.
 
 The extension uses a manual composition root in
 [extension-composition.ts](../../src/AutoContext.VsCode/src/extension-composition.ts):
@@ -259,8 +260,6 @@ internal structure mirrors the extension:
 
 ### Phase 4 — Optional follow-ups
 
-- Migrate `composeExtension` free function to an `ExtensionComposer`
-  class for symmetry with the CLI composers.
 - Consider extracting `AutoContext.VsCode/instructions/` resource
   loading helpers into `Framework.Web` if the CLI grows an
   `autoctx instructions` subcommand.
