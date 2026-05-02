@@ -1,31 +1,22 @@
-import type { Logger } from './logger.js';
+import type { LogCategory } from './log-category.js';
+import type { LogLevel } from './log-level.js';
+import { LoggerBase } from './logger-base.js';
 
 /**
- * No-op {@link Logger} implementation. Use for silent paths and tests
- * where logging output would be noise. Counterpart of
+ * No-op logger implementation. Use for silent paths and tests where
+ * logging output would be noise. Satisfies {@link Logger} and
+ * {@link LoggerFacade} via {@link LoggerBase}. Counterpart of
  * `Microsoft.Extensions.Logging.Abstractions.NullLogger` on the .NET
  * side.
  */
-export class NullLogger implements Logger {
-    static readonly instance: Logger = new NullLogger();
+export class NullLogger extends LoggerBase {
+    static readonly instance: NullLogger = new NullLogger();
 
-    trace(_message: string, _exception?: unknown): void {
+    override log(_level: LogLevel, _message: string, _error?: unknown): void {
         // intentionally empty
     }
 
-    debug(_message: string, _exception?: unknown): void {
-        // intentionally empty
-    }
-
-    info(_message: string, _exception?: unknown): void {
-        // intentionally empty
-    }
-
-    warn(_message: string, _exception?: unknown): void {
-        // intentionally empty
-    }
-
-    error(_message: string, _exception?: unknown): void {
-        // intentionally empty
+    override forCategory(_category: LogCategory | string): LoggerBase {
+        return this;
     }
 }

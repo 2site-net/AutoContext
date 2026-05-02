@@ -1,6 +1,6 @@
 import type { Socket } from 'node:net';
 
-import type { Logger } from '../logging/logger.js';
+import type { LoggerFacade } from '../logging/logger-facade.js';
 import { PipeTransport } from './pipe-transport.js';
 
 /**
@@ -22,7 +22,7 @@ export interface PipeStreamingClientOptions<T> {
     readonly transport: PipeTransport;
     readonly pipeName: string;
     readonly serialize: (item: T) => Buffer | Uint8Array;
-    readonly logger: Logger;
+    readonly logger: LoggerFacade;
     readonly greeting?: Buffer | Uint8Array;
     readonly fallback?: (item: T) => void;
     readonly queueCapacity?: number;

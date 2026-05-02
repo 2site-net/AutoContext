@@ -3,7 +3,7 @@ import { unlinkSync } from 'node:fs';
 import { connect } from 'node:net';
 import { platform } from 'node:os';
 
-import type { Logger } from '../logging/logger.js';
+import type { LoggerFacade } from '../logging/logger-facade.js';
 
 /**
  * Layer-3 server-side pipe primitive (unbound state). Holds the
@@ -20,10 +20,10 @@ import type { Logger } from '../logging/logger.js';
  */
 export class PipeListener {
     private readonly pipeName: string;
-    private readonly logger: Logger;
+    private readonly logger: LoggerFacade;
     private bound = false;
 
-    constructor(pipeName: string, logger: Logger) {
+    constructor(pipeName: string, logger: LoggerFacade) {
         if (pipeName.length === 0) {
             throw new TypeError('pipeName must be non-empty.');
         }
@@ -138,7 +138,7 @@ export class BoundPipeListener {
     private readonly pipeName: string;
     private readonly path: string;
     private readonly server: Server;
-    private readonly logger: Logger;
+    private readonly logger: LoggerFacade;
     private readonly sockets = new Set<Socket>();
     private readonly inFlight = new Set<Promise<void>>();
     private running = false;
@@ -146,7 +146,7 @@ export class BoundPipeListener {
     private disposePromise: Promise<void> | undefined;
 
     /** @internal Use {@link PipeListener.bind}. */
-    constructor(pipeName: string, path: string, server: Server, logger: Logger) {
+    constructor(pipeName: string, path: string, server: Server, logger: LoggerFacade) {
         this.pipeName = pipeName;
         this.path = path;
         this.server = server;

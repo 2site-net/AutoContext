@@ -1,6 +1,6 @@
 import type { Socket } from 'node:net';
 
-import type { Logger } from '../logging/logger.js';
+import type { LoggerFacade } from '../logging/logger-facade.js';
 import { PipeTransport } from './pipe-transport.js';
 
 /**
@@ -21,12 +21,12 @@ export class PipeKeepAliveClient {
     private static readonly DEFAULT_CONNECT_TIMEOUT_MS = 2000;
 
     private readonly transport: PipeTransport;
-    private readonly logger: Logger;
+    private readonly logger: LoggerFacade;
     private socket: Socket | undefined;
     private startPromise: Promise<void> | undefined;
     private disposed = false;
 
-    constructor(transport: PipeTransport, logger: Logger) {
+    constructor(transport: PipeTransport, logger: LoggerFacade) {
         this.transport = transport;
         this.logger = logger;
     }

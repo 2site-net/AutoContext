@@ -1,19 +1,20 @@
+import type { LogLevel } from './log-level.js';
+
 /**
- * Minimal logging facade for plumbing primitives in
- * `AutoContext.Framework.Web`. Intentionally a subset of richer
- * project-specific loggers (e.g. `AutoContext.Worker.Web/types/logger`,
- * `AutoContext.VsCode/types/logger`) so that any of those satisfies
- * this shape structurally and can be passed to a transport primitive
- * without an adapter.
+ * Narrow logging sink: a single `log()` method that accepts a level,
+ * a message, and an optional error. The minimum contract for "thing
+ * that consumes log records."
  *
- * Counterpart of `Microsoft.Extensions.Logging.ILogger` on the .NET
- * side. Implementations are responsible for any correlation-id
- * capture, level filtering, and sink selection.
+ * This interface is deliberately the sibling — not the parent — of
+ * {@link LoggerFacade}: a consumer that only needs to *forward*
+ * records (a transport, a wrapper that adds correlation IDs, an
+ * in-memory test spy) depends on `Logger`; a consumer that wants the
+ * five-level convenience surface depends on `LoggerFacade`.
+ *
+ * {@link LoggerBase} bridges the two by implementing both interfaces
+ * and forwarding the convenience methods to `log()`. Counterpart of
+ * `Microsoft.Extensions.Logging.ILogger.Log(...)` on the .NET side.
  */
 export interface Logger {
-    trace(message: string, exception?: unknown): void;
-    debug(message: string, exception?: unknown): void;
-    info(message: string, exception?: unknown): void;
-    warn(message: string, exception?: unknown): void;
-    error(message: string, exception?: unknown): void;
+    log(level: LogLevel, message: string, error?: unknown): void;
 }

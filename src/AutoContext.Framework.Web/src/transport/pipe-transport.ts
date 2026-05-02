@@ -1,7 +1,7 @@
 import { connect, type NetConnectOpts, type Socket } from 'node:net';
 import { platform } from 'node:os';
 
-import type { Logger } from '../logging/logger.js';
+import type { LoggerFacade } from '../logging/logger-facade.js';
 
 /**
  * Layer 1 transport primitive for AutoContext named-pipe communication
@@ -17,13 +17,13 @@ import type { Logger } from '../logging/logger.js';
  * Counterpart of the C# `PipeTransport` in `AutoContext.Framework`.
  */
 export class PipeTransport {
-    private readonly logger: Logger;
+    private readonly logger: LoggerFacade;
 
     /**
      * Creates a new {@link PipeTransport}. The {@link logger} is
      * mandatory; pass a `NullLogger` for silent operation.
      */
-    constructor(logger: Logger) {
+    constructor(logger: LoggerFacade) {
         this.logger = logger;
     }
 
