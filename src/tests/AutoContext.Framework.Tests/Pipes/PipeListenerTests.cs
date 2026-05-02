@@ -55,13 +55,21 @@ public sealed class PipeListenerTests
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
 
         var received = 0;
+        var acceptedBoth = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var runTask = bound.RunAsync(
             async (stream, ct) =>
             {
-                Interlocked.Increment(ref received);
+                var count = Interlocked.Increment(ref received);
+
+                if (count == 2)
+                {
+                    acceptedBoth.TrySetResult();
+                }
+
                 // Drain bytes until peer disconnects.
                 var buffer = new byte[1];
-                while (await stream.ReadAsync(buffer, ct).ConfigureAwait(false) > 0)
+
+                while (await stream.ReadAsync(buffer, ct) > 0)
                 {
                 }
             },
@@ -69,16 +77,14 @@ public sealed class PipeListenerTests
 
         try
         {
-            await using (var c1 = new NamedPipeClientStream(".", name, PipeDirection.InOut, PipeOptions.Asynchronous))
-            {
-                await c1.ConnectAsync(cancellationToken);
-            }
-            await using (var c2 = new NamedPipeClientStream(".", name, PipeDirection.InOut, PipeOptions.Asynchronous))
-            {
-                await c2.ConnectAsync(cancellationToken);
-            }
+            await using var c1 = new NamedPipeClientStream(".", name, PipeDirection.InOut, PipeOptions.Asynchronous);
+            await using var c2 = new NamedPipeClientStream(".", name, PipeDirection.InOut, PipeOptions.Asynchronous);
 
-            await WaitUntil(() => Volatile.Read(ref received) == 2, cancellationToken);
+            await c1.ConnectAsync(cancellationToken);
+            await c2.ConnectAsync(cancellationToken);
+
+            await acceptedBoth.Task.WaitAsync(TimeSpan.FromSeconds(10), cancellationToken);
+            Assert.Equal(2, Volatile.Read(ref received));
         }
         finally
         {
@@ -192,30 +198,36 @@ public sealed class PipeListenerTests
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
 
         var calls = 0;
+        var recovered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var runTask = bound.RunAsync(
             (_, _) =>
             {
                 var n = Interlocked.Increment(ref calls);
+
                 if (n == 1)
                 {
                     throw new InvalidOperationException("boom");
                 }
+
+                if (n >= 2)
+                {
+                    recovered.TrySetResult();
+                }
+
                 return Task.CompletedTask;
             },
             cts.Token);
 
         try
         {
-            await using (var c1 = new NamedPipeClientStream(".", name, PipeDirection.InOut, PipeOptions.Asynchronous))
-            {
-                await c1.ConnectAsync(cancellationToken);
-            }
-            await using (var c2 = new NamedPipeClientStream(".", name, PipeDirection.InOut, PipeOptions.Asynchronous))
-            {
-                await c2.ConnectAsync(cancellationToken);
-            }
+            await using var c1 = new NamedPipeClientStream(".", name, PipeDirection.InOut, PipeOptions.Asynchronous);
+            await using var c2 = new NamedPipeClientStream(".", name, PipeDirection.InOut, PipeOptions.Asynchronous);
 
-            await WaitUntil(() => Volatile.Read(ref calls) >= 2, cancellationToken);
+            await c1.ConnectAsync(cancellationToken);
+            await c2.ConnectAsync(cancellationToken);
+
+            await recovered.Task.WaitAsync(TimeSpan.FromSeconds(10), cancellationToken);
+            Assert.True(Volatile.Read(ref calls) >= 2);
         }
         finally
         {
@@ -226,7 +238,7 @@ public sealed class PipeListenerTests
     }
 
     [Fact]
-    public async Task Dispose_is_idempotent()
+    public async Task Should_allow_multiple_dispose_calls()
     {
         var listener = new PipeListener(NewPipeName(), NullLogger<PipeListener>.Instance);
         var bound = listener.Bind();
@@ -242,17 +254,4 @@ public sealed class PipeListenerTests
     }
 
     private static string NewPipeName() => TestPipeServer.UniqueName("actx-pl-test");
-
-    private static async Task WaitUntil(Func<bool> predicate, CancellationToken cancellationToken)
-    {
-        var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(5);
-        while (!predicate())
-        {
-            if (DateTime.UtcNow > deadline)
-            {
-                throw new TimeoutException("WaitUntil timed out.");
-            }
-            await Task.Delay(10, cancellationToken);
-        }
-    }
 }
