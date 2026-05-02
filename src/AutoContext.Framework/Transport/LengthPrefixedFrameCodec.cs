@@ -44,10 +44,10 @@ public sealed class LengthPrefixedFrameCodec
     /// Returns <see langword="null"/> when the connection is closed
     /// before a full frame is received.
     /// </summary>
-    public async Task<byte[]?> ReadAsync(CancellationToken ct)
+    public async Task<byte[]?> ReadAsync(CancellationToken cancellationToken)
     {
         var header = new byte[4];
-        var headerRead = await ReadExactAsync(header, ct).ConfigureAwait(false);
+        var headerRead = await ReadExactAsync(header, cancellationToken).ConfigureAwait(false);
 
         if (!headerRead)
         {
@@ -74,7 +74,7 @@ public sealed class LengthPrefixedFrameCodec
         }
 
         var payload = new byte[length];
-        var payloadRead = await ReadExactAsync(payload, ct).ConfigureAwait(false);
+        var payloadRead = await ReadExactAsync(payload, cancellationToken).ConfigureAwait(false);
 
         return payloadRead ? payload : null;
     }
@@ -83,7 +83,7 @@ public sealed class LengthPrefixedFrameCodec
     /// Writes <paramref name="payload"/> to the wrapped stream as one
     /// length-prefixed frame.
     /// </summary>
-    public async Task WriteAsync(byte[] payload, CancellationToken ct)
+    public async Task WriteAsync(byte[] payload, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(payload);
 
@@ -91,18 +91,18 @@ public sealed class LengthPrefixedFrameCodec
         BinaryPrimitives.WriteInt32LittleEndian(message, payload.Length);
         payload.CopyTo(message.AsSpan(4));
 
-        await _stream.WriteAsync(message, ct).ConfigureAwait(false);
-        await _stream.FlushAsync(ct).ConfigureAwait(false);
+        await _stream.WriteAsync(message, cancellationToken).ConfigureAwait(false);
+        await _stream.FlushAsync(cancellationToken).ConfigureAwait(false);
     }
 
-    private async Task<bool> ReadExactAsync(byte[] buffer, CancellationToken ct)
+    private async Task<bool> ReadExactAsync(byte[] buffer, CancellationToken cancellationToken)
     {
         var offset = 0;
 
         while (offset < buffer.Length)
         {
             var read = await _stream.ReadAsync(
-                buffer.AsMemory(offset, buffer.Length - offset), ct).ConfigureAwait(false);
+                buffer.AsMemory(offset, buffer.Length - offset), cancellationToken).ConfigureAwait(false);
 
             if (read == 0)
             {

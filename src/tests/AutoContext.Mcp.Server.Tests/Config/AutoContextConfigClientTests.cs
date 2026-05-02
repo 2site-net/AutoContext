@@ -28,30 +28,30 @@ public sealed class AutoContextConfigClientTests
         string pipeName,
         IReadOnlyList<AutoContextConfigSnapshotDto> frames,
         TaskCompletionSource release,
-        CancellationToken ct) =>
+        CancellationToken cancellationToken) =>
         Task.Run(async () =>
         {
             var server = PipeServerHarness.Create(pipeName, PipeDirection.Out);
 
             await using (server.ConfigureAwait(false))
             {
-                await server.WaitForConnectionAsync(ct).ConfigureAwait(false);
+                await server.WaitForConnectionAsync(cancellationToken).ConfigureAwait(false);
                 var channel = new LengthPrefixedFrameCodec(server);
 
                 foreach (var frame in frames)
                 {
-                    await channel.WriteAsync(SerializeDto(frame), ct).ConfigureAwait(false);
+                    await channel.WriteAsync(SerializeDto(frame), cancellationToken).ConfigureAwait(false);
                 }
 
                 // Hold the connection open until the test releases us
                 // so the client's read loop has a chance to observe
                 // and apply every frame.
-                using (ct.Register(() => release.TrySetResult()))
+                using (cancellationToken.Register(() => release.TrySetResult()))
                 {
                     await release.Task.ConfigureAwait(false);
                 }
             }
-        }, ct);
+        }, cancellationToken);
 
     [Fact]
     public async Task Should_be_a_no_op_when_pipe_name_is_empty()
@@ -197,12 +197,12 @@ public sealed class AutoContextConfigClientTests
             $"StopAsync should be prompt; took {stopwatch.Elapsed}.");
     }
 
-    private static async Task WaitUntilAsync(Func<bool> predicate, CancellationToken ct)
+    private static async Task WaitUntilAsync(Func<bool> predicate, CancellationToken cancellationToken)
     {
         while (!predicate())
         {
-            ct.ThrowIfCancellationRequested();
-            await Task.Delay(20, ct).ConfigureAwait(false);
+            cancellationToken.ThrowIfCancellationRequested();
+            await Task.Delay(20, cancellationToken).ConfigureAwait(false);
         }
     }
 }

@@ -59,10 +59,10 @@ internal static class PipeServerHarness
     public static Task RunOneShotAsync(
         string pipeName,
         Func<byte[], byte[]?> handler,
-        CancellationToken ct) =>
+        CancellationToken cancellationToken) =>
         Task.Run(
-            () => HandleOneAsync(pipeName, maxInstances: 1, handler, ct),
-            ct);
+            () => HandleOneAsync(pipeName, maxInstances: 1, handler, cancellationToken),
+            cancellationToken);
 
     /// <summary>
     /// Spins up <paramref name="connectionCount"/> server instances on the
@@ -74,15 +74,15 @@ internal static class PipeServerHarness
         string pipeName,
         int connectionCount,
         Func<byte[], byte[]?> handler,
-        CancellationToken ct)
+        CancellationToken cancellationToken)
     {
         var pending = new Task[connectionCount];
 
         for (var i = 0; i < connectionCount; i++)
         {
             pending[i] = Task.Run(
-                () => HandleOneAsync(pipeName, connectionCount, handler, ct),
-                ct);
+                () => HandleOneAsync(pipeName, connectionCount, handler, cancellationToken),
+                cancellationToken);
         }
 
         return Task.WhenAll(pending);
@@ -92,16 +92,16 @@ internal static class PipeServerHarness
         string pipeName,
         int maxInstances,
         Func<byte[], byte[]?> handler,
-        CancellationToken ct)
+        CancellationToken cancellationToken)
     {
         var server = Create(pipeName, PipeDirection.InOut, maxInstances);
 
         await using (server.ConfigureAwait(false))
         {
-            await server.WaitForConnectionAsync(ct).ConfigureAwait(false);
+            await server.WaitForConnectionAsync(cancellationToken).ConfigureAwait(false);
 
             var channel = new LengthPrefixedFrameCodec(server);
-            var requestBytes = await channel.ReadAsync(ct).ConfigureAwait(false);
+            var requestBytes = await channel.ReadAsync(cancellationToken).ConfigureAwait(false);
             if (requestBytes is null)
             {
                 return;
@@ -113,7 +113,7 @@ internal static class PipeServerHarness
                 return;
             }
 
-            await channel.WriteAsync(responseBytes, ct).ConfigureAwait(false);
+            await channel.WriteAsync(responseBytes, cancellationToken).ConfigureAwait(false);
         }
     }
 }

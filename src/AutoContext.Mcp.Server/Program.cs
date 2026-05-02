@@ -187,10 +187,10 @@ internal static partial class Program
         builder.Services
             .AddMcpServer()
             .WithStdioServerTransport()
-            .WithListToolsHandler((ctx, ct) =>
-                ctx.Server.Services!.GetRequiredService<McpSdkAdapter>().HandleListToolsAsync(ctx, ct))
-            .WithCallToolHandler((ctx, ct) =>
-                ctx.Server.Services!.GetRequiredService<McpSdkAdapter>().HandleCallToolAsync(ctx, ct));
+            .WithListToolsHandler((ctx, cancellationToken) =>
+                ctx.Server.Services!.GetRequiredService<McpSdkAdapter>().HandleListToolsAsync(ctx, cancellationToken))
+            .WithCallToolHandler((ctx, cancellationToken) =>
+                ctx.Server.Services!.GetRequiredService<McpSdkAdapter>().HandleCallToolAsync(ctx, cancellationToken));
 
         var host = builder.Build();
 

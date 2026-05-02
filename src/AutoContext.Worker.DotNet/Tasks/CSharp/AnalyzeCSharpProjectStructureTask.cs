@@ -25,7 +25,7 @@ internal sealed class AnalyzeCSharpProjectStructureTask : IMcpTask
 {
     public string TaskName => "analyze_csharp_project_structure";
 
-    public async Task<JsonElement> ExecuteAsync(JsonElement data, CancellationToken ct)
+    public async Task<JsonElement> ExecuteAsync(JsonElement data, CancellationToken cancellationToken)
     {
         if (data.ValueKind != JsonValueKind.Object
             || !data.TryGetProperty("content", out var contentElement)
@@ -45,7 +45,7 @@ internal sealed class AnalyzeCSharpProjectStructureTask : IMcpTask
         var fileName = string.IsNullOrEmpty(originalPath) ? string.Empty : Path.GetFileName(originalPath);
         var namespacePreference = data.TryGetString("editorconfig.csharp_style_namespace_declarations");
 
-        var (passed, report) = await BuildReportAsync(content, fileName, namespacePreference, ct).ConfigureAwait(false);
+        var (passed, report) = await BuildReportAsync(content, fileName, namespacePreference, cancellationToken).ConfigureAwait(false);
 
         var output = new JsonObject
         {
@@ -60,10 +60,10 @@ internal sealed class AnalyzeCSharpProjectStructureTask : IMcpTask
         string content,
         string fileName,
         string? namespacePreference,
-        CancellationToken ct)
+        CancellationToken cancellationToken)
     {
-        var tree = CSharpSyntaxTree.ParseText(content, cancellationToken: ct);
-        var root = await tree.GetRootAsync(ct).ConfigureAwait(false);
+        var tree = CSharpSyntaxTree.ParseText(content, cancellationToken: cancellationToken);
+        var root = await tree.GetRootAsync(cancellationToken).ConfigureAwait(false);
         var violations = new List<string>();
 
         var effectiveNamespace = namespacePreference ?? "file_scoped";

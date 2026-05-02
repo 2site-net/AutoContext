@@ -22,7 +22,7 @@ internal sealed partial class AnalyzeGitCommitContentTask : IMcpTask
 {
     public string TaskName => "analyze_git_commit_content";
 
-    public Task<JsonElement> ExecuteAsync(JsonElement data, CancellationToken ct)
+    public Task<JsonElement> ExecuteAsync(JsonElement data, CancellationToken cancellationToken)
     {
         if (data.ValueKind != JsonValueKind.Object
             || !data.TryGetProperty("content", out var contentElement)

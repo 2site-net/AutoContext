@@ -121,25 +121,25 @@ public sealed partial class PipeStreamingClient<T> : IAsyncDisposable
         }
     }
 
-    private async Task DrainAsync(CancellationToken ct)
+    private async Task DrainAsync(CancellationToken cancellationToken)
     {
-        Stream? stream = await TryConnectAsync(ct).ConfigureAwait(false);
+        Stream? stream = await TryConnectAsync(cancellationToken).ConfigureAwait(false);
 
         try
         {
             if (stream is not null && _greeting.Length > 0
-                && !await TryWriteAsync(stream, _greeting, ct).ConfigureAwait(false))
+                && !await TryWriteAsync(stream, _greeting, cancellationToken).ConfigureAwait(false))
             {
                 await stream.DisposeAsync().ConfigureAwait(false);
                 stream = null;
             }
 
-            await foreach (var item in _queue.Reader.ReadAllAsync(ct).ConfigureAwait(false))
+            await foreach (var item in _queue.Reader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
             {
                 if (stream is not null)
                 {
                     var bytes = _serialize(item);
-                    if (await TryWriteAsync(stream, bytes, ct).ConfigureAwait(false))
+                    if (await TryWriteAsync(stream, bytes, cancellationToken).ConfigureAwait(false))
                     {
                         continue;
                     }
@@ -165,7 +165,7 @@ public sealed partial class PipeStreamingClient<T> : IAsyncDisposable
         }
     }
 
-    private async Task<Stream?> TryConnectAsync(CancellationToken ct)
+    private async Task<Stream?> TryConnectAsync(CancellationToken cancellationToken)
     {
         if (string.IsNullOrEmpty(_pipeName))
         {
@@ -174,7 +174,7 @@ public sealed partial class PipeStreamingClient<T> : IAsyncDisposable
 
         try
         {
-            return await _transport.ConnectAsync(_pipeName, _connectTimeoutMs, _direction, ct).ConfigureAwait(false);
+            return await _transport.ConnectAsync(_pipeName, _connectTimeoutMs, _direction, cancellationToken).ConfigureAwait(false);
         }
         catch (Exception ex) when (ex is TimeoutException or IOException or UnauthorizedAccessException or OperationCanceledException)
         {
@@ -182,12 +182,12 @@ public sealed partial class PipeStreamingClient<T> : IAsyncDisposable
         }
     }
 
-    private static async Task<bool> TryWriteAsync(Stream stream, ReadOnlyMemory<byte> bytes, CancellationToken ct)
+    private static async Task<bool> TryWriteAsync(Stream stream, ReadOnlyMemory<byte> bytes, CancellationToken cancellationToken)
     {
         try
         {
-            await stream.WriteAsync(bytes, ct).ConfigureAwait(false);
-            await stream.FlushAsync(ct).ConfigureAwait(false);
+            await stream.WriteAsync(bytes, cancellationToken).ConfigureAwait(false);
+            await stream.FlushAsync(cancellationToken).ConfigureAwait(false);
             return true;
         }
         catch (Exception ex) when (ex is IOException or ObjectDisposedException)

@@ -22,11 +22,11 @@ internal sealed class TempDirectory : IDisposable
         return absolute;
     }
 
-    public async Task<string> WriteFileAsync(string relativePath, string content, CancellationToken ct)
+    public async Task<string> WriteFileAsync(string relativePath, string content, CancellationToken cancellationToken)
     {
         var absolute = ResolveAndEnsureDirectory(relativePath);
 
-        await File.WriteAllTextAsync(absolute, content, ct).ConfigureAwait(false);
+        await File.WriteAllTextAsync(absolute, content, cancellationToken).ConfigureAwait(false);
 
         return absolute;
     }

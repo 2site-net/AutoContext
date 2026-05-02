@@ -19,10 +19,10 @@ public sealed class WorkerTaskDispatcherServiceTests
     public async Task Should_dispatch_request_to_matching_task_and_return_ok_envelope()
     {
         // Arrange
-        var ct = TestContext.Current.CancellationToken;
+        var cancellationToken = TestContext.Current.CancellationToken;
         var pipeName = $"ac-test-{Guid.NewGuid():N}";
         using var sut = CreateSut(pipeName, [new EchoTaskFake()]);
-        await sut.StartAsync(ct);
+        await sut.StartAsync(cancellationToken);
 
         try
         {
@@ -32,7 +32,7 @@ public sealed class WorkerTaskDispatcherServiceTests
                 mcpTask = "echo",
                 data = new { value = 42 },
                 editorconfig = new { },
-            }, ct);
+            }, cancellationToken);
 
             // Assert
             Assert.Multiple(
@@ -43,7 +43,7 @@ public sealed class WorkerTaskDispatcherServiceTests
         }
         finally
         {
-            await sut.StopAsync(ct);
+            await sut.StopAsync(cancellationToken);
         }
     }
 
@@ -51,10 +51,10 @@ public sealed class WorkerTaskDispatcherServiceTests
     public async Task Should_return_error_envelope_for_unknown_task()
     {
         // Arrange
-        var ct = TestContext.Current.CancellationToken;
+        var cancellationToken = TestContext.Current.CancellationToken;
         var pipeName = $"ac-test-{Guid.NewGuid():N}";
         using var sut = CreateSut(pipeName, []);
-        await sut.StartAsync(ct);
+        await sut.StartAsync(cancellationToken);
 
         try
         {
@@ -64,7 +64,7 @@ public sealed class WorkerTaskDispatcherServiceTests
                 mcpTask = "does_not_exist",
                 data = new { },
                 editorconfig = new { },
-            }, ct);
+            }, cancellationToken);
 
             // Assert
             Assert.Multiple(
@@ -75,7 +75,7 @@ public sealed class WorkerTaskDispatcherServiceTests
         }
         finally
         {
-            await sut.StopAsync(ct);
+            await sut.StopAsync(cancellationToken);
         }
     }
 
@@ -83,10 +83,10 @@ public sealed class WorkerTaskDispatcherServiceTests
     public async Task Should_return_error_envelope_when_task_throws()
     {
         // Arrange
-        var ct = TestContext.Current.CancellationToken;
+        var cancellationToken = TestContext.Current.CancellationToken;
         var pipeName = $"ac-test-{Guid.NewGuid():N}";
         using var sut = CreateSut(pipeName, [new ThrowingTaskFake()]);
-        await sut.StartAsync(ct);
+        await sut.StartAsync(cancellationToken);
 
         try
         {
@@ -96,7 +96,7 @@ public sealed class WorkerTaskDispatcherServiceTests
                 mcpTask = "boom",
                 data = new { },
                 editorconfig = new { },
-            }, ct);
+            }, cancellationToken);
 
             // Assert
             Assert.Multiple(
@@ -105,7 +105,7 @@ public sealed class WorkerTaskDispatcherServiceTests
         }
         finally
         {
-            await sut.StopAsync(ct);
+            await sut.StopAsync(cancellationToken);
         }
     }
 
@@ -113,10 +113,10 @@ public sealed class WorkerTaskDispatcherServiceTests
     public async Task Should_let_critical_exceptions_escape_dispatcher()
     {
         // Arrange
-        var ct = TestContext.Current.CancellationToken;
+        var cancellationToken = TestContext.Current.CancellationToken;
         var pipeName = $"ac-test-{Guid.NewGuid():N}";
         using var sut = CreateSut(pipeName, [new CriticalThrowingTaskFake()]);
-        await sut.StartAsync(ct);
+        await sut.StartAsync(cancellationToken);
 
         try
         {
@@ -125,7 +125,7 @@ public sealed class WorkerTaskDispatcherServiceTests
             // re-throws, the connection drops without writing a response,
             // and the client observes a null read.
             await using var client = new NamedPipeClientStream(".", pipeName, PipeDirection.InOut, PipeOptions.Asynchronous);
-            await client.ConnectAsync(5000, ct);
+            await client.ConnectAsync(5000, cancellationToken);
 
             var bytes = JsonSerializer.SerializeToUtf8Bytes(
                 new
@@ -136,14 +136,14 @@ public sealed class WorkerTaskDispatcherServiceTests
                 },
                 WorkerTaskDispatcherService.WorkerJsonOptions);
             var channel = new LengthPrefixedFrameCodec(client);
-            await channel.WriteAsync(bytes, ct);
+            await channel.WriteAsync(bytes, cancellationToken);
 
-            var responseBytes = await channel.ReadAsync(ct);
+            var responseBytes = await channel.ReadAsync(cancellationToken);
             Assert.Null(responseBytes);
         }
         finally
         {
-            await sut.StopAsync(ct);
+            await sut.StopAsync(cancellationToken);
         }
     }
 
@@ -158,16 +158,16 @@ public sealed class WorkerTaskDispatcherServiceTests
         return new WorkerTaskDispatcherService(options, tasks, NullLogger<WorkerTaskDispatcherService>.Instance);
     }
 
-    private static async Task<JsonElement> SendAsync(string pipeName, object request, CancellationToken ct)
+    private static async Task<JsonElement> SendAsync(string pipeName, object request, CancellationToken cancellationToken)
     {
         await using var client = new NamedPipeClientStream(".", pipeName, PipeDirection.InOut, PipeOptions.Asynchronous);
-        await client.ConnectAsync(5000, ct);
+        await client.ConnectAsync(5000, cancellationToken);
 
         var bytes = JsonSerializer.SerializeToUtf8Bytes(request, WorkerTaskDispatcherService.WorkerJsonOptions);
         var channel = new LengthPrefixedFrameCodec(client);
-        await channel.WriteAsync(bytes, ct);
+        await channel.WriteAsync(bytes, cancellationToken);
 
-        var responseBytes = await channel.ReadAsync(ct);
+        var responseBytes = await channel.ReadAsync(cancellationToken);
         Assert.NotNull(responseBytes);
 
         return JsonDocument.Parse(responseBytes!).RootElement.Clone();

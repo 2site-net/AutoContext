@@ -8,4 +8,4 @@ using System.Text.Json;
 /// <c>tools/call</c> invocation, and returns the serialized
 /// <see cref="Results.ToolResultEnvelope"/> as a JSON string.
 /// </summary>
-public delegate Task<string> ToolHandler(JsonElement data, string correlationId, CancellationToken ct);
+public delegate Task<string> ToolHandler(JsonElement data, string correlationId, CancellationToken cancellationToken);

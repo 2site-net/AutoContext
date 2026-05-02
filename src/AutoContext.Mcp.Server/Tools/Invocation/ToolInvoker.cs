@@ -80,7 +80,7 @@ public sealed partial class ToolInvoker
         McpToolDefinition tool,
         JsonElement data,
         string correlationId,
-        CancellationToken ct)
+        CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(worker);
         ArgumentNullException.ThrowIfNull(tool);
@@ -106,13 +106,13 @@ public sealed partial class ToolInvoker
                 elapsedMsForDisabled);
         }
 
-        var slices = await ResolveEditorConfigAsync(data, tasks, correlationId, ct).ConfigureAwait(false);
+        var slices = await ResolveEditorConfigAsync(data, tasks, correlationId, cancellationToken).ConfigureAwait(false);
 
         var entries = new ToolResultComposerInput[tasks.Count];
 
         if (tasks.Count == 1)
         {
-            await DispatchOneAsync(worker.Role, tasks, data, slices, entries, 0, correlationId, ct)
+            await DispatchOneAsync(worker.Role, tasks, data, slices, entries, 0, correlationId, cancellationToken)
                 .ConfigureAwait(false);
         }
         else if (tasks.Count > 1)
@@ -121,7 +121,7 @@ public sealed partial class ToolInvoker
 
             for (var i = 0; i < tasks.Count; i++)
             {
-                pending[i] = DispatchOneAsync(worker.Role, tasks, data, slices, entries, i, correlationId, ct);
+                pending[i] = DispatchOneAsync(worker.Role, tasks, data, slices, entries, i, correlationId, cancellationToken);
             }
 
             await Task.WhenAll(pending).ConfigureAwait(false);
@@ -168,7 +168,7 @@ public sealed partial class ToolInvoker
         JsonElement data,
         IReadOnlyList<McpTaskDefinition> tasks,
         string correlationId,
-        CancellationToken ct)
+        CancellationToken cancellationToken)
     {
         var anyKeys = false;
 
@@ -192,7 +192,7 @@ public sealed partial class ToolInvoker
         }
 
         var result = await _editorConfigBatcher
-            .ResolveAsync(path, tasks, correlationId, ct)
+            .ResolveAsync(path, tasks, correlationId, cancellationToken)
             .ConfigureAwait(false);
 
         return result.Slices;
@@ -206,7 +206,7 @@ public sealed partial class ToolInvoker
         ToolResultComposerInput[] entries,
         int index,
         string correlationId,
-        CancellationToken ct)
+        CancellationToken cancellationToken)
     {
         var task = tasks[index];
 
@@ -228,7 +228,7 @@ public sealed partial class ToolInvoker
         LogTaskDispatchStarted(_logger, task.Name, role, correlationId);
 
         var response = await _workerClient
-            .InvokeAsync(role, request, ct)
+            .InvokeAsync(role, request, cancellationToken)
             .ConfigureAwait(false);
 
         var elapsedMs = ElapsedMs(taskStart);

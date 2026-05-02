@@ -126,21 +126,21 @@ public sealed partial class WorkerTaskDispatcherService : BackgroundService
         }
     }
 
-    private async Task HandleConnectionAsync(Stream stream, CancellationToken ct)
+    private async Task HandleConnectionAsync(Stream stream, CancellationToken cancellationToken)
     {
         try
         {
             var channel = new LengthPrefixedFrameCodec(stream);
-            var requestBytes = await channel.ReadAsync(ct).ConfigureAwait(false);
+            var requestBytes = await channel.ReadAsync(cancellationToken).ConfigureAwait(false);
 
             if (requestBytes is null)
             {
                 return;
             }
 
-            var responseBytes = await DispatchAsync(requestBytes, ct).ConfigureAwait(false);
+            var responseBytes = await DispatchAsync(requestBytes, cancellationToken).ConfigureAwait(false);
 
-            await channel.WriteAsync(responseBytes, ct).ConfigureAwait(false);
+            await channel.WriteAsync(responseBytes, cancellationToken).ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {
@@ -160,7 +160,7 @@ public sealed partial class WorkerTaskDispatcherService : BackgroundService
 
     [SuppressMessage("Design", "CA1031",
         Justification = "Worker boundary: any task failure must be returned as an error envelope, never crash the dispatcher.")]
-    private async Task<byte[]> DispatchAsync(byte[] requestBytes, CancellationToken ct)
+    private async Task<byte[]> DispatchAsync(byte[] requestBytes, CancellationToken cancellationToken)
     {
         // Parse the envelope first under its own narrow handler. A
         // malformed envelope has no correlation id available, so it
@@ -205,7 +205,7 @@ public sealed partial class WorkerTaskDispatcherService : BackgroundService
                 }
 
                 var data = BuildTaskData(root);
-                var output = await task.ExecuteAsync(data, ct).ConfigureAwait(false);
+                var output = await task.ExecuteAsync(data, cancellationToken).ConfigureAwait(false);
 
                 return BuildSuccessResponse(taskName, output);
             }

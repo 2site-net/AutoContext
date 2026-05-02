@@ -136,7 +136,7 @@ public sealed partial class AutoContextConfigClient : IHostedService, IAsyncDisp
 
     [SuppressMessage("Reliability", "CA2000",
         Justification = "The pipe stream is disposed via the await-using statement on every exit path.")]
-    private async Task RunAsync(CancellationToken ct)
+    private async Task RunAsync(CancellationToken cancellationToken)
     {
         try
         {
@@ -144,16 +144,16 @@ public sealed partial class AutoContextConfigClient : IHostedService, IAsyncDisp
                 _pipeName,
                 ConnectTimeoutMs,
                 System.IO.Pipes.PipeDirection.In,
-                ct).ConfigureAwait(false);
+                cancellationToken).ConfigureAwait(false);
             await using var pipeScope = pipe.ConfigureAwait(false);
 
             LogConnected(_logger, _pipeName);
 
             var channel = new LengthPrefixedFrameCodec(pipe);
 
-            while (!ct.IsCancellationRequested)
+            while (!cancellationToken.IsCancellationRequested)
             {
-                var payload = await channel.ReadAsync(ct).ConfigureAwait(false);
+                var payload = await channel.ReadAsync(cancellationToken).ConfigureAwait(false);
 
                 if (payload is null)
                 {

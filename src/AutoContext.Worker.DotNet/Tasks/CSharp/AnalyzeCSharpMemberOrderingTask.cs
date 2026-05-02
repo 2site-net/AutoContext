@@ -48,7 +48,7 @@ internal sealed class AnalyzeCSharpMemberOrderingTask : IMcpTask
         Private = 5,
     }
 
-    public async Task<JsonElement> ExecuteAsync(JsonElement data, CancellationToken ct)
+    public async Task<JsonElement> ExecuteAsync(JsonElement data, CancellationToken cancellationToken)
     {
         if (data.ValueKind != JsonValueKind.Object
             || !data.TryGetProperty("content", out var contentElement)
@@ -64,7 +64,7 @@ internal sealed class AnalyzeCSharpMemberOrderingTask : IMcpTask
             throw new InvalidOperationException("'data.content' must not be empty or whitespace.");
         }
 
-        var (passed, report) = await BuildReportAsync(content, ct).ConfigureAwait(false);
+        var (passed, report) = await BuildReportAsync(content, cancellationToken).ConfigureAwait(false);
 
         var output = new JsonObject
         {
@@ -75,10 +75,10 @@ internal sealed class AnalyzeCSharpMemberOrderingTask : IMcpTask
         return JsonSerializer.SerializeToElement(output);
     }
 
-    private static async Task<(bool Passed, string Report)> BuildReportAsync(string content, CancellationToken ct)
+    private static async Task<(bool Passed, string Report)> BuildReportAsync(string content, CancellationToken cancellationToken)
     {
-        var tree = CSharpSyntaxTree.ParseText(content, cancellationToken: ct);
-        var root = await tree.GetRootAsync(ct).ConfigureAwait(false);
+        var tree = CSharpSyntaxTree.ParseText(content, cancellationToken: cancellationToken);
+        var root = await tree.GetRootAsync(cancellationToken).ConfigureAwait(false);
         var violations = new List<string>();
 
         foreach (var typeDecl in root.DescendantNodes().OfType<TypeDeclarationSyntax>())

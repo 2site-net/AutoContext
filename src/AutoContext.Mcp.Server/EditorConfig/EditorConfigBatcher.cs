@@ -60,7 +60,7 @@ public sealed partial class EditorConfigBatcher
         string filePath,
         IReadOnlyList<McpTaskDefinition> tasks,
         string correlationId,
-        CancellationToken ct)
+        CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrEmpty(filePath);
         ArgumentNullException.ThrowIfNull(tasks);
@@ -91,7 +91,7 @@ public sealed partial class EditorConfigBatcher
         };
 
         var response = await _workerClient
-            .InvokeAsync(_workspaceRole, request, ct)
+            .InvokeAsync(_workspaceRole, request, cancellationToken)
             .ConfigureAwait(false);
 
         if (!string.Equals(response.McpTask, ResolveTaskName, StringComparison.Ordinal))

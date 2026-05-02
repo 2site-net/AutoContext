@@ -161,12 +161,12 @@ public sealed partial class WorkerControlClient : IAsyncDisposable
     /// Short worker id from <c>mcp-workers-registry.json</c>
     /// (e.g. <c>"workspace"</c>). Must not be null/empty.
     /// </param>
-    /// <param name="ct">Caller cancellation token.</param>
+    /// <param name="cancellationToken">Caller cancellation token.</param>
     /// <exception cref="WorkerControlException">
     /// The extension reported a spawn failure, or the round-trip
     /// failed (connect/write/read/parse/EOF/deadline).
     /// </exception>
-    public async Task EnsureRunningAsync(string workerId, CancellationToken ct)
+    public async Task EnsureRunningAsync(string workerId, CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrEmpty(workerId);
         ObjectDisposedException.ThrowIf(_disposed, this);
@@ -184,7 +184,7 @@ public sealed partial class WorkerControlClient : IAsyncDisposable
         // deadline (see RunEnsureRunningAsync) — never with any single
         // caller's CancellationToken — so caller A canceling its token
         // does not poison caller B's view of the result. Per-caller
-        // cancellation is applied at the await via Task.WaitAsync(ct).
+        // cancellation is applied at the await via Task.WaitAsync(cancellationToken).
         var lazy = _inFlight.GetOrAdd(
             workerId,
             id => new Lazy<Task<EnsureRunningResponse>>(
@@ -196,7 +196,7 @@ public sealed partial class WorkerControlClient : IAsyncDisposable
         EnsureRunningResponse response;
         try
         {
-            response = await task.WaitAsync(ct).ConfigureAwait(false);
+            response = await task.WaitAsync(cancellationToken).ConfigureAwait(false);
         }
         finally
         {
@@ -231,7 +231,7 @@ public sealed partial class WorkerControlClient : IAsyncDisposable
     {
         // Underlying round-trip runs only against the client's own
         // deadline. Per-caller cancellation is layered on at
-        // EnsureRunningAsync via Task.WaitAsync(ct) so a single caller
+        // EnsureRunningAsync via Task.WaitAsync(cancellationToken) so a single caller
         // bailing out does not abort sibling callers coalesced onto
         // the same task.
         using var deadlineCts = new CancellationTokenSource(_deadline);

@@ -16,11 +16,11 @@ public sealed class LoggingClientTests
     [Fact]
     public async Task Should_send_greeting_then_log_entry_over_the_pipe()
     {
-        var ct = TestContext.Current.CancellationToken;
+        var cancellationToken = TestContext.Current.CancellationToken;
         var pipeName = NewPipeName();
 
         await using var server = CreateServer(pipeName);
-        var acceptTask = server.WaitForConnectionAsync(ct);
+        var acceptTask = server.WaitForConnectionAsync(cancellationToken);
 
         await using var client = NewClient(pipeName, "Test.Worker.Greet");
 
@@ -33,7 +33,7 @@ public sealed class LoggingClientTests
             Exception: null,
             CorrelationId: null));
 
-        var (greeting, records) = await ReadLinesAsync(server, expected: 2, ct);
+        var (greeting, records) = await ReadLinesAsync(server, expected: 2, cancellationToken);
 
         Assert.Multiple(
             () => Assert.Equal("Test.Worker.Greet", greeting!["clientName"]!.GetValue<string>()),
@@ -47,11 +47,11 @@ public sealed class LoggingClientTests
     [Fact]
     public async Task Should_propagate_correlation_id_into_wire_record()
     {
-        var ct = TestContext.Current.CancellationToken;
+        var cancellationToken = TestContext.Current.CancellationToken;
         var pipeName = NewPipeName();
 
         await using var server = CreateServer(pipeName);
-        var acceptTask = server.WaitForConnectionAsync(ct);
+        var acceptTask = server.WaitForConnectionAsync(cancellationToken);
 
         await using var client = NewClient(pipeName, "Test.Worker.Corr");
 
@@ -64,7 +64,7 @@ public sealed class LoggingClientTests
             Exception: null,
             CorrelationId: "abcd1234"));
 
-        var (_, records) = await ReadLinesAsync(server, expected: 2, ct);
+        var (_, records) = await ReadLinesAsync(server, expected: 2, cancellationToken);
 
         Assert.Equal("abcd1234", records[0]!["correlationId"]!.GetValue<string>());
     }
@@ -72,11 +72,11 @@ public sealed class LoggingClientTests
     [Fact]
     public async Task Should_serialise_exception_when_record_carries_one()
     {
-        var ct = TestContext.Current.CancellationToken;
+        var cancellationToken = TestContext.Current.CancellationToken;
         var pipeName = NewPipeName();
 
         await using var server = CreateServer(pipeName);
-        var acceptTask = server.WaitForConnectionAsync(ct);
+        var acceptTask = server.WaitForConnectionAsync(cancellationToken);
 
         await using var client = NewClient(pipeName, "Test.Worker.Ex");
 
@@ -85,7 +85,7 @@ public sealed class LoggingClientTests
         var ex = new InvalidOperationException("boom");
         client.Post(new LogEntry("Cat", LogLevel.Error, "oh no", ex, CorrelationId: null));
 
-        var (_, records) = await ReadLinesAsync(server, expected: 2, ct);
+        var (_, records) = await ReadLinesAsync(server, expected: 2, cancellationToken);
         var serialised = records[0]!["exception"]!.GetValue<string>();
 
         Assert.Multiple(
@@ -140,13 +140,13 @@ public sealed class LoggingClientTests
     private static async Task<(JsonNode? Greeting, List<JsonNode?> Records)> ReadLinesAsync(
         Stream stream,
         int expected,
-        CancellationToken ct)
+        CancellationToken cancellationToken)
     {
         using var reader = new StreamReader(stream, Utf8NoBom, leaveOpen: true);
         var lines = new List<string>();
 
         // Cap the wait — if the client never wrote, we'd hang forever.
-        using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         timeoutCts.CancelAfter(TimeSpan.FromSeconds(5));
 
         for (var i = 0; i < expected; i++)

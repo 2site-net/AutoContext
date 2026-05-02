@@ -38,14 +38,14 @@ internal sealed class GetAutoContextConfigFileTask : IMcpTask
 
     public string TaskName => "get_autocontext_config_file";
 
-    public async Task<JsonElement> ExecuteAsync(JsonElement data, CancellationToken ct)
+    public async Task<JsonElement> ExecuteAsync(JsonElement data, CancellationToken cancellationToken)
     {
         var configPath = Path.Combine(_workspaceRoot, ".autocontext.json");
         var mcpTools = new JsonObject();
 
         if (File.Exists(configPath))
         {
-            var json = await File.ReadAllTextAsync(configPath, ct).ConfigureAwait(false);
+            var json = await File.ReadAllTextAsync(configPath, cancellationToken).ConfigureAwait(false);
             using var doc = JsonDocument.Parse(json);
             var root = doc.RootElement;
 

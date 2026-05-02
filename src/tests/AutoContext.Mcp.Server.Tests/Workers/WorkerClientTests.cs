@@ -39,7 +39,7 @@ public sealed class WorkerClientTests
                     serverResponse,
                     WorkerJsonOptions.Instance);
             },
-            ct: TestContext.Current.CancellationToken);
+            cancellationToken: TestContext.Current.CancellationToken);
 
         // Act
         var response = await client.InvokeAsync(
@@ -66,7 +66,7 @@ public sealed class WorkerClientTests
         var serverTask = PipeServerHarness.RunOneShotAsync(
             pipeName,
             handler: _ => null,
-            ct: TestContext.Current.CancellationToken);
+            cancellationToken: TestContext.Current.CancellationToken);
 
         // Act
         var response = await client.InvokeAsync(
@@ -117,7 +117,7 @@ public sealed class WorkerClientTests
         var serverTask = PipeServerHarness.RunOneShotAsync(
             pipeName,
             handler: _ => "not json"u8.ToArray(),
-            ct: TestContext.Current.CancellationToken);
+            cancellationToken: TestContext.Current.CancellationToken);
 
         // Act
         var response = await client.InvokeAsync(

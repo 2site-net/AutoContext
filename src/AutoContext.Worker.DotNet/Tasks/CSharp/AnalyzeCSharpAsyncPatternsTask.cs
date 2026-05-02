@@ -24,7 +24,7 @@ internal sealed class AnalyzeCSharpAsyncPatternsTask : IMcpTask
 {
     public string TaskName => "analyze_csharp_async_patterns";
 
-    public async Task<JsonElement> ExecuteAsync(JsonElement data, CancellationToken ct)
+    public async Task<JsonElement> ExecuteAsync(JsonElement data, CancellationToken cancellationToken)
     {
         if (data.ValueKind != JsonValueKind.Object
             || !data.TryGetProperty("content", out var contentElement)
@@ -40,7 +40,7 @@ internal sealed class AnalyzeCSharpAsyncPatternsTask : IMcpTask
             throw new InvalidOperationException("'data.content' must not be empty or whitespace.");
         }
 
-        var (passed, report) = await BuildReportAsync(content, ct).ConfigureAwait(false);
+        var (passed, report) = await BuildReportAsync(content, cancellationToken).ConfigureAwait(false);
 
         var output = new JsonObject
         {
@@ -51,10 +51,10 @@ internal sealed class AnalyzeCSharpAsyncPatternsTask : IMcpTask
         return JsonSerializer.SerializeToElement(output);
     }
 
-    private static async Task<(bool Passed, string Report)> BuildReportAsync(string content, CancellationToken ct)
+    private static async Task<(bool Passed, string Report)> BuildReportAsync(string content, CancellationToken cancellationToken)
     {
-        var tree = CSharpSyntaxTree.ParseText(content, cancellationToken: ct);
-        var root = await tree.GetRootAsync(ct).ConfigureAwait(false);
+        var tree = CSharpSyntaxTree.ParseText(content, cancellationToken: cancellationToken);
+        var root = await tree.GetRootAsync(cancellationToken).ConfigureAwait(false);
         var violations = new List<string>();
 
         AnalyzeAsyncVoid(root, tree, violations);
@@ -137,7 +137,7 @@ internal sealed class AnalyzeCSharpAsyncPatternsTask : IMcpTask
             var line = tree.GetLineSpan(method.Span).StartLinePosition.Line + 1;
             violations.Add(
                 $"Line {line}: Public async method '{method.Identifier.Text}' is missing a CancellationToken parameter. " +
-                "Add 'CancellationToken ct = default' as the last parameter.");
+                "Add 'CancellationToken cancellationToken = default' as the last parameter.");
         }
     }
 

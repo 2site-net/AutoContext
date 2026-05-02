@@ -24,7 +24,7 @@ public sealed class WorkerControlClientTests
     private static Task RunPersistentAsync(
         string pipeName,
         Func<EnsureRunningRequest, EnsureRunningResponse> handler,
-        CancellationToken ct,
+        CancellationToken cancellationToken,
         Action<int>? onRequest = null) =>
         Task.Run(async () =>
         {
@@ -32,13 +32,13 @@ public sealed class WorkerControlClientTests
 
             await using (server.ConfigureAwait(false))
             {
-                await server.WaitForConnectionAsync(ct).ConfigureAwait(false);
+                await server.WaitForConnectionAsync(cancellationToken).ConfigureAwait(false);
                 var channel = new LengthPrefixedFrameCodec(server);
 
                 var i = 0;
-                while (!ct.IsCancellationRequested)
+                while (!cancellationToken.IsCancellationRequested)
                 {
-                    var requestBytes = await channel.ReadAsync(ct).ConfigureAwait(false);
+                    var requestBytes = await channel.ReadAsync(cancellationToken).ConfigureAwait(false);
                     if (requestBytes is null)
                     {
                         return; // client closed the pipe
@@ -49,10 +49,10 @@ public sealed class WorkerControlClientTests
 
                     var response = handler(request);
                     var responseBytes = SerializeResponse(response);
-                    await channel.WriteAsync(responseBytes, ct).ConfigureAwait(false);
+                    await channel.WriteAsync(responseBytes, cancellationToken).ConfigureAwait(false);
                 }
             }
-        }, ct);
+        }, cancellationToken);
 
     [Fact]
     public async Task Should_no_op_when_pipe_name_is_null_or_empty()

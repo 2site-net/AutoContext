@@ -30,7 +30,7 @@ public sealed class ToolInvokerTests
             pipeName,
             connectionCount: 3,
             handler: requestBytes => OkResponse(requestBytes, output: new { ran = true }),
-            ct: TestContext.Current.CancellationToken);
+            cancellationToken: TestContext.Current.CancellationToken);
 
         // Act
         var envelope = await invoker.InvokeAsync(
@@ -75,7 +75,7 @@ public sealed class ToolInvokerTests
                 observed.Exit();
                 return OkResponse(requestBytes, output: new { ran = true });
             },
-            ct: TestContext.Current.CancellationToken);
+            cancellationToken: TestContext.Current.CancellationToken);
 
         // Act
         var envelope = await invoker.InvokeAsync(
@@ -130,7 +130,7 @@ public sealed class ToolInvokerTests
                 };
                 return JsonSerializer.SerializeToUtf8Bytes(response, WorkerJsonOptions.Instance);
             },
-            ct: TestContext.Current.CancellationToken);
+            cancellationToken: TestContext.Current.CancellationToken);
 
         var observedKeys = new ConcurrentDictionary<string, string[]>();
         var toolServerTask = PipeServerHarness.RunMultiAsync(
@@ -144,7 +144,7 @@ public sealed class ToolInvokerTests
                 observedKeys[request.McpTask] = [.. request.EditorConfig.Keys];
                 return OkResponse(requestBytes, output: new { ran = true });
             },
-            ct: TestContext.Current.CancellationToken);
+            cancellationToken: TestContext.Current.CancellationToken);
 
         var data = JsonSerializer.SerializeToElement(
             new { originalPath = @"C:\repo\Foo.cs" },
@@ -192,7 +192,7 @@ public sealed class ToolInvokerTests
                 }
                 return OkResponse(requestBytes, output: new { ran = true });
             },
-            ct: TestContext.Current.CancellationToken);
+            cancellationToken: TestContext.Current.CancellationToken);
 
         // Act
         var envelope = await invoker.InvokeAsync(
@@ -242,7 +242,7 @@ public sealed class ToolInvokerTests
 
                 return OkResponse(requestBytes, output: new { ran = true });
             },
-            ct: TestContext.Current.CancellationToken);
+            cancellationToken: TestContext.Current.CancellationToken);
 
         // Act
         var envelope = await invoker.InvokeAsync(
@@ -293,7 +293,7 @@ public sealed class ToolInvokerTests
                 observed.Add(request.McpTask);
                 return OkResponse(requestBytes, output: new { ran = true });
             },
-            ct: TestContext.Current.CancellationToken);
+            cancellationToken: TestContext.Current.CancellationToken);
 
         // Act
         var envelope = await invoker.InvokeAsync(

@@ -17,7 +17,7 @@ internal sealed class GetEditorConfigRulesTask : IMcpTask
 {
     public string TaskName => "get_editorconfig_rules";
 
-    public Task<JsonElement> ExecuteAsync(JsonElement data, CancellationToken ct)
+    public Task<JsonElement> ExecuteAsync(JsonElement data, CancellationToken cancellationToken)
     {
         if (data.ValueKind != JsonValueKind.Object
             || !data.TryGetProperty("path", out var pathElement)

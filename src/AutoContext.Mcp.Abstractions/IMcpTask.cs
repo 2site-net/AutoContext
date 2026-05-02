@@ -34,6 +34,6 @@ public interface IMcpTask
     /// <c>data["editorconfig.indent_style"]</c>); missing keys are simply
     /// absent.
     /// </param>
-    /// <param name="ct">Cancellation token threaded from the MCP SDK through the pipe protocol.</param>
-    Task<JsonElement> ExecuteAsync(JsonElement data, CancellationToken ct);
+    /// <param name="cancellationToken">Cancellation token threaded from the MCP SDK through the pipe protocol.</param>
+    Task<JsonElement> ExecuteAsync(JsonElement data, CancellationToken cancellationToken);
 }

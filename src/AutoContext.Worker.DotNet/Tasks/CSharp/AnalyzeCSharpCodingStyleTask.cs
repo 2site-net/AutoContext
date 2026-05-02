@@ -30,7 +30,7 @@ internal sealed partial class AnalyzeCSharpCodingStyleTask : IMcpTask
 {
     public string TaskName => "analyze_csharp_coding_style";
 
-    public async Task<JsonElement> ExecuteAsync(JsonElement data, CancellationToken ct)
+    public async Task<JsonElement> ExecuteAsync(JsonElement data, CancellationToken cancellationToken)
     {
         if (data.ValueKind != JsonValueKind.Object
             || !data.TryGetProperty("content", out var contentElement)
@@ -59,7 +59,7 @@ internal sealed partial class AnalyzeCSharpCodingStyleTask : IMcpTask
             sortSystemFirst,
             expressionBodiedMethods,
             expressionBodiedProperties,
-            ct).ConfigureAwait(false);
+            cancellationToken).ConfigureAwait(false);
 
         var output = new JsonObject
         {
@@ -76,10 +76,10 @@ internal sealed partial class AnalyzeCSharpCodingStyleTask : IMcpTask
         bool sortSystemFirst,
         string? expressionBodiedMethods,
         string? expressionBodiedProperties,
-        CancellationToken ct)
+        CancellationToken cancellationToken)
     {
-        var tree = CSharpSyntaxTree.ParseText(content, cancellationToken: ct);
-        var root = await tree.GetRootAsync(ct).ConfigureAwait(false);
+        var tree = CSharpSyntaxTree.ParseText(content, cancellationToken: cancellationToken);
+        var root = await tree.GetRootAsync(cancellationToken).ConfigureAwait(false);
         var normalized = content.ReplaceLineEndings("\n");
         ReadOnlySpan<char> contentSpan = normalized;
         var lineCount = contentSpan.Count('\n') + 1;

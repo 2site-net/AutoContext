@@ -35,7 +35,7 @@ internal sealed class AnalyzeNuGetHygieneTask : IMcpTask
 
     public string TaskName => "analyze_nuget_hygiene";
 
-    public Task<JsonElement> ExecuteAsync(JsonElement data, CancellationToken ct)
+    public Task<JsonElement> ExecuteAsync(JsonElement data, CancellationToken cancellationToken)
     {
         if (data.ValueKind != JsonValueKind.Object
             || !data.TryGetProperty("content", out var contentElement)

@@ -15,6 +15,6 @@ internal sealed class CriticalThrowingTaskFake : IMcpTask
 
     [SuppressMessage("Usage", "CA2201",
         Justification = "Test fixture intentionally throws a runtime-reserved exception to verify the dispatcher's critical-exception filter.")]
-    public Task<JsonElement> ExecuteAsync(JsonElement data, CancellationToken ct) =>
+    public Task<JsonElement> ExecuteAsync(JsonElement data, CancellationToken cancellationToken) =>
         throw new OutOfMemoryException("simulated OOM");
 }

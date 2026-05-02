@@ -8,6 +8,6 @@ internal sealed class ThrowingTaskFake : IMcpTask
 {
     public string TaskName => "boom";
 
-    public Task<JsonElement> ExecuteAsync(JsonElement data, CancellationToken ct) =>
+    public Task<JsonElement> ExecuteAsync(JsonElement data, CancellationToken cancellationToken) =>
         throw new InvalidOperationException("kaboom");
 }

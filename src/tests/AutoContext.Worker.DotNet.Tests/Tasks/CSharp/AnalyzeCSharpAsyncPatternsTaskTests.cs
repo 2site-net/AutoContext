@@ -12,9 +12,9 @@ public sealed class AnalyzeCSharpAsyncPatternsTaskTests
         var source = """
             public class MyService
             {
-                public async Task LoadAsync(CancellationToken ct = default)
+                public async Task LoadAsync(CancellationToken cancellationToken = default)
                 {
-                    await Task.Delay(100, ct).ConfigureAwait(false);
+                    await Task.Delay(100, cancellationToken).ConfigureAwait(false);
                 }
             }
             """;
@@ -106,7 +106,7 @@ public sealed class AnalyzeCSharpAsyncPatternsTaskTests
         var source = """
             public class MyService
             {
-                public async Task LoadAsync(CancellationToken ct = default) { }
+                public async Task LoadAsync(CancellationToken cancellationToken = default) { }
             }
             """;
 
@@ -124,7 +124,7 @@ public sealed class AnalyzeCSharpAsyncPatternsTaskTests
         var source = """
             public class MyService
             {
-                public async Task LoadAsync(System.Threading.CancellationToken ct = default) { }
+                public async Task LoadAsync(System.Threading.CancellationToken cancellationToken = default) { }
             }
             """;
 
@@ -204,7 +204,7 @@ public sealed class AnalyzeCSharpAsyncPatternsTaskTests
         var source = """
             public class MyService
             {
-                public async Task LoadAsync(CancellationToken ct = default)
+                public async Task LoadAsync(CancellationToken cancellationToken = default)
                 {
                     await Task.Delay(100);
                 }
@@ -230,7 +230,7 @@ public sealed class AnalyzeCSharpAsyncPatternsTaskTests
         var source = """
             public class MyService
             {
-                public async Task LoadAsync(CancellationToken ct = default)
+                public async Task LoadAsync(CancellationToken cancellationToken = default)
                 {
                     await Task.Delay(100).ConfigureAwait(false);
                 }
@@ -251,7 +251,7 @@ public sealed class AnalyzeCSharpAsyncPatternsTaskTests
         var source = """
             public class MyService
             {
-                public async Task LoadAsync(CancellationToken ct = default)
+                public async Task LoadAsync(CancellationToken cancellationToken = default)
                 {
                     await Task.Delay(100).ConfigureAwait(true);
                 }
@@ -299,7 +299,7 @@ public sealed class AnalyzeCSharpAsyncPatternsTaskTests
         var source = """
             public class MyService
             {
-                public async Task LoadAsync(CancellationToken ct = default)
+                public async Task LoadAsync(CancellationToken cancellationToken = default)
                 {
                     await Task.Delay(100);
                     await Task.Delay(200);

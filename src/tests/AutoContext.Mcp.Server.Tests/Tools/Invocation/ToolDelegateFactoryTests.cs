@@ -76,7 +76,7 @@ public sealed class ToolDelegateFactoryTests
 
                 return JsonSerializer.SerializeToUtf8Bytes(response, WorkerJsonOptions.Instance);
             },
-            ct: TestContext.Current.CancellationToken);
+            cancellationToken: TestContext.Current.CancellationToken);
 
         var delegates = ToolDelegateFactory.Build(registry, invoker);
         var data = JsonSerializer.SerializeToElement(new { }, WorkerJsonOptions.Instance);
@@ -121,11 +121,11 @@ public sealed class ToolDelegateFactoryTests
         var alphaServerTask = PipeServerHarness.RunOneShotAsync(
             alphaPipeName,
             handler: requestBytes => BuildMarkedResponse(requestBytes, servedBy: "alpha"),
-            ct: TestContext.Current.CancellationToken);
+            cancellationToken: TestContext.Current.CancellationToken);
         var betaServerTask = PipeServerHarness.RunOneShotAsync(
             betaPipeName,
             handler: requestBytes => BuildMarkedResponse(requestBytes, servedBy: "beta"),
-            ct: TestContext.Current.CancellationToken);
+            cancellationToken: TestContext.Current.CancellationToken);
 
         var delegates = ToolDelegateFactory.Build(registry, invoker);
         var data = JsonSerializer.SerializeToElement(new { }, WorkerJsonOptions.Instance);

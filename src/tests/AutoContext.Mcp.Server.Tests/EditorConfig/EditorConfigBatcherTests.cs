@@ -88,7 +88,7 @@ public sealed class EditorConfigBatcherTests
 
                 return JsonSerializer.SerializeToUtf8Bytes(serverResponse);
             },
-            ct: TestContext.Current.CancellationToken);
+            cancellationToken: TestContext.Current.CancellationToken);
 
         // Act
         var result = await batcher.ResolveAsync(
@@ -133,7 +133,7 @@ public sealed class EditorConfigBatcherTests
 
                 return JsonSerializer.SerializeToUtf8Bytes(serverResponse);
             },
-            ct: TestContext.Current.CancellationToken);
+            cancellationToken: TestContext.Current.CancellationToken);
 
         // Act
         var result = await batcher.ResolveAsync(
@@ -174,7 +174,7 @@ public sealed class EditorConfigBatcherTests
 
                 return JsonSerializer.SerializeToUtf8Bytes(serverResponse);
             },
-            ct: TestContext.Current.CancellationToken);
+            cancellationToken: TestContext.Current.CancellationToken);
 
         // Act
         var result = await batcher.ResolveAsync(
@@ -237,7 +237,7 @@ public sealed class EditorConfigBatcherTests
 
                 return JsonSerializer.SerializeToUtf8Bytes(serverResponse);
             },
-            ct: TestContext.Current.CancellationToken);
+            cancellationToken: TestContext.Current.CancellationToken);
 
         // Act
         var result = await batcher.ResolveAsync(

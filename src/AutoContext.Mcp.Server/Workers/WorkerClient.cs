@@ -102,7 +102,7 @@ public sealed partial class WorkerClient
     public async Task<TaskResponse> InvokeAsync(
         string role,
         TaskRequest request,
-        CancellationToken ct)
+        CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrEmpty(role);
         ArgumentNullException.ThrowIfNull(request);
@@ -110,7 +110,7 @@ public sealed partial class WorkerClient
 
         var address = _addresses.Format(role);
 
-        using var deadlineCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        using var deadlineCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         deadlineCts.CancelAfter(_waitDeadline);
         var token = deadlineCts.Token;
 
@@ -141,14 +141,14 @@ public sealed partial class WorkerClient
                 request.McpTask,
                 $"Worker control could not start '{ex.WorkerId}': {ex.Message}");
         }
-        catch (OperationCanceledException) when (deadlineCts.IsCancellationRequested && !ct.IsCancellationRequested)
+        catch (OperationCanceledException) when (deadlineCts.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
         {
             LogDeadlineExceeded(_logger, request.McpTask, address, _waitDeadline.TotalSeconds);
             return ErrorResponse(
                 request.McpTask,
                 $"Pipe call to '{address}' exceeded the {_waitDeadline.TotalSeconds:0.##}s wait deadline.");
         }
-        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             throw;
         }

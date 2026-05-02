@@ -28,7 +28,7 @@ internal sealed class AnalyzeCSharpTestStyleTask : IMcpTask
 {
     public string TaskName => "analyze_csharp_test_style";
 
-    public async Task<JsonElement> ExecuteAsync(JsonElement data, CancellationToken ct)
+    public async Task<JsonElement> ExecuteAsync(JsonElement data, CancellationToken cancellationToken)
     {
         if (data.ValueKind != JsonValueKind.Object
             || !data.TryGetProperty("content", out var contentElement)
@@ -48,7 +48,7 @@ internal sealed class AnalyzeCSharpTestStyleTask : IMcpTask
         var fileName = string.IsNullOrEmpty(comparedPath) ? string.Empty : Path.GetFileName(comparedPath);
         var originalNamespace = data.TryGetString("originalNamespace") ?? string.Empty;
 
-        var (passed, report) = await BuildReportAsync(content, fileName, originalNamespace, ct).ConfigureAwait(false);
+        var (passed, report) = await BuildReportAsync(content, fileName, originalNamespace, cancellationToken).ConfigureAwait(false);
 
         var output = new JsonObject
         {
@@ -63,10 +63,10 @@ internal sealed class AnalyzeCSharpTestStyleTask : IMcpTask
         string content,
         string fileName,
         string originalNamespace,
-        CancellationToken ct)
+        CancellationToken cancellationToken)
     {
-        var tree = CSharpSyntaxTree.ParseText(content, cancellationToken: ct);
-        var root = await tree.GetRootAsync(ct).ConfigureAwait(false);
+        var tree = CSharpSyntaxTree.ParseText(content, cancellationToken: cancellationToken);
+        var root = await tree.GetRootAsync(cancellationToken).ConfigureAwait(false);
         var violations = new List<string>();
 
         var testClasses = FindTestClasses(root);

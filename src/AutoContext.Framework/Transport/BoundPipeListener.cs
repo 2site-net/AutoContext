@@ -113,7 +113,7 @@ public sealed partial class BoundPipeListener : IAsyncDisposable
 
     [SuppressMessage("Reliability", "CA2000",
         Justification = "Ownership transfers to the caller on success via `ownsPipe = false`; the finally block disposes on every other path.")]
-    private async Task<NamedPipeServerStream?> AcceptAsync(CancellationToken ct)
+    private async Task<NamedPipeServerStream?> AcceptAsync(CancellationToken cancellationToken)
     {
         // Use the pre-bound instance for connection #1, then create a
         // fresh server stream per accept for subsequent connections.
@@ -126,9 +126,9 @@ public sealed partial class BoundPipeListener : IAsyncDisposable
             // On Windows, WaitForConnectionAsync does not reliably
             // honor the cancellation token. Disposing the pipe from
             // the cancellation callback forces the wait to throw.
-            registration = ct.Register(pipe.Dispose);
+            registration = cancellationToken.Register(pipe.Dispose);
 
-            await pipe.WaitForConnectionAsync(ct).ConfigureAwait(false);
+            await pipe.WaitForConnectionAsync(cancellationToken).ConfigureAwait(false);
 
             ownsPipe = false;
             return pipe;
@@ -137,11 +137,11 @@ public sealed partial class BoundPipeListener : IAsyncDisposable
         {
             return null;
         }
-        catch (IOException) when (ct.IsCancellationRequested)
+        catch (IOException) when (cancellationToken.IsCancellationRequested)
         {
             return null;
         }
-        catch (ObjectDisposedException) when (ct.IsCancellationRequested)
+        catch (ObjectDisposedException) when (cancellationToken.IsCancellationRequested)
         {
             return null;
         }
@@ -161,13 +161,13 @@ public sealed partial class BoundPipeListener : IAsyncDisposable
     private async Task InvokeHandlerAsync(
         NamedPipeServerStream pipe,
         Func<Stream, CancellationToken, Task> handler,
-        CancellationToken ct)
+        CancellationToken cancellationToken)
     {
         await using (pipe.ConfigureAwait(false))
         {
             try
             {
-                await handler(pipe, ct).ConfigureAwait(false);
+                await handler(pipe, cancellationToken).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {

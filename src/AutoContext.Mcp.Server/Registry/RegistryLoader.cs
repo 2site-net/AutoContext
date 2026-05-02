@@ -48,7 +48,7 @@ public static partial class RegistryLoader
     public static async Task<McpWorkersCatalog> LoadAsync(
         string path,
         ILogger logger,
-        CancellationToken ct)
+        CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrEmpty(path);
         ArgumentNullException.ThrowIfNull(logger);
@@ -60,7 +60,7 @@ public static partial class RegistryLoader
         {
             try
             {
-                return await JsonSerializer.DeserializeAsync<McpWorkersCatalog>(stream, Options, ct).ConfigureAwait(false)
+                return await JsonSerializer.DeserializeAsync<McpWorkersCatalog>(stream, Options, cancellationToken).ConfigureAwait(false)
                     ?? throw new JsonException($"Registry at '{path}' deserialized to null.");
             }
             catch (JsonException ex)

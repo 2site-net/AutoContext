@@ -31,7 +31,7 @@ public sealed class EndToEndSmokeTests
     public async Task Should_invoke_tools_end_to_end_over_mcp_stdio()
     {
         using var timeoutCts = new CancellationTokenSource(TestTimeout);
-        var ct = timeoutCts.Token;
+        var cancellationToken = timeoutCts.Token;
 
         // Per-window instance id used by every process to format its
         // pipe addresses. Hex characters only — keeps the resulting
@@ -42,13 +42,13 @@ public sealed class EndToEndSmokeTests
             SmokePaths.WorkerDotNetExe,
             instanceId,
             "[AutoContext.Worker.DotNet] Ready.",
-            ct);
+            cancellationToken);
 
         await using var workspaceWorker = await WorkerProcess.StartAsync(
             SmokePaths.WorkerWorkspaceExe,
             instanceId,
             "[AutoContext.Worker.Workspace] Ready.",
-            ct,
+            cancellationToken,
             extraArguments: ["--workspace-root", SmokePaths.WorkspaceRoot]);
 
         var transportOptions = new StdioClientTransportOptions
@@ -59,10 +59,10 @@ public sealed class EndToEndSmokeTests
         };
 
         var transport = new StdioClientTransport(transportOptions);
-        await using var client = await McpClient.CreateAsync(transport, cancellationToken: ct);
+        await using var client = await McpClient.CreateAsync(transport, cancellationToken: cancellationToken);
 
         // 1. tools/list — assert the manifest reached the MCP surface.
-        var tools = await client.ListToolsAsync(cancellationToken: ct);
+        var tools = await client.ListToolsAsync(cancellationToken: cancellationToken);
         var toolNames = tools.Select(t => t.Name).ToHashSet(StringComparer.Ordinal);
         Assert.Multiple(
             () => Assert.Contains("analyze_csharp_code", toolNames),
@@ -78,7 +78,7 @@ public sealed class EndToEndSmokeTests
             {
                 ["content"] = "namespace Demo;\n\npublic class Foo\n{\n}\n",
             },
-            ct);
+            cancellationToken);
 
         Assert.Multiple(
             () => Assert.Equal("analyze_csharp_code", csharpEnvelope.Tool),
@@ -94,7 +94,7 @@ public sealed class EndToEndSmokeTests
             {
                 ["path"] = typeof(EndToEndSmokeTests).Assembly.Location,
             },
-            ct);
+            cancellationToken);
 
         Assert.Multiple(
             () => Assert.Equal("read_editorconfig", editorConfigEnvelope.Tool),

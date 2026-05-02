@@ -119,7 +119,7 @@ public sealed partial class PipePersistentExchangeClient : IPipeExchangeClient
         }
     }
 
-    private async Task<Stream> GetOrConnectAsync(CancellationToken ct)
+    private async Task<Stream> GetOrConnectAsync(CancellationToken cancellationToken)
     {
         if (_pipe is { IsConnected: true })
         {
@@ -129,7 +129,7 @@ public sealed partial class PipePersistentExchangeClient : IPipeExchangeClient
         await ClosePipeAsync().ConfigureAwait(false);
 
         var stream = await _transport.ConnectAsync(
-            _pipeName, _connectTimeoutMs, PipeDirection.InOut, ct).ConfigureAwait(false);
+            _pipeName, _connectTimeoutMs, PipeDirection.InOut, cancellationToken).ConfigureAwait(false);
 
         // PipeTransport.ConnectAsync builds a NamedPipeClientStream
         // and returns it as Stream; we hold it as the concrete type

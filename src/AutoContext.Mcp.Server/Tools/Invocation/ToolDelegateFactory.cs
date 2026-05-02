@@ -74,10 +74,10 @@ public static partial class ToolDelegateFactory
         McpWorker worker,
         McpToolDefinition tool)
     {
-        return async (data, correlationId, ct) =>
+        return async (data, correlationId, cancellationToken) =>
         {
             var envelope = await invoker
-                .InvokeAsync(worker, tool, data, correlationId, ct)
+                .InvokeAsync(worker, tool, data, correlationId, cancellationToken)
                 .ConfigureAwait(false);
 
             return JsonSerializer.Serialize(envelope, WorkerJsonOptions.Instance);
