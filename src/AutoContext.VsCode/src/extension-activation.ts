@@ -17,119 +17,129 @@ import { contextKeys, globalStateKeys } from './ui-constants.js';
 const WORKSPACE_READY_TIMEOUT_MS = 30_000;
 
 /**
+ * Inputs needed to drive the async portion of extension activation.
+ */
+export interface ActivationInputs {
+    readonly context: vscode.ExtensionContext;
+    readonly graph: ExtensionGraph;
+    readonly didChangeEmitter: vscode.EventEmitter<void>;
+    readonly version: string;
+    readonly rootLogger: ChannelLogger;
+}
+
+/**
  * Async portion of extension activation.
  *
- * Runs after `composeExtension()` has wired the graph and after
- * `registerExtensionSurfaces()` has registered VS Code surfaces. Owns
- * detection, the worker-ready barrier, projection, staging cleanup,
- * version-aware disabled-id sweep, the first instructions write, and
- * the initial diagnostics report.
+ * Runs after `ExtensionComposer.compose()` has wired the graph and
+ * after `ExtensionRegistrar.register()` has registered VS Code
+ * surfaces. Owns detection, the worker-ready barrier, projection,
+ * staging cleanup, version-aware disabled-id sweep, the first
+ * instructions write, and the initial diagnostics report.
  *
  * Phases are deliberately sequential where there is a true ordering
  * dependency, and parallel within a phase otherwise.
  */
-export async function runActivationSequence(
-    context: vscode.ExtensionContext,
-    graph: ExtensionGraph,
-    didChangeEmitter: vscode.EventEmitter<void>,
-    version: string,
-    rootLogger: ChannelLogger,
-): Promise<void> {
-    const activationLog = rootLogger.forCategory(LogCategory.Activation);
+export class ExtensionActivator {
+    private readonly activationLog: ChannelLogger;
 
-    // Phase A — workspace detection. Populates `setContext` flags
-    // (hasDotNet, hasTypeScript, …) the MCP provider consults.
-    await graph.workspaceContextDetector.detect();
+    constructor(private readonly inputs: ActivationInputs) {
+        this.activationLog = inputs.rootLogger.forCategory(LogCategory.Activation);
+    }
 
-    // detect() updates workspaceContextDetector state and the
-    // `setContext` flags the MCP provider keys off, but it does not
-    // go through configManager — so the configManager.onDidChange
-    // forwarder wired in registerExtensionSurfaces() does not fire
-    // on detection results. Notify VS Code explicitly so it re-queries
-    // the MCP provider with the full set of detected servers.
-    didChangeEmitter.fire();
+    async run(): Promise<void> {
+        const { graph, didChangeEmitter } = this.inputs;
 
-    // Phase B — wait for Worker.Workspace ready (soft timeout).
-    await waitForWorkspaceReady(graph.workerManager, activationLog);
+        // Phase A — workspace detection. Populates `setContext` flags
+        // (hasDotNet, hasTypeScript, …) the MCP provider consults.
+        await graph.workspaceContextDetector.detect();
 
-    // Phase C — independent fan-out: projection, staging cleanup,
-    // orphan-id sweep. None depend on each other; run in parallel.
-    await Promise.all([
-        graph.configProjector.project(),
-        graph.instructionsWriter.removeOrphanedStagingDirs(),
-        graph.configManager.removeOrphanedIds(),
-    ]);
+        // detect() updates workspaceContextDetector state and the
+        // `setContext` flags the MCP provider keys off, but it does not
+        // go through configManager — so the configManager.onDidChange
+        // forwarder wired in ExtensionRegistrar.register() does not fire
+        // on detection results. Notify VS Code explicitly so it re-queries
+        // the MCP provider with the full set of detected servers.
+        didChangeEmitter.fire();
 
-    // Phase D — version-aware cleanup that depends on projection
-    // having run (above) and on the manifest's catalog versions.
-    const catalogVersions = new Map(
-        graph.instructionsManifest.instructions
-            .filter(e => e.version !== undefined)
-            .map(e => [e.name, e.version!] as const),
-    );
-    const clearedFiles = await graph.configManager.clearStaleDisabledIds(catalogVersions);
-    if (clearedFiles.length > 0) {
-        const names = clearedFiles.map(f => f.replace('.instructions.md', '')).join(', ');
-        void vscode.window.showInformationMessage(
-            `AutoContext: Disabled instructions cleared for ${names} (version updated).`,
+        // Phase B — wait for Worker.Workspace ready (soft timeout).
+        await this.waitForWorkspaceReady(graph.workerManager);
+
+        // Phase C — independent fan-out: projection, staging cleanup,
+        // orphan-id sweep. None depend on each other; run in parallel.
+        await Promise.all([
+            graph.configProjector.project(),
+            graph.instructionsWriter.removeOrphanedStagingDirs(),
+            graph.configManager.removeOrphanedIds(),
+        ]);
+
+        // Phase D — version-aware cleanup that depends on projection
+        // having run (above) and on the manifest's catalog versions.
+        const catalogVersions = new Map(
+            graph.instructionsManifest.instructions
+                .filter(e => e.version !== undefined)
+                .map(e => [e.name, e.version!] as const),
         );
+        const clearedFiles = await graph.configManager.clearStaleDisabledIds(catalogVersions);
+        if (clearedFiles.length > 0) {
+            const names = clearedFiles.map(f => f.replace('.instructions.md', '')).join(', ');
+            void vscode.window.showInformationMessage(
+                `AutoContext: Disabled instructions cleared for ${names} (version updated).`,
+            );
+        }
+
+        // Phase E — first instructions write + version-banner state.
+        await graph.instructionsWriter.write();
+
+        this.applyVersionBanner();
+
+        await graph.diagnosticsReporter.report();
+
+        this.activationLog.info('Activation complete');
     }
 
-    // Phase E — first instructions write + version-banner state.
-    await graph.instructionsWriter.write();
+    private async waitForWorkspaceReady(workerManager: WorkerManager): Promise<void> {
+        let timedOut = false;
+        let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
 
-    applyVersionBanner(context, graph, version);
+        await Promise.race([
+            workerManager.whenWorkspaceReady()
+                .then(() => clearTimeout(timeoutHandle))
+                // If the manager is disposed before the worker signals ready,
+                // whenWorkspaceReady() rejects. Activation has already moved
+                // on (or will, via the timeout branch); absorb the rejection.
+                .catch(() => clearTimeout(timeoutHandle)),
+            new Promise<void>(resolve => {
+                timeoutHandle = setTimeout(() => {
+                    timedOut = true;
+                    resolve();
+                }, WORKSPACE_READY_TIMEOUT_MS);
+            }),
+        ]);
 
-    await graph.diagnosticsReporter.report();
-
-    activationLog.info('Activation complete');
-}
-
-async function waitForWorkspaceReady(workerManager: WorkerManager, log: ChannelLogger): Promise<void> {
-    let timedOut = false;
-    let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
-
-    await Promise.race([
-        workerManager.whenWorkspaceReady()
-            .then(() => clearTimeout(timeoutHandle))
-            // If the manager is disposed before the worker signals ready,
-            // whenWorkspaceReady() rejects. Activation has already moved
-            // on (or will, via the timeout branch); absorb the rejection.
-            .catch(() => clearTimeout(timeoutHandle)),
-        new Promise<void>(resolve => {
-            timeoutHandle = setTimeout(() => {
-                timedOut = true;
-                resolve();
-            }, WORKSPACE_READY_TIMEOUT_MS);
-        }),
-    ]);
-
-    if (timedOut) {
-        log.warn('Timed out waiting for Worker.Workspace ready marker; continuing activation.');
-    } else {
-        log.debug('Worker.Workspace ready');
-    }
-}
-
-function applyVersionBanner(
-    context: vscode.ExtensionContext,
-    graph: ExtensionGraph,
-    version: string,
-): void {
-    const lastSeenVersion = context.globalState.get<string>(globalStateKeys.LastSeenVersion);
-    const hasUpdate = lastSeenVersion !== undefined && lastSeenVersion !== version;
-
-    if (hasUpdate) {
-        graph.instructionsTreeProvider.setBadge(1, 'New version available');
-        graph.instructionsTreeProvider.dismissBadgeOnNextReveal(async () => {
-            await context.globalState.update(globalStateKeys.LastSeenVersion, version);
-        });
+        if (timedOut) {
+            this.activationLog.warn('Timed out waiting for Worker.Workspace ready marker; continuing activation.');
+        } else {
+            this.activationLog.debug('Worker.Workspace ready');
+        }
     }
 
-    if (lastSeenVersion === undefined) {
-        void context.globalState.update(globalStateKeys.LastSeenVersion, version);
-    }
+    private applyVersionBanner(): void {
+        const { context, graph, version } = this.inputs;
+        const lastSeenVersion = context.globalState.get<string>(globalStateKeys.LastSeenVersion);
+        const hasUpdate = lastSeenVersion !== undefined && lastSeenVersion !== version;
 
-    const hasWhatsNew = existsSync(join(context.extensionPath, 'CHANGELOG.md'));
-    void vscode.commands.executeCommand('setContext', contextKeys.HasWhatsNew, hasWhatsNew);
+        if (hasUpdate) {
+            graph.instructionsTreeProvider.setBadge(1, 'New version available');
+            graph.instructionsTreeProvider.dismissBadgeOnNextReveal(async () => {
+                await context.globalState.update(globalStateKeys.LastSeenVersion, version);
+            });
+        }
+
+        if (lastSeenVersion === undefined) {
+            void context.globalState.update(globalStateKeys.LastSeenVersion, version);
+        }
+
+        const hasWhatsNew = existsSync(join(context.extensionPath, 'CHANGELOG.md'));
+        void vscode.commands.executeCommand('setContext', contextKeys.HasWhatsNew, hasWhatsNew);
+    }
 }

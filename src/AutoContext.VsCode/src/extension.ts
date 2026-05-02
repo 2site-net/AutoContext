@@ -3,9 +3,9 @@ import { EXTENSION_NAME } from './ui-constants.js';
 import { OutputChannelLogger } from './output-channel-logger.js';
 import { IdentifierFactory } from './identifier-factory.js';
 import { LogCategory } from 'autocontext-framework-web';
-import { composeExtension } from './extension-composition.js';
-import { registerExtensionSurfaces } from './extension-registrations.js';
-import { runActivationSequence } from './extension-activation.js';
+import { ExtensionComposer } from './extension-composition.js';
+import { ExtensionRegistrar } from './extension-registrations.js';
+import { ExtensionActivator } from './extension-activation.js';
 
 let subscriptions: vscode.Disposable[] | undefined;
 
@@ -14,15 +14,16 @@ let subscriptions: vscode.Disposable[] | undefined;
  *
  * Activation is split into four phases for testability and clarity:
  *
- * 1. **Compose** (sync) — `composeExtension()` builds the entire object
- *    graph in a single linear pass, returning a typed graph.
+ * 1. **Compose** (sync) — `ExtensionComposer.compose()` builds the
+ *    entire object graph in a single linear pass, returning a typed graph.
  * 2. **Bootstrap** (async, minimal) — pre-read the config so tree
  *    providers render with real state, then start named-pipe servers.
- * 3. **Register** (sync) — `registerExtensionSurfaces()` registers all
- *    VS Code commands, providers, and event listeners.
- * 4. **Activate** (async) — `runActivationSequence()` performs detection,
- *    waits on the workspace worker, runs projection / staging / orphan
- *    cleanup, applies the version banner, and emits initial diagnostics.
+ * 3. **Register** (sync) — `ExtensionRegistrar.register()` registers
+ *    all VS Code commands, providers, and event listeners.
+ * 4. **Activate** (async) — `ExtensionActivator.run()` performs
+ *    detection, waits on the workspace worker, runs projection /
+ *    staging / orphan cleanup, applies the version banner, and emits
+ *    initial diagnostics.
  */
 export async function activate(context: vscode.ExtensionContext) {
     if (!vscode.workspace.workspaceFolders?.length) {
@@ -38,14 +39,14 @@ export async function activate(context: vscode.ExtensionContext) {
     activationLogger.info(`Activating AutoContext v${version}`);
 
     // 1. Compose — build the graph synchronously.
-    const graph = composeExtension({
+    const graph = new ExtensionComposer({
         extensionPath: context.extensionPath,
         version,
         workspaceRoot: vscode.workspace.workspaceFolders?.[0]?.uri.fsPath,
         instanceId: IdentifierFactory.createInstanceId(),
         didChangeEmitter,
         rootLogger,
-    });
+    }).compose();
     context.subscriptions.push(...graph.disposables);
 
     // 2. Bootstrap — pre-read config (so tree providers render with real
@@ -59,12 +60,12 @@ export async function activate(context: vscode.ExtensionContext) {
 
     // 3. Register — wire up all VS Code surfaces.
     context.subscriptions.push(
-        ...registerExtensionSurfaces(context, graph, didChangeEmitter, rootLogger),
+        ...new ExtensionRegistrar({ context, graph, didChangeEmitter, rootLogger }).register(),
     );
 
     // 4. Activate — async sequence (detection, worker-ready barrier,
     //    projection, version banner, diagnostics).
-    await runActivationSequence(context, graph, didChangeEmitter, version, rootLogger);
+    await new ExtensionActivator({ context, graph, didChangeEmitter, version, rootLogger }).run();
 
     return {
         mcpServerProvider: graph.mcpServerProvider,
