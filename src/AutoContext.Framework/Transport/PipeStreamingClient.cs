@@ -35,6 +35,7 @@ public sealed partial class PipeStreamingClient<T> : IAsyncDisposable
     private readonly Channel<T> _queue;
     private readonly CancellationTokenSource _cts = new();
     private readonly Task _drainTask;
+    private int _disposed;
 
     /// <summary>
     /// Creates and starts a new streaming client. The drain task runs
@@ -98,6 +99,11 @@ public sealed partial class PipeStreamingClient<T> : IAsyncDisposable
     /// <inheritdoc />
     public async ValueTask DisposeAsync()
     {
+        if (Interlocked.Exchange(ref _disposed, 1) != 0)
+        {
+            return;
+        }
+
         _queue.Writer.TryComplete();
 
         try
