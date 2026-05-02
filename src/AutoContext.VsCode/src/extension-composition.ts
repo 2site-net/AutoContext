@@ -25,22 +25,7 @@ import { HealthMonitorServer } from './health-monitor-server.js';
 import { LogServer } from './log-server.js';
 import { WorkerControlServer } from './worker-control-server.js';
 import { AutoContextConfigServer } from './autocontext-config-server.js';
-
-/**
- * Inputs needed to construct the extension's full object graph.
- *
- * `ExtensionComposer.compose()` is intentionally synchronous and
- * side-effect-free beyond `new` calls — anything that needs to await
- * goes into `ExtensionActivator.run()` instead.
- */
-export interface CompositionInputs {
-    readonly extensionPath: string;
-    readonly version: string;
-    readonly workspaceRoot: string | undefined;
-    readonly instanceId: string;
-    readonly didChangeEmitter: vscode.EventEmitter<void>;
-    readonly rootLogger: ChannelLogger & vscode.Disposable;
-}
+import type { CompositionInputs } from './types/composition-inputs.js';
 
 /**
  * The complete wired extension graph returned by

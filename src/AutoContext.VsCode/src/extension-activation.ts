@@ -3,9 +3,9 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import type { ChannelLogger } from 'autocontext-framework-web';
 import { LogCategory } from 'autocontext-framework-web';
-import type { ExtensionGraph } from './extension-composition.js';
 import type { WorkerManager } from './worker-manager.js';
 import { contextKeys, globalStateKeys } from './ui-constants.js';
+import type { ActivationInputs } from './types/activation-inputs.js';
 
 /**
  * Soft timeout for the `Worker.Workspace` ready barrier during activation.
@@ -15,17 +15,6 @@ import { contextKeys, globalStateKeys } from './ui-constants.js';
  * available, and a warning is logged.
  */
 const WORKSPACE_READY_TIMEOUT_MS = 30_000;
-
-/**
- * Inputs needed to drive the async portion of extension activation.
- */
-export interface ActivationInputs {
-    readonly context: vscode.ExtensionContext;
-    readonly graph: ExtensionGraph;
-    readonly didChangeEmitter: vscode.EventEmitter<void>;
-    readonly version: string;
-    readonly rootLogger: ChannelLogger;
-}
 
 /**
  * Async portion of extension activation.

@@ -1,22 +1,11 @@
 import * as vscode from 'vscode';
 import { join } from 'node:path';
-import type { ChannelLogger } from 'autocontext-framework-web';
 import { LogCategory } from 'autocontext-framework-web';
 import { commandIds } from './ui-constants.js';
 import { AutoConfigurer } from './auto-configurer.js';
 import { instructionScheme } from './instructions-viewer-document-provider.js';
 import { InstructionsFilesTreeProvider } from './instructions-files-tree-provider.js';
-import type { ExtensionGraph } from './extension-composition.js';
-
-/**
- * Inputs needed to register the extension's VS Code surfaces.
- */
-export interface RegistrationInputs {
-    readonly context: vscode.ExtensionContext;
-    readonly graph: ExtensionGraph;
-    readonly didChangeEmitter: vscode.EventEmitter<void>;
-    readonly rootLogger: ChannelLogger;
-}
+import type { RegistrationInputs } from './types/registration-inputs.js';
 
 /**
  * Registers all VS Code surfaces (commands, providers, listeners) for
