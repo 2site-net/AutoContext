@@ -31,7 +31,7 @@ describe('InstructionsFilesMetadataLoader', () => {
             schemaVersion: '1',
             instructions: [
                 {
-                    id: 'alpha',
+                    key: 'alpha',
                     fileName: 'alpha.instructions.md',
                     name: 'alpha (v1.2.3)',
                     version: '1.2.3',
@@ -41,7 +41,7 @@ describe('InstructionsFilesMetadataLoader', () => {
                     sections: [],
                 },
                 {
-                    id: 'beta',
+                    key: 'beta',
                     fileName: 'beta.instructions.md',
                     name: 'beta (v0.1.0)',
                     version: '0.1.0',

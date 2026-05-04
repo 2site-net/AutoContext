@@ -1,7 +1,7 @@
 import type { InstructionsFileSection } from './instructions-file-section.js';
 
 export interface InstructionsFileMetadataEntry {
-    readonly id: string;
+    readonly key: string;
     readonly fileName: string;
     readonly name: string;
     readonly version: string;

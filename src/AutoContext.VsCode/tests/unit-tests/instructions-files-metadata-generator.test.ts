@@ -21,8 +21,8 @@ function curatedManifest(files: readonly CuratedFile[]): string {
     );
 }
 
-function frontmatter(opts: { id: string; description?: string; applyTo?: string; version?: string }): string {
-    const lines = ['---', `name: "${opts.id} (v${opts.version ?? '1.0.0'})"`];
+function frontmatter(opts: { key: string; description?: string; applyTo?: string; version?: string }): string {
+    const lines = ['---', `name: "${opts.key} (v${opts.version ?? '1.0.0'})"`];
     if (opts.description !== undefined) {
         lines.push(`description: "${opts.description}"`);
     }
@@ -62,7 +62,7 @@ describe('generateInstructionsFilesMetadata', () => {
         it('extracts a single ## section', () => {
             writeInstruction(
                 'flat.instructions.md',
-                frontmatter({ id: 'flat', description: 'd' }) + '## Only\n\nbody\n',
+                frontmatter({ key: 'flat', description: 'd' }) + '## Only\n\nbody\n',
             );
             writeCurated([{ name: 'flat.instructions.md' }]);
 
@@ -77,7 +77,7 @@ describe('generateInstructionsFilesMetadata', () => {
         it('attributes ### sections to nearest preceding ## as parent', () => {
             writeInstruction(
                 'grouped.instructions.md',
-                frontmatter({ id: 'grouped', description: 'd' }) +
+                frontmatter({ key: 'grouped', description: 'd' }) +
                     '## Naming\n\n### Types\n\nbody\n### Members\n\nbody\n## Other\n',
             );
             writeCurated([{ name: 'grouped.instructions.md' }]);
@@ -96,7 +96,7 @@ describe('generateInstructionsFilesMetadata', () => {
         it('ignores #### and deeper headings', () => {
             writeInstruction(
                 'deep.instructions.md',
-                frontmatter({ id: 'deep', description: 'd' }) +
+                frontmatter({ key: 'deep', description: 'd' }) +
                     '## Top\n\n#### Skipped\n\n##### Skipped Too\n\n## After\n',
             );
             writeCurated([{ name: 'deep.instructions.md' }]);
@@ -109,7 +109,7 @@ describe('generateInstructionsFilesMetadata', () => {
         it('ignores headings inside fenced code blocks', () => {
             writeInstruction(
                 'fence.instructions.md',
-                frontmatter({ id: 'fence', description: 'd' }) +
+                frontmatter({ key: 'fence', description: 'd' }) +
                     '## Real\n\n```md\n## Not A Heading\n```\n\n## After\n',
             );
             writeCurated([{ name: 'fence.instructions.md' }]);
@@ -122,7 +122,7 @@ describe('generateInstructionsFilesMetadata', () => {
         it('rejects duplicate anchors caused by heading collisions', () => {
             writeInstruction(
                 'dup.instructions.md',
-                frontmatter({ id: 'dup', description: 'd' }) + '## Same\n\n## Same\n',
+                frontmatter({ key: 'dup', description: 'd' }) + '## Same\n\n## Same\n',
             );
             writeCurated([{ name: 'dup.instructions.md' }]);
 
@@ -132,7 +132,7 @@ describe('generateInstructionsFilesMetadata', () => {
         it('produces ascending charStart and charEnd within body length', () => {
             writeInstruction(
                 'offsets.instructions.md',
-                frontmatter({ id: 'offsets', description: 'd' }) + '## A\n\nalpha\n## B\n\nbeta\n',
+                frontmatter({ key: 'offsets', description: 'd' }) + '## A\n\nalpha\n## B\n\nbeta\n',
             );
             writeCurated([{ name: 'offsets.instructions.md' }]);
 
@@ -161,17 +161,17 @@ describe('generateInstructionsFilesMetadata', () => {
             );
             writeCurated([{ name: 'bad.instructions.md' }]);
 
-            expect(() => generateInstructionsFilesMetadata(root)).toThrow(/does not match `<id> \(vX\.Y\.Z\)`/);
+            expect(() => generateInstructionsFilesMetadata(root)).toThrow(/does not match `<key> \(vX\.Y\.Z\)`/);
         });
 
-        it('fails when id portion of name does not match file basename', () => {
+        it('fails when key portion of name does not match file basename', () => {
             writeInstruction(
                 'foo.instructions.md',
-                frontmatter({ id: 'bar', description: 'd' }),
+                frontmatter({ key: 'bar', description: 'd' }),
             );
             writeCurated([{ name: 'foo.instructions.md' }]);
 
-            expect(() => generateInstructionsFilesMetadata(root)).toThrow(/id 'bar' does not equal file basename 'foo'/);
+            expect(() => generateInstructionsFilesMetadata(root)).toThrow(/key 'bar' does not equal file basename 'foo'/);
         });
 
         it('fails when description is missing or empty', () => {
@@ -197,7 +197,7 @@ describe('generateInstructionsFilesMetadata', () => {
         it('omits applyTo from output when absent in source', () => {
             writeInstruction(
                 'no-apply.instructions.md',
-                frontmatter({ id: 'no-apply', description: 'd' }),
+                frontmatter({ key: 'no-apply', description: 'd' }),
             );
             writeCurated([{ name: 'no-apply.instructions.md' }]);
 
@@ -208,7 +208,7 @@ describe('generateInstructionsFilesMetadata', () => {
         it('preserves applyTo in output when present', () => {
             writeInstruction(
                 'with-apply.instructions.md',
-                frontmatter({ id: 'with-apply', description: 'd', applyTo: '**/*.ts' }),
+                frontmatter({ key: 'with-apply', description: 'd', applyTo: '**/*.ts' }),
             );
             writeCurated([{ name: 'with-apply.instructions.md' }]);
 
@@ -218,32 +218,32 @@ describe('generateInstructionsFilesMetadata', () => {
 
     describe('cross-validation against curated manifest', () => {
         it('fails when an instruction file is missing from the curated manifest', () => {
-            writeInstruction('orphan.instructions.md', frontmatter({ id: 'orphan', description: 'd' }));
+            writeInstruction('orphan.instructions.md', frontmatter({ key: 'orphan', description: 'd' }));
             writeCurated([]);
 
             expect(() => generateInstructionsFilesMetadata(root)).toThrow(/orphan\.instructions\.md/);
         });
 
         it('fails when the curated manifest references a missing file', () => {
-            writeInstruction('present.instructions.md', frontmatter({ id: 'present', description: 'd' }));
+            writeInstruction('present.instructions.md', frontmatter({ key: 'present', description: 'd' }));
             writeCurated([{ name: 'present.instructions.md' }, { name: 'missing.instructions.md' }]);
 
             expect(() => generateInstructionsFilesMetadata(root)).toThrow(/missing\.instructions\.md/);
         });
 
         it('exempts copilot.instructions.md from the curated manifest', () => {
-            writeInstruction('copilot.instructions.md', frontmatter({ id: 'copilot', description: 'd' }));
+            writeInstruction('copilot.instructions.md', frontmatter({ key: 'copilot', description: 'd' }));
             writeCurated([]);
 
             const result = generateInstructionsFilesMetadata(root);
-            expect(result.instructions.map(i => i.id)).toEqual(['copilot']);
+            expect(result.instructions.map(i => i.key)).toEqual(['copilot']);
         });
     });
 
     describe('output shape', () => {
         beforeEach(() => {
-            writeInstruction('zebra.instructions.md', frontmatter({ id: 'zebra', description: 'z' }) + '## Z\n');
-            writeInstruction('alpha.instructions.md', frontmatter({ id: 'alpha', description: 'a' }) + '## A\n');
+            writeInstruction('zebra.instructions.md', frontmatter({ key: 'zebra', description: 'z' }) + '## Z\n');
+            writeInstruction('alpha.instructions.md', frontmatter({ key: 'alpha', description: 'a' }) + '## A\n');
             writeCurated([{ name: 'zebra.instructions.md' }, { name: 'alpha.instructions.md' }]);
         });
 
@@ -251,13 +251,13 @@ describe('generateInstructionsFilesMetadata', () => {
             expect(generateInstructionsFilesMetadata(root).schemaVersion).toBe('1');
         });
 
-        it('sorts entries by id ascending', () => {
-            const ids = generateInstructionsFilesMetadata(root).instructions.map(i => i.id);
-            expect(ids).toEqual(['alpha', 'zebra']);
+        it('sorts entries by key ascending', () => {
+            const keys = generateInstructionsFilesMetadata(root).instructions.map(i => i.key);
+            expect(keys).toEqual(['alpha', 'zebra']);
         });
 
         it('extracts version from the name suffix', () => {
-            const map = mapById(generateInstructionsFilesMetadata(root));
+            const map = mapByKey(generateInstructionsFilesMetadata(root));
             expect(map.get('alpha')!.version).toBe('1.0.0');
         });
 
@@ -269,7 +269,7 @@ describe('generateInstructionsFilesMetadata', () => {
         it('reports hasChangelog=true when a sibling .CHANGELOG.md exists', () => {
             writeFileSync(join(instructionsDir, 'alpha.CHANGELOG.md'), '# changes\n');
 
-            const map = mapById(generateInstructionsFilesMetadata(root));
+            const map = mapByKey(generateInstructionsFilesMetadata(root));
             expect(map.get('alpha')!.hasChangelog).toBe(true);
             expect(map.get('zebra')!.hasChangelog).toBe(false);
         });
@@ -281,8 +281,8 @@ describe('generateInstructionsFilesMetadata', () => {
         });
     });
 
-    function mapById(meta: InstructionsFilesMetadata): Map<string, InstructionsFilesMetadata['instructions'][number]> {
-        return new Map(meta.instructions.map(i => [i.id, i]));
+    function mapByKey(meta: InstructionsFilesMetadata): Map<string, InstructionsFilesMetadata['instructions'][number]> {
+        return new Map(meta.instructions.map(i => [i.key, i]));
     }
 
     it('integrates with the real extension root', () => {
@@ -292,9 +292,9 @@ describe('generateInstructionsFilesMetadata', () => {
         expect(meta.schemaVersion).toBe('1');
         expect(meta.instructions.length).toBeGreaterThan(0);
         // copilot is always present.
-        expect(meta.instructions.some(i => i.id === 'copilot')).toBe(true);
+        expect(meta.instructions.some(i => i.key === 'copilot')).toBe(true);
         // Body of code-review is consumed; it has no applyTo.
-        const codeReview = meta.instructions.find(i => i.id === 'code-review');
+        const codeReview = meta.instructions.find(i => i.key === 'code-review');
         expect(codeReview).toBeDefined();
         expect(codeReview!.applyTo).toBeUndefined();
         // Validate offsets reference the on-disk file body.

@@ -37,7 +37,7 @@ export function generateInstructionsFilesMetadata(extensionRoot: string): Instru
 
     crossValidate(entries, extensionRoot);
 
-    entries.sort((a, b) => a.id.localeCompare(b.id));
+    entries.sort((a, b) => a.key.localeCompare(b.key));
 
     return { schemaVersion: SCHEMA_VERSION, instructions: entries };
 }
@@ -57,14 +57,14 @@ function buildEntry(instructionsDir: string, fileName: string): InstructionsFile
     }
     const nameMatch = NAME_PATTERN.exec(frontmatter.name);
     if (!nameMatch) {
-        fail(fileName, `\`name\` does not match \`<id> (vX.Y.Z)\`: '${frontmatter.name}'`);
+        fail(fileName, `\`name\` does not match \`<key> (vX.Y.Z)\`: '${frontmatter.name}'`);
     }
-    const id = nameMatch[1];
+    const key = nameMatch[1];
     const version = nameMatch[2];
 
-    const expectedId = fileName.replace(/\.instructions\.md$/, '');
-    if (id !== expectedId) {
-        fail(fileName, `\`name\` id '${id}' does not equal file basename '${expectedId}'`);
+    const expectedKey = fileName.replace(/\.instructions\.md$/, '');
+    if (key !== expectedKey) {
+        fail(fileName, `\`name\` key '${key}' does not equal file basename '${expectedKey}'`);
     }
 
     const description = frontmatter.description?.trim();
@@ -82,7 +82,7 @@ function buildEntry(instructionsDir: string, fileName: string): InstructionsFile
     const contentHash = 'sha256:' + createHash('sha256').update(normalizedBody, 'utf-8').digest('hex');
 
     return {
-        id,
+        key,
         fileName,
         name: frontmatter.name,
         version,
