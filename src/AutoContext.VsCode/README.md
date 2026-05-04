@@ -83,7 +83,7 @@ No .NET runtime is required — the extension ships self-contained executables.
 Install from the [VS Code Marketplace](https://marketplace.visualstudio.com/) or [Open VSX](https://open-vsx.org/), or install a platform-specific `.vsix` manually from the Extensions view (**Install from VSIX…**) or from the command line:
 
 ```sh
-code --install-extension AutoContext-win32-x64-0.8.0.vsix
+code --install-extension AutoContext-win32-x64-0.9.0.vsix
 ```
 
 Once installed, open Agent mode in Copilot Chat and the AutoContext tools will appear in the tools picker. Ask Copilot things like:
