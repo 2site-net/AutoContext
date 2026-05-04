@@ -3,22 +3,8 @@ name: CI
 on:
   push:
     branches: [main]
-    paths-ignore: &ignored_paths
-      - '*.md'
-      - 'docs/**'
-      - 'assets/**'
-      - '**/*.png'
-      - '**/*.jpg'
-      - '**/*.jpeg'
-      - '**/*.gif'
-      - '**/*.svg'
-      - '**/*.ico'
-      - '**/*.webp'
-      - '.github/workflows/cla.yml'
-      - '.github/workflows/release.yml'
   pull_request:
     branches: [main]
-    paths-ignore: *ignored_paths
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -30,19 +16,60 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v6
 
+      # Decide whether the push touched any code-impacting files.
+      # `paths-filter` requires at least one positive pattern; `**/*`
+      # matches every changed file and the `!`-patterns then carve out
+      # ignorable ones (docs, assets, images, sibling workflows). The
+      # `code` output is 'true' if any non-ignored file changed.
+      #
+      # When 'false', build/test steps short-circuit but the job still
+      # posts a green `test` status check (because the job itself
+      # succeeds), so branch protection on `main` stays satisfied for
+      # doc-only commits without running the full pipeline.
+      - name: Detect changes
+        id: filter
+        uses: dorny/paths-filter@d1c1ffe0248fe513906c8e24db8ea791d46f8590 # v3.0.3
+        with:
+          filters: |
+            code:
+              - '**/*'
+              - '!*.md'
+              - '!docs/**'
+              - '!assets/**'
+              - '!**/*.png'
+              - '!**/*.jpg'
+              - '!**/*.jpeg'
+              - '!**/*.gif'
+              - '!**/*.svg'
+              - '!**/*.ico'
+              - '!**/*.webp'
+              - '!.github/workflows/cla.yml'
+              - '!.github/workflows/release.yml'
+
       - name: Setup .NET
+        if: steps.filter.outputs.code == 'true'
         uses: actions/setup-dotnet@v5
         with:
           dotnet-version: '10.x'
 
       - name: Setup Node.js
+        if: steps.filter.outputs.code == 'true'
         uses: actions/setup-node@v6
         with:
           node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: |
+            src/AutoContext.Framework.Web/package-lock.json
+            src/AutoContext.Worker.Web/package-lock.json
+            src/AutoContext.VsCode/package-lock.json
 
       - name: Build and test
+        if: steps.filter.outputs.code == 'true'
         run: pwsh ./build.ps1
+
+      - name: Skip
+        if: steps.filter.outputs.code != 'true'
+        run: echo "No code changes — full CI not required."
