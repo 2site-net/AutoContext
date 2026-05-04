@@ -6,6 +6,7 @@ publish/
 instructions/.generated/
 instructions/.workspaces/
 resources/servers.json
+resources/instructions-files.metadata.json
 .vscode-test/
 LICENSE
 COMMERCIAL.md
