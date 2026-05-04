@@ -114,7 +114,9 @@ export class InstructionsFileParser {
         const version = result['name'] ? SemVer.fromParentheses(result['name']) : undefined;
 
         return {
+            name: result['name'],
             description: result['description'],
+            applyTo: result['applyTo'],
             version,
         };
     }

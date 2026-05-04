@@ -2,7 +2,9 @@ import type { InstructionsFileParsedSpan } from './instructions-file-parsed-span
 import type { InstructionsFileParserDiagnostic } from './instructions-file-parser-diagnostic.js';
 
 export interface InstructionsFileParsedFrontmatter {
+    readonly name?: string;
     readonly description?: string;
+    readonly applyTo?: string;
     readonly version?: string;
 }
 

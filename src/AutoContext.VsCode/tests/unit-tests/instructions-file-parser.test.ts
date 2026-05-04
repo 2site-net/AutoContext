@@ -37,7 +37,9 @@ name: "my-instruction (v1.2.3)"
 `;
         const { frontmatter } = InstructionsFileParser.parse(content);
 
+        expect.soft(frontmatter.name).toBe('my-instruction (v1.2.3)');
         expect.soft(frontmatter.description).toBe('My instruction file');
+        expect.soft(frontmatter.applyTo).toBeUndefined();
         expect.soft(frontmatter.version).toBe('1.2.3');
     });
 
@@ -53,7 +55,9 @@ name: "scoped (v1.0.0)"
 `;
         const { frontmatter } = InstructionsFileParser.parse(content);
 
+        expect.soft(frontmatter.name).toBe('scoped (v1.0.0)');
         expect.soft(frontmatter.description).toBe('Scoped instructions');
+        expect.soft(frontmatter.applyTo).toBe('**/*.cs');
         expect.soft(frontmatter.version).toBe('1.0.0');
     });
 
@@ -64,7 +68,9 @@ name: "scoped (v1.0.0)"
 `;
         const { frontmatter } = InstructionsFileParser.parse(content);
 
+        expect.soft(frontmatter.name).toBeUndefined();
         expect.soft(frontmatter.description).toBeUndefined();
+        expect.soft(frontmatter.applyTo).toBeUndefined();
         expect.soft(frontmatter.version).toBeUndefined();
     });
 
