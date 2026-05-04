@@ -1,5 +1,5 @@
 /**
- * Optional per-instruction metadata loaded at runtime (description,
+ * Optional instructions files metadata loaded at runtime (description,
  * version, changelog presence) keyed by file name.
  */
 export interface InstructionsFileMetadata {

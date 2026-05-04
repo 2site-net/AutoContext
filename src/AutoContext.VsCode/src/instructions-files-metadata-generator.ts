@@ -1,4 +1,4 @@
-// Builds the instructions-files metadata manifest from each
+// Builds the instructions files metadata manifest from each
 // `instructions/*.instructions.md` source file and writes it to
 // `resources/instructions-files.metadata.json`. Companion of the
 // hand-authored `resources/instructions-files.json`.
@@ -6,7 +6,7 @@
 // Self-executable: tsx src/instructions-files-metadata-generator.ts
 
 import { createHash } from 'node:crypto';
-import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { InstructionsFileParser } from './instructions-file-parser.js';
@@ -32,7 +32,7 @@ export function generateInstructionsFilesMetadata(extensionRoot: string): Instru
 
     const entries: InstructionsFileMetadataEntry[] = [];
     for (const fileName of fileNames) {
-        entries.push(buildEntry(join(instructionsDir, fileName), fileName));
+        entries.push(buildEntry(instructionsDir, fileName));
     }
 
     crossValidate(entries, extensionRoot);
@@ -42,8 +42,11 @@ export function generateInstructionsFilesMetadata(extensionRoot: string): Instru
     return { schemaVersion: SCHEMA_VERSION, instructions: entries };
 }
 
-function buildEntry(filePath: string, fileName: string): InstructionsFileMetadataEntry {
+function buildEntry(instructionsDir: string, fileName: string): InstructionsFileMetadataEntry {
+    const filePath = join(instructionsDir, fileName);
     const content = readFileSync(filePath, 'utf-8');
+    const changelogName = fileName.replace(/\.instructions\.md$/, '.CHANGELOG.md');
+    const hasChangelog = existsSync(join(instructionsDir, changelogName));
     // Only the frontmatter is relevant here; the parser's per-bullet diagnostics
     // (duplicate-id, malformed-id, missing-id) belong to a different consumer
     // and must not gate metadata generation.
@@ -85,6 +88,7 @@ function buildEntry(filePath: string, fileName: string): InstructionsFileMetadat
         version,
         description,
         ...(applyTo !== undefined ? { applyTo } : {}),
+        hasChangelog,
         contentHash,
         sections,
     };

@@ -412,10 +412,10 @@ function Build-TypeScript {
             npm $npmInstallCmd
             if ($LASTEXITCODE -ne 0) { throw 'Extension npm install failed.' }
 
-            Write-Status 'Generating instructions metadata...' 'INFO'
+            Write-Status 'Generating instructions files metadata...' 'INFO'
             npx tsx src/instructions-files-metadata-generator.ts
-            if ($LASTEXITCODE -ne 0) { throw 'Instructions metadata generation failed.' }
-            Write-Status 'Instructions metadata generated' 'OK'
+            if ($LASTEXITCODE -ne 0) { throw 'Instructions files metadata generation failed.' }
+            Write-Status 'Instructions files metadata generated' 'OK'
 
             Write-Status 'Generating chat-instructions manifest...' 'INFO'
             npx tsx src/package-instructions-manifest-generator.ts

@@ -7,6 +7,7 @@ export interface InstructionsFileMetadataEntry {
     readonly version: string;
     readonly description: string;
     readonly applyTo?: string;
+    readonly hasChangelog: boolean;
     readonly contentHash: string;
     readonly sections: readonly InstructionsFileSection[];
 }
