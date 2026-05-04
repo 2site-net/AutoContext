@@ -2,19 +2,13 @@
 
 > **Status:** Future / design note
 >
-> Plumbing-level change to `AutoContext.Mcp.Server` that lets the host (today: the VS Code extension; tomorrow: any embedded host) tell the server "do not register your tools with the MCP SDK on startup." Enables future LM-tool promotion of execution tools (`check_csharp_all`, `read_editorconfig`, etc.) without double-exposure inside VS Code, while leaving the CLI / Inspector / external MCP clients fully intact.
+> Plumbing-level change to `AutoContext.Mcp.Server` that lets the host (today: the VS Code extension; tomorrow: any embedded host) tell the server "do not register your tools with the MCP SDK on startup." Enables future LM-tool promotion of execution tools (`analyze_csharp_code`, `read_editorconfig`, etc.) without double-exposure inside VS Code, while leaving the CLI / Inspector / external MCP clients fully intact.
 
 ## Background
 
 ### "Deferred" MCP tools today
 
-In an agent session, VS Code surfaces MCP tools in an `<availableDeferredTools>` block instead of the default tool list once the count crosses a threshold. AutoContext currently exposes 20+ tools, so its MCP tools are deferred. Examples:
-
-- `mcp_autocontext_d_check_csharp_all`
-- `mcp_autocontext_d_check_nuget_hygiene`
-- `mcp_autocontext_e_get_editorconfig`
-- `mcp_autocontext_g_check_git_all`
-- `mcp_autocontext_t_check_typescript_all`
+In an agent session, VS Code surfaces MCP tools in an `<availableDeferredTools>` block instead of the default tool list once the count crosses a threshold. AutoContext's MCP tools (registered via [`mcp-workers-registry.json`](../../src/AutoContext.Mcp.Server/mcp-workers-registry.json)) get pushed into this bucket today.
 
 Deferred tools are not directly callable. The model must:
 
@@ -26,18 +20,18 @@ Deferred tools are not directly callable. The model must:
 ### The discoverability tax
 
 - The model has to *guess* a relevant tool exists before searching. If it doesn't think to search, it never finds the tool — even when the tool would have been the correct choice.
-- For tools the user wants invoked routinely (e.g. `check_csharp_all` before declaring a C# task done, or `get_editorconfig` before edits), this guess-first model is unreliable.
+- For tools the user wants invoked routinely (e.g. `analyze_csharp_code` before declaring a C# task done, or `read_editorconfig` before edits), this guess-first model is unreliable.
 - "Always-available" tools like `read_file` or `grep_search` don't pay this cost.
 
 ### What "promotion" would look like
 
 VS Code 1.95+ ships `vscode.lm.registerTool()` + `contributes.languageModelTools`. Tools registered this way are first-class chat tools — always-available, `#`-mentionable, never deferred by count.
 
-A future change could promote a curated set of execution tools (e.g. `check_csharp_all`, `check_nuget_hygiene`, `check_git_all`, `read_editorconfig`) to LM tools. The .NET MCP server stays the execution engine; a thin TS shim in the extension wraps each promoted tool and forwards calls to the same MCP server over the existing pipe.
+A future change could promote a curated set of execution tools (e.g. `analyze_csharp_code`, `analyze_nuget_references`, `analyze_git_commit_message`, `read_editorconfig`) to LM tools. The .NET MCP server stays the execution engine; a thin TS shim in the extension wraps each promoted tool and forwards calls to the same MCP server over the existing pipe.
 
 ### Why suppression is needed
 
-If both surfaces are live for the same tool, inside VS Code the model sees it twice — once as `#check_csharp_all` (LM tool) and once as a deferred MCP tool. The MCP-side registration becomes redundant noise: every promoted tool would still appear in `tool_search` results, polluting the deferred surface for no benefit.
+If both surfaces are live for the same tool, inside VS Code the model sees it twice — once as `#analyze_csharp_code` (LM tool) and once as a deferred MCP tool. The MCP-side registration becomes redundant noise: every promoted tool would still appear in `tool_search` results, polluting the deferred surface for no benefit.
 
 The cleanest answer in the embedded VS Code scenario: when LM tools cover the AutoContext surface, suppress *all* MCP-side tool registration. The pipe stays alive for forwarded calls; the MCP `tools/list` is empty.
 
@@ -94,12 +88,12 @@ This satisfies the principle in that doc that the framework / server contains no
 
 ## Where this leaves Feature 1 ("promote MCP tools to LM tools")
 
-The flag is the **prerequisite plumbing** for promotion. Promotion itself — adding LM-tool shims for `check_csharp_all` etc. — is a separate, additive step that depends on this flag being available.
+The flag is the **prerequisite plumbing** for promotion. Promotion itself — adding LM-tool shims for `analyze_csharp_code` etc. — is a separate, additive step that depends on this flag being available.
 
 Whether to actually do the promotion is a deferred decision:
 
 - The instruction-discovery LM tools described in [lm-tool-instructions-discovery.md](lm-tool-instructions-discovery.md) close most of the AutoContext discoverability gap on the instructions side without needing this flag.
-- Execution tools (`check_*`) are called less frequently than instruction lookups; the deferred-via-`tool_search` cost is real but lower-impact than instruction injection failures.
+- Execution tools (`analyze_*`, `read_editorconfig`) are called less frequently than instruction lookups; the deferred-via-`tool_search` cost is real but lower-impact than instruction injection failures.
 - Promotion has its own risk surface (LM-tool result-shape parity, tool budget, capability gaps vs. MCP) worth handling in its own design pass.
 
 The recommendation: **ship the flag now, ship promotion later (or never).** Shipping the flag first is cheap, tested in isolation (with no consumer), and unblocks promotion experimentation when motivation arises.
