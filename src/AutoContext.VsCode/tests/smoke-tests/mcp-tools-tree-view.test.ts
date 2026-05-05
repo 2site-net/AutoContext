@@ -9,37 +9,37 @@ suite('MCP Tools Tree View Smoke Tests', () => {
 
         assert.ok(roots.length > 0, 'Should return at least one root node');
         assert.ok(
-            roots.every((r: { kind: string }) => r.kind === 'serverNode'),
-            'All root elements should be serverNode nodes',
+            roots.every((r: { kind: string }) => r.kind === 'mcpTopCategoryNode'),
+            'All root elements should be mcpTopCategoryNode nodes',
         );
     });
 
-    test('server nodes should contain categories', async () => {
+    test('top categories should contain sub-categories', async () => {
         const { exports } = await activatedExtension();
         const roots = exports.mcpToolsTreeProvider.getChildren();
 
-        for (const serverNode of roots) {
-            const categories = exports.mcpToolsTreeProvider.getChildren(serverNode);
-            assert.ok(categories.length > 0, `Server '${serverNode.name}' should have at least one category`);
+        for (const topCategory of roots) {
+            const subCategories = exports.mcpToolsTreeProvider.getChildren(topCategory);
+            assert.ok(subCategories.length > 0, `Top category '${topCategory.name}' should have at least one sub-category`);
             assert.ok(
-                categories.every((c: { kind: string }) => c.kind === 'categoryNode'),
-                `All children of server '${serverNode.name}' should be categoryNode nodes`,
+                subCategories.every((c: { kind: string }) => c.kind === 'mcpSubCategoryNode'),
+                `All children of top category '${topCategory.name}' should be mcpSubCategoryNode nodes`,
             );
         }
     });
 
-    test('categories should contain tools', async () => {
+    test('sub-categories should contain tools', async () => {
         const { exports } = await activatedExtension();
         const roots = exports.mcpToolsTreeProvider.getChildren();
 
-        for (const serverNode of roots) {
-            const categories = exports.mcpToolsTreeProvider.getChildren(serverNode);
-            for (const category of categories) {
-                const tools = exports.mcpToolsTreeProvider.getChildren(category);
-                assert.ok(tools.length > 0, `Category '${category.name}' should have at least one tool`);
+        for (const topCategory of roots) {
+            const subCategories = exports.mcpToolsTreeProvider.getChildren(topCategory);
+            for (const subCategory of subCategories) {
+                const tools = exports.mcpToolsTreeProvider.getChildren(subCategory);
+                assert.ok(tools.length > 0, `Sub-category '${subCategory.name}' should have at least one tool`);
                 assert.ok(
                     tools.every((t: { kind: string }) => t.kind === 'mcpToolNode'),
-                    `All children of '${category.name}' should be mcpToolNode nodes`,
+                    `All children of '${subCategory.name}' should be mcpToolNode nodes`,
                 );
             }
         }
@@ -50,9 +50,9 @@ suite('MCP Tools Tree View Smoke Tests', () => {
         const roots = exports.mcpToolsTreeProvider.getChildren();
         let compositeCount = 0;
 
-        for (const serverNode of roots) {
-            for (const category of exports.mcpToolsTreeProvider.getChildren(serverNode)) {
-                for (const tool of exports.mcpToolsTreeProvider.getChildren(category)) {
+        for (const topCategory of roots) {
+            for (const subCategory of exports.mcpToolsTreeProvider.getChildren(topCategory)) {
+                for (const tool of exports.mcpToolsTreeProvider.getChildren(subCategory)) {
                     if (tool.tasks && tool.tasks.length > 0) {
                         compositeCount++;
                         const tasks = exports.mcpToolsTreeProvider.getChildren(tool);
@@ -73,13 +73,13 @@ suite('MCP Tools Tree View Smoke Tests', () => {
         const { exports } = await activatedExtension();
         const roots = exports.mcpToolsTreeProvider.getChildren();
 
-        for (const serverNode of roots) {
-            const serverItem = exports.mcpToolsTreeProvider.getTreeItem(serverNode);
-            assert.ok(serverItem.label, `Server item should have a label`);
+        for (const topCategory of roots) {
+            const topCatItem = exports.mcpToolsTreeProvider.getTreeItem(topCategory);
+            assert.ok(topCatItem.label, `Top category item should have a label`);
 
-            for (const category of exports.mcpToolsTreeProvider.getChildren(serverNode)) {
-                const catItem = exports.mcpToolsTreeProvider.getTreeItem(category);
-                assert.ok(catItem.label, `Category item should have a label`);
+            for (const subCategory of exports.mcpToolsTreeProvider.getChildren(topCategory)) {
+                const subCatItem = exports.mcpToolsTreeProvider.getTreeItem(subCategory);
+                assert.ok(subCatItem.label, `Sub-category item should have a label`);
             }
         }
     });
@@ -91,9 +91,9 @@ suite('MCP Tools Tree View Smoke Tests', () => {
         const roots = exports.mcpToolsTreeProvider.getChildren();
         let checked = 0;
 
-        for (const serverNode of roots) {
-            for (const category of exports.mcpToolsTreeProvider.getChildren(serverNode)) {
-                for (const tool of exports.mcpToolsTreeProvider.getChildren(category)) {
+        for (const topCategory of roots) {
+            for (const subCategory of exports.mcpToolsTreeProvider.getChildren(topCategory)) {
+                for (const tool of exports.mcpToolsTreeProvider.getChildren(subCategory)) {
                     const tasks = exports.mcpToolsTreeProvider.getChildren(tool);
                     for (const task of tasks) {
                         const item = exports.mcpToolsTreeProvider.getTreeItem(task);
@@ -118,9 +118,9 @@ suite('MCP Tools Tree View Smoke Tests', () => {
         const roots = exports.mcpToolsTreeProvider.getChildren();
         let notDetectedCount = 0;
 
-        for (const serverNode of roots) {
-            for (const category of exports.mcpToolsTreeProvider.getChildren(serverNode)) {
-                for (const tool of exports.mcpToolsTreeProvider.getChildren(category)) {
+        for (const topCategory of roots) {
+            for (const subCategory of exports.mcpToolsTreeProvider.getChildren(topCategory)) {
+                for (const tool of exports.mcpToolsTreeProvider.getChildren(subCategory)) {
                     // Leaf tools (single task whose name matches the tool name)
                     if (tool.isLeaf && tool.tasks[0]?.state.value === 'notDetected') {
                         const item = exports.mcpToolsTreeProvider.getTreeItem(tool);
@@ -149,15 +149,15 @@ suite('MCP Tools Tree View Smoke Tests', () => {
         const { exports } = await activatedExtension();
         const roots = exports.mcpToolsTreeProvider.getChildren();
 
-        for (const serverNode of roots) {
-            const serverItem = exports.mcpToolsTreeProvider.getTreeItem(serverNode);
-            assert.ok(serverItem.tooltip, `Server '${serverNode.name}' should have a tooltip`);
+        for (const topCategory of roots) {
+            const topCatItem = exports.mcpToolsTreeProvider.getTreeItem(topCategory);
+            assert.ok(topCatItem.tooltip, `Top category '${topCategory.name}' should have a tooltip`);
 
-            for (const category of exports.mcpToolsTreeProvider.getChildren(serverNode)) {
-                const catItem = exports.mcpToolsTreeProvider.getTreeItem(category);
-                assert.ok(catItem.tooltip, `Category '${category.name}' should have a tooltip`);
+            for (const subCategory of exports.mcpToolsTreeProvider.getChildren(topCategory)) {
+                const subCatItem = exports.mcpToolsTreeProvider.getTreeItem(subCategory);
+                assert.ok(subCatItem.tooltip, `Sub-category '${subCategory.name}' should have a tooltip`);
 
-                for (const tool of exports.mcpToolsTreeProvider.getChildren(category)) {
+                for (const tool of exports.mcpToolsTreeProvider.getChildren(subCategory)) {
                     const toolItem = exports.mcpToolsTreeProvider.getTreeItem(tool);
                     assert.ok(toolItem.tooltip, `Tool '${tool.toolName}' should have a tooltip`);
 
@@ -174,9 +174,9 @@ suite('MCP Tools Tree View Smoke Tests', () => {
         const { exports } = await activatedExtension();
         const roots = exports.mcpToolsTreeProvider.getChildren();
 
-        for (const serverNode of roots) {
-            for (const category of exports.mcpToolsTreeProvider.getChildren(serverNode)) {
-                for (const tool of exports.mcpToolsTreeProvider.getChildren(category)) {
+        for (const topCategory of roots) {
+            for (const subCategory of exports.mcpToolsTreeProvider.getChildren(topCategory)) {
+                for (const tool of exports.mcpToolsTreeProvider.getChildren(subCategory)) {
                     for (const task of exports.mcpToolsTreeProvider.getChildren(tool)) {
                         const item = exports.mcpToolsTreeProvider.getTreeItem(task);
                         assert.ok(

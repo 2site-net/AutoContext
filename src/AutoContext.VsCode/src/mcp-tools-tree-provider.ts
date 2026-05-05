@@ -8,8 +8,8 @@ import type { TreeViewStateResolver } from './tree-view-state-resolver.js';
 import type { TreeViewTooltip } from './tree-view-tooltip.js';
 import type { HealthMonitorServer } from './health-monitor-server.js';
 import type { McpServerProvider } from './mcp-server-provider.js';
-import type { TreeViewServerLabelNode } from '#types/tree-view-server-label-node.js';
-import type { McpToolsTreeCategoryNode } from '#types/mcp-tools-tree-category-node.js';
+import type { McpToolsTreeTopCategoryNode } from '#types/mcp-tools-tree-top-category-node.js';
+import type { McpToolsTreeSubCategoryNode } from '#types/mcp-tools-tree-sub-category-node.js';
 import type { McpToolsTreeNode } from '#types/mcp-tools-tree-node.js';
 import type { McpTaskTreeNode } from '#types/mcp-task-tree-node.js';
 import type { AutoContextConfigManager } from './autocontext-config-manager.js';
@@ -17,7 +17,7 @@ import type { AutoContextConfig } from './autocontext-config.js';
 import type { ChannelLogger } from 'autocontext-framework-web';
 import type { McpToolsTreeProviderOptions } from '#types/mcp-tools-tree-provider-options.js';
 
-type TreeElement = TreeViewServerLabelNode | McpToolsTreeCategoryNode | McpToolsTreeNode | McpTaskTreeNode;
+type TreeElement = McpToolsTreeTopCategoryNode | McpToolsTreeSubCategoryNode | McpToolsTreeNode | McpTaskTreeNode;
 
 export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement>, vscode.Disposable {
 
@@ -104,8 +104,8 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
 
     getTreeItem(element: TreeElement): vscode.TreeItem {
         switch (element.kind) {
-            case 'serverNode': return this.serverLabelItem(element);
-            case 'categoryNode': return this.categoryItem(element);
+            case 'mcpTopCategoryNode': return this.mcpTopCategoryItem(element);
+            case 'mcpSubCategoryNode': return this.mcpSubCategoryItem(element);
             case 'mcpToolNode': return this.mcpToolItem(element);
             case 'mcpTaskNode': return this.taskItem(element);
         }
@@ -117,8 +117,8 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
         }
 
         switch (element.kind) {
-            case 'serverNode': return [...element.children];
-            case 'categoryNode': return [...element.children];
+            case 'mcpTopCategoryNode': return [...element.children];
+            case 'mcpSubCategoryNode': return [...element.children];
             case 'mcpToolNode': return element.isLeaf ? [] : this.getVisibleTasks(element);
             default: return [];
         }
@@ -134,15 +134,15 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
         this.refresh();
     }
 
-    private buildTree(): TreeViewServerLabelNode[] {
+    private buildTree(): McpToolsTreeTopCategoryNode[] {
         return this.manifest.topCategories
             .map(topCat => {
-                const children = this.resolveCategories(topCat, this._config);
+                const children = this.resolveSubCategories(topCat, this._config);
                 const totalEntries = this.manifest.tools
                     .filter(t => t.firstCategory === topCat)
                     .reduce((sum, t) => sum + t.tasks.length, 0);
                 return {
-                    kind: 'serverNode' as const,
+                    kind: 'mcpTopCategoryNode' as const,
                     name: topCat.name,
                     workerId: topCat.workerId,
                     children,
@@ -152,7 +152,7 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
             .filter(g => g.children.length > 0);
     }
 
-    private resolveCategories(topCat: McpCategoryEntry, config: AutoContextConfig): McpToolsTreeCategoryNode[] {
+    private resolveSubCategories(topCat: McpCategoryEntry, config: AutoContextConfig): McpToolsTreeSubCategoryNode[] {
         const toolsUnder = this.manifest.tools.filter(t => t.firstCategory === topCat);
         const subCatsUsed = new Set(toolsUnder.map(t => t.lastCategory));
 
@@ -163,8 +163,7 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
                 const children = this.resolveTools(toolsInSubCat, subCat, config);
                 const totalEntries = toolsInSubCat.reduce((sum, t) => sum + t.tasks.length, 0);
                 return {
-                    kind: 'categoryNode' as const,
-                    serverLabel: topCat.name,
+                    kind: 'mcpSubCategoryNode' as const,
                     name: subCat.name,
                     children,
                     totalEntries,
@@ -224,7 +223,7 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
             : vscode.TreeItemCheckboxState.Checked;
     }
 
-    private serverLabelItem(node: TreeViewServerLabelNode): vscode.TreeItem {
+    private mcpTopCategoryItem(node: McpToolsTreeTopCategoryNode): vscode.TreeItem {
         const item = new vscode.TreeItem(node.name, vscode.TreeItemCollapsibleState.Expanded);
         const active = this.countActive(node.children.flatMap(c => c.children));
         item.tooltip = this.tooltip.container(node.name, active, node.totalEntries);
@@ -232,31 +231,31 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
         const status = this.serverProvider?.getServerStatus(node.name);
 
         if (status === 'unavailable') {
-            item.contextValue = 'serverNode.unavailable';
+            item.contextValue = 'mcpTopCategoryNode.unavailable';
             item.iconPath = new vscode.ThemeIcon('circle-filled', new vscode.ThemeColor('disabledForeground'));
             item.tooltip = `${item.tooltip}\nNot detected`;
         } else if (status === 'disabled') {
-            item.contextValue = 'serverNode.disabled';
+            item.contextValue = 'mcpTopCategoryNode.disabled';
             item.iconPath = new vscode.ThemeIcon('circle-filled', new vscode.ThemeColor('disabledForeground'));
             item.tooltip = `${item.tooltip}\nNot active in this workspace`;
         } else if (this.healthMonitor) {
             if (node.workerId !== undefined && this.healthMonitor.isRunning(node.workerId)) {
-                item.contextValue = 'serverNode.running';
+                item.contextValue = 'mcpTopCategoryNode.running';
                 item.iconPath = new vscode.ThemeIcon('circle-filled', new vscode.ThemeColor('testing.iconPassed'));
             } else {
-                item.contextValue = 'serverNode.stopped';
+                item.contextValue = 'mcpTopCategoryNode.stopped';
                 item.iconPath = new vscode.ThemeIcon('circle-filled', new vscode.ThemeColor('testing.iconFailed'));
             }
         } else {
-            item.contextValue = 'serverNode.stopped';
+            item.contextValue = 'mcpTopCategoryNode.stopped';
         }
 
         return item;
     }
 
-    private categoryItem(node: McpToolsTreeCategoryNode): vscode.TreeItem {
+    private mcpSubCategoryItem(node: McpToolsTreeSubCategoryNode): vscode.TreeItem {
         const item = new vscode.TreeItem(node.name, vscode.TreeItemCollapsibleState.Expanded);
-        item.contextValue = 'categoryNode';
+        item.contextValue = 'mcpSubCategoryNode';
         const active = this.countActive(node.children);
         item.tooltip = this.tooltip.container(node.name, active, node.totalEntries);
         return item;

@@ -42,39 +42,39 @@ describe('McpToolsTreeProvider', () => {
     const toolsInSubCategory = (name: string) =>
         manifest.tools.filter(t => t.lastCategory.name === name);
 
-    /** Navigate: root → serverLabel → category → MCP tools */
-    function getMcpTools(provider: McpToolsTreeProvider, serverLabelName: string, categoryName: string) {
-        const serverLabels = provider.getChildren();
-        const serverLabel = serverLabels.find(r => r.kind === 'serverNode' && r.name === serverLabelName)!;
-        const categories = provider.getChildren(serverLabel);
-        const category = categories.find(r => r.kind === 'categoryNode' && r.name === categoryName)!;
-        return provider.getChildren(category);
+    /** Navigate: root → top category → sub-category → MCP tools */
+    function getMcpTools(provider: McpToolsTreeProvider, topCategoryName: string, subCategoryName: string) {
+        const topCategories = provider.getChildren();
+        const topCategory = topCategories.find(r => r.kind === 'mcpTopCategoryNode' && r.name === topCategoryName)!;
+        const subCategories = provider.getChildren(topCategory);
+        const subCategory = subCategories.find(r => r.kind === 'mcpSubCategoryNode' && r.name === subCategoryName)!;
+        return provider.getChildren(subCategory);
     }
 
-    /** Navigate: root → serverLabel → category → MCP tool → tasks */
-    function getTasks(provider: McpToolsTreeProvider, serverLabelName: string, categoryName: string, toolName: string) {
-        const tools = getMcpTools(provider, serverLabelName, categoryName);
+    /** Navigate: root → top category → sub-category → MCP tool → tasks */
+    function getTasks(provider: McpToolsTreeProvider, topCategoryName: string, subCategoryName: string, toolName: string) {
+        const tools = getMcpTools(provider, topCategoryName, subCategoryName);
         const tool = tools.find(r => r.kind === 'mcpToolNode' && r.tool.name === toolName)!;
         return provider.getChildren(tool);
     }
 
-    it('should return server nodes as root elements', () => {
+    it('should return top-category nodes as root elements', () => {
         const provider = new McpToolsTreeProvider({ detector: fakeDetector, manifest, stateResolver, tooltip, configManager: fakeConfigManager, logger });
         const roots = provider.getChildren();
 
-        const names = roots.map(r => r.kind === 'serverNode' ? r.name : '');
+        const names = roots.map(r => r.kind === 'mcpTopCategoryNode' ? r.name : '');
         expect.soft(names).toEqual(['.NET', 'Web', 'Workspace']);
 
         provider.dispose();
     });
 
-    it('should return category nodes as children of a server node', () => {
+    it('should return sub-category nodes as children of a top-category node', () => {
         const provider = new McpToolsTreeProvider({ detector: fakeDetector, manifest, stateResolver, tooltip, configManager: fakeConfigManager, logger });
         const roots = provider.getChildren();
-        const dotnet = roots.find(r => r.kind === 'serverNode' && r.name === '.NET')!;
+        const dotnet = roots.find(r => r.kind === 'mcpTopCategoryNode' && r.name === '.NET')!;
         const categories = provider.getChildren(dotnet);
 
-        const names = categories.map(r => r.kind === 'categoryNode' ? r.name : '');
+        const names = categories.map(r => r.kind === 'mcpSubCategoryNode' ? r.name : '');
         expect.soft(names).toEqual(['C#', 'NuGet']);
 
         provider.dispose();
@@ -182,26 +182,26 @@ describe('McpToolsTreeProvider', () => {
         provider.dispose();
     });
 
-    it('should show server items as expanded with contextValue', () => {
+    it('should show top-category items as expanded with contextValue', () => {
         const provider = new McpToolsTreeProvider({ detector: fakeDetector, manifest, stateResolver, tooltip, configManager: fakeConfigManager, logger });
         const roots = provider.getChildren();
         const item = provider.getTreeItem(roots[0]);
 
         expect.soft(item.collapsibleState).toBe(TreeItemCollapsibleState.Expanded);
-        expect.soft(item.contextValue).toBe('serverNode.stopped');
+        expect.soft(item.contextValue).toBe('mcpTopCategoryNode.stopped');
 
         provider.dispose();
     });
 
-    it('should show category items as expanded with contextValue and no checkbox', () => {
+    it('should show sub-category items as expanded with contextValue and no checkbox', () => {
         const provider = new McpToolsTreeProvider({ detector: fakeDetector, manifest, stateResolver, tooltip, configManager: fakeConfigManager, logger });
         const roots = provider.getChildren();
-        const dotnet = roots.find(r => r.kind === 'serverNode' && r.name === '.NET')!;
+        const dotnet = roots.find(r => r.kind === 'mcpTopCategoryNode' && r.name === '.NET')!;
         const categories = provider.getChildren(dotnet);
         const item = provider.getTreeItem(categories[0]);
 
         expect.soft(item.collapsibleState).toBe(TreeItemCollapsibleState.Expanded);
-        expect.soft(item.contextValue).toBe('categoryNode');
+        expect.soft(item.contextValue).toBe('mcpSubCategoryNode');
         expect.soft(item.checkboxState).toBeUndefined();
 
         provider.dispose();
@@ -338,8 +338,8 @@ describe('McpToolsTreeProvider', () => {
         provider.showNotDetected = false;
 
         const roots = provider.getChildren();
-        // Only Workspace server should remain (EditorConfig has no context keys)
-        const names = roots.map(r => r.kind === 'serverNode' ? r.name : '');
+        // Only Workspace top-category should remain (EditorConfig has no context keys)
+        const names = roots.map(r => r.kind === 'mcpTopCategoryNode' ? r.name : '');
         expect.soft(names).toEqual(['Workspace']);
 
         provider.dispose();
@@ -352,7 +352,7 @@ describe('McpToolsTreeProvider', () => {
         provider.showNotDetected = true;
 
         const roots = provider.getChildren();
-        const names = roots.map(r => r.kind === 'serverNode' ? r.name : '');
+        const names = roots.map(r => r.kind === 'mcpTopCategoryNode' ? r.name : '');
         expect.soft(names).toEqual(['.NET', 'Web', 'Workspace']);
 
         provider.dispose();
@@ -549,7 +549,7 @@ describe('McpToolsTreeProvider', () => {
 
         const provider = new McpToolsTreeProvider({ detector: fakeDetector, manifest, stateResolver, tooltip, configManager: fakeConfigManager, logger });
         const roots = provider.getChildren();
-        const dotnet = roots.find(r => r.kind === 'serverNode' && r.name === '.NET')!;
+        const dotnet = roots.find(r => r.kind === 'mcpTopCategoryNode' && r.name === '.NET')!;
         const item = provider.getTreeItem(dotnet);
         const total = countItems(toolsInTopCategory('.NET'));
 
@@ -563,7 +563,7 @@ describe('McpToolsTreeProvider', () => {
 
         const provider = new McpToolsTreeProvider({ detector: fakeDetector, manifest, stateResolver, tooltip, configManager: fakeConfigManager, logger });
         const roots = provider.getChildren();
-        const workspace = roots.find(r => r.kind === 'serverNode' && r.name === 'Workspace')!;
+        const workspace = roots.find(r => r.kind === 'mcpTopCategoryNode' && r.name === 'Workspace')!;
         const item = provider.getTreeItem(workspace);
         const workspaceTools = toolsInTopCategory('Workspace');
         const total = countItems(workspaceTools);
@@ -579,9 +579,9 @@ describe('McpToolsTreeProvider', () => {
         currentConfig = new AutoContextConfig({ mcpTools: { analyze_csharp_code: { disabledTasks: ['analyze_csharp_async_patterns'] } } });
         const provider = new McpToolsTreeProvider({ detector: fakeDetector, manifest, stateResolver, tooltip, configManager: fakeConfigManager, logger });
         const roots = provider.getChildren();
-        const dotnet = roots.find(r => r.kind === 'serverNode' && r.name === '.NET')!;
+        const dotnet = roots.find(r => r.kind === 'mcpTopCategoryNode' && r.name === '.NET')!;
         const categories = provider.getChildren(dotnet);
-        const csharp = categories.find(r => r.kind === 'categoryNode' && r.name === 'C#')!;
+        const csharp = categories.find(r => r.kind === 'mcpSubCategoryNode' && r.name === 'C#')!;
         const item = provider.getTreeItem(csharp);
         const csharpTools = toolsInSubCategory('C#');
         const total = countItems(csharpTools);
@@ -597,9 +597,9 @@ describe('McpToolsTreeProvider', () => {
 
         const provider = new McpToolsTreeProvider({ detector: fakeDetector, manifest, stateResolver, tooltip, configManager: fakeConfigManager, logger });
         const roots = provider.getChildren();
-        const dotnet = roots.find(r => r.kind === 'serverNode' && r.name === '.NET')!;
+        const dotnet = roots.find(r => r.kind === 'mcpTopCategoryNode' && r.name === '.NET')!;
         const categories = provider.getChildren(dotnet);
-        const csharp = categories.find(r => r.kind === 'categoryNode' && r.name === 'C#')!;
+        const csharp = categories.find(r => r.kind === 'mcpSubCategoryNode' && r.name === 'C#')!;
         const item = provider.getTreeItem(csharp);
         const total = countItems(toolsInSubCategory('C#'));
 
@@ -640,7 +640,7 @@ describe('McpToolsTreeProvider', () => {
 
             const provider = new McpToolsTreeProvider({ detector: fakeDetector, manifest, stateResolver, tooltip, configManager: fakeConfigManager, logger, healthMonitor: hm });
             const roots = provider.getChildren();
-            const dotnet = roots.find(r => r.kind === 'serverNode' && r.name === '.NET')!;
+            const dotnet = roots.find(r => r.kind === 'mcpTopCategoryNode' && r.name === '.NET')!;
             const item = provider.getTreeItem(dotnet);
 
             expect.soft(item.iconPath).toBeInstanceOf(ThemeIcon);
@@ -657,7 +657,7 @@ describe('McpToolsTreeProvider', () => {
 
             const provider = new McpToolsTreeProvider({ detector: fakeDetector, manifest, stateResolver, tooltip, configManager: fakeConfigManager, logger, healthMonitor: hm });
             const roots = provider.getChildren();
-            const dotnet = roots.find(r => r.kind === 'serverNode' && r.name === '.NET')!;
+            const dotnet = roots.find(r => r.kind === 'mcpTopCategoryNode' && r.name === '.NET')!;
             const item = provider.getTreeItem(dotnet);
 
             expect.soft(item.iconPath).toBeInstanceOf(ThemeIcon);
@@ -672,7 +672,7 @@ describe('McpToolsTreeProvider', () => {
         it('should not set iconPath when no health monitor is provided', () => {
             const provider = new McpToolsTreeProvider({ detector: fakeDetector, manifest, stateResolver, tooltip, configManager: fakeConfigManager, logger });
             const roots = provider.getChildren();
-            const dotnet = roots.find(r => r.kind === 'serverNode' && r.name === '.NET')!;
+            const dotnet = roots.find(r => r.kind === 'mcpTopCategoryNode' && r.name === '.NET')!;
             const item = provider.getTreeItem(dotnet);
 
             expect.soft(item.iconPath).toBeUndefined();
@@ -691,14 +691,14 @@ describe('McpToolsTreeProvider', () => {
     });
 
     describe('server status (gray) icons', () => {
-        function createFakeServerProvider(statusFn: (serverLabel: string) => 'unavailable' | 'disabled' | 'available') {
+        function createFakeServerProvider(statusFn: (topCategory: string) => 'unavailable' | 'disabled' | 'available') {
             return { getServerStatus: vi.fn(statusFn) } as unknown as import('../../src/mcp-server-provider').McpServerProvider;
         }
 
         it('should show gray icon when server status is unavailable', () => {
             const sp = createFakeServerProvider(() => 'unavailable');
             const provider = new McpToolsTreeProvider({ detector: fakeDetector, manifest, stateResolver, tooltip, configManager: fakeConfigManager, logger, serverProvider: sp });
-            const dotnet = provider.getChildren().find(r => r.kind === 'serverNode' && r.name === '.NET')!;
+            const dotnet = provider.getChildren().find(r => r.kind === 'mcpTopCategoryNode' && r.name === '.NET')!;
             const item = provider.getTreeItem(dotnet);
 
             expect.soft(item.iconPath).toBeInstanceOf(ThemeIcon);
@@ -712,7 +712,7 @@ describe('McpToolsTreeProvider', () => {
         it('should show gray icon when server status is disabled', () => {
             const sp = createFakeServerProvider(() => 'disabled');
             const provider = new McpToolsTreeProvider({ detector: fakeDetector, manifest, stateResolver, tooltip, configManager: fakeConfigManager, logger, serverProvider: sp });
-            const dotnet = provider.getChildren().find(r => r.kind === 'serverNode' && r.name === '.NET')!;
+            const dotnet = provider.getChildren().find(r => r.kind === 'mcpTopCategoryNode' && r.name === '.NET')!;
             const item = provider.getTreeItem(dotnet);
 
             expect.soft(item.iconPath).toBeInstanceOf(ThemeIcon);
@@ -726,7 +726,7 @@ describe('McpToolsTreeProvider', () => {
         it('should append "Not detected" to tooltip when unavailable', () => {
             const sp = createFakeServerProvider(() => 'unavailable');
             const provider = new McpToolsTreeProvider({ detector: fakeDetector, manifest, stateResolver, tooltip, configManager: fakeConfigManager, logger, serverProvider: sp });
-            const dotnet = provider.getChildren().find(r => r.kind === 'serverNode' && r.name === '.NET')!;
+            const dotnet = provider.getChildren().find(r => r.kind === 'mcpTopCategoryNode' && r.name === '.NET')!;
             const item = provider.getTreeItem(dotnet);
 
             expect.soft(item.tooltip as string).toContain('Not detected');
@@ -737,7 +737,7 @@ describe('McpToolsTreeProvider', () => {
         it('should append "Not active in this workspace" to tooltip when disabled', () => {
             const sp = createFakeServerProvider(() => 'disabled');
             const provider = new McpToolsTreeProvider({ detector: fakeDetector, manifest, stateResolver, tooltip, configManager: fakeConfigManager, logger, serverProvider: sp });
-            const dotnet = provider.getChildren().find(r => r.kind === 'serverNode' && r.name === '.NET')!;
+            const dotnet = provider.getChildren().find(r => r.kind === 'mcpTopCategoryNode' && r.name === '.NET')!;
             const item = provider.getTreeItem(dotnet);
 
             expect.soft(item.tooltip as string).toContain('Not active in this workspace');
@@ -749,7 +749,7 @@ describe('McpToolsTreeProvider', () => {
             const sp = createFakeServerProvider(() => 'available');
             const hm = createFakeHealthMonitor({ isRunning: () => true });
             const provider = new McpToolsTreeProvider({ detector: fakeDetector, manifest, stateResolver, tooltip, configManager: fakeConfigManager, logger, healthMonitor: hm, serverProvider: sp });
-            const dotnet = provider.getChildren().find(r => r.kind === 'serverNode' && r.name === '.NET')!;
+            const dotnet = provider.getChildren().find(r => r.kind === 'mcpTopCategoryNode' && r.name === '.NET')!;
             const item = provider.getTreeItem(dotnet);
 
             const icon = item.iconPath as InstanceType<typeof ThemeIcon>;
@@ -760,7 +760,7 @@ describe('McpToolsTreeProvider', () => {
 
         it('should show no icon when no serverProvider and no healthMonitor', () => {
             const provider = new McpToolsTreeProvider({ detector: fakeDetector, manifest, stateResolver, tooltip, configManager: fakeConfigManager, logger });
-            const dotnet = provider.getChildren().find(r => r.kind === 'serverNode' && r.name === '.NET')!;
+            const dotnet = provider.getChildren().find(r => r.kind === 'mcpTopCategoryNode' && r.name === '.NET')!;
             const item = provider.getTreeItem(dotnet);
 
             expect.soft(item.iconPath).toBeUndefined();

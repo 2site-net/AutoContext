@@ -123,15 +123,16 @@ export class McpServerProvider implements vscode.McpServerDefinitionProvider {
     }
 
     /**
-     * Returns the availability status of a (legacy) server label for use in
-     * UI indicators. Every legacy label now resolves to the same single
-     * Mcp.Server binary; the UI-side collapse happens in a later phase.
+     * Returns the availability status of the (single) MCP server for use in
+     * UI indicators on a top-level category node. Every category currently
+     * resolves to the same Mcp.Server binary; the parameter is reserved for
+     * a future per-category server split.
      *
      * - `'unavailable'`: the Mcp.Server binary does not exist on disk.
      * - `'disabled'`: the binary exists but every tool is disabled in settings.
      * - `'available'`: the binary exists and at least one tool is enabled.
      */
-    getServerStatus(_serverLabel: string): 'unavailable' | 'disabled' | 'available' {
+    getServerStatus(_topCategoryName: string): 'unavailable' | 'disabled' | 'available' {
         if (!existsSync(this.mcpServerBinary)) {
             return 'unavailable';
         }
@@ -140,10 +141,10 @@ export class McpServerProvider implements vscode.McpServerDefinitionProvider {
 
     /**
      * Returns the VS Code internal definition IDs a tree node's command
-     * should target. All legacy labels map to the single Mcp.Server
-     * definition id until the UI is collapsed.
+     * should target. All categories map to the single Mcp.Server
+     * definition id until per-category servers are introduced.
      */
-    getDefinitionIds(_serverLabel: string): string[] {
+    getDefinitionIds(_topCategoryName: string): string[] {
         return [`${extensionId}/${mcpServerDefinitionLabel}`];
     }
 
