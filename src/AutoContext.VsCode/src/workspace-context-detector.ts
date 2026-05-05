@@ -265,6 +265,10 @@ export class WorkspaceContextDetector implements vscode.Disposable {
         return this._overriddenContextKeys;
     }
 
+    hasOverriddenFile(fileName: string): boolean {
+        return this._overriddenFileNames.has(fileName);
+    }
+
     getOverrideVersion(fileName: string): string | undefined {
         return this._overrideVersions.get(fileName);
     }

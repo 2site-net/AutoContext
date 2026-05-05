@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { createHash } from 'node:crypto';
 import type { InstructionsFilesManifest } from './instructions-files-manifest.js';
 import { InstructionsFileParser } from './instructions-file-parser.js';
+import { InstructionsRulesUtils } from './instructions-rules-utils.js';
 import type { AutoContextConfigManager } from './autocontext-config-manager.js';
 import type { ChannelLogger } from 'autocontext-framework-web';
 
@@ -176,14 +177,8 @@ export class InstructionsFilesManager implements vscode.Disposable {
             content = lines.filter((_, i) => !linesToRemove.has(i)).join('\n');
         }
 
-        content = InstructionsFilesManager.stripInstructionIds(content);
+        content = InstructionsRulesUtils.stripAllRulesIds(content);
         await this.writeIfChanged(dest, content);
-    }
-
-    private static readonly instructionIdTag = /\[INST\d{4}\]\s*/g;
-
-    private static stripInstructionIds(content: string): string {
-        return content.replace(InstructionsFilesManager.instructionIdTag, '');
     }
 
     private static workspaceHash(): string {
