@@ -30,6 +30,8 @@ export class InstructionsFilesMetadataLoader
                 description: entry.description,
                 version: entry.version,
                 hasChangelog: entry.hasChangelog,
+                applyTo: entry.applyTo,
+                sections: entry.sections,
             });
         }
         return map;
