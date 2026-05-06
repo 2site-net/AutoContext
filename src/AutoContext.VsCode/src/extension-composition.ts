@@ -18,6 +18,14 @@ import { InstructionsFilesDiagnosticsRunner } from './instructions-files-diagnos
 import { AutoContextConfigProjector } from './autocontext-config-projector.js';
 import { InstructionsFilesTreeProvider } from './instructions-files-tree-provider.js';
 import { InstructionsFilesMetadataLoader } from './instructions-files-metadata-loader.js';
+import { InstructionsFilesLmToolsApplyToMatcher } from './instructions-files-lm-tools-apply-to-matcher.js';
+import { InstructionsFilesLmToolsMetadataPredicate } from './instructions-files-lm-tools-metadata-predicate.js';
+import { InstructionsFilesLmToolsMetadataViews } from './instructions-files-lm-tools-metadata-views.js';
+import { InstructionsFilesLmToolsContentSearch } from './instructions-files-lm-tools-content-search.js';
+import { InstructionsFilesLmToolsListHandler } from './instructions-files-lm-tools-list-handler.js';
+import { InstructionsFilesLmToolsSearchByMetadataHandler } from './instructions-files-lm-tools-search-by-metadata-handler.js';
+import { InstructionsFilesLmToolsSearchByContentHandler } from './instructions-files-lm-tools-search-by-content-handler.js';
+import { InstructionsFilesLmToolsGetHandler } from './instructions-files-lm-tools-get-handler.js';
 import { McpToolsManifestLoader } from './mcp-tools-manifest-loader.js';
 import { McpToolsTreeProvider } from './mcp-tools-tree-provider.js';
 import { TreeViewTooltip } from './tree-view-tooltip.js';
@@ -158,6 +166,30 @@ export class ExtensionComposer {
         const diagnosticsRunner = new InstructionsFilesDiagnosticsRunner(extensionPath, configManager, instructionsManifest);
         const diagnosticsReporter = new InstructionsFilesDiagnosticsReporter(diagnosticsRunner, rootLogger);
 
+        // 6. LM-tool surface (instructions discovery).
+        const lmToolsApplyToMatcher = new InstructionsFilesLmToolsApplyToMatcher(log(LogCategory.Instructions));
+        const lmToolsMetadataPredicate = new InstructionsFilesLmToolsMetadataPredicate(lmToolsApplyToMatcher);
+        const lmToolsMetadataViews = new InstructionsFilesLmToolsMetadataViews(instructionsManifest, instructionsMetadata);
+        const lmToolsContentSearch = new InstructionsFilesLmToolsContentSearch(
+            instructionsManifest,
+            instructionsContentProjector,
+            instructionsOverrideWatcher,
+            log(LogCategory.Instructions),
+        );
+        const lmToolsSearchByMetadataHandler = new InstructionsFilesLmToolsSearchByMetadataHandler(
+            instructionsManifest,
+            lmToolsMetadataViews,
+            lmToolsMetadataPredicate,
+        );
+        const lmToolsListHandler = new InstructionsFilesLmToolsListHandler(lmToolsSearchByMetadataHandler);
+        const lmToolsSearchByContentHandler = new InstructionsFilesLmToolsSearchByContentHandler(
+            instructionsManifest,
+            lmToolsContentSearch,
+            lmToolsApplyToMatcher,
+            instructionsMetadata,
+        );
+        const lmToolsGetHandler = new InstructionsFilesLmToolsGetHandler(instructionsManifest, instructionsContentProjector);
+
         // Disposables that activate() should push onto context.subscriptions.
         // Order matches the original extension.ts for behavioural parity.
         const disposables: readonly vscode.Disposable[] = [
@@ -179,6 +211,7 @@ export class ExtensionComposer {
             instructionsTreeProvider,
             mcpToolsTreeProvider,
             mcpServerProvider,
+            lmToolsContentSearch,
         ];
 
         return {
@@ -211,6 +244,11 @@ export class ExtensionComposer {
             // Diagnostics
             diagnosticsRunner,
             diagnosticsReporter,
+            // LM tools (instructions discovery)
+            lmToolsListHandler,
+            lmToolsSearchByMetadataHandler,
+            lmToolsSearchByContentHandler,
+            lmToolsGetHandler,
             // Lifecycle
             disposables,
         };

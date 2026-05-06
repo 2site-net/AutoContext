@@ -37,6 +37,10 @@ export class ExtensionRegistrar {
             mcpToolsManifest,
             workspaceContextDetector,
             diagnosticsReporter,
+            lmToolsListHandler,
+            lmToolsSearchByMetadataHandler,
+            lmToolsSearchByContentHandler,
+            lmToolsGetHandler,
         } = graph;
 
         const diagnosticsLogger = rootLogger.forCategory(LogCategory.Diagnostics);
@@ -144,6 +148,14 @@ export class ExtensionRegistrar {
                     await vscode.commands.executeCommand('workbench.mcp.showOutput', id);
                 }
             }),
+
+            // Language Model tools — instructions discovery surface.
+            // Tool names must match the `name` fields declared in
+            // package.json's `contributes.languageModelTools` block.
+            vscode.lm.registerTool('list_autocontext_instructions_files', lmToolsListHandler),
+            vscode.lm.registerTool('search_autocontext_instructions_files_by_metadata', lmToolsSearchByMetadataHandler),
+            vscode.lm.registerTool('search_autocontext_instructions_files_by_content', lmToolsSearchByContentHandler),
+            vscode.lm.registerTool('get_autocontext_instructions_file', lmToolsGetHandler),
         ];
     }
 }
