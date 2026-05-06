@@ -61,19 +61,19 @@ describe('AutoContextConfig.isToolEnabled', () => {
 });
 
 describe('AutoContextConfig.projectDisabledState', () => {
-    it('returns empty lists when mcpTools is missing', () => {
+    it('should return empty lists when mcpTools is missing', () => {
         const snapshot = new AutoContextConfig().getToolsDisabledSnapshot();
         expect(snapshot.disabledTools).toEqual([]);
         expect(snapshot.disabledTasks).toEqual({});
     });
 
-    it('treats shorthand false as a disabled tool with no disabled tasks', () => {
+    it('should treat shorthand false as a disabled tool with no disabled tasks', () => {
         const snapshot = new AutoContextConfig({ mcpTools: { analyze_csharp_code: false } }).getToolsDisabledSnapshot();
         expect(snapshot.disabledTools).toEqual(['analyze_csharp_code']);
         expect(snapshot.disabledTasks).toEqual({});
     });
 
-    it('treats { enabled: false } as a disabled tool', () => {
+    it('should treat { enabled: false } as a disabled tool', () => {
         const snapshot = new AutoContextConfig({
             mcpTools: { analyze_csharp_code: { enabled: false } },
         }).getToolsDisabledSnapshot();
@@ -81,7 +81,7 @@ describe('AutoContextConfig.projectDisabledState', () => {
         expect(snapshot.disabledTasks).toEqual({});
     });
 
-    it('records disabledTasks even when the parent tool is enabled', () => {
+    it('should record disabledTasks even when the parent tool is enabled', () => {
         const snapshot = new AutoContextConfig({
             mcpTools: { analyze_csharp_code: { disabledTasks: ['analyze_csharp_coding_style'] } },
         }).getToolsDisabledSnapshot();
@@ -91,7 +91,7 @@ describe('AutoContextConfig.projectDisabledState', () => {
         });
     });
 
-    it('records both the disabled parent and disabled tasks when both are set', () => {
+    it('should record both the disabled parent and disabled tasks when both are set', () => {
         const snapshot = new AutoContextConfig({
             mcpTools: {
                 analyze_csharp_code: {
@@ -106,14 +106,14 @@ describe('AutoContextConfig.projectDisabledState', () => {
         });
     });
 
-    it('skips empty disabledTasks arrays', () => {
+    it('should skip empty disabledTasks arrays', () => {
         const snapshot = new AutoContextConfig({
             mcpTools: { analyze_csharp_code: { disabledTasks: [] } },
         }).getToolsDisabledSnapshot();
         expect(snapshot.disabledTasks).toEqual({});
     });
 
-    it('omits enabled tools that have no disabled tasks', () => {
+    it('should omit enabled tools that have no disabled tasks', () => {
         const snapshot = new AutoContextConfig({
             mcpTools: { analyze_csharp_code: { version: '1.0.0' } },
         }).getToolsDisabledSnapshot();
@@ -121,7 +121,7 @@ describe('AutoContextConfig.projectDisabledState', () => {
         expect(snapshot.disabledTasks).toEqual({});
     });
 
-    it('does not share disabledTasks references with the source config', () => {
+    it('should not share disabledTasks references with the source config', () => {
         const tasks = ['analyze_csharp_coding_style'];
         const snapshot = new AutoContextConfig({
             mcpTools: { analyze_csharp_code: { disabledTasks: tasks } },

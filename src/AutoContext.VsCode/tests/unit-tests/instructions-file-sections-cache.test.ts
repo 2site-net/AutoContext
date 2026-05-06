@@ -3,7 +3,7 @@ import { InstructionsFileSectionsCache } from '#src/instructions-file-sections-c
 import { InstructionsFileSectionsParser } from '#src/instructions-file-sections-parser';
 
 describe('InstructionsFileSectionsCache', () => {
-    it('parses on first miss and returns the same array reference on subsequent hits', () => {
+    it('should parse on first miss and return the same array reference on subsequent hits', () => {
         const cache = new InstructionsFileSectionsCache();
         const body = '## Alpha\n\ntext\n## Bravo\n';
 
@@ -14,7 +14,7 @@ describe('InstructionsFileSectionsCache', () => {
         expect(first.map(s => s.heading)).toEqual(['Alpha', 'Bravo']);
     });
 
-    it('keys by body content, so different bodies do not collide', () => {
+    it('should key by body content, so different bodies do not collide', () => {
         const cache = new InstructionsFileSectionsCache();
         const a = cache.get('## A\n');
         const b = cache.get('## B\n');
@@ -24,7 +24,7 @@ describe('InstructionsFileSectionsCache', () => {
         expect(b[0].heading).toBe('B');
     });
 
-    it('avoids re-parsing on a hit', () => {
+    it('should avoid re-parsing on a hit', () => {
         const parseSpy = vi.spyOn(InstructionsFileSectionsParser, 'parse');
         const cache = new InstructionsFileSectionsCache();
         const body = '## Hit\n';
@@ -37,7 +37,7 @@ describe('InstructionsFileSectionsCache', () => {
         parseSpy.mockRestore();
     });
 
-    it('evicts the least-recently-used entry when capacity is exceeded', () => {
+    it('should evict the least-recently-used entry when capacity is exceeded', () => {
         const cache = new InstructionsFileSectionsCache(2);
 
         const a = cache.get('## A\n');
@@ -55,7 +55,7 @@ describe('InstructionsFileSectionsCache', () => {
         parseSpy.mockRestore();
     });
 
-    it('promotes a hit to most-recently-used so it survives the next eviction', () => {
+    it('should promote a hit to most-recently-used so it survives the next eviction', () => {
         const cache = new InstructionsFileSectionsCache(2);
 
         cache.get('## A\n');
@@ -70,7 +70,7 @@ describe('InstructionsFileSectionsCache', () => {
         parseSpy.mockRestore();
     });
 
-    it('rejects non-positive capacity', () => {
+    it('should reject non-positive capacity', () => {
         expect(() => new InstructionsFileSectionsCache(0)).toThrow(/maxEntries/);
         expect(() => new InstructionsFileSectionsCache(-1)).toThrow(/maxEntries/);
     });

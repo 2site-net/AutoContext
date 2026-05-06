@@ -26,7 +26,7 @@ describe('InstructionsFilesMetadataLoader', () => {
         );
     }
 
-    it('projects metadata into a map keyed by file name', () => {
+    it('should project metadata into a map keyed by file name', () => {
         writeMetadata({
             schemaVersion: '1',
             instructions: [
@@ -72,7 +72,7 @@ describe('InstructionsFilesMetadataLoader', () => {
         });
     });
 
-    it('returns an empty map for an empty manifest', () => {
+    it('should return an empty map for an empty manifest', () => {
         writeMetadata({ schemaVersion: '1', instructions: [] });
 
         const map = new InstructionsFilesMetadataLoader(root).load();
@@ -80,7 +80,7 @@ describe('InstructionsFilesMetadataLoader', () => {
         expect(map.size).toBe(0);
     });
 
-    it("fails when the 'instructions' array is missing", () => {
+    it("should fail when the 'instructions' array is missing", () => {
         writeFileSync(
             join(resourcesDir, 'instructions-files.metadata.json'),
             JSON.stringify({ schemaVersion: '1' }) + '\n',
@@ -91,7 +91,7 @@ describe('InstructionsFilesMetadataLoader', () => {
         );
     });
 
-    it('surfaces JSON parse failures with file context', () => {
+    it('should surface JSON parse failures with file context', () => {
         writeFileSync(join(resourcesDir, 'instructions-files.metadata.json'), '{ not json');
 
         expect(() => new InstructionsFilesMetadataLoader(root).load()).toThrow(

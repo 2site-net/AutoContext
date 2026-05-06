@@ -72,16 +72,16 @@ describe('WorkerControlServer', () => {
         server.dispose();
     });
 
-    it('exposes a deterministic pipe name keyed off the instance id', () => {
+    it('should expose a deterministic pipe name keyed off the instance id', () => {
         expect(server.getPipeName()).toBe(`autocontext.worker-control#${SUFFIX}`);
     });
 
-    it('rejects construction when instance id is empty', () => {
+    it('should reject construction when instance id is empty', () => {
         expect(() => new WorkerControlServer(workerManager, entries, '', logger))
             .toThrow(/Instance id must be a non-empty string/);
     });
 
-    it('responds with status: ready and forwards the slot identity to ensureRunning', async () => {
+    it('should respond with status: ready and forward the slot identity to ensureRunning', async () => {
         const socket = await connectClient(server.getPipeName());
         socket.write(frame({ type: 'ensureRunning', workerId: 'workspace' }));
 
@@ -93,7 +93,7 @@ describe('WorkerControlServer', () => {
         socket.destroy();
     });
 
-    it('translates an unknown worker id to status: failed without calling ensureRunning', async () => {
+    it('should translate an unknown worker id to status: failed without calling ensureRunning', async () => {
         const socket = await connectClient(server.getPipeName());
         socket.write(frame({ type: 'ensureRunning', workerId: 'bogus' }));
 
@@ -106,7 +106,7 @@ describe('WorkerControlServer', () => {
         socket.destroy();
     });
 
-    it('translates an ensureRunning rejection to status: failed with the error message', async () => {
+    it('should translate an ensureRunning rejection to status: failed with the error message', async () => {
         ensureRunning.mockRejectedValueOnce(new Error('spawn ENOENT'));
         const socket = await connectClient(server.getPipeName());
         socket.write(frame({ type: 'ensureRunning', workerId: 'dotnet' }));
@@ -118,7 +118,7 @@ describe('WorkerControlServer', () => {
         socket.destroy();
     });
 
-    it('handles multiple sequential requests on a persistent connection', async () => {
+    it('should handle multiple sequential requests on a persistent connection', async () => {
         const socket = await connectClient(server.getPipeName());
         socket.write(frame({ type: 'ensureRunning', workerId: 'workspace' }));
         const first = await readOneResponse(socket);
@@ -134,7 +134,7 @@ describe('WorkerControlServer', () => {
         socket.destroy();
     });
 
-    it('drops the connection when a malformed length is received', async () => {
+    it('should drop the connection when a malformed length is received', async () => {
         const socket = await connectClient(server.getPipeName());
         const closed = new Promise<void>(resolve => socket.once('close', () => resolve()));
 
@@ -147,7 +147,7 @@ describe('WorkerControlServer', () => {
         expect(ensureRunning).not.toHaveBeenCalled();
     });
 
-    it('drops malformed JSON without sending a response and keeps the connection alive', async () => {
+    it('should drop malformed JSON without sending a response and keep the connection alive', async () => {
         const socket = await connectClient(server.getPipeName());
 
         // Send a length-framed payload that is not valid JSON, then a
@@ -167,7 +167,7 @@ describe('WorkerControlServer', () => {
         socket.destroy();
     });
 
-    it('drops requests with an unknown type without responding', async () => {
+    it('should drop requests with an unknown type without responding', async () => {
         const socket = await connectClient(server.getPipeName());
         socket.write(frame({ type: 'unknownThing', workerId: 'workspace' }));
 
@@ -185,7 +185,7 @@ describe('WorkerControlServer', () => {
         socket.destroy();
     });
 
-    it('cleans up open sockets when disposed', async () => {
+    it('should clean up open sockets when disposed', async () => {
         const socket = await connectClient(server.getPipeName());
         const closed = new Promise<void>(resolve => socket.once('close', () => resolve()));
 

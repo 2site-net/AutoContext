@@ -18,7 +18,7 @@ beforeEach(() => {
 
 describe('InstructionsFilesOverrideWatcher', () => {
     describe('watch (initial scan)', () => {
-        it('starts with no overrides and empty maps', async () => {
+        it('should start with no overrides and empty maps', async () => {
             const w = new InstructionsFilesOverrideWatcher(bundledNames, mockLogger);
             await w.watch();
 
@@ -27,7 +27,7 @@ describe('InstructionsFilesOverrideWatcher', () => {
             expect.soft(w.getOverrideVersion('lang-csharp.instructions.md')).toBeUndefined();
         });
 
-        it('populates overridden file names for matching bundled instructions', async () => {
+        it('should populate overridden file names for matching bundled instructions', async () => {
             stubFindFiles({
                 '.github/instructions/*.instructions.md': [
                     '/.github/instructions/dotnet-coding-standards.instructions.md',
@@ -40,7 +40,7 @@ describe('InstructionsFilesOverrideWatcher', () => {
             expect(w.isOverridden('dotnet-coding-standards.instructions.md')).toBe(true);
         });
 
-        it('ignores override files that are not in the bundled set', async () => {
+        it('should ignore override files that are not in the bundled set', async () => {
             stubFindFiles({
                 '.github/instructions/*.instructions.md': [
                     '/.github/instructions/unknown.instructions.md',
@@ -53,7 +53,7 @@ describe('InstructionsFilesOverrideWatcher', () => {
             expect(w.getOverriddenFileNames().size).toBe(0);
         });
 
-        it('clears overrides between scans', async () => {
+        it('should clear overrides between scans', async () => {
             stubFindFiles({
                 '.github/instructions/*.instructions.md': [
                     '/.github/instructions/dotnet-coding-standards.instructions.md',
@@ -69,7 +69,7 @@ describe('InstructionsFilesOverrideWatcher', () => {
             expect(w.getOverriddenFileNames().size).toBe(0);
         });
 
-        it('parses frontmatter version when override file is read', async () => {
+        it('should parse frontmatter version when override file is read', async () => {
             stubFindFiles({
                 '.github/instructions/*.instructions.md': [
                     '/.github/instructions/dotnet-coding-standards.instructions.md',
@@ -86,7 +86,7 @@ describe('InstructionsFilesOverrideWatcher', () => {
             expect(w.getOverrideVersion('dotnet-coding-standards.instructions.md')).toBe('2.5.0');
         });
 
-        it('registers override context keys with autocontext.override. prefix', async () => {
+        it('should register override context keys with autocontext.override. prefix', async () => {
             stubFindFiles({
                 '.github/instructions/*.instructions.md': [
                     '/.github/instructions/dotnet-coding-standards.instructions.md',
@@ -114,7 +114,7 @@ describe('InstructionsFilesOverrideWatcher', () => {
             onDidDelete: ReturnType<typeof vi.fn>;
         };
 
-        it('rescans when override watcher fires', async () => {
+        it('should rescan when override watcher fires', async () => {
             const w = new InstructionsFilesOverrideWatcher(bundledNames, mockLogger);
             await w.watch();
             expect(w.getOverriddenFileNames().size).toBe(0);
@@ -138,7 +138,7 @@ describe('InstructionsFilesOverrideWatcher', () => {
     });
 
     describe('resilience', () => {
-        it('still updates state when setContext rejects', async () => {
+        it('should still update state when setContext rejects', async () => {
             stubFindFiles({
                 '.github/instructions/*.instructions.md': [
                     '/.github/instructions/dotnet-coding-standards.instructions.md',

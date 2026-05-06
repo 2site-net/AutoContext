@@ -88,7 +88,7 @@ describe('OutputChannelLogger', () => {
         expect(channel.error).toHaveBeenCalledExactlyOnceWith('e');
     });
 
-    it('forCategory should produce a child that writes to the same channel with a new category', () => {
+    it('should produce, via forCategory, a child that writes to the same channel with a new category', () => {
         const channel = fakeChannel();
         const root = new OutputChannelLogger(channel);
 
@@ -98,7 +98,7 @@ describe('OutputChannelLogger', () => {
         expect(channel.debug).toHaveBeenCalledExactlyOnceWith('[HealthMonitor] connected');
     });
 
-    it('forCategory should accept a freeform string for dynamic categories', () => {
+    it('should accept a freeform string passed to forCategory for dynamic categories', () => {
         const channel = fakeChannel();
         const root = new OutputChannelLogger(channel);
 
@@ -108,7 +108,7 @@ describe('OutputChannelLogger', () => {
         expect(channel.info).toHaveBeenCalledExactlyOnceWith('[Worker.DotNet] started');
     });
 
-    it('forCategory called on a child should replace, not append, the category', () => {
+    it('should replace, not append, the category when forCategory is called on a child', () => {
         const channel = fakeChannel();
         const root = new OutputChannelLogger(channel);
 
@@ -117,7 +117,7 @@ describe('OutputChannelLogger', () => {
         expect(channel.info).toHaveBeenCalledExactlyOnceWith('[Diagnostics] m');
     });
 
-    it('clear should clear the underlying channel', () => {
+    it('should clear the underlying channel when clear is invoked', () => {
         const channel = fakeChannel();
         const logger = new OutputChannelLogger(channel);
 
@@ -126,7 +126,7 @@ describe('OutputChannelLogger', () => {
         expect(channel.clear).toHaveBeenCalledOnce();
     });
 
-    it('clear on a child should clear the channel that child writes to', () => {
+    it('should clear the channel a child writes to when clear is invoked on the child', () => {
         const root = fakeChannel('root');
         const sibling = fakeChannel('sibling');
         const factory = vi.fn(() => sibling);
@@ -138,7 +138,7 @@ describe('OutputChannelLogger', () => {
         expect(root.clear).not.toHaveBeenCalled();
     });
 
-    it('forChannel should create a new channel on first request and write to it', () => {
+    it('should create a new channel on the first forChannel request and write to it', () => {
         const root = fakeChannel('root');
         const sibling = fakeChannel('sibling');
         const factory = vi.fn(() => sibling);
@@ -151,7 +151,7 @@ describe('OutputChannelLogger', () => {
         expect(root.info).not.toHaveBeenCalled();
     });
 
-    it('forChannel should cache and return loggers backed by the same channel for repeated names', () => {
+    it('should cache and return loggers backed by the same channel for repeated forChannel names', () => {
         const root = fakeChannel('root');
         const sibling = fakeChannel('sibling');
         const factory = vi.fn(() => sibling);
@@ -168,7 +168,7 @@ describe('OutputChannelLogger', () => {
         expect(sibling.error).toHaveBeenCalledExactlyOnceWith('third');
     });
 
-    it('forChannel called with the root channel name should return the root channel from the cache', () => {
+    it('should return the root channel from the cache when forChannel is called with the root channel name', () => {
         const root = fakeChannel('AutoContext');
         const factory = vi.fn();
         const logger = new OutputChannelLogger(root, undefined, undefined, factory);
@@ -179,7 +179,7 @@ describe('OutputChannelLogger', () => {
         expect(root.info).toHaveBeenCalledExactlyOnceWith('echo');
     });
 
-    it('dispose should dispose every channel created through the logger tree', () => {
+    it('should dispose every channel created through the logger tree', () => {
         const root = fakeChannel('root');
         const a = fakeChannel('a');
         const b = fakeChannel('b');

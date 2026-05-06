@@ -59,7 +59,7 @@ function makeHandler(): InstructionsFilesLmToolsSearchByMetadataHandler {
 }
 
 describe('InstructionsFilesLmToolsSearchByMetadataHandler.handle', () => {
-    it('drops disabled entries from the result set', async () => {
+    it('should drop disabled entries from the result set', async () => {
         currentConfig = new AutoContextConfig({
             instructions: { 'lang-csharp.instructions.md': { enabled: false } },
         });
@@ -71,13 +71,13 @@ describe('InstructionsFilesLmToolsSearchByMetadataHandler.handle', () => {
         expect(result.results.map(r => r.name)).toEqual(['lang-typescript.instructions.md']);
     });
 
-    it('forwards predicate-engine errors verbatim', async () => {
+    it('should forward predicate-engine errors verbatim', async () => {
         const result = await makeHandler().handle({ predicate: { bogus: 'x' } });
 
         expect(result).toMatchObject({ kind: 'error', error: 'unknown-field', field: 'bogus' });
     });
 
-    it('attaches matchedAnchors and sections when the predicate touches sections.*', async () => {
+    it('should attach matchedAnchors and sections when the predicate touches sections.*', async () => {
         const result = await makeHandler().handle({
             predicate: { 'sections.heading': 'Naming' },
         });
@@ -89,7 +89,7 @@ describe('InstructionsFilesLmToolsSearchByMetadataHandler.handle', () => {
         expect.soft(csharp?.sections).toBeDefined();
     });
 
-    it('omits sections when neither includeSections nor a sections.* clause is set', async () => {
+    it('should omit sections when neither includeSections nor a sections.* clause is set', async () => {
         const result = await makeHandler().handle({});
 
         expect(result.kind).toBe('ok');
@@ -100,7 +100,7 @@ describe('InstructionsFilesLmToolsSearchByMetadataHandler.handle', () => {
         }
     });
 
-    it('attaches sections to every row when includeSections is true', async () => {
+    it('should attach sections to every row when includeSections is true', async () => {
         const result = await makeHandler().handle({ includeSections: true });
 
         expect(result.kind).toBe('ok');
@@ -110,7 +110,7 @@ describe('InstructionsFilesLmToolsSearchByMetadataHandler.handle', () => {
         }
     });
 
-    it('shapes catalogue rows with the manifest entry label, key, and applyTo', async () => {
+    it('should shape catalogue rows with the manifest entry label, key, and applyTo', async () => {
         const result = await makeHandler().handle({});
 
         expect(result.kind).toBe('ok');

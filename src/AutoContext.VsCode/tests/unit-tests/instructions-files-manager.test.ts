@@ -265,7 +265,7 @@ More prose below.
     });
 
     describe('flush()', () => {
-        it('resolves immediately when no write is in flight', async () => {
+        it('should resolve immediately when no write is in flight', async () => {
             vi.mocked(readFile).mockResolvedValue('{}');
             const configManager = new AutoContextConfigManager('/ext', '0.5.0', mockLogger);
             const writer = new InstructionsFilesManager('/ext', configManager, catalog, mockLogger);
@@ -281,7 +281,7 @@ More prose below.
             writer.dispose();
         });
 
-        it('awaits the in-flight write and resolves once it settles', async () => {
+        it('should await the in-flight write and resolve once it settles', async () => {
             vi.mocked(readFile).mockImplementation(async (path: unknown) => {
                 const pathStr = String(path);
                 if (pathStr.endsWith('.autocontext.json')) return '{}';

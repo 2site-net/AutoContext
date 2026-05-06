@@ -26,14 +26,14 @@ function setup(config: AutoContextConfig = new AutoContextConfig()) {
 }
 
 describe('McpTaskEntry.resolveState', () => {
-    it('returns NotDetected when the parent tool has activation flags and none match', () => {
+    it('should return NotDetected when the parent tool has activation flags and none match', () => {
         const { detector, configManager } = setup();
         const tool = makeTool('analyze_csharp_code', ['hasCSharpProject'], ['scan'], detector, configManager);
 
         expect(tool.tasks[0].resolveState()).toBe(TreeViewNodeState.NotDetected);
     });
 
-    it('returns Disabled when the task is listed in disabledTasks', () => {
+    it('should return Disabled when the task is listed in disabledTasks', () => {
         const { detector, configManager } = setup(new AutoContextConfig({
             mcpTools: { analyze_csharp_code: { disabledTasks: ['scan'] } },
         }));
@@ -42,14 +42,14 @@ describe('McpTaskEntry.resolveState', () => {
         expect(tool.tasks[0].resolveState()).toBe(TreeViewNodeState.Disabled);
     });
 
-    it('returns Enabled when activation matches and the task is not disabled', () => {
+    it('should return Enabled when activation matches and the task is not disabled', () => {
         const { detector, configManager } = setup();
         const tool = makeTool('analyze_csharp_code', [], ['scan'], detector, configManager);
 
         expect(tool.tasks[0].resolveState()).toBe(TreeViewNodeState.Enabled);
     });
 
-    it('returns Enabled even when the parent tool itself is disabled (tasks are independent)', () => {
+    it('should return Enabled even when the parent tool itself is disabled (tasks are independent)', () => {
         const { detector, configManager } = setup(new AutoContextConfig({
             mcpTools: { analyze_csharp_code: false },
         }));

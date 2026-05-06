@@ -13,7 +13,7 @@ function setup(config: AutoContextConfig = new AutoContextConfig()) {
 }
 
 describe('InstructionsFileEntry.resolveState', () => {
-    it('returns NotDetected when activation flags are present and none match', () => {
+    it('should return NotDetected when activation flags are present and none match', () => {
         const { runtimeContext } = setup();
         const entry = makeInstructionsFileEntry(
             'lang-csharp.instructions.md', 'C#', ['Languages'], ['hasCSharpProject'], undefined, runtimeContext);
@@ -21,7 +21,7 @@ describe('InstructionsFileEntry.resolveState', () => {
         expect(entry.resolveState()).toBe(TreeViewNodeState.NotDetected);
     });
 
-    it('returns Disabled when the instructions entry has enabled:false', () => {
+    it('should return Disabled when the instructions entry has enabled:false', () => {
         const { runtimeContext } = setup(new AutoContextConfig({
             instructions: { 'lang-csharp.instructions.md': { enabled: false } },
         }));
@@ -31,7 +31,7 @@ describe('InstructionsFileEntry.resolveState', () => {
         expect(entry.resolveState()).toBe(TreeViewNodeState.Disabled);
     });
 
-    it('returns Overridden when the runtime context key is in the override set', () => {
+    it('should return Overridden when the runtime context key is in the override set', () => {
         const { runtimeContext, overrideWatcher } = setup();
         const entry = makeInstructionsFileEntry(
             'lang-csharp.instructions.md', 'C#', ['Languages'], undefined, undefined, runtimeContext);
@@ -40,7 +40,7 @@ describe('InstructionsFileEntry.resolveState', () => {
         expect(entry.resolveState()).toBe(TreeViewNodeState.Overridden);
     });
 
-    it('returns Enabled when the entry has no flags, no disable, no override', () => {
+    it('should return Enabled when the entry has no flags, no disable, no override', () => {
         const { runtimeContext } = setup();
         const entry = makeInstructionsFileEntry(
             'lang-csharp.instructions.md', 'C#', ['Languages'], undefined, undefined, runtimeContext);
@@ -48,7 +48,7 @@ describe('InstructionsFileEntry.resolveState', () => {
         expect(entry.resolveState()).toBe(TreeViewNodeState.Enabled);
     });
 
-    it('returns Enabled when at least one activation flag is detected', () => {
+    it('should return Enabled when at least one activation flag is detected', () => {
         const { runtimeContext, detector } = setup();
         vi.mocked(detector.get).mockImplementation((k: string) => k === 'hasCSharpProject');
         const entry = makeInstructionsFileEntry(

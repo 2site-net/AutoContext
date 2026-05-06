@@ -55,7 +55,7 @@ function makeHandler(opts?: {
 }
 
 describe('InstructionsFilesLmToolsGetHandler.handle', () => {
-    it('returns kind:not-found when the manifest has no matching entry', async () => {
+    it('should return kind:not-found when the manifest has no matching entry', async () => {
         const { handler } = makeHandler();
 
         const result = await handler.handle({ name: 'missing.instructions.md' });
@@ -63,7 +63,7 @@ describe('InstructionsFilesLmToolsGetHandler.handle', () => {
         expect(result).toEqual({ kind: 'not-found', name: 'missing.instructions.md' });
     });
 
-    it('returns the disabled envelope when the entry is inactive', async () => {
+    it('should return the disabled envelope when the entry is inactive', async () => {
         currentConfig = new AutoContextConfig({
             instructions: { 'a.instructions.md': { enabled: false } },
         });
@@ -74,7 +74,7 @@ describe('InstructionsFilesLmToolsGetHandler.handle', () => {
         expect(result).toEqual({ name: 'a.instructions.md', key: 'a', disabled: true });
     });
 
-    it('returns kind:not-found when the projector returns undefined', async () => {
+    it('should return kind:not-found when the projector returns undefined', async () => {
         const { handler } = makeHandler({ projection: undefined });
 
         const result = await handler.handle({ name: 'a.instructions.md' });
@@ -82,7 +82,7 @@ describe('InstructionsFilesLmToolsGetHandler.handle', () => {
         expect(result).toEqual({ kind: 'not-found', name: 'a.instructions.md' });
     });
 
-    it('returns the whole body when sections is omitted', async () => {
+    it('should return the whole body when sections is omitted', async () => {
         const body = '## Top\nbody one.\n## Bot\nbody two.\n';
         const { handler } = makeHandler({
             projection: {
@@ -99,7 +99,7 @@ describe('InstructionsFilesLmToolsGetHandler.handle', () => {
         }
     });
 
-    it('returns the whole body when sections is an empty array', async () => {
+    it('should return the whole body when sections is an empty array', async () => {
         const body = '## Top\nbody one.\n';
         const { handler } = makeHandler({
             projection: { body, sections: [section('Top', 'top', 0, body.length)] },
@@ -113,7 +113,7 @@ describe('InstructionsFilesLmToolsGetHandler.handle', () => {
         }
     });
 
-    it('joins requested sections in document order, deduping anchors', async () => {
+    it('should join requested sections in document order, deduping anchors', async () => {
         const body = '## A\naaa.\n## B\nbbb.\n## C\nccc.\n';
         const aSlice = body.slice(0, 10);
         const bSlice = body.slice(10, 20);
@@ -145,7 +145,7 @@ describe('InstructionsFilesLmToolsGetHandler.handle', () => {
         }
     });
 
-    it('reports notFoundSections when some requested anchors are unknown', async () => {
+    it('should report notFoundSections when some requested anchors are unknown', async () => {
         const body = '## A\naaa.\n';
         const { handler } = makeHandler({
             projection: { body, sections: [section('A', 'a', 0, body.length)] },
@@ -163,7 +163,7 @@ describe('InstructionsFilesLmToolsGetHandler.handle', () => {
         });
     });
 
-    it('returns empty content with all-unknown anchors in notFoundSections', async () => {
+    it('should return empty content with all-unknown anchors in notFoundSections', async () => {
         const body = '## A\naaa.\n';
         const { handler } = makeHandler({
             projection: { body, sections: [section('A', 'a', 0, body.length)] },

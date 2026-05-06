@@ -30,7 +30,7 @@ beforeEach(() => {
 });
 
 describe('ServersManifestLoader.load()', () => {
-    it('returns a ServersManifest containing every entry from servers.json', () => {
+    it('should return a ServersManifest containing every entry from servers.json', () => {
         mockServers(allServers);
 
         const manifest = new ServersManifestLoader('/ext').load();
@@ -41,7 +41,7 @@ describe('ServersManifestLoader.load()', () => {
         expect(manifest.servers.map(s => s.id)).toEqual(['mcp-server', 'workspace', 'dotnet', 'web']);
     });
 
-    it('preserves name and type for each entry', () => {
+    it('should preserve name and type for each entry', () => {
         mockServers(allServers);
 
         const manifest = new ServersManifestLoader('/ext').load();
@@ -51,13 +51,13 @@ describe('ServersManifestLoader.load()', () => {
         expect(web?.type).toBe('node');
     });
 
-    it('rejects entries with an unsupported type', () => {
+    it('should reject entries with an unsupported type', () => {
         mockServers([{ id: 'bad', name: 'Bad', type: 'rust' }]);
 
         expect(() => new ServersManifestLoader('/ext').load()).toThrow(/unsupported type 'rust'/);
     });
 
-    it('throws a contextualised error when servers.json contains malformed JSON', () => {
+    it('should throw a contextualised error when servers.json contains malformed JSON', () => {
         readFileSyncMock.mockImplementation((path) => {
             const p = path.toString();
             if (p.endsWith('servers.json')) { return '{ not valid json'; }
@@ -70,7 +70,7 @@ describe('ServersManifestLoader.load()', () => {
 });
 
 describe('ServersManifest', () => {
-    it('exposes mcpServer as a getter', () => {
+    it('should expose mcpServer as a getter', () => {
         mockServers(allServers);
 
         const manifest = new ServersManifestLoader('/ext').load();
@@ -79,7 +79,7 @@ describe('ServersManifest', () => {
         expect(manifest.mcpServer.name).toBe('AutoContext.Mcp.Server');
     });
 
-    it('throws from mcpServer when servers.json lacks an mcp-server entry', () => {
+    it('should throw from mcpServer when servers.json lacks an mcp-server entry', () => {
         mockServers(allServers.filter(s => s.id !== 'mcp-server'));
 
         const manifest = new ServersManifestLoader('/ext').load();
@@ -87,7 +87,7 @@ describe('ServersManifest', () => {
         expect(() => manifest.mcpServer).toThrow(/mcp-server/);
     });
 
-    it('returns undefined from byId for an unknown id', () => {
+    it('should return undefined from byId for an unknown id', () => {
         mockServers(allServers);
 
         const manifest = new ServersManifestLoader('/ext').load();

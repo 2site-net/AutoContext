@@ -71,7 +71,7 @@ function makeHandler() {
 }
 
 describe('InstructionsFilesLmToolsSearchByContentHandler.handle', () => {
-    it('drops disabled entries from the ranked hits', async () => {
+    it('should drop disabled entries from the ranked hits', async () => {
         currentConfig = new AutoContextConfig({
             instructions: { 'lang-csharp.instructions.md': { enabled: false } },
         });
@@ -86,7 +86,7 @@ describe('InstructionsFilesLmToolsSearchByContentHandler.handle', () => {
         ]);
     });
 
-    it('filters by category case-insensitively', async () => {
+    it('should filter by category case-insensitively', async () => {
         const { handler, engine } = makeHandler();
         vi.mocked(engine.search).mockResolvedValueOnce(allHits);
 
@@ -98,7 +98,7 @@ describe('InstructionsFilesLmToolsSearchByContentHandler.handle', () => {
         ]);
     });
 
-    it('filters by applyTo via the matcher', async () => {
+    it('should filter by applyTo via the matcher', async () => {
         const { handler, engine, matcher } = makeHandler();
         vi.mocked(engine.search).mockResolvedValueOnce(allHits);
         vi.mocked(matcher.matches).mockImplementation(
@@ -111,7 +111,7 @@ describe('InstructionsFilesLmToolsSearchByContentHandler.handle', () => {
         expect.soft(matcher.matches).toHaveBeenCalled();
     });
 
-    it('drops entries without applyTo when the caller specifies applyTo', async () => {
+    it('should drop entries without applyTo when the caller specifies applyTo', async () => {
         const { handler, engine } = makeHandler();
         vi.mocked(engine.search).mockResolvedValueOnce(allHits);
 
@@ -120,7 +120,7 @@ describe('InstructionsFilesLmToolsSearchByContentHandler.handle', () => {
         expect(result.results.map(r => r.name)).not.toContain('design.instructions.md');
     });
 
-    it('preserves the engine ranking', async () => {
+    it('should preserve the engine ranking', async () => {
         const { handler, engine } = makeHandler();
         vi.mocked(engine.search).mockResolvedValueOnce(allHits);
 
@@ -129,7 +129,7 @@ describe('InstructionsFilesLmToolsSearchByContentHandler.handle', () => {
         expect(result.results.map(r => r.score)).toEqual([5, 3, 2]);
     });
 
-    it('shapes hits with key, fileName, description, score, and excerpts', async () => {
+    it('should shape hits with key, fileName, description, score, and excerpts', async () => {
         const { handler, engine } = makeHandler();
         vi.mocked(engine.search).mockResolvedValueOnce(allHits);
 

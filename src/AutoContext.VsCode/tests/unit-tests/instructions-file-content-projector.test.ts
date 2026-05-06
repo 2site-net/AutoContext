@@ -42,7 +42,7 @@ describe('InstructionsFileContentProjector', () => {
         vi.clearAllMocks();
     });
 
-    it('reads the bundled .generated file when no override is reported', async () => {
+    it('should read the bundled .generated file when no override is reported', async () => {
         vi.mocked(readFile).mockResolvedValue(generatedBody);
         const overrideWatcher = createFakeOverrideWatcher();
         const manager = createFakeManager();
@@ -70,7 +70,7 @@ describe('InstructionsFileContentProjector', () => {
         expect(result?.sections).toBe(cache.get(generatedBody));
     });
 
-    it('awaits manager.flush() before reading the bundled file', async () => {
+    it('should await manager.flush() before reading the bundled file', async () => {
         let flushSettled = false;
         const manager = {
             flush: vi.fn(async () => {
@@ -94,7 +94,7 @@ describe('InstructionsFileContentProjector', () => {
         expect(readFile).toHaveBeenCalledTimes(1);
     });
 
-    it('reads and normalizes the override file when the detector reports an override', async () => {
+    it('should read and normalize the override file when the detector reports an override', async () => {
         const overrideWatcher = createFakeOverrideWatcher();
         vi.mocked(overrideWatcher.isOverridden).mockReturnValue(true);
         const manager = createFakeManager();
@@ -124,7 +124,7 @@ describe('InstructionsFileContentProjector', () => {
         expect(result?.body).toContain('**Do** override');
     });
 
-    it('falls back to the bundled .generated file when the override read fails', async () => {
+    it('should fall back to the bundled .generated file when the override read fails', async () => {
         const overrideWatcher = createFakeOverrideWatcher();
         vi.mocked(overrideWatcher.isOverridden).mockReturnValue(true);
         vi.mocked(workspace.findFiles).mockResolvedValueOnce([] as never);
@@ -142,7 +142,7 @@ describe('InstructionsFileContentProjector', () => {
         expect(String(readPath)).toContain('.generated');
     });
 
-    it('returns undefined when neither override nor bundled read succeed', async () => {
+    it('should return undefined when neither override nor bundled read succeed', async () => {
         const overrideWatcher = createFakeOverrideWatcher();
         vi.mocked(readFile).mockRejectedValue(new Error('missing'));
 
@@ -154,7 +154,7 @@ describe('InstructionsFileContentProjector', () => {
         expect(result).toBeUndefined();
     });
 
-    it('reflects post-filter content for bundled bodies that omit a disabled bullet', async () => {
+    it('should reflect post-filter content for bundled bodies that omit a disabled bullet', async () => {
         // Simulates `.generated/` output where the manager already removed
         // the bullet associated with a disabled instruction.
         const filtered = `# C#

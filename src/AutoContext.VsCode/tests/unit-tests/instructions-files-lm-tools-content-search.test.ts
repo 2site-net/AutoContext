@@ -68,7 +68,7 @@ function makeSearch(fixtures: readonly Fixture[]) {
 
 describe('InstructionsFilesLmToolsContentSearch.search', () => {
     describe('tokenizer', () => {
-        it('matches a "configure await" query against a body containing "ConfigureAwait"', async () => {
+        it('should match a "configure await" query against a body containing "ConfigureAwait"', async () => {
             const { search } = makeSearch([{
                 name: 'a.instructions.md', description: '',
                 body: '## Tip\nPrefer ConfigureAwait everywhere.\n',
@@ -80,7 +80,7 @@ describe('InstructionsFilesLmToolsContentSearch.search', () => {
             expect(hits.map(h => h.name)).toEqual(['a.instructions.md']);
         });
 
-        it('matches a "ConfigureAwait" query only against a body containing the joined form', async () => {
+        it('should match a "ConfigureAwait" query only against a body containing the joined form', async () => {
             const { search } = makeSearch([
                 {
                     name: 'a.instructions.md', description: '',
@@ -99,7 +99,7 @@ describe('InstructionsFilesLmToolsContentSearch.search', () => {
             expect(hits.map(h => h.name)).toEqual(['a.instructions.md']);
         });
 
-        it('splits on kebab boundaries: "async await" matches "dotnet-async-await"', async () => {
+        it('should split on kebab boundaries: "async await" matches "dotnet-async-await"', async () => {
             const { search } = makeSearch([{
                 name: 'a.instructions.md', description: '',
                 body: '## Topic\nThe dotnet-async-await guide.\n',
@@ -111,7 +111,7 @@ describe('InstructionsFilesLmToolsContentSearch.search', () => {
             expect(hits.map(h => h.name)).toEqual(['a.instructions.md']);
         });
 
-        it('matches "nuget" against a description containing "NuGet"', async () => {
+        it('should match "nuget" against a description containing "NuGet"', async () => {
             const { search } = makeSearch([{
                 name: 'a.instructions.md', description: 'NuGet packaging',
                 body: '## Topic\nUse the package manager to install packages.\n',
@@ -125,7 +125,7 @@ describe('InstructionsFilesLmToolsContentSearch.search', () => {
     });
 
     describe('AND semantics', () => {
-        it('drops files missing any distinct query token', async () => {
+        it('should drop files missing any distinct query token', async () => {
             const { search } = makeSearch([
                 {
                     name: 'a.instructions.md', description: '',
@@ -146,7 +146,7 @@ describe('InstructionsFilesLmToolsContentSearch.search', () => {
     });
 
     describe('ranking', () => {
-        it('weights description hits 2× and breaks score ties by name ascending', async () => {
+        it('should weight description hits 2× and break score ties by name ascending', async () => {
             const { search } = makeSearch([
                 {
                     name: 'b-desc.instructions.md', description: 'alpha guide',
@@ -179,7 +179,7 @@ describe('InstructionsFilesLmToolsContentSearch.search', () => {
     });
 
     describe('excerpts', () => {
-        it('attaches section attribution and sectionLevel from the offsets index', async () => {
+        it('should attach section attribution and sectionLevel from the offsets index', async () => {
             // Pad the top section so its excerpt window doesn't overlap
             // with the sub-section (excerptRadius = 80; overlapping
             // windows are deduped by the engine).
@@ -211,7 +211,7 @@ describe('InstructionsFilesLmToolsContentSearch.search', () => {
     });
 
     describe('override invalidation', () => {
-        it('rebuilds the index after the override watcher fires', async () => {
+        it('should rebuild the index after the override watcher fires', async () => {
             const { search, projector, fireOverride } = makeSearch([{
                 name: 'a.instructions.md', description: '',
                 body: '## S\nalpha.\n',

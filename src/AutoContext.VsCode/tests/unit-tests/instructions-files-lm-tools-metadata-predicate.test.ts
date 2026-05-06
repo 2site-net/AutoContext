@@ -51,7 +51,7 @@ beforeEach(() => {
 });
 
 describe('InstructionsFilesLmToolsMetadataPredicate.evaluate', () => {
-    it('returns the full input when the predicate is empty', async () => {
+    it('should return the full input when the predicate is empty', async () => {
         const predicate = new InstructionsFilesLmToolsMetadataPredicate(createFakeApplyToMatcher());
 
         const result = await predicate.evaluate({}, allViews);
@@ -61,7 +61,7 @@ describe('InstructionsFilesLmToolsMetadataPredicate.evaluate', () => {
         expect(result.results.map(r => r.view.name)).toEqual(allViews.map(v => v.name));
     });
 
-    it('matches string fields via case-insensitive regex', async () => {
+    it('should match string fields via case-insensitive regex', async () => {
         const predicate = new InstructionsFilesLmToolsMetadataPredicate(createFakeApplyToMatcher());
 
         const result = await predicate.evaluate({ description: 'CODE STYLE' }, allViews);
@@ -71,7 +71,7 @@ describe('InstructionsFilesLmToolsMetadataPredicate.evaluate', () => {
         expect(result.results.map(r => r.view.name)).toEqual(['lang-csharp.instructions.md']);
     });
 
-    it('matches boolean fields via exact equality', async () => {
+    it('should match boolean fields via exact equality', async () => {
         const predicate = new InstructionsFilesLmToolsMetadataPredicate(createFakeApplyToMatcher());
 
         const result = await predicate.evaluate({ hasChangelog: true }, allViews);
@@ -81,7 +81,7 @@ describe('InstructionsFilesLmToolsMetadataPredicate.evaluate', () => {
         expect(result.results.map(r => r.view.name)).toEqual(['lang-csharp.instructions.md']);
     });
 
-    it('matches sections.level via numeric exact equality and reports matchedAnchors', async () => {
+    it('should match sections.level via numeric exact equality and report matchedAnchors', async () => {
         const predicate = new InstructionsFilesLmToolsMetadataPredicate(createFakeApplyToMatcher());
 
         const result = await predicate.evaluate({ 'sections.level': 3 }, allViews);
@@ -92,7 +92,7 @@ describe('InstructionsFilesLmToolsMetadataPredicate.evaluate', () => {
         expect.soft(result.results[0].matchedAnchors).toEqual(['naming-casing']);
     });
 
-    it('matches a regex against any element of categories', async () => {
+    it('should match a regex against any element of categories', async () => {
         const predicate = new InstructionsFilesLmToolsMetadataPredicate(createFakeApplyToMatcher());
 
         const result = await predicate.evaluate({ categories: '^Frontend$' }, allViews);
@@ -102,7 +102,7 @@ describe('InstructionsFilesLmToolsMetadataPredicate.evaluate', () => {
         expect(result.results.map(r => r.view.name)).toEqual(['lang-typescript.instructions.md']);
     });
 
-    it('ANDs multiple predicate keys', async () => {
+    it('should AND multiple predicate keys', async () => {
         const predicate = new InstructionsFilesLmToolsMetadataPredicate(createFakeApplyToMatcher());
 
         const result = await predicate.evaluate(
@@ -115,7 +115,7 @@ describe('InstructionsFilesLmToolsMetadataPredicate.evaluate', () => {
         expect(result.results.map(r => r.view.name)).toEqual(['lang-typescript.instructions.md']);
     });
 
-    it('intersects sections.* clauses inside a single section and returns its anchor', async () => {
+    it('should intersect sections.* clauses inside a single section and return its anchor', async () => {
         const predicate = new InstructionsFilesLmToolsMetadataPredicate(createFakeApplyToMatcher());
 
         const result = await predicate.evaluate(
@@ -129,7 +129,7 @@ describe('InstructionsFilesLmToolsMetadataPredicate.evaluate', () => {
         expect.soft(result.results[0].matchedAnchors).toEqual(['naming-casing']);
     });
 
-    it('drops a view when no single section satisfies all sections.* clauses', async () => {
+    it('should drop a view when no single section satisfies all sections.* clauses', async () => {
         const predicate = new InstructionsFilesLmToolsMetadataPredicate(createFakeApplyToMatcher());
 
         // The 'Security' section has no parent; the AND with sections.parent fails everywhere.
@@ -143,7 +143,7 @@ describe('InstructionsFilesLmToolsMetadataPredicate.evaluate', () => {
         expect(result.results).toEqual([]);
     });
 
-    it('dispatches applyTo to the matcher as a glob, not a regex', async () => {
+    it('should dispatch applyTo to the matcher as a glob, not a regex', async () => {
         const matcher = createFakeApplyToMatcher();
         vi.mocked(matcher.matches).mockImplementation(async (_input, instructionApplyTo) =>
             instructionApplyTo === '**/*.cs',
@@ -158,7 +158,7 @@ describe('InstructionsFilesLmToolsMetadataPredicate.evaluate', () => {
         expect.soft(matcher.matches).toHaveBeenCalledWith('src/**/*.cs', '**/*.cs');
     });
 
-    it('drops views without applyTo when an applyTo clause is supplied', async () => {
+    it('should drop views without applyTo when an applyTo clause is supplied', async () => {
         const predicate = new InstructionsFilesLmToolsMetadataPredicate(createFakeApplyToMatcher());
 
         const result = await predicate.evaluate({ applyTo: 'src/**/*' }, allViews);
@@ -168,7 +168,7 @@ describe('InstructionsFilesLmToolsMetadataPredicate.evaluate', () => {
         expect(result.results.map(r => r.view.name)).not.toContain('design.instructions.md');
     });
 
-    it('returns unknown-field for an unrecognised predicate key', async () => {
+    it('should return unknown-field for an unrecognised predicate key', async () => {
         const predicate = new InstructionsFilesLmToolsMetadataPredicate(createFakeApplyToMatcher());
 
         const result = await predicate.evaluate({ bogus: 'x' }, allViews);
@@ -176,7 +176,7 @@ describe('InstructionsFilesLmToolsMetadataPredicate.evaluate', () => {
         expect(result).toMatchObject({ kind: 'error', error: 'unknown-field', field: 'bogus' });
     });
 
-    it('returns type-mismatch when the value type does not match the field kind', async () => {
+    it('should return type-mismatch when the value type does not match the field kind', async () => {
         const predicate = new InstructionsFilesLmToolsMetadataPredicate(createFakeApplyToMatcher());
 
         const result = await predicate.evaluate({ hasChangelog: 'true' }, allViews);
@@ -184,7 +184,7 @@ describe('InstructionsFilesLmToolsMetadataPredicate.evaluate', () => {
         expect(result).toMatchObject({ kind: 'error', error: 'type-mismatch', field: 'hasChangelog' });
     });
 
-    it('returns invalid-regex for a malformed pattern', async () => {
+    it('should return invalid-regex for a malformed pattern', async () => {
         const predicate = new InstructionsFilesLmToolsMetadataPredicate(createFakeApplyToMatcher());
 
         const result = await predicate.evaluate({ description: '(' }, allViews);
@@ -192,7 +192,7 @@ describe('InstructionsFilesLmToolsMetadataPredicate.evaluate', () => {
         expect(result).toMatchObject({ kind: 'error', error: 'invalid-regex', field: 'description' });
     });
 
-    it('returns pattern-too-long when a pattern exceeds 256 characters', async () => {
+    it('should return pattern-too-long when a pattern exceeds 256 characters', async () => {
         const predicate = new InstructionsFilesLmToolsMetadataPredicate(createFakeApplyToMatcher());
         const longPattern = 'a'.repeat(257);
 

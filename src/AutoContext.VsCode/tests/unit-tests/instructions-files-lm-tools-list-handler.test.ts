@@ -58,7 +58,7 @@ function makeHandlers(metadataOverrides?: ReadonlyMap<string, InstructionsFileMe
 }
 
 describe('InstructionsFilesLmToolsListHandler.handle', () => {
-    it('list({}) is equivalent to byMetadata({})', async () => {
+    it('should be equivalent to byMetadata({}) when called with no filters', async () => {
         const { list, byMetadata } = makeHandlers();
 
         const a = await list.handle({});
@@ -67,7 +67,7 @@ describe('InstructionsFilesLmToolsListHandler.handle', () => {
         expect(a).toEqual(b);
     });
 
-    it('list({ applyTo }) is equivalent to byMetadata({ predicate: { applyTo } })', async () => {
+    it('should be equivalent to byMetadata({ predicate: { applyTo } }) when called with applyTo', async () => {
         const { list, byMetadata } = makeHandlers();
 
         const a = await list.handle({ applyTo: '**/*.cs' });
@@ -78,7 +78,7 @@ describe('InstructionsFilesLmToolsListHandler.handle', () => {
         expect.soft(a.results.map(r => r.name)).toEqual(['lang-csharp.instructions.md']);
     });
 
-    it('list({ category }) translates to a regex-anchored equality clause on categories', async () => {
+    it('should translate { category } into a regex-anchored equality clause on categories', async () => {
         const { list, byMetadata } = makeHandlers();
 
         const a = await list.handle({ category: 'Languages' });
@@ -92,7 +92,7 @@ describe('InstructionsFilesLmToolsListHandler.handle', () => {
         ]);
     });
 
-    it('escapes regex metacharacters in the category name', async () => {
+    it('should escape regex metacharacters in the category name', async () => {
         const trickyMeta: InstructionsFileMetadata = {
             description: 'Tricky', version: '1.0.0', hasChangelog: false, sections: [],
         };
@@ -118,7 +118,7 @@ describe('InstructionsFilesLmToolsListHandler.handle', () => {
         expect(result.results.map(r => r.name)).toEqual(['foo.instructions.md']);
     });
 
-    it('forwards includeSections to the underlying handler', async () => {
+    it('should forward includeSections to the underlying handler', async () => {
         const { list, byMetadata } = makeHandlers();
 
         const a = await list.handle({ includeSections: true });
@@ -130,7 +130,7 @@ describe('InstructionsFilesLmToolsListHandler.handle', () => {
         expect.soft(csharp?.sections).toEqual([{ heading: 'Naming', anchor: 'naming' }]);
     });
 
-    it('combines applyTo and category into the equivalent compound predicate', async () => {
+    it('should combine applyTo and category into the equivalent compound predicate', async () => {
         const { list, byMetadata } = makeHandlers();
 
         const a = await list.handle({ applyTo: '**/*.cs', category: 'Languages' });

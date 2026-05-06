@@ -82,15 +82,15 @@ describe('AutoContextConfigServer', () => {
         server.dispose();
     });
 
-    it('exposes a deterministic pipe name keyed off the instance id', () => {
+    it('should expose a deterministic pipe name keyed off the instance id', () => {
         expect(server.getPipeName()).toBe(`autocontext.extension-config#${SUFFIX}`);
     });
 
-    it('subscribes to config-manager change events on construction', () => {
+    it('should subscribe to config-manager change events on construction', () => {
         expect(slot.listener).toBeTypeOf('function');
     });
 
-    it('pushes the current snapshot as the handshake frame on connect', async () => {
+    it('should push the current snapshot as the handshake frame on connect', async () => {
         const socket = await connectClient(server.getPipeName());
 
         const frame = await readOneFrame(socket);
@@ -103,7 +103,7 @@ describe('AutoContextConfigServer', () => {
         socket.destroy();
     });
 
-    it('rebroadcasts a fresh snapshot to live subscribers when the config changes', async () => {
+    it('should rebroadcast a fresh snapshot to live subscribers when the config changes', async () => {
         const socket = await connectClient(server.getPipeName());
 
         // Drain the initial handshake frame.
@@ -125,7 +125,7 @@ describe('AutoContextConfigServer', () => {
         socket.destroy();
     });
 
-    it('skips broadcasting when no clients are connected', async () => {
+    it('should skip broadcasting when no clients are connected', async () => {
         // No connected sockets at all; firing the listener should be a silent no-op.
         slot.listener!();
 
@@ -136,7 +136,7 @@ describe('AutoContextConfigServer', () => {
         expect(manager.read).not.toHaveBeenCalled();
     });
 
-    it('closes connected sockets and the server on dispose', async () => {
+    it('should close connected sockets and the server on dispose', async () => {
         const socket = await connectClient(server.getPipeName());
         await readOneFrame(socket);
 

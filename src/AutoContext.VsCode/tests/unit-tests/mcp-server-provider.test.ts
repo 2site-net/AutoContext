@@ -72,14 +72,14 @@ function buildAllDisabledConfig(): AutoContextConfig {
 }
 
 describe('McpServerProvider.provideMcpServerDefinitions', () => {
-    it('returns a single definition when binary exists and any tool is enabled', async () => {
+    it('should return a single definition when binary exists and any tool is enabled', async () => {
         const defs = await createProvider().provideMcpServerDefinitions();
 
         expect(defs).toHaveLength(1);
         expect(defs[0]).toBeInstanceOf(McpStdioServerDefinition);
     });
 
-    it('returns an empty list when the Mcp.Server binary does not exist', async () => {
+    it('should return an empty list when the Mcp.Server binary does not exist', async () => {
         existsSyncMock.mockReturnValue(false);
 
         const defs = await createProvider().provideMcpServerDefinitions();
@@ -87,7 +87,7 @@ describe('McpServerProvider.provideMcpServerDefinitions', () => {
         expect(defs).toHaveLength(0);
     });
 
-    it('returns an empty list when every tool is disabled', async () => {
+    it('should return an empty list when every tool is disabled', async () => {
         currentConfig = buildAllDisabledConfig();
 
         const defs = await createProvider().provideMcpServerDefinitions();
@@ -95,43 +95,43 @@ describe('McpServerProvider.provideMcpServerDefinitions', () => {
         expect(defs).toHaveLength(0);
     });
 
-    it('resolves to AutoContext.Mcp.Server binary', async () => {
+    it('should resolve to AutoContext.Mcp.Server binary', async () => {
         const [def] = (await createProvider().provideMcpServerDefinitions()) as StdioDef[];
 
         expect(def.command).toContain('AutoContext.Mcp.Server');
     });
 
-    it('passes --instance-id with the configured value', async () => {
+    it('should pass --instance-id with the configured value', async () => {
         const [def] = (await createProvider().provideMcpServerDefinitions()) as StdioDef[];
 
         expect(def.args).toEqual(expect.arrayContaining(['--instance-id', INSTANCE_ID]));
     });
 
-    it('passes --service log=<address> with the LogServer pipe name', async () => {
+    it('should pass --service log=<address> with the LogServer pipe name', async () => {
         const [def] = (await createProvider().provideMcpServerDefinitions()) as StdioDef[];
 
         expect(def.args).toEqual(expect.arrayContaining(['--service', `log=autocontext.log#${INSTANCE_ID}`]));
     });
 
-    it('passes --service health-monitor=<address> with the HealthMonitorServer pipe name', async () => {
+    it('should pass --service health-monitor=<address> with the HealthMonitorServer pipe name', async () => {
         const [def] = (await createProvider().provideMcpServerDefinitions()) as StdioDef[];
 
         expect(def.args).toEqual(expect.arrayContaining(['--service', `health-monitor=autocontext.health-monitor#${INSTANCE_ID}`]));
     });
 
-    it('passes --service worker-control=<address> with the WorkerControlServer pipe name', async () => {
+    it('should pass --service worker-control=<address> with the WorkerControlServer pipe name', async () => {
         const [def] = (await createProvider().provideMcpServerDefinitions()) as StdioDef[];
 
         expect(def.args).toEqual(expect.arrayContaining(['--service', `worker-control=autocontext.worker-control#${INSTANCE_ID}`]));
     });
 
-    it('passes --service extension-config=<address> with the AutoContextConfigServer pipe name', async () => {
+    it('should pass --service extension-config=<address> with the AutoContextConfigServer pipe name', async () => {
         const [def] = (await createProvider().provideMcpServerDefinitions()) as StdioDef[];
 
         expect(def.args).toEqual(expect.arrayContaining(['--service', `extension-config=autocontext.extension-config#${INSTANCE_ID}`]));
     });
 
-    it('does not pass --scope, --workspace-folder, or --workspace-server', async () => {
+    it('should not pass --scope, --workspace-folder, or --workspace-server', async () => {
         const [def] = (await createProvider().provideMcpServerDefinitions()) as StdioDef[];
 
         expect(def.args).not.toContain('--scope');
@@ -139,7 +139,7 @@ describe('McpServerProvider.provideMcpServerDefinitions', () => {
         expect(def.args).not.toContain('--workspace-server');
     });
 
-    it('carries the extension version', async () => {
+    it('should carry the extension version', async () => {
         const [def] = (await createProvider().provideMcpServerDefinitions()) as StdioDef[];
 
         expect(def.version).toBe(version);
@@ -147,23 +147,23 @@ describe('McpServerProvider.provideMcpServerDefinitions', () => {
 });
 
 describe('McpServerProvider.getServerStatus', () => {
-    it('returns available when the binary exists and at least one tool is enabled', () => {
+    it('should return available when the binary exists and at least one tool is enabled', () => {
         expect(createProvider().getServerStatus('.NET')).toBe('available');
     });
 
-    it('returns unavailable when the binary does not exist', () => {
+    it('should return unavailable when the binary does not exist', () => {
         existsSyncMock.mockReturnValue(false);
 
         expect(createProvider().getServerStatus('.NET')).toBe('unavailable');
     });
 
-    it('returns disabled when every tool is turned off in settings', () => {
+    it('should return disabled when every tool is turned off in settings', () => {
         currentConfig = buildAllDisabledConfig();
 
         expect(createProvider().getServerStatus('.NET')).toBe('disabled');
     });
 
-    it('returns the same status regardless of the legacy label passed', () => {
+    it('should return the same status regardless of the legacy label passed', () => {
         const provider = createProvider();
 
         expect(provider.getServerStatus('.NET')).toBe('available');
@@ -174,7 +174,7 @@ describe('McpServerProvider.getServerStatus', () => {
 });
 
 describe('McpServerProvider.getDefinitionIds', () => {
-    it('returns the single Mcp.Server definition id for any label', () => {
+    it('should return the single Mcp.Server definition id for any label', () => {
         const provider = createProvider();
         const expected = ['2site-net.autocontext/AutoContext'];
 
@@ -186,7 +186,7 @@ describe('McpServerProvider.getDefinitionIds', () => {
 });
 
 describe('McpServerProvider config updates', () => {
-    it('logs to the output channel when configManager.read rejects', async () => {
+    it('should log to the output channel when configManager.read rejects', async () => {
         let onDidChangeCallback!: () => void;
         const failingConfigManager = {
             readSync: vi.fn(() => new AutoContextConfig()),

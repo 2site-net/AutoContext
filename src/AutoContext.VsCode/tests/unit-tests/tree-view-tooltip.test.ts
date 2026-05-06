@@ -4,7 +4,7 @@ import { TreeViewNodeState } from '#src/tree-view-node-state';
 import { treeViewLabels } from '#src/ui-constants';
 
 describe('TreeViewTooltip.container', () => {
-    it('emits "name\\ndescription\\nactive/total active" for instructions', () => {
+    it('should emit "name\\ndescription\\nactive/total active" for instructions', () => {
         const tooltip = new TreeViewTooltip('instructions');
 
         const result = tooltip.container('Languages', 3, 5, 'Lang group');
@@ -12,7 +12,7 @@ describe('TreeViewTooltip.container', () => {
         expect(result).toBe(`Languages\nLang group\n3/5 ${treeViewLabels.activeSuffix}`);
     });
 
-    it('emits "name v<version>\\nactive/total tasks enabled" for tools', () => {
+    it('should emit "name v<version>\\nactive/total tasks enabled" for tools', () => {
         const tooltip = new TreeViewTooltip('tools');
 
         const result = tooltip.container('analyze_csharp_code', 4, 7, undefined, '1.0.0');
@@ -20,7 +20,7 @@ describe('TreeViewTooltip.container', () => {
         expect(result).toBe(`analyze_csharp_code v1.0.0\n4/7 ${treeViewLabels.tasksEnabledTooltip}`);
     });
 
-    it('omits the description line when none is supplied', () => {
+    it('should omit the description line when none is supplied', () => {
         const tooltip = new TreeViewTooltip('instructions');
 
         const result = tooltip.container('General', 1, 1);
@@ -30,7 +30,7 @@ describe('TreeViewTooltip.container', () => {
 });
 
 describe('TreeViewTooltip.leaf', () => {
-    it('renders enabled instruction state with the active tooltip', () => {
+    it('should render enabled instruction state with the active tooltip', () => {
         const tooltip = new TreeViewTooltip('instructions');
 
         const result = tooltip.leaf('lang-csharp', TreeViewNodeState.Enabled, 'autocontext.instructions.lang-csharp');
@@ -41,7 +41,7 @@ describe('TreeViewTooltip.leaf', () => {
         );
     });
 
-    it('renders enabled tool state with the enabled tooltip (different from instructions)', () => {
+    it('should render enabled tool state with the enabled tooltip (different from instructions)', () => {
         const tooltip = new TreeViewTooltip('tools');
 
         const result = tooltip.leaf('analyze_csharp_code', TreeViewNodeState.Enabled, 'autocontext.mcpTools.analyze_csharp_code');
@@ -50,7 +50,7 @@ describe('TreeViewTooltip.leaf', () => {
         expect(result).not.toContain(treeViewLabels.activeTooltip);
     });
 
-    it('renders disabled state with the shared disabled tooltip', () => {
+    it('should render disabled state with the shared disabled tooltip', () => {
         const tooltip = new TreeViewTooltip('instructions');
 
         const result = tooltip.leaf('lang-csharp', TreeViewNodeState.Disabled, 'autocontext.instructions.lang-csharp');
@@ -58,7 +58,7 @@ describe('TreeViewTooltip.leaf', () => {
         expect(result).toContain(treeViewLabels.disabledTooltip);
     });
 
-    it('renders not-detected state with the not-detected tooltip', () => {
+    it('should render not-detected state with the not-detected tooltip', () => {
         const tooltip = new TreeViewTooltip('tools');
 
         const result = tooltip.leaf('analyze_csharp_code', TreeViewNodeState.NotDetected, 'autocontext.mcpTools.analyze_csharp_code');
@@ -66,7 +66,7 @@ describe('TreeViewTooltip.leaf', () => {
         expect(result).toContain(treeViewLabels.notDetectedTooltip);
     });
 
-    it('renders overridden state with the overridden tooltip', () => {
+    it('should render overridden state with the overridden tooltip', () => {
         const tooltip = new TreeViewTooltip('instructions');
 
         const result = tooltip.leaf('lang-csharp', TreeViewNodeState.Overridden, 'autocontext.instructions.lang-csharp');
@@ -74,7 +74,7 @@ describe('TreeViewTooltip.leaf', () => {
         expect(result).toContain(treeViewLabels.overriddenTooltip);
     });
 
-    it('prefixes the heading with v<version> when supplied', () => {
+    it('should prefix the heading with v<version> when supplied', () => {
         const tooltip = new TreeViewTooltip('instructions');
 
         const result = tooltip.leaf('lang-csharp', TreeViewNodeState.Enabled, 'autocontext.instructions.lang-csharp', undefined, '1.2.0');
@@ -82,7 +82,7 @@ describe('TreeViewTooltip.leaf', () => {
         expect(result.split('\n')[0]).toMatch(/^lang-csharp v1\.2\.0/);
     });
 
-    it('uses the supplied stateLabel override instead of the default tooltip', () => {
+    it('should use the supplied stateLabel override instead of the default tooltip', () => {
         const tooltip = new TreeViewTooltip('instructions');
 
         const result = tooltip.leaf('lang-csharp', TreeViewNodeState.Overridden, 'autocontext.instructions.lang-csharp', undefined, undefined, treeViewLabels.outdatedTooltip);
@@ -91,7 +91,7 @@ describe('TreeViewTooltip.leaf', () => {
         expect(result).not.toContain(treeViewLabels.overriddenTooltip);
     });
 
-    it('inserts the description line between heading and context key', () => {
+    it('should insert the description line between heading and context key', () => {
         const tooltip = new TreeViewTooltip('instructions');
 
         const result = tooltip.leaf('lang-csharp', TreeViewNodeState.Enabled, 'autocontext.instructions.lang-csharp', 'C# style');
@@ -103,7 +103,7 @@ describe('TreeViewTooltip.leaf', () => {
 });
 
 describe('TreeViewTooltip.description', () => {
-    it('formats <active>/<total> regardless of kind', () => {
+    it('should format <active>/<total> regardless of kind', () => {
         expect(new TreeViewTooltip('instructions').description(2, 5)).toBe('2/5');
         expect(new TreeViewTooltip('tools').description(0, 7)).toBe('0/7');
     });
