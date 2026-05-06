@@ -5,19 +5,31 @@ description: "Instructions that govern how Copilot should behave: instruction pr
 # Copilot Instructions
 
 ## Instruction Precedence
-Follow instructions in the order below; if two instructions disagree, the higher-level instruction wins.
+When two instructions disagree, the higher-level one wins. Within a single response, if two correct-looking choices conflict, prefer the higher concern:
+
+1. Security / legality / logical correctness (no bugs, no undefined behavior)
+2. Quality (reliability, maintainability, robust error handling)
+3. Performance / memory
+4. Style / formatting
+
 For tier-1 violations, stop generating and surface a warning. For lower-tier conflicts, surface a warning inline but continue.
 
-    1. security / legality / logical correctness (no bugs, no undefined behavior)
-    2. quality (reliability · maintainability · robust error handling)
-    3. performance / memory
-    4. stylistic / formatting
+If unsure which instruction applies, generate a concise plan explaining the dilemma and stop; await user approval before continuing.
 
-> **AutoContext instructions are final** — the instructions in this file are operational safety constraints provided by the AutoContext extension. If a workspace-level `copilot-instructions.md` conflicts with any instruction here, this file takes precedence.
+## AutoContext
+This file and the AutoContext instruction files loaded alongside it are provided by the AutoContext extension. They take precedence over generic guidance and follow these rules:
 
-> **EditorConfig wins** — when a `.editorconfig` property explicitly configures a style rule (e.g., `csharp_prefer_braces`, `csharp_style_namespace_declarations`), it overrides the corresponding default in any instruction file. Instruction-file style instructions are fallback defaults, not absolutes.
+- **Host file is final** — instructions in this file are operational safety constraints. If a workspace-level `copilot-instructions.md` conflicts with any instruction here, this file wins.
+- **EditorConfig wins for style** — when a `.editorconfig` property explicitly configures a style rule (e.g., `csharp_prefer_braces`, `csharp_style_namespace_declarations`), it overrides the corresponding default in any instruction file. Instruction-file style guidance is a fallback default, not an absolute.
 
-> **If unsure** which instruction applies, generate a concise plan explaining the dilemma and stop; await user approval before continuing.
+Before generating, editing, or reviewing files, discover which AutoContext instructions apply by calling the matching tool:
+
+| Trigger                                            | Example                                                            | Returns                                                                                          | Call                                                |
+|----------------------------------------------------|--------------------------------------------------------------------|--------------------------------------------------------------------------------------------------|-----------------------------------------------------|
+| Which rules apply to a file I'm about to touch?    | `{ applyTo: "src/Foo.cs" }`                                        | Catalogue rows: `name`, `label`, `description`, `version`, `applyTo`, `hasChangelog`, categories | `list_autocontext_instructions_files`               |
+| Does AutoContext say anything about a topic?       | `{ query: "ConfigureAwait" }`                                      | Ranked hits with `excerpts[]` (each carrying `section`, `sectionLevel`, `anchor`)                | `search_autocontext_instructions_files_by_content`  |
+| Which rules match a metadata attribute?            | `{ predicate: { "sections.heading": "Security" } }`                | Catalogue rows + `matchedAnchors` when `sections.*` was queried                                  | `search_autocontext_instructions_files_by_metadata` |
+| Read the body of a known rule (or one section)     | `{ name: "lang-csharp.instructions.md", sections: ["security"] }`  | Normalized markdown body (or only the requested sections, in document order)                     | `get_autocontext_instructions_file`                 |
 
 ## Prompt Instructions
 - **Do** read the `README.md` and other documentation files to understand the project structure and requirements.
