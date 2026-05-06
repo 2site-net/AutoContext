@@ -3,20 +3,36 @@ import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { ChannelLogger } from 'autocontext-framework-web';
 import type { WorkspaceContextDetector } from './workspace-context-detector.js';
+import type { InstructionsFilesManager } from './instructions-files-manager.js';
+import type { InstructionsFileSectionsCache } from './instructions-file-sections-cache.js';
+import type { InstructionsFileSectionWithOffsets } from './types/instructions-file-section-with-offsets.js';
 import { InstructionsRulesUtils } from './instructions-rules-utils.js';
 
 /**
- * Reads an instruction file's authored markdown body for LM-tool surfaces.
+ * Projection of an instruction file ready for LM-tool consumption:
+ * the markdown body to surface and its parsed section index.
+ */
+export interface InstructionsFileProjection {
+    readonly body: string;
+    readonly sections: readonly InstructionsFileSectionWithOffsets[];
+}
+
+/**
+ * Reads an instruction file's markdown body for LM-tool surfaces, paired
+ * with its parsed section index.
  *
  * - When the workspace ships an override under `.github/instructions/<fileName>`
  *   (as reported by `WorkspaceContextDetector.hasOverriddenFile`), the override
- *   body wins.
- * - Otherwise the bundled `instructions/<fileName>` is read.
+ *   wins. The override is authored markdown, so frontmatter and `[INSTxxxx]`
+ *   tags are stripped here.
+ * - Otherwise the bundled `instructions/.generated/<fileName>` is read. That
+ *   path is the per-window output of `InstructionsFilesManager`, which has
+ *   already applied user `disabledInstructions`, stripped frontmatter, and
+ *   stripped `[INSTxxxx]` tags. Reads block on `manager.flush()` to ensure
+ *   any in-flight write has settled before the file is consumed.
  *
- * The result has frontmatter and `[INSTxxxx]` tags stripped. Bullet-level
- * `disabledInstructions` are intentionally **not** applied — LM tools surface
- * the rules as authored. The `instructions/.generated/` tree is also bypassed
- * for the same reason.
+ * Section indexes are computed via `InstructionsFileSectionsCache`, which
+ * memoizes per body content.
  */
 export class InstructionsFileContentProjector {
     private static readonly frontmatterStripPattern = /^---\r?\n[\s\S]*?\r?\n---\r?\n?/;
@@ -25,19 +41,20 @@ export class InstructionsFileContentProjector {
     constructor(
         private readonly extensionPath: string,
         private readonly detector: WorkspaceContextDetector,
+        private readonly manager: InstructionsFilesManager,
+        private readonly sectionsCache: InstructionsFileSectionsCache,
         private readonly logger: ChannelLogger,
     ) {}
 
-    async project(fileName: string): Promise<string | undefined> {
-        const raw = await this.readSource(fileName);
-        if (raw === undefined) {
+    async project(fileName: string): Promise<InstructionsFileProjection | undefined> {
+        const body = await this.readBody(fileName);
+        if (body === undefined) {
             return undefined;
         }
-        const stripped = raw.replace(InstructionsFileContentProjector.frontmatterStripPattern, '');
-        return InstructionsRulesUtils.stripAllRulesIds(stripped);
+        return { body, sections: this.sectionsCache.get(body) };
     }
 
-    private async readSource(fileName: string): Promise<string | undefined> {
+    private async readBody(fileName: string): Promise<string | undefined> {
         if (this.detector.hasOverriddenFile(fileName)) {
             const overrideBody = await this.readOverride(fileName);
             if (overrideBody !== undefined) {
@@ -60,7 +77,10 @@ export class InstructionsFileContentProjector {
                 return undefined;
             }
             const bytes = await vscode.workspace.fs.readFile(uri);
-            return InstructionsFileContentProjector.utf8Decoder.decode(bytes);
+            const raw = InstructionsFileContentProjector.utf8Decoder.decode(bytes);
+            // Overrides are authored markdown — strip frontmatter + `[INSTxxxx]`.
+            const stripped = raw.replace(InstructionsFileContentProjector.frontmatterStripPattern, '');
+            return InstructionsRulesUtils.stripAllRulesIds(stripped);
         } catch (err) {
             this.logger.warn(`Failed to read override for ${fileName}; falling back to bundled`, err);
             return undefined;
@@ -68,8 +88,13 @@ export class InstructionsFileContentProjector {
     }
 
     private async readBundled(fileName: string): Promise<string | undefined> {
-        const path = join(this.extensionPath, 'instructions', fileName);
+        // Block until any pending generated-files write has settled so we
+        // never read a partially promoted body.
+        await this.manager.flush();
+        const path = join(this.extensionPath, 'instructions', '.generated', fileName);
         try {
+            // `.generated/` output already has frontmatter and `[INSTxxxx]`
+            // tags stripped by the manager — no further normalization here.
             return await readFile(path, 'utf-8');
         } catch (err) {
             this.logger.warn(`Failed to read bundled instruction file: ${fileName}`, err);
