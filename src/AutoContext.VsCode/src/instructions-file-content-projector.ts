@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { ChannelLogger } from 'autocontext-framework-web';
-import type { WorkspaceContextDetector } from './workspace-context-detector.js';
+import type { InstructionsFilesOverrideWatcher } from './instructions-files-override-watcher.js';
 import type { InstructionsFilesManager } from './instructions-files-manager.js';
 import type { InstructionsFileSectionsCache } from './instructions-file-sections-cache.js';
 import type { InstructionsFileProjection } from './types/instructions-file-projection.js';
@@ -13,7 +13,7 @@ import { InstructionsRulesUtils } from './instructions-rules-utils.js';
  * with its parsed section index.
  *
  * - When the workspace ships an override under `.github/instructions/<fileName>`
- *   (as reported by `WorkspaceContextDetector.hasOverriddenFile`), the override
+ *   (as reported by `InstructionsFilesOverrideWatcher.isOverridden`), the override
  *   wins. The override is authored markdown, so frontmatter and `[INSTxxxx]`
  *   tags are stripped here.
  * - Otherwise the bundled `instructions/.generated/<fileName>` is read. That
@@ -31,7 +31,7 @@ export class InstructionsFileContentProjector {
 
     constructor(
         private readonly extensionPath: string,
-        private readonly detector: WorkspaceContextDetector,
+        private readonly overrideWatcher: InstructionsFilesOverrideWatcher,
         private readonly manager: InstructionsFilesManager,
         private readonly sectionsCache: InstructionsFileSectionsCache,
         private readonly logger: ChannelLogger,
@@ -46,7 +46,7 @@ export class InstructionsFileContentProjector {
     }
 
     private async readBody(fileName: string): Promise<string | undefined> {
-        if (this.detector.hasOverriddenFile(fileName)) {
+        if (this.overrideWatcher.isOverridden(fileName)) {
             const overrideBody = await this.readOverride(fileName);
             if (overrideBody !== undefined) {
                 return overrideBody;

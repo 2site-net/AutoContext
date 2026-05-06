@@ -3,9 +3,10 @@ import { InstructionsFileCategoryEntry } from '#src/instructions-file-category-e
 import { InstructionsFileEntry } from '#src/instructions-file-entry';
 import { InstructionsFilesManifest } from '#src/instructions-files-manifest';
 import { catalogTestEntries, makeInstructionsFileEntry, makeInstructionsFilesManifest } from '#testing/fixtures';
-import { createFakeDetector, createFakeConfigManager } from '#testing/fakes';
+import { createFakeDetector, createFakeOverrideWatcher, createFakeConfigManager } from '#testing/fakes';
 
 const fakeDetector = createFakeDetector();
+const fakeOverrideWatcher = createFakeOverrideWatcher();
 const fakeConfigManager = createFakeConfigManager();
 
 describe('InstructionsFileEntry', () => {
@@ -24,7 +25,7 @@ describe('InstructionsFileEntry', () => {
 
     it('should expose firstCategory', () => {
         const cats = [new InstructionsFileCategoryEntry('A'), new InstructionsFileCategoryEntry('B')];
-        const entry = new InstructionsFileEntry('x.instructions.md', 'X', cats, fakeDetector, fakeConfigManager);
+        const entry = new InstructionsFileEntry('x.instructions.md', 'X', cats, fakeDetector, fakeOverrideWatcher, fakeConfigManager);
 
         expect(entry.firstCategory.name).toBe('A');
     });
@@ -86,6 +87,7 @@ describe('InstructionsFilesManifest', () => {
             'Alpha',
             cats,
             fakeDetector,
+            fakeOverrideWatcher,
             fakeConfigManager,
             undefined,
             { description: 'Alpha desc', version: '1.0.0', hasChangelog: true },

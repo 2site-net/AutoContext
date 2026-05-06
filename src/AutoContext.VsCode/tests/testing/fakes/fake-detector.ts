@@ -4,9 +4,6 @@ import type { WorkspaceContextDetector } from '../../../src/workspace-context-de
 export function createFakeDetector(): WorkspaceContextDetector {
     return {
         get: vi.fn((_key: string) => false),
-        getOverriddenContextKeys: vi.fn(() => new Set<string>()),
-        hasOverriddenFile: vi.fn((_fileName: string) => false),
-        getOverrideVersion: vi.fn((_fileName: string) => undefined as string | undefined),
         onDidDetect: vi.fn(() => ({ dispose: vi.fn() })),
     } as unknown as WorkspaceContextDetector;
 }

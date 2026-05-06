@@ -17,6 +17,7 @@ import { InstructionsFilesManifestLoader } from './instructions-files-manifest-l
 import { InstructionsFilesManifest } from './instructions-files-manifest.js';
 import type { InstructionsFileEntry } from './instructions-file-entry.js';
 import type { WorkspaceContextDetector } from './workspace-context-detector.js';
+import type { InstructionsFilesOverrideWatcher } from './instructions-files-override-watcher.js';
 import type { AutoContextConfigManager } from './autocontext-config-manager.js';
 import type { PackageInstructionsFileEntry } from '#types/package-instructions-file-entry.js';
 
@@ -25,6 +26,7 @@ import type { PackageInstructionsFileEntry } from '#types/package-instructions-f
 // so the detector and config manager are never read. Stubs satisfy the
 // loader's required parameters without pulling in the VS Code runtime.
 const stubDetector = {} as WorkspaceContextDetector;
+const stubOverrideWatcher = {} as InstructionsFilesOverrideWatcher;
 const stubConfigManager = {} as AutoContextConfigManager;
 
 function buildWhenClause(entry: InstructionsFileEntry): string {
@@ -57,7 +59,7 @@ if (process.argv[1]?.replace(/\\/g, '/').endsWith('/src/package-instructions-man
     const pkgPath = join(root, 'package.json');
     const pkg = JSON.parse(readFileSync(pkgPath, 'utf-8'));
 
-    const manifest = new InstructionsFilesManifestLoader(root, stubDetector, stubConfigManager).load();
+    const manifest = new InstructionsFilesManifestLoader(root, stubDetector, stubOverrideWatcher, stubConfigManager).load();
     pkg.contributes.chatInstructions = buildChatInstructions(manifest);
     writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + '\n', 'utf-8');
 

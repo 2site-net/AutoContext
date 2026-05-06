@@ -3,8 +3,9 @@ import { InstructionsFileEntry } from '../../../src/instructions-file-entry';
 import type { InstructionsFileMetadata } from '#types/instructions-file-metadata.js';
 import { InstructionsFilesManifest } from '../../../src/instructions-files-manifest';
 import type { WorkspaceContextDetector } from '../../../src/workspace-context-detector';
+import type { InstructionsFilesOverrideWatcher } from '../../../src/instructions-files-override-watcher';
 import type { AutoContextConfigManager } from '../../../src/autocontext-config-manager';
-import { createFakeDetector, createFakeConfigManager } from '../fakes';
+import { createFakeDetector, createFakeOverrideWatcher, createFakeConfigManager } from '../fakes';
 
 export function makeInstructionsFileEntry(
     name: string,
@@ -14,9 +15,10 @@ export function makeInstructionsFileEntry(
     metadata?: InstructionsFileMetadata,
     detector: WorkspaceContextDetector = createFakeDetector(),
     configManager: AutoContextConfigManager = createFakeConfigManager(),
+    overrideWatcher: InstructionsFilesOverrideWatcher = createFakeOverrideWatcher(),
 ): InstructionsFileEntry {
     const categories = categoryNames.map(n => new InstructionsFileCategoryEntry(n));
-    return new InstructionsFileEntry(name, label, categories, detector, configManager, activationFlags, metadata);
+    return new InstructionsFileEntry(name, label, categories, detector, overrideWatcher, configManager, activationFlags, metadata);
 }
 
 export function makeInstructionsFilesManifest(

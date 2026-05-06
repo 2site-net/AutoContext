@@ -16,12 +16,13 @@ vi.mock('node:fs/promises', () => ({
 }));
 
 import { workspace } from '#testing/fakes/fake-vscode';
-import { createFakeLogger, createFakeDetector, createFakeConfigManager } from '#testing/fakes';
+import { createFakeLogger, createFakeDetector, createFakeOverrideWatcher, createFakeConfigManager } from '#testing/fakes';
 import { testInstructionsContent } from '#testing/fixtures';
 import { makeDocument } from '#testing/utils';
 
 const mockLogger = createFakeLogger();
 const fakeDetector = createFakeDetector();
+const fakeOverrideWatcher = createFakeOverrideWatcher();
 const fakeConfigManager = createFakeConfigManager();
 
 beforeEach(() => {
@@ -32,13 +33,13 @@ beforeEach(() => {
 });
 
 describe('InstructionsViewerCodeLensProvider', () => {
-    const catalog = new InstructionsFilesManifestLoader(join(__dirname, '..', '..'), fakeDetector, fakeConfigManager).load();
+    const catalog = new InstructionsFilesManifestLoader(join(__dirname, '..', '..'), fakeDetector, fakeOverrideWatcher, fakeConfigManager).load();
 
     it('should return empty array for non-instruction documents', async () => {
         vi.mocked(readFile).mockResolvedValue('{}');
 
         const configManager = new AutoContextConfigManager('/ext', '0.5.0', mockLogger);
-        const provider = new InstructionsViewerCodeLensProvider({ extensionPath: '/ext', configManager, detector: fakeDetector, manifest: catalog, logger: mockLogger });
+        const provider = new InstructionsViewerCodeLensProvider({ extensionPath: '/ext', configManager, detector: fakeDetector, overrideWatcher: fakeOverrideWatcher, manifest: catalog, logger: mockLogger });
 
         const lenses = await provider.provideCodeLenses(makeDocument('file', 'test.md'));
 
@@ -53,7 +54,7 @@ describe('InstructionsViewerCodeLensProvider', () => {
         });
 
         const configManager = new AutoContextConfigManager('/ext', '0.5.0', mockLogger);
-        const provider = new InstructionsViewerCodeLensProvider({ extensionPath: '/ext', configManager, detector: fakeDetector, manifest: catalog, logger: mockLogger });
+        const provider = new InstructionsViewerCodeLensProvider({ extensionPath: '/ext', configManager, detector: fakeDetector, overrideWatcher: fakeOverrideWatcher, manifest: catalog, logger: mockLogger });
 
         const lenses = await provider.provideCodeLenses(makeDocument(instructionScheme, 'test.instructions.md'));
 
@@ -85,7 +86,7 @@ describe('InstructionsViewerCodeLensProvider', () => {
         });
 
         const configManager = new AutoContextConfigManager('/ext', '0.5.0', mockLogger);
-        const provider = new InstructionsViewerCodeLensProvider({ extensionPath: '/ext', configManager, detector: fakeDetector, manifest: catalog, logger: mockLogger });
+        const provider = new InstructionsViewerCodeLensProvider({ extensionPath: '/ext', configManager, detector: fakeDetector, overrideWatcher: fakeOverrideWatcher, manifest: catalog, logger: mockLogger });
 
         const lenses = await provider.provideCodeLenses(makeDocument(instructionScheme, 'test.instructions.md'));
 
@@ -119,7 +120,7 @@ describe('InstructionsViewerCodeLensProvider', () => {
         });
 
         const configManager = new AutoContextConfigManager('/ext', '0.5.0', mockLogger);
-        const provider = new InstructionsViewerCodeLensProvider({ extensionPath: '/ext', configManager, detector: fakeDetector, manifest: catalog, logger: mockLogger });
+        const provider = new InstructionsViewerCodeLensProvider({ extensionPath: '/ext', configManager, detector: fakeDetector, overrideWatcher: fakeOverrideWatcher, manifest: catalog, logger: mockLogger });
 
         const lenses = await provider.provideCodeLenses(makeDocument(instructionScheme, 'test.instructions.md'));
 
@@ -138,7 +139,7 @@ describe('InstructionsViewerCodeLensProvider', () => {
         });
 
         const configManager = new AutoContextConfigManager('/ext', '0.5.0', mockLogger);
-        const provider = new InstructionsViewerCodeLensProvider({ extensionPath: '/ext', configManager, detector: fakeDetector, manifest: catalog, logger: mockLogger });
+        const provider = new InstructionsViewerCodeLensProvider({ extensionPath: '/ext', configManager, detector: fakeDetector, overrideWatcher: fakeOverrideWatcher, manifest: catalog, logger: mockLogger });
 
         const lenses = await provider.provideCodeLenses(makeDocument(instructionScheme, 'test.instructions.md'));
 
@@ -148,7 +149,7 @@ describe('InstructionsViewerCodeLensProvider', () => {
 
     it('should return empty array for overridden instructions', async () => {
         vi.mocked(fakeDetector.get).mockReturnValue(true);
-        vi.mocked(fakeDetector.getOverriddenContextKeys).mockReturnValue(new Set(['autocontext.instructions.lang-csharp']));
+        vi.mocked(fakeOverrideWatcher.isOverridden).mockImplementation((name: string) => name === 'lang-csharp.instructions.md');
         vi.mocked(readFile).mockImplementation(async (path: unknown) => {
             const pathStr = String(path);
             if (pathStr.endsWith('.autocontext.json')) return '{}';
@@ -156,7 +157,7 @@ describe('InstructionsViewerCodeLensProvider', () => {
         });
 
         const configManager = new AutoContextConfigManager('/ext', '0.5.0', mockLogger);
-        const provider = new InstructionsViewerCodeLensProvider({ extensionPath: '/ext', configManager, detector: fakeDetector, manifest: catalog, logger: mockLogger });
+        const provider = new InstructionsViewerCodeLensProvider({ extensionPath: '/ext', configManager, detector: fakeDetector, overrideWatcher: fakeOverrideWatcher, manifest: catalog, logger: mockLogger });
 
         const lenses = await provider.provideCodeLenses(makeDocument(instructionScheme, 'lang-csharp.instructions.md'));
 
@@ -172,7 +173,7 @@ describe('InstructionsViewerCodeLensProvider', () => {
         });
 
         const configManager = new AutoContextConfigManager('/ext', '0.5.0', mockLogger);
-        const provider = new InstructionsViewerCodeLensProvider({ extensionPath: '/ext', configManager, detector: fakeDetector, manifest: catalog, logger: mockLogger });
+        const provider = new InstructionsViewerCodeLensProvider({ extensionPath: '/ext', configManager, detector: fakeDetector, overrideWatcher: fakeOverrideWatcher, manifest: catalog, logger: mockLogger });
 
         const lenses = await provider.provideCodeLenses(makeDocument(instructionScheme, 'lang-csharp.instructions.md'));
 

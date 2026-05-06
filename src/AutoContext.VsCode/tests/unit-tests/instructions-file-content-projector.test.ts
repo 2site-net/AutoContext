@@ -6,7 +6,7 @@ vi.mock('node:fs/promises', () => ({
 }));
 
 import { workspace } from '#testing/fakes/fake-vscode';
-import { createFakeDetector, createFakeLogger } from '#testing/fakes';
+import { createFakeOverrideWatcher, createFakeLogger } from '#testing/fakes';
 import { InstructionsFileContentProjector } from '#src/instructions-file-content-projector';
 import { InstructionsFileSectionsCache } from '#src/instructions-file-sections-cache';
 import type { InstructionsFilesManager } from '#src/instructions-files-manager';
@@ -44,16 +44,16 @@ describe('InstructionsFileContentProjector', () => {
 
     it('reads the bundled .generated file when no override is reported', async () => {
         vi.mocked(readFile).mockResolvedValue(generatedBody);
-        const detector = createFakeDetector();
+        const overrideWatcher = createFakeOverrideWatcher();
         const manager = createFakeManager();
         const cache = new InstructionsFileSectionsCache();
         const projector = new InstructionsFileContentProjector(
-            '/ext', detector, manager, cache, createFakeLogger(),
+            '/ext', overrideWatcher, manager, cache, createFakeLogger(),
         );
 
         const result = await projector.project('lang-csharp.instructions.md');
 
-        expect(detector.hasOverriddenFile).toHaveBeenCalledWith('lang-csharp.instructions.md');
+        expect(overrideWatcher.isOverridden).toHaveBeenCalledWith('lang-csharp.instructions.md');
         expect(workspace.findFiles).not.toHaveBeenCalled();
         expect(manager.flush).toHaveBeenCalledTimes(1);
 
@@ -86,7 +86,7 @@ describe('InstructionsFileContentProjector', () => {
         });
 
         const projector = new InstructionsFileContentProjector(
-            '/ext', createFakeDetector(), manager, new InstructionsFileSectionsCache(), createFakeLogger(),
+            '/ext', createFakeOverrideWatcher(), manager, new InstructionsFileSectionsCache(), createFakeLogger(),
         );
         await projector.project('lang-csharp.instructions.md');
 
@@ -95,8 +95,8 @@ describe('InstructionsFileContentProjector', () => {
     });
 
     it('reads and normalizes the override file when the detector reports an override', async () => {
-        const detector = createFakeDetector();
-        vi.mocked(detector.hasOverriddenFile).mockReturnValue(true);
+        const overrideWatcher = createFakeOverrideWatcher();
+        vi.mocked(overrideWatcher.isOverridden).mockReturnValue(true);
         const manager = createFakeManager();
 
         const fakeUri = { path: '/ws/.github/instructions/lang-csharp.instructions.md' };
@@ -106,7 +106,7 @@ describe('InstructionsFileContentProjector', () => {
         );
 
         const projector = new InstructionsFileContentProjector(
-            '/ext', detector, manager, new InstructionsFileSectionsCache(), createFakeLogger(),
+            '/ext', overrideWatcher, manager, new InstructionsFileSectionsCache(), createFakeLogger(),
         );
         const result = await projector.project('lang-csharp.instructions.md');
 
@@ -125,14 +125,14 @@ describe('InstructionsFileContentProjector', () => {
     });
 
     it('falls back to the bundled .generated file when the override read fails', async () => {
-        const detector = createFakeDetector();
-        vi.mocked(detector.hasOverriddenFile).mockReturnValue(true);
+        const overrideWatcher = createFakeOverrideWatcher();
+        vi.mocked(overrideWatcher.isOverridden).mockReturnValue(true);
         vi.mocked(workspace.findFiles).mockResolvedValueOnce([] as never);
         vi.mocked(readFile).mockResolvedValue(generatedBody);
         const manager = createFakeManager();
 
         const projector = new InstructionsFileContentProjector(
-            '/ext', detector, manager, new InstructionsFileSectionsCache(), createFakeLogger(),
+            '/ext', overrideWatcher, manager, new InstructionsFileSectionsCache(), createFakeLogger(),
         );
         const result = await projector.project('lang-csharp.instructions.md');
 
@@ -143,11 +143,11 @@ describe('InstructionsFileContentProjector', () => {
     });
 
     it('returns undefined when neither override nor bundled read succeed', async () => {
-        const detector = createFakeDetector();
+        const overrideWatcher = createFakeOverrideWatcher();
         vi.mocked(readFile).mockRejectedValue(new Error('missing'));
 
         const projector = new InstructionsFileContentProjector(
-            '/ext', detector, createFakeManager(), new InstructionsFileSectionsCache(), createFakeLogger(),
+            '/ext', overrideWatcher, createFakeManager(), new InstructionsFileSectionsCache(), createFakeLogger(),
         );
         const result = await projector.project('does-not-exist.instructions.md');
 
@@ -166,7 +166,7 @@ describe('InstructionsFileContentProjector', () => {
         vi.mocked(readFile).mockResolvedValue(filtered);
 
         const projector = new InstructionsFileContentProjector(
-            '/ext', createFakeDetector(), createFakeManager(), new InstructionsFileSectionsCache(), createFakeLogger(),
+            '/ext', createFakeOverrideWatcher(), createFakeManager(), new InstructionsFileSectionsCache(), createFakeLogger(),
         );
         const result = await projector.project('lang-csharp.instructions.md');
 

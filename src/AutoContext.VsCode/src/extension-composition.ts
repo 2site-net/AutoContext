@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import type { ChannelLogger } from 'autocontext-framework-web';
 import { LogCategory } from 'autocontext-framework-web';
 import { WorkspaceContextDetector } from './workspace-context-detector.js';
+import { InstructionsFilesOverrideWatcher } from './instructions-files-override-watcher.js';
 import { InstructionsFilesManifestLoader } from './instructions-files-manifest-loader.js';
 import type { InstructionsFilesManifest } from './instructions-files-manifest.js';
 import { InstructionsFilesExporter } from './instructions-files-exporter.js';
@@ -61,17 +62,22 @@ export class ExtensionComposer {
 
         // 1. Core stateful services that entries depend on.
         const configManager = new AutoContextConfigManager(extensionPath, version, log(LogCategory.Config));
-        let instructionsManifest!: InstructionsFilesManifest;
-        const workspaceContextDetector = new WorkspaceContextDetector(
-            () => instructionsManifest,
+        const workspaceContextDetector = new WorkspaceContextDetector(log(LogCategory.Detection));
+        const bundledInstructionsNames = InstructionsFilesManifestLoader.loadInstructionNames(extensionPath);
+        const instructionsOverrideWatcher = new InstructionsFilesOverrideWatcher(
+            bundledInstructionsNames,
             log(LogCategory.Detection),
         );
 
         // 2. Static manifests / metadata (sync JSON reads).
         const instructionsMetadata = new InstructionsFilesMetadataLoader(extensionPath).load();
         const mcpToolsManifest = new McpToolsManifestLoader(extensionPath, workspaceContextDetector, configManager).load();
-        instructionsManifest = new InstructionsFilesManifestLoader(extensionPath, workspaceContextDetector, configManager)
-            .load(instructionsMetadata);
+        const instructionsManifest: InstructionsFilesManifest = new InstructionsFilesManifestLoader(
+            extensionPath,
+            workspaceContextDetector,
+            instructionsOverrideWatcher,
+            configManager,
+        ).load(instructionsMetadata);
         const serversManifest = new ServersManifestLoader(extensionPath).load();
 
         const workerIds = new Set(
@@ -85,7 +91,7 @@ export class ExtensionComposer {
         const instructionsSectionsCache = new InstructionsFileSectionsCache();
         const instructionsContentProjector = new InstructionsFileContentProjector(
             extensionPath,
-            workspaceContextDetector,
+            instructionsOverrideWatcher,
             instructionsWriter,
             instructionsSectionsCache,
             log(LogCategory.Instructions),
@@ -109,7 +115,7 @@ export class ExtensionComposer {
 
         // 4. VS Code-facing providers.
         const contentProvider = new InstructionsViewerDocumentProvider(extensionPath, configManager, log(LogCategory.Instructions));
-        const codeLensProvider = new InstructionsViewerCodeLensProvider({ extensionPath, configManager, detector: workspaceContextDetector, manifest: instructionsManifest, logger: log(LogCategory.Instructions) });
+        const codeLensProvider = new InstructionsViewerCodeLensProvider({ extensionPath, configManager, detector: workspaceContextDetector, overrideWatcher: instructionsOverrideWatcher, manifest: instructionsManifest, logger: log(LogCategory.Instructions) });
         const decorationManager = new InstructionsViewerDecorationManager(extensionPath, configManager, log(LogCategory.Decorations));
         const mcpServerProvider = new McpServerProvider({
             extensionPath,
@@ -128,6 +134,7 @@ export class ExtensionComposer {
 
         const instructionsTreeProvider = new InstructionsFilesTreeProvider({
             detector: workspaceContextDetector,
+            overrideWatcher: instructionsOverrideWatcher,
             manifest: instructionsManifest,
             tooltip: new TreeViewTooltip('instructions'),
             configManager,
@@ -157,6 +164,7 @@ export class ExtensionComposer {
             autoContextConfigServer,
             workerManager,
             workspaceContextDetector,
+            instructionsOverrideWatcher,
             configManager,
             contentProvider,
             codeLensProvider,
@@ -176,6 +184,7 @@ export class ExtensionComposer {
             // Core
             configManager,
             workspaceContextDetector,
+            instructionsOverrideWatcher,
             instructionsExporter,
             instructionsWriter,
             instructionsSectionsCache,

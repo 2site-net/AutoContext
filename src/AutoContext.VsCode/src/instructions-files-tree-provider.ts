@@ -4,6 +4,7 @@ import { TreeViewNodeState } from './tree-view-node-state.js';
 import { viewIds, contextKeys, treeViewLabels } from './ui-constants.js';
 import { instructionScheme } from './instructions-viewer-document-provider.js';
 import type { WorkspaceContextDetector } from './workspace-context-detector.js';
+import type { InstructionsFilesOverrideWatcher } from './instructions-files-override-watcher.js';
 import type { InstructionsFileEntry } from './instructions-file-entry.js';
 import type { TreeViewTooltip } from './tree-view-tooltip.js';
 import type { InstructionsFileCategoryTreeNode } from '#types/instructions-file-category-tree-node.js';
@@ -26,12 +27,14 @@ export class InstructionsFilesTreeProvider implements vscode.TreeDataProvider<Tr
     private readonly disposables: vscode.Disposable[] = [];
 
     private readonly detector: WorkspaceContextDetector;
+    private readonly overrideWatcher: InstructionsFilesOverrideWatcher;
     private readonly manifest: InstructionsFilesManifest;
     private readonly tooltip: TreeViewTooltip;
     private readonly configManager: AutoContextConfigManager;
 
     constructor(options: InstructionsFilesTreeProviderOptions) {
         this.detector = options.detector;
+        this.overrideWatcher = options.overrideWatcher;
         this.manifest = options.manifest;
         this.tooltip = options.tooltip;
         this.configManager = options.configManager;
@@ -46,6 +49,7 @@ export class InstructionsFilesTreeProvider implements vscode.TreeDataProvider<Tr
             this.treeView,
             this._onDidChangeTreeData,
             this.detector.onDidDetect(() => this.refresh()),
+            this.overrideWatcher.onDidChange(() => this.refresh()),
             this.configManager.onDidChange(() => this.refresh()),
             this.treeView.onDidChangeCheckboxState(e => {
                 for (const [item, state] of e.items) {
@@ -123,7 +127,7 @@ export class InstructionsFilesTreeProvider implements vscode.TreeDataProvider<Tr
             .map(entry => {
                 const state = entry.resolveState();
                 const overrideVersion = state === TreeViewNodeState.Overridden
-                    ? this.detector.getOverrideVersion(entry.name)
+                    ? this.overrideWatcher.getOverrideVersion(entry.name)
                     : undefined;
                 const isOutdated = overrideVersion !== undefined
                     && entry.version !== undefined

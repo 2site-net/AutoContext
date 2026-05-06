@@ -38,9 +38,21 @@ vi.mock('../../src/workspace-context-detector', () => ({
 
 vi.mock('../../src/instructions-files-manifest-loader', () => ({
     InstructionsFilesManifestLoader: class {
+        static loadInstructionNames() { return new Set<string>(); }
         load() {
             return { instructions: [], categories: [], count: 0, findByName: () => undefined };
         }
+    },
+}));
+
+vi.mock('../../src/instructions-files-override-watcher', () => ({
+    InstructionsFilesOverrideWatcher: class {
+        async watch() { callLog.push('watch'); }
+        onDidChange = () => ({ dispose() {} });
+        isOverridden() { return false; }
+        getOverrideVersion() { return undefined; }
+        getOverriddenFileNames() { return new Set<string>(); }
+        dispose() {}
     },
 }));
 

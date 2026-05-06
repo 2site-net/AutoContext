@@ -5,9 +5,10 @@ import { AutoConfigurer } from '#src/auto-configurer';
 import { InstructionsFilesManifestLoader } from '#src/instructions-files-manifest-loader';
 import { McpToolsManifestLoader } from '#src/mcp-tools-manifest-loader';
 import { AutoContextConfig } from '#src/autocontext-config.js';
-import { createFakeDetector, createFakeConfigManager } from '#testing/fakes';
+import { createFakeDetector, createFakeOverrideWatcher, createFakeConfigManager } from '#testing/fakes';
 
 const fakeDetector = createFakeDetector();
+const fakeOverrideWatcher = createFakeOverrideWatcher();
 
 let currentConfig: AutoContextConfig = new AutoContextConfig();
 const fakeConfigManager = createFakeConfigManager();
@@ -21,7 +22,7 @@ beforeEach(() => {
 
 describe('AutoConfigurer', () => {
     const extensionPath = join(__dirname, '..', '..');
-    const instructionsManifest = new InstructionsFilesManifestLoader(extensionPath, fakeDetector, fakeConfigManager).load();
+    const instructionsManifest = new InstructionsFilesManifestLoader(extensionPath, fakeDetector, fakeOverrideWatcher, fakeConfigManager).load();
     const manifest = new McpToolsManifestLoader(extensionPath, fakeDetector, fakeConfigManager).load();
 
     it('should disable context-dependent entries when nothing is detected', async () => {

@@ -2,12 +2,13 @@ import { describe, it, expect } from 'vitest';
 import { join } from 'node:path';
 import { InstructionsFilesManifestLoader } from '#src/instructions-files-manifest-loader';
 import { McpToolsManifestLoader } from '#src/mcp-tools-manifest-loader';
-import { createFakeDetector, createFakeConfigManager } from '#testing/fakes';
+import { createFakeDetector, createFakeOverrideWatcher, createFakeConfigManager } from '#testing/fakes';
 
 const extensionPath = join(__dirname, '..', '..');
 const fakeDetector = createFakeDetector();
+const fakeOverrideWatcher = createFakeOverrideWatcher();
 const fakeConfigManager = createFakeConfigManager();
-const instructionsManifest = new InstructionsFilesManifestLoader(extensionPath, fakeDetector, fakeConfigManager).load();
+const instructionsManifest = new InstructionsFilesManifestLoader(extensionPath, fakeDetector, fakeOverrideWatcher, fakeConfigManager).load();
 const toolsManifest = new McpToolsManifestLoader(extensionPath, fakeDetector, fakeConfigManager).load();
 
 describe('InstructionsFileRuntimeInfo.contextKey', () => {

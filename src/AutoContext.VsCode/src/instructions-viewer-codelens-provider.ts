@@ -5,6 +5,7 @@ import type { InstructionsFilesManifest } from './instructions-files-manifest.js
 import { instructionScheme } from './instructions-viewer-document-provider.js';
 import type { AutoContextConfigManager } from './autocontext-config-manager.js';
 import type { WorkspaceContextDetector } from './workspace-context-detector.js';
+import type { InstructionsFilesOverrideWatcher } from './instructions-files-override-watcher.js';
 import { commandIds } from './ui-constants.js';
 import type { ChannelLogger } from 'autocontext-framework-web';
 import type { InstructionsViewerCodeLensProviderOptions } from '#types/instructions-viewer-codelens-provider-options.js';
@@ -17,6 +18,7 @@ export class InstructionsViewerCodeLensProvider implements vscode.CodeLensProvid
     private readonly extensionPath: string;
     private readonly configManager: AutoContextConfigManager;
     private readonly detector: WorkspaceContextDetector;
+    private readonly overrideWatcher: InstructionsFilesOverrideWatcher;
     private readonly manifest: InstructionsFilesManifest;
     private readonly logger: ChannelLogger;
 
@@ -24,6 +26,7 @@ export class InstructionsViewerCodeLensProvider implements vscode.CodeLensProvid
         this.extensionPath = options.extensionPath;
         this.configManager = options.configManager;
         this.detector = options.detector;
+        this.overrideWatcher = options.overrideWatcher;
         this.manifest = options.manifest;
         this.logger = options.logger;
 
@@ -31,6 +34,7 @@ export class InstructionsViewerCodeLensProvider implements vscode.CodeLensProvid
             this.didChangeEmitter,
             this.configManager.onDidChange(() => this.didChangeEmitter.fire()),
             this.detector.onDidDetect(() => this.didChangeEmitter.fire()),
+            this.overrideWatcher.onDidChange(() => this.didChangeEmitter.fire()),
         );
     }
 
@@ -48,7 +52,7 @@ export class InstructionsViewerCodeLensProvider implements vscode.CodeLensProvid
                 return [];
             }
 
-            if (this.detector.getOverriddenContextKeys().has(entry.runtimeInfo.contextKey)) {
+            if (this.overrideWatcher.isOverridden(entry.name)) {
                 return [];
             }
         }

@@ -3,6 +3,7 @@ import type { InstructionsFileCategoryEntry } from './instructions-file-category
 import { InstructionsFileRuntimeInfo } from './instructions-file-runtime-info.js';
 import { TreeViewNodeState } from './tree-view-node-state.js';
 import type { WorkspaceContextDetector } from './workspace-context-detector.js';
+import type { InstructionsFilesOverrideWatcher } from './instructions-files-override-watcher.js';
 import type { AutoContextConfigManager } from './autocontext-config-manager.js';
 import type { InstructionsFileMetadata } from '#types/instructions-file-metadata.js';
 
@@ -20,6 +21,7 @@ export class InstructionsFileEntry extends InstructionsFileItemEntry {
     readonly version?: string;
     readonly hasChangelog: boolean;
     readonly #detector: WorkspaceContextDetector;
+    readonly #overrideWatcher: InstructionsFilesOverrideWatcher;
     readonly #configManager: AutoContextConfigManager;
 
     constructor(
@@ -27,6 +29,7 @@ export class InstructionsFileEntry extends InstructionsFileItemEntry {
         label: string,
         readonly categories: readonly InstructionsFileCategoryEntry[],
         detector: WorkspaceContextDetector,
+        overrideWatcher: InstructionsFilesOverrideWatcher,
         configManager: AutoContextConfigManager,
         readonly activationFlags: readonly string[] = [],
         metadata?: InstructionsFileMetadata,
@@ -38,6 +41,7 @@ export class InstructionsFileEntry extends InstructionsFileItemEntry {
         this.version = metadata?.version;
         this.hasChangelog = metadata?.hasChangelog ?? false;
         this.#detector = detector;
+        this.#overrideWatcher = overrideWatcher;
         this.#configManager = configManager;
     }
 
@@ -70,7 +74,7 @@ export class InstructionsFileEntry extends InstructionsFileItemEntry {
             return TreeViewNodeState.Disabled;
         }
 
-        if (this.#detector.getOverriddenContextKeys().has(this.#runtimeInfo.contextKey)) {
+        if (this.#overrideWatcher.isOverridden(this.name)) {
             return TreeViewNodeState.Overridden;
         }
 

@@ -2,16 +2,11 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { workspace, commands } from '#testing/fakes/fake-vscode';
 import { WorkspaceContextDetector } from '#src/workspace-context-detector';
 import { createFakeLogger, fakeUri, stubFindFiles, stubReadFile } from '#testing/fakes';
-import { detectorTestInstructions, makeInstructionsFilesManifest } from '#testing/fixtures';
 
 const mockLogger = createFakeLogger();
 
 function createDetector(): WorkspaceContextDetector {
-    const manifest = makeInstructionsFilesManifest(detectorTestInstructions);
-    return new WorkspaceContextDetector(
-        () => manifest,
-        mockLogger,
-    );
+    return new WorkspaceContextDetector(mockLogger);
 }
 
 beforeEach(() => {
@@ -380,65 +375,6 @@ describe('WorkspaceContextDetector', () => {
                     'setContext', 'autocontext.workspace.hasRust', false,
                 );
             });
-
-            it('should register override keys with autocontext.override. prefix', async () => {
-                stubFindFiles({
-                    '.github/instructions/*.instructions.md': [
-                        '/.github/instructions/dotnet-coding-standards.instructions.md',
-                    ],
-                });
-
-                const det = createDetector();
-                await det.detect();
-
-                expect(commands.executeCommand).toHaveBeenCalledWith(
-                    'setContext', 'autocontext.override.dotnet-coding-standards', true,
-                );
-            });
-        });
-
-        describe('override detection', () => {
-            it('should populate overriddenContextKeys for matching instruction files', async () => {
-                stubFindFiles({
-                    '.github/instructions/*.instructions.md': [
-                        '/.github/instructions/dotnet-coding-standards.instructions.md',
-                    ],
-                });
-
-                const det = createDetector();
-                await det.detect();
-
-                expect(det.getOverriddenContextKeys().has('autocontext.instructions.dotnet-coding-standards')).toBe(true);
-            });
-
-            it('should not include unknown override files', async () => {
-                stubFindFiles({
-                    '.github/instructions/*.instructions.md': [
-                        '/.github/instructions/unknown.instructions.md',
-                    ],
-                });
-
-                const det = createDetector();
-                await det.detect();
-
-                expect(det.getOverriddenContextKeys().size).toBe(0);
-            });
-
-            it('should clear overridden IDs between detections', async () => {
-                stubFindFiles({
-                    '.github/instructions/*.instructions.md': [
-                        '/.github/instructions/dotnet-coding-standards.instructions.md',
-                    ],
-                });
-                const det = createDetector();
-                await det.detect();
-                expect(det.getOverriddenContextKeys().size).toBe(1);
-
-                stubFindFiles({});
-                await det.detect();
-
-                expect(det.getOverriddenContextKeys().size).toBe(0);
-            });
         });
 
         describe('state transitions', () => {
@@ -495,12 +431,11 @@ describe('WorkspaceContextDetector', () => {
             onDidDelete: ReturnType<typeof vi.fn>;
         };
 
-        function getWatchers(): { existence: WatcherMock; content: WatcherMock; override: WatcherMock } {
+        function getWatchers(): { existence: WatcherMock; content: WatcherMock } {
             const results = (workspace.createFileSystemWatcher as ReturnType<typeof vi.fn>).mock.results;
             return {
                 existence: results[0].value as WatcherMock,
                 content: results[1].value as WatcherMock,
-                override: results[2].value as WatcherMock,
             };
         }
 
@@ -582,24 +517,6 @@ describe('WorkspaceContextDetector', () => {
             expect.soft(det.get('hasAspNetCore')).toBe(true);
         });
 
-        it('should re-scan overrides when override watcher fires', async () => {
-            const det = createDetector();
-            const { override } = getWatchers();
-            await det.detect();
-            expect(det.getOverriddenContextKeys().size).toBe(0);
-
-            stubFindFiles({
-                '.github/instructions/*.instructions.md': [
-                    '/.github/instructions/dotnet-coding-standards.instructions.md',
-                ],
-            });
-
-            fireEvent(override, 'create', '/.github/instructions/dotnet-coding-standards.instructions.md');
-            await vi.advanceTimersByTimeAsync(500);
-
-            expect(det.getOverriddenContextKeys().has('autocontext.instructions.dotnet-coding-standards')).toBe(true);
-        });
-
         it('should fall back to full detect when no prior scan exists', async () => {
             stubFindFiles({ '**/*.py': ['/main.py'] });
             const det = createDetector();
@@ -668,22 +585,6 @@ describe('WorkspaceContextDetector', () => {
 
             // eslint-disable-next-line @typescript-eslint/no-explicit-any -- access private emitter to verify fire was called
             expect((det as any)._onDidDetect.fire).toHaveBeenCalled();
-        });
-
-        it('should update overrides even when setContext rejects', async () => {
-            stubFindFiles({
-                '.github/instructions/*.instructions.md': [
-                    '/.github/instructions/dotnet-coding-standards.instructions.md',
-                ],
-            });
-            (commands.executeCommand as ReturnType<typeof vi.fn>).mockRejectedValue(
-                new Error('setContext failure'),
-            );
-
-            const det = createDetector();
-            await det.detect();
-
-            expect(det.getOverriddenContextKeys().has('autocontext.instructions.dotnet-coding-standards')).toBe(true);
         });
     });
 

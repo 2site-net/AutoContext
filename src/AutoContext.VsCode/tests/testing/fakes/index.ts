@@ -1,5 +1,6 @@
 export { createFakeLogger } from './fake-logger';
 export { createFakeDetector } from './fake-detector';
+export { createFakeOverrideWatcher } from './fake-override-watcher';
 export { createFakeConfigManager, createMockConfigManager } from './fake-config-manager';
 export { createFakeHealthMonitor } from './fake-health-monitor';
 export { createFakeExtensionContext } from './fake-extension-context';

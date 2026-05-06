@@ -40,7 +40,10 @@ export class ExtensionActivator {
 
         // Phase A — workspace detection. Populates `setContext` flags
         // (hasDotNet, hasTypeScript, …) the MCP provider consults.
-        await graph.workspaceContextDetector.detect();
+        await Promise.all([
+            graph.workspaceContextDetector.detect(),
+            graph.instructionsOverrideWatcher.watch(),
+        ]);
 
         // detect() updates workspaceContextDetector state and the
         // `setContext` flags the MCP provider keys off, but it does not

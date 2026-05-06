@@ -1,6 +1,4 @@
 import * as vscode from 'vscode';
-import type { InstructionsFilesManifest } from './instructions-files-manifest.js';
-import { InstructionsFileParser } from './instructions-file-parser.js';
 import type { ChannelLogger } from 'autocontext-framework-web';
 
 // --- File-system watcher globs ---
@@ -10,9 +8,6 @@ const existenceWatchGlob =
 
 const contentWatchGlob =
     '**/{*.csproj,*.fsproj,package.json,pom.xml,build.gradle,build.sbt,Cargo.toml,go.mod,pyproject.toml,composer.json}';
-
-const overrideWatchGlob =
-    '**/.github/{copilot-instructions.md,instructions/*.instructions.md}';
 
 // --- Declarative detection tables ---
 
@@ -235,7 +230,7 @@ function getContentCategory(filename: string): ContentCategory | undefined {
     return undefined;
 }
 
-type WatcherKind = 'existence' | 'content' | 'override';
+type WatcherKind = 'existence' | 'content';
 type EventKind = 'create' | 'change' | 'delete';
 
 interface PendingEvent {
@@ -250,9 +245,6 @@ export class WorkspaceContextDetector implements vscode.Disposable {
     private readonly _onDidDetect = new vscode.EventEmitter<void>();
     private readonly _state = new Map<string, boolean>();
     private readonly _baseFlags = new Map<string, boolean>();
-    private readonly _overriddenContextKeys = new Set<string>();
-    private _overriddenFileNames = new Set<string>();
-    private _overrideVersions = new Map<string, string | undefined>();
     private _pendingEvents: PendingEvent[] = [];
 
     readonly onDidDetect = this._onDidDetect.event;
@@ -261,22 +253,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
         return this._state.get(key) ?? false;
     }
 
-    getOverriddenContextKeys(): ReadonlySet<string> {
-        return this._overriddenContextKeys;
-    }
-
-    hasOverriddenFile(fileName: string): boolean {
-        return this._overriddenFileNames.has(fileName);
-    }
-
-    getOverrideVersion(fileName: string): string | undefined {
-        return this._overrideVersions.get(fileName);
-    }
-
-    constructor(
-        private readonly instructionsFilesManifestProvider: () => InstructionsFilesManifest,
-        private readonly logger: ChannelLogger,
-    ) {
+    constructor(private readonly logger: ChannelLogger) {
         const existenceWatcher = vscode.workspace.createFileSystemWatcher(existenceWatchGlob);
 
         this.disposables.push(
@@ -292,14 +269,6 @@ export class WorkspaceContextDetector implements vscode.Disposable {
             contentWatcher.onDidCreate(uri => this.scheduleEvent(uri, 'content', 'create')),
             contentWatcher.onDidChange(uri => this.scheduleEvent(uri, 'content', 'change')),
             contentWatcher.onDidDelete(uri => this.scheduleEvent(uri, 'content', 'delete')),
-        );
-
-        const overrideWatcher = vscode.workspace.createFileSystemWatcher(overrideWatchGlob);
-
-        this.disposables.push(
-            overrideWatcher,
-            overrideWatcher.onDidCreate(uri => this.scheduleEvent(uri, 'override', 'create')),
-            overrideWatcher.onDidDelete(uri => this.scheduleEvent(uri, 'override', 'delete')),
         );
     }
 
@@ -351,10 +320,9 @@ export class WorkspaceContextDetector implements vscode.Disposable {
             WorkspaceContextDetector.applyActivationCascade(flags);
             await WorkspaceContextDetector.detectGit(flags);
 
-            const overrides = await this.scanOverrides();
-            await this.commitState(flags, overrides);
+            await this.commitState(flags);
             const setCount = Object.values(flags).filter(Boolean).length;
-            this.logger.info(`Full detection complete in ${Date.now() - started}ms: ${setCount} flag(s) set, ${overrides.fileNames.size} override(s)`);
+            this.logger.info(`Full detection complete in ${Date.now() - started}ms: ${setCount} flag(s) set`);
         } catch (error) {
             this.logger.error('Workspace detection failed', error);
         }
@@ -378,15 +346,9 @@ export class WorkspaceContextDetector implements vscode.Disposable {
 
             let scanNpm = false;
             let scanDotnet = false;
-            let scanOverrides = false;
             const flagsToRecheck = new Set<string>();
 
             for (const ev of events) {
-                if (ev.watcher === 'override') {
-                    scanOverrides = true;
-                    continue;
-                }
-
                 const filename = ev.uri.path.split('/').pop() ?? '';
                 const dotIdx = filename.lastIndexOf('.');
                 const ext = dotIdx >= 0 ? filename.slice(dotIdx + 1) : '';
@@ -458,12 +420,8 @@ export class WorkspaceContextDetector implements vscode.Disposable {
             // Git detection is unchanged by file events
             flags.hasGit = this._state.get('hasGit') ?? false;
 
-            const overrides = scanOverrides
-                ? await this.scanOverrides()
-                : { fileNames: this._overriddenFileNames, versions: this._overrideVersions };
-
-            await this.commitState(flags, overrides);
-            this.logger.debug(`Incremental detection complete in ${Date.now() - started}ms (npm=${scanNpm}, dotnet=${scanDotnet}, overrides=${scanOverrides})`);
+            await this.commitState(flags);
+            this.logger.debug(`Incremental detection complete in ${Date.now() - started}ms (npm=${scanNpm}, dotnet=${scanDotnet})`);
         } catch (error) {
             this.logger.error('Incremental detection failed', error);
         }
@@ -531,36 +489,8 @@ export class WorkspaceContextDetector implements vscode.Disposable {
         }
     }
 
-    private async scanOverrides(): Promise<{ fileNames: Set<string>; versions: Map<string, string | undefined> }> {
-        const overrideFiles = await vscode.workspace.findFiles(
-            '.github/instructions/*.instructions.md', undefined, 50,
-        );
-
-        const fileNames = new Set<string>();
-        const versions = new Map<string, string | undefined>();
-        const decoder = new TextDecoder();
-
-        for (const uri of overrideFiles) {
-            const segments = uri.path.split('/');
-            const matchName = segments[segments.length - 1];
-
-            if (this.instructionsFilesManifestProvider().findByName(matchName)) {
-                fileNames.add(matchName);
-                try {
-                    const content = decoder.decode(await vscode.workspace.fs.readFile(uri));
-                    versions.set(matchName, InstructionsFileParser.parseFrontmatter(content).version);
-                } catch {
-                    versions.set(matchName, undefined);
-                }
-            }
-        }
-
-        return { fileNames, versions };
-    }
-
     private async commitState(
         flags: Record<string, boolean>,
-        overrides: { fileNames: Set<string>; versions: Map<string, string | undefined> },
     ): Promise<void> {
         // Update in-memory state first so tree views always reflect detection
         // results, even if VS Code context-key writes fail.
@@ -568,30 +498,15 @@ export class WorkspaceContextDetector implements vscode.Disposable {
             this._state.set(k, v);
         }
 
-        this._overriddenFileNames = overrides.fileNames;
-        this._overrideVersions = overrides.versions;
-        this._overriddenContextKeys.clear();
-        for (const i of this.instructionsFilesManifestProvider().instructions) {
-            if (overrides.fileNames.has(i.name)) {
-                this._overriddenContextKeys.add(i.runtimeInfo.contextKey);
-            }
-        }
-
         this._onDidDetect.fire();
 
         // Set VS Code context keys (powers chatInstructions when-clauses).
         // Best-effort: failures must not mask a successful detection.
-        const setContext = (key: string, value: boolean): Thenable<unknown> =>
-            vscode.commands.executeCommand('setContext', key, value);
-
-        await Promise.all([
-            ...Object.entries(flags).map(([key, value]) =>
-                setContext(`autocontext.workspace.${key}`, value),
+        await Promise.all(
+            Object.entries(flags).map(([key, value]) =>
+                vscode.commands.executeCommand('setContext', `autocontext.workspace.${key}`, value),
             ),
-            ...this.instructionsFilesManifestProvider().instructions.map(i =>
-                setContext(i.runtimeInfo.overrideKey, overrides.fileNames.has(i.name)),
-            ),
-        ]).catch(err => this.logger.error('Failed to set context keys', err));
+        ).catch(err => this.logger.error('Failed to set context keys', err));
     }
 
     dispose(): void {

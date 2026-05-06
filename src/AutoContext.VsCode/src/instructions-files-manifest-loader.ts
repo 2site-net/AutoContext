@@ -1,9 +1,12 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { InstructionsFileCategoryEntry } from './instructions-file-category-entry.js';
 import { InstructionsFileEntry } from './instructions-file-entry.js';
 import type { InstructionsFileMetadata } from '#types/instructions-file-metadata.js';
 import { InstructionsFilesManifest } from './instructions-files-manifest.js';
 import { ResourceManifestLoader } from './resource-manifest-loader.js';
 import type { WorkspaceContextDetector } from './workspace-context-detector.js';
+import type { InstructionsFilesOverrideWatcher } from './instructions-files-override-watcher.js';
 import type { AutoContextConfigManager } from './autocontext-config-manager.js';
 
 interface JsonInstructionsFile {
@@ -38,9 +41,22 @@ export class InstructionsFilesManifestLoader
     constructor(
         extensionPath: string,
         private readonly detector: WorkspaceContextDetector,
+        private readonly overrideWatcher: InstructionsFilesOverrideWatcher,
         private readonly configManager: AutoContextConfigManager,
     ) {
         super(extensionPath, 'instructions-files.json');
+    }
+
+    /**
+     * Reads only the bundled instruction names from the JSON manifest,
+     * without projecting entries. Lets composition derive the watcher's
+     * filter set before constructing the watcher (which entries depend
+     * on), keeping the wire-up linear.
+     */
+    static loadInstructionNames(extensionPath: string): ReadonlySet<string> {
+        const path = join(extensionPath, 'resources', 'instructions-files.json');
+        const json = JSON.parse(readFileSync(path, 'utf-8')) as JsonInstructionsFilesManifest;
+        return new Set(json.instructions.map(i => i.name));
     }
 
     override load(metadata?: ReadonlyMap<string, InstructionsFileMetadata>): InstructionsFilesManifest {
@@ -68,6 +84,7 @@ export class InstructionsFilesManifestLoader
                 i.label,
                 entryCategories,
                 this.detector,
+                this.overrideWatcher,
                 this.configManager,
                 i.activationFlags,
                 this.metadata?.get(i.name),
