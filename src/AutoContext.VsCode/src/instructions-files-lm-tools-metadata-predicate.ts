@@ -1,4 +1,4 @@
-import type { InstructionsFilesLmToolsApplyToMatcher } from './types/instructions-files-lm-tools-apply-to-matcher.js';
+import type { InstructionsFilesLmToolsApplyToMatcher } from './instructions-files-lm-tools-apply-to-matcher.js';
 import type { InstructionsFilesLmToolsMetadataMatchResult } from './types/instructions-files-lm-tools-metadata-match-result.js';
 import type {
     InstructionsFilesLmToolsMetadataPredicateError,
