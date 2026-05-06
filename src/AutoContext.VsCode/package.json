@@ -657,6 +657,149 @@
         "when": "autocontext.instructions.docker && autocontext.workspace.hasDocker && !autocontext.override.docker"
       }
     ],
+    "languageModelTools": [
+      {
+        "name": "list_autocontext_instructions_files",
+        "displayName": "List AutoContext Instructions",
+        "modelDescription": "Lists AutoContext instruction files available in this workspace. Call this BEFORE generating, editing, or reviewing a file to discover which curated rules apply to it: pass the file's workspace-relative path (or a glob like 'src/**/*.ts') as `applyTo` and the catalogue is filtered to entries whose own `applyTo` glob matches. Optionally filter by `category` (e.g. 'language', 'framework'). Returns flat catalogue rows with name, label, description, version, applyTo, hasChangelog, and categories. Pass `includeSections: true` to also receive each file's heading index. Follow up with `get_autocontext_instructions_file` to fetch the body of any returned entry.",
+        "canBeReferencedInPrompt": true,
+        "toolReferenceName": "listAutoContextInstructionsFiles",
+        "icon": "$(list-unordered)",
+        "tags": [
+          "autocontext",
+          "instructions",
+          "rules",
+          "discovery",
+          "catalog",
+          "list",
+          "browse"
+        ],
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "applyTo": {
+              "type": "string",
+              "description": "Workspace-relative file path or glob. Returns instruction files whose `applyTo` frontmatter glob matches this path or whose pattern overlaps this glob."
+            },
+            "category": {
+              "type": "string",
+              "description": "Exact category name to filter by (case-insensitive)."
+            },
+            "includeSections": {
+              "type": "boolean",
+              "description": "When true, each returned entry includes its `sections` heading index."
+            }
+          }
+        }
+      },
+      {
+        "name": "search_autocontext_instructions_files_by_metadata",
+        "displayName": "Search AutoContext Instructions by Metadata",
+        "modelDescription": "Predicate search over AutoContext instruction-file metadata. Use this for attribute-based questions like 'which rules have a Security section?' or 'which rules target *.cs files?'. The `predicate` object is an AND across keys; values are interpreted as regex for strings, exact equality for booleans/numbers, and array containment for `categories`. Special case: `applyTo` is treated as a glob (not regex), so `{\"applyTo\": \"src/**/*.ts\"}` returns files whose `applyTo` overlaps that glob. Recognized fields: `name`, `key`, `fileName`, `description`, `version`, `applyTo`, `hasChangelog`, `categories`, `sections.heading`, `sections.anchor`, `sections.parent`, `sections.level`. When the predicate touches any `sections.*` field, each result includes `matchedAnchors` ready to chain into `get_autocontext_instructions_file({ name, sections: matchedAnchors })`.",
+        "canBeReferencedInPrompt": true,
+        "toolReferenceName": "searchAutoContextInstructionsFilesByMetadata",
+        "icon": "$(filter)",
+        "tags": [
+          "autocontext",
+          "instructions",
+          "rules",
+          "discovery",
+          "metadata",
+          "search",
+          "find"
+        ],
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "predicate": {
+              "type": "object",
+              "description": "AND-combined field constraints. String values are regex (case-insensitive); booleans and numbers match by equality. `applyTo` is a glob. Array fields (`categories`, `sections.*`) match if any element matches."
+            },
+            "includeSections": {
+              "type": "boolean",
+              "description": "When true, each returned entry includes its full `sections` heading index in addition to any `matchedAnchors`."
+            }
+          }
+        }
+      },
+      {
+        "name": "search_autocontext_instructions_files_by_content",
+        "displayName": "Search AutoContext Instructions by Content",
+        "modelDescription": "Free-text search across the body of AutoContext instruction files. Use this for topical questions like 'does AutoContext require ConfigureAwait?' or 'how should I name xUnit tests?'. Returns ranked hits with `excerpts[]`, each carrying its `section`, `sectionLevel`, and `anchor`. Chain into `get_autocontext_instructions_file({ name, sections: [excerpts[i].anchor] })` to read just the relevant section. Optionally narrow with `applyTo` (workspace-relative path or glob) or exact `category` (case-insensitive).",
+        "canBeReferencedInPrompt": true,
+        "toolReferenceName": "searchAutoContextInstructionsFilesByContent",
+        "icon": "$(search)",
+        "tags": [
+          "autocontext",
+          "instructions",
+          "rules",
+          "discovery",
+          "content",
+          "search",
+          "find"
+        ],
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "description": "Free-text query. Tokenized on word boundaries and identifier camelCase; matches against descriptions and bodies."
+            },
+            "applyTo": {
+              "type": "string",
+              "description": "Workspace-relative file path or glob. Drops hits whose `applyTo` does not match or overlap."
+            },
+            "category": {
+              "type": "string",
+              "description": "Exact category name to filter by (case-insensitive)."
+            },
+            "limit": {
+              "type": "number",
+              "description": "Maximum number of ranked hits (default 10, capped at 25)."
+            }
+          },
+          "required": [
+            "query"
+          ]
+        }
+      },
+      {
+        "name": "get_autocontext_instructions_file",
+        "displayName": "Get AutoContext Instructions File",
+        "modelDescription": "Fetches the normalized markdown body of a single AutoContext instruction file by exact `name` (e.g. 'lang-csharp.instructions.md'). Pass `sections` to fetch only specific sections by anchor — typically chained from `matchedAnchors` (returned by `search_autocontext_instructions_files_by_metadata` when querying `sections.*`) or from `excerpts[].anchor` (returned by `search_autocontext_instructions_files_by_content`). Section slices are concatenated in document order and include their original headings. Unknown anchors are reported back via `notFoundSections`. Returns `{ kind: 'not-found' }` when `name` is unknown and `{ disabled: true }` when the user has disabled the file.",
+        "canBeReferencedInPrompt": true,
+        "toolReferenceName": "getAutoContextInstructionsFile",
+        "icon": "$(book)",
+        "tags": [
+          "autocontext",
+          "instructions",
+          "rules",
+          "discovery",
+          "fetch",
+          "get",
+          "read"
+        ],
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "description": "Exact instruction file name including the `.instructions.md` suffix."
+            },
+            "sections": {
+              "type": "array",
+              "description": "Optional anchors to slice. Empty or omitted returns the whole body. Typically chained from `matchedAnchors` or `excerpts[].anchor`.",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "required": [
+            "name"
+          ]
+        }
+      }
+    ],
     "walkthroughs": [
       {
         "id": "autocontext.get-started",
