@@ -6,7 +6,7 @@ import { McpToolsManifestLoader } from '#src/mcp-tools-manifest-loader';
 import { ServersManifest } from '#src/servers-manifest';
 import { ServerEntry } from '#src/server-entry';
 import { AutoContextConfig } from '#src/autocontext-config.js';
-import { createFakeConfigManager, createFakeLogger } from '#testing/fakes';
+import { createFakeConfigManager, createFakeLogger, createFakeDetector } from '#testing/fakes';
 
 const { existsSyncMock } = vi.hoisted(() => ({ existsSyncMock: vi.fn<(path: string) => boolean>(() => true) }));
 vi.mock('node:fs', async () => {
@@ -22,7 +22,7 @@ const version = '1.0.0';
 const logger = createFakeLogger();
 
 const onDidChange = vi.fn() as unknown as import('vscode').Event<void>;
-const mcpToolsManifest = new McpToolsManifestLoader(join(__dirname, '..', '..')).load();
+const mcpToolsManifest = new McpToolsManifestLoader(join(__dirname, '..', '..'), createFakeDetector(), createFakeConfigManager()).load();
 const serversManifest: ServersManifest = new ServersManifest([
     new ServerEntry('mcp-server', 'AutoContext.Mcp.Server', 'dotnet'),
 ]);

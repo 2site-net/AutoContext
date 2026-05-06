@@ -3,6 +3,8 @@ import { InstructionsFileEntry } from './instructions-file-entry.js';
 import type { InstructionsFileMetadata } from '#types/instructions-file-metadata.js';
 import { InstructionsFilesManifest } from './instructions-files-manifest.js';
 import { ResourceManifestLoader } from './resource-manifest-loader.js';
+import type { WorkspaceContextDetector } from './workspace-context-detector.js';
+import type { AutoContextConfigManager } from './autocontext-config-manager.js';
 
 interface JsonInstructionsFile {
     label: string;
@@ -33,7 +35,11 @@ export class InstructionsFilesManifestLoader
 
     private metadata: ReadonlyMap<string, InstructionsFileMetadata> | undefined;
 
-    constructor(extensionPath: string) {
+    constructor(
+        extensionPath: string,
+        private readonly detector: WorkspaceContextDetector,
+        private readonly configManager: AutoContextConfigManager,
+    ) {
         super(extensionPath, 'instructions-files.json');
     }
 
@@ -61,6 +67,8 @@ export class InstructionsFilesManifestLoader
                 i.name,
                 i.label,
                 entryCategories,
+                this.detector,
+                this.configManager,
                 i.activationFlags,
                 this.metadata?.get(i.name),
             );

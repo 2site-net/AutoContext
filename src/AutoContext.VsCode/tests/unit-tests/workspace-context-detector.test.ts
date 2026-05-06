@@ -7,8 +7,9 @@ import { detectorTestInstructions, makeInstructionsFilesManifest } from '#testin
 const mockLogger = createFakeLogger();
 
 function createDetector(): WorkspaceContextDetector {
+    const manifest = makeInstructionsFilesManifest(detectorTestInstructions);
     return new WorkspaceContextDetector(
-        makeInstructionsFilesManifest(detectorTestInstructions),
+        () => manifest,
         mockLogger,
     );
 }

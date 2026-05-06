@@ -2,6 +2,8 @@ import { McpItemEntry } from './mcp-item-entry.js';
 import type { McpCategoryEntry } from './mcp-category-entry.js';
 import { McpToolRuntimeInfo } from './mcp-tool-runtime-info.js';
 import { McpTaskEntry } from './mcp-task-entry.js';
+import type { WorkspaceContextDetector } from './workspace-context-detector.js';
+import type { AutoContextConfigManager } from './autocontext-config-manager.js';
 
 export interface McpTaskInit {
     readonly name: string;
@@ -25,10 +27,12 @@ export class McpToolEntry extends McpItemEntry {
         description: string | undefined,
         readonly categories: readonly McpCategoryEntry[],
         tasks: readonly McpTaskInit[],
+        detector: WorkspaceContextDetector,
+        configManager: AutoContextConfigManager,
     ) {
         super(name, description);
         this.#runtimeInfo = new McpToolRuntimeInfo(name);
-        this.#tasks = tasks.map(t => new McpTaskEntry(t.name, t.description, this));
+        this.#tasks = tasks.map(t => new McpTaskEntry(t.name, t.description, this, detector, configManager));
     }
 
     get runtimeInfo(): McpToolRuntimeInfo {

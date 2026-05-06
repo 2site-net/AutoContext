@@ -4,7 +4,7 @@ import { AutoContextConfigProjector } from '#src/autocontext-config-projector.js
 import { McpCategoryEntry } from '#src/mcp-category-entry';
 import { McpToolEntry } from '#src/mcp-tool-entry';
 import { McpToolsManifest } from '#src/mcp-tools-manifest';
-import { createFakeLogger, createMockConfigManager } from '#testing/fakes';
+import { createFakeLogger, createMockConfigManager, createFakeDetector, createFakeConfigManager } from '#testing/fakes';
 import { makeInstructionsFilesManifest, projectorTestInstructions } from '#testing/fixtures';
 import { findSetContextCall } from '#testing/utils';
 
@@ -13,16 +13,18 @@ beforeEach(() => {
 });
 
 function buildProjectorManifest(): McpToolsManifest {
+    const fakeDetector = createFakeDetector();
+    const fakeConfigManager = createFakeConfigManager();
     const dotnet = new McpCategoryEntry('.NET', undefined, 'dotnet', []);
     const workspace = new McpCategoryEntry('Workspace', undefined, 'workspace', []);
     const tools: McpToolEntry[] = [
         new McpToolEntry('analyze_csharp_code', undefined, [dotnet], [
             { name: 'analyze_csharp_coding_style' },
             { name: 'analyze_csharp_async_patterns' },
-        ]),
+        ], fakeDetector, fakeConfigManager),
         new McpToolEntry('read_editorconfig', undefined, [workspace], [
             { name: 'get_editorconfig_rules' },
-        ]),
+        ], fakeDetector, fakeConfigManager),
     ];
     return new McpToolsManifest(tools, [dotnet, workspace]);
 }

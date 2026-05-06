@@ -2,6 +2,8 @@ import { McpCategoryEntry } from './mcp-category-entry.js';
 import { McpToolEntry, type McpTaskInit } from './mcp-tool-entry.js';
 import { McpToolsManifest } from './mcp-tools-manifest.js';
 import { ResourceManifestLoader } from './resource-manifest-loader.js';
+import type { WorkspaceContextDetector } from './workspace-context-detector.js';
+import type { AutoContextConfigManager } from './autocontext-config-manager.js';
 
 interface JsonMcpTask {
     name: string;
@@ -35,7 +37,11 @@ interface JsonMcpToolsManifest {
  * worker mapping, and workspace-flag gating.
  */
 export class McpToolsManifestLoader extends ResourceManifestLoader<JsonMcpToolsManifest, McpToolsManifest> {
-    constructor(extensionPath: string) {
+    constructor(
+        extensionPath: string,
+        private readonly detector: WorkspaceContextDetector,
+        private readonly configManager: AutoContextConfigManager,
+    ) {
         super(extensionPath, 'mcp-tools.json');
     }
 
@@ -54,7 +60,7 @@ export class McpToolsManifestLoader extends ResourceManifestLoader<JsonMcpToolsM
                 name: k.name,
                 description: k.description,
             })) ?? [];
-            return new McpToolEntry(t.name, t.description, toolCategories, tasks);
+            return new McpToolEntry(t.name, t.description, toolCategories, tasks, this.detector, this.configManager);
         });
 
         return new McpToolsManifest(tools, categories);

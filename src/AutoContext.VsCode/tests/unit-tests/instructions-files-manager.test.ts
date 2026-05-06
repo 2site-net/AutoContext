@@ -19,10 +19,12 @@ vi.mock('node:fs/promises', () => ({
 }));
 
 import { workspace } from '#testing/fakes/fake-vscode';
-import { createFakeLogger } from '#testing/fakes';
+import { createFakeLogger, createFakeDetector, createFakeConfigManager } from '#testing/fakes';
 import { testInstructionsContent } from '#testing/fixtures';
 
 const mockLogger = createFakeLogger();
+const fakeDetector = createFakeDetector();
+const fakeConfigManager = createFakeConfigManager();
 
 beforeEach(() => {
     vi.clearAllMocks();
@@ -31,7 +33,7 @@ beforeEach(() => {
 });
 
 describe('InstructionsFilesManager', () => {
-    const catalog = new InstructionsFilesManifestLoader(join(__dirname, '..', '..')).load();
+    const catalog = new InstructionsFilesManifestLoader(join(__dirname, '..', '..'), fakeDetector, fakeConfigManager).load();
 
     it('should write all instruction files when no instructions are disabled', async () => {
         vi.mocked(readFile).mockImplementation(async (path: unknown) => {

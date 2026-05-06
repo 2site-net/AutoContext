@@ -16,12 +16,13 @@ vi.mock('node:fs/promises', () => ({
 }));
 
 import { workspace } from '#testing/fakes/fake-vscode';
-import { createFakeLogger, createFakeDetector } from '#testing/fakes';
+import { createFakeLogger, createFakeDetector, createFakeConfigManager } from '#testing/fakes';
 import { testInstructionsContent } from '#testing/fixtures';
 import { makeDocument } from '#testing/utils';
 
 const mockLogger = createFakeLogger();
 const fakeDetector = createFakeDetector();
+const fakeConfigManager = createFakeConfigManager();
 
 beforeEach(() => {
     vi.clearAllMocks();
@@ -31,7 +32,7 @@ beforeEach(() => {
 });
 
 describe('InstructionsViewerCodeLensProvider', () => {
-    const catalog = new InstructionsFilesManifestLoader(join(__dirname, '..', '..')).load();
+    const catalog = new InstructionsFilesManifestLoader(join(__dirname, '..', '..'), fakeDetector, fakeConfigManager).load();
 
     it('should return empty array for non-instruction documents', async () => {
         vi.mocked(readFile).mockResolvedValue('{}');

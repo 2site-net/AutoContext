@@ -274,7 +274,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
     }
 
     constructor(
-        private readonly instructionsManifest: InstructionsFilesManifest,
+        private readonly instructionsFilesManifestProvider: () => InstructionsFilesManifest,
         private readonly logger: ChannelLogger,
     ) {
         const existenceWatcher = vscode.workspace.createFileSystemWatcher(existenceWatchGlob);
@@ -544,7 +544,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
             const segments = uri.path.split('/');
             const matchName = segments[segments.length - 1];
 
-            if (this.instructionsManifest.findByName(matchName)) {
+            if (this.instructionsFilesManifestProvider().findByName(matchName)) {
                 fileNames.add(matchName);
                 try {
                     const content = decoder.decode(await vscode.workspace.fs.readFile(uri));
@@ -571,7 +571,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
         this._overriddenFileNames = overrides.fileNames;
         this._overrideVersions = overrides.versions;
         this._overriddenContextKeys.clear();
-        for (const i of this.instructionsManifest.instructions) {
+        for (const i of this.instructionsFilesManifestProvider().instructions) {
             if (overrides.fileNames.has(i.name)) {
                 this._overriddenContextKeys.add(i.runtimeInfo.contextKey);
             }
@@ -588,7 +588,7 @@ export class WorkspaceContextDetector implements vscode.Disposable {
             ...Object.entries(flags).map(([key, value]) =>
                 setContext(`autocontext.workspace.${key}`, value),
             ),
-            ...this.instructionsManifest.instructions.map(i =>
+            ...this.instructionsFilesManifestProvider().instructions.map(i =>
                 setContext(i.runtimeInfo.overrideKey, overrides.fileNames.has(i.name)),
             ),
         ]).catch(err => this.logger.error('Failed to set context keys', err));

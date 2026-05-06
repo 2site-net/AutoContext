@@ -1,8 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { join } from 'node:path';
 import { McpToolsManifestLoader } from '#src/mcp-tools-manifest-loader';
+import { createFakeDetector, createFakeConfigManager } from '#testing/fakes';
 
-const manifest = new McpToolsManifestLoader(join(__dirname, '..', '..')).load();
+const manifest = new McpToolsManifestLoader(join(__dirname, '..', '..'), createFakeDetector(), createFakeConfigManager()).load();
 
 describe('tools manifest', () => {
     it('should have unique tool names', () => {

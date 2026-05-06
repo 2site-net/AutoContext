@@ -3,6 +3,7 @@ import type { ChannelLogger } from 'autocontext-framework-web';
 import { LogCategory } from 'autocontext-framework-web';
 import { WorkspaceContextDetector } from './workspace-context-detector.js';
 import { InstructionsFilesManifestLoader } from './instructions-files-manifest-loader.js';
+import type { InstructionsFilesManifest } from './instructions-files-manifest.js';
 import { InstructionsFilesExporter } from './instructions-files-exporter.js';
 import { AutoContextConfigManager } from './autocontext-config-manager.js';
 import { InstructionsViewerDocumentProvider } from './instructions-viewer-document-provider.js';
@@ -18,7 +19,6 @@ import { InstructionsFilesTreeProvider } from './instructions-files-tree-provide
 import { InstructionsFilesMetadataLoader } from './instructions-files-metadata-loader.js';
 import { McpToolsManifestLoader } from './mcp-tools-manifest-loader.js';
 import { McpToolsTreeProvider } from './mcp-tools-tree-provider.js';
-import { TreeViewStateResolver } from './tree-view-state-resolver.js';
 import { TreeViewTooltip } from './tree-view-tooltip.js';
 import { McpServerProvider } from './mcp-server-provider.js';
 import { WorkerManager } from './worker-manager.js';
@@ -59,10 +59,18 @@ export class ExtensionComposer {
         const { extensionPath, version, workspaceRoot, instanceId, didChangeEmitter, rootLogger } = this.inputs;
         const log = (cat: LogCategory): ChannelLogger => rootLogger.forCategory(cat);
 
-        // 1. Static manifests / metadata (sync JSON reads).
+        // 1. Core stateful services that entries depend on.
+        const configManager = new AutoContextConfigManager(extensionPath, version, log(LogCategory.Config));
+        let instructionsManifest!: InstructionsFilesManifest;
+        const workspaceContextDetector = new WorkspaceContextDetector(
+            () => instructionsManifest,
+            log(LogCategory.Detection),
+        );
+
+        // 2. Static manifests / metadata (sync JSON reads).
         const instructionsMetadata = new InstructionsFilesMetadataLoader(extensionPath).load();
-        const mcpToolsManifest = new McpToolsManifestLoader(extensionPath).load();
-        const instructionsManifest = new InstructionsFilesManifestLoader(extensionPath)
+        const mcpToolsManifest = new McpToolsManifestLoader(extensionPath, workspaceContextDetector, configManager).load();
+        instructionsManifest = new InstructionsFilesManifestLoader(extensionPath, workspaceContextDetector, configManager)
             .load(instructionsMetadata);
         const serversManifest = new ServersManifestLoader(extensionPath).load();
 
@@ -72,10 +80,6 @@ export class ExtensionComposer {
                 .filter((id): id is string => id !== undefined),
         );
         const workerEntries = serversManifest.servers.filter(s => workerIds.has(s.id));
-
-        // 2. Core stateful services.
-        const configManager = new AutoContextConfigManager(extensionPath, version, log(LogCategory.Config));
-        const workspaceContextDetector = new WorkspaceContextDetector(instructionsManifest, log(LogCategory.Detection));
         const instructionsExporter = new InstructionsFilesExporter(extensionPath, log(LogCategory.Instructions));
         const instructionsWriter = new InstructionsFilesManager(extensionPath, configManager, instructionsManifest, log(LogCategory.InstructionsWriter));
         const instructionsSectionsCache = new InstructionsFileSectionsCache();
@@ -122,19 +126,15 @@ export class ExtensionComposer {
             logger: log(LogCategory.McpServerProvider),
         });
 
-        const stateResolver = new TreeViewStateResolver(workspaceContextDetector);
         const instructionsTreeProvider = new InstructionsFilesTreeProvider({
             detector: workspaceContextDetector,
             manifest: instructionsManifest,
-            stateResolver,
             tooltip: new TreeViewTooltip('instructions'),
             configManager,
-            logger: log(LogCategory.InstructionsTree),
         });
         const mcpToolsTreeProvider = new McpToolsTreeProvider({
             detector: workspaceContextDetector,
             manifest: mcpToolsManifest,
-            stateResolver,
             tooltip: new TreeViewTooltip('tools'),
             configManager,
             logger: log(LogCategory.McpToolsTree),
@@ -194,7 +194,6 @@ export class ExtensionComposer {
             mcpServerProvider,
             instructionsTreeProvider,
             mcpToolsTreeProvider,
-            stateResolver,
             // Diagnostics
             diagnosticsRunner,
             diagnosticsReporter,

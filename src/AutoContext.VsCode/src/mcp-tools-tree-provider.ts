@@ -4,7 +4,6 @@ import type { McpToolEntry } from './mcp-tool-entry.js';
 import type { McpCategoryEntry } from './mcp-category-entry.js';
 import { TreeViewNodeState } from './tree-view-node-state.js';
 import { viewIds, treeViewLabels } from './ui-constants.js';
-import type { TreeViewStateResolver } from './tree-view-state-resolver.js';
 import type { TreeViewTooltip } from './tree-view-tooltip.js';
 import type { HealthMonitorServer } from './health-monitor-server.js';
 import type { McpServerProvider } from './mcp-server-provider.js';
@@ -13,7 +12,6 @@ import type { McpToolsTreeSubCategoryNode } from '#types/mcp-tools-tree-sub-cate
 import type { McpToolsTreeNode } from '#types/mcp-tools-tree-node.js';
 import type { McpTaskTreeNode } from '#types/mcp-task-tree-node.js';
 import type { AutoContextConfigManager } from './autocontext-config-manager.js';
-import type { AutoContextConfig } from './autocontext-config.js';
 import type { ChannelLogger } from 'autocontext-framework-web';
 import type { McpToolsTreeProviderOptions } from '#types/mcp-tools-tree-provider-options.js';
 
@@ -26,10 +24,8 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
     private _showNotDetected = true;
     private readonly treeView: vscode.TreeView<TreeElement>;
     private readonly disposables: vscode.Disposable[] = [];
-    private _config: AutoContextConfig;
 
     private readonly manifest: McpToolsManifest;
-    private readonly stateResolver: TreeViewStateResolver;
     private readonly tooltip: TreeViewTooltip;
     private readonly configManager: AutoContextConfigManager;
     private readonly logger: ChannelLogger;
@@ -40,7 +36,6 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
         const {
             detector,
             manifest,
-            stateResolver,
             tooltip,
             configManager,
             logger,
@@ -49,14 +44,11 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
         } = options;
 
         this.manifest = manifest;
-        this.stateResolver = stateResolver;
         this.tooltip = tooltip;
         this.configManager = configManager;
         this.logger = logger;
         this.healthMonitor = healthMonitor;
         this.serverProvider = serverProvider;
-
-        this._config = configManager.readSync();
 
         this.treeView = vscode.window.createTreeView(viewIds.Tools, {
             treeDataProvider: this,
@@ -69,14 +61,7 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
             this.treeView,
             this._onDidChangeTreeData,
             detector.onDidDetect(() => this.refresh()),
-            configManager.onDidChange(() => {
-                void configManager.read().then(c => {
-                    this._config = c;
-                    this.refresh();
-                }).catch(err =>
-                    this.logger.error('Failed to update config', err),
-                );
-            }),
+            configManager.onDidChange(() => this.refresh()),
             this.treeView.onDidChangeCheckboxState(e => {
                 void this.handleCheckboxChange(e.items).catch(err =>
                     this.logger.error('Failed to handle checkbox change', err),
@@ -98,7 +83,7 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
 
     private updateDescription(): void {
         const allTasks = this.manifest.tools.flatMap(t => t.tasks);
-        const states = allTasks.map(t => this.stateResolver.resolveTask(t.tool, t, this._config));
+        const states = allTasks.map(t => t.resolveState());
         this.treeView.description = this.tooltip.description(states.filter(s => s.isActive()).length, allTasks.length);
     }
 
@@ -137,7 +122,7 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
     private buildTree(): McpToolsTreeTopCategoryNode[] {
         return this.manifest.topCategories
             .map(topCat => {
-                const children = this.resolveSubCategories(topCat, this._config);
+                const children = this.resolveSubCategories(topCat);
                 const totalEntries = this.manifest.tools
                     .filter(t => t.firstCategory === topCat)
                     .reduce((sum, t) => sum + t.tasks.length, 0);
@@ -152,7 +137,7 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
             .filter(g => g.children.length > 0);
     }
 
-    private resolveSubCategories(topCat: McpCategoryEntry, config: AutoContextConfig): McpToolsTreeSubCategoryNode[] {
+    private resolveSubCategories(topCat: McpCategoryEntry): McpToolsTreeSubCategoryNode[] {
         const toolsUnder = this.manifest.tools.filter(t => t.firstCategory === topCat);
         const subCatsUsed = new Set(toolsUnder.map(t => t.lastCategory));
 
@@ -160,7 +145,7 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
             .filter(sc => subCatsUsed.has(sc))
             .map(subCat => {
                 const toolsInSubCat = toolsUnder.filter(t => t.lastCategory === subCat);
-                const children = this.resolveTools(toolsInSubCat, subCat, config);
+                const children = this.resolveTools(toolsInSubCat, subCat);
                 const totalEntries = toolsInSubCat.reduce((sum, t) => sum + t.tasks.length, 0);
                 return {
                     kind: 'mcpSubCategoryNode' as const,
@@ -172,10 +157,10 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
             .filter(c => c.children.length > 0);
     }
 
-    private resolveTools(tools: readonly McpToolEntry[], subCat: McpCategoryEntry, config: AutoContextConfig): McpToolsTreeNode[] {
+    private resolveTools(tools: readonly McpToolEntry[], subCat: McpCategoryEntry): McpToolsTreeNode[] {
         return tools
             .map(tool => {
-                const tasks = this.resolveTasks(tool, config);
+                const tasks = this.resolveTasks(tool);
                 const isLeaf = tasks.length === 1 && tasks[0].task.name === tool.name;
                 return {
                     kind: 'mcpToolNode' as const,
@@ -190,11 +175,11 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
                 || n.tasks.some(f => f.state !== TreeViewNodeState.NotDetected));
     }
 
-    private resolveTasks(tool: McpToolEntry, config: AutoContextConfig): McpTaskTreeNode[] {
+    private resolveTasks(tool: McpToolEntry): McpTaskTreeNode[] {
         return tool.tasks.map(task => ({
             kind: 'mcpTaskNode' as const,
             task,
-            state: this.stateResolver.resolveTask(tool, task, config),
+            state: task.resolveState(),
         }));
     }
 
@@ -216,7 +201,7 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
         const detected = tasks.filter(t => t.state !== TreeViewNodeState.NotDetected);
         if (detected.length === 0) { return undefined; }
 
-        const entry = this._config.mcpTools?.[toolName];
+        const entry = this.configManager.readSync().mcpTools?.[toolName];
         const isDisabled = entry === false || (typeof entry === 'object' && entry.enabled === false);
         return isDisabled
             ? vscode.TreeItemCheckboxState.Unchecked

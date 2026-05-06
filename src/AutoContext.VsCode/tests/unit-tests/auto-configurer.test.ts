@@ -21,8 +21,8 @@ beforeEach(() => {
 
 describe('AutoConfigurer', () => {
     const extensionPath = join(__dirname, '..', '..');
-    const instructionsManifest = new InstructionsFilesManifestLoader(extensionPath).load();
-    const manifest = new McpToolsManifestLoader(extensionPath).load();
+    const instructionsManifest = new InstructionsFilesManifestLoader(extensionPath, fakeDetector, fakeConfigManager).load();
+    const manifest = new McpToolsManifestLoader(extensionPath, fakeDetector, fakeConfigManager).load();
 
     it('should disable context-dependent entries when nothing is detected', async () => {
         vi.mocked(fakeDetector.get).mockReturnValue(false);

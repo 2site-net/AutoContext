@@ -5,14 +5,11 @@ import { viewIds, contextKeys, treeViewLabels } from './ui-constants.js';
 import { instructionScheme } from './instructions-viewer-document-provider.js';
 import type { WorkspaceContextDetector } from './workspace-context-detector.js';
 import type { InstructionsFileEntry } from './instructions-file-entry.js';
-import type { TreeViewStateResolver } from './tree-view-state-resolver.js';
 import type { TreeViewTooltip } from './tree-view-tooltip.js';
 import type { InstructionsFileCategoryTreeNode } from '#types/instructions-file-category-tree-node.js';
 import type { InstructionsFileTreeNode } from '#types/instructions-file-tree-node.js';
 import { SemVer } from './semver.js';
 import type { AutoContextConfigManager } from './autocontext-config-manager.js';
-import type { AutoContextConfig } from './autocontext-config.js';
-import type { ChannelLogger } from 'autocontext-framework-web';
 import type { InstructionsFilesTreeProviderOptions } from '#types/instructions-files-tree-provider-options.js';
 
 type TreeElement = InstructionsFileCategoryTreeNode | InstructionsFileTreeNode;
@@ -27,24 +24,17 @@ export class InstructionsFilesTreeProvider implements vscode.TreeDataProvider<Tr
     private readonly _checkedEntries = new Set<string>();
     private readonly treeView: vscode.TreeView<TreeElement>;
     private readonly disposables: vscode.Disposable[] = [];
-    private _config: AutoContextConfig;
 
     private readonly detector: WorkspaceContextDetector;
     private readonly manifest: InstructionsFilesManifest;
-    private readonly stateResolver: TreeViewStateResolver;
     private readonly tooltip: TreeViewTooltip;
     private readonly configManager: AutoContextConfigManager;
-    private readonly logger: ChannelLogger;
 
     constructor(options: InstructionsFilesTreeProviderOptions) {
         this.detector = options.detector;
         this.manifest = options.manifest;
-        this.stateResolver = options.stateResolver;
         this.tooltip = options.tooltip;
         this.configManager = options.configManager;
-        this.logger = options.logger;
-
-        this._config = this.configManager.readSync();
 
         this.treeView = vscode.window.createTreeView(viewIds.Instructions, {
             treeDataProvider: this,
@@ -56,14 +46,7 @@ export class InstructionsFilesTreeProvider implements vscode.TreeDataProvider<Tr
             this.treeView,
             this._onDidChangeTreeData,
             this.detector.onDidDetect(() => this.refresh()),
-            this.configManager.onDidChange(() => {
-                void this.configManager.read().then(c => {
-                    this._config = c;
-                    this.refresh();
-                }).catch(err =>
-                    this.logger.error('Failed to update config', err),
-                );
-            }),
+            this.configManager.onDidChange(() => this.refresh()),
             this.treeView.onDidChangeCheckboxState(e => {
                 for (const [item, state] of e.items) {
                     if (item.kind === 'instructions') {
@@ -84,8 +67,7 @@ export class InstructionsFilesTreeProvider implements vscode.TreeDataProvider<Tr
     }
 
     private updateDescription(): void {
-        const overrides = this.detector.getOverriddenContextKeys();
-        const states = this.manifest.instructions.map(e => this.stateResolver.resolve(e, this._config, overrides));
+        const states = this.manifest.instructions.map(e => e.resolveState());
         this.treeView.description = this.tooltip.description(states.filter(s => s.isActive()).length, this.manifest.count);
     }
 
@@ -120,7 +102,6 @@ export class InstructionsFilesTreeProvider implements vscode.TreeDataProvider<Tr
     }
 
     private getRootCategories(): InstructionsFileCategoryTreeNode[] {
-        const overrides = this.detector.getOverriddenContextKeys();
         const presentCategories = new Set(this.manifest.instructions.map(e => e.firstCategory.name));
 
         return this.manifest.categories
@@ -129,19 +110,18 @@ export class InstructionsFilesTreeProvider implements vscode.TreeDataProvider<Tr
             .map(name => ({
                 kind: 'categoryNode' as const,
                 name,
-                children: this.resolveInstructions(name, overrides),
+                children: this.resolveInstructions(name),
             }))
             .filter(c => c.children.length > 0);
     }
 
     private resolveInstructions(
         category: string,
-        overrides: ReadonlySet<string>,
     ): InstructionsFileTreeNode[] {
         return this.manifest.instructions
             .filter(e => e.firstCategory.name === category)
             .map(entry => {
-                const state = this.stateResolver.resolve(entry, this._config, overrides);
+                const state = entry.resolveState();
                 const overrideVersion = state === TreeViewNodeState.Overridden
                     ? this.detector.getOverrideVersion(entry.name)
                     : undefined;
