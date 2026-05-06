@@ -71,12 +71,17 @@ export class ExtensionComposer {
 
         // 2. Static manifests / metadata (sync JSON reads).
         const instructionsMetadata = new InstructionsFilesMetadataLoader(extensionPath).load();
-        const mcpToolsManifest = new McpToolsManifestLoader(extensionPath, workspaceContextDetector, configManager).load();
+        const mcpToolsManifest = new McpToolsManifestLoader(extensionPath, {
+            detector: workspaceContextDetector,
+            configManager,
+        }).load();
         const instructionsManifest: InstructionsFilesManifest = new InstructionsFilesManifestLoader(
             extensionPath,
-            workspaceContextDetector,
-            instructionsOverrideWatcher,
-            configManager,
+            {
+                detector: workspaceContextDetector,
+                overrideWatcher: instructionsOverrideWatcher,
+                configManager,
+            },
         ).load(instructionsMetadata);
         const serversManifest = new ServersManifestLoader(extensionPath).load();
 

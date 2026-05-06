@@ -15,7 +15,7 @@ function makeTool(
     configManager: AutoContextConfigManager,
 ): McpToolEntry {
     const category = new McpCategoryEntry('cat', undefined, 'worker', activationFlags);
-    return new McpToolEntry(name, undefined, [category], taskNames.map(n => ({ name: n })), detector, configManager);
+    return new McpToolEntry(name, undefined, [category], taskNames.map(n => ({ name: n })), { detector, configManager });
 }
 
 function setup(config: AutoContextConfig = new AutoContextConfig()) {

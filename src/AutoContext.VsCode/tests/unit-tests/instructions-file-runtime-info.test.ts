@@ -8,8 +8,15 @@ const extensionPath = join(__dirname, '..', '..');
 const fakeDetector = createFakeDetector();
 const fakeOverrideWatcher = createFakeOverrideWatcher();
 const fakeConfigManager = createFakeConfigManager();
-const instructionsManifest = new InstructionsFilesManifestLoader(extensionPath, fakeDetector, fakeOverrideWatcher, fakeConfigManager).load();
-const toolsManifest = new McpToolsManifestLoader(extensionPath, fakeDetector, fakeConfigManager).load();
+const instructionsManifest = new InstructionsFilesManifestLoader(extensionPath, {
+    detector: fakeDetector,
+    overrideWatcher: fakeOverrideWatcher,
+    configManager: fakeConfigManager,
+}).load();
+const toolsManifest = new McpToolsManifestLoader(extensionPath, {
+    detector: fakeDetector,
+    configManager: fakeConfigManager,
+}).load();
 
 describe('InstructionsFileRuntimeInfo.contextKey', () => {
     it('should derive the context key from the entry key', () => {

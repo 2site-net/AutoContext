@@ -5,9 +5,7 @@ import { InstructionsFileEntry } from './instructions-file-entry.js';
 import type { InstructionsFileMetadata } from '#types/instructions-file-metadata.js';
 import { InstructionsFilesManifest } from './instructions-files-manifest.js';
 import { ResourceManifestLoader } from './resource-manifest-loader.js';
-import type { WorkspaceContextDetector } from './workspace-context-detector.js';
-import type { InstructionsFilesOverrideWatcher } from './instructions-files-override-watcher.js';
-import type { AutoContextConfigManager } from './autocontext-config-manager.js';
+import type { InstructionsRuntimeContext } from '#types/runtime-context.js';
 
 interface JsonInstructionsFile {
     label: string;
@@ -40,9 +38,7 @@ export class InstructionsFilesManifestLoader
 
     constructor(
         extensionPath: string,
-        private readonly detector: WorkspaceContextDetector,
-        private readonly overrideWatcher: InstructionsFilesOverrideWatcher,
-        private readonly configManager: AutoContextConfigManager,
+        private readonly runtimeContext: InstructionsRuntimeContext,
     ) {
         super(extensionPath, 'instructions-files.json');
     }
@@ -83,9 +79,7 @@ export class InstructionsFilesManifestLoader
                 i.name,
                 i.label,
                 entryCategories,
-                this.detector,
-                this.overrideWatcher,
-                this.configManager,
+                this.runtimeContext,
                 i.activationFlags,
                 this.metadata?.get(i.name),
             );

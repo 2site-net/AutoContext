@@ -2,8 +2,7 @@ import { McpItemEntry } from './mcp-item-entry.js';
 import { McpToolRuntimeInfo } from './mcp-tool-runtime-info.js';
 import { TreeViewNodeState } from './tree-view-node-state.js';
 import type { McpToolEntry } from './mcp-tool-entry.js';
-import type { WorkspaceContextDetector } from './workspace-context-detector.js';
-import type { AutoContextConfigManager } from './autocontext-config-manager.js';
+import type { McpRuntimeContext } from '#types/runtime-context.js';
 
 /**
  * A task declared under a tool in `resources/mcp-tools.json`. Each task
@@ -12,20 +11,17 @@ import type { AutoContextConfigManager } from './autocontext-config-manager.js';
  */
 export class McpTaskEntry extends McpItemEntry {
     readonly #runtimeInfo: McpToolRuntimeInfo;
-    readonly #detector: WorkspaceContextDetector;
-    readonly #configManager: AutoContextConfigManager;
+    readonly #runtimeContext: McpRuntimeContext;
 
     constructor(
         name: string,
         description: string | undefined,
         readonly tool: McpToolEntry,
-        detector: WorkspaceContextDetector,
-        configManager: AutoContextConfigManager,
+        runtimeContext: McpRuntimeContext,
     ) {
         super(name, description);
         this.#runtimeInfo = new McpToolRuntimeInfo(`${tool.name}.${name}`);
-        this.#detector = detector;
-        this.#configManager = configManager;
+        this.#runtimeContext = runtimeContext;
     }
 
     get runtimeInfo(): McpToolRuntimeInfo {
@@ -41,11 +37,11 @@ export class McpTaskEntry extends McpItemEntry {
      */
     resolveState(): TreeViewNodeState {
         const flags = this.tool.activationFlags;
-        if (flags.length > 0 && !flags.some(k => this.#detector.get(k))) {
+        if (flags.length > 0 && !flags.some(k => this.#runtimeContext.detector.get(k))) {
             return TreeViewNodeState.NotDetected;
         }
 
-        const config = this.#configManager.readSync();
+        const config = this.#runtimeContext.configManager.readSync();
         if (!config.isToolEnabled(this.tool.name, this.name)) {
             return TreeViewNodeState.Disabled;
         }

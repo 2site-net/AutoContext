@@ -22,8 +22,15 @@ beforeEach(() => {
 
 describe('AutoConfigurer', () => {
     const extensionPath = join(__dirname, '..', '..');
-    const instructionsManifest = new InstructionsFilesManifestLoader(extensionPath, fakeDetector, fakeOverrideWatcher, fakeConfigManager).load();
-    const manifest = new McpToolsManifestLoader(extensionPath, fakeDetector, fakeConfigManager).load();
+    const instructionsManifest = new InstructionsFilesManifestLoader(extensionPath, {
+        detector: fakeDetector,
+        overrideWatcher: fakeOverrideWatcher,
+        configManager: fakeConfigManager,
+    }).load();
+    const manifest = new McpToolsManifestLoader(extensionPath, {
+        detector: fakeDetector,
+        configManager: fakeConfigManager,
+    }).load();
 
     it('should disable context-dependent entries when nothing is detected', async () => {
         vi.mocked(fakeDetector.get).mockReturnValue(false);

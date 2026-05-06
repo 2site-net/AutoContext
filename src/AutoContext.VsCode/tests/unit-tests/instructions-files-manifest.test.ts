@@ -5,9 +5,11 @@ import { InstructionsFilesManifest } from '#src/instructions-files-manifest';
 import { catalogTestEntries, makeInstructionsFileEntry, makeInstructionsFilesManifest } from '#testing/fixtures';
 import { createFakeDetector, createFakeOverrideWatcher, createFakeConfigManager } from '#testing/fakes';
 
-const fakeDetector = createFakeDetector();
-const fakeOverrideWatcher = createFakeOverrideWatcher();
-const fakeConfigManager = createFakeConfigManager();
+const runtimeContext = {
+    detector: createFakeDetector(),
+    overrideWatcher: createFakeOverrideWatcher(),
+    configManager: createFakeConfigManager(),
+};
 
 describe('InstructionsFileEntry', () => {
     it('should map files to .github/instructions/', () => {
@@ -25,7 +27,7 @@ describe('InstructionsFileEntry', () => {
 
     it('should expose firstCategory', () => {
         const cats = [new InstructionsFileCategoryEntry('A'), new InstructionsFileCategoryEntry('B')];
-        const entry = new InstructionsFileEntry('x.instructions.md', 'X', cats, fakeDetector, fakeOverrideWatcher, fakeConfigManager);
+        const entry = new InstructionsFileEntry('x.instructions.md', 'X', cats, runtimeContext);
 
         expect(entry.firstCategory.name).toBe('A');
     });
@@ -86,9 +88,7 @@ describe('InstructionsFilesManifest', () => {
             'alpha.instructions.md',
             'Alpha',
             cats,
-            fakeDetector,
-            fakeOverrideWatcher,
-            fakeConfigManager,
+            runtimeContext,
             undefined,
             { description: 'Alpha desc', version: '1.0.0', hasChangelog: true },
         );

@@ -9,50 +9,50 @@ function setup(config: AutoContextConfig = new AutoContextConfig()) {
     const overrideWatcher = createFakeOverrideWatcher();
     const configManager = createFakeConfigManager();
     vi.mocked(configManager.readSync).mockReturnValue(config);
-    return { detector, overrideWatcher, configManager };
+    return { detector, overrideWatcher, configManager, runtimeContext: { detector, overrideWatcher, configManager } };
 }
 
 describe('InstructionsFileEntry.resolveState', () => {
     it('returns NotDetected when activation flags are present and none match', () => {
-        const { detector, configManager, overrideWatcher } = setup();
+        const { runtimeContext } = setup();
         const entry = makeInstructionsFileEntry(
-            'lang-csharp.instructions.md', 'C#', ['Languages'], ['hasCSharpProject'], undefined, detector, configManager, overrideWatcher);
+            'lang-csharp.instructions.md', 'C#', ['Languages'], ['hasCSharpProject'], undefined, runtimeContext);
 
         expect(entry.resolveState()).toBe(TreeViewNodeState.NotDetected);
     });
 
     it('returns Disabled when the instructions entry has enabled:false', () => {
-        const { detector, configManager, overrideWatcher } = setup(new AutoContextConfig({
+        const { runtimeContext } = setup(new AutoContextConfig({
             instructions: { 'lang-csharp.instructions.md': { enabled: false } },
         }));
         const entry = makeInstructionsFileEntry(
-            'lang-csharp.instructions.md', 'C#', ['Languages'], undefined, undefined, detector, configManager, overrideWatcher);
+            'lang-csharp.instructions.md', 'C#', ['Languages'], undefined, undefined, runtimeContext);
 
         expect(entry.resolveState()).toBe(TreeViewNodeState.Disabled);
     });
 
     it('returns Overridden when the runtime context key is in the override set', () => {
-        const { detector, configManager, overrideWatcher } = setup();
+        const { runtimeContext, overrideWatcher } = setup();
         const entry = makeInstructionsFileEntry(
-            'lang-csharp.instructions.md', 'C#', ['Languages'], undefined, undefined, detector, configManager, overrideWatcher);
+            'lang-csharp.instructions.md', 'C#', ['Languages'], undefined, undefined, runtimeContext);
         vi.mocked(overrideWatcher.isOverridden).mockImplementation((name: string) => name === 'lang-csharp.instructions.md');
 
         expect(entry.resolveState()).toBe(TreeViewNodeState.Overridden);
     });
 
     it('returns Enabled when the entry has no flags, no disable, no override', () => {
-        const { detector, configManager, overrideWatcher } = setup();
+        const { runtimeContext } = setup();
         const entry = makeInstructionsFileEntry(
-            'lang-csharp.instructions.md', 'C#', ['Languages'], undefined, undefined, detector, configManager, overrideWatcher);
+            'lang-csharp.instructions.md', 'C#', ['Languages'], undefined, undefined, runtimeContext);
 
         expect(entry.resolveState()).toBe(TreeViewNodeState.Enabled);
     });
 
     it('returns Enabled when at least one activation flag is detected', () => {
-        const { detector, configManager, overrideWatcher } = setup();
+        const { runtimeContext, detector } = setup();
         vi.mocked(detector.get).mockImplementation((k: string) => k === 'hasCSharpProject');
         const entry = makeInstructionsFileEntry(
-            'lang-csharp.instructions.md', 'C#', ['Languages'], ['hasCSharpProject'], undefined, detector, configManager, overrideWatcher);
+            'lang-csharp.instructions.md', 'C#', ['Languages'], ['hasCSharpProject'], undefined, runtimeContext);
 
         expect(entry.resolveState()).toBe(TreeViewNodeState.Enabled);
     });

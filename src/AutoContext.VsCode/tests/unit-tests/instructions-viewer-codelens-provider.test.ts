@@ -33,7 +33,11 @@ beforeEach(() => {
 });
 
 describe('InstructionsViewerCodeLensProvider', () => {
-    const catalog = new InstructionsFilesManifestLoader(join(__dirname, '..', '..'), fakeDetector, fakeOverrideWatcher, fakeConfigManager).load();
+    const catalog = new InstructionsFilesManifestLoader(join(__dirname, '..', '..'), {
+        detector: fakeDetector,
+        overrideWatcher: fakeOverrideWatcher,
+        configManager: fakeConfigManager,
+    }).load();
 
     it('should return empty array for non-instruction documents', async () => {
         vi.mocked(readFile).mockResolvedValue('{}');

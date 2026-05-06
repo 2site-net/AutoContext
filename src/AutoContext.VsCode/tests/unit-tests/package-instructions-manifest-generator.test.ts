@@ -4,12 +4,16 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buildChatInstructions } from '#src/package-instructions-manifest-generator';
 import { InstructionsFilesManifestLoader } from '#src/instructions-files-manifest-loader';
-import { createFakeDetector, createFakeConfigManager } from '#testing/fakes';
+import { createFakeDetector, createFakeOverrideWatcher, createFakeConfigManager } from '#testing/fakes';
 
 describe('chatInstructions in package.json', () => {
     const root = join(dirname(fileURLToPath(import.meta.url)), '../..');
     const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf-8'));
-    const manifest = new InstructionsFilesManifestLoader(root, createFakeDetector(), createFakeConfigManager()).load();
+    const manifest = new InstructionsFilesManifestLoader(root, {
+        detector: createFakeDetector(),
+        overrideWatcher: createFakeOverrideWatcher(),
+        configManager: createFakeConfigManager(),
+    }).load();
 
     it('should match the instructions manifest', () => {
         expect.soft(pkg.contributes.chatInstructions).toEqual(buildChatInstructions(manifest));

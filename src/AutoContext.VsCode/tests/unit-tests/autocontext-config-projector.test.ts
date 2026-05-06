@@ -15,16 +15,17 @@ beforeEach(() => {
 function buildProjectorManifest(): McpToolsManifest {
     const fakeDetector = createFakeDetector();
     const fakeConfigManager = createFakeConfigManager();
+    const runtimeContext = { detector: fakeDetector, configManager: fakeConfigManager };
     const dotnet = new McpCategoryEntry('.NET', undefined, 'dotnet', []);
     const workspace = new McpCategoryEntry('Workspace', undefined, 'workspace', []);
     const tools: McpToolEntry[] = [
         new McpToolEntry('analyze_csharp_code', undefined, [dotnet], [
             { name: 'analyze_csharp_coding_style' },
             { name: 'analyze_csharp_async_patterns' },
-        ], fakeDetector, fakeConfigManager),
+        ], runtimeContext),
         new McpToolEntry('read_editorconfig', undefined, [workspace], [
             { name: 'get_editorconfig_rules' },
-        ], fakeDetector, fakeConfigManager),
+        ], runtimeContext),
     ];
     return new McpToolsManifest(tools, [dotnet, workspace]);
 }

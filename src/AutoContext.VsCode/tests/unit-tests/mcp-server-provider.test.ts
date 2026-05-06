@@ -22,7 +22,10 @@ const version = '1.0.0';
 const logger = createFakeLogger();
 
 const onDidChange = vi.fn() as unknown as import('vscode').Event<void>;
-const mcpToolsManifest = new McpToolsManifestLoader(join(__dirname, '..', '..'), createFakeDetector(), createFakeConfigManager()).load();
+const mcpToolsManifest = new McpToolsManifestLoader(join(__dirname, '..', '..'), {
+    detector: createFakeDetector(),
+    configManager: createFakeConfigManager(),
+}).load();
 const serversManifest: ServersManifest = new ServersManifest([
     new ServerEntry('mcp-server', 'AutoContext.Mcp.Server', 'dotnet'),
 ]);

@@ -18,7 +18,10 @@ let currentConfig: AutoContextConfig = new AutoContextConfig();
 const fakeConfigManager = createFakeConfigManager();
 vi.mocked(fakeConfigManager.readSync).mockImplementation(() => currentConfig);
 
-const manifest = new McpToolsManifestLoader(join(__dirname, '..', '..'), fakeDetector, fakeConfigManager).load();
+const manifest = new McpToolsManifestLoader(join(__dirname, '..', '..'), {
+    detector: fakeDetector,
+    configManager: fakeConfigManager,
+}).load();
 
 beforeEach(() => {
     vi.clearAllMocks();

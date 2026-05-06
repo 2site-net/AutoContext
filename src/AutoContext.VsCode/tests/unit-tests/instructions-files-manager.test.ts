@@ -34,7 +34,11 @@ beforeEach(() => {
 });
 
 describe('InstructionsFilesManager', () => {
-    const catalog = new InstructionsFilesManifestLoader(join(__dirname, '..', '..'), fakeDetector, fakeOverrideWatcher, fakeConfigManager).load();
+    const catalog = new InstructionsFilesManifestLoader(join(__dirname, '..', '..'), {
+        detector: fakeDetector,
+        overrideWatcher: fakeOverrideWatcher,
+        configManager: fakeConfigManager,
+    }).load();
 
     it('should write all instruction files when no instructions are disabled', async () => {
         vi.mocked(readFile).mockImplementation(async (path: unknown) => {

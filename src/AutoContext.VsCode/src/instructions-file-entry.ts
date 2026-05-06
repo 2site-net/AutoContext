@@ -2,9 +2,7 @@ import { InstructionsFileItemEntry } from './instructions-file-item-entry.js';
 import type { InstructionsFileCategoryEntry } from './instructions-file-category-entry.js';
 import { InstructionsFileRuntimeInfo } from './instructions-file-runtime-info.js';
 import { TreeViewNodeState } from './tree-view-node-state.js';
-import type { WorkspaceContextDetector } from './workspace-context-detector.js';
-import type { InstructionsFilesOverrideWatcher } from './instructions-files-override-watcher.js';
-import type { AutoContextConfigManager } from './autocontext-config-manager.js';
+import type { InstructionsRuntimeContext } from '#types/runtime-context.js';
 import type { InstructionsFileMetadata } from '#types/instructions-file-metadata.js';
 
 /**
@@ -20,17 +18,13 @@ export class InstructionsFileEntry extends InstructionsFileItemEntry {
     readonly label: string;
     readonly version?: string;
     readonly hasChangelog: boolean;
-    readonly #detector: WorkspaceContextDetector;
-    readonly #overrideWatcher: InstructionsFilesOverrideWatcher;
-    readonly #configManager: AutoContextConfigManager;
+    readonly #runtimeContext: InstructionsRuntimeContext;
 
     constructor(
         name: string,
         label: string,
         readonly categories: readonly InstructionsFileCategoryEntry[],
-        detector: WorkspaceContextDetector,
-        overrideWatcher: InstructionsFilesOverrideWatcher,
-        configManager: AutoContextConfigManager,
+        runtimeContext: InstructionsRuntimeContext,
         readonly activationFlags: readonly string[] = [],
         metadata?: InstructionsFileMetadata,
     ) {
@@ -40,9 +34,7 @@ export class InstructionsFileEntry extends InstructionsFileItemEntry {
         this.label = label;
         this.version = metadata?.version;
         this.hasChangelog = metadata?.hasChangelog ?? false;
-        this.#detector = detector;
-        this.#overrideWatcher = overrideWatcher;
-        this.#configManager = configManager;
+        this.#runtimeContext = runtimeContext;
     }
 
     get runtimeInfo(): InstructionsFileRuntimeInfo {
@@ -65,16 +57,16 @@ export class InstructionsFileEntry extends InstructionsFileItemEntry {
      * shadows the bundled one, otherwise `Enabled`.
      */
     resolveState(): TreeViewNodeState {
-        if (this.activationFlags.length > 0 && !this.activationFlags.some(k => this.#detector.get(k))) {
+        if (this.activationFlags.length > 0 && !this.activationFlags.some(k => this.#runtimeContext.detector.get(k))) {
             return TreeViewNodeState.NotDetected;
         }
 
-        const config = this.#configManager.readSync();
+        const config = this.#runtimeContext.configManager.readSync();
         if (config.instructions?.[this.name]?.enabled === false) {
             return TreeViewNodeState.Disabled;
         }
 
-        if (this.#overrideWatcher.isOverridden(this.name)) {
+        if (this.#runtimeContext.overrideWatcher.isOverridden(this.name)) {
             return TreeViewNodeState.Overridden;
         }
 

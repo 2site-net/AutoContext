@@ -2,9 +2,7 @@ import { InstructionsFileCategoryEntry } from '../../../src/instructions-file-ca
 import { InstructionsFileEntry } from '../../../src/instructions-file-entry';
 import type { InstructionsFileMetadata } from '#types/instructions-file-metadata.js';
 import { InstructionsFilesManifest } from '../../../src/instructions-files-manifest';
-import type { WorkspaceContextDetector } from '../../../src/workspace-context-detector';
-import type { InstructionsFilesOverrideWatcher } from '../../../src/instructions-files-override-watcher';
-import type { AutoContextConfigManager } from '../../../src/autocontext-config-manager';
+import type { InstructionsRuntimeContext } from '#types/runtime-context.js';
 import { createFakeDetector, createFakeOverrideWatcher, createFakeConfigManager } from '../fakes';
 
 export function makeInstructionsFileEntry(
@@ -13,12 +11,14 @@ export function makeInstructionsFileEntry(
     categoryNames: readonly string[],
     activationFlags?: readonly string[],
     metadata?: InstructionsFileMetadata,
-    detector: WorkspaceContextDetector = createFakeDetector(),
-    configManager: AutoContextConfigManager = createFakeConfigManager(),
-    overrideWatcher: InstructionsFilesOverrideWatcher = createFakeOverrideWatcher(),
+    runtimeContext: InstructionsRuntimeContext = {
+        detector: createFakeDetector(),
+        configManager: createFakeConfigManager(),
+        overrideWatcher: createFakeOverrideWatcher(),
+    },
 ): InstructionsFileEntry {
     const categories = categoryNames.map(n => new InstructionsFileCategoryEntry(n));
-    return new InstructionsFileEntry(name, label, categories, detector, overrideWatcher, configManager, activationFlags, metadata);
+    return new InstructionsFileEntry(name, label, categories, runtimeContext, activationFlags, metadata);
 }
 
 export function makeInstructionsFilesManifest(

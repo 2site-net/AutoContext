@@ -30,7 +30,7 @@ beforeEach(() => {
 });
 
 describe('InstructionsFilesTreeProvider', () => {
-    const catalog = new InstructionsFilesManifestLoader(join(__dirname, '..', '..'), fakeDetector, fakeOverrideWatcher, fakeConfigManager).load();
+    const catalog = new InstructionsFilesManifestLoader(join(__dirname, '..', '..'), { detector: fakeDetector, overrideWatcher: fakeOverrideWatcher, configManager: fakeConfigManager }).load();
 
     it('should return category nodes as root elements', () => {
         const provider = new InstructionsFilesTreeProvider({ detector: fakeDetector, overrideWatcher: fakeOverrideWatcher, manifest: catalog, tooltip, configManager: fakeConfigManager });
@@ -200,7 +200,7 @@ describe('InstructionsFilesTreeProvider', () => {
         const metadata = new Map([
             ['lang-csharp.instructions.md', { description: 'C# coding guidelines', version: '1.0.0' }],
         ]);
-        const enrichedCatalog = new InstructionsFilesManifestLoader(join(__dirname, '..', '..'), fakeDetector, fakeOverrideWatcher, fakeConfigManager).load(metadata);
+        const enrichedCatalog = new InstructionsFilesManifestLoader(join(__dirname, '..', '..'), { detector: fakeDetector, overrideWatcher: fakeOverrideWatcher, configManager: fakeConfigManager }).load(metadata);
         const provider = new InstructionsFilesTreeProvider({ detector: fakeDetector, overrideWatcher: fakeOverrideWatcher, manifest: enrichedCatalog, tooltip, configManager: fakeConfigManager });
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
@@ -330,7 +330,7 @@ describe('InstructionsFilesTreeProvider', () => {
         const metadata = new Map([
             ['lang-csharp.instructions.md', { description: 'C#', version: '1.0.0', hasChangelog: true }],
         ]);
-        const changelogCatalog = new InstructionsFilesManifestLoader(join(__dirname, '..', '..'), fakeDetector, fakeOverrideWatcher, fakeConfigManager).load(metadata);
+        const changelogCatalog = new InstructionsFilesManifestLoader(join(__dirname, '..', '..'), { detector: fakeDetector, overrideWatcher: fakeOverrideWatcher, configManager: fakeConfigManager }).load(metadata);
         const provider = new InstructionsFilesTreeProvider({ detector: fakeDetector, overrideWatcher: fakeOverrideWatcher, manifest: changelogCatalog, tooltip, configManager: fakeConfigManager });
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
@@ -816,7 +816,7 @@ describe('InstructionsFilesTreeProvider', () => {
         );
 
         const metadata = new Map([['lang-csharp.instructions.md', { version: '1.1.0' }]]);
-        const versionedCatalog = new InstructionsFilesManifestLoader(join(__dirname, '..', '..'), fakeDetector, fakeOverrideWatcher, fakeConfigManager).load(metadata);
+        const versionedCatalog = new InstructionsFilesManifestLoader(join(__dirname, '..', '..'), { detector: fakeDetector, overrideWatcher: fakeOverrideWatcher, configManager: fakeConfigManager }).load(metadata);
         const provider = new InstructionsFilesTreeProvider({ detector: fakeDetector, overrideWatcher: fakeOverrideWatcher, manifest: versionedCatalog, tooltip, configManager: fakeConfigManager });
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
@@ -839,7 +839,7 @@ describe('InstructionsFilesTreeProvider', () => {
         );
 
         const metadata = new Map([['lang-csharp.instructions.md', { version: '1.0.0' }]]);
-        const versionedCatalog = new InstructionsFilesManifestLoader(join(__dirname, '..', '..'), fakeDetector, fakeOverrideWatcher, fakeConfigManager).load(metadata);
+        const versionedCatalog = new InstructionsFilesManifestLoader(join(__dirname, '..', '..'), { detector: fakeDetector, overrideWatcher: fakeOverrideWatcher, configManager: fakeConfigManager }).load(metadata);
         const provider = new InstructionsFilesTreeProvider({ detector: fakeDetector, overrideWatcher: fakeOverrideWatcher, manifest: versionedCatalog, tooltip, configManager: fakeConfigManager });
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
@@ -860,7 +860,7 @@ describe('InstructionsFilesTreeProvider', () => {
         vi.mocked(fakeOverrideWatcher.getOverrideVersion).mockReturnValue(undefined);
 
         const metadata = new Map([['lang-csharp.instructions.md', { version: '1.1.0' }]]);
-        const versionedCatalog = new InstructionsFilesManifestLoader(join(__dirname, '..', '..'), fakeDetector, fakeOverrideWatcher, fakeConfigManager).load(metadata);
+        const versionedCatalog = new InstructionsFilesManifestLoader(join(__dirname, '..', '..'), { detector: fakeDetector, overrideWatcher: fakeOverrideWatcher, configManager: fakeConfigManager }).load(metadata);
         const provider = new InstructionsFilesTreeProvider({ detector: fakeDetector, overrideWatcher: fakeOverrideWatcher, manifest: versionedCatalog, tooltip, configManager: fakeConfigManager });
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
@@ -883,7 +883,7 @@ describe('InstructionsFilesTreeProvider', () => {
         vi.mocked(window.showWarningMessage).mockResolvedValue('Delete' as never);
 
         const metadata = new Map([['lang-csharp.instructions.md', { version: '1.1.0' }]]);
-        const versionedCatalog = new InstructionsFilesManifestLoader(join(__dirname, '..', '..'), fakeDetector, fakeOverrideWatcher, fakeConfigManager).load(metadata);
+        const versionedCatalog = new InstructionsFilesManifestLoader(join(__dirname, '..', '..'), { detector: fakeDetector, overrideWatcher: fakeOverrideWatcher, configManager: fakeConfigManager }).load(metadata);
         const provider = new InstructionsFilesTreeProvider({ detector: fakeDetector, overrideWatcher: fakeOverrideWatcher, manifest: versionedCatalog, tooltip, configManager: fakeConfigManager });
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
@@ -912,7 +912,7 @@ describe('InstructionsFilesTreeProvider', () => {
         vi.mocked(window.showWarningMessage).mockResolvedValue(undefined as never);
 
         const metadata = new Map([['lang-csharp.instructions.md', { version: '1.1.0' }]]);
-        const versionedCatalog = new InstructionsFilesManifestLoader(join(__dirname, '..', '..'), fakeDetector, fakeOverrideWatcher, fakeConfigManager).load(metadata);
+        const versionedCatalog = new InstructionsFilesManifestLoader(join(__dirname, '..', '..'), { detector: fakeDetector, overrideWatcher: fakeOverrideWatcher, configManager: fakeConfigManager }).load(metadata);
         const provider = new InstructionsFilesTreeProvider({ detector: fakeDetector, overrideWatcher: fakeOverrideWatcher, manifest: versionedCatalog, tooltip, configManager: fakeConfigManager });
         const roots = provider.getChildren();
         const languages = roots.find(r => r.kind === 'categoryNode' && r.name === 'Languages')!;
