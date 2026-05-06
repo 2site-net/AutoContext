@@ -2,6 +2,7 @@ import type { InstructionsFilesLmToolsApplyToMatcher } from './instructions-file
 import type { InstructionsFilesLmToolsMetadataMatchResult } from './types/instructions-files-lm-tools-metadata-match-result.js';
 import type {
     InstructionsFilesLmToolsMetadataPredicateError,
+    InstructionsFilesLmToolsMetadataPredicateFieldInfo,
     InstructionsFilesLmToolsMetadataPredicateResult,
 } from './types/instructions-files-lm-tools-metadata-predicate-result.js';
 import type { InstructionsFilesLmToolsMetadataView } from './types/instructions-files-lm-tools-metadata-view.js';
@@ -58,7 +59,47 @@ export class InstructionsFilesLmToolsMetadataPredicate {
         ['sections.level', 'number'],
     ]);
 
+    /**
+     * Frozen description of every recognised predicate field,
+     * attached to every error envelope so the LLM caller can
+     * correct an invalid predicate without an extra schema lookup.
+     */
+    private static readonly recognizedFields:
+        readonly InstructionsFilesLmToolsMetadataPredicateFieldInfo[] = Object.freeze(
+            Array.from(InstructionsFilesLmToolsMetadataPredicate.fieldKinds.entries()).map(
+                ([field, kind]) => Object.freeze({
+                    field,
+                    type: InstructionsFilesLmToolsMetadataPredicate.jsTypeOf(kind),
+                    match: InstructionsFilesLmToolsMetadataPredicate.matchOf(kind),
+                }),
+            ),
+        );
+
     constructor(private readonly applyToMatcher: InstructionsFilesLmToolsApplyToMatcher) {}
+
+    private static jsTypeOf(kind: FieldKind): 'string' | 'number' | 'boolean' {
+        switch (kind) {
+            case 'string-regex':
+            case 'string-glob':
+            case 'string-array-regex':
+                return 'string';
+            case 'number':
+                return 'number';
+            case 'boolean':
+                return 'boolean';
+        }
+    }
+
+    private static matchOf(kind: FieldKind): 'regex' | 'glob' | 'equality' | 'contains-regex' {
+        switch (kind) {
+            case 'string-regex': return 'regex';
+            case 'string-glob': return 'glob';
+            case 'string-array-regex': return 'contains-regex';
+            case 'boolean':
+            case 'number':
+                return 'equality';
+        }
+    }
 
     async evaluate(
         predicate: PredicateInput,
@@ -123,10 +164,7 @@ export class InstructionsFilesLmToolsMetadataPredicate {
         for (const [field, value] of entries) {
             const kind = InstructionsFilesLmToolsMetadataPredicate.fieldKinds.get(field);
             if (!kind) {
-                return {
-                    kind: 'error', error: 'unknown-field', field,
-                    reason: `Unknown predicate field '${field}'.`,
-                };
+                return this.makeError('unknown-field', field, `Unknown predicate field '${field}'.`);
             }
 
             const typeError = this.checkValueType(field, value, kind);
@@ -144,33 +182,35 @@ export class InstructionsFilesLmToolsMetadataPredicate {
         return undefined;
     }
 
+    private makeError(
+        error: InstructionsFilesLmToolsMetadataPredicateError['error'],
+        field: string,
+        reason: string,
+    ): InstructionsFilesLmToolsMetadataPredicateError {
+        return {
+            kind: 'error',
+            error,
+            field,
+            reason,
+            recognizedFields: InstructionsFilesLmToolsMetadataPredicate.recognizedFields,
+        };
+    }
+
     private checkValueType(
         field: string,
         value: PredicateValue,
         kind: FieldKind,
     ): InstructionsFilesLmToolsMetadataPredicateError | undefined {
-        const expected = this.expectedJsTypeFor(kind);
+        const expected = InstructionsFilesLmToolsMetadataPredicate.jsTypeOf(kind);
         const actual = typeof value;
         if (actual !== expected) {
-            return {
-                kind: 'error', error: 'type-mismatch', field,
-                reason: `Field '${field}' expects ${expected}, got ${actual}.`,
-            };
+            return this.makeError(
+                'type-mismatch',
+                field,
+                `Field '${field}' expects ${expected}, got ${actual}.`,
+            );
         }
         return undefined;
-    }
-
-    private expectedJsTypeFor(kind: FieldKind): 'string' | 'number' | 'boolean' {
-        switch (kind) {
-            case 'string-regex':
-            case 'string-glob':
-            case 'string-array-regex':
-                return 'string';
-            case 'number':
-                return 'number';
-            case 'boolean':
-                return 'boolean';
-        }
     }
 
     private validateRegex(
@@ -178,19 +218,21 @@ export class InstructionsFilesLmToolsMetadataPredicate {
         pattern: string,
     ): InstructionsFilesLmToolsMetadataPredicateError | undefined {
         if (pattern.length > InstructionsFilesLmToolsMetadataPredicate.maxRegexPatternLength) {
-            return {
-                kind: 'error', error: 'pattern-too-long', field,
-                reason: `Pattern length ${pattern.length} exceeds cap of `
+            return this.makeError(
+                'pattern-too-long',
+                field,
+                `Pattern length ${pattern.length} exceeds cap of `
                     + `${InstructionsFilesLmToolsMetadataPredicate.maxRegexPatternLength} characters.`,
-            };
+            );
         }
         try {
             new RegExp(pattern, 'i');
         } catch (err) {
-            return {
-                kind: 'error', error: 'invalid-regex', field,
-                reason: err instanceof Error ? err.message : String(err),
-            };
+            return this.makeError(
+                'invalid-regex',
+                field,
+                err instanceof Error ? err.message : String(err),
+            );
         }
         return undefined;
     }

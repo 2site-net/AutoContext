@@ -695,7 +695,7 @@
       {
         "name": "search_autocontext_instructions_files_by_metadata",
         "displayName": "Search AutoContext Instructions by Metadata",
-        "modelDescription": "Predicate search over AutoContext instruction-file metadata. Use this for attribute-based questions like 'which rules have a Security section?' or 'which rules target *.cs files?'. The `predicate` object is an AND across keys; values are interpreted as regex for strings, exact equality for booleans/numbers, and array containment for `categories`. Special case: `applyTo` is treated as a glob (not regex), so `{\"applyTo\": \"src/**/*.ts\"}` returns files whose `applyTo` overlaps that glob. Recognized fields: `name`, `key`, `fileName`, `description`, `version`, `applyTo`, `hasChangelog`, `categories`, `sections.heading`, `sections.anchor`, `sections.parent`, `sections.level`. When the predicate touches any `sections.*` field, each result includes `matchedAnchors` ready to chain into `get_autocontext_instructions_file({ name, sections: matchedAnchors })`.",
+        "modelDescription": "Predicate search over AutoContext instruction-file metadata. Use this for attribute-based questions like 'which rules have a Security section?' or 'which rules target *.cs files?'. The `predicate` object is an AND across keys; recognised fields and their match semantics are declared in this tool's `inputSchema.predicate.properties`. String values are case-insensitive regex; booleans and numbers match by equality; `categories` matches if any element matches; `applyTo` is a glob (not regex), so `{\"applyTo\": \"src/**/*.ts\"}` returns files whose `applyTo` overlaps that glob. When the predicate touches any `sections.*` field, each result includes `matchedAnchors` ready to chain into `get_autocontext_instructions_file({ name, sections: matchedAnchors })`. On invalid input the response is `{ kind: 'error', error, field, reason, recognizedFields: [{ field, type, match }, ...] }` — read `recognizedFields` to repair the predicate without an extra round-trip.",
         "canBeReferencedInPrompt": true,
         "toolReferenceName": "searchAutoContextInstructionsFilesByMetadata",
         "icon": "$(filter)",
@@ -713,7 +713,57 @@
           "properties": {
             "predicate": {
               "type": "object",
-              "description": "AND-combined field constraints. String values are regex (case-insensitive); booleans and numbers match by equality. `applyTo` is a glob. Array fields (`categories`, `sections.*`) match if any element matches."
+              "description": "AND-combined field constraints. Only the keys listed under `properties` are accepted; unknown keys produce an `unknown-field` error at runtime.",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "Case-insensitive regex matched against the full file name (including the `.instructions.md` suffix)."
+                },
+                "key": {
+                  "type": "string",
+                  "description": "Case-insensitive regex matched against the slug-only key (e.g. `lang-csharp`)."
+                },
+                "fileName": {
+                  "type": "string",
+                  "description": "Case-insensitive regex matched against the file name; equivalent to `name` for the curated catalogue."
+                },
+                "description": {
+                  "type": "string",
+                  "description": "Case-insensitive regex matched against the human-readable description."
+                },
+                "version": {
+                  "type": "string",
+                  "description": "Case-insensitive regex matched against the semver string (e.g. `^1\\.`)."
+                },
+                "applyTo": {
+                  "type": "string",
+                  "description": "Workspace glob (not regex). Returns files whose own `applyTo` glob overlaps this one."
+                },
+                "categories": {
+                  "type": "string",
+                  "description": "Case-insensitive regex; the file matches if any element of its `categories[]` matches."
+                },
+                "hasChangelog": {
+                  "type": "boolean",
+                  "description": "Exact equality."
+                },
+                "sections.heading": {
+                  "type": "string",
+                  "description": "Case-insensitive regex matched against any section's heading text. Intersects with other `sections.*` clauses inside the same section."
+                },
+                "sections.anchor": {
+                  "type": "string",
+                  "description": "Case-insensitive regex matched against any section's anchor slug. Intersects with other `sections.*` clauses inside the same section."
+                },
+                "sections.parent": {
+                  "type": "string",
+                  "description": "Case-insensitive regex matched against the parent heading text of nested (`###`) sections."
+                },
+                "sections.level": {
+                  "type": "number",
+                  "description": "Exact match: `2` for `##` headings, `3` for `###` headings."
+                }
+              }
             },
             "includeSections": {
               "type": "boolean",

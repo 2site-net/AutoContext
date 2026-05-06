@@ -200,4 +200,30 @@ describe('InstructionsFilesLmToolsMetadataPredicate.evaluate', () => {
 
         expect(result).toMatchObject({ kind: 'error', error: 'pattern-too-long', field: 'description' });
     });
+
+    it('should attach a recognizedFields schema to every error envelope', async () => {
+        const predicate = new InstructionsFilesLmToolsMetadataPredicate(createFakeApplyToMatcher());
+
+        const result = await predicate.evaluate({ bogus: 'x' }, allViews);
+
+        expect(result.kind).toBe('error');
+        if (result.kind !== 'error') return;
+        expect.soft(result.recognizedFields).toContainEqual({
+            field: 'applyTo', type: 'string', match: 'glob',
+        });
+        expect.soft(result.recognizedFields).toContainEqual({
+            field: 'hasChangelog', type: 'boolean', match: 'equality',
+        });
+        expect.soft(result.recognizedFields).toContainEqual({
+            field: 'categories', type: 'string', match: 'contains-regex',
+        });
+        expect.soft(result.recognizedFields).toContainEqual({
+            field: 'sections.level', type: 'number', match: 'equality',
+        });
+        expect.soft(result.recognizedFields.map(f => f.field)).toEqual([
+            'name', 'key', 'fileName', 'description', 'version',
+            'applyTo', 'categories', 'hasChangelog',
+            'sections.heading', 'sections.anchor', 'sections.parent', 'sections.level',
+        ]);
+    });
 });
