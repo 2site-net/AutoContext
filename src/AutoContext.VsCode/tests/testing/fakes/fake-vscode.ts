@@ -91,6 +91,7 @@ export const languages = {
 
 export const lm = {
     registerMcpServerDefinitionProvider: vi.fn(),
+    registerTool: vi.fn(() => ({ dispose: vi.fn() })),
 };
 
 export enum StatusBarAlignment {

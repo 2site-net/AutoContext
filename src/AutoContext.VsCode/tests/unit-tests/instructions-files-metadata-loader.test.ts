@@ -60,11 +60,15 @@ describe('InstructionsFilesMetadataLoader', () => {
             description: 'Alpha desc',
             version: '1.2.3',
             hasChangelog: true,
+            applyTo: undefined,
+            sections: [],
         });
         expect(map.get('beta.instructions.md')).toEqual({
             description: 'Beta desc',
             version: '0.1.0',
             hasChangelog: false,
+            applyTo: undefined,
+            sections: [],
         });
     });
 
