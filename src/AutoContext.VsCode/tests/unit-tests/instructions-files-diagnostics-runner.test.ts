@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { InstructionsFilesDiagnosticsRunner } from '#src/instructions-files-diagnostics-runner';
 import { InstructionsFileParser } from '#src/instructions-file-parser';
 import { makeInstructionsFileEntry, makeInstructionsFilesManifest } from '#testing/fixtures/make-entry';
-import type { AutoContextConfig } from '#src/autocontext-config.js';
+import { AutoContextConfig } from '#src/autocontext-config.js';
 import type { AutoContextConfigManager } from '#src/autocontext-config-manager.js';
 import type { InstructionsFilesManifest } from '#src/instructions-files-manifest';
 import type { InstructionsFileParsedResult } from '#types/instructions-file-parsed-result.js';
@@ -36,7 +36,7 @@ beforeEach(() => {
 
 describe('InstructionsFilesDiagnosticsRunner.collect', () => {
     it('should return an empty list when the manifest has no entries', async () => {
-        const runner = makeRunner({}, makeInstructionsFilesManifest([]));
+        const runner = makeRunner(new AutoContextConfig(), makeInstructionsFilesManifest([]));
 
         const records = await runner.collect();
 
@@ -46,7 +46,7 @@ describe('InstructionsFilesDiagnosticsRunner.collect', () => {
 
     it('should produce a parse-error record when the parser throws', async () => {
         fromFile.mockRejectedValueOnce(new Error('boom'));
-        const runner = makeRunner({}, makeInstructionsFilesManifest([
+        const runner = makeRunner(new AutoContextConfig(), makeInstructionsFilesManifest([
             makeInstructionsFileEntry('a.instructions.md', 'A', ['cat']),
         ]));
 
@@ -59,7 +59,7 @@ describe('InstructionsFilesDiagnosticsRunner.collect', () => {
 
     it('should stringify non-Error throwables in parse-error records', async () => {
         fromFile.mockRejectedValueOnce('weird');
-        const runner = makeRunner({}, makeInstructionsFilesManifest([
+        const runner = makeRunner(new AutoContextConfig(), makeInstructionsFilesManifest([
             makeInstructionsFileEntry('a.instructions.md', 'A', ['cat']),
         ]));
 
@@ -73,7 +73,7 @@ describe('InstructionsFilesDiagnosticsRunner.collect', () => {
             { kind: 'missing-id', line: 0, message: 'no id' },
             { kind: 'duplicate-id', line: 4, message: 'dup' },
         ]));
-        const runner = makeRunner({}, makeInstructionsFilesManifest([
+        const runner = makeRunner(new AutoContextConfig(), makeInstructionsFilesManifest([
             makeInstructionsFileEntry('a.instructions.md', 'A', ['cat']),
         ]));
 
@@ -88,7 +88,7 @@ describe('InstructionsFilesDiagnosticsRunner.collect', () => {
         fromFile.mockResolvedValueOnce(parsedResult([
             { kind: 'missing-id', line: 7, message: 'no id' },
         ]));
-        const runner = makeRunner({ diagnostic: { warnOnMissingId: true } }, makeInstructionsFilesManifest([
+        const runner = makeRunner(new AutoContextConfig({ diagnostic: { warnOnMissingId: true } }), makeInstructionsFilesManifest([
             makeInstructionsFileEntry('a.instructions.md', 'A', ['cat']),
         ]));
 
@@ -109,7 +109,7 @@ describe('InstructionsFilesDiagnosticsRunner.collect', () => {
             }
             return parsedResult([]);
         });
-        const runner = makeRunner({}, makeInstructionsFilesManifest([
+        const runner = makeRunner(new AutoContextConfig(), makeInstructionsFilesManifest([
             makeInstructionsFileEntry('a.instructions.md', 'A', ['cat']),
             makeInstructionsFileEntry('b.instructions.md', 'B', ['cat']),
         ]));
@@ -132,7 +132,7 @@ describe('InstructionsFilesDiagnosticsRunner.collect', () => {
             active--;
             return parsedResult([]);
         });
-        const runner = makeRunner({}, makeInstructionsFilesManifest([
+        const runner = makeRunner(new AutoContextConfig(), makeInstructionsFilesManifest([
             makeInstructionsFileEntry('a.instructions.md', 'A', ['cat']),
             makeInstructionsFileEntry('b.instructions.md', 'B', ['cat']),
             makeInstructionsFileEntry('c.instructions.md', 'C', ['cat']),
