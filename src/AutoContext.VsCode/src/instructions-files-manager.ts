@@ -74,6 +74,16 @@ export class InstructionsFilesManager implements vscode.Disposable {
         }
     }
 
+    /**
+     * Resolves once any in-flight `write()` has settled. Resolves immediately
+     * when no write is pending. Pull-side wait for consumers (e.g. the
+     * content projector) that need `.generated/` to be settled before
+     * reading.
+     */
+    flush(): Promise<void> {
+        return this.writeInFlight ?? Promise.resolve();
+    }
+
     private async doWrite(): Promise<void> {
         await mkdir(this.stagingDir, { recursive: true });
 

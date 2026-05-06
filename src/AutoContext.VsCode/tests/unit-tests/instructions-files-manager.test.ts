@@ -6,7 +6,7 @@ import { InstructionsFileParser } from '#src/instructions-file-parser';
 import { InstructionsFilesManifestLoader } from '#src/instructions-files-manifest-loader';
 import { join } from 'node:path';
 
-import { writeFile, readFile, readdir, stat, rm, access } from 'node:fs/promises';
+import { writeFile, readFile, readdir, stat, rm, access, mkdir } from 'node:fs/promises';
 
 vi.mock('node:fs/promises', () => ({
     readFile: vi.fn(async () => ''),
@@ -255,5 +255,58 @@ More prose below.
 
         vi.useRealTimers();
         _writer.dispose();
+    });
+
+    describe('flush()', () => {
+        it('resolves immediately when no write is in flight', async () => {
+            vi.mocked(readFile).mockResolvedValue('{}');
+            const configManager = new AutoContextConfigManager('/ext', '0.5.0', mockLogger);
+            const writer = new InstructionsFilesManager('/ext', configManager, catalog, mockLogger);
+
+            const sentinel = Symbol('sentinel');
+            const result = await Promise.race([
+                writer.flush().then(() => 'flushed' as const),
+                Promise.resolve(sentinel),
+            ]);
+
+            // flush() must already be settled in the same microtask tick.
+            expect(result).toBe(sentinel);
+            writer.dispose();
+        });
+
+        it('awaits the in-flight write and resolves once it settles', async () => {
+            vi.mocked(readFile).mockImplementation(async (path: unknown) => {
+                const pathStr = String(path);
+                if (pathStr.endsWith('.autocontext.json')) return '{}';
+                return testInstructionsContent;
+            });
+
+            // Block doWrite() at its first awaitable (mkdir of the staging dir).
+            let releaseMkdir!: () => void;
+            const mkdirGate = new Promise<void>(resolve => { releaseMkdir = resolve; });
+            vi.mocked(mkdir).mockImplementationOnce(async () => {
+                await mkdirGate;
+                return undefined;
+            });
+
+            const configManager = new AutoContextConfigManager('/ext', '0.5.0', mockLogger);
+            const writer = new InstructionsFilesManager('/ext', configManager, catalog, mockLogger);
+
+            const writePromise = writer.write();
+
+            let flushed = false;
+            const flushPromise = writer.flush().then(() => { flushed = true; });
+
+            // While the write is parked at mkdir, flush() must still be pending.
+            await Promise.resolve();
+            expect(flushed).toBe(false);
+
+            releaseMkdir();
+            await writePromise;
+            await flushPromise;
+            expect(flushed).toBe(true);
+
+            writer.dispose();
+        });
     });
 });
