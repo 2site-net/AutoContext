@@ -9,6 +9,8 @@ import { InstructionsViewerDocumentProvider } from './instructions-viewer-docume
 import { InstructionsViewerCodeLensProvider } from './instructions-viewer-codelens-provider.js';
 import { InstructionsViewerDecorationManager } from './instructions-viewer-decoration-manager.js';
 import { InstructionsFilesManager } from './instructions-files-manager.js';
+import { InstructionsFileSectionsCache } from './instructions-file-sections-cache.js';
+import { InstructionsFileContentProjector } from './instructions-file-content-projector.js';
 import { InstructionsFilesDiagnosticsReporter } from './instructions-files-diagnostics-reporter.js';
 import { InstructionsFilesDiagnosticsRunner } from './instructions-files-diagnostics-runner.js';
 import { AutoContextConfigProjector } from './autocontext-config-projector.js';
@@ -76,6 +78,14 @@ export class ExtensionComposer {
         const workspaceContextDetector = new WorkspaceContextDetector(instructionsManifest, log(LogCategory.Detection));
         const instructionsExporter = new InstructionsFilesExporter(extensionPath, log(LogCategory.Instructions));
         const instructionsWriter = new InstructionsFilesManager(extensionPath, configManager, instructionsManifest, log(LogCategory.InstructionsWriter));
+        const instructionsSectionsCache = new InstructionsFileSectionsCache();
+        const instructionsContentProjector = new InstructionsFileContentProjector(
+            extensionPath,
+            workspaceContextDetector,
+            instructionsWriter,
+            instructionsSectionsCache,
+            log(LogCategory.Instructions),
+        );
         const configProjector = new AutoContextConfigProjector(configManager, instructionsManifest, mcpToolsManifest, log(LogCategory.ConfigProjector));
 
         // 3. Named-pipe servers (constructed; not started).
@@ -168,6 +178,8 @@ export class ExtensionComposer {
             workspaceContextDetector,
             instructionsExporter,
             instructionsWriter,
+            instructionsSectionsCache,
+            instructionsContentProjector,
             configProjector,
             // Named-pipe servers
             logServer,
