@@ -98,13 +98,19 @@ function stripFrontmatter(content: string): string {
 }
 
 function extractSections(body: string, fileName: string): readonly InstructionsFileSection[] {
-    const sections = InstructionsFileSectionsParser.parse(body);
+    const parsed = InstructionsFileSectionsParser.parse(body);
+    const sections: InstructionsFileSection[] = [];
     const seenAnchors = new Set<string>();
-    for (const section of sections) {
+    for (const section of parsed) {
         if (seenAnchors.has(section.anchor)) {
             fail(fileName, `duplicate section anchor '${section.anchor}' (heading collision)`);
         }
         seenAnchors.add(section.anchor);
+        sections.push({
+            heading: section.heading,
+            anchor: section.anchor,
+            ...(section.parent !== undefined ? { parent: section.parent } : {}),
+        });
     }
     return sections;
 }

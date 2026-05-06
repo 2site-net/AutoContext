@@ -6,7 +6,7 @@ describe('InstructionsFileSectionsParser.parse', () => {
         const body = '## Only\n\nbody\n';
         const sections = InstructionsFileSectionsParser.parse(body);
         expect(sections).toHaveLength(1);
-        expect(sections[0]).toMatchObject({ heading: 'Only', level: 2, anchor: 'only' });
+        expect(sections[0]).toMatchObject({ heading: 'Only', anchor: 'only' });
         expect(sections[0].parent).toBeUndefined();
         expect(sections[0].charStart).toBe(0);
         expect(sections[0].charEnd).toBe(body.length);
@@ -15,11 +15,11 @@ describe('InstructionsFileSectionsParser.parse', () => {
     it('attributes ### sections to nearest preceding ## as parent and prefixes anchors', () => {
         const body = '## Naming\n\n### Types\n\nbody\n### Members\n\nbody\n## Other\n';
         const sections = InstructionsFileSectionsParser.parse(body);
-        expect(sections.map(s => [s.level, s.heading, s.parent, s.anchor])).toEqual([
-            [2, 'Naming', undefined, 'naming'],
-            [3, 'Types', 'Naming', 'naming-types'],
-            [3, 'Members', 'Naming', 'naming-members'],
-            [2, 'Other', undefined, 'other'],
+        expect(sections.map(s => [s.heading, s.parent, s.anchor])).toEqual([
+            ['Naming', undefined, 'naming'],
+            ['Types', 'Naming', 'naming-types'],
+            ['Members', 'Naming', 'naming-members'],
+            ['Other', undefined, 'other'],
         ]);
     });
 
@@ -70,8 +70,8 @@ describe('InstructionsFileSectionsParser.parse', () => {
     it('handles ### before any ## by leaving parent undefined', () => {
         const body = '### Orphan\n\n## Later\n';
         const sections = InstructionsFileSectionsParser.parse(body);
-        expect(sections[0]).toMatchObject({ heading: 'Orphan', level: 3, anchor: 'orphan' });
+        expect(sections[0]).toMatchObject({ heading: 'Orphan', anchor: 'orphan' });
         expect(sections[0].parent).toBeUndefined();
-        expect(sections[1]).toMatchObject({ heading: 'Later', level: 2, anchor: 'later' });
+        expect(sections[1]).toMatchObject({ heading: 'Later', anchor: 'later' });
     });
 });

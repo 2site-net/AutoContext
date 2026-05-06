@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync, readFileSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { generateInstructionsFilesMetadata } from '#src/instructions-files-metadata-generator';
@@ -70,8 +70,11 @@ describe('generateInstructionsFilesMetadata', () => {
 
             const sections = result.instructions[0].sections;
             expect(sections).toHaveLength(1);
-            expect(sections[0]).toMatchObject({ heading: 'Only', level: 2, anchor: 'only' });
+            expect(sections[0]).toMatchObject({ heading: 'Only', anchor: 'only' });
             expect(sections[0].parent).toBeUndefined();
+            expect(sections[0]).not.toHaveProperty('charStart');
+            expect(sections[0]).not.toHaveProperty('charEnd');
+            expect(sections[0]).not.toHaveProperty('level');
         });
 
         it('attributes ### sections to nearest preceding ## as parent', () => {
@@ -85,11 +88,11 @@ describe('generateInstructionsFilesMetadata', () => {
             const result = generateInstructionsFilesMetadata(root);
 
             const sections = result.instructions[0].sections;
-            expect(sections.map(s => [s.level, s.heading, s.parent, s.anchor])).toEqual([
-                [2, 'Naming', undefined, 'naming'],
-                [3, 'Types', 'Naming', 'naming-types'],
-                [3, 'Members', 'Naming', 'naming-members'],
-                [2, 'Other', undefined, 'other'],
+            expect(sections.map(s => [s.heading, s.parent, s.anchor])).toEqual([
+                ['Naming', undefined, 'naming'],
+                ['Types', 'Naming', 'naming-types'],
+                ['Members', 'Naming', 'naming-members'],
+                ['Other', undefined, 'other'],
             ]);
         });
 
@@ -127,19 +130,6 @@ describe('generateInstructionsFilesMetadata', () => {
             writeCurated([{ name: 'dup.instructions.md' }]);
 
             expect(() => generateInstructionsFilesMetadata(root)).toThrow(/duplicate section anchor 'same'/);
-        });
-
-        it('produces ascending charStart and charEnd within body length', () => {
-            writeInstruction(
-                'offsets.instructions.md',
-                frontmatter({ key: 'offsets', description: 'd' }) + '## A\n\nalpha\n## B\n\nbeta\n',
-            );
-            writeCurated([{ name: 'offsets.instructions.md' }]);
-
-            const sections = generateInstructionsFilesMetadata(root).instructions[0].sections;
-            expect(sections[0].charStart).toBeLessThan(sections[0].charEnd);
-            expect(sections[0].charEnd).toBe(sections[1].charStart);
-            expect(sections[1].charEnd).toBeGreaterThan(sections[1].charStart);
         });
     });
 
@@ -297,14 +287,14 @@ describe('generateInstructionsFilesMetadata', () => {
         const codeReview = meta.instructions.find(i => i.key === 'code-review');
         expect(codeReview).toBeDefined();
         expect(codeReview!.applyTo).toBeUndefined();
-        // Validate offsets reference the on-disk file body.
-        const onDisk = readFileSync(
-            join(extRoot, 'instructions', codeReview!.fileName),
-            'utf-8',
-        ).replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n?/, '');
+        // Sections carry only catalog fields; no offsets or level in the JSON.
+        expect(codeReview!.sections.length).toBeGreaterThan(0);
         for (const section of codeReview!.sections) {
-            expect(section.charEnd).toBeLessThanOrEqual(onDisk.length);
-            expect(section.charStart).toBeLessThan(section.charEnd);
+            expect(section).not.toHaveProperty('charStart');
+            expect(section).not.toHaveProperty('charEnd');
+            expect(section).not.toHaveProperty('level');
+            expect(typeof section.heading).toBe('string');
+            expect(typeof section.anchor).toBe('string');
         }
     });
 });

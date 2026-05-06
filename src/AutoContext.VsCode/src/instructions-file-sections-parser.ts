@@ -1,4 +1,4 @@
-import type { InstructionsFileSection } from '#types/instructions-file-section.js';
+import type { InstructionsFileSectionWithOffsets } from '#types/instructions-file-section-with-offsets.js';
 
 const HEADING_PATTERN = /^(#{2,3}) +(.+?)\s*$/;
 const FENCE_PATTERN = /^```/;
@@ -12,9 +12,12 @@ const FENCE_PATTERN = /^```/;
  * anchors are prefixed with the parent `##` slug. Duplicate anchors are
  * **not** disambiguated here — callers that care (e.g. the build-time
  * generator) detect duplicates against the returned array.
+ *
+ * Each returned section carries body-relative offsets `[charStart, charEnd)`.
+ * `level` is intentionally omitted; callers derive it as `parent ? 3 : 2`.
  */
 export class InstructionsFileSectionsParser {
-    static parse(body: string): readonly InstructionsFileSection[] {
+    static parse(body: string): readonly InstructionsFileSectionWithOffsets[] {
         interface RawHeading {
             level: 2 | 3;
             heading: string;
@@ -50,7 +53,7 @@ export class InstructionsFileSectionsParser {
             offset += line.length + 1;
         }
 
-        const sections: InstructionsFileSection[] = [];
+        const sections: InstructionsFileSectionWithOffsets[] = [];
         for (let i = 0; i < raw.length; i++) {
             const r = raw[i];
             const charEnd = InstructionsFileSectionsParser.computeCharEnd(raw, i, body.length);
@@ -61,7 +64,6 @@ export class InstructionsFileSectionsParser {
 
             sections.push({
                 heading: r.heading,
-                level: r.level,
                 anchor,
                 ...(r.parent !== undefined ? { parent: r.parent } : {}),
                 charStart: r.charStart,
