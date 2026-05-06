@@ -18,7 +18,7 @@ import { InstructionsRulesUtils } from './instructions-rules-utils.js';
  * the rules as authored. The `instructions/.generated/` tree is also bypassed
  * for the same reason.
  */
-export class InstructionsContentProjector {
+export class InstructionsFileContentProjector {
     private static readonly frontmatterStripPattern = /^---\r?\n[\s\S]*?\r?\n---\r?\n?/;
     private static readonly utf8Decoder = new TextDecoder();
 
@@ -33,7 +33,7 @@ export class InstructionsContentProjector {
         if (raw === undefined) {
             return undefined;
         }
-        const stripped = raw.replace(InstructionsContentProjector.frontmatterStripPattern, '');
+        const stripped = raw.replace(InstructionsFileContentProjector.frontmatterStripPattern, '');
         return InstructionsRulesUtils.stripAllRulesIds(stripped);
     }
 
@@ -60,7 +60,7 @@ export class InstructionsContentProjector {
                 return undefined;
             }
             const bytes = await vscode.workspace.fs.readFile(uri);
-            return InstructionsContentProjector.utf8Decoder.decode(bytes);
+            return InstructionsFileContentProjector.utf8Decoder.decode(bytes);
         } catch (err) {
             this.logger.warn(`Failed to read override for ${fileName}; falling back to bundled`, err);
             return undefined;

@@ -7,7 +7,7 @@ vi.mock('node:fs/promises', () => ({
 
 import { workspace } from '#testing/fakes/fake-vscode';
 import { createFakeDetector, createFakeLogger } from '#testing/fakes';
-import { InstructionsContentProjector } from '#src/instructions-content-projector';
+import { InstructionsFileContentProjector } from '#src/instructions-file-content-projector';
 
 const bundledBody = `---
 name: "lang-csharp (v1.0.0)"
@@ -29,7 +29,7 @@ description: "Override"
 - **Do** override the bundled rule.
 `;
 
-describe('InstructionsContentProjector', () => {
+describe('InstructionsFileContentProjector', () => {
     beforeEach(() => {
         vi.clearAllMocks();
     });
@@ -37,7 +37,7 @@ describe('InstructionsContentProjector', () => {
     it('reads the bundled file when no override is reported', async () => {
         vi.mocked(readFile).mockResolvedValue(bundledBody);
         const detector = createFakeDetector();
-        const projector = new InstructionsContentProjector('/ext', detector, createFakeLogger());
+        const projector = new InstructionsFileContentProjector('/ext', detector, createFakeLogger());
 
         const result = await projector.project('lang-csharp.instructions.md');
 
@@ -61,7 +61,7 @@ describe('InstructionsContentProjector', () => {
         vi.mocked(workspace.findFiles).mockResolvedValueOnce([fakeUri] as never);
         vi.mocked(workspace.fs.readFile).mockResolvedValueOnce(new TextEncoder().encode(overrideBody) as never);
 
-        const projector = new InstructionsContentProjector('/ext', detector, createFakeLogger());
+        const projector = new InstructionsFileContentProjector('/ext', detector, createFakeLogger());
         const result = await projector.project('lang-csharp.instructions.md');
 
         expect(workspace.findFiles).toHaveBeenCalledWith('.github/instructions/lang-csharp.instructions.md', undefined, 1);
@@ -77,7 +77,7 @@ describe('InstructionsContentProjector', () => {
         vi.mocked(workspace.findFiles).mockResolvedValueOnce([] as never);
         vi.mocked(readFile).mockResolvedValue(bundledBody);
 
-        const projector = new InstructionsContentProjector('/ext', detector, createFakeLogger());
+        const projector = new InstructionsFileContentProjector('/ext', detector, createFakeLogger());
         const result = await projector.project('lang-csharp.instructions.md');
 
         expect(result).toContain('# C#');
@@ -88,7 +88,7 @@ describe('InstructionsContentProjector', () => {
         const detector = createFakeDetector();
         vi.mocked(readFile).mockRejectedValue(new Error('missing'));
 
-        const projector = new InstructionsContentProjector('/ext', detector, createFakeLogger());
+        const projector = new InstructionsFileContentProjector('/ext', detector, createFakeLogger());
         const result = await projector.project('does-not-exist.instructions.md');
 
         expect(result).toBeUndefined();
@@ -99,7 +99,7 @@ describe('InstructionsContentProjector', () => {
             '---\r\ndescription: "x"\r\n---\r\n# Title\r\n',
         );
         const detector = createFakeDetector();
-        const projector = new InstructionsContentProjector('/ext', detector, createFakeLogger());
+        const projector = new InstructionsFileContentProjector('/ext', detector, createFakeLogger());
 
         const result = await projector.project('x.instructions.md');
 
