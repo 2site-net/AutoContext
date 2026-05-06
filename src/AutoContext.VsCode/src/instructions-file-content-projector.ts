@@ -5,17 +5,8 @@ import type { ChannelLogger } from 'autocontext-framework-web';
 import type { WorkspaceContextDetector } from './workspace-context-detector.js';
 import type { InstructionsFilesManager } from './instructions-files-manager.js';
 import type { InstructionsFileSectionsCache } from './instructions-file-sections-cache.js';
-import type { InstructionsFileSectionWithOffsets } from './types/instructions-file-section-with-offsets.js';
+import type { InstructionsFileProjection } from './types/instructions-file-projection.js';
 import { InstructionsRulesUtils } from './instructions-rules-utils.js';
-
-/**
- * Projection of an instruction file ready for LM-tool consumption:
- * the markdown body to surface and its parsed section index.
- */
-export interface InstructionsFileProjection {
-    readonly body: string;
-    readonly sections: readonly InstructionsFileSectionWithOffsets[];
-}
 
 /**
  * Reads an instruction file's markdown body for LM-tool surfaces, paired
