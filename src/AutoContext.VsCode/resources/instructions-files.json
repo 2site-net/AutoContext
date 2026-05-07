@@ -764,7 +764,7 @@
             ]
         },
         {
-            "label": "Commit Format",
+            "label": "Git Commit Format",
             "name": "git-commit.instructions.md",
             "categories": [
                 "Tools"
