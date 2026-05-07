@@ -198,6 +198,7 @@ public sealed class PipeListenerTests
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
 
         var calls = 0;
+        var firstStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var recovered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var runTask = bound.RunAsync(
             (_, _) =>
@@ -206,6 +207,7 @@ public sealed class PipeListenerTests
 
                 if (n == 1)
                 {
+                    firstStarted.TrySetResult();
                     throw new InvalidOperationException("boom");
                 }
 
@@ -220,11 +222,17 @@ public sealed class PipeListenerTests
 
         try
         {
+            // Drive the throwing handler first so the listener has a
+            // chance to recover before the second client connects.
+            // Connecting both clients concurrently races the listener's
+            // accept loop on Linux, where the next server stream is not
+            // bound until after the previous handler is dispatched.
             await using var c1 = new NamedPipeClientStream(".", name, PipeDirection.InOut, PipeOptions.Asynchronous);
-            await using var c2 = new NamedPipeClientStream(".", name, PipeDirection.InOut, PipeOptions.Asynchronous);
-
             await c1.ConnectAsync(cancellationToken);
-            await c2.ConnectAsync(cancellationToken);
+            await firstStarted.Task.WaitAsync(TimeSpan.FromSeconds(10), cancellationToken);
+
+            await using var c2 = new NamedPipeClientStream(".", name, PipeDirection.InOut, PipeOptions.Asynchronous);
+            await c2.ConnectAsync(timeout: 10_000, cancellationToken);
 
             await recovered.Task.WaitAsync(TimeSpan.FromSeconds(10), cancellationToken);
             Assert.True(Volatile.Read(ref calls) >= 2);
