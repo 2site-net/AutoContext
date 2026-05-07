@@ -62,6 +62,24 @@ public sealed class PipeTransientExchangeClient : IPipeExchangeClient
                 ?? throw new IOException(
                     $"Peer closed the pipe '{_pipeName}' before sending a response.");
 
+            // Wait for the server to close (read EOF) before disposing
+            // our end. On Linux, NamedPipeClientStream is implemented
+            // over Unix domain sockets; closing while the server has
+            // not finished its half of the close handshake can race
+            // the kernel into delivering RST ("Connection reset by
+            // peer") instead of FIN. Draining to EOF here orders the
+            // shutdown so the server's FIN is observed first. The
+            // response has already been received, so any I/O failure
+            // during this final drain is non-fatal and is swallowed.
+            try
+            {
+                _ = await codec.ReadAsync(cancellationToken).ConfigureAwait(false);
+            }
+            catch (IOException)
+            {
+                // Best-effort drain.
+            }
+
             return response;
         }
     }
