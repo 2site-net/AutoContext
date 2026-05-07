@@ -7,6 +7,7 @@ AutoContext is a conformance assistant for GitHub Copilot. It ships curated **ch
 ### What you get
 
 - **Chat Instructions** — Curated Markdown guidelines covering .NET, TypeScript, web frameworks, scripting, Git, and more. Instructions are workspace-aware: only the ones relevant to your project are injected into Copilot's context. Individual rules can be disabled without turning off the entire file.
+- **Instruction Discovery Tools** — Four Language Model tools the extension contributes to Copilot's agent loop: `list_*`, `search_*_by_metadata`, `search_*_by_content`, and `get_*`. They let Copilot pull the right curated rules on demand — by file path, by topic, or by metadata predicate — beyond the always-attached set.
 - **MCP Tool Checks** — Tools Copilot can invoke in Agent mode to analyze source files, project manifests, and commit messages, and to resolve the effective `.editorconfig` for any path. Grouped by platform (.NET, Workspace, Web) and category, with each tool and the individual checks it bundles toggleable separately.
 - **EditorConfig-Driven Enforcement** — Checkers read `.editorconfig` properties and enforce whichever direction the project specifies rather than just skipping conflicting rules.
 - **Auto Configuration** — One command scans your workspace and enables only the instructions and tools that match the detected technologies.

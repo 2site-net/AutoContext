@@ -21,3 +21,14 @@ Use the AutoContext sidebar to control which instruction sets are active. Instru
 ### Exported instructions
 
 If you have instruction files in `.github/instructions/` that match a built-in instruction by filename, those instructions appear as **overridden** in the panel with a distinct icon. Clicking an overridden item opens the workspace-level file for editing. Use the **Show Original** action to view the built-in version, or **Delete Override** to remove the workspace file and revert to the built-in version.
+
+### Discovery tools for Copilot
+
+Beyond the always-attached files, the extension contributes four Language Model tools so Copilot can **pull** the right rules on demand from inside an agent loop:
+
+- `list_autocontext_instructions_files` — *"which curated rules apply to this path?"*
+- `search_autocontext_instructions_files_by_metadata` — *"which rules have a Security section?"*
+- `search_autocontext_instructions_files_by_content` — free-text body search across the catalogue
+- `get_autocontext_instructions_file` — fetch the full body of a file, or only specific sections
+
+These tools honour your toggles: disabled files are reported as such, and disabled rules are stripped from any returned body.

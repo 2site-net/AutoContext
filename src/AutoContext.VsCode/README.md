@@ -6,8 +6,9 @@ AutoContext gives AI coding assistants the right context for your codebase. It p
 
 ## Features
 
-- **Chat Instructions** — Curated Markdown guidelines covering C#, F#, VB.NET, TypeScript, JavaScript, Python, Java, Go, Rust, Ruby, Swift, Kotlin, Dart, C, C++, Scala, SQL, PowerShell, Bash, Batch (CMD), CSS, GraphQL, Groovy, HTML, Lua, PHP, YAML, and more — plus .NET frameworks (ASP.NET Core, Blazor, EF Core, WPF, …), web frameworks (React, Angular, Vue, Svelte, Next.js, Node.js, …), and tools (Git, Docker). Instructions are workspace-aware — only the ones relevant to your project are injected into Copilot's context.
+- **Chat Instructions** — Curated Markdown guidelines covering C#, F#, VB.NET, TypeScript, JavaScript, Python, Java, Go, Rust, Ruby, Swift, Kotlin, Dart, C, C++, Scala, SQL, PowerShell, Bash, Batch (CMD), CSS, GraphQL, Groovy, HTML, Lua, PHP, YAML, and more — plus .NET frameworks (ASP.NET Core, Blazor, EF Core, WPF, …), web frameworks (React, Angular, Vue, Svelte, Next.js, Node.js, …), and tools (Git, Docker). 78 curated files in total. Instructions are workspace-aware — only the ones relevant to your project are injected into Copilot's context.
 - **MCP Tool Checks** — Quality checks that Copilot can invoke in Agent mode. Categories include .NET (C# style, naming, async patterns, NuGet hygiene, …), Workspace (Git commit format and content, EditorConfig property resolution), and Web (TypeScript coding style). Each feature can be toggled individually.
+- **Instruction Discovery Tools** — Four extension-native [Language Model tools](https://code.visualstudio.com/api/extension-guides/tools) (`list_autocontext_instructions_files`, `search_autocontext_instructions_files_by_metadata`, `search_autocontext_instructions_files_by_content`, `get_autocontext_instructions_file`) let Copilot discover and fetch the curated rules that apply to a path or topic, beyond the always-attached files VS Code injects via `applyTo`. Honours per-file and per-rule disable toggles uniformly.
 - **EditorConfig-Driven Enforcement** — Checkers read `.editorconfig` properties and enforce whichever direction the project specifies rather than just skipping conflicting rules.
 - **Workspace Detection** — Scans for project files, dependencies, and directory markers to automatically determine which servers, tools, and instructions are relevant. File-system watchers maintain detection state incrementally — changes to source files or project manifests trigger targeted re-scans without a full workspace rescan.
 - **Auto Configuration** — One command scans the workspace and enables only the instructions and tools that match the detected technologies.
@@ -32,6 +33,19 @@ Once installed, the following MCP tools are available to GitHub Copilot in Agent
 | Web | `analyze_typescript_code` | Composite TypeScript quality check |
 
 All tools are exposed through a single MCP server (`AutoContext.Mcp.Server`) that dispatches each call to the worker process that owns the tool — `.NET` to `AutoContext.Worker.DotNet`, `Workspace` to `AutoContext.Worker.Workspace`, and `Web` to `AutoContext.Worker.Web`. Tools within a category are further organized by sub-category (e.g., C#, NuGet under .NET) and can be toggled individually from the **MCP Tools** panel in the AutoContext sidebar, or via `.autocontext.json` in your workspace root. If all tools owned by a worker are disabled, that worker is not spawned at all.
+
+## Instruction Discovery Tools
+
+In addition to the MCP tools above, the extension contributes four [Language Model tools](https://code.visualstudio.com/api/extension-guides/tools) that Copilot can call in agent mode to discover and read the curated AutoContext instruction catalogue:
+
+| Tool | Purpose |
+|------|---------|
+| `list_autocontext_instructions_files` | List instruction files; optionally filtered by `applyTo` (workspace path or glob) and `category`. |
+| `search_autocontext_instructions_files_by_metadata` | Predicate search across frontmatter and section index — e.g. *"which rules have a Security section?"* or *"which rules target *.cs files?"*. |
+| `search_autocontext_instructions_files_by_content` | Free-text body search — e.g. *"does AutoContext require ConfigureAwait?"*. Returns ranked hits with section-attributed excerpts. |
+| `get_autocontext_instructions_file` | Fetch the normalized markdown body of a file by exact name; optionally slice by section anchors chained from the search tools. |
+
+These tools complement (not replace) VS Code's built-in `chatInstructions` attachment. Files matched by `applyTo` are still injected automatically; the discovery tools let the model fetch additional rules on demand — useful when working across mixed-language workspaces or asking topical questions. Disabled instructions and disabled rules are honoured uniformly: a disabled file returns `{ disabled: true }`, and disabled rules are stripped from any returned body.
 
 ## Sidebar Panels
 

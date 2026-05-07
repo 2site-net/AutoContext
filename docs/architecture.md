@@ -2,7 +2,7 @@
 
 ## What Is AutoContext?
 
-AutoContext is a **context toolkit for AI coding assistants**. It ships with curated instructions that shape how code is written and reviewed, bundled MCP tools that validate code against concrete rules, and a context orchestration layer that automatically wires the right guidance and checks into the model based on the workspace and environment.
+AutoContext is a **context toolkit for AI coding assistants**. It ships with curated instructions that shape how code is written and reviewed, bundled MCP tools that validate code against concrete rules, extension-native Language Model tools that let the assistant discover the right instructions for a given path or topic on demand, and a context orchestration layer that automatically wires the right guidance and checks into the model based on the workspace and environment.
 
 ## Design Philosophy
 
@@ -317,6 +317,40 @@ Copilot never reads the raw instruction files. Three directories form a write-th
 On activation (and on configuration or window-focus changes), `InstructionsFilesManager.write()` runs the full source → staging → promotion cycle. Content-comparison guards at both stages make re-runs essentially free when nothing changed.
 
 > **Future:** The three-directory pipeline exists because VS Code's `chatInstructions` contribution point is static — it can only reference files on disk. If the `chatPromptFiles` proposed API graduates to stable, `registerInstructionsProvider()` could serve normalized instruction content in-memory, eliminating the staging and generated directories entirely. Each window would provide its own content dynamically with no multi-window file conflicts. See [docs/future/dynamic-editorconfig-instructions.md](future/dynamic-editorconfig-instructions.md) for the current status of that API.
+
+---
+
+## Instruction Discovery (LM Tools)
+
+`chatInstructions` is a one-shot attachment mechanism: VS Code injects every instruction file whose `applyTo` glob matches the active editor at chat-start, and that's it. Inside an agent loop the model may end up touching files the host never anticipated, ask topical questions ("does AutoContext require `ConfigureAwait`?"), or work in mixed-language workspaces where eager attachment of every file is wasteful. To close that gap the extension contributes four [Language Model tools](https://code.visualstudio.com/api/extension-guides/tools) — registered with `vscode.lm.registerTool` during Phase 3 of activation — that let Copilot **pull** instruction content on demand:
+
+| Tool | Input | Returns |
+|------|-------|---------|
+| `list_autocontext_instructions_files` | `applyTo?` (path or glob), `category?`, `includeSections?` | Catalogue rows: `name`, `key`, `description`, `version`, `applyTo`, `categories`, `hasChangelog`, optional `sections`. |
+| `search_autocontext_instructions_files_by_metadata` | `predicate` (object: `name`, `description`, `version`, `applyTo`, `categories`, `hasChangelog`, `sections.heading`, `sections.anchor`, `sections.parent`, `sections.level`), `includeSections?` | Catalogue rows + `matchedAnchors[]` whenever the predicate touched a `sections.*` field. |
+| `search_autocontext_instructions_files_by_content` | `query` (free text), `applyTo?`, `category?`, `limit?` (≤ 25, default 10) | Ranked hits with up to 3 `excerpts[]` each, every excerpt carrying its `section`, `sectionLevel`, and `anchor`. |
+| `get_autocontext_instructions_file` | `name` (exact filename), `sections?` (anchors) | Normalized markdown body or section slices in document order. Unknown anchors come back via `notFoundSections`. |
+
+The intended chained flow is: `list_*` or `search_*` to **discover** the relevant files, then `get_*` (optionally with `sections: matchedAnchors` from `_by_metadata` or `excerpts[].anchor` from `_by_content`) to **read** only what's needed. The always-attached `copilot.instructions.md` host file primes Copilot with this usage pattern so it actually invokes the tools at the right moments.
+
+### Implementation
+
+All four handlers live in `src/AutoContext.VsCode/src/instructions-files-lm-tools-*-handler.ts` and share a small set of building blocks:
+
+- **`InstructionsFileContentProjector`** — the single read-path for body + section index. Transparently honours workspace overrides (`.github/instructions/<file>`) and falls back to `instructions/.generated/<file>` (the post-normalization output, so disabled rules are already stripped). Awaits `InstructionsFilesManager.flush()` before reading bundled content to avoid racing the generator. Section indices come from `InstructionsFileSectionsCache` (LRU keyed by `sha256(body)`) so they always match the body returned.
+- **`InstructionsFilesLmToolsMetadataPredicate`** — generic predicate engine. Strings → case-insensitive regex (256-char cap; invalid pattern → `{ kind: 'error', error: 'invalid-regex', field, reason, recognizedFields }`). Numbers / booleans → exact equality. Array fields (`categories`, `sections.*`) → "any element matches". `applyTo` is the lone exception — handled as a glob, not regex, via `InstructionsFilesLmToolsApplyToMatcher`. AND across keys.
+- **`InstructionsFilesLmToolsApplyToMatcher`** — glob-vs-glob comparison via `vscode.workspace.findFiles` (capped enumeration with early-exit) + `vscode.languages.match` against each candidate. This mirrors how the editor itself decides which `chatInstructions` attach to a file, so the LM-tool surface stays consistent with passive attachment.
+- **`InstructionsFilesLmToolsContentSearch`** — eager full-text index over the 78-file corpus (built during composition). Identifier-aware tokenizer splits on `\W+`, camelCase/PascalCase boundaries, and `-`/`_`, lower-cases, drops 1-char pieces, and emits both whole tokens and split pieces. Per-file index = two `Map<token, count>` (one for `description`, one for `content`). A file matches iff every distinct query token appears in either map. Score = `Σ (descriptionHits × 2 + contentHits × 1)`; ties broken by `name` ascending. Excerpts are sliced from the raw body (not tokens), snapped to word boundaries, and attributed to a section via binary search over `charStart`/`charEnd`. The override watcher invalidates the per-file entry; next query rebuilds it on demand.
+
+`InstructionsFilesLmToolsListHandler` is a thin shim: it translates its `{ applyTo?, category?, includeSections? }` input into a metadata predicate and **delegates to `InstructionsFilesLmToolsSearchByMetadataHandler.handle`**. Both surfaces share one matching engine and stay equivalent by construction.
+
+### Disabled-File Visibility
+
+Every handler inlines the same disabled-file filter using `InstructionsFileEntry.resolveState().isActive()` (true for `Enabled` / `Overridden`). When a file is disabled in `.autocontext.json`, the LM tool returns the identity-only envelope `{ name, key, disabled: true }` — no body, no metadata leak. Per-rule disables are honoured automatically because `get_*` reads from `instructions/.generated/`, which already has disabled rules removed by `InstructionsFilesManager` during normalization. The discovery surface respects every user toggle uniformly.
+
+### Why Extension-Native (Not MCP)
+
+These tools are deliberately registered through `vscode.lm.registerTool`, **not** as MCP tools on `AutoContext.Mcp.Server`. The instruction catalogue, override resolution, and disabled-state are all in-process inside the extension; routing them through stdio + a worker pipe would add latency and a serialization boundary for no benefit. The MCP server stays focused on heavyweight code-quality tasks that genuinely belong in the workers.
 
 ---
 
