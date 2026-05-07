@@ -77,6 +77,10 @@ export async function activate(context: vscode.ExtensionContext) {
         healthMonitor: graph.healthMonitor,
         instructionsTreeProvider: graph.instructionsTreeProvider,
         mcpToolsTreeProvider: graph.mcpToolsTreeProvider,
+        lmToolsListHandler: graph.lmToolsListHandler,
+        lmToolsSearchByMetadataHandler: graph.lmToolsSearchByMetadataHandler,
+        lmToolsSearchByContentHandler: graph.lmToolsSearchByContentHandler,
+        lmToolsGetHandler: graph.lmToolsGetHandler,
     };
 }
 
