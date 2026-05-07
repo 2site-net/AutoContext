@@ -740,6 +740,48 @@ function Copy-NodeJsToServersFolder {
                 Pop-Location
             }
 
+            # vsce's dependency walker on Linux fails with
+            # "currentLevel is undefined" when it encounters npm's
+            # symlinks for `file:` dependencies. On Windows npm even
+            # creates a *broken* junction, since the relative path
+            # in package.json (e.g. `file:../AutoContext.Framework.Web`)
+            # is resolved against the staging cwd. To produce a
+            # self-contained, packageable tree, replace any link
+            # entries under the staged node_modules with real copies
+            # of the corresponding workspace source.
+            $stagedNodeModules = Join-Path $targetDir 'node_modules'
+            if (Test-Path $stagedNodeModules) {
+                Get-ChildItem $stagedNodeModules -Force `
+                    | Where-Object { $_.LinkType -in 'SymbolicLink', 'Junction' } `
+                    | ForEach-Object {
+                        $linkPath = $_.FullName
+                        $depName = $_.Name
+                        $depSourceDir = $null
+                        foreach ($candidate in (Get-ChildItem (Join-Path $repoRoot 'src') -Directory)) {
+                            $pj = Join-Path $candidate.FullName 'package.json'
+                            if (Test-Path $pj) {
+                                $manifest = Get-Content $pj -Raw | ConvertFrom-Json
+                                if ($manifest.name -eq $depName) {
+                                    $depSourceDir = $candidate.FullName
+                                    break
+                                }
+                            }
+                        }
+                        if (-not $depSourceDir) {
+                            throw "Could not locate workspace source for symlinked dep '$depName' in $linkPath."
+                        }
+                        Remove-Item $linkPath -Force -Recurse
+                        Copy-Item $depSourceDir $linkPath -Recurse -Force
+                        # Drop nested node_modules and source/test files —
+                        # the framework's own published surface is just
+                        # `out/` + `package.json`.
+                        foreach ($prune in @('node_modules', 'src', 'tests', 'tsconfig.json', 'tsconfig.build.json', 'vitest.config.ts')) {
+                            $prunePath = Join-Path $linkPath $prune
+                            if (Test-Path $prunePath) { Remove-Item $prunePath -Recurse -Force }
+                        }
+                    }
+            }
+
             Remove-Item (Join-Path $targetDir 'package-lock.json') -Force
 
             Write-Status "$serverName packaged" 'OK'
