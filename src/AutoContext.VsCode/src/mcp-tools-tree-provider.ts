@@ -3,7 +3,7 @@ import type { McpToolsManifest } from './mcp-tools-manifest.js';
 import type { McpToolEntry } from './mcp-tool-entry.js';
 import type { McpCategoryEntry } from './mcp-category-entry.js';
 import { TreeViewNodeState } from './tree-view-node-state.js';
-import { viewIds, treeViewLabels } from './ui-constants.js';
+import { viewIds, treeViewLabels, mcpServerNodeLabels } from './ui-constants.js';
 import type { TreeViewTooltip } from './tree-view-tooltip.js';
 import type { HealthMonitorServer } from './health-monitor-server.js';
 import type { McpServerProvider } from './mcp-server-provider.js';
@@ -11,11 +11,24 @@ import type { McpToolsTreeTopCategoryNode } from '#types/mcp-tools-tree-top-cate
 import type { McpToolsTreeSubCategoryNode } from '#types/mcp-tools-tree-sub-category-node.js';
 import type { McpToolsTreeNode } from '#types/mcp-tools-tree-node.js';
 import type { McpTaskTreeNode } from '#types/mcp-task-tree-node.js';
+import type { McpServerTreeNode } from '#types/mcp-server-tree-node.js';
 import type { AutoContextConfigManager } from './autocontext-config-manager.js';
 import type { ChannelLogger } from 'autocontext-framework-web';
 import type { McpToolsTreeProviderOptions } from '#types/mcp-tools-tree-provider-options.js';
 
-type TreeElement = McpToolsTreeTopCategoryNode | McpToolsTreeSubCategoryNode | McpToolsTreeNode | McpTaskTreeNode;
+type TreeElement = McpServerTreeNode | McpToolsTreeTopCategoryNode | McpToolsTreeSubCategoryNode | McpToolsTreeNode | McpTaskTreeNode;
+
+/**
+ * Health pipe id used by `AutoContext.Mcp.Server` (matches
+ * `HealthClientId` constant in the server's `Program.cs`).
+ */
+const MCP_SERVER_HEALTH_ID = 'mcp-server';
+
+/**
+ * Logical name passed to the `autocontext.show-mcp-server-output`
+ * command handler so it can resolve the VS Code MCP definition id.
+ */
+const MCP_SERVER_DISPLAY_NAME = 'AutoContext.Mcp.Server';
 
 export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement>, vscode.Disposable {
 
@@ -89,6 +102,7 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
 
     getTreeItem(element: TreeElement): vscode.TreeItem {
         switch (element.kind) {
+            case 'mcpServerNode': return this.mcpServerItem(element);
             case 'mcpTopCategoryNode': return this.mcpTopCategoryItem(element);
             case 'mcpSubCategoryNode': return this.mcpSubCategoryItem(element);
             case 'mcpToolNode': return this.mcpToolItem(element);
@@ -98,7 +112,10 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
 
     getChildren(element?: TreeElement): TreeElement[] {
         if (element === undefined) {
-            return this.buildTree();
+            return [
+                { kind: 'mcpServerNode', name: MCP_SERVER_DISPLAY_NAME },
+                ...this.buildTree(),
+            ];
         }
 
         switch (element.kind) {
@@ -206,6 +223,61 @@ export class McpToolsTreeProvider implements vscode.TreeDataProvider<TreeElement
         return isDisabled
             ? vscode.TreeItemCheckboxState.Unchecked
             : vscode.TreeItemCheckboxState.Checked;
+    }
+
+    private mcpServerItem(_node: McpServerTreeNode): vscode.TreeItem {
+        const item = new vscode.TreeItem(mcpServerNodeLabels.label, vscode.TreeItemCollapsibleState.None);
+        item.id = 'autocontext.mcp-server-node';
+
+        // Four-state status (gray / green / red — no transient "idle"
+        // because VS Code starts MCP servers eagerly to enumerate
+        // tools, so the gap between "definition registered" and
+        // "process connected" is too short to be visible):
+        //   unavailable  - Mcp.Server binary missing on disk (gray)
+        //   disabled     - binary exists, no tools enabled (gray)
+        //   running      - health pipe reports the server connected (green)
+        //   stopped      - server should be running but is not (red)
+        const availability = this.serverProvider?.getServerStatus(MCP_SERVER_DISPLAY_NAME) ?? 'available';
+        const isRunning = this.healthMonitor?.isRunning(MCP_SERVER_HEALTH_ID) ?? false;
+
+        let state: 'unavailable' | 'disabled' | 'running' | 'stopped';
+        let statusLabel: string;
+        let iconColor: string;
+
+        if (availability === 'unavailable') {
+            state = 'unavailable';
+            statusLabel = mcpServerNodeLabels.statusUnavailable;
+            iconColor = 'disabledForeground';
+        } else if (availability === 'disabled') {
+            state = 'disabled';
+            statusLabel = mcpServerNodeLabels.statusDisabled;
+            iconColor = 'disabledForeground';
+        } else if (isRunning) {
+            state = 'running';
+            statusLabel = mcpServerNodeLabels.statusRunning;
+            iconColor = 'testing.iconPassed';
+        } else {
+            state = 'stopped';
+            statusLabel = mcpServerNodeLabels.statusStopped;
+            iconColor = 'testing.iconFailed';
+        }
+
+        item.iconPath = new vscode.ThemeIcon('circle-filled', new vscode.ThemeColor(iconColor));
+        item.contextValue = `mcpServerNode.${state}`;
+
+        const tooltip = new vscode.MarkdownString(undefined, true);
+        tooltip.appendMarkdown(`**${mcpServerNodeLabels.label}**\n\n`);
+        tooltip.appendMarkdown(`${mcpServerNodeLabels.description}\n\n`);
+        tooltip.appendMarkdown(`**Status:** ${statusLabel}\n\n`);
+        tooltip.appendMarkdown(`**Health pipe id:** \`${MCP_SERVER_HEALTH_ID}\``);
+        if (state === 'stopped') {
+            tooltip.appendMarkdown(`\n\n${mcpServerNodeLabels.notConnectedHint}`);
+        }
+        item.tooltip = tooltip;
+
+        // Row click is intentionally inert; actions are driven by the
+        // inline "Show Output" button declared in `view/item/context`.
+        return item;
     }
 
     private mcpTopCategoryItem(node: McpToolsTreeTopCategoryNode): vscode.TreeItem {

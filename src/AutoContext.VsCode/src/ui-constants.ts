@@ -35,6 +35,18 @@ export const globalStateKeys = {
     LastSeenVersion: 'autocontext.lastSeenVersion',
 } as const;
 
+// ── MCP Server Node ──────────────────────────────────────────────────
+
+export const mcpServerNodeLabels = {
+    label: 'MCP Server',
+    description: 'Central host for AutoContext\'s MCP tools.',
+    statusRunning: 'Running',
+    statusStopped: 'Stopped',
+    statusUnavailable: 'Not detected',
+    statusDisabled: 'Not active in this workspace',
+    notConnectedHint: 'Server is not connected to the health pipe.',
+} as const;
+
 // ── Tree View Labels ─────────────────────────────────────────────────
 
 export const treeViewLabels = {

@@ -341,6 +341,11 @@
           "command": "autocontext.show-mcp-server-output",
           "when": "view == 'autocontext.mcp-tools-view' && viewItem =~ /^mcpTopCategoryNode\\.(running|partial|stopped)$/",
           "group": "inline@2"
+        },
+        {
+          "command": "autocontext.show-mcp-server-output",
+          "when": "view == 'autocontext.mcp-tools-view' && viewItem =~ /^mcpServerNode\\./",
+          "group": "inline@1"
         }
       ]
     },

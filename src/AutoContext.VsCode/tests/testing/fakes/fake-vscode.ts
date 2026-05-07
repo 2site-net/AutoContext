@@ -133,6 +133,27 @@ export class ThemeColor {
     constructor(public readonly id: string) {}
 }
 
+export class MarkdownString {
+    value = '';
+    isTrusted = false;
+    supportThemeIcons = false;
+
+    constructor(value?: string, supportThemeIcons?: boolean) {
+        if (value !== undefined) { this.value = value; }
+        if (supportThemeIcons !== undefined) { this.supportThemeIcons = supportThemeIcons; }
+    }
+
+    appendMarkdown(value: string): MarkdownString {
+        this.value += value;
+        return this;
+    }
+
+    appendText(value: string): MarkdownString {
+        this.value += value;
+        return this;
+    }
+}
+
 export enum TreeItemCollapsibleState {
     None = 0,
     Collapsed = 1,

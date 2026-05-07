@@ -64,7 +64,7 @@ describe('McpToolsTreeProvider', () => {
         const provider = new McpToolsTreeProvider({ detector: fakeDetector, manifest, tooltip, configManager: fakeConfigManager, logger });
         const roots = provider.getChildren();
 
-        const names = roots.map(r => r.kind === 'mcpTopCategoryNode' ? r.name : '');
+        const names = roots.filter(r => r.kind === 'mcpTopCategoryNode').map(r => r.name);
         expect.soft(names).toEqual(['.NET', 'Web', 'Workspace']);
 
         provider.dispose();
@@ -187,7 +187,8 @@ describe('McpToolsTreeProvider', () => {
     it('should show top-category items as expanded with contextValue', () => {
         const provider = new McpToolsTreeProvider({ detector: fakeDetector, manifest, tooltip, configManager: fakeConfigManager, logger });
         const roots = provider.getChildren();
-        const item = provider.getTreeItem(roots[0]);
+        const topCategory = roots.find(r => r.kind === 'mcpTopCategoryNode')!;
+        const item = provider.getTreeItem(topCategory);
 
         expect.soft(item.collapsibleState).toBe(TreeItemCollapsibleState.Expanded);
         expect.soft(item.contextValue).toBe('mcpTopCategoryNode.stopped');
@@ -341,7 +342,7 @@ describe('McpToolsTreeProvider', () => {
 
         const roots = provider.getChildren();
         // Only Workspace top-category should remain (EditorConfig has no context keys)
-        const names = roots.map(r => r.kind === 'mcpTopCategoryNode' ? r.name : '');
+        const names = roots.filter(r => r.kind === 'mcpTopCategoryNode').map(r => r.name);
         expect.soft(names).toEqual(['Workspace']);
 
         provider.dispose();
@@ -354,7 +355,7 @@ describe('McpToolsTreeProvider', () => {
         provider.showNotDetected = true;
 
         const roots = provider.getChildren();
-        const names = roots.map(r => r.kind === 'mcpTopCategoryNode' ? r.name : '');
+        const names = roots.filter(r => r.kind === 'mcpTopCategoryNode').map(r => r.name);
         expect.soft(names).toEqual(['.NET', 'Web', 'Workspace']);
 
         provider.dispose();
@@ -792,6 +793,147 @@ describe('McpToolsTreeProvider', () => {
                     expect.objectContaining({ message: 'write boom' }),
                 );
             });
+
+            provider.dispose();
+        });
+    });
+
+    describe('McpServerNode (top-of-tree row)', () => {
+        it('should be the first root element', () => {
+            const provider = new McpToolsTreeProvider({ detector: fakeDetector, manifest, tooltip, configManager: fakeConfigManager, logger });
+            const roots = provider.getChildren();
+
+            expect.soft(roots[0].kind).toBe('mcpServerNode');
+
+            provider.dispose();
+        });
+
+        it('should render label "MCP Server" with no command (inert click)', () => {
+            const provider = new McpToolsTreeProvider({ detector: fakeDetector, manifest, tooltip, configManager: fakeConfigManager, logger });
+            const node = provider.getChildren().find(r => r.kind === 'mcpServerNode')!;
+            const item = provider.getTreeItem(node);
+
+            expect.soft(item.label).toBe('MCP Server');
+            expect.soft(item.command).toBeUndefined();
+
+            provider.dispose();
+        });
+
+        it('should show running (green) icon when health pipe reports connected', () => {
+            const hm = createFakeHealthMonitor({ isRunning: id => id === 'mcp-server' });
+            const provider = new McpToolsTreeProvider({ detector: fakeDetector, manifest, tooltip, configManager: fakeConfigManager, logger, healthMonitor: hm });
+            const node = provider.getChildren().find(r => r.kind === 'mcpServerNode')!;
+            const item = provider.getTreeItem(node);
+
+            const icon = item.iconPath as InstanceType<typeof ThemeIcon>;
+            expect.soft(icon.id).toBe('circle-filled');
+            expect.soft((icon.color as InstanceType<typeof ThemeColor>).id).toBe('testing.iconPassed');
+            expect.soft(item.contextValue).toBe('mcpServerNode.running');
+
+            provider.dispose();
+        });
+
+        it('should show stopped (red) icon when available but not connected', () => {
+            const hm = createFakeHealthMonitor({ isRunning: () => false });
+            const sp = { getServerStatus: vi.fn(() => 'available' as const) } as unknown as import('../../src/mcp-server-provider').McpServerProvider;
+            const provider = new McpToolsTreeProvider({ detector: fakeDetector, manifest, tooltip, configManager: fakeConfigManager, logger, healthMonitor: hm, serverProvider: sp });
+            const node = provider.getChildren().find(r => r.kind === 'mcpServerNode')!;
+            const item = provider.getTreeItem(node);
+
+            const icon = item.iconPath as InstanceType<typeof ThemeIcon>;
+            expect.soft(icon.id).toBe('circle-filled');
+            expect.soft((icon.color as InstanceType<typeof ThemeColor>).id).toBe('testing.iconFailed');
+            expect.soft(item.contextValue).toBe('mcpServerNode.stopped');
+
+            provider.dispose();
+        });
+
+        it('should show gray icon when server binary is unavailable', () => {
+            const sp = { getServerStatus: vi.fn(() => 'unavailable' as const) } as unknown as import('../../src/mcp-server-provider').McpServerProvider;
+            const provider = new McpToolsTreeProvider({ detector: fakeDetector, manifest, tooltip, configManager: fakeConfigManager, logger, serverProvider: sp });
+            const node = provider.getChildren().find(r => r.kind === 'mcpServerNode')!;
+            const item = provider.getTreeItem(node);
+
+            const icon = item.iconPath as InstanceType<typeof ThemeIcon>;
+            expect.soft(icon.id).toBe('circle-filled');
+            expect.soft((icon.color as InstanceType<typeof ThemeColor>).id).toBe('disabledForeground');
+            expect.soft(item.contextValue).toBe('mcpServerNode.unavailable');
+
+            provider.dispose();
+        });
+
+        it('should show gray icon when no tools are enabled', () => {
+            const sp = { getServerStatus: vi.fn(() => 'disabled' as const) } as unknown as import('../../src/mcp-server-provider').McpServerProvider;
+            const provider = new McpToolsTreeProvider({ detector: fakeDetector, manifest, tooltip, configManager: fakeConfigManager, logger, serverProvider: sp });
+            const node = provider.getChildren().find(r => r.kind === 'mcpServerNode')!;
+            const item = provider.getTreeItem(node);
+
+            const icon = item.iconPath as InstanceType<typeof ThemeIcon>;
+            expect.soft((icon.color as InstanceType<typeof ThemeColor>).id).toBe('disabledForeground');
+            expect.soft(item.contextValue).toBe('mcpServerNode.disabled');
+
+            provider.dispose();
+        });
+
+        it('should default to stopped when no health monitor is provided', () => {
+            const provider = new McpToolsTreeProvider({ detector: fakeDetector, manifest, tooltip, configManager: fakeConfigManager, logger });
+            const node = provider.getChildren().find(r => r.kind === 'mcpServerNode')!;
+            const item = provider.getTreeItem(node);
+
+            const icon = item.iconPath as InstanceType<typeof ThemeIcon>;
+            expect.soft((icon.color as InstanceType<typeof ThemeColor>).id).toBe('testing.iconFailed');
+            expect.soft(item.contextValue).toBe('mcpServerNode.stopped');
+
+            provider.dispose();
+        });
+
+        it('should include status label in tooltip for each state', () => {
+            const sp = (status: 'unavailable' | 'disabled' | 'available') =>
+                ({ getServerStatus: vi.fn(() => status) } as unknown as import('../../src/mcp-server-provider').McpServerProvider);
+            const cases: { hm?: ReturnType<typeof createFakeHealthMonitor>; sp?: ReturnType<typeof sp>; expected: string }[] = [
+                { hm: createFakeHealthMonitor({ isRunning: () => true }), expected: 'Running' },
+                { hm: createFakeHealthMonitor({ isRunning: () => false }), sp: sp('available'), expected: 'Stopped' },
+                { sp: sp('unavailable'), expected: 'Not detected' },
+                { sp: sp('disabled'), expected: 'Not active in this workspace' },
+            ];
+
+            for (const { hm, sp: serverProvider, expected } of cases) {
+                const provider = new McpToolsTreeProvider({ detector: fakeDetector, manifest, tooltip, configManager: fakeConfigManager, logger, healthMonitor: hm, serverProvider });
+                const node = provider.getChildren().find(r => r.kind === 'mcpServerNode')!;
+                const item = provider.getTreeItem(node);
+                const tooltipValue = (item.tooltip as unknown as { value: string }).value;
+                expect.soft(tooltipValue).toContain(expected);
+                provider.dispose();
+            }
+        });
+
+        it('should append "not connected" hint to tooltip when stopped', () => {
+            const hm = createFakeHealthMonitor({ isRunning: () => false });
+            const sp = { getServerStatus: vi.fn(() => 'available' as const) } as unknown as import('../../src/mcp-server-provider').McpServerProvider;
+            const provider = new McpToolsTreeProvider({ detector: fakeDetector, manifest, tooltip, configManager: fakeConfigManager, logger, healthMonitor: hm, serverProvider: sp });
+            const node = provider.getChildren().find(r => r.kind === 'mcpServerNode')!;
+            const item = provider.getTreeItem(node);
+
+            const tooltipValue = (item.tooltip as unknown as { value: string }).value;
+            expect.soft(tooltipValue).toContain('not connected to the health pipe');
+
+            provider.dispose();
+        });
+
+        it('should expose name property for show-output command handler', () => {
+            const provider = new McpToolsTreeProvider({ detector: fakeDetector, manifest, tooltip, configManager: fakeConfigManager, logger });
+            const node = provider.getChildren().find(r => r.kind === 'mcpServerNode')!;
+
+            expect.soft(node.kind === 'mcpServerNode' && node.name).toBe('AutoContext.Mcp.Server');
+
+            provider.dispose();
+        });
+
+        it('should return no children for the server node', () => {
+            const provider = new McpToolsTreeProvider({ detector: fakeDetector, manifest, tooltip, configManager: fakeConfigManager, logger });
+            const node = provider.getChildren().find(r => r.kind === 'mcpServerNode')!;
+
+            expect.soft(provider.getChildren(node)).toEqual([]);
 
             provider.dispose();
         });
