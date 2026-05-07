@@ -133,14 +133,22 @@ export class ExtensionRegistrar {
             vscode.commands.registerCommand(commandIds.ShowNotDetected, () => setShowNotDetected(true)),
             vscode.commands.registerCommand(commandIds.HideNotDetected, () => setShowNotDetected(false)),
 
-            // MCP-server start / output.
-            vscode.commands.registerCommand(commandIds.StartMcpServer, async (node: { name: string }) => {
-                const ids = mcpServerProvider.getDefinitionIds(node.name);
-                for (const id of ids) {
-                    await vscode.commands.executeCommand('workbench.mcp.startServer', id, { autoTrustChanges: true });
+            // MCP-tools tree: force-spawn worker / show server output.
+            // Force-spawns the worker behind the clicked top-category
+            // tree row. Workers are otherwise lazy (spawned by
+            // Mcp.Server on first tool call); this gives the user a
+            // way to pre-warm one and matches the expectation that the
+            // play button on `.NET` / `Web` / `Workspace` flips that
+            // row's status dot from red to green. Mcp.Server is left
+            // untouched — VS Code starts it on the first tool call.
+            vscode.commands.registerCommand(commandIds.StartMcpWorker, async (node?: { workerId?: string }) => {
+                if (!node?.workerId) { return; }
+                try {
+                    await graph.workerManager.ensureRunningById(node.workerId);
                 }
-                if (ids.length > 0) {
-                    await vscode.commands.executeCommand('workbench.mcp.showOutput', ids[ids.length - 1]);
+                catch (err) {
+                    const message = err instanceof Error ? err.message : String(err);
+                    void vscode.window.showErrorMessage(`Failed to start worker '${node.workerId}': ${message}`);
                 }
             }),
             vscode.commands.registerCommand(commandIds.ShowMcpServerOutput, async (node: { name: string }) => {

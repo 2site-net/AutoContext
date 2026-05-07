@@ -17,7 +17,7 @@ export const commandIds = {
     EnterExportMode: 'autocontext.enter-export-mode',
     ConfirmExport: 'autocontext.confirm-export',
     CancelExport: 'autocontext.cancel-export',
-    StartMcpServer: 'autocontext.start-mcp-server',
+    StartMcpWorker: 'autocontext.start-mcp-worker',
     ShowMcpServerOutput: 'autocontext.show-mcp-server-output',
 } as const;
 

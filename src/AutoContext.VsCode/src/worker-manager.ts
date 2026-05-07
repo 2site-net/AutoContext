@@ -121,6 +121,27 @@ export class WorkerManager implements vscode.Disposable {
     }
 
     /**
+     * Ensures the worker identified by its **registry short id**
+     * (e.g. `dotnet`, `web`, `workspace` — the same id that appears in
+     * `mcp-workers-registry.json`, on health-monitor handshakes, and
+     * on the UI's MCP-tools tree nodes) is running.
+     *
+     * Thin lookup wrapper around {@link ensureRunning} so command
+     * handlers driven by tree-node clicks don't have to know the
+     * `Worker.<Name>` identity convention.
+     *
+     * Rejects when no worker with that id is registered, or with the
+     * same conditions as {@link ensureRunning}.
+     */
+    ensureRunningById(workerId: string): Promise<void> {
+        const entry = this.workers.find(w => w.id === workerId);
+        if (!entry) {
+            return Promise.reject(new Error(`No worker registered with id '${workerId}'.`));
+        }
+        return this.ensureRunning(entry.getShortName());
+    }
+
+    /**
      * Ensures the worker identified by {@link identity} is running and
      * has emitted its ready marker. Returns the in-flight ready
      * promise when a spawn is already underway (so concurrent callers

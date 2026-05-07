@@ -36,12 +36,13 @@ suite('Extension Smoke Tests', () => {
             'autocontext.show-original',
             'autocontext.show-changelog',
             'autocontext.show-whats-new',
-            'autocontext.start-mcp-server',
+            'autocontext.start-mcp-worker',
             'autocontext.show-mcp-server-output',
         ];
         const removed = [
             'autocontext.stop-mcp-server',
             'autocontext.restart-mcp-server',
+            'autocontext.start-mcp-server',
         ];
         const missing = expected.filter(cmd => !allCommands.includes(cmd));
         const unexpectedlyPresent = removed.filter(cmd => allCommands.includes(cmd));

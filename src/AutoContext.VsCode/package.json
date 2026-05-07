@@ -206,8 +206,8 @@
         "icon": "$(eye-closed)"
       },
       {
-        "command": "autocontext.start-mcp-server",
-        "title": "Start Server",
+        "command": "autocontext.start-mcp-worker",
+        "title": "Start MCP Worker",
         "category": "AutoContext",
         "icon": "$(play)"
       },
@@ -273,7 +273,7 @@
           "when": "false"
         },
         {
-          "command": "autocontext.start-mcp-server",
+          "command": "autocontext.start-mcp-worker",
           "when": "false"
         },
         {
@@ -333,7 +333,7 @@
           "group": "inline@3"
         },
         {
-          "command": "autocontext.start-mcp-server",
+          "command": "autocontext.start-mcp-worker",
           "when": "view == 'autocontext.mcp-tools-view' && viewItem == 'mcpTopCategoryNode.stopped'",
           "group": "inline@1"
         },
