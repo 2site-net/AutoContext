@@ -599,7 +599,7 @@ function Test-VsCodeSmoke {
             }
 
             # Run vscode-test
-            npx vscode-test --config tests/.vscode-test.mjs
+            npx --yes vscode-test --config tests/.vscode-test.mjs
             if ($LASTEXITCODE -ne 0) { throw 'VS Code smoke tests failed.' }
             Write-Status 'VS Code smoke tests passed' 'OK'
         }
@@ -846,7 +846,14 @@ function Build-VscePackage {
         $env:AUTOCONTEXT_VSCE_BYPASS = '1'
         Push-Location $extensionDir
         try {
-            npx vsce package --target $vsceTarget --allow-missing-repository
+            # --no-dependencies: the extension is already bundled into
+            # dist/extension.js by esbuild, so vsce does not need to
+            # walk node_modules. Walking it on Windows follows the
+            # junction to the workspace-linked autocontext-framework-web
+            # package and produces invalid '../' paths.
+            # --yes (on npx): auto-accept the install prompt when vsce
+            # is not yet cached, so unattended runs don't block.
+            npx --yes vsce package --target $vsceTarget --allow-missing-repository --no-dependencies
             if ($LASTEXITCODE -ne 0) { throw 'vsce package failed.' }
 
             New-Item $publishDir -ItemType Directory -Force | Out-Null
@@ -883,7 +890,7 @@ function Publish-VscePackage {
             foreach ($vsix in $vsixFiles) {
                 Write-Status "Publishing $($vsix.Name)..." 'INFO'
                 $result = Invoke-WithRetry -ScriptBlock {
-                    npx vsce publish --packagePath $vsix.FullName 2>&1
+                    npx --yes vsce publish --packagePath $vsix.FullName 2>&1
                 } -IsRetryable {
                     param($output)
                     $output -match 'timeout|ETIMEDOUT|ECONNRESET|ECONNREFUSED|503'
@@ -933,7 +940,7 @@ function Publish-OvsxPackage {
             foreach ($vsix in $vsixFiles) {
                 Write-Status "Publishing $($vsix.Name) to Open VSX..." 'INFO'
                 $result = Invoke-WithRetry -ScriptBlock {
-                    npx ovsx publish $vsix.FullName 2>&1
+                    npx --yes ovsx publish $vsix.FullName 2>&1
                 } -IsRetryable {
                     param($output)
                     $output -match 'timeout|ETIMEDOUT|ECONNRESET|ECONNREFUSED|503'
