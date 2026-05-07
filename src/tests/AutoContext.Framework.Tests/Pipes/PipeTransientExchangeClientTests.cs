@@ -144,5 +144,14 @@ public sealed class PipeTransientExchangeClientTests
         }
         var response = Utf8NoBom.GetBytes("pong:" + Utf8NoBom.GetString(request));
         await codec.WriteAsync(response, cancellationToken);
+
+        // Wait for the client to close before disposing the server end.
+        // On Linux, NamedPipeServerStream is implemented over Unix
+        // domain sockets; closing while the peer has not yet drained
+        // the response can race the kernel into sending RST instead of
+        // FIN, surfacing as "Connection reset by peer" at the client's
+        // read. Reading to EOF here orders the close so the client
+        // shuts down first.
+        _ = await codec.ReadAsync(cancellationToken);
     }
 }
