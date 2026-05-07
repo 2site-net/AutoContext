@@ -1,3 +1,5 @@
+import { NameFormatter } from './name-formatter.js';
+
 /**
  * One entry from `resources/servers.json`. Identifies a spawnable
  * AutoContext process — its short id (`workspace`, `dotnet`, `web`,
@@ -15,13 +17,19 @@ export class ServerEntry {
     /**
      * The name without the `AutoContext.` package prefix
      * (e.g. `"AutoContext.Worker.DotNet"` → `"Worker.DotNet"`).
-     * Used as a short label in log output and output-channel names.
+     * Used as a short label in log output and as the worker
+     * identity in the worker-control protocol.
      */
     getShortName(): string {
-        return ServerEntry.stripNamePrefix(this.name);
+        return NameFormatter.toShortName(this.name);
     }
 
-    static stripNamePrefix(fullName: string): string {
-        return fullName.replace(/^AutoContext\./, '');
+    /**
+     * The user-facing display label
+     * (e.g. `"AutoContext.Worker.DotNet"` → `"AutoContext: Worker.DotNet"`).
+     * Used as the canonical output-channel name for the worker.
+     */
+    getDisplayName(): string {
+        return NameFormatter.toDisplayName(this.name);
     }
 }

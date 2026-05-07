@@ -3,7 +3,7 @@ import { type Socket } from 'node:net';
 import { createInterface } from 'node:readline';
 import { BoundPipeListener, PipeListener } from 'autocontext-framework-web';
 import { IdentifierFactory } from './identifier-factory.js';
-import { ServerEntry } from './server-entry.js';
+import { NameFormatter } from './name-formatter.js';
 import type { ChannelLogger } from 'autocontext-framework-web';
 
 /**
@@ -116,7 +116,7 @@ export class LogServer implements vscode.Disposable {
                     return;
                 }
                 workerName = payload.clientName;
-                perWorkerLogger = this.logger.forChannel(`AutoContext: ${ServerEntry.stripNamePrefix(workerName)}`);
+                perWorkerLogger = this.logger.forChannel(NameFormatter.toDisplayName(workerName));
                 return;
             }
 

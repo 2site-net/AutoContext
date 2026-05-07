@@ -159,8 +159,7 @@ export class ExtensionRegistrar {
                 if (node?.workerId) {
                     const workerEntry = graph.serversManifest.servers.find(s => s.id === node.workerId);
                     if (workerEntry) {
-                        const channelName = `AutoContext: ${workerEntry.getShortName()}`;
-                        const logger = rootLogger.forChannel(channelName);
+                        const logger = rootLogger.forChannel(workerEntry.getDisplayName());
                         if (logger instanceof OutputChannelLogger) {
                             logger.show(true);
                             return;
