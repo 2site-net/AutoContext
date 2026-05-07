@@ -80,7 +80,7 @@ suite('Health Monitor Smoke Tests', () => {
             return;
         }
 
-        await ext.exports.workerManager.whenWorkspaceReady();
+        await ext.exports.workerManager.ensureRunning('Worker.Workspace');
 
         // The worker writes its id to the health pipe right after host
         // startup; allow a short grace period for the server-side accept

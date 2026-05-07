@@ -142,7 +142,7 @@ vi.mock('../../src/servers-manifest-loader', () => ({
 }));
 
 vi.mock('../../src/worker-manager', () => ({
-    WorkerManager: class { start() {} dispose() {} whenWorkspaceReady() { return Promise.resolve(); } getInstanceId() { return 'test'; } },
+    WorkerManager: class { start() {} dispose() {} ensureRunning() { return Promise.resolve(); } getInstanceId() { return 'test'; } },
 }));
 
 vi.mock('../../src/auto-configurer', () => ({

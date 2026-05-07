@@ -180,7 +180,7 @@ describe('WorkerManager', () => {
         mgr.dispose();
     });
 
-    it('should resolve whenWorkspaceReady when the workspace ready marker is observed', async () => {
+    it('should resolve ensureRunning when the worker ready marker is observed', async () => {
         const children: FakeChild[] = [];
         spawnMock.mockImplementation(() => {
             const child = createFakeChild();
@@ -190,7 +190,7 @@ describe('WorkerManager', () => {
 
         const mgr = makeManager();
         let resolved = false;
-        void mgr.whenWorkspaceReady().then(() => { resolved = true; });
+        void mgr.ensureRunning('Worker.Workspace').then(() => { resolved = true; });
         const workspaceChild = children[0];
         workspaceChild.stderr.write('[AutoContext.Worker.Workspace] Ready.\n');
 
@@ -217,16 +217,16 @@ describe('WorkerManager', () => {
         expect(children.every(c => c.kill.mock.calls.length === 1)).toBe(true);
     });
 
-    it('should reject pending whenWorkspaceReady() waiters on dispose', async () => {
+    it('should reject pending ensureRunning() waiters on dispose', async () => {
         const mgr = makeManager();
 
-        const ready = mgr.whenWorkspaceReady();
+        const ready = mgr.ensureRunning('Worker.Workspace');
         mgr.dispose();
 
         await expect(ready).rejects.toThrow(/disposed before worker became ready/);
     });
 
-    it('should reject whenWorkspaceReady() when the worker emits a spawn error', async () => {
+    it('should reject ensureRunning() when the worker emits a spawn error', async () => {
         const children: FakeChild[] = [];
         spawnMock.mockImplementation(() => {
             const child = createFakeChild();
@@ -236,7 +236,7 @@ describe('WorkerManager', () => {
 
         const mgr = makeManager();
 
-        const ready = mgr.whenWorkspaceReady();
+        const ready = mgr.ensureRunning('Worker.Workspace');
         children[0].emit('error', new Error('spawn ENOENT'));
 
         await expect(ready).rejects.toThrow(/spawn ENOENT/);
@@ -244,7 +244,7 @@ describe('WorkerManager', () => {
         mgr.dispose();
     });
 
-    it('should reject whenWorkspaceReady() when the worker exits before emitting ready', async () => {
+    it('should reject ensureRunning() when the worker exits before emitting ready', async () => {
         const children: FakeChild[] = [];
         spawnMock.mockImplementation(() => {
             const child = createFakeChild();
@@ -254,7 +254,7 @@ describe('WorkerManager', () => {
 
         const mgr = makeManager();
 
-        const ready = mgr.whenWorkspaceReady();
+        const ready = mgr.ensureRunning('Worker.Workspace');
         children[0].emit('exit', 1);
 
         await expect(ready).rejects.toThrow(/exited with code 1 before becoming ready/);
@@ -262,7 +262,7 @@ describe('WorkerManager', () => {
         mgr.dispose();
     });
 
-    it('should not reject whenWorkspaceReady() when the worker exits cleanly after becoming ready', async () => {
+    it('should not reject ensureRunning() when the worker exits cleanly after becoming ready', async () => {
         const children: FakeChild[] = [];
         spawnMock.mockImplementation(() => {
             const child = createFakeChild();
@@ -272,7 +272,7 @@ describe('WorkerManager', () => {
 
         const mgr = makeManager();
 
-        const ready = mgr.whenWorkspaceReady();
+        const ready = mgr.ensureRunning('Worker.Workspace');
         children[0].stderr.write('[AutoContext.Worker.Workspace] Ready.\n');
         await new Promise(r => setImmediate(r));
 

@@ -3,27 +3,17 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import type { ChannelLogger } from 'autocontext-framework-web';
 import { LogCategory } from 'autocontext-framework-web';
-import type { WorkerManager } from './worker-manager.js';
 import { contextKeys, globalStateKeys } from './ui-constants.js';
 import type { ActivationInputs } from './types/activation-inputs.js';
-
-/**
- * Soft timeout for the `Worker.Workspace` ready barrier during activation.
- *
- * Activation must not hang indefinitely if the workspace worker fails to
- * signal ready; downstream steps will continue with whatever state is
- * available, and a warning is logged.
- */
-const WORKSPACE_READY_TIMEOUT_MS = 30_000;
 
 /**
  * Async portion of extension activation.
  *
  * Runs after `ExtensionComposer.compose()` has wired the graph and
  * after `ExtensionRegistrar.register()` has registered VS Code
- * surfaces. Owns detection, the worker-ready barrier, projection,
- * staging cleanup, version-aware disabled-id sweep, the first
- * instructions write, and the initial diagnostics report.
+ * surfaces. Owns detection, projection, staging cleanup,
+ * version-aware disabled-id sweep, the first instructions write, and
+ * the initial diagnostics report.
  *
  * Phases are deliberately sequential where there is a true ordering
  * dependency, and parallel within a phase otherwise.
@@ -53,10 +43,7 @@ export class ExtensionActivator {
         // the MCP provider with the full set of detected servers.
         didChangeEmitter.fire();
 
-        // Phase B — wait for Worker.Workspace ready (soft timeout).
-        await this.waitForWorkspaceReady(graph.workerManager);
-
-        // Phase C — independent fan-out: projection, staging cleanup,
+        // Phase B — independent fan-out: projection, staging cleanup,
         // orphan-id sweep. None depend on each other; run in parallel.
         await Promise.all([
             graph.configProjector.project(),
@@ -64,7 +51,7 @@ export class ExtensionActivator {
             graph.configManager.removeOrphanedIds(),
         ]);
 
-        // Phase D — version-aware cleanup that depends on projection
+        // Phase C — version-aware cleanup that depends on projection
         // having run (above) and on the manifest's catalog versions.
         const catalogVersions = new Map(
             graph.instructionsManifest.instructions
@@ -79,7 +66,7 @@ export class ExtensionActivator {
             );
         }
 
-        // Phase E — first instructions write + version-banner state.
+        // Phase D — first instructions write + version-banner state.
         await graph.instructionsWriter.write();
 
         this.applyVersionBanner();
@@ -87,32 +74,6 @@ export class ExtensionActivator {
         await graph.diagnosticsReporter.report();
 
         this.activationLog.info('Activation complete');
-    }
-
-    private async waitForWorkspaceReady(workerManager: WorkerManager): Promise<void> {
-        let timedOut = false;
-        let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
-
-        await Promise.race([
-            workerManager.whenWorkspaceReady()
-                .then(() => clearTimeout(timeoutHandle))
-                // If the manager is disposed before the worker signals ready,
-                // whenWorkspaceReady() rejects. Activation has already moved
-                // on (or will, via the timeout branch); absorb the rejection.
-                .catch(() => clearTimeout(timeoutHandle)),
-            new Promise<void>(resolve => {
-                timeoutHandle = setTimeout(() => {
-                    timedOut = true;
-                    resolve();
-                }, WORKSPACE_READY_TIMEOUT_MS);
-            }),
-        ]);
-
-        if (timedOut) {
-            this.activationLog.warn('Timed out waiting for Worker.Workspace ready marker; continuing activation.');
-        } else {
-            this.activationLog.debug('Worker.Workspace ready');
-        }
     }
 
     private applyVersionBanner(): void {

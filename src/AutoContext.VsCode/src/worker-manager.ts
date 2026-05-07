@@ -64,8 +64,7 @@ interface WorkerSlot {
  * concurrent requests for the same worker and respawns automatically
  * after a previous child has exited. There is no eager-start step:
  * workers are spawned on demand by the orchestrator's worker-control
- * channel (when a tool call needs them) or by {@link whenWorkspaceReady}
- * during activation.
+ * channel when a tool call needs them, or by the sidebar Start button.
  */
 export class WorkerManager implements vscode.Disposable {
     private readonly slots = new Map<string, WorkerSlot>();
@@ -96,28 +95,6 @@ export class WorkerManager implements vscode.Disposable {
     /** Per-window instance id propagated to every spawned worker. */
     getInstanceId(): string {
         return this.instanceId;
-    }
-
-    /**
-     * Convenience wrapper around `ensureRunning('Worker.Workspace')`.
-     *
-     * `Worker.Workspace` is the only worker the extension itself
-     * depends on at runtime: it owns config reads (`.autocontext.json`,
-     * `.editorconfig` resolution) that the activation flow, the
-     * instructions pipeline, and several UI surfaces consume directly
-     * — none of those go through `Mcp.Server`. The other workers
-     * (DotNet, Web) only serve MCP tool calls and are awaited via the
-     * orchestrator's control channel, never from extension code.
-     *
-     * Keeping this method:
-     * 1. Pins the activation barrier (see `extension.ts`) to a named
-     *    API rather than a stringly-typed `ensureRunning(...)` call,
-     *    so removing the barrier is a discoverable refactor.
-     * 2. Keeps the magic identity `'Worker.Workspace'` confined to
-     *    this file.
-     */
-    whenWorkspaceReady(): Promise<void> {
-        return this.ensureRunning('Worker.Workspace');
     }
 
     /**
@@ -171,7 +148,7 @@ export class WorkerManager implements vscode.Disposable {
         // Swallow rejection on the stored promise so callers that never
         // attach a handler (or attach only via Promise.race) don't surface
         // an unhandled rejection when dispose() rejects pending waiters.
-        slot.readyPromise.catch(() => { /* see whenWorkspaceReady() */ });
+        slot.readyPromise.catch(() => { /* see dispose() */ });
 
         this.spawnWorker(slot);
 

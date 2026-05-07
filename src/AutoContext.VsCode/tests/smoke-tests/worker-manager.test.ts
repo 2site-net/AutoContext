@@ -27,6 +27,6 @@ suite('Worker Manager Smoke Tests', () => {
             return;
         }
 
-        await withTimeout(ext.exports.workerManager.whenWorkspaceReady(), 8000, 'Worker.Workspace ready marker');
+        await withTimeout(ext.exports.workerManager.ensureRunning('Worker.Workspace'), 8000, 'Worker.Workspace ready marker');
     });
 });
