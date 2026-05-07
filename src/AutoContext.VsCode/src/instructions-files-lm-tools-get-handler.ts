@@ -2,20 +2,9 @@ import * as vscode from 'vscode';
 import type { InstructionsFileContentProjector } from './instructions-file-content-projector.js';
 import type { InstructionsFileEntry } from './instructions-file-entry.js';
 import type { InstructionsFilesManifest } from './instructions-files-manifest.js';
-import type { InstructionsFileSectionWithOffsets } from './types/instructions-file-section-with-offsets.js';
-import type { InstructionsFilesLmToolsGetResult } from './types/instructions-files-lm-tools-get-result.js';
-
-/**
- * Get-tool input. `sections` is the chained input from the other
- * three tools (`matchedAnchors` from `_by_metadata`, `excerpts[].anchor`
- * from `_by_content`); a non-empty array narrows the response to the
- * named sections only. `name` is the full instructions filename
- * (e.g. `lang-csharp.instructions.md`).
- */
-export interface InstructionsFilesLmToolsGetInput {
-    readonly name: string;
-    readonly sections?: readonly string[];
-}
+import type { InstructionsFileSectionWithOffsets } from '#types/instructions-file-section-with-offsets.js';
+import type { InstructionsFilesLmToolsGetInput } from '#types/instructions-files-lm-tools-get-input.js';
+import type { InstructionsFilesLmToolsGetResult } from '#types/instructions-files-lm-tools-get-result.js';
 
 /**
  * Powers `get_autocontext_instructions_file`. Lookup by exact `name`

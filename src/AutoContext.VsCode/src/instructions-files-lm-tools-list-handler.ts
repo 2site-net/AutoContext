@@ -1,20 +1,7 @@
 import * as vscode from 'vscode';
-import type {
-    InstructionsFilesLmToolsSearchByMetadataHandler,
-    InstructionsFilesLmToolsSearchByMetadataResult,
-} from './instructions-files-lm-tools-search-by-metadata-handler.js';
-
-/**
- * Catalogue input — the ergonomic surface that wraps the more general
- * `_by_metadata` predicate. `applyTo` is escaped into the predicate
- * as-is (the predicate routes it through Step 5's matcher). `category`
- * becomes a regex-anchored equality clause on `categories`.
- */
-export interface InstructionsFilesLmToolsListInput {
-    readonly applyTo?: string;
-    readonly category?: string;
-    readonly includeSections?: boolean;
-}
+import type { InstructionsFilesLmToolsSearchByMetadataHandler } from './instructions-files-lm-tools-search-by-metadata-handler.js';
+import type { InstructionsFilesLmToolsListInput } from '#types/instructions-files-lm-tools-list-input.js';
+import type { InstructionsFilesLmToolsSearchByMetadataResult } from '#types/instructions-files-lm-tools-search-by-metadata-result.js';
 
 /**
  * Powers `list_autocontext_instructions_files`. Translates its

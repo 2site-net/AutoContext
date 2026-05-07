@@ -2,36 +2,11 @@ import * as vscode from 'vscode';
 import type { InstructionsFilesLmToolsMetadataPredicate } from './instructions-files-lm-tools-metadata-predicate.js';
 import type { InstructionsFilesLmToolsMetadataViews } from './instructions-files-lm-tools-metadata-views.js';
 import type { InstructionsFilesManifest } from './instructions-files-manifest.js';
-import type { InstructionsFilesLmToolsCatalogEntry } from './types/instructions-files-lm-tools-catalog-entry.js';
-import type { InstructionsFilesLmToolsMetadataView } from './types/instructions-files-lm-tools-metadata-view.js';
-import type {
-    InstructionsFilesLmToolsMetadataPredicateError,
-    InstructionsFilesLmToolsMetadataPredicateResult,
-} from './types/instructions-files-lm-tools-metadata-predicate-result.js';
-
-/**
- * Free-form predicate input passed straight to
- * `InstructionsFilesLmToolsMetadataPredicate.evaluate`. The predicate
- * engine validates field names and value kinds; this handler does
- * not pre-validate so that error envelopes flow back to the LLM with
- * full structured detail (`unknown-field`, `type-mismatch`,
- * `invalid-regex`, `pattern-too-long`).
- */
-export interface InstructionsFilesLmToolsSearchByMetadataInput {
-    readonly predicate?: Readonly<Record<string, string | number | boolean>>;
-    readonly includeSections?: boolean;
-}
-
-/**
- * Search-by-metadata response envelope. `kind: 'ok'` carries
- * filtered, shaped catalogue rows; `kind: 'error'` is the predicate
- * engine's structured validation error reflected back to the LLM
- * verbatim, with no `results` field, so the client cannot mistake an
- * empty success for an invalid predicate.
- */
-export type InstructionsFilesLmToolsSearchByMetadataResult =
-    | { readonly kind: 'ok'; readonly results: readonly InstructionsFilesLmToolsCatalogEntry[] }
-    | InstructionsFilesLmToolsMetadataPredicateError;
+import type { InstructionsFilesLmToolsCatalogEntry } from '#types/instructions-files-lm-tools-catalog-entry.js';
+import type { InstructionsFilesLmToolsMetadataView } from '#types/instructions-files-lm-tools-metadata-view.js';
+import type { InstructionsFilesLmToolsMetadataPredicateResult } from '#types/instructions-files-lm-tools-metadata-predicate-result.js';
+import type { InstructionsFilesLmToolsSearchByMetadataInput } from '#types/instructions-files-lm-tools-search-by-metadata-input.js';
+import type { InstructionsFilesLmToolsSearchByMetadataResult } from '#types/instructions-files-lm-tools-search-by-metadata-result.js';
 
 /**
  * Powers `search_autocontext_instructions_files_by_metadata`. Owns no

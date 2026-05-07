@@ -1,5 +1,6 @@
 import { McpCategoryEntry } from './mcp-category-entry.js';
-import { McpToolEntry, type McpTaskInit } from './mcp-tool-entry.js';
+import { McpToolEntry } from './mcp-tool-entry.js';
+import type { McpTaskInit } from '#types/mcp-task-init.js';
 import { McpToolsManifest } from './mcp-tools-manifest.js';
 import { ResourceManifestLoader } from './resource-manifest-loader.js';
 import type { McpRuntimeContext } from '#types/runtime-context.js';

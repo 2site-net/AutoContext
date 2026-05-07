@@ -3,11 +3,7 @@ import type { McpCategoryEntry } from './mcp-category-entry.js';
 import { McpToolRuntimeInfo } from './mcp-tool-runtime-info.js';
 import { McpTaskEntry } from './mcp-task-entry.js';
 import type { McpRuntimeContext } from '#types/runtime-context.js';
-
-export interface McpTaskInit {
-    readonly name: string;
-    readonly description?: string;
-}
+import type { McpTaskInit } from '#types/mcp-task-init.js';
 
 /**
  * A tool from `resources/mcp-tools.json`. Tools belong to one or more

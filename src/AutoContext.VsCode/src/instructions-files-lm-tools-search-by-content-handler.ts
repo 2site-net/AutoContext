@@ -2,25 +2,9 @@ import * as vscode from 'vscode';
 import type { InstructionsFilesLmToolsApplyToMatcher } from './instructions-files-lm-tools-apply-to-matcher.js';
 import type { InstructionsFilesLmToolsContentSearch } from './instructions-files-lm-tools-content-search.js';
 import type { InstructionsFilesManifest } from './instructions-files-manifest.js';
-import type { InstructionsFilesLmToolsContentHit } from './types/instructions-files-lm-tools-content-hit.js';
-
-/**
- * Free-text content search input. `applyTo` and `category` are
- * post-filters layered on top of the ranked hits, mirroring the same
- * constraints accepted by `list_*` so a follow-up "narrow this down"
- * call doesn't need a different shape.
- */
-export interface InstructionsFilesLmToolsSearchByContentInput {
-    readonly query: string;
-    readonly applyTo?: string;
-    readonly category?: string;
-    readonly limit?: number;
-}
-
-export interface InstructionsFilesLmToolsSearchByContentResult {
-    readonly kind: 'ok';
-    readonly results: readonly InstructionsFilesLmToolsContentHit[];
-}
+import type { InstructionsFilesLmToolsContentHit } from '#types/instructions-files-lm-tools-content-hit.js';
+import type { InstructionsFilesLmToolsSearchByContentInput } from '#types/instructions-files-lm-tools-search-by-content-input.js';
+import type { InstructionsFilesLmToolsSearchByContentResult } from '#types/instructions-files-lm-tools-search-by-content-result.js';
 
 /**
  * Powers `search_autocontext_instructions_files_by_content`.
