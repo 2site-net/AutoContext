@@ -16,7 +16,7 @@ suite('Config Manager Smoke Tests', () => {
         assert.strictEqual(await exports.configManager.hasAnyDisabledInstructions(), false);
     });
 
-    test('toggle should disable an instruction', async () => {
+    test('should disable an instruction when toggled', async () => {
         const { exports } = await activatedExtension();
 
         await vscode.commands.executeCommand('autocontext.toggle-instruction', taggedFile, 'INST0001');
@@ -26,7 +26,7 @@ suite('Config Manager Smoke Tests', () => {
         assert.ok(disabled.has('INST0001'), 'INST0001 should be disabled after toggle');
     });
 
-    test('reset should re-enable all instructions for a file', async () => {
+    test('should re-enable all instructions for a file when reset', async () => {
         const { exports } = await activatedExtension();
 
         await vscode.commands.executeCommand('autocontext.toggle-instruction', taggedFile, 'INST0001');
@@ -37,7 +37,7 @@ suite('Config Manager Smoke Tests', () => {
         assert.strictEqual(disabled.size, 0, 'No instructions should be disabled after reset');
     });
 
-    test('removeOrphanedIds should not throw', async () => {
+    test('should not throw when removing orphaned ids', async () => {
         const { exports } = await activatedExtension();
 
         await exports.configManager.removeOrphanedIds();

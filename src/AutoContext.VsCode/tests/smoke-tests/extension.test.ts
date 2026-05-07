@@ -5,19 +5,19 @@ import { join } from 'node:path';
 import { activatedExtension } from './helpers.js';
 
 suite('Extension Smoke Tests', () => {
-    test('extension should be present', () => {
+    test('should be present as an installed extension', () => {
         const ext = vscode.extensions.getExtension('2site-net.AutoContext');
 
         assert.ok(ext, 'Extension 2site-net.AutoContext not found');
     });
 
-    test('extension should activate', async () => {
+    test('should activate the extension', async () => {
         const ext = await activatedExtension();
 
         assert.ok(ext.isActive, 'Extension did not activate');
     });
 
-    test('registered commands should include all AutoContext commands', async () => {
+    test('should register all AutoContext commands', async () => {
         await activatedExtension();
 
         const allCommands = await vscode.commands.getCommands(true);
@@ -50,7 +50,7 @@ suite('Extension Smoke Tests', () => {
         assert.ok(unexpectedlyPresent.length === 0, `Unexpected removed commands: ${unexpectedlyPresent.join(', ')}`);
     });
 
-    test('generated instructions should be normalized (tags stripped)', async () => {
+    test('should normalize generated instructions (tags stripped)', async () => {
         const ext = await activatedExtension();
         const generatedDir = join(ext.extensionPath, 'instructions', '.generated');
         assert.ok(existsSync(generatedDir), `.generated directory not found at ${generatedDir}`);
@@ -64,7 +64,7 @@ suite('Extension Smoke Tests', () => {
         assert.ok(violations.length === 0, `Files with empty content or un-stripped tags: ${violations.join(', ')}`);
     });
 
-    test('autocontext-instructions content provider should be registered', async () => {
+    test('should register the autocontext-instructions content provider', async () => {
         await activatedExtension();
         const uri = vscode.Uri.from({ scheme: 'autocontext-instructions', path: 'copilot.instructions.md' });
 

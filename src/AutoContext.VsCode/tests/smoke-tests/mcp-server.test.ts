@@ -16,7 +16,7 @@ suite('MCP Server Provider Smoke Tests', () => {
         assert.ok(defs.length > 0, 'No MCP server definitions returned');
     });
 
-    test('every definition should carry the instance-id and health-monitor service args', async () => {
+    test('should carry the instance-id and health-monitor service args on every definition', async () => {
         const { exports } = await activatedExtension();
 
         const defs = await exports.mcpServerProvider.provideMcpServerDefinitions();
@@ -32,7 +32,7 @@ suite('MCP Server Provider Smoke Tests', () => {
         );
     });
 
-    test('every definition should carry the extension version', async () => {
+    test('should carry the extension version on every definition', async () => {
         const { exports } = await activatedExtension();
 
         const defs = await exports.mcpServerProvider.provideMcpServerDefinitions();

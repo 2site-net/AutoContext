@@ -3,7 +3,7 @@ import * as vscode from 'vscode';
 import { activatedExtension } from './helpers.js';
 
 suite('Instructions Tree View Smoke Tests', () => {
-    test('tree view should return root categories', async () => {
+    test('should return root categories from the tree view', async () => {
         const { exports } = await activatedExtension();
         const roots = exports.instructionsTreeProvider.getChildren();
 
@@ -14,7 +14,7 @@ suite('Instructions Tree View Smoke Tests', () => {
         );
     });
 
-    test('tree view should return instructions under each category', async () => {
+    test('should return instructions under each category in the tree view', async () => {
         const { exports } = await activatedExtension();
         const roots = exports.instructionsTreeProvider.getChildren();
 
@@ -28,7 +28,7 @@ suite('Instructions Tree View Smoke Tests', () => {
         }
     });
 
-    test('tree items should have labels and icons', async () => {
+    test('should expose labels and icons on tree items', async () => {
         const { exports } = await activatedExtension();
         const roots = exports.instructionsTreeProvider.getChildren();
         const general = roots.find((r: { kind: string; name: string }) => r.kind === 'categoryNode' && r.name === 'General');
@@ -42,7 +42,7 @@ suite('Instructions Tree View Smoke Tests', () => {
         }
     });
 
-    test('instruction items should have a command to open virtual document', async () => {
+    test('should expose a command on instruction items to open the virtual document', async () => {
         const { exports } = await activatedExtension();
         const roots = exports.instructionsTreeProvider.getChildren();
         const general = roots.find((r: { kind: string; name: string }) => r.kind === 'categoryNode' && r.name === 'General');
@@ -54,7 +54,7 @@ suite('Instructions Tree View Smoke Tests', () => {
         assert.strictEqual(item.command.arguments[0].scheme, 'autocontext-instructions', 'URI scheme should be autocontext-instructions');
     });
 
-    test('entering export mode should show checkboxes on active items', async () => {
+    test('should show checkboxes on active items when entering export mode', async () => {
         const { exports } = await activatedExtension();
 
         exports.instructionsTreeProvider.enterExportMode();
@@ -72,7 +72,7 @@ suite('Instructions Tree View Smoke Tests', () => {
         exports.instructionsTreeProvider.cancelExportMode();
     });
 
-    test('canceling export mode should remove checkboxes', async () => {
+    test('should remove checkboxes when canceling export mode', async () => {
         const { exports } = await activatedExtension();
 
         exports.instructionsTreeProvider.enterExportMode();
@@ -88,7 +88,7 @@ suite('Instructions Tree View Smoke Tests', () => {
         }
     });
 
-    test('not-detected items should not have checkboxes in export mode', async () => {
+    test('should not show checkboxes on not-detected items in export mode', async () => {
         const { exports } = await activatedExtension();
 
         exports.instructionsTreeProvider.enterExportMode();
@@ -107,7 +107,7 @@ suite('Instructions Tree View Smoke Tests', () => {
         exports.instructionsTreeProvider.cancelExportMode();
     });
 
-    test('enable command should update config to enabled', async () => {
+    test('should update config to enabled when running the enable command', async () => {
         const { exports } = await activatedExtension();
 
         await exports.configManager.setInstructionEnabled('design-principles.instructions.md', false);
@@ -134,7 +134,7 @@ suite('Instructions Tree View Smoke Tests', () => {
         }
     });
 
-    test('disable command should update config to disabled', async () => {
+    test('should update config to disabled when running the disable command', async () => {
         const { exports } = await activatedExtension();
 
         const roots = exports.instructionsTreeProvider.getChildren();
@@ -155,7 +155,7 @@ suite('Instructions Tree View Smoke Tests', () => {
         }
     });
 
-    test('all instruction items should have tooltips', async () => {
+    test('should expose tooltips on all instruction items', async () => {
         const { exports } = await activatedExtension();
         const roots = exports.instructionsTreeProvider.getChildren();
 
@@ -171,7 +171,7 @@ suite('Instructions Tree View Smoke Tests', () => {
         }
     });
 
-    test('instruction tooltips should contain setting ID', async () => {
+    test('should contain the setting ID in instruction tooltips', async () => {
         const { exports } = await activatedExtension();
         const roots = exports.instructionsTreeProvider.getChildren();
         const general = roots.find((r: { kind: string; name: string }) => r.kind === 'categoryNode' && r.name === 'General');
@@ -186,7 +186,7 @@ suite('Instructions Tree View Smoke Tests', () => {
         }
     });
 
-    test('enabled items should have correct context value and icon', async () => {
+    test('should expose the correct context value and icon on enabled items', async () => {
         const { exports } = await activatedExtension();
         const roots = exports.instructionsTreeProvider.getChildren();
         const general = roots.find((r: { kind: string; name: string }) => r.kind === 'categoryNode' && r.name === 'General');
@@ -199,7 +199,7 @@ suite('Instructions Tree View Smoke Tests', () => {
         assert.ok(item.iconPath, 'Enabled item should have an icon');
     });
 
-    test('not-detected items should have description and icon', async () => {
+    test('should expose description and icon on not-detected items', async () => {
         const { exports } = await activatedExtension();
         const roots = exports.instructionsTreeProvider.getChildren();
         let notDetectedCount = 0;
@@ -220,7 +220,7 @@ suite('Instructions Tree View Smoke Tests', () => {
         assert.ok(notDetectedCount > 0, 'Should have at least one not-detected instruction');
     });
 
-    test('category tooltips should show active count', async () => {
+    test('should show the active count in category tooltips', async () => {
         const { exports } = await activatedExtension();
         const roots = exports.instructionsTreeProvider.getChildren();
         const general = roots.find((r: { kind: string; name: string }) => r.kind === 'categoryNode' && r.name === 'General');

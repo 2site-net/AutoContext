@@ -7,13 +7,13 @@ const mcpBinary = (extensionPath: string) =>
     join(extensionPath, 'servers', 'AutoContext.Mcp.Server', `AutoContext.Mcp.Server${process.platform === 'win32' ? '.exe' : ''}`);
 
 suite('Activation Flow Smoke Tests', () => {
-    test('workspace detection should complete during activation', async () => {
+    test('should complete workspace detection during activation', async () => {
         const { exports } = await activatedExtension();
 
         assert.ok(exports.workspaceContextDetector.get('hasTypeScript'), 'hasTypeScript should be set after activation');
     });
 
-    test('context-gated MCP servers should be available after activation without manual detect()', async function () {
+    test('should expose context-gated MCP servers after activation without manual detect()', async function () {
         const ext = await activatedExtension();
         if (!existsSync(mcpBinary(ext.extensionPath))) { this.skip(); return; }
 

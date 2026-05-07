@@ -14,7 +14,7 @@ suite('CodeLens Provider Smoke Tests', () => {
         assert.ok(lenses.length > 0, 'No CodeLens items returned');
     });
 
-    test('every lens should carry a toggle or reset command', async () => {
+    test('should carry a toggle or reset command on every lens', async () => {
         const { exports } = await activatedExtension();
         const uri = vscode.Uri.from({ scheme: 'autocontext-instructions', path: taggedFile });
         const doc = await vscode.workspace.openTextDocument(uri);
@@ -27,7 +27,7 @@ suite('CodeLens Provider Smoke Tests', () => {
         assert.strictEqual(invalid.length, 0, `Unexpected commands: ${invalid.map((l: vscode.CodeLens) => (l.command as { command: string }).command).join(', ')}`);
     });
 
-    test('lenses should include Disable Instruction titles when no instructions are disabled', async () => {
+    test('should include Disable Instruction titles in lenses when no instructions are disabled', async () => {
         const { exports } = await activatedExtension();
         const uri = vscode.Uri.from({ scheme: 'autocontext-instructions', path: taggedFile });
         const doc = await vscode.workspace.openTextDocument(uri);

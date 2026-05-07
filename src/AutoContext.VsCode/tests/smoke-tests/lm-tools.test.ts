@@ -10,7 +10,7 @@ const expectedToolNames = [
 ];
 
 suite('LM Tools Smoke Tests', () => {
-    test('vscode.lm.tools should expose all four AutoContext instructions tools', async () => {
+    test('should expose all four AutoContext instructions tools on vscode.lm.tools', async () => {
         await activatedExtension();
 
         const registered = vscode.lm.tools.map(t => t.name);
@@ -19,7 +19,7 @@ suite('LM Tools Smoke Tests', () => {
         assert.strictEqual(missing.length, 0, `Missing LM tools: ${missing.join(', ')}`);
     });
 
-    test('list_autocontext_instructions_files should return a non-empty catalogue with no args', async () => {
+    test('should return a non-empty catalogue from list_autocontext_instructions_files with no args', async () => {
         const { exports } = await activatedExtension();
 
         const result = await exports.lmToolsListHandler.handle({});
@@ -31,7 +31,7 @@ suite('LM Tools Smoke Tests', () => {
             `Expected entry.name to be an instructions filename, got: ${JSON.stringify(sample)}`);
     });
 
-    test('get_autocontext_instructions_file should return projected body with no [INST####] tags', async () => {
+    test('should return a projected body with no [INST####] tags from get_autocontext_instructions_file', async () => {
         const { exports } = await activatedExtension();
 
         const result = await exports.lmToolsGetHandler.handle({ name: 'lang-typescript.instructions.md' });
@@ -41,7 +41,7 @@ suite('LM Tools Smoke Tests', () => {
         assert.ok(!/\[INST\d{4}]/.test(result.content), 'Projected content should not contain [INST####] tags');
     });
 
-    test('search_autocontext_instructions_files_by_content should return at least one hit for a common query', async () => {
+    test('should return at least one hit from search_autocontext_instructions_files_by_content for a common query', async () => {
         const { exports } = await activatedExtension();
 
         const result = await exports.lmToolsSearchByContentHandler.handle({ query: 'testing' });

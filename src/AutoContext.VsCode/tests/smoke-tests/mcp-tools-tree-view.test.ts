@@ -3,7 +3,7 @@ import * as vscode from 'vscode';
 import { activatedExtension } from './helpers.js';
 
 suite('MCP Tools Tree View Smoke Tests', () => {
-    test('tree view should return root nodes', async () => {
+    test('should return root nodes from the tree view', async () => {
         const { exports } = await activatedExtension();
         const roots = exports.mcpToolsTreeProvider.getChildren();
 
@@ -14,7 +14,7 @@ suite('MCP Tools Tree View Smoke Tests', () => {
         );
     });
 
-    test('top categories should contain sub-categories', async () => {
+    test('should contain sub-categories under top categories', async () => {
         const { exports } = await activatedExtension();
         const roots = exports.mcpToolsTreeProvider.getChildren();
 
@@ -28,7 +28,7 @@ suite('MCP Tools Tree View Smoke Tests', () => {
         }
     });
 
-    test('sub-categories should contain tools', async () => {
+    test('should contain tools under sub-categories', async () => {
         const { exports } = await activatedExtension();
         const roots = exports.mcpToolsTreeProvider.getChildren();
 
@@ -45,7 +45,7 @@ suite('MCP Tools Tree View Smoke Tests', () => {
         }
     });
 
-    test('composite tools should have task children', async () => {
+    test('should expose task children under composite tools', async () => {
         const { exports } = await activatedExtension();
         const roots = exports.mcpToolsTreeProvider.getChildren();
         let compositeCount = 0;
@@ -69,7 +69,7 @@ suite('MCP Tools Tree View Smoke Tests', () => {
         assert.ok(compositeCount > 0, 'Should have at least one composite tool with tasks');
     });
 
-    test('tree items should have labels', async () => {
+    test('should expose labels on tree items', async () => {
         const { exports } = await activatedExtension();
         const roots = exports.mcpToolsTreeProvider.getChildren();
 
@@ -84,7 +84,7 @@ suite('MCP Tools Tree View Smoke Tests', () => {
         }
     });
 
-    test('detected task items should have checkboxes', async () => {
+    test('should expose checkboxes on detected task items', async () => {
         const { exports } = await activatedExtension();
         await exports.workspaceContextDetector.detect();
 
@@ -113,7 +113,7 @@ suite('MCP Tools Tree View Smoke Tests', () => {
         assert.ok(checked > 0, 'Should have at least one detected task with a checkbox');
     });
 
-    test('not-detected items should show description and icon', async () => {
+    test('should show description and icon on not-detected items', async () => {
         const { exports } = await activatedExtension();
         const roots = exports.mcpToolsTreeProvider.getChildren();
         let notDetectedCount = 0;
@@ -145,7 +145,7 @@ suite('MCP Tools Tree View Smoke Tests', () => {
         assert.ok(notDetectedCount > 0, 'Should have at least one not-detected item');
     });
 
-    test('all tree items should have tooltips', async () => {
+    test('should expose tooltips on all tree items', async () => {
         const { exports } = await activatedExtension();
         const roots = exports.mcpToolsTreeProvider.getChildren();
 
@@ -170,7 +170,7 @@ suite('MCP Tools Tree View Smoke Tests', () => {
         }
     });
 
-    test('task tooltips should contain setting ID', async () => {
+    test('should contain the setting ID in task tooltips', async () => {
         const { exports } = await activatedExtension();
         const roots = exports.mcpToolsTreeProvider.getChildren();
 
