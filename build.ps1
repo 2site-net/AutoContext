@@ -59,6 +59,13 @@
     packaged extension layout (server binaries staged under the extension
     folder).
 
+.PARAMETER Force
+    For Tag only. Delete the existing local tag and the matching remote
+    tag (if any) before re-creating it. Skips the strict auto-undo
+    safety checks that normally prevent retagging when the tag already
+    points elsewhere or has been pushed. The bump commit, if any, is
+    left intact.
+
 .PARAMETER Help
     Show usage information.
 
@@ -78,6 +85,7 @@
     .\build.ps1 Publish                          # Package + publish to Marketplace + Open VSX
     .\build.ps1 Tag 0.6.0                        # Bump, compile, test, commit, tag
     .\build.ps1 Tag 0.6.0-alpha                  # Prerelease tag
+    .\build.ps1 Tag 0.6.0 -Force                 # Re-tag (delete local + remote first)
     .\build.ps1 -Clean                           # Delete all build artifacts
     .\build.ps1 -Clean Compile                   # Clean then compile
     .\build.ps1 Package -WhatIf                  # Preview what Package would do
@@ -109,6 +117,8 @@ param(
     [string]$RuntimeIdentifier,
 
     [switch]$Smoke,
+
+    [switch]$Force,
 
     [switch]$Help
 )
@@ -278,7 +288,7 @@ function Show-Help {
     Write-Host "`nAutoContext Build Orchestrator`n" -ForegroundColor Cyan
 
     Write-Host 'SYNTAX' -ForegroundColor Yellow
-    Write-Host "  .\build.ps1 [Action] [Target] [-Clean] [-Local] [-Smoke] [-RuntimeIdentifier <rid>] [-WhatIf] [-Help]`n"
+    Write-Host "  .\build.ps1 [Action] [Target] [-Clean] [-Local] [-Smoke] [-Force] [-RuntimeIdentifier <rid>] [-WhatIf] [-Help]`n"
 
     Write-Host 'ACTIONS' -ForegroundColor Yellow
     Write-Host '  (none)     Compile + Test (all sources)'
@@ -299,6 +309,7 @@ function Show-Help {
     Write-Host '  -Clean                Delete build artifacts (combinable with Compile/Test)'
     Write-Host '  -Local                Copy server binaries for local F5 (Package only)'
     Write-Host '  -Smoke                Run smoke tests (Test only; combines with Target)'
+    Write-Host '  -Force                Re-tag: delete local + remote tag first (Tag only)'
     Write-Host '  -RuntimeIdentifier    .NET RID for Package/Publish (e.g. win-x64)'
     Write-Host '  -WhatIf               Preview changes without executing (works with any action and switch)'
     Write-Host "  -Help                 Show this help`n"
@@ -316,6 +327,7 @@ function Show-Help {
     Write-Host '  .\build.ps1 Package -RuntimeIdentifier win-x64'
     Write-Host '  .\build.ps1 Tag 0.6.0                         # Bump, test, commit, tag'
     Write-Host '  .\build.ps1 Tag 0.6.0-alpha                   # Prerelease tag'
+    Write-Host '  .\build.ps1 Tag 0.6.0 -Force                  # Re-tag (delete local + remote first)'
     Write-Host '  .\build.ps1 -Clean Compile                    # Clean then compile'
     Write-Host "  .\build.ps1 Package -WhatIf                   # Preview`n"
 }
@@ -1285,10 +1297,53 @@ function Undo-PreviousTag {
     return $false
 }
 
-function Invoke-Tag {
+function Remove-ExistingTag {
+    <#
+    .SYNOPSIS
+        Force-delete an existing tag locally and on the 'origin' remote
+        (if present). Used by `Invoke-Tag -Force` to clear stale tags
+        before re-creating them. Does not modify any commit history.
+    #>
     [CmdletBinding(SupportsShouldProcess)]
     param(
         [Parameter(Mandatory)][string]$Version
+    )
+
+    Write-Section 'Remove existing tag'
+
+    $localTag = git tag -l $Version
+    if ($localTag) {
+        if ($PSCmdlet.ShouldProcess("local tag $Version", 'Delete')) {
+            git tag -d $Version 2>&1 | Out-Null
+            if ($LASTEXITCODE -ne 0) { throw "Failed to delete local tag '$Version'." }
+            Write-Status "Deleted local tag $Version" 'OK'
+        }
+    }
+    else {
+        Write-Status "No local tag $Version" 'INFO'
+    }
+
+    $remoteTag = git ls-remote --tags origin "refs/tags/$Version" 2>&1
+    if ($LASTEXITCODE -ne 0) {
+        throw "Failed to query remote tags: $remoteTag"
+    }
+    if ($remoteTag) {
+        if ($PSCmdlet.ShouldProcess("remote tag $Version on origin", 'Delete')) {
+            git push --delete origin "refs/tags/$Version" 2>&1 | Out-Null
+            if ($LASTEXITCODE -ne 0) { throw "Failed to delete remote tag '$Version'." }
+            Write-Status "Deleted remote tag $Version" 'OK'
+        }
+    }
+    else {
+        Write-Status "No remote tag $Version" 'INFO'
+    }
+}
+
+function Invoke-Tag {
+    [CmdletBinding(SupportsShouldProcess)]
+    param(
+        [Parameter(Mandatory)][string]$Version,
+        [switch]$Force
     )
 
     Write-Header 'Tag'
@@ -1301,8 +1356,15 @@ function Invoke-Tag {
 
     Assert-ExternalCommand 'git'
 
+    # ── Force re-tag: delete local + remote tag, leaving any bump commit alone ──
+    if ($Force) {
+        Remove-ExistingTag -Version $Version
+    }
+
     # ── Auto-undo previous local-only tag attempt ──
-    $wasUndone = Undo-PreviousTag -Version $Version
+    # Skipped under -Force, since Remove-ExistingTag already cleared the tag
+    # and -Force intentionally preserves any prior bump commit.
+    $wasUndone = if ($Force) { $false } else { Undo-PreviousTag -Version $Version }
     $currentVersion = if ($wasUndone) {
         # Re-read version from disk since the undo reverted the bump
         (Get-Content $versionJsonPath -Raw | ConvertFrom-Json).version
@@ -1445,6 +1507,10 @@ if ($Smoke -and $Action -ne 'Test') {
     throw '-Smoke is only valid with the Test action. Usage: .\build.ps1 Test -Smoke'
 }
 
+if ($Force -and $Action -ne 'Tag') {
+    throw '-Force is only valid with the Tag action.'
+}
+
 if ($Local -and $RuntimeIdentifier) {
     throw '-Local and -RuntimeIdentifier are mutually exclusive.'
 }
@@ -1492,6 +1558,6 @@ elseif ($Action) {
         'Prepare' { Invoke-Prepare }
         'Package' { Invoke-Package -Scope $Target }
         'Publish' { Invoke-Publish -Scope $Target }
-        'Tag'     { Invoke-Tag -Version $Version }
+        'Tag'     { Invoke-Tag -Version $Version -Force:$Force }
     }
 }
