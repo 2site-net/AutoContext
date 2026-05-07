@@ -663,7 +663,7 @@
         "displayName": "List AutoContext Instructions",
         "modelDescription": "Lists AutoContext instruction files available in this workspace. Call this BEFORE generating, editing, or reviewing a file to discover which curated rules apply to it: pass the file's workspace-relative path (or a glob like 'src/**/*.ts') as `applyTo` and the catalogue is filtered to entries whose own `applyTo` glob matches. Optionally filter by `category` (e.g. 'language', 'framework'). Returns flat catalogue rows with name, label, description, version, applyTo, hasChangelog, and categories. Pass `includeSections: true` to also receive each file's heading index. Follow up with `get_autocontext_instructions_file` to fetch the body of any returned entry.",
         "canBeReferencedInPrompt": true,
-        "toolReferenceName": "listAutoContextInstructionsFiles",
+        "toolReferenceName": "list_autocontext_instructions_files",
         "icon": "$(list-unordered)",
         "tags": [
           "autocontext",
@@ -697,7 +697,7 @@
         "displayName": "Search AutoContext Instructions by Metadata",
         "modelDescription": "Predicate search over AutoContext instruction-file metadata. Use this for attribute-based questions like 'which rules have a Security section?' or 'which rules target *.cs files?'. The `predicate` object is an AND across keys; recognised fields and their match semantics are declared in this tool's `inputSchema.predicate.properties`. String values are case-insensitive regex; booleans and numbers match by equality; `categories` matches if any element matches; `applyTo` is a glob (not regex), so `{\"applyTo\": \"src/**/*.ts\"}` returns files whose `applyTo` overlaps that glob. When the predicate touches any `sections.*` field, each result includes `matchedAnchors` ready to chain into `get_autocontext_instructions_file({ name, sections: matchedAnchors })`. On invalid input the response is `{ kind: 'error', error, field, reason, recognizedFields: [{ field, type, match }, ...] }` — read `recognizedFields` to repair the predicate without an extra round-trip.",
         "canBeReferencedInPrompt": true,
-        "toolReferenceName": "searchAutoContextInstructionsFilesByMetadata",
+        "toolReferenceName": "search_autocontext_instructions_files_by_metadata",
         "icon": "$(filter)",
         "tags": [
           "autocontext",
@@ -777,7 +777,7 @@
         "displayName": "Search AutoContext Instructions by Content",
         "modelDescription": "Free-text search across the body of AutoContext instruction files. Use this for topical questions like 'does AutoContext require ConfigureAwait?' or 'how should I name xUnit tests?'. Returns ranked hits with `excerpts[]`, each carrying its `section`, `sectionLevel`, and `anchor`. Chain into `get_autocontext_instructions_file({ name, sections: [excerpts[i].anchor] })` to read just the relevant section. Optionally narrow with `applyTo` (workspace-relative path or glob) or exact `category` (case-insensitive).",
         "canBeReferencedInPrompt": true,
-        "toolReferenceName": "searchAutoContextInstructionsFilesByContent",
+        "toolReferenceName": "search_autocontext_instructions_files_by_content",
         "icon": "$(search)",
         "tags": [
           "autocontext",
@@ -818,7 +818,7 @@
         "displayName": "Get AutoContext Instructions File",
         "modelDescription": "Fetches the normalized markdown body of a single AutoContext instruction file by exact `name` (e.g. 'lang-csharp.instructions.md'). Pass `sections` to fetch only specific sections by anchor — typically chained from `matchedAnchors` (returned by `search_autocontext_instructions_files_by_metadata` when querying `sections.*`) or from `excerpts[].anchor` (returned by `search_autocontext_instructions_files_by_content`). Section slices are concatenated in document order and include their original headings. Unknown anchors are reported back via `notFoundSections`. Returns `{ kind: 'not-found' }` when `name` is unknown and `{ disabled: true }` when the user has disabled the file.",
         "canBeReferencedInPrompt": true,
-        "toolReferenceName": "getAutoContextInstructionsFile",
+        "toolReferenceName": "get_autocontext_instructions_file",
         "icon": "$(book)",
         "tags": [
           "autocontext",
