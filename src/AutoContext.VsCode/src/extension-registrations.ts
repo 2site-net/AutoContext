@@ -5,6 +5,7 @@ import { commandIds } from './ui-constants.js';
 import { AutoConfigurer } from './auto-configurer.js';
 import { instructionScheme } from './instructions-viewer-document-provider.js';
 import { InstructionsFilesTreeProvider } from './instructions-files-tree-provider.js';
+import { OutputChannelLogger } from './output-channel-logger.js';
 import type { RegistrationInputs } from './types/registration-inputs.js';
 
 /**
@@ -151,7 +152,24 @@ export class ExtensionRegistrar {
                     void vscode.window.showErrorMessage(`Failed to start worker '${node.workerId}': ${message}`);
                 }
             }),
-            vscode.commands.registerCommand(commandIds.ShowMcpServerOutput, async (node: { name: string }) => {
+            vscode.commands.registerCommand(commandIds.ShowMcpServerOutput, async (node?: { name?: string; workerId?: string }) => {
+                // In MCP Tools top-category rows, the user expects
+                // "show output" to open the selected worker channel
+                // (e.g. `AutoContext: Worker.DotNet`).
+                if (node?.workerId) {
+                    const workerEntry = graph.serversManifest.servers.find(s => s.id === node.workerId);
+                    if (workerEntry) {
+                        const channelName = `AutoContext: ${workerEntry.getShortName()}`;
+                        const logger = rootLogger.forChannel(channelName);
+                        if (logger instanceof OutputChannelLogger) {
+                            logger.show(true);
+                            return;
+                        }
+                    }
+                }
+
+                // Fallback: open the MCP server output channel.
+                if (!node?.name) { return; }
                 for (const id of mcpServerProvider.getDefinitionIds(node.name)) {
                     await vscode.commands.executeCommand('workbench.mcp.showOutput', id);
                 }

@@ -59,6 +59,11 @@ export class OutputChannelLogger extends LoggerBase implements ChannelLogger, vs
         this.outputChannel.clear();
     }
 
+    /** Brings this logger's output channel to the foreground. */
+    show(preserveFocus = false): void {
+        this.outputChannel.show(preserveFocus);
+    }
+
     /**
      * Disposes every output channel this logger has created (including
      * the root channel passed at construction). Safe to call from any
