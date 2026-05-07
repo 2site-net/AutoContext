@@ -238,19 +238,36 @@ function Invoke-WithRetry {
     )
 
     for ($attempt = 1; $attempt -le $MaxAttempts; $attempt++) {
-        $output = & $ScriptBlock
+        if ($MaxAttempts -gt 1) {
+            Write-Status "Attempt $attempt/$MaxAttempts starting..." 'INFO'
+        }
+
+        # Stream the command output to the host as it happens (so CI
+        # logs show progress in real time) while also capturing it for
+        # the retry decision and the success/failure regex match.
+        # `2>&1` merges the error stream with success so stderr lines
+        # also appear in `$output` (and on the host).
+        $null = & $ScriptBlock 2>&1 | Tee-Object -Variable streamed | Out-Host
         $exitCode = $LASTEXITCODE
+        $output = $streamed
 
         if ($exitCode -eq 0) {
             return @{ Output = $output; ExitCode = 0 }
         }
 
         $retryable = & $IsRetryable $output
-        if (-not $retryable -or $attempt -eq $MaxAttempts) {
+
+        if (-not $retryable) {
+            Write-Status "Command failed with exit code $exitCode (non-retryable)." 'FAIL'
             return @{ Output = $output; ExitCode = $exitCode }
         }
 
-        Write-Status "Attempt $attempt/$MaxAttempts failed (retryable), waiting ${DelaySeconds}s..." 'INFO'
+        if ($attempt -eq $MaxAttempts) {
+            Write-Status "Command failed with exit code $exitCode after $MaxAttempts attempts." 'FAIL'
+            return @{ Output = $output; ExitCode = $exitCode }
+        }
+
+        Write-Status "Attempt $attempt/$MaxAttempts failed (exit $exitCode, retryable), waiting ${DelaySeconds}s..." 'INFO'
         Start-Sleep -Seconds $DelaySeconds
     }
 }
@@ -890,23 +907,21 @@ function Publish-VscePackage {
             foreach ($vsix in $vsixFiles) {
                 Write-Status "Publishing $($vsix.Name)..." 'INFO'
                 $result = Invoke-WithRetry -ScriptBlock {
-                    npx --yes vsce publish --packagePath $vsix.FullName 2>&1
+                    npx --yes vsce publish --packagePath $vsix.FullName
                 } -IsRetryable {
                     param($output)
-                    $output -match 'timeout|ETIMEDOUT|ECONNRESET|ECONNREFUSED|503'
-                } -MaxAttempts 4 -DelaySeconds 300
+                    ($output | Out-String) -match '\b(ETIMEDOUT|ECONNRESET|ECONNREFUSED|EAI_AGAIN|ENOTFOUND|timed out)\b|HTTP\s*5\d\d'
+                } -MaxAttempts 3 -DelaySeconds 60
 
                 if ($result.ExitCode -ne 0) {
                     if ($result.Output -match 'already exists') {
                         Write-Status "Skipped $($vsix.Name) (already published)" 'INFO'
                     }
                     else {
-                        $result.Output | Write-Host
                         throw "Failed to publish $($vsix.Name)."
                     }
                 }
                 else {
-                    $result.Output | Write-Host
                     Write-Status "Published $($vsix.Name)" 'OK'
                 }
             }
@@ -940,23 +955,21 @@ function Publish-OvsxPackage {
             foreach ($vsix in $vsixFiles) {
                 Write-Status "Publishing $($vsix.Name) to Open VSX..." 'INFO'
                 $result = Invoke-WithRetry -ScriptBlock {
-                    npx --yes ovsx publish $vsix.FullName 2>&1
+                    npx --yes ovsx publish $vsix.FullName
                 } -IsRetryable {
                     param($output)
-                    $output -match 'timeout|ETIMEDOUT|ECONNRESET|ECONNREFUSED|503'
-                } -MaxAttempts 4 -DelaySeconds 300
+                    ($output | Out-String) -match '\b(ETIMEDOUT|ECONNRESET|ECONNREFUSED|EAI_AGAIN|ENOTFOUND|timed out)\b|HTTP\s*5\d\d'
+                } -MaxAttempts 3 -DelaySeconds 60
 
                 if ($result.ExitCode -ne 0) {
                     if ($result.Output -match 'already exists|already published') {
                         Write-Status "Skipped $($vsix.Name) (already published on Open VSX)" 'INFO'
                     }
                     else {
-                        $result.Output | Write-Host
                         throw "Failed to publish $($vsix.Name) to Open VSX."
                     }
                 }
                 else {
-                    $result.Output | Write-Host
                     Write-Status "Published $($vsix.Name) to Open VSX" 'OK'
                 }
             }
