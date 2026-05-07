@@ -11,9 +11,11 @@ const extensionId = '2site-net.autocontext';
 /**
  * Label of the single `McpStdioServerDefinition` this provider returns.
  * VS Code exposes the definition to the rest of the system via the id
- * `${extensionId}/${mcpServerDefinitionLabel}`.
+ * `${extensionId}/${mcpServerDefinitionLabel}`, and uses the label as the
+ * group header in the chat tools quick-pick — keep it distinct from the
+ * extension's display name so it doesn't collide with the LM-tools group.
  */
-const mcpServerDefinitionLabel = 'AutoContext';
+const mcpServerDefinitionLabel = 'AutoContext MCP Tools';
 
 /**
  * Registers the single `AutoContext.Mcp.Server` MCP surface with VS Code.

@@ -176,7 +176,7 @@ describe('McpServerProvider.getServerStatus', () => {
 describe('McpServerProvider.getDefinitionIds', () => {
     it('should return the single Mcp.Server definition id for any label', () => {
         const provider = createProvider();
-        const expected = ['2site-net.autocontext/AutoContext'];
+        const expected = ['2site-net.autocontext/AutoContext MCP Tools'];
 
         expect(provider.getDefinitionIds('.NET')).toEqual(expected);
         expect(provider.getDefinitionIds('Web')).toEqual(expected);
