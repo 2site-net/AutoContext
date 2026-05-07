@@ -81,6 +81,7 @@ export async function activate(context: vscode.ExtensionContext) {
         lmToolsSearchByMetadataHandler: graph.lmToolsSearchByMetadataHandler,
         lmToolsSearchByContentHandler: graph.lmToolsSearchByContentHandler,
         lmToolsGetHandler: graph.lmToolsGetHandler,
+        diagnosticsRunner: graph.diagnosticsRunner,
     };
 }
 
