@@ -135,10 +135,10 @@ Publish to the VS Code Marketplace and [Open VSX](https://open-vsx.org/) registr
 
 Publishing requires two Personal Access Tokens set as environment variables:
 
-| Variable   | Source | Scope |
-|------------|--------|-------|
-| `VSCE_PAT` | [Azure DevOps](https://dev.azure.com/_usersSettings/tokens) | **Marketplace → Manage** |
-| `OVSX_PAT` | [Open VSX](https://open-vsx.org/) → Access Tokens | publish access |
+| Variable   | Source                                                              |
+|------------|---------------------------------------------------------------------|
+| `VSCE_PAT` | [Azure DevOps](https://dev.azure.com/_usersSettings/tokens) |
+| `OVSX_PAT` | [Open VSX](https://open-vsx.org/user-settings/tokens) |
 
 ## Releasing
 
