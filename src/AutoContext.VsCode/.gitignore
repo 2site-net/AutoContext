@@ -7,6 +7,7 @@ instructions/.generated/
 instructions/.workspaces/
 resources/servers.json
 resources/instructions-files.metadata.json
+plugin/scripts/*.cjs
 .vscode-test/
 LICENSE
 COMMERCIAL.md

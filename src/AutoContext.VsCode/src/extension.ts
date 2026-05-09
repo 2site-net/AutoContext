@@ -6,8 +6,10 @@ import { LogCategory } from 'autocontext-framework-web';
 import { ExtensionComposer } from './extension-composition.js';
 import { ExtensionRegistrar } from './extension-registrations.js';
 import { ExtensionActivator } from './extension-activation.js';
+import { AgentPluginInstaller } from './agent-plugin-installer.js';
 
 let subscriptions: vscode.Disposable[] | undefined;
+let agentPluginInstaller: AgentPluginInstaller | undefined;
 
 /**
  * Extension entry point.
@@ -67,6 +69,13 @@ export async function activate(context: vscode.ExtensionContext) {
     //    projection, version banner, diagnostics).
     await new ExtensionActivator({ context, graph, didChangeEmitter, version, rootLogger }).run();
 
+    // Install the bundled agent-plugin into VS Code's
+    // chat.pluginLocations setting so its SessionStart hook fires
+    // for every chat session. Best-effort: failures inside the
+    // installer are logged, never thrown.
+    agentPluginInstaller = new AgentPluginInstaller(context, activationLogger);
+    void agentPluginInstaller.install();
+
     return {
         mcpServerProvider: graph.mcpServerProvider,
         configManager: graph.configManager,
@@ -85,11 +94,20 @@ export async function activate(context: vscode.ExtensionContext) {
     };
 }
 
-export function deactivate(): void {
+export async function deactivate(): Promise<void> {
     if (subscriptions) {
         for (const d of subscriptions) {
             d.dispose();
         }
         subscriptions = undefined;
+    }
+
+    if (agentPluginInstaller) {
+        const installer = agentPluginInstaller;
+        agentPluginInstaller = undefined;
+        // Best-effort: VS Code may abort the global-settings write if
+        // shutdown is already in progress. The next activation will
+        // re-prune any leftovers.
+        await installer.uninstall();
     }
 }

@@ -455,6 +455,22 @@ function Build-TypeScript {
             npx tsc -p ./tsconfig.build.json
             if ($LASTEXITCODE -ne 0) { throw 'TypeScript compilation failed.' }
             Write-Status 'TypeScript compiled' 'OK'
+
+            # Stage compiled hook scripts (`*.cts` → `*.cjs`) into the
+            # bundled agent-plugin folder so they sit alongside the
+            # plugin manifest the VSIX ships.
+            $hookSrc = Join-Path 'dist' 'hooks' 'autocontext-session-start.cjs'
+            $hookDst = Join-Path 'plugin' 'scripts' 'autocontext-session-start.cjs'
+            if (Test-Path $hookSrc) {
+                $hookDstDir = Split-Path $hookDst -Parent
+                if (-not (Test-Path $hookDstDir)) {
+                    New-Item -ItemType Directory -Path $hookDstDir | Out-Null
+                }
+                Copy-Item -Path $hookSrc -Destination $hookDst -Force
+                Write-Status "Hook script staged ($hookDst)" 'OK'
+            } else {
+                throw "Compiled hook script not found at $hookSrc."
+            }
         }
         finally {
             Pop-Location
