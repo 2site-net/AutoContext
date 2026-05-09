@@ -228,6 +228,14 @@ describe('generateInstructionsFilesMetadata', () => {
             const result = generateInstructionsFilesMetadata(root);
             expect(result.instructions.map(i => i.key)).toEqual(['copilot']);
         });
+
+        it('should exempt autocontext.instructions.md from the curated manifest', () => {
+            writeInstruction('autocontext.instructions.md', frontmatter({ key: 'autocontext', description: 'd' }));
+            writeCurated([]);
+
+            const result = generateInstructionsFilesMetadata(root);
+            expect(result.instructions.map(i => i.key)).toEqual(['autocontext']);
+        });
     });
 
     describe('output shape', () => {

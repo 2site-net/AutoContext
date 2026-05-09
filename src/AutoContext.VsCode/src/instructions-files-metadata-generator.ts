@@ -11,6 +11,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { InstructionsFileParser } from './instructions-file-parser.js';
 import { InstructionsFileSectionsParser } from './instructions-file-sections-parser.js';
+import { ALWAYS_ATTACHED_INSTRUCTIONS_FILES_SET } from './always-attached-instructions-files.js';
 import type { InstructionsFileMetadataEntry } from '#types/instructions-file-metadata-entry.js';
 import type { InstructionsFileSection } from '#types/instructions-file-section.js';
 import type { InstructionsFilesMetadata } from '#types/instructions-files-metadata.js';
@@ -119,10 +120,12 @@ function crossValidate(entries: readonly InstructionsFileMetadataEntry[], extens
     const curatedPath = join(extensionRoot, 'resources', 'instructions-files.json');
     const curated = JSON.parse(readFileSync(curatedPath, 'utf-8')) as CuratedManifest;
     const curatedNames = new Set(curated.instructions.map(i => i.name));
-    // copilot.instructions.md is the always-attached file; it lives outside
-    // the curated manifest by design (see package-instructions-manifest-generator).
+    // Always-attached files live outside the curated manifest by design (see
+    // package-instructions-manifest-generator). They are picked up by the
+    // metadata generator (so their bodies and section indices are
+    // discoverable via the LM tools) but exempt from the curated cross-check.
     const generatedNames = new Set(
-        entries.map(e => e.fileName).filter(n => n !== 'copilot.instructions.md'),
+        entries.map(e => e.fileName).filter(n => !ALWAYS_ATTACHED_INSTRUCTIONS_FILES_SET.has(n)),
     );
 
     const missingInCurated = [...generatedNames].filter(n => !curatedNames.has(n));
