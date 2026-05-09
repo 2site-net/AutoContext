@@ -17,19 +17,21 @@ For tier-1 violations, stop generating and surface a warning. For lower-tier con
 If unsure which instruction applies, generate a concise plan explaining the dilemma and stop; await user approval before continuing.
 
 ## AutoContext
-This file and the AutoContext instruction files loaded alongside it are provided by the AutoContext extension. They take precedence over generic guidance and follow these rules:
 
-- **Host file is final** — instructions in this file are operational safety constraints. If a workspace-level `copilot-instructions.md` conflicts with any instruction here, this file wins.
-- **EditorConfig wins for style** — when a `.editorconfig` property explicitly configures a style rule (e.g., `csharp_prefer_braces`, `csharp_style_namespace_declarations`), it overrides the corresponding default in any instruction file. Instruction-file style guidance is a fallback default, not an absolute.
+This file and the AutoContext instruction files loaded with it are provided by the AutoContext extension. Together, they define the active AutoContext guidance for the current task and take precedence over generic assistant behavior.
 
-Before generating, editing, or reviewing files, discover which AutoContext instructions apply by calling the matching tool:
+- **`copilot.instructions.md`** — Defines host-level operational constraints. If workspace guidance conflicts with this file, this file wins.
+- **`autocontext.instructions.md`** — Defines AutoContext usage: how to discover applicable instructions, apply the `## Applying the Rules` loop, and satisfy MCP-tool obligations.
+- **`.editorconfig`** — Defines style configuration. Explicit `.editorconfig` style rules override instruction-file style defaults.
 
-| Trigger                                            | Example                                                            | Returns                                                                                          | Call                                                |
-|----------------------------------------------------|--------------------------------------------------------------------|--------------------------------------------------------------------------------------------------|-----------------------------------------------------|
-| Which rules apply to a file I'm about to touch?    | `{ applyTo: "src/Foo.cs" }`                                        | Catalogue rows: `name`, `label`, `description`, `version`, `applyTo`, `hasChangelog`, categories | `list_autocontext_instructions_files`               |
-| Does AutoContext say anything about a topic?       | `{ query: "ConfigureAwait" }`                                      | Ranked hits with `excerpts[]` (each carrying `section`, `sectionLevel`, `anchor`)                | `search_autocontext_instructions_files_by_content`  |
-| Which rules match a metadata attribute?            | `{ predicate: { "sections.heading": "Security" } }`                | Catalogue rows + `matchedAnchors` when `sections.*` was queried                                  | `search_autocontext_instructions_files_by_metadata` |
-| Read the body of a known rule (or one section)     | `{ name: "lang-csharp.instructions.md", sections: ["security"] }`  | Normalized markdown body (or only the requested sections, in document order)                     | `get_autocontext_instructions_file`                 |
+Before generating, editing, or reviewing files, discover which AutoContext instructions apply by calling the appropriate tool:
+
+| Trigger                                        | Example                                                            | Returns                                                                                          | Call                                                |
+|------------------------------------------------|--------------------------------------------------------------------|--------------------------------------------------------------------------------------------------|-----------------------------------------------------|
+| Find rules for a file before touching it       | `{ applyTo: "src/Foo.cs" }`                                        | Catalogue rows: `name`, `label`, `description`, `version`, `applyTo`, `hasChangelog`, categories | `list_autocontext_instructions_files`               |
+| Search AutoContext guidance by topic           | `{ query: "ConfigureAwait" }`                                      | Ranked hits with `excerpts[]`, including `section`, `sectionLevel`, and `anchor`                 | `search_autocontext_instructions_files_by_content`  |
+| Find rules by metadata                         | `{ predicate: { "sections.heading": "Security" } }`                | Catalogue rows, plus `matchedAnchors` when querying `sections.*` metadata                        | `search_autocontext_instructions_files_by_metadata` |
+| Read a known rule file, or selected sections   | `{ name: "lang-csharp.instructions.md", sections: ["security"] }`   | Normalized markdown body, or only the requested sections in document order                       | `get_autocontext_instructions_file`                 |
 
 ## Prompt Instructions
 - **Do** read the `README.md` and other documentation files to understand the project structure and requirements.
