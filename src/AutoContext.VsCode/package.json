@@ -354,6 +354,9 @@
         "path": "./instructions/copilot.instructions.md"
       },
       {
+        "path": "./instructions/autocontext.instructions.md"
+      },
+      {
         "path": "./instructions/.generated/code-review.instructions.md",
         "when": "autocontext.instructions.code-review && !autocontext.override.code-review"
       },
