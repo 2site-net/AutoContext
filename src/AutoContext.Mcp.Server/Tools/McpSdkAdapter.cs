@@ -145,6 +145,16 @@ public sealed partial class McpSdkAdapter
         };
     }
 
+    /// <summary>
+    /// Brand prefix prepended to every tool description before it is
+    /// advertised to MCP clients. Anchors Copilot's (and any other
+    /// description-clustering client's) bundling on the AutoContext
+    /// brand so the synthesised activator name carries it. See
+    /// <c>plan-instructions-discovery-applyto-driven-injection.md</c>
+    /// → Phase 2a spike for the rationale.
+    /// </summary>
+    private const string DescriptionBrandPrefix = "AutoContext — ";
+
     private static List<Tool> BuildProtocolTools(McpWorkersCatalog registry)
     {
         var tools = new List<Tool>();
@@ -156,13 +166,28 @@ public sealed partial class McpSdkAdapter
                 tools.Add(new Tool
                 {
                     Name = tool.Name,
-                    Description = tool.Description,
+                    Description = PrefixDescription(tool.Description),
                     InputSchema = InputSchemaBuilder.Build(tool.Parameters),
                 });
             }
         }
 
         return tools;
+    }
+
+    private static string PrefixDescription(string description)
+    {
+        if (string.IsNullOrEmpty(description))
+        {
+            return DescriptionBrandPrefix.TrimEnd();
+        }
+
+        if (description.StartsWith(DescriptionBrandPrefix, StringComparison.Ordinal))
+        {
+            return description;
+        }
+
+        return DescriptionBrandPrefix + description;
     }
 
     private static readonly JsonElement EmptyObject = JsonSerializer.SerializeToElement(new { });
