@@ -63,9 +63,10 @@ Three clients, three jobs:
 - **VS Code extension** is the **UI surface** for the engine. The user
   toggles instruction files on/off, disables individual rules, exports
   workspace overrides, and watches state in the Instructions /
-  MCP Tools tree views — all by issuing RPCs against the engine. It
-  also materialises `chatInstructions` into its own extension-local
-  cache because VS Code's `chatInstructions` API needs file paths.
+  MCP Tools tree views — all by issuing RPCs against the engine. The
+  extension is a pure RPC consumer: it never writes a projected
+  instruction file to disk. Instruction delivery to the chat surface
+  is the Anthropic plugin's job, not the extension's.
 - **Anthropic plugin** is a **consumer**. SessionStart and other hooks
   ask the engine for projected instructions and emit them as
   `additionalContext`. Disabled state is opaque to the plugin: a
@@ -98,7 +99,7 @@ classes:
 | `WorkerControlServer` (sideband pipe) | Extension process | **Engine internal**: engine spawns workers via the same lazy gate |
 | `AutoContextConfigServer` (sideband pipe) | Extension process | **Gone** — config IS engine state; pushes to subscribers via `Config.Subscribe` over the engine pipe |
 | `WorkspaceContextDetector` | Extension process | **Engine internal**: workspace detection runs on engine startup; clients read via `Workspace.*` RPCs |
-| `instructions/.generated/` (on-disk projection) | Extension's extensionPath | **Gone** — projection happens in-memory in the engine; VS Code materialises a host-local cache for `chatInstructions` only |
+| `instructions/.generated/` (on-disk projection) | Extension's extensionPath | **Gone** — projection happens in-memory in the engine; the extension consumes projected bodies as strings over the pipe |
 | `instructions/.workspaces/<hash>/` per-window staging | Extension's extensionPath | **Gone** — no on-disk staging needed |
 
 Workers (`AutoContext.Worker.DotNet`, `AutoContext.Worker.Workspace`,
@@ -283,8 +284,8 @@ Clients (VS Code extension, Anthropic plugin, `autoctx` CLI) are
 **caches with UI**, never authorities. The contract is one-way:
 
 - **Reads go through the engine.** Even if a client has a local
-  cache for a host-specific reason (VS Code's `chatInstructions`
-  mirror, an Anthropic sub-agent file path), the cache is
+  cache for a host-specific reason (an Anthropic sub-agent file
+  path, a future tool that demands a `Uri`), the cache is
   derived from an engine RPC, not from disk inspection or
   re-projection.
 - **Writes go through the engine.** `Config.ToggleFile` /
@@ -345,41 +346,44 @@ markdown files (`*.instructions.md`) and any user overrides at
 
 Hosts that need a file path get one of two patterns:
 
-- **VS Code extension:** `chatInstructions` paths declared in
-  `package.json` are static and resolved relative to the
-  extension root — they cannot reference a per-workspace
-  subdirectory. The extension uses a two-level cache:
-  - **Per-workspace cache** at
-    `<extensionPath>/instructions.cache/<workspaceHash>/<name>.instructions.md`,
-    written from `Instructions.GetAll` results on activation and
-    on every `Instructions.Subscribe` event. Hash-scoped subdirs
-    let concurrent windows on *different* workspaces coexist
-    without trampling each other's projection.
-  - **Active-window mirror** at the static path the
-    `chatInstructions` declarations reference (sibling of the
-    extension root, e.g.
-    `<extensionPath>/instructions/.active/<name>.instructions.md`).
-    The extension copies the active workspace's cache into this
-    mirror on activation and on workspace-folder changes. Two
-    windows of the same VS Code instance on *different*
-    workspaces will fight over this mirror; the model accepts
-    last-writer-wins because Copilot's chat session is bound to
-    the foreground window anyway. (This is also the only on-disk
-    projection artefact left in the new design — a host-local
-    materialisation, not a source of truth.)
-
-  This is *not* the source of truth — the engine is. The mirror
-  exists solely to satisfy `chatInstructions`' static-path API.
+- **VS Code extension:** does not need a file path. Instructions
+  reach the chat surface through the Anthropic plugin's
+  SessionStart hook (see below), not through any VS Code
+  `chatInstructions` declaration. The extension is a pure RPC
+  consumer — tree views, decorations, hovers, and previews all
+  consume projected bodies as strings from `Instructions.Get` /
+  `Instructions.GetAll`. No projection cache, no static-path
+  mirror, no on-disk artefact under `<extensionPath>`. Commands
+  that open an instruction *source* in the editor open the
+  bundled file at `<extensionPath>/cli/<rid>/instructions/...`
+  or the workspace override at
+  `<workspace>/.github/instructions/...` — neither is a
+  projected body, so neither requires a cache.
 - **Anthropic plugin SessionStart hook:** calls `Instructions.GetAll`
   and returns the bodies inline as `additionalContext`. No file ever
   gets written under `${CLAUDE_PLUGIN_ROOT}`. Sub-agents that need
-  file paths get written under the OS cache dir
-  (`%LOCALAPPDATA%\autocontext\<workspaceHash>\` on Windows,
-  `$XDG_CACHE_HOME/autocontext/<workspaceHash>/` or
-  `~/.cache/autocontext/<workspaceHash>/` on POSIX). The hook
-  owns this cache: SessionStart writes, SessionEnd cleans, and
-  the engine never reads or writes those paths. Same
-  materialisation pattern, different cache root.
+  file paths materialise them under the OS user-cache dir
+  (`%LOCALAPPDATA%\autocontext\.cache\<workspaceHash>\` on
+  Windows, `$XDG_CACHE_HOME/autocontext/<workspaceHash>/`
+  or `~/.cache/autocontext/<workspaceHash>/` on POSIX).
+  The hook owns this cache: SessionStart writes, SessionEnd
+  cleans, and the engine never reads or writes those paths.
+
+General rule for any future client cache: write under the OS
+user-cache dir (`%LOCALAPPDATA%\autocontext\.cache\<workspaceHash>\`
+on Windows, `$XDG_CACHE_HOME/autocontext/<workspaceHash>/` or
+`~/.cache/autocontext/<workspaceHash>/` on POSIX), never under
+the host's install directory (`<extensionPath>`,
+`${CLAUDE_PLUGIN_ROOT}`). Install directories are read-only on
+managed installs and get wiped on host upgrade; the OS cache root
+is writable, survives host upgrades, and gives every client one
+consistent place to find and clean its workspace-scoped artefacts.
+The Windows path uses an explicit `.cache\` segment because
+`%LOCALAPPDATA%` is general app data and the engine already
+writes `logs\<workspaceHash>.log` as a sibling under
+`%LOCALAPPDATA%\autocontext\`; POSIX paths omit the inner
+`.cache` because `$XDG_CACHE_HOME` / `~/.cache/` is already the
+cache root by convention.
 
 ## Sharing principle (overarching)
 
@@ -404,8 +408,10 @@ Consequences:
   `LogServer`, `HealthMonitorServer`, `WorkerControlServer`,
   `AutoContextConfigServer`, and any in-process projection code are
   *deleted*. The extension's remaining responsibility is wiring
-  `AutoctxClient` (TS) to its tree views, codelens providers,
-  decoration providers, and `chatInstructions` cache materialiser.
+  `AutoctxClient` (TS) to its tree views, codelens providers, and
+  decoration providers. No on-disk projection cache lives in the
+  extension — the Anthropic plugin handles chat-side instruction
+  delivery.
 - **`AutoctxClient` is the only shared TS class.** A thin pipe-RPC
   client living in `Framework.Web/src/cli/`. Used by the VS Code
   extension and by Anthropic plugin `.cjs` hook scripts. Speaks the
@@ -529,14 +535,15 @@ Decision:
   Truncated on each engine start, size-rotated, survives shutdown
   for postmortem. No engine-owned cache directory exists — every
   engine cache is in-memory and invalidates on internal events.
-  Anything else under `%LOCALAPPDATA%\autocontext\` (a future
-  `cache\<workspaceHash>\` written by an Anthropic SessionStart
-  hook, or `instructions.cache\<workspaceHash>\` inside the
-  VS Code extension root) is **client-owned**: the writing client
-  is responsible for its lifecycle and cleanup, and the engine
-  neither reads nor cleans those paths. Document any new
-  client-owned sibling directory in this list with its owning
-  client so cleanup responsibility stays unambiguous.
+  Anything under `%LOCALAPPDATA%\autocontext\.cache\<workspaceHash>\`
+  (or its POSIX equivalent) is **client-owned**: the writing
+  client is responsible for its lifecycle and cleanup, and the
+  engine neither reads nor cleans those paths. Clients must never
+  cache under their own install directory (`<extensionPath>`,
+  `${CLAUDE_PLUGIN_ROOT}`) — those are read-only on managed
+  installs and get wiped on host upgrade. Document any new
+  client-owned subdirectory in this list with its owning client
+  so cleanup responsibility stays unambiguous.
 - **Override survival across upgrades.** A workspace-local
   `<workspace>/.github/instructions/<name>.instructions.md` keeps
   winning silently when the bundled source updates in a release.
