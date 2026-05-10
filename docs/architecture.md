@@ -355,6 +355,44 @@ These tools are deliberately registered through `vscode.lm.registerTool`, **not*
 
 ---
 
+## Agent Plugin (Hooks)
+
+`chatInstructions` attaches files at chat-start, and `vscode.lm.registerTool` exposes discovery tools the model can pull — but both are **advisory**: in practice the model frequently ignores them, especially on turns it considers trivial. This is not specific to any one vendor; we've observed the same drift across Claude, GPT-5 Codex, and other models running inside VS Code Copilot. To make the always-attached rules and the discovery preamble **deterministic** — emitted at known lifecycle points whether the model would have picked them up on its own or not — AutoContext bundles a small **agent plugin** alongside the extension and exposes it via two lifecycle hooks: `SessionStart` and `UserPromptSubmit`.
+
+The plugin uses Anthropic's [Claude Code hooks](https://docs.anthropic.com/en/docs/claude-code/hooks) format (`hooks/hooks.json` + scripts), but it is **not Claude-only**. VS Code Copilot reads the same `hooks/hooks.json` directly and fires the hooks for whichever model the user has selected — we've validated it end-to-end against Claude and GPT-5 Codex inside VS Code Copilot, and the mechanism is host-driven, not model-driven. The plugin lives at `src/AutoContext.VsCode/plugin/` and ships in the published `.vsix` next to `instructions/` and `resources/`:
+
+```
+plugin/
+  .claude-plugin/plugin.json                                  ← plugin manifest
+  hooks/hooks.json                                            ← hook registration
+  scripts/autocontext-session-start.cjs                       ← SessionStart hook impl
+  scripts/autocontext-user-prompt-submit.cjs                  ← UserPromptSubmit hook impl
+```
+
+`hooks/hooks.json` registers two hooks, both with `matcher: "*"` and a 10 s timeout, each invoked as `node "${CLAUDE_PLUGIN_ROOT}/scripts/<script>.cjs"`. The hook scripts are authored as `.cts` (TypeScript compiled to CommonJS) so they keep working regardless of the extension's `"type": "module"` `package.json`. Both scripts read the on-disk manifests directly — they share no in-process state with the extension and run fresh per turn.
+
+### `SessionStart` — always-attached instructions
+
+Reads the two host files shipped under `<extension>/instructions/` (`copilot.instructions.md` and `autocontext.instructions.md`), strips their YAML frontmatter, and emits the bodies as a single `additionalContext` block on `hookSpecificOutput`. The agent treats the block as system context for the entire session. This makes the bundled rules apply to every turn — even ones the model would otherwise treat as trivial enough to skip the `chatInstructions` attachments. If neither file can be read the hook emits `{}` and the session continues silently.
+
+### `UserPromptSubmit` — discovery + routing preamble
+
+Runs once per user turn before the prompt reaches the model. Loads three on-disk manifests — `resources/mcp-tools.json`, `resources/instructions-files.metadata.json`, and the extension's `package.json` (for `contributes.languageModelTools`) — and builds two indices:
+
+- **Category → MCP tools** — inverted from each tool's `categories` array.
+- **File extension → instruction files** — extracted from each instruction file's `applyTo` glob, including brace-expanded forms (`*.{cs,fs,vb}`).
+
+It then emits two `additionalContext` sections on `hookSpecificOutput`:
+
+1. **Static discovery block** — lists every LM-tool name and every MCP-tool name and reminds the model to re-anchor on the SessionStart-injected meta-instructions for this turn.
+2. **Routed block (conditional)** — runs a word-boundary literal scan of the user's prompt against the category index (e.g. `.net`, `workspace`) and a `\.[A-Za-z][A-Za-z0-9]{0,12}` regex against the extension index (e.g. `.cs`, `.ps1`). When either index matches, the block names the matched categories and extensions, the strongly-relevant MCP tools, and the strongly-relevant instruction files — and tells the model to call `get_autocontext_instructions_file` before writing code.
+
+Both blocks are passive: the user's prompt itself is unmodified. The hook's purpose is to guarantee the model sees an "AutoContext exists, here's what it can do, here's what's relevant right now" preamble on every turn, without relying on the model to discover the LM tools on its own.
+
+> The hooks read manifests directly today because there is no per-workspace daemon to query. When the future `autoctx-engine` ships (see [docs/future/autoctx-engine.md](future/autoctx-engine.md)) the same routing logic and output shape will move to a thin RPC client; the hook contract with the host (Claude Code or VS Code Copilot) stays unchanged.
+
+---
+
 ## Upgrade Detection
 
 AutoContext tracks version changes at two levels — the extension as a whole, and each individual instruction — so users are aware of new content without being interrupted.
