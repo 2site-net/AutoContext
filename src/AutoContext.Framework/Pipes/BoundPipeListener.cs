@@ -104,10 +104,14 @@ public sealed partial class BoundPipeListener : IAsyncDisposable
             return;
         }
 
-        var initial = Interlocked.Exchange(ref _initialPipe, null);
-        if (initial is not null)
+        // Disposes whichever pipe is currently parked in the field:
+        // either the original pre-bound instance (RunAsync never
+        // started) or the most recent pre-bound "next" listener
+        // (RunAsync exited and left a leftover).
+        var pending = Interlocked.Exchange(ref _initialPipe, null);
+        if (pending is not null)
         {
-            await initial.DisposeAsync().ConfigureAwait(false);
+            await pending.DisposeAsync().ConfigureAwait(false);
         }
     }
 
@@ -115,8 +119,10 @@ public sealed partial class BoundPipeListener : IAsyncDisposable
         Justification = "Ownership transfers to the caller on success via `ownsPipe = false`; the finally block disposes on every other path.")]
     private async Task<NamedPipeServerStream?> AcceptAsync(CancellationToken cancellationToken)
     {
-        // Use the pre-bound instance for connection #1, then create a
-        // fresh server stream per accept for subsequent connections.
+        // Use the pre-bound instance for connection #1, then re-use a
+        // pre-bound instance stashed by the previous successful accept
+        // (see below). Fall back to creating a fresh server stream only
+        // if neither is available (DisposeAsync race).
         var pipe = Interlocked.Exchange(ref _initialPipe, null) ?? CreateServerStream();
         var ownsPipe = true;
         CancellationTokenRegistration registration = default;
@@ -129,6 +135,18 @@ public sealed partial class BoundPipeListener : IAsyncDisposable
             registration = cancellationToken.Register(pipe.Dispose);
 
             await pipe.WaitForConnectionAsync(cancellationToken).ConfigureAwait(false);
+
+            // Eagerly bind the next listener BEFORE returning so the
+            // pipe path remains continuously listened-to even when the
+            // handler immediately disposes the accepted pipe. On Linux
+            // (Unix-domain-socket transport) closing the only bound
+            // server stream can briefly tear down the listener for the
+            // path, which races concurrent client connect attempts.
+            // Pre-binding closes that window.
+            if (!cancellationToken.IsCancellationRequested)
+            {
+                PrebindNextListener();
+            }
 
             ownsPipe = false;
             return pipe;
@@ -153,6 +171,41 @@ public sealed partial class BoundPipeListener : IAsyncDisposable
             {
                 await pipe.DisposeAsync().ConfigureAwait(false);
             }
+        }
+    }
+
+    [SuppressMessage("Design", "CA1031",
+        Justification = "Pre-bind is best-effort; failures are logged and the next AcceptAsync iteration falls back to creating a fresh server stream.")]
+    private void PrebindNextListener()
+    {
+        NamedPipeServerStream? next = null;
+        try
+        {
+            next = CreateServerStream();
+            if (Interlocked.CompareExchange(ref _initialPipe, next, null) is null)
+            {
+                // Successfully stashed; ownership transferred to the field.
+                next = null;
+
+                // Recheck disposal after stashing: a concurrent
+                // DisposeAsync that observed an empty field before we
+                // stashed would otherwise leave the stream parked
+                // forever. Reclaim and dispose it here.
+                if (_disposed != 0 &&
+                    Interlocked.Exchange(ref _initialPipe, null) is { } orphaned)
+                {
+                    orphaned.Dispose();
+                }
+            }
+        }
+        catch (Exception ex) when (!IsCritical(ex))
+        {
+            LogPrebindFailed(_logger, _pipeName, ex);
+        }
+        finally
+        {
+            // Drop the freshly-bound stream if we lost the race or threw.
+            next?.Dispose();
         }
     }
 
@@ -202,4 +255,8 @@ public sealed partial class BoundPipeListener : IAsyncDisposable
     [LoggerMessage(EventId = 1, Level = LogLevel.Warning,
         Message = "Pipe listener '{PipeName}' connection handler threw an unhandled exception.")]
     private static partial void LogHandlerFailed(ILogger logger, string pipeName, Exception exception);
+
+    [LoggerMessage(EventId = 2, Level = LogLevel.Warning,
+        Message = "Pipe listener '{PipeName}' failed to pre-bind the next server stream; falling back to lazy creation.")]
+    private static partial void LogPrebindFailed(ILogger logger, string pipeName, Exception exception);
 }

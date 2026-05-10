@@ -222,11 +222,11 @@ public sealed class PipeListenerTests
 
         try
         {
-            // Drive the throwing handler first so the listener has a
-            // chance to recover before the second client connects.
-            // Connecting both clients concurrently races the listener's
-            // accept loop on Linux, where the next server stream is not
-            // bound until after the previous handler is dispatched.
+            // Drive the throwing handler first, then connect a second
+            // client and assert the listener accepted it. The listener
+            // pre-binds the next server stream before yielding the
+            // accepted pipe to the handler, so the throwing handler
+            // disposing its pipe cannot leave the path unlistened.
             await using var c1 = new NamedPipeClientStream(".", name, PipeDirection.InOut, PipeOptions.Asynchronous);
             await c1.ConnectAsync(cancellationToken);
             await firstStarted.Task.WaitAsync(TimeSpan.FromSeconds(10), cancellationToken);
