@@ -1,11 +1,25 @@
-# Plan: `autoctx` CLI (host-agnostic launcher)
+# Plan: `autoctx` CLI (host-agnostic launcher and central state owner)
 
 ## Motivation
 
-Today the MCP server and workers are only spawned by the VS Code extension.
-Debugging them standalone (Rider/VS, MCP Inspector, CI) requires reproducing
-the extension's spawn dance. A thin CLI exposes the same processes directly
-and opens the door to non-VS-Code hosts later.
+The CLI plays two load-bearing roles:
+
+1. **Standalone launcher** — the MCP server and workers are spawned by the
+   VS Code extension today. Debugging them standalone (Rider/VS, MCP
+   Inspector, CI) requires reproducing the extension's spawn dance. A thin
+   CLI exposes the same processes directly.
+2. **Central state owner across hosts** — VS Code is no longer the only
+   host. The Claude Code / Claude Desktop plugin (see
+   [plan-agent-plugin-discovery-enhancements.md](./plan-agent-plugin-discovery-enhancements.md))
+   needs the same view of `.autocontext.json`, the curated instructions
+   corpus, projection (file-level and rule-level disable), and override
+   resolution that the extension has. Duplicating that logic into a
+   SessionStart hook would fork the source of truth. Instead, the CLI
+   owns it; both hosts are clients.
+
+The daemon mode (below) is what makes (2) viable: per-workspace pipe
+server, low-latency local IPC (~1–3 ms round-trip), single in-memory
+state shared by every connected host.
 
 ## Proposed CLI surface
 
@@ -13,6 +27,12 @@ and opens the door to non-VS-Code hosts later.
 autoctx service mcp://<instanceId>
 autoctx service worker://<workerId>-<instanceId>
 autoctx watch <path>
+autoctx daemon --workspace <path> [--pipe <name>] [--idle-timeout <seconds>]
+autoctx instructions list   --workspace <path>
+autoctx instructions get    --workspace <path> <name>
+autoctx instructions get-all --workspace <path>
+autoctx instructions toggle --workspace <path> <name> [--rule <INSTxxxx>]
+autoctx instructions watch  --workspace <path>
 ```
 
 - `<instanceId>` is auto-generated (per-launch GUID/short id) — used to
@@ -22,6 +42,89 @@ autoctx watch <path>
   service kinds (`autoctx service something://...`).
 - `autoctx watch <path>` runs detection/watching logic against a folder
   without any editor host — useful for repros and CI.
+- `autoctx daemon` is the long-lived per-workspace pipe server. See
+  [Daemon mode](#daemon-mode).
+- `autoctx instructions ...` is the host-facing surface for the curated
+  instructions corpus (list, get projected body for one or all files,
+  toggle a file or a single rule, watch for changes). Each subcommand
+  auto-discovers the workspace's daemon over the pipe and falls back to
+  spawning one on demand if absent. One-shot invocations are valid for
+  scripting / CI; interactive hosts should connect to the daemon directly
+  via the pipe transport for change-event subscriptions.
+
+## Daemon mode
+
+`autoctx daemon` is a long-lived per-workspace process exposing a named
+pipe. It owns the in-memory `AutoContextConfigStore`, the curated
+instructions corpus, and the projection logic. Every host (VS Code
+extension, Claude SessionStart hook, Claude sub-agent dispatcher, future
+JetBrains/Neovim shells) connects as a client and makes RPC calls.
+
+### Lifecycle
+
+- **Pipe name** is derived deterministically from the absolute workspace
+  path (`autocontext-daemon-<sha256(normalisedPath):0..16>`) so any host
+  that knows the workspace can find or spawn the daemon. Normalisation:
+  resolve symlinks, lowercase on Windows. Platform prefix
+  (`\\.\pipe\` on Windows, `${os.tmpdir()}/` on POSIX) is applied by the
+  pipe transport, not baked into the name.
+- **Cold start.** A client connects; if the pipe doesn't exist, the client
+  spawns `autoctx daemon --workspace <path>` as a detached child and
+  retries the connection with a short backoff (~5 attempts over ~500 ms).
+- **Warm reuse.** Subsequent clients (a second VS Code window on the same
+  workspace, a Claude session running concurrently, a one-shot CLI
+  invocation) connect to the existing daemon. State is consistent across
+  all of them.
+- **Idle shutdown.** The daemon exits after `--idle-timeout` seconds with
+  no connected clients (default 300). Shutdown is cooperative — clients
+  send `Disconnect` on graceful close; the daemon counts active sessions.
+- **Crash recovery.** Stale pipe handles are detected by a connect-and-ping
+  probe; if the named-pipe accept fails (`ECONNREFUSED`/Windows error),
+  the client treats the daemon as gone and respawns.
+
+### RPC surface (initial)
+
+- `Config.Get` / `Config.Subscribe` / `Config.Toggle{File,Rule}`.
+- `Instructions.List` / `Instructions.Get(name)` / `Instructions.GetAll`
+  — returns projected body (raw source filtered by
+  `disabledInstructions`, with `[INSTxxxx]` tags stripped, override file
+  preferred over bundled when present).
+- `Instructions.Subscribe` — pushes change events when `.autocontext.json`
+  or any source instruction file changes.
+- Future: `WorkspaceContext.Get`, `Diagnostics.Run`, `McpTools.List`.
+
+### Projection ownership
+
+The daemon is the **only** writer of projected instruction state. There
+is no on-disk projection — `Instructions.Get` returns the projected body
+as a string over the pipe. This eliminates:
+
+- The `<extensionPath>/instructions/.generated/` shared folder.
+- The cross-window / cross-host lock-file dance.
+- The read-only-mount problem on Claude plugin installs.
+- Per-workspace projected output directories.
+
+Hosts that need a file path (Claude sub-agent `instructions:` frontmatter,
+VS Code `chatInstructions`) get one of two patterns:
+
+- **VS Code:** `chatInstructions` paths in `package.json` are resolved
+  relative to the extension root, so the materialisation cache must live
+  inside `<extensionPath>/` — not `globalStorage`. The extension calls
+  `Instructions.GetAll` on activation and on every `Instructions.Subscribe`
+  event, writes the results to `<extensionPath>/instructions.cache/<hash>/`,
+  and `chatInstructions` points at the bundled relative path that the
+  extension keeps overwriting in place. This is *not* the source of
+  truth — it's a host-local materialisation for VS Code's static-path
+  API. (Multi-window note: hash-scoped subdirs let concurrent windows on
+  different workspaces coexist; same-workspace concurrent windows write
+  identical content, so last-writer-wins is harmless.)
+- **Claude SessionStart hook:** calls `Instructions.GetAll` and returns
+  the bodies inline as `additionalContext`. No file ever gets written
+  under `${CLAUDE_PLUGIN_ROOT}`. Sub-agents that need file paths get
+  written under the OS cache dir (`%LOCALAPPDATA%\autocontext\<hash>\`
+  on Windows, `$XDG_CACHE_HOME/autocontext/<hash>/` or
+  `~/.cache/autocontext/<hash>/` on POSIX) per session and cleaned on
+  `SessionEnd`. Same materialisation pattern, different cache root.
 
 ## Sharing principle (overarching)
 
@@ -119,7 +222,7 @@ through Phase 1–2.
 - **Framework.Web today** — only `logging/` and `pipes/` (LoggerBase,
   ChannelLogger, NullLogger, PipeListener, PipeTransport, codecs).
   Zero vscode dependency.
-- **VS Code TS files: ~50 total**, classified:
+- **VS Code TS files**, classified:
   - **PURE — moveable as-is.** Utilities (`identifier-factory`,
     `semver`); manifest entries (`*-entry.ts`, `*-runtime-info.ts`,
     `*-item-entry.ts`, `*-category-entry.ts`); manifest containers
@@ -243,11 +346,16 @@ Goal: get the named-pipe servers and the config/detection stack into
 Project: `src/AutoContext.Cli/AutoContext.Cli.csproj` (.NET) producing
 `autoctx.exe`. URI-style command surface as defined above.
 
-For TS-side workloads (`autoctx watch`, any service that needs the TS
-detection/manifest stack), the CLI ships a small Node entry point
-(under `src/AutoContext.Cli.Web/` or similar — name TBD) that the
-`autoctx` binary launches as a child process. The Node entry point's
-internal structure mirrors the extension:
+**Execution model.** The .NET shell handles arg parsing and routes
+subcommands. Subcommands whose work is .NET-native (`service mcp://`,
+`service worker://`) run in-process. Subcommands whose work is TS-native
+(`watch`, `daemon`, `instructions ...`) launch a bundled Node entry point
+(under `src/AutoContext.Cli.Web/` — name TBD) as a child process and
+forward stdio / exit code. The Node runtime is bundled alongside the
+.NET shell in the per-RID distribution (see Distribution); no system
+Node dependency.
+
+The Node entry point's internal structure mirrors the extension:
 
 - `CliComposer` (class) — `compose(inputs: CliCompositionInputs):
   CliGraph`. Inputs: cwd, instanceId, parsed args, root logger, abort
@@ -258,12 +366,63 @@ internal structure mirrors the extension:
 - All graph members are constructed from `Framework.Web` — same
   classes the extension wires.
 
-### Phase 4 — Optional follow-ups
+### Phase 4 — Daemon + `autoctx instructions`
 
-- Consider extracting `AutoContext.VsCode/instructions/` resource
-  loading helpers into `Framework.Web` if the CLI grows an
-  `autoctx instructions` subcommand.
+This is the slice the plugin-discovery plan depends on. Prerequisites:
+Phase 1 (pure moves, including `instructions-file-parser`,
+`instructions-file-metadata-reader`, `autocontext-file-manager`,
+`autocontext-config`) and Phase 2 step 5 (`AutoContextConfigStore`
+extracted).
+
+1. **Extract `InstructionsFileBodyProjector`.** Pure-Node, no IO; lifted
+   out of `instructions-files-manager.ts`'s projection routine. Inputs:
+   raw source string + disabled-id set; output: projected body. Lives in
+   `Framework.Web/src/instructions/`.
+2. **Extract `InstructionsCorpusReader`.** Pure-Node; given a corpus root
+   directory and a workspace root, enumerates curated files, resolves
+   override preference (`.github/instructions/<name>` wins over bundled),
+   reads raw bodies. Lives in `Framework.Web/src/instructions/`.
+3. **`InstructionsCorpusService`.** Composes the reader + projector +
+   `AutoContextConfigStore`. Exposes `list()`, `get(name)`, `getAll()`,
+   `subscribe(listener)`. Owns the file watchers for the corpus root and
+   `.autocontext.json`. Lives in `Framework.Web/src/instructions/`.
+4. **`DaemonComposer`.** Wires `AutoContextConfigStore`,
+   `InstructionsCorpusService`, and a `PipeListener` exposing the RPC
+   surface above. Owns idle-timeout / refcount logic.
+5. **`autoctx daemon` subcommand.** Thin CLI shell that constructs
+   `DaemonComposer` and runs it.
+6. **`autoctx instructions ...` subcommands.** One-shot clients that
+   connect to (or spawn) the daemon and emit results to stdout.
+7. **VS Code extension migration.** Replace in-process projection with a
+   client of the daemon. `InstructionsFilesManager` becomes a cache
+   materialiser writing to `<globalStorage>/projected/<hash>/`. CodeLens,
+   tree views, and decoration providers read from
+   `AutoContextConfigStore` over the pipe (Phase 2 step 5 already gives
+   them the store; the pipe transport is what changes).
+8. **Claude SessionStart hook.** Reduce to a 20-line shim that calls
+   `Instructions.GetAll` and returns the bodies as `additionalContext`.
+
+### Phase 5 — Optional follow-ups
+
 - Alternative shells (JetBrains, Neovim, CI) — only when justified.
+- Daemon-side caching of MCP tool manifests / workspace context, if
+  cross-host clients show repeated demand.
+
+## Distribution
+
+The CLI must be discoverable from a cold Claude SessionStart hook (no
+VS Code extension running, no PATH guarantee). Decision:
+
+- Self-contained `autoctx` binaries are published per-RID by
+  `build.ps1 Package` and bundled in two places:
+  - `<vsix>/cli/<rid>/autoctx[.exe]` for the VS Code extension.
+  - `<plugin-root>/cli/<rid>/autoctx[.exe]` for the Claude plugin.
+- Hosts resolve the binary by `path.join(extensionPath | CLAUDE_PLUGIN_ROOT,
+  'cli', currentRid(), 'autoctx')`. No PATH dependency.
+- A standalone GitHub release publishes the same binaries for users who
+  want to run `autoctx` directly.
+- `dotnet tool install -g autoctx` is a future option, not required for
+  the plugin-discovery work.
 
 ## Pitfalls
 
@@ -273,11 +432,21 @@ internal structure mirrors the extension:
   change. They're separable; doing both at once balloons scope.
 - The CLI will surface hidden assumptions in the .NET side (registry paths,
   log locations, working directory, env vars). Expect a cleanup pass.
-- Decide distribution up front: bundled in `.vsix`? `dotnet tool install -g
-  autoctx`? standalone GitHub release? Affects RID targeting and single-file
-  publish settings.
+- **Daemon bootstrap is the chicken-and-egg.** Claude SessionStart runs
+  before any extension. The daemon must be self-spawning from a cold
+  hook invocation — do not design a flow that requires the VS Code
+  extension to start it first.
+- **Pipe-name collisions across UNC / case-variant paths.** Normalise the
+  workspace path (lowercase on Windows, resolve symlinks) before hashing
+  for the pipe name; otherwise two hosts on "the same" workspace get
+  different daemons.
+- **Concurrent first-connect.** Two hosts racing to spawn the daemon will
+  both spawn one. The second daemon must detect the existing pipe on
+  startup and exit cleanly (idempotent bind).
 
 ## Smallest validation slice
+
+First slice — proves the CLI shell:
 
 1. `src/AutoContext.Cli/AutoContext.Cli.csproj` → `autoctx.exe`.
 2. One subcommand: `autoctx service mcp://<instanceId>` that calls extracted
@@ -285,3 +454,16 @@ internal structure mirrors the extension:
 3. Wire into `build.ps1` (Compile/Test/Package).
 4. Debug MCP server end-to-end via CLI from Rider. If it feels good, expand
    to workers + `watch`.
+
+Second slice — unblocks the plugin-discovery plan:
+
+1. `autoctx daemon --workspace <path>` with the `Instructions.*` RPCs.
+2. `autoctx instructions get-all --workspace <path>` as a one-shot client.
+3. Claude SessionStart hook calls the one-shot and emits the result as
+   `additionalContext`. Round-trip verified end-to-end against a real
+   Claude Code session.
+
+## See also
+
+- [plan-agent-plugin-discovery-enhancements.md](./plan-agent-plugin-discovery-enhancements.md)
+  — the consumer of the daemon + `autoctx instructions` work.
