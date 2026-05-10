@@ -89,11 +89,15 @@ because earlier drafts violated them.
   rather than reimplementing path matching, manifest loading, or
   worker dispatch in hook scripts.
 - **Single source of truth.** Each artefact lives in exactly one
-  place. The curated instruction corpus lives under
-  `<extensionPath>/instructions/` only and is read at runtime by
-  the `autoctx` daemon's `InstructionsCorpusReader`; nothing is
-  copied into the plugin folder. The MCP tool routing table lives
-  in `mcp-workers-registry.json` only (hooks consume it via the
+  place. The curated instruction corpus is editable at
+  `src/AutoContext.Cli/instructions/` and is bundled at runtime as
+  a sibling of the `autoctx` binary at
+  `<plugin-root>/cli/<rid>/instructions/<name>.instructions.md`
+  (and the equivalent path inside the VSIX). The `.NET` daemon's
+  `InstructionsCorpusReader` resolves it from
+  `AppContext.BaseDirectory + "instructions"` — no host-supplied
+  path. The MCP tool routing table lives in
+  `mcp-workers-registry.json` only (hooks consume it via the
   daemon, they do not duplicate it). Per-RID variants of
   `plugin.json` are generated, not committed.
 - **Class-based, no free functions.** Every new module is a class,
@@ -237,7 +241,7 @@ called out here once and referenced by the affected phases.
 Projection of curated instructions runs **only** inside the
 `autoctx` daemon. There is no second projector and no lock file. The
 daemon's `InstructionsCorpusService` (see
-[autoctx-cli.md](./autoctx-cli.md) Phase 4 step 3) owns the file
+[autoctx-cli.md](./autoctx-cli.md) Phase 3 step 4) owns the file
 watchers, the projection algorithm, and the change-event stream.
 Every host — VS Code extension, Claude SessionStart hook, Claude
 sub-agent dispatcher, future JetBrains/Neovim shells — reads
@@ -295,13 +299,17 @@ instruction bodies, the disable-aware tool list, and the workspace
 config snapshot. The daemon owns all of that; this phase is what
 teaches the hooks to talk to it.
 
-**Hard prerequisite:** the `autoctx` CLI's *Phase 4 — Daemon +
-`autoctx instructions`* slice must be shippable. This plan does not
-duplicate that work; see
-[autoctx-cli.md](./autoctx-cli.md#phase-4--daemon--autoctx-instructions)
-for the daemon, projector, and corpus-reader implementation.
-Progress on Phase 0a is gated on the CLI's *second validation
-slice* being green end-to-end against a real Claude Code session.
+**Hard prerequisite:** the `autoctx` CLI's daemon slice must be
+shippable. That slice spans **Phase 3** (the daemon library:
+`InstructionsCorpusService`, `AutoContextConfigStore`, RPC
+handlers, `AddAutoContextDaemon` host-builder extension) and
+**Phase 4** (the `autoctx daemon` subcommand and the TS
+`AutoctxClient`) of
+[autoctx-cli.md](./autoctx-cli.md). This plan does not duplicate
+that work — see the CLI plan for the projector, corpus reader,
+and wire-protocol implementation. Progress on Phase 0a is gated
+on the CLI's *second validation slice* being green end-to-end
+against a real Claude Code session.
 
 **Steps:**
 
@@ -319,7 +327,12 @@ slice* being green end-to-end against a real Claude Code session.
   `instructions.get(name)`, `instructions.getAll()`,
   `config.get()`, and `subscribe(channel, listener)`. Spawns
   `autoctx daemon --workspace <path>` on cold connect. Reuses the
-  pipe-name derivation from the daemon. Tests:
+  pipe-name derivation from the daemon (per
+  [autoctx-cli.md](./autoctx-cli.md) *Lifecycle*). Note that the
+  daemon itself is .NET (lives in `AutoContext.Framework/Daemon/`);
+  `AutoctxClient` is the TS-side client of that .NET daemon and
+  speaks the same JSON-RPC-over-named-pipe wire format that the
+  daemon's C# `DaemonRpcClient` consumes. Tests:
   `tests/unit-tests/cli/autoctx-client.test.ts` (in-process
   daemon stub) and a smoke test that launches the real daemon and
   round-trips `Instructions.List`.
@@ -353,14 +366,20 @@ slice* being green end-to-end against a real Claude Code session.
   daemon-unreachable → `{}`, file-disabled → absent from cache,
   rule-disabled → projected body in cache, override-present →
   override projected, repeat-run → idempotent cache rewrite.
-- **Step 0a.4 — Bundle `autoctx` into the VSIX.** Wire
-  `build.ps1 Package` to copy the per-RID self-contained `autoctx`
-  binary into `src/AutoContext.VsCode/plugin/cli/<rid>/` ahead of
-  VSIX assembly. The CLI plan's *Distribution* section pins the
-  layout. `.vscodeignore` allows `plugin/cli/**` through. Test:
+- **Step 0a.4 — Bundle `autoctx` and corpus into the VSIX.** Wire
+  `build.ps1 Package` to publish the per-RID self-contained
+  `autoctx` binary (via `dotnet publish -r <rid> --self-contained`)
+  and copy it together with the corpus into
+  `src/AutoContext.VsCode/plugin/cli/<rid>/` ahead of VSIX
+  assembly. Layout per RID: `autoctx[.exe]` + .NET runtime files
+  + `instructions/<name>.instructions.md` (sibling, copied from
+  `src/AutoContext.Cli/instructions/`). The CLI plan's
+  *Distribution* section pins the layout. `.vscodeignore` allows
+  `plugin/cli/**` through. Test:
   `tests/smoke-tests/plugin-cli-bundling.test.ts` asserts the
   staged plugin folder contains a runnable `autoctx[.exe]` for
-  the host RID.
+  the host RID and that `cli/<rid>/instructions/` contains every
+  curated file by name.
 - **Step 0a.5 — Retire on-disk projection in the extension.**
   Delete `<extensionPath>/instructions/.generated/`,
   `InstructionsFilesManager`'s projection writes, and
@@ -416,12 +435,16 @@ slice* being green end-to-end against a real Claude Code session.
   sub-agent `instructions:` paths at install time vs. dispatch
   time. The materialisation cache exists by SessionStart and is
   fresh on every session, so dispatch-time resolution is safe;
-  install-time resolution would fail. Smoke-test all three
-  target hosts (VS Code Copilot, Claude Code, Claude Desktop)
-  before Phase 4 ships sub-agents. Fallback: bake a
-  build-time-baseline copy into `plugin/instructions/` for
-  install-time resolvers (would be unprojected; documented as a
-  degraded mode for that host).
+  install-time resolution would fail against the cache. Smoke-test
+  all three target hosts (VS Code Copilot, Claude Code, Claude
+  Desktop) before Phase 4 ships sub-agents. **Fallback:**
+  install-time resolvers can be pointed at the bundled corpus
+  that already ships at
+  `${CLAUDE_PLUGIN_ROOT}/cli/<rid>/instructions/<name>.instructions.md`
+  (Phase 0a.4 puts it there for the daemon's own use). That copy
+  is unprojected — disabled rules and overrides do not apply —
+  but is acceptable as a degraded fallback for a host that cannot
+  resolve dispatch-time paths.
 
 ---
 
