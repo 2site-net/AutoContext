@@ -3,7 +3,7 @@
 //
 // Runs once per user turn, before the prompt reaches the model. Emits an
 // `additionalContext` block listing the AutoContext discovery surface
-// (LM tools + MCP analyzers) and — when the prompt matches a known
+// (LM tools + MCP tools) and — when the prompt matches a known
 // route — a focused recommendation naming the most relevant tool(s)
 // and instruction file(s). The model receives this as system context;
 // the user's prompt itself is unmodified.
@@ -301,7 +301,7 @@ function renderStaticBlock(
         ? '(no LM tools detected)'
         : lmToolNames.map(t => `\`${t}\``).join(', ');
     const mcpList = mcpToolNames.length === 0
-        ? '(no MCP analyzers detected)'
+        ? '(no MCP tools detected)'
         : mcpToolNames.map(t => `\`${t}\``).join(', ');
 
     return [
@@ -309,8 +309,9 @@ function renderStaticBlock(
         '',
         'This workspace ships AutoContext tooling. Before answering, consider whether any of the following apply to this turn — and if so, **call them**, don\'t paraphrase them:',
         '',
-        `- Instruction lookup (LM tools): ${lmList}.`,
-        `- Code analyzers (MCP): ${mcpList}.`,
+        `- LM instructions tools: ${lmList}.`,
+        `- MCP codebase tools: ${mcpList}.`,
+        '- Re-anchor on the AutoContext meta-instructions injected at session start (`copilot.instructions.md`, `autocontext.instructions.md`); they still apply to this turn.',
     ].join('\n');
 }
 
@@ -332,7 +333,7 @@ function renderRoutedBlock(match: PromptMatch): string {
 
     if (match.tools.length > 0) {
         lines.push('');
-        lines.push(`Strongly relevant analyzers: ${match.tools.map(t => `\`${t}\``).join(', ')}.`);
+        lines.push(`Strongly relevant MCP tools: ${match.tools.map(t => `\`${t}\``).join(', ')}.`);
     }
 
     if (match.instructions.length > 0) {
@@ -340,7 +341,7 @@ function renderRoutedBlock(match: PromptMatch): string {
         lines.push(`Strongly relevant instruction files: ${match.instructions.map(n => `\`${n}\``).join(', ')}.`);
         lines.push('');
         lines.push(
-            `Use \`get_autocontext_instructions_file\` to fetch any of them before writing code. If you write any file this turn, an automatic post-write hook will remind you to run the matching analyzer.`,
+            `Use \`get_autocontext_instructions_file\` to fetch any of them before writing code. If you write any file this turn, an automatic post-write hook will remind you to run the matching MCP tool.`,
         );
     }
 
