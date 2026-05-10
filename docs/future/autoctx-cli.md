@@ -24,8 +24,8 @@ state shared by every connected host.
 ## Proposed CLI surface
 
 ```
-autoctx service mcp://<instanceId>
-autoctx service worker://<workerId>-<instanceId>
+autoctx service mcps://<serverId>/<instanceId>
+autoctx service worker://<workerId>/<instanceId>
 autoctx watch <path>
 autoctx daemon --workspace <path> [--pipe <name>] [--idle-timeout <seconds>]
 autoctx instructions list   --workspace <path>
@@ -37,9 +37,21 @@ autoctx instructions watch  --workspace <path>
 
 - `<instanceId>` is auto-generated (per-launch GUID/short id) — used to
   namespace pipes, logs, sockets, and discovery.
+- `<serverId>` is the registered MCP server key (currently the single
+  `mcp-server` shipped in `AutoContext.Mcp.Server`). The CLI dispatches
+  it opaquely — same pattern as `<workerId>` — so a future second
+  server kind ships without CLI changes.
 - `<workerId>` is the registered worker key (e.g. `dotnet`, `workspace`).
 - URI-style argument keeps the CLI uniform and forward-compatible with future
-  service kinds (`autoctx service something://...`).
+  service kinds (`autoctx service something://...`). The two existing
+  schemes (`mcps`, `worker`) follow the same `<kindId>/<instanceId>`
+  shape so parsers stay symmetric: split on `://`, then split the body on
+  the **first** `/`. `<kindId>` may contain hyphens (e.g. `mcp-server`);
+  `<instanceId>` is opaque to the CLI but recommended to be hex /
+  alphanumeric for greppability. `/` rather than `-` separates the two
+  fields so a hyphenated `<kindId>` is unambiguous and the URI survives
+  any RFC 3986 parser unchanged (unlike a fragment-based `#` separator,
+  which standard URI parsers strip).
 - `autoctx watch <path>` runs detection/watching logic against a folder
   without any editor host — useful for repros and CI.
 - `autoctx daemon` is the long-lived per-workspace pipe server. See
@@ -51,6 +63,32 @@ autoctx instructions watch  --workspace <path>
   spawning one on demand if absent. One-shot invocations are valid for
   scripting / CI; interactive hosts should connect to the daemon directly
   via the pipe transport for change-event subscriptions.
+
+## Surface conventions
+
+These conventions apply uniformly to every subcommand and are enforced
+by parser/handler tests. Pin them once; don't relitigate per-subcommand.
+
+- **Exit codes.** `0` success; `1` unhandled exception; `2` parser /
+  argument error (`System.CommandLine` default); `64` domain error
+  (unknown worker ID, schema validation failure, etc.); `69` daemon
+  unreachable after retry budget; `130` SIGINT (terminated by Ctrl-C).
+  Codified in `AutoContext.Cli/ExitCodes.cs`.
+- **Signals.** `Console.CancelKeyPress` + `AppDomain.ProcessExit` feed a
+  single `CancellationTokenSource` that drives `Host.RunAsync(token)`.
+  Subcommands cooperate by accepting the token through DI. `watch` and
+  `instructions watch` cancel only on SIGINT — stdin-close is *not* a
+  cancel signal (the subcommand may run unattended with a closed-stdin
+  consumer downstream).
+- **Streams.** stdout is reserved for command output (JSON, JSONL,
+  version string). Logs and progress go to stderr. Pipes carry only
+  JSON-RPC frames. Never mix.
+- **Colour.** Respect `NO_COLOR` env var and TTY detection; ANSI
+  sequences never appear in piped output. JSON is plain UTF-8.
+- **Versioning.** `autoctx --version` reads the
+  `AssemblyInformationalVersionAttribute` set by
+  `Directory.Build.props` / `version.json`. The `AutoContext.Cli`
+  csproj does not declare its own `<Version>`.
 
 ## Daemon mode
 
@@ -68,22 +106,54 @@ JetBrains/Neovim shells) connects as a client and makes RPC calls.
   resolve symlinks, lowercase on Windows. Platform prefix
   (`\\.\pipe\` on Windows, `${os.tmpdir()}/` on POSIX) is applied by the
   pipe transport, not baked into the name.
-- **Cold start.** A client connects; if the pipe doesn't exist, the client
-  spawns `autoctx daemon --workspace <path>` as a detached child and
-  retries the connection with a short backoff (~5 attempts over ~500 ms).
+- **Cold start (try-connect-with-retry, no pre-flight).** A client
+  attempts to connect; on failure it asks a single spawner
+  abstraction to spawn `autoctx daemon --workspace <path>` detached
+  and retries against two budgets, both independent of
+  `Daemon.Hello`:
+  - **Warm connect (no spawn):** sub-second.
+  - **Cold connect (after spawn):** up to a few seconds with
+    exponential backoff — a self-contained .NET process binding a
+    pipe routinely takes hundreds of milliseconds on first launch,
+    more under load.
+
+  **No cross-platform pipe-existence pre-flight.** Existence tests
+  for Unix sockets are unreliable; a single try-connect is the
+  canonical probe.
+- **Concurrent first-connect.** When two clients race, the spawner
+  is responsible for serialising and ensuring at most one
+  `autoctx daemon` process actually starts; the loser of the race
+  re-enters the connect-retry loop against the winner's daemon. A
+  second daemon process that does manage to start must detect the
+  existing pipe on bind and exit cleanly (**idempotent bind**).
+- **Wire-protocol handshake.** After connect, the client issues
+  `Daemon.Hello` *before* any other RPC, capped by an independent
+  short budget. The protocol version is an integer constant bumped
+  on every wire-format change. **Compat rule: exact-match required.**
+  Daemon and client must agree on the integer; mismatch in either
+  direction refuses. (We do not promise daemon-side
+  forward-compatibility for older clients — every host bumps in
+  lockstep with the daemon at packaging time. Hooks have a
+  permanent disk-read fallback for the bump window.)
 - **Warm reuse.** Subsequent clients (a second VS Code window on the same
   workspace, a Claude session running concurrently, a one-shot CLI
   invocation) connect to the existing daemon. State is consistent across
   all of them.
-- **Idle shutdown.** The daemon exits after `--idle-timeout` seconds with
-  no connected clients (default 300). Shutdown is cooperative — clients
-  send `Disconnect` on graceful close; the daemon counts active sessions.
-- **Crash recovery.** Stale pipe handles are detected by a connect-and-ping
-  probe; if the named-pipe accept fails (`ECONNREFUSED`/Windows error),
-  the client treats the daemon as gone and respawns.
+- **Idle shutdown.** The daemon exits after `--idle-timeout` seconds
+  with no connected clients (default 300), with a fixed **2-second
+  grace period** after the last disconnect to absorb VS Code reload
+  churn (extension-host restart, language-service refresh).
+- **Crash recovery.** Stale pipe handles surface through the same
+  try-connect-with-retry path: a failed connect is treated as "daemon
+  absent" and triggers a respawn.
 
 ### RPC surface (initial)
 
+- `Daemon.Hello` — handshake, returns
+  `{ protocolVersion: <int>, daemonVersion: <semver> }`. Issued by
+  every client immediately after connect; mismatch on the integer
+  refuses the daemon. CLI subcommands surface exit code 69; hooks
+  fall back to disk read.
 - `Config.Get` / `Config.Subscribe` / `Config.Toggle{File,Rule}`.
 - `Instructions.List` / `Instructions.Get(name)` / `Instructions.GetAll`
   — returns projected body (raw source filtered by
@@ -96,19 +166,42 @@ JetBrains/Neovim shells) connects as a client and makes RPC calls.
   intentionally skipped because the user is exporting a *baseline* to
   edit, not a runtime view).
 - `Instructions.Subscribe` — pushes change events when `.autocontext.json`
-  or any source instruction file changes.
+  or any source instruction file changes. Cancellation flows via a
+  per-subscription cancel frame in the JSON-RPC framing; without
+  one, an abandoned subscription leaks daemon-side until the
+  underlying pipe write faults.
 - Future: `WorkspaceContext.Get`, `Diagnostics.Run`, `McpTools.List`.
+
+### Naming
+
+- **`<name>`** in `Instructions.{Get,GetRaw,Subscribe}` is the
+  bundled file's stem (filename without `.instructions.md`),
+  case-sensitive on POSIX, case-preserving on Windows. Override
+  resolution looks for
+  `<workspace>/.github/instructions/<name>.instructions.md` and
+  prefers the override over the bundled source byte-for-byte.
+- **`<workspaceHash>`** is `sha256(normalisedWorkspacePath):0..16`
+  — the same prefix used in the pipe name. Reused unmodified for
+  daemon log paths and OS-cache subdirs so a single hash identifies
+  every workspace artefact.
 
 ### Projection ownership
 
-The daemon is the **only** writer of projected instruction state. There
-is no on-disk projection — `Instructions.Get` returns the projected body
-as a string over the pipe. This eliminates:
+The daemon is the **only** writer of projected instruction state. **All
+projection happens in-memory**, on every read, from the workspace's
+`.autocontext.json` plus the raw corpus — there is no on-disk
+projection artefact at all. `Instructions.Get` returns the projected
+body as a string over the pipe. This eliminates:
 
 - The `<extensionPath>/instructions/.generated/` shared folder.
+- Per-workspace `.workspaces/` projection output directories and the
+  metadata generator that wrote them.
 - The cross-window / cross-host lock-file dance.
 - The read-only-mount problem on Claude plugin installs.
-- Per-workspace projected output directories.
+
+The only on-disk artefacts under `instructions/` are the source
+markdown files (`*.instructions.md`) and any user overrides at
+`<workspace>/.github/instructions/`.
 
 Hosts that need a file path (Claude sub-agent `instructions:` frontmatter,
 VS Code `chatInstructions`) get one of two patterns:
@@ -181,254 +274,60 @@ Consequences:
   run/teardown loop. Logic that is not host-specific belongs in the
   daemon library.
 
-## Composition style
+## Composition contracts
 
-`AutoContext.Cli` is a standard .NET Generic Host application, in
-line with `AutoContext.Mcp.Server`, `AutoContext.Worker.DotNet`, and
-`AutoContext.Worker.Workspace`. Each subcommand resolves to a single
-`Host.CreateApplicationBuilder(args)` call followed by
-subcommand-specific service registrations and `host.RunAsync(ct)`.
-`Microsoft.Extensions.DependencyInjection`, `Microsoft.Extensions.Logging`,
-`Microsoft.Extensions.Configuration`, and `Microsoft.Extensions.Options`
-are used as-is.
+Only two surfaces from the composition layer are part of the design;
+everything else is implementation choice that the plan owns.
 
-- **Daemon (C#, `AutoContext.Framework/Daemon/`).** Exposes an
-  extension method
-  `IHostApplicationBuilder.AddAutoContextDaemon(DaemonOptions options)`
-  that registers `AutoContextConfigStore`, the corpus reader, the
-  corpus service, the pipe listener, the idle-timeout watchdog, and
-  the RPC handlers as singletons / hosted services. The pipe
-  listener and the idle watchdog are `IHostedService`s so the host's
-  graceful-shutdown plumbing handles cancellation, drain, and
-  disposal automatically. `DaemonOptions` (workspace path, corpus
-  root, pipe name, idle timeout) is bound through `IOptions<T>` from
-  `IConfiguration` plus command-line overrides.
-- **CLI shell (C#, `AutoContext.Cli/`).** One subcommand handler per
-  verb — `mcp`, `worker`, `watch`, `daemon`, `instructions` —
-  using `System.CommandLine` (already a familiar fit). Each handler
-  builds its own host: the `daemon` handler calls
-  `AddAutoContextDaemon`; the client subcommands (`instructions ...`)
-  register a `DaemonRpcClient` and a short-lived hosted service that
-  drives the RPC call and writes results to stdout. The `mcp` /
-  `worker` handlers reuse the existing host configuration of
-  `AutoContext.Mcp.Server` / `AutoContext.Worker.*` by extracting it
-  into shared `AddMcpServer` / `AddWorker` extension methods.
-- **`AutoctxClient` (TS, `Framework.Web/src/cli/`).** Plain class,
-  no DI container — there is no DI container in the TypeScript
-  ecosystem we want to take on. Constructed with `new` and the
-  workspace path. Same wire format `DaemonRpcClient` consumes; same
-  pipe-name derivation. Used by the VS Code extension and by Claude
-  `.cjs` hook scripts.
+- **`IHostApplicationBuilder.AddAutoContextDaemon(Action<DaemonOptions> configure)`**
+  is the daemon library's single public entry point. Hosts that
+  want an in-process daemon call this; hosts that only consume the
+  daemon over the wire never see it. `DaemonOptions` exposes
+  workspace path, corpus root override, pipe-name override, and
+  idle timeout — the four knobs hosts legitimately tune.
+- **`AutoctxClient` (TS, `Framework.Web/src/cli/`)** is the only
+  shared TS class. Plain class, no DI container, constructed with
+  `new` and a workspace path. Speaks the same wire protocol the
+  .NET daemon serves; that wire protocol is the cross-host seam,
+  *not* a class hierarchy.
 
-The extension and the CLI do not share a composer class; they share
-the daemon **library** (registered through `AddAutoContextDaemon` on
-the CLI side) and the **wire protocol** (consumed by `AutoctxClient`
-on the extension side). No TypeScript composition root sits inside
-the CLI — the CLI is .NET.
+The extension and the CLI do not share a composer; they share the
+daemon **library** (registered through `AddAutoContextDaemon` on the
+.NET side) and the **wire protocol** (consumed by `AutoctxClient` on
+the TS side).
 
 ## Implementation phases
 
-Each step is verified with `.\build.ps1 Compile` and
-`.\build.ps1 Test`. The .NET shell handles every subcommand
-in-process; there is **no Node child process** and no bundled Node
-runtime.
+The phase-by-phase implementation plan — ordering, deliverables,
+test plans, and decision rationale — lives in the companion plan
+(`plan-autoctx-cli-implementation.md` in repo memory; mirrored to
+`docs/future/autoctx-cli-implementation-plan.md` on demand). The
+design doc records only the *shape* of the rollout below; when the
+two disagree, the design doc wins on architectural intent and the
+plan wins on sequencing detail.
 
-### What moves where
+Shape:
 
-- **`AutoContext.Framework/Daemon/`** (new subfolder, .NET) — the
-  daemon library: `AutoContextConfigStore`,
-  `InstructionsFileBodyProjector`, `InstructionsCorpusReader`,
-  `InstructionsCorpusService`, `WorkspaceContextScanner`,
-  `DaemonRpcClient`, the pipe-listener and idle-watchdog
-  `IHostedService`s, the RPC handlers, and the
-  `AddAutoContextDaemon` host-builder extension. (`WorkspaceContextScanner`
-  lives here because Phase 2's `autoctx watch` and the daemon's
-  future `WorkspaceContext.Get` RPC share the same scan logic.)
-- **`AutoContext.Cli/`** (new project, .NET) — the `autoctx` shell.
-  Generic-Host application: `Program.cs` + one
-  `System.CommandLine` handler per subcommand, each calling
-  `Host.CreateApplicationBuilder` and the relevant
-  `Add*` extension to wire its services. Depends on
-  `AutoContext.Framework`, `AutoContext.Mcp.Server`, and
-  `AutoContext.Worker.*` (whichever the selected subcommand needs).
-- **`AutoContext.Framework.Web/src/cli/`** (TS) — just
-  `AutoctxClient` and its tests. The pipe transport classes already
-  in `Framework.Web/src/pipes/` are the wire layer.
-- **`AutoContext.VsCode/`** (TS) — keeps everything host-specific.
-  After Phase 4 lands, the in-extension projection / config /
-  corpus classes (`AutoContextConfigManager`,
-  `InstructionsFilesManager`, `InstructionsFileContentProjector`,
-  parts of `WorkspaceContextDetector`) are **deleted** and
-  replaced by `AutoctxClient` calls. UI-shaped classes (tree
-  views, codelens, decorations, `chatInstructions` cache
-  materialiser) stay.
-
-Note: today's TS-side projection logic in `instructions-files-manager.ts`
-and `instructions-file-content-projector.ts` is *ported* to C#, not
-moved. The C# port is the single implementation going forward; the TS
-originals are deleted in Phase 4 step 5.
-
-### Phase 0 — Project skeleton
-
-- Create `src/AutoContext.Cli/AutoContext.Cli.csproj` targeting the
-  same TFM as the rest of the .NET solution. `Program.cs` builds a
-  Generic Host (`Host.CreateApplicationBuilder(args)`) and routes
-  to a `System.CommandLine` root command whose `--version` handler
-  prints `autoctx <version>`. No subcommand handlers yet.
-- Create `src/AutoContext.Framework/Daemon/` folder. Add an empty
-  `AddAutoContextDaemon(this IHostApplicationBuilder builder,
-  Action<DaemonOptions> configure)` extension method so callers
-  have a stable API surface to compile against from Phase 1
-  onward, even while the body is a TODO.
-- Wire both into `AutoContext.slnx` and `build.ps1` (Compile / Test
-  / Package phases).
-- Smoke test: `autoctx --version` exits 0.
-
-### Phase 1 — First standalone slice (`autoctx service mcp://`)
-
-Extracts the MCP server's host loop into a reusable form so the
-CLI can spawn it without the VS Code extension running.
-
-1. Extract the existing `Program.Main` body of
-   `AutoContext.Mcp.Server` into
-   `IHostApplicationBuilder.AddMcpServer(McpServerOptions options)`.
-   The original `Program.Main` becomes a one-liner that builds a
-   host, calls `AddMcpServer`, and returns `host.RunAsync(ct)`.
-2. The `mcp` subcommand handler in `AutoContext.Cli/` parses the
-   URI-style argument into `McpServerOptions`, builds its own
-   host with `AddMcpServer`, and runs it.
-3. Smoke test against MCP Inspector (or a stub client) without VS Code
-   in the loop.
-
-Value: unblocks Rider/VS debugging of the MCP server end-to-end and
-proves the CLI shell pattern before the daemon work begins.
-
-### Phase 2 — Worker subcommand + `autoctx watch`
-
-- The `worker` subcommand handler does for the workers what the
-  `mcp` handler did for the MCP server: an `AddWorker` extension
-  on `IHostApplicationBuilder` extracted from
-  `AutoContext.Worker.*`, called from
-  `autoctx service worker://<workerId>-<instanceId>`.
-- The `watch` subcommand handler resolves
-  `WorkspaceContextScanner` from the host container (registered
-  via `AddWorkspaceContextScanner` in
-  `AutoContext.Framework/Daemon/`, ported from the extension's
-  `WorkspaceContextDetector`), runs it against a path argument,
-  and prints the detection result.
-
-No daemon yet — these are one-shot subcommands whose host shuts
-down after a single run. Their value is independent debug paths
-for the workers and for the workspace scanner.
-
-### Phase 3 — Daemon library (the central piece)
-
-This is the slice the plugin-discovery plan depends on. Builds out
-`AutoContext.Framework/Daemon/`. Each step adds services that
-`AddAutoContextDaemon` will register:
-
-1. **`AutoContextConfigStore`** (singleton). Loads
-   `.autocontext.json`, watches it via `FileSystemWatcher`, exposes
-   `Get()` / `Subscribe()`, `ToggleFile(name)` / `ToggleRule(name,
-   ruleId)`. Takes `ILogger<AutoContextConfigStore>` and
-   `IOptions<DaemonOptions>` through its constructor. Test:
-   in-process unit tests with a tmpdir-backed config file.
-2. **`InstructionsFileBodyProjector`** (singleton, stateless). Pure
-   function-shaped class. Inputs: raw markdown source + disabled-id
-   set. Output: projected body with `[INSTxxxx]` tags stripped and
-   disabled bullets removed. No IO. Direct port of
-   [instructions-file-content-projector.ts](../../src/AutoContext.VsCode/src/instructions-file-content-projector.ts);
-   the TS original is deleted at Phase 4 step 5.
-3. **`InstructionsCorpusReader`** (singleton). Resolves the corpus
-   root from `AppContext.BaseDirectory + "instructions"` (so
-   `<cli>/instructions/` is found relative to the published binary
-   regardless of the user's working directory — see
-   *Distribution*; `IHostEnvironment.ContentRootPath` is *not* used
-   here because it defaults to the invocation cwd). Enumerates
-   curated files; for each, checks
-   `<workspace>/.github/instructions/<name>.instructions.md` and
-   prefers the override over the bundled source. Returns raw
-   `(name, source)` pairs.
-4. **`InstructionsCorpusService`** (singleton). Composes reader +
-   projector + `AutoContextConfigStore`. Exposes `List()`,
-   `Get(name)`, `GetRaw(name)`, `GetAll()`, `Subscribe(listener)`.
-   Owns the `FileSystemWatcher` for the corpus root and for the
-   workspace's `.github/instructions/` overrides, plus a
-   `Subscribe` on the config store. Re-emits a single coalesced
-   change event per 200 ms debounce window.
-5. **Pipe RPC handlers.** `Config.*` and `Instructions.*` handlers
-   over the existing `AutoContext.Framework/Pipes/` listener.
-   JSON-RPC framing. Resolved from DI as transient handlers; the
-   listener (an `IHostedService`) dispatches to them per request.
-   Per-connection refcount drives the idle-watchdog `IHostedService`.
-6. **`AddAutoContextDaemon` extension.** The single public entry
-   point. Binds `DaemonOptions`, registers all of the above, and
-   adds the pipe-listener and idle-watchdog `IHostedService`s.
-   `host.RunAsync(ct)` then handles startup, graceful shutdown,
-   and disposal.
-7. **`DaemonRpcClient`.** Companion class in
-   `AutoContext.Framework/Daemon/` that other .NET hosts (currently
-   none planned, but tests need it) use to call the daemon over the
-   pipe. Mirrors the `AutoctxClient` (TS) surface so test fixtures
-   can hit either transport. Registered through
-   `AddAutoContextDaemonClient` for callers that want it from DI.
-
-All seven steps land in `AutoContext.Framework/Daemon/`; nothing
-touches `AutoContext.Cli` yet.
-
-### Phase 4 — `autoctx daemon` and `autoctx instructions`
-
-1. **`daemon` subcommand handler** (in `AutoContext.Cli/`). Routes
-   `autoctx daemon --workspace <path> [--idle-timeout <s>]` to a
-   host built with `AddAutoContextDaemon`, then `host.RunAsync(ct)`.
-   Logging goes through the standard
-   `Microsoft.Extensions.Logging` providers — console (stderr) by
-   default, file provider attached when `--log-file` is supplied.
-2. **`instructions` subcommand handler** (in `AutoContext.Cli/`).
-   Routes `autoctx instructions list|get|get-all|toggle|watch` to
-   a host that registers `AddAutoContextDaemonClient` plus a
-   short-lived `IHostedService` driving the call; spawns the
-   daemon if absent (cold-start), prints results to stdout.
-   `watch` stays connected and streams change events as JSONL
-   until the host is cancelled.
-3. **`AutoctxClient` (TS).** Build the TS counterpart in
-   `Framework.Web/src/cli/`: pipe-name derivation, connect with
-   cold-start spawn fallback, `instructions.{list,get,getAll,getRaw}()`,
-   `config.{get,toggle*}()`, `subscribe()`. Tests in
-   `Framework.Web/tests/cli/` cover both stub-daemon and
-   real-daemon round-trips.
-4. **VS Code extension migration.** Replace the in-extension
-   projection / config / corpus classes with `AutoctxClient` calls.
-   `InstructionsFilesManager` becomes a *cache materialiser* that,
-   on activation and on every `Instructions.Subscribe` event,
-   calls `Instructions.GetAll` and writes the bodies to
-   `<extensionPath>/instructions.cache/<workspace-hash>/`. The
-   `chatInstructions` paths in `package.json` are repointed at
-   that cache. Tree views, codelens, and decoration providers
-   pull data from `AutoctxClient` instead of in-process state.
-   `InstructionsFilesExporter` calls `Instructions.GetRaw(name)`
-   to materialise workspace overrides.
-5. **Delete the TS originals.**
-   `instructions-files-manager.ts`'s projection writes,
-   `instructions-file-content-projector.ts`,
-   `autocontext-config-manager.ts`'s state, and the projection
-   tests are deleted in the same commit that lands step 4. The
-   TS test surface for projection moves to the C# unit tests of
-   `InstructionsFileBodyProjector` and `InstructionsCorpusService`.
-6. **Claude SessionStart hook.** Becomes a thin `.cjs` shim that
-   instantiates `AutoctxClient`, calls `Instructions.GetAll`,
-   writes the OS cache, and emits the always-attached pair as
-   `additionalContext`.
-
-No dual-mode period: the extension switches to daemon-client in
-the same release that ships the daemon.
-
-### Phase 5 — Optional follow-ups
-
-- Alternative shells (JetBrains, Neovim, CI) — only when justified.
-- Daemon-side caching of MCP tool manifests / workspace context, if
-  cross-host clients show repeated demand.
-- `dotnet tool install -g autoctx` packaging.
+- **Phase 0 — skeleton.** `AutoContext.Cli` project, empty
+  `AddAutoContextDaemon`, `autoctx --version`.
+- **Phase 1 — first standalone slice.** `autoctx service mcps://`
+  proves the CLI shell pattern by extracting the MCP server's
+  host loop.
+- **Phase 2 — worker subcommand + `autoctx watch`.** Opaque
+  `<workerId>` dispatch via the worker registry; standalone
+  workspace scanner.
+- **Phase 3 — daemon library.** Populates
+  `AutoContext.Framework/Daemon/` with the config store, corpus
+  reader, projector, corpus service, pipe-listener / idle-watchdog
+  hosted services, RPC handlers, and the `DaemonRpcClient` /
+  `AutoctxClient` companions.
+- **Phase 4 — `autoctx daemon` and `autoctx instructions`,
+  extension migration, Claude hook re-pointing, deletes.** No
+  dual-mode period for the extension; the in-extension projection
+  / config / corpus classes are deleted in the same release that
+  ships the daemon. Hooks keep a permanent disk-read fallback.
+- **Phase 5 (optional follow-ups).** Alternative shells, daemon-side
+  manifest caching, `dotnet tool install -g autoctx`.
 
 ## Distribution
 
@@ -438,6 +337,11 @@ VS Code extension running, no PATH guarantee). Decision:
 - `autoctx` is published per-RID by `dotnet publish -r <rid>
   --self-contained` from `build.ps1 Package`. No Node runtime is
   bundled; the daemon and every subcommand are pure .NET.
+- **Supported RIDs:** `win-x64`, `win-arm64`, `linux-x64`,
+  `linux-arm64`, `osx-x64`, `osx-arm64`. Resolved at runtime from
+  `process.platform` + `process.arch` on the TS side and from the
+  bundled binary path on the .NET side. Unsupported combinations log
+  a warning and force the caller into the disk-read fallback.
 - Per-RID artefact layout (the **same** layout in both targets):
 
   ```
@@ -468,6 +372,42 @@ VS Code extension running, no PATH guarantee). Decision:
 
 ## Pitfalls
 
+- **Daemon termination signal.** `autoctx daemon` spawned detached
+  with `stdio: 'ignore'` has no controlling console;
+  `Console.CancelKeyPress` does not fire. Production termination
+  is `--idle-timeout` plus the OS-level signal path
+  (`AppDomain.ProcessExit` for SIGTERM / Windows stop). The 130
+  exit code path is reachable via `autoctx daemon` run in the
+  foreground (smoke tests, `dotnet run`) and via `autoctx
+  instructions watch` / `autoctx watch` — not via the spawned
+  daemon in production.
+- **`autoctx --version` is RID-independent.** Driven by
+  `AssemblyInformationalVersionAttribute` set from `version.json`;
+  do not bake the RID into the version string — the corpus and
+  the version are RID-independent in content.
+- **Workspace-artefact directory layout** under
+  `%LOCALAPPDATA%\autocontext\` (Windows; equivalents on POSIX):
+  - `logs\<workspaceHash>.log` — daemon log per workspace.
+  - `cache\<workspaceHash>\` — hook materialisation cache for
+    sub-agent file paths.
+  - `instructions.cache\<workspaceHash>\` lives **inside** the
+    VS Code extension root, not under `%LOCALAPPDATA%`, because
+    `chatInstructions` resolution is extension-relative.
+  Document any new sibling directory in this list before adding it
+  to avoid name drift across hosts.
+- **Override survival across upgrades.** A workspace-local
+  `<workspace>/.github/instructions/<name>.instructions.md` keeps
+  winning silently when the bundled source updates in a release.
+  The corpus service emits a warning event when override mtime is
+  older than bundled mtime; UIs surface it as a non-fatal hint.
+- **Do NOT** add `autoctx tools list` or `autoctx tasks list`. MCP tool
+  definitions / schemas live in `AutoContext.Mcp.Server/Tools/` +
+  `mcp-tools.json`; the worker registry lives in
+  `mcp-workers-registry.json`; tasks (`IMcpTask`) live in each
+  `AutoContext.Worker.*/Tasks/` folder and `AutoContext.Mcp.Abstractions`.
+  The CLI is unaware of any of them: `<workerId>` is opaque, and
+  duplicating the MCP server's catalogue inside `autoctx` would fork the
+  source of truth.
 - **Do NOT** port the daemon to TypeScript. The CLI shell is .NET; the
   daemon library lives in `AutoContext.Framework/Daemon/`. The TS side
   ships only `AutoctxClient` and the existing pipe transport.
@@ -502,31 +442,6 @@ VS Code extension running, no PATH guarantee). Decision:
   (`src/AutoContext.Cli/instructions/`) into every RID staging dir;
   no per-RID corpus edits are permitted. Validator (Phase 3 of the
   plugin plan) asserts byte-equality across RIDs in a build.
-
-## Smallest validation slice
-
-First slice — proves the CLI shell (Phase 1):
-
-1. `src/AutoContext.Cli/AutoContext.Cli.csproj` → `autoctx.exe`.
-2. One subcommand: `autoctx service mcp://<instanceId>` that calls
-   the extracted `McpServerHost.RunAsync`.
-3. Wire into `build.ps1` (Compile/Test/Package).
-4. Debug MCP server end-to-end via CLI from Rider. If it feels good,
-   expand to workers + `watch` (Phase 2).
-
-Second slice — unblocks the plugin-discovery plan (Phase 3 + Phase 4):
-
-1. `AutoContext.Framework/Daemon/` populated with the corpus service
-   and the RPC handlers.
-2. `autoctx daemon --workspace <path>` and
-   `autoctx instructions get-all --workspace <path>` working
-   end-to-end against a real workspace.
-3. Claude SessionStart hook calls `AutoctxClient.instructions.getAll()`
-   and emits the result as `additionalContext`. Round-trip verified
-   against a real Claude Code session.
-4. VS Code extension switches to daemon-client mode in the same
-   release (Phase 4 step 4); the in-extension projection classes
-   are deleted (step 5).
 
 ## See also
 
