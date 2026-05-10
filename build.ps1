@@ -459,17 +459,23 @@ function Build-TypeScript {
             # Stage compiled hook scripts (`*.cts` → `*.cjs`) into the
             # bundled agent-plugin folder so they sit alongside the
             # plugin manifest the VSIX ships.
-            $hookSrc = Join-Path 'dist' 'hooks' 'autocontext-session-start.cjs'
-            $hookDst = Join-Path 'plugin' 'scripts' 'autocontext-session-start.cjs'
-            if (Test-Path $hookSrc) {
-                $hookDstDir = Split-Path $hookDst -Parent
-                if (-not (Test-Path $hookDstDir)) {
-                    New-Item -ItemType Directory -Path $hookDstDir | Out-Null
+            $hookNames = @(
+                'autocontext-session-start.cjs',
+                'autocontext-user-prompt-submit.cjs'
+            )
+            $hookDstDir = Join-Path 'plugin' 'scripts'
+            if (-not (Test-Path $hookDstDir)) {
+                New-Item -ItemType Directory -Path $hookDstDir | Out-Null
+            }
+            foreach ($hookName in $hookNames) {
+                $hookSrc = Join-Path 'dist' 'hooks' $hookName
+                $hookDst = Join-Path $hookDstDir $hookName
+                if (Test-Path $hookSrc) {
+                    Copy-Item -Path $hookSrc -Destination $hookDst -Force
+                    Write-Status "Hook script staged ($hookDst)" 'OK'
+                } else {
+                    throw "Compiled hook script not found at $hookSrc."
                 }
-                Copy-Item -Path $hookSrc -Destination $hookDst -Force
-                Write-Status "Hook script staged ($hookDst)" 'OK'
-            } else {
-                throw "Compiled hook script not found at $hookSrc."
             }
         }
         finally {
