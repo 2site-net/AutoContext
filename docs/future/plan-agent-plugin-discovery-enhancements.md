@@ -33,7 +33,7 @@ exposes additional primitives our plugin manifest does not yet use:
 | `commands/`          | none | Markdown files become `/<command>` slash commands |
 | `agents/`            | none | Sub-agents with curated tool / instruction allow-lists |
 | `mcpServers` (in `plugin.json`) | none — extension uses VS Code's `McpServerDefinitionProvider` | Plugin-declared MCP servers, portable to non-VS-Code Claude clients |
-| Plugin-bundled instructions | sourced from `<extension>/instructions/` via `__dirname` walk | Could relocate to `<plugin>/instructions/` for portability |
+| Plugin-bundled instructions | sourced from `<extension>/instructions/` via `__dirname` walk | Could be served on-demand by a bundled CLI daemon for cross-host portability (this plan) |
 
 The existing AutoContext discovery surfaces — both the four
 `vscode.lm` tools registered by
@@ -74,11 +74,354 @@ gap between "rules exist" and "rules are mechanically applied".
 - Replacing `chatInstructions` in `package.json`. Both surfaces
   coexist (architecture-doc precedent).
 
+## Design Principles
+
+These principles bind every step in this plan. They are explicit
+because earlier drafts violated them.
+
+- **Reuse over reimplementation.** Hooks, commands, and sub-agents
+  call into existing extension components —
+  [InstructionsFilesManifest](../../src/AutoContext.VsCode/src/instructions-files-manifest.ts),
+  [InstructionsFilesLmToolsApplyToMatcher](../../src/AutoContext.VsCode/src/instructions-files-lm-tools-apply-to-matcher.ts),
+  [McpToolsManifest](../../src/AutoContext.VsCode/src/mcp-tools-manifest.ts),
+  [HealthMonitorServer](../../src/AutoContext.VsCode/src/health-monitor-server.ts),
+  [WorkerManager](../../src/AutoContext.VsCode/src/worker-manager.ts) —
+  rather than reimplementing path matching, manifest loading, or
+  worker dispatch in hook scripts.
+- **Single source of truth.** Each artefact lives in exactly one
+  place. The curated instruction corpus lives under
+  `<extensionPath>/instructions/` only and is read at runtime by
+  the `autoctx` daemon's `InstructionsCorpusReader`; nothing is
+  copied into the plugin folder. The MCP tool routing table lives
+  in `mcp-workers-registry.json` only (hooks consume it via the
+  daemon, they do not duplicate it). Per-RID variants of
+  `plugin.json` are generated, not committed.
+- **Class-based, no free functions.** Every new module is a class,
+  matching the codebase pattern (`AgentPluginInstaller`,
+  `InstructionsFilesManager`, `McpToolsManifestLoader`,
+  `WorkerManager`, ...). The existing free-function
+  [autocontext-session-start.cts](../../src/AutoContext.VsCode/src/hooks/autocontext-session-start.cts)
+  is refactored to a class as part of Phase 0a.
+- **Breaking changes are acceptable.** The extension is in preview;
+  steps remove fallbacks and consolidate paths rather than carrying
+  legacy code. No `<extension>/instructions/` compatibility shim.
+- **Per-step tests, not per-phase tests.** Each step lands with its
+  own unit / smoke tests in the same commit. A phase that adds three
+  steps adds three test files, not one batched test file.
+- **Docs land with the step.** README, `docs/architecture.md`, and
+  walkthroughs that describe the new surface are updated in the same
+  step that ships it.
+
+## Shared Infrastructure
+
+Introduced once in Phase 0a, reused by every later phase. All names
+are classes per the design principles. The single most important
+dependency is the **`autoctx` CLI daemon** specified in
+[autoctx-cli.md](./autoctx-cli.md): hooks, slash commands, and
+sub-agents all consume instruction state and configuration through
+the daemon's named-pipe RPC surface (`Instructions.GetAll`,
+`Instructions.List`, `Config.Get`, etc.) rather than reading files
+from disk. There is no projection into `plugin/instructions/` and no
+lock-file dance — the daemon owns the in-memory truth and is the
+only writer.
+
+- **`HookRunner`** — abstract base class for every hook script
+  (`src/AutoContext.VsCode/src/hooks/hook-runner.cts`). Owns the
+  stdin drain, JSON envelope emission, error swallowing, and
+  `{}`-on-failure contract. Subclasses implement
+  `protected abstract runCore(input: HookInput): Promise<HookOutput | null>`.
+- **`PluginRootResolver`** — resolves
+  `${CLAUDE_PLUGIN_ROOT}` (preferred), then `__dirname` walk
+  fallback. Replaces today's ad-hoc
+  `path.resolve(__dirname, '..', '..')` in the SessionStart script.
+- **`WorkspaceContextResolver`** — resolves the active workspace
+  root for hook scripts. Priority order:
+  `${CLAUDE_PROJECT_DIR}` (Claude Code), then the hook-input JSON's
+  `cwd` field (PostToolUse / PreToolUse payloads carry it), then
+  `process.cwd()`. Returns the resolved absolute path; the workspace
+  hash is owned by the daemon (it derives the pipe name) and is not
+  recomputed in hooks.
+- **`AutoctxBinaryResolver`** — resolves the absolute path of the
+  bundled `autoctx` binary by joining the resolved plugin root with
+  `cli/<rid>/autoctx[.exe]` (per the per-RID layout defined in the
+  CLI plan's *Distribution* section). Throws when missing so hooks
+  fail fast rather than emitting `{}` for what should be a packaging
+  bug.
+- **`AutoctxClient`** — thin wrapper over the daemon pipe: connect,
+  optionally spawn `autoctx daemon --workspace <path>` on cold
+  start, perform a single RPC, disconnect. Used by every hook that
+  needs instruction bodies, config snapshots, or the instructions
+  list. Lives in `Framework.Web/src/cli/` so it can be shared with
+  any future host.
+- **Shared CJS exports.** `HookRunner`, `PluginRootResolver`,
+  `WorkspaceContextResolver`, `AutoctxBinaryResolver`, and
+  `AutoctxClient` are emitted as CJS so the hook scripts (compiled
+  `.cjs` under `plugin/scripts/`) can `require()` them. The
+  extension and `Framework.Web` consume the same modules through
+  default-CJS interop.
+## Existing-Feature Interactions
+
+The extension already implements rich state around
+enable/disable/override that every new surface must respect. The
+plan-as-written previously ignored several of these. They are
+called out here once and referenced by the affected phases.
+
+### State sources
+
+| Concern | Owner class | Persistence | What it controls |
+|---------|------------|-------------|------------------|
+| Disable an entire instruction file | [AutoContextConfigManager.setInstructionEnabled](../../src/AutoContext.VsCode/src/autocontext-config-manager.ts) | `.autocontext.json` `instructions[name].enabled` | The file is excluded from `chatInstructions`, the LM list/get tools, and (under this plan) the daemon's `Instructions.GetAll` response — so hooks never see it. |
+| Disable an individual rule inside a file | [AutoContextConfigManager.toggleInstruction](../../src/AutoContext.VsCode/src/autocontext-config-manager.ts) | `instructions[name].disabledInstructions: string[]` | A subset of bullets/sections is filtered out by [InstructionsFileContentProjector](../../src/AutoContext.VsCode/src/instructions-file-content-projector.ts) (today, in-extension) or by the daemon's `InstructionsCorpusService` (under this plan). Hooks always read projected bodies from the daemon, never the raw file. |
+| Disable an entire MCP tool | [AutoContextConfig.isToolEnabled](../../src/AutoContext.VsCode/src/autocontext-config.ts) | `mcpTools[name] === false` or `{ enabled: false }` | The tool isn't advertised by the MCP server (suppressed via `--service extension-config=…` snapshot). |
+| Disable an MCP task under a tool | `AutoContextConfig.isToolEnabled(tool, task)` | `mcpTools[name].disabledTasks: string[]` | The task isn't advertised; the tool stays. |
+| Instruction override (workspace-local) | [InstructionsFilesOverrideWatcher](../../src/AutoContext.VsCode/src/instructions-files-override-watcher.ts) | `.github/instructions/*.instructions.md` in the workspace | Sets `setContext('autocontext.override.<name>', true)`; the `chatInstructions` `when` clause swaps to the local file. |
+| Export curated file into a workspace override | [InstructionsFilesExporter](../../src/AutoContext.VsCode/src/instructions-files-exporter.ts) + tree-view export mode | Writes `.github/instructions/<name>` | Existing UI surface; **don't** add a `/autocontext-export` slash command that duplicates it. |
+
+### Required hook / command behaviour
+
+- **All state goes through the daemon.** SessionStart, PreToolUse,
+  and PostToolUse hooks talk to the per-workspace `autoctx` daemon
+  via `AutoctxClient`. They never read `.autocontext.json`,
+  `<extensionPath>/instructions/<name>`, or `plugin/instructions/<name>`
+  directly. The daemon enforces every disable rule centrally and
+  hands back already-filtered, already-projected results. A hook
+  cannot accidentally see disabled state because the daemon never
+  sends it.
+  - For instruction bodies: `Instructions.GetAll` / `Instructions.Get(name)`
+    — returns projected markdown with disabled rules removed and
+    `[INSTxxxx]` tags stripped. Files where `enabled === false` are
+    omitted from `GetAll` and return `null` from `Get`.
+  - For listings (e.g. PreToolUse "did the agent read this?"
+    matchers): `Instructions.List` — returns one entry per file
+    with name, enabled flag, override-present flag, and `applyTo`
+    glob. The reminder lookup uses these flags directly; no
+    filesystem probing.
+  - For tool/task disable: `Config.Get` returns the
+    [AutoContextConfig](../../src/AutoContext.VsCode/src/autocontext-config.ts)
+    snapshot; hooks call `isToolEnabled(tool, task?)` on the
+    snapshot before emitting any prompt that would reference a
+    disabled tool or task.
+- **Single source of truth: `.autocontext.json` (read by the daemon
+  only).** All disable state lives in `.autocontext.json`. The
+  daemon watches it via `AutoContextConfigStore` and pushes change
+  events to subscribed clients. There is no on-disk projection
+  artifact, no `<name>.disabled` filename suffix, no sidecar JSON.
+  Re-running `Instructions.GetAll` after a config change returns the
+  updated bodies; the previous values are discarded.
+- **Override resolution is daemon-side.** When a workspace override
+  exists at `.github/instructions/<name>`, the daemon's
+  `InstructionsCorpusReader` (per the CLI plan) feeds the override
+  body into the projector instead of the bundled raw source. Hooks
+  receive the projected override body transparently from
+  `Instructions.Get(name)`. `Instructions.List` reports
+  `overridden: true` so a UI surface (e.g. `/autocontext-status`)
+  can mention it without an extra probe.
+- **Sub-agent `instructions:` paths point at a per-session
+  materialisation cache.** Claude sub-agents require static file
+  paths in their frontmatter; the SessionStart hook materialises
+  the projected bodies into the OS-specific cache directory
+  documented in the CLI plan (`%LOCALAPPDATA%\autocontext\<hash>\`
+  on Windows; `$XDG_CACHE_HOME/autocontext/<hash>/` or
+  `~/.cache/autocontext/<hash>/` on POSIX) and the sub-agent
+  manifests reference that location. The cache is not the source
+  of truth — it is rewritten on every SessionStart from the
+  daemon's projected output.
+- **Tasks, not just tools.** The PostToolUse router resolves the
+  target *task* (e.g. `analyze_typescript_code.<task>`) when the
+  registry decomposes the tool into tasks, and consults
+  `isToolEnabled(tool, task)` against the daemon-supplied config
+  snapshot before emitting an analyzer prompt.
+
+### Daemon ownership
+
+Projection of curated instructions runs **only** inside the
+`autoctx` daemon. There is no second projector and no lock file. The
+daemon's `InstructionsCorpusService` (see
+[autoctx-cli.md](./autoctx-cli.md) Phase 4 step 3) owns the file
+watchers, the projection algorithm, and the change-event stream.
+Every host — VS Code extension, Claude SessionStart hook, Claude
+sub-agent dispatcher, future JetBrains/Neovim shells — reads
+projected bodies from the daemon over IPC.
+
+The extension is a daemon **client**, not a co-projector. On
+activation it connects to the workspace's daemon (spawning it on
+cold start), subscribes to `Instructions.Subscribe`, and on each
+event rewrites the materialisation cache that `chatInstructions`
+points at (per the CLI plan's *Projection ownership* section).
+Deactivation drops the connection; the daemon's idle-timeout shuts
+it down when the last client leaves.
+
+Known caveats, documented:
+
+- **Mid-session staleness on Claude hosts.** SessionStart fires
+  once. The materialisation cache it writes reflects the daemon's
+  state at that moment. If `.autocontext.json` changes mid-session,
+  the next sub-agent dispatch sees the stale cache. Mitigation:
+  Phase 5 (PreToolUse) re-materialises opportunistically on
+  `Instructions.Subscribe` events received during the session.
+- **Cold-start latency on Claude.** First SessionStart in a fresh
+  workspace spawns the daemon; subsequent calls are warm. Cold
+  start cost is the `autoctx daemon` process boot — measured at
+  packaging time, documented as a one-time per-workspace cost.
+- **Read-only `${CLAUDE_PLUGIN_ROOT}`.** The plugin folder ships
+  static assets (hooks, the bundled `autoctx` binary, `plugin.json`).
+  Nothing is written there at runtime, so read-only mounts are
+  fully supported — a fundamental improvement over the in-plugin
+  projection model. The materialisation cache lives in the OS cache
+  directory, which is always user-writable.
+
 ## Phases
 
 The phases are independent and each ships its own VSIX. Order is by
 ROI; nothing later depends on something earlier landing first
-unless flagged explicitly.
+unless flagged explicitly. **Phase 0a is the prerequisite for every
+other phase** — each one uses `HookRunner` (Phase 0a.1) and/or
+`AutoctxClient` (Phase 0a.2). Phase 0a is itself gated on the
+`autoctx` CLI's daemon slice being shippable. Phase 0a lands first.
+
+---
+
+### Phase 0a — Prep: hooks become daemon clients
+
+**One-line:** unblock every later phase by extracting the shared
+hook infrastructure (`HookRunner`, resolvers, `AutoctxClient`) and
+rebuilding the SessionStart hook as a thin client of the `autoctx`
+daemon defined in [autoctx-cli.md](./autoctx-cli.md).
+
+**Why:** every later phase (PostToolUse routing, slash commands,
+sub-agents with `instructions:` frontmatter, PreToolUse reminders)
+needs a single, host-independent way to obtain projected
+instruction bodies, the disable-aware tool list, and the workspace
+config snapshot. The daemon owns all of that; this phase is what
+teaches the hooks to talk to it.
+
+**Hard prerequisite:** the `autoctx` CLI's *Phase 4 — Daemon +
+`autoctx instructions`* slice must be shippable. This plan does not
+duplicate that work; see
+[autoctx-cli.md](./autoctx-cli.md#phase-4--daemon--autoctx-instructions)
+for the daemon, projector, and corpus-reader implementation.
+Progress on Phase 0a is gated on the CLI's *second validation
+slice* being green end-to-end against a real Claude Code session.
+
+**Steps:**
+
+- **Step 0a.1 — Extract `HookRunner`, `PluginRootResolver`,
+  `WorkspaceContextResolver`, `AutoctxBinaryResolver`.** New `.cts`
+  modules under `src/AutoContext.VsCode/src/hooks/`. Tests:
+  `tests/unit-tests/hooks/hook-runner.test.ts`,
+  `tests/unit-tests/hooks/plugin-root-resolver.test.ts`,
+  `tests/unit-tests/hooks/workspace-context-resolver.test.ts`,
+  `tests/unit-tests/hooks/autoctx-binary-resolver.test.ts` — the
+  binary resolver test covers per-RID layout, missing-binary
+  failure mode, and `${CLAUDE_PLUGIN_ROOT}` precedence.
+- **Step 0a.2 — Build `AutoctxClient` in `Framework.Web`.** Thin
+  pipe-RPC wrapper with `connect()`, `instructions.list()`,
+  `instructions.get(name)`, `instructions.getAll()`,
+  `config.get()`, and `subscribe(channel, listener)`. Spawns
+  `autoctx daemon --workspace <path>` on cold connect. Reuses the
+  pipe-name derivation from the daemon. Tests:
+  `tests/unit-tests/cli/autoctx-client.test.ts` (in-process
+  daemon stub) and a smoke test that launches the real daemon and
+  round-trips `Instructions.List`.
+- **Step 0a.3 — SessionStart as daemon client.**
+  `autocontext-session-start.cts` becomes a thin entry point that
+  instantiates `SessionStartHookRunner extends HookRunner`. The
+  runner:
+  1. Resolves the workspace via `WorkspaceContextResolver`.
+  2. Resolves the bundled `autoctx` binary via
+     `AutoctxBinaryResolver`.
+  3. Connects (or spawns) the workspace's daemon via
+     `AutoctxClient`.
+  4. Calls `Instructions.GetAll` to obtain the projected bodies
+     for every enabled curated file (override-aware,
+     disable-aware — enforced server-side).
+  5. Materialises those bodies into the OS-specific cache
+     directory (`%LOCALAPPDATA%\autocontext\<hash>\` on Windows;
+     `$XDG_CACHE_HOME/autocontext/<hash>/` or
+     `~/.cache/autocontext/<hash>/` on POSIX) so any sub-agents
+     dispatched later in the session can reference them by
+     absolute path. The cache is rewritten in full on every
+     SessionStart — idempotent, no merge logic.
+  6. Emits the always-attached pair as `additionalContext`
+     (today's behaviour, preserved). The bodies come from the
+     same `Instructions.GetAll` response so disabled rules in
+     those files are filtered identically.
+  All daemon errors are swallowed; on failure the runner emits
+  `{}` per the plugin spec. Tests:
+  `tests/unit-tests/hooks/session-start-hook-runner.test.ts` —
+  cases include: daemon-cold-start, daemon-already-running,
+  daemon-unreachable → `{}`, file-disabled → absent from cache,
+  rule-disabled → projected body in cache, override-present →
+  override projected, repeat-run → idempotent cache rewrite.
+- **Step 0a.4 — Bundle `autoctx` into the VSIX.** Wire
+  `build.ps1 Package` to copy the per-RID self-contained `autoctx`
+  binary into `src/AutoContext.VsCode/plugin/cli/<rid>/` ahead of
+  VSIX assembly. The CLI plan's *Distribution* section pins the
+  layout. `.vscodeignore` allows `plugin/cli/**` through. Test:
+  `tests/smoke-tests/plugin-cli-bundling.test.ts` asserts the
+  staged plugin folder contains a runnable `autoctx[.exe]` for
+  the host RID.
+- **Step 0a.5 — Retire on-disk projection in the extension.**
+  Delete `<extensionPath>/instructions/.generated/`,
+  `InstructionsFilesManager`'s projection writes, and
+  `package.json` `chatInstructions` paths into `.generated/`. The
+  extension becomes a daemon client (per the CLI plan's
+  *Projection ownership* section): on activation it connects to
+  the daemon, calls `Instructions.GetAll`, and writes the
+  materialisation cache under
+  `<extensionPath>/instructions.cache/<workspace-hash>/` that the
+  re-pointed `chatInstructions` paths resolve relative to. The
+  cache is rewritten on every `Instructions.Subscribe` event.
+  Tests: `instructions-files-manager.test.ts` is rewritten around
+  the new cache-materialiser role; the projection unit tests move
+  to the daemon's `InstructionsCorpusService` (per the CLI plan).
+- **Step 0a.6 — Build & docs.** `.vscodeignore` excludes
+  `instructions.cache/**` from the VSIX (it's runtime state).
+  Update `docs/architecture.md` with a new *Bundled Agent-Plugin*
+  section describing the daemon-client model + the materialisation
+  cache. Update `src/AutoContext.VsCode/README.md` with the
+  bundled-CLI note.
+
+**What does NOT change:**
+
+- `.autocontext.json` schema and semantics are unchanged. Disable
+  state still lives there and only there.
+- `InstructionsFilesOverrideWatcher` and `.github/instructions/<name>`
+  override semantics are unchanged from the user's perspective —
+  the daemon's `InstructionsCorpusReader` handles the precedence.
+- LM tools (`list_*`, `search_*`, `get_*`) read projected bodies;
+  inside the extension they continue to do so via the cache that
+  Step 0a.5 maintains.
+- Always-attached injection in SessionStart is unchanged in
+  effect; only the body source changes (daemon → hook → envelope
+  instead of bundled-file → hook → envelope).
+
+**Risks:**
+
+- **Daemon unreachable.** If the bundled `autoctx` binary fails to
+  spawn (corrupt VSIX, antivirus quarantine), every hook degrades
+  to `{}`. Mitigation: `AutoctxBinaryResolver` throws clearly on
+  missing binary, hook logs to stderr, packaging validator
+  (Phase 3) asserts the binary's presence.
+- **Cold-start latency on first SessionStart.** Spawning the
+  daemon adds startup cost to the first hook of the first session
+  in a workspace. Subsequent sessions reuse the warm daemon.
+  Measure during smoke-testing; if unacceptable, add a
+  pre-warming step to extension activation so VS Code workflows
+  inherit a warm daemon.
+- **Materialisation-cache permissions.** The OS cache dir is
+  user-writable on every supported platform; failure is unusual
+  but should be logged. Sub-agents cannot dispatch without it.
+- **Sub-agent loader strictness.** Claude hosts may resolve
+  sub-agent `instructions:` paths at install time vs. dispatch
+  time. The materialisation cache exists by SessionStart and is
+  fresh on every session, so dispatch-time resolution is safe;
+  install-time resolution would fail. Smoke-test all three
+  target hosts (VS Code Copilot, Claude Code, Claude Desktop)
+  before Phase 4 ships sub-agents. Fallback: bake a
+  build-time-baseline copy into `plugin/instructions/` for
+  install-time resolvers (would be unprojected; documented as a
+  degraded mode for that host).
 
 ---
 
@@ -88,45 +431,45 @@ unless flagged explicitly.
 runs automatically and the findings come back as `additionalContext`
 for the next turn.
 
-**Why:** today, `analyze_csharp_code` /
-`analyze_typescript_code` / `analyze_nuget_references` /
-`analyze_git_commit_message` exist on the MCP server but only fire
-when the agent decides to invoke them. A hook makes validation
-**inevitable**, not optional.
+**Why:** today the MCP analyzers fire only when the agent chooses to
+invoke them. A hook makes validation **inevitable**, not optional.
 
-**Scope:**
+**Reuse:**
 
-- New hook script
-  `src/AutoContext.VsCode/src/hooks/autocontext-post-tool-use.cts`
-  (companion to the existing SessionStart script, same `.cts → .cjs`
-  build pipeline already implemented in
-  [build.ps1](../../build.ps1)).
-- Triggered for tool names known to write or commit code. Initial
-  matcher list (from the Claude tool naming convention used in the
-  plugin spec): `Write`, `Edit`, `MultiEdit`, plus VS Code Copilot's
-  equivalents (`replace_string_in_file`, `create_file`,
-  `multi_replace_string_in_file`, `edit_notebook_file`). The hook
-  reads the tool's `input` (file path + new content) from stdin per
-  the spec's `PostToolUse` payload shape.
-- Routing table from path → analyzer:
-  - `**/*.cs` → MCP `analyze_csharp_code` (with `originalPath`,
-    `comparedPath` / `projectDirectory` / `rootNamespace` for tests
-    when detectable).
-  - `**/*.{ts,tsx,mts,cts}` → MCP `analyze_typescript_code`.
-  - `**/*.csproj` → MCP `analyze_nuget_references`.
-  - Other paths → no-op (emit `{}` and exit 0).
-- The hook **does not** call MCP directly. It emits a
-  `additionalContext` block with the file path + a note instructing
-  the agent to invoke the matching analyzer. Rationale: the MCP
-  server lives behind a stdio pipe owned by the extension host, so
-  forking a node script to talk to it would race the host's lifecycle
-  and require duplicate spawn logic. Letting the model invoke its
-  existing MCP tool is the correct seam.
-  - Open question: if model latency is a concern, a future iteration
-    can move analyzer dispatch into the hook by calling
-    `AutoContext.Mcp.Server` over a long-lived UDS / named pipe
-    advertised in `additionalContext` at SessionStart. Out of scope
-    for Phase 1.
+- Routing comes from
+  [mcp-workers-registry.json](../../src/AutoContext.Mcp.Server/mcp-workers-registry.json).
+  The hook does **not** carry a duplicate routing table; it reads the
+  registry through the existing
+  [McpToolsManifest](../../src/AutoContext.VsCode/src/mcp-tools-manifest.ts)
+  class (compiled to CJS via the shared-CJS seam from Phase 0a).
+- The hook's runner extends `HookRunner` (Phase 0a).
+- Tool / task disable state comes from the existing
+  [AutoContextConfig.isToolEnabled](../../src/AutoContext.VsCode/src/autocontext-config.ts).
+  See *Existing-Feature Interactions → Required hook / command
+  behaviour*.
+
+**Steps:**
+
+- **Step 1.1 — `PostToolUseRouter`.** New class
+  `src/AutoContext.VsCode/src/hooks/post-tool-use-router.cts`. Given
+  a tool name + input payload, returns
+  `{ analyzer, task?, params } | null` using `McpToolsManifest` plus
+  a small write-tool-name allow-list (`Write`, `Edit`, `MultiEdit`,
+  `replace_string_in_file`, `create_file`,
+  `multi_replace_string_in_file`, `edit_notebook_file`). Skips the
+  routing decision when `AutoContextConfig.isToolEnabled(analyzer,
+  task)` is false. Test:
+  `tests/unit-tests/hooks/post-tool-use-router.test.ts` — covers
+  enabled, tool-disabled, and task-disabled cases.
+- **Step 1.2 — `PostToolUseHookRunner`.** Subclass of `HookRunner`.
+  Composes the router + a `PluginRootResolver`; emits the
+  `additionalContext` envelope. Test:
+  `tests/unit-tests/hooks/post-tool-use-hook-runner.test.ts`.
+- **Step 1.3 — Wire into manifest.** Add `PostToolUse` to
+  `plugin/hooks/hooks.json` and the build's hook-staging block.
+  Test: `tests/smoke-tests/post-tool-use-hook.test.ts` (boots the
+  compiled `.cjs` via `node`, feeds canned PostToolUse payloads,
+  asserts the JSON envelope).
 
 **Hook output shape (PostToolUse spec):**
 
@@ -139,39 +482,26 @@ when the agent decides to invoke them. A hook makes validation
 }
 ```
 
-**Files touched:**
+The hook **does not** call MCP directly — the MCP server lives
+behind the extension host's stdio pipes. The model invokes the
+advertised MCP tool itself; the hook only emits the prompt.
 
-- `src/AutoContext.VsCode/plugin/hooks/hooks.json` — add `PostToolUse`
-  entry alongside the existing `SessionStart`.
-- `src/AutoContext.VsCode/src/hooks/autocontext-post-tool-use.cts` —
-  new.
-- [build.ps1](../../build.ps1) — extend the hook-staging block to
-  copy `dist/hooks/autocontext-post-tool-use.cjs` into
-  `plugin/scripts/`.
-- `src/AutoContext.VsCode/.gitignore` — already covers
-  `plugin/scripts/*.cjs`.
+**Docs:**
 
-**Tests:**
-
-- New unit test:
-  `src/AutoContext.VsCode/tests/unit-tests/hooks/autocontext-post-tool-use.test.ts`
-  driving the hook function-by-function (the extracted helpers
-  `routeToolCall(toolName, input)` →
-  `{ analyzer, params } | null` and `formatAdditionalContext(...)`).
-- Smoke: feed each test path into `node
-  plugin/scripts/autocontext-post-tool-use.cjs` and assert the
-  emitted JSON.
+- `docs/architecture.md` — extend the "Bundled Agent-Plugin" section
+  with a PostToolUse subsection (request → router → envelope).
+- `walkthroughs/tools.md` — mention that analyzer chaining now
+  happens automatically after writes.
 
 **Risks:**
 
 - Tool-name matchers drift as the host renames tools. Mitigation:
-  central matcher list in the script; warn when a `Write`-class tool
-  is observed without a known name (logged via stderr — VS Code
-  surfaces hook stderr in the agent transcript).
+  the allow-list is a class field on `PostToolUseRouter`, covered by
+  the unit test; stderr-logged when an unknown write-class tool is
+  seen.
 - Spammy `additionalContext` if the agent edits many files in one
-  turn. Mitigation: deduplicate by absolute path within the hook
-  invocation (PostToolUse fires once per tool call, but a multi-edit
-  call may carry several paths).
+  turn. Mitigation: `PostToolUseRouter` deduplicates by absolute
+  path within a single invocation.
 
 ---
 
@@ -181,32 +511,58 @@ when the agent decides to invoke them. A hook makes validation
 existing LM / MCP tools so the user gets a one-shot lookup without
 phrasing the right prompt.
 
-**Why:** the four LM-instruction tools and the analyzer MCP tools
-work today but require the user (or model) to phrase the right
-request. Commands are markdown files with frontmatter — nearly free
-to add — and surface those tools as first-class `/`-prefixed
-operations in chat.
+**Why:** today's LM-instruction and analyzer tools require the user
+(or model) to phrase the right request. Commands are markdown files
+with frontmatter — nearly free to add — and surface those tools as
+first-class `/`-prefixed operations in chat.
 
-**Initial command set:**
+**Reuse:**
 
-- `/autocontext-rules <topic>` — wraps
-  `search_autocontext_instructions_files_by_content` and renders the
-  top three hits' headings + section excerpts.
-- `/autocontext-rules-for <path-or-glob>` — wraps
-  `list_autocontext_instructions_files` with `applyTo` set, then
-  `get_autocontext_instructions_file` for each match.
-- `/autocontext-status` — invokes a hook script that returns a
-  snapshot of: MCP server health (via the existing
-  [HealthMonitorServer](../../src/AutoContext.VsCode/src/health-monitor-server.ts)),
-  worker registry state (from the
-  [worker-manager](../../src/AutoContext.VsCode/src/worker-manager.ts)
-  via `worker-control` service address), enabled vs disabled tools
-  (from the `AutoContextConfigSnapshot`), and the loaded
-  instructions count (from `InstructionsFilesManifest`).
-- `/autocontext-check-commit` — runs `analyze_git_commit_message` on
-  whatever message the user pastes after the command.
+- `PluginCommandValidator` (new class, Step 2.1) cross-references
+  the markdown bodies against the existing contributed
+  `languageModelTools` array in
+  [package.json](../../src/AutoContext.VsCode/package.json) and the
+  MCP registry, so command drift fails CI rather than failing
+  silently in chat.
+- Command bodies reference existing tool names only — no parallel
+  implementations.
+- **Export is already a feature.** The
+  [InstructionsFilesExporter](../../src/AutoContext.VsCode/src/instructions-files-exporter.ts)
+  + tree-view export mode is the canonical path to write a curated
+  file into `.github/instructions/` (creating an override).
+  Phase 2 does **not** add a slash-command equivalent — doing so
+  would compete with the existing tree-view UI and the override
+  watcher.
+- **Disabled state is already exposed.** The LM `list_*` and
+  `search_*` tools already report `enabled` / `disabled` per file,
+  and the `/autocontext-status` command surfaces those flags through
+  those existing tools — no parallel state read.
 
-Each command is a single `commands/<name>.md` file containing:
+**Steps:**
+
+- **Step 2.1 — `PluginCommandValidator`.** New class +
+  `tests/unit-tests/plugin/plugin-command-validator.test.ts`.
+- **Step 2.2 — `/autocontext-rules`.** Markdown file under
+  `plugin/commands/`. Wraps
+  `search_autocontext_instructions_files_by_content`. Test:
+  `tests/unit-tests/plugin/commands/autocontext-rules.test.ts`
+  (validator instance + frontmatter assertions).
+- **Step 2.3 — `/autocontext-rules-for`.** Wraps
+  `list_autocontext_instructions_files` +
+  `get_autocontext_instructions_file`. Per-step test.
+- **Step 2.4 — `/autocontext-status`.** Renders a snapshot built
+  entirely from existing model-callable tools: total / enabled
+  instruction-file counts via `list_autocontext_instructions_files`,
+  and a known-MCP-tools list pulled via
+  `search_autocontext_instructions_files_by_metadata`. Internal
+  extension state (health-monitor, worker registry) is **not**
+  exposed here — no LM tool advertises it today, and adding one is
+  out of scope per the non-goals. Per-step test.
+- **Step 2.5 — `/autocontext-check-commit`.** Wraps
+  `analyze_git_commit_message`. Per-step test.
+
+Each command is a single `commands/<name>.md` file. Example shape
+(`/autocontext-rules`):
 
 ```markdown
 ---
@@ -223,85 +579,63 @@ section excerpts. If nothing matches, fall back to
 `list_autocontext_instructions_files` with no filters.
 ```
 
-**Files touched:**
+**Docs:**
 
-- New folder: `src/AutoContext.VsCode/plugin/commands/`.
-- One markdown file per command (4 files initial set).
-- No build-pipeline change — markdown files ship as-is via the VSIX
-  (the plugin folder is already bundled).
-
-**Tests:**
-
-- Smoke test in
-  `src/AutoContext.VsCode/tests/smoke-tests/plugin-commands.test.ts`
-  asserting each command markdown is well-formed (frontmatter parses,
-  required `description` is present).
+- `walkthroughs/welcome.md` — add a slash-command teaser.
+- `docs/architecture.md` — list the contributed commands under the
+  Bundled Agent-Plugin section.
 
 **Risks:**
 
-- Each command's body is a prompt to the model. Drift in tool names
-  breaks them silently. Mitigation: the smoke test parses each
-  markdown body and asserts referenced tool names exist in
-  [package.json](../../src/AutoContext.VsCode/package.json) under
-  `contributes.languageModelTools` plus the MCP registry.
+- Command bodies are prompts; tool-name drift breaks them silently.
+  Mitigated by `PluginCommandValidator` running in unit tests.
 
 ---
 
-### Phase 3 — Plugin-bundled `instructions/` (portability)
+### Phase 3 — Plugin-asset packaging guarantees
 
-**One-line:** copy
-[ALWAYS_ATTACHED_INSTRUCTIONS_FILES](../../src/AutoContext.VsCode/src/always-attached-instructions-files.ts)
-into `plugin/instructions/` so the plugin works under any Claude
-client, not just our VSIX.
+**Status:** the corpus-relocation work is gone (the daemon now owns
+projection in-memory; nothing under `plugin/instructions/` ships).
+This phase enforces that the *remaining* plugin assets — the hooks,
+the bundled `autoctx` binary, and `plugin.json` — are present and
+well-formed in every VSIX.
 
-**Why:** the SessionStart hook today resolves the instructions via
-`path.resolve(__dirname, '..', '..')` to walk up to
-`<extension>/instructions/`. That path layout is specific to our
-VSIX. Claude Code / Desktop installing the same plugin folder
-elsewhere have no `<extension>/instructions/` peer, so the hook
-prints "could not read…" to stderr and emits `{}`.
+**Why:** the hooks are useless without the bundled `autoctx`
+binary (Phase 0a.4); the binary is useless without the hook
+scripts that drive it. A packaging regression in either direction
+would silently produce a VSIX whose hooks return `{}` for every
+session.
 
-**Scope:**
+**Steps:**
 
-- Stage `instructions/copilot.instructions.md` and
-  `instructions/autocontext.instructions.md` into
-  `plugin/instructions/` during build (extend
-  [build.ps1](../../build.ps1) `Build-TypeScript`'s post-compile
-  block, alongside the existing hook-script copy).
-- Update `autocontext-session-start.cts` to read from
-  `${CLAUDE_PLUGIN_ROOT}/instructions/` first, falling back to
-  `<extension>/instructions/` for backward compatibility during the
-  transition.
-- Add `plugin/instructions/*.instructions.md` to
-  [.gitignore](../../src/AutoContext.VsCode/.gitignore) (generated
-  artefacts, like the staged `*.cjs`).
+- **Step 3.1 — `PluginAssetsValidator`.** New class invoked from
+  `build.ps1 Prepare`. Given the staged plugin folder, asserts:
+  - `plugin/.claude-plugin/plugin.json` exists and parses.
+  - `plugin/hooks/hooks.json` exists and parses.
+  - Every `command` referenced in `hooks.json` resolves under
+    `plugin/scripts/` (compiled `.cjs`).
+  - `plugin/cli/<host-rid>/autoctx[.exe]` exists and is
+    executable.
+  - `plugin/instructions/` does **not** exist in the staged
+    plugin folder — the daemon owns projection at runtime; the
+    VSIX must not ship a stale baseline that could be mistaken
+    for current state.
 
-**Files touched:**
+  Test: `tests/unit-tests/plugin/plugin-assets-validator.test.ts`.
+- **Step 3.2 — Hook into build.** Wire the validator into
+  `Build-VscePackage` (or `Prepare`) so packaging fails fast on
+  drift. Test: `tests/smoke-tests/plugin-assets-validation.test.ts`
+  drives the validator against a synthetic broken layout and asserts
+  the build step exits non-zero.
 
-- `build.ps1` — copy block.
-- `src/AutoContext.VsCode/src/hooks/autocontext-session-start.cts` —
-  resolution order.
-- `src/AutoContext.VsCode/.gitignore`.
-- `src/AutoContext.VsCode/.vscodeignore` — verify
-  `plugin/instructions/**` is included (no rule overrides it; the
-  default-include `plugin/**` already covers it; same as for
-  `plugin/scripts/**`).
+**Docs:**
 
-**Tests:**
-
-- The existing smoke test for SessionStart still passes against the
-  bundled-extension layout.
-- New direct-script smoke: run the hook with `CLAUDE_PLUGIN_ROOT`
-  pointed at a temp directory containing only the staged plugin
-  folder, assert the output contains the meta-instructions header.
+- `src/AutoContext.VsCode/README.md` — packaging-guarantees note.
 
 **Risks:**
 
-- File duplication: the same body is shipped twice (under
-  `<extension>/instructions/` and under `plugin/instructions/`).
-  Acceptable: build copies, single source of truth in repo.
-  Document explicitly in the plan and surface a build-time check
-  that the two paths' content matches.
+- The validator must run after asset copy, before VSIX assembly.
+  Misordering would silently no-op.
 
 ---
 
@@ -310,57 +644,63 @@ prints "could not read…" to stderr and emits `{}`.
 **One-line:** ship pre-configured sub-agents with curated tool /
 instruction allow-lists for common roles.
 
-**Why:** with 79 instruction files plus the LM-tool surface, the
-agent has to *find* the right rules every turn. A "Reviewer"
-sub-agent pre-loads the review-relevant subset; a "Test author"
-sub-agent pre-loads the testing stack; etc. The main agent spawns
-the sub-agent when the conversation matches.
+**Why:** with the curated instruction corpus plus the LM-tool
+surface, the agent has to *find* the right rules every turn. A
+sub-agent pre-loads the relevant subset.
 
-**Initial sub-agent set:**
+**Reuse:**
 
-- **`autocontext-reviewer`** — read-only. Pre-loads
-  `code-review.instructions.md` plus language stacks. Tool allow-list:
-  every `read_*` / `analyze_*` / `search_*` / `list_*`. No write
-  tools.
-- **`autocontext-test-author`** — pre-loads `testing.instructions.md`
-  plus the matching test-framework instructions
-  (`web-vitest.instructions.md`, `web-mocha.instructions.md`,
-  `web-playwright.instructions.md`, `dotnet-xunit.instructions.md`,
-  `dotnet-testing.instructions.md`). Write tools enabled.
-- **`autocontext-dotnet-refactor`** — pre-loads
-  `lang-csharp.instructions.md`,
-  `dotnet-coding-standards.instructions.md`,
-  `dotnet-async-await.instructions.md`,
-  `dotnet-core.instructions.md`,
-  `dotnet-performance-memory.instructions.md`,
-  `design-principles.instructions.md`. Tool allow-list: full
-  read/write set + the four C#-related MCP tools.
-- **`autocontext-commit-author`** — pre-loads
+- The `instructions:` frontmatter field of each sub-agent points at
+  files in the per-session materialisation cache that SessionStart
+  writes (Phase 0a.3) — not at `plugin/instructions/`, which no
+  longer exists. The cache path is the OS-specific directory
+  documented in *Required hook / command behaviour*. The daemon is
+  the source of truth; the cache is a host-local materialisation
+  for hosts that need static paths.
+- `SubAgentDefinitionValidator` (Step 4.1) shares the frontmatter
+  parser with `PluginCommandValidator` (Phase 2): one parsing class,
+  two validator classes that consume it.
+
+**Steps:**
+
+- **Step 4.1 — `SubAgentDefinitionValidator`.** Validates frontmatter
+  shape, that every `tools` entry exists in the LM-tool list or MCP
+  registry, and that every `instructions` entry resolves to a name
+  that the daemon would materialise (i.e. is present in
+  `Instructions.List`). The validator runs at build time against a
+  daemon-stub list; it does not require a running daemon. Test:
+  `tests/unit-tests/plugin/sub-agent-definition-validator.test.ts`.
+- **Step 4.2 — `autocontext-reviewer`.** Read-only sub-agent;
+  pre-loads `code-review.instructions.md` plus language stacks.
+  Tool allow-list: every `read_*` / `analyze_*` / `search_*` /
+  `list_*`. No write tools. Per-step test.
+- **Step 4.3 — `autocontext-test-author`.** Pre-loads
+  `testing.instructions.md` plus the matching test-framework
+  instructions. Write tools enabled. Per-step test.
+- **Step 4.4 — `autocontext-dotnet-refactor`.** Pre-loads the C# /
+  .NET stack. Full read/write set + the four C#-related MCP tools.
+  Per-step test.
+- **Step 4.5 — `autocontext-commit-author`.** Pre-loads
   `git-commit-format.instructions.md`. Tool allow-list:
-  `analyze_git_commit_message` plus read tools. No write.
+  `analyze_git_commit_message` plus read tools. No write. Per-step
+  test.
 
-Each sub-agent is a `agents/<name>.md` markdown file with frontmatter
-declaring its `description`, `tools`, and `instructions` (the spec
-fields per the Claude plugin docs).
+Each sub-agent is a single `agents/<name>.md` markdown file with
+frontmatter declaring its `description`, `tools`, and `instructions`
+(the spec fields per the Claude plugin docs).
 
-**Files touched:**
+**Docs:**
 
-- `src/AutoContext.VsCode/plugin/agents/` (new folder, 4 markdown
-  files).
-
-**Tests:**
-
-- Frontmatter validation as for slash commands.
-- Tool-name allow-lists cross-checked against the actual contributed
-  LM tools and MCP registry.
+- `walkthroughs/instructions.md` — mention the sub-agent presets.
+- `docs/architecture.md` — list the agents under the Bundled
+  Agent-Plugin section.
 
 **Risks:**
 
 - Sub-agent invocation is host-dependent — VS Code Copilot may not
-  honour the spec's `agents/` field today. Mitigation: ship the
-  files anyway; they're inert when the host doesn't read them, and
-  fully active when run under Claude Code. Worst case = no harm.
-  Verify experimentally before committing to the test list.
+  honour the spec's `agents/` field today. Files are inert in
+  non-supporting hosts; active under Claude Code. Verify
+  experimentally before promising end-user behaviour in docs.
 
 ---
 
@@ -370,51 +710,72 @@ fields per the Claude plugin docs).
 relevant instruction file has been read this session, and if not,
 inject a one-line reminder.
 
-**Why:** the SessionStart hook already injects the meta-instructions,
-but for files in less-common languages / contexts (e.g. PowerShell,
-YAML, SQL), the agent may write without consulting the matching
-instruction file. PreToolUse can detect "you're about to write a
-`*.ps1` and you have not invoked `get_autocontext_instructions_file`
-for `lang-powershell.instructions.md` yet" and inject:
+**Why:** the SessionStart hook injects the always-attached
+meta-instructions, but for files in less-common languages (e.g.
+PowerShell, YAML, SQL), the agent may write without consulting the
+matching instruction file. PreToolUse can detect "you're about to
+write a `*.ps1` and you have not invoked
+`get_autocontext_instructions_file` for
+`lang-powershell.instructions.md` yet" and inject a one-line nudge.
 
-> Before writing, call `get_autocontext_instructions_file` with
-> `name: lang-powershell.instructions.md`.
+**Reuse:**
 
-**Scope:**
+- Glob matching is
+  [InstructionsFilesLmToolsApplyToMatcher](../../src/AutoContext.VsCode/src/instructions-files-lm-tools-apply-to-matcher.ts)
+  — the same class the LM-tool list handler uses. Reused via the
+  shared CJS seam from Phase 0a.
+- Metadata, enabled state, and override flags come from the daemon
+  via `Instructions.List` (one round-trip per hook invocation).
+  The hook never reads `.autocontext.json`,
+  `resources/instructions-files.metadata.json`, or any file under
+  `plugin/instructions/` (which doesn't exist) — those are owned
+  by the daemon's `InstructionsCorpusService`.
+- The `ALWAYS_ATTACHED_INSTRUCTIONS_FILES_SET` constant is the
+  initial-ledger contents — one source of truth for "already
+  attached".
+- Disabled-instruction state and override state are surfaced by
+  `Instructions.List` directly (each entry carries `enabled` and
+  `overridden` flags). The reminder lookup skips disabled entries
+  and still fires for overridden ones — the override is still an
+  instruction file the model should consult; only the projected
+  body the model later fetches differs.
 
-- New hook
-  `src/AutoContext.VsCode/src/hooks/autocontext-pre-tool-use.cts`.
-- Maintain a session-scoped in-memory record of which instruction
-  files have been read. Implementation: write a small ledger to a
-  per-session temp file (path passed via the hook's `session_id`
-  field per the spec; falls back to a hash if unavailable).
-- Map `target file extension/glob → instruction-file name(s)` from
-  the metadata's `applyTo` glob (read from
-  [resources/instructions-files.metadata.json](../../src/AutoContext.VsCode/resources/instructions-files.metadata.json)
-  — the same metadata the LM-tool surface uses).
-- Skip the reminder if the file matched is a non-source artefact
-  (lock files, binaries) or if all matching instruction files have
-  already been read this session.
+**Steps:**
 
-**Files touched:**
+- **Step 5.1 — `SessionLedger`.** Class persisting per-session
+  "already-read instruction files" state to a temp file keyed by the
+  hook's `session_id`. Test:
+  `tests/unit-tests/hooks/session-ledger.test.ts`.
+- **Step 5.2 — `PreToolUseInstructionLookup`.** Class composing
+  `ApplyToMatcher` + `AutoctxClient.instructions.list()` to map a
+  write-target path to the instruction-file names that should have
+  been read first. Skips non-source artefacts (lock files,
+  binaries), entries already in the ledger, and entries reported
+  as disabled by the daemon. Test:
+  `tests/unit-tests/hooks/pre-tool-use-instruction-lookup.test.ts`.
+- **Step 5.3 — `PreToolUseHookRunner`.** Subclass of `HookRunner`.
+  Composes the ledger + lookup; emits `additionalContext` only when
+  there is something unread. Also subscribes (best-effort) to
+  `Instructions.Subscribe` for the duration of the hook to
+  re-materialise the SessionStart cache when the daemon reports a
+  config change — mitigates Claude-host mid-session staleness. Test:
+  `tests/unit-tests/hooks/pre-tool-use-hook-runner.test.ts`.
+- **Step 5.4 — Wire into manifest.** Add `PreToolUse` to
+  `plugin/hooks/hooks.json`. Test:
+  `tests/smoke-tests/pre-tool-use-hook.test.ts`.
 
-- `plugin/hooks/hooks.json` — add `PreToolUse`.
-- `src/AutoContext.VsCode/src/hooks/autocontext-pre-tool-use.cts` —
-  new.
-- `build.ps1` — copy block (same pattern).
-- `src/AutoContext.VsCode/src/hooks/session-ledger.cts` — shared
-  helper between Pre/Post hooks.
+**Docs:**
+
+- `walkthroughs/instructions.md` — explain the reminder behaviour.
+- `docs/architecture.md` — PreToolUse subsection.
 
 **Risks:**
 
-- **Premature reminder noise.** If the model already had the file
-  injected at SessionStart (those two are always-attached), the
-  reminder for them is redundant. Mitigation: bake
-  `ALWAYS_ATTACHED_INSTRUCTIONS_FILES` into the ledger initially.
-- **Wrong-direction nag.** If the model is reading a `*.ts` file
-  but writing a `*.json`, we should reason about the *write target*
-  not the *read context*. Mitigation: hook only fires on writes;
-  matches against the write target's path.
+- **Premature reminder noise.** Always-attached files are seeded into
+  the ledger at session start (Step 5.1); reminding for them would be
+  redundant.
+- **Wrong-direction nag.** Hook fires on writes only and matches the
+  write target's path, not the read context.
 
 ---
 
@@ -428,82 +789,86 @@ analyzer tools when they install the plugin folder.
 [McpServerProvider](../../src/AutoContext.VsCode/src/mcp-server-provider.ts)
 — invisible to other Claude hosts. The plugin spec lets us declare
 the same server in `plugin.json`'s `mcpServers` field, making the
-five analyzer tools available wherever Claude consumes the plugin.
+analyzer tools available wherever Claude consumes the plugin.
 
-**Scope:**
+**Reuse:**
 
-- Add `mcpServers` to `plugin/.claude-plugin/plugin.json`. The
-  binary name is per-platform (`AutoContext.Mcp.Server.exe` on
-  Windows, `AutoContext.Mcp.Server` elsewhere — VS Code's
-  `McpServerProvider` derives this with `process.platform === 'win32'
-  ? '.exe' : ''`); the plugin manifest is static JSON, so we ship
-  one VSIX per RID and bake the matching name into each:
+- Per-RID `plugin.json` is generated by a new
+  `PluginManifestGenerator` class — same pattern and naming as
+  [package-instructions-manifest-generator.ts](../../src/AutoContext.VsCode/src/package-instructions-manifest-generator.ts)
+  and
+  [instructions-files-metadata-generator.ts](../../src/AutoContext.VsCode/src/instructions-files-metadata-generator.ts).
+  No new build framework.
+- The binary name token (`process.platform === 'win32' ? '.exe' :
+  ''`) is already encoded in `McpServerProvider`; the generator
+  imports the same helper rather than duplicating the rule.
 
-  ```jsonc
-  // plugin.json shipped in the win32-x64 VSIX
-  {
-      "name": "autocontext",
-      "description": "...",
-      "author": { "name": "2site.net" },
-      "mcpServers": {
-          "autocontext-mcp-server": {
-              "command": "${CLAUDE_PLUGIN_ROOT}/../servers/AutoContext.Mcp.Server/AutoContext.Mcp.Server.exe",
-              "args": []
-          }
-      }
-  }
-  ```
+**Steps:**
 
-- The path token resolves at plugin-runtime to the same per-platform
-  binary the VS Code `McpServerProvider` already spawns (different
-  arg set, since the plugin-spawned server has no extension to talk
-  to — runs with a plain stdio surface, no `--service` channels).
-- Implementation note: the per-RID `plugin.json` is generated during
-  packaging, not committed. Add the generation to the existing
-  multi-platform packaging step in [build.ps1](../../build.ps1)
-  (`Build-VscePackage`).
+- **Step 6.1 — `PluginManifestGenerator`.** New class that reads a
+  template `plugin.json` (committed) plus the target RID and writes
+  the per-RID `plugin.json` into the staged plugin folder. Test:
+  `tests/unit-tests/plugin/plugin-manifest-generator.test.ts`.
+- **Step 6.2 — Hook into `Build-VscePackage`.** Generator runs after
+  `.NET` publish, before VSIX assembly. Test:
+  `tests/smoke-tests/plugin-manifest-generator.test.ts` (drives the
+  generator across all supported RIDs against fixture inputs).
+- **Step 6.3 — Cross-host smoke.** A test that boots
+  `AutoContext.Mcp.Server[.exe]` directly with no `--service`
+  arguments and asserts it advertises the analyzer tools without
+  crashing.
+
+Example generated manifest (win32-x64 VSIX):
+
+```jsonc
+{
+    "name": "autocontext",
+    "description": "...",
+    "author": { "name": "2site.net" },
+    "mcpServers": {
+        "autocontext-mcp-server": {
+            "command": "${CLAUDE_PLUGIN_ROOT}/cli/win-x64/autoctx.exe",
+            "args": ["service", "mcp://plugin"]
+        }
+    }
+}
+```
+
+The `command` resolves through the same per-RID `cli/<rid>/autoctx`
+layout that Phase 0a.4 established for the daemon — one bundled
+binary serves both roles. `autoctx service mcp://...` (per
+[autoctx-cli.md](./autoctx-cli.md)) is the documented launcher for
+the MCP server in standalone mode.
 
 **Critical constraint:** the embedded VS Code path keeps using
 `McpServerProvider` so the existing `--service log=…`,
 `--service health-monitor=…`, `--service worker-control=…`,
 `--service extension-config=…` channels remain intact. The plugin
-manifest only registers the server for **non-VS-Code hosts**; in VS
-Code, Copilot's MCP picker may show a duplicate. Coordinate with the
-plan in
+manifest only registers the server for **non-VS-Code hosts**.
+Coordinate with
 [mcp-tool-registration-suppression.md](mcp-tool-registration-suppression.md):
-when the suppression flag is implemented, the embedded server (and
-only that one) suppresses tool registration; the plugin-launched
-server remains the canonical surface for non-VS-Code clients.
+when the suppression flag is implemented, the embedded server
+suppresses tool registration; the plugin-launched server remains
+the canonical surface for non-VS-Code clients.
 
-**Files touched:**
+**Docs:**
 
-- `plugin/.claude-plugin/plugin.json` — add `mcpServers`.
-
-**Tests:**
-
-- Manual: install the plugin folder under Claude Desktop; confirm
-  the five analyzer tools appear.
-- Automated: a smoke test that boots
-  `AutoContext.Mcp.Server.exe` directly (no `--service` args) and
-  confirms it advertises the five tools without crashing.
+- `README.md` — add a one-liner that AutoContext analyzer tools are
+  available outside VS Code via Claude plugin install.
+- `docs/architecture.md` — update the Bundled Agent-Plugin section
+  with the cross-IDE MCP path.
 
 **Risks:**
 
-- **Path resolution.** `${CLAUDE_PLUGIN_ROOT}` resolves to the
-  plugin folder, but the .NET binary is staged under
-  `<extension>/servers/AutoContext.Mcp.Server/`, which is *outside*
-  the plugin folder. The relative path `../../servers/...` works
-  inside our VSIX but is brittle if Claude Desktop installs the
-  plugin somewhere not adjacent to a server folder. Mitigation:
-  ship the server binary **inside** `plugin/` for non-VSIX consumers
-  (would balloon the plugin folder ~50 MB). Decision deferred to
-  Phase 6 implementation; may pick "VSIX-only for now".
-- **Tool duplication inside VS Code.** Until the suppression flag
-  lands, both the embedded and the plugin-spawned server expose the
-  same tools, doubling the MCP picker entries. Mitigation: don't
-  ship Phase 6 until
-  [mcp-tool-registration-suppression.md](mcp-tool-registration-suppression.md)
-  is implemented. Phase 6 is **gated on that plan**.
+- **Path resolution.** Resolved — the bundled
+  `${CLAUDE_PLUGIN_ROOT}/cli/<rid>/autoctx` layout is
+  plugin-relative and host-installation-agnostic, so the manifest
+  works wherever the plugin folder lands. Phase 0a.4 ships the
+  same binary for the daemon, so there is one source for the
+  binary and one packaging step that validates it (Phase 3).
+- **Tool duplication inside VS Code** until the suppression flag
+  lands. Phase 6 is **gated on**
+  [mcp-tool-registration-suppression.md](mcp-tool-registration-suppression.md).
 
 ---
 
@@ -538,8 +903,8 @@ SessionStart) generalises:
    `!dist/**` allows the rest of `dist/` to ship as today; the
    plugin folder ships normally.
 
-Phases 1 and 5 add new `.cts` files. Phase 3 adds a markdown-copy
-step. Phases 2 and 4 add only static markdown — no compile.
+Phases 1 and 5 add new `.cts` files. Phase 0a does the markdown
+move (no compile step). Phases 2 and 4 add only static markdown.
 
 ### Versioning
 
@@ -561,8 +926,8 @@ Phases that ship inert files in non-supporting hosts (no harm done):
 - **Phase 2** — `commands/` files.
 - **Phase 4** — `agents/` files.
 
-Phase 3 changes hook script behaviour but preserves the
-`<extension>/instructions/` fallback; safe for existing hosts.
+Phase 3 changes the build pipeline to enforce the canonical layout;
+no host-visible behaviour change.
 
 ## Risks (Plan-Level)
 
@@ -580,23 +945,49 @@ Phase 3 changes hook script behaviour but preserves the
   if a phase doesn't pull its weight, it can be removed without
   affecting others.
 
+## Documentation Touch List
+
+| Doc | Phase(s) | What changes |
+|-----|----------|--------------|
+| `README.md` (root) | 6 | One-liner that AutoContext analyzer tools are available outside VS Code via Claude plugin install. |
+| `src/AutoContext.VsCode/README.md` | 0a, 3 | Bundled `autoctx` CLI + daemon-client hook model + packaging guarantees. |
+| `docs/architecture.md` | 0a, 1, 2, 4, 5, 6 | New "Bundled Agent-Plugin" section, updated incrementally per phase. |
+| `walkthroughs/welcome.md` | 2 | Slash-command teaser. |
+| `walkthroughs/tools.md` | 1 | Automatic analyzer chaining after writes. |
+| `walkthroughs/instructions.md` | 4, 5 | Sub-agent presets + PreToolUse reminder. |
+
+Docs land in the same step that ships the surface they describe —
+never as a separate doc-only commit.
+
 ## Files Likely Touched (across all phases)
 
 ```
-src/AutoContext.VsCode/plugin/.claude-plugin/plugin.json   (Phase 6)
-src/AutoContext.VsCode/plugin/hooks/hooks.json             (Phases 1, 5)
-src/AutoContext.VsCode/plugin/commands/<name>.md           (Phase 2 — new)
-src/AutoContext.VsCode/plugin/agents/<name>.md             (Phase 4 — new)
-src/AutoContext.VsCode/plugin/instructions/                (Phase 3 — staged)
-src/AutoContext.VsCode/plugin/scripts/                     (generated, all phases)
-src/AutoContext.VsCode/src/hooks/autocontext-post-tool-use.cts  (Phase 1 — new)
-src/AutoContext.VsCode/src/hooks/autocontext-pre-tool-use.cts   (Phase 5 — new)
-src/AutoContext.VsCode/src/hooks/session-ledger.cts             (Phase 5 — new)
-build.ps1                                                  (Phases 1, 3, 5)
-src/AutoContext.VsCode/.gitignore                          (Phase 3)
-src/AutoContext.VsCode/.vscodeignore                       (Phase 3 — verify)
-src/AutoContext.VsCode/tests/unit-tests/hooks/             (Phases 1, 5)
-src/AutoContext.VsCode/tests/smoke-tests/plugin-commands.test.ts  (Phase 2)
+src/AutoContext.VsCode/plugin/.claude-plugin/plugin.json     (Phase 6 — generated)
+src/AutoContext.VsCode/plugin/hooks/hooks.json               (Phases 1, 5)
+src/AutoContext.VsCode/plugin/commands/<name>.md             (Phase 2 — new)
+src/AutoContext.VsCode/plugin/agents/<name>.md               (Phase 4 — new)
+src/AutoContext.VsCode/plugin/cli/<rid>/autoctx[.exe]        (Phase 0a — bundled per-RID, copied at package time)
+src/AutoContext.VsCode/plugin/scripts/                       (generated, all phases)
+src/AutoContext.VsCode/src/hooks/hook-runner.cts             (Phase 0a — new)
+src/AutoContext.VsCode/src/hooks/plugin-root-resolver.cts    (Phase 0a — new)
+src/AutoContext.VsCode/src/hooks/workspace-context-resolver.cts (Phase 0a — new)
+src/AutoContext.VsCode/src/hooks/autoctx-binary-resolver.cts (Phase 0a — new)
+src/AutoContext.VsCode/src/hooks/session-start-hook-runner.cts (Phase 0a — refactor; daemon client + cache materialiser)
+src/AutoContext.VsCode/src/instructions-files-manager.ts     (Phase 0a — refactor: daemon client; rewrites <extensionPath>/instructions.cache/<hash>/)
+src/AutoContext.Framework.Web/src/cli/autoctx-client.ts      (Phase 0a — new; shared pipe RPC client)
+src/AutoContext.VsCode/src/hooks/post-tool-use-router.cts    (Phase 1 — new)
+src/AutoContext.VsCode/src/hooks/post-tool-use-hook-runner.cts (Phase 1 — new)
+src/AutoContext.VsCode/src/hooks/pre-tool-use-instruction-lookup.cts (Phase 5 — new)
+src/AutoContext.VsCode/src/hooks/pre-tool-use-hook-runner.cts (Phase 5 — new)
+src/AutoContext.VsCode/src/hooks/session-ledger.cts          (Phase 5 — new)
+src/AutoContext.VsCode/src/plugin-command-validator.ts       (Phase 2 — new)
+src/AutoContext.VsCode/src/plugin-assets-validator.ts        (Phase 3 — new)
+src/AutoContext.VsCode/src/sub-agent-definition-validator.ts (Phase 4 — new)
+src/AutoContext.VsCode/src/plugin-manifest-generator.ts      (Phase 6 — new)
+build.ps1                                                    (Phases 0a, 1, 3, 5, 6)
+src/AutoContext.VsCode/tests/unit-tests/hooks/               (Phases 0a, 1, 5)
+src/AutoContext.VsCode/tests/unit-tests/plugin/              (Phases 2, 3, 4, 6)
+src/AutoContext.VsCode/tests/smoke-tests/                    (Phases 0a, 1, 3, 5, 6)
 ```
 
 ## Cross-References
@@ -611,14 +1002,17 @@ src/AutoContext.VsCode/tests/smoke-tests/plugin-commands.test.ts  (Phase 2)
 - [docs/future/autoctx-cli.md](autoctx-cli.md) — non-VS-Code host
   context for Phase 6.
 - [src/AutoContext.VsCode/src/always-attached-instructions-files.ts](../../src/AutoContext.VsCode/src/always-attached-instructions-files.ts)
-  — Phase 3 source list.
+  — Phase 0a source list.
 - [src/AutoContext.Mcp.Server/mcp-workers-registry.json](../../src/AutoContext.Mcp.Server/mcp-workers-registry.json)
   — Phase 1 and Phase 2 reference this for analyzer name + parameter
   shape.
 
 ## Status
 
-- **Phase 0 (shipped):** SessionStart hook, plugin scaffolding,
-  installer.
+- **Phase 0 (shipped):** SessionStart hook (free-function form),
+  plugin scaffolding, installer.
+- **Phase 0a (prep, prerequisite):** convert hooks into `autoctx`
+  daemon clients; bundle `autoctx` in the VSIX. Lands before
+  Phase 1. Itself gated on the CLI plan's daemon slice.
 - **Phases 1–6:** not started. Each ships independently when it
   reaches the top of the queue.
