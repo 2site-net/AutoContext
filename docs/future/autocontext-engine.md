@@ -377,6 +377,9 @@ See [Resource manifests](#resource-manifests).
 | **P5** | On-disk path ownership is explicit and exclusive |
 | **P6** | Subscriptions are first-class; clients never poll or watch |
 | **P7** | Two-layer matching: coarse on the producer, fine on the consumer |
+| **P8** | Async I/O end-to-end; no sync-over-async, no blocking on hot paths |
+| **P9** | Concurrent reads, single-writer per resource, snapshot-immutable across reloads |
+| **P10** | In-process async hooks are single-subscriber; cross-process fan-out is `*.Subscribe` |
 
 See [Design principles (cross-cutting)](#design-principles-cross-cutting).
 
@@ -2088,6 +2091,184 @@ uses its host-native matcher unchanged.
   structure is engine-internal (P3); the client receives the raw
   source and matches it with native semantics.
 
+### P8. Async I/O end-to-end; no sync-over-async, no blocking on hot paths
+
+Every transport, every handler, every storage touch on every hot
+path is `async`/`await` from the public entry point down to the OS
+call. The engine is a long-lived process serving many concurrent
+clients over four pipes (plus optional MCP/stdio); a single
+`Task.Wait()`, `.Result`, `GetAwaiter().GetResult()`, or otherwise
+synchronous read against a pipe or file handle on a request path
+deadlocks the dispatcher and starves every other connection. The
+rule applies symmetrically to clients (`AutoContext.Framework.Client`,
+the TS `AutoctxClient`, the CLI binary).
+
+- **Pipe I/O is async.** Accept loops use
+  `WaitForConnectionAsync`; reads/writes use `ReadAsync` /
+  `WriteAsync` against the pipe (or Unix-socket) stream. The
+  client side mirrors this on `ConnectAsync` and the per-pipe
+  reader/writer loops.
+- **Cancellation is propagated, never swallowed.** Every async
+  method takes a `CancellationToken` and forwards it down. The
+  engine binds one root token to process shutdown (SIGINT,
+  SIGTERM, idle-gate fire) and derives per-RPC tokens off it; the
+  CLI binds one to `Console.CancelKeyPress` + `AppDomain.ProcessExit`
+  and forwards it through `await foreach` for every streaming
+  verb. RPC dispatchers wire each request's framing-level
+  cancellation signal to the handler's `CancellationToken`
+  (`McpTools.Invoke` is the seed case; every `*.Subscribe`
+  channel follows the same shape).
+- **Streaming RPCs are `IAsyncEnumerable<T>`-shaped.** Every
+  `*.Subscribe` / `Tail*` / `Logs.*` channel emits one envelope at
+  a time, drained by `await foreach` on the consumer; producers
+  never materialise the full sequence in memory and consumers
+  never bulk-await it. The cold-start snapshot frame (P6) and any
+  follow-on deltas share the same iterator.
+- **File I/O on hot paths is async too.** Reading
+  `.autocontext.json`, writing it after a toggle, appending to
+  `engine.log` / `worker-<workerId>.log`, and rotating any log
+  file all run through the async filesystem APIs. The startup
+  sweep and shutdown sweep (see `### Housekeeping`) are
+  one-shots running off the request path, so they may use
+  synchronous filesystem APIs without affecting any in-flight
+  RPC — that exemption is narrow and named, not a general
+  licence.
+- **The one allowed synchronous call is process-bootstrap.** A
+  small block before pipe-bind (argv parse, `EngineOptions`
+  build, `Resources/` manifest deserialise) runs synchronously
+  because there is nothing to interleave it with yet. Once the
+  pipes are bound, every code path is async.
+- **No sleep-loops, no `Thread.Sleep`.** Retry, backoff, and
+  grace periods use `Task.Delay(..., cancellationToken)` so a
+  shutdown signal preempts them immediately.
+
+### P9. Concurrent reads, single-writer per resource, snapshot-immutable across reloads
+
+State the engine owns is read concurrently by many clients across
+many transports; writes are rare and serialised. The engine never
+holds a lock across an RPC, never serialises read traffic behind a
+write, and never lets a corpus reload tear a read in flight.
+
+- **Reads are concurrent and lock-free.** `Instructions.List`,
+  `Instructions.Get*`, `Config.Get`, `Workspace.*`, `McpTools.List`,
+  `Discovery.RouteForPrompt`, and every `*.Subscribe` snapshot
+  frame read from an immutable snapshot pointer. No reader takes
+  a lock; no reader blocks another reader.
+- **Writes are single-writer per resource and atomic.** The
+  resources the engine owns at runtime are the **config**
+  (`.autocontext.json`) and the **corpus** (in-memory projection).
+  Each has one writer:
+  - **Config writes** (`Config.ToggleFile`, `Config.ToggleRule`)
+    serialise on one in-process writer guarded by an
+    async-compatible mutex (e.g. `SemaphoreSlim.WaitAsync`, never
+    a `lock` statement — `lock` would forbid the `await`s the
+    writer needs, see P8). The writer mutates the on-disk file
+    under `FileShare.None` with exponential-backoff retry,
+    refreshes the in-memory snapshot pointer with a single
+    atomic store, then releases the mutex and fires
+    `Config.Subscribe` / re-evaluates `Instructions.*`
+    `disabled` flags.
+  - **Corpus reloads** (re-parsing bundled / override markdown,
+    rebuilding `InstructionsContentIndex`, recomputing
+    projection) run on one in-process reloader that builds the
+    next snapshot off the read path, then atomically swaps the
+    snapshot pointer and increments the generation counter.
+    Readers in flight against the previous snapshot finish
+    against it; readers arriving after the swap see the new
+    snapshot. There is no half-applied state on either side of
+    the swap.
+- **Snapshots are immutable.** Every published snapshot
+  (config view, corpus projection, content index, MCP-tool
+  catalogue, `Workspace.Detect` result) is a frozen value: no
+  field on a published snapshot is ever mutated in place. The
+  generation counter on `Engine.Lifecycle.reloaded` is the only
+  invalidation signal clients need.
+- **Subscription fan-out is non-blocking and bounded per
+  subscriber.** Tightens P6: every `*.Subscribe` channel
+  (`Config.Subscribe`, `Instructions.Subscribe`,
+  `Engine.Lifecycle.Subscribe`, `Agent.Events.Subscribe`,
+  `Logs.Tail*`, the raw `logs` pipe) writes through a
+  per-subscriber bounded send buffer. A subscriber that cannot
+  drain in time is disconnected with a terminal
+  `{ kind: "evicted", reason: "slow-subscriber" }` frame (logs)
+  or a clean stream close (every other channel); a slow
+  subscriber **never** back-pressures the producer, the snapshot
+  swap, or any other subscriber. The principle is universal
+  across pipes and across RPC streams.
+- **Hot paths never wait on housekeeping.** The startup sweep and
+  shutdown sweep run off the request path (before any pipe
+  accepts, after every pipe closes). Idle-gate evaluation is a
+  cheap timer tick, not a poll across handlers. No request
+  handler ever waits on a sweep, a sweep ever waits on a
+  request, or either ever waits on the other.
+
+### P10. In-process async hooks are single-subscriber; cross-process fan-out is `*.Subscribe`
+
+Two distinct shapes for "notify someone something happened", chosen
+by **process boundary × cardinality** — never blurred, never
+mixed:
+
+- **Async callback hook** — options-pattern, **single subscriber**,
+  in-process. Used on `EngineOptions`, `ClientOptions`, and any
+  analogous configuration seam where the embedder wants the
+  engine or client library to call back into the embedder's own
+  code. Shape:
+  - One delegate slot, awaitable, async-shaped from the
+    declaration: `Func<TContext, CancellationToken, ValueTask>?`
+    (or the `Task`-returning equivalent if `ValueTask` is
+    inappropriate locally — pick once per framework, don't mix).
+  - A `HasDelegate` check so the producer can skip work
+    (building notification payloads, snapshotting state) when
+    no hook is registered. The producer **must** consult
+    `HasDelegate` before doing any work that exists solely to
+    feed the callback.
+  - Null-safe invocation: invoking an unset hook is a no-op,
+    not an NRE.
+  - Cancellation rides the `CancellationToken` argument (P8);
+    exceptions propagate to the awaiter, where the producer
+    decides whether to fail the surrounding operation or
+    isolate the hook failure.
+- **Subscription channel** — server-streaming RPC, **many
+  subscribers**, cross-process. Used for every observable engine
+  state that more than one client needs to learn about. Shape is
+  fixed by P6 and P9: `*.Subscribe` returning an `IAsyncEnumerable`
+  of envelopes, snapshot-on-subscribe, generation counter,
+  per-subscriber bounded buffer with slow-subscriber eviction.
+
+The line is **process boundary × cardinality**. Anything that
+crosses a pipe is a subscription. Anything that fires once inside
+one process to notify the embedder's own code is an async
+callback hook.
+
+- **Classic multicast `event` / `EventHandler` is forbidden in
+  framework code.** It is neither async-shaped nor
+  `HasDelegate`-shaped, and every place it would be tempting one
+  of the two patterns above is the right answer. The ban applies
+  to `AutoContext.Framework*`, `AutoContext.Engine`, the CLI
+  binary, the worker shared library, and the TS `AutoctxClient`
+  (which has no `event` analogue anyway — the rule is recorded
+  for symmetry).
+- **No in-process listener pools.** A `List<Func<...>>` of
+  callbacks inside the engine or client is **not** allowed —
+  that is `*.Subscribe`'s job, done correctly cross-process with
+  the buffering and eviction rules above. If a single async
+  callback hook is not enough, the answer is a subscription
+  channel, not a hand-rolled multicast.
+- **One signature shape per framework boundary.** Pick the
+  delegate signature for the async callback hook (return type,
+  whether the `CancellationToken` is a separate parameter or
+  carried inside `TContext`) once for `AutoContext.Framework` and
+  reuse it everywhere — `EngineOptions`, `ClientOptions`,
+  `WorkerOptions`, future options bags. The wrapper type is an
+  implementation choice; the signature shape is a design
+  invariant.
+
+Validator: every `EngineOptions.OnX` / `ClientOptions.OnX` /
+`WorkerOptions.OnX` slot in framework code is a hook wrapper, not
+a raw `Func<>` and not an `event`. Every observable engine state
+worth notifying *more than one* client about has a `*.Subscribe`
+RPC; nothing else.
+
 ## Composition contracts
 
 Only two surfaces from the composition layer are part of the design;
@@ -2105,7 +2286,10 @@ owns.
   `### Engine options`; everything else is reachable only through
   in-process composition. See that section for the rejection rule
   and the rationale for keeping pipe-name override off the binary's
-  argv (P4).
+  argv (P4). Any async-callback hooks that future revisions add to
+  `EngineOptions` / `ClientOptions` follow P10's single-subscriber
+  shape (see `### P10`); they are **not** classic .NET `event`
+  slots.
 - **`AutoctxClient` (TS, `Framework.Web/src/cli/`)** is the only
   shared TS class. Plain class, no DI container, constructed with
   `new` and a workspace path. Speaks the same wire protocol the

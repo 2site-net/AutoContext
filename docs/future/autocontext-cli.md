@@ -224,6 +224,24 @@ What is **deliberately not** in the CLI:
   blocks on it (the engine spawn is `start /b`-style detached, see
   *Cold-start protocol*), so SIGINT only stops the in-flight RPC,
   not the engine.
+- **Async end-to-end.** Every verb runs on the .NET async stack
+  from `Program.Main` (returning `Task<int>`) down to the pipe
+  read/write — no `.Result`, no `.Wait()`, no
+  `GetAwaiter().GetResult()` anywhere on the request path. The
+  CLI mirrors the engine's P8 (see
+  [autocontext-engine.md → P8](./autocontext-engine.md#p8-async-io-end-to-end-no-sync-over-async-no-blocking-on-hot-paths)).
+  Streaming verbs (`instructions watch`, `engine logs --follow`,
+  any `*.Subscribe` consumer) drain the wire stream with
+  `await foreach` over an `IAsyncEnumerable<T>` of envelopes, emit
+  each record as soon as it arrives, and unwind cleanly on
+  cancellation — no "buffer the world, then print", no hangs on
+  the underlying channel read. Snapshot verbs (`config get`,
+  `instructions list`, `workspace info`, …) issue one async RPC
+  and exit; the dial-only-what-you-need rule keeps the connect
+  cost proportional to the verb. Retry and backoff inside the
+  cold-start protocol use `Task.Delay(..., cancellationToken)` so
+  a Ctrl-C during a cold spawn returns immediately with exit
+  `130` instead of riding out the cold-connect budget.
 - **Streams.** Output to stdout, logs and progress to stderr. JSON
   output (`--json`) is one object per line on stdout; pretty output
   is human-formatted on stdout. Never mix.
