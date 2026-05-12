@@ -81,7 +81,25 @@ What each verb does, on the wire:
 - **`config toggle <file> [<ruleId>]`** → `Config.ToggleFile`
   (file form) or `Config.ToggleRule` (rule form when `<ruleId>` is
   supplied). Writes go through the engine, never directly to
-  `.autocontext.json`.
+  `.autocontext.json`. The RPC returns once the dialled engine has
+  flushed the new state to disk and published the resulting
+  snapshot to its own subscribers; peer engines on the same
+  workspace observe the change through their `FileSystemWatcher`
+  and fan it out to their own clients within FS-watcher latency
+  (see
+  [autocontext-engine.md → Reload coalescing](./autocontext-engine.md#reload-coalescing-debounce-and-batch)).
+  When multiple clients of the *same* engine (the extension's
+  tree view, a hook, a future bulk-toggle verb) issue
+  `Config.Toggle*` RPCs within tens of milliseconds, the engine
+  coalesces them server-side into one on-disk write and one
+  fan-out envelope — each RPC still returns success individually,
+  but subscribers on `instructions watch` see the group arrive
+  as one batch. **Two separate `autocontext config toggle`
+  invocations do not batch** with each other — each invocation
+  mints its own instance UUID and spawns its own engine (see
+  *Cold-start protocol*), so there is no shared writer to
+  coalesce on. The batching property is a property of one
+  engine's writer, not of the CLI binary.
 - **`instructions list`** → `Instructions.List`. Identity, override
   source, disabled flag, always-attached flag. Sections payload
   omitted by default; `--json` emits the wire row verbatim.
@@ -116,11 +134,17 @@ What each verb does, on the wire:
   `config toggle`; the verb exists for users thinking in
   instruction-name terms.
 - **`instructions watch`** → `Instructions.Subscribe` on `rpc` plus
-  `Engine.Lifecycle.Subscribe` on `events`. Streams JSONL on stdout
-  (`{event, name, ...}` per change); a `reloaded` lifecycle event
-  resubscribes against the new generation, and a `shuttingDown`
-  event exits cleanly with `130` (the SIGINT exit code) rather than
-  treating the impending disconnect as an error.
+  `Engine.Lifecycle.Subscribe` on `events`. Streams JSONL on stdout,
+  one envelope per line: each envelope carries the engine's current
+  `generation` plus a `changes[]` array listing every mutation in
+  the batch (writer-mutex order, **not** a temporal claim — see
+  [autocontext-engine.md → Reload coalescing](./autocontext-engine.md#reload-coalescing-debounce-and-batch)).
+  Clients that need per-change handling iterate `changes[]`;
+  clients that only need a "something changed" signal can read the
+  `generation` field. A `reloaded` lifecycle event resubscribes
+  against the new generation, and a `shuttingDown` event exits
+  cleanly with `130` (the SIGINT exit code) rather than treating
+  the impending disconnect as an error.
 - **`workspace detect [<path>]`** → resolves `<path>` (or CWD) to a
   normalised workspace path, cold-spawns an engine for that
   workspace under a freshly-minted instance UUID (see *Cold-start
@@ -561,6 +585,25 @@ and output formatting on top.
   stream. Must unwind cleanly on Ctrl-C: `await foreach` with a
   forwarded `CancellationToken`, no buffer-the-world-then-emit, no
   hang on the underlying `Channel<T>` read.
+- **Cross-engine read-after-write is not synchronous.** Two
+  short-lived `autocontext` invocations against the same workspace
+  each mint their own UUID and each spawn their own engine (see
+  *Cold-start protocol*). A `config toggle` against engine A
+  followed *immediately* by `config get` against engine B (or any
+  peer engine for that workspace, including an editor's engine)
+  can return the pre-toggle snapshot until B's `FileSystemWatcher`
+  debounce drains — typically tens of milliseconds, longer on
+  network drives or under WSL forwarding. For interactive use
+  this window is invisible; for tight automated tests that need
+  cross-engine read-after-write, subscribe to
+  `Engine.Lifecycle.reloaded` (via `instructions watch` or the
+  library's `Lifecycle.Subscribe`) on engine B and wait for the
+  generation to advance past the snapshot the toggle published.
+  No CLI verb promises cross-engine read-after-write today; the
+  engine doc's
+  [Process scoping](./autocontext-engine.md#process-scoping-one-engine-per-launcher-instance-per-workspace)
+  section (the *cross-instance `.autocontext.json`* bullet) is
+  the authoritative reference.
 - **Quiet-mode contract for CI.** No `--quiet` flag — the contract
   is "stdout is the answer, stderr is the noise". Pipe stderr to
   `/dev/null` from a CI script and you have machine-readable
