@@ -2118,6 +2118,122 @@ The extension and the plugin do not share a composer; they share
 the engine **binary** (one process per workspace) and the **wire
 protocol** (consumed by `AutoctxClient` on the TS side).
 
+## Project layout
+
+The engine and the client dialer are two *libraries*, not two
+sub-folders of one library, and the binaries that host them are
+thin. Three .NET library projects under `src/`, plus one host
+project per binary that exists only to call `Main`:
+
+```
+                AutoContext.Framework
+        (Pipes, Logging, Hosting, Workers, Protocol)
+                  ▲                     ▲
+                  │                     │
+   AutoContext.Framework.Engine   AutoContext.Framework.Client
+                  ▲                     ▲
+                  │                     │
+   AutoContext.Engine (binary)     AutoContext.Cli (binary)
+   → autocontext-engine[.exe]      → autoctx[.exe]
+```
+
+- **`AutoContext.Framework`** is the shared substrate every
+  AutoContext .NET process already depends on — `Pipes`, `Logging`,
+  `Hosting`, `Workers` (see *What `AutoContext.Framework` carries
+  over*). One new sub-namespace lands here:
+  - **`AutoContext.Framework.Protocol`** holds the **cross-side DTOs**
+    both libraries marshal: the protocol-version integer constant
+    `Engine.Hello` exchanges, the pipe-name builder (`rpc` /
+    `events` / `health` / `logs` × workspace-hash × instance-UUID
+    — P4), and the discriminated-union envelopes that appear on
+    *both* sides of every RPC (`Instructions.Get` /
+    `McpTools.Invoke` / `Engine.GetSharedMetadata` row / the
+    `Engine.WriteLog` log-record envelope). Neither library can
+    own these without the other depending on it; they belong with
+    the substrate.
+- **`AutoContext.Framework.Engine`** is the engine **as a library**.
+  Everything under `### Engine-internal services` lives here
+  (`AutoContextConfigStore`, `InstructionsCorpusService`,
+  `InstructionsFileBodyProjector`, `InstructionsListBuilder`,
+  `InstructionsContentIndex`, `WorkspaceContextDetector`,
+  `WorkerManager`), together with the pipe-server bindings for the
+  four pipes and the RPC handlers (one per capability — P1). Public
+  surface is `IHostApplicationBuilder.AddAutoContextEngine(Action<EngineOptions>)`
+  (see *Composition contracts*).
+- **`AutoContext.Framework.Client`** is the dialer **as a library**.
+  Pipe-client plumbing for the four pipes, typed clients for every
+  RPC surface (`Instructions.*`, `Config.*`, `Workspace.*`,
+  `McpTools.*`, `Discovery.*`, `Agent.*`, `Logs.*`), and the
+  subscription-stream consumers (`Engine.Lifecycle.Subscribe`,
+  `Config.Subscribe`, `Instructions.Subscribe`,
+  `Agent.Events.Subscribe`). Public surface mirrors the engine's:
+  `IHostApplicationBuilder.AddAutoContextClient(Action<ClientOptions>)`.
+  This is the .NET counterpart of TS `AutoctxClient` (see the
+  *Sharing principle* — both sides dial the same wire; the
+  `AutoctxClient` plain TS class and `AutoContext.Framework.Client`
+  on .NET are parallel implementations of one wire contract, not
+  derivations of one shared abstraction).
+- **`AutoContext.Engine` (binary)** is the engine host. `Program.Main`
+  parses argv per `### Engine options`, calls
+  `AddAutoContextEngine(...)`, runs the host. Published per-RID as
+  `autocontext-engine[.exe]` (see *Distribution*).
+- **`AutoContext.Cli` (binary)** is the CLI host. `Program.Main`
+  parses subcommands (see [autoctx-cli.md](./autoctx-cli.md)), calls
+  `AddAutoContextClient(...)`, dispatches verbs. Published per-RID
+  as `autoctx[.exe]`.
+
+**Neither library references the other.** `AutoContext.Framework.Engine`
+binds pipes and serves RPCs; `AutoContext.Framework.Client` dials
+pipes and consumes RPCs. The only thing they share is
+`AutoContext.Framework.Protocol`. Two binaries hosting both libraries in
+one process is technically possible (a hypothetical "thick engine
+that also dials a peer") and structurally permitted, but no shipped
+binary does this today and the layout makes the asymmetry visible
+to anyone reading the project graph.
+
+**Sharing-principle caveat.** This split must not become an excuse
+to introduce portability abstractions — no `IFileSystem`, no
+`IWorkspace`, no engine/client-agnostic "AutoContext core"
+interface set the two libraries program against. The engine *binds*
+pipes, the client *dials* them; that asymmetry is intentional and
+the wire is the only seam (`## Sharing principle`). Library
+boundaries enforce direction-of-flow at the project graph level;
+they do not invite a third "shared logic" layer between Framework
+and the two halves.
+
+**Workers are unchanged.** Each `AutoContext.Worker.*` project
+references `AutoContext.Framework` only — specifically `Workers`
+(hosting scaffold), `Logging` (record producer), and `Protocol` (log
+envelope, pipe-name builder for dialling the engine's `logs` pipe
+via `Engine.WriteLog`). Workers do not reference
+`AutoContext.Framework.Engine` (they are spawned *by* it, not
+hosted *in* it) and do not reference `AutoContext.Framework.Client`
+(they speak a narrower wire than full RPC clients do).
+
+**Test-project layout** mirrors the library split:
+
+| Test project | Covers |
+|---|---|
+| `AutoContext.Framework.Tests` | Shared substrate — `Pipes`, `Logging`, `Hosting`, `Workers`, `Protocol` envelope round-trips |
+| `AutoContext.Framework.Engine.Tests` | Engine-internal services, RPC handlers, pipe-server bindings; absorbs today's `AutoContext.Mcp.Server.Tests` |
+| `AutoContext.Framework.Client.Tests` | Typed RPC clients, subscription-stream consumers, dialer back-pressure / reconnect behaviour |
+| `AutoContext.Worker.*.Tests` | Unchanged — per-worker task suites against the testing harness |
+
+`AutoContext.Mcp.Server.Tests` is retired into
+`AutoContext.Framework.Engine.Tests` (the MCP server *is* the
+engine — see *What the engine absorbs from today's topology*).
+
+**Future subset-library carve-out is a possibility, not v1.**
+A consumer that wants only the corpus projection — say, a static
+documentation generator that wants `InstructionsContentIndex` and
+`InstructionsFileBodyProjector` without any pipe-server machinery
+— could be served by a future `AutoContext.Framework.Instructions`
+slice carved out of `AutoContext.Framework.Engine`. This is
+explicitly **not** a v1 split. Pre-splitting on speculative
+embedding scenarios produces more boundaries to maintain than
+consumers to serve; the carve-out lands the day a real consumer
+asks for it.
+
 ## Distribution
 
 The engine must be discoverable from a cold Anthropic plugin
