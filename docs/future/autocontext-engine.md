@@ -29,7 +29,20 @@ The fix: pull the state out of the VS Code extension and into a single
 .NET process that **every host is a client of**. That process is
 `autocontext-engine`.
 
-## Topology — three clients, one engine
+## Topology — motivating clients
+
+The engine is a pipe-RPC server. Any process that can speak the wire
+protocol is a client; the engine does not maintain a closed list of
+blessed clients, and nothing in this document treats the set as
+closed. The two clients enumerated below — the **VS Code extension**
+and the **agent plugin (hooks)** — appear here because they
+*motivate* engine-side design decisions (the `Agent.*` RPC family,
+the discriminated-envelope shape consumed by the tree views, the
+four-pipe split that lets a forgotten log tail not pin the engine
+alive, …). Any other client — a debug CLI, a status probe, an
+ad-hoc script piping JSON-RPC into `nc` — is just another consumer
+of the same surface and is documented in its own design doc rather
+than here.
 
 ```
                    .autocontext.json   instructions/   workspace files
@@ -42,24 +55,21 @@ The fix: pull the state out of the VS Code extension and into a single
                             |  Config · Instructions ·      |
                             |  Workspace · MCP Tools ·      |
                             |  Worker dispatch ·            |
-                            |  pipe RPC + MCP/stdio facade  |
+                            |  pipe RPC (daemon role)       |
                             +-------------------------------+
-                              ^         ^         ^         ^
-                              |         |         |         |
-                              |         |         |         +--- AutoContext.Worker.* (spawned)
+                              ^         ^         ^
                               |         |         |
-                              |         |         +--- Agent plugin (hooks)
-                              |         |              (consumer; runs under any hook host —
-                              |         |               Claude Code, VS Code Copilot, …)
+                              |         |         +--- AutoContext.Worker.* (spawned)
                               |         |
-                              |         +--- VS Code extension
-                              |              (UI surface; toggles files & rules)
+                              |         +--- Agent plugin (hooks)
+                              |              (consumer; runs under any hook host —
+                              |               Claude Code, VS Code Copilot, …)
                               |
-                              +--- autocontext CLI
-                                   (debug & scripting client; see autocontext-cli.md)
+                              +--- VS Code extension
+                                   (UI surface; toggles files & rules)
 ```
 
-Three clients, three jobs:
+Two motivating clients, two jobs:
 
 - **VS Code extension** is the **UI surface** for the engine. The user
   toggles instruction files on/off, disables individual rules, exports
@@ -159,10 +169,6 @@ Three clients, three jobs:
   state the engine does not already expose" — agent-loop
   transitions *are* such state, so they get RPCs; everything else
   composes existing surfaces.
-- **`autocontext` CLI** is the **debug & scripting client**. Same wire
-  protocol; standalone invocations for repros, CI, and developer
-  troubleshooting without an editor host. See [autocontext-cli.md](./autocontext-cli.md).
-
 When VS Code Copilot runs the agent-plugin hooks alongside the
 AutoContext extension in the same window, the two surfaces are
 **independent** clients of the same engine, not nested layers. The
@@ -180,8 +186,8 @@ also land here so the index stays the system's table of contents.
 
 | Name | Kind | Scope | See |
 |---|---|---|---|
-| `autocontext-engine` | .NET binary | one process per (workspace, launcher instance) | [Engine binary](#engine-binary) |
-| `autocontext` | .NET CLI binary | one invocation per command; spawns its own engine when needed | [autocontext-cli.md](./autocontext-cli.md) |
+| `autocontext-engine` (daemon role) | .NET binary | one process per (workspace, launcher instance); binds four pipes, owns writes, runs housekeeping | [Engine binary](#engine-binary) |
+| `autocontext-engine --mcp-server with-stdio` (MCP-server-only role) | same .NET binary, different role | one process per MCP-host launch; no pipes, no registry, stdio-only, re-reads `.autocontext.json` per request, exits on stdio EOF | [Engine binary](#engine-binary) |
 | `AutoContext.Worker.DotNet` / `.Workspace` / `.Web` | .NET / Node task workers | spawned lazily by the engine via `WorkerManager` | [What the engine absorbs](#what-the-engine-absorbs-from-todays-topology) |
 | `AutoContext.Mcp.Server` | retired in this plan | absorbed into the engine | [What the engine absorbs](#what-the-engine-absorbs-from-todays-topology) |
 
@@ -211,9 +217,11 @@ At build-output staging time the layout is
 with one subtree per supported RID (`win-x64`, `win-arm64`,
 `linux-x64`, `linux-arm64`, `osx-x64`, `osx-arm64`); per-platform
 packaging picks the matching `<rid>/` and copies its contents into
-`engine/` in the shipped artefact. The `autocontext` CLI is **not** in
-this tree — it ships in its own bundle and nests its own copy of
-`engine/` as a side-car (see [autocontext-cli.md](./autocontext-cli.md)).
+`engine/` in the shipped artefact. Other host bundles that need an
+engine copy (any client distribution that wants to cold-spawn its
+own engine rather than dial an existing one) nest the same
+`engine/` subtree under their own root; they are not part of this
+document.
 
 See [Distribution](#distribution) for per-file roles, manifest
 shapes, and host-side resolution rules.
@@ -223,28 +231,16 @@ shapes, and host-side resolution rules.
 | Switch | Required | Notes |
 |---|---|---|
 | `--workspace <path>` | yes | absolute workspace path (P4) |
-| `--instance-id <uuid>` | yes | launcher-minted UUIDv4 (P4) |
+| `--instance-id <uuid>` | yes (daemon role) | launcher-minted UUIDv4 (P4); rejected in MCP-server-only role |
 | `--instance-label <text>` | no | freeform observability descriptor (≤ 200 printable-ASCII) |
-| `--idle-timeout <seconds>` | no | default `300` |
+| `--idle-timeout <seconds>` | no | non-negative integer; default `300`; `0` disables the idle gate |
+| `--parent-pid <pid>` | no | watchdog: engine self-exits when the named OS process vanishes (start-time matched to defeat pid recycling) |
 | `--retention <duration>` | no | housekeeping retention window; default `1d` |
 | `--logging <verbosity>` | no | `normal` (default) — rotate at 1,000 lines OR 5 MB; `debug` — rotate at 5,000 lines OR 25 MB |
-| `--mcp-server <mode>` | no | `with-stdio` (only value today) |
+| `--mcp-server <mode>` | no | `with-stdio` (only value today); selects MCP-server-only role |
 | `--version` | no | RID-independent |
 
 See [Engine options (CLI surface)](#engine-options-cli-surface).
-
-### `autocontext` CLI surface
-
-| Verb | Purpose |
-|---|---|
-| `--version` | print CLI version and exit |
-| `config get\|toggle …` | read / mutate `.autocontext.json` via `Config.*` RPCs |
-| `instructions list\|get\|watch\|search …` | read corpus via `Instructions.*` RPCs |
-| `workspace detect\|info` | `Workspace.*` RPCs |
-| `engine status\|logs …` | dial `health` / `logs` pipes directly |
-| `mcp invoke <tool> --args <json>` | pipe-side `McpTools.Invoke` |
-
-See [autocontext-cli.md](./autocontext-cli.md).
 
 ### Pipes
 
@@ -253,12 +249,12 @@ where `<workspaceHash>` = `sha256(normalisedWorkspacePath):0..16`,
 `<instanceId>` = launcher-minted UUIDv4. Four pipes per
 (workspace, launcher instance):
 
-| Kind | Keep-alive | Handshake | Payload | Typical clients |
+| Kind | Keep-alive | Handshake | Payload | Consumer shape |
 |---|---|---|---|---|
-| `rpc` | yes | `Engine.Hello` required | length-prefixed JSON-RPC frames | extension, hooks, CLI |
+| `rpc` | yes | `Engine.Hello` required | length-prefixed JSON-RPC frames | every functional client that mutates state or reads state-bearing surfaces |
 | `events` | yes | `Hello` envelope required | broadcast envelopes (`Engine.Lifecycle`, future) | every cache-invalidating client |
-| `health` | no | none | one small status JSON document | spawners, `autocontext engine status` |
-| `logs` | no | none | NDJSON record stream (one record per line) | `autocontext engine logs --follow`, ad-hoc tailers |
+| `health` | no | none | one small status JSON document | spawners deciding "is the engine up?", status probers |
+| `logs` | no | none | NDJSON record stream (one record per line) | log tailers (interactive or scripted) |
 
 See [Lifecycle](#lifecycle) and [P4](#p4-workspace-identity-is-one-hash-engine-identity-adds-one-uuid).
 
@@ -290,7 +286,7 @@ are marshalling shims — P1).
 
 | Namespace | Methods |
 |---|---|
-| `Engine.*` | `Hello`, `GetSharedMetadata`, `WriteLog` (fire-and-forget from workers), `Lifecycle.Subscribe` |
+| `Engine.*` | `Hello`, `GetSharedMetadata`, `Shutdown`, `WriteLog` (fire-and-forget from workers), `Lifecycle.Subscribe` |
 | `Config.*` | `Get`, `Subscribe`, `ToggleFile`, `ToggleRule` |
 | `Instructions.*` | `List`, `Get`, `GetAll`, `GetAlwaysAttached`, `GetRaw`, `SearchContent`, `Subscribe` |
 | `Workspace.*` | `Detect`, `Info` |
@@ -391,11 +387,11 @@ classes:
 
 | Today | Lives in | Becomes |
 |-------|----------|---------|
-| `AutoContext.Mcp.Server` (orchestrator + MCP/stdio + worker dispatch + registry) | Standalone process | **Engine internal**; MCP/stdio is one outward transport on the engine |
+| `AutoContext.Mcp.Server` (orchestrator + MCP/stdio + worker dispatch + registry) | Standalone process | **Same `autocontext-engine` binary, MCP-server-only role** (`--mcp-server with-stdio`). Reads workspace state directly from `.autocontext.json` (re-read per MCP request) and bundled side-car corpus; no pipes, no worker dispatch, no registry row. Concurrent daemon-role engine on the same workspace (when launched by a different host) is the writer; MCP-server role is read-mostly view. |
 | `AutoContextConfigManager` (TS, extension) | Extension process | **Engine internal**: `AutoContextConfigStore` (.NET) |
 | `InstructionsFilesManager` + `InstructionsFileContentProjector` + `instructions-files-metadata-generator` + client-side content trigram index | Extension process | **Engine internal**: `InstructionsCorpusService` + `InstructionsFileBodyProjector` + `InstructionsListBuilder` (now runs **both** at build time — producing `Resources/instructions-files.json` and `Resources/instructions-files-metadata.json` side-car manifests — **and** at engine startup, where the engine reads the manifests, applies per-request projection against workspace state, and returns rows via `Instructions.List`) + `InstructionsContentIndex` (replaces the client-side trigram index; built in-memory from the build-time metadata manifest at engine startup) |
 | `servers.json` (TS-side worker/MCP-server inventory) + `mcp-workers-registry.json` (MCP-server–side worker dispatch table) | Extension `resources/` + `AutoContext.Mcp.Server/` | **Replaced** by build-generated `Resources/workers.json` (scan of `src/AutoContext.Worker.*/` projects, id derived by stripping `AutoContext.Worker.` and replacing `.` with `-`, entrypoint written from the actual published path) + `Resources/mcp-tools-registry.json` (renamed from `mcp-workers-registry.json`; tool→worker dispatch table) + `Resources/mcp-tools-registry-schema.json` (its JSON-schema). The old `servers.json` mixed MCP-server identity with worker identity; the MCP server is gone (consolidated into the engine), so the worker-only file is what remains. |
-| `LogServer` (sideband pipe) | Extension process | **Engine internal**: the engine binds the `logs` pipe (one of the four pipes — see `### Lifecycle`) as a unified server-streaming sink that fans out engine-emitted records **and** worker-emitted records forwarded through `Engine.WriteLog`, distinguished by the `category` field. The engine also persists every record to `…\<workspaceHash>#<instanceId>\logs\engine.log` (P4 / P5); clients tail the pipe (`autocontext engine logs --follow`) instead of inventing their own log-watcher. |
+| `LogServer` (sideband pipe) | Extension process | **Engine internal**: the engine binds the `logs` pipe (one of the four pipes — see `### Lifecycle`) as a unified server-streaming sink that fans out engine-emitted records **and** worker-emitted records forwarded through `Engine.WriteLog`, distinguished by the `category` field. The engine also persists every record to `…\<workspaceHash>#<instanceId>\logs\engine.log` (P4 / P5); clients tail the pipe instead of inventing their own log-watcher. |
 | `HealthMonitorServer` (sideband pipe) | Extension process | **Engine internal**: the engine binds the `health` pipe (one of the four pipes — see `### Lifecycle`) as a passive readiness/heartbeat probe — cheap connect-and-read, no `Engine.Hello` required, never counts toward the idle-timeout keep-alive gate. Replaces the extension-side `HealthMonitorServer` that earlier topology had clients dialling back to. |
 | `WorkerControlServer` (sideband pipe) | Extension process | **Engine internal**: engine spawns workers via the same lazy gate |
 | `AutoContextConfigServer` (sideband pipe) | Extension process | **Gone** — config IS engine state; pushes to subscribers via `Config.Subscribe` over the engine pipe |
@@ -474,11 +470,62 @@ types, exactly as `## Sharing principle` requires.
 
 `autocontext-engine` is a separate .NET binary, distributed inside
 each AutoContext host bundle (the VS Code extension's VSIX, the
-Anthropic plugin root). It is **not** a subcommand of `autocontext`,
-the standalone CLI ([autocontext-cli.md](./autocontext-cli.md)); the CLI
-is distributed separately and ships its own per-RID engine copy
-when it needs to spawn one. Running the engine and running the
-CLI are different processes. A binary is one role.
+Anthropic plugin root). Other host bundles — debug or scripting
+clients, future shells — may carry their own engine copy and
+spawn it themselves; those bundles are documented in their own
+design docs.
+
+One binary, **two roles**, selected by the presence of `--mcp-server`
+on the command line. The roles are independent processes with no
+runtime coupling — they never RPC each other, never share an
+address space, and never spawn each other; the only channel between
+them is the workspace's own `.autocontext.json` on disk, which both
+roles read as ordinary file I/O.
+
+- **Daemon role** (no `--mcp-server` flag) — the full engine
+  described in the rest of this document: binds the four
+  workspace pipes (`rpc`, `events`, `health`, `logs`), owns
+  `.autocontext.json` writes, runs workspace detection, dispatches
+  workers, writes a row to `engine-metadata.json`, persists
+  `engine.log` + per-worker logs, runs housekeeping. This is
+  what every functional client (VS Code extension, agent hooks,
+  any other pipe-RPC consumer) talks to. Typical launch from a
+  long-lived host:
+  `autocontext-engine --workspace <path> --instance-id <uuid>
+  --idle-timeout 0 --parent-pid <host-pid>`.
+- **MCP-server-only role** (`--mcp-server with-stdio`) — a
+  **minimal** stdio MCP server. No pipes are bound, no
+  `engine-metadata.json` row is written, no `engine.log` file is
+  produced, no housekeeping runs, no `FileSystemWatcher` is
+  attached, no worker is spawned. The process speaks MCP
+  JSON-RPC on stdin/stdout, logs operational events to stderr
+  only, reads bundled side-car corpus (`Instructions/`,
+  `Resources/`) from `AppContext.BaseDirectory`, and **re-reads
+  `.autocontext.json` on every MCP request** (one stat-then-read
+  per `tools/list` / `tools/call`; small JSON on warm cache, the
+  authoritative source of truth at the moment the request is
+  served). The process exits cleanly on stdio EOF. The MCP host
+  (VS Code's MCP manager, Claude Desktop, Claude Code) owns its
+  lifecycle entirely — relaunch on crash is the host's job, not
+  the engine's. Argv accepted in this role: `--workspace`,
+  `--mcp-server`, `--version`. Every other engine switch
+  (`--instance-id`, `--instance-label`, `--idle-timeout`,
+  `--parent-pid`, `--retention`, `--logging`) is **rejected at
+  argv parse time** — they describe pipe-and-registry concerns
+  this role does not have.
+
+The two roles can coexist on the same workspace without
+coordination: a VS Code window runs the daemon role (state
+authority over pipes), an MCP host concurrently runs the
+MCP-server-only role (read-mostly view via stdio). Writes to
+`.autocontext.json` from the daemon propagate to the MCP-server
+role on the next MCP request (β-style on-demand reads); writes
+from the MCP-server role propagate to the daemon through the
+daemon's existing `FileSystemWatcher` → debounced reload pipeline
+(see *Reload coalescing*). The cross-instance `FileShare.None`
+retry rules in *Process scoping* apply uniformly — the
+MCP-server role is just another concurrent reader/writer of the
+same file.
 
 ### Process scoping: one engine per launcher instance per workspace
 
@@ -499,7 +546,7 @@ The reasons are structural, not incidental:
 - **Lifecycle is launcher-shaped.** A *launcher instance* is one
   spawn-decision point — a single VS Code window (extension + the
   hooks VS Code Copilot runs inside it share that window's
-  instance), one Claude Code session, one `autocontext` CLI
+  instance), one Claude Code session, one one-shot spawner
   invocation. The launcher mints a UUIDv4 once at startup, passes
   it on `--instance-id` when it spawns the engine, and uses the
   same UUID to dial the engine's pipes thereafter. Engines
@@ -517,11 +564,11 @@ Consequences:
 
 - **`Workspace.Detect`** runs on the engine's own configured
   workspace path — the path passed via `--workspace`. It is not a
-  general-purpose "detect any path" RPC. The CLI's
-  `autocontext workspace detect [<path>]` resolves `<path>` (or CWD),
-  spawns its own engine for that path with its own instance UUID,
-  and asks the engine for its detection result. Asking one engine
-  to detect a different workspace is not on the wire.
+  general-purpose "detect any path" RPC. A client that wants the
+  detection result for an arbitrary path on the file system spawns
+  its own engine for that path with its own instance UUID and asks
+  that engine for its detection result. Asking one engine to detect
+  a different workspace is not on the wire.
 - **A user with three workspaces open in two VS Code windows plus a
   parallel Claude Code session ends up with multiple engine
   processes** — one per (workspace, launcher) pair, each idle-timing
@@ -581,7 +628,8 @@ Consequences:
     - The propagation channel is **not coupled to
       `engine-metadata.json`**. The shared liveness registry
       is observability (who is alive, since when, at what
-      version — consumed by `autocontext ps` and tree-view
+      version — consumed by external observability tools and
+      tree-view
       badges); it is not a membership list any propagation
       path reads from. Tying reload fan-out to the registry
       would couple two deliberately-decoupled concerns —
@@ -653,8 +701,8 @@ Consequences:
   Clients that *spawn* the engine mint the UUID and use it
   directly. Clients that need to dial an *already-running* engine
   without being the launcher (a hook script run by an external
-  host process, an ad-hoc `autocontext engine logs --follow` from a
-  terminal) need to learn the instance-id through a side channel
+  host process, an ad-hoc log tailer from a terminal) need to
+  learn the instance-id through a side channel
   the launcher provides — typically an environment variable
   inherited from the launcher process, or a discovery file the
   launcher writes under the OS user-cache root. The exact
@@ -675,10 +723,10 @@ Consequences:
 
   | Kind | Purpose | Keep-alive? | Typical clients |
   |---|---|---|---|
-  | `rpc` | Request/response and server-streaming RPC (`Engine.Hello`, `Config.*`, `Instructions.*`, `Workspace.*`, `McpTools.*`, `Discovery.*`, `Agent.*` notifications, `*.Subscribe` channels other than `Engine.Lifecycle`) | **yes** | every functional client (extension, hook scripts, CLI) |
+  | `rpc` | Request/response and server-streaming RPC (`Engine.Hello`, `Config.*`, `Instructions.*`, `Workspace.*`, `McpTools.*`, `Discovery.*`, `Agent.*` notifications, `*.Subscribe` channels other than `Engine.Lifecycle`) | **yes** | every functional client that mutates state or reads state-bearing surfaces |
   | `events` | Engine-broadcast lifecycle stream (`Engine.Lifecycle.Subscribe`, future global broadcasts) | **yes** | every client that needs cache invalidation on reload / shutdown |
-  | `health` | Passive readiness / heartbeat probe (cheap connect-and-read shape; no `Hello` required) | **no** | spawners deciding "is the engine up?", CLI `autocontext engine status`, future monitoring |
-  | `logs` | Server-streaming log tail — unified sink for engine-emitted **and** worker-emitted records, distinguished by the `category` field on every record (see *Log categories* below) | **no** | `autocontext engine logs --follow`, ad-hoc `nc` / `Get-Content` debugging |
+  | `health` | Passive readiness / heartbeat probe (cheap connect-and-read shape; no `Hello` required) | **no** | spawners deciding "is the engine up?", status probers, future monitoring |
+  | `logs` | Server-streaming log tail — unified sink for engine-emitted **and** worker-emitted records, distinguished by the `category` field on every record (see *Log categories* below) | **no** | log tailers, ad-hoc `nc` / `Get-Content` debugging |
 
   **Why four and not one.** Isolation and separation: a forgotten
   `logs --follow` in a terminal must not pin the engine alive, must
@@ -705,9 +753,9 @@ Consequences:
   baked into the name.
 - **Independent dial.** Clients dial only the pipes they need. The
   VS Code extension dials `rpc` + `events`; a SessionStart hook that
-  only wants `Instructions.GetAlwaysAttached` dials `rpc`; the CLI
-  `autocontext engine status` dials `health`; `autocontext engine logs
-  --follow` dials `logs`. There is no requirement to dial all four,
+  only wants `Instructions.GetAlwaysAttached` dials `rpc`; a status
+  probe dials `health`; a log tailer dials `logs`. There is no
+  requirement to dial all four,
   and no implicit cross-pipe correlation — each pipe is an
   independent transport. A client that wants invalidation signals
   must explicitly dial `events`; one that doesn't, won't see them.
@@ -794,25 +842,56 @@ Consequences:
   `health` or `logs` clients are still connected, the engine emits
   `shuttingDown` on `events` (for any subscribers there), closes
   all four pipes, and exits; passive observers see a clean EOF.
+  **`--idle-timeout 0` disables this gate entirely** — the engine
+  lives until an external lifecycle clamp fires (the
+  `Engine.Shutdown` RPC, a SIGINT / SIGTERM, the optional
+  `--parent-pid` watchdog described below). This is the right mode
+  for long-lived host launchers (the VS Code extension, a Claude
+  Code session, an externally-shutdown-able engine)
+  where the host already owns lifecycle and the idle clock would
+  just be a second exit-path racing the first. Short-lived
+  spawners (one-shot hooks, the CLI's find-or-spawn flow) keep the
+  default so a forgotten engine still cleans up.
 - **Crash recovery.** Stale pipe handles surface through the same
   try-connect-with-retry path: a failed connect is treated as "engine
   absent" and triggers a respawn. Because the four pipes are bound
   together by one process, a stale-on-one is stale-on-all — the
   respawn replaces the whole quartet atomically.
-- **MCP/stdio facade.** When launched by an MCP host (VS Code's MCP
-  manager, Claude Desktop's MCP config) with `--mcp-server with-stdio`,
-  `autocontext-engine` exposes the MCP protocol over stdin/stdout
-  *as well as* serving its four workspace pipes to other clients. All
-  transports share state. The active MCP/stdio connection counts
-  toward the keep-alive gate the same way `rpc` does — losing stdio
-  is treated as a regular keep-alive disconnect for idle-timeout
-  purposes; `rpc` / `events` clients on the pipe side keep the
-  engine alive on their own. Without `--mcp-server`, the engine
-  never registers an MCP transport and leaves its own stdin/stdout
-  untouched — non-MCP spawners (extension, agent plugin, `autocontext`
-  CLI) launch the engine with `stdio: 'ignore'` precisely so the
+- **MCP-server-only role is out of scope for this section.** The
+  `Lifecycle` rules above (four pipes, `Engine.Hello` handshake,
+  keep-alive accounting, idle-timeout, crash recovery, registry
+  sweep) describe the **daemon role** exclusively. When the engine
+  is launched with `--mcp-server with-stdio` it runs the
+  MCP-server-only role instead, and **none of those mechanisms
+  apply**: the process binds no pipes, performs no `Hello`
+  handshake (the wire protocol is MCP JSON-RPC on stdio, not the
+  engine's pipe RPC), does not write an `engine-metadata.json`
+  row, does not participate in the keep-alive gate or the
+  idle-timeout clock, does not run the housekeeping sweep, and
+  does not attach a `FileSystemWatcher`. Lifecycle is whatever
+  the MCP host gives it: the process exits on stdio EOF; if it
+  crashes, the MCP host relaunches it. The only state coupling
+  to a concurrent daemon (when one exists on the same workspace)
+  is `.autocontext.json` on disk — the MCP-server role
+  stat-then-reads the file on **every** incoming MCP request
+  (`tools/list`, `tools/call`, `prompts/*`, etc.), so a daemon's
+  write is observed by the next request without any subscription
+  or invalidation channel. Conversely, an MCP-server-role write
+  reaches a peer daemon through that daemon's existing
+  debounced-watcher path (see *Reload coalescing*), bounded by
+  FS-watcher latency — the same eventual-consistency window the
+  *Process scoping* section documents for daemon-to-daemon
+  propagation. There is no in-process state to share because
+  there is no concurrent in-process state — the two roles are
+  separate processes by construction.
+
+  Non-MCP daemon spawners (extension, agent plugin, any other
+  pipe-RPC client that cold-spawns its own engine) launch the
+  engine with `stdio: 'ignore'` precisely so the
   SDK's read loop can't hit immediate EOF on a `/dev/null` stdin
-  and self-terminate the process.
+  and self-terminate the process — that footgun only exists when
+  `--mcp-server` is set; the daemon role does not register any
+  MCP transport and leaves its own stdin/stdout untouched.
 
 ### Reload coalescing: debounce and batch
 
@@ -895,9 +974,8 @@ is optional and they solve different problems.
 
 - **Batch — coalesce in-process toggles into one write.** A user
   clicking "disable all instructions in this folder" in the tree
-  view, a CI script running `autocontext config toggle A;
-  autocontext config toggle B; autocontext config toggle C`, an
-  MCP host hook firing multiple routing-driven toggles in one
+  view, a script firing three back-to-back `Config.Toggle*` RPCs,
+  an MCP host hook firing multiple routing-driven toggles in one
   user turn — each is a *single logical bulk action* arriving
   as N `Config.Toggle*` RPCs in tens of milliseconds. Without
   batching the writer mutex is taken N times, the file is
@@ -1075,18 +1153,31 @@ automatically with how often engines actually run.
 
 ### Engine options (CLI surface)
 
-The engine accepts exactly eight command-line switches; anything
+The engine accepts exactly nine command-line switches; anything
 else is rejected at argv parse time with a non-zero exit and a
 one-line **stderr** error listing the accepted set (never stdout —
 under `--mcp-server with-stdio` stdout is the MCP JSON-RPC channel
 and any stray write corrupts it).
+
+The table below is the **daemon role** surface (no `--mcp-server`).
+In the **MCP-server-only role** (`--mcp-server with-stdio`) the
+argv parser accepts a **strict subset** — `--workspace`,
+`--mcp-server`, `--version` — and **rejects every other switch in
+the table** (`--instance-id`, `--instance-label`, `--idle-timeout`,
+`--parent-pid`, `--retention`, `--logging`) with a non-zero exit
+and a stderr error naming the rejected switch and the active role.
+The rejected switches describe pipe-and-registry concerns the
+MCP-server role does not have; silently ignoring them would let a
+misconfigured host believe it had configured something it had not.
+See [Engine binary](#engine-binary) for the role split itself.
 
 | Switch | Required | Value | Default | Set by |
 |---|---|---|---|---|
 | `--workspace <path>` | yes | absolute workspace path | — | every spawner |
 | `--instance-id <uuid>` | yes | UUIDv4 | — | every spawner |
 | `--instance-label <text>` | no | short freeform descriptor (≤ 200 printable-ASCII chars, no control chars or newlines) | empty | every spawner that wants observability |
-| `--idle-timeout <seconds>` | no | positive integer | `300` | optional override |
+| `--idle-timeout <seconds>` | no | non-negative integer (`0` = disable idle gate; host-driven shutdown only) | `300` | optional override |
+| `--parent-pid <pid>` | no | positive integer; engine self-exits when that process vanishes | unset | long-lived host launchers |
 | `--retention <duration>` | no | duration string (`<n>{s\|m\|h\|d}`; `0` = sweep immediately) | `1d` | optional override |
 | `--logging <verbosity>` | no | `normal` \| `debug` | `normal` | optional override |
 | `--mcp-server <mode>` | no | `with-stdio` (the only accepted value today) | off | MCP hosts only |
@@ -1101,8 +1192,8 @@ Semantics:
 - **`--instance-id <uuid>`** is mandatory. The launcher mints a
   UUIDv4 once per launcher instance (one VS Code window = one UUID
   shared by the extension and the hooks VS Code Copilot runs in
-  that window; one Claude Code session = one UUID; one `autocontext`
-  invocation that spawns its own engine = one UUID) and passes the
+  that window; one Claude Code session = one UUID; one one-shot
+  spawner invocation = one UUID) and passes the
   same UUID on every spawn and every dial for the life of that
   launcher. The engine validates the value matches the UUIDv4
   shape (lowercase hex, hyphenated) and rejects malformed input;
@@ -1113,7 +1204,7 @@ Semantics:
   minted, so it already knows the full pipe endpoint before the
   engine has even started. Non-launcher clients (a hook running
   under a host process the launcher did not control, an ad-hoc
-  `autocontext engine status` from a terminal) learn the UUID through
+  an ad-hoc terminal client) learn the UUID through
   a host-specific side channel — this propagation is the
   launcher's responsibility and out of scope for the engine
   binary.
@@ -1136,7 +1227,7 @@ Semantics:
   reveals which host launched the engine without cross-referencing
   the UUID against external state), and surfaces it on the
   `Workspace.Info` RPC and the `health` pipe payload so tree views
-  and `autocontext engine status` can render it. The label has **no**
+  and external observability tools can render it. The label has **no**
   semantic effect on engine behaviour: it does not appear in pipe
   names, does not appear in on-disk paths, and is never used for
   routing, identity comparison, or compatibility decisions. Two
@@ -1147,8 +1238,43 @@ Semantics:
   emits a one-time info log warning that observability will be
   reduced — the warning is informational, never an error.
 - **`--idle-timeout <seconds>`** overrides the 300-second default.
-  The idle gate counts every connected client — pipe and stdio —
-  the same way; see the MCP/stdio idle-timeout pitfall.
+  Daemon-role only — the MCP-server-only role has no idle gate
+  (it exits on stdio EOF; the switch is rejected at argv parse
+  there). In the daemon role the idle gate counts only `rpc` and
+  `events` keep-alive connections (see `### Lifecycle` >
+  *Idle shutdown* for the full keep-alive contract). The value
+  is a **non-negative** integer; `0` is the explicit "disable the
+  idle gate" sentinel — the engine then lives until killed by
+  signal, by `Engine.Shutdown`, or by the optional `--parent-pid`
+  watchdog, and the keep-alive accounting becomes observability
+  only (still recorded on the `health` payload, no longer driving
+  exit). Long-lived host launchers (the VS Code extension, a
+  Claude Code session, any spawner that already owns its engine's
+  lifecycle) should pass `--idle-timeout 0`; short-lived spawners
+  keep the default so a forgotten engine still cleans itself up.
+- **`--parent-pid <pid>`** is an optional watchdog. When set, the
+  engine watches the named OS process via
+  `Process.GetProcessById(pid)` plus `WaitForExitAsync` on a
+  background task tied to the engine's root `CancellationToken`
+  (P8) and self-exits cleanly when that process vanishes — same
+  shutdown sequence as a SIGTERM (emit `shuttingDown` on `events`,
+  drain `rpc`, close all four pipes, run the shutdown
+  housekeeping sweep). The intent is to clamp the engine's
+  lifetime to the *spawner's* lifetime when `--idle-timeout 0`
+  removes the quiet-based exit path: the VS Code extension
+  spawning an engine with `--idle-timeout 0 --parent-pid
+  <vscode-pid>` gets an engine that lives as long as the editor
+  window and no longer, even if the editor crashes without
+  calling `Engine.Shutdown`. Pid recycling is defeated the same
+  way the registry sweep does it — the engine captures the
+  parent's `Process.StartTime` on bind and treats a recycled pid
+  (start-time disagreement) as "parent gone". Validation rejects
+  non-positive integers and a `pid` that does not currently
+  resolve to a live process; once watching has started, the
+  switch is purely observational from argv's perspective (the
+  watchdog runs as a hosted service inside the engine). Without
+  this switch the engine has no opinion about its spawner — the
+  parent-child relationship is OS-only, not protocol-level.
 - **`--mcp-server <mode>`** is **the capability switch**, not a
   transport switch. Today's only accepted value is `with-stdio`,
   which registers `AddMcpServer().WithStdioServerTransport()...`
@@ -1228,10 +1354,71 @@ way to set it.
   `Process.StartTime` disagrees with `processStartTimeUtc` beyond
   the tolerance, is a stale crash leftover. The primary consumer is
   the engine's own housekeeping sweep (every live engine runs it on
-  start and shutdown — see `### Housekeeping`); secondary consumers are observability surfaces — `autocontext ps`-style
+  start and shutdown — see `### Housekeeping`); secondary consumers are observability surfaces — external ps-style listings
   listings, tree-view "other live engines on this machine" badges,
   diagnostic dumps. The engine never RPCs peer engines; the registry
   file is the only cross-engine channel.
+- **`Engine.Shutdown(opts?)`** — explicit host-driven shutdown.
+  Returns `{ accepted: true }` immediately, then drives the same
+  graceful sequence the SIGTERM path runs:
+
+  1. Emit `shuttingDown` on `events` so subscribers can detach
+     cleanly (same envelope shape as the idle-gate path emits).
+  2. **Drain `rpc`.** In-flight handlers complete; new RPCs are
+     refused with a discriminated `{ kind: "shutting-down" }`
+     envelope (P2) so clients distinguish "engine refused,
+     retry against a peer or wait for restart" from "pipe
+     broke". The drain is capped at `opts.grace` (default
+     2,000 ms) so a buggy handler cannot pin shutdown.
+  3. Close all four pipes; passive observers see a clean EOF.
+  4. Run the shutdown housekeeping sweep — remove this engine's
+     row from `engine-metadata.json` and re-classify peer rows
+     (see `### Housekeeping`), bounded by the same ≤ 1 s
+     deadline that path already uses.
+  5. Exit `0`.
+
+  Options:
+
+  ```
+  {
+    grace?:  number,  // ms to wait for in-flight rpc handlers, default 2000, hard cap 30000
+    reason?: string   // ≤ 200 printable-ASCII chars (same shape rules as --instance-label)
+  }
+  ```
+
+  `reason` is opaque to the engine and recorded on the final
+  `engine.lifecycle` log line for postmortem reading ("vscode
+  window closed", "user clicked Stop in tree view", "test
+  teardown"); no semantic effect, no routing, never compared.
+  Out-of-range `grace` is clamped to the hard cap with a warning
+  log line; malformed `reason` (control chars, too long) is
+  rejected with `{ kind: "schema-error" }`.
+
+  **Authorization.** None at the protocol layer. Any client with
+  a working `rpc` connection can issue `Engine.Shutdown` — this
+  is intentional and matches the engine's scoping model. The
+  engine is (workspace, launcher-instance)-scoped (P4); the
+  `<instanceId>` segment of the pipe name is the authority
+  boundary. A client that has the right pipe endpoint was either
+  spawned by the launcher or was handed the UUID by the launcher
+  through a host-specific side channel, and is therefore already
+  trusted to manipulate this engine's lifecycle. Adding a token
+  on top of pipe-presence would be more wire shape with no actual
+  security boundary to defend.
+
+  **Idempotency.** Concurrent `Engine.Shutdown` calls land in
+  the same in-flight drain; the second call gets
+  `{ accepted: true }` and rides the in-progress shutdown to
+  completion. There is no "already shutting down" error envelope —
+  redundant calls are effectively no-ops.
+
+  **Companion to `--idle-timeout 0` and `--parent-pid`.**
+  `Engine.Shutdown` is the explicit host-driven exit path that
+  the `--idle-timeout 0` mode relies on: a long-lived host that
+  has turned off the idle gate uses the RPC to stop the engine
+  cleanly when its own window closes, and falls back on the
+  `--parent-pid` watchdog (or SIGTERM) only for crash paths
+  where it never got the chance to issue the RPC.
 - **`Config.*`** — `Get`, `Subscribe`, `ToggleFile`, `ToggleRule`.
   The VS Code extension is the primary writer (UI toggles); other
   clients are typically subscribers. The engine is the only authority
@@ -1323,7 +1510,7 @@ way to set it.
 
   **`SearchContent(query, opts?)`** is the engine-owned content
   search backing `search_autocontext_instructions_files_by_content`
-  and any future CLI `autocontext instructions search <query>`. Today's
+  and any future external content-search client. Today's
   TypeScript implementation reads every projected body to build a
   client-side trigram / inverted index on every cold start; moving
   the index into the engine (a) eliminates that startup cost,
@@ -1451,8 +1638,8 @@ way to set it.
   | Host | Fine matcher |
   |---|---|
   | VS Code extension | `vscode.workspace.findFiles` + `vscode.languages.match` (today's `InstructionsFilesLmToolsApplyToMatcher`, unchanged). Mirrors how `chatInstructions` decides which files attach. |
-  | `autocontext` CLI | `Microsoft.Extensions.FileSystemGlobbing` against CWD with a 50-path cap (the same cap today's matcher uses for `findFiles`). |
   | Hook scripts (Claude Code, VS Code Copilot) | `minimatch` for the extension-index lookup the hook already performs today; no glob × glob intersection needed in the hook surface. |
+  | Other .NET clients | `Microsoft.Extensions.FileSystemGlobbing` against CWD with a 50-path cap (the same cap today's matcher uses for `findFiles`). |
 
   Both sides reading the raw `applyTo` string — the engine for
   internal coarse-filter derivation, the client for fine matching
@@ -1535,14 +1722,17 @@ way to set it.
 
   **`Invoke(name, arguments)`** is the pipe-RPC counterpart of MCP's
   `tools/call`. Pipe-side consumers — the VS Code extension's
-  MCP Tools tree-view "play" button, `autocontext mcp invoke <tool>
-  --args <json>`, integration tests, and any future hook script that
+  MCP Tools tree-view "play" button, any ad-hoc invoker that
+  pipes JSON-RPC at the engine, integration tests, and any
+  future hook script that
   wants to re-run a tool outside the agent loop — invoke MCP tools
-  through this RPC rather than spinning up a parallel MCP/stdio
-  session against the same engine just to round-trip one
-  `CallTool`. The MCP/stdio facade stays the canonical model-facing
+  through this RPC rather than spinning up a parallel MCP-server-only
+  process against the same workspace just to round-trip one
+  `CallTool`. The MCP-server-only role stays the canonical model-facing
   transport; `Invoke` is the canonical non-model transport. Both
-  terminate at the same handler.
+  surfaces share the same handler code (one implementation in
+  `Framework.Engine`); the difference is which process hosts it
+  (daemon for `Invoke`, MCP-server-only role for `tools/call`).
 
   Response is a discriminated union mirroring the `Instructions.Get`
   shape (Issue #5 rationale):
@@ -1616,7 +1806,7 @@ way to set it.
   engine-side because the indices are already engine state,
   invalidation tracks `Instructions.Subscribe` /
   `Config.Subscribe` automatically, and the same RPC family can
-  back an `autocontext route "<prompt>"` debug helper without
+  back any future prompt-routing debug client without
   duplicating the scan logic in TypeScript.
 
   Out of scope for `Discovery.*`: **host-specific tool registration**.
@@ -1635,46 +1825,60 @@ extension contributes today
 `search_autocontext_instructions_files_by_metadata`,
 `search_autocontext_instructions_files_by_content`,
 `get_autocontext_instructions_file`) are no longer extension-native.
-The engine owns the only implementation, and that implementation is
-reachable through two parallel surfaces — pipe RPC for in-host
-clients, MCP/stdio for any MCP-aware host:
+The engine owns the only implementation — a single set of service
+classes (`InstructionsCorpusService`, `InstructionsContentIndex`,
+`InstructionsListBuilder`) inside `Framework.Engine` — and that
+implementation is reachable through two parallel surfaces that run
+in **two separate processes of the same engine binary**:
 
 ```
-                      handler (engine-owned, single impl)
+                  one implementation in Framework.Engine
                                     ▲
                 ┌───────────────────┴───────────────────┐
                 │                                       │
-        Engine pipe RPC                          Engine MCP/stdio
+          daemon role                          MCP-server-only role
+     (autocontext-engine,                    (autocontext-engine
+      no --mcp-server)                        --mcp-server with-stdio)
+                │                                       │
+        Engine pipe RPC                          MCP tools/call
         (Instructions.*)                         (instructions_*)
                 │                                       │
-        in-host clients:                         every MCP host:
+        every pipe-RPC client:                   every MCP host:
         VS Code extension UI,                    Claude Code,
-        autocontext CLI subcommands,                 Cursor, Inspector,
-        hook scripts                             autocontext CLI MCP mode,
-                                                 VS Code LM-tool shims
+        agent plugin (hooks),                    Claude Desktop,
+        VS Code LM-tool shims,                   Cursor, Inspector,
+        ad-hoc scripts                           VS Code MCP manager
 ```
 
-- **Engine pipe RPC** — `Instructions.List` / `SearchContent` / `Get`
-  / `GetAlwaysAttached`, as specified above. Lowest latency, richest
-  typed surface, consumed by clients running in the same host
-  process tree as the engine pipe.
-- **Engine MCP/stdio facade** — exposes `instructions_list`,
-  `instructions_search_metadata`, `instructions_search_content`,
-  `instructions_get` as MCP tools, **always registered
-  unconditionally**. Each MCP-tool handler is a paper-thin adapter:
-  deserialise MCP input → call the corresponding engine RPC handler
-  in-process → serialise the result. Both surfaces share one set of
-  service implementations (`InstructionsCorpusService`,
-  `InstructionsContentIndex`, `InstructionsListBuilder`); the MCP
-  facade is a transport, not a re-implementation.
+- **Engine pipe RPC (daemon role)** — `Instructions.List` /
+  `SearchContent` / `Get` / `GetAlwaysAttached`, as specified
+  above. Lowest latency, richest typed surface, consumed by every
+  pipe-RPC client. In-memory state is kept fresh by the daemon's
+  `FileSystemWatcher` → debounced reload pipeline, so reads do not
+  hit disk on the hot path.
+- **MCP `tools/call` (MCP-server-only role)** — exposes
+  `instructions_list`, `instructions_search_metadata`,
+  `instructions_search_content`, `instructions_get` as MCP tools
+  over stdio, **always registered unconditionally**. Each MCP-tool
+  handler instantiates the same service classes the daemon uses
+  and answers from a **per-request** disk read of `.autocontext.json`
+  plus the bundled side-car corpus from `AppContext.BaseDirectory`
+  — no `FileSystemWatcher`, no long-lived in-memory cache, no
+  cross-request state. Convergence with the daemon happens at the
+  **disk layer**, not in shared memory: the daemon writes
+  `.autocontext.json`, the MCP-server role observes the write on
+  its next request.
 - **VS Code LM-tool shims** — the extension keeps registering the
-  four `vscode.lm.registerTool` entries it ships today, but each
-  shim's `invoke` body forwards to the corresponding MCP tool on the
-  bundled engine's MCP/stdio surface. The shim never dials the
-  engine pipe directly: routing it through the MCP facade guarantees
-  byte-identical output between the LM-tool and MCP paths and means
-  any change to the MCP tool's schema is automatically reflected in
-  the LM tool.
+  four `vscode.lm.registerTool` entries it ships today, and each
+  shim's `invoke` body dials the **daemon role's pipe RPC**
+  (`Instructions.*` via `AutoctxClient`) on the engine the
+  extension itself launched for its workspace. The MCP-server-only
+  role is the model-facing transport for *external* MCP hosts; LM
+  tools running inside the same VS Code window where the daemon
+  engine is already alive take the shorter path. Byte-identical
+  output between the LM-tool and MCP paths is guaranteed by the
+  shared handler code in `Framework.Engine`, not by routing one
+  surface through the other.
 
 **Double exposure is intentional, no suppression flag is needed.**
 Inside VS Code Copilot the model sees both `#list_autocontext_instructions_files`
@@ -1926,7 +2130,8 @@ owner of the on-disk log file and the wire log stream.
 The engine is the single owner of every piece of AutoContext state
 for a workspace — config, instructions corpus, projection,
 workspace-context detection, MCP tool catalogue, worker lifecycle.
-Clients (VS Code extension, Anthropic plugin, `autocontext` CLI) are
+Clients (VS Code extension, Anthropic plugin, any other pipe-RPC
+consumer) are
 **caches with UI**, never authorities. The contract is one-way:
 
 - **Reads go through the engine.** Even if a client has a local
@@ -2047,8 +2252,9 @@ artefact that engine produced in one place.
 **The engine is .NET; hosts are clients.** All projection, config,
 and instruction-corpus logic lives in **one** place — the engine
 binary, sourced from `AutoContext.Engine/` — written in C#. Every
-host (VS Code extension, Anthropic plugin, `autocontext` CLI, future
-JetBrains / Neovim shells) is a *client* of the engine. Sharing
+host (VS Code extension, Anthropic plugin, future JetBrains /
+Neovim shells, debug or scripting clients) is a *client* of the
+engine. Sharing
 happens at the **wire-protocol** level (named-pipe RPC), not at the
 source-code level.
 
@@ -2273,7 +2479,7 @@ Three rules fall out and the implementation must enforce all three:
   handle, no engine ever rewrites another engine's row. The engine
   exposes the file's current contents over the wire as
   `Engine.GetSharedMetadata` (see the RPC surface section) for
-  observability surfaces (`autocontext ps`-style listings, tree-view
+  observability surfaces (external ps-style listings, tree-view
   badges).
 
   The cleanup itself runs inside every live engine, on the
@@ -2295,9 +2501,8 @@ Three rules fall out and the implementation must enforce all three:
 
   No external sweeper exists. Every engine spawn pays the
   housekeeping cost on behalf of every dead peer; the design
-  refuses to rely on a CLI subcommand the user has to remember to
-  run. See [autocontext-cli.md](./autocontext-cli.md) for the CLI surface
-  the engine actually exposes.
+  refuses to rely on an external subcommand the user has to remember
+  to run.
 
 ### P6. Subscriptions are first-class; clients never poll or watch
 
@@ -2741,9 +2946,9 @@ Decision:
   per-worker self-contained runtimes
   (`dotnet publish -r <rid> --self-contained`) do not collide with
   each other or with the engine's runtime files at the `engine/`
-  root. The `autocontext` CLI is **not** in this layout — it ships in
-  its own bundle (see [autocontext-cli.md](./autocontext-cli.md)) and
-  carries its own copy of the engine if it needs to spawn one.
+  root. Other host bundles that need an engine copy nest the
+  same `engine/` subtree under their own root; they are not
+  part of this layout.
 - Bundle locations:
   - `<vsix>/engine/...` for the VS Code extension.
   - `<plugin-root>/engine/...` for the Anthropic plugin.
@@ -2844,7 +3049,7 @@ Source-side locations for the editable inputs the build consumes:
   detached, with no inherited stdio handles — every spawner
   (the VS Code extension and Anthropic plugin via Node
   `child_process.spawn(..., { stdio: 'ignore', detached: true })`,
-  the `autocontext` CLI via .NET `Process.Start` with
+  any .NET spawner via `Process.Start` with
   `UseShellExecute = false` and redirected/null stdio) deliberately
   cuts the engine off from a controlling console so it can outlive
   the spawner. Consequence: `Console.CancelKeyPress` does not
@@ -2853,17 +3058,28 @@ Source-side locations for the editable inputs the build consumes:
   (`AppDomain.ProcessExit` for SIGTERM / Windows stop). Foreground
   invocations (smoke tests, `dotnet run`) reach the SIGINT path
   normally because they keep the console attached.
-- **MCP/stdio idle-timeout interaction.** The implementation trap:
-  the idle watchdog must count an active stdio connection toward
-  the keep-alive gate exactly like an `rpc` or `events` pipe
-  connection, or an MCP-only session shuts the engine down
-  mid-conversation. Conversely, without `--mcp-server` the engine
-  must **not** register the MCP SDK's stdio transport at all —
-  non-MCP spawners pass `stdio: 'ignore'` (stdin → `/dev/null`)
-  and an unconditional `WithStdioServerTransport()` would hit
-  immediate EOF and self-terminate. See
-  [Lifecycle](#lifecycle) > *MCP/stdio facade* for the canonical
-  behaviour.
+- **MCP-server role argv discipline.** The implementation trap:
+  the daemon role and the MCP-server-only role share one binary
+  but their argv contracts are disjoint, and the dispatch happens
+  on a single switch (`--mcp-server`). The trap is conditionally
+  registering `AddMcpServer().WithStdioServerTransport()` *and*
+  the pipe-server / housekeeping hosted services in the same
+  DI graph based on `--mcp-server` presence — that path keeps
+  enough shared state alive for the two roles to drift toward
+  the old single-process facade design as the codebase evolves.
+  Implementation rule: parse argv first, then branch into one of
+  two disjoint `IHostBuilder` compositions — the MCP-only branch
+  registers `AddMcpServer().WithStdioServerTransport()` and
+  nothing else state-bearing (no pipe servers, no
+  `FileSystemWatcher`, no `engine-metadata.json` writer, no
+  worker dispatcher), the daemon branch registers everything
+  *except* MCP. An unconditional `WithStdioServerTransport()` in
+  the daemon branch would also hit immediate EOF on the
+  `stdio: 'ignore'` stdin every non-MCP spawner passes, so the
+  branch boundary doubles as the EOF-suicide guard. See
+  [Engine binary](#engine-binary) for the role split and
+  [Lifecycle](#lifecycle) > *MCP-server-only role is out of scope*
+  for the daemon-side disclaimer.
 - **`autocontext-engine --version` is RID-independent.** Driven by
   `AssemblyInformationalVersionAttribute` set from `version.json`;
   do not bake the RID into the version string. The corpus and the
@@ -3087,9 +3303,9 @@ Source-side locations for the editable inputs the build consumes:
 - **LM-tool and MCP-tool handlers are marshalling shims, not
   business logic.** (Instance of **P1**.) The instruction-discovery LM tools registered by
   the VS Code extension and their `instructions_*` MCP-tool
-  counterparts on the engine's MCP/stdio facade are paper-thin: they
-  deserialise input, call the corresponding engine RPC handler, and
-  serialise the result. Trigram indexing, override resolution,
+  counterparts on the engine's MCP-server-only role are paper-thin:
+  they deserialise input, call the corresponding service method in
+  `Framework.Engine`, and serialise the result. Trigram indexing, override resolution,
   metadata predicate evaluation, coarse `applyTo` filtering (see
   the next pitfall for the coarse/fine split), and disabled filtering
   all live inside the engine's service layer; both surfaces share
@@ -3191,10 +3407,11 @@ Source-side locations for the editable inputs the build consumes:
   gate `WorkerManager` uses today; workers stay as separate
   binaries (`AutoContext.Worker.DotNet`,
   `AutoContext.Worker.Workspace`, `AutoContext.Worker.Web`).
-- **Do NOT** add a `service` URI subcommand to the CLI to launch
-  the engine or workers. The engine binary is launched directly
-  (by an MCP host or by `autocontext`'s spawner). Workers are launched
-  by the engine. There is no `autocontext service ...` user surface.
+- **Do NOT** invent a launcher-side URI scheme for spawning the
+  engine or workers. The engine binary is launched directly (by an
+  MCP host or by any other spawner). Workers are launched by the
+  engine. No host-side `service://` indirection is part of the
+  engine's contract.
 
 ## Implementation phase shape
 
@@ -3208,8 +3425,8 @@ Shape:
 - **Engine library populated.** Config store, corpus reader,
   projector, corpus service, workspace detection, pipe-listener /
   idle-watchdog hosted services, RPC handlers, MCP-tool catalogue,
-  worker dispatch, MCP/stdio facade. `EngineRpcClient` (.NET) /
-  `AutoctxClient` (TS) companions.
+  worker dispatch, MCP-server-only role composition.
+  `EngineRpcClient` (.NET) / `AutoctxClient` (TS) companions.
 - **MCP server retirement.** `AutoContext.Mcp.Server`'s
   `Program.Main` shrinks to delegating into `AddAutoContextEngine`,
   then is deleted entirely once nothing references it. The MCP host
@@ -3228,5 +3445,5 @@ Shape:
 
 ## Companion documents
 
-- [autocontext-cli.md](./autocontext-cli.md) — the `autocontext` CLI binary
-  (this doc's third client).
+- [autocontext-cli.md](./autocontext-cli.md) — one pipe-RPC client of
+  the engine, documented separately.

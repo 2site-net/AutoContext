@@ -44,6 +44,8 @@ autocontext route "<prompt>" [--workspace <path>] [--json]
 autocontext engine status [--instance-id <uuid>] [--workspace <path>] [--json]
 autocontext engine logs   [--follow] [--worker <id>] [--since <iso>] [--last-n <n>]
                       [--instance-id <uuid>] [--workspace <path>]
+autocontext engine stop   [--instance-id <uuid> | --all] [--workspace <path>]
+                      [--grace <ms>] [--reason <text>] [--json]
 ```
 
 Global engine-spawn pass-through switches — accepted before any
@@ -201,6 +203,39 @@ What each verb does, on the wire:
   see [autocontext-engine.md → Log categories](./autocontext-engine.md#log-categories));
   there is no pretty-print mode — `logs` is machine-readable by
   design.
+- **`engine stop`** → `Engine.Shutdown` over the engine's `rpc`
+  pipe. Same `--instance-id` / single-live-engine resolution as
+  `engine status` and `engine logs`; `--all` broadcasts the RPC
+  to every live engine for the resolved workspace (one RPC per
+  engine, issued in parallel, each engine drains independently).
+  **Targets the daemon role only.** MCP-server-only engines
+  (`autocontext-engine --mcp-server with-stdio`) do not bind
+  pipes, do not write rows to `engine-metadata.json`, and are
+  therefore invisible to this verb — they have no `rpc` endpoint
+  to dial and no registry presence to enumerate. They exit on
+  stdio EOF when their MCP host disconnects; stopping one means
+  asking the host to disconnect, which is out of scope for the
+  CLI.
+  `--grace <ms>` forwards verbatim to `Engine.Shutdown.opts.grace`
+  (default 2,000, hard-capped 30,000 by the engine); `--reason
+  <text>` forwards verbatim to `opts.reason` for postmortem log
+  reading. The verb **never spawns** — stopping an engine that
+  is not running is a successful no-op, not a cold-spawn-then-stop
+  contradiction; absence is reported with exit `0` and a stderr
+  note. Exit `0` once the dialled engine(s) acknowledge
+  `{ accepted: true }`; exit `1` only if the RPC itself fails
+  (transport error, version mismatch, refused). The verb does
+  **not** wait for the engine to actually exit — acknowledgement
+  means the shutdown sequence has started, and the engine's own
+  housekeeping covers the rest; pair with
+  [`autocontext ps`](#what-each-verb-does-on-the-wire) or a brief
+  poll on `engine status` if a script needs to observe the exit.
+  See
+  [autocontext-engine.md → RPC surface (initial)](./autocontext-engine.md#rpc-surface-initial)
+  for the `Engine.Shutdown` contract — in particular, authorization
+  is pipe-presence (any client with the right `<instanceId>` may
+  call), and concurrent invocations idempotently ride the same
+  drain.
 
 What is **deliberately not** in the CLI:
 
@@ -212,14 +247,24 @@ What is **deliberately not** in the CLI:
   directly (they are `AutoContext.Worker.DotNet[.exe]` etc., already
   separate binaries). The CLI never wears the launcher hat for
   those.
-- **No engine-control verbs.** Running the engine is a separate
-  binary (`autocontext-engine`); the CLI cold-spawns it on demand
-  for verbs that need it and the engine idle-shuts itself. There is
-  no `autocontext engine start` / `stop` / `restart` / `daemon`. The
-  `engine status` / `engine logs` verbs are read-only observability
-  surfaces dialing the engine's `health` and `logs` pipes;
-  foreground engine debugging is `autocontext-engine --workspace
-  <path> --instance-id <uuid>` invoked directly.
+- **No engine `start` / `restart` / `daemon` verbs.** Running the
+  engine is a separate binary (`autocontext-engine`); the CLI
+  cold-spawns it on demand for verbs that need it and the engine
+  idle-shuts itself by default. There is no `autocontext engine
+  start` (foreground engine debugging is `autocontext-engine
+  --workspace <path> --instance-id <uuid>` invoked directly; long
+  -lived host launchers spawn their own engine with
+  `--idle-timeout 0` and own the lifecycle), no `engine restart`
+  (a stop-then-spawn dance the CLI refuses to wear; combine
+  `engine stop` with a follow-up verb that needs an engine if
+  that is what you really want), and no `engine daemon`
+  (workspace-scoping forbids machine-wide daemons — see
+  [autocontext-engine.md → Process scoping](./autocontext-engine.md#process-scoping-one-engine-per-launcher-instance-per-workspace)).
+  `engine status` and `engine logs` are read-only observability
+  surfaces dialling the engine's `health` and `logs` pipes;
+  `engine stop` is the one lifecycle-affecting verb in the
+  `engine` namespace, and it only ever brings engines *down*,
+  never up.
 - **No `--clean` / housekeeping verb.** Per-instance subtree
   cleanup is the engine's own job, run on every engine startup and
   graceful shutdown against the shared liveness registry (see
