@@ -32,7 +32,7 @@ autocontext ps [--json]
 autocontext config get [--workspace <path>] [--json]
 autocontext config toggle <file> [<ruleId>] [--workspace <path>]
 autocontext instructions list [--workspace <path>] [--json]
-autocontext instructions get <name> [--raw] [--workspace <path>]
+autocontext instructions get <name> [--raw [--source <bundled|override|active>]] [--workspace <path>]
 autocontext instructions search <query> [--workspace <path>] [--json]
 autocontext instructions toggle <name> [<ruleId>] [--workspace <path>]
 autocontext instructions watch [--workspace <path>] [--json]
@@ -85,15 +85,29 @@ What each verb does, on the wire:
 - **`instructions list`** → `Instructions.List`. Identity, override
   source, disabled flag, always-attached flag. Sections payload
   omitted by default; `--json` emits the wire row verbatim.
-- **`instructions get <name>`** → `Instructions.Get(name)`
-  (projected — `[INSTxxxx]` tags stripped, disabled rules
-  filtered, override preferred over bundled) by default; `--raw`
-  uses `Instructions.GetRaw(name)` for the unmodified source. The
-  response is a discriminated envelope (`ok` / `disabled` /
+- **`instructions get <name>`** → `Instructions.Get(name)` by
+  default (projected — `[INSTxxxx]` tags stripped, disabled rules
+  filtered, override preferred over bundled). The response is a
+  three-arm discriminated envelope (`ok` / `disabled` /
   `not-found`); the CLI surfaces each distinctly — body on `ok`
   (exit `0`); explicit "muted by `.autocontext.json`" on `disabled`
   (exit `0` — existence is the answer); explicit "no such
   instruction file" on `not-found` (exit `1`).
+
+  With `--raw` the verb calls `Instructions.GetRaw(name, { source })`
+  instead — unmodified bytes of the on-disk markdown file (YAML
+  frontmatter intact, `[INSTxxxx]` tags intact, no disabled-rule
+  filter). The `--source` flag selects which on-disk file the
+  bytes come from (see
+  [autocontext-engine.md → Instructions.GetRaw](./autocontext-engine.md#rpc-surface-initial)):
+  - `active` (default) — override if one exists, else bundled.
+  - `bundled` — the bundled file even when an override exists.
+  - `override` — the override file or `not-found`.
+
+  The `GetRaw` response is a two-arm envelope (`ok` / `not-found`)
+  — there is no `disabled` branch, because disabled state is
+  irrelevant to a source-file read. Exit codes match the `Get`
+  path (`0` on `ok`, `1` on `not-found`).
 - **`instructions search <query>`** → `Instructions.SearchContent`.
   Ranked matches with section anchors and excerpts; disabled files
   are excluded by default. `--include-disabled` flips this for
@@ -315,20 +329,24 @@ disconnect as an error.
 
 ## Distribution
 
-`autocontext` ships in the same per-RID layout as the engine, with the
-engine bundle nested as a side-car under the CLI bundle so a cold
-`autocontext` invocation can resolve and spawn its engine without a
-PATH dependency. Per-RID layout (the inner engine tree is re-stated
-from
-[autocontext-engine.md#distribution](./autocontext-engine.md#distribution)
+`autocontext` ships in the same flat per-platform shape as the
+engine, with the engine bundle nested as a side-car under the CLI
+bundle so a cold `autocontext` invocation can resolve and spawn its
+engine without a PATH dependency. Each shipped artefact targets one
+platform — one VSIX per platform via `vsce package --target
+<target>`, one plugin release per platform, one GitHub-release
+tarball per RID — so the per-RID segment that exists in build
+staging is **absent** from the shipped product (the inner engine
+tree is re-stated from
+[autocontext-engine.md → Distributed bundle layout](./autocontext-engine.md#distributed-bundle-layout)
 so this doc is self-contained):
 
 ```
-cli/<rid>/
-  autocontext[.exe]                          # this binary
+cli/
+  autocontext[.exe]                      # this binary
   <framework dlls / runtime files>       # self-contained .NET runtime for the CLI
-  engine/                                # embedded engine bundle — same layout as
-                                         # autocontext-engine.md § Distribution
+  engine/                                # embedded engine bundle — same shape as
+                                         # autocontext-engine.md § Distributed bundle layout
     autocontext-engine[.exe]
     <framework dlls / runtime files>     # self-contained .NET runtime for the engine
     Instructions/                        # curated corpus (engine-consumed)
@@ -336,88 +354,101 @@ cli/<rid>/
     Workers/                             # per-worker subdirs (engine-spawned)
 ```
 
-Supported RIDs: `win-x64`, `win-arm64`, `linux-x64`, `linux-arm64`,
-`osx-x64`, `osx-arm64`. Bundle locations (the same per-RID tree
-shows up in every host that ships the CLI):
+At build-output staging time the layout keeps one subtree per
+supported RID (`win-x64`, `win-arm64`, `linux-x64`, `linux-arm64`,
+`osx-x64`, `osx-arm64`); per-platform packaging picks the matching
+`<rid>/` and copies its contents into `cli/` in the shipped
+artefact. Bundle locations (the same flat tree shows up in every
+host that ships the CLI):
 
-- `<vsix>/cli/<rid>/...` for the VS Code extension.
-- `<plugin-root>/cli/<rid>/...` for the Anthropic plugin.
-- A standalone GitHub release publishes the same per-RID artefact
-  for users who want `autocontext` on their PATH.
+- `<vsix>/cli/...` for the VS Code extension.
+- `<plugin-root>/cli/...` for the Anthropic plugin.
+- A standalone GitHub release publishes the same per-platform
+  artefact for users who want `autocontext` on their PATH.
 
-The CLI itself does not consume the bundled `engine/` side-cars at
+The CLI itself does not consume the bundled `engine/` side-car at
 runtime — the engine does. The CLI bundle embeds the engine's full
-per-RID tree only so a cold `autocontext` invocation can resolve and
-spawn its sibling engine without a PATH dependency. The CLI bundle
-is distinct from the engine-only bundle (`engine/<rid>/...`) the
-VS Code extension also ships for its own engine spawning; the two
-trees are duplicates of the same per-RID artefact, sized for the
-launcher that resolves them.
+tree only so a cold `autocontext` invocation can resolve and spawn
+its sibling engine without a PATH dependency. The CLI bundle is
+distinct from the engine-only bundle the VS Code extension also
+ships for its own engine spawning; the two trees are duplicates of
+the same per-platform artefact, sized for the launcher that
+resolves them.
 
 ## Sharing principle (overarching)
 
 The CLI is one of three engine clients; sharing happens at the
 **wire-protocol** level, not at the source-code level. The CLI
-project is itself split in two so third-party .NET code can embed
-the engine client without depending on the verb-parsing or
-output-formatting layer that the `autocontext[.exe]` binary adds on
-top.
+binary is one of two host projects over the shared
+`AutoContext.Framework.Client` library, so third-party .NET code
+can embed the engine client without taking a dependency on the
+verb-parsing or output-formatting code that lives inside the
+`autocontext[.exe]` binary.
 
-- **Two .NET libraries, one binary.**
-  - `AutoContext.Engine.Client` — the embeddable .NET wire client.
-    Owns the four-pipe dial state machine (`rpc` / `events` /
-    `health` / `logs`), the cold-start-or-attach resolver, the
-    typed RPC client surface (one method per engine RPC), the
-    discriminated envelopes every state-bearing read returns, and
-    the subscription plumbing for `*.Subscribe` channels. No
-    `System.CommandLine`, no console I/O, no host-specific
-    assumptions — this is the .NET analogue of the TS
-    `AutoctxClient`. Third-party .NET code (custom integrations,
+- **One library, one binary** (see
+  [autocontext-engine.md → Project layout](./autocontext-engine.md#project-layout)
+  for the full three-library / two-binary picture).
+  - `AutoContext.Framework.Client` — the embeddable .NET wire
+    client. Owns the four-pipe dial state machine (`rpc` /
+    `events` / `health` / `logs`), the cold-start-or-attach
+    resolver, the typed RPC client surface (one method per engine
+    RPC), the discriminated envelopes every state-bearing read
+    returns, and the subscription plumbing for `*.Subscribe`
+    channels. No `System.CommandLine`, no console I/O, no
+    host-specific assumptions — this is the .NET analogue of the
+    TS `AutoctxClient`. Third-party .NET code (custom integrations,
     automated regression harnesses, future JetBrains / Rider
     plugins, an `AutoContext.VsCode.Cs` rewrite) takes a dependency
-    on this library without taking a dependency on the CLI.
-  - `AutoContext.CommandLine` — the verb-parsing, output-formatting,
-    JSON-rendering layer the `autocontext[.exe]` binary composes over
-    `AutoContext.Engine.Client`. The binary's `Program.Main` calls
-    `AddAutoContextCli` (see *Composition contracts*); embedders
-    that want CLI behaviour in-process (a test harness driving
-    every verb, a parent process exposing `autocontext` verbs through
-    its own surface) do the same.
+    on this library without taking a dependency on the CLI binary.
+  - `AutoContext.CommandLine` (binary) — the CLI host. `Program.Main`
+    parses subcommands with `System.CommandLine`, calls
+    `AddAutoContextClient` (see *Composition contracts*) to register
+    the wire-client services, formats output (pretty / JSON), and
+    enforces the stderr-vs-stdout discipline (see *Surface
+    conventions*). Published per-RID as `autocontext[.exe]`.
+    Embedders that want CLI-shaped behaviour in-process drive
+    `AutoContext.Framework.Client` directly through
+    `AddAutoContextClient` and provide their own argv source — the
+    verb-parsing layer is not factored out as a separate library
+    because no second consumer is asking for it.
 - **The TS-side `AutoctxClient`** (used by the VS Code extension
   and by Anthropic plugin `.cjs` hook scripts under whichever hook
   host runs them) speaks the same wire protocol
-  `AutoContext.Engine.Client` speaks. The two are independent
+  `AutoContext.Framework.Client` speaks. The two are independent
   implementations of one wire contract; neither is the source of
   truth, the **engine** is.
-- **Shells stay thin.** `AutoContext.CommandLine` contains verb parsing,
-  RPC plumbing, output formatting, and the run / teardown loop —
-  and nothing else. Logic that is not host-specific belongs in the
-  engine. If a CLI verb starts looking like a re-implementation of
-  an engine internal, the verb is wrong and the engine RPC should
-  grow instead.
+- **Shells stay thin.** `AutoContext.CommandLine` contains verb
+  parsing, the call into `AddAutoContextClient`, output formatting,
+  and the run / teardown loop — and nothing else. Logic that is
+  not host-specific belongs in the engine. If a CLI verb starts
+  looking like a re-implementation of an engine internal, the verb
+  is wrong and the engine RPC should grow instead.
 - **No invented cross-host seams.** This is *not* a ban on .NET DI.
-  Inside both libraries use `Microsoft.Extensions.Hosting`
-  (`Host.CreateApplicationBuilder`), `IHostedService` for
-  long-running verbs (`instructions watch`, `engine logs --follow`),
-  `IOptions<T>` from `IConfiguration`, and `ILogger<T>` for stderr
-  logs exactly as the rest of the .NET solution does. New
-  interfaces only appear when a *second concrete* implementation is
-  being added now — not hypothetically later.
+  Both the library and the binary use
+  `Microsoft.Extensions.Hosting` (`Host.CreateApplicationBuilder`),
+  `IHostedService` for long-running verbs (`instructions watch`,
+  `engine logs --follow`), `IOptions<T>` from `IConfiguration`, and
+  `ILogger<T>` for stderr logs exactly as the rest of the .NET
+  solution does. New interfaces only appear when a *second
+  concrete* implementation is being added now — not hypothetically
+  later.
 
 ## Composition contracts
 
-Two extension-method seams are part of the design — one per
-library — and nothing else. The split mirrors the engine's split
-(`AddAutoContextEngine` for the engine library, the
-`autocontext-engine[.exe]` binary on top); the CLI gets the
-analogous split on the client side.
+One extension-method seam is part of the design — the same seam
+the engine doc names — and nothing else. The CLI binary's
+`Program.Main` parses argv with `System.CommandLine`, calls into
+that seam, and dispatches verbs against the typed RPC clients the
+seam registers.
 
-- **`IHostApplicationBuilder.AddAutoContextEngineClient(Action<EngineClientOptions> configure)`**
-  is `AutoContext.Engine.Client`'s single public entry point. It
-  registers the four-pipe dial state machine, the cold-start /
+- **`IHostApplicationBuilder.AddAutoContextClient(Action<ClientOptions> configure)`**
+  is `AutoContext.Framework.Client`'s single public entry point
+  (mirror of the engine's `AddAutoContextEngine` — see
+  [autocontext-engine.md → Composition contracts](./autocontext-engine.md#composition-contracts)).
+  It registers the four-pipe dial state machine, the cold-start /
   attach resolver, the typed RPC client surface (one method per
   engine RPC), and the lifecycle / subscription plumbing.
-  `EngineClientOptions` exposes:
+  `ClientOptions` exposes:
   - workspace path resolution (explicit path or CWD-derived);
   - launcher-identity controls — `InstanceId` override (default:
     fresh UUIDv4 per resolver instance), `InstanceLabel` template
@@ -435,25 +466,19 @@ analogous split on the client side.
 
   Third-party .NET code embeds the engine client through this seam
   without taking a dependency on `System.CommandLine`,
-  `AutoContext.CommandLine`, or anything verb-shaped. Tests embed it the
-  same way the production binary does.
-- **`IHostApplicationBuilder.AddAutoContextCli(Action<CliOptions> configure)`**
-  is `AutoContext.CommandLine`'s single public entry point. It composes on
-  top of `AddAutoContextEngineClient` and adds verb parsing
-  (`System.CommandLine`), output formatting (pretty / JSON), the
-  stderr-vs-stdout discipline (see *Surface conventions*), and the
-  JSONL streaming pump for long-running verbs. `CliOptions` exposes
-  the verb-layer knobs (output target, colour override, argv source
-  for tests); the underlying engine-client knobs remain reachable
-  through `CliOptions.ConfigureEngineClient` so an embedder can
-  drive both layers from one call site.
+  `AutoContext.CommandLine`, or anything verb-shaped. The CLI binary
+  takes the same dependency the embedders take; what `Program.Main`
+  adds on top (argv parsing, output formatting, the JSONL streaming
+  pump for long-running verbs, the stderr-vs-stdout discipline
+  documented under *Surface conventions*) lives inside the
+  `AutoContext.CommandLine` binary project and is not factored out
+  as a separate library — no second consumer is asking for it.
 
-Both seams live under the `AutoContext` namespace, regardless of
-the lowercase `autocontext[.exe]` binary name. Embedders that only need
-to talk to the engine call `AddAutoContextEngineClient`; embedders
-that want CLI behaviour in-process call `AddAutoContextCli`; the
-production `autocontext[.exe]` binary's `Program.Main` calls
-`AddAutoContextCli` and lets the verb layer drive everything.
+The seam lives under the `AutoContext` namespace, regardless of
+the lowercase `autocontext[.exe]` binary name. Embedders call
+`AddAutoContextClient` directly; the production `autocontext[.exe]`
+binary's `Program.Main` does the same and then layers verb parsing
+and output formatting on top.
 
 ## Pitfalls
 
@@ -497,7 +522,7 @@ production `autocontext[.exe]` binary's `Program.Main` calls
   Embedders writing automated log scrapers must treat EOF as a
   normal lifecycle event and reconnect under the cold-start protocol
   if they need to observe the next engine.
-- **Embedders use `AddAutoContextEngineClient`, not the
+- **Embedders use `AddAutoContextClient`, not the
   `autocontext[.exe]` binary.** Driving the engine programmatically by
   `Process.Start`-ing `autocontext[.exe]` and parsing its stdout is
   supported (the CLI's machine-readable output is contractual —
@@ -506,8 +531,8 @@ production `autocontext[.exe]` binary's `Program.Main` calls
   console, typed RPC responses instead of JSON re-parse, long-lived
   subscriptions without per-invocation handshake cost. New .NET
   integrations should take a dependency on
-  `AutoContext.Engine.Client` and call
-  `AddAutoContextEngineClient` (see *Composition contracts*); the
+  `AutoContext.Framework.Client` and call
+  `AddAutoContextClient` (see *Composition contracts*); the
   CLI binary's existence does not deprecate the library.
 - **`autocontext --version` is RID-independent.** Driven by
   `AssemblyInformationalVersionAttribute` from `version.json`.
@@ -541,15 +566,21 @@ is a regression — so their phases are interleaved.
 
 Shape:
 
-- **Skeleton.** `AutoContext.CommandLine` project, empty
-  `AddAutoContextCli`, `autocontext --version`. Sibling of the empty
-  `AutoContext.Engine` skeleton.
+- **Skeleton.** `AutoContext.CommandLine` binary project with
+  `Program.Main` calling `AddAutoContextClient` (from the empty
+  `AutoContext.Framework.Client` library skeleton); `autocontext
+  --version` works end-to-end. Sibling of the empty
+  `AutoContext.Engine` binary and `AutoContext.Framework.Engine`
+  library skeletons defined in
+  [autocontext-engine.md → Project layout](./autocontext-engine.md#project-layout).
 - **Verbs land alongside engine RPCs.** Each verb in this doc lands
   in the same release as the engine RPC it consumes, with the
   round-trip test that exercises both sides.
 - **Distribution wiring.** `build.ps1 Package` produces both
-  binaries in the per-RID staging dir; integration tests assert
-  `autocontext-engine` resolves under `cli/<rid>/engine/` from
+  binaries in the per-RID staging layout; per-platform packaging
+  flattens the matching RID subtree to `cli/` and `engine/` in the
+  shipped artefact. Integration tests assert `autocontext-engine`
+  resolves under `./engine/` from the CLI binary's
   `AppContext.BaseDirectory` on every supported RID.
 - **Smoke tests.** Mocha-driven smoke runs invoke `autocontext
   --version`, `autocontext workspace detect`, and `autocontext
