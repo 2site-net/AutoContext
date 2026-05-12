@@ -544,7 +544,104 @@ Consequences:
   usual `Config.Subscribe` event. Engines never RPC each other —
   the only cross-instance channel is the workspace file system,
   which is also the channel through which any external editor of
-  `.autocontext.json` is already observed.
+  `.autocontext.json` is already observed. Three properties fall
+  out of this and the implementation must preserve all three:
+
+  - **Last-writer-wins on disk, mediated by the OS.** When two
+    engines write concurrently, `FileShare.None` plus retry
+    serialises the I/O windows — neither write can tear and
+    neither observes a partially-written file — but it does not
+    serialise the surrounding read-modify-write. The on-disk
+    state after both writers complete is whichever payload was
+    flushed second; that file *is* the canonical state, by
+    construction (no leader, no quorum, no peer reconciliation).
+    The same rule applies symmetrically when the second writer
+    is a human in the JSON editor, `git pull`, or any other
+    external mutator — the engine treats every change uniformly.
+  - **Propagation to peer engines is the existing
+    `FileSystemWatcher` → snapshot-swap → `Config.Subscribe`
+    pipeline.** Every live engine on the workspace already
+    watches `.autocontext.json` for external edits (the JSON
+    editor, `git pull`, the user's text editor). A peer
+    engine's write is indistinguishable from those external
+    edits at the watcher boundary — same inode-change event,
+    same reload path, same atomic snapshot-pointer swap (P9),
+    same `Config.Subscribe` fan-out, same `Instructions.*`
+    `disabled`-flag re-evaluation, same generation-counter
+    bump on `Engine.Lifecycle.reloaded`. No code path is
+    conditioned on whether the change originated locally or
+    remotely; the watcher is the universal ingress for
+    out-of-process mutations. The watcher path itself is
+    coalesced — see
+    [Reload coalescing: debounce and batch](#reload-coalescing-debounce-and-batch)
+    for the debounce + writer-side batching rules that absorb
+    FS-event bursts and in-process toggle bursts into one
+    reload + one fan-out. Two consequences are worth
+    naming:
+    - The propagation channel is **not coupled to
+      `engine-metadata.json`**. The shared liveness registry
+      is observability (who is alive, since when, at what
+      version — consumed by `autocontext ps` and tree-view
+      badges); it is not a membership list any propagation
+      path reads from. Tying reload fan-out to the registry
+      would couple two deliberately-decoupled concerns —
+      state authority (the file) versus liveness (the
+      registry) — and would invite races where a registry
+      lag silently drops a peer from "the set being
+      notified". The file-watcher path has neither failure
+      mode because each engine independently observes the
+      file and never asks "who else is listening".
+    - Propagation is **eventually consistent**, not
+      synchronous. Engine B's `Config.Subscribe` fan-out
+      does not fire in the same atomic step as engine A's
+      write returning; there is a small window (FS-watcher
+      debounce + reload + per-subscriber send-buffer
+      enqueue, bounded by P9's non-blocking fan-out) during
+      which A's clients have seen the new snapshot and B's
+      have not. For interactive UI surfaces (extension tree
+      view, plugin status surfaces, `instructions watch`
+      terminals) the window is invisible — well under the
+      threshold the eye registers. For tight automated
+      tests issuing `Config.Get` on engine B immediately
+      after engine A's write completes, the read can
+      return the pre-write snapshot until the watcher
+      drains; no current RPC promises cross-engine
+      read-after-write, and any future surface that needs
+      that guarantee would have to layer an explicit
+      barrier on top.
+  - **The lost-update window is narrow and the canonical
+    upgrade is in-file optimistic CAS, not peer
+    coordination.** The one collision class `FileShare.None`
+    plus retry does *not* close is the read-modify-write race:
+    if engine A and engine B both snapshot `.autocontext.json`
+    before either writes, both compute a mutation against the
+    pre-race snapshot, and both then funnel through the OS
+    one-at-a-time, the second write overwrites the first
+    writer's mutation and the first user's toggle is silently
+    lost. The watcher heals divergence (both engines converge
+    on the final on-disk state within FS-watcher latency) but
+    cannot recover the dropped mutation — both writers
+    committed against the same prior snapshot, so neither has
+    the information needed to merge. Concretely, the window
+    is `read → mutate → write` on a small JSON file under
+    sub-millisecond `SemaphoreSlim` hold (P9); the realistic
+    workload (a human clicking a tree-view toggle in one
+    launcher while another human clicks a different toggle in
+    another launcher within the same few milliseconds) is
+    rare enough that the design treats it as acceptable today.
+    If the rate ever justifies closing it, the canonical
+    upgrade is **optimistic concurrency control inside the
+    file itself** — embed a monotonic `version` integer (or
+    content-hash etag) in `.autocontext.json`, have every
+    writer read the version, build the new payload with
+    `version + 1`, and inside the `FileShare.None` window
+    re-read just the version field and abort + retry on
+    mismatch. That closes the lost-update class without
+    introducing any peer-engine RPC, without coupling
+    propagation to `engine-metadata.json`, and without
+    promoting any one engine to a leader role. Peer
+    coordination is **not** the canonical upgrade — keeping
+    the file as the single arbiter is.
 - **Workspace identity is still the path.** Path normalisation
   (resolve symlinks, lowercase on Windows) collapses the
   unintentional multi-engine cases that would otherwise arise
@@ -716,6 +813,167 @@ Consequences:
   CLI) launch the engine with `stdio: 'ignore'` precisely so the
   SDK's read loop can't hit immediate EOF on a `/dev/null` stdin
   and self-terminate the process.
+
+### Reload coalescing: debounce and batch
+
+The engine's reload pipeline (re-read `.autocontext.json`, rebuild
+the immutable snapshot, atomic pointer swap, fan out
+`Config.Subscribe` plus dependent `Instructions.*` deltas, bump
+the generation counter on `Engine.Lifecycle.reloaded`) is **the
+single ingress** for every state change. Both in-process writes
+(`Config.ToggleFile`, `Config.ToggleRule`) and out-of-process
+mutations (peer engines, the JSON editor, `git pull`, scripts)
+end up here. Two coalescing rules apply to that ingress; neither
+is optional and they solve different problems.
+
+- **Debounce — coalesce physical FS events into one logical
+  reload.** `FileSystemWatcher` (and `inotify` / `FSEvents` / the
+  polling watcher under WSL+SMB) emits a *burst* of events for
+  one user-perceived save: atomic-rename saves produce
+  `Created` → `Deleted` → `Renamed` (plus a stray `Changed`);
+  in-place truncating saves produce two or three back-to-back
+  `Changed` events; cross-platform inconsistency means the same
+  logical edit can land as 1 event on macOS, 3 on Windows, and
+  5 under WSL forwarding. Without coalescing the engine reloads
+  N times for one toggle, fans out N redundant snapshots, and
+  bumps the generation counter N times — clients re-render
+  flickeringly and smoke tests turn racy. Shape:
+  - **Trailing-edge debounce per watched resource.** The
+    watcher callback resets a per-resource timer and does
+    nothing else; the read happens on timer fire. ~75–150 ms
+    is the target window — invisible interactively, long
+    enough to absorb every observed burst shape across the
+    supported file systems. Trailing-edge (not leading-edge)
+    is mandatory: an atomic-rename burst starts with a
+    `Created` on a temp file that does not yet exist under
+    the canonical name; reacting to it would read nothing.
+  - **The debounce is the read barrier.** The engine never
+    reads inside the watcher callback. Reading on timer fire
+    means the file is no longer mid-rename and no longer
+    mid-flush, so the cross-engine `FileShare.None` backoff
+    retry only has to defend against a concurrent *peer
+    write* — not against the engine's own watcher firing
+    inside someone else's rename window.
+  - **One timer per resource.** `.autocontext.json` is the
+    only watched resource today; the same shape applies the
+    day the engine watches `instructions/<name>.instructions.md`
+    for hot-reload — a different timer per file, so a config
+    save never resets the timer for an unrelated instructions
+    edit (and vice versa).
+  - **Cancellation propagates.** Engine shutdown (SIGINT,
+    SIGTERM, idle-gate fire) cancels every pending debounce
+    timer through the engine's root `CancellationToken`
+    (P8); no fire-and-forget timer outlives the process.
+  - **Deep-equal short-circuit (also the self-write
+    suppressor).** If the post-debounce read parses to a
+    config structurally equal to the current in-memory
+    snapshot (a formatter ran, `git checkout` restored the
+    same content, a peer rewrote the file with the same
+    payload, **or the engine itself just wrote this file**),
+    the reload pipeline skips the snapshot swap and the
+    fan-out — nothing to publish. The fast path is a content
+    hash of the source bytes against the hash the current
+    snapshot was built from; the slow path is a deep-equal
+    walk of the parsed config. The generation counter is
+    **not** bumped on a no-op reload; bumping it would
+    falsely invalidate every client's cache for a benign
+    disk touch. Crucially, this rule **is** the self-write
+    suppression mechanism: every local `Config.Toggle*` ends
+    by publishing the new in-memory snapshot synchronously,
+    so when the watcher fires shortly after on the same
+    write, the on-disk parse is by construction equal to
+    that just-published snapshot — the short-circuit fires
+    and the watcher echo is silently absorbed. Without this,
+    every local toggle would cost *two* fan-outs (one from
+    the writer, one from the watcher seeing its own write);
+    with it, the writer's fan-out is the only one clients
+    see.
+  - **Tunable, not user-facing.** The debounce window is an
+    `EngineOptions` constant exposed for tests, not a CLI
+    flag. The right value is empirical; users have no use
+    for tuning it.
+
+- **Batch — coalesce in-process toggles into one write.** A user
+  clicking "disable all instructions in this folder" in the tree
+  view, a CI script running `autocontext config toggle A;
+  autocontext config toggle B; autocontext config toggle C`, an
+  MCP host hook firing multiple routing-driven toggles in one
+  user turn — each is a *single logical bulk action* arriving
+  as N `Config.Toggle*` RPCs in tens of milliseconds. Without
+  batching the writer mutex is taken N times, the file is
+  rewritten N times (each rewrite costs an FS-share retry
+  window for peers), the watcher fires N times, and the
+  fan-out happens N times. The work is not wasted — every
+  toggle does correspond to a real state change — but the
+  surface is chatty and amplifies cross-engine traffic
+  unnecessarily. Shape:
+  - **Coalesce on the writer side, under the same async
+    mutex P9 already mandates.** When a write completes and
+    the writer is about to release the mutex, it peeks the
+    queue of pending toggles for further entries arriving
+    within a short window (~5–10 ms — much shorter than the
+    FS debounce; this is the in-process path) and folds
+    them into the same snapshot before flushing to disk.
+    One on-disk write, one snapshot swap, one fan-out frame.
+  - **`Config.Subscribe` carries the batch as one envelope.**
+    The wire shape is `{ generation, changes: [...] }`
+    where `changes[]` lists every mutation in writer-mutex
+    order; the generation counter increments once per batch,
+    not once per change. Clients that need to react
+    per-change iterate `changes[]`; clients that just need
+    "something changed" check the generation counter. Order
+    within `changes[]` is writer-mutex order, *not* a
+    semantic temporal claim — clients must not infer
+    causality from position.
+  - **Self-write suppression is the deep-equal short-circuit
+    above, not a separate mechanism.** Every local
+    `Config.Toggle*` publishes the new in-memory snapshot
+    synchronously at the end of the write, *then* releases
+    the writer mutex; the watcher's echo on the engine's
+    own write arrives shortly after and the debounced
+    reload finds the on-disk parse structurally equal to
+    the just-published snapshot, so the short-circuit fires
+    and the echo is absorbed. The writer does **not** need
+    to stamp the file with a marker, set an
+    "expecting-this-event" flag, or otherwise track its
+    own writes — the equality check is sufficient and is
+    also what catches benign external touches (formatter,
+    `git checkout` of the same content). The day the
+    optional in-file `version` field lands (see the
+    cross-instance lost-update note), it becomes the cheap
+    fast-path inside the equality check, but the rule does
+    not depend on it.
+  - **Slow-subscriber semantics are unchanged.** P9's
+    per-subscriber bounded buffer applies to the batch
+    envelope as one frame; a subscriber that misses it
+    through eviction catches up on resubscribe via the
+    snapshot-on-subscribe contract (P6). A missed batch
+    does not silently lose N changes — the resubscribe
+    snapshot contains every applied mutation.
+
+The two mechanisms compose cleanly across the cross-instance
+case. A peer engine's batched write flushes to disk **once**
+(end of batch); each peer's `FileSystemWatcher` sees the burst,
+the debounce coalesces it into one reload, and the peer's
+clients receive one batch envelope describing every change.
+External edits (text editor, `git pull`, scripts) take the same
+path on every peer's debounce — there is one rule, applied
+uniformly:
+
+| Origin | Local fan-out | Peer fan-out |
+|---|---|---|
+| Local API burst (N `Config.Toggle*` RPCs) | 1 (writer-side batch) | 1 (peer's debounce coalesces one write burst) |
+| External edit (JSON editor, `git pull`, script) | n/a (no local API call) | 1 (debounce coalesces the editor's save burst) |
+| Peer engine's batched write | 1 (debounce coalesces the peer's single flush) | n/a (each peer sees the other) |
+
+Failure modes the rules prevent: re-render flicker on every
+external save (`N` watcher events → `N` re-renders), runaway
+self-fan-out on local toggles (writer → watcher → writer-shaped
+reload → watcher again), spurious cache-invalidation on benign
+disk touches (a formatter rewrite incrementing the generation
+counter even though nothing changed semantically), and
+cross-engine amplification (a bulk action on engine A producing
+N FS events on every peer instead of one).
 
 ### Housekeeping
 
@@ -2194,7 +2452,10 @@ write, and never lets a corpus reload tear a read in flight.
   or a clean stream close (every other channel); a slow
   subscriber **never** back-pressures the producer, the snapshot
   swap, or any other subscriber. The principle is universal
-  across pipes and across RPC streams.
+  across pipes and across RPC streams. The producer-side
+  complement — coalescing redundant fan-outs at the source so
+  one logical change emits one envelope — lives under
+  [Reload coalescing: debounce and batch](#reload-coalescing-debounce-and-batch).
 - **Hot paths never wait on housekeeping.** The startup sweep and
   shutdown sweep run off the request path (before any pipe
   accepts, after every pipe closes). Idle-gate evaluation is a
