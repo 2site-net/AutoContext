@@ -28,7 +28,6 @@ the engine's design.
 
 ```
 autocontext --version
-autocontext ps [--json]
 autocontext config get [--workspace <path>] [--json]
 autocontext config toggle <file> [<ruleId>] [--workspace <path>]
 autocontext instructions list [--workspace <path>] [--json]
@@ -41,6 +40,7 @@ autocontext workspace info [--workspace <path>] [--json]
 autocontext mcp list [--workspace <path>] [--json]
 autocontext mcp invoke <tool> --args <json> [--workspace <path>]
 autocontext route "<prompt>" [--workspace <path>] [--json]
+autocontext engine list   [--all] [--workspace <path>] [--json]
 autocontext engine status [--instance-id <uuid>] [--workspace <path>] [--json]
 autocontext engine logs   [--follow] [--worker <id>] [--since <iso>] [--last-n <n>]
                       [--instance-id <uuid>] [--workspace <path>]
@@ -48,36 +48,127 @@ autocontext engine stop   [--instance-id <uuid> | --all] [--workspace <path>]
                       [--grace <ms>] [--reason <text>] [--json]
 ```
 
-Global engine-spawn pass-through switches — accepted before any
-verb, applied **only** when the CLI cold-spawns an engine for the
-resolved workspace, ignored when attaching by `--instance-id` to an
-already-running engine: `--idle-timeout <seconds>`,
-`--retention <duration>`, `--logging <verbosity>`. See
-[autocontext-engine.md → Engine options (CLI surface)](./autocontext-engine.md#engine-options-cli-surface)
-for the semantics of each; the CLI forwards the values verbatim and
-never interprets them. The CLI also always mints a fresh
-`--instance-id` (UUIDv4, one per invocation) and a fixed
-`--instance-label "autocontext (vX.Y.Z); engine (vX.Y.Z)"` when it
-spawns — both are launcher-side concerns, not user-tunable.
+### Verbs
+
+One-line summary per verb. Wire-level behaviour, exit codes, and
+discriminated-envelope handling are in *What each verb does, on the
+wire* below.
+
+| Verb | Engine RPC / pipe | Purpose |
+|---|---|---|
+| `--version` | — | Print the package version and exit. |
+| `config get` | `Config.Get` | Print the current `.autocontext.json` snapshot (file toggles, rule toggles, disabled MCP tools / tasks) as the engine sees it. |
+| `config toggle <file> [<ruleId>]` | `Config.ToggleFile` / `Config.ToggleRule` | Mute or un-mute one instruction file (file form) or one rule inside a file (rule form). The engine owns the write; the CLI never edits `.autocontext.json` directly. |
+| `instructions list` | `Instructions.List` | List every instruction file the engine knows about — identity, override source, disabled flag, always-attached flag. |
+| `instructions get <name>` | `Instructions.Get` / `Instructions.GetRaw` | Print one instruction file's body. Default is the projected view the agents see (tags stripped, disabled rules filtered, override preferred); `--raw` returns the on-disk bytes from the source selected by `--source`. |
+| `instructions search <query>` | `Instructions.SearchContent` | Full-text search across the projected instruction corpus; returns ranked matches with section anchors and excerpts. |
+| `instructions toggle <name> [<ruleId>]` | `Config.ToggleFile` / `Config.ToggleRule` | Same as `config toggle`, but keyed by instruction name instead of file path. |
+| `instructions watch` | `Instructions.Subscribe` + `Engine.Lifecycle.Subscribe` | Stream change envelopes as JSONL on stdout until Ctrl-C — each envelope carries the engine's current `generation` and a `changes[]` list. |
+| `workspace detect [<path>]` | `Workspace.Detect` | Resolve a path (or CWD) to a normalised workspace and print the engine's detection result (workspace kind, root, indicators). |
+| `workspace info` | `Workspace.Info` | Print engine-process metadata for the resolved workspace — engine version, generation counter, idle-timeout state. |
+| `mcp list` | `McpTools.List` | List the MCP tools the engine would advertise to an MCP host, filtered by the same disabled-tools / disabled-tasks state. |
+| `mcp invoke <tool> --args <json>` | `McpTools.Invoke` | Invoke one MCP tool through the same handler the engine's MCP-server-only role uses for `tools/call`. |
+| `route "<prompt>"` | `Discovery.RouteForPrompt` | Print the routing signal the Anthropic plugin's `UserPromptSubmit` hook consumes — matched categories, extensions, strongly-relevant tools and instruction files. |
+| `engine list` | reads `engine-metadata.json` directly | List engines registered in the shared liveness registry — workspace hash, instance UUID, label, pid, version, start time, retention window. Default: only rows that pass pid-check (live engines). `--all`: include stale rows (rows whose pid no longer matches `processStartTimeUtc`) marked as such. Never spawns, never dials a pipe. |
+| `engine status` | dials the `health` pipe | Print the small status JSON document the resolved engine emits on its `health` pipe. Read-only; never spawns. |
+| `engine logs` | dials the `logs` pipe (or `Logs.Tail*`) | Snapshot or tail the resolved engine's NDJSON log stream — engine records and worker records distinguished by the `category` field. Read-only; never spawns. |
+| `engine stop` | `Engine.Shutdown` | Ask the resolved engine (or every live engine on the workspace with `--all`) to shut down gracefully. Targets daemon-role engines only — MCP-server-only engines exit on stdio EOF and are invisible to this verb. |
+
+### Options
+
+The surface above mixes three categories of flags — **global
+engine-spawn pass-throughs** that apply only when the CLI
+cold-spawns an engine, **verb-shape flags** that change how a
+single verb resolves its target or formats its output, and
+**per-verb filters** that scope a specific RPC's payload. They are
+documented separately here so the per-verb prose below can stay
+focused on wire behaviour.
+
+#### Global engine-spawn pass-throughs
+
+Accepted **before any verb**, applied **only when the CLI
+cold-spawns an engine** for the resolved workspace, **ignored when
+attaching by `--instance-id`** to an already-running engine (the
+already-running engine was configured by its own launcher and its
+options are fixed for that engine's lifetime). The CLI forwards
+these verbatim to `autocontext-engine` and never interprets them.
+
+| Flag | Forwards to | What it does |
+|---|---|---|
+| `--idle-timeout <seconds>` | `autocontext-engine --idle-timeout` | Sets the spawned engine's idle gate. Non-negative integer; `0` disables the gate and ties the engine's lifetime to explicit shutdown only. The CLI never passes `0` itself (it owns no long-lived launcher and wants its spawned engines to clean up after the verb completes), but accepts the value on the CLI surface for testing scenarios where the operator wants to keep the engine alive past the verb. See [autocontext-engine.md → Engine options](./autocontext-engine.md#engine-options-cli-surface). |
+| `--retention <duration>` | `autocontext-engine --retention` | Sets the spawned engine's housekeeping retention window for its own per-instance log subtree. Duration string (`<n>{s\|m\|h\|d}`; `0` = sweep immediately). |
+| `--logging <verbosity>` | `autocontext-engine --logging` | Sets the spawned engine's log verbosity and rotation thresholds. `normal` rotates at 1,000 lines or 5 MB; `debug` rotates at 5,000 lines or 25 MB. |
+
+The CLI also always mints a fresh `--instance-id` (UUIDv4, one per
+invocation) and a fixed
+`--instance-label "autocontext (vX.Y.Z); engine (vX.Y.Z)"` for
+every engine it spawns. Both are launcher-side concerns and not
+user-tunable from the CLI surface; supplying `--instance-id <uuid>`
+on a verb is an **attach** instruction (dial that already-running
+engine), not a spawn instruction.
+
+#### Verb-shape flags
+
+These appear on multiple verbs and behave the same way every time.
+
+| Flag | Where it appears | What it does |
+|---|---|---|
+| `--workspace <path>` | every verb except `--version` | Selects the workspace the verb resolves against. Absent ⇒ CWD. The CLI normalises the path (resolve symlinks, lowercase on Windows) **identically** to the engine's pipe-name hash, so the dialled engine is the one the engine actually bound. `engine list` is the one exception to the CWD default: absent `--workspace` lists every workspace on the machine, and an explicit `--workspace <path>` filters the registry to rows whose `workspaceHash` matches that path. |
+| `--json` | every read-shaped verb (`config get`, `instructions list\|search\|watch`, `workspace detect\|info`, `mcp list`, `route`, `engine list`, `engine status`) and `engine stop` | Emits the wire payload verbatim on stdout, one JSON object per line for streaming verbs. The default is human-formatted pretty output; `--json` is the machine-readable contract for CI. Logs and progress always stay on stderr regardless of mode (see *Surface conventions*). |
+| `--instance-id <uuid>` | `engine status`, `engine logs`, `engine stop` | Targets a specific live engine by its launcher-minted UUID. Absent ⇒ the verb consults `engine-metadata.json` and selects the unique live engine for the resolved workspace; ambiguous cases (two launchers open against the same workspace) fail with an error listing every candidate's `instanceId` and `instanceLabel`. These verbs **never cold-spawn**, so an unresolvable `--instance-id` is reported as engine-absent. |
+
+#### Per-verb filters
+
+These scope a single verb's payload or behaviour and have no
+cross-verb meaning.
+
+| Verb | Flag | What it does |
+|---|---|---|
+| `instructions get` | `--raw` | Switches the verb from `Instructions.Get` (projected — tags stripped, disabled rules filtered, override preferred) to `Instructions.GetRaw` (unmodified on-disk bytes; YAML frontmatter and `[INSTxxxx]` tags intact). |
+| `instructions get` | `--source <bundled\|override\|active>` | Only meaningful with `--raw`. Selects which on-disk file the bytes come from: `active` (default — override if one exists, else bundled), `bundled` (the bundled file even when an override exists), `override` (the override file or `not-found`). |
+| `instructions search` | `--include-disabled` | Includes files whose `.autocontext.json` entry is muted in the result set. Default excludes them (audit / export is the only motivating use case). |
+| `config toggle` / `instructions toggle` | `<ruleId>` (positional) | Selects rule-form toggle (`Config.ToggleRule`) instead of file-form toggle (`Config.ToggleFile`). Absent ⇒ toggles the file as a whole. |
+| `mcp invoke` | `--args <json>` | The JSON-encoded `arguments` object forwarded to `McpTools.Invoke`'s `tools/call`-equivalent payload. The CLI validates only that the value is well-formed JSON; the engine validates against the tool's schema. |
+| `engine logs` | `--follow` | Switches from a bounded snapshot (`Logs.GetEngine` / `Logs.GetWorker`) to a server-streaming tail (the `logs` pipe or `Logs.Tail*` RPC). Without it the verb returns the most recent records and exits. |
+| `engine logs` | `--worker <id>` | Reads the per-worker log file instead of `engine.log`. Errors out if the id is unknown to the resolved engine. |
+| `engine logs` | `--since <iso>` | Filters snapshot or stream output to records at or after the given ISO-8601 timestamp. |
+| `engine logs` | `--last-n <n>` | Caps the snapshot to the most recent `n` records (snapshot only — `--follow` ignores this). |
+| `engine list` | `--all` | Include rows from `engine-metadata.json` whose pid-check fails (stale leftovers from crashed engines that did not get to remove their row). Default omits them. Stale rows are flagged in the rendered table and carry `"state": "stale"` in `--json` output; live rows carry `"state": "live"`. |
+| `engine stop` | `--all` | Mutually exclusive with `--instance-id`. Broadcasts `Engine.Shutdown` to **every** live engine for the resolved workspace, one RPC per engine, issued in parallel; each engine drains independently. |
+| `engine stop` | `--grace <ms>` | Forwarded verbatim to `Engine.Shutdown.opts.grace`. Caps how long the engine waits for in-flight `rpc` handlers to complete before closing pipes; default `2000`, engine-side hard cap `30000`. |
+| `engine stop` | `--reason <text>` | Forwarded verbatim to `Engine.Shutdown.opts.reason`. Opaque postmortem string (≤ 200 printable-ASCII chars); appears on the engine's final `engine.lifecycle` log line and nowhere else. |
 
 What each verb does, on the wire:
 
-- **`ps`** — list every live engine on the machine by reading the
-  shared liveness registry at
-  `…\autocontext\engine-metadata.json` (Windows
-  `%LOCALAPPDATA%`, POSIX `$XDG_CACHE_HOME` or `~/.cache`)
-  **directly**. The CLI neither spawns nor dials an engine for
-  this verb; it opens the file, pid-checks every row (`pid`
-  exists AND `Process.StartTime` ≈ `processStartTimeUtc` within
-  ~1 s tolerance, to defeat pid recycling), and renders only rows
-  that pass. Columns include `workspaceHash`, `instanceId`,
-  `instanceLabel`, `pid`, `engineVersion`, `startedAt`, and
-  `retention`; `--json` emits the registry row payload verbatim.
-  A corrupt or missing registry is reported as an empty list with
-  a stderr warning; the next engine start re-seeds the file. This
-  is the same registry the engine's own housekeeping sweep reads
-  (see [autocontext-engine.md → Housekeeping](./autocontext-engine.md#housekeeping));
-  `ps` is the read-only observability counterpart.
+- **`engine list`** — list engines registered in the shared
+  liveness registry at `…\autocontext\engine-metadata.json`
+  (Windows `%LOCALAPPDATA%`, POSIX `$XDG_CACHE_HOME` or
+  `~/.cache`) by reading the file **directly**. The CLI neither
+  spawns nor dials an engine for this verb; it opens the file and
+  pid-checks every row (`pid` exists AND `Process.StartTime` ≈
+  `processStartTimeUtc` within ~1 s tolerance, to defeat pid
+  recycling). Default behaviour renders only rows that pass
+  pid-check (live engines); `--all` additionally renders rows
+  that fail pid-check (stale leftovers from crashed engines whose
+  housekeeping never ran) and flags them as such. Default scope
+  is machine-wide (every workspace); `--workspace <path>` filters
+  the listing to rows whose `workspaceHash` matches the
+  normalised path — unlike every other verb, `engine list` does
+  **not** default to CWD, because a listing verb whose default
+  hides most of what it could show is a footgun. Columns include
+  `state` (`live` / `stale`, the latter only ever appearing under
+  `--all`), `workspaceHash`, `instanceId`, `instanceLabel`,
+  `pid`, `engineVersion`, `startedAt`, and `retention`; `--json`
+  emits each row as one JSON object on stdout with the same
+  `state` discriminator. A corrupt or missing registry is reported
+  as an empty list with a stderr warning; the next engine start
+  re-seeds the file. This is the same registry the engine's own
+  housekeeping sweep reads (see
+  [autocontext-engine.md → Housekeeping](./autocontext-engine.md#housekeeping));
+  `engine list` is the read-only observability counterpart.
+  Like `engine status` / `engine logs` / `engine stop`, it
+  **never cold-spawns** — reading the registry to list engines
+  has no sensible engine-spawn fallback.
 - **`config get`** → `Config.Get` over the engine's `rpc` pipe;
   pretty-print by default, `--json` for raw JSON.
 - **`config toggle <file> [<ruleId>]`** → `Config.ToggleFile`
@@ -228,7 +319,7 @@ What each verb does, on the wire:
   **not** wait for the engine to actually exit — acknowledgement
   means the shutdown sequence has started, and the engine's own
   housekeeping covers the rest; pair with
-  [`autocontext ps`](#what-each-verb-does-on-the-wire) or a brief
+  [`autocontext engine list`](#what-each-verb-does-on-the-wire) or a brief
   poll on `engine status` if a script needs to observe the exit.
   See
   [autocontext-engine.md → RPC surface (initial)](./autocontext-engine.md#rpc-surface-initial)
@@ -270,8 +361,9 @@ What is **deliberately not** in the CLI:
   graceful shutdown against the shared liveness registry (see
   [autocontext-engine.md → Housekeeping](./autocontext-engine.md#housekeeping));
   the design refuses to rely on a CLI subcommand the user has to
-  remember to run. `autocontext ps` is the observability counterpart —
-  read-only over the same registry, never destructive.
+  remember to run. `autocontext engine list` is the observability
+  counterpart — read-only over the same registry, never
+  destructive.
 - **No in-process projection.** The CLI never re-implements
   `InstructionsFileBodyProjector` or reads `.autocontext.json`
   directly to compute results. If the engine is unreachable, the
@@ -350,7 +442,7 @@ the same flow, dialling only the pipes that verb needs:
    dial `rpc`. Long-running watch verbs additionally dial `events`.
    `engine status` dials only `health` — passive, no handshake
    required. `engine logs` dials only `logs` — passive, no
-   handshake required. `ps` dials no pipe at all (it reads
+   handshake required. `engine list` dials no pipe at all (it reads
    `engine-metadata.json` directly). The engine binds all four
    pipes before accepting on any of them, so dial-only-what-you-need
    is safe even on cold start.
@@ -373,7 +465,7 @@ the same flow, dialling only the pipes that verb needs:
    redirected/null stdio; the spawned engine is not a child in any
    meaningful sense — no parent-child IPC, no inherited handles.
    The engine and the CLI communicate only over the workspace
-   pipes. Verbs that "never spawn" (`ps`, `engine status`, `engine
+   pipes. Verbs that "never spawn" (`engine list`, `engine status`, `engine
    logs`) skip this step and report engine-absent as the result.
 7. **Retry connect.** Exponential backoff against two budgets:
    sub-second warm budget, several-second cold budget. Cold-start
@@ -592,7 +684,7 @@ and output formatting on top.
   engine, identified by a different `<instanceId>`). Both verbs
   exit with a clear "no live engine for this workspace" error and
   exit `1` when no candidate exists.
-- **`autocontext ps` works without an engine.** The verb reads
+- **`autocontext engine list` works without an engine.** The verb reads
   `engine-metadata.json` directly with a short retry loop to
   tolerate concurrent engine writers holding the file open; it
   never opens a pipe. A corrupt or missing registry is reported as
