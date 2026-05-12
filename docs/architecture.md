@@ -389,7 +389,7 @@ It then emits two `additionalContext` sections on `hookSpecificOutput`:
 
 Both blocks are passive: the user's prompt itself is unmodified. The hook's purpose is to guarantee the model sees an "AutoContext exists, here's what it can do, here's what's relevant right now" preamble on every turn, without relying on the model to discover the LM tools on its own.
 
-> The hooks read manifests directly today because there is no per-workspace daemon to query. When the future `autoctx-engine` ships (see [docs/future/autoctx-engine.md](future/autoctx-engine.md)) the same routing logic and output shape will move to a thin RPC client; the hook contract with the host (Claude Code or VS Code Copilot) stays unchanged.
+> The hooks read manifests directly today because there is no per-workspace daemon to query. When the future `autocontext-engine` ships (see [docs/future/autocontext-engine.md](future/autocontext-engine.md)) the same routing logic and output shape will move to a thin RPC client; the hook contract with the host (Claude Code or VS Code Copilot) stays unchanged.
 
 ---
 

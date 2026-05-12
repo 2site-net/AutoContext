@@ -1,8 +1,8 @@
-# Plan: `autoctx` CLI (thin engine client, debug & scripting surface)
+# Plan: `autocontext` CLI (thin engine client, debug & scripting surface)
 
 ## Motivation
 
-`autoctx` is the **third client** of `autocontext-engine` (alongside
+`autocontext` is the **third client** of `autocontext-engine` (alongside
 the VS Code extension and the Anthropic plugin), and the only one
 that is neither an editor nor a hook runtime. Its job is to give
 humans and CI scripts the same view the editors get, without
@@ -27,22 +27,22 @@ the engine's design.
 ## CLI surface
 
 ```
-autoctx --version
-autoctx ps [--json]
-autoctx config get [--workspace <path>] [--json]
-autoctx config toggle <file> [<ruleId>] [--workspace <path>]
-autoctx instructions list [--workspace <path>] [--json]
-autoctx instructions get <name> [--raw] [--workspace <path>]
-autoctx instructions search <query> [--workspace <path>] [--json]
-autoctx instructions toggle <name> [<ruleId>] [--workspace <path>]
-autoctx instructions watch [--workspace <path>] [--json]
-autoctx workspace detect [<path>] [--json]
-autoctx workspace info [--workspace <path>] [--json]
-autoctx mcp list [--workspace <path>] [--json]
-autoctx mcp invoke <tool> --args <json> [--workspace <path>]
-autoctx route "<prompt>" [--workspace <path>] [--json]
-autoctx engine status [--instance-id <uuid>] [--workspace <path>] [--json]
-autoctx engine logs   [--follow] [--worker <id>] [--since <iso>] [--last-n <n>]
+autocontext --version
+autocontext ps [--json]
+autocontext config get [--workspace <path>] [--json]
+autocontext config toggle <file> [<ruleId>] [--workspace <path>]
+autocontext instructions list [--workspace <path>] [--json]
+autocontext instructions get <name> [--raw] [--workspace <path>]
+autocontext instructions search <query> [--workspace <path>] [--json]
+autocontext instructions toggle <name> [<ruleId>] [--workspace <path>]
+autocontext instructions watch [--workspace <path>] [--json]
+autocontext workspace detect [<path>] [--json]
+autocontext workspace info [--workspace <path>] [--json]
+autocontext mcp list [--workspace <path>] [--json]
+autocontext mcp invoke <tool> --args <json> [--workspace <path>]
+autocontext route "<prompt>" [--workspace <path>] [--json]
+autocontext engine status [--instance-id <uuid>] [--workspace <path>] [--json]
+autocontext engine logs   [--follow] [--worker <id>] [--since <iso>] [--last-n <n>]
                       [--instance-id <uuid>] [--workspace <path>]
 ```
 
@@ -55,7 +55,7 @@ already-running engine: `--idle-timeout <seconds>`,
 for the semantics of each; the CLI forwards the values verbatim and
 never interprets them. The CLI also always mints a fresh
 `--instance-id` (UUIDv4, one per invocation) and a fixed
-`--instance-label "autoctx (vX.Y.Z); engine (vX.Y.Z)"` when it
+`--instance-label "autocontext (vX.Y.Z); engine (vX.Y.Z)"` when it
 spawns — both are launcher-side concerns, not user-tunable.
 
 What each verb does, on the wire:
@@ -167,7 +167,7 @@ What each verb does, on the wire:
 What is **deliberately not** in the CLI:
 
 - **No `service` subcommand.** The original design surfaced
-  `autoctx service mcps://...` and `autoctx service worker://...` to
+  `autocontext service mcps://...` and `autocontext service worker://...` to
   launch processes. With the engine model both vanish: MCP hosts
   launch `autocontext-engine` directly (it is the MCP server, under
   `--mcp-server with-stdio`), and the engine launches workers
@@ -177,7 +177,7 @@ What is **deliberately not** in the CLI:
 - **No engine-control verbs.** Running the engine is a separate
   binary (`autocontext-engine`); the CLI cold-spawns it on demand
   for verbs that need it and the engine idle-shuts itself. There is
-  no `autoctx engine start` / `stop` / `restart` / `daemon`. The
+  no `autocontext engine start` / `stop` / `restart` / `daemon`. The
   `engine status` / `engine logs` verbs are read-only observability
   surfaces dialing the engine's `health` and `logs` pipes;
   foreground engine debugging is `autocontext-engine --workspace
@@ -187,7 +187,7 @@ What is **deliberately not** in the CLI:
   graceful shutdown against the shared liveness registry (see
   [autocontext-engine.md → Housekeeping](./autocontext-engine.md#housekeeping));
   the design refuses to rely on a CLI subcommand the user has to
-  remember to run. `autoctx ps` is the observability counterpart —
+  remember to run. `autocontext ps` is the observability counterpart —
   read-only over the same registry, never destructive.
 - **No in-process projection.** The CLI never re-implements
   `InstructionsFileBodyProjector` or reads `.autocontext.json`
@@ -216,7 +216,7 @@ What is **deliberately not** in the CLI:
 - **Colour.** Auto-detected from terminal capability; respect
   `NO_COLOR` (no colour) and `FORCE_COLOR` (force colour) per the
   conventional environment-variable contract.
-- **Versioning.** `autoctx --version` prints the package version
+- **Versioning.** `autocontext --version` prints the package version
   (sourced from `version.json` via
   `AssemblyInformationalVersionAttribute`); the version is
   RID-independent. Wire-protocol version is checked at handshake
@@ -260,10 +260,10 @@ the same flow, dialling only the pipes that verb needs:
 6. **On failure, spawn `autocontext-engine` detached.** Resolved
    via `AppContext.BaseDirectory` from the CLI binary's location
    to the nested side-car path (`./engine/autocontext-engine[.exe]`
-   relative to `autoctx[.exe]`; see *Distribution*), with no PATH
+   relative to `autocontext[.exe]`; see *Distribution*), with no PATH
    dependency, launched with the mandatory `--workspace
    <normalisedPath>` and `--instance-id <uuid>` switches plus the
-   `--instance-label "autoctx (vX.Y.Z); engine (vX.Y.Z)"`
+   `--instance-label "autocontext (vX.Y.Z); engine (vX.Y.Z)"`
    convention label (see
    [autocontext-engine.md → Engine options](./autocontext-engine.md#engine-options-cli-surface)).
    Optional pass-through switches (`--idle-timeout`, `--retention`,
@@ -291,7 +291,7 @@ the same flow, dialling only the pipes that verb needs:
 
 The CLI never holds the engine alive; once the verb completes it
 disconnects and the engine drops back into its idle-timer state.
-Two short-lived `autoctx` invocations against the same workspace
+Two short-lived `autocontext` invocations against the same workspace
 each mint their own UUID and each spawn their own engine — they do
 **not** attach to each other (different `<instanceId>` = a
 different engine by construction, see
@@ -315,9 +315,9 @@ disconnect as an error.
 
 ## Distribution
 
-`autoctx` ships in the same per-RID layout as the engine, with the
+`autocontext` ships in the same per-RID layout as the engine, with the
 engine bundle nested as a side-car under the CLI bundle so a cold
-`autoctx` invocation can resolve and spawn its engine without a
+`autocontext` invocation can resolve and spawn its engine without a
 PATH dependency. Per-RID layout (the inner engine tree is re-stated
 from
 [autocontext-engine.md#distribution](./autocontext-engine.md#distribution)
@@ -325,7 +325,7 @@ so this doc is self-contained):
 
 ```
 cli/<rid>/
-  autoctx[.exe]                          # this binary
+  autocontext[.exe]                          # this binary
   <framework dlls / runtime files>       # self-contained .NET runtime for the CLI
   engine/                                # embedded engine bundle — same layout as
                                          # autocontext-engine.md § Distribution
@@ -343,11 +343,11 @@ shows up in every host that ships the CLI):
 - `<vsix>/cli/<rid>/...` for the VS Code extension.
 - `<plugin-root>/cli/<rid>/...` for the Anthropic plugin.
 - A standalone GitHub release publishes the same per-RID artefact
-  for users who want `autoctx` on their PATH.
+  for users who want `autocontext` on their PATH.
 
 The CLI itself does not consume the bundled `engine/` side-cars at
 runtime — the engine does. The CLI bundle embeds the engine's full
-per-RID tree only so a cold `autoctx` invocation can resolve and
+per-RID tree only so a cold `autocontext` invocation can resolve and
 spawn its sibling engine without a PATH dependency. The CLI bundle
 is distinct from the engine-only bundle (`engine/<rid>/...`) the
 VS Code extension also ships for its own engine spawning; the two
@@ -360,7 +360,7 @@ The CLI is one of three engine clients; sharing happens at the
 **wire-protocol** level, not at the source-code level. The CLI
 project is itself split in two so third-party .NET code can embed
 the engine client without depending on the verb-parsing or
-output-formatting layer that the `autoctx[.exe]` binary adds on
+output-formatting layer that the `autocontext[.exe]` binary adds on
 top.
 
 - **Two .NET libraries, one binary.**
@@ -376,12 +376,12 @@ top.
     automated regression harnesses, future JetBrains / Rider
     plugins, an `AutoContext.VsCode.Cs` rewrite) takes a dependency
     on this library without taking a dependency on the CLI.
-  - `AutoContext.Cli` — the verb-parsing, output-formatting,
-    JSON-rendering layer the `autoctx[.exe]` binary composes over
+  - `AutoContext.CommandLine` — the verb-parsing, output-formatting,
+    JSON-rendering layer the `autocontext[.exe]` binary composes over
     `AutoContext.Engine.Client`. The binary's `Program.Main` calls
     `AddAutoContextCli` (see *Composition contracts*); embedders
     that want CLI behaviour in-process (a test harness driving
-    every verb, a parent process exposing `autoctx` verbs through
+    every verb, a parent process exposing `autocontext` verbs through
     its own surface) do the same.
 - **The TS-side `AutoctxClient`** (used by the VS Code extension
   and by Anthropic plugin `.cjs` hook scripts under whichever hook
@@ -389,7 +389,7 @@ top.
   `AutoContext.Engine.Client` speaks. The two are independent
   implementations of one wire contract; neither is the source of
   truth, the **engine** is.
-- **Shells stay thin.** `AutoContext.Cli` contains verb parsing,
+- **Shells stay thin.** `AutoContext.CommandLine` contains verb parsing,
   RPC plumbing, output formatting, and the run / teardown loop —
   and nothing else. Logic that is not host-specific belongs in the
   engine. If a CLI verb starts looking like a re-implementation of
@@ -421,7 +421,7 @@ analogous split on the client side.
   - workspace path resolution (explicit path or CWD-derived);
   - launcher-identity controls — `InstanceId` override (default:
     fresh UUIDv4 per resolver instance), `InstanceLabel` template
-    (default: `"autoctx (vX.Y.Z); engine (vX.Y.Z)"`);
+    (default: `"autocontext (vX.Y.Z); engine (vX.Y.Z)"`);
   - spawn policy — `SpawnDisabled` (connect-or-fail without
     spawning, for tests and for the `engine status` / `engine logs`
     verbs that observe but never spawn), `EngineBinaryPath`
@@ -435,10 +435,10 @@ analogous split on the client side.
 
   Third-party .NET code embeds the engine client through this seam
   without taking a dependency on `System.CommandLine`,
-  `AutoContext.Cli`, or anything verb-shaped. Tests embed it the
+  `AutoContext.CommandLine`, or anything verb-shaped. Tests embed it the
   same way the production binary does.
 - **`IHostApplicationBuilder.AddAutoContextCli(Action<CliOptions> configure)`**
-  is `AutoContext.Cli`'s single public entry point. It composes on
+  is `AutoContext.CommandLine`'s single public entry point. It composes on
   top of `AddAutoContextEngineClient` and adds verb parsing
   (`System.CommandLine`), output formatting (pretty / JSON), the
   stderr-vs-stdout discipline (see *Surface conventions*), and the
@@ -449,10 +449,10 @@ analogous split on the client side.
   drive both layers from one call site.
 
 Both seams live under the `AutoContext` namespace, regardless of
-the lowercase `autoctx[.exe]` binary name. Embedders that only need
+the lowercase `autocontext[.exe]` binary name. Embedders that only need
 to talk to the engine call `AddAutoContextEngineClient`; embedders
 that want CLI behaviour in-process call `AddAutoContextCli`; the
-production `autoctx[.exe]` binary's `Program.Main` calls
+production `autocontext[.exe]` binary's `Program.Main` calls
 `AddAutoContextCli` and lets the verb layer drive everything.
 
 ## Pitfalls
@@ -480,7 +480,7 @@ production `autoctx[.exe]` binary's `Program.Main` calls
   engine, identified by a different `<instanceId>`). Both verbs
   exit with a clear "no live engine for this workspace" error and
   exit `1` when no candidate exists.
-- **`autoctx ps` works without an engine.** The verb reads
+- **`autocontext ps` works without an engine.** The verb reads
   `engine-metadata.json` directly with a short retry loop to
   tolerate concurrent engine writers holding the file open; it
   never opens a pipe. A corrupt or missing registry is reported as
@@ -490,7 +490,7 @@ production `autoctx[.exe]` binary's `Program.Main` calls
   registry left stale) needs a tool that surfaces "no engines
   alive" without itself spawning one.
 - **Passive pipes (`health`, `logs`) do not keep the engine alive.**
-  A forgotten `autoctx engine logs --follow` in a terminal cannot
+  A forgotten `autocontext engine logs --follow` in a terminal cannot
   prevent idle shutdown, will not back-pressure any other client,
   and will see a clean EOF when the engine's idle gate fires (see
   [autocontext-engine.md → Lifecycle](./autocontext-engine.md#lifecycle)).
@@ -498,8 +498,8 @@ production `autoctx[.exe]` binary's `Program.Main` calls
   normal lifecycle event and reconnect under the cold-start protocol
   if they need to observe the next engine.
 - **Embedders use `AddAutoContextEngineClient`, not the
-  `autoctx[.exe]` binary.** Driving the engine programmatically by
-  `Process.Start`-ing `autoctx[.exe]` and parsing its stdout is
+  `autocontext[.exe]` binary.** Driving the engine programmatically by
+  `Process.Start`-ing `autocontext[.exe]` and parsing its stdout is
   supported (the CLI's machine-readable output is contractual —
   see *Quiet-mode contract for CI*), but the in-process .NET
   embedding path is strictly cheaper: no marshalling through the
@@ -509,12 +509,12 @@ production `autoctx[.exe]` binary's `Program.Main` calls
   `AutoContext.Engine.Client` and call
   `AddAutoContextEngineClient` (see *Composition contracts*); the
   CLI binary's existence does not deprecate the library.
-- **`autoctx --version` is RID-independent.** Driven by
+- **`autocontext --version` is RID-independent.** Driven by
   `AssemblyInformationalVersionAttribute` from `version.json`.
   Wire-protocol version is a *separate* integer checked in
   `Engine.Hello`; it changes on wire-format breaks, the package
   version changes on releases. Don't conflate.
-- **`autoctx instructions watch` cancellation.** Long-running JSONL
+- **`autocontext instructions watch` cancellation.** Long-running JSONL
   stream. Must unwind cleanly on Ctrl-C: `await foreach` with a
   forwarded `CancellationToken`, no buffer-the-world-then-emit, no
   hang on the underlying `Channel<T>` read.
@@ -530,22 +530,19 @@ production `autoctx[.exe]` binary's `Program.Main` calls
   display. Every config read goes through the engine so the CLI
   always sees the same view the editors see.
 - **Do NOT** bundle a runtime corpus the CLI itself consumes. The
-  corpus that ships next to `autoctx` is the engine's corpus; the
+  corpus that ships next to `autocontext` is the engine's corpus; the
   CLI sees it only via `Instructions.*` RPCs.
 
 ## Implementation phase shape
 
-The phase-by-phase plan — ordering, deliverables, test plans,
-decision rationale — lives in
-`plan-autoctx-cli-implementation.md` (repo memory) alongside the
-engine plan; the phases are interleaved because the CLI and the
-engine must land together (the CLI can't ship without the engine,
-and shipping the engine without a debug client is a regression).
+The CLI and the engine must land together — the CLI can't ship
+without the engine, and shipping the engine without a debug client
+is a regression — so their phases are interleaved.
 
 Shape:
 
-- **Skeleton.** `AutoContext.Cli` project, empty
-  `AddAutoContextCli`, `autoctx --version`. Sibling of the empty
+- **Skeleton.** `AutoContext.CommandLine` project, empty
+  `AddAutoContextCli`, `autocontext --version`. Sibling of the empty
   `AutoContext.Engine` skeleton.
 - **Verbs land alongside engine RPCs.** Each verb in this doc lands
   in the same release as the engine RPC it consumes, with the
@@ -554,8 +551,8 @@ Shape:
   binaries in the per-RID staging dir; integration tests assert
   `autocontext-engine` resolves under `cli/<rid>/engine/` from
   `AppContext.BaseDirectory` on every supported RID.
-- **Smoke tests.** Mocha-driven smoke runs invoke `autoctx
-  --version`, `autoctx workspace detect`, and `autoctx
+- **Smoke tests.** Mocha-driven smoke runs invoke `autocontext
+  --version`, `autocontext workspace detect`, and `autocontext
   instructions list` against a fixture workspace, asserting cold
   spawn → handshake → result → engine idle-shutdown.
 
@@ -564,5 +561,3 @@ Shape:
 - [autocontext-engine.md](./autocontext-engine.md) — the engine binary the
   CLI is a client of. Wire protocol, RPC surface, lifecycle,
   distribution layout, projection ownership.
-- [plan-agent-plugin-discovery-enhancements.md](./plan-agent-plugin-discovery-enhancements.md)
-  — the Anthropic plugin (a sibling client of the engine).
