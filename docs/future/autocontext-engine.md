@@ -185,6 +185,39 @@ also land here so the index stays the system's table of contents.
 | `AutoContext.Worker.DotNet` / `.Workspace` / `.Web` | .NET / Node task workers | spawned lazily by the engine via `WorkerManager` | [What the engine absorbs](#what-the-engine-absorbs-from-todays-topology) |
 | `AutoContext.Mcp.Server` | retired in this plan | absorbed into the engine | [What the engine absorbs](#what-the-engine-absorbs-from-todays-topology) |
 
+### Distributed bundle layout
+
+The **shipped** shape of an engine bundle inside any host artefact
+(VSIX, plugin root, GitHub-released tarball). This is the runtime
+filesystem the engine resolves against via `AppContext.BaseDirectory`
+— not the source-tree layout under `src/`, and not the multi-RID
+build-output tree under `out/`. Each shipped artefact targets one
+platform (one VSIX per platform via `vsce package --target <target>`,
+one plugin release per platform, one GitHub-release tarball per RID),
+so the per-RID segment that exists in build staging is **absent**
+from the shipped product:
+
+```
+engine/
+  autocontext-engine[.exe]               # engine binary
+  <framework dlls / runtime files>       # self-contained .NET runtime for the engine
+  Instructions/                          # curated corpus (read-only side-car)
+  Resources/                             # build-generated read-only manifests
+  Workers/<id>/<entrypoint>              # one self-contained subdir per worker
+```
+
+At build-output staging time the layout is
+`out/engine/<rid>/{autocontext-engine, runtime, Instructions/, Resources/, Workers/}`
+with one subtree per supported RID (`win-x64`, `win-arm64`,
+`linux-x64`, `linux-arm64`, `osx-x64`, `osx-arm64`); per-platform
+packaging picks the matching `<rid>/` and copies its contents into
+`engine/` in the shipped artefact. The `autoctx` CLI is **not** in
+this tree — it ships in its own bundle and nests its own copy of
+`engine/` as a side-car (see [autoctx-cli.md](./autoctx-cli.md)).
+
+See [Distribution](#distribution) for per-file roles, manifest
+shapes, and host-side resolution rules.
+
 ### Engine CLI switches
 
 | Switch | Required | Notes |
@@ -237,7 +270,7 @@ Every path AutoContext touches has exactly one owner (P5).
 |---|---|---|
 | `<workspace>/.autocontext.json` | engine | workspace; cross-instance shared on disk |
 | `<workspace>/.github/instructions/<name>.instructions.md` | user | workspace; overrides bundled |
-| `<host-bundle>/engine/<rid>/{autocontext-engine, Instructions/, Resources/, Workers/}` | build | read-only at runtime |
+| `<host-bundle>/engine/{autocontext-engine, Instructions/, Resources/, Workers/}` | build | read-only at runtime |
 | `…\autocontext\<workspaceHash>#<instanceId>\logs\engine.log` | engine | rotated in-process by `--logging` thresholds; rotated files retained per `--retention` |
 | `…\autocontext\<workspaceHash>#<instanceId>\logs\errors.log` (future) | engine | unhandled-exception / fatal-startup sink |
 | `…\autocontext\<workspaceHash>#<instanceId>\logs\worker-<workerId>.log` | engine | one file per spawned worker; records routed by `category` prefix; same rotation + retention rules as `engine.log` |
@@ -470,14 +503,12 @@ The reasons are structural, not incidental:
   idle-timeout when their own launcher's keep-alive clients
   disconnect; an unrelated launcher on the same workspace runs an
   independent engine with an independent idle clock.
-- **Pipe naming makes this concrete.** Every pipe name is
-  `autocontext-engine:<kind>@<workspaceHash>#<instanceId>`, where
-  `<kind>` ∈ {`rpc`, `health`, `logs`, `events`} (see `### Lifecycle`
-  for the four-pipe topology), `<workspaceHash>` =
-  `sha256(normalisedWorkspacePath):0..16`, and `<instanceId>` is
-  the launcher's UUIDv4. The hash identifies the workspace; the
-  UUID identifies the launcher instance; together they identify
-  the engine.
+- **Pipe naming makes this concrete.** Every pipe name carries both
+  identifiers — `autocontext-engine:<kind>@<workspaceHash>#<instanceId>`
+  — so the hash identifies the workspace, the UUID identifies the
+  launcher instance, and together they identify the engine. See
+  [Lifecycle](#lifecycle) > *Pipe name* for the canonical format,
+  the four `<kind>` values, and the normalisation rules.
 
 Consequences:
 
@@ -945,10 +976,13 @@ way to set it.
   clients are typically subscribers. The engine is the only authority
   for what is enabled / disabled.
 - **`Instructions.*`** — `List`, `Get(name)`, `GetAll`,
-  `GetAlwaysAttached`, `GetRaw(name)`, `SearchContent(query, opts?)`,
-  `Subscribe`. `Get`, `GetAll`, and `GetAlwaysAttached` return
-  projected bodies (raw filtered by `disabledInstructions`,
-  `[INSTxxxx]` tags stripped, override preferred over bundled).
+  `GetAlwaysAttached`, `GetRaw(name, opts?)`, `SearchContent(query, opts?)`,
+  `Subscribe`. `List` returns identity rows; `Get` / `GetAll` /
+  `GetAlwaysAttached` return **projected** bodies (disabled rules
+  filtered out, `[INSTxxxx]` tags stripped, workspace override
+  preferred over bundled); `SearchContent` searches the projected
+  index; `GetRaw` returns the **source-faithful** bytes of the
+  on-disk markdown file; `Subscribe` notifies on corpus reload.
 
   **`List(opts?)`** is the catalogue RPC — every other identity-shaped
   consumer (tree views, the `list_autocontext_instructions_files` LM
@@ -1053,8 +1087,45 @@ way to set it.
   `[INSTxxxx]` tag noise — indexing runs on the same projected body
   that `Get` returns.
 
-  `GetRaw` is the export-mode escape hatch and ignores both the
-  disabled state and the `alwaysAttached` flag.
+  **`GetRaw(name, opts?)`** returns the unmodified bytes of the
+  on-disk markdown file — YAML frontmatter intact, `[INSTxxxx]`
+  tags intact — with no disabled-state filter and no
+  `alwaysAttached` filter. It exists as a separate method from
+  `Get` because some callers need byte alignment with the source
+  file the projected body cannot provide. The motivating case is
+  the **rule enable/disable CodeLens**: the extension renders one
+  lens per `[INSTxxxx]` tag at the tag's source-file line so the
+  user can toggle individual rules, and the projected stream has
+  those tags stripped — nothing for the lens to anchor to.
+  "Open instruction source" commands, the corpus service's
+  internal override-vs-bundled equality check, export tooling,
+  and future raw-dump CLI verbs use it for similar reasons.
+  Override resolution is under explicit caller control via
+  `opts.source: "bundled" | "override" | "active"`:
+
+  - `"active"` (default) — returns the override if one exists,
+    else the bundled file. Matches the projection rule the rest
+    of the surface uses; appropriate for callers that just want
+    "the same content the engine would project from".
+  - `"bundled"` — returns the bundled file even when an override
+    exists. Used by the corpus service's internal override-vs-bundled
+    equality check, and by UI callers whose user has opened the
+    bundled file specifically.
+  - `"override"` — returns the override or `kind: "not-found"`.
+    Used by UI callers whose user has opened the override file.
+
+  Callers whose byte offsets must align with a *specific* on-disk
+  file (CodeLens lens positions, "open instruction source", future
+  inline editors) must pass `"bundled"` or `"override"` explicitly
+  — the source they pass must match the file the user actually has
+  open. Silently retargeting a `bundled`-opened document to
+  override bytes (or vice versa) shifts every byte offset and
+  attaches toggles to the wrong rule.
+
+  Response is a discriminated envelope mirroring `Get`:
+  `{ kind: "ok", name, key, source, content }` /
+  `{ kind: "not-found", name }`. There is no `kind: "disabled"`
+  branch — disabled state is irrelevant to a source-file read.
 
   **`applyTo` matching: coarse engine-side filter, fine client-side
   matcher.** `applyTo` is consumed by three call sites — the
@@ -1672,7 +1743,7 @@ Hosts that need a file path get one of two patterns:
   `Instructions.GetAll`. No projection cache, no static-path
   mirror, no on-disk artefact under `<extensionPath>`. Commands
   that open an instruction *source* in the editor open the
-  bundled file at `<extensionPath>/engine/<rid>/Instructions/...`
+  bundled file at `<extensionPath>/engine/Instructions/...`
   or the workspace override at
   `<workspace>/.github/instructions/...` — neither is a
   projected body, so neither requires a cache.
@@ -1890,7 +1961,7 @@ Every on-disk path AutoContext touches has exactly one owner:
 |---|---|---|---|
 | `<workspace>/.autocontext.json` | engine | engine | engine |
 | `<workspace>/.github/instructions/<name>.instructions.md` | user | engine | user |
-| `<host-bundle>/engine/<rid>/...` (`<vsix>/`, `<plugin-root>/`, GitHub-release tarball) | build | engine reads bundled side-cars at startup | nobody at runtime |
+| `<host-bundle>/engine/...` (`<vsix>/`, `<plugin-root>/`, GitHub-release tarball) | build | engine reads bundled side-cars at startup | nobody at runtime |
 | `%LOCALAPPDATA%\autocontext\<workspaceHash>#<instanceId>\logs\engine.log` (and future `errors.log`; POSIX equivalent) | engine | engine, postmortem readers, `Logs.GetEngine` / `Logs.TailEngine` callers | engine |
 | `%LOCALAPPDATA%\autocontext\<workspaceHash>#<instanceId>\logs\worker-<workerId>.log` (POSIX equivalent) | engine | engine, postmortem readers, `Logs.GetWorker` / `Logs.TailWorker` callers | engine (one file per spawned worker; records arrive via `Engine.WriteLog` and are routed by `category` prefix) |
 | `%LOCALAPPDATA%\autocontext\<workspaceHash>#<instanceId>\cache\<client>\…` (POSIX equivalent) | the writing client | writing client | writing client |
@@ -1898,11 +1969,11 @@ Every on-disk path AutoContext touches has exactly one owner:
 
 Three rules fall out and the implementation must enforce all three:
 
-- **`Resources/` is read-only at runtime.** No engine-mutation, ever
-  — managed installs mount install dirs read-only or wipe them on
-  upgrade, and per-RID copies would diverge silently. Anything the
-  engine wants to persist goes in `.autocontext.json`, the engine log
-  file, or the OS user-cache root.
+- **`Resources/` is read-only at runtime.** No engine-mutation,
+  ever. Anything the engine wants to persist goes in
+  `.autocontext.json`, the engine log file, or the OS user-cache
+  root. Failure modes the rule prevents are listed under the
+  [Pitfalls](#pitfalls) entry of the same name.
 - **Clients never write under their own install directory.** Install
   dirs (`<extensionPath>`, `${CLAUDE_PLUGIN_ROOT}`) are read-only on
   managed installs and get wiped on host upgrade. All client-owned
@@ -2062,10 +2133,17 @@ Decision:
   bundled binary path on the .NET side. Unsupported combinations
   surface a hard error from the spawner; there is no in-process
   fallback path.
-- Per-RID artefact layout (the **same** layout in both targets):
+- Per-platform shipped artefact (the **same** layout in every
+  target). Build output stages per-RID under
+  `out/engine/<rid>/...`; per-platform packaging
+  (`vsce package --target <target>` for the VSIX, the equivalent
+  per-platform plugin release, one GitHub-release tarball per RID)
+  selects the matching `<rid>/` and copies its contents into
+  `engine/` in the shipped artefact. The user-visible bundle has
+  **no `<rid>/` segment**:
 
   ```
-  engine/<rid>/
+  engine/
     autocontext-engine[.exe]                       # engine binary (this doc)
     <framework dlls / runtime files>               # self-contained .NET runtime for the engine
     Instructions/                                  # curated corpus (read-only side-car)
@@ -2094,24 +2172,30 @@ Decision:
   follows .NET resource-folder convention; JSON filenames are
   kebab-case. The engine resolves each from
   `AppContext.BaseDirectory + "<Dir>"` without any host-supplied
-  path. The corpus and manifests are RID-independent in content but
-  are duplicated per RID at packaging time — markdown and JSON are
-  small and the simpler resolver wins. **Each worker lives in its
-  own `Workers/<id>/` subdir** so per-worker self-contained
-  runtimes (`dotnet publish -r <rid> --self-contained`) do not
-  collide with each other or with the engine's runtime files at the
-  `engine/<rid>/` root. The `autoctx` CLI is **not** in this layout
-  — it ships in its own bundle (see [autoctx-cli.md](./autoctx-cli.md))
-  and carries its own copy of the engine if it needs to spawn one.
+  path — because the shipped layout has no `<rid>/` segment, the
+  resolver is a clean one-segment join with no `..` traversal.
+  The corpus and manifests are RID-independent in content; they
+  appear once per shipped artefact (no duplication across RIDs on
+  any user's machine, because each user installs exactly one
+  per-platform VSIX / plugin release / tarball).
+  **Each worker lives in its own `Workers/<id>/` subdir** so
+  per-worker self-contained runtimes
+  (`dotnet publish -r <rid> --self-contained`) do not collide with
+  each other or with the engine's runtime files at the `engine/`
+  root. The `autoctx` CLI is **not** in this layout — it ships in
+  its own bundle (see [autoctx-cli.md](./autoctx-cli.md)) and
+  carries its own copy of the engine if it needs to spawn one.
 - Bundle locations:
-  - `<vsix>/engine/<rid>/...` for the VS Code extension.
-  - `<plugin-root>/engine/<rid>/...` for the Anthropic plugin.
+  - `<vsix>/engine/...` for the VS Code extension.
+  - `<plugin-root>/engine/...` for the Anthropic plugin.
 - Hosts resolve the engine binary by joining the resolved root
   (`extensionPath` for VS Code, `${CLAUDE_PLUGIN_ROOT}` for the
-  plugin) with `engine/<currentRid>/autocontext-engine[.exe]`. No PATH
-  dependency.
-- A standalone GitHub release publishes the same per-RID artefact
-  for users who want to run `autocontext-engine` directly.
+  plugin) with `engine/autocontext-engine[.exe]`. No PATH
+  dependency, no current-RID lookup at dial time — the shipped
+  artefact already matches the platform it was packaged for.
+- A standalone GitHub release publishes one tarball per RID with the
+  same flat `engine/` layout for users who want to run
+  `autocontext-engine` directly.
 
 ### Resource manifests
 
@@ -2159,7 +2243,7 @@ mutating the manifests.
   `AutoContext.Worker.DotNet.Roslyn` → `dotnet-roslyn`), derives
   `type` from the project file (`.csproj` → `dotnet`,
   `package.json` → `node`), and writes the actual published
-  `entrypoint` path relative to `engine/<rid>/`. Id collisions fail
+  `entrypoint` path relative to `engine/`. Id collisions fail
   the build. Shape:
 
   ```json
@@ -2210,20 +2294,17 @@ Source-side locations for the editable inputs the build consumes:
   (`AppDomain.ProcessExit` for SIGTERM / Windows stop). Foreground
   invocations (smoke tests, `dotnet run`) reach the SIGINT path
   normally because they keep the console attached.
-- **MCP/stdio idle-timeout interaction.** When the engine is
-  launched with `--mcp-server with-stdio`, stdio is one of its
-  keep-alive clients (peer of pipe-side `rpc` / `events`). The idle
-  watchdog must count an active stdio connection toward the
-  keep-alive gate exactly the same as an `rpc` or `events` pipe
-  connection; otherwise an MCP-only session would shut the engine
-  down mid-conversation. Passive pipe observers (`health`, `logs`)
-  remain non-keep-alive regardless of `--mcp-server`. Conversely,
-  without `--mcp-server` the engine must **not** register the MCP
-  SDK's stdio transport at all — non-MCP spawners pass
-  `stdio: 'ignore'` (mapping stdin to `/dev/null`), and an
-  unconditional `WithStdioServerTransport()` would hit immediate
-  EOF on the first read, treat it as host disconnect, and terminate
-  the engine before any pipe client could connect.
+- **MCP/stdio idle-timeout interaction.** The implementation trap:
+  the idle watchdog must count an active stdio connection toward
+  the keep-alive gate exactly like an `rpc` or `events` pipe
+  connection, or an MCP-only session shuts the engine down
+  mid-conversation. Conversely, without `--mcp-server` the engine
+  must **not** register the MCP SDK's stdio transport at all —
+  non-MCP spawners pass `stdio: 'ignore'` (stdin → `/dev/null`)
+  and an unconditional `WithStdioServerTransport()` would hit
+  immediate EOF and self-terminate. See
+  [Lifecycle](#lifecycle) > *MCP/stdio facade* for the canonical
+  behaviour.
 - **`autocontext-engine --version` is RID-independent.** Driven by
   `AssemblyInformationalVersionAttribute` set from `version.json`;
   do not bake the RID into the version string. The corpus and the
@@ -2396,7 +2477,7 @@ Source-side locations for the editable inputs the build consumes:
   The corpus service emits a warning event when override mtime is
   older than bundled mtime; UIs surface it as a non-fatal hint.
 - **`Resources/` is read-only at runtime.** (Instance of **P5**.) The engine reads every
-  side-car JSON manifest under `engine/<rid>/Resources/` at startup
+  side-car JSON manifest under `engine/Resources/` at startup
   and projects per-request against workspace state
   (`.autocontext.json`, override files, generation counter). It
   **never writes back** to any file under `Resources/` — not to
@@ -2404,11 +2485,14 @@ Source-side locations for the editable inputs the build consumes:
   cache anything. Two failure modes this rule prevents: (a) managed
   installs (VSIX, Anthropic plugin) mount their install dir
   read-only or wipe it on upgrade, so a write would either fail at
-  runtime or silently disappear; (b) `Resources/` is RID-duplicated
-  but content-identical across RIDs, and any per-workspace mutation
-  would diverge the copies and re-introduce the cross-window
-  consistency problem the engine consolidation eliminated. State
-  the engine wants to persist goes in workspace state
+  runtime or silently disappear; (b) when multiple launchers on
+  the same workspace each spawn their own engine, every engine
+  reads the same install-time-immutable side-cars, so any
+  per-workspace mutation routed through `Resources/` would have
+  to be re-applied by every peer to stay consistent — the
+  consistency problem the engine consolidation eliminated would
+  reappear at the file-system layer. State the engine wants to
+  persist goes in workspace state
   (`.autocontext.json`), engine log files under the per-instance
   subtree
   (`%LOCALAPPDATA%\autocontext\<workspaceHash>#<instanceId>\logs\engine.log`),
