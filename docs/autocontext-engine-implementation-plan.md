@@ -137,8 +137,9 @@ rollout owns end-to-end:
   `IMcpTask` contract (folded in from `AutoContext.Mcp.Abstractions`),
   `WorkerHostBuilderExtensions`, `WorkerTaskDispatcherService`,
   `WorkerHostOptions`, `ServiceAddressFormatter`, and
-  `HealthMonitorClient` (the worker-side dialer of the engine's
-  `health` pipe).
+  `HealthMonitorService` (worker-side hosted service that keeps the
+  engine's `health` pipe connection open for the lifetime of the
+  worker host).
 - `AutoContext.Engine.Core/` — the engine itself as a library
   (every RPC family, the lifecycle hosted service, the stdio MCP-server
   role).
@@ -229,7 +230,7 @@ src/
 
   AutoContext.Framework.Services/              # worker-side runtime + cross-cutting service clients
     AutoContext.Framework.Services.csproj
-    HealthMonitorClient.cs                     # worker-side dialer of the engine's health pipe
+    HealthMonitorService.cs                    # worker-side hosted service that keeps the engine's health pipe connection open
     Workers/
       IMcpTask.cs                              # folded in from Mcp.Abstractions/
       WorkerHostBuilderExtensions.cs           # folded in from Worker.Shared/Hosting/
@@ -241,43 +242,48 @@ src/
     AutoContext.Engine.Core.csproj
     AddAutoContextEngine.cs                    # IHostApplicationBuilder extension — composition root
     EngineOptions.cs                           # bound from argv (--instance-id, --workspace-root, --idle-timeout, …)
-    Lifecycle/                                 # Hello, Shutdown, watchdogs, metadata row
+    Lifecycle/                                 # this engine's own lifecycle: Hello, Shutdown, watchdogs, own metadata row
       LifecycleService.cs                      # hosted service — owns the four-pipe accept loops
       HelloHandler.cs                          # protocol-version check + greeting payload
       ShutdownHandler.cs                       # graceful drain + Engine.Shutdown RPC
       LifecycleBroadcaster.cs                  # events-pipe state stream (P10)
-      MetadataRowWriter.cs                     # engine-metadata.json upsert / remove / corrupt-recovery
-      MetadataRowSweeper.cs                    # liveness scan over peers' rows
+      MetadataRowWriter.cs                     # engine-metadata.json upsert / remove / corrupt-recovery for *this* engine's row
       IdleTimeoutWatchdog.cs                   # --idle-timeout
       ParentPidWatchdog.cs                     # --parent-pid + Process.StartTime defeat
       IdempotentBindGuard.cs                   # second engine with same --instance-id exits cleanly
       InstanceId.cs                            # launcher UUID type + parser (P4)
-    Logging/                                   # engine sink, rotation, housekeeping sweep
+    Housekeeping/                              # cache-root upkeep: peer-row liveness, orphan reaping, retention, foreign-shape eviction (P5)
+      HousekeepingService.cs                   # hosted service — startup sweep before LifecycleService binds, shutdown sweep after own-row removal; ≤ 1 s deadline budget
+      CacheRootSweeper.cs                      # walks the engine cache root, classifies subtrees (live | stale-rowed | rowless | foreign-shape), applies retention floor
+      MetadataRowSweeper.cs                    # liveness scan over *peers'* rows (pid + Process.StartTime defeat); moved out of Lifecycle/ because it reaps peers, not self
+      StaleSubtreeReaper.cs                    # delete with concurrent-sweep tolerance (DirectoryNotFoundException counts as success)
+      RetentionPolicy.cs                       # single reader of `--retention` — resolves per-row, rowless-fallback, and foreign-shape windows
+    Logging/                                   # engine sink, rotation, rotated-file pruning
       LogSink.cs                               # single-channel ingest, file appender, fan-out
       LogFileAppender.cs                       # writes engine.log / worker-<id>.log
       LogRotator.cs                            # --logging thresholds (normal vs debug)
-      LogRetentionPruner.cs                    # --retention window
+      LogRetentionPruner.cs                    # prunes rotated log files inside a live subtree (uses RetentionPolicy from Housekeeping/)
       WorkerLogRouter.cs                       # routes Engine.WriteLog by category prefix
       LogsSubscriptionBroadcaster.cs           # logs pipe + Logs.Tail* fan-out with eviction
       LogsHandlers.cs                          # Logs.GetEngine / TailEngine / GetWorker / TailWorker
-      HousekeepingSweep.cs                     # startup/shutdown orphan cleanup (P5)
-    Config/                                    # .autocontext.json owner
-      ConfigStore.cs                           # port of TS AutoContextConfigManager
-      ConfigSnapshot.cs                        # immutable snapshot type (P9)
-      ConfigWatcher.cs                         # FileSystemWatcher + trailing-edge debounce
-      ConfigWriter.cs                          # writer mutex + micro-batch coalescer
-      DeepEqualityComparer.cs                  # self-write suppressor (content hash)
-      ConfigHandlers.cs                        # Config.{Get,Subscribe,ToggleFile,ToggleRule}
-      ConfigSubscriptionBroadcaster.cs         # snapshot-on-subscribe + per-subscriber bounded buffer
-    Workspace/                                 # ~60-flag detection
-      WorkspaceContextDetector.cs              # port of TS detector
-      FileRules.cs                             # file-presence rules table
-      NpmContentRules.cs                       # package.json dep-set rules
-      DotNetContentRules.cs                    # csproj/PackageReference rules
-      FlagActivationRules.cs                   # derived-flag activation rules
-      ExtensionsIndex.cs                       # derived ext set, fed to Discovery (P7)
-      OverridesScanner.cs                      # .github/instructions/ inventory
-      WorkspaceHandlers.cs                     # Workspace.{Detect,Info}
+    Workspace/                                 # workspace-scoped state — everything keyed by the current workspace root
+      Config/                                  # .autocontext.json owner (Config.* wire surface)
+        ConfigStore.cs                         # port of TS AutoContextConfigManager
+        ConfigSnapshot.cs                      # immutable snapshot type (P9)
+        ConfigWatcher.cs                       # FileSystemWatcher + trailing-edge debounce
+        ConfigWriter.cs                        # writer mutex + micro-batch coalescer
+        DeepEqualityComparer.cs                # self-write suppressor (content hash)
+        ConfigHandlers.cs                      # Config.{Get,Subscribe,ToggleFile,ToggleRule}
+        ConfigSubscriptionBroadcaster.cs       # snapshot-on-subscribe + per-subscriber bounded buffer
+      Context/                                 # ~60-flag detection (Workspace.* wire surface)
+        WorkspaceContextDetector.cs            # port of TS detector
+        FileRules.cs                           # file-presence rules table
+        NpmContentRules.cs                     # package.json dep-set rules
+        DotNetContentRules.cs                  # csproj/PackageReference rules
+        FlagActivationRules.cs                 # derived-flag activation rules
+        ExtensionsIndex.cs                     # derived ext set, fed to Discovery (P7)
+        OverridesScanner.cs                    # .github/instructions/ inventory
+        WorkspaceHandlers.cs                   # Workspace.{Detect,Info}
     Instructions/                              # runtime services
       InstructionsCorpusService.cs             # immutable snapshot loader + reloader
       InstructionsFileBodyProjector.cs         # disabled-rule filter, [INSTxxxx] strip, override merge
@@ -293,7 +299,7 @@ src/
       WorkerControlClient.cs                   # dial worker control pipe
       WorkerTaskDispatcher.cs                  # request → worker → response, cancellation forwarding
       WorkersManifestLoader.cs                 # reads Resources/workers.json
-      WorkerHealthMonitorServer.cs             # accepts worker keep-alives (server side of HealthMonitorClient)
+      WorkerHealthMonitorServer.cs             # accepts worker keep-alives (engine-side peer of HealthMonitorService)
     Mcp/                                       # McpTools.List/Invoke handlers + stdio MCP-server role
       McpToolsHandlers.cs                      # shared core (P1) — pipe + stdio both call into this
       McpToolsCatalogService.cs                # filters by disabled state from Config snapshot
@@ -377,7 +383,7 @@ src/
     AutoContext.Framework.Pipes.Tests/         # transport primitives — listener, codec, keep-alive, exchange/streaming triad
     AutoContext.Framework.Logging.Tests/       # wire envelope round-trips, EngineLoggerProvider, ingest ring, write-log client
     AutoContext.Framework.Protocol.Tests/      # DTO envelope round-trips, pipe-name builder, source-generated JSON contexts
-    AutoContext.Framework.Services.Tests/      # WorkerHostBuilderExtensions, WorkerTaskDispatcherService, HealthMonitorClient
+    AutoContext.Framework.Services.Tests/      # WorkerHostBuilderExtensions, WorkerTaskDispatcherService, HealthMonitorService
     AutoContext.Engine.Core.Tests/             # engine-internal services + every RPC handler + lifecycle + watchdogs
     AutoContext.Client.Core.Tests/             # typed RPC clients, subscription consumers, find-or-spawn flow
     AutoContext.Engine.Tests/                  # binary-host integration: argv parser, role split, ready-marker, end-to-end spawn
@@ -461,9 +467,12 @@ projects are empty.
     JSON context). Leaf — no other Framework references.
   - `AutoContext.Framework.Services/` — receives
     `AutoContext.Framework/Workers/{WorkerTaskDispatcherService,WorkerHostOptions,ServiceAddressFormatter}.cs`
-    and `AutoContext.Framework/Hosting/HealthMonitorClient.cs`.
-    References `Framework.Pipes` + `Framework.Logging` +
-    `Framework.Protocol`.
+    and `AutoContext.Framework/Hosting/HealthMonitorClient.cs`
+    (renamed in-flight to `HealthMonitorService.cs` as part of the
+    move — the type is an `IHostedService`, not a call-site dialer,
+    so the `*Client` suffix mis-cued against the BCL convention where
+    `*Client` reads as `HttpClient`-shaped). References `Framework.Pipes`
+    + `Framework.Logging` + `Framework.Protocol`.
   - The empty `AutoContext.Framework` shell project is deleted
     once its files have been redistributed.
 - Rename the shared TS substrate project `AutoContext.Framework.Web` →
@@ -600,21 +609,30 @@ participates in the shared liveness registry.
 - Integration: spawn the binary, dial each pipe, verify handshake +
   shutdown.
 
-**Out of scope**: housekeeping sweep of orphaned per-instance
-subtrees (Phase 2 — needs the log directory shape from Phase 2),
-log file production (Phase 2), worker spawn (Phase 7).
+**Out of scope**: cache-root housekeeping sweep — peer-row
+liveness scan, orphan reaping, retention enforcement, foreign-shape
+eviction (Phase 2; needs the per-instance subtree shape Phase 2
+introduces alongside logging). Log file production (Phase 2),
+worker spawn (Phase 7).
 
-## Phase 2 — Engine logging pipeline
+## Phase 2 — Engine logging pipeline and cache housekeeping
+
+Two equal-tier features land together because they share the
+per-instance subtree shape (both write under it) and the
+`engine-metadata.json` reader (`MetadataRowSweeper` consults the
+same rows `MetadataRowWriter` produces). Neither is subordinate to
+the other; each gets its own subsection below.
+
+### 2a — Engine logging pipeline
 
 **Goal**: every record the engine emits via `ILogger<T>` lands in
 `engine.log` under the per-instance subtree, fans out on the `logs`
 pipe and `Logs.TailEngine` RPC subscribers, rotates per `--logging`,
-and gets pruned per `--retention`. The housekeeping sweep runs.
+and gets pruned per `--retention`.
 
-**Design anchors**: `§ Housekeeping`, `§ Log categories`,
+**Design anchors**: `§ Log categories`,
 `§ RPC surface` (`Logs.GetEngine`, `Logs.TailEngine`,
 `Engine.WriteLog` envelope shape), `§ P9` (slow-subscriber eviction),
-`§ Engine-owned on-disk artefacts` pitfall,
 `§ Log pipeline backpressure` pitfall.
 
 **Code touch**:
@@ -630,19 +648,11 @@ and gets pruned per `--retention`. The housekeeping sweep runs.
   `{ kind: "evicted", reason: "slow-subscriber" }` frame).
 - Rotation per `--logging` thresholds (1k lines / 5 MB normal; 5k /
   25 MB debug); rotated-file naming `engine-<iso8601>.log`.
-- Housekeeping sweep (`§ Housekeeping`): startup sweep before pipe
-  bind, shutdown sweep after own-row removal, ≤ 1 s deadline, per-row
-  retention honoured, rowless subtree fallback to own `--retention`.
-  Orphan subtrees — anything under the engine's cache root that
-  doesn't match a live `engine-metadata.json` row, including
-  pre-engine layouts (bare `<workspaceHash>` without the
-  `#<instanceId>` segment) from earlier preview builds — are
-  **deleted** subject to the same retention floor as rowless
-  subtrees. The cache root is engine-owned (P5); nothing outside
-  the engine writes there, so a foreign-shaped directory is by
-  definition stale. Concurrent sweep tolerance (one engine wins
-  delete, the other sees `DirectoryNotFoundException` mid-walk,
-  both treat it as success).
+- `LogRetentionPruner` prunes rotated files older than the
+  `--retention` window during the next rotation. (Per-tenant
+  pruning inside a *live* subtree; whole-subtree reaping is
+  Housekeeping's job — see 2b. The two share `RetentionPolicy`
+  as their single reader of the `--retention` option.)
 - `Logs.GetEngine` / `Logs.TailEngine` handlers (active file only;
   `opts.lastN`, `opts.since`, `truncated` flag).
 
@@ -661,17 +671,88 @@ and gets pruned per `--retention`. The housekeeping sweep runs.
 - Slow-subscriber eviction: a subscriber that doesn't drain gets the
   terminal `evicted` frame and is disconnected; other subscribers and
   the file sink keep progressing.
-- Housekeeping sweep across stale rows: pid-checked, retention
-  enforced per-row, rowless subtree falls back to own retention.
-- Two engines concurrent sweep on the same stale subtree: one
-  succeeds, the other treats `DirectoryNotFoundException` as success.
-- A foreign-shaped sibling directory (bare `<workspaceHash>` without
-  the `#<instanceId>` segment, simulating an earlier preview build's
-  cache) is deleted once it exceeds the retention floor, and is
-  preserved while still inside the retention window.
 
-**Out of scope**: worker records (Phase 8); `Logs.GetWorker` /
-`Logs.TailWorker` (Phase 8).
+### 2b — Cache housekeeping
+
+**Goal**: the engine cache root is self-cleaning. Every live engine
+classifies the cache root on startup (before pipe bind) and again
+on shutdown (after removing its own metadata row), and reaps every
+subtree that isn't backed by a live peer row, subject to the
+`--retention` floor. Housekeeping is a first-class engine feature,
+not a logging chore.
+
+**Design anchors**: `§ Housekeeping` (the two-clock schedule, the
+≤ 1 s deadline budget, the concurrent-sweep contract),
+`§ Engine-owned on-disk artefacts` pitfall, `§ P5` (path ownership
+is explicit and exclusive).
+
+**Code touch**:
+- `AutoContext.Engine.Core/Housekeeping/HousekeepingService` —
+  hosted service that runs the startup sweep before
+  `LifecycleService` binds the four pipes (so a partial cold-start
+  can't dial a half-cleaned root) and the shutdown sweep after
+  `MetadataRowWriter` has removed this engine's own row. Hosted-
+  service registration order pins both invariants: register
+  `HousekeepingService` before `LifecycleService` so `StartAsync`
+  runs first and `StopAsync` runs last (reverse order). Both phases
+  respect the ≤ 1 s deadline budget the design specifies.
+- `CacheRootSweeper` — walks the engine cache root and classifies
+  each child subtree as one of:
+    1. **live** — backed by an `engine-metadata.json` row whose
+       pid is alive (`Process.StartTime` defeats pid recycling);
+    2. **stale-rowed** — backed by a row whose pid is dead or
+       recycled;
+    3. **rowless** — shaped like `<workspaceHash>#<instanceId>`
+       but no metadata row claims it;
+    4. **foreign-shape** — anything that doesn't match the
+       per-instance shape (including bare `<workspaceHash>` from
+       earlier preview builds). Because the cache root is
+       engine-owned (P5), foreign-shape is by definition stale.
+- `MetadataRowSweeper` — the peer-liveness scan that
+  `CacheRootSweeper` consults. Reads the metadata file under
+  `FileShare.Read`; tolerates a concurrent rewriter via the same
+  exponential-backoff retry Phase 1 uses.
+- `StaleSubtreeReaper` — deletes the subtree with concurrent-sweep
+  tolerance: a `DirectoryNotFoundException` mid-walk counts as
+  success (a peer engine won the race).
+- `RetentionPolicy` — the *single* place that reads `--retention`.
+  Resolves the window for each subtree class: per-row windows
+  honour the row's own retention if present; rowless and
+  foreign-shape fall back to this engine's `--retention`. Both 2a's
+  `LogRetentionPruner` and 2b's reaper take their window from this
+  type (no scattered `EngineOptions.Retention` reads).
+
+**Tests**:
+- Startup sweep classifies a populated cache root correctly across
+  all four subtree classes against a synthetic metadata file.
+- Stale-rowed subtree is deleted once outside the row's retention,
+  preserved while still inside it.
+- Rowless subtree falls back to this engine's `--retention`.
+- Foreign-shape subtree (bare `<workspaceHash>` without the
+  `#<instanceId>` segment, simulating an earlier preview build's
+  cache) is deleted once it exceeds the retention floor, preserved
+  while still inside the retention window.
+- Two engines concurrent sweep on the same stale subtree: one wins,
+  the other treats `DirectoryNotFoundException` as success; neither
+  faults.
+- Pid recycling: a metadata row whose pid is now held by an
+  unrelated process is correctly classified as stale via
+  `Process.StartTime` comparison.
+- The ≤ 1 s deadline budget is respected: a deliberately huge cache
+  root yields after the budget elapses without blocking startup or
+  shutdown.
+- Shutdown sweep runs after `MetadataRowWriter` has removed this
+  engine's own row — a peer that starts mid-shutdown does not
+  observe this engine's row as live.
+- Integration: spawn two engines against the same cache root,
+  watch the survivor reap the dead one's subtree on the next
+  start; assert no live subtree was touched.
+
+**Out of scope** (2a): worker records (Phase 8); `Logs.GetWorker`
+/ `Logs.TailWorker` (Phase 8). 2b has no out-of-scope carve-out;
+its dependency on Phase 1's `MetadataRowWriter` (which produces the
+`engine-metadata.json` rows the sweeper reads) is declared under
+code touch, not deferred work.
 
 ## Phase 3 — Config store
 
@@ -687,7 +768,7 @@ write.
 `§ Cross-instance .autocontext.json writes race on disk` pitfall.
 
 **Code touch**:
-- `AutoContext.Engine.Core/Config/ConfigStore` —
+- `AutoContext.Engine.Core/Workspace/Config/ConfigStore` —
   port of today's `AutoContextConfigManager` (TS) into .NET. JSON
   shape unchanged; the dual-casing acceptance (kebab → camel) the
   centralized-MCP plan introduced stays the same.
@@ -741,7 +822,7 @@ own `--workspace` path, exposes the result via `Workspace.Detect` and
 `§ RPC surface` *`Detect` return shape*.
 
 **Code touch**:
-- `AutoContext.Engine.Core/Workspace/WorkspaceContextDetector` —
+- `AutoContext.Engine.Core/Workspace/Context/WorkspaceContextDetector` —
   port of today's `workspace-context-detector.ts`. The four
   declarative tables (`fileRules`, `npmContentRules`,
   `dotnetContentRules`, `flagActivationRules`) translate directly to
