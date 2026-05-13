@@ -267,7 +267,7 @@ Every path AutoContext touches has exactly one owner (P5).
 | `<workspace>/.autocontext.json` | engine | workspace; cross-instance shared on disk |
 | `<workspace>/.github/instructions/<name>.instructions.md` | user | workspace; overrides bundled |
 | `<host-bundle>/engine/{autocontext-engine, Instructions/, Resources/, Workers/}` | build | read-only at runtime |
-| `…\autocontext\engine-metadata.json` | every live engine (co-owned) | row-per-instance liveness registry; **append-only at startup**, own-row removed at graceful shutdown |
+| `…\autocontext\engine-registry.json` | every live engine (co-owned) | entry-per-instance liveness registry; **append-only at startup**, own entry removed at graceful shutdown |
 | `…\autocontext\<workspaceHash>\<instanceId>\logs\engine.log` | engine | rotated in-process by `--logging` thresholds; rotated files retained per `--retention` |
 | `…\autocontext\<workspaceHash>\<instanceId>\logs\crash.log` | engine | write-once tombstone for unhandled-exception / fail-fast exits; absent on graceful shutdown; reaped with the rest of the per-instance subtree under `--retention` |
 | `…\autocontext\<workspaceHash>\<instanceId>\logs\worker-<workerId>.log` | engine | one file per spawned worker; records routed by `category` prefix; same rotation + retention rules as `engine.log` |
@@ -279,7 +279,7 @@ and each launcher's per-spawn `<instanceId>` is a subdirectory underneath
 it. Pipe names use the flat `<workspaceHash>#<instanceId>` shape because
 the OS pipe namespace is flat (P4); on-disk paths use the nested shape
 because directory enumeration over a workspace's instance history is a
-first-class housekeeping operation. `engine-metadata.json` lives at the
+first-class housekeeping operation. `engine-registry.json` lives at the
 autocontext cache root, **not** under either `<workspaceHash>` or
 `<instanceId>` — it is the one shared file every live engine on the
 machine co-owns.
@@ -297,7 +297,7 @@ are marshalling shims — P1).
 
 | Namespace | Methods |
 |---|---|
-| `Engine.*` | `Hello`, `GetSharedMetadata`, `Shutdown`, `WriteLog` (fire-and-forget from workers), `Lifecycle.Subscribe` |
+| `Engine.*` | `Hello`, `ListRegistryEntries`, `Shutdown`, `WriteLog` (fire-and-forget from workers), `Lifecycle.Subscribe` |
 | `Config.*` | `Get`, `Subscribe`, `ToggleFile`, `ToggleRule` |
 | `Instructions.*` | `List`, `Get`, `GetAll`, `GetAlwaysAttached`, `GetRaw`, `SearchContent`, `Subscribe` |
 | `Workspace.*` | `Detect`, `Info` |
@@ -315,11 +315,11 @@ See [RPC surface (initial)](#rpc-surface-initial).
 | Envelope | Shape |
 |---|---|
 | Log record (engine + worker, on `logs` pipe, in `engine.log` and `worker-<workerId>.log`) | `{ timestamp, category, level, eventId?, message, properties?, exception? }` |
-| `Engine.GetSharedMetadata` row | `{ workspaceHash, instanceId, instanceLabel, pid, processStartTimeUtc, engineVersion, startedAt, retention }` |
+| `Engine.ListRegistryEntries` entry | `{ workspaceHash, instanceId, instanceLabel, pid, processStartTimeUtc, engineVersion, startedAt, retention }` |
 | `Instructions.List` row | `{ key, fileName, name, version, description, applyTo?, hasChangelog, contentHash, alwaysAttached, disabled, source, overridePath?, sections? }` |
 | `Instructions.Get` response | `\|` of `{ kind: "ok", … }` / `{ kind: "disabled", … }` / `{ kind: "not-found", … }` |
 | `McpTools.Invoke` response | `\|` of `{ kind: "ok" \| "tool-error", content, isError? }` / `{ kind: "schema-error", errors[] }` / `{ kind: "disabled" \| "not-found" }` |
-| `Workspace.Detect` | `{ flags: { hasDotNet, hasCSharp, …~60 }, extensions[], overrides: { paths[], names[] } }` |
+| `Workspace.Detect` | `{ flags: { hasDotNet, hasCSharp, …~60 }, extensions[] }` — no `overrides` field; that inventory is reachable via `Instructions.List` |
 
 ### Log categories (prefix taxonomy, convention not closed enum)
 
@@ -398,7 +398,7 @@ classes:
 
 | Today | Lives in | Becomes |
 |-------|----------|---------|
-| `AutoContext.Mcp.Server` (orchestrator + MCP/stdio + worker dispatch + registry) | Standalone process | **Same `autocontext-engine` binary, MCP-server-only role** (`--mcp-server with-stdio`). Reads workspace state directly from `.autocontext.json` (re-read per MCP request) and bundled side-car corpus; no pipes, no worker dispatch, no registry row. Concurrent daemon-role engine on the same workspace (when launched by a different host) is the writer; MCP-server role is read-mostly view. |
+| `AutoContext.Mcp.Server` (orchestrator + MCP/stdio + worker dispatch + registry) | Standalone process | **Same `autocontext-engine` binary, MCP-server-only role** (`--mcp-server with-stdio`). Reads workspace state directly from `.autocontext.json` (re-read per MCP request) and bundled side-car corpus; no pipes, no worker dispatch, no registry entry. Concurrent daemon-role engine on the same workspace (when launched by a different host) is the writer; MCP-server role is read-mostly view. |
 | `AutoContextConfigManager` (TS, extension) | Extension process | **Engine internal**: `AutoContextConfigStore` (.NET) |
 | `InstructionsFilesManager` + `InstructionsFileContentProjector` + `instructions-files-metadata-generator` + client-side content trigram index | Extension process | **Engine internal**: `InstructionsCorpusService` + `InstructionsFileBodyProjector` + `InstructionsListBuilder` (now runs **both** at build time — producing `Resources/instructions-files.json` and `Resources/instructions-files-metadata.json` side-car manifests — **and** at engine startup, where the engine reads the manifests, applies per-request projection against workspace state, and returns rows via `Instructions.List`) + `InstructionsContentIndex` (replaces the client-side trigram index; built in-memory from the build-time metadata manifest at engine startup) |
 | `servers.json` (TS-side worker/MCP-server inventory) + `mcp-workers-registry.json` (MCP-server–side worker dispatch table) | Extension `resources/` + `AutoContext.Mcp.Server/` | **Replaced** by build-generated `Resources/workers.json` (scan of `src/AutoContext.Worker.*/` projects, id derived by stripping `AutoContext.Worker.` and replacing `.` with `-`, entrypoint written from the actual published path) + `Resources/mcp-tools-registry.json` (renamed from `mcp-workers-registry.json`; tool→worker dispatch table) + `Resources/mcp-tools-registry-schema.json` (its JSON-schema). The old `servers.json` mixed MCP-server identity with worker identity; the MCP server is gone (consolidated into the engine), so the worker-only file is what remains. |
@@ -570,7 +570,7 @@ roles read as ordinary file I/O.
   described in the rest of this document: binds the four
   workspace pipes (`rpc`, `events`, `health`, `logs`), owns
   `.autocontext.json` writes, runs workspace detection, dispatches
-  workers, writes a row to `engine-metadata.json`, persists
+  workers, writes an entry to `engine-registry.json`, persists
   `engine.log` + per-worker logs, runs housekeeping. This is
   what every functional client (VS Code extension, agent hooks,
   any other pipe-RPC consumer) talks to. Typical launch from a
@@ -579,7 +579,7 @@ roles read as ordinary file I/O.
   --idle-timeout 0 --parent-pid <host-pid>`.
 - **MCP-server-only role** (`--mcp-server with-stdio`) — a
   **minimal** stdio MCP server. No pipes are bound, no
-  `engine-metadata.json` row is written, no `engine.log` file is
+  `engine-registry.json` entry is written, no `engine.log` file is
   produced, no housekeeping runs, no `FileSystemWatcher` is
   attached, no worker is spawned. The process speaks MCP
   JSON-RPC on stdin/stdout, logs operational events to stderr
@@ -710,7 +710,7 @@ Consequences:
     reload + one fan-out. Two consequences are worth
     naming:
     - The propagation channel is **not coupled to
-      `engine-metadata.json`**. The shared liveness registry
+      `engine-registry.json`**. The shared liveness registry
       is observability (who is alive, since when, at what
       version — consumed by external observability tools and
       tree-view
@@ -770,7 +770,7 @@ Consequences:
     re-read just the version field and abort + retry on
     mismatch. That closes the lost-update class without
     introducing any peer-engine RPC, without coupling
-    propagation to `engine-metadata.json`, and without
+    propagation to `engine-registry.json`, and without
     promoting any one engine to a leader role. Peer
     coordination is **not** the canonical upgrade — keeping
     the file as the single arbiter is.
@@ -953,8 +953,8 @@ Consequences:
   MCP-server-only role instead, and **none of those mechanisms
   apply**: the process binds no pipes, performs no `Hello`
   handshake (the wire protocol is MCP JSON-RPC on stdio, not the
-  engine's pipe RPC), does not write an `engine-metadata.json`
-  row, does not participate in the keep-alive gate or the
+  engine's pipe RPC), does not write an `engine-registry.json`
+  entry, does not participate in the keep-alive gate or the
   idle-timeout clock, does not run the housekeeping sweep, and
   does not attach a `FileSystemWatcher`. Lifecycle is whatever
   the MCP host gives it: the process exits on stdio EOF; if it
@@ -1145,7 +1145,7 @@ N FS events on every peer instead of one).
 
 The engine self-manages every on-disk artefact it produces, on a
 **single clock**: a **shutdown sweep** runs as part of every engine's
-graceful exit, after the engine removes its own registry row. No
+graceful exit, after the engine removes its own registry entry. No
 startup sweep, no external sweeper, no periodic while-alive timer —
 every graceful shutdown of any engine on the machine pays the
 housekeeping cost on behalf of every dead peer, which scales
@@ -1153,53 +1153,54 @@ automatically with how often engines actually shut down cleanly.
 
 - **Shutdown sweep (mandatory, best-effort).** On
   `AppDomain.ProcessExit` / SIGTERM / Windows service-stop, the
-  engine first removes its own row from
-  `…\autocontext\engine-metadata.json`, then enumerates every
-  remaining row in the registry plus every sibling
+  engine first removes its own entry from
+  `…\autocontext\engine-registry.json`, then enumerates every
+  remaining entry in the registry plus every sibling
   `…\autocontext\<workspaceHash>\<instanceId>\` directory under
   the autocontext root, and classifies each. The sweep is bounded
   by a short deadline (≤ 1 s) so a slow filesystem can't hang
   shutdown; whatever the sweep doesn't reach this time, the next
   graceful shutdown of any peer catches. Crash paths skip the
-  sweep entirely — the row and subtree stay until any subsequent
+  sweep entirely — the entry and subtree stay until any subsequent
   peer's graceful shutdown reaps them.
-  - **Live row** (`pid` exists AND `Process.StartTime` ≈
-    `processStartTimeUtc` within ~1 s tolerance): skip, regardless
+  - **Registered entry, live** (`pid` exists AND `Process.StartTime`
+    ≈ `processStartTimeUtc` within ~1 s tolerance): skip, regardless
     of whether the matching subtree exists yet.
-  - **Stale row with subtree** (pid missing OR start-time mismatch):
-    owning engine is dead. If `now - startedAt` ≥ the row's
-    `retention` duration, delete the matching per-instance subtree
-    (whole tree — `logs\` + `cache\`) and drop the row; otherwise
-    leave both in place and let a later peer re-check.
-  - **Stale row without subtree**: subtree was already swept in a
-    previous pass (or removed out-of-band) but the row remained.
-    Drop the row unconditionally — there is nothing to retain.
-  - **Rowless subtree** (directory exists, no matching row): a
-    crash before the row was durably appended, a pre-registry
+  - **Stale registration with subtree** (pid missing OR start-time
+    mismatch): owning engine is dead. If `now - startedAt` ≥ the
+    entry's `retention` duration, delete the matching per-instance
+    subtree (whole tree — `logs\` + `cache\`) and drop the entry;
+    otherwise leave both in place and let a later peer re-check.
+  - **Stale registration without subtree**: subtree was already
+    swept in a previous pass (or removed out-of-band) but the
+    entry remained. Drop the entry unconditionally — there is
+    nothing to retain.
+  - **Unregistered subtree** (directory exists, no matching entry):
+    a crash before the entry was durably appended, a pre-registry
     leftover, or a legacy flat-shape `<workspaceHash>#<instanceId>`
     directory from before the nested layout. Use the directory's
     mtime as the timestamp and honour *this engine's own*
-    `--retention` (no row = no peer's preference to respect).
-- **Retention is per-row.** Each engine writes its `--retention`
-  value into its own registry row (see `Engine.GetSharedMetadata`
-  shape under `### RPC surface`). A peer sweeping that row honours
+    `--retention` (no entry = no peer's preference to respect).
+- **Retention is per-entry.** Each engine writes its `--retention`
+  value into its own registry entry (see `Engine.ListRegistryEntries`
+  shape under `### RPC surface`). A peer sweeping that entry honours
   *the dead engine's* declared retention, not its own — a
   long-retention engine can crash and its leftovers stay the
   configured window even if every subsequent engine declares
-  `--retention 0`. Rowless subtrees fall back to the sweeping
-  engine's own `--retention` (no per-row preference to respect).
+  `--retention 0`. Unregistered subtrees fall back to the sweeping
+  engine's own `--retention` (no per-entry preference to respect).
 - **Concurrency.** Two engines shutting down near-simultaneously
   both run the shutdown sweep; both pid-check the *same* peer's
-  row, both decide to delete the *same* subtree.
+  entry, both decide to delete the *same* subtree.
   `Directory.Delete(recursive: true)` under contention is
   best-effort: one engine succeeds, the other sees
   `DirectoryNotFoundException` mid-walk and treats it as
-  already-cleaned (no error). Registry-row removal is similarly
-  idempotent. Registry-row appends at *start* time use
+  already-cleaned (no error). Registry-entry removal is similarly
+  idempotent. Registry-entry appends at *start* time use
   `FileShare.None` plus exponential-backoff retry so two engines
   starting concurrently serialise their appends; neither corrupts
   the file. Because every spawn mints a fresh `<instanceId>`,
-  two concurrent appends never collide on identity — both rows
+  two concurrent appends never collide on identity — both entries
   land additively.
 - **Never-graceful-shutdown edge case.** A user who only ever
   hard-kills their engines (no SIGTERM, no `Engine.Shutdown`)
@@ -1240,7 +1241,7 @@ automatically with how often engines actually shut down cleanly.
   per-file retention check on rotated files only applies to the
   living engine's own subtree.
 - **What never gets housekept by the engine.** The shared registry
-  file itself (the engine only touches its own row),
+  file itself (the engine only touches its own entry),
   `<workspace>/.autocontext.json`, and
   `<workspace>/.github/instructions/` are outside the per-instance
   cache root and outside housekeeping scope. Client cache subtrees
@@ -1387,7 +1388,7 @@ Semantics:
   (sweep deletes immediately on shutdown, no grace period). The
   value is validated for shape on argv parse and rejected if
   malformed; there is no host-wide minimum or maximum. The engine
-  writes this value into its own `engine-metadata.json` row so
+  writes this value into its own `engine-registry.json` entry so
   peer engines doing the shutdown sweep honour *this* engine's
   declared retention when classifying its leftover subtree as
   stale (see `### Housekeeping`). The same window governs
@@ -1424,9 +1425,9 @@ way to set it.
   `{ protocolVersion: <int>, engineVersion: <semver> }`. Issued by
   every client immediately after connect; mismatch on the integer
   refuses the engine.
-- **`Engine.GetSharedMetadata`** — returns the current contents of
+- **`Engine.ListRegistryEntries`** — returns the current contents of
   the machine-wide engine-liveness registry
-  (`…\autocontext\engine-metadata.json`) as an array of rows, one
+  (`…\autocontext\engine-registry.json`) as an array of entries, one
   per live engine the registry knows about:
 
   ```
@@ -1437,7 +1438,7 @@ way to set it.
     pid:                 number,   // OS process id of the engine
     processStartTimeUtc: string,   // ISO-8601, used with pid to defeat recycling
     engineVersion:       string,   // semver from AssemblyInformationalVersionAttribute
-    startedAt:           string,   // ISO-8601 — when this row was written
+    startedAt:           string,   // ISO-8601 — when this entry was written
     retention:           string    // duration string from --retention (e.g. "1d", "12h", "0")
   }>
   ```
@@ -1446,7 +1447,7 @@ way to set it.
   maintain an in-memory mirror, so the response always reflects
   whatever the on-disk registry currently records (including peer
   engines that started after this one). Callers must still
-  pid-check each row before treating it as authoritative — a row
+  pid-check each entry before treating it as authoritative — an entry
   whose `pid` no longer exists, or exists but whose
   `Process.StartTime` disagrees with `processStartTimeUtc` beyond
   the tolerance, is a stale crash leftover. The primary consumer is
@@ -1470,7 +1471,7 @@ way to set it.
      2,000 ms) so a buggy handler cannot pin shutdown.
   3. Close all four pipes; passive observers see a clean EOF.
   4. Run the shutdown housekeeping sweep — remove this engine's
-     row from `engine-metadata.json` and re-classify peer rows
+     entry from `engine-registry.json` and re-classify peer entries
      (see `### Housekeeping`), bounded by the same ≤ 1 s
      deadline that path already uses.
   5. Exit `0`.
@@ -1781,15 +1782,19 @@ way to set it.
       // …authoritative list lives in the engine's detection rule
       // table, this enumeration is the public contract.
     },
-    extensions: string[],          // union of all extensions the
+    extensions: string[]           // union of all extensions the
                                    // active flags imply (e.g. hasCSharp → ".cs",
                                    // hasDotNet → ".csproj/.fsproj/.vbproj/.sln/.slnx")
-    overrides: {                   // override file inventory
-      paths: string[],             // workspace-relative paths under .github/instructions/
-      names: string[]              // basenames (e.g. "lang-csharp")
-    }
   }
   ```
+
+  Note: the `.github/instructions/` override inventory is **not**
+  part of `Workspace.Detect`. Workspace shape (what frameworks /
+  languages are present) and instruction-corpus content (which
+  user overrides shadow bundled files) are independent concerns
+  with independent change cadences and independent watchers. The
+  override inventory is reachable via `Instructions.List`, which
+  already projects bundled-vs-override per row.
 
   Each flag has a single deterministic source rule — either a glob
   set (e.g. `hasCSharp` is true iff at least one `**/*.csproj` exists)
@@ -2522,7 +2527,7 @@ Pipe names and on-disk paths combine these two identifiers with
 | Engine log files | `…\<workspaceHash>\<instanceId>\logs\engine.log` (rotating, lifetime-of-process) and `…\<workspaceHash>\<instanceId>\logs\crash.log` (write-once tombstone, only on unhandled-exception / fail-fast exit), under the per-instance subtree above |
 | Per-worker log files (one per spawned worker; engine-owned, routed by `category` prefix) | `…\<workspaceHash>\<instanceId>\logs\worker-<workerId>.log` |
 | Client cache root | `…\<workspaceHash>\<instanceId>\cache\<client>\`, under the same per-instance subtree |
-| Shared engine-liveness registry (one file, shared by every live engine on the machine) | `%LOCALAPPDATA%\autocontext\engine-metadata.json` (Windows) / `$XDG_CACHE_HOME/autocontext/engine-metadata.json` or `~/.cache/autocontext/engine-metadata.json` (POSIX) |
+| Shared engine-liveness registry (one file, shared by every live engine on the machine) | `%LOCALAPPDATA%\autocontext\engine-registry.json` (Windows) / `$XDG_CACHE_HOME/autocontext/engine-registry.json` or `~/.cache/autocontext/engine-registry.json` (POSIX) |
 
 A new on-disk artefact must reuse the nested
 `<workspaceHash>\<instanceId>` (POSIX: `<workspaceHash>/<instanceId>`)
@@ -2560,7 +2565,7 @@ Every on-disk path AutoContext touches has exactly one owner:
 | `%LOCALAPPDATA%\autocontext\<workspaceHash>\<instanceId>\logs\crash.log` (POSIX equivalent) | engine | postmortem readers (humans, peer engines' housekeeping diagnostics) | engine — written once by the dying engine's unhandled-exception / fail-fast handler; never streamed via `Logs.*` (it is a tombstone, not a tail-able feed) |
 | `%LOCALAPPDATA%\autocontext\<workspaceHash>\<instanceId>\logs\worker-<workerId>.log` (POSIX equivalent) | engine | engine, postmortem readers, `Logs.GetWorker` / `Logs.TailWorker` callers | engine (one file per spawned worker; records arrive via `Engine.WriteLog` and are routed by `category` prefix) |
 | `%LOCALAPPDATA%\autocontext\<workspaceHash>\<instanceId>\cache\<client>\…` (POSIX equivalent) | the writing client | writing client | writing client |
-| `%LOCALAPPDATA%\autocontext\engine-metadata.json` (POSIX equivalent) — shared engine-liveness registry | every live engine (co-owned) | every engine on shutdown, every `Engine.GetSharedMetadata` caller | every engine **appends** its own row on start and removes its own row on graceful shutdown; never touches peer rows |
+| `%LOCALAPPDATA%\autocontext\engine-registry.json` (POSIX equivalent) — shared engine-liveness registry | every live engine (co-owned) | every engine on shutdown, every `Engine.ListRegistryEntries` caller | every engine **appends** its own entry on start and removes its own entry on graceful shutdown; never touches peer entries |
 
 Three rules fall out and the implementation must enforce all three:
 
@@ -2592,38 +2597,38 @@ Three rules fall out and the implementation must enforce all three:
   the cache root of a *live* instance — not its own, not a peer's.
 - **Per-instance subtree cleanup is the engine's own job, mediated
   by the shared liveness registry.** Every engine, on startup,
-  appends its own row to `…\autocontext\engine-metadata.json` —
+  appends its own entry to `…\autocontext\engine-registry.json` —
   one file shared by every live engine on the machine, carrying
   `{ workspaceHash, instanceId, instanceLabel, pid,
   processStartTimeUtc, engineVersion, startedAt, retention }`
-  per row. The append is **additive**: because launchers mint a
+  per entry. The append is **additive**: because launchers mint a
   fresh `<instanceId>` for every spawn (P4), the engine never
-  has to upsert, deduplicate, or rewrite peer rows on startup.
-  On graceful shutdown the engine removes its own row. A crash
-  leaves the row stale; that is intentional, because staleness
+  has to upsert, deduplicate, or rewrite peer entries on startup.
+  On graceful shutdown the engine removes its own entry. A crash
+  leaves the entry stale; that is intentional, because staleness
   is exactly the signal the next graceful-shutdown sweep
   consumes. Writes use `FileShare.None` with exponential-backoff
   retry (same discipline as `.autocontext.json`); concurrent
   engine starts serialise on the handle, no engine ever rewrites
-  another engine's row. The engine exposes the file's current
-  contents over the wire as `Engine.GetSharedMetadata` (see the
+  another engine's entry. The engine exposes the file's current
+  contents over the wire as `Engine.ListRegistryEntries` (see the
   RPC surface section) for observability surfaces (external
   ps-style listings, tree-view badges).
 
   The cleanup itself runs inside every live engine, on the
   single clock defined in `### Housekeeping`: a shutdown sweep
-  after own-row removal. The sweep pid-checks every remaining
-  row (`pid` exists AND `Process.StartTime` ≈
+  after own-entry removal. The sweep pid-checks every remaining
+  entry (`pid` exists AND `Process.StartTime` ≈
   `processStartTimeUtc` within tolerance, to defeat pid recycling)
-  and treats rows that fail the check as dead. Every
+  and treats entries that fail the check as dead. Every
   `…\autocontext\<workspaceHash>\<instanceId>\` directory whose
-  `<instanceId>` is not in the live set, *and* whose row's
+  `<instanceId>` is not in the live set, *and* whose entry's
   `retention` window has elapsed since `startedAt`, is orphaned
   and gets deleted (whole subtree — logs and cache). Retention is
-  honoured per-row — the *dead* engine's declared `--retention`
+  honoured per-entry — the *dead* engine's declared `--retention`
   controls when its leftovers expire — so a long-retention
   engine's logs survive even if every subsequent engine declares
-  a shorter window. Rowless subtrees (a crash before the row was
+  a shorter window. Unregistered subtrees (a crash before the entry was
   flushed, or a legacy flat `<workspaceHash>#<instanceId>`
   directory from before the nested layout) fall back to the
   sweeping engine's own `--retention`.
@@ -2941,8 +2946,8 @@ do **not** reference `Framework.Services`. Worker.* references
   pipe-name builder (`rpc` / `events` / `health` / `logs` ×
   workspace-hash × instance-UUID — P4), and the discriminated-union
   envelopes that appear on *both* sides of every RPC
-  (`Instructions.Get` / `McpTools.Invoke` / `Engine.GetSharedMetadata`
-  row / the `Engine.WriteLog` log-record envelope). Engine,
+  (`Instructions.Get` / `McpTools.Invoke` / `Engine.ListRegistryEntries`
+  entry / the `Engine.WriteLog` log-record envelope). Engine,
   dialer, and every worker depend on it; neither
   `Engine.Core` nor `Client.Core` can own these without the other
   depending on it, so they belong with the substrate.
@@ -3239,7 +3244,7 @@ Source-side locations for the editable inputs the build consumes:
   two disjoint `IHostBuilder` compositions — the MCP-only branch
   registers `AddMcpServer().WithStdioServerTransport()` and
   nothing else state-bearing (no pipe servers, no
-  `FileSystemWatcher`, no `engine-metadata.json` writer, no
+  `FileSystemWatcher`, no `engine-registry.json` writer, no
   worker dispatcher), the daemon branch registers everything
   *except* MCP. An unconditional `WithStdioServerTransport()` in
   the daemon branch would also hit immediate EOF on the
@@ -3279,12 +3284,12 @@ Source-side locations for the editable inputs the build consumes:
   responsible for its lifecycle, and the engine neither reads nor
   cleans those paths while the instance is live. Outside the per-instance subtree,
   one shared file at the autocontext root —
-  `%LOCALAPPDATA%\autocontext\engine-metadata.json` (POSIX
+  `%LOCALAPPDATA%\autocontext\engine-registry.json` (POSIX
   equivalent) — is co-owned by every live engine on the machine:
-  each engine **appends** its own row on start (fresh
-  `<instanceId>` every spawn, no upsert) and removes its own row
-  on graceful shutdown, never touching peer rows. A crash leaves
-  the row stale on purpose, because that is the signal the next
+  each engine **appends** its own entry on start (fresh
+  `<instanceId>` every spawn, no upsert) and removes its own entry
+  on graceful shutdown, never touching peer entries. A crash leaves
+  the entry stale on purpose, because that is the signal the next
   engine's graceful-shutdown sweep uses to identify orphaned
   instances (see P5 and `### Housekeeping`).
   Clients must never cache under their own install directory
@@ -3296,38 +3301,38 @@ Source-side locations for the editable inputs the build consumes:
   `…\autocontext\<workspaceHash>\<instanceId>\` directories is the
   engine's own shutdown-only housekeeping job, mediated by the
   shared registry (see P5).
-- **`engine-metadata.json` row lifecycle: append-on-start,
+- **`engine-registry.json` entry lifecycle: append-on-start,
   remove-on-graceful-shutdown, leave-stale-on-crash.** Every engine
-  appends its own row to the shared registry as part of startup
+  appends its own entry to the shared registry as part of startup
   (after pipe bind, before accepting connections). Because the
   launcher mints a fresh `<instanceId>` for every spawn (P4 —
   launchers never reuse a UUID across respawns), the append is
   unconditionally additive: there is no upsert, no
   same-`instanceId` overwrite, no deduplication step. The engine
-  removes its own row from the `AppDomain.ProcessExit` /
+  removes its own entry from the `AppDomain.ProcessExit` /
   SIGTERM / Windows service-stop path on the way out. A crash,
-  kill -9, or power loss leaves the row in place; this is
+  kill -9, or power loss leaves the entry in place; this is
   **intentional**, because the staleness signal is exactly what
   the next graceful-shutdown sweep consumes to identify orphaned
   per-instance subtrees. Two pitfalls follow.
-  First, pid recycling: a row's `pid` field on its own is not
+  First, pid recycling: an entry's `pid` field on its own is not
   enough to assert liveness, because the OS may have recycled the
   pid to a different process by the time the registry is read. The
-  row carries `processStartTimeUtc` alongside `pid`, and any consumer
+  entry carries `processStartTimeUtc` alongside `pid`, and any consumer
   asserting liveness (including the engine itself when answering
-  `Engine.GetSharedMetadata` for diagnostic callers, and especially
+  `Engine.ListRegistryEntries` for diagnostic callers, and especially
   the housekeeping sweep when deciding what to delete) must compare
   `Process.GetProcessById(pid).StartTime` against
   `processStartTimeUtc` with a small tolerance (~1 s for clock
-  jitter); mismatch means the pid was recycled and the row is
+  jitter); mismatch means the pid was recycled and the entry is
   stale. Second, registry write contention: two engines starting
-  concurrently both want to append their row. Writes use
+  concurrently both want to append their entry. Writes use
   `FileShare.None` plus exponential-backoff retry (same discipline
   the engine already uses for `.autocontext.json`), so the OS
   serialises the appends and neither engine corrupts the file. A
   corrupt-file recovery path exists for the case where a write was
   interrupted mid-flush: any engine encountering an unparseable
-  registry on startup truncates it and writes only its own row,
+  registry on startup truncates it and writes only its own entry,
   on the theory that one re-derivable file is cheaper than
   blocking startup forever. The next graceful-shutdown sweep
   encountering the same corrupt file treats every per-instance
@@ -3572,7 +3577,7 @@ Source-side locations for the editable inputs the build consumes:
   `Program.Main` `try`/`catch` handler, **and** by the fail-fast
   paths that abort startup after argv parse but before pipe-bind
   (notably the same-`<instanceId>` pipe-bind collision in
-  `SameInstanceIdCollisionGuard` and any post-argv manifest /
+  `InstanceIdCollisionWatchdog` and any post-argv manifest /
   resource load failure). The writer needs both `<workspaceHash>`
   and `<instanceId>` to construct its target path, so failures
   that abort *before* argv has been parsed enough to recover
