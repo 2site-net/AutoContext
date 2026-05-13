@@ -99,7 +99,7 @@ other reason still need a real second impl.
   `AutoContext.Framework.Pipes.Tests`,
   `AutoContext.Framework.Logging.Tests`,
   `AutoContext.Framework.Protocol.Tests`,
-  `AutoContext.Framework.Services.Tests`,
+  `AutoContext.Framework.Workers.Tests`,
   `AutoContext.Engine.Core.Tests` (absorbs today's
   `AutoContext.Mcp.Server.Tests` over the course of phases 7 and 16),
   `AutoContext.Client.Core.Tests`, `AutoContext.Engine.Tests`,
@@ -136,12 +136,12 @@ rollout owns end-to-end:
   files from today's `AutoContext.Worker.Shared`.
 - `AutoContext.Framework.Protocol/` — cross-side DTOs (the wire
   contract every RPC handler and typed dialer client marshals).
-- `AutoContext.Framework.Services/` — worker-side runtime: the
+- `AutoContext.Framework.Workers/` — worker-host substrate: the
   `IMcpTask` contract (folded in from `AutoContext.Mcp.Abstractions`),
   `WorkerHostBuilderExtensions`, `WorkerTaskDispatcherService`,
-  `WorkerHostOptions`, and `HealthMonitorService` (worker-side hosted
-  service that keeps the engine's `health` pipe connection open for
-  the lifetime of the worker host).
+  `WorkerHostOptions`, and `WorkerHealthMonitorService` (hosted service
+  that keeps the engine's `health` pipe connection open for the lifetime
+  of the worker host).
 - `AutoContext.Engine.Core/` — the engine itself as a library
   (every RPC family, the lifecycle hosted service, the stdio MCP-server
   role).
@@ -160,13 +160,13 @@ adapt to the new engine, and their per-file shape lives in their own
 plans):
 
 - `AutoContext.Worker.*` — workers consume the
-  `AutoContext.Framework.Services` worker-host scaffold; only their
+  `AutoContext.Framework.Workers` worker-host scaffold; only their
   logger provider changes (it dials the engine's `rpc` pipe via the
   `Engine.WriteLog` RPC). The rest is carry-over.
   (`AutoContext.Mcp.Abstractions` and `AutoContext.Worker.Shared` are
   folded into the four `AutoContext.Framework.*` projects as part of
   this rollout — see Phase 0; `IMcpTask` and the worker-host extensions
-  move into `Framework.Services/`, and the four engine-write-log files
+  move into `Framework.Workers/`, and the four engine-write-log files
   move into `Framework.Logging/`.)
 - `AutoContext.VsCode` and `AutoContext.Nodejs.Core` (shared TS
   substrate) —
@@ -231,14 +231,13 @@ src/
     Serialization/
       ProtocolJsonContext.cs                   # source-generated System.Text.Json context for every DTO above
 
-  AutoContext.Framework.Services/              # worker-side runtime + cross-cutting service clients
-    AutoContext.Framework.Services.csproj
-    HealthMonitorService.cs                    # worker-side hosted service that keeps the engine's health pipe connection open
-    Workers/
-      IMcpTask.cs                              # folded in from Mcp.Abstractions/
-      WorkerHostBuilderExtensions.cs           # folded in from Worker.Shared/Hosting/
-      WorkerTaskDispatcherService.cs           # moved from AutoContext.Framework/Workers/
-      WorkerHostOptions.cs                     # moved from AutoContext.Framework/Workers/
+  AutoContext.Framework.Workers/               # worker-host substrate: task contract + hosted services workers compose into their IHostBuilder
+    AutoContext.Framework.Workers.csproj
+    IMcpTask.cs                                # folded in from Mcp.Abstractions/
+    WorkerHostBuilderExtensions.cs             # folded in from Worker.Shared/Hosting/
+    WorkerTaskDispatcherService.cs             # moved from AutoContext.Framework/Workers/
+    WorkerHostOptions.cs                       # moved from AutoContext.Framework/Workers/
+    WorkerHealthMonitorService.cs              # hosted service that keeps the engine's health pipe connection open for the lifetime of the worker host
 
   AutoContext.Engine.Core/                # engine as a library
     AutoContext.Engine.Core.csproj
@@ -315,7 +314,7 @@ src/
       WorkerControlClient.cs                   # dial worker control pipe
       WorkerTaskDispatcher.cs                  # request → worker → response, cancellation forwarding
       WorkersManifestLoader.cs                 # reads Resources/workers.json
-      WorkerHealthMonitorServer.cs             # accepts worker keep-alives (engine-side peer of HealthMonitorService)
+      WorkerHealthMonitorServer.cs             # accepts worker keep-alives (engine-side peer of WorkerHealthMonitorService)
     Mcp/                                       # McpTools.List/Invoke handlers + stdio MCP-server role
       McpToolsHandlers.cs                      # shared core (P1) — pipe + stdio both call into this
       McpToolsCatalogService.cs                # filters by disabled state from Config snapshot
@@ -399,7 +398,7 @@ src/
     AutoContext.Framework.Pipes.Tests/         # transport primitives — listener, codec, keep-alive, exchange/streaming triad
     AutoContext.Framework.Logging.Tests/       # wire envelope round-trips, EngineLoggerProvider, ingest ring, write-log client
     AutoContext.Framework.Protocol.Tests/      # DTO envelope round-trips, pipe-name builder, source-generated JSON contexts
-    AutoContext.Framework.Services.Tests/      # WorkerHostBuilderExtensions, WorkerTaskDispatcherService, HealthMonitorService
+    AutoContext.Framework.Workers.Tests/       # IMcpTask, WorkerHostBuilderExtensions, WorkerTaskDispatcherService, WorkerHealthMonitorService
     AutoContext.Engine.Core.Tests/             # engine-internal services + every RPC handler + lifecycle + watchdogs
     AutoContext.Client.Core.Tests/             # typed RPC clients, subscription consumers, find-or-spawn flow
     AutoContext.Engine.Tests/                  # binary-host integration: argv parser, role split, ready-marker, end-to-end spawn
@@ -501,14 +500,16 @@ projects are empty.
     would otherwise materialise in a different project than the
     formatter it eventually replaces. Leaf — no other Framework
     references.
-  - `AutoContext.Framework.Services/` — receives
+  - `AutoContext.Framework.Workers/` — receives
     `AutoContext.Framework/Workers/{WorkerTaskDispatcherService,WorkerHostOptions}.cs`
     and `AutoContext.Framework/Hosting/HealthMonitorClient.cs`
-    (renamed in-flight to `HealthMonitorService.cs` as part of the
-    move — the type is an `IHostedService`, not a call-site dialer,
-    so the `*Client` suffix mis-cued against the BCL convention where
-    `*Client` reads as `HttpClient`-shaped). References `Framework.Pipes`
-    + `Framework.Logging` + `Framework.Protocol`.
+    (renamed in-flight to `WorkerHealthMonitorService.cs` as part of
+    the move — the type is an `IHostedService` scoped to the worker
+    host's lifetime, not a call-site dialer, so the `*Client` suffix
+    mis-cued against the BCL convention where `*Client` reads as
+    `HttpClient`-shaped, and the `Worker*` prefix pins what its
+    lifetime is actually tied to). References `Framework.Pipes` +
+    `Framework.Logging` + `Framework.Protocol`.
   - The empty `AutoContext.Framework` shell project is deleted
     once its files have been redistributed.
 - Rename the shared TS substrate project `AutoContext.Framework.Web` →
@@ -524,11 +525,11 @@ projects are empty.
   sub-projects (no behaviour change; pure project-graph
   simplification):
   - `AutoContext.Mcp.Abstractions` (one file: `IMcpTask.cs`) →
-    `AutoContext.Framework.Services/Workers/IMcpTask.cs`. Delete the
+    `AutoContext.Framework.Workers/IMcpTask.cs`. Delete the
     `AutoContext.Mcp.Abstractions` project.
   - `AutoContext.Worker.Shared` is split:
     - `Hosting/WorkerHostBuilderExtensions.cs` →
-      `AutoContext.Framework.Services/Workers/`.
+      `AutoContext.Framework.Workers/`.
     - The four logging files (`AddEngineLoggerProvider`,
       `EngineLoggerProvider`, `EngineLogIngestRing`,
       `EngineWriteLogClient`) → `AutoContext.Framework.Logging/`
@@ -561,7 +562,7 @@ projects are empty.
   `AutoContext.Framework.Pipes.Tests`,
   `AutoContext.Framework.Logging.Tests`,
   `AutoContext.Framework.Protocol.Tests`,
-  `AutoContext.Framework.Services.Tests`,
+  `AutoContext.Framework.Workers.Tests`,
   `AutoContext.Engine.Core.Tests`, `AutoContext.Client.Core.Tests`,
   `AutoContext.Engine.Tests`, `AutoContext.Build.Tasks.Tests`.
   Today's `AutoContext.Framework.Tests` is split across the four
@@ -1147,7 +1148,7 @@ manifests` (`workers.json`, `mcp-tools-registry.json`),
   `schema-error`/`disabled`/`not-found`). Cancellation forwards
   through the existing `IMcpTask` token.
 - Cross-process worker pipes stay on the existing worker-control
-  contract (now living in `AutoContext.Framework.Services` after the
+  contract (now living in `AutoContext.Framework.Workers` after the
   Phase 0 consolidation; workers themselves are not absorbed).
 
 **Tests**:
