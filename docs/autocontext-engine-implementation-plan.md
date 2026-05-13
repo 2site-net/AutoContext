@@ -130,12 +130,16 @@ rollout owns end-to-end:
 
 - `AutoContext.Framework.Pipes/` — pipe transport primitives (split
   out of today's `AutoContext.Framework`).
-- `AutoContext.Framework.Logging/` — canonical wire log envelope +
-  `EngineLoggerProvider` (the worker-side seam that funnels
-  `ILogger<T>` into `Engine.WriteLog`). Folds in the four logging
-  files from today's `AutoContext.Worker.Shared`.
+- `AutoContext.Framework.Logging/` — worker-side logger providers:
+  `EngineLoggerProvider` (the seam that funnels `ILogger<T>` into
+  `Engine.WriteLog`) plus the legacy sideband sink it eventually
+  replaces. Folds in the four logging files from today's
+  `AutoContext.Worker.Shared`. The canonical wire log envelope
+  (`LogRecord`) lives in `Framework.Protocol/` alongside every other
+  cross-side DTO.
 - `AutoContext.Framework.Protocol/` — cross-side DTOs (the wire
-  contract every RPC handler and typed dialer client marshals).
+  contract every RPC handler and typed dialer client marshals,
+  including the canonical `LogRecord` envelope).
 - `AutoContext.Framework.Workers/` — worker-host substrate: the
   `IMcpTask` contract (folded in from `AutoContext.Mcp.Abstractions`),
   `WorkerHostBuilderExtensions`, `WorkerTaskDispatcherService`,
@@ -190,10 +194,8 @@ src/
     PipeTransientExchangeClient.cs
     IPipeExchangeClient.cs
 
-  AutoContext.Framework.Logging/               # canonical wire envelope + providers
+  AutoContext.Framework.Logging/               # worker-side logger providers (wire envelope itself lives in Framework.Protocol/)
     AutoContext.Framework.Logging.csproj
-    LogEntry.cs
-    JsonLogEntry.cs
     CorrelationScope.cs
     AddEngineLoggerProvider.cs                 # folded in from Worker.Shared/Logging/
     EngineLoggerProvider.cs                    # folded in from Worker.Shared/Logging/
@@ -396,8 +398,8 @@ src/
 
   tests/
     AutoContext.Framework.Pipes.Tests/         # transport primitives — listener, codec, keep-alive, exchange/streaming triad
-    AutoContext.Framework.Logging.Tests/       # wire envelope round-trips, EngineLoggerProvider, ingest ring, write-log client
-    AutoContext.Framework.Protocol.Tests/      # DTO envelope round-trips, pipe-name builder, source-generated JSON contexts
+    AutoContext.Framework.Logging.Tests/       # EngineLoggerProvider, ingest ring, write-log client
+    AutoContext.Framework.Protocol.Tests/      # DTO envelope round-trips (including LogRecord), pipe-name builder, source-generated JSON contexts
     AutoContext.Framework.Workers.Tests/       # IMcpTask, WorkerHostBuilderExtensions, WorkerTaskDispatcherService, WorkerHealthMonitorService
     AutoContext.Engine.Core.Tests/             # engine-internal services + every RPC handler + lifecycle + watchdogs
     AutoContext.Client.Core.Tests/             # typed RPC clients, subscription consumers, find-or-spawn flow
@@ -709,11 +711,14 @@ and rotated files are cleaned per `--retention`.
 `§ Log pipeline backpressure` pitfall.
 
 **Code touch**:
-- `AutoContext.Framework.Logging` — extend `LogEntry`/`JsonLogEntry`
-  to the canonical wire envelope (`timestamp`, `category`, `level`,
-  `eventId?`, `message`, `properties?`, `exception?`). The substrate
-  carry-over note in the design says this is an extension, not a
-  rewrite.
+- `AutoContext.Framework.Protocol/LogRecord.cs` — the canonical wire
+  envelope (`timestamp`, `category`, `level`, `eventId?`, `message`,
+  `properties?`, `exception?`). Phase 2a collapses today's substrate
+  pair `LogEntry`/`JsonLogEntry` into this single record under
+  Protocol's ownership; `Framework.Logging` keeps the worker-side
+  logger provider and the legacy sideband sink, but the envelope
+  itself moves to where every other cross-side DTO lives (P1: one
+  record envelope; P3: wire shape owned by Protocol).
 - `AutoContext.Engine.Core/Logging/` — engine-side log sink:
   one ingest channel, file writer for `engine.log`, fan-out to
   `logs`-pipe and `Logs.Tail*` subscribers (per-subscriber bounded
