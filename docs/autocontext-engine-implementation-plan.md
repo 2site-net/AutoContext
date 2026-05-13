@@ -1,0 +1,1443 @@
+# Implementation Plan: `autocontext-engine`
+
+> **Companion to** [`future/autocontext-engine.md`](./future/autocontext-engine.md).
+> That document is the design authority; this document is the rollout
+> sequence. When the two disagree, the design wins — open a delta in
+> the design first, then update this plan.
+
+## Goals and ground rules
+
+- **Preview release, coordinated cutover.** AutoContext is in preview;
+  the whole engine lands in this release. There is no parallel
+  transitional release that ships both topologies.
+- **One source of truth.** Every phase below cites the design-doc
+  section it implements (`design §…`) and the current-codebase files
+  it replaces or absorbs (`code …`). Reviewers walk the diff against
+  both anchors.
+- **Codebase conventions, no drift.** Each phase follows existing
+  patterns — `.editorconfig`, `build.ps1` (never bare `dotnet`/`npx`),
+  naming and structure mirrored from sibling projects, the
+  `Worker.*` shape for new worker projects and the `Framework.Testing`
+  shape for shared .NET test harness code, the
+  `Nodejs.Core` shape for new TS code.
+- **Tests every phase, not "a test phase".** Every phase ships with
+  unit tests against the new code. Phases that cross a process
+  boundary also ship integration tests (engine spawned via
+  `Process.Start` or `child_process.spawn`). No phase merges with red
+  tests; no phase defers its tests to a later phase.
+- **Each phase compiles and tests green at its boundary** so a
+  reviewer can cherry-pick the branch at any phase boundary and the
+  full `.\build.ps1 Prepare` is green.
+- **Stage → review → fix → commit → next.** Same gate the
+  centralized-MCP migration used (see
+  `architecture-centralized-mcp.md` § Migration Phases). No phase
+  rolls into the next implicitly.
+- **No versioning changes.** Version bumps are deliberate and
+  user-driven (see `copilot-instructions.md` § Versioning). Phase
+  branches do not touch `version.json`, `package.json`, or `.csproj`
+  versions.
+- **Conventional Commits** for every commit, with the relevant
+  `.instructions.md` (`git-commit`, `lang-csharp`, `lang-typescript`,
+  `testing`, `dotnet-async-await`, …) applied to the diff.
+
+## Architectural anchors that must hold across every phase
+
+These are properties the design treats as invariants. Every phase
+review checks against them; a phase that breaks one rolls back
+before merge.
+
+- **P1**: one handler per capability; transports are marshalling
+  shims. New surfaces register against the same handler the existing
+  surfaces use; no business logic in the shim.
+- **P2**: discriminated envelopes for state-bearing reads
+  (`ok` / `disabled` / `not-found` / `*-error`), never nullables.
+- **P3**: wire shape ≠ engine-internal shape; build-generated
+  manifests split into wire (`*.json`) and internal (`*-metadata.json`).
+- **P4**: workspace identity is one hash; engine identity adds one
+  launcher UUID. Pipe names and on-disk paths reuse the
+  `<workspaceHash>#<instanceId>` compound segment, never a parallel
+  identifier.
+- **P5**: on-disk path ownership is explicit and exclusive. New
+  artefacts land in the table in `design § Distributed bundle layout`
+  / `design § P5` with their owner declared.
+- **P6**: subscriptions are first-class; clients never poll or watch.
+- **P7**: two-layer matching — coarse on the engine, fine on the
+  client.
+- **P8**: async I/O end-to-end; no sync-over-async on hot paths.
+- **P9**: concurrent reads, single-writer per resource,
+  snapshot-immutable across reloads; per-subscriber bounded buffer
+  with slow-subscriber eviction on every `*.Subscribe`.
+- **P10**: in-process async hooks are single-subscriber; cross-process
+  fan-out is `*.Subscribe`. No classic .NET `event` slots in framework
+  code.
+
+Anything that adds an interface "for portability" needs a second
+concrete implementation in the same phase or it doesn't ship. See
+`design § Sharing principle`. Test fakes count as a second implementation
+when the seam exists specifically to make the production path testable
+(e.g. spawn-by-process vs. spawn-in-test); abstractions added for any
+other reason still need a real second impl.
+
+## Test strategy (applies to every phase)
+
+- **Unit tests** run against the engine library composed in-process
+  via `AddAutoContextEngine(...)` with a per-test workspace path and
+  an overridden pipe namespace (library-only `EngineOptions` knob
+  documented in `design § Composition contracts`). This is the hot
+  path — most phases live here.
+- **Integration tests** spawn the published `autocontext-engine`
+  binary against a temp workspace. Used for: pipe handshake / cold
+  spawn, idle timeout, parent-pid watchdog, MCP-server-only role
+  over stdio, cross-process `.autocontext.json` writes, packaging
+  smoke. Phase 1 stands the integration harness up; subsequent
+  phases extend it.
+- **Test-project layout** mirrors the library layout (design §
+  *Project layout*) one-to-one:
+  `AutoContext.Framework.Pipes.Tests`,
+  `AutoContext.Framework.Logging.Tests`,
+  `AutoContext.Framework.Protocol.Tests`,
+  `AutoContext.Framework.Services.Tests`,
+  `AutoContext.Engine.Core.Tests` (absorbs today's
+  `AutoContext.Mcp.Server.Tests` over the course of phases 7 and 16),
+  `AutoContext.Client.Core.Tests`, `AutoContext.Engine.Tests`,
+  `AutoContext.Build.Tasks.Tests` (round-trip-verifier fixtures and
+  task-output assertions; the task is also exercised end-to-end by
+  every other project's build).
+  Worker test projects are unchanged.
+- **TS tests** stay in Vitest, in the same layout
+  `AutoContext.Nodejs.Core` and `AutoContext.VsCode` already use.
+- **Smoke tests** route through `build.ps1 Test -Smoke` as they do
+  today.
+
+## Target structure (end-state after Phase 16)
+
+This is the shape the codebase converges to once every phase has
+landed. Use it as a review anchor: each phase below moves the tree
+*toward* this picture; nothing in the rollout should produce
+intermediate shapes that aren't on a straight line to here. The
+source of truth for the architectural rationale is
+[`design § Project layout`](./future/autocontext-engine.md#project-layout)
+and [`design § Distributed bundle layout`](./future/autocontext-engine.md#distributed-bundle-layout);
+this section is the *contract* the implementation plan delivers.
+
+### Scope
+
+This document covers only the projects the `autocontext-engine`
+rollout owns end-to-end:
+
+- `AutoContext.Framework.Pipes/` — pipe transport primitives (split
+  out of today's `AutoContext.Framework`).
+- `AutoContext.Framework.Logging/` — canonical wire log envelope +
+  `EngineLoggerProvider` (the worker-side seam that funnels
+  `ILogger<T>` into `Engine.WriteLog`). Folds in the four logging
+  files from today's `AutoContext.Worker.Shared`.
+- `AutoContext.Framework.Protocol/` — cross-side DTOs (the wire
+  contract every RPC handler and typed dialer client marshals).
+- `AutoContext.Framework.Services/` — worker-side runtime: the
+  `IMcpTask` contract (folded in from `AutoContext.Mcp.Abstractions`),
+  `WorkerHostBuilderExtensions`, `WorkerTaskDispatcherService`,
+  `WorkerHostOptions`, `ServiceAddressFormatter`, and
+  `HealthMonitorClient` (the worker-side dialer of the engine's
+  `health` pipe).
+- `AutoContext.Engine.Core/` — the engine itself as a library
+  (every RPC family, the lifecycle hosted service, the stdio MCP-server
+  role).
+- `AutoContext.Engine/` — the binary host that publishes as
+  `autocontext-engine[.exe]` and bundles the corpus + manifests next to
+  the binary.
+- `AutoContext.Client.Core/` — the dialler as a library (typed RPC
+  clients, subscription consumers, find-or-spawn). Listed here because
+  it is the in-process counterpart that exercises the engine's wire
+  surface from .NET; the shared TS substrate in
+  `AutoContext.Nodejs.Core/` is its sibling on the Node side
+  (consumed by `AutoContext.VsCode` and `AutoContext.Worker.Web`).
+
+Out of scope for this document (these projects are touched only to
+adapt to the new engine, and their per-file shape lives in their own
+plans):
+
+- `AutoContext.Worker.*` — workers consume the
+  `AutoContext.Framework.Services` worker-host scaffold; only their
+  logger provider changes (it dials the engine's `rpc` pipe via the
+  `Engine.WriteLog` RPC). The rest is carry-over.
+  (`AutoContext.Mcp.Abstractions` and `AutoContext.Worker.Shared` are
+  folded into the four `AutoContext.Framework.*` projects as part of
+  this rollout — see Phase 0; `IMcpTask` and the worker-host extensions
+  move into `Framework.Services/`, and the four engine-write-log files
+  move into `Framework.Logging/`.)
+- `AutoContext.VsCode` and `AutoContext.Nodejs.Core` (shared TS
+  substrate) —
+  pure consumers of the engine's wire surface.
+- `AutoContext.CommandLine` — separate rollout, lives in
+  [`autocontext-cli.md`](./future/autocontext-cli.md).
+
+### Source tree
+
+```
+src/
+  AutoContext.Framework.Pipes/                 # pipe transport primitives
+    AutoContext.Framework.Pipes.csproj
+    BoundPipeListener.cs
+    PipeListener.cs                            # multi-connection server bind
+    PipeTransport.cs
+    LengthPrefixedFrameCodec.cs
+    PipeKeepAliveClient.cs                     # rpc / events keep-alive dialer
+    PipeStreamingClient.cs                     # logs / health passive consumer
+    PipePersistentExchangeClient.cs
+    PipeTransientExchangeClient.cs
+    IPipeExchangeClient.cs
+
+  AutoContext.Framework.Logging/               # canonical wire envelope + providers
+    AutoContext.Framework.Logging.csproj
+    LogEntry.cs
+    JsonLogEntry.cs
+    CorrelationScope.cs
+    AddEngineLoggerProvider.cs                 # folded in from Worker.Shared/Logging/
+    EngineLoggerProvider.cs                    # folded in from Worker.Shared/Logging/
+    EngineLogIngestRing.cs                     # folded in from Worker.Shared/Logging/ (bounded ring)
+    EngineWriteLogClient.cs                    # folded in from Worker.Shared/Logging/
+    # Legacy sideband sink (dragged in Phase 0, deleted in Phase 8 once
+    # Engine.WriteLog is the only worker→engine log path):
+    PipeLogger.cs
+    PipeLoggerProvider.cs
+    LoggingClient.cs
+    JsonLogGreeting.cs
+    LogServerJsonContext.cs
+
+  AutoContext.Framework.Protocol/              # cross-side DTOs (leaf — no references)
+    AutoContext.Framework.Protocol.csproj
+    PipeNames.cs                               # builder for rpc/events/health/logs × hash#instance
+    ProtocolVersion.cs                         # Engine.Hello version constant
+    LogRecord.cs                               # canonical log-record envelope (timestamp, category, level, …)
+    Envelopes/                                 # discriminated-envelope base shapes (P2)
+      ResultEnvelope.cs                        # ok | disabled | not-found | *-error union root
+      OkEnvelope.cs
+      DisabledEnvelope.cs
+      NotFoundEnvelope.cs
+      ErrorEnvelope.cs
+    Messages/                                  # per-RPC request/response DTOs
+      EngineMessages.cs                        # Engine.Hello / GetSharedMetadata / Shutdown / WriteLog
+      ConfigMessages.cs                        # Config.{Get,Subscribe,ToggleFile,ToggleRule}
+      InstructionsMessages.cs                  # Instructions.{List,Get,GetAll,GetAlwaysAttached,GetRaw,SearchContent,Subscribe}
+      WorkspaceMessages.cs                     # Workspace.{Detect,Info}
+      McpToolsMessages.cs                      # McpTools.{List,Invoke}
+      DiscoveryMessages.cs                     # Discovery.{RouteForPrompt,RouteForTool}
+      AgentMessages.cs                         # Agent.{SubagentStarted,SubagentStopped,Compacted,ToolUsed,TurnEnded} + Events.Subscribe
+      LogsMessages.cs                          # Logs.{GetEngine,TailEngine,GetWorker,TailWorker}
+    Serialization/
+      ProtocolJsonContext.cs                   # source-generated System.Text.Json context for every DTO above
+
+  AutoContext.Framework.Services/              # worker-side runtime + cross-cutting service clients
+    AutoContext.Framework.Services.csproj
+    HealthMonitorClient.cs                     # worker-side dialer of the engine's health pipe
+    Workers/
+      IMcpTask.cs                              # folded in from Mcp.Abstractions/
+      WorkerHostBuilderExtensions.cs           # folded in from Worker.Shared/Hosting/
+      WorkerTaskDispatcherService.cs           # moved from AutoContext.Framework/Workers/
+      WorkerHostOptions.cs                     # moved from AutoContext.Framework/Workers/
+      ServiceAddressFormatter.cs               # moved from AutoContext.Framework/Workers/
+
+  AutoContext.Engine.Core/                # engine as a library
+    AutoContext.Engine.Core.csproj
+    AddAutoContextEngine.cs                    # IHostApplicationBuilder extension — composition root
+    EngineOptions.cs                           # bound from argv (--instance-id, --workspace-root, --idle-timeout, …)
+    Lifecycle/                                 # Hello, Shutdown, watchdogs, metadata row
+      LifecycleService.cs                      # hosted service — owns the four-pipe accept loops
+      HelloHandler.cs                          # protocol-version check + greeting payload
+      ShutdownHandler.cs                       # graceful drain + Engine.Shutdown RPC
+      LifecycleBroadcaster.cs                  # events-pipe state stream (P10)
+      MetadataRowWriter.cs                     # engine-metadata.json upsert / remove / corrupt-recovery
+      MetadataRowSweeper.cs                    # liveness scan over peers' rows
+      IdleTimeoutWatchdog.cs                   # --idle-timeout
+      ParentPidWatchdog.cs                     # --parent-pid + Process.StartTime defeat
+      IdempotentBindGuard.cs                   # second engine with same --instance-id exits cleanly
+      InstanceId.cs                            # launcher UUID type + parser (P4)
+    Logging/                                   # engine sink, rotation, housekeeping sweep
+      LogSink.cs                               # single-channel ingest, file appender, fan-out
+      LogFileAppender.cs                       # writes engine.log / worker-<id>.log
+      LogRotator.cs                            # --logging thresholds (normal vs debug)
+      LogRetentionPruner.cs                    # --retention window
+      WorkerLogRouter.cs                       # routes Engine.WriteLog by category prefix
+      LogsSubscriptionBroadcaster.cs           # logs pipe + Logs.Tail* fan-out with eviction
+      LogsHandlers.cs                          # Logs.GetEngine / TailEngine / GetWorker / TailWorker
+      HousekeepingSweep.cs                     # startup/shutdown orphan cleanup (P5)
+    Config/                                    # .autocontext.json owner
+      ConfigStore.cs                           # port of TS AutoContextConfigManager
+      ConfigSnapshot.cs                        # immutable snapshot type (P9)
+      ConfigWatcher.cs                         # FileSystemWatcher + trailing-edge debounce
+      ConfigWriter.cs                          # writer mutex + micro-batch coalescer
+      DeepEqualityComparer.cs                  # self-write suppressor (content hash)
+      ConfigHandlers.cs                        # Config.{Get,Subscribe,ToggleFile,ToggleRule}
+      ConfigSubscriptionBroadcaster.cs         # snapshot-on-subscribe + per-subscriber bounded buffer
+    Workspace/                                 # ~60-flag detection
+      WorkspaceContextDetector.cs              # port of TS detector
+      FileRules.cs                             # file-presence rules table
+      NpmContentRules.cs                       # package.json dep-set rules
+      DotNetContentRules.cs                    # csproj/PackageReference rules
+      FlagActivationRules.cs                   # derived-flag activation rules
+      ExtensionsIndex.cs                       # derived ext set, fed to Discovery (P7)
+      OverridesScanner.cs                      # .github/instructions/ inventory
+      WorkspaceHandlers.cs                     # Workspace.{Detect,Info}
+    Instructions/                              # runtime services
+      InstructionsCorpusService.cs             # immutable snapshot loader + reloader
+      InstructionsFileBodyProjector.cs         # disabled-rule filter, [INSTxxxx] strip, override merge
+      InstructionsContentIndex.cs              # in-memory content search index
+      InstructionsOverrideWatcher.cs           # .github/instructions/ FS watcher (debounced)
+      ApplyToParser.cs                         # comma + brace-expand, extension extraction (shared with the build task via `<Compile Link>`)
+      InstructionsHandlers.cs                  # List/Get/GetAll/GetAlwaysAttached/GetRaw/SearchContent/Subscribe
+      InstructionsSubscriptionBroadcaster.cs   # snapshot-on-subscribe + disabled-flag re-evaluation
+      InstructionsManifestLoader.cs            # reads Resources/instructions-files{,-metadata}.json
+    Workers/                                   # worker dispatch (absorbs AutoContext.Mcp.Server/Workers/)
+      WorkerManager.cs                         # ensureRunning(workerId) gate
+      WorkerProcessSupervisor.cs               # Process.Start + stderr capture under worker.<id>.engine.stderr
+      WorkerControlClient.cs                   # dial worker control pipe
+      WorkerTaskDispatcher.cs                  # request → worker → response, cancellation forwarding
+      WorkersManifestLoader.cs                 # reads Resources/workers.json
+      WorkerHealthMonitorServer.cs             # accepts worker keep-alives (server side of HealthMonitorClient)
+    Mcp/                                       # McpTools.List/Invoke handlers + stdio MCP-server role
+      McpToolsHandlers.cs                      # shared core (P1) — pipe + stdio both call into this
+      McpToolsCatalogService.cs                # filters by disabled state from Config snapshot
+      McpToolsRegistryLoader.cs                # reads Resources/mcp-tools-registry.json
+      McpToolsRegistrySchemaValidator.cs       # build-time + load-time schema check
+      InputSchemaBuilder.cs                    # JSON Schema → ModelContextProtocol types
+      McpSdkAdapter.cs                         # MCP-server role: tools/list + tools/call → McpToolsHandlers
+      StdioMcpServerEntryPoint.cs              # --mcp-server with-stdio composition root
+      PerRequestConfigReader.cs                # MCP-server-role disk re-read of .autocontext.json
+    Discovery/                                 # category & extension indices (P7)
+      DiscoveryService.cs                      # rebuilt on Instructions.Subscribe + McpTools changes
+      CategoryIndex.cs                         # prompt → MCP tool routing
+      ExtensionIndex.cs                        # extension → instruction file routing
+      DiscoveryHandlers.cs                     # Discovery.{RouteForPrompt,RouteForTool}
+    Agent/                                     # Agent.* RPC family
+      AgentEventsBroadcaster.cs                # bounded per-subscriber buffers, eviction
+      AgentNotificationHandlers.cs             # SubagentStarted/Stopped/Compacted/ToolUsed/TurnEnded
+      AgentSessionToolHistogram.cs             # in-memory per-session ToolUsed counts
+      AgentEventsHandlers.cs                   # Events.Subscribe pipe-side fan-out
+    Rpc/                                       # pipe-side framing shared by every handler folder
+      RpcDispatcher.cs                         # method-name → handler delegate table
+      RpcRequestReader.cs / RpcResponseWriter.cs
+      RpcCancellationBridge.cs                 # client-cancel → CancellationToken plumbing
+
+  AutoContext.Client.Core/                # in-process .NET dialler library (consumed by CLI, .NET tests, future .NET embedders)
+    AutoContext.Client.Core.csproj
+    AddAutoContextClient.cs                    # IServiceCollection extension
+    ClientOptions.cs                           # workspace hash, instance-id, spawn policy
+    EngineSpawner/                             # find-or-spawn flow
+      IEngineSpawner.cs                        # seam — production = process spawn, tests = in-proc fake
+      ProcessEngineSpawner.cs                  # Process.Start against bundled binary
+      EngineConnectBudget.cs                   # cold-spawn retry shape
+      EngineLocator.cs                         # AppContext.BaseDirectory probe for engine binary
+    Rpc/                                       # typed clients (one per surface)
+      EngineRpcClient.cs                       # Engine.Hello/Shutdown/GetSharedMetadata/WriteLog
+      ConfigRpcClient.cs
+      InstructionsRpcClient.cs
+      WorkspaceRpcClient.cs
+      McpToolsRpcClient.cs
+      DiscoveryRpcClient.cs
+      AgentRpcClient.cs
+      LogsRpcClient.cs
+      EngineProtocolException.cs               # raised on Hello version mismatch
+    Subscriptions/                             # IAsyncEnumerable<T> consumers (P6, P8)
+      EngineLifecycleSubscription.cs
+      ConfigSubscription.cs
+      InstructionsSubscription.cs
+      AgentEventsSubscription.cs
+      LogsTailSubscription.cs
+
+  AutoContext.Build.Tasks/                # build-time MSBuild tasks (netstandard2.0 — separate so the runtime libs stay clean)
+    AutoContext.Build.Tasks.csproj             # TargetFramework=netstandard2.0; output not shipped with the engine
+    InstructionsListBuilder.targets            # imported by AutoContext.Engine.csproj; runs the task during the binary's build
+    BuildInstructionsListTask.cs               # MSBuild ITask — scans src/AutoContext.Engine/Instructions/, emits the two manifests into the binary's Resources/
+    ApplyToRoundTripVerifier.cs                # build-time invariant: parse(applyTo) then recompose == original (modulo whitespace)
+    # ApplyToParser.cs is shared from AutoContext.Engine.Core/Instructions/ApplyToParser.cs
+    # via <Compile Include="..\AutoContext.Engine.Core\Instructions\ApplyToParser.cs" Link="ApplyToParser.cs" />
+    # so build-time validation and runtime parsing compile the same source. (Not to be confused
+    # with dotnet/sourcelink, which is a PDB-to-source debugging feature.)
+
+  AutoContext.Engine/                          # engine binary host
+    AutoContext.Engine.csproj                  # publishes as autocontext-engine[.exe]
+    Program.cs                                 # entry point — role split (daemon vs. --mcp-server)
+    ArgvParser.cs                              # daemon-role + MCP-server-role argument tables, strict rejection
+    Role.cs                                    # enum: Daemon | McpServerWithStdio
+    DaemonHostFactory.cs                       # composes IHostBuilder → AddAutoContextEngine for the daemon role
+    McpServerHostFactory.cs                    # composes the stripped --mcp-server with-stdio host
+    StartupBanner.cs                           # ready-marker emission to stderr
+    Instructions/                              # bundled corpus — copied next to the binary,
+      <curated *.instructions.md files>       # resolved via AppContext.BaseDirectory
+                                               # (not embedded resources)
+    Resources/                                 # build-generated manifests — copied next to the binary
+      instructions-files.json                  #   wire shape (P3)
+      instructions-files-metadata.json         #   internal shape (P3 split)
+      mcp-tools-registry.json                  #   hand-authored registry
+      mcp-tools-registry.schema.json           #   JSON-schema for the registry
+      mcp-tools.json                           #   build-time projection of the registry
+      workers.json                             #   generated from AutoContext.Worker.* projects
+
+  tests/
+    AutoContext.Framework.Pipes.Tests/         # transport primitives — listener, codec, keep-alive, exchange/streaming triad
+    AutoContext.Framework.Logging.Tests/       # wire envelope round-trips, EngineLoggerProvider, ingest ring, write-log client
+    AutoContext.Framework.Protocol.Tests/      # DTO envelope round-trips, pipe-name builder, source-generated JSON contexts
+    AutoContext.Framework.Services.Tests/      # WorkerHostBuilderExtensions, WorkerTaskDispatcherService, HealthMonitorClient
+    AutoContext.Engine.Core.Tests/             # engine-internal services + every RPC handler + lifecycle + watchdogs
+    AutoContext.Client.Core.Tests/             # typed RPC clients, subscription consumers, find-or-spawn flow
+    AutoContext.Engine.Tests/                  # binary-host integration: argv parser, role split, ready-marker, end-to-end spawn
+    AutoContext.Framework.Testing/             # shared harness reused by engine + worker tests
+```
+
+Worker projects, the MCP-abstractions project, the VS Code extension,
+and the shared TS substrate (`AutoContext.Nodejs.Core/`) are consumers of the
+surfaces defined above; their per-file shape stays in their own
+documents and is not enumerated here.
+
+### Runtime bundle layout (shipped artefact)
+
+Per the design's distributed-bundle picture: every shipped host
+artefact (VSIX per platform, plugin release per platform,
+GitHub-release tarball per RID) embeds the same `engine/` subtree.
+The per-RID segment that exists at build-staging time
+(`out/engine/<rid>/…`) is **absent** from the shipped product.
+
+```
+<host bundle root>/
+  engine/
+    autocontext-engine[.exe]                   # the binary (one role, two modes)
+    <self-contained .NET runtime files>        # dotnet publish -r <rid> --self-contained output
+    Instructions/                              # curated corpus side-cars
+    Resources/                                 # build-generated manifests (mirror of src tree above)
+      instructions-files.json
+      instructions-files-metadata.json
+      mcp-tools-registry.json
+      mcp-tools-registry.schema.json
+      mcp-tools.json
+      workers.json
+    Workers/
+      workspace/<entrypoint>                   # one self-contained subdir per worker
+      dotnet/<entrypoint>
+      web/<entrypoint>
+```
+
+Resolution at runtime uses `AppContext.BaseDirectory`; no
+host-supplied path threads into the engine for side-car lookup.
+
+### Wire surfaces by end-state owner
+
+| Surface | Owner project | Transport |
+|---|---|---|
+| `Engine.Hello` / `Shutdown` / `GetSharedMetadata` / `Lifecycle.Subscribe` | `Engine.Core` | `rpc` + `events` |
+| `Engine.WriteLog` | `Engine.Core` | `rpc` |
+| `Logs.GetEngine` / `TailEngine` / `GetWorker` / `TailWorker` | `Engine.Core` | `rpc` + `logs` |
+| `Config.Get` / `Subscribe` / `ToggleFile` / `ToggleRule` | `Engine.Core` | `rpc` + `events` |
+| `Workspace.Detect` / `Info` | `Engine.Core` | `rpc` |
+| `Instructions.List` / `Get` / `GetAll` / `GetAlwaysAttached` / `GetRaw` / `SearchContent` / `Subscribe` | `Engine.Core` | `rpc` + `events` |
+| `McpTools.List` / `Invoke` (pipe RPC) | `Engine.Core` | `rpc` |
+| MCP `tools/list` / `tools/call` (stdio) | `Engine.Core` (MCP-server role) | stdio |
+| `Discovery.RouteForPrompt` / `RouteForTool` | `Engine.Core` | `rpc` |
+| `Agent.*` notifications + `Agent.Events.Subscribe` | `Engine.Core` | `rpc` + `events` |
+| Typed .NET clients for every row above | `Client.Core` | dial-side |
+| Typed TS clients for every row above (plus TS-side engine-daemon lifecycle) | `Nodejs.Core/src/engine/engine-daemon-manager.ts` | dial-side |
+
+## Phase 0 — Scaffolding
+
+**Goal**: stand up the new project graph with no behaviour. The
+solution still builds and runs the current topology; the new
+projects are empty.
+
+**Design anchors**: `§ Project layout`, `§ Composition contracts`,
+`§ Distribution` (binary names only — packaging is Phase 13).
+
+**Code touch**:
+- Split today's `AutoContext.Framework` project into four sibling
+  projects under `src/` (one mechanical pass; touches every
+  `<ProjectReference>`, `RootNamespace`, and `using`):
+  - `AutoContext.Framework.Pipes/` — receives the existing
+    `AutoContext.Framework/Pipes/` files unchanged.
+  - `AutoContext.Framework.Logging/` — receives the existing
+    `AutoContext.Framework/Logging/` files. References
+    `Framework.Pipes` + `Framework.Protocol`.
+  - `AutoContext.Framework.Protocol/` — new sub-project (no
+    equivalent in today's substrate). Skeletons for the cross-side
+    DTOs (protocol-version constant, pipe-name builder, log-record
+    envelope, discriminated-envelope base shapes, source-generated
+    JSON context). Leaf — no other Framework references.
+  - `AutoContext.Framework.Services/` — receives
+    `AutoContext.Framework/Workers/{WorkerTaskDispatcherService,WorkerHostOptions,ServiceAddressFormatter}.cs`
+    and `AutoContext.Framework/Hosting/HealthMonitorClient.cs`.
+    References `Framework.Pipes` + `Framework.Logging` +
+    `Framework.Protocol`.
+  - The empty `AutoContext.Framework` shell project is deleted
+    once its files have been redistributed.
+- Rename the shared TS substrate project `AutoContext.Framework.Web` →
+  `AutoContext.Nodejs.Core` (folder, `package.json` `name`, internal
+  imports, every `tsconfig`/`vitest`/`build.ps1` path reference).
+  The rename drops the `.Web` suffix — misleading because it
+  suggests browser/HTTP — and pairs the shared TS substrate with
+  its .NET siblings under a per-runtime `.Core` shape; `Nodejs`
+  names the runtime both consumers (`AutoContext.VsCode` extension
+  host and `AutoContext.Worker.Web`) actually run on. The unrelated
+  `AutoContext.Worker.Web` worker project keeps its name.
+- Fold two adjacent projects into the four `AutoContext.Framework.*`
+  sub-projects (no behaviour change; pure project-graph
+  simplification):
+  - `AutoContext.Mcp.Abstractions` (one file: `IMcpTask.cs`) →
+    `AutoContext.Framework.Services/Workers/IMcpTask.cs`. Delete the
+    `AutoContext.Mcp.Abstractions` project.
+  - `AutoContext.Worker.Shared` is split:
+    - `Hosting/WorkerHostBuilderExtensions.cs` →
+      `AutoContext.Framework.Services/Workers/`.
+    - The four logging files (`AddEngineLoggerProvider`,
+      `EngineLoggerProvider`, `EngineLogIngestRing`,
+      `EngineWriteLogClient`) → `AutoContext.Framework.Logging/`
+      (joining the existing wire envelope + legacy
+      `PipeLoggerProvider`).
+    - Delete the `AutoContext.Worker.Shared` project.
+  - Every `Worker.*` project drops its `Mcp.Abstractions` and
+    `Worker.Shared` `<ProjectReference>`s and picks up
+    `<ProjectReference>`s to all four `AutoContext.Framework.*`
+    projects directly.
+- New folders/projects under `src/`:
+  - `AutoContext.Engine.Core/` — empty class library with
+    `IHostApplicationBuilder.AddAutoContextEngine(Action<EngineOptions>)`
+    as the only public surface (no-op for now). References
+    `Framework.Pipes` + `Framework.Logging` + `Framework.Protocol`.
+  - `AutoContext.Client.Core/` — empty class library with
+    `AddAutoContextClient(Action<ClientOptions>)` (no-op). Same
+    Framework reference set as `Engine.Core`.
+  - `AutoContext.Engine/` — binary project; `Program.Main` parses
+    `--version` only, returns the assembly informational version,
+    exits. The `Instructions/` and `Resources/` side-car folders are
+    scaffolded here (empty); Phase 5 fills them.
+  - `AutoContext.Build.Tasks/` — empty `netstandard2.0` class
+    library. No task implementation yet; Phase 5 fills it with
+    `BuildInstructionsListTask`, `ApplyToRoundTripVerifier`, and
+    `InstructionsListBuilder.targets`. The project exists in
+    Phase 0 so the solution graph, packaging hooks, and CI matrix
+    know about it from the start.
+- New test projects, one per code project:
+  `AutoContext.Framework.Pipes.Tests`,
+  `AutoContext.Framework.Logging.Tests`,
+  `AutoContext.Framework.Protocol.Tests`,
+  `AutoContext.Framework.Services.Tests`,
+  `AutoContext.Engine.Core.Tests`, `AutoContext.Client.Core.Tests`,
+  `AutoContext.Engine.Tests`, `AutoContext.Build.Tasks.Tests`.
+  Today's `AutoContext.Framework.Tests` is split across the four
+  substrate test projects according to which sub-project owns each
+  fixture.
+- `AutoContext.slnx` updated.
+- `build.ps1` learns the new project list (compile targets only;
+  packaging stays out until Phase 13).
+
+**Tests**:
+- Solution builds via `.\build.ps1 Compile`.
+- All existing `Worker.*` tests and the split-up Framework substrate
+  tests stay green after the rename + consolidation (no behaviour
+  change — the diff is purely namespace + project-graph).
+- `autocontext-engine --version` emits the expected
+  `AssemblyInformationalVersion` (executed by spawning the published
+  binary).
+- Existing tests stay green; nothing else changes behaviour.
+
+**Out of scope**: argv beyond `--version`, any pipe binding, any DI
+registration past the empty extension method.
+
+## Phase 1 — Engine lifecycle substrate
+
+**Goal**: engine binds the four pipes, performs the `Engine.Hello`
+handshake, manages its own idle/parent-pid/shutdown lifecycle, and
+participates in the shared liveness registry.
+
+**Design anchors**: `§ Lifecycle`, `§ Engine options (CLI surface)`,
+`§ RPC surface` (`Engine.Hello`, `Engine.GetSharedMetadata`,
+`Engine.Shutdown`, `Engine.Lifecycle.Subscribe`), `§ P4`, `§ P5`,
+`§ P8`.
+
+**Code touch**:
+- `AutoContext.Engine/Program.cs` — full argv parser per
+  `§ Engine options` (daemon-role table), strict rejection of
+  unknown switches with a one-line stderr error.
+- `AutoContext.Framework.Protocol/` — pipe-name builder (workspace
+  hash + `<kind>` + `<instanceId>`; normalisation rules in `§ Pipe
+  name`), protocol-version integer.
+- `AutoContext.Framework.Pipes/` — extended where the four-pipe
+  server-side bind needs new transport seams (today's `PipeListener`
+  is single-pipe / client-flipped; the engine binds four
+  multi-connection servers).
+- `AutoContext.Engine.Core/` — hosted services for: pipe accept
+  loops (`rpc`, `events`, `health`, `logs` — `logs` is bound here so
+  consumers see EOF cleanly, but engine record emission lives in
+  Phase 2), `Engine.Hello` handler, `Engine.Lifecycle` broadcaster,
+  `Engine.GetSharedMetadata` handler, `Engine.Shutdown` handler,
+  `engine-metadata.json` writer/sweeper, idle-timeout watchdog,
+  parent-pid watchdog.
+- `engine-metadata.json` row lifecycle per
+  `§ Housekeeping` and the `engine-metadata.json row lifecycle`
+  pitfall: write-on-start (upsert on `instanceId`),
+  remove-on-graceful-shutdown, leave-stale-on-crash. Reads use
+  `FileShare.None` + exponential-backoff retry. Corrupt-file recovery
+  (truncate-and-reseed) implemented per the same pitfall.
+- The idempotent-bind rule (`§ Lifecycle` *Concurrent first-connect*)
+  — a second engine with the same `--instance-id` detects an existing
+  pipe and exits cleanly.
+
+**Tests** (unit + integration):
+- `Engine.Hello` protocol-version exact-match acceptance and refusal.
+- `events` pipe requires the `Hello` envelope before any subscription.
+- `health` and `logs` accept connections without the handshake (raw
+  read; passive observer rule).
+- Four pipes bind atomically; clients can dial each independently.
+- Idle timeout fires after the configured window with no `rpc`/`events`
+  connections; `--idle-timeout 0` disables the gate.
+- `--parent-pid <pid>` watchdog exits cleanly when the parent process
+  vanishes; pid-recycling defeat via `Process.StartTime` comparison.
+- Registry row written on start, removed on graceful shutdown, left
+  stale on crash. Upsert-on-`instanceId` replaces a stale row from a
+  crash-respawn under the same launcher.
+- Two engines starting concurrently with the same `--instance-id`:
+  one binds, the other exits cleanly (idempotent bind).
+- Corrupt-file recovery: an unparseable
+  `engine-metadata.json` is truncated and re-seeded by the next start.
+- `Engine.Shutdown` returns `{ accepted: true }` immediately, drains
+  `rpc`, emits `shuttingDown` on `events`, closes pipes, exits 0.
+- Integration: spawn the binary, dial each pipe, verify handshake +
+  shutdown.
+
+**Out of scope**: housekeeping sweep of orphaned per-instance
+subtrees (Phase 2 — needs the log directory shape from Phase 2),
+log file production (Phase 2), worker spawn (Phase 7).
+
+## Phase 2 — Engine logging pipeline
+
+**Goal**: every record the engine emits via `ILogger<T>` lands in
+`engine.log` under the per-instance subtree, fans out on the `logs`
+pipe and `Logs.TailEngine` RPC subscribers, rotates per `--logging`,
+and gets pruned per `--retention`. The housekeeping sweep runs.
+
+**Design anchors**: `§ Housekeeping`, `§ Log categories`,
+`§ RPC surface` (`Logs.GetEngine`, `Logs.TailEngine`,
+`Engine.WriteLog` envelope shape), `§ P9` (slow-subscriber eviction),
+`§ Engine-owned on-disk artefacts` pitfall,
+`§ Log pipeline backpressure` pitfall.
+
+**Code touch**:
+- `AutoContext.Framework.Logging` — extend `LogEntry`/`JsonLogEntry`
+  to the canonical wire envelope (`timestamp`, `category`, `level`,
+  `eventId?`, `message`, `properties?`, `exception?`). The substrate
+  carry-over note in the design says this is an extension, not a
+  rewrite.
+- `AutoContext.Engine.Core/Logging/` — engine-side log sink:
+  one ingest channel, file appender for `engine.log`, fan-out to
+  `logs`-pipe and `Logs.Tail*` subscribers (per-subscriber bounded
+  buffer; slow subscribers evicted with a terminal
+  `{ kind: "evicted", reason: "slow-subscriber" }` frame).
+- Rotation per `--logging` thresholds (1k lines / 5 MB normal; 5k /
+  25 MB debug); rotated-file naming `engine-<iso8601>.log`.
+- Housekeeping sweep (`§ Housekeeping`): startup sweep before pipe
+  bind, shutdown sweep after own-row removal, ≤ 1 s deadline, per-row
+  retention honoured, rowless subtree fallback to own `--retention`.
+  Orphan subtrees — anything under the engine's cache root that
+  doesn't match a live `engine-metadata.json` row, including
+  pre-engine layouts (bare `<workspaceHash>` without the
+  `#<instanceId>` segment) from earlier preview builds — are
+  **deleted** subject to the same retention floor as rowless
+  subtrees. The cache root is engine-owned (P5); nothing outside
+  the engine writes there, so a foreign-shaped directory is by
+  definition stale. Concurrent sweep tolerance (one engine wins
+  delete, the other sees `DirectoryNotFoundException` mid-walk,
+  both treat it as success).
+- `Logs.GetEngine` / `Logs.TailEngine` handlers (active file only;
+  `opts.lastN`, `opts.since`, `truncated` flag).
+
+**Tests**:
+- Engine `ILogger<T>` records hit `engine.log` and the `logs` pipe
+  with the same envelope shape; the wire shape and the on-disk shape
+  match byte-for-byte (P1: one record envelope).
+- Rotation fires at line-count and at size threshold; both `normal`
+  and `debug` thresholds tested.
+- `--retention` prunes rotated files older than the window during
+  the next rotation.
+- `Logs.GetEngine` returns active-file content; `truncated: true`
+  when the requested range fell off.
+- `Logs.TailEngine` server-streams new records; replays from
+  `opts.since`.
+- Slow-subscriber eviction: a subscriber that doesn't drain gets the
+  terminal `evicted` frame and is disconnected; other subscribers and
+  the file sink keep progressing.
+- Housekeeping sweep across stale rows: pid-checked, retention
+  enforced per-row, rowless subtree falls back to own retention.
+- Two engines concurrent sweep on the same stale subtree: one
+  succeeds, the other treats `DirectoryNotFoundException` as success.
+- A foreign-shaped sibling directory (bare `<workspaceHash>` without
+  the `#<instanceId>` segment, simulating an earlier preview build's
+  cache) is deleted once it exceeds the retention floor, and is
+  preserved while still inside the retention window.
+
+**Out of scope**: worker records (Phase 8); `Logs.GetWorker` /
+`Logs.TailWorker` (Phase 8).
+
+## Phase 3 — Config store
+
+**Goal**: engine owns `.autocontext.json`. Reads are concurrent and
+lock-free; writes are single-writer with debounce + batch
+coalescing; cross-instance writes mediate through `FileShare.None` +
+the FS-watcher path; subscribers see one batch envelope per coalesced
+write.
+
+**Design anchors**: `§ RPC surface` (`Config.*`),
+`§ Reload coalescing: debounce and batch`,
+`§ Process scoping` (cross-instance rules), `§ P9`,
+`§ Cross-instance .autocontext.json writes race on disk` pitfall.
+
+**Code touch**:
+- `AutoContext.Engine.Core/Config/ConfigStore` —
+  port of today's `AutoContextConfigManager` (TS) into .NET. JSON
+  shape unchanged; the dual-casing acceptance (kebab → camel) the
+  centralized-MCP plan introduced stays the same.
+- `FileSystemWatcher` + per-resource trailing-edge debounce
+  (~75–150 ms, `EngineOptions` constant). Reads on timer fire only,
+  never inside the watcher callback. Cancellation propagates through
+  the engine's root token (P8).
+- Deep-equal short-circuit (self-write suppressor): post-debounce
+  parse compared by content hash against the current snapshot's
+  source hash; equality skips the swap, the fan-out, and the
+  generation bump.
+- Writer mutex (`SemaphoreSlim`, P9). Writer-side micro-batch window
+  (~5–10 ms) folds queued `Config.Toggle*` calls into one
+  on-disk write, one snapshot swap, one fan-out envelope of shape
+  `{ generation, changes: [...] }`.
+- `Config.Get`, `Config.Subscribe`, `Config.ToggleFile`,
+  `Config.ToggleRule` handlers.
+- Snapshot-on-subscribe (P6) — every new subscriber receives the
+  current state as the first frame.
+
+**Tests**:
+- Atomic-rename burst on `.autocontext.json` (Windows + WSL shapes)
+  coalesces to one reload + one fan-out.
+- In-place truncating-save burst also coalesces to one fan-out.
+- Local writer-side batch: three back-to-back
+  `Config.Toggle*` calls produce one batch envelope with
+  `changes.length == 3` in writer-mutex order; generation increments
+  once.
+- Self-write suppressor: local toggle produces exactly one fan-out
+  (writer's), not two (writer + watcher echo).
+- Peer-write reload (a second process writes the file): the engine
+  reloads once and emits one batch envelope.
+- Snapshot immutability: a reader holding a snapshot reference
+  observes no mid-flight mutations across a concurrent reload.
+- `Config.Subscribe` cold-start frame contains the current state;
+  late subscribers don't need a separate `Get`.
+
+**Out of scope**: `Instructions.*` consumers of the disabled state
+(Phase 6 — config changes here will fan out to instructions
+projection there).
+
+## Phase 4 — Workspace detection
+
+**Goal**: engine runs `Workspace.Detect` on startup against its
+own `--workspace` path, exposes the result via `Workspace.Detect` and
+`Workspace.Info`, and produces the `extensions[]` index the coarse
+`applyTo` filter consumes in Phase 6.
+
+**Design anchors**: `§ RPC surface` (`Workspace.*`),
+`§ P7` (coarse/fine match split), the ~60-flag table in
+`§ RPC surface` *`Detect` return shape*.
+
+**Code touch**:
+- `AutoContext.Engine.Core/Workspace/WorkspaceContextDetector` —
+  port of today's `workspace-context-detector.ts`. The four
+  declarative tables (`fileRules`, `npmContentRules`,
+  `dotnetContentRules`, `flagActivationRules`) translate directly to
+  C# `static readonly` records — same flag names, same globs, same
+  regex patterns, same `[child, parent]` activation edges. No rule
+  expansion; the existing ~60-flag set is the contract.
+- Derived `extensions[]` built from the same glob rules so a new
+  file-rule flag automatically extends the extension set.
+- `overrides[]` inventory under `.github/instructions/`.
+- `Workspace.Detect` and `Workspace.Info` handlers.
+
+**Tests**:
+- One fixture-per-flag test asserting each rule fires only on its
+  declared trigger.
+- Activation cascade: `hasNextJs` triggers `hasReact` triggers
+  `hasNodeJs` without re-running the file scans.
+- `extensions[]` derivation matches the union of every active
+  file-rule flag's extensions; content-rule flags contribute none.
+- `overrides[]` lists workspace-relative paths and basenames; an
+  unrelated file under `.github/` doesn't appear.
+- `Workspace.Info` returns engine-process metadata distinct from
+  `Detect`.
+
+**Out of scope**: `Discovery.RouteForPrompt` extension index (Phase 9
+— consumes the same data but lives in its own service).
+
+## Phase 5 — Instructions corpus build-time pipeline
+
+**Goal**: a single build-time pass over `src/AutoContext.Engine/Instructions/`
+produces both `Resources/instructions-files.json` (wire shape) and
+`Resources/instructions-files-metadata.json` (engine-internal
+indices). The `applyTo` parser ships here, parses only, and is
+round-trip-verified per fixture.
+
+**Design anchors**: `§ Resource manifests`,
+`§ applyTo` matching subsection under `Instructions.*`,
+`§ P3` (wire ≠ internal), `§ applyTo parser pitfall`.
+
+**Code touch**:
+- Curated instruction corpus moves to
+  `src/AutoContext.Engine/Instructions/` — the binary host owns the
+  side-cars (P5). Today the corpus is co-located with the VS Code
+  extension at `src/AutoContext.VsCode/instructions/`; the move is
+  part of this phase because the engine binary is now the owner and
+  the files ship next to the binary (resolved at runtime via
+  `AppContext.BaseDirectory`, not embedded resources).
+- `InstructionsListBuilder` — MSBuild task lives in a dedicated
+  build-tasks project (`AutoContext.Build.Tasks/`, netstandard2.0)
+  rather than the engine runtime library, because MSBuild ITask
+  implementations must load under both MSBuild-Full-Framework and
+  MSBuild-Core and because the task DLL + round-trip verifier ship
+  nothing at runtime. The `.targets` file is imported by
+  `AutoContext.Engine.csproj` (binary host — the project that
+  owns the output `Resources/` folder); the task writes
+  `instructions-files.json` + `instructions-files-metadata.json`
+  into `src/AutoContext.Engine/Resources/`. The `applyTo` parser
+  is shared from `AutoContext.Engine.Core/Instructions/` into the
+  build-tasks project via `<Compile Include="..." Link="..." />`
+  (not `dotnet/sourcelink`, which is the unrelated PDB-to-source
+  feature) so build-time validation and runtime parsing compile
+  the same source. Today's
+  `instructions-files-metadata-generator.ts` (TS) is retired; the
+  .NET task replaces it as the single producer.
+- `applyTo` parser: comma-split, brace-expand `{a,b,c}` groups,
+  trim whitespace, extract extension set. Round-trip invariant
+  (`recomposed == original` modulo whitespace) checked per
+  corpus file at build time; a failing round-trip fails the build.
+- `mcp-tools-registry.json` renamed from `mcp-workers-registry.json`
+  (today's path at `src/AutoContext.Mcp.Server/mcp-workers-registry.json`).
+  Schema renamed alongside. Both move under
+  `src/AutoContext.Engine/Resources/` so the binary host owns every
+  manifest it ships.
+- Build-time projection of `mcp-tools.json` (wire shape only;
+  runtime projection applies the disabled-state filter) emitted into
+  `src/AutoContext.Engine/Resources/`.
+
+**Tests**:
+- Builder round-trips for every file in the corpus.
+- Wire/internal split: `instructions-files.json` round-trips against
+  the `Instructions.List` envelope (test asserts equality);
+  `instructions-files-metadata.json` carries section maps and parsed
+  `applyTo` extension sets and never leaks onto the wire.
+- `applyTo` parser fixtures: comma lists, brace expansion, nested
+  globs (`**/*.{cs,fs,vb}` → three globs), idempotence
+  (parse∘compose ≈ identity).
+- A `applyTo` value that would silently canonicalise (e.g. `**` vs.
+  `**/*`) is preserved verbatim; the parser refuses to "simplify".
+- `mcp-tools-registry.json` schema-validates at build time;
+  malformed registry fails the build.
+
+**Out of scope**: any runtime projection (Phase 6); the
+content-search index seed (Phase 6 uses it but builds the live
+index in-memory at startup).
+
+## Phase 6 — Instructions corpus runtime + projection
+
+**Goal**: engine answers every `Instructions.*` RPC from in-memory
+snapshots, applies per-request projection (disabled rules filtered,
+`[INSTxxxx]` stripped, overrides resolved), invalidates cleanly via
+`Config.Subscribe`, and exposes content search.
+
+**Design anchors**: `§ RPC surface` (`Instructions.*`),
+`§ P2` (discriminated envelopes), `§ P9` (snapshot-immutable),
+`§ alwaysAttached pitfall`, `§ Instructions.Get distinguishes disabled
+from not-found pitfall`, `§ Override survival across upgrades`
+pitfall.
+
+**Code touch**:
+- `AutoContext.Engine.Core/Instructions/`:
+  - `InstructionsCorpusService` — load on startup from the embedded
+    side-cars, hold the immutable snapshot, re-project per request.
+  - `InstructionsFileBodyProjector` — disabled-rule filter,
+    `[INSTxxxx]` tag strip, override resolution.
+  - `InstructionsContentIndex` — in-memory content search seeded
+    from `instructions-files-metadata.json`, hot across queries,
+    invalidated on corpus reload.
+  - `InstructionsOverrideWatcher` — `FileSystemWatcher` on
+    `<workspace>/.github/instructions/` with the same debounce shape
+    Phase 3 introduced.
+- Handlers: `Instructions.List`, `Get`, `GetAll`, `GetAlwaysAttached`,
+  `GetRaw` (with `opts.source: "bundled"|"override"|"active"`),
+  `SearchContent`, `Subscribe`. Discriminated envelopes per `§ P2`.
+- `Config.Subscribe` consumer that re-evaluates `disabled` flags and
+  rebroadcasts on `Instructions.Subscribe`.
+- Override-mtime-vs-bundled-mtime warning (the *override survival*
+  pitfall).
+
+**Tests**:
+- `List` returns every bundled + override file; disabled rows carry
+  `disabled: true`; `alwaysAttached` flag correctly reflects YAML
+  frontmatter.
+- `Get` discriminated envelope: `ok` (with projected body),
+  `disabled` (identity only — no description, no body, no version),
+  `not-found` (just the name).
+- `GetAll` filters disabled files unconditionally.
+- `GetAlwaysAttached` returns only files with `alwaysAttached: true`
+  in deterministic order; disabled always-attached files are
+  omitted (`GetAlwaysAttached` never returns a `disabled`-envelope
+  identity).
+- `GetRaw` with each `source` value: `active` resolves
+  override-over-bundled, `bundled` and `override` are explicit and
+  preserve byte alignment with the source file (critical for the
+  CodeLens use case).
+- `SearchContent` returns scored hits with anchors; disabled files
+  excluded by default; `opts.includeDisabled` flips them in.
+- Snapshot immutability across a concurrent corpus reload: a reader
+  iterating `GetAll` sees no torn state.
+- `Config.ToggleFile` / `Config.ToggleRule` -> `Instructions.Subscribe`
+  fan-out re-evaluates the `disabled` flag without a corpus reload.
+- Override mtime older than bundled mtime emits a warning event.
+
+**Out of scope**: LM-tool shims (Phase 14 — they dial these RPCs);
+MCP-tool dispatch (Phase 7).
+
+## Phase 7 — MCP tool catalogue, dispatch, and worker manager
+
+**Goal**: engine absorbs today's `AutoContext.Mcp.Server` worker
+dispatcher. `McpTools.List` and `McpTools.Invoke` answer over the
+`rpc` pipe; the MCP-server-only role over stdio comes in Phase 11.
+Workers are spawned by the engine via the same lazy
+`ensureRunning(workerId)` pattern in use today.
+
+**Design anchors**: `§ RPC surface` (`McpTools.*`), `§ Resource
+manifests` (`workers.json`, `mcp-tools-registry.json`),
+`§ McpTools.Invoke and MCP tools/call share one handler` pitfall,
+`§ What the engine absorbs from today's topology`.
+
+**Code touch**:
+- `AutoContext.Engine.Core/Workers/WorkerManager` — port of
+  today's `WorkerManager` from `AutoContext.Mcp.Server/Workers/`
+  into the engine library. `ensureRunning(workerId)` gate unchanged.
+- `Resources/workers.json` build generator — scans
+  `src/AutoContext.Worker.*/` projects, derives `id`, `type`,
+  `entrypoint`. Id-collision fails the build.
+- `McpTools.List` handler over the `mcp-tools-registry.json` data,
+  filtered per-request by `disabledTools`/`disabledTasks` from the
+  config snapshot.
+- `McpTools.Invoke` handler: schema-validate `arguments` against the
+  tool's `inputSchema`, dispatch to the worker, marshal the worker
+  response into the discriminated envelope (`ok`/`tool-error`/
+  `schema-error`/`disabled`/`not-found`). Cancellation forwards
+  through the existing `IMcpTask` token.
+- Cross-process worker pipes stay on the existing worker-control
+  contract (now living in `AutoContext.Framework.Services` after the
+  Phase 0 consolidation; workers themselves are not absorbed).
+
+**Tests**:
+- `McpTools.List` reflects the registry, filtered by disabled state
+  from `Config.Get`; toggling config fans out via
+  `Config.Subscribe` and a subsequent `List` reflects the change.
+- `McpTools.Invoke` happy path: dispatched to the right worker per
+  the registry's `endpoint` field; response composed into the wire
+  envelope; `content` block-for-block matches the worker payload
+  (P1 — same shape regardless of transport).
+- `schema-error` on malformed `arguments`.
+- `tool-error` on a worker reporting failure.
+- `disabled` / `not-found` envelopes carry identity only, not the
+  schema or description.
+- Cancellation: caller cancels mid-invoke; worker's `IMcpTask`
+  observes the token and returns the cancellation envelope cleanly.
+- `WorkerManager` `ensureRunning` semantics: two concurrent
+  `Invoke`s against the same worker race once into one spawn.
+
+**Out of scope**: MCP-server-only role over stdio (Phase 11 — it
+reuses these same handlers).
+
+## Phase 8 — Worker → engine logging integration
+
+**Goal**: every `ILogger<T>` record a worker emits ships via
+`Engine.WriteLog` to the engine, gets routed by `category` prefix to
+the right `worker-<workerId>.log`, fans out on `logs` and
+`Logs.Tail*`, with bounded ring buffering and stderr fallback when
+the engine is briefly unreachable.
+
+**Design anchors**: `§ RPC surface` (`Engine.WriteLog`, `Logs.GetWorker`,
+`Logs.TailWorker`), `§ Log pipeline backpressure` pitfall,
+`§ Worker–engine connectivity` pitfall, the *Log categories* table.
+
+**Code touch**:
+- `AutoContext.Framework.Logging/AddEngineLoggerProvider` — new
+  `ILoggerProvider` that wraps `ILogger<T>` records into the
+  canonical envelope, dials the engine's `rpc` pipe for
+  `Engine.WriteLog` notifications. (Lives in `Framework.Logging`
+  rather than a separate `Worker.Shared` after the Phase 0
+  consolidation.)
+- Worker-side bounded in-memory ring (default 1000 records / 1 MiB,
+  drop-oldest on overflow), retry with exponential backoff, replay
+  on reconnect. On drop, one line to **stderr** per drop batch
+  (`engine log dropped N records`).
+- Engine-side `Engine.WriteLog` handler routes by `category` prefix
+  (`worker.<workerId>.*` → `worker-<workerId>.log`; everything else →
+  `engine.log`). Per-worker file created lazily on first record.
+- Engine supervises worker stderr via `Process.Start` and emits each
+  captured stderr line under category
+  `worker.<workerId>.engine.stderr`, landing in the right per-worker
+  file by the prefix rule.
+- `Logs.GetWorker` / `Logs.TailWorker` handlers — `not-found`
+  discriminated envelope distinguishes "this `workerId` was never
+  spawned" from empty `records`.
+
+**Tests**:
+- Worker `ILogger<T>` record arrives in the right per-worker log
+  file under the expected category prefix.
+- Engine-side fan-out: a subscriber on `logs` sees both engine and
+  worker records with the same envelope.
+- `Logs.GetWorker("never-spawned")` returns `not-found`;
+  `Logs.GetWorker("spawned-but-quiet")` returns `ok` with empty
+  `records`.
+- Worker can't reach engine on cold start: records buffer into the
+  ring; on engine availability the ring drains in order.
+- Ring overflow: oldest records drop; one stderr line per batch;
+  next successful drain carries a synthetic
+  `engine.logging`/`warning` "dropped N worker log records" record.
+- Slow `Logs.Tail*` subscriber is evicted with the terminal
+  `evicted` frame; the file sink and other subscribers keep going.
+- Worker stderr (a print that bypasses the logger) shows up under
+  `worker.<id>.engine.stderr` in the worker's log file.
+
+**Out of scope**: any on-disk worker spool — there isn't one, by
+design.
+
+## Phase 9 — Discovery
+
+**Goal**: engine builds the *category → MCP tool* and *extension →
+instruction file* indices from already-owned state and answers
+`Discovery.RouteForPrompt` / `Discovery.RouteForTool`. The `.cjs`
+hooks (Phase 15) stop carrying their own scan logic.
+
+**Design anchors**: `§ RPC surface` (`Discovery.*`), `§ P7`.
+
+**Code touch**:
+- `AutoContext.Engine.Core/Discovery/DiscoveryService` — two
+  indices, rebuilt on `Instructions.Subscribe` / `McpTools.List`
+  changes, filtered by current disabled state.
+- Word-boundary literal scan for categories;
+  `\.[A-Za-z][A-Za-z0-9]{0,12}` regex for extensions — same shape
+  as today's `.cjs`.
+- `RouteForPrompt(prompt)` and `RouteForTool(toolName)` handlers.
+
+**Tests**:
+- Routing fixtures from the existing hook tests, ported to .NET.
+- Disabled tools / files don't appear in the result set.
+- Index rebuilds on `Instructions.Subscribe` / config change without
+  a corpus reload.
+
+**Out of scope**: hook integration (Phase 15).
+
+## Phase 10 — Agent.* RPCs
+
+**Goal**: engine accepts the agent-loop notifications hooks fire
+(`SubagentStarted`/`SubagentStopped`/`Compacted`/`ToolUsed`/`TurnEnded`)
+and re-broadcasts them on `Agent.Events.Subscribe`. UX-only;
+fire-and-forget; lost events tolerable (per the design).
+
+**Design anchors**: `§ RPC surface` (`Agent.*`), `§ P6` (subscription
+shape), `§ P10` (cross-process fan-out).
+
+**Code touch**:
+- `AutoContext.Engine.Core/Agent/AgentEventsBroadcaster` — same
+  per-subscriber bounded-buffer / slow-subscriber-eviction discipline
+  Phase 2 introduced.
+- The five notification handlers; in-memory per-session histogram for
+  `ToolUsed` (consumed by `Diagnostics.Run` in a later out-of-scope
+  release).
+
+**Tests**:
+- Notification → broadcast round-trip per event family.
+- Slow subscriber on `Agent.Events.Subscribe` is evicted; producer
+  is never back-pressured.
+- Two clients subscribed concurrently see the same envelope sequence.
+
+**Out of scope**: hook script integration (Phase 15);
+`Diagnostics.Run` consumer.
+
+## Phase 11 — MCP-server-only role
+
+**Goal**: `autocontext-engine --mcp-server with-stdio` runs the
+minimal stdio MCP server. No pipes, no registry row, no
+`engine.log`, no `FileSystemWatcher`, no worker dispatch.
+Per-request disk read of `.autocontext.json`. Stdio EOF exits
+cleanly.
+
+**Design anchors**: `§ Engine binary` (role split),
+`§ Engine options (CLI surface)` (MCP-server argv subset),
+`§ Lifecycle` (*MCP-server-only role is out of scope*),
+`§ MCP-server role argv discipline` pitfall.
+
+**Code touch**:
+- `AutoContext.Engine/Program.cs` — argv parser splits on
+  `--mcp-server` and routes into one of two disjoint
+  `IHostBuilder` compositions. MCP-only branch registers
+  `AddMcpServer().WithStdioServerTransport()` and **nothing else
+  state-bearing**.
+- Argv parser rejects `--instance-id`, `--instance-label`,
+  `--idle-timeout`, `--parent-pid`, `--retention`, `--logging` in
+  the MCP-only role with a stderr error and non-zero exit.
+- The same handler code from Phase 6 (`Instructions.*`) and Phase 7
+  (`McpTools.*`) is registered as `instructions_*` and the existing
+  `analyze_*` / `read_*` MCP tools (today's surface). The per-request
+  `.autocontext.json` read is wired into the handler dependency
+  graph for this role.
+- `AutoContext.Mcp.Server/Program.cs` shrinks to a thin shim that
+  delegates to the engine binary's MCP-server-only role — kept only
+  for the in-tree smoke test that still spawns it; deleted in
+  Phase 16.
+
+**Tests**:
+- Stdio mode rejects each daemon-only switch.
+- Stdio mode does not bind any pipe (assert with a parallel daemon
+  on the same workspace — they coexist).
+- `tools/list` and `tools/call` return byte-identical `content` for
+  the same input as the pipe `McpTools.Invoke` (P1 cross-transport
+  diff test).
+- Per-request disk re-read: a write to `.autocontext.json` from a
+  parallel daemon is observed on the next stdio request.
+- Stdio EOF exits cleanly.
+- No `engine-metadata.json` row written.
+
+**Out of scope**: deleting `AutoContext.Mcp.Server` (Phase 16);
+extension's MCP server definition repointing (Phase 14).
+
+## Phase 12 — `Client.Core` (CLI-as-library) and `EngineDaemonManager` (TS)
+
+**Goal**: two independent deliverables that happen to land together
+because both first need the engine's wire surface from Phases 1–11.
+They are **not** parallel implementations of one concept — they
+have different responsibilities, different consumers, and only
+share the engine's wire contract.
+
+- `AutoContext.Client.Core` (.NET) — the `autocontext` CLI as a
+  library. Houses every type the CLI binary uses internally
+  (`EngineClient` typed-RPC surface, four-pipe dialer, cold-start-
+  or-attach resolver, subscription consumers, `IEngineSpawner`).
+  Consumers: `AutoContext.CommandLine` and third-party .NET
+  embedders that want CLI-shaped behaviour in-process. See
+  [`autocontext-cli.md`](future/autocontext-cli.md) for the
+  full CLI-as-library picture.
+- `EngineDaemonManager` (TS, `src/AutoContext.Nodejs.Core/src/engine/`) —
+  owns engine-daemon lifecycle on the TS host side (find-or-spawn
+  against the bundled `autocontext-engine` binary, supervise the
+  child, tear down on host shutdown) **and** exposes the engine's
+  RPC surface as typed methods on top of that lifecycle. Consumers:
+  the VS Code extension (Phase 14) and the agent-plugin `.cjs`
+  hook scripts (Phase 15).
+
+**Design anchors**: `§ Composition contracts`, `§ Sharing principle`,
+`§ Lifecycle` (cold start, warm reuse), `§ P6`/`§ P9`/`§ P10`.
+
+**Code touch**:
+- `AutoContext.Client.Core/`:
+  - Pipe dialer (`rpc` + `events` only by default; `health` and
+    `logs` opt-in).
+  - Find-or-spawn flow over a `IEngineSpawner` seam (concrete
+    impl: `Process.Start` against the bundled binary). Cold-spawn
+    retry with the doc's connect-budget shape.
+  - `Engine.Hello` handshake; refusal surfaces as a typed
+    `EngineProtocolException`.
+  - Typed RPC clients for every surface: `Config.*`, `Instructions.*`,
+    `Workspace.*`, `McpTools.*`, `Discovery.*`, `Agent.*`, `Logs.*`,
+    `Engine.Lifecycle`, `Engine.GetSharedMetadata`,
+    `Engine.Shutdown`. Note: `Engine.WriteLog` is **not** exposed
+    on `Client.Core`'s typed surface — it is a worker→engine
+    notification owned by `Framework.Logging`
+    (`EngineWriteLogClient` + `AddEngineLoggerProvider`); the wire
+    DTO itself lives in `Framework.Protocol` so both sides marshal
+    the same envelope.
+  - Subscription consumers as `IAsyncEnumerable<T>` (P6 — first-class
+    subscriptions; P8 — async I/O end-to-end).
+- `AutoContext.Nodejs.Core/src/engine/engine-daemon-manager.ts` —
+  plain TS class `EngineDaemonManager` (no DI container per
+  `§ Sharing principle`). Same wire surface, same RPC names, same
+  envelope shapes; additionally owns find-or-spawn against the
+  bundled `autocontext-engine` binary and supervises the child
+  process for the lifetime of the host.
+- TS pipe-client substrate lives in
+  `AutoContext.Nodejs.Core/src/pipes/` (today's location
+  `AutoContext.Framework.Web/src/pipes/`, moved as part of the
+  Phase 0 rename); extended where the four-pipe shape needs it.
+
+**Tests**:
+- .NET client round-trips every RPC against an in-process engine
+  composed via `AddAutoContextEngine`.
+- TS client round-trips every RPC against a spawned engine binary
+  (Vitest + `child_process`).
+- Cold spawn: client connects, no engine present, spawner fires,
+  client retries within the connect budget, handshake succeeds.
+- Warm reuse: two clients of the same launcher (same `--instance-id`)
+  see one engine.
+- `*.Subscribe` streams: snapshot-on-subscribe, generation counter,
+  late-subscriber correctness.
+- Slow-subscriber on the client side disconnects with `evicted`
+  rather than back-pressuring the engine.
+- Engine refusal on protocol-version mismatch surfaces as a typed
+  error on both clients.
+
+**Out of scope**: extension consuming the client (Phase 14); hooks
+consuming the client (Phase 15); CLI verb implementations
+(`autocontext-cli.md`, separate plan).
+
+## Phase 13 — Distribution and packaging
+
+**Goal**: `build.ps1 Package` emits per-RID engine staging under
+`out/engine/<rid>/...`; per-platform packaging (VSIX, plugin
+release, GitHub-release tarball) selects the matching RID and
+copies the flat `engine/` subtree into the shipped artefact. The
+engine resolves its side-cars from `AppContext.BaseDirectory`
+without any host-supplied path.
+
+**Design anchors**: `§ Distribution`, `§ Distributed bundle layout`,
+the per-platform packaging note (`vsce package --target <target>`).
+
+**Code touch**:
+- `build.ps1` — new actions for per-RID engine publish
+  (`dotnet publish -r <rid> --self-contained`), per-worker
+  self-contained publish into `Workers/<id>/`, manifest copy
+  (`Instructions/`, `Resources/`), per-platform packaging that
+  selects one RID's staging into one VSIX / one plugin release /
+  one tarball.
+- `package.json` (`AutoContext.VsCode/`) — `vsce package` invocation
+  shifts to `--target <target>` per supported platform; the
+  `engine/` directory replaces today's per-RID layout under the
+  extension root.
+- Engine-side `AppContext.BaseDirectory` resolver for `engine/`
+  side-cars; no host-supplied root for resource resolution.
+- Workers move into per-worker subdirs (`Workers/workspace/`,
+  `Workers/dotnet/`, `Workers/web/`) to isolate self-contained
+  runtimes from each other and from the engine.
+
+**Tests**:
+- `build.ps1 Package -Local` per RID succeeds.
+- A packaged engine binary started inside its staging dir resolves
+  every side-car (manifest fixture for each).
+- Per-platform VSIX contains the right RID's binaries and no others
+  (size + spot-check assertions).
+- Plugin release for each platform mirrors the same layout.
+- Corpus byte-equality across RIDs in one build (manifest fixture).
+- GitHub-release tarball smoke (build, extract, run `--version`).
+
+**Out of scope**: marketplace publishing (separate operational
+step); existing extension still ships its TS-side instruction
+artefacts until Phase 14.
+
+## Phase 14 — Extension migration
+
+**Goal**: extension becomes a pure `EngineDaemonManager` consumer. The
+sideband pipe servers and the in-extension projection/config/corpus
+classes are deleted. Tree views, decoration providers, CodeLens, and
+LM tools dial the engine over the four pipes.
+
+**Design anchors**: `§ Authority model: engine owns, clients cache`,
+`§ Projection ownership`, `§ Sharing principle`, `§ LM-tool surface`.
+
+**Code touch — deletions** (from `src/AutoContext.VsCode/src/`):
+- `autocontext-config-manager.ts`, `autocontext-config-projector.ts`,
+  `autocontext-config-server.ts` — replaced by `Config.*` RPCs.
+- `instructions-file-content-projector.ts`,
+  `instructions-files-manager.ts`,
+  `instructions-files-manifest-loader.ts`,
+  `instructions-files-manifest.ts`,
+  `instructions-files-metadata-generator.ts`,
+  `instructions-files-metadata-loader.ts`,
+  `instructions-files-override-watcher.ts`,
+  `instructions-file-parser.ts`,
+  `instructions-file-sections-cache.ts`,
+  `instructions-file-sections-parser.ts` — replaced by
+  `Instructions.*` RPCs and the engine-side corpus from Phase 6.
+- `log-server.ts`, `health-monitor-server.ts`,
+  `worker-control-server.ts` — replaced by engine pipes.
+- `workspace-context-detector.ts` — replaced by `Workspace.Detect`.
+- `worker-manager.ts` — engine spawns workers itself; the extension
+  spawns the engine (and only the engine).
+- The four LM-tool handler implementations
+  (`instructions-files-lm-tools-*`) collapse to thin shims that dial
+  `Instructions.*` over `EngineDaemonManager`.
+
+**Code touch — additions/changes**:
+- `extension-activation.ts` / `extension-composition.ts`: spawn the
+  engine with `--workspace <path> --instance-id <uuid> --idle-timeout
+  0 --parent-pid <vscode-pid> --instance-label "vscode (v…); engine
+  (v…)"`. The instance UUID is minted once per window.
+- Tree views, decoration providers, CodeLens, and hover providers
+  all read from `EngineDaemonManager`. `Engine.Lifecycle.Subscribe`,
+  `Config.Subscribe`, and `Instructions.Subscribe` drive cache
+  invalidation in the UI.
+- The MCP server definition (`mcp-server-provider.ts`) repoints to
+  `autocontext-engine --mcp-server with-stdio`. Today's
+  `--endpoint-suffix` side-channel from the extension's launcher to
+  the MCP-host's spawn is replaced wholesale by `--instance-id`.
+- `agent-plugin-installer.ts` keeps installing the hook scripts, but
+  the hooks now dial the engine (Phase 15).
+
+**Tests**:
+- Extension Vitest suites: every replaced module's test coverage
+  migrates onto `EngineDaemonManager` fakes / engine-in-process fixtures.
+  No coverage drops below the replaced module's bar.
+- `build.ps1 Test -Smoke` (the VS Code extension smoke test) runs
+  end-to-end: extension activates, spawns the engine, tree view
+  populates, an instruction toggle round-trips.
+- Cross-window scenario: two VS Code windows on the same workspace
+  spawn two engines; toggles in one window reach the other through
+  the cross-instance `.autocontext.json` path (Phase 3 contract).
+
+**Out of scope**: hook scripts (Phase 15); `Mcp.Server` deletion
+(Phase 16).
+
+## Phase 15 — Agent-plugin hook migration
+
+**Goal**: the agent-plugin hooks (today's `.cjs` scripts under
+`src/AutoContext.VsCode/plugin/hooks/`) call `EngineDaemonManager` for
+everything. SessionStart, UserPromptSubmit, PreCompact, and the
+SubagentStart/Stop pair land in this phase; PreToolUse / PostToolUse
+/ Stop land too because they share the same client and the same RPC
+families.
+
+**Design anchors**: `§ Topology — motivating clients` (agent
+plugin), `§ RPC surface` (`Agent.*`, `Discovery.*`,
+`Instructions.GetAlwaysAttached`).
+
+**Code touch**:
+- Hook scripts move from "carries its own routing scan + corpus
+  reader" to "calls `Instructions.GetAlwaysAttached`,
+  `Discovery.RouteForPrompt`, `Discovery.RouteForTool`, and fires
+  the `Agent.*` notifications". The TS `EngineDaemonManager` from
+  Phase 12 is the only seam.
+- Sub-agent file materialisation under the per-instance cache root
+  (`%LOCALAPPDATA%\autocontext\<workspaceHash>#<instanceId>\cache\subagents\<sessionId>\`,
+  POSIX equivalent) lives in the SubagentStart hook; SubagentStop
+  cleans it.
+- `--instance-id` propagation: hook templates document the
+  side-channel the launcher provides (env var inherited from
+  launcher); a hook with no resolvable instance-id spawns its own
+  engine per the design's *Hook scripts outside a known launcher*
+  pitfall.
+- The `Engine.Hello`-failure path is a structured hook failure (no
+  in-hook disk-read fallback; engine + plugin ship versioned
+  together).
+
+**Tests**:
+- Per-hook fixture-based tests against a spawned engine.
+- Side-channel UUID inheritance: hook with env var reaches the
+  launcher's engine; hook without spawns its own.
+- Sub-agent cache materialisation + cleanup.
+- `Engine.Hello` mismatch surfaces as a structured hook error.
+
+**Out of scope**: any host-specific hook-host detection (the design
+says hooks are host-agnostic — Claude Code, VS Code Copilot, future
+hosts).
+
+## Phase 16 — `AutoContext.Mcp.Server` retirement
+
+**Goal**: the standalone MCP-server project is gone. The MCP host
+servers manifest (`servers.json`) points at
+`autocontext-engine --mcp-server with-stdio`. Tests fold into
+`AutoContext.Engine.Core.Tests`.
+
+**Design anchors**: `§ What the engine absorbs from today's topology`,
+`§ Test-project layout`.
+
+**Code touch**:
+- Delete `src/AutoContext.Mcp.Server/` and
+  `src/tests/AutoContext.Mcp.Server.Tests/`.
+- Tests worth keeping move into `AutoContext.Engine.Core.Tests`
+  (the schema-validation tests, the manifest-loader tests, the
+  envelope-composition tests).
+- `servers.json` rewritten: the only entry is `autocontext-engine`
+  with the MCP-server-only role argv; worker entries are removed
+  (the engine spawns workers itself now).
+- The `mcp-tools-registry.json` move into
+  `AutoContext.Engine/Resources/` already happened in Phase 5;
+  deleting `AutoContext.Mcp.Server/` here removes anything left in
+  its directory by definition.
+- Solution file (`AutoContext.slnx`) cleaned of the retired project.
+- `build.ps1` no longer references `AutoContext.Mcp.Server`.
+
+**Tests**:
+- Full solution build + test + smoke green.
+- A spawned `autocontext-engine --mcp-server with-stdio` answers
+  every `tools/list` and `tools/call` the old `Mcp.Server` answered
+  (regression fixture set lifted from `AutoContext.Mcp.Server.Tests`).
+
+**Out of scope**: any further surface work; the engine has shipped.
+
+## Cross-phase concerns
+
+### Risk and ordering
+
+- **Phase 3 (config) and Phase 6 (instructions runtime) are the
+  highest-risk phases.** Reload coalescing and snapshot immutability
+  are subtle; both ship with the heaviest test budget.
+- **Phase 13 (distribution) cannot ship before Phase 11
+  (MCP-server-only role).** The shipped binary needs to support both
+  roles before any host bundle includes it.
+- **Phase 14 (extension) cannot ship before Phases 6, 7, 9, 12.**
+  The extension consumes every one of those surfaces.
+- **Phase 15 (hooks) cannot ship before Phase 12 (TS client).**
+- **Phase 16 (Mcp.Server retirement) is last** so the regression
+  surface stays observable until everything else has flipped.
+
+### What every phase explicitly does *not* do
+
+- No version bumps. `version.json`, `package.json` `version` fields,
+  and `.csproj` `<VersionPrefix>` stay where they are until the user
+  asks (see `copilot-instructions.md` § Versioning).
+- No instruction-corpus content edits unless the phase explicitly
+  rewrites a section the engine is replacing. Engine consolidation
+  does not mean rewriting curated guidance.
+- No "improvements" beyond the phase scope. Refactors, style
+  sweeps, doc cleanups, or unrelated bug fixes wait for their own
+  change (see `copilot-instructions.md` § Implementation Discipline).
+- No new portability abstractions (`IFileSystem`, `IWorkspace`,
+  …) — see `design § Sharing principle` and its pitfall entry.
+
+### Resolved pre-flight decisions
+
+1. **Phase 4 flag table — port the existing TS tables verbatim.**
+   The authoritative rule set already lives declaratively in
+   [`workspace-context-detector.ts`](../src/AutoContext.VsCode/src/workspace-context-detector.ts)
+   as four `as const` arrays: `fileRules` (file-glob flags),
+   `npmContentRules` (`package.json` regex flags),
+   `dotnetContentRules` (`.csproj` regex flags), and
+   `flagActivationRules` (`[child, parent]` transitive activations).
+   Phase 4 ports each table to C# unchanged — same flag names, same
+   globs, same regex patterns, same activation edges. The ~60-flag
+   contract in the design doc and these tables are the same set; no
+   separate fixture extraction is needed. The per-flag tests use the
+   existing
+   [`workspace-context-detector.test.ts`](../src/AutoContext.VsCode/tests/unit-tests/workspace-context-detector.test.ts)
+   fixtures as their porting source.
+2. **Cache path migration — sweep deletes orphans.** The
+   per-instance cache root changes shape from `<workspaceHash>` to
+   `<workspaceHash>#<instanceId>`. The Phase 2 housekeeping sweep
+   treats any subtree under the engine's cache root without a
+   matching live `engine-metadata.json` row as stale and deletes
+   it once it falls outside the retention floor — this includes
+   bare-`<workspaceHash>` directories from earlier preview builds.
+   The cache root is engine-owned (P5), nothing else writes there,
+   and cache contents are reproducible, so a stale orphan is just
+   disk pressure. The retention floor protects against deleting a
+   directory that another engine is mid-write into.
+3. **`Workspace.Detect` arbitrary-path RPC — no action needed.**
+   Audit of every `workspaceContextDetector` consumer
+   (`auto-configurer.ts`, `extension-composition.ts`,
+   `extension-activation.ts`, `extension-registrations.ts`,
+   `instructions-viewer-code-lens-provider.ts`) confirms every call
+   is the parameterless `detector.detect()` that scans the active
+   workspace. No caller passes an arbitrary path. The design's
+   "engine's `--workspace` only" rule is already what today's
+   extension does; Phase 14 simply replaces `detector.detect()`
+   with `client.Workspace.Detect()`.
+
+## Companion documents
+
+- [`future/autocontext-engine.md`](./future/autocontext-engine.md)
+  — design authority.
+- [`future/autocontext-cli.md`](./future/autocontext-cli.md) — CLI
+  subcommands plan, separate from this rollout.
+- `architecture-centralized-mcp.md` (repo memory under
+  `/memories/repo/`) — current-topology context; provides the project
+  layout and naming conventions every phase keeps consistent with.

@@ -559,7 +559,7 @@ resolves them.
 The CLI is one of three engine clients; sharing happens at the
 **wire-protocol** level, not at the source-code level. The CLI
 binary is one of two host projects over the shared
-`AutoContext.Framework.Client` library, so third-party .NET code
+`AutoContext.Client.Core` library, so third-party .NET code
 can embed the engine client without taking a dependency on the
 verb-parsing or output-formatting code that lives inside the
 `autocontext[.exe]` binary.
@@ -567,15 +567,14 @@ verb-parsing or output-formatting code that lives inside the
 - **One library, one binary** (see
   [autocontext-engine.md → Project layout](./autocontext-engine.md#project-layout)
   for the full three-library / two-binary picture).
-  - `AutoContext.Framework.Client` — the embeddable .NET wire
+  - `AutoContext.Client.Core` — the embeddable .NET wire
     client. Owns the four-pipe dial state machine (`rpc` /
     `events` / `health` / `logs`), the cold-start-or-attach
     resolver, the typed RPC client surface (one method per engine
     RPC), the discriminated envelopes every state-bearing read
     returns, and the subscription plumbing for `*.Subscribe`
     channels. No `System.CommandLine`, no console I/O, no
-    host-specific assumptions — this is the .NET analogue of the
-    TS `AutoctxClient`. Third-party .NET code (custom integrations,
+    host-specific assumptions. Third-party .NET code (custom integrations,
     automated regression harnesses, future JetBrains / Rider
     plugins, an `AutoContext.VsCode.Cs` rewrite) takes a dependency
     on this library without taking a dependency on the CLI binary.
@@ -586,16 +585,19 @@ verb-parsing or output-formatting code that lives inside the
     enforces the stderr-vs-stdout discipline (see *Surface
     conventions*). Published per-RID as `autocontext[.exe]`.
     Embedders that want CLI-shaped behaviour in-process drive
-    `AutoContext.Framework.Client` directly through
+    `AutoContext.Client.Core` directly through
     `AddAutoContextClient` and provide their own argv source — the
     verb-parsing layer is not factored out as a separate library
     because no second consumer is asking for it.
-- **The TS-side `AutoctxClient`** (used by the VS Code extension
-  and by Anthropic plugin `.cjs` hook scripts under whichever hook
-  host runs them) speaks the same wire protocol
-  `AutoContext.Framework.Client` speaks. The two are independent
-  implementations of one wire contract; neither is the source of
-  truth, the **engine** is.
+- **The TS-side `EngineDaemonManager`** is a different concern entirely.
+  Used by the VS Code extension and by Anthropic plugin `.cjs` hook
+  scripts (under whichever hook host runs them), it owns engine-daemon
+  lifecycle on the TS host side (find-or-spawn, supervise, tear-down)
+  and exposes typed pipe-RPC on top. The fact that it dials the same
+  wire protocol `AutoContext.Client.Core` dials does **not** make
+  the two parallel — they have unrelated responsibilities and unrelated
+  consumers. The only thing they share is the wire contract, which
+  the **engine** owns.
 - **Shells stay thin.** `AutoContext.CommandLine` contains verb
   parsing, the call into `AddAutoContextClient`, output formatting,
   and the run / teardown loop — and nothing else. Logic that is
@@ -621,7 +623,7 @@ that seam, and dispatches verbs against the typed RPC clients the
 seam registers.
 
 - **`IHostApplicationBuilder.AddAutoContextClient(Action<ClientOptions> configure)`**
-  is `AutoContext.Framework.Client`'s single public entry point
+  is `AutoContext.Client.Core`'s single public entry point
   (mirror of the engine's `AddAutoContextEngine` — see
   [autocontext-engine.md → Composition contracts](./autocontext-engine.md#composition-contracts)).
   It registers the four-pipe dial state machine, the cold-start /
@@ -710,7 +712,7 @@ and output formatting on top.
   console, typed RPC responses instead of JSON re-parse, long-lived
   subscriptions without per-invocation handshake cost. New .NET
   integrations should take a dependency on
-  `AutoContext.Framework.Client` and call
+  `AutoContext.Client.Core` and call
   `AddAutoContextClient` (see *Composition contracts*); the
   CLI binary's existence does not deprecate the library.
 - **`autocontext --version` is RID-independent.** Driven by
@@ -766,9 +768,9 @@ Shape:
 
 - **Skeleton.** `AutoContext.CommandLine` binary project with
   `Program.Main` calling `AddAutoContextClient` (from the empty
-  `AutoContext.Framework.Client` library skeleton); `autocontext
+  `AutoContext.Client.Core` library skeleton); `autocontext
   --version` works end-to-end. Sibling of the empty
-  `AutoContext.Engine` binary and `AutoContext.Framework.Engine`
+  `AutoContext.Engine` binary and `AutoContext.Engine.Core`
   library skeletons defined in
   [autocontext-engine.md → Project layout](./autocontext-engine.md#project-layout).
 - **Verbs land alongside engine RPCs.** Each verb in this doc lands

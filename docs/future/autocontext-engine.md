@@ -344,8 +344,8 @@ See [Log categories](#log-categories).
 |---|---|
 | `IHostApplicationBuilder.AddAutoContextEngine(Action<EngineOptions>)` | engine library's single public entry; CLI and tests both call it |
 | `EngineOptions` | CLI-surfaced knobs + library-only knobs (corpus root override, pipe-name override) |
-| `AddEngineLoggerProvider()` (in `AutoContext.Worker.Shared`) | worker-side logging seam routing `ILogger<T>` to `Engine.WriteLog` |
-| `AutoctxClient` (TS, `Framework.Web/src/cli/`) | only shared TS class; pipe-RPC client used by extension and hooks |
+| `AddEngineLoggerProvider()` (in `AutoContext.Framework.Logging`) | worker-side logging seam routing `ILogger<T>` to `Engine.WriteLog` |
+| `EngineDaemonManager` (TS, `Nodejs.Core/src/engine/`) | only shared TS class; owns engine-daemon lifecycle (find-or-spawn, supervise) and pipe-RPC dial for extension and hooks |
 
 See [Composition contracts](#composition-contracts).
 
@@ -405,66 +405,139 @@ binaries with their existing JSON-RPC-over-pipe protocol, spawned by
 the engine on demand using the same lazy `ensureRunning(workerId)`
 pattern `WorkerManager` uses today.
 
-### What `AutoContext.Framework` carries over
+### What `AutoContext.Framework.*` carries over
 
-`AutoContext.Framework` is **not deleted; it is the existing .NET
-substrate the engine builds on**, with direction-of-flow flipped in
-two places where the old extension was the server and the engine is
-now. Concretely, by namespace:
+Today's single `AutoContext.Framework` substrate project is **split
+into four sibling projects** as part of this rollout, with
+direction-of-flow flipped in two places where the old extension was
+the server and the engine is now. Splitting now (rather than leaving
+one assembly that every host references in full) buys enforced
+reference asymmetry: engine and dialer libraries depend on three of
+the four sub-projects, workers depend on all four, and the project
+graph makes that distinction visible at the `<ProjectReference>`
+level rather than as a folder convention inside one assembly. The
+four sub-projects, by namespace:
 
-- **`AutoContext.Framework.Pipes`** — reused as-is. The pipe transport
-  primitives (`PipeListener` / `BoundPipeListener`, `PipeTransport`,
+- **`AutoContext.Framework.Pipes`** — pipe transport primitives.
+  Reused as-is from today's `AutoContext.Framework/Pipes/`:
+  `PipeListener` / `BoundPipeListener`, `PipeTransport`,
   `LengthPrefixedFrameCodec`, `PipeKeepAliveClient`, and the
   `PipeTransientExchangeClient` / `PipePersistentExchangeClient` /
-  `PipeStreamingClient` triad) are the substrate behind the engine's
-  four-pipe topology (P4 — `rpc`, `events`, `health`, `logs`). The
-  framing layer, ready-marker contract, and back-pressure
-  discipline are all already battle-tested by the current
-  MCP-server↔worker plumbing; the engine reuses them unchanged.
-  `AutoctxClient` (the only shared TS class — see `## Sharing
-  principle`) and the engine's own pipe host both sit on top of
-  this namespace.
-- **`AutoContext.Framework.Logging`** — reused, with the wire envelope
-  renamed and extended. Today's `LogEntry` / `JsonLogEntry` carry
-  `(Category, Level, Message, Exception, CorrelationId)` and ship
-  via `PipeLoggerProvider` / `LoggingClient` to the extension's
-  `LogServer`. Under the engine design the direction reverses:
-  the engine binds the `logs` pipe and workers ship to it via
+  `PipeStreamingClient` triad. These are the substrate behind the
+  engine's four-pipe topology (P4 — `rpc`, `events`, `health`,
+  `logs`). The framing layer, ready-marker contract, and
+  back-pressure discipline are all already battle-tested by the
+  current MCP-server↔worker plumbing; the engine reuses them
+  unchanged. `EngineDaemonManager` (the only shared TS class — see
+  `## Sharing principle`) and the engine's own pipe host both sit
+  on top of this project.
+- **`AutoContext.Framework.Logging`** — the wire log envelope + the
+  two `ILoggerProvider`s. Reused, with the wire envelope renamed and
+  extended. Today's `LogEntry` / `JsonLogEntry` carry `(Category,
+  Level, Message, Exception, CorrelationId)` and ship via
+  `PipeLoggerProvider` / `LoggingClient` to the extension's
+  `LogServer`. Under the engine design the direction reverses: the
+  engine binds the `logs` pipe and workers ship to it via
   `Engine.WriteLog` (see the *Log categories* subsection and the
-  `Engine.WriteLog` RPC). The existing `Category` field becomes
-  the canonical `category` taxonomy field, the `CorrelationId`
-  field collapses into the `properties` bag, and `JsonLogEntry`
-  grows `timestamp` / `eventId?` / `properties?` / `exception?`
-  to match the wire envelope documented under `Engine.WriteLog`.
-  `PipeLoggerProvider` is the seed for the worker-side
-  `AddEngineLoggerProvider()` registration; one rename plus the
-  envelope extension and it slots into the new design without a
-  rewrite.
-- **`AutoContext.Framework.Hosting`** — `HealthMonitorClient` flips
-  direction. Today it dials the extension's `HealthMonitorServer`;
-  under the engine design the engine binds the `health` pipe (P4)
-  and `HealthMonitorClient` becomes the **client** of the engine's
-  pipe. Same wire shape (cheap connect-and-read, no `Engine.Hello`
-  required), opposite end of the conversation. The class moves
-  into the host-side client library (`AutoctxClient` plumbing on
-  .NET hosts; equivalent on TS via `Framework.Web`); the
-  server-side counterpart lives in the engine's pipe host.
-- **`AutoContext.Framework.Workers`** — `WorkerHostOptions` and
-  `WorkerTaskDispatcherService` are the worker-side hosting
-  scaffold every `AutoContext.Worker.*` project already inherits.
-  They stay where they are. The engine's orchestrator-side
-  counterpart (today's `WorkerManager` plus the dispatch path in
-  `AutoContext.Mcp.Server`) gets absorbed into the engine binary
-  per the table above. The framework half remains the worker
-  hosting contract.
+  `Engine.WriteLog` RPC). The existing `Category` field becomes the
+  canonical `category` taxonomy field, the `CorrelationId` field
+  collapses into the `properties` bag, and `JsonLogEntry` grows
+  `timestamp` / `eventId?` / `properties?` / `exception?` to match
+  the wire envelope documented under `Engine.WriteLog`. The new
+  `AddEngineLoggerProvider()` / `EngineLoggerProvider` /
+  `EngineLogIngestRing` / `EngineWriteLogClient` quartet (folded in
+  from today's `AutoContext.Worker.Shared/Logging/` — see the
+  consolidation note below) joins this project alongside the legacy
+  `PipeLoggerProvider`; the legacy sideband sink gets deleted in
+  Phase 8 of the implementation plan once `Engine.WriteLog` is the
+  only path workers use to publish records.
+- **`AutoContext.Framework.Protocol`** — cross-side DTOs. New
+  sub-project (no equivalent in today's substrate); holds the
+  protocol-version integer constant that `Engine.Hello` exchanges,
+  the pipe-name builder (`rpc` / `events` / `health` / `logs` ×
+  workspace-hash × instance-UUID — P4), the canonical
+  `LogRecord` envelope shared by `Engine.WriteLog` and the `logs`
+  pipe, the discriminated-union envelope base shapes (P2 — `ok` /
+  `disabled` / `not-found` / `*-error`), and the per-RPC request
+  / response DTOs that both engine handlers and typed dialer
+  clients marshal. All inert types; no behaviour. The
+  source-generated `System.Text.Json` context for every DTO ships
+  in this project.
+- **`AutoContext.Framework.Services`** — worker-side runtime + the
+  one cross-cutting client that doesn't fit anywhere else.
+  `WorkerHostOptions`, `WorkerTaskDispatcherService`,
+  `WorkerHostBuilderExtensions`, and `IMcpTask` are the
+  hosting scaffold and contract every `AutoContext.Worker.*`
+  project already inherits — `IMcpTask` is the contract a worker
+  implements; `WorkerTaskDispatcherService` is the
+  `BackgroundService` that binds a worker-side pipe and dispatches
+  to `IMcpTask` instances; `WorkerHostBuilderExtensions` is the
+  DI extension that registers both. `HealthMonitorClient` flips
+  direction here: today it dials the extension's
+  `HealthMonitorServer`; under the engine design the engine binds
+  the `health` pipe (P4) and `HealthMonitorClient` becomes the
+  **client** of the engine's pipe. Same wire shape (cheap
+  connect-and-read, no `Engine.Hello` required), opposite end of
+  the conversation. Both the dispatcher and the health client are
+  worker-only consumers; this project is the worker-facing tip
+  of the substrate.
 
-Net effect: the framework project keeps its purpose as **shared
-.NET infrastructure for every AutoContext .NET process** (engine
-and workers), the engine just becomes its largest consumer.
-Nothing in the namespace is dead; a few wire envelopes get
-extended and one client flips direction. No new "portability
-interfaces" appear here — this is composition of concrete .NET
-types, exactly as `## Sharing principle` requires.
+**Reference graph after the split** (acyclic, depth 2):
+
+```
+Framework.Pipes (leaf)        Framework.Protocol (leaf)
+        ▲                              ▲
+        └──────────────┬───────────────┘
+                       │
+                Framework.Logging         (refs Pipes + Protocol)
+                       ▲
+       ┌───────────────┼───────────────┐
+       │               │               │
+       │       Framework.Services      │
+       │       (refs Pipes +           │
+       │        Logging + Protocol)    │
+       │               ▲               │
+       │               │ (workers only)│
+   Engine.Core      Worker.*       Client.Core
+```
+
+Engine.Core and Client.Core reference `Framework.Logging` directly
+(`Framework.Pipes` + `Framework.Protocol` come transitively) and
+do **not** reference `Framework.Services`. Worker.* references
+`Framework.Services`, which transitively brings the rest. Engine
+and dialer libraries neither bind a worker-side pipe nor dial the
+engine's health probe; `IMcpTask` and the dispatcher live in
+`Services`, the engine-write-log provider lives in `Logging`.
+
+Net effect: today's `AutoContext.Framework` keeps every line of code
+it has, redistributed across four sibling projects whose
+reference-graph shape matches the actual consumer asymmetry. Nothing
+in the substrate is dead; a few wire envelopes get extended and one
+client flips direction. No new "portability interfaces" appear here
+— this is composition of concrete .NET types across four assemblies,
+exactly as `## Sharing principle` requires.
+
+> **Consolidation note (project graph).** As part of this rollout
+> two adjacent projects are folded into the four `AutoContext.Framework.*`
+> sub-projects:
+>
+> - `AutoContext.Mcp.Abstractions` (one file: `IMcpTask.cs`) moves
+>   to `AutoContext.Framework.Services/Workers/IMcpTask.cs`. The project is
+>   deleted.
+> - `AutoContext.Worker.Shared` is split between
+>   `AutoContext.Framework.Services/` (the worker-host
+>   extensions) and `AutoContext.Framework.Logging/` (the
+>   engine-write-log provider + bounded ring + write-log client).
+>   The project is deleted.
+>
+> Both held substrate-grade code already shaped like `Framework`
+> content; keeping them as separate one- and five-file projects
+> bought no isolation (every `Worker.*` already referenced
+> `Framework`) at a real project-graph cost. After consolidation
+> each `Worker.*` project drops its `Mcp.Abstractions` and
+> `Worker.Shared` references and picks up `<ProjectReference>`s
+> to the four `Framework.*` projects directly. The mechanical
+> move happens in Phase 0 of the implementation plan.
 
 ## Engine binary
 
@@ -1731,7 +1804,7 @@ way to set it.
   `CallTool`. The MCP-server-only role stays the canonical model-facing
   transport; `Invoke` is the canonical non-model transport. Both
   surfaces share the same handler code (one implementation in
-  `Framework.Engine`); the difference is which process hosts it
+  `Engine.Core`); the difference is which process hosts it
   (daemon for `Invoke`, MCP-server-only role for `tools/call`).
 
   Response is a discriminated union mirroring the `Instructions.Get`
@@ -1827,12 +1900,12 @@ extension contributes today
 `get_autocontext_instructions_file`) are no longer extension-native.
 The engine owns the only implementation — a single set of service
 classes (`InstructionsCorpusService`, `InstructionsContentIndex`,
-`InstructionsListBuilder`) inside `Framework.Engine` — and that
+`InstructionsFileBodyProjector`) inside `Engine.Core` — and that
 implementation is reachable through two parallel surfaces that run
 in **two separate processes of the same engine binary**:
 
 ```
-                  one implementation in Framework.Engine
+                  one implementation in Engine.Core
                                     ▲
                 ┌───────────────────┴───────────────────┐
                 │                                       │
@@ -1871,13 +1944,13 @@ in **two separate processes of the same engine binary**:
 - **VS Code LM-tool shims** — the extension keeps registering the
   four `vscode.lm.registerTool` entries it ships today, and each
   shim's `invoke` body dials the **daemon role's pipe RPC**
-  (`Instructions.*` via `AutoctxClient`) on the engine the
+  (`Instructions.*` via `EngineDaemonManager`) on the engine the
   extension itself launched for its workspace. The MCP-server-only
   role is the model-facing transport for *external* MCP hosts; LM
   tools running inside the same VS Code window where the daemon
   engine is already alive take the shorter path. Byte-identical
   output between the LM-tool and MCP paths is guaranteed by the
-  shared handler code in `Framework.Engine`, not by routing one
+  shared handler code in `Engine.Core`, not by routing one
   surface through the other.
 
 **Double exposure is intentional, no suppression flag is needed.**
@@ -2093,8 +2166,11 @@ Current prefixes:
 | `worker.<workerId>.<Type>` | worker | per-type sub-categories under a worker (e.g. `worker.dotnet.RoslynAnalyzer`); free-form below the worker prefix |
 
 Worker-side seam (composition contract): worker hosts register
-`AddEngineLoggerProvider()` from `AutoContext.Worker.Shared` during
-startup. That provider serialises every `ILogger<T>` record into
+`AddEngineLoggerProvider()` from `AutoContext.Framework.Logging`
+(post the Phase 0 consolidation that folds `AutoContext.Worker.Shared`
+into the four `AutoContext.Framework.*` sub-projects) during startup.
+That provider serialises every
+`ILogger<T>` record into
 the `Engine.WriteLog` notification with the worker's `id` baked
 into the `category` prefix; the worker codebase itself never sees
 the transport choice. Workers therefore use `ILogger<T>` exactly
@@ -2271,16 +2347,19 @@ Consequences:
   `LogServer`, `HealthMonitorServer`, `WorkerControlServer`,
   `AutoContextConfigServer`, and any in-process projection code are
   *deleted*. The extension's remaining responsibility is wiring
-  `AutoctxClient` (TS) to its tree views, codelens providers, and
+  `EngineDaemonManager` (TS) to its tree views, codelens providers, and
   decoration providers. No on-disk projection cache lives in the
   extension — the agent-plugin hooks handle chat-side instruction
   delivery (under whichever hook host is running, including
   VS Code Copilot in the same window).
-- **`AutoctxClient` is the only shared TS class.** A thin pipe-RPC
-  client living in `Framework.Web/src/cli/`. Used by the VS Code
-  extension and by the agent-plugin `.cjs` hook scripts (under
-  whichever hook host runs them). Speaks the same wire protocol
-  the engine serves.
+- **`EngineDaemonManager` is the only shared TS class.** Lives in
+  `Nodejs.Core/src/engine/`. Owns engine-daemon lifecycle from the
+  TS side (find-or-spawn against the bundled `autocontext-engine`
+  binary, supervise, tear down on host shutdown) and exposes the
+  engine's pipe-RPC surface as typed methods on top of that
+  lifecycle. Used by the VS Code extension and by the agent-plugin
+  `.cjs` hook scripts (under whichever hook host runs them). Speaks
+  the same wire protocol the engine serves.
 - **No invented cross-host seams.** This is *not* a ban on .NET DI.
   It is a ban on inventing portability interfaces (`IFileSystem`,
   `IWorkspace`, a custom `IHostEnvironment`-shaped wrapper) just to
@@ -2296,7 +2375,7 @@ Consequences:
   host are fine. An interface invented to deduplicate them is not.
 - **Shells stay thin.** `AutoContext.CommandLine` and `AutoContext.VsCode`
   contain almost nothing but: arg / activation parsing, host-specific
-  surfaces (vscode UI, CLI argv), the `AutoctxClient` plumbing, and
+  surfaces (vscode UI, CLI argv), the `EngineDaemonManager` plumbing, and
   the run / teardown loop. Logic that is not host-specific belongs
   in the engine.
 
@@ -2563,8 +2642,8 @@ clients over four pipes (plus optional MCP/stdio); a single
 `Task.Wait()`, `.Result`, `GetAwaiter().GetResult()`, or otherwise
 synchronous read against a pipe or file handle on a request path
 deadlocks the dispatcher and starves every other connection. The
-rule applies symmetrically to clients (`AutoContext.Framework.Client`,
-the TS `AutoctxClient`, the CLI binary).
+rule applies symmetrically to clients (`AutoContext.Client.Core`,
+the TS `EngineDaemonManager`, the CLI binary).
 
 - **Pipe I/O is async.** Accept loops use
   `WaitForConnectionAsync`; reads/writes use `ReadAsync` /
@@ -2710,8 +2789,9 @@ callback hook.
   framework code.** It is neither async-shaped nor
   `HasDelegate`-shaped, and every place it would be tempting one
   of the two patterns above is the right answer. The ban applies
-  to `AutoContext.Framework*`, `AutoContext.Engine`, the CLI
-  binary, the worker shared library, and the TS `AutoctxClient`
+  to every `AutoContext.Framework.*` project, `AutoContext.Engine.Core`,
+  `AutoContext.Client.Core`, `AutoContext.Engine`, the CLI
+  binary, every `AutoContext.Worker.*` project, and the TS `EngineDaemonManager`
   (which has no `event` analogue anyway — the rule is recorded
   for symmetry).
 - **No in-process listener pools.** A `List<Func<...>>` of
@@ -2723,8 +2803,8 @@ callback hook.
 - **One signature shape per framework boundary.** Pick the
   delegate signature for the async callback hook (return type,
   whether the `CancellationToken` is a separate parameter or
-  carried inside `TContext`) once for `AutoContext.Framework` and
-  reuse it everywhere — `EngineOptions`, `ClientOptions`,
+  carried inside `TContext`) once for the `AutoContext.Framework.*`
+  substrate and reuse it everywhere — `EngineOptions`, `ClientOptions`,
   `WorkerOptions`, future options bags. The wrapper type is an
   implementation choice; the signature shape is a design
   invariant.
@@ -2756,71 +2836,100 @@ owns.
   `EngineOptions` / `ClientOptions` follow P10's single-subscriber
   shape (see `### P10`); they are **not** classic .NET `event`
   slots.
-- **`AutoctxClient` (TS, `Framework.Web/src/cli/`)** is the only
-  shared TS class. Plain class, no DI container, constructed with
-  `new` and a workspace path. Speaks the same wire protocol the
+- **`EngineDaemonManager` (TS, `Nodejs.Core/src/engine/`)** is the
+  only shared TS class. Plain class, no DI container, constructed
+  with `new` and a workspace path. Owns engine-daemon lifecycle
+  (find-or-spawn, supervise, tear-down) and exposes the engine's
+  RPC surface as typed methods. Speaks the same wire protocol the
   .NET engine serves; that wire protocol is the cross-host seam,
   *not* a class hierarchy.
 
 The extension and the plugin do not share a composer; they share
 the engine **binary** (one process per workspace) and the **wire
-protocol** (consumed by `AutoctxClient` on the TS side).
+protocol** (consumed by `EngineDaemonManager` on the TS side).
 
 ## Project layout
 
 The engine and the client dialer are two *libraries*, not two
 sub-folders of one library, and the binaries that host them are
-thin. Three .NET library projects under `src/`, plus one host
-project per binary that exists only to call `Main`:
+thin. Three .NET library tiers under `src/` — a four-project
+`AutoContext.Framework.*` substrate, two `*.Core` libraries that
+sit on top of it, and one host project per binary that exists only
+to call `Main`:
 
 ```
-                AutoContext.Framework
-        (Pipes, Logging, Hosting, Workers, Protocol)
-                  ▲                     ▲
-                  │                     │
-   AutoContext.Framework.Engine   AutoContext.Framework.Client
-                  ▲                     ▲
-                  │                     │
-   AutoContext.Engine (binary)     AutoContext.CommandLine (binary)
-   → autocontext-engine[.exe]      → autocontext[.exe]
+   Framework.Pipes (leaf)        Framework.Protocol (leaf — cross-side DTOs)
+          ▲                                ▲
+          └─────────────┬──────────────────┘
+                        │
+                 Framework.Logging         (refs Pipes + Protocol)
+                        ▲
+       ┌────────────────┼────────────────┐
+       │                │                │
+       │        Framework.Services       │
+       │        (refs Pipes +            │
+       │         Logging + Protocol)     │
+       │                ▲                │
+       │                │ (workers only) │
+   Engine.Core      Worker.*         Client.Core
+       ▲                                 ▲
+       │                                 │
+   Engine (binary)                  CommandLine (binary)
+   → autocontext-engine[.exe]       → autocontext[.exe]
 ```
 
-- **`AutoContext.Framework`** is the shared substrate every
-  AutoContext .NET process already depends on — `Pipes`, `Logging`,
-  `Hosting`, `Workers` (see *What `AutoContext.Framework` carries
-  over*). One new sub-namespace lands here:
-  - **`AutoContext.Framework.Protocol`** holds the **cross-side DTOs**
-    both libraries marshal: the protocol-version integer constant
-    `Engine.Hello` exchanges, the pipe-name builder (`rpc` /
-    `events` / `health` / `logs` × workspace-hash × instance-UUID
-    — P4), and the discriminated-union envelopes that appear on
-    *both* sides of every RPC (`Instructions.Get` /
-    `McpTools.Invoke` / `Engine.GetSharedMetadata` row / the
-    `Engine.WriteLog` log-record envelope). Neither library can
-    own these without the other depending on it; they belong with
-    the substrate.
-- **`AutoContext.Framework.Engine`** is the engine **as a library**.
+Engine.Core and Client.Core reference `Framework.Logging` directly
+(`Framework.Pipes` + `Framework.Protocol` come transitively) and
+do **not** reference `Framework.Services`. Worker.* references
+`Framework.Services`, which transitively brings the rest.
+
+- **`AutoContext.Framework.{Pipes,Logging,Protocol,Services}`** are
+  the four-project substrate every AutoContext .NET process
+  depends on (see *What `AutoContext.Framework.*` carries over*).
+  `Framework.Protocol` is the cross-side-DTO leaf project: the
+  protocol-version integer constant `Engine.Hello` exchanges, the
+  pipe-name builder (`rpc` / `events` / `health` / `logs` ×
+  workspace-hash × instance-UUID — P4), and the discriminated-union
+  envelopes that appear on *both* sides of every RPC
+  (`Instructions.Get` / `McpTools.Invoke` / `Engine.GetSharedMetadata`
+  row / the `Engine.WriteLog` log-record envelope). Engine,
+  dialer, and every worker depend on it; neither
+  `Engine.Core` nor `Client.Core` can own these without the other
+  depending on it, so they belong with the substrate.
+- **`AutoContext.Engine.Core`** is the engine **as a library**.
   Everything under `### Engine-internal services` lives here
   (`AutoContextConfigStore`, `InstructionsCorpusService`,
-  `InstructionsFileBodyProjector`, `InstructionsListBuilder`,
+  `InstructionsFileBodyProjector`,
   `InstructionsContentIndex`, `WorkspaceContextDetector`,
   `WorkerManager`), together with the pipe-server bindings for the
   four pipes and the RPC handlers (one per capability — P1). Public
   surface is `IHostApplicationBuilder.AddAutoContextEngine(Action<EngineOptions>)`
-  (see *Composition contracts*).
-- **`AutoContext.Framework.Client`** is the dialer **as a library**.
-  Pipe-client plumbing for the four pipes, typed clients for every
-  RPC surface (`Instructions.*`, `Config.*`, `Workspace.*`,
-  `McpTools.*`, `Discovery.*`, `Agent.*`, `Logs.*`), and the
-  subscription-stream consumers (`Engine.Lifecycle.Subscribe`,
-  `Config.Subscribe`, `Instructions.Subscribe`,
-  `Agent.Events.Subscribe`). Public surface mirrors the engine's:
+  (see *Composition contracts*). References `Framework.Pipes`,
+  `Framework.Logging`, `Framework.Protocol`; does **not** reference
+  `Framework.Services` (it binds the `health` pipe, never dials it,
+  and it spawns workers as separate processes rather than hosting
+  `IMcpTask` instances).
+- **`AutoContext.Client.Core`** is the **`autocontext` CLI as a
+  library** — the embeddable home for every type the CLI binary
+  uses internally (e.g. `EngineClient` for the typed RPC surface,
+  the four-pipe dialer plumbing, the cold-start-or-attach resolver,
+  the subscription consumers, `IEngineSpawner`). Public surface:
   `IHostApplicationBuilder.AddAutoContextClient(Action<ClientOptions>)`.
-  This is the .NET counterpart of TS `AutoctxClient` (see the
-  *Sharing principle* — both sides dial the same wire; the
-  `AutoctxClient` plain TS class and `AutoContext.Framework.Client`
-  on .NET are parallel implementations of one wire contract, not
-  derivations of one shared abstraction).
+  Consumed by `AutoContext.CommandLine` (the `autocontext[.exe]`
+  binary) and by third-party .NET code that wants CLI-shaped
+  behaviour in-process without taking a dependency on the CLI
+  binary itself (custom integrations, regression harnesses, future
+  JetBrains plugins, an `AutoContext.VsCode.Cs` rewrite). It is
+  **not** a counterpart of the TS `EngineDaemonManager` —
+  `EngineDaemonManager` owns engine-daemon lifecycle on the TS
+  host side (find-or-spawn, supervise, tear-down) for the
+  extension and hook scripts, which is a different responsibility
+  with a different consumer set; the fact that both happen to dial
+  the engine's wire protocol does not make them parallel. See
+  [autocontext-cli.md](./autocontext-cli.md) for the full CLI-as-library
+  picture. References `Framework.Pipes`, `Framework.Logging`,
+  `Framework.Protocol`; same reason as `Engine.Core` for not
+  referencing `Framework.Services`.
 - **`AutoContext.Engine` (binary)** is the engine host. `Program.Main`
   parses argv per `### Engine options`, calls
   `AddAutoContextEngine(...)`, runs the host. Published per-RID as
@@ -2830,10 +2939,10 @@ project per binary that exists only to call `Main`:
   `AddAutoContextClient(...)`, dispatches verbs. Published per-RID
   as `autocontext[.exe]`.
 
-**Neither library references the other.** `AutoContext.Framework.Engine`
-binds pipes and serves RPCs; `AutoContext.Framework.Client` dials
-pipes and consumes RPCs. The only thing they share is
-`AutoContext.Framework.Protocol`. Two binaries hosting both libraries in
+**Neither `*.Core` library references the other.** `AutoContext.Engine.Core`
+binds pipes and serves RPCs; `AutoContext.Client.Core` dials
+pipes and consumes RPCs. The only thing they share is the
+`AutoContext.Framework.*` substrate. Two binaries hosting both libraries in
 one process is technically possible (a hypothetical "thick engine
 that also dials a peer") and structurally permitted, but no shipped
 binary does this today and the layout makes the asymmetry visible
@@ -2846,37 +2955,46 @@ interface set the two libraries program against. The engine *binds*
 pipes, the client *dials* them; that asymmetry is intentional and
 the wire is the only seam (`## Sharing principle`). Library
 boundaries enforce direction-of-flow at the project graph level;
-they do not invite a third "shared logic" layer between Framework
-and the two halves.
+they do not invite a third "shared logic" layer between the
+`Framework.*` substrate and the two halves.
 
-**Workers are unchanged.** Each `AutoContext.Worker.*` project
-references `AutoContext.Framework` only — specifically `Workers`
-(hosting scaffold), `Logging` (record producer), and `Protocol` (log
-envelope, pipe-name builder for dialling the engine's `logs` pipe
-via `Engine.WriteLog`). Workers do not reference
-`AutoContext.Framework.Engine` (they are spawned *by* it, not
-hosted *in* it) and do not reference `AutoContext.Framework.Client`
-(they speak a narrower wire than full RPC clients do).
+**Workers are unchanged in role.** Each `AutoContext.Worker.*` project
+adds a single `<ProjectReference>` to `AutoContext.Framework.Services`
+and picks up the other three substrate projects transitively
+(`Framework.Services` references `Framework.Pipes` +
+`Framework.Logging` + `Framework.Protocol`). The transitive set
+gives each worker `IMcpTask` and the worker-host scaffold from
+`Services`, `AddEngineLoggerProvider()` from `Logging`, the
+transport primitives from `Pipes`, and the wire DTOs from
+`Protocol`. Workers do not reference
+`AutoContext.Engine.Core` (they are spawned *by* it, not hosted
+*in* it) and do not reference `AutoContext.Client.Core` (they
+speak a narrower wire than full RPC clients do).
 
-**Test-project layout** mirrors the library split:
+**Test-project layout** mirrors every library project one-to-one:
 
 | Test project | Covers |
 |---|---|
-| `AutoContext.Framework.Tests` | Shared substrate — `Pipes`, `Logging`, `Hosting`, `Workers`, `Protocol` envelope round-trips |
-| `AutoContext.Framework.Engine.Tests` | Engine-internal services, RPC handlers, pipe-server bindings; absorbs today's `AutoContext.Mcp.Server.Tests` |
-| `AutoContext.Framework.Client.Tests` | Typed RPC clients, subscription-stream consumers, dialer back-pressure / reconnect behaviour |
+| `AutoContext.Framework.Pipes.Tests` | Transport primitives — `PipeListener`, codec, keep-alive client, exchange/streaming-client triad |
+| `AutoContext.Framework.Logging.Tests` | Wire envelope, `EngineLoggerProvider`, `EngineLogIngestRing`, write-log client |
+| `AutoContext.Framework.Protocol.Tests` | DTO envelope round-trips, pipe-name builder, source-generated JSON contexts |
+| `AutoContext.Framework.Services.Tests` | `WorkerHostBuilderExtensions`, `WorkerTaskDispatcherService`, `HealthMonitorClient` |
+| `AutoContext.Engine.Core.Tests` | Engine-internal services, RPC handlers, pipe-server bindings; absorbs today's `AutoContext.Mcp.Server.Tests` |
+| `AutoContext.Client.Core.Tests` | Typed RPC clients, subscription-stream consumers, dialer back-pressure / reconnect behaviour |
+| `AutoContext.Engine.Tests` | Binary host wiring — argv parsing, `AddAutoContextEngine` composition, exit codes |
+| `AutoContext.Build.Tasks.Tests` | `BuildInstructionsListTask` output fixtures and `ApplyToRoundTripVerifier` invariants (the task itself is also exercised end-to-end by every other project's build) |
 | `AutoContext.Worker.*.Tests` | Unchanged — per-worker task suites against the testing harness |
 
 `AutoContext.Mcp.Server.Tests` is retired into
-`AutoContext.Framework.Engine.Tests` (the MCP server *is* the
+`AutoContext.Engine.Core.Tests` (the MCP server *is* the
 engine — see *What the engine absorbs from today's topology*).
 
 **Future subset-library carve-out is a possibility, not v1.**
 A consumer that wants only the corpus projection — say, a static
 documentation generator that wants `InstructionsContentIndex` and
 `InstructionsFileBodyProjector` without any pipe-server machinery
-— could be served by a future `AutoContext.Framework.Instructions`
-slice carved out of `AutoContext.Framework.Engine`. This is
+— could be served by a future `AutoContext.Engine.Core.Instructions`
+slice carved out of `AutoContext.Engine.Core`. This is
 explicitly **not** a v1 split. Pre-splitting on speculative
 embedding scenarios produces more boundaries to maintain than
 consumers to serve; the carve-out lands the day a real consumer
@@ -3305,7 +3423,7 @@ Source-side locations for the editable inputs the build consumes:
   the VS Code extension and their `instructions_*` MCP-tool
   counterparts on the engine's MCP-server-only role are paper-thin:
   they deserialise input, call the corresponding service method in
-  `Framework.Engine`, and serialise the result. Trigram indexing, override resolution,
+  `Engine.Core`, and serialise the result. Trigram indexing, override resolution,
   metadata predicate evaluation, coarse `applyTo` filtering (see
   the next pitfall for the coarse/fine split), and disabled filtering
   all live inside the engine's service layer; both surfaces share
@@ -3391,7 +3509,7 @@ Source-side locations for the editable inputs the build consumes:
   dir; no per-RID corpus edits are permitted. Validator asserts
   byte-equality across RIDs in a build.
 - **Do NOT** port the engine to TypeScript. The engine is .NET; the
-  TS side ships only `AutoctxClient` and the existing pipe
+  TS side ships only `EngineDaemonManager` and the existing pipe
   transport.
 - **Do NOT** invent cross-host portability seams. Using
   `Microsoft.Extensions.Hosting` (`IHostEnvironment`, `ILogger<T>`,
@@ -3400,7 +3518,7 @@ Source-side locations for the editable inputs the build consumes:
   invent a custom `IFileSystem` / `IWorkspace`-style interface that
   pretends the C# engine and the TS extension share code — they
   share a wire protocol, not a class hierarchy. The TS-side
-  `AutoctxClient` stays a plain class, no DI container.
+  `EngineDaemonManager` stays a plain class, no DI container.
 - **Do NOT** fold workers into the engine. Workers are transient
   task executors with their own crash / lifecycle profile. The
   engine spawns them via the same lazy `ensureRunning(workerId)`
@@ -3426,7 +3544,10 @@ Shape:
   projector, corpus service, workspace detection, pipe-listener /
   idle-watchdog hosted services, RPC handlers, MCP-tool catalogue,
   worker dispatch, MCP-server-only role composition.
-  `EngineRpcClient` (.NET) / `AutoctxClient` (TS) companions.
+  `EngineClient` (.NET, inside `Client.Core` — the CLI-as-library)
+  and the TS-side `EngineDaemonManager` (engine-daemon lifecycle
+  for the extension and hooks) land in this skeleton step too;
+  they share only the wire protocol.
 - **MCP server retirement.** `AutoContext.Mcp.Server`'s
   `Program.Main` shrinks to delegating into `AddAutoContextEngine`,
   then is deleted entirely once nothing references it. The MCP host
@@ -3436,9 +3557,9 @@ Shape:
   `AutoContextConfigServer`) are deleted from the extension. The
   in-extension projection / config / corpus classes are deleted in
   the same release that ships the engine. The extension becomes a
-  pure `AutoctxClient` consumer plus VS Code-specific UI.
+  pure `EngineDaemonManager` consumer plus VS Code-specific UI.
 - **Anthropic plugin re-pointing.** SessionStart and any other
-  hooks call `AutoctxClient` against the engine pipe. Hooks
+  hooks call `EngineDaemonManager` against the engine pipe. Hooks
   surface `Engine.Hello` failure as a structured hook error;
   there is no in-hook disk-read fallback (engine and plugin
   ship versioned together inside the plugin root).
