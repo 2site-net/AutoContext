@@ -69,7 +69,7 @@ wire* below.
 | `mcp list` | `McpTools.List` | List the MCP tools the engine would advertise to an MCP host, filtered by the same disabled-tools / disabled-tasks state. |
 | `mcp invoke <tool> --args <json>` | `McpTools.Invoke` | Invoke one MCP tool through the same handler the engine's MCP-server-only role uses for `tools/call`. |
 | `route "<prompt>"` | `Discovery.RouteForPrompt` | Print the routing signal the Anthropic plugin's `UserPromptSubmit` hook consumes — matched categories, extensions, strongly-relevant tools and instruction files. |
-| `engine list` | reads `engine-metadata.json` directly | List engines registered in the shared liveness registry — workspace hash, instance UUID, label, pid, version, start time, retention window. Default: only rows that pass pid-check (live engines). `--all`: include stale rows (rows whose pid no longer matches `processStartTimeUtc`) marked as such. Never spawns, never dials a pipe. |
+| `engine list` | reads `engine-registry.json` directly | List engines registered in the shared liveness registry — workspace hash, instance UUID, label, pid, version, start time, retention window. Default: only entries that pass pid-check (live engines). `--all`: include stale entries (entries whose pid no longer matches `processStartTimeUtc`) marked as such. Never spawns, never dials a pipe. |
 | `engine status` | dials the `health` pipe | Print the small status JSON document the resolved engine emits on its `health` pipe. Read-only; never spawns. |
 | `engine logs` | dials the `logs` pipe (or `Logs.Tail*`) | Snapshot or tail the resolved engine's NDJSON log stream — engine records and worker records distinguished by the `category` field. Read-only; never spawns. |
 | `engine stop` | `Engine.Shutdown` | Ask the resolved engine (or every live engine on the workspace with `--all`) to shut down gracefully. Targets daemon-role engines only — MCP-server-only engines exit on stdio EOF and are invisible to this verb. |
@@ -113,9 +113,9 @@ These appear on multiple verbs and behave the same way every time.
 
 | Flag | Where it appears | What it does |
 |---|---|---|
-| `--workspace <path>` | every verb except `--version` | Selects the workspace the verb resolves against. Absent ⇒ CWD. The CLI normalises the path (resolve symlinks, lowercase on Windows) **identically** to the engine's pipe-name hash, so the dialled engine is the one the engine actually bound. `engine list` is the one exception to the CWD default: absent `--workspace` lists every workspace on the machine, and an explicit `--workspace <path>` filters the registry to rows whose `workspaceHash` matches that path. |
+| `--workspace <path>` | every verb except `--version` | Selects the workspace the verb resolves against. Absent ⇒ CWD. The CLI normalises the path (resolve symlinks, lowercase on Windows) **identically** to the engine's pipe-name hash, so the dialled engine is the one the engine actually bound. `engine list` is the one exception to the CWD default: absent `--workspace` lists every workspace on the machine, and an explicit `--workspace <path>` filters the registry to entries whose `workspaceHash` matches that path. |
 | `--json` | every read-shaped verb (`config get`, `instructions list\|search\|watch`, `workspace detect\|info`, `mcp list`, `route`, `engine list`, `engine status`) and `engine stop` | Emits the wire payload verbatim on stdout, one JSON object per line for streaming verbs. The default is human-formatted pretty output; `--json` is the machine-readable contract for CI. Logs and progress always stay on stderr regardless of mode (see *Surface conventions*). |
-| `--instance-id <uuid>` | `engine status`, `engine logs`, `engine stop` | Targets a specific live engine by its launcher-minted UUID. Absent ⇒ the verb consults `engine-metadata.json` and selects the unique live engine for the resolved workspace; ambiguous cases (two launchers open against the same workspace) fail with an error listing every candidate's `instanceId` and `instanceLabel`. These verbs **never cold-spawn**, so an unresolvable `--instance-id` is reported as engine-absent. |
+| `--instance-id <uuid>` | `engine status`, `engine logs`, `engine stop` | Targets a specific live engine by its launcher-minted UUID. Absent ⇒ the verb consults `engine-registry.json` and selects the unique live engine for the resolved workspace; ambiguous cases (two launchers open against the same workspace) fail with an error listing every candidate's `instanceId` and `instanceLabel`. These verbs **never cold-spawn**, so an unresolvable `--instance-id` is reported as engine-absent. |
 
 #### Per-verb filters
 
@@ -133,7 +133,7 @@ cross-verb meaning.
 | `engine logs` | `--worker <id>` | Reads the per-worker log file instead of `engine.log`. Errors out if the id is unknown to the resolved engine. |
 | `engine logs` | `--since <iso>` | Filters snapshot or stream output to records at or after the given ISO-8601 timestamp. |
 | `engine logs` | `--last-n <n>` | Caps the snapshot to the most recent `n` records (snapshot only — `--follow` ignores this). |
-| `engine list` | `--all` | Include rows from `engine-metadata.json` whose pid-check fails (stale leftovers from crashed engines that did not get to remove their row). Default omits them. Stale rows are flagged in the rendered table and carry `"state": "stale"` in `--json` output; live rows carry `"state": "live"`. |
+| `engine list` | `--all` | Include entries from `engine-registry.json` whose pid-check fails (stale leftovers from crashed engines that did not get to remove their entry). Default omits them. Stale entries are flagged in the rendered table and carry `"state": "stale"` in `--json` output; live entries carry `"state": "live"`. |
 | `engine stop` | `--all` | Mutually exclusive with `--instance-id`. Broadcasts `Engine.Shutdown` to **every** live engine for the resolved workspace, one RPC per engine, issued in parallel; each engine drains independently. |
 | `engine stop` | `--grace <ms>` | Forwarded verbatim to `Engine.Shutdown.opts.grace`. Caps how long the engine waits for in-flight `rpc` handlers to complete before closing pipes; default `2000`, engine-side hard cap `30000`. |
 | `engine stop` | `--reason <text>` | Forwarded verbatim to `Engine.Shutdown.opts.reason`. Opaque postmortem string (≤ 200 printable-ASCII chars); appears on the engine's final `engine.lifecycle` log line and nowhere else. |
@@ -141,25 +141,25 @@ cross-verb meaning.
 What each verb does, on the wire:
 
 - **`engine list`** — list engines registered in the shared
-  liveness registry at `…\autocontext\engine-metadata.json`
+  liveness registry at `…\autocontext\engine-registry.json`
   (Windows `%LOCALAPPDATA%`, POSIX `$XDG_CACHE_HOME` or
   `~/.cache`) by reading the file **directly**. The CLI neither
   spawns nor dials an engine for this verb; it opens the file and
-  pid-checks every row (`pid` exists AND `Process.StartTime` ≈
+  pid-checks every entry (`pid` exists AND `Process.StartTime` ≈
   `processStartTimeUtc` within ~1 s tolerance, to defeat pid
-  recycling). Default behaviour renders only rows that pass
-  pid-check (live engines); `--all` additionally renders rows
+  recycling). Default behaviour renders only entries that pass
+  pid-check (live engines); `--all` additionally renders entries
   that fail pid-check (stale leftovers from crashed engines whose
   housekeeping never ran) and flags them as such. Default scope
   is machine-wide (every workspace); `--workspace <path>` filters
-  the listing to rows whose `workspaceHash` matches the
+  the listing to entries whose `workspaceHash` matches the
   normalised path — unlike every other verb, `engine list` does
   **not** default to CWD, because a listing verb whose default
   hides most of what it could show is a footgun. Columns include
   `state` (`live` / `stale`, the latter only ever appearing under
   `--all`), `workspaceHash`, `instanceId`, `instanceLabel`,
   `pid`, `engineVersion`, `startedAt`, and `retention`; `--json`
-  emits each row as one JSON object on stdout with the same
+  emits each entry as one JSON object on stdout with the same
   `state` discriminator. A corrupt or missing registry is reported
   as an empty list with a stderr warning; the next engine start
   re-seeds the file. This is the same registry the engine's own
@@ -272,7 +272,7 @@ What each verb does, on the wire:
   required) of the engine identified by `--instance-id <uuid>` for
   the resolved workspace and prints the small status JSON document
   the pipe emits. Without `--instance-id` the CLI reads
-  `engine-metadata.json` and selects the unique live engine for the
+  `engine-registry.json` and selects the unique live engine for the
   resolved workspace; ambiguous cases (multiple live engines on one
   workspace — normal when two launchers are open against it) fail
   with an error listing the candidates by `instanceId` and
@@ -301,7 +301,7 @@ What each verb does, on the wire:
   engine, issued in parallel, each engine drains independently).
   **Targets the daemon role only.** MCP-server-only engines
   (`autocontext-engine --mcp-server with-stdio`) do not bind
-  pipes, do not write rows to `engine-metadata.json`, and are
+  pipes, do not write entries to `engine-registry.json`, and are
   therefore invisible to this verb — they have no `rpc` endpoint
   to dial and no registry presence to enumerate. They exit on
   stdio EOF when their MCP host disconnects; stopping one means
@@ -443,7 +443,7 @@ the same flow, dialling only the pipes that verb needs:
    `engine status` dials only `health` — passive, no handshake
    required. `engine logs` dials only `logs` — passive, no
    handshake required. `engine list` dials no pipe at all (it reads
-   `engine-metadata.json` directly). The engine binds all four
+   `engine-registry.json` directly). The engine binds all four
    pipes before accepting on any of them, so dial-only-what-you-need
    is safe even on cold start.
 5. **Try to connect.** No pre-flight existence check (Unix-socket
@@ -687,7 +687,7 @@ and output formatting on top.
   exit with a clear "no live engine for this workspace" error and
   exit `1` when no candidate exists.
 - **`autocontext engine list` works without an engine.** The verb reads
-  `engine-metadata.json` directly with a short retry loop to
+  `engine-registry.json` directly with a short retry loop to
   tolerate concurrent engine writers holding the file open; it
   never opens a pipe. A corrupt or missing registry is reported as
   an empty list with a stderr warning, not a failure — the next
