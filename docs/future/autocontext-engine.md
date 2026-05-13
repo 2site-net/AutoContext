@@ -113,7 +113,7 @@ Two motivating clients, two jobs:
     `Instructions.GetAlwaysAttached` (and a future task-scoped
     `Discovery.RouteForPrompt(subagentTaskPrompt)`), writes the
     bodies under
-    `%LOCALAPPDATA%\autocontext\<workspaceHash>#<instanceId>\cache\subagents\<sessionId>\`
+    `%LOCALAPPDATA%\autocontext\<workspaceHash>\<instanceId>\cache\subagents\<sessionId>\`
     (POSIX equivalent), and notifies the engine via
     `Agent.SubagentStarted(sessionId, taskPrompt)`. `SubagentStop`
     deletes the directory and calls `Agent.SubagentStopped(sessionId)`.
@@ -267,11 +267,22 @@ Every path AutoContext touches has exactly one owner (P5).
 | `<workspace>/.autocontext.json` | engine | workspace; cross-instance shared on disk |
 | `<workspace>/.github/instructions/<name>.instructions.md` | user | workspace; overrides bundled |
 | `<host-bundle>/engine/{autocontext-engine, Instructions/, Resources/, Workers/}` | build | read-only at runtime |
-| `…\autocontext\<workspaceHash>#<instanceId>\logs\engine.log` | engine | rotated in-process by `--logging` thresholds; rotated files retained per `--retention` |
-| `…\autocontext\<workspaceHash>#<instanceId>\logs\errors.log` (future) | engine | unhandled-exception / fatal-startup sink |
-| `…\autocontext\<workspaceHash>#<instanceId>\logs\worker-<workerId>.log` | engine | one file per spawned worker; records routed by `category` prefix; same rotation + retention rules as `engine.log` |
-| `…\autocontext\<workspaceHash>#<instanceId>\cache\<client>\…` | client | client-managed |
-| `…\autocontext\engine-metadata.json` | every live engine (co-owned) | row-per-instance liveness registry |
+| `…\autocontext\engine-metadata.json` | every live engine (co-owned) | row-per-instance liveness registry; **append-only at startup**, own-row removed at graceful shutdown |
+| `…\autocontext\<workspaceHash>\<instanceId>\logs\engine.log` | engine | rotated in-process by `--logging` thresholds; rotated files retained per `--retention` |
+| `…\autocontext\<workspaceHash>\<instanceId>\logs\crash.log` | engine | write-once tombstone for unhandled-exception / fail-fast exits; absent on graceful shutdown; reaped with the rest of the per-instance subtree under `--retention` |
+| `…\autocontext\<workspaceHash>\<instanceId>\logs\worker-<workerId>.log` | engine | one file per spawned worker; records routed by `category` prefix; same rotation + retention rules as `engine.log` |
+| `…\autocontext\<workspaceHash>\<instanceId>\cache\<client>\…` | client | client-managed |
+
+The per-instance subtree is **nested**: `<workspaceHash>` is a directory
+shared by every launcher instance that ever ran against this workspace,
+and each launcher's per-spawn `<instanceId>` is a subdirectory underneath
+it. Pipe names use the flat `<workspaceHash>#<instanceId>` shape because
+the OS pipe namespace is flat (P4); on-disk paths use the nested shape
+because directory enumeration over a workspace's instance history is a
+first-class housekeeping operation. `engine-metadata.json` lives at the
+autocontext cache root, **not** under either `<workspaceHash>` or
+`<instanceId>` — it is the one shared file every live engine on the
+machine co-owns.
 
 `…` = `%LOCALAPPDATA%\autocontext\` on Windows, `$XDG_CACHE_HOME/autocontext/`
 or `~/.cache/autocontext/` on POSIX.
@@ -391,7 +402,7 @@ classes:
 | `AutoContextConfigManager` (TS, extension) | Extension process | **Engine internal**: `AutoContextConfigStore` (.NET) |
 | `InstructionsFilesManager` + `InstructionsFileContentProjector` + `instructions-files-metadata-generator` + client-side content trigram index | Extension process | **Engine internal**: `InstructionsCorpusService` + `InstructionsFileBodyProjector` + `InstructionsListBuilder` (now runs **both** at build time — producing `Resources/instructions-files.json` and `Resources/instructions-files-metadata.json` side-car manifests — **and** at engine startup, where the engine reads the manifests, applies per-request projection against workspace state, and returns rows via `Instructions.List`) + `InstructionsContentIndex` (replaces the client-side trigram index; built in-memory from the build-time metadata manifest at engine startup) |
 | `servers.json` (TS-side worker/MCP-server inventory) + `mcp-workers-registry.json` (MCP-server–side worker dispatch table) | Extension `resources/` + `AutoContext.Mcp.Server/` | **Replaced** by build-generated `Resources/workers.json` (scan of `src/AutoContext.Worker.*/` projects, id derived by stripping `AutoContext.Worker.` and replacing `.` with `-`, entrypoint written from the actual published path) + `Resources/mcp-tools-registry.json` (renamed from `mcp-workers-registry.json`; tool→worker dispatch table) + `Resources/mcp-tools-registry-schema.json` (its JSON-schema). The old `servers.json` mixed MCP-server identity with worker identity; the MCP server is gone (consolidated into the engine), so the worker-only file is what remains. |
-| `LogServer` (sideband pipe) | Extension process | **Engine internal**: the engine binds the `logs` pipe (one of the four pipes — see `### Lifecycle`) as a unified server-streaming sink that fans out engine-emitted records **and** worker-emitted records forwarded through `Engine.WriteLog`, distinguished by the `category` field. The engine also persists every record to `…\<workspaceHash>#<instanceId>\logs\engine.log` (P4 / P5); clients tail the pipe instead of inventing their own log-watcher. |
+| `LogServer` (sideband pipe) | Extension process | **Engine internal**: the engine binds the `logs` pipe (one of the four pipes — see `### Lifecycle`) as a unified server-streaming sink that fans out engine-emitted records **and** worker-emitted records forwarded through `Engine.WriteLog`, distinguished by the `category` field. The engine also persists every record to `…\<workspaceHash>\<instanceId>\logs\engine.log` (P4 / P5); clients tail the pipe instead of inventing their own log-watcher. |
 | `HealthMonitorServer` (sideband pipe) | Extension process | **Engine internal**: the engine binds the `health` pipe (one of the four pipes — see `### Lifecycle`) as a passive readiness/heartbeat probe — cheap connect-and-read, no `Engine.Hello` required, never counts toward the idle-timeout keep-alive gate. Replaces the extension-side `HealthMonitorServer` that earlier topology had clients dialling back to. |
 | `WorkerControlServer` (sideband pipe) | Extension process | **Engine internal**: engine spawns workers via the same lazy gate |
 | `AutoContextConfigServer` (sideband pipe) | Extension process | **Gone** — config IS engine state; pushes to subscribers via `Config.Subscribe` over the engine pipe |
@@ -858,13 +869,17 @@ Consequences:
   hook spawned by the same VS Code window, both holding the same
   instance UUID), the spawner serialises and ensures at most one
   engine process actually starts; the loser of the race re-enters
-  the connect-retry loop against the winner. A second engine
-  process that does manage to start with the same `--instance-id`
-  must detect existing pipes on bind (any of the four colliding is
-  enough) and exit cleanly (**idempotent bind**). Two launchers on
-  the same workspace dial different pipe names (different
-  `<instanceId>` suffix) and start independent engines by design —
-  this is not a race, it is two engines.
+  the connect-retry loop against the winner. **`<instanceId>` is
+  per-launch and never reused** (P4): a second engine process
+  actually starting under the same `<instanceId>` is a launcher
+  bug — the engine fails loudly on pipe-bind collision with a
+  non-zero exit and a diagnostic log line naming the colliding
+  pipe. The engine does **not** treat the collision as a normal
+  shape that bind has to be idempotent against; it is an invariant
+  violation by the launcher contract. Two launchers on the same
+  workspace dial different pipe names (different `<instanceId>`
+  suffix) and start independent engines by design — that is not a
+  race, that is two engines.
 - **Wire-protocol handshake.** `Engine.Hello` is an `rpc`-pipe RPC.
   After connecting `rpc`, the client issues `Engine.Hello` *before*
   any other RPC, capped by an independent short budget. `events` requires
@@ -1129,21 +1144,25 @@ N FS events on every peer instead of one).
 ### Housekeeping
 
 The engine self-manages every on-disk artefact it produces, on a
-two-clock schedule: a **startup sweep** runs before the engine
-binds pipes, and a **shutdown sweep** runs after the engine
-removes its own registry row. No external sweeper, no periodic
-while-alive timer — every spawn of any engine on the machine pays
-the housekeeping cost on behalf of every dead peer, which scales
-automatically with how often engines actually run.
+**single clock**: a **shutdown sweep** runs as part of every engine's
+graceful exit, after the engine removes its own registry row. No
+startup sweep, no external sweeper, no periodic while-alive timer —
+every graceful shutdown of any engine on the machine pays the
+housekeeping cost on behalf of every dead peer, which scales
+automatically with how often engines actually shut down cleanly.
 
-- **Startup sweep (mandatory).** After writing its own registry
-  row but before binding pipes, the engine enumerates every row
-  in `…\autocontext\engine-metadata.json` plus every sibling
-  `…\autocontext\<workspaceHash>#<instanceId>\` directory under
-  the autocontext root, and classifies each. Live-row classification
-  takes precedence over directory-presence checks — a live row's
-  subtree may not yet exist (the engine writes its row before
-  creating its subtree) and that is normal, not a sweepable state:
+- **Shutdown sweep (mandatory, best-effort).** On
+  `AppDomain.ProcessExit` / SIGTERM / Windows service-stop, the
+  engine first removes its own row from
+  `…\autocontext\engine-metadata.json`, then enumerates every
+  remaining row in the registry plus every sibling
+  `…\autocontext\<workspaceHash>\<instanceId>\` directory under
+  the autocontext root, and classifies each. The sweep is bounded
+  by a short deadline (≤ 1 s) so a slow filesystem can't hang
+  shutdown; whatever the sweep doesn't reach this time, the next
+  graceful shutdown of any peer catches. Crash paths skip the
+  sweep entirely — the row and subtree stay until any subsequent
+  peer's graceful shutdown reaps them.
   - **Live row** (`pid` exists AND `Process.StartTime` ≈
     `processStartTimeUtc` within ~1 s tolerance): skip, regardless
     of whether the matching subtree exists yet.
@@ -1151,22 +1170,16 @@ automatically with how often engines actually run.
     owning engine is dead. If `now - startedAt` ≥ the row's
     `retention` duration, delete the matching per-instance subtree
     (whole tree — `logs\` + `cache\`) and drop the row; otherwise
-    leave both in place and let the next startup re-check.
+    leave both in place and let a later peer re-check.
   - **Stale row without subtree**: subtree was already swept in a
     previous pass (or removed out-of-band) but the row remained.
     Drop the row unconditionally — there is nothing to retain.
   - **Rowless subtree** (directory exists, no matching row): a
-    crash before the row was durably flushed, a pre-registry
-    leftover, or a registry corruption that lost the row. Use the
-    directory's mtime as the timestamp and honour *this engine's
-    own* `--retention` (no row = no peer's preference to respect).
-- **Shutdown sweep (mandatory, best-effort).** On `AppDomain.ProcessExit`
-  / SIGTERM / Windows service-stop, the engine removes its own
-  registry row and re-runs the same classification pass against
-  remaining peers. Bounded by a short deadline (≤ 1 s) so a slow
-  filesystem can't hang shutdown; whatever the sweep doesn't reach,
-  the next startup catches. Crash paths skip the shutdown sweep
-  entirely — the next engine to start absorbs the work.
+    crash before the row was durably appended, a pre-registry
+    leftover, or a legacy flat-shape `<workspaceHash>#<instanceId>`
+    directory from before the nested layout. Use the directory's
+    mtime as the timestamp and honour *this engine's own*
+    `--retention` (no row = no peer's preference to respect).
 - **Retention is per-row.** Each engine writes its `--retention`
   value into its own registry row (see `Engine.GetSharedMetadata`
   shape under `### RPC surface`). A peer sweeping that row honours
@@ -1175,17 +1188,28 @@ automatically with how often engines actually run.
   configured window even if every subsequent engine declares
   `--retention 0`. Rowless subtrees fall back to the sweeping
   engine's own `--retention` (no per-row preference to respect).
-- **Concurrency.** Two engines starting near-simultaneously both
-  run the startup sweep; both pid-check the *same* peer's row,
-  both decide to delete the *same* subtree.
+- **Concurrency.** Two engines shutting down near-simultaneously
+  both run the shutdown sweep; both pid-check the *same* peer's
+  row, both decide to delete the *same* subtree.
   `Directory.Delete(recursive: true)` under contention is
   best-effort: one engine succeeds, the other sees
   `DirectoryNotFoundException` mid-walk and treats it as
   already-cleaned (no error). Registry-row removal is similarly
-  idempotent. The startup ordering — *write own row before
-  touching own subtree* — guarantees that any rowless subtree is
-  a genuine crash-before-row-flush, not a healthy newborn engine
-  one tick behind its sweeper neighbour.
+  idempotent. Registry-row appends at *start* time use
+  `FileShare.None` plus exponential-backoff retry so two engines
+  starting concurrently serialise their appends; neither corrupts
+  the file. Because every spawn mints a fresh `<instanceId>`,
+  two concurrent appends never collide on identity — both rows
+  land additively.
+- **Never-graceful-shutdown edge case.** A user who only ever
+  hard-kills their engines (no SIGTERM, no `Engine.Shutdown`)
+  will accumulate per-instance subtrees indefinitely. This is
+  accepted for v1: a CLI command (`autocontext engine
+  housekeep`, deferred) can run the sweep on demand, and the
+  next graceful shutdown of any engine on that machine catches
+  up unconditionally. The design trades worst-case unbounded
+  growth on a pathological host pattern for a strictly simpler
+  lifecycle on every other host.
 - **Log rotation (within-instance, driven by `--logging`).** The
   engine's own `engine.log` and per-worker `worker-<workerId>.log`
   files rotate in-process by line-count or size threshold:
@@ -1296,7 +1320,7 @@ Semantics:
   that is the launcher's choice. The engine captures the label
   into `EngineOptions.InstanceLabel`, attaches it as a structured
   field on every log line (so postmortem reading
-  `…\autocontext\<workspaceHash>#<instanceId>\logs\engine.log`
+  `…\autocontext\<workspaceHash>\<instanceId>\logs\engine.log`
   reveals which host launched the engine without cross-referencing
   the UUID against external state), and surfaces it on the
   `Workspace.Info` RPC and the `health` pipe payload so tree views
@@ -1360,15 +1384,15 @@ Semantics:
 - **`--retention <duration>`** overrides the 1-day housekeeping
   retention window. Accepts a duration string `<n>{s|m|h|d}`
   (`30s`, `15m`, `12h`, `7d`); `0` disables retention entirely
-  (sweep on every startup, no grace period). The value is
-  validated for shape on argv parse and rejected if malformed;
-  there is no host-wide minimum or maximum. The engine writes
-  this value into its own `engine-metadata.json` row so peer
-  engines doing the startup / shutdown sweep honour *this*
-  engine's declared retention when classifying its leftover
-  subtree as stale (see `### Housekeeping`). The same window
-  governs rotated-log pruning within the engine's own
-  per-instance subtree.
+  (sweep deletes immediately on shutdown, no grace period). The
+  value is validated for shape on argv parse and rejected if
+  malformed; there is no host-wide minimum or maximum. The engine
+  writes this value into its own `engine-metadata.json` row so
+  peer engines doing the shutdown sweep honour *this* engine's
+  declared retention when classifying its leftover subtree as
+  stale (see `### Housekeeping`). The same window governs
+  rotated-log pruning within the engine's own per-instance
+  subtree.
 - **`--logging <verbosity>`** sets the in-process rotation
   thresholds for the engine's own `engine.log` and per-worker
   `worker-<workerId>.log` files. Accepted values are `normal`
@@ -1426,8 +1450,9 @@ way to set it.
   whose `pid` no longer exists, or exists but whose
   `Process.StartTime` disagrees with `processStartTimeUtc` beyond
   the tolerance, is a stale crash leftover. The primary consumer is
-  the engine's own housekeeping sweep (every live engine runs it on
-  start and shutdown — see `### Housekeeping`); secondary consumers are observability surfaces — external ps-style listings
+  the engine's own housekeeping sweep (runs on every graceful
+  engine shutdown — see `### Housekeeping`); secondary consumers
+  are observability surfaces — external ps-style listings
   listings, tree-view "other live engines on this machine" badges,
   diagnostic dumps. The engine never RPCs peer engines; the registry
   file is the only cross-engine channel.
@@ -2012,9 +2037,9 @@ small blemish that buys consistency on each surface.
   the engine's log files. The handler deserialises one record, routes
   it by `category` prefix (records matching `worker.<workerId>` /
   `worker.<workerId>.<Type>` are appended to
-  `…\<workspaceHash>#<instanceId>\logs\worker-<workerId>.log`,
+  `…\<workspaceHash>\<instanceId>\logs\worker-<workerId>.log`,
   everything else is appended to
-  `…\<workspaceHash>#<instanceId>\logs\engine.log`), and fans the
+  `…\<workspaceHash>\<instanceId>\logs\engine.log`), and fans the
   record out to every subscriber on the `logs` pipe and to any active
   `Logs.Tail*` RPC subscriber. Routing is by prefix alone; workers
   never specify a destination and the engine never asks. Both files
@@ -2066,7 +2091,7 @@ small blemish that buys consistency on each surface.
 - **`Logs.*`** — `GetEngine(opts?)`, `TailEngine(opts?)`,
   `GetWorker(workerId, opts?)`, `TailWorker(workerId, opts?)`. The
   structured pipe-RPC surface for the per-instance log files the
-  engine owns under `…\<workspaceHash>#<instanceId>\logs\`.
+  engine owns under `…\<workspaceHash>\<instanceId>\logs\`.
   `engine.log` and `worker-<workerId>.log` are written by the engine —
   directly for engine-emitted records, and via `Engine.WriteLog` for
   worker-emitted records routed to the right per-worker file by the
@@ -2190,16 +2215,17 @@ owner of the on-disk log file and the wire log stream.
   on-disk artefact, because every artefact is scoped to a
   (workspace, launcher-instance) pair.
 - **`<instanceId>`** is the launcher-minted UUIDv4 passed on
-  `--instance-id`. It appears as the `#<instanceId>` suffix of
-  every pipe name (one UUID, four pipes sharing it within a
-  launcher) **and** as a path segment in every per-instance
-  on-disk artefact: engine logs and client caches all live under
-  `…\autocontext\<workspaceHash>#<instanceId>\` (Windows; POSIX
-  equivalent under the OS user-cache root). Two launchers on the
-  same workspace therefore get disjoint on-disk subtrees — they
-  cannot interleave each other's log lines, and a hook running
-  under one launcher cannot read or corrupt cache files written
-  by a hook under the other.
+  `--instance-id`, **fresh on every spawn** (P4 — launchers must
+  never reuse a UUID across respawns). It appears as the
+  `#<instanceId>` suffix of every pipe name (one UUID, four pipes
+  sharing it within a launcher) **and** as a path segment in every
+  per-instance on-disk artefact: engine logs and client caches all
+  live under `…\autocontext\<workspaceHash>\<instanceId>\`
+  (Windows; POSIX equivalent under the OS user-cache root). Two
+  launchers on the same workspace therefore get disjoint on-disk
+  subtrees — they cannot interleave each other's log lines, and a
+  hook running under one launcher cannot read or corrupt cache
+  files written by a hook under the other.
 
 ## Authority model: engine owns, clients cache
 
@@ -2294,27 +2320,27 @@ Hosts that need a file path get one of two patterns:
   source markdown — not by `applyTo` absence. No file ever gets
   written under `${CLAUDE_PLUGIN_ROOT}`. Sub-agents that need
   file paths materialise them under the per-instance cache root
-  (`%LOCALAPPDATA%\autocontext\<workspaceHash>#<instanceId>\cache\`
+  (`%LOCALAPPDATA%\autocontext\<workspaceHash>\<instanceId>\cache\`
   on Windows,
-  `$XDG_CACHE_HOME/autocontext/<workspaceHash>#<instanceId>/cache/`
-  or `~/.cache/autocontext/<workspaceHash>#<instanceId>/cache/`
+  `$XDG_CACHE_HOME/autocontext/<workspaceHash>/<instanceId>/cache/`
+  or `~/.cache/autocontext/<workspaceHash>/<instanceId>/cache/`
   on POSIX). The hook owns this cache: SessionStart writes,
   SessionEnd cleans, and the engine never reads or writes those
   paths.
 
 General rule for any future client cache: write under the
 per-instance cache root
-(`%LOCALAPPDATA%\autocontext\<workspaceHash>#<instanceId>\cache\<client>\`
+(`%LOCALAPPDATA%\autocontext\<workspaceHash>\<instanceId>\cache\<client>\`
 on Windows,
-`$XDG_CACHE_HOME/autocontext/<workspaceHash>#<instanceId>/cache/<client>/`
-or `~/.cache/autocontext/<workspaceHash>#<instanceId>/cache/<client>/`
+`$XDG_CACHE_HOME/autocontext/<workspaceHash>/<instanceId>/cache/<client>/`
+or `~/.cache/autocontext/<workspaceHash>/<instanceId>/cache/<client>/`
 on POSIX), never under the host's install directory
 (`<extensionPath>`, `${CLAUDE_PLUGIN_ROOT}`). Install directories
 are read-only on managed installs and get wiped on host upgrade;
 the OS cache root is writable, survives host upgrades, and gives
 every client one consistent place to find and clean its
-launcher-instance-scoped artefacts. The per-instance segment
-(`<workspaceHash>#<instanceId>`) is what isolates one launcher's
+launcher-instance-scoped artefacts. The per-instance segments
+(`<workspaceHash>\<instanceId>`) are what isolate one launcher's
 on-disk state from another's — two VS Code windows open on the
 same workspace get disjoint cache subtrees, so a sub-agent hook
 in one window cannot stomp materialised files belonging to a
@@ -2464,38 +2490,62 @@ seed).
 workspace identifier. Path normalisation (resolve symlinks,
 lowercase on Windows) happens once; hashing happens once. Engine
 identity adds **one** launcher dimension on top — `<instanceId>`,
-a UUIDv4 minted by the launcher and passed verbatim on
-`--instance-id`. Pipe names carry both; every other workspace-scoped
-artefact reuses the hash alone:
+a UUIDv4 the launcher mints **fresh on every spawn** (every
+`Process.Start` / `child_process.spawn` invocation of
+`autocontext-engine`) and passes verbatim on `--instance-id`.
+Launchers MUST NOT reuse an `<instanceId>` across respawns;
+treating it as per-launch is what guarantees the registry remains
+append-only, the housekeeping sweep stays simple, and pipe-name
+collisions are launcher bugs rather than expected shapes the
+engine has to be idempotent against.
+
+Pipe names and on-disk paths combine these two identifiers with
+**different delimiters**, by design:
+
+- **Pipe names use a flat `<workspaceHash>#<instanceId>` segment.**
+  Named pipes (Windows) and Unix sockets (POSIX) live in a flat
+  OS-managed namespace; there are no nested pipe paths. The `#`
+  separator is a string delimiter that survives the flat namespace
+  and lets the launcher derive all four pipe names deterministically
+  from the same `(workspaceHash, instanceId)` pair.
+- **On-disk paths use a nested `<workspaceHash>\<instanceId>\`
+  layout** (POSIX equivalent: `<workspaceHash>/<instanceId>/`).
+  Directory enumeration over a workspace's instance history is a
+  first-class housekeeping operation, and a hierarchical layout
+  lets a sweep walk every subtree belonging to one workspace in
+  one `Directory.EnumerateDirectories` call.
 
 | Artefact | Path |
 |---|---|
 | Pipe names (four, one per kind, per launcher instance) | `autocontext-engine:rpc@<workspaceHash>#<instanceId>`, `autocontext-engine:events@<workspaceHash>#<instanceId>`, `autocontext-engine:health@<workspaceHash>#<instanceId>`, `autocontext-engine:logs@<workspaceHash>#<instanceId>` |
-| Per-instance engine subtree (logs + future engine-owned artefacts) | `%LOCALAPPDATA%\autocontext\<workspaceHash>#<instanceId>\` (Windows) / `$XDG_CACHE_HOME/autocontext/<workspaceHash>#<instanceId>/` or `~/.cache/autocontext/<workspaceHash>#<instanceId>/` (POSIX) |
-| Engine log files | `…\<workspaceHash>#<instanceId>\logs\engine.log` (and future `errors.log`), under the per-instance subtree above |
-| Per-worker log files (one per spawned worker; engine-owned, routed by `category` prefix) | `…\<workspaceHash>#<instanceId>\logs\worker-<workerId>.log` |
-| Client cache root | `…\<workspaceHash>#<instanceId>\cache\<client>\`, under the same per-instance subtree |
+| Per-instance engine subtree (logs + future engine-owned artefacts) | `%LOCALAPPDATA%\autocontext\<workspaceHash>\<instanceId>\` (Windows) / `$XDG_CACHE_HOME/autocontext/<workspaceHash>/<instanceId>/` or `~/.cache/autocontext/<workspaceHash>/<instanceId>/` (POSIX) |
+| Engine log files | `…\<workspaceHash>\<instanceId>\logs\engine.log` (rotating, lifetime-of-process) and `…\<workspaceHash>\<instanceId>\logs\crash.log` (write-once tombstone, only on unhandled-exception / fail-fast exit), under the per-instance subtree above |
+| Per-worker log files (one per spawned worker; engine-owned, routed by `category` prefix) | `…\<workspaceHash>\<instanceId>\logs\worker-<workerId>.log` |
+| Client cache root | `…\<workspaceHash>\<instanceId>\cache\<client>\`, under the same per-instance subtree |
 | Shared engine-liveness registry (one file, shared by every live engine on the machine) | `%LOCALAPPDATA%\autocontext\engine-metadata.json` (Windows) / `$XDG_CACHE_HOME/autocontext/engine-metadata.json` or `~/.cache/autocontext/engine-metadata.json` (POSIX) |
 
-A new on-disk artefact must reuse the `<workspaceHash>#<instanceId>`
-compound segment; never invent a parallel identifier and never
-flatten the compound back into a workspace-only path. The same
-workspace from different launchers hashes to one workspace identity
-but resolves to different engines (different `<instanceId>` in the
-pipe name and in the on-disk subtree); different workspaces hash to
+A new on-disk artefact must reuse the nested
+`<workspaceHash>\<instanceId>` (POSIX: `<workspaceHash>/<instanceId>`)
+segments; never invent a parallel identifier and never flatten the
+two segments back into a workspace-only path. The same workspace
+from different launchers hashes to one workspace identity but
+resolves to different engines (different `<instanceId>` in the
+pipe name and a different `<instanceId>` subdirectory under the
+shared `<workspaceHash>` parent); different workspaces hash to
 different identities regardless of launcher. Symlink and case
 normalisation exist precisely to collapse the unintentional
 multi-engine cases that arise from path-shape differences alone —
-the launcher dimension is additive on top, and is intentionally not
-collapsed. Per-instance scoping for both logs and client caches is
-the price of isolation: two launchers on the same workspace must
-not interleave their log lines (a postmortem reader needs to
-identify which launcher crashed, not assemble a merged history) and
-must not share a cache root (a hook in one launcher would otherwise
-be able to read or corrupt files a hook in the other wrote). The
-cost is that postmortem and disk-usage tools must enumerate
-per-instance subdirectories under `…\autocontext\` rather than
-looking at one flat workspace-keyed file.
+the launcher dimension is additive on top, and is intentionally
+not collapsed. Per-instance scoping for both logs and client
+caches is the price of isolation: two launchers on the same
+workspace must not interleave their log lines (a postmortem
+reader needs to identify which launcher crashed, not assemble a
+merged history) and must not share a cache root (a hook in one
+launcher would otherwise be able to read or corrupt files a hook
+in the other wrote). The cost is that postmortem and disk-usage
+tools must enumerate `<workspaceHash>\<instanceId>` subdirectories
+under `…\autocontext\` rather than looking at one flat
+workspace-keyed file.
 
 ### P5. On-disk path ownership is explicit and exclusive
 
@@ -2506,10 +2556,11 @@ Every on-disk path AutoContext touches has exactly one owner:
 | `<workspace>/.autocontext.json` | engine | engine | engine |
 | `<workspace>/.github/instructions/<name>.instructions.md` | user | engine | user |
 | `<host-bundle>/engine/...` (`<vsix>/`, `<plugin-root>/`, GitHub-release tarball) | build | engine reads bundled side-cars at startup | nobody at runtime |
-| `%LOCALAPPDATA%\autocontext\<workspaceHash>#<instanceId>\logs\engine.log` (and future `errors.log`; POSIX equivalent) | engine | engine, postmortem readers, `Logs.GetEngine` / `Logs.TailEngine` callers | engine |
-| `%LOCALAPPDATA%\autocontext\<workspaceHash>#<instanceId>\logs\worker-<workerId>.log` (POSIX equivalent) | engine | engine, postmortem readers, `Logs.GetWorker` / `Logs.TailWorker` callers | engine (one file per spawned worker; records arrive via `Engine.WriteLog` and are routed by `category` prefix) |
-| `%LOCALAPPDATA%\autocontext\<workspaceHash>#<instanceId>\cache\<client>\…` (POSIX equivalent) | the writing client | writing client | writing client |
-| `%LOCALAPPDATA%\autocontext\engine-metadata.json` (POSIX equivalent) — shared engine-liveness registry | every live engine (co-owned) | every engine on start/shutdown, every `Engine.GetSharedMetadata` caller | every engine append-updates its own row on start and removes its own row on graceful shutdown; never touches peer rows |
+| `%LOCALAPPDATA%\autocontext\<workspaceHash>\<instanceId>\logs\engine.log` (POSIX equivalent) | engine | engine, postmortem readers, `Logs.GetEngine` / `Logs.TailEngine` callers | engine |
+| `%LOCALAPPDATA%\autocontext\<workspaceHash>\<instanceId>\logs\crash.log` (POSIX equivalent) | engine | postmortem readers (humans, peer engines' housekeeping diagnostics) | engine — written once by the dying engine's unhandled-exception / fail-fast handler; never streamed via `Logs.*` (it is a tombstone, not a tail-able feed) |
+| `%LOCALAPPDATA%\autocontext\<workspaceHash>\<instanceId>\logs\worker-<workerId>.log` (POSIX equivalent) | engine | engine, postmortem readers, `Logs.GetWorker` / `Logs.TailWorker` callers | engine (one file per spawned worker; records arrive via `Engine.WriteLog` and are routed by `category` prefix) |
+| `%LOCALAPPDATA%\autocontext\<workspaceHash>\<instanceId>\cache\<client>\…` (POSIX equivalent) | the writing client | writing client | writing client |
+| `%LOCALAPPDATA%\autocontext\engine-metadata.json` (POSIX equivalent) — shared engine-liveness registry | every live engine (co-owned) | every engine on shutdown, every `Engine.GetSharedMetadata` caller | every engine **appends** its own row on start and removes its own row on graceful shutdown; never touches peer rows |
 
 Three rules fall out and the implementation must enforce all three:
 
@@ -2525,58 +2576,57 @@ Three rules fall out and the implementation must enforce all three:
   client's own subdirectory.
 - **The engine never reads or cleans the client-cache root *of a live instance*.**
   Lifecycle of every file under a live instance's
-  `…\autocontext\<workspaceHash>#<instanceId>\cache\…` is the
+  `…\autocontext\<workspaceHash>\<instanceId>\cache\…` is the
   writing client's contract with its host (extension storage,
   Anthropic session lifecycle, …). New client-owned subdirectories
   must be documented in the pitfall list with their owning client so
   cleanup responsibility stays unambiguous. Per-instance scoping
   means the engine never has to reason about cross-launcher
   contention either — each engine sees only the cache subtree under
-  its own `<workspaceHash>#<instanceId>`. The single carve-out is
+  its own `<workspaceHash>\<instanceId>`. The single carve-out is
   the engine's own housekeeping sweep (see next rule): when the
   owning instance is verifiably dead and its retention window has
   elapsed, the cache subtree is orphaned by definition and any
-  live engine doing its startup or shutdown sweep deletes it
-  together with the rest of the per-instance subtree. The engine
-  never touches the cache root of a *live* instance — not its own,
-  not a peer's.
+  live engine doing its shutdown sweep deletes it together with
+  the rest of the per-instance subtree. The engine never touches
+  the cache root of a *live* instance — not its own, not a peer's.
 - **Per-instance subtree cleanup is the engine's own job, mediated
   by the shared liveness registry.** Every engine, on startup,
-  writes its own row into `…\autocontext\engine-metadata.json` —
+  appends its own row to `…\autocontext\engine-metadata.json` —
   one file shared by every live engine on the machine, carrying
   `{ workspaceHash, instanceId, instanceLabel, pid,
   processStartTimeUtc, engineVersion, startedAt, retention }`
-  per row. The write is an upsert keyed on `instanceId`: any
-  pre-existing row with the same `instanceId` (left behind by a
-  prior crash-respawn inside the same launcher) is replaced,
-  never duplicated. On graceful shutdown the engine removes its
-  own row. A crash leaves the row stale; that is intentional,
-  because staleness is exactly the signal the next engine's
-  housekeeping sweep consumes. Writes use `FileShare.None` with
-  exponential-backoff retry (same discipline as
-  `.autocontext.json`); concurrent engine starts serialise on the
-  handle, no engine ever rewrites another engine's row. The engine
-  exposes the file's current contents over the wire as
-  `Engine.GetSharedMetadata` (see the RPC surface section) for
-  observability surfaces (external ps-style listings, tree-view
-  badges).
+  per row. The append is **additive**: because launchers mint a
+  fresh `<instanceId>` for every spawn (P4), the engine never
+  has to upsert, deduplicate, or rewrite peer rows on startup.
+  On graceful shutdown the engine removes its own row. A crash
+  leaves the row stale; that is intentional, because staleness
+  is exactly the signal the next graceful-shutdown sweep
+  consumes. Writes use `FileShare.None` with exponential-backoff
+  retry (same discipline as `.autocontext.json`); concurrent
+  engine starts serialise on the handle, no engine ever rewrites
+  another engine's row. The engine exposes the file's current
+  contents over the wire as `Engine.GetSharedMetadata` (see the
+  RPC surface section) for observability surfaces (external
+  ps-style listings, tree-view badges).
 
   The cleanup itself runs inside every live engine, on the
-  two-clock schedule defined in `### Housekeeping`: a startup
-  sweep before pipe-bind and a shutdown sweep after own-row
-  removal. Each sweep pid-checks every row (`pid` exists AND
-  `Process.StartTime` ≈ `processStartTimeUtc` within tolerance,
-  to defeat pid recycling) and treats rows that fail the check as
-  dead. Every `…\autocontext\<workspaceHash>#<instanceId>\`
-  directory whose `<instanceId>` is not in the live set, *and*
-  whose row's `retention` window has elapsed since `startedAt`,
-  is orphaned and gets deleted (whole subtree — logs and cache).
-  Retention is honoured per-row — the *dead* engine's declared
-  `--retention` controls when its leftovers expire — so a
-  long-retention engine's logs survive even if every subsequent
-  engine declares a shorter window. Rowless subtrees (a crash
-  before the row was flushed) fall back to the sweeping engine's
-  own `--retention`.
+  single clock defined in `### Housekeeping`: a shutdown sweep
+  after own-row removal. The sweep pid-checks every remaining
+  row (`pid` exists AND `Process.StartTime` ≈
+  `processStartTimeUtc` within tolerance, to defeat pid recycling)
+  and treats rows that fail the check as dead. Every
+  `…\autocontext\<workspaceHash>\<instanceId>\` directory whose
+  `<instanceId>` is not in the live set, *and* whose row's
+  `retention` window has elapsed since `startedAt`, is orphaned
+  and gets deleted (whole subtree — logs and cache). Retention is
+  honoured per-row — the *dead* engine's declared `--retention`
+  controls when its leftovers expire — so a long-retention
+  engine's logs survive even if every subsequent engine declares
+  a shorter window. Rowless subtrees (a crash before the row was
+  flushed, or a legacy flat `<workspaceHash>#<instanceId>`
+  directory from before the nested layout) fall back to the
+  sweeping engine's own `--retention`.
 
   No external sweeper exists. Every engine spawn pays the
   housekeeping cost on behalf of every dead peer; the design
@@ -2740,12 +2790,12 @@ write, and never lets a corpus reload tear a read in flight.
   complement — coalescing redundant fan-outs at the source so
   one logical change emits one envelope — lives under
   [Reload coalescing: debounce and batch](#reload-coalescing-debounce-and-batch).
-- **Hot paths never wait on housekeeping.** The startup sweep and
-  shutdown sweep run off the request path (before any pipe
-  accepts, after every pipe closes). Idle-gate evaluation is a
-  cheap timer tick, not a poll across handlers. No request
-  handler ever waits on a sweep, a sweep ever waits on a
-  request, or either ever waits on the other.
+- **Hot paths never wait on housekeeping.** The shutdown sweep
+  runs off the request path (after every pipe closes, bounded by
+  a ~1 s deadline). Idle-gate evaluation is a cheap timer tick,
+  not a poll across handlers. No request handler ever waits on
+  the sweep, the sweep never waits on a request, and there is no
+  startup sweep to overlap with first-pipe-accept latency.
 
 ### P10. In-process async hooks are single-subscriber; cross-process fan-out is `*.Subscribe`
 
@@ -3204,12 +3254,15 @@ Source-side locations for the editable inputs the build consumes:
   version are RID-independent in content.
 - **Engine-owned on-disk artefacts.** The engine writes its
   on-disk artefacts in two places. The per-instance subtree
-  `%LOCALAPPDATA%\autocontext\<workspaceHash>#<instanceId>\`
+  `%LOCALAPPDATA%\autocontext\<workspaceHash>\<instanceId>\`
   (Windows; equivalents under the OS user-cache root on POSIX)
   holds the engine-written log files under the `logs\`
-  subdirectory: `engine.log` for engine-emitted records,
-  `errors.log` (future) for unhandled-exception / fatal-startup
-  output, and one `worker-<workerId>.log` per spawned worker
+  subdirectory: `engine.log` for engine-emitted records (the
+  rotating, lifetime-of-process feed), `crash.log` for the
+  write-once tombstone the dying engine emits from its
+  unhandled-exception / fail-fast handler (absent on graceful
+  shutdown; see the *Don't crash the crash writer* pitfall),
+  and one `worker-<workerId>.log` per spawned worker
   receiving worker-emitted records that arrive via `Engine.WriteLog`
   and are routed by `category` prefix (see the *Log pipeline
   backpressure* and *Worker–engine connectivity* pitfalls). Every
@@ -3228,32 +3281,35 @@ Source-side locations for the editable inputs the build consumes:
   one shared file at the autocontext root —
   `%LOCALAPPDATA%\autocontext\engine-metadata.json` (POSIX
   equivalent) — is co-owned by every live engine on the machine:
-  each engine writes its own row on start (replacing any prior
-  row with the same `instanceId` from a crash-respawn) and
-  removes its own row on graceful shutdown, never touching peer
-  rows. A crash leaves the row stale on purpose, because that is
-  the signal the next engine's housekeeping sweep uses to identify
-  orphaned instances (see P5 and `### Housekeeping`).
+  each engine **appends** its own row on start (fresh
+  `<instanceId>` every spawn, no upsert) and removes its own row
+  on graceful shutdown, never touching peer rows. A crash leaves
+  the row stale on purpose, because that is the signal the next
+  engine's graceful-shutdown sweep uses to identify orphaned
+  instances (see P5 and `### Housekeeping`).
   Clients must never cache under their own install directory
   (`<extensionPath>`, `${CLAUDE_PLUGIN_ROOT}`) — those are
   read-only on managed installs and get wiped on host upgrade.
   Document any new client-owned subdirectory in this list with
   its owning client so cleanup responsibility stays unambiguous.
   Per-instance subtree sweeping for orphaned
-  `…\autocontext\<workspaceHash>#<instanceId>\` directories is the
-  engine's own startup/shutdown housekeeping job, mediated by the
+  `…\autocontext\<workspaceHash>\<instanceId>\` directories is the
+  engine's own shutdown-only housekeeping job, mediated by the
   shared registry (see P5).
-- **`engine-metadata.json` row lifecycle: write-on-start,
+- **`engine-metadata.json` row lifecycle: append-on-start,
   remove-on-graceful-shutdown, leave-stale-on-crash.** Every engine
-  writes its own row to the shared registry as part of startup
-  (after pipe bind, before accepting connections), upserting on
-  `instanceId` so a crash-respawn inside the same launcher
-  replaces the prior stale row rather than appending a duplicate,
-  and removes its own row from the `AppDomain.ProcessExit` /
-  SIGTERM / Windows service-stop path on the way out. A crash, kill -9, or power loss
-  leaves the row in place; this is **intentional**, because the
-  staleness signal is exactly what the engine's housekeeping sweep
-  consumes to identify orphaned per-instance subtrees. Two pitfalls follow.
+  appends its own row to the shared registry as part of startup
+  (after pipe bind, before accepting connections). Because the
+  launcher mints a fresh `<instanceId>` for every spawn (P4 —
+  launchers never reuse a UUID across respawns), the append is
+  unconditionally additive: there is no upsert, no
+  same-`instanceId` overwrite, no deduplication step. The engine
+  removes its own row from the `AppDomain.ProcessExit` /
+  SIGTERM / Windows service-stop path on the way out. A crash,
+  kill -9, or power loss leaves the row in place; this is
+  **intentional**, because the staleness signal is exactly what
+  the next graceful-shutdown sweep consumes to identify orphaned
+  per-instance subtrees. Two pitfalls follow.
   First, pid recycling: a row's `pid` field on its own is not
   enough to assert liveness, because the OS may have recycled the
   pid to a different process by the time the registry is read. The
@@ -3273,11 +3329,11 @@ Source-side locations for the editable inputs the build consumes:
   interrupted mid-flush: any engine encountering an unparseable
   registry on startup truncates it and writes only its own row,
   on the theory that one re-derivable file is cheaper than
-  blocking startup forever. The housekeeping sweep encountering the
-  same corrupt file treats every per-instance subtree as orphaned
-  (because the registry can no longer attest to any liveness) and
-  proceeds against retention as usual; the next engine start
-  re-seeds the file.
+  blocking startup forever. The next graceful-shutdown sweep
+  encountering the same corrupt file treats every per-instance
+  subtree as orphaned (because the registry can no longer attest
+  to any liveness) and proceeds against retention as usual; the
+  next engine start re-seeds the file.
 - **Log pipeline backpressure: workers never block, slow subscribers
   never starve.** The unified-logging design routes every worker
   `ILogger<T>` record through `Engine.WriteLog` into the engine's
@@ -3388,7 +3444,7 @@ Source-side locations for the editable inputs the build consumes:
   persist goes in workspace state
   (`.autocontext.json`), engine log files under the per-instance
   subtree
-  (`%LOCALAPPDATA%\autocontext\<workspaceHash>#<instanceId>\logs\engine.log`),
+  (`%LOCALAPPDATA%\autocontext\<workspaceHash>\<instanceId>\logs\engine.log`),
   or the OS user-cache dir — never in `Resources/`.
 - **`alwaysAttached` is explicit, not derived.** The set returned
   by `Instructions.GetAlwaysAttached` is the files whose
@@ -3501,8 +3557,46 @@ Source-side locations for the editable inputs the build consumes:
   symlinks) before hashing for the pipe name; otherwise two hosts
   on "the same" workspace get different engines.
 - **Concurrent first-connect.** Two hosts racing to spawn the
-  engine will both spawn one. The second engine must detect the
-  existing pipe on startup and exit cleanly (idempotent bind).
+  engine will both spawn one — each mints its own per-launch
+  UUID, so the pipe names are distinct and both engines start
+  independently by design (this is two engines, not a race).
+  A second engine starting under the *same* `<instanceId>` is a
+  launcher bug under the per-launch-UUID contract (P4); the
+  engine fails loudly on pipe-bind collision with a non-zero
+  exit, not silently as an "idempotent bind".
+- **Don't crash the crash writer.** `crash.log` is the engine's
+  end-of-life tombstone — the one diagnostic that survives when
+  the regular logging pipeline has already given up. It is
+  written by an `AppDomain.UnhandledException` /
+  `TaskScheduler.UnobservedTaskException` / top-level
+  `Program.Main` `try`/`catch` handler, **and** by the fail-fast
+  paths that abort startup after argv parse but before pipe-bind
+  (notably the same-`<instanceId>` pipe-bind collision in
+  `SameInstanceIdCollisionGuard` and any post-argv manifest /
+  resource load failure). The writer needs both `<workspaceHash>`
+  and `<instanceId>` to construct its target path, so failures
+  that abort *before* argv has been parsed enough to recover
+  those two values (malformed argv, `--help` mis-invocation,
+  missing required flags) cannot produce a `crash.log` — those
+  exit with a stderr diagnostic and a non-zero code, and are out
+  of scope for the tombstone surface.
+  The writer is deliberately minimal: synchronous
+  `File.WriteAllText` against a single per-instance path, no DI,
+  no `ILogger`, no async, no buffered channels, no allocations
+  beyond the JSON serialisation buffer, and a hard `try`/swallow
+  around the write itself — a failed `crash.log` write must never
+  mask the original fault. The handler then `Environment.Exit`s
+  with a non-zero code (or rethrows, depending on entry-point
+  shape). Graceful shutdown (`Engine.Shutdown` RPC, parent-pid
+  watchdog, idle-timeout watchdog) does **not** invoke the crash
+  writer and does **not** produce a `crash.log` — those are
+  expected exits, not faults. External kills (SIGKILL, BSOD,
+  power loss) inherently cannot produce a `crash.log` either; a
+  peer engine's shutdown-sweep housekeeping is the only signal
+  in that case. `crash.log` lives inside the per-instance subtree
+  and is reaped along with everything else under that subtree
+  once `--retention` elapses; it is never streamed via `Logs.*`
+  because it is a tombstone, not a tail-able feed.
 - **Corpus drift between RIDs.** The corpus is duplicated per RID
   in the packaged artefact. The build must copy from one source
   (`src/AutoContext.Engine/instructions/`) into every RID staging

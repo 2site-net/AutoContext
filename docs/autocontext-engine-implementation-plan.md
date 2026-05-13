@@ -54,9 +54,12 @@ before merge.
 - **P3**: wire shape ≠ engine-internal shape; build-generated
   manifests split into wire (`*.json`) and internal (`*-metadata.json`).
 - **P4**: workspace identity is one hash; engine identity adds one
-  launcher UUID. Pipe names and on-disk paths reuse the
-  `<workspaceHash>#<instanceId>` compound segment, never a parallel
-  identifier.
+  per-launch UUID (fresh on every spawn; never reused across
+  respawns). Pipe names use the flat `<workspaceHash>#<instanceId>`
+  segment (OS pipe namespaces are flat); on-disk paths use the
+  nested `<workspaceHash>\<instanceId>` segments (POSIX: `/`).
+  Never invent a parallel identifier; never flatten the two
+  segments back into a workspace-only path.
 - **P5**: on-disk path ownership is explicit and exclusive. New
   artefacts land in the table in `design § Distributed bundle layout`
   / `design § P5` with their owner declared.
@@ -247,17 +250,21 @@ src/
       HelloHandler.cs                          # protocol-version check + greeting payload
       ShutdownHandler.cs                       # graceful drain + Engine.Shutdown RPC
       LifecycleBroadcaster.cs                  # events-pipe state stream (P10)
-      MetadataRowWriter.cs                     # engine-metadata.json upsert / remove / corrupt-recovery for *this* engine's row
+      EngineMetadataFile.cs                    # sole writer surface for engine-metadata.json (P9 single-writer); owns mutex + FileShare + retry + corrupt-recovery + schema-version contract
+      EngineMetadataRow.cs                     # row DTO returned/accepted by EngineMetadataFile (engine-internal shape — never on the wire, P3)
+      MetadataRowWriter.cs                     # composes over EngineMetadataFile — appends this engine's row on start (fresh `instanceId` every spawn; no upsert), removes own row on graceful shutdown
       IdleTimeoutWatchdog.cs                   # --idle-timeout
       ParentPidWatchdog.cs                     # --parent-pid + Process.StartTime defeat
-      IdempotentBindGuard.cs                   # second engine with same --instance-id exits cleanly
+      SameInstanceIdCollisionGuard.cs          # sanity check — second engine binding under the same --instance-id is a launcher bug (P4 fresh-UUID-per-spawn); routes the diagnostic through CrashWriter, then exits non-zero
+      CrashWriter.cs                           # paranoid last-gasp writer of crash.log — sync File.WriteAllText, no DI, no ILogger, no async, allocation-light; wired into Program.Main top-level try/catch + AppDomain.UnhandledException + TaskScheduler.UnobservedTaskException; never invoked from graceful shutdown paths
       InstanceId.cs                            # launcher UUID type + parser (P4)
     Housekeeping/                              # cache-root upkeep: peer-row liveness, orphan reaping, retention, foreign-shape eviction (P5)
-      HousekeepingService.cs                   # hosted service — startup sweep before LifecycleService binds, shutdown sweep after own-row removal; ≤ 1 s deadline budget
-      CacheRootSweeper.cs                      # walks the engine cache root, classifies subtrees (live | stale-rowed | rowless | foreign-shape), applies retention floor
-      MetadataRowSweeper.cs                    # liveness scan over *peers'* rows (pid + Process.StartTime defeat); moved out of Lifecycle/ because it reaps peers, not self
-      StaleSubtreeReaper.cs                    # delete with concurrent-sweep tolerance (DirectoryNotFoundException counts as success)
-      RetentionPolicy.cs                       # single reader of `--retention` — resolves per-row, rowless-fallback, and foreign-shape windows
+      HousekeepingService.cs                   # hosted service — shutdown sweep only, runs after LifecycleService removes own row + closes pipes; ≤ 1 s deadline budget
+      SubtreeClassification.cs                 # discriminated record hierarchy (Live | StaleRowed | Rowless | ForeignShape) — P2-shaped contract between sweeper, policy, and reaper
+      CacheRootSweeper.cs                      # walks the engine cache root, produces SubtreeClassification per child (pure — no deletion here)
+      MetadataRowSweeper.cs                    # composes over EngineMetadataFile (Lifecycle/); applies Process.StartTime peer-liveness check, supplies the row-class half of CacheRootSweeper's classification
+      StaleSubtreeReaper.cs                    # pattern-matches SubtreeClassification, deletes with concurrent-sweep tolerance (DirectoryNotFoundException counts as success)
+      RetentionPolicy.cs                       # single reader of `--retention` — resolves the window per SubtreeClassification arm (per-row, rowless-fallback, foreign-shape)
     Logging/                                   # engine sink, rotation, rotated-file pruning
       LogSink.cs                               # single-channel ingest, file appender, fan-out
       LogFileAppender.cs                       # writes engine.log / worker-<id>.log
@@ -575,17 +582,33 @@ participates in the shared liveness registry.
   consumers see EOF cleanly, but engine record emission lives in
   Phase 2), `Engine.Hello` handler, `Engine.Lifecycle` broadcaster,
   `Engine.GetSharedMetadata` handler, `Engine.Shutdown` handler,
-  `engine-metadata.json` writer/sweeper, idle-timeout watchdog,
-  parent-pid watchdog.
+  `MetadataRowWriter` (this engine's own row), idle-timeout
+  watchdog, parent-pid watchdog.
+- `EngineMetadataFile` — sole owner of `engine-metadata.json`,
+  applying `§ P9`'s single-writer-per-resource rule on disk. Every
+  consumer (this phase's `MetadataRowWriter`, Phase 2b's
+  `MetadataRowSweeper`, any future peer-watcher) goes through this
+  surface; the writer mutex, `FileShare` choice, exponential-backoff
+  retry, atomic-replace strategy, corrupt-file recovery (truncate-
+  and-reseed), and schema-version contract live here, not scattered
+  across consumers. Born in Phase 1 because Phase 1 is when
+  `engine-metadata.json` is first written; Phase 2b composes over it
+  rather than reaching into the file directly.
 - `engine-metadata.json` row lifecycle per
   `§ Housekeeping` and the `engine-metadata.json row lifecycle`
-  pitfall: write-on-start (upsert on `instanceId`),
-  remove-on-graceful-shutdown, leave-stale-on-crash. Reads use
-  `FileShare.None` + exponential-backoff retry. Corrupt-file recovery
-  (truncate-and-reseed) implemented per the same pitfall.
-- The idempotent-bind rule (`§ Lifecycle` *Concurrent first-connect*)
-  — a second engine with the same `--instance-id` detects an existing
-  pipe and exits cleanly.
+  pitfall: append-on-start (fresh `instanceId` every spawn; no
+  upsert), remove-on-graceful-shutdown, leave-stale-on-crash. The
+  locking, `FileShare.None` writer window, and exponential-backoff
+  reader retry are owned by `EngineMetadataFile` (see above); this
+  bullet pins the *lifecycle* of the row, not the file mechanics.
+- The same-`instanceId`-collision rule (`§ Lifecycle` *Concurrent
+  first-connect*) — a second engine binding under the same
+  `--instance-id` is a launcher bug under the per-launch-UUID
+  contract (P4); the engine fails loudly on pipe-bind collision
+  with a non-zero exit. `SameInstanceIdCollisionGuard` is the
+  fail-fast sanity check enforcing this contract; the design does
+  **not** treat the collision as a shape bind has to be idempotent
+  against.
 
 **Tests** (unit + integration):
 - `Engine.Hello` protocol-version exact-match acceptance and refusal.
@@ -597,11 +620,28 @@ participates in the shared liveness registry.
   connections; `--idle-timeout 0` disables the gate.
 - `--parent-pid <pid>` watchdog exits cleanly when the parent process
   vanishes; pid-recycling defeat via `Process.StartTime` comparison.
-- Registry row written on start, removed on graceful shutdown, left
-  stale on crash. Upsert-on-`instanceId` replaces a stale row from a
-  crash-respawn under the same launcher.
-- Two engines starting concurrently with the same `--instance-id`:
-  one binds, the other exits cleanly (idempotent bind).
+- Registry row appended on start, removed on graceful shutdown,
+  left stale on crash. Two graceful starts of the *same* launcher
+  (each minting a fresh `<instanceId>`) leave two distinct rows in
+  the registry while both are live; each engine removes its own row
+  on shutdown.
+- A crashed engine's row survives; the next graceful shutdown of
+  any peer reaps it after the row's `retention` window elapses.
+- Two engines starting concurrently with the *same* `--instance-id`:
+  both fail loudly on pipe-bind collision with non-zero exit — this
+  is a launcher-bug fixture, not a normal-operation shape. The
+  engine emits a diagnostic log line naming the colliding pipe and
+  writes a `crash.log` tombstone under its per-instance subtree
+  describing the collision.
+- `CrashWriter` produces a parseable `crash.log` under
+  `…\<workspaceHash>\<instanceId>\logs\` when an unhandled
+  exception escapes `Program.Main`, when a non-main thread raises
+  via `AppDomain.UnhandledException`, and when an unobserved
+  `Task` faults; graceful `Engine.Shutdown`, idle-timeout, and
+  parent-pid watchdog exits produce **no** `crash.log`. A
+  deliberately broken write target (read-only directory) does not
+  mask the original fault — the process still exits with the
+  original non-zero code.
 - Corrupt-file recovery: an unparseable
   `engine-metadata.json` is truncated and re-seeded by the next start.
 - `Engine.Shutdown` returns `{ accepted: true }` immediately, drains
@@ -611,9 +651,12 @@ participates in the shared liveness registry.
 
 **Out of scope**: cache-root housekeeping sweep — peer-row
 liveness scan, orphan reaping, retention enforcement, foreign-shape
-eviction (Phase 2; needs the per-instance subtree shape Phase 2
-introduces alongside logging). Log file production (Phase 2),
-worker spawn (Phase 7).
+eviction (Phase 2; needs the nested `<workspaceHash>\<instanceId>`
+per-instance subtree shape Phase 2 introduces alongside logging).
+Rotating log file production (`engine.log`, `worker-<workerId>.log`;
+Phase 2) — note that `crash.log` is in-scope for Phase 1 because
+the `CrashWriter` it depends on is wired up here. Worker spawn
+(Phase 7).
 
 ## Phase 2 — Engine logging pipeline and cache housekeeping
 
@@ -654,7 +697,11 @@ and gets pruned per `--retention`.
   Housekeeping's job — see 2b. The two share `RetentionPolicy`
   as their single reader of the `--retention` option.)
 - `Logs.GetEngine` / `Logs.TailEngine` handlers (active file only;
-  `opts.lastN`, `opts.since`, `truncated` flag).
+  `opts.lastN`, `opts.since`, `truncated` flag). `crash.log` is
+  intentionally **out of scope** for the `Logs.*` RPC surface: it
+  is a write-once tombstone produced by Phase 1's `CrashWriter`,
+  not a tail-able feed, and is reaped along with the rest of the
+  per-instance subtree by 2b housekeeping under `--retention`.
 
 **Tests**:
 - Engine `ILogger<T>` records hit `engine.log` and the `logs` pipe
@@ -688,50 +735,83 @@ is explicit and exclusive).
 
 **Code touch**:
 - `AutoContext.Engine.Core/Housekeeping/HousekeepingService` —
-  hosted service that runs the startup sweep before
-  `LifecycleService` binds the four pipes (so a partial cold-start
-  can't dial a half-cleaned root) and the shutdown sweep after
-  `MetadataRowWriter` has removed this engine's own row. Hosted-
-  service registration order pins both invariants: register
-  `HousekeepingService` before `LifecycleService` so `StartAsync`
-  runs first and `StopAsync` runs last (reverse order). Both phases
-  respect the ≤ 1 s deadline budget the design specifies.
-- `CacheRootSweeper` — walks the engine cache root and classifies
-  each child subtree as one of:
-    1. **live** — backed by an `engine-metadata.json` row whose
+  hosted service that runs the **shutdown sweep only**. No startup
+  sweep: under the per-launch-UUID contract (P4) every engine's
+  `<instanceId>` is fresh on every spawn, so the registry stays
+  append-only and there is nothing to reconcile before pipe-bind.
+  Cleanup of any peer's leftover subtree happens at this engine's
+  own graceful shutdown, after `MetadataRowWriter` has removed
+  this engine's own row and `LifecycleService` has closed the
+  four pipes. Hosted-service registration order pins the
+  invariant: register `HousekeepingService` **before**
+  `LifecycleService` (and before `MetadataRowWriter` if it is
+  itself registered as a hosted service) so its `StopAsync` runs
+  *after* both — reverse-registration order — and the sweep
+  observes the on-disk registry in its post-shutdown shape (this
+  engine's row already removed, pipes already closed). Bounded
+  by the ≤ 1 s deadline the design specifies; whatever the sweep
+  doesn't reach this time, the next graceful shutdown of any
+  peer catches.
+- `SubtreeClassification` — discriminated record hierarchy
+  (`LiveSubtree` | `StaleRowedSubtree` | `RowlessSubtree` |
+  `ForeignShapeSubtree`) carrying the on-disk subtree path and any
+  row data downstream consumers need. The closed-set classification
+  is `§ P2`-shaped (state-bearing read over a finite set of
+  possibilities) and is the contract between three consumers:
+  `CacheRootSweeper` produces it, `RetentionPolicy` resolves the
+  window per arm, `StaleSubtreeReaper` pattern-matches to act. The
+  type lets each consumer be tested independently; promoting it from
+  an internal switch to a public-shape type also gives diagnostics
+  per arm ("reaped N stale-rowed, M foreign-shape") for free.
+- `CacheRootSweeper` — walks the engine cache root and produces a
+  `SubtreeClassification` for each child. Pure: no deletion, no
+  policy decisions here. Owns the file-system walk and the row
+  lookup against `EngineMetadataFile` (Lifecycle/, Phase 1). The
+  four classification arms:
+    1. **Live** — backed by an `engine-metadata.json` row whose
        pid is alive (`Process.StartTime` defeats pid recycling);
-    2. **stale-rowed** — backed by a row whose pid is dead or
+    2. **StaleRowed** — backed by a row whose pid is dead or
        recycled;
-    3. **rowless** — shaped like `<workspaceHash>#<instanceId>`
-       but no metadata row claims it;
-    4. **foreign-shape** — anything that doesn't match the
-       per-instance shape (including bare `<workspaceHash>` from
-       earlier preview builds). Because the cache root is
-       engine-owned (P5), foreign-shape is by definition stale.
-- `MetadataRowSweeper` — the peer-liveness scan that
-  `CacheRootSweeper` consults. Reads the metadata file under
-  `FileShare.Read`; tolerates a concurrent rewriter via the same
-  exponential-backoff retry Phase 1 uses.
-- `StaleSubtreeReaper` — deletes the subtree with concurrent-sweep
+    3. **Rowless** — a nested `<workspaceHash>\<instanceId>`
+       subtree (matches the canonical shape) but no metadata row
+       claims it;
+    4. **ForeignShape** — anything that doesn't match the canonical
+       nested per-instance shape: legacy flat
+       `<workspaceHash>#<instanceId>` directories from before the
+       nested layout, bare `<workspaceHash>` directories from even
+       earlier preview builds, or any other shape under the cache
+       root. Because the cache root is engine-owned (P5),
+       foreign-shape is by definition stale.
+- `MetadataRowSweeper` — composes over `EngineMetadataFile`
+  (Lifecycle/, Phase 1) to read all rows, applies the
+  `Process.StartTime` peer-liveness check, and supplies the
+  row-class half of `CacheRootSweeper`'s classification. The file
+  mechanics (locks, retry, corrupt-recovery) live in the
+  metadata-file type — this sweeper only adds the liveness check
+  on top of the row data it gets back.
+- `StaleSubtreeReaper` — pattern-matches over
+  `SubtreeClassification`, asks `RetentionPolicy` for the window
+  per arm, deletes when outside the window. Concurrent-sweep
   tolerance: a `DirectoryNotFoundException` mid-walk counts as
   success (a peer engine won the race).
 - `RetentionPolicy` — the *single* place that reads `--retention`.
-  Resolves the window for each subtree class: per-row windows
-  honour the row's own retention if present; rowless and
+  Resolves the window per `SubtreeClassification` arm: per-row
+  windows honour the row's own retention if present; rowless and
   foreign-shape fall back to this engine's `--retention`. Both 2a's
   `LogRetentionPruner` and 2b's reaper take their window from this
   type (no scattered `EngineOptions.Retention` reads).
 
 **Tests**:
-- Startup sweep classifies a populated cache root correctly across
+- Shutdown sweep classifies a populated cache root correctly across
   all four subtree classes against a synthetic metadata file.
 - Stale-rowed subtree is deleted once outside the row's retention,
   preserved while still inside it.
 - Rowless subtree falls back to this engine's `--retention`.
-- Foreign-shape subtree (bare `<workspaceHash>` without the
-  `#<instanceId>` segment, simulating an earlier preview build's
-  cache) is deleted once it exceeds the retention floor, preserved
-  while still inside the retention window.
+- Foreign-shape subtree (legacy flat `<workspaceHash>#<instanceId>`
+  from before the nested layout, or bare `<workspaceHash>` from
+  even earlier preview builds) is deleted once it exceeds the
+  retention floor, preserved while still inside the retention
+  window.
 - Two engines concurrent sweep on the same stale subtree: one wins,
   the other treats `DirectoryNotFoundException` as success; neither
   faults.
@@ -739,18 +819,21 @@ is explicit and exclusive).
   unrelated process is correctly classified as stale via
   `Process.StartTime` comparison.
 - The ≤ 1 s deadline budget is respected: a deliberately huge cache
-  root yields after the budget elapses without blocking startup or
-  shutdown.
+  root yields after the budget elapses without blocking shutdown.
 - Shutdown sweep runs after `MetadataRowWriter` has removed this
-  engine's own row — a peer that starts mid-shutdown does not
-  observe this engine's row as live.
+  engine's own row and `LifecycleService` has closed the four
+  pipes — a peer that starts mid-shutdown does not observe this
+  engine's row as live.
 - Integration: spawn two engines against the same cache root,
-  watch the survivor reap the dead one's subtree on the next
-  start; assert no live subtree was touched.
+  hard-kill one (skipping its shutdown sweep), then gracefully
+  shut down the survivor; assert the survivor reaps the killed
+  engine's subtree as part of its own shutdown sweep, and that no
+  live subtree was touched.
 
 **Out of scope** (2a): worker records (Phase 8); `Logs.GetWorker`
 / `Logs.TailWorker` (Phase 8). 2b has no out-of-scope carve-out;
-its dependency on Phase 1's `MetadataRowWriter` (which produces the
+its dependency on Phase 1's `EngineMetadataFile` and
+`MetadataRowWriter` (which together own the on-disk
 `engine-metadata.json` rows the sweeper reads) is declared under
 code touch, not deferred work.
 
@@ -1388,7 +1471,7 @@ plugin), `§ RPC surface` (`Agent.*`, `Discovery.*`,
   the `Agent.*` notifications". The TS `EngineDaemonManager` from
   Phase 12 is the only seam.
 - Sub-agent file materialisation under the per-instance cache root
-  (`%LOCALAPPDATA%\autocontext\<workspaceHash>#<instanceId>\cache\subagents\<sessionId>\`,
+  (`%LOCALAPPDATA%\autocontext\<workspaceHash>\<instanceId>\cache\subagents\<sessionId>\`,
   POSIX equivalent) lives in the SubagentStart hook; SubagentStop
   cleans it.
 - `--instance-id` propagation: hook templates document the
@@ -1492,15 +1575,20 @@ servers manifest (`servers.json`) points at
    [`workspace-context-detector.test.ts`](../src/AutoContext.VsCode/tests/unit-tests/workspace-context-detector.test.ts)
    fixtures as their porting source.
 2. **Cache path migration — sweep deletes orphans.** The
-   per-instance cache root changes shape from `<workspaceHash>` to
-   `<workspaceHash>#<instanceId>`. The Phase 2 housekeeping sweep
-   treats any subtree under the engine's cache root without a
-   matching live `engine-metadata.json` row as stale and deletes
-   it once it falls outside the retention floor — this includes
-   bare-`<workspaceHash>` directories from earlier preview builds.
-   The cache root is engine-owned (P5), nothing else writes there,
-   and cache contents are reproducible, so a stale orphan is just
-   disk pressure. The retention floor protects against deleting a
+   per-instance cache root has progressed through two preview
+   shapes: bare `<workspaceHash>` (earliest) and flat
+   `<workspaceHash>#<instanceId>` (intermediate). The shipped
+   shape is nested `<workspaceHash>\<instanceId>\` (POSIX: `/`).
+   The Phase 2 housekeeping sweep treats any subtree under the
+   engine's cache root that does not match the canonical nested
+   shape — or matches the shape but has no live `engine-metadata.json`
+   row — as stale, and deletes it once it falls outside the
+   retention floor (this is the `ForeignShape` arm of
+   `SubtreeClassification` for the two legacy shapes, and the
+   `StaleRowed` / `Rowless` arms for canonical-shape orphans). The
+   cache root is engine-owned (P5), nothing else writes there, and
+   cache contents are reproducible, so a stale orphan is just disk
+   pressure. The retention floor protects against deleting a
    directory that another engine is mid-write into.
 3. **`Workspace.Detect` arbitrary-path RPC — no action needed.**
    Audit of every `workspaceContextDetector` consumer
