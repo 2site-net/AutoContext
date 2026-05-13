@@ -139,10 +139,9 @@ rollout owns end-to-end:
 - `AutoContext.Framework.Services/` — worker-side runtime: the
   `IMcpTask` contract (folded in from `AutoContext.Mcp.Abstractions`),
   `WorkerHostBuilderExtensions`, `WorkerTaskDispatcherService`,
-  `WorkerHostOptions`, `ServiceAddressFormatter`, and
-  `HealthMonitorService` (worker-side hosted service that keeps the
-  engine's `health` pipe connection open for the lifetime of the
-  worker host).
+  `WorkerHostOptions`, and `HealthMonitorService` (worker-side hosted
+  service that keeps the engine's `health` pipe connection open for
+  the lifetime of the worker host).
 - `AutoContext.Engine.Core/` — the engine itself as a library
   (every RPC family, the lifecycle hosted service, the stdio MCP-server
   role).
@@ -208,9 +207,10 @@ src/
     JsonLogGreeting.cs
     LogServerJsonContext.cs
 
-  AutoContext.Framework.Protocol/              # cross-side DTOs (leaf — no references)
+  AutoContext.Framework.Protocol/              # cross-side DTOs + pipe-name shapes (leaf — no references)
     AutoContext.Framework.Protocol.csproj
-    PipeNames.cs                               # builder for rpc/events/health/logs × hash#instance
+    PipeName.cs                                # `readonly record struct` implementing IParsable<PipeName> — builder + parser for rpc/events/health/logs × hash#instance
+    ServiceAddressFormatter.cs                 # legacy `autocontext.<role>#<instance-id>` formatter — kept until every current-topology dialer flips to PipeName (Phase 12); deleted in Phase 16
     ProtocolVersion.cs                         # Engine.Hello version constant
     LogRecord.cs                               # canonical log-record envelope (timestamp, category, level, …)
     Envelopes/                                 # discriminated-envelope base shapes (P2)
@@ -239,7 +239,6 @@ src/
       WorkerHostBuilderExtensions.cs           # folded in from Worker.Shared/Hosting/
       WorkerTaskDispatcherService.cs           # moved from AutoContext.Framework/Workers/
       WorkerHostOptions.cs                     # moved from AutoContext.Framework/Workers/
-      ServiceAddressFormatter.cs               # moved from AutoContext.Framework/Workers/
 
   AutoContext.Engine.Core/                # engine as a library
     AutoContext.Engine.Core.csproj
@@ -493,9 +492,17 @@ projects are empty.
     equivalent in today's substrate). Skeletons for the cross-side
     DTOs (protocol-version constant, pipe-name builder, log-record
     envelope, discriminated-envelope base shapes, source-generated
-    JSON context). Leaf — no other Framework references.
+    JSON context). Also receives `AutoContext.Framework/Workers/ServiceAddressFormatter.cs`
+    — it's a pure pipe-name string-formatting helper (no I/O, no
+    lifetime, no DI), the same wire-shape concern `PipeName.cs`
+    owns under the engine topology; parking the legacy formatter next
+    to its successor keeps both pipe-name shapes in one place and
+    avoids a misleading lineage in Phase 1 where the engine's builder
+    would otherwise materialise in a different project than the
+    formatter it eventually replaces. Leaf — no other Framework
+    references.
   - `AutoContext.Framework.Services/` — receives
-    `AutoContext.Framework/Workers/{WorkerTaskDispatcherService,WorkerHostOptions,ServiceAddressFormatter}.cs`
+    `AutoContext.Framework/Workers/{WorkerTaskDispatcherService,WorkerHostOptions}.cs`
     and `AutoContext.Framework/Hosting/HealthMonitorClient.cs`
     (renamed in-flight to `HealthMonitorService.cs` as part of the
     move — the type is an `IHostedService`, not a call-site dialer,
