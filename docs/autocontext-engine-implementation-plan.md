@@ -412,6 +412,18 @@ and the shared TS substrate (`AutoContext.Nodejs.Core/`) are consumers of the
 surfaces defined above; their per-file shape stays in their own
 documents and is not enumerated here.
 
+**One type per file.** Each `*.cs` filename above names exactly one
+top-level type (class, record, enum, or interface). Where a comment
+enumerates RPC methods after a `*Handlers.cs` filename — e.g.
+`WorkspaceHandlers.cs # Workspace.{Detect,Info}` — those are the
+*public methods* of the single `WorkspaceHandlers` class that
+`Rpc/RpcDispatcher.cs` binds into its method-name → delegate table,
+not separate types. The bundled-by-feature handler shape (one class
+per RPC family rather than one class per RPC method) is the
+deliberate trade-off: cohesion over file count, matched to the
+delegate-table dispatcher and to the rest of the codebase's
+vertical-feature folder axis.
+
 ### Runtime bundle layout (shipped artefact)
 
 Per the design's distributed-bundle picture: every shipped host
