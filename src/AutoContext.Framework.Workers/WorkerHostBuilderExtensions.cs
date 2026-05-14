@@ -1,8 +1,7 @@
-namespace AutoContext.Worker.Hosting;
+namespace AutoContext.Framework.Workers;
 
 using AutoContext.Framework.Logging;
 using AutoContext.Framework.Protocol;
-using AutoContext.Framework.Workers;
 
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -22,7 +21,7 @@ using Microsoft.Extensions.Options;
 /// Workers still own their entry point — they create the
 /// <see cref="HostApplicationBuilder"/>, call
 /// <see cref="ConfigureWorkerHost"/>, register their own
-/// <see cref="Mcp.IMcpTask"/> implementations, add the
+/// <see cref="IMcpTask"/> implementations, add the
 /// <c>WorkerTaskDispatcherService</c> hosted service, and run the host.
 /// </remarks>
 public static class WorkerHostBuilderExtensions

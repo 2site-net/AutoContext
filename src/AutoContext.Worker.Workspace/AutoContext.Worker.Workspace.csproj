@@ -12,7 +12,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\AutoContext.Worker.Shared\AutoContext.Worker.Shared.csproj" />
+    <ProjectReference Include="..\AutoContext.Framework.Workers\AutoContext.Framework.Workers.csproj" />
   </ItemGroup>
 
   <ItemGroup>

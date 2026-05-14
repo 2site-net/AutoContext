@@ -17,8 +17,17 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.5" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.5" />
+    <!--
+      Framework.Workers owns the standard worker-host bootstrap
+      (WorkerHostBuilderExtensions.ConfigureWorkerHost) that wires the
+      service-address switches, the in-memory ready marker, and
+      WorkerHostOptions binding. The full Microsoft.Extensions.Hosting
+      package is required for HostApplicationBuilder and the
+      configuration extensions (AddCommandLine, AddInMemoryCollection,
+      services.Configure&lt;T&gt;(IConfiguration)); it transitively brings in
+      Hosting.Abstractions, Logging.Abstractions, and Options.
+    -->
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.5" />
   </ItemGroup>
 
 </Project>

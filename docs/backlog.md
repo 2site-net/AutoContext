@@ -75,7 +75,7 @@ unrelated commit either.
     forwards it.
   - Call sites that resolve and pass a real logger for nothing:
     - `src/AutoContext.Mcp.Server/Program.cs` ~L146-L149
-    - `src/AutoContext.Worker.Shared/Hosting/WorkerHostBuilderExtensions.cs` ~L113-L116
+    - `src/AutoContext.Framework.Workers/WorkerHostBuilderExtensions.cs` ~L112-L115
 - **Symptom**: the composed `PipeTransport` and `PipeKeepAliveClient`
   are wired to `NullLogger.Instance`, so every diagnostic from the
   keep-alive connect/retry path is silently dropped — despite the

@@ -1,7 +1,6 @@
 namespace AutoContext.Worker.Workspace;
 
 using AutoContext.Framework.Workers;
-using AutoContext.Worker.Hosting;
 using AutoContext.Worker.Workspace.Hosting;
 using AutoContext.Worker.Workspace.Tasks.EditorConfig;
 using AutoContext.Worker.Workspace.Tasks.Git;
