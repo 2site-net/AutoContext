@@ -1,4 +1,4 @@
-namespace AutoContext.Framework.Tests.Testing.Utils;
+namespace AutoContext.Framework.Testing;
 
 using System.IO.Pipes;
 
@@ -9,7 +9,7 @@ using System.IO.Pipes;
 /// <see cref="NamedPipeServerStream"/> constructor defaults the
 /// production listeners use so individual tests don't drift.
 /// </summary>
-internal static class TestPipeServer
+public static class TestPipeServer
 {
     /// <summary>
     /// Creates a single-instance server with the framework's

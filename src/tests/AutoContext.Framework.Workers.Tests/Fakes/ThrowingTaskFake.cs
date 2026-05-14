@@ -1,4 +1,4 @@
-namespace AutoContext.Framework.Tests.Testing.Fakes;
+namespace AutoContext.Framework.Workers.Tests.Fakes;
 
 using System.Text.Json;
 

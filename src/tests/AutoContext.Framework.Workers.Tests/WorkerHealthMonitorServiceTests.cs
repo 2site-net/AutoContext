@@ -1,10 +1,10 @@
-namespace AutoContext.Framework.Tests.Hosting;
+namespace AutoContext.Framework.Workers.Tests;
 
 using System.IO.Pipes;
 using System.Text;
 
 using AutoContext.Framework.Workers;
-using AutoContext.Framework.Tests.Testing.Utils;
+using AutoContext.Framework.Testing;
 
 using Microsoft.Extensions.Logging.Abstractions;
 

@@ -1,4 +1,4 @@
-namespace AutoContext.Framework.Tests.Pipes;
+namespace AutoContext.Framework.Pipes.Tests;
 
 using System.Buffers.Binary;
 

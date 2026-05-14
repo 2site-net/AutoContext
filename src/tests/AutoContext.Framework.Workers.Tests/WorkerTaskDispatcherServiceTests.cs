@@ -1,11 +1,11 @@
-namespace AutoContext.Framework.Tests.Workers;
+namespace AutoContext.Framework.Workers.Tests;
 
 using System.IO.Pipes;
 using System.Text.Json;
 
 using AutoContext.Framework.Workers;
 using AutoContext.Framework.Pipes;
-using AutoContext.Framework.Tests.Testing.Fakes;
+using AutoContext.Framework.Workers.Tests.Fakes;
 
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;

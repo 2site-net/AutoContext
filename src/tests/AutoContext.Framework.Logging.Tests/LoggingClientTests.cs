@@ -1,11 +1,11 @@
-namespace AutoContext.Framework.Tests.Logging;
+namespace AutoContext.Framework.Logging.Tests;
 
 using System.IO.Pipes;
 using System.Text;
 using System.Text.Json.Nodes;
 
 using AutoContext.Framework.Logging;
-using AutoContext.Framework.Tests.Testing.Utils;
+using AutoContext.Framework.Testing;
 
 using Microsoft.Extensions.Logging;
 

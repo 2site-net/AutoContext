@@ -1,13 +1,13 @@
-namespace AutoContext.Framework.Tests.Pipes;
+namespace AutoContext.Framework.Pipes.Tests;
 
 using System.Text;
 
-using AutoContext.Framework.Tests.Testing.Utils;
+using AutoContext.Framework.Testing;
 using AutoContext.Framework.Pipes;
 
 using Microsoft.Extensions.Logging.Abstractions;
 
-public sealed class PipePersistentExchangeClientTests
+public sealed class PipeTransientExchangeClientTests
 {
     private static readonly UTF8Encoding Utf8NoBom = new(encoderShouldEmitUTF8Identifier: false);
 
@@ -15,10 +15,9 @@ public sealed class PipePersistentExchangeClientTests
     public void Should_reject_empty_pipe_name()
     {
         Assert.Throws<ArgumentException>(
-            () => new PipePersistentExchangeClient(
+            () => new PipeTransientExchangeClient(
                 new PipeTransport(NullLogger<PipeTransport>.Instance),
-                string.Empty,
-                NullLogger<PipePersistentExchangeClient>.Instance));
+                string.Empty));
     }
 
     [Fact]
@@ -29,11 +28,10 @@ public sealed class PipePersistentExchangeClientTests
         var listener = new PipeListener(name, NullLogger<PipeListener>.Instance);
         var bound = listener.Bind();
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        var serverTask = bound.RunAsync(EchoLoopAsync, cts.Token);
-        await using var client = new PipePersistentExchangeClient(
+        var serverTask = bound.RunAsync(SingleShotEchoAsync, cts.Token);
+        await using var client = new PipeTransientExchangeClient(
             new PipeTransport(NullLogger<PipeTransport>.Instance),
-            name,
-            NullLogger<PipePersistentExchangeClient>.Instance);
+            name);
 
         try
         {
@@ -50,7 +48,7 @@ public sealed class PipePersistentExchangeClientTests
     }
 
     [Fact]
-    public async Task Should_reuse_the_connection_across_multiple_exchanges()
+    public async Task Should_open_a_fresh_connection_per_exchange()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
         var name = NewPipeName();
@@ -62,13 +60,12 @@ public sealed class PipePersistentExchangeClientTests
             async (stream, ct) =>
             {
                 Interlocked.Increment(ref connections);
-                await EchoLoopAsync(stream, ct);
+                await SingleShotEchoAsync(stream, ct);
             },
             cts.Token);
-        await using var client = new PipePersistentExchangeClient(
+        await using var client = new PipeTransientExchangeClient(
             new PipeTransport(NullLogger<PipeTransport>.Instance),
-            name,
-            NullLogger<PipePersistentExchangeClient>.Instance);
+            name);
 
         try
         {
@@ -76,7 +73,7 @@ public sealed class PipePersistentExchangeClientTests
             _ = await client.ExchangeAsync(Utf8NoBom.GetBytes("two"), cancellationToken);
             _ = await client.ExchangeAsync(Utf8NoBom.GetBytes("three"), cancellationToken);
 
-            Assert.Equal(1, Volatile.Read(ref connections));
+            Assert.Equal(3, Volatile.Read(ref connections));
         }
         finally
         {
@@ -87,19 +84,6 @@ public sealed class PipePersistentExchangeClientTests
     }
 
     [Fact]
-    public async Task Should_throw_when_used_after_dispose()
-    {
-        var client = new PipePersistentExchangeClient(
-            new PipeTransport(NullLogger<PipeTransport>.Instance),
-            NewPipeName(),
-            NullLogger<PipePersistentExchangeClient>.Instance);
-        await client.DisposeAsync();
-
-        await Assert.ThrowsAsync<ObjectDisposedException>(
-            async () => await client.ExchangeAsync([0x01], CancellationToken.None));
-    }
-
-    [Fact]
     public async Task Should_throw_IOException_when_peer_closes_without_responding()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
@@ -107,18 +91,17 @@ public sealed class PipePersistentExchangeClientTests
         var listener = new PipeListener(name, NullLogger<PipeListener>.Instance);
         var bound = listener.Bind();
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        // Server reads the request then closes without writing back.
         var serverTask = bound.RunAsync(
             async (stream, ct) =>
             {
                 var codec = new LengthPrefixedFrameCodec(stream);
                 _ = await codec.ReadAsync(ct);
+                // Close without writing.
             },
             cts.Token);
-        await using var client = new PipePersistentExchangeClient(
+        await using var client = new PipeTransientExchangeClient(
             new PipeTransport(NullLogger<PipeTransport>.Instance),
-            name,
-            NullLogger<PipePersistentExchangeClient>.Instance);
+            name);
 
         try
         {
@@ -133,21 +116,33 @@ public sealed class PipePersistentExchangeClientTests
         }
     }
 
-    private static string NewPipeName() => TestPipeServer.UniqueName("actx-ppe-test");
+    [Fact]
+    public async Task Dispose_is_a_noop_and_idempotent()
+    {
+        await using var client = new PipeTransientExchangeClient(
+            new PipeTransport(NullLogger<PipeTransport>.Instance),
+            NewPipeName());
 
-    private static async Task EchoLoopAsync(Stream stream, CancellationToken cancellationToken)
+        var ex = await Record.ExceptionAsync(async () =>
+        {
+            await client.DisposeAsync();
+            await client.DisposeAsync();
+        });
+
+        Assert.Null(ex);
+    }
+
+    private static string NewPipeName() => TestPipeServer.UniqueName("actx-pte-test");
+
+    private static async Task SingleShotEchoAsync(Stream stream, CancellationToken cancellationToken)
     {
         var codec = new LengthPrefixedFrameCodec(stream);
-        while (!cancellationToken.IsCancellationRequested)
+        var request = await codec.ReadAsync(cancellationToken);
+        if (request is null)
         {
-            var request = await codec.ReadAsync(cancellationToken);
-            if (request is null)
-            {
-                return;
-            }
-
-            var response = Utf8NoBom.GetBytes("pong:" + Utf8NoBom.GetString(request));
-            await codec.WriteAsync(response, cancellationToken);
+            return;
         }
+        var response = Utf8NoBom.GetBytes("pong:" + Utf8NoBom.GetString(request));
+        await codec.WriteAsync(response, cancellationToken);
     }
 }
