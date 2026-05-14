@@ -20,6 +20,18 @@
   `Worker.*` shape for new worker projects and the `Framework.Testing`
   shape for shared .NET test harness code, the
   `Nodejs.Core` shape for new TS code.
+- **Just-in-time scaffolding.** Introduce a new project, folder,
+  file, type, or member only in the phase that *uses* it. No empty
+  placeholder projects, no empty class libraries with only a no-op
+  extension method, no `Instructions/` / `Resources/` folders
+  scaffolded for a later phase to fill. If Phase N+k is the first
+  consumer of artefact X, Phase N+k is the one that creates X (and
+  its sibling test project). Bare-graph scaffolding ahead of time
+  hides intent, leaves dead files in the tree, and produces commits
+  that don't earn their own behavioural test. Restructuring code
+  that already exists (renames, project splits, file moves) is not
+  scaffolding-ahead — it's reorganisation of live code and is
+  governed by the *Codebase conventions, no drift* rule above.
 - **API hygiene by default.** Across every ctor, method, and
   function signature the engine introduces:
   - **Parameter order is intentional, not incidental.** Arrange
@@ -535,14 +547,18 @@ host-supplied path threads into the engine for side-car lookup.
 | Typed .NET clients for every row above | `Client.Core` | dial-side |
 | Typed TS clients for every row above (plus TS-side engine-daemon lifecycle) | `Nodejs.Core/src/engine/engine-daemon-manager.ts` | dial-side |
 
-## Phase 0 — Scaffolding
+## Phase 0 — Framework restructure
 
-**Goal**: stand up the new project graph with no behaviour. The
-solution still builds and runs the current topology; the new
-projects are empty.
+**Goal**: reshape the existing project graph into the four-project
+`Framework.*` substrate the rest of the rollout consumes, fold the
+two dead-weight projects (`Mcp.Abstractions`, `Worker.Shared`) into
+it, and rename the shared TS substrate to its end-state identity.
+This phase touches existing code only — every new engine / client /
+build-tasks project is created in the phase that first uses it (see
+*Just-in-time scaffolding* in the ground rules).
 
-**Design anchors**: `§ Project layout`, `§ Composition contracts`,
-`§ Distribution` (binary names only — packaging is Phase 13).
+**Design anchors**: `§ Project layout` (Framework substrate row),
+`§ Composition contracts`.
 
 **Code touch**:
 - Split today's `AutoContext.Framework` project into four sibling
@@ -606,50 +622,32 @@ projects are empty.
     `Worker.Shared` `<ProjectReference>`s and picks up
     `<ProjectReference>`s to all four `AutoContext.Framework.*`
     projects directly.
-- New folders/projects under `src/`:
-  - `AutoContext.Engine.Core/` — empty class library with
-    `IHostApplicationBuilder.AddAutoContextEngine(Action<EngineOptions>)`
-    as the only public surface (no-op for now). References
-    `Framework.Pipes` + `Framework.Logging` + `Framework.Protocol`.
-  - `AutoContext.Client.Core/` — empty class library with
-    `AddAutoContextClient(Action<ClientOptions>)` (no-op). Same
-    Framework reference set as `Engine.Core`.
-  - `AutoContext.Engine/` — binary project; `Program.Main` parses
-    `--version` only, returns the assembly informational version,
-    exits. The `Instructions/` and `Resources/` side-car folders are
-    scaffolded here (empty); Phase 5 fills them.
-  - `AutoContext.Build.Tasks/` — empty `netstandard2.0` class
-    library. No task implementation yet; Phase 5 fills it with
-    `BuildInstructionsListTask`, `ApplyToRoundTripVerifier`, and
-    `InstructionsListBuilder.targets`. The project exists in
-    Phase 0 so the solution graph, packaging hooks, and CI matrix
-    know about it from the start.
-- New test projects, one per code project:
+- New test projects, one per new Framework sub-project:
   `AutoContext.Framework.Pipes.Tests`,
   `AutoContext.Framework.Logging.Tests`,
   `AutoContext.Framework.Protocol.Tests`,
-  `AutoContext.Framework.Workers.Tests`,
-  `AutoContext.Engine.Core.Tests`, `AutoContext.Client.Core.Tests`,
-  `AutoContext.Engine.Tests`, `AutoContext.Build.Tasks.Tests`.
+  `AutoContext.Framework.Workers.Tests`.
   Today's `AutoContext.Framework.Tests` is split across the four
   substrate test projects according to which sub-project owns each
-  fixture.
-- `AutoContext.slnx` updated.
-- `build.ps1` learns the new project list (compile targets only;
-  packaging stays out until Phase 13).
+  fixture. Test projects for the *new* engine / client / build-tasks
+  projects come up alongside those projects in their first-use
+  phases.
+- `AutoContext.slnx` updated for the four Framework sub-projects,
+  the renamed `Nodejs.Core`, and the deletions of `Mcp.Abstractions`
+  / `Worker.Shared`. No entries for engine / client / build-tasks
+  projects yet — those are added by the phases that introduce them.
+- `build.ps1` learns the new Framework project list (compile targets
+  only; packaging stays out until Phase 13).
 
 **Tests**:
 - Solution builds via `.\build.ps1 Compile`.
 - All existing `Worker.*` tests and the split-up Framework substrate
   tests stay green after the rename + consolidation (no behaviour
   change — the diff is purely namespace + project-graph).
-- `autocontext-engine --version` emits the expected
-  `AssemblyInformationalVersion` (executed by spawning the published
-  binary).
-- Existing tests stay green; nothing else changes behaviour.
 
-**Out of scope**: argv beyond `--version`, any pipe binding, any DI
-registration past the empty extension method.
+**Out of scope**: every new engine / client / build-tasks project
+(introduced in their first-use phases); any pipe binding, DI
+registration, or executable host.
 
 ## Phase 1 — Engine lifecycle substrate
 
@@ -663,9 +661,20 @@ participates in the shared liveness registry.
 `§ P8`.
 
 **Code touch**:
-- `AutoContext.Engine/Program.cs` — full argv parser per
-  `§ Engine options` (daemon-role table), strict rejection of
+- **Create `AutoContext.Engine.Core/`** — new class library, the
+  engine as a library. References `Framework.Pipes` +
+  `Framework.Logging` + `Framework.Protocol`. Public surface:
+  `IHostApplicationBuilder.AddAutoContextEngine(Action<EngineOptions>)`
+  composing the hosted services listed below.
+- **Create `AutoContext.Engine/`** — new binary project. References
+  `AutoContext.Engine.Core` (created in the bullet above). Program
+  entry point implements the full argv parser per `§ Engine options`
+  (daemon-role table) including `--version`, strict rejection of
   unknown switches with a one-line stderr error.
+- **Create sibling test projects** `AutoContext.Engine.Tests` and
+  `AutoContext.Engine.Core.Tests` alongside the projects above.
+- `AutoContext.slnx` and `build.ps1` learn the two new projects
+  (and their test siblings).
 - `AutoContext.Framework.Protocol/` — pipe-name builder (workspace
   hash + `<kind>` + `<instanceId>`; normalisation rules in `§ Pipe
   name`), protocol-version integer.
@@ -1073,13 +1082,21 @@ round-trip-verified per fixture.
 `§ P3` (wire ≠ internal), `§ applyTo parser pitfall`.
 
 **Code touch**:
+- **Create `AutoContext.Build.Tasks/`** — new `netstandard2.0` class
+  library, plus its sibling test project
+  `AutoContext.Build.Tasks.Tests`. Added to `AutoContext.slnx` and
+  `build.ps1` in the same change. The implementations described
+  below land in this project as it is introduced.
 - Curated instruction corpus moves to
   `src/AutoContext.Engine/Instructions/` — the binary host owns the
   side-cars (P5). Today the corpus is co-located with the VS Code
   extension at `src/AutoContext.VsCode/instructions/`; the move is
   part of this phase because the engine binary is now the owner and
   the files ship next to the binary (resolved at runtime via
-  `AppContext.BaseDirectory`, not embedded resources).
+  `AppContext.BaseDirectory`, not embedded resources). The
+  `Instructions/` and `Resources/` side-car folders under
+  `src/AutoContext.Engine/` are created here too — first phase that
+  actually populates them.
 - `InstructionsListBuilder` — MSBuild task lives in a dedicated
   build-tasks project (`AutoContext.Build.Tasks/`, netstandard2.0)
   rather than the engine runtime library, because MSBuild ITask
@@ -1404,11 +1421,16 @@ have different responsibilities, different consumers, and only
 share the engine's wire contract.
 
 - `AutoContext.Client.Core` (.NET) — the `autocontext` CLI as a
-  library. Houses every type the CLI binary uses internally
-  (`EngineClient` typed-RPC surface, four-pipe dialer, cold-start-
-  or-attach resolver, subscription consumers, `IEngineSpawner`).
-  Consumers: `AutoContext.CommandLine` and third-party .NET
-  embedders that want CLI-shaped behaviour in-process. See
+  library. **Created in this phase** — first consumer is the typed
+  RPC surface this phase introduces — alongside its sibling test
+  project `AutoContext.Client.Core.Tests` (both added to
+  `AutoContext.slnx` and `build.ps1`). Houses every type the CLI
+  binary uses internally (`EngineClient` typed-RPC surface,
+  four-pipe dialer, cold-start-or-attach resolver, subscription
+  consumers, `IEngineSpawner`). References `Framework.Pipes` +
+  `Framework.Logging` + `Framework.Protocol`. Consumers:
+  `AutoContext.CommandLine` and third-party .NET embedders that
+  want CLI-shaped behaviour in-process. See
   [`autocontext-cli.md`](future/autocontext-cli.md) for the
   full CLI-as-library picture.
 - `EngineDaemonManager` (TS, `src/AutoContext.Nodejs.Core/src/engine/`) —
