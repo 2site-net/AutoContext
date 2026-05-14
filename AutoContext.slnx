@@ -1,7 +1,10 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/AutoContext.Mcp.Abstractions/AutoContext.Mcp.Abstractions.csproj" />
-    <Project Path="src/AutoContext.Framework/AutoContext.Framework.csproj" />
+    <Project Path="src/AutoContext.Framework.Pipes/AutoContext.Framework.Pipes.csproj" />
+    <Project Path="src/AutoContext.Framework.Logging/AutoContext.Framework.Logging.csproj" />
+    <Project Path="src/AutoContext.Framework.Protocol/AutoContext.Framework.Protocol.csproj" />
+    <Project Path="src/AutoContext.Framework.Workers/AutoContext.Framework.Workers.csproj" />
     <Project Path="src/AutoContext.Worker.Shared/AutoContext.Worker.Shared.csproj" />
     <Project Path="src/AutoContext.Worker.Workspace/AutoContext.Worker.Workspace.csproj" />
     <Project Path="src/AutoContext.Worker.DotNet/AutoContext.Worker.DotNet.csproj" />

@@ -1,4 +1,4 @@
-namespace AutoContext.Framework.Workers;
+namespace AutoContext.Framework.Protocol;
 
 /// <summary>
 /// Formats and parses Windows named-pipe "service addresses" used to

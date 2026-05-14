@@ -2,13 +2,12 @@
 
   <PropertyGroup>
     <Version>0.9.5</Version>
-    <OutputType>Exe</OutputType>
     <TargetFramework>net10.0</TargetFramework>
-    <RootNamespace>AutoContext.Mcp.Server</RootNamespace>
+    <RootNamespace>AutoContext.Framework.Workers</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
-    <InternalsVisibleTo Include="AutoContext.Mcp.Server.Tests" />
+    <InternalsVisibleTo Include="AutoContext.Framework.Tests" />
   </ItemGroup>
 
   <ItemGroup>
@@ -16,18 +15,11 @@
     <ProjectReference Include="..\AutoContext.Framework.Pipes\AutoContext.Framework.Pipes.csproj" />
     <ProjectReference Include="..\AutoContext.Framework.Logging\AutoContext.Framework.Logging.csproj" />
     <ProjectReference Include="..\AutoContext.Framework.Protocol\AutoContext.Framework.Protocol.csproj" />
-    <ProjectReference Include="..\AutoContext.Framework.Workers\AutoContext.Framework.Workers.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="JsonSchema.Net" Version="9.2.0" />
-    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.5" />
-    <PackageReference Include="ModelContextProtocol" Version="1.2.0" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <EmbeddedResource Include="mcp-workers-registry.schema.json" />
-    <EmbeddedResource Include="mcp-workers-registry.json" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.5" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.5" />
   </ItemGroup>
 
 </Project>

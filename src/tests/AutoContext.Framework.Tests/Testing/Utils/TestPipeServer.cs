@@ -5,7 +5,7 @@ using System.IO.Pipes;
 /// <summary>
 /// Tiny helpers for tests that impersonate a named-pipe server and
 /// drive client-side production code (e.g. <c>LoggingClient</c>,
-/// <c>HealthMonitorClient</c>) inline. Consolidates the
+/// <c>WorkerHealthMonitorService</c>) inline. Consolidates the
 /// <see cref="NamedPipeServerStream"/> constructor defaults the
 /// production listeners use so individual tests don't drift.
 /// </summary>

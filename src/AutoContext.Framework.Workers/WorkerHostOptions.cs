@@ -1,5 +1,7 @@
 namespace AutoContext.Framework.Workers;
 
+using AutoContext.Framework.Protocol;
+
 /// <summary>
 /// Strongly-typed options for the shared worker host: the named pipe to
 /// listen on and the stderr ready-marker emitted once the pipe is accepting

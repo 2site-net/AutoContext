@@ -1,4 +1,4 @@
-namespace AutoContext.Framework.Hosting;
+namespace AutoContext.Framework.Workers;
 
 using System.Text;
 
@@ -26,7 +26,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 /// not delay host startup — failures are logged and swallowed.
 /// </para>
 /// </remarks>
-public sealed class HealthMonitorClient : IHostedService, IAsyncDisposable
+public sealed class WorkerHealthMonitorService : IHostedService, IAsyncDisposable
 {
     private const int ConnectTimeoutMs = 2000;
 
@@ -39,7 +39,7 @@ public sealed class HealthMonitorClient : IHostedService, IAsyncDisposable
     private Task? _runTask;
 
     /// <summary>
-    /// Creates a new <see cref="HealthMonitorClient"/>. The client id
+    /// Creates a new <see cref="WorkerHealthMonitorService"/>. The client id
     /// is hard-coded by each host's entry point (e.g. <c>"dotnet"</c>,
     /// <c>"workspace"</c>, <c>"mcp-server"</c>) and must match the id
     /// referenced by the extension's manifests.
@@ -50,10 +50,10 @@ public sealed class HealthMonitorClient : IHostedService, IAsyncDisposable
     /// </param>
     /// <param name="clientId">Stable identifier for this host process.</param>
     /// <param name="logger">Logger used for diagnostic output.</param>
-    public HealthMonitorClient(
+    public WorkerHealthMonitorService(
         string pipeName,
         string clientId,
-        ILogger<HealthMonitorClient> logger)
+        ILogger<WorkerHealthMonitorService> logger)
     {
         ArgumentNullException.ThrowIfNull(pipeName);
         ArgumentException.ThrowIfNullOrWhiteSpace(clientId);

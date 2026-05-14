@@ -3,12 +3,12 @@ namespace AutoContext.Framework.Tests.Hosting;
 using System.IO.Pipes;
 using System.Text;
 
-using AutoContext.Framework.Hosting;
+using AutoContext.Framework.Workers;
 using AutoContext.Framework.Tests.Testing.Utils;
 
 using Microsoft.Extensions.Logging.Abstractions;
 
-public sealed class HealthMonitorClientTests
+public sealed class WorkerHealthMonitorServiceTests
 {
     private static readonly UTF8Encoding Utf8NoBom = new(encoderShouldEmitUTF8Identifier: false);
 
@@ -92,8 +92,8 @@ public sealed class HealthMonitorClientTests
             $"Dispose took {sw.Elapsed.TotalSeconds:F2}s — expected < 6s.");
     }
 
-    private static HealthMonitorClient NewClient(string pipeName, string clientId) =>
-        new(pipeName, clientId, NullLogger<HealthMonitorClient>.Instance);
+    private static WorkerHealthMonitorService NewClient(string pipeName, string clientId) =>
+        new(pipeName, clientId, NullLogger<WorkerHealthMonitorService>.Instance);
 
     private static NamedPipeServerStream CreateServer(string pipeName) =>
         TestPipeServer.Create(pipeName, PipeDirection.In);

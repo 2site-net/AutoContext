@@ -571,6 +571,17 @@ host-supplied path threads into the engine for side-car lookup.
 
 ## Phase 0 — Framework restructure
 
+**Status**: In progress on branch `features/framework-restructure`.
+
+| # | Commit subject | State |
+|---|---|---|
+| 1 | `refactor(framework): split into pipes/logging/protocol/workers` | Staged, awaiting commit |
+| 2 | `refactor(mcp): fold IMcpTask into Framework.Workers` | Not started |
+| 3 | `refactor(workers): fold WorkerHostBuilderExtensions into Framework.Workers` | Not started |
+| 4 | `refactor(tests): split Framework.Tests across substrate projects` | Not started |
+| 5 | `refactor(ts): rename Framework.Web to Nodejs.Core` | Not started |
+| 6 | `docs(plan): correct Worker.Shared fold scope` | Not started |
+
 **Goal**: reshape the existing project graph into the four-project
 `Framework.*` substrate the rest of the rollout consumes, fold the
 two dead-weight projects (`Mcp.Abstractions`, `Worker.Shared`) into
@@ -672,6 +683,8 @@ build-tasks project is created in the phase that first uses it (see
 registration, or executable host.
 
 ## Phase 1 — Engine lifecycle substrate
+
+**Status**: Not started.
 
 **Goal**: engine binds the four pipes, performs the `Engine.Hello`
 handshake, manages its own idle/parent-pid/shutdown lifecycle, and
@@ -786,6 +799,8 @@ the `CrashWriter` it depends on is wired up here. Worker spawn
 (Phase 7).
 
 ## Phase 2 — Engine logging pipeline and cache housekeeping
+
+**Status**: Not started.
 
 Two equal-tier features land together because they share the
 per-instance subtree shape (both write under it) and the
@@ -970,6 +985,8 @@ code touch, not deferred work.
 
 ## Phase 3 — Config store
 
+**Status**: Not started.
+
 **Goal**: engine owns `.autocontext.json`. Reads are concurrent and
 lock-free; writes are single-writer with debounce + batch
 coalescing; cross-instance writes mediate through `FileShare.None` +
@@ -1025,6 +1042,8 @@ write.
 projection there).
 
 ## Phase 4 — Workspace detection
+
+**Status**: Not started.
 
 **Goal**: engine runs `Workspace.Detect` on startup against its
 own `--workspace` path, exposes the result via `Workspace.Detect` and
@@ -1092,6 +1111,8 @@ own `--workspace` path, exposes the result via `Workspace.Detect` and
 — consumes the same data but lives in its own service).
 
 ## Phase 5 — Instructions corpus build-time pipeline
+
+**Status**: Not started.
 
 **Goal**: a single build-time pass over `src/AutoContext.Engine/Instructions/`
 produces both `Resources/instructions-files.json` (wire shape) and
@@ -1169,6 +1190,8 @@ index in-memory at startup).
 
 ## Phase 6 — Instructions corpus runtime + projection
 
+**Status**: Not started.
+
 **Goal**: engine answers every `Instructions.*` RPC from in-memory
 snapshots, applies per-request projection (disabled rules filtered,
 `[INSTxxxx]` stripped, overrides resolved), invalidates cleanly via
@@ -1229,6 +1252,8 @@ MCP-tool dispatch (Phase 7).
 
 ## Phase 7 — MCP tool catalogue, dispatch, and worker manager
 
+**Status**: Not started.
+
 **Goal**: engine absorbs today's `AutoContext.Mcp.Server` worker
 dispatcher. `McpTools.List` and `McpTools.Invoke` answer over the
 `rpc` pipe; the MCP-server-only role over stdio comes in Phase 11.
@@ -1280,6 +1305,8 @@ manifests` (`workers.json`, `mcp-tools-registry.json`),
 reuses these same handlers).
 
 ## Phase 8 — Worker → engine logging integration
+
+**Status**: Not started.
 
 **Goal**: every `ILogger<T>` record a worker emits ships via
 `Engine.WriteLog` to the engine, gets routed by `category` prefix to
@@ -1336,6 +1363,8 @@ design.
 
 ## Phase 9 — Discovery
 
+**Status**: Not started.
+
 **Goal**: engine builds the *category → MCP tool* and *extension →
 instruction file* indices from already-owned state and answers
 `Discovery.RouteForPrompt` / `Discovery.RouteForTool`. The `.cjs`
@@ -1361,6 +1390,8 @@ hooks (Phase 15) stop carrying their own scan logic.
 **Out of scope**: hook integration (Phase 15).
 
 ## Phase 10 — Agent.* RPCs
+
+**Status**: Not started.
 
 **Goal**: engine accepts the agent-loop notifications hooks fire
 (`SubagentStarted`/`SubagentStopped`/`Compacted`/`ToolUsed`/`TurnEnded`)
@@ -1388,6 +1419,8 @@ shape), `§ P10` (cross-process fan-out).
 `Diagnostics.Run` consumer.
 
 ## Phase 11 — MCP-server-only role
+
+**Status**: Not started.
 
 **Goal**: `autocontext-engine --mcp-server with-stdio` runs the
 minimal stdio MCP server. No pipes, no registry entry, no
@@ -1435,6 +1468,8 @@ cleanly.
 extension's MCP server definition repointing (Phase 14).
 
 ## Phase 12 — `Client.Core` (CLI-as-library) and `EngineDaemonManager` (TS)
+
+**Status**: Not started.
 
 **Goal**: two independent deliverables that happen to land together
 because both first need the engine's wire surface from Phases 1–11.
@@ -1519,6 +1554,8 @@ consuming the client (Phase 15); CLI verb implementations
 
 ## Phase 13 — Distribution and packaging
 
+**Status**: Not started.
+
 **Goal**: `build.ps1 Package` emits per-RID engine staging under
 `out/engine/<rid>/...`; per-platform packaging (VSIX, plugin
 release, GitHub-release tarball) selects the matching RID and
@@ -1561,6 +1598,8 @@ step); existing extension still ships its TS-side instruction
 artefacts until Phase 14.
 
 ## Phase 14 — Extension migration
+
+**Status**: Not started.
 
 **Goal**: extension becomes a pure `EngineDaemonManager` consumer. The
 sideband pipe servers and the in-extension projection/config/corpus
@@ -1625,6 +1664,8 @@ LM tools dial the engine over the four pipes.
 
 ## Phase 15 — Agent-plugin hook migration
 
+**Status**: Not started.
+
 **Goal**: the agent-plugin hooks (today's `.cjs` scripts under
 `src/AutoContext.VsCode/plugin/hooks/`) call `EngineDaemonManager` for
 everything. SessionStart, UserPromptSubmit, PreCompact, and the
@@ -1667,6 +1708,8 @@ says hooks are host-agnostic — Claude Code, VS Code Copilot, future
 hosts).
 
 ## Phase 16 — `AutoContext.Mcp.Server` retirement
+
+**Status**: Not started.
 
 **Goal**: the standalone MCP-server project is gone. The MCP host
 servers manifest (`servers.json`) points at

@@ -1,7 +1,7 @@
 namespace AutoContext.Worker.Hosting;
 
-using AutoContext.Framework.Hosting;
 using AutoContext.Framework.Logging;
+using AutoContext.Framework.Protocol;
 using AutoContext.Framework.Workers;
 
 using Microsoft.Extensions.Configuration;
@@ -110,10 +110,10 @@ public static class WorkerHostBuilderExtensions
         // hosted-service contract handles startup/shutdown wiring; the
         // client is a no-op when --service health-monitor=... was not
         // supplied.
-        builder.Services.AddHostedService(sp => new HealthMonitorClient(
+        builder.Services.AddHostedService(sp => new WorkerHealthMonitorService(
             sp.GetRequiredService<IOptions<WorkerHostOptions>>().Value.HealthMonitorServiceAddress,
             workerId,
-            sp.GetRequiredService<ILogger<HealthMonitorClient>>()));
+            sp.GetRequiredService<ILogger<WorkerHealthMonitorService>>()));
 
         return builder;
     }
