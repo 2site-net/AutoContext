@@ -267,9 +267,11 @@ plans):
   `Engine.WriteLog` RPC). The rest is carry-over.
   (`AutoContext.Mcp.Abstractions` and `AutoContext.Worker.Shared` are
   folded into the four `AutoContext.Framework.*` projects as part of
-  this rollout — see Phase 0; `IMcpTask` and the worker-host extensions
-  move into `Framework.Workers/`, and the four engine-write-log files
-  move into `Framework.Logging/`.)
+  this rollout — see Phase 0; `IMcpTask` and
+  `WorkerHostBuilderExtensions` both move into `Framework.Workers/`.
+  The new `Engine.WriteLog`-side logger files land in
+  `Framework.Logging/` in the engine-rollout phases that introduce
+  them, not in Phase 0.)
 - `AutoContext.VsCode` and `AutoContext.Nodejs.Core` (shared TS
   substrate) —
   pure consumers of the engine's wire surface.
@@ -295,10 +297,10 @@ src/
   AutoContext.Framework.Logging/               # worker-side logger providers (wire envelope itself lives in Framework.Protocol/)
     AutoContext.Framework.Logging.csproj
     CorrelationScope.cs
-    AddEngineLoggerProvider.cs                 # folded in from Worker.Shared/Logging/
-    EngineLoggerProvider.cs                    # folded in from Worker.Shared/Logging/
-    EngineLogIngestRing.cs                     # folded in from Worker.Shared/Logging/ (bounded ring)
-    EngineWriteLogClient.cs                    # folded in from Worker.Shared/Logging/
+    AddEngineLoggerProvider.cs                 # new in engine rollout — wires the engine-side logger provider
+    EngineLoggerProvider.cs                    # new in engine rollout — `ILoggerProvider` that dials Engine.WriteLog
+    EngineLogIngestRing.cs                     # new in engine rollout — bounded ring buffering log records
+    EngineWriteLogClient.cs                    # new in engine rollout — typed client for the Engine.WriteLog RPC
     # Legacy sideband sink (dragged in Phase 0, deleted in Phase 8 once
     # Engine.WriteLog is the only worker→engine log path):
     PipeLogger.cs
@@ -579,8 +581,8 @@ host-supplied path threads into the engine for side-car lookup.
 | 2 | `refactor(mcp): fold IMcpTask into Framework.Workers` | Committed (`a83559b`) |
 | 3 | `refactor(workers): fold WorkerHostBuilderExtensions into Framework.Workers` | Committed (`1eae654`) |
 | 4 | `refactor(tests): split Framework.Tests across substrate projects` | Committed (`03e65a0`) |
-| 5 | `refactor(ts): rename Framework.Web to Nodejs.Core` | Committed (this commit) |
-| 6 | `docs(plan): correct Worker.Shared fold scope` | Not started |
+| 5 | `refactor(ts): rename Framework.Web to Nodejs.Core` | Committed (`ea397b1`) |
+| 6 | `docs(plan): correct Worker.Shared fold scope` | Committed (this commit) |
 
 **Goal**: reshape the existing project graph into the four-project
 `Framework.*` substrate the rest of the rollout consumes, fold the
@@ -627,7 +629,7 @@ build-tasks project is created in the phase that first uses it (see
     `Framework.Logging` + `Framework.Protocol`.
   - The empty `AutoContext.Framework` shell project is deleted
     once its files have been redistributed.
-- Rename the shared TS substrate project `AutoContext.Nodejs.Core` →
+- Rename the shared TS substrate project `AutoContext.Framework.Web` →
   `AutoContext.Nodejs.Core` (folder, `package.json` `name`, internal
   imports, every `tsconfig`/`vitest`/`build.ps1` path reference).
   The rename drops the `.Web` suffix — misleading because it
@@ -642,15 +644,10 @@ build-tasks project is created in the phase that first uses it (see
   - `AutoContext.Mcp.Abstractions` (one file: `IMcpTask.cs`) →
     `AutoContext.Framework.Workers/IMcpTask.cs`. Delete the
     `AutoContext.Mcp.Abstractions` project.
-  - `AutoContext.Worker.Shared` is split:
-    - `Hosting/WorkerHostBuilderExtensions.cs` →
-      `AutoContext.Framework.Workers/`.
-    - The four logging files (`AddEngineLoggerProvider`,
-      `EngineLoggerProvider`, `EngineLogIngestRing`,
-      `EngineWriteLogClient`) → `AutoContext.Framework.Logging/`
-      (joining the existing wire envelope + legacy
-      `PipeLoggerProvider`).
-    - Delete the `AutoContext.Worker.Shared` project.
+  - `AutoContext.Worker.Shared` (one file:
+    `Hosting/WorkerHostBuilderExtensions.cs`) →
+    `AutoContext.Framework.Workers/`. Delete the
+    `AutoContext.Worker.Shared` project.
   - Every `Worker.*` project drops its `Mcp.Abstractions` and
     `Worker.Shared` `<ProjectReference>`s and picks up
     `<ProjectReference>`s to all four `AutoContext.Framework.*`
