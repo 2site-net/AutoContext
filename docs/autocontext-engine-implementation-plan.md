@@ -575,8 +575,8 @@ host-supplied path threads into the engine for side-car lookup.
 
 | # | Commit subject | State |
 |---|---|---|
-| 1 | `refactor(framework): split into pipes/logging/protocol/workers` | Staged, awaiting commit |
-| 2 | `refactor(mcp): fold IMcpTask into Framework.Workers` | Not started |
+| 1 | `refactor(framework): split into pipes/logging/protocol/workers` | Committed (`af79c97`) |
+| 2 | `refactor(mcp): fold IMcpTask into Framework.Workers` | Committed (this commit) |
 | 3 | `refactor(workers): fold WorkerHostBuilderExtensions into Framework.Workers` | Not started |
 | 4 | `refactor(tests): split Framework.Tests across substrate projects` | Not started |
 | 5 | `refactor(ts): rename Framework.Web to Nodejs.Core` | Not started |

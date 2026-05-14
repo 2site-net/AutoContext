@@ -1,6 +1,5 @@
 <Solution>
   <Folder Name="/src/">
-    <Project Path="src/AutoContext.Mcp.Abstractions/AutoContext.Mcp.Abstractions.csproj" />
     <Project Path="src/AutoContext.Framework.Pipes/AutoContext.Framework.Pipes.csproj" />
     <Project Path="src/AutoContext.Framework.Logging/AutoContext.Framework.Logging.csproj" />
     <Project Path="src/AutoContext.Framework.Protocol/AutoContext.Framework.Protocol.csproj" />

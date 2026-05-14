@@ -3,7 +3,6 @@ namespace AutoContext.Framework.Tests.Workers;
 using System.IO.Pipes;
 using System.Text.Json;
 
-using AutoContext.Mcp;
 using AutoContext.Framework.Workers;
 using AutoContext.Framework.Pipes;
 using AutoContext.Framework.Tests.Testing.Fakes;

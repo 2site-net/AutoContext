@@ -1,6 +1,5 @@
 namespace AutoContext.Worker.Workspace;
 
-using AutoContext.Mcp;
 using AutoContext.Framework.Workers;
 using AutoContext.Worker.Hosting;
 using AutoContext.Worker.Workspace.Hosting;

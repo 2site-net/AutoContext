@@ -2,7 +2,7 @@ namespace AutoContext.Framework.Tests.Testing.Fakes;
 
 using System.Text.Json;
 
-using AutoContext.Mcp;
+using AutoContext.Framework.Workers;
 
 internal sealed class ThrowingTaskFake : IMcpTask
 {

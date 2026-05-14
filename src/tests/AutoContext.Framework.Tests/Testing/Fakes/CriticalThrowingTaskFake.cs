@@ -3,7 +3,7 @@ namespace AutoContext.Framework.Tests.Testing.Fakes;
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 
-using AutoContext.Mcp;
+using AutoContext.Framework.Workers;
 
 /// <summary>
 /// Throws a "critical" CLR exception (one that <c>WorkerTaskDispatcherService</c>

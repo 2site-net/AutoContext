@@ -2,7 +2,7 @@ namespace AutoContext.Worker.Testing;
 
 using System.Text.Json;
 
-using AutoContext.Mcp;
+using AutoContext.Framework.Workers;
 
 /// <summary>
 /// Test-only extensions over <see cref="IMcpTask"/> that let test code invoke

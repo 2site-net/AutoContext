@@ -1,9 +1,8 @@
 namespace AutoContext.Worker.DotNet;
 
-using AutoContext.Mcp;
+using AutoContext.Framework.Workers;
 using AutoContext.Worker.DotNet.Tasks.CSharp;
 using AutoContext.Worker.DotNet.Tasks.NuGet;
-using AutoContext.Framework.Workers;
 using AutoContext.Worker.Hosting;
 
 using Microsoft.Extensions.DependencyInjection;

@@ -1,4 +1,4 @@
-namespace AutoContext.Mcp;
+namespace AutoContext.Framework.Workers;
 
 using System.Text.Json;
 
