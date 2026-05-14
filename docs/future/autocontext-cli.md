@@ -235,7 +235,7 @@ What each verb does, on the wire:
   Clients that need per-change handling iterate `changes[]`;
   clients that only need a "something changed" signal can read the
   `revision` field. A `reloaded` lifecycle event resubscribes
-  against the new revision, and a `shuttingDown` event exits
+  against the new revision, and a `shutting-down` event exits
   cleanly with `130` (the SIGINT exit code) rather than treating
   the impending disconnect as an error.
 - **`workspace detect [<path>]`** → resolves `<path>` (or CWD) to a
@@ -502,7 +502,7 @@ For long-running verbs (`instructions watch`, `engine logs
 `events` pipe (see
 [autocontext-engine.md → Authority model](./autocontext-engine.md#authority-model-engine-owns-clients-cache)):
 `reloaded` events trigger a fresh `Instructions.Subscribe`
-resubscription against the new revision, and a `shuttingDown`
+resubscription against the new revision, and a `shutting-down`
 event is the CLI's cue to exit cleanly with the same exit code as
 a normal Ctrl-C (`130`) rather than treating the impending
 disconnect as an error.

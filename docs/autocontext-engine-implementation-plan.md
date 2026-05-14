@@ -677,7 +677,7 @@ participates in the shared liveness registry.
 - Corrupt-file recovery: an unparseable
   `engine-registry.json` is truncated and re-seeded by the next start.
 - `Engine.Shutdown` returns `{ accepted: true }` immediately, drains
-  `rpc`, emits `shuttingDown` on `events`, closes pipes, exits 0.
+  `rpc`, emits `shutting-down` on `events`, closes pipes, exits 0.
 - Integration: spawn the binary, dial each pipe, verify handshake +
   shutdown.
 

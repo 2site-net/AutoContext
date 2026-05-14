@@ -928,7 +928,7 @@ Consequences:
   forgotten `logs --follow` terminal or a polling monitor on
   `health` cannot prevent idle shutdown. When the gate fires while
   `health` or `logs` clients are still connected, the engine emits
-  `shuttingDown` on `events` (for any subscribers there), closes
+  `shutting-down` on `events` (for any subscribers there), closes
   all four pipes, and exits; passive observers see a clean EOF.
   **`--idle-timeout 0` disables this gate entirely** — the engine
   lives until an external lifecycle clamp fires (the
@@ -1404,7 +1404,7 @@ Semantics:
   `Process.GetProcessById(pid)` plus `WaitForExitAsync` on a
   background task tied to the engine's root `CancellationToken`
   (P8) and self-exits cleanly when that process vanishes — same
-  shutdown sequence as a SIGTERM (emit `shuttingDown` on `events`,
+  shutdown sequence as a SIGTERM (emit `shutting-down` on `events`,
   drain `rpc`, close all four pipes, run the shutdown
   housekeeping sweep). The intent is to clamp the engine's
   lifetime to the *spawner's* lifetime when `--idle-timeout 0`
@@ -1510,7 +1510,7 @@ way to set it.
   Returns `{ accepted: true }` immediately, then drives the same
   graceful sequence the SIGTERM path runs:
 
-  1. Emit `shuttingDown` on `events` so subscribers can detach
+  1. Emit `shutting-down` on `events` so subscribers can detach
      cleanly (same envelope shape as the idle-gate path emits).
   2. **Drain `rpc`.** In-flight handlers complete; new RPCs are
      refused with a discriminated `{ kind: "shutting-down" }`
@@ -2065,7 +2065,7 @@ small blemish that buys consistency on each surface.
   `(instanceId, revision)` pair),
   `reloading` (config or corpus reload in progress),
   `reloaded` (post-reload, with the new revision so clients
-  can invalidate caches), `shuttingDown` (idle timeout fired or
+  can invalidate caches), `shutting-down` (idle timeout fired or
   signal received, fixed grace period before the pipe closes).
   This is the authoritative channel for engine-owned lifecycle;
   clients respond by invalidating caches, refreshing UI, or
@@ -2258,7 +2258,81 @@ the transport choice. Workers therefore use `ILogger<T>` exactly
 as any other .NET service does, and the engine remains the single
 owner of the on-disk log file and the wire log stream.
 
-### Naming
+### Naming conventions
+
+The engine exposes several distinct vocabularies on the wire and at
+the seams — RPC method names, subscription event kinds, envelope
+discriminators, JSON field names, pipe names, MCP tool names, LM
+tool names, CLI verbs, log categories, manifest filenames. Each
+follows a fixed casing rule. The rules are chosen so a reader can
+identify *what kind of name* a token is from its shape alone, and
+so renaming any one of them is unambiguously a breaking-change
+protocol event.
+
+#### Casing rules (master table)
+
+| Vocabulary | Casing | Examples |
+|---|---|---|
+| RPC method names (engine pipe RPC) | Dotted PascalCase: `Namespace.Method`, or `Namespace.Subnamespace.Method` | `Config.ToggleFile`, `Instructions.SearchContent`, `Engine.Lifecycle.Subscribe` |
+| Subscription event-kind literals | **kebab-case** wire strings | `started`, `reloading`, `reloaded`, `shutting-down` |
+| Discriminated-envelope `kind` literals (P2) | **kebab-case** wire strings | `ok`, `disabled`, `not-found`, `tool-error`, `schema-error`, `shutting-down`, `evicted` |
+| JSON field names (requests, responses, envelope payloads) | camelCase | `instanceId`, `workspaceHash`, `revision`, `isError`, `applyTo`, `contentHash` |
+| Pipe names | lowercase, no separators | `rpc`, `events`, `health`, `logs` |
+| MCP tool names (stdio surface) | snake_case, one verb-noun (or noun-verb) pair | `instructions_list`, `analyze_csharp_code`, `read_editorconfig` |
+| VS Code LM tool names | snake_case, verb-first, fully self-describing | `list_autocontext_instructions_files`, `get_autocontext_instructions_file` |
+| CLI verbs | lowercase, space-separated `noun verb [args]` | `instructions list`, `config toggle`, `workspace info`, `engine logs` |
+| Log-category prefixes | Dotted; lowercase namespace, PascalCase tail when the tail mirrors an RPC name | `engine.rpc.Instructions.Get`, `engine.lifecycle`, `worker.dotnet.RoslynAnalyzer` |
+| Resource manifest filenames | kebab-case `.json` | `instructions-files.json`, `mcp-tools.json`, `mcp-tools-registry.json`, `workers.json` |
+| .NET internal classes / services | PascalCase (standard .NET identifier rules) | `AutoContextConfigStore`, `InstructionsCorpusService`, `WorkspaceContextDetector` |
+| Placeholder tokens in this doc | `<lowerCamelCase>` inside angle brackets | `<workspaceHash>`, `<instanceId>`, `<name>`, `<workerId>` — see [Identifier tokens](#identifier-tokens) |
+
+#### Cross-cutting rules
+
+- **One handler, up to four name shapes.** A capability has at most
+  four names — one per surface. For "list the instructions" that's
+  `Instructions.List` (RPC) ↔ `instructions list` (CLI) ↔
+  `instructions_list` (MCP) ↔ `list_autocontext_instructions_files`
+  (LM tool). All terminate at the same engine handler (P1); the
+  shape difference is per-surface convention, not a behavioural
+  distinction. See [Naming convention split](#lm-tool-surface-host-specific-registration-mcp-backed-handlers)
+  for the LM-tool / MCP / pipe-RPC table.
+- **PascalCase ↔ "thing you invoke"; lower-case ↔ "value the wire
+  emits".** A token that begins with an upper-case letter is an RPC
+  method name, a notification name, or a .NET identifier —
+  something with code behind it. A token that begins with a
+  lower-case letter is a wire literal — an event kind, an envelope
+  discriminator, a CLI noun, a log-prefix segment.
+- **Multi-word wire literals are kebab-case, never camelCase.**
+  Event kinds and envelope `kind` values are the same wire-literal
+  family; both use kebab-case for compounds (`shutting-down`,
+  `tool-error`, `not-found`). JSON *field* names stay camelCase
+  (`instanceId`, `isError`); the casing distinction marks "value"
+  vs "field" at a glance and prevents a renamer from accidentally
+  treating one as the other.
+- **RPC names do not appear in payload literals, and vice versa.**
+  `Engine.Lifecycle.reloaded` in prose is shorthand for "the
+  `reloaded` event kind emitted on the `Engine.Lifecycle.Subscribe`
+  stream"; the wire frame contains the RPC name once (on subscribe)
+  and the discriminator value once (per event), never a method
+  literally called `reloaded` on `Engine.Lifecycle`.
+- **CLI ↔ RPC ↔ MCP mapping is mostly mechanical.** A new RPC
+  `<Namespace>.<Method>` typically implies the matching CLI verb
+  (`<namespace> <method-kebab>`) and MCP tool
+  (`<namespace>_<method_snake>`). The CLI is allowed to collapse
+  RPC variants behind one verb when the variants differ only by
+  argument shape — `Config.ToggleFile` and `Config.ToggleRule` both
+  surface as `config toggle <file> [<ruleId>]`, with the rule form
+  selected by the presence of the positional `<ruleId>`. The MCP
+  and pipe-RPC surfaces never collapse this way; each variant keeps
+  its own name. Other documented exceptions (e.g. `Workspace.Info`
+  has no MCP equivalent) are noted at the variant's definition
+  site, not the default.
+- **Wire literals are stable; renaming is a protocol break.** Event
+  kinds, envelope `kind` values, pipe names, MCP tool names, and
+  CLI verbs are part of the contract subscribers depend on. Any
+  change is a breaking-change version bump.
+
+### Identifier tokens
 
 - **`<name>`** in `Instructions.{Get,GetRaw,Subscribe}` is the bundled
   file's stem (filename without `.instructions.md`), case-sensitive
@@ -2321,7 +2395,7 @@ consumer) are
     UI affordance but **must not** issue redundant content RPCs
     — the matching `reloaded` event will arrive with the new
     revision.
-  - On `shuttingDown`, the client stops accepting user actions
+  - On `shutting-down`, the client stops accepting user actions
     that would issue writes (toggles, override exports), drains
     any in-flight reads, and treats subsequent connect failures
     as "engine restarting, retry under the cold-start protocol"
