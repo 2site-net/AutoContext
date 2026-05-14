@@ -33,6 +33,36 @@ unrelated commit either.
 
 ## Open
 
+## Refresh `README.md` + `docs/architecture.md` for Phase 0 topology
+
+- **Found**: 2026-05-14 during Phase 0 commit #2 review (`refactor(mcp):
+  fold IMcpTask into Framework.Workers`).
+- **Severity**: doc.
+- **Location**:
+  - `README.md` ~L33 — Repository Structure block still lists
+    `src/AutoContext.Mcp.Abstractions/` as a real folder, and the
+    `src/AutoContext.Framework/` line still describes the pre-split
+    monolith (Pipes/Logging/Workers/Hosting all under one project).
+  - `docs/architecture.md` ~L474 — Projects section still bullets
+    `AutoContext.Mcp.Abstractions` as a live project, describes
+    `AutoContext.Framework` as a single project containing
+    `Pipes/Hosting/Logging/Workers`, and references the old
+    `HealthMonitorClient` instead of `WorkerHealthMonitorService`.
+- **Symptom**: both files describe the pre-Phase-0 topology. After
+  commits #1 (Framework split into four sub-projects + renames) and
+  #2 (Mcp.Abstractions folded into Framework.Workers), the prose is
+  factually wrong on which projects exist and what lives where.
+- **Fix shape**: rewrite the Repository Structure block in
+  `README.md` and the Projects section in `docs/architecture.md` to
+  reflect the post-Phase-0 project graph — `AutoContext.Framework.*`
+  sub-projects, no `Mcp.Abstractions`, current type names
+  (`WorkerHealthMonitorService` etc.). Keep the depth/tone consistent
+  with the surrounding prose; do not retrofit Phase 1+ topology.
+- **Lands**: Phase 0 commit #6 (`docs(plan): correct Worker.Shared
+  fold scope`) — widen its remit to cover both files — or a dedicated
+  `docs: refresh README + architecture for Phase 0 topology` commit
+  immediately after the Phase 0 ladder lands.
+
 ## Wire `ILogger` through `WorkerHealthMonitorService`
 
 - **Found**: 2026-05-14 during Phase 0 commit #1 review (file
