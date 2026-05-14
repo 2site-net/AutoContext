@@ -28,6 +28,16 @@
 - **Each phase compiles and tests green at its boundary** so a
   reviewer can cherry-pick the branch at any phase boundary and the
   full `.\build.ps1 Prepare` is green.
+- **Re-read the design before every phase.** Before opening a phase
+  branch, re-read the sections of
+  [`future/autocontext-engine.md`](./future/autocontext-engine.md)
+  that the phase cites (the `design §…` anchors in its header, plus
+  any subsections they cross-reference). The design doc evolves
+  between phases; an implementation that lines up with last week's
+  reading of it is not the same as one that lines up with the
+  current text. If the re-read surfaces a contradiction with the
+  plan, fix the design first, then update the plan, then implement —
+  never silently reconcile in code.
 - **Stage → review → fix → commit → next.** Same gate the
   centralized-MCP migration used (see
   `architecture-centralized-mcp.md` § Migration Phases). No phase
