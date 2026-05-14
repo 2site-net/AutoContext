@@ -108,6 +108,28 @@
   centralized-MCP migration used (see
   `architecture-centralized-mcp.md` § Migration Phases). No phase
   rolls into the next implicitly.
+- **One branch per phase, named for the deliverable, not the phase
+  number.** Use `features/<kebab-case-deliverable>` (e.g.
+  `features/framework-restructure`,
+  `features/engine-lifecycle-substrate`) — never
+  `phase/NN-anything`. Phase numbers are a today-only coordinate
+  that drifts when phases are split, merged, or reordered; the
+  branch name should still make sense a year later when someone is
+  reading `git log` cold. One phase = one branch = one PR, off the
+  previous phase's merge commit (or off `main` when the phases are
+  genuinely independent).
+- **Several focused commits per branch; no squash on merge.** A
+  phase rolls in as a sequence of small, behaviourally-coherent
+  commits (one per logical sub-step — e.g. project split, shim
+  removal, registration, rename), not one mega-commit. Hard rule:
+  every individual commit compiles green and passes its tests via
+  `.\build.ps1 Prepare`; if a split can't satisfy that, the split
+  is wrong, not the rule. Merge the PR with a merge commit or
+  "Rebase and merge", never "Squash and merge" — squashing destroys
+  the per-step bisect granularity that justified the focused
+  commits in the first place. PR title mirrors the branch's
+  deliverable as a Conventional Commits sentence (e.g.
+  `refactor(framework): split into pipes/logging/protocol/workers`).
 - **No versioning changes.** Version bumps are deliberate and
   user-driven (see `copilot-instructions.md` § Versioning). Phase
   branches do not touch `version.json`, `package.json`, or `.csproj`
