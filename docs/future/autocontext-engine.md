@@ -1190,6 +1190,59 @@ counter even though nothing changed semantically), and
 cross-engine amplification (a bulk action on engine A producing
 N FS events on every peer instead of one).
 
+### Batching policy
+
+The engine has **one batching direction: server → client**. Clients
+send one logical operation per RPC frame; the engine may coalesce
+multiple state changes into one server-streamed envelope when they
+come from the same snapshot swap. Defining the rule explicitly
+stops two failure modes: clients reinventing client-side batch RPC
+on top of the wire protocol, and event streams growing ad-hoc
+multi-event envelopes that subscribers can't reason about uniformly.
+
+- **No client-side batch RPC.** The engine does not expose a
+  JSON-RPC batch-array surface or a generic "multi-call" RPC.
+  One RPC frame = one method invocation = one response envelope
+  (P1, P2). The cost batch RPC traditionally amortises
+  — round-trip latency over a network transport — doesn't exist
+  on a same-machine named pipe; adding the wrapper would only
+  complicate the error model (all-or-nothing vs partial success,
+  per-element cancellation, what happens if one element is a
+  `*.Subscribe`) without buying performance.
+- **The natural "batch this" pressure is on state-mutating
+  writes**, and it is already handled server-side by the writer
+  micro-batch (see *Reload coalescing*). N back-to-back
+  `Config.Toggle*` calls produce **one** on-disk write, **one**
+  snapshot swap, and **one** fan-out envelope describing every
+  mutation — the client does not need to opt into batching, and
+  cannot opt out of it.
+- **Server-streamed batch envelopes are allowed only when the
+  events share one coalesced snapshot.** An envelope on
+  `*.Subscribe` MAY carry multiple discrete change entries if and
+  only if they were produced by one writer micro-batch or one
+  debounced reload — the same `revision` bump covers them all.
+  Streams whose events come from sources with no batching pressure
+  stay strictly one-event-per-envelope.
+
+Per-stream contract:
+
+| Stream | Source of events | Envelope shape | Batch? |
+|---|---|---|---|
+| `Config.Subscribe` | snapshot swaps | `{ revision, changes: [...] }` | yes |
+| `Instructions.Subscribe` | snapshot swaps (piggybacks on the same reload pipeline as `Config.Subscribe`) | `{ revision, changes: [...] }` | yes — same `revision`, same writer-mutex order |
+| `Engine.Lifecycle.Subscribe` | process transitions (`started`, `reloading`, `reloaded`, `shutting-down`) | one event per envelope | no |
+| `Agent.Events.Subscribe` | engine re-broadcast of the `Agent.*` notifications (`SubagentStarted`, `SubagentStopped`, `Compacted`, `ToolUsed`, `TurnEnded`) | one event per envelope | no |
+| `Logs.TailEngine` / `Logs.TailWorker` | log records | one record per frame | no |
+
+The `changes[]` array on the `Config.Subscribe` /
+`Instructions.Subscribe` shared envelope lists every mutation in
+writer-mutex order, **not** in semantic temporal order — clients
+must not infer causality from position (see *Reload coalescing*).
+For the non-batch streams, every event carries one discrete
+payload because each event is individually meaningful for UI
+rendering (lifecycle transitions, sub-agent activity) or audit
+(log records), and coalescing would defeat the consumer's purpose.
+
 ### Housekeeping
 
 The engine self-manages every on-disk artefact it produces, on a
@@ -1570,7 +1623,10 @@ way to set it.
 - **`Config.*`** — `Get`, `Subscribe`, `ToggleFile`, `ToggleRule`.
   The VS Code extension is the primary writer (UI toggles); other
   clients are typically subscribers. The engine is the only authority
-  for what is enabled / disabled.
+  for what is enabled / disabled. Clients do not issue batch RPC —
+  N back-to-back `Config.Toggle*` calls are coalesced server-side
+  into one snapshot swap and one fan-out envelope (see
+  [Batching policy](#batching-policy)).
 - **`Instructions.*`** — `List`, `Get(name)`, `GetAll`,
   `GetAlwaysAttached`, `GetRaw(name, opts?)`, `SearchContent(query, opts?)`,
   `Subscribe`. `List` returns identity rows; `Get` / `GetAll` /
