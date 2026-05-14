@@ -1,5 +1,5 @@
 import { vi } from 'vitest';
-import type { ChannelLogger } from 'autocontext-framework-web';
+import type { ChannelLogger } from 'autocontext-nodejs-core';
 
 /**
  * Returns a `ChannelLogger` whose level methods are all `vi.fn()` spies.

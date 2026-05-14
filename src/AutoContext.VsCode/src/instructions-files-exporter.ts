@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import type { InstructionsFileEntry } from './instructions-file-entry.js';
 import { instructionScheme } from './instructions-viewer-document-provider.js';
-import type { ChannelLogger } from 'autocontext-framework-web';
+import type { ChannelLogger } from 'autocontext-nodejs-core';
 
 export class InstructionsFilesExporter {
     constructor(

@@ -1,10 +1,10 @@
 import * as vscode from 'vscode';
 import { type Socket } from 'node:net';
-import { BoundPipeListener, LengthPrefixedFrameCodec, PipeListener } from 'autocontext-framework-web';
+import { BoundPipeListener, LengthPrefixedFrameCodec, PipeListener } from 'autocontext-nodejs-core';
 import { IdentifierFactory } from './identifier-factory.js';
 import type { ServerEntry } from './server-entry.js';
 import type { WorkerManager } from './worker-manager.js';
-import type { ChannelLogger } from 'autocontext-framework-web';
+import type { ChannelLogger } from 'autocontext-nodejs-core';
 
 /**
  * Wire shape of an `EnsureRunning` request received over the

@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import type { ChannelLogger } from 'autocontext-framework-web';
+import type { ChannelLogger } from 'autocontext-nodejs-core';
 import type { InstructionsFilesOverrideWatcher } from './instructions-files-override-watcher.js';
 import type { InstructionsFilesManager } from './instructions-files-manager.js';
 import type { InstructionsFileSectionsCache } from './instructions-file-sections-cache.js';

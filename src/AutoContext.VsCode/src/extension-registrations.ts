@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { join } from 'node:path';
-import { LogCategory } from 'autocontext-framework-web';
+import { LogCategory } from 'autocontext-nodejs-core';
 import { commandIds } from './ui-constants.js';
 import { AutoConfigurer } from './auto-configurer.js';
 import { instructionScheme } from './instructions-viewer-document-provider.js';

@@ -33,6 +33,38 @@ unrelated commit either.
 
 ## Open
 
+## Fix `mcp-tools-tree-view.test.ts` for the `mcpServerNode` root row
+
+- **Found**: 2026-05-14 during Phase 0 commit #5 smoke run
+  (`refactor(ts): rename Framework.Web to Nodejs.Core`).
+- **Severity**: bug (test-only — the failure is pre-existing on
+  `HEAD` `03e65a0`, unrelated to the rename).
+- **Location**:
+  - `src/AutoContext.VsCode/tests/smoke-tests/mcp-tools-tree-view.test.ts`
+    ~L6-L29 (and every other test in the suite that iterates `roots`
+    without filtering — L31, L48, L73, L88, L121, L150, L173).
+  - Drift root cause: `src/AutoContext.VsCode/src/mcp-tools-tree-provider.ts`
+    `getChildren(undefined)` now prepends an `mcpServerNode` (the
+    MCP server status row added by `7b9ffc7 feat(vscode): add MCP
+    server status row`), so the first root is no longer an
+    `mcpTopCategoryNode`.
+- **Symptom**: 2 failing assertions:
+  1. `should return root nodes from the tree view` — `roots.every(r =>
+     r.kind === 'mcpTopCategoryNode')` is false because the first
+     root is `mcpServerNode`.
+  2. `should contain sub-categories under top categories` — the
+     iteration hits the `mcpServerNode` root, asks for its children
+     (empty), and fails the "at least one sub-category" assertion.
+- **Fix shape**: in each smoke test, filter the roots collection
+  down to `mcpTopCategoryNode` entries before iterating
+  (`const topCategories = roots.filter(r => r.kind ===
+  'mcpTopCategoryNode')`), and assert that **every top-category root**
+  has kind `mcpTopCategoryNode` plus that exactly one `mcpServerNode`
+  is present (don't loosen the existing kind check — split it).
+- **Lands**: anytime — separate `fix(smoke-tests): account for
+  mcpServerNode tree root` commit on `features/framework-restructure`
+  or `main`, independent of Phase 0.
+
 ## Refresh `README.md` + `docs/architecture.md` for Phase 0 topology
 
 - **Found**: 2026-05-14 during Phase 0 commit #2 review (`refactor(mcp):

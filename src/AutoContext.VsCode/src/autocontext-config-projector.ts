@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import type { AutoContextConfigManager } from './autocontext-config-manager.js';
 import type { InstructionsFilesManifest } from './instructions-files-manifest.js';
 import type { McpToolsManifest } from './mcp-tools-manifest.js';
-import type { ChannelLogger } from 'autocontext-framework-web';
+import type { ChannelLogger } from 'autocontext-nodejs-core';
 
 export class AutoContextConfigProjector implements vscode.Disposable {
     private readonly disposables: vscode.Disposable[] = [];

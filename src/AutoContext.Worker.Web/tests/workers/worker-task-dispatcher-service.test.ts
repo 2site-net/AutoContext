@@ -6,9 +6,9 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { McpTask } from '#types/mcp-task.js';
 import { WorkerTaskDispatcherService } from '#src/workers/worker-task-dispatcher-service.js';
-import { LengthPrefixedFrameCodec, NullLogger } from 'autocontext-framework-web';
+import { LengthPrefixedFrameCodec, NullLogger } from 'autocontext-nodejs-core';
 import { CorrelationScope } from '#src/logging/correlation-scope.js';
-import type { LoggerFacade } from 'autocontext-framework-web';
+import type { LoggerFacade } from 'autocontext-nodejs-core';
 
 function makePipeName(): string {
     const id = randomUUID();

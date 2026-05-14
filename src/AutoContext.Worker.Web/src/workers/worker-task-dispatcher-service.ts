@@ -1,9 +1,9 @@
 import type { Socket } from 'node:net';
-import { LengthPrefixedFrameCodec, PipeListener, type BoundPipeListener } from 'autocontext-framework-web';
+import { LengthPrefixedFrameCodec, PipeListener, type BoundPipeListener } from 'autocontext-nodejs-core';
 import type { McpTask } from '#types/mcp-task.js';
 import type { WorkerHostOptions } from '#types/worker-host-options.js';
 import { CorrelationScope } from '../logging/correlation-scope.js';
-import type { LoggerFacade } from 'autocontext-framework-web';
+import type { LoggerFacade } from 'autocontext-nodejs-core';
 
 /**
  * The worker's task runner. Listens on a named pipe for task requests

@@ -1,7 +1,7 @@
-// AutoContext.Framework.Web — shared TypeScript infrastructure for VS
+// AutoContext.Nodejs.Core — shared TypeScript infrastructure for VS
 // Code and Node-based AutoContext components. Re-exports the public
 // surface of the package so consumers can import directly from
-// `autocontext-framework-web`.
+// `autocontext-nodejs-core`.
 
 export type { ChannelLogger } from './logging/channel-logger.js';
 export { LogCategory } from './logging/log-category.js';

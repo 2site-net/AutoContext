@@ -1,10 +1,10 @@
 import * as vscode from 'vscode';
 import { type Socket } from 'node:net';
 import { createInterface } from 'node:readline';
-import { BoundPipeListener, PipeListener } from 'autocontext-framework-web';
+import { BoundPipeListener, PipeListener } from 'autocontext-nodejs-core';
 import { IdentifierFactory } from './identifier-factory.js';
 import { NameFormatter } from './name-formatter.js';
-import type { ChannelLogger } from 'autocontext-framework-web';
+import type { ChannelLogger } from 'autocontext-nodejs-core';
 
 /**
  * Wire shape of the greeting line every worker emits as the first

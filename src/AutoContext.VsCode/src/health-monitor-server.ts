@@ -1,8 +1,8 @@
 import * as vscode from 'vscode';
 import { type Socket } from 'node:net';
-import { BoundPipeListener, PipeListener } from 'autocontext-framework-web';
+import { BoundPipeListener, PipeListener } from 'autocontext-nodejs-core';
 import { IdentifierFactory } from './identifier-factory.js';
-import type { ChannelLogger } from 'autocontext-framework-web';
+import type { ChannelLogger } from 'autocontext-nodejs-core';
 
 /**
  * Monitors MCP worker and server health via a named pipe.

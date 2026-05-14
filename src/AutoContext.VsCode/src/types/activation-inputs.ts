@@ -1,5 +1,5 @@
 import type * as vscode from 'vscode';
-import type { ChannelLogger } from 'autocontext-framework-web';
+import type { ChannelLogger } from 'autocontext-nodejs-core';
 import type { ExtensionGraph } from '../extension-composition.js';
 
 /**

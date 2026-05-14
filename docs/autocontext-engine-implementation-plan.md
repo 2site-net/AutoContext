@@ -578,8 +578,8 @@ host-supplied path threads into the engine for side-car lookup.
 | 1 | `refactor(framework): split into pipes/logging/protocol/workers` | Committed (`af79c97`) |
 | 2 | `refactor(mcp): fold IMcpTask into Framework.Workers` | Committed (`a83559b`) |
 | 3 | `refactor(workers): fold WorkerHostBuilderExtensions into Framework.Workers` | Committed (`1eae654`) |
-| 4 | `refactor(tests): split Framework.Tests across substrate projects` | Committed (this commit) |
-| 5 | `refactor(ts): rename Framework.Web to Nodejs.Core` | Not started |
+| 4 | `refactor(tests): split Framework.Tests across substrate projects` | Committed (`03e65a0`) |
+| 5 | `refactor(ts): rename Framework.Web to Nodejs.Core` | Committed (this commit) |
 | 6 | `docs(plan): correct Worker.Shared fold scope` | Not started |
 
 **Goal**: reshape the existing project graph into the four-project
@@ -627,7 +627,7 @@ build-tasks project is created in the phase that first uses it (see
     `Framework.Logging` + `Framework.Protocol`.
   - The empty `AutoContext.Framework` shell project is deleted
     once its files have been redistributed.
-- Rename the shared TS substrate project `AutoContext.Framework.Web` →
+- Rename the shared TS substrate project `AutoContext.Nodejs.Core` →
   `AutoContext.Nodejs.Core` (folder, `package.json` `name`, internal
   imports, every `tsconfig`/`vitest`/`build.ps1` path reference).
   The rename drops the `.Web` suffix — misleading because it
@@ -1529,7 +1529,7 @@ share the engine's wire contract.
   process for the lifetime of the host.
 - TS pipe-client substrate lives in
   `AutoContext.Nodejs.Core/src/pipes/` (today's location
-  `AutoContext.Framework.Web/src/pipes/`, moved as part of the
+  `AutoContext.Nodejs.Core/src/pipes/`, moved as part of the
   Phase 0 rename); extended where the four-pipe shape needs it.
 
 **Tests**:

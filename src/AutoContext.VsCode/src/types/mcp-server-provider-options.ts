@@ -2,7 +2,7 @@ import type * as vscode from 'vscode';
 import type { McpToolsManifest } from '../mcp-tools-manifest.js';
 import type { ServersManifest } from '../servers-manifest.js';
 import type { AutoContextConfigManager } from '../autocontext-config-manager.js';
-import type { ChannelLogger } from 'autocontext-framework-web';
+import type { ChannelLogger } from 'autocontext-nodejs-core';
 
 /**
  * Construction options for `McpServerProvider`.

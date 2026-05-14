@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { existsSync } from 'node:fs';
 import { join, normalize } from 'node:path';
-import type { ChannelLogger } from 'autocontext-framework-web';
+import type { ChannelLogger } from 'autocontext-nodejs-core';
 
 /**
  * Subfolder (relative to the extension root) that holds the bundled

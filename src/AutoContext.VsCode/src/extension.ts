@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { EXTENSION_NAME } from './ui-constants.js';
 import { OutputChannelLogger } from './output-channel-logger.js';
 import { IdentifierFactory } from './identifier-factory.js';
-import { LogCategory } from 'autocontext-framework-web';
+import { LogCategory } from 'autocontext-nodejs-core';
 import { ExtensionComposer } from './extension-composition.js';
 import { ExtensionRegistrar } from './extension-registrations.js';
 import { ExtensionActivator } from './extension-activation.js';

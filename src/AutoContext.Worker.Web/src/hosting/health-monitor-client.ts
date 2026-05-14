@@ -1,6 +1,6 @@
-import { PipeKeepAliveClient, PipeTransport } from 'autocontext-framework-web';
+import { PipeKeepAliveClient, PipeTransport } from 'autocontext-nodejs-core';
 
-import type { LoggerFacade } from 'autocontext-framework-web';
+import type { LoggerFacade } from 'autocontext-nodejs-core';
 
 /**
  * Background pipe-client that announces this worker's identity to the

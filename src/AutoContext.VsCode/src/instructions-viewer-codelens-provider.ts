@@ -7,7 +7,7 @@ import type { AutoContextConfigManager } from './autocontext-config-manager.js';
 import type { WorkspaceContextDetector } from './workspace-context-detector.js';
 import type { InstructionsFilesOverrideWatcher } from './instructions-files-override-watcher.js';
 import { commandIds } from './ui-constants.js';
-import type { ChannelLogger } from 'autocontext-framework-web';
+import type { ChannelLogger } from 'autocontext-nodejs-core';
 import type { InstructionsViewerCodeLensProviderOptions } from '#types/instructions-viewer-codelens-provider-options.js';
 
 export class InstructionsViewerCodeLensProvider implements vscode.CodeLensProvider, vscode.Disposable {

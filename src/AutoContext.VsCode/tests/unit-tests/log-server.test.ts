@@ -4,7 +4,7 @@ import { LogServer } from '#src/log-server';
 import { createFakeLogger } from '#testing/fakes';
 import { pipePath } from '#testing/utils/pipe-helpers';
 import { waitFor } from '#testing/utils/wait-for';
-import type { ChannelLogger } from 'autocontext-framework-web';
+import type { ChannelLogger } from 'autocontext-nodejs-core';
 
 /**
  * Connects to the LogServer pipe, sends the greeting + an arbitrary
