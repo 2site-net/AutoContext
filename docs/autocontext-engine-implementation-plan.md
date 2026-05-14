@@ -20,6 +20,60 @@
   `Worker.*` shape for new worker projects and the `Framework.Testing`
   shape for shared .NET test harness code, the
   `Nodejs.Core` shape for new TS code.
+- **API hygiene by default.** Across every ctor, method, and
+  function signature the engine introduces:
+  - **Parameter order is intentional, not incidental.** Arrange
+    arguments by the role they play for the call site — required
+    before optional, identity / context first, the primary subject
+    next, collaborators after, behaviour-shaping flags or
+    `CancellationToken` last — and stay consistent with sibling
+    APIs on the same type. Drive-by reordering across the
+    codebase is not allowed; the order chosen when a member is
+    introduced is the contract. `CancellationToken` parameters are
+    always named `cancellationToken` in full — never `ct`,
+    `cancelToken`, or `token` — so call sites read uniformly
+    across every project and signatures stay grep-friendly.
+  - **Validate required ctor and method parameters at the boundary.**
+    Every required reference parameter is null-checked (and
+    range/format-checked where meaningful) before the body
+    executes — `ArgumentNullException.ThrowIfNull` (C#) or an
+    explicit guard / parsed type (TS). No "defensive deep inside"
+    re-validation; one guard at the public surface.
+  - **Optional parameters mean genuinely optional.** A parameter
+    is `optional` / has a default only when omitting it produces
+    well-defined, useful behaviour distinct from passing the
+    default explicitly. "Convenience" defaults that paper over
+    missing information do not ship; require the caller to be
+    explicit and let the type system carry the intent.
+  - **Names are readable, not short.** Types, members, locals, and
+    parameters are named for the role they play in their context
+    — `instructionsCorpusSnapshot` over `corpus`, `pendingReload`
+    over `pr`, `workspaceHash` over `wh`. Favour the longer name
+    that reads correctly out loud and that a reviewer can reason
+    about without opening the call site. Cryptic abbreviations,
+    one- or two-letter identifiers, and Hungarian prefixes are
+    rejected at review; well-established domain terms
+    (`rpc`, `mcp`, `uri`, `json`) stay as-is.
+  - **Member order follows StyleCop.** Within every C# type,
+    members appear in StyleCop SA1201 order — fields,
+    constructors, finalizer, delegates, events, enums, interfaces,
+    properties, indexers, methods (including operators and
+    conversion operators), then nested types — and within each
+    group access goes `public` → `internal` → `protected internal`
+    → `protected` → `private protected` → `private` (SA1202),
+    with `static` before instance (SA1204). New members slot into
+    the correct group rather than being appended; reorder in a
+    separate, clearly-scoped commit when an existing file drifts.
+- **Logging is a feature, not a courtesy.** Every phase treats
+  structured logging as a first-class deliverable of the code it
+  introduces, not as a debug-only afterthought. Engine, worker, and
+  client code log lifecycle transitions, every RPC handled and
+  every envelope kind returned, every snapshot swap and revision
+  bump, every subscriber attach / evict, and every error path — at
+  appropriate levels, through the unified logging pipeline
+  (`design § Engine logging` and the TS / .NET logger sharing
+  contract). A phase that adds behaviour without adding the
+  corresponding log surface is incomplete.
 - **Tests every phase, not "a test phase".** Every phase ships with
   unit tests against the new code. Phases that cross a process
   boundary also ship integration tests (engine spawned via
