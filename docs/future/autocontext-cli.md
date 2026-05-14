@@ -63,9 +63,9 @@ wire* below.
 | `instructions get <name>` | `Instructions.Get` / `Instructions.GetRaw` | Print one instruction file's body. Default is the projected view the agents see (tags stripped, disabled rules filtered, override preferred); `--raw` returns the on-disk bytes from the source selected by `--source`. |
 | `instructions search <query>` | `Instructions.SearchContent` | Full-text search across the projected instruction corpus; returns ranked matches with section anchors and excerpts. |
 | `instructions toggle <name> [<ruleId>]` | `Config.ToggleFile` / `Config.ToggleRule` | Same as `config toggle`, but keyed by instruction name instead of file path. |
-| `instructions watch` | `Instructions.Subscribe` + `Engine.Lifecycle.Subscribe` | Stream change envelopes as JSONL on stdout until Ctrl-C — each envelope carries the engine's current `generation` and a `changes[]` list. |
+| `instructions watch` | `Instructions.Subscribe` + `Engine.Lifecycle.Subscribe` | Stream change envelopes as JSONL on stdout until Ctrl-C — each envelope carries the engine's current `revision` and a `changes[]` list. |
 | `workspace detect [<path>]` | `Workspace.Detect` | Resolve a path (or CWD) to a normalised workspace and print the engine's detection result (workspace kind, root, indicators). |
-| `workspace info` | `Workspace.Info` | Print engine-process metadata for the resolved workspace — engine version, generation counter, idle-timeout state. |
+| `workspace info` | `Workspace.Info` | Print engine-process metadata for the resolved workspace — engine version, `(instanceId, revision)` pair, idle-timeout state. |
 | `mcp list` | `McpTools.List` | List the MCP tools the engine would advertise to an MCP host, filtered by the same disabled-tools / disabled-tasks state. |
 | `mcp invoke <tool> --args <json>` | `McpTools.Invoke` | Invoke one MCP tool through the same handler the engine's MCP-server-only role uses for `tools/call`. |
 | `route "<prompt>"` | `Discovery.RouteForPrompt` | Print the routing signal the Anthropic plugin's `UserPromptSubmit` hook consumes — matched categories, extensions, strongly-relevant tools and instruction files. |
@@ -229,13 +229,13 @@ What each verb does, on the wire:
 - **`instructions watch`** → `Instructions.Subscribe` on `rpc` plus
   `Engine.Lifecycle.Subscribe` on `events`. Streams JSONL on stdout,
   one envelope per line: each envelope carries the engine's current
-  `generation` plus a `changes[]` array listing every mutation in
+  `revision` plus a `changes[]` array listing every mutation in
   the batch (writer-mutex order, **not** a temporal claim — see
   [autocontext-engine.md → Reload coalescing](./autocontext-engine.md#reload-coalescing-debounce-and-batch)).
   Clients that need per-change handling iterate `changes[]`;
   clients that only need a "something changed" signal can read the
-  `generation` field. A `reloaded` lifecycle event resubscribes
-  against the new generation, and a `shuttingDown` event exits
+  `revision` field. A `reloaded` lifecycle event resubscribes
+  against the new revision, and a `shuttingDown` event exits
   cleanly with `130` (the SIGINT exit code) rather than treating
   the impending disconnect as an error.
 - **`workspace detect [<path>]`** → resolves `<path>` (or CWD) to a
@@ -247,8 +247,9 @@ What each verb does, on the wire:
   against an existing engine" mode. See
   [autocontext-engine.md → Process scoping](./autocontext-engine.md#process-scoping-one-engine-per-launcher-instance-per-workspace).
 - **`workspace info`** → `Workspace.Info`. Engine-process metadata
-  (resolved workspace path, engine version, generation counter,
-  idle-timeout state) for the engine the CLI just dialled.
+  (resolved workspace path, engine version,
+  `(instanceId, revision)` pair, idle-timeout state) for the
+  engine the CLI just dialled.
 - **`mcp list`** → `McpTools.List`. The catalogue of MCP tools the
   engine would advertise to an MCP client, filtered by the same
   `disabledTools` / `disabledTasks` state the engine applies on its
@@ -501,7 +502,7 @@ For long-running verbs (`instructions watch`, `engine logs
 `events` pipe (see
 [autocontext-engine.md → Authority model](./autocontext-engine.md#authority-model-engine-owns-clients-cache)):
 `reloaded` events trigger a fresh `Instructions.Subscribe`
-resubscription against the new generation, and a `shuttingDown`
+resubscription against the new revision, and a `shuttingDown`
 event is the CLI's cue to exit cleanly with the same exit code as
 a normal Ctrl-C (`130`) rather than treating the impending
 disconnect as an error.
@@ -737,7 +738,7 @@ and output formatting on top.
   cross-engine read-after-write, subscribe to
   `Engine.Lifecycle.reloaded` (via `instructions watch` or the
   library's `Lifecycle.Subscribe`) on engine B and wait for the
-  generation to advance past the snapshot the toggle published.
+  revision to advance past the snapshot the toggle published.
   No CLI verb promises cross-engine read-after-write today; the
   engine doc's
   [Process scoping](./autocontext-engine.md#process-scoping-one-engine-per-launcher-instance-per-workspace)

@@ -898,11 +898,11 @@ write.
 - Deep-equal short-circuit (self-write suppressor): post-debounce
   parse compared by content hash against the current snapshot's
   source hash; equality skips the swap, the fan-out, and the
-  generation bump.
+  revision bump.
 - Writer mutex (`SemaphoreSlim`, P9). Writer-side micro-batch window
   (~5–10 ms) folds queued `Config.Toggle*` calls into one
   on-disk write, one snapshot swap, one fan-out envelope of shape
-  `{ generation, changes: [...] }`.
+  `{ revision, changes: [...] }`.
 - `Config.Get`, `Config.Subscribe`, `Config.ToggleFile`,
   `Config.ToggleRule` handlers.
 - Snapshot-on-subscribe (P6) — every new subscriber receives the
@@ -914,7 +914,7 @@ write.
 - In-place truncating-save burst also coalesces to one fan-out.
 - Local writer-side batch: three back-to-back
   `Config.Toggle*` calls produce one batch envelope with
-  `changes.length == 3` in writer-mutex order; generation increments
+  `changes.length == 3` in writer-mutex order; revision increments
   once.
 - Self-write suppressor: local toggle produces exactly one fan-out
   (writer's), not two (writer + watcher echo).
@@ -1398,7 +1398,7 @@ share the engine's wire contract.
   client retries within the connect budget, handshake succeeds.
 - Warm reuse: two clients of the same launcher (same `--instance-id`)
   see one engine.
-- `*.Subscribe` streams: snapshot-on-subscribe, generation counter,
+- `*.Subscribe` streams: snapshot-on-subscribe, revision counter,
   late-subscriber correctness.
 - Slow-subscriber on the client side disconnects with `evicted`
   rather than back-pressuring the engine.

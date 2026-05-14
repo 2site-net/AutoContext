@@ -698,7 +698,7 @@ Consequences:
     edits at the watcher boundary — same inode-change event,
     same reload path, same atomic snapshot-pointer swap (P9),
     same `Config.Subscribe` fan-out, same `Instructions.*`
-    `disabled`-flag re-evaluation, same generation-counter
+    `disabled`-flag re-evaluation, same revision-counter
     bump on `Engine.Lifecycle.reloaded`. No code path is
     conditioned on whether the change originated locally or
     remotely; the watcher is the universal ingress for
@@ -913,7 +913,7 @@ Consequences:
   diagnostic dialled by a hook script with the same instance UUID)
   connect to the existing engine's pipes. State is consistent
   across all of them — the four pipes share one engine process,
-  one in-memory state store, one generation counter. A *different*
+  one in-memory state store, one revision counter. A *different*
   launcher (a second VS Code window on the same workspace, a
   parallel Claude Code session) starts its own engine and gets its
   own in-memory state; the only state they share is what lives on
@@ -981,12 +981,61 @@ Consequences:
   `--mcp-server` is set; the daemon role does not register any
   MCP transport and leaves its own stdin/stdout untouched.
 
+### Revision counter
+
+The engine tags every published state snapshot with a
+**revision counter** — a monotonically increasing integer that
+serves as the cache-invalidation key clients use to answer "is
+my view current?" without diffing payloads.
+
+- **Type and range.** `long` (64-bit signed) on the wire and in
+  the engine's in-memory state. Picked over `int` to remove
+  overflow from the failure surface entirely: at the writer
+  micro-batch ceiling of ~100 bumps/second (see *Reload
+  coalescing* below) a `long` outlasts the universe; a 32-bit
+  counter would overflow in ~243 days of nonstop hostile
+  toggling. The 4-byte saving is not worth the wrap-comparison
+  complexity it would otherwise force on every comparison site.
+- **Per-instance, resets on every spawn.** The counter is held
+  in memory only; it starts at 0 when the engine process
+  starts and dies with the process. There is no persistence
+  across restarts — a client that cached "revision 42"
+  yesterday will see "revision 3" today and **must not** treat
+  3 as older than 42.
+- **Cross-restart dedup uses `(instanceId, revision)` as a
+  compound key.** The `<instanceId>` segment (P4 — fresh UUID
+  per spawn) names *which* engine emitted the revision; the
+  revision orders snapshots *within* that engine. Clients
+  compare revisions only when the `instanceId` matches; a
+  different `instanceId` means "different engine, throw the
+  cache out wholesale." `Engine.Lifecycle.Subscribe` emits a
+  `started` event carrying the current `(instanceId, revision)`
+  pair on every fresh subscribe, which is the signal clients
+  use to detect "the engine you remember is gone; here's the
+  new identity."
+- **What it counts.** *Snapshot swaps*, not change events.
+  The counter increments once per atomic snapshot-pointer
+  swap — once per coalesced writer batch, once per reload
+  that produced a non-equal snapshot, never on a deep-equal
+  no-op reload (see *Reload coalescing* below).
+- **Where it rides on the wire.** State-bearing reads
+  (`Config.Get`, `Workspace.Info`), state-change broadcasts
+  (`Config.Subscribe`, `Instructions.Subscribe`,
+  `Engine.Lifecycle.reloaded`), and the writes that
+  produce new snapshots (`Config.ToggleFile` /
+  `Config.ToggleRule` replies) all carry it. Surfaces that
+  don't reflect snapshot state — logs (`LogRecord`,
+  `Engine.WriteLog`, `Logs.*`), the `Engine.Hello` handshake,
+  `McpTools.Invoke`, `Workspace.Detect`, `Discovery.*`,
+  `Agent.*` fire-and-forget notifications, lifecycle acks
+  (`Engine.Shutdown` reply) — do not carry it.
+
 ### Reload coalescing: debounce and batch
 
 The engine's reload pipeline (re-read `.autocontext.json`, rebuild
 the immutable snapshot, atomic pointer swap, fan out
 `Config.Subscribe` plus dependent `Instructions.*` deltas, bump
-the generation counter on `Engine.Lifecycle.reloaded`) is **the
+the revision counter on `Engine.Lifecycle.reloaded`) is **the
 single ingress** for every state change. Both in-process writes
 (`Config.ToggleFile`, `Config.ToggleRule`) and out-of-process
 mutations (peer engines, the JSON editor, `git pull`, scripts)
@@ -1003,7 +1052,7 @@ is optional and they solve different problems.
   logical edit can land as 1 event on macOS, 3 on Windows, and
   5 under WSL forwarding. Without coalescing the engine reloads
   N times for one toggle, fans out N redundant snapshots, and
-  bumps the generation counter N times — clients re-render
+  bumps the revision counter N times — clients re-render
   flickeringly and smoke tests turn racy. Shape:
   - **Trailing-edge debounce per watched resource.** The
     watcher callback resets a per-resource timer and does
@@ -1041,7 +1090,7 @@ is optional and they solve different problems.
     fan-out — nothing to publish. The fast path is a content
     hash of the source bytes against the hash the current
     snapshot was built from; the slow path is a deep-equal
-    walk of the parsed config. The generation counter is
+    walk of the parsed config. The revision counter is
     **not** bumped on a no-op reload; bumping it would
     falsely invalidate every client's cache for a benign
     disk touch. Crucially, this rule **is** the self-write
@@ -1082,12 +1131,12 @@ is optional and they solve different problems.
     them into the same snapshot before flushing to disk.
     One on-disk write, one snapshot swap, one fan-out frame.
   - **`Config.Subscribe` carries the batch as one envelope.**
-    The wire shape is `{ generation, changes: [...] }`
+    The wire shape is `{ revision, changes: [...] }`
     where `changes[]` lists every mutation in writer-mutex
-    order; the generation counter increments once per batch,
+    order; the revision counter increments once per batch,
     not once per change. Clients that need to react
     per-change iterate `changes[]`; clients that just need
-    "something changed" check the generation counter. Order
+    "something changed" check the revision counter. Order
     within `changes[]` is writer-mutex order, *not* a
     semantic temporal claim — clients must not infer
     causality from position.
@@ -1136,7 +1185,7 @@ Failure modes the rules prevent: re-render flicker on every
 external save (`N` watcher events → `N` re-renders), runaway
 self-fan-out on local toggles (writer → watcher → writer-shaped
 reload → watcher again), spurious cache-invalidation on benign
-disk touches (a formatter rewrite incrementing the generation
+disk touches (a formatter rewrite incrementing the revision
 counter even though nothing changed semantically), and
 cross-engine amplification (a bulk action on engine A producing
 N FS events on every peer instead of one).
@@ -1615,7 +1664,7 @@ way to set it.
   the index into the engine (a) eliminates that startup cost,
   (b) keeps the index hot across queries, (c) tracks invalidation
   naturally via `Instructions.Subscribe` and the corpus reload
-  generation counter, and (d) gives every other client — CLI,
+  revision counter, and (d) gives every other client — CLI,
   future JetBrains / Neovim shells — the same search without each
   re-implementing it. The response shape matches today's LM-tool
   output:
@@ -1816,8 +1865,9 @@ way to set it.
   would never differentiate them by file extension anyway.
 
   **`Info`** returns engine-process metadata (workspace path,
-  engine version, generation counter, idle-timeout state) for
-  diagnostics; it does not duplicate the `Detect` payload.
+  engine version, `(instanceId, revision)` pair, idle-timeout
+  state) for diagnostics; it does not duplicate the `Detect`
+  payload.
 - **`McpTools.*`** — `List`, `Invoke`. `List` surfaces the engine's
   MCP tool catalogue (filtered by the same `disabledTools` /
   `disabledTasks` state) for hosts that want to introspect what the
@@ -2011,9 +2061,10 @@ model of which tool to ask for; keeping all three name shapes is the
 small blemish that buys consistency on each surface.
 - **`Engine.Lifecycle`** — `Subscribe`. Streams engine-lifecycle
   events to every connected client: `started` (sent immediately on
-  subscribe so clients always know the current generation),
+  subscribe so clients always know the current
+  `(instanceId, revision)` pair),
   `reloading` (config or corpus reload in progress),
-  `reloaded` (post-reload, with a generation counter so clients
+  `reloaded` (post-reload, with the new revision so clients
   can invalidate caches), `shuttingDown` (idle timeout fired or
   signal received, fixed grace period before the pipe closes).
   This is the authoritative channel for engine-owned lifecycle;
@@ -2261,14 +2312,15 @@ consumer) are
   to `Engine.Lifecycle` early (right after `Engine.Hello`) and
   treat its events as authoritative process-state transitions.
   In particular:
-  - On `started` / generation change, the client invalidates
+  - On `started` / revision change, the client invalidates
     every host-local cache (the engine may have hot-reloaded
-    config or restarted; generation counters distinguish the
-    two).
+    config or restarted; a fresh `instanceId` distinguishes a
+    restart from an in-process reload, and the revision orders
+    snapshots within one engine instance).
   - On `reloading`, the client may show a transient "refreshing"
     UI affordance but **must not** issue redundant content RPCs
     — the matching `reloaded` event will arrive with the new
-    generation.
+    revision.
   - On `shuttingDown`, the client stops accepting user actions
     that would issue writes (toggles, override exports), drains
     any in-flight reads, and treats subsequent connect failures
@@ -2647,9 +2699,12 @@ same shape (`Config.Subscribe`, `Instructions.Subscribe`,
 - **Server-streaming**, one channel per topic.
 - **Emits a current-state snapshot on subscribe** so a late subscriber
   never has to ask "what's the current value?" separately.
-- **Carries a generation counter** wherever cache invalidation
+- **Carries a revision counter** wherever cache invalidation
   matters; clients invalidate on counter change without diffing
-  payloads.
+  payloads. Revisions are per-engine-instance and reset on
+  spawn — clients compare them only when the snapshot's
+  `instanceId` matches (see the *Revision counter* subsection
+  for the full contract).
 - **Lossless within a live subscription, rehydrated on reconnect.**
   The pipe transport delivers in-order while the subscription is
   live; clients that disconnect and reconnect rely on the
@@ -2769,7 +2824,7 @@ write, and never lets a corpus reload tear a read in flight.
     rebuilding `InstructionsContentIndex`, recomputing
     projection) run on one in-process reloader that builds the
     next snapshot off the read path, then atomically swaps the
-    snapshot pointer and increments the generation counter.
+    snapshot pointer and increments the revision counter.
     Readers in flight against the previous snapshot finish
     against it; readers arriving after the swap see the new
     snapshot. There is no half-applied state on either side of
@@ -2778,8 +2833,10 @@ write, and never lets a corpus reload tear a read in flight.
   (config view, corpus projection, content index, MCP-tool
   catalogue, `Workspace.Detect` result) is a frozen value: no
   field on a published snapshot is ever mutated in place. The
-  generation counter on `Engine.Lifecycle.reloaded` is the only
-  invalidation signal clients need.
+  revision counter on `Engine.Lifecycle.reloaded` is the only
+  invalidation signal clients need (paired with `instanceId`
+  for cross-restart dedup — see the *Revision counter*
+  subsection).
 - **Subscription fan-out is non-blocking and bounded per
   subscriber.** Tightens P6: every `*.Subscribe` channel
   (`Config.Subscribe`, `Instructions.Subscribe`,
@@ -2832,7 +2889,7 @@ mixed:
   subscribers**, cross-process. Used for every observable engine
   state that more than one client needs to learn about. Shape is
   fixed by P6 and P9: `*.Subscribe` returning an `IAsyncEnumerable`
-  of envelopes, snapshot-on-subscribe, generation counter,
+  of envelopes, snapshot-on-subscribe, revision counter,
   per-subscriber bounded buffer with slow-subscriber eviction.
 
 The line is **process boundary × cardinality**. Anything that
@@ -3433,9 +3490,9 @@ Source-side locations for the editable inputs the build consumes:
 - **`Resources/` is read-only at runtime.** (Instance of **P5**.) The engine reads every
   side-car JSON manifest under `engine/Resources/` at startup
   and projects per-request against workspace state
-  (`.autocontext.json`, override files, generation counter). It
+  (`.autocontext.json`, override files, revision counter). It
   **never writes back** to any file under `Resources/` — not to
-  patch a disabled flag, not to record a generation bump, not to
+  patch a disabled flag, not to record a revision bump, not to
   cache anything. Two failure modes this rule prevents: (a) managed
   installs (VSIX, Anthropic plugin) mount their install dir
   read-only or wipe it on upgrade, so a write would either fail at
