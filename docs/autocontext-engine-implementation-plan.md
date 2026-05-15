@@ -683,7 +683,27 @@ registration, or executable host.
 
 ## Phase 1 — Engine lifecycle substrate
 
-**Status**: Not started.
+**Status**: In progress on branch `features/engine-lifecycle-substrate`.
+
+| # | Commit subject | State |
+|---|---|---|
+| 1 | `docs(engine): rename pipe names to endpoints` | Committed (`650a478`) |
+| 2 | `feat(protocol): add Endpoint and ProtocolVersion` | Committed (this commit) |
+| 3 | `feat(framework-pipes): add multi-connection server listener` | Not started |
+| 4 | `feat(engine-core): scaffold project with composition root and options` | Not started |
+| 5 | `feat(engine): scaffold binary host with role-split argv parser` | Not started |
+| 6 | `feat(engine-core): add RegistryFile single-writer owner of engine-registry.json` | Not started |
+| 7 | `feat(engine-core): add LifecycleService four-pipe accept loops` | Not started |
+| 8 | `feat(engine-core): add Engine.Hello handshake and protocol-version gate` | Not started |
+| 9 | `feat(engine-core): add RegistryEntryWriter for own-entry lifecycle` | Not started |
+| 10 | `feat(engine-core): add Engine.ListRegistryEntries and Engine.Shutdown handlers` | Not started |
+| 11 | `feat(engine-core): add Engine.Lifecycle.Subscribe events broadcaster` | Not started |
+| 12 | `feat(engine-core): add idle-timeout watchdog` | Not started |
+| 13 | `feat(engine-core): add parent-pid watchdog with Process.StartTime defeat` | Not started |
+| 14 | `feat(engine-core): add InstanceIdCollisionWatchdog fail-fast guard` | Not started |
+| 15 | `feat(engine): wire CrashWriter into unhandled-exception sinks` | Not started |
+| 16 | `test(engine): stand up integration harness for binary spawn` | Not started |
+| 17 | `docs(plan): mark Phase 1 complete` | Not started |
 
 **Goal**: engine binds the four pipes, performs the `Engine.Hello`
 handshake, manages its own idle/parent-pid/shutdown lifecycle, and
