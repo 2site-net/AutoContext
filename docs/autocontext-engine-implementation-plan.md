@@ -688,22 +688,21 @@ registration, or executable host.
 | # | Commit subject | State |
 |---|---|---|
 | 1 | `docs(engine): rename pipe names to endpoints` | Committed (`650a478`) |
-| 2 | `feat(protocol): add Endpoint and ProtocolVersion` | Committed (this commit) |
-| 3 | `feat(framework-pipes): add multi-connection server listener` | Not started |
-| 4 | `feat(engine-core): scaffold project with composition root and options` | Not started |
-| 5 | `feat(engine): scaffold binary host with role-split argv parser` | Not started |
-| 6 | `feat(engine-core): add RegistryFile single-writer owner of engine-registry.json` | Not started |
-| 7 | `feat(engine-core): add LifecycleService four-pipe accept loops` | Not started |
-| 8 | `feat(engine-core): add Engine.Hello handshake and protocol-version gate` | Not started |
-| 9 | `feat(engine-core): add RegistryEntryWriter for own-entry lifecycle` | Not started |
-| 10 | `feat(engine-core): add Engine.ListRegistryEntries and Engine.Shutdown handlers` | Not started |
-| 11 | `feat(engine-core): add Engine.Lifecycle.Subscribe events broadcaster` | Not started |
-| 12 | `feat(engine-core): add idle-timeout watchdog` | Not started |
-| 13 | `feat(engine-core): add parent-pid watchdog with Process.StartTime defeat` | Not started |
-| 14 | `feat(engine-core): add InstanceIdCollisionWatchdog fail-fast guard` | Not started |
-| 15 | `feat(engine): wire CrashWriter into unhandled-exception sinks` | Not started |
-| 16 | `test(engine): stand up integration harness for binary spawn` | Not started |
-| 17 | `docs(plan): mark Phase 1 complete` | Not started |
+| 2 | `feat(protocol): add Endpoint and ProtocolVersion` | Committed (`f1c15f4`) |
+| 3 | `feat(engine-core): scaffold project with composition root and options` | Not started |
+| 4 | `feat(engine): scaffold binary host with role-split argv parser` | Not started |
+| 5 | `feat(engine-core): add RegistryFile single-writer owner of engine-registry.json` | Not started |
+| 6 | `feat(engine-core): add LifecycleService four-pipe accept loops` | Not started |
+| 7 | `feat(engine-core): add Engine.Hello handshake and protocol-version gate` | Not started |
+| 8 | `feat(engine-core): add RegistryEntryWriter for own-entry lifecycle` | Not started |
+| 9 | `feat(engine-core): add Engine.ListRegistryEntries and Engine.Shutdown handlers` | Not started |
+| 10 | `feat(engine-core): add Engine.Lifecycle.Subscribe events broadcaster` | Not started |
+| 11 | `feat(engine-core): add idle-timeout watchdog` | Not started |
+| 12 | `feat(engine-core): add parent-pid watchdog with Process.StartTime defeat` | Not started |
+| 13 | `feat(engine-core): add InstanceIdCollisionWatchdog fail-fast guard` | Not started |
+| 14 | `feat(engine): wire CrashWriter into unhandled-exception sinks` | Not started |
+| 15 | `test(engine): stand up integration harness for binary spawn` | Not started |
+| 16 | `docs(plan): mark Phase 1 complete` | Not started |
 
 **Goal**: engine binds the four pipes, performs the `Engine.Hello`
 handshake, manages its own idle/parent-pid/shutdown lifecycle, and
@@ -732,10 +731,11 @@ participates in the shared liveness registry.
 - `AutoContext.Framework.Protocol/` — endpoint builder (workspace
   hash + `<kind>` + `<instanceId>`; normalisation rules in `§ Endpoint`),
   protocol-version integer.
-- `AutoContext.Framework.Pipes/` — extended where the four-pipe
-  server-side bind needs new transport seams (today's `PipeListener`
-  is single-pipe / client-flipped; the engine binds four
-  multi-connection servers).
+- `AutoContext.Framework.Pipes/` — used as-is. The existing
+  `PipeListener` / `BoundPipeListener` pair already delivers the
+  atomic-bind, multi-connection accept loop, pre-bound continuous
+  listening, and drain-on-cancel semantics the engine needs; no new
+  transport seams are required for the four-pipe bind.
 - `AutoContext.Engine.Core/` — hosted services for: pipe accept
   loops (`rpc`, `events`, `health`, `logs` — `logs` is bound here so
   consumers see EOF cleanly, but engine record emission lives in
