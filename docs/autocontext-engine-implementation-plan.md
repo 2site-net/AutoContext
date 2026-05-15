@@ -689,7 +689,7 @@ registration, or executable host.
 |---|---|---|
 | 1 | `docs(engine): rename pipe names to endpoints` | Committed (`650a478`) |
 | 2 | `feat(protocol): add Endpoint and ProtocolVersion` | Committed (`f1c15f4`) |
-| 3 | `feat(engine-core): scaffold project with composition root and options` | Not started |
+| 3 | `feat(engine-core): scaffold project with composition root and options` | Committed (this commit) |
 | 4 | `feat(engine): scaffold binary host with role-split argv parser` | Not started |
 | 5 | `feat(engine-core): add RegistryFile single-writer owner of engine-registry.json` | Not started |
 | 6 | `feat(engine-core): add LifecycleService four-pipe accept loops` | Not started |
