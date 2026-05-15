@@ -113,7 +113,7 @@ These appear on multiple verbs and behave the same way every time.
 
 | Flag | Where it appears | What it does |
 |---|---|---|
-| `--workspace <path>` | every verb except `--version` | Selects the workspace the verb resolves against. Absent ⇒ CWD. The CLI normalises the path (resolve symlinks, lowercase on Windows) **identically** to the engine's pipe-name hash, so the dialled engine is the one the engine actually bound. `engine list` is the one exception to the CWD default: absent `--workspace` lists every workspace on the machine, and an explicit `--workspace <path>` filters the registry to entries whose `workspaceHash` matches that path. |
+| `--workspace <path>` | every verb except `--version` | Selects the workspace the verb resolves against. Absent ⇒ CWD. The CLI normalises the path (resolve symlinks, lowercase on Windows) **identically** to the engine's endpoint hash, so the dialled engine is the one the engine actually bound. `engine list` is the one exception to the CWD default: absent `--workspace` lists every workspace on the machine, and an explicit `--workspace <path>` filters the registry to entries whose `workspaceHash` matches that path. |
 | `--json` | every read-shaped verb (`config get`, `instructions list\|search\|watch`, `workspace detect\|info`, `mcp list`, `route`, `engine list`, `engine status`) and `engine stop` | Emits the wire payload verbatim on stdout, one JSON object per line for streaming verbs. The default is human-formatted pretty output; `--json` is the machine-readable contract for CI. Logs and progress always stay on stderr regardless of mode (see *Surface conventions*). |
 | `--instance-id <uuid>` | `engine status`, `engine logs`, `engine stop` | Targets a specific live engine by its launcher-minted UUID. Absent ⇒ the verb consults `engine-registry.json` and selects the unique live engine for the resolved workspace; ambiguous cases (two launchers open against the same workspace) fail with an error listing every candidate's `instanceId` and `instanceLabel`. These verbs **never cold-spawn**, so an unresolvable `--instance-id` is reported as engine-absent. |
 
@@ -431,7 +431,7 @@ the same flow, dialling only the pipes that verb needs:
    and any `--instance-id`-tagged invocation skip minting and use
    the UUID supplied on the command line (or resolved from the
    shared registry under each verb's single-live-engine rule).
-3. **Compute the four pipe names.** Each engine instance binds four
+3. **Compute the four endpoints.** Each engine instance binds four
    named pipes named
    `autocontext-engine:<kind>@<workspaceHash>#<instanceId>`, where
    `<kind>` ∈ {`rpc`, `events`, `health`, `logs`}, the hash is
@@ -666,7 +666,7 @@ and output formatting on top.
 
 - **Workspace path resolution divergence.** The CLI must use the
   *exact* same normalisation (resolve symlinks, lowercase on
-  Windows) that the engine uses for its pipe name. A one-character
+  Windows) that the engine uses for its endpoint. A one-character
   drift produces a different hash and the CLI talks to a different
   engine. Validator: a round-trip test that hashes a known path on
   both sides and asserts equality.

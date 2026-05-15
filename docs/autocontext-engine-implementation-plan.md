@@ -153,7 +153,7 @@ before merge.
   manifests split into wire (`*.json`) and internal (`*-metadata.json`).
 - **P4**: workspace identity is one hash; engine identity adds one
   per-launch UUID (fresh on every spawn; never reused across
-  respawns). Pipe names use the flat `<workspaceHash>#<instanceId>`
+  respawns). Endpoint names use the flat `<workspaceHash>#<instanceId>`
   segment (OS pipe namespaces are flat); on-disk paths use the
   nested `<workspaceHash>\<instanceId>` segments (POSIX: `/`).
   Never invent a parallel identifier; never flatten the two
@@ -183,7 +183,7 @@ other reason still need a real second impl.
 
 - **Unit tests** run against the engine library composed in-process
   via `AddAutoContextEngine(...)` with a per-test workspace path and
-  an overridden pipe namespace (library-only `EngineOptions` knob
+  an overridden endpoint prefix (library-only `EngineOptions` knob
   documented in `design § Composition contracts`). This is the hot
   path — most phases live here.
 - **Integration tests** spawn the published `autocontext-engine`
@@ -309,10 +309,11 @@ src/
     JsonLogGreeting.cs
     LogServerJsonContext.cs
 
-  AutoContext.Framework.Protocol/              # cross-side DTOs + pipe-name shapes (leaf — no references)
+  AutoContext.Framework.Protocol/              # cross-side DTOs + endpoint shapes (leaf — no references)
     AutoContext.Framework.Protocol.csproj
-    PipeName.cs                                # `readonly record struct` implementing IParsable<PipeName> — builder + parser for rpc/events/health/logs × hash#instance
-    ServiceAddressFormatter.cs                 # legacy `autocontext.<role>#<instance-id>` formatter — kept until every current-topology dialer flips to PipeName (Phase 12); deleted in Phase 16
+    EndpointKind.cs                            # enum { Rpc, Events, Health, Logs } — the four logical channels per (workspace, launcher instance)
+    Endpoint.cs                                # `readonly record struct` implementing IParsable<Endpoint> — builder + parser for rpc/events/health/logs × hash#instance
+    ServiceAddressFormatter.cs                 # legacy `autocontext.<role>#<instance-id>` formatter — kept until every current-topology dialer flips to Endpoint (Phase 12); deleted in Phase 16
     ProtocolVersion.cs                         # Engine.Hello version constant
     LogRecord.cs                               # canonical log-record envelope (timestamp, category, level, …)
     Envelopes/                                 # discriminated-envelope base shapes (P2)
@@ -347,7 +348,7 @@ src/
     EngineOptions.cs                           # bound from argv (--instance-id, --workspace-root, --idle-timeout, …)
     Infrastructure/                            # horizontal-axis substrate (cross-cutting plumbing); subdivided by kind, not by feature
       Primitives/                              # leaf value types — depended on by everything, depend on nothing themselves
-        InstanceId.cs                          # launcher UUID value type — `readonly record struct` implementing IParsable<T>; the `<instanceId>` segment in pipe names and on-disk paths (P4)
+        InstanceId.cs                          # launcher UUID value type — `readonly record struct` implementing IParsable<T>; the `<instanceId>` segment in endpoint names and on-disk paths (P4)
     Lifecycle/                                 # this engine's own lifecycle: Hello, Shutdown, watchdogs, own registry entry
       LifecycleService.cs                      # hosted service — owns the four-pipe accept loops
       HelloHandler.cs                          # protocol-version check + greeting payload
@@ -499,7 +500,7 @@ src/
   tests/
     AutoContext.Framework.Pipes.Tests/         # transport primitives — listener, codec, keep-alive, exchange/streaming triad
     AutoContext.Framework.Logging.Tests/       # EngineLoggerProvider, ingest ring, write-log client
-    AutoContext.Framework.Protocol.Tests/      # DTO envelope round-trips (including LogRecord), pipe-name builder, source-generated JSON contexts
+    AutoContext.Framework.Protocol.Tests/      # DTO envelope round-trips (including LogRecord), endpoint builder, source-generated JSON contexts
     AutoContext.Framework.Workers.Tests/       # IMcpTask, WorkerHostBuilderExtensions, WorkerTaskDispatcherService, WorkerHealthMonitorService
     AutoContext.Engine.Core.Tests/             # engine-internal services + every RPC handler + lifecycle + watchdogs
     AutoContext.Client.Core.Tests/             # typed RPC clients, subscription consumers, find-or-spawn flow
@@ -607,13 +608,13 @@ build-tasks project is created in the phase that first uses it (see
     `Framework.Pipes` + `Framework.Protocol`.
   - `AutoContext.Framework.Protocol/` — new sub-project (no
     equivalent in today's substrate). Skeletons for the cross-side
-    DTOs (protocol-version constant, pipe-name builder, log-record
+    DTOs (protocol-version constant, endpoint builder, log-record
     envelope, discriminated-envelope base shapes, source-generated
     JSON context). Also receives `AutoContext.Framework/Workers/ServiceAddressFormatter.cs`
-    — it's a pure pipe-name string-formatting helper (no I/O, no
-    lifetime, no DI), the same wire-shape concern `PipeName.cs`
+    — it's a pure endpoint string-formatting helper (no I/O, no
+    lifetime, no DI), the same wire-shape concern `Endpoint.cs`
     owns under the engine topology; parking the legacy formatter next
-    to its successor keeps both pipe-name shapes in one place and
+    to its successor keeps both endpoint shapes in one place and
     avoids a misleading lineage in Phase 1 where the engine's builder
     would otherwise materialise in a different project than the
     formatter it eventually replaces. Leaf — no other Framework
@@ -708,9 +709,9 @@ participates in the shared liveness registry.
   `AutoContext.Engine.Core.Tests` alongside the projects above.
 - `AutoContext.slnx` and `build.ps1` learn the two new projects
   (and their test siblings).
-- `AutoContext.Framework.Protocol/` — pipe-name builder (workspace
-  hash + `<kind>` + `<instanceId>`; normalisation rules in `§ Pipe
-  name`), protocol-version integer.
+- `AutoContext.Framework.Protocol/` — endpoint builder (workspace
+  hash + `<kind>` + `<instanceId>`; normalisation rules in `§ Endpoint`),
+  protocol-version integer.
 - `AutoContext.Framework.Pipes/` — extended where the four-pipe
   server-side bind needs new transport seams (today's `PipeListener`
   is single-pipe / client-flipped; the engine binds four

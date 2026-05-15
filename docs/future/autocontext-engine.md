@@ -276,8 +276,8 @@ Every path AutoContext touches has exactly one owner (P5).
 The per-instance subtree is **nested**: `<workspaceHash>` is a directory
 shared by every launcher instance that ever ran against this workspace,
 and each launcher's per-spawn `<instanceId>` is a subdirectory underneath
-it. Pipe names use the flat `<workspaceHash>#<instanceId>` shape because
-the OS pipe namespace is flat (P4); on-disk paths use the nested shape
+it. Endpoint names use the flat `<workspaceHash>#<instanceId>` shape
+because the OS pipe namespace is flat (P4); on-disk paths use the nested shape
 because directory enumeration over a workspace's instance history is a
 first-class housekeeping operation. `engine-registry.json` lives at the
 autocontext cache root, **not** under either `<workspaceHash>` or
@@ -354,7 +354,7 @@ See [Log categories](#log-categories).
 | Seam | Layer |
 |---|---|
 | `IHostApplicationBuilder.AddAutoContextEngine(Action<EngineOptions>)` | engine library's single public entry; CLI and tests both call it |
-| `EngineOptions` | CLI-surfaced knobs + library-only knobs (corpus root override, pipe-name override) |
+| `EngineOptions` | CLI-surfaced knobs + library-only knobs (corpus root override, endpoint override) |
 | `AddEngineLoggerProvider()` (in `AutoContext.Framework.Logging`) | worker-side logging seam routing `ILogger<T>` to `Engine.WriteLog` |
 | `EngineDaemonManager` (TS, `Nodejs.Core/src/engine/`) | only shared TS class; owns engine-daemon lifecycle (find-or-spawn, supervise) and pipe-RPC dial for extension and hooks |
 
@@ -465,7 +465,7 @@ four sub-projects, by namespace:
 - **`AutoContext.Framework.Protocol`** — cross-side DTOs. New
   sub-project (no equivalent in today's substrate); holds the
   protocol-version integer constant that `Engine.Hello` exchanges,
-  the pipe-name builder (`rpc` / `events` / `health` / `logs` ×
+  the endpoint builder (`rpc` / `events` / `health` / `logs` ×
   workspace-hash × instance-UUID — P4), the canonical
   `LogRecord` envelope shared by `Engine.WriteLog` and the `logs`
   pipe, the discriminated-union envelope base shapes (P2 — `ok` /
@@ -637,11 +637,11 @@ The reasons are structural, not incidental:
   idle-timeout when their own launcher's keep-alive clients
   disconnect; an unrelated launcher on the same workspace runs an
   independent engine with an independent idle clock.
-- **Pipe naming makes this concrete.** Every pipe name carries both
+- **Endpoint naming makes this concrete.** Every endpoint carries both
   identifiers — `autocontext-engine:<kind>@<workspaceHash>#<instanceId>`
   — so the hash identifies the workspace, the UUID identifies the
   launcher instance, and together they identify the engine. See
-  [Lifecycle](#lifecycle) > *Pipe name* for the canonical format,
+  [Lifecycle](#lifecycle) > *Endpoint* for the canonical format,
   the four `<kind>` values, and the normalisation rules.
 
 Consequences:
@@ -823,18 +823,19 @@ Consequences:
   its own — and is the dial-only-what-you-need shape every client
   actually wants (a hook script doing one `Instructions.Get` dials
   only `rpc`; a status tool dials only `health`).
-- **Pipe name** is derived deterministically from the absolute
+- **Endpoint** is derived deterministically from the absolute
   workspace path plus the launcher-minted instance UUID:
   `autocontext-engine:<kind>@<workspaceHash>#<instanceId>`, with
   `<kind>` ∈ {`rpc`, `health`, `logs`, `events`}, `<workspaceHash>`
   = `sha256(normalisedWorkspacePath):0..16`, `<instanceId>` =
   UUIDv4. Path normalisation: resolve symlinks, lowercase on
-  Windows. The workspace hash is one (P4 — one hash, four names
+  Windows. The workspace hash is one (P4 — one hash, four endpoints
   sharing it within an instance); the UUID is the launcher's,
   passed verbatim to the engine on `--instance-id` and reused on
-  every dial. Platform prefix (`\\.\pipe\` on Windows,
-  `${os.tmpdir()}/` on POSIX) is applied by the pipe transport, not
-  baked into the name.
+  every dial. The transport-specific path prefix (`\\.\pipe\` on
+  Windows when the transport is a named pipe, `${os.tmpdir()}/` on
+  POSIX) is applied by the transport layer, not baked into the
+  endpoint address.
 - **Independent dial.** Clients dial only the pipes they need. The
   VS Code extension dials `rpc` + `events`; a SessionStart hook that
   only wants `Instructions.GetAlwaysAttached` dials `rpc`; a status
@@ -877,7 +878,7 @@ Consequences:
   pipe. The engine does **not** treat the collision as a normal
   shape that bind has to be idempotent against; it is an invariant
   violation by the launcher contract. Two launchers on the same
-  workspace dial different pipe names (different `<instanceId>`
+  workspace dial different endpoints (different `<instanceId>`
   suffix) and start independent engines by design — that is not a
   race, that is two engines.
 - **Wire-protocol handshake.** `Engine.Hello` is an `rpc`-pipe RPC.
@@ -1398,10 +1399,10 @@ Semantics:
   launcher. The engine validates the value matches the UUIDv4
   shape (lowercase hex, hyphenated) and rejects malformed input;
   it does not interpret the bytes further. The UUID becomes the
-  `<instanceId>` segment of every pipe name (see `### Lifecycle`
-  > pipe name), which is how clients dial the right engine without
+  `<instanceId>` segment of every endpoint (see `### Lifecycle`
+  > endpoint), which is how clients dial the right engine without
   any runtime discovery: the launcher already knows the UUID it
-  minted, so it already knows the full pipe endpoint before the
+  minted, so it already knows the full endpoint address before the
   engine has even started. Non-launcher clients (a hook running
   under a host process the launcher did not control, an ad-hoc
   an ad-hoc terminal client) learn the UUID through
@@ -1513,10 +1514,10 @@ Semantics:
 Library-only knobs (not CLI flags). The `EngineOptions` callback
 on `AddAutoContextEngine(...)` exposes additional knobs that
 **deliberately do not surface on the command line** — corpus root
-override, pipe-name override, and any future implementation-only
+override, endpoint override, and any future implementation-only
 tuning. These are reachable only by in-process composition (tests,
 embedders that call `AddAutoContextEngine` directly); the binary's
-argv parser rejects them. The pipe-name override in particular
+argv parser rejects them. The endpoint override in particular
 breaks P4's "one hash, reused everywhere" invariant, so keeping
 it off the CLI surface is intentional — production hosts have no
 way to set it.
@@ -1599,8 +1600,8 @@ way to set it.
   a working `rpc` connection can issue `Engine.Shutdown` — this
   is intentional and matches the engine's scoping model. The
   engine is (workspace, launcher-instance)-scoped (P4); the
-  `<instanceId>` segment of the pipe name is the authority
-  boundary. A client that has the right pipe endpoint was either
+  `<instanceId>` segment of the endpoint is the authority
+  boundary. A client that has the right endpoint was either
   spawned by the launcher or was handed the UUID by the launcher
   through a host-specific side channel, and is therefore already
   trusted to manipulate this engine's lifecycle. Adding a token
@@ -2318,7 +2319,7 @@ owner of the on-disk log file and the wire log stream.
 
 The engine exposes several distinct vocabularies on the wire and at
 the seams — RPC method names, subscription event kinds, envelope
-discriminators, JSON field names, pipe names, MCP tool names, LM
+discriminators, JSON field names, endpoint kinds, MCP tool names, LM
 tool names, CLI verbs, log categories, manifest filenames. Each
 follows a fixed casing rule. The rules are chosen so a reader can
 identify *what kind of name* a token is from its shape alone, and
@@ -2333,7 +2334,7 @@ protocol event.
 | Subscription event-kind literals | **kebab-case** wire strings | `started`, `reloading`, `reloaded`, `shutting-down` |
 | Discriminated-envelope `kind` literals (P2) | **kebab-case** wire strings | `ok`, `disabled`, `not-found`, `tool-error`, `schema-error`, `shutting-down`, `evicted` |
 | JSON field names (requests, responses, envelope payloads) | camelCase | `instanceId`, `workspaceHash`, `revision`, `isError`, `applyTo`, `contentHash` |
-| Pipe names | lowercase, no separators | `rpc`, `events`, `health`, `logs` |
+| Endpoint kinds | lowercase, no separators | `rpc`, `events`, `health`, `logs` |
 | MCP tool names (stdio surface) | snake_case, one verb-noun (or noun-verb) pair | `instructions_list`, `analyze_csharp_code`, `read_editorconfig` |
 | VS Code LM tool names | snake_case, verb-first, fully self-describing | `list_autocontext_instructions_files`, `get_autocontext_instructions_file` |
 | CLI verbs | lowercase, space-separated `noun verb [args]` | `instructions list`, `config toggle`, `workspace info`, `engine logs` |
@@ -2384,7 +2385,7 @@ protocol event.
   has no MCP equivalent) are noted at the variant's definition
   site, not the default.
 - **Wire literals are stable; renaming is a protocol break.** Event
-  kinds, envelope `kind` values, pipe names, MCP tool names, and
+  kinds, envelope `kind` values, endpoint kinds, MCP tool names, and
   CLI verbs are part of the contract subscribers depend on. Any
   change is a breaking-change version bump.
 
@@ -2396,14 +2397,14 @@ protocol event.
   `<workspace>/.github/instructions/<name>.instructions.md` and
   prefers the override over the bundled source byte-for-byte.
 - **`<workspaceHash>`** is `sha256(normalisedWorkspacePath):0..16` —
-  the same prefix used in the pipe name. It identifies the
+  the same prefix used in the endpoint. It identifies the
   *workspace*; on its own it is not sufficient to address any
   on-disk artefact, because every artefact is scoped to a
   (workspace, launcher-instance) pair.
 - **`<instanceId>`** is the launcher-minted UUIDv4 passed on
   `--instance-id`, **fresh on every spawn** (P4 — launchers must
   never reuse a UUID across respawns). It appears as the
-  `#<instanceId>` suffix of every pipe name (one UUID, four pipes
+  `#<instanceId>` suffix of every endpoint (one UUID, four endpoints
   sharing it within a launcher) **and** as a path segment in every
   per-instance on-disk artefact: engine logs and client caches all
   live under `…\autocontext\<workspaceHash>\<instanceId>\`
@@ -2682,18 +2683,18 @@ a UUIDv4 the launcher mints **fresh on every spawn** (every
 `autocontext-engine`) and passes verbatim on `--instance-id`.
 Launchers MUST NOT reuse an `<instanceId>` across respawns;
 treating it as per-launch is what guarantees the registry remains
-append-only, the housekeeping sweep stays simple, and pipe-name
+append-only, the housekeeping sweep stays simple, and endpoint
 collisions are launcher bugs rather than expected shapes the
 engine has to be idempotent against.
 
-Pipe names and on-disk paths combine these two identifiers with
+Endpoint names and on-disk paths combine these two identifiers with
 **different delimiters**, by design:
 
-- **Pipe names use a flat `<workspaceHash>#<instanceId>` segment.**
+- **Endpoint names use a flat `<workspaceHash>#<instanceId>` segment.**
   Named pipes (Windows) and Unix sockets (POSIX) live in a flat
   OS-managed namespace; there are no nested pipe paths. The `#`
   separator is a string delimiter that survives the flat namespace
-  and lets the launcher derive all four pipe names deterministically
+  and lets the launcher derive all four endpoints deterministically
   from the same `(workspaceHash, instanceId)` pair.
 - **On-disk paths use a nested `<workspaceHash>\<instanceId>\`
   layout** (POSIX equivalent: `<workspaceHash>/<instanceId>/`).
@@ -2704,7 +2705,7 @@ Pipe names and on-disk paths combine these two identifiers with
 
 | Artefact | Path |
 |---|---|
-| Pipe names (four, one per kind, per launcher instance) | `autocontext-engine:rpc@<workspaceHash>#<instanceId>`, `autocontext-engine:events@<workspaceHash>#<instanceId>`, `autocontext-engine:health@<workspaceHash>#<instanceId>`, `autocontext-engine:logs@<workspaceHash>#<instanceId>` |
+| Endpoint names (four, one per kind, per launcher instance) | `autocontext-engine:rpc@<workspaceHash>#<instanceId>`, `autocontext-engine:events@<workspaceHash>#<instanceId>`, `autocontext-engine:health@<workspaceHash>#<instanceId>`, `autocontext-engine:logs@<workspaceHash>#<instanceId>` |
 | Per-instance engine subtree (logs + future engine-owned artefacts) | `%LOCALAPPDATA%\autocontext\<workspaceHash>\<instanceId>\` (Windows) / `$XDG_CACHE_HOME/autocontext/<workspaceHash>/<instanceId>/` or `~/.cache/autocontext/<workspaceHash>/<instanceId>/` (POSIX) |
 | Engine log files | `…\<workspaceHash>\<instanceId>\logs\engine.log` (rotating, lifetime-of-process) and `…\<workspaceHash>\<instanceId>\logs\crash.log` (write-once tombstone, only on unhandled-exception / fail-fast exit), under the per-instance subtree above |
 | Per-worker log files (one per spawned worker; engine-owned, routed by `category` prefix) | `…\<workspaceHash>\<instanceId>\logs\worker-<workerId>.log` |
@@ -2717,7 +2718,7 @@ segments; never invent a parallel identifier and never flatten the
 two segments back into a workspace-only path. The same workspace
 from different launchers hashes to one workspace identity but
 resolves to different engines (different `<instanceId>` in the
-pipe name and a different `<instanceId>` subdirectory under the
+endpoint and a different `<instanceId>` subdirectory under the
 shared `<workspaceHash>` parent); different workspaces hash to
 different identities regardless of launcher. Symlink and case
 normalisation exist precisely to collapse the unintentional
@@ -3069,11 +3070,11 @@ owns.
   else does. `EngineOptions` exposes the four CLI-surfaced knobs
   (workspace path, idle timeout, MCP-server mode, version display)
   *and* library-only knobs that deliberately don't surface on the
-  command line (corpus root override, pipe-name override). The CLI
+  command line (corpus root override, endpoint override). The CLI
   surface is locked to the four switches enumerated under
   `### Engine options`; everything else is reachable only through
   in-process composition. See that section for the rejection rule
-  and the rationale for keeping pipe-name override off the binary's
+  and the rationale for keeping endpoint override off the binary's
   argv (P4). Any async-callback hooks that future revisions add to
   `EngineOptions` / `ClientOptions` follow P10's single-subscriber
   shape (see `### P10`); they are **not** classic .NET `event`
@@ -3130,7 +3131,7 @@ do **not** reference `Framework.Services`. Worker.* references
   depends on (see *What `AutoContext.Framework.*` carries over*).
   `Framework.Protocol` is the cross-side-DTO leaf project: the
   protocol-version integer constant `Engine.Hello` exchanges, the
-  pipe-name builder (`rpc` / `events` / `health` / `logs` ×
+  endpoint builder (`rpc` / `events` / `health` / `logs` ×
   workspace-hash × instance-UUID — P4), and the discriminated-union
   envelopes that appear on *both* sides of every RPC
   (`Instructions.Get` / `McpTools.Invoke` / `Engine.ListRegistryEntries`
@@ -3219,7 +3220,7 @@ speak a narrower wire than full RPC clients do).
 |---|---|
 | `AutoContext.Framework.Pipes.Tests` | Transport primitives — `PipeListener`, codec, keep-alive client, exchange/streaming-client triad |
 | `AutoContext.Framework.Logging.Tests` | Wire envelope, `EngineLoggerProvider`, `EngineLogIngestRing`, write-log client |
-| `AutoContext.Framework.Protocol.Tests` | DTO envelope round-trips, pipe-name builder, source-generated JSON contexts |
+| `AutoContext.Framework.Protocol.Tests` | DTO envelope round-trips, endpoint builder, source-generated JSON contexts |
 | `AutoContext.Framework.Services.Tests` | `WorkerHostBuilderExtensions`, `WorkerTaskDispatcherService`, `HealthMonitorClient` |
 | `AutoContext.Engine.Core.Tests` | Engine-internal services, RPC handlers, pipe-server bindings; absorbs today's `AutoContext.Mcp.Server.Tests` |
 | `AutoContext.Client.Core.Tests` | Typed RPC clients, subscription-stream consumers, dialer back-pressure / reconnect behaviour |
@@ -3744,13 +3745,13 @@ Source-side locations for the editable inputs the build consumes:
   SessionStart hook runs before any extension. The engine must be
   self-spawning from a cold hook invocation — do not design a flow
   that requires the VS Code extension to start it first.
-- **Pipe-name collisions across UNC / case-variant paths.**
+- **Endpoint collisions across UNC / case-variant paths.**
   Normalise the workspace path (lowercase on Windows, resolve
-  symlinks) before hashing for the pipe name; otherwise two hosts
+  symlinks) before hashing for the endpoint; otherwise two hosts
   on "the same" workspace get different engines.
 - **Concurrent first-connect.** Two hosts racing to spawn the
   engine will both spawn one — each mints its own per-launch
-  UUID, so the pipe names are distinct and both engines start
+  UUID, so the endpoints are distinct and both engines start
   independently by design (this is two engines, not a race).
   A second engine starting under the *same* `<instanceId>` is a
   launcher bug under the per-launch-UUID contract (P4); the
