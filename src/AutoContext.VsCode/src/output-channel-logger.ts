@@ -1,4 +1,4 @@
-import { LoggerBase, LogLevel, type ChannelLogger, type LogCategory } from 'autocontext-framework-web';
+import { LoggerBase, LogLevel, type ChannelLogger, type LogCategory } from 'autocontext-nodejs-core';
 import * as vscode from 'vscode';
 
 /**

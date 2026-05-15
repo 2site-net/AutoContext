@@ -1,4 +1,4 @@
-import { LoggerBase, LogLevel as FrameworkLogLevel } from 'autocontext-framework-web';
+import { LoggerBase, LogLevel as FrameworkLogLevel } from 'autocontext-nodejs-core';
 import { CorrelationScope } from './correlation-scope.js';
 import type { LogEntry, LogLevel } from '#types/log-entry.js';
 import type { LogPoster } from '#types/log-poster.js';

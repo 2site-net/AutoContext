@@ -1,5 +1,5 @@
 import type { InstructionsFilesDiagnosticsRunner } from './instructions-files-diagnostics-runner.js';
-import { LogCategory, type ChannelLogger } from 'autocontext-framework-web';
+import { LogCategory, type ChannelLogger } from 'autocontext-nodejs-core';
 
 /**
  * ChannelLogger sink for instruction-file diagnostics. Owns a dedicated

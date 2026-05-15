@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
-import type { ChannelLogger } from 'autocontext-framework-web';
-import { LogCategory } from 'autocontext-framework-web';
+import type { ChannelLogger } from 'autocontext-nodejs-core';
+import { LogCategory } from 'autocontext-nodejs-core';
 import { WorkspaceContextDetector } from './workspace-context-detector.js';
 import { InstructionsFilesOverrideWatcher } from './instructions-files-override-watcher.js';
 import { InstructionsFilesManifestLoader } from './instructions-files-manifest-loader.js';

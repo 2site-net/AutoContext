@@ -4,7 +4,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 
-using AutoContext.Mcp;
+using AutoContext.Framework.Workers;
 
 /// <summary>
 /// <c>analyze_git_commit_format</c> — checks the <em>structural</em> shape of a

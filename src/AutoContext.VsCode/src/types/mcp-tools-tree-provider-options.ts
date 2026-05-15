@@ -4,7 +4,7 @@ import type { TreeViewTooltip } from '../tree-view-tooltip.js';
 import type { AutoContextConfigManager } from '../autocontext-config-manager.js';
 import type { HealthMonitorServer } from '../health-monitor-server.js';
 import type { McpServerProvider } from '../mcp-server-provider.js';
-import type { ChannelLogger } from 'autocontext-framework-web';
+import type { ChannelLogger } from 'autocontext-nodejs-core';
 
 /**
  * Construction options for `McpToolsTreeProvider`.

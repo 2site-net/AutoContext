@@ -1,5 +1,5 @@
 import type { ServerEntry } from '../server-entry.js';
-import type { ChannelLogger } from 'autocontext-framework-web';
+import type { ChannelLogger } from 'autocontext-nodejs-core';
 
 /**
  * Construction options for `WorkerManager`.

@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import type { ChannelLogger } from 'autocontext-framework-web';
+import type { ChannelLogger } from 'autocontext-nodejs-core';
 import type { InstructionsFileContentProjector } from './instructions-file-content-projector.js';
 import type { InstructionsFilesManifest } from './instructions-files-manifest.js';
 import type { InstructionsFilesOverrideWatcher } from './instructions-files-override-watcher.js';

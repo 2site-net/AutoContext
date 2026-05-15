@@ -1,4 +1,4 @@
-import { NullLogger, PipeStreamingClient, PipeTransport } from 'autocontext-framework-web';
+import { NullLogger, PipeStreamingClient, PipeTransport } from 'autocontext-nodejs-core';
 
 import type { JsonLogEntry, JsonLogGreeting, LogEntry } from '#types/log-entry.js';
 import type { LogPoster } from '#types/log-poster.js';

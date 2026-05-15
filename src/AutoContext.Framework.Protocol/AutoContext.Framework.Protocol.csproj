@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Version>0.9.5</Version>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>AutoContext.Framework.Protocol</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="AutoContext.Framework.Protocol.Tests" />
+  </ItemGroup>
+
+</Project>

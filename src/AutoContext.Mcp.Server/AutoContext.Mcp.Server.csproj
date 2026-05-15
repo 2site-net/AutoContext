@@ -12,8 +12,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\AutoContext.Mcp.Abstractions\AutoContext.Mcp.Abstractions.csproj" />
-    <ProjectReference Include="..\AutoContext.Framework\AutoContext.Framework.csproj" />
+    <ProjectReference Include="..\AutoContext.Framework.Pipes\AutoContext.Framework.Pipes.csproj" />
+    <ProjectReference Include="..\AutoContext.Framework.Logging\AutoContext.Framework.Logging.csproj" />
+    <ProjectReference Include="..\AutoContext.Framework.Protocol\AutoContext.Framework.Protocol.csproj" />
+    <ProjectReference Include="..\AutoContext.Framework.Workers\AutoContext.Framework.Workers.csproj" />
   </ItemGroup>
 
   <ItemGroup>

@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { InstructionsFilesDiagnosticsReporter } from '#src/instructions-files-diagnostics-reporter';
 import type { InstructionsFilesDiagnosticsRunner } from '#src/instructions-files-diagnostics-runner';
 import type { InstructionsFilesDiagnosticRecord } from '#types/instructions-files-diagnostic-record.js';
-import { LogCategory } from 'autocontext-framework-web';
+import { LogCategory } from 'autocontext-nodejs-core';
 import { createFakeLogger } from '#testing/fakes';
 
 vi.mock('vscode', async () => await import('#testing/fakes/fake-vscode'));

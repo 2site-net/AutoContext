@@ -1,8 +1,8 @@
 import * as vscode from 'vscode';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
-import type { ChannelLogger } from 'autocontext-framework-web';
-import { LogCategory } from 'autocontext-framework-web';
+import type { ChannelLogger } from 'autocontext-nodejs-core';
+import { LogCategory } from 'autocontext-nodejs-core';
 import { contextKeys, globalStateKeys } from './ui-constants.js';
 import type { ActivationInputs } from './types/activation-inputs.js';
 

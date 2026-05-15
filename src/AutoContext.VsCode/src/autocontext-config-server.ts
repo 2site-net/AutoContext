@@ -1,10 +1,10 @@
 import * as vscode from 'vscode';
 import { type Socket } from 'node:net';
-import { BoundPipeListener, LengthPrefixedFrameCodec, PipeListener } from 'autocontext-framework-web';
+import { BoundPipeListener, LengthPrefixedFrameCodec, PipeListener } from 'autocontext-nodejs-core';
 import { IdentifierFactory } from './identifier-factory.js';
 import type { AutoContextConfigManager } from './autocontext-config-manager.js';
 import type { McpToolsDisabledSnapshot } from '#types/mcp-tools-disabled-snapshot.js';
-import type { ChannelLogger } from 'autocontext-framework-web';
+import type { ChannelLogger } from 'autocontext-nodejs-core';
 
 /**
  * Named-pipe server that broadcasts the current `disabledTools` /

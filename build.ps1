@@ -159,7 +159,7 @@ $dotnetServers = @($serverManifest | Where-Object type -eq 'dotnet')
 
 # Shared TypeScript libraries (no entry point) compiled before extension/servers.
 # Consumers reference them via npm `file:` deps.
-$tsLibraries = @('AutoContext.Framework.Web')
+$tsLibraries = @('AutoContext.Nodejs.Core')
 
 # In CI, use 'npm ci' for deterministic lockfile-exact installs
 $npmInstallCmd = if ($env:CI) { 'ci' } else { 'install' }
@@ -778,7 +778,7 @@ function Copy-NodeJsToServersFolder {
             # "currentLevel is undefined" when it encounters npm's
             # symlinks for `file:` dependencies. On Windows npm even
             # creates a *broken* junction, since the relative path
-            # in package.json (e.g. `file:../AutoContext.Framework.Web`)
+            # in package.json (e.g. `file:../AutoContext.Nodejs.Core`)
             # is resolved against the staging cwd. To produce a
             # self-contained, packageable tree, replace any link
             # entries under the staged node_modules with real copies
@@ -942,7 +942,7 @@ function Build-VscePackage {
             # --no-dependencies: the extension is already bundled into
             # dist/extension.js by esbuild, so vsce does not need to
             # walk node_modules. Walking it on Windows follows the
-            # junction to the workspace-linked autocontext-framework-web
+            # junction to the workspace-linked autocontext-nodejs-core
             # package and produces invalid '../' paths.
             # --yes (on npx): auto-accept the install prompt when vsce
             # is not yet cached, so unattended runs don't block.

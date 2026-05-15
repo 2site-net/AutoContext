@@ -1,0 +1,13 @@
+namespace AutoContext.Framework.Workers.Tests.Fakes;
+
+using System.Text.Json;
+
+using AutoContext.Framework.Workers;
+
+internal sealed class EchoTaskFake : IMcpTask
+{
+    public string TaskName => "echo";
+
+    public Task<JsonElement> ExecuteAsync(JsonElement data, CancellationToken cancellationToken) =>
+        Task.FromResult(data.Clone());
+}

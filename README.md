@@ -34,7 +34,7 @@ src/AutoContext.Mcp.Abstractions/         # IMcpTask contract shared between the
 src/AutoContext.Framework/                # .NET framework primitives shared by the orchestrator and every .NET worker:
                                           # named-pipe transport (Pipes/), structured logging (Logging/), the worker-side
                                           # task dispatcher (Workers/), and the health-monitor client (Hosting/).
-src/AutoContext.Framework.Web/            # TypeScript counterpart of AutoContext.Framework. Provides the same
+src/AutoContext.Nodejs.Core/              # TypeScript counterpart of AutoContext.Framework. Provides the same
                                           # named-pipe primitives (length-prefixed framing, listener, streaming/keep-alive
                                           # clients) and a logger contract for the Node-based worker and the VS Code
                                           # extension to build on.
@@ -51,7 +51,7 @@ src/AutoContext.Mcp.Server/               # Single MCP/stdio orchestrator. Loads
 src/AutoContext.Worker.DotNet/            # .NET worker. Hosts C# and NuGet analyzers (Tasks/CSharp, Tasks/NuGet).
 src/AutoContext.Worker.Workspace/         # .NET worker. Hosts Git and EditorConfig tasks.
 src/AutoContext.Worker.Web/               # Node.js / TypeScript worker. Hosts the TypeScript analyzer; built on
-                                          # AutoContext.Framework.Web.
+                                          # AutoContext.Nodejs.Core.
 src/AutoContext.VsCode/                   # VS Code extension. Spawns Mcp.Server + every worker, runs the LogServer
                                           # and HealthMonitorServer pipes, and ships the instructions, sidebar panels,
                                           # workspace detection, and per-instruction configuration UI.

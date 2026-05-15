@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import type { ChannelLogger } from 'autocontext-framework-web';
+import type { ChannelLogger } from 'autocontext-nodejs-core';
 import { InstructionsFileParser } from './instructions-file-parser.js';
 
 const overrideWatchGlob =

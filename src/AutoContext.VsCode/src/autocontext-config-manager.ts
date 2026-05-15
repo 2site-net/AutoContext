@@ -5,7 +5,7 @@ import { InstructionsFileParser } from './instructions-file-parser.js';
 import { AutoContextConfig } from './autocontext-config.js';
 import { AutoContextFileManager } from './autocontext-file-manager.js';
 import type { McpToolConfigEntry } from '#types/mcp-tool-config-entry.js';
-import type { ChannelLogger } from 'autocontext-framework-web';
+import type { ChannelLogger } from 'autocontext-nodejs-core';
 
 const configFileName = '.autocontext.json';
 

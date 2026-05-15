@@ -8,9 +8,9 @@ using AutoContext.Mcp.Server.Tools.Invocation;
 using AutoContext.Mcp.Server.Workers;
 using AutoContext.Mcp.Server.Workers.Control;
 using AutoContext.Mcp.Server.Workers.Transport;
-using AutoContext.Framework.Hosting;
 using AutoContext.Framework.Logging;
 using AutoContext.Framework.Pipes;
+using AutoContext.Framework.Workers;
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -143,10 +143,10 @@ internal static partial class Program
         // hosted-service contract handles startup/shutdown wiring; the
         // client is a no-op when --service health-monitor=<address>
         // was not supplied (standalone / smoke runs).
-        builder.Services.AddHostedService(sp => new HealthMonitorClient(
+        builder.Services.AddHostedService(sp => new WorkerHealthMonitorService(
             healthMonitorServiceAddress ?? string.Empty,
             HealthClientId,
-            sp.GetRequiredService<ILogger<HealthMonitorClient>>()));
+            sp.GetRequiredService<ILogger<WorkerHealthMonitorService>>()));
 
         // Core graph wired through DI so the host disposes anything
         // that becomes IDisposable in the future and tests can swap

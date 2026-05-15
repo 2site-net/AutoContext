@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import type { ChannelLogger } from 'autocontext-framework-web';
+import type { ChannelLogger } from 'autocontext-nodejs-core';
 
 /**
  * Glob-vs-glob set-intersection check that mirrors how VS Code itself

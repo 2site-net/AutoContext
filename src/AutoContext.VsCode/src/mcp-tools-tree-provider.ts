@@ -13,7 +13,7 @@ import type { McpToolsTreeNode } from '#types/mcp-tools-tree-node.js';
 import type { McpTaskTreeNode } from '#types/mcp-task-tree-node.js';
 import type { McpServerTreeNode } from '#types/mcp-server-tree-node.js';
 import type { AutoContextConfigManager } from './autocontext-config-manager.js';
-import type { ChannelLogger } from 'autocontext-framework-web';
+import type { ChannelLogger } from 'autocontext-nodejs-core';
 import type { McpToolsTreeProviderOptions } from '#types/mcp-tools-tree-provider-options.js';
 
 type TreeElement = McpServerTreeNode | McpToolsTreeTopCategoryNode | McpToolsTreeSubCategoryNode | McpToolsTreeNode | McpTaskTreeNode;

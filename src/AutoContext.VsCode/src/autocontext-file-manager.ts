@@ -2,7 +2,7 @@ import { readFile, unlink, writeFile } from 'node:fs/promises';
 import { AutoContextConfig } from './autocontext-config.js';
 import type { InstructionsFileConfigEntry } from '#types/instructions-file-config-entry.js';
 import type { McpToolConfigEntry } from '#types/mcp-tool-config-entry.js';
-import type { ChannelLogger } from 'autocontext-framework-web';
+import type { ChannelLogger } from 'autocontext-nodejs-core';
 
 /**
  * Owns async I/O and disk-shape mapping for `.autocontext.json`.

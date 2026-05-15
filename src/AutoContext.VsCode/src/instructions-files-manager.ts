@@ -6,7 +6,7 @@ import type { InstructionsFilesManifest } from './instructions-files-manifest.js
 import { InstructionsFileParser } from './instructions-file-parser.js';
 import { InstructionsRulesUtils } from './instructions-rules-utils.js';
 import type { AutoContextConfigManager } from './autocontext-config-manager.js';
-import type { ChannelLogger } from 'autocontext-framework-web';
+import type { ChannelLogger } from 'autocontext-nodejs-core';
 
 /**
  * Generates normalized instruction files with disabled instructions removed

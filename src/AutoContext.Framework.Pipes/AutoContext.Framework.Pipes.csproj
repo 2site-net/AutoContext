@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Version>0.9.5</Version>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>AutoContext.Framework.Pipes</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="AutoContext.Framework.Pipes.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--
+      Logging.Abstractions is enough for ILogger / ILoggerProvider / LogLevel.
+      The pipe transport (NamedPipeServerStream / NamedPipeClientStream) and
+      Channels are in the BCL on net10, so no additional packages are needed.
+    -->
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.5" />
+  </ItemGroup>
+
+</Project>
