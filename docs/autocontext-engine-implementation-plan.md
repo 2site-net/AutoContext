@@ -573,7 +573,7 @@ host-supplied path threads into the engine for side-car lookup.
 
 ## Phase 0 — Framework restructure
 
-**Status**: In progress on branch `features/framework-restructure`.
+**Status**: Completed on branch `features/framework-restructure`.
 
 | # | Commit subject | State |
 |---|---|---|
@@ -582,7 +582,8 @@ host-supplied path threads into the engine for side-car lookup.
 | 3 | `refactor(workers): fold WorkerHostBuilderExtensions into Framework.Workers` | Committed (`1eae654`) |
 | 4 | `refactor(tests): split Framework.Tests across substrate projects` | Committed (`03e65a0`) |
 | 5 | `refactor(ts): rename Framework.Web to Nodejs.Core` | Committed (`ea397b1`) |
-| 6 | `docs(plan): correct Worker.Shared fold scope` | Committed (this commit) |
+| 6 | `docs(plan): correct Worker.Shared fold scope` | Committed (`6287f2f`) |
+| 7 | `docs(plan): mark Phase 0 complete` | Committed (this commit) |
 
 **Goal**: reshape the existing project graph into the four-project
 `Framework.*` substrate the rest of the rollout consumes, fold the
