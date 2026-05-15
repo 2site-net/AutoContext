@@ -578,13 +578,13 @@ host-supplied path threads into the engine for side-car lookup.
 
 | # | Commit subject | State |
 |---|---|---|
-| 1 | `refactor(framework): split into pipes/logging/protocol/workers` | Committed (`af79c97`) |
-| 2 | `refactor(mcp): fold IMcpTask into Framework.Workers` | Committed (`a83559b`) |
-| 3 | `refactor(workers): fold WorkerHostBuilderExtensions into Framework.Workers` | Committed (`1eae654`) |
-| 4 | `refactor(tests): split Framework.Tests across substrate projects` | Committed (`03e65a0`) |
-| 5 | `refactor(ts): rename Framework.Web to Nodejs.Core` | Committed (`ea397b1`) |
-| 6 | `docs(plan): correct Worker.Shared fold scope` | Committed (`6287f2f`) |
-| 7 | `docs(plan): mark Phase 0 complete` | Committed (this commit) |
+| 1 | `refactor(framework): split into pipes/logging/protocol/workers` | DONE |
+| 2 | `refactor(mcp): fold IMcpTask into Framework.Workers` | DONE |
+| 3 | `refactor(workers): fold WorkerHostBuilderExtensions into Framework.Workers` | DONE |
+| 4 | `refactor(tests): split Framework.Tests across substrate projects` | DONE |
+| 5 | `refactor(ts): rename Framework.Web to Nodejs.Core` | DONE |
+| 6 | `docs(plan): correct Worker.Shared fold scope` | DONE |
+| 7 | `docs(plan): mark Phase 0 complete` | DONE |
 
 **Goal**: reshape the existing project graph into the four-project
 `Framework.*` substrate the rest of the rollout consumes, fold the
@@ -687,9 +687,9 @@ registration, or executable host.
 
 | # | Commit subject | State |
 |---|---|---|
-| 1 | `docs(engine): rename pipe names to endpoints` | Committed (`650a478`) |
-| 2 | `feat(protocol): add Endpoint and ProtocolVersion` | Committed (`f1c15f4`) |
-| 3 | `feat(engine-core): scaffold project with composition root and options` | Committed (this commit) |
+| 1 | `docs(engine): rename pipe names to endpoints` | DONE |
+| 2 | `feat(protocol): add Endpoint and ProtocolVersion` | DONE |
+| 3 | `feat(engine-core): scaffold project with composition root and options` | DONE |
 | 4 | `feat(engine): scaffold binary host with role-split argv parser` | Not started |
 | 5 | `feat(engine-core): add RegistryFile single-writer owner of engine-registry.json` | Not started |
 | 6 | `feat(engine-core): add LifecycleService four-pipe accept loops` | Not started |
