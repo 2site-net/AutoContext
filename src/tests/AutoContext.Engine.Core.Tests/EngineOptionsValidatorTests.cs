@@ -35,7 +35,11 @@ public sealed class EngineOptionsValidatorTests
         // Assert
         Assert.Multiple(
             () => Assert.True(result.Failed),
-            () => Assert.Contains(result.Failures, m => m.Contains("WorkspacePath", StringComparison.Ordinal)));
+            () =>
+            {
+                Assert.NotNull(result.Failures);
+                Assert.Contains(result.Failures, m => m.Contains("WorkspacePath", StringComparison.Ordinal));
+            });
     }
 
     [Fact]
@@ -52,7 +56,11 @@ public sealed class EngineOptionsValidatorTests
         // Assert
         Assert.Multiple(
             () => Assert.True(result.Failed),
-            () => Assert.Contains(result.Failures, m => m.Contains("absolute path", StringComparison.Ordinal)));
+            () =>
+            {
+                Assert.NotNull(result.Failures);
+                Assert.Contains(result.Failures, m => m.Contains("absolute path", StringComparison.Ordinal));
+            });
     }
 
     [Fact]
@@ -69,7 +77,11 @@ public sealed class EngineOptionsValidatorTests
         // Assert
         Assert.Multiple(
             () => Assert.True(result.Failed),
-            () => Assert.Contains(result.Failures, m => m.Contains("InstanceId", StringComparison.Ordinal)));
+            () =>
+            {
+                Assert.NotNull(result.Failures);
+                Assert.Contains(result.Failures, m => m.Contains("InstanceId", StringComparison.Ordinal));
+            });
     }
 
     [Fact]
@@ -101,7 +113,11 @@ public sealed class EngineOptionsValidatorTests
         // Assert
         Assert.Multiple(
             () => Assert.True(result.Failed),
-            () => Assert.Contains(result.Failures, m => m.Contains("InstanceLabel", StringComparison.Ordinal)));
+            () =>
+            {
+                Assert.NotNull(result.Failures);
+                Assert.Contains(result.Failures, m => m.Contains("InstanceLabel", StringComparison.Ordinal));
+            });
     }
 
     [Theory]
@@ -122,7 +138,11 @@ public sealed class EngineOptionsValidatorTests
         // Assert
         Assert.Multiple(
             () => Assert.True(result.Failed),
-            () => Assert.Contains(result.Failures, m => m.Contains("InstanceLabel", StringComparison.Ordinal)));
+            () =>
+            {
+                Assert.NotNull(result.Failures);
+                Assert.Contains(result.Failures, m => m.Contains("InstanceLabel", StringComparison.Ordinal));
+            });
     }
 
     [Fact]
@@ -154,7 +174,11 @@ public sealed class EngineOptionsValidatorTests
         // Assert
         Assert.Multiple(
             () => Assert.True(result.Failed),
-            () => Assert.Contains(result.Failures, m => m.Contains("IdleTimeout", StringComparison.Ordinal)));
+            () =>
+            {
+                Assert.NotNull(result.Failures);
+                Assert.Contains(result.Failures, m => m.Contains("IdleTimeout", StringComparison.Ordinal));
+            });
     }
 
     [Fact]
@@ -171,7 +195,11 @@ public sealed class EngineOptionsValidatorTests
         // Assert
         Assert.Multiple(
             () => Assert.True(result.Failed),
-            () => Assert.Contains(result.Failures, m => m.Contains("ParentProcessId", StringComparison.Ordinal)));
+            () =>
+            {
+                Assert.NotNull(result.Failures);
+                Assert.Contains(result.Failures, m => m.Contains("ParentProcessId", StringComparison.Ordinal));
+            });
     }
 
     [Fact]
@@ -203,7 +231,11 @@ public sealed class EngineOptionsValidatorTests
         // Assert
         Assert.Multiple(
             () => Assert.True(result.Failed),
-            () => Assert.Contains(result.Failures, m => m.Contains("Retention", StringComparison.Ordinal)));
+            () =>
+            {
+                Assert.NotNull(result.Failures);
+                Assert.Contains(result.Failures, m => m.Contains("Retention", StringComparison.Ordinal));
+            });
     }
 
     [Fact]
@@ -220,7 +252,11 @@ public sealed class EngineOptionsValidatorTests
         // Assert
         Assert.Multiple(
             () => Assert.True(result.Failed),
-            () => Assert.Contains(result.Failures, m => m.Contains("Logging", StringComparison.Ordinal)));
+            () =>
+            {
+                Assert.NotNull(result.Failures);
+                Assert.Contains(result.Failures, m => m.Contains("Logging", StringComparison.Ordinal));
+            });
     }
 
     [Fact]
@@ -237,7 +273,11 @@ public sealed class EngineOptionsValidatorTests
         // Assert
         Assert.Multiple(
             () => Assert.True(result.Failed),
-            () => Assert.Contains(result.Failures, m => m.Contains("McpServerMode", StringComparison.Ordinal)));
+            () =>
+            {
+                Assert.NotNull(result.Failures);
+                Assert.Contains(result.Failures, m => m.Contains("McpServerMode", StringComparison.Ordinal));
+            });
     }
 
     [Fact]
@@ -254,7 +294,11 @@ public sealed class EngineOptionsValidatorTests
         // Assert
         Assert.Multiple(
             () => Assert.True(result.Failed),
-            () => Assert.Contains(result.Failures, m => m.Contains("CorpusRootOverride", StringComparison.Ordinal)));
+            () =>
+            {
+                Assert.NotNull(result.Failures);
+                Assert.Contains(result.Failures, m => m.Contains("CorpusRootOverride", StringComparison.Ordinal));
+            });
     }
 
     [Fact]
@@ -276,7 +320,11 @@ public sealed class EngineOptionsValidatorTests
         // Assert
         Assert.Multiple(
             () => Assert.True(result.Failed),
-            () => Assert.True(result.Failures.Count() >= 4, ReportFailures(result)));
+            () =>
+            {
+                Assert.NotNull(result.Failures);
+                Assert.True(result.Failures.Count() >= 4, ReportFailures(result));
+            });
     }
 
     [Fact]

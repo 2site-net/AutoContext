@@ -690,7 +690,7 @@ registration, or executable host.
 | 1 | `docs(engine): rename pipe names to endpoints` | DONE |
 | 2 | `feat(protocol): add Endpoint and ProtocolVersion` | DONE |
 | 3 | `feat(engine-core): scaffold project with composition root and options` | DONE |
-| 4 | `feat(engine): scaffold binary host with role-split argv parser` | Not started |
+| 4 | `feat(engine): scaffold binary host with role-split argv parser` | DONE |
 | 5 | `feat(engine-core): add RegistryFile single-writer owner of engine-registry.json` | Not started |
 | 6 | `feat(engine-core): add LifecycleService four-pipe accept loops` | Not started |
 | 7 | `feat(engine-core): add Engine.Hello handshake and protocol-version gate` | Not started |
