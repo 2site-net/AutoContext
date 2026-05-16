@@ -17,17 +17,21 @@
 
 ### Build Commands
 
-| Task                                            | Command                       |
-|-------------------------------------------------|-------------------------------|
-| Compile everything                              | `.\build.ps1 Compile`         |
-| Compile TypeScript only                         | `.\build.ps1 Compile TS`      |
-| Compile .NET only                               | `.\build.ps1 Compile DotNet`  |
-| Unit-test everything                            | `.\build.ps1 Test`            |
-| Unit-test TypeScript only                       | `.\build.ps1 Test TS`         |
-| Unit-test .NET only                             | `.\build.ps1 Test DotNet`     |
-| Smoke-test the VS Code extension                | `.\build.ps1 Test -Smoke`     |
-| Prepare (clean + compile + test + copy assets)  | `.\build.ps1 Prepare`         |
-| Package                                         | `.\build.ps1 Package`         |
+| Task                                            | Command                                |
+|-------------------------------------------------|----------------------------------------|
+| Compile everything + run unit tests             | `.\build.ps1 Compile`                  |
+| Compile TypeScript + TS tests                   | `.\build.ps1 Compile TS`               |
+| Compile .NET + .NET tests                       | `.\build.ps1 Compile DotNet`           |
+| Compile only — skip unit tests                  | `.\build.ps1 Compile -NoTest`          |
+| Compile TypeScript only — skip tests            | `.\build.ps1 Compile TS -NoTest`       |
+| Compile .NET only — skip tests                  | `.\build.ps1 Compile DotNet -NoTest`   |
+| Smoke-test the VS Code extension (full pipeline) | `.\build.ps1 Compile -Smoke`           |
+| Smoke-test .NET only                            | `.\build.ps1 Compile -Smoke DotNet`    |
+| Prepare (clean + compile + test + copy assets)  | `.\build.ps1 Prepare`                  |
+| Package                                         | `.\build.ps1 Package`                  |
+
+> `Compile` always runs unit tests unless you pass `-NoTest`. There is no
+> standalone `Test` action — tests always run with a fresh compile.
 
 ## Versioning
 
