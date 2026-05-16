@@ -775,12 +775,16 @@ Consequences:
     coordination is **not** the canonical upgrade — keeping
     the file as the single arbiter is.
 - **Workspace identity is still the path.** Path normalisation
-  (resolve symlinks, lowercase on Windows) collapses the
-  unintentional multi-engine cases that would otherwise arise
-  from path-shape differences alone. The launcher dimension is
-  additive: same workspace from two launchers = two engines on
-  purpose; same workspace at two different absolute paths = two
-  engines by accident, which the normalisation prevents.
+  (uppercase on Windows, trim trailing separators; **no** symlink
+  resolution — see § P4) collapses the unintentional multi-engine
+  cases that would otherwise arise from path-shape differences
+  alone. The launcher dimension is additive: same workspace from
+  two launchers = two engines on purpose; same workspace at two
+  surface-equivalent absolute paths = two engines by accident,
+  which the normalisation prevents. Two surface-distinct paths
+  that happen to reference the same underlying directory via a
+  symlink / junction / drive substitution resolve to two engines;
+  see § P4 for why we accept that trade-off.
 - **Instance-id propagation is the launcher's responsibility.**
   Clients that *spawn* the engine mint the UUID and use it
   directly. Clients that need to dial an *already-running* engine
@@ -827,15 +831,16 @@ Consequences:
   workspace path plus the launcher-minted instance UUID:
   `autocontext-engine:<kind>@<workspaceHash>#<instanceId>`, with
   `<kind>` ∈ {`rpc`, `health`, `logs`, `events`}, `<workspaceHash>`
-  = `sha256(normalisedWorkspacePath):0..16`, `<instanceId>` =
-  UUIDv4. Path normalisation: resolve symlinks, lowercase on
-  Windows. The workspace hash is one (P4 — one hash, four endpoints
-  sharing it within an instance); the UUID is the launcher's,
-  passed verbatim to the engine on `--instance-id` and reused on
-  every dial. The transport-specific path prefix (`\\.\pipe\` on
-  Windows when the transport is a named pipe, `${os.tmpdir()}/` on
-  POSIX) is applied by the transport layer, not baked into the
-  endpoint address.
+  = `sha256(normalisedWorkspacePath):0..16` rendered as **uppercase**
+  hex (`[0-9A-F]{16}`), `<instanceId>` = UUIDv4. Path normalisation:
+  uppercase on Windows, trim trailing separators; **no** symlink
+  resolution (see § P4 for the rationale). The workspace hash is one
+  (P4 — one hash, four endpoints sharing it within an instance); the
+  UUID is the launcher's, passed verbatim to the engine on
+  `--instance-id` and reused on every dial. The transport-specific
+  path prefix (`\\.\pipe\` on Windows when the transport is a named
+  pipe, `${os.tmpdir()}/` on POSIX) is applied by the transport
+  layer, not baked into the endpoint address.
 - **Independent dial.** Clients dial only the pipes they need. The
   VS Code extension dials `rpc` + `events`; a SessionStart hook that
   only wants `Instructions.GetAlwaysAttached` dials `rpc`; a status
@@ -2396,8 +2401,9 @@ protocol event.
   on POSIX, case-preserving on Windows. Override resolution looks for
   `<workspace>/.github/instructions/<name>.instructions.md` and
   prefers the override over the bundled source byte-for-byte.
-- **`<workspaceHash>`** is `sha256(normalisedWorkspacePath):0..16` —
-  the same prefix used in the endpoint. It identifies the
+- **`<workspaceHash>`** is `sha256(normalisedWorkspacePath):0..16`
+  rendered as uppercase hex (`[0-9A-F]{16}`) — the same prefix used
+  in the endpoint. It identifies the
   *workspace*; on its own it is not sufficient to address any
   on-disk artefact, because every artefact is scoped to a
   (workspace, launcher-instance) pair.
@@ -2675,8 +2681,36 @@ seed).
 ### P4. Workspace identity is one hash; engine identity adds one UUID
 
 `<workspaceHash> = sha256(normalisedWorkspacePath):0..16` is **the**
-workspace identifier. Path normalisation (resolve symlinks,
-lowercase on Windows) happens once; hashing happens once. Engine
+workspace identifier, rendered as **uppercase** hex (`[0-9A-F]{16}`).
+Path normalisation is **surface-form only**: uppercase on Windows,
+trim trailing separators. Symlinks, junctions, drive substitutions,
+and 8.3 short names are deliberately **not** resolved. Hashing
+happens once on the result.
+
+**Why surface-form, not resolved.** Resolving symlinks correctly
+requires a file-system syscall (`realpath` /
+`GetFinalPathNameByHandle`) on every endpoint composition, by every
+participant — the engine when it binds, every CLI invocation when
+it dials, every hook script when it constructs an endpoint. That
+syscall costs real I/O on a hot path that today is pure string
+work, and it introduces failure modes the string path doesn't have
+(dangling symlinks, ACL-blocked path components, network-share
+timeouts, OneDrive placeholder rehydration) — any of which would
+turn endpoint composition from infallible into fallible and block
+spawn / dial entirely. In exchange, resolution would collapse the
+rare case where the same user opens the same workspace through two
+different surface paths in two different launcher sessions, where
+the failure mode without resolution is annoying-but-recoverable
+(two engines watching the same disk; the user picks one canonical
+path and the duplicate goes away on next launch). The Registry
+layer's `RegistryFileService.ComposeMutexName` made the same call
+for the same reason; diverging in `WorkspaceHash` would create
+cross-component drift (registry says "two workspaces", endpoint
+says "one workspace") which is worse than either consistent
+choice. The trade-off is captured in code in
+`WorkspaceHash.Normalise`'s `<remarks>`.
+
+Engine
 identity adds **one** launcher dimension on top — `<instanceId>`,
 a UUIDv4 the launcher mints **fresh on every spawn** (every
 `Process.Start` / `child_process.spawn` invocation of
@@ -2720,11 +2754,14 @@ from different launchers hashes to one workspace identity but
 resolves to different engines (different `<instanceId>` in the
 endpoint and a different `<instanceId>` subdirectory under the
 shared `<workspaceHash>` parent); different workspaces hash to
-different identities regardless of launcher. Symlink and case
-normalisation exist precisely to collapse the unintentional
-multi-engine cases that arise from path-shape differences alone —
-the launcher dimension is additive on top, and is intentionally
-not collapsed. Per-instance scoping for both logs and client
+different identities regardless of launcher. Surface-form
+normalisation (case + trailing separators) exists precisely to
+collapse the unintentional multi-engine cases that arise from
+benign path-shape differences alone — the launcher dimension is
+additive on top, and is intentionally not collapsed; symlink /
+junction aliasing is intentionally **not** collapsed either, for
+the reasons in the *Why surface-form, not resolved* paragraph
+above. Per-instance scoping for both logs and client
 caches is the price of isolation: two launchers on the same
 workspace must not interleave their log lines (a postmortem
 reader needs to identify which launcher crashed, not assemble a
@@ -3746,9 +3783,13 @@ Source-side locations for the editable inputs the build consumes:
   self-spawning from a cold hook invocation — do not design a flow
   that requires the VS Code extension to start it first.
 - **Endpoint collisions across UNC / case-variant paths.**
-  Normalise the workspace path (lowercase on Windows, resolve
-  symlinks) before hashing for the endpoint; otherwise two hosts
-  on "the same" workspace get different engines.
+  Normalise the workspace path (uppercase on Windows, trim
+  trailing separators; **no** symlink resolution — see § P4 for
+  the rationale) before hashing for the endpoint; otherwise two
+  hosts on "the same" workspace get different engines. Two hosts
+  on two surface-distinct paths that happen to alias the same
+  directory via a symlink / junction get two engines by design;
+  the user resolves it by picking one canonical surface path.
 - **Concurrent first-connect.** Two hosts racing to spawn the
   engine will both spawn one — each mints its own per-launch
   UUID, so the endpoints are distinct and both engines start
