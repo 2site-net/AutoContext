@@ -100,9 +100,10 @@ orchestrator — it exposes every tool declared in the embedded
 ## Testing
 
 ```powershell
-./build.ps1                   # compile + test (all)
-./build.ps1 Test TS           # TypeScript tests only
-./build.ps1 Test DotNet       # .NET tests only
+./build.ps1                   # compile + unit tests (all)
+./build.ps1 Compile TS        # TypeScript compile + tests
+./build.ps1 Compile DotNet    # .NET compile + tests
+./build.ps1 Compile -NoTest   # compile only, skip unit tests
 ```
 
 ### VS Code Extension — Smoke Tests
@@ -110,7 +111,7 @@ orchestrator — it exposes every tool declared in the embedded
 Smoke tests launch a real VS Code instance, load the extension, and verify activation and command registration:
 
 ```powershell
-./build.ps1 Test -Smoke
+./build.ps1 Compile -Smoke
 ```
 
 A VS Code installation is downloaded automatically on the first run and cached

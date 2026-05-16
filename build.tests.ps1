@@ -232,7 +232,7 @@ $testCases = @(
     # ── Default (no action) ──────────────────────────────────────────────
 
     @{
-        Name         = 'Default (Compile + Test all)'
+        Name         = 'Default (Compile + unit tests, all)'
         Arguments    = '-WhatIf'
         ExpectOutput = @('Compile TypeScript.*tsc', 'dotnet build.*AutoContext', 'Run TypeScript tests.*vitest', 'dotnet test')
     }
@@ -240,57 +240,63 @@ $testCases = @(
     # ── Compile ──────────────────────────────────────────────────────────
 
     @{
-        Name         = 'Compile (all)'
+        Name         = 'Compile (all) — includes unit tests'
         Arguments    = 'Compile -WhatIf'
-        ExpectOutput = @('Compile TypeScript', 'dotnet build')
+        ExpectOutput = @('Compile TypeScript', 'dotnet build', 'Run TypeScript tests', 'dotnet test')
     }
     @{
-        Name         = 'Compile TS'
+        Name         = 'Compile TS — includes TS tests'
         Arguments    = 'Compile TS -WhatIf'
-        ExpectOutput = @('Compile TypeScript')
+        ExpectOutput = @('Compile TypeScript', 'Run TypeScript tests')
+        RejectOutput = @('dotnet build', 'dotnet test')
     }
     @{
-        Name         = 'Compile TypeScript (alias)'
+        Name         = 'Compile TypeScript (alias) — includes TS tests'
         Arguments    = 'Compile TypeScript -WhatIf'
-        ExpectOutput = @('Compile TypeScript')
+        ExpectOutput = @('Compile TypeScript', 'Run TypeScript tests')
     }
     @{
-        Name         = 'Compile DotNet'
+        Name         = 'Compile DotNet — includes .NET tests'
         Arguments    = 'Compile DotNet -WhatIf'
-        ExpectOutput = @('dotnet build')
+        ExpectOutput = @('dotnet build', 'dotnet test')
+        RejectOutput = @('Compile TypeScript', 'Run TypeScript tests')
     }
     @{
-        Name         = 'Compile .NET (alias)'
+        Name         = 'Compile .NET (alias) — includes .NET tests'
         Arguments    = "Compile '.NET' -WhatIf"
-        ExpectOutput = @('dotnet build')
+        ExpectOutput = @('dotnet build', 'dotnet test')
     }
     @{
-        Name         = 'Compile All (explicit)'
+        Name         = 'Compile All (explicit) — includes all tests'
         Arguments    = 'Compile All -WhatIf'
+        ExpectOutput = @('Compile TypeScript', 'dotnet build', 'Run TypeScript tests', 'dotnet test')
+    }
+
+    # ── Compile -NoTest (skip unit tests) ─────────────────────────────
+
+    @{
+        Name         = 'Compile -NoTest (all)'
+        Arguments    = 'Compile -NoTest -WhatIf'
         ExpectOutput = @('Compile TypeScript', 'dotnet build')
-    }
-
-    # ── Test ─────────────────────────────────────────────────────────────
-
-    @{
-        Name         = 'Test (all)'
-        Arguments    = 'Test -WhatIf'
-        ExpectOutput = @('Run TypeScript tests', 'dotnet test')
+        RejectOutput = @('Run TypeScript tests', 'dotnet test')
     }
     @{
-        Name         = 'Test TS'
-        Arguments    = 'Test TS -WhatIf'
-        ExpectOutput = @('Run TypeScript tests')
+        Name         = 'Compile TS -NoTest'
+        Arguments    = 'Compile TS -NoTest -WhatIf'
+        ExpectOutput = @('Compile TypeScript')
+        RejectOutput = @('Run TypeScript tests', 'dotnet build', 'dotnet test')
     }
     @{
-        Name         = 'Test DotNet'
-        Arguments    = 'Test DotNet -WhatIf'
-        ExpectOutput = @('dotnet test')
+        Name         = 'Compile DotNet -NoTest'
+        Arguments    = 'Compile DotNet -NoTest -WhatIf'
+        ExpectOutput = @('dotnet build')
+        RejectOutput = @('dotnet test', 'Compile TypeScript')
     }
     @{
-        Name         = 'Test All (explicit)'
-        Arguments    = 'Test All -WhatIf'
-        ExpectOutput = @('Run TypeScript tests', 'dotnet test')
+        Name         = 'Default -NoTest (no action, just compile)'
+        Arguments    = '-NoTest -WhatIf'
+        ExpectOutput = @('Compile TypeScript', 'dotnet build')
+        RejectOutput = @('Run TypeScript tests', 'dotnet test')
     }
 
     # ── Clean ────────────────────────────────────────────────────────────
@@ -303,22 +309,28 @@ $testCases = @(
     @{
         Name         = 'Clean + Compile'
         Arguments    = '-Clean Compile -WhatIf'
-        ExpectOutput = @('Delete TypeScript output', 'Compile TypeScript', 'dotnet build')
+        ExpectOutput = @('Delete TypeScript output', 'Compile TypeScript', 'dotnet build', 'Run TypeScript tests', 'dotnet test')
     }
     @{
         Name         = 'Clean + Compile TS'
         Arguments    = '-Clean Compile TS -WhatIf'
-        ExpectOutput = @('Delete TypeScript output', 'Compile TypeScript')
+        ExpectOutput = @('Delete TypeScript output', 'Compile TypeScript', 'Run TypeScript tests')
     }
     @{
-        Name         = 'Clean + Test'
-        Arguments    = '-Clean Test -WhatIf'
-        ExpectOutput = @('Delete TypeScript output', 'Run TypeScript tests', 'dotnet test')
+        Name         = 'Clean + Compile -NoTest'
+        Arguments    = '-Clean Compile -NoTest -WhatIf'
+        ExpectOutput = @('Delete TypeScript output', 'Compile TypeScript', 'dotnet build')
+        RejectOutput = @('Run TypeScript tests', 'dotnet test')
     }
     @{
-        Name         = 'Clean + Test DotNet'
-        Arguments    = '-Clean Test DotNet -WhatIf'
-        ExpectOutput = @('Delete TypeScript output', 'dotnet test')
+        Name         = 'Clean + Compile DotNet'
+        Arguments    = '-Clean Compile DotNet -WhatIf'
+        ExpectOutput = @('Delete TypeScript output', 'dotnet build', 'dotnet test')
+    }
+    @{
+        Name         = 'Clean + Compile -Smoke (Clean is ignored, smoke already cleans)'
+        Arguments    = '-Clean Compile -Smoke -WhatIf'
+        ExpectOutput = @('Delete TypeScript output', 'Compile TypeScript', 'dotnet build', 'Smoke-test')
     }
 
     # ── Prepare ──────────────────────────────────────────────────────────
@@ -407,6 +419,18 @@ $testCases = @(
         Arguments    = 'Compile -Local -WhatIf'
         ExpectError  = $true
         ErrorPattern = 'only valid with the Package action'
+    }
+    @{
+        Name         = 'Smoke without Compile (invalid)'
+        Arguments    = 'Prepare -Smoke -WhatIf'
+        ExpectError  = $true
+        ErrorPattern = 'only valid with the Compile action'
+    }
+    @{
+        Name         = 'NoTest without Compile (invalid)'
+        Arguments    = 'Prepare -NoTest -WhatIf'
+        ExpectError  = $true
+        ErrorPattern = 'only valid with the Compile action'
     }
     @{
         Name         = 'Package -Local + RuntimeIdentifier (mutually exclusive)'

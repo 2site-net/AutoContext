@@ -207,7 +207,7 @@ other reason still need a real second impl.
   Worker test projects are unchanged.
 - **TS tests** stay in Vitest, in the same layout
   `AutoContext.Nodejs.Core` and `AutoContext.VsCode` already use.
-- **Smoke tests** route through `build.ps1 Test -Smoke` as they do
+- **Smoke tests** route through `build.ps1 Compile -Smoke` as they do
   today.
 
 ## Target structure (end-state after Phase 16)
@@ -1650,7 +1650,7 @@ LM tools dial the engine over the four pipes.
 - Extension Vitest suites: every replaced module's test coverage
   migrates onto `EngineDaemonManager` fakes / engine-in-process fixtures.
   No coverage drops below the replaced module's bar.
-- `build.ps1 Test -Smoke` (the VS Code extension smoke test) runs
+- `build.ps1 Compile -Smoke` (the VS Code extension smoke test) runs
   end-to-end: extension activates, spawns the engine, tree view
   populates, an instruction toggle round-trips.
 - Cross-window scenario: two VS Code windows on the same workspace

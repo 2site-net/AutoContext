@@ -2,7 +2,7 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "compile-ts-only",
+      "label": "build-ts-only",
       "type": "shell",
       "command": ".\\build.ps1 Compile TS",
       "options": {
@@ -16,7 +16,7 @@
       }
     },
     {
-      "label": "local-package",
+      "label": "build-full",
       "type": "shell",
       "command": ".\\build.ps1 Package -Local",
       "options": {

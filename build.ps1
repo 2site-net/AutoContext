@@ -15,20 +15,21 @@
 
 .PARAMETER Action
     The build action to perform:
-      Compile  — compile TypeScript and/or .NET sources
-      Test     — run unit tests (without compiling)
-      Prepare  — Clean + Compile + Test + copy assets into extension
+      Compile  — compile sources, then run unit tests (unless -NoTest);
+                 add -Smoke to also stage the packaged extension and run
+                 smoke tests
+      Prepare  — Clean + Compile + copy assets into extension
       Package  — Prepare + dotnet publish + vsce package
       Publish  — Package + vsce publish + ovsx publish
-      Tag      — Compile + Test + bump versions + git commit + annotated tag
+      Tag      — Compile + bump versions + git commit + annotated tag
 
-    When omitted, defaults to Compile + Test.
+    When omitted, defaults to Compile.
 
 .PARAMETER Target
     Narrows the scope of an action:
       TS (or TypeScript) — TypeScript only
       DotNet (or .NET)   — .NET only
-      All                — both (default for Compile/Test)
+      All                — both (default for Compile)
 
     For Package/Publish, 'All' builds all six platform targets.
     When omitted for Package/Publish, auto-detects the current platform.
@@ -37,7 +38,7 @@
     X.Y.Z-prerelease) instead of a target name.
 
 .PARAMETER Clean
-    Delete build artifacts. Can be combined with Compile or Test,
+    Delete build artifacts. Can be combined with Compile,
     or used alone to only clean.
     Mutually exclusive with Prepare, Package, and Publish (they already clean).
 
@@ -52,12 +53,19 @@
     Mutually exclusive with Target 'All'.
 
 .PARAMETER Smoke
-    For Test only. Run smoke tests instead of unit tests. Combines with
-    Target: '-Smoke' alone runs TS (VS Code) + .NET smoke, '-Smoke TS'
-    runs the VS Code smoke, '-Smoke DotNet' runs the .NET end-to-end
-    smoke. Performs 'Package -Local' first so smoke tests run against the
-    packaged extension layout (server binaries staged under the extension
-    folder).
+    For Compile only. After compile + unit tests, stage the packaged
+    extension layout (mirrors 'Package -Local') and run smoke tests.
+    Combines with Target: '-Smoke' alone runs TS (VS Code) + .NET smoke,
+    '-Smoke TS' runs the VS Code smoke, '-Smoke DotNet' runs the .NET
+    end-to-end smoke. Compile and packaging always cover both stacks
+    because smoke needs the full extension layout; Target only narrows
+    which smoke suite(s) run.
+
+.PARAMETER NoTest
+    For Compile only. Skip the unit-test phase that normally follows the
+    compile step. Useful for fast inner-loop syntax checks; the compile
+    itself is never skipped. Combines with -Smoke (smoke tests still run;
+    only the unit-test phase is skipped).
 
 .PARAMETER Force
     For Tag only. Delete the existing local tag and the matching remote
@@ -70,14 +78,16 @@
     Show usage information.
 
 .EXAMPLE
-    .\build.ps1                                  # Compile + Test (all)
-    .\build.ps1 Compile                          # Compile TS + .NET
-    .\build.ps1 Compile TS                       # Compile TypeScript only
-    .\build.ps1 Test DotNet                      # Test .NET only (unit)
-    .\build.ps1 Test -Smoke                      # Run all smoke tests
-    .\build.ps1 Test -Smoke DotNet               # Run .NET smoke only
-    .\build.ps1 Test -Smoke TS                   # Run VS Code smoke only
-    .\build.ps1 Prepare                          # Clean + Compile + Test + copy assets
+    .\build.ps1                                  # Compile + unit tests (all)
+    .\build.ps1 Compile                          # Compile + unit tests (all)
+    .\build.ps1 Compile TS                       # Compile + unit tests (TypeScript)
+    .\build.ps1 Compile DotNet                   # Compile + unit tests (.NET)
+    .\build.ps1 Compile -NoTest                  # Compile only, skip unit tests
+    .\build.ps1 Compile TS -NoTest               # Compile TypeScript only, skip tests
+    .\build.ps1 Compile -Smoke                   # Compile + unit + smoke (TS + .NET)
+    .\build.ps1 Compile -Smoke DotNet            # Compile + unit + .NET smoke only
+    .\build.ps1 Compile -Smoke TS                # Compile + unit + VS Code smoke only
+    .\build.ps1 Prepare                          # Clean + Compile + copy assets
     .\build.ps1 Package                          # Prepare + build for current platform
     .\build.ps1 Package -Local                   # Prepare + copy servers (local F5)
     .\build.ps1 Package All                      # Prepare + build all 6 platforms
@@ -87,7 +97,7 @@
     .\build.ps1 Tag 0.6.0-alpha                  # Prerelease tag
     .\build.ps1 Tag 0.6.0 -Force                 # Re-tag (delete local + remote first)
     .\build.ps1 -Clean                           # Delete all build artifacts
-    .\build.ps1 -Clean Compile                   # Clean then compile
+    .\build.ps1 -Clean Compile                   # Clean then compile + test
     .\build.ps1 Package -WhatIf                  # Preview what Package would do
 
 .NOTES
@@ -99,7 +109,7 @@
 [CmdletBinding(SupportsShouldProcess)]
 param(
     [Parameter(Position = 0)]
-    [ValidateSet('Compile', 'Test', 'Prepare', 'Package', 'Publish', 'Tag')]
+    [ValidateSet('Compile', 'Prepare', 'Package', 'Publish', 'Tag')]
     [string]$Action,
 
     [Parameter(Position = 1)]
@@ -117,6 +127,8 @@ param(
     [string]$RuntimeIdentifier,
 
     [switch]$Smoke,
+
+    [switch]$NoTest,
 
     [switch]$Force,
 
@@ -288,16 +300,17 @@ function Show-Help {
     Write-Host "`nAutoContext Build Orchestrator`n" -ForegroundColor Cyan
 
     Write-Host 'SYNTAX' -ForegroundColor Yellow
-    Write-Host "  .\build.ps1 [Action] [Target] [-Clean] [-Local] [-Smoke] [-Force] [-RuntimeIdentifier <rid>] [-WhatIf] [-Help]`n"
+    Write-Host "  .\build.ps1 [Action] [Target] [-Clean] [-Local] [-Smoke] [-NoTest] [-Force] [-RuntimeIdentifier <rid>] [-WhatIf] [-Help]`n"
 
     Write-Host 'ACTIONS' -ForegroundColor Yellow
-    Write-Host '  (none)     Compile + Test (all sources)'
-    Write-Host '  Compile    Compile TypeScript and/or .NET sources'
-    Write-Host '  Test       Run unit tests (without compiling)'
-    Write-Host '  Prepare    Clean + Compile + Test + copy assets into extension'
+    Write-Host '  (none)     Compile + unit tests (all sources)'
+    Write-Host '  Compile    Compile sources, then run unit tests'
+    Write-Host '             (use -NoTest to skip the test phase;'
+    Write-Host '              use -Smoke to also run smoke tests)'
+    Write-Host '  Prepare    Clean + Compile + copy assets into extension'
     Write-Host '  Package    Prepare + dotnet publish + vsce package'
     Write-Host '  Publish    Package + vsce publish + ovsx publish'
-    Write-Host "  Tag        Compile + Test + bump versions + git commit + annotated tag`n"
+    Write-Host "  Tag        Compile + bump versions + git commit + annotated tag`n"
 
     Write-Host 'TARGETS' -ForegroundColor Yellow
     Write-Host '  (none)     All (default)'
@@ -306,21 +319,25 @@ function Show-Help {
     Write-Host "  All        Both TS + .NET; for Package/Publish: all 6 platforms`n"
 
     Write-Host 'SWITCHES' -ForegroundColor Yellow
-    Write-Host '  -Clean                Delete build artifacts (combinable with Compile/Test)'
+    Write-Host '  -Clean                Delete build artifacts (combinable with Compile)'
     Write-Host '  -Local                Copy server binaries for local F5 (Package only)'
-    Write-Host '  -Smoke                Run smoke tests (Test only; combines with Target)'
+    Write-Host '  -Smoke                Also run smoke tests after compile + unit tests'
+    Write-Host '                        (Compile only; combines with Target)'
+    Write-Host '  -NoTest               Skip the unit-test phase (Compile only)'
     Write-Host '  -Force                Re-tag: delete local + remote tag first (Tag only)'
     Write-Host '  -RuntimeIdentifier    .NET RID for Package/Publish (e.g. win-x64)'
     Write-Host '  -WhatIf               Preview changes without executing (works with any action and switch)'
     Write-Host "  -Help                 Show this help`n"
 
     Write-Host 'EXAMPLES' -ForegroundColor Yellow
-    Write-Host '  .\build.ps1                                   # Compile + Test'
-    Write-Host '  .\build.ps1 Compile TS                        # TypeScript only'
-    Write-Host '  .\build.ps1 Test DotNet                       # .NET tests only'
-    Write-Host '  .\build.ps1 Test -Smoke                       # All smoke tests (TS + .NET)'
-    Write-Host '  .\build.ps1 Test -Smoke DotNet                # .NET smoke only'
-    Write-Host '  .\build.ps1 Test -Smoke TS                    # VS Code smoke only'
+    Write-Host '  .\build.ps1                                   # Compile + unit tests (all)'
+    Write-Host '  .\build.ps1 Compile TS                        # TypeScript compile + tests'
+    Write-Host '  .\build.ps1 Compile DotNet                    # .NET compile + tests'
+    Write-Host '  .\build.ps1 Compile -NoTest                   # Compile only, skip tests'
+    Write-Host '  .\build.ps1 Compile TS -NoTest                # Compile TypeScript only'
+    Write-Host '  .\build.ps1 Compile -Smoke                    # Compile + unit + smoke (all)'
+    Write-Host '  .\build.ps1 Compile -Smoke DotNet             # Compile + unit + .NET smoke'
+    Write-Host '  .\build.ps1 Compile -Smoke TS                 # Compile + unit + VS Code smoke'
     Write-Host '  .\build.ps1 Package                           # Current platform'
     Write-Host '  .\build.ps1 Package -Local                    # Prepare + copy servers (F5)'
     Write-Host '  .\build.ps1 Package All                       # All 6 platforms'
@@ -328,7 +345,7 @@ function Show-Help {
     Write-Host '  .\build.ps1 Tag 0.6.0                         # Bump, test, commit, tag'
     Write-Host '  .\build.ps1 Tag 0.6.0-alpha                   # Prerelease tag'
     Write-Host '  .\build.ps1 Tag 0.6.0 -Force                  # Re-tag (delete local + remote first)'
-    Write-Host '  .\build.ps1 -Clean Compile                    # Clean then compile'
+    Write-Host '  .\build.ps1 -Clean Compile                    # Clean then compile + test'
     Write-Host "  .\build.ps1 Package -WhatIf                   # Preview`n"
 }
 
@@ -584,7 +601,7 @@ function Test-DotNetSmoke {
 
     Write-Section 'Smoke-test .NET'
 
-    # Caller (Invoke-Test -Smoke) is responsible for compiling and staging
+    # Caller (Invoke-Compile -Smoke) is responsible for compiling and staging
     # the packaged extension layout before invoking this function.
 
     $smokeTestProjects =
@@ -625,7 +642,7 @@ function Test-VsCodeSmoke {
 
     Write-Section 'Smoke-test VS Code extension'
 
-    # Caller (Invoke-Test -Smoke) is responsible for compiling and staging
+    # Caller (Invoke-Compile -Smoke) is responsible for compiling and staging
     # the packaged extension layout before invoking this function.
 
     if ($PSCmdlet.ShouldProcess('vscode-test', 'Run VS Code smoke tests')) {
@@ -1102,21 +1119,10 @@ function Invoke-Compile {
     [CmdletBinding(SupportsShouldProcess)]
     param([string]$Scope = 'All')
 
-    Write-Header 'Compile'
-    if ($Scope -in 'All', 'TS')     { Build-TypeScript }
-    if ($Scope -in 'All', 'DotNet') { Build-DotNet }
-}
-
-function Invoke-Test {
-    [CmdletBinding(SupportsShouldProcess)]
-    param([string]$Scope = 'All')
-
     if ($Smoke) {
-        # Smoke tests exercise the packaged extension layout (server binaries
-        # under <extensionDir>/servers, copied assets, etc.), so stage the
-        # local-package output first. We mirror 'Package -Local' but skip
-        # its unit-test phase: smoke is an integration check that should
-        # not require unit tests to pass first.
+        # Smoke exercises the packaged extension layout, so we always compile
+        # and stage both stacks regardless of $Scope. $Scope only narrows
+        # which smoke suite(s) actually run at the end.
         Invoke-Clean
 
         if ($PSCmdlet.ShouldProcess('version.json', 'Sync versions to all projects')) {
@@ -1130,7 +1136,15 @@ function Invoke-Test {
             }
         }
 
-        Invoke-Compile -Scope 'All'
+        Write-Header 'Compile'
+        Build-TypeScript
+        Build-DotNet
+
+        if (-not $NoTest) {
+            Write-Header 'Test'
+            if ($Scope -in 'All', 'TS')     { Test-TypeScript }
+            if ($Scope -in 'All', 'DotNet') { Test-DotNet }
+        }
 
         Write-Header 'Prepare'
         Copy-AssetsToExtensionFolder
@@ -1144,6 +1158,12 @@ function Invoke-Test {
         if ($Scope -in 'All', 'DotNet') { Test-DotNetSmoke }
         return
     }
+
+    Write-Header 'Compile'
+    if ($Scope -in 'All', 'TS')     { Build-TypeScript }
+    if ($Scope -in 'All', 'DotNet') { Build-DotNet }
+
+    if ($NoTest) { return }
 
     Write-Header 'Test'
     if ($Scope -in 'All', 'TS')     { Test-TypeScript }
@@ -1169,7 +1189,6 @@ function Invoke-Prepare {
     }
 
     Invoke-Compile -Scope 'All'
-    Invoke-Test -Scope 'All'
 
     Write-Header 'Prepare'
     Copy-AssetsToExtensionFolder
@@ -1415,7 +1434,6 @@ function Invoke-Tag {
 
     # ── Build gate ──
     Invoke-Compile -Scope 'All'
-    Invoke-Test -Scope 'All'
 
     # ── Bump versions + commit (only if version changed) ──
     if ($needsBump) {
@@ -1525,8 +1543,12 @@ if ($Local -and $Action -ne 'Package') {
     throw '-Local is only valid with the Package action.'
 }
 
-if ($Smoke -and $Action -ne 'Test') {
-    throw '-Smoke is only valid with the Test action. Usage: .\build.ps1 Test -Smoke'
+if ($Smoke -and $Action -and $Action -ne 'Compile') {
+    throw "-Smoke is only valid with the Compile action. Usage: .\build.ps1 Compile -Smoke"
+}
+
+if ($NoTest -and $Action -and $Action -ne 'Compile') {
+    throw "-NoTest is only valid with the Compile action."
 }
 
 if ($Force -and $Action -ne 'Tag') {
@@ -1565,18 +1587,20 @@ if ($extensionVersion) {
 }
 
 if ($Clean) {
-    Invoke-Clean
+    # Compile -Smoke already cleans internally as part of staging the
+    # packaged extension layout; skip the redundant top-level clean.
+    if (-not ($Action -eq 'Compile' -and $Smoke)) {
+        Invoke-Clean
+    }
 }
 
 if (-not $Action -and -not $Clean) {
-    # Default: Compile + Test
+    # Default: Compile (which also runs unit tests unless -NoTest)
     Invoke-Compile -Scope $resolvedTarget
-    Invoke-Test -Scope $resolvedTarget
 }
 elseif ($Action) {
     switch ($Action) {
         'Compile' { Invoke-Compile -Scope $resolvedTarget }
-        'Test'    { Invoke-Test -Scope $resolvedTarget }
         'Prepare' { Invoke-Prepare }
         'Package' { Invoke-Package -Scope $Target }
         'Publish' { Invoke-Publish -Scope $Target }
