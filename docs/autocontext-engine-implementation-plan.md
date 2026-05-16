@@ -355,9 +355,11 @@ src/
       ShutdownHandler.cs                       # graceful drain + Engine.Shutdown RPC
       LifecycleBroadcaster.cs                  # events-pipe state stream (P10)
       # — Engine registry (engine-registry.json mechanics + this engine's own entry) —
-      RegistryFile.cs                          # sole writer surface for engine-registry.json (P9 single-writer); owns mutex + FileShare + retry + corrupt-recovery + schema-version contract
-      RegistryEntry.cs                         # entry DTO returned/accepted by RegistryFile (engine-internal shape — never on the wire, P3)
-      RegistryEntryWriter.cs                   # composes over RegistryFile — appends this engine's entry on start (fresh `instanceId` every spawn; no upsert), removes own entry on graceful shutdown
+      RegistryFileFormat.cs                    # stateless serializer + schema-version contract shared by reader and writer (envelope shape, JsonSerializerOptions)
+      RegistryFileReader.cs                    # concurrent-read surface for engine-registry.json (P9 concurrent reads); retry under FileShare.ReadWrite + corrupt-file tolerance (returns empty list)
+      RegistryFileWriter.cs                    # sole writer surface for engine-registry.json (P9 single-writer); owns mutex + FileShare.None + atomic temp+rename + retry + corrupt-recovery
+      RegistryEntry.cs                         # entry DTO returned/accepted by RegistryFileReader/Writer (engine-internal shape — never on the wire, P3)
+      RegistryEntryWriter.cs                   # composes over RegistryFileWriter — appends this engine's entry on start (fresh `instanceId` every spawn; no upsert), removes own entry on graceful shutdown
       # — Watchdogs (process-lifetime guards) —
       IdleTimeoutWatchdog.cs                   # --idle-timeout
       ParentPidWatchdog.cs                     # --parent-pid + Process.StartTime defeat
@@ -368,7 +370,7 @@ src/
       HousekeepingService.cs                   # hosted service — shutdown sweep only, runs after LifecycleService removes own entry + closes pipes; ≤ 1 s deadline budget
       SubtreeRegistryStatus.cs                 # discriminated record hierarchy (Registered | StaleRegistration | Unregistered | Foreign) — P2-shaped contract between scanner, policy, and cleaner
       CacheRootScanner.cs                      # walks the engine cache root, produces SubtreeRegistryStatus per child (pure — no deletion here)
-      RegistryEntryReader.cs                   # composes over RegistryFile (Lifecycle/); applies Process.StartTime peer-liveness check, supplies the registration half of CacheRootScanner's classification
+      RegistryEntryReader.cs                   # composes over RegistryFileReader (Lifecycle/); applies Process.StartTime peer-liveness check, supplies the registration half of CacheRootScanner's classification
       StaleSubtreeCleaner.cs                   # pattern-matches SubtreeRegistryStatus, deletes with concurrent-sweep tolerance (DirectoryNotFoundException counts as success)
       RetentionPolicy.cs                       # single reader of `--retention` — resolves the window per SubtreeRegistryStatus arm (per-entry, unregistered-fallback, foreign)
     Logging/                                   # engine sink, rotation, rotated-file cleanup
@@ -691,7 +693,7 @@ registration, or executable host.
 | 2 | `feat(protocol): add Endpoint and ProtocolVersion` | DONE |
 | 3 | `feat(engine-core): scaffold project with composition root and options` | DONE |
 | 4 | `feat(engine): scaffold binary host with role-split argv parser` | DONE |
-| 5 | `feat(engine-core): add RegistryFile single-writer owner of engine-registry.json` | Not started |
+| 5 | `feat(engine-core): add RegistryFile{Reader,Writer,Format} single-writer owner of engine-registry.json` | DONE |
 | 6 | `feat(engine-core): add LifecycleService four-pipe accept loops` | Not started |
 | 7 | `feat(engine-core): add Engine.Hello handshake and protocol-version gate` | Not started |
 | 8 | `feat(engine-core): add RegistryEntryWriter for own-entry lifecycle` | Not started |
@@ -743,23 +745,32 @@ participates in the shared liveness registry.
   `Engine.ListRegistryEntries` handler, `Engine.Shutdown` handler,
   `RegistryEntryWriter` (this engine's own entry), idle-timeout
   watchdog, parent-pid watchdog.
-- `RegistryFile` — sole owner of `engine-registry.json`,
-  applying `§ P9`'s single-writer-per-resource rule on disk. Every
-  consumer (this phase's `RegistryEntryWriter`, Phase 2b's
-  `RegistryEntryReader`, any future peer-watcher) goes through this
-  surface; the writer mutex, `FileShare` choice, exponential-backoff
-  retry, atomic-replace strategy, corrupt-file recovery (truncate-
-  and-reseed), and schema-version contract live here, not scattered
-  across consumers. Born in Phase 1 because Phase 1 is when
-  `engine-registry.json` is first written; Phase 2b composes over it
+- `RegistryFileReader` / `RegistryFileWriter` / `RegistryFileFormat`
+  — sole owners of `engine-registry.json`, split along the
+  read-vs-write boundary so `§ P9`'s single-writer-per-resource rule
+  is enforced by *type identity*: writers have to go through the
+  writer (which owns the in-process mutex and the OS exclusive
+  lock), readers go through the reader (which never writes), and
+  both share `RegistryFileFormat` for the envelope shape and
+  schema-version contract. Every consumer (this phase's
+  `RegistryEntryWriter`, Phase 2b's `RegistryEntryReader`, any
+  future peer-watcher) composes over the appropriate half; the
+  writer mutex, `FileShare.None` window, exponential-backoff retry,
+  atomic temp-file + rename strategy, and corrupt-file recovery
+  (treat-as-empty) live in `RegistryFileWriter`; the reader's
+  retry under `FileShare.ReadWrite | FileShare.Delete` and the
+  same corrupt-file tolerance live in `RegistryFileReader`. Born
+  in Phase 1 because Phase 1 is when `engine-registry.json` is
+  first written; Phase 2b composes over `RegistryFileReader`
   rather than reaching into the file directly.
 - `engine-registry.json` entry lifecycle per
   `§ Housekeeping` and the `engine-registry.json entry lifecycle`
   pitfall: append-on-start (fresh `instanceId` every spawn; no
   upsert), remove-on-graceful-shutdown, leave-stale-on-crash. The
-  locking, `FileShare.None` writer window, and exponential-backoff
-  reader retry are owned by `RegistryFile` (see above); this
-  bullet pins the *lifecycle* of the entry, not the file mechanics.
+  locking, `FileShare.None` writer window, atomic temp+rename, and
+  exponential-backoff reader retry are owned by the reader/writer
+  pair above; this bullet pins the *lifecycle* of the entry, not
+  the file mechanics.
 - The same-`instanceId`-collision rule (`§ Lifecycle` *Concurrent
   first-connect*) — a second engine binding under the same
   `--instance-id` is a launcher bug under the per-launch-UUID
@@ -930,7 +941,7 @@ is explicit and exclusive).
 - `CacheRootScanner` — walks the engine cache root and produces a
   `SubtreeRegistryStatus` for each child. Pure: no deletion, no
   policy decisions here. Owns the file-system walk and the registry
-  lookup against `RegistryFile` (Lifecycle/, Phase 1). The
+  lookup against `RegistryFileReader` (Lifecycle/, Phase 1). The
   four classification arms:
     1. **Registered** — backed by an `engine-registry.json` entry
        whose pid is alive (`Process.StartTime` defeats pid recycling);
@@ -946,13 +957,13 @@ is explicit and exclusive).
        earlier preview builds, or any other shape under the cache
        root. Because the cache root is engine-owned (P5), a foreign
        subtree is by definition stale.
-- `RegistryEntryReader` — composes over `RegistryFile`
+- `RegistryEntryReader` — composes over `RegistryFileReader`
   (Lifecycle/, Phase 1) to read all entries, applies the
   `Process.StartTime` peer-liveness check, and supplies the
   registration half of `CacheRootScanner`'s classification. The file
-  mechanics (locks, retry, corrupt-recovery) live in the
-  registry-file type — this reader only adds the liveness check
-  on top of the entry data it gets back.
+  mechanics (retry, corrupt-file tolerance) live in
+  `RegistryFileReader` — this entry reader only adds the liveness
+  check on top of the entry data it gets back.
 - `StaleSubtreeCleaner` — pattern-matches over
   `SubtreeRegistryStatus`, asks `RetentionPolicy` for the window
   per arm, deletes when outside the window. Concurrent-sweep
@@ -997,10 +1008,10 @@ is explicit and exclusive).
 
 **Out of scope** (2a): worker records (Phase 8); `Logs.GetWorker`
 / `Logs.TailWorker` (Phase 8). 2b has no out-of-scope carve-out;
-its dependency on Phase 1's `RegistryFile` and
-`RegistryEntryWriter` (which together own the on-disk
-`engine-registry.json` entries the reader supplies) is declared under
-code touch, not deferred work.
+its dependency on Phase 1's `RegistryFileReader` /
+  `RegistryFileWriter` and `RegistryEntryWriter` (which together
+  own the on-disk `engine-registry.json` entries the reader
+  supplies) is declared under code touch, not deferred work.
 
 ## Phase 3 — Config store
 
