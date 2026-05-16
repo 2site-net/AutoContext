@@ -356,9 +356,10 @@ src/
       LifecycleBroadcaster.cs                  # events-pipe state stream (P10)
       # — Engine registry (engine-registry.json mechanics + this engine's own entry) —
       RegistryFileFormat.cs                    # stateless serializer + schema-version contract shared by reader and writer (envelope shape, JsonSerializerOptions)
-      RegistryFileReader.cs                    # concurrent-read surface for engine-registry.json (P9 concurrent reads); retry under FileShare.ReadWrite + corrupt-file tolerance (returns empty list)
-      RegistryFileWriter.cs                    # sole writer surface for engine-registry.json (P9 single-writer); owns mutex + FileShare.None + atomic temp+rename + retry + corrupt-recovery
-      RegistryEntry.cs                         # entry DTO returned/accepted by RegistryFileReader/Writer (engine-internal shape — never on the wire, P3)
+      RegistryFileReader.cs                    # concurrent-read surface for engine-registry.json (P9 concurrent reads); retry under FileShare.ReadWrite|FileShare.Delete + corrupt-file tolerance (returns empty list)
+      RegistryFileWriter.cs                    # internal atomic single-shot writer; temp+fsync+rename only (no mutex, no retry, no RMW — owned by RegistryFileService)
+      RegistryFileService.cs                   # hosted coordinator: dedicated worker thread + named cross-process Mutex + Channel<WriteRequest> + read-modify-write cycle; single intended caller of RegistryFileWriter
+      RegistryEntry.cs                         # entry DTO returned/accepted by RegistryFileReader/Service (engine-internal shape — never on the wire, P3)
       RegistryEntryWriter.cs                   # composes over RegistryFileWriter — appends this engine's entry on start (fresh `instanceId` every spawn; no upsert), removes own entry on graceful shutdown
       # — Watchdogs (process-lifetime guards) —
       IdleTimeoutWatchdog.cs                   # --idle-timeout
@@ -694,6 +695,7 @@ registration, or executable host.
 | 3 | `feat(engine-core): scaffold project with composition root and options` | DONE |
 | 4 | `feat(engine): scaffold binary host with role-split argv parser` | DONE |
 | 5 | `feat(engine-core): add RegistryFile{Reader,Writer,Format} single-writer owner of engine-registry.json` | DONE |
+| 5b | `refactor(engine-core): make RegistryFileWriter a single-worker hosted service with named-mutex coordination and atomic temp-file writes` | DONE |
 | 6 | `feat(engine-core): add LifecycleService four-pipe accept loops` | Not started |
 | 7 | `feat(engine-core): add Engine.Hello handshake and protocol-version gate` | Not started |
 | 8 | `feat(engine-core): add RegistryEntryWriter for own-entry lifecycle` | Not started |
@@ -746,23 +748,43 @@ participates in the shared liveness registry.
   `RegistryEntryWriter` (this engine's own entry), idle-timeout
   watchdog, parent-pid watchdog.
 - `RegistryFileReader` / `RegistryFileWriter` / `RegistryFileFormat`
-  — sole owners of `engine-registry.json`, split along the
-  read-vs-write boundary so `§ P9`'s single-writer-per-resource rule
-  is enforced by *type identity*: writers have to go through the
-  writer (which owns the in-process mutex and the OS exclusive
-  lock), readers go through the reader (which never writes), and
-  both share `RegistryFileFormat` for the envelope shape and
-  schema-version contract. Every consumer (this phase's
+  / `RegistryFileService` — sole owners of `engine-registry.json`,
+  split along three orthogonal concerns so `§ P9`'s
+  single-writer-per-resource rule is enforced by *type identity*
+  and `§ P8`'s end-to-end async stays honest at the public API
+  even though the OS `Mutex` primitive demands thread affinity:
+  (a) `RegistryFileFormat` owns the envelope shape, schema-version
+  contract, and `JsonSerializerOptions` (stateless, shared by
+  reader and writer); (b) `RegistryFileReader` is the passive
+  concurrent-read surface — opens with
+  `FileShare.ReadWrite | FileShare.Delete` so it coexists with the
+  writer's atomic rename, retries under exponential backoff, and
+  tolerates corrupt/unknown-schema files by returning an empty
+  list; (c) `RegistryFileWriter` is an `internal` atomic
+  single-shot writer — temp+fsync+rename only, no mutex, no retry,
+  no RMW — small enough that its only correctness obligation is
+  that the real file is replaced atomically; (d) `RegistryFileService`
+  is the public hosted coordinator that owns *all* complexity:
+  a single dedicated background thread runs a fully synchronous
+  worker loop (so the named cross-process `Mutex`'s acquire/release
+  affinity is satisfied by construction), a `Channel<WriteRequest>`
+  serialises in-process callers, a session-local
+  `AutoContext.RegistryFile.{sha256(path)[..16]}` named mutex
+  serialises cross-process peers (the registry lives under the
+  per-user cache root, so session-local scope matches the
+  contention surface; a `Global\` prefix would require
+  `SeCreateGlobalPrivilege` and falsely couple unrelated users),
+  and a per-request
+  `TaskCompletionSource` keeps the `WriteAsync` API honestly async.
+  The service handles `AbandonedMutexException` gracefully
+  (atomic-rename writer guarantees no torn intermediate state, so
+  reclaiming the mutex is always safe). Every consumer (this phase's
   `RegistryEntryWriter`, Phase 2b's `RegistryEntryReader`, any
-  future peer-watcher) composes over the appropriate half; the
-  writer mutex, `FileShare.None` window, exponential-backoff retry,
-  atomic temp-file + rename strategy, and corrupt-file recovery
-  (treat-as-empty) live in `RegistryFileWriter`; the reader's
-  retry under `FileShare.ReadWrite | FileShare.Delete` and the
-  same corrupt-file tolerance live in `RegistryFileReader`. Born
-  in Phase 1 because Phase 1 is when `engine-registry.json` is
-  first written; Phase 2b composes over `RegistryFileReader`
-  rather than reaching into the file directly.
+  future peer-watcher) composes over the appropriate surface:
+  writers go through `RegistryFileService`, readers go through
+  `RegistryFileReader`. Born in Phase 1 because Phase 1 is when
+  `engine-registry.json` is first written; Phase 2b composes over
+  `RegistryFileReader` rather than reaching into the file directly.
 - `engine-registry.json` entry lifecycle per
   `§ Housekeeping` and the `engine-registry.json entry lifecycle`
   pitfall: append-on-start (fresh `instanceId` every spawn; no

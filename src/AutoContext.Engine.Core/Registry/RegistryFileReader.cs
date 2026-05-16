@@ -5,10 +5,14 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 /// <summary>
 /// Read-only accessor for <c>engine-registry.json</c>. Opens the
-/// file with <see cref="FileShare.ReadWrite"/> so readers never
-/// contend with one another (P9 readers-are-concurrent rule) and
-/// uses an exponential-backoff retry loop to wait out a writer
-/// that holds the file with <see cref="FileShare.None"/>.
+/// file with <see cref="FileShare.ReadWrite"/> |
+/// <see cref="FileShare.Delete"/> so readers never contend with
+/// one another (P9 readers-are-concurrent rule) and coexist with
+/// the atomic temp+rename pattern used by
+/// <see cref="RegistryFileWriter"/> (the writer's rename must be
+/// able to replace the file even while a reader holds the prior
+/// inode open). An exponential-backoff retry loop tolerates the
+/// brief window when a writer holds the temp file exclusively.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -29,7 +33,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 /// </remarks>
 public sealed partial class RegistryFileReader
 {
-    private readonly RegistryFileOptions _options;
+    private readonly RegistryFileReaderOptions _options;
     private readonly ILogger<RegistryFileReader> _logger;
 
     /// <summary>
@@ -39,7 +43,7 @@ public sealed partial class RegistryFileReader
     /// Must not be <see langword="null"/> or whitespace.</param>
     /// <param name="options">Retry knobs. <see langword="null"/>
     /// uses production defaults from
-    /// <see cref="RegistryFileOptions"/>.</param>
+    /// <see cref="RegistryFileReaderOptions"/>.</param>
     /// <param name="logger">Diagnostic sink. <see langword="null"/>
     /// silences diagnostics.</param>
     /// <exception cref="ArgumentException"><paramref name="path"/>
@@ -49,12 +53,12 @@ public sealed partial class RegistryFileReader
     /// </exception>
     public RegistryFileReader(
         string path,
-        RegistryFileOptions? options = null,
+        RegistryFileReaderOptions? options = null,
         ILogger<RegistryFileReader>? logger = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
 
-        var resolvedOptions = options ?? new RegistryFileOptions();
+        var resolvedOptions = options ?? new RegistryFileReaderOptions();
         resolvedOptions.Validate();
 
         Path = path;
@@ -76,7 +80,7 @@ public sealed partial class RegistryFileReader
     /// <returns>Frozen list of entries.</returns>
     /// <exception cref="IOException">
     /// The retry loop exhausted
-    /// <see cref="RegistryFileOptions.MaxAttempts"/> without
+    /// <see cref="RegistryFileReaderOptions.MaxAttempts"/> without
     /// acquiring a shared read handle.
     /// </exception>
     public async Task<IReadOnlyList<RegistryEntry>> ReadAsync(
@@ -101,7 +105,7 @@ public sealed partial class RegistryFileReader
                     Path,
                     FileMode.Open,
                     FileAccess.Read,
-                    FileShare.ReadWrite,
+                    FileShare.ReadWrite | FileShare.Delete,
                     bufferSize: 4096,
                     useAsync: true);
                 await using (stream.ConfigureAwait(false))
