@@ -7,6 +7,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 
+using LifecycleService = global::AutoContext.Engine.Core.Lifecycle.LifecycleService;
+
 public sealed class EngineHostBuilderExtensionsTests
 {
     [Fact]
@@ -100,6 +102,37 @@ public sealed class EngineHostBuilderExtensionsTests
 
         // Assert
         Assert.Single(validators, v => v is EngineOptionsValidator);
+    }
+
+    [Fact]
+    public void Should_register_LifecycleService_as_a_hosted_service()
+    {
+        // Arrange
+        var builder = Host.CreateApplicationBuilder();
+        builder.AddAutoContextEngine(ConfigureValid);
+
+        // Act
+        using var host = builder.Build();
+        var hosted = host.Services.GetServices<IHostedService>();
+
+        // Assert
+        Assert.Single(hosted, h => h is LifecycleService);
+    }
+
+    [Fact]
+    public void Should_register_LifecycleService_only_once_for_repeat_calls()
+    {
+        // Arrange
+        var builder = Host.CreateApplicationBuilder();
+        builder.AddAutoContextEngine(ConfigureValid);
+        builder.AddAutoContextEngine(ConfigureValid);
+
+        // Act
+        using var host = builder.Build();
+        var hosted = host.Services.GetServices<IHostedService>();
+
+        // Assert
+        Assert.Single(hosted, h => h is LifecycleService);
     }
 
     private static void ConfigureValid(EngineOptions options)

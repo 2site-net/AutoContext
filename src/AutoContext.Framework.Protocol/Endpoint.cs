@@ -10,7 +10,7 @@ using System.Globalization;
 /// </summary>
 /// <remarks>
 /// <para>
-/// The <c>&lt;workspaceHash&gt;</c> segment is the 16-char lowercase-hex
+/// The <c>&lt;workspaceHash&gt;</c> segment is the 16-char uppercase-hex
 /// prefix of <c>sha256(normalisedWorkspacePath)</c> per <c>design § P4</c>;
 /// the <c>&lt;instanceId&gt;</c> is the UUIDv4 the launcher minted once per
 /// launcher instance. The same workspace from different launchers hashes
@@ -35,7 +35,7 @@ public readonly record struct Endpoint(EndpointKind Kind, string WorkspaceHash, 
     : IParsable<Endpoint>
 {
     /// <summary>
-    /// Length of the <c>&lt;workspaceHash&gt;</c> segment — 16 lowercase
+    /// Length of the <c>&lt;workspaceHash&gt;</c> segment — 16 uppercase
     /// hex characters per <c>design § P4</c>.
     /// </summary>
     public const int WorkspaceHashLength = 16;
@@ -154,8 +154,8 @@ public readonly record struct Endpoint(EndpointKind Kind, string WorkspaceHash, 
 
         foreach (var c in segment)
         {
-            var isLowercaseHex = c is (>= '0' and <= '9') or (>= 'a' and <= 'f');
-            if (!isLowercaseHex)
+            var isUppercaseHex = c is (>= '0' and <= '9') or (>= 'A' and <= 'F');
+            if (!isUppercaseHex)
             {
                 return false;
             }

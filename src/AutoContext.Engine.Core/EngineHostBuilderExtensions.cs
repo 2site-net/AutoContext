@@ -1,5 +1,7 @@
 namespace AutoContext.Engine.Core;
 
+using AutoContext.Engine.Core.Lifecycle;
+
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
@@ -50,6 +52,9 @@ public static class EngineHostBuilderExtensions
 
         builder.Services.TryAddEnumerable(
             ServiceDescriptor.Singleton<IValidateOptions<EngineOptions>, EngineOptionsValidator>());
+
+        builder.Services.TryAddEnumerable(
+            ServiceDescriptor.Singleton<IHostedService, LifecycleService>());
 
         return builder;
     }

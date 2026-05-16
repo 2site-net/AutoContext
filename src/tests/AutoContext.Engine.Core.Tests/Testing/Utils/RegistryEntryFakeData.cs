@@ -10,7 +10,7 @@ internal static class RegistryEntryFakeData
     public static RegistryEntry CreateValidEntry() =>
         new(
             EngineVersion: "0.9.5",
-            WorkspaceHash: "0123456789abcdef",
+            WorkspaceHash: "0123456789ABCDEF",
             WorkspacePath: WorkspacePath,
             InstanceId: Guid.NewGuid(),
             InstanceLabel: "test",

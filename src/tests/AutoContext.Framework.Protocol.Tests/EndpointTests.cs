@@ -4,7 +4,7 @@ using System.Globalization;
 
 public class EndpointTests
 {
-    private const string SampleHash = "0123456789abcdef";
+    private const string SampleHash = "0123456789ABCDEF";
     private const string SampleInstanceText = "12345678-1234-4567-8901-234567890abc";
     private static readonly Guid SampleInstanceId = Guid.Parse("12345678-1234-4567-8901-234567890abc");
 
@@ -62,19 +62,19 @@ public class EndpointTests
     [Theory]
     [InlineData(null)]
     [InlineData("")]
-    [InlineData("autocontext-engine:rpc@0123456789abcdef")]
-    [InlineData("autocontext-engine:rpc0123456789abcdef#12345678-1234-4567-8901-234567890abc")]
-    [InlineData("autocontext:rpc@0123456789abcdef#12345678-1234-4567-8901-234567890abc")]
-    [InlineData("autocontext-engine:bogus@0123456789abcdef#12345678-1234-4567-8901-234567890abc")]
-    [InlineData("autocontext-engine:rpc@0123456789ABCDEF#12345678-1234-4567-8901-234567890abc")]
-    [InlineData("autocontext-engine:rpc@0123456789abcde#12345678-1234-4567-8901-234567890abc")]
-    [InlineData("autocontext-engine:rpc@0123456789abcdef0#12345678-1234-4567-8901-234567890abc")]
-    [InlineData("autocontext-engine:rpc@0123456789abcdez#12345678-1234-4567-8901-234567890abc")]
-    [InlineData("autocontext-engine:rpc@0123456789abcdef#12345678-1234-4567-8901-234567890ABC")]
-    [InlineData("autocontext-engine:rpc@0123456789abcdef#not-a-uuid")]
-    [InlineData("autocontext-engine:@0123456789abcdef#12345678-1234-4567-8901-234567890abc")]
+    [InlineData("autocontext-engine:rpc@0123456789ABCDEF")]
+    [InlineData("autocontext-engine:rpc0123456789ABCDEF#12345678-1234-4567-8901-234567890abc")]
+    [InlineData("autocontext:rpc@0123456789ABCDEF#12345678-1234-4567-8901-234567890abc")]
+    [InlineData("autocontext-engine:bogus@0123456789ABCDEF#12345678-1234-4567-8901-234567890abc")]
+    [InlineData("autocontext-engine:rpc@0123456789abcdef#12345678-1234-4567-8901-234567890abc")]
+    [InlineData("autocontext-engine:rpc@0123456789ABCDE#12345678-1234-4567-8901-234567890abc")]
+    [InlineData("autocontext-engine:rpc@0123456789ABCDEF0#12345678-1234-4567-8901-234567890abc")]
+    [InlineData("autocontext-engine:rpc@0123456789ABCDEZ#12345678-1234-4567-8901-234567890abc")]
+    [InlineData("autocontext-engine:rpc@0123456789ABCDEF#12345678-1234-4567-8901-234567890ABC")]
+    [InlineData("autocontext-engine:rpc@0123456789ABCDEF#not-a-uuid")]
+    [InlineData("autocontext-engine:@0123456789ABCDEF#12345678-1234-4567-8901-234567890abc")]
     [InlineData("autocontext-engine:rpc@#12345678-1234-4567-8901-234567890abc")]
-    [InlineData("autocontext-engine:rpc@0123456789abcdef#")]
+    [InlineData("autocontext-engine:rpc@0123456789ABCDEF#")]
     public void Should_reject_malformed_input_when_try_parsing(string? input)
     {
         // Act
@@ -123,7 +123,7 @@ public class EndpointTests
     {
         // Arrange
         var baseline = new Endpoint(EndpointKind.Events, SampleHash, SampleInstanceId);
-        var other = new Endpoint(EndpointKind.Events, "fedcba9876543210", SampleInstanceId);
+        var other = new Endpoint(EndpointKind.Events, "FEDCBA9876543210", SampleInstanceId);
 
         // Act & Assert
         Assert.NotEqual(baseline, other);

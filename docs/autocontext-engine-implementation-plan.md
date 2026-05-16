@@ -696,7 +696,7 @@ registration, or executable host.
 | 4 | `feat(engine): scaffold binary host with role-split argv parser` | DONE |
 | 5 | `feat(engine-core): add RegistryFile{Reader,Writer,Format} single-writer owner of engine-registry.json` | DONE |
 | 5b | `refactor(engine-core): make RegistryFileWriter a single-worker hosted service with named-mutex coordination and atomic temp-file writes` | DONE |
-| 6 | `feat(engine-core): add LifecycleService four-pipe accept loops` | Not started |
+| 6 | `feat(engine-core): add LifecycleService four-pipe accept loops` | DONE |
 | 7 | `feat(engine-core): add Engine.Hello handshake and protocol-version gate` | Not started |
 | 8 | `feat(engine-core): add RegistryEntryWriter for own-entry lifecycle` | Not started |
 | 9 | `feat(engine-core): add Engine.ListRegistryEntries and Engine.Shutdown handlers` | Not started |
