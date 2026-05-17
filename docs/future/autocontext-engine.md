@@ -462,7 +462,7 @@ four sub-projects, by namespace:
   `PipeLoggerProvider`; the legacy sideband sink gets deleted in
   Phase 8 of the implementation plan once `Engine.WriteLog` is the
   only path workers use to publish records.
-- **`AutoContext.Framework.Protocol`** — cross-side DTOs. New
+- **`AutoContext.Engine.Protocol`** — cross-side DTOs. New
   sub-project (no equivalent in today's substrate); holds the
   protocol-version integer constant that `Engine.Hello` exchanges,
   the endpoint builder (`rpc` / `events` / `health` / `logs` ×
@@ -3257,7 +3257,7 @@ speak a narrower wire than full RPC clients do).
 |---|---|
 | `AutoContext.Framework.Pipes.Tests` | Transport primitives — `PipeListener`, codec, keep-alive client, exchange/streaming-client triad |
 | `AutoContext.Framework.Logging.Tests` | Wire envelope, `EngineLoggerProvider`, `EngineLogIngestRing`, write-log client |
-| `AutoContext.Framework.Protocol.Tests` | DTO envelope round-trips, endpoint builder, source-generated JSON contexts |
+| `AutoContext.Engine.Protocol.Tests` | DTO envelope round-trips, endpoint builder, source-generated JSON contexts |
 | `AutoContext.Framework.Services.Tests` | `WorkerHostBuilderExtensions`, `WorkerTaskDispatcherService`, `HealthMonitorClient` |
 | `AutoContext.Engine.Core.Tests` | Engine-internal services, RPC handlers, pipe-server bindings; absorbs today's `AutoContext.Mcp.Server.Tests` |
 | `AutoContext.Client.Core.Tests` | Typed RPC clients, subscription-stream consumers, dialer back-pressure / reconnect behaviour |

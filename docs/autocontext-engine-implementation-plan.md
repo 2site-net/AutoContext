@@ -196,7 +196,7 @@ other reason still need a real second impl.
   *Project layout*) one-to-one:
   `AutoContext.Framework.Pipes.Tests`,
   `AutoContext.Framework.Logging.Tests`,
-  `AutoContext.Framework.Protocol.Tests`,
+  `AutoContext.Engine.Protocol.Tests`,
   `AutoContext.Framework.Workers.Tests`,
   `AutoContext.Engine.Core.Tests` (absorbs today's
   `AutoContext.Mcp.Server.Tests` over the course of phases 7 and 16),
@@ -235,7 +235,7 @@ rollout owns end-to-end:
   `AutoContext.Worker.Shared`. The canonical wire log envelope
   (`LogRecord`) lives in `Framework.Protocol/` alongside every other
   cross-side DTO.
-- `AutoContext.Framework.Protocol/` — cross-side DTOs (the wire
+- `AutoContext.Engine.Protocol/` — cross-side DTOs (the wire
   contract every RPC handler and typed dialer client marshals,
   including the canonical `LogRecord` envelope).
 - `AutoContext.Framework.Workers/` — worker-host substrate: the
@@ -309,8 +309,8 @@ src/
     JsonLogGreeting.cs
     LogServerJsonContext.cs
 
-  AutoContext.Framework.Protocol/              # cross-side DTOs + endpoint shapes (leaf — no references)
-    AutoContext.Framework.Protocol.csproj
+  AutoContext.Engine.Protocol/              # cross-side DTOs + endpoint shapes (leaf — no references)
+    AutoContext.Engine.Protocol.csproj
     EndpointKind.cs                            # enum { Rpc, Events, Health, Logs } — the four logical channels per (workspace, launcher instance)
     Endpoint.cs                                # `readonly record struct` implementing IParsable<Endpoint> — builder + parser for rpc/events/health/logs × hash#instance
     ServiceAddressFormatter.cs                 # legacy `autocontext.<role>#<instance-id>` formatter — kept until every current-topology dialer flips to Endpoint (Phase 12); deleted in Phase 16
@@ -503,7 +503,7 @@ src/
   tests/
     AutoContext.Framework.Pipes.Tests/         # transport primitives — listener, codec, keep-alive, exchange/streaming triad
     AutoContext.Framework.Logging.Tests/       # EngineLoggerProvider, ingest ring, write-log client
-    AutoContext.Framework.Protocol.Tests/      # DTO envelope round-trips (including LogRecord), endpoint builder, source-generated JSON contexts
+    AutoContext.Engine.Protocol.Tests/      # DTO envelope round-trips (including LogRecord), endpoint builder, source-generated JSON contexts
     AutoContext.Framework.Workers.Tests/       # IMcpTask, WorkerHostBuilderExtensions, WorkerTaskDispatcherService, WorkerHealthMonitorService
     AutoContext.Engine.Core.Tests/             # engine-internal services + every RPC handler + lifecycle + watchdogs
     AutoContext.Client.Core.Tests/             # typed RPC clients, subscription consumers, find-or-spawn flow
@@ -609,7 +609,7 @@ build-tasks project is created in the phase that first uses it (see
   - `AutoContext.Framework.Logging/` — receives the existing
     `AutoContext.Framework/Logging/` files. References
     `Framework.Pipes` + `Framework.Protocol`.
-  - `AutoContext.Framework.Protocol/` — new sub-project (no
+  - `AutoContext.Engine.Protocol/` — new sub-project (no
     equivalent in today's substrate). Skeletons for the cross-side
     DTOs (protocol-version constant, endpoint builder, log-record
     envelope, discriminated-envelope base shapes, source-generated
@@ -660,7 +660,7 @@ build-tasks project is created in the phase that first uses it (see
 - New test projects, one per new Framework sub-project:
   `AutoContext.Framework.Pipes.Tests`,
   `AutoContext.Framework.Logging.Tests`,
-  `AutoContext.Framework.Protocol.Tests`,
+  `AutoContext.Engine.Protocol.Tests`,
   `AutoContext.Framework.Workers.Tests`.
   Today's `AutoContext.Framework.Tests` is split across the four
   substrate test projects according to which sub-project owns each
@@ -697,7 +697,7 @@ registration, or executable host.
 | 5 | `feat(engine-core): add RegistryFile{Reader,Writer,Format} single-writer owner of engine-registry.json` | DONE |
 | 5b | `refactor(engine-core): make RegistryFileWriter a single-worker hosted service with named-mutex coordination and atomic temp-file writes` | DONE |
 | 6 | `feat(engine-core): add LifecycleService four-pipe accept loops` | DONE |
-| 7 | `feat(engine-core): add Engine.Hello handshake and protocol-version gate` | Not started |
+| 7 | `feat(engine-core): add Engine.Hello handshake and protocol-version gate` | DONE |
 | 8 | `feat(engine-core): add RegistryEntryWriter for own-entry lifecycle` | Not started |
 | 9 | `feat(engine-core): add Engine.ListRegistryEntries and Engine.Shutdown handlers` | Not started |
 | 10 | `feat(engine-core): add Engine.Lifecycle.Subscribe events broadcaster` | Not started |
@@ -732,7 +732,7 @@ participates in the shared liveness registry.
   `AutoContext.Engine.Core.Tests` alongside the projects above.
 - `AutoContext.slnx` and `build.ps1` learn the two new projects
   (and their test siblings).
-- `AutoContext.Framework.Protocol/` — endpoint builder (workspace
+- `AutoContext.Engine.Protocol/` — endpoint builder (workspace
   hash + `<kind>` + `<instanceId>`; normalisation rules in `§ Endpoint`),
   protocol-version integer.
 - `AutoContext.Framework.Pipes/` — used as-is. The existing
@@ -873,7 +873,7 @@ and rotated files are cleaned per `--retention`.
 `§ Log pipeline backpressure` pitfall.
 
 **Code touch**:
-- `AutoContext.Framework.Protocol/LogRecord.cs` — the canonical wire
+- `AutoContext.Engine.Protocol/LogRecord.cs` — the canonical wire
   envelope (`timestamp`, `category`, `level`, `eventId?`, `message`,
   `properties?`, `exception?`). Phase 2a collapses today's substrate
   pair `LogEntry`/`JsonLogEntry` into this single record under
