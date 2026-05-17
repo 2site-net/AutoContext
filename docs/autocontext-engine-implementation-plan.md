@@ -358,9 +358,9 @@ src/
       RegistryFileFormat.cs                    # stateless serializer + schema-version contract shared by reader and writer (envelope shape, JsonSerializerOptions)
       RegistryFileReader.cs                    # concurrent-read surface for engine-registry.json (P9 concurrent reads); retry under FileShare.ReadWrite|FileShare.Delete + corrupt-file tolerance (returns empty list)
       RegistryFileWriter.cs                    # internal atomic single-shot writer; temp+fsync+rename only (no mutex, no retry, no RMW — owned by RegistryFileService)
-      RegistryFileService.cs                   # hosted coordinator: dedicated worker thread + named cross-process Mutex + Channel<WriteRequest> + read-modify-write cycle; single intended caller of RegistryFileWriter
+      RegistryFileService.cs                   # hosted coordinator: dedicated worker thread + named cross-process Mutex + Channel<WriteRequest> + read-modify-write cycle; owns this engine's own-entry lifecycle (append on Start, best-effort remove on Stop); single intended caller of RegistryFileWriter
       RegistryEntry.cs                         # entry DTO returned/accepted by RegistryFileReader/Service (engine-internal shape — never on the wire, P3)
-      RegistryEntryWriter.cs                   # composes over RegistryFileWriter — appends this engine's entry on start (fresh `instanceId` every spawn; no upsert), removes own entry on graceful shutdown
+      RegistryEntryBuilder.cs                  # pure builder — composes EngineOptions + runtime facts (pid, start time, workspace hash, assembly version) into the RegistryEntry that represents this engine; invoked by RegistryFileService via DI-supplied factory
       # — Watchdogs (process-lifetime guards) —
       IdleTimeoutWatchdog.cs                   # --idle-timeout
       ParentPidWatchdog.cs                     # --parent-pid + Process.StartTime defeat
@@ -698,7 +698,7 @@ registration, or executable host.
 | 5b | `refactor(engine-core): make RegistryFileWriter a single-worker hosted service with named-mutex coordination and atomic temp-file writes` | DONE |
 | 6 | `feat(engine-core): add LifecycleService four-pipe accept loops` | DONE |
 | 7 | `feat(engine-core): add Engine.Hello handshake and protocol-version gate` | DONE |
-| 8 | `feat(engine-core): add RegistryEntryWriter for own-entry lifecycle` | Not started |
+| 8 | `feat(engine-core): add RegistryEntryBuilder and own-entry lifecycle on RegistryFileService` | DONE |
 | 9 | `feat(engine-core): add Engine.ListRegistryEntries and Engine.Shutdown handlers` | Not started |
 | 10 | `feat(engine-core): add Engine.Lifecycle.Subscribe events broadcaster` | Not started |
 | 11 | `feat(engine-core): add idle-timeout watchdog` | Not started |
@@ -745,8 +745,10 @@ participates in the shared liveness registry.
   consumers see EOF cleanly, but engine record emission lives in
   Phase 2), `Engine.Hello` handler, `Engine.Lifecycle` broadcaster,
   `Engine.ListRegistryEntries` handler, `Engine.Shutdown` handler,
-  `RegistryEntryWriter` (this engine's own entry), idle-timeout
-  watchdog, parent-pid watchdog.
+  the own-entry lifecycle folded into `RegistryFileService` (append
+  on Start, best-effort remove on Stop — composing
+  `RegistryEntryBuilder` for the pure construction half),
+  idle-timeout watchdog, parent-pid watchdog.
 - `RegistryFileReader` / `RegistryFileWriter` / `RegistryFileFormat`
   / `RegistryFileService` — sole owners of `engine-registry.json`,
   split along three orthogonal concerns so `§ P9`'s
@@ -779,10 +781,10 @@ participates in the shared liveness registry.
   The service handles `AbandonedMutexException` gracefully
   (atomic-rename writer guarantees no torn intermediate state, so
   reclaiming the mutex is always safe). Every consumer (this phase's
-  `RegistryEntryWriter`, Phase 2b's `RegistryEntryReader`, any
-  future peer-watcher) composes over the appropriate surface:
-  writers go through `RegistryFileService`, readers go through
-  `RegistryFileReader`. Born in Phase 1 because Phase 1 is when
+  own-entry lifecycle on `RegistryFileService`, Phase 2b's
+  `RegistryEntryReader`, any future peer-watcher) composes over
+  the appropriate surface: writers go through
+  `RegistryFileService`, readers go through `RegistryFileReader`. Born in Phase 1 because Phase 1 is when
   `engine-registry.json` is first written; Phase 2b composes over
   `RegistryFileReader` rather than reaching into the file directly.
 - `engine-registry.json` entry lifecycle per
@@ -857,7 +859,7 @@ the `CrashWriter` it depends on is wired up here. Worker spawn
 Two equal-tier features land together because they share the
 per-instance subtree shape (both write under it) and the
 `engine-registry.json` reader (`RegistryEntryReader` consults the
-same entries `RegistryEntryWriter` produces). Neither is subordinate to
+same entries `RegistryFileService` produces). Neither is subordinate to
 the other; each gets its own subsection below.
 
 ### 2a — Engine logging pipeline
@@ -937,15 +939,16 @@ is explicit and exclusive).
   `<instanceId>` is fresh on every spawn, so the registry stays
   append-only and there is nothing to reconcile before pipe-bind.
   Cleanup of any peer's leftover subtree happens at this engine's
-  own graceful shutdown, after `RegistryEntryWriter` has removed
-  this engine's own entry and `LifecycleService` has closed the
-  four pipes. Hosted-service registration order pins the
-  invariant: register `HousekeepingService` **before**
-  `LifecycleService` (and before `RegistryEntryWriter` if it is
-  itself registered as a hosted service) so its `StopAsync` runs
-  *after* both — reverse-registration order — and the sweep
-  observes the on-disk registry in its post-shutdown shape (this
-  engine's entry already removed, pipes already closed). Bounded
+  own graceful shutdown, after `RegistryFileService` has removed
+  this engine's own entry (via its own `StopAsync` prefix) and
+  `LifecycleService` has closed the four pipes. Hosted-service
+  registration order pins the invariant: register
+  `HousekeepingService` **after** `RegistryFileService` (and
+  before `LifecycleService`) so its `StopAsync` runs *before*
+  the file service's — reverse-registration order — letting
+  the sweep traverse the still-live `RegistryFileService.WriteAsync`
+  channel before it's torn down, while still observing the
+  on-disk registry in its post-pipe-close shape. Bounded
   by the ≤ 1 s deadline the design specifies; whatever the sweep
   doesn't reach this time, the next graceful shutdown of any
   peer catches.
@@ -1018,10 +1021,10 @@ is explicit and exclusive).
   `Process.StartTime` comparison.
 - The ≤ 1 s deadline budget is respected: a deliberately huge cache
   root yields after the budget elapses without blocking shutdown.
-- Shutdown sweep runs after `RegistryEntryWriter` has removed this
-  engine's own entry and `LifecycleService` has closed the four
-  pipes — a peer that starts mid-shutdown does not observe this
-  engine's entry as live.
+- Shutdown sweep runs after `RegistryFileService` has removed this
+  engine's own entry (during its own `StopAsync`) and after
+  `LifecycleService` has closed the four pipes — a peer that
+  starts mid-shutdown does not observe this engine's entry as live.
 - Integration: spawn two engines against the same cache root,
   hard-kill one (skipping its shutdown sweep), then gracefully
   shut down the survivor; assert the survivor reaps the killed
@@ -1031,9 +1034,10 @@ is explicit and exclusive).
 **Out of scope** (2a): worker records (Phase 8); `Logs.GetWorker`
 / `Logs.TailWorker` (Phase 8). 2b has no out-of-scope carve-out;
 its dependency on Phase 1's `RegistryFileReader` /
-  `RegistryFileWriter` and `RegistryEntryWriter` (which together
-  own the on-disk `engine-registry.json` entries the reader
-  supplies) is declared under code touch, not deferred work.
+  `RegistryFileWriter` and `RegistryFileService` (which owns both
+  the file mechanics and this engine's own-entry lifecycle, and
+  supplies the on-disk `engine-registry.json` entries the reader
+  surfaces) is declared under code touch, not deferred work.
 
 ## Phase 3 — Config store
 
