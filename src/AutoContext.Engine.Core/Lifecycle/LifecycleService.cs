@@ -22,13 +22,14 @@ using Microsoft.Extensions.Options;
 /// </summary>
 /// <remarks>
 /// <para>
-/// This commit wires up only the accept-and-close skeleton. Per the
-/// Phase 1 commit sequence the actual frame handlers
-/// (<see cref="Endpoint"/>-shape <c>Engine.Hello</c> handshake on
-/// <c>rpc</c> / <c>events</c>, raw heartbeat reads on <c>health</c>,
-/// engine-side log records on <c>logs</c>) land in subsequent
-/// commits; until then every accepted connection is logged at debug
-/// and the stream is disposed.
+/// Per the Phase 1 commit sequence, the per-pipe handlers are added
+/// incrementally: this commit performs the <c>Engine.Hello</c>
+/// handshake on every <c>rpc</c> and <c>events</c> connection and
+/// then holds the connection open until cancellation (the
+/// post-handshake RPC dispatcher arrives in row #9 and the events
+/// subscription loop in row #10). <c>health</c> and <c>logs</c>
+/// remain accept-and-close at this stage — they are passive
+/// observer surfaces whose payloads land in later commits.
 /// </para>
 /// <para>
 /// The OS pipe name is the canonical <see cref="Endpoint"/> wire
@@ -227,7 +228,7 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
         try
         {
             await listener.RunAsync(
-                (stream, _) => HandleConnectionAsync(kind, stream),
+                (stream, ct) => HandleConnectionAsync(kind, stream, ct),
                 cancellationToken).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -241,14 +242,45 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
         }
     }
 
-    private Task HandleConnectionAsync(EndpointKind kind, Stream _)
+    private async Task HandleConnectionAsync(
+        EndpointKind kind,
+        Stream stream,
+        CancellationToken cancellationToken)
     {
-        // Placeholder handler — commit #7 wires up the real
-        // protocol (Engine.Hello on rpc/events, raw passive reads
-        // on health/logs). For now we simply observe the accept;
-        // the listener disposes the stream once we return.
         LogConnectionAccepted(_logger, kind);
-        return Task.CompletedTask;
+
+        // health and logs are passive observer surfaces — no
+        // handshake; payload emission arrives in later commits.
+        if (kind is EndpointKind.Health or EndpointKind.Logs)
+        {
+            return;
+        }
+
+        var accepted = await ConnectionHandshake
+            .TryAcceptAsync(stream, kind, _logger, cancellationToken)
+            .ConfigureAwait(false);
+
+        if (!accepted)
+        {
+            // Handshake refused; the listener disposes the stream
+            // when this method returns, closing the connection.
+            return;
+        }
+
+        // Hold the connection open until cancellation. The
+        // post-handshake RPC dispatcher (row #9) and the events
+        // subscription loop (row #10) replace this Delay with the
+        // real per-pipe loops; until then we keep the pipe alive
+        // so callers can observe that the handshake succeeded
+        // without the engine immediately tearing the connection down.
+        try
+        {
+            await Task.Delay(Timeout.Infinite, cancellationToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            // Expected on shutdown.
+        }
     }
 
     private async ValueTask DisposeListenersAsync()
