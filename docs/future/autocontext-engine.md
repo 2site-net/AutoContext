@@ -315,7 +315,7 @@ See [RPC surface (initial)](#rpc-surface-initial).
 | Envelope | Shape |
 |---|---|
 | Log record (engine + worker, on `logs` pipe, in `engine.log` and `worker-<workerId>.log`) | `{ timestamp, category, level, eventId?, message, properties?, exception? }` |
-| `Engine.RegistryEntries` entry | `{ workspaceHash, instanceId, instanceLabel, pid, processStartTimeUtc, engineVersion, startedAt, retention }` |
+| `Engine.RegistryEntries` entry | `{ workspaceHash, workspacePath, instanceId, instanceLabel, processId, processStartTimeUtc, engineVersion, startedAt, retention }` |
 | `Instructions.List` row | `{ key, fileName, name, version, description, applyTo?, hasChangelog, contentHash, alwaysAttached, disabled, source, overridePath?, sections? }` |
 | `Instructions.Get` response | `\|` of `{ kind: "ok", … }` / `{ kind: "disabled", … }` / `{ kind: "not-found", … }` |
 | `McpTools.Invoke` response | `\|` of `{ kind: "ok" \| "tool-error", content, isError? }` / `{ kind: "schema-error", errors[] }` / `{ kind: "disabled" \| "not-found" }` |
@@ -1541,10 +1541,11 @@ way to set it.
   ```
   Array<{
     workspaceHash:       string,   // sha256(normalisedWorkspacePath):0..16
+    workspacePath:       string,   // absolute, normalised workspace root the hash was derived from
     instanceId:          string,   // UUIDv4 the launcher minted
     instanceLabel:       string,   // freeform descriptor from --instance-label
-    pid:                 number,   // OS process id of the engine
-    processStartTimeUtc: string,   // ISO-8601, used with pid to defeat recycling
+    processId:           number,   // OS process id of the engine
+    processStartTimeUtc: string,   // ISO-8601, used with processId to defeat pid recycling
     engineVersion:       string,   // semver from AssemblyInformationalVersionAttribute
     startedAt:           string,   // ISO-8601 — when this entry was written
     retention:           string    // duration string from --retention (e.g. "1d", "12h", "0")
@@ -1556,7 +1557,7 @@ way to set it.
   whatever the on-disk registry currently records (including peer
   engines that started after this one). Callers must still
   pid-check each entry before treating it as authoritative — an entry
-  whose `pid` no longer exists, or exists but whose
+  whose `processId` no longer exists, or exists but whose
   `Process.StartTime` disagrees with `processStartTimeUtc` beyond
   the tolerance, is a stale crash leftover. The primary consumer is
   the engine's own housekeeping sweep (runs on every graceful
