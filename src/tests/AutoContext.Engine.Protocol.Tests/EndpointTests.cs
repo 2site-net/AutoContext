@@ -1,8 +1,8 @@
-namespace AutoContext.Framework.Protocol.Tests;
+namespace AutoContext.Engine.Protocol.Tests;
 
 using System.Globalization;
 
-public class EndpointTests
+public sealed class EndpointTests
 {
     private const string SampleHash = "0123456789ABCDEF";
     private const string SampleInstanceText = "12345678-1234-4567-8901-234567890abc";

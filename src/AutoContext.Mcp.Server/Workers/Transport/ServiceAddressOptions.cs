@@ -1,6 +1,6 @@
 namespace AutoContext.Mcp.Server.Workers.Transport;
 
-using AutoContext.Framework.Protocol;
+using AutoContext.Engine.Protocol;
 
 /// <summary>
 /// Holds the per-window <see cref="InstanceId"/> the orchestrator

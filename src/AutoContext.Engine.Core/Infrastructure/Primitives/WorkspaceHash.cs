@@ -4,7 +4,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Security.Cryptography;
 using System.Text;
 
-using AutoContext.Framework.Protocol;
+using AutoContext.Engine.Protocol;
 
 /// <summary>
 /// The 16-character uppercase-hex workspace identity hash used as

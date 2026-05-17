@@ -1,4 +1,4 @@
-namespace AutoContext.Framework.Protocol;
+namespace AutoContext.Engine.Protocol;
 
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;

@@ -6,7 +6,7 @@ using AutoContext.Engine.Core;
 using AutoContext.Engine.Core.Infrastructure.Primitives;
 using AutoContext.Engine.Core.Lifecycle;
 using AutoContext.Engine.Core.Tests.Testing.Utils;
-using AutoContext.Framework.Protocol;
+using AutoContext.Engine.Protocol;
 
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;

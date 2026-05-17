@@ -1,4 +1,4 @@
-namespace AutoContext.Framework.Protocol;
+namespace AutoContext.Engine.Protocol;
 
 /// <summary>
 /// The four logical channels the engine binds per (workspace, launcher

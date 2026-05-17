@@ -1,7 +1,7 @@
 namespace AutoContext.Engine.Core.Tests.Infrastructure.Primitives;
 
 using AutoContext.Engine.Core.Infrastructure.Primitives;
-using AutoContext.Framework.Protocol;
+using AutoContext.Engine.Protocol;
 
 public sealed class WorkspaceHashTests
 {

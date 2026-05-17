@@ -2,7 +2,7 @@ namespace AutoContext.Engine.Core.Lifecycle;
 
 using AutoContext.Engine.Core.Infrastructure.Primitives;
 using AutoContext.Framework.Pipes;
-using AutoContext.Framework.Protocol;
+using AutoContext.Engine.Protocol;
 
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;

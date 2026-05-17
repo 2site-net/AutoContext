@@ -1,4 +1,4 @@
-namespace AutoContext.Framework.Protocol;
+namespace AutoContext.Engine.Protocol;
 
 /// <summary>
 /// Wire-protocol version constant carried in every <c>Engine.Hello</c>

@@ -1,6 +1,6 @@
 namespace AutoContext.Framework.Workers;
 
-using AutoContext.Framework.Protocol;
+using AutoContext.Engine.Protocol;
 
 /// <summary>
 /// Strongly-typed options for the shared worker host: the named pipe to

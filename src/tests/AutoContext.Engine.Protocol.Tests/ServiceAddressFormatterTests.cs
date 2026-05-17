@@ -1,6 +1,6 @@
-namespace AutoContext.Framework.Protocol.Tests;
+namespace AutoContext.Engine.Protocol.Tests;
 
-public class ServiceAddressFormatterTests
+public sealed class ServiceAddressFormatterTests
 {
     [Fact]
     public void Format_WithoutInstanceId_OmitsHashSuffix()
