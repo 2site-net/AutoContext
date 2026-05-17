@@ -1,5 +1,7 @@
 namespace AutoContext.Engine.Core.Registry;
 
+using AutoContext.Engine.Protocol.Messages.Registry;
+
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 

@@ -1,6 +1,6 @@
 namespace AutoContext.Engine.Core.Tests.Testing.Utils;
 
-using AutoContext.Engine.Core.Registry;
+using AutoContext.Engine.Protocol.Messages.Registry;
 
 internal static class RegistryEntryFakeData
 {

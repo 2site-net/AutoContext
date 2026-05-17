@@ -88,6 +88,20 @@ public static class EngineHostBuilderExtensions
             ServiceDescriptor.Singleton<IHostedService, RegistryFileService>(
                 sp => sp.GetRequiredService<RegistryFileService>()));
 
+        // Stateless concurrent reader used by the RPC dispatcher's
+        // Engine.RegistryEntries handler. Bound to the same
+        // resolved registry path as the writer so the two see the
+        // same file.
+        builder.Services.TryAddSingleton(sp =>
+        {
+            var options = sp.GetRequiredService<IOptions<EngineOptions>>().Value;
+            var path = EngineCacheRoot.ResolveRegistryFilePath(options.CacheRootOverride);
+            return new RegistryFileReader(
+                path,
+                options: null,
+                logger: sp.GetService<Microsoft.Extensions.Logging.ILogger<RegistryFileReader>>());
+        });
+
         builder.Services.TryAddEnumerable(
             ServiceDescriptor.Singleton<IHostedService, LifecycleService>());
 

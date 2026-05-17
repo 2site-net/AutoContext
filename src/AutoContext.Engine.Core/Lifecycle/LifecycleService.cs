@@ -1,6 +1,7 @@
 namespace AutoContext.Engine.Core.Lifecycle;
 
 using AutoContext.Engine.Core.Infrastructure.Primitives;
+using AutoContext.Engine.Core.Registry;
 using AutoContext.Framework.Pipes;
 using AutoContext.Engine.Protocol;
 
@@ -25,11 +26,13 @@ using Microsoft.Extensions.Options;
 /// Per the Phase 1 commit sequence, the per-pipe handlers are added
 /// incrementally: this commit performs the <c>Engine.Hello</c>
 /// handshake on every <c>rpc</c> and <c>events</c> connection and
-/// then holds the connection open until cancellation (the
-/// post-handshake RPC dispatcher arrives in row #9 and the events
-/// subscription loop in row #10). <c>health</c> and <c>logs</c>
-/// remain accept-and-close at this stage — they are passive
-/// observer surfaces whose payloads land in later commits.
+/// then runs the post-handshake JSON-RPC dispatch loop on
+/// <c>rpc</c> (handling <c>Engine.RegistryEntries</c> and
+/// <c>Engine.Shutdown</c>) while <c>events</c> holds the
+/// connection open until cancellation (the subscription loop
+/// arrives in row #10). <c>health</c> and <c>logs</c> remain
+/// accept-and-close at this stage — they are passive observer
+/// surfaces whose payloads land in later commits.
 /// </para>
 /// <para>
 /// The OS pipe name is the canonical <see cref="Endpoint"/> wire
@@ -56,6 +59,8 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
     private readonly EngineOptions _options;
     private readonly ILoggerFactory _loggerFactory;
     private readonly ILogger<LifecycleService> _logger;
+    private readonly IHostApplicationLifetime _applicationLifetime;
+    private readonly RegistryFileReader _registryReader;
     private readonly Dictionary<EndpointKind, BoundPipeListener> _listeners = new(AllKinds.Length);
     private readonly List<Task> _runTasks = new(AllKinds.Length);
 
@@ -69,22 +74,31 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
     /// </summary>
     /// <param name="options">Engine options resolved from the
     /// host's options pipeline.</param>
-    /// <param name="loggerFactory">Logger factory used to build the
-    /// service's own logger and the per-listener loggers.</param>
+    /// <param name="applicationLifetime">Host lifetime the RPC
+    /// dispatcher signals on a successful <c>Engine.Shutdown</c>
+    /// request.</param>
+    /// <param name="registryReader">Reader the RPC dispatcher uses
+    /// to snapshot the machine-wide engine-liveness registry for
+    /// <c>Engine.RegistryEntries</c>.</param>
     /// <exception cref="ArgumentNullException">
-    /// <paramref name="options"/> or <paramref name="loggerFactory"/>
-    /// is <see langword="null"/>.
+    /// Any constructor argument is <see langword="null"/>.
     /// </exception>
     public LifecycleService(
         IOptions<EngineOptions> options,
-        ILoggerFactory loggerFactory)
+        ILoggerFactory loggerFactory,
+        IHostApplicationLifetime applicationLifetime,
+        RegistryFileReader registryReader)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(loggerFactory);
+        ArgumentNullException.ThrowIfNull(applicationLifetime);
+        ArgumentNullException.ThrowIfNull(registryReader);
 
         _options = options.Value;
         _loggerFactory = loggerFactory;
         _logger = loggerFactory.CreateLogger<LifecycleService>();
+        _applicationLifetime = applicationLifetime;
+        _registryReader = registryReader;
     }
 
     /// <summary>
@@ -267,12 +281,29 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
             return;
         }
 
-        // Hold the connection open until cancellation. The
-        // post-handshake RPC dispatcher (row #9) and the events
-        // subscription loop (row #10) replace this Delay with the
-        // real per-pipe loops; until then we keep the pipe alive
-        // so callers can observe that the handshake succeeded
-        // without the engine immediately tearing the connection down.
+        if (kind == EndpointKind.Rpc)
+        {
+            // Post-handshake RPC dispatch loop (row #9). Reads one
+            // JSON-RPC frame at a time and routes it to the
+            // matching handler until the peer closes the pipe,
+            // cancellation is observed, or Engine.Shutdown is
+            // honoured.
+            await RpcDispatcher
+                .DispatchAsync(
+                    stream,
+                    _applicationLifetime,
+                    _registryReader,
+                    _logger,
+                    cancellationToken)
+                .ConfigureAwait(false);
+            return;
+        }
+
+        // Events: hold the connection open until cancellation. The
+        // subscription loop (row #10) replaces this Delay with the
+        // real per-pipe loop; until then we keep the pipe alive so
+        // callers can observe that the handshake succeeded without
+        // the engine immediately tearing the connection down.
         try
         {
             await Task.Delay(Timeout.Infinite, cancellationToken).ConfigureAwait(false);

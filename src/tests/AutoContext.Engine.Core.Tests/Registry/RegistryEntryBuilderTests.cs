@@ -5,6 +5,7 @@ using AutoContext.Engine.Core.Infrastructure.Primitives;
 using AutoContext.Engine.Core.Registry;
 using AutoContext.Engine.Core.Tests.Testing.Fakes;
 using AutoContext.Engine.Core.Tests.Testing.Utils;
+using AutoContext.Engine.Protocol.Messages.Registry;
 
 public sealed class RegistryEntryBuilderTests
 {

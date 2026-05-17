@@ -3,6 +3,8 @@ namespace AutoContext.Engine.Core.Registry;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
+using AutoContext.Engine.Protocol.Messages.Registry;
+
 /// <summary>
 /// Shared on-disk format helpers for <c>engine-registry.json</c>.
 /// Owned jointly by <see cref="RegistryFileReader"/> and

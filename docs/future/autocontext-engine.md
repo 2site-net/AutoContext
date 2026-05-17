@@ -297,7 +297,7 @@ are marshalling shims — P1).
 
 | Namespace | Methods |
 |---|---|
-| `Engine.*` | `Hello`, `ListRegistryEntries`, `Shutdown`, `WriteLog` (fire-and-forget from workers), `Lifecycle.Subscribe` |
+| `Engine.*` | `Hello`, `RegistryEntries`, `Shutdown`, `WriteLog` (fire-and-forget from workers), `Lifecycle.Subscribe` |
 | `Config.*` | `Get`, `Subscribe`, `ToggleFile`, `ToggleRule` |
 | `Instructions.*` | `List`, `Get`, `GetAll`, `GetAlwaysAttached`, `GetRaw`, `SearchContent`, `Subscribe` |
 | `Workspace.*` | `Detect`, `Info` |
@@ -315,7 +315,7 @@ See [RPC surface (initial)](#rpc-surface-initial).
 | Envelope | Shape |
 |---|---|
 | Log record (engine + worker, on `logs` pipe, in `engine.log` and `worker-<workerId>.log`) | `{ timestamp, category, level, eventId?, message, properties?, exception? }` |
-| `Engine.ListRegistryEntries` entry | `{ workspaceHash, instanceId, instanceLabel, pid, processStartTimeUtc, engineVersion, startedAt, retention }` |
+| `Engine.RegistryEntries` entry | `{ workspaceHash, instanceId, instanceLabel, pid, processStartTimeUtc, engineVersion, startedAt, retention }` |
 | `Instructions.List` row | `{ key, fileName, name, version, description, applyTo?, hasChangelog, contentHash, alwaysAttached, disabled, source, overridePath?, sections? }` |
 | `Instructions.Get` response | `\|` of `{ kind: "ok", … }` / `{ kind: "disabled", … }` / `{ kind: "not-found", … }` |
 | `McpTools.Invoke` response | `\|` of `{ kind: "ok" \| "tool-error", content, isError? }` / `{ kind: "schema-error", errors[] }` / `{ kind: "disabled" \| "not-found" }` |
@@ -1290,7 +1290,7 @@ automatically with how often engines actually shut down cleanly.
     mtime as the timestamp and honour *this engine's own*
     `--retention` (no entry = no peer's preference to respect).
 - **Retention is per-entry.** Each engine writes its `--retention`
-  value into its own registry entry (see `Engine.ListRegistryEntries`
+  value into its own registry entry (see `Engine.RegistryEntries`
   shape under `### RPC surface`). A peer sweeping that entry honours
   *the dead engine's* declared retention, not its own — a
   long-retention engine can crash and its leftovers stay the
@@ -1533,7 +1533,7 @@ way to set it.
   `{ protocolVersion: <int>, engineVersion: <semver> }`. Issued by
   every client immediately after connect; mismatch on the integer
   refuses the engine.
-- **`Engine.ListRegistryEntries`** — returns the current contents of
+- **`Engine.RegistryEntries`** — returns the current contents of
   the machine-wide engine-liveness registry
   (`…\autocontext\engine-registry.json`) as an array of entries, one
   per live engine the registry knows about:
@@ -2785,7 +2785,7 @@ Every on-disk path AutoContext touches has exactly one owner:
 | `%LOCALAPPDATA%\autocontext\<workspaceHash>\<instanceId>\logs\crash.log` (POSIX equivalent) | engine | postmortem readers (humans, peer engines' housekeeping diagnostics) | engine — written once by the dying engine's unhandled-exception / fail-fast handler; never streamed via `Logs.*` (it is a tombstone, not a tail-able feed) |
 | `%LOCALAPPDATA%\autocontext\<workspaceHash>\<instanceId>\logs\worker-<workerId>.log` (POSIX equivalent) | engine | engine, postmortem readers, `Logs.GetWorker` / `Logs.TailWorker` callers | engine (one file per spawned worker; records arrive via `Engine.WriteLog` and are routed by `category` prefix) |
 | `%LOCALAPPDATA%\autocontext\<workspaceHash>\<instanceId>\cache\<client>\…` (POSIX equivalent) | the writing client | writing client | writing client |
-| `%LOCALAPPDATA%\autocontext\engine-registry.json` (POSIX equivalent) — shared engine-liveness registry | every live engine (co-owned) | every engine on shutdown, every `Engine.ListRegistryEntries` caller | every engine **appends** its own entry on start and removes its own entry on graceful shutdown; never touches peer entries |
+| `%LOCALAPPDATA%\autocontext\engine-registry.json` (POSIX equivalent) — shared engine-liveness registry | every live engine (co-owned) | every engine on shutdown, every `Engine.RegistryEntries` caller | every engine **appends** its own entry on start and removes its own entry on graceful shutdown; never touches peer entries |
 
 Three rules fall out and the implementation must enforce all three:
 
@@ -2831,7 +2831,7 @@ Three rules fall out and the implementation must enforce all three:
   retry (same discipline as `.autocontext.json`); concurrent
   engine starts serialise on the handle, no engine ever rewrites
   another engine's entry. The engine exposes the file's current
-  contents over the wire as `Engine.ListRegistryEntries` (see the
+  contents over the wire as `Engine.RegistryEntries` (see the
   RPC surface section) for observability surfaces (external
   ps-style listings, tree-view badges).
 
@@ -3171,7 +3171,7 @@ do **not** reference `Framework.Services`. Worker.* references
   endpoint builder (`rpc` / `events` / `health` / `logs` ×
   workspace-hash × instance-UUID — P4), and the discriminated-union
   envelopes that appear on *both* sides of every RPC
-  (`Instructions.Get` / `McpTools.Invoke` / `Engine.ListRegistryEntries`
+  (`Instructions.Get` / `McpTools.Invoke` / `Engine.RegistryEntries`
   entry / the `Engine.WriteLog` log-record envelope). Engine,
   dialer, and every worker depend on it; neither
   `Engine.Core` nor `Client.Core` can own these without the other
@@ -3545,7 +3545,7 @@ Source-side locations for the editable inputs the build consumes:
   pid to a different process by the time the registry is read. The
   entry carries `processStartTimeUtc` alongside `pid`, and any consumer
   asserting liveness (including the engine itself when answering
-  `Engine.ListRegistryEntries` for diagnostic callers, and especially
+  `Engine.RegistryEntries` for diagnostic callers, and especially
   the housekeeping sweep when deciding what to delete) must compare
   `Process.GetProcessById(pid).StartTime` against
   `processStartTimeUtc` with a small tolerance (~1 s for clock

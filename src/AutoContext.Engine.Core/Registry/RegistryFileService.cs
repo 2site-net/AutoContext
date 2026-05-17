@@ -4,6 +4,8 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Channels;
 
+using AutoContext.Engine.Protocol.Messages.Registry;
+
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;

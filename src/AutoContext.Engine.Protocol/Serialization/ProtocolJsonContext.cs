@@ -3,8 +3,10 @@ namespace AutoContext.Engine.Protocol.Serialization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
+using AutoContext.Engine.Protocol;
 using AutoContext.Engine.Protocol.JsonRpc;
 using AutoContext.Engine.Protocol.Messages;
+using AutoContext.Engine.Protocol.Messages.Registry;
 
 /// <summary>
 /// System.Text.Json source-generation context for every wire shape
@@ -26,6 +28,9 @@ using AutoContext.Engine.Protocol.Messages;
 [JsonSerializable(typeof(JsonRpcError))]
 [JsonSerializable(typeof(HandshakeParams))]
 [JsonSerializable(typeof(HandshakeResult))]
+[JsonSerializable(typeof(RegistryEntry))]
+[JsonSerializable(typeof(RegistryEntriesResult))]
+[JsonSerializable(typeof(ShutdownResult))]
 public sealed partial class ProtocolJsonContext : JsonSerializerContext
 {
 }

@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Reflection;
 
 using AutoContext.Engine.Core.Infrastructure.Primitives;
+using AutoContext.Engine.Protocol.Messages.Registry;
 
 /// <summary>
 /// Pure builder for the <see cref="RegistryEntry"/> value that

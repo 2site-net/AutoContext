@@ -1,29 +1,26 @@
-namespace AutoContext.Engine.Core.Registry;
+namespace AutoContext.Engine.Protocol.Messages.Registry;
 
 using System.Text.Json.Serialization;
 
 /// <summary>
 /// One record in the machine-wide engine-liveness registry
-/// (<c>engine-registry.json</c>). Mirrors the wire shape returned by
-/// <c>Engine.ListRegistryEntries</c> per
-/// <c>design § RPC surface (initial)</c>; the on-disk file and the
-/// RPC response carry the same value type.
+/// (<c>engine-registry.json</c>) and, per
+/// <c>design § RPC surface (initial)</c>, the wire shape returned
+/// inside the <c>Engine.RegistryEntries</c> response. The
+/// on-disk file and the RPC response carry the same value type —
+/// hence the record's home in the protocol assembly rather than
+/// alongside its file-side I/O.
 /// </summary>
 /// <remarks>
 /// <para>
 /// Entries are written additively at engine startup (one entry per
-/// fresh <c>InstanceId</c> per spawn) and removed by the owning
-/// engine on graceful shutdown. A crashed engine leaves its entry
-/// in place; staleness is detected by the next graceful peer's
-/// shutdown sweep using <see cref="ProcessId"/> +
+/// fresh <see cref="InstanceId"/> per spawn) and removed by the
+/// owning engine on graceful shutdown. A crashed engine leaves its
+/// entry in place; staleness is detected by the next graceful
+/// peer's shutdown sweep using <see cref="ProcessId"/> +
 /// <see cref="ProcessStartTimeUtc"/> against
 /// <c>Process.GetProcessById(processId).StartTime</c>. See
 /// <c>design § engine-registry.json entry lifecycle</c>.
-/// </para>
-/// <para>
-/// This commit defines the record shape; the lifecycle bookkeeping
-/// (<c>RegistryEntryWriter</c>) and the housekeeping sweep land in
-/// later Phase 1 commits.
 /// </para>
 /// </remarks>
 /// <param name="EngineVersion">Semver string from
@@ -33,7 +30,7 @@ using System.Text.Json.Serialization;
 /// <c>design § Endpoint</c>.</param>
 /// <param name="WorkspacePath">Absolute, normalised workspace root
 /// path the hash was derived from. Carried alongside the hash so
-/// diagnostics, housekeeping, and <c>Engine.ListRegistryEntries</c>
+/// diagnostics, housekeeping, and <c>Engine.RegistryEntries</c>
 /// consumers can name the workspace without a reverse lookup.</param>
 /// <param name="InstanceId">Per-spawn UUIDv4 the launcher minted.
 /// Forms the <c>&lt;instanceId&gt;</c> segment of every endpoint.</param>

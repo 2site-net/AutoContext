@@ -323,7 +323,11 @@ src/
       NotFoundEnvelope.cs
       ErrorEnvelope.cs
     Messages/                                  # per-RPC request/response DTOs
-      EngineMessages.cs                        # Engine.Hello / ListRegistryEntries / Shutdown / WriteLog
+      EngineMessages.cs                        # Engine.Hello / Shutdown / WriteLog
+      Registry/                                # Engine.RegistryEntries family (request method constant, result DTO, RegistryEntry record)
+        RegistryMethods.cs                     # `Engine.RegistryEntries` wire-method constant
+        RegistryEntriesResult.cs               # Engine.RegistryEntries response DTO
+        RegistryEntry.cs                       # registry entry record (wire shape)
       ConfigMessages.cs                        # Config.{Get,Subscribe,ToggleFile,ToggleRule}
       InstructionsMessages.cs                  # Instructions.{List,Get,GetAll,GetAlwaysAttached,GetRaw,SearchContent,Subscribe}
       WorkspaceMessages.cs                     # Workspace.{Detect,Info}
@@ -455,7 +459,7 @@ src/
       EngineConnectBudget.cs                   # cold-spawn retry shape
       EngineLocator.cs                         # AppContext.BaseDirectory probe for engine binary
     Rpc/                                       # typed clients (one per surface)
-      EngineRpcClient.cs                       # Engine.Hello/Shutdown/ListRegistryEntries/WriteLog
+      EngineRpcClient.cs                       # Engine.Hello/Shutdown/RegistryEntries/WriteLog
       ConfigRpcClient.cs
       InstructionsRpcClient.cs
       WorkspaceRpcClient.cs
@@ -562,7 +566,7 @@ host-supplied path threads into the engine for side-car lookup.
 
 | Surface | Owner project | Transport |
 |---|---|---|
-| `Engine.Hello` / `Shutdown` / `ListRegistryEntries` / `Lifecycle.Subscribe` | `Engine.Core` | `rpc` + `events` |
+| `Engine.Hello` / `Shutdown` / `RegistryEntries` / `Lifecycle.Subscribe` | `Engine.Core` | `rpc` + `events` |
 | `Engine.WriteLog` | `Engine.Core` | `rpc` |
 | `Logs.GetEngine` / `TailEngine` / `GetWorker` / `TailWorker` | `Engine.Core` | `rpc` + `logs` |
 | `Config.Get` / `Subscribe` / `ToggleFile` / `ToggleRule` | `Engine.Core` | `rpc` + `events` |
@@ -699,7 +703,7 @@ registration, or executable host.
 | 6 | `feat(engine-core): add LifecycleService four-pipe accept loops` | DONE |
 | 7 | `feat(engine-core): add Engine.Hello handshake and protocol-version gate` | DONE |
 | 8 | `feat(engine-core): add RegistryEntryBuilder and own-entry lifecycle on RegistryFileService` | DONE |
-| 9 | `feat(engine-core): add Engine.ListRegistryEntries and Engine.Shutdown handlers` | Not started |
+| 9 | `feat(engine-core): add Engine.RegistryEntries and Engine.Shutdown handlers` | DONE |
 | 10 | `feat(engine-core): add Engine.Lifecycle.Subscribe events broadcaster` | Not started |
 | 11 | `feat(engine-core): add idle-timeout watchdog` | Not started |
 | 12 | `feat(engine-core): add parent-pid watchdog with Process.StartTime defeat` | Not started |
@@ -713,7 +717,7 @@ handshake, manages its own idle/parent-pid/shutdown lifecycle, and
 participates in the shared liveness registry.
 
 **Design anchors**: `§ Lifecycle`, `§ Engine options (CLI surface)`,
-`§ RPC surface` (`Engine.Hello`, `Engine.ListRegistryEntries`,
+`§ RPC surface` (`Engine.Hello`, `Engine.RegistryEntries`,
 `Engine.Shutdown`, `Engine.Lifecycle.Subscribe`), `§ P4`, `§ P5`,
 `§ P8`.
 
@@ -744,7 +748,7 @@ participates in the shared liveness registry.
   loops (`rpc`, `events`, `health`, `logs` — `logs` is bound here so
   consumers see EOF cleanly, but engine record emission lives in
   Phase 2), `Engine.Hello` handler, `Engine.Lifecycle` broadcaster,
-  `Engine.ListRegistryEntries` handler, `Engine.Shutdown` handler,
+  `Engine.RegistryEntries` handler, `Engine.Shutdown` handler,
   the own-entry lifecycle folded into `RegistryFileService` (append
   on Start, best-effort remove on Stop — composing
   `RegistryEntryBuilder` for the pure construction half),
@@ -1568,7 +1572,7 @@ share the engine's wire contract.
     `EngineProtocolException`.
   - Typed RPC clients for every surface: `Config.*`, `Instructions.*`,
     `Workspace.*`, `McpTools.*`, `Discovery.*`, `Agent.*`, `Logs.*`,
-    `Engine.Lifecycle`, `Engine.ListRegistryEntries`,
+    `Engine.Lifecycle`, `Engine.RegistryEntries`,
     `Engine.Shutdown`. Note: `Engine.WriteLog` is **not** exposed
     on `Client.Core`'s typed surface — it is a worker→engine
     notification owned by `Framework.Logging`
