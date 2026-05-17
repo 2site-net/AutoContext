@@ -87,6 +87,13 @@ internal sealed class EngineOptionsValidator : IValidateOptions<EngineOptions>
                 + $"{nameof(EngineMcpServerMode)} value.");
         }
 
+        if (options.CacheRootOverride is { } cacheRoot
+            && !Path.IsPathFullyQualified(cacheRoot))
+        {
+            (failures ??= []).Add(
+                $"{nameof(EngineOptions.CacheRootOverride)} must be an absolute path when set; got '{cacheRoot}'.");
+        }
+
         if (options.CorpusRootOverride is { } corpusRoot
             && !Path.IsPathFullyQualified(corpusRoot))
         {

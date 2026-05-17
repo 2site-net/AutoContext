@@ -302,6 +302,27 @@ public sealed class EngineOptionsValidatorTests
     }
 
     [Fact]
+    public void Should_reject_relative_cache_root_override()
+    {
+        // Arrange
+        var validator = new EngineOptionsValidator();
+        var options = EngineOptionsFakeData.CreateValidOptions();
+        options.CacheRootOverride = "relative/cache";
+
+        // Act
+        var result = validator.Validate(null, options);
+
+        // Assert
+        Assert.Multiple(
+            () => Assert.True(result.Failed),
+            () =>
+            {
+                Assert.NotNull(result.Failures);
+                Assert.Contains(result.Failures, m => m.Contains("CacheRootOverride", StringComparison.Ordinal));
+            });
+    }
+
+    [Fact]
     public void Should_report_every_violation_in_a_single_pass()
     {
         // Arrange

@@ -1,6 +1,7 @@
 namespace AutoContext.Engine.Core;
 
 using AutoContext.Engine.Core.Lifecycle;
+using AutoContext.Engine.Core.Registry;
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -52,6 +53,40 @@ public static class EngineHostBuilderExtensions
 
         builder.Services.TryAddEnumerable(
             ServiceDescriptor.Singleton<IValidateOptions<EngineOptions>, EngineOptionsValidator>());
+
+        // Clock source for hosted services that stamp wire-visible
+        // timestamps (RegistryFileService's own-entry row et al.).
+        // Idempotent — a host that already has a TimeProvider keeps
+        // its own.
+        builder.Services.TryAddSingleton(TimeProvider.System);
+
+        // Registration order encodes the stop order (hosted
+        // services stop in reverse). RegistryFileService is
+        // registered first so it stops LAST: future hosted writers
+        // (Phase 2b housekeeping, crash-writers) register after it,
+        // stop before it, and can therefore await one final
+        // WriteAsync through a still-live channel during their
+        // own StopAsync. The file service itself owns the
+        // lifecycle of this engine's own row — append on Start,
+        // best-effort remove on Stop — so the writer/file-service
+        // split that earlier drafts proposed is collapsed into a
+        // single service.
+
+        builder.Services.TryAddSingleton(sp =>
+        {
+            var options = sp.GetRequiredService<IOptions<EngineOptions>>().Value;
+            var clock = sp.GetRequiredService<TimeProvider>();
+            var path = EngineCacheRoot.ResolveRegistryFilePath(options.CacheRootOverride);
+            return new RegistryFileService(
+                path,
+                serviceOptions: null,
+                readerOptions: null,
+                loggerFactory: sp.GetService<Microsoft.Extensions.Logging.ILoggerFactory>(),
+                ownEntryFactory: () => RegistryEntryBuilder.Build(options, clock));
+        });
+        builder.Services.TryAddEnumerable(
+            ServiceDescriptor.Singleton<IHostedService, RegistryFileService>(
+                sp => sp.GetRequiredService<RegistryFileService>()));
 
         builder.Services.TryAddEnumerable(
             ServiceDescriptor.Singleton<IHostedService, LifecycleService>());
