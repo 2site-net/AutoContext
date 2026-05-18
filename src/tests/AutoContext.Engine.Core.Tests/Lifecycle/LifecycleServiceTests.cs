@@ -585,26 +585,16 @@ public sealed class LifecycleServiceTests(TempDirectoryFixture tempDirectory)
         await SendHelloAsync(codec, ProtocolVersion.Current, TestContext.Current.CancellationToken);
         _ = await ReadResponseAsync(codec, TestContext.Current.CancellationToken);
 
-        // Act — read the first server-pushed frame, which the
-        // stream seeds with the current (instanceId, revision).
+        // Act
         var frame = await codec.ReadAsync(TestContext.Current.CancellationToken);
-        Assert.NotNull(frame);
-
-        var notification = JsonSerializer.Deserialize(
-            frame!, ProtocolJsonContext.Default.JsonRpcNotification);
 
         // Assert
-        Assert.NotNull(notification);
-        Assert.Equal(LifecycleMethods.Notification, notification!.Method);
-        Assert.NotNull(notification.Params);
+        var evt = LifecycleNotificationFrame.Decode(frame);
 
-        var evt = notification.Params!.Value.Deserialize(
-            ProtocolJsonContext.Default.LifecycleEvent);
-        Assert.NotNull(evt);
         Assert.Multiple(
-            () => Assert.Equal(LifecycleEventKinds.Started, evt!.Kind),
-            () => Assert.Equal(options.InstanceId, evt!.InstanceId),
-            () => Assert.Equal(0L, evt!.Revision));
+            () => Assert.Equal(LifecycleEventKinds.Started, evt.Kind),
+            () => Assert.Equal(options.InstanceId, evt.InstanceId),
+            () => Assert.Equal(0L, evt.Revision));
     }
 
     [Fact]
@@ -623,40 +613,20 @@ public sealed class LifecycleServiceTests(TempDirectoryFixture tempDirectory)
 
         await SendHelloAsync(codec, ProtocolVersion.Current, TestContext.Current.CancellationToken);
         _ = await ReadResponseAsync(codec, TestContext.Current.CancellationToken);
+        _ = await codec.ReadAsync(TestContext.Current.CancellationToken);
 
-        // Drain the seeded started event.
-        var startedFrame = await codec.ReadAsync(TestContext.Current.CancellationToken);
-        Assert.NotNull(startedFrame);
-
-        // Act — graceful stop triggers NotifyShutdown, which the
-        // events pump must flush before the listener tears the
-        // connection down. The pump's write blocks until the peer
-        // drains it, so the test must read concurrently with
-        // StopAsync rather than awaiting Stop first (that would
-        // deadlock: Stop waits for the pump, the pump waits for a
-        // reader, and the only reader is this test).
+        // Act
         var stopTask = sut.StopAsync(TestContext.Current.CancellationToken);
-
-        // Assert — the next frame is the shutting-down notification.
         var shuttingDownFrame = await codec.ReadAsync(TestContext.Current.CancellationToken);
-        Assert.NotNull(shuttingDownFrame);
-
-        var notification = JsonSerializer.Deserialize(
-            shuttingDownFrame!, ProtocolJsonContext.Default.JsonRpcNotification);
-        Assert.NotNull(notification);
-
-        var evt = notification!.Params!.Value.Deserialize(
-            ProtocolJsonContext.Default.LifecycleEvent);
-        Assert.NotNull(evt);
-        Assert.Multiple(
-            () => Assert.Equal(LifecycleEventKinds.ShuttingDown, evt!.Kind),
-            () => Assert.Equal(options.InstanceId, evt!.InstanceId));
-
-        // The stream closes after the notifier completes the
-        // subscriber's channel; the next read returns EOF.
         var eof = await codec.ReadAsync(TestContext.Current.CancellationToken);
-        Assert.Null(eof);
-
         await stopTask;
+
+        // Assert
+        var evt = LifecycleNotificationFrame.Decode(shuttingDownFrame);
+
+        Assert.Multiple(
+            () => Assert.Null(eof),
+            () => Assert.Equal(LifecycleEventKinds.ShuttingDown, evt.Kind),
+            () => Assert.Equal(options.InstanceId, evt.InstanceId));
     }
 }
