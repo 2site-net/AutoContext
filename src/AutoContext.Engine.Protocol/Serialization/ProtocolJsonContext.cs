@@ -6,6 +6,7 @@ using System.Text.Json.Serialization;
 using AutoContext.Engine.Protocol;
 using AutoContext.Engine.Protocol.JsonRpc;
 using AutoContext.Engine.Protocol.Messages;
+using AutoContext.Engine.Protocol.Messages.Lifecycle;
 using AutoContext.Engine.Protocol.Messages.Registry;
 
 /// <summary>
@@ -26,8 +27,10 @@ using AutoContext.Engine.Protocol.Messages.Registry;
 [JsonSerializable(typeof(JsonRpcRequest))]
 [JsonSerializable(typeof(JsonRpcResponse))]
 [JsonSerializable(typeof(JsonRpcError))]
+[JsonSerializable(typeof(JsonRpcNotification))]
 [JsonSerializable(typeof(HandshakeParams))]
 [JsonSerializable(typeof(HandshakeResult))]
+[JsonSerializable(typeof(LifecycleEvent))]
 [JsonSerializable(typeof(RegistryEntry))]
 [JsonSerializable(typeof(RegistryEntriesResult))]
 [JsonSerializable(typeof(ShutdownResult))]

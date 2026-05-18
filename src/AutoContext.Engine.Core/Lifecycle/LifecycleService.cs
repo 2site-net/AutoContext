@@ -1,9 +1,14 @@
 namespace AutoContext.Engine.Core.Lifecycle;
 
+using System.Text.Json;
+
 using AutoContext.Engine.Core.Infrastructure.Primitives;
 using AutoContext.Engine.Core.Registry;
-using AutoContext.Framework.Pipes;
 using AutoContext.Engine.Protocol;
+using AutoContext.Engine.Protocol.JsonRpc;
+using AutoContext.Engine.Protocol.Messages.Lifecycle;
+using AutoContext.Engine.Protocol.Serialization;
+using AutoContext.Framework.Pipes;
 
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -25,14 +30,17 @@ using Microsoft.Extensions.Options;
 /// <para>
 /// Per the Phase 1 commit sequence, the per-pipe handlers are added
 /// incrementally: this commit performs the <c>Engine.Hello</c>
-/// handshake on every <c>rpc</c> and <c>events</c> connection and
+/// handshake on every <c>rpc</c> and <c>events</c> connection,
 /// then runs the post-handshake JSON-RPC dispatch loop on
 /// <c>rpc</c> (handling <c>Engine.RegistryEntries</c> and
-/// <c>Engine.Shutdown</c>) while <c>events</c> holds the
-/// connection open until cancellation (the subscription loop
-/// arrives in row #10). <c>health</c> and <c>logs</c> remain
-/// accept-and-close at this stage — they are passive observer
-/// surfaces whose payloads land in later commits.
+/// <c>Engine.Shutdown</c>) and the subscription pump on
+/// <c>events</c> (enrolling the connection with the
+/// <see cref="LifecycleEventStream"/> and serialising each
+/// fanned-out <see cref="LifecycleEvent"/>
+/// into an <c>Engine.Lifecycle</c> JSON-RPC notification frame).
+/// <c>health</c> and <c>logs</c> remain accept-and-close at this
+/// stage — they are passive observer surfaces whose payloads land
+/// in later commits.
 /// </para>
 /// <para>
 /// The OS pipe name is the canonical <see cref="Endpoint"/> wire
@@ -56,30 +64,40 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
         EndpointKind.Logs,
     ];
 
-    private readonly EngineOptions _options;
-    private readonly ILoggerFactory _loggerFactory;
-    private readonly ILogger<LifecycleService> _logger;
     private readonly IHostApplicationLifetime _applicationLifetime;
-    private readonly RegistryFileReader _registryReader;
+    private int _disposed;
+    private readonly LifecycleEventStream _eventStream;
+    private readonly LifecycleNotifier _lifecycleNotifier;
     private readonly Dictionary<EndpointKind, BoundPipeListener> _listeners = new(AllKinds.Length);
+    private readonly ILogger<LifecycleService> _logger;
+    private readonly ILoggerFactory _loggerFactory;
+    private readonly EngineOptions _options;
+    private readonly RegistryFileReader _registryReader;
     private readonly List<Task> _runTasks = new(AllKinds.Length);
-
-    private CancellationTokenSource? _stoppingCts;
     private int _started;
     private int _stopped;
-    private int _disposed;
+    private CancellationTokenSource? _stoppingCts;
 
     /// <summary>
     /// Creates a new <see cref="LifecycleService"/>.
     /// </summary>
     /// <param name="options">Engine options resolved from the
     /// host's options pipeline.</param>
+    /// <param name="loggerFactory">Logger factory used to create
+    /// loggers for this service and the underlying pipe listeners.</param>
     /// <param name="applicationLifetime">Host lifetime the RPC
     /// dispatcher signals on a successful <c>Engine.Shutdown</c>
     /// request.</param>
     /// <param name="registryReader">Reader the RPC dispatcher uses
     /// to snapshot the machine-wide engine-liveness registry for
     /// <c>Engine.RegistryEntries</c>.</param>
+    /// <param name="eventStream">Fan-out stream backing
+    /// <c>Engine.Lifecycle.Subscribe</c>; every <c>events</c>-pipe
+    /// connection enrolls a subscriber here.</param>
+    /// <param name="lifecycleNotifier">Notifier that stamps engine
+    /// identity onto lifecycle events; <see cref="StopAsync"/>
+    /// invokes <see cref="LifecycleNotifier.NotifyShutdown"/> ahead
+    /// of pipe teardown so subscribers see the terminal frame.</param>
     /// <exception cref="ArgumentNullException">
     /// Any constructor argument is <see langword="null"/>.
     /// </exception>
@@ -87,39 +105,43 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
         IOptions<EngineOptions> options,
         ILoggerFactory loggerFactory,
         IHostApplicationLifetime applicationLifetime,
-        RegistryFileReader registryReader)
+        RegistryFileReader registryReader,
+        LifecycleEventStream eventStream,
+        LifecycleNotifier lifecycleNotifier)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(loggerFactory);
         ArgumentNullException.ThrowIfNull(applicationLifetime);
         ArgumentNullException.ThrowIfNull(registryReader);
+        ArgumentNullException.ThrowIfNull(eventStream);
+        ArgumentNullException.ThrowIfNull(lifecycleNotifier);
 
         _options = options.Value;
         _loggerFactory = loggerFactory;
         _logger = loggerFactory.CreateLogger<LifecycleService>();
         _applicationLifetime = applicationLifetime;
         _registryReader = registryReader;
+        _eventStream = eventStream;
+        _lifecycleNotifier = lifecycleNotifier;
     }
 
-    /// <summary>
-    /// Computes the OS pipe name the engine binds for
-    /// <paramref name="kind"/> against <paramref name="workspaceHash"/>
-    /// and <paramref name="instanceId"/>. The result is the canonical
-    /// <see cref="Endpoint"/> wire form verbatim.
-    /// </summary>
-    private static string CreatePipeName(
-        EndpointKind kind,
-        WorkspaceHash workspaceHash,
-        Guid instanceId)
+    /// <inheritdoc/>
+    public async ValueTask DisposeAsync()
     {
-        if (workspaceHash.IsEmpty)
+        if (Interlocked.Exchange(ref _disposed, 1) != 0)
         {
-            throw new ArgumentException(
-                "WorkspaceHash must not be the default value.",
-                nameof(workspaceHash));
+            return;
         }
 
-        return new Endpoint(kind, workspaceHash.Value, instanceId).ToString();
+        if (_started != 0 && _stopped == 0)
+        {
+            await StopAsync(CancellationToken.None).ConfigureAwait(false);
+        }
+        else
+        {
+            _stoppingCts?.Dispose();
+            _stoppingCts = null;
+        }
     }
 
     /// <inheritdoc/>
@@ -154,6 +176,7 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
         }
 
         var runToken = _stoppingCts.Token;
+
         foreach (var (kind, listener) in _listeners)
         {
             _runTasks.Add(RunAcceptLoopAsync(kind, listener, runToken));
@@ -169,6 +192,14 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
         {
             return;
         }
+
+        // Publish shutting-down BEFORE cancelling the stop CTS so
+        // the events-pipe writer loops (which intentionally do not
+        // observe the stop token) drain the queued frame and flush
+        // it to the wire while the listener still considers the
+        // handler in-flight. The listener.RunAsync below waits for
+        // every in-flight handler to finish before returning.
+        _ = _lifecycleNotifier.NotifyShutdown();
 
         if (_stoppingCts is { } cts)
         {
@@ -200,28 +231,51 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
         LogStopped(_logger);
     }
 
-    /// <inheritdoc/>
-    public async ValueTask DisposeAsync()
+    /// <summary>
+    /// Computes the OS pipe name the engine binds for
+    /// <paramref name="kind"/> against <paramref name="workspaceHash"/>
+    /// and <paramref name="instanceId"/>. The result is the canonical
+    /// <see cref="Endpoint"/> wire form verbatim.
+    /// </summary>
+    private static string CreatePipeName(
+        EndpointKind kind,
+        WorkspaceHash workspaceHash,
+        Guid instanceId)
     {
-        if (Interlocked.Exchange(ref _disposed, 1) != 0)
+        if (workspaceHash.IsEmpty)
         {
-            return;
+            throw new ArgumentException(
+                "WorkspaceHash must not be the default value.",
+                nameof(workspaceHash));
         }
 
-        if (_started != 0 && _stopped == 0)
-        {
-            await StopAsync(CancellationToken.None).ConfigureAwait(false);
-        }
-        else
-        {
-            _stoppingCts?.Dispose();
-            _stoppingCts = null;
-        }
+        return new Endpoint(kind, workspaceHash.Value, instanceId).ToString();
     }
+
+    [LoggerMessage(EventId = 4, Level = LogLevel.Error,
+        Message = "Accept loop for '{Kind}' endpoint faulted; the engine will shut down.")]
+    private static partial void LogAcceptLoopFaulted(ILogger logger, Exception exception, EndpointKind kind);
+
+    [LoggerMessage(EventId = 3, Level = LogLevel.Debug,
+        Message = "Accepted connection on '{Kind}' endpoint.")]
+    private static partial void LogConnectionAccepted(ILogger logger, EndpointKind kind);
+
+    [LoggerMessage(EventId = 5, Level = LogLevel.Debug,
+        Message = "Events-pipe write faulted; closing subscriber connection.")]
+    private static partial void LogEventsPipeWriteFaulted(ILogger logger, Exception exception);
+
+    [LoggerMessage(EventId = 1, Level = LogLevel.Information,
+        Message = "LifecycleService bound four pipes for workspace '{WorkspaceHash}' instance {InstanceId:D}.")]
+    private static partial void LogStarted(ILogger logger, WorkspaceHash workspaceHash, Guid instanceId);
+
+    [LoggerMessage(EventId = 2, Level = LogLevel.Information,
+        Message = "LifecycleService stopped; all pipe accept loops have drained.")]
+    private static partial void LogStopped(ILogger logger);
 
     private void BindAll(WorkspaceHash workspaceHash, Guid instanceId)
     {
         var pipeLogger = _loggerFactory.CreateLogger<PipeListener>();
+
         foreach (var kind in AllKinds)
         {
             var pipeName = CreatePipeName(kind, workspaceHash, instanceId);
@@ -234,26 +288,14 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
         }
     }
 
-    private async Task RunAcceptLoopAsync(
-        EndpointKind kind,
-        BoundPipeListener listener,
-        CancellationToken cancellationToken)
+    private async ValueTask DisposeListenersAsync()
     {
-        try
+        foreach (var listener in _listeners.Values)
         {
-            await listener.RunAsync(
-                (stream, ct) => HandleConnectionAsync(kind, stream, ct),
-                cancellationToken).ConfigureAwait(false);
+            await listener.DisposeAsync().ConfigureAwait(false);
         }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-        {
-            // Normal shutdown.
-        }
-        catch (Exception ex)
-        {
-            LogAcceptLoopFaulted(_logger, ex, kind);
-            throw;
-        }
+
+        _listeners.Clear();
     }
 
     private async Task HandleConnectionAsync(
@@ -299,43 +341,74 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
             return;
         }
 
-        // Events: hold the connection open until cancellation. The
-        // subscription loop (row #10) replaces this Delay with the
-        // real per-pipe loop; until then we keep the pipe alive so
-        // callers can observe that the handshake succeeded without
-        // the engine immediately tearing the connection down.
+        // Events: post-handshake subscription loop. Enrol with the
+        // stream (which seeds the started event into our bounded
+        // buffer), then pump every event the stream hands us onto
+        // the wire as an Engine.Lifecycle notification until the
+        // channel completes (graceful shutdown or unsubscribe) or
+        // the pipe write faults (client disconnected).
+        //
+        // The pump intentionally does NOT observe cancellationToken
+        // on the read side: StopAsync drives shutdown by publishing
+        // shutting-down via the notifier (which completes the
+        // channel) BEFORE cancelling the stop CTS, so the pump
+        // exits cleanly after flushing the terminal frame.
+        await PumpEventsConnectionAsync(stream).ConfigureAwait(false);
+    }
+
+    private async Task PumpEventsConnectionAsync(Stream stream)
+    {
+        using var subscription = _eventStream.Subscribe();
+        var codec = new LengthPrefixedFrameCodec(stream);
+
         try
         {
-            await Task.Delay(Timeout.Infinite, cancellationToken).ConfigureAwait(false);
+            await foreach (var evt in subscription
+                .ReadAllAsync(CancellationToken.None)
+                .ConfigureAwait(false))
+            {
+                var paramsElement = JsonSerializer.SerializeToElement(
+                    evt, ProtocolJsonContext.Default.LifecycleEvent);
+                var notification = new JsonRpcNotification
+                {
+                    Method = LifecycleMethods.Notification,
+                    Params = paramsElement,
+                };
+                var bytes = JsonSerializer.SerializeToUtf8Bytes(
+                    notification, ProtocolJsonContext.Default.JsonRpcNotification);
+
+                await codec.WriteAsync(bytes, CancellationToken.None).ConfigureAwait(false);
+            }
+        }
+        catch (IOException ex)
+        {
+            LogEventsPipeWriteFaulted(_logger, ex);
+        }
+        catch (ObjectDisposedException ex)
+        {
+            LogEventsPipeWriteFaulted(_logger, ex);
+        }
+    }
+
+    private async Task RunAcceptLoopAsync(
+        EndpointKind kind,
+        BoundPipeListener listener,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await listener.RunAsync(
+                (stream, ct) => HandleConnectionAsync(kind, stream, ct),
+                cancellationToken).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
-            // Expected on shutdown.
+            // Normal shutdown.
         }
-    }
-
-    private async ValueTask DisposeListenersAsync()
-    {
-        foreach (var listener in _listeners.Values)
+        catch (Exception ex)
         {
-            await listener.DisposeAsync().ConfigureAwait(false);
+            LogAcceptLoopFaulted(_logger, ex, kind);
+            throw;
         }
-        _listeners.Clear();
     }
-
-    [LoggerMessage(EventId = 1, Level = LogLevel.Information,
-        Message = "LifecycleService bound four pipes for workspace '{WorkspaceHash}' instance {InstanceId:D}.")]
-    private static partial void LogStarted(ILogger logger, WorkspaceHash workspaceHash, Guid instanceId);
-
-    [LoggerMessage(EventId = 2, Level = LogLevel.Information,
-        Message = "LifecycleService stopped; all pipe accept loops have drained.")]
-    private static partial void LogStopped(ILogger logger);
-
-    [LoggerMessage(EventId = 3, Level = LogLevel.Debug,
-        Message = "Accepted connection on '{Kind}' endpoint.")]
-    private static partial void LogConnectionAccepted(ILogger logger, EndpointKind kind);
-
-    [LoggerMessage(EventId = 4, Level = LogLevel.Error,
-        Message = "Accept loop for '{Kind}' endpoint faulted; the engine will shut down.")]
-    private static partial void LogAcceptLoopFaulted(ILogger logger, Exception exception, EndpointKind kind);
 }

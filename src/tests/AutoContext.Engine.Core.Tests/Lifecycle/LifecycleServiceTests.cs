@@ -13,6 +13,7 @@ using AutoContext.Engine.Core.Tests.Testing.Utils;
 using AutoContext.Engine.Protocol;
 using AutoContext.Engine.Protocol.JsonRpc;
 using AutoContext.Engine.Protocol.Messages;
+using AutoContext.Engine.Protocol.Messages.Lifecycle;
 using AutoContext.Engine.Protocol.Messages.Registry;
 using AutoContext.Engine.Protocol.Serialization;
 using AutoContext.Framework.Pipes;
@@ -29,7 +30,7 @@ public sealed class LifecycleServiceTests(TempDirectoryFixture tempDirectory)
     private const string RegistryFileName = "engine-registry.json";
 
     [Fact]
-    public async Task StartAsync_should_throw_when_invoked_twice()
+    public async Task Should_throw_when_StartAsync_is_invoked_twice()
     {
         // Arrange
         await using var sut = CreateService(out _);
@@ -45,7 +46,7 @@ public sealed class LifecycleServiceTests(TempDirectoryFixture tempDirectory)
     [InlineData(EndpointKind.Events)]
     [InlineData(EndpointKind.Health)]
     [InlineData(EndpointKind.Logs)]
-    public async Task StartAsync_should_bind_endpoint(EndpointKind kind)
+    public async Task Should_bind_endpoint_on_StartAsync(EndpointKind kind)
     {
         // Arrange
         await using var sut = CreateService(out var options);
@@ -60,7 +61,7 @@ public sealed class LifecycleServiceTests(TempDirectoryFixture tempDirectory)
     }
 
     [Fact]
-    public async Task StopAsync_should_stop_accepting_new_connections()
+    public async Task Should_stop_accepting_new_connections_on_StopAsync()
     {
         // Arrange
         await using var sut = CreateService(out var options);
@@ -85,7 +86,7 @@ public sealed class LifecycleServiceTests(TempDirectoryFixture tempDirectory)
     }
 
     [Fact]
-    public async Task DisposeAsync_should_be_idempotent_when_never_started()
+    public async Task Should_be_idempotent_when_DisposeAsync_is_invoked_before_start()
     {
         // Arrange
         var sut = CreateService(out _);
@@ -96,40 +97,46 @@ public sealed class LifecycleServiceTests(TempDirectoryFixture tempDirectory)
     }
 
     [Fact]
-    public void Constructor_should_reject_null_options()
+    public void Should_throw_when_constructed_with_null_options()
     {
         Assert.Throws<ArgumentNullException>(() =>
             new LifecycleService(
                 null!,
                 NullLoggerFactory.Instance,
                 new FakeHostApplicationLifetime(),
-                CreateRegistryReader()));
+                CreateRegistryReader(),
+                CreateEventStream(),
+                CreateNotifier()));
     }
 
     [Fact]
-    public void Constructor_should_reject_null_logger_factory()
+    public void Should_throw_when_constructed_with_null_logger_factory()
     {
         Assert.Throws<ArgumentNullException>(() =>
             new LifecycleService(
                 Options.Create(CreateOptions()),
                 null!,
                 new FakeHostApplicationLifetime(),
-                CreateRegistryReader()));
+                CreateRegistryReader(),
+                CreateEventStream(),
+                CreateNotifier()));
     }
 
     [Fact]
-    public void Constructor_should_reject_null_application_lifetime()
+    public void Should_throw_when_constructed_with_null_application_lifetime()
     {
         Assert.Throws<ArgumentNullException>(() =>
             new LifecycleService(
                 Options.Create(CreateOptions()),
                 NullLoggerFactory.Instance,
                 null!,
-                CreateRegistryReader()));
+                CreateRegistryReader(),
+                CreateEventStream(),
+                CreateNotifier()));
     }
 
     [Fact]
-    public void Constructor_should_reject_null_registry_reader()
+    public void Should_throw_when_constructed_with_null_registry_reader()
     {
         using var lifetime = new FakeHostApplicationLifetime();
         Assert.Throws<ArgumentNullException>(() =>
@@ -137,6 +144,36 @@ public sealed class LifecycleServiceTests(TempDirectoryFixture tempDirectory)
                 Options.Create(CreateOptions()),
                 NullLoggerFactory.Instance,
                 lifetime,
+                null!,
+                CreateEventStream(),
+                CreateNotifier()));
+    }
+
+    [Fact]
+    public void Should_throw_when_constructed_with_null_event_stream()
+    {
+        using var lifetime = new FakeHostApplicationLifetime();
+        Assert.Throws<ArgumentNullException>(() =>
+            new LifecycleService(
+                Options.Create(CreateOptions()),
+                NullLoggerFactory.Instance,
+                lifetime,
+                CreateRegistryReader(),
+                null!,
+                CreateNotifier()));
+    }
+
+    [Fact]
+    public void Should_throw_when_constructed_with_null_lifecycle_notifier()
+    {
+        using var lifetime = new FakeHostApplicationLifetime();
+        Assert.Throws<ArgumentNullException>(() =>
+            new LifecycleService(
+                Options.Create(CreateOptions()),
+                NullLoggerFactory.Instance,
+                lifetime,
+                CreateRegistryReader(),
+                CreateEventStream(),
                 null!));
     }
 
@@ -152,11 +189,32 @@ public sealed class LifecycleServiceTests(TempDirectoryFixture tempDirectory)
         EngineOptions options,
         IHostApplicationLifetime applicationLifetime,
         RegistryFileReader registryReader)
-        => new(
+    {
+        var stream = CreateEventStream(options);
+        var notifier = CreateNotifier(options, stream);
+        return new(
             Options.Create(options),
             NullLoggerFactory.Instance,
             applicationLifetime,
-            registryReader);
+            registryReader,
+            stream,
+            notifier);
+    }
+
+    private static LifecycleEventStream CreateEventStream(EngineOptions? options = null)
+        => new(
+            Options.Create(options ?? CreateOptions()),
+            NullLogger<LifecycleEventStream>.Instance);
+
+    private static LifecycleNotifier CreateNotifier(
+        EngineOptions? options = null,
+        LifecycleEventStream? stream = null)
+    {
+        var resolvedOptions = options ?? CreateOptions();
+        return new(
+            stream ?? CreateEventStream(resolvedOptions),
+            Options.Create(resolvedOptions));
+    }
 
     private static RegistryFileReader CreateRegistryReader()
     {
@@ -511,5 +569,94 @@ public sealed class LifecycleServiceTests(TempDirectoryFixture tempDirectory)
 
         var next = await codec.ReadAsync(TestContext.Current.CancellationToken);
         Assert.Null(next); // EOF — dispatcher returned and the stream closed.
+    }
+
+    [Fact]
+    public async Task Should_push_started_notification_on_events_pipe_after_handshake()
+    {
+        // Arrange
+        await using var sut = CreateService(out var options);
+        await sut.StartAsync(TestContext.Current.CancellationToken);
+
+        await using var client = await ConnectAsync(
+            EndpointKind.Events, options, TestContext.Current.CancellationToken);
+        var codec = new LengthPrefixedFrameCodec(client);
+
+        await SendHelloAsync(codec, ProtocolVersion.Current, TestContext.Current.CancellationToken);
+        _ = await ReadResponseAsync(codec, TestContext.Current.CancellationToken);
+
+        // Act — read the first server-pushed frame, which the
+        // stream seeds with the current (instanceId, revision).
+        var frame = await codec.ReadAsync(TestContext.Current.CancellationToken);
+        Assert.NotNull(frame);
+
+        var notification = JsonSerializer.Deserialize(
+            frame!, ProtocolJsonContext.Default.JsonRpcNotification);
+
+        // Assert
+        Assert.NotNull(notification);
+        Assert.Equal(LifecycleMethods.Notification, notification!.Method);
+        Assert.NotNull(notification.Params);
+
+        var evt = notification.Params!.Value.Deserialize(
+            ProtocolJsonContext.Default.LifecycleEvent);
+        Assert.NotNull(evt);
+        Assert.Multiple(
+            () => Assert.Equal(LifecycleEventKinds.Started, evt!.Kind),
+            () => Assert.Equal(options.InstanceId, evt!.InstanceId),
+            () => Assert.Equal(0L, evt!.Revision));
+    }
+
+    [Fact]
+    public async Task Should_push_shutting_down_notification_on_events_pipe_on_graceful_stop()
+    {
+        // Arrange
+        var options = CreateOptions();
+        using var lifetime = new FakeHostApplicationLifetime();
+        var reader = CreateRegistryReader();
+        await using var sut = CreateService(options, lifetime, reader);
+        await sut.StartAsync(TestContext.Current.CancellationToken);
+
+        await using var client = await ConnectAsync(
+            EndpointKind.Events, options, TestContext.Current.CancellationToken);
+        var codec = new LengthPrefixedFrameCodec(client);
+
+        await SendHelloAsync(codec, ProtocolVersion.Current, TestContext.Current.CancellationToken);
+        _ = await ReadResponseAsync(codec, TestContext.Current.CancellationToken);
+
+        // Drain the seeded started event.
+        var startedFrame = await codec.ReadAsync(TestContext.Current.CancellationToken);
+        Assert.NotNull(startedFrame);
+
+        // Act — graceful stop triggers NotifyShutdown, which the
+        // events pump must flush before the listener tears the
+        // connection down. The pump's write blocks until the peer
+        // drains it, so the test must read concurrently with
+        // StopAsync rather than awaiting Stop first (that would
+        // deadlock: Stop waits for the pump, the pump waits for a
+        // reader, and the only reader is this test).
+        var stopTask = sut.StopAsync(TestContext.Current.CancellationToken);
+
+        // Assert — the next frame is the shutting-down notification.
+        var shuttingDownFrame = await codec.ReadAsync(TestContext.Current.CancellationToken);
+        Assert.NotNull(shuttingDownFrame);
+
+        var notification = JsonSerializer.Deserialize(
+            shuttingDownFrame!, ProtocolJsonContext.Default.JsonRpcNotification);
+        Assert.NotNull(notification);
+
+        var evt = notification!.Params!.Value.Deserialize(
+            ProtocolJsonContext.Default.LifecycleEvent);
+        Assert.NotNull(evt);
+        Assert.Multiple(
+            () => Assert.Equal(LifecycleEventKinds.ShuttingDown, evt!.Kind),
+            () => Assert.Equal(options.InstanceId, evt!.InstanceId));
+
+        // The stream closes after the notifier completes the
+        // subscriber's channel; the next read returns EOF.
+        var eof = await codec.ReadAsync(TestContext.Current.CancellationToken);
+        Assert.Null(eof);
+
+        await stopTask;
     }
 }

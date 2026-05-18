@@ -102,6 +102,9 @@ public static class EngineHostBuilderExtensions
                 logger: sp.GetService<Microsoft.Extensions.Logging.ILogger<RegistryFileReader>>());
         });
 
+        builder.Services.TryAddSingleton<LifecycleEventStream>();
+        builder.Services.TryAddSingleton<LifecycleNotifier>();
+
         builder.Services.TryAddEnumerable(
             ServiceDescriptor.Singleton<IHostedService, LifecycleService>());
 

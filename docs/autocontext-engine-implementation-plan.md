@@ -324,6 +324,10 @@ src/
       ErrorEnvelope.cs
     Messages/                                  # per-RPC request/response DTOs
       EngineMessages.cs                        # Engine.Hello / Shutdown / WriteLog
+      Lifecycle/                               # Engine.Lifecycle.Subscribe family (events-pipe notification payload)
+        LifecycleMethods.cs                    # `Engine.Lifecycle` notification-method constant
+        LifecycleEventKinds.cs                 # transition string constants (`started`, `shutting-down`, `reloading`, `evicted`)
+        LifecycleEvent.cs                      # notification payload (Kind, InstanceId?, Revision?, Reason?)
       Registry/                                # Engine.RegistryEntries family (request method constant, result DTO, RegistryEntry record)
         RegistryMethods.cs                     # `Engine.RegistryEntries` wire-method constant
         RegistryEntriesResult.cs               # Engine.RegistryEntries response DTO
@@ -357,7 +361,11 @@ src/
       LifecycleService.cs                      # hosted service — owns the four-pipe accept loops
       HelloHandler.cs                          # protocol-version check + greeting payload
       ShutdownHandler.cs                       # graceful drain + Engine.Shutdown RPC
-      LifecycleBroadcaster.cs                  # events-pipe state stream (P10)
+      # — Engine.Lifecycle.Subscribe events stream (P10) — split along ownership:
+      LifecycleEventStream.cs                  # singleton fan-out — Subscribe / TryPublish / TryComplete; per-subscriber bounded buffer with slow-subscriber eviction (P9)
+      LifecycleEventSubscriber.cs              # per-subscriber bounded channel + Active/Closed/Evicted state machine (Interlocked CAS)
+      LifecycleEventSubscription.cs            # IDisposable handle returned by Subscribe; ReadAllAsync drains the channel and yields a terminal `evicted` frame on eviction
+      LifecycleNotifier.cs                     # stamps the engine's identity (InstanceId, Revision) onto each transition and publishes through LifecycleEventStream — the stream itself constructs only the seeded `started` event
       # — Engine registry (engine-registry.json mechanics + this engine's own entry) —
       RegistryFileFormat.cs                    # stateless serializer + schema-version contract shared by reader and writer (envelope shape, JsonSerializerOptions)
       RegistryFileReader.cs                    # concurrent-read surface for engine-registry.json (P9 concurrent reads); retry under FileShare.ReadWrite|FileShare.Delete + corrupt-file tolerance (returns empty list)
@@ -704,7 +712,7 @@ registration, or executable host.
 | 7 | `feat(engine-core): add Engine.Hello handshake and protocol-version gate` | DONE |
 | 8 | `feat(engine-core): add RegistryEntryBuilder and own-entry lifecycle on RegistryFileService` | DONE |
 | 9 | `feat(engine-core): add Engine.RegistryEntries and Engine.Shutdown handlers` | DONE |
-| 10 | `feat(engine-core): add Engine.Lifecycle.Subscribe events broadcaster` | Not started |
+| 10 | `feat(engine-core): add Engine.Lifecycle.Subscribe events stream and notifier` | DONE |
 | 11 | `feat(engine-core): add idle-timeout watchdog` | Not started |
 | 12 | `feat(engine-core): add parent-pid watchdog with Process.StartTime defeat` | Not started |
 | 13 | `feat(engine-core): add InstanceIdCollisionWatchdog fail-fast guard` | Not started |
