@@ -1,6 +1,7 @@
 namespace AutoContext.Engine.Core.Tests.Lifecycle;
 
 using System.IO.Pipes;
+using System.Text;
 using System.Text.Json;
 
 using AutoContext.Engine.Core;
@@ -655,5 +656,152 @@ public sealed class LifecycleServiceTests(TempDirectoryFixture tempDirectory)
         // stuck pump.
         await sut.StopAsync(TestContext.Current.CancellationToken)
             .WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+    }
+
+    [Fact]
+    public async Task Should_recover_with_ParseError_on_malformed_rpc_frame_post_handshake_and_keep_serving()
+    {
+        // Arrange
+        await using var sut = CreateService(out var options);
+        await sut.StartAsync(TestContext.Current.CancellationToken);
+
+        await using var client = await ConnectAsync(
+            EndpointKind.Rpc, options, TestContext.Current.CancellationToken);
+        var codec = new LengthPrefixedFrameCodec(client);
+
+        await SendHelloAsync(codec, ProtocolVersion.Current, TestContext.Current.CancellationToken);
+        _ = await ReadResponseAsync(codec, TestContext.Current.CancellationToken);
+
+        // Act — send garbage that is not JSON, then a valid request.
+        await codec.WriteAsync(
+            Encoding.UTF8.GetBytes("not-json-here"), TestContext.Current.CancellationToken);
+        var errorResponse = await ReadResponseAsync(codec, TestContext.Current.CancellationToken);
+
+        await SendRequestAsync(
+            codec, id: 21, method: "Engine.DoesNotExist", TestContext.Current.CancellationToken);
+        var followUp = await ReadResponseAsync(codec, TestContext.Current.CancellationToken);
+
+        // Assert — first reply is a ParseError on the recovered
+        // connection; second reply lands successfully on the same
+        // pipe.
+        Assert.Multiple(
+            () => Assert.NotNull(errorResponse.Error),
+            () => Assert.Equal(JsonRpcErrorCodes.ParseError, errorResponse.Error!.Code),
+            () => Assert.Equal(JsonValueKind.Null, errorResponse.Id.ValueKind),
+            () => Assert.NotNull(followUp.Error),
+            () => Assert.Equal(JsonRpcErrorCodes.MethodNotFound, followUp.Error!.Code),
+            () => Assert.Equal(21, followUp.Id.GetInt32()));
+    }
+
+    [Fact]
+    public async Task Should_recover_with_InvalidRequest_on_wrong_jsonrpc_version_post_handshake_and_keep_serving()
+    {
+        // Arrange
+        await using var sut = CreateService(out var options);
+        await sut.StartAsync(TestContext.Current.CancellationToken);
+
+        await using var client = await ConnectAsync(
+            EndpointKind.Rpc, options, TestContext.Current.CancellationToken);
+        var codec = new LengthPrefixedFrameCodec(client);
+
+        await SendHelloAsync(codec, ProtocolVersion.Current, TestContext.Current.CancellationToken);
+        _ = await ReadResponseAsync(codec, TestContext.Current.CancellationToken);
+
+        // Act
+        var bogus = Encoding.UTF8.GetBytes("""{"jsonrpc":"1.0","id":31,"method":"Engine.X"}""");
+        await codec.WriteAsync(bogus, TestContext.Current.CancellationToken);
+        var errorResponse = await ReadResponseAsync(codec, TestContext.Current.CancellationToken);
+
+        await SendRequestAsync(
+            codec, id: 32, method: "Engine.Other", TestContext.Current.CancellationToken);
+        var followUp = await ReadResponseAsync(codec, TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Multiple(
+            () => Assert.NotNull(errorResponse.Error),
+            () => Assert.Equal(JsonRpcErrorCodes.InvalidRequest, errorResponse.Error!.Code),
+            () => Assert.Equal(31, errorResponse.Id.GetInt32()),
+            () => Assert.NotNull(followUp.Error),
+            () => Assert.Equal(JsonRpcErrorCodes.MethodNotFound, followUp.Error!.Code),
+            () => Assert.Equal(32, followUp.Id.GetInt32()));
+    }
+
+    [Fact]
+    public async Task Should_terminate_rpc_connection_on_malformed_first_frame_with_ParseError_reply()
+    {
+        // Arrange
+        await using var sut = CreateService(out var options);
+        await sut.StartAsync(TestContext.Current.CancellationToken);
+
+        await using var client = await ConnectAsync(
+            EndpointKind.Rpc, options, TestContext.Current.CancellationToken);
+        var codec = new LengthPrefixedFrameCodec(client);
+
+        // Act
+        await codec.WriteAsync(
+            Encoding.UTF8.GetBytes("definitely-not-json"), TestContext.Current.CancellationToken);
+        var errorResponse = await ReadResponseAsync(codec, TestContext.Current.CancellationToken);
+        var afterError = await codec.ReadAsync(TestContext.Current.CancellationToken);
+
+        // Assert — handshake policy is Terminate: server writes the
+        // ParseError reply and then drops the connection.
+        Assert.Multiple(
+            () => Assert.NotNull(errorResponse.Error),
+            () => Assert.Equal(JsonRpcErrorCodes.ParseError, errorResponse.Error!.Code),
+            () => Assert.Equal(JsonValueKind.Null, errorResponse.Id.ValueKind),
+            () => Assert.Null(afterError));
+    }
+
+    [Fact]
+    public async Task Should_terminate_rpc_connection_on_invalid_first_frame_with_InvalidRequest_reply()
+    {
+        // Arrange
+        await using var sut = CreateService(out var options);
+        await sut.StartAsync(TestContext.Current.CancellationToken);
+
+        await using var client = await ConnectAsync(
+            EndpointKind.Rpc, options, TestContext.Current.CancellationToken);
+        var codec = new LengthPrefixedFrameCodec(client);
+
+        // Act — well-formed JSON, but wrong jsonrpc version.
+        var bogus = Encoding.UTF8.GetBytes("""{"jsonrpc":"1.0","id":41,"method":"Engine.Hello"}""");
+        await codec.WriteAsync(bogus, TestContext.Current.CancellationToken);
+        var errorResponse = await ReadResponseAsync(codec, TestContext.Current.CancellationToken);
+        var afterError = await codec.ReadAsync(TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Multiple(
+            () => Assert.NotNull(errorResponse.Error),
+            () => Assert.Equal(JsonRpcErrorCodes.InvalidRequest, errorResponse.Error!.Code),
+            () => Assert.Equal(41, errorResponse.Id.GetInt32()),
+            () => Assert.Null(afterError));
+    }
+
+    [Fact]
+    public async Task Should_reply_with_Null_id_when_post_handshake_request_omits_id()
+    {
+        // Arrange
+        await using var sut = CreateService(out var options);
+        await sut.StartAsync(TestContext.Current.CancellationToken);
+
+        await using var client = await ConnectAsync(
+            EndpointKind.Rpc, options, TestContext.Current.CancellationToken);
+        var codec = new LengthPrefixedFrameCodec(client);
+
+        await SendHelloAsync(codec, ProtocolVersion.Current, TestContext.Current.CancellationToken);
+        _ = await ReadResponseAsync(codec, TestContext.Current.CancellationToken);
+
+        // Act — valid JSON-RPC 2.0 frame with the id field absent.
+        var noIdRequest = Encoding.UTF8.GetBytes(
+            """{"jsonrpc":"2.0","method":"Engine.DoesNotExist"}""");
+        await codec.WriteAsync(noIdRequest, TestContext.Current.CancellationToken);
+        var response = await ReadResponseAsync(codec, TestContext.Current.CancellationToken);
+
+        // Assert — the dispatcher normalises the response id to
+        // JSON null per JsonRpcId.Normalize(request.Id).
+        Assert.Multiple(
+            () => Assert.NotNull(response.Error),
+            () => Assert.Equal(JsonRpcErrorCodes.MethodNotFound, response.Error!.Code),
+            () => Assert.Equal(JsonValueKind.Null, response.Id.ValueKind));
     }
 }

@@ -4,7 +4,7 @@ using Microsoft.Extensions.Hosting;
 
 /// <summary>
 /// Minimal <see cref="IHostApplicationLifetime"/> fake used by
-/// LifecycleService / RpcDispatcher tests. Records how many times
+/// LifecycleService / DispatchPolicy tests. Records how many times
 /// <see cref="StopApplication"/> was called and signals the
 /// <see cref="ApplicationStopping"/> token on the first call.
 /// </summary>

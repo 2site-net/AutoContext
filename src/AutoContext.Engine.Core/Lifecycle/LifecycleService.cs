@@ -4,6 +4,8 @@ using System.Text.Json;
 
 using AutoContext.Engine.Core.Infrastructure.Primitives;
 using AutoContext.Engine.Core.Registry;
+using AutoContext.Engine.Core.Rpc;
+using AutoContext.Engine.Core.Rpc.Policies;
 using AutoContext.Engine.Protocol;
 using AutoContext.Engine.Protocol.JsonRpc;
 using AutoContext.Engine.Protocol.Messages.Lifecycle;
@@ -359,8 +361,8 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
             return;
         }
 
-        var accepted = await ConnectionHandshake
-            .TryAcceptAsync(stream, kind, _logger, cancellationToken)
+        var accepted = await RpcConnectionProcessor
+            .RunAsync(stream, new HandshakePolicy(kind, _logger), _logger, cancellationToken)
             .ConfigureAwait(false);
 
         if (!accepted)
@@ -377,11 +379,10 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
             // matching handler until the peer closes the pipe,
             // cancellation is observed, or Engine.Shutdown is
             // honoured.
-            await RpcDispatcher
-                .DispatchAsync(
+            _ = await RpcConnectionProcessor
+                .RunAsync(
                     stream,
-                    _applicationLifetime,
-                    _registryReader,
+                    new DispatchPolicy(_applicationLifetime, _registryReader, _logger),
                     _logger,
                     cancellationToken)
                 .ConfigureAwait(false);

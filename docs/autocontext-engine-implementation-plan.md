@@ -711,8 +711,11 @@ registration, or executable host.
 | 6 | `feat(engine-core): add LifecycleService four-pipe accept loops` | DONE |
 | 7 | `feat(engine-core): add Engine.Hello handshake and protocol-version gate` | DONE |
 | 8 | `feat(engine-core): add RegistryEntryBuilder and own-entry lifecycle on RegistryFileService` | DONE |
-| 9 | `feat(engine-core): add Engine.RegistryEntries and Engine.Shutdown handlers` | DONE |
+| 9 | `feat(engine): serve Engine.RegistryEntries and Engine.Shutdown over rpc` | DONE |
 | 10 | `feat(engine-core): add Engine.Lifecycle.Subscribe events stream and notifier` | DONE |
+| 10b | `test(engine): align lifecycle test conventions` | DONE |
+| 10c | `fix(engine): bound lifecycle shutdown drain by configurable timeout` | DONE |
+| 10d | `refactor(engine): unify rpc handshake and dispatch behind RpcConnectionProcessor` | DONE |
 | 11 | `feat(engine-core): add idle-timeout watchdog` | Not started |
 | 12 | `feat(engine-core): add parent-pid watchdog with Process.StartTime defeat` | Not started |
 | 13 | `feat(engine-core): add InstanceIdCollisionWatchdog fail-fast guard` | Not started |
