@@ -355,6 +355,7 @@ src/
     AddAutoContextEngine.cs                    # IHostApplicationBuilder extension — composition root
     EngineOptions.cs                           # bound from argv (--instance-id, --workspace-root, --idle-timeout, …)
     Infrastructure/                            # horizontal-axis substrate (cross-cutting plumbing); subdivided by kind, not by feature
+      IUniqueInstanceGuard.cs                  # contract for the pre-bind "another engine already owns this <workspaceHash>#<instanceId>?" sanity check; production impl is Lifecycle/PerWorkspaceInstanceGuard.cs
       Primitives/                              # leaf value types — depended on by everything, depend on nothing themselves
         InstanceId.cs                          # launcher UUID value type — `readonly record struct` implementing IParsable<T>; the `<instanceId>` segment in endpoint names and on-disk paths (P4)
       Diagnostics/                             # System.Diagnostics.Process seam — internal abstractions used by watchdogs and registry-sweep liveness checks
@@ -364,6 +365,7 @@ src/
         SystemProcessLookup.cs                 # production lookup; catches ArgumentException / InvalidOperationException / Win32Exception → null
     Lifecycle/                                 # this engine's own lifecycle: Hello, Shutdown, own registry entry
       LifecycleService.cs                      # hosted service — owns the four-pipe accept loops
+      PerWorkspaceInstanceGuard.cs             # IUniqueInstanceGuard impl — dials the would-be `rpc` endpoint before bind; throws IOException when a live peer answers (P4 launcher-bug guard); not a hosted service
       HelloHandler.cs                          # protocol-version check + greeting payload
       ShutdownHandler.cs                       # graceful drain + Engine.Shutdown RPC
       # — Engine.Lifecycle.Subscribe events stream (P10) — split along ownership:
@@ -383,7 +385,7 @@ src/
     Watchdogs/                                 # process-lifetime guards — peers of Lifecycle/; each is a hosted service that signals IHostApplicationLifetime.StopApplication on its own trigger
       IdleTimeoutWatchdog.cs                   # --idle-timeout
       HostWatchdog.cs                          # --parent-pid; clamps engine lifetime to spawner via Infrastructure/Diagnostics handle (Process.StartTime pid-reuse defeat)
-      InstanceIdCollisionWatchdog.cs           # sanity check — second engine binding under the same --instance-id is a launcher bug (P4 fresh-UUID-per-spawn); routes the diagnostic through CrashWriter, then exits non-zero
+      # NOTE: per-workspace unique-instance guard is NOT a watchdog (one-shot pre-bind probe, not a long-running monitor); see Lifecycle/PerWorkspaceInstanceGuard.cs
     Housekeeping/                              # cache-root upkeep: peer-registration liveness, orphan reaping, retention, foreign-subtree eviction (P5)
       HousekeepingService.cs                   # hosted service — shutdown sweep only, runs after LifecycleService removes own entry + closes pipes; ≤ 1 s deadline budget
       SubtreeRegistryStatus.cs                 # discriminated record hierarchy (Registered | StaleRegistration | Unregistered | Foreign) — P2-shaped contract between scanner, policy, and cleaner
@@ -723,7 +725,7 @@ registration, or executable host.
 | 10d | `refactor(engine): unify rpc handshake and dispatch behind RpcConnectionProcessor` | DONE |
 | 11 | `feat(engine-core): add idle-timeout watchdog` | **DONE** |
 | 12 | `feat(engine-core): add host watchdog` | **DONE** |
-| 13 | `feat(engine-core): add InstanceIdCollisionWatchdog fail-fast guard` | Not started |
+| 13 | `feat(engine-core): add unique-instance guard` | **DONE** |
 | 14 | `feat(engine): wire CrashWriter into unhandled-exception sinks` | Not started |
 | 15 | `test(engine): stand up integration harness for binary spawn` | Not started |
 | 16 | `docs(plan): mark Phase 1 complete` | Not started |
@@ -819,10 +821,13 @@ participates in the shared liveness registry.
   first-connect*) — a second engine binding under the same
   `--instance-id` is a launcher bug under the per-launch-UUID
   contract (P4); the engine fails loudly on pipe-bind collision
-  with a non-zero exit. `InstanceIdCollisionWatchdog` is the
-  fail-fast sanity check enforcing this contract; the design does
-  **not** treat the collision as a shape bind has to be idempotent
-  against.
+  with a non-zero exit. `PerWorkspaceInstanceGuard` (the sole
+  production `IUniqueInstanceGuard` impl, called at the top of
+  `LifecycleService.StartAsync` before any pipe bind) is the
+  fail-fast sanity check enforcing this contract; it probes the
+  would-be `rpc` endpoint and throws `IOException` when a peer
+  already holds the address. The design does **not** treat the
+  collision as a shape bind has to be idempotent against.
 
 **Tests** (unit + integration):
 - `Engine.Hello` protocol-version exact-match acceptance and refusal.

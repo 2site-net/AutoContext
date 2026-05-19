@@ -1,9 +1,11 @@
 namespace AutoContext.Engine.Core;
 
+using AutoContext.Engine.Core.Infrastructure;
 using AutoContext.Engine.Core.Infrastructure.Diagnostics;
 using AutoContext.Engine.Core.Lifecycle;
 using AutoContext.Engine.Core.Registry;
 using AutoContext.Engine.Core.Watchdogs;
+using AutoContext.Framework.Pipes;
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -128,6 +130,19 @@ public static class EngineHostBuilderExtensions
         builder.Services.TryAddSingleton<IProcessLookup, SystemProcessLookup>();
         builder.Services.TryAddEnumerable(
             ServiceDescriptor.Singleton<IHostedService, HostWatchdog>());
+
+        // Pre-bind unique-instance guard: LifecycleService
+        // resolves this and invokes EnsureUniqueAsync at the top
+        // of StartAsync, before any pipe bind, so a launcher-bug
+        // instance-id collision (P4) surfaces as a clear
+        // diagnostic instead of an opaque pipe-bind error.
+        // PipeTransport is the connect primitive the guard's
+        // probe rides on; registered as a singleton because the
+        // type is stateless and depended on by both the guard
+        // and (later in the phase) the registry-sweep liveness
+        // probes.
+        builder.Services.TryAddSingleton<PipeTransport>();
+        builder.Services.TryAddSingleton<IUniqueInstanceGuard, PerWorkspaceInstanceGuard>();
 
         builder.Services.TryAddEnumerable(
             ServiceDescriptor.Singleton<IHostedService, LifecycleService>());

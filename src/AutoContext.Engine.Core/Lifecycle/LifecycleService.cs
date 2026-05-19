@@ -2,6 +2,7 @@ namespace AutoContext.Engine.Core.Lifecycle;
 
 using System.Text.Json;
 
+using AutoContext.Engine.Core.Infrastructure;
 using AutoContext.Engine.Core.Infrastructure.Primitives;
 using AutoContext.Engine.Core.Registry;
 using AutoContext.Engine.Core.Rpc;
@@ -25,9 +26,9 @@ using Microsoft.Extensions.Options;
 /// <see cref="EndpointKind.Logs"/>. Per
 /// <c>design § Lifecycle &gt; Pipe topology</c> the four pipes are
 /// bound atomically at startup; if any bind fails the host fails
-/// fast (the same launcher-bug shape that the
-/// <c>InstanceIdCollisionWatchdog</c> guards against later in the
-/// phase).
+/// fast (the same launcher-bug shape that the injected
+/// <see cref="IUniqueInstanceGuard"/> guards against in the
+/// pre-bind probe).
 /// </summary>
 /// <remarks>
 /// <para>
@@ -56,6 +57,14 @@ using Microsoft.Extensions.Options;
 /// drift between the design's endpoint format and the bytes the
 /// transport actually binds.
 /// </para>
+/// <para>
+/// <see cref="StartAsync"/> invokes the injected
+/// <see cref="IUniqueInstanceGuard"/> before the four-pipe bind:
+/// reusing an <c>--instance-id</c> while another engine is alive
+/// is a launcher bug under <c>P4</c>, and the guard turns the
+/// common case (a peer is already up at this engine's address)
+/// into a clear diagnostic instead of an opaque bind error.
+/// </para>
 /// </remarks>
 internal sealed partial class LifecycleService : IHostedService, IAsyncDisposable
 {
@@ -82,6 +91,7 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
     private int _stopped;
     private CancellationTokenSource? _stoppingCts;
     private readonly IdleTimeoutWatchdog _idleTimeoutWatchdog;
+    private readonly IUniqueInstanceGuard _instanceGuard;
 
     /// <summary>
     /// Creates a new <see cref="LifecycleService"/>.
@@ -109,6 +119,12 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
     /// endpoint kinds that pin the engine alive against the
     /// idle-timeout gate per
     /// <c>design § Lifecycle &gt; Idle shutdown</c>).</param>
+    /// <param name="instanceGuard">Pre-bind probe asserting no
+    /// other engine currently owns this engine's would-be
+    /// endpoint address. Invoked at the top of
+    /// <see cref="StartAsync"/> before the four-pipe bind so
+    /// the launcher-bug case (P4 fresh-UUID violation) surfaces
+    /// as a clear diagnostic instead of an opaque bind error.</param>
     /// <exception cref="ArgumentNullException">
     /// Any constructor argument is <see langword="null"/>.
     /// </exception>
@@ -119,7 +135,8 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
         RegistryFileReader registryReader,
         LifecycleEventStream eventStream,
         LifecycleNotifier lifecycleNotifier,
-        IdleTimeoutWatchdog idleTimeoutWatchdog)
+        IdleTimeoutWatchdog idleTimeoutWatchdog,
+        IUniqueInstanceGuard instanceGuard)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(loggerFactory);
@@ -128,6 +145,7 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
         ArgumentNullException.ThrowIfNull(eventStream);
         ArgumentNullException.ThrowIfNull(lifecycleNotifier);
         ArgumentNullException.ThrowIfNull(idleTimeoutWatchdog);
+        ArgumentNullException.ThrowIfNull(instanceGuard);
 
         _options = options.Value;
         _loggerFactory = loggerFactory;
@@ -137,6 +155,7 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
         _eventStream = eventStream;
         _lifecycleNotifier = lifecycleNotifier;
         _idleTimeoutWatchdog = idleTimeoutWatchdog;
+        _instanceGuard = instanceGuard;
     }
 
     /// <inheritdoc/>
@@ -170,6 +189,8 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
         }
 
         cancellationToken.ThrowIfCancellationRequested();
+
+        await _instanceGuard.EnsureUniqueAsync(cancellationToken).ConfigureAwait(false);
 
         var workspaceHash = WorkspaceHash.Compute(_options.WorkspacePath);
         var instanceId = _options.InstanceId;

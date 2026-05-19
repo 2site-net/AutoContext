@@ -38,6 +38,7 @@ public sealed class LifecycleServiceFixture : IAsyncDisposable
         var stream = CreateEventStream(resolvedOptions);
         var notifier = CreateNotifier(resolvedOptions, stream);
         var watchdog = CreateWatchdog(resolvedOptions, lifetime);
+        var instanceGuard = new FakeUniqueInstanceGuard();
         var service = new LifecycleService(
             Options.Create(resolvedOptions),
             NullLoggerFactory.Instance,
@@ -45,7 +46,8 @@ public sealed class LifecycleServiceFixture : IAsyncDisposable
             reader,
             stream,
             notifier,
-            watchdog);
+            watchdog,
+            instanceGuard);
 
         // Track in reverse dependency order so Dispose tears the
         // service down first, then the watchdog, then the lifetime.

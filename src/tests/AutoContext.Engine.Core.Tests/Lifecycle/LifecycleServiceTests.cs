@@ -107,7 +107,8 @@ public sealed class LifecycleServiceTests(
                 CreateRegistryReader(),
                 CreateEventStream(),
                 CreateNotifier(),
-                watchdog));
+                watchdog,
+                new FakeUniqueInstanceGuard()));
     }
 
     [Fact]
@@ -124,7 +125,8 @@ public sealed class LifecycleServiceTests(
                 CreateRegistryReader(),
                 CreateEventStream(),
                 CreateNotifier(),
-                watchdog));
+                watchdog,
+                new FakeUniqueInstanceGuard()));
     }
 
     [Fact]
@@ -141,7 +143,8 @@ public sealed class LifecycleServiceTests(
                 CreateRegistryReader(),
                 CreateEventStream(),
                 CreateNotifier(),
-                watchdog));
+                watchdog,
+                new FakeUniqueInstanceGuard()));
     }
 
     [Fact]
@@ -158,7 +161,8 @@ public sealed class LifecycleServiceTests(
                 null!,
                 CreateEventStream(),
                 CreateNotifier(),
-                watchdog));
+                watchdog,
+                new FakeUniqueInstanceGuard()));
     }
 
     [Fact]
@@ -175,7 +179,8 @@ public sealed class LifecycleServiceTests(
                 CreateRegistryReader(),
                 null!,
                 CreateNotifier(),
-                watchdog));
+                watchdog,
+                new FakeUniqueInstanceGuard()));
     }
 
     [Fact]
@@ -192,7 +197,8 @@ public sealed class LifecycleServiceTests(
                 CreateRegistryReader(),
                 CreateEventStream(),
                 null!,
-                watchdog));
+                watchdog,
+                new FakeUniqueInstanceGuard()));
     }
 
     [Fact]
@@ -208,6 +214,25 @@ public sealed class LifecycleServiceTests(
                 CreateRegistryReader(),
                 CreateEventStream(),
                 CreateNotifier(),
+                null!,
+                new FakeUniqueInstanceGuard()));
+    }
+
+    [Fact]
+    public async Task Should_throw_when_constructed_with_null_instance_guard()
+    {
+        using var lifetime = new FakeHostApplicationLifetime();
+        await using var watchdog = CreateWatchdog(CreateOptions(), lifetime);
+
+        Assert.Throws<ArgumentNullException>(() =>
+            new LifecycleService(
+                Options.Create(CreateOptions()),
+                NullLoggerFactory.Instance,
+                lifetime,
+                CreateRegistryReader(),
+                CreateEventStream(),
+                CreateNotifier(),
+                watchdog,
                 null!));
     }
 
