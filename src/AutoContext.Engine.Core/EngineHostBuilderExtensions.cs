@@ -105,6 +105,18 @@ public static class EngineHostBuilderExtensions
         builder.Services.TryAddSingleton<LifecycleEventStream>();
         builder.Services.TryAddSingleton<LifecycleNotifier>();
 
+        // Idle-timeout watchdog: registered as a singleton (so
+        // LifecycleService can inject it directly for keep-alive
+        // accounting) and as an IHostedService (so it arms its
+        // countdown on host start and disarms on host stop).
+        // Registered BEFORE LifecycleService so it stops AFTER it
+        // — LifecycleService's StopAsync tears down accept loops
+        // first, then the watchdog cancels its timer.
+        builder.Services.TryAddSingleton<IdleTimeoutWatchdog>();
+        builder.Services.TryAddEnumerable(
+            ServiceDescriptor.Singleton<IHostedService, IdleTimeoutWatchdog>(
+                sp => sp.GetRequiredService<IdleTimeoutWatchdog>()));
+
         builder.Services.TryAddEnumerable(
             ServiceDescriptor.Singleton<IHostedService, LifecycleService>());
 

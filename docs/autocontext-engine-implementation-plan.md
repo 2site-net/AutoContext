@@ -716,7 +716,7 @@ registration, or executable host.
 | 10b | `test(engine): align lifecycle test conventions` | DONE |
 | 10c | `fix(engine): bound lifecycle shutdown drain by configurable timeout` | DONE |
 | 10d | `refactor(engine): unify rpc handshake and dispatch behind RpcConnectionProcessor` | DONE |
-| 11 | `feat(engine-core): add idle-timeout watchdog` | Not started |
+| 11 | `feat(engine-core): add idle-timeout watchdog` | **DONE** |
 | 12 | `feat(engine-core): add parent-pid watchdog with Process.StartTime defeat` | Not started |
 | 13 | `feat(engine-core): add InstanceIdCollisionWatchdog fail-fast guard` | Not started |
 | 14 | `feat(engine): wire CrashWriter into unhandled-exception sinks` | Not started |

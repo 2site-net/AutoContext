@@ -80,6 +80,7 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
     private int _started;
     private int _stopped;
     private CancellationTokenSource? _stoppingCts;
+    private readonly IdleTimeoutWatchdog _idleTimeoutWatchdog;
 
     /// <summary>
     /// Creates a new <see cref="LifecycleService"/>.
@@ -101,6 +102,12 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
     /// identity onto lifecycle events; <see cref="StopAsync"/>
     /// invokes <see cref="LifecycleNotifier.NotifyShutdown"/> ahead
     /// of pipe teardown so subscribers see the terminal frame.</param>
+    /// <param name="idleTimeoutWatchdog">Watchdog the service
+    /// acquires a keep-alive token from for every accepted
+    /// <c>rpc</c> and <c>events</c> connection (the only two
+    /// endpoint kinds that pin the engine alive against the
+    /// idle-timeout gate per
+    /// <c>design § Lifecycle &gt; Idle shutdown</c>).</param>
     /// <exception cref="ArgumentNullException">
     /// Any constructor argument is <see langword="null"/>.
     /// </exception>
@@ -110,7 +117,8 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
         IHostApplicationLifetime applicationLifetime,
         RegistryFileReader registryReader,
         LifecycleEventStream eventStream,
-        LifecycleNotifier lifecycleNotifier)
+        LifecycleNotifier lifecycleNotifier,
+        IdleTimeoutWatchdog idleTimeoutWatchdog)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(loggerFactory);
@@ -118,6 +126,7 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
         ArgumentNullException.ThrowIfNull(registryReader);
         ArgumentNullException.ThrowIfNull(eventStream);
         ArgumentNullException.ThrowIfNull(lifecycleNotifier);
+        ArgumentNullException.ThrowIfNull(idleTimeoutWatchdog);
 
         _options = options.Value;
         _loggerFactory = loggerFactory;
@@ -126,6 +135,7 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
         _registryReader = registryReader;
         _eventStream = eventStream;
         _lifecycleNotifier = lifecycleNotifier;
+        _idleTimeoutWatchdog = idleTimeoutWatchdog;
     }
 
     /// <inheritdoc/>
@@ -372,38 +382,49 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
             return;
         }
 
-        if (kind == EndpointKind.Rpc)
+        // Keep-alive accounting per design § Lifecycle > Idle
+        // shutdown: only post-handshake rpc and events connections
+        // pin the engine alive against the idle-timeout gate.
+        // health and logs short-circuit above and never reach
+        // this point.
+        var keepAlive = await _idleTimeoutWatchdog
+            .AcquireKeepAliveAsync()
+            .ConfigureAwait(false);
+        await using (keepAlive.ConfigureAwait(false))
         {
-            // Post-handshake RPC dispatch loop (row #9). Reads one
-            // JSON-RPC frame at a time and routes it to the
-            // matching handler until the peer closes the pipe,
-            // cancellation is observed, or Engine.Shutdown is
-            // honoured.
-            _ = await RpcConnectionProcessor
-                .RunAsync(
-                    stream,
-                    new DispatchPolicy(_applicationLifetime, _registryReader, _logger),
-                    _logger,
-                    cancellationToken)
-                .ConfigureAwait(false);
-            return;
-        }
+            if (kind == EndpointKind.Rpc)
+            {
+                // Post-handshake RPC dispatch loop (row #9). Reads one
+                // JSON-RPC frame at a time and routes it to the
+                // matching handler until the peer closes the pipe,
+                // cancellation is observed, or Engine.Shutdown is
+                // honoured.
+                _ = await RpcConnectionProcessor
+                    .RunAsync(
+                        stream,
+                        new DispatchPolicy(_applicationLifetime, _registryReader, _logger),
+                        _logger,
+                        cancellationToken)
+                    .ConfigureAwait(false);
+                return;
+            }
 
-        // Events: post-handshake subscription loop. Enrol with the
-        // stream (which seeds the started event into our bounded
-        // buffer), then pump every event the stream hands us onto
-        // the wire as an Engine.Lifecycle notification until the
-        // channel completes (graceful shutdown or unsubscribe), the
-        // pipe write faults (client disconnected), or the drain
-        // deadline fires (peer stopped reading during shutdown).
-        //
-        // The pump intentionally does NOT observe cancellationToken
-        // (the accept-loop stop token). StopAsync drives shutdown
-        // by publishing shutting-down via the notifier and arming
-        // the drain deadline BEFORE cancelling the stop CTS, so the
-        // pump exits cleanly after flushing the terminal frame or
-        // after the deadline elapses — whichever comes first.
-        await PumpEventsConnectionAsync(stream).ConfigureAwait(false);
+            // Events: post-handshake subscription loop. Enrol with the
+            // stream (which seeds the started event into our bounded
+            // buffer), then pump every event the stream hands us onto
+            // the wire as an Engine.Lifecycle notification until the
+            // channel completes (graceful shutdown or unsubscribe), the
+            // pipe write faults (client disconnected), or the drain
+            // deadline fires (peer stopped reading during shutdown).
+            //
+            // The pump intentionally does NOT observe cancellationToken
+            // (the accept-loop stop token). StopAsync drives shutdown
+            // by publishing shutting-down via the notifier and arming
+            // the drain deadline BEFORE cancelling the stop CTS, so the
+            // pump exits cleanly after flushing the terminal frame or
+            // after the deadline elapses — whichever comes first.
+            await PumpEventsConnectionAsync(stream).ConfigureAwait(false);
+        }
     }
 
     private async Task PumpEventsConnectionAsync(Stream stream)

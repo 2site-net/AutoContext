@@ -41,6 +41,24 @@ internal sealed class FakeHostApplicationLifetime : IHostApplicationLifetime, ID
         }
     }
 
+    /// <summary>
+    /// Waits up to <paramref name="budget"/> for the first
+    /// <see cref="StopApplication"/> call. Returns silently when
+    /// the budget elapses without a call — callers then assert on
+    /// <see cref="StopApplicationCallCount"/> to distinguish the
+    /// fired/did-not-fire outcomes with a precise failure message.
+    /// </summary>
+    public async Task WaitForStopRequestedAsync(TimeSpan budget)
+    {
+        try
+        {
+            await StopApplicationRequested.WaitAsync(budget).ConfigureAwait(false);
+        }
+        catch (TimeoutException)
+        {
+        }
+    }
+
     public void Dispose()
     {
         _startedCts.Dispose();
