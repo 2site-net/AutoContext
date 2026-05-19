@@ -1,4 +1,4 @@
-namespace AutoContext.Engine.Core.Lifecycle;
+namespace AutoContext.Engine.Core.Watchdogs;
 
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;

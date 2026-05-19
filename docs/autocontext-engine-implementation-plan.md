@@ -357,7 +357,12 @@ src/
     Infrastructure/                            # horizontal-axis substrate (cross-cutting plumbing); subdivided by kind, not by feature
       Primitives/                              # leaf value types — depended on by everything, depend on nothing themselves
         InstanceId.cs                          # launcher UUID value type — `readonly record struct` implementing IParsable<T>; the `<instanceId>` segment in endpoint names and on-disk paths (P4)
-    Lifecycle/                                 # this engine's own lifecycle: Hello, Shutdown, watchdogs, own registry entry
+      Diagnostics/                             # System.Diagnostics.Process seam — internal abstractions used by watchdogs and registry-sweep liveness checks
+        IProcessHandle.cs                      # opens-once handle; exposes UTC start time and a cancellable WaitForExitAsync
+        IProcessLookup.cs                      # TryOpen(pid) → handle | null (gone / denied); single seam over Process.GetProcessById
+        SystemProcessHandle.cs                 # production wrapper over System.Diagnostics.Process
+        SystemProcessLookup.cs                 # production lookup; catches ArgumentException / InvalidOperationException / Win32Exception → null
+    Lifecycle/                                 # this engine's own lifecycle: Hello, Shutdown, own registry entry
       LifecycleService.cs                      # hosted service — owns the four-pipe accept loops
       HelloHandler.cs                          # protocol-version check + greeting payload
       ShutdownHandler.cs                       # graceful drain + Engine.Shutdown RPC
@@ -373,12 +378,12 @@ src/
       RegistryFileService.cs                   # hosted coordinator: dedicated worker thread + named cross-process Mutex + Channel<WriteRequest> + read-modify-write cycle; owns this engine's own-entry lifecycle (append on Start, best-effort remove on Stop); single intended caller of RegistryFileWriter
       RegistryEntry.cs                         # entry DTO returned/accepted by RegistryFileReader/Service (engine-internal shape — never on the wire, P3)
       RegistryEntryBuilder.cs                  # pure builder — composes EngineOptions + runtime facts (pid, start time, workspace hash, assembly version) into the RegistryEntry that represents this engine; invoked by RegistryFileService via DI-supplied factory
-      # — Watchdogs (process-lifetime guards) —
-      IdleTimeoutWatchdog.cs                   # --idle-timeout
-      ParentPidWatchdog.cs                     # --parent-pid + Process.StartTime defeat
-      InstanceIdCollisionWatchdog.cs           # sanity check — second engine binding under the same --instance-id is a launcher bug (P4 fresh-UUID-per-spawn); routes the diagnostic through CrashWriter, then exits non-zero
       # — Crash handling —
       CrashWriter.cs                           # paranoid last-gasp writer of crash.log — sync File.WriteAllText, no DI, no ILogger, no async, allocation-light; wired into Program.Main top-level try/catch + AppDomain.UnhandledException + TaskScheduler.UnobservedTaskException; never invoked from graceful shutdown paths
+    Watchdogs/                                 # process-lifetime guards — peers of Lifecycle/; each is a hosted service that signals IHostApplicationLifetime.StopApplication on its own trigger
+      IdleTimeoutWatchdog.cs                   # --idle-timeout
+      HostWatchdog.cs                          # --parent-pid; clamps engine lifetime to spawner via Infrastructure/Diagnostics handle (Process.StartTime pid-reuse defeat)
+      InstanceIdCollisionWatchdog.cs           # sanity check — second engine binding under the same --instance-id is a launcher bug (P4 fresh-UUID-per-spawn); routes the diagnostic through CrashWriter, then exits non-zero
     Housekeeping/                              # cache-root upkeep: peer-registration liveness, orphan reaping, retention, foreign-subtree eviction (P5)
       HousekeepingService.cs                   # hosted service — shutdown sweep only, runs after LifecycleService removes own entry + closes pipes; ≤ 1 s deadline budget
       SubtreeRegistryStatus.cs                 # discriminated record hierarchy (Registered | StaleRegistration | Unregistered | Foreign) — P2-shaped contract between scanner, policy, and cleaner
@@ -717,7 +722,7 @@ registration, or executable host.
 | 10c | `fix(engine): bound lifecycle shutdown drain by configurable timeout` | DONE |
 | 10d | `refactor(engine): unify rpc handshake and dispatch behind RpcConnectionProcessor` | DONE |
 | 11 | `feat(engine-core): add idle-timeout watchdog` | **DONE** |
-| 12 | `feat(engine-core): add parent-pid watchdog with Process.StartTime defeat` | Not started |
+| 12 | `feat(engine-core): add host watchdog` | **DONE** |
 | 13 | `feat(engine-core): add InstanceIdCollisionWatchdog fail-fast guard` | Not started |
 | 14 | `feat(engine): wire CrashWriter into unhandled-exception sinks` | Not started |
 | 15 | `test(engine): stand up integration harness for binary spawn` | Not started |

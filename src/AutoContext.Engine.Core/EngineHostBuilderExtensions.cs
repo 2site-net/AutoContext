@@ -1,7 +1,9 @@
 namespace AutoContext.Engine.Core;
 
+using AutoContext.Engine.Core.Infrastructure.Diagnostics;
 using AutoContext.Engine.Core.Lifecycle;
 using AutoContext.Engine.Core.Registry;
+using AutoContext.Engine.Core.Watchdogs;
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -116,6 +118,16 @@ public static class EngineHostBuilderExtensions
         builder.Services.TryAddEnumerable(
             ServiceDescriptor.Singleton<IHostedService, IdleTimeoutWatchdog>(
                 sp => sp.GetRequiredService<IdleTimeoutWatchdog>()));
+
+        // Parent-process watchdog. Standalone hosted service —
+        // no per-connection coupling — clamps engine lifetime to
+        // the spawner's lifetime when --parent-pid is set, no-op
+        // otherwise. Registered after the idle watchdog so it
+        // stops in the same window and before LifecycleService so
+        // its StopAsync runs after the dispatcher tears down.
+        builder.Services.TryAddSingleton<IProcessLookup, SystemProcessLookup>();
+        builder.Services.TryAddEnumerable(
+            ServiceDescriptor.Singleton<IHostedService, HostWatchdog>());
 
         builder.Services.TryAddEnumerable(
             ServiceDescriptor.Singleton<IHostedService, LifecycleService>());

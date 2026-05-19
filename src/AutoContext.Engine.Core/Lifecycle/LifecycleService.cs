@@ -6,6 +6,7 @@ using AutoContext.Engine.Core.Infrastructure.Primitives;
 using AutoContext.Engine.Core.Registry;
 using AutoContext.Engine.Core.Rpc;
 using AutoContext.Engine.Core.Rpc.Policies;
+using AutoContext.Engine.Core.Watchdogs;
 using AutoContext.Engine.Protocol;
 using AutoContext.Engine.Protocol.JsonRpc;
 using AutoContext.Engine.Protocol.Messages.Lifecycle;

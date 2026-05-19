@@ -23,21 +23,23 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 
 using static AutoContext.Engine.Core.Tests.Testing.Utils.EngineRpcTestClient;
-using static AutoContext.Engine.Core.Tests.Testing.Utils.LifecycleServiceHarness;
+using static AutoContext.Engine.Core.Tests.Testing.Fixtures.LifecycleServiceFixture;
 
-public sealed class LifecycleServiceTests(TempDirectoryFixture tempDirectory)
-    : IClassFixture<TempDirectoryFixture>
+public sealed class LifecycleServiceTests(
+    TempDirectoryFixture tempDirectory,
+    LifecycleServiceFixture lifecycle)
+    : IClassFixture<TempDirectoryFixture>, IClassFixture<LifecycleServiceFixture>
 {
     private const string RegistryFileName = "engine-registry.json";
 
     [Fact]
     public async Task Should_throw_when_StartAsync_is_invoked_twice()
     {
-        await using var harness = Create();
-        await harness.Service.StartAsync(TestContext.Current.CancellationToken);
+        var context = lifecycle.Create();
+        await context.Service.StartAsync(TestContext.Current.CancellationToken);
 
         await Assert.ThrowsAsync<InvalidOperationException>(
-            () => harness.Service.StartAsync(TestContext.Current.CancellationToken));
+            () => context.Service.StartAsync(TestContext.Current.CancellationToken));
     }
 
     [Theory]
@@ -47,11 +49,11 @@ public sealed class LifecycleServiceTests(TempDirectoryFixture tempDirectory)
     [InlineData(EndpointKind.Logs)]
     public async Task Should_bind_endpoint_on_StartAsync(EndpointKind kind)
     {
-        await using var harness = Create();
-        await harness.Service.StartAsync(TestContext.Current.CancellationToken);
+        var context = lifecycle.Create();
+        await context.Service.StartAsync(TestContext.Current.CancellationToken);
 
         await using var client = await ConnectAsync(
-            kind, harness.EngineOptions, TestContext.Current.CancellationToken);
+            kind, context.EngineOptions, TestContext.Current.CancellationToken);
 
         Assert.True(client.IsConnected);
     }
@@ -60,15 +62,15 @@ public sealed class LifecycleServiceTests(TempDirectoryFixture tempDirectory)
     public async Task Should_stop_accepting_new_connections_on_StopAsync()
     {
         // Arrange
-        await using var harness = Create();
-        await harness.Service.StartAsync(TestContext.Current.CancellationToken);
+        var context = lifecycle.Create();
+        await context.Service.StartAsync(TestContext.Current.CancellationToken);
 
-        var workspaceHash = WorkspaceHash.Compute(harness.EngineOptions.WorkspacePath);
+        var workspaceHash = WorkspaceHash.Compute(context.EngineOptions.WorkspacePath);
         var pipeName = new Endpoint(
-            EndpointKind.Rpc, workspaceHash.Value, harness.EngineOptions.InstanceId).ToString();
+            EndpointKind.Rpc, workspaceHash.Value, context.EngineOptions.InstanceId).ToString();
 
         // Act
-        await harness.Service.StopAsync(TestContext.Current.CancellationToken);
+        await context.Service.StopAsync(TestContext.Current.CancellationToken);
 
         // Assert — a fresh client connect must fail (no server listening).
         await using var client = new NamedPipeClientStream(
@@ -84,11 +86,11 @@ public sealed class LifecycleServiceTests(TempDirectoryFixture tempDirectory)
     [Fact]
     public async Task Should_be_idempotent_when_DisposeAsync_is_invoked_before_start()
     {
-        var harness = Create();
+        var context = lifecycle.Create();
 
         // Act + Assert — must not throw.
-        await harness.DisposeAsync();
-        await harness.DisposeAsync();
+        await context.Service.DisposeAsync();
+        await context.Service.DisposeAsync();
     }
 
     [Fact]
@@ -213,11 +215,11 @@ public sealed class LifecycleServiceTests(TempDirectoryFixture tempDirectory)
     public async Task Should_accept_rpc_handshake_when_protocol_version_matches()
     {
         // Arrange
-        await using var harness = Create();
-        await harness.Service.StartAsync(TestContext.Current.CancellationToken);
+        var context = lifecycle.Create();
+        await context.Service.StartAsync(TestContext.Current.CancellationToken);
 
         await using var client = await ConnectAsync(
-            EndpointKind.Rpc, harness.EngineOptions, TestContext.Current.CancellationToken);
+            EndpointKind.Rpc, context.EngineOptions, TestContext.Current.CancellationToken);
         var codec = new LengthPrefixedFrameCodec(client);
 
         // Act
@@ -242,11 +244,11 @@ public sealed class LifecycleServiceTests(TempDirectoryFixture tempDirectory)
     public async Task Should_accept_events_handshake_when_protocol_version_matches()
     {
         // Arrange
-        await using var harness = Create();
-        await harness.Service.StartAsync(TestContext.Current.CancellationToken);
+        var context = lifecycle.Create();
+        await context.Service.StartAsync(TestContext.Current.CancellationToken);
 
         await using var client = await ConnectAsync(
-            EndpointKind.Events, harness.EngineOptions, TestContext.Current.CancellationToken);
+            EndpointKind.Events, context.EngineOptions, TestContext.Current.CancellationToken);
         var codec = new LengthPrefixedFrameCodec(client);
 
         // Act
@@ -263,11 +265,11 @@ public sealed class LifecycleServiceTests(TempDirectoryFixture tempDirectory)
     public async Task Should_refuse_rpc_handshake_when_protocol_version_mismatches()
     {
         // Arrange
-        await using var harness = Create();
-        await harness.Service.StartAsync(TestContext.Current.CancellationToken);
+        var context = lifecycle.Create();
+        await context.Service.StartAsync(TestContext.Current.CancellationToken);
 
         await using var client = await ConnectAsync(
-            EndpointKind.Rpc, harness.EngineOptions, TestContext.Current.CancellationToken);
+            EndpointKind.Rpc, context.EngineOptions, TestContext.Current.CancellationToken);
         var codec = new LengthPrefixedFrameCodec(client);
 
         // Act
@@ -287,11 +289,11 @@ public sealed class LifecycleServiceTests(TempDirectoryFixture tempDirectory)
     public async Task Should_refuse_rpc_handshake_when_first_frame_is_not_hello()
     {
         // Arrange
-        await using var harness = Create();
-        await harness.Service.StartAsync(TestContext.Current.CancellationToken);
+        var context = lifecycle.Create();
+        await context.Service.StartAsync(TestContext.Current.CancellationToken);
 
         await using var client = await ConnectAsync(
-            EndpointKind.Rpc, harness.EngineOptions, TestContext.Current.CancellationToken);
+            EndpointKind.Rpc, context.EngineOptions, TestContext.Current.CancellationToken);
         var codec = new LengthPrefixedFrameCodec(client);
 
         var request = new JsonRpcRequest
@@ -319,11 +321,11 @@ public sealed class LifecycleServiceTests(TempDirectoryFixture tempDirectory)
     public async Task Should_refuse_rpc_handshake_when_hello_params_omit_protocol_version()
     {
         // Arrange
-        await using var harness = Create();
-        await harness.Service.StartAsync(TestContext.Current.CancellationToken);
+        var context = lifecycle.Create();
+        await context.Service.StartAsync(TestContext.Current.CancellationToken);
 
         await using var client = await ConnectAsync(
-            EndpointKind.Rpc, harness.EngineOptions, TestContext.Current.CancellationToken);
+            EndpointKind.Rpc, context.EngineOptions, TestContext.Current.CancellationToken);
         var codec = new LengthPrefixedFrameCodec(client);
 
         var request = new JsonRpcRequest
@@ -354,12 +356,12 @@ public sealed class LifecycleServiceTests(TempDirectoryFixture tempDirectory)
     public async Task Should_accept_health_connection_without_handshake()
     {
         // Arrange
-        await using var harness = Create();
-        await harness.Service.StartAsync(TestContext.Current.CancellationToken);
+        var context = lifecycle.Create();
+        await context.Service.StartAsync(TestContext.Current.CancellationToken);
 
         // Act
         await using var client = await ConnectAsync(
-            EndpointKind.Health, harness.EngineOptions, TestContext.Current.CancellationToken);
+            EndpointKind.Health, context.EngineOptions, TestContext.Current.CancellationToken);
 
         // Assert — the engine does not write a Hello reply on health;
         // the read returns EOF as soon as the handler returns and the
@@ -373,12 +375,12 @@ public sealed class LifecycleServiceTests(TempDirectoryFixture tempDirectory)
     public async Task Should_accept_logs_connection_without_handshake()
     {
         // Arrange
-        await using var harness = Create();
-        await harness.Service.StartAsync(TestContext.Current.CancellationToken);
+        var context = lifecycle.Create();
+        await context.Service.StartAsync(TestContext.Current.CancellationToken);
 
         // Act
         await using var client = await ConnectAsync(
-            EndpointKind.Logs, harness.EngineOptions, TestContext.Current.CancellationToken);
+            EndpointKind.Logs, context.EngineOptions, TestContext.Current.CancellationToken);
 
         // Assert — same passive shape as health.
         var codec = new LengthPrefixedFrameCodec(client);
@@ -399,12 +401,12 @@ public sealed class LifecycleServiceTests(TempDirectoryFixture tempDirectory)
         };
         new RegistryFileWriter(registryPath).Write(seeded);
 
-        await using var harness = Create(
+        var context = lifecycle.Create(
             registryReader: new RegistryFileReader(registryPath));
-        await harness.Service.StartAsync(TestContext.Current.CancellationToken);
+        await context.Service.StartAsync(TestContext.Current.CancellationToken);
 
         await using var client = await ConnectAsync(
-            EndpointKind.Rpc, harness.EngineOptions, TestContext.Current.CancellationToken);
+            EndpointKind.Rpc, context.EngineOptions, TestContext.Current.CancellationToken);
         var codec = new LengthPrefixedFrameCodec(client);
 
         await SendHelloAsync(codec, ProtocolVersion.Current, TestContext.Current.CancellationToken);
@@ -432,11 +434,11 @@ public sealed class LifecycleServiceTests(TempDirectoryFixture tempDirectory)
     public async Task Should_reply_method_not_found_for_unknown_rpc_method()
     {
         // Arrange
-        await using var harness = Create();
-        await harness.Service.StartAsync(TestContext.Current.CancellationToken);
+        var context = lifecycle.Create();
+        await context.Service.StartAsync(TestContext.Current.CancellationToken);
 
         await using var client = await ConnectAsync(
-            EndpointKind.Rpc, harness.EngineOptions, TestContext.Current.CancellationToken);
+            EndpointKind.Rpc, context.EngineOptions, TestContext.Current.CancellationToken);
         var codec = new LengthPrefixedFrameCodec(client);
 
         await SendHelloAsync(codec, ProtocolVersion.Current, TestContext.Current.CancellationToken);
@@ -464,12 +466,12 @@ public sealed class LifecycleServiceTests(TempDirectoryFixture tempDirectory)
         var registryPath = tempDirectory.CreatePath(RegistryFileName);
         new RegistryFileWriter(registryPath).Write([]);
 
-        await using var harness = Create(
+        var context = lifecycle.Create(
             registryReader: new RegistryFileReader(registryPath));
-        await harness.Service.StartAsync(TestContext.Current.CancellationToken);
+        await context.Service.StartAsync(TestContext.Current.CancellationToken);
 
         await using var client = await ConnectAsync(
-            EndpointKind.Rpc, harness.EngineOptions, TestContext.Current.CancellationToken);
+            EndpointKind.Rpc, context.EngineOptions, TestContext.Current.CancellationToken);
         var codec = new LengthPrefixedFrameCodec(client);
 
         await SendHelloAsync(codec, ProtocolVersion.Current, TestContext.Current.CancellationToken);
@@ -502,11 +504,11 @@ public sealed class LifecycleServiceTests(TempDirectoryFixture tempDirectory)
     public async Task Should_accept_Engine_Shutdown_and_stop_the_application()
     {
         // Arrange
-        await using var harness = Create();
-        await harness.Service.StartAsync(TestContext.Current.CancellationToken);
+        var context = lifecycle.Create();
+        await context.Service.StartAsync(TestContext.Current.CancellationToken);
 
         await using var client = await ConnectAsync(
-            EndpointKind.Rpc, harness.EngineOptions, TestContext.Current.CancellationToken);
+            EndpointKind.Rpc, context.EngineOptions, TestContext.Current.CancellationToken);
         var codec = new LengthPrefixedFrameCodec(client);
 
         await SendHelloAsync(codec, ProtocolVersion.Current, TestContext.Current.CancellationToken);
@@ -532,7 +534,7 @@ public sealed class LifecycleServiceTests(TempDirectoryFixture tempDirectory)
 
         // The dispatcher requests StopApplication after flushing the
         // response; await the signal directly instead of polling.
-        await harness.Lifetime.StopApplicationRequested.WaitAsync(
+        await context.Lifetime.StopApplicationRequested.WaitAsync(
             TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
 
         var next = await codec.ReadAsync(TestContext.Current.CancellationToken);
@@ -543,11 +545,11 @@ public sealed class LifecycleServiceTests(TempDirectoryFixture tempDirectory)
     public async Task Should_push_started_notification_on_events_pipe_after_handshake()
     {
         // Arrange
-        await using var harness = Create();
-        await harness.Service.StartAsync(TestContext.Current.CancellationToken);
+        var context = lifecycle.Create();
+        await context.Service.StartAsync(TestContext.Current.CancellationToken);
 
         await using var client = await ConnectAsync(
-            EndpointKind.Events, harness.EngineOptions, TestContext.Current.CancellationToken);
+            EndpointKind.Events, context.EngineOptions, TestContext.Current.CancellationToken);
         var codec = new LengthPrefixedFrameCodec(client);
 
         await SendHelloAsync(codec, ProtocolVersion.Current, TestContext.Current.CancellationToken);
@@ -561,7 +563,7 @@ public sealed class LifecycleServiceTests(TempDirectoryFixture tempDirectory)
 
         Assert.Multiple(
             () => Assert.Equal(LifecycleEventKinds.Started, evt.Kind),
-            () => Assert.Equal(harness.EngineOptions.InstanceId, evt.InstanceId),
+            () => Assert.Equal(context.EngineOptions.InstanceId, evt.InstanceId),
             () => Assert.Equal(0L, evt.Revision));
     }
 
@@ -569,11 +571,11 @@ public sealed class LifecycleServiceTests(TempDirectoryFixture tempDirectory)
     public async Task Should_push_shutting_down_notification_on_events_pipe_on_graceful_stop()
     {
         // Arrange
-        await using var harness = Create();
-        await harness.Service.StartAsync(TestContext.Current.CancellationToken);
+        var context = lifecycle.Create();
+        await context.Service.StartAsync(TestContext.Current.CancellationToken);
 
         await using var client = await ConnectAsync(
-            EndpointKind.Events, harness.EngineOptions, TestContext.Current.CancellationToken);
+            EndpointKind.Events, context.EngineOptions, TestContext.Current.CancellationToken);
         var codec = new LengthPrefixedFrameCodec(client);
 
         await SendHelloAsync(codec, ProtocolVersion.Current, TestContext.Current.CancellationToken);
@@ -581,7 +583,7 @@ public sealed class LifecycleServiceTests(TempDirectoryFixture tempDirectory)
         _ = await codec.ReadAsync(TestContext.Current.CancellationToken);
 
         // Act
-        var stopTask = harness.Service.StopAsync(TestContext.Current.CancellationToken);
+        var stopTask = context.Service.StopAsync(TestContext.Current.CancellationToken);
         var shuttingDownFrame = await codec.ReadAsync(TestContext.Current.CancellationToken);
         var eof = await codec.ReadAsync(TestContext.Current.CancellationToken);
         await stopTask;
@@ -592,7 +594,7 @@ public sealed class LifecycleServiceTests(TempDirectoryFixture tempDirectory)
         Assert.Multiple(
             () => Assert.Null(eof),
             () => Assert.Equal(LifecycleEventKinds.ShuttingDown, evt.Kind),
-            () => Assert.Equal(harness.EngineOptions.InstanceId, evt.InstanceId));
+            () => Assert.Equal(context.EngineOptions.InstanceId, evt.InstanceId));
     }
 
     [Fact]
@@ -601,11 +603,11 @@ public sealed class LifecycleServiceTests(TempDirectoryFixture tempDirectory)
         // Arrange
         var options = CreateOptions();
         options.ShutdownDrainTimeout = TimeSpan.FromMilliseconds(250);
-        await using var harness = Create(options);
-        await harness.Service.StartAsync(TestContext.Current.CancellationToken);
+        var context = lifecycle.Create(options);
+        await context.Service.StartAsync(TestContext.Current.CancellationToken);
 
         await using var client = await ConnectAsync(
-            EndpointKind.Events, harness.EngineOptions, TestContext.Current.CancellationToken);
+            EndpointKind.Events, context.EngineOptions, TestContext.Current.CancellationToken);
         var codec = new LengthPrefixedFrameCodec(client);
 
         await SendHelloAsync(codec, ProtocolVersion.Current, TestContext.Current.CancellationToken);
@@ -616,7 +618,7 @@ public sealed class LifecycleServiceTests(TempDirectoryFixture tempDirectory)
         // must still return within the drain timeout (plus a
         // reasonable teardown slack) instead of deadlocking on the
         // stuck pump.
-        await harness.Service.StopAsync(TestContext.Current.CancellationToken)
+        await context.Service.StopAsync(TestContext.Current.CancellationToken)
             .WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
     }
 
@@ -624,11 +626,11 @@ public sealed class LifecycleServiceTests(TempDirectoryFixture tempDirectory)
     public async Task Should_recover_with_ParseError_on_malformed_rpc_frame_post_handshake_and_keep_serving()
     {
         // Arrange
-        await using var harness = Create();
-        await harness.Service.StartAsync(TestContext.Current.CancellationToken);
+        var context = lifecycle.Create();
+        await context.Service.StartAsync(TestContext.Current.CancellationToken);
 
         await using var client = await ConnectAsync(
-            EndpointKind.Rpc, harness.EngineOptions, TestContext.Current.CancellationToken);
+            EndpointKind.Rpc, context.EngineOptions, TestContext.Current.CancellationToken);
         var codec = new LengthPrefixedFrameCodec(client);
 
         await SendHelloAsync(codec, ProtocolVersion.Current, TestContext.Current.CancellationToken);
@@ -659,11 +661,11 @@ public sealed class LifecycleServiceTests(TempDirectoryFixture tempDirectory)
     public async Task Should_recover_with_InvalidRequest_on_wrong_jsonrpc_version_post_handshake_and_keep_serving()
     {
         // Arrange
-        await using var harness = Create();
-        await harness.Service.StartAsync(TestContext.Current.CancellationToken);
+        var context = lifecycle.Create();
+        await context.Service.StartAsync(TestContext.Current.CancellationToken);
 
         await using var client = await ConnectAsync(
-            EndpointKind.Rpc, harness.EngineOptions, TestContext.Current.CancellationToken);
+            EndpointKind.Rpc, context.EngineOptions, TestContext.Current.CancellationToken);
         var codec = new LengthPrefixedFrameCodec(client);
 
         await SendHelloAsync(codec, ProtocolVersion.Current, TestContext.Current.CancellationToken);
@@ -692,11 +694,11 @@ public sealed class LifecycleServiceTests(TempDirectoryFixture tempDirectory)
     public async Task Should_terminate_rpc_connection_on_malformed_first_frame_with_ParseError_reply()
     {
         // Arrange
-        await using var harness = Create();
-        await harness.Service.StartAsync(TestContext.Current.CancellationToken);
+        var context = lifecycle.Create();
+        await context.Service.StartAsync(TestContext.Current.CancellationToken);
 
         await using var client = await ConnectAsync(
-            EndpointKind.Rpc, harness.EngineOptions, TestContext.Current.CancellationToken);
+            EndpointKind.Rpc, context.EngineOptions, TestContext.Current.CancellationToken);
         var codec = new LengthPrefixedFrameCodec(client);
 
         // Act
@@ -718,11 +720,11 @@ public sealed class LifecycleServiceTests(TempDirectoryFixture tempDirectory)
     public async Task Should_terminate_rpc_connection_on_invalid_first_frame_with_InvalidRequest_reply()
     {
         // Arrange
-        await using var harness = Create();
-        await harness.Service.StartAsync(TestContext.Current.CancellationToken);
+        var context = lifecycle.Create();
+        await context.Service.StartAsync(TestContext.Current.CancellationToken);
 
         await using var client = await ConnectAsync(
-            EndpointKind.Rpc, harness.EngineOptions, TestContext.Current.CancellationToken);
+            EndpointKind.Rpc, context.EngineOptions, TestContext.Current.CancellationToken);
         var codec = new LengthPrefixedFrameCodec(client);
 
         // Act — well-formed JSON, but wrong jsonrpc version.
@@ -743,11 +745,11 @@ public sealed class LifecycleServiceTests(TempDirectoryFixture tempDirectory)
     public async Task Should_reply_with_Null_id_when_post_handshake_request_omits_id()
     {
         // Arrange
-        await using var harness = Create();
-        await harness.Service.StartAsync(TestContext.Current.CancellationToken);
+        var context = lifecycle.Create();
+        await context.Service.StartAsync(TestContext.Current.CancellationToken);
 
         await using var client = await ConnectAsync(
-            EndpointKind.Rpc, harness.EngineOptions, TestContext.Current.CancellationToken);
+            EndpointKind.Rpc, context.EngineOptions, TestContext.Current.CancellationToken);
         var codec = new LengthPrefixedFrameCodec(client);
 
         await SendHelloAsync(codec, ProtocolVersion.Current, TestContext.Current.CancellationToken);
