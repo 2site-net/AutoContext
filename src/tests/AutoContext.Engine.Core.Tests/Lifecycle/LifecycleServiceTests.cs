@@ -629,4 +629,31 @@ public sealed class LifecycleServiceTests(TempDirectoryFixture tempDirectory)
             () => Assert.Equal(LifecycleEventKinds.ShuttingDown, evt.Kind),
             () => Assert.Equal(options.InstanceId, evt.InstanceId));
     }
+
+    [Fact]
+    public async Task Should_complete_StopAsync_within_drain_timeout_when_events_peer_never_reads()
+    {
+        // Arrange
+        var options = CreateOptions();
+        options.ShutdownDrainTimeout = TimeSpan.FromMilliseconds(250);
+        using var lifetime = new FakeHostApplicationLifetime();
+        var reader = CreateRegistryReader();
+        await using var sut = CreateService(options, lifetime, reader);
+        await sut.StartAsync(TestContext.Current.CancellationToken);
+
+        await using var client = await ConnectAsync(
+            EndpointKind.Events, options, TestContext.Current.CancellationToken);
+        var codec = new LengthPrefixedFrameCodec(client);
+
+        await SendHelloAsync(codec, ProtocolVersion.Current, TestContext.Current.CancellationToken);
+        _ = await ReadResponseAsync(codec, TestContext.Current.CancellationToken);
+
+        // Act + Assert — the peer never reads the pushed started
+        // frame, so the events-pipe writer is blocked. StopAsync
+        // must still return within the drain timeout (plus a
+        // reasonable teardown slack) instead of deadlocking on the
+        // stuck pump.
+        await sut.StopAsync(TestContext.Current.CancellationToken)
+            .WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+    }
 }

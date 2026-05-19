@@ -53,6 +53,17 @@ public sealed class EngineOptions
     public static readonly TimeSpan DefaultRetention = TimeSpan.FromDays(1);
 
     /// <summary>
+    /// Default upper bound on how long <c>LifecycleService.StopAsync</c>
+    /// waits for connected <c>events</c>-pipe subscribers to drain
+    /// the terminal <c>shutting-down</c> frame off the wire before
+    /// the service tears the connection down regardless. Five
+    /// seconds is generous for well-behaved peers and short enough
+    /// to keep host shutdown bounded when a peer is stuck or
+    /// already dead.
+    /// </summary>
+    public static readonly TimeSpan DefaultShutdownDrainTimeout = TimeSpan.FromSeconds(5);
+
+    /// <summary>
     /// Library-only override for the engine cache root. When
     /// <see langword="null"/> the engine resolves the cache root
     /// the usual way (Windows: <c>%LOCALAPPDATA%/autocontext</c>;
@@ -129,6 +140,19 @@ public sealed class EngineOptions
     /// shutdown). Defaults to <see cref="DefaultRetention"/>.
     /// </summary>
     public TimeSpan Retention { get; set; } = DefaultRetention;
+
+    /// <summary>
+    /// Upper bound on how long <c>LifecycleService.StopAsync</c>
+    /// waits for connected <c>events</c>-pipe subscribers to read
+    /// the terminal <c>shutting-down</c> frame off the wire before
+    /// the service forcibly tears the connection down. Bounds
+    /// host-shutdown latency in the face of stuck or vanished
+    /// peers; a value of <see cref="TimeSpan.Zero"/> means "do not
+    /// wait for the drain at all" (peers that aren't already
+    /// reading will miss the frame). Defaults to
+    /// <see cref="DefaultShutdownDrainTimeout"/>.
+    /// </summary>
+    public TimeSpan ShutdownDrainTimeout { get; set; } = DefaultShutdownDrainTimeout;
 
     /// <summary>
     /// Absolute filesystem path of the workspace this engine pins

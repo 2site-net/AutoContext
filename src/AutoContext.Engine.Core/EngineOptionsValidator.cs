@@ -73,6 +73,12 @@ internal sealed class EngineOptionsValidator : IValidateOptions<EngineOptions>
                 $"{nameof(EngineOptions.Retention)} must be non-negative; got {options.Retention}.");
         }
 
+        if (options.ShutdownDrainTimeout < TimeSpan.Zero)
+        {
+            (failures ??= []).Add(
+                $"{nameof(EngineOptions.ShutdownDrainTimeout)} must be non-negative; got {options.ShutdownDrainTimeout}.");
+        }
+
         if (!Enum.IsDefined(options.Logging))
         {
             (failures ??= []).Add(

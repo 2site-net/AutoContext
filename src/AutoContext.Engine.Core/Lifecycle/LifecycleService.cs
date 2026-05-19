@@ -66,6 +66,7 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
 
     private readonly IHostApplicationLifetime _applicationLifetime;
     private int _disposed;
+    private CancellationTokenSource? _drainCts;
     private readonly LifecycleEventStream _eventStream;
     private readonly LifecycleNotifier _lifecycleNotifier;
     private readonly Dictionary<EndpointKind, BoundPipeListener> _listeners = new(AllKinds.Length);
@@ -141,6 +142,8 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
         {
             _stoppingCts?.Dispose();
             _stoppingCts = null;
+            _drainCts?.Dispose();
+            _drainCts = null;
         }
     }
 
@@ -159,6 +162,7 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
         var instanceId = _options.InstanceId;
 
         _stoppingCts = new CancellationTokenSource();
+        _drainCts = new CancellationTokenSource();
 
         try
         {
@@ -172,6 +176,8 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
             await DisposeListenersAsync().ConfigureAwait(false);
             _stoppingCts.Dispose();
             _stoppingCts = null;
+            _drainCts.Dispose();
+            _drainCts = null;
             throw;
         }
 
@@ -185,7 +191,29 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
         LogStarted(_logger, workspaceHash, instanceId);
     }
 
-    /// <inheritdoc/>
+    /// <summary>
+    /// Stops the service: publishes the terminal
+    /// <c>shutting-down</c> lifecycle event, cancels accept loops,
+    /// and disposes the pipe listeners.
+    /// </summary>
+    /// <remarks>
+    /// The terminal event is published <em>before</em> listener
+    /// teardown so every connected <c>events</c>-pipe subscriber
+    /// gets a chance to read it. The writer loops that flush the
+    /// frame do not observe the accept-loop stop token (cancelling
+    /// it would tear the connection down before the terminal frame
+    /// reached the wire); instead they observe an internal
+    /// drain-deadline token that fires after
+    /// <see cref="EngineOptions.ShutdownDrainTimeout"/>. A peer
+    /// that fails to read the frame within that window has its
+    /// pending write cancelled and the connection closed, so this
+    /// method returns in bounded time regardless of peer
+    /// behaviour. Peers that drain promptly observe the frame
+    /// followed by EOF as usual.
+    /// </remarks>
+    /// <param name="cancellationToken">Token observed by accept
+    /// loops and listener disposal. The events-pipe writer loops
+    /// observe an internal drain-deadline token instead.</param>
     public async Task StopAsync(CancellationToken cancellationToken)
     {
         if (Interlocked.Exchange(ref _stopped, 1) != 0)
@@ -200,6 +228,23 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
         // handler in-flight. The listener.RunAsync below waits for
         // every in-flight handler to finish before returning.
         _ = _lifecycleNotifier.NotifyShutdown();
+
+        // Arm the drain deadline. Peers that read the terminal
+        // frame before this fires complete the pump naturally;
+        // peers that don't have their pending WriteAsync cancelled,
+        // which lets listener teardown proceed.
+        if (_drainCts is { } drainCts)
+        {
+            var drainTimeout = _options.ShutdownDrainTimeout;
+            if (drainTimeout <= TimeSpan.Zero)
+            {
+                await drainCts.CancelAsync().ConfigureAwait(false);
+            }
+            else
+            {
+                drainCts.CancelAfter(drainTimeout);
+            }
+        }
 
         if (_stoppingCts is { } cts)
         {
@@ -227,6 +272,8 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
         _runTasks.Clear();
         _stoppingCts?.Dispose();
         _stoppingCts = null;
+        _drainCts?.Dispose();
+        _drainCts = null;
 
         LogStopped(_logger);
     }
@@ -345,26 +392,29 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
         // stream (which seeds the started event into our bounded
         // buffer), then pump every event the stream hands us onto
         // the wire as an Engine.Lifecycle notification until the
-        // channel completes (graceful shutdown or unsubscribe) or
-        // the pipe write faults (client disconnected).
+        // channel completes (graceful shutdown or unsubscribe), the
+        // pipe write faults (client disconnected), or the drain
+        // deadline fires (peer stopped reading during shutdown).
         //
         // The pump intentionally does NOT observe cancellationToken
-        // on the read side: StopAsync drives shutdown by publishing
-        // shutting-down via the notifier (which completes the
-        // channel) BEFORE cancelling the stop CTS, so the pump
-        // exits cleanly after flushing the terminal frame.
+        // (the accept-loop stop token). StopAsync drives shutdown
+        // by publishing shutting-down via the notifier and arming
+        // the drain deadline BEFORE cancelling the stop CTS, so the
+        // pump exits cleanly after flushing the terminal frame or
+        // after the deadline elapses — whichever comes first.
         await PumpEventsConnectionAsync(stream).ConfigureAwait(false);
     }
 
     private async Task PumpEventsConnectionAsync(Stream stream)
     {
+        var drainToken = _drainCts?.Token ?? CancellationToken.None;
         using var subscription = _eventStream.Subscribe();
         var codec = new LengthPrefixedFrameCodec(stream);
 
         try
         {
             await foreach (var evt in subscription
-                .ReadAllAsync(CancellationToken.None)
+                .ReadAllAsync(drainToken)
                 .ConfigureAwait(false))
             {
                 var paramsElement = JsonSerializer.SerializeToElement(
@@ -377,8 +427,14 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
                 var bytes = JsonSerializer.SerializeToUtf8Bytes(
                     notification, ProtocolJsonContext.Default.JsonRpcNotification);
 
-                await codec.WriteAsync(bytes, CancellationToken.None).ConfigureAwait(false);
+                await codec.WriteAsync(bytes, drainToken).ConfigureAwait(false);
             }
+        }
+        catch (OperationCanceledException) when (drainToken.IsCancellationRequested)
+        {
+            // Drain deadline elapsed before the peer read the
+            // terminal frame. The connection will be torn down
+            // when the listener disposes; nothing to report.
         }
         catch (IOException ex)
         {
