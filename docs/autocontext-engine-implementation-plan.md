@@ -354,6 +354,7 @@ src/
     AutoContext.Engine.Core.csproj
     AddAutoContextEngine.cs                    # IHostApplicationBuilder extension — composition root
     EngineOptions.cs                           # bound from argv (--instance-id, --workspace-root, --idle-timeout, …)
+    EngineCrashWriter.cs                       # paranoid last-gasp writer of crash.log — sync File.AppendAllText, no DI, no ILogger, no async, allocation-light; wired into DaemonHostFactory.RunAsync top-level try/catch + AppDomain.UnhandledException + TaskScheduler.UnobservedTaskException; never invoked from graceful shutdown paths
     Infrastructure/                            # horizontal-axis substrate (cross-cutting plumbing); subdivided by kind, not by feature
       IUniqueInstanceGuard.cs                  # contract for the pre-bind "another engine already owns this <workspaceHash>#<instanceId>?" sanity check; production impl is Lifecycle/PerWorkspaceInstanceGuard.cs
       Primitives/                              # leaf value types — depended on by everything, depend on nothing themselves
@@ -380,8 +381,6 @@ src/
       RegistryFileService.cs                   # hosted coordinator: dedicated worker thread + named cross-process Mutex + Channel<WriteRequest> + read-modify-write cycle; owns this engine's own-entry lifecycle (append on Start, best-effort remove on Stop); single intended caller of RegistryFileWriter
       RegistryEntry.cs                         # entry DTO returned/accepted by RegistryFileReader/Service (engine-internal shape — never on the wire, P3)
       RegistryEntryBuilder.cs                  # pure builder — composes EngineOptions + runtime facts (pid, start time, workspace hash, assembly version) into the RegistryEntry that represents this engine; invoked by RegistryFileService via DI-supplied factory
-      # — Crash handling —
-      CrashWriter.cs                           # paranoid last-gasp writer of crash.log — sync File.WriteAllText, no DI, no ILogger, no async, allocation-light; wired into Program.Main top-level try/catch + AppDomain.UnhandledException + TaskScheduler.UnobservedTaskException; never invoked from graceful shutdown paths
     Watchdogs/                                 # process-lifetime guards — peers of Lifecycle/; each is a hosted service that signals IHostApplicationLifetime.StopApplication on its own trigger
       IdleTimeoutWatchdog.cs                   # --idle-timeout
       HostWatchdog.cs                          # --parent-pid; clamps engine lifetime to spawner via Infrastructure/Diagnostics handle (Process.StartTime pid-reuse defeat)
@@ -726,7 +725,7 @@ registration, or executable host.
 | 11 | `feat(engine-core): add idle-timeout watchdog` | **DONE** |
 | 12 | `feat(engine-core): add host watchdog` | **DONE** |
 | 13 | `feat(engine-core): add unique-instance guard` | **DONE** |
-| 14 | `feat(engine): wire CrashWriter into unhandled-exception sinks` | Not started |
+| 14 | `feat(engine): wire EngineCrashWriter to sinks` | **DONE** |
 | 15 | `test(engine): stand up integration harness for binary spawn` | Not started |
 | 16 | `docs(plan): mark Phase 1 complete` | Not started |
 
@@ -852,15 +851,15 @@ participates in the shared liveness registry.
   engine emits a diagnostic log line naming the colliding pipe and
   writes a `crash.log` tombstone under its per-instance subtree
   describing the collision.
-- `CrashWriter` produces a parseable `crash.log` under
+- `EngineCrashWriter` produces a parseable `crash.log` under
   `…\<workspaceHash>\<instanceId>\logs\` when an unhandled
-  exception escapes `Program.Main`, when a non-main thread raises
-  via `AppDomain.UnhandledException`, and when an unobserved
-  `Task` faults; graceful `Engine.Shutdown`, idle-timeout, and
-  parent-pid watchdog exits produce **no** `crash.log`. A
-  deliberately broken write target (read-only directory) does not
-  mask the original fault — the process still exits with the
-  original non-zero code.
+  exception escapes `DaemonHostFactory.RunAsync`, when a non-main
+  thread raises via `AppDomain.UnhandledException`, and when an
+  unobserved `Task` faults; graceful `Engine.Shutdown`,
+  idle-timeout, and parent-pid watchdog exits produce **no**
+  `crash.log`. A deliberately broken write target (read-only
+  directory) does not mask the original fault — the process still
+  exits with the original non-zero code.
 - Corrupt-file recovery: an unparseable
   `engine-registry.json` is truncated and re-seeded by the next start.
 - `Engine.Shutdown` returns `{ accepted: true }` immediately, drains
@@ -874,7 +873,7 @@ eviction (Phase 2; needs the nested `<workspaceHash>\<instanceId>`
 per-instance subtree shape Phase 2 introduces alongside logging).
 Rotating log file production (`engine.log`, `worker-<workerId>.log`;
 Phase 2) — note that `crash.log` is in-scope for Phase 1 because
-the `CrashWriter` it depends on is wired up here. Worker spawn
+the `EngineCrashWriter` it depends on is wired up here. Worker spawn
 (Phase 7).
 
 ## Phase 2 — Engine logging pipeline and cache housekeeping
@@ -923,7 +922,7 @@ and rotated files are cleaned per `--retention`.
 - `Logs.GetEngine` / `Logs.TailEngine` handlers (active file only;
   `opts.lastN`, `opts.since`, `truncated` flag). `crash.log` is
   intentionally **out of scope** for the `Logs.*` RPC surface: it
-  is a write-once tombstone produced by Phase 1's `CrashWriter`,
+  is a write-once tombstone produced by Phase 1's `EngineCrashWriter`,
   not a tail-able feed, and is reaped along with the rest of the
   per-instance subtree by 2b housekeeping under `--retention`.
 
