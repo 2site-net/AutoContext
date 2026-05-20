@@ -31,9 +31,13 @@ validate this instructions file — apply it manually.
 - [INST0011] **Do** break down large tests into smaller, focused ones; avoid monolithic tests.
 - [INST0012] **Do** wrap test-specific helper logic in local functions to keep the test body focused and readable.
 - [INST0013] **Do** pair positive and negative test cases for each behavior — test both the happy path and the boundary.
-- [INST0014] **Do** suffix test doubles with `Fake` (or `fake`) and store them in a `Testing/Fakes` (or `testing/fakes` ) folder at the test-project root; follow the project's existing conventions when they differ.
-- [INST0015] **Do** place shared test utilities and helpers in a `Testing/Utils` (or `testing/utils`) folder at the test-project root; follow the project's existing conventions when they differ.
-- [INST0016] **Do** suffix fixtures with `Fixture` (or `fixture`) and store them in a `Testing/Fixtures` (or `testing/fixtures`) folder at the test-project root; follow the project's existing conventions when they differ.
+- [INST0014] **Do** place reusable test-support code (fakes, fixtures, fake data, test helpers and utilities) inside a `TestKit` (or `test-kit`) folder at the test-project root, organized by the same feature/domain structure as the production code under test.
+- [INST0015] **Do** follow these naming conventions for test-support types:
+  - Fakes: `Fake<TypeName>` (e.g., `FakeFileSystem`).
+  - Fixtures: `<TypeName>Fixture` (e.g., `WorkerHostFixture`).
+  - Fake data: `<TypeName>FakeData` (e.g., `EngineConfigFakeData`).
+  - Test utilities and helpers: `<TypeName>Test<RoleName>` (e.g., `EngineRpcTestClient`).
+- [INST0016] **Don't** organize test-support code by artifact-kind folders (`Fakes/`, `Fixtures/`, `Utils/`, `Helpers/`) — feature/domain folders inside `TestKit/` only.
 - [INST0017] **Don't** write tests that stray beyond the unit's scope; avoid broad tests that mix unrelated behaviors.
 - [INST0018] **Don't** test private or internal methods directly (via `as any`, reflection, `[InternalsVisibleTo]`, etc.) — test the behavior through the public API. If a private method is complex enough to feel like it needs its own tests, consider whether it should be extracted into a separate, publicly testable unit.
 - [INST0019] **Don't** add comments inside tests — except for AAA markers in .NET. Rely on descriptive names to convey intent.
