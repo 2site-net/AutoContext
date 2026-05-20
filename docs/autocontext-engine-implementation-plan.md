@@ -153,7 +153,7 @@ before merge.
   manifests split into wire (`*.json`) and internal (`*-metadata.json`).
 - **P4**: workspace identity is one hash; engine identity adds one
   per-launch UUID (fresh on every spawn; never reused across
-  respawns). Pipe names use the flat `<workspaceHash>#<instanceId>`
+  respawns). Endpoint names use the flat `<workspaceHash>#<instanceId>`
   segment (OS pipe namespaces are flat); on-disk paths use the
   nested `<workspaceHash>\<instanceId>` segments (POSIX: `/`).
   Never invent a parallel identifier; never flatten the two
@@ -183,7 +183,7 @@ other reason still need a real second impl.
 
 - **Unit tests** run against the engine library composed in-process
   via `AddAutoContextEngine(...)` with a per-test workspace path and
-  an overridden pipe namespace (library-only `EngineOptions` knob
+  an overridden endpoint prefix (library-only `EngineOptions` knob
   documented in `design § Composition contracts`). This is the hot
   path — most phases live here.
 - **Integration tests** spawn the published `autocontext-engine`
@@ -196,7 +196,7 @@ other reason still need a real second impl.
   *Project layout*) one-to-one:
   `AutoContext.Framework.Pipes.Tests`,
   `AutoContext.Framework.Logging.Tests`,
-  `AutoContext.Framework.Protocol.Tests`,
+  `AutoContext.Engine.Protocol.Tests`,
   `AutoContext.Framework.Workers.Tests`,
   `AutoContext.Engine.Core.Tests` (absorbs today's
   `AutoContext.Mcp.Server.Tests` over the course of phases 7 and 16),
@@ -235,7 +235,7 @@ rollout owns end-to-end:
   `AutoContext.Worker.Shared`. The canonical wire log envelope
   (`LogRecord`) lives in `Framework.Protocol/` alongside every other
   cross-side DTO.
-- `AutoContext.Framework.Protocol/` — cross-side DTOs (the wire
+- `AutoContext.Engine.Protocol/` — cross-side DTOs (the wire
   contract every RPC handler and typed dialer client marshals,
   including the canonical `LogRecord` envelope).
 - `AutoContext.Framework.Workers/` — worker-host substrate: the
@@ -309,10 +309,11 @@ src/
     JsonLogGreeting.cs
     LogServerJsonContext.cs
 
-  AutoContext.Framework.Protocol/              # cross-side DTOs + pipe-name shapes (leaf — no references)
-    AutoContext.Framework.Protocol.csproj
-    PipeName.cs                                # `readonly record struct` implementing IParsable<PipeName> — builder + parser for rpc/events/health/logs × hash#instance
-    ServiceAddressFormatter.cs                 # legacy `autocontext.<role>#<instance-id>` formatter — kept until every current-topology dialer flips to PipeName (Phase 12); deleted in Phase 16
+  AutoContext.Engine.Protocol/              # cross-side DTOs + endpoint shapes (leaf — no references)
+    AutoContext.Engine.Protocol.csproj
+    EndpointKind.cs                            # enum { Rpc, Events, Health, Logs } — the four logical channels per (workspace, launcher instance)
+    Endpoint.cs                                # `readonly record struct` implementing IParsable<Endpoint> — builder + parser for rpc/events/health/logs × hash#instance
+    ServiceAddressFormatter.cs                 # legacy `autocontext.<role>#<instance-id>` formatter — kept until every current-topology dialer flips to Endpoint (Phase 12); deleted in Phase 16
     ProtocolVersion.cs                         # Engine.Hello version constant
     LogRecord.cs                               # canonical log-record envelope (timestamp, category, level, …)
     Envelopes/                                 # discriminated-envelope base shapes (P2)
@@ -322,7 +323,15 @@ src/
       NotFoundEnvelope.cs
       ErrorEnvelope.cs
     Messages/                                  # per-RPC request/response DTOs
-      EngineMessages.cs                        # Engine.Hello / ListRegistryEntries / Shutdown / WriteLog
+      EngineMessages.cs                        # Engine.Hello / Shutdown / WriteLog
+      Lifecycle/                               # Engine.Lifecycle.Subscribe family (events-pipe notification payload)
+        LifecycleMethods.cs                    # `Engine.Lifecycle` notification-method constant
+        LifecycleEventKinds.cs                 # transition string constants (`started`, `shutting-down`, `reloading`, `evicted`)
+        LifecycleEvent.cs                      # notification payload (Kind, InstanceId?, Revision?, Reason?)
+      Registry/                                # Engine.RegistryEntries family (request method constant, result DTO, RegistryEntry record)
+        RegistryMethods.cs                     # `Engine.RegistryEntries` wire-method constant
+        RegistryEntriesResult.cs               # Engine.RegistryEntries response DTO
+        RegistryEntry.cs                       # registry entry record (wire shape)
       ConfigMessages.cs                        # Config.{Get,Subscribe,ToggleFile,ToggleRule}
       InstructionsMessages.cs                  # Instructions.{List,Get,GetAll,GetAlwaysAttached,GetRaw,SearchContent,Subscribe}
       WorkspaceMessages.cs                     # Workspace.{Detect,Info}
@@ -345,29 +354,42 @@ src/
     AutoContext.Engine.Core.csproj
     AddAutoContextEngine.cs                    # IHostApplicationBuilder extension — composition root
     EngineOptions.cs                           # bound from argv (--instance-id, --workspace-root, --idle-timeout, …)
+    EngineCrashWriter.cs                       # paranoid last-gasp writer of crash.log — sync File.AppendAllText, no DI, no ILogger, no async, allocation-light; wired into DaemonHostFactory.RunAsync top-level try/catch + AppDomain.UnhandledException + TaskScheduler.UnobservedTaskException; never invoked from graceful shutdown paths
     Infrastructure/                            # horizontal-axis substrate (cross-cutting plumbing); subdivided by kind, not by feature
+      IUniqueInstanceGuard.cs                  # contract for the pre-bind "another engine already owns this <workspaceHash>#<instanceId>?" sanity check; production impl is Lifecycle/PerWorkspaceInstanceGuard.cs
       Primitives/                              # leaf value types — depended on by everything, depend on nothing themselves
-        InstanceId.cs                          # launcher UUID value type — `readonly record struct` implementing IParsable<T>; the `<instanceId>` segment in pipe names and on-disk paths (P4)
-    Lifecycle/                                 # this engine's own lifecycle: Hello, Shutdown, watchdogs, own registry entry
+        InstanceId.cs                          # launcher UUID value type — `readonly record struct` implementing IParsable<T>; the `<instanceId>` segment in endpoint names and on-disk paths (P4)
+      Diagnostics/                             # System.Diagnostics.Process seam — internal abstractions used by watchdogs and registry-sweep liveness checks
+        IProcessHandle.cs                      # opens-once handle; exposes UTC start time and a cancellable WaitForExitAsync
+        IProcessLookup.cs                      # TryOpen(pid) → handle | null (gone / denied); single seam over Process.GetProcessById
+        SystemProcessHandle.cs                 # production wrapper over System.Diagnostics.Process
+        SystemProcessLookup.cs                 # production lookup; catches ArgumentException / InvalidOperationException / Win32Exception → null
+    Lifecycle/                                 # this engine's own lifecycle: Hello, Shutdown, own registry entry
       LifecycleService.cs                      # hosted service — owns the four-pipe accept loops
+      PerWorkspaceInstanceGuard.cs             # IUniqueInstanceGuard impl — dials the would-be `rpc` endpoint before bind; throws IOException when a live peer answers (P4 launcher-bug guard); not a hosted service
       HelloHandler.cs                          # protocol-version check + greeting payload
       ShutdownHandler.cs                       # graceful drain + Engine.Shutdown RPC
-      LifecycleBroadcaster.cs                  # events-pipe state stream (P10)
+      # — Engine.Lifecycle.Subscribe events stream (P10) — split along ownership:
+      LifecycleEventStream.cs                  # singleton fan-out — Subscribe / TryPublish / TryComplete; per-subscriber bounded buffer with slow-subscriber eviction (P9)
+      LifecycleEventSubscriber.cs              # per-subscriber bounded channel + Active/Closed/Evicted state machine (Interlocked CAS)
+      LifecycleEventSubscription.cs            # IDisposable handle returned by Subscribe; ReadAllAsync drains the channel and yields a terminal `evicted` frame on eviction
+      LifecycleNotifier.cs                     # stamps the engine's identity (InstanceId, Revision) onto each transition and publishes through LifecycleEventStream — the stream itself constructs only the seeded `started` event
       # — Engine registry (engine-registry.json mechanics + this engine's own entry) —
-      RegistryFile.cs                          # sole writer surface for engine-registry.json (P9 single-writer); owns mutex + FileShare + retry + corrupt-recovery + schema-version contract
-      RegistryEntry.cs                         # entry DTO returned/accepted by RegistryFile (engine-internal shape — never on the wire, P3)
-      RegistryEntryWriter.cs                   # composes over RegistryFile — appends this engine's entry on start (fresh `instanceId` every spawn; no upsert), removes own entry on graceful shutdown
-      # — Watchdogs (process-lifetime guards) —
+      RegistryFileFormat.cs                    # stateless serializer + schema-version contract shared by reader and writer (envelope shape, JsonSerializerOptions)
+      RegistryFileReader.cs                    # concurrent-read surface for engine-registry.json (P9 concurrent reads); retry under FileShare.ReadWrite|FileShare.Delete + corrupt-file tolerance (returns empty list)
+      RegistryFileWriter.cs                    # internal atomic single-shot writer; temp+fsync+rename only (no mutex, no retry, no RMW — owned by RegistryFileService)
+      RegistryFileService.cs                   # hosted coordinator: dedicated worker thread + named cross-process Mutex + Channel<WriteRequest> + read-modify-write cycle; owns this engine's own-entry lifecycle (append on Start, best-effort remove on Stop); single intended caller of RegistryFileWriter
+      RegistryEntry.cs                         # entry DTO returned/accepted by RegistryFileReader/Service (engine-internal shape — never on the wire, P3)
+      RegistryEntryBuilder.cs                  # pure builder — composes EngineOptions + runtime facts (pid, start time, workspace hash, assembly version) into the RegistryEntry that represents this engine; invoked by RegistryFileService via DI-supplied factory
+    Watchdogs/                                 # process-lifetime guards — peers of Lifecycle/; each is a hosted service that signals IHostApplicationLifetime.StopApplication on its own trigger
       IdleTimeoutWatchdog.cs                   # --idle-timeout
-      ParentPidWatchdog.cs                     # --parent-pid + Process.StartTime defeat
-      InstanceIdCollisionWatchdog.cs           # sanity check — second engine binding under the same --instance-id is a launcher bug (P4 fresh-UUID-per-spawn); routes the diagnostic through CrashWriter, then exits non-zero
-      # — Crash handling —
-      CrashWriter.cs                           # paranoid last-gasp writer of crash.log — sync File.WriteAllText, no DI, no ILogger, no async, allocation-light; wired into Program.Main top-level try/catch + AppDomain.UnhandledException + TaskScheduler.UnobservedTaskException; never invoked from graceful shutdown paths
+      HostWatchdog.cs                          # --parent-pid; clamps engine lifetime to spawner via Infrastructure/Diagnostics handle (Process.StartTime pid-reuse defeat)
+      # NOTE: per-workspace unique-instance guard is NOT a watchdog (one-shot pre-bind probe, not a long-running monitor); see Lifecycle/PerWorkspaceInstanceGuard.cs
     Housekeeping/                              # cache-root upkeep: peer-registration liveness, orphan reaping, retention, foreign-subtree eviction (P5)
       HousekeepingService.cs                   # hosted service — shutdown sweep only, runs after LifecycleService removes own entry + closes pipes; ≤ 1 s deadline budget
       SubtreeRegistryStatus.cs                 # discriminated record hierarchy (Registered | StaleRegistration | Unregistered | Foreign) — P2-shaped contract between scanner, policy, and cleaner
       CacheRootScanner.cs                      # walks the engine cache root, produces SubtreeRegistryStatus per child (pure — no deletion here)
-      RegistryEntryReader.cs                   # composes over RegistryFile (Lifecycle/); applies Process.StartTime peer-liveness check, supplies the registration half of CacheRootScanner's classification
+      RegistryEntryReader.cs                   # composes over RegistryFileReader (Lifecycle/); applies Process.StartTime peer-liveness check, supplies the registration half of CacheRootScanner's classification
       StaleSubtreeCleaner.cs                   # pattern-matches SubtreeRegistryStatus, deletes with concurrent-sweep tolerance (DirectoryNotFoundException counts as success)
       RetentionPolicy.cs                       # single reader of `--retention` — resolves the window per SubtreeRegistryStatus arm (per-entry, unregistered-fallback, foreign)
     Logging/                                   # engine sink, rotation, rotated-file cleanup
@@ -451,7 +473,7 @@ src/
       EngineConnectBudget.cs                   # cold-spawn retry shape
       EngineLocator.cs                         # AppContext.BaseDirectory probe for engine binary
     Rpc/                                       # typed clients (one per surface)
-      EngineRpcClient.cs                       # Engine.Hello/Shutdown/ListRegistryEntries/WriteLog
+      EngineRpcClient.cs                       # Engine.Hello/Shutdown/RegistryEntries/WriteLog
       ConfigRpcClient.cs
       InstructionsRpcClient.cs
       WorkspaceRpcClient.cs
@@ -499,7 +521,7 @@ src/
   tests/
     AutoContext.Framework.Pipes.Tests/         # transport primitives — listener, codec, keep-alive, exchange/streaming triad
     AutoContext.Framework.Logging.Tests/       # EngineLoggerProvider, ingest ring, write-log client
-    AutoContext.Framework.Protocol.Tests/      # DTO envelope round-trips (including LogRecord), pipe-name builder, source-generated JSON contexts
+    AutoContext.Engine.Protocol.Tests/      # DTO envelope round-trips (including LogRecord), endpoint builder, source-generated JSON contexts
     AutoContext.Framework.Workers.Tests/       # IMcpTask, WorkerHostBuilderExtensions, WorkerTaskDispatcherService, WorkerHealthMonitorService
     AutoContext.Engine.Core.Tests/             # engine-internal services + every RPC handler + lifecycle + watchdogs
     AutoContext.Client.Core.Tests/             # typed RPC clients, subscription consumers, find-or-spawn flow
@@ -558,7 +580,7 @@ host-supplied path threads into the engine for side-car lookup.
 
 | Surface | Owner project | Transport |
 |---|---|---|
-| `Engine.Hello` / `Shutdown` / `ListRegistryEntries` / `Lifecycle.Subscribe` | `Engine.Core` | `rpc` + `events` |
+| `Engine.Hello` / `Shutdown` / `RegistryEntries` / `Lifecycle.Subscribe` | `Engine.Core` | `rpc` + `events` |
 | `Engine.WriteLog` | `Engine.Core` | `rpc` |
 | `Logs.GetEngine` / `TailEngine` / `GetWorker` / `TailWorker` | `Engine.Core` | `rpc` + `logs` |
 | `Config.Get` / `Subscribe` / `ToggleFile` / `ToggleRule` | `Engine.Core` | `rpc` + `events` |
@@ -577,13 +599,13 @@ host-supplied path threads into the engine for side-car lookup.
 
 | # | Commit subject | State |
 |---|---|---|
-| 1 | `refactor(framework): split into pipes/logging/protocol/workers` | Committed (`af79c97`) |
-| 2 | `refactor(mcp): fold IMcpTask into Framework.Workers` | Committed (`a83559b`) |
-| 3 | `refactor(workers): fold WorkerHostBuilderExtensions into Framework.Workers` | Committed (`1eae654`) |
-| 4 | `refactor(tests): split Framework.Tests across substrate projects` | Committed (`03e65a0`) |
-| 5 | `refactor(ts): rename Framework.Web to Nodejs.Core` | Committed (`ea397b1`) |
-| 6 | `docs(plan): correct Worker.Shared fold scope` | Committed (`6287f2f`) |
-| 7 | `docs(plan): mark Phase 0 complete` | Committed (this commit) |
+| 1 | `refactor(framework): split into pipes/logging/protocol/workers` | DONE |
+| 2 | `refactor(mcp): fold IMcpTask into Framework.Workers` | DONE |
+| 3 | `refactor(workers): fold WorkerHostBuilderExtensions into Framework.Workers` | DONE |
+| 4 | `refactor(tests): split Framework.Tests across substrate projects` | DONE |
+| 5 | `refactor(ts): rename Framework.Web to Nodejs.Core` | DONE |
+| 6 | `docs(plan): correct Worker.Shared fold scope` | DONE |
+| 7 | `docs(plan): mark Phase 0 complete` | DONE |
 
 **Goal**: reshape the existing project graph into the four-project
 `Framework.*` substrate the rest of the rollout consumes, fold the
@@ -605,15 +627,15 @@ build-tasks project is created in the phase that first uses it (see
   - `AutoContext.Framework.Logging/` — receives the existing
     `AutoContext.Framework/Logging/` files. References
     `Framework.Pipes` + `Framework.Protocol`.
-  - `AutoContext.Framework.Protocol/` — new sub-project (no
+  - `AutoContext.Engine.Protocol/` — new sub-project (no
     equivalent in today's substrate). Skeletons for the cross-side
-    DTOs (protocol-version constant, pipe-name builder, log-record
+    DTOs (protocol-version constant, endpoint builder, log-record
     envelope, discriminated-envelope base shapes, source-generated
     JSON context). Also receives `AutoContext.Framework/Workers/ServiceAddressFormatter.cs`
-    — it's a pure pipe-name string-formatting helper (no I/O, no
-    lifetime, no DI), the same wire-shape concern `PipeName.cs`
+    — it's a pure endpoint string-formatting helper (no I/O, no
+    lifetime, no DI), the same wire-shape concern `Endpoint.cs`
     owns under the engine topology; parking the legacy formatter next
-    to its successor keeps both pipe-name shapes in one place and
+    to its successor keeps both endpoint shapes in one place and
     avoids a misleading lineage in Phase 1 where the engine's builder
     would otherwise materialise in a different project than the
     formatter it eventually replaces. Leaf — no other Framework
@@ -656,7 +678,7 @@ build-tasks project is created in the phase that first uses it (see
 - New test projects, one per new Framework sub-project:
   `AutoContext.Framework.Pipes.Tests`,
   `AutoContext.Framework.Logging.Tests`,
-  `AutoContext.Framework.Protocol.Tests`,
+  `AutoContext.Engine.Protocol.Tests`,
   `AutoContext.Framework.Workers.Tests`.
   Today's `AutoContext.Framework.Tests` is split across the four
   substrate test projects according to which sub-project owns each
@@ -682,14 +704,37 @@ registration, or executable host.
 
 ## Phase 1 — Engine lifecycle substrate
 
-**Status**: Not started.
+**Status**: Completed on branch `features/engine-lifecycle-substrate`.
+
+| # | Commit subject | State |
+|---|---|---|
+| 1 | `docs(engine): rename pipe names to endpoints` | DONE |
+| 2 | `feat(protocol): add Endpoint and ProtocolVersion` | DONE |
+| 3 | `feat(engine-core): scaffold project with composition root and options` | DONE |
+| 4 | `feat(engine): scaffold binary host with role-split argv parser` | DONE |
+| 5 | `feat(engine-core): add RegistryFile{Reader,Writer,Format} single-writer owner of engine-registry.json` | DONE |
+| 5b | `refactor(engine-core): make RegistryFileWriter a single-worker hosted service with named-mutex coordination and atomic temp-file writes` | DONE |
+| 6 | `feat(engine-core): add LifecycleService four-pipe accept loops` | DONE |
+| 7 | `feat(engine-core): add Engine.Hello handshake and protocol-version gate` | DONE |
+| 8 | `feat(engine-core): add RegistryEntryBuilder and own-entry lifecycle on RegistryFileService` | DONE |
+| 9 | `feat(engine): serve Engine.RegistryEntries and Engine.Shutdown over rpc` | DONE |
+| 10 | `feat(engine-core): add Engine.Lifecycle.Subscribe events stream and notifier` | DONE |
+| 10b | `test(engine): align lifecycle test conventions` | DONE |
+| 10c | `fix(engine): bound lifecycle shutdown drain by configurable timeout` | DONE |
+| 10d | `refactor(engine): unify rpc handshake and dispatch behind RpcConnectionProcessor` | DONE |
+| 11 | `feat(engine-core): add idle-timeout watchdog` | **DONE** |
+| 12 | `feat(engine-core): add host watchdog` | **DONE** |
+| 13 | `feat(engine-core): add unique-instance guard` | **DONE** |
+| 14 | `feat(engine): wire EngineCrashWriter to sinks` | **DONE** |
+| 15 | `test(engine): stand up integration harness for binary spawn` | **DONE** |
+| 16 | `docs(plan): mark Phase 1 complete` | **DONE** |
 
 **Goal**: engine binds the four pipes, performs the `Engine.Hello`
 handshake, manages its own idle/parent-pid/shutdown lifecycle, and
 participates in the shared liveness registry.
 
 **Design anchors**: `§ Lifecycle`, `§ Engine options (CLI surface)`,
-`§ RPC surface` (`Engine.Hello`, `Engine.ListRegistryEntries`,
+`§ RPC surface` (`Engine.Hello`, `Engine.RegistryEntries`,
 `Engine.Shutdown`, `Engine.Lifecycle.Subscribe`), `§ P4`, `§ P5`,
 `§ P8`.
 
@@ -708,45 +753,80 @@ participates in the shared liveness registry.
   `AutoContext.Engine.Core.Tests` alongside the projects above.
 - `AutoContext.slnx` and `build.ps1` learn the two new projects
   (and their test siblings).
-- `AutoContext.Framework.Protocol/` — pipe-name builder (workspace
-  hash + `<kind>` + `<instanceId>`; normalisation rules in `§ Pipe
-  name`), protocol-version integer.
-- `AutoContext.Framework.Pipes/` — extended where the four-pipe
-  server-side bind needs new transport seams (today's `PipeListener`
-  is single-pipe / client-flipped; the engine binds four
-  multi-connection servers).
+- `AutoContext.Engine.Protocol/` — endpoint builder (workspace
+  hash + `<kind>` + `<instanceId>`; normalisation rules in `§ Endpoint`),
+  protocol-version integer.
+- `AutoContext.Framework.Pipes/` — used as-is. The existing
+  `PipeListener` / `BoundPipeListener` pair already delivers the
+  atomic-bind, multi-connection accept loop, pre-bound continuous
+  listening, and drain-on-cancel semantics the engine needs; no new
+  transport seams are required for the four-pipe bind.
 - `AutoContext.Engine.Core/` — hosted services for: pipe accept
   loops (`rpc`, `events`, `health`, `logs` — `logs` is bound here so
   consumers see EOF cleanly, but engine record emission lives in
   Phase 2), `Engine.Hello` handler, `Engine.Lifecycle` broadcaster,
-  `Engine.ListRegistryEntries` handler, `Engine.Shutdown` handler,
-  `RegistryEntryWriter` (this engine's own entry), idle-timeout
-  watchdog, parent-pid watchdog.
-- `RegistryFile` — sole owner of `engine-registry.json`,
-  applying `§ P9`'s single-writer-per-resource rule on disk. Every
-  consumer (this phase's `RegistryEntryWriter`, Phase 2b's
-  `RegistryEntryReader`, any future peer-watcher) goes through this
-  surface; the writer mutex, `FileShare` choice, exponential-backoff
-  retry, atomic-replace strategy, corrupt-file recovery (truncate-
-  and-reseed), and schema-version contract live here, not scattered
-  across consumers. Born in Phase 1 because Phase 1 is when
-  `engine-registry.json` is first written; Phase 2b composes over it
-  rather than reaching into the file directly.
+  `Engine.RegistryEntries` handler, `Engine.Shutdown` handler,
+  the own-entry lifecycle folded into `RegistryFileService` (append
+  on Start, best-effort remove on Stop — composing
+  `RegistryEntryBuilder` for the pure construction half),
+  idle-timeout watchdog, parent-pid watchdog.
+- `RegistryFileReader` / `RegistryFileWriter` / `RegistryFileFormat`
+  / `RegistryFileService` — sole owners of `engine-registry.json`,
+  split along three orthogonal concerns so `§ P9`'s
+  single-writer-per-resource rule is enforced by *type identity*
+  and `§ P8`'s end-to-end async stays honest at the public API
+  even though the OS `Mutex` primitive demands thread affinity:
+  (a) `RegistryFileFormat` owns the envelope shape, schema-version
+  contract, and `JsonSerializerOptions` (stateless, shared by
+  reader and writer); (b) `RegistryFileReader` is the passive
+  concurrent-read surface — opens with
+  `FileShare.ReadWrite | FileShare.Delete` so it coexists with the
+  writer's atomic rename, retries under exponential backoff, and
+  tolerates corrupt/unknown-schema files by returning an empty
+  list; (c) `RegistryFileWriter` is an `internal` atomic
+  single-shot writer — temp+fsync+rename only, no mutex, no retry,
+  no RMW — small enough that its only correctness obligation is
+  that the real file is replaced atomically; (d) `RegistryFileService`
+  is the public hosted coordinator that owns *all* complexity:
+  a single dedicated background thread runs a fully synchronous
+  worker loop (so the named cross-process `Mutex`'s acquire/release
+  affinity is satisfied by construction), a `Channel<WriteRequest>`
+  serialises in-process callers, a session-local
+  `AutoContext.RegistryFile.{sha256(path)[..16]}` named mutex
+  serialises cross-process peers (the registry lives under the
+  per-user cache root, so session-local scope matches the
+  contention surface; a `Global\` prefix would require
+  `SeCreateGlobalPrivilege` and falsely couple unrelated users),
+  and a per-request
+  `TaskCompletionSource` keeps the `WriteAsync` API honestly async.
+  The service handles `AbandonedMutexException` gracefully
+  (atomic-rename writer guarantees no torn intermediate state, so
+  reclaiming the mutex is always safe). Every consumer (this phase's
+  own-entry lifecycle on `RegistryFileService`, Phase 2b's
+  `RegistryEntryReader`, any future peer-watcher) composes over
+  the appropriate surface: writers go through
+  `RegistryFileService`, readers go through `RegistryFileReader`. Born in Phase 1 because Phase 1 is when
+  `engine-registry.json` is first written; Phase 2b composes over
+  `RegistryFileReader` rather than reaching into the file directly.
 - `engine-registry.json` entry lifecycle per
   `§ Housekeeping` and the `engine-registry.json entry lifecycle`
   pitfall: append-on-start (fresh `instanceId` every spawn; no
   upsert), remove-on-graceful-shutdown, leave-stale-on-crash. The
-  locking, `FileShare.None` writer window, and exponential-backoff
-  reader retry are owned by `RegistryFile` (see above); this
-  bullet pins the *lifecycle* of the entry, not the file mechanics.
+  locking, `FileShare.None` writer window, atomic temp+rename, and
+  exponential-backoff reader retry are owned by the reader/writer
+  pair above; this bullet pins the *lifecycle* of the entry, not
+  the file mechanics.
 - The same-`instanceId`-collision rule (`§ Lifecycle` *Concurrent
   first-connect*) — a second engine binding under the same
   `--instance-id` is a launcher bug under the per-launch-UUID
   contract (P4); the engine fails loudly on pipe-bind collision
-  with a non-zero exit. `InstanceIdCollisionWatchdog` is the
-  fail-fast sanity check enforcing this contract; the design does
-  **not** treat the collision as a shape bind has to be idempotent
-  against.
+  with a non-zero exit. `PerWorkspaceInstanceGuard` (the sole
+  production `IUniqueInstanceGuard` impl, called at the top of
+  `LifecycleService.StartAsync` before any pipe bind) is the
+  fail-fast sanity check enforcing this contract; it probes the
+  would-be `rpc` endpoint and throws `IOException` when a peer
+  already holds the address. The design does **not** treat the
+  collision as a shape bind has to be idempotent against.
 
 **Tests** (unit + integration):
 - `Engine.Hello` protocol-version exact-match acceptance and refusal.
@@ -771,15 +851,15 @@ participates in the shared liveness registry.
   engine emits a diagnostic log line naming the colliding pipe and
   writes a `crash.log` tombstone under its per-instance subtree
   describing the collision.
-- `CrashWriter` produces a parseable `crash.log` under
+- `EngineCrashWriter` produces a parseable `crash.log` under
   `…\<workspaceHash>\<instanceId>\logs\` when an unhandled
-  exception escapes `Program.Main`, when a non-main thread raises
-  via `AppDomain.UnhandledException`, and when an unobserved
-  `Task` faults; graceful `Engine.Shutdown`, idle-timeout, and
-  parent-pid watchdog exits produce **no** `crash.log`. A
-  deliberately broken write target (read-only directory) does not
-  mask the original fault — the process still exits with the
-  original non-zero code.
+  exception escapes `DaemonHostFactory.RunAsync`, when a non-main
+  thread raises via `AppDomain.UnhandledException`, and when an
+  unobserved `Task` faults; graceful `Engine.Shutdown`,
+  idle-timeout, and parent-pid watchdog exits produce **no**
+  `crash.log`. A deliberately broken write target (read-only
+  directory) does not mask the original fault — the process still
+  exits with the original non-zero code.
 - Corrupt-file recovery: an unparseable
   `engine-registry.json` is truncated and re-seeded by the next start.
 - `Engine.Shutdown` returns `{ accepted: true }` immediately, drains
@@ -793,7 +873,7 @@ eviction (Phase 2; needs the nested `<workspaceHash>\<instanceId>`
 per-instance subtree shape Phase 2 introduces alongside logging).
 Rotating log file production (`engine.log`, `worker-<workerId>.log`;
 Phase 2) — note that `crash.log` is in-scope for Phase 1 because
-the `CrashWriter` it depends on is wired up here. Worker spawn
+the `EngineCrashWriter` it depends on is wired up here. Worker spawn
 (Phase 7).
 
 ## Phase 2 — Engine logging pipeline and cache housekeeping
@@ -803,7 +883,7 @@ the `CrashWriter` it depends on is wired up here. Worker spawn
 Two equal-tier features land together because they share the
 per-instance subtree shape (both write under it) and the
 `engine-registry.json` reader (`RegistryEntryReader` consults the
-same entries `RegistryEntryWriter` produces). Neither is subordinate to
+same entries `RegistryFileService` produces). Neither is subordinate to
 the other; each gets its own subsection below.
 
 ### 2a — Engine logging pipeline
@@ -819,7 +899,7 @@ and rotated files are cleaned per `--retention`.
 `§ Log pipeline backpressure` pitfall.
 
 **Code touch**:
-- `AutoContext.Framework.Protocol/LogRecord.cs` — the canonical wire
+- `AutoContext.Engine.Protocol/LogRecord.cs` — the canonical wire
   envelope (`timestamp`, `category`, `level`, `eventId?`, `message`,
   `properties?`, `exception?`). Phase 2a collapses today's substrate
   pair `LogEntry`/`JsonLogEntry` into this single record under
@@ -842,7 +922,7 @@ and rotated files are cleaned per `--retention`.
 - `Logs.GetEngine` / `Logs.TailEngine` handlers (active file only;
   `opts.lastN`, `opts.since`, `truncated` flag). `crash.log` is
   intentionally **out of scope** for the `Logs.*` RPC surface: it
-  is a write-once tombstone produced by Phase 1's `CrashWriter`,
+  is a write-once tombstone produced by Phase 1's `EngineCrashWriter`,
   not a tail-able feed, and is reaped along with the rest of the
   per-instance subtree by 2b housekeeping under `--retention`.
 
@@ -883,15 +963,16 @@ is explicit and exclusive).
   `<instanceId>` is fresh on every spawn, so the registry stays
   append-only and there is nothing to reconcile before pipe-bind.
   Cleanup of any peer's leftover subtree happens at this engine's
-  own graceful shutdown, after `RegistryEntryWriter` has removed
-  this engine's own entry and `LifecycleService` has closed the
-  four pipes. Hosted-service registration order pins the
-  invariant: register `HousekeepingService` **before**
-  `LifecycleService` (and before `RegistryEntryWriter` if it is
-  itself registered as a hosted service) so its `StopAsync` runs
-  *after* both — reverse-registration order — and the sweep
-  observes the on-disk registry in its post-shutdown shape (this
-  engine's entry already removed, pipes already closed). Bounded
+  own graceful shutdown, after `RegistryFileService` has removed
+  this engine's own entry (via its own `StopAsync` prefix) and
+  `LifecycleService` has closed the four pipes. Hosted-service
+  registration order pins the invariant: register
+  `HousekeepingService` **after** `RegistryFileService` (and
+  before `LifecycleService`) so its `StopAsync` runs *before*
+  the file service's — reverse-registration order — letting
+  the sweep traverse the still-live `RegistryFileService.WriteAsync`
+  channel before it's torn down, while still observing the
+  on-disk registry in its post-pipe-close shape. Bounded
   by the ≤ 1 s deadline the design specifies; whatever the sweep
   doesn't reach this time, the next graceful shutdown of any
   peer catches.
@@ -909,7 +990,7 @@ is explicit and exclusive).
 - `CacheRootScanner` — walks the engine cache root and produces a
   `SubtreeRegistryStatus` for each child. Pure: no deletion, no
   policy decisions here. Owns the file-system walk and the registry
-  lookup against `RegistryFile` (Lifecycle/, Phase 1). The
+  lookup against `RegistryFileReader` (Lifecycle/, Phase 1). The
   four classification arms:
     1. **Registered** — backed by an `engine-registry.json` entry
        whose pid is alive (`Process.StartTime` defeats pid recycling);
@@ -925,13 +1006,13 @@ is explicit and exclusive).
        earlier preview builds, or any other shape under the cache
        root. Because the cache root is engine-owned (P5), a foreign
        subtree is by definition stale.
-- `RegistryEntryReader` — composes over `RegistryFile`
+- `RegistryEntryReader` — composes over `RegistryFileReader`
   (Lifecycle/, Phase 1) to read all entries, applies the
   `Process.StartTime` peer-liveness check, and supplies the
   registration half of `CacheRootScanner`'s classification. The file
-  mechanics (locks, retry, corrupt-recovery) live in the
-  registry-file type — this reader only adds the liveness check
-  on top of the entry data it gets back.
+  mechanics (retry, corrupt-file tolerance) live in
+  `RegistryFileReader` — this entry reader only adds the liveness
+  check on top of the entry data it gets back.
 - `StaleSubtreeCleaner` — pattern-matches over
   `SubtreeRegistryStatus`, asks `RetentionPolicy` for the window
   per arm, deletes when outside the window. Concurrent-sweep
@@ -964,10 +1045,10 @@ is explicit and exclusive).
   `Process.StartTime` comparison.
 - The ≤ 1 s deadline budget is respected: a deliberately huge cache
   root yields after the budget elapses without blocking shutdown.
-- Shutdown sweep runs after `RegistryEntryWriter` has removed this
-  engine's own entry and `LifecycleService` has closed the four
-  pipes — a peer that starts mid-shutdown does not observe this
-  engine's entry as live.
+- Shutdown sweep runs after `RegistryFileService` has removed this
+  engine's own entry (during its own `StopAsync`) and after
+  `LifecycleService` has closed the four pipes — a peer that
+  starts mid-shutdown does not observe this engine's entry as live.
 - Integration: spawn two engines against the same cache root,
   hard-kill one (skipping its shutdown sweep), then gracefully
   shut down the survivor; assert the survivor reaps the killed
@@ -976,10 +1057,11 @@ is explicit and exclusive).
 
 **Out of scope** (2a): worker records (Phase 8); `Logs.GetWorker`
 / `Logs.TailWorker` (Phase 8). 2b has no out-of-scope carve-out;
-its dependency on Phase 1's `RegistryFile` and
-`RegistryEntryWriter` (which together own the on-disk
-`engine-registry.json` entries the reader supplies) is declared under
-code touch, not deferred work.
+its dependency on Phase 1's `RegistryFileReader` /
+  `RegistryFileWriter` and `RegistryFileService` (which owns both
+  the file mechanics and this engine's own-entry lifecycle, and
+  supplies the on-disk `engine-registry.json` entries the reader
+  surfaces) is declared under code touch, not deferred work.
 
 ## Phase 3 — Config store
 
@@ -1510,7 +1592,7 @@ share the engine's wire contract.
     `EngineProtocolException`.
   - Typed RPC clients for every surface: `Config.*`, `Instructions.*`,
     `Workspace.*`, `McpTools.*`, `Discovery.*`, `Agent.*`, `Logs.*`,
-    `Engine.Lifecycle`, `Engine.ListRegistryEntries`,
+    `Engine.Lifecycle`, `Engine.RegistryEntries`,
     `Engine.Shutdown`. Note: `Engine.WriteLog` is **not** exposed
     on `Client.Core`'s typed surface — it is a worker→engine
     notification owned by `Framework.Logging`

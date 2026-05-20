@@ -33,6 +33,40 @@ unrelated commit either.
 
 ## Open
 
+## Harden `PipeListener.Bind()` cleanup contract
+
+- **Found**: 2026-05-16 during Phase 1 commit #6 review
+  (`feat(engine-core): add LifecycleService four-pipe accept loops`).
+- **Severity**: bug (latent).
+- **Location**:
+  - `src/AutoContext.Framework.Pipes/PipeListener.cs` ~L83-L93
+    (`Bind()` constructs a `NamedPipeServerStream` then passes it to
+    `new BoundPipeListener(...)` ~L93 without a try/catch around the
+    handoff).
+  - `src/AutoContext.Engine.Core/Lifecycle/LifecycleService.cs` ~L212
+    (`BindAll`) is the caller whose cleanup comment ("Bind throws
+    before the listener owns any OS resources") banks on the
+    invariant being true.
+- **Symptom**: if anything between `new NamedPipeServerStream(...)`
+  and `return new BoundPipeListener(...)` throws — today only the
+  `BoundPipeListener` constructor itself, but any future addition
+  (logging, instrumentation, options validation) would qualify — the
+  raw `NamedPipeServerStream` is leaked and the OS pipe handle stays
+  bound until GC finalisation. `LifecycleService.BindAll` then
+  unwinds *previously*-bound listeners cleanly but never disposes
+  the half-bound stream of the failing kind.
+- **Fix shape**: wrap the post-construct work in `PipeListener.Bind()`
+  in a `try { ... } catch { pipe.Dispose(); throw; }` so the
+  invariant the call-site comment claims actually holds, regardless
+  of what gets added between construction and return. Optionally
+  tighten the `LifecycleService.BindAll` comment to reference the
+  contract rather than implementation detail.
+- **Lands**: anytime — independent `fix(pipes): dispose
+  NamedPipeServerStream when BoundPipeListener handoff throws`
+  commit. Pair with a unit test that injects a throwing
+  `BoundPipeListener`-ish stand-in (or simulate via reflection) to
+  prove the stream is disposed on the failure path.
+
 ## Fix `mcp-tools-tree-view.test.ts` for the `mcpServerNode` root row
 
 - **Found**: 2026-05-14 during Phase 0 commit #5 smoke run
