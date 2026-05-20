@@ -704,7 +704,7 @@ registration, or executable host.
 
 ## Phase 1 — Engine lifecycle substrate
 
-**Status**: In progress on branch `features/engine-lifecycle-substrate`.
+**Status**: Completed on branch `features/engine-lifecycle-substrate`.
 
 | # | Commit subject | State |
 |---|---|---|
@@ -727,7 +727,7 @@ registration, or executable host.
 | 13 | `feat(engine-core): add unique-instance guard` | **DONE** |
 | 14 | `feat(engine): wire EngineCrashWriter to sinks` | **DONE** |
 | 15 | `test(engine): stand up integration harness for binary spawn` | **DONE** |
-| 16 | `docs(plan): mark Phase 1 complete` | Not started |
+| 16 | `docs(plan): mark Phase 1 complete` | **DONE** |
 
 **Goal**: engine binds the four pipes, performs the `Engine.Hello`
 handshake, manages its own idle/parent-pid/shutdown lifecycle, and
