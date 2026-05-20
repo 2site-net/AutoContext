@@ -726,7 +726,7 @@ registration, or executable host.
 | 12 | `feat(engine-core): add host watchdog` | **DONE** |
 | 13 | `feat(engine-core): add unique-instance guard` | **DONE** |
 | 14 | `feat(engine): wire EngineCrashWriter to sinks` | **DONE** |
-| 15 | `test(engine): stand up integration harness for binary spawn` | Not started |
+| 15 | `test(engine): stand up integration harness for binary spawn` | **DONE** |
 | 16 | `docs(plan): mark Phase 1 complete` | Not started |
 
 **Goal**: engine binds the four pipes, performs the `Engine.Hello`
