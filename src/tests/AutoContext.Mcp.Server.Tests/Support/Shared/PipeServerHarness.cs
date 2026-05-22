@@ -1,4 +1,4 @@
-namespace AutoContext.Mcp.Server.Tests.Testing.Utils;
+namespace AutoContext.Mcp.Server.Tests.Support.Shared;
 
 using System.IO.Pipes;
 

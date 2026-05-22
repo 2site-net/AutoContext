@@ -5,7 +5,7 @@ using System.Text.Json;
 
 using AutoContext.Framework.Pipes;
 using AutoContext.Mcp.Server.Config;
-using AutoContext.Mcp.Server.Tests.Testing.Utils;
+using AutoContext.Mcp.Server.Tests.Support.Shared;
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;

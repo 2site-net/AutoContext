@@ -6,7 +6,7 @@ using System.Text.Json;
 using AutoContext.Mcp.Server.Config;
 using AutoContext.Mcp.Server.EditorConfig;
 using AutoContext.Mcp.Server.Registry;
-using AutoContext.Mcp.Server.Tests.Testing.Utils;
+using AutoContext.Mcp.Server.Tests.Support.Shared;
 using AutoContext.Mcp.Server.Tools.Invocation;
 using AutoContext.Mcp.Server.Tools.Results;
 using AutoContext.Mcp.Server.Workers;

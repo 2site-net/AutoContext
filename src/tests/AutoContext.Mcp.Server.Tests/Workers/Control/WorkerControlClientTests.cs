@@ -2,7 +2,7 @@ namespace AutoContext.Mcp.Server.Tests.Workers.Control;
 
 using System.Text.Json;
 
-using AutoContext.Mcp.Server.Tests.Testing.Utils;
+using AutoContext.Mcp.Server.Tests.Support.Shared;
 using AutoContext.Mcp.Server.Workers.Control;
 using AutoContext.Mcp.Server.Workers.Protocol;
 using AutoContext.Framework.Pipes;

@@ -16,7 +16,7 @@ using AutoContext.Framework.Pipes;
 /// Shared client-side helpers for engine pipe tests: connecting to
 /// a bound endpoint, sending the <c>Engine.Hello</c> handshake,
 /// issuing a JSON-RPC request, and reading a single response frame.
-/// Kept in <c>Testing/Utils</c> per the repo's test conventions so
+/// Kept in <c>Support/Rpc</c> per the repo's test conventions so
 /// individual test classes stay focused on Arrange/Act/Assert.
 /// </summary>
 internal static class EngineRpcTestClient
