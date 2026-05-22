@@ -37,11 +37,9 @@
 
 Some AutoContext MCP tools are trained against production-code patterns and produce noisy or actively wrong findings when applied to test code (where the testing-specific instructions — `testing`, `dotnet-testing`, `dotnet-xunit`, `web-vitest`, etc. — apply instead).
 
-- **Do** restrict `analyze_csharp_code` to production C# files — anything *not* matching `**/*Tests*.{cs,razor}` and not under `**/tests/**` or `**/Support/**`.
-- **Do** restrict `analyze_typescript_code` to production TypeScript/JavaScript files — anything *not* matching `**/*.{test,spec}.{js,jsx,ts,tsx,mjs,mts}` and not under `**/tests/**`, `**/__tests__/**`, `**/__mocks__/**`, `**/support/**`, or `**/Support/**`.
-- **Do** apply the same scope rule to any future production-code-shaped MCP analyzer that ships from this repo (e.g. additional language analyzers). When in doubt, read the tool's `description` in `src/AutoContext.Mcp.Server/mcp-tools-registry.json` to confirm scope before invoking.
-- **Don't** invoke `analyze_csharp_code` on test files, test fixtures, fakes, harness code, or shared testing projects (e.g. `AutoContext.Framework.Tests.Support`) — validate those against the matching testing instructions instead.
-- **Don't** invoke `analyze_typescript_code` on test files, spec files, mocks, fixtures, or harness code — validate those against the matching testing instructions (`testing`, `web-testing`, `web-vitest`, `web-mocha`, `web-playwright`) instead.
+- **Don't** invoke `analyze_csharp_code` on anything under `src/tests/**` — that subtree holds all C# test code, including dedicated `<Project>.Tests.Support` projects and `Support/` folders inside `<Project>.Tests` projects. Validate those against the matching testing instructions (`testing`, `dotnet-testing`, `dotnet-xunit`) instead.
+- **Don't** invoke `analyze_typescript_code` on anything under `src/AutoContext.*/tests/**` — that subtree holds all TypeScript test code and test support. Validate those against the matching testing instructions (`testing`, `web-testing`, `web-vitest`, `web-mocha`, `web-playwright`) instead.
+- **Don't** assume new production-code-shaped MCP analyzers shipped from this repo are safe to run on test code. Apply the same scope rule, and when in doubt, read the tool's `description` in `src/AutoContext.Mcp.Server/mcp-tools-registry.json` to confirm scope before invoking.
 
 ## Versioning
 
