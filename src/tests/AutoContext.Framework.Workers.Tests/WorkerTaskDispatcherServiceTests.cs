@@ -5,7 +5,7 @@ using System.Text.Json;
 
 using AutoContext.Framework.Workers;
 using AutoContext.Framework.Pipes;
-using AutoContext.Framework.Workers.Tests.Fakes;
+using AutoContext.Framework.Workers.Tests.Support;
 
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
@@ -20,7 +20,7 @@ public sealed class WorkerTaskDispatcherServiceTests
         // Arrange
         var cancellationToken = TestContext.Current.CancellationToken;
         var pipeName = $"ac-test-{Guid.NewGuid():N}";
-        using var sut = CreateSut(pipeName, [new EchoTaskFake()]);
+        using var sut = CreateSut(pipeName, [new FakeEchoTask()]);
         await sut.StartAsync(cancellationToken);
 
         try
@@ -84,7 +84,7 @@ public sealed class WorkerTaskDispatcherServiceTests
         // Arrange
         var cancellationToken = TestContext.Current.CancellationToken;
         var pipeName = $"ac-test-{Guid.NewGuid():N}";
-        using var sut = CreateSut(pipeName, [new ThrowingTaskFake()]);
+        using var sut = CreateSut(pipeName, [new FakeThrowingTask()]);
         await sut.StartAsync(cancellationToken);
 
         try
@@ -114,7 +114,7 @@ public sealed class WorkerTaskDispatcherServiceTests
         // Arrange
         var cancellationToken = TestContext.Current.CancellationToken;
         var pipeName = $"ac-test-{Guid.NewGuid():N}";
-        using var sut = CreateSut(pipeName, [new CriticalThrowingTaskFake()]);
+        using var sut = CreateSut(pipeName, [new FakeCriticalThrowingTask()]);
         await sut.StartAsync(cancellationToken);
 
         try

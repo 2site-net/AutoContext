@@ -1,4 +1,4 @@
-namespace AutoContext.Framework.Workers.Tests.Fakes;
+namespace AutoContext.Framework.Workers.Tests.Support;
 
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
@@ -9,7 +9,7 @@ using AutoContext.Framework.Workers;
 /// Throws a "critical" CLR exception (one that <c>WorkerTaskDispatcherService</c>
 /// must let escape rather than convert into an error envelope).
 /// </summary>
-internal sealed class CriticalThrowingTaskFake : IMcpTask
+internal sealed class FakeCriticalThrowingTask : IMcpTask
 {
     public string TaskName => "critical_boom";
 

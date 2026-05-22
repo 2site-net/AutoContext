@@ -1,10 +1,10 @@
-namespace AutoContext.Framework.Workers.Tests.Fakes;
+namespace AutoContext.Framework.Workers.Tests.Support;
 
 using System.Text.Json;
 
 using AutoContext.Framework.Workers;
 
-internal sealed class ThrowingTaskFake : IMcpTask
+internal sealed class FakeThrowingTask : IMcpTask
 {
     public string TaskName => "boom";
 
