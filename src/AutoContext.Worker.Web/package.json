@@ -6,7 +6,7 @@
   "imports": {
     "#types/*.js": {
       "types": "./src/types/*.ts",
-      "default": "./out/types/*.js"
+      "default": "./dist/types/*.js"
     },
     "#support/*": "./tests/support/*",
     "#src/*": "./src/*"
@@ -14,7 +14,7 @@
   "scripts": {
     "prebuild": "pwsh ../../versionize.ps1 Export src/version.ts",
     "build": "tsc -b tsconfig.json",
-    "start": "node out/index.js"
+    "start": "node dist/index.js"
   },
   "dependencies": {
     "autocontext-nodejs-core": "file:../AutoContext.Nodejs.Core",

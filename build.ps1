@@ -770,7 +770,7 @@ function Copy-NodeJsToServersFolder {
             continue
         }
 
-        $outDir = Join-Path $serverSourceDir 'out'
+        $outDir = Join-Path $serverSourceDir 'dist'
         if (-not (Test-Path $outDir)) { throw "$serverName not compiled — run Compile first." }
 
         $targetDir = Join-Path $serversDir $serverName
@@ -825,7 +825,7 @@ function Copy-NodeJsToServersFolder {
                         Copy-Item $depSourceDir $linkPath -Recurse -Force
                         # Drop nested node_modules and source/test files —
                         # the framework's own published surface is just
-                        # `out/` + `package.json`.
+                        # `dist/` + `package.json`.
                         foreach ($prune in @('node_modules', 'src', 'tests', 'tsconfig.json', 'tsconfig.src.json', 'tsconfig.tests.json', 'vitest.config.ts')) {
                             $prunePath = Join-Path $linkPath $prune
                             if (Test-Path $prunePath) { Remove-Item $prunePath -Recurse -Force }
@@ -1477,11 +1477,11 @@ function Invoke-Clean {
     $targets += @{ Path = (Join-Path $extensionDir 'dist');    Label = 'TypeScript output (dist/)' }
     foreach ($libName in $tsLibraries) {
         $libDir = Join-Path $repoRoot 'src' $libName
-        $targets += @{ Path = (Join-Path $libDir 'out'); Label = "$libName output (out/)" }
+        $targets += @{ Path = (Join-Path $libDir 'dist'); Label = "$libName output (dist/)" }
     }
     foreach ($server in $nodeServers) {
         $serverDir = Join-Path $repoRoot 'src' $server.name
-        $targets += @{ Path = (Join-Path $serverDir 'out'); Label = "$($server.name) output (out/)" }
+        $targets += @{ Path = (Join-Path $serverDir 'dist'); Label = "$($server.name) output (dist/)" }
     }
     $targets += @{ Path = $serversDir;                          Label = 'Servers (servers/)' }
     $targets += @{ Path = $publishDir;                         Label = 'VSIX packages (publish/)' }

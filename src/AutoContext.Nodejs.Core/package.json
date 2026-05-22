@@ -3,12 +3,12 @@
   "version": "0.9.5",
   "type": "module",
   "private": true,
-  "main": "./out/index.js",
-  "types": "./out/index.d.ts",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "types": "./out/index.d.ts",
-      "default": "./out/index.js"
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
     }
   },
   "imports": {
