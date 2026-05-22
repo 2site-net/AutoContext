@@ -40,7 +40,7 @@ Some AutoContext MCP tools are trained against production-code patterns and prod
 - **Do** restrict `analyze_csharp_code` to production C# files — anything *not* matching `**/*Tests*.{cs,razor}` and not under `**/tests/**`, `**/Support/**`, or legacy `**/Testing/**`, `**/Fakes/**`, `**/Fixtures/**` folders.
 - **Do** restrict `analyze_typescript_code` to production TypeScript/JavaScript files — anything *not* matching `**/*.{test,spec}.{js,jsx,ts,tsx,mjs,mts}` and not under `**/tests/**`, `**/__tests__/**`, `**/__mocks__/**`, `**/support/**`, `**/Support/**`, or legacy `**/Testing/**`, `**/Fakes/**`, `**/Fixtures/**` folders.
 - **Do** apply the same scope rule to any future production-code-shaped MCP analyzer that ships from this repo (e.g. additional language analyzers). When in doubt, read the tool's `description` in `src/AutoContext.Mcp.Server/mcp-tools-registry.json` to confirm scope before invoking.
-- **Don't** invoke `analyze_csharp_code` on test files, test fixtures, fakes, harness code, or shared testing projects (e.g. `AutoContext.Framework.Testing`, `AutoContext.Worker.Testing`) — validate those against the matching testing instructions instead.
+- **Don't** invoke `analyze_csharp_code` on test files, test fixtures, fakes, harness code, or shared testing projects (e.g. `AutoContext.Framework.Tests.Support`) — validate those against the matching testing instructions instead.
 - **Don't** invoke `analyze_typescript_code` on test files, spec files, mocks, fixtures, or harness code — validate those against the matching testing instructions (`testing`, `web-testing`, `web-vitest`, `web-mocha`, `web-playwright`) instead.
 
 ## Versioning

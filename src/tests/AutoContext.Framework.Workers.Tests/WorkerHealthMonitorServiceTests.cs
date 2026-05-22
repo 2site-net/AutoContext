@@ -4,7 +4,7 @@ using System.IO.Pipes;
 using System.Text;
 
 using AutoContext.Framework.Workers;
-using AutoContext.Framework.Testing;
+using AutoContext.Framework.Tests.Support.Pipes;
 
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -96,9 +96,9 @@ public sealed class WorkerHealthMonitorServiceTests
         new(pipeName, clientId, NullLogger<WorkerHealthMonitorService>.Instance);
 
     private static NamedPipeServerStream CreateServer(string pipeName) =>
-        TestPipeServer.Create(pipeName, PipeDirection.In);
+        PipeTestServer.Create(pipeName, PipeDirection.In);
 
-    private static string NewPipeName() => TestPipeServer.UniqueName("actx-health-test");
+    private static string NewPipeName() => PipeTestServer.UniqueName("actx-health-test");
 
     private static async Task<string> ReadClientIdAsync(Stream server, CancellationToken cancellationToken)
     {

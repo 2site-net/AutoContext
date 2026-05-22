@@ -21,7 +21,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\AutoContext.Framework.Workers\AutoContext.Framework.Workers.csproj" />
-    <ProjectReference Include="..\AutoContext.Framework.Testing\AutoContext.Framework.Testing.csproj" />
+    <ProjectReference Include="..\AutoContext.Framework.Tests.Support\AutoContext.Framework.Tests.Support.csproj" />
   </ItemGroup>
 
 </Project>

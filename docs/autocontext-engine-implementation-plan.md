@@ -17,8 +17,8 @@
 - **Codebase conventions, no drift.** Each phase follows existing
   patterns — `.editorconfig`, `build.ps1` (never bare `dotnet`/`npx`),
   naming and structure mirrored from sibling projects, the
-  `Worker.*` shape for new worker projects and the `Framework.Testing`
-  shape for shared .NET test harness code, the
+  `Worker.*` shape for new worker projects and the `Framework.Tests.Support`
+  shape for shared .NET test-support code, the
   `Nodejs.Core` shape for new TS code.
 - **Just-in-time scaffolding.** Introduce a new project, folder,
   file, type, or member only in the phase that *uses* it. No empty
@@ -526,7 +526,7 @@ src/
     AutoContext.Engine.Core.Tests/             # engine-internal services + every RPC handler + lifecycle + watchdogs
     AutoContext.Client.Core.Tests/             # typed RPC clients, subscription consumers, find-or-spawn flow
     AutoContext.Engine.Tests/                  # binary-host integration: argv parser, role split, ready-marker, end-to-end spawn
-    AutoContext.Framework.Testing/             # shared harness reused by engine + worker tests
+    AutoContext.Framework.Tests.Support/       # shared test-support reused by engine + worker tests
 ```
 
 Worker projects, the MCP-abstractions project, the VS Code extension,

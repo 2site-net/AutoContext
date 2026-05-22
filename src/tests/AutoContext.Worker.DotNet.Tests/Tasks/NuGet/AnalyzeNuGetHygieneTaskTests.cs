@@ -3,7 +3,7 @@ namespace AutoContext.Worker.DotNet.Tests.Tasks.NuGet;
 using System.Text.Json;
 
 using AutoContext.Worker.DotNet.Tasks.NuGet;
-using AutoContext.Worker.Testing;
+using AutoContext.Framework.Tests.Support.Workers;
 
 public sealed class AnalyzeNuGetHygieneTaskTests
 {

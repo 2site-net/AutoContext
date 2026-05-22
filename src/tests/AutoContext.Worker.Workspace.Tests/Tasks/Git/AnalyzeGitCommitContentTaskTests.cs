@@ -1,7 +1,7 @@
 namespace AutoContext.Worker.Workspace.Tests.Tasks.Git;
 
 using AutoContext.Worker.Workspace.Tasks.Git;
-using AutoContext.Worker.Testing;
+using AutoContext.Framework.Tests.Support.Workers;
 
 public sealed class AnalyzeGitCommitContentTaskTests
 {

@@ -4,7 +4,7 @@ using System.Collections.Concurrent;
 using System.IO.Pipes;
 using System.Text;
 
-using AutoContext.Framework.Testing;
+using AutoContext.Framework.Tests.Support.Pipes;
 using AutoContext.Framework.Pipes;
 
 using Microsoft.Extensions.Logging.Abstractions;
@@ -19,9 +19,9 @@ public sealed class PipeStreamingClientTests
     public async Task Should_write_serialized_items_over_the_pipe()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        var name = TestPipeServer.UniqueName("actx-psc-test");
+        var name = PipeTestServer.UniqueName("actx-psc-test");
         var captured = new MemoryStream();
-        await using var server = TestPipeServer.Create(name, PipeDirection.In);
+        await using var server = PipeTestServer.Create(name, PipeDirection.In);
         var serverTask = ServeIntoAsync(server, captured, cancellationToken);
         var client = new PipeStreamingClient<string>(
             new PipeTransport(NullLogger<PipeTransport>.Instance),
@@ -48,9 +48,9 @@ public sealed class PipeStreamingClientTests
     public async Task Should_write_greeting_before_any_items()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        var name = TestPipeServer.UniqueName("actx-psc-test");
+        var name = PipeTestServer.UniqueName("actx-psc-test");
         var captured = new MemoryStream();
-        await using var server = TestPipeServer.Create(name, PipeDirection.In);
+        await using var server = PipeTestServer.Create(name, PipeDirection.In);
         var serverTask = ServeIntoAsync(server, captured, cancellationToken);
         var client = new PipeStreamingClient<string>(
             new PipeTransport(NullLogger<PipeTransport>.Instance),
@@ -111,7 +111,7 @@ public sealed class PipeStreamingClientTests
         // to overflow the queue before any item can be drained.
         var client = new PipeStreamingClient<string>(
             new PipeTransport(NullLogger<PipeTransport>.Instance),
-            TestPipeServer.UniqueName("actx-psc-nolisten"),
+            PipeTestServer.UniqueName("actx-psc-nolisten"),
             s => Utf8NoBom.GetBytes(s),
             NullLogger<PipeStreamingClient<string>>.Instance,
             fallback: fallback.Enqueue,

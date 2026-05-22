@@ -2,7 +2,7 @@ namespace AutoContext.Framework.Pipes.Tests;
 
 using System.IO.Pipes;
 
-using AutoContext.Framework.Testing;
+using AutoContext.Framework.Tests.Support.Pipes;
 using AutoContext.Framework.Pipes;
 
 using Microsoft.Extensions.Logging.Abstractions;
@@ -35,7 +35,7 @@ public sealed class PipeTransportTests
     {
         var cancellationToken = TestContext.Current.CancellationToken;
         var name = NewPipeName();
-        await using var server = TestPipeServer.Create(name);
+        await using var server = PipeTestServer.Create(name);
         var acceptTask = server.WaitForConnectionAsync(cancellationToken);
         var transport = new PipeTransport(NullLogger<PipeTransport>.Instance);
 
@@ -55,5 +55,5 @@ public sealed class PipeTransportTests
             async () => await transport.ConnectAsync(NewPipeName(), timeoutMs: 100, cancellationToken: cancellationToken));
     }
 
-    private static string NewPipeName() => TestPipeServer.UniqueName("actx-pt-test");
+    private static string NewPipeName() => PipeTestServer.UniqueName("actx-pt-test");
 }

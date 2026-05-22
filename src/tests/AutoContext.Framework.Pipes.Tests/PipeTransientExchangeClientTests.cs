@@ -2,7 +2,7 @@ namespace AutoContext.Framework.Pipes.Tests;
 
 using System.Text;
 
-using AutoContext.Framework.Testing;
+using AutoContext.Framework.Tests.Support.Pipes;
 using AutoContext.Framework.Pipes;
 
 using Microsoft.Extensions.Logging.Abstractions;
@@ -132,7 +132,7 @@ public sealed class PipeTransientExchangeClientTests
         Assert.Null(ex);
     }
 
-    private static string NewPipeName() => TestPipeServer.UniqueName("actx-pte-test");
+    private static string NewPipeName() => PipeTestServer.UniqueName("actx-pte-test");
 
     private static async Task SingleShotEchoAsync(Stream stream, CancellationToken cancellationToken)
     {

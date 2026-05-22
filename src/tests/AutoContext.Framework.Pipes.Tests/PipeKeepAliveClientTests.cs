@@ -3,7 +3,7 @@ namespace AutoContext.Framework.Pipes.Tests;
 using System.IO.Pipes;
 using System.Text;
 
-using AutoContext.Framework.Testing;
+using AutoContext.Framework.Tests.Support.Pipes;
 using AutoContext.Framework.Pipes;
 
 using Microsoft.Extensions.Logging.Abstractions;
@@ -31,7 +31,7 @@ public sealed class PipeKeepAliveClientTests
     {
         var cancellationToken = TestContext.Current.CancellationToken;
         var name = NewPipeName();
-        await using var server = TestPipeServer.Create(name, PipeDirection.In);
+        await using var server = PipeTestServer.Create(name, PipeDirection.In);
         var acceptTask = server.WaitForConnectionAsync(cancellationToken);
         var client = new PipeKeepAliveClient(
             new PipeTransport(NullLogger<PipeTransport>.Instance),
@@ -62,7 +62,7 @@ public sealed class PipeKeepAliveClientTests
     {
         var cancellationToken = TestContext.Current.CancellationToken;
         var name = NewPipeName();
-        await using var server = TestPipeServer.Create(name, PipeDirection.In);
+        await using var server = PipeTestServer.Create(name, PipeDirection.In);
         var acceptTask = server.WaitForConnectionAsync(cancellationToken);
         var client = new PipeKeepAliveClient(
             new PipeTransport(NullLogger<PipeTransport>.Instance),
@@ -117,7 +117,7 @@ public sealed class PipeKeepAliveClientTests
     {
         var cancellationToken = TestContext.Current.CancellationToken;
         var name = NewPipeName();
-        await using var server = TestPipeServer.Create(name, PipeDirection.In);
+        await using var server = PipeTestServer.Create(name, PipeDirection.In);
         var acceptTask = server.WaitForConnectionAsync(cancellationToken);
         var client = new PipeKeepAliveClient(
             new PipeTransport(NullLogger<PipeTransport>.Instance),
@@ -162,7 +162,7 @@ public sealed class PipeKeepAliveClientTests
         Assert.Null(ex);
     }
 
-    private static string NewPipeName() => TestPipeServer.UniqueName("actx-pka-test");
+    private static string NewPipeName() => PipeTestServer.UniqueName("actx-pka-test");
 
     private static async Task DrainToDisconnectAsync(NamedPipeServerStream server, CancellationToken cancellationToken)
     {

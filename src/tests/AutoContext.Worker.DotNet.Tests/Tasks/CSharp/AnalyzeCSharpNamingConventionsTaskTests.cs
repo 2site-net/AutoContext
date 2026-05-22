@@ -1,7 +1,7 @@
 namespace AutoContext.Worker.DotNet.Tests.Tasks.CSharp;
 
 using AutoContext.Worker.DotNet.Tasks.CSharp;
-using AutoContext.Worker.Testing;
+using AutoContext.Framework.Tests.Support.Workers;
 
 public sealed class AnalyzeCSharpNamingConventionsTaskTests
 {

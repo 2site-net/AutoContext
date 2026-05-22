@@ -1,4 +1,4 @@
-namespace AutoContext.Worker.Testing;
+namespace AutoContext.Framework.Tests.Support.Workers;
 
 using System.Text.Json;
 
@@ -12,7 +12,7 @@ using AutoContext.Framework.Workers;
 /// and <see cref="TestContext.Current"/> cancellation-token plumbing live in
 /// one place.
 /// </summary>
-public static class McpTaskExtensions
+public static class McpTaskTestExtensions
 {
     /// <summary>
     /// Serialises <paramref name="data"/> to a <see cref="JsonElement"/> and

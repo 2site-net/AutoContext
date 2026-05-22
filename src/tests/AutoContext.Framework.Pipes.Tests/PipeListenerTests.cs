@@ -2,7 +2,7 @@ namespace AutoContext.Framework.Pipes.Tests;
 
 using System.IO.Pipes;
 
-using AutoContext.Framework.Testing;
+using AutoContext.Framework.Tests.Support.Pipes;
 using AutoContext.Framework.Pipes;
 
 using Microsoft.Extensions.Logging.Abstractions;
@@ -261,5 +261,5 @@ public sealed class PipeListenerTests
         Assert.Null(ex);
     }
 
-    private static string NewPipeName() => TestPipeServer.UniqueName("actx-pl-test");
+    private static string NewPipeName() => PipeTestServer.UniqueName("actx-pl-test");
 }

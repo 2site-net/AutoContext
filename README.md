@@ -56,7 +56,7 @@ src/AutoContext.VsCode/                   # VS Code extension. Spawns Mcp.Server
                                           # and HealthMonitorServer pipes, and ships the instructions, sidebar panels,
                                           # workspace detection, and per-instruction configuration UI.
 src/tests/                                # All test projects (Framework, Worker.Shared, Worker.Workspace,
-                                          # Worker.DotNet, Mcp.Server, plus the Worker.Testing helper library)
+                                          # Worker.DotNet, Mcp.Server, plus the Framework.Tests.Support helper library)
 ```
 
 ## Architecture
