@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { CorrelationScope } from '#src/logging/correlation-scope.js';
 import { PipeLogger } from '#src/logging/logger.js';
-import { FakeLoggingClient } from '#testing/fakes/fake-logging-client.js';
+import { FakeLoggingClient } from '#support/logging/fake-logging-client.js';
 
 describe('PipeLogger', () => {
     it('caches the per-category logger instance across the tree', () => {

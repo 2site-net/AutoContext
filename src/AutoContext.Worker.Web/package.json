@@ -8,7 +8,7 @@
       "types": "./src/types/*.ts",
       "default": "./out/types/*.js"
     },
-    "#testing/*": "./tests/testing/*",
+    "#support/*": "./tests/support/*",
     "#src/*": "./src/*"
   },
   "scripts": {
