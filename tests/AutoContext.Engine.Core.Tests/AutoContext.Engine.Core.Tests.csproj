@@ -21,7 +21,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\AutoContext.Engine.Core\AutoContext.Engine.Core.csproj" />
+    <ProjectReference Include="..\..\src\AutoContext.Engine.Core\AutoContext.Engine.Core.csproj" />
   </ItemGroup>
 
 </Project>

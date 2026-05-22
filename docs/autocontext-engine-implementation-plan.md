@@ -1801,7 +1801,7 @@ servers manifest (`servers.json`) points at
 
 **Code touch**:
 - Delete `src/AutoContext.Mcp.Server/` and
-  `src/tests/AutoContext.Mcp.Server.Tests/`.
+  `tests/AutoContext.Mcp.Server.Tests/`.
 - Tests worth keeping move into `AutoContext.Engine.Core.Tests`
   (the schema-validation tests, the manifest-loader tests, the
   envelope-composition tests).

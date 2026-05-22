@@ -605,7 +605,7 @@ function Test-DotNetSmoke {
     # the packaged extension layout before invoking this function.
 
     $smokeTestProjects =
-        Get-ChildItem (Join-Path $repoRoot 'src' 'tests') -Recurse -File -Filter '*.Smoke.cs' |
+        Get-ChildItem (Join-Path $repoRoot 'tests') -Recurse -File -Filter '*.Smoke.cs' |
         ForEach-Object {
             $dir = $_.Directory
             while ($dir -and -not (Get-ChildItem $dir.FullName -File -Filter '*.csproj' | Select-Object -First 1)) {
@@ -619,7 +619,7 @@ function Test-DotNetSmoke {
         Sort-Object FullName -Unique
 
     if (-not $smokeTestProjects) {
-        throw 'No .NET smoke test projects found (*.Smoke.cs under src/tests).'
+        throw 'No .NET smoke test projects found (*.Smoke.cs under tests).'
     }
 
     $projectList = ($smokeTestProjects | ForEach-Object { $_.Name }) -join ', '

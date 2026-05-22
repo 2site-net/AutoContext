@@ -5,6 +5,7 @@
     <OutputType>Exe</OutputType>
     <TargetFramework>net10.0</TargetFramework>
     <IsPackable>false</IsPackable>
+    <RootNamespace>AutoContext.Engine.Tests</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
@@ -19,11 +20,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\AutoContext.Mcp.Server\AutoContext.Mcp.Server.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <EmbeddedResource Include="..\..\AutoContext.Mcp.Server\mcp-workers-registry.json" LogicalName="mcp-workers-registry.json" />
+    <ProjectReference Include="..\..\src\AutoContext.Engine\AutoContext.Engine.csproj" />
+    <ProjectReference Include="..\..\src\AutoContext.Engine.Core\AutoContext.Engine.Core.csproj" />
   </ItemGroup>
 
 </Project>

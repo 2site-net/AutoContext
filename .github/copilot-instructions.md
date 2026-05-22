@@ -37,7 +37,7 @@
 
 Some AutoContext MCP tools are trained against production-code patterns and produce noisy or actively wrong findings when applied to test code (where the testing-specific instructions — `testing`, `dotnet-testing`, `dotnet-xunit`, `web-vitest`, etc. — apply instead).
 
-- **Don't** invoke `analyze_csharp_code` on anything under `src/tests/**` — that subtree holds all C# test code, including dedicated `<Project>.Tests.Support` projects and `Support/` folders inside `<Project>.Tests` projects. Validate those against the matching testing instructions (`testing`, `dotnet-testing`, `dotnet-xunit`) instead.
+- **Don't** invoke `analyze_csharp_code` on anything under `tests/**` — that subtree holds all C# test code, including dedicated `<Project>.Tests.Support` projects and `Support/` folders inside `<Project>.Tests` projects. Validate those against the matching testing instructions (`testing`, `dotnet-testing`, `dotnet-xunit`) instead.
 - **Don't** invoke `analyze_typescript_code` on anything under `src/AutoContext.*/tests/**` — that subtree holds all TypeScript test code and test support. Validate those against the matching testing instructions (`testing`, `web-testing`, `web-vitest`, `web-mocha`, `web-playwright`) instead.
 - **Don't** assume new production-code-shaped MCP analyzers shipped from this repo are safe to run on test code. Apply the same scope rule, and when in doubt, read the tool's `description` in `src/AutoContext.Mcp.Server/mcp-tools-registry.json` to confirm scope before invoking.
 

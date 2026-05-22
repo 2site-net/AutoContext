@@ -55,7 +55,7 @@ src/AutoContext.Worker.Web/               # Node.js / TypeScript worker. Hosts t
 src/AutoContext.VsCode/                   # VS Code extension. Spawns Mcp.Server + every worker, runs the LogServer
                                           # and HealthMonitorServer pipes, and ships the instructions, sidebar panels,
                                           # workspace detection, and per-instruction configuration UI.
-src/tests/                                # All test projects (Framework, Worker.Shared, Worker.Workspace,
+tests/                                    # All test projects (Framework, Worker.Shared, Worker.Workspace,
                                           # Worker.DotNet, Mcp.Server, plus the Framework.Tests.Support helper library)
 ```
 

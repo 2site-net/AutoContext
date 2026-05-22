@@ -10,7 +10,7 @@ using System.IO;
 /// </summary>
 /// <remarks>
 /// The test project's binary output sits at
-/// <c>src/tests/AutoContext.Mcp.Server.Tests/bin/&lt;cfg&gt;/net10.0/</c>.
+/// <c>tests/AutoContext.Mcp.Server.Tests/bin/&lt;cfg&gt;/net10.0/</c>.
 /// Each target project publishes to the symmetric
 /// <c>src/&lt;project&gt;/bin/&lt;cfg&gt;/net10.0/&lt;project&gt;{ext}</c>
 /// path, where <c>{ext}</c> is <c>.exe</c> on Windows and empty
@@ -31,8 +31,8 @@ internal static class SmokePaths
     private static string ResolveExe(string projectName)
     {
         // AppContext.BaseDirectory:
-        //   <repo>/src/tests/AutoContext.Mcp.Server.Tests/bin/<cfg>/net10.0/
-        // Walk up to <repo>/src/ — five '..' levels — then down into the
+        //   <repo>/tests/AutoContext.Mcp.Server.Tests/bin/<cfg>/net10.0/
+        // Walk up to <repo>/ — five '..' levels — then join "src" and the
         // target project's bin/<cfg>/net10.0/ folder.
         var testBinDir = AppContext.BaseDirectory.TrimEnd(
             Path.DirectorySeparatorChar,
@@ -40,10 +40,10 @@ internal static class SmokePaths
 
         var tfm = Path.GetFileName(testBinDir);
         var configuration = Path.GetFileName(Path.GetDirectoryName(testBinDir)!);
-        var srcDir = Path.GetFullPath(Path.Combine(testBinDir, "..", "..", "..", "..", ".."));
+        var repoDir = Path.GetFullPath(Path.Combine(testBinDir, "..", "..", "..", "..", ".."));
         var exeExtension = OperatingSystem.IsWindows() ? ".exe" : string.Empty;
 
-        return Path.Combine(srcDir, projectName, "bin", configuration, tfm, projectName + exeExtension);
+        return Path.Combine(repoDir, "src", projectName, "bin", configuration, tfm, projectName + exeExtension);
     }
 
     private static string ResolveWorkspaceRoot()
@@ -52,7 +52,6 @@ internal static class SmokePaths
             Path.DirectorySeparatorChar,
             Path.AltDirectorySeparatorChar);
 
-        var srcDir = Path.GetFullPath(Path.Combine(testBinDir, "..", "..", "..", "..", ".."));
-        return Path.GetFullPath(Path.Combine(srcDir, ".."));
+        return Path.GetFullPath(Path.Combine(testBinDir, "..", "..", "..", "..", ".."));
     }
 }

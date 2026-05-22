@@ -4,13 +4,13 @@ namespace AutoContext.Engine.Tests.Support.Integration;
 /// Resolves the absolute path to the <c>autocontext-engine</c>
 /// binary produced by the <c>AutoContext.Engine</c> project. Mirrors
 /// the layout convention in
-/// <c>src/tests/AutoContext.Mcp.Server.Tests/Smoke/SmokePaths.cs</c>
+/// <c>tests/AutoContext.Mcp.Server.Tests/Smoke/SmokePaths.cs</c>
 /// so the engine integration suite and the cross-process MCP smoke
 /// suite resolve sibling-project outputs the same way.
 /// </summary>
 /// <remarks>
 /// The test project's binary output sits at
-/// <c>src/tests/AutoContext.Engine.Tests/bin/&lt;cfg&gt;/net10.0/</c>;
+/// <c>tests/AutoContext.Engine.Tests/bin/&lt;cfg&gt;/net10.0/</c>;
 /// the engine binary lives at the symmetric
 /// <c>src/AutoContext.Engine/bin/&lt;cfg&gt;/net10.0/autocontext-engine{ext}</c>
 /// path, where <c>{ext}</c> is <c>.exe</c> on Windows and empty
@@ -29,18 +29,18 @@ internal static class EngineBinaryPath
     private static string Resolve()
     {
         // AppContext.BaseDirectory:
-        //   <repo>/src/tests/AutoContext.Engine.Tests/bin/<cfg>/net10.0/
-        // Walk up five levels to <repo>/src/ then down into the engine
-        // project's bin/<cfg>/net10.0/ folder.
+        //   <repo>/tests/AutoContext.Engine.Tests/bin/<cfg>/net10.0/
+        // Walk up to <repo>/ — five '..' levels — then join "src" and the
+        // engine project's bin/<cfg>/net10.0/ folder.
         var testBinDir = AppContext.BaseDirectory.TrimEnd(
             Path.DirectorySeparatorChar,
             Path.AltDirectorySeparatorChar);
 
         var tfm = Path.GetFileName(testBinDir);
         var configuration = Path.GetFileName(Path.GetDirectoryName(testBinDir)!);
-        var srcDir = Path.GetFullPath(Path.Combine(testBinDir, "..", "..", "..", "..", ".."));
+        var repoDir = Path.GetFullPath(Path.Combine(testBinDir, "..", "..", "..", "..", ".."));
         var exeExtension = OperatingSystem.IsWindows() ? ".exe" : string.Empty;
 
-        return Path.Combine(srcDir, "AutoContext.Engine", "bin", configuration, tfm, "autocontext-engine" + exeExtension);
+        return Path.Combine(repoDir, "src", "AutoContext.Engine", "bin", configuration, tfm, "autocontext-engine" + exeExtension);
     }
 }

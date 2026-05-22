@@ -19,8 +19,11 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\AutoContext.Worker.Workspace\AutoContext.Worker.Workspace.csproj" />
-    <ProjectReference Include="..\AutoContext.Framework.Tests.Support\AutoContext.Framework.Tests.Support.csproj" />
+    <ProjectReference Include="..\..\src\AutoContext.Mcp.Server\AutoContext.Mcp.Server.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="..\..\src\AutoContext.Mcp.Server\mcp-workers-registry.json" LogicalName="mcp-workers-registry.json" />
   </ItemGroup>
 
 </Project>
