@@ -35,9 +35,10 @@ validate this instructions file — apply it manually.
   - Cross-cutting helpers that don't map to any single production feature may live under a flat `Support/Shared` (or `support/shared`) subfolder. Use `Shared/` as a last resort — prefer mirroring production structure whenever a helper supports a specific feature.
 - [INST0015] **Do** follow these naming conventions for test-support types:
   - Fakes: `Fake<TypeName>` (e.g., `FakeFileSystem`).
-  - Fixtures: `<TypeName>Fixture` (e.g., `WorkerHostFixture`).
-  - Fake data: `<TypeName>FakeData` (e.g., `EngineConfigFakeData`).
-  - Test utilities and helpers: `<TypeName>Test<RoleName>` (e.g., `EngineRpcTestClient`).
+  - Fixtures: `<TypeName>Fixture` (e.g., `DatabaseFixture`).
+  - Fake data: `<TypeName>FakeData` (e.g., `CustomerFakeData`).
+  - Test utilities and helpers: use `<TypeName>Test<RoleName>` when the final noun would otherwise read like a production-code responsibility, especially when omitting `Test` would introduce a naming conflict or make the type easy to confuse with production code. Examples: `HttpTestClient`, `JsonTestExtensions`, `UserRepositoryTestFactory`, `AuthenticationTestHandler`.
+  - Omit the `Test` infix only when the final noun already has clear test-support meaning in the current codebase and does not conflict with, or read like, production code.
 - [INST0016] **Don't** organize test-support code by artifact kind, e.g., `Fakes/`, `Fixtures/`, `Utils/`, `Helpers/`. Use those folder names only when they are part of the mirrored production feature/domain structure.
 - [INST0017] **Don't** write tests that stray beyond the unit's scope; avoid broad tests that mix unrelated behaviors.
 - [INST0018] **Don't** test private or internal methods directly (via `as any`, reflection, `[InternalsVisibleTo]`, etc.) — test the behavior through the public API. If a private method is complex enough to feel like it needs its own tests, consider whether it should be extracted into a separate, publicly testable unit.
