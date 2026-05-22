@@ -45,6 +45,7 @@ Before generating, editing, or reviewing files, discover which AutoContext instr
 - **Don't** run any git command that changes repository state (`git add`, `git rm`, `git commit`, `git push`, `git reset`, `git checkout`, `git merge`, `git rebase`, etc.) without explicit user permission — read-only commands (`git status`, `git diff`, `git log`, `git show`) are fine.
 - **Don't** omit `--gpg-sign` (`-S`) from `git commit` when the repo or global config has `commit.gpgSign = true`; always honour the user's signing settings.
 - **Don't** create markdown report files unless explicitly requested by the user.
+- **Don't** create a production folder named `Support` or `support` — those names are reserved for the test-support folders defined in `testing.instructions.md` INST0014.
 
 ## Workflow Instruction Triggers
 When the user asks you to do one of these tasks, read the listed instruction file and follow it.
