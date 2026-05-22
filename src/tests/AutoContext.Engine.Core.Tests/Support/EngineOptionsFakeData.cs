@@ -1,4 +1,4 @@
-namespace AutoContext.Engine.Core.Tests.Testing.Utils;
+namespace AutoContext.Engine.Core.Tests.Support;
 
 using AutoContext.Engine.Core;
 

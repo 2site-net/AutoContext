@@ -1,4 +1,4 @@
-namespace AutoContext.Engine.Core.Tests.Testing.Fakes;
+namespace AutoContext.Engine.Core.Tests.Support.Lifecycle;
 
 using Microsoft.Extensions.Hosting;
 

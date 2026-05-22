@@ -1,7 +1,7 @@
 namespace AutoContext.Engine.Core.Tests;
 
 using AutoContext.Engine.Core;
-using AutoContext.Engine.Core.Tests.Testing.Utils;
+using AutoContext.Engine.Core.Tests.Support;
 
 using Microsoft.Extensions.Options;
 

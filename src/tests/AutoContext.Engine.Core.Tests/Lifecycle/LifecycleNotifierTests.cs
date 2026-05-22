@@ -1,7 +1,8 @@
 namespace AutoContext.Engine.Core.Tests.Lifecycle;
 
 using AutoContext.Engine.Core.Lifecycle;
-using AutoContext.Engine.Core.Tests.Testing.Utils;
+using AutoContext.Engine.Core.Tests.Support;
+using AutoContext.Engine.Core.Tests.Support.Lifecycle;
 using AutoContext.Engine.Protocol.Messages.Lifecycle;
 
 using Microsoft.Extensions.Options;
@@ -21,7 +22,7 @@ public sealed class LifecycleNotifierTests
         var notified = sut.NotifyShutdown();
 
         // Assert
-        var events = await LifecycleSubscriptionReader.ReadAllAsync(
+        var events = await LifecycleSubscriptionTestReader.ReadAllAsync(
             subscription, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Multiple(

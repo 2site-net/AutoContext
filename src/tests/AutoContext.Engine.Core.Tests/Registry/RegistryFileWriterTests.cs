@@ -5,8 +5,8 @@ using System.Linq;
 using System.Text.Json;
 
 using AutoContext.Engine.Core.Registry;
-using AutoContext.Engine.Core.Tests.Testing.Fixtures;
-using AutoContext.Engine.Core.Tests.Testing.Utils;
+using AutoContext.Engine.Core.Tests.Support.Registry;
+using AutoContext.Engine.Core.Tests.Support.Shared;
 using AutoContext.Engine.Protocol.Messages.Registry;
 
 /// <summary>

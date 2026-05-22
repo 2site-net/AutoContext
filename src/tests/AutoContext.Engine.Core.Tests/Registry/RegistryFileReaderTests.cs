@@ -4,8 +4,7 @@ using System.IO;
 using System.Text;
 
 using AutoContext.Engine.Core.Registry;
-using AutoContext.Engine.Core.Tests.Testing.Utils;
-
+using AutoContext.Engine.Core.Tests.Support.Registry;
 /// <summary>
 /// Tests for <see cref="RegistryFileReader"/> in isolation. The
 /// reader is exercised against files seeded directly through

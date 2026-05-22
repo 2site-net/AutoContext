@@ -1,8 +1,7 @@
 namespace AutoContext.Engine.Core.Tests.Registry;
 
 using AutoContext.Engine.Core.Registry;
-using AutoContext.Engine.Core.Tests.Testing.Fixtures;
-
+using AutoContext.Engine.Core.Tests.Support.Shared;
 public sealed class EngineCacheRootTests
 {
     public sealed class Resolve

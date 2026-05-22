@@ -2,11 +2,12 @@ namespace AutoContext.Engine.Core.Tests.Lifecycle;
 
 using AutoContext.Engine.Core;
 using AutoContext.Engine.Core.Lifecycle;
+using AutoContext.Engine.Core.Tests.Support.Lifecycle;
 
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 
-using static AutoContext.Engine.Core.Tests.Testing.Fixtures.PerWorkspaceInstanceGuardFixture;
+using static AutoContext.Engine.Core.Tests.Support.Lifecycle.PerWorkspaceInstanceGuardFixture;
 
 public sealed class PerWorkspaceInstanceGuardTests
 {

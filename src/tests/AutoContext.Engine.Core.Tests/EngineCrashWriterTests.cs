@@ -5,8 +5,9 @@ using System.Text.Json;
 using AutoContext.Engine.Core;
 using AutoContext.Engine.Core.Infrastructure.Primitives;
 using AutoContext.Engine.Core.Registry;
+using AutoContext.Engine.Core.Tests.Support;
 
-using static AutoContext.Engine.Core.Tests.Testing.Fixtures.EngineCrashWriterFixture;
+using static AutoContext.Engine.Core.Tests.Support.EngineCrashWriterFixture;
 
 public sealed class EngineCrashWriterTests
 {

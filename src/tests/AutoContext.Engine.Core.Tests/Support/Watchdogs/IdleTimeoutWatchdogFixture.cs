@@ -1,10 +1,10 @@
-namespace AutoContext.Engine.Core.Tests.Testing.Fixtures;
+namespace AutoContext.Engine.Core.Tests.Support.Watchdogs;
 
 using System.Diagnostics.CodeAnalysis;
 
 using AutoContext.Engine.Core;
-using AutoContext.Engine.Core.Tests.Testing.Fakes;
-using AutoContext.Engine.Core.Tests.Testing.Utils;
+using AutoContext.Engine.Core.Tests.Support;
+using AutoContext.Engine.Core.Tests.Support.Lifecycle;
 using AutoContext.Engine.Core.Watchdogs;
 
 using Microsoft.Extensions.Hosting;

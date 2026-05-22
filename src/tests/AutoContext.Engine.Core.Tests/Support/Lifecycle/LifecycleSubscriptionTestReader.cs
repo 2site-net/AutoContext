@@ -1,9 +1,9 @@
-namespace AutoContext.Engine.Core.Tests.Testing.Utils;
+namespace AutoContext.Engine.Core.Tests.Support.Lifecycle;
 
 using AutoContext.Engine.Core.Lifecycle;
 using AutoContext.Engine.Protocol.Messages.Lifecycle;
 
-internal static class LifecycleSubscriptionReader
+internal static class LifecycleSubscriptionTestReader
 {
     private static readonly TimeSpan DefaultTimeout = TimeSpan.FromSeconds(5);
 

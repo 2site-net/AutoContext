@@ -4,9 +4,9 @@ using System.Text.Json;
 
 using AutoContext.Engine.Core.Registry;
 using AutoContext.Engine.Core.Rpc.Policies;
-using AutoContext.Engine.Core.Tests.Testing.Fakes;
-using AutoContext.Engine.Core.Tests.Testing.Fixtures;
-using AutoContext.Engine.Core.Tests.Testing.Utils;
+using AutoContext.Engine.Core.Tests.Support.Lifecycle;
+using AutoContext.Engine.Core.Tests.Support.Registry;
+using AutoContext.Engine.Core.Tests.Support.Shared;
 using AutoContext.Engine.Protocol;
 using AutoContext.Engine.Protocol.JsonRpc;
 using AutoContext.Engine.Protocol.Messages;
@@ -70,7 +70,7 @@ public sealed class DispatchPolicyTests(TempDirectoryFixture tempDirectory)
     public void Should_log_frame_faults_as_Debug(string hook)
     {
         // Arrange
-        var recorder = new RecordingLoggerFake();
+        var recorder = new FakeRecordingLogger();
         using var lifetime = new FakeHostApplicationLifetime();
         var policy = new DispatchPolicy(lifetime, CreateReader(), recorder);
         var boom = new InvalidOperationException("framing");
@@ -89,7 +89,7 @@ public sealed class DispatchPolicyTests(TempDirectoryFixture tempDirectory)
     public void Should_log_LogFrameInvalidRequest_as_Debug()
     {
         // Arrange
-        var recorder = new RecordingLoggerFake();
+        var recorder = new FakeRecordingLogger();
         using var lifetime = new FakeHostApplicationLifetime();
         var policy = new DispatchPolicy(lifetime, CreateReader(), recorder);
 
@@ -105,7 +105,7 @@ public sealed class DispatchPolicyTests(TempDirectoryFixture tempDirectory)
     public void Should_emit_no_log_when_connection_is_closed_by_peer()
     {
         // Arrange
-        var recorder = new RecordingLoggerFake();
+        var recorder = new FakeRecordingLogger();
         using var lifetime = new FakeHostApplicationLifetime();
         var policy = new DispatchPolicy(lifetime, CreateReader(), recorder);
 

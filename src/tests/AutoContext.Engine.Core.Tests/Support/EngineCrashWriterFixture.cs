@@ -1,10 +1,8 @@
-namespace AutoContext.Engine.Core.Tests.Testing.Fixtures;
+namespace AutoContext.Engine.Core.Tests.Support;
 
 using System.Text.Json;
 
 using AutoContext.Engine.Core;
-using AutoContext.Engine.Core.Tests.Testing.Utils;
-
 /// <summary>
 /// Shared helpers for tests that exercise
 /// <see cref="EngineCrashWriter"/>. Each call to

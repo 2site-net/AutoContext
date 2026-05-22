@@ -1,4 +1,4 @@
-namespace AutoContext.Engine.Core.Tests.Testing.Utils;
+namespace AutoContext.Engine.Core.Tests.Support.Rpc;
 
 using System.Globalization;
 using System.IO.Pipes;

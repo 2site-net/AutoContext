@@ -1,4 +1,4 @@
-namespace AutoContext.Engine.Core.Tests.Testing.Fakes;
+namespace AutoContext.Engine.Core.Tests.Support.Shared;
 
 using System.Collections.Concurrent;
 
@@ -9,7 +9,7 @@ using Microsoft.Extensions.Logging;
 /// entry so policy tests can assert log severity and event ids
 /// without spinning up a real logging pipeline.
 /// </summary>
-internal sealed class RecordingLoggerFake : ILogger
+internal sealed class FakeRecordingLogger : ILogger
 {
     private readonly ConcurrentQueue<LogEntry> _entries = new();
 

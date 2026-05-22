@@ -1,4 +1,4 @@
-namespace AutoContext.Engine.Core.Tests.Testing.Fixtures;
+namespace AutoContext.Engine.Core.Tests.Support.Shared;
 
 internal sealed class EnvironmentVariableFixture : IDisposable
 {

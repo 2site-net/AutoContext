@@ -1,4 +1,4 @@
-namespace AutoContext.Engine.Core.Tests.Testing.Fakes;
+namespace AutoContext.Engine.Core.Tests.Support.Watchdogs;
 
 using AutoContext.Engine.Core.Infrastructure.Diagnostics;
 

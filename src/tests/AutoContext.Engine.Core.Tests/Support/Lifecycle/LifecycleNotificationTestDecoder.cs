@@ -1,11 +1,11 @@
-namespace AutoContext.Engine.Core.Tests.Testing.Utils;
+namespace AutoContext.Engine.Core.Tests.Support.Lifecycle;
 
 using System.Text.Json;
 
 using AutoContext.Engine.Protocol.Messages.Lifecycle;
 using AutoContext.Engine.Protocol.Serialization;
 
-internal static class LifecycleNotificationFrame
+internal static class LifecycleNotificationTestDecoder
 {
     public static LifecycleEvent Decode(byte[]? frame)
     {

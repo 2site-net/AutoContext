@@ -3,7 +3,7 @@ namespace AutoContext.Engine.Core.Tests.Rpc.Policies;
 using System.Text.Json;
 
 using AutoContext.Engine.Core.Rpc.Policies;
-using AutoContext.Engine.Core.Tests.Testing.Fakes;
+using AutoContext.Engine.Core.Tests.Support.Shared;
 using AutoContext.Engine.Protocol;
 using AutoContext.Engine.Protocol.JsonRpc;
 using AutoContext.Engine.Protocol.Messages;
@@ -41,7 +41,7 @@ public sealed class HandshakePolicyTests
     public void Should_log_frame_faults_as_Warning(string hook)
     {
         // Arrange
-        var recorder = new RecordingLoggerFake();
+        var recorder = new FakeRecordingLogger();
         var policy = new HandshakePolicy(EndpointKind.Rpc, recorder);
         var boom = new InvalidOperationException("framing");
 
@@ -59,7 +59,7 @@ public sealed class HandshakePolicyTests
     public void Should_log_LogFrameInvalidRequest_as_Warning()
     {
         // Arrange
-        var recorder = new RecordingLoggerFake();
+        var recorder = new FakeRecordingLogger();
         var policy = new HandshakePolicy(EndpointKind.Rpc, recorder);
 
         // Act
@@ -74,7 +74,7 @@ public sealed class HandshakePolicyTests
     public void Should_log_LogConnectionClosedByPeer_as_Debug()
     {
         // Arrange
-        var recorder = new RecordingLoggerFake();
+        var recorder = new FakeRecordingLogger();
         var policy = new HandshakePolicy(EndpointKind.Rpc, recorder);
 
         // Act

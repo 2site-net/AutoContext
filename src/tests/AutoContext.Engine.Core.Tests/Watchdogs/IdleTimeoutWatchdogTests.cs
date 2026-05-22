@@ -1,13 +1,13 @@
 namespace AutoContext.Engine.Core.Tests.Watchdogs;
 
-using AutoContext.Engine.Core.Tests.Testing.Fakes;
-using AutoContext.Engine.Core.Tests.Testing.Fixtures;
+using AutoContext.Engine.Core.Tests.Support.Lifecycle;
+using AutoContext.Engine.Core.Tests.Support.Watchdogs;
 using AutoContext.Engine.Core.Watchdogs;
 
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 
-using static AutoContext.Engine.Core.Tests.Testing.Fixtures.IdleTimeoutWatchdogFixture;
+using static AutoContext.Engine.Core.Tests.Support.Watchdogs.IdleTimeoutWatchdogFixture;
 
 public sealed class IdleTimeoutWatchdogTests(IdleTimeoutWatchdogFixture fixture)
     : IClassFixture<IdleTimeoutWatchdogFixture>

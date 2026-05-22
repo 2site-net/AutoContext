@@ -8,9 +8,10 @@ using AutoContext.Engine.Core;
 using AutoContext.Engine.Core.Infrastructure.Primitives;
 using AutoContext.Engine.Core.Lifecycle;
 using AutoContext.Engine.Core.Registry;
-using AutoContext.Engine.Core.Tests.Testing.Fakes;
-using AutoContext.Engine.Core.Tests.Testing.Fixtures;
-using AutoContext.Engine.Core.Tests.Testing.Utils;
+using AutoContext.Engine.Core.Tests.Support.Lifecycle;
+using AutoContext.Engine.Core.Tests.Support.Registry;
+using AutoContext.Engine.Core.Tests.Support.Rpc;
+using AutoContext.Engine.Core.Tests.Support.Shared;
 using AutoContext.Engine.Protocol;
 using AutoContext.Engine.Protocol.JsonRpc;
 using AutoContext.Engine.Protocol.Messages;
@@ -22,8 +23,8 @@ using AutoContext.Framework.Pipes;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 
-using static AutoContext.Engine.Core.Tests.Testing.Utils.EngineRpcTestClient;
-using static AutoContext.Engine.Core.Tests.Testing.Fixtures.LifecycleServiceFixture;
+using static AutoContext.Engine.Core.Tests.Support.Lifecycle.LifecycleServiceFixture;
+using static AutoContext.Engine.Core.Tests.Support.Rpc.EngineRpcTestClient;
 
 public sealed class LifecycleServiceTests(
     TempDirectoryFixture tempDirectory,
@@ -584,7 +585,7 @@ public sealed class LifecycleServiceTests(
         var frame = await codec.ReadAsync(TestContext.Current.CancellationToken);
 
         // Assert
-        var evt = LifecycleNotificationFrame.Decode(frame);
+        var evt = LifecycleNotificationTestDecoder.Decode(frame);
 
         Assert.Multiple(
             () => Assert.Equal(LifecycleEventKinds.Started, evt.Kind),
@@ -614,7 +615,7 @@ public sealed class LifecycleServiceTests(
         await stopTask;
 
         // Assert
-        var evt = LifecycleNotificationFrame.Decode(shuttingDownFrame);
+        var evt = LifecycleNotificationTestDecoder.Decode(shuttingDownFrame);
 
         Assert.Multiple(
             () => Assert.Null(eof),

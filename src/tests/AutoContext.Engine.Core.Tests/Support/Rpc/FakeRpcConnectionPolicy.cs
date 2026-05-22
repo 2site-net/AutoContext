@@ -1,4 +1,4 @@
-namespace AutoContext.Engine.Core.Tests.Testing.Fakes;
+namespace AutoContext.Engine.Core.Tests.Support.Rpc;
 
 using AutoContext.Engine.Core.Rpc.Policies;
 using AutoContext.Engine.Protocol;

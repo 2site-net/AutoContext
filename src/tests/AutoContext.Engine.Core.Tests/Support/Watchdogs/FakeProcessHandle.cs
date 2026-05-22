@@ -1,4 +1,4 @@
-namespace AutoContext.Engine.Core.Tests.Testing.Fakes;
+namespace AutoContext.Engine.Core.Tests.Support.Watchdogs;
 
 using AutoContext.Engine.Core.Infrastructure.Diagnostics;
 
@@ -9,21 +9,16 @@ using AutoContext.Engine.Core.Infrastructure.Diagnostics;
 /// in-flight <see cref="WaitForExitAsync"/> wait — modelling "the
 /// parent process just died" without spawning a real OS process.
 /// </summary>
-internal sealed class FakeProcessHandle : IProcessHandle
+internal sealed class FakeProcessHandle(DateTime startTimeUtc) : IProcessHandle
 {
     private readonly TaskCompletionSource _exitTcs =
         new(TaskCreationOptions.RunContinuationsAsynchronously);
     private int _disposed;
 
-    public FakeProcessHandle(DateTime startTimeUtc)
-    {
-        StartTimeUtc = startTimeUtc;
-    }
-
     public int DisposeCallCount => Volatile.Read(ref _disposed);
 
     /// <inheritdoc/>
-    public DateTime StartTimeUtc { get; }
+    public DateTime StartTimeUtc { get; } = startTimeUtc;
 
     /// <summary>
     /// Releases any pending <see cref="WaitForExitAsync"/> wait so

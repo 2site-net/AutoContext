@@ -6,8 +6,8 @@ using System.Text.Json;
 
 using AutoContext.Engine.Core.Rpc;
 using AutoContext.Engine.Core.Rpc.Policies;
-using AutoContext.Engine.Core.Tests.Testing.Fakes;
-using AutoContext.Engine.Core.Tests.Testing.Utils;
+using AutoContext.Engine.Core.Tests.Support.Rpc;
+using AutoContext.Engine.Core.Tests.Support.Shared;
 using AutoContext.Engine.Protocol;
 using AutoContext.Engine.Protocol.JsonRpc;
 using AutoContext.Engine.Protocol.Serialization;
@@ -21,7 +21,7 @@ public sealed class RpcConnectionProcessorTests
     public async Task Should_return_true_when_handler_returns_Complete()
     {
         // Arrange
-        var (clientStream, serverStream) = DuplexStreamPair.Create();
+        var (clientStream, serverStream) = FakeDuplexStreamFactory.Create();
         await using var clientGuard = clientStream;
         await using var serverGuard = serverStream;
         var clientCodec = new LengthPrefixedFrameCodec(clientStream);
@@ -52,7 +52,7 @@ public sealed class RpcConnectionProcessorTests
     public async Task Should_return_false_when_handler_returns_Abort()
     {
         // Arrange
-        var (clientStream, serverStream) = DuplexStreamPair.Create();
+        var (clientStream, serverStream) = FakeDuplexStreamFactory.Create();
         await using var clientGuard = clientStream;
         await using var serverGuard = serverStream;
         var clientCodec = new LengthPrefixedFrameCodec(clientStream);
@@ -83,7 +83,7 @@ public sealed class RpcConnectionProcessorTests
     public async Task Should_keep_serving_when_handler_returns_Continue()
     {
         // Arrange
-        var (clientStream, serverStream) = DuplexStreamPair.Create();
+        var (clientStream, serverStream) = FakeDuplexStreamFactory.Create();
         await using var clientGuard = clientStream;
         await using var serverGuard = serverStream;
         var clientCodec = new LengthPrefixedFrameCodec(clientStream);
@@ -127,7 +127,7 @@ public sealed class RpcConnectionProcessorTests
     public async Task Should_return_false_and_log_peer_close_on_clean_EOF()
     {
         // Arrange
-        var (clientStream, serverStream) = DuplexStreamPair.Create();
+        var (clientStream, serverStream) = FakeDuplexStreamFactory.Create();
         await using var serverGuard = serverStream;
         var policy = new FakeRpcConnectionPolicy
         {
@@ -155,7 +155,7 @@ public sealed class RpcConnectionProcessorTests
         bool recover)
     {
         // Arrange
-        var (clientStream, serverStream) = DuplexStreamPair.Create();
+        var (clientStream, serverStream) = FakeDuplexStreamFactory.Create();
         await using var clientGuard = clientStream;
         await using var serverGuard = serverStream;
         var clientCodec = new LengthPrefixedFrameCodec(clientStream);
@@ -208,7 +208,7 @@ public sealed class RpcConnectionProcessorTests
         bool recover)
     {
         // Arrange
-        var (clientStream, serverStream) = DuplexStreamPair.Create();
+        var (clientStream, serverStream) = FakeDuplexStreamFactory.Create();
         await using var clientGuard = clientStream;
         await using var serverGuard = serverStream;
         var clientCodec = new LengthPrefixedFrameCodec(clientStream);
@@ -258,7 +258,7 @@ public sealed class RpcConnectionProcessorTests
     public async Task Should_reply_InvalidRequest_with_Null_id_when_request_lacks_id()
     {
         // Arrange
-        var (clientStream, serverStream) = DuplexStreamPair.Create();
+        var (clientStream, serverStream) = FakeDuplexStreamFactory.Create();
         await using var clientGuard = clientStream;
         await using var serverGuard = serverStream;
         var clientCodec = new LengthPrefixedFrameCodec(clientStream);
@@ -291,7 +291,7 @@ public sealed class RpcConnectionProcessorTests
     public async Task Should_normalize_response_id_from_request_when_handler_leaves_it_Undefined()
     {
         // Arrange
-        var (clientStream, serverStream) = DuplexStreamPair.Create();
+        var (clientStream, serverStream) = FakeDuplexStreamFactory.Create();
         await using var clientGuard = clientStream;
         await using var serverGuard = serverStream;
         var clientCodec = new LengthPrefixedFrameCodec(clientStream);
@@ -321,7 +321,7 @@ public sealed class RpcConnectionProcessorTests
     public async Task Should_normalize_response_id_to_Null_when_request_omits_id_and_handler_leaves_it_Undefined()
     {
         // Arrange
-        var (clientStream, serverStream) = DuplexStreamPair.Create();
+        var (clientStream, serverStream) = FakeDuplexStreamFactory.Create();
         await using var clientGuard = clientStream;
         await using var serverGuard = serverStream;
         var clientCodec = new LengthPrefixedFrameCodec(clientStream);
@@ -352,7 +352,7 @@ public sealed class RpcConnectionProcessorTests
     public async Task Should_invoke_PostFlush_after_response_is_written()
     {
         // Arrange
-        var (clientStream, serverStream) = DuplexStreamPair.Create();
+        var (clientStream, serverStream) = FakeDuplexStreamFactory.Create();
         await using var clientGuard = clientStream;
         await using var serverGuard = serverStream;
         var clientCodec = new LengthPrefixedFrameCodec(clientStream);
@@ -393,11 +393,11 @@ public sealed class RpcConnectionProcessorTests
     public async Task Should_swallow_PostFlush_exception_and_honour_Continuation()
     {
         // Arrange
-        var (clientStream, serverStream) = DuplexStreamPair.Create();
+        var (clientStream, serverStream) = FakeDuplexStreamFactory.Create();
         await using var clientGuard = clientStream;
         await using var serverGuard = serverStream;
         var clientCodec = new LengthPrefixedFrameCodec(clientStream);
-        var recorder = new RecordingLoggerFake();
+        var recorder = new FakeRecordingLogger();
 
         var policy = new FakeRpcConnectionPolicy
         {
@@ -429,7 +429,7 @@ public sealed class RpcConnectionProcessorTests
     public async Task Should_return_false_when_handler_throws_OperationCanceledException_under_cancellation()
     {
         // Arrange
-        var (clientStream, serverStream) = DuplexStreamPair.Create();
+        var (clientStream, serverStream) = FakeDuplexStreamFactory.Create();
         await using var clientGuard = clientStream;
         await using var serverGuard = serverStream;
         var clientCodec = new LengthPrefixedFrameCodec(clientStream);
@@ -461,11 +461,11 @@ public sealed class RpcConnectionProcessorTests
     public async Task Should_emit_Error_log_when_handler_returns_unknown_Continuation_value()
     {
         // Arrange
-        var (clientStream, serverStream) = DuplexStreamPair.Create();
+        var (clientStream, serverStream) = FakeDuplexStreamFactory.Create();
         await using var clientGuard = clientStream;
         await using var serverGuard = serverStream;
         var clientCodec = new LengthPrefixedFrameCodec(clientStream);
-        var recorder = new RecordingLoggerFake();
+        var recorder = new FakeRecordingLogger();
 
         var policy = new FakeRpcConnectionPolicy
         {

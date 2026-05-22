@@ -1,4 +1,4 @@
-namespace AutoContext.Engine.Core.Tests.Testing.Fixtures;
+namespace AutoContext.Engine.Core.Tests.Support.Lifecycle;
 
 using System.IO.Pipes;
 

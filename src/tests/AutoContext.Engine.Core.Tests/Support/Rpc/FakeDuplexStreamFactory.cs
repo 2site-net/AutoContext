@@ -1,4 +1,4 @@
-namespace AutoContext.Engine.Core.Tests.Testing.Utils;
+namespace AutoContext.Engine.Core.Tests.Support.Rpc;
 
 using System.IO.Pipelines;
 
@@ -8,7 +8,7 @@ using System.IO.Pipelines;
 /// real named pipe. Whatever one side writes the other side reads;
 /// disposing one side surfaces as EOF on the other.
 /// </summary>
-internal static class DuplexStreamPair
+internal static class FakeDuplexStreamFactory
 {
     public static (Stream Client, Stream Server) Create()
     {
