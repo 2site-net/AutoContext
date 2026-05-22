@@ -442,6 +442,11 @@ function Build-TypeScript {
                 npm $npmInstallCmd
                 if ($LASTEXITCODE -ne 0) { throw "$libName npm install failed." }
 
+                Write-Status "Typechecking $libName (src + tests)..." 'INFO'
+                npx tsc --noEmit -p ./tsconfig.json
+                if ($LASTEXITCODE -ne 0) { throw "$libName typecheck failed." }
+                Write-Status "$libName typechecked" 'OK'
+
                 Write-Status "Compiling $libName..." 'INFO'
                 npx tsc -p ./tsconfig.build.json
                 if ($LASTEXITCODE -ne 0) { throw "$libName compilation failed." }
@@ -467,6 +472,11 @@ function Build-TypeScript {
             npx tsx src/package-instructions-manifest-generator.ts
             if ($LASTEXITCODE -ne 0) { throw 'Chat-instructions manifest generation failed.' }
             Write-Status 'Chat-instructions manifest generated' 'OK'
+
+            Write-Status 'Typechecking TypeScript (src + tests)...' 'INFO'
+            npx tsc --noEmit -p ./tsconfig.json
+            if ($LASTEXITCODE -ne 0) { throw 'TypeScript typecheck failed.' }
+            Write-Status 'TypeScript typechecked' 'OK'
 
             Write-Status 'Compiling TypeScript...' 'INFO'
             npx tsc -p ./tsconfig.build.json
@@ -514,6 +524,11 @@ function Build-TypeScript {
                 Write-Status "Generating $serverLabel version..." 'INFO'
                 & $versionizePath Export $versionTsPath
                 if ($LASTEXITCODE -ne 0) { throw "$serverLabel version generation failed." }
+
+                Write-Status "Typechecking $serverLabel (src + tests)..." 'INFO'
+                npx tsc --noEmit -p ./tsconfig.json
+                if ($LASTEXITCODE -ne 0) { throw "$serverLabel typecheck failed." }
+                Write-Status "$serverLabel typechecked" 'OK'
 
                 Write-Status "Compiling $serverLabel..." 'INFO'
                 npx tsc -p ./tsconfig.build.json
