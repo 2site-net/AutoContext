@@ -16,7 +16,10 @@ using System.IO;
 /// path, where <c>{ext}</c> is <c>.exe</c> on Windows and empty
 /// elsewhere. We resolve configuration/TFM from this assembly's
 /// <see cref="AppContext.BaseDirectory"/> and swap in the sibling
-/// project name.
+/// project name. The repository root is located by searching
+/// upward for the <c>AutoContext.slnx</c> solution file, so the
+/// resolver does not depend on the exact number of intermediate
+/// folders.
 /// </remarks>
 internal static class SmokePaths
 {
@@ -26,32 +29,38 @@ internal static class SmokePaths
 
     internal static string WorkerWorkspaceExe { get; } = ResolveExe("AutoContext.Worker.Workspace");
 
-    internal static string WorkspaceRoot { get; } = ResolveWorkspaceRoot();
+    internal static string WorkspaceRoot { get; } = FindRepoRoot(AppContext.BaseDirectory);
+
+    private static string FindRepoRoot(string start)
+    {
+        for (var dir = new DirectoryInfo(start); dir is not null; dir = dir.Parent)
+        {
+            if (File.Exists(Path.Combine(dir.FullName, "AutoContext.slnx")))
+            {
+                return dir.FullName;
+            }
+        }
+
+        throw new InvalidOperationException(
+            $"Could not locate repository root (AutoContext.slnx) starting from '{start}'.");
+    }
 
     private static string ResolveExe(string projectName)
     {
         // AppContext.BaseDirectory:
         //   <repo>/tests/AutoContext.Mcp.Server.Tests/bin/<cfg>/net10.0/
-        // Walk up to <repo>/ — five '..' levels — then join "src" and the
-        // target project's bin/<cfg>/net10.0/ folder.
-        var testBinDir = AppContext.BaseDirectory.TrimEnd(
+        // The last two segments give us the configuration and TFM
+        // to mirror into the target project's bin folder; the repo
+        // root is located by searching upward for AutoContext.slnx.
+        var baseDir = AppContext.BaseDirectory.TrimEnd(
             Path.DirectorySeparatorChar,
             Path.AltDirectorySeparatorChar);
 
-        var tfm = Path.GetFileName(testBinDir);
-        var configuration = Path.GetFileName(Path.GetDirectoryName(testBinDir)!);
-        var repoDir = Path.GetFullPath(Path.Combine(testBinDir, "..", "..", "..", "..", ".."));
+        var tfm = Path.GetFileName(baseDir);
+        var configuration = Path.GetFileName(Path.GetDirectoryName(baseDir)!);
+        var repoDir = FindRepoRoot(baseDir);
         var exeExtension = OperatingSystem.IsWindows() ? ".exe" : string.Empty;
 
         return Path.Combine(repoDir, "src", projectName, "bin", configuration, tfm, projectName + exeExtension);
-    }
-
-    private static string ResolveWorkspaceRoot()
-    {
-        var testBinDir = AppContext.BaseDirectory.TrimEnd(
-            Path.DirectorySeparatorChar,
-            Path.AltDirectorySeparatorChar);
-
-        return Path.GetFullPath(Path.Combine(testBinDir, "..", "..", "..", "..", ".."));
     }
 }

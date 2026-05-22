@@ -14,7 +14,11 @@ namespace AutoContext.Engine.Tests.Support.Integration;
 /// the engine binary lives at the symmetric
 /// <c>src/AutoContext.Engine/bin/&lt;cfg&gt;/net10.0/autocontext-engine{ext}</c>
 /// path, where <c>{ext}</c> is <c>.exe</c> on Windows and empty
-/// elsewhere. Resolution is one-shot at class-load time.
+/// elsewhere. The repository root is located by searching upward
+/// from the test binary directory for the <c>AutoContext.slnx</c>
+/// solution file, so the resolver does not depend on the exact
+/// number of intermediate folders. Resolution is one-shot at
+/// class-load time.
 /// </remarks>
 internal static class EngineBinaryPath
 {
@@ -26,19 +30,34 @@ internal static class EngineBinaryPath
     /// </summary>
     internal static string Value { get; } = Resolve();
 
+    private static string FindRepoRoot(string start)
+    {
+        for (var dir = new DirectoryInfo(start); dir is not null; dir = dir.Parent)
+        {
+            if (File.Exists(Path.Combine(dir.FullName, "AutoContext.slnx")))
+            {
+                return dir.FullName;
+            }
+        }
+
+        throw new InvalidOperationException(
+            $"Could not locate repository root (AutoContext.slnx) starting from '{start}'.");
+    }
+
     private static string Resolve()
     {
         // AppContext.BaseDirectory:
         //   <repo>/tests/AutoContext.Engine.Tests/bin/<cfg>/net10.0/
-        // Walk up to <repo>/ — five '..' levels — then join "src" and the
-        // engine project's bin/<cfg>/net10.0/ folder.
-        var testBinDir = AppContext.BaseDirectory.TrimEnd(
+        // The last two segments give us the configuration and TFM
+        // to mirror into the engine project's bin folder; the repo
+        // root is located by searching upward for AutoContext.slnx.
+        var baseDir = AppContext.BaseDirectory.TrimEnd(
             Path.DirectorySeparatorChar,
             Path.AltDirectorySeparatorChar);
 
-        var tfm = Path.GetFileName(testBinDir);
-        var configuration = Path.GetFileName(Path.GetDirectoryName(testBinDir)!);
-        var repoDir = Path.GetFullPath(Path.Combine(testBinDir, "..", "..", "..", "..", ".."));
+        var tfm = Path.GetFileName(baseDir);
+        var configuration = Path.GetFileName(Path.GetDirectoryName(baseDir)!);
+        var repoDir = FindRepoRoot(baseDir);
         var exeExtension = OperatingSystem.IsWindows() ? ".exe" : string.Empty;
 
         return Path.Combine(repoDir, "src", "AutoContext.Engine", "bin", configuration, tfm, "autocontext-engine" + exeExtension);
