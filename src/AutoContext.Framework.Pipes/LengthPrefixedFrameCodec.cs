@@ -10,7 +10,7 @@ using System.Buffers.Binary;
 /// </summary>
 /// <remarks>
 /// This is the contract counterpart of <c>LengthPrefixedFrameCodec</c>
-/// in <c>AutoContext.Framework.Web</c>; the two implementations are
+/// in <c>AutoContext.Nodejs.Core</c>; the two implementations are
 /// bit-for-bit symmetric and must be changed together.
 ///
 /// The wrapped stream's lifetime is owned by the caller — this type

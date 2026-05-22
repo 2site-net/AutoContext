@@ -62,7 +62,7 @@ jobs:
           node-version: '22'
           cache: 'npm'
           cache-dependency-path: |
-            src/AutoContext.Framework.Web/package-lock.json
+            src/AutoContext.Nodejs.Core/package-lock.json
             src/AutoContext.Worker.Web/package-lock.json
             src/AutoContext.VsCode/package-lock.json
 
