@@ -1,4 +1,4 @@
-namespace AutoContext.Engine.Tests.Testing.Utils;
+namespace AutoContext.Engine.Tests.Support;
 
 /// <summary>
 /// Centralised fake-data factory for <see cref="EngineCommand"/>

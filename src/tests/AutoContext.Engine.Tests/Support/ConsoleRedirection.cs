@@ -1,4 +1,4 @@
-namespace AutoContext.Engine.Tests.Testing.Collections;
+namespace AutoContext.Engine.Tests.Support;
 
 /// <summary>
 /// xUnit collection marker that serialises tests which mutate the

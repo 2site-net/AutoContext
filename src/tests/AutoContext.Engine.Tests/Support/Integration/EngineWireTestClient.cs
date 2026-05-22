@@ -1,4 +1,4 @@
-namespace AutoContext.Engine.Tests.Testing.Integration;
+namespace AutoContext.Engine.Tests.Support.Integration;
 
 using System.Globalization;
 using System.IO.Pipes;
@@ -19,7 +19,7 @@ using AutoContext.Framework.Pipes;
 /// <c>internal</c> to its own assembly and the integration suite
 /// runs in a separate test project.
 /// </summary>
-internal static class EngineWireClient
+internal static class EngineWireTestClient
 {
     private static readonly TimeSpan ConnectTimeout = TimeSpan.FromSeconds(5);
     private static readonly TimeSpan ReadResponseTimeout = TimeSpan.FromSeconds(5);

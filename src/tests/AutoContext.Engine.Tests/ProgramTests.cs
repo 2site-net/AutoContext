@@ -1,8 +1,7 @@
 namespace AutoContext.Engine.Tests;
 
 using AutoContext.Engine;
-using AutoContext.Engine.Tests.Testing.Collections;
-using AutoContext.Engine.Tests.Testing.Utils;
+using AutoContext.Engine.Tests.Support;
 
 /// <summary>
 /// End-to-end smoke tests for <see cref="Program.Main"/> — exercises

@@ -1,4 +1,4 @@
-namespace AutoContext.Engine.Tests.Testing.Integration;
+namespace AutoContext.Engine.Tests.Support.Integration;
 
 /// <summary>
 /// Resolves the absolute path to the <c>autocontext-engine</c>

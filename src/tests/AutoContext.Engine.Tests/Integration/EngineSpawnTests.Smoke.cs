@@ -6,7 +6,7 @@ using System.Text.Json;
 using AutoContext.Engine.Protocol;
 using AutoContext.Engine.Protocol.Messages;
 using AutoContext.Engine.Protocol.Serialization;
-using AutoContext.Engine.Tests.Testing.Integration;
+using AutoContext.Engine.Tests.Support.Integration;
 using AutoContext.Framework.Pipes;
 
 using Xunit.Sdk;
@@ -38,7 +38,7 @@ public sealed class EngineSpawnTests
         var workspacePath = CreateTempWorkspace();
         var instanceId = Guid.NewGuid();
 
-        await using var engine = await EngineProcess.StartAsync(
+        await using var engine = await EngineTestProcess.StartAsync(
             workspacePath, instanceId, ct);
 
         try
@@ -60,7 +60,7 @@ public sealed class EngineSpawnTests
     }
 
     private static async Task RunScenarioAsync(
-        EngineProcess engine,
+        EngineTestProcess engine,
         string workspacePath,
         Guid instanceId,
         CancellationToken ct)
@@ -77,7 +77,7 @@ public sealed class EngineSpawnTests
 
         foreach (var kind in kinds)
         {
-            await using var probe = await EngineWireClient.ConnectAsync(
+            await using var probe = await EngineWireTestClient.ConnectAsync(
                 kind, workspacePath, instanceId, ct);
             Assert.True(
                 probe.IsConnected,
@@ -85,17 +85,17 @@ public sealed class EngineSpawnTests
         }
 
         // Act — complete the Engine.Hello handshake on rpc.
-        await using var rpc = await EngineWireClient.ConnectAsync(
+        await using var rpc = await EngineWireTestClient.ConnectAsync(
             EndpointKind.Rpc, workspacePath, instanceId, ct);
         var codec = new LengthPrefixedFrameCodec(rpc);
 
-        await EngineWireClient.SendHelloAsync(codec, ProtocolVersion.Current, ct);
-        var helloResponse = await EngineWireClient.ReadResponseAsync(codec, ct);
+        await EngineWireTestClient.SendHelloAsync(codec, ProtocolVersion.Current, ct);
+        var helloResponse = await EngineWireTestClient.ReadResponseAsync(codec, ct);
 
         // Act — request shutdown and read the acknowledgement.
-        await EngineWireClient.SendRequestAsync(
+        await EngineWireTestClient.SendRequestAsync(
             codec, id: 42, method: ProtocolMethods.Shutdown, ct);
-        var shutdownResponse = await EngineWireClient.ReadResponseAsync(codec, ct);
+        var shutdownResponse = await EngineWireTestClient.ReadResponseAsync(codec, ct);
         var shutdownResult = shutdownResponse.Result!.Value.Deserialize(
             ProtocolJsonContext.Default.ShutdownResult);
 

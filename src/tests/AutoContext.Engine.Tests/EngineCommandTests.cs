@@ -5,7 +5,7 @@ using System.CommandLine.Parsing;
 
 using AutoContext.Engine;
 using AutoContext.Engine.Core;
-using AutoContext.Engine.Tests.Testing.Utils;
+using AutoContext.Engine.Tests.Support;
 
 /// <summary>
 /// Direct tests for <see cref="EngineCommand"/> — drives the

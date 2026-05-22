@@ -1,4 +1,4 @@
-namespace AutoContext.Engine.Tests.Testing.Integration;
+namespace AutoContext.Engine.Tests.Support.Integration;
 
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
@@ -35,7 +35,7 @@ using AutoContext.Engine.Protocol;
 /// <paramref name="extraArguments"/>.
 /// </para>
 /// </remarks>
-internal sealed class EngineProcess : IAsyncDisposable
+internal sealed class EngineTestProcess : IAsyncDisposable
 {
     private static readonly TimeSpan ReadinessTimeout = TimeSpan.FromSeconds(30);
     private static readonly TimeSpan ConnectPollTimeout = TimeSpan.FromMilliseconds(100);
@@ -45,7 +45,7 @@ internal sealed class EngineProcess : IAsyncDisposable
     private readonly List<string> _stderrLines;
     private readonly object _stderrLock;
 
-    private EngineProcess(
+    private EngineTestProcess(
         Process process,
         string workspacePath,
         Guid instanceId,
@@ -83,8 +83,8 @@ internal sealed class EngineProcess : IAsyncDisposable
     [SuppressMessage(
         "Reliability",
         "CA2000:Dispose objects before losing scope",
-        Justification = "Process ownership transfers to the returned EngineProcess, which disposes it via DisposeAsync. Failure paths kill and dispose the process explicitly before throwing.")]
-    internal static async Task<EngineProcess> StartAsync(
+        Justification = "Process ownership transfers to the returned EngineTestProcess, which disposes it via DisposeAsync. Failure paths kill and dispose the process explicitly before throwing.")]
+    internal static async Task<EngineTestProcess> StartAsync(
         string workspacePath,
         Guid instanceId,
         CancellationToken cancellationToken,
@@ -169,7 +169,7 @@ internal sealed class EngineProcess : IAsyncDisposable
             throw;
         }
 
-        return new EngineProcess(process, workspacePath, instanceId, stderrLines, stderrLock);
+        return new EngineTestProcess(process, workspacePath, instanceId, stderrLines, stderrLock);
     }
 
     public async ValueTask DisposeAsync()
