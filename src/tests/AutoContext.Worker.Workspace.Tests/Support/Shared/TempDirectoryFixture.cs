@@ -1,11 +1,11 @@
-namespace AutoContext.Worker.Workspace.Tests.Testing.Utils;
+namespace AutoContext.Worker.Workspace.Tests.Support.Shared;
 
 /// <summary>
 /// Per-instance temporary workspace directory, deleted (best-effort) on dispose.
 /// </summary>
-internal sealed class TempDirectory : IDisposable
+internal sealed class TempDirectoryFixture : IDisposable
 {
-    public TempDirectory(string prefix)
+    public TempDirectoryFixture(string prefix)
     {
         RootPath = Path.Combine(Path.GetTempPath(), $"{prefix}-{Guid.NewGuid():N}");
         Directory.CreateDirectory(RootPath);

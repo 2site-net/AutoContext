@@ -2,13 +2,13 @@ namespace AutoContext.Worker.Workspace.Tests.Tasks.EditorConfig;
 
 using AutoContext.Framework.Tests.Support.Workers;
 using AutoContext.Worker.Workspace.Tasks.EditorConfig;
-using AutoContext.Worker.Workspace.Tests.Testing.Utils;
+using AutoContext.Worker.Workspace.Tests.Support.Shared;
 
 public sealed class GetEditorConfigRulesTaskTests : IDisposable
 {
     private static readonly string[] FilteredKeys = ["indent_style", "missing_key"];
 
-    private readonly TempDirectory _workspace = new("ac-worker-tests");
+    private readonly TempDirectoryFixture _workspace = new("ac-worker-tests");
 
     public void Dispose() => _workspace.Dispose();
 
