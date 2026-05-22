@@ -4,9 +4,12 @@ import { AutoContextConfigProjector } from '#src/autocontext-config-projector.js
 import { McpCategoryEntry } from '#src/mcp-category-entry';
 import { McpToolEntry } from '#src/mcp-tool-entry';
 import { McpToolsManifest } from '#src/mcp-tools-manifest';
-import { createFakeLogger, createMockConfigManager, createFakeDetector, createFakeConfigManager } from '#testing/fakes';
-import { makeInstructionsFilesManifest, projectorTestInstructions } from '#testing/fixtures';
-import { findSetContextCall } from '#testing/utils';
+import { createFakeConfigManager, createMockConfigManager } from '#support/fake-config-manager';
+import { createFakeDetector } from '#support/fake-detector';
+import { createFakeLogger } from '#support/fake-logger';
+import { makeInstructionsFilesManifest } from '#support/make-entry';
+import { projectorTestInstructions } from '#support/projector-test-entries';
+import { findSetContextCall } from '#support/find-set-context-call';
 
 beforeEach(() => {
     vi.clearAllMocks();

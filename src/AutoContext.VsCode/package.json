@@ -89,7 +89,7 @@
       "types": "./src/types/*.ts",
       "default": "./dist/types/*.js"
     },
-    "#testing/*": "./tests/testing/*",
+    "#support/*": "./tests/support/*",
     "#src/*": "./src/*"
   },
   "contributes": {

@@ -3,9 +3,9 @@ import { connect, type Socket } from 'node:net';
 import { AutoContextConfigServer } from '#src/autocontext-config-server';
 import { AutoContextConfig } from '#src/autocontext-config';
 import type { AutoContextConfigManager } from '#src/autocontext-config-manager';
-import { createFakeLogger } from '#testing/fakes';
-import { pipePath } from '#testing/utils/pipe-helpers';
-import { waitFor } from '#testing/utils/wait-for';
+import { createFakeLogger } from '#support/fake-logger';
+import { pipePath } from '#support/pipe-helpers';
+import { waitFor } from '#support/wait-for';
 
 const HEADER_BYTES = 4;
 const SUFFIX = 'cfgsrv' + Math.random().toString(16).slice(2, 10);

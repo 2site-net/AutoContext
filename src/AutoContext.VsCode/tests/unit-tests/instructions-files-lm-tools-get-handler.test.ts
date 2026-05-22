@@ -1,13 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { InstructionsFilesLmToolsGetHandler } from '#src/instructions-files-lm-tools-get-handler';
 import { AutoContextConfig } from '#src/autocontext-config';
-import {
-    createFakeConfigManager,
-    createFakeContentProjector,
-    createFakeDetector,
-    createFakeOverrideWatcher,
-} from '#testing/fakes';
-import { makeInstructionsFileEntry, makeInstructionsFilesManifest } from '#testing/fixtures';
+import { createFakeConfigManager } from '#support/fake-config-manager';
+import { createFakeContentProjector } from '#support/fake-content-projector';
+import { createFakeDetector } from '#support/fake-detector';
+import { createFakeOverrideWatcher } from '#support/fake-override-watcher';
+import { makeInstructionsFileEntry, makeInstructionsFilesManifest } from '#support/make-entry';
 import type { InstructionsFileMetadata } from '#types/instructions-file-metadata.js';
 import type { InstructionsFileSectionWithOffsets } from '#types/instructions-file-section-with-offsets.js';
 

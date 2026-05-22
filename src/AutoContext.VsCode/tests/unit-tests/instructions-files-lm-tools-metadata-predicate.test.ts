@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { InstructionsFilesLmToolsMetadataPredicate } from '#src/instructions-files-lm-tools-metadata-predicate';
-import { createFakeApplyToMatcher } from '#testing/fakes';
+import { createFakeApplyToMatcher } from '#support/fake-apply-to-matcher';
 import type { InstructionsFilesLmToolsMetadataView } from '#types/instructions-files-lm-tools-metadata-view.js';
 
 const csharpView: InstructionsFilesLmToolsMetadataView = {

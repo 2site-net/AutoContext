@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { InstructionsFilesDiagnosticsRunner } from '#src/instructions-files-diagnostics-runner';
 import { InstructionsFileParser } from '#src/instructions-file-parser';
-import { makeInstructionsFileEntry, makeInstructionsFilesManifest } from '#testing/fixtures/make-entry';
+import { makeInstructionsFileEntry, makeInstructionsFilesManifest } from '#support/make-entry';
 import { AutoContextConfig } from '#src/autocontext-config.js';
 import type { AutoContextConfigManager } from '#src/autocontext-config-manager.js';
 import type { InstructionsFilesManifest } from '#src/instructions-files-manifest';

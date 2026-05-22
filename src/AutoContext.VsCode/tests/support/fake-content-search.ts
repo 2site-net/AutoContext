@@ -1,5 +1,5 @@
 import { vi } from 'vitest';
-import type { InstructionsFilesLmToolsContentSearch } from '../../../src/instructions-files-lm-tools-content-search';
+import type { InstructionsFilesLmToolsContentSearch } from '../../src/instructions-files-lm-tools-content-search';
 
 export function createFakeContentSearch(): InstructionsFilesLmToolsContentSearch {
     return {

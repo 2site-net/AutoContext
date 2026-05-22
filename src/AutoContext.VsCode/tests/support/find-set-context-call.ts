@@ -1,5 +1,5 @@
 import { vi } from 'vitest';
-import { commands } from '#testing/fakes/fake-vscode';
+import { commands } from '#support/fake-vscode';
 
 export function findSetContextCall(key: string): [string, string, boolean] | undefined {
     return vi.mocked(commands.executeCommand).mock.calls

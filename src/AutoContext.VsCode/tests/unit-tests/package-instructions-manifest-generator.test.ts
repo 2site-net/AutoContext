@@ -4,7 +4,9 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buildChatInstructions } from '#src/package-instructions-manifest-generator';
 import { InstructionsFilesManifestLoader } from '#src/instructions-files-manifest-loader';
-import { createFakeDetector, createFakeOverrideWatcher, createFakeConfigManager } from '#testing/fakes';
+import { createFakeConfigManager } from '#support/fake-config-manager';
+import { createFakeDetector } from '#support/fake-detector';
+import { createFakeOverrideWatcher } from '#support/fake-override-watcher';
 
 describe('chatInstructions in package.json', () => {
     const root = join(dirname(fileURLToPath(import.meta.url)), '../..');

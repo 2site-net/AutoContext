@@ -1,8 +1,10 @@
 import { describe, it, expect, vi } from 'vitest';
 import { TreeViewNodeState } from '#src/tree-view-node-state';
 import { AutoContextConfig } from '#src/autocontext-config';
-import { createFakeDetector, createFakeOverrideWatcher, createFakeConfigManager } from '#testing/fakes';
-import { makeInstructionsFileEntry } from '#testing/fixtures';
+import { createFakeConfigManager } from '#support/fake-config-manager';
+import { createFakeDetector } from '#support/fake-detector';
+import { createFakeOverrideWatcher } from '#support/fake-override-watcher';
+import { makeInstructionsFileEntry } from '#support/make-entry';
 
 function setup(config: AutoContextConfig = new AutoContextConfig()) {
     const detector = createFakeDetector();

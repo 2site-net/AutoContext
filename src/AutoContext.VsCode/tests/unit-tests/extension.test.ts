@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { lm, workspace, __emitterInstances } from '#testing/fakes/fake-vscode';
+import { lm, workspace, __emitterInstances } from '#support/fake-vscode';
 
 const { callLog } = vi.hoisted(() => ({ callLog: [] as string[] }));
 
@@ -152,7 +152,7 @@ vi.mock('../../src/auto-configurer', () => ({
 // ── SUT ─────────────────────────────────────────────────────────────
 
 import { activate } from '#src/extension';
-import { createFakeExtensionContext } from '#testing/fakes';
+import { createFakeExtensionContext } from '#support/fake-extension-context';
 
 // ── Tests ───────────────────────────────────────────────────────────
 

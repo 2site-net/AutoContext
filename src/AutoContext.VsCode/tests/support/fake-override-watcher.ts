@@ -1,5 +1,5 @@
 import { vi } from 'vitest';
-import type { InstructionsFilesOverrideWatcher } from '../../../src/instructions-files-override-watcher';
+import type { InstructionsFilesOverrideWatcher } from '../../src/instructions-files-override-watcher';
 
 export function createFakeOverrideWatcher(): InstructionsFilesOverrideWatcher {
     return {

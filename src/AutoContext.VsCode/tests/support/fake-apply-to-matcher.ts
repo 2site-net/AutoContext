@@ -1,5 +1,5 @@
 import { vi } from 'vitest';
-import type { InstructionsFilesLmToolsApplyToMatcher } from '../../../src/instructions-files-lm-tools-apply-to-matcher';
+import type { InstructionsFilesLmToolsApplyToMatcher } from '../../src/instructions-files-lm-tools-apply-to-matcher';
 
 export function createFakeApplyToMatcher(): InstructionsFilesLmToolsApplyToMatcher {
     return {

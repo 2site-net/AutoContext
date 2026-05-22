@@ -5,8 +5,9 @@ vi.mock('node:fs/promises', () => ({
     readFile: vi.fn(),
 }));
 
-import { workspace } from '#testing/fakes/fake-vscode';
-import { createFakeOverrideWatcher, createFakeLogger } from '#testing/fakes';
+import { workspace } from '#support/fake-vscode';
+import { createFakeLogger } from '#support/fake-logger';
+import { createFakeOverrideWatcher } from '#support/fake-override-watcher';
 import { InstructionsFileContentProjector } from '#src/instructions-file-content-projector';
 import { InstructionsFileSectionsCache } from '#src/instructions-file-sections-cache';
 import type { InstructionsFilesManager } from '#src/instructions-files-manager';

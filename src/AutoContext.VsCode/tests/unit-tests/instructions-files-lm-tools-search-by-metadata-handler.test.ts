@@ -3,13 +3,11 @@ import { InstructionsFilesLmToolsMetadataPredicate } from '#src/instructions-fil
 import { InstructionsFilesLmToolsMetadataViews } from '#src/instructions-files-lm-tools-metadata-views';
 import { InstructionsFilesLmToolsSearchByMetadataHandler } from '#src/instructions-files-lm-tools-search-by-metadata-handler';
 import { AutoContextConfig } from '#src/autocontext-config';
-import {
-    createFakeApplyToMatcher,
-    createFakeConfigManager,
-    createFakeDetector,
-    createFakeOverrideWatcher,
-} from '#testing/fakes';
-import { makeInstructionsFileEntry, makeInstructionsFilesManifest } from '#testing/fixtures';
+import { createFakeApplyToMatcher } from '#support/fake-apply-to-matcher';
+import { createFakeConfigManager } from '#support/fake-config-manager';
+import { createFakeDetector } from '#support/fake-detector';
+import { createFakeOverrideWatcher } from '#support/fake-override-watcher';
+import { makeInstructionsFileEntry, makeInstructionsFilesManifest } from '#support/make-entry';
 import type { InstructionsFileMetadata } from '#types/instructions-file-metadata.js';
 
 const csharpMeta: InstructionsFileMetadata = {

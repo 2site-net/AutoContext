@@ -1,7 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { workspace, commands } from '#testing/fakes/fake-vscode';
+import { workspace, commands } from '#support/fake-vscode';
 import { WorkspaceContextDetector } from '#src/workspace-context-detector';
-import { createFakeLogger, fakeUri, stubFindFiles, stubReadFile } from '#testing/fakes';
+import { createFakeLogger } from '#support/fake-logger';
+import { fakeUri } from '#support/fake-uri';
+import { stubFindFiles, stubReadFile } from '#support/fake-workspace-stubs';
 
 const mockLogger = createFakeLogger();
 

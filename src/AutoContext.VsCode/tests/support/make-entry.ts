@@ -1,9 +1,11 @@
-import { InstructionsFileCategoryEntry } from '../../../src/instructions-file-category-entry';
-import { InstructionsFileEntry } from '../../../src/instructions-file-entry';
+import { InstructionsFileCategoryEntry } from '../../src/instructions-file-category-entry';
+import { InstructionsFileEntry } from '../../src/instructions-file-entry';
 import type { InstructionsFileMetadata } from '#types/instructions-file-metadata.js';
-import { InstructionsFilesManifest } from '../../../src/instructions-files-manifest';
+import { InstructionsFilesManifest } from '../../src/instructions-files-manifest';
 import type { InstructionsRuntimeContext } from '#types/runtime-context.js';
-import { createFakeDetector, createFakeOverrideWatcher, createFakeConfigManager } from '../fakes';
+import { createFakeConfigManager } from './fake-config-manager';
+import { createFakeDetector } from './fake-detector';
+import { createFakeOverrideWatcher } from './fake-override-watcher';
 
 export function makeInstructionsFileEntry(
     name: string,

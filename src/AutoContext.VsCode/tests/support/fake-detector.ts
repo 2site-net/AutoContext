@@ -1,5 +1,5 @@
 import { vi } from 'vitest';
-import type { WorkspaceContextDetector } from '../../../src/workspace-context-detector';
+import type { WorkspaceContextDetector } from '../../src/workspace-context-detector';
 
 export function createFakeDetector(): WorkspaceContextDetector {
     return {

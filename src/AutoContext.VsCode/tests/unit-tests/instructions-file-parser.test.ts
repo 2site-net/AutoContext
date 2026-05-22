@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { InstructionsFileParser } from '#src/instructions-file-parser';
-import { singleInstructionDoc, multiInstructionDoc, starBulletDoc, sectionedDoc } from '#testing/fixtures';
+import { multiInstructionDoc, sectionedDoc, singleInstructionDoc, starBulletDoc } from '#support/parser-test-docs';
 
 import { readFile, stat } from 'node:fs/promises';
 

@@ -3,9 +3,9 @@ import { connect, type Socket } from 'node:net';
 import { WorkerControlServer } from '#src/worker-control-server';
 import { ServerEntry } from '#src/server-entry';
 import type { WorkerManager } from '#src/worker-manager';
-import { createFakeLogger } from '#testing/fakes';
-import { pipePath } from '#testing/utils/pipe-helpers';
-import { waitFor } from '#testing/utils/wait-for';
+import { createFakeLogger } from '#support/fake-logger';
+import { pipePath } from '#support/pipe-helpers';
+import { waitFor } from '#support/wait-for';
 
 const HEADER_BYTES = 4;
 

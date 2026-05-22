@@ -3,7 +3,8 @@ import { TreeViewNodeState } from '#src/tree-view-node-state';
 import { AutoContextConfig } from '#src/autocontext-config';
 import { McpToolEntry } from '#src/mcp-tool-entry';
 import { McpCategoryEntry } from '#src/mcp-category-entry';
-import { createFakeDetector, createFakeConfigManager } from '#testing/fakes';
+import { createFakeConfigManager } from '#support/fake-config-manager';
+import { createFakeDetector } from '#support/fake-detector';
 import type { WorkspaceContextDetector } from '#src/workspace-context-detector';
 import type { AutoContextConfigManager } from '#src/autocontext-config-manager';
 

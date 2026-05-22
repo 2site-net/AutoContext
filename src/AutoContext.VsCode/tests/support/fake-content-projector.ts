@@ -1,5 +1,5 @@
 import { vi } from 'vitest';
-import type { InstructionsFileContentProjector } from '../../../src/instructions-file-content-projector';
+import type { InstructionsFileContentProjector } from '../../src/instructions-file-content-projector';
 
 export function createFakeContentProjector(): InstructionsFileContentProjector {
     return {

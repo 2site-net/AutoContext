@@ -2,8 +2,11 @@ import { describe, it, expect } from 'vitest';
 import { InstructionsFileCategoryEntry } from '#src/instructions-file-category-entry';
 import { InstructionsFileEntry } from '#src/instructions-file-entry';
 import { InstructionsFilesManifest } from '#src/instructions-files-manifest';
-import { catalogTestEntries, makeInstructionsFileEntry, makeInstructionsFilesManifest } from '#testing/fixtures';
-import { createFakeDetector, createFakeOverrideWatcher, createFakeConfigManager } from '#testing/fakes';
+import { catalogTestEntries } from '#support/catalog-test-entries';
+import { makeInstructionsFileEntry, makeInstructionsFilesManifest } from '#support/make-entry';
+import { createFakeConfigManager } from '#support/fake-config-manager';
+import { createFakeDetector } from '#support/fake-detector';
+import { createFakeOverrideWatcher } from '#support/fake-override-watcher';
 
 const runtimeContext = {
     detector: createFakeDetector(),

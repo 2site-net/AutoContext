@@ -1,13 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { join } from 'node:path';
-import { TreeItemCollapsibleState, TreeItemCheckboxState, window, ThemeIcon, ThemeColor } from '#testing/fakes/fake-vscode';
+import { TreeItemCollapsibleState, TreeItemCheckboxState, window, ThemeIcon, ThemeColor } from '#support/fake-vscode';
 import { McpToolsTreeProvider } from '#src/mcp-tools-tree-provider';
 import { AutoContextConfig } from '#src/autocontext-config.js';
 import { TreeViewNodeState } from '#src/tree-view-node-state';
 import { McpToolsManifestLoader } from '#src/mcp-tools-manifest-loader';
 import type { McpToolEntry } from '#src/mcp-tool-entry';
 import { TreeViewTooltip } from '#src/tree-view-tooltip';
-import { createFakeDetector, createFakeConfigManager, createFakeHealthMonitor, createFakeLogger } from '#testing/fakes';
+import { createFakeConfigManager } from '#support/fake-config-manager';
+import { createFakeDetector } from '#support/fake-detector';
+import { createFakeHealthMonitor } from '#support/fake-health-monitor';
+import { createFakeLogger } from '#support/fake-logger';
 
 const fakeDetector = createFakeDetector();
 const logger = createFakeLogger();

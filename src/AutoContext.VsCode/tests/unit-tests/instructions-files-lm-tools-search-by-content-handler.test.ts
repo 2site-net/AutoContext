@@ -1,14 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { InstructionsFilesLmToolsSearchByContentHandler } from '#src/instructions-files-lm-tools-search-by-content-handler';
 import { AutoContextConfig } from '#src/autocontext-config';
-import {
-    createFakeApplyToMatcher,
-    createFakeConfigManager,
-    createFakeContentSearch,
-    createFakeDetector,
-    createFakeOverrideWatcher,
-} from '#testing/fakes';
-import { makeInstructionsFileEntry, makeInstructionsFilesManifest } from '#testing/fixtures';
+import { createFakeApplyToMatcher } from '#support/fake-apply-to-matcher';
+import { createFakeConfigManager } from '#support/fake-config-manager';
+import { createFakeContentSearch } from '#support/fake-content-search';
+import { createFakeDetector } from '#support/fake-detector';
+import { createFakeOverrideWatcher } from '#support/fake-override-watcher';
+import { makeInstructionsFileEntry, makeInstructionsFilesManifest } from '#support/make-entry';
 import type { InstructionsFileMetadata } from '#types/instructions-file-metadata.js';
 import type { InstructionsFilesLmToolsContentMatch } from '#types/instructions-files-lm-tools-content-match.js';
 

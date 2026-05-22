@@ -1,5 +1,5 @@
 import { vi } from 'vitest';
-import type { HealthMonitorServer } from '../../../src/health-monitor-server';
+import type { HealthMonitorServer } from '../../src/health-monitor-server';
 
 export function createFakeHealthMonitor(
     overrides: Partial<{

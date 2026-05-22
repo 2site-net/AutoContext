@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { join } from 'node:path';
 import { McpToolsManifestLoader } from '#src/mcp-tools-manifest-loader';
-import { createFakeDetector, createFakeConfigManager } from '#testing/fakes';
+import { createFakeConfigManager } from '#support/fake-config-manager';
+import { createFakeDetector } from '#support/fake-detector';
 
 const manifest = new McpToolsManifestLoader(join(__dirname, '..', '..'), {
     detector: createFakeDetector(),

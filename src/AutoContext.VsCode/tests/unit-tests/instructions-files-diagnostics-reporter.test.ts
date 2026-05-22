@@ -3,9 +3,9 @@ import { InstructionsFilesDiagnosticsReporter } from '#src/instructions-files-di
 import type { InstructionsFilesDiagnosticsRunner } from '#src/instructions-files-diagnostics-runner';
 import type { InstructionsFilesDiagnosticRecord } from '#types/instructions-files-diagnostic-record.js';
 import { LogCategory } from 'autocontext-nodejs-core';
-import { createFakeLogger } from '#testing/fakes';
+import { createFakeLogger } from '#support/fake-logger';
 
-vi.mock('vscode', async () => await import('#testing/fakes/fake-vscode'));
+vi.mock('vscode', async () => await import('#support/fake-vscode'));
 
 function fakeRunner(records: InstructionsFilesDiagnosticRecord[]): InstructionsFilesDiagnosticsRunner {
     return { collect: vi.fn(async () => records) } as unknown as InstructionsFilesDiagnosticsRunner;

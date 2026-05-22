@@ -1,5 +1,5 @@
 import { vi } from 'vitest';
-import type { AutoContextConfigManager } from '../../../src/autocontext-config-manager';
+import type { AutoContextConfigManager } from '../../src/autocontext-config-manager';
 import { AutoContextConfig } from '#src/autocontext-config.js';
 import type { AutoContextConfigInit } from '#types/autocontext-config-init.js';
 

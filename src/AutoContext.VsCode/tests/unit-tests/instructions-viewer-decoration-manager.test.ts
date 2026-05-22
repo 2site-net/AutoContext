@@ -5,17 +5,17 @@ import { AutoContextConfigManager } from '#src/autocontext-config-manager.js';
 import { instructionScheme } from '#src/instructions-viewer-document-provider';
 import { InstructionsFileParser } from '#src/instructions-file-parser';
 
-import { readFile, stat } from 'node:fs/promises';
+import { readFile } from 'node:fs/promises';
 
 vi.mock('node:fs/promises', () => ({
     readFile: vi.fn(),
     stat: vi.fn(async () => ({ mtimeMs: 1 })),
 }));
 
-import { workspace, window as vscodeWindow } from '#testing/fakes/fake-vscode';
-import { createFakeLogger } from '#testing/fakes';
-import { testInstructionsContent } from '#testing/fixtures';
-import { makeEditor } from '#testing/utils';
+import { workspace, window as vscodeWindow } from '#support/fake-vscode';
+import { createFakeLogger } from '#support/fake-logger';
+import { testInstructionsContent } from '#support/instructions-content';
+import { makeEditor } from '#support/make-editor';
 
 const mockLogger = createFakeLogger();
 
@@ -124,9 +124,10 @@ describe('InstructionsViewerDecorationManager', () => {
         } as unknown as AutoContextConfigManager;
 
         const oc = createFakeLogger();
-        const _manager = new InstructionsViewerDecorationManager('/ext', failingConfigManager, oc);
+        new InstructionsViewerDecorationManager('/ext', failingConfigManager, oc);
 
-        const editorCallback = vi.mocked(vscodeWindow.onDidChangeActiveTextEditor).mock.calls.at(-1)![0] as (e: unknown) => void;
+        const calls = vi.mocked(vscodeWindow.onDidChangeActiveTextEditor).mock.calls as unknown as Array<[(e: unknown) => void]>;
+        const editorCallback = calls.at(-1)![0];
         editorCallback(makeEditor(instructionScheme, 'test.instructions.md'));
 
         await vi.waitFor(() => {

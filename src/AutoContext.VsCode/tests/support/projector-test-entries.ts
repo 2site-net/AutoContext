@@ -1,4 +1,4 @@
-import type { InstructionsFileEntry } from '../../../src/instructions-file-entry';
+import type { InstructionsFileEntry } from '../../src/instructions-file-entry';
 import { makeInstructionsFileEntry } from './make-entry';
 
 export const projectorTestInstructions: InstructionsFileEntry[] = [
