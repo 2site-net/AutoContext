@@ -442,13 +442,8 @@ function Build-TypeScript {
                 npm $npmInstallCmd
                 if ($LASTEXITCODE -ne 0) { throw "$libName npm install failed." }
 
-                Write-Status "Typechecking $libName (src + tests)..." 'INFO'
-                npx tsc --noEmit -p ./tsconfig.json
-                if ($LASTEXITCODE -ne 0) { throw "$libName typecheck failed." }
-                Write-Status "$libName typechecked" 'OK'
-
-                Write-Status "Compiling $libName..." 'INFO'
-                npx tsc -p ./tsconfig.build.json
+                Write-Status "Compiling $libName (src + tests)..." 'INFO'
+                npx tsc -b ./tsconfig.json
                 if ($LASTEXITCODE -ne 0) { throw "$libName compilation failed." }
                 Write-Status "$libName compiled" 'OK'
             }
@@ -473,13 +468,8 @@ function Build-TypeScript {
             if ($LASTEXITCODE -ne 0) { throw 'Chat-instructions manifest generation failed.' }
             Write-Status 'Chat-instructions manifest generated' 'OK'
 
-            Write-Status 'Typechecking TypeScript (src + tests)...' 'INFO'
-            npx tsc --noEmit -p ./tsconfig.json
-            if ($LASTEXITCODE -ne 0) { throw 'TypeScript typecheck failed.' }
-            Write-Status 'TypeScript typechecked' 'OK'
-
-            Write-Status 'Compiling TypeScript...' 'INFO'
-            npx tsc -p ./tsconfig.build.json
+            Write-Status 'Compiling TypeScript (src + tests)...' 'INFO'
+            npx tsc -b ./tsconfig.json
             if ($LASTEXITCODE -ne 0) { throw 'TypeScript compilation failed.' }
             Write-Status 'TypeScript compiled' 'OK'
 
@@ -525,13 +515,8 @@ function Build-TypeScript {
                 & $versionizePath Export $versionTsPath
                 if ($LASTEXITCODE -ne 0) { throw "$serverLabel version generation failed." }
 
-                Write-Status "Typechecking $serverLabel (src + tests)..." 'INFO'
-                npx tsc --noEmit -p ./tsconfig.json
-                if ($LASTEXITCODE -ne 0) { throw "$serverLabel typecheck failed." }
-                Write-Status "$serverLabel typechecked" 'OK'
-
-                Write-Status "Compiling $serverLabel..." 'INFO'
-                npx tsc -p ./tsconfig.build.json
+                Write-Status "Compiling $serverLabel (src + tests)..." 'INFO'
+                npx tsc -b ./tsconfig.json
                 if ($LASTEXITCODE -ne 0) { throw "$serverLabel compilation failed." }
                 Write-Status "$serverLabel compiled" 'OK'
             }
@@ -841,7 +826,7 @@ function Copy-NodeJsToServersFolder {
                         # Drop nested node_modules and source/test files —
                         # the framework's own published surface is just
                         # `out/` + `package.json`.
-                        foreach ($prune in @('node_modules', 'src', 'tests', 'tsconfig.json', 'tsconfig.build.json', 'vitest.config.ts')) {
+                        foreach ($prune in @('node_modules', 'src', 'tests', 'tsconfig.json', 'tsconfig.src.json', 'tsconfig.tests.json', 'vitest.config.ts')) {
                             $prunePath = Join-Path $linkPath $prune
                             if (Test-Path $prunePath) { Remove-Item $prunePath -Recurse -Force }
                         }

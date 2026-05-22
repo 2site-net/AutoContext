@@ -1,0 +1,28 @@
+{
+  "compilerOptions": {
+    "composite": true,
+    "module": "ES2022",
+    "moduleResolution": "bundler",
+    "target": "ES2022",
+    "outDir": "dist-tests",
+    "lib": ["ES2022"],
+    "sourceMap": true,
+    "declaration": true,
+    "emitDeclarationOnly": true,
+    "rootDir": "tests",
+    "strict": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "paths": {
+      "#support/*": ["./tests/support/*"],
+      "#src/*": ["./src/*"]
+    }
+  },
+  "include": ["tests"],
+  "exclude": ["node_modules", "tests/smoke-tests"],
+  "references": [
+    { "path": "./tsconfig.src.json" }
+  ]
+}

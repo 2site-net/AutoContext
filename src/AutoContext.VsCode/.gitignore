@@ -1,5 +1,7 @@
 servers/
 dist/
+dist-tests/
+*.tsbuildinfo
 node_modules/
 publish/
 *.vsix

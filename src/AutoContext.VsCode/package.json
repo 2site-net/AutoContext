@@ -923,7 +923,7 @@
   "scripts": {
     "vscode:prepublish": "node -e \"if(!process.env.AUTOCONTEXT_VSCE_BYPASS){console.error('Do not run vsce package directly. Use: ./build.ps1 Package');process.exit(1)}\"",
     "compile": "pwsh ../../build.ps1 Compile TS -NoTest",
-    "watch": "tsc -watch -p ./tsconfig.build.json",
+    "watch": "tsc -b --watch ./tsconfig.json",
     "test": "pwsh ../../build.ps1 Compile TS",
     "test:smoke": "pwsh ../../build.ps1 Compile -Smoke"
   },

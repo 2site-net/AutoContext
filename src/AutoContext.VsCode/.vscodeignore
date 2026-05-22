@@ -5,8 +5,12 @@ node_modules/**
 scripts/**
 publish/**
 instructions/.workspaces/**
+dist-tests/**
+*.tsbuildinfo
 .gitignore
 tsconfig.json
+tsconfig.src.json
+tsconfig.tests.json
 package-lock.json
 **/*.ts
 !dist/**

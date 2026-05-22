@@ -1,2 +1,4 @@
 out/
+out-tests/
+*.tsbuildinfo
 node_modules/

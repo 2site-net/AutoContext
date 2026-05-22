@@ -15,7 +15,7 @@
     "#src/*": "./src/*"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.build.json"
+    "build": "tsc -b tsconfig.json"
   },
   "devDependencies": {
     "@types/node": "^22.15.0",
