@@ -27,14 +27,14 @@ public sealed class PipeTransportTests
         await cts.CancelAsync();
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(
-            async () => await transport.ConnectAsync(NewPipeName(), cancellationToken: cts.Token));
+            async () => await transport.ConnectAsync(PipeTestServer.UniqueName("actx-pt-test"), cancellationToken: cts.Token));
     }
 
     [Fact]
     public async Task Should_connect_when_a_server_is_listening()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        var name = NewPipeName();
+        var name = PipeTestServer.UniqueName("actx-pt-test");
         await using var server = PipeTestServer.Create(name);
         var acceptTask = server.WaitForConnectionAsync(cancellationToken);
         var transport = new PipeTransport(NullLogger<PipeTransport>.Instance);
@@ -52,8 +52,6 @@ public sealed class PipeTransportTests
         var transport = new PipeTransport(NullLogger<PipeTransport>.Instance);
 
         await Assert.ThrowsAsync<TimeoutException>(
-            async () => await transport.ConnectAsync(NewPipeName(), timeoutMs: 100, cancellationToken: cancellationToken));
+            async () => await transport.ConnectAsync(PipeTestServer.UniqueName("actx-pt-test"), timeoutMs: 100, cancellationToken: cancellationToken));
     }
-
-    private static string NewPipeName() => PipeTestServer.UniqueName("actx-pt-test");
 }

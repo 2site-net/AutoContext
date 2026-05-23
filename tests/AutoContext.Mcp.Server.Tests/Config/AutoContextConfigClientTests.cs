@@ -1,58 +1,18 @@
 namespace AutoContext.Mcp.Server.Tests.Config;
 
-using System.IO.Pipes;
-using System.Text.Json;
-
 using AutoContext.Framework.Pipes;
 using AutoContext.Mcp.Server.Config;
+using AutoContext.Mcp.Server.Tests.Support.Config;
 using AutoContext.Mcp.Server.Tests.Support.Shared;
 
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
+
+using static AutoContext.Framework.Tests.Support.Async.AsyncTestHelpers;
+using static AutoContext.Mcp.Server.Tests.Support.Config.AutoContextConfigPipeServerHarness;
+using static AutoContext.Mcp.Server.Tests.Support.Shared.EmptyTestServiceProvider;
 
 public sealed class AutoContextConfigClientTests
 {
-    private static byte[] SerializeDto(AutoContextConfigSnapshotDto dto) =>
-        JsonSerializer.SerializeToUtf8Bytes(dto);
-
-    private static ServiceProvider EmptyServices() =>
-        new ServiceCollection().BuildServiceProvider();
-
-    /// <summary>
-    /// Spins up a one-shot named-pipe server: accepts a single
-    /// client connection, then writes <paramref name="frames"/> in
-    /// order (each as a length-prefixed message) and returns once
-    /// the test signals via <paramref name="release"/>.
-    /// </summary>
-    private static Task RunServerAsync(
-        string pipeName,
-        IReadOnlyList<AutoContextConfigSnapshotDto> frames,
-        TaskCompletionSource release,
-        CancellationToken cancellationToken) =>
-        Task.Run(async () =>
-        {
-            var server = PipeServerHarness.Create(pipeName, PipeDirection.Out);
-
-            await using (server.ConfigureAwait(false))
-            {
-                await server.WaitForConnectionAsync(cancellationToken).ConfigureAwait(false);
-                var channel = new LengthPrefixedFrameCodec(server);
-
-                foreach (var frame in frames)
-                {
-                    await channel.WriteAsync(SerializeDto(frame), cancellationToken).ConfigureAwait(false);
-                }
-
-                // Hold the connection open until the test releases us
-                // so the client's read loop has a chance to observe
-                // and apply every frame.
-                using (cancellationToken.Register(() => release.TrySetResult()))
-                {
-                    await release.Task.ConfigureAwait(false);
-                }
-            }
-        }, cancellationToken);
-
     [Fact]
     public async Task Should_be_a_no_op_when_pipe_name_is_empty()
     {
@@ -195,14 +155,5 @@ public sealed class AutoContextConfigClientTests
         Assert.True(
             stopwatch.Elapsed < TimeSpan.FromSeconds(4),
             $"StopAsync should be prompt; took {stopwatch.Elapsed}.");
-    }
-
-    private static async Task WaitUntilAsync(Func<bool> predicate, CancellationToken cancellationToken)
-    {
-        while (!predicate())
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            await Task.Delay(20, cancellationToken).ConfigureAwait(false);
-        }
     }
 }

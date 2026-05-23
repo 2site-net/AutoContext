@@ -1,13 +1,12 @@
 namespace AutoContext.Mcp.Server.Tests.Tools;
 
 using AutoContext.Mcp.Server.Config;
-using AutoContext.Mcp.Server.EditorConfig;
 using AutoContext.Mcp.Server.Registry;
 using AutoContext.Mcp.Server.Tools;
-using AutoContext.Mcp.Server.Tools.Invocation;
-using AutoContext.Mcp.Server.Workers;
 
 using Microsoft.Extensions.Logging.Abstractions;
+
+using static AutoContext.Mcp.Server.Tests.Support.Tools.ToolTestFactory;
 
 public sealed class McpSdkAdapterTests
 {
@@ -73,44 +72,4 @@ public sealed class McpSdkAdapterTests
             () => Assert.Single(after),
             () => Assert.Equal("beta_tool", after[0].Name));
     }
-
-    private static ToolInvoker BuildInvoker()
-    {
-        var workerClient = new WorkerClient(TimeSpan.FromSeconds(5));
-        var batcher = new EditorConfigBatcher(
-            workerClient,
-            "autocontext-test-workspace-unused",
-            NullLogger<EditorConfigBatcher>.Instance);
-        return new ToolInvoker(workerClient, batcher);
-    }
-
-    private static McpWorkersCatalog BuildCatalog(
-        params (string Id, IReadOnlyList<McpToolDefinition> Definitions)[] workers)
-    {
-        var list = new List<McpWorker>(workers.Length);
-
-        foreach (var (id, definitions) in workers)
-        {
-            list.Add(new McpWorker
-            {
-                Id = id,
-                Name = $"AutoContext.Worker.{id}",
-                Tools = definitions,
-            });
-        }
-
-        return new McpWorkersCatalog
-        {
-            SchemaVersion = "1",
-            Workers = list,
-        };
-    }
-
-    private static McpToolDefinition BuildTool(string name) => new()
-    {
-        Name = name,
-        Description = "Test tool.",
-        Parameters = new Dictionary<string, McpToolParameter>(StringComparer.Ordinal),
-        Tasks = [new McpTaskDefinition { Name = $"{name}_task" }],
-    };
 }

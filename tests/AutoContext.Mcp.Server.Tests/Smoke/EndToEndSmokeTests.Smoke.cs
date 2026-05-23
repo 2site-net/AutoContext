@@ -1,11 +1,11 @@
 namespace AutoContext.Mcp.Server.Tests.Smoke;
 
-using System.Text.Json;
-
 using AutoContext.Mcp.Server.Tools.Results;
 
 using ModelContextProtocol.Client;
 using ModelContextProtocol.Protocol;
+
+using static AutoContext.Mcp.Server.Tests.Support.Smoke.SmokeTestToolCaller;
 
 /// <summary>
 /// End-to-end smoke tests that spawn the real
@@ -100,27 +100,5 @@ public sealed class EndToEndSmokeTests
             () => Assert.Equal("read_editorconfig", editorConfigEnvelope.Tool),
             () => Assert.Equal(1, editorConfigEnvelope.Summary.TaskCount),
             () => Assert.NotEqual(ToolResultEnvelope.StatusError, editorConfigEnvelope.Status));
-    }
-
-    private static async Task<ToolResultEnvelope> CallToolAsync(
-        McpClient client,
-        string toolName,
-        IReadOnlyDictionary<string, object?> arguments,
-        CancellationToken cancellationToken)
-    {
-        var result = await client.CallToolAsync(toolName, arguments, cancellationToken: cancellationToken);
-
-        var textBlock = Assert.IsType<TextContentBlock>(Assert.Single(result.Content));
-        var envelope = JsonSerializer.Deserialize<ToolResultEnvelope>(textBlock.Text)
-            ?? throw new InvalidOperationException(
-                $"Tool '{toolName}' returned an empty envelope.");
-
-        if (string.Equals(envelope.Status, ToolResultEnvelope.StatusError, StringComparison.Ordinal))
-        {
-            throw new Xunit.Sdk.XunitException(
-                $"Tool '{toolName}' returned status='error'. Raw envelope:\n{textBlock.Text}");
-        }
-
-        return envelope;
     }
 }

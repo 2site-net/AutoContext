@@ -1,15 +1,14 @@
 namespace AutoContext.Framework.Pipes.Tests;
 
-using System.Text;
-
 using AutoContext.Framework.Tests.Support.Pipes;
 using AutoContext.Framework.Pipes;
 
 using Microsoft.Extensions.Logging.Abstractions;
 
+using static AutoContext.Framework.Tests.Support.Encodings.TestEncodings;
+
 public sealed class PipeTransientExchangeClientTests
 {
-    private static readonly UTF8Encoding Utf8NoBom = new(encoderShouldEmitUTF8Identifier: false);
 
     [Fact]
     public void Should_reject_empty_pipe_name()
@@ -24,11 +23,11 @@ public sealed class PipeTransientExchangeClientTests
     public async Task Should_round_trip_a_request()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        var name = NewPipeName();
+        var name = PipeTestServer.UniqueName("actx-pte-test");
         var listener = new PipeListener(name, NullLogger<PipeListener>.Instance);
         var bound = listener.Bind();
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        var serverTask = bound.RunAsync(SingleShotEchoAsync, cts.Token);
+        var serverTask = bound.RunAsync(PipeEchoServer.EchoOnceAsync, cts.Token);
         await using var client = new PipeTransientExchangeClient(
             new PipeTransport(NullLogger<PipeTransport>.Instance),
             name);
@@ -51,7 +50,7 @@ public sealed class PipeTransientExchangeClientTests
     public async Task Should_open_a_fresh_connection_per_exchange()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        var name = NewPipeName();
+        var name = PipeTestServer.UniqueName("actx-pte-test");
         var listener = new PipeListener(name, NullLogger<PipeListener>.Instance);
         var bound = listener.Bind();
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -60,7 +59,7 @@ public sealed class PipeTransientExchangeClientTests
             async (stream, ct) =>
             {
                 Interlocked.Increment(ref connections);
-                await SingleShotEchoAsync(stream, ct);
+                await PipeEchoServer.EchoOnceAsync(stream, ct);
             },
             cts.Token);
         await using var client = new PipeTransientExchangeClient(
@@ -87,7 +86,7 @@ public sealed class PipeTransientExchangeClientTests
     public async Task Should_throw_IOException_when_peer_closes_without_responding()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        var name = NewPipeName();
+        var name = PipeTestServer.UniqueName("actx-pte-test");
         var listener = new PipeListener(name, NullLogger<PipeListener>.Instance);
         var bound = listener.Bind();
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -121,7 +120,7 @@ public sealed class PipeTransientExchangeClientTests
     {
         await using var client = new PipeTransientExchangeClient(
             new PipeTransport(NullLogger<PipeTransport>.Instance),
-            NewPipeName());
+            PipeTestServer.UniqueName("actx-pte-test"));
 
         var ex = await Record.ExceptionAsync(async () =>
         {
@@ -130,19 +129,5 @@ public sealed class PipeTransientExchangeClientTests
         });
 
         Assert.Null(ex);
-    }
-
-    private static string NewPipeName() => PipeTestServer.UniqueName("actx-pte-test");
-
-    private static async Task SingleShotEchoAsync(Stream stream, CancellationToken cancellationToken)
-    {
-        var codec = new LengthPrefixedFrameCodec(stream);
-        var request = await codec.ReadAsync(cancellationToken);
-        if (request is null)
-        {
-            return;
-        }
-        var response = Utf8NoBom.GetBytes("pong:" + Utf8NoBom.GetString(request));
-        await codec.WriteAsync(response, cancellationToken);
     }
 }

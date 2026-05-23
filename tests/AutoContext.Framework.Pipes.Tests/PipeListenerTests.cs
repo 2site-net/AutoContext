@@ -19,7 +19,7 @@ public sealed class PipeListenerTests
     [Fact]
     public async Task Should_bind_successfully_and_produce_a_bound_listener()
     {
-        var listener = new PipeListener(NewPipeName(), NullLogger<PipeListener>.Instance);
+        var listener = new PipeListener(PipeTestServer.UniqueName("actx-pl-test"), NullLogger<PipeListener>.Instance);
 
         var bound = listener.Bind();
 
@@ -30,7 +30,7 @@ public sealed class PipeListenerTests
     [Fact]
     public async Task Should_reject_a_second_bind_on_the_same_listener()
     {
-        var listener = new PipeListener(NewPipeName(), NullLogger<PipeListener>.Instance);
+        var listener = new PipeListener(PipeTestServer.UniqueName("actx-pl-test"), NullLogger<PipeListener>.Instance);
         var bound = listener.Bind();
 
         try
@@ -49,7 +49,7 @@ public sealed class PipeListenerTests
     public async Task Should_invoke_handler_for_every_accepted_connection()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        var name = NewPipeName();
+        var name = PipeTestServer.UniqueName("actx-pl-test");
         var listener = new PipeListener(name, NullLogger<PipeListener>.Instance);
         var bound = listener.Bind();
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -98,7 +98,7 @@ public sealed class PipeListenerTests
     public async Task Should_reject_a_second_call_to_RunAsync()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        var listener = new PipeListener(NewPipeName(), NullLogger<PipeListener>.Instance);
+        var listener = new PipeListener(PipeTestServer.UniqueName("actx-pl-test"), NullLogger<PipeListener>.Instance);
         var bound = listener.Bind();
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         var first = bound.RunAsync((_, _) => Task.CompletedTask, cts.Token);
@@ -121,7 +121,7 @@ public sealed class PipeListenerTests
     [Fact]
     public async Task Should_throw_when_RunAsync_is_called_after_dispose()
     {
-        var listener = new PipeListener(NewPipeName(), NullLogger<PipeListener>.Instance);
+        var listener = new PipeListener(PipeTestServer.UniqueName("actx-pl-test"), NullLogger<PipeListener>.Instance);
         var bound = listener.Bind();
         await bound.DisposeAsync();
 
@@ -133,7 +133,7 @@ public sealed class PipeListenerTests
     public async Task Should_drain_in_flight_handlers_before_returning_from_RunAsync()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        var name = NewPipeName();
+        var name = PipeTestServer.UniqueName("actx-pl-test");
         var listener = new PipeListener(name, NullLogger<PipeListener>.Instance);
         var bound = listener.Bind();
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -170,7 +170,7 @@ public sealed class PipeListenerTests
     [Fact]
     public async Task Should_return_immediately_from_RunAsync_when_token_already_canceled()
     {
-        var listener = new PipeListener(NewPipeName(), NullLogger<PipeListener>.Instance);
+        var listener = new PipeListener(PipeTestServer.UniqueName("actx-pl-test"), NullLogger<PipeListener>.Instance);
         var bound = listener.Bind();
         using var cts = new CancellationTokenSource();
         await cts.CancelAsync();
@@ -192,7 +192,7 @@ public sealed class PipeListenerTests
     public async Task Should_log_and_recover_when_a_handler_throws()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        var name = NewPipeName();
+        var name = PipeTestServer.UniqueName("actx-pl-test");
         var listener = new PipeListener(name, NullLogger<PipeListener>.Instance);
         var bound = listener.Bind();
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -248,7 +248,7 @@ public sealed class PipeListenerTests
     [Fact]
     public async Task Should_allow_multiple_dispose_calls()
     {
-        var listener = new PipeListener(NewPipeName(), NullLogger<PipeListener>.Instance);
+        var listener = new PipeListener(PipeTestServer.UniqueName("actx-pl-test"), NullLogger<PipeListener>.Instance);
         var bound = listener.Bind();
 
         var ex = await Record.ExceptionAsync(async () =>
@@ -260,6 +260,4 @@ public sealed class PipeListenerTests
 
         Assert.Null(ex);
     }
-
-    private static string NewPipeName() => PipeTestServer.UniqueName("actx-pl-test");
 }

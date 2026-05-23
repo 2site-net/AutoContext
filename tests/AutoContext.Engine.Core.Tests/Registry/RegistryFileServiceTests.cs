@@ -11,25 +11,11 @@ using AutoContext.Engine.Core.Tests.Support.Registry;
 using AutoContext.Engine.Core.Tests.Support.Shared;
 using AutoContext.Engine.Protocol.Messages.Registry;
 
+using static AutoContext.Engine.Core.Tests.Support.Registry.RegistryFileServiceTestFactory;
+
 public sealed class RegistryFileServiceTests
 {
     private const string RegistryFileName = "engine-registry.json";
-
-    private static RegistryFileService CreateService(
-        string path,
-        RegistryFileServiceOptions? options = null,
-        Func<RegistryEntry>? ownEntryFactory = null) =>
-        new(
-            path,
-            options,
-            new RegistryFileReaderOptions
-            {
-                InitialRetryDelay = TimeSpan.FromMilliseconds(1),
-                MaxRetryDelay = TimeSpan.FromMilliseconds(5),
-                MaxAttempts = 5,
-            },
-            loggerFactory: null,
-            ownEntryFactory: ownEntryFactory);
 
     public sealed class Constructor
     {

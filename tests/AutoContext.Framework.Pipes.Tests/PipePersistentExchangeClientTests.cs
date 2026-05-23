@@ -1,15 +1,14 @@
 namespace AutoContext.Framework.Pipes.Tests;
 
-using System.Text;
-
 using AutoContext.Framework.Tests.Support.Pipes;
 using AutoContext.Framework.Pipes;
 
 using Microsoft.Extensions.Logging.Abstractions;
 
+using static AutoContext.Framework.Tests.Support.Encodings.TestEncodings;
+
 public sealed class PipePersistentExchangeClientTests
 {
-    private static readonly UTF8Encoding Utf8NoBom = new(encoderShouldEmitUTF8Identifier: false);
 
     [Fact]
     public void Should_reject_empty_pipe_name()
@@ -25,11 +24,11 @@ public sealed class PipePersistentExchangeClientTests
     public async Task Should_round_trip_a_request()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        var name = NewPipeName();
+        var name = PipeTestServer.UniqueName("actx-ppe-test");
         var listener = new PipeListener(name, NullLogger<PipeListener>.Instance);
         var bound = listener.Bind();
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        var serverTask = bound.RunAsync(EchoLoopAsync, cts.Token);
+        var serverTask = bound.RunAsync(PipeEchoServer.EchoLoopAsync, cts.Token);
         await using var client = new PipePersistentExchangeClient(
             new PipeTransport(NullLogger<PipeTransport>.Instance),
             name,
@@ -53,7 +52,7 @@ public sealed class PipePersistentExchangeClientTests
     public async Task Should_reuse_the_connection_across_multiple_exchanges()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        var name = NewPipeName();
+        var name = PipeTestServer.UniqueName("actx-ppe-test");
         var listener = new PipeListener(name, NullLogger<PipeListener>.Instance);
         var bound = listener.Bind();
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -62,7 +61,7 @@ public sealed class PipePersistentExchangeClientTests
             async (stream, ct) =>
             {
                 Interlocked.Increment(ref connections);
-                await EchoLoopAsync(stream, ct);
+                await PipeEchoServer.EchoLoopAsync(stream, ct);
             },
             cts.Token);
         await using var client = new PipePersistentExchangeClient(
@@ -91,7 +90,7 @@ public sealed class PipePersistentExchangeClientTests
     {
         var client = new PipePersistentExchangeClient(
             new PipeTransport(NullLogger<PipeTransport>.Instance),
-            NewPipeName(),
+            PipeTestServer.UniqueName("actx-ppe-test"),
             NullLogger<PipePersistentExchangeClient>.Instance);
         await client.DisposeAsync();
 
@@ -103,7 +102,7 @@ public sealed class PipePersistentExchangeClientTests
     public async Task Should_throw_IOException_when_peer_closes_without_responding()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        var name = NewPipeName();
+        var name = PipeTestServer.UniqueName("actx-ppe-test");
         var listener = new PipeListener(name, NullLogger<PipeListener>.Instance);
         var bound = listener.Bind();
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -130,24 +129,6 @@ public sealed class PipePersistentExchangeClientTests
             await cts.CancelAsync();
             await serverTask;
             await bound.DisposeAsync();
-        }
-    }
-
-    private static string NewPipeName() => PipeTestServer.UniqueName("actx-ppe-test");
-
-    private static async Task EchoLoopAsync(Stream stream, CancellationToken cancellationToken)
-    {
-        var codec = new LengthPrefixedFrameCodec(stream);
-        while (!cancellationToken.IsCancellationRequested)
-        {
-            var request = await codec.ReadAsync(cancellationToken);
-            if (request is null)
-            {
-                return;
-            }
-
-            var response = Utf8NoBom.GetBytes("pong:" + Utf8NoBom.GetString(request));
-            await codec.WriteAsync(response, cancellationToken);
         }
     }
 }

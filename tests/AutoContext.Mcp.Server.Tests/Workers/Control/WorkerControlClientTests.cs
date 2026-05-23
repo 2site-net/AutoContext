@@ -1,59 +1,14 @@
 namespace AutoContext.Mcp.Server.Tests.Workers.Control;
 
-using System.Text.Json;
-
 using AutoContext.Mcp.Server.Tests.Support.Shared;
+using AutoContext.Mcp.Server.Tests.Support.Workers.Control;
 using AutoContext.Mcp.Server.Workers.Control;
 using AutoContext.Mcp.Server.Workers.Protocol;
-using AutoContext.Framework.Pipes;
+
+using static AutoContext.Mcp.Server.Tests.Support.Workers.Control.WorkerControlPipeServerHarness;
 
 public sealed class WorkerControlClientTests
 {
-    private static EnsureRunningRequest DeserializeRequest(byte[] bytes) =>
-        JsonSerializer.Deserialize<EnsureRunningRequest>(bytes, WorkerJsonOptions.Instance)
-            ?? throw new InvalidOperationException("Null request payload.");
-
-    private static byte[] SerializeResponse(EnsureRunningResponse response) =>
-        JsonSerializer.SerializeToUtf8Bytes(response, WorkerJsonOptions.Instance);
-
-    /// <summary>
-    /// Persistent in-process pipe server: accepts one client connection
-    /// and answers an arbitrary number of length-framed requests using
-    /// <paramref name="handler"/> until the client closes the pipe.
-    /// </summary>
-    private static Task RunPersistentAsync(
-        string pipeName,
-        Func<EnsureRunningRequest, EnsureRunningResponse> handler,
-        CancellationToken cancellationToken,
-        Action<int>? onRequest = null) =>
-        Task.Run(async () =>
-        {
-            var server = PipeServerHarness.Create(pipeName);
-
-            await using (server.ConfigureAwait(false))
-            {
-                await server.WaitForConnectionAsync(cancellationToken).ConfigureAwait(false);
-                var channel = new LengthPrefixedFrameCodec(server);
-
-                var i = 0;
-                while (!cancellationToken.IsCancellationRequested)
-                {
-                    var requestBytes = await channel.ReadAsync(cancellationToken).ConfigureAwait(false);
-                    if (requestBytes is null)
-                    {
-                        return; // client closed the pipe
-                    }
-
-                    var request = DeserializeRequest(requestBytes);
-                    onRequest?.Invoke(i++);
-
-                    var response = handler(request);
-                    var responseBytes = SerializeResponse(response);
-                    await channel.WriteAsync(responseBytes, cancellationToken).ConfigureAwait(false);
-                }
-            }
-        }, cancellationToken);
-
     [Fact]
     public async Task Should_no_op_when_pipe_name_is_null_or_empty()
     {

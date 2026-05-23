@@ -3,6 +3,7 @@ namespace AutoContext.Framework.Pipes.Tests;
 using System.Buffers.Binary;
 
 using AutoContext.Framework.Pipes;
+using AutoContext.Framework.Tests.Support.Pipes;
 
 public sealed class LengthPrefixedFrameCodecTests
 {
@@ -54,7 +55,7 @@ public sealed class LengthPrefixedFrameCodecTests
     public async Task Should_return_empty_array_for_zero_length_payload()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        using var stream = new MemoryStream(WriteHeader(0));
+        using var stream = new MemoryStream(FrameHeaderTestEncoder.Encode(0));
         var codec = new LengthPrefixedFrameCodec(stream);
 
         var result = await codec.ReadAsync(cancellationToken);
@@ -67,7 +68,7 @@ public sealed class LengthPrefixedFrameCodecTests
     public async Task Should_throw_when_announced_length_exceeds_max()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        using var stream = new MemoryStream(WriteHeader(LengthPrefixedFrameCodec.MaxMessageBytes + 1));
+        using var stream = new MemoryStream(FrameHeaderTestEncoder.Encode(LengthPrefixedFrameCodec.MaxMessageBytes + 1));
         var codec = new LengthPrefixedFrameCodec(stream);
 
         await Assert.ThrowsAsync<InvalidDataException>(
@@ -78,7 +79,7 @@ public sealed class LengthPrefixedFrameCodecTests
     public async Task Should_throw_when_announced_length_is_negative()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        using var stream = new MemoryStream(WriteHeader(-1));
+        using var stream = new MemoryStream(FrameHeaderTestEncoder.Encode(-1));
         var codec = new LengthPrefixedFrameCodec(stream);
 
         var ex = await Assert.ThrowsAsync<InvalidDataException>(
@@ -104,48 +105,5 @@ public sealed class LengthPrefixedFrameCodecTests
 
         Assert.NotNull(result);
         Assert.Equal(payload, result);
-    }
-
-    private static byte[] WriteHeader(int length)
-    {
-        var header = new byte[4];
-        BinaryPrimitives.WriteInt32LittleEndian(header, length);
-        return header;
-    }
-
-    private sealed class ChunkedReadStream(byte[] buffer, int chunkSize) : Stream
-    {
-        private readonly byte[] _buffer = buffer;
-        private readonly int _chunkSize = chunkSize;
-        private int _position;
-
-        public override bool CanRead => true;
-        public override bool CanSeek => false;
-        public override bool CanWrite => false;
-        public override long Length => _buffer.Length;
-        public override long Position { get => _position; set => throw new NotSupportedException(); }
-
-        public override int Read(byte[] buffer, int offset, int count)
-        {
-            var available = Math.Min(_buffer.Length - _position, Math.Min(count, _chunkSize));
-            if (available <= 0) { return 0; }
-            Array.Copy(_buffer, _position, buffer, offset, available);
-            _position += available;
-            return available;
-        }
-
-        public override ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
-        {
-            var available = Math.Min(_buffer.Length - _position, Math.Min(buffer.Length, _chunkSize));
-            if (available <= 0) { return new ValueTask<int>(0); }
-            _buffer.AsSpan(_position, available).CopyTo(buffer.Span);
-            _position += available;
-            return new ValueTask<int>(available);
-        }
-
-        public override void Flush() { }
-        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
-        public override void SetLength(long value) => throw new NotSupportedException();
-        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
     }
 }

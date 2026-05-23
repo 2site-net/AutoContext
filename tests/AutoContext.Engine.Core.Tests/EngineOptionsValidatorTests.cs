@@ -2,8 +2,11 @@ namespace AutoContext.Engine.Core.Tests;
 
 using AutoContext.Engine.Core;
 using AutoContext.Engine.Core.Tests.Support;
+using AutoContext.Engine.Core.Tests.Support.Shared;
 
 using Microsoft.Extensions.Options;
+
+using static AutoContext.Engine.Core.Tests.Support.Shared.ValidateOptionsResultTestFormatter;
 
 public sealed class EngineOptionsValidatorTests
 {
@@ -357,7 +360,4 @@ public sealed class EngineOptionsValidatorTests
         // Act + Assert
         Assert.Throws<ArgumentNullException>(() => validator.Validate(null, null!));
     }
-
-    private static string ReportFailures(ValidateOptionsResult result) =>
-        result.Failures is null ? string.Empty : string.Join("; ", result.Failures);
 }

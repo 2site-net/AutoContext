@@ -5,6 +5,8 @@ using System.Text.Json;
 using AutoContext.Worker.DotNet.Tasks.NuGet;
 using AutoContext.Framework.Tests.Support.Workers;
 
+using static AutoContext.Worker.DotNet.Tests.Support.Tasks.NuGet.AnalyzeNuGetHygieneTaskTestRunner;
+
 public sealed class AnalyzeNuGetHygieneTaskTests
 {
     [Fact]
@@ -394,16 +396,5 @@ public sealed class AnalyzeNuGetHygieneTaskTests
         // Act & Assert
         await Assert.ThrowsAsync<InvalidOperationException>(
             () => sut.ExecuteAsync(new { content = 42 }));
-    }
-
-    private static async Task<(bool Passed, string Report)> RunAsync(string content)
-    {
-        var sut = new AnalyzeNuGetHygieneTask();
-        var output = await sut.ExecuteAsync(new { content });
-
-        var passed = output.GetProperty("passed").GetBoolean();
-        var report = output.GetProperty("report").GetString()!;
-
-        return (passed, report);
     }
 }

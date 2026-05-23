@@ -12,6 +12,8 @@ using AutoContext.Mcp.Server.Workers.Protocol;
 
 using Microsoft.Extensions.Logging.Abstractions;
 
+using static AutoContext.Mcp.Server.Tests.Support.Tools.ToolTestFactory;
+
 public sealed class ToolDelegateFactoryTests
 {
     [Fact]
@@ -19,8 +21,8 @@ public sealed class ToolDelegateFactoryTests
     {
         // Arrange
         var registry = BuildCatalog(
-            ("alpha", "AutoContext.Worker.Alpha", [BuildTool("tool_one", "task_one")]),
-            ("beta", "AutoContext.Worker.Beta", [BuildTool("tool_two", "task_two")]));
+            ("alpha", "AutoContext.Worker.Alpha", [BuildToolFromTaskNames("tool_one", "task_one")]),
+            ("beta", "AutoContext.Worker.Beta", [BuildToolFromTaskNames("tool_two", "task_two")]));
         var invoker = BuildInvoker();
 
         // Act
@@ -38,8 +40,8 @@ public sealed class ToolDelegateFactoryTests
     {
         // Arrange
         var registry = BuildCatalog(
-            ("alpha", "AutoContext.Worker.Alpha", [BuildTool("dup_tool", "task_a")]),
-            ("beta", "AutoContext.Worker.Beta", [BuildTool("dup_tool", "task_b")]));
+            ("alpha", "AutoContext.Worker.Alpha", [BuildToolFromTaskNames("dup_tool", "task_a")]),
+            ("beta", "AutoContext.Worker.Beta", [BuildToolFromTaskNames("dup_tool", "task_b")]));
         var invoker = BuildInvoker();
 
         // Act + Assert
@@ -53,7 +55,7 @@ public sealed class ToolDelegateFactoryTests
         var workerId = PipeServerHarness.UniqueWorkerId();
         var pipeName = PipeServerHarness.PipeNameFor(workerId);
         var registry = BuildCatalog(
-            (workerId, "AutoContext.Worker.Alpha", [BuildTool("invoke_tool", "task_x")]));
+            (workerId, "AutoContext.Worker.Alpha", [BuildToolFromTaskNames("invoke_tool", "task_x")]));
         var workerClient = new WorkerClient(TimeSpan.FromSeconds(5));
         var batcher = new EditorConfigBatcher(workerClient, "autocontext-test-workspace-unused", NullLogger<EditorConfigBatcher>.Instance);
         var invoker = new ToolInvoker(workerClient, batcher);
@@ -111,8 +113,8 @@ public sealed class ToolDelegateFactoryTests
         var betaPipeName = PipeServerHarness.PipeNameFor(betaWorkerId);
 
         var registry = BuildCatalog(
-            (alphaWorkerId, "AutoContext.Worker.Alpha", [BuildTool("alpha_tool", "task_alpha")]),
-            (betaWorkerId, "AutoContext.Worker.Beta", [BuildTool("beta_tool", "task_beta")]));
+            (alphaWorkerId, "AutoContext.Worker.Alpha", [BuildToolFromTaskNames("alpha_tool", "task_alpha")]),
+            (betaWorkerId, "AutoContext.Worker.Beta", [BuildToolFromTaskNames("beta_tool", "task_beta")]));
 
         var workerClient = new WorkerClient(TimeSpan.FromSeconds(5));
         var batcher = new EditorConfigBatcher(workerClient, "autocontext-test-workspace-unused", NullLogger<EditorConfigBatcher>.Instance);
@@ -143,69 +145,5 @@ public sealed class ToolDelegateFactoryTests
         Assert.Multiple(
             () => Assert.Equal("alpha", alphaDoc.RootElement.GetProperty("result")[0].GetProperty("output").GetProperty("servedBy").GetString()),
             () => Assert.Equal("beta", betaDoc.RootElement.GetProperty("result")[0].GetProperty("output").GetProperty("servedBy").GetString()));
-    }
-
-    private static byte[] BuildMarkedResponse(byte[] requestBytes, string servedBy)
-    {
-        var request = JsonSerializer.Deserialize<TaskRequest>(
-            requestBytes,
-            WorkerJsonOptions.Instance)!;
-
-        var response = new TaskResponse
-        {
-            McpTask = request.McpTask,
-            Status = TaskResponse.StatusOk,
-            Output = JsonSerializer.SerializeToElement(new { servedBy }),
-            Error = string.Empty,
-        };
-
-        return JsonSerializer.SerializeToUtf8Bytes(response, WorkerJsonOptions.Instance);
-    }
-
-    private static ToolInvoker BuildInvoker()
-    {
-        var workerClient = new WorkerClient(TimeSpan.FromSeconds(5));
-        var batcher = new EditorConfigBatcher(workerClient, "autocontext-test-workspace-unused", NullLogger<EditorConfigBatcher>.Instance);
-        return new ToolInvoker(workerClient, batcher);
-    }
-
-    private static McpWorkersCatalog BuildCatalog(
-        params (string Id, string Name, IReadOnlyList<McpToolDefinition> Definitions)[] workers)
-    {
-        var list = new List<McpWorker>(workers.Length);
-
-        foreach (var (id, name, definitions) in workers)
-        {
-            list.Add(new McpWorker
-            {
-                Id = id,
-                Name = name,
-                Tools = definitions,
-            });
-        }
-
-        return new McpWorkersCatalog
-        {
-            SchemaVersion = "1",
-            Workers = list,
-        };
-    }
-
-    private static McpToolDefinition BuildTool(string name, params string[] taskNames)
-    {
-        var tasks = new List<McpTaskDefinition>(taskNames.Length);
-
-        foreach (var taskName in taskNames)
-        {
-            tasks.Add(new McpTaskDefinition { Name = taskName });
-        }
-
-        return new McpToolDefinition
-        {
-            Name = name,
-            Description = "Test tool.",
-            Parameters = new Dictionary<string, McpToolParameter>(StringComparer.Ordinal),
-            Tasks = tasks,
-        };
     }
 }

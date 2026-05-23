@@ -6,6 +6,7 @@ using AutoContext.Engine.Core.Registry;
 using AutoContext.Engine.Core.Rpc.Policies;
 using AutoContext.Engine.Core.Tests.Support.Lifecycle;
 using AutoContext.Engine.Core.Tests.Support.Registry;
+using AutoContext.Engine.Core.Tests.Support.Rpc.Policies;
 using AutoContext.Engine.Core.Tests.Support.Shared;
 using AutoContext.Engine.Protocol;
 using AutoContext.Engine.Protocol.JsonRpc;
@@ -14,6 +15,9 @@ using AutoContext.Engine.Protocol.Messages.Registry;
 
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+
+using static AutoContext.Engine.Core.Tests.Support.Rpc.JsonRpcRequestTestFactory;
+using static AutoContext.Engine.Core.Tests.Support.Rpc.Policies.PolicyTestHookInvoker;
 
 public sealed class DispatchPolicyTests(TempDirectoryFixture tempDirectory)
     : IClassFixture<TempDirectoryFixture>
@@ -213,28 +217,5 @@ public sealed class DispatchPolicyTests(TempDirectoryFixture tempDirectory)
     {
         var registryPath = tempDirectory.CreatePath(RegistryFileName);
         return new RegistryFileReader(registryPath);
-    }
-
-    private static JsonRpcRequest BuildRequest(string method) =>
-        new()
-        {
-            Method = method,
-            Id = JsonDocument.Parse("1").RootElement,
-        };
-
-    private static void InvokeHook(DispatchPolicy policy, string hook, Exception exception)
-    {
-        switch (hook)
-        {
-            case nameof(IRpcConnectionPolicy.LogFrameReadFault):
-                policy.LogFrameReadFault(exception);
-                break;
-            case nameof(IRpcConnectionPolicy.LogFrameWriteFault):
-                policy.LogFrameWriteFault(exception);
-                break;
-            default:
-                policy.LogFrameParseFault(exception);
-                break;
-        }
     }
 }

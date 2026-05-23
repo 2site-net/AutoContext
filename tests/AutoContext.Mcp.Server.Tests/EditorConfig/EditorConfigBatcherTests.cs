@@ -10,6 +10,8 @@ using AutoContext.Mcp.Server.Workers.Protocol;
 
 using Microsoft.Extensions.Logging.Abstractions;
 
+using static AutoContext.Mcp.Server.Tests.Support.Tools.ToolTestFactory;
+
 public sealed class EditorConfigBatcherTests
 {
     private static readonly NullLogger<EditorConfigBatcher> Logger = NullLogger<EditorConfigBatcher>.Instance;
@@ -280,10 +282,4 @@ public sealed class EditorConfigBatcherTests
             () => Assert.Throws<ArgumentException>(() => new EditorConfigBatcher(new WorkerClient(), string.Empty, Logger)),
             () => Assert.Throws<ArgumentNullException>(() => new EditorConfigBatcher(new WorkerClient(), null!)));
     }
-
-    private static McpTaskDefinition BuildTask(string name, params string[] keys) => new()
-    {
-        Name = name,
-        EditorConfig = keys,
-    };
 }

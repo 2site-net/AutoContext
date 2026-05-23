@@ -20,4 +20,19 @@ internal static class EngineOptionsFakeData
     public static Guid GetInstanceId() => InstanceId;
 
     public static string GetWorkspacePath() => WorkspacePath;
+
+    /// <summary>
+    /// Returns an <see cref="Action{EngineOptions}"/> delegate that
+    /// populates the workspace, instance id, and the supplied cache-root
+    /// override on a configurable options instance. Used as the configure
+    /// callback for host-builder tests.
+    /// </summary>
+    public static Action<EngineOptions> ConfigureValidWith(string cacheRootOverride) =>
+        options =>
+        {
+            ArgumentNullException.ThrowIfNull(options);
+            options.WorkspacePath = WorkspacePath;
+            options.InstanceId = InstanceId;
+            options.CacheRootOverride = cacheRootOverride;
+        };
 }

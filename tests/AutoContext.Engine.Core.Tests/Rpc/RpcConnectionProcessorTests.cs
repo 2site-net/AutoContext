@@ -1,6 +1,5 @@
 namespace AutoContext.Engine.Core.Tests.Rpc;
 
-using System.Globalization;
 using System.Text;
 using System.Text.Json;
 
@@ -14,6 +13,9 @@ using AutoContext.Engine.Protocol.Serialization;
 using AutoContext.Framework.Pipes;
 
 using Microsoft.Extensions.Logging.Abstractions;
+
+using static AutoContext.Engine.Core.Tests.Support.Rpc.JsonRpcTestClient;
+using static AutoContext.Engine.Core.Tests.Support.Rpc.JsonRpcResponseFakeData;
 
 public sealed class RpcConnectionProcessorTests
 {
@@ -490,48 +492,4 @@ public sealed class RpcConnectionProcessorTests
             () => Assert.False(result),
             () => Assert.Equal(Microsoft.Extensions.Logging.LogLevel.Error, unknownEntry.Level));
     }
-
-    private static async Task<JsonRpcResponse?> DriveFollowUpAsync(LengthPrefixedFrameCodec codec)
-    {
-        await WriteRequestAsync(codec, id: 999, method: "Test.FollowUp", TestContext.Current.CancellationToken);
-        return await ReadResponseAsync(codec, TestContext.Current.CancellationToken);
-    }
-
-    private static async Task WriteRequestAsync(
-        LengthPrefixedFrameCodec codec, int id, string method, CancellationToken cancellationToken)
-    {
-        var idElement = JsonDocument.Parse(
-            id.ToString(CultureInfo.InvariantCulture)).RootElement;
-        var request = new JsonRpcRequest
-        {
-            Jsonrpc = JsonRpcVersion.Value,
-            Id = idElement,
-            Method = method,
-        };
-        var bytes = JsonSerializer.SerializeToUtf8Bytes(
-            request, ProtocolJsonContext.Default.JsonRpcRequest);
-        await codec.WriteAsync(bytes, cancellationToken);
-    }
-
-    private static async Task<JsonRpcResponse> ReadResponseAsync(
-        LengthPrefixedFrameCodec codec, CancellationToken cancellationToken)
-    {
-        using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        cts.CancelAfter(TimeSpan.FromSeconds(5));
-        var bytes = await codec.ReadAsync(cts.Token);
-        Assert.NotNull(bytes);
-        var response = JsonSerializer.Deserialize(
-            bytes!, ProtocolJsonContext.Default.JsonRpcResponse);
-        Assert.NotNull(response);
-        return response!;
-    }
-
-    private static JsonRpcResponse BuildOkResponse() =>
-        new() { Result = JsonDocument.Parse("{}").RootElement };
-
-    private static JsonRpcResponse BuildErrorResponse(int code, string message) =>
-        new()
-        {
-            Error = new JsonRpcError { Code = code, Message = message },
-        };
 }

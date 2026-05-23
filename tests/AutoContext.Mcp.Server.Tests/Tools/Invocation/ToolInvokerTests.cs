@@ -7,12 +7,15 @@ using AutoContext.Mcp.Server.Config;
 using AutoContext.Mcp.Server.EditorConfig;
 using AutoContext.Mcp.Server.Registry;
 using AutoContext.Mcp.Server.Tests.Support.Shared;
+using AutoContext.Mcp.Server.Tests.Support.Tools.Invocation;
 using AutoContext.Mcp.Server.Tools.Invocation;
 using AutoContext.Mcp.Server.Tools.Results;
 using AutoContext.Mcp.Server.Workers;
 using AutoContext.Mcp.Server.Workers.Protocol;
 
 using Microsoft.Extensions.Logging.Abstractions;
+
+using static AutoContext.Mcp.Server.Tests.Support.Tools.ToolTestFactory;
 
 public sealed class ToolInvokerTests
 {
@@ -104,7 +107,7 @@ public sealed class ToolInvokerTests
         var worker = BuildWorker(toolWorkerId);
         var tool = BuildTool(
             "editorconfig_tool",
-            BuildTask("style_task", editorConfig: ["csharp_prefer_braces"]),
+            BuildTask("style_task", "csharp_prefer_braces"),
             BuildTask("plain_task"));
 
         var workerClient = new WorkerClient(TimeSpan.FromSeconds(5));
@@ -175,7 +178,7 @@ public sealed class ToolInvokerTests
         var worker = BuildWorker(workerId);
         var tool = BuildTool(
             "no_path_tool",
-            BuildTask("style_task", editorConfig: ["csharp_prefer_braces"]));
+            BuildTask("style_task", "csharp_prefer_braces"));
         var invoker = BuildInvoker();
 
         var observedKeys = new ConcurrentBag<string>();
@@ -348,81 +351,5 @@ public sealed class ToolInvokerTests
             () => Assert.Empty(envelope.Result),
             () => Assert.Single(envelope.Errors),
             () => Assert.Equal(ToolResultErrorCodes.AllTasksDisabled, envelope.Errors[0].Code));
-    }
-
-    private static ToolInvoker BuildInvoker(AutoContextConfigSnapshot? configSnapshot = null)
-    {
-        var workerClient = new WorkerClient(TimeSpan.FromSeconds(5));
-        var batcher = new EditorConfigBatcher(workerClient, "autocontext-test-workspace-unused", NullLogger<EditorConfigBatcher>.Instance);
-        return new ToolInvoker(workerClient, batcher, configSnapshot, NullLogger<ToolInvoker>.Instance);
-    }
-
-    private static McpWorker BuildWorker(string workerId) => new()
-    {
-        Id = workerId,
-        Name = "AutoContext.Worker.Test",
-        Tools = [],
-    };
-
-    private static McpTaskDefinition BuildTask(string name, IReadOnlyList<string>? editorConfig = null) => new()
-    {
-        Name = name,
-        EditorConfig = editorConfig ?? [],
-    };
-
-    private static McpToolDefinition BuildTool(string name, params McpTaskDefinition[] tasks) => new()
-    {
-        Name = name,
-        Description = "Test tool.",
-        Parameters = new Dictionary<string, McpToolParameter>(StringComparer.Ordinal),
-        Tasks = tasks,
-    };
-
-    private static JsonElement EmptyData() =>
-        JsonSerializer.SerializeToElement(new { }, WorkerJsonOptions.Instance);
-
-    private static byte[] OkResponse(byte[] requestBytes, object output)
-    {
-        var request = JsonSerializer.Deserialize<TaskRequest>(
-            requestBytes,
-            WorkerJsonOptions.Instance)!;
-
-        var response = new TaskResponse
-        {
-            McpTask = request.McpTask,
-            Status = TaskResponse.StatusOk,
-            Output = JsonSerializer.SerializeToElement(output, WorkerJsonOptions.Instance),
-            Error = string.Empty,
-        };
-
-        return JsonSerializer.SerializeToUtf8Bytes(response, WorkerJsonOptions.Instance);
-    }
-
-    private sealed class ConcurrencyObserver
-    {
-        private readonly Lock _gate = new();
-        private int _current;
-
-        public int MaxConcurrent { get; private set; }
-
-        public void Enter()
-        {
-            lock (_gate)
-            {
-                _current++;
-                if (_current > MaxConcurrent)
-                {
-                    MaxConcurrent = _current;
-                }
-            }
-        }
-
-        public void Exit()
-        {
-            lock (_gate)
-            {
-                _current--;
-            }
-        }
     }
 }

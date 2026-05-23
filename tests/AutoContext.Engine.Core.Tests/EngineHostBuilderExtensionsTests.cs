@@ -16,12 +16,8 @@ public sealed class EngineHostBuilderExtensionsTests
     private static readonly string CacheRootOverride =
         Path.Combine(Path.GetTempPath(), "ac-engine-host-tests");
 
-    private static void ConfigureValid(EngineOptions options)
-    {
-        options.WorkspacePath = EngineOptionsFakeData.GetWorkspacePath();
-        options.InstanceId = EngineOptionsFakeData.GetInstanceId();
-        options.CacheRootOverride = CacheRootOverride;
-    }
+    private static readonly Action<EngineOptions> ConfigureValid =
+        EngineOptionsFakeData.ConfigureValidWith(CacheRootOverride);
 
     public sealed class AddAutoContextEngine
     {

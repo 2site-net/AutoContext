@@ -5,6 +5,8 @@ using System.Text.Json;
 using AutoContext.Mcp.Server.Tools.Results;
 using AutoContext.Mcp.Server.Workers.Protocol;
 
+using static AutoContext.Mcp.Server.Tests.Support.Tools.Results.ToolResultComposerInputFactory;
+
 public sealed class ToolResultComposerTests
 {
     [Fact]
@@ -199,26 +201,4 @@ public sealed class ToolResultComposerTests
             () => Assert.Empty(envelope.Result),
             () => Assert.Empty(envelope.Errors));
     }
-
-    private static ToolResultComposerInput Input(TaskResponse response, int elapsedMs) =>
-        new() { Response = response, ElapsedMs = elapsedMs };
-
-    private static TaskResponse OkResponse(string name, JsonElement output) => new()
-    {
-        McpTask = name,
-        Status = TaskResponse.StatusOk,
-        Output = output,
-        Error = string.Empty,
-    };
-
-    private static TaskResponse ErrorResponse(string name, string error) => new()
-    {
-        McpTask = name,
-        Status = TaskResponse.StatusError,
-        Output = null,
-        Error = error,
-    };
-
-    private static JsonElement JsonElementFrom(string json) =>
-        JsonSerializer.Deserialize<JsonElement>(json);
 }

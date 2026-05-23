@@ -3,6 +3,7 @@ namespace AutoContext.Engine.Core.Tests.Rpc.Policies;
 using System.Text.Json;
 
 using AutoContext.Engine.Core.Rpc.Policies;
+using AutoContext.Engine.Core.Tests.Support.Rpc.Policies;
 using AutoContext.Engine.Core.Tests.Support.Shared;
 using AutoContext.Engine.Protocol;
 using AutoContext.Engine.Protocol.JsonRpc;
@@ -11,6 +12,9 @@ using AutoContext.Engine.Protocol.Serialization;
 
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+
+using static AutoContext.Engine.Core.Tests.Support.Rpc.JsonRpcRequestTestFactory;
+using static AutoContext.Engine.Core.Tests.Support.Rpc.Policies.PolicyTestHookInvoker;
 
 public sealed class HandshakePolicyTests
 {
@@ -174,34 +178,4 @@ public sealed class HandshakePolicyTests
             () => Assert.NotNull(result.Response.Result),
             () => Assert.Null(result.PostFlush));
     }
-
-    private static JsonRpcRequest BuildHelloRequest(string method, int? protocolVersion)
-    {
-        var helloParams = new HandshakeParams { ProtocolVersion = protocolVersion };
-        var paramsElement = JsonSerializer.SerializeToElement(
-            helloParams, ProtocolJsonContext.Default.HandshakeParams);
-        return new JsonRpcRequest
-        {
-            Method = method,
-            Id = JsonDocument.Parse("1").RootElement,
-            Params = paramsElement,
-        };
-    }
-
-    private static void InvokeHook(HandshakePolicy policy, string hook, Exception exception)
-    {
-        switch (hook)
-        {
-            case nameof(IRpcConnectionPolicy.LogFrameReadFault):
-                policy.LogFrameReadFault(exception);
-                break;
-            case nameof(IRpcConnectionPolicy.LogFrameWriteFault):
-                policy.LogFrameWriteFault(exception);
-                break;
-            default:
-                policy.LogFrameParseFault(exception);
-                break;
-        }
-    }
-
 }

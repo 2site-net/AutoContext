@@ -4,9 +4,13 @@ using System.Collections.Frozen;
 using System.Text.Json;
 
 using AutoContext.Mcp.Server.Tests.Support.Shared;
+using AutoContext.Mcp.Server.Tests.Support.Workers;
 using AutoContext.Mcp.Server.Workers;
 using AutoContext.Mcp.Server.Workers.Protocol;
 using AutoContext.Framework.Pipes;
+
+using static AutoContext.Mcp.Server.Tests.Support.Workers.HangingWorkerPipeServerHarness;
+using static AutoContext.Mcp.Server.Tests.Support.Workers.TaskRequestFakeData;
 
 public sealed class WorkerClientTests
 {
@@ -184,35 +188,4 @@ public sealed class WorkerClientTests
         await Assert.ThrowsAsync<ArgumentException>(
             () => client.InvokeAsync("autocontext-test", badRequest, TestContext.Current.CancellationToken));
     }
-
-    private static TaskRequest BuildRequest(string mcpTask) => new()
-    {
-        McpTask = mcpTask,
-        Data = JsonSerializer.SerializeToElement(new { content = "hello" }),
-        EditorConfig = FrozenDictionary<string, string>.Empty,
-        CorrelationId = "corr-test",
-    };
-
-    private static Task RunHangingServerAsync(string pipeName, CancellationToken gate) =>
-        Task.Run(
-            async () =>
-            {
-                var server = PipeServerHarness.Create(pipeName);
-
-                await using (server.ConfigureAwait(false))
-                {
-                    await server.WaitForConnectionAsync(gate).ConfigureAwait(false);
-                    var channel = new LengthPrefixedFrameCodec(server);
-                    _ = await channel.ReadAsync(gate).ConfigureAwait(false);
-
-                    try
-                    {
-                        await Task.Delay(Timeout.Infinite, gate).ConfigureAwait(false);
-                    }
-                    catch (OperationCanceledException)
-                    {
-                    }
-                }
-            },
-            TestContext.Current.CancellationToken);
 }

@@ -7,12 +7,11 @@ using AutoContext.Framework.Workers;
 using AutoContext.Framework.Pipes;
 using AutoContext.Framework.Workers.Tests.Support;
 
-using Microsoft.Extensions.Logging.Abstractions;
-using Microsoft.Extensions.Options;
+using static AutoContext.Framework.Workers.Tests.Support.WorkerDispatcherPipeTestClient;
+using static AutoContext.Framework.Workers.Tests.Support.WorkerTaskDispatcherServiceTestFactory;
 
 public sealed class WorkerTaskDispatcherServiceTests
 {
-    private const string TestReadyMarker = "[AutoContext.Worker.Tests] Ready.";
 
     [Fact]
     public async Task Should_dispatch_request_to_matching_task_and_return_ok_envelope()
@@ -20,7 +19,7 @@ public sealed class WorkerTaskDispatcherServiceTests
         // Arrange
         var cancellationToken = TestContext.Current.CancellationToken;
         var pipeName = $"ac-test-{Guid.NewGuid():N}";
-        using var sut = CreateSut(pipeName, [new FakeEchoTask()]);
+        using var sut = CreateService(pipeName, [new FakeEchoTask()]);
         await sut.StartAsync(cancellationToken);
 
         try
@@ -52,7 +51,7 @@ public sealed class WorkerTaskDispatcherServiceTests
         // Arrange
         var cancellationToken = TestContext.Current.CancellationToken;
         var pipeName = $"ac-test-{Guid.NewGuid():N}";
-        using var sut = CreateSut(pipeName, []);
+        using var sut = CreateService(pipeName, []);
         await sut.StartAsync(cancellationToken);
 
         try
@@ -84,7 +83,7 @@ public sealed class WorkerTaskDispatcherServiceTests
         // Arrange
         var cancellationToken = TestContext.Current.CancellationToken;
         var pipeName = $"ac-test-{Guid.NewGuid():N}";
-        using var sut = CreateSut(pipeName, [new FakeThrowingTask()]);
+        using var sut = CreateService(pipeName, [new FakeThrowingTask()]);
         await sut.StartAsync(cancellationToken);
 
         try
@@ -114,7 +113,7 @@ public sealed class WorkerTaskDispatcherServiceTests
         // Arrange
         var cancellationToken = TestContext.Current.CancellationToken;
         var pipeName = $"ac-test-{Guid.NewGuid():N}";
-        using var sut = CreateSut(pipeName, [new FakeCriticalThrowingTask()]);
+        using var sut = CreateService(pipeName, [new FakeCriticalThrowingTask()]);
         await sut.StartAsync(cancellationToken);
 
         try
@@ -146,29 +145,4 @@ public sealed class WorkerTaskDispatcherServiceTests
         }
     }
 
-    private static WorkerTaskDispatcherService CreateSut(string pipeName, IMcpTask[] tasks)
-    {
-        var options = Options.Create(new WorkerHostOptions
-        {
-            Pipe = pipeName,
-            ReadyMarker = TestReadyMarker,
-        });
-
-        return new WorkerTaskDispatcherService(options, tasks, NullLogger<WorkerTaskDispatcherService>.Instance);
-    }
-
-    private static async Task<JsonElement> SendAsync(string pipeName, object request, CancellationToken cancellationToken)
-    {
-        await using var client = new NamedPipeClientStream(".", pipeName, PipeDirection.InOut, PipeOptions.Asynchronous);
-        await client.ConnectAsync(5000, cancellationToken);
-
-        var bytes = JsonSerializer.SerializeToUtf8Bytes(request, WorkerTaskDispatcherService.WorkerJsonOptions);
-        var channel = new LengthPrefixedFrameCodec(client);
-        await channel.WriteAsync(bytes, cancellationToken);
-
-        var responseBytes = await channel.ReadAsync(cancellationToken);
-        Assert.NotNull(responseBytes);
-
-        return JsonDocument.Parse(responseBytes!).RootElement.Clone();
-    }
 }

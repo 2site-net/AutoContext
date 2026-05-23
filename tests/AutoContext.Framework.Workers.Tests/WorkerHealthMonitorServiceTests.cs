@@ -1,32 +1,28 @@
 namespace AutoContext.Framework.Workers.Tests;
 
 using System.IO.Pipes;
-using System.Text;
 
-using AutoContext.Framework.Workers;
 using AutoContext.Framework.Tests.Support.Pipes;
-
-using Microsoft.Extensions.Logging.Abstractions;
+using AutoContext.Framework.Workers.Tests.Support;
 
 public sealed class WorkerHealthMonitorServiceTests
 {
-    private static readonly UTF8Encoding Utf8NoBom = new(encoderShouldEmitUTF8Identifier: false);
 
     [Fact]
     public async Task Should_send_client_id_and_keep_socket_open()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        var pipeName = NewPipeName();
+        var pipeName = PipeTestServer.UniqueName("actx-health-test");
 
-        await using var server = CreateServer(pipeName);
+        await using var server = PipeTestServer.Create(pipeName, PipeDirection.In);
         var acceptTask = server.WaitForConnectionAsync(cancellationToken);
 
-        await using var client = NewClient(pipeName, "dotnet");
+        await using var client = WorkerHealthMonitorServiceTestFactory.Create(pipeName, "dotnet");
         await client.StartAsync(cancellationToken);
 
         await acceptTask;
 
-        var clientId = await ReadClientIdAsync(server, cancellationToken);
+        var clientId = await server.ReadClientIdAsync(cancellationToken);
 
         Assert.Multiple(
             () => Assert.Equal("dotnet", clientId),
@@ -37,16 +33,16 @@ public sealed class WorkerHealthMonitorServiceTests
     public async Task Should_disconnect_when_stopped()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        var pipeName = NewPipeName();
+        var pipeName = PipeTestServer.UniqueName("actx-health-test");
 
-        await using var server = CreateServer(pipeName);
+        await using var server = PipeTestServer.Create(pipeName, PipeDirection.In);
         var acceptTask = server.WaitForConnectionAsync(cancellationToken);
 
-        var client = NewClient(pipeName, "workspace");
+        var client = WorkerHealthMonitorServiceTestFactory.Create(pipeName, "workspace");
         await client.StartAsync(cancellationToken);
 
         await acceptTask;
-        await ReadClientIdAsync(server, cancellationToken);
+        await server.ReadClientIdAsync(cancellationToken);
 
         await client.StopAsync(cancellationToken);
         await client.DisposeAsync();
@@ -63,7 +59,7 @@ public sealed class WorkerHealthMonitorServiceTests
     {
         var cancellationToken = TestContext.Current.CancellationToken;
 
-        await using var client = NewClient(pipeName: string.Empty, clientId: "dotnet");
+        await using var client = WorkerHealthMonitorServiceTestFactory.Create(pipeName: string.Empty, clientId: "dotnet");
         await client.StartAsync(cancellationToken);
 
         // Stops without ever having dialled — the test passes if no
@@ -75,11 +71,11 @@ public sealed class WorkerHealthMonitorServiceTests
     public async Task Should_dispose_cleanly_when_no_server_is_listening()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        var pipeName = NewPipeName();
+        var pipeName = PipeTestServer.UniqueName("actx-health-test");
 
         var sw = System.Diagnostics.Stopwatch.StartNew();
 
-        await using (var client = NewClient(pipeName, "dotnet"))
+        await using (var client = WorkerHealthMonitorServiceTestFactory.Create(pipeName, "dotnet"))
         {
             await client.StartAsync(cancellationToken);
             await Task.Delay(100, cancellationToken);
@@ -90,46 +86,5 @@ public sealed class WorkerHealthMonitorServiceTests
         // The connect timeout is 2s; allow generous CI slack.
         Assert.True(sw.Elapsed < TimeSpan.FromSeconds(6),
             $"Dispose took {sw.Elapsed.TotalSeconds:F2}s — expected < 6s.");
-    }
-
-    private static WorkerHealthMonitorService NewClient(string pipeName, string clientId) =>
-        new(pipeName, clientId, NullLogger<WorkerHealthMonitorService>.Instance);
-
-    private static NamedPipeServerStream CreateServer(string pipeName) =>
-        PipeTestServer.Create(pipeName, PipeDirection.In);
-
-    private static string NewPipeName() => PipeTestServer.UniqueName("actx-health-test");
-
-    private static async Task<string> ReadClientIdAsync(Stream server, CancellationToken cancellationToken)
-    {
-        // The client writes the id with no length prefix, so we read
-        // until either the buffer fills or the client falls silent.
-        var buffer = new byte[64];
-        using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        timeoutCts.CancelAfter(TimeSpan.FromSeconds(5));
-
-        var totalRead = 0;
-        while (totalRead < buffer.Length)
-        {
-            using var readTimeoutCts = CancellationTokenSource.CreateLinkedTokenSource(timeoutCts.Token);
-            readTimeoutCts.CancelAfter(TimeSpan.FromMilliseconds(100));
-            try
-            {
-                var read = await server.ReadAsync(buffer.AsMemory(totalRead), readTimeoutCts.Token);
-                if (read == 0)
-                {
-                    break;
-                }
-                totalRead += read;
-            }
-            catch (OperationCanceledException) when (!timeoutCts.IsCancellationRequested)
-            {
-                // No more bytes within the inner window — assume the
-                // client id has been fully transmitted.
-                break;
-            }
-        }
-
-        return Utf8NoBom.GetString(buffer, 0, totalRead);
     }
 }

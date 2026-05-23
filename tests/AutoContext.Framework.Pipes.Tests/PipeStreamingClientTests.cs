@@ -2,16 +2,17 @@ namespace AutoContext.Framework.Pipes.Tests;
 
 using System.Collections.Concurrent;
 using System.IO.Pipes;
-using System.Text;
 
+using AutoContext.Framework.Tests.Support.Async;
 using AutoContext.Framework.Tests.Support.Pipes;
 using AutoContext.Framework.Pipes;
 
 using Microsoft.Extensions.Logging.Abstractions;
 
+using static AutoContext.Framework.Tests.Support.Encodings.TestEncodings;
+
 public sealed class PipeStreamingClientTests
 {
-    private static readonly UTF8Encoding Utf8NoBom = new(encoderShouldEmitUTF8Identifier: false);
     private static readonly string[] FallbackEmptyName = ["a", "b"];
     private static readonly string[] FallbackOverflowDropsOldest = ["b", "c"];
 
@@ -22,7 +23,7 @@ public sealed class PipeStreamingClientTests
         var name = PipeTestServer.UniqueName("actx-psc-test");
         var captured = new MemoryStream();
         await using var server = PipeTestServer.Create(name, PipeDirection.In);
-        var serverTask = ServeIntoAsync(server, captured, cancellationToken);
+        var serverTask = server.ServeIntoAsync(captured, cancellationToken);
         var client = new PipeStreamingClient<string>(
             new PipeTransport(NullLogger<PipeTransport>.Instance),
             name,
@@ -33,7 +34,7 @@ public sealed class PipeStreamingClientTests
         {
             client.Post("hello");
             client.Post("world");
-            await WaitUntil(() => Utf8NoBom.GetString(captured.ToArray()) == "helloworld", cancellationToken);
+            await AsyncTestHelpers.WaitUntilAsync(() => Utf8NoBom.GetString(captured.ToArray()) == "helloworld", cancellationToken);
 
             Assert.Equal("helloworld", Utf8NoBom.GetString(captured.ToArray()));
         }
@@ -51,7 +52,7 @@ public sealed class PipeStreamingClientTests
         var name = PipeTestServer.UniqueName("actx-psc-test");
         var captured = new MemoryStream();
         await using var server = PipeTestServer.Create(name, PipeDirection.In);
-        var serverTask = ServeIntoAsync(server, captured, cancellationToken);
+        var serverTask = server.ServeIntoAsync(captured, cancellationToken);
         var client = new PipeStreamingClient<string>(
             new PipeTransport(NullLogger<PipeTransport>.Instance),
             name,
@@ -62,7 +63,7 @@ public sealed class PipeStreamingClientTests
         try
         {
             client.Post("A");
-            await WaitUntil(() => Utf8NoBom.GetString(captured.ToArray()) == "GREET\nA", cancellationToken);
+            await AsyncTestHelpers.WaitUntilAsync(() => Utf8NoBom.GetString(captured.ToArray()) == "GREET\nA", cancellationToken);
 
             Assert.Equal("GREET\nA", Utf8NoBom.GetString(captured.ToArray()));
         }
@@ -89,7 +90,7 @@ public sealed class PipeStreamingClientTests
         {
             client.Post("a");
             client.Post("b");
-            await WaitUntil(() => fallback.Count == 2, cancellationToken);
+            await AsyncTestHelpers.WaitUntilAsync(() => fallback.Count == 2, cancellationToken);
 
             Assert.Equal(FallbackEmptyName, fallback.ToArray());
         }
@@ -123,7 +124,7 @@ public sealed class PipeStreamingClientTests
             client.Post("a");
             client.Post("b");
             client.Post("c");
-            await WaitUntil(() => fallback.Count == 2, cancellationToken);
+            await AsyncTestHelpers.WaitUntilAsync(() => fallback.Count == 2, cancellationToken);
 
             Assert.Equal(FallbackOverflowDropsOldest, fallback.ToArray());
         }
@@ -171,49 +172,5 @@ public sealed class PipeStreamingClientTests
         });
 
         Assert.Null(ex);
-    }
-
-    private static async Task ServeIntoAsync(
-        NamedPipeServerStream server,
-        MemoryStream captured,
-        CancellationToken cancellationToken)
-    {
-        await server.WaitForConnectionAsync(cancellationToken);
-        var buffer = new byte[256];
-        while (true)
-        {
-            int read;
-            try
-            {
-                read = await server.ReadAsync(buffer, cancellationToken);
-            }
-            catch (OperationCanceledException)
-            {
-                break;
-            }
-            catch (IOException)
-            {
-                break;
-            }
-
-            if (read == 0)
-            {
-                break;
-            }
-            await captured.WriteAsync(buffer.AsMemory(0, read), cancellationToken);
-        }
-    }
-
-    private static async Task WaitUntil(Func<bool> predicate, CancellationToken cancellationToken)
-    {
-        var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(5);
-        while (!predicate())
-        {
-            if (DateTime.UtcNow > deadline)
-            {
-                throw new TimeoutException("WaitUntil timed out.");
-            }
-            await Task.Delay(10, cancellationToken);
-        }
     }
 }

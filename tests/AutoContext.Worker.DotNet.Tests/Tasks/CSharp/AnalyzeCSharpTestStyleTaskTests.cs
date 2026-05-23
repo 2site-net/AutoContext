@@ -3,17 +3,10 @@ namespace AutoContext.Worker.DotNet.Tests.Tasks.CSharp;
 using AutoContext.Worker.DotNet.Tasks.CSharp;
 using AutoContext.Framework.Tests.Support.Workers;
 
+using static AutoContext.Worker.DotNet.Tests.Support.Tasks.CSharp.TestStyleProjectPathsFactory;
+
 public sealed class AnalyzeCSharpTestStyleTaskTests
 {
-    private static (string ProjectDirectory, string ComparedPath) MakeProjectPaths(params string[] relativeSegments)
-    {
-        // Build OS-correct absolute paths without touching the file
-        // system — the analyzer's namespace check is purely textual.
-        var projectDirectory = Path.Combine(Path.GetTempPath(), "AutoContextFakeProj");
-        var comparedPath = Path.Combine([projectDirectory, .. relativeSegments]);
-        return (projectDirectory, comparedPath);
-    }
-
     [Fact]
     public async Task Should_pass_well_styled_test_class()
     {
