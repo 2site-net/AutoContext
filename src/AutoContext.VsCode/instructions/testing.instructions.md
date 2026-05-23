@@ -31,8 +31,7 @@ validate this instructions file — apply it manually.
 - [INST0011] **Do** break down large tests into smaller, focused ones; avoid monolithic tests.
 - [INST0012] **Do** wrap test-specific helper logic in local functions to keep the test body focused and readable.
 - [INST0013] **Do** pair positive and negative test cases for each behavior — test both the happy path and the boundary.
-- [INST0014] **Do** place reusable test-support code (fakes, fixtures, fake data, test helpers and utilities) inside a `Support` (or `support`) folder at the test-project root, organized by the same feature/domain structure as the production code under test.
-  - Cross-cutting helpers that don't map to any single production feature may live under a flat `Support/Shared` (or `support/shared`) subfolder. Use `Shared/` as a last resort — prefer mirroring production structure whenever a helper supports a specific feature.
+- [INST0014] **Do** place reusable test-support code (fakes, fixtures, fake data, test helpers and utilities) in the platform's conventional test-support location, mirroring the production project's organization. When production is organized by feature/domain (or layer/concern), test-support follows that same structure, and cross-cutting helpers that don't map to any single bucket go in a flat `Shared/` subfolder. When production is flat, test-support is flat too — no `Shared/` subfolder is warranted, because there is no categorization to share across. For the concrete on-disk layout and naming casing conventions, see the platform-specific testing instructions (e.g. `dotnet-testing.instructions.md`, `web-testing.instructions.md`).
 - [INST0015] **Do** follow these naming conventions for test-support types:
   - Fakes: `Fake<TypeName>` (e.g., `FakeFileSystem`).
   - Fixtures: `<TypeName>Fixture` (e.g., `DatabaseFixture`).

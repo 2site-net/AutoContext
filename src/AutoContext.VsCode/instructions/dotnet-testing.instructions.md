@@ -24,6 +24,7 @@ as done.
 - [INST0002] **Do** suffix every test class with `Tests` and prefix every test method with `Should_` or `Should_not_` (e.g., `Should_do_something`, `Should_not_do_something`).
 - [INST0003] **Do** name integration tests after the most dependent type (e.g., say `VirtualCodeEditor` depends on `SyntaxHighlighter` then `VirtualCodeEditorTests`).
 - [INST0009] **Do** extract test-support code that's reused across multiple test projects into a dedicated `<ProductionProject>.Tests.Support` project that mirrors the same feature/domain structure as the production code (e.g., shared support across `AutoContext.Framework.*.Tests` lives in `AutoContext.Framework.Tests.Support`).
+- [INST0010] **Do** place reusable test-support code that belongs to a single test project inside a `Support/` folder at the test-project root, mirroring the production project's feature/domain structure. Cross-cutting helpers go under `Support/Shared/` per the principle in `testing.instructions.md` INST0014.
 - [INST0004] **Don't** mix UI tests (e.g., Selenium, Playwright) into unit test projects — keep them in separate test projects.
 - [INST0005] **Don't** give tests arbitrary names (e.g., `DebugSomeType`, `AnotherTypeEssentialTests`); always name them `<UnitUnderTest>Tests` (e.g., `SyntaxHighlighterTests`, `VirtualCodeEditorTests`).
 - [INST0006] **Don't** add a new test class when an existing one already targets the same unit — extend it instead.
