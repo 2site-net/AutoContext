@@ -2,6 +2,7 @@
 #  PROJECT-SPECIFIC                                                           #
 ###############################################################################
 sandbox/
+scratch/
 appsettings.*.json
 .autocontext.json
 !/.autocontext.json
