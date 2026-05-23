@@ -33,6 +33,40 @@ unrelated commit either.
 
 ## Open
 
+## `get_autocontext_instructions_file` MCP tool returns stale instruction body
+
+- **Found**: 2026-05-23 during review of `tests/support/` refactor on
+  `dev/autocontext-engine`.
+- **Severity**: bug.
+- **Location**: `src/AutoContext.Mcp.Server/**` — whatever path serves
+  `get_autocontext_instructions_file` (and likely the shared cache
+  feeding `search_autocontext_instructions_files_by_content` /
+  `…_by_metadata`).
+- **Symptom**: calling
+  `get_autocontext_instructions_file({ name: "testing.instructions.md" })`
+  returned a body **missing INST0014/INST0015/INST0016** (the
+  `Support/` folder layout, the `Fake<TypeName>` / `<TypeName>Test<RoleName>`
+  naming rules, and the artifact-kind-folders prohibition), even though
+  those rules are present in the on-disk source at
+  `src/AutoContext.VsCode/instructions/testing.instructions.md`.
+  This caused a code review to flag a refactor as "diverging from
+  convention" when in fact the refactor followed INST0014–INST0016
+  exactly. The `description` and `sections[]` indexes in the
+  metadata-search response also reflected the older content.
+- **Fix shape**: audit the build/load pipeline that materialises
+  instruction-file bodies for the MCP server — likely an instructions
+  manifest, metadata JSON, or section cache produced by
+  `build.ps1`/`Prepare` that wasn't regenerated when
+  `testing.instructions.md` was last edited (or a generator step that
+  drops bullets it can't parse). Add a guard that the served body's
+  content hash matches the on-disk file at server-start, and either
+  fail loudly or re-read from disk when they diverge. Add a regression
+  test that fetches `testing.instructions.md` via the MCP tool and
+  asserts INST0014/INST0015/INST0016 are present in the returned body.
+- **Lands**: anytime — this silently misleads any agent that relies on
+  the MCP tools instead of opening the file directly, so worth
+  prioritising before another reviewer hits the same trap.
+
 ## Harden `PipeListener.Bind()` cleanup contract
 
 - **Found**: 2026-05-16 during Phase 1 commit #6 review
