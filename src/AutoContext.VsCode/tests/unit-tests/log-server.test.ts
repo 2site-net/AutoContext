@@ -2,8 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { connect, type Socket } from 'node:net';
 import { LogServer } from '#src/log-server';
 import { createFakeLogger } from '#support/fake-logger';
-import { pipePath } from '#support/pipe-helpers';
-import { waitFor } from '#support/wait-for';
+import { pipePath, waitFor } from 'autocontext-nodejs-tests-support';
 import type { ChannelLogger } from 'autocontext-nodejs-core';
 
 /**

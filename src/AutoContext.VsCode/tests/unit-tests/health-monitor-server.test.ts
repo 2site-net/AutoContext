@@ -2,8 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { __emitterInstances } from '#support/fake-vscode';
 import { HealthMonitorServer } from '#src/health-monitor-server.js';
 import { createFakeLogger } from '#support/fake-logger';
-import { connectAndSend } from '#support/pipe-helpers';
-import { waitFor } from '#support/wait-for';
+import { connectAndSend, waitFor } from 'autocontext-nodejs-tests-support';
 
 const fakeOutputChannel = createFakeLogger();
 

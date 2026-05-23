@@ -4,8 +4,7 @@ import { WorkerControlServer } from '#src/worker-control-server';
 import { ServerEntry } from '#src/server-entry';
 import type { WorkerManager } from '#src/worker-manager';
 import { createFakeLogger } from '#support/fake-logger';
-import { pipePath } from '#support/pipe-helpers';
-import { waitFor } from '#support/wait-for';
+import { pipePath, waitFor } from 'autocontext-nodejs-tests-support';
 
 const HEADER_BYTES = 4;
 

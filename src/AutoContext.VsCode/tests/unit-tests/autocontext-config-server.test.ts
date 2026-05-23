@@ -4,8 +4,7 @@ import { AutoContextConfigServer } from '#src/autocontext-config-server';
 import { AutoContextConfig } from '#src/autocontext-config';
 import type { AutoContextConfigManager } from '#src/autocontext-config-manager';
 import { createFakeLogger } from '#support/fake-logger';
-import { pipePath } from '#support/pipe-helpers';
-import { waitFor } from '#support/wait-for';
+import { pipePath, waitFor } from 'autocontext-nodejs-tests-support';
 
 const HEADER_BYTES = 4;
 const SUFFIX = 'cfgsrv' + Math.random().toString(16).slice(2, 10);

@@ -170,8 +170,12 @@ $nodeServers = @($serverManifest | Where-Object type -eq 'node')
 $dotnetServers = @($serverManifest | Where-Object type -eq 'dotnet')
 
 # Shared TypeScript libraries (no entry point) compiled before extension/servers.
-# Consumers reference them via npm `file:` deps.
-$tsLibraries = @('AutoContext.Nodejs.Core')
+# Consumers reference them via npm `file:` deps. Paths are repo-relative so
+# libraries can live under either src/ (production) or tests/ (test-only).
+$tsLibraries = @(
+    'tests/AutoContext.Nodejs.Tests.Support',
+    'src/AutoContext.Nodejs.Core'
+)
 
 # In CI, use 'npm ci' for deterministic lockfile-exact installs
 $npmInstallCmd = if ($env:CI) { 'ci' } else { 'install' }
@@ -432,9 +436,10 @@ function Build-TypeScript {
         Assert-ExternalCommand 'npx'
 
         # Build shared TS libraries first so consumers can resolve them via file: deps.
-        foreach ($libName in $tsLibraries) {
-            $libDir = Join-Path $repoRoot 'src' $libName
+        foreach ($libRelPath in $tsLibraries) {
+            $libDir = Join-Path $repoRoot $libRelPath
             if (-not (Test-Path $libDir)) { continue }
+            $libName = Split-Path $libRelPath -Leaf
 
             Push-Location $libDir
             try {
@@ -1475,8 +1480,10 @@ function Invoke-Clean {
     $targets = @()
 
     $targets += @{ Path = (Join-Path $extensionDir 'dist');    Label = 'TypeScript output (dist/)' }
-    foreach ($libName in $tsLibraries) {
-        $libDir = Join-Path $repoRoot 'src' $libName
+    foreach ($libRelPath in $tsLibraries) {
+        $libDir = Join-Path $repoRoot $libRelPath
+        if (-not (Test-Path $libDir)) { continue }
+        $libName = Split-Path $libRelPath -Leaf
         $targets += @{ Path = (Join-Path $libDir 'dist'); Label = "$libName output (dist/)" }
     }
     foreach ($server in $nodeServers) {
