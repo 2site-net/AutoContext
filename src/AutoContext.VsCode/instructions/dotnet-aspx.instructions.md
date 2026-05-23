@@ -51,5 +51,5 @@ the same change, follow the C# instructions and call
 ### ASP.NET AJAX
 
 - [INST0016] **Do** prefer `PageMethods` (static `[WebMethod]` on the page) or `ScriptService` (`[ScriptService]` web service) for lightweight AJAX calls — they return JSON directly without a full page lifecycle round trip.
-- [INST0017] **Don't** wrap large or complex UI regions in an `UpdatePanel` — `UpdatePanel` still executes the entire page lifecycle server-side and sends the full control HTML back; for anything beyond a simple partial refresh, use `PageMethods` or a dedicated service endpoint with client-side DOM updates.
-- [INST0018] **Do** set `UpdateMode="Conditional"` on every `UpdatePanel` and call `Update()` explicitly or use specific triggers — the default `Always` mode refreshes the panel on every async postback on the page, even unrelated ones.
+- [INST0017] **Do** set `UpdateMode="Conditional"` on every `UpdatePanel` and call `Update()` explicitly or use specific triggers — the default `Always` mode refreshes the panel on every async postback on the page, even unrelated ones.
+- [INST0018] **Don't** wrap large or complex UI regions in an `UpdatePanel` — `UpdatePanel` still executes the entire page lifecycle server-side and sends the full control HTML back; for anything beyond a simple partial refresh, use `PageMethods` or a dedicated service endpoint with client-side DOM updates.

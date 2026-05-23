@@ -83,8 +83,8 @@ validate this instructions file — apply it manually.
 ### Documentation
 
 - [INST0041] **Do** use `///` doc comments on all public types, functions, and properties — write a one-sentence summary followed by details if needed.
-- [INST0042] **Don't** write doc comments that restate the declaration — `/// Gets the name.` on `String get name` adds no value.
-- [INST0043] **Do** use square brackets in doc comments to reference other symbols — `/// Returns the [Widget] for the given [BuildContext].`
+- [INST0042] **Do** use square brackets in doc comments to reference other symbols — `/// Returns the [Widget] for the given [BuildContext].`
+- [INST0043] **Don't** write doc comments that restate the declaration — `/// Gets the name.` on `String get name` adds no value.
 
 ### Formatting
 

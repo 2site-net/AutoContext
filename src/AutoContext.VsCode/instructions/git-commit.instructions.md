@@ -34,23 +34,23 @@ omit any surrounding commentary.
 - [INST0004] **Do** keep the subject line under 50 characters. If the natural subject runs long, broaden the description or pick a wider scope rather than truncating words — a long subject usually signals that the framing is too narrow for what the body actually covers.
 - [INST0005] **Do** wrap the body at 72 characters.
 - [INST0006] **Do** separate the subject line from the body with a blank line.
-- [INST0017] **Do** make the subject line a true summary of the body. Every theme present in the body should be implied by the subject, and the subject should not promise more than the body delivers. If the body covers several related changes, raise the subject to the umbrella that covers all of them; if the body is about one specific thing, name that thing in the subject.
+- [INST0007] **Do** make the subject line a true summary of the body. Every theme present in the body should be implied by the subject, and the subject should not promise more than the body delivers. If the body covers several related changes, raise the subject to the umbrella that covers all of them; if the body is about one specific thing, name that thing in the subject.
 
 ### Content
 
-- [INST0007] **Do** use the body to explain what and why as opposed to how.
-- [INST0008] **Do** focus on behavioral changes — what the software does now that it didn't before; only mention implementation details when they are significant to the change (e.g., switching from polling to WebSockets).
-- [INST0009] **Don't** use the body to describe how the change was made; that belongs in the code itself.
-- [INST0010] **Don't** list file paths, folder structures, or per-file breakdowns — the diff already shows that.
-- [INST0011] **Don't** include counts (number of tests, demos, cases, lines changed, etc.).
-- [INST0012] **Don't** describe CSS techniques, HTML patterns, internal wiring, or implementation mechanics.
-- [INST0013] **Don't** enumerate parameters, properties, or method names added — summarize the capability instead.
-- [INST0014] **Don't** mention checklist updates, README badges, or documentation housekeeping unless that's the primary purpose of the commit.
-- [INST0015] **Do** prefer prose. Use lists only when the commit genuinely covers multiple independent changes, and ensure each item explains behavior or rationale — not file paths, counts, or internal names. When you do use lists:
+- [INST0008] **Do** use the body to explain what and why as opposed to how.
+- [INST0009] **Do** focus on behavioral changes — what the software does now that it didn't before; only mention implementation details when they are significant to the change (e.g., switching from polling to WebSockets).
+- [INST0010] **Do** prefer prose. Use lists only when the commit genuinely covers multiple independent changes, and ensure each item explains behavior or rationale — not file paths, counts, or internal names. When you do use lists:
   - Use `-` (hyphen) for bullets, never `*` or `•`.
   - Use `1.`, `2.`, `3.` for ordered or sequential steps.
   - Don't nest deeper than two levels.
   - Don't mix bullet styles in the same body.
   - Never use "Key features:" or similar section headers.
-- [INST0016] **Don't** include sensitive information in commit messages.
-- [INST0018] **Do** treat documentation rewrites as behavioral changes for the *reader*: explain what the documentation now conveys (or no longer misleads about) rather than which sections were edited. A docs body should describe the new accuracy or new guidance the reader gets, not a tour of the headings that were touched.
+- [INST0011] **Do** treat documentation rewrites as behavioral changes for the *reader*: explain what the documentation now conveys (or no longer misleads about) rather than which sections were edited. A docs body should describe the new accuracy or new guidance the reader gets, not a tour of the headings that were touched.
+- [INST0012] **Don't** use the body to describe how the change was made; that belongs in the code itself.
+- [INST0013] **Don't** list file paths, folder structures, or per-file breakdowns — the diff already shows that.
+- [INST0014] **Don't** include counts (number of tests, demos, cases, lines changed, etc.).
+- [INST0015] **Don't** describe CSS techniques, HTML patterns, internal wiring, or implementation mechanics.
+- [INST0016] **Don't** enumerate parameters, properties, or method names added — summarize the capability instead.
+- [INST0017] **Don't** mention checklist updates, README badges, or documentation housekeeping unless that's the primary purpose of the commit.
+- [INST0018] **Don't** include sensitive information in commit messages.
