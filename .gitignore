@@ -42,6 +42,9 @@ Thumbs.db
 **/[Oo]bj/
 **/[Ll]og/
 **/[Ll]ogs/
+# Source folders named "Logs" hold wire-DTO source code, not build-time log output.
+!src/**/Logs/
+!tests/**/Logs/
 artifacts/
 publish/
 out/

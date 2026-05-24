@@ -878,13 +878,30 @@ the `EngineCrashWriter` it depends on is wired up here. Worker spawn
 
 ## Phase 2 — Engine logging pipeline and cache housekeeping
 
-**Status**: Not started.
+**Status**: In progress on branch `features/engine-logging-and-housekeeping`.
+
+| # | Commit subject | State |
+|---|---|---|
+| 1 | `feat(protocol): introduce LogRecord wire envelope` | DONE |
+| 2 | `feat(engine-core): add log ingest channel and engine.log file writer` | NOT STARTED |
+| 3 | `feat(engine-core): route engine ILogger<T> through ingest channel via EngineLoggerProvider` | NOT STARTED |
+| 4 | `feat(engine-core): add RetentionPolicy and log rotation with RotatedLogCleaner` | NOT STARTED |
+| 5 | `feat(engine-core): fan out engine records on logs pipe with per-subscriber buffer and slow-subscriber eviction` | NOT STARTED |
+| 6 | `feat(engine): serve Logs.GetEngine and Logs.TailEngine over rpc` | NOT STARTED |
+| 7 | `feat(engine-core): add RegistryEntryReader with Process.StartTime liveness check` | NOT STARTED |
+| 8 | `feat(engine-core): add SubtreeRegistryStatus and CacheRootScanner` | NOT STARTED |
+| 9 | `feat(engine-core): add StaleSubtreeCleaner and HousekeepingService shutdown sweep` | NOT STARTED |
+| 10 | `test(engine): integration test for cross-engine shutdown-sweep cleanup` | NOT STARTED |
+| 11 | `docs(plan): mark Phase 2 complete` | NOT STARTED |
 
 Two equal-tier features land together because they share the
 per-instance subtree shape (both write under it) and the
 `engine-registry.json` reader (`RegistryEntryReader` consults the
 same entries `RegistryFileService` produces). Neither is subordinate to
-the other; each gets its own subsection below.
+the other; each gets its own subsection below. Rows 1–6 implement
+2a (engine logging pipeline); rows 7–10 implement 2b (cache
+housekeeping). Row 4's `RetentionPolicy` is the shared seam both
+features compose over, so it must land before row 9.
 
 ### 2a — Engine logging pipeline
 
