@@ -45,28 +45,41 @@ using Microsoft.Extensions.Options;
 /// </list>
 /// </para>
 /// <para>
-/// Rotation per <c>--logging</c> thresholds, retention-aware
-/// cleanup of rotated files, fan-out to <c>logs</c>-pipe and
-/// <c>Logs.Tail*</c> subscribers, and per-worker routing all land
-/// in later commits of Phase 2 — this row introduces the ingest
-/// channel and the active-file writer, nothing more. Row 5
-/// reshapes the drain loop into a dispatcher that fans each
-/// drained record out to two inner sinks (file + broadcaster);
-/// the service keeps owning the single drain loop.
+/// Rotation per <c>--logging</c> thresholds and retention-aware
+/// cleanup of rotated files land here in row 4: every record
+/// drained from the channel updates a running byte / line
+/// counter against the configured
+/// <see cref="LogRotationThresholds"/>; once either ceiling is
+/// crossed the active file is renamed to
+/// <c>engine-yyyyMMddTHHmmssZ.log</c> and a fresh
+/// <c>engine.log</c> is opened, after which the rotated-log
+/// directory is swept by <see cref="RotatedLogCleaner"/>.
+/// Fan-out to <c>logs</c>-pipe and <c>Logs.Tail*</c> subscribers
+/// and per-worker routing are still later rows of Phase 2.
+/// Row 5 reshapes the drain loop into a dispatcher that fans
+/// each drained record out to two inner sinks (file +
+/// broadcaster); the service keeps owning the single drain loop.
 /// </para>
 /// </remarks>
 internal sealed partial class LogFileSinkService : BackgroundService
 {
+    /// <summary>Stable basename of the active engine log file
+    /// (without the rotation timestamp segment).</summary>
+    internal const string EngineLogBaseName = "engine";
+
     /// <summary>Basename of the active engine log file.</summary>
-    internal const string EngineLogFileName = "engine.log";
+    internal const string EngineLogFileName = EngineLogBaseName + ".log";
 
     private static readonly byte[] LineTerminator = "\n"u8.ToArray();
 
     private readonly LogChannel _channel;
+    private readonly RotatedLogCleaner _cleaner;
     private readonly TaskCompletionSource _executeStarted =
         new(TaskCreationOptions.RunContinuationsAsynchronously);
     private readonly string _filePath;
     private readonly ILogger<LogFileSinkService> _logger;
+    private readonly LogRotationThresholds _thresholds;
+    private readonly TimeProvider _timeProvider;
 
     /// <summary>
     /// Creates a new <see cref="LogFileSinkService"/> targeted at
@@ -78,6 +91,14 @@ internal sealed partial class LogFileSinkService : BackgroundService
     /// <param name="options">Engine options carrying the workspace
     /// path, instance id, and optional cache-root override the
     /// target path is derived from.</param>
+    /// <param name="thresholds">Per-verbosity rotation thresholds
+    /// — production composes via
+    /// <see cref="LogRotationThresholds.ForVerbosity(EngineLoggingVerbosity)"/>;
+    /// tests pass small values directly to keep fixtures cheap.</param>
+    /// <param name="cleaner">Retention-aware sweeper invoked on
+    /// every successful rotation.</param>
+    /// <param name="timeProvider">Clock source used to stamp
+    /// rotated-file names.</param>
     /// <param name="logger">Diagnostic sink for I/O failures inside
     /// the drain loop.</param>
     /// <exception cref="ArgumentNullException">
@@ -86,14 +107,23 @@ internal sealed partial class LogFileSinkService : BackgroundService
     public LogFileSinkService(
         LogChannel channel,
         IOptions<EngineOptions> options,
+        LogRotationThresholds thresholds,
+        RotatedLogCleaner cleaner,
+        TimeProvider timeProvider,
         ILogger<LogFileSinkService> logger)
     {
         ArgumentNullException.ThrowIfNull(channel);
         ArgumentNullException.ThrowIfNull(options);
+        ArgumentNullException.ThrowIfNull(thresholds);
+        ArgumentNullException.ThrowIfNull(cleaner);
+        ArgumentNullException.ThrowIfNull(timeProvider);
         ArgumentNullException.ThrowIfNull(logger);
 
         _channel = channel;
+        _cleaner = cleaner;
         _logger = logger;
+        _thresholds = thresholds;
+        _timeProvider = timeProvider;
         _filePath = ComposeEngineLogPath(options.Value);
     }
 
@@ -133,6 +163,10 @@ internal sealed partial class LogFileSinkService : BackgroundService
         "Design",
         "CA1031:Do not catch general exception types",
         Justification = "Per-record file write failures are swallowed (after one diagnostic log) so a transient I/O fault does not tear down the drain loop and drop every subsequent record on the floor.")]
+    [SuppressMessage(
+        "Reliability",
+        "CA2000:Dispose objects before losing scope",
+        Justification = "Ownership of the active FileStream travels through the rotation loop — each iteration either keeps the current stream or replaces it with a fresh one whose ownership transfers to the same local. The outer try/finally disposes whichever stream the loop holds when it exits.")]
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         // Signal StartAsync that the drain loop has taken
@@ -140,52 +174,83 @@ internal sealed partial class LogFileSinkService : BackgroundService
         // for the cancellation race this guards against.
         _executeStarted.TrySetResult();
 
-        var directory = Path.GetDirectoryName(_filePath);
+        var directory = Path.GetDirectoryName(_filePath)
+            ?? throw new InvalidOperationException(
+                $"Engine log path '{_filePath}' has no parent directory; "
+                + "ComposeEngineLogPath must always yield a rooted path.");
 
-        if (!string.IsNullOrEmpty(directory))
+        Directory.CreateDirectory(directory);
+
+        var stream = OpenAppendStream(_filePath);
+        var bytesWritten = stream.Length;
+        var lineCount = 0;
+
+        try
         {
-            Directory.CreateDirectory(directory);
+            // ReadAllAsync and the per-record writes intentionally
+            // run on CancellationToken.None: graceful shutdown
+            // completes the channel via StopAsync's _channel.Complete()
+            // call, so the foreach drains every buffered record
+            // before exiting. We deliberately do NOT honour
+            // stoppingToken inside the loop — BackgroundService
+            // cancels it on StopAsync, which would race the drain
+            // and lose buffered records (the very thing this service
+            // exists to persist). Host-shutdown grace is bounded
+            // upstream by the IHostApplicationLifetime shutdown
+            // timeout, which BackgroundService.StopAsync threads
+            // through its own Task.Delay race.
+
+            await foreach (var record in _channel.ReadAllAsync(CancellationToken.None).ConfigureAwait(false))
+            {
+                try
+                {
+                    var bytes = JsonSerializer.SerializeToUtf8Bytes(
+                        record,
+                        ProtocolJsonContext.Default.LogRecord);
+
+                    await stream.WriteAsync(bytes, CancellationToken.None).ConfigureAwait(false);
+                    await stream.WriteAsync(LineTerminator, CancellationToken.None).ConfigureAwait(false);
+                    await stream.FlushAsync(CancellationToken.None).ConfigureAwait(false);
+
+                    bytesWritten += bytes.Length + LineTerminator.Length;
+                    lineCount += 1;
+                }
+                catch (Exception ex)
+                {
+                    LogAppendFailed(_logger, _filePath, ex);
+                    continue;
+                }
+
+                if (lineCount >= _thresholds.MaxLines
+                    || bytesWritten >= _thresholds.MaxBytes)
+                {
+                    var rotation = await TryRotateAsync(stream, directory).ConfigureAwait(false);
+                    stream = rotation.Stream;
+
+                    // Reset BOTH counters whether or not the
+                    // rename actually happened. On a successful
+                    // rotation the new active file starts empty.
+                    // On a deferred rotation (same-UTC-second
+                    // collision or a transient I/O failure) the
+                    // active file is still in place, but we must
+                    // not retry on every subsequent record — that
+                    // would be a per-record busy loop of
+                    // dispose+probe+reopen until the clock
+                    // advances. Resetting lets writes accumulate
+                    // another full threshold's worth before the
+                    // next attempt, by which point the UTC second
+                    // has long since advanced. The cost is a
+                    // bounded worst-case overshoot of 2× the
+                    // configured threshold on the deferred file,
+                    // never compounding.
+                    bytesWritten = rotation.Rotated ? 0L : stream.Length;
+                    lineCount = 0;
+                }
+            }
         }
-
-        var stream = new FileStream(
-            _filePath,
-            FileMode.Append,
-            FileAccess.Write,
-            FileShare.Read,
-            bufferSize: 4096,
-            useAsync: true);
-
-        await using var configured = stream.ConfigureAwait(false);
-
-        // ReadAllAsync and the per-record writes intentionally
-        // run on CancellationToken.None: graceful shutdown
-        // completes the channel via StopAsync's _channel.Complete()
-        // call, so the foreach drains every buffered record
-        // before exiting. We deliberately do NOT honour
-        // stoppingToken inside the loop — BackgroundService
-        // cancels it on StopAsync, which would race the drain
-        // and lose buffered records (the very thing this service
-        // exists to persist). Host-shutdown grace is bounded
-        // upstream by the IHostApplicationLifetime shutdown
-        // timeout, which BackgroundService.StopAsync threads
-        // through its own Task.Delay race.
-
-        await foreach (var record in _channel.ReadAllAsync(CancellationToken.None).ConfigureAwait(false))
+        finally
         {
-            try
-            {
-                var bytes = JsonSerializer.SerializeToUtf8Bytes(
-                    record,
-                    ProtocolJsonContext.Default.LogRecord);
-
-                await stream.WriteAsync(bytes, CancellationToken.None).ConfigureAwait(false);
-                await stream.WriteAsync(LineTerminator, CancellationToken.None).ConfigureAwait(false);
-                await stream.FlushAsync(CancellationToken.None).ConfigureAwait(false);
-            }
-            catch (Exception ex)
-            {
-                LogAppendFailed(_logger, _filePath, ex);
-            }
+            await stream.DisposeAsync().ConfigureAwait(false);
         }
     }
 
@@ -207,4 +272,82 @@ internal sealed partial class LogFileSinkService : BackgroundService
         Level = LogLevel.Error,
         Message = "Failed to append log record to {FilePath}.")]
     private static partial void LogAppendFailed(ILogger logger, string filePath, Exception exception);
+
+    [LoggerMessage(
+        EventId = 2,
+        Level = LogLevel.Warning,
+        Message = "Rotation of {ActiveFile} collided with existing rotated file {RotatedFile}; deferring to the next record.")]
+    private static partial void LogRotationCollision(ILogger logger, string activeFile, string rotatedFile);
+
+    [LoggerMessage(
+        EventId = 3,
+        Level = LogLevel.Error,
+        Message = "Rotation of {ActiveFile} failed; the active file will be reopened and rotation retried on the next record.")]
+    private static partial void LogRotationFailed(ILogger logger, string activeFile, Exception exception);
+
+    private static FileStream OpenAppendStream(string path)
+        => new(
+            path,
+            FileMode.Append,
+            FileAccess.Write,
+            FileShare.Read,
+            bufferSize: 4096,
+            useAsync: true);
+
+    /// <summary>
+    /// Closes <paramref name="current"/>, renames the active log
+    /// file to a rotated sibling stamped with the current clock,
+    /// invokes the retention sweeper, and opens a fresh active
+    /// file. Returns the freshly opened stream together with a
+    /// flag indicating whether the rename actually happened —
+    /// <see langword="false"/> on a same-second collision or a
+    /// transient I/O failure, in which case the active file
+    /// stays in place and the next attempt fires against a fresh
+    /// timestamp.
+    /// </summary>
+    /// <remarks>
+    /// Retention sweep failures are isolated from the rotation
+    /// outcome: a successful rename followed by a failing sweep
+    /// still reports <see cref="RotationResult.Rotated"/> =
+    /// <see langword="true"/>, because the active file genuinely
+    /// rotated. The sweep failure is logged and survives until
+    /// the next rotation retries it.
+    /// </remarks>
+    [SuppressMessage(
+        "Design",
+        "CA1031:Do not catch general exception types",
+        Justification = "Rotation failures are logged and swallowed so a wedged file system never tears down the drain loop — the active file stays in use and the next record retries the rotation.")]
+    [SuppressMessage(
+        "Reliability",
+        "CA2000:Dispose objects before losing scope",
+        Justification = "The freshly opened FileStream is returned to the caller (ExecuteAsync), which owns its disposal via the outer try/finally around the drain loop.")]
+    private async Task<RotationResult> TryRotateAsync(FileStream current, string directory)
+    {
+        try
+        {
+            await current.DisposeAsync().ConfigureAwait(false);
+
+            var rotatedFileName = RotatedLogCleaner.ComposeRotatedFileName(
+                EngineLogBaseName,
+                _timeProvider.GetUtcNow());
+            var rotatedPath = Path.Combine(directory, rotatedFileName);
+
+            if (File.Exists(rotatedPath))
+            {
+                LogRotationCollision(_logger, _filePath, rotatedPath);
+                return new RotationResult(OpenAppendStream(_filePath), Rotated: false);
+            }
+
+            File.Move(_filePath, rotatedPath, overwrite: false);
+            _cleaner.DeleteExpired(directory, EngineLogBaseName);
+            return new RotationResult(OpenAppendStream(_filePath), Rotated: true);
+        }
+        catch (Exception ex)
+        {
+            LogRotationFailed(_logger, _filePath, ex);
+            return new RotationResult(OpenAppendStream(_filePath), Rotated: false);
+        }
+    }
+
+    private readonly record struct RotationResult(FileStream Stream, bool Rotated);
 }

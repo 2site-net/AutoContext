@@ -91,6 +91,23 @@ public static class EngineHostBuilderExtensions
         // final word on its own row. The worker-bound producer
         // (Engine.WriteLog) lands in a later phase.
         builder.Services.TryAddSingleton<LogChannel>();
+
+        // Rotation + retention support for the file sink. The
+        // thresholds factory pins itself to the resolved
+        // EngineOptions.Logging verbosity at first resolve; the
+        // singletons composed below are read-only after startup.
+        // RetentionPolicy is the sole reader of
+        // EngineOptions.Retention — both the rotated-log cleaner
+        // here and the cross-instance subtree cleaner in Phase 2b
+        // consult it instead of reading the option directly.
+        builder.Services.TryAddSingleton<RetentionPolicy>();
+        builder.Services.TryAddSingleton(sp =>
+        {
+            var verbosity = sp.GetRequiredService<IOptions<EngineOptions>>().Value.Logging;
+            return LogRotationThresholds.ForVerbosity(verbosity);
+        });
+        builder.Services.TryAddSingleton<RotatedLogCleaner>();
+
         builder.Services.TryAddEnumerable(
             ServiceDescriptor.Singleton<IHostedService, LogFileSinkService>());
 
