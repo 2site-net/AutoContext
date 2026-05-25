@@ -7,9 +7,9 @@ using AutoContext.Engine.Protocol.Messages.Logs;
 /// <summary>
 /// Single in-process ingest channel for engine log records.
 /// Producers — the engine's own <c>ILogger&lt;T&gt;</c> records
-/// routed via <c>EngineLoggerProvider</c> in a later phase, and
-/// the worker-bound <c>Engine.WriteLog</c> RPC handler in Phase 8
-/// — enqueue <see cref="LogRecord"/> instances through
+/// routed via <c>EngineLoggerProvider</c> (row 3) and the
+/// worker-bound <c>Engine.WriteLog</c> RPC handler in Phase 8 —
+/// enqueue <see cref="LogRecord"/> instances through
 /// <see cref="TryWrite"/>; <c>LogFileSinkService</c> drains the
 /// channel via <see cref="ReadAllAsync"/> and dispatches each
 /// record to the file sink (and, from row 5 onwards, the

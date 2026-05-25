@@ -71,7 +71,12 @@ internal sealed class EngineLoggerProvider : ILoggerProvider
     /// <inheritdoc />
     /// <remarks>
     /// Clears the per-category cache. Does not dispose the
-    /// <see cref="LogChannel"/> — see the type's remarks.
+    /// <see cref="LogChannel"/> — see the type's remarks. The
+    /// provider is intentionally re-usable after <see cref="Dispose"/>:
+    /// subsequent <see cref="CreateLogger"/> calls repopulate the
+    /// cache and emit through the still-live channel, matching
+    /// the behaviour of <c>ConsoleLoggerProvider</c> and the rest
+    /// of the <c>Microsoft.Extensions.Logging</c> default set.
     /// </remarks>
     public void Dispose()
         => _loggers.Clear();

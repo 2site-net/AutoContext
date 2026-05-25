@@ -86,8 +86,8 @@ public sealed class EngineLoggerProviderTests
 
         // Assert — the record posted after the provider's Dispose
         // still reaches the channel because the provider never
-        // owned it. New loggers obtained from the same (disposed)
-        // provider remain functional for in-flight callers.
+        // owned it; pre-existing loggers stay functional for
+        // in-flight callers that captured them before Dispose.
         var drained = new List<string>();
         await foreach (var record in channel.ReadAllAsync(TestContext.Current.CancellationToken))
         {
