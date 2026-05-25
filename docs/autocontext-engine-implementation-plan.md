@@ -884,7 +884,7 @@ the `EngineCrashWriter` it depends on is wired up here. Worker spawn
 |---|---|---|
 | 1 | `feat(protocol): introduce LogRecord wire envelope` | DONE |
 | 2 | `feat(engine-core): add log ingest channel and engine.log file writer` | DONE |
-| 3 | `feat(engine-core): route engine ILogger<T> through ingest channel via EngineLoggerProvider` | NOT STARTED |
+| 3 | `feat(engine-core): route engine ILogger<T> through ingest channel via EngineLoggerProvider` | DONE |
 | 4 | `feat(engine-core): add RetentionPolicy and log rotation with RotatedLogCleaner` | NOT STARTED |
 | 5 | `feat(engine-core): fan out engine records on logs pipe with per-subscriber buffer and slow-subscriber eviction` | NOT STARTED |
 | 6 | `feat(engine): serve Logs.GetEngine and Logs.TailEngine over rpc` | NOT STARTED |

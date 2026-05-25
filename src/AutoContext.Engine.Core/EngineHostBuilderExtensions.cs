@@ -11,6 +11,7 @@ using AutoContext.Framework.Pipes;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 /// <summary>
@@ -87,12 +88,23 @@ public static class EngineHostBuilderExtensions
         // it — hosted services stop in reverse registration order,
         // so the registry's own teardown can still log through
         // the live drain loop; the file service then has the
-        // final word on its own row. The producers (engine
-        // ILogger<T> routing, worker-bound Engine.WriteLog) land
-        // in later commits of Phase 2.
+        // final word on its own row. The worker-bound producer
+        // (Engine.WriteLog) lands in a later phase.
         builder.Services.TryAddSingleton<LogChannel>();
         builder.Services.TryAddEnumerable(
             ServiceDescriptor.Singleton<IHostedService, LogFileSinkService>());
+
+        // Engine ILogger<T> → LogChannel routing. Registered as an
+        // ILoggerProvider on the host's logging pipeline so every
+        // engine record materialises as a LogRecord on the channel
+        // (alongside the framework default console/debug providers
+        // Host.CreateApplicationBuilder installs). The provider
+        // does not own the channel — the file-sink service above
+        // is the channel's terminator — so this registration's
+        // order relative to LogFileSinkService is immaterial for
+        // teardown.
+        builder.Services.TryAddEnumerable(
+            ServiceDescriptor.Singleton<ILoggerProvider, EngineLoggerProvider>());
 
         builder.Services.TryAddSingleton(sp =>
         {
