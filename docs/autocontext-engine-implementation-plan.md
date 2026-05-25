@@ -393,8 +393,8 @@ src/
       StaleSubtreeCleaner.cs                   # pattern-matches SubtreeRegistryStatus, deletes with concurrent-sweep tolerance (DirectoryNotFoundException counts as success)
       RetentionPolicy.cs                       # single reader of `--retention` — resolves the window per SubtreeRegistryStatus arm (per-entry, unregistered-fallback, foreign)
     Logging/                                   # engine sink, rotation, rotated-file cleanup
-      LogSink.cs                               # single-channel ingest, file writer, fan-out
-      LogFileWriter.cs                         # writes engine.log / worker-<id>.log
+      LogChannel.cs                            # single-channel ingest; TryWrite / ReadAllAsync / Complete
+      LogFileSinkService.cs                    # drain loop + dispatcher; owns the per-target file appenders (engine.log / worker-<id>.log); from row 5 also fans drained records to the broadcaster
       LogRotator.cs                            # --logging thresholds (normal vs debug)
       RotatedLogCleaner.cs                     # deletes rotated log files past retention inside a live subtree (uses RetentionPolicy from Housekeeping/)
       WorkerLogRouter.cs                       # routes Engine.WriteLog by category prefix
@@ -883,7 +883,7 @@ the `EngineCrashWriter` it depends on is wired up here. Worker spawn
 | # | Commit subject | State |
 |---|---|---|
 | 1 | `feat(protocol): introduce LogRecord wire envelope` | DONE |
-| 2 | `feat(engine-core): add log ingest channel and engine.log file writer` | NOT STARTED |
+| 2 | `feat(engine-core): add log ingest channel and engine.log file writer` | DONE |
 | 3 | `feat(engine-core): route engine ILogger<T> through ingest channel via EngineLoggerProvider` | NOT STARTED |
 | 4 | `feat(engine-core): add RetentionPolicy and log rotation with RotatedLogCleaner` | NOT STARTED |
 | 5 | `feat(engine-core): fan out engine records on logs pipe with per-subscriber buffer and slow-subscriber eviction` | NOT STARTED |
@@ -925,10 +925,18 @@ and rotated files are cleaned per `--retention`.
   itself moves to where every other cross-side DTO lives (P1: one
   record envelope; P3: wire shape owned by Protocol).
 - `AutoContext.Engine.Core/Logging/` — engine-side log sink:
-  one ingest channel, file writer for `engine.log`, fan-out to
-  `logs`-pipe and `Logs.Tail*` subscribers (per-subscriber bounded
-  buffer; slow subscribers evicted with a terminal
-  `{ kind: "evicted", reason: "slow-subscriber" }` frame).
+  one ingest channel (`LogChannel`), one drain loop
+  (`LogFileSinkService`) that dispatches each drained record to
+  inner sinks — the file sink (today only; routes to
+  `engine.log` / `worker-<id>.log` from row 8 by `category`
+  prefix) and, from row 5, the `logs`-pipe / `Logs.Tail*`
+  broadcaster (per-subscriber bounded buffer; slow subscribers
+  evicted with a terminal
+  `{ kind: "evicted", reason: "slow-subscriber" }` frame). Row 5
+  reshapes `LogFileSinkService` from "drain-and-write" into
+  "drain-and-dispatch" so the broadcaster sits next to the file
+  sink as a sibling inner sink rather than as a second consumer
+  of `LogChannel` (the channel stays single-reader).
 - Rotation per `--logging` thresholds (1k lines / 5 MB normal; 5k /
   25 MB debug); rotated-file naming `engine-<iso8601>.log`.
 - `RotatedLogCleaner` deletes rotated files older than the

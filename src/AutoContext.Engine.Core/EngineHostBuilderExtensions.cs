@@ -3,6 +3,7 @@ namespace AutoContext.Engine.Core;
 using AutoContext.Engine.Core.Infrastructure;
 using AutoContext.Engine.Core.Infrastructure.Diagnostics;
 using AutoContext.Engine.Core.Lifecycle;
+using AutoContext.Engine.Core.Logging;
 using AutoContext.Engine.Core.Registry;
 using AutoContext.Engine.Core.Watchdogs;
 using AutoContext.Framework.Pipes;
@@ -65,16 +66,33 @@ public static class EngineHostBuilderExtensions
         builder.Services.TryAddSingleton(TimeProvider.System);
 
         // Registration order encodes the stop order (hosted
-        // services stop in reverse). RegistryFileService is
-        // registered first so it stops LAST: future hosted writers
-        // (Phase 2b housekeeping, crash-writers) register after it,
-        // stop before it, and can therefore await one final
-        // WriteAsync through a still-live channel during their
-        // own StopAsync. The file service itself owns the
-        // lifecycle of this engine's own row — append on Start,
-        // best-effort remove on Stop — so the writer/file-service
-        // split that earlier drafts proposed is collapsed into a
+        // services stop in reverse). The log pipeline registers
+        // first so it stops LAST — every other hosted service,
+        // including RegistryFileService and the watchdogs below,
+        // can still log through the live drain loop during its
+        // own StopAsync. RegistryFileService then stops next-to-
+        // last so future hosted writers (Phase 2b housekeeping,
+        // crash-writers) registered after it can still await one
+        // final WriteAsync through its still-live channel. The
+        // file service itself owns the lifecycle of this
+        // engine's own row — append on Start, best-effort
+        // remove on Stop — so the writer/file-service split
+        // that earlier drafts proposed is collapsed into a
         // single service.
+
+        // Engine logging pipeline: LogChannel is the
+        // in-process ingest channel; LogFileSinkService drains it
+        // into <cacheRoot>/<workspaceHash>/<instanceId>/logs/engine.log.
+        // Registered BEFORE RegistryFileService so it stops AFTER
+        // it — hosted services stop in reverse registration order,
+        // so the registry's own teardown can still log through
+        // the live drain loop; the file service then has the
+        // final word on its own row. The producers (engine
+        // ILogger<T> routing, worker-bound Engine.WriteLog) land
+        // in later commits of Phase 2.
+        builder.Services.TryAddSingleton<LogChannel>();
+        builder.Services.TryAddEnumerable(
+            ServiceDescriptor.Singleton<IHostedService, LogFileSinkService>());
 
         builder.Services.TryAddSingleton(sp =>
         {
