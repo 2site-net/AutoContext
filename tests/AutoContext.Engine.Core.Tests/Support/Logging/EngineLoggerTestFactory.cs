@@ -1,6 +1,7 @@
 namespace AutoContext.Engine.Core.Tests.Support.Logging;
 
 using AutoContext.Engine.Core.Logging;
+using AutoContext.Engine.Core.Logging.Primitives;
 using AutoContext.Engine.Core.Tests.Support.Shared;
 
 internal static class EngineLoggerTestFactory

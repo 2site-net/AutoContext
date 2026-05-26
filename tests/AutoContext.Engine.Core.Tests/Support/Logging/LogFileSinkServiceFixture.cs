@@ -4,12 +4,14 @@ using System.Diagnostics.CodeAnalysis;
 
 using AutoContext.Engine.Core;
 using AutoContext.Engine.Core.Logging;
+using AutoContext.Engine.Core.Logging.Primitives;
 using AutoContext.Engine.Core.Tests.Support;
+using AutoContext.Engine.Core.Tests.Support.Logging.Primitives;
 
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 
-using static AutoContext.Engine.Core.Tests.Support.EngineCrashWriterFixture;
+using static AutoContext.Engine.Core.Tests.Support.Machine.EngineCrashWriterFixture;
 
 /// <summary>
 /// Shared xUnit class fixture for tests that exercise a

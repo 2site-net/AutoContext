@@ -1,7 +1,7 @@
-namespace AutoContext.Engine.Core.Tests.Logging;
+namespace AutoContext.Engine.Core.Tests.Logging.Primitives;
 
 using AutoContext.Engine.Core;
-using AutoContext.Engine.Core.Logging;
+using AutoContext.Engine.Core.Logging.Primitives;
 
 public sealed class LogRotationThresholdsTests
 {
@@ -9,7 +9,7 @@ public sealed class LogRotationThresholdsTests
     public void ForVerbosity_should_map_normal_to_design_doc_thresholds()
     {
         // Act
-        var thresholds = LogRotationThresholds.ForVerbosity(EngineLoggingVerbosity.Normal);
+        var thresholds = LogRotationThresholds.ForVerbosity(LogVerbosity.Normal);
 
         // Assert
         Assert.Multiple(
@@ -21,7 +21,7 @@ public sealed class LogRotationThresholdsTests
     public void ForVerbosity_should_map_debug_to_design_doc_thresholds()
     {
         // Act
-        var thresholds = LogRotationThresholds.ForVerbosity(EngineLoggingVerbosity.Debug);
+        var thresholds = LogRotationThresholds.ForVerbosity(LogVerbosity.Debug);
 
         // Assert
         Assert.Multiple(
@@ -34,12 +34,12 @@ public sealed class LogRotationThresholdsTests
     {
         // Act — forward-compatibility guard: undefined enum
         // values resolve to the same thresholds as Normal.
-        var unknown = (EngineLoggingVerbosity)int.MaxValue;
+        var unknown = (LogVerbosity)int.MaxValue;
         var thresholds = LogRotationThresholds.ForVerbosity(unknown);
 
         // Assert
         Assert.Equal(
-            LogRotationThresholds.ForVerbosity(EngineLoggingVerbosity.Normal),
+            LogRotationThresholds.ForVerbosity(LogVerbosity.Normal),
             thresholds);
     }
 }

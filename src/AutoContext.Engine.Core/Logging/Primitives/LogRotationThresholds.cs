@@ -1,4 +1,6 @@
-namespace AutoContext.Engine.Core.Logging;
+namespace AutoContext.Engine.Core.Logging.Primitives;
+
+using AutoContext.Engine.Core.Logging;
 
 /// <summary>
 /// Per-verbosity rotation thresholds for the engine's own
@@ -17,7 +19,7 @@ namespace AutoContext.Engine.Core.Logging;
 /// directly to <see cref="LogFileSinkService"/> so they can drive
 /// rotation with a handful of records instead of having to write
 /// thousands of lines. Production callers compose through
-/// <see cref="ForVerbosity(EngineLoggingVerbosity)"/>, which maps
+/// <see cref="ForVerbosity(LogVerbosity)"/>, which maps
 /// <see cref="EngineOptions.Logging"/> onto the table above.
 /// </remarks>
 internal sealed record LogRotationThresholds(int MaxLines, long MaxBytes)
@@ -27,25 +29,25 @@ internal sealed record LogRotationThresholds(int MaxLines, long MaxBytes)
     /// <paramref name="verbosity"/> per the table in
     /// <c>design § Housekeeping &gt; Log rotation</c>:
     /// <list type="bullet">
-    ///   <item><see cref="EngineLoggingVerbosity.Normal"/> —
+    ///   <item><see cref="LogVerbosity.Normal"/> —
     ///     1,000 lines or 5 MB.</item>
-    ///   <item><see cref="EngineLoggingVerbosity.Debug"/> —
+    ///   <item><see cref="LogVerbosity.Debug"/> —
     ///     5,000 lines or 25 MB.</item>
     /// </list>
     /// </summary>
     /// <param name="verbosity">Verbosity selector — typically
     /// <see cref="EngineOptions.Logging"/>.</param>
     /// <returns>The matching thresholds; unknown enum values fall
-    /// back to the <see cref="EngineLoggingVerbosity.Normal"/>
+    /// back to the <see cref="LogVerbosity.Normal"/>
     /// row (defensive default for forward-compatibility, never
     /// reached under the validator's enum-range guard).</returns>
-    public static LogRotationThresholds ForVerbosity(EngineLoggingVerbosity verbosity)
+    public static LogRotationThresholds ForVerbosity(LogVerbosity verbosity)
         => verbosity switch
         {
-            EngineLoggingVerbosity.Debug => new LogRotationThresholds(
+            LogVerbosity.Debug => new LogRotationThresholds(
                 MaxLines: 5_000,
                 MaxBytes: 25L * 1024 * 1024),
-            EngineLoggingVerbosity.Normal => new LogRotationThresholds(
+            LogVerbosity.Normal => new LogRotationThresholds(
                 MaxLines: 1_000,
                 MaxBytes: 5L * 1024 * 1024),
             _ => new LogRotationThresholds(

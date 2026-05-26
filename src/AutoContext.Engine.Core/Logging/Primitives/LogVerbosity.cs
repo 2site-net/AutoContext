@@ -1,4 +1,4 @@
-namespace AutoContext.Engine.Core;
+namespace AutoContext.Engine.Core.Logging.Primitives;
 
 /// <summary>
 /// Log-rotation verbosity selector for the engine's own
@@ -12,7 +12,7 @@ namespace AutoContext.Engine.Core;
 /// change which records are emitted. Log-level filtering remains an
 /// in-process configuration concern.
 /// </remarks>
-public enum EngineLoggingVerbosity
+public enum LogVerbosity
 {
     /// <summary>
     /// Default verbosity. Rotates at 1,000 lines or 5 MB, whichever

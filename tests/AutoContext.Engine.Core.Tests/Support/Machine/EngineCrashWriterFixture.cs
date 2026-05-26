@@ -1,8 +1,9 @@
-namespace AutoContext.Engine.Core.Tests.Support;
+namespace AutoContext.Engine.Core.Tests.Support.Machine;
 
 using System.Text.Json;
 
-using AutoContext.Engine.Core;
+using AutoContext.Engine.Core.Machine;
+
 /// <summary>
 /// Shared helpers for tests that exercise
 /// <see cref="EngineCrashWriter"/>. Each call to

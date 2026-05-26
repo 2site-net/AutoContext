@@ -5,6 +5,8 @@ using AutoContext.Engine.Core.Infrastructure.Diagnostics;
 using AutoContext.Engine.Core.Housekeeping;
 using AutoContext.Engine.Core.Lifecycle;
 using AutoContext.Engine.Core.Logging;
+using AutoContext.Engine.Core.Logging.Primitives;
+using AutoContext.Engine.Core.Machine;
 using AutoContext.Engine.Core.Registry;
 using AutoContext.Engine.Core.Watchdogs;
 using AutoContext.Framework.Pipes;

@@ -1,4 +1,6 @@
-namespace AutoContext.Engine.Core.Logging;
+namespace AutoContext.Engine.Core.Logging.Primitives;
+
+using AutoContext.Engine.Core.Logging;
 
 using Microsoft.Extensions.Options;
 

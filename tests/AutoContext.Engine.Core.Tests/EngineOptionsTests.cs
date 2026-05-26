@@ -1,6 +1,7 @@
 namespace AutoContext.Engine.Core.Tests;
 
 using AutoContext.Engine.Core;
+using AutoContext.Engine.Core.Logging.Primitives;
 
 public sealed class EngineOptionsTests
 {
@@ -18,7 +19,7 @@ public sealed class EngineOptionsTests
             () => Assert.Equal(TimeSpan.FromSeconds(300), options.IdleTimeout),
             () => Assert.Null(options.ParentProcessId),
             () => Assert.Equal(TimeSpan.FromDays(1), options.Retention),
-            () => Assert.Equal(EngineLoggingVerbosity.Normal, options.Logging),
+            () => Assert.Equal(LogVerbosity.Normal, options.Logging),
             () => Assert.Equal(EngineMcpServerMode.Off, options.McpServerMode),
             () => Assert.Null(options.CorpusRootOverride));
     }

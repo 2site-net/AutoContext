@@ -1,6 +1,6 @@
-namespace AutoContext.Engine.Core.Tests.Registry;
+namespace AutoContext.Engine.Core.Tests.Machine;
 
-using AutoContext.Engine.Core.Registry;
+using AutoContext.Engine.Core.Machine;
 using AutoContext.Engine.Core.Tests.Support.Shared;
 public sealed class EngineCacheRootTests
 {

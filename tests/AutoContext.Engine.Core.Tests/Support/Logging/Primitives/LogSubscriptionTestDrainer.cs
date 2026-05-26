@@ -1,6 +1,6 @@
-namespace AutoContext.Engine.Core.Tests.Support.Logging;
+namespace AutoContext.Engine.Core.Tests.Support.Logging.Primitives;
 
-using AutoContext.Engine.Core.Logging;
+using AutoContext.Engine.Core.Logging.Primitives;
 using AutoContext.Engine.Protocol.Messages.Logs;
 
 internal static class LogSubscriptionTestDrainer

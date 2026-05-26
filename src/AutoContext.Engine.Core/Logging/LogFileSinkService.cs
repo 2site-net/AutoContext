@@ -4,6 +4,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 
 using AutoContext.Engine.Core.Infrastructure.Primitives;
+using AutoContext.Engine.Core.Logging.Primitives;
 using AutoContext.Engine.Protocol.Messages.Logs;
 using AutoContext.Engine.Protocol.Serialization;
 
@@ -95,7 +96,7 @@ internal sealed partial class LogFileSinkService : BackgroundService
     /// service.</param>
     /// <param name="thresholds">Per-verbosity rotation thresholds
     /// — production composes via
-    /// <see cref="LogRotationThresholds.ForVerbosity(EngineLoggingVerbosity)"/>;
+    /// <see cref="LogRotationThresholds.ForVerbosity(LogVerbosity)"/>;
     /// tests pass small values directly to keep fixtures cheap.</param>
     /// <param name="cleaner">Retention-aware sweeper invoked on
     /// every successful rotation.</param>

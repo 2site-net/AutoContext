@@ -2,6 +2,8 @@ namespace AutoContext.Engine.Core.Logging;
 
 using System.Collections.Concurrent;
 
+using AutoContext.Engine.Core.Logging.Primitives;
+
 using Microsoft.Extensions.Logging;
 
 /// <summary>

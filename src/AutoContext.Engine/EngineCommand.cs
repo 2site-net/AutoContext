@@ -4,6 +4,7 @@ using System.CommandLine;
 using System.CommandLine.Parsing;
 
 using AutoContext.Engine.Core;
+using AutoContext.Engine.Core.Logging.Primitives;
 
 /// <summary>
 /// <see cref="RootCommand"/> describing the <c>autocontext-engine</c>
@@ -197,8 +198,8 @@ internal sealed class EngineCommand : RootCommand
         {
             options.Logging = loggingRaw switch
             {
-                LoggingDebugValue => EngineLoggingVerbosity.Debug,
-                _ => EngineLoggingVerbosity.Normal,
+                LoggingDebugValue => LogVerbosity.Debug,
+                _ => LogVerbosity.Normal,
             };
         }
 

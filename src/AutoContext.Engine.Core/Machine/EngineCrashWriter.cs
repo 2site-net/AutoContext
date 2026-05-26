@@ -1,11 +1,10 @@
-namespace AutoContext.Engine.Core;
+namespace AutoContext.Engine.Core.Machine;
 
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text.Json;
 
 using AutoContext.Engine.Core.Infrastructure.Primitives;
-using AutoContext.Engine.Core.Registry;
 
 /// <summary>
 /// Paranoid last-gasp writer of <c>crash.log</c> under the

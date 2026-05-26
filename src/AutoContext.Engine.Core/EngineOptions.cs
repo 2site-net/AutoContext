@@ -1,5 +1,7 @@
 namespace AutoContext.Engine.Core;
 
+using AutoContext.Engine.Core.Logging.Primitives;
+
 /// <summary>
 /// Composition-time configuration for an
 /// <c>AutoContext.Engine.Core</c> registration. Surfaces both the
@@ -115,9 +117,9 @@ public sealed class EngineOptions
 
     /// <summary>
     /// Log-rotation verbosity per the <c>--logging</c> switch.
-    /// Defaults to <see cref="EngineLoggingVerbosity.Normal"/>.
+    /// Defaults to <see cref="LogVerbosity.Normal"/>.
     /// </summary>
-    public EngineLoggingVerbosity Logging { get; set; } = EngineLoggingVerbosity.Normal;
+    public LogVerbosity Logging { get; set; } = LogVerbosity.Normal;
 
     /// <summary>
     /// MCP-server capability mode. Defaults to

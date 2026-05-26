@@ -1,13 +1,12 @@
-namespace AutoContext.Engine.Core.Tests;
+namespace AutoContext.Engine.Core.Tests.Machine;
 
 using System.Text.Json;
 
-using AutoContext.Engine.Core;
 using AutoContext.Engine.Core.Infrastructure.Primitives;
-using AutoContext.Engine.Core.Registry;
-using AutoContext.Engine.Core.Tests.Support;
+using AutoContext.Engine.Core.Machine;
+using AutoContext.Engine.Core.Tests.Support.Machine;
 
-using static AutoContext.Engine.Core.Tests.Support.EngineCrashWriterFixture;
+using static AutoContext.Engine.Core.Tests.Support.Machine.EngineCrashWriterFixture;
 
 public sealed class EngineCrashWriterTests
 {

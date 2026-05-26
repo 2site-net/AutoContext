@@ -1,6 +1,6 @@
-namespace AutoContext.Engine.Core.Tests.Logging;
+namespace AutoContext.Engine.Core.Tests.Logging.Primitives;
 
-using AutoContext.Engine.Core.Logging;
+using AutoContext.Engine.Core.Logging.Primitives;
 using AutoContext.Engine.Core.Tests.Support.Logging;
 using AutoContext.Engine.Protocol.Messages.Logs;
 

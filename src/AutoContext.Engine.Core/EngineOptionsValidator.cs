@@ -1,5 +1,7 @@
 namespace AutoContext.Engine.Core;
 
+using AutoContext.Engine.Core.Logging.Primitives;
+
 using Microsoft.Extensions.Options;
 
 /// <summary>
@@ -83,7 +85,7 @@ internal sealed class EngineOptionsValidator : IValidateOptions<EngineOptions>
         {
             (failures ??= []).Add(
                 $"{nameof(EngineOptions.Logging)} '{options.Logging}' is not a defined "
-                + $"{nameof(EngineLoggingVerbosity)} value.");
+                + $"{nameof(LogVerbosity)} value.");
         }
 
         if (!Enum.IsDefined(options.McpServerMode))

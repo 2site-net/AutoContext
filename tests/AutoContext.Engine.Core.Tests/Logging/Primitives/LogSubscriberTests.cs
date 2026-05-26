@@ -1,10 +1,8 @@
-namespace AutoContext.Engine.Core.Tests.Logging;
+namespace AutoContext.Engine.Core.Tests.Logging.Primitives;
 
-using System.Threading.Channels;
-
-using AutoContext.Engine.Core.Logging;
+using AutoContext.Engine.Core.Logging.Primitives;
 using AutoContext.Engine.Core.Tests.Support.Logging;
-using AutoContext.Engine.Protocol.Messages.Logs;
+using AutoContext.Engine.Core.Tests.Support.Logging.Primitives;
 
 public sealed class LogSubscriberTests
 {

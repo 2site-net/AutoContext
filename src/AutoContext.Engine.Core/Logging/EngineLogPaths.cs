@@ -1,7 +1,7 @@
 namespace AutoContext.Engine.Core.Logging;
 
 using AutoContext.Engine.Core.Infrastructure.Primitives;
-using AutoContext.Engine.Core.Registry;
+using AutoContext.Engine.Core.Machine;
 
 using Microsoft.Extensions.Options;
 

@@ -3,6 +3,7 @@ namespace AutoContext.Engine.Core.Tests.Support.Logging;
 using AutoContext.Engine.Core;
 using AutoContext.Engine.Core.Infrastructure.Primitives;
 using AutoContext.Engine.Core.Logging;
+using AutoContext.Engine.Core.Machine;
 
 internal static class EngineLogPathTestComposer
 {

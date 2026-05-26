@@ -2,6 +2,7 @@ namespace AutoContext.Engine.Core.Tests.Logging;
 
 using AutoContext.Engine.Core.Logging;
 using AutoContext.Engine.Core.Tests.Support.Logging;
+using AutoContext.Engine.Core.Tests.Support.Logging.Primitives;
 using AutoContext.Engine.Protocol.Messages.Logs;
 
 public sealed class LogSubscriptionBroadcasterTests

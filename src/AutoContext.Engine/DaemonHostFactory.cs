@@ -3,6 +3,7 @@ namespace AutoContext.Engine;
 using System.Diagnostics.CodeAnalysis;
 
 using AutoContext.Engine.Core;
+using AutoContext.Engine.Core.Machine;
 
 using Microsoft.Extensions.Hosting;
 

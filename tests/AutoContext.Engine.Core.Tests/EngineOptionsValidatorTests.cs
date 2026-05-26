@@ -1,6 +1,7 @@
 namespace AutoContext.Engine.Core.Tests;
 
 using AutoContext.Engine.Core;
+using AutoContext.Engine.Core.Logging.Primitives;
 using AutoContext.Engine.Core.Tests.Support;
 using AutoContext.Engine.Core.Tests.Support.Shared;
 
@@ -247,7 +248,7 @@ public sealed class EngineOptionsValidatorTests
         // Arrange
         var validator = new EngineOptionsValidator();
         var options = EngineOptionsFakeData.CreateValidOptions();
-        options.Logging = (EngineLoggingVerbosity)99;
+        options.Logging = (LogVerbosity)99;
 
         // Act
         var result = validator.Validate(null, options);

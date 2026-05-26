@@ -5,6 +5,7 @@ using System.Text.Json;
 using AutoContext.Engine.Core.Logging;
 using AutoContext.Engine.Core.Tests.Support;
 using AutoContext.Engine.Core.Tests.Support.Logging;
+using AutoContext.Engine.Core.Tests.Support.Machine;
 using AutoContext.Engine.Protocol.Messages.Logs;
 using AutoContext.Engine.Protocol.Serialization;
 

@@ -4,8 +4,11 @@ using System.Text.Json;
 
 using AutoContext.Engine.Core;
 using AutoContext.Engine.Core.Logging;
+using AutoContext.Engine.Core.Logging.Primitives;
 using AutoContext.Engine.Core.Tests.Support;
 using AutoContext.Engine.Core.Tests.Support.Logging;
+using AutoContext.Engine.Core.Tests.Support.Logging.Primitives;
+using AutoContext.Engine.Core.Tests.Support.Machine;
 using AutoContext.Engine.Core.Tests.Support.Shared;
 using AutoContext.Engine.Protocol.Messages.Logs;
 

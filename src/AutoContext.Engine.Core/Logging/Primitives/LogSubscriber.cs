@@ -1,7 +1,8 @@
-namespace AutoContext.Engine.Core.Logging;
+namespace AutoContext.Engine.Core.Logging.Primitives;
 
 using System.Threading.Channels;
 
+using AutoContext.Engine.Core.Logging;
 using AutoContext.Engine.Protocol.Messages.Logs;
 
 /// <summary>

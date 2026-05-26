@@ -5,6 +5,7 @@ using System.CommandLine.Parsing;
 
 using AutoContext.Engine;
 using AutoContext.Engine.Core;
+using AutoContext.Engine.Core.Logging.Primitives;
 using AutoContext.Engine.Tests.Support;
 
 /// <summary>
@@ -97,7 +98,7 @@ public sealed class EngineCommandTests
             () => Assert.Equal(TimeSpan.Zero, options.IdleTimeout),
             () => Assert.Equal(1234, options.ParentProcessId),
             () => Assert.Equal(TimeSpan.FromHours(12), options.Retention),
-            () => Assert.Equal(EngineLoggingVerbosity.Debug, options.Logging));
+            () => Assert.Equal(LogVerbosity.Debug, options.Logging));
     }
 
     [Fact]
@@ -265,9 +266,9 @@ public sealed class EngineCommandTests
     }
 
     [Theory]
-    [InlineData("normal", EngineLoggingVerbosity.Normal)]
-    [InlineData("debug", EngineLoggingVerbosity.Debug)]
-    public void Should_parse_logging_verbosity(string value, EngineLoggingVerbosity expected)
+    [InlineData("normal", LogVerbosity.Normal)]
+    [InlineData("debug", LogVerbosity.Debug)]
+    public void Should_parse_logging_verbosity(string value, LogVerbosity expected)
     {
         // Arrange
         var command = new EngineCommand();

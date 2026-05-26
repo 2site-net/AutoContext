@@ -3,6 +3,8 @@ namespace AutoContext.Engine.Core.Logging;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 
+using AutoContext.Engine.Core.Logging.Primitives;
+
 using Microsoft.Extensions.Logging;
 
 /// <summary>
