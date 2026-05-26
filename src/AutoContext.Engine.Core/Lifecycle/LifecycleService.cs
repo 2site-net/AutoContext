@@ -89,6 +89,7 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
     private readonly ILogger<LifecycleService> _logger;
     private readonly ILoggerFactory _loggerFactory;
     private readonly LogSubscriptionBroadcaster _logsBroadcaster;
+    private readonly EngineLogFileReader _logFileReader;
     private readonly EngineOptions _options;
     private readonly RegistryFileReader _registryReader;
     private readonly List<Task> _runTasks = new(AllKinds.Length);
@@ -132,6 +133,10 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
     /// <c>logs</c> pipe; every accepted <c>logs</c>-pipe connection
     /// enrolls a subscriber here and pumps drained
     /// <see cref="LogStreamFrame"/> values to the wire.</param>
+    /// <param name="logFileReader">Forward-pass reader over the
+    /// active <c>engine.log</c>; threaded into the RPC dispatch
+    /// policy so the <c>Logs.GetEngine</c> handler can answer
+    /// snapshot requests against the on-disk file.</param>
     /// <exception cref="ArgumentNullException">
     /// Any constructor argument is <see langword="null"/>.
     /// </exception>
@@ -144,7 +149,8 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
         LifecycleNotifier lifecycleNotifier,
         IdleTimeoutWatchdog idleTimeoutWatchdog,
         IUniqueInstanceGuard instanceGuard,
-        LogSubscriptionBroadcaster logsBroadcaster)
+        LogSubscriptionBroadcaster logsBroadcaster,
+        EngineLogFileReader logFileReader)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(loggerFactory);
@@ -155,6 +161,7 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
         ArgumentNullException.ThrowIfNull(idleTimeoutWatchdog);
         ArgumentNullException.ThrowIfNull(instanceGuard);
         ArgumentNullException.ThrowIfNull(logsBroadcaster);
+        ArgumentNullException.ThrowIfNull(logFileReader);
 
         _options = options.Value;
         _loggerFactory = loggerFactory;
@@ -166,6 +173,7 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
         _idleTimeoutWatchdog = idleTimeoutWatchdog;
         _instanceGuard = instanceGuard;
         _logsBroadcaster = logsBroadcaster;
+        _logFileReader = logFileReader;
     }
 
     /// <inheritdoc/>
@@ -450,7 +458,7 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
                 _ = await RpcConnectionProcessor
                     .RunAsync(
                         stream,
-                        new DispatchPolicy(_applicationLifetime, _registryReader, _logger),
+                        new DispatchPolicy(_applicationLifetime, _registryReader, _logFileReader, _logger),
                         _logger,
                         cancellationToken)
                     .ConfigureAwait(false);

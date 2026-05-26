@@ -25,9 +25,6 @@ using AutoContext.Framework.Pipes;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 
-using static AutoContext.Engine.Core.Tests.Support.Lifecycle.LifecycleServiceFixture;
-using static AutoContext.Engine.Core.Tests.Support.Rpc.EngineRpcTestClient;
-
 public sealed class LifecycleServiceTests(
     TempDirectoryFixture tempDirectory,
     LifecycleServiceFixture lifecycle)
@@ -55,7 +52,7 @@ public sealed class LifecycleServiceTests(
         var context = lifecycle.Create();
         await context.Service.StartAsync(TestContext.Current.CancellationToken);
 
-        await using var client = await ConnectAsync(
+        await using var client = await EngineRpcTestClient.ConnectAsync(
             kind, context.EngineOptions, TestContext.Current.CancellationToken);
 
         Assert.True(client.IsConnected);
@@ -100,114 +97,120 @@ public sealed class LifecycleServiceTests(
     public async Task Should_throw_when_constructed_with_null_options()
     {
         using var lifetime = new FakeHostApplicationLifetime();
-        await using var watchdog = CreateWatchdog(CreateOptions(), lifetime);
+        await using var watchdog = LifecycleServiceFixture.CreateWatchdog(LifecycleServiceFixture.CreateOptions(), lifetime);
 
         Assert.Throws<ArgumentNullException>(() =>
             new LifecycleService(
                 null!,
                 NullLoggerFactory.Instance,
                 lifetime,
-                CreateRegistryReader(),
-                CreateEventStream(),
-                CreateNotifier(),
+                LifecycleServiceFixture.CreateRegistryReader(),
+                LifecycleServiceFixture.CreateEventStream(),
+                LifecycleServiceFixture.CreateNotifier(),
                 watchdog,
                 new FakeUniqueInstanceGuard(),
-                CreateLogsBroadcaster()));
+                LifecycleServiceFixture.CreateLogsBroadcaster(),
+                LifecycleServiceFixture.CreateLogFileReader()));
     }
 
     [Fact]
     public async Task Should_throw_when_constructed_with_null_logger_factory()
     {
         using var lifetime = new FakeHostApplicationLifetime();
-        await using var watchdog = CreateWatchdog(CreateOptions(), lifetime);
+        await using var watchdog = LifecycleServiceFixture.CreateWatchdog(LifecycleServiceFixture.CreateOptions(), lifetime);
 
         Assert.Throws<ArgumentNullException>(() =>
             new LifecycleService(
-                Options.Create(CreateOptions()),
+                Options.Create(LifecycleServiceFixture.CreateOptions()),
                 null!,
                 lifetime,
-                CreateRegistryReader(),
-                CreateEventStream(),
-                CreateNotifier(),
+                LifecycleServiceFixture.CreateRegistryReader(),
+                LifecycleServiceFixture.CreateEventStream(),
+                LifecycleServiceFixture.CreateNotifier(),
                 watchdog,
                 new FakeUniqueInstanceGuard(),
-                CreateLogsBroadcaster()));
+                LifecycleServiceFixture.CreateLogsBroadcaster(),
+                LifecycleServiceFixture.CreateLogFileReader()));
     }
 
     [Fact]
     public async Task Should_throw_when_constructed_with_null_application_lifetime()
     {
         using var lifetime = new FakeHostApplicationLifetime();
-        await using var watchdog = CreateWatchdog(CreateOptions(), lifetime);
+        await using var watchdog = LifecycleServiceFixture.CreateWatchdog(LifecycleServiceFixture.CreateOptions(), lifetime);
 
         Assert.Throws<ArgumentNullException>(() =>
             new LifecycleService(
-                Options.Create(CreateOptions()),
+                Options.Create(LifecycleServiceFixture.CreateOptions()),
                 NullLoggerFactory.Instance,
                 null!,
-                CreateRegistryReader(),
-                CreateEventStream(),
-                CreateNotifier(),
+                LifecycleServiceFixture.CreateRegistryReader(),
+                LifecycleServiceFixture.CreateEventStream(),
+                LifecycleServiceFixture.CreateNotifier(),
                 watchdog,
                 new FakeUniqueInstanceGuard(),
-                CreateLogsBroadcaster()));
+                LifecycleServiceFixture.CreateLogsBroadcaster(),
+                LifecycleServiceFixture.CreateLogFileReader()));
     }
 
     [Fact]
     public async Task Should_throw_when_constructed_with_null_registry_reader()
     {
         using var lifetime = new FakeHostApplicationLifetime();
-        await using var watchdog = CreateWatchdog(CreateOptions(), lifetime);
+        await using var watchdog = LifecycleServiceFixture.CreateWatchdog(LifecycleServiceFixture.CreateOptions(), lifetime);
 
         Assert.Throws<ArgumentNullException>(() =>
             new LifecycleService(
-                Options.Create(CreateOptions()),
+                Options.Create(LifecycleServiceFixture.CreateOptions()),
                 NullLoggerFactory.Instance,
                 lifetime,
                 null!,
-                CreateEventStream(),
-                CreateNotifier(),
+                LifecycleServiceFixture.CreateEventStream(),
+                LifecycleServiceFixture.CreateNotifier(),
                 watchdog,
                 new FakeUniqueInstanceGuard(),
-                CreateLogsBroadcaster()));
+                LifecycleServiceFixture.CreateLogsBroadcaster(),
+                LifecycleServiceFixture.CreateLogFileReader()));
     }
 
     [Fact]
     public async Task Should_throw_when_constructed_with_null_event_stream()
     {
         using var lifetime = new FakeHostApplicationLifetime();
-        await using var watchdog = CreateWatchdog(CreateOptions(), lifetime);
+        await using var watchdog = LifecycleServiceFixture.CreateWatchdog(LifecycleServiceFixture.CreateOptions(), lifetime);
 
         Assert.Throws<ArgumentNullException>(() =>
             new LifecycleService(
-                Options.Create(CreateOptions()),
+                Options.Create(LifecycleServiceFixture.CreateOptions()),
                 NullLoggerFactory.Instance,
                 lifetime,
-                CreateRegistryReader(),
+                LifecycleServiceFixture.CreateRegistryReader(),
                 null!,
-                CreateNotifier(),
+                LifecycleServiceFixture.CreateNotifier(),
                 watchdog,
                 new FakeUniqueInstanceGuard(),
-                CreateLogsBroadcaster()));
+                LifecycleServiceFixture.CreateLogsBroadcaster(),
+                LifecycleServiceFixture.CreateLogFileReader()));
     }
 
     [Fact]
     public async Task Should_throw_when_constructed_with_null_lifecycle_notifier()
     {
         using var lifetime = new FakeHostApplicationLifetime();
-        await using var watchdog = CreateWatchdog(CreateOptions(), lifetime);
+        await using var watchdog = LifecycleServiceFixture.CreateWatchdog(LifecycleServiceFixture.CreateOptions(), lifetime);
 
         Assert.Throws<ArgumentNullException>(() =>
             new LifecycleService(
-                Options.Create(CreateOptions()),
+                Options.Create(LifecycleServiceFixture.CreateOptions()),
                 NullLoggerFactory.Instance,
                 lifetime,
-                CreateRegistryReader(),
-                CreateEventStream(),
+                LifecycleServiceFixture.CreateRegistryReader(),
+                LifecycleServiceFixture.CreateEventStream(),
                 null!,
                 watchdog,
                 new FakeUniqueInstanceGuard(),
-                CreateLogsBroadcaster()));
+                LifecycleServiceFixture.CreateLogsBroadcaster(),
+                LifecycleServiceFixture.CreateLogFileReader()));
     }
 
     [Fact]
@@ -217,52 +220,75 @@ public sealed class LifecycleServiceTests(
 
         Assert.Throws<ArgumentNullException>(() =>
             new LifecycleService(
-                Options.Create(CreateOptions()),
+                Options.Create(LifecycleServiceFixture.CreateOptions()),
                 NullLoggerFactory.Instance,
                 lifetime,
-                CreateRegistryReader(),
-                CreateEventStream(),
-                CreateNotifier(),
+                LifecycleServiceFixture.CreateRegistryReader(),
+                LifecycleServiceFixture.CreateEventStream(),
+                LifecycleServiceFixture.CreateNotifier(),
                 null!,
                 new FakeUniqueInstanceGuard(),
-                CreateLogsBroadcaster()));
+                LifecycleServiceFixture.CreateLogsBroadcaster(),
+                LifecycleServiceFixture.CreateLogFileReader()));
     }
 
     [Fact]
     public async Task Should_throw_when_constructed_with_null_instance_guard()
     {
         using var lifetime = new FakeHostApplicationLifetime();
-        await using var watchdog = CreateWatchdog(CreateOptions(), lifetime);
+        await using var watchdog = LifecycleServiceFixture.CreateWatchdog(LifecycleServiceFixture.CreateOptions(), lifetime);
 
         Assert.Throws<ArgumentNullException>(() =>
             new LifecycleService(
-                Options.Create(CreateOptions()),
+                Options.Create(LifecycleServiceFixture.CreateOptions()),
                 NullLoggerFactory.Instance,
                 lifetime,
-                CreateRegistryReader(),
-                CreateEventStream(),
-                CreateNotifier(),
+                LifecycleServiceFixture.CreateRegistryReader(),
+                LifecycleServiceFixture.CreateEventStream(),
+                LifecycleServiceFixture.CreateNotifier(),
                 watchdog,
                 null!,
-                CreateLogsBroadcaster()));
+                LifecycleServiceFixture.CreateLogsBroadcaster(),
+                LifecycleServiceFixture.CreateLogFileReader()));
     }
 
     [Fact]
     public async Task Should_throw_when_constructed_with_null_logs_broadcaster()
     {
         using var lifetime = new FakeHostApplicationLifetime();
-        await using var watchdog = CreateWatchdog(CreateOptions(), lifetime);
+        await using var watchdog = LifecycleServiceFixture.CreateWatchdog(LifecycleServiceFixture.CreateOptions(), lifetime);
 
         Assert.Throws<ArgumentNullException>(() =>
             new LifecycleService(
-                Options.Create(CreateOptions()),
+                Options.Create(LifecycleServiceFixture.CreateOptions()),
                 NullLoggerFactory.Instance,
                 lifetime,
-                CreateRegistryReader(),
-                CreateEventStream(),
-                CreateNotifier(),
+                LifecycleServiceFixture.CreateRegistryReader(),
+                LifecycleServiceFixture.CreateEventStream(),
+                LifecycleServiceFixture.CreateNotifier(),
                 watchdog,
                 new FakeUniqueInstanceGuard(),
+                null!,
+                LifecycleServiceFixture.CreateLogFileReader()));
+    }
+
+    [Fact]
+    public async Task Should_throw_when_constructed_with_null_log_file_reader()
+    {
+        using var lifetime = new FakeHostApplicationLifetime();
+        await using var watchdog = LifecycleServiceFixture.CreateWatchdog(LifecycleServiceFixture.CreateOptions(), lifetime);
+
+        Assert.Throws<ArgumentNullException>(() =>
+            new LifecycleService(
+                Options.Create(LifecycleServiceFixture.CreateOptions()),
+                NullLoggerFactory.Instance,
+                lifetime,
+                LifecycleServiceFixture.CreateRegistryReader(),
+                LifecycleServiceFixture.CreateEventStream(),
+                LifecycleServiceFixture.CreateNotifier(),
+                watchdog,
+                new FakeUniqueInstanceGuard(),
+                LifecycleServiceFixture.CreateLogsBroadcaster(),
                 null!));
     }
 
@@ -273,13 +299,13 @@ public sealed class LifecycleServiceTests(
         var context = lifecycle.Create();
         await context.Service.StartAsync(TestContext.Current.CancellationToken);
 
-        await using var client = await ConnectAsync(
+        await using var client = await EngineRpcTestClient.ConnectAsync(
             EndpointKind.Rpc, context.EngineOptions, TestContext.Current.CancellationToken);
         var codec = new LengthPrefixedFrameCodec(client);
 
         // Act
-        await SendHelloAsync(codec, ProtocolVersion.Current, TestContext.Current.CancellationToken);
-        var response = await ReadResponseAsync(codec, TestContext.Current.CancellationToken);
+        await EngineRpcTestClient.SendHelloAsync(codec, ProtocolVersion.Current, TestContext.Current.CancellationToken);
+        var response = await EngineRpcTestClient.ReadResponseAsync(codec, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(
@@ -302,13 +328,13 @@ public sealed class LifecycleServiceTests(
         var context = lifecycle.Create();
         await context.Service.StartAsync(TestContext.Current.CancellationToken);
 
-        await using var client = await ConnectAsync(
+        await using var client = await EngineRpcTestClient.ConnectAsync(
             EndpointKind.Events, context.EngineOptions, TestContext.Current.CancellationToken);
         var codec = new LengthPrefixedFrameCodec(client);
 
         // Act
-        await SendHelloAsync(codec, ProtocolVersion.Current, TestContext.Current.CancellationToken);
-        var response = await ReadResponseAsync(codec, TestContext.Current.CancellationToken);
+        await EngineRpcTestClient.SendHelloAsync(codec, ProtocolVersion.Current, TestContext.Current.CancellationToken);
+        var response = await EngineRpcTestClient.ReadResponseAsync(codec, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(
@@ -323,13 +349,13 @@ public sealed class LifecycleServiceTests(
         var context = lifecycle.Create();
         await context.Service.StartAsync(TestContext.Current.CancellationToken);
 
-        await using var client = await ConnectAsync(
+        await using var client = await EngineRpcTestClient.ConnectAsync(
             EndpointKind.Rpc, context.EngineOptions, TestContext.Current.CancellationToken);
         var codec = new LengthPrefixedFrameCodec(client);
 
         // Act
-        await SendHelloAsync(codec, ProtocolVersion.Current + 1, TestContext.Current.CancellationToken);
-        var response = await ReadResponseAsync(codec, TestContext.Current.CancellationToken);
+        await EngineRpcTestClient.SendHelloAsync(codec, ProtocolVersion.Current + 1, TestContext.Current.CancellationToken);
+        var response = await EngineRpcTestClient.ReadResponseAsync(codec, TestContext.Current.CancellationToken);
 
         // Assert — error response carries the mismatch code, then
         // the engine closes the pipe.
@@ -347,7 +373,7 @@ public sealed class LifecycleServiceTests(
         var context = lifecycle.Create();
         await context.Service.StartAsync(TestContext.Current.CancellationToken);
 
-        await using var client = await ConnectAsync(
+        await using var client = await EngineRpcTestClient.ConnectAsync(
             EndpointKind.Rpc, context.EngineOptions, TestContext.Current.CancellationToken);
         var codec = new LengthPrefixedFrameCodec(client);
 
@@ -362,7 +388,7 @@ public sealed class LifecycleServiceTests(
 
         // Act
         await codec.WriteAsync(bytes, TestContext.Current.CancellationToken);
-        var response = await ReadResponseAsync(codec, TestContext.Current.CancellationToken);
+        var response = await EngineRpcTestClient.ReadResponseAsync(codec, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(response.Error);
@@ -379,7 +405,7 @@ public sealed class LifecycleServiceTests(
         var context = lifecycle.Create();
         await context.Service.StartAsync(TestContext.Current.CancellationToken);
 
-        await using var client = await ConnectAsync(
+        await using var client = await EngineRpcTestClient.ConnectAsync(
             EndpointKind.Rpc, context.EngineOptions, TestContext.Current.CancellationToken);
         var codec = new LengthPrefixedFrameCodec(client);
 
@@ -395,7 +421,7 @@ public sealed class LifecycleServiceTests(
 
         // Act
         await codec.WriteAsync(bytes, TestContext.Current.CancellationToken);
-        var response = await ReadResponseAsync(codec, TestContext.Current.CancellationToken);
+        var response = await EngineRpcTestClient.ReadResponseAsync(codec, TestContext.Current.CancellationToken);
 
         // Assert — missing field is InvalidParams, not a 0-vs-1
         // ProtocolVersionMismatch (which would mis-attribute the
@@ -415,7 +441,7 @@ public sealed class LifecycleServiceTests(
         await context.Service.StartAsync(TestContext.Current.CancellationToken);
 
         // Act
-        await using var client = await ConnectAsync(
+        await using var client = await EngineRpcTestClient.ConnectAsync(
             EndpointKind.Health, context.EngineOptions, TestContext.Current.CancellationToken);
 
         // Assert — the engine does not write a Hello reply on health;
@@ -434,7 +460,7 @@ public sealed class LifecycleServiceTests(
         await context.Service.StartAsync(TestContext.Current.CancellationToken);
 
         // Act
-        await using var client = await ConnectAsync(
+        await using var client = await EngineRpcTestClient.ConnectAsync(
             EndpointKind.Logs, context.EngineOptions, TestContext.Current.CancellationToken);
 
         // Assert — the logs pipe streams broadcaster frames until the
@@ -456,7 +482,7 @@ public sealed class LifecycleServiceTests(
         var context = lifecycle.Create();
         await context.Service.StartAsync(TestContext.Current.CancellationToken);
 
-        await using var client = await ConnectAsync(
+        await using var client = await EngineRpcTestClient.ConnectAsync(
             EndpointKind.Logs, context.EngineOptions, TestContext.Current.CancellationToken);
         var codec = new LengthPrefixedFrameCodec(client);
 
@@ -509,7 +535,7 @@ public sealed class LifecycleServiceTests(
         var context = lifecycle.Create();
         await context.Service.StartAsync(TestContext.Current.CancellationToken);
 
-        await using var client = await ConnectAsync(
+        await using var client = await EngineRpcTestClient.ConnectAsync(
             EndpointKind.Logs, context.EngineOptions, TestContext.Current.CancellationToken);
         var codec = new LengthPrefixedFrameCodec(client);
 
@@ -574,18 +600,18 @@ public sealed class LifecycleServiceTests(
             registryReader: new RegistryFileReader(registryPath));
         await context.Service.StartAsync(TestContext.Current.CancellationToken);
 
-        await using var client = await ConnectAsync(
+        await using var client = await EngineRpcTestClient.ConnectAsync(
             EndpointKind.Rpc, context.EngineOptions, TestContext.Current.CancellationToken);
         var codec = new LengthPrefixedFrameCodec(client);
 
-        await SendHelloAsync(codec, ProtocolVersion.Current, TestContext.Current.CancellationToken);
-        _ = await ReadResponseAsync(codec, TestContext.Current.CancellationToken);
+        await EngineRpcTestClient.SendHelloAsync(codec, ProtocolVersion.Current, TestContext.Current.CancellationToken);
+        _ = await EngineRpcTestClient.ReadResponseAsync(codec, TestContext.Current.CancellationToken);
 
         // Act
-        await SendRequestAsync(
+        await EngineRpcTestClient.SendRequestAsync(
             codec, id: 7, method: RegistryMethods.RegistryEntries,
             TestContext.Current.CancellationToken);
-        var response = await ReadResponseAsync(codec, TestContext.Current.CancellationToken);
+        var response = await EngineRpcTestClient.ReadResponseAsync(codec, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(
@@ -606,18 +632,18 @@ public sealed class LifecycleServiceTests(
         var context = lifecycle.Create();
         await context.Service.StartAsync(TestContext.Current.CancellationToken);
 
-        await using var client = await ConnectAsync(
+        await using var client = await EngineRpcTestClient.ConnectAsync(
             EndpointKind.Rpc, context.EngineOptions, TestContext.Current.CancellationToken);
         var codec = new LengthPrefixedFrameCodec(client);
 
-        await SendHelloAsync(codec, ProtocolVersion.Current, TestContext.Current.CancellationToken);
-        _ = await ReadResponseAsync(codec, TestContext.Current.CancellationToken);
+        await EngineRpcTestClient.SendHelloAsync(codec, ProtocolVersion.Current, TestContext.Current.CancellationToken);
+        _ = await EngineRpcTestClient.ReadResponseAsync(codec, TestContext.Current.CancellationToken);
 
         // Act
-        await SendRequestAsync(
+        await EngineRpcTestClient.SendRequestAsync(
             codec, id: 42, method: "Engine.DoesNotExist",
             TestContext.Current.CancellationToken);
-        var response = await ReadResponseAsync(codec, TestContext.Current.CancellationToken);
+        var response = await EngineRpcTestClient.ReadResponseAsync(codec, TestContext.Current.CancellationToken);
 
         // Assert — dispatcher keeps the connection open after an
         // unknown-method reply so the caller can issue further
@@ -639,25 +665,25 @@ public sealed class LifecycleServiceTests(
             registryReader: new RegistryFileReader(registryPath));
         await context.Service.StartAsync(TestContext.Current.CancellationToken);
 
-        await using var client = await ConnectAsync(
+        await using var client = await EngineRpcTestClient.ConnectAsync(
             EndpointKind.Rpc, context.EngineOptions, TestContext.Current.CancellationToken);
         var codec = new LengthPrefixedFrameCodec(client);
 
-        await SendHelloAsync(codec, ProtocolVersion.Current, TestContext.Current.CancellationToken);
-        _ = await ReadResponseAsync(codec, TestContext.Current.CancellationToken);
+        await EngineRpcTestClient.SendHelloAsync(codec, ProtocolVersion.Current, TestContext.Current.CancellationToken);
+        _ = await EngineRpcTestClient.ReadResponseAsync(codec, TestContext.Current.CancellationToken);
 
         // Act — three back-to-back Engine.RegistryEntries calls on
         // the same connection; each response must carry the id of
         // the matching request, proving the dispatcher keeps the
         // pipe open and ordered.
-        await SendRequestAsync(codec, id: 100, method: RegistryMethods.RegistryEntries, TestContext.Current.CancellationToken);
-        var first = await ReadResponseAsync(codec, TestContext.Current.CancellationToken);
+        await EngineRpcTestClient.SendRequestAsync(codec, id: 100, method: RegistryMethods.RegistryEntries, TestContext.Current.CancellationToken);
+        var first = await EngineRpcTestClient.ReadResponseAsync(codec, TestContext.Current.CancellationToken);
 
-        await SendRequestAsync(codec, id: 101, method: RegistryMethods.RegistryEntries, TestContext.Current.CancellationToken);
-        var second = await ReadResponseAsync(codec, TestContext.Current.CancellationToken);
+        await EngineRpcTestClient.SendRequestAsync(codec, id: 101, method: RegistryMethods.RegistryEntries, TestContext.Current.CancellationToken);
+        var second = await EngineRpcTestClient.ReadResponseAsync(codec, TestContext.Current.CancellationToken);
 
-        await SendRequestAsync(codec, id: 102, method: RegistryMethods.RegistryEntries, TestContext.Current.CancellationToken);
-        var third = await ReadResponseAsync(codec, TestContext.Current.CancellationToken);
+        await EngineRpcTestClient.SendRequestAsync(codec, id: 102, method: RegistryMethods.RegistryEntries, TestContext.Current.CancellationToken);
+        var third = await EngineRpcTestClient.ReadResponseAsync(codec, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(
@@ -676,18 +702,18 @@ public sealed class LifecycleServiceTests(
         var context = lifecycle.Create();
         await context.Service.StartAsync(TestContext.Current.CancellationToken);
 
-        await using var client = await ConnectAsync(
+        await using var client = await EngineRpcTestClient.ConnectAsync(
             EndpointKind.Rpc, context.EngineOptions, TestContext.Current.CancellationToken);
         var codec = new LengthPrefixedFrameCodec(client);
 
-        await SendHelloAsync(codec, ProtocolVersion.Current, TestContext.Current.CancellationToken);
-        _ = await ReadResponseAsync(codec, TestContext.Current.CancellationToken);
+        await EngineRpcTestClient.SendHelloAsync(codec, ProtocolVersion.Current, TestContext.Current.CancellationToken);
+        _ = await EngineRpcTestClient.ReadResponseAsync(codec, TestContext.Current.CancellationToken);
 
         // Act
-        await SendRequestAsync(
+        await EngineRpcTestClient.SendRequestAsync(
             codec, id: 9, method: ProtocolMethods.Shutdown,
             TestContext.Current.CancellationToken);
-        var response = await ReadResponseAsync(codec, TestContext.Current.CancellationToken);
+        var response = await EngineRpcTestClient.ReadResponseAsync(codec, TestContext.Current.CancellationToken);
 
         // Assert — { accepted: true } returned, lifetime told to
         // stop, and the connection then closes from the engine end.
@@ -717,12 +743,12 @@ public sealed class LifecycleServiceTests(
         var context = lifecycle.Create();
         await context.Service.StartAsync(TestContext.Current.CancellationToken);
 
-        await using var client = await ConnectAsync(
+        await using var client = await EngineRpcTestClient.ConnectAsync(
             EndpointKind.Events, context.EngineOptions, TestContext.Current.CancellationToken);
         var codec = new LengthPrefixedFrameCodec(client);
 
-        await SendHelloAsync(codec, ProtocolVersion.Current, TestContext.Current.CancellationToken);
-        _ = await ReadResponseAsync(codec, TestContext.Current.CancellationToken);
+        await EngineRpcTestClient.SendHelloAsync(codec, ProtocolVersion.Current, TestContext.Current.CancellationToken);
+        _ = await EngineRpcTestClient.ReadResponseAsync(codec, TestContext.Current.CancellationToken);
 
         // Act
         var frame = await codec.ReadAsync(TestContext.Current.CancellationToken);
@@ -743,12 +769,12 @@ public sealed class LifecycleServiceTests(
         var context = lifecycle.Create();
         await context.Service.StartAsync(TestContext.Current.CancellationToken);
 
-        await using var client = await ConnectAsync(
+        await using var client = await EngineRpcTestClient.ConnectAsync(
             EndpointKind.Events, context.EngineOptions, TestContext.Current.CancellationToken);
         var codec = new LengthPrefixedFrameCodec(client);
 
-        await SendHelloAsync(codec, ProtocolVersion.Current, TestContext.Current.CancellationToken);
-        _ = await ReadResponseAsync(codec, TestContext.Current.CancellationToken);
+        await EngineRpcTestClient.SendHelloAsync(codec, ProtocolVersion.Current, TestContext.Current.CancellationToken);
+        _ = await EngineRpcTestClient.ReadResponseAsync(codec, TestContext.Current.CancellationToken);
         _ = await codec.ReadAsync(TestContext.Current.CancellationToken);
 
         // Act
@@ -770,17 +796,17 @@ public sealed class LifecycleServiceTests(
     public async Task Should_complete_StopAsync_within_drain_timeout_when_events_peer_never_reads()
     {
         // Arrange
-        var options = CreateOptions();
+        var options = LifecycleServiceFixture.CreateOptions();
         options.ShutdownDrainTimeout = TimeSpan.FromMilliseconds(250);
         var context = lifecycle.Create(options);
         await context.Service.StartAsync(TestContext.Current.CancellationToken);
 
-        await using var client = await ConnectAsync(
+        await using var client = await EngineRpcTestClient.ConnectAsync(
             EndpointKind.Events, context.EngineOptions, TestContext.Current.CancellationToken);
         var codec = new LengthPrefixedFrameCodec(client);
 
-        await SendHelloAsync(codec, ProtocolVersion.Current, TestContext.Current.CancellationToken);
-        _ = await ReadResponseAsync(codec, TestContext.Current.CancellationToken);
+        await EngineRpcTestClient.SendHelloAsync(codec, ProtocolVersion.Current, TestContext.Current.CancellationToken);
+        _ = await EngineRpcTestClient.ReadResponseAsync(codec, TestContext.Current.CancellationToken);
 
         // Act + Assert — the peer never reads the pushed started
         // frame, so the events-pipe writer is blocked. StopAsync
@@ -798,21 +824,21 @@ public sealed class LifecycleServiceTests(
         var context = lifecycle.Create();
         await context.Service.StartAsync(TestContext.Current.CancellationToken);
 
-        await using var client = await ConnectAsync(
+        await using var client = await EngineRpcTestClient.ConnectAsync(
             EndpointKind.Rpc, context.EngineOptions, TestContext.Current.CancellationToken);
         var codec = new LengthPrefixedFrameCodec(client);
 
-        await SendHelloAsync(codec, ProtocolVersion.Current, TestContext.Current.CancellationToken);
-        _ = await ReadResponseAsync(codec, TestContext.Current.CancellationToken);
+        await EngineRpcTestClient.SendHelloAsync(codec, ProtocolVersion.Current, TestContext.Current.CancellationToken);
+        _ = await EngineRpcTestClient.ReadResponseAsync(codec, TestContext.Current.CancellationToken);
 
         // Act — send garbage that is not JSON, then a valid request.
         await codec.WriteAsync(
             Encoding.UTF8.GetBytes("not-json-here"), TestContext.Current.CancellationToken);
-        var errorResponse = await ReadResponseAsync(codec, TestContext.Current.CancellationToken);
+        var errorResponse = await EngineRpcTestClient.ReadResponseAsync(codec, TestContext.Current.CancellationToken);
 
-        await SendRequestAsync(
+        await EngineRpcTestClient.SendRequestAsync(
             codec, id: 21, method: "Engine.DoesNotExist", TestContext.Current.CancellationToken);
-        var followUp = await ReadResponseAsync(codec, TestContext.Current.CancellationToken);
+        var followUp = await EngineRpcTestClient.ReadResponseAsync(codec, TestContext.Current.CancellationToken);
 
         // Assert — first reply is a ParseError on the recovered
         // connection; second reply lands successfully on the same
@@ -833,21 +859,21 @@ public sealed class LifecycleServiceTests(
         var context = lifecycle.Create();
         await context.Service.StartAsync(TestContext.Current.CancellationToken);
 
-        await using var client = await ConnectAsync(
+        await using var client = await EngineRpcTestClient.ConnectAsync(
             EndpointKind.Rpc, context.EngineOptions, TestContext.Current.CancellationToken);
         var codec = new LengthPrefixedFrameCodec(client);
 
-        await SendHelloAsync(codec, ProtocolVersion.Current, TestContext.Current.CancellationToken);
-        _ = await ReadResponseAsync(codec, TestContext.Current.CancellationToken);
+        await EngineRpcTestClient.SendHelloAsync(codec, ProtocolVersion.Current, TestContext.Current.CancellationToken);
+        _ = await EngineRpcTestClient.ReadResponseAsync(codec, TestContext.Current.CancellationToken);
 
         // Act
         var bogus = Encoding.UTF8.GetBytes("""{"jsonrpc":"1.0","id":31,"method":"Engine.X"}""");
         await codec.WriteAsync(bogus, TestContext.Current.CancellationToken);
-        var errorResponse = await ReadResponseAsync(codec, TestContext.Current.CancellationToken);
+        var errorResponse = await EngineRpcTestClient.ReadResponseAsync(codec, TestContext.Current.CancellationToken);
 
-        await SendRequestAsync(
+        await EngineRpcTestClient.SendRequestAsync(
             codec, id: 32, method: "Engine.Other", TestContext.Current.CancellationToken);
-        var followUp = await ReadResponseAsync(codec, TestContext.Current.CancellationToken);
+        var followUp = await EngineRpcTestClient.ReadResponseAsync(codec, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Multiple(
@@ -866,14 +892,14 @@ public sealed class LifecycleServiceTests(
         var context = lifecycle.Create();
         await context.Service.StartAsync(TestContext.Current.CancellationToken);
 
-        await using var client = await ConnectAsync(
+        await using var client = await EngineRpcTestClient.ConnectAsync(
             EndpointKind.Rpc, context.EngineOptions, TestContext.Current.CancellationToken);
         var codec = new LengthPrefixedFrameCodec(client);
 
         // Act
         await codec.WriteAsync(
             Encoding.UTF8.GetBytes("definitely-not-json"), TestContext.Current.CancellationToken);
-        var errorResponse = await ReadResponseAsync(codec, TestContext.Current.CancellationToken);
+        var errorResponse = await EngineRpcTestClient.ReadResponseAsync(codec, TestContext.Current.CancellationToken);
         var afterError = await codec.ReadAsync(TestContext.Current.CancellationToken);
 
         // Assert — handshake policy is Terminate: server writes the
@@ -892,14 +918,14 @@ public sealed class LifecycleServiceTests(
         var context = lifecycle.Create();
         await context.Service.StartAsync(TestContext.Current.CancellationToken);
 
-        await using var client = await ConnectAsync(
+        await using var client = await EngineRpcTestClient.ConnectAsync(
             EndpointKind.Rpc, context.EngineOptions, TestContext.Current.CancellationToken);
         var codec = new LengthPrefixedFrameCodec(client);
 
         // Act — well-formed JSON, but wrong jsonrpc version.
         var bogus = Encoding.UTF8.GetBytes("""{"jsonrpc":"1.0","id":41,"method":"Engine.Hello"}""");
         await codec.WriteAsync(bogus, TestContext.Current.CancellationToken);
-        var errorResponse = await ReadResponseAsync(codec, TestContext.Current.CancellationToken);
+        var errorResponse = await EngineRpcTestClient.ReadResponseAsync(codec, TestContext.Current.CancellationToken);
         var afterError = await codec.ReadAsync(TestContext.Current.CancellationToken);
 
         // Assert
@@ -917,18 +943,18 @@ public sealed class LifecycleServiceTests(
         var context = lifecycle.Create();
         await context.Service.StartAsync(TestContext.Current.CancellationToken);
 
-        await using var client = await ConnectAsync(
+        await using var client = await EngineRpcTestClient.ConnectAsync(
             EndpointKind.Rpc, context.EngineOptions, TestContext.Current.CancellationToken);
         var codec = new LengthPrefixedFrameCodec(client);
 
-        await SendHelloAsync(codec, ProtocolVersion.Current, TestContext.Current.CancellationToken);
-        _ = await ReadResponseAsync(codec, TestContext.Current.CancellationToken);
+        await EngineRpcTestClient.SendHelloAsync(codec, ProtocolVersion.Current, TestContext.Current.CancellationToken);
+        _ = await EngineRpcTestClient.ReadResponseAsync(codec, TestContext.Current.CancellationToken);
 
         // Act — valid JSON-RPC 2.0 frame with the id field absent.
         var noIdRequest = Encoding.UTF8.GetBytes(
             """{"jsonrpc":"2.0","method":"Engine.DoesNotExist"}""");
         await codec.WriteAsync(noIdRequest, TestContext.Current.CancellationToken);
-        var response = await ReadResponseAsync(codec, TestContext.Current.CancellationToken);
+        var response = await EngineRpcTestClient.ReadResponseAsync(codec, TestContext.Current.CancellationToken);
 
         // Assert — the dispatcher normalises the response id to
         // JSON null per JsonRpcId.Normalize(request.Id).

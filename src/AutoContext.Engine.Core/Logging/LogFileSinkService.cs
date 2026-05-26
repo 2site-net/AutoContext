@@ -4,7 +4,6 @@ using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 
 using AutoContext.Engine.Core.Infrastructure.Primitives;
-using AutoContext.Engine.Core.Registry;
 using AutoContext.Engine.Protocol.Messages.Logs;
 using AutoContext.Engine.Protocol.Serialization;
 
@@ -89,9 +88,11 @@ internal sealed partial class LogFileSinkService : BackgroundService
     /// hot path skips path work.
     /// </summary>
     /// <param name="channel">Ingest channel to drain.</param>
-    /// <param name="options">Engine options carrying the workspace
-    /// path, instance id, and optional cache-root override the
-    /// target path is derived from.</param>
+    /// <param name="paths">Resolved on-disk paths for the engine's
+    /// log pipeline. The active <c>engine.log</c> path is read
+    /// from <see cref="EngineLogPaths.EngineLogFilePath"/> at
+    /// construction time and reused for the lifetime of the
+    /// service.</param>
     /// <param name="thresholds">Per-verbosity rotation thresholds
     /// — production composes via
     /// <see cref="LogRotationThresholds.ForVerbosity(EngineLoggingVerbosity)"/>;
@@ -113,7 +114,7 @@ internal sealed partial class LogFileSinkService : BackgroundService
     /// </exception>
     public LogFileSinkService(
         LogChannel channel,
-        IOptions<EngineOptions> options,
+        EngineLogPaths paths,
         LogRotationThresholds thresholds,
         RotatedLogCleaner cleaner,
         LogSubscriptionBroadcaster broadcaster,
@@ -121,7 +122,7 @@ internal sealed partial class LogFileSinkService : BackgroundService
         ILogger<LogFileSinkService> logger)
     {
         ArgumentNullException.ThrowIfNull(channel);
-        ArgumentNullException.ThrowIfNull(options);
+        ArgumentNullException.ThrowIfNull(paths);
         ArgumentNullException.ThrowIfNull(thresholds);
         ArgumentNullException.ThrowIfNull(cleaner);
         ArgumentNullException.ThrowIfNull(broadcaster);
@@ -134,7 +135,7 @@ internal sealed partial class LogFileSinkService : BackgroundService
         _logger = logger;
         _thresholds = thresholds;
         _timeProvider = timeProvider;
-        _filePath = ComposeEngineLogPath(options.Value);
+        _filePath = paths.EngineLogFilePath;
     }
 
     /// <inheritdoc />
@@ -187,7 +188,7 @@ internal sealed partial class LogFileSinkService : BackgroundService
         var directory = Path.GetDirectoryName(_filePath)
             ?? throw new InvalidOperationException(
                 $"Engine log path '{_filePath}' has no parent directory; "
-                + "ComposeEngineLogPath must always yield a rooted path.");
+                + "EngineLogPaths must always yield a rooted path.");
 
         Directory.CreateDirectory(directory);
 
@@ -277,19 +278,6 @@ internal sealed partial class LogFileSinkService : BackgroundService
 
             await stream.DisposeAsync().ConfigureAwait(false);
         }
-    }
-
-    private static string ComposeEngineLogPath(EngineOptions options)
-    {
-        var cacheRoot = EngineCacheRoot.Resolve(options.CacheRootOverride);
-        var workspaceHash = WorkspaceHash.Compute(options.WorkspacePath).Value;
-
-        return Path.Combine(
-            cacheRoot,
-            workspaceHash,
-            options.InstanceId.ToString("D"),
-            EngineCrashWriter.LogsSubdirectory,
-            EngineLogFileName);
     }
 
     [LoggerMessage(

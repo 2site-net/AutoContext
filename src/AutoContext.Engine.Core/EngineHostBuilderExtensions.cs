@@ -92,6 +92,16 @@ public static class EngineHostBuilderExtensions
         // (Engine.WriteLog) lands in a later phase.
         builder.Services.TryAddSingleton<LogChannel>();
 
+        // Single source of truth for engine.log / logs/ paths under
+        // the per-instance subtree. Producer (LogFileSinkService)
+        // and consumer (Logs.GetEngine handler) both resolve through
+        // this singleton so the path is defined once.
+        builder.Services.TryAddSingleton<EngineLogPaths>();
+
+        // Forward-pass NDJSON reader over the active engine.log,
+        // consumed by the Logs.GetEngine RPC handler.
+        builder.Services.TryAddSingleton<EngineLogFileReader>();
+
         // Rotation + retention support for the file sink. The
         // thresholds factory pins itself to the resolved
         // EngineOptions.Logging verbosity at first resolve; the

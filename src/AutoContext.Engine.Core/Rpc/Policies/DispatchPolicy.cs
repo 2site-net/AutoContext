@@ -2,10 +2,12 @@ namespace AutoContext.Engine.Core.Rpc.Policies;
 
 using System.Text.Json;
 
+using AutoContext.Engine.Core.Logging;
 using AutoContext.Engine.Core.Registry;
 using AutoContext.Engine.Protocol;
 using AutoContext.Engine.Protocol.JsonRpc;
 using AutoContext.Engine.Protocol.Messages;
+using AutoContext.Engine.Protocol.Messages.Logs;
 using AutoContext.Engine.Protocol.Messages.Registry;
 using AutoContext.Engine.Protocol.Serialization;
 
@@ -47,19 +49,23 @@ internal sealed partial class DispatchPolicy : IRpcConnectionPolicy
 {
     private readonly IHostApplicationLifetime _lifetime;
     private readonly RegistryFileReader _registryReader;
+    private readonly EngineLogFileReader _logFileReader;
     private readonly ILogger _logger;
 
     public DispatchPolicy(
         IHostApplicationLifetime lifetime,
         RegistryFileReader registryReader,
+        EngineLogFileReader logFileReader,
         ILogger logger)
     {
         ArgumentNullException.ThrowIfNull(lifetime);
         ArgumentNullException.ThrowIfNull(registryReader);
+        ArgumentNullException.ThrowIfNull(logFileReader);
         ArgumentNullException.ThrowIfNull(logger);
 
         _lifetime = lifetime;
         _registryReader = registryReader;
+        _logFileReader = logFileReader;
         _logger = logger;
     }
 
@@ -95,6 +101,10 @@ internal sealed partial class DispatchPolicy : IRpcConnectionPolicy
         {
             case RegistryMethods.RegistryEntries:
                 return await HandleRegistryEntriesAsync(cancellationToken)
+                    .ConfigureAwait(false);
+
+            case LogsMethods.GetEngine:
+                return await HandleLogsGetEngineAsync(request, cancellationToken)
                     .ConfigureAwait(false);
 
             case ProtocolMethods.Shutdown:
@@ -147,6 +157,81 @@ internal sealed partial class DispatchPolicy : IRpcConnectionPolicy
         }
     }
 
+    private async Task<RpcHandlerResult> HandleLogsGetEngineAsync(
+        JsonRpcRequest request, CancellationToken cancellationToken)
+    {
+        LogsGetEngineParams? parameters;
+
+        try
+        {
+            parameters = request.Params is { ValueKind: not JsonValueKind.Undefined and not JsonValueKind.Null } element
+                ? element.Deserialize(ProtocolJsonContext.Default.LogsGetEngineParams)
+                : null;
+        }
+        catch (JsonException ex)
+        {
+            LogParamsParseFailed(_logger, LogsMethods.GetEngine, ex);
+            return new RpcHandlerResult(
+                Response: new JsonRpcResponse
+                {
+                    Error = new JsonRpcError
+                    {
+                        Code = JsonRpcErrorCodes.InvalidParams,
+                        Message = $"Invalid params for '{LogsMethods.GetEngine}'.",
+                    },
+                },
+                Continuation: Continuation.Continue);
+        }
+
+        if (parameters?.LastN is < 0)
+        {
+            LogLogsGetEngineRejectedNegativeLastN(_logger, parameters.LastN.GetValueOrDefault());
+            return new RpcHandlerResult(
+                Response: new JsonRpcResponse
+                {
+                    Error = new JsonRpcError
+                    {
+                        Code = JsonRpcErrorCodes.InvalidParams,
+                        Message = "LastN must be non-negative.",
+                    },
+                },
+                Continuation: Continuation.Continue);
+        }
+
+        try
+        {
+            var read = await _logFileReader.ReadAsync(parameters, cancellationToken)
+                .ConfigureAwait(false);
+
+            var result = new LogsGetEngineResult
+            {
+                Records = read.Records,
+                Truncated = read.Truncated,
+            };
+
+            var resultElement = JsonSerializer.SerializeToElement(
+                result, ProtocolJsonContext.Default.LogsGetEngineResult);
+
+            return new RpcHandlerResult(
+                Response: new JsonRpcResponse { Result = resultElement },
+                Continuation: Continuation.Continue);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            LogLogsGetEngineFailed(_logger, ex);
+            return new RpcHandlerResult(
+                Response: new JsonRpcResponse
+                {
+                    Error = new JsonRpcError
+                    {
+                        Code = JsonRpcErrorCodes.InternalError,
+                        Message = "Failed to read the engine log.",
+                    },
+                },
+                Continuation: Continuation.Continue);
+        }
+    }
+
     private RpcHandlerResult HandleShutdown()
     {
         var result = new ShutdownResult { Accepted = true };
@@ -191,4 +276,16 @@ internal sealed partial class DispatchPolicy : IRpcConnectionPolicy
     [LoggerMessage(EventId = 56, Level = LogLevel.Debug,
         Message = "RPC frame is not a valid JSON-RPC 2.0 request.")]
     private static partial void LogInvalidRequest(ILogger logger);
+
+    [LoggerMessage(EventId = 57, Level = LogLevel.Debug,
+        Message = "RPC dispatch could not parse params for '{Method}'.")]
+    private static partial void LogParamsParseFailed(ILogger logger, string method, Exception exception);
+
+    [LoggerMessage(EventId = 58, Level = LogLevel.Warning,
+        Message = "Logs.GetEngine handler failed to read the engine log.")]
+    private static partial void LogLogsGetEngineFailed(ILogger logger, Exception exception);
+
+    [LoggerMessage(EventId = 59, Level = LogLevel.Debug,
+        Message = "Logs.GetEngine rejected request with negative LastN={LastN}.")]
+    private static partial void LogLogsGetEngineRejectedNegativeLastN(ILogger logger, int lastN);
 }

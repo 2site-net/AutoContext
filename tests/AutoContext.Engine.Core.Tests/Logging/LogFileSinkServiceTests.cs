@@ -12,8 +12,6 @@ using AutoContext.Engine.Protocol.Messages.Logs;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 
-using static AutoContext.Engine.Core.Tests.Support.EngineCrashWriterFixture;
-
 public sealed class LogFileSinkServiceTests : IClassFixture<LogFileSinkServiceFixture>
 {
     private readonly LogFileSinkServiceFixture _fixture;
@@ -28,22 +26,22 @@ public sealed class LogFileSinkServiceTests : IClassFixture<LogFileSinkServiceFi
     {
         Assert.Throws<ArgumentNullException>(() => new LogFileSinkService(
             channel: null!,
-            options: Options.Create(CreateOptions()),
+            paths: new EngineLogPaths(Options.Create(EngineCrashWriterFixture.CreateOptions())),
             thresholds: LogRotationThresholdsFakeData.Normal,
-            cleaner: RotatedLogCleanerTestFactory.Create(CreateOptions()),
+            cleaner: RotatedLogCleanerTestFactory.Create(EngineCrashWriterFixture.CreateOptions()),
             broadcaster: LogSubscriptionBroadcasterTestFactory.Create(),
             timeProvider: TimeProvider.System,
             logger: NullLogger<LogFileSinkService>.Instance));
     }
 
     [Fact]
-    public void Should_throw_when_constructed_with_null_options()
+    public void Should_throw_when_constructed_with_null_paths()
     {
         Assert.Throws<ArgumentNullException>(() => new LogFileSinkService(
             channel: new LogChannel(),
-            options: null!,
+            paths: null!,
             thresholds: LogRotationThresholdsFakeData.Normal,
-            cleaner: RotatedLogCleanerTestFactory.Create(CreateOptions()),
+            cleaner: RotatedLogCleanerTestFactory.Create(EngineCrashWriterFixture.CreateOptions()),
             broadcaster: LogSubscriptionBroadcasterTestFactory.Create(),
             timeProvider: TimeProvider.System,
             logger: NullLogger<LogFileSinkService>.Instance));
@@ -54,9 +52,9 @@ public sealed class LogFileSinkServiceTests : IClassFixture<LogFileSinkServiceFi
     {
         Assert.Throws<ArgumentNullException>(() => new LogFileSinkService(
             channel: new LogChannel(),
-            options: Options.Create(CreateOptions()),
+            paths: new EngineLogPaths(Options.Create(EngineCrashWriterFixture.CreateOptions())),
             thresholds: null!,
-            cleaner: RotatedLogCleanerTestFactory.Create(CreateOptions()),
+            cleaner: RotatedLogCleanerTestFactory.Create(EngineCrashWriterFixture.CreateOptions()),
             broadcaster: LogSubscriptionBroadcasterTestFactory.Create(),
             timeProvider: TimeProvider.System,
             logger: NullLogger<LogFileSinkService>.Instance));
@@ -67,7 +65,7 @@ public sealed class LogFileSinkServiceTests : IClassFixture<LogFileSinkServiceFi
     {
         Assert.Throws<ArgumentNullException>(() => new LogFileSinkService(
             channel: new LogChannel(),
-            options: Options.Create(CreateOptions()),
+            paths: new EngineLogPaths(Options.Create(EngineCrashWriterFixture.CreateOptions())),
             thresholds: LogRotationThresholdsFakeData.Normal,
             cleaner: null!,
             broadcaster: LogSubscriptionBroadcasterTestFactory.Create(),
@@ -80,9 +78,9 @@ public sealed class LogFileSinkServiceTests : IClassFixture<LogFileSinkServiceFi
     {
         Assert.Throws<ArgumentNullException>(() => new LogFileSinkService(
             channel: new LogChannel(),
-            options: Options.Create(CreateOptions()),
+            paths: new EngineLogPaths(Options.Create(EngineCrashWriterFixture.CreateOptions())),
             thresholds: LogRotationThresholdsFakeData.Normal,
-            cleaner: RotatedLogCleanerTestFactory.Create(CreateOptions()),
+            cleaner: RotatedLogCleanerTestFactory.Create(EngineCrashWriterFixture.CreateOptions()),
             broadcaster: LogSubscriptionBroadcasterTestFactory.Create(),
             timeProvider: null!,
             logger: NullLogger<LogFileSinkService>.Instance));
@@ -93,9 +91,9 @@ public sealed class LogFileSinkServiceTests : IClassFixture<LogFileSinkServiceFi
     {
         Assert.Throws<ArgumentNullException>(() => new LogFileSinkService(
             channel: new LogChannel(),
-            options: Options.Create(CreateOptions()),
+            paths: new EngineLogPaths(Options.Create(EngineCrashWriterFixture.CreateOptions())),
             thresholds: LogRotationThresholdsFakeData.Normal,
-            cleaner: RotatedLogCleanerTestFactory.Create(CreateOptions()),
+            cleaner: RotatedLogCleanerTestFactory.Create(EngineCrashWriterFixture.CreateOptions()),
             broadcaster: null!,
             timeProvider: TimeProvider.System,
             logger: NullLogger<LogFileSinkService>.Instance));
@@ -106,9 +104,9 @@ public sealed class LogFileSinkServiceTests : IClassFixture<LogFileSinkServiceFi
     {
         Assert.Throws<ArgumentNullException>(() => new LogFileSinkService(
             channel: new LogChannel(),
-            options: Options.Create(CreateOptions()),
+            paths: new EngineLogPaths(Options.Create(EngineCrashWriterFixture.CreateOptions())),
             thresholds: LogRotationThresholdsFakeData.Normal,
-            cleaner: RotatedLogCleanerTestFactory.Create(CreateOptions()),
+            cleaner: RotatedLogCleanerTestFactory.Create(EngineCrashWriterFixture.CreateOptions()),
             broadcaster: LogSubscriptionBroadcasterTestFactory.Create(),
             timeProvider: TimeProvider.System,
             logger: null!));
@@ -301,7 +299,7 @@ public sealed class LogFileSinkServiceTests : IClassFixture<LogFileSinkServiceFi
         // filename timestamp falls outside the retention window,
         // then drive one rotation event and verify the old
         // sibling is gone while the just-rotated one survives.
-        var options = CreateOptions();
+        var options = EngineCrashWriterFixture.CreateOptions();
         options.Retention = TimeSpan.FromMinutes(5);
         var rotationAt = new DateTimeOffset(2026, 5, 11, 14, 30, 52, TimeSpan.Zero);
         var clock = new FakeTimeProvider(rotationAt);

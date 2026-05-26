@@ -41,6 +41,8 @@ public sealed class LifecycleServiceFixture : IAsyncDisposable
         var instanceGuard = new FakeUniqueInstanceGuard();
         var logsBroadcaster = new LogSubscriptionBroadcaster(
             NullLogger<LogSubscriptionBroadcaster>.Instance);
+        var logFileReader = new EngineLogFileReader(
+            new EngineLogPaths(Options.Create(resolvedOptions)));
         var service = new LifecycleService(
             Options.Create(resolvedOptions),
             NullLoggerFactory.Instance,
@@ -50,7 +52,8 @@ public sealed class LifecycleServiceFixture : IAsyncDisposable
             notifier,
             watchdog,
             instanceGuard,
-            logsBroadcaster);
+            logsBroadcaster,
+            logFileReader);
 
         // Track in reverse dependency order so Dispose tears the
         // service down first, then the watchdog, then the lifetime.
@@ -119,6 +122,9 @@ public sealed class LifecycleServiceFixture : IAsyncDisposable
 
     internal static LogSubscriptionBroadcaster CreateLogsBroadcaster() =>
         new(NullLogger<LogSubscriptionBroadcaster>.Instance);
+
+    internal static EngineLogFileReader CreateLogFileReader(EngineOptions? options = null) =>
+        new(new EngineLogPaths(Options.Create(options ?? CreateOptions())));
 
     [SuppressMessage(
         "Design",

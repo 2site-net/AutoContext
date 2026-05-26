@@ -887,7 +887,7 @@ the `EngineCrashWriter` it depends on is wired up here. Worker spawn
 | 3 | `feat(engine-core): route engine ILogger<T> through ingest channel via EngineLoggerProvider` | DONE |
 | 4 | `feat(engine-core): add RetentionPolicy and log rotation with RotatedLogCleaner` | DONE |
 | 5 | `feat(engine-core): fan out engine records on logs pipe with per-subscriber buffer and slow-subscriber eviction` | DONE |
-| 6 | `feat(engine): serve Logs.GetEngine and Logs.TailEngine over rpc` | NOT STARTED |
+| 6 | `feat(engine): serve Logs.GetEngine over rpc` | DONE |
 | 7 | `feat(engine-core): add RegistryEntryReader with Process.StartTime liveness check` | NOT STARTED |
 | 8 | `feat(engine-core): add SubtreeRegistryStatus and CacheRootScanner` | NOT STARTED |
 | 9 | `feat(engine-core): add StaleSubtreeCleaner and HousekeepingService shutdown sweep` | NOT STARTED |
@@ -944,12 +944,21 @@ and rotated files are cleaned per `--retention`.
   cleanup inside a *live* subtree; whole-subtree cleanup is
   Housekeeping's job — see 2b. The two share `RetentionPolicy`
   as their single reader of the `--retention` option.)
-- `Logs.GetEngine` / `Logs.TailEngine` handlers (active file only;
-  `opts.lastN`, `opts.since`, `truncated` flag). `crash.log` is
-  intentionally **out of scope** for the `Logs.*` RPC surface: it
-  is a write-once tombstone produced by Phase 1's `EngineCrashWriter`,
-  not a tail-able feed, and is reaped along with the rest of the
+- `Logs.GetEngine` handler (active file only; `opts.lastN`,
+  `opts.since`, `truncated` flag). `crash.log` is intentionally
+  **out of scope** for the `Logs.*` RPC surface: it is a write-once
+  tombstone produced by Phase 1's `EngineCrashWriter`, not a
+  tail-able feed, and is reaped along with the rest of the
   per-instance subtree by 2b housekeeping under `--retention`.
+- `Logs.TailEngine` is **deferred to the Phase 3 prelude** — it
+  needs a server-streaming-response convention on the `rpc` pipe
+  (today the dispatcher is strictly one-request → one-response),
+  and that convention is shared infrastructure with
+  `Config.Subscribe` / `Instructions.Subscribe` in Phase 3. Building
+  it once, on the cusp of Phase 3, avoids landing unused streaming
+  plumbing in Phase 2. Interim consumers tail the `logs` pipe
+  directly (raw NDJSON, no handshake) per the design's documented
+  fallback.
 
 **Tests**:
 - Engine `ILogger<T>` records hit `engine.log` and the `logs` pipe
@@ -961,11 +970,10 @@ and rotated files are cleaned per `--retention`.
   the next rotation.
 - `Logs.GetEngine` returns active-file content; `truncated: true`
   when the requested range fell off.
-- `Logs.TailEngine` server-streams new records; replays from
-  `opts.since`.
-- Slow-subscriber eviction: a subscriber that doesn't drain gets the
-  terminal `evicted` frame and is disconnected; other subscribers and
-  the file sink keep progressing.
+- Slow-subscriber eviction (against the row-5 `logs`-pipe / future
+  `Logs.Tail*` broadcaster): a subscriber that doesn't drain gets
+  the terminal `evicted` frame and is disconnected; other
+  subscribers and the file sink keep progressing.
 
 ### 2b — Cache housekeeping
 
@@ -1081,7 +1089,9 @@ is explicit and exclusive).
   live subtree was touched.
 
 **Out of scope** (2a): worker records (Phase 8); `Logs.GetWorker`
-/ `Logs.TailWorker` (Phase 8). 2b has no out-of-scope carve-out;
+/ `Logs.TailWorker` (Phase 8); `Logs.TailEngine` (deferred to the
+Phase 3 prelude — see row 6 code touch above). 2b has no
+out-of-scope carve-out;
 its dependency on Phase 1's `RegistryFileReader` /
   `RegistryFileWriter` and `RegistryFileService` (which owns both
   the file mechanics and this engine's own-entry lifecycle, and
@@ -1091,6 +1101,23 @@ its dependency on Phase 1's `RegistryFileReader` /
 ## Phase 3 — Config store
 
 **Status**: Not started.
+
+**Prelude — server-streaming responses on the `rpc` pipe.** Phase 3
+is the first phase that needs `*.Subscribe` semantics
+(`Config.Subscribe`), and Phase 2 row 6 deferred `Logs.TailEngine`
+for the same reason. Before Phase 3's first row lands, two
+additional commits ship on a Phase 3 prelude branch:
+
+1. `feat(engine-core): support server-streaming responses on rpc pipe`
+   — one stream per connection, terminal-frame discipline,
+   cancellation = peer close. Frame shape carries a request-id
+   correlator from day one so a later multiplex commit is
+   wire-additive, not breaking.
+2. `feat(engine): serve Logs.TailEngine over rpc` — the deferred
+   half of Phase 2 row 6, now trivial on top of (1).
+
+With those landed, `Config.Subscribe` and every later `*.Subscribe`
+row becomes a small additive change.
 
 **Goal**: engine owns `.autocontext.json`. Reads are concurrent and
 lock-free; writes are single-writer with debounce + batch

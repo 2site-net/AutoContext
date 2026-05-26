@@ -38,6 +38,8 @@ using AutoContext.Engine.Protocol.Messages.Registry;
 [JsonSerializable(typeof(LogStreamFrame))]
 [JsonSerializable(typeof(LogRecordFrame))]
 [JsonSerializable(typeof(LogEvictedFrame))]
+[JsonSerializable(typeof(LogsGetEngineParams))]
+[JsonSerializable(typeof(LogsGetEngineResult))]
 [JsonSerializable(typeof(RegistryEntry))]
 [JsonSerializable(typeof(RegistryEntriesResult))]
 [JsonSerializable(typeof(ShutdownResult))]

@@ -55,7 +55,7 @@ public sealed class LogFileSinkServiceFixture : IDisposable
 
         var service = new LogFileSinkService(
             resolvedChannel,
-            Options.Create(resolvedOptions),
+            new EngineLogPaths(Options.Create(resolvedOptions)),
             resolvedThresholds,
             RotatedLogCleanerTestFactory.Create(resolvedOptions, resolvedClock),
             resolvedBroadcaster,
