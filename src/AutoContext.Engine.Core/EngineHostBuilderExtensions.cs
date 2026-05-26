@@ -2,6 +2,7 @@ namespace AutoContext.Engine.Core;
 
 using AutoContext.Engine.Core.Infrastructure;
 using AutoContext.Engine.Core.Infrastructure.Diagnostics;
+using AutoContext.Engine.Core.Housekeeping;
 using AutoContext.Engine.Core.Lifecycle;
 using AutoContext.Engine.Core.Logging;
 using AutoContext.Engine.Core.Registry;
@@ -180,6 +181,23 @@ public static class EngineHostBuilderExtensions
         // Phase 2b's CacheRootScanner consumes this to derive the
         // registration half of its SubtreeRegistryStatus output.
         builder.Services.TryAddSingleton<RegistryEntryReader>();
+
+        // Housekeeping cache-root scanner: walks the cache root
+        // once and classifies every child directory into one of
+        // four SubtreeRegistryStatus arms by composing
+        // RegistryEntryReader with a structural shape check.
+        // Pure read + classification — no deletion. Consumed by
+        // StaleSubtreeCleaner (next row) and the HousekeepingService
+        // shutdown sweep.
+        builder.Services.TryAddSingleton(sp =>
+        {
+            var options = sp.GetRequiredService<IOptions<EngineOptions>>().Value;
+            var cacheRoot = EngineCacheRoot.Resolve(options.CacheRootOverride);
+            return new CacheRootScanner(
+                cacheRoot,
+                sp.GetRequiredService<RegistryEntryReader>(),
+                sp.GetRequiredService<ILogger<CacheRootScanner>>());
+        });
 
         builder.Services.TryAddSingleton<LifecycleEventStream>();
         builder.Services.TryAddSingleton<LifecycleNotifier>();
