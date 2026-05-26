@@ -1,13 +1,13 @@
 namespace AutoContext.Engine.Core.Tests.Logging;
 
-using AutoContext.Engine.Core;
 using AutoContext.Engine.Core.Logging;
+using AutoContext.Engine.Core.Tests.Support.Logging;
 using AutoContext.Engine.Core.Tests.Support.Shared;
 
 using Microsoft.Extensions.Logging.Abstractions;
-using Microsoft.Extensions.Options;
 
-public sealed class RotatedLogCleanerTests
+public sealed class RotatedLogCleanerTests(TempDirectoryFixture tempDirectory)
+    : IClassFixture<TempDirectoryFixture>
 {
     private const string BaseName = "engine";
 
@@ -23,7 +23,7 @@ public sealed class RotatedLogCleanerTests
     [Fact]
     public void Should_throw_when_constructed_with_null_logger() =>
         Assert.Throws<ArgumentNullException>(() => new RotatedLogCleaner(
-            CreatePolicy(TimeSpan.FromHours(1)),
+            RetentionPolicyTestFactory.Create(TimeSpan.FromHours(1), KnownNow),
             logger: null!));
 
     [Fact]
@@ -43,14 +43,13 @@ public sealed class RotatedLogCleanerTests
     public void DeleteExpired_should_delete_files_outside_retention_window()
     {
         // Arrange
-        using var directory = new TempDirectory();
-        var policy = CreatePolicy(TimeSpan.FromMinutes(10));
+        var directory = tempDirectory.CreateDirectory();
+        var policy = RetentionPolicyTestFactory.Create(TimeSpan.FromMinutes(10), KnownNow);
         var cleaner = new RotatedLogCleaner(policy, NullLogger<RotatedLogCleaner>.Instance);
-
-        var oldPath = SeedRotatedFile(directory.Path, KnownNow - TimeSpan.FromHours(1));
+        var oldPath = RotatedLogFileTestComposer.Seed(directory, BaseName, KnownNow - TimeSpan.FromHours(1));
 
         // Act
-        cleaner.DeleteExpired(directory.Path, BaseName);
+        cleaner.DeleteExpired(directory, BaseName);
 
         // Assert
         Assert.False(File.Exists(oldPath));
@@ -60,14 +59,13 @@ public sealed class RotatedLogCleanerTests
     public void DeleteExpired_should_preserve_files_inside_retention_window()
     {
         // Arrange
-        using var directory = new TempDirectory();
-        var policy = CreatePolicy(TimeSpan.FromHours(1));
+        var directory = tempDirectory.CreateDirectory();
+        var policy = RetentionPolicyTestFactory.Create(TimeSpan.FromHours(1), KnownNow);
         var cleaner = new RotatedLogCleaner(policy, NullLogger<RotatedLogCleaner>.Instance);
-
-        var freshPath = SeedRotatedFile(directory.Path, KnownNow - TimeSpan.FromMinutes(5));
+        var freshPath = RotatedLogFileTestComposer.Seed(directory, BaseName, KnownNow - TimeSpan.FromMinutes(5));
 
         // Act
-        cleaner.DeleteExpired(directory.Path, BaseName);
+        cleaner.DeleteExpired(directory, BaseName);
 
         // Assert
         Assert.True(File.Exists(freshPath));
@@ -78,15 +76,14 @@ public sealed class RotatedLogCleanerTests
     {
         // Arrange — `engine.log` (without timestamp) is the
         // active file and must never be touched by the sweeper.
-        using var directory = new TempDirectory();
-        var policy = CreatePolicy(TimeSpan.Zero);
+        var directory = tempDirectory.CreateDirectory();
+        var policy = RetentionPolicyTestFactory.Create(TimeSpan.Zero, KnownNow);
         var cleaner = new RotatedLogCleaner(policy, NullLogger<RotatedLogCleaner>.Instance);
-
-        var activePath = Path.Combine(directory.Path, "engine.log");
+        var activePath = Path.Combine(directory, "engine.log");
         File.WriteAllText(activePath, "{}\n");
 
         // Act
-        cleaner.DeleteExpired(directory.Path, BaseName);
+        cleaner.DeleteExpired(directory, BaseName);
 
         // Assert
         Assert.True(File.Exists(activePath));
@@ -98,15 +95,14 @@ public sealed class RotatedLogCleanerTests
         // Arrange — files whose basename does not match
         // `engine-` (e.g. a future `worker-{id}-...` file) are
         // outside this sweeper's scope and must be left alone.
-        using var directory = new TempDirectory();
-        var policy = CreatePolicy(TimeSpan.Zero);
+        var directory = tempDirectory.CreateDirectory();
+        var policy = RetentionPolicyTestFactory.Create(TimeSpan.Zero, KnownNow);
         var cleaner = new RotatedLogCleaner(policy, NullLogger<RotatedLogCleaner>.Instance);
-
-        var foreignPath = Path.Combine(directory.Path, "worker-20260101T000000Z.log");
+        var foreignPath = Path.Combine(directory, "worker-20260101T000000Z.log");
         File.WriteAllText(foreignPath, "{}\n");
 
         // Act
-        cleaner.DeleteExpired(directory.Path, BaseName);
+        cleaner.DeleteExpired(directory, BaseName);
 
         // Assert
         Assert.True(File.Exists(foreignPath));
@@ -118,15 +114,14 @@ public sealed class RotatedLogCleanerTests
         // Arrange — `engine-not-a-timestamp.log` matches the
         // search pattern but its timestamp segment cannot be
         // parsed; the file must survive untouched.
-        using var directory = new TempDirectory();
-        var policy = CreatePolicy(TimeSpan.Zero);
+        var directory = tempDirectory.CreateDirectory();
+        var policy = RetentionPolicyTestFactory.Create(TimeSpan.Zero, KnownNow);
         var cleaner = new RotatedLogCleaner(policy, NullLogger<RotatedLogCleaner>.Instance);
-
-        var malformedPath = Path.Combine(directory.Path, "engine-not-a-timestamp.log");
+        var malformedPath = Path.Combine(directory, "engine-not-a-timestamp.log");
         File.WriteAllText(malformedPath, "{}\n");
 
         // Act
-        cleaner.DeleteExpired(directory.Path, BaseName);
+        cleaner.DeleteExpired(directory, BaseName);
 
         // Assert
         Assert.True(File.Exists(malformedPath));
@@ -136,7 +131,7 @@ public sealed class RotatedLogCleanerTests
     public void DeleteExpired_should_no_op_when_directory_is_missing()
     {
         // Arrange — point at a directory that does not exist.
-        var policy = CreatePolicy(TimeSpan.Zero);
+        var policy = RetentionPolicyTestFactory.Create(TimeSpan.Zero, KnownNow);
         var cleaner = new RotatedLogCleaner(policy, NullLogger<RotatedLogCleaner>.Instance);
         var missingDirectory = Path.Combine(
             Path.GetTempPath(),
@@ -150,51 +145,11 @@ public sealed class RotatedLogCleanerTests
     public void DeleteExpired_should_throw_when_base_name_is_null_or_empty()
     {
         var cleaner = new RotatedLogCleaner(
-            CreatePolicy(TimeSpan.Zero),
+            RetentionPolicyTestFactory.Create(TimeSpan.Zero, KnownNow),
             NullLogger<RotatedLogCleaner>.Instance);
 
         Assert.Multiple(
             () => Assert.Throws<ArgumentNullException>(() => cleaner.DeleteExpired("anywhere", baseName: null!)),
             () => Assert.Throws<ArgumentException>(() => cleaner.DeleteExpired("anywhere", baseName: "")));
-    }
-
-    private static RetentionPolicy CreatePolicy(TimeSpan window) =>
-        new(
-            Options.Create(new EngineOptions { Retention = window }),
-            new FakeTimeProvider(KnownNow));
-
-    private static string SeedRotatedFile(string directory, DateTimeOffset stamp)
-    {
-        var path = Path.Combine(directory, RotatedLogCleaner.ComposeRotatedFileName(BaseName, stamp));
-        File.WriteAllText(path, "{}\n");
-        return path;
-    }
-
-    private sealed class TempDirectory : IDisposable
-    {
-        public TempDirectory()
-        {
-            Path = System.IO.Path.Combine(
-                System.IO.Path.GetTempPath(),
-                $"autocontext-cleaner-{Guid.NewGuid():N}");
-            Directory.CreateDirectory(Path);
-        }
-
-        public string Path { get; }
-
-        public void Dispose()
-        {
-            try
-            {
-                if (Directory.Exists(Path))
-                {
-                    Directory.Delete(Path, recursive: true);
-                }
-            }
-            catch (IOException)
-            {
-                // Best-effort cleanup; ignore residual handles.
-            }
-        }
     }
 }

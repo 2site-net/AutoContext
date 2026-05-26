@@ -29,7 +29,7 @@ public sealed class DispatchPolicyTests(TempDirectoryFixture tempDirectory)
     {
         // Arrange + Act + Assert
         Assert.Throws<ArgumentNullException>(
-            () => new DispatchPolicy(null!, CreateReader(), NullLogger.Instance));
+            () => new DispatchPolicy(null!, RegistryFileReaderTestFactory.Create(tempDirectory.CreatePath(RegistryFileName)), NullLogger.Instance));
     }
 
     [Fact]
@@ -51,7 +51,7 @@ public sealed class DispatchPolicyTests(TempDirectoryFixture tempDirectory)
 
         // Act + Assert
         Assert.Throws<ArgumentNullException>(
-            () => new DispatchPolicy(lifetime, CreateReader(), logger: null!));
+            () => new DispatchPolicy(lifetime, RegistryFileReaderTestFactory.Create(tempDirectory.CreatePath(RegistryFileName)), logger: null!));
     }
 
     [Fact]
@@ -59,7 +59,7 @@ public sealed class DispatchPolicyTests(TempDirectoryFixture tempDirectory)
     {
         // Arrange
         using var lifetime = new FakeHostApplicationLifetime();
-        var policy = new DispatchPolicy(lifetime, CreateReader(), NullLogger.Instance);
+        var policy = new DispatchPolicy(lifetime, RegistryFileReaderTestFactory.Create(tempDirectory.CreatePath(RegistryFileName)), NullLogger.Instance);
 
         // Act + Assert
         Assert.Multiple(
@@ -76,7 +76,7 @@ public sealed class DispatchPolicyTests(TempDirectoryFixture tempDirectory)
         // Arrange
         var recorder = new FakeRecordingLogger();
         using var lifetime = new FakeHostApplicationLifetime();
-        var policy = new DispatchPolicy(lifetime, CreateReader(), recorder);
+        var policy = new DispatchPolicy(lifetime, RegistryFileReaderTestFactory.Create(tempDirectory.CreatePath(RegistryFileName)), recorder);
         var boom = new InvalidOperationException("framing");
 
         // Act
@@ -95,7 +95,7 @@ public sealed class DispatchPolicyTests(TempDirectoryFixture tempDirectory)
         // Arrange
         var recorder = new FakeRecordingLogger();
         using var lifetime = new FakeHostApplicationLifetime();
-        var policy = new DispatchPolicy(lifetime, CreateReader(), recorder);
+        var policy = new DispatchPolicy(lifetime, RegistryFileReaderTestFactory.Create(tempDirectory.CreatePath(RegistryFileName)), recorder);
 
         // Act
         policy.LogFrameInvalidRequest();
@@ -111,7 +111,7 @@ public sealed class DispatchPolicyTests(TempDirectoryFixture tempDirectory)
         // Arrange
         var recorder = new FakeRecordingLogger();
         using var lifetime = new FakeHostApplicationLifetime();
-        var policy = new DispatchPolicy(lifetime, CreateReader(), recorder);
+        var policy = new DispatchPolicy(lifetime, RegistryFileReaderTestFactory.Create(tempDirectory.CreatePath(RegistryFileName)), recorder);
 
         // Act
         policy.LogConnectionClosedByPeer();
@@ -180,7 +180,7 @@ public sealed class DispatchPolicyTests(TempDirectoryFixture tempDirectory)
     {
         // Arrange
         using var lifetime = new FakeHostApplicationLifetime();
-        var policy = new DispatchPolicy(lifetime, CreateReader(), NullLogger.Instance);
+        var policy = new DispatchPolicy(lifetime, RegistryFileReaderTestFactory.Create(tempDirectory.CreatePath(RegistryFileName)), NullLogger.Instance);
         var request = BuildRequest(ProtocolMethods.Shutdown);
 
         // Act
@@ -200,7 +200,7 @@ public sealed class DispatchPolicyTests(TempDirectoryFixture tempDirectory)
     {
         // Arrange
         using var lifetime = new FakeHostApplicationLifetime();
-        var policy = new DispatchPolicy(lifetime, CreateReader(), NullLogger.Instance);
+        var policy = new DispatchPolicy(lifetime, RegistryFileReaderTestFactory.Create(tempDirectory.CreatePath(RegistryFileName)), NullLogger.Instance);
         var request = BuildRequest("Engine.WhoKnows");
 
         // Act
@@ -211,11 +211,5 @@ public sealed class DispatchPolicyTests(TempDirectoryFixture tempDirectory)
             () => Assert.Equal(Continuation.Continue, result.Continuation),
             () => Assert.NotNull(result.Response.Error),
             () => Assert.Equal(JsonRpcErrorCodes.MethodNotFound, result.Response.Error!.Code));
-    }
-
-    private RegistryFileReader CreateReader()
-    {
-        var registryPath = tempDirectory.CreatePath(RegistryFileName);
-        return new RegistryFileReader(registryPath);
     }
 }

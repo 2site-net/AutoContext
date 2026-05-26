@@ -53,7 +53,7 @@ public sealed class RegistryFileReaderTests : IDisposable
     [Fact]
     public async Task ReadAsync_should_return_empty_when_file_does_not_exist()
     {
-        var sut = CreateReader();
+        var sut = RegistryFileReaderTestFactory.Create(_path);
 
         var entries = await sut.ReadAsync(TestContext.Current.CancellationToken);
 
@@ -70,7 +70,7 @@ public sealed class RegistryFileReaderTests : IDisposable
             RegistryEntryFakeData.CreateValidEntry(),
         };
         writer.Write(seeded);
-        var sut = CreateReader();
+        var sut = RegistryFileReaderTestFactory.Create(_path);
 
         var entries = await sut.ReadAsync(TestContext.Current.CancellationToken);
 
@@ -83,7 +83,7 @@ public sealed class RegistryFileReaderTests : IDisposable
     public async Task ReadAsync_should_treat_corrupt_file_as_empty()
     {
         await File.WriteAllTextAsync(_path, "this is not json at all", TestContext.Current.CancellationToken);
-        var sut = CreateReader();
+        var sut = RegistryFileReaderTestFactory.Create(_path);
 
         var entries = await sut.ReadAsync(TestContext.Current.CancellationToken);
 
@@ -96,18 +96,10 @@ public sealed class RegistryFileReaderTests : IDisposable
         var payload = Encoding.UTF8.GetBytes(
             """{"schemaVersion":99,"entries":[]}""");
         await File.WriteAllBytesAsync(_path, payload, TestContext.Current.CancellationToken);
-        var sut = CreateReader();
+        var sut = RegistryFileReaderTestFactory.Create(_path);
 
         var entries = await sut.ReadAsync(TestContext.Current.CancellationToken);
 
         Assert.Empty(entries);
     }
-
-    private RegistryFileReader CreateReader() =>
-        new(_path, new RegistryFileReaderOptions
-        {
-            InitialRetryDelay = TimeSpan.FromMilliseconds(1),
-            MaxRetryDelay = TimeSpan.FromMilliseconds(5),
-            MaxAttempts = 5,
-        });
 }

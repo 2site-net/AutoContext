@@ -22,6 +22,17 @@ public sealed class TempDirectoryFixture : IDisposable
         return Path.Combine(subdirectory, fileName);
     }
 
+    /// <summary>
+    /// Allocates a fresh, isolated subdirectory under the fixture's root directory
+    /// and returns its absolute path.
+    /// </summary>
+    public string CreateDirectory()
+    {
+        var subdirectory = Path.Combine(_root, Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(subdirectory);
+        return subdirectory;
+    }
+
     public void Dispose()
     {
         try
