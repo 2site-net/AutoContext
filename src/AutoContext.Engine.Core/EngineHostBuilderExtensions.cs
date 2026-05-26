@@ -173,6 +173,14 @@ public static class EngineHostBuilderExtensions
                 logger: sp.GetService<ILogger<RegistryFileReader>>());
         });
 
+        // Liveness-aware view over the registry: composes the
+        // stateless RegistryFileReader above with IProcessLookup
+        // (registered alongside HostWatchdog further down) and tags
+        // each entry Live/Stale via Process.StartTime comparison.
+        // Phase 2b's CacheRootScanner consumes this to derive the
+        // registration half of its SubtreeRegistryStatus output.
+        builder.Services.TryAddSingleton<RegistryEntryReader>();
+
         builder.Services.TryAddSingleton<LifecycleEventStream>();
         builder.Services.TryAddSingleton<LifecycleNotifier>();
 

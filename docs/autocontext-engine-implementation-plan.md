@@ -381,6 +381,7 @@ src/
       RegistryFileService.cs                   # hosted coordinator: dedicated worker thread + named cross-process Mutex + Channel<WriteRequest> + read-modify-write cycle; owns this engine's own-entry lifecycle (append on Start, best-effort remove on Stop); single intended caller of RegistryFileWriter
       RegistryEntry.cs                         # entry DTO returned/accepted by RegistryFileReader/Service (engine-internal shape — never on the wire, P3)
       RegistryEntryBuilder.cs                  # pure builder — composes EngineOptions + runtime facts (pid, start time, workspace hash, assembly version) into the RegistryEntry that represents this engine; invoked by RegistryFileService via DI-supplied factory
+      RegistryEntryReader.cs                   # composes over RegistryFileReader; applies Process.StartTime peer-liveness check, tagging each entry Live/Stale — consumed by Housekeeping/ (Phase 2b CacheRootScanner) as the registration half of its classification
     Watchdogs/                                 # process-lifetime guards — peers of Lifecycle/; each is a hosted service that signals IHostApplicationLifetime.StopApplication on its own trigger
       IdleTimeoutWatchdog.cs                   # --idle-timeout
       HostWatchdog.cs                          # --parent-pid; clamps engine lifetime to spawner via Infrastructure/Diagnostics handle (Process.StartTime pid-reuse defeat)
@@ -389,7 +390,6 @@ src/
       HousekeepingService.cs                   # hosted service — shutdown sweep only, runs after LifecycleService removes own entry + closes pipes; ≤ 1 s deadline budget
       SubtreeRegistryStatus.cs                 # discriminated record hierarchy (Registered | StaleRegistration | Unregistered | Foreign) — P2-shaped contract between scanner, policy, and cleaner
       CacheRootScanner.cs                      # walks the engine cache root, produces SubtreeRegistryStatus per child (pure — no deletion here)
-      RegistryEntryReader.cs                   # composes over RegistryFileReader (Lifecycle/); applies Process.StartTime peer-liveness check, supplies the registration half of CacheRootScanner's classification
       StaleSubtreeCleaner.cs                   # pattern-matches SubtreeRegistryStatus, deletes with concurrent-sweep tolerance (DirectoryNotFoundException counts as success)
       RetentionPolicy.cs                       # single reader of `--retention` — resolves the window per SubtreeRegistryStatus arm (per-entry, unregistered-fallback, foreign)
     Logging/                                   # engine sink, rotation, rotated-file cleanup
@@ -888,7 +888,7 @@ the `EngineCrashWriter` it depends on is wired up here. Worker spawn
 | 4 | `feat(engine-core): add RetentionPolicy and log rotation with RotatedLogCleaner` | DONE |
 | 5 | `feat(engine-core): fan out engine records on logs pipe with per-subscriber buffer and slow-subscriber eviction` | DONE |
 | 6 | `feat(engine): serve Logs.GetEngine over rpc` | DONE |
-| 7 | `feat(engine-core): add RegistryEntryReader with Process.StartTime liveness check` | NOT STARTED |
+| 7 | `feat(engine-core): add RegistryEntryReader` | DONE |
 | 8 | `feat(engine-core): add SubtreeRegistryStatus and CacheRootScanner` | NOT STARTED |
 | 9 | `feat(engine-core): add StaleSubtreeCleaner and HousekeepingService shutdown sweep` | NOT STARTED |
 | 10 | `test(engine): integration test for cross-engine shutdown-sweep cleanup` | NOT STARTED |
