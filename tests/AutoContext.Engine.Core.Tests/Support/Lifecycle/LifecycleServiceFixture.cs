@@ -4,6 +4,7 @@ using System.Diagnostics.CodeAnalysis;
 
 using AutoContext.Engine.Core;
 using AutoContext.Engine.Core.Lifecycle;
+using AutoContext.Engine.Core.Logging;
 using AutoContext.Engine.Core.Registry;
 using AutoContext.Engine.Core.Tests.Support;
 using AutoContext.Engine.Core.Watchdogs;
@@ -38,6 +39,8 @@ public sealed class LifecycleServiceFixture : IAsyncDisposable
         var notifier = CreateNotifier(resolvedOptions, stream);
         var watchdog = CreateWatchdog(resolvedOptions, lifetime);
         var instanceGuard = new FakeUniqueInstanceGuard();
+        var logsBroadcaster = new LogSubscriptionBroadcaster(
+            NullLogger<LogSubscriptionBroadcaster>.Instance);
         var service = new LifecycleService(
             Options.Create(resolvedOptions),
             NullLoggerFactory.Instance,
@@ -46,7 +49,8 @@ public sealed class LifecycleServiceFixture : IAsyncDisposable
             stream,
             notifier,
             watchdog,
-            instanceGuard);
+            instanceGuard,
+            logsBroadcaster);
 
         // Track in reverse dependency order so Dispose tears the
         // service down first, then the watchdog, then the lifetime.
@@ -54,7 +58,7 @@ public sealed class LifecycleServiceFixture : IAsyncDisposable
         _asyncTracked.Add(watchdog);
         _syncTracked.Add(lifetime);
 
-        return new Context(resolvedOptions, lifetime, watchdog, service);
+        return new Context(resolvedOptions, lifetime, watchdog, service, logsBroadcaster);
     }
 
     public static EngineOptions CreateOptions() =>
@@ -113,6 +117,9 @@ public sealed class LifecycleServiceFixture : IAsyncDisposable
             NullLogger<IdleTimeoutWatchdog>.Instance);
     }
 
+    internal static LogSubscriptionBroadcaster CreateLogsBroadcaster() =>
+        new(NullLogger<LogSubscriptionBroadcaster>.Instance);
+
     [SuppressMessage(
         "Design",
         "CA1031:Do not catch general exception types",
@@ -157,5 +164,6 @@ public sealed class LifecycleServiceFixture : IAsyncDisposable
         EngineOptions EngineOptions,
         FakeHostApplicationLifetime Lifetime,
         IdleTimeoutWatchdog Watchdog,
-        LifecycleService Service);
+        LifecycleService Service,
+        LogSubscriptionBroadcaster LogsBroadcaster);
 }

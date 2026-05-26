@@ -1,6 +1,7 @@
 namespace AutoContext.Engine.Core.Tests.Logging;
 
 using AutoContext.Engine.Core.Logging;
+using AutoContext.Engine.Core.Tests.Support.Logging;
 using AutoContext.Engine.Protocol.Messages.Logs;
 
 public sealed class LogChannelTests
@@ -20,8 +21,8 @@ public sealed class LogChannelTests
     {
         // Arrange
         var channel = new LogChannel();
-        var first = CreateRecord("first");
-        var second = CreateRecord("second");
+        var first = LogRecordFakeData.CreateLogRecord(message: "first");
+        var second = LogRecordFakeData.CreateLogRecord(message: "second");
 
         // Act
         Assert.True(channel.TryWrite(first));
@@ -53,7 +54,7 @@ public sealed class LogChannelTests
 
         for (var i = 0; i < records.Length; i++)
         {
-            records[i] = CreateRecord($"record-{i}");
+            records[i] = LogRecordFakeData.CreateLogRecord(message: $"record-{i}");
         }
 
         // Act
@@ -86,7 +87,7 @@ public sealed class LogChannelTests
         channel.Complete();
 
         // Act + Assert
-        Assert.False(channel.TryWrite(CreateRecord("late")));
+        Assert.False(channel.TryWrite(LogRecordFakeData.CreateLogRecord(message: "late")));
     }
 
     [Fact]
@@ -99,13 +100,4 @@ public sealed class LogChannelTests
         channel.Complete();
         channel.Complete();
     }
-
-    private static LogRecord CreateRecord(string message) =>
-        new()
-        {
-            Timestamp = DateTimeOffset.UtcNow,
-            Category = "engine.test",
-            Level = LogLevels.Information,
-            Message = message,
-        };
 }

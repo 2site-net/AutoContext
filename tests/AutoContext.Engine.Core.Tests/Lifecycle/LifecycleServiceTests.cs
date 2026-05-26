@@ -9,6 +9,7 @@ using AutoContext.Engine.Core.Infrastructure.Primitives;
 using AutoContext.Engine.Core.Lifecycle;
 using AutoContext.Engine.Core.Registry;
 using AutoContext.Engine.Core.Tests.Support.Lifecycle;
+using AutoContext.Engine.Core.Tests.Support.Logging;
 using AutoContext.Engine.Core.Tests.Support.Registry;
 using AutoContext.Engine.Core.Tests.Support.Rpc;
 using AutoContext.Engine.Core.Tests.Support.Shared;
@@ -16,6 +17,7 @@ using AutoContext.Engine.Protocol;
 using AutoContext.Engine.Protocol.JsonRpc;
 using AutoContext.Engine.Protocol.Messages;
 using AutoContext.Engine.Protocol.Messages.Lifecycle;
+using AutoContext.Engine.Protocol.Messages.Logs;
 using AutoContext.Engine.Protocol.Messages.Registry;
 using AutoContext.Engine.Protocol.Serialization;
 using AutoContext.Framework.Pipes;
@@ -109,7 +111,8 @@ public sealed class LifecycleServiceTests(
                 CreateEventStream(),
                 CreateNotifier(),
                 watchdog,
-                new FakeUniqueInstanceGuard()));
+                new FakeUniqueInstanceGuard(),
+                CreateLogsBroadcaster()));
     }
 
     [Fact]
@@ -127,7 +130,8 @@ public sealed class LifecycleServiceTests(
                 CreateEventStream(),
                 CreateNotifier(),
                 watchdog,
-                new FakeUniqueInstanceGuard()));
+                new FakeUniqueInstanceGuard(),
+                CreateLogsBroadcaster()));
     }
 
     [Fact]
@@ -145,7 +149,8 @@ public sealed class LifecycleServiceTests(
                 CreateEventStream(),
                 CreateNotifier(),
                 watchdog,
-                new FakeUniqueInstanceGuard()));
+                new FakeUniqueInstanceGuard(),
+                CreateLogsBroadcaster()));
     }
 
     [Fact]
@@ -163,7 +168,8 @@ public sealed class LifecycleServiceTests(
                 CreateEventStream(),
                 CreateNotifier(),
                 watchdog,
-                new FakeUniqueInstanceGuard()));
+                new FakeUniqueInstanceGuard(),
+                CreateLogsBroadcaster()));
     }
 
     [Fact]
@@ -181,7 +187,8 @@ public sealed class LifecycleServiceTests(
                 null!,
                 CreateNotifier(),
                 watchdog,
-                new FakeUniqueInstanceGuard()));
+                new FakeUniqueInstanceGuard(),
+                CreateLogsBroadcaster()));
     }
 
     [Fact]
@@ -199,7 +206,8 @@ public sealed class LifecycleServiceTests(
                 CreateEventStream(),
                 null!,
                 watchdog,
-                new FakeUniqueInstanceGuard()));
+                new FakeUniqueInstanceGuard(),
+                CreateLogsBroadcaster()));
     }
 
     [Fact]
@@ -216,7 +224,8 @@ public sealed class LifecycleServiceTests(
                 CreateEventStream(),
                 CreateNotifier(),
                 null!,
-                new FakeUniqueInstanceGuard()));
+                new FakeUniqueInstanceGuard(),
+                CreateLogsBroadcaster()));
     }
 
     [Fact]
@@ -234,6 +243,26 @@ public sealed class LifecycleServiceTests(
                 CreateEventStream(),
                 CreateNotifier(),
                 watchdog,
+                null!,
+                CreateLogsBroadcaster()));
+    }
+
+    [Fact]
+    public async Task Should_throw_when_constructed_with_null_logs_broadcaster()
+    {
+        using var lifetime = new FakeHostApplicationLifetime();
+        await using var watchdog = CreateWatchdog(CreateOptions(), lifetime);
+
+        Assert.Throws<ArgumentNullException>(() =>
+            new LifecycleService(
+                Options.Create(CreateOptions()),
+                NullLoggerFactory.Instance,
+                lifetime,
+                CreateRegistryReader(),
+                CreateEventStream(),
+                CreateNotifier(),
+                watchdog,
+                new FakeUniqueInstanceGuard(),
                 null!));
     }
 
@@ -408,10 +437,124 @@ public sealed class LifecycleServiceTests(
         await using var client = await ConnectAsync(
             EndpointKind.Logs, context.EngineOptions, TestContext.Current.CancellationToken);
 
-        // Assert — same passive shape as health.
+        // Assert — the logs pipe streams broadcaster frames until the
+        // service stops. After StopAsync drains and closes the
+        // broadcaster, the server tears the connection down and the
+        // client observes EOF.
+        Assert.True(client.IsConnected);
+
         var codec = new LengthPrefixedFrameCodec(client);
+        await context.Service.StopAsync(TestContext.Current.CancellationToken);
         var bytes = await codec.ReadAsync(TestContext.Current.CancellationToken);
         Assert.Null(bytes);
+    }
+
+    [Fact]
+    public async Task Should_stream_published_log_record_to_logs_pipe_subscriber()
+    {
+        // Arrange
+        var context = lifecycle.Create();
+        await context.Service.StartAsync(TestContext.Current.CancellationToken);
+
+        await using var client = await ConnectAsync(
+            EndpointKind.Logs, context.EngineOptions, TestContext.Current.CancellationToken);
+        var codec = new LengthPrefixedFrameCodec(client);
+
+        var record = LogRecordFakeData.CreateLogRecord(
+            category: "engine.test",
+            level: LogLevels.Information,
+            message: "wire-record",
+            timestamp: new DateTimeOffset(2026, 1, 1, 12, 0, 0, TimeSpan.Zero));
+
+        // Act — publish in a background polling loop until the
+        // wire delivers a frame. The pump subscribes after the
+        // accept loop hands the connection off, which can lag the
+        // client-side ConnectAsync return; any record published
+        // before Subscribe() runs is dropped, so we keep pumping
+        // until ReadAsync resolves.
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var stopPublishing = new TaskCompletionSource();
+        var publisherTask = Task.Run(async () =>
+        {
+            while (!stopPublishing.Task.IsCompleted)
+            {
+                context.LogsBroadcaster.TryPublish(record);
+                var delay = Task.Delay(TimeSpan.FromMilliseconds(10), cancellationToken);
+                await Task.WhenAny(stopPublishing.Task, delay).ConfigureAwait(false);
+            }
+        }, cancellationToken);
+
+        var bytes = await codec.ReadAsync(cancellationToken);
+        stopPublishing.TrySetResult();
+        await publisherTask;
+
+        // Stop afterwards so the connection tears down cleanly.
+        await context.Service.StopAsync(TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.NotNull(bytes);
+        var frame = JsonSerializer.Deserialize(
+            bytes!, ProtocolJsonContext.Default.LogStreamFrame);
+        var recordFrame = Assert.IsType<LogRecordFrame>(frame);
+        Assert.Multiple(
+            () => Assert.Equal("wire-record", recordFrame.Record.Message),
+            () => Assert.Equal("engine.test", recordFrame.Record.Category),
+            () => Assert.Equal(LogLevels.Information, recordFrame.Record.Level));
+    }
+
+    [Fact]
+    public async Task Should_evict_slow_logs_pipe_subscriber_with_terminal_frame()
+    {
+        // Arrange
+        var context = lifecycle.Create();
+        await context.Service.StartAsync(TestContext.Current.CancellationToken);
+
+        await using var client = await ConnectAsync(
+            EndpointKind.Logs, context.EngineOptions, TestContext.Current.CancellationToken);
+        var codec = new LengthPrefixedFrameCodec(client);
+
+        var record = LogRecordFakeData.CreateLogRecord(
+            category: "engine.test",
+            level: LogLevels.Information,
+            message: "flood",
+            timestamp: new DateTimeOffset(2026, 1, 1, 12, 0, 0, TimeSpan.Zero));
+
+        // Act — flood the broadcaster while the wire is not being
+        // read. The OS pipe buffer fills, the server-side pump
+        // blocks, the 64-slot subscription buffer fills, and the
+        // next publish evicts the subscriber with a terminal
+        // LogEvictedFrame. The flood count must dwarf any
+        // reasonable OS pipe buffer (default NamedPipe out-buffer
+        // is typically a few KB-64 KB).
+        const int FloodCount = 65_536;
+        for (var i = 0; i < FloodCount; i++)
+        {
+            context.LogsBroadcaster.TryPublish(record);
+        }
+
+        // Drain the wire until EOF, collecting every frame.
+        var frames = new List<LogStreamFrame>();
+        while (true)
+        {
+            var bytes = await codec.ReadAsync(TestContext.Current.CancellationToken);
+            if (bytes is null)
+            {
+                break;
+            }
+
+            var frame = JsonSerializer.Deserialize(
+                bytes, ProtocolJsonContext.Default.LogStreamFrame);
+            Assert.NotNull(frame);
+            frames.Add(frame!);
+        }
+
+        // Stop the service so the test fixture cleanup is clean.
+        await context.Service.StopAsync(TestContext.Current.CancellationToken);
+
+        // Assert — the very last frame on the wire is the
+        // terminal eviction frame with the slow-subscriber reason.
+        var terminal = Assert.IsType<LogEvictedFrame>(frames[^1]);
+        Assert.Equal(LogEvictedFrame.SlowSubscriberReason, terminal.Reason);
     }
 
     [Fact]

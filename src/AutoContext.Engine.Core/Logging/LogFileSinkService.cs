@@ -72,6 +72,7 @@ internal sealed partial class LogFileSinkService : BackgroundService
 
     private static readonly byte[] LineTerminator = "\n"u8.ToArray();
 
+    private readonly LogSubscriptionBroadcaster _broadcaster;
     private readonly LogChannel _channel;
     private readonly RotatedLogCleaner _cleaner;
     private readonly TaskCompletionSource _executeStarted =
@@ -97,6 +98,12 @@ internal sealed partial class LogFileSinkService : BackgroundService
     /// tests pass small values directly to keep fixtures cheap.</param>
     /// <param name="cleaner">Retention-aware sweeper invoked on
     /// every successful rotation.</param>
+    /// <param name="broadcaster">Sibling fan-out the drain loop
+    /// publishes each record to after the file write succeeds. The
+    /// broadcaster's per-subscriber buffers and slow-subscriber
+    /// eviction shield the file sink from subscriber slowness — a
+    /// stalled <c>logs</c>-pipe consumer cannot stall the file
+    /// sink.</param>
     /// <param name="timeProvider">Clock source used to stamp
     /// rotated-file names.</param>
     /// <param name="logger">Diagnostic sink for I/O failures inside
@@ -109,6 +116,7 @@ internal sealed partial class LogFileSinkService : BackgroundService
         IOptions<EngineOptions> options,
         LogRotationThresholds thresholds,
         RotatedLogCleaner cleaner,
+        LogSubscriptionBroadcaster broadcaster,
         TimeProvider timeProvider,
         ILogger<LogFileSinkService> logger)
     {
@@ -116,9 +124,11 @@ internal sealed partial class LogFileSinkService : BackgroundService
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(thresholds);
         ArgumentNullException.ThrowIfNull(cleaner);
+        ArgumentNullException.ThrowIfNull(broadcaster);
         ArgumentNullException.ThrowIfNull(timeProvider);
         ArgumentNullException.ThrowIfNull(logger);
 
+        _broadcaster = broadcaster;
         _channel = channel;
         _cleaner = cleaner;
         _logger = logger;
@@ -221,6 +231,15 @@ internal sealed partial class LogFileSinkService : BackgroundService
                     continue;
                 }
 
+                // Fan-out to the logs-pipe broadcaster happens
+                // AFTER the file write so a transient write
+                // failure (handled above) keeps the record off
+                // both sinks symmetrically. TryPublish is
+                // non-blocking: slow subscribers are evicted by
+                // the broadcaster, never pushing backpressure
+                // onto the drain loop.
+                _broadcaster.TryPublish(record);
+
                 if (lineCount >= _thresholds.MaxLines
                     || bytesWritten >= _thresholds.MaxBytes)
                 {
@@ -250,6 +269,12 @@ internal sealed partial class LogFileSinkService : BackgroundService
         }
         finally
         {
+            // Signal end-of-stream to every connected logs-pipe
+            // subscriber so their pumps observe a clean EOF rather
+            // than hanging on a never-completing channel after the
+            // engine has stopped producing records. Idempotent.
+            _broadcaster.Complete();
+
             await stream.DisposeAsync().ConfigureAwait(false);
         }
     }

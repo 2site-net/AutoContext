@@ -108,6 +108,16 @@ public static class EngineHostBuilderExtensions
         });
         builder.Services.TryAddSingleton<RotatedLogCleaner>();
 
+        // Logs-pipe fan-out broadcaster. Sibling consumer of every
+        // record drained by LogFileSinkService — file sink and
+        // broadcaster receive each record symmetrically. Per-
+        // subscriber bounded buffers and slow-subscriber eviction
+        // shield the file sink from a stalled pipe consumer (see
+        // LogSubscriptionBroadcaster). Registered as a singleton
+        // so LifecycleService's logs-pipe pump and the file sink
+        // share the same instance.
+        builder.Services.TryAddSingleton<LogSubscriptionBroadcaster>();
+
         builder.Services.TryAddEnumerable(
             ServiceDescriptor.Singleton<IHostedService, LogFileSinkService>());
 
@@ -132,7 +142,7 @@ public static class EngineHostBuilderExtensions
                 path,
                 serviceOptions: null,
                 readerOptions: null,
-                loggerFactory: sp.GetService<Microsoft.Extensions.Logging.ILoggerFactory>(),
+                loggerFactory: sp.GetService<ILoggerFactory>(),
                 ownEntryFactory: () => RegistryEntryBuilder.Build(options, clock));
         });
         builder.Services.TryAddEnumerable(
@@ -150,7 +160,7 @@ public static class EngineHostBuilderExtensions
             return new RegistryFileReader(
                 path,
                 options: null,
-                logger: sp.GetService<Microsoft.Extensions.Logging.ILogger<RegistryFileReader>>());
+                logger: sp.GetService<ILogger<RegistryFileReader>>());
         });
 
         builder.Services.TryAddSingleton<LifecycleEventStream>();

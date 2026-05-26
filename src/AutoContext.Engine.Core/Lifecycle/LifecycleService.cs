@@ -4,6 +4,7 @@ using System.Text.Json;
 
 using AutoContext.Engine.Core.Infrastructure;
 using AutoContext.Engine.Core.Infrastructure.Primitives;
+using AutoContext.Engine.Core.Logging;
 using AutoContext.Engine.Core.Registry;
 using AutoContext.Engine.Core.Rpc;
 using AutoContext.Engine.Core.Rpc.Policies;
@@ -11,6 +12,7 @@ using AutoContext.Engine.Core.Watchdogs;
 using AutoContext.Engine.Protocol;
 using AutoContext.Engine.Protocol.JsonRpc;
 using AutoContext.Engine.Protocol.Messages.Lifecycle;
+using AutoContext.Engine.Protocol.Messages.Logs;
 using AutoContext.Engine.Protocol.Serialization;
 using AutoContext.Framework.Pipes;
 
@@ -80,18 +82,19 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
     private int _disposed;
     private CancellationTokenSource? _drainCts;
     private readonly LifecycleEventStream _eventStream;
+    private readonly IdleTimeoutWatchdog _idleTimeoutWatchdog;
+    private readonly IUniqueInstanceGuard _instanceGuard;
     private readonly LifecycleNotifier _lifecycleNotifier;
     private readonly Dictionary<EndpointKind, BoundPipeListener> _listeners = new(AllKinds.Length);
     private readonly ILogger<LifecycleService> _logger;
     private readonly ILoggerFactory _loggerFactory;
+    private readonly LogSubscriptionBroadcaster _logsBroadcaster;
     private readonly EngineOptions _options;
     private readonly RegistryFileReader _registryReader;
     private readonly List<Task> _runTasks = new(AllKinds.Length);
     private int _started;
     private int _stopped;
     private CancellationTokenSource? _stoppingCts;
-    private readonly IdleTimeoutWatchdog _idleTimeoutWatchdog;
-    private readonly IUniqueInstanceGuard _instanceGuard;
 
     /// <summary>
     /// Creates a new <see cref="LifecycleService"/>.
@@ -125,6 +128,10 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
     /// <see cref="StartAsync"/> before the four-pipe bind so
     /// the launcher-bug case (P4 fresh-UUID violation) surfaces
     /// as a clear diagnostic instead of an opaque bind error.</param>
+    /// <param name="logsBroadcaster">Fan-out broadcaster backing the
+    /// <c>logs</c> pipe; every accepted <c>logs</c>-pipe connection
+    /// enrolls a subscriber here and pumps drained
+    /// <see cref="LogStreamFrame"/> values to the wire.</param>
     /// <exception cref="ArgumentNullException">
     /// Any constructor argument is <see langword="null"/>.
     /// </exception>
@@ -136,7 +143,8 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
         LifecycleEventStream eventStream,
         LifecycleNotifier lifecycleNotifier,
         IdleTimeoutWatchdog idleTimeoutWatchdog,
-        IUniqueInstanceGuard instanceGuard)
+        IUniqueInstanceGuard instanceGuard,
+        LogSubscriptionBroadcaster logsBroadcaster)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(loggerFactory);
@@ -146,6 +154,7 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
         ArgumentNullException.ThrowIfNull(lifecycleNotifier);
         ArgumentNullException.ThrowIfNull(idleTimeoutWatchdog);
         ArgumentNullException.ThrowIfNull(instanceGuard);
+        ArgumentNullException.ThrowIfNull(logsBroadcaster);
 
         _options = options.Value;
         _loggerFactory = loggerFactory;
@@ -156,6 +165,7 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
         _lifecycleNotifier = lifecycleNotifier;
         _idleTimeoutWatchdog = idleTimeoutWatchdog;
         _instanceGuard = instanceGuard;
+        _logsBroadcaster = logsBroadcaster;
     }
 
     /// <inheritdoc/>
@@ -345,6 +355,10 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
         Message = "Events-pipe write faulted; closing subscriber connection.")]
     private static partial void LogEventsPipeWriteFaulted(ILogger logger, Exception exception);
 
+    [LoggerMessage(EventId = 6, Level = LogLevel.Debug,
+        Message = "Logs-pipe write faulted; closing subscriber connection.")]
+    private static partial void LogLogsPipeWriteFaulted(ILogger logger, Exception exception);
+
     [LoggerMessage(EventId = 1, Level = LogLevel.Information,
         Message = "LifecycleService bound four pipes for workspace '{WorkspaceHash}' instance {InstanceId:D}.")]
     private static partial void LogStarted(ILogger logger, WorkspaceHash workspaceHash, Guid instanceId);
@@ -386,10 +400,22 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
     {
         LogConnectionAccepted(_logger, kind);
 
-        // health and logs are passive observer surfaces — no
-        // handshake; payload emission arrives in later commits.
-        if (kind is EndpointKind.Health or EndpointKind.Logs)
+        // health is a passive observer surface — accept-and-close
+        // until later commits attach a payload.
+        if (kind is EndpointKind.Health)
         {
+            return;
+        }
+
+        // logs is also passive (no handshake) but pumps drained
+        // records out of the broadcaster onto the wire as NDJSON
+        // LogStreamFrame values until the broadcaster completes
+        // (graceful shutdown), the pipe write faults (peer
+        // disconnected), or the drain deadline fires (peer stopped
+        // reading during shutdown).
+        if (kind is EndpointKind.Logs)
+        {
+            await PumpLogsConnectionAsync(stream).ConfigureAwait(false);
             return;
         }
 
@@ -487,6 +513,40 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
         catch (ObjectDisposedException ex)
         {
             LogEventsPipeWriteFaulted(_logger, ex);
+        }
+    }
+
+    private async Task PumpLogsConnectionAsync(Stream stream)
+    {
+        var drainToken = _drainCts?.Token ?? CancellationToken.None;
+        using var subscription = _logsBroadcaster.Subscribe();
+        var codec = new LengthPrefixedFrameCodec(stream);
+
+        try
+        {
+            await foreach (var frame in subscription
+                .ReadAllAsync(drainToken)
+                .ConfigureAwait(false))
+            {
+                var bytes = JsonSerializer.SerializeToUtf8Bytes(
+                    frame, ProtocolJsonContext.Default.LogStreamFrame);
+
+                await codec.WriteAsync(bytes, drainToken).ConfigureAwait(false);
+            }
+        }
+        catch (OperationCanceledException) when (drainToken.IsCancellationRequested)
+        {
+            // Drain deadline elapsed before the peer drained the
+            // pending frames. The listener tears the connection
+            // down when this method returns; nothing to report.
+        }
+        catch (IOException ex)
+        {
+            LogLogsPipeWriteFaulted(_logger, ex);
+        }
+        catch (ObjectDisposedException ex)
+        {
+            LogLogsPipeWriteFaulted(_logger, ex);
         }
     }
 

@@ -3,9 +3,9 @@ namespace AutoContext.Engine.Core.Tests.Logging;
 using System.Text.Json;
 
 using AutoContext.Engine.Core;
-using AutoContext.Engine.Core.Infrastructure.Primitives;
 using AutoContext.Engine.Core.Logging;
 using AutoContext.Engine.Core.Tests.Support;
+using AutoContext.Engine.Core.Tests.Support.Logging;
 using AutoContext.Engine.Core.Tests.Support.Shared;
 using AutoContext.Engine.Protocol.Messages.Logs;
 
@@ -14,10 +14,14 @@ using Microsoft.Extensions.Options;
 
 using static AutoContext.Engine.Core.Tests.Support.EngineCrashWriterFixture;
 
-public sealed class LogFileSinkServiceTests
+public sealed class LogFileSinkServiceTests : IClassFixture<LogFileSinkServiceFixture>
 {
-    private static readonly LogRotationThresholds NormalThresholds =
-        LogRotationThresholds.ForVerbosity(EngineLoggingVerbosity.Normal);
+    private readonly LogFileSinkServiceFixture _fixture;
+
+    public LogFileSinkServiceTests(LogFileSinkServiceFixture fixture)
+    {
+        _fixture = fixture;
+    }
 
     [Fact]
     public void Should_throw_when_constructed_with_null_channel()
@@ -25,8 +29,9 @@ public sealed class LogFileSinkServiceTests
         Assert.Throws<ArgumentNullException>(() => new LogFileSinkService(
             channel: null!,
             options: Options.Create(CreateOptions()),
-            thresholds: NormalThresholds,
-            cleaner: CreateCleaner(CreateOptions()),
+            thresholds: LogRotationThresholdsFakeData.Normal,
+            cleaner: RotatedLogCleanerTestFactory.Create(CreateOptions()),
+            broadcaster: LogSubscriptionBroadcasterTestFactory.Create(),
             timeProvider: TimeProvider.System,
             logger: NullLogger<LogFileSinkService>.Instance));
     }
@@ -37,8 +42,9 @@ public sealed class LogFileSinkServiceTests
         Assert.Throws<ArgumentNullException>(() => new LogFileSinkService(
             channel: new LogChannel(),
             options: null!,
-            thresholds: NormalThresholds,
-            cleaner: CreateCleaner(CreateOptions()),
+            thresholds: LogRotationThresholdsFakeData.Normal,
+            cleaner: RotatedLogCleanerTestFactory.Create(CreateOptions()),
+            broadcaster: LogSubscriptionBroadcasterTestFactory.Create(),
             timeProvider: TimeProvider.System,
             logger: NullLogger<LogFileSinkService>.Instance));
     }
@@ -50,7 +56,8 @@ public sealed class LogFileSinkServiceTests
             channel: new LogChannel(),
             options: Options.Create(CreateOptions()),
             thresholds: null!,
-            cleaner: CreateCleaner(CreateOptions()),
+            cleaner: RotatedLogCleanerTestFactory.Create(CreateOptions()),
+            broadcaster: LogSubscriptionBroadcasterTestFactory.Create(),
             timeProvider: TimeProvider.System,
             logger: NullLogger<LogFileSinkService>.Instance));
     }
@@ -61,8 +68,9 @@ public sealed class LogFileSinkServiceTests
         Assert.Throws<ArgumentNullException>(() => new LogFileSinkService(
             channel: new LogChannel(),
             options: Options.Create(CreateOptions()),
-            thresholds: NormalThresholds,
+            thresholds: LogRotationThresholdsFakeData.Normal,
             cleaner: null!,
+            broadcaster: LogSubscriptionBroadcasterTestFactory.Create(),
             timeProvider: TimeProvider.System,
             logger: NullLogger<LogFileSinkService>.Instance));
     }
@@ -73,9 +81,23 @@ public sealed class LogFileSinkServiceTests
         Assert.Throws<ArgumentNullException>(() => new LogFileSinkService(
             channel: new LogChannel(),
             options: Options.Create(CreateOptions()),
-            thresholds: NormalThresholds,
-            cleaner: CreateCleaner(CreateOptions()),
+            thresholds: LogRotationThresholdsFakeData.Normal,
+            cleaner: RotatedLogCleanerTestFactory.Create(CreateOptions()),
+            broadcaster: LogSubscriptionBroadcasterTestFactory.Create(),
             timeProvider: null!,
+            logger: NullLogger<LogFileSinkService>.Instance));
+    }
+
+    [Fact]
+    public void Should_throw_when_constructed_with_null_broadcaster()
+    {
+        Assert.Throws<ArgumentNullException>(() => new LogFileSinkService(
+            channel: new LogChannel(),
+            options: Options.Create(CreateOptions()),
+            thresholds: LogRotationThresholdsFakeData.Normal,
+            cleaner: RotatedLogCleanerTestFactory.Create(CreateOptions()),
+            broadcaster: null!,
+            timeProvider: TimeProvider.System,
             logger: NullLogger<LogFileSinkService>.Instance));
     }
 
@@ -85,8 +107,9 @@ public sealed class LogFileSinkServiceTests
         Assert.Throws<ArgumentNullException>(() => new LogFileSinkService(
             channel: new LogChannel(),
             options: Options.Create(CreateOptions()),
-            thresholds: NormalThresholds,
-            cleaner: CreateCleaner(CreateOptions()),
+            thresholds: LogRotationThresholdsFakeData.Normal,
+            cleaner: RotatedLogCleanerTestFactory.Create(CreateOptions()),
+            broadcaster: LogSubscriptionBroadcasterTestFactory.Create(),
             timeProvider: TimeProvider.System,
             logger: null!));
     }
@@ -94,16 +117,12 @@ public sealed class LogFileSinkServiceTests
     [Fact]
     public void Should_not_create_target_file_until_first_write()
     {
-        // Arrange
-        var cacheRoot = CreateTempCacheRoot();
-        var options = CreateOptions(cacheRoot);
-
-        // Act
-        using var service = CreateService(options);
+        // Arrange + Act
+        var context = _fixture.Create();
 
         // Assert — neither the file nor the logs/ subdirectory
         // should exist before the drain loop receives a record.
-        var expectedPath = ComposeExpectedLogPath(options);
+        var expectedPath = EngineLogPathTestComposer.Compose(context.Options);
         var expectedDirectory = Path.GetDirectoryName(expectedPath);
 
         Assert.Multiple(
@@ -115,25 +134,20 @@ public sealed class LogFileSinkServiceTests
     public async Task Should_write_single_NDJSON_record_with_expected_fields()
     {
         // Arrange
-        var cacheRoot = CreateTempCacheRoot();
-        var options = CreateOptions(cacheRoot);
-        var channel = new LogChannel();
-        using var service = CreateService(options, channel);
-        var record = new LogRecord
-        {
-            Timestamp = new DateTimeOffset(2026, 4, 28, 12, 0, 0, TimeSpan.Zero),
-            Category = "engine.test",
-            Level = LogLevels.Information,
-            Message = "hello",
-        };
+        var context = _fixture.Create();
+        var record = LogRecordFakeData.CreateLogRecord(
+            category: "engine.test",
+            level: LogLevels.Information,
+            message: "hello",
+            timestamp: new DateTimeOffset(2026, 4, 28, 12, 0, 0, TimeSpan.Zero));
 
         // Act
-        await service.StartAsync(TestContext.Current.CancellationToken);
-        Assert.True(channel.TryWrite(record));
-        await service.StopAsync(TestContext.Current.CancellationToken);
+        await context.Service.StartAsync(TestContext.Current.CancellationToken);
+        Assert.True(context.Channel.TryWrite(record));
+        await context.Service.StopAsync(TestContext.Current.CancellationToken);
 
         // Assert
-        var records = ReadNdjson(ComposeExpectedLogPath(options));
+        var records = NdjsonTestReader.Read(EngineLogPathTestComposer.Compose(context.Options));
         var single = Assert.Single(records);
         Assert.Multiple(
             () => Assert.Equal("engine.test", single.GetProperty("category").GetString()),
@@ -145,22 +159,19 @@ public sealed class LogFileSinkServiceTests
     public async Task Should_drain_pending_records_in_FIFO_order_on_graceful_shutdown()
     {
         // Arrange
-        var cacheRoot = CreateTempCacheRoot();
-        var options = CreateOptions(cacheRoot);
-        var channel = new LogChannel();
-        using var service = CreateService(options, channel);
+        var context = _fixture.Create();
 
         // Act — enqueue before draining starts so all three
         // records land in the buffer at once.
-        Assert.True(channel.TryWrite(CreateRecord("first")));
-        Assert.True(channel.TryWrite(CreateRecord("second")));
-        Assert.True(channel.TryWrite(CreateRecord("third")));
+        Assert.True(context.Channel.TryWrite(LogRecordFakeData.CreateLogRecord(message: "first")));
+        Assert.True(context.Channel.TryWrite(LogRecordFakeData.CreateLogRecord(message: "second")));
+        Assert.True(context.Channel.TryWrite(LogRecordFakeData.CreateLogRecord(message: "third")));
 
-        await service.StartAsync(TestContext.Current.CancellationToken);
-        await service.StopAsync(TestContext.Current.CancellationToken);
+        await context.Service.StartAsync(TestContext.Current.CancellationToken);
+        await context.Service.StopAsync(TestContext.Current.CancellationToken);
 
         // Assert
-        var records = ReadNdjson(ComposeExpectedLogPath(options));
+        var records = NdjsonTestReader.Read(EngineLogPathTestComposer.Compose(context.Options));
         Assert.Multiple(
             () => Assert.Equal(3, records.Count),
             () => Assert.Equal("first", records[0].GetProperty("message").GetString()),
@@ -172,21 +183,17 @@ public sealed class LogFileSinkServiceTests
     public async Task Should_create_logs_directory_lazily_when_drain_loop_opens_the_file()
     {
         // Arrange
-        var cacheRoot = CreateTempCacheRoot();
-        var options = CreateOptions(cacheRoot);
-        var channel = new LogChannel();
-        using var service = CreateService(options, channel);
-
-        var expectedPath = ComposeExpectedLogPath(options);
+        var context = _fixture.Create();
+        var expectedPath = EngineLogPathTestComposer.Compose(context.Options);
         var expectedDirectory = Path.GetDirectoryName(expectedPath);
 
         // Sanity — directory must not exist before the service starts.
         Assert.False(Directory.Exists(expectedDirectory));
 
         // Act
-        Assert.True(channel.TryWrite(CreateRecord("only")));
-        await service.StartAsync(TestContext.Current.CancellationToken);
-        await service.StopAsync(TestContext.Current.CancellationToken);
+        Assert.True(context.Channel.TryWrite(LogRecordFakeData.CreateLogRecord(message: "only")));
+        await context.Service.StartAsync(TestContext.Current.CancellationToken);
+        await context.Service.StopAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.True(Directory.Exists(expectedDirectory));
@@ -198,35 +205,27 @@ public sealed class LogFileSinkServiceTests
     {
         // Arrange — thresholds: 2 lines, generous byte ceiling so
         // line-count is the rotation trigger.
-        var cacheRoot = CreateTempCacheRoot();
-        var options = CreateOptions(cacheRoot);
         var rotationAt = new DateTimeOffset(2026, 5, 11, 14, 30, 52, TimeSpan.Zero);
         var clock = new FakeTimeProvider(rotationAt);
-        var channel = new LogChannel();
-        var thresholds = new LogRotationThresholds(MaxLines: 2, MaxBytes: long.MaxValue);
-        using var service = new LogFileSinkService(
-            channel,
-            Options.Create(options),
-            thresholds,
-            CreateCleaner(options, clock),
-            clock,
-            NullLogger<LogFileSinkService>.Instance);
+        var context = _fixture.Create(
+            thresholds: new LogRotationThresholds(MaxLines: 2, MaxBytes: long.MaxValue),
+            timeProvider: clock);
 
         // Act — three records: after the second crosses the
         // threshold and triggers rotation, the third lands in the
         // freshly opened active file.
-        Assert.True(channel.TryWrite(CreateRecord("first")));
-        Assert.True(channel.TryWrite(CreateRecord("second")));
-        Assert.True(channel.TryWrite(CreateRecord("third")));
+        Assert.True(context.Channel.TryWrite(LogRecordFakeData.CreateLogRecord(message: "first")));
+        Assert.True(context.Channel.TryWrite(LogRecordFakeData.CreateLogRecord(message: "second")));
+        Assert.True(context.Channel.TryWrite(LogRecordFakeData.CreateLogRecord(message: "third")));
 
-        await service.StartAsync(TestContext.Current.CancellationToken);
-        await service.StopAsync(TestContext.Current.CancellationToken);
+        await context.Service.StartAsync(TestContext.Current.CancellationToken);
+        await context.Service.StopAsync(TestContext.Current.CancellationToken);
 
         // Assert
-        var directory = Path.GetDirectoryName(ComposeExpectedLogPath(options))!;
+        var directory = Path.GetDirectoryName(EngineLogPathTestComposer.Compose(context.Options))!;
         var rotated = Directory.GetFiles(directory, "engine-*.log");
-        var activeRecords = ReadNdjson(ComposeExpectedLogPath(options));
-        var rotatedRecords = rotated.Length == 1 ? ReadNdjson(rotated[0]) : [];
+        var activeRecords = NdjsonTestReader.Read(EngineLogPathTestComposer.Compose(context.Options));
+        var rotatedRecords = rotated.Length == 1 ? NdjsonTestReader.Read(rotated[0]) : [];
 
         Assert.Multiple(
             () => Assert.Single(rotated),
@@ -243,34 +242,26 @@ public sealed class LogFileSinkServiceTests
         // Arrange — a one-byte ceiling guarantees rotation after
         // every single record (even the smallest payload exceeds
         // 1 byte once serialised + newline-terminated).
-        var cacheRoot = CreateTempCacheRoot();
-        var options = CreateOptions(cacheRoot);
         var clock = new FakeTimeProvider(
             new DateTimeOffset(2026, 5, 11, 14, 30, 52, TimeSpan.Zero));
-        var channel = new LogChannel();
-        var thresholds = new LogRotationThresholds(MaxLines: int.MaxValue, MaxBytes: 1);
-        using var service = new LogFileSinkService(
-            channel,
-            Options.Create(options),
-            thresholds,
-            CreateCleaner(options, clock),
-            clock,
-            NullLogger<LogFileSinkService>.Instance);
+        var context = _fixture.Create(
+            thresholds: new LogRotationThresholds(MaxLines: int.MaxValue, MaxBytes: 1),
+            timeProvider: clock);
 
         // Act — single record + shutdown is enough; the byte
         // ceiling fires the rotation as soon as the first record
         // is flushed.
-        Assert.True(channel.TryWrite(CreateRecord("only")));
+        Assert.True(context.Channel.TryWrite(LogRecordFakeData.CreateLogRecord(message: "only")));
 
-        await service.StartAsync(TestContext.Current.CancellationToken);
-        await service.StopAsync(TestContext.Current.CancellationToken);
+        await context.Service.StartAsync(TestContext.Current.CancellationToken);
+        await context.Service.StopAsync(TestContext.Current.CancellationToken);
 
         // Assert — rotated file holds the record; the active file
         // was reopened empty and stays empty (no further records).
-        var directory = Path.GetDirectoryName(ComposeExpectedLogPath(options))!;
+        var directory = Path.GetDirectoryName(EngineLogPathTestComposer.Compose(context.Options))!;
         var rotated = Directory.GetFiles(directory, "engine-*.log");
-        var rotatedRecords = rotated.Length == 1 ? ReadNdjson(rotated[0]) : [];
-        var activeRecords = ReadNdjson(ComposeExpectedLogPath(options));
+        var rotatedRecords = rotated.Length == 1 ? NdjsonTestReader.Read(rotated[0]) : [];
+        var activeRecords = NdjsonTestReader.Read(EngineLogPathTestComposer.Compose(context.Options));
 
         Assert.Multiple(
             () => Assert.Single(rotated),
@@ -283,28 +274,20 @@ public sealed class LogFileSinkServiceTests
     public async Task Should_name_rotated_file_with_basic_iso8601_utc_timestamp()
     {
         // Arrange
-        var cacheRoot = CreateTempCacheRoot();
-        var options = CreateOptions(cacheRoot);
         var rotationAt = new DateTimeOffset(2026, 5, 11, 14, 30, 52, TimeSpan.Zero);
         var clock = new FakeTimeProvider(rotationAt);
-        var channel = new LogChannel();
-        var thresholds = new LogRotationThresholds(MaxLines: 1, MaxBytes: long.MaxValue);
-        using var service = new LogFileSinkService(
-            channel,
-            Options.Create(options),
-            thresholds,
-            CreateCleaner(options, clock),
-            clock,
-            NullLogger<LogFileSinkService>.Instance);
+        var context = _fixture.Create(
+            thresholds: new LogRotationThresholds(MaxLines: 1, MaxBytes: long.MaxValue),
+            timeProvider: clock);
 
         // Act
-        Assert.True(channel.TryWrite(CreateRecord("first")));
-        await service.StartAsync(TestContext.Current.CancellationToken);
-        await service.StopAsync(TestContext.Current.CancellationToken);
+        Assert.True(context.Channel.TryWrite(LogRecordFakeData.CreateLogRecord(message: "first")));
+        await context.Service.StartAsync(TestContext.Current.CancellationToken);
+        await context.Service.StopAsync(TestContext.Current.CancellationToken);
 
         // Assert — rotated filename must use the basic ISO 8601
         // UTC pattern (no colons, trailing Z) and match the clock.
-        var directory = Path.GetDirectoryName(ComposeExpectedLogPath(options))!;
+        var directory = Path.GetDirectoryName(EngineLogPathTestComposer.Compose(context.Options))!;
         var rotated = Assert.Single(Directory.GetFiles(directory, "engine-*.log"));
         var fileName = Path.GetFileName(rotated);
 
@@ -318,13 +301,12 @@ public sealed class LogFileSinkServiceTests
         // filename timestamp falls outside the retention window,
         // then drive one rotation event and verify the old
         // sibling is gone while the just-rotated one survives.
-        var cacheRoot = CreateTempCacheRoot();
-        var options = CreateOptions(cacheRoot);
+        var options = CreateOptions();
         options.Retention = TimeSpan.FromMinutes(5);
         var rotationAt = new DateTimeOffset(2026, 5, 11, 14, 30, 52, TimeSpan.Zero);
         var clock = new FakeTimeProvider(rotationAt);
 
-        var expectedActivePath = ComposeExpectedLogPath(options);
+        var expectedActivePath = EngineLogPathTestComposer.Compose(options);
         var directory = Path.GetDirectoryName(expectedActivePath)!;
         Directory.CreateDirectory(directory);
 
@@ -335,20 +317,15 @@ public sealed class LogFileSinkServiceTests
         var oldRotatedPath = Path.Combine(directory, oldRotatedName);
         await File.WriteAllTextAsync(oldRotatedPath, "{}\n", TestContext.Current.CancellationToken);
 
-        var channel = new LogChannel();
-        var thresholds = new LogRotationThresholds(MaxLines: 1, MaxBytes: long.MaxValue);
-        using var service = new LogFileSinkService(
-            channel,
-            Options.Create(options),
-            thresholds,
-            CreateCleaner(options, clock),
-            clock,
-            NullLogger<LogFileSinkService>.Instance);
+        var context = _fixture.Create(
+            options: options,
+            thresholds: new LogRotationThresholds(MaxLines: 1, MaxBytes: long.MaxValue),
+            timeProvider: clock);
 
         // Act
-        Assert.True(channel.TryWrite(CreateRecord("trigger")));
-        await service.StartAsync(TestContext.Current.CancellationToken);
-        await service.StopAsync(TestContext.Current.CancellationToken);
+        Assert.True(context.Channel.TryWrite(LogRecordFakeData.CreateLogRecord(message: "trigger")));
+        await context.Service.StartAsync(TestContext.Current.CancellationToken);
+        await context.Service.StopAsync(TestContext.Current.CancellationToken);
 
         // Assert — old sibling deleted; freshly rotated file
         // (timestamped "now") preserved.
@@ -361,73 +338,52 @@ public sealed class LogFileSinkServiceTests
             () => Assert.True(File.Exists(freshRotatedPath)));
     }
 
-    private static string ComposeExpectedLogPath(EngineOptions options)
+    [Fact]
+    public async Task Should_fan_out_drained_record_to_live_subscriber_and_file()
     {
-        // Every test in this file constructs options via
-        // CreateOptions(cacheRoot) where cacheRoot is set, so
-        // CacheRootOverride is the effective cache root and we
-        // can compose the expected path without depending on
-        // EngineCacheRoot.Resolve (which is internal to the
-        // engine-core assembly).
-        var cacheRoot = options.CacheRootOverride
-            ?? throw new InvalidOperationException(
-                "Tests in this class must construct EngineOptions with a non-null CacheRootOverride.");
-        var workspaceHash = WorkspaceHash.Compute(options.WorkspacePath).Value;
+        // Arrange — a single shared broadcaster wired into the
+        // sink service; the subscriber is created up-front so it
+        // receives the record alongside the file sink.
+        var context = _fixture.Create();
+        using var subscriber = context.Broadcaster.Subscribe();
 
-        return Path.Combine(
-            cacheRoot,
-            workspaceHash,
-            options.InstanceId.ToString("D"),
-            EngineCrashWriter.LogsSubdirectory,
-            LogFileSinkService.EngineLogFileName);
+        // Act — write one record, then drive a graceful shutdown
+        // so the broadcaster completes and the subscriber's
+        // ReadAllAsync exits cleanly.
+        await context.Service.StartAsync(TestContext.Current.CancellationToken);
+        Assert.True(context.Channel.TryWrite(LogRecordFakeData.CreateLogRecord(message: "fan-out")));
+        await context.Service.StopAsync(TestContext.Current.CancellationToken);
+
+        var frames = await LogSubscriptionTestDrainer.DrainAsync(subscriber);
+
+        // Assert — file sink and subscriber both observed the
+        // same record; the subscriber stream ended via EOF, with
+        // no terminal evicted frame.
+        var fileRecords = NdjsonTestReader.Read(EngineLogPathTestComposer.Compose(context.Options));
+        var single = Assert.Single(frames);
+        var recordFrame = Assert.IsType<LogRecordFrame>(single);
+        Assert.Multiple(
+            () => Assert.Equal("fan-out", recordFrame.Record.Message),
+            () => Assert.Single(fileRecords),
+            () => Assert.Equal("fan-out", fileRecords[0].GetProperty("message").GetString()));
     }
 
-    private static LogFileSinkService CreateService(EngineOptions options) =>
-        CreateService(options, new LogChannel());
-
-    private static LogFileSinkService CreateService(EngineOptions options, LogChannel channel) =>
-        new(
-            channel,
-            Options.Create(options),
-            NormalThresholds,
-            CreateCleaner(options),
-            TimeProvider.System,
-            NullLogger<LogFileSinkService>.Instance);
-
-    private static RotatedLogCleaner CreateCleaner(EngineOptions options) =>
-        CreateCleaner(options, TimeProvider.System);
-
-    private static RotatedLogCleaner CreateCleaner(EngineOptions options, TimeProvider clock) =>
-        new(
-            new RetentionPolicy(Options.Create(options), clock),
-            NullLogger<RotatedLogCleaner>.Instance);
-
-    private static LogRecord CreateRecord(string message) =>
-        new()
-        {
-            Timestamp = DateTimeOffset.UtcNow,
-            Category = "engine.test",
-            Level = LogLevels.Information,
-            Message = message,
-        };
-
-    private static List<JsonElement> ReadNdjson(string path)
+    [Fact]
+    public async Task Should_complete_broadcaster_on_graceful_shutdown()
     {
-        if (!File.Exists(path))
-        {
-            return [];
-        }
+        // Arrange
+        var context = _fixture.Create();
+        using var subscriber = context.Broadcaster.Subscribe();
 
-        var lines = File.ReadAllLines(path);
-        var records = new List<JsonElement>(lines.Length);
-        foreach (var line in lines)
-        {
-            if (!string.IsNullOrWhiteSpace(line))
-            {
-                records.Add(JsonDocument.Parse(line).RootElement.Clone());
-            }
-        }
+        // Act — start, then immediately stop. No records are
+        // published; the broadcaster must still complete so the
+        // subscriber's enumerator terminates without hanging.
+        await context.Service.StartAsync(TestContext.Current.CancellationToken);
+        await context.Service.StopAsync(TestContext.Current.CancellationToken);
 
-        return records;
+        var frames = await LogSubscriptionTestDrainer.DrainAsync(subscriber);
+
+        // Assert — clean EOF, no terminal evicted frame.
+        Assert.Empty(frames);
     }
 }
