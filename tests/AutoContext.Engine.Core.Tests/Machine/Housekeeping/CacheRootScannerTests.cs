@@ -16,9 +16,6 @@ using Microsoft.Extensions.Options;
 
 public sealed class CacheRootScannerTests
 {
-    private const string RegistryFileName = "engine-registry.json";
-    private const string CanonicalWorkspaceHash = "0123456789ABCDEF";
-
     public sealed class Constructor
     {
         [Fact]
@@ -51,7 +48,7 @@ public sealed class CacheRootScannerTests
         {
             // Arrange
             var cacheRoot = Path.Combine(tempDirectory.CreateDirectory(), "missing");
-            var registryPath = Path.Combine(cacheRoot, RegistryFileName);
+            var registryPath = Path.Combine(cacheRoot, EngineCacheLayout.RegistryFileName);
             var sut = CacheRootScannerTestFactory.Create(cacheRoot, registryPath, new FakeProcessLookup());
 
             // Act
@@ -66,7 +63,7 @@ public sealed class CacheRootScannerTests
         {
             // Arrange
             var cacheRoot = tempDirectory.CreateDirectory();
-            var registryPath = Path.Combine(cacheRoot, RegistryFileName);
+            var registryPath = Path.Combine(cacheRoot, EngineCacheLayout.RegistryFileName);
             var sut = CacheRootScannerTestFactory.Create(cacheRoot, registryPath, new FakeProcessLookup());
 
             // Act
@@ -83,15 +80,15 @@ public sealed class CacheRootScannerTests
             var cacheRoot = tempDirectory.CreateDirectory();
             var instanceId = Guid.NewGuid();
             var startTime = DateTimeOffset.UtcNow.AddMinutes(-2);
-            var instanceSubtree = CreateCanonicalSubtree(cacheRoot, CanonicalWorkspaceHash, instanceId);
+            var instanceSubtree = CanonicalCacheLayoutTestSeeder.CreateInstanceSubtree(cacheRoot, instanceId);
             var entry = RegistryEntryFakeData.CreateValidEntry() with
             {
-                WorkspaceHash = CanonicalWorkspaceHash,
+                WorkspaceHash = RegistryEntryFakeData.CanonicalWorkspaceHash,
                 InstanceId = instanceId,
                 ProcessId = 4242,
                 ProcessStartTimeUtc = startTime,
             };
-            var registryPath = WriteRegistry(cacheRoot, entry);
+            var registryPath = RegistryFileTestWriter.WriteToCache(cacheRoot, entry);
             var lookup = new FakeProcessLookup();
             lookup.Register(4242, new FakeProcessHandle(startTime.UtcDateTime));
             var sut = CacheRootScannerTestFactory.Create(cacheRoot, registryPath, lookup);
@@ -113,15 +110,15 @@ public sealed class CacheRootScannerTests
             // Arrange
             var cacheRoot = tempDirectory.CreateDirectory();
             var instanceId = Guid.NewGuid();
-            var instanceSubtree = CreateCanonicalSubtree(cacheRoot, CanonicalWorkspaceHash, instanceId);
+            var instanceSubtree = CanonicalCacheLayoutTestSeeder.CreateInstanceSubtree(cacheRoot, instanceId);
             var entry = RegistryEntryFakeData.CreateValidEntry() with
             {
-                WorkspaceHash = CanonicalWorkspaceHash,
+                WorkspaceHash = RegistryEntryFakeData.CanonicalWorkspaceHash,
                 InstanceId = instanceId,
                 ProcessId = 5151,
                 ProcessStartTimeUtc = DateTimeOffset.UtcNow.AddMinutes(-30),
             };
-            var registryPath = WriteRegistry(cacheRoot, entry);
+            var registryPath = RegistryFileTestWriter.WriteToCache(cacheRoot, entry);
             var sut = CacheRootScannerTestFactory.Create(cacheRoot, registryPath, new FakeProcessLookup());
 
             // Act
@@ -140,8 +137,8 @@ public sealed class CacheRootScannerTests
         {
             // Arrange
             var cacheRoot = tempDirectory.CreateDirectory();
-            var instanceSubtree = CreateCanonicalSubtree(cacheRoot, CanonicalWorkspaceHash, Guid.NewGuid());
-            var registryPath = Path.Combine(cacheRoot, RegistryFileName);
+            var instanceSubtree = CanonicalCacheLayoutTestSeeder.CreateInstanceSubtree(cacheRoot, Guid.NewGuid());
+            var registryPath = Path.Combine(cacheRoot, EngineCacheLayout.RegistryFileName);
             var sut = CacheRootScannerTestFactory.Create(cacheRoot, registryPath, new FakeProcessLookup());
 
             // Act
@@ -158,9 +155,9 @@ public sealed class CacheRootScannerTests
         {
             // Arrange
             var cacheRoot = tempDirectory.CreateDirectory();
-            var flat = Path.Combine(cacheRoot, $"{CanonicalWorkspaceHash}#{Guid.NewGuid():D}");
+            var flat = Path.Combine(cacheRoot, $"{RegistryEntryFakeData.CanonicalWorkspaceHash}#{Guid.NewGuid():D}");
             Directory.CreateDirectory(flat);
-            var registryPath = Path.Combine(cacheRoot, RegistryFileName);
+            var registryPath = Path.Combine(cacheRoot, EngineCacheLayout.RegistryFileName);
             var sut = CacheRootScannerTestFactory.Create(cacheRoot, registryPath, new FakeProcessLookup());
 
             // Act
@@ -177,9 +174,9 @@ public sealed class CacheRootScannerTests
         {
             // Arrange
             var cacheRoot = tempDirectory.CreateDirectory();
-            var bare = Path.Combine(cacheRoot, CanonicalWorkspaceHash);
+            var bare = Path.Combine(cacheRoot, RegistryEntryFakeData.CanonicalWorkspaceHash);
             Directory.CreateDirectory(bare);
-            var registryPath = Path.Combine(cacheRoot, RegistryFileName);
+            var registryPath = Path.Combine(cacheRoot, EngineCacheLayout.RegistryFileName);
             var sut = CacheRootScannerTestFactory.Create(cacheRoot, registryPath, new FakeProcessLookup());
 
             // Act
@@ -198,7 +195,7 @@ public sealed class CacheRootScannerTests
             var cacheRoot = tempDirectory.CreateDirectory();
             var garbage = Path.Combine(cacheRoot, "not-a-workspace-hash");
             Directory.CreateDirectory(garbage);
-            var registryPath = Path.Combine(cacheRoot, RegistryFileName);
+            var registryPath = Path.Combine(cacheRoot, EngineCacheLayout.RegistryFileName);
             var sut = CacheRootScannerTestFactory.Create(cacheRoot, registryPath, new FakeProcessLookup());
 
             // Act
@@ -215,10 +212,10 @@ public sealed class CacheRootScannerTests
         {
             // Arrange
             var cacheRoot = tempDirectory.CreateDirectory();
-            var workspaceDir = Path.Combine(cacheRoot, CanonicalWorkspaceHash);
+            var workspaceDir = Path.Combine(cacheRoot, RegistryEntryFakeData.CanonicalWorkspaceHash);
             var garbageChild = Path.Combine(workspaceDir, "not-a-guid");
             Directory.CreateDirectory(garbageChild);
-            var registryPath = Path.Combine(cacheRoot, RegistryFileName);
+            var registryPath = Path.Combine(cacheRoot, EngineCacheLayout.RegistryFileName);
             var sut = CacheRootScannerTestFactory.Create(cacheRoot, registryPath, new FakeProcessLookup());
 
             // Act
@@ -238,31 +235,31 @@ public sealed class CacheRootScannerTests
 
             var liveInstanceId = Guid.NewGuid();
             var liveStart = DateTimeOffset.UtcNow.AddMinutes(-1);
-            var liveSubtree = CreateCanonicalSubtree(cacheRoot, CanonicalWorkspaceHash, liveInstanceId);
+            var liveSubtree = CanonicalCacheLayoutTestSeeder.CreateInstanceSubtree(cacheRoot, liveInstanceId);
 
             var staleInstanceId = Guid.NewGuid();
-            var staleSubtree = CreateCanonicalSubtree(cacheRoot, CanonicalWorkspaceHash, staleInstanceId);
+            var staleSubtree = CanonicalCacheLayoutTestSeeder.CreateInstanceSubtree(cacheRoot, staleInstanceId);
 
-            var unregisteredSubtree = CreateCanonicalSubtree(cacheRoot, CanonicalWorkspaceHash, Guid.NewGuid());
+            var unregisteredSubtree = CanonicalCacheLayoutTestSeeder.CreateInstanceSubtree(cacheRoot, Guid.NewGuid());
 
-            var foreignFlat = Path.Combine(cacheRoot, $"{CanonicalWorkspaceHash}#{Guid.NewGuid():D}");
+            var foreignFlat = Path.Combine(cacheRoot, $"{RegistryEntryFakeData.CanonicalWorkspaceHash}#{Guid.NewGuid():D}");
             Directory.CreateDirectory(foreignFlat);
 
             var liveEntry = RegistryEntryFakeData.CreateValidEntry() with
             {
-                WorkspaceHash = CanonicalWorkspaceHash,
+                WorkspaceHash = RegistryEntryFakeData.CanonicalWorkspaceHash,
                 InstanceId = liveInstanceId,
                 ProcessId = 1001,
                 ProcessStartTimeUtc = liveStart,
             };
             var staleEntry = RegistryEntryFakeData.CreateValidEntry() with
             {
-                WorkspaceHash = CanonicalWorkspaceHash,
+                WorkspaceHash = RegistryEntryFakeData.CanonicalWorkspaceHash,
                 InstanceId = staleInstanceId,
                 ProcessId = 1002,
                 ProcessStartTimeUtc = DateTimeOffset.UtcNow.AddMinutes(-45),
             };
-            var registryPath = WriteRegistry(cacheRoot, liveEntry, staleEntry);
+            var registryPath = RegistryFileTestWriter.WriteToCache(cacheRoot, liveEntry, staleEntry);
 
             var lookup = new FakeProcessLookup();
             lookup.Register(1001, new FakeProcessHandle(liveStart.UtcDateTime));
@@ -289,7 +286,7 @@ public sealed class CacheRootScannerTests
             var cacheRoot = tempDirectory.CreateDirectory();
             var strayFile = Path.Combine(cacheRoot, "stray.txt");
             await File.WriteAllTextAsync(strayFile, "ignored", TestContext.Current.CancellationToken);
-            var registryPath = Path.Combine(cacheRoot, RegistryFileName);
+            var registryPath = Path.Combine(cacheRoot, EngineCacheLayout.RegistryFileName);
             var sut = CacheRootScannerTestFactory.Create(cacheRoot, registryPath, new FakeProcessLookup());
 
             // Act
@@ -304,8 +301,8 @@ public sealed class CacheRootScannerTests
         {
             // Arrange
             var cacheRoot = tempDirectory.CreateDirectory();
-            CreateCanonicalSubtree(cacheRoot, CanonicalWorkspaceHash, Guid.NewGuid());
-            var registryPath = Path.Combine(cacheRoot, RegistryFileName);
+            CanonicalCacheLayoutTestSeeder.CreateInstanceSubtree(cacheRoot, Guid.NewGuid());
+            var registryPath = Path.Combine(cacheRoot, EngineCacheLayout.RegistryFileName);
             var sut = CacheRootScannerTestFactory.Create(cacheRoot, registryPath, new FakeProcessLookup());
             using var cts = new CancellationTokenSource();
             await cts.CancelAsync();
@@ -315,18 +312,5 @@ public sealed class CacheRootScannerTests
                 () => sut.ScanAsync(cts.Token));
         }
 
-        private static string CreateCanonicalSubtree(string cacheRoot, string workspaceHash, Guid instanceId)
-        {
-            var subtree = Path.Combine(cacheRoot, workspaceHash, instanceId.ToString("D"));
-            Directory.CreateDirectory(subtree);
-            return subtree;
-        }
-
-        private static string WriteRegistry(string cacheRoot, params RegistryEntry[] entries)
-        {
-            var registryPath = Path.Combine(cacheRoot, RegistryFileName);
-            new RegistryFileWriter(registryPath).Write(entries);
-            return registryPath;
-        }
     }
 }

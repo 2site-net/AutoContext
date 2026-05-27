@@ -895,7 +895,7 @@ the `EngineCrashWriter` it depends on is wired up here. Worker spawn
 | 6 | `feat(engine): serve Logs.GetEngine over rpc` | DONE |
 | 7 | `feat(engine-core): add RegistryEntryReader` | DONE |
 | 8 | `feat(engine-core): add SubtreeRegistryStatus and CacheRootScanner` | DONE |
-| 9 | `feat(engine-core): add StaleSubtreeCleaner and HousekeepingService shutdown sweep` | NOT STARTED |
+| 9 | `feat(engine-core): add StaleSubtreeCleaner and HousekeepingService shutdown sweep` | DONE |
 | 10 | `test(engine): integration test for cross-engine shutdown-sweep cleanup` | NOT STARTED |
 | 11 | `docs(plan): mark Phase 2 complete` | NOT STARTED |
 

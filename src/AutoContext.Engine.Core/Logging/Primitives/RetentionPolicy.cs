@@ -82,9 +82,30 @@ internal sealed class RetentionPolicy
     /// <paramref name="writtenAt"/> always returns
     /// <see langword="false"/>.</returns>
     public bool IsExpired(DateTimeOffset writtenAt)
-    {
-        var window = Window;
+        => IsExpired(writtenAt, Window);
 
+    /// <summary>
+    /// Returns <see langword="true"/> when an artefact stamped at
+    /// <paramref name="writtenAt"/> falls outside the explicit
+    /// <paramref name="window"/> relative to the current clock.
+    /// Lets callers honour per-entry retention windows
+    /// (<see cref="Protocol.Messages.Registry.RegistryEntry.Retention"/>)
+    /// without re-implementing the future-skew and zero-window
+    /// rules — <c>StaleSubtreeCleaner</c> uses this overload for the
+    /// <c>StaleRegistration</c> arm.
+    /// </summary>
+    /// <param name="writtenAt">When the artefact was produced.</param>
+    /// <param name="window">Retention window to apply.
+    /// <see cref="TimeSpan.Zero"/> means "expire immediately".</param>
+    /// <returns><see langword="true"/> if the artefact is older
+    /// than <paramref name="window"/>; <see langword="false"/>
+    /// otherwise. A <paramref name="window"/> of
+    /// <see cref="TimeSpan.Zero"/> always returns
+    /// <see langword="true"/>; a future-dated
+    /// <paramref name="writtenAt"/> always returns
+    /// <see langword="false"/>.</returns>
+    public bool IsExpired(DateTimeOffset writtenAt, TimeSpan window)
+    {
         if (window <= TimeSpan.Zero)
         {
             return true;

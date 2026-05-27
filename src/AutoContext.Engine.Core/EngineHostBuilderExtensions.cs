@@ -196,9 +196,29 @@ public static class EngineHostBuilderExtensions
         // four SubtreeRegistryStatus arms by composing
         // RegistryEntryReader with a structural shape check.
         // Pure read + classification — no deletion. Consumed by
-        // StaleSubtreeCleaner (next row) and the HousekeepingService
-        // shutdown sweep.
+        // StaleSubtreeCleaner and the HousekeepingService
+        // shutdown sweep below.
         builder.Services.TryAddSingleton<CacheRootScanner>();
+
+        // Pattern-matches the scanner's SubtreeRegistryStatus
+        // output and deletes each subtree whose retention window
+        // has elapsed. Registered subtrees are never touched;
+        // stale-registration subtrees honour the entry's own
+        // retention; unregistered and foreign subtrees fall back
+        // to this engine's --retention via RetentionPolicy.
+        builder.Services.TryAddSingleton<StaleSubtreeCleaner>();
+
+        // HousekeepingService is the only hosted service in the
+        // engine that runs work in StopAsync only (no startup
+        // sweep — every spawn gets a fresh <instanceId>, P4).
+        // Registered AFTER RegistryFileService and BEFORE
+        // LifecycleService so the host stops it BEFORE the
+        // registry file service tears down — the sweep observes
+        // the on-disk registry in its post-pipe-close shape
+        // while RegistryFileService's channel is still live —
+        // and AFTER LifecycleService closes the four pipes.
+        builder.Services.TryAddEnumerable(
+            ServiceDescriptor.Singleton<IHostedService, HousekeepingService>());
 
         builder.Services.TryAddSingleton<LifecycleEventStream>();
         builder.Services.TryAddSingleton<LifecycleNotifier>();
