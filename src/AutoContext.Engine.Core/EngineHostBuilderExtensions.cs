@@ -95,11 +95,18 @@ public static class EngineHostBuilderExtensions
         // (Engine.WriteLog) lands in a later phase.
         builder.Services.TryAddSingleton<LogChannel>();
 
-        // Single source of truth for engine.log / logs/ paths under
-        // the per-instance subtree. Producer (LogFileSinkService)
-        // and consumer (Logs.GetEngine handler) both resolve through
-        // this singleton so the path is defined once.
-        builder.Services.TryAddSingleton<EngineLogPaths>();
+        // Per-instance identity bundle: workspace hash, instance id,
+        // and the resolved cache-root subtree. Every consumer that
+        // needs a path under the cache root composes off this
+        // singleton (directly, or via EngineCacheLayout below).
+        builder.Services.TryAddSingleton<CacheRoot>();
+
+        // Single source of truth for every on-disk path the engine
+        // owns under its cache root — per-instance logs / crash
+        // tombstone, plus the shared liveness registry file at the
+        // cache-root level. Producers and consumers resolve through
+        // this singleton so each path is defined once.
+        builder.Services.TryAddSingleton<EngineCacheLayout>();
 
         // Forward-pass NDJSON reader over the active engine.log,
         // consumed by the Logs.GetEngine RPC handler.
@@ -150,9 +157,9 @@ public static class EngineHostBuilderExtensions
         {
             var options = sp.GetRequiredService<IOptions<EngineOptions>>().Value;
             var clock = sp.GetRequiredService<TimeProvider>();
-            var path = EngineCacheRoot.ResolveRegistryFilePath(options.CacheRootOverride);
+            var layout = sp.GetRequiredService<EngineCacheLayout>();
             return new RegistryFileService(
-                path,
+                layout.RegistryFilePath,
                 serviceOptions: null,
                 readerOptions: null,
                 loggerFactory: sp.GetService<ILoggerFactory>(),
@@ -168,10 +175,9 @@ public static class EngineHostBuilderExtensions
         // same file.
         builder.Services.TryAddSingleton(sp =>
         {
-            var options = sp.GetRequiredService<IOptions<EngineOptions>>().Value;
-            var path = EngineCacheRoot.ResolveRegistryFilePath(options.CacheRootOverride);
+            var layout = sp.GetRequiredService<EngineCacheLayout>();
             return new RegistryFileReader(
-                path,
+                layout.RegistryFilePath,
                 options: null,
                 logger: sp.GetService<ILogger<RegistryFileReader>>());
         });
@@ -193,10 +199,9 @@ public static class EngineHostBuilderExtensions
         // shutdown sweep.
         builder.Services.TryAddSingleton(sp =>
         {
-            var options = sp.GetRequiredService<IOptions<EngineOptions>>().Value;
-            var cacheRoot = EngineCacheRoot.Resolve(options.CacheRootOverride);
+            var cacheRoot = sp.GetRequiredService<CacheRoot>();
             return new CacheRootScanner(
-                cacheRoot,
+                cacheRoot.FullPath,
                 sp.GetRequiredService<RegistryEntryReader>(),
                 sp.GetRequiredService<ILogger<CacheRootScanner>>());
         });

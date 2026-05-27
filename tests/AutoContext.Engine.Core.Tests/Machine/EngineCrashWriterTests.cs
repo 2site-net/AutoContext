@@ -11,7 +11,7 @@ using static AutoContext.Engine.Core.Tests.Support.Machine.EngineCrashWriterFixt
 public sealed class EngineCrashWriterTests
 {
     [Fact]
-    public void Should_throw_when_constructed_with_null_options()
+    public void Should_throw_when_constructed_with_null_cacheLayout()
     {
         Assert.Throws<ArgumentNullException>(() => new EngineCrashWriter(null!));
     }
@@ -28,10 +28,10 @@ public sealed class EngineCrashWriterTests
             cacheRoot,
             expectedHash,
             options.InstanceId.ToString("D"),
-            EngineCrashWriter.LogsSubdirectory,
-            EngineCrashWriter.CrashLogFileName);
+            EngineCacheLayout.LogsDirName,
+            EngineCacheLayout.CrashLogFileName);
 
-        Assert.Equal(expected, writer.CrashLogPath);
+        Assert.Equal(expected, writer.CrashLogFilePath);
     }
 
     [Fact]
@@ -39,7 +39,7 @@ public sealed class EngineCrashWriterTests
     {
         var writer = CreateWriter(CreateOptions());
 
-        Assert.False(File.Exists(writer.CrashLogPath));
+        Assert.False(File.Exists(writer.CrashLogFilePath));
     }
 
     [Fact]
@@ -113,7 +113,7 @@ public sealed class EngineCrashWriterTests
 
         writer.TryWrite(null!, "DaemonHostFactory.RunAsync");
 
-        Assert.False(File.Exists(writer.CrashLogPath));
+        Assert.False(File.Exists(writer.CrashLogFilePath));
     }
 
     [Theory]
@@ -125,7 +125,7 @@ public sealed class EngineCrashWriterTests
 
         writer.TryWrite(new InvalidOperationException("boom"), source!);
 
-        Assert.False(File.Exists(writer.CrashLogPath));
+        Assert.False(File.Exists(writer.CrashLogFilePath));
     }
 
     [Fact]
@@ -138,7 +138,7 @@ public sealed class EngineCrashWriterTests
         var cacheRoot = CreateTempCacheRoot();
         var options = CreateOptions(cacheRoot);
         var writer = CreateWriter(options);
-        var logsDirectoryPath = Path.GetDirectoryName(writer.CrashLogPath)!;
+        var logsDirectoryPath = Path.GetDirectoryName(writer.CrashLogFilePath)!;
         var parentDirectory = Path.GetDirectoryName(logsDirectoryPath)!;
         Directory.CreateDirectory(parentDirectory);
         File.WriteAllText(logsDirectoryPath, "blocking file");
@@ -148,6 +148,6 @@ public sealed class EngineCrashWriterTests
 
         Assert.Multiple(
             () => Assert.Null(ex),
-            () => Assert.False(File.Exists(writer.CrashLogPath)));
+            () => Assert.False(File.Exists(writer.CrashLogFilePath)));
     }
 }

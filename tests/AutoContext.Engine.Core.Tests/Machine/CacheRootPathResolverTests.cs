@@ -2,7 +2,8 @@ namespace AutoContext.Engine.Core.Tests.Machine;
 
 using AutoContext.Engine.Core.Machine;
 using AutoContext.Engine.Core.Tests.Support.Shared;
-public sealed class EngineCacheRootTests
+
+public sealed class CacheRootPathResolverTests
 {
     public sealed class Resolve
     {
@@ -15,7 +16,7 @@ public sealed class EngineCacheRootTests
                 : "/some/absolute/override";
 
             // Act
-            var resolved = EngineCacheRoot.Resolve(rooted);
+            var resolved = CacheRootPathResolver.Resolve(rooted);
 
             // Assert
             Assert.Equal(Path.GetFullPath(rooted), resolved);
@@ -25,8 +26,8 @@ public sealed class EngineCacheRootTests
         public void Should_treat_whitespace_override_as_unset()
         {
             // Arrange + Act
-            var fromWhitespace = EngineCacheRoot.Resolve("   ");
-            var fromNull = EngineCacheRoot.Resolve(null);
+            var fromWhitespace = CacheRootPathResolver.Resolve("   ");
+            var fromNull = CacheRootPathResolver.Resolve(null);
 
             // Assert
             Assert.Equal(fromNull, fromWhitespace);
@@ -43,7 +44,7 @@ public sealed class EngineCacheRootTests
                 "autocontext");
 
             // Act
-            var resolved = EngineCacheRoot.Resolve(null);
+            var resolved = CacheRootPathResolver.Resolve(null);
 
             // Assert
             Assert.Equal(expected, resolved);
@@ -58,7 +59,7 @@ public sealed class EngineCacheRootTests
             using var xdg = new EnvironmentVariableFixture("XDG_CACHE_HOME", "/tmp/xdg-cache");
 
             // Act
-            var resolved = EngineCacheRoot.Resolve(null);
+            var resolved = CacheRootPathResolver.Resolve(null);
 
             // Assert
             Assert.Equal(Path.Combine("/tmp/xdg-cache", "autocontext"), resolved);
@@ -74,7 +75,7 @@ public sealed class EngineCacheRootTests
             using var home = new EnvironmentVariableFixture("HOME", "/home/tester");
 
             // Act
-            var resolved = EngineCacheRoot.Resolve(null);
+            var resolved = CacheRootPathResolver.Resolve(null);
 
             // Assert
             Assert.Equal(Path.Combine("/home/tester", ".cache", "autocontext"), resolved);
@@ -90,27 +91,7 @@ public sealed class EngineCacheRootTests
             using var home = new EnvironmentVariableFixture("HOME", null);
 
             // Act + Assert
-            Assert.Throws<InvalidOperationException>(() => EngineCacheRoot.Resolve(null));
-        }
-    }
-
-    public sealed class ResolveRegistryFilePath
-    {
-        [Fact]
-        public void Should_append_engine_registry_json_to_root()
-        {
-            // Arrange
-            var rooted = OperatingSystem.IsWindows()
-                ? @"C:\override\root"
-                : "/override/root";
-
-            // Act
-            var path = EngineCacheRoot.ResolveRegistryFilePath(rooted);
-
-            // Assert
-            Assert.Equal(
-                Path.Combine(Path.GetFullPath(rooted), "engine-registry.json"),
-                path);
+            Assert.Throws<InvalidOperationException>(() => CacheRootPathResolver.Resolve(null));
         }
     }
 }

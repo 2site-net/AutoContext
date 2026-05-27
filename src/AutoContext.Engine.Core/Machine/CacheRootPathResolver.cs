@@ -1,9 +1,8 @@
 namespace AutoContext.Engine.Core.Machine;
 
 /// <summary>
-/// Resolves the per-user engine cache-root directory and the
-/// well-known artefact paths underneath it. The cache root is the
-/// machine-wide co-owned directory described in
+/// Resolves the per-user engine cache-root directory. The cache
+/// root is the machine-wide co-owned directory described in
 /// <c>design § Distributed bundle layout</c> and
 /// <c>design § Engine-owned on-disk artefacts</c>; every live
 /// engine on the same user account shares it.
@@ -22,16 +21,17 @@ namespace AutoContext.Engine.Core.Machine;
 /// <para>
 /// Tests and embedders override the resolved root by setting
 /// <c>EngineOptions.CacheRootOverride</c> — the only knob this
-/// type consults beyond the OS environment.
+/// type consults beyond the OS environment. Well-known artefact
+/// paths underneath the root (logs, crash tombstones, the shared
+/// liveness registry file) are composed by
+/// <see cref="EngineCacheLayout"/> so each path concern is
+/// resolved once and consumed from a single place.
 /// </para>
 /// </remarks>
-internal static class EngineCacheRoot
+internal static class CacheRootPathResolver
 {
-    /// <summary>Basename of the shared liveness registry file.</summary>
-    public const string RegistryFileName = "engine-registry.json";
-
     /// <summary>Subdirectory name under the OS cache root.</summary>
-    private const string CacheSubdirectory = "autocontext";
+    private const string CacheDirName = "autocontext";
 
     /// <summary>
     /// Resolves the absolute cache-root directory path. The
@@ -56,39 +56,34 @@ internal static class EngineCacheRoot
 
         if (OperatingSystem.IsWindows())
         {
-            var localAppData = Environment.GetFolderPath(
-                Environment.SpecialFolder.LocalApplicationData);
+            var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+
             if (string.IsNullOrWhiteSpace(localAppData))
             {
                 throw new InvalidOperationException(
                     "Cannot resolve engine cache root: %LOCALAPPDATA% is unavailable. "
                     + "Set EngineOptions.CacheRootOverride to an absolute path.");
             }
-            return Path.Combine(localAppData, CacheSubdirectory);
+
+            return Path.Combine(localAppData, CacheDirName);
         }
 
         var xdg = Environment.GetEnvironmentVariable("XDG_CACHE_HOME");
+
         if (!string.IsNullOrWhiteSpace(xdg))
         {
-            return Path.Combine(xdg, CacheSubdirectory);
+            return Path.Combine(xdg, CacheDirName);
         }
 
         var home = Environment.GetEnvironmentVariable("HOME");
+
         if (string.IsNullOrWhiteSpace(home))
         {
             throw new InvalidOperationException(
                 "Cannot resolve engine cache root: neither $XDG_CACHE_HOME nor $HOME is set. "
                 + "Set EngineOptions.CacheRootOverride to an absolute path.");
         }
-        return Path.Combine(home, ".cache", CacheSubdirectory);
-    }
 
-    /// <summary>
-    /// Resolves the absolute path of <c>engine-registry.json</c>
-    /// under the cache root.
-    /// </summary>
-    /// <param name="overridePath">Forwarded to
-    /// <see cref="Resolve(string?)"/>.</param>
-    public static string ResolveRegistryFilePath(string? overridePath) =>
-        Path.Combine(Resolve(overridePath), RegistryFileName);
+        return Path.Combine(home, ".cache", CacheDirName);
+    }
 }

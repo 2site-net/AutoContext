@@ -3,6 +3,7 @@ namespace AutoContext.Engine.Core.Logging;
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 
+using AutoContext.Engine.Core.Machine;
 using AutoContext.Engine.Protocol.Messages.Logs;
 using AutoContext.Engine.Protocol.Serialization;
 
@@ -46,20 +47,22 @@ using AutoContext.Engine.Protocol.Serialization;
 /// </remarks>
 internal sealed class EngineLogFileReader
 {
-    private readonly EngineLogPaths _paths;
+    private readonly EngineCacheLayout _cacheLayout;
 
     /// <summary>
     /// Creates a new <see cref="EngineLogFileReader"/> targeted at
-    /// the engine log file resolved by <paramref name="paths"/>.
+    /// the engine log file resolved by <paramref name="cacheLayout"/>.
     /// </summary>
-    /// <param name="paths">Resolved engine-log paths singleton.</param>
+    /// <param name="cacheLayout">Resolved engine cache-root layout
+    /// the active <c>engine.log</c> path is read from via
+    /// <see cref="EngineCacheLayout.EngineLogFilePath"/>.</param>
     /// <exception cref="ArgumentNullException">
-    /// <paramref name="paths"/> is <see langword="null"/>.
+    /// <paramref name="cacheLayout"/> is <see langword="null"/>.
     /// </exception>
-    public EngineLogFileReader(EngineLogPaths paths)
+    public EngineLogFileReader(EngineCacheLayout cacheLayout)
     {
-        ArgumentNullException.ThrowIfNull(paths);
-        _paths = paths;
+        ArgumentNullException.ThrowIfNull(cacheLayout);
+        _cacheLayout = cacheLayout;
     }
 
     /// <summary>
@@ -168,7 +171,7 @@ internal sealed class EngineLogFileReader
         bool stopAfterFirstRecord,
         CancellationToken cancellationToken)
     {
-        var path = _paths.EngineLogFilePath;
+        var path = _cacheLayout.EngineLogFilePath;
         if (!File.Exists(path))
         {
             return ([], false);

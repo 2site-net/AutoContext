@@ -5,6 +5,7 @@ using System.Text.Json;
 using AutoContext.Engine.Core;
 using AutoContext.Engine.Core.Logging;
 using AutoContext.Engine.Core.Logging.Primitives;
+using AutoContext.Engine.Core.Machine;
 using AutoContext.Engine.Core.Tests.Support;
 using AutoContext.Engine.Core.Tests.Support.Logging;
 using AutoContext.Engine.Core.Tests.Support.Logging.Primitives;
@@ -15,21 +16,16 @@ using AutoContext.Engine.Protocol.Messages.Logs;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 
-public sealed class LogFileSinkServiceTests : IClassFixture<LogFileSinkServiceFixture>
+public sealed class LogFileSinkServiceTests(LogFileSinkServiceFixture fixture) : IClassFixture<LogFileSinkServiceFixture>
 {
-    private readonly LogFileSinkServiceFixture _fixture;
-
-    public LogFileSinkServiceTests(LogFileSinkServiceFixture fixture)
-    {
-        _fixture = fixture;
-    }
+    private readonly LogFileSinkServiceFixture _fixture = fixture;
 
     [Fact]
     public void Should_throw_when_constructed_with_null_channel()
     {
         Assert.Throws<ArgumentNullException>(() => new LogFileSinkService(
             channel: null!,
-            paths: new EngineLogPaths(Options.Create(EngineCrashWriterFixture.CreateOptions())),
+            cacheLayout: EngineCacheLayoutTestFactory.Create(EngineCrashWriterFixture.CreateOptions()),
             thresholds: LogRotationThresholdsFakeData.Normal,
             cleaner: RotatedLogCleanerTestFactory.Create(EngineCrashWriterFixture.CreateOptions()),
             broadcaster: LogSubscriptionBroadcasterTestFactory.Create(),
@@ -42,7 +38,7 @@ public sealed class LogFileSinkServiceTests : IClassFixture<LogFileSinkServiceFi
     {
         Assert.Throws<ArgumentNullException>(() => new LogFileSinkService(
             channel: new LogChannel(),
-            paths: null!,
+            cacheLayout: null!,
             thresholds: LogRotationThresholdsFakeData.Normal,
             cleaner: RotatedLogCleanerTestFactory.Create(EngineCrashWriterFixture.CreateOptions()),
             broadcaster: LogSubscriptionBroadcasterTestFactory.Create(),
@@ -55,7 +51,7 @@ public sealed class LogFileSinkServiceTests : IClassFixture<LogFileSinkServiceFi
     {
         Assert.Throws<ArgumentNullException>(() => new LogFileSinkService(
             channel: new LogChannel(),
-            paths: new EngineLogPaths(Options.Create(EngineCrashWriterFixture.CreateOptions())),
+            cacheLayout: EngineCacheLayoutTestFactory.Create(EngineCrashWriterFixture.CreateOptions()),
             thresholds: null!,
             cleaner: RotatedLogCleanerTestFactory.Create(EngineCrashWriterFixture.CreateOptions()),
             broadcaster: LogSubscriptionBroadcasterTestFactory.Create(),
@@ -68,7 +64,7 @@ public sealed class LogFileSinkServiceTests : IClassFixture<LogFileSinkServiceFi
     {
         Assert.Throws<ArgumentNullException>(() => new LogFileSinkService(
             channel: new LogChannel(),
-            paths: new EngineLogPaths(Options.Create(EngineCrashWriterFixture.CreateOptions())),
+            cacheLayout: EngineCacheLayoutTestFactory.Create(EngineCrashWriterFixture.CreateOptions()),
             thresholds: LogRotationThresholdsFakeData.Normal,
             cleaner: null!,
             broadcaster: LogSubscriptionBroadcasterTestFactory.Create(),
@@ -81,7 +77,7 @@ public sealed class LogFileSinkServiceTests : IClassFixture<LogFileSinkServiceFi
     {
         Assert.Throws<ArgumentNullException>(() => new LogFileSinkService(
             channel: new LogChannel(),
-            paths: new EngineLogPaths(Options.Create(EngineCrashWriterFixture.CreateOptions())),
+            cacheLayout: EngineCacheLayoutTestFactory.Create(EngineCrashWriterFixture.CreateOptions()),
             thresholds: LogRotationThresholdsFakeData.Normal,
             cleaner: RotatedLogCleanerTestFactory.Create(EngineCrashWriterFixture.CreateOptions()),
             broadcaster: LogSubscriptionBroadcasterTestFactory.Create(),
@@ -94,7 +90,7 @@ public sealed class LogFileSinkServiceTests : IClassFixture<LogFileSinkServiceFi
     {
         Assert.Throws<ArgumentNullException>(() => new LogFileSinkService(
             channel: new LogChannel(),
-            paths: new EngineLogPaths(Options.Create(EngineCrashWriterFixture.CreateOptions())),
+            cacheLayout: EngineCacheLayoutTestFactory.Create(EngineCrashWriterFixture.CreateOptions()),
             thresholds: LogRotationThresholdsFakeData.Normal,
             cleaner: RotatedLogCleanerTestFactory.Create(EngineCrashWriterFixture.CreateOptions()),
             broadcaster: null!,
@@ -107,7 +103,7 @@ public sealed class LogFileSinkServiceTests : IClassFixture<LogFileSinkServiceFi
     {
         Assert.Throws<ArgumentNullException>(() => new LogFileSinkService(
             channel: new LogChannel(),
-            paths: new EngineLogPaths(Options.Create(EngineCrashWriterFixture.CreateOptions())),
+            cacheLayout: EngineCacheLayoutTestFactory.Create(EngineCrashWriterFixture.CreateOptions()),
             thresholds: LogRotationThresholdsFakeData.Normal,
             cleaner: RotatedLogCleanerTestFactory.Create(EngineCrashWriterFixture.CreateOptions()),
             broadcaster: LogSubscriptionBroadcasterTestFactory.Create(),
@@ -388,3 +384,4 @@ public sealed class LogFileSinkServiceTests : IClassFixture<LogFileSinkServiceFi
         Assert.Empty(frames);
     }
 }
+

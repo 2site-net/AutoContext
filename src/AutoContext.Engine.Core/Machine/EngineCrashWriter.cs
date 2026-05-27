@@ -4,8 +4,6 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text.Json;
 
-using AutoContext.Engine.Core.Infrastructure.Primitives;
-
 /// <summary>
 /// Paranoid last-gasp writer of <c>crash.log</c> under the
 /// per-instance subtree
@@ -63,52 +61,31 @@ using AutoContext.Engine.Core.Infrastructure.Primitives;
 /// </remarks>
 public sealed class EngineCrashWriter
 {
-    /// <summary>Basename of the per-instance crash tombstone.</summary>
-    internal const string CrashLogFileName = "crash.log";
-
-    /// <summary>
-    /// Subdirectory under the per-instance subtree that holds
-    /// engine log artefacts. Matches the path shape Phase 2's
-    /// logging pipeline writes <c>engine.log</c> into.
-    /// </summary>
-    internal const string LogsSubdirectory = "logs";
-
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         WriteIndented = false,
     };
 
-    private readonly Guid _instanceId;
-    private readonly string _workspacePath;
+    private readonly EngineCacheLayout _cacheLayout;
 
     /// <summary>
     /// Creates a new <see cref="EngineCrashWriter"/> targeted at
-    /// the per-instance subtree derived from
-    /// <paramref name="options"/>. The target path is composed
+    /// the per-instance <c>crash.log</c> resolved by
+    /// <paramref name="cacheLayout"/>. The target path is captured
     /// eagerly so the catch-handler fast path skips path work.
     /// </summary>
-    /// <param name="options">Engine options carrying the
-    /// workspace path, instance id, and optional cache-root
-    /// override the target path is derived from.</param>
+    /// <param name="cacheLayout">Resolved engine cache-root layout
+    /// the crash log path is read from.</param>
     /// <exception cref="ArgumentNullException">
-    /// <paramref name="options"/> is <see langword="null"/>.
+    /// <paramref name="cacheLayout"/> is <see langword="null"/>.
     /// </exception>
-    public EngineCrashWriter(EngineOptions options)
+    public EngineCrashWriter(EngineCacheLayout cacheLayout)
     {
-        ArgumentNullException.ThrowIfNull(options);
+        ArgumentNullException.ThrowIfNull(cacheLayout);
 
-        _instanceId = options.InstanceId;
-        _workspacePath = options.WorkspacePath;
+        _cacheLayout = cacheLayout;
 
-        var cacheRoot = EngineCacheRoot.Resolve(options.CacheRootOverride);
-        var workspaceHash = WorkspaceHash.Compute(options.WorkspacePath).Value;
-
-        CrashLogPath = Path.Combine(
-            cacheRoot,
-            workspaceHash,
-            options.InstanceId.ToString("D"),
-            LogsSubdirectory,
-            CrashLogFileName);
+        CrashLogFilePath = cacheLayout.CrashLogFilePath;
     }
 
     /// <summary>
@@ -117,11 +94,11 @@ public sealed class EngineCrashWriter
     /// is not created until the first successful
     /// <see cref="TryWrite(Exception, string)"/> call.
     /// </summary>
-    public string CrashLogPath { get; }
+    public string CrashLogFilePath { get; }
 
     /// <summary>
     /// Appends one NDJSON record describing
-    /// <paramref name="exception"/> to <see cref="CrashLogPath"/>.
+    /// <paramref name="exception"/> to <see cref="CrashLogFilePath"/>.
     /// Returns silently if <paramref name="exception"/> is
     /// <see langword="null"/>, <paramref name="source"/> is null
     /// or empty, or any I/O step fails. Never throws.
@@ -148,19 +125,19 @@ public sealed class EngineCrashWriter
             var record = new CrashRecord(
                 Timestamp: DateTimeOffset.UtcNow.ToString("o", CultureInfo.InvariantCulture),
                 Source: source,
-                InstanceId: _instanceId.ToString("D"),
-                WorkspacePath: _workspacePath,
+                InstanceId: _cacheLayout.CacheRoot.InstanceId,
+                WorkspacePath: _cacheLayout.CacheRoot.WorkspaceUserPath,
                 Exception: BuildExceptionRecord(exception));
 
             var json = JsonSerializer.Serialize(record, JsonOptions);
 
-            var directory = Path.GetDirectoryName(CrashLogPath);
+            var directory = Path.GetDirectoryName(CrashLogFilePath);
             if (!string.IsNullOrEmpty(directory))
             {
                 Directory.CreateDirectory(directory);
             }
 
-            File.AppendAllText(CrashLogPath, json + Environment.NewLine);
+            File.AppendAllText(CrashLogFilePath, json + Environment.NewLine);
         }
         catch
         {

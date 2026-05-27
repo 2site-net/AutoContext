@@ -5,6 +5,7 @@ using System.Text.Json;
 
 using AutoContext.Engine.Core.Infrastructure.Primitives;
 using AutoContext.Engine.Core.Logging.Primitives;
+using AutoContext.Engine.Core.Machine;
 using AutoContext.Engine.Protocol.Messages.Logs;
 using AutoContext.Engine.Protocol.Serialization;
 
@@ -64,11 +65,11 @@ using Microsoft.Extensions.Options;
 internal sealed partial class LogFileSinkService : BackgroundService
 {
     /// <summary>Stable basename of the active engine log file
-    /// (without the rotation timestamp segment).</summary>
+    /// (without the rotation timestamp segment). Used as the
+    /// prefix for rotated <c>engine-yyyyMMddTHHmmssZ.log</c>
+    /// files; the active-file basename itself is owned by
+    /// <see cref="EngineCacheLayout.EngineLogFileName"/>.</summary>
     internal const string EngineLogBaseName = "engine";
-
-    /// <summary>Basename of the active engine log file.</summary>
-    internal const string EngineLogFileName = EngineLogBaseName + ".log";
 
     private static readonly byte[] LineTerminator = "\n"u8.ToArray();
 
@@ -89,9 +90,9 @@ internal sealed partial class LogFileSinkService : BackgroundService
     /// hot path skips path work.
     /// </summary>
     /// <param name="channel">Ingest channel to drain.</param>
-    /// <param name="paths">Resolved on-disk paths for the engine's
-    /// log pipeline. The active <c>engine.log</c> path is read
-    /// from <see cref="EngineLogPaths.EngineLogFilePath"/> at
+    /// <param name="cacheLayout">Resolved engine cache-root layout.
+    /// The active <c>engine.log</c> path is read from
+    /// <see cref="EngineCacheLayout.EngineLogFilePath"/> at
     /// construction time and reused for the lifetime of the
     /// service.</param>
     /// <param name="thresholds">Per-verbosity rotation thresholds
@@ -115,7 +116,7 @@ internal sealed partial class LogFileSinkService : BackgroundService
     /// </exception>
     public LogFileSinkService(
         LogChannel channel,
-        EngineLogPaths paths,
+        EngineCacheLayout cacheLayout,
         LogRotationThresholds thresholds,
         RotatedLogCleaner cleaner,
         LogSubscriptionBroadcaster broadcaster,
@@ -123,7 +124,7 @@ internal sealed partial class LogFileSinkService : BackgroundService
         ILogger<LogFileSinkService> logger)
     {
         ArgumentNullException.ThrowIfNull(channel);
-        ArgumentNullException.ThrowIfNull(paths);
+        ArgumentNullException.ThrowIfNull(cacheLayout);
         ArgumentNullException.ThrowIfNull(thresholds);
         ArgumentNullException.ThrowIfNull(cleaner);
         ArgumentNullException.ThrowIfNull(broadcaster);
@@ -136,7 +137,7 @@ internal sealed partial class LogFileSinkService : BackgroundService
         _logger = logger;
         _thresholds = thresholds;
         _timeProvider = timeProvider;
-        _filePath = paths.EngineLogFilePath;
+        _filePath = cacheLayout.EngineLogFilePath;
     }
 
     /// <inheritdoc />
@@ -189,7 +190,7 @@ internal sealed partial class LogFileSinkService : BackgroundService
         var directory = Path.GetDirectoryName(_filePath)
             ?? throw new InvalidOperationException(
                 $"Engine log path '{_filePath}' has no parent directory; "
-                + "EngineLogPaths must always yield a rooted path.");
+                + "EngineCacheLayout must always yield a rooted path.");
 
         Directory.CreateDirectory(directory);
 

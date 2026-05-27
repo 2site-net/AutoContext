@@ -3,6 +3,7 @@ namespace AutoContext.Engine.Core.Tests.Logging;
 using System.Text.Json;
 
 using AutoContext.Engine.Core.Logging;
+using AutoContext.Engine.Core.Machine;
 using AutoContext.Engine.Core.Tests.Support;
 using AutoContext.Engine.Core.Tests.Support.Logging;
 using AutoContext.Engine.Core.Tests.Support.Machine;
@@ -205,7 +206,7 @@ public sealed class EngineLogFileReaderTests : IDisposable
     private (EngineLogFileReader Reader, string FilePath) CreateReader()
     {
         var options = EngineCrashWriterFixture.CreateOptions(_cacheRoot);
-        var paths = new EngineLogPaths(Options.Create(options));
+        var paths = EngineCacheLayoutTestFactory.Create(options);
         return (new EngineLogFileReader(paths), paths.EngineLogFilePath);
     }
 

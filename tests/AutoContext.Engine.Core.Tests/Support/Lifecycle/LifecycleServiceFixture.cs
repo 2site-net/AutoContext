@@ -5,8 +5,10 @@ using System.Diagnostics.CodeAnalysis;
 using AutoContext.Engine.Core;
 using AutoContext.Engine.Core.Lifecycle;
 using AutoContext.Engine.Core.Logging;
+using AutoContext.Engine.Core.Machine;
 using AutoContext.Engine.Core.Registry;
 using AutoContext.Engine.Core.Tests.Support;
+using AutoContext.Engine.Core.Tests.Support.Machine;
 using AutoContext.Engine.Core.Watchdogs;
 
 using Microsoft.Extensions.Hosting;
@@ -42,7 +44,7 @@ public sealed class LifecycleServiceFixture : IAsyncDisposable
         var logsBroadcaster = new LogSubscriptionBroadcaster(
             NullLogger<LogSubscriptionBroadcaster>.Instance);
         var logFileReader = new EngineLogFileReader(
-            new EngineLogPaths(Options.Create(resolvedOptions)));
+            EngineCacheLayoutTestFactory.Create(resolvedOptions));
         var service = new LifecycleService(
             Options.Create(resolvedOptions),
             NullLoggerFactory.Instance,
@@ -124,7 +126,7 @@ public sealed class LifecycleServiceFixture : IAsyncDisposable
         new(NullLogger<LogSubscriptionBroadcaster>.Instance);
 
     internal static EngineLogFileReader CreateLogFileReader(EngineOptions? options = null) =>
-        new(new EngineLogPaths(Options.Create(options ?? CreateOptions())));
+        new(EngineCacheLayoutTestFactory.Create(options ?? CreateOptions()));
 
     [SuppressMessage(
         "Design",

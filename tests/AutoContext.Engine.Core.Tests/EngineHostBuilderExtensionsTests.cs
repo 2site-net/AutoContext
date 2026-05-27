@@ -163,7 +163,7 @@ public sealed class EngineHostBuilderExtensionsTests
                 () => Assert.Same(registry, host.Services.GetRequiredService<RegistryFileService>()),
                 () => Assert.Single(hosted, h => ReferenceEquals(h, registry)),
                 () => Assert.Equal(
-                    EngineCacheRoot.ResolveRegistryFilePath(CacheRootOverride),
+                    Path.Combine(CacheRootPathResolver.Resolve(CacheRootOverride), EngineCacheLayout.RegistryFileName),
                     registry.Path));
         }
 

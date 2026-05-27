@@ -31,10 +31,11 @@ public static class EngineCrashWriterFixture
         return path;
     }
 
-    public static EngineCrashWriter CreateWriter(EngineOptions options) => new(options);
+    public static EngineCrashWriter CreateWriter(EngineOptions options) =>
+        new(EngineCacheLayoutTestFactory.Create(options));
 
     /// <summary>
-    /// Reads <see cref="EngineCrashWriter.CrashLogPath"/> as
+    /// Reads <see cref="EngineCrashWriter.CrashLogFilePath"/> as
     /// NDJSON and deserializes each non-empty line into a
     /// generic dictionary so tests can assert on individual
     /// fields without coupling to the writer's private record
@@ -42,12 +43,12 @@ public static class EngineCrashWriterFixture
     /// </summary>
     internal static IReadOnlyList<JsonElement> ReadRecords(EngineCrashWriter writer)
     {
-        if (!File.Exists(writer.CrashLogPath))
+        if (!File.Exists(writer.CrashLogFilePath))
         {
             return [];
         }
 
-        var lines = File.ReadAllLines(writer.CrashLogPath);
+        var lines = File.ReadAllLines(writer.CrashLogFilePath);
         var records = new List<JsonElement>(lines.Length);
         foreach (var line in lines)
         {

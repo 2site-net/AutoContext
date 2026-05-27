@@ -6,6 +6,7 @@ using AutoContext.Engine.Core;
 using AutoContext.Engine.Core.Machine;
 
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 
 /// <summary>
 /// Composes and runs the daemon-role <see cref="IHost"/> for the
@@ -38,7 +39,13 @@ internal static class DaemonHostFactory
     {
         ArgumentNullException.ThrowIfNull(options);
 
-        var crashWriter = new EngineCrashWriter(options);
+        // Compose the same per-instance layout DI hands the
+        // in-host EngineCrashWriter. We can't reach into the host
+        // service provider here because the writer must exist
+        // before the host is built, in order to tombstone faults
+        // raised during construction itself.
+        var cacheLayout = new EngineCacheLayout(new CacheRoot(Options.Create(options)));
+        var crashWriter = new EngineCrashWriter(cacheLayout);
 
         void OnAppDomainUnhandled(object sender, UnhandledExceptionEventArgs e)
         {
