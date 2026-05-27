@@ -354,10 +354,12 @@ src/
     AutoContext.Engine.Core.csproj
     AddAutoContextEngine.cs                    # IHostApplicationBuilder extension — composition root
     EngineOptions.cs                           # bound from argv (--instance-id, --workspace-root, --idle-timeout, …)
-    EngineCrashWriter.cs                       # paranoid last-gasp writer of crash.log — sync File.AppendAllText, no DI, no ILogger, no async, allocation-light; wired into DaemonHostFactory.RunAsync top-level try/catch + AppDomain.UnhandledException + TaskScheduler.UnobservedTaskException; never invoked from graceful shutdown paths
     Infrastructure/                            # horizontal-axis substrate (cross-cutting plumbing); subdivided by kind, not by feature
       IUniqueInstanceGuard.cs                  # contract for the pre-bind "another engine already owns this <workspaceHash>#<instanceId>?" sanity check; production impl is Lifecycle/PerWorkspaceInstanceGuard.cs
-      Primitives/                              # leaf value types — depended on by everything, depend on nothing themselves
+      Storage/                                 # cache-root vocabulary — identity coordinates and path resolution; leaf, consumed by Machine/ (EngineCacheLayout, Housekeeping) and Lifecycle/ (RegistryEntryBuilder), depends on nothing engine-side itself
+        CacheRoot.cs                           # per-instance identity bundle — composes EngineOptions into resolved cache-root subtree paths (FullPath / WorkspaceBucketPath / InstancePath / WorkspaceUserPath); the DI singleton every on-disk path resolves through
+        CacheRootPathResolver.cs               # pure static — resolves the OS-level engine cache root (%LOCALAPPDATA%\autocontext, $XDG_CACHE_HOME/autocontext, …) with --cache-root override; sole reader of the env vars and override option
+        WorkspaceHash.cs                       # 16-uppercase-hex SHA-256 prefix of the workspace path — `readonly record struct` implementing `IParsable<WorkspaceHash>`; the `<workspaceHash>` segment in registry rows and on-disk paths
         InstanceId.cs                          # launcher UUID value type — `readonly record struct` implementing IParsable<T>; the `<instanceId>` segment in endpoint names and on-disk paths (P4)
       Diagnostics/                             # System.Diagnostics.Process seam — internal abstractions used by watchdogs and registry-sweep liveness checks
         IProcessHandle.cs                      # opens-once handle; exposes UTC start time and a cancellable WaitForExitAsync
@@ -381,22 +383,25 @@ src/
       RegistryFileService.cs                   # hosted coordinator: dedicated worker thread + named cross-process Mutex + Channel<WriteRequest> + read-modify-write cycle; owns this engine's own-entry lifecycle (append on Start, best-effort remove on Stop); single intended caller of RegistryFileWriter
       RegistryEntry.cs                         # entry DTO returned/accepted by RegistryFileReader/Service (engine-internal shape — never on the wire, P3)
       RegistryEntryBuilder.cs                  # pure builder — composes EngineOptions + runtime facts (pid, start time, workspace hash, assembly version) into the RegistryEntry that represents this engine; invoked by RegistryFileService via DI-supplied factory
-      RegistryEntryReader.cs                   # composes over RegistryFileReader; applies Process.StartTime peer-liveness check, tagging each entry Live/Stale — consumed by Housekeeping/ (Phase 2b CacheRootScanner) as the registration half of its classification
+      RegistryEntryReader.cs                   # composes over RegistryFileReader; applies Process.StartTime peer-liveness check, tagging each entry Live/Stale — consumed by Machine/Housekeeping/ (Phase 2b CacheRootScanner) as the registration half of its classification
     Watchdogs/                                 # process-lifetime guards — peers of Lifecycle/; each is a hosted service that signals IHostApplicationLifetime.StopApplication on its own trigger
       IdleTimeoutWatchdog.cs                   # --idle-timeout
       HostWatchdog.cs                          # --parent-pid; clamps engine lifetime to spawner via Infrastructure/Diagnostics handle (Process.StartTime pid-reuse defeat)
       # NOTE: per-workspace unique-instance guard is NOT a watchdog (one-shot pre-bind probe, not a long-running monitor); see Lifecycle/PerWorkspaceInstanceGuard.cs
-    Housekeeping/                              # cache-root upkeep: peer-registration liveness, orphan reaping, retention, foreign-subtree eviction (P5)
-      HousekeepingService.cs                   # hosted service — shutdown sweep only, runs after LifecycleService removes own entry + closes pipes; ≤ 1 s deadline budget
-      SubtreeRegistryStatus.cs                 # discriminated record hierarchy (Registered | StaleRegistration | Unregistered | Foreign) — P2-shaped contract between scanner, policy, and cleaner
-      CacheRootScanner.cs                      # walks the engine cache root, produces SubtreeRegistryStatus per child (pure — no deletion here)
-      StaleSubtreeCleaner.cs                   # pattern-matches SubtreeRegistryStatus, deletes with concurrent-sweep tolerance (DirectoryNotFoundException counts as success)
-      RetentionPolicy.cs                       # single reader of `--retention` — resolves the window per SubtreeRegistryStatus arm (per-entry, unregistered-fallback, foreign)
+    Machine/                                   # engine's on-disk residency: the cache-root subtree this engine owns and the housekeeping that walks the cache root as a whole; consumes Infrastructure/Storage vocabulary, owns no protocol surface of its own
+      EngineCacheLayout.cs                     # single source of truth for every on-disk path the engine owns under its cache root (engine.log / crash.log + the shared registry file); composes off the CacheRoot singleton and freezes the resolved paths at construction
+      EngineCrashWriter.cs                     # paranoid last-gasp writer of crash.log — sync File.AppendAllText, no DI, no ILogger, no async, allocation-light; wired into DaemonHostFactory.RunAsync top-level try/catch + AppDomain.UnhandledException + TaskScheduler.UnobservedTaskException; never invoked from graceful shutdown paths
+      Housekeeping/                            # cache-root upkeep: peer-registration liveness, orphan reaping, retention, foreign-subtree eviction (P5)
+        HousekeepingService.cs                 # hosted service — shutdown sweep only, runs after LifecycleService removes own entry + closes pipes; ≤ 1 s deadline budget
+        SubtreeRegistryStatus.cs               # discriminated record hierarchy (Registered | StaleRegistration | Unregistered | Foreign) — P2-shaped contract between scanner, policy, and cleaner
+        CacheRootScanner.cs                    # walks the engine cache root, produces SubtreeRegistryStatus per child (pure — no deletion here)
+        StaleSubtreeCleaner.cs                 # pattern-matches SubtreeRegistryStatus, deletes with concurrent-sweep tolerance (DirectoryNotFoundException counts as success)
+        RetentionPolicy.cs                     # single reader of `--retention` — resolves the window per SubtreeRegistryStatus arm (per-entry, unregistered-fallback, foreign)
     Logging/                                   # engine sink, rotation, rotated-file cleanup
       LogChannel.cs                            # single-channel ingest; TryWrite / ReadAllAsync / Complete
       LogFileSinkService.cs                    # drain loop + dispatcher; owns the per-target file appenders (engine.log / worker-<id>.log); from row 5 also fans drained records to the broadcaster
       LogRotator.cs                            # --logging thresholds (normal vs debug)
-      RotatedLogCleaner.cs                     # deletes rotated log files past retention inside a live subtree (uses RetentionPolicy from Housekeeping/)
+      RotatedLogCleaner.cs                     # deletes rotated log files past retention inside a live subtree (uses RetentionPolicy from Machine/Housekeeping/)
       WorkerLogRouter.cs                       # routes Engine.WriteLog by category prefix
       LogsSubscriptionBroadcaster.cs           # logs pipe + Logs.Tail* fan-out with eviction
       LogsHandlers.cs                          # Logs.GetEngine / TailEngine / GetWorker / TailWorker
@@ -990,7 +995,7 @@ not a logging chore.
 is explicit and exclusive).
 
 **Code touch**:
-- `AutoContext.Engine.Core/Housekeeping/HousekeepingService` —
+- `AutoContext.Engine.Core/Machine/Housekeeping/HousekeepingService` —
   hosted service that runs the **shutdown sweep only**. No startup
   sweep: under the per-launch-UUID contract (P4) every engine's
   `<instanceId>` is fresh on every spawn, so the registry stays
