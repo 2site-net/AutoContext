@@ -69,6 +69,7 @@ internal static class DaemonHostFactory
             var builder = Host.CreateApplicationBuilder();
             builder.AddAutoContextEngine(target =>
             {
+                target.CacheRootOverride = options.CacheRootOverride;
                 target.CorpusRootOverride = options.CorpusRootOverride;
                 target.IdleTimeout = options.IdleTimeout;
                 target.InstanceId = options.InstanceId;
