@@ -6,8 +6,6 @@ using AutoContext.Engine.Core.Infrastructure.Storage;
 using AutoContext.Engine.Core.Machine;
 using AutoContext.Engine.Core.Tests.Support.Machine;
 
-using static AutoContext.Engine.Core.Tests.Support.Machine.EngineCrashWriterFixture;
-
 public sealed class EngineCrashWriterTests
 {
     [Fact]
@@ -19,9 +17,9 @@ public sealed class EngineCrashWriterTests
     [Fact]
     public void Should_compose_crash_log_path_under_per_instance_subtree()
     {
-        var cacheRoot = CreateTempCacheRoot();
-        var options = CreateOptions(cacheRoot);
-        var writer = CreateWriter(options);
+        var cacheRoot = EngineCrashWriterFixture.CreateTempCacheRoot();
+        var options = EngineCrashWriterFixture.CreateOptions(cacheRoot);
+        var writer = EngineCrashWriterFixture.CreateWriter(options);
 
         var expectedHash = WorkspaceHash.Compute(options.WorkspacePath).Value;
         var expected = Path.Combine(
@@ -37,7 +35,7 @@ public sealed class EngineCrashWriterTests
     [Fact]
     public void Should_not_create_target_file_until_first_write()
     {
-        var writer = CreateWriter(CreateOptions());
+        var writer = EngineCrashWriterFixture.CreateWriter(EngineCrashWriterFixture.CreateOptions());
 
         Assert.False(File.Exists(writer.CrashLogFilePath));
     }
@@ -45,13 +43,13 @@ public sealed class EngineCrashWriterTests
     [Fact]
     public void Should_write_single_NDJSON_record_with_expected_fields()
     {
-        var options = CreateOptions();
-        var writer = CreateWriter(options);
+        var options = EngineCrashWriterFixture.CreateOptions();
+        var writer = EngineCrashWriterFixture.CreateWriter(options);
         var exception = new InvalidOperationException("boom");
 
         writer.TryWrite(exception, "DaemonHostFactory.RunAsync");
 
-        var records = ReadRecords(writer);
+        var records = EngineCrashWriterFixture.ReadRecords(writer);
         Assert.Single(records);
         var record = records[0];
         Assert.Multiple(
@@ -66,13 +64,13 @@ public sealed class EngineCrashWriterTests
     [Fact]
     public void Should_append_records_when_called_multiple_times()
     {
-        var writer = CreateWriter(CreateOptions());
+        var writer = EngineCrashWriterFixture.CreateWriter(EngineCrashWriterFixture.CreateOptions());
 
         writer.TryWrite(new InvalidOperationException("first"), "AppDomain.UnhandledException");
         writer.TryWrite(new IOException("second"), "TaskScheduler.UnobservedTaskException");
         writer.TryWrite(new ArgumentException("third"), "DaemonHostFactory.RunAsync");
 
-        var records = ReadRecords(writer);
+        var records = EngineCrashWriterFixture.ReadRecords(writer);
         Assert.Multiple(
             () => Assert.Equal(3, records.Count),
             () => Assert.Equal("AppDomain.UnhandledException", records[0].GetProperty("Source").GetString()),
@@ -86,14 +84,14 @@ public sealed class EngineCrashWriterTests
     [Fact]
     public void Should_capture_inner_exceptions_recursively()
     {
-        var writer = CreateWriter(CreateOptions());
+        var writer = EngineCrashWriterFixture.CreateWriter(EngineCrashWriterFixture.CreateOptions());
         var root = new IOException("disk full");
         var middle = new InvalidOperationException("write failed", root);
         var outer = new AggregateException("operation faulted", middle);
 
         writer.TryWrite(outer, "DaemonHostFactory.RunAsync");
 
-        var record = Assert.Single(ReadRecords(writer));
+        var record = Assert.Single(EngineCrashWriterFixture.ReadRecords(writer));
         var exception = record.GetProperty("Exception");
         var inner = exception.GetProperty("Inner");
         var innermost = inner.GetProperty("Inner");
@@ -109,7 +107,7 @@ public sealed class EngineCrashWriterTests
     [Fact]
     public void Should_return_silently_when_exception_is_null()
     {
-        var writer = CreateWriter(CreateOptions());
+        var writer = EngineCrashWriterFixture.CreateWriter(EngineCrashWriterFixture.CreateOptions());
 
         writer.TryWrite(null!, "DaemonHostFactory.RunAsync");
 
@@ -121,7 +119,7 @@ public sealed class EngineCrashWriterTests
     [InlineData(null)]
     public void Should_return_silently_when_source_is_null_or_empty(string? source)
     {
-        var writer = CreateWriter(CreateOptions());
+        var writer = EngineCrashWriterFixture.CreateWriter(EngineCrashWriterFixture.CreateOptions());
 
         writer.TryWrite(new InvalidOperationException("boom"), source!);
 
@@ -135,9 +133,9 @@ public sealed class EngineCrashWriterTests
         // to create the `logs` directory. Directory.CreateDirectory
         // will throw IOException ("a file with the same name and
         // location already exists"), which the writer must swallow.
-        var cacheRoot = CreateTempCacheRoot();
-        var options = CreateOptions(cacheRoot);
-        var writer = CreateWriter(options);
+        var cacheRoot = EngineCrashWriterFixture.CreateTempCacheRoot();
+        var options = EngineCrashWriterFixture.CreateOptions(cacheRoot);
+        var writer = EngineCrashWriterFixture.CreateWriter(options);
         var logsDirectoryPath = Path.GetDirectoryName(writer.CrashLogFilePath)!;
         var parentDirectory = Path.GetDirectoryName(logsDirectoryPath)!;
         Directory.CreateDirectory(parentDirectory);

@@ -5,7 +5,7 @@ using System.Text.Json;
 using AutoContext.Mcp.Server.Tools.Results;
 using AutoContext.Mcp.Server.Workers.Protocol;
 
-using static AutoContext.Mcp.Server.Tests.Support.Tools.Results.ToolResultComposerInputFactory;
+using AutoContext.Mcp.Server.Tests.Support.Tools.Results;
 
 public sealed class ToolResultComposerTests
 {
@@ -15,8 +15,8 @@ public sealed class ToolResultComposerTests
         // Arrange
         var entries = new[]
         {
-            Input(OkResponse("task_a", JsonElementFrom(@"{""hits"":1}")), elapsedMs: 12),
-            Input(OkResponse("task_b", JsonElementFrom(@"{""hits"":2}")), elapsedMs: 25),
+            ToolResultComposerInputFactory.Input(ToolResultComposerInputFactory.OkResponse("task_a", ToolResultComposerInputFactory.JsonElementFrom(@"{""hits"":1}")), elapsedMs: 12),
+            ToolResultComposerInputFactory.Input(ToolResultComposerInputFactory.OkResponse("task_b", ToolResultComposerInputFactory.JsonElementFrom(@"{""hits"":2}")), elapsedMs: 25),
         };
 
         // Act
@@ -40,8 +40,8 @@ public sealed class ToolResultComposerTests
         // Arrange
         var entries = new[]
         {
-            Input(ErrorResponse("task_a", "boom"), elapsedMs: 10),
-            Input(ErrorResponse("task_b", "kaboom"), elapsedMs: 11),
+            ToolResultComposerInputFactory.Input(ToolResultComposerInputFactory.ErrorResponse("task_a", "boom"), elapsedMs: 10),
+            ToolResultComposerInputFactory.Input(ToolResultComposerInputFactory.ErrorResponse("task_b", "kaboom"), elapsedMs: 11),
         };
 
         // Act
@@ -62,8 +62,8 @@ public sealed class ToolResultComposerTests
         // Arrange
         var entries = new[]
         {
-            Input(OkResponse("task_a", JsonElementFrom(@"{""hits"":1}")), elapsedMs: 10),
-            Input(ErrorResponse("task_b", "boom"), elapsedMs: 11),
+            ToolResultComposerInputFactory.Input(ToolResultComposerInputFactory.OkResponse("task_a", ToolResultComposerInputFactory.JsonElementFrom(@"{""hits"":1}")), elapsedMs: 10),
+            ToolResultComposerInputFactory.Input(ToolResultComposerInputFactory.ErrorResponse("task_b", "boom"), elapsedMs: 11),
         };
 
         // Act
@@ -84,21 +84,21 @@ public sealed class ToolResultComposerTests
         {
             McpTask = "task_ok",
             Status = TaskResponse.StatusOk,
-            Output = JsonElementFrom(@"{""hits"":1}"),
+            Output = ToolResultComposerInputFactory.JsonElementFrom(@"{""hits"":1}"),
             Error = "should be dropped",
         };
         var errorWithStrayOutput = new TaskResponse
         {
             McpTask = "task_err",
             Status = TaskResponse.StatusError,
-            Output = JsonElementFrom(@"{""hits"":99}"),
+            Output = ToolResultComposerInputFactory.JsonElementFrom(@"{""hits"":99}"),
             Error = "real error",
         };
 
         // Act
         var envelope = ToolResultComposer.Compose(
             "tool",
-            [Input(okWithStrayError, elapsedMs: 1), Input(errorWithStrayOutput, elapsedMs: 2)],
+            [ToolResultComposerInputFactory.Input(okWithStrayError, elapsedMs: 1), ToolResultComposerInputFactory.Input(errorWithStrayOutput, elapsedMs: 2)],
             elapsedMs: 3);
 
         // Assert
@@ -117,7 +117,7 @@ public sealed class ToolResultComposerTests
         // Act
         var envelope = ToolResultComposer.Compose(
             "tool",
-            [Input(OkResponse("task_a", JsonElementFrom("null")), elapsedMs: 7)],
+            [ToolResultComposerInputFactory.Input(ToolResultComposerInputFactory.OkResponse("task_a", ToolResultComposerInputFactory.JsonElementFrom("null")), elapsedMs: 7)],
             elapsedMs: 9);
 
         // Assert
@@ -160,7 +160,7 @@ public sealed class ToolResultComposerTests
         // Arrange
         var envelope = ToolResultComposer.Compose(
             "analyze_csharp_code",
-            [Input(OkResponse("task_a", JsonElementFrom(@"{""ok"":true}")), elapsedMs: 10)],
+            [ToolResultComposerInputFactory.Input(ToolResultComposerInputFactory.OkResponse("task_a", ToolResultComposerInputFactory.JsonElementFrom(@"{""ok"":true}")), elapsedMs: 10)],
             elapsedMs: 12);
 
         // Act

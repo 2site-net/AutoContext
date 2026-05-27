@@ -2,7 +2,7 @@ namespace AutoContext.Framework.Logging.Tests.Support;
 
 using System.Text.Json.Nodes;
 
-using static AutoContext.Framework.Tests.Support.Encodings.TestEncodings;
+using AutoContext.Framework.Tests.Support.Encodings;
 
 /// <summary>
 /// Reads a <see cref="LoggingClient"/>'s JSON-lines wire output —
@@ -17,7 +17,7 @@ internal static class LoggingClientTestReader
         int expected,
         CancellationToken cancellationToken)
     {
-        using var reader = new StreamReader(stream, Utf8NoBom, leaveOpen: true);
+        using var reader = new StreamReader(stream, TestEncodings.Utf8NoBom, leaveOpen: true);
         var lines = new List<string>();
 
         using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);

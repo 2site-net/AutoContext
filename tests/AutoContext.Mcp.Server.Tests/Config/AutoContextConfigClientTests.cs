@@ -7,9 +7,7 @@ using AutoContext.Mcp.Server.Tests.Support.Shared;
 
 using Microsoft.Extensions.Logging.Abstractions;
 
-using static AutoContext.Framework.Tests.Support.Async.AsyncTestHelpers;
-using static AutoContext.Mcp.Server.Tests.Support.Config.AutoContextConfigPipeServerHarness;
-using static AutoContext.Mcp.Server.Tests.Support.Shared.EmptyTestServiceProvider;
+using AutoContext.Framework.Tests.Support.Async;
 
 public sealed class AutoContextConfigClientTests
 {
@@ -20,7 +18,7 @@ public sealed class AutoContextConfigClientTests
         await using var client = new AutoContextConfigClient(
             pipeName: string.Empty,
             snapshot,
-            EmptyServices(),
+            EmptyTestServiceProvider.EmptyServices(),
             new PipeTransport(NullLogger<PipeTransport>.Instance),
             NullLogger<AutoContextConfigClient>.Instance);
 
@@ -42,7 +40,7 @@ public sealed class AutoContextConfigClientTests
         cts.CancelAfter(TimeSpan.FromSeconds(5));
 
         var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var serverTask = RunServerAsync(
+        var serverTask = AutoContextConfigPipeServerHarness.RunServerAsync(
             pipeName,
             [
                 new AutoContextConfigSnapshotDto
@@ -60,7 +58,7 @@ public sealed class AutoContextConfigClientTests
         await using var client = new AutoContextConfigClient(
             pipeName,
             snapshot,
-            EmptyServices(),
+            EmptyTestServiceProvider.EmptyServices(),
             new PipeTransport(NullLogger<PipeTransport>.Instance),
             NullLogger<AutoContextConfigClient>.Instance);
 
@@ -69,7 +67,7 @@ public sealed class AutoContextConfigClientTests
         try
         {
             // Poll until the snapshot reflects the pushed frame.
-            await WaitUntilAsync(() => snapshot.IsToolDisabled("alpha"), cts.Token);
+            await AsyncTestHelpers.WaitUntilAsync(() => snapshot.IsToolDisabled("alpha"), cts.Token);
 
             Assert.Multiple(
                 () => Assert.True(snapshot.IsToolDisabled("alpha")),
@@ -95,7 +93,7 @@ public sealed class AutoContextConfigClientTests
         cts.CancelAfter(TimeSpan.FromSeconds(5));
 
         var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var serverTask = RunServerAsync(
+        var serverTask = AutoContextConfigPipeServerHarness.RunServerAsync(
             pipeName,
             [
                 new AutoContextConfigSnapshotDto { DisabledTools = ["alpha"] },
@@ -107,7 +105,7 @@ public sealed class AutoContextConfigClientTests
         await using var client = new AutoContextConfigClient(
             pipeName,
             snapshot,
-            EmptyServices(),
+            EmptyTestServiceProvider.EmptyServices(),
             new PipeTransport(NullLogger<PipeTransport>.Instance),
             NullLogger<AutoContextConfigClient>.Instance);
 
@@ -115,7 +113,7 @@ public sealed class AutoContextConfigClientTests
 
         try
         {
-            await WaitUntilAsync(() => snapshot.IsToolDisabled("delta"), cts.Token);
+            await AsyncTestHelpers.WaitUntilAsync(() => snapshot.IsToolDisabled("delta"), cts.Token);
 
             Assert.Multiple(
                 () => Assert.False(snapshot.IsToolDisabled("alpha")),
@@ -142,7 +140,7 @@ public sealed class AutoContextConfigClientTests
         await using var client = new AutoContextConfigClient(
             pipeName,
             snapshot,
-            EmptyServices(),
+            EmptyTestServiceProvider.EmptyServices(),
             new PipeTransport(NullLogger<PipeTransport>.Instance),
             NullLogger<AutoContextConfigClient>.Instance);
 

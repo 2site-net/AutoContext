@@ -5,7 +5,7 @@ using AutoContext.Mcp.Server.Tests.Support.Shared;
 using AutoContext.Mcp.Server.Workers.Control;
 using AutoContext.Mcp.Server.Workers.Protocol;
 
-using static AutoContext.Mcp.Server.Tests.Support.Workers.Control.WorkerControlMessageTestSerializer;
+using AutoContext.Mcp.Server.Tests.Support.Workers.Control;
 
 /// <summary>
 /// Persistent in-process pipe server harness for
@@ -39,11 +39,11 @@ internal static class WorkerControlPipeServerHarness
                         return;
                     }
 
-                    var request = DeserializeRequest(requestBytes);
+                    var request = WorkerControlMessageTestSerializer.DeserializeRequest(requestBytes);
                     onRequest?.Invoke(i++);
 
                     var response = handler(request);
-                    var responseBytes = SerializeResponse(response);
+                    var responseBytes = WorkerControlMessageTestSerializer.SerializeResponse(response);
                     await channel.WriteAsync(responseBytes, cancellationToken).ConfigureAwait(false);
                 }
             }

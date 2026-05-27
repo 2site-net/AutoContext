@@ -7,9 +7,6 @@ using AutoContext.Framework.Workers;
 using AutoContext.Framework.Pipes;
 using AutoContext.Framework.Workers.Tests.Support;
 
-using static AutoContext.Framework.Workers.Tests.Support.WorkerDispatcherPipeTestClient;
-using static AutoContext.Framework.Workers.Tests.Support.WorkerTaskDispatcherServiceTestFactory;
-
 public sealed class WorkerTaskDispatcherServiceTests
 {
 
@@ -19,13 +16,13 @@ public sealed class WorkerTaskDispatcherServiceTests
         // Arrange
         var cancellationToken = TestContext.Current.CancellationToken;
         var pipeName = $"ac-test-{Guid.NewGuid():N}";
-        using var sut = CreateService(pipeName, [new FakeEchoTask()]);
+        using var sut = WorkerTaskDispatcherServiceTestFactory.CreateService(pipeName, [new FakeEchoTask()]);
         await sut.StartAsync(cancellationToken);
 
         try
         {
             // Act
-            var response = await SendAsync(pipeName, new
+            var response = await WorkerDispatcherPipeTestClient.SendAsync(pipeName, new
             {
                 mcpTask = "echo",
                 data = new { value = 42 },
@@ -51,13 +48,13 @@ public sealed class WorkerTaskDispatcherServiceTests
         // Arrange
         var cancellationToken = TestContext.Current.CancellationToken;
         var pipeName = $"ac-test-{Guid.NewGuid():N}";
-        using var sut = CreateService(pipeName, []);
+        using var sut = WorkerTaskDispatcherServiceTestFactory.CreateService(pipeName, []);
         await sut.StartAsync(cancellationToken);
 
         try
         {
             // Act
-            var response = await SendAsync(pipeName, new
+            var response = await WorkerDispatcherPipeTestClient.SendAsync(pipeName, new
             {
                 mcpTask = "does_not_exist",
                 data = new { },
@@ -83,13 +80,13 @@ public sealed class WorkerTaskDispatcherServiceTests
         // Arrange
         var cancellationToken = TestContext.Current.CancellationToken;
         var pipeName = $"ac-test-{Guid.NewGuid():N}";
-        using var sut = CreateService(pipeName, [new FakeThrowingTask()]);
+        using var sut = WorkerTaskDispatcherServiceTestFactory.CreateService(pipeName, [new FakeThrowingTask()]);
         await sut.StartAsync(cancellationToken);
 
         try
         {
             // Act
-            var response = await SendAsync(pipeName, new
+            var response = await WorkerDispatcherPipeTestClient.SendAsync(pipeName, new
             {
                 mcpTask = "boom",
                 data = new { },
@@ -113,7 +110,7 @@ public sealed class WorkerTaskDispatcherServiceTests
         // Arrange
         var cancellationToken = TestContext.Current.CancellationToken;
         var pipeName = $"ac-test-{Guid.NewGuid():N}";
-        using var sut = CreateService(pipeName, [new FakeCriticalThrowingTask()]);
+        using var sut = WorkerTaskDispatcherServiceTestFactory.CreateService(pipeName, [new FakeCriticalThrowingTask()]);
         await sut.StartAsync(cancellationToken);
 
         try

@@ -9,9 +9,6 @@ using AutoContext.Mcp.Server.Workers;
 using AutoContext.Mcp.Server.Workers.Protocol;
 using AutoContext.Framework.Pipes;
 
-using static AutoContext.Mcp.Server.Tests.Support.Workers.HangingWorkerPipeServerHarness;
-using static AutoContext.Mcp.Server.Tests.Support.Workers.TaskRequestFakeData;
-
 public sealed class WorkerClientTests
 {
     [Fact]
@@ -48,7 +45,7 @@ public sealed class WorkerClientTests
         // Act
         var response = await client.InvokeAsync(
             role,
-            BuildRequest("analyze_csharp_coding_style"),
+            TaskRequestFakeData.BuildRequest("analyze_csharp_coding_style"),
             TestContext.Current.CancellationToken);
         await serverTask;
 
@@ -75,7 +72,7 @@ public sealed class WorkerClientTests
         // Act
         var response = await client.InvokeAsync(
             role,
-            BuildRequest("task_x"),
+            TaskRequestFakeData.BuildRequest("task_x"),
             TestContext.Current.CancellationToken);
         await serverTask;
 
@@ -94,12 +91,12 @@ public sealed class WorkerClientTests
         var pipeName = PipeServerHarness.AddressFor(role);
         var client = new WorkerClient(TimeSpan.FromMilliseconds(150));
         using var serverGate = new CancellationTokenSource();
-        var serverTask = RunHangingServerAsync(pipeName, serverGate.Token);
+        var serverTask = HangingWorkerPipeServerHarness.RunHangingServerAsync(pipeName, serverGate.Token);
 
         // Act
         var response = await client.InvokeAsync(
             role,
-            BuildRequest("task_hung"),
+            TaskRequestFakeData.BuildRequest("task_hung"),
             TestContext.Current.CancellationToken);
 
         // Assert
@@ -126,7 +123,7 @@ public sealed class WorkerClientTests
         // Act
         var response = await client.InvokeAsync(
             role,
-            BuildRequest("task_bad"),
+            TaskRequestFakeData.BuildRequest("task_bad"),
             TestContext.Current.CancellationToken);
         await serverTask;
 
@@ -147,7 +144,7 @@ public sealed class WorkerClientTests
 
         // Act + Assert
         await Assert.ThrowsAnyAsync<OperationCanceledException>(
-            () => client.InvokeAsync(role, BuildRequest("task_x"), cts.Token));
+            () => client.InvokeAsync(role, TaskRequestFakeData.BuildRequest("task_x"), cts.Token));
     }
 
     [Fact]
@@ -166,9 +163,9 @@ public sealed class WorkerClientTests
 
         // Act + Assert
         await Assert.ThrowsAsync<ArgumentNullException>(
-            () => client.InvokeAsync(null!, BuildRequest("t"), TestContext.Current.CancellationToken));
+            () => client.InvokeAsync(null!, TaskRequestFakeData.BuildRequest("t"), TestContext.Current.CancellationToken));
         await Assert.ThrowsAsync<ArgumentException>(
-            () => client.InvokeAsync(string.Empty, BuildRequest("t"), TestContext.Current.CancellationToken));
+            () => client.InvokeAsync(string.Empty, TaskRequestFakeData.BuildRequest("t"), TestContext.Current.CancellationToken));
     }
 
     [Fact]

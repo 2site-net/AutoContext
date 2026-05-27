@@ -7,8 +7,6 @@ using AutoContext.Engine.Core.Tests.Support.Shared;
 
 using Microsoft.Extensions.Options;
 
-using static AutoContext.Engine.Core.Tests.Support.Shared.ValidateOptionsResultTestFormatter;
-
 public sealed class EngineOptionsValidatorTests
 {
     [Fact]
@@ -22,7 +20,7 @@ public sealed class EngineOptionsValidatorTests
         var result = validator.Validate(null, options);
 
         // Assert
-        Assert.True(result.Succeeded, ReportFailures(result));
+        Assert.True(result.Succeeded, ValidateOptionsResultTestFormatter.ReportFailures(result));
     }
 
     [Fact]
@@ -100,7 +98,7 @@ public sealed class EngineOptionsValidatorTests
         var result = validator.Validate(null, options);
 
         // Assert
-        Assert.True(result.Succeeded, ReportFailures(result));
+        Assert.True(result.Succeeded, ValidateOptionsResultTestFormatter.ReportFailures(result));
     }
 
     [Fact]
@@ -161,7 +159,7 @@ public sealed class EngineOptionsValidatorTests
         var result = validator.Validate(null, options);
 
         // Assert
-        Assert.True(result.Succeeded, ReportFailures(result));
+        Assert.True(result.Succeeded, ValidateOptionsResultTestFormatter.ReportFailures(result));
     }
 
     [Fact]
@@ -218,7 +216,7 @@ public sealed class EngineOptionsValidatorTests
         var result = validator.Validate(null, options);
 
         // Assert
-        Assert.True(result.Succeeded, ReportFailures(result));
+        Assert.True(result.Succeeded, ValidateOptionsResultTestFormatter.ReportFailures(result));
     }
 
     [Fact]
@@ -348,7 +346,7 @@ public sealed class EngineOptionsValidatorTests
             () =>
             {
                 Assert.NotNull(result.Failures);
-                Assert.True(result.Failures.Count() >= 4, ReportFailures(result));
+                Assert.True(result.Failures.Count() >= 4, ValidateOptionsResultTestFormatter.ReportFailures(result));
             });
     }
 

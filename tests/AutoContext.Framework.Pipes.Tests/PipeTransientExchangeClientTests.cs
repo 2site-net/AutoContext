@@ -5,7 +5,7 @@ using AutoContext.Framework.Pipes;
 
 using Microsoft.Extensions.Logging.Abstractions;
 
-using static AutoContext.Framework.Tests.Support.Encodings.TestEncodings;
+using AutoContext.Framework.Tests.Support.Encodings;
 
 public sealed class PipeTransientExchangeClientTests
 {
@@ -34,9 +34,9 @@ public sealed class PipeTransientExchangeClientTests
 
         try
         {
-            var response = await client.ExchangeAsync(Utf8NoBom.GetBytes("ping"), cancellationToken);
+            var response = await client.ExchangeAsync(TestEncodings.Utf8NoBom.GetBytes("ping"), cancellationToken);
 
-            Assert.Equal("pong:ping", Utf8NoBom.GetString(response));
+            Assert.Equal("pong:ping", TestEncodings.Utf8NoBom.GetString(response));
         }
         finally
         {
@@ -68,9 +68,9 @@ public sealed class PipeTransientExchangeClientTests
 
         try
         {
-            _ = await client.ExchangeAsync(Utf8NoBom.GetBytes("one"), cancellationToken);
-            _ = await client.ExchangeAsync(Utf8NoBom.GetBytes("two"), cancellationToken);
-            _ = await client.ExchangeAsync(Utf8NoBom.GetBytes("three"), cancellationToken);
+            _ = await client.ExchangeAsync(TestEncodings.Utf8NoBom.GetBytes("one"), cancellationToken);
+            _ = await client.ExchangeAsync(TestEncodings.Utf8NoBom.GetBytes("two"), cancellationToken);
+            _ = await client.ExchangeAsync(TestEncodings.Utf8NoBom.GetBytes("three"), cancellationToken);
 
             Assert.Equal(3, Volatile.Read(ref connections));
         }
@@ -105,7 +105,7 @@ public sealed class PipeTransientExchangeClientTests
         try
         {
             await Assert.ThrowsAsync<IOException>(
-                async () => await client.ExchangeAsync(Utf8NoBom.GetBytes("hi"), cancellationToken));
+                async () => await client.ExchangeAsync(TestEncodings.Utf8NoBom.GetBytes("hi"), cancellationToken));
         }
         finally
         {

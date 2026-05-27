@@ -9,7 +9,7 @@ using AutoContext.Framework.Pipes;
 
 using Microsoft.Extensions.Logging.Abstractions;
 
-using static AutoContext.Framework.Tests.Support.Encodings.TestEncodings;
+using AutoContext.Framework.Tests.Support.Encodings;
 
 public sealed class PipeStreamingClientTests
 {
@@ -27,16 +27,16 @@ public sealed class PipeStreamingClientTests
         var client = new PipeStreamingClient<string>(
             new PipeTransport(NullLogger<PipeTransport>.Instance),
             name,
-            s => Utf8NoBom.GetBytes(s),
+            s => TestEncodings.Utf8NoBom.GetBytes(s),
             NullLogger<PipeStreamingClient<string>>.Instance);
 
         try
         {
             client.Post("hello");
             client.Post("world");
-            await AsyncTestHelpers.WaitUntilAsync(() => Utf8NoBom.GetString(captured.ToArray()) == "helloworld", cancellationToken);
+            await AsyncTestHelpers.WaitUntilAsync(() => TestEncodings.Utf8NoBom.GetString(captured.ToArray()) == "helloworld", cancellationToken);
 
-            Assert.Equal("helloworld", Utf8NoBom.GetString(captured.ToArray()));
+            Assert.Equal("helloworld", TestEncodings.Utf8NoBom.GetString(captured.ToArray()));
         }
         finally
         {
@@ -56,16 +56,16 @@ public sealed class PipeStreamingClientTests
         var client = new PipeStreamingClient<string>(
             new PipeTransport(NullLogger<PipeTransport>.Instance),
             name,
-            s => Utf8NoBom.GetBytes(s),
+            s => TestEncodings.Utf8NoBom.GetBytes(s),
             NullLogger<PipeStreamingClient<string>>.Instance,
-            greeting: Utf8NoBom.GetBytes("GREET\n"));
+            greeting: TestEncodings.Utf8NoBom.GetBytes("GREET\n"));
 
         try
         {
             client.Post("A");
-            await AsyncTestHelpers.WaitUntilAsync(() => Utf8NoBom.GetString(captured.ToArray()) == "GREET\nA", cancellationToken);
+            await AsyncTestHelpers.WaitUntilAsync(() => TestEncodings.Utf8NoBom.GetString(captured.ToArray()) == "GREET\nA", cancellationToken);
 
-            Assert.Equal("GREET\nA", Utf8NoBom.GetString(captured.ToArray()));
+            Assert.Equal("GREET\nA", TestEncodings.Utf8NoBom.GetString(captured.ToArray()));
         }
         finally
         {
@@ -82,7 +82,7 @@ public sealed class PipeStreamingClientTests
         var client = new PipeStreamingClient<string>(
             new PipeTransport(NullLogger<PipeTransport>.Instance),
             string.Empty,
-            s => Utf8NoBom.GetBytes(s),
+            s => TestEncodings.Utf8NoBom.GetBytes(s),
             NullLogger<PipeStreamingClient<string>>.Instance,
             fallback: fallback.Enqueue);
 
@@ -113,7 +113,7 @@ public sealed class PipeStreamingClientTests
         var client = new PipeStreamingClient<string>(
             new PipeTransport(NullLogger<PipeTransport>.Instance),
             PipeTestServer.UniqueName("actx-psc-nolisten"),
-            s => Utf8NoBom.GetBytes(s),
+            s => TestEncodings.Utf8NoBom.GetBytes(s),
             NullLogger<PipeStreamingClient<string>>.Instance,
             fallback: fallback.Enqueue,
             queueCapacity: 2,
@@ -142,7 +142,7 @@ public sealed class PipeStreamingClientTests
         var client = new PipeStreamingClient<string>(
             new PipeTransport(NullLogger<PipeTransport>.Instance),
             string.Empty,
-            s => Utf8NoBom.GetBytes(s),
+            s => TestEncodings.Utf8NoBom.GetBytes(s),
             NullLogger<PipeStreamingClient<string>>.Instance,
             fallback: fallback.Enqueue);
         await client.DisposeAsync();
@@ -161,7 +161,7 @@ public sealed class PipeStreamingClientTests
         await using var client = new PipeStreamingClient<string>(
             new PipeTransport(NullLogger<PipeTransport>.Instance),
             string.Empty,
-            s => Utf8NoBom.GetBytes(s),
+            s => TestEncodings.Utf8NoBom.GetBytes(s),
             NullLogger<PipeStreamingClient<string>>.Instance);
 
         var ex = await Record.ExceptionAsync(async () =>

@@ -13,8 +13,6 @@ using AutoContext.Engine.Core.Tests.Support.Machine;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 
-using static AutoContext.Engine.Core.Tests.Support.Machine.EngineCrashWriterFixture;
-
 /// <summary>
 /// Shared xUnit class fixture for tests that exercise a
 /// <see cref="LogFileSinkService"/> end-to-end. Each call to
@@ -40,7 +38,7 @@ public sealed class LogFileSinkServiceFixture : IDisposable
         EngineOptions resolvedOptions;
         if (options is null)
         {
-            resolvedOptions = CreateOptions();
+            resolvedOptions = EngineCrashWriterFixture.CreateOptions();
             _trackedCacheRoots.Add(resolvedOptions.CacheRootOverride!);
         }
         else

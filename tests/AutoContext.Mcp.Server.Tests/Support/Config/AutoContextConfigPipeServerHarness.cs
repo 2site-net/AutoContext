@@ -6,7 +6,7 @@ using AutoContext.Framework.Pipes;
 using AutoContext.Mcp.Server.Config;
 using AutoContext.Mcp.Server.Tests.Support.Shared;
 
-using static AutoContext.Mcp.Server.Tests.Support.Config.AutoContextConfigSnapshotTestSerializer;
+using AutoContext.Mcp.Server.Tests.Support.Config;
 
 /// <summary>
 /// Pipe-server harness for <c>AutoContextConfigClient</c> tests: spins
@@ -34,7 +34,7 @@ internal static class AutoContextConfigPipeServerHarness
 
                 foreach (var frame in frames)
                 {
-                    await channel.WriteAsync(SerializeDto(frame), cancellationToken).ConfigureAwait(false);
+                    await channel.WriteAsync(AutoContextConfigSnapshotTestSerializer.SerializeDto(frame), cancellationToken).ConfigureAwait(false);
                 }
 
                 using (cancellationToken.Register(() => release.TrySetResult()))

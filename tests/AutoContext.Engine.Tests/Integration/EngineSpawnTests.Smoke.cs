@@ -6,9 +6,6 @@ using AutoContext.Engine.Tests.Support.Integration;
 
 using Xunit.Sdk;
 
-using static AutoContext.Engine.Tests.Support.Integration.EngineSpawnTestScenario;
-using static AutoContext.Engine.Tests.Support.Integration.WorkspaceTestDirectoryFactory;
-
 /// <summary>
 /// Integration coverage for the <c>autocontext-engine</c> binary in
 /// daemon role — spawns the published executable, dials each of the
@@ -33,7 +30,7 @@ public sealed class EngineSpawnTests
     {
         // Arrange
         var ct = TestContext.Current.CancellationToken;
-        var workspacePath = Create();
+        var workspacePath = WorkspaceTestDirectoryFactory.Create();
         var instanceId = Guid.NewGuid();
 
         await using var engine = await EngineTestProcess.StartAsync(
@@ -41,7 +38,7 @@ public sealed class EngineSpawnTests
 
         try
         {
-            await RunAsync(engine, workspacePath, instanceId, ct);
+            await EngineSpawnTestScenario.RunAsync(engine, workspacePath, instanceId, ct);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {

@@ -2,7 +2,7 @@ namespace AutoContext.Framework.Tests.Support.Pipes;
 
 using System.IO.Pipes;
 
-using static AutoContext.Framework.Tests.Support.Encodings.TestEncodings;
+using AutoContext.Framework.Tests.Support.Encodings;
 
 /// <summary>
 /// Stream-level helpers used by named-pipe tests that drive the
@@ -108,6 +108,6 @@ public static class PipeStreamTestExtensions
             }
         }
 
-        return Utf8NoBom.GetString(buffer, 0, totalRead);
+        return TestEncodings.Utf8NoBom.GetString(buffer, 0, totalRead);
     }
 }

@@ -5,7 +5,7 @@ using AutoContext.Mcp.Server.Tools.Results;
 using ModelContextProtocol.Client;
 using ModelContextProtocol.Protocol;
 
-using static AutoContext.Mcp.Server.Tests.Support.Smoke.SmokeTestToolCaller;
+using AutoContext.Mcp.Server.Tests.Support.Smoke;
 
 /// <summary>
 /// End-to-end smoke tests that spawn the real
@@ -71,7 +71,7 @@ public sealed class EndToEndSmokeTests
         // 2. analyze_csharp_code — exercises Worker.DotNet (7 composite
         //    tasks) and transitively Worker.Workspace (editorconfig
         //    look-ups for the coding-style / project-structure tasks).
-        var csharpEnvelope = await CallToolAsync(
+        var csharpEnvelope = await SmokeTestToolCaller.CallToolAsync(
             client,
             "analyze_csharp_code",
             new Dictionary<string, object?>
@@ -87,7 +87,7 @@ public sealed class EndToEndSmokeTests
 
         // 3. read_editorconfig — exercises Worker.Workspace
         //    directly (single task, distinct tool).
-        var editorConfigEnvelope = await CallToolAsync(
+        var editorConfigEnvelope = await SmokeTestToolCaller.CallToolAsync(
             client,
             "read_editorconfig",
             new Dictionary<string, object?>

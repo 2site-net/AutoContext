@@ -5,7 +5,7 @@ using System.Text.Json;
 using AutoContext.Worker.DotNet.Tasks.NuGet;
 using AutoContext.Framework.Tests.Support.Workers;
 
-using static AutoContext.Worker.DotNet.Tests.Support.Tasks.NuGet.AnalyzeNuGetHygieneTaskTestRunner;
+using AutoContext.Worker.DotNet.Tests.Support.Tasks.NuGet;
 
 public sealed class AnalyzeNuGetHygieneTaskTests
 {
@@ -35,7 +35,7 @@ public sealed class AnalyzeNuGetHygieneTaskTests
             """;
 
         // Act
-        var (passed, report) = await RunAsync(csproj);
+        var (passed, report) = await AnalyzeNuGetHygieneTaskTestRunner.RunAsync(csproj);
 
         // Assert
         Assert.Multiple(() =>
@@ -59,7 +59,7 @@ public sealed class AnalyzeNuGetHygieneTaskTests
             """;
 
         // Act
-        var (passed, report) = await RunAsync(csproj);
+        var (passed, report) = await AnalyzeNuGetHygieneTaskTestRunner.RunAsync(csproj);
 
         // Assert
         Assert.Multiple(() =>
@@ -84,7 +84,7 @@ public sealed class AnalyzeNuGetHygieneTaskTests
             """;
 
         // Act
-        var (_, report) = await RunAsync(csproj);
+        var (_, report) = await AnalyzeNuGetHygieneTaskTestRunner.RunAsync(csproj);
 
         // Assert
         Assert.DoesNotContain("Duplicate", report, StringComparison.Ordinal);
@@ -107,7 +107,7 @@ public sealed class AnalyzeNuGetHygieneTaskTests
             """;
 
         // Act
-        var (passed, report) = await RunAsync(csproj);
+        var (passed, report) = await AnalyzeNuGetHygieneTaskTestRunner.RunAsync(csproj);
 
         // Assert
         Assert.Multiple(() =>
@@ -132,7 +132,7 @@ public sealed class AnalyzeNuGetHygieneTaskTests
             """;
 
         // Act
-        var (_, report) = await RunAsync(csproj);
+        var (_, report) = await AnalyzeNuGetHygieneTaskTestRunner.RunAsync(csproj);
 
         // Assert
         Assert.DoesNotContain("floating", report, StringComparison.Ordinal);
@@ -151,7 +151,7 @@ public sealed class AnalyzeNuGetHygieneTaskTests
             """;
 
         // Act
-        var (passed, report) = await RunAsync(csproj);
+        var (passed, report) = await AnalyzeNuGetHygieneTaskTestRunner.RunAsync(csproj);
 
         // Assert
         Assert.Multiple(() =>
@@ -178,7 +178,7 @@ public sealed class AnalyzeNuGetHygieneTaskTests
             """;
 
         // Act
-        var (_, report) = await RunAsync(csproj);
+        var (_, report) = await AnalyzeNuGetHygieneTaskTestRunner.RunAsync(csproj);
 
         // Assert
         Assert.DoesNotContain("no Version specified", report, StringComparison.Ordinal);
@@ -200,7 +200,7 @@ public sealed class AnalyzeNuGetHygieneTaskTests
             """;
 
         // Act
-        var (passed, report) = await RunAsync(csproj);
+        var (passed, report) = await AnalyzeNuGetHygieneTaskTestRunner.RunAsync(csproj);
 
         // Assert
         Assert.Multiple(() =>
@@ -224,7 +224,7 @@ public sealed class AnalyzeNuGetHygieneTaskTests
             """;
 
         // Act
-        var (_, report) = await RunAsync(csproj);
+        var (_, report) = await AnalyzeNuGetHygieneTaskTestRunner.RunAsync(csproj);
 
         // Assert
         Assert.DoesNotContain("built-in", report, StringComparison.Ordinal);
@@ -245,7 +245,7 @@ public sealed class AnalyzeNuGetHygieneTaskTests
             """;
 
         // Act
-        var (passed, report) = await RunAsync(csproj);
+        var (passed, report) = await AnalyzeNuGetHygieneTaskTestRunner.RunAsync(csproj);
 
         // Assert
         Assert.Multiple(() =>
@@ -274,7 +274,7 @@ public sealed class AnalyzeNuGetHygieneTaskTests
             """;
 
         // Act
-        var (passed, report) = await RunAsync(csproj);
+        var (passed, report) = await AnalyzeNuGetHygieneTaskTestRunner.RunAsync(csproj);
 
         // Assert
         Assert.Multiple(() =>
@@ -291,7 +291,7 @@ public sealed class AnalyzeNuGetHygieneTaskTests
         var badXml = "<Project><ItemGroup><PackageReference";
 
         // Act
-        var (passed, report) = await RunAsync(badXml);
+        var (passed, report) = await AnalyzeNuGetHygieneTaskTestRunner.RunAsync(badXml);
 
         // Assert
         Assert.Multiple(() =>
@@ -316,7 +316,7 @@ public sealed class AnalyzeNuGetHygieneTaskTests
             """;
 
         // Act
-        var (_, report) = await RunAsync(csproj);
+        var (_, report) = await AnalyzeNuGetHygieneTaskTestRunner.RunAsync(csproj);
 
         // Assert
         Assert.Contains("Duplicate", report, StringComparison.Ordinal);
@@ -334,7 +334,7 @@ public sealed class AnalyzeNuGetHygieneTaskTests
             """;
 
         // Act
-        var (passed, report) = await RunAsync(csproj);
+        var (passed, report) = await AnalyzeNuGetHygieneTaskTestRunner.RunAsync(csproj);
 
         // Assert
         Assert.Multiple(() =>
@@ -357,7 +357,7 @@ public sealed class AnalyzeNuGetHygieneTaskTests
             """;
 
         // Act
-        var (_, report) = await RunAsync(csproj);
+        var (_, report) = await AnalyzeNuGetHygieneTaskTestRunner.RunAsync(csproj);
 
         // Assert
         Assert.Contains("built-in .NET alternative", report, StringComparison.Ordinal);

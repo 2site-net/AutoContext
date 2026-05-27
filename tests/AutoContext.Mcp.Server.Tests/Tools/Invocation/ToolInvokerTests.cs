@@ -15,7 +15,7 @@ using AutoContext.Mcp.Server.Workers.Protocol;
 
 using Microsoft.Extensions.Logging.Abstractions;
 
-using static AutoContext.Mcp.Server.Tests.Support.Tools.ToolTestFactory;
+using AutoContext.Mcp.Server.Tests.Support.Tools;
 
 public sealed class ToolInvokerTests
 {
@@ -25,21 +25,21 @@ public sealed class ToolInvokerTests
         // Arrange
         var workerId = PipeServerHarness.UniqueWorkerId();
         var pipeName = PipeServerHarness.PipeNameFor(workerId);
-        var worker = BuildWorker(workerId);
-        var tool = BuildTool("compose_tool", BuildTask("task_a"), BuildTask("task_b"), BuildTask("task_c"));
-        var invoker = BuildInvoker();
+        var worker = ToolTestFactory.BuildWorker(workerId);
+        var tool = ToolTestFactory.BuildTool("compose_tool", ToolTestFactory.BuildTask("task_a"), ToolTestFactory.BuildTask("task_b"), ToolTestFactory.BuildTask("task_c"));
+        var invoker = ToolTestFactory.BuildInvoker();
 
         var serverTask = PipeServerHarness.RunMultiAsync(
             pipeName,
             connectionCount: 3,
-            handler: requestBytes => OkResponse(requestBytes, output: new { ran = true }),
+            handler: requestBytes => ToolTestFactory.OkResponse(requestBytes, output: new { ran = true }),
             cancellationToken: TestContext.Current.CancellationToken);
 
         // Act
         var envelope = await invoker.InvokeAsync(
             worker,
             tool,
-            EmptyData(),
+            ToolTestFactory.EmptyData(),
             "corr-test",
             TestContext.Current.CancellationToken);
         await serverTask;
@@ -63,9 +63,9 @@ public sealed class ToolInvokerTests
         // Arrange
         var workerId = PipeServerHarness.UniqueWorkerId();
         var pipeName = PipeServerHarness.PipeNameFor(workerId);
-        var worker = BuildWorker(workerId);
-        var tool = BuildTool("parallel_tool", BuildTask("task_a"), BuildTask("task_b"));
-        var invoker = BuildInvoker();
+        var worker = ToolTestFactory.BuildWorker(workerId);
+        var tool = ToolTestFactory.BuildTool("parallel_tool", ToolTestFactory.BuildTask("task_a"), ToolTestFactory.BuildTask("task_b"));
+        var invoker = ToolTestFactory.BuildInvoker();
 
         var observed = new ConcurrencyObserver();
         var serverTask = PipeServerHarness.RunMultiAsync(
@@ -76,7 +76,7 @@ public sealed class ToolInvokerTests
                 observed.Enter();
                 Thread.Sleep(50);
                 observed.Exit();
-                return OkResponse(requestBytes, output: new { ran = true });
+                return ToolTestFactory.OkResponse(requestBytes, output: new { ran = true });
             },
             cancellationToken: TestContext.Current.CancellationToken);
 
@@ -84,7 +84,7 @@ public sealed class ToolInvokerTests
         var envelope = await invoker.InvokeAsync(
             worker,
             tool,
-            EmptyData(),
+            ToolTestFactory.EmptyData(),
             "corr-test",
             TestContext.Current.CancellationToken);
         await serverTask;
@@ -104,11 +104,11 @@ public sealed class ToolInvokerTests
         var toolWorkerId = PipeServerHarness.UniqueWorkerId();
         var toolPipeName = PipeServerHarness.PipeNameFor(toolWorkerId);
 
-        var worker = BuildWorker(toolWorkerId);
-        var tool = BuildTool(
+        var worker = ToolTestFactory.BuildWorker(toolWorkerId);
+        var tool = ToolTestFactory.BuildTool(
             "editorconfig_tool",
-            BuildTask("style_task", "csharp_prefer_braces"),
-            BuildTask("plain_task"));
+            ToolTestFactory.BuildTask("style_task", "csharp_prefer_braces"),
+            ToolTestFactory.BuildTask("plain_task"));
 
         var workerClient = new WorkerClient(TimeSpan.FromSeconds(5));
         var batcher = new EditorConfigBatcher(workerClient, workspaceRole, NullLogger<EditorConfigBatcher>.Instance);
@@ -145,7 +145,7 @@ public sealed class ToolInvokerTests
                     requestBytes,
                     WorkerJsonOptions.Instance)!;
                 observedKeys[request.McpTask] = [.. request.EditorConfig.Keys];
-                return OkResponse(requestBytes, output: new { ran = true });
+                return ToolTestFactory.OkResponse(requestBytes, output: new { ran = true });
             },
             cancellationToken: TestContext.Current.CancellationToken);
 
@@ -175,11 +175,11 @@ public sealed class ToolInvokerTests
         // Arrange
         var workerId = PipeServerHarness.UniqueWorkerId();
         var pipeName = PipeServerHarness.PipeNameFor(workerId);
-        var worker = BuildWorker(workerId);
-        var tool = BuildTool(
+        var worker = ToolTestFactory.BuildWorker(workerId);
+        var tool = ToolTestFactory.BuildTool(
             "no_path_tool",
-            BuildTask("style_task", "csharp_prefer_braces"));
-        var invoker = BuildInvoker();
+            ToolTestFactory.BuildTask("style_task", "csharp_prefer_braces"));
+        var invoker = ToolTestFactory.BuildInvoker();
 
         var observedKeys = new ConcurrentBag<string>();
         var serverTask = PipeServerHarness.RunOneShotAsync(
@@ -193,7 +193,7 @@ public sealed class ToolInvokerTests
                 {
                     observedKeys.Add(key);
                 }
-                return OkResponse(requestBytes, output: new { ran = true });
+                return ToolTestFactory.OkResponse(requestBytes, output: new { ran = true });
             },
             cancellationToken: TestContext.Current.CancellationToken);
 
@@ -201,7 +201,7 @@ public sealed class ToolInvokerTests
         var envelope = await invoker.InvokeAsync(
             worker,
             tool,
-            EmptyData(),
+            ToolTestFactory.EmptyData(),
             "corr-test",
             TestContext.Current.CancellationToken);
         await serverTask;
@@ -218,9 +218,9 @@ public sealed class ToolInvokerTests
         // Arrange
         var workerId = PipeServerHarness.UniqueWorkerId();
         var pipeName = PipeServerHarness.PipeNameFor(workerId);
-        var worker = BuildWorker(workerId);
-        var tool = BuildTool("partial_tool", BuildTask("ok_task"), BuildTask("fail_task"));
-        var invoker = BuildInvoker();
+        var worker = ToolTestFactory.BuildWorker(workerId);
+        var tool = ToolTestFactory.BuildTool("partial_tool", ToolTestFactory.BuildTask("ok_task"), ToolTestFactory.BuildTask("fail_task"));
+        var invoker = ToolTestFactory.BuildInvoker();
 
         var serverTask = PipeServerHarness.RunMultiAsync(
             pipeName,
@@ -243,7 +243,7 @@ public sealed class ToolInvokerTests
                     return JsonSerializer.SerializeToUtf8Bytes(error, WorkerJsonOptions.Instance);
                 }
 
-                return OkResponse(requestBytes, output: new { ran = true });
+                return ToolTestFactory.OkResponse(requestBytes, output: new { ran = true });
             },
             cancellationToken: TestContext.Current.CancellationToken);
 
@@ -251,7 +251,7 @@ public sealed class ToolInvokerTests
         var envelope = await invoker.InvokeAsync(
             worker,
             tool,
-            EmptyData(),
+            ToolTestFactory.EmptyData(),
             "corr-test",
             TestContext.Current.CancellationToken);
         await serverTask;
@@ -272,8 +272,8 @@ public sealed class ToolInvokerTests
         // Arrange
         var workerId = PipeServerHarness.UniqueWorkerId();
         var pipeName = PipeServerHarness.PipeNameFor(workerId);
-        var worker = BuildWorker(workerId);
-        var tool = BuildTool("filtered_tool", BuildTask("task_a"), BuildTask("task_b"), BuildTask("task_c"));
+        var worker = ToolTestFactory.BuildWorker(workerId);
+        var tool = ToolTestFactory.BuildTool("filtered_tool", ToolTestFactory.BuildTask("task_a"), ToolTestFactory.BuildTask("task_b"), ToolTestFactory.BuildTask("task_c"));
         var snapshot = new AutoContextConfigSnapshot();
         snapshot.Update(new AutoContextConfigSnapshotDto
         {
@@ -282,7 +282,7 @@ public sealed class ToolInvokerTests
                 ["filtered_tool"] = ["task_b"],
             },
         });
-        var invoker = BuildInvoker(snapshot);
+        var invoker = ToolTestFactory.BuildInvoker(snapshot);
 
         var observed = new ConcurrentBag<string>();
         var serverTask = PipeServerHarness.RunMultiAsync(
@@ -294,7 +294,7 @@ public sealed class ToolInvokerTests
                     requestBytes,
                     WorkerJsonOptions.Instance)!;
                 observed.Add(request.McpTask);
-                return OkResponse(requestBytes, output: new { ran = true });
+                return ToolTestFactory.OkResponse(requestBytes, output: new { ran = true });
             },
             cancellationToken: TestContext.Current.CancellationToken);
 
@@ -302,7 +302,7 @@ public sealed class ToolInvokerTests
         var envelope = await invoker.InvokeAsync(
             worker,
             tool,
-            EmptyData(),
+            ToolTestFactory.EmptyData(),
             "corr-test",
             TestContext.Current.CancellationToken);
         await serverTask;
@@ -322,8 +322,8 @@ public sealed class ToolInvokerTests
     {
         // Arrange
         var workerId = PipeServerHarness.UniqueWorkerId();
-        var worker = BuildWorker(workerId);
-        var tool = BuildTool("all_disabled_tool", BuildTask("task_a"), BuildTask("task_b"));
+        var worker = ToolTestFactory.BuildWorker(workerId);
+        var tool = ToolTestFactory.BuildTool("all_disabled_tool", ToolTestFactory.BuildTask("task_a"), ToolTestFactory.BuildTask("task_b"));
         var snapshot = new AutoContextConfigSnapshot();
         snapshot.Update(new AutoContextConfigSnapshotDto
         {
@@ -332,13 +332,13 @@ public sealed class ToolInvokerTests
                 ["all_disabled_tool"] = ["task_a", "task_b"],
             },
         });
-        var invoker = BuildInvoker(snapshot);
+        var invoker = ToolTestFactory.BuildInvoker(snapshot);
 
         // Act
         var envelope = await invoker.InvokeAsync(
             worker,
             tool,
-            EmptyData(),
+            ToolTestFactory.EmptyData(),
             "corr-test",
             TestContext.Current.CancellationToken);
 

@@ -7,7 +7,7 @@ using AutoContext.Framework.Pipes;
 
 using Microsoft.Extensions.Logging.Abstractions;
 
-using static AutoContext.Framework.Tests.Support.Encodings.TestEncodings;
+using AutoContext.Framework.Tests.Support.Encodings;
 
 public sealed class PipeKeepAliveClientTests
 {
@@ -42,13 +42,13 @@ public sealed class PipeKeepAliveClientTests
             // The server-side read must run concurrently with StartAsync;
             // on Windows a small client write blocks until a reader is
             // pumping, so awaiting StartAsync sequentially deadlocks.
-            var startTask = client.StartAsync(name, Utf8NoBom.GetBytes("HEY"), cancellationToken: cancellationToken);
+            var startTask = client.StartAsync(name, TestEncodings.Utf8NoBom.GetBytes("HEY"), cancellationToken: cancellationToken);
             await acceptTask;
             var buffer = new byte[3];
             await server.ReadExactlyAsync(buffer, cancellationToken);
             await startTask;
 
-            Assert.Equal("HEY", Utf8NoBom.GetString(buffer));
+            Assert.Equal("HEY", TestEncodings.Utf8NoBom.GetString(buffer));
         }
         finally
         {
@@ -92,7 +92,7 @@ public sealed class PipeKeepAliveClientTests
 
         // No server listening — connect must time out and be swallowed.
         var ex = await Record.ExceptionAsync(
-            async () => await client.StartAsync(PipeTestServer.UniqueName("actx-pka-test"), Utf8NoBom.GetBytes("x"), connectTimeoutMs: 100, cancellationToken: cancellationToken));
+            async () => await client.StartAsync(PipeTestServer.UniqueName("actx-pka-test"), TestEncodings.Utf8NoBom.GetBytes("x"), connectTimeoutMs: 100, cancellationToken: cancellationToken));
 
         Assert.Null(ex);
     }
@@ -107,7 +107,7 @@ public sealed class PipeKeepAliveClientTests
         await client.DisposeAsync();
 
         var ex = await Record.ExceptionAsync(
-            async () => await client.StartAsync(PipeTestServer.UniqueName("actx-pka-test"), Utf8NoBom.GetBytes("x"), connectTimeoutMs: 100, cancellationToken: cancellationToken));
+            async () => await client.StartAsync(PipeTestServer.UniqueName("actx-pka-test"), TestEncodings.Utf8NoBom.GetBytes("x"), connectTimeoutMs: 100, cancellationToken: cancellationToken));
 
         Assert.Null(ex);
     }
@@ -126,7 +126,7 @@ public sealed class PipeKeepAliveClientTests
         try
         {
             // Concurrent server read — see Should_write_the_handshake_to_the_listener.
-            var startTask = client.StartAsync(name, Utf8NoBom.GetBytes("h"), cancellationToken: cancellationToken);
+            var startTask = client.StartAsync(name, TestEncodings.Utf8NoBom.GetBytes("h"), cancellationToken: cancellationToken);
             await acceptTask;
             var handshake = new byte[1];
             await server.ReadExactlyAsync(handshake, cancellationToken);

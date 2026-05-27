@@ -2,7 +2,7 @@ namespace AutoContext.Framework.Tests.Support.Pipes;
 
 using AutoContext.Framework.Pipes;
 
-using static AutoContext.Framework.Tests.Support.Encodings.TestEncodings;
+using AutoContext.Framework.Tests.Support.Encodings;
 
 /// <summary>
 /// Length-prefixed echo server used by the pipe exchange tests.
@@ -26,7 +26,7 @@ public static class PipeEchoServer
             return false;
         }
 
-        var response = Utf8NoBom.GetBytes("pong:" + Utf8NoBom.GetString(request));
+        var response = TestEncodings.Utf8NoBom.GetBytes("pong:" + TestEncodings.Utf8NoBom.GetString(request));
         await codec.WriteAsync(response, cancellationToken).ConfigureAwait(false);
         return true;
     }

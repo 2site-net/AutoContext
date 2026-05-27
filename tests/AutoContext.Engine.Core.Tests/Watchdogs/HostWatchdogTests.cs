@@ -8,8 +8,6 @@ using AutoContext.Engine.Core.Watchdogs;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 
-using static AutoContext.Engine.Core.Tests.Support.Watchdogs.HostWatchdogFixture;
-
 public sealed class HostWatchdogTests(HostWatchdogFixture fixture)
     : IClassFixture<HostWatchdogFixture>
 {
@@ -34,7 +32,7 @@ public sealed class HostWatchdogTests(HostWatchdogFixture fixture)
 
         Assert.Throws<ArgumentNullException>(() =>
             new HostWatchdog(
-                Options.Create(CreateOptions()),
+                Options.Create(HostWatchdogFixture.CreateOptions()),
                 null!,
                 lookup,
                 NullLogger<HostWatchdog>.Instance));
@@ -47,7 +45,7 @@ public sealed class HostWatchdogTests(HostWatchdogFixture fixture)
 
         Assert.Throws<ArgumentNullException>(() =>
             new HostWatchdog(
-                Options.Create(CreateOptions()),
+                Options.Create(HostWatchdogFixture.CreateOptions()),
                 lifetime,
                 null!,
                 NullLogger<HostWatchdog>.Instance));
@@ -61,7 +59,7 @@ public sealed class HostWatchdogTests(HostWatchdogFixture fixture)
 
         Assert.Throws<ArgumentNullException>(() =>
             new HostWatchdog(
-                Options.Create(CreateOptions()),
+                Options.Create(HostWatchdogFixture.CreateOptions()),
                 lifetime,
                 lookup,
                 null!));
@@ -73,7 +71,7 @@ public sealed class HostWatchdogTests(HostWatchdogFixture fixture)
         var context = fixture.Create(parentPid: null);
 
         await context.Watchdog.StartAsync(TestContext.Current.CancellationToken);
-        await Task.Delay(NoFireBudget, TestContext.Current.CancellationToken);
+        await Task.Delay(HostWatchdogFixture.NoFireBudget, TestContext.Current.CancellationToken);
 
         Assert.Multiple(
             () => Assert.Equal(0, context.Lookup.TryOpenCallCount),
@@ -87,7 +85,7 @@ public sealed class HostWatchdogTests(HostWatchdogFixture fixture)
 
         await context.Watchdog.StartAsync(TestContext.Current.CancellationToken);
 
-        await context.Lifetime.WaitForStopRequestedAsync(FireBudget);
+        await context.Lifetime.WaitForStopRequestedAsync(HostWatchdogFixture.FireBudget);
         Assert.Multiple(
             () => Assert.Equal(1, context.Lookup.TryOpenCallCount),
             () => Assert.Equal(1, context.Lifetime.StopApplicationCallCount));
@@ -99,7 +97,7 @@ public sealed class HostWatchdogTests(HostWatchdogFixture fixture)
         var context = fixture.Create();
         await context.Watchdog.StartAsync(TestContext.Current.CancellationToken);
 
-        await Task.Delay(NoFireBudget, TestContext.Current.CancellationToken);
+        await Task.Delay(HostWatchdogFixture.NoFireBudget, TestContext.Current.CancellationToken);
 
         Assert.Multiple(
             () => Assert.Equal(1, context.Lookup.TryOpenCallCount),
@@ -114,7 +112,7 @@ public sealed class HostWatchdogTests(HostWatchdogFixture fixture)
 
         context.ParentHandle!.SignalExit();
 
-        await context.Lifetime.WaitForStopRequestedAsync(FireBudget);
+        await context.Lifetime.WaitForStopRequestedAsync(HostWatchdogFixture.FireBudget);
         Assert.Equal(1, context.Lifetime.StopApplicationCallCount);
     }
 
@@ -126,7 +124,7 @@ public sealed class HostWatchdogTests(HostWatchdogFixture fixture)
 
         context.ParentHandle!.SignalWaitFailure(new InvalidOperationException("boom"));
 
-        await context.Lifetime.WaitForStopRequestedAsync(FireBudget);
+        await context.Lifetime.WaitForStopRequestedAsync(HostWatchdogFixture.FireBudget);
         Assert.Equal(1, context.Lifetime.StopApplicationCallCount);
     }
 
@@ -138,7 +136,7 @@ public sealed class HostWatchdogTests(HostWatchdogFixture fixture)
 
         await context.Watchdog.StopAsync(TestContext.Current.CancellationToken);
         context.ParentHandle!.SignalExit();
-        await Task.Delay(NoFireBudget, TestContext.Current.CancellationToken);
+        await Task.Delay(HostWatchdogFixture.NoFireBudget, TestContext.Current.CancellationToken);
 
         Assert.Equal(0, context.Lifetime.StopApplicationCallCount);
     }

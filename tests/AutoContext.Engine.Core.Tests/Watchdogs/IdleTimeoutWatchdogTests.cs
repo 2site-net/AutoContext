@@ -7,8 +7,6 @@ using AutoContext.Engine.Core.Watchdogs;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 
-using static AutoContext.Engine.Core.Tests.Support.Watchdogs.IdleTimeoutWatchdogFixture;
-
 public sealed class IdleTimeoutWatchdogTests(IdleTimeoutWatchdogFixture fixture)
     : IClassFixture<IdleTimeoutWatchdogFixture>
 {
@@ -30,7 +28,7 @@ public sealed class IdleTimeoutWatchdogTests(IdleTimeoutWatchdogFixture fixture)
     {
         Assert.Throws<ArgumentNullException>(() =>
             new IdleTimeoutWatchdog(
-                Options.Create(CreateOptions()),
+                Options.Create(IdleTimeoutWatchdogFixture.CreateOptions()),
                 null!,
                 TimeProvider.System,
                 NullLogger<IdleTimeoutWatchdog>.Instance));
@@ -43,7 +41,7 @@ public sealed class IdleTimeoutWatchdogTests(IdleTimeoutWatchdogFixture fixture)
 
         Assert.Throws<ArgumentNullException>(() =>
             new IdleTimeoutWatchdog(
-                Options.Create(CreateOptions()),
+                Options.Create(IdleTimeoutWatchdogFixture.CreateOptions()),
                 lifetime,
                 null!,
                 NullLogger<IdleTimeoutWatchdog>.Instance));
@@ -56,7 +54,7 @@ public sealed class IdleTimeoutWatchdogTests(IdleTimeoutWatchdogFixture fixture)
 
         Assert.Throws<ArgumentNullException>(() =>
             new IdleTimeoutWatchdog(
-                Options.Create(CreateOptions()),
+                Options.Create(IdleTimeoutWatchdogFixture.CreateOptions()),
                 lifetime,
                 TimeProvider.System,
                 null!));
@@ -69,7 +67,7 @@ public sealed class IdleTimeoutWatchdogTests(IdleTimeoutWatchdogFixture fixture)
 
         await context.Watchdog.StartAsync(TestContext.Current.CancellationToken);
 
-        await context.Lifetime.WaitForStopRequestedAsync(FireBudget);
+        await context.Lifetime.WaitForStopRequestedAsync(IdleTimeoutWatchdogFixture.FireBudget);
         Assert.Equal(1, context.Lifetime.StopApplicationCallCount);
     }
 
@@ -79,7 +77,7 @@ public sealed class IdleTimeoutWatchdogTests(IdleTimeoutWatchdogFixture fixture)
         var context = fixture.Create(TimeSpan.Zero);
 
         await context.Watchdog.StartAsync(TestContext.Current.CancellationToken);
-        await Task.Delay(NoFireBudget, TestContext.Current.CancellationToken);
+        await Task.Delay(IdleTimeoutWatchdogFixture.NoFireBudget, TestContext.Current.CancellationToken);
 
         Assert.Equal(0, context.Lifetime.StopApplicationCallCount);
     }
@@ -92,7 +90,7 @@ public sealed class IdleTimeoutWatchdogTests(IdleTimeoutWatchdogFixture fixture)
 
         await using var token1 = await context.Watchdog.AcquireKeepAliveAsync();
         await using var token2 = await context.Watchdog.AcquireKeepAliveAsync();
-        await Task.Delay(NoFireBudget, TestContext.Current.CancellationToken);
+        await Task.Delay(IdleTimeoutWatchdogFixture.NoFireBudget, TestContext.Current.CancellationToken);
 
         Assert.Equal(0, context.Lifetime.StopApplicationCallCount);
     }
@@ -105,7 +103,7 @@ public sealed class IdleTimeoutWatchdogTests(IdleTimeoutWatchdogFixture fixture)
 
         await using (await context.Watchdog.AcquireKeepAliveAsync())
         {
-            await Task.Delay(FireBudget, TestContext.Current.CancellationToken);
+            await Task.Delay(IdleTimeoutWatchdogFixture.FireBudget, TestContext.Current.CancellationToken);
 
             Assert.Equal(0, context.Lifetime.StopApplicationCallCount);
         }
@@ -119,14 +117,14 @@ public sealed class IdleTimeoutWatchdogTests(IdleTimeoutWatchdogFixture fixture)
         await context.Watchdog.StartAsync(TestContext.Current.CancellationToken);
 
         var token = await context.Watchdog.AcquireKeepAliveAsync();
-        await Task.Delay(NoFireBudget, TestContext.Current.CancellationToken);
+        await Task.Delay(IdleTimeoutWatchdogFixture.NoFireBudget, TestContext.Current.CancellationToken);
         Assert.Equal(0, context.Lifetime.StopApplicationCallCount);
 
         // Act
         await token.DisposeAsync();
 
         // Assert
-        await context.Lifetime.WaitForStopRequestedAsync(FireBudget);
+        await context.Lifetime.WaitForStopRequestedAsync(IdleTimeoutWatchdogFixture.FireBudget);
         Assert.Equal(1, context.Lifetime.StopApplicationCallCount);
     }
 
@@ -142,7 +140,7 @@ public sealed class IdleTimeoutWatchdogTests(IdleTimeoutWatchdogFixture fixture)
 
         // Act
         await first.DisposeAsync();
-        await Task.Delay(FireBudget, TestContext.Current.CancellationToken);
+        await Task.Delay(IdleTimeoutWatchdogFixture.FireBudget, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal(0, context.Lifetime.StopApplicationCallCount);
@@ -159,7 +157,7 @@ public sealed class IdleTimeoutWatchdogTests(IdleTimeoutWatchdogFixture fixture)
 
         // Act
         await context.Watchdog.StopAsync(TestContext.Current.CancellationToken);
-        await Task.Delay(FireBudget, TestContext.Current.CancellationToken);
+        await Task.Delay(IdleTimeoutWatchdogFixture.FireBudget, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal(0, context.Lifetime.StopApplicationCallCount);
@@ -180,7 +178,7 @@ public sealed class IdleTimeoutWatchdogTests(IdleTimeoutWatchdogFixture fixture)
         await holderA.DisposeAsync();
 
         // Assert
-        await Task.Delay(FireBudget, TestContext.Current.CancellationToken);
+        await Task.Delay(IdleTimeoutWatchdogFixture.FireBudget, TestContext.Current.CancellationToken);
         Assert.Equal(0, context.Lifetime.StopApplicationCallCount);
 
         await holderB.DisposeAsync();

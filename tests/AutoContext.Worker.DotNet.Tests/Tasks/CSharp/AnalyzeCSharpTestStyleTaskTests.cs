@@ -3,7 +3,7 @@ namespace AutoContext.Worker.DotNet.Tests.Tasks.CSharp;
 using AutoContext.Worker.DotNet.Tasks.CSharp;
 using AutoContext.Framework.Tests.Support.Workers;
 
-using static AutoContext.Worker.DotNet.Tests.Support.Tasks.CSharp.TestStyleProjectPathsFactory;
+using AutoContext.Worker.DotNet.Tests.Support.Tasks.CSharp;
 
 public sealed class AnalyzeCSharpTestStyleTaskTests
 {
@@ -535,7 +535,7 @@ public sealed class AnalyzeCSharpTestStyleTaskTests
     {
         // Arrange — file at <projectDir>/Services/UserServiceTests.cs
         // belongs in namespace 'MyApp.Tests.Services' but declares 'Wrong.Namespace'.
-        var (projectDirectory, comparedPath) = MakeProjectPaths("Services", "UserServiceTests.cs");
+        var (projectDirectory, comparedPath) = TestStyleProjectPathsFactory.MakeProjectPaths("Services", "UserServiceTests.cs");
         var source = """
             namespace Wrong.Namespace;
 
@@ -572,7 +572,7 @@ public sealed class AnalyzeCSharpTestStyleTaskTests
     {
         // Arrange — file at <projectDir>/Services/UserServiceTests.cs
         // declares 'MyApp.Tests.Services'. RootNamespace + folder path matches.
-        var (projectDirectory, comparedPath) = MakeProjectPaths("Services", "UserServiceTests.cs");
+        var (projectDirectory, comparedPath) = TestStyleProjectPathsFactory.MakeProjectPaths("Services", "UserServiceTests.cs");
         var source = """
             namespace MyApp.Tests.Services;
 
@@ -603,7 +603,7 @@ public sealed class AnalyzeCSharpTestStyleTaskTests
     public async Task Should_pass_namespace_when_file_is_at_project_root()
     {
         // Arrange — file directly in project root: namespace must equal RootNamespace.
-        var (projectDirectory, comparedPath) = MakeProjectPaths("HelperTests.cs");
+        var (projectDirectory, comparedPath) = TestStyleProjectPathsFactory.MakeProjectPaths("HelperTests.cs");
         var source = """
             namespace MyApp.Tests;
 
@@ -634,7 +634,7 @@ public sealed class AnalyzeCSharpTestStyleTaskTests
     public async Task Should_pass_namespace_in_deeply_nested_folder()
     {
         // Arrange — file at <projectDir>/Data/Repositories/UserRepoTests.cs
-        var (projectDirectory, comparedPath) = MakeProjectPaths("Data", "Repositories", "UserRepoTests.cs");
+        var (projectDirectory, comparedPath) = TestStyleProjectPathsFactory.MakeProjectPaths("Data", "Repositories", "UserRepoTests.cs");
         var source = """
             namespace MyApp.Tests.Data.Repositories;
 
@@ -665,7 +665,7 @@ public sealed class AnalyzeCSharpTestStyleTaskTests
     public async Task Should_reject_deeply_nested_namespace_mismatch()
     {
         // Arrange
-        var (projectDirectory, comparedPath) = MakeProjectPaths("Data", "Repositories", "RepoTests.cs");
+        var (projectDirectory, comparedPath) = TestStyleProjectPathsFactory.MakeProjectPaths("Data", "Repositories", "RepoTests.cs");
         var source = """
             namespace MyApp.Tests.Wrong;
 
@@ -775,7 +775,7 @@ public sealed class AnalyzeCSharpTestStyleTaskTests
     public async Task Should_check_namespace_with_block_scoped_namespace()
     {
         // Arrange
-        var (projectDirectory, comparedPath) = MakeProjectPaths("Services", "SomeTests.cs");
+        var (projectDirectory, comparedPath) = TestStyleProjectPathsFactory.MakeProjectPaths("Services", "SomeTests.cs");
         var source = """
             namespace Wrong.Namespace
             {

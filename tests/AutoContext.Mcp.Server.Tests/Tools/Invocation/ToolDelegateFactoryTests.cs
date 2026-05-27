@@ -12,7 +12,7 @@ using AutoContext.Mcp.Server.Workers.Protocol;
 
 using Microsoft.Extensions.Logging.Abstractions;
 
-using static AutoContext.Mcp.Server.Tests.Support.Tools.ToolTestFactory;
+using AutoContext.Mcp.Server.Tests.Support.Tools;
 
 public sealed class ToolDelegateFactoryTests
 {
@@ -20,10 +20,10 @@ public sealed class ToolDelegateFactoryTests
     public void Should_build_delegate_per_tool_keyed_by_name()
     {
         // Arrange
-        var registry = BuildCatalog(
-            ("alpha", "AutoContext.Worker.Alpha", [BuildToolFromTaskNames("tool_one", "task_one")]),
-            ("beta", "AutoContext.Worker.Beta", [BuildToolFromTaskNames("tool_two", "task_two")]));
-        var invoker = BuildInvoker();
+        var registry = ToolTestFactory.BuildCatalog(
+            ("alpha", "AutoContext.Worker.Alpha", [ToolTestFactory.BuildToolFromTaskNames("tool_one", "task_one")]),
+            ("beta", "AutoContext.Worker.Beta", [ToolTestFactory.BuildToolFromTaskNames("tool_two", "task_two")]));
+        var invoker = ToolTestFactory.BuildInvoker();
 
         // Act
         var delegates = ToolDelegateFactory.Build(registry, invoker);
@@ -39,10 +39,10 @@ public sealed class ToolDelegateFactoryTests
     public void Should_throw_on_duplicate_tool_names()
     {
         // Arrange
-        var registry = BuildCatalog(
-            ("alpha", "AutoContext.Worker.Alpha", [BuildToolFromTaskNames("dup_tool", "task_a")]),
-            ("beta", "AutoContext.Worker.Beta", [BuildToolFromTaskNames("dup_tool", "task_b")]));
-        var invoker = BuildInvoker();
+        var registry = ToolTestFactory.BuildCatalog(
+            ("alpha", "AutoContext.Worker.Alpha", [ToolTestFactory.BuildToolFromTaskNames("dup_tool", "task_a")]),
+            ("beta", "AutoContext.Worker.Beta", [ToolTestFactory.BuildToolFromTaskNames("dup_tool", "task_b")]));
+        var invoker = ToolTestFactory.BuildInvoker();
 
         // Act + Assert
         Assert.Throws<InvalidOperationException>(() => ToolDelegateFactory.Build(registry, invoker));
@@ -54,8 +54,8 @@ public sealed class ToolDelegateFactoryTests
         // Arrange
         var workerId = PipeServerHarness.UniqueWorkerId();
         var pipeName = PipeServerHarness.PipeNameFor(workerId);
-        var registry = BuildCatalog(
-            (workerId, "AutoContext.Worker.Alpha", [BuildToolFromTaskNames("invoke_tool", "task_x")]));
+        var registry = ToolTestFactory.BuildCatalog(
+            (workerId, "AutoContext.Worker.Alpha", [ToolTestFactory.BuildToolFromTaskNames("invoke_tool", "task_x")]));
         var workerClient = new WorkerClient(TimeSpan.FromSeconds(5));
         var batcher = new EditorConfigBatcher(workerClient, "autocontext-test-workspace-unused", NullLogger<EditorConfigBatcher>.Instance);
         var invoker = new ToolInvoker(workerClient, batcher);
@@ -112,9 +112,9 @@ public sealed class ToolDelegateFactoryTests
         var alphaPipeName = PipeServerHarness.PipeNameFor(alphaWorkerId);
         var betaPipeName = PipeServerHarness.PipeNameFor(betaWorkerId);
 
-        var registry = BuildCatalog(
-            (alphaWorkerId, "AutoContext.Worker.Alpha", [BuildToolFromTaskNames("alpha_tool", "task_alpha")]),
-            (betaWorkerId, "AutoContext.Worker.Beta", [BuildToolFromTaskNames("beta_tool", "task_beta")]));
+        var registry = ToolTestFactory.BuildCatalog(
+            (alphaWorkerId, "AutoContext.Worker.Alpha", [ToolTestFactory.BuildToolFromTaskNames("alpha_tool", "task_alpha")]),
+            (betaWorkerId, "AutoContext.Worker.Beta", [ToolTestFactory.BuildToolFromTaskNames("beta_tool", "task_beta")]));
 
         var workerClient = new WorkerClient(TimeSpan.FromSeconds(5));
         var batcher = new EditorConfigBatcher(workerClient, "autocontext-test-workspace-unused", NullLogger<EditorConfigBatcher>.Instance);
@@ -122,11 +122,11 @@ public sealed class ToolDelegateFactoryTests
 
         var alphaServerTask = PipeServerHarness.RunOneShotAsync(
             alphaPipeName,
-            handler: requestBytes => BuildMarkedResponse(requestBytes, servedBy: "alpha"),
+            handler: requestBytes => ToolTestFactory.BuildMarkedResponse(requestBytes, servedBy: "alpha"),
             cancellationToken: TestContext.Current.CancellationToken);
         var betaServerTask = PipeServerHarness.RunOneShotAsync(
             betaPipeName,
-            handler: requestBytes => BuildMarkedResponse(requestBytes, servedBy: "beta"),
+            handler: requestBytes => ToolTestFactory.BuildMarkedResponse(requestBytes, servedBy: "beta"),
             cancellationToken: TestContext.Current.CancellationToken);
 
         var delegates = ToolDelegateFactory.Build(registry, invoker);

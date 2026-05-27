@@ -14,9 +14,6 @@ using AutoContext.Framework.Pipes;
 
 using Microsoft.Extensions.Logging.Abstractions;
 
-using static AutoContext.Engine.Core.Tests.Support.Rpc.JsonRpcTestClient;
-using static AutoContext.Engine.Core.Tests.Support.Rpc.JsonRpcResponseFakeData;
-
 public sealed class RpcConnectionProcessorTests
 {
     [Fact]
@@ -31,7 +28,7 @@ public sealed class RpcConnectionProcessorTests
         var policy = new FakeRpcConnectionPolicy
         {
             OnInvoke = (_, _) => ValueTask.FromResult(new RpcHandlerResult(
-                Response: BuildOkResponse(),
+                Response: JsonRpcResponseFakeData.BuildOkResponse(),
                 Continuation: Continuation.Complete)),
         };
 
@@ -39,8 +36,8 @@ public sealed class RpcConnectionProcessorTests
             serverStream, policy, NullLogger.Instance, TestContext.Current.CancellationToken);
 
         // Act
-        await WriteRequestAsync(clientCodec, id: 1, method: "Test.Done", TestContext.Current.CancellationToken);
-        var response = await ReadResponseAsync(clientCodec, TestContext.Current.CancellationToken);
+        await JsonRpcTestClient.WriteRequestAsync(clientCodec, id: 1, method: "Test.Done", TestContext.Current.CancellationToken);
+        var response = await JsonRpcTestClient.ReadResponseAsync(clientCodec, TestContext.Current.CancellationToken);
         var result = await processorTask;
 
         // Assert
@@ -62,7 +59,7 @@ public sealed class RpcConnectionProcessorTests
         var policy = new FakeRpcConnectionPolicy
         {
             OnInvoke = (_, _) => ValueTask.FromResult(new RpcHandlerResult(
-                Response: BuildErrorResponse(-1, "nope"),
+                Response: JsonRpcResponseFakeData.BuildErrorResponse(-1, "nope"),
                 Continuation: Continuation.Abort)),
         };
 
@@ -70,8 +67,8 @@ public sealed class RpcConnectionProcessorTests
             serverStream, policy, NullLogger.Instance, TestContext.Current.CancellationToken);
 
         // Act
-        await WriteRequestAsync(clientCodec, id: 2, method: "Test.Abort", TestContext.Current.CancellationToken);
-        var response = await ReadResponseAsync(clientCodec, TestContext.Current.CancellationToken);
+        await JsonRpcTestClient.WriteRequestAsync(clientCodec, id: 2, method: "Test.Abort", TestContext.Current.CancellationToken);
+        var response = await JsonRpcTestClient.ReadResponseAsync(clientCodec, TestContext.Current.CancellationToken);
         var result = await processorTask;
 
         // Assert
@@ -97,7 +94,7 @@ public sealed class RpcConnectionProcessorTests
             {
                 Interlocked.Increment(ref invocations);
                 return ValueTask.FromResult(new RpcHandlerResult(
-                    Response: BuildOkResponse(),
+                    Response: JsonRpcResponseFakeData.BuildOkResponse(),
                     Continuation: Continuation.Continue));
             },
         };
@@ -106,12 +103,12 @@ public sealed class RpcConnectionProcessorTests
             serverStream, policy, NullLogger.Instance, TestContext.Current.CancellationToken);
 
         // Act — three back-to-back requests on the same connection.
-        await WriteRequestAsync(clientCodec, id: 10, method: "Test.Continue", TestContext.Current.CancellationToken);
-        var first = await ReadResponseAsync(clientCodec, TestContext.Current.CancellationToken);
-        await WriteRequestAsync(clientCodec, id: 11, method: "Test.Continue", TestContext.Current.CancellationToken);
-        var second = await ReadResponseAsync(clientCodec, TestContext.Current.CancellationToken);
-        await WriteRequestAsync(clientCodec, id: 12, method: "Test.Continue", TestContext.Current.CancellationToken);
-        var third = await ReadResponseAsync(clientCodec, TestContext.Current.CancellationToken);
+        await JsonRpcTestClient.WriteRequestAsync(clientCodec, id: 10, method: "Test.Continue", TestContext.Current.CancellationToken);
+        var first = await JsonRpcTestClient.ReadResponseAsync(clientCodec, TestContext.Current.CancellationToken);
+        await JsonRpcTestClient.WriteRequestAsync(clientCodec, id: 11, method: "Test.Continue", TestContext.Current.CancellationToken);
+        var second = await JsonRpcTestClient.ReadResponseAsync(clientCodec, TestContext.Current.CancellationToken);
+        await JsonRpcTestClient.WriteRequestAsync(clientCodec, id: 12, method: "Test.Continue", TestContext.Current.CancellationToken);
+        var third = await JsonRpcTestClient.ReadResponseAsync(clientCodec, TestContext.Current.CancellationToken);
         await clientStream.DisposeAsync();
         var result = await processorTask;
 
@@ -172,7 +169,7 @@ public sealed class RpcConnectionProcessorTests
             {
                 followUpServed = true;
                 return ValueTask.FromResult(new RpcHandlerResult(
-                    Response: BuildOkResponse(),
+                    Response: JsonRpcResponseFakeData.BuildOkResponse(),
                     Continuation: Continuation.Continue));
             },
         };
@@ -183,10 +180,10 @@ public sealed class RpcConnectionProcessorTests
         // Act
         await clientCodec.WriteAsync(
             Encoding.UTF8.GetBytes("not-json"), TestContext.Current.CancellationToken);
-        var errorResponse = await ReadResponseAsync(clientCodec, TestContext.Current.CancellationToken);
+        var errorResponse = await JsonRpcTestClient.ReadResponseAsync(clientCodec, TestContext.Current.CancellationToken);
 
         var followUpResponse = recover
-            ? await DriveFollowUpAsync(clientCodec)
+            ? await JsonRpcTestClient.DriveFollowUpAsync(clientCodec)
             : null;
 
         await clientStream.DisposeAsync();
@@ -225,7 +222,7 @@ public sealed class RpcConnectionProcessorTests
             {
                 followUpServed = true;
                 return ValueTask.FromResult(new RpcHandlerResult(
-                    Response: BuildOkResponse(),
+                    Response: JsonRpcResponseFakeData.BuildOkResponse(),
                     Continuation: Continuation.Continue));
             },
         };
@@ -236,10 +233,10 @@ public sealed class RpcConnectionProcessorTests
         // Act — valid JSON, but wrong "jsonrpc" version.
         var bogus = Encoding.UTF8.GetBytes("""{"jsonrpc":"1.0","id":3,"method":"x"}""");
         await clientCodec.WriteAsync(bogus, TestContext.Current.CancellationToken);
-        var errorResponse = await ReadResponseAsync(clientCodec, TestContext.Current.CancellationToken);
+        var errorResponse = await JsonRpcTestClient.ReadResponseAsync(clientCodec, TestContext.Current.CancellationToken);
 
         var followUpResponse = recover
-            ? await DriveFollowUpAsync(clientCodec)
+            ? await JsonRpcTestClient.DriveFollowUpAsync(clientCodec)
             : null;
 
         await clientStream.DisposeAsync();
@@ -278,7 +275,7 @@ public sealed class RpcConnectionProcessorTests
         // Act — valid JSON, wrong jsonrpc version, no id at all.
         var bogus = Encoding.UTF8.GetBytes("""{"jsonrpc":"1.0","method":"x"}""");
         await clientCodec.WriteAsync(bogus, TestContext.Current.CancellationToken);
-        var errorResponse = await ReadResponseAsync(clientCodec, TestContext.Current.CancellationToken);
+        var errorResponse = await JsonRpcTestClient.ReadResponseAsync(clientCodec, TestContext.Current.CancellationToken);
         var result = await processorTask;
 
         // Assert
@@ -309,8 +306,8 @@ public sealed class RpcConnectionProcessorTests
             serverStream, policy, NullLogger.Instance, TestContext.Current.CancellationToken);
 
         // Act
-        await WriteRequestAsync(clientCodec, id: 77, method: "Test.Echo", TestContext.Current.CancellationToken);
-        var response = await ReadResponseAsync(clientCodec, TestContext.Current.CancellationToken);
+        await JsonRpcTestClient.WriteRequestAsync(clientCodec, id: 77, method: "Test.Echo", TestContext.Current.CancellationToken);
+        var response = await JsonRpcTestClient.ReadResponseAsync(clientCodec, TestContext.Current.CancellationToken);
         var result = await processorTask;
 
         // Assert
@@ -341,7 +338,7 @@ public sealed class RpcConnectionProcessorTests
         // Act — valid JSON-RPC frame with the id field absent.
         var noIdRequest = Encoding.UTF8.GetBytes("""{"jsonrpc":"2.0","method":"Test.Echo"}""");
         await clientCodec.WriteAsync(noIdRequest, TestContext.Current.CancellationToken);
-        var response = await ReadResponseAsync(clientCodec, TestContext.Current.CancellationToken);
+        var response = await JsonRpcTestClient.ReadResponseAsync(clientCodec, TestContext.Current.CancellationToken);
         var result = await processorTask;
 
         // Assert
@@ -365,7 +362,7 @@ public sealed class RpcConnectionProcessorTests
         var policy = new FakeRpcConnectionPolicy
         {
             OnInvoke = (_, _) => ValueTask.FromResult(new RpcHandlerResult(
-                Response: BuildOkResponse(),
+                Response: JsonRpcResponseFakeData.BuildOkResponse(),
                 Continuation: Continuation.Complete,
                 PostFlush: () =>
                 {
@@ -378,8 +375,8 @@ public sealed class RpcConnectionProcessorTests
             serverStream, policy, NullLogger.Instance, TestContext.Current.CancellationToken);
 
         // Act
-        await WriteRequestAsync(clientCodec, id: 5, method: "Test.PostFlush", TestContext.Current.CancellationToken);
-        var response = await ReadResponseAsync(clientCodec, TestContext.Current.CancellationToken);
+        await JsonRpcTestClient.WriteRequestAsync(clientCodec, id: 5, method: "Test.PostFlush", TestContext.Current.CancellationToken);
+        var response = await JsonRpcTestClient.ReadResponseAsync(clientCodec, TestContext.Current.CancellationToken);
         await postFlushInvoked.Task.WaitAsync(
             TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
         var result = await processorTask;
@@ -404,7 +401,7 @@ public sealed class RpcConnectionProcessorTests
         var policy = new FakeRpcConnectionPolicy
         {
             OnInvoke = (_, _) => ValueTask.FromResult(new RpcHandlerResult(
-                Response: BuildOkResponse(),
+                Response: JsonRpcResponseFakeData.BuildOkResponse(),
                 Continuation: Continuation.Complete,
                 PostFlush: () => throw new InvalidOperationException("post-flush boom"))),
         };
@@ -413,8 +410,8 @@ public sealed class RpcConnectionProcessorTests
             serverStream, policy, recorder, TestContext.Current.CancellationToken);
 
         // Act
-        await WriteRequestAsync(clientCodec, id: 6, method: "Test.PostFlush", TestContext.Current.CancellationToken);
-        _ = await ReadResponseAsync(clientCodec, TestContext.Current.CancellationToken);
+        await JsonRpcTestClient.WriteRequestAsync(clientCodec, id: 6, method: "Test.PostFlush", TestContext.Current.CancellationToken);
+        _ = await JsonRpcTestClient.ReadResponseAsync(clientCodec, TestContext.Current.CancellationToken);
         var result = await processorTask;
 
         // Assert
@@ -444,7 +441,7 @@ public sealed class RpcConnectionProcessorTests
             {
                 await cts.CancelAsync();
                 ct.ThrowIfCancellationRequested();
-                return new RpcHandlerResult(BuildOkResponse());
+                return new RpcHandlerResult(JsonRpcResponseFakeData.BuildOkResponse());
             },
         };
 
@@ -452,7 +449,7 @@ public sealed class RpcConnectionProcessorTests
             serverStream, policy, NullLogger.Instance, cts.Token);
 
         // Act
-        await WriteRequestAsync(clientCodec, id: 8, method: "Test.Cancel", TestContext.Current.CancellationToken);
+        await JsonRpcTestClient.WriteRequestAsync(clientCodec, id: 8, method: "Test.Cancel", TestContext.Current.CancellationToken);
         var result = await processorTask;
 
         // Assert
@@ -472,7 +469,7 @@ public sealed class RpcConnectionProcessorTests
         var policy = new FakeRpcConnectionPolicy
         {
             OnInvoke = (_, _) => ValueTask.FromResult(new RpcHandlerResult(
-                Response: BuildOkResponse(),
+                Response: JsonRpcResponseFakeData.BuildOkResponse(),
                 Continuation: (Continuation)99)),
         };
 
@@ -480,8 +477,8 @@ public sealed class RpcConnectionProcessorTests
             serverStream, policy, recorder, TestContext.Current.CancellationToken);
 
         // Act
-        await WriteRequestAsync(clientCodec, id: 9, method: "Test.Bogus", TestContext.Current.CancellationToken);
-        _ = await ReadResponseAsync(clientCodec, TestContext.Current.CancellationToken);
+        await JsonRpcTestClient.WriteRequestAsync(clientCodec, id: 9, method: "Test.Bogus", TestContext.Current.CancellationToken);
+        _ = await JsonRpcTestClient.ReadResponseAsync(clientCodec, TestContext.Current.CancellationToken);
         var result = await processorTask;
 
         // Assert

@@ -13,8 +13,7 @@ using AutoContext.Engine.Protocol.Serialization;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
-using static AutoContext.Engine.Core.Tests.Support.Rpc.JsonRpcRequestTestFactory;
-using static AutoContext.Engine.Core.Tests.Support.Rpc.Policies.PolicyTestHookInvoker;
+using AutoContext.Engine.Core.Tests.Support.Rpc;
 
 public sealed class HandshakePolicyTests
 {
@@ -50,7 +49,7 @@ public sealed class HandshakePolicyTests
         var boom = new InvalidOperationException("framing");
 
         // Act
-        InvokeHook(policy, hook, boom);
+        PolicyTestHookInvoker.InvokeHook(policy, hook, boom);
 
         // Assert
         var entry = Assert.Single(recorder.Entries);
@@ -94,7 +93,7 @@ public sealed class HandshakePolicyTests
     {
         // Arrange
         var policy = new HandshakePolicy(EndpointKind.Rpc, NullLogger.Instance);
-        var request = BuildHelloRequest("Engine.SomethingElse", protocolVersion: ProtocolVersion.Current);
+        var request = JsonRpcRequestTestFactory.BuildHelloRequest("Engine.SomethingElse", protocolVersion: ProtocolVersion.Current);
 
         // Act
         var result = await policy.InvokeAsync(request, TestContext.Current.CancellationToken);
@@ -132,7 +131,7 @@ public sealed class HandshakePolicyTests
     {
         // Arrange
         var policy = new HandshakePolicy(EndpointKind.Rpc, NullLogger.Instance);
-        var request = BuildHelloRequest(ProtocolMethods.Hello, protocolVersion: null);
+        var request = JsonRpcRequestTestFactory.BuildHelloRequest(ProtocolMethods.Hello, protocolVersion: null);
 
         // Act
         var result = await policy.InvokeAsync(request, TestContext.Current.CancellationToken);
@@ -148,7 +147,7 @@ public sealed class HandshakePolicyTests
     {
         // Arrange
         var policy = new HandshakePolicy(EndpointKind.Rpc, NullLogger.Instance);
-        var request = BuildHelloRequest(
+        var request = JsonRpcRequestTestFactory.BuildHelloRequest(
             ProtocolMethods.Hello, protocolVersion: ProtocolVersion.Current + 1);
 
         // Act
@@ -165,7 +164,7 @@ public sealed class HandshakePolicyTests
     {
         // Arrange
         var policy = new HandshakePolicy(EndpointKind.Rpc, NullLogger.Instance);
-        var request = BuildHelloRequest(
+        var request = JsonRpcRequestTestFactory.BuildHelloRequest(
             ProtocolMethods.Hello, protocolVersion: ProtocolVersion.Current);
 
         // Act

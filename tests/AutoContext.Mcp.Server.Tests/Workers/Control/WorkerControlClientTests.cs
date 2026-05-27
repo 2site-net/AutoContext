@@ -5,8 +5,6 @@ using AutoContext.Mcp.Server.Tests.Support.Workers.Control;
 using AutoContext.Mcp.Server.Workers.Control;
 using AutoContext.Mcp.Server.Workers.Protocol;
 
-using static AutoContext.Mcp.Server.Tests.Support.Workers.Control.WorkerControlPipeServerHarness;
-
 public sealed class WorkerControlClientTests
 {
     [Fact]
@@ -30,7 +28,7 @@ public sealed class WorkerControlClientTests
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
         cts.CancelAfter(TimeSpan.FromSeconds(5));
 
-        var serverTask = RunPersistentAsync(
+        var serverTask = WorkerControlPipeServerHarness.RunPersistentAsync(
             pipeName,
             request =>
             {
@@ -55,7 +53,7 @@ public sealed class WorkerControlClientTests
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
         cts.CancelAfter(TimeSpan.FromSeconds(5));
 
-        var serverTask = RunPersistentAsync(
+        var serverTask = WorkerControlPipeServerHarness.RunPersistentAsync(
             pipeName,
             _ => new EnsureRunningResponse
             {
@@ -84,7 +82,7 @@ public sealed class WorkerControlClientTests
         cts.CancelAfter(TimeSpan.FromSeconds(5));
 
         var seen = 0;
-        var serverTask = RunPersistentAsync(
+        var serverTask = WorkerControlPipeServerHarness.RunPersistentAsync(
             pipeName,
             _ => new EnsureRunningResponse { Status = EnsureRunningResponse.StatusReady },
             cts.Token,
@@ -116,7 +114,7 @@ public sealed class WorkerControlClientTests
         var gate = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         var observed = 0;
 
-        var serverTask = RunPersistentAsync(
+        var serverTask = WorkerControlPipeServerHarness.RunPersistentAsync(
             pipeName,
             _ =>
             {
@@ -155,7 +153,7 @@ public sealed class WorkerControlClientTests
         // Server holds the response until released so two concurrent
         // callers definitely coalesce onto the same in-flight task.
         var gate = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-        var serverTask = RunPersistentAsync(
+        var serverTask = WorkerControlPipeServerHarness.RunPersistentAsync(
             pipeName,
             _ =>
             {

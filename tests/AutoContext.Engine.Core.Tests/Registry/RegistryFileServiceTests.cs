@@ -11,8 +11,6 @@ using AutoContext.Engine.Core.Tests.Support.Registry;
 using AutoContext.Engine.Core.Tests.Support.Shared;
 using AutoContext.Engine.Protocol.Messages.Registry;
 
-using static AutoContext.Engine.Core.Tests.Support.Registry.RegistryFileServiceTestFactory;
-
 public sealed class RegistryFileServiceTests
 {
     private const string RegistryFileName = "engine-registry.json";
@@ -35,7 +33,7 @@ public sealed class RegistryFileServiceTests
         public async Task Should_persist_a_single_request_through_the_worker()
         {
             var path = tempDirectory.CreatePath(RegistryFileName);
-            await using var sut = CreateService(path);
+            await using var sut = RegistryFileServiceTestFactory.CreateService(path);
             await sut.StartAsync(TestContext.Current.CancellationToken);
             var entry = RegistryEntryFakeData.CreateValidEntry();
 
@@ -51,7 +49,7 @@ public sealed class RegistryFileServiceTests
         public async Task Should_serialise_concurrent_in_process_appends_without_lost_updates()
         {
             var path = tempDirectory.CreatePath(RegistryFileName);
-            await using var sut = CreateService(path);
+            await using var sut = RegistryFileServiceTestFactory.CreateService(path);
             await sut.StartAsync(TestContext.Current.CancellationToken);
 
             const int concurrentAppends = 16;
@@ -78,7 +76,7 @@ public sealed class RegistryFileServiceTests
             var path = tempDirectory.CreatePath(RegistryFileName);
             await File.WriteAllTextAsync(path, "not json at all", TestContext.Current.CancellationToken);
 
-            await using var sut = CreateService(path);
+            await using var sut = RegistryFileServiceTestFactory.CreateService(path);
             await sut.StartAsync(TestContext.Current.CancellationToken);
             var entry = RegistryEntryFakeData.CreateValidEntry();
             IReadOnlyList<RegistryEntry>? observedCurrent = null;
@@ -104,7 +102,7 @@ public sealed class RegistryFileServiceTests
         public async Task Should_fault_when_transform_throws()
         {
             var path = tempDirectory.CreatePath(RegistryFileName);
-            await using var sut = CreateService(path);
+            await using var sut = RegistryFileServiceTestFactory.CreateService(path);
             await sut.StartAsync(TestContext.Current.CancellationToken);
 
             await Assert.ThrowsAsync<InvalidOperationException>(
@@ -144,7 +142,7 @@ public sealed class RegistryFileServiceTests
 
             try
             {
-                await using var sut = CreateService(
+                await using var sut = RegistryFileServiceTestFactory.CreateService(
                     path,
                     new RegistryFileServiceOptions
                     {
@@ -168,7 +166,7 @@ public sealed class RegistryFileServiceTests
         public async Task Should_reject_requests_after_StopAsync()
         {
             var path = tempDirectory.CreatePath(RegistryFileName);
-            var sut = CreateService(path);
+            var sut = RegistryFileServiceTestFactory.CreateService(path);
             await sut.StartAsync(TestContext.Current.CancellationToken);
             await sut.StopAsync(TestContext.Current.CancellationToken);
 
@@ -182,7 +180,7 @@ public sealed class RegistryFileServiceTests
         public async Task Should_fault_when_transform_returns_null()
         {
             var path = tempDirectory.CreatePath(RegistryFileName);
-            await using var sut = CreateService(path);
+            await using var sut = RegistryFileServiceTestFactory.CreateService(path);
             await sut.StartAsync(TestContext.Current.CancellationToken);
 
             await Assert.ThrowsAsync<InvalidOperationException>(
@@ -197,7 +195,7 @@ public sealed class RegistryFileServiceTests
         {
             var path = tempDirectory.CreatePath(RegistryFileName);
             var ownEntry = RegistryEntryFakeData.CreateValidEntry();
-            await using var sut = CreateService(path, ownEntryFactory: () => ownEntry);
+            await using var sut = RegistryFileServiceTestFactory.CreateService(path, ownEntryFactory: () => ownEntry);
 
             await sut.StartAsync(TestContext.Current.CancellationToken);
 
@@ -214,7 +212,7 @@ public sealed class RegistryFileServiceTests
         public async Task Should_drain_an_already_queued_request()
         {
             var path = tempDirectory.CreatePath(RegistryFileName);
-            await using var sut = CreateService(path);
+            await using var sut = RegistryFileServiceTestFactory.CreateService(path);
             await sut.StartAsync(TestContext.Current.CancellationToken);
             var entry = RegistryEntryFakeData.CreateValidEntry();
             var write = sut.WriteAsync(_ => [entry], TestContext.Current.CancellationToken);
@@ -231,7 +229,7 @@ public sealed class RegistryFileServiceTests
         public async Task Should_cancel_pre_start_writes_so_callers_do_not_hang()
         {
             var path = tempDirectory.CreatePath(RegistryFileName);
-            var sut = CreateService(path);
+            var sut = RegistryFileServiceTestFactory.CreateService(path);
             var write = sut.WriteAsync(
                 _ => [RegistryEntryFakeData.CreateValidEntry()],
                 TestContext.Current.CancellationToken);
@@ -248,7 +246,7 @@ public sealed class RegistryFileServiceTests
             var path = tempDirectory.CreatePath(RegistryFileName);
             var ownEntry = RegistryEntryFakeData.CreateValidEntry();
             var peerEntry = RegistryEntryFakeData.CreateValidEntry();
-            await using var sut = CreateService(path, ownEntryFactory: () => ownEntry);
+            await using var sut = RegistryFileServiceTestFactory.CreateService(path, ownEntryFactory: () => ownEntry);
 
             await sut.StartAsync(TestContext.Current.CancellationToken);
             await sut.WriteAsync(
@@ -269,7 +267,7 @@ public sealed class RegistryFileServiceTests
         {
             var path = tempDirectory.CreatePath(RegistryFileName);
             var ownEntry = RegistryEntryFakeData.CreateValidEntry();
-            await using var sut = CreateService(path, ownEntryFactory: () => ownEntry);
+            await using var sut = RegistryFileServiceTestFactory.CreateService(path, ownEntryFactory: () => ownEntry);
             await sut.StartAsync(TestContext.Current.CancellationToken);
 
             using var cts = new CancellationTokenSource();
@@ -287,7 +285,7 @@ public sealed class RegistryFileServiceTests
         {
             var path = tempDirectory.CreatePath(RegistryFileName);
             var ownEntry = RegistryEntryFakeData.CreateValidEntry();
-            var sut = CreateService(path, ownEntryFactory: () => ownEntry);
+            var sut = RegistryFileServiceTestFactory.CreateService(path, ownEntryFactory: () => ownEntry);
 
             await sut.StartAsync(TestContext.Current.CancellationToken);
             await sut.StopAsync(TestContext.Current.CancellationToken);

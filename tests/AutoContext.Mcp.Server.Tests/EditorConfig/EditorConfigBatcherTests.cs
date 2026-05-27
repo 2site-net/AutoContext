@@ -10,7 +10,7 @@ using AutoContext.Mcp.Server.Workers.Protocol;
 
 using Microsoft.Extensions.Logging.Abstractions;
 
-using static AutoContext.Mcp.Server.Tests.Support.Tools.ToolTestFactory;
+using AutoContext.Mcp.Server.Tests.Support.Tools;
 
 public sealed class EditorConfigBatcherTests
 {
@@ -30,8 +30,8 @@ public sealed class EditorConfigBatcherTests
         var batcher = new EditorConfigBatcher(client, "autocontext-test-unbound", Logger);
         var tasks = new McpTaskDefinition[]
         {
-            BuildTask("task_a"),
-            BuildTask("task_b"),
+            ToolTestFactory.BuildTask("task_a"),
+            ToolTestFactory.BuildTask("task_b"),
         };
 
         // Act
@@ -60,8 +60,8 @@ public sealed class EditorConfigBatcherTests
         var batcher = new EditorConfigBatcher(client, role, Logger);
         var tasks = new[]
         {
-            BuildTask("task_a", "csharp_prefer_braces", "dotnet_sort_system_directives_first"),
-            BuildTask("task_b", "csharp_prefer_braces", "csharp_style_namespace_declarations"),
+            ToolTestFactory.BuildTask("task_a", "csharp_prefer_braces", "dotnet_sort_system_directives_first"),
+            ToolTestFactory.BuildTask("task_b", "csharp_prefer_braces", "csharp_style_namespace_declarations"),
         };
         string[]? observedKeys = null;
         string? observedPath = null;
@@ -120,7 +120,7 @@ public sealed class EditorConfigBatcherTests
         var pipeName = PipeServerHarness.AddressFor(role);
         var client = new WorkerClient(TimeSpan.FromSeconds(5));
         var batcher = new EditorConfigBatcher(client, role, Logger);
-        var tasks = new[] { BuildTask("task_a", "csharp_prefer_braces") };
+        var tasks = new[] { ToolTestFactory.BuildTask("task_a", "csharp_prefer_braces") };
         var serverTask = PipeServerHarness.RunOneShotAsync(
             pipeName,
             handler: _ =>
@@ -161,7 +161,7 @@ public sealed class EditorConfigBatcherTests
         var pipeName = PipeServerHarness.AddressFor(role);
         var client = new WorkerClient(TimeSpan.FromSeconds(5));
         var batcher = new EditorConfigBatcher(client, role, Logger);
-        var tasks = new[] { BuildTask("task_a", "csharp_prefer_braces") };
+        var tasks = new[] { ToolTestFactory.BuildTask("task_a", "csharp_prefer_braces") };
         var serverTask = PipeServerHarness.RunOneShotAsync(
             pipeName,
             handler: _ =>
@@ -200,7 +200,7 @@ public sealed class EditorConfigBatcherTests
         // Arrange
         var client = new WorkerClient(TimeSpan.FromMilliseconds(150));
         var batcher = new EditorConfigBatcher(client, "unbound-" + Guid.NewGuid().ToString("N"), Logger);
-        var tasks = new[] { BuildTask("task_a", "csharp_prefer_braces") };
+        var tasks = new[] { ToolTestFactory.BuildTask("task_a", "csharp_prefer_braces") };
 
         // Act
         var result = await batcher.ResolveAsync(
@@ -224,7 +224,7 @@ public sealed class EditorConfigBatcherTests
         var pipeName = PipeServerHarness.AddressFor(role);
         var client = new WorkerClient(TimeSpan.FromSeconds(5));
         var batcher = new EditorConfigBatcher(client, role, Logger);
-        var tasks = new[] { BuildTask("task_a", "csharp_prefer_braces") };
+        var tasks = new[] { ToolTestFactory.BuildTask("task_a", "csharp_prefer_braces") };
         var serverTask = PipeServerHarness.RunOneShotAsync(
             pipeName,
             handler: _ =>
