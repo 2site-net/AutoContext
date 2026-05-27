@@ -896,7 +896,7 @@ the `EngineCrashWriter` it depends on is wired up here. Worker spawn
 | 7 | `feat(engine-core): add RegistryEntryReader` | DONE |
 | 8 | `feat(engine-core): add SubtreeRegistryStatus and CacheRootScanner` | DONE |
 | 9 | `feat(engine-core): add StaleSubtreeCleaner and HousekeepingService shutdown sweep` | DONE |
-| 10 | `test(engine): integration test for cross-engine shutdown-sweep cleanup` | NOT STARTED |
+| 10 | `test(engine): integration test for cross-engine shutdown-sweep cleanup` | DONE |
 | 11 | `docs(plan): mark Phase 2 complete` | NOT STARTED |
 
 Two equal-tier features land together because they share the

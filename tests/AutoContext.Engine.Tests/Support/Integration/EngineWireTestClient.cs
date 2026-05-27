@@ -98,6 +98,33 @@ internal static class EngineWireTestClient
         await codec.WriteAsync(bytes, cancellationToken).ConfigureAwait(false);
     }
 
+    /// <summary>
+    /// Completes the <c>Engine.Hello</c> handshake and the
+    /// <c>Engine.Shutdown</c> exchange against <paramref name="engine"/>'s
+    /// rpc endpoint, then awaits the process exit. The graceful-shutdown
+    /// dance every multi-engine integration test repeats.
+    /// </summary>
+    internal static async Task ShutdownGracefullyAsync(
+        EngineTestProcess engine,
+        string workspacePath,
+        Guid instanceId,
+        CancellationToken cancellationToken)
+    {
+        var rpc = await ConnectAsync(EndpointKind.Rpc, workspacePath, instanceId, cancellationToken)
+            .ConfigureAwait(false);
+        await using var rpcDisposer = rpc.ConfigureAwait(false);
+        var codec = new LengthPrefixedFrameCodec(rpc);
+
+        await SendHelloAsync(codec, ProtocolVersion.Current, cancellationToken).ConfigureAwait(false);
+        await ReadResponseAsync(codec, cancellationToken).ConfigureAwait(false);
+        await SendRequestAsync(codec, id: 2, ProtocolMethods.Shutdown, cancellationToken).ConfigureAwait(false);
+        await ReadResponseAsync(codec, cancellationToken).ConfigureAwait(false);
+
+        await engine.Process
+            .WaitForExitAsync(cancellationToken)
+            .WaitAsync(TimeSpan.FromSeconds(10), cancellationToken).ConfigureAwait(false);
+    }
+
     /// <summary>Reads exactly one JSON-RPC response frame.</summary>
     internal static async Task<JsonRpcResponse> ReadResponseAsync(
         LengthPrefixedFrameCodec codec,
