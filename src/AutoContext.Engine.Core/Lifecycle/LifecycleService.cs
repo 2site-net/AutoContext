@@ -3,7 +3,7 @@ namespace AutoContext.Engine.Core.Lifecycle;
 using System.Text.Json;
 
 using AutoContext.Engine.Core.Infrastructure;
-using AutoContext.Engine.Core.Infrastructure.Primitives;
+using AutoContext.Engine.Core.Infrastructure.Storage;
 using AutoContext.Engine.Core.Logging;
 using AutoContext.Engine.Core.Registry;
 using AutoContext.Engine.Core.Rpc;

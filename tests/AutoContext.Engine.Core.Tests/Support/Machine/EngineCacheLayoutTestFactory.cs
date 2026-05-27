@@ -1,6 +1,7 @@
 namespace AutoContext.Engine.Core.Tests.Support.Machine;
 
 using AutoContext.Engine.Core;
+using AutoContext.Engine.Core.Infrastructure.Storage;
 using AutoContext.Engine.Core.Machine;
 
 using Microsoft.Extensions.Options;

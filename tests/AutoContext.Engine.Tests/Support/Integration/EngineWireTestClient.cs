@@ -4,7 +4,7 @@ using System.Globalization;
 using System.IO.Pipes;
 using System.Text.Json;
 
-using AutoContext.Engine.Core.Infrastructure.Primitives;
+using AutoContext.Engine.Core.Infrastructure.Storage;
 using AutoContext.Engine.Protocol;
 using AutoContext.Engine.Protocol.JsonRpc;
 using AutoContext.Engine.Protocol.Messages;

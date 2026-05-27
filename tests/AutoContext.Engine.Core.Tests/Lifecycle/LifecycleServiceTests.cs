@@ -5,7 +5,7 @@ using System.Text;
 using System.Text.Json;
 
 using AutoContext.Engine.Core;
-using AutoContext.Engine.Core.Infrastructure.Primitives;
+using AutoContext.Engine.Core.Infrastructure.Storage;
 using AutoContext.Engine.Core.Lifecycle;
 using AutoContext.Engine.Core.Registry;
 using AutoContext.Engine.Core.Tests.Support.Lifecycle;

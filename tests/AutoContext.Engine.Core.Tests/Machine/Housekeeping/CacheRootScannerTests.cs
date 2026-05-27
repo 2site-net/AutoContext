@@ -1,14 +1,18 @@
-namespace AutoContext.Engine.Core.Tests.Housekeeping;
+namespace AutoContext.Engine.Core.Tests.Machine.Housekeeping;
 
-using AutoContext.Engine.Core.Housekeeping;
+using AutoContext.Engine.Core.Infrastructure.Storage;
+using AutoContext.Engine.Core.Machine;
+using AutoContext.Engine.Core.Machine.Housekeeping;
 using AutoContext.Engine.Core.Registry;
-using AutoContext.Engine.Core.Tests.Support.Housekeeping;
+using AutoContext.Engine.Core.Tests.Support;
+using AutoContext.Engine.Core.Tests.Support.Machine.Housekeeping;
 using AutoContext.Engine.Core.Tests.Support.Registry;
 using AutoContext.Engine.Core.Tests.Support.Shared;
 using AutoContext.Engine.Core.Tests.Support.Watchdogs;
 using AutoContext.Engine.Protocol.Messages.Registry;
 
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 
 public sealed class CacheRootScannerTests
 {
@@ -22,15 +26,21 @@ public sealed class CacheRootScannerTests
         {
             // Arrange
             var entryReader = RegistryEntryReaderTestFactory.Create("ignored.json", new FakeProcessLookup());
+            var cacheRoot = new CacheRoot(Options.Create(new EngineOptions
+            {
+                WorkspacePath = EngineOptionsFakeData.GetWorkspacePath(),
+                InstanceId = Guid.NewGuid(),
+                CacheRootOverride = Path.GetTempPath(),
+            }));
 
             // Act + Assert
             Assert.Multiple(
-                () => Assert.Throws<ArgumentException>(
-                    () => new CacheRootScanner(" ", entryReader, NullLogger<CacheRootScanner>.Instance)),
                 () => Assert.Throws<ArgumentNullException>(
-                    () => new CacheRootScanner("cache-root", null!, NullLogger<CacheRootScanner>.Instance)),
+                    () => new CacheRootScanner(null!, entryReader, NullLogger<CacheRootScanner>.Instance)),
                 () => Assert.Throws<ArgumentNullException>(
-                    () => new CacheRootScanner("cache-root", entryReader, null!)));
+                    () => new CacheRootScanner(cacheRoot, null!, NullLogger<CacheRootScanner>.Instance)),
+                () => Assert.Throws<ArgumentNullException>(
+                    () => new CacheRootScanner(cacheRoot, entryReader, null!)));
         }
     }
 

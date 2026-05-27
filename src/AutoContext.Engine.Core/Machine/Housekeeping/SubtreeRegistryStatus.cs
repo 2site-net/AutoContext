@@ -1,4 +1,4 @@
-namespace AutoContext.Engine.Core.Housekeeping;
+namespace AutoContext.Engine.Core.Machine.Housekeeping;
 
 using AutoContext.Engine.Protocol.Messages.Registry;
 

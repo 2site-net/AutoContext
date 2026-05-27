@@ -1,6 +1,6 @@
-namespace AutoContext.Engine.Core.Tests.Infrastructure.Primitives;
+namespace AutoContext.Engine.Core.Tests.Infrastructure.Storage;
 
-using AutoContext.Engine.Core.Infrastructure.Primitives;
+using AutoContext.Engine.Core.Infrastructure.Storage;
 using AutoContext.Engine.Protocol;
 
 public sealed class WorkspaceHashTests

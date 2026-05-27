@@ -1,4 +1,7 @@
-namespace AutoContext.Engine.Core.Machine;
+namespace AutoContext.Engine.Core.Infrastructure.Storage;
+
+using AutoContext.Engine.Core;
+using AutoContext.Engine.Core.Machine;
 
 using Microsoft.Extensions.Options;
 
@@ -51,7 +54,7 @@ public sealed record class CacheRoot
         WorkspaceUserPath = value.WorkspacePath;
 
         FullPath = CacheRootPathResolver.Resolve(value.CacheRootOverride);
-        WorkspaceHash = Infrastructure.Primitives.WorkspaceHash.Compute(WorkspaceUserPath).Value;
+        WorkspaceHash = Storage.WorkspaceHash.Compute(WorkspaceUserPath).Value;
 
         WorkspaceBucketPath = Path.Combine(
             FullPath,

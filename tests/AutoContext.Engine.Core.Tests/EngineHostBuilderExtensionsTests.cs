@@ -1,6 +1,7 @@
 namespace AutoContext.Engine.Core.Tests;
 
 using AutoContext.Engine.Core;
+using AutoContext.Engine.Core.Infrastructure.Storage;
 using AutoContext.Engine.Core.Machine;
 using AutoContext.Engine.Core.Registry;
 using AutoContext.Engine.Core.Tests.Support;

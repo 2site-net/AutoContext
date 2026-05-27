@@ -1,5 +1,7 @@
 namespace AutoContext.Engine.Core.Machine;
 
+using AutoContext.Engine.Core.Infrastructure.Storage;
+
 /// <summary>
 /// Single source of truth for every on-disk path the engine owns
 /// under its cache root — the per-instance logs and crash
@@ -10,7 +12,7 @@ namespace AutoContext.Engine.Core.Machine;
 /// <remarks>
 /// <para>
 /// All paths are computed eagerly in the constructor from the
-/// injected <see cref="Machine.CacheRoot"/> and frozen thereafter.
+/// injected <see cref="Infrastructure.Storage.CacheRoot"/> and frozen thereafter.
 /// New on-disk artefacts owned by the engine should be added here
 /// (basename constant + resolved property) so the layout stays
 /// the one place a reader looks to learn where the engine writes.

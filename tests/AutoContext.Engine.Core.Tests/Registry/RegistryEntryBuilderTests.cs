@@ -1,7 +1,7 @@
 namespace AutoContext.Engine.Core.Tests.Registry;
 
 using AutoContext.Engine.Core;
-using AutoContext.Engine.Core.Infrastructure.Primitives;
+using AutoContext.Engine.Core.Infrastructure.Storage;
 using AutoContext.Engine.Core.Registry;
 using AutoContext.Engine.Core.Tests.Support;
 using AutoContext.Engine.Core.Tests.Support.Shared;

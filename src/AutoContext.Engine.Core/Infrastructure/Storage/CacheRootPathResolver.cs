@@ -1,4 +1,4 @@
-namespace AutoContext.Engine.Core.Machine;
+namespace AutoContext.Engine.Core.Infrastructure.Storage;
 
 /// <summary>
 /// Resolves the per-user engine cache-root directory. The cache

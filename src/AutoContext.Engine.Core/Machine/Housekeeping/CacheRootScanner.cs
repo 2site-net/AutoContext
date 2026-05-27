@@ -1,6 +1,6 @@
-namespace AutoContext.Engine.Core.Housekeeping;
+namespace AutoContext.Engine.Core.Machine.Housekeeping;
 
-using AutoContext.Engine.Core.Infrastructure.Primitives;
+using AutoContext.Engine.Core.Infrastructure.Storage;
 using AutoContext.Engine.Core.Registry;
 using AutoContext.Engine.Protocol.Messages.Registry;
 
@@ -49,34 +49,34 @@ using Microsoft.Extensions.Logging;
 /// </remarks>
 internal sealed partial class CacheRootScanner
 {
-    private readonly string _cacheRootPath;
+    private readonly CacheRoot _cacheRoot;
     private readonly RegistryEntryReader _entryReader;
     private readonly ILogger<CacheRootScanner> _logger;
 
     /// <summary>
-    /// Creates a new scanner rooted at <paramref name="cacheRootPath"/>
-    /// and composing over <paramref name="entryReader"/>.
+    /// Creates a new scanner rooted at <paramref name="cacheRoot"/>
+    /// and composing over <paramref name="entryReader"/>. The scan
+    /// walks <see cref="CacheRoot.FullPath"/>; this engine's own
+    /// per-instance subtree is one of the directories the scan
+    /// classifies, no different from any peer.
     /// </summary>
-    /// <param name="cacheRootPath">Absolute path of the engine
-    /// cache root the scan walks.</param>
+    /// <param name="cacheRoot">Resolved cache-root identity bundle
+    /// the scan walks.</param>
     /// <param name="entryReader">Liveness-aware registry reader.</param>
     /// <param name="logger">Diagnostic sink.</param>
-    /// <exception cref="ArgumentException">
-    /// <paramref name="cacheRootPath"/> is <see langword="null"/>,
-    /// empty, or whitespace.</exception>
     /// <exception cref="ArgumentNullException">
-    /// <paramref name="entryReader"/> or <paramref name="logger"/>
-    /// is <see langword="null"/>.</exception>
+    /// <paramref name="cacheRoot"/>, <paramref name="entryReader"/>,
+    /// or <paramref name="logger"/> is <see langword="null"/>.</exception>
     public CacheRootScanner(
-        string cacheRootPath,
+        CacheRoot cacheRoot,
         RegistryEntryReader entryReader,
         ILogger<CacheRootScanner> logger)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(cacheRootPath);
+        ArgumentNullException.ThrowIfNull(cacheRoot);
         ArgumentNullException.ThrowIfNull(entryReader);
         ArgumentNullException.ThrowIfNull(logger);
 
-        _cacheRootPath = cacheRootPath;
+        _cacheRoot = cacheRoot;
         _entryReader = entryReader;
         _logger = logger;
     }
@@ -98,7 +98,9 @@ internal sealed partial class CacheRootScanner
     public async Task<IReadOnlyList<SubtreeRegistryStatus>> ScanAsync(
         CancellationToken cancellationToken = default)
     {
-        if (!Directory.Exists(_cacheRootPath))
+        var cacheRootPath = _cacheRoot.FullPath;
+
+        if (!Directory.Exists(cacheRootPath))
         {
             return [];
         }
@@ -110,7 +112,7 @@ internal sealed partial class CacheRootScanner
 
         var results = new List<SubtreeRegistryStatus>();
 
-        foreach (var topLevelDir in Directory.EnumerateDirectories(_cacheRootPath))
+        foreach (var topLevelDir in Directory.EnumerateDirectories(cacheRootPath))
         {
             cancellationToken.ThrowIfCancellationRequested();
             ClassifyTopLevelDirectory(topLevelDir, entryIndex, results);

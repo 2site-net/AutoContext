@@ -3,7 +3,7 @@ namespace AutoContext.Engine.Core.Tests.Support.Lifecycle;
 using System.IO.Pipes;
 
 using AutoContext.Engine.Core;
-using AutoContext.Engine.Core.Infrastructure.Primitives;
+using AutoContext.Engine.Core.Infrastructure.Storage;
 using AutoContext.Engine.Core.Lifecycle;
 using AutoContext.Engine.Protocol;
 using AutoContext.Framework.Pipes;

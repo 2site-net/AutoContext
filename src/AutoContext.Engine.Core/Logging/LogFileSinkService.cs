@@ -3,7 +3,7 @@ namespace AutoContext.Engine.Core.Logging;
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 
-using AutoContext.Engine.Core.Infrastructure.Primitives;
+using AutoContext.Engine.Core.Infrastructure.Storage;
 using AutoContext.Engine.Core.Logging.Primitives;
 using AutoContext.Engine.Core.Machine;
 using AutoContext.Engine.Protocol.Messages.Logs;

@@ -1,4 +1,4 @@
-namespace AutoContext.Engine.Core.Infrastructure.Primitives;
+namespace AutoContext.Engine.Core.Infrastructure.Storage;
 
 using System.Diagnostics.CodeAnalysis;
 using System.Security.Cryptography;
