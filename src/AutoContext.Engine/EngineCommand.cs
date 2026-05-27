@@ -90,6 +90,12 @@ internal sealed class EngineCommand : RootCommand
         };
         McpServer.AcceptOnlyFromAmong(McpServerWithStdioValue);
 
+        CacheRoot = new Option<string?>("--cache-root")
+        {
+            Description = "Absolute path that overrides the engine cache-root location (both roles).",
+        };
+        CacheRoot.Validators.Add(ValidateAbsolutePath);
+
         Options.Add(Workspace);
         Options.Add(InstanceId);
         Options.Add(InstanceLabel);
@@ -98,6 +104,7 @@ internal sealed class EngineCommand : RootCommand
         Options.Add(Retention);
         Options.Add(Logging);
         Options.Add(McpServer);
+        Options.Add(CacheRoot);
     }
 
     public Option<string> Workspace { get; }
@@ -115,6 +122,8 @@ internal sealed class EngineCommand : RootCommand
     public Option<string?> Logging { get; }
 
     public Option<string?> McpServer { get; }
+
+    public Option<string?> CacheRoot { get; }
 
     /// <summary>
     /// Materialises an <see cref="EngineOptions"/> from a
@@ -158,6 +167,12 @@ internal sealed class EngineCommand : RootCommand
         {
             WorkspacePath = parseResult.GetValue(Workspace) ?? string.Empty,
         };
+
+        var cacheRootValue = parseResult.GetValue(CacheRoot);
+        if (cacheRootValue is not null)
+        {
+            options.CacheRootOverride = cacheRootValue;
+        }
 
         if (isMcpRole)
         {
@@ -265,6 +280,21 @@ internal sealed class EngineCommand : RootCommand
         {
             result.AddError(
                 $"switch '--retention' expects '0' or '<n>{{s|m|h|d}}'; got '{raw}'");
+        }
+    }
+
+    private static void ValidateAbsolutePath(OptionResult result)
+    {
+        if (result.Tokens.Count == 0)
+        {
+            return;
+        }
+
+        var raw = result.Tokens[0].Value;
+        if (string.IsNullOrWhiteSpace(raw) || !Path.IsPathFullyQualified(raw))
+        {
+            result.AddError(
+                $"switch '--cache-root' expects an absolute path; got '{raw}'");
         }
     }
 

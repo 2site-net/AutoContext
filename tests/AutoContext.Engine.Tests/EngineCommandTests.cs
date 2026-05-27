@@ -265,6 +265,84 @@ public sealed class EngineCommandTests
             e => e.Message.Contains("--retention", StringComparison.Ordinal));
     }
 
+    [Fact]
+    public void Should_parse_cache_root_in_daemon_role()
+    {
+        // Arrange
+        var command = new EngineCommand();
+        var cacheRoot = OperatingSystem.IsWindows()
+            ? @"C:\temp\acx-cache"
+            : "/tmp/acx-cache";
+        var args = new[]
+        {
+            "--workspace", EngineCommandArgsFakeData.GetWorkspacePathArgValue(),
+            "--instance-id", EngineCommandArgsFakeData.GetInstanceIdArgValue(),
+            "--cache-root", cacheRoot,
+        };
+
+        // Act
+        var parseResult = command.Parse(args);
+        var built = command.TryBuildOptions(parseResult, out var options, out var error);
+
+        // Assert
+        Assert.Multiple(
+            () => Assert.Empty(parseResult.Errors),
+            () => Assert.True(built, error),
+            () => Assert.Equal(cacheRoot, options.CacheRootOverride));
+    }
+
+    [Fact]
+    public void Should_parse_cache_root_in_mcp_server_role()
+    {
+        // Arrange
+        var command = new EngineCommand();
+        var cacheRoot = OperatingSystem.IsWindows()
+            ? @"C:\temp\acx-cache"
+            : "/tmp/acx-cache";
+        var args = new[]
+        {
+            "--workspace", EngineCommandArgsFakeData.GetWorkspacePathArgValue(),
+            "--mcp-server", "with-stdio",
+            "--cache-root", cacheRoot,
+        };
+
+        // Act
+        var parseResult = command.Parse(args);
+        var built = command.TryBuildOptions(parseResult, out var options, out var error);
+
+        // Assert
+        Assert.Multiple(
+            () => Assert.Empty(parseResult.Errors),
+            () => Assert.True(built, error),
+            () => Assert.Equal(cacheRoot, options.CacheRootOverride),
+            () => Assert.Equal(EngineMcpServerMode.WithStdio, options.McpServerMode));
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("relative/path")]
+    [InlineData("..\\relative")]
+    public void Should_reject_non_absolute_cache_root(string value)
+    {
+        // Arrange
+        var command = new EngineCommand();
+        var args = new[]
+        {
+            "--workspace", EngineCommandArgsFakeData.GetWorkspacePathArgValue(),
+            "--instance-id", EngineCommandArgsFakeData.GetInstanceIdArgValue(),
+            "--cache-root", value,
+        };
+
+        // Act
+        var parseResult = command.Parse(args);
+
+        // Assert
+        Assert.NotEmpty(parseResult.Errors);
+        Assert.Contains(
+            parseResult.Errors,
+            e => e.Message.Contains("--cache-root", StringComparison.Ordinal));
+    }
+
     [Theory]
     [InlineData("normal", LogVerbosity.Normal)]
     [InlineData("debug", LogVerbosity.Debug)]

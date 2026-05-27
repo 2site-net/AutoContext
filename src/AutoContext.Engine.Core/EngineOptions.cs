@@ -66,14 +66,15 @@ public sealed class EngineOptions
     public static readonly TimeSpan DefaultShutdownDrainTimeout = TimeSpan.FromSeconds(5);
 
     /// <summary>
-    /// Library-only override for the engine cache root. When
+    /// Override for the engine cache root. When
     /// <see langword="null"/> the engine resolves the cache root
     /// the usual way (Windows: <c>%LOCALAPPDATA%/autocontext</c>;
     /// POSIX: <c>$XDG_CACHE_HOME/autocontext</c> or
     /// <c>$HOME/.cache/autocontext</c>); tests and embedders that
     /// need to isolate the registry, log subtrees, and housekeeping
-    /// targets set this to an absolute path. Deliberately not
-    /// surfaced on the CLI.
+    /// targets set this to an absolute path. Surfaced on the
+    /// engine binary as <c>--cache-root &lt;absolute-path&gt;</c>
+    /// in both the daemon and <c>--mcp-server with-stdio</c> roles.
     /// </summary>
     public string? CacheRootOverride { get; set; }
 
