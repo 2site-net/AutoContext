@@ -883,7 +883,7 @@ the `EngineCrashWriter` it depends on is wired up here. Worker spawn
 
 ## Phase 2 — Engine logging pipeline and cache housekeeping
 
-**Status**: In progress on branch `features/engine-logging-and-housekeeping`.
+**Status**: Completed on branch `features/engine-logging-and-housekeeping`.
 
 | # | Commit subject | State |
 |---|---|---|
@@ -897,7 +897,7 @@ the `EngineCrashWriter` it depends on is wired up here. Worker spawn
 | 8 | `feat(engine-core): add SubtreeRegistryStatus and CacheRootScanner` | DONE |
 | 9 | `feat(engine-core): add StaleSubtreeCleaner and HousekeepingService shutdown sweep` | DONE |
 | 10 | `test(engine): integration test for cross-engine shutdown-sweep cleanup` | DONE |
-| 11 | `docs(plan): mark Phase 2 complete` | NOT STARTED |
+| 11 | `docs(plan): mark Phase 2 complete` | DONE |
 
 Two equal-tier features land together because they share the
 per-instance subtree shape (both write under it) and the
