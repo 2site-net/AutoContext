@@ -1479,16 +1479,39 @@ function Invoke-Clean {
 
     $targets = @()
 
-    $targets += @{ Path = (Join-Path $extensionDir 'dist');    Label = 'TypeScript output (dist/)' }
+    # Build the (projectDir, displayName) seed for every TypeScript project we
+    # own — extension + shared TS libraries + node servers. Used to add both
+    # the dist/ target and the sibling tsconfig.*.tsbuildinfo incremental
+    # caches: leaving the latter behind tricks the next `tsc -b` into
+    # believing every output is current and silently skipping the rebuild.
+    $tsProjects = @()
+    $tsProjects += @{ Dir = $extensionDir; Name = 'TypeScript' }
     foreach ($libRelPath in $tsLibraries) {
         $libDir = Join-Path $repoRoot $libRelPath
         if (-not (Test-Path $libDir)) { continue }
-        $libName = Split-Path $libRelPath -Leaf
-        $targets += @{ Path = (Join-Path $libDir 'dist'); Label = "$libName output (dist/)" }
+        $tsProjects += @{ Dir = $libDir; Name = (Split-Path $libRelPath -Leaf) }
     }
     foreach ($server in $nodeServers) {
-        $serverDir = Join-Path $repoRoot 'src' $server.name
-        $targets += @{ Path = (Join-Path $serverDir 'dist'); Label = "$($server.name) output (dist/)" }
+        $tsProjects += @{
+            Dir  = (Join-Path $repoRoot 'src' $server.name)
+            Name = $server.name
+        }
+    }
+
+    foreach ($project in $tsProjects) {
+        $targets += @{
+            Path  = (Join-Path $project.Dir 'dist')
+            Label = "$($project.Name) output (dist/)"
+        }
+        if (Test-Path $project.Dir) {
+            Get-ChildItem -Path $project.Dir -Filter '*.tsbuildinfo' -File -ErrorAction SilentlyContinue |
+                ForEach-Object {
+                    $targets += @{
+                        Path  = $_.FullName
+                        Label = "$($project.Name) incremental cache ($($_.Name))"
+                    }
+                }
+        }
     }
     $targets += @{ Path = $serversDir;                          Label = 'Servers (servers/)' }
     $targets += @{ Path = $publishDir;                         Label = 'VSIX packages (publish/)' }
