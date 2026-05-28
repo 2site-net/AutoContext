@@ -8,17 +8,21 @@ suite('MCP Tools Tree View Smoke Tests', () => {
         const roots = exports.mcpToolsTreeProvider.getChildren();
 
         assert.ok(roots.length > 0, 'Should return at least one root node');
+        assert.equal(roots[0].kind, 'mcpServerNode', 'First root should be the MCP server status row');
         assert.ok(
-            roots.every((r: { kind: string }) => r.kind === 'mcpTopCategoryNode'),
-            'All root elements should be mcpTopCategoryNode nodes',
+            roots.slice(1).every((r: { kind: string }) => r.kind === 'mcpTopCategoryNode'),
+            'Roots after the server status row should all be mcpTopCategoryNode nodes',
         );
     });
 
     test('should contain sub-categories under top categories', async () => {
         const { exports } = await activatedExtension();
-        const roots = exports.mcpToolsTreeProvider.getChildren();
+        const topCategories = exports.mcpToolsTreeProvider.getChildren()
+            .filter((r: { kind: string }) => r.kind === 'mcpTopCategoryNode');
 
-        for (const topCategory of roots) {
+        assert.ok(topCategories.length > 0, 'Should return at least one top category');
+
+        for (const topCategory of topCategories) {
             const subCategories = exports.mcpToolsTreeProvider.getChildren(topCategory);
             assert.ok(subCategories.length > 0, `Top category '${topCategory.name}' should have at least one sub-category`);
             assert.ok(
