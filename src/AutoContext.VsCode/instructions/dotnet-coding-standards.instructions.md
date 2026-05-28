@@ -51,4 +51,4 @@ as done.
 
 - [INST0021] **Do** prefer `readonly` fields and `init`-only properties; use `record` for data-carrying types — immutability eliminates accidental mutation bugs.
 - [INST0022] **Do** return `IReadOnlyCollection<T>` or `IEnumerable<T>` from public APIs instead of `List<T>` or other mutable concrete types — callers should not depend on mutability you did not intend.
-- [INST0023] **Don't** expose internal implementation details in public APIs; use interfaces or abstractions instead.
+- [INST0023] **Don't** expose internal implementation details in public APIs — and don't widen visibility (`private` → `internal`/`protected`/`public`), apply `[InternalsVisibleTo]` on a production assembly (e.g., `[InternalsVisibleTo("MyApp.Tests")]`) to grant test assemblies access to its internals, or add test-only members/setters to reach private state. Hide implementation behind interfaces or abstractions, and where tests can't reach a behavior through the public API, refactor the design (see `design-principles.instructions.md` INST0009) rather than the visibility.

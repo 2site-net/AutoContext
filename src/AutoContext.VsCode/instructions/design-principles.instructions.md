@@ -20,3 +20,4 @@ validate this instructions file — apply it manually.
 - [INST0006] **Do** use Exception‑based Error Handling – wrap expected faults in `try/catch`; log unexpected ones.
 - [INST0007] **Do** design for Testability First – isolate components and minimise mocks.
 - [INST0008] **Do** use Structured Logging when available.
+- [INST0009] **Don't** widen a production API's visibility, add members, or change a member's signature just to make it reachable from tests (e.g., promoting `private` → `internal`/`protected` so tests can call it, adding test-only seams, opening setters). If a unit feels untestable through its public API, that's a design signal — refactor the dependency it's coupled to behind an interface, extract the hard-to-reach logic into its own publicly testable type, or inject collaborators via the constructor. The test pressure exists to drive the design change, not to be relieved by widening visibility.
