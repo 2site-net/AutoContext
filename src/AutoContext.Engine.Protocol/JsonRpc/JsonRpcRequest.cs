@@ -33,7 +33,7 @@ public sealed record JsonRpcRequest
     /// Protocol marker. Must equal <c>"2.0"</c> per JSON-RPC 2.0.
     /// </summary>
     [JsonPropertyName("jsonrpc")]
-    public string Jsonrpc { get; init; } = JsonRpcVersion.Value;
+    public string JsonRpc { get; init; } = JsonRpcVersion.Value;
 
     /// <summary>
     /// Caller-supplied request identifier. Echoed verbatim on the

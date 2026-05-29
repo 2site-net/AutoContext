@@ -26,7 +26,7 @@ internal static class JsonRpcTestClient
         ArgumentNullException.ThrowIfNull(codec);
         var request = new JsonRpcRequest
         {
-            Jsonrpc = JsonRpcVersion.Value,
+            JsonRpc = JsonRpcVersion.Value,
             Id = JsonSerializer.SerializeToElement(id),
             Method = method,
         };

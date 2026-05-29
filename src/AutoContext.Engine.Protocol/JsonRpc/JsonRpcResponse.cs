@@ -18,7 +18,7 @@ public sealed record JsonRpcResponse
     /// Protocol marker. Must equal <c>"2.0"</c>.
     /// </summary>
     [JsonPropertyName("jsonrpc")]
-    public string Jsonrpc { get; init; } = JsonRpcVersion.Value;
+    public string JsonRpc { get; init; } = JsonRpcVersion.Value;
 
     /// <summary>
     /// Echo of the request <c>id</c>. May be absent

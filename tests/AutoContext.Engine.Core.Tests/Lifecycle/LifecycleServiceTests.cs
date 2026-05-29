@@ -379,7 +379,7 @@ public sealed class LifecycleServiceTests(
 
         var request = new JsonRpcRequest
         {
-            Jsonrpc = JsonRpcVersion.Value,
+            JsonRpc = JsonRpcVersion.Value,
             Id = JsonDocument.Parse("9").RootElement,
             Method = "Engine.SomethingElse",
         };
@@ -411,7 +411,7 @@ public sealed class LifecycleServiceTests(
 
         var request = new JsonRpcRequest
         {
-            Jsonrpc = JsonRpcVersion.Value,
+            JsonRpc = JsonRpcVersion.Value,
             Id = JsonDocument.Parse("1").RootElement,
             Method = ProtocolMethods.Hello,
             Params = JsonDocument.Parse("{}").RootElement,

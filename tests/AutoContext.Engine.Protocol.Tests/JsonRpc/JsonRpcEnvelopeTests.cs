@@ -22,7 +22,7 @@ public sealed class JsonRpcEnvelopeTests
         // Assert
         Assert.NotNull(request);
         Assert.Multiple(
-            () => Assert.Equal("2.0", request!.Jsonrpc),
+            () => Assert.Equal("2.0", request!.JsonRpc),
             () => Assert.Equal(42, request!.Id.GetInt32()),
             () => Assert.Equal("Engine.Hello", request!.Method),
             () => Assert.NotNull(request!.Params),

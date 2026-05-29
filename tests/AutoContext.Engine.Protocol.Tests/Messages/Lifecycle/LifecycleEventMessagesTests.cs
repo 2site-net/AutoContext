@@ -88,7 +88,7 @@ public sealed class LifecycleEventMessagesTests
             () => Assert.Equal("Engine.Lifecycle", root.GetProperty("method").GetString()),
             () => Assert.False(root.TryGetProperty("id", out _)),
             () => Assert.NotNull(roundTripped),
-            () => Assert.Equal(JsonRpcVersion.Value, roundTripped!.Jsonrpc),
+            () => Assert.Equal(JsonRpcVersion.Value, roundTripped!.JsonRpc),
             () => Assert.Equal(LifecycleMethods.Notification, roundTripped!.Method),
             () => Assert.NotNull(decoded),
             () => Assert.Equal(LifecycleEventKinds.ShuttingDown, decoded!.Kind),

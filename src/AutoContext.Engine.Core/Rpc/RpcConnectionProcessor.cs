@@ -138,7 +138,7 @@ internal static partial class RpcConnectionProcessor
                 continue;
             }
 
-            if (request is null || request.Jsonrpc != JsonRpcVersion.Value)
+            if (request is null || request.JsonRpc != JsonRpcVersion.Value)
             {
                 var id = request is null
                     ? JsonRpcId.Null

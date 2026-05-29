@@ -65,7 +65,7 @@ internal static class EngineWireTestClient
 
         var request = new JsonRpcRequest
         {
-            Jsonrpc = JsonRpcVersion.Value,
+            JsonRpc = JsonRpcVersion.Value,
             Id = JsonDocument.Parse("1").RootElement,
             Method = ProtocolMethods.Hello,
             Params = paramsElement,
@@ -89,7 +89,7 @@ internal static class EngineWireTestClient
             .RootElement;
         var request = new JsonRpcRequest
         {
-            Jsonrpc = JsonRpcVersion.Value,
+            JsonRpc = JsonRpcVersion.Value,
             Id = idElement,
             Method = method,
         };
