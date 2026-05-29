@@ -1,8 +1,11 @@
 namespace AutoContext.Engine.Core.Rpc.Policies;
 
+using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using System.Text.Json;
 
 using AutoContext.Engine.Core.Logging;
+using AutoContext.Engine.Core.Logging.Primitives;
 using AutoContext.Engine.Core.Registry;
 using AutoContext.Engine.Protocol;
 using AutoContext.Engine.Protocol.JsonRpc;
@@ -50,22 +53,26 @@ internal sealed partial class DispatchPolicy : IRpcConnectionPolicy
     private readonly IHostApplicationLifetime _lifetime;
     private readonly RegistryFileReader _registryReader;
     private readonly EngineLogFileReader _logFileReader;
+    private readonly LogSubscriptionBroadcaster _logsBroadcaster;
     private readonly ILogger _logger;
 
     public DispatchPolicy(
         IHostApplicationLifetime lifetime,
         RegistryFileReader registryReader,
         EngineLogFileReader logFileReader,
+        LogSubscriptionBroadcaster logsBroadcaster,
         ILogger logger)
     {
         ArgumentNullException.ThrowIfNull(lifetime);
         ArgumentNullException.ThrowIfNull(registryReader);
         ArgumentNullException.ThrowIfNull(logFileReader);
+        ArgumentNullException.ThrowIfNull(logsBroadcaster);
         ArgumentNullException.ThrowIfNull(logger);
 
         _lifetime = lifetime;
         _registryReader = registryReader;
         _logFileReader = logFileReader;
+        _logsBroadcaster = logsBroadcaster;
         _logger = logger;
     }
 
@@ -106,6 +113,9 @@ internal sealed partial class DispatchPolicy : IRpcConnectionPolicy
             case LogsMethods.GetEngine:
                 return await HandleLogsGetEngineAsync(request, cancellationToken)
                     .ConfigureAwait(false);
+
+            case LogsMethods.TailEngine:
+                return HandleLogsTailEngine();
 
             case ProtocolMethods.Shutdown:
                 return HandleShutdown();
@@ -229,6 +239,39 @@ internal sealed partial class DispatchPolicy : IRpcConnectionPolicy
                     },
                 },
                 Continuation: Continuation.Continue);
+        }
+    }
+
+    [SuppressMessage("Reliability", "CA2000",
+        Justification = "Ownership of the subscription is handed off to StreamingHandlerResult.PostFlush, which the RpcConnectionProcessor runs in a finally block — disposal is guaranteed on every path.")]
+    private StreamingHandlerResult HandleLogsTailEngine()
+    {
+        // Subscription is created up-front so its disposal can be
+        // routed through StreamingHandlerResult.PostFlush, which
+        // the processor runs in a finally — guaranteeing the
+        // broadcaster slot is released even when the peer hangs
+        // up mid-stream or the iterator faults.
+        var subscription = _logsBroadcaster.Subscribe();
+
+        return new StreamingHandlerResult(
+            Payloads: MapFramesAsync(subscription),
+            PostFlush: () =>
+            {
+                subscription.Dispose();
+                return Task.CompletedTask;
+            });
+    }
+
+    private static async IAsyncEnumerable<JsonElement> MapFramesAsync(
+        LogSubscription subscription,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        await foreach (var frame in subscription
+            .ReadAllAsync(cancellationToken)
+            .ConfigureAwait(false))
+        {
+            yield return JsonSerializer.SerializeToElement(
+                frame, ProtocolJsonContext.Default.LogStreamFrame);
         }
     }
 

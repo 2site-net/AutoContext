@@ -1130,11 +1130,15 @@ additional commits ship on a Phase 3 prelude branch:
    `finally` for streaming so handler-supplied cleanup
    (subscription disposal) cannot leak even when the peer hangs
    up mid-stream.
-2. `feat(engine): serve Logs.TailEngine over rpc` — the deferred
-   half of Phase 2 row 6, now trivial on top of (1): consume
-   `LogSubscriptionBroadcaster.Subscribe()`, yield each
-   `LogStreamFrame` (record/evicted) as a `JsonElement`; subscription
-   disposal handed off to `StreamingHandlerResult.PostFlush`.
+2. `feat(engine): serve Logs.TailEngine over rpc` — **DONE**.
+   The deferred half of Phase 2 row 6, now trivial on top of (1):
+   `DispatchPolicy` consumes
+   `LogSubscriptionBroadcaster.Subscribe()` and yields each
+   `LogStreamFrame` (record/evicted) as a `JsonElement`;
+   subscription disposal is handed off to
+   `StreamingHandlerResult.PostFlush` so the processor's `finally`
+   guarantees the broadcaster slot is released even on
+   peer-close, cancellation, or iterator fault.
 
 With those landed, `Config.Subscribe` and every later `*.Subscribe`
 row becomes a small additive change.

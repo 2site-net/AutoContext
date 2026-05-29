@@ -455,7 +455,7 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
                 _ = await RpcConnectionProcessor
                     .RunAsync(
                         stream,
-                        new DispatchPolicy(_applicationLifetime, _registryReader, _logFileReader, _logger),
+                        new DispatchPolicy(_applicationLifetime, _registryReader, _logFileReader, _logsBroadcaster, _logger),
                         _logger,
                         cancellationToken)
                     .ConfigureAwait(false);

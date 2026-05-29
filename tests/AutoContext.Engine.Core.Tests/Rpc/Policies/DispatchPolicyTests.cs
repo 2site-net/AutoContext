@@ -12,7 +12,9 @@ using AutoContext.Engine.Core.Tests.Support.Shared;
 using AutoContext.Engine.Protocol;
 using AutoContext.Engine.Protocol.JsonRpc;
 using AutoContext.Engine.Protocol.Messages;
+using AutoContext.Engine.Protocol.Messages.Logs;
 using AutoContext.Engine.Protocol.Messages.Registry;
+using AutoContext.Engine.Protocol.Serialization;
 
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -27,7 +29,7 @@ public sealed class DispatchPolicyTests(TempDirectoryFixture tempDirectory)
     {
         // Arrange + Act + Assert
         Assert.Throws<ArgumentNullException>(
-            () => new DispatchPolicy(null!, RegistryFileReaderTestFactory.Create(tempDirectory.CreatePath(RegistryFileName)), LifecycleServiceFixture.CreateLogFileReader(), NullLogger.Instance));
+            () => new DispatchPolicy(null!, RegistryFileReaderTestFactory.Create(tempDirectory.CreatePath(RegistryFileName)), LifecycleServiceFixture.CreateLogFileReader(), LifecycleServiceFixture.CreateLogsBroadcaster(), NullLogger.Instance));
     }
 
     [Fact]
@@ -38,7 +40,7 @@ public sealed class DispatchPolicyTests(TempDirectoryFixture tempDirectory)
 
         // Act + Assert
         Assert.Throws<ArgumentNullException>(
-            () => new DispatchPolicy(lifetime, registryReader: null!, LifecycleServiceFixture.CreateLogFileReader(), NullLogger.Instance));
+            () => new DispatchPolicy(lifetime, registryReader: null!, LifecycleServiceFixture.CreateLogFileReader(), LifecycleServiceFixture.CreateLogsBroadcaster(), NullLogger.Instance));
     }
 
     [Fact]
@@ -49,7 +51,18 @@ public sealed class DispatchPolicyTests(TempDirectoryFixture tempDirectory)
 
         // Act + Assert
         Assert.Throws<ArgumentNullException>(
-            () => new DispatchPolicy(lifetime, RegistryFileReaderTestFactory.Create(tempDirectory.CreatePath(RegistryFileName)), logFileReader: null!, NullLogger.Instance));
+            () => new DispatchPolicy(lifetime, RegistryFileReaderTestFactory.Create(tempDirectory.CreatePath(RegistryFileName)), logFileReader: null!, LifecycleServiceFixture.CreateLogsBroadcaster(), NullLogger.Instance));
+    }
+
+    [Fact]
+    public void Should_throw_when_constructed_with_null_logsBroadcaster()
+    {
+        // Arrange
+        using var lifetime = new FakeHostApplicationLifetime();
+
+        // Act + Assert
+        Assert.Throws<ArgumentNullException>(
+            () => new DispatchPolicy(lifetime, RegistryFileReaderTestFactory.Create(tempDirectory.CreatePath(RegistryFileName)), LifecycleServiceFixture.CreateLogFileReader(), logsBroadcaster: null!, NullLogger.Instance));
     }
 
     [Fact]
@@ -60,7 +73,7 @@ public sealed class DispatchPolicyTests(TempDirectoryFixture tempDirectory)
 
         // Act + Assert
         Assert.Throws<ArgumentNullException>(
-            () => new DispatchPolicy(lifetime, RegistryFileReaderTestFactory.Create(tempDirectory.CreatePath(RegistryFileName)), LifecycleServiceFixture.CreateLogFileReader(), logger: null!));
+            () => new DispatchPolicy(lifetime, RegistryFileReaderTestFactory.Create(tempDirectory.CreatePath(RegistryFileName)), LifecycleServiceFixture.CreateLogFileReader(), LifecycleServiceFixture.CreateLogsBroadcaster(), logger: null!));
     }
 
     [Fact]
@@ -68,7 +81,7 @@ public sealed class DispatchPolicyTests(TempDirectoryFixture tempDirectory)
     {
         // Arrange
         using var lifetime = new FakeHostApplicationLifetime();
-        var policy = new DispatchPolicy(lifetime, RegistryFileReaderTestFactory.Create(tempDirectory.CreatePath(RegistryFileName)), LifecycleServiceFixture.CreateLogFileReader(), NullLogger.Instance);
+        var policy = new DispatchPolicy(lifetime, RegistryFileReaderTestFactory.Create(tempDirectory.CreatePath(RegistryFileName)), LifecycleServiceFixture.CreateLogFileReader(), LifecycleServiceFixture.CreateLogsBroadcaster(), NullLogger.Instance);
 
         // Act + Assert
         Assert.Multiple(
@@ -85,7 +98,7 @@ public sealed class DispatchPolicyTests(TempDirectoryFixture tempDirectory)
         // Arrange
         var recorder = new FakeRecordingLogger();
         using var lifetime = new FakeHostApplicationLifetime();
-        var policy = new DispatchPolicy(lifetime, RegistryFileReaderTestFactory.Create(tempDirectory.CreatePath(RegistryFileName)), LifecycleServiceFixture.CreateLogFileReader(), recorder);
+        var policy = new DispatchPolicy(lifetime, RegistryFileReaderTestFactory.Create(tempDirectory.CreatePath(RegistryFileName)), LifecycleServiceFixture.CreateLogFileReader(), LifecycleServiceFixture.CreateLogsBroadcaster(), recorder);
         var boom = new InvalidOperationException("framing");
 
         // Act
@@ -104,7 +117,7 @@ public sealed class DispatchPolicyTests(TempDirectoryFixture tempDirectory)
         // Arrange
         var recorder = new FakeRecordingLogger();
         using var lifetime = new FakeHostApplicationLifetime();
-        var policy = new DispatchPolicy(lifetime, RegistryFileReaderTestFactory.Create(tempDirectory.CreatePath(RegistryFileName)), LifecycleServiceFixture.CreateLogFileReader(), recorder);
+        var policy = new DispatchPolicy(lifetime, RegistryFileReaderTestFactory.Create(tempDirectory.CreatePath(RegistryFileName)), LifecycleServiceFixture.CreateLogFileReader(), LifecycleServiceFixture.CreateLogsBroadcaster(), recorder);
 
         // Act
         policy.LogFrameInvalidRequest();
@@ -120,7 +133,7 @@ public sealed class DispatchPolicyTests(TempDirectoryFixture tempDirectory)
         // Arrange
         var recorder = new FakeRecordingLogger();
         using var lifetime = new FakeHostApplicationLifetime();
-        var policy = new DispatchPolicy(lifetime, RegistryFileReaderTestFactory.Create(tempDirectory.CreatePath(RegistryFileName)), LifecycleServiceFixture.CreateLogFileReader(), recorder);
+        var policy = new DispatchPolicy(lifetime, RegistryFileReaderTestFactory.Create(tempDirectory.CreatePath(RegistryFileName)), LifecycleServiceFixture.CreateLogFileReader(), LifecycleServiceFixture.CreateLogsBroadcaster(), recorder);
 
         // Act
         policy.LogConnectionClosedByPeer();
@@ -138,7 +151,7 @@ public sealed class DispatchPolicyTests(TempDirectoryFixture tempDirectory)
         new RegistryFileWriter(registryPath).Write(seeded);
         var reader = new RegistryFileReader(registryPath);
         using var lifetime = new FakeHostApplicationLifetime();
-        var policy = new DispatchPolicy(lifetime, reader, LifecycleServiceFixture.CreateLogFileReader(), NullLogger.Instance);
+        var policy = new DispatchPolicy(lifetime, reader, LifecycleServiceFixture.CreateLogFileReader(), LifecycleServiceFixture.CreateLogsBroadcaster(), NullLogger.Instance);
         var request = JsonRpcRequestTestFactory.BuildRequest(RegistryMethods.RegistryEntries);
 
         // Act
@@ -170,7 +183,7 @@ public sealed class DispatchPolicyTests(TempDirectoryFixture tempDirectory)
         };
         var reader = new RegistryFileReader(registryPath, readerOptions);
         using var lifetime = new FakeHostApplicationLifetime();
-        var policy = new DispatchPolicy(lifetime, reader, LifecycleServiceFixture.CreateLogFileReader(), NullLogger.Instance);
+        var policy = new DispatchPolicy(lifetime, reader, LifecycleServiceFixture.CreateLogFileReader(), LifecycleServiceFixture.CreateLogsBroadcaster(), NullLogger.Instance);
         var request = JsonRpcRequestTestFactory.BuildRequest(RegistryMethods.RegistryEntries);
         using var lockedHandle = new FileStream(
             registryPath, FileMode.Open, FileAccess.Read, FileShare.None);
@@ -191,7 +204,7 @@ public sealed class DispatchPolicyTests(TempDirectoryFixture tempDirectory)
     {
         // Arrange
         using var lifetime = new FakeHostApplicationLifetime();
-        var policy = new DispatchPolicy(lifetime, RegistryFileReaderTestFactory.Create(tempDirectory.CreatePath(RegistryFileName)), LifecycleServiceFixture.CreateLogFileReader(), NullLogger.Instance);
+        var policy = new DispatchPolicy(lifetime, RegistryFileReaderTestFactory.Create(tempDirectory.CreatePath(RegistryFileName)), LifecycleServiceFixture.CreateLogFileReader(), LifecycleServiceFixture.CreateLogsBroadcaster(), NullLogger.Instance);
         var request = JsonRpcRequestTestFactory.BuildRequest(ProtocolMethods.Shutdown);
 
         // Act
@@ -212,7 +225,7 @@ public sealed class DispatchPolicyTests(TempDirectoryFixture tempDirectory)
     {
         // Arrange
         using var lifetime = new FakeHostApplicationLifetime();
-        var policy = new DispatchPolicy(lifetime, RegistryFileReaderTestFactory.Create(tempDirectory.CreatePath(RegistryFileName)), LifecycleServiceFixture.CreateLogFileReader(), NullLogger.Instance);
+        var policy = new DispatchPolicy(lifetime, RegistryFileReaderTestFactory.Create(tempDirectory.CreatePath(RegistryFileName)), LifecycleServiceFixture.CreateLogFileReader(), LifecycleServiceFixture.CreateLogsBroadcaster(), NullLogger.Instance);
         var request = JsonRpcRequestTestFactory.BuildRequest("Engine.WhoKnows");
 
         // Act
@@ -236,8 +249,9 @@ public sealed class DispatchPolicyTests(TempDirectoryFixture tempDirectory)
             lifetime,
             RegistryFileReaderTestFactory.Create(tempDirectory.CreatePath(RegistryFileName)),
             LifecycleServiceFixture.CreateLogFileReader(),
+            LifecycleServiceFixture.CreateLogsBroadcaster(),
             NullLogger.Instance);
-        var request = JsonRpcRequestTestFactory.BuildRequest(Protocol.Messages.Logs.LogsMethods.GetEngine);
+        var request = JsonRpcRequestTestFactory.BuildRequest(LogsMethods.GetEngine);
 
         // Act
         var result = Assert.IsType<UnaryHandlerResult>(
@@ -251,7 +265,7 @@ public sealed class DispatchPolicyTests(TempDirectoryFixture tempDirectory)
 
         var payload = JsonSerializer.Deserialize(
             result.Response.Result!.Value,
-            Protocol.Serialization.ProtocolJsonContext.Default.LogsGetEngineResult);
+            ProtocolJsonContext.Default.LogsGetEngineResult);
         Assert.NotNull(payload);
         Assert.Multiple(
             () => Assert.Empty(payload!.Records),
@@ -267,13 +281,14 @@ public sealed class DispatchPolicyTests(TempDirectoryFixture tempDirectory)
             lifetime,
             RegistryFileReaderTestFactory.Create(tempDirectory.CreatePath(RegistryFileName)),
             LifecycleServiceFixture.CreateLogFileReader(),
+            LifecycleServiceFixture.CreateLogsBroadcaster(),
             NullLogger.Instance);
 
         // params is a JSON string, not the expected object shape
         var badParams = JsonSerializer.SerializeToElement("not-an-object");
         var request = new JsonRpcRequest
         {
-            Method = Protocol.Messages.Logs.LogsMethods.GetEngine,
+            Method = LogsMethods.GetEngine,
             Id = JsonSerializer.SerializeToElement(1),
             Params = badParams,
         };
@@ -298,14 +313,15 @@ public sealed class DispatchPolicyTests(TempDirectoryFixture tempDirectory)
             lifetime,
             RegistryFileReaderTestFactory.Create(tempDirectory.CreatePath(RegistryFileName)),
             LifecycleServiceFixture.CreateLogFileReader(),
+            LifecycleServiceFixture.CreateLogsBroadcaster(),
             NullLogger.Instance);
 
         var badParams = JsonSerializer.SerializeToElement(
-            new Protocol.Messages.Logs.LogsGetEngineParams { LastN = -1 },
-            Protocol.Serialization.ProtocolJsonContext.Default.LogsGetEngineParams);
+            new LogsGetEngineParams { LastN = -1 },
+            ProtocolJsonContext.Default.LogsGetEngineParams);
         var request = new JsonRpcRequest
         {
-            Method = Protocol.Messages.Logs.LogsMethods.GetEngine,
+            Method = LogsMethods.GetEngine,
             Id = JsonSerializer.SerializeToElement(1),
             Params = badParams,
         };
@@ -319,5 +335,64 @@ public sealed class DispatchPolicyTests(TempDirectoryFixture tempDirectory)
             () => Assert.Equal(Continuation.Continue, result.Continuation),
             () => Assert.NotNull(result.Response.Error),
             () => Assert.Equal(JsonRpcErrorCodes.InvalidParams, result.Response.Error!.Code));
+    }
+
+    [Fact]
+    public async Task Should_stream_record_frames_until_broadcaster_completes_for_Logs_TailEngine()
+    {
+        // Arrange
+        using var lifetime = new FakeHostApplicationLifetime();
+        var broadcaster = LifecycleServiceFixture.CreateLogsBroadcaster();
+        var policy = new DispatchPolicy(
+            lifetime,
+            RegistryFileReaderTestFactory.Create(tempDirectory.CreatePath(RegistryFileName)),
+            LifecycleServiceFixture.CreateLogFileReader(),
+            broadcaster,
+            NullLogger.Instance);
+        var request = JsonRpcRequestTestFactory.BuildRequest(LogsMethods.TailEngine);
+
+        // Act — invoke the handler to enrol a subscriber, then
+        // pump two records through and complete the broadcaster so
+        // the stream terminates cleanly.
+        var result = await policy.InvokeAsync(request, TestContext.Current.CancellationToken);
+        var streaming = Assert.IsType<StreamingHandlerResult>(result);
+
+        var first = new LogRecord
+        {
+            Timestamp = DateTimeOffset.UnixEpoch,
+            Category = "test",
+            Level = LogLevels.Information,
+            Message = "hello",
+        };
+        var second = first with
+        {
+            Timestamp = DateTimeOffset.UnixEpoch.AddSeconds(1),
+            Message = "world",
+        };
+        Assert.True(broadcaster.TryPublish(first));
+        Assert.True(broadcaster.TryPublish(second));
+        broadcaster.Complete();
+
+        var frames = new List<JsonElement>();
+        await foreach (var frame in streaming.Payloads
+            .WithCancellation(TestContext.Current.CancellationToken))
+        {
+            frames.Add(frame);
+        }
+
+        // PostFlush is handler-supplied cleanup (subscription
+        // disposal) — invoke it to mirror what the processor's
+        // finally block does after a streaming response completes.
+        Assert.NotNull(streaming.PostFlush);
+        await streaming.PostFlush!();
+
+        // Assert
+        Assert.Multiple(
+            () => Assert.Equal(Continuation.Complete, streaming.Continuation),
+            () => Assert.Equal(2, frames.Count),
+            () => Assert.Equal("record", frames[0].GetProperty("kind").GetString()),
+            () => Assert.Equal("hello", frames[0].GetProperty("record").GetProperty("message").GetString()),
+            () => Assert.Equal("record", frames[1].GetProperty("kind").GetString()),
+            () => Assert.Equal("world", frames[1].GetProperty("record").GetProperty("message").GetString()));
     }
 }

@@ -19,4 +19,17 @@ public static class LogsMethods
     /// requested range. Defined in <c>design § RPC surface</c>.
     /// </summary>
     public const string GetEngine = "Logs.GetEngine";
+
+    /// <summary>
+    /// Server-streaming RPC that tails the engine's live
+    /// <see cref="LogRecord"/> firehose: each frame on the wire
+    /// is a <see cref="LogStreamFrame"/> (<see cref="LogRecordFrame"/>
+    /// for records or a terminal <see cref="LogEvictedFrame"/> when
+    /// the subscriber is evicted for slowness) carried as the
+    /// <c>result</c> of a <c>JsonRpcStreamNext</c> envelope.
+    /// Graceful broadcaster completion or peer-close terminates
+    /// the stream without a wire-level error. Defined in
+    /// <c>design § RPC surface</c>.
+    /// </summary>
+    public const string TailEngine = "Logs.TailEngine";
 }
