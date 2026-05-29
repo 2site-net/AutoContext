@@ -125,7 +125,8 @@ public sealed class ProgramTests
             Assert.Multiple(
                 () => Assert.NotEqual(0, exitCode),
                 () => Assert.Equal(string.Empty, stdout.ToString()),
-                () => Assert.Contains("Phase 11", stderr.ToString(), StringComparison.Ordinal));
+                () => Assert.Contains("not implemented", stderr.ToString(), StringComparison.Ordinal),
+                () => Assert.Contains("--mcp-server with-stdio", stderr.ToString(), StringComparison.Ordinal));
         }
         finally
         {
