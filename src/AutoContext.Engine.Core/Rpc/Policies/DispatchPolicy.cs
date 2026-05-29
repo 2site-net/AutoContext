@@ -7,6 +7,7 @@ using System.Text.Json;
 using AutoContext.Engine.Core.Logging;
 using AutoContext.Engine.Core.Logging.Primitives;
 using AutoContext.Engine.Core.Registry;
+using AutoContext.Engine.Core.Rpc.Results;
 using AutoContext.Engine.Protocol;
 using AutoContext.Engine.Protocol.JsonRpc;
 using AutoContext.Engine.Protocol.Messages;

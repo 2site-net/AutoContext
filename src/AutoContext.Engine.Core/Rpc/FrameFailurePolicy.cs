@@ -1,4 +1,4 @@
-namespace AutoContext.Engine.Core.Rpc.Policies;
+namespace AutoContext.Engine.Core.Rpc;
 
 /// <summary>
 /// Whether the <see cref="RpcConnectionProcessor"/> should keep

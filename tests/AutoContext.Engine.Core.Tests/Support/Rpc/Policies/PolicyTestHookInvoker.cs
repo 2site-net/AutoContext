@@ -1,6 +1,6 @@
 namespace AutoContext.Engine.Core.Tests.Support.Rpc.Policies;
 
-using AutoContext.Engine.Core.Rpc.Policies;
+using AutoContext.Engine.Core.Rpc;
 
 /// <summary>
 /// Invokes one of the three <see cref="IRpcConnectionPolicy"/> log-fault

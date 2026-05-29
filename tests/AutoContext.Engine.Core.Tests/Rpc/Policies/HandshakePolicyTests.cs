@@ -2,7 +2,9 @@ namespace AutoContext.Engine.Core.Tests.Rpc.Policies;
 
 using System.Text.Json;
 
+using AutoContext.Engine.Core.Rpc;
 using AutoContext.Engine.Core.Rpc.Policies;
+using AutoContext.Engine.Core.Rpc.Results;
 using AutoContext.Engine.Core.Tests.Support.Rpc.Policies;
 using AutoContext.Engine.Core.Tests.Support.Shared;
 using AutoContext.Engine.Protocol;

@@ -1,4 +1,4 @@
-namespace AutoContext.Engine.Core.Rpc.Policies;
+namespace AutoContext.Engine.Core.Rpc.Results;
 
 using System.Text.Json;
 

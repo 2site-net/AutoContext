@@ -1,5 +1,6 @@
-namespace AutoContext.Engine.Core.Rpc.Policies;
+namespace AutoContext.Engine.Core.Rpc;
 
+using AutoContext.Engine.Core.Rpc.Results;
 using AutoContext.Engine.Protocol;
 using AutoContext.Engine.Protocol.JsonRpc;
 
