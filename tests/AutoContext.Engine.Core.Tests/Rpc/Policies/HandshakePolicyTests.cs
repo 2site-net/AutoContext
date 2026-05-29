@@ -96,7 +96,8 @@ public sealed class HandshakePolicyTests
         var request = JsonRpcRequestTestFactory.BuildHelloRequest("Engine.SomethingElse", protocolVersion: ProtocolVersion.Current);
 
         // Act
-        var result = await policy.InvokeAsync(request, TestContext.Current.CancellationToken);
+        var result = Assert.IsType<UnaryHandlerResult>(
+            await policy.InvokeAsync(request, TestContext.Current.CancellationToken));
 
         // Assert
         Assert.Multiple(
@@ -118,7 +119,8 @@ public sealed class HandshakePolicyTests
         };
 
         // Act
-        var result = await policy.InvokeAsync(request, TestContext.Current.CancellationToken);
+        var result = Assert.IsType<UnaryHandlerResult>(
+            await policy.InvokeAsync(request, TestContext.Current.CancellationToken));
 
         // Assert
         Assert.Multiple(
@@ -134,7 +136,8 @@ public sealed class HandshakePolicyTests
         var request = JsonRpcRequestTestFactory.BuildHelloRequest(ProtocolMethods.Hello, protocolVersion: null);
 
         // Act
-        var result = await policy.InvokeAsync(request, TestContext.Current.CancellationToken);
+        var result = Assert.IsType<UnaryHandlerResult>(
+            await policy.InvokeAsync(request, TestContext.Current.CancellationToken));
 
         // Assert
         Assert.Multiple(
@@ -151,7 +154,8 @@ public sealed class HandshakePolicyTests
             ProtocolMethods.Hello, protocolVersion: ProtocolVersion.Current + 1);
 
         // Act
-        var result = await policy.InvokeAsync(request, TestContext.Current.CancellationToken);
+        var result = Assert.IsType<UnaryHandlerResult>(
+            await policy.InvokeAsync(request, TestContext.Current.CancellationToken));
 
         // Assert
         Assert.Multiple(
@@ -168,7 +172,8 @@ public sealed class HandshakePolicyTests
             ProtocolMethods.Hello, protocolVersion: ProtocolVersion.Current);
 
         // Act
-        var result = await policy.InvokeAsync(request, TestContext.Current.CancellationToken);
+        var result = Assert.IsType<UnaryHandlerResult>(
+            await policy.InvokeAsync(request, TestContext.Current.CancellationToken));
 
         // Assert
         Assert.Multiple(

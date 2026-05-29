@@ -112,7 +112,7 @@ internal sealed partial class DispatchPolicy : IRpcConnectionPolicy
 
             default:
                 LogMethodNotFound(_logger, request.Method);
-                return new RpcHandlerResult(
+                return new UnaryHandlerResult(
                     Response: new JsonRpcResponse
                     {
                         Error = new JsonRpcError
@@ -137,14 +137,14 @@ internal sealed partial class DispatchPolicy : IRpcConnectionPolicy
             var resultElement = JsonSerializer.SerializeToElement(
                 result, ProtocolJsonContext.Default.RegistryEntriesResult);
 
-            return new RpcHandlerResult(
+            return new UnaryHandlerResult(
                 Response: new JsonRpcResponse { Result = resultElement },
                 Continuation: Continuation.Continue);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             LogRegistryEntriesFailed(_logger, ex);
-            return new RpcHandlerResult(
+            return new UnaryHandlerResult(
                 Response: new JsonRpcResponse
                 {
                     Error = new JsonRpcError
@@ -171,7 +171,7 @@ internal sealed partial class DispatchPolicy : IRpcConnectionPolicy
         catch (JsonException ex)
         {
             LogParamsParseFailed(_logger, LogsMethods.GetEngine, ex);
-            return new RpcHandlerResult(
+            return new UnaryHandlerResult(
                 Response: new JsonRpcResponse
                 {
                     Error = new JsonRpcError
@@ -186,7 +186,7 @@ internal sealed partial class DispatchPolicy : IRpcConnectionPolicy
         if (parameters?.LastN is < 0)
         {
             LogLogsGetEngineRejectedNegativeLastN(_logger, parameters.LastN.GetValueOrDefault());
-            return new RpcHandlerResult(
+            return new UnaryHandlerResult(
                 Response: new JsonRpcResponse
                 {
                     Error = new JsonRpcError
@@ -212,14 +212,14 @@ internal sealed partial class DispatchPolicy : IRpcConnectionPolicy
             var resultElement = JsonSerializer.SerializeToElement(
                 result, ProtocolJsonContext.Default.LogsGetEngineResult);
 
-            return new RpcHandlerResult(
+            return new UnaryHandlerResult(
                 Response: new JsonRpcResponse { Result = resultElement },
                 Continuation: Continuation.Continue);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             LogLogsGetEngineFailed(_logger, ex);
-            return new RpcHandlerResult(
+            return new UnaryHandlerResult(
                 Response: new JsonRpcResponse
                 {
                     Error = new JsonRpcError
@@ -232,13 +232,13 @@ internal sealed partial class DispatchPolicy : IRpcConnectionPolicy
         }
     }
 
-    private RpcHandlerResult HandleShutdown()
+    private UnaryHandlerResult HandleShutdown()
     {
         var result = new ShutdownResult { Accepted = true };
         var resultElement = JsonSerializer.SerializeToElement(
             result, ProtocolJsonContext.Default.ShutdownResult);
 
-        return new RpcHandlerResult(
+        return new UnaryHandlerResult(
             Response: new JsonRpcResponse { Result = resultElement },
             Continuation: Continuation.Complete,
             PostFlush: () =>

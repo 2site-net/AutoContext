@@ -1113,13 +1113,28 @@ is the first phase that needs `*.Subscribe` semantics
 for the same reason. Before Phase 3's first row lands, two
 additional commits ship on a Phase 3 prelude branch:
 
-1. `feat(engine-core): support server-streaming responses on rpc pipe`
-   — one stream per connection, terminal-frame discipline,
-   cancellation = peer close. Frame shape carries a request-id
-   correlator from day one so a later multiplex commit is
-   wire-additive, not breaking.
+1. `feat(engine-core): support rpc server-streaming` — **DONE**.
+   Introduces the discriminated `JsonRpcStreamFrame` envelope
+   (`kind: "next" | "complete" | "error"`, request id echoed on
+   every frame as a future-multiplex correlator) and splits
+   `RpcHandlerResult` into two sealed records: `UnaryHandlerResult`
+   (the existing single-`JsonRpcResponse` shape) and
+   `StreamingHandlerResult` (an `IAsyncEnumerable<JsonElement>` of
+   payloads, terminated by exactly one synthesised
+   `JsonRpcStreamComplete` or `JsonRpcStreamError` frame).
+   `RpcConnectionProcessor` type-switches on the result; streaming
+   is always terminal (one stream per connection); cancellation /
+   peer-close exit without a terminal frame; iterator faults
+   surface as a structured `JsonRpcStreamError` (generic message
+   on the wire, full exception logged). `PostFlush` runs in a
+   `finally` for streaming so handler-supplied cleanup
+   (subscription disposal) cannot leak even when the peer hangs
+   up mid-stream.
 2. `feat(engine): serve Logs.TailEngine over rpc` — the deferred
-   half of Phase 2 row 6, now trivial on top of (1).
+   half of Phase 2 row 6, now trivial on top of (1): consume
+   `LogSubscriptionBroadcaster.Subscribe()`, yield each
+   `LogStreamFrame` (record/evicted) as a `JsonElement`; subscription
+   disposal handed off to `StreamingHandlerResult.PostFlush`.
 
 With those landed, `Config.Subscribe` and every later `*.Subscribe`
 row becomes a small additive change.

@@ -48,4 +48,23 @@ internal static class JsonRpcTestClient
         Assert.NotNull(response);
         return response!;
     }
+
+    /// <summary>
+    /// Reads a single server-streaming <see cref="JsonRpcStreamFrame"/>
+    /// from the wire. Times out after 5 seconds to keep failing
+    /// tests fast.
+    /// </summary>
+    public static async Task<JsonRpcStreamFrame> ReadStreamFrameAsync(
+        LengthPrefixedFrameCodec codec, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(codec);
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        cts.CancelAfter(TimeSpan.FromSeconds(5));
+        var bytes = await codec.ReadAsync(cts.Token).ConfigureAwait(false);
+        Assert.NotNull(bytes);
+        var frame = JsonSerializer.Deserialize(
+            bytes!, ProtocolJsonContext.Default.JsonRpcStreamFrame);
+        Assert.NotNull(frame);
+        return frame!;
+    }
 }

@@ -27,7 +27,7 @@ public sealed class RpcConnectionProcessorTests
 
         var policy = new FakeRpcConnectionPolicy
         {
-            OnInvoke = (_, _) => ValueTask.FromResult(new RpcHandlerResult(
+            OnInvoke = (_, _) => ValueTask.FromResult<RpcHandlerResult>(new UnaryHandlerResult(
                 Response: JsonRpcResponseFakeData.BuildOkResponse(),
                 Continuation: Continuation.Complete)),
         };
@@ -58,7 +58,7 @@ public sealed class RpcConnectionProcessorTests
 
         var policy = new FakeRpcConnectionPolicy
         {
-            OnInvoke = (_, _) => ValueTask.FromResult(new RpcHandlerResult(
+            OnInvoke = (_, _) => ValueTask.FromResult<RpcHandlerResult>(new UnaryHandlerResult(
                 Response: JsonRpcResponseFakeData.BuildErrorResponse(-1, "nope"),
                 Continuation: Continuation.Abort)),
         };
@@ -93,7 +93,7 @@ public sealed class RpcConnectionProcessorTests
             OnInvoke = (_, _) =>
             {
                 Interlocked.Increment(ref invocations);
-                return ValueTask.FromResult(new RpcHandlerResult(
+                return ValueTask.FromResult<RpcHandlerResult>(new UnaryHandlerResult(
                     Response: JsonRpcResponseFakeData.BuildOkResponse(),
                     Continuation: Continuation.Continue));
             },
@@ -168,7 +168,7 @@ public sealed class RpcConnectionProcessorTests
             OnInvoke = (_, _) =>
             {
                 followUpServed = true;
-                return ValueTask.FromResult(new RpcHandlerResult(
+                return ValueTask.FromResult<RpcHandlerResult>(new UnaryHandlerResult(
                     Response: JsonRpcResponseFakeData.BuildOkResponse(),
                     Continuation: Continuation.Continue));
             },
@@ -221,7 +221,7 @@ public sealed class RpcConnectionProcessorTests
             OnInvoke = (_, _) =>
             {
                 followUpServed = true;
-                return ValueTask.FromResult(new RpcHandlerResult(
+                return ValueTask.FromResult<RpcHandlerResult>(new UnaryHandlerResult(
                     Response: JsonRpcResponseFakeData.BuildOkResponse(),
                     Continuation: Continuation.Continue));
             },
@@ -297,7 +297,7 @@ public sealed class RpcConnectionProcessorTests
 
         var policy = new FakeRpcConnectionPolicy
         {
-            OnInvoke = (_, _) => ValueTask.FromResult(new RpcHandlerResult(
+            OnInvoke = (_, _) => ValueTask.FromResult<RpcHandlerResult>(new UnaryHandlerResult(
                 Response: new JsonRpcResponse { Result = JsonDocument.Parse("{}").RootElement },
                 Continuation: Continuation.Complete)),
         };
@@ -327,7 +327,7 @@ public sealed class RpcConnectionProcessorTests
 
         var policy = new FakeRpcConnectionPolicy
         {
-            OnInvoke = (_, _) => ValueTask.FromResult(new RpcHandlerResult(
+            OnInvoke = (_, _) => ValueTask.FromResult<RpcHandlerResult>(new UnaryHandlerResult(
                 Response: new JsonRpcResponse { Result = JsonDocument.Parse("{}").RootElement },
                 Continuation: Continuation.Complete)),
         };
@@ -361,7 +361,7 @@ public sealed class RpcConnectionProcessorTests
 
         var policy = new FakeRpcConnectionPolicy
         {
-            OnInvoke = (_, _) => ValueTask.FromResult(new RpcHandlerResult(
+            OnInvoke = (_, _) => ValueTask.FromResult<RpcHandlerResult>(new UnaryHandlerResult(
                 Response: JsonRpcResponseFakeData.BuildOkResponse(),
                 Continuation: Continuation.Complete,
                 PostFlush: () =>
@@ -400,7 +400,7 @@ public sealed class RpcConnectionProcessorTests
 
         var policy = new FakeRpcConnectionPolicy
         {
-            OnInvoke = (_, _) => ValueTask.FromResult(new RpcHandlerResult(
+            OnInvoke = (_, _) => ValueTask.FromResult<RpcHandlerResult>(new UnaryHandlerResult(
                 Response: JsonRpcResponseFakeData.BuildOkResponse(),
                 Continuation: Continuation.Complete,
                 PostFlush: () => throw new InvalidOperationException("post-flush boom"))),
@@ -441,7 +441,7 @@ public sealed class RpcConnectionProcessorTests
             {
                 await cts.CancelAsync();
                 ct.ThrowIfCancellationRequested();
-                return new RpcHandlerResult(JsonRpcResponseFakeData.BuildOkResponse());
+                return new UnaryHandlerResult(JsonRpcResponseFakeData.BuildOkResponse());
             },
         };
 
@@ -468,7 +468,7 @@ public sealed class RpcConnectionProcessorTests
 
         var policy = new FakeRpcConnectionPolicy
         {
-            OnInvoke = (_, _) => ValueTask.FromResult(new RpcHandlerResult(
+            OnInvoke = (_, _) => ValueTask.FromResult<RpcHandlerResult>(new UnaryHandlerResult(
                 Response: JsonRpcResponseFakeData.BuildOkResponse(),
                 Continuation: (Continuation)99)),
         };
@@ -488,5 +488,253 @@ public sealed class RpcConnectionProcessorTests
         Assert.Multiple(
             () => Assert.False(result),
             () => Assert.Equal(Microsoft.Extensions.Logging.LogLevel.Error, unknownEntry.Level));
+    }
+
+    // -- Server-streaming response path -----------------------
+
+    [Fact]
+    public async Task Should_emit_Next_frames_then_Complete_for_streaming_handler()
+    {
+        // Arrange
+        var (clientStream, serverStream) = FakeDuplexStreamFactory.Create();
+        await using var clientGuard = clientStream;
+        await using var serverGuard = serverStream;
+        var clientCodec = new LengthPrefixedFrameCodec(clientStream);
+
+        var payloads = new[]
+        {
+            JsonSerializer.SerializeToElement(new { seq = 1 }),
+            JsonSerializer.SerializeToElement(new { seq = 2 }),
+            JsonSerializer.SerializeToElement(new { seq = 3 }),
+        };
+
+        var policy = new FakeRpcConnectionPolicy
+        {
+            OnInvoke = (_, _) => ValueTask.FromResult<RpcHandlerResult>(
+                new StreamingHandlerResult(AsyncEnumerableConverter.FromEnumerable(payloads))),
+        };
+
+        var processorTask = RpcConnectionProcessor.RunAsync(
+            serverStream, policy, NullLogger.Instance, TestContext.Current.CancellationToken);
+
+        // Act
+        await JsonRpcTestClient.WriteRequestAsync(
+            clientCodec, id: 42, method: "Test.Stream", TestContext.Current.CancellationToken);
+        var frame1 = await JsonRpcTestClient.ReadStreamFrameAsync(clientCodec, TestContext.Current.CancellationToken);
+        var frame2 = await JsonRpcTestClient.ReadStreamFrameAsync(clientCodec, TestContext.Current.CancellationToken);
+        var frame3 = await JsonRpcTestClient.ReadStreamFrameAsync(clientCodec, TestContext.Current.CancellationToken);
+        var terminator = await JsonRpcTestClient.ReadStreamFrameAsync(clientCodec, TestContext.Current.CancellationToken);
+        var result = await processorTask;
+
+        // Assert
+        Assert.Multiple(
+            () => Assert.True(result),
+            () => Assert.IsType<JsonRpcStreamNext>(frame1),
+            () => Assert.IsType<JsonRpcStreamNext>(frame2),
+            () => Assert.IsType<JsonRpcStreamNext>(frame3),
+            () => Assert.IsType<JsonRpcStreamComplete>(terminator),
+            // id-correlator invariant: every frame echoes the
+            // request id verbatim.
+            () => Assert.Equal(42, frame1.Id.GetInt32()),
+            () => Assert.Equal(42, frame2.Id.GetInt32()),
+            () => Assert.Equal(42, frame3.Id.GetInt32()),
+            () => Assert.Equal(42, terminator.Id.GetInt32()),
+            () => Assert.Equal(1, ((JsonRpcStreamNext)frame1).Result.GetProperty("seq").GetInt32()),
+            () => Assert.Equal(2, ((JsonRpcStreamNext)frame2).Result.GetProperty("seq").GetInt32()),
+            () => Assert.Equal(3, ((JsonRpcStreamNext)frame3).Result.GetProperty("seq").GetInt32()));
+    }
+
+    [Fact]
+    public async Task Should_emit_terminal_Error_frame_when_streaming_handler_throws_midstream()
+    {
+        // Arrange
+        var (clientStream, serverStream) = FakeDuplexStreamFactory.Create();
+        await using var clientGuard = clientStream;
+        await using var serverGuard = serverStream;
+        var clientCodec = new LengthPrefixedFrameCodec(clientStream);
+
+        var policy = new FakeRpcConnectionPolicy
+        {
+            OnInvoke = (_, _) => ValueTask.FromResult<RpcHandlerResult>(
+                new StreamingHandlerResult(ThrowAfterOne())),
+        };
+
+        var processorTask = RpcConnectionProcessor.RunAsync(
+            serverStream, policy, NullLogger.Instance, TestContext.Current.CancellationToken);
+
+        // Act
+        await JsonRpcTestClient.WriteRequestAsync(
+            clientCodec, id: 7, method: "Test.StreamFault", TestContext.Current.CancellationToken);
+        var first = await JsonRpcTestClient.ReadStreamFrameAsync(clientCodec, TestContext.Current.CancellationToken);
+        var terminator = await JsonRpcTestClient.ReadStreamFrameAsync(clientCodec, TestContext.Current.CancellationToken);
+        var result = await processorTask;
+
+        // Assert
+        var errorFrame = Assert.IsType<JsonRpcStreamError>(terminator);
+        Assert.Multiple(
+            () => Assert.False(result),
+            () => Assert.IsType<JsonRpcStreamNext>(first),
+            () => Assert.Equal(7, first.Id.GetInt32()),
+            () => Assert.Equal(7, errorFrame.Id.GetInt32()),
+            () => Assert.Equal(JsonRpcErrorCodes.InternalError, errorFrame.Error.Code));
+
+        static async IAsyncEnumerable<JsonElement> ThrowAfterOne()
+        {
+            yield return JsonSerializer.SerializeToElement(new { seq = 1 });
+            await Task.Yield();
+            throw new InvalidOperationException("midstream boom");
+        }
+    }
+
+    [Fact]
+    public async Task Should_return_false_when_cancellation_fires_midstream()
+    {
+        // Arrange
+        var (clientStream, serverStream) = FakeDuplexStreamFactory.Create();
+        await using var clientGuard = clientStream;
+        await using var serverGuard = serverStream;
+        var clientCodec = new LengthPrefixedFrameCodec(clientStream);
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(
+            TestContext.Current.CancellationToken);
+
+        var firstYielded = new TaskCompletionSource(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+
+        var policy = new FakeRpcConnectionPolicy
+        {
+            OnInvoke = (_, _) => ValueTask.FromResult<RpcHandlerResult>(
+                new StreamingHandlerResult(YieldThenBlock(firstYielded, cts.Token))),
+        };
+
+        var processorTask = RpcConnectionProcessor.RunAsync(
+            serverStream, policy, NullLogger.Instance, cts.Token);
+
+        // Act
+        await JsonRpcTestClient.WriteRequestAsync(
+            clientCodec, id: 13, method: "Test.StreamCancel", TestContext.Current.CancellationToken);
+        var first = await JsonRpcTestClient.ReadStreamFrameAsync(clientCodec, TestContext.Current.CancellationToken);
+        await firstYielded.Task.WaitAsync(
+            TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
+        await cts.CancelAsync();
+        var result = await processorTask;
+
+        // Assert — cancellation tears the stream down without a
+        // terminal frame; first frame already reached the client.
+        Assert.Multiple(
+            () => Assert.False(result),
+            () => Assert.IsType<JsonRpcStreamNext>(first),
+            () => Assert.Equal(13, first.Id.GetInt32()));
+
+        static async IAsyncEnumerable<JsonElement> YieldThenBlock(
+            TaskCompletionSource gate,
+            [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken ct)
+        {
+            yield return JsonSerializer.SerializeToElement(new { seq = 1 });
+            gate.TrySetResult();
+            await Task.Delay(Timeout.InfiniteTimeSpan, ct).ConfigureAwait(false);
+            yield return JsonSerializer.SerializeToElement(new { seq = 2 });
+        }
+    }
+
+    [Fact]
+    public async Task Should_invoke_PostFlush_after_streaming_Complete()
+    {
+        // Arrange
+        var (clientStream, serverStream) = FakeDuplexStreamFactory.Create();
+        await using var clientGuard = clientStream;
+        await using var serverGuard = serverStream;
+        var clientCodec = new LengthPrefixedFrameCodec(clientStream);
+
+        var postFlushInvoked = new TaskCompletionSource(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+
+        var policy = new FakeRpcConnectionPolicy
+        {
+            OnInvoke = (_, _) => ValueTask.FromResult<RpcHandlerResult>(
+                new StreamingHandlerResult(
+                    AsyncEnumerableConverter.FromEnumerable([JsonSerializer.SerializeToElement(new { seq = 1 })]),
+                    PostFlush: () =>
+                    {
+                        postFlushInvoked.TrySetResult();
+                        return Task.CompletedTask;
+                    })),
+        };
+
+        var processorTask = RpcConnectionProcessor.RunAsync(
+            serverStream, policy, NullLogger.Instance, TestContext.Current.CancellationToken);
+
+        // Act
+        await JsonRpcTestClient.WriteRequestAsync(
+            clientCodec, id: 21, method: "Test.StreamPostFlush", TestContext.Current.CancellationToken);
+        _ = await JsonRpcTestClient.ReadStreamFrameAsync(clientCodec, TestContext.Current.CancellationToken);
+        _ = await JsonRpcTestClient.ReadStreamFrameAsync(clientCodec, TestContext.Current.CancellationToken);
+        await postFlushInvoked.Task.WaitAsync(
+            TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
+        var result = await processorTask;
+
+        // Assert
+        Assert.Multiple(
+            () => Assert.True(result),
+            () => Assert.True(postFlushInvoked.Task.IsCompletedSuccessfully));
+    }
+
+    [Fact]
+    public async Task Should_invoke_PostFlush_when_streaming_cancellation_fires_midstream()
+    {
+        // Arrange
+        var (clientStream, serverStream) = FakeDuplexStreamFactory.Create();
+        await using var clientGuard = clientStream;
+        await using var serverGuard = serverStream;
+        var clientCodec = new LengthPrefixedFrameCodec(clientStream);
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(
+            TestContext.Current.CancellationToken);
+
+        var firstYielded = new TaskCompletionSource(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        var postFlushInvoked = new TaskCompletionSource(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+
+        var policy = new FakeRpcConnectionPolicy
+        {
+            OnInvoke = (_, _) => ValueTask.FromResult<RpcHandlerResult>(
+                new StreamingHandlerResult(
+                    YieldThenBlock(firstYielded, cts.Token),
+                    PostFlush: () =>
+                    {
+                        postFlushInvoked.TrySetResult();
+                        return Task.CompletedTask;
+                    })),
+        };
+
+        var processorTask = RpcConnectionProcessor.RunAsync(
+            serverStream, policy, NullLogger.Instance, cts.Token);
+
+        // Act
+        await JsonRpcTestClient.WriteRequestAsync(
+            clientCodec, id: 31, method: "Test.StreamCancelPostFlush",
+            TestContext.Current.CancellationToken);
+        _ = await JsonRpcTestClient.ReadStreamFrameAsync(clientCodec, TestContext.Current.CancellationToken);
+        await firstYielded.Task.WaitAsync(
+            TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
+        await cts.CancelAsync();
+        var result = await processorTask;
+
+        // Assert — PostFlush still runs (in finally), even though
+        // cancellation tore the stream down before completion.
+        await postFlushInvoked.Task.WaitAsync(
+            TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
+        Assert.Multiple(
+            () => Assert.False(result),
+            () => Assert.True(postFlushInvoked.Task.IsCompletedSuccessfully));
+
+        static async IAsyncEnumerable<JsonElement> YieldThenBlock(
+            TaskCompletionSource gate,
+            [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken ct)
+        {
+            yield return JsonSerializer.SerializeToElement(new { seq = 1 });
+            gate.TrySetResult();
+            await Task.Delay(Timeout.InfiniteTimeSpan, ct).ConfigureAwait(false);
+            yield return JsonSerializer.SerializeToElement(new { seq = 2 });
+        }
     }
 }

@@ -142,7 +142,8 @@ public sealed class DispatchPolicyTests(TempDirectoryFixture tempDirectory)
         var request = JsonRpcRequestTestFactory.BuildRequest(RegistryMethods.RegistryEntries);
 
         // Act
-        var result = await policy.InvokeAsync(request, TestContext.Current.CancellationToken);
+        var result = Assert.IsType<UnaryHandlerResult>(
+            await policy.InvokeAsync(request, TestContext.Current.CancellationToken));
 
         // Assert
         Assert.Multiple(
@@ -175,7 +176,8 @@ public sealed class DispatchPolicyTests(TempDirectoryFixture tempDirectory)
             registryPath, FileMode.Open, FileAccess.Read, FileShare.None);
 
         // Act
-        var result = await policy.InvokeAsync(request, TestContext.Current.CancellationToken);
+        var result = Assert.IsType<UnaryHandlerResult>(
+            await policy.InvokeAsync(request, TestContext.Current.CancellationToken));
 
         // Assert
         Assert.Multiple(
@@ -193,7 +195,8 @@ public sealed class DispatchPolicyTests(TempDirectoryFixture tempDirectory)
         var request = JsonRpcRequestTestFactory.BuildRequest(ProtocolMethods.Shutdown);
 
         // Act
-        var result = await policy.InvokeAsync(request, TestContext.Current.CancellationToken);
+        var result = Assert.IsType<UnaryHandlerResult>(
+            await policy.InvokeAsync(request, TestContext.Current.CancellationToken));
         Assert.NotNull(result.PostFlush);
         await result.PostFlush();
 
@@ -213,7 +216,8 @@ public sealed class DispatchPolicyTests(TempDirectoryFixture tempDirectory)
         var request = JsonRpcRequestTestFactory.BuildRequest("Engine.WhoKnows");
 
         // Act
-        var result = await policy.InvokeAsync(request, TestContext.Current.CancellationToken);
+        var result = Assert.IsType<UnaryHandlerResult>(
+            await policy.InvokeAsync(request, TestContext.Current.CancellationToken));
 
         // Assert
         Assert.Multiple(
@@ -236,7 +240,8 @@ public sealed class DispatchPolicyTests(TempDirectoryFixture tempDirectory)
         var request = JsonRpcRequestTestFactory.BuildRequest(Protocol.Messages.Logs.LogsMethods.GetEngine);
 
         // Act
-        var result = await policy.InvokeAsync(request, TestContext.Current.CancellationToken);
+        var result = Assert.IsType<UnaryHandlerResult>(
+            await policy.InvokeAsync(request, TestContext.Current.CancellationToken));
 
         // Assert
         Assert.Multiple(
@@ -274,7 +279,8 @@ public sealed class DispatchPolicyTests(TempDirectoryFixture tempDirectory)
         };
 
         // Act
-        var result = await policy.InvokeAsync(request, TestContext.Current.CancellationToken);
+        var result = Assert.IsType<UnaryHandlerResult>(
+            await policy.InvokeAsync(request, TestContext.Current.CancellationToken));
 
         // Assert
         Assert.Multiple(
@@ -305,7 +311,8 @@ public sealed class DispatchPolicyTests(TempDirectoryFixture tempDirectory)
         };
 
         // Act
-        var result = await policy.InvokeAsync(request, TestContext.Current.CancellationToken);
+        var result = Assert.IsType<UnaryHandlerResult>(
+            await policy.InvokeAsync(request, TestContext.Current.CancellationToken));
 
         // Assert
         Assert.Multiple(

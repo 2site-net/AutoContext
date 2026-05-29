@@ -139,12 +139,12 @@ internal sealed partial class HandshakePolicy : IRpcConnectionPolicy
 
         LogHandshakeAccepted(_logger, EndpointKind, clientProtocolVersion);
 
-        return new ValueTask<RpcHandlerResult>(new RpcHandlerResult(
+        return new ValueTask<RpcHandlerResult>(new UnaryHandlerResult(
             Response: new JsonRpcResponse { Result = resultElement },
             Continuation: Continuation.Complete));
     }
 
-    private static RpcHandlerResult BuildAbort(int code, string message) =>
+    private static UnaryHandlerResult BuildAbort(int code, string message) =>
         new(
             Response: new JsonRpcResponse
             {

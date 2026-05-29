@@ -171,49 +171,231 @@ internal static partial class RpcConnectionProcessor
                 return false;
             }
 
-            // Normalise the response id when the handler did not
-            // set one — saves every handler from repeating the same
-            // boilerplate.
-            var response = handlerResult.Response;
-            if (response.Id.ValueKind == JsonValueKind.Undefined)
+            bool? loopOutcome = handlerResult switch
             {
-                response = response with { Id = JsonRpcId.Normalize(request.Id) };
-            }
+                UnaryHandlerResult unary => await WriteUnaryAsync(
+                    codec, request, unary, policy, logger, cancellationToken)
+                    .ConfigureAwait(false),
+                StreamingHandlerResult streaming => await WriteStreamingAsync(
+                    codec, request, streaming, policy, logger, cancellationToken)
+                    .ConfigureAwait(false),
+                _ => throw new InvalidOperationException(
+                    $"Unknown {nameof(RpcHandlerResult)} subtype "
+                    + $"'{handlerResult.GetType().FullName}'."),
+            };
 
-            byte[] responseBytes;
+
+            if (loopOutcome is null)
+            {
+                continue;
+            }
+            return loopOutcome.Value;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Writes a single <see cref="JsonRpcResponse"/> frame and
+    /// applies the handler's <see cref="Continuation"/> + optional
+    /// <see cref="UnaryHandlerResult.PostFlush"/>. Returns
+    /// <see langword="null"/> when the loop should keep reading,
+    /// or the success/failure bool for the outer
+    /// <see cref="RunAsync"/> return value.
+    /// </summary>
+    private static async Task<bool?> WriteUnaryAsync(
+        LengthPrefixedFrameCodec codec,
+        JsonRpcRequest request,
+        UnaryHandlerResult unary,
+        IRpcConnectionPolicy policy,
+        ILogger logger,
+        CancellationToken cancellationToken)
+    {
+        // Normalise the response id when the handler did not set
+        // one — saves every handler from repeating the same
+        // boilerplate.
+        var response = unary.Response;
+        if (response.Id.ValueKind == JsonValueKind.Undefined)
+        {
+            response = response with { Id = JsonRpcId.Normalize(request.Id) };
+        }
+
+        byte[] responseBytes;
+        try
+        {
+            responseBytes = JsonSerializer.SerializeToUtf8Bytes(
+                response, ProtocolJsonContext.Default.JsonRpcResponse);
+        }
+        catch (JsonException ex)
+        {
+            policy.LogFrameWriteFault(ex);
+            return false;
+        }
+        catch (NotSupportedException ex)
+        {
+            policy.LogFrameWriteFault(ex);
+            return false;
+        }
+
+        try
+        {
+            await codec.WriteAsync(responseBytes, cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch (IOException ex)
+        {
+            policy.LogFrameWriteFault(ex);
+            return false;
+        }
+        catch (ObjectDisposedException ex)
+        {
+            policy.LogFrameWriteFault(ex);
+            return false;
+        }
+
+        if (unary.PostFlush is { } postFlush)
+        {
             try
             {
-                responseBytes = JsonSerializer.SerializeToUtf8Bytes(
-                    response, ProtocolJsonContext.Default.JsonRpcResponse);
+                await postFlush().ConfigureAwait(false);
             }
-            catch (JsonException ex)
+            catch (OperationCanceledException)
             {
-                policy.LogFrameWriteFault(ex);
-                return false;
+                // Cancellation during PostFlush is treated as a
+                // benign termination — the response is already on
+                // the wire.
+                return unary.Continuation == Continuation.Complete;
             }
-            catch (NotSupportedException ex)
+#pragma warning disable CA1031 // Do not catch general exception types
+            catch (Exception ex)
             {
-                policy.LogFrameWriteFault(ex);
-                return false;
+                // Intentional broad catch: the post-flush is an
+                // arbitrary side effect supplied by the policy
+                // (e.g. host shutdown). The response is already on
+                // the wire — a fault here must not propagate out
+                // of the connection processor and tear the accept
+                // loop down.
+                LogPostFlushFaulted(logger, ex, policy.EndpointKind);
+                // The response flushed; the caller's intent
+                // (Complete vs Abort) still stands.
             }
+#pragma warning restore CA1031
+        }
 
+        return unary.Continuation switch
+        {
+            Continuation.Continue => null,
+            Continuation.Complete => true,
+            Continuation.Abort => false,
+            _ => LogUnknownAndAbort(logger, policy.EndpointKind, unary.Continuation),
+        };
+
+        static bool LogUnknownAndAbort(ILogger logger, EndpointKind kind, Continuation value)
+        {
+            // Defensive: unknown enum value treated as a failure
+            // to fail loud rather than silently dropping the
+            // connection.
+            LogUnknownContinuation(logger, kind, (int)value);
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Drives a server-streaming response: iterates the handler's
+    /// per-frame payloads under <paramref name="cancellationToken"/>,
+    /// wraps each in a <see cref="JsonRpcStreamNext"/>, writes it
+    /// to the wire, and synthesises the terminal
+    /// <see cref="JsonRpcStreamComplete"/> (clean exhaust) or
+    /// <see cref="JsonRpcStreamError"/> (iterator fault) frame.
+    /// Returns <see langword="true"/> when the stream completed
+    /// cleanly, or <see langword="false"/> when the peer closed
+    /// mid-stream, cancellation fired, or the iterator faulted
+    /// (no terminal frame is written for peer-close/cancellation
+    /// because the wire is already torn down).
+    /// </summary>
+    /// <remarks>
+    /// <see cref="StreamingHandlerResult.PostFlush"/> runs in a
+    /// <c>finally</c> block: it always executes (even when the
+    /// stream aborts), so handler-supplied cleanup such as
+    /// subscription disposal cannot leak when the peer hangs up
+    /// mid-stream.
+    /// </remarks>
+    private static async Task<bool> WriteStreamingAsync(
+        LengthPrefixedFrameCodec codec,
+        JsonRpcRequest request,
+        StreamingHandlerResult streaming,
+        IRpcConnectionPolicy policy,
+        ILogger logger,
+        CancellationToken cancellationToken)
+    {
+        var id = JsonRpcId.Normalize(request.Id);
+        var iteratorFaulted = false;
+
+        try
+        {
             try
             {
-                await codec.WriteAsync(responseBytes, cancellationToken)
-                    .ConfigureAwait(false);
+                await foreach (var payload in streaming.Payloads
+                    .WithCancellation(cancellationToken)
+                    .ConfigureAwait(false))
+                {
+                    var nextFrame = new JsonRpcStreamNext { Id = id, Result = payload };
+                    if (!await TryWriteStreamFrameAsync(
+                            codec, nextFrame, policy, cancellationToken).ConfigureAwait(false))
+                    {
+                        // Peer closed mid-stream or write faulted —
+                        // no point trying to emit a terminal frame.
+                        return false;
+                    }
+                }
             }
-            catch (IOException ex)
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
-                policy.LogFrameWriteFault(ex);
+                // Connection-level cancellation: best effort exit
+                // without writing a terminal frame.
                 return false;
             }
-            catch (ObjectDisposedException ex)
+#pragma warning disable CA1031 // Do not catch general exception types
+            catch (Exception ex)
             {
-                policy.LogFrameWriteFault(ex);
+                // Intentional broad catch: the streaming payload
+                // iterator is handler-supplied. Any fault is
+                // captured and surfaced to the client as a
+                // terminal error frame; it must not propagate out
+                // of the processor. The exception is logged with
+                // full detail; the client sees a generic message
+                // to avoid leaking internal information.
+                iteratorFaulted = true;
+                LogStreamIteratorFaulted(logger, ex, policy.EndpointKind);
+            }
+#pragma warning restore CA1031
+
+            var terminator = iteratorFaulted
+                ? (JsonRpcStreamFrame)new JsonRpcStreamError
+                {
+                    Id = id,
+                    Error = new JsonRpcError
+                    {
+                        Code = JsonRpcErrorCodes.InternalError,
+                        Message = "Streaming handler faulted.",
+                    },
+                }
+                : new JsonRpcStreamComplete { Id = id };
+
+            if (!await TryWriteStreamFrameAsync(
+                    codec, terminator, policy, cancellationToken).ConfigureAwait(false))
+            {
                 return false;
             }
 
-            if (handlerResult.PostFlush is { } postFlush)
+            // A streamed response with a faulted iterator surfaced
+            // an error frame on the wire — semantically a failed
+            // RPC.
+            return !iteratorFaulted;
+        }
+        finally
+        {
+            if (streaming.PostFlush is { } postFlush)
             {
                 try
                 {
@@ -221,46 +403,59 @@ internal static partial class RpcConnectionProcessor
                 }
                 catch (OperationCanceledException)
                 {
-                    // Cancellation during PostFlush is treated as a
-                    // benign termination — the response is already
-                    // on the wire.
-                    return handlerResult.Continuation == Continuation.Complete;
+                    // Benign — cleanup raced with cancellation.
                 }
-#pragma warning disable CA1031 // Do not catch general exception types
+#pragma warning disable CA1031
                 catch (Exception ex)
                 {
-                    // Intentional broad catch: the post-flush is an
-                    // arbitrary side effect supplied by the policy
-                    // (e.g. host shutdown). The response is already
-                    // on the wire — a fault here must not propagate
-                    // out of the connection processor and tear the
-                    // accept loop down.
+                    // PostFlush is handler-supplied cleanup (e.g.
+                    // subscription disposal). A fault here must
+                    // not propagate out of the processor.
                     LogPostFlushFaulted(logger, ex, policy.EndpointKind);
-                    // The response flushed; the caller's intent
-                    // (Complete vs Abort) still stands.
                 }
 #pragma warning restore CA1031
             }
+        }
+    }
 
-            switch (handlerResult.Continuation)
-            {
-                case Continuation.Continue:
-                    continue;
-                case Continuation.Complete:
-                    return true;
-                case Continuation.Abort:
-                    return false;
-                default:
-                    // Defensive: unknown enum value treated as a
-                    // failure to fail loud rather than silently
-                    // dropping the connection.
-                    LogUnknownContinuation(
-                        logger, policy.EndpointKind, (int)handlerResult.Continuation);
-                    return false;
-            }
+    private static async Task<bool> TryWriteStreamFrameAsync(
+        LengthPrefixedFrameCodec codec,
+        JsonRpcStreamFrame frame,
+        IRpcConnectionPolicy policy,
+        CancellationToken cancellationToken)
+    {
+        byte[] bytes;
+        try
+        {
+            bytes = JsonSerializer.SerializeToUtf8Bytes(
+                frame, ProtocolJsonContext.Default.JsonRpcStreamFrame);
+        }
+        catch (JsonException ex)
+        {
+            policy.LogFrameWriteFault(ex);
+            return false;
+        }
+        catch (NotSupportedException ex)
+        {
+            policy.LogFrameWriteFault(ex);
+            return false;
         }
 
-        return false;
+        try
+        {
+            await codec.WriteAsync(bytes, cancellationToken).ConfigureAwait(false);
+            return true;
+        }
+        catch (IOException ex)
+        {
+            policy.LogFrameWriteFault(ex);
+            return false;
+        }
+        catch (ObjectDisposedException ex)
+        {
+            policy.LogFrameWriteFault(ex);
+            return false;
+        }
     }
 
     private static async Task<bool> TryWriteErrorAsync(
@@ -322,4 +517,8 @@ internal static partial class RpcConnectionProcessor
     [LoggerMessage(EventId = 2, Level = LogLevel.Error,
         Message = "RPC connection on '{Kind}' endpoint observed unknown Continuation value {Value}; closing connection.")]
     private static partial void LogUnknownContinuation(ILogger logger, EndpointKind kind, int value);
+
+    [LoggerMessage(EventId = 3, Level = LogLevel.Warning,
+        Message = "RPC streaming handler iterator faulted on '{Kind}' endpoint; surfacing a terminal error frame to the client.")]
+    private static partial void LogStreamIteratorFaulted(ILogger logger, Exception exception, EndpointKind kind);
 }

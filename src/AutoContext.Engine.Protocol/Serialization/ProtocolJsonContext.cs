@@ -29,6 +29,7 @@ using AutoContext.Engine.Protocol.Messages.Registry;
 [JsonSerializable(typeof(JsonRpcResponse))]
 [JsonSerializable(typeof(JsonRpcError))]
 [JsonSerializable(typeof(JsonRpcNotification))]
+[JsonSerializable(typeof(JsonRpcStreamFrame))]
 [JsonSerializable(typeof(HandshakeParams))]
 [JsonSerializable(typeof(HandshakeResult))]
 [JsonSerializable(typeof(LifecycleEvent))]
