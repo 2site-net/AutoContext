@@ -5,9 +5,6 @@
  * identity only — no `content`, no `description`, no `enabled` flag —
  * so the model cannot route around the user's choice by quoting back
  * the muted rule.
- *
- * See `docs/future/lm-tool-instructions-discovery.md` §
- * "Filtering & gating".
  */
 export interface DisabledInstructionsFileEnvelope {
     readonly name: string;

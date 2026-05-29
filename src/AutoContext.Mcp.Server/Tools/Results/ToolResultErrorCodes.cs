@@ -1,8 +1,7 @@
 namespace AutoContext.Mcp.Server.Tools.Results;
 
 /// <summary>
-/// Fixed vocabulary for <see cref="ToolResultError.Code"/>. Mirrors the
-/// table in <c>docs/architecture-centralized-mcp.md</c>.
+/// Fixed vocabulary for <see cref="ToolResultError.Code"/>.
 /// </summary>
 public static class ToolResultErrorCodes
 {

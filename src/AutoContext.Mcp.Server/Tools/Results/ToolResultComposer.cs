@@ -4,8 +4,9 @@ using AutoContext.Mcp.Server.Workers.Protocol;
 
 /// <summary>
 /// Composes per-task worker responses into the uniform tool-result
-/// envelope. Pure logic — no IO. Status rollup is deterministic and
-/// matches the table in <c>docs/architecture-centralized-mcp.md</c>.
+/// envelope. Pure logic — no IO. Status rollup is deterministic:
+/// <c>ok</c> if every task succeeded, <c>error</c> if every task
+/// failed, <c>partial</c> otherwise.
 /// </summary>
 public static class ToolResultComposer
 {
