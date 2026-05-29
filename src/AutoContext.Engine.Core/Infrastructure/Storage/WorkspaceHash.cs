@@ -10,7 +10,8 @@ using AutoContext.Engine.Protocol;
 /// The 16-character uppercase-hex workspace identity hash used as
 /// the <c>&lt;workspaceHash&gt;</c> segment of every
 /// <see cref="Endpoint"/> and of every on-disk artefact the engine
-/// owns. See <c>design § P4 (workspace identity)</c>.
+/// owns. Derived from the normalised workspace path so the same
+/// workspace resolves to the same identity across launches.
 /// </summary>
 /// <remarks>
 /// <para>

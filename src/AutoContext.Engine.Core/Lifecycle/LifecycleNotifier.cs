@@ -12,19 +12,11 @@ using Microsoft.Extensions.Options;
 /// agnostic of which kind is terminal and which is not.
 /// </summary>
 /// <remarks>
-/// <para>
-/// Phase 1 exposes only <see cref="NotifyShutdown"/>; the
-/// reload-pipeline kinds (<c>reloading</c>, <c>reloaded</c>) land
-/// here as additional methods in a later phase that bumps the
-/// snapshot revision counter.
-/// </para>
-/// <para>
 /// Centralising stamping in this class keeps the engine's identity
 /// (<see cref="EngineOptions.InstanceId"/>) and the lifecycle
 /// revision counter authored in one place — the stream itself never
 /// constructs <see cref="LifecycleEvent"/> values for transitions
 /// other than the seeded <c>started</c> event.
-/// </para>
 /// </remarks>
 internal sealed class LifecycleNotifier
 {

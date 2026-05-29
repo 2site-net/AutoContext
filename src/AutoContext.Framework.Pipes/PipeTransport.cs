@@ -13,11 +13,6 @@ using Microsoft.Extensions.Logging.Abstractions;
 /// response) do not each have to construct and connect a
 /// <see cref="NamedPipeClientStream"/> by hand.
 /// </summary>
-/// <remarks>
-/// Phase 1 scope: client-side <see cref="ConnectAsync"/> only. The
-/// server-side accept-loop primitive will be introduced when the first
-/// server endpoint is migrated (Phase 4 in the unification plan).
-/// </remarks>
 public sealed partial class PipeTransport
 {
     private readonly ILogger<PipeTransport> _logger;

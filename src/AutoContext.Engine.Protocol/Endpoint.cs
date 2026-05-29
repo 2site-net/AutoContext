@@ -11,8 +11,8 @@ using System.Globalization;
 /// <remarks>
 /// <para>
 /// The <c>&lt;workspaceHash&gt;</c> segment is the 16-char uppercase-hex
-/// prefix of <c>sha256(normalisedWorkspacePath)</c> per <c>design § P4</c>;
-/// the <c>&lt;instanceId&gt;</c> is the UUIDv4 the launcher minted once per
+/// prefix of <c>sha256(normalisedWorkspacePath)</c>; the
+/// <c>&lt;instanceId&gt;</c> is the UUIDv4 the launcher minted once per
 /// launcher instance. The same workspace from different launchers hashes
 /// to one workspace identity but resolves to different engines (different
 /// <c>&lt;instanceId&gt;</c>).
@@ -28,7 +28,7 @@ using System.Globalization;
 /// The parser validates the wire shape (prefix, separators, hash format,
 /// UUID format) but does not interpret the bytes further. Semantic
 /// validation (UUIDv4 version bit, hash prefix derivation) is the caller's
-/// responsibility — see <c>design § P4</c>.
+/// responsibility.
 /// </para>
 /// </remarks>
 public readonly record struct Endpoint(EndpointKind Kind, string WorkspaceHash, Guid InstanceId)
@@ -36,7 +36,7 @@ public readonly record struct Endpoint(EndpointKind Kind, string WorkspaceHash, 
 {
     /// <summary>
     /// Length of the <c>&lt;workspaceHash&gt;</c> segment — 16 uppercase
-    /// hex characters per <c>design § P4</c>.
+    /// hex characters.
     /// </summary>
     public const int WorkspaceHashLength = 16;
 

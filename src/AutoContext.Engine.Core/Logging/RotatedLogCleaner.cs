@@ -21,9 +21,9 @@ using Microsoft.Extensions.Logging;
 /// <c>{baseName}-yyyyMMddTHHmmssZ.log</c> are considered — the
 /// active file (<c>{baseName}.log</c>), unrelated artefacts, and
 /// anything whose timestamp segment fails to parse are
-/// untouched. This row scans for <c>engine</c>-rotated files;
-/// Phase 8 reuses the same scanner against
-/// <c>worker-&lt;workerId&gt;</c> bases.
+/// untouched. The same scanner serves any base name, so the
+/// engine's own <c>engine</c> base and worker bases
+/// (<c>worker-&lt;workerId&gt;</c>) share one implementation.
 /// </para>
 /// <para>
 /// Sweeps are tolerant of races: a file that vanishes between
@@ -141,9 +141,9 @@ internal sealed partial class RotatedLogCleaner
         }
         catch (DirectoryNotFoundException)
         {
-            // Concurrent housekeeping (Phase 2b) may have reaped
-            // the whole logs subtree between the Directory.Exists
-            // probe and EnumerateFiles. That is success.
+            // Concurrent housekeeping may have reaped the whole
+            // logs subtree between the Directory.Exists probe
+            // and EnumerateFiles. That is success.
             return;
         }
         catch (Exception ex)

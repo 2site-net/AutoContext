@@ -13,7 +13,7 @@ using Microsoft.Extensions.Logging;
 /// </summary>
 /// <remarks>
 /// <para>
-/// No startup sweep: under the per-launch-UUID contract (P4) every
+/// No startup sweep: under the per-launch-UUID contract every
 /// engine's <c>&lt;instanceId&gt;</c> is fresh on every spawn, so
 /// the registry stays append-only and there is nothing to
 /// reconcile before pipe-bind. The shutdown sweep alone keeps the

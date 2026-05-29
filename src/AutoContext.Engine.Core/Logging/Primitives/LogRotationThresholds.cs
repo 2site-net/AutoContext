@@ -4,7 +4,7 @@ using AutoContext.Engine.Core.Logging;
 
 /// <summary>
 /// Per-verbosity rotation thresholds for the engine's own
-/// <c>engine.log</c> (and, in Phase 8, the per-worker
+/// <c>engine.log</c> (and, in future, the per-worker
 /// <c>worker-&lt;workerId&gt;.log</c> files). Mirrors the table in
 /// <c>design § Housekeeping &gt; Log rotation</c>: the active log
 /// file is rotated the first time either the line count or the

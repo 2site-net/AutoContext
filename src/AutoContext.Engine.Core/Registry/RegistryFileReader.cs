@@ -9,8 +9,8 @@ using Microsoft.Extensions.Logging.Abstractions;
 /// Read-only accessor for <c>engine-registry.json</c>. Opens the
 /// file with <see cref="FileShare.ReadWrite"/> |
 /// <see cref="FileShare.Delete"/> so readers never contend with
-/// one another (P9 readers-are-concurrent rule) and coexist with
-/// the atomic temp+rename pattern used by
+/// one another (readers are concurrent by contract) and coexist
+/// with the atomic temp+rename pattern used by
 /// <see cref="RegistryFileWriter"/> (the writer's rename must be
 /// able to replace the file even while a reader holds the prior
 /// inode open). An exponential-backoff retry loop tolerates the

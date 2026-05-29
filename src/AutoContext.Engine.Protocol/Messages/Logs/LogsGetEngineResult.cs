@@ -7,7 +7,7 @@ using System.Text.Json.Serialization;
 /// the bounded snapshot of records drawn from the engine's active
 /// <c>engine.log</c> file. The shape matches the design's
 /// <c>{ kind: "ok", records: LogRecord[], truncated: boolean }</c>
-/// envelope (P2 discriminated envelope on the wire).
+/// envelope.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -16,10 +16,10 @@ using System.Text.Json.Serialization;
 /// variants (<c>Logs.GetWorker</c> / <c>Logs.TailWorker</c>);
 /// <c>GetEngine</c> can never return that arm because the engine's
 /// own log file always exists for the current process, so this
-/// result type intentionally carries no discriminator field. The
-/// polymorphic envelope is introduced in Phase 8 together with
-/// <c>Logs.GetWorker</c> / <c>Logs.TailWorker</c>, at which point
-/// the <c>not-found</c> arm becomes addressable.
+/// result type intentionally carries no discriminator field. When
+/// the worker variants are added the polymorphic envelope will
+/// land alongside them, at which point the <c>not-found</c> arm
+/// becomes addressable.
 /// </para>
 /// <para>
 /// <see cref="Truncated"/> is set to <see langword="true"/> when

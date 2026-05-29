@@ -8,7 +8,8 @@ using System.Text.Json.Serialization;
 /// <see cref="Microsoft.Extensions.Logging.EventId"/> on the
 /// producer side without taking a dependency on the logging
 /// abstractions package: the protocol assembly stays free of
-/// runtime dependencies (P3: wire shape ≠ engine-internal shape).
+/// runtime dependencies and the wire shape stays independent of
+/// the engine-internal shape.
 /// </summary>
 /// <remarks>
 /// Source: the <c>Engine.WriteLog</c> record shape under

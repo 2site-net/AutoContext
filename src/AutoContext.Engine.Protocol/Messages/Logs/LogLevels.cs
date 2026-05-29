@@ -13,10 +13,10 @@ namespace AutoContext.Engine.Protocol.Messages.Logs;
 /// The literals mirror the lowercased
 /// <see cref="Microsoft.Extensions.Logging.LogLevel"/> names without
 /// taking a dependency on the logging abstractions package — the
-/// protocol assembly stays free of runtime dependencies (P3:
-/// wire shape ≠ engine-internal shape). Producers translate from
-/// <c>LogLevel</c> to these strings at the seam where the record
-/// is shaped for the wire.
+/// protocol assembly stays free of runtime dependencies and the
+/// wire shape stays independent of the engine-internal shape.
+/// Producers translate from <c>LogLevel</c> to these strings at
+/// the seam where the record is shaped for the wire.
 /// </remarks>
 public static class LogLevels
 {

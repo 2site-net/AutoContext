@@ -7,14 +7,13 @@ using AutoContext.Engine.Protocol.Messages.Registry;
 /// engine cache root against the shared liveness registry. The
 /// four arms — <see cref="Registered"/>, <see cref="StaleRegistration"/>,
 /// <see cref="Unregistered"/>, <see cref="Foreign"/> — are the
-/// <c>§ P2</c>-shaped contract between
-/// <see cref="CacheRootScanner"/> (which produces this),
-/// <c>RetentionPolicy</c> (which resolves a deletion window per
-/// arm), and <c>StaleSubtreeCleaner</c> (which pattern-matches to
-/// act). Promoting the classification from an internal switch to
-/// a public-shape type lets each consumer be tested in isolation
-/// and gives per-arm diagnostics ("reaped N stale-registered, M
-/// foreign") for free.
+/// contract between <see cref="CacheRootScanner"/> (which
+/// produces this), <c>RetentionPolicy</c> (which resolves a
+/// deletion window per arm), and <c>StaleSubtreeCleaner</c>
+/// (which pattern-matches to act). Promoting the classification
+/// from an internal switch to a public-shape type lets each
+/// consumer be tested in isolation and gives per-arm diagnostics
+/// ("reaped N stale-registered, M foreign") for free.
 /// </summary>
 /// <remarks>
 /// <para>

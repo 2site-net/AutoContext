@@ -4,8 +4,8 @@ namespace AutoContext.Engine.Core.Registry;
 /// Liveness verdict <see cref="RegistryEntryReader"/> attaches to
 /// every <see cref="Protocol.Messages.Registry.RegistryEntry"/> it
 /// reads back from <c>engine-registry.json</c>. The closed-set
-/// classification is consumed by <c>CacheRootScanner</c> (Phase
-/// 2b row 8) as the registration half of its four-arm
+/// classification is consumed by <c>CacheRootScanner</c> as the
+/// registration half of its four-arm
 /// <c>SubtreeRegistryStatus</c> output.
 /// </summary>
 internal enum RegistryEntryProbeState

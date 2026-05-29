@@ -25,7 +25,8 @@ using System.Text.Json.Serialization;
 /// <c>reloaded</c>, and <c>shutting-down</c> events.</item>
 /// <item><see cref="Reason"/> is populated only on the terminal
 /// <c>evicted</c> frame the engine writes when a slow subscriber
-/// fills its bounded buffer (P9, <c>design § events &gt; backpressure</c>).</item>
+/// fills its bounded buffer (see
+/// <c>design § events &gt; backpressure</c>).</item>
 /// </list>
 /// All absent fields are omitted from the wire JSON by the
 /// <see cref="Serialization.ProtocolJsonContext"/>'s default
@@ -53,8 +54,8 @@ public sealed record LifecycleEvent
     /// <summary>
     /// Snapshot revision counter at the moment the event was
     /// published; clients key dedup off <c>(instanceId, revision)</c>.
-    /// Always <c>0</c> in Phase 1 (no snapshot pipeline yet); the
-    /// counter is bumped by the reload pipeline that lands later.
+    /// Currently always <c>0</c>; the reload pipeline that bumps
+    /// the counter is not yet wired.
     /// </summary>
     [JsonPropertyName("revision")]
     public long? Revision { get; init; }

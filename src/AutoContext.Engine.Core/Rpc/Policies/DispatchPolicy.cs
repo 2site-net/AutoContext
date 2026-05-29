@@ -18,8 +18,8 @@ using Microsoft.Extensions.Logging;
 /// <see cref="IRpcConnectionPolicy"/> that runs after a successful
 /// <c>Engine.Hello</c> handshake on an
 /// <see cref="EndpointKind.Rpc"/> connection. Per
-/// <c>design § RPC surface</c> the engine exposes two methods at
-/// this stage of Phase 1 — <c>Engine.RegistryEntries</c> and
+/// <c>design § RPC surface</c> the engine currently exposes two
+/// methods — <c>Engine.RegistryEntries</c> and
 /// <c>Engine.Shutdown</c>; any other method name surfaces a
 /// JSON-RPC <see cref="JsonRpcErrorCodes.MethodNotFound"/> reply
 /// and the loop keeps serving.

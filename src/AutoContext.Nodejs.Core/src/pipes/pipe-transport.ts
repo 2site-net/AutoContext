@@ -10,10 +10,6 @@ import type { LoggerFacade } from '../logging/logger-facade.js';
  * response) do not each have to call `net.connect` and assemble the
  * platform-specific path by hand.
  *
- * Phase 1 scope: client-side connect only. The server-side accept-loop
- * primitive will be introduced when the first server endpoint is
- * migrated (Phase 4 in the unification plan).
- *
  * Counterpart of the C# `PipeTransport` in `AutoContext.Framework`.
  */
 export class PipeTransport {

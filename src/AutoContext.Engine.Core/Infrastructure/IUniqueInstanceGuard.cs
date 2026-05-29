@@ -3,10 +3,10 @@ namespace AutoContext.Engine.Core.Infrastructure;
 /// <summary>
 /// Pre-bind sanity check that asserts no other engine is currently
 /// bound to the endpoints this engine is about to claim. Enforces
-/// the per-launch-UUID contract (P4): every launcher spawn must
-/// mint a fresh <c>--instance-id</c>; reusing an id while another
-/// engine is alive is a launcher bug, not a shape the bind has to
-/// be idempotent against.
+/// the per-launch-UUID contract: every launcher spawn must mint a
+/// fresh <c>--instance-id</c>; reusing an id while another engine
+/// is alive is a launcher bug, not a shape the bind has to be
+/// idempotent against.
 /// </summary>
 /// <remarks>
 /// <para>

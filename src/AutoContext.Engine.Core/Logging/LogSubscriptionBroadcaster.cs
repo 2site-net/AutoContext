@@ -9,9 +9,9 @@ using Microsoft.Extensions.Logging;
 
 /// <summary>
 /// Singleton fan-out broadcaster backing the engine's
-/// <c>logs</c> named pipe (and, from row 6 onwards, the
-/// <c>Logs.TailEngine</c> RPC stream): every connection that opens
-/// the <c>logs</c> pipe calls <see cref="Subscribe"/> to receive a
+/// <c>logs</c> named pipe (and the <c>Logs.TailEngine</c> RPC
+/// stream, when wired): every connection that opens the
+/// <c>logs</c> pipe calls <see cref="Subscribe"/> to receive a
 /// per-subscriber bounded buffer of <see cref="LogRecord"/> values
 /// drained by <see cref="LogFileSinkService"/>.
 /// </summary>

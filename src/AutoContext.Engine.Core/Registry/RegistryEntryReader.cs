@@ -29,10 +29,10 @@ using Microsoft.Extensions.Logging;
 /// returned by the lookup is disposed before this method returns.
 /// </para>
 /// <para>
-/// This type supplies the registration half of Phase 2b's
+/// This type supplies the registration half of the
 /// <c>CacheRootScanner</c> classification. The cache-root walk,
 /// <c>SubtreeRegistryStatus</c> shape, and any deletion are
-/// downstream concerns owned by later rows.
+/// downstream concerns owned by other types.
 /// </para>
 /// </remarks>
 internal sealed partial class RegistryEntryReader

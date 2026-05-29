@@ -7,13 +7,13 @@ using AutoContext.Engine.Protocol.Messages.Logs;
 /// <summary>
 /// Single in-process ingest channel for engine log records.
 /// Producers — the engine's own <c>ILogger&lt;T&gt;</c> records
-/// routed via <c>EngineLoggerProvider</c> (row 3) and the
-/// worker-bound <c>Engine.WriteLog</c> RPC handler in Phase 8 —
-/// enqueue <see cref="LogRecord"/> instances through
+/// routed via <c>EngineLoggerProvider</c>, and (when wired) the
+/// worker-bound <c>Engine.WriteLog</c> RPC handler — enqueue
+/// <see cref="LogRecord"/> instances through
 /// <see cref="TryWrite"/>; <c>LogFileSinkService</c> drains the
 /// channel via <see cref="ReadAllAsync"/> and dispatches each
-/// record to the file sink (and, from row 5 onwards, the
-/// <c>logs</c>-pipe broadcaster) along its single drain loop.
+/// record to the file sink and the <c>logs</c>-pipe broadcaster
+/// along its single drain loop.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -27,14 +27,11 @@ using AutoContext.Engine.Protocol.Messages.Logs;
 /// described in <c>design § Log pipeline backpressure</c>.
 /// </para>
 /// <para>
-/// Row 2 of Phase 2a wires a single drain loop
-/// (<c>LogFileSinkService</c>) to the channel and writes records
-/// straight to <c>engine.log</c>. Row 5 keeps the channel and its
-/// single reader unchanged; it reshapes the drain loop into a
-/// dispatcher that fans each drained record out to two inner
-/// sinks — the file sink and the <c>logs</c>-pipe /
-/// <c>Logs.Tail*</c> broadcaster — instead of adding a second
-/// consumer of the channel itself (the channel stays
+/// A single drain loop in <c>LogFileSinkService</c> reads the
+/// channel and dispatches each record to two inner sinks — the
+/// file sink and the <c>logs</c>-pipe / <c>Logs.Tail*</c>
+/// broadcaster — rather than adding a second consumer of the
+/// channel itself (the channel stays
 /// <see cref="BoundedChannelOptions.SingleReader"/>).
 /// </para>
 /// <para>
@@ -88,10 +85,9 @@ internal sealed class LogChannel
     /// Asynchronously enumerates every record queued on the
     /// channel until <see cref="Complete"/> is called and the
     /// buffer has been fully drained. Intended for the single
-    /// drain loop owned by <c>LogFileSinkService</c>; row 5
-    /// keeps this enumeration single-reader and adds the
-    /// broadcaster as a downstream stage of the same loop
-    /// rather than a second consumer of the channel.
+    /// drain loop owned by <c>LogFileSinkService</c>; the loop
+    /// stays single-reader and fans out to sinks downstream
+    /// rather than adding a second consumer of the channel.
     /// </summary>
     /// <param name="cancellationToken">Cancellation token observed
     /// while waiting for the next record. Note: cancelling

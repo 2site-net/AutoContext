@@ -8,17 +8,6 @@ namespace AutoContext.Engine.Protocol.Messages.Logs;
 /// <see cref="LogStreamFrame"/>, <see cref="LogsGetEngineParams"/>,
 /// <see cref="LogsGetEngineResult"/>) they pair with.
 /// </summary>
-/// <remarks>
-/// <para>
-/// Phase 2a row 6 introduces <see cref="GetEngine"/> only. The
-/// matching <c>Logs.TailEngine</c> verb is deferred to the Phase 3
-/// prelude, where it lands together with the server-streaming
-/// response convention on the <c>rpc</c> pipe that
-/// <c>Config.Subscribe</c> / <c>Instructions.Subscribe</c> also
-/// rely on. <c>Logs.GetWorker</c> / <c>Logs.TailWorker</c> land in
-/// Phase 8 alongside worker → engine logging integration.
-/// </para>
-/// </remarks>
 public static class LogsMethods
 {
     /// <summary>

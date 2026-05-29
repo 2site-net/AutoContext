@@ -7,7 +7,7 @@ using AutoContext.Engine.Protocol.Messages.Registry;
 /// <see cref="RegistryEntryReader"/> derived from a
 /// <see cref="Infrastructure.Diagnostics.IProcessLookup"/> probe.
 /// Carrying the original entry alongside the verdict lets
-/// downstream consumers (Phase 2b's <c>CacheRootScanner</c>,
+/// downstream consumers (<c>CacheRootScanner</c>,
 /// <c>StaleSubtreeCleaner</c>, and <c>RetentionPolicy</c>) reach
 /// the entry's workspace hash, instance id, and per-entry
 /// retention window without a second read.

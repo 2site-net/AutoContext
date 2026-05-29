@@ -75,8 +75,8 @@ using IOPath = Path;
 /// <i>before</i> the channel is closed, so it traverses the same
 /// worker thread and mutex path as every other write. Peer hosted
 /// services that need to write during their own
-/// <see cref="StopAsync"/> (Phase 2b housekeeping, future crash
-/// writers) must register <i>after</i> this service so they stop
+/// <see cref="StopAsync"/> (housekeeping, future crash writers)
+/// must register <i>after</i> this service so they stop
 /// <i>before</i> it, hitting a still-live channel.
 /// </para>
 /// </remarks>
@@ -228,13 +228,13 @@ public sealed partial class RegistryFileService : IHostedService, IAsyncDisposab
     /// <inheritdoc/>
     public async Task StopAsync(CancellationToken cancellationToken)
     {
-        // Phase 1: best-effort own-entry removal. Must run BEFORE
-        // we close the channel; the removal traverses the same
-        // worker thread and cross-process mutex as every other
-        // write. Failures (shutdown deadline cancellations, fs
-        // hiccups, a peer already reaped us) are logged and
-        // swallowed — a peer's housekeeping sweep will reap any
-        // row we couldn't remove here.
+        // Best-effort own-entry removal. Must run BEFORE we close
+        // the channel; the removal traverses the same worker thread
+        // and cross-process mutex as every other write. Failures
+        // (shutdown deadline cancellations, fs hiccups, a peer
+        // already reaped us) are logged and swallowed — a peer's
+        // housekeeping sweep will reap any row we couldn't remove
+        // here.
         if (_ownEntry is { } entry)
         {
             _ownEntry = null;

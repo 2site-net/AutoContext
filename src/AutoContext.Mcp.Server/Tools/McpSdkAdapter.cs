@@ -149,9 +149,7 @@ public sealed partial class McpSdkAdapter
     /// Brand prefix prepended to every tool description before it is
     /// advertised to MCP clients. Anchors Copilot's (and any other
     /// description-clustering client's) bundling on the AutoContext
-    /// brand so the synthesised activator name carries it. See
-    /// <c>plan-instructions-discovery-applyto-driven-injection.md</c>
-    /// → Phase 2a spike for the rationale.
+    /// brand so the synthesised activator name carries it.
     /// </summary>
     private const string DescriptionBrandPrefix = "AutoContext — ";
 

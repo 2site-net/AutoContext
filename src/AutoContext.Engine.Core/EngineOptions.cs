@@ -159,8 +159,8 @@ public sealed class EngineOptions
 
     /// <summary>
     /// Absolute filesystem path of the workspace this engine pins
-    /// to. Mandatory; there is no auto-detection. Per <c>P4</c> the
-    /// workspace identity is the path, not the launcher's CWD.
+    /// to. Mandatory; there is no auto-detection. The workspace
+    /// identity is the path, not the launcher's CWD.
     /// </summary>
     public string WorkspacePath { get; set; } = string.Empty;
 }

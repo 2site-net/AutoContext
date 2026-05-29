@@ -17,17 +17,16 @@ public static class LifecycleEventKinds
     public const string Started = "started";
 
     /// <summary>
-    /// Broadcast at the start of a snapshot swap. Phase 1 does not
-    /// emit this kind — the reload pipeline that produces it lands
-    /// in a later phase — but the constant is reserved so client
-    /// code targeting the protocol does not have to define its
-    /// own.
+    /// Broadcast at the start of a snapshot swap. The constant is
+    /// reserved so client code targeting the protocol does not
+    /// have to define its own; the engine does not yet emit this
+    /// kind, awaiting the reload pipeline.
     /// </summary>
     public const string Reloading = "reloading";
 
     /// <summary>
-    /// Broadcast once a snapshot swap has committed. Phase 1 does
-    /// not emit this kind; see <see cref="Reloading"/>.
+    /// Broadcast once a snapshot swap has committed. Reserved
+    /// alongside <see cref="Reloading"/>.
     /// </summary>
     public const string Reloaded = "reloaded";
 
@@ -40,7 +39,8 @@ public static class LifecycleEventKinds
 
     /// <summary>
     /// Terminal frame the engine writes when a subscriber's
-    /// bounded buffer overflows (P9, <c>design § events &gt; backpressure</c>).
+    /// bounded buffer overflows (see
+    /// <c>design § events &gt; backpressure</c>).
     /// After this frame the engine completes the connection; the
     /// rest of the subscriber population keeps receiving events
     /// uninterrupted.

@@ -6,15 +6,14 @@ using Microsoft.Extensions.Options;
 
 /// <summary>
 /// Single reader of <see cref="EngineOptions.Retention"/>.
-/// Both the engine's rotated-log cleaner (<see cref="RotatedLogCleaner"/>,
-/// Phase 2a) and the cross-instance subtree cleaner
-/// (<c>StaleSubtreeCleaner</c>, Phase 2b) consult this type
+/// Both the engine's rotated-log cleaner
+/// (<see cref="RotatedLogCleaner"/>) and the cross-instance
+/// subtree cleaner (<c>StaleSubtreeCleaner</c>) consult this type
 /// instead of reading <c>EngineOptions.Retention</c> directly,
 /// so there is exactly one place that interprets the
 /// <c>--retention</c> switch — including the
 /// <see cref="TimeSpan.Zero"/> sentinel that disables retention
-/// entirely and the future expansion to per-arm windows over
-/// <c>SubtreeRegistryStatus</c> (Phase 2b).
+/// entirely.
 /// </summary>
 /// <remarks>
 /// <para>

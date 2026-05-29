@@ -76,7 +76,7 @@ public static class EngineHostBuilderExtensions
         // including RegistryFileService and the watchdogs below,
         // can still log through the live drain loop during its
         // own StopAsync. RegistryFileService then stops next-to-
-        // last so future hosted writers (Phase 2b housekeeping,
+        // last so future hosted writers (housekeeping,
         // crash-writers) registered after it can still await one
         // final WriteAsync through its still-live channel. The
         // file service itself owns the lifecycle of this
@@ -119,8 +119,8 @@ public static class EngineHostBuilderExtensions
         // singletons composed below are read-only after startup.
         // RetentionPolicy is the sole reader of
         // EngineOptions.Retention — both the rotated-log cleaner
-        // here and the cross-instance subtree cleaner in Phase 2b
-        // consult it instead of reading the option directly.
+        // here and the cross-instance subtree cleaner consult it
+        // instead of reading the option directly.
         builder.Services.TryAddSingleton<RetentionPolicy>();
         builder.Services.TryAddSingleton(sp =>
         {
@@ -187,8 +187,8 @@ public static class EngineHostBuilderExtensions
         // stateless RegistryFileReader above with IProcessLookup
         // (registered alongside HostWatchdog further down) and tags
         // each entry Live/Stale via Process.StartTime comparison.
-        // Phase 2b's CacheRootScanner consumes this to derive the
-        // registration half of its SubtreeRegistryStatus output.
+        // CacheRootScanner consumes this to derive the registration
+        // half of its SubtreeRegistryStatus output.
         builder.Services.TryAddSingleton<RegistryEntryReader>();
 
         // Housekeeping cache-root scanner: walks the cache root
@@ -210,7 +210,7 @@ public static class EngineHostBuilderExtensions
 
         // HousekeepingService is the only hosted service in the
         // engine that runs work in StopAsync only (no startup
-        // sweep — every spawn gets a fresh <instanceId>, P4).
+        // sweep — every spawn gets a fresh <instanceId>).
         // Registered AFTER RegistryFileService and BEFORE
         // LifecycleService so the host stops it BEFORE the
         // registry file service tears down — the sweep observes
@@ -248,13 +248,12 @@ public static class EngineHostBuilderExtensions
         // Pre-bind unique-instance guard: LifecycleService
         // resolves this and invokes EnsureUniqueAsync at the top
         // of StartAsync, before any pipe bind, so a launcher-bug
-        // instance-id collision (P4) surfaces as a clear
-        // diagnostic instead of an opaque pipe-bind error.
+        // instance-id collision surfaces as a clear diagnostic
+        // instead of an opaque pipe-bind error.
         // PipeTransport is the connect primitive the guard's
         // probe rides on; registered as a singleton because the
         // type is stateless and depended on by both the guard
-        // and (later in the phase) the registry-sweep liveness
-        // probes.
+        // and (later) the registry-sweep liveness probes.
         builder.Services.TryAddSingleton<PipeTransport>();
         builder.Services.TryAddSingleton<IUniqueInstanceGuard, PerWorkspaceInstanceGuard>();
 

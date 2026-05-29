@@ -131,7 +131,7 @@ internal sealed partial class CacheRootScanner
             // First write wins on the (unlikely) duplicate-key
             // case — the registry is append-only with a fresh
             // instanceId per spawn, so a collision indicates a
-            // launcher bug we already reject elsewhere (P4).
+            // launcher bug we already reject elsewhere.
             index.TryAdd((probe.Entry.WorkspaceHash, probe.Entry.InstanceId), probe);
         }
 

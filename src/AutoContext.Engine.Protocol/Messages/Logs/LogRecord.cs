@@ -12,8 +12,9 @@ using System.Text.Json.Serialization;
 /// (and the matching worker variants) RPC responses. The on-wire
 /// shape and the engine's on-disk <c>engine.log</c> /
 /// <c>worker-&lt;workerId&gt;.log</c> NDJSON shape match
-/// byte-for-byte — there is one envelope, not two (P1: one record
-/// envelope; P3: wire shape owned by Protocol).
+/// byte-for-byte — there is exactly one record envelope shared
+/// across in-process producers, the wire, and disk; the Protocol
+/// assembly owns its shape.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -77,7 +78,7 @@ public sealed record LogRecord
     /// Severity literal — one of the constants on
     /// <see cref="LogLevels"/>. Stored as a free-form string so a
     /// future producer can introduce a new tier without bumping
-    /// the protocol version (P3).
+    /// the protocol version.
     /// </summary>
     [JsonPropertyName("level")]
     public string Level { get; init; } = string.Empty;

@@ -31,9 +31,9 @@ using Microsoft.Extensions.Logging;
 /// The provider is registered alongside the framework default
 /// <see cref="ILoggerProvider"/> set, so engine records continue
 /// to reach the console and debug providers <c>Host.CreateApplicationBuilder</c>
-/// installs by default. This row introduces engine → channel
-/// routing; row 5 will introduce the broadcaster sibling and row
-/// 8 introduces worker-bound routing via <c>Engine.WriteLog</c>.
+/// installs by default. The worker-bound producer (routing via
+/// <c>Engine.WriteLog</c>) is registered separately when it
+/// lands.
 /// </para>
 /// </remarks>
 internal sealed class EngineLoggerProvider : ILoggerProvider

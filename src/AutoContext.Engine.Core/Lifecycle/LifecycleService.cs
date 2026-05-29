@@ -34,19 +34,16 @@ using Microsoft.Extensions.Options;
 /// </summary>
 /// <remarks>
 /// <para>
-/// Per the Phase 1 commit sequence, the per-pipe handlers are added
-/// incrementally: this commit performs the <c>Engine.Hello</c>
-/// handshake on every <c>rpc</c> and <c>events</c> connection,
-/// then runs the post-handshake JSON-RPC dispatch loop on
-/// <c>rpc</c> (handling <c>Engine.RegistryEntries</c> and
-/// <c>Engine.Shutdown</c>) and the subscription pump on
-/// <c>events</c> (enrolling the connection with the
-/// <see cref="LifecycleEventStream"/> and serialising each
-/// fanned-out <see cref="LifecycleEvent"/>
+/// On every <c>rpc</c> and <c>events</c> connection, the service
+/// performs the <c>Engine.Hello</c> handshake, then runs the
+/// post-handshake JSON-RPC dispatch loop on <c>rpc</c> (handling
+/// <c>Engine.RegistryEntries</c> and <c>Engine.Shutdown</c>) and
+/// the subscription pump on <c>events</c> (enrolling the
+/// connection with the <see cref="LifecycleEventStream"/> and
+/// serialising each fanned-out <see cref="LifecycleEvent"/>
 /// into an <c>Engine.Lifecycle</c> JSON-RPC notification frame).
-/// <c>health</c> and <c>logs</c> remain accept-and-close at this
-/// stage — they are passive observer surfaces whose payloads land
-/// in later commits.
+/// <c>health</c> and <c>logs</c> are passive observer surfaces
+/// whose payloads land in later commits.
 /// </para>
 /// <para>
 /// The OS pipe name is the canonical <see cref="Endpoint"/> wire
@@ -63,9 +60,9 @@ using Microsoft.Extensions.Options;
 /// <see cref="StartAsync"/> invokes the injected
 /// <see cref="IUniqueInstanceGuard"/> before the four-pipe bind:
 /// reusing an <c>--instance-id</c> while another engine is alive
-/// is a launcher bug under <c>P4</c>, and the guard turns the
-/// common case (a peer is already up at this engine's address)
-/// into a clear diagnostic instead of an opaque bind error.
+/// is a launcher bug, and the guard turns the common case (a peer
+/// is already up at this engine's address) into a clear
+/// diagnostic instead of an opaque bind error.
 /// </para>
 /// </remarks>
 internal sealed partial class LifecycleService : IHostedService, IAsyncDisposable
@@ -127,7 +124,7 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
     /// other engine currently owns this engine's would-be
     /// endpoint address. Invoked at the top of
     /// <see cref="StartAsync"/> before the four-pipe bind so
-    /// the launcher-bug case (P4 fresh-UUID violation) surfaces
+    /// the launcher-bug case (fresh-UUID violation) surfaces
     /// as a clear diagnostic instead of an opaque bind error.</param>
     /// <param name="logsBroadcaster">Fan-out broadcaster backing the
     /// <c>logs</c> pipe; every accepted <c>logs</c>-pipe connection

@@ -25,8 +25,9 @@ using Microsoft.Extensions.Options;
 /// serialised through <see cref="ProtocolJsonContext"/>
 /// (the source-generated, AOT-safe converter the protocol owns).
 /// The on-disk byte shape matches the wire shape on the
-/// <c>logs</c> pipe and the <c>Logs.Tail*</c> RPC stream — there
-/// is one envelope, not two (<c>P1</c>: one record envelope).
+/// <c>logs</c> pipe and the <c>Logs.Tail*</c> RPC stream — a
+/// single record envelope is shared across in-process producers,
+/// the wire, and disk.
 /// </para>
 /// <para>
 /// Lifecycle:
@@ -47,19 +48,17 @@ using Microsoft.Extensions.Options;
 /// </para>
 /// <para>
 /// Rotation per <c>--logging</c> thresholds and retention-aware
-/// cleanup of rotated files land here in row 4: every record
-/// drained from the channel updates a running byte / line
+/// cleanup of rotated files run in the same drain loop: every
+/// record drained from the channel updates a running byte / line
 /// counter against the configured
 /// <see cref="LogRotationThresholds"/>; once either ceiling is
 /// crossed the active file is renamed to
 /// <c>engine-yyyyMMddTHHmmssZ.log</c> and a fresh
 /// <c>engine.log</c> is opened, after which the rotated-log
-/// directory is swept by <see cref="RotatedLogCleaner"/>.
-/// Fan-out to <c>logs</c>-pipe and <c>Logs.Tail*</c> subscribers
-/// and per-worker routing are still later rows of Phase 2.
-/// Row 5 reshapes the drain loop into a dispatcher that fans
-/// each drained record out to two inner sinks (file +
-/// broadcaster); the service keeps owning the single drain loop.
+/// directory is swept by <see cref="RotatedLogCleaner"/>. The
+/// service keeps owning the single drain loop and dispatches
+/// each record to the file sink and to the
+/// <c>logs</c>-pipe broadcaster downstream.
 /// </para>
 /// </remarks>
 internal sealed partial class LogFileSinkService : BackgroundService
