@@ -25,8 +25,8 @@ using Microsoft.Extensions.Options;
 /// across multiple concurrent connections and aggregating the results;
 /// the worker only sees individual task calls.
 /// <para>
-/// Wire protocol (see architecture-centralized-mcp.md §"Protocol &amp; Contracts"):
-/// 4-byte little-endian length prefix + UTF-8 JSON payload.
+/// Wire protocol: 4-byte little-endian length prefix + UTF-8 JSON
+/// payload (see <see cref="LengthPrefixedFrameCodec"/>).
 /// </para>
 /// <para>
 /// Request:  <c>{ "mcpTask", "data", "editorconfig" }</c><br/>
@@ -85,7 +85,8 @@ public sealed partial class WorkerTaskDispatcherService : BackgroundService
 
         if (string.IsNullOrWhiteSpace(pipeName))
         {
-            throw new InvalidOperationException("Missing required configuration: --pipe");
+            throw new InvalidOperationException(
+                $"Missing required configuration: {nameof(WorkerHostOptions)}.{nameof(WorkerHostOptions.Pipe)}");
         }
 
         var readyMarker = _options.ReadyMarker;

@@ -43,7 +43,7 @@ using Microsoft.Extensions.Options;
 /// serialising each fanned-out <see cref="LifecycleEvent"/>
 /// into an <c>Engine.Lifecycle</c> JSON-RPC notification frame).
 /// <c>health</c> and <c>logs</c> are passive observer surfaces
-/// whose payloads land in later commits.
+/// the service binds but does not author payloads for.
 /// </para>
 /// <para>
 /// The OS pipe name is the canonical <see cref="Endpoint"/> wire
