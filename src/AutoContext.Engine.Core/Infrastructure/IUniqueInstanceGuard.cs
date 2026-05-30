@@ -22,7 +22,7 @@ namespace AutoContext.Engine.Core.Infrastructure;
 /// <para>
 /// Called from <c>LifecycleService.StartAsync</c> before any pipe
 /// bind. On violation the implementation throws
-/// <see cref="System.IO.IOException"/> with a message describing
+/// <see cref="IOException"/> with a message describing
 /// the colliding endpoint and the offending instance id; the
 /// generic host treats the failed start as fatal and the process
 /// exits non-zero.
@@ -33,18 +33,18 @@ internal interface IUniqueInstanceGuard
     /// <summary>
     /// Probes for a live peer at this engine's would-be endpoint
     /// address. Returns normally when no peer is found; throws
-    /// <see cref="System.IO.IOException"/> when a live peer
+    /// <see cref="IOException"/> when a live peer
     /// answers, indicating a launcher-bug instance-id collision.
     /// </summary>
     /// <param name="cancellationToken">Cancellation observed
     /// while probing. The probe is short-lived (sub-second under
     /// normal conditions); cancellation is honoured promptly.</param>
-    /// <exception cref="System.IO.IOException">
+    /// <exception cref="IOException">
     /// A live peer was detected at the would-be endpoint address.
     /// The message names the colliding endpoint and the offending
     /// instance id.
     /// </exception>
-    /// <exception cref="System.OperationCanceledException">
+    /// <exception cref="OperationCanceledException">
     /// <paramref name="cancellationToken"/> was cancelled before
     /// the probe completed.
     /// </exception>

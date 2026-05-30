@@ -3,11 +3,11 @@ namespace AutoContext.Mcp.Server.Tests.Workers;
 using System.Collections.Frozen;
 using System.Text.Json;
 
+using AutoContext.Framework.Pipes;
 using AutoContext.Mcp.Server.Tests.Support.Shared;
 using AutoContext.Mcp.Server.Tests.Support.Workers;
 using AutoContext.Mcp.Server.Workers;
 using AutoContext.Mcp.Server.Workers.Protocol;
-using AutoContext.Framework.Pipes;
 
 public sealed class WorkerClientTests
 {

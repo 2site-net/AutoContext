@@ -4,9 +4,8 @@ using System.IO.Pipes;
 
 using AutoContext.Framework.Pipes;
 using AutoContext.Mcp.Server.Config;
-using AutoContext.Mcp.Server.Tests.Support.Shared;
-
 using AutoContext.Mcp.Server.Tests.Support.Config;
+using AutoContext.Mcp.Server.Tests.Support.Shared;
 
 /// <summary>
 /// Pipe-server harness for <c>AutoContextConfigClient</c> tests: spins

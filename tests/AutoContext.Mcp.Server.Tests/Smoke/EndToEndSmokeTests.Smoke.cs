@@ -1,11 +1,10 @@
 namespace AutoContext.Mcp.Server.Tests.Smoke;
 
+using AutoContext.Mcp.Server.Tests.Support.Smoke;
 using AutoContext.Mcp.Server.Tools.Results;
 
 using ModelContextProtocol.Client;
 using ModelContextProtocol.Protocol;
-
-using AutoContext.Mcp.Server.Tests.Support.Smoke;
 
 /// <summary>
 /// End-to-end smoke tests that spawn the real

@@ -3,13 +3,12 @@ namespace AutoContext.Framework.Pipes.Tests;
 using System.Collections.Concurrent;
 using System.IO.Pipes;
 
-using AutoContext.Framework.Tests.Support.Async;
-using AutoContext.Framework.Tests.Support.Pipes;
 using AutoContext.Framework.Pipes;
+using AutoContext.Framework.Tests.Support.Async;
+using AutoContext.Framework.Tests.Support.Encodings;
+using AutoContext.Framework.Tests.Support.Pipes;
 
 using Microsoft.Extensions.Logging.Abstractions;
-
-using AutoContext.Framework.Tests.Support.Encodings;
 
 public sealed class PipeStreamingClientTests
 {

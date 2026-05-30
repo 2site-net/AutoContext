@@ -2,9 +2,9 @@ namespace AutoContext.Mcp.Server.Tests.Support.Shared;
 
 using System.IO.Pipes;
 
-using AutoContext.Mcp.Server.Workers.Transport;
 using AutoContext.Engine.Protocol;
 using AutoContext.Framework.Pipes;
+using AutoContext.Mcp.Server.Workers.Transport;
 
 internal static class PipeServerHarness
 {

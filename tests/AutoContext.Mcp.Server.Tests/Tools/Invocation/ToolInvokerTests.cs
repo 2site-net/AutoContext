@@ -7,6 +7,7 @@ using AutoContext.Mcp.Server.Config;
 using AutoContext.Mcp.Server.EditorConfig;
 using AutoContext.Mcp.Server.Registry;
 using AutoContext.Mcp.Server.Tests.Support.Shared;
+using AutoContext.Mcp.Server.Tests.Support.Tools;
 using AutoContext.Mcp.Server.Tests.Support.Tools.Invocation;
 using AutoContext.Mcp.Server.Tools.Invocation;
 using AutoContext.Mcp.Server.Tools.Results;
@@ -14,8 +15,6 @@ using AutoContext.Mcp.Server.Workers;
 using AutoContext.Mcp.Server.Workers.Protocol;
 
 using Microsoft.Extensions.Logging.Abstractions;
-
-using AutoContext.Mcp.Server.Tests.Support.Tools;
 
 public sealed class ToolInvokerTests
 {

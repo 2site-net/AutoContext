@@ -55,7 +55,7 @@ public sealed record JsonLogRecord
     /// <summary>
     /// Moment the producer minted this record, in UTC. Serialised
     /// as ISO-8601 by System.Text.Json's default
-    /// <see cref="System.DateTimeOffset"/> handling, matching the
+    /// <see cref="DateTimeOffset"/> handling, matching the
     /// design's <c>"timestamp: string (ISO-8601 UTC, set by the
     /// worker at log time)"</c> contract.
     /// </summary>

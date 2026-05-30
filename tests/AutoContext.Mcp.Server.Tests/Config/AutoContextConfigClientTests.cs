@@ -1,13 +1,12 @@
 namespace AutoContext.Mcp.Server.Tests.Config;
 
 using AutoContext.Framework.Pipes;
+using AutoContext.Framework.Tests.Support.Async;
 using AutoContext.Mcp.Server.Config;
 using AutoContext.Mcp.Server.Tests.Support.Config;
 using AutoContext.Mcp.Server.Tests.Support.Shared;
 
 using Microsoft.Extensions.Logging.Abstractions;
-
-using AutoContext.Framework.Tests.Support.Async;
 
 public sealed class AutoContextConfigClientTests
 {

@@ -32,7 +32,7 @@ public interface IPipeExchangeClient : IAsyncDisposable
     /// not complete within the configured timeout.</exception>
     /// <exception cref="UnauthorizedAccessException">The current
     /// principal lacks permission to open the pipe.</exception>
-    /// <exception cref="System.IO.InvalidDataException">The peer
+    /// <exception cref="InvalidDataException">The peer
     /// sent a frame with an invalid header.</exception>
     /// <exception cref="OperationCanceledException">
     /// <paramref name="cancellationToken"/> was canceled before the

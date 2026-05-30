@@ -2,9 +2,8 @@ namespace AutoContext.Worker.DotNet.Tests.Tasks.NuGet;
 
 using System.Text.Json;
 
-using AutoContext.Worker.DotNet.Tasks.NuGet;
 using AutoContext.Framework.Tests.Support.Workers;
-
+using AutoContext.Worker.DotNet.Tasks.NuGet;
 using AutoContext.Worker.DotNet.Tests.Support.Tasks.NuGet;
 
 public sealed class AnalyzeNuGetHygieneTaskTests

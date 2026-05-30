@@ -2,10 +2,9 @@ namespace AutoContext.Mcp.Server.Tests.Tools.Results;
 
 using System.Text.Json;
 
+using AutoContext.Mcp.Server.Tests.Support.Tools.Results;
 using AutoContext.Mcp.Server.Tools.Results;
 using AutoContext.Mcp.Server.Workers.Protocol;
-
-using AutoContext.Mcp.Server.Tests.Support.Tools.Results;
 
 public sealed class ToolResultComposerTests
 {

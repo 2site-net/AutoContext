@@ -28,7 +28,7 @@ using Microsoft.Extensions.Options;
 /// <para>
 /// The probe is best-effort: <see cref="TimeoutException"/> (no
 /// listener within the probe window) and
-/// <see cref="System.IO.IOException"/> from the connect itself
+/// <see cref="IOException"/> from the connect itself
 /// (no pipe at this name) are both treated as "address is free".
 /// <see cref="UnauthorizedAccessException"/> from an ACL denial
 /// makes the probe inconclusive; the guard logs a warning and

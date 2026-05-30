@@ -2,11 +2,10 @@ namespace AutoContext.Mcp.Server.Tests.Tools;
 
 using AutoContext.Mcp.Server.Config;
 using AutoContext.Mcp.Server.Registry;
+using AutoContext.Mcp.Server.Tests.Support.Tools;
 using AutoContext.Mcp.Server.Tools;
 
 using Microsoft.Extensions.Logging.Abstractions;
-
-using AutoContext.Mcp.Server.Tests.Support.Tools;
 
 public sealed class McpSdkAdapterTests
 {

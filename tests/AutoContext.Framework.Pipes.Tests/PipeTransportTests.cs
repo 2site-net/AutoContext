@@ -2,8 +2,8 @@ namespace AutoContext.Framework.Pipes.Tests;
 
 using System.IO.Pipes;
 
-using AutoContext.Framework.Tests.Support.Pipes;
 using AutoContext.Framework.Pipes;
+using AutoContext.Framework.Tests.Support.Pipes;
 
 using Microsoft.Extensions.Logging.Abstractions;
 

@@ -1,7 +1,7 @@
 namespace AutoContext.Framework.Workers;
 
-using AutoContext.Framework.Logging;
 using AutoContext.Engine.Protocol;
+using AutoContext.Framework.Logging;
 
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;

@@ -2,10 +2,9 @@ namespace AutoContext.Mcp.Server.Tests.Support.Workers.Control;
 
 using AutoContext.Framework.Pipes;
 using AutoContext.Mcp.Server.Tests.Support.Shared;
+using AutoContext.Mcp.Server.Tests.Support.Workers.Control;
 using AutoContext.Mcp.Server.Workers.Control;
 using AutoContext.Mcp.Server.Workers.Protocol;
-
-using AutoContext.Mcp.Server.Tests.Support.Workers.Control;
 
 /// <summary>
 /// Persistent in-process pipe server harness for

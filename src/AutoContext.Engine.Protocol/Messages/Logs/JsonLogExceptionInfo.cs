@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 /// <summary>
 /// Wire shape of the optional <c>exception</c> object on a
-/// <see cref="JsonLogRecord"/>. Flattens an <see cref="System.Exception"/>
+/// <see cref="JsonLogRecord"/>. Flattens an <see cref="Exception"/>
 /// instance to the four fields consumers actually render — type,
 /// message, stack trace, and an optional recursive inner exception
 /// — without dragging the producer's CLR exception type or any
@@ -30,14 +30,14 @@ public sealed record JsonLogExceptionInfo
     public string Type { get; init; } = string.Empty;
 
     /// <summary>
-    /// <see cref="System.Exception.Message"/> from the originating
+    /// <see cref="Exception.Message"/> from the originating
     /// exception. Captured at log time; never re-evaluated.
     /// </summary>
     [JsonPropertyName("message")]
     public string Message { get; init; } = string.Empty;
 
     /// <summary>
-    /// <see cref="System.Exception.StackTrace"/> from the
+    /// <see cref="Exception.StackTrace"/> from the
     /// originating exception, captured at log time. May be empty
     /// if the producer chose not to materialise a stack (e.g. a
     /// pre-thrown sentinel).
@@ -47,7 +47,7 @@ public sealed record JsonLogExceptionInfo
 
     /// <summary>
     /// Optional inner exception in the same flattened shape.
-    /// Walks <see cref="System.Exception.InnerException"/> chains
+    /// Walks <see cref="Exception.InnerException"/> chains
     /// depth-first; absent when the originating exception had no
     /// inner cause.
     /// </summary>

@@ -1,5 +1,8 @@
 namespace AutoContext.Mcp.Server;
 
+using AutoContext.Framework.Logging;
+using AutoContext.Framework.Pipes;
+using AutoContext.Framework.Workers;
 using AutoContext.Mcp.Server.Config;
 using AutoContext.Mcp.Server.EditorConfig;
 using AutoContext.Mcp.Server.Registry;
@@ -8,9 +11,6 @@ using AutoContext.Mcp.Server.Tools.Invocation;
 using AutoContext.Mcp.Server.Workers;
 using AutoContext.Mcp.Server.Workers.Control;
 using AutoContext.Mcp.Server.Workers.Transport;
-using AutoContext.Framework.Logging;
-using AutoContext.Framework.Pipes;
-using AutoContext.Framework.Workers;
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
