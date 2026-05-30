@@ -12,14 +12,14 @@ using Microsoft.Extensions.Logging;
 /// <c>logs</c> named pipe (and the <c>Logs.TailEngine</c> RPC
 /// stream, when wired): every connection that opens the
 /// <c>logs</c> pipe calls <see cref="Subscribe"/> to receive a
-/// per-subscriber bounded buffer of <see cref="LogRecord"/> values
+/// per-subscriber bounded buffer of <see cref="JsonLogRecord"/> values
 /// drained by <see cref="LogFileSinkService"/>.
 /// </summary>
 /// <remarks>
 /// <para>
 /// Each subscriber owns its own bounded <see cref="Channel{T}"/>.
 /// A slow subscriber is evicted with a terminal
-/// <see cref="LogEvictedFrame"/> while the remaining subscribers
+/// <see cref="JsonLogEvictedFrame"/> while the remaining subscribers
 /// keep flowing. The file sink stays unaffected by subscriber
 /// slowness — it is a sibling consumer of every drained record,
 /// not downstream of the broadcaster.
@@ -43,7 +43,7 @@ internal sealed partial class LogSubscriptionBroadcaster
     /// Per-subscriber bounded buffer capacity. Sized to absorb a
     /// burst of records without evicting a healthy subscriber that
     /// is briefly behind on the wire; the terminal
-    /// <see cref="LogEvictedFrame"/> kicks in only when a
+    /// <see cref="JsonLogEvictedFrame"/> kicks in only when a
     /// subscriber is sustainedly slower than the publisher.
     /// </summary>
     internal const int SubscriberBufferCapacity = 64;
@@ -111,7 +111,7 @@ internal sealed partial class LogSubscriptionBroadcaster
     /// </remarks>
     public LogSubscription Subscribe()
     {
-        var channel = Channel.CreateBounded<LogRecord>(
+        var channel = Channel.CreateBounded<JsonLogRecord>(
             new BoundedChannelOptions(SubscriberBufferCapacity)
             {
                 SingleReader = true,
@@ -171,7 +171,7 @@ internal sealed partial class LogSubscriptionBroadcaster
     /// <see langword="true"/> if the record was accepted by the
     /// broadcaster; otherwise, <see langword="false"/>.
     /// </returns>
-    public bool TryPublish(LogRecord record)
+    public bool TryPublish(JsonLogRecord record)
     {
         ArgumentNullException.ThrowIfNull(record);
 

@@ -13,7 +13,7 @@ public sealed class McpWorkerTests
     [InlineData("test-guid-abc123")]
     public void Should_accept_kebab_case_lowercase_id(string id)
     {
-        var worker = new McpWorker
+        var worker = new JsonMcpWorker
         {
             Id = id,
             Name = "AutoContext.Worker.Test",
@@ -33,7 +33,7 @@ public sealed class McpWorkerTests
     [InlineData("dotnet ")]       // trailing whitespace
     public void Should_reject_invalid_id(string id)
     {
-        var ex = Assert.Throws<ArgumentException>(() => new McpWorker
+        var ex = Assert.Throws<ArgumentException>(() => new JsonMcpWorker
         {
             Id = id,
             Name = "AutoContext.Worker.Test",
@@ -48,7 +48,7 @@ public sealed class McpWorkerTests
     [InlineData("   ")]
     public void Should_reject_empty_or_whitespace_id(string id)
     {
-        Assert.Throws<ArgumentException>(() => new McpWorker
+        Assert.Throws<ArgumentException>(() => new JsonMcpWorker
         {
             Id = id,
             Name = "AutoContext.Worker.Test",

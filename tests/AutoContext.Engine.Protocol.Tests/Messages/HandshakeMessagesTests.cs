@@ -15,7 +15,7 @@ public sealed class HandshakeMessagesTests
 
         // Act
         var helloParams = JsonSerializer.Deserialize(
-            json, ProtocolJsonContext.Default.HandshakeParams);
+            json, ProtocolJsonContext.Default.JsonHandshakeParams);
 
         // Assert
         Assert.NotNull(helloParams);
@@ -26,7 +26,7 @@ public sealed class HandshakeMessagesTests
     public void Should_serialize_hello_result_with_camelCase_fields()
     {
         // Arrange
-        var result = new HandshakeResult
+        var result = new JsonHandshakeResult
         {
             ProtocolVersion = 1,
             EngineVersion = "0.9.5",
@@ -34,7 +34,7 @@ public sealed class HandshakeMessagesTests
 
         // Act
         var bytes = JsonSerializer.SerializeToUtf8Bytes(
-            result, ProtocolJsonContext.Default.HandshakeResult);
+            result, ProtocolJsonContext.Default.JsonHandshakeResult);
 
         using var document = JsonDocument.Parse(bytes);
         var root = document.RootElement;

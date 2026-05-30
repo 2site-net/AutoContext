@@ -3,7 +3,7 @@ namespace AutoContext.Engine.Core.Registry;
 using AutoContext.Engine.Protocol.Messages.Registry;
 
 /// <summary>
-/// A <see cref="RegistryEntry"/> paired with the liveness verdict
+/// A <see cref="JsonRegistryEntry"/> paired with the liveness verdict
 /// <see cref="RegistryEntryReader"/> derived from a
 /// <see cref="Infrastructure.Diagnostics.IProcessLookup"/> probe.
 /// Carrying the original entry alongside the verdict lets
@@ -17,5 +17,5 @@ using AutoContext.Engine.Protocol.Messages.Registry;
 /// <param name="State">Whether the entry's owning process is live
 /// or stale (crashed/recycled/exited-without-cleanup).</param>
 internal sealed record RegistryEntryProbeResult(
-    RegistryEntry Entry,
+    JsonRegistryEntry Entry,
     RegistryEntryProbeState State);

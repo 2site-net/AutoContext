@@ -33,7 +33,7 @@ using System.Text.Json.Serialization;
 /// <see cref="JsonIgnoreCondition.WhenWritingNull"/> policy.
 /// </para>
 /// </remarks>
-public sealed record LifecycleEvent
+public sealed record JsonLifecycleEvent
 {
     /// <summary>
     /// Kebab-case wire string identifying the transition. One of

@@ -6,11 +6,11 @@ using System.Text.Json.Serialization;
 /// Result body for <c>Engine.RegistryEntries</c>. Carries the
 /// snapshot of the machine-wide engine-liveness registry that the
 /// engine read at the moment the request arrived. Each item in
-/// <see cref="Entries"/> is the on-disk <see cref="RegistryEntry"/>
+/// <see cref="Entries"/> is the on-disk <see cref="JsonRegistryEntry"/>
 /// shape; the on-disk file and this wire result share the same
 /// value type by design (see <c>design § RPC surface</c>).
 /// </summary>
-public sealed record RegistryEntriesResult
+public sealed record JsonRegistryEntriesResult
 {
     /// <summary>
     /// All live registry rows known at the moment the engine
@@ -19,5 +19,5 @@ public sealed record RegistryEntriesResult
     /// unreadable.
     /// </summary>
     [JsonPropertyName("entries")]
-    public IReadOnlyList<RegistryEntry> Entries { get; init; } = [];
+    public IReadOnlyList<JsonRegistryEntry> Entries { get; init; } = [];
 }

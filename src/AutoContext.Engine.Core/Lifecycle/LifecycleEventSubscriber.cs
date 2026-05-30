@@ -26,7 +26,7 @@ internal sealed class LifecycleEventSubscriber
     /// <exception cref="ArgumentNullException">
     /// <paramref name="channel"/> is <see langword="null"/>.
     /// </exception>
-    public LifecycleEventSubscriber(Channel<LifecycleEvent> channel)
+    public LifecycleEventSubscriber(Channel<JsonLifecycleEvent> channel)
     {
         ArgumentNullException.ThrowIfNull(channel);
 
@@ -37,7 +37,7 @@ internal sealed class LifecycleEventSubscriber
     /// Bounded channel the stream writes events into and the
     /// subscription's reader loop drains.
     /// </summary>
-    public Channel<LifecycleEvent> Channel { get; }
+    public Channel<JsonLifecycleEvent> Channel { get; }
 
     /// <summary>
     /// <see langword="true"/> once the stream has dropped this

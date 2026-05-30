@@ -39,9 +39,9 @@ internal static class RegistryFileFormat
     /// envelope-wrapped UTF-8 bytes that
     /// <see cref="RegistryFileWriter"/> persists to disk.
     /// </summary>
-    public static byte[] Serialize(IReadOnlyList<RegistryEntry> entries) =>
+    public static byte[] Serialize(IReadOnlyList<JsonRegistryEntry> entries) =>
         JsonSerializer.SerializeToUtf8Bytes(
-            new RegistryEnvelope(CurrentSchemaVersion, entries),
+            new JsonRegistryEnvelope(CurrentSchemaVersion, entries),
             SerializerOptions);
 
     /// <summary>
@@ -63,7 +63,7 @@ internal static class RegistryFileFormat
     /// otherwise <see langword="false"/>.</returns>
     public static bool TryDeserialize(
         byte[] bytes,
-        out IReadOnlyList<RegistryEntry> entries,
+        out IReadOnlyList<JsonRegistryEntry> entries,
         out int onDiskVersion)
     {
         entries = [];
@@ -76,7 +76,7 @@ internal static class RegistryFileFormat
 
         try
         {
-            var envelope = JsonSerializer.Deserialize<RegistryEnvelope>(bytes, SerializerOptions);
+            var envelope = JsonSerializer.Deserialize<JsonRegistryEnvelope>(bytes, SerializerOptions);
             if (envelope is null)
             {
                 return false;
@@ -96,8 +96,4 @@ internal static class RegistryFileFormat
             return false;
         }
     }
-
-    private sealed record RegistryEnvelope(
-        [property: JsonPropertyName("schemaVersion")] int SchemaVersion,
-        [property: JsonPropertyName("entries")] IReadOnlyList<RegistryEntry> Entries);
 }

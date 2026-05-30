@@ -358,7 +358,7 @@ public sealed class LogFileSinkServiceTests(LogFileSinkServiceFixture fixture) :
         // no terminal evicted frame.
         var fileRecords = NdjsonTestReader.Read(EngineLogPathTestComposer.Compose(context.Options));
         var single = Assert.Single(frames);
-        var recordFrame = Assert.IsType<LogRecordFrame>(single);
+        var recordFrame = Assert.IsType<JsonLogRecordFrame>(single);
         Assert.Multiple(
             () => Assert.Equal("fan-out", recordFrame.Record.Message),
             () => Assert.Single(fileRecords),

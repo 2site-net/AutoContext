@@ -12,7 +12,7 @@ internal static class LifecycleEventStreamFakeData
     public static LifecycleEventStream CreateStream(EngineOptions options) =>
         new(Options.Create(options), NullLogger<LifecycleEventStream>.Instance);
 
-    public static LifecycleEvent CreateTerminalEvent() =>
+    public static JsonLifecycleEvent CreateTerminalEvent() =>
         new()
         {
             Kind = LifecycleEventKinds.ShuttingDown,

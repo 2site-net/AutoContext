@@ -9,7 +9,7 @@ using AutoContext.Engine.Protocol.Serialization;
 /// <summary>
 /// Builds minimal <see cref="JsonRpcRequest"/> values used by RPC
 /// policy tests: a plain request with a stub <c>id</c>/<c>method</c>,
-/// and a <c>hello</c> request carrying a <see cref="HandshakeParams"/>.
+/// and a <c>hello</c> request carrying a <see cref="JsonHandshakeParams"/>.
 /// </summary>
 internal static class JsonRpcRequestTestFactory
 {
@@ -22,9 +22,9 @@ internal static class JsonRpcRequestTestFactory
 
     public static JsonRpcRequest BuildHelloRequest(string method, int? protocolVersion)
     {
-        var helloParams = new HandshakeParams { ProtocolVersion = protocolVersion };
+        var helloParams = new JsonHandshakeParams { ProtocolVersion = protocolVersion };
         var paramsElement = JsonSerializer.SerializeToElement(
-            helloParams, ProtocolJsonContext.Default.HandshakeParams);
+            helloParams, ProtocolJsonContext.Default.JsonHandshakeParams);
         return new JsonRpcRequest
         {
             Method = method,

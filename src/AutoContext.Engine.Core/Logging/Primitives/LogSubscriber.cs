@@ -28,7 +28,7 @@ internal sealed class LogSubscriber
     /// <exception cref="ArgumentNullException">
     /// <paramref name="channel"/> is <see langword="null"/>.
     /// </exception>
-    public LogSubscriber(Channel<LogRecord> channel)
+    public LogSubscriber(Channel<JsonLogRecord> channel)
     {
         ArgumentNullException.ThrowIfNull(channel);
 
@@ -39,7 +39,7 @@ internal sealed class LogSubscriber
     /// Bounded channel the broadcaster writes records into and the
     /// subscription's reader loop drains.
     /// </summary>
-    public Channel<LogRecord> Channel { get; }
+    public Channel<JsonLogRecord> Channel { get; }
 
     /// <summary>
     /// <see langword="true"/> once the broadcaster has dropped this

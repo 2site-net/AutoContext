@@ -174,7 +174,7 @@ public sealed class RegistrySchemeValidatorTests
               "workers": []
             }
             """;
-        var registry = new McpWorkersCatalog
+        var registry = new JsonMcpWorkersCatalog
         {
             SchemaVersion = "1",
             Workers = [],
@@ -192,12 +192,12 @@ public sealed class RegistrySchemeValidatorTests
     {
         // Arrange — bypass the schema by constructing the catalog directly
         // to verify the cross-reference check fires independently.
-        var registry = new McpWorkersCatalog
+        var registry = new JsonMcpWorkersCatalog
         {
             SchemaVersion = "1",
             Workers =
             [
-                new McpWorker
+                new JsonMcpWorker
                 {
                     Id = "dotnet",
                     Name = "AutoContext.Worker.DotNet",
@@ -217,24 +217,24 @@ public sealed class RegistrySchemeValidatorTests
     public void Should_detect_tool_with_no_tasks()
     {
         // Arrange
-        var registry = new McpWorkersCatalog
+        var registry = new JsonMcpWorkersCatalog
         {
             SchemaVersion = "1",
             Workers =
             [
-                new McpWorker
+                new JsonMcpWorker
                 {
                     Id = "dotnet",
                     Name = "AutoContext.Worker.DotNet",
                     Tools =
                     [
-                        new McpToolDefinition
+                        new JsonMcpToolDefinition
                         {
                             Name = "analyze_something",
                             Description = "x",
-                            Parameters = new Dictionary<string, McpToolParameter>
+                            Parameters = new Dictionary<string, JsonMcpToolParameter>
                             {
-                                ["content"] = new McpToolParameter { Type = "string", Description = "x", Required = true },
+                                ["content"] = new JsonMcpToolParameter { Type = "string", Description = "x", Required = true },
                             },
                             Tasks = [],
                         },
@@ -258,26 +258,26 @@ public sealed class RegistrySchemeValidatorTests
         // guard asserts the *shape* of schemaVersion (must be a non-negative
         // integer); equality with a specific value is enforced by the schema
         // itself (`const: "1"`).
-        var registry = new McpWorkersCatalog
+        var registry = new JsonMcpWorkersCatalog
         {
             SchemaVersion = "not-a-version",
             Workers =
             [
-                new McpWorker
+                new JsonMcpWorker
                 {
                     Id = "dotnet",
                     Name = "AutoContext.Worker.DotNet",
                     Tools =
                     [
-                        new McpToolDefinition
+                        new JsonMcpToolDefinition
                         {
                             Name = "analyze_something",
                             Description = "x",
-                            Parameters = new Dictionary<string, McpToolParameter>
+                            Parameters = new Dictionary<string, JsonMcpToolParameter>
                             {
-                                ["content"] = new McpToolParameter { Type = "string", Description = "x", Required = true },
+                                ["content"] = new JsonMcpToolParameter { Type = "string", Description = "x", Required = true },
                             },
-                            Tasks = [new McpTaskDefinition { Name = "task_a" }],
+                            Tasks = [new JsonMcpTaskDefinition { Name = "task_a" }],
                         },
                     ],
                 },

@@ -25,7 +25,7 @@ public sealed class LogRecordMessagesTests
     {
         // Arrange
         var timestamp = new DateTimeOffset(2026, 4, 28, 12, 0, 0, TimeSpan.Zero);
-        var record = new LogRecord
+        var record = new JsonLogRecord
         {
             Timestamp = timestamp,
             Category = "engine.lifecycle",
@@ -35,7 +35,7 @@ public sealed class LogRecordMessagesTests
 
         // Act
         var bytes = JsonSerializer.SerializeToUtf8Bytes(
-            record, ProtocolJsonContext.Default.LogRecord);
+            record, ProtocolJsonContext.Default.JsonLogRecord);
 
         // Assert
         using var document = JsonDocument.Parse(bytes);
@@ -61,25 +61,25 @@ public sealed class LogRecordMessagesTests
             ["requestId"] = JsonSerializer.SerializeToElement("abc-123"),
             ["attempt"] = JsonSerializer.SerializeToElement(2),
         };
-        var inner = new LogExceptionInfo
+        var inner = new JsonLogExceptionInfo
         {
             Type = "System.IO.FileNotFoundException",
             Message = "could not find 'foo.txt'",
             StackTrace = "   at Foo()",
         };
-        var outer = new LogExceptionInfo
+        var outer = new JsonLogExceptionInfo
         {
             Type = "System.IO.IOException",
             Message = "open failed",
             StackTrace = "   at Bar()",
             Inner = inner,
         };
-        var record = new LogRecord
+        var record = new JsonLogRecord
         {
             Timestamp = timestamp,
             Category = "engine.rpc.Instructions.Get",
             Level = LogLevels.Error,
-            EventId = new LogEventId { Id = 42, Name = "OpenFailed" },
+            EventId = new JsonLogEventId { Id = 42, Name = "OpenFailed" },
             Message = "open failed",
             Properties = properties,
             Exception = outer,
@@ -87,9 +87,9 @@ public sealed class LogRecordMessagesTests
 
         // Act
         var bytes = JsonSerializer.SerializeToUtf8Bytes(
-            record, ProtocolJsonContext.Default.LogRecord);
+            record, ProtocolJsonContext.Default.JsonLogRecord);
         var roundTripped = JsonSerializer.Deserialize(
-            bytes, ProtocolJsonContext.Default.LogRecord);
+            bytes, ProtocolJsonContext.Default.JsonLogRecord);
 
         // Assert
         using var document = JsonDocument.Parse(bytes);
@@ -128,7 +128,7 @@ public sealed class LogRecordMessagesTests
     public void Should_omit_optional_inner_exception_when_absent()
     {
         // Arrange
-        var ex = new LogExceptionInfo
+        var ex = new JsonLogExceptionInfo
         {
             Type = "System.InvalidOperationException",
             Message = "bad state",
@@ -137,7 +137,7 @@ public sealed class LogRecordMessagesTests
 
         // Act
         var bytes = JsonSerializer.SerializeToUtf8Bytes(
-            ex, ProtocolJsonContext.Default.LogExceptionInfo);
+            ex, ProtocolJsonContext.Default.JsonLogExceptionInfo);
 
         // Assert
         using var document = JsonDocument.Parse(bytes);
@@ -154,11 +154,11 @@ public sealed class LogRecordMessagesTests
     public void Should_omit_optional_name_on_event_id_when_absent()
     {
         // Arrange
-        var eventId = new LogEventId { Id = 7 };
+        var eventId = new JsonLogEventId { Id = 7 };
 
         // Act
         var bytes = JsonSerializer.SerializeToUtf8Bytes(
-            eventId, ProtocolJsonContext.Default.LogEventId);
+            eventId, ProtocolJsonContext.Default.JsonLogEventId);
 
         // Assert
         using var document = JsonDocument.Parse(bytes);

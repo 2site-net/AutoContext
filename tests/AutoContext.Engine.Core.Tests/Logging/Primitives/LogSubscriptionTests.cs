@@ -20,7 +20,7 @@ public sealed class LogSubscriptionTests
     public void Should_throw_when_constructed_with_null_release()
     {
         // Arrange
-        var channel = Channel.CreateUnbounded<LogRecord>();
+        var channel = Channel.CreateUnbounded<JsonLogRecord>();
 
         // Act + Assert
         Assert.Throws<ArgumentNullException>(() =>
@@ -31,7 +31,7 @@ public sealed class LogSubscriptionTests
     public void Should_throw_when_constructed_with_null_wasEvicted()
     {
         // Arrange
-        var channel = Channel.CreateUnbounded<LogRecord>();
+        var channel = Channel.CreateUnbounded<JsonLogRecord>();
 
         // Act + Assert
         Assert.Throws<ArgumentNullException>(() =>
@@ -42,7 +42,7 @@ public sealed class LogSubscriptionTests
     public async Task Should_yield_records_in_order_as_LogRecordFrames()
     {
         // Arrange
-        var channel = Channel.CreateUnbounded<LogRecord>();
+        var channel = Channel.CreateUnbounded<JsonLogRecord>();
         var first = LogRecordFakeData.CreateLogRecord(message: "first");
         var second = LogRecordFakeData.CreateLogRecord(message: "second");
 
@@ -56,7 +56,7 @@ public sealed class LogSubscriptionTests
             wasEvicted: () => false);
 
         // Act
-        var frames = new List<LogStreamFrame>();
+        var frames = new List<JsonLogStreamFrame>();
         await foreach (var frame in subscription.ReadAllAsync(TestContext.Current.CancellationToken))
         {
             frames.Add(frame);
@@ -65,15 +65,15 @@ public sealed class LogSubscriptionTests
         // Assert — two record frames in FIFO order, no terminal.
         Assert.Multiple(
             () => Assert.Equal(2, frames.Count),
-            () => Assert.Same(first, Assert.IsType<LogRecordFrame>(frames[0]).Record),
-            () => Assert.Same(second, Assert.IsType<LogRecordFrame>(frames[1]).Record));
+            () => Assert.Same(first, Assert.IsType<JsonLogRecordFrame>(frames[0]).Record),
+            () => Assert.Same(second, Assert.IsType<JsonLogRecordFrame>(frames[1]).Record));
     }
 
     [Fact]
     public async Task Should_not_yield_terminal_frame_when_not_evicted()
     {
         // Arrange
-        var channel = Channel.CreateUnbounded<LogRecord>();
+        var channel = Channel.CreateUnbounded<JsonLogRecord>();
         channel.Writer.Complete();
 
         using var subscription = new LogSubscription(
@@ -82,7 +82,7 @@ public sealed class LogSubscriptionTests
             wasEvicted: () => false);
 
         // Act
-        var frames = new List<LogStreamFrame>();
+        var frames = new List<JsonLogStreamFrame>();
         await foreach (var frame in subscription.ReadAllAsync(TestContext.Current.CancellationToken))
         {
             frames.Add(frame);
@@ -96,7 +96,7 @@ public sealed class LogSubscriptionTests
     public async Task Should_yield_terminal_evicted_frame_when_wasEvicted_is_true()
     {
         // Arrange
-        var channel = Channel.CreateUnbounded<LogRecord>();
+        var channel = Channel.CreateUnbounded<JsonLogRecord>();
         channel.Writer.Complete();
 
         using var subscription = new LogSubscription(
@@ -105,22 +105,22 @@ public sealed class LogSubscriptionTests
             wasEvicted: () => true);
 
         // Act
-        var frames = new List<LogStreamFrame>();
+        var frames = new List<JsonLogStreamFrame>();
         await foreach (var frame in subscription.ReadAllAsync(TestContext.Current.CancellationToken))
         {
             frames.Add(frame);
         }
 
         // Assert
-        var terminal = Assert.IsType<LogEvictedFrame>(Assert.Single(frames));
-        Assert.Equal(LogEvictedFrame.SlowSubscriberReason, terminal.Reason);
+        var terminal = Assert.IsType<JsonLogEvictedFrame>(Assert.Single(frames));
+        Assert.Equal(JsonLogEvictedFrame.SlowSubscriberReason, terminal.Reason);
     }
 
     [Fact]
     public void Should_invoke_release_callback_on_dispose()
     {
         // Arrange
-        var channel = Channel.CreateUnbounded<LogRecord>();
+        var channel = Channel.CreateUnbounded<JsonLogRecord>();
         var releaseCount = 0;
         var subscription = new LogSubscription(
             channel.Reader,
@@ -138,7 +138,7 @@ public sealed class LogSubscriptionTests
     public void Should_invoke_release_callback_exactly_once_when_disposed_twice()
     {
         // Arrange
-        var channel = Channel.CreateUnbounded<LogRecord>();
+        var channel = Channel.CreateUnbounded<JsonLogRecord>();
         var releaseCount = 0;
         var subscription = new LogSubscription(
             channel.Reader,

@@ -88,7 +88,7 @@ internal sealed class RetentionPolicy
     /// <paramref name="writtenAt"/> falls outside the explicit
     /// <paramref name="window"/> relative to the current clock.
     /// Lets callers honour per-entry retention windows
-    /// (<see cref="Protocol.Messages.Registry.RegistryEntry.Retention"/>)
+    /// (<see cref="Protocol.Messages.Registry.JsonRegistryEntry.Retention"/>)
     /// without re-implementing the future-skew and zero-window
     /// rules — <c>StaleSubtreeCleaner</c> uses this overload for the
     /// <c>StaleRegistration</c> arm.

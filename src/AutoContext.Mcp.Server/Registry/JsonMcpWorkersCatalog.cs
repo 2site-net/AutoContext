@@ -3,7 +3,7 @@ namespace AutoContext.Mcp.Server.Registry;
 /// <summary>
 /// Strongly-typed representation of <c>mcp-workers-registry.json</c>.
 /// </summary>
-public sealed record McpWorkersCatalog
+public sealed record JsonMcpWorkersCatalog
 {
     /// <summary>
     /// Registry format version (currently <c>"1"</c>).
@@ -13,5 +13,5 @@ public sealed record McpWorkersCatalog
     /// <summary>
     /// Worker entries — one per <c>AutoContext.Worker.*</c> process.
     /// </summary>
-    public required IReadOnlyList<McpWorker> Workers { get; init; }
+    public required IReadOnlyList<JsonMcpWorker> Workers { get; init; }
 }

@@ -49,7 +49,7 @@ internal static class EngineSpawnTestScenario
             codec, id: 42, method: ProtocolMethods.Shutdown, ct).ConfigureAwait(false);
         var shutdownResponse = await EngineWireTestClient.ReadResponseAsync(codec, ct).ConfigureAwait(false);
         var shutdownResult = shutdownResponse.Result!.Value.Deserialize(
-            ProtocolJsonContext.Default.ShutdownResult);
+            ProtocolJsonContext.Default.JsonShutdownResult);
 
         // Wait for the binary to drain and exit on its own.
         await engine.Process

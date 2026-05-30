@@ -10,7 +10,7 @@ using System.Text.Json.Serialization;
 /// the field exists for forward compatibility (e.g. a future engine
 /// might decline shutdown when blocking work is in-flight).
 /// </summary>
-public sealed record ShutdownResult
+public sealed record JsonShutdownResult
 {
     /// <summary>
     /// Whether the engine accepted the shutdown request. Always

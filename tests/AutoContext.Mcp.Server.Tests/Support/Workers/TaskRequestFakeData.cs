@@ -6,17 +6,17 @@ using System.Text.Json;
 using AutoContext.Mcp.Server.Workers.Protocol;
 
 /// <summary>
-/// Canonical fake <see cref="TaskRequest"/> payloads shared across the
+/// Canonical fake <see cref="JsonTaskRequest"/> payloads shared across the
 /// worker pipe-client tests.
 /// </summary>
 internal static class TaskRequestFakeData
 {
     /// <summary>
-    /// Builds a minimal valid <see cref="TaskRequest"/> with a
+    /// Builds a minimal valid <see cref="JsonTaskRequest"/> with a
     /// <c>{ content = "hello" }</c> payload and an empty
     /// EditorConfig — sufficient to drive worker happy-path tests.
     /// </summary>
-    public static TaskRequest BuildRequest(string mcpTask) => new()
+    public static JsonTaskRequest BuildRequest(string mcpTask) => new()
     {
         McpTask = mcpTask,
         Data = JsonSerializer.SerializeToElement(new { content = "hello" }),

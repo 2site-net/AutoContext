@@ -72,7 +72,7 @@ public sealed class EngineLogFileReaderTests : IDisposable
 
         var good = JsonSerializer.Serialize(
             CreateRecord(new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero), "ok"),
-            ProtocolJsonContext.Default.LogRecord);
+            ProtocolJsonContext.Default.JsonLogRecord);
         await File.WriteAllTextAsync(
             path,
             $"{good}\n{{not valid json\n{good}\n",
@@ -97,7 +97,7 @@ public sealed class EngineLogFileReaderTests : IDisposable
             CreateRecord(new DateTimeOffset(2026, 1, 1, 0, 0, 10, TimeSpan.Zero), "kept-2"));
 
         var result = await reader.ReadAsync(
-            new LogsGetEngineParams
+            new JsonLogsGetEngineParams
             {
                 Since = new DateTimeOffset(2026, 1, 1, 0, 0, 3, TimeSpan.Zero),
             },
@@ -120,7 +120,7 @@ public sealed class EngineLogFileReaderTests : IDisposable
         // Since predates the file's earliest record → records that
         // would satisfy the request rotated past the active file.
         var result = await reader.ReadAsync(
-            new LogsGetEngineParams
+            new JsonLogsGetEngineParams
             {
                 Since = new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero),
             },
@@ -142,7 +142,7 @@ public sealed class EngineLogFileReaderTests : IDisposable
             CreateRecord(new DateTimeOffset(2026, 1, 1, 0, 0, 3, TimeSpan.Zero), "4"));
 
         var result = await reader.ReadAsync(
-            new LogsGetEngineParams { LastN = 2 },
+            new JsonLogsGetEngineParams { LastN = 2 },
             TestContext.Current.CancellationToken);
 
         Assert.Multiple(
@@ -160,7 +160,7 @@ public sealed class EngineLogFileReaderTests : IDisposable
             CreateRecord(new DateTimeOffset(2026, 1, 1, 0, 0, 5, TimeSpan.Zero), "a"));
 
         var result = await reader.ReadAsync(
-            new LogsGetEngineParams
+            new JsonLogsGetEngineParams
             {
                 LastN = 0,
                 Since = new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero),
@@ -183,7 +183,7 @@ public sealed class EngineLogFileReaderTests : IDisposable
 
         // Act
         var result = await reader.ReadAsync(
-            new LogsGetEngineParams { LastN = 0 },
+            new JsonLogsGetEngineParams { LastN = 0 },
             TestContext.Current.CancellationToken);
 
         // Assert
@@ -199,7 +199,7 @@ public sealed class EngineLogFileReaderTests : IDisposable
 
         await Assert.ThrowsAsync<ArgumentOutOfRangeException>(
             () => reader.ReadAsync(
-                new LogsGetEngineParams { LastN = -1 },
+                new JsonLogsGetEngineParams { LastN = -1 },
                 TestContext.Current.CancellationToken));
     }
 
@@ -210,7 +210,7 @@ public sealed class EngineLogFileReaderTests : IDisposable
         return (new EngineLogFileReader(paths), paths.EngineLogFilePath);
     }
 
-    private static LogRecord CreateRecord(DateTimeOffset timestamp, string message) =>
+    private static JsonLogRecord CreateRecord(DateTimeOffset timestamp, string message) =>
         new()
         {
             Timestamp = timestamp,
@@ -219,14 +219,14 @@ public sealed class EngineLogFileReaderTests : IDisposable
             Message = message,
         };
 
-    private static async Task WriteRecordsAsync(string path, params LogRecord[] records)
+    private static async Task WriteRecordsAsync(string path, params JsonLogRecord[] records)
     {
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
         await using var writer = new StreamWriter(path, append: false);
         foreach (var record in records)
         {
             var line = JsonSerializer.Serialize(
-                record, ProtocolJsonContext.Default.LogRecord);
+                record, ProtocolJsonContext.Default.JsonLogRecord);
             await writer.WriteLineAsync(line);
         }
     }

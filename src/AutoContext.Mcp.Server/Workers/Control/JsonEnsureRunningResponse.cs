@@ -7,7 +7,7 @@ using System.Text.Json.Serialization;
 /// is always present; <see cref="Error"/> carries the failure message
 /// when, and only when, <see cref="Status"/> is <c>"failed"</c>.
 /// </summary>
-internal sealed record EnsureRunningResponse
+internal sealed record JsonEnsureRunningResponse
 {
     public const string StatusReady = "ready";
     public const string StatusFailed = "failed";

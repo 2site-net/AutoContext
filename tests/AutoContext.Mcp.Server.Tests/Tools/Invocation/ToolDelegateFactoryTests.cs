@@ -64,14 +64,14 @@ public sealed class ToolDelegateFactoryTests
             pipeName,
             handler: requestBytes =>
             {
-                var request = JsonSerializer.Deserialize<TaskRequest>(
+                var request = JsonSerializer.Deserialize<JsonTaskRequest>(
                     requestBytes,
                     WorkerJsonOptions.Instance)!;
 
-                var response = new TaskResponse
+                var response = new JsonTaskResponse
                 {
                     McpTask = request.McpTask,
-                    Status = TaskResponse.StatusOk,
+                    Status = JsonTaskResponse.StatusOk,
                     Output = JsonSerializer.SerializeToElement(new { ok = true }),
                     Error = string.Empty,
                 };
@@ -94,7 +94,7 @@ public sealed class ToolDelegateFactoryTests
         // Assert
         Assert.Multiple(
             () => Assert.Equal("invoke_tool", root.GetProperty("tool").GetString()),
-            () => Assert.Equal(ToolResultEnvelope.StatusOk, root.GetProperty("status").GetString()),
+            () => Assert.Equal(JsonToolResultEnvelope.StatusOk, root.GetProperty("status").GetString()),
             () => Assert.Equal(1, root.GetProperty("summary").GetProperty("taskCount").GetInt32()),
             () => Assert.Equal("task_x", root.GetProperty("result")[0].GetProperty("task").GetString()));
     }

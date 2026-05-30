@@ -21,7 +21,7 @@ public sealed class AutoContextConfigSnapshotTests
     {
         var snapshot = new AutoContextConfigSnapshot();
 
-        var changed = snapshot.Update(new AutoContextConfigSnapshotDto
+        var changed = snapshot.Update(new JsonAutoContextConfigSnapshot
         {
             DisabledTools = ["alpha_tool", "beta_tool"],
         });
@@ -38,7 +38,7 @@ public sealed class AutoContextConfigSnapshotTests
     {
         var snapshot = new AutoContextConfigSnapshot();
 
-        snapshot.Update(new AutoContextConfigSnapshotDto
+        snapshot.Update(new JsonAutoContextConfigSnapshot
         {
             DisabledTasks = new Dictionary<string, List<string>>
             {
@@ -57,7 +57,7 @@ public sealed class AutoContextConfigSnapshotTests
     public void Should_report_no_change_when_replay_matches_current_snapshot()
     {
         var snapshot = new AutoContextConfigSnapshot();
-        snapshot.Update(new AutoContextConfigSnapshotDto
+        snapshot.Update(new JsonAutoContextConfigSnapshot
         {
             DisabledTools = ["alpha_tool"],
             DisabledTasks = new Dictionary<string, List<string>>
@@ -69,7 +69,7 @@ public sealed class AutoContextConfigSnapshotTests
         var changeCount = 0;
         snapshot.Changed += (_, _) => changeCount++;
 
-        var changed = snapshot.Update(new AutoContextConfigSnapshotDto
+        var changed = snapshot.Update(new JsonAutoContextConfigSnapshot
         {
             DisabledTools = ["alpha_tool"],
             DisabledTasks = new Dictionary<string, List<string>>
@@ -87,12 +87,12 @@ public sealed class AutoContextConfigSnapshotTests
     public void Should_raise_changed_event_when_disabled_tools_differ()
     {
         var snapshot = new AutoContextConfigSnapshot();
-        snapshot.Update(new AutoContextConfigSnapshotDto { DisabledTools = ["alpha_tool"] });
+        snapshot.Update(new JsonAutoContextConfigSnapshot { DisabledTools = ["alpha_tool"] });
 
         var changeCount = 0;
         snapshot.Changed += (_, _) => changeCount++;
 
-        var changed = snapshot.Update(new AutoContextConfigSnapshotDto { DisabledTools = ["alpha_tool", "beta_tool"] });
+        var changed = snapshot.Update(new JsonAutoContextConfigSnapshot { DisabledTools = ["alpha_tool", "beta_tool"] });
 
         Assert.Multiple(
             () => Assert.True(changed),
@@ -104,12 +104,12 @@ public sealed class AutoContextConfigSnapshotTests
     public void Should_treat_tool_order_as_irrelevant()
     {
         var snapshot = new AutoContextConfigSnapshot();
-        snapshot.Update(new AutoContextConfigSnapshotDto { DisabledTools = ["alpha_tool", "beta_tool"] });
+        snapshot.Update(new JsonAutoContextConfigSnapshot { DisabledTools = ["alpha_tool", "beta_tool"] });
 
         var changeCount = 0;
         snapshot.Changed += (_, _) => changeCount++;
 
-        var changed = snapshot.Update(new AutoContextConfigSnapshotDto { DisabledTools = ["beta_tool", "alpha_tool"] });
+        var changed = snapshot.Update(new JsonAutoContextConfigSnapshot { DisabledTools = ["beta_tool", "alpha_tool"] });
 
         Assert.Multiple(
             () => Assert.False(changed),
@@ -120,7 +120,7 @@ public sealed class AutoContextConfigSnapshotTests
     public void Should_clear_state_when_update_is_empty()
     {
         var snapshot = new AutoContextConfigSnapshot();
-        snapshot.Update(new AutoContextConfigSnapshotDto
+        snapshot.Update(new JsonAutoContextConfigSnapshot
         {
             DisabledTools = ["alpha_tool"],
             DisabledTasks = new Dictionary<string, List<string>>
@@ -129,7 +129,7 @@ public sealed class AutoContextConfigSnapshotTests
             },
         });
 
-        var changed = snapshot.Update(new AutoContextConfigSnapshotDto());
+        var changed = snapshot.Update(new JsonAutoContextConfigSnapshot());
 
         Assert.Multiple(
             () => Assert.True(changed),

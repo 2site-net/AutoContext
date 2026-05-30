@@ -6,9 +6,9 @@ using System.Text.Json.Serialization;
 /// One envelope-level error. Populated only when per-task invocation
 /// never happened (manifest validation rejected input, all tasks failed
 /// before invocation, malformed worker response, etc.). Per-task failures
-/// live in <see cref="ToolResultEntry.Error"/> instead.
+/// live in <see cref="JsonToolResultEntry.Error"/> instead.
 /// </summary>
-public sealed record ToolResultError
+public sealed record JsonToolResultError
 {
     [JsonPropertyName("code")]
     public required string Code { get; init; }

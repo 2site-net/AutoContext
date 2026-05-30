@@ -25,23 +25,23 @@ using System.Text.Json.Serialization;
 /// <see cref="Truncated"/> is set to <see langword="true"/> when
 /// the engine's active <c>engine.log</c> rolled past part of the
 /// requested range (either because rotation discarded older
-/// records that satisfied <see cref="LogsGetEngineParams.Since"/>,
-/// or because <see cref="LogsGetEngineParams.LastN"/> bounded the
+/// records that satisfied <see cref="JsonLogsGetEngineParams.Since"/>,
+/// or because <see cref="JsonLogsGetEngineParams.LastN"/> bounded the
 /// reply and earlier records were dropped). Callers use it to
 /// surface a "scrolled past start" affordance.
 /// </para>
 /// </remarks>
-public sealed record LogsGetEngineResult
+public sealed record JsonLogsGetEngineResult
 {
     /// <summary>
     /// The records satisfying the request's filter, in
     /// chronological order (oldest first), bounded by
-    /// <see cref="LogsGetEngineParams.LastN"/> when present.
+    /// <see cref="JsonLogsGetEngineParams.LastN"/> when present.
     /// Empty when no record in the active file matched the
     /// filter.
     /// </summary>
     [JsonPropertyName("records")]
-    public IReadOnlyList<LogRecord> Records { get; init; } = [];
+    public IReadOnlyList<JsonLogRecord> Records { get; init; } = [];
 
     /// <summary>
     /// <see langword="true"/> when the active file rolled past

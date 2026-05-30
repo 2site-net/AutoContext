@@ -8,7 +8,7 @@ using System.Text.Json.Serialization;
 /// <see cref="Output"/> is null when <see cref="Status"/> is "error";
 /// <see cref="Error"/> is empty when <see cref="Status"/> is "ok".
 /// </summary>
-public sealed record ToolResultEntry
+public sealed record JsonToolResultEntry
 {
     [JsonPropertyName("task")]
     public required string Task { get; init; }

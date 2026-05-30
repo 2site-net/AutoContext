@@ -166,10 +166,10 @@ public sealed partial class AutoContextConfigClient : IHostedService, IAsyncDisp
                     continue;
                 }
 
-                AutoContextConfigSnapshotDto? dto;
+                JsonAutoContextConfigSnapshot? dto;
                 try
                 {
-                    dto = JsonSerializer.Deserialize<AutoContextConfigSnapshotDto>(payload);
+                    dto = JsonSerializer.Deserialize<JsonAutoContextConfigSnapshot>(payload);
                 }
                 catch (JsonException ex)
                 {

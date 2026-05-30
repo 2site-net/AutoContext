@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 /// <summary>
 /// Wire shape of the optional <c>exception</c> object on a
-/// <see cref="LogRecord"/>. Flattens an <see cref="System.Exception"/>
+/// <see cref="JsonLogRecord"/>. Flattens an <see cref="System.Exception"/>
 /// instance to the four fields consumers actually render — type,
 /// message, stack trace, and an optional recursive inner exception
 /// — without dragging the producer's CLR exception type or any
@@ -18,7 +18,7 @@ using System.Text.Json.Serialization;
 /// chain depth-first so consumers can render nested causes
 /// without inventing their own walker.
 /// </remarks>
-public sealed record LogExceptionInfo
+public sealed record JsonLogExceptionInfo
 {
     /// <summary>
     /// Fully-qualified CLR type name of the originating exception
@@ -52,5 +52,5 @@ public sealed record LogExceptionInfo
     /// inner cause.
     /// </summary>
     [JsonPropertyName("inner")]
-    public LogExceptionInfo? Inner { get; init; }
+    public JsonLogExceptionInfo? Inner { get; init; }
 }

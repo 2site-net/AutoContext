@@ -6,7 +6,7 @@ using AutoContext.Engine.Protocol.Messages.Registry;
 
 internal static class RegistryFileTestWriter
 {
-    public static string WriteToCache(string cacheRoot, params RegistryEntry[] entries)
+    public static string WriteToCache(string cacheRoot, params JsonRegistryEntry[] entries)
     {
         var path = Path.Combine(cacheRoot, EngineCacheLayout.RegistryFileName);
         new RegistryFileWriter(path).Write(entries);

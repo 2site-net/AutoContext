@@ -8,7 +8,7 @@ using System.Text.Json.Serialization;
 /// the value they negotiated against) and reports the engine's
 /// informational semver for diagnostics and telemetry.
 /// </summary>
-public sealed record HandshakeResult
+public sealed record JsonHandshakeResult
 {
     /// <summary>
     /// Engine's wire-protocol version (== client's, since the

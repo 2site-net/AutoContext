@@ -40,7 +40,7 @@ using Microsoft.Extensions.Options;
 /// <c>Engine.RegistryEntries</c> and <c>Engine.Shutdown</c>) and
 /// the subscription pump on <c>events</c> (enrolling the
 /// connection with the <see cref="LifecycleEventStream"/> and
-/// serialising each fanned-out <see cref="LifecycleEvent"/>
+/// serialising each fanned-out <see cref="JsonLifecycleEvent"/>
 /// into an <c>Engine.Lifecycle</c> JSON-RPC notification frame).
 /// <c>health</c> and <c>logs</c> are passive observer surfaces
 /// the service binds but does not author payloads for.
@@ -129,7 +129,7 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
     /// <param name="logsBroadcaster">Fan-out broadcaster backing the
     /// <c>logs</c> pipe; every accepted <c>logs</c>-pipe connection
     /// enrolls a subscriber here and pumps drained
-    /// <see cref="LogStreamFrame"/> values to the wire.</param>
+    /// <see cref="JsonLogStreamFrame"/> values to the wire.</param>
     /// <param name="logFileReader">Forward-pass reader over the
     /// active <c>engine.log</c>; threaded into the RPC dispatch
     /// policy so the <c>Logs.GetEngine</c> handler can answer
@@ -493,7 +493,7 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
                 .ConfigureAwait(false))
             {
                 var paramsElement = JsonSerializer.SerializeToElement(
-                    evt, ProtocolJsonContext.Default.LifecycleEvent);
+                    evt, ProtocolJsonContext.Default.JsonLifecycleEvent);
                 var notification = new JsonRpcNotification
                 {
                     Method = LifecycleMethods.Notification,
@@ -534,7 +534,7 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
                 .ConfigureAwait(false))
             {
                 var bytes = JsonSerializer.SerializeToUtf8Bytes(
-                    frame, ProtocolJsonContext.Default.LogStreamFrame);
+                    frame, ProtocolJsonContext.Default.JsonLogStreamFrame);
 
                 await codec.WriteAsync(bytes, drainToken).ConfigureAwait(false);
             }

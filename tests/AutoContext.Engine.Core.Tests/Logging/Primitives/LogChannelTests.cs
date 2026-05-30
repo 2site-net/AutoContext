@@ -30,7 +30,7 @@ public sealed class LogChannelTests
         channel.Complete();
 
         // Assert
-        var drained = new List<LogRecord>();
+        var drained = new List<JsonLogRecord>();
         await foreach (var record in channel.ReadAllAsync(TestContext.Current.CancellationToken))
         {
             drained.Add(record);
@@ -50,7 +50,7 @@ public sealed class LogChannelTests
         // test-only capacity seam: the burst exercises the
         // production-sized channel directly.
         var channel = new LogChannel();
-        var records = new LogRecord[LogChannel.DefaultCapacity + 1];
+        var records = new JsonLogRecord[LogChannel.DefaultCapacity + 1];
 
         for (var i = 0; i < records.Length; i++)
         {
@@ -67,7 +67,7 @@ public sealed class LogChannelTests
 
         // Assert — the very first record was evicted; everything
         // else drained in order.
-        var drained = new List<LogRecord>();
+        var drained = new List<JsonLogRecord>();
         await foreach (var record in channel.ReadAllAsync(TestContext.Current.CancellationToken))
         {
             drained.Add(record);

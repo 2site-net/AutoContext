@@ -80,7 +80,7 @@ public sealed class AutoContextConfigSnapshot
     /// <see cref="Changed"/>); <see langword="false"/> on a no-op
     /// frame (e.g. handshake replay after reconnect).
     /// </summary>
-    internal bool Update(AutoContextConfigSnapshotDto dto)
+    internal bool Update(JsonAutoContextConfigSnapshot dto)
     {
         ArgumentNullException.ThrowIfNull(dto);
 

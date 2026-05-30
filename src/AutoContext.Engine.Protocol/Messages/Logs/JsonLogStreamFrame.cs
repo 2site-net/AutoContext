@@ -5,9 +5,9 @@ using System.Text.Json.Serialization;
 /// <summary>
 /// Discriminated-union envelope for one frame on the engine's
 /// <c>logs</c> named pipe. Every NDJSON line the engine emits on
-/// the <c>logs</c> pipe is one <see cref="LogStreamFrame"/>: a
-/// <see cref="LogRecordFrame"/> carrying a <see cref="LogRecord"/>
-/// for normal records, or a <see cref="LogEvictedFrame"/> as the
+/// the <c>logs</c> pipe is one <see cref="JsonLogStreamFrame"/>: a
+/// <see cref="JsonLogRecordFrame"/> carrying a <see cref="JsonLogRecord"/>
+/// for normal records, or a <see cref="JsonLogEvictedFrame"/> as the
 /// terminal frame the broadcaster sends to a slow subscriber
 /// before disconnecting it.
 /// </summary>
@@ -16,7 +16,7 @@ using System.Text.Json.Serialization;
 /// The discriminator is the <c>kind</c> JSON property; subscribers
 /// branch on it to project each frame to the right shape. The
 /// engine's on-disk <c>engine.log</c> NDJSON file is
-/// <see cref="LogRecord"/> directly (no wrapper) — the wrapper
+/// <see cref="JsonLogRecord"/> directly (no wrapper) — the wrapper
 /// only exists on the <c>logs</c>-pipe wire, where the eviction
 /// terminator requires a discriminator the disk file never needs.
 /// See <c>design § events &gt; backpressure</c> for the
@@ -24,6 +24,6 @@ using System.Text.Json.Serialization;
 /// </para>
 /// </remarks>
 [JsonPolymorphic(TypeDiscriminatorPropertyName = "kind")]
-[JsonDerivedType(typeof(LogRecordFrame), typeDiscriminator: "record")]
-[JsonDerivedType(typeof(LogEvictedFrame), typeDiscriminator: "evicted")]
-public abstract record LogStreamFrame;
+[JsonDerivedType(typeof(JsonLogRecordFrame), typeDiscriminator: "record")]
+[JsonDerivedType(typeof(JsonLogEvictedFrame), typeDiscriminator: "evicted")]
+public abstract record JsonLogStreamFrame;

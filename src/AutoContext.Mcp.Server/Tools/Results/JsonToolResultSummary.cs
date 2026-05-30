@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 /// <summary>
 /// Aggregate counters for a tool invocation.
 /// </summary>
-public sealed record ToolResultSummary
+public sealed record JsonToolResultSummary
 {
     [JsonPropertyName("taskCount")]
     public required int TaskCount { get; init; }

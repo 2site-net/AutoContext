@@ -5,7 +5,7 @@ using System.Text.Json;
 using Microsoft.Extensions.Logging;
 
 /// <summary>
-/// Loads and parses <c>mcp-workers-registry.json</c> into a typed <see cref="McpWorkersCatalog"/>.
+/// Loads and parses <c>mcp-workers-registry.json</c> into a typed <see cref="JsonMcpWorkersCatalog"/>.
 /// </summary>
 public static partial class RegistryLoader
 {
@@ -16,10 +16,10 @@ public static partial class RegistryLoader
     };
 
     /// <summary>
-    /// Parses the supplied JSON text into a <see cref="McpWorkersCatalog"/>.
+    /// Parses the supplied JSON text into a <see cref="JsonMcpWorkersCatalog"/>.
     /// </summary>
     /// <exception cref="JsonException">If the JSON is malformed or fails type binding.</exception>
-    public static McpWorkersCatalog Parse(
+    public static JsonMcpWorkersCatalog Parse(
         string json,
         ILogger logger,
         string source = "(memory)")
@@ -31,7 +31,7 @@ public static partial class RegistryLoader
 
         try
         {
-            return JsonSerializer.Deserialize<McpWorkersCatalog>(json, Options)
+            return JsonSerializer.Deserialize<JsonMcpWorkersCatalog>(json, Options)
                 ?? throw new JsonException("Registry deserialized to null.");
         }
         catch (JsonException ex)
@@ -45,7 +45,7 @@ public static partial class RegistryLoader
     /// <summary>
     /// Reads the registry file at <paramref name="path"/> and parses it.
     /// </summary>
-    public static async Task<McpWorkersCatalog> LoadAsync(
+    public static async Task<JsonMcpWorkersCatalog> LoadAsync(
         string path,
         ILogger logger,
         CancellationToken cancellationToken)
@@ -60,7 +60,7 @@ public static partial class RegistryLoader
         {
             try
             {
-                return await JsonSerializer.DeserializeAsync<McpWorkersCatalog>(stream, Options, cancellationToken).ConfigureAwait(false)
+                return await JsonSerializer.DeserializeAsync<JsonMcpWorkersCatalog>(stream, Options, cancellationToken).ConfigureAwait(false)
                     ?? throw new JsonException($"Registry at '{path}' deserialized to null.");
             }
             catch (JsonException ex)

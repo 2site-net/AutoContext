@@ -47,7 +47,7 @@ public sealed class ToolInvokerTests
         // Assert
         Assert.Multiple(
             () => Assert.Equal("compose_tool", envelope.Tool),
-            () => Assert.Equal(ToolResultEnvelope.StatusOk, envelope.Status),
+            () => Assert.Equal(JsonToolResultEnvelope.StatusOk, envelope.Status),
             () => Assert.Equal(3, envelope.Summary.TaskCount),
             () => Assert.Equal(3, envelope.Summary.SuccessCount),
             () => Assert.Equal(0, envelope.Summary.FailureCount),
@@ -91,7 +91,7 @@ public sealed class ToolInvokerTests
 
         // Assert
         Assert.Multiple(
-            () => Assert.Equal(ToolResultEnvelope.StatusOk, envelope.Status),
+            () => Assert.Equal(JsonToolResultEnvelope.StatusOk, envelope.Status),
             () => Assert.Equal(2, observed.MaxConcurrent));
     }
 
@@ -118,15 +118,15 @@ public sealed class ToolInvokerTests
             workspacePipeName,
             handler: requestBytes =>
             {
-                var request = JsonSerializer.Deserialize<TaskRequest>(
+                var request = JsonSerializer.Deserialize<JsonTaskRequest>(
                     requestBytes,
                     WorkerJsonOptions.Instance)!;
                 Assert.Equal(EditorConfigBatcher.ResolveTaskName, request.McpTask);
 
-                var response = new TaskResponse
+                var response = new JsonTaskResponse
                 {
                     McpTask = EditorConfigBatcher.ResolveTaskName,
-                    Status = TaskResponse.StatusOk,
+                    Status = JsonTaskResponse.StatusOk,
                     Output = JsonSerializer.SerializeToElement(
                         new { csharp_prefer_braces = "true" }),
                     Error = string.Empty,
@@ -141,7 +141,7 @@ public sealed class ToolInvokerTests
             connectionCount: 2,
             handler: requestBytes =>
             {
-                var request = JsonSerializer.Deserialize<TaskRequest>(
+                var request = JsonSerializer.Deserialize<JsonTaskRequest>(
                     requestBytes,
                     WorkerJsonOptions.Instance)!;
                 observedKeys[request.McpTask] = [.. request.EditorConfig.Keys];
@@ -164,7 +164,7 @@ public sealed class ToolInvokerTests
 
         // Assert
         Assert.Multiple(
-            () => Assert.Equal(ToolResultEnvelope.StatusOk, envelope.Status),
+            () => Assert.Equal(JsonToolResultEnvelope.StatusOk, envelope.Status),
             () => Assert.Equal(["csharp_prefer_braces"], observedKeys["style_task"]),
             () => Assert.Empty(observedKeys["plain_task"]));
     }
@@ -186,7 +186,7 @@ public sealed class ToolInvokerTests
             pipeName,
             handler: requestBytes =>
             {
-                var request = JsonSerializer.Deserialize<TaskRequest>(
+                var request = JsonSerializer.Deserialize<JsonTaskRequest>(
                     requestBytes,
                     WorkerJsonOptions.Instance)!;
                 foreach (var key in request.EditorConfig.Keys)
@@ -208,7 +208,7 @@ public sealed class ToolInvokerTests
 
         // Assert
         Assert.Multiple(
-            () => Assert.Equal(ToolResultEnvelope.StatusOk, envelope.Status),
+            () => Assert.Equal(JsonToolResultEnvelope.StatusOk, envelope.Status),
             () => Assert.Empty(observedKeys));
     }
 
@@ -227,16 +227,16 @@ public sealed class ToolInvokerTests
             connectionCount: 2,
             handler: requestBytes =>
             {
-                var request = JsonSerializer.Deserialize<TaskRequest>(
+                var request = JsonSerializer.Deserialize<JsonTaskRequest>(
                     requestBytes,
                     WorkerJsonOptions.Instance)!;
 
                 if (string.Equals(request.McpTask, "fail_task", StringComparison.Ordinal))
                 {
-                    var error = new TaskResponse
+                    var error = new JsonTaskResponse
                     {
                         McpTask = request.McpTask,
-                        Status = TaskResponse.StatusError,
+                        Status = JsonTaskResponse.StatusError,
                         Output = null,
                         Error = "boom",
                     };
@@ -258,11 +258,11 @@ public sealed class ToolInvokerTests
 
         // Assert
         Assert.Multiple(
-            () => Assert.Equal(ToolResultEnvelope.StatusPartial, envelope.Status),
+            () => Assert.Equal(JsonToolResultEnvelope.StatusPartial, envelope.Status),
             () => Assert.Equal(1, envelope.Summary.SuccessCount),
             () => Assert.Equal(1, envelope.Summary.FailureCount),
-            () => Assert.Equal(ToolResultEnvelope.StatusOk, envelope.Result[0].Status),
-            () => Assert.Equal(ToolResultEnvelope.StatusError, envelope.Result[1].Status),
+            () => Assert.Equal(JsonToolResultEnvelope.StatusOk, envelope.Result[0].Status),
+            () => Assert.Equal(JsonToolResultEnvelope.StatusError, envelope.Result[1].Status),
             () => Assert.Equal("boom", envelope.Result[1].Error));
     }
 
@@ -275,7 +275,7 @@ public sealed class ToolInvokerTests
         var worker = ToolTestFactory.BuildWorker(workerId);
         var tool = ToolTestFactory.BuildTool("filtered_tool", ToolTestFactory.BuildTask("task_a"), ToolTestFactory.BuildTask("task_b"), ToolTestFactory.BuildTask("task_c"));
         var snapshot = new AutoContextConfigSnapshot();
-        snapshot.Update(new AutoContextConfigSnapshotDto
+        snapshot.Update(new JsonAutoContextConfigSnapshot
         {
             DisabledTasks = new Dictionary<string, List<string>>
             {
@@ -290,7 +290,7 @@ public sealed class ToolInvokerTests
             connectionCount: 2,
             handler: requestBytes =>
             {
-                var request = JsonSerializer.Deserialize<TaskRequest>(
+                var request = JsonSerializer.Deserialize<JsonTaskRequest>(
                     requestBytes,
                     WorkerJsonOptions.Instance)!;
                 observed.Add(request.McpTask);
@@ -309,7 +309,7 @@ public sealed class ToolInvokerTests
 
         // Assert
         Assert.Multiple(
-            () => Assert.Equal(ToolResultEnvelope.StatusOk, envelope.Status),
+            () => Assert.Equal(JsonToolResultEnvelope.StatusOk, envelope.Status),
             () => Assert.Equal(2, envelope.Summary.TaskCount),
             () => Assert.Equal("task_a", envelope.Result[0].Task),
             () => Assert.Equal("task_c", envelope.Result[1].Task),
@@ -325,7 +325,7 @@ public sealed class ToolInvokerTests
         var worker = ToolTestFactory.BuildWorker(workerId);
         var tool = ToolTestFactory.BuildTool("all_disabled_tool", ToolTestFactory.BuildTask("task_a"), ToolTestFactory.BuildTask("task_b"));
         var snapshot = new AutoContextConfigSnapshot();
-        snapshot.Update(new AutoContextConfigSnapshotDto
+        snapshot.Update(new JsonAutoContextConfigSnapshot
         {
             DisabledTasks = new Dictionary<string, List<string>>
             {
@@ -344,7 +344,7 @@ public sealed class ToolInvokerTests
 
         // Assert
         Assert.Multiple(
-            () => Assert.Equal(ToolResultEnvelope.StatusError, envelope.Status),
+            () => Assert.Equal(JsonToolResultEnvelope.StatusError, envelope.Status),
             () => Assert.Equal(0, envelope.Summary.TaskCount),
             () => Assert.Equal(0, envelope.Summary.SuccessCount),
             () => Assert.Equal(0, envelope.Summary.FailureCount),

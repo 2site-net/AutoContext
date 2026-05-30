@@ -16,7 +16,7 @@ using System.Text.Json.Serialization;
 /// projected into <see cref="AutoContextConfigSnapshot"/>; downstream
 /// code never sees this DTO.
 /// </remarks>
-internal sealed class AutoContextConfigSnapshotDto
+internal sealed class JsonAutoContextConfigSnapshot
 {
     [JsonPropertyName("disabledTools")]
     public List<string> DisabledTools { get; set; } = [];

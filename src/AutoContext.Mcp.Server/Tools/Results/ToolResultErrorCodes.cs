@@ -1,7 +1,7 @@
 namespace AutoContext.Mcp.Server.Tools.Results;
 
 /// <summary>
-/// Fixed vocabulary for <see cref="ToolResultError.Code"/>.
+/// Fixed vocabulary for <see cref="JsonToolResultError.Code"/>.
 /// </summary>
 public static class ToolResultErrorCodes
 {

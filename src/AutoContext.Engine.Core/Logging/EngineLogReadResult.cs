@@ -9,7 +9,7 @@ using AutoContext.Engine.Protocol.Messages.Logs;
 /// <param name="Truncated"><see langword="true"/> when the active
 /// file rolled past part of the requested <c>since</c> range.</param>
 internal readonly record struct EngineLogReadResult(
-    IReadOnlyList<LogRecord> Records,
+    IReadOnlyList<JsonLogRecord> Records,
     bool Truncated)
 {
     /// <summary>

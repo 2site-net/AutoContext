@@ -4,7 +4,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 
 /// <summary>
-/// Translates a registry's <see cref="McpToolParameter"/> map into the
+/// Translates a registry's <see cref="JsonMcpToolParameter"/> map into the
 /// <c>{ "type": "object", "properties": {...}, "required": [...] }</c>
 /// JSON Schema shape advertised to MCP clients as a tool's
 /// <c>inputSchema</c>.
@@ -20,7 +20,7 @@ public static class InputSchemaBuilder
     /// <summary>
     /// Builds the input schema for the supplied <paramref name="parameters"/>.
     /// </summary>
-    public static JsonElement Build(IReadOnlyDictionary<string, McpToolParameter> parameters)
+    public static JsonElement Build(IReadOnlyDictionary<string, JsonMcpToolParameter> parameters)
     {
         ArgumentNullException.ThrowIfNull(parameters);
 

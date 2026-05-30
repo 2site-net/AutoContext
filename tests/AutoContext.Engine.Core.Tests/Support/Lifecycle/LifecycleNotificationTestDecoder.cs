@@ -7,7 +7,7 @@ using AutoContext.Engine.Protocol.Serialization;
 
 internal static class LifecycleNotificationTestDecoder
 {
-    public static LifecycleEvent Decode(byte[]? frame)
+    public static JsonLifecycleEvent Decode(byte[]? frame)
     {
         Assert.NotNull(frame);
 
@@ -18,7 +18,7 @@ internal static class LifecycleNotificationTestDecoder
         Assert.NotNull(notification.Params);
 
         var evt = notification.Params.Value.Deserialize(
-            ProtocolJsonContext.Default.LifecycleEvent);
+            ProtocolJsonContext.Default.JsonLifecycleEvent);
         Assert.NotNull(evt);
 
         return evt;

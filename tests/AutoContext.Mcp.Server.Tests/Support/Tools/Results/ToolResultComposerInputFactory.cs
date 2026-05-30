@@ -9,26 +9,26 @@ using AutoContext.Mcp.Server.Workers.Protocol;
 /// Shared fixture builders for the
 /// <see cref="ToolResultComposer"/> tests — typed
 /// <see cref="ToolResultComposerInput"/> + canonical OK / error
-/// <see cref="TaskResponse"/> shapes + a
+/// <see cref="JsonTaskResponse"/> shapes + a
 /// <see cref="JsonElement"/> parser for embedded JSON literals.
 /// </summary>
 internal static class ToolResultComposerInputFactory
 {
-    public static ToolResultComposerInput Input(TaskResponse response, int elapsedMs) =>
+    public static ToolResultComposerInput Input(JsonTaskResponse response, int elapsedMs) =>
         new() { Response = response, ElapsedMs = elapsedMs };
 
-    public static TaskResponse OkResponse(string name, JsonElement output) => new()
+    public static JsonTaskResponse OkResponse(string name, JsonElement output) => new()
     {
         McpTask = name,
-        Status = TaskResponse.StatusOk,
+        Status = JsonTaskResponse.StatusOk,
         Output = output,
         Error = string.Empty,
     };
 
-    public static TaskResponse ErrorResponse(string name, string error) => new()
+    public static JsonTaskResponse ErrorResponse(string name, string error) => new()
     {
         McpTask = name,
-        Status = TaskResponse.StatusError,
+        Status = JsonTaskResponse.StatusError,
         Output = null,
         Error = error,
     };

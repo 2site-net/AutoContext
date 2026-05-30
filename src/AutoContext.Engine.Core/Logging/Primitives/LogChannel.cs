@@ -9,7 +9,7 @@ using AutoContext.Engine.Protocol.Messages.Logs;
 /// Producers — the engine's own <c>ILogger&lt;T&gt;</c> records
 /// routed via <c>EngineLoggerProvider</c>, and (when wired) the
 /// worker-bound <c>Engine.WriteLog</c> RPC handler — enqueue
-/// <see cref="LogRecord"/> instances through
+/// <see cref="JsonLogRecord"/> instances through
 /// <see cref="TryWrite"/>; <c>LogFileSinkService</c> drains the
 /// channel via <see cref="ReadAllAsync"/> and dispatches each
 /// record to the file sink and the <c>logs</c>-pipe broadcaster
@@ -18,7 +18,7 @@ using AutoContext.Engine.Protocol.Messages.Logs;
 /// <remarks>
 /// <para>
 /// The channel owns a single bounded <see cref="Channel{T}"/> of
-/// <see cref="LogRecord"/> with capacity
+/// <see cref="JsonLogRecord"/> with capacity
 /// <see cref="DefaultCapacity"/>. Producers are non-blocking;
 /// overflow is handled with
 /// <see cref="BoundedChannelFullMode.DropOldest"/> so a sustained
@@ -53,7 +53,7 @@ internal sealed class LogChannel
     /// </summary>
     internal const int DefaultCapacity = 1024;
 
-    private readonly Channel<LogRecord> _channel;
+    private readonly Channel<JsonLogRecord> _channel;
 
     /// <summary>
     /// Creates a new <see cref="LogChannel"/> backed by a
@@ -61,7 +61,7 @@ internal sealed class LogChannel
     /// </summary>
     public LogChannel()
     {
-        _channel = Channel.CreateBounded<LogRecord>(
+        _channel = Channel.CreateBounded<JsonLogRecord>(
             new BoundedChannelOptions(DefaultCapacity)
             {
                 SingleReader = true,
@@ -97,7 +97,7 @@ internal sealed class LogChannel
     /// <see cref="Complete"/> to terminate the enumeration
     /// instead.</param>
     /// <returns>An async sequence of queued records.</returns>
-    public IAsyncEnumerable<LogRecord> ReadAllAsync(CancellationToken cancellationToken)
+    public IAsyncEnumerable<JsonLogRecord> ReadAllAsync(CancellationToken cancellationToken)
         => _channel.Reader.ReadAllAsync(cancellationToken);
 
     /// <summary>
@@ -115,7 +115,7 @@ internal sealed class LogChannel
     /// <exception cref="ArgumentNullException">
     /// <paramref name="record"/> is <see langword="null"/>.
     /// </exception>
-    public bool TryWrite(LogRecord record)
+    public bool TryWrite(JsonLogRecord record)
     {
         ArgumentNullException.ThrowIfNull(record);
         return _channel.Writer.TryWrite(record);

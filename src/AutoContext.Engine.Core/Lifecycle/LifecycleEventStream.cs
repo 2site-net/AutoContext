@@ -12,7 +12,7 @@ using Microsoft.Extensions.Options;
 /// every <c>events</c>-pipe connection that completes the
 /// <c>Engine.Hello</c> handshake calls <see cref="Subscribe"/> to
 /// receive a per-subscriber bounded buffer of
-/// <see cref="LifecycleEvent"/> values.
+/// <see cref="JsonLifecycleEvent"/> values.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -50,14 +50,14 @@ internal sealed partial class LifecycleEventStream
     private readonly Guid _instanceId;
     private readonly ILogger<LifecycleEventStream> _logger;
     private readonly HashSet<LifecycleEventSubscriber> _subscribers = [];
-    private LifecycleEvent? _terminalEvent;
+    private JsonLifecycleEvent? _terminalEvent;
 
     /// <summary>
     /// Creates a new <see cref="LifecycleEventStream"/>.
     /// </summary>
     /// <param name="options">
     /// Engine options — used to stamp the owning
-    /// <see cref="LifecycleEvent.InstanceId"/> onto the seeded
+    /// <see cref="JsonLifecycleEvent.InstanceId"/> onto the seeded
     /// <see cref="LifecycleEventKinds.Started"/> event.
     /// </param>
     /// <param name="logger">
@@ -94,7 +94,7 @@ internal sealed partial class LifecycleEventStream
     /// </remarks>
     public LifecycleEventSubscription Subscribe()
     {
-        var channel = Channel.CreateBounded<LifecycleEvent>(
+        var channel = Channel.CreateBounded<JsonLifecycleEvent>(
             new BoundedChannelOptions(SubscriberBufferCapacity)
             {
                 SingleReader = true,
@@ -118,7 +118,7 @@ internal sealed partial class LifecycleEventStream
         // are racing.
         _ = channel.Writer.TryWrite(CreateStartedEvent());
 
-        LifecycleEvent? terminalEvent;
+        JsonLifecycleEvent? terminalEvent;
 
         lock (_gate)
         {
@@ -157,7 +157,7 @@ internal sealed partial class LifecycleEventStream
     /// <see langword="true"/> if this call completed the stream;
     /// otherwise, <see langword="false"/>.
     /// </returns>
-    public bool TryComplete(LifecycleEvent terminalEvent)
+    public bool TryComplete(JsonLifecycleEvent terminalEvent)
     {
         ArgumentNullException.ThrowIfNull(terminalEvent);
 
@@ -217,7 +217,7 @@ internal sealed partial class LifecycleEventStream
     /// <see langword="true"/> if the event was accepted by the stream;
     /// otherwise, <see langword="false"/>.
     /// </returns>
-    public bool TryPublish(LifecycleEvent evt)
+    public bool TryPublish(JsonLifecycleEvent evt)
     {
         ArgumentNullException.ThrowIfNull(evt);
 
@@ -275,9 +275,9 @@ internal sealed partial class LifecycleEventStream
         Message = "Evicted {EvictedCount} slow Engine.Lifecycle subscriber(s) after bounded buffer overflow.")]
     private static partial void LogSubscribersEvicted(ILogger logger, int evictedCount);
 
-    private LifecycleEvent CreateStartedEvent()
+    private JsonLifecycleEvent CreateStartedEvent()
     {
-        return new LifecycleEvent
+        return new JsonLifecycleEvent
         {
             Kind = LifecycleEventKinds.Started,
             InstanceId = _instanceId,

@@ -14,7 +14,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 /// Writes one per-task request to a worker pipe and reads one response.
 /// Enforces a single client-side wait deadline guarding against a hung
 /// or dead worker. Any failure (connect, write, read, parse, timeout,
-/// EOF) is mapped to an error <see cref="TaskResponse"/> rather than
+/// EOF) is mapped to an error <see cref="JsonTaskResponse"/> rather than
 /// thrown — callers compose these into the per-task entries of the
 /// uniform tool-result envelope. Each handled failure is also logged at
 /// <c>Warning</c> so server operators can see worker pipe issues even
@@ -99,9 +99,9 @@ public sealed partial class WorkerClient
     /// describing the pipe failure. Never throws for IO/timeout/parse
     /// failures; only throws for caller-side argument errors.
     /// </summary>
-    public async Task<TaskResponse> InvokeAsync(
+    public async Task<JsonTaskResponse> InvokeAsync(
         string role,
-        TaskRequest request,
+        JsonTaskRequest request,
         CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrEmpty(role);
@@ -182,9 +182,9 @@ public sealed partial class WorkerClient
         }
     }
 
-    private static async Task<TaskResponse> InvokeCoreAsync(
+    private static async Task<JsonTaskResponse> InvokeCoreAsync(
         string address,
-        TaskRequest request,
+        JsonTaskRequest request,
         CancellationToken token)
     {
         var transport = new PipeTransport(NullLogger<PipeTransport>.Instance);
@@ -197,7 +197,7 @@ public sealed partial class WorkerClient
 
         var responseBytes = await exchange.ExchangeAsync(requestBytes, token).ConfigureAwait(false);
 
-        var response = JsonSerializer.Deserialize<TaskResponse>(
+        var response = JsonSerializer.Deserialize<JsonTaskResponse>(
             responseBytes,
             WorkerJsonOptions.Instance);
 
@@ -211,10 +211,10 @@ public sealed partial class WorkerClient
         return response;
     }
 
-    private static TaskResponse ErrorResponse(string mcpTask, string message) => new()
+    private static JsonTaskResponse ErrorResponse(string mcpTask, string message) => new()
     {
         McpTask = mcpTask,
-        Status = TaskResponse.StatusError,
+        Status = JsonTaskResponse.StatusError,
         Output = null,
         Error = message,
     };

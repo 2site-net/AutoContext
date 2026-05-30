@@ -3,7 +3,7 @@ namespace AutoContext.Mcp.Server.Registry;
 /// <summary>
 /// One parameter inside an MCP Tool's input schema.
 /// </summary>
-public sealed record McpToolParameter
+public sealed record JsonMcpToolParameter
 {
     /// <summary>JSON Schema primitive type (e.g. <c>"string"</c>, <c>"number"</c>).</summary>
     public required string Type { get; init; }

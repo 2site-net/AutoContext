@@ -1,7 +1,7 @@
 namespace AutoContext.Engine.Protocol.Messages.Lifecycle;
 
 /// <summary>
-/// Kebab-case wire-string constants for every <see cref="LifecycleEvent.Kind"/>
+/// Kebab-case wire-string constants for every <see cref="JsonLifecycleEvent.Kind"/>
 /// value the engine emits on the <c>events</c> pipe. Centralised
 /// here so both engine and clients reference the same literals
 /// without copy-paste drift. Source: <c>design § Engine.Lifecycle.Subscribe</c>.

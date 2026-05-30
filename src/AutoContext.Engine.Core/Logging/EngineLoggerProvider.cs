@@ -9,7 +9,7 @@ using Microsoft.Extensions.Logging;
 /// <summary>
 /// <see cref="ILoggerProvider"/> that materialises every engine
 /// <see cref="ILogger{T}"/> record as a
-/// <see cref="Protocol.Messages.Logs.LogRecord"/> on the shared
+/// <see cref="Protocol.Messages.Logs.JsonLogRecord"/> on the shared
 /// <see cref="LogChannel"/>. Hands out one <see cref="EngineLogger"/>
 /// per category and caches them so the per-category instance is
 /// stable for the lifetime of the host (matching the
@@ -50,7 +50,7 @@ internal sealed class EngineLoggerProvider : ILoggerProvider
     /// <see cref="LogFileSinkService"/>. Must not be
     /// <see langword="null"/>.</param>
     /// <param name="timeProvider">Clock used to stamp
-    /// <see cref="Protocol.Messages.Logs.LogRecord.Timestamp"/> on
+    /// <see cref="Protocol.Messages.Logs.JsonLogRecord.Timestamp"/> on
     /// every emitted record. Must not be <see langword="null"/>.</param>
     /// <exception cref="ArgumentNullException">
     /// Any argument is <see langword="null"/>.

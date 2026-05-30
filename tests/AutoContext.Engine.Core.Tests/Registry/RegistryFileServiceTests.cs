@@ -79,7 +79,7 @@ public sealed class RegistryFileServiceTests
             await using var sut = RegistryFileServiceTestFactory.CreateService(path);
             await sut.StartAsync(TestContext.Current.CancellationToken);
             var entry = RegistryEntryFakeData.CreateValidEntry();
-            IReadOnlyList<RegistryEntry>? observedCurrent = null;
+            IReadOnlyList<JsonRegistryEntry>? observedCurrent = null;
 
             await sut.WriteAsync(
                 current =>

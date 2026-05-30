@@ -15,7 +15,7 @@ public static class ToolResultComposer
     /// is "ok" if every task succeeded, "error" if every task failed,
     /// "partial" otherwise.
     /// </summary>
-    public static ToolResultEnvelope Compose(
+    public static JsonToolResultEnvelope Compose(
         string tool,
         IReadOnlyList<ToolResultComposerInput> entries,
         int elapsedMs)
@@ -31,7 +31,7 @@ public static class ToolResultComposer
                 "Elapsed milliseconds must be non-negative.");
         }
 
-        var resultEntries = new ToolResultEntry[entries.Count];
+        var resultEntries = new JsonToolResultEntry[entries.Count];
         var successCount = 0;
 
         for (var i = 0; i < entries.Count; i++)
@@ -50,7 +50,7 @@ public static class ToolResultComposer
 
             var ok = string.Equals(
                 input.Response.Status,
-                TaskResponse.StatusOk,
+                JsonTaskResponse.StatusOk,
                 StringComparison.Ordinal);
 
             if (ok)
@@ -58,10 +58,10 @@ public static class ToolResultComposer
                 successCount++;
             }
 
-            resultEntries[i] = new ToolResultEntry
+            resultEntries[i] = new JsonToolResultEntry
             {
                 Task = input.Response.McpTask,
-                Status = ok ? ToolResultEnvelope.StatusOk : ToolResultEnvelope.StatusError,
+                Status = ok ? JsonToolResultEnvelope.StatusOk : JsonToolResultEnvelope.StatusError,
                 ElapsedMs = input.ElapsedMs,
                 Output = ok ? input.Response.Output : null,
                 Error = ok ? string.Empty : input.Response.Error,
@@ -70,11 +70,11 @@ public static class ToolResultComposer
 
         var failureCount = entries.Count - successCount;
 
-        return new ToolResultEnvelope
+        return new JsonToolResultEnvelope
         {
             Tool = tool,
             Status = RollUp(entries.Count, successCount, failureCount),
-            Summary = new ToolResultSummary
+            Summary = new JsonToolResultSummary
             {
                 TaskCount = entries.Count,
                 SuccessCount = successCount,
@@ -88,12 +88,12 @@ public static class ToolResultComposer
 
     /// <summary>
     /// Composes an envelope-level failure envelope (dispatch never happened).
-    /// <see cref="ToolResultEnvelope.Result"/> is empty;
-    /// <see cref="ToolResultEnvelope.Errors"/> carries the supplied codes.
+    /// <see cref="JsonToolResultEnvelope.Result"/> is empty;
+    /// <see cref="JsonToolResultEnvelope.Errors"/> carries the supplied codes.
     /// </summary>
-    public static ToolResultEnvelope ComposeFailure(
+    public static JsonToolResultEnvelope ComposeFailure(
         string tool,
-        IReadOnlyList<ToolResultError> errors,
+        IReadOnlyList<JsonToolResultError> errors,
         int elapsedMs)
     {
         ArgumentException.ThrowIfNullOrEmpty(tool);
@@ -114,11 +114,11 @@ public static class ToolResultComposer
                 "Elapsed milliseconds must be non-negative.");
         }
 
-        return new ToolResultEnvelope
+        return new JsonToolResultEnvelope
         {
             Tool = tool,
-            Status = ToolResultEnvelope.StatusError,
-            Summary = new ToolResultSummary
+            Status = JsonToolResultEnvelope.StatusError,
+            Summary = new JsonToolResultSummary
             {
                 TaskCount = 0,
                 SuccessCount = 0,
@@ -134,19 +134,19 @@ public static class ToolResultComposer
     {
         if (taskCount == 0)
         {
-            return ToolResultEnvelope.StatusError;
+            return JsonToolResultEnvelope.StatusError;
         }
 
         if (failureCount == 0)
         {
-            return ToolResultEnvelope.StatusOk;
+            return JsonToolResultEnvelope.StatusOk;
         }
 
         if (successCount == 0)
         {
-            return ToolResultEnvelope.StatusError;
+            return JsonToolResultEnvelope.StatusError;
         }
 
-        return ToolResultEnvelope.StatusPartial;
+        return JsonToolResultEnvelope.StatusPartial;
     }
 }

@@ -11,7 +11,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 /// <summary>
 /// Builds the per-tool dispatch closures consumed by the MCP SDK
 /// registration step. Each delegate captures one
-/// <see cref="McpWorker"/> + <see cref="McpToolDefinition"/> pair and
+/// <see cref="JsonMcpWorker"/> + <see cref="JsonMcpToolDefinition"/> pair and
 /// invokes <see cref="ToolInvoker"/> on call, returning the serialized
 /// result envelope as a JSON string.
 /// </summary>
@@ -22,7 +22,7 @@ public static partial class ToolDelegateFactory
     /// when two tools across the registry share the same name — the
     /// registry validator should have caught this at startup.
     /// </summary>
-    public static IReadOnlyDictionary<string, ToolHandler> Build(McpWorkersCatalog registry, ToolInvoker invoker)
+    public static IReadOnlyDictionary<string, ToolHandler> Build(JsonMcpWorkersCatalog registry, ToolInvoker invoker)
         => Build(registry, invoker, NullLogger.Instance);
 
     /// <summary>
@@ -30,7 +30,7 @@ public static partial class ToolDelegateFactory
     /// when two tools across the registry share the same name — the
     /// registry validator should have caught this at startup.
     /// </summary>
-    public static IReadOnlyDictionary<string, ToolHandler> Build(McpWorkersCatalog registry, ToolInvoker invoker, ILogger logger)
+    public static IReadOnlyDictionary<string, ToolHandler> Build(JsonMcpWorkersCatalog registry, ToolInvoker invoker, ILogger logger)
     {
         ArgumentNullException.ThrowIfNull(registry);
         ArgumentNullException.ThrowIfNull(invoker);
@@ -61,7 +61,7 @@ public static partial class ToolDelegateFactory
     /// <summary>
     /// Builds a single per-tool handler. Constructing the closure
     /// inside a dedicated static method makes the
-    /// <see cref="McpWorker"/> + <see cref="McpToolDefinition"/> capture
+    /// <see cref="JsonMcpWorker"/> + <see cref="JsonMcpToolDefinition"/> capture
     /// explicit through the parameter list, so there is no enclosing
     /// loop variable to misbind. This is defensive against future
     /// refactors of the <c>foreach</c> in <see cref="Build"/> — e.g. a
@@ -71,8 +71,8 @@ public static partial class ToolDelegateFactory
     /// </summary>
     private static ToolHandler CreateHandler(
         ToolInvoker invoker,
-        McpWorker worker,
-        McpToolDefinition tool)
+        JsonMcpWorker worker,
+        JsonMcpToolDefinition tool)
     {
         return async (data, correlationId, cancellationToken) =>
         {

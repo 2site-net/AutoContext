@@ -5,7 +5,7 @@ namespace AutoContext.Engine.Protocol.Messages.Lifecycle;
 /// names the engine surfaces on the <c>events</c> pipe. Kept in
 /// the protocol assembly so both sides reference the same
 /// identifiers without copy-paste drift, and grouped alongside
-/// the lifecycle DTOs (<see cref="LifecycleEvent"/>,
+/// the lifecycle DTOs (<see cref="JsonLifecycleEvent"/>,
 /// <see cref="LifecycleEventKinds"/>) they pair with.
 /// </summary>
 public static class LifecycleMethods

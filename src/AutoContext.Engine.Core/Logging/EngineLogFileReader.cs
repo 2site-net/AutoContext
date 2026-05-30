@@ -26,9 +26,9 @@ using AutoContext.Engine.Protocol.Serialization;
 /// line.
 /// </para>
 /// <para>
-/// Filter order: <see cref="LogsGetEngineParams.Since"/> is
+/// Filter order: <see cref="JsonLogsGetEngineParams.Since"/> is
 /// applied first (records strictly older than the cutoff are
-/// excluded); <see cref="LogsGetEngineParams.LastN"/> is applied
+/// excluded); <see cref="JsonLogsGetEngineParams.LastN"/> is applied
 /// second, taking the most recent <c>N</c> records of what
 /// remains. The result list is in chronological order
 /// (oldest first), matching the design's
@@ -37,10 +37,10 @@ using AutoContext.Engine.Protocol.Serialization;
 /// <para>
 /// Truncation semantics: <see cref="EngineLogReadResult.Truncated"/>
 /// is <see langword="true"/> when the caller supplied
-/// <see cref="LogsGetEngineParams.Since"/> and the active file's
+/// <see cref="JsonLogsGetEngineParams.Since"/> and the active file's
 /// earliest record has a timestamp strictly later than that
 /// cutoff — i.e. records that would have satisfied the request
-/// have been rotated past the active file. <see cref="LogsGetEngineParams.LastN"/>
+/// have been rotated past the active file. <see cref="JsonLogsGetEngineParams.LastN"/>
 /// is the caller's explicit cap and does not by itself mark the
 /// result truncated.
 /// </para>
@@ -83,7 +83,7 @@ internal sealed class EngineLogFileReader
     /// associated truncation flag.</returns>
     /// <remarks>
     /// <para>
-    /// Preconditions: <see cref="LogsGetEngineParams.LastN"/>, when
+    /// Preconditions: <see cref="JsonLogsGetEngineParams.LastN"/>, when
     /// supplied, must be non-negative. The caller (the
     /// <c>Logs.GetEngine</c> dispatch handler) rejects negative
     /// values with <c>InvalidParams</c> before reaching the reader;
@@ -99,7 +99,7 @@ internal sealed class EngineLogFileReader
         "CA1031:Do not catch general exception types",
         Justification = "Per-line JSON parse failures (partial flushes, malformed bytes) are dropped and the read continues — one corrupt line must not abort the entire snapshot.")]
     public async Task<EngineLogReadResult> ReadAsync(
-        LogsGetEngineParams? parameters,
+        JsonLogsGetEngineParams? parameters,
         CancellationToken cancellationToken)
     {
         var lastN = parameters?.LastN;
@@ -145,7 +145,7 @@ internal sealed class EngineLogFileReader
 
         if (lastN is { } cap && allRecords.Count > cap)
         {
-            var tail = new List<LogRecord>(cap);
+            var tail = new List<JsonLogRecord>(cap);
 
             for (var i = allRecords.Count - cap; i < allRecords.Count; i++)
             {
@@ -166,7 +166,7 @@ internal sealed class EngineLogFileReader
         "Reliability",
         "CA2000:Dispose objects before losing scope",
         Justification = "The FileStream is owned by the surrounding await-using block and is disposed deterministically; the analyzer cannot model the ConfigureAwait wrapper pattern.")]
-    private async Task<(List<LogRecord> Records, bool Truncated)> ReadRecordsAsync(
+    private async Task<(List<JsonLogRecord> Records, bool Truncated)> ReadRecordsAsync(
         DateTimeOffset? since,
         bool stopAfterFirstRecord,
         CancellationToken cancellationToken)
@@ -177,7 +177,7 @@ internal sealed class EngineLogFileReader
             return ([], false);
         }
 
-        var records = new List<LogRecord>();
+        var records = new List<JsonLogRecord>();
         DateTimeOffset? firstRecordTimestamp = null;
 
         try
@@ -202,13 +202,13 @@ internal sealed class EngineLogFileReader
                         continue;
                     }
 
-                    LogRecord? record;
+                    JsonLogRecord? record;
 
                     try
                     {
                         record = JsonSerializer.Deserialize(
                             line,
-                            ProtocolJsonContext.Default.LogRecord);
+                            ProtocolJsonContext.Default.JsonLogRecord);
                     }
                     catch (JsonException)
                     {

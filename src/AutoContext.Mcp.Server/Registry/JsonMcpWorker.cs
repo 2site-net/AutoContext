@@ -11,7 +11,7 @@ using AutoContext.Mcp.Server.Workers.Transport;
 /// pipe service address is then formatted via
 /// <see cref="ServiceAddressFormatter.Format"/>.
 /// </summary>
-public sealed partial record McpWorker
+public sealed partial record JsonMcpWorker
 {
     private const string IdPatternText = "^[a-z][a-z0-9-]*$";
 
@@ -47,7 +47,7 @@ public sealed partial record McpWorker
     public string Role => $"worker-{Id}";
 
     /// <summary>MCP Tool definitions exposed by this worker.</summary>
-    public required IReadOnlyList<McpToolDefinition> Tools { get; init; }
+    public required IReadOnlyList<JsonMcpToolDefinition> Tools { get; init; }
 
     [GeneratedRegex(IdPatternText)]
     private static partial Regex IdPattern();

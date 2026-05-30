@@ -74,7 +74,7 @@ internal sealed partial class RegistryFileWriter
     /// <exception cref="IOException">A filesystem operation
     /// (create, write, flush, rename) failed. The temp file is
     /// best-effort deleted before the exception propagates.</exception>
-    public void Write(IReadOnlyList<RegistryEntry> entries)
+    public void Write(IReadOnlyList<JsonRegistryEntry> entries)
     {
         ArgumentNullException.ThrowIfNull(entries);
 

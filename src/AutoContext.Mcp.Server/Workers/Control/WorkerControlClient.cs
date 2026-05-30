@@ -12,7 +12,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 /// <summary>
 /// Client for the extension's worker-control named pipe. Sends an
-/// <see cref="EnsureRunningRequest"/> per worker before the
+/// <see cref="JsonEnsureRunningRequest"/> per worker before the
 /// orchestrator dispatches a tool call so the extension can spawn or
 /// confirm the target worker.
 /// </summary>
@@ -73,7 +73,7 @@ public sealed partial class WorkerControlClient : IAsyncDisposable
     /// one would be stored. <see cref="LazyThreadSafetyMode.ExecutionAndPublication"/>
     /// guarantees the factory runs at most once.
     /// </remarks>
-    private readonly ConcurrentDictionary<string, Lazy<Task<EnsureRunningResponse>>> _inFlight = new();
+    private readonly ConcurrentDictionary<string, Lazy<Task<JsonEnsureRunningResponse>>> _inFlight = new();
 
     private bool _disposed;
 
@@ -187,13 +187,13 @@ public sealed partial class WorkerControlClient : IAsyncDisposable
         // cancellation is applied at the await via Task.WaitAsync(cancellationToken).
         var lazy = _inFlight.GetOrAdd(
             workerId,
-            id => new Lazy<Task<EnsureRunningResponse>>(
+            id => new Lazy<Task<JsonEnsureRunningResponse>>(
                 () => RunEnsureRunningAsync(id),
                 LazyThreadSafetyMode.ExecutionAndPublication));
 
         var task = lazy.Value;
 
-        EnsureRunningResponse response;
+        JsonEnsureRunningResponse response;
         try
         {
             response = await task.WaitAsync(cancellationToken).ConfigureAwait(false);
@@ -201,10 +201,10 @@ public sealed partial class WorkerControlClient : IAsyncDisposable
         finally
         {
             _inFlight.TryRemove(
-                new KeyValuePair<string, Lazy<Task<EnsureRunningResponse>>>(workerId, lazy));
+                new KeyValuePair<string, Lazy<Task<JsonEnsureRunningResponse>>>(workerId, lazy));
         }
 
-        if (!string.Equals(response.Status, EnsureRunningResponse.StatusReady, StringComparison.Ordinal))
+        if (!string.Equals(response.Status, JsonEnsureRunningResponse.StatusReady, StringComparison.Ordinal))
         {
             var message = response.Error ?? "Worker control reported an unspecified failure.";
             LogEnsureFailed(_logger, workerId, message);
@@ -227,7 +227,7 @@ public sealed partial class WorkerControlClient : IAsyncDisposable
         }
     }
 
-    private async Task<EnsureRunningResponse> RunEnsureRunningAsync(string workerId)
+    private async Task<JsonEnsureRunningResponse> RunEnsureRunningAsync(string workerId)
     {
         // Underlying round-trip runs only against the client's own
         // deadline. Per-caller cancellation is layered on at
@@ -237,14 +237,14 @@ public sealed partial class WorkerControlClient : IAsyncDisposable
         using var deadlineCts = new CancellationTokenSource(_deadline);
         var token = deadlineCts.Token;
 
-        var request = new EnsureRunningRequest { WorkerId = workerId };
+        var request = new JsonEnsureRunningRequest { WorkerId = workerId };
         var requestBytes = JsonSerializer.SerializeToUtf8Bytes(request, WorkerJsonOptions.Instance);
 
         try
         {
             var responseBytes = await _exchange!.ExchangeAsync(requestBytes, token).ConfigureAwait(false);
 
-            var response = JsonSerializer.Deserialize<EnsureRunningResponse>(
+            var response = JsonSerializer.Deserialize<JsonEnsureRunningResponse>(
                 responseBytes, WorkerJsonOptions.Instance)
                 ?? throw new JsonException("Worker-control response payload was null.");
 

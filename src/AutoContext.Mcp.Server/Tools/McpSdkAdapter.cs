@@ -38,13 +38,13 @@ public sealed partial class McpSdkAdapter
     private readonly AutoContextConfigSnapshot? _configSnapshot;
     private readonly ILogger<McpSdkAdapter> _logger;
 
-    public McpSdkAdapter(McpWorkersCatalog registry, ToolInvoker invoker)
+    public McpSdkAdapter(JsonMcpWorkersCatalog registry, ToolInvoker invoker)
         : this(registry, invoker, configSnapshot: null, NullLogger<McpSdkAdapter>.Instance)
     {
     }
 
     public McpSdkAdapter(
-        McpWorkersCatalog registry,
+        JsonMcpWorkersCatalog registry,
         ToolInvoker invoker,
         ILogger<McpSdkAdapter> logger)
         : this(registry, invoker, configSnapshot: null, logger)
@@ -52,7 +52,7 @@ public sealed partial class McpSdkAdapter
     }
 
     public McpSdkAdapter(
-        McpWorkersCatalog registry,
+        JsonMcpWorkersCatalog registry,
         ToolInvoker invoker,
         AutoContextConfigSnapshot? configSnapshot,
         ILogger<McpSdkAdapter> logger)
@@ -153,7 +153,7 @@ public sealed partial class McpSdkAdapter
     /// </summary>
     private const string DescriptionBrandPrefix = "AutoContext — ";
 
-    private static List<Tool> BuildProtocolTools(McpWorkersCatalog registry)
+    private static List<Tool> BuildProtocolTools(JsonMcpWorkersCatalog registry)
     {
         var tools = new List<Tool>();
 
@@ -192,7 +192,7 @@ public sealed partial class McpSdkAdapter
 
     /// <summary>
     /// Generates the per-invocation correlation id stamped onto every
-    /// <see cref="Workers.Protocol.TaskRequest"/> dispatched by the
+    /// <see cref="Workers.Protocol.JsonTaskRequest"/> dispatched by the
     /// resulting handler. Eight hex chars from a fresh <see cref="Guid"/>
     /// — short enough to read in a log line, wide enough (~32 bits) to
     /// keep collisions vanishingly rare across the lifetime of one

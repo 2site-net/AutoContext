@@ -10,7 +10,7 @@ using Microsoft.Extensions.Logging;
 /// <summary>
 /// Per-category <see cref="ILogger"/> that materialises every
 /// <see cref="ILogger.Log{TState}"/> call as a
-/// <see cref="LogRecord"/> on the shared <see cref="LogChannel"/>.
+/// <see cref="JsonLogRecord"/> on the shared <see cref="LogChannel"/>.
 /// Used by <see cref="EngineLoggerProvider"/>; one instance per
 /// category name.
 /// </summary>
@@ -24,7 +24,7 @@ using Microsoft.Extensions.Logging;
 /// configured <c>FullMode = DropOldest</c> policy.
 /// </para>
 /// <para>
-/// State → <see cref="LogRecord.Properties"/> projection is
+/// State → <see cref="JsonLogRecord.Properties"/> projection is
 /// deliberately deferred to a follow-up row. The wire envelope
 /// already supports the field, but populating it for arbitrary
 /// state objects without taking a reflective JSON serialisation
@@ -49,7 +49,7 @@ internal sealed class EngineLogger : ILogger
     /// <param name="channel">Ingest channel records are enqueued
     /// onto. Must not be <see langword="null"/>.</param>
     /// <param name="timeProvider">Clock used to stamp
-    /// <see cref="LogRecord.Timestamp"/>. Must not be
+    /// <see cref="JsonLogRecord.Timestamp"/>. Must not be
     /// <see langword="null"/>.</param>
     /// <exception cref="ArgumentNullException">
     /// Any argument is <see langword="null"/>.
@@ -68,7 +68,7 @@ internal sealed class EngineLogger : ILogger
     /// <inheritdoc />
     /// <remarks>
     /// Scopes are not surfaced on
-    /// <see cref="LogRecord.Properties"/> in this row; returning
+    /// <see cref="JsonLogRecord.Properties"/> in this row; returning
     /// the no-op disposable keeps callers that wrap log calls in
     /// <c>using (logger.BeginScope(...))</c> blocks working without
     /// allocating a per-call scope object.
@@ -125,7 +125,7 @@ internal sealed class EngineLogger : ILogger
             return;
         }
 
-        var record = new LogRecord
+        var record = new JsonLogRecord
         {
             Timestamp = _timeProvider.GetUtcNow(),
             Category = _category,
@@ -159,19 +159,19 @@ internal sealed class EngineLogger : ILogger
 
     /// <summary>
     /// Projects an <see cref="EventId"/> to the wire
-    /// <see cref="LogEventId"/>. Returns <see langword="null"/>
+    /// <see cref="JsonLogEventId"/>. Returns <see langword="null"/>
     /// when the producer did not mint one (i.e. the default
     /// <c>default(EventId)</c> with id <c>0</c> and no name) so
     /// the field is omitted from the wire JSON.
     /// </summary>
-    private static LogEventId? ProjectEventId(EventId eventId)
+    private static JsonLogEventId? ProjectEventId(EventId eventId)
     {
         if (eventId.Id == 0 && string.IsNullOrEmpty(eventId.Name))
         {
             return null;
         }
 
-        return new LogEventId
+        return new JsonLogEventId
         {
             Id = eventId.Id,
             Name = string.IsNullOrEmpty(eventId.Name) ? null : eventId.Name,
@@ -180,19 +180,19 @@ internal sealed class EngineLogger : ILogger
 
     /// <summary>
     /// Projects an <see cref="Exception"/> to the wire
-    /// <see cref="LogExceptionInfo"/>, walking the
+    /// <see cref="JsonLogExceptionInfo"/>, walking the
     /// <see cref="Exception.InnerException"/> chain depth-first.
     /// Returns <see langword="null"/> when <paramref name="exception"/>
     /// is <see langword="null"/>.
     /// </summary>
-    private static LogExceptionInfo? ProjectException(Exception? exception)
+    private static JsonLogExceptionInfo? ProjectException(Exception? exception)
     {
         if (exception is null)
         {
             return null;
         }
 
-        return new LogExceptionInfo
+        return new JsonLogExceptionInfo
         {
             Type = exception.GetType().FullName ?? exception.GetType().Name,
             Message = exception.Message ?? string.Empty,

@@ -9,7 +9,7 @@ using AutoContext.Mcp.Server.Workers.Protocol;
 /// </summary>
 public sealed record ToolResultComposerInput
 {
-    public required TaskResponse Response { get; init; }
+    public required JsonTaskResponse Response { get; init; }
 
     public required int ElapsedMs { get; init; }
 }

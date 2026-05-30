@@ -25,7 +25,7 @@ using System.Text.Json.Serialization;
 /// matching handling in <c>HandshakeParams.ProtocolVersion</c>.
 /// </para>
 /// </remarks>
-public sealed record LogsGetEngineParams
+public sealed record JsonLogsGetEngineParams
 {
     /// <summary>
     /// Maximum number of records to return, counted from the
@@ -39,7 +39,7 @@ public sealed record LogsGetEngineParams
     public int? LastN { get; init; }
 
     /// <summary>
-    /// Inclusive lower bound on <see cref="LogRecord.Timestamp"/>.
+    /// Inclusive lower bound on <see cref="JsonLogRecord.Timestamp"/>.
     /// Records with a timestamp strictly older than this value are
     /// excluded. <see langword="null"/> means "no lower bound".
     /// </summary>

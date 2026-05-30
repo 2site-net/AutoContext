@@ -1,7 +1,7 @@
 namespace AutoContext.Engine.Protocol.Messages.Logs;
 
 /// <summary>
-/// Lowercase wire-string constants for every <see cref="LogRecord.Level"/>
+/// Lowercase wire-string constants for every <see cref="JsonLogRecord.Level"/>
 /// value the engine emits on the <c>logs</c> pipe, <c>Logs.Tail*</c>
 /// RPC streams, and the <c>Engine.WriteLog</c> notification.
 /// Centralised here so engine, workers, and clients reference the

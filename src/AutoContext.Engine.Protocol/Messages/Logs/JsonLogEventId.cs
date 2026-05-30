@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 /// <summary>
 /// Wire shape of the optional <c>eventId</c> object on a
-/// <see cref="LogRecord"/>. Mirrors
+/// <see cref="JsonLogRecord"/>. Mirrors
 /// <see cref="Microsoft.Extensions.Logging.EventId"/> on the
 /// producer side without taking a dependency on the logging
 /// abstractions package: the protocol assembly stays free of
@@ -17,7 +17,7 @@ using System.Text.Json.Serialization;
 /// <c>EventId</c> to this DTO at the seam where the record is
 /// shaped for the wire.
 /// </remarks>
-public sealed record LogEventId
+public sealed record JsonLogEventId
 {
     /// <summary>
     /// Numeric event id assigned by the producer. Matches the

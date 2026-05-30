@@ -8,7 +8,7 @@ using System.Text.Json.Serialization;
 /// <see cref="ProtocolVersion.Current"/> for exact match per
 /// <c>design § Lifecycle &gt; Wire-protocol handshake</c>.
 /// </summary>
-public sealed record HandshakeParams
+public sealed record JsonHandshakeParams
 {
     /// <summary>
     /// Wire-protocol version the client is speaking. Must be

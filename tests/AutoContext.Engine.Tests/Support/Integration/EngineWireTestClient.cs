@@ -60,8 +60,8 @@ internal static class EngineWireTestClient
         CancellationToken cancellationToken)
     {
         var paramsElement = JsonSerializer.SerializeToElement(
-            new HandshakeParams { ProtocolVersion = protocolVersion },
-            ProtocolJsonContext.Default.HandshakeParams);
+            new JsonHandshakeParams { ProtocolVersion = protocolVersion },
+            ProtocolJsonContext.Default.JsonHandshakeParams);
 
         var request = new JsonRpcRequest
         {

@@ -20,7 +20,7 @@ internal static class AutoContextConfigPipeServerHarness
 {
     public static Task RunServerAsync(
         string pipeName,
-        IReadOnlyList<AutoContextConfigSnapshotDto> frames,
+        IReadOnlyList<JsonAutoContextConfigSnapshot> frames,
         TaskCompletionSource release,
         CancellationToken cancellationToken) =>
         Task.Run(async () =>

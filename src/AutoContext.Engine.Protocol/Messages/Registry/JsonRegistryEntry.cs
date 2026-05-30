@@ -44,7 +44,7 @@ using System.Text.Json.Serialization;
 /// <param name="Retention">Per-entry housekeeping retention window;
 /// honoured by the peer whose shutdown sweep reaps this entry, not
 /// by the sweeping peer's own <c>--retention</c>.</param>
-public sealed record RegistryEntry(
+public sealed record JsonRegistryEntry(
     [property: JsonPropertyName("engineVersion")] string EngineVersion,
     [property: JsonPropertyName("workspaceHash")] string WorkspaceHash,
     [property: JsonPropertyName("workspacePath")] string WorkspacePath,

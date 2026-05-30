@@ -2,7 +2,7 @@ namespace AutoContext.Engine.Core.Registry;
 
 /// <summary>
 /// Liveness verdict <see cref="RegistryEntryReader"/> attaches to
-/// every <see cref="Protocol.Messages.Registry.RegistryEntry"/> it
+/// every <see cref="Protocol.Messages.Registry.JsonRegistryEntry"/> it
 /// reads back from <c>engine-registry.json</c>. The closed-set
 /// classification is consumed by <c>CacheRootScanner</c> as the
 /// registration half of its four-arm
@@ -11,9 +11,9 @@ namespace AutoContext.Engine.Core.Registry;
 internal enum RegistryEntryProbeState
 {
     /// <summary>
-    /// The entry's <see cref="Protocol.Messages.Registry.RegistryEntry.ProcessId"/>
+    /// The entry's <see cref="Protocol.Messages.Registry.JsonRegistryEntry.ProcessId"/>
     /// resolves to a live OS process whose start time matches the
-    /// entry's <see cref="Protocol.Messages.Registry.RegistryEntry.ProcessStartTimeUtc"/>
+    /// entry's <see cref="Protocol.Messages.Registry.JsonRegistryEntry.ProcessStartTimeUtc"/>
     /// within the tolerance window. The owning engine is presumed
     /// to be running.
     /// </summary>

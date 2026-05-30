@@ -18,14 +18,14 @@ using Microsoft.Extensions.Logging.Abstractions;
 /// Orchestrates one MCP-Tool invocation. Resolves EditorConfig values for
 /// the tool's enabled tasks in a single batched call, runs every task
 /// concurrently over a named pipe, and composes the per-task responses
-/// into a uniform <see cref="ToolResultEnvelope"/>. Pure orchestration —
+/// into a uniform <see cref="JsonToolResultEnvelope"/>. Pure orchestration —
 /// no MCP SDK.
 /// </summary>
 /// <remarks>
 /// All tasks in a tool invocation run concurrently via
 /// <see cref="Task.WhenAll(IEnumerable{Task})"/>. The order of entries in
-/// the resulting <see cref="ToolResultEnvelope.Result"/> matches the
-/// declared order in <see cref="McpToolDefinition.Tasks"/>, regardless of
+/// the resulting <see cref="JsonToolResultEnvelope.Result"/> matches the
+/// declared order in <see cref="JsonMcpToolDefinition.Tasks"/>, regardless of
 /// completion order.
 /// </remarks>
 public sealed partial class ToolInvoker
@@ -75,9 +75,9 @@ public sealed partial class ToolInvoker
     /// <paramref name="worker"/> concurrently and composes the result
     /// envelope.
     /// </summary>
-    public async Task<ToolResultEnvelope> InvokeAsync(
-        McpWorker worker,
-        McpToolDefinition tool,
+    public async Task<JsonToolResultEnvelope> InvokeAsync(
+        JsonMcpWorker worker,
+        JsonMcpToolDefinition tool,
         JsonElement data,
         string correlationId,
         CancellationToken cancellationToken)
@@ -97,7 +97,7 @@ public sealed partial class ToolInvoker
             return ToolResultComposer.ComposeFailure(
                 tool.Name,
                 [
-                    new ToolResultError
+                    new JsonToolResultError
                     {
                         Code = ToolResultErrorCodes.AllTasksDisabled,
                         Message = $"All tasks for tool '{tool.Name}' are disabled by extension config.",
@@ -137,7 +137,7 @@ public sealed partial class ToolInvoker
             elapsedMs);
     }
 
-    private IReadOnlyList<McpTaskDefinition> ResolveEnabledTasks(McpToolDefinition tool)
+    private IReadOnlyList<JsonMcpTaskDefinition> ResolveEnabledTasks(JsonMcpToolDefinition tool)
     {
         if (_configSnapshot is null)
         {
@@ -149,7 +149,7 @@ public sealed partial class ToolInvoker
             return tool.Tasks;
         }
 
-        var enabled = new List<McpTaskDefinition>(tool.Tasks.Count);
+        var enabled = new List<JsonMcpTaskDefinition>(tool.Tasks.Count);
 
         for (var i = 0; i < tool.Tasks.Count; i++)
         {
@@ -166,7 +166,7 @@ public sealed partial class ToolInvoker
 
     private async Task<IReadOnlyDictionary<string, IReadOnlyDictionary<string, string>>> ResolveEditorConfigAsync(
         JsonElement data,
-        IReadOnlyList<McpTaskDefinition> tasks,
+        IReadOnlyList<JsonMcpTaskDefinition> tasks,
         string correlationId,
         CancellationToken cancellationToken)
     {
@@ -200,7 +200,7 @@ public sealed partial class ToolInvoker
 
     private async Task DispatchOneAsync(
         string role,
-        IReadOnlyList<McpTaskDefinition> tasks,
+        IReadOnlyList<JsonMcpTaskDefinition> tasks,
         JsonElement data,
         IReadOnlyDictionary<string, IReadOnlyDictionary<string, string>> slices,
         ToolResultComposerInput[] entries,
@@ -215,7 +215,7 @@ public sealed partial class ToolInvoker
             editorConfig = EmptyEditorConfig;
         }
 
-        var request = new TaskRequest
+        var request = new JsonTaskRequest
         {
             McpTask = task.Name,
             Data = data,
@@ -261,7 +261,7 @@ public sealed partial class ToolInvoker
     }
 
     private static Dictionary<string, IReadOnlyDictionary<string, string>> BuildEmptySlices(
-        IReadOnlyList<McpTaskDefinition> tasks)
+        IReadOnlyList<JsonMcpTaskDefinition> tasks)
     {
         var dict = new Dictionary<string, IReadOnlyDictionary<string, string>>(
             tasks.Count,

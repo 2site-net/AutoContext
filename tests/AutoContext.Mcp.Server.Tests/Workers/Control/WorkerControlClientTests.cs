@@ -34,7 +34,7 @@ public sealed class WorkerControlClientTests
             {
                 Assert.Equal("ensureRunning", request.Type);
                 Assert.Equal("workspace", request.WorkerId);
-                return new EnsureRunningResponse { Status = EnsureRunningResponse.StatusReady };
+                return new JsonEnsureRunningResponse { Status = JsonEnsureRunningResponse.StatusReady };
             },
             cts.Token);
 
@@ -55,9 +55,9 @@ public sealed class WorkerControlClientTests
 
         var serverTask = WorkerControlPipeServerHarness.RunPersistentAsync(
             pipeName,
-            _ => new EnsureRunningResponse
+            _ => new JsonEnsureRunningResponse
             {
-                Status = EnsureRunningResponse.StatusFailed,
+                Status = JsonEnsureRunningResponse.StatusFailed,
                 Error = "spawn ENOENT",
             },
             cts.Token);
@@ -84,7 +84,7 @@ public sealed class WorkerControlClientTests
         var seen = 0;
         var serverTask = WorkerControlPipeServerHarness.RunPersistentAsync(
             pipeName,
-            _ => new EnsureRunningResponse { Status = EnsureRunningResponse.StatusReady },
+            _ => new JsonEnsureRunningResponse { Status = JsonEnsureRunningResponse.StatusReady },
             cts.Token,
             onRequest: _ => Interlocked.Increment(ref seen));
 
@@ -120,7 +120,7 @@ public sealed class WorkerControlClientTests
             {
                 Interlocked.Increment(ref observed);
                 gate.Task.GetAwaiter().GetResult();
-                return new EnsureRunningResponse { Status = EnsureRunningResponse.StatusReady };
+                return new JsonEnsureRunningResponse { Status = JsonEnsureRunningResponse.StatusReady };
             },
             cts.Token);
 
@@ -158,7 +158,7 @@ public sealed class WorkerControlClientTests
             _ =>
             {
                 gate.Task.GetAwaiter().GetResult();
-                return new EnsureRunningResponse { Status = EnsureRunningResponse.StatusReady };
+                return new JsonEnsureRunningResponse { Status = JsonEnsureRunningResponse.StatusReady };
             },
             serverCts.Token);
 

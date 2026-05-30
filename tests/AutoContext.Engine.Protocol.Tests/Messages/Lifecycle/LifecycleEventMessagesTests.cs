@@ -31,7 +31,7 @@ public sealed class LifecycleEventMessagesTests
     public void Should_omit_optional_fields_on_evicted_terminal_frame()
     {
         // Arrange
-        var evt = new LifecycleEvent
+        var evt = new JsonLifecycleEvent
         {
             Kind = LifecycleEventKinds.Evicted,
             Reason = "slow-subscriber",
@@ -39,7 +39,7 @@ public sealed class LifecycleEventMessagesTests
 
         // Act
         var bytes = JsonSerializer.SerializeToUtf8Bytes(
-            evt, ProtocolJsonContext.Default.LifecycleEvent);
+            evt, ProtocolJsonContext.Default.JsonLifecycleEvent);
 
         // Assert
         using var document = JsonDocument.Parse(bytes);
@@ -57,14 +57,14 @@ public sealed class LifecycleEventMessagesTests
     {
         // Arrange
         var instanceId = Guid.NewGuid();
-        var payload = new LifecycleEvent
+        var payload = new JsonLifecycleEvent
         {
             Kind = LifecycleEventKinds.ShuttingDown,
             InstanceId = instanceId,
             Revision = 0,
         };
         var paramsElement = JsonSerializer.SerializeToElement(
-            payload, ProtocolJsonContext.Default.LifecycleEvent);
+            payload, ProtocolJsonContext.Default.JsonLifecycleEvent);
         var notification = new JsonRpcNotification
         {
             Method = LifecycleMethods.Notification,
@@ -81,7 +81,7 @@ public sealed class LifecycleEventMessagesTests
         using var document = JsonDocument.Parse(bytes);
         var root = document.RootElement;
         var decoded = roundTripped?.Params?.Deserialize(
-            ProtocolJsonContext.Default.LifecycleEvent);
+            ProtocolJsonContext.Default.JsonLifecycleEvent);
 
         Assert.Multiple(
             () => Assert.Equal("2.0", root.GetProperty("jsonrpc").GetString()),
@@ -100,7 +100,7 @@ public sealed class LifecycleEventMessagesTests
     {
         // Arrange
         var instanceId = Guid.NewGuid();
-        var evt = new LifecycleEvent
+        var evt = new JsonLifecycleEvent
         {
             Kind = LifecycleEventKinds.Started,
             InstanceId = instanceId,
@@ -109,7 +109,7 @@ public sealed class LifecycleEventMessagesTests
 
         // Act
         var bytes = JsonSerializer.SerializeToUtf8Bytes(
-            evt, ProtocolJsonContext.Default.LifecycleEvent);
+            evt, ProtocolJsonContext.Default.JsonLifecycleEvent);
 
         // Assert
         using var document = JsonDocument.Parse(bytes);

@@ -4,8 +4,8 @@ namespace AutoContext.Engine.Protocol.Messages.Registry;
 /// String constants for the registry-scoped JSON-RPC methods on
 /// the engine wire. Kept in the protocol assembly so both sides
 /// reference the same identifiers without copy-paste drift, and
-/// grouped alongside the registry DTOs (<see cref="RegistryEntry"/>,
-/// <see cref="RegistryEntriesResult"/>) they pair with.
+/// grouped alongside the registry DTOs (<see cref="JsonRegistryEntry"/>,
+/// <see cref="JsonRegistryEntriesResult"/>) they pair with.
 /// </summary>
 public static class RegistryMethods
 {

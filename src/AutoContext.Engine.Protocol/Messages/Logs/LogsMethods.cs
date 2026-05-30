@@ -4,9 +4,9 @@ namespace AutoContext.Engine.Protocol.Messages.Logs;
 /// String constants for the logs-scoped JSON-RPC methods on the
 /// engine wire. Kept in the protocol assembly so both sides
 /// reference the same identifiers without copy-paste drift, and
-/// grouped alongside the logs DTOs (<see cref="LogRecord"/>,
-/// <see cref="LogStreamFrame"/>, <see cref="LogsGetEngineParams"/>,
-/// <see cref="LogsGetEngineResult"/>) they pair with.
+/// grouped alongside the logs DTOs (<see cref="JsonLogRecord"/>,
+/// <see cref="JsonLogStreamFrame"/>, <see cref="JsonLogsGetEngineParams"/>,
+/// <see cref="JsonLogsGetEngineResult"/>) they pair with.
 /// </summary>
 public static class LogsMethods
 {
@@ -22,9 +22,9 @@ public static class LogsMethods
 
     /// <summary>
     /// Server-streaming RPC that tails the engine's live
-    /// <see cref="LogRecord"/> firehose: each frame on the wire
-    /// is a <see cref="LogStreamFrame"/> (<see cref="LogRecordFrame"/>
-    /// for records or a terminal <see cref="LogEvictedFrame"/> when
+    /// <see cref="JsonLogRecord"/> firehose: each frame on the wire
+    /// is a <see cref="JsonLogStreamFrame"/> (<see cref="JsonLogRecordFrame"/>
+    /// for records or a terminal <see cref="JsonLogEvictedFrame"/> when
     /// the subscriber is evicted for slowness) carried as the
     /// <c>result</c> of a <c>JsonRpcStreamNext</c> envelope.
     /// Graceful broadcaster completion or peer-close terminates

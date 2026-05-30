@@ -9,22 +9,22 @@ using AutoContext.Engine.Protocol.Messages.Logs;
 /// <summary>
 /// Handle returned from
 /// <see cref="LogSubscriptionBroadcaster.Subscribe"/>. Drains
-/// <see cref="LogStreamFrame"/> values via <see cref="ReadAllAsync"/>
+/// <see cref="JsonLogStreamFrame"/> values via <see cref="ReadAllAsync"/>
 /// and releases the subscription on <see cref="Dispose"/>.
 /// </summary>
 /// <remarks>
-/// Each drained <see cref="LogRecord"/> is yielded as a
-/// <see cref="LogRecordFrame"/>; if the broadcaster evicted the
+/// Each drained <see cref="JsonLogRecord"/> is yielded as a
+/// <see cref="JsonLogRecordFrame"/>; if the broadcaster evicted the
 /// subscriber for slowness, a terminal
-/// <see cref="LogEvictedFrame"/> with reason
-/// <see cref="LogEvictedFrame.SlowSubscriberReason"/> is yielded
+/// <see cref="JsonLogEvictedFrame"/> with reason
+/// <see cref="JsonLogEvictedFrame.SlowSubscriberReason"/> is yielded
 /// after the underlying channel completes so the pipe acceptor can
 /// flush it to the wire before closing the connection.
 /// </remarks>
 internal sealed class LogSubscription : IDisposable
 {
     private int _disposed;
-    private readonly ChannelReader<LogRecord> _reader;
+    private readonly ChannelReader<JsonLogRecord> _reader;
     private readonly Action _release;
     private readonly Func<bool> _wasEvicted;
 
@@ -38,13 +38,13 @@ internal sealed class LogSubscription : IDisposable
     /// broadcaster and complete the underlying channel.</param>
     /// <param name="wasEvicted">Probe consulted after the channel
     /// completes to decide whether a terminal
-    /// <see cref="LogEvictedFrame"/> is yielded; closes over the
+    /// <see cref="JsonLogEvictedFrame"/> is yielded; closes over the
     /// owning <see cref="LogSubscriber"/>'s state.</param>
     /// <exception cref="ArgumentNullException">
     /// Any argument is <see langword="null"/>.
     /// </exception>
     public LogSubscription(
-        ChannelReader<LogRecord> reader,
+        ChannelReader<JsonLogRecord> reader,
         Action release,
         Func<bool> wasEvicted)
     {
@@ -72,22 +72,22 @@ internal sealed class LogSubscription : IDisposable
     /// Drains broadcaster frames until the channel completes or
     /// <paramref name="cancellationToken"/> fires. If the subscriber
     /// was evicted for slowness, yields a final
-    /// <see cref="LogEvictedFrame"/> after the channel completes so
+    /// <see cref="JsonLogEvictedFrame"/> after the channel completes so
     /// the caller can flush it to the wire before closing.
     /// </summary>
-    public async IAsyncEnumerable<LogStreamFrame> ReadAllAsync(
+    public async IAsyncEnumerable<JsonLogStreamFrame> ReadAllAsync(
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         await foreach (var record in _reader
             .ReadAllAsync(cancellationToken)
             .ConfigureAwait(false))
         {
-            yield return new LogRecordFrame(record);
+            yield return new JsonLogRecordFrame(record);
         }
 
         if (_wasEvicted())
         {
-            yield return new LogEvictedFrame(LogEvictedFrame.SlowSubscriberReason);
+            yield return new JsonLogEvictedFrame(JsonLogEvictedFrame.SlowSubscriberReason);
         }
     }
 }

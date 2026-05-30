@@ -12,7 +12,7 @@ using System.Text.Json.Serialization;
 /// same id that already flows through pipe naming and health-monitor
 /// identity.
 /// </summary>
-internal sealed record EnsureRunningRequest
+internal sealed record JsonEnsureRunningRequest
 {
     [JsonPropertyName("type")]
     public string Type { get; init; } = "ensureRunning";

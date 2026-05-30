@@ -8,5 +8,5 @@ using AutoContext.Engine.Protocol.Messages.Logs;
 internal static class LogSubscriberTestFactory
 {
     public static LogSubscriber Create()
-        => new(Channel.CreateUnbounded<LogRecord>());
+        => new(Channel.CreateUnbounded<JsonLogRecord>());
 }

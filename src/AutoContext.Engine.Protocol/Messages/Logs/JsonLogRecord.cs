@@ -50,7 +50,7 @@ using System.Text.Json.Serialization;
 /// logging abstractions package.
 /// </para>
 /// </remarks>
-public sealed record LogRecord
+public sealed record JsonLogRecord
 {
     /// <summary>
     /// Moment the producer minted this record, in UTC. Serialised
@@ -89,7 +89,7 @@ public sealed record LogRecord
     /// producer minted one; absent otherwise.
     /// </summary>
     [JsonPropertyName("eventId")]
-    public LogEventId? EventId { get; init; }
+    public JsonLogEventId? EventId { get; init; }
 
     /// <summary>
     /// Formatted message body. Producers materialise the message
@@ -113,10 +113,10 @@ public sealed record LogRecord
 
     /// <summary>
     /// Optional flattened exception in the wire shape
-    /// <see cref="LogExceptionInfo"/> defines. Producers project a
+    /// <see cref="JsonLogExceptionInfo"/> defines. Producers project a
     /// CLR <see cref="System.Exception"/> to this DTO at the seam
     /// where the record is shaped for the wire.
     /// </summary>
     [JsonPropertyName("exception")]
-    public LogExceptionInfo? Exception { get; init; }
+    public JsonLogExceptionInfo? Exception { get; init; }
 }

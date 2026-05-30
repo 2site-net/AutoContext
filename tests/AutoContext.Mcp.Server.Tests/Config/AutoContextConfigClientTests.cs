@@ -43,7 +43,7 @@ public sealed class AutoContextConfigClientTests
         var serverTask = AutoContextConfigPipeServerHarness.RunServerAsync(
             pipeName,
             [
-                new AutoContextConfigSnapshotDto
+                new JsonAutoContextConfigSnapshot
                 {
                     DisabledTools = ["alpha", "beta"],
                     DisabledTasks = new Dictionary<string, List<string>>
@@ -96,8 +96,8 @@ public sealed class AutoContextConfigClientTests
         var serverTask = AutoContextConfigPipeServerHarness.RunServerAsync(
             pipeName,
             [
-                new AutoContextConfigSnapshotDto { DisabledTools = ["alpha"] },
-                new AutoContextConfigSnapshotDto { DisabledTools = ["delta"] },
+                new JsonAutoContextConfigSnapshot { DisabledTools = ["alpha"] },
+                new JsonAutoContextConfigSnapshot { DisabledTools = ["delta"] },
             ],
             release,
             cts.Token);

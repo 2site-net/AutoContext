@@ -25,7 +25,7 @@ using Microsoft.Extensions.Logging;
 /// frame-level failure as a connection-fatal event
 /// (<see cref="FrameFailurePolicy.Terminate"/>). On a successful
 /// match it validates the request params and either returns a
-/// <see cref="HandshakeResult"/> with
+/// <see cref="JsonHandshakeResult"/> with
 /// <see cref="Continuation.Complete"/> (handshake accepted; caller
 /// proceeds to the dispatch or events-pump phase) or a structured
 /// JSON-RPC error reply with <see cref="Continuation.Abort"/>
@@ -89,12 +89,12 @@ internal sealed partial class HandshakePolicy : IRpcConnectionPolicy
                 $"First frame on '{EndpointKind}' endpoint must invoke '{ProtocolMethods.Hello}'."));
         }
 
-        HandshakeParams? helloParams;
+        JsonHandshakeParams? helloParams;
         try
         {
             helloParams = request.Params is { } paramsElement
                 && paramsElement.ValueKind != JsonValueKind.Undefined
-                    ? paramsElement.Deserialize(ProtocolJsonContext.Default.HandshakeParams)
+                    ? paramsElement.Deserialize(ProtocolJsonContext.Default.JsonHandshakeParams)
                     : null;
         }
         catch (JsonException ex)
@@ -129,14 +129,14 @@ internal sealed partial class HandshakePolicy : IRpcConnectionPolicy
                 $"Protocol version mismatch: engine speaks {ProtocolVersion.Current}, client sent {clientProtocolVersion}."));
         }
 
-        var result = new HandshakeResult
+        var result = new JsonHandshakeResult
         {
             ProtocolVersion = ProtocolVersion.Current,
             EngineVersion = EngineSemver,
         };
 
         var resultElement = JsonSerializer.SerializeToElement(
-            result, ProtocolJsonContext.Default.HandshakeResult);
+            result, ProtocolJsonContext.Default.JsonHandshakeResult);
 
         LogHandshakeAccepted(_logger, EndpointKind, clientProtocolVersion);
 

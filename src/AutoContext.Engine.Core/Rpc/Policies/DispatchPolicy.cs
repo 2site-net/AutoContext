@@ -144,9 +144,9 @@ internal sealed partial class DispatchPolicy : IRpcConnectionPolicy
             var entries = await _registryReader.ReadAsync(cancellationToken)
                 .ConfigureAwait(false);
 
-            var result = new RegistryEntriesResult { Entries = entries };
+            var result = new JsonRegistryEntriesResult { Entries = entries };
             var resultElement = JsonSerializer.SerializeToElement(
-                result, ProtocolJsonContext.Default.RegistryEntriesResult);
+                result, ProtocolJsonContext.Default.JsonRegistryEntriesResult);
 
             return new UnaryHandlerResult(
                 Response: new JsonRpcResponse { Result = resultElement },
@@ -171,12 +171,12 @@ internal sealed partial class DispatchPolicy : IRpcConnectionPolicy
     private async Task<RpcHandlerResult> HandleLogsGetEngineAsync(
         JsonRpcRequest request, CancellationToken cancellationToken)
     {
-        LogsGetEngineParams? parameters;
+        JsonLogsGetEngineParams? parameters;
 
         try
         {
             parameters = request.Params is { ValueKind: not JsonValueKind.Undefined and not JsonValueKind.Null } element
-                ? element.Deserialize(ProtocolJsonContext.Default.LogsGetEngineParams)
+                ? element.Deserialize(ProtocolJsonContext.Default.JsonLogsGetEngineParams)
                 : null;
         }
         catch (JsonException ex)
@@ -214,14 +214,14 @@ internal sealed partial class DispatchPolicy : IRpcConnectionPolicy
             var read = await _logFileReader.ReadAsync(parameters, cancellationToken)
                 .ConfigureAwait(false);
 
-            var result = new LogsGetEngineResult
+            var result = new JsonLogsGetEngineResult
             {
                 Records = read.Records,
                 Truncated = read.Truncated,
             };
 
             var resultElement = JsonSerializer.SerializeToElement(
-                result, ProtocolJsonContext.Default.LogsGetEngineResult);
+                result, ProtocolJsonContext.Default.JsonLogsGetEngineResult);
 
             return new UnaryHandlerResult(
                 Response: new JsonRpcResponse { Result = resultElement },
@@ -272,15 +272,15 @@ internal sealed partial class DispatchPolicy : IRpcConnectionPolicy
             .ConfigureAwait(false))
         {
             yield return JsonSerializer.SerializeToElement(
-                frame, ProtocolJsonContext.Default.LogStreamFrame);
+                frame, ProtocolJsonContext.Default.JsonLogStreamFrame);
         }
     }
 
     private UnaryHandlerResult HandleShutdown()
     {
-        var result = new ShutdownResult { Accepted = true };
+        var result = new JsonShutdownResult { Accepted = true };
         var resultElement = JsonSerializer.SerializeToElement(
-            result, ProtocolJsonContext.Default.ShutdownResult);
+            result, ProtocolJsonContext.Default.JsonShutdownResult);
 
         return new UnaryHandlerResult(
             Response: new JsonRpcResponse { Result = resultElement },

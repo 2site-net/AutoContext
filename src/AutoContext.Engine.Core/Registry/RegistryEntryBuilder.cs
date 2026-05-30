@@ -7,7 +7,7 @@ using AutoContext.Engine.Core.Infrastructure.Storage;
 using AutoContext.Engine.Protocol.Messages.Registry;
 
 /// <summary>
-/// Pure builder for the <see cref="RegistryEntry"/> value that
+/// Pure builder for the <see cref="JsonRegistryEntry"/> value that
 /// represents <i>this</i> engine instance in the shared liveness
 /// registry (<c>engine-registry.json</c>). Stateless and
 /// side-effect-free: composes <see cref="EngineOptions"/>
@@ -42,7 +42,7 @@ internal static class RegistryEntryBuilder
     /// <see langword="null"/>.</param>
     /// <exception cref="ArgumentNullException">Any required
     /// parameter is <see langword="null"/>.</exception>
-    public static RegistryEntry Build(EngineOptions options, TimeProvider clock)
+    public static JsonRegistryEntry Build(EngineOptions options, TimeProvider clock)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(clock);
@@ -50,7 +50,7 @@ internal static class RegistryEntryBuilder
         using var process = Process.GetCurrentProcess();
         var hash = WorkspaceHash.Compute(options.WorkspacePath);
 
-        return new RegistryEntry(
+        return new JsonRegistryEntry(
             EngineVersion: ResolveEngineVersion(),
             WorkspaceHash: hash.Value,
             WorkspacePath: Path.GetFullPath(options.WorkspacePath),

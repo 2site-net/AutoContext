@@ -4,7 +4,7 @@ namespace AutoContext.Mcp.Server.Registry;
 /// One MCP Task — the worker-facing execution unit invoked by
 /// <c>WorkerClient</c> over a named pipe to its worker.
 /// </summary>
-public sealed record McpTaskDefinition
+public sealed record JsonMcpTaskDefinition
 {
     /// <summary>MCP Task identifier (snake_case). Unique within its tool.</summary>
     public required string Name { get; init; }

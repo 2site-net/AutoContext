@@ -22,16 +22,16 @@ public sealed class WorkerClientTests
             pipeName,
             handler: requestBytes =>
             {
-                var request = JsonSerializer.Deserialize<TaskRequest>(
+                var request = JsonSerializer.Deserialize<JsonTaskRequest>(
                     requestBytes,
                     WorkerJsonOptions.Instance);
                 Assert.NotNull(request);
                 Assert.Equal("analyze_csharp_coding_style", request.McpTask);
 
-                var serverResponse = new TaskResponse
+                var serverResponse = new JsonTaskResponse
                 {
                     McpTask = request.McpTask,
-                    Status = TaskResponse.StatusOk,
+                    Status = JsonTaskResponse.StatusOk,
                     Output = JsonSerializer.SerializeToElement(new { passed = true }),
                     Error = string.Empty,
                 };
@@ -51,7 +51,7 @@ public sealed class WorkerClientTests
 
         // Assert
         Assert.Multiple(
-            () => Assert.Equal(TaskResponse.StatusOk, response.Status),
+            () => Assert.Equal(JsonTaskResponse.StatusOk, response.Status),
             () => Assert.Equal(string.Empty, response.Error),
             () => Assert.NotNull(response.Output),
             () => Assert.True(response.Output!.Value.GetProperty("passed").GetBoolean()));
@@ -78,7 +78,7 @@ public sealed class WorkerClientTests
 
         // Assert
         Assert.Multiple(
-            () => Assert.Equal(TaskResponse.StatusError, response.Status),
+            () => Assert.Equal(JsonTaskResponse.StatusError, response.Status),
             () => Assert.Equal("task_x", response.McpTask),
             () => Assert.Contains("closed the pipe", response.Error, StringComparison.Ordinal));
     }
@@ -101,7 +101,7 @@ public sealed class WorkerClientTests
 
         // Assert
         Assert.Multiple(
-            () => Assert.Equal(TaskResponse.StatusError, response.Status),
+            () => Assert.Equal(JsonTaskResponse.StatusError, response.Status),
             () => Assert.Contains("wait deadline", response.Error, StringComparison.Ordinal));
 
         await serverGate.CancelAsync();
@@ -129,7 +129,7 @@ public sealed class WorkerClientTests
 
         // Assert
         Assert.Multiple(
-            () => Assert.Equal(TaskResponse.StatusError, response.Status),
+            () => Assert.Equal(JsonTaskResponse.StatusError, response.Status),
             () => Assert.Contains("not valid JSON", response.Error, StringComparison.Ordinal));
     }
 
@@ -173,7 +173,7 @@ public sealed class WorkerClientTests
     {
         // Arrange
         var client = new WorkerClient();
-        var badRequest = new TaskRequest
+        var badRequest = new JsonTaskRequest
         {
             McpTask = string.Empty,
             Data = JsonSerializer.SerializeToElement(new { }),

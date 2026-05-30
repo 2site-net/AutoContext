@@ -25,7 +25,7 @@ public sealed class ToolResultComposerTests
         // Assert
         Assert.Multiple(
             () => Assert.Equal("analyze_csharp_code", envelope.Tool),
-            () => Assert.Equal(ToolResultEnvelope.StatusOk, envelope.Status),
+            () => Assert.Equal(JsonToolResultEnvelope.StatusOk, envelope.Status),
             () => Assert.Equal(2, envelope.Summary.TaskCount),
             () => Assert.Equal(2, envelope.Summary.SuccessCount),
             () => Assert.Equal(0, envelope.Summary.FailureCount),
@@ -49,7 +49,7 @@ public sealed class ToolResultComposerTests
 
         // Assert
         Assert.Multiple(
-            () => Assert.Equal(ToolResultEnvelope.StatusError, envelope.Status),
+            () => Assert.Equal(JsonToolResultEnvelope.StatusError, envelope.Status),
             () => Assert.Equal(0, envelope.Summary.SuccessCount),
             () => Assert.Equal(2, envelope.Summary.FailureCount),
             () => Assert.All(envelope.Result, entry => Assert.Null(entry.Output)),
@@ -71,7 +71,7 @@ public sealed class ToolResultComposerTests
 
         // Assert
         Assert.Multiple(
-            () => Assert.Equal(ToolResultEnvelope.StatusPartial, envelope.Status),
+            () => Assert.Equal(JsonToolResultEnvelope.StatusPartial, envelope.Status),
             () => Assert.Equal(1, envelope.Summary.SuccessCount),
             () => Assert.Equal(1, envelope.Summary.FailureCount));
     }
@@ -80,17 +80,17 @@ public sealed class ToolResultComposerTests
     public void Should_normalize_per_task_entry_invariants()
     {
         // Arrange
-        var okWithStrayError = new TaskResponse
+        var okWithStrayError = new JsonTaskResponse
         {
             McpTask = "task_ok",
-            Status = TaskResponse.StatusOk,
+            Status = JsonTaskResponse.StatusOk,
             Output = ToolResultComposerInputFactory.JsonElementFrom(@"{""hits"":1}"),
             Error = "should be dropped",
         };
-        var errorWithStrayOutput = new TaskResponse
+        var errorWithStrayOutput = new JsonTaskResponse
         {
             McpTask = "task_err",
-            Status = TaskResponse.StatusError,
+            Status = JsonTaskResponse.StatusError,
             Output = ToolResultComposerInputFactory.JsonElementFrom(@"{""hits"":99}"),
             Error = "real error",
         };
@@ -103,10 +103,10 @@ public sealed class ToolResultComposerTests
 
         // Assert
         Assert.Multiple(
-            () => Assert.Equal(ToolResultEnvelope.StatusOk, envelope.Result[0].Status),
+            () => Assert.Equal(JsonToolResultEnvelope.StatusOk, envelope.Result[0].Status),
             () => Assert.NotNull(envelope.Result[0].Output),
             () => Assert.Equal(string.Empty, envelope.Result[0].Error),
-            () => Assert.Equal(ToolResultEnvelope.StatusError, envelope.Result[1].Status),
+            () => Assert.Equal(JsonToolResultEnvelope.StatusError, envelope.Result[1].Status),
             () => Assert.Null(envelope.Result[1].Output),
             () => Assert.Equal("real error", envelope.Result[1].Error));
     }
@@ -132,7 +132,7 @@ public sealed class ToolResultComposerTests
         // Arrange
         var errors = new[]
         {
-            new ToolResultError { Code = ToolResultErrorCodes.PipeFailure, Message = "boom" },
+            new JsonToolResultError { Code = ToolResultErrorCodes.PipeFailure, Message = "boom" },
         };
 
         // Act
@@ -140,7 +140,7 @@ public sealed class ToolResultComposerTests
 
         // Assert
         Assert.Multiple(
-            () => Assert.Equal(ToolResultEnvelope.StatusError, envelope.Status),
+            () => Assert.Equal(JsonToolResultEnvelope.StatusError, envelope.Status),
             () => Assert.Empty(envelope.Result),
             () => Assert.Single(envelope.Errors),
             () => Assert.Equal(ToolResultErrorCodes.PipeFailure, envelope.Errors[0].Code),
@@ -194,7 +194,7 @@ public sealed class ToolResultComposerTests
 
         // Assert
         Assert.Multiple(
-            () => Assert.Equal(ToolResultEnvelope.StatusError, envelope.Status),
+            () => Assert.Equal(JsonToolResultEnvelope.StatusError, envelope.Status),
             () => Assert.Equal(0, envelope.Summary.TaskCount),
             () => Assert.Equal(0, envelope.Summary.SuccessCount),
             () => Assert.Equal(0, envelope.Summary.FailureCount),

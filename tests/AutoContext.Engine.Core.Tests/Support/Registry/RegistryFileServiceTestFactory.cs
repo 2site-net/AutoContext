@@ -13,7 +13,7 @@ internal static class RegistryFileServiceTestFactory
     public static RegistryFileService CreateService(
         string path,
         RegistryFileServiceOptions? options = null,
-        Func<RegistryEntry>? ownEntryFactory = null) =>
+        Func<JsonRegistryEntry>? ownEntryFactory = null) =>
         new(
             path,
             options,

@@ -16,7 +16,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 /// Shared SUT + fixture builders for the
 /// <see cref="ToolInvoker"/> / <c>McpSdkAdapter</c> /
 /// <see cref="EditorConfigBatcher"/> test suites. Centralises the
-/// constructor wiring + <see cref="McpTaskDefinition"/> shape that
+/// constructor wiring + <see cref="JsonMcpTaskDefinition"/> shape that
 /// multiple test classes used to duplicate.
 /// </summary>
 internal static class ToolTestFactory
@@ -46,10 +46,10 @@ internal static class ToolTestFactory
     }
 
     /// <summary>
-    /// Builds an <see cref="McpTaskDefinition"/> with the given task
+    /// Builds an <see cref="JsonMcpTaskDefinition"/> with the given task
     /// name and optional <c>EditorConfig</c> keys.
     /// </summary>
-    public static McpTaskDefinition BuildTask(
+    public static JsonMcpTaskDefinition BuildTask(
         string name,
         params string[] editorConfig) => new()
         {
@@ -58,62 +58,62 @@ internal static class ToolTestFactory
         };
 
     /// <summary>
-    /// Builds an <see cref="McpToolDefinition"/> with a single default
+    /// Builds an <see cref="JsonMcpToolDefinition"/> with a single default
     /// <c>{name}_task</c> task (used by <c>McpSdkAdapter</c> snapshot
     /// filter tests).
     /// </summary>
-    public static McpToolDefinition BuildTool(string name) => new()
+    public static JsonMcpToolDefinition BuildTool(string name) => new()
     {
         Name = name,
         Description = "Test tool.",
-        Parameters = new Dictionary<string, McpToolParameter>(StringComparer.Ordinal),
-        Tasks = [new McpTaskDefinition { Name = $"{name}_task" }],
+        Parameters = new Dictionary<string, JsonMcpToolParameter>(StringComparer.Ordinal),
+        Tasks = [new JsonMcpTaskDefinition { Name = $"{name}_task" }],
     };
 
     /// <summary>
-    /// Builds an <see cref="McpToolDefinition"/> with explicit task
+    /// Builds an <see cref="JsonMcpToolDefinition"/> with explicit task
     /// definitions (used by <c>ToolInvoker</c> tests that need control
     /// over <c>EditorConfig</c> keys per task).
     /// </summary>
-    public static McpToolDefinition BuildTool(
+    public static JsonMcpToolDefinition BuildTool(
         string name,
-        params McpTaskDefinition[] tasks) => new()
+        params JsonMcpTaskDefinition[] tasks) => new()
         {
             Name = name,
             Description = "Test tool.",
-            Parameters = new Dictionary<string, McpToolParameter>(StringComparer.Ordinal),
+            Parameters = new Dictionary<string, JsonMcpToolParameter>(StringComparer.Ordinal),
             Tasks = tasks,
         };
 
     /// <summary>
-    /// Builds an <see cref="McpToolDefinition"/> from a sequence of
+    /// Builds an <see cref="JsonMcpToolDefinition"/> from a sequence of
     /// task names (used by <c>ToolDelegateFactory</c> tests).
     /// </summary>
-    public static McpToolDefinition BuildToolFromTaskNames(
+    public static JsonMcpToolDefinition BuildToolFromTaskNames(
         string name,
         params string[] taskNames)
     {
-        var tasks = new List<McpTaskDefinition>(taskNames.Length);
+        var tasks = new List<JsonMcpTaskDefinition>(taskNames.Length);
 
         foreach (var taskName in taskNames)
         {
-            tasks.Add(new McpTaskDefinition { Name = taskName });
+            tasks.Add(new JsonMcpTaskDefinition { Name = taskName });
         }
 
-        return new McpToolDefinition
+        return new JsonMcpToolDefinition
         {
             Name = name,
             Description = "Test tool.",
-            Parameters = new Dictionary<string, McpToolParameter>(StringComparer.Ordinal),
+            Parameters = new Dictionary<string, JsonMcpToolParameter>(StringComparer.Ordinal),
             Tasks = tasks,
         };
     }
 
     /// <summary>
-    /// Builds an <see cref="McpWorker"/> with the given id and a
+    /// Builds an <see cref="JsonMcpWorker"/> with the given id and a
     /// placeholder name/empty tool list.
     /// </summary>
-    public static McpWorker BuildWorker(string workerId) => new()
+    public static JsonMcpWorker BuildWorker(string workerId) => new()
     {
         Id = workerId,
         Name = "AutoContext.Worker.Test",
@@ -121,18 +121,18 @@ internal static class ToolTestFactory
     };
 
     /// <summary>
-    /// Builds an <see cref="McpWorkersCatalog"/> from a sequence of
+    /// Builds an <see cref="JsonMcpWorkersCatalog"/> from a sequence of
     /// (id, tools) tuples — worker name defaults to
     /// <c>AutoContext.Worker.{id}</c>.
     /// </summary>
-    public static McpWorkersCatalog BuildCatalog(
-        params (string Id, IReadOnlyList<McpToolDefinition> Definitions)[] workers)
+    public static JsonMcpWorkersCatalog BuildCatalog(
+        params (string Id, IReadOnlyList<JsonMcpToolDefinition> Definitions)[] workers)
     {
-        var list = new List<McpWorker>(workers.Length);
+        var list = new List<JsonMcpWorker>(workers.Length);
 
         foreach (var (id, definitions) in workers)
         {
-            list.Add(new McpWorker
+            list.Add(new JsonMcpWorker
             {
                 Id = id,
                 Name = $"AutoContext.Worker.{id}",
@@ -140,7 +140,7 @@ internal static class ToolTestFactory
             });
         }
 
-        return new McpWorkersCatalog
+        return new JsonMcpWorkersCatalog
         {
             SchemaVersion = "1",
             Workers = list,
@@ -148,18 +148,18 @@ internal static class ToolTestFactory
     }
 
     /// <summary>
-    /// Builds an <see cref="McpWorkersCatalog"/> from a sequence of
+    /// Builds an <see cref="JsonMcpWorkersCatalog"/> from a sequence of
     /// (id, name, tools) tuples — used by tests that pin the worker
     /// name (e.g. process-spawn dispatch tests).
     /// </summary>
-    public static McpWorkersCatalog BuildCatalog(
-        params (string Id, string Name, IReadOnlyList<McpToolDefinition> Definitions)[] workers)
+    public static JsonMcpWorkersCatalog BuildCatalog(
+        params (string Id, string Name, IReadOnlyList<JsonMcpToolDefinition> Definitions)[] workers)
     {
-        var list = new List<McpWorker>(workers.Length);
+        var list = new List<JsonMcpWorker>(workers.Length);
 
         foreach (var (id, name, definitions) in workers)
         {
-            list.Add(new McpWorker
+            list.Add(new JsonMcpWorker
             {
                 Id = id,
                 Name = name,
@@ -167,7 +167,7 @@ internal static class ToolTestFactory
             });
         }
 
-        return new McpWorkersCatalog
+        return new JsonMcpWorkersCatalog
         {
             SchemaVersion = "1",
             Workers = list,
@@ -176,27 +176,27 @@ internal static class ToolTestFactory
 
     /// <summary>
     /// Returns an empty <see cref="JsonElement"/> object — handy as a
-    /// placeholder <see cref="TaskRequest.Data"/> for tests that don't
+    /// placeholder <see cref="JsonTaskRequest.Data"/> for tests that don't
     /// care about request payload shape.
     /// </summary>
     public static JsonElement EmptyData() =>
         JsonSerializer.SerializeToElement(new { }, WorkerJsonOptions.Instance);
 
     /// <summary>
-    /// Composes a length-framed OK <see cref="TaskResponse"/> from a
-    /// serialized <see cref="TaskRequest"/> + an arbitrary output
+    /// Composes a length-framed OK <see cref="JsonTaskResponse"/> from a
+    /// serialized <see cref="JsonTaskRequest"/> + an arbitrary output
     /// payload. The response's <c>McpTask</c> mirrors the request's.
     /// </summary>
     public static byte[] OkResponse(byte[] requestBytes, object output)
     {
-        var request = JsonSerializer.Deserialize<TaskRequest>(
+        var request = JsonSerializer.Deserialize<JsonTaskRequest>(
             requestBytes,
             WorkerJsonOptions.Instance)!;
 
-        var response = new TaskResponse
+        var response = new JsonTaskResponse
         {
             McpTask = request.McpTask,
-            Status = TaskResponse.StatusOk,
+            Status = JsonTaskResponse.StatusOk,
             Output = JsonSerializer.SerializeToElement(output, WorkerJsonOptions.Instance),
             Error = string.Empty,
         };
@@ -205,7 +205,7 @@ internal static class ToolTestFactory
     }
 
     /// <summary>
-    /// Composes a length-framed OK <see cref="TaskResponse"/> whose
+    /// Composes a length-framed OK <see cref="JsonTaskResponse"/> whose
     /// output is <c>{ servedBy = servedBy }</c> — used by tests that
     /// verify which worker fielded a request.
     /// </summary>

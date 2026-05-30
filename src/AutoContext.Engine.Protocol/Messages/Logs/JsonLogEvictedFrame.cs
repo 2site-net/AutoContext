@@ -3,7 +3,7 @@ namespace AutoContext.Engine.Protocol.Messages.Logs;
 using System.Text.Json.Serialization;
 
 /// <summary>
-/// Terminal <see cref="LogStreamFrame"/> arm the engine writes to
+/// Terminal <see cref="JsonLogStreamFrame"/> arm the engine writes to
 /// a slow <c>logs</c>-pipe subscriber immediately before closing
 /// the connection. Carries the eviction reason so the peer can
 /// distinguish a slow-subscriber kick from a normal EOF.
@@ -16,7 +16,7 @@ using System.Text.Json.Serialization;
 /// the protocol version.
 /// </para>
 /// </remarks>
-public sealed record LogEvictedFrame : LogStreamFrame
+public sealed record JsonLogEvictedFrame : JsonLogStreamFrame
 {
     /// <summary>
     /// Wire reason string for the slow-subscriber eviction path.
@@ -24,10 +24,10 @@ public sealed record LogEvictedFrame : LogStreamFrame
     public const string SlowSubscriberReason = "slow-subscriber";
 
     /// <summary>
-    /// Creates a new <see cref="LogEvictedFrame"/>.
+    /// Creates a new <see cref="JsonLogEvictedFrame"/>.
     /// </summary>
     /// <param name="reason">Human-readable eviction reason.</param>
-    public LogEvictedFrame(string reason)
+    public JsonLogEvictedFrame(string reason)
     {
         ArgumentException.ThrowIfNullOrEmpty(reason);
         Reason = reason;

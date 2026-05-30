@@ -1,7 +1,7 @@
 namespace AutoContext.Mcp.Server.Registry;
 
 /// <summary>
-/// Outcome of validating a <see cref="McpWorkersCatalog"/> via <see cref="RegistrySchemeValidator"/>.
+/// Outcome of validating a <see cref="JsonMcpWorkersCatalog"/> via <see cref="RegistrySchemeValidator"/>.
 /// </summary>
 public sealed record RegistrySchemeValidatorResult
 {

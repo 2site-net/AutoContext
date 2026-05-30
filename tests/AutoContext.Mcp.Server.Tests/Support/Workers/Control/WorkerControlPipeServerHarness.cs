@@ -11,14 +11,14 @@ using AutoContext.Mcp.Server.Tests.Support.Workers.Control;
 /// Persistent in-process pipe server harness for
 /// <see cref="WorkerControlClient"/> tests: accepts a single client
 /// connection and answers an arbitrary number of length-framed
-/// <see cref="EnsureRunningRequest"/> messages until the client closes
+/// <see cref="JsonEnsureRunningRequest"/> messages until the client closes
 /// the pipe or <paramref name="cancellationToken"/> fires.
 /// </summary>
 internal static class WorkerControlPipeServerHarness
 {
     public static Task RunPersistentAsync(
         string pipeName,
-        Func<EnsureRunningRequest, EnsureRunningResponse> handler,
+        Func<JsonEnsureRunningRequest, JsonEnsureRunningResponse> handler,
         CancellationToken cancellationToken,
         Action<int>? onRequest = null) =>
         Task.Run(async () =>

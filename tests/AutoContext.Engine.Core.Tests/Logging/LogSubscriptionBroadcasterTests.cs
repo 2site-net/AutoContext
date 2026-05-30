@@ -85,8 +85,8 @@ public sealed class LogSubscriptionBroadcasterTests
         // Assert — both subscribers see the same record, neither
         // sees a terminal frame.
         Assert.Multiple(
-            () => Assert.Same(record, Assert.IsType<LogRecordFrame>(Assert.Single(firstFrames)).Record),
-            () => Assert.Same(record, Assert.IsType<LogRecordFrame>(Assert.Single(secondFrames)).Record));
+            () => Assert.Same(record, Assert.IsType<JsonLogRecordFrame>(Assert.Single(firstFrames)).Record),
+            () => Assert.Same(record, Assert.IsType<JsonLogRecordFrame>(Assert.Single(secondFrames)).Record));
     }
 
     [Fact]
@@ -109,11 +109,11 @@ public sealed class LogSubscriptionBroadcasterTests
 
         // Assert — buffered records (up to capacity) plus the
         // terminal evicted frame as the very last frame.
-        var terminal = Assert.IsType<LogEvictedFrame>(frames[^1]);
+        var terminal = Assert.IsType<JsonLogEvictedFrame>(frames[^1]);
         Assert.Multiple(
-            () => Assert.Equal(LogEvictedFrame.SlowSubscriberReason, terminal.Reason),
+            () => Assert.Equal(JsonLogEvictedFrame.SlowSubscriberReason, terminal.Reason),
             () => Assert.Equal(LogSubscriptionBroadcaster.SubscriberBufferCapacity, frames.Count - 1),
-            () => Assert.All(frames.Take(frames.Count - 1), frame => Assert.IsType<LogRecordFrame>(frame)));
+            () => Assert.All(frames.Take(frames.Count - 1), frame => Assert.IsType<JsonLogRecordFrame>(frame)));
     }
 
     [Fact]
@@ -135,7 +135,7 @@ public sealed class LogSubscriptionBroadcasterTests
         {
             Assert.True(broadcaster.TryPublish(record));
             Assert.True(await fastEnumerator.MoveNextAsync());
-            Assert.IsType<LogRecordFrame>(fastEnumerator.Current);
+            Assert.IsType<JsonLogRecordFrame>(fastEnumerator.Current);
         }
 
         broadcaster.Complete();
@@ -144,7 +144,7 @@ public sealed class LogSubscriptionBroadcasterTests
         // Drain whatever 'fast' has left after Complete (should be
         // nothing — every record was consumed in lock-step — and
         // no terminal evicted frame because fast kept pace).
-        var fastTrailing = new List<LogStreamFrame>();
+        var fastTrailing = new List<JsonLogStreamFrame>();
         while (await fastEnumerator.MoveNextAsync())
         {
             fastTrailing.Add(fastEnumerator.Current);
@@ -153,8 +153,8 @@ public sealed class LogSubscriptionBroadcasterTests
         // Assert — slow received its terminal evicted frame; fast
         // observed no terminal evicted frame after Complete.
         Assert.Multiple(
-            () => Assert.IsType<LogEvictedFrame>(slowFrames[^1]),
-            () => Assert.DoesNotContain(fastTrailing, frame => frame is LogEvictedFrame));
+            () => Assert.IsType<JsonLogEvictedFrame>(slowFrames[^1]),
+            () => Assert.DoesNotContain(fastTrailing, frame => frame is JsonLogEvictedFrame));
     }
 
     [Fact]
@@ -172,6 +172,6 @@ public sealed class LogSubscriptionBroadcasterTests
 
         // Assert — the record plus EOF, no terminal evicted frame.
         Assert.Multiple(
-            () => Assert.Same(record, Assert.IsType<LogRecordFrame>(Assert.Single(frames)).Record));
+            () => Assert.Same(record, Assert.IsType<JsonLogRecordFrame>(Assert.Single(frames)).Record));
     }
 }

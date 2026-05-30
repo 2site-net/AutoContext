@@ -21,7 +21,7 @@ using Microsoft.Extensions.Options;
 /// </summary>
 /// <remarks>
 /// <para>
-/// Each <see cref="LogRecord"/> is written as one NDJSON line
+/// Each <see cref="JsonLogRecord"/> is written as one NDJSON line
 /// serialised through <see cref="ProtocolJsonContext"/>
 /// (the source-generated, AOT-safe converter the protocol owns).
 /// The on-disk byte shape matches the wire shape on the
@@ -218,7 +218,7 @@ internal sealed partial class LogFileSinkService : BackgroundService
                 {
                     var bytes = JsonSerializer.SerializeToUtf8Bytes(
                         record,
-                        ProtocolJsonContext.Default.LogRecord);
+                        ProtocolJsonContext.Default.JsonLogRecord);
 
                     await stream.WriteAsync(bytes, CancellationToken.None).ConfigureAwait(false);
                     await stream.WriteAsync(LineTerminator, CancellationToken.None).ConfigureAwait(false);

@@ -9,7 +9,7 @@ internal static class RegistryEntryFakeData
     private static readonly string WorkspacePath =
         OperatingSystem.IsWindows() ? @"C:\workspaces\test" : "/workspaces/test";
 
-    public static RegistryEntry CreateValidEntry() =>
+    public static JsonRegistryEntry CreateValidEntry() =>
         new(
             EngineVersion: "0.9.5",
             WorkspaceHash: CanonicalWorkspaceHash,

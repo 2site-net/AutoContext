@@ -23,7 +23,7 @@ using AutoContext.Engine.Protocol.Messages.Registry;
 /// of data the scanner has on a <see cref="Foreign"/> subtree.
 /// Arms that match a registry entry (<see cref="Registered"/>,
 /// <see cref="StaleRegistration"/>) carry the matched
-/// <see cref="RegistryEntry"/> so the cleaner can honour the
+/// <see cref="JsonRegistryEntry"/> so the cleaner can honour the
 /// entry's own retention without a second registry read.
 /// </para>
 /// </remarks>
@@ -59,7 +59,7 @@ internal abstract record SubtreeRegistryStatus(string SubtreePath)
     /// <param name="Entry">The matched registry entry.</param>
     internal sealed record Registered(
         string SubtreePath,
-        RegistryEntry Entry) : SubtreeRegistryStatus(SubtreePath);
+        JsonRegistryEntry Entry) : SubtreeRegistryStatus(SubtreePath);
 
     /// <summary>
     /// Canonical <c>&lt;workspaceHash&gt;/&lt;instanceId&gt;</c>
@@ -71,10 +71,10 @@ internal abstract record SubtreeRegistryStatus(string SubtreePath)
     /// per-instance subtree.</param>
     /// <param name="Entry">The stale registry entry — carried so
     /// the cleaner honours
-    /// <see cref="RegistryEntry.Retention"/>.</param>
+    /// <see cref="JsonRegistryEntry.Retention"/>.</param>
     internal sealed record StaleRegistration(
         string SubtreePath,
-        RegistryEntry Entry) : SubtreeRegistryStatus(SubtreePath);
+        JsonRegistryEntry Entry) : SubtreeRegistryStatus(SubtreePath);
 
     /// <summary>
     /// Canonical <c>&lt;workspaceHash&gt;/&lt;instanceId&gt;</c>

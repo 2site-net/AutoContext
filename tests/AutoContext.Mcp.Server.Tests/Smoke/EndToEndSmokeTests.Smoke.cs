@@ -83,7 +83,7 @@ public sealed class EndToEndSmokeTests
         Assert.Multiple(
             () => Assert.Equal("analyze_csharp_code", csharpEnvelope.Tool),
             () => Assert.Equal(7, csharpEnvelope.Summary.TaskCount),
-            () => Assert.NotEqual(ToolResultEnvelope.StatusError, csharpEnvelope.Status));
+            () => Assert.NotEqual(JsonToolResultEnvelope.StatusError, csharpEnvelope.Status));
 
         // 3. read_editorconfig — exercises Worker.Workspace
         //    directly (single task, distinct tool).
@@ -99,6 +99,6 @@ public sealed class EndToEndSmokeTests
         Assert.Multiple(
             () => Assert.Equal("read_editorconfig", editorConfigEnvelope.Tool),
             () => Assert.Equal(1, editorConfigEnvelope.Summary.TaskCount),
-            () => Assert.NotEqual(ToolResultEnvelope.StatusError, editorConfigEnvelope.Status));
+            () => Assert.NotEqual(JsonToolResultEnvelope.StatusError, editorConfigEnvelope.Status));
     }
 }

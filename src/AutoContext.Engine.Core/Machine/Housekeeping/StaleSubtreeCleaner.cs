@@ -25,8 +25,8 @@ using Microsoft.Extensions.Logging;
 ///   deleted; a live peer owns the subtree.</item>
 ///   <item><see cref="SubtreeRegistryStatus.StaleRegistration"/> —
 ///   compared against
-///   <see cref="Protocol.Messages.Registry.RegistryEntry.Retention"/>
-///   anchored at <see cref="Protocol.Messages.Registry.RegistryEntry.StartedAt"/>,
+///   <see cref="Protocol.Messages.Registry.JsonRegistryEntry.Retention"/>
+///   anchored at <see cref="Protocol.Messages.Registry.JsonRegistryEntry.StartedAt"/>,
 ///   so each peer's <c>--retention</c> follows its leftover subtree.</item>
 ///   <item><see cref="SubtreeRegistryStatus.Unregistered"/> and
 ///   <see cref="SubtreeRegistryStatus.Foreign"/> — compared against

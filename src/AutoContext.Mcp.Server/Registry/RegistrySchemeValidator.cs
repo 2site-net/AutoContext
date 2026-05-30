@@ -10,7 +10,7 @@ using Json.Schema;
 using Microsoft.Extensions.Logging;
 
 /// <summary>
-/// Validates a parsed <see cref="McpWorkersCatalog"/> (and its raw JSON form) against
+/// Validates a parsed <see cref="JsonMcpWorkersCatalog"/> (and its raw JSON form) against
 /// the embedded <c>mcp-workers-registry.schema.json</c> and a set of fail-fast
 /// cross-reference rules.
 /// </summary>
@@ -47,7 +47,7 @@ public static partial class RegistrySchemeValidator
     /// <param name="registry">Parsed registry.</param>
     public static RegistrySchemeValidatorResult Validate(
         string registryJson,
-        McpWorkersCatalog registry,
+        JsonMcpWorkersCatalog registry,
         ILogger logger)
     {
         ArgumentNullException.ThrowIfNull(registryJson);
@@ -126,7 +126,7 @@ public static partial class RegistrySchemeValidator
     }
 
     private static void ValidateCrossReferences(
-        McpWorkersCatalog registry,
+        JsonMcpWorkersCatalog registry,
         List<string> errors,
         ILogger logger)
     {
@@ -172,7 +172,7 @@ public static partial class RegistrySchemeValidator
 
     private static void ValidateWorker(
         string workerPath,
-        McpWorker worker,
+        JsonMcpWorker worker,
         Dictionary<string, string> toolNames,
         List<string> errors)
     {

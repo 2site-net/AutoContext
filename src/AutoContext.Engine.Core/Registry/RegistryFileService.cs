@@ -87,11 +87,11 @@ public sealed partial class RegistryFileService : IHostedService, IAsyncDisposab
     private readonly RegistryFileWriter _writer;
     private readonly Mutex _crossProcessMutex;
     private readonly Channel<WriteRequest> _channel;
-    private readonly Func<RegistryEntry>? _ownEntryFactory;
+    private readonly Func<JsonRegistryEntry>? _ownEntryFactory;
     private readonly ILogger<RegistryFileService> _logger;
     private Thread? _workerThread;
     private CancellationTokenSource? _stoppingCts;
-    private RegistryEntry? _ownEntry;
+    private JsonRegistryEntry? _ownEntry;
     private int _disposed;
 
     /// <summary>
@@ -124,7 +124,7 @@ public sealed partial class RegistryFileService : IHostedService, IAsyncDisposab
         RegistryFileServiceOptions? serviceOptions = null,
         RegistryFileReaderOptions? readerOptions = null,
         ILoggerFactory? loggerFactory = null,
-        Func<RegistryEntry>? ownEntryFactory = null)
+        Func<JsonRegistryEntry>? ownEntryFactory = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
 
@@ -174,7 +174,7 @@ public sealed partial class RegistryFileService : IHostedService, IAsyncDisposab
     /// <exception cref="InvalidOperationException">The service has
     /// stopped and is no longer accepting writes.</exception>
     public Task WriteAsync(
-        Func<IReadOnlyList<RegistryEntry>, IReadOnlyList<RegistryEntry>> transform,
+        Func<IReadOnlyList<JsonRegistryEntry>, IReadOnlyList<JsonRegistryEntry>> transform,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(transform);
@@ -484,21 +484,21 @@ public sealed partial class RegistryFileService : IHostedService, IAsyncDisposab
         Message = "Own engine entry {InstanceId} removal from registry '{Path}' failed; leaving the row for a peer's housekeeping sweep to reap.")]
     private static partial void LogOwnEntryRemovalFailed(ILogger logger, Exception exception, string path, Guid instanceId);
 
-    private static List<RegistryEntry> Append(IReadOnlyList<RegistryEntry> current, RegistryEntry entry)
+    private static List<JsonRegistryEntry> Append(IReadOnlyList<JsonRegistryEntry> current, JsonRegistryEntry entry)
     {
         // Pre-size: current + the new row. CA1859 prefers the
         // concrete List<T> return type here over IReadOnlyList<T>
         // because callers (the worker-thread transform path) hot-
         // path on the concrete type.
-        var next = new List<RegistryEntry>(current.Count + 1);
+        var next = new List<JsonRegistryEntry>(current.Count + 1);
         next.AddRange(current);
         next.Add(entry);
         return next;
     }
 
-    private static List<RegistryEntry> Remove(IReadOnlyList<RegistryEntry> current, Guid instanceId)
+    private static List<JsonRegistryEntry> Remove(IReadOnlyList<JsonRegistryEntry> current, Guid instanceId)
     {
-        var next = new List<RegistryEntry>(current.Count);
+        var next = new List<JsonRegistryEntry>(current.Count);
         foreach (var existing in current)
         {
             if (existing.InstanceId != instanceId)
@@ -510,7 +510,7 @@ public sealed partial class RegistryFileService : IHostedService, IAsyncDisposab
     }
 
     private sealed record WriteRequest(
-        Func<IReadOnlyList<RegistryEntry>, IReadOnlyList<RegistryEntry>> Transform,
+        Func<IReadOnlyList<JsonRegistryEntry>, IReadOnlyList<JsonRegistryEntry>> Transform,
         TaskCompletionSource Completion,
         CancellationToken CancellationToken);
 }

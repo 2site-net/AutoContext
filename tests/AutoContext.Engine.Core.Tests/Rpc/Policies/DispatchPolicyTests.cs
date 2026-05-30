@@ -267,7 +267,7 @@ public sealed class DispatchPolicyTests(TempDirectoryFixture tempDirectory)
 
         var payload = JsonSerializer.Deserialize(
             result.Response.Result!.Value,
-            ProtocolJsonContext.Default.LogsGetEngineResult);
+            ProtocolJsonContext.Default.JsonLogsGetEngineResult);
         Assert.NotNull(payload);
         Assert.Multiple(
             () => Assert.Empty(payload!.Records),
@@ -319,8 +319,8 @@ public sealed class DispatchPolicyTests(TempDirectoryFixture tempDirectory)
             NullLogger.Instance);
 
         var badParams = JsonSerializer.SerializeToElement(
-            new LogsGetEngineParams { LastN = -1 },
-            ProtocolJsonContext.Default.LogsGetEngineParams);
+            new JsonLogsGetEngineParams { LastN = -1 },
+            ProtocolJsonContext.Default.JsonLogsGetEngineParams);
         var request = new JsonRpcRequest
         {
             Method = LogsMethods.GetEngine,
@@ -359,7 +359,7 @@ public sealed class DispatchPolicyTests(TempDirectoryFixture tempDirectory)
         var result = await policy.InvokeAsync(request, TestContext.Current.CancellationToken);
         var streaming = Assert.IsType<StreamingHandlerResult>(result);
 
-        var first = new LogRecord
+        var first = new JsonLogRecord
         {
             Timestamp = DateTimeOffset.UnixEpoch,
             Category = "test",

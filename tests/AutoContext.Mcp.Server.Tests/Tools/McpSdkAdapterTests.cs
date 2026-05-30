@@ -43,7 +43,7 @@ public sealed class McpSdkAdapterTests
     {
         var registry = ToolTestFactory.BuildCatalog(("alpha", [ToolTestFactory.BuildTool("alpha_tool"), ToolTestFactory.BuildTool("beta_tool"), ToolTestFactory.BuildTool("gamma_tool")]));
         var snapshot = new AutoContextConfigSnapshot();
-        snapshot.Update(new AutoContextConfigSnapshotDto { DisabledTools = ["beta_tool"] });
+        snapshot.Update(new JsonAutoContextConfigSnapshot { DisabledTools = ["beta_tool"] });
         var adapter = new McpSdkAdapter(registry, ToolTestFactory.BuildInvoker(), snapshot, NullLogger<McpSdkAdapter>.Instance);
 
         var visible = adapter.ListVisibleTools();
@@ -64,7 +64,7 @@ public sealed class McpSdkAdapterTests
 
         var before = adapter.ListVisibleTools();
 
-        snapshot.Update(new AutoContextConfigSnapshotDto { DisabledTools = ["alpha_tool"] });
+        snapshot.Update(new JsonAutoContextConfigSnapshot { DisabledTools = ["alpha_tool"] });
         var after = adapter.ListVisibleTools();
 
         Assert.Multiple(

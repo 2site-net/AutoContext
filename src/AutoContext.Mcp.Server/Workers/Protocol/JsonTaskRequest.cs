@@ -7,7 +7,7 @@ using System.Text.Json.Serialization;
 /// One per-task pipe request. <c>WorkerClient</c> opens one connection
 /// per task in a tool invocation and writes exactly this payload.
 /// </summary>
-public sealed record TaskRequest
+public sealed record JsonTaskRequest
 {
     [JsonPropertyName("mcpTask")]
     public required string McpTask { get; init; }
@@ -20,7 +20,7 @@ public sealed record TaskRequest
 
     /// <summary>
     /// Short opaque id minted once per <c>tools/call</c> invocation by
-    /// <c>McpSdkAdapter</c>. Carried on every per-task <see cref="TaskRequest"/>
+    /// <c>McpSdkAdapter</c>. Carried on every per-task <see cref="JsonTaskRequest"/>
     /// in the same invocation, surfaced into the worker via
     /// <c>CorrelationScope</c>, and stamped onto every log record so a
     /// single tool call can be traced end-to-end across the

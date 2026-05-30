@@ -41,7 +41,7 @@ public sealed class LifecycleEventStreamTests
 
         void OverflowSubscriberBuffer()
         {
-            var evt = new LifecycleEvent { Kind = LifecycleEventKinds.Reloading };
+            var evt = new JsonLifecycleEvent { Kind = LifecycleEventKinds.Reloading };
 
             for (var i = 0; i < LifecycleEventStream.SubscriberBufferCapacity + 1; i++)
             {
@@ -104,7 +104,7 @@ public sealed class LifecycleEventStreamTests
         sut.TryComplete(LifecycleEventStreamFakeData.CreateTerminalEvent());
 
         // Act
-        var published = sut.TryPublish(new LifecycleEvent { Kind = LifecycleEventKinds.Reloading });
+        var published = sut.TryPublish(new JsonLifecycleEvent { Kind = LifecycleEventKinds.Reloading });
 
         // Assert
         Assert.False(published);

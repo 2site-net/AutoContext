@@ -28,7 +28,7 @@ public sealed class EditorConfigBatcherTests
         // Arrange
         var client = new WorkerClient(TimeSpan.FromSeconds(1));
         var batcher = new EditorConfigBatcher(client, "autocontext-test-unbound", Logger);
-        var tasks = new McpTaskDefinition[]
+        var tasks = new JsonMcpTaskDefinition[]
         {
             ToolTestFactory.BuildTask("task_a"),
             ToolTestFactory.BuildTask("task_b"),
@@ -76,10 +76,10 @@ public sealed class EditorConfigBatcherTests
                 observedPath = data.GetProperty("path").GetString();
                 observedKeys = [.. data.GetProperty("keys").EnumerateArray().Select(k => k.GetString() ?? string.Empty)];
 
-                var serverResponse = new TaskResponse
+                var serverResponse = new JsonTaskResponse
                 {
                     McpTask = EditorConfigBatcher.ResolveTaskName,
-                    Status = TaskResponse.StatusOk,
+                    Status = JsonTaskResponse.StatusOk,
                     Output = JsonSerializer.SerializeToElement(new Dictionary<string, string>
                     {
                         ["csharp_prefer_braces"] = "true",
@@ -125,10 +125,10 @@ public sealed class EditorConfigBatcherTests
             pipeName,
             handler: _ =>
             {
-                var serverResponse = new TaskResponse
+                var serverResponse = new JsonTaskResponse
                 {
                     McpTask = EditorConfigBatcher.ResolveTaskName,
-                    Status = TaskResponse.StatusError,
+                    Status = JsonTaskResponse.StatusError,
                     Output = null,
                     Error = "parse failure",
                 };
@@ -166,10 +166,10 @@ public sealed class EditorConfigBatcherTests
             pipeName,
             handler: _ =>
             {
-                var serverResponse = new TaskResponse
+                var serverResponse = new JsonTaskResponse
                 {
                     McpTask = "wrong_task",
-                    Status = TaskResponse.StatusOk,
+                    Status = JsonTaskResponse.StatusOk,
                     Output = JsonSerializer.SerializeToElement(new { }),
                     Error = string.Empty,
                 };
@@ -229,10 +229,10 @@ public sealed class EditorConfigBatcherTests
             pipeName,
             handler: _ =>
             {
-                var serverResponse = new TaskResponse
+                var serverResponse = new JsonTaskResponse
                 {
                     McpTask = EditorConfigBatcher.ResolveTaskName,
-                    Status = TaskResponse.StatusOk,
+                    Status = JsonTaskResponse.StatusOk,
                     Output = JsonSerializer.SerializeToElement("not-an-object"),
                     Error = string.Empty,
                 };

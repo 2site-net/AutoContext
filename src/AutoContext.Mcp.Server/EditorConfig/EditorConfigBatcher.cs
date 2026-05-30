@@ -48,7 +48,7 @@ public sealed partial class EditorConfigBatcher
     }
 
     /// <summary>
-    /// Resolves the union of <see cref="McpTaskDefinition.EditorConfig"/> keys
+    /// Resolves the union of <see cref="JsonMcpTaskDefinition.EditorConfig"/> keys
     /// across <paramref name="tasks"/> for <paramref name="filePath"/>,
     /// then returns a per-task slice. Tasks that declared no keys (or
     /// whose declared keys all came back missing) map to an empty
@@ -58,7 +58,7 @@ public sealed partial class EditorConfigBatcher
     /// </summary>
     public async Task<EditorConfigBatchResult> ResolveAsync(
         string filePath,
-        IReadOnlyList<McpTaskDefinition> tasks,
+        IReadOnlyList<JsonMcpTaskDefinition> tasks,
         string correlationId,
         CancellationToken cancellationToken)
     {
@@ -82,7 +82,7 @@ public sealed partial class EditorConfigBatcher
             new { path = filePath, keys = union },
             WorkerJsonOptions.Instance);
 
-        var request = new TaskRequest
+        var request = new JsonTaskRequest
         {
             McpTask = ResolveTaskName,
             Data = requestData,
@@ -105,7 +105,7 @@ public sealed partial class EditorConfigBatcher
             };
         }
 
-        if (!string.Equals(response.Status, TaskResponse.StatusOk, StringComparison.Ordinal))
+        if (!string.Equals(response.Status, JsonTaskResponse.StatusOk, StringComparison.Ordinal))
         {
             return new EditorConfigBatchResult
             {
@@ -145,7 +145,7 @@ public sealed partial class EditorConfigBatcher
         };
     }
 
-    private static string[] CollectUnion(IReadOnlyList<McpTaskDefinition> tasks)
+    private static string[] CollectUnion(IReadOnlyList<JsonMcpTaskDefinition> tasks)
     {
         var union = new HashSet<string>(StringComparer.Ordinal);
 
@@ -172,7 +172,7 @@ public sealed partial class EditorConfigBatcher
     }
 
     private static FrozenDictionary<string, IReadOnlyDictionary<string, string>> BuildEmptySlices(
-        IReadOnlyList<McpTaskDefinition> tasks)
+        IReadOnlyList<JsonMcpTaskDefinition> tasks)
     {
         var slices = new Dictionary<string, IReadOnlyDictionary<string, string>>(
             tasks.Count,
@@ -187,7 +187,7 @@ public sealed partial class EditorConfigBatcher
     }
 
     private static FrozenDictionary<string, IReadOnlyDictionary<string, string>> BuildSlices(
-        IReadOnlyList<McpTaskDefinition> tasks,
+        IReadOnlyList<JsonMcpTaskDefinition> tasks,
         IReadOnlyDictionary<string, string> resolved)
     {
         var slices = new Dictionary<string, IReadOnlyDictionary<string, string>>(

@@ -314,7 +314,7 @@ public sealed class LifecycleServiceTests(
             () => Assert.Equal(1, response.Id.GetInt32()));
 
         var result = response.Result!.Value.Deserialize(
-            ProtocolJsonContext.Default.HandshakeResult);
+            ProtocolJsonContext.Default.JsonHandshakeResult);
         Assert.NotNull(result);
         Assert.Multiple(
             () => Assert.Equal(ProtocolVersion.Current, result!.ProtocolVersion),
@@ -520,8 +520,8 @@ public sealed class LifecycleServiceTests(
         // Assert
         Assert.NotNull(bytes);
         var frame = JsonSerializer.Deserialize(
-            bytes!, ProtocolJsonContext.Default.LogStreamFrame);
-        var recordFrame = Assert.IsType<LogRecordFrame>(frame);
+            bytes!, ProtocolJsonContext.Default.JsonLogStreamFrame);
+        var recordFrame = Assert.IsType<JsonLogRecordFrame>(frame);
         Assert.Multiple(
             () => Assert.Equal("wire-record", recordFrame.Record.Message),
             () => Assert.Equal("engine.test", recordFrame.Record.Category),
@@ -559,7 +559,7 @@ public sealed class LifecycleServiceTests(
         }
 
         // Drain the wire until EOF, collecting every frame.
-        var frames = new List<LogStreamFrame>();
+        var frames = new List<JsonLogStreamFrame>();
         while (true)
         {
             var bytes = await codec.ReadAsync(TestContext.Current.CancellationToken);
@@ -569,7 +569,7 @@ public sealed class LifecycleServiceTests(
             }
 
             var frame = JsonSerializer.Deserialize(
-                bytes, ProtocolJsonContext.Default.LogStreamFrame);
+                bytes, ProtocolJsonContext.Default.JsonLogStreamFrame);
             Assert.NotNull(frame);
             frames.Add(frame!);
         }
@@ -579,8 +579,8 @@ public sealed class LifecycleServiceTests(
 
         // Assert — the very last frame on the wire is the
         // terminal eviction frame with the slow-subscriber reason.
-        var terminal = Assert.IsType<LogEvictedFrame>(frames[^1]);
-        Assert.Equal(LogEvictedFrame.SlowSubscriberReason, terminal.Reason);
+        var terminal = Assert.IsType<JsonLogEvictedFrame>(frames[^1]);
+        Assert.Equal(JsonLogEvictedFrame.SlowSubscriberReason, terminal.Reason);
     }
 
     [Fact]
@@ -620,7 +620,7 @@ public sealed class LifecycleServiceTests(
             () => Assert.Equal(7, response.Id.GetInt32()));
 
         var result = response.Result!.Value.Deserialize(
-            ProtocolJsonContext.Default.RegistryEntriesResult);
+            ProtocolJsonContext.Default.JsonRegistryEntriesResult);
         Assert.NotNull(result);
         Assert.Equal(seeded.Length, result!.Entries.Count);
     }
@@ -723,7 +723,7 @@ public sealed class LifecycleServiceTests(
             () => Assert.Equal(9, response.Id.GetInt32()));
 
         var result = response.Result!.Value.Deserialize(
-            ProtocolJsonContext.Default.ShutdownResult);
+            ProtocolJsonContext.Default.JsonShutdownResult);
         Assert.NotNull(result);
         Assert.True(result!.Accepted);
 

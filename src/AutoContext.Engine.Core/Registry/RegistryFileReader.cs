@@ -85,7 +85,7 @@ public sealed partial class RegistryFileReader
     /// <see cref="RegistryFileReaderOptions.MaxAttempts"/> without
     /// acquiring a shared read handle.
     /// </exception>
-    public async Task<IReadOnlyList<RegistryEntry>> ReadAsync(
+    public async Task<IReadOnlyList<JsonRegistryEntry>> ReadAsync(
         CancellationToken cancellationToken = default)
     {
         if (!File.Exists(Path))

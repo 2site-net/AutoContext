@@ -7,19 +7,19 @@ using AutoContext.Engine.Protocol.Messages.Lifecycle;
 
 /// <summary>
 /// Handle returned from <see cref="LifecycleEventStream.Subscribe"/>.
-/// Drains <see cref="LifecycleEvent"/> values via
+/// Drains <see cref="JsonLifecycleEvent"/> values via
 /// <see cref="ReadAllAsync"/> and releases the subscription on
 /// <see cref="Dispose"/>.
 /// </summary>
 internal sealed class LifecycleEventSubscription : IDisposable
 {
     private int _disposed;
-    private readonly ChannelReader<LifecycleEvent> _reader;
+    private readonly ChannelReader<JsonLifecycleEvent> _reader;
     private readonly Action _release;
     private readonly Func<bool> _wasEvicted;
 
     public LifecycleEventSubscription(
-        ChannelReader<LifecycleEvent> reader,
+        ChannelReader<JsonLifecycleEvent> reader,
         Action release,
         Func<bool> wasEvicted)
     {
@@ -50,7 +50,7 @@ internal sealed class LifecycleEventSubscription : IDisposable
     /// <see cref="LifecycleEventKinds.Evicted"/> frame so the caller
     /// can flush it to the wire before closing.
     /// </summary>
-    public async IAsyncEnumerable<LifecycleEvent> ReadAllAsync(
+    public async IAsyncEnumerable<JsonLifecycleEvent> ReadAllAsync(
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         await foreach (var evt in _reader
@@ -62,7 +62,7 @@ internal sealed class LifecycleEventSubscription : IDisposable
 
         if (_wasEvicted())
         {
-            yield return new LifecycleEvent
+            yield return new JsonLifecycleEvent
             {
                 Kind = LifecycleEventKinds.Evicted,
                 Reason = "slow-subscriber",

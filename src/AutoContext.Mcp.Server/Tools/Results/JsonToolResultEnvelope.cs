@@ -5,9 +5,9 @@ using System.Text.Json.Serialization;
 /// <summary>
 /// The uniform tool-result envelope returned by every MCP Tool. Outer
 /// shape is identical across all tools; per-tool variation lives only
-/// inside <see cref="ToolResultEntry.Output"/>.
+/// inside <see cref="JsonToolResultEntry.Output"/>.
 /// </summary>
-public sealed record ToolResultEnvelope
+public sealed record JsonToolResultEnvelope
 {
     public const string StatusOk = "ok";
     public const string StatusError = "error";
@@ -20,11 +20,11 @@ public sealed record ToolResultEnvelope
     public required string Status { get; init; }
 
     [JsonPropertyName("summary")]
-    public required ToolResultSummary Summary { get; init; }
+    public required JsonToolResultSummary Summary { get; init; }
 
     [JsonPropertyName("result")]
-    public required IReadOnlyList<ToolResultEntry> Result { get; init; }
+    public required IReadOnlyList<JsonToolResultEntry> Result { get; init; }
 
     [JsonPropertyName("errors")]
-    public required IReadOnlyList<ToolResultError> Errors { get; init; }
+    public required IReadOnlyList<JsonToolResultError> Errors { get; init; }
 }

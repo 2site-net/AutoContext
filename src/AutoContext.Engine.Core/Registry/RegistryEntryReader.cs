@@ -9,10 +9,10 @@ using Microsoft.Extensions.Logging;
 /// Reads <c>engine-registry.json</c> entries and classifies each
 /// as <see cref="RegistryEntryProbeState.Live"/> or
 /// <see cref="RegistryEntryProbeState.Stale"/> by probing the
-/// recorded <see cref="RegistryEntry.ProcessId"/> through
+/// recorded <see cref="JsonRegistryEntry.ProcessId"/> through
 /// <see cref="IProcessLookup"/> and comparing
 /// <see cref="IProcessHandle.StartTimeUtc"/> against the entry's
-/// <see cref="RegistryEntry.ProcessStartTimeUtc"/> to defeat pid
+/// <see cref="JsonRegistryEntry.ProcessStartTimeUtc"/> to defeat pid
 /// recycling.
 /// </summary>
 /// <remarks>
@@ -40,7 +40,7 @@ internal sealed partial class RegistryEntryReader
     /// <summary>
     /// Tolerance applied when comparing the live process's
     /// <see cref="IProcessHandle.StartTimeUtc"/> against the
-    /// entry's <see cref="RegistryEntry.ProcessStartTimeUtc"/>.
+    /// entry's <see cref="JsonRegistryEntry.ProcessStartTimeUtc"/>.
     /// Both values originate from <see cref="System.Diagnostics.Process.StartTime"/>
     /// after <c>ToUniversalTime()</c>, so they should agree
     /// exactly for the same process; the window absorbs any drift
@@ -125,7 +125,7 @@ internal sealed partial class RegistryEntryReader
         Message = "Registry entry {InstanceId} marked Stale: process {ProcessId} not running.")]
     private static partial void LogEntryProcessGone(ILogger logger, Guid instanceId, int processId);
 
-    private RegistryEntryProbeState ClassifyEntry(RegistryEntry entry)
+    private RegistryEntryProbeState ClassifyEntry(JsonRegistryEntry entry)
     {
         var handle = _processLookup.TryOpen(entry.ProcessId);
 
