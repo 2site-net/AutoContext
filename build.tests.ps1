@@ -234,7 +234,7 @@ $testCases = @(
     @{
         Name         = 'Default (Compile + unit tests, all)'
         Arguments    = '-WhatIf'
-        ExpectOutput = @('Compile TypeScript.*tsc', 'dotnet build.*AutoContext', 'Run TypeScript tests.*vitest', 'dotnet test')
+        ExpectOutput = @('Compile TypeScript.*tsc', 'dotnet build.*AutoContext', 'dotnet format', 'Run TypeScript tests.*vitest', 'dotnet test')
     }
 
     # ── Compile ──────────────────────────────────────────────────────────
@@ -242,13 +242,13 @@ $testCases = @(
     @{
         Name         = 'Compile (all) — includes unit tests'
         Arguments    = 'Compile -WhatIf'
-        ExpectOutput = @('Compile TypeScript', 'dotnet build', 'Run TypeScript tests', 'dotnet test')
+        ExpectOutput = @('Compile TypeScript', 'dotnet build', 'dotnet format', 'Run TypeScript tests', 'dotnet test')
     }
     @{
         Name         = 'Compile TS — includes TS tests'
         Arguments    = 'Compile TS -WhatIf'
         ExpectOutput = @('Compile TypeScript', 'Run TypeScript tests')
-        RejectOutput = @('dotnet build', 'dotnet test')
+        RejectOutput = @('dotnet build', 'dotnet test', 'dotnet format')
     }
     @{
         Name         = 'Compile TypeScript (alias) — includes TS tests'
@@ -258,7 +258,7 @@ $testCases = @(
     @{
         Name         = 'Compile DotNet — includes .NET tests'
         Arguments    = 'Compile DotNet -WhatIf'
-        ExpectOutput = @('dotnet build', 'dotnet test')
+        ExpectOutput = @('dotnet build', 'dotnet format', 'dotnet test')
         RejectOutput = @('Compile TypeScript', 'Run TypeScript tests')
     }
     @{
@@ -269,7 +269,7 @@ $testCases = @(
     @{
         Name         = 'Compile All (explicit) — includes all tests'
         Arguments    = 'Compile All -WhatIf'
-        ExpectOutput = @('Compile TypeScript', 'dotnet build', 'Run TypeScript tests', 'dotnet test')
+        ExpectOutput = @('Compile TypeScript', 'dotnet build', 'dotnet format', 'Run TypeScript tests', 'dotnet test')
     }
 
     # ── Compile -NoTest (skip unit tests) ─────────────────────────────
@@ -277,7 +277,7 @@ $testCases = @(
     @{
         Name         = 'Compile -NoTest (all)'
         Arguments    = 'Compile -NoTest -WhatIf'
-        ExpectOutput = @('Compile TypeScript', 'dotnet build')
+        ExpectOutput = @('Compile TypeScript', 'dotnet build', 'dotnet format')
         RejectOutput = @('Run TypeScript tests', 'dotnet test')
     }
     @{
@@ -289,7 +289,7 @@ $testCases = @(
     @{
         Name         = 'Compile DotNet -NoTest'
         Arguments    = 'Compile DotNet -NoTest -WhatIf'
-        ExpectOutput = @('dotnet build')
+        ExpectOutput = @('dotnet build', 'dotnet format')
         RejectOutput = @('dotnet test', 'Compile TypeScript')
     }
     @{
@@ -297,6 +297,27 @@ $testCases = @(
         Arguments    = '-NoTest -WhatIf'
         ExpectOutput = @('Compile TypeScript', 'dotnet build')
         RejectOutput = @('Run TypeScript tests', 'dotnet test')
+    }
+
+    # ── Compile -NoLint (skip .NET format gate) ───────────────────────
+
+    @{
+        Name         = 'Compile -NoLint (all)'
+        Arguments    = 'Compile -NoLint -WhatIf'
+        ExpectOutput = @('Compile TypeScript', 'dotnet build', 'dotnet test')
+        RejectOutput = @('dotnet format')
+    }
+    @{
+        Name         = 'Compile DotNet -NoLint'
+        Arguments    = 'Compile DotNet -NoLint -WhatIf'
+        ExpectOutput = @('dotnet build', 'dotnet test')
+        RejectOutput = @('dotnet format')
+    }
+    @{
+        Name         = 'Compile -NoLint -NoTest (compile only)'
+        Arguments    = 'Compile -NoLint -NoTest -WhatIf'
+        ExpectOutput = @('Compile TypeScript', 'dotnet build')
+        RejectOutput = @('dotnet format', 'dotnet test', 'Run TypeScript tests')
     }
 
     # ── Clean ────────────────────────────────────────────────────────────
@@ -309,7 +330,7 @@ $testCases = @(
     @{
         Name         = 'Clean + Compile'
         Arguments    = '-Clean Compile -WhatIf'
-        ExpectOutput = @('Delete TypeScript output', 'Compile TypeScript', 'dotnet build', 'Run TypeScript tests', 'dotnet test')
+        ExpectOutput = @('Delete TypeScript output', 'Compile TypeScript', 'dotnet build', 'dotnet format', 'Run TypeScript tests', 'dotnet test')
     }
     @{
         Name         = 'Clean + Compile TS'
@@ -325,7 +346,7 @@ $testCases = @(
     @{
         Name         = 'Clean + Compile DotNet'
         Arguments    = '-Clean Compile DotNet -WhatIf'
-        ExpectOutput = @('Delete TypeScript output', 'dotnet build', 'dotnet test')
+        ExpectOutput = @('Delete TypeScript output', 'dotnet build', 'dotnet format', 'dotnet test')
     }
     @{
         Name         = 'Clean + Compile -Smoke (Clean is ignored, smoke already cleans)'
@@ -429,6 +450,12 @@ $testCases = @(
     @{
         Name         = 'NoTest without Compile (invalid)'
         Arguments    = 'Prepare -NoTest -WhatIf'
+        ExpectError  = $true
+        ErrorPattern = 'only valid with the Compile action'
+    }
+    @{
+        Name         = 'NoLint without Compile (invalid)'
+        Arguments    = 'Prepare -NoLint -WhatIf'
         ExpectError  = $true
         ErrorPattern = 'only valid with the Compile action'
     }

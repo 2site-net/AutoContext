@@ -15,9 +15,9 @@
 
 .PARAMETER Action
     The build action to perform:
-      Compile  — compile sources, then run unit tests (unless -NoTest);
-                 add -Smoke to also stage the packaged extension and run
-                 smoke tests
+      Compile  — compile sources, verify .NET formatting (unless -NoLint),
+                 then run unit tests (unless -NoTest); add -Smoke to also
+                 stage the packaged extension and run smoke tests
       Prepare  — Clean + Compile + copy assets into extension
       Package  — Prepare + dotnet publish + vsce package
       Publish  — Package + vsce publish + ovsx publish
@@ -67,6 +67,14 @@
     itself is never skipped. Combines with -Smoke (smoke tests still run;
     only the unit-test phase is skipped).
 
+.PARAMETER NoLint
+    For Compile only. Skip the .NET format-verification gate that normally
+    runs after the compile step (a full-solution
+    'dotnet format --verify-no-changes'). The gate is on by default so a
+    green Compile guarantees a format-clean tree; pass -NoLint for fast
+    inner-loop iterations or while mid-refactor. Only affects .NET;
+    TypeScript linting is not wired up yet.
+
 .PARAMETER Force
     For Tag only. Delete the existing local tag and the matching remote
     tag (if any) before re-creating it. Skips the strict auto-undo
@@ -84,6 +92,7 @@
     .\build.ps1 Compile DotNet                   # Compile + unit tests (.NET)
     .\build.ps1 Compile -NoTest                  # Compile only, skip unit tests
     .\build.ps1 Compile TS -NoTest               # Compile TypeScript only, skip tests
+    .\build.ps1 Compile -NoLint                  # Compile + tests, skip .NET format gate
     .\build.ps1 Compile -Smoke                   # Compile + unit + smoke (TS + .NET)
     .\build.ps1 Compile -Smoke DotNet            # Compile + unit + .NET smoke only
     .\build.ps1 Compile -Smoke TS                # Compile + unit + VS Code smoke only
@@ -129,6 +138,8 @@ param(
     [switch]$Smoke,
 
     [switch]$NoTest,
+
+    [switch]$NoLint,
 
     [switch]$Force,
 
@@ -304,12 +315,13 @@ function Show-Help {
     Write-Host "`nAutoContext Build Orchestrator`n" -ForegroundColor Cyan
 
     Write-Host 'SYNTAX' -ForegroundColor Yellow
-    Write-Host "  .\build.ps1 [Action] [Target] [-Clean] [-Local] [-Smoke] [-NoTest] [-Force] [-RuntimeIdentifier <rid>] [-WhatIf] [-Help]`n"
+    Write-Host "  .\build.ps1 [Action] [Target] [-Clean] [-Local] [-Smoke] [-NoTest] [-NoLint] [-Force] [-RuntimeIdentifier <rid>] [-WhatIf] [-Help]`n"
 
     Write-Host 'ACTIONS' -ForegroundColor Yellow
     Write-Host '  (none)     Compile + unit tests (all sources)'
-    Write-Host '  Compile    Compile sources, then run unit tests'
-    Write-Host '             (use -NoTest to skip the test phase;'
+    Write-Host '  Compile    Compile sources, verify .NET formatting, then run unit tests'
+    Write-Host '             (use -NoLint to skip the format gate;'
+    Write-Host '              use -NoTest to skip the test phase;'
     Write-Host '              use -Smoke to also run smoke tests)'
     Write-Host '  Prepare    Clean + Compile + copy assets into extension'
     Write-Host '  Package    Prepare + dotnet publish + vsce package'
@@ -328,6 +340,7 @@ function Show-Help {
     Write-Host '  -Smoke                Also run smoke tests after compile + unit tests'
     Write-Host '                        (Compile only; combines with Target)'
     Write-Host '  -NoTest               Skip the unit-test phase (Compile only)'
+    Write-Host '  -NoLint               Skip the .NET format gate (Compile only)'
     Write-Host '  -Force                Re-tag: delete local + remote tag first (Tag only)'
     Write-Host '  -RuntimeIdentifier    .NET RID for Package/Publish (e.g. win-x64)'
     Write-Host '  -WhatIf               Preview changes without executing (works with any action and switch)'
@@ -339,6 +352,7 @@ function Show-Help {
     Write-Host '  .\build.ps1 Compile DotNet                    # .NET compile + tests'
     Write-Host '  .\build.ps1 Compile -NoTest                   # Compile only, skip tests'
     Write-Host '  .\build.ps1 Compile TS -NoTest                # Compile TypeScript only'
+    Write-Host '  .\build.ps1 Compile -NoLint                   # Compile + tests, skip format gate'
     Write-Host '  .\build.ps1 Compile -Smoke                    # Compile + unit + smoke (all)'
     Write-Host '  .\build.ps1 Compile -Smoke DotNet             # Compile + unit + .NET smoke'
     Write-Host '  .\build.ps1 Compile -Smoke TS                 # Compile + unit + VS Code smoke'
@@ -597,6 +611,25 @@ function Test-DotNet {
         dotnet test $solutionFile.FullName -c Release --no-build --filter 'Category!=Smoke'
         if ($LASTEXITCODE -ne 0) { throw '.NET tests failed.' }
         Write-Status '.NET tests passed' 'OK'
+    }
+}
+
+function Test-DotNetFormat {
+    [CmdletBinding(SupportsShouldProcess)]
+    param()
+
+    Write-Section 'Format .NET'
+
+    if (-not $solutionFile) { throw 'No .slnx or .sln file found in the repository root.' }
+
+    if ($PSCmdlet.ShouldProcess($solutionFile.Name, 'dotnet format --verify-no-changes')) {
+        Assert-ExternalCommand 'dotnet'
+
+        dotnet format $solutionFile.FullName --verify-no-changes --no-restore
+        if ($LASTEXITCODE -ne 0) {
+            throw ".NET format verification failed. Run 'dotnet format' to fix, or pass -NoLint to skip."
+        }
+        Write-Status '.NET format verified' 'OK'
     }
 }
 
@@ -1145,6 +1178,11 @@ function Invoke-Compile {
         Build-TypeScript
         Build-DotNet
 
+        if (-not $NoLint -and $Scope -in 'All', 'DotNet') {
+            Write-Header 'Lint'
+            Test-DotNetFormat
+        }
+
         if (-not $NoTest) {
             Write-Header 'Test'
             if ($Scope -in 'All', 'TS')     { Test-TypeScript }
@@ -1167,6 +1205,11 @@ function Invoke-Compile {
     Write-Header 'Compile'
     if ($Scope -in 'All', 'TS')     { Build-TypeScript }
     if ($Scope -in 'All', 'DotNet') { Build-DotNet }
+
+    if (-not $NoLint -and $Scope -in 'All', 'DotNet') {
+        Write-Header 'Lint'
+        Test-DotNetFormat
+    }
 
     if ($NoTest) { return }
 
@@ -1579,6 +1622,10 @@ if ($Smoke -and $Action -and $Action -ne 'Compile') {
 
 if ($NoTest -and $Action -and $Action -ne 'Compile') {
     throw "-NoTest is only valid with the Compile action."
+}
+
+if ($NoLint -and $Action -and $Action -ne 'Compile') {
+    throw "-NoLint is only valid with the Compile action."
 }
 
 if ($Force -and $Action -ne 'Tag') {
