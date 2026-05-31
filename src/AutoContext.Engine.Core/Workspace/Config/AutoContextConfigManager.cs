@@ -34,8 +34,11 @@ internal sealed partial class AutoContextConfigManager : IDisposable
     private const string ConfigFileName = ".autocontext.json";
     private const string DeletedSignature = "<none>";
 
+    private static readonly TimeSpan DefaultDebounceDelay = TimeSpan.FromMilliseconds(100);
+
     private readonly string _configPath;
     private AutoContextConfig _current;
+    private readonly ConfigWatchDebouncer _debouncer;
     private readonly string _engineVersion;
     private readonly SemaphoreSlim _gate = new(1, 1);
     private string _lastSignature = DeletedSignature;
@@ -55,20 +58,41 @@ internal sealed partial class AutoContextConfigManager : IDisposable
     /// <see langword="null"/> or whitespace.</param>
     /// <param name="logger">Diagnostic sink. <see langword="null"/>
     /// silences diagnostics.</param>
+    /// <param name="timeProvider">Clock that schedules the watcher
+    /// debounce window. <see langword="null"/> uses
+    /// <see cref="TimeProvider.System"/>.</param>
+    /// <param name="debounceDelay">Quiet window the watcher waits for
+    /// after the last filesystem event before reconciling, collapsing a
+    /// burst of raw events into a single read. <see langword="null"/>
+    /// uses 100&#160;ms. Must be positive when supplied.</param>
     /// <exception cref="ArgumentException"><paramref name="workspacePath"/>
     /// or <paramref name="engineVersion"/> is <see langword="null"/>,
     /// empty, or whitespace.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">
+    /// <paramref name="debounceDelay"/> is zero or negative.</exception>
     public AutoContextConfigManager(
         string workspacePath,
         string engineVersion,
-        ILogger<AutoContextConfigManager>? logger = null)
+        ILogger<AutoContextConfigManager>? logger = null,
+        TimeProvider? timeProvider = null,
+        TimeSpan? debounceDelay = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(workspacePath);
         ArgumentException.ThrowIfNullOrWhiteSpace(engineVersion);
 
+        if (debounceDelay is { } delay)
+        {
+            ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(
+                delay, TimeSpan.Zero, nameof(debounceDelay));
+        }
+
         _configPath = Path.Combine(workspacePath, ConfigFileName);
         _engineVersion = engineVersion;
         _logger = logger ?? NullLogger<AutoContextConfigManager>.Instance;
+        _debouncer = new ConfigWatchDebouncer(
+            ReconcileFromWatcherAsync,
+            timeProvider ?? TimeProvider.System,
+            debounceDelay ?? DefaultDebounceDelay);
         _current = AutoContextConfig.Empty;
     }
 
@@ -97,6 +121,7 @@ internal sealed partial class AutoContextConfigManager : IDisposable
     public void Dispose()
     {
         _watcher?.Dispose();
+        _debouncer.Dispose();
         _gate.Dispose();
     }
 
@@ -210,9 +235,11 @@ internal sealed partial class AutoContextConfigManager : IDisposable
 
     /// <summary>
     /// Begins watching the config file for external edits, reconciling
-    /// the in-memory snapshot whenever a genuine change is detected.
-    /// Idempotent; subsequent calls are no-ops while a watcher is
-    /// active.
+    /// the in-memory snapshot whenever a genuine change is detected. Raw
+    /// filesystem events are coalesced through a trailing-edge debounce
+    /// — a burst of events from a single save reconciles once, after the
+    /// debounce window goes quiet. Idempotent; subsequent calls are
+    /// no-ops while a watcher is active.
     /// </summary>
     public void Watch()
     {
@@ -227,6 +254,8 @@ internal sealed partial class AutoContextConfigManager : IDisposable
         {
             return;
         }
+
+        _debouncer.Start();
 
         var watcher = new FileSystemWatcher(directory, ConfigFileName)
         {
@@ -276,21 +305,8 @@ internal sealed partial class AutoContextConfigManager : IDisposable
         }
     }
 
-    private async void OnConfigWatcherEvent(object sender, FileSystemEventArgs e)
-    {
-        try
-        {
-            await RefreshAsync().ConfigureAwait(false);
-        }
-        catch (IOException ex)
-        {
-            LogReconcileFailed(_logger, _configPath, ex);
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            LogReconcileFailed(_logger, _configPath, ex);
-        }
-    }
+    private void OnConfigWatcherEvent(object sender, FileSystemEventArgs e)
+        => _debouncer.Signal();
 
     private async Task PersistAsync(JsonAutoContextConfig config, CancellationToken cancellationToken)
     {
@@ -365,6 +381,22 @@ internal sealed partial class AutoContextConfigManager : IDisposable
         {
             LogReadFailed(_logger, _configPath, ex);
             return (JsonAutoContextConfig.Empty, DeletedSignature);
+        }
+    }
+
+    private async Task ReconcileFromWatcherAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            await RefreshAsync(cancellationToken).ConfigureAwait(false);
+        }
+        catch (IOException ex)
+        {
+            LogReconcileFailed(_logger, _configPath, ex);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            LogReconcileFailed(_logger, _configPath, ex);
         }
     }
 }
