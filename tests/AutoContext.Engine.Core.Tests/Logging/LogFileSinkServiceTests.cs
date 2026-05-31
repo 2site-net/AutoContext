@@ -15,6 +15,7 @@ using AutoContext.Engine.Protocol.Messages.Logs;
 
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Time.Testing;
 
 public sealed class LogFileSinkServiceTests(LogFileSinkServiceFixture fixture) : IClassFixture<LogFileSinkServiceFixture>
 {
