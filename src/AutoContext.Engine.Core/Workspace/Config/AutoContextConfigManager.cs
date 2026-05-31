@@ -32,11 +32,12 @@ using Microsoft.Extensions.Logging.Abstractions;
 /// published signature is treated as an echo and ignored.
 /// </para>
 /// </remarks>
-internal sealed partial class AutoContextConfigManager : IDisposable
+internal sealed partial class AutoContextConfigManager : IConfigUpdater, IDisposable
 {
     private const string ConfigFileName = ".autocontext.json";
     private const string DeletedSignature = "<none>";
 
+    private static readonly TimeSpan DefaultBatchWindow = TimeSpan.FromMilliseconds(5);
     private static readonly TimeSpan DefaultDebounceDelay = TimeSpan.FromMilliseconds(100);
 
     private readonly string _configPath;
@@ -46,6 +47,7 @@ internal sealed partial class AutoContextConfigManager : IDisposable
     private string _lastSignature = DeletedSignature;
     private readonly ILogger<AutoContextConfigManager> _logger;
     private readonly FileChangeWatcher _watcher;
+    private readonly ConfigBatchWriter _writer;
 
     /// <summary>
     /// Creates a manager bound to <paramref name="workspacePath"/>'s
@@ -67,17 +69,23 @@ internal sealed partial class AutoContextConfigManager : IDisposable
     /// after the last filesystem event before reconciling, collapsing a
     /// burst of raw events into a single read. <see langword="null"/>
     /// uses 100&#160;ms. Must be positive when supplied.</param>
+    /// <param name="batchWindow">In-process window the writer collects
+    /// further <see cref="UpdateBatchAsync"/> edits over before folding
+    /// them into a single write. <see langword="null"/> uses 5&#160;ms.
+    /// Must be positive when supplied.</param>
     /// <exception cref="ArgumentException"><paramref name="workspacePath"/>
     /// or <paramref name="engineVersion"/> is <see langword="null"/>,
     /// empty, or whitespace.</exception>
     /// <exception cref="ArgumentOutOfRangeException">
-    /// <paramref name="debounceDelay"/> is zero or negative.</exception>
+    /// <paramref name="debounceDelay"/> or <paramref name="batchWindow"/>
+    /// is zero or negative.</exception>
     public AutoContextConfigManager(
         string workspacePath,
         string engineVersion,
         ILogger<AutoContextConfigManager>? logger = null,
         TimeProvider? timeProvider = null,
-        TimeSpan? debounceDelay = null)
+        TimeSpan? debounceDelay = null,
+        TimeSpan? batchWindow = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(workspacePath);
         ArgumentException.ThrowIfNullOrWhiteSpace(engineVersion);
@@ -88,14 +96,23 @@ internal sealed partial class AutoContextConfigManager : IDisposable
                 delay, TimeSpan.Zero, nameof(debounceDelay));
         }
 
+        if (batchWindow is { } window)
+        {
+            ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(
+                window, TimeSpan.Zero, nameof(batchWindow));
+        }
+
+        var clock = timeProvider ?? TimeProvider.System;
+
         _configPath = Path.Combine(workspacePath, ConfigFileName);
         _engineVersion = engineVersion;
         _logger = logger ?? NullLogger<AutoContextConfigManager>.Instance;
         _watcher = new FileChangeWatcher(
             _configPath,
             ReconcileFromWatcherAsync,
-            timeProvider ?? TimeProvider.System,
+            clock,
             debounceDelay ?? DefaultDebounceDelay);
+        _writer = new ConfigBatchWriter(this, clock, batchWindow ?? DefaultBatchWindow);
         _current = AutoContextConfig.Empty;
     }
 
@@ -123,6 +140,7 @@ internal sealed partial class AutoContextConfigManager : IDisposable
     /// <inheritdoc />
     public void Dispose()
     {
+        _writer.Dispose();
         _watcher.Dispose();
         _gate.Dispose();
     }
@@ -234,6 +252,24 @@ internal sealed partial class AutoContextConfigManager : IDisposable
 
         Changed?.Invoke(this, next);
     }
+
+    /// <summary>
+    /// Queues <paramref name="edit"/> for a coalesced write: edits
+    /// enqueued within a short in-process window are folded into a single
+    /// <see cref="UpdateAsync"/> call — one disk write, one snapshot swap,
+    /// one <see cref="Changed"/> fan-out — applied in enqueue order. Use
+    /// this for bulk toggles that arrive as a burst; use
+    /// <see cref="UpdateAsync"/> for a single immediate write.
+    /// </summary>
+    /// <param name="edit">Pure transform of the current snapshot.</param>
+    /// <param name="cancellationToken">Drops this edit from its batch if
+    /// signalled before the batch is applied.</param>
+    /// <returns>A task that completes once the batch containing this edit
+    /// has been applied.</returns>
+    public Task UpdateBatchAsync(
+        Func<AutoContextConfig, AutoContextConfig> edit,
+        CancellationToken cancellationToken = default)
+        => _writer.EnqueueAsync(edit, cancellationToken);
 
     /// <summary>
     /// Begins watching the config file for external edits, reconciling

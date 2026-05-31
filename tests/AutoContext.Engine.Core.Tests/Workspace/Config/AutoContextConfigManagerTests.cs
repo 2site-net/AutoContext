@@ -4,6 +4,8 @@ using AutoContext.Engine.Core.Tests.Support.Shared;
 using AutoContext.Engine.Core.Tests.Support.Workspace.Config;
 using AutoContext.Engine.Core.Workspace.Config;
 
+using Microsoft.Extensions.Time.Testing;
+
 public sealed class AutoContextConfigManagerTests
 {
     public sealed class LoadAsync(TempDirectoryFixture tempDirectory)
@@ -235,5 +237,55 @@ public sealed class AutoContextConfigManagerTests
             // Assert
             Assert.Empty(manager.Current.McpTools);
         }
+    }
+
+    public sealed class UpdateBatchAsync(TempDirectoryFixture tempDirectory)
+        : IClassFixture<TempDirectoryFixture>
+    {
+        private static readonly TimeSpan Window = TimeSpan.FromMilliseconds(5);
+
+        [Fact]
+        public async Task Should_coalesce_rapid_edits_into_one_change()
+        {
+            // Arrange
+            var time = new FakeTimeProvider();
+            using var manager = AutoContextConfigTestFactory.Create(
+                tempDirectory.CreateDirectory(), timeProvider: time, batchWindow: Window);
+            await manager.LoadAsync(TestContext.Current.CancellationToken);
+
+            var changes = 0;
+            manager.Changed += (_, _) => Interlocked.Increment(ref changes);
+
+            // Act
+            var pending = Task.WhenAll(
+                manager.UpdateBatchAsync(AppendTool("t1"), TestContext.Current.CancellationToken),
+                manager.UpdateBatchAsync(AppendTool("t2"), TestContext.Current.CancellationToken),
+                manager.UpdateBatchAsync(AppendTool("t3"), TestContext.Current.CancellationToken));
+            await AdvanceUntilAsync(time, pending);
+
+            // Assert
+            Assert.Multiple(
+                () => Assert.Equal(1, changes),
+                () => Assert.Equal(["t1", "t2", "t3"], manager.Current.McpTools.Select(tool => tool.Name)));
+        }
+
+        private static async Task AdvanceUntilAsync(FakeTimeProvider time, Task target)
+        {
+            var deadline = DateTimeOffset.UtcNow.AddSeconds(5);
+
+            while (!target.IsCompleted && DateTimeOffset.UtcNow < deadline)
+            {
+                time.Advance(Window);
+                await Task.Delay(5);
+            }
+
+            await target;
+        }
+
+        private static Func<AutoContextConfig, AutoContextConfig> AppendTool(string name)
+            => config => config with
+            {
+                McpTools = [.. config.McpTools, new McpToolConfig { Name = name, Disabled = true }],
+            };
     }
 }

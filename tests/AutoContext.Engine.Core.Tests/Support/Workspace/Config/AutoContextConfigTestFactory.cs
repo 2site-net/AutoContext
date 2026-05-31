@@ -11,6 +11,14 @@ internal static class AutoContextConfigTestFactory
 {
     public const string EngineVersion = "9.9.9";
 
-    public static AutoContextConfigManager Create(string workspacePath, string? engineVersion = null)
-        => new(workspacePath, engineVersion ?? EngineVersion);
+    public static AutoContextConfigManager Create(
+        string workspacePath,
+        string? engineVersion = null,
+        TimeProvider? timeProvider = null,
+        TimeSpan? batchWindow = null)
+        => new(
+            workspacePath,
+            engineVersion ?? EngineVersion,
+            timeProvider: timeProvider,
+            batchWindow: batchWindow);
 }

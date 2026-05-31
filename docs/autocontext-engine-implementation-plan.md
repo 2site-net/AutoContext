@@ -422,7 +422,8 @@ src/
         JsonAutoContextConfigExtensions.cs     # mapper: wire -> domain (ToDomain)
         ConfigFileFormat.cs                    # stateless .autocontext.json serializer (mirrors RegistryFileFormat)
         AutoContextConfigManager.cs            # store/manager — port of TS AutoContextConfigManager; owns the snapshot, FS-watch (Watch/OnConfigWatcherEvent), and signature-based self-write suppressor
-        ConfigWriter.cs                        # writer mutex + micro-batch coalescer (P3 row 6, not started)
+        ConfigBatchWriter.cs                   # micro-batch write coalescer behind IConfigUpdater (P3 row 6, DONE)
+        IConfigUpdater.cs                      # one-method write seam the manager satisfies (P3 row 6, DONE)
         ConfigHandlers.cs                      # Config.{Get,Subscribe,ToggleFile,ToggleRule} (P3 rows 7-9, not started)
         ConfigSubscriptionBroadcaster.cs       # snapshot-on-subscribe + per-subscriber bounded buffer (not started)
       Context/                                 # ~60-flag detection (Workspace.* wire surface)
@@ -1125,7 +1126,7 @@ its dependency on Phase 1's `RegistryFileReader` /
 | 3 | `feat(engine-core): port AutoContextConfigManager to AutoContextConfig` | DONE |
 | 4 | `feat(engine-core): add FileChangeWatcher with trailing-edge debounce reload` | DONE — extracted a reusable `TrailingEdgeDebouncer` (capacity-one channel + `TimeProvider`-scheduled quiet window) into `Infrastructure/Events`, wrapped by a `FileChangeWatcher` in `Infrastructure/IO` that forwards `FileSystemWatcher` events as signals; the manager's `ReconcileFromWatcherAsync` → `RefreshAsync` runs once per settled burst. Manager ctor gains `timeProvider`/`debounceDelay` (default 100&#160;ms). Deterministic `FakeTimeProvider` tests via `Microsoft.Extensions.TimeProvider.Testing` |
 | 5 | `feat(engine-core): add deep-equal self-write suppressor` | DONE in row 3 (signature-based: SHA-256 of the on-disk bytes compared against `_lastSignature`) |
-| 6 | `feat(engine-core): add writer mutex and micro-batch write coalescing` | Not started |
+| 6 | `feat(engine-core): add writer mutex and micro-batch write coalescing` | DONE — added a `ConfigBatchWriter` that the manager owns and exposes through an additive `UpdateBatchAsync` API, leaving the synchronous `UpdateAsync` primitive untouched. An unbounded single-reader channel drains queued edits, a `TimeProvider`-scheduled micro-batch window (default 5&#160;ms) folds every edit that lands inside it into one write call (one write, one snapshot swap, one fan-out), and each caller's task completes when its batch is applied. The writer depends on a one-method `IConfigUpdater` seam the manager satisfies directly (its existing `UpdateAsync` matches), keeping the two decoupled and unit-testable against a fake. Per-edit cancellation drops the edit from its batch; `Dispose` cancels in-flight edits. Deterministic `FakeTimeProvider` tests. The revision counter and `{ revision, changes }` envelope stay deferred to rows 7-9 |
 | 7 | `feat(engine): serve Config.Get over rpc` | Not started |
 | 8 | `feat(engine): serve Config.ToggleFile and Config.ToggleRule over rpc` | Not started |
 | 9 | `feat(engine-core): add Config.Subscribe events stream with snapshot-on-subscribe` | Not started |
@@ -1264,7 +1265,7 @@ constrains how:
     one-write-one-swap-one-event with no batch window, so three
     rapid toggles today produce three writes + three fan-outs +
     three revisions. The micro-batch belongs *above* the current
-    `UpdateAsync` (a `ConfigWriter` queue that folds N edits into a
+    `UpdateAsync` (a `ConfigBatchWriter` queue that folds N edits into a
     single `UpdateAsync`) or as a new batching entry point —
     layering it inside the existing method would fight the gate.
   - **No-op detection granularity.** `UpdateAsync` skips the write
