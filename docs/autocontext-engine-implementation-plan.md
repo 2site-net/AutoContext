@@ -1122,7 +1122,7 @@ its dependency on Phase 1's `RegistryFileReader` /
 | 1 | `feat(engine-core): support rpc server-streaming` (prelude) | DONE |
 | 2 | `feat(engine): serve Logs.TailEngine over rpc` (prelude) | DONE |
 | 3 | `feat(engine-core): port AutoContextConfigManager to AutoContextConfig` | DONE |
-| 4 | `feat(engine-core): add ConfigFileWatcher with trailing-edge debounce reload` | DONE — extracted `ConfigWatchDebouncer` (capacity-one channel + `TimeProvider`-scheduled quiet window); `OnConfigWatcherEvent` → `Signal()` → coalesced `ReconcileFromWatcherAsync` → `RefreshAsync`. Manager ctor gains `timeProvider`/`debounceDelay` (default 100&#160;ms). Deterministic `FakeTimeProvider` tests via `Microsoft.Extensions.TimeProvider.Testing` |
+| 4 | `feat(engine-core): add FileChangeWatcher with trailing-edge debounce reload` | DONE — extracted a reusable `TrailingEdgeDebouncer` (capacity-one channel + `TimeProvider`-scheduled quiet window) into `Infrastructure/Events`, wrapped by a `FileChangeWatcher` in `Infrastructure/IO` that forwards `FileSystemWatcher` events as signals; the manager's `ReconcileFromWatcherAsync` → `RefreshAsync` runs once per settled burst. Manager ctor gains `timeProvider`/`debounceDelay` (default 100&#160;ms). Deterministic `FakeTimeProvider` tests via `Microsoft.Extensions.TimeProvider.Testing` |
 | 5 | `feat(engine-core): add deep-equal self-write suppressor` | DONE in row 3 (signature-based: SHA-256 of the on-disk bytes compared against `_lastSignature`) |
 | 6 | `feat(engine-core): add writer mutex and micro-batch write coalescing` | Not started |
 | 7 | `feat(engine): serve Config.Get over rpc` | Not started |

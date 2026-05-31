@@ -1,4 +1,4 @@
-namespace AutoContext.Engine.Core.Workspace.Config;
+namespace AutoContext.Engine.Core.Infrastructure.Events;
 
 using System.Threading.Channels;
 
@@ -7,7 +7,7 @@ using System.Threading.Channels;
 /// using a trailing-edge debounce: the callback fires once the signal
 /// stream has stayed quiet for the configured window. Each
 /// <see cref="Signal"/> during an open window pushes the deadline back,
-/// so a flurry of filesystem events from one save reconciles exactly
+/// so a flurry of signals from one burst invokes the callback exactly
 /// once.
 /// </summary>
 /// <remarks>
@@ -15,7 +15,7 @@ using System.Threading.Channels;
 /// Signals are funnelled through a capacity-one channel that drops
 /// writes when full, so any number of overlapping signals coalesce into
 /// at most one pending wake-up. A single long-lived consumer loop,
-/// started by <see cref="Start"/>, drains the channel and runs the
+/// started by <see cref="Run"/>, drains the channel and runs the
 /// quiet-window wait entirely on <see langword="await"/> continuations —
 /// it holds no thread while idle.
 /// </para>
@@ -27,7 +27,7 @@ using System.Threading.Channels;
 /// and surfaces from <see cref="Dispose"/>.
 /// </para>
 /// </remarks>
-internal sealed class ConfigWatchDebouncer : IDisposable
+internal sealed class TrailingEdgeDebouncer : IDisposable
 {
     private CancellationTokenSource? _cts;
     private readonly TimeSpan _delay;
@@ -57,7 +57,7 @@ internal sealed class ConfigWatchDebouncer : IDisposable
     /// or <paramref name="timeProvider"/> is <see langword="null"/>.</exception>
     /// <exception cref="ArgumentOutOfRangeException">
     /// <paramref name="delay"/> is zero or negative.</exception>
-    public ConfigWatchDebouncer(
+    public TrailingEdgeDebouncer(
         Func<CancellationToken, Task> onElapsed,
         TimeProvider timeProvider,
         TimeSpan delay)
@@ -95,18 +95,10 @@ internal sealed class ConfigWatchDebouncer : IDisposable
     }
 
     /// <summary>
-    /// Records a signal, (re)opening the quiet window. Cheap and
-    /// non-blocking; safe to call from any thread, including a
-    /// filesystem-watcher callback.
-    /// </summary>
-    public void Signal()
-        => _signals.Writer.TryWrite(0);
-
-    /// <summary>
     /// Starts the consumer loop. Idempotent; later calls are no-ops
     /// while the loop is running.
     /// </summary>
-    public void Start()
+    public void Run()
     {
         if (_loop is not null)
         {
@@ -116,6 +108,14 @@ internal sealed class ConfigWatchDebouncer : IDisposable
         _cts = new CancellationTokenSource();
         _loop = ConsumeAsync(_cts.Token);
     }
+
+    /// <summary>
+    /// Records a signal, (re)opening the quiet window. Cheap and
+    /// non-blocking; safe to call from any thread, including from inside
+    /// an event handler.
+    /// </summary>
+    public void Signal()
+        => _signals.Writer.TryWrite(0);
 
     private async Task ConsumeAsync(CancellationToken cancellationToken)
     {

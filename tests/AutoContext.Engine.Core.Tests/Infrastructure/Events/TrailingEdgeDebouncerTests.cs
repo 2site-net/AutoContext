@@ -1,10 +1,10 @@
-namespace AutoContext.Engine.Core.Tests.Workspace.Config;
+namespace AutoContext.Engine.Core.Tests.Infrastructure.Events;
 
-using AutoContext.Engine.Core.Workspace.Config;
+using AutoContext.Engine.Core.Infrastructure.Events;
 
 using Microsoft.Extensions.Time.Testing;
 
-public sealed class ConfigWatchDebouncerTests
+public sealed class TrailingEdgeDebouncerTests
 {
     private static readonly TimeSpan Window = TimeSpan.FromMilliseconds(100);
 
@@ -34,7 +34,7 @@ public sealed class ConfigWatchDebouncerTests
 
             // Act + Assert
             Assert.Throws<ArgumentNullException>(
-                () => new ConfigWatchDebouncer(null!, time, Window));
+                () => new TrailingEdgeDebouncer(null!, time, Window));
         }
 
         [Fact]
@@ -42,7 +42,7 @@ public sealed class ConfigWatchDebouncerTests
         {
             // Act + Assert
             Assert.Throws<ArgumentNullException>(
-                () => new ConfigWatchDebouncer(_ => Task.CompletedTask, null!, Window));
+                () => new TrailingEdgeDebouncer(_ => Task.CompletedTask, null!, Window));
         }
 
         [Fact]
@@ -53,7 +53,7 @@ public sealed class ConfigWatchDebouncerTests
 
             // Act + Assert
             Assert.Throws<ArgumentOutOfRangeException>(
-                () => new ConfigWatchDebouncer(_ => Task.CompletedTask, time, TimeSpan.Zero));
+                () => new TrailingEdgeDebouncer(_ => Task.CompletedTask, time, TimeSpan.Zero));
         }
     }
 
@@ -66,7 +66,7 @@ public sealed class ConfigWatchDebouncerTests
             var time = new FakeTimeProvider();
             var reconciled = 0;
             var fired = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-            using var debouncer = new ConfigWatchDebouncer(
+            using var debouncer = new TrailingEdgeDebouncer(
                 _ =>
                 {
                     Interlocked.Increment(ref reconciled);
@@ -75,7 +75,7 @@ public sealed class ConfigWatchDebouncerTests
                 },
                 time,
                 Window);
-            debouncer.Start();
+            debouncer.Run();
 
             // Act
             debouncer.Signal();
@@ -92,7 +92,7 @@ public sealed class ConfigWatchDebouncerTests
             var time = new FakeTimeProvider();
             var reconciled = 0;
             var fired = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-            using var debouncer = new ConfigWatchDebouncer(
+            using var debouncer = new TrailingEdgeDebouncer(
                 _ =>
                 {
                     Interlocked.Increment(ref reconciled);
@@ -108,7 +108,7 @@ public sealed class ConfigWatchDebouncerTests
                 debouncer.Signal();
             }
 
-            debouncer.Start();
+            debouncer.Run();
             await AdvanceUntilAsync(time, fired.Task);
             time.Advance(Window);
             await SettleAsync();
@@ -124,7 +124,7 @@ public sealed class ConfigWatchDebouncerTests
             var time = new FakeTimeProvider();
             var reconciled = 0;
             var fired = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-            using var debouncer = new ConfigWatchDebouncer(
+            using var debouncer = new TrailingEdgeDebouncer(
                 _ =>
                 {
                     Interlocked.Increment(ref reconciled);
@@ -133,7 +133,7 @@ public sealed class ConfigWatchDebouncerTests
                 },
                 time,
                 Window);
-            debouncer.Start();
+            debouncer.Run();
 
             // Act + Assert
             debouncer.Signal();
@@ -161,7 +161,7 @@ public sealed class ConfigWatchDebouncerTests
             // Arrange
             var time = new FakeTimeProvider();
             var reconciled = 0;
-            var debouncer = new ConfigWatchDebouncer(
+            var debouncer = new TrailingEdgeDebouncer(
                 _ =>
                 {
                     Interlocked.Increment(ref reconciled);
@@ -169,7 +169,7 @@ public sealed class ConfigWatchDebouncerTests
                 },
                 time,
                 Window);
-            debouncer.Start();
+            debouncer.Run();
             debouncer.Signal();
             await SettleAsync();
 
@@ -187,8 +187,8 @@ public sealed class ConfigWatchDebouncerTests
         {
             // Arrange
             var time = new FakeTimeProvider();
-            var debouncer = new ConfigWatchDebouncer(_ => Task.CompletedTask, time, Window);
-            debouncer.Start();
+            var debouncer = new TrailingEdgeDebouncer(_ => Task.CompletedTask, time, Window);
+            debouncer.Run();
 
             // Act + Assert
             debouncer.Dispose();
