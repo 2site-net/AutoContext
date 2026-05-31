@@ -411,12 +411,13 @@ src/
         DiagnosticConfig.cs                    # domain: diagnostic prefs record
         InstructionsFileConfig.cs              # domain: per-instruction-file record (+ nested InstructionsRule)
         McpToolConfig.cs                       # domain: per-MCP-tool record (+ nested McpTask)
-        JsonAutoContextConfig.cs               # wire DTO: immutable on-disk config shape (P9)
-        JsonDiagnosticConfig.cs                # wire DTO: diagnostic block
-        JsonInstructionsFileConfigEntry.cs     # wire DTO: instructions map entry
-        JsonMcpToolConfigEntry.cs              # wire DTO: mcpTools object entry
-        JsonMcpToolConfigValue.cs              # wire DTO: mcpTools value (false | object union)
-        JsonMcpToolConfigValueConverter.cs     # custom converter for the false|object union
+        Format/                                # on-disk wire DTOs (.autocontext.json shape)
+          JsonAutoContextConfig.cs             # wire DTO: immutable on-disk config shape (P9)
+          JsonDiagnosticConfig.cs              # wire DTO: diagnostic block
+          JsonInstructionsFileConfigEntry.cs   # wire DTO: instructions map entry
+          JsonMcpToolConfigEntry.cs            # wire DTO: mcpTools object entry
+          JsonMcpToolConfigValue.cs            # wire DTO: mcpTools value (false | object union)
+          JsonMcpToolConfigValueConverter.cs   # custom converter for the false|object union
         AutoContextConfigExtensions.cs         # mapper: domain -> wire (ToJson)
         JsonAutoContextConfigExtensions.cs     # mapper: wire -> domain (ToDomain)
         ConfigFileFormat.cs                    # stateless .autocontext.json serializer (mirrors RegistryFileFormat)

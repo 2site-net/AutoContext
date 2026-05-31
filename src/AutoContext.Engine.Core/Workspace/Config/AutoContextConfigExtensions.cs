@@ -1,5 +1,7 @@
 namespace AutoContext.Engine.Core.Workspace.Config;
 
+using AutoContext.Engine.Core.Workspace.Config.Format;
+
 /// <summary>
 /// Maps the immutable <see cref="AutoContextConfig"/> domain graph onto
 /// the on-disk <see cref="JsonAutoContextConfig"/> wire shape. The wire

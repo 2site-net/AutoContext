@@ -3,6 +3,7 @@ namespace AutoContext.Engine.Core.Workspace.Config;
 using System.Security.Cryptography;
 
 using AutoContext.Engine.Core.Infrastructure.IO;
+using AutoContext.Engine.Core.Workspace.Config.Format;
 
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;

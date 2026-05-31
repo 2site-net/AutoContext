@@ -1,4 +1,4 @@
-namespace AutoContext.Engine.Core.Workspace.Config;
+namespace AutoContext.Engine.Core.Workspace.Config.Format;
 
 using System.Text.Json.Serialization;
 

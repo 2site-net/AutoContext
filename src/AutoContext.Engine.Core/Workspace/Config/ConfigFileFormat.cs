@@ -4,6 +4,8 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
+using AutoContext.Engine.Core.Workspace.Config.Format;
+
 /// <summary>
 /// Stateless helpers for the on-disk <c>.autocontext.json</c> format.
 /// Centralises the JSON options, the fixed key order, and the parse

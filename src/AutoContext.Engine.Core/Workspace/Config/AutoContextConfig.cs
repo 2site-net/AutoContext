@@ -1,5 +1,7 @@
 namespace AutoContext.Engine.Core.Workspace.Config;
 
+using AutoContext.Engine.Core.Workspace.Config.Format;
+
 /// <summary>
 /// Immutable in-memory snapshot of a workspace's
 /// <c>.autocontext.json</c>, modelled as a composed graph that mirrors

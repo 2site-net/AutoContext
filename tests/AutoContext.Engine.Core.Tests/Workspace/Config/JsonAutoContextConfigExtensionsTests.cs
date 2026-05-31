@@ -1,6 +1,7 @@
 namespace AutoContext.Engine.Core.Tests.Workspace.Config;
 
 using AutoContext.Engine.Core.Workspace.Config;
+using AutoContext.Engine.Core.Workspace.Config.Format;
 
 public sealed class JsonAutoContextConfigExtensionsTests
 {

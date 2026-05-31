@@ -1,6 +1,8 @@
-namespace AutoContext.Engine.Core.Workspace.Config;
+namespace AutoContext.Engine.Core.Workspace.Config.Format;
 
 using System.Text.Json.Serialization;
+
+using AutoContext.Engine.Core.Workspace.Config;
 
 /// <summary>
 /// Immutable in-memory model of a parsed <c>.autocontext.json</c>

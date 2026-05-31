@@ -3,6 +3,7 @@ namespace AutoContext.Engine.Core.Tests.Workspace.Config;
 using System.Text;
 
 using AutoContext.Engine.Core.Workspace.Config;
+using AutoContext.Engine.Core.Workspace.Config.Format;
 
 public sealed class ConfigFileFormatTests
 {
