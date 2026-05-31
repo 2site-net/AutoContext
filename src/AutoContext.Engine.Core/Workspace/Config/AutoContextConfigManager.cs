@@ -2,6 +2,8 @@ namespace AutoContext.Engine.Core.Workspace.Config;
 
 using System.Security.Cryptography;
 
+using AutoContext.Engine.Core.Infrastructure.IO;
+
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -38,12 +40,11 @@ internal sealed partial class AutoContextConfigManager : IDisposable
 
     private readonly string _configPath;
     private AutoContextConfig _current;
-    private readonly ConfigWatchDebouncer _debouncer;
     private readonly string _engineVersion;
     private readonly SemaphoreSlim _gate = new(1, 1);
     private string _lastSignature = DeletedSignature;
     private readonly ILogger<AutoContextConfigManager> _logger;
-    private FileSystemWatcher? _watcher;
+    private readonly FileChangeWatcher _watcher;
 
     /// <summary>
     /// Creates a manager bound to <paramref name="workspacePath"/>'s
@@ -89,7 +90,8 @@ internal sealed partial class AutoContextConfigManager : IDisposable
         _configPath = Path.Combine(workspacePath, ConfigFileName);
         _engineVersion = engineVersion;
         _logger = logger ?? NullLogger<AutoContextConfigManager>.Instance;
-        _debouncer = new ConfigWatchDebouncer(
+        _watcher = new FileChangeWatcher(
+            _configPath,
             ReconcileFromWatcherAsync,
             timeProvider ?? TimeProvider.System,
             debounceDelay ?? DefaultDebounceDelay);
@@ -120,8 +122,7 @@ internal sealed partial class AutoContextConfigManager : IDisposable
     /// <inheritdoc />
     public void Dispose()
     {
-        _watcher?.Dispose();
-        _debouncer.Dispose();
+        _watcher.Dispose();
         _gate.Dispose();
     }
 
@@ -242,33 +243,7 @@ internal sealed partial class AutoContextConfigManager : IDisposable
     /// no-ops while a watcher is active.
     /// </summary>
     public void Watch()
-    {
-        if (_watcher is not null)
-        {
-            return;
-        }
-
-        var directory = Path.GetDirectoryName(_configPath);
-
-        if (string.IsNullOrEmpty(directory))
-        {
-            return;
-        }
-
-        _debouncer.Start();
-
-        var watcher = new FileSystemWatcher(directory, ConfigFileName)
-        {
-            NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.FileName | NotifyFilters.Size,
-        };
-
-        watcher.Changed += OnConfigWatcherEvent;
-        watcher.Created += OnConfigWatcherEvent;
-        watcher.Deleted += OnConfigWatcherEvent;
-        watcher.EnableRaisingEvents = true;
-
-        _watcher = watcher;
-    }
+        => _watcher.Watch();
 
     private static string ComputeSignature(byte[] bytes)
         => Convert.ToBase64String(SHA256.HashData(bytes));
@@ -304,9 +279,6 @@ internal sealed partial class AutoContextConfigManager : IDisposable
             LogDeleteFailed(_logger, _configPath, ex);
         }
     }
-
-    private void OnConfigWatcherEvent(object sender, FileSystemEventArgs e)
-        => _debouncer.Signal();
 
     private async Task PersistAsync(JsonAutoContextConfig config, CancellationToken cancellationToken)
     {
