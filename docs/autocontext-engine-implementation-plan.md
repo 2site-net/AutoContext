@@ -407,24 +407,27 @@ src/
       LogsHandlers.cs                          # Logs.GetEngine / TailEngine / GetWorker / TailWorker
     Workspace/                                 # workspace-scoped state — everything keyed by the current workspace root
       Config/                                  # .autocontext.json owner (Config.* wire surface)
-        AutoContextConfig.cs                   # immutable domain graph (root record) + Empty
-        DiagnosticConfig.cs                    # domain: diagnostic prefs record
-        InstructionsFileConfig.cs              # domain: per-instruction-file record (+ nested InstructionsRule)
-        McpToolConfig.cs                       # domain: per-MCP-tool record (+ nested McpTask)
+        Snapshot/                              # immutable domain graph (engine-internal source of truth)
+          ConfigSnapshot.cs                    # domain: root record + Empty
+          ConfigDiagnostic.cs                  # domain: diagnostic prefs record
+          ConfigInstructionsFile.cs            # domain: per-instruction-file record (+ nested InstructionsRule)
+          ConfigMcpTool.cs                     # domain: per-MCP-tool record (+ nested McpTask)
         Format/                                # on-disk wire DTOs (.autocontext.json shape)
-          JsonAutoContextConfig.cs             # wire DTO: immutable on-disk config shape (P9)
-          JsonDiagnosticConfig.cs              # wire DTO: diagnostic block
-          JsonInstructionsFileConfigEntry.cs   # wire DTO: instructions map entry
-          JsonMcpToolConfigEntry.cs            # wire DTO: mcpTools object entry
-          JsonMcpToolConfigValue.cs            # wire DTO: mcpTools value (false | object union)
-          JsonMcpToolConfigValueConverter.cs   # custom converter for the false|object union
-        AutoContextConfigExtensions.cs         # mapper: domain -> wire (ToJson)
-        JsonAutoContextConfigExtensions.cs     # mapper: wire -> domain (ToDomain)
+          JsonConfigFile.cs                    # wire DTO: immutable on-disk config shape (P9)
+          JsonConfigFileDiagnostic.cs          # wire DTO: diagnostic block
+          JsonConfigFileInstructionsEntry.cs   # wire DTO: instructions map entry
+          JsonConfigFileMcpToolEntry.cs        # wire DTO: mcpTools object entry
+          JsonConfigFileMcpToolValue.cs        # wire DTO: mcpTools value (false | object union)
+          JsonConfigFileMcpToolValueConverter.cs # custom converter for the false|object union
+        ConfigSnapshotExtensions.cs            # mapper: domain -> on-disk (ToFileFormat) + domain -> Config.* wire (ToWireFormat)
+        JsonConfigFileExtensions.cs            # mapper: on-disk -> domain (ToDomainGraph)
         ConfigFileFormat.cs                    # stateless .autocontext.json serializer (mirrors RegistryFileFormat)
-        AutoContextConfigManager.cs            # store/manager — port of TS AutoContextConfigManager; owns the snapshot, FS-watch (Watch/OnConfigWatcherEvent), and signature-based self-write suppressor
+        ConfigFileManager.cs                   # store/manager — port of TS AutoContextConfigManager; owns the snapshot, FS-watch (Watch/ReconcileFromWatcherAsync), and signature-based self-write suppressor; implements IConfigSnapshotAccessor + IConfigUpdater
+        ConfigFileService.cs                   # hosted service — initial disk load then arms the watcher at engine start
+        IConfigSnapshotAccessor.cs             # lock-free read seam (Current) that DispatchPolicy reads for Config.Get
         ConfigBatchWriter.cs                   # micro-batch write coalescer behind IConfigUpdater (P3 row 6, DONE)
         IConfigUpdater.cs                      # one-method write seam the manager satisfies (P3 row 6, DONE)
-        ConfigHandlers.cs                      # Config.{Get,Subscribe,ToggleFile,ToggleRule} (P3 rows 7-9, not started)
+        ConfigHandlers.cs                      # Config.{Subscribe,ToggleFile,ToggleRule} (P3 rows 8-9, not started; Config.Get is served by DispatchPolicy via IConfigSnapshotAccessor)
         ConfigSubscriptionBroadcaster.cs       # snapshot-on-subscribe + per-subscriber bounded buffer (not started)
       Context/                                 # ~60-flag detection (Workspace.* wire surface)
         WorkspaceContextDetector.cs            # orchestrator — injected with the four rule-data lists below; runs them, emits result
@@ -1117,21 +1120,62 @@ its dependency on Phase 1's `RegistryFileReader` /
 
 ## Phase 3 — Config store
 
-**Status**: Not started (prelude landed).
+**Status**: In progress (rows 1-7 landed).
 
 | # | Commit subject | State |
 |---|---|---|
 | 1 | `feat(engine-core): support rpc server-streaming` (prelude) | DONE |
 | 2 | `feat(engine): serve Logs.TailEngine over rpc` (prelude) | DONE |
 | 3 | `feat(engine-core): port AutoContextConfigManager to AutoContextConfig` | DONE |
-| 4 | `feat(engine-core): add FileChangeWatcher with trailing-edge debounce reload` | DONE — extracted a reusable `TrailingEdgeDebouncer` (capacity-one channel + `TimeProvider`-scheduled quiet window) into `Infrastructure/Events`, wrapped by a `FileChangeWatcher` in `Infrastructure/IO` that forwards `FileSystemWatcher` events as signals; the manager's `ReconcileFromWatcherAsync` → `RefreshAsync` runs once per settled burst. Manager ctor gains `timeProvider`/`debounceDelay` (default 100&#160;ms). Deterministic `FakeTimeProvider` tests via `Microsoft.Extensions.TimeProvider.Testing` |
-| 5 | `feat(engine-core): add deep-equal self-write suppressor` | DONE in row 3 (signature-based: SHA-256 of the on-disk bytes compared against `_lastSignature`) |
-| 6 | `feat(engine-core): add writer mutex and micro-batch write coalescing` | DONE — added a `ConfigBatchWriter` that the manager owns and exposes through an additive `UpdateBatchAsync` API, leaving the synchronous `UpdateAsync` primitive untouched. An unbounded single-reader channel drains queued edits, a `TimeProvider`-scheduled micro-batch window (default 5&#160;ms) folds every edit that lands inside it into one write call (one write, one snapshot swap, one fan-out), and each caller's task completes when its batch is applied. The writer depends on a one-method `IConfigUpdater` seam the manager satisfies directly (its existing `UpdateAsync` matches), keeping the two decoupled and unit-testable against a fake. Per-edit cancellation drops the edit from its batch; `Dispose` cancels in-flight edits. Deterministic `FakeTimeProvider` tests. The revision counter and `{ revision, changes }` envelope stay deferred to rows 7-9 |
-| 7 | `feat(engine): serve Config.Get over rpc` | Not started |
+| 4 | `feat(engine-core): add FileChangeWatcher with trailing-edge debounce reload` | DONE |
+| 5 | `feat(engine-core): add deep-equal self-write suppressor` | DONE |
+| 6 | `feat(engine-core): add writer mutex and micro-batch write coalescing` | DONE |
+| 7 | `feat(engine): serve Config.Get over rpc` | DONE |
 | 8 | `feat(engine): serve Config.ToggleFile and Config.ToggleRule over rpc` | Not started |
 | 9 | `feat(engine-core): add Config.Subscribe events stream with snapshot-on-subscribe` | Not started |
 | 10 | `test(engine): integration test for cross-instance config reload coalescing` | Not started |
 | 11 | `docs(plan): mark Phase 3 complete` | Not started |
+
+**Landed-row notes.**
+
+- **Row 4 — `FileChangeWatcher` with trailing-edge debounce.**
+  Extracted a reusable `TrailingEdgeDebouncer` (capacity-one channel
+  + `TimeProvider`-scheduled quiet window) into `Infrastructure/Events`,
+  wrapped by a `FileChangeWatcher` in `Infrastructure/IO` that forwards
+  `FileSystemWatcher` events as signals; the manager's
+  `ReconcileFromWatcherAsync` → `RefreshAsync` runs once per settled
+  burst. Manager ctor gains `timeProvider` / `debounceDelay`
+  (default 100&#160;ms). Deterministic `FakeTimeProvider` tests via
+  `Microsoft.Extensions.TimeProvider.Testing`.
+- **Row 5 — deep-equal self-write suppressor.** Landed in row 3,
+  signature-based: SHA-256 of the on-disk bytes compared against
+  `_lastSignature`.
+- **Row 6 — writer mutex and micro-batch write coalescing.** Added a
+  `ConfigBatchWriter` that the manager owns and exposes through an
+  additive `UpdateBatchAsync` API, leaving the synchronous
+  `UpdateAsync` primitive untouched. An unbounded single-reader
+  channel drains queued edits, a `TimeProvider`-scheduled micro-batch
+  window (default 5&#160;ms) folds every edit that lands inside it
+  into one write call (one write, one snapshot swap, one fan-out),
+  and each caller's task completes when its batch is applied. The
+  writer depends on a one-method `IConfigUpdater` seam the manager
+  satisfies directly (its existing `UpdateAsync` matches), keeping the
+  two decoupled and unit-testable against a fake. Per-edit
+  cancellation drops the edit from its batch; `Dispose` cancels
+  in-flight edits. Deterministic `FakeTimeProvider` tests. The
+  revision counter and `{ revision, changes }` envelope stay deferred
+  to rows 8-9.
+- **Row 7 — serve `Config.Get` over rpc.** The snapshot reaches
+  clients without a streaming subscription: `ConfigFileManager`
+  exposes its lock-free `Current` snapshot through an
+  `IConfigSnapshotAccessor` seam, and `ConfigFileService` (a hosted
+  service registered before `LifecycleService`) performs the initial
+  disk load and arms the watcher at engine start so the snapshot is
+  populated before the first request can land. `DispatchPolicy` routes
+  `Config.Get` to a unary handler that projects the current snapshot
+  onto the `Config.*` wire DTOs via
+  `ConfigSnapshotExtensions.ToWireFormat`. The revision counter and
+  the `Config.Subscribe` fan-out stay deferred to rows 8-9.
 
 **Prelude — server-streaming responses on the `rpc` pipe.** Phase 3
 is the first phase that needs `*.Subscribe` semantics
@@ -1181,29 +1225,39 @@ write.
 `§ Cross-instance .autocontext.json writes race on disk` pitfall.
 
 **Code touch**:
-- `AutoContext.Engine.Core/Workspace/Config/AutoContextConfigManager` —
+- `AutoContext.Engine.Core/Workspace/Config/ConfigFileManager` —
   port of today's `AutoContextConfigManager` (TS) into .NET. JSON
   shape unchanged; `.autocontext.json` keys are camelCase only
   (`mcpTools`, `disabledTasks`, `enabled`), matching the existing
   TS model — no dual-casing, no key normalisation. The manager owns
   the live snapshot and exposes `LoadAsync` / `RefreshAsync` /
-  `UpdateAsync` / `Watch` with a `Changed` event.
-- Two-layer config model split out from the manager: an immutable
-  **domain graph** (`AutoContextConfig` + `DiagnosticConfig` +
-  `InstructionsFileConfig` + `McpToolConfig`, pure data, no
-  behaviour) that the rest of the engine reads, and a separate
-  **wire DTO** layer (`JsonAutoContextConfig` + `Json*` records, plus
-  `JsonMcpToolConfigValueConverter` for the `false | object`
-  `mcpTools` union) that mirrors the on-disk shape byte-for-byte.
-  `AutoContextConfigExtensions.ToJson` and
-  `JsonAutoContextConfigExtensions.ToDomain` are the only crossing
-  points between the two layers; `ConfigFileFormat` owns the JSON
-  options, key order, and parse normalisation.
+  `UpdateAsync` / `Watch` with a `Changed` event. It implements
+  `IConfigSnapshotAccessor` (the lock-free `Current` read seam) and
+  `IConfigUpdater` (the write seam); a `ConfigFileService` hosted
+  service performs the initial disk load and arms the watcher at
+  engine start so the snapshot is populated before the first
+  `Config.Get` can land.
+- Three-participant config model split out from the manager: an
+  immutable **domain graph** (`ConfigSnapshot` + `ConfigDiagnostic` +
+  `ConfigInstructionsFile` + `ConfigMcpTool`, pure data, no
+  behaviour) that the rest of the engine reads, an **on-disk wire
+  DTO** layer (`JsonConfigFile` + `JsonConfigFile*` records, plus
+  `JsonConfigFileMcpToolValueConverter` for the `false | object`
+  `mcpTools` union) that mirrors the file shape byte-for-byte, and
+  the **`Config.*` RPC wire DTOs** (`JsonConfig*` under
+  `Engine.Protocol/Messages/Config`) the engine streams to clients.
+  `ConfigSnapshotExtensions.ToFileFormat` (domain -> on-disk) and
+  `JsonConfigFileExtensions.ToDomainGraph` (on-disk -> domain) are the
+  crossing points for persistence, while
+  `ConfigSnapshotExtensions.ToWireFormat` (domain -> RPC) projects the
+  snapshot onto the transport; the domain graph never leaks either
+  wire shape. `ConfigFileFormat` owns the JSON options, key order,
+  and parse normalisation.
 - `FileSystemWatcher` + per-resource trailing-edge debounce
   (~75–150 ms, `EngineOptions` constant). Reads on timer fire only,
   never inside the watcher callback. Cancellation propagates through
   the engine's root token (P8). **Status:** the watcher itself landed
-  in row 3 (`Watch` starts it; `OnConfigWatcherEvent` calls
+  in row 3 (`Watch` starts it; `ReconcileFromWatcherAsync` calls
   `RefreshAsync`), but it fires `RefreshAsync` directly on every FS
   event — the trailing-edge debounce (and its `EngineOptions`
   constant) is still row 4. Until it lands, an atomic-rename or
@@ -1219,23 +1273,32 @@ write.
   fan-out when the freshly-read file hashes to the same value. This
   is the self-write suppressor; the only piece still owed is the
   revision-bump skip, which arrives with the revision counter (rows
-  7–9).
+  8–9).
 - Writer mutex (`SemaphoreSlim`, P9). Writer-side micro-batch window
   (~5–10 ms) folds queued `Config.Toggle*` calls into one
   on-disk write, one snapshot swap, one fan-out envelope of shape
-  `{ revision, changes: [...] }`.
+  `{ revision, changes: [...] }`. **Status:** landed in row 6 — the
+  `_gate` semaphore serialises every `UpdateAsync` against watcher
+  reconciliations, and `ConfigBatchWriter` (reached through
+  `UpdateBatchAsync`) folds a burst of enqueued edits into a single
+  `UpdateAsync` (one write, one swap, one `Changed` fan-out). The
+  `{ revision, changes }` envelope shape still waits on the revision
+  counter (rows 8–9).
 - `Config.Get`, `Config.Subscribe`, `Config.ToggleFile`,
-  `Config.ToggleRule` handlers.
+  `Config.ToggleRule` handlers. **Status:** `Config.Get` landed in
+  row 7 (`DispatchPolicy.HandleConfigGet` projects the accessor's
+  current snapshot through `ToWireFormat`); `Config.Subscribe` and
+  the `Config.Toggle*` handlers are still rows 8–9.
 - Snapshot-on-subscribe (P6) — every new subscriber receives the
   current state as the first frame.
 
-**Cohesion with the row-3 manager (open decisions for rows 6–9).**
+**Cohesion with the row-3 manager (open decisions for rows 8–10).**
 The toggle round-trip is: a client (extension tree view, hook)
 calls `Config.ToggleFile` / `Config.ToggleRule` on the `rpc` pipe →
-the handler calls `AutoContextConfigManager.UpdateAsync(edit)` with
+the handler calls `ConfigFileManager.UpdateAsync(edit)` with
 a pure `with`-expression that flips the `Disabled` flag on the
-matching `InstructionsFileConfig` / `InstructionsRule` /
-`McpToolConfig` / `McpTask` → `UpdateAsync` persists (recording the
+matching `ConfigInstructionsFile` / `InstructionsRule` /
+`ConfigMcpTool` / `McpTask` → `UpdateAsync` persists (recording the
 write signature), swaps the snapshot, and raises `Changed` → the
 `ConfigSubscriptionBroadcaster` fans the new snapshot out to
 `Config.Subscribe` subscribers. The local writer's own subsequent
@@ -1244,11 +1307,12 @@ toggle fans out exactly once; peer engines pick up the disk write
 through their own watcher → `RefreshAsync` → `Changed`. The
 immutable domain graph makes the `edit` delegate trivial, and the
 gate already serialises edits against watcher reconciliations, so
-the *single-engine* flow is sound today. Four seams still have to
-be resolved as rows 6–9 land, and the manager's current shape
-constrains how:
-  - **Revision counter.** `Changed` carries only an
-    `AutoContextConfig`, with no revision. The fan-out envelope is
+the *single-engine* flow is sound today. The writer-side batch
+coalescing seam landed in row 6 (`ConfigBatchWriter`); four seams
+still have to be resolved as rows 8–10 land, and the manager's
+current shape constrains how:
+  - **Revision counter.** `Changed` is `EventHandler<ConfigSnapshot>`
+    and carries no revision. The fan-out envelope is
     `{ revision, changes: [...] }`, so the revision must be assigned
     when the snapshot is published. Cleanest is to mint it inside
     `UpdateAsync` / `RefreshAsync` under the gate (monotonic `long`,
@@ -1261,13 +1325,6 @@ constrains how:
     revision)` or have the toggle handlers emit their own change
     descriptors; decide before row 8/9 so the delta is computed
     under the gate, not reconstructed afterwards.
-  - **Writer-side batch coalescing (row 6).** `UpdateAsync` is
-    one-write-one-swap-one-event with no batch window, so three
-    rapid toggles today produce three writes + three fan-outs +
-    three revisions. The micro-batch belongs *above* the current
-    `UpdateAsync` (a `ConfigBatchWriter` queue that folds N edits into a
-    single `UpdateAsync`) or as a new batching entry point —
-    layering it inside the existing method would fight the gate.
   - **No-op detection granularity.** `UpdateAsync` skips the write
     only on `ReferenceEquals(edited, current)`, i.e. the handler
     must return the *same* instance for a true no-op. A toggle that

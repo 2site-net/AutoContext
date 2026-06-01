@@ -1,5 +1,7 @@
 namespace AutoContext.Engine.Core.Workspace.Config;
 
+using AutoContext.Engine.Core.Workspace.Config.Snapshot;
+
 /// <summary>
 /// Applies a single pure edit to the current config snapshot and
 /// publishes the result when it differs.
@@ -14,6 +16,6 @@ internal interface IConfigUpdater
     /// <param name="edit">Pure transform of the current snapshot.</param>
     /// <param name="cancellationToken">Cancels the operation.</param>
     Task UpdateAsync(
-        Func<AutoContextConfig, AutoContextConfig> edit,
+        Func<ConfigSnapshot, ConfigSnapshot> edit,
         CancellationToken cancellationToken = default);
 }

@@ -1,11 +1,11 @@
-namespace AutoContext.Engine.Core.Workspace.Config;
+namespace AutoContext.Engine.Core.Workspace.Config.Snapshot;
 
 /// <summary>
 /// Immutable diagnostic preferences from the <c>diagnostic</c> block of
 /// <c>.autocontext.json</c>. Pure data carried through verbatim so the
 /// engine never drops a user's preferences when it rewrites the file.
 /// </summary>
-internal sealed record DiagnosticConfig
+internal sealed record ConfigDiagnostic
 {
     /// <summary>
     /// When <see langword="false"/>, suppresses the warning emitted for

@@ -1,6 +1,7 @@
 namespace AutoContext.Engine.Core.Tests.Workspace.Config;
 
 using AutoContext.Engine.Core.Workspace.Config;
+using AutoContext.Engine.Core.Workspace.Config.Snapshot;
 
 using Microsoft.Extensions.Time.Testing;
 
@@ -21,10 +22,10 @@ public sealed class ConfigBatchWriterTests
         await target;
     }
 
-    private static Func<AutoContextConfig, AutoContextConfig> AppendTool(string name)
+    private static Func<ConfigSnapshot, ConfigSnapshot> AppendTool(string name)
         => config => config with
         {
-            McpTools = [.. config.McpTools, new McpToolConfig { Name = name, Disabled = true }],
+            McpTools = [.. config.McpTools, new ConfigMcpTool { Name = name, Disabled = true }],
         };
 
     public sealed class Constructor
@@ -131,15 +132,15 @@ public sealed class ConfigBatchWriterTests
 
     private sealed class FakeConfigUpdater : IConfigUpdater
     {
-        private AutoContextConfig _current = AutoContextConfig.Empty;
+        private ConfigSnapshot _current = ConfigSnapshot.Empty;
 
-        public AutoContextConfig Current
+        public ConfigSnapshot Current
             => _current;
 
         public int UpdateCalls { get; private set; }
 
         public Task UpdateAsync(
-            Func<AutoContextConfig, AutoContextConfig> edit,
+            Func<ConfigSnapshot, ConfigSnapshot> edit,
             CancellationToken cancellationToken = default)
         {
             UpdateCalls++;

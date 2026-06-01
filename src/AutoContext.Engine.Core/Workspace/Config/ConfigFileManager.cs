@@ -4,13 +4,14 @@ using System.Security.Cryptography;
 
 using AutoContext.Engine.Core.Infrastructure.IO;
 using AutoContext.Engine.Core.Workspace.Config.Format;
+using AutoContext.Engine.Core.Workspace.Config.Snapshot;
 
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
 /// <summary>
 /// Owns the <c>.autocontext.json</c> file for a single workspace and
-/// keeps an immutable <see cref="AutoContextConfig"/> snapshot in sync
+/// keeps an immutable <see cref="ConfigSnapshot"/> snapshot in sync
 /// with it. The snapshot is the in-memory source of truth: programmatic
 /// edits flow through <see cref="UpdateAsync"/>, which publishes the new
 /// snapshot to memory and raises <see cref="Changed"/> before the disk
@@ -32,7 +33,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 /// published signature is treated as an echo and ignored.
 /// </para>
 /// </remarks>
-internal sealed partial class AutoContextConfigManager : IConfigUpdater, IDisposable
+internal sealed partial class ConfigFileManager : IConfigUpdater, IConfigSnapshotAccessor, IDisposable
 {
     private const string ConfigFileName = ".autocontext.json";
     private const string DeletedSignature = "<none>";
@@ -41,11 +42,11 @@ internal sealed partial class AutoContextConfigManager : IConfigUpdater, IDispos
     private static readonly TimeSpan DefaultDebounceDelay = TimeSpan.FromMilliseconds(100);
 
     private readonly string _configPath;
-    private AutoContextConfig _current;
+    private ConfigSnapshot _current;
     private readonly string _engineVersion;
     private readonly SemaphoreSlim _gate = new(1, 1);
     private string _lastSignature = DeletedSignature;
-    private readonly ILogger<AutoContextConfigManager> _logger;
+    private readonly ILogger<ConfigFileManager> _logger;
     private readonly FileChangeWatcher _watcher;
     private readonly ConfigBatchWriter _writer;
 
@@ -79,10 +80,10 @@ internal sealed partial class AutoContextConfigManager : IConfigUpdater, IDispos
     /// <exception cref="ArgumentOutOfRangeException">
     /// <paramref name="debounceDelay"/> or <paramref name="batchWindow"/>
     /// is zero or negative.</exception>
-    public AutoContextConfigManager(
+    public ConfigFileManager(
         string workspacePath,
         string engineVersion,
-        ILogger<AutoContextConfigManager>? logger = null,
+        ILogger<ConfigFileManager>? logger = null,
         TimeProvider? timeProvider = null,
         TimeSpan? debounceDelay = null,
         TimeSpan? batchWindow = null)
@@ -106,14 +107,14 @@ internal sealed partial class AutoContextConfigManager : IConfigUpdater, IDispos
 
         _configPath = Path.Combine(workspacePath, ConfigFileName);
         _engineVersion = engineVersion;
-        _logger = logger ?? NullLogger<AutoContextConfigManager>.Instance;
+        _logger = logger ?? NullLogger<ConfigFileManager>.Instance;
         _watcher = new FileChangeWatcher(
             _configPath,
             ReconcileFromWatcherAsync,
             clock,
             debounceDelay ?? DefaultDebounceDelay);
         _writer = new ConfigBatchWriter(this, clock, batchWindow ?? DefaultBatchWindow);
-        _current = AutoContextConfig.Empty;
+        _current = ConfigSnapshot.Empty;
     }
 
     /// <summary>
@@ -122,7 +123,7 @@ internal sealed partial class AutoContextConfigManager : IConfigUpdater, IDispos
     /// reconciliation — carrying the snapshot now in
     /// <see cref="Current"/>. Not raised by <see cref="LoadAsync"/>.
     /// </summary>
-    public event EventHandler<AutoContextConfig>? Changed;
+    public event EventHandler<ConfigSnapshot>? Changed;
 
     /// <summary>
     /// Absolute path of the config file this manager owns.
@@ -134,7 +135,7 @@ internal sealed partial class AutoContextConfigManager : IConfigUpdater, IDispos
     /// The snapshot currently held in memory. Each read returns an
     /// immutable value that is safe to use without locking.
     /// </summary>
-    public AutoContextConfig Current
+    public ConfigSnapshot Current
         => Volatile.Read(ref _current);
 
     /// <inheritdoc />
@@ -148,19 +149,19 @@ internal sealed partial class AutoContextConfigManager : IConfigUpdater, IDispos
     /// <summary>
     /// Reads the config file from disk, replaces the in-memory snapshot
     /// with the result, and returns it. A missing, empty, or malformed
-    /// file yields <see cref="AutoContextConfig.Empty"/>. Does not raise
+    /// file yields <see cref="ConfigSnapshot.Empty"/>. Does not raise
     /// <see cref="Changed"/>.
     /// </summary>
     /// <param name="cancellationToken">Cancels the read.</param>
     /// <returns>The loaded snapshot.</returns>
-    public async Task<AutoContextConfig> LoadAsync(CancellationToken cancellationToken = default)
+    public async Task<ConfigSnapshot> LoadAsync(CancellationToken cancellationToken = default)
     {
         await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
 
         try
         {
             var (json, signature) = await ReadSnapshotAsync(cancellationToken).ConfigureAwait(false);
-            var next = json.ToDomain();
+            var next = json.ToDomainGraph();
 
             _lastSignature = signature;
             Volatile.Write(ref _current, next);
@@ -185,7 +186,7 @@ internal sealed partial class AutoContextConfigManager : IConfigUpdater, IDispos
     /// <param name="cancellationToken">Cancels the read.</param>
     public async Task RefreshAsync(CancellationToken cancellationToken = default)
     {
-        AutoContextConfig next;
+        ConfigSnapshot next;
 
         await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
 
@@ -198,7 +199,7 @@ internal sealed partial class AutoContextConfigManager : IConfigUpdater, IDispos
                 return;
             }
 
-            next = json.ToDomain();
+            next = json.ToDomainGraph();
             _lastSignature = signature;
             Volatile.Write(ref _current, next);
         }
@@ -221,12 +222,12 @@ internal sealed partial class AutoContextConfigManager : IConfigUpdater, IDispos
     /// <param name="edit">Pure transform of the current snapshot.</param>
     /// <param name="cancellationToken">Cancels the write.</param>
     public async Task UpdateAsync(
-        Func<AutoContextConfig, AutoContextConfig> edit,
+        Func<ConfigSnapshot, ConfigSnapshot> edit,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(edit);
 
-        AutoContextConfig next;
+        ConfigSnapshot next;
 
         await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
 
@@ -240,8 +241,8 @@ internal sealed partial class AutoContextConfigManager : IConfigUpdater, IDispos
                 return;
             }
 
-            var json = edited.ToJson();
-            next = json.IsEmpty ? AutoContextConfig.Empty : edited with { Version = _engineVersion };
+            var json = edited.ToFileFormat();
+            next = json.IsEmpty ? ConfigSnapshot.Empty : edited with { Version = _engineVersion };
             await PersistAsync(json, cancellationToken).ConfigureAwait(false);
             Volatile.Write(ref _current, next);
         }
@@ -267,7 +268,7 @@ internal sealed partial class AutoContextConfigManager : IConfigUpdater, IDispos
     /// <returns>A task that completes once the batch containing this edit
     /// has been applied.</returns>
     public Task UpdateBatchAsync(
-        Func<AutoContextConfig, AutoContextConfig> edit,
+        Func<ConfigSnapshot, ConfigSnapshot> edit,
         CancellationToken cancellationToken = default)
         => _writer.EnqueueAsync(edit, cancellationToken);
 
@@ -317,7 +318,7 @@ internal sealed partial class AutoContextConfigManager : IConfigUpdater, IDispos
         }
     }
 
-    private async Task PersistAsync(JsonAutoContextConfig config, CancellationToken cancellationToken)
+    private async Task PersistAsync(JsonConfigFile config, CancellationToken cancellationToken)
     {
         if (config.IsEmpty)
         {
@@ -361,12 +362,12 @@ internal sealed partial class AutoContextConfigManager : IConfigUpdater, IDispos
         }
     }
 
-    private async Task<(JsonAutoContextConfig Json, string Signature)> ReadSnapshotAsync(
+    private async Task<(JsonConfigFile Json, string Signature)> ReadSnapshotAsync(
         CancellationToken cancellationToken)
     {
         if (!File.Exists(_configPath))
         {
-            return (JsonAutoContextConfig.Empty, DeletedSignature);
+            return (JsonConfigFile.Empty, DeletedSignature);
         }
 
         try
@@ -380,16 +381,16 @@ internal sealed partial class AutoContextConfigManager : IConfigUpdater, IDispos
             }
 
             LogCorruptConfig(_logger, _configPath);
-            return (JsonAutoContextConfig.Empty, signature);
+            return (JsonConfigFile.Empty, signature);
         }
         catch (FileNotFoundException)
         {
-            return (JsonAutoContextConfig.Empty, DeletedSignature);
+            return (JsonConfigFile.Empty, DeletedSignature);
         }
         catch (IOException ex)
         {
             LogReadFailed(_logger, _configPath, ex);
-            return (JsonAutoContextConfig.Empty, DeletedSignature);
+            return (JsonConfigFile.Empty, DeletedSignature);
         }
     }
 

@@ -1,4 +1,4 @@
-namespace AutoContext.Engine.Core.Workspace.Config;
+namespace AutoContext.Engine.Core.Workspace.Config.Snapshot;
 
 /// <summary>
 /// Immutable state of a single MCP tool from the <c>mcpTools</c>
@@ -6,7 +6,7 @@ namespace AutoContext.Engine.Core.Workspace.Config;
 /// disabled, the version its state was captured against, and the
 /// individual tasks turned off within it. Pure data.
 /// </summary>
-internal sealed record McpToolConfig
+internal sealed record ConfigMcpTool
 {
     /// <summary>
     /// <see langword="true"/> when the whole tool is disabled.

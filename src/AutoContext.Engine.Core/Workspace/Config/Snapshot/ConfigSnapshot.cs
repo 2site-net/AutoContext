@@ -1,4 +1,4 @@
-namespace AutoContext.Engine.Core.Workspace.Config;
+namespace AutoContext.Engine.Core.Workspace.Config.Snapshot;
 
 using AutoContext.Engine.Core.Workspace.Config.Format;
 
@@ -7,32 +7,32 @@ using AutoContext.Engine.Core.Workspace.Config.Format;
 /// <c>.autocontext.json</c>, modelled as a composed graph that mirrors
 /// the file's structure: a top-level version, an optional diagnostic
 /// block, and the per-instruction-file and per-MCP-tool entries. Pure
-/// data with no behaviour — <see cref="AutoContextConfigManager"/> maps
-/// it to and from the on-disk <see cref="JsonAutoContextConfig"/> wire
+/// data with no behaviour — <see cref="ConfigFileManager"/> maps
+/// it to and from the on-disk <see cref="JsonConfigFile"/> wire
 /// shape and owns the live snapshot.
 /// </summary>
-internal sealed record AutoContextConfig
+internal sealed record ConfigSnapshot
 {
     /// <summary>
     /// The shared empty snapshot: no version, no diagnostic block, and
     /// no entries.
     /// </summary>
-    public static AutoContextConfig Empty { get; } = new();
+    public static ConfigSnapshot Empty { get; } = new();
 
     /// <summary>
     /// Optional diagnostic preferences, carried through verbatim.
     /// </summary>
-    public DiagnosticConfig? Diagnostic { get; init; }
+    public ConfigDiagnostic? Diagnostic { get; init; }
 
     /// <summary>
     /// Per-instruction-file entries, in the order they appear on disk.
     /// </summary>
-    public InstructionsFileConfig[] Instructions { get; init; } = [];
+    public ConfigInstructionsFile[] Instructions { get; init; } = [];
 
     /// <summary>
     /// Per-MCP-tool entries, in the order they appear on disk.
     /// </summary>
-    public McpToolConfig[] McpTools { get; init; } = [];
+    public ConfigMcpTool[] McpTools { get; init; } = [];
 
     /// <summary>
     /// Full semver of the engine build that last wrote the file.

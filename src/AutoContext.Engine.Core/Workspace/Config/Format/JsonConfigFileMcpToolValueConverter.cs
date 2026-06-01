@@ -6,28 +6,28 @@ using System.Text.Json.Serialization;
 /// <summary>
 /// Serializes a <c>mcpTools</c> value that is either an object or the
 /// literal <c>false</c>. On read, a <c>false</c> token becomes
-/// <see cref="JsonMcpToolConfigValue.Disabled"/> and an object token
-/// becomes <see cref="JsonMcpToolConfigValue.FromEntry"/>; on write
+/// <see cref="JsonConfigFileMcpToolValue.Disabled"/> and an object token
+/// becomes <see cref="JsonConfigFileMcpToolValue.FromEntry"/>; on write
 /// the mapping is reversed, so the bare-<c>false</c> shorthand
 /// survives a load/save round-trip.
 /// </summary>
-internal sealed class JsonMcpToolConfigValueConverter : JsonConverter<JsonMcpToolConfigValue>
+internal sealed class JsonConfigFileMcpToolValueConverter : JsonConverter<JsonConfigFileMcpToolValue>
 {
-    public override JsonMcpToolConfigValue Read(
+    public override JsonConfigFileMcpToolValue Read(
         ref Utf8JsonReader reader,
         Type typeToConvert,
         JsonSerializerOptions options)
     {
         if (reader.TokenType == JsonTokenType.False)
         {
-            return JsonMcpToolConfigValue.Disabled;
+            return JsonConfigFileMcpToolValue.Disabled;
         }
 
         if (reader.TokenType == JsonTokenType.StartObject)
         {
-            var entry = JsonSerializer.Deserialize<JsonMcpToolConfigEntry>(ref reader, options)
+            var entry = JsonSerializer.Deserialize<JsonConfigFileMcpToolEntry>(ref reader, options)
                 ?? throw new JsonException("Expected an mcpTools entry object.");
-            return JsonMcpToolConfigValue.FromEntry(entry);
+            return JsonConfigFileMcpToolValue.FromEntry(entry);
         }
 
         throw new JsonException(
@@ -36,7 +36,7 @@ internal sealed class JsonMcpToolConfigValueConverter : JsonConverter<JsonMcpToo
 
     public override void Write(
         Utf8JsonWriter writer,
-        JsonMcpToolConfigValue value,
+        JsonConfigFileMcpToolValue value,
         JsonSerializerOptions options)
     {
         ArgumentNullException.ThrowIfNull(writer);

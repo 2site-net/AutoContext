@@ -1,5 +1,7 @@
 namespace AutoContext.Engine.Core;
 
+using System.Reflection;
+
 using AutoContext.Engine.Core.Infrastructure;
 using AutoContext.Engine.Core.Infrastructure.Diagnostics;
 using AutoContext.Engine.Core.Infrastructure.Storage;
@@ -10,6 +12,7 @@ using AutoContext.Engine.Core.Machine;
 using AutoContext.Engine.Core.Machine.Housekeeping;
 using AutoContext.Engine.Core.Registry;
 using AutoContext.Engine.Core.Watchdogs;
+using AutoContext.Engine.Core.Workspace.Config;
 using AutoContext.Framework.Pipes;
 
 using Microsoft.Extensions.DependencyInjection;
@@ -257,9 +260,49 @@ public static class EngineHostBuilderExtensions
         builder.Services.TryAddSingleton<PipeTransport>();
         builder.Services.TryAddSingleton<IUniqueInstanceGuard, PerWorkspaceInstanceGuard>();
 
+        // Workspace config store. The manager owns the in-memory
+        // .autocontext.json snapshot for this workspace; it is the
+        // singleton source both the Config.Get RPC handler (via the
+        // IConfigSnapshotAccessor read seam) and future config writers
+        // resolve. ConfigStoreService loads the snapshot from disk
+        // and arms the file watcher at startup. Registered BEFORE
+        // LifecycleService so it starts first — the snapshot is
+        // populated before the first rpc connection can issue
+        // Config.Get — and stops after the pipes are torn down. The
+        // manager is an IDisposable singleton the container disposes
+        // on host stop.
+        builder.Services.TryAddSingleton(sp =>
+        {
+            var options = sp.GetRequiredService<IOptions<EngineOptions>>().Value;
+            return new ConfigFileManager(
+                options.WorkspacePath,
+                ResolveEngineVersion(),
+                logger: sp.GetService<ILogger<ConfigFileManager>>(),
+                timeProvider: sp.GetRequiredService<TimeProvider>());
+        });
+        builder.Services.TryAddSingleton<IConfigSnapshotAccessor>(
+            sp => sp.GetRequiredService<ConfigFileManager>());
+        builder.Services.TryAddEnumerable(
+            ServiceDescriptor.Singleton<IHostedService, ConfigFileService>());
+
         builder.Services.TryAddEnumerable(
             ServiceDescriptor.Singleton<IHostedService, LifecycleService>());
 
         return builder;
+    }
+
+    private static string ResolveEngineVersion()
+    {
+        var assembly = typeof(EngineHostBuilderExtensions).Assembly;
+        var informational = assembly
+            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()
+            ?.InformationalVersion;
+
+        if (!string.IsNullOrWhiteSpace(informational))
+        {
+            return informational;
+        }
+
+        return assembly.GetName().Version?.ToString() ?? "0.0.0";
     }
 }

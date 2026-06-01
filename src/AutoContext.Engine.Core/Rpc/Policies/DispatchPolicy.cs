@@ -8,9 +8,11 @@ using AutoContext.Engine.Core.Logging;
 using AutoContext.Engine.Core.Logging.Primitives;
 using AutoContext.Engine.Core.Registry;
 using AutoContext.Engine.Core.Rpc.Results;
+using AutoContext.Engine.Core.Workspace.Config;
 using AutoContext.Engine.Protocol;
 using AutoContext.Engine.Protocol.JsonRpc;
 using AutoContext.Engine.Protocol.Messages;
+using AutoContext.Engine.Protocol.Messages.Config;
 using AutoContext.Engine.Protocol.Messages.Logs;
 using AutoContext.Engine.Protocol.Messages.Registry;
 using AutoContext.Engine.Protocol.Serialization;
@@ -55,6 +57,7 @@ internal sealed partial class DispatchPolicy : IRpcConnectionPolicy
     private readonly RegistryFileReader _registryReader;
     private readonly EngineLogFileReader _logFileReader;
     private readonly LogSubscriptionBroadcaster _logsBroadcaster;
+    private readonly IConfigSnapshotAccessor _configAccessor;
     private readonly ILogger _logger;
 
     public DispatchPolicy(
@@ -62,18 +65,21 @@ internal sealed partial class DispatchPolicy : IRpcConnectionPolicy
         RegistryFileReader registryReader,
         EngineLogFileReader logFileReader,
         LogSubscriptionBroadcaster logsBroadcaster,
+        IConfigSnapshotAccessor configAccessor,
         ILogger logger)
     {
         ArgumentNullException.ThrowIfNull(lifetime);
         ArgumentNullException.ThrowIfNull(registryReader);
         ArgumentNullException.ThrowIfNull(logFileReader);
         ArgumentNullException.ThrowIfNull(logsBroadcaster);
+        ArgumentNullException.ThrowIfNull(configAccessor);
         ArgumentNullException.ThrowIfNull(logger);
 
         _lifetime = lifetime;
         _registryReader = registryReader;
         _logFileReader = logFileReader;
         _logsBroadcaster = logsBroadcaster;
+        _configAccessor = configAccessor;
         _logger = logger;
     }
 
@@ -117,6 +123,9 @@ internal sealed partial class DispatchPolicy : IRpcConnectionPolicy
 
             case LogsMethods.TailEngine:
                 return HandleLogsTailEngine();
+
+            case ConfigMethods.Get:
+                return HandleConfigGet();
 
             case ProtocolMethods.Shutdown:
                 return HandleShutdown();
@@ -274,6 +283,17 @@ internal sealed partial class DispatchPolicy : IRpcConnectionPolicy
             yield return JsonSerializer.SerializeToElement(
                 frame, ProtocolJsonContext.Default.JsonLogStreamFrame);
         }
+    }
+
+    private UnaryHandlerResult HandleConfigGet()
+    {
+        var snapshot = _configAccessor.Current.ToWireFormat();
+        var resultElement = JsonSerializer.SerializeToElement(
+            snapshot, ProtocolJsonContext.Default.JsonConfigSnapshot);
+
+        return new UnaryHandlerResult(
+            Response: new JsonRpcResponse { Result = resultElement },
+            Continuation: Continuation.Continue);
     }
 
     private UnaryHandlerResult HandleShutdown()

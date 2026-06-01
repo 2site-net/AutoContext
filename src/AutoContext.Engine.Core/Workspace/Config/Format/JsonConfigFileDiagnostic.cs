@@ -10,5 +10,5 @@ using System.Text.Json.Serialization;
 /// <param name="WarnOnMissingId">When <see langword="false"/>,
 /// suppresses the warning emitted for instruction rules that lack an
 /// <c>id</c>. Absent when the user never set it.</param>
-internal sealed record JsonDiagnosticConfig(
+internal sealed record JsonConfigFileDiagnostic(
     [property: JsonPropertyName("warnOnMissingId")] bool? WarnOnMissingId = null);

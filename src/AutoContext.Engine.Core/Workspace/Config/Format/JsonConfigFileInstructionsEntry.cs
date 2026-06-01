@@ -18,7 +18,7 @@ using System.Text.Json.Serialization;
 /// <param name="DisabledInstructions">Ids of individual rules the
 /// user has turned off. Absent (not an empty array) when no rule is
 /// disabled.</param>
-internal sealed record JsonInstructionsFileConfigEntry(
+internal sealed record JsonConfigFileInstructionsEntry(
     [property: JsonPropertyName("version")] string? Version = null,
     [property: JsonPropertyName("enabled")] bool? Enabled = null,
     [property: JsonPropertyName("disabledInstructions")] IReadOnlyList<string>? DisabledInstructions = null);

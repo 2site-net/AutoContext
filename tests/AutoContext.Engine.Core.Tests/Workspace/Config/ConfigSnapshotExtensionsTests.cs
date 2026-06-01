@@ -1,16 +1,17 @@
 namespace AutoContext.Engine.Core.Tests.Workspace.Config;
 
 using AutoContext.Engine.Core.Workspace.Config;
+using AutoContext.Engine.Core.Workspace.Config.Snapshot;
 
-public sealed class AutoContextConfigExtensionsTests
+public sealed class ConfigSnapshotExtensionsTests
 {
-    public sealed class ToJson
+    public sealed class ToFileFormat
     {
         [Fact]
         public void Should_produce_empty_json_for_empty_graph()
         {
             // Act
-            var json = AutoContextConfig.Empty.ToJson();
+            var json = ConfigSnapshot.Empty.ToFileFormat();
 
             // Assert
             Assert.True(json.IsEmpty);
@@ -20,13 +21,13 @@ public sealed class AutoContextConfigExtensionsTests
         public void Should_drop_instruction_file_without_state()
         {
             // Arrange
-            var config = AutoContextConfig.Empty with
+            var config = ConfigSnapshot.Empty with
             {
-                Instructions = [new InstructionsFileConfig { Name = "a.md", Version = "1.0" }],
+                Instructions = [new ConfigInstructionsFile { Name = "a.md", Version = "1.0" }],
             };
 
             // Act
-            var json = config.ToJson();
+            var json = config.ToFileFormat();
 
             // Assert
             Assert.Null(json.Instructions);
@@ -36,22 +37,22 @@ public sealed class AutoContextConfigExtensionsTests
         public void Should_emit_disabled_instruction_file_with_rules()
         {
             // Arrange
-            var config = AutoContextConfig.Empty with
+            var config = ConfigSnapshot.Empty with
             {
                 Instructions =
                 [
-                    new InstructionsFileConfig
+                    new ConfigInstructionsFile
                     {
                         Name = "a.md",
                         Disabled = true,
                         Version = "1.0",
-                        Rules = [new InstructionsFileConfig.InstructionsRule { Id = "x", Disabled = true }],
+                        Rules = [new ConfigInstructionsFile.InstructionsRule { Id = "x", Disabled = true }],
                     },
                 ],
             };
 
             // Act
-            var json = config.ToJson();
+            var json = config.ToFileFormat();
 
             // Assert
             var entry = Assert.Single(json.Instructions!);
@@ -67,13 +68,13 @@ public sealed class AutoContextConfigExtensionsTests
         public void Should_emit_shorthand_for_disabled_only_tool()
         {
             // Arrange
-            var config = AutoContextConfig.Empty with
+            var config = ConfigSnapshot.Empty with
             {
-                McpTools = [new McpToolConfig { Name = "t1", Disabled = true }],
+                McpTools = [new ConfigMcpTool { Name = "t1", Disabled = true }],
             };
 
             // Act
-            var json = config.ToJson();
+            var json = config.ToFileFormat();
 
             // Assert
             var entry = Assert.Single(json.McpTools!);
@@ -87,21 +88,21 @@ public sealed class AutoContextConfigExtensionsTests
         public void Should_emit_object_for_tool_with_disabled_tasks()
         {
             // Arrange
-            var config = AutoContextConfig.Empty with
+            var config = ConfigSnapshot.Empty with
             {
                 McpTools =
                 [
-                    new McpToolConfig
+                    new ConfigMcpTool
                     {
                         Name = "t2",
                         Version = "2.0",
-                        Tasks = [new McpToolConfig.McpTask { Name = "k", Disabled = true }],
+                        Tasks = [new ConfigMcpTool.McpTask { Name = "k", Disabled = true }],
                     },
                 ],
             };
 
             // Act
-            var json = config.ToJson();
+            var json = config.ToFileFormat();
 
             // Assert
             var entry = Assert.Single(json.McpTools!);
@@ -117,20 +118,20 @@ public sealed class AutoContextConfigExtensionsTests
         public void Should_drop_tool_without_state()
         {
             // Arrange
-            var config = AutoContextConfig.Empty with
+            var config = ConfigSnapshot.Empty with
             {
                 McpTools =
                 [
-                    new McpToolConfig
+                    new ConfigMcpTool
                     {
                         Name = "t3",
-                        Tasks = [new McpToolConfig.McpTask { Name = "k", Disabled = null }],
+                        Tasks = [new ConfigMcpTool.McpTask { Name = "k", Disabled = null }],
                     },
                 ],
             };
 
             // Act
-            var json = config.ToJson();
+            var json = config.ToFileFormat();
 
             // Assert
             Assert.Null(json.McpTools);

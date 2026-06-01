@@ -1,4 +1,4 @@
-namespace AutoContext.Engine.Core.Workspace.Config;
+namespace AutoContext.Engine.Core.Workspace.Config.Snapshot;
 
 /// <summary>
 /// Immutable state of a single instruction file from the
@@ -6,7 +6,7 @@ namespace AutoContext.Engine.Core.Workspace.Config;
 /// whole file is disabled, the version its rule state was captured
 /// against, and the individual rules turned off within it. Pure data.
 /// </summary>
-internal sealed record InstructionsFileConfig
+internal sealed record ConfigInstructionsFile
 {
     /// <summary>
     /// <see langword="true"/> when the whole instruction file is

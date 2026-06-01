@@ -13,9 +13,9 @@ public sealed class ConfigFileFormatTests
         public void Should_write_canonical_camelcase_json_with_trailing_newline()
         {
             // Arrange
-            var config = new JsonAutoContextConfig
+            var config = new JsonConfigFile
             {
-                Instructions = new Dictionary<string, JsonInstructionsFileConfigEntry>
+                Instructions = new Dictionary<string, JsonConfigFileInstructionsEntry>
                 {
                     ["a.md"] = new()
                     {
@@ -24,11 +24,11 @@ public sealed class ConfigFileFormatTests
                         DisabledInstructions = ["x"],
                     },
                 },
-                McpTools = new Dictionary<string, JsonMcpToolConfigValue>
+                McpTools = new Dictionary<string, JsonConfigFileMcpToolValue>
                 {
-                    ["t1"] = JsonMcpToolConfigValue.Disabled,
-                    ["t2"] = JsonMcpToolConfigValue.FromEntry(
-                        new JsonMcpToolConfigEntry { Enabled = false, DisabledTasks = ["k"] }),
+                    ["t1"] = JsonConfigFileMcpToolValue.Disabled,
+                    ["t2"] = JsonConfigFileMcpToolValue.FromEntry(
+                        new JsonConfigFileMcpToolEntry { Enabled = false, DisabledTasks = ["k"] }),
                 },
             };
 
@@ -98,13 +98,13 @@ public sealed class ConfigFileFormatTests
         {
             // Arrange
             var original = ConfigFileFormat.Serialize(
-                new JsonAutoContextConfig
+                new JsonConfigFile
                 {
-                    McpTools = new Dictionary<string, JsonMcpToolConfigValue>
+                    McpTools = new Dictionary<string, JsonConfigFileMcpToolValue>
                     {
-                        ["t1"] = JsonMcpToolConfigValue.Disabled,
-                        ["t2"] = JsonMcpToolConfigValue.FromEntry(
-                            new JsonMcpToolConfigEntry { Enabled = false, DisabledTasks = ["k"] }),
+                        ["t1"] = JsonConfigFileMcpToolValue.Disabled,
+                        ["t2"] = JsonConfigFileMcpToolValue.FromEntry(
+                            new JsonConfigFileMcpToolEntry { Enabled = false, DisabledTasks = ["k"] }),
                     },
                 },
                 "1.2.3");

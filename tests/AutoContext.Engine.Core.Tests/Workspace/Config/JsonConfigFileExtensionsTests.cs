@@ -2,16 +2,17 @@ namespace AutoContext.Engine.Core.Tests.Workspace.Config;
 
 using AutoContext.Engine.Core.Workspace.Config;
 using AutoContext.Engine.Core.Workspace.Config.Format;
+using AutoContext.Engine.Core.Workspace.Config.Snapshot;
 
-public sealed class JsonAutoContextConfigExtensionsTests
+public sealed class JsonConfigFileExtensionsTests
 {
-    public sealed class ToDomain
+    public sealed class ToDomainGraph
     {
         [Fact]
         public void Should_return_empty_graph_for_empty_json()
         {
             // Act
-            var config = JsonAutoContextConfig.Empty.ToDomain();
+            var config = JsonConfigFile.Empty.ToDomainGraph();
 
             // Assert
             Assert.Multiple(
@@ -25,14 +26,14 @@ public sealed class JsonAutoContextConfigExtensionsTests
         public void Should_map_version_and_diagnostic()
         {
             // Arrange
-            var json = new JsonAutoContextConfig
+            var json = new JsonConfigFile
             {
                 Version = "1.2.3",
-                Diagnostic = new JsonDiagnosticConfig(WarnOnMissingId: false),
+                Diagnostic = new JsonConfigFileDiagnostic(WarnOnMissingId: false),
             };
 
             // Act
-            var config = json.ToDomain();
+            var config = json.ToDomainGraph();
 
             // Assert
             Assert.Multiple(
@@ -44,9 +45,9 @@ public sealed class JsonAutoContextConfigExtensionsTests
         public void Should_map_instruction_file_with_disabled_rules()
         {
             // Arrange
-            var json = new JsonAutoContextConfig
+            var json = new JsonConfigFile
             {
-                Instructions = new Dictionary<string, JsonInstructionsFileConfigEntry>
+                Instructions = new Dictionary<string, JsonConfigFileInstructionsEntry>
                 {
                     ["a.md"] = new()
                     {
@@ -58,7 +59,7 @@ public sealed class JsonAutoContextConfigExtensionsTests
             };
 
             // Act
-            var config = json.ToDomain();
+            var config = json.ToDomainGraph();
 
             // Assert
             var file = Assert.Single(config.Instructions);
@@ -75,16 +76,16 @@ public sealed class JsonAutoContextConfigExtensionsTests
         public void Should_map_shorthand_disabled_tool()
         {
             // Arrange
-            var json = new JsonAutoContextConfig
+            var json = new JsonConfigFile
             {
-                McpTools = new Dictionary<string, JsonMcpToolConfigValue>
+                McpTools = new Dictionary<string, JsonConfigFileMcpToolValue>
                 {
-                    ["t1"] = JsonMcpToolConfigValue.Disabled,
+                    ["t1"] = JsonConfigFileMcpToolValue.Disabled,
                 },
             };
 
             // Act
-            var config = json.ToDomain();
+            var config = json.ToDomainGraph();
 
             // Assert
             var tool = Assert.Single(config.McpTools);
@@ -100,17 +101,17 @@ public sealed class JsonAutoContextConfigExtensionsTests
         public void Should_map_object_tool_with_disabled_tasks()
         {
             // Arrange
-            var json = new JsonAutoContextConfig
+            var json = new JsonConfigFile
             {
-                McpTools = new Dictionary<string, JsonMcpToolConfigValue>
+                McpTools = new Dictionary<string, JsonConfigFileMcpToolValue>
                 {
-                    ["t2"] = JsonMcpToolConfigValue.FromEntry(
-                        new JsonMcpToolConfigEntry { Version = "2.0", DisabledTasks = ["k"] }),
+                    ["t2"] = JsonConfigFileMcpToolValue.FromEntry(
+                        new JsonConfigFileMcpToolEntry { Version = "2.0", DisabledTasks = ["k"] }),
                 },
             };
 
             // Act
-            var config = json.ToDomain();
+            var config = json.ToDomainGraph();
 
             // Assert
             var tool = Assert.Single(config.McpTools);

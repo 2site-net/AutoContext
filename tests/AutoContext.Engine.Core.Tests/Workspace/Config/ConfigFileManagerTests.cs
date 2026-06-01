@@ -3,10 +3,11 @@ namespace AutoContext.Engine.Core.Tests.Workspace.Config;
 using AutoContext.Engine.Core.Tests.Support.Shared;
 using AutoContext.Engine.Core.Tests.Support.Workspace.Config;
 using AutoContext.Engine.Core.Workspace.Config;
+using AutoContext.Engine.Core.Workspace.Config.Snapshot;
 
 using Microsoft.Extensions.Time.Testing;
 
-public sealed class AutoContextConfigManagerTests
+public sealed class ConfigFileManagerTests
 {
     public sealed class LoadAsync(TempDirectoryFixture tempDirectory)
         : IClassFixture<TempDirectoryFixture>
@@ -15,7 +16,7 @@ public sealed class AutoContextConfigManagerTests
         public async Task Should_return_empty_when_file_missing()
         {
             // Arrange
-            using var manager = AutoContextConfigTestFactory.Create(tempDirectory.CreateDirectory());
+            using var manager = ConfigFileManagerTestFactory.Create(tempDirectory.CreateDirectory());
 
             // Act
             var config = await manager.LoadAsync(TestContext.Current.CancellationToken);
@@ -33,7 +34,7 @@ public sealed class AutoContextConfigManagerTests
             // Arrange
             var workspace = tempDirectory.CreateDirectory();
 
-            using (var writer = AutoContextConfigTestFactory.Create(workspace))
+            using (var writer = ConfigFileManagerTestFactory.Create(workspace))
             {
                 await writer.LoadAsync(TestContext.Current.CancellationToken);
                 await writer.UpdateAsync(
@@ -41,18 +42,18 @@ public sealed class AutoContextConfigManagerTests
                     {
                         Instructions =
                         [
-                            new InstructionsFileConfig
+                            new ConfigInstructionsFile
                             {
                                 Name = "a.md",
                                 Version = "1.0",
-                                Rules = [new InstructionsFileConfig.InstructionsRule { Id = "x", Disabled = true }],
+                                Rules = [new ConfigInstructionsFile.InstructionsRule { Id = "x", Disabled = true }],
                             },
                         ],
                     },
                     TestContext.Current.CancellationToken);
             }
 
-            using var reader = AutoContextConfigTestFactory.Create(workspace);
+            using var reader = ConfigFileManagerTestFactory.Create(workspace);
 
             // Act
             var config = await reader.LoadAsync(TestContext.Current.CancellationToken);
@@ -73,7 +74,7 @@ public sealed class AutoContextConfigManagerTests
         {
             // Arrange
             var workspace = tempDirectory.CreateDirectory();
-            using var manager = AutoContextConfigTestFactory.Create(workspace);
+            using var manager = ConfigFileManagerTestFactory.Create(workspace);
             await File.WriteAllTextAsync(
                 manager.ConfigPath,
                 "not json",
@@ -94,20 +95,20 @@ public sealed class AutoContextConfigManagerTests
         public async Task Should_stamp_engine_version_and_publish_snapshot()
         {
             // Arrange
-            using var manager = AutoContextConfigTestFactory.Create(tempDirectory.CreateDirectory());
+            using var manager = ConfigFileManagerTestFactory.Create(tempDirectory.CreateDirectory());
             await manager.LoadAsync(TestContext.Current.CancellationToken);
 
             // Act
             await manager.UpdateAsync(
                 config => config with
                 {
-                    McpTools = [new McpToolConfig { Name = "t1", Disabled = true }],
+                    McpTools = [new ConfigMcpTool { Name = "t1", Disabled = true }],
                 },
                 TestContext.Current.CancellationToken);
 
             // Assert
             Assert.Multiple(
-                () => Assert.Equal(AutoContextConfigTestFactory.EngineVersion, manager.Current.Version),
+                () => Assert.Equal(ConfigFileManagerTestFactory.EngineVersion, manager.Current.Version),
                 () => Assert.Equal("t1", Assert.Single(manager.Current.McpTools).Name),
                 () => Assert.True(File.Exists(manager.ConfigPath)));
         }
@@ -116,15 +117,15 @@ public sealed class AutoContextConfigManagerTests
         public async Task Should_raise_changed_with_new_snapshot()
         {
             // Arrange
-            using var manager = AutoContextConfigTestFactory.Create(tempDirectory.CreateDirectory());
+            using var manager = ConfigFileManagerTestFactory.Create(tempDirectory.CreateDirectory());
             await manager.LoadAsync(TestContext.Current.CancellationToken);
 
-            AutoContextConfig? observed = null;
+            ConfigSnapshot? observed = null;
             manager.Changed += (_, snapshot) => observed = snapshot;
 
             // Act
             await manager.UpdateAsync(
-                config => config with { McpTools = [new McpToolConfig { Name = "t1", Disabled = true }] },
+                config => config with { McpTools = [new ConfigMcpTool { Name = "t1", Disabled = true }] },
                 TestContext.Current.CancellationToken);
 
             // Assert
@@ -135,7 +136,7 @@ public sealed class AutoContextConfigManagerTests
         public async Task Should_not_write_or_raise_changed_on_no_op()
         {
             // Arrange
-            using var manager = AutoContextConfigTestFactory.Create(tempDirectory.CreateDirectory());
+            using var manager = ConfigFileManagerTestFactory.Create(tempDirectory.CreateDirectory());
             await manager.LoadAsync(TestContext.Current.CancellationToken);
 
             var raised = false;
@@ -154,10 +155,10 @@ public sealed class AutoContextConfigManagerTests
         public async Task Should_delete_file_when_edit_empties_config()
         {
             // Arrange
-            using var manager = AutoContextConfigTestFactory.Create(tempDirectory.CreateDirectory());
+            using var manager = ConfigFileManagerTestFactory.Create(tempDirectory.CreateDirectory());
             await manager.LoadAsync(TestContext.Current.CancellationToken);
             await manager.UpdateAsync(
-                config => config with { McpTools = [new McpToolConfig { Name = "t1", Disabled = true }] },
+                config => config with { McpTools = [new ConfigMcpTool { Name = "t1", Disabled = true }] },
                 TestContext.Current.CancellationToken);
 
             // Act
@@ -179,7 +180,7 @@ public sealed class AutoContextConfigManagerTests
         public async Task Should_adopt_external_change_and_raise_changed()
         {
             // Arrange
-            using var manager = AutoContextConfigTestFactory.Create(tempDirectory.CreateDirectory());
+            using var manager = ConfigFileManagerTestFactory.Create(tempDirectory.CreateDirectory());
             await manager.LoadAsync(TestContext.Current.CancellationToken);
 
             var raised = false;
@@ -204,10 +205,10 @@ public sealed class AutoContextConfigManagerTests
         public async Task Should_ignore_echo_of_own_write()
         {
             // Arrange
-            using var manager = AutoContextConfigTestFactory.Create(tempDirectory.CreateDirectory());
+            using var manager = ConfigFileManagerTestFactory.Create(tempDirectory.CreateDirectory());
             await manager.LoadAsync(TestContext.Current.CancellationToken);
             await manager.UpdateAsync(
-                config => config with { McpTools = [new McpToolConfig { Name = "t1", Disabled = true }] },
+                config => config with { McpTools = [new ConfigMcpTool { Name = "t1", Disabled = true }] },
                 TestContext.Current.CancellationToken);
 
             var raised = false;
@@ -224,10 +225,10 @@ public sealed class AutoContextConfigManagerTests
         public async Task Should_adopt_external_delete()
         {
             // Arrange
-            using var manager = AutoContextConfigTestFactory.Create(tempDirectory.CreateDirectory());
+            using var manager = ConfigFileManagerTestFactory.Create(tempDirectory.CreateDirectory());
             await manager.LoadAsync(TestContext.Current.CancellationToken);
             await manager.UpdateAsync(
-                config => config with { McpTools = [new McpToolConfig { Name = "t1", Disabled = true }] },
+                config => config with { McpTools = [new ConfigMcpTool { Name = "t1", Disabled = true }] },
                 TestContext.Current.CancellationToken);
 
             // Act
@@ -249,7 +250,7 @@ public sealed class AutoContextConfigManagerTests
         {
             // Arrange
             var time = new FakeTimeProvider();
-            using var manager = AutoContextConfigTestFactory.Create(
+            using var manager = ConfigFileManagerTestFactory.Create(
                 tempDirectory.CreateDirectory(), timeProvider: time, batchWindow: Window);
             await manager.LoadAsync(TestContext.Current.CancellationToken);
 
@@ -282,10 +283,10 @@ public sealed class AutoContextConfigManagerTests
             await target;
         }
 
-        private static Func<AutoContextConfig, AutoContextConfig> AppendTool(string name)
+        private static Func<ConfigSnapshot, ConfigSnapshot> AppendTool(string name)
             => config => config with
             {
-                McpTools = [.. config.McpTools, new McpToolConfig { Name = name, Disabled = true }],
+                McpTools = [.. config.McpTools, new ConfigMcpTool { Name = name, Disabled = true }],
             };
     }
 }

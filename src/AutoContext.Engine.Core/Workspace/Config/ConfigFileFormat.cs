@@ -43,7 +43,7 @@ internal static class ConfigFileFormat
     /// <param name="engineVersion">Full semver stamped into
     /// <c>version</c>.</param>
     /// <returns>UTF-8 bytes including the trailing newline.</returns>
-    public static byte[] Serialize(JsonAutoContextConfig config, string engineVersion)
+    public static byte[] Serialize(JsonConfigFile config, string engineVersion)
     {
         ArgumentNullException.ThrowIfNull(config);
         ArgumentException.ThrowIfNullOrWhiteSpace(engineVersion);
@@ -56,20 +56,20 @@ internal static class ConfigFileFormat
     /// <summary>
     /// Tries to parse <paramref name="bytes"/> into a normalised
     /// config. Empty input parses successfully to
-    /// <see cref="JsonAutoContextConfig.Empty"/>; malformed JSON
+    /// <see cref="JsonConfigFile.Empty"/>; malformed JSON
     /// returns <see langword="false"/>.
     /// </summary>
     /// <param name="bytes">Raw file bytes.</param>
     /// <param name="config">The parsed config on success;
-    /// <see cref="JsonAutoContextConfig.Empty"/> on failure.</param>
+    /// <see cref="JsonConfigFile.Empty"/> on failure.</param>
     /// <returns><see langword="true"/> when the bytes parsed
     /// (including the empty-file case); otherwise
     /// <see langword="false"/>.</returns>
-    public static bool TryDeserialize(byte[] bytes, out JsonAutoContextConfig config)
+    public static bool TryDeserialize(byte[] bytes, out JsonConfigFile config)
     {
         ArgumentNullException.ThrowIfNull(bytes);
 
-        config = JsonAutoContextConfig.Empty;
+        config = JsonConfigFile.Empty;
 
         if (bytes.Length == 0)
         {
@@ -78,7 +78,7 @@ internal static class ConfigFileFormat
 
         try
         {
-            var parsed = JsonSerializer.Deserialize<JsonAutoContextConfig>(bytes, SerializerOptions);
+            var parsed = JsonSerializer.Deserialize<JsonConfigFile>(bytes, SerializerOptions);
 
             if (parsed is null)
             {
@@ -102,7 +102,7 @@ internal static class ConfigFileFormat
     /// hand-edited file (empty arrays, <c>enabled: true</c>, empty
     /// maps) parses to the same canonical form the engine writes.
     /// </summary>
-    private static JsonAutoContextConfig Normalize(JsonAutoContextConfig parsed)
+    private static JsonConfigFile Normalize(JsonConfigFile parsed)
         => new()
         {
             Version = parsed.Version,
@@ -111,15 +111,15 @@ internal static class ConfigFileFormat
             McpTools = NormalizeTools(parsed.McpTools),
         };
 
-    private static Dictionary<string, JsonInstructionsFileConfigEntry>? NormalizeInstructions(
-        IReadOnlyDictionary<string, JsonInstructionsFileConfigEntry>? instructions)
+    private static Dictionary<string, JsonConfigFileInstructionsEntry>? NormalizeInstructions(
+        IReadOnlyDictionary<string, JsonConfigFileInstructionsEntry>? instructions)
     {
         if (instructions is null || instructions.Count == 0)
         {
             return null;
         }
 
-        var result = new Dictionary<string, JsonInstructionsFileConfigEntry>(instructions.Count);
+        var result = new Dictionary<string, JsonConfigFileInstructionsEntry>(instructions.Count);
 
         foreach (var (fileName, entry) in instructions)
         {
@@ -133,15 +133,15 @@ internal static class ConfigFileFormat
         return result;
     }
 
-    private static Dictionary<string, JsonMcpToolConfigValue>? NormalizeTools(
-        IReadOnlyDictionary<string, JsonMcpToolConfigValue>? tools)
+    private static Dictionary<string, JsonConfigFileMcpToolValue>? NormalizeTools(
+        IReadOnlyDictionary<string, JsonConfigFileMcpToolValue>? tools)
     {
         if (tools is null || tools.Count == 0)
         {
             return null;
         }
 
-        var result = new Dictionary<string, JsonMcpToolConfigValue>(tools.Count);
+        var result = new Dictionary<string, JsonConfigFileMcpToolValue>(tools.Count);
 
         foreach (var (toolName, value) in tools)
         {
@@ -151,7 +151,7 @@ internal static class ConfigFileFormat
                 continue;
             }
 
-            result[toolName] = JsonMcpToolConfigValue.FromEntry(entry with
+            result[toolName] = JsonConfigFileMcpToolValue.FromEntry(entry with
             {
                 Enabled = entry.Enabled is false ? false : null,
                 DisabledTasks = EmptyToNull(entry.DisabledTasks),

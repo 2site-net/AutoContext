@@ -3,6 +3,8 @@ namespace AutoContext.Engine.Core.Workspace.Config;
 using System.Diagnostics.CodeAnalysis;
 using System.Threading.Channels;
 
+using AutoContext.Engine.Core.Workspace.Config.Snapshot;
+
 /// <summary>
 /// Serializes config mutations through a single writer loop and folds
 /// the toggles of one logical bulk action into a single on-disk write.
@@ -100,7 +102,7 @@ internal sealed class ConfigBatchWriter : IDisposable
     /// </param>
     /// <returns>A task tracking the edit's persistence.</returns>
     public Task EnqueueAsync(
-        Func<AutoContextConfig, AutoContextConfig> edit,
+        Func<ConfigSnapshot, ConfigSnapshot> edit,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(edit);
@@ -233,7 +235,7 @@ internal sealed class ConfigBatchWriter : IDisposable
         await ApplyBatchAsync(batch).ConfigureAwait(false);
     }
 
-    private sealed class WriteRequest(Func<AutoContextConfig, AutoContextConfig> edit, CancellationToken cancellationToken)
+    private sealed class WriteRequest(Func<ConfigSnapshot, ConfigSnapshot> edit, CancellationToken cancellationToken)
     {
         /// <summary>Gets the token that drops this edit from its batch.</summary>
         public CancellationToken CancellationToken { get; } = cancellationToken;
@@ -242,6 +244,6 @@ internal sealed class ConfigBatchWriter : IDisposable
         public TaskCompletionSource Completion { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
         /// <summary>Gets the pure transform folded into the batch.</summary>
-        public Func<AutoContextConfig, AutoContextConfig> Edit { get; } = edit;
+        public Func<ConfigSnapshot, ConfigSnapshot> Edit { get; } = edit;
     }
 }
