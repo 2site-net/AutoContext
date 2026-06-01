@@ -1,7 +1,6 @@
 namespace AutoContext.Engine.Core.Tests.Workspace.Config;
 
 using AutoContext.Engine.Core.Tests.Support.Workspace.Config;
-using AutoContext.Engine.Core.Tests.Support.Workspace.Config.Primitives;
 using AutoContext.Engine.Core.Workspace.Config;
 using AutoContext.Engine.Protocol.Messages.Config;
 

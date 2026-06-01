@@ -5,11 +5,9 @@ using System.Runtime.CompilerServices;
 using System.Text.Json;
 
 using AutoContext.Engine.Core.Logging;
-using AutoContext.Engine.Core.Logging.Primitives;
 using AutoContext.Engine.Core.Registry;
 using AutoContext.Engine.Core.Rpc.Results;
 using AutoContext.Engine.Core.Workspace.Config;
-using AutoContext.Engine.Core.Workspace.Config.Primitives;
 using AutoContext.Engine.Core.Workspace.Config.Snapshot;
 using AutoContext.Engine.Protocol;
 using AutoContext.Engine.Protocol.JsonRpc;

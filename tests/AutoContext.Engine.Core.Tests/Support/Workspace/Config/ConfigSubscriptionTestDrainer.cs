@@ -1,6 +1,6 @@
-namespace AutoContext.Engine.Core.Tests.Support.Workspace.Config.Primitives;
+namespace AutoContext.Engine.Core.Tests.Support.Workspace.Config;
 
-using AutoContext.Engine.Core.Workspace.Config.Primitives;
+using AutoContext.Engine.Core.Workspace.Config;
 using AutoContext.Engine.Protocol.Messages.Config;
 
 internal static class ConfigSubscriptionTestDrainer

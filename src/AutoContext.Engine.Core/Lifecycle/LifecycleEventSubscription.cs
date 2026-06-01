@@ -3,46 +3,32 @@ namespace AutoContext.Engine.Core.Lifecycle;
 using System.Runtime.CompilerServices;
 using System.Threading.Channels;
 
+using AutoContext.Engine.Core.Infrastructure.Events;
 using AutoContext.Engine.Protocol.Messages.Lifecycle;
 
 /// <summary>
 /// Handle returned from <see cref="LifecycleEventStream.Subscribe"/>.
 /// Drains <see cref="JsonLifecycleEvent"/> values via
 /// <see cref="ReadAllAsync"/> and releases the subscription on
-/// <see cref="Dispose"/>.
+/// <see cref="Subscription{T}.Dispose"/>.
 /// </summary>
-internal sealed class LifecycleEventSubscription : IDisposable
+/// <param name="reader">Reader half of the per-subscriber bounded
+/// channel the stream fans events into.</param>
+/// <param name="release">Callback invoked exactly once on
+/// <see cref="Subscription{T}.Dispose"/> to unsubscribe from the
+/// stream and complete the underlying channel.</param>
+/// <param name="wasEvicted">Probe consulted after the channel
+/// completes to decide whether a terminal
+/// <see cref="LifecycleEventKinds.Evicted"/> frame is yielded.</param>
+/// <exception cref="ArgumentNullException">
+/// Any argument is <see langword="null"/>.
+/// </exception>
+internal sealed class LifecycleEventSubscription(
+    ChannelReader<JsonLifecycleEvent> reader,
+    Action release,
+    Func<bool> wasEvicted)
+    : Subscription<JsonLifecycleEvent>(reader, release, wasEvicted)
 {
-    private int _disposed;
-    private readonly ChannelReader<JsonLifecycleEvent> _reader;
-    private readonly Action _release;
-    private readonly Func<bool> _wasEvicted;
-
-    public LifecycleEventSubscription(
-        ChannelReader<JsonLifecycleEvent> reader,
-        Action release,
-        Func<bool> wasEvicted)
-    {
-        ArgumentNullException.ThrowIfNull(reader);
-        ArgumentNullException.ThrowIfNull(release);
-        ArgumentNullException.ThrowIfNull(wasEvicted);
-
-        _reader = reader;
-        _release = release;
-        _wasEvicted = wasEvicted;
-    }
-
-    /// <inheritdoc/>
-    public void Dispose()
-    {
-        if (Interlocked.Exchange(ref _disposed, 1) != 0)
-        {
-            return;
-        }
-
-        _release();
-    }
-
     /// <summary>
     /// Drains lifecycle events until the channel completes or
     /// <paramref name="cancellationToken"/> fires. If the subscriber
@@ -53,14 +39,13 @@ internal sealed class LifecycleEventSubscription : IDisposable
     public async IAsyncEnumerable<JsonLifecycleEvent> ReadAllAsync(
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        await foreach (var evt in _reader
-            .ReadAllAsync(cancellationToken)
+        await foreach (var evt in ReadPayloadsAsync(cancellationToken)
             .ConfigureAwait(false))
         {
             yield return evt;
         }
 
-        if (_wasEvicted())
+        if (WasEvicted)
         {
             yield return new JsonLifecycleEvent
             {

@@ -1,23 +1,26 @@
-namespace AutoContext.Engine.Core.Tests.Logging.Primitives;
+namespace AutoContext.Engine.Core.Tests.Infrastructure.Events;
 
-using AutoContext.Engine.Core.Logging.Primitives;
-using AutoContext.Engine.Core.Tests.Support.Logging;
-using AutoContext.Engine.Core.Tests.Support.Logging.Primitives;
+using System.Threading.Channels;
 
-public sealed class LogSubscriberTests
+using AutoContext.Engine.Core.Infrastructure.Events;
+using AutoContext.Engine.Core.Tests.Support.Infrastructure.Events;
+using AutoContext.Engine.Protocol.Messages.Logs;
+
+public sealed class SubscriberTests
 {
     [Fact]
     public void Should_throw_when_constructed_with_null_channel()
     {
         // Act + Assert
-        Assert.Throws<ArgumentNullException>(() => new LogSubscriber(null!));
+        Assert.Throws<ArgumentNullException>(
+            () => new Subscriber<JsonLogRecord>(null!));
     }
 
     [Fact]
     public void Should_start_in_active_state()
     {
         // Arrange
-        var subscriber = LogSubscriberTestFactory.Create();
+        var subscriber = SubscriberTestFactory.Create();
 
         // Assert
         Assert.False(subscriber.WasEvicted);
@@ -27,7 +30,7 @@ public sealed class LogSubscriberTests
     public void Should_transition_to_closed_via_TryClose()
     {
         // Arrange
-        var subscriber = LogSubscriberTestFactory.Create();
+        var subscriber = SubscriberTestFactory.Create();
 
         // Act
         var closed = subscriber.TryClose();
@@ -42,7 +45,7 @@ public sealed class LogSubscriberTests
     public void Should_transition_to_evicted_via_TryEvict()
     {
         // Arrange
-        var subscriber = LogSubscriberTestFactory.Create();
+        var subscriber = SubscriberTestFactory.Create();
 
         // Act
         var evicted = subscriber.TryEvict();
@@ -57,7 +60,7 @@ public sealed class LogSubscriberTests
     public void Should_refuse_TryClose_after_TryEvict()
     {
         // Arrange
-        var subscriber = LogSubscriberTestFactory.Create();
+        var subscriber = SubscriberTestFactory.Create();
         Assert.True(subscriber.TryEvict());
 
         // Act
@@ -73,7 +76,7 @@ public sealed class LogSubscriberTests
     public void Should_refuse_TryEvict_after_TryClose()
     {
         // Arrange
-        var subscriber = LogSubscriberTestFactory.Create();
+        var subscriber = SubscriberTestFactory.Create();
         Assert.True(subscriber.TryClose());
 
         // Act
@@ -89,7 +92,7 @@ public sealed class LogSubscriberTests
     public void Should_be_idempotent_when_TryClose_is_called_twice()
     {
         // Arrange
-        var subscriber = LogSubscriberTestFactory.Create();
+        var subscriber = SubscriberTestFactory.Create();
         Assert.True(subscriber.TryClose());
 
         // Act

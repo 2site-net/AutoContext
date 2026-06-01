@@ -1,8 +1,8 @@
-namespace AutoContext.Engine.Core.Tests.Logging.Primitives;
+namespace AutoContext.Engine.Core.Tests.Logging;
 
 using System.Threading.Channels;
 
-using AutoContext.Engine.Core.Logging.Primitives;
+using AutoContext.Engine.Core.Logging;
 using AutoContext.Engine.Core.Tests.Support.Logging;
 using AutoContext.Engine.Protocol.Messages.Logs;
 

@@ -2,6 +2,7 @@ namespace AutoContext.Engine.Core.Lifecycle;
 
 using System.Threading.Channels;
 
+using AutoContext.Engine.Core.Infrastructure.Events;
 using AutoContext.Engine.Protocol.Messages.Lifecycle;
 
 using Microsoft.Extensions.Logging;
@@ -49,7 +50,7 @@ internal sealed partial class LifecycleEventStream
     private readonly Lock _gate = new();
     private readonly Guid _instanceId;
     private readonly ILogger<LifecycleEventStream> _logger;
-    private readonly HashSet<LifecycleEventSubscriber> _subscribers = [];
+    private readonly HashSet<Subscriber<JsonLifecycleEvent>> _subscribers = [];
     private JsonLifecycleEvent? _terminalEvent;
 
     /// <summary>
@@ -111,7 +112,7 @@ internal sealed partial class LifecycleEventStream
                 FullMode = BoundedChannelFullMode.Wait,
             });
 
-        var subscriber = new LifecycleEventSubscriber(channel);
+        var subscriber = new Subscriber<JsonLifecycleEvent>(channel);
 
         // Seed the started event BEFORE registering so it lands at
         // the head of the buffer no matter what concurrent publishes
@@ -285,7 +286,7 @@ internal sealed partial class LifecycleEventStream
         };
     }
 
-    private bool EvictCore(LifecycleEventSubscriber subscriber)
+    private bool EvictCore(Subscriber<JsonLifecycleEvent> subscriber)
     {
         if (!subscriber.TryEvict())
         {
@@ -298,7 +299,7 @@ internal sealed partial class LifecycleEventStream
         return true;
     }
 
-    private void Release(LifecycleEventSubscriber subscriber)
+    private void Release(Subscriber<JsonLifecycleEvent> subscriber)
     {
         lock (_gate)
         {
