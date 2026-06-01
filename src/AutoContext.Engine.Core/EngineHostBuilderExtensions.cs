@@ -1,7 +1,5 @@
 namespace AutoContext.Engine.Core;
 
-using System.Reflection;
-
 using AutoContext.Engine.Core.Infrastructure;
 using AutoContext.Engine.Core.Infrastructure.Diagnostics;
 using AutoContext.Engine.Core.Infrastructure.Storage;
@@ -264,7 +262,7 @@ public static class EngineHostBuilderExtensions
         // .autocontext.json snapshot for this workspace; it is the
         // singleton source both the Config.Get RPC handler (via the
         // IConfigSnapshotAccessor read seam) and future config writers
-        // resolve. ConfigStoreService loads the snapshot from disk
+        // resolve. ConfigFileService loads the snapshot from disk
         // and arms the file watcher at startup. Registered BEFORE
         // LifecycleService so it starts first — the snapshot is
         // populated before the first rpc connection can issue
@@ -276,7 +274,7 @@ public static class EngineHostBuilderExtensions
             var options = sp.GetRequiredService<IOptions<EngineOptions>>().Value;
             return new ConfigFileManager(
                 options.WorkspacePath,
-                ResolveEngineVersion(),
+                EngineVersion.Resolve(),
                 logger: sp.GetService<ILogger<ConfigFileManager>>(),
                 timeProvider: sp.GetRequiredService<TimeProvider>());
         });
@@ -289,20 +287,5 @@ public static class EngineHostBuilderExtensions
             ServiceDescriptor.Singleton<IHostedService, LifecycleService>());
 
         return builder;
-    }
-
-    private static string ResolveEngineVersion()
-    {
-        var assembly = typeof(EngineHostBuilderExtensions).Assembly;
-        var informational = assembly
-            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()
-            ?.InformationalVersion;
-
-        if (!string.IsNullOrWhiteSpace(informational))
-        {
-            return informational;
-        }
-
-        return assembly.GetName().Version?.ToString() ?? "0.0.0";
     }
 }
