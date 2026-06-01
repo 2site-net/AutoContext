@@ -1132,7 +1132,7 @@ its dependency on Phase 1's `RegistryFileReader` /
 | 7 | `feat(engine): serve Config.Get over rpc` | DONE |
 | 8 | `feat(engine): serve Config.ToggleFile and Config.ToggleRule over rpc` | DONE |
 | 9 | `feat(engine-core): add Config.Subscribe events stream with snapshot-on-subscribe` | DONE |
-| 10 | `test(engine): integration test for cross-instance config reload coalescing` | Not started |
+| 10 | `test(engine): integration test for cross-instance config reload coalescing` | DONE |
 | 11 | `docs(plan): mark Phase 3 complete` | Not started |
 
 **Landed-row notes.**

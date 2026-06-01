@@ -98,6 +98,29 @@ internal static class EngineWireTestClient
         await codec.WriteAsync(bytes, cancellationToken).ConfigureAwait(false);
     }
 
+    /// <summary>Writes a JSON-RPC request carrying <paramref name="parameters"/>.</summary>
+    internal static async Task SendRequestAsync(
+        LengthPrefixedFrameCodec codec,
+        int id,
+        string method,
+        JsonElement parameters,
+        CancellationToken cancellationToken)
+    {
+        var idElement = JsonDocument
+            .Parse(id.ToString(CultureInfo.InvariantCulture))
+            .RootElement;
+        var request = new JsonRpcRequest
+        {
+            JsonRpc = JsonRpcVersion.Value,
+            Id = idElement,
+            Method = method,
+            Params = parameters,
+        };
+        var bytes = JsonSerializer.SerializeToUtf8Bytes(
+            request, ProtocolJsonContext.Default.JsonRpcRequest);
+        await codec.WriteAsync(bytes, cancellationToken).ConfigureAwait(false);
+    }
+
     /// <summary>
     /// Completes the <c>Engine.Hello</c> handshake and the
     /// <c>Engine.Shutdown</c> exchange against <paramref name="engine"/>'s
@@ -140,5 +163,22 @@ internal static class EngineWireTestClient
             bytes!, ProtocolJsonContext.Default.JsonRpcResponse);
         Assert.NotNull(response);
         return response!;
+    }
+
+    /// <summary>Reads exactly one server-streaming JSON-RPC frame.</summary>
+    internal static async Task<JsonRpcStreamFrame> ReadStreamFrameAsync(
+        LengthPrefixedFrameCodec codec,
+        CancellationToken cancellationToken)
+    {
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        cts.CancelAfter(ReadResponseTimeout);
+
+        var bytes = await codec.ReadAsync(cts.Token).ConfigureAwait(false);
+        Assert.NotNull(bytes);
+
+        var frame = JsonSerializer.Deserialize(
+            bytes!, ProtocolJsonContext.Default.JsonRpcStreamFrame);
+        Assert.NotNull(frame);
+        return frame!;
     }
 }
