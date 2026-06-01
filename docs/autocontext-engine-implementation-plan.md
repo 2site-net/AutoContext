@@ -1119,7 +1119,7 @@ its dependency on Phase 1's `RegistryFileReader` /
 
 ## Phase 3 — Config store
 
-**Status**: In progress (rows 1-9 landed).
+**Status**: Completed on branch `features/config-store`.
 
 | # | Commit subject | State |
 |---|---|---|
@@ -1133,7 +1133,7 @@ its dependency on Phase 1's `RegistryFileReader` /
 | 8 | `feat(engine): serve Config.ToggleFile and Config.ToggleRule over rpc` | DONE |
 | 9 | `feat(engine-core): add Config.Subscribe events stream with snapshot-on-subscribe` | DONE |
 | 10 | `test(engine): integration test for cross-instance config reload coalescing` | DONE |
-| 11 | `docs(plan): mark Phase 3 complete` | Not started |
+| 11 | `docs(plan): mark Phase 3 complete` | DONE |
 
 **Landed-row notes.**
 
