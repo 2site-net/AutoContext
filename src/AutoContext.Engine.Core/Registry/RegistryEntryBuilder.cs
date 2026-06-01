@@ -51,7 +51,7 @@ internal static class RegistryEntryBuilder
         var hash = WorkspaceHash.Compute(options.WorkspacePath);
 
         return new JsonRegistryEntry(
-            EngineVersion: EngineVersion.Resolve(),
+            EngineVersion: EngineVersion.Value,
             WorkspaceHash: hash.Value,
             WorkspacePath: Path.GetFullPath(options.WorkspacePath),
             InstanceId: options.InstanceId,

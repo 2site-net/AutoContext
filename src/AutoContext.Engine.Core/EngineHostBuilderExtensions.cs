@@ -274,7 +274,7 @@ public static class EngineHostBuilderExtensions
             var options = sp.GetRequiredService<IOptions<EngineOptions>>().Value;
             return new ConfigFileManager(
                 options.WorkspacePath,
-                EngineVersion.Resolve(),
+                EngineVersion.Value,
                 logger: sp.GetService<ILogger<ConfigFileManager>>(),
                 timeProvider: sp.GetRequiredService<TimeProvider>());
         });

@@ -1,8 +1,8 @@
 namespace AutoContext.Engine.Core.Rpc.Policies;
 
-using System.Reflection;
 using System.Text.Json;
 
+using AutoContext.Engine.Core.Infrastructure;
 using AutoContext.Engine.Core.Rpc.Results;
 using AutoContext.Engine.Protocol;
 using AutoContext.Engine.Protocol.JsonRpc;
@@ -40,13 +40,6 @@ using Microsoft.Extensions.Logging;
 /// </remarks>
 internal sealed partial class HandshakePolicy : IRpcConnectionPolicy
 {
-    private static readonly string EngineSemver =
-        typeof(HandshakePolicy).Assembly
-            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
-            .InformationalVersion
-        ?? typeof(HandshakePolicy).Assembly.GetName().Version?.ToString()
-        ?? "0.0.0";
-
     private readonly ILogger _logger;
 
     public HandshakePolicy(EndpointKind kind, ILogger logger)
@@ -132,7 +125,7 @@ internal sealed partial class HandshakePolicy : IRpcConnectionPolicy
         var result = new JsonHandshakeResult
         {
             ProtocolVersion = ProtocolVersion.Current,
-            EngineVersion = EngineSemver,
+            EngineVersion = EngineVersion.Value,
         };
 
         var resultElement = JsonSerializer.SerializeToElement(

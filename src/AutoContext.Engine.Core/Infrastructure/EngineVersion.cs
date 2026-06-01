@@ -12,23 +12,33 @@ using System.Reflection;
 internal static class EngineVersion
 {
     /// <summary>
-    /// The assembly's informational version (the full semver, including
-    /// any build-metadata suffix), falling back to the assembly version
-    /// and finally <c>"0.0.0"</c> when neither is present.
+    /// The running engine's version, resolved once on first access and
+    /// cached for the process lifetime. This is the assembly's
+    /// informational version — the full semver, including any
+    /// build-metadata suffix.
     /// </summary>
-    /// <returns>The resolved version string.</returns>
-    public static string Resolve()
+    /// <exception cref="InvalidOperationException">
+    /// No informational version is stamped on the assembly — a
+    /// packaging or build defect. Failing fast surfaces the defect
+    /// instead of emitting a fabricated version onto the wire and into
+    /// <c>.autocontext.json</c>.
+    /// </exception>
+    public static string Value { get; } = Resolve();
+
+    private static string Resolve()
     {
-        var assembly = typeof(EngineVersion).Assembly;
-        var informational = assembly
+        var version = typeof(EngineVersion).Assembly
             .GetCustomAttribute<AssemblyInformationalVersionAttribute>()
             ?.InformationalVersion;
 
-        if (!string.IsNullOrWhiteSpace(informational))
+        if (!string.IsNullOrWhiteSpace(version))
         {
-            return informational;
+            return version;
         }
 
-        return assembly.GetName().Version?.ToString() ?? "0.0.0";
+        throw new InvalidOperationException(
+            "Engine version could not be resolved: the AutoContext.Engine.Core "
+            + "assembly does not carry an informational version. This indicates "
+            + "a packaging or build defect.");
     }
 }
