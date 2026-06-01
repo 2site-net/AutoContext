@@ -1,6 +1,6 @@
-namespace AutoContext.Engine.Core.Tests.Support.Logging.Primitives;
+namespace AutoContext.Engine.Core.Tests.Support.Logging;
 
-using AutoContext.Engine.Core.Logging.Primitives;
+using AutoContext.Engine.Core.Logging;
 
 internal static class LogRotationThresholdsFakeData
 {

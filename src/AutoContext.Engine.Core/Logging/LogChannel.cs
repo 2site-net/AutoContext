@@ -1,4 +1,4 @@
-namespace AutoContext.Engine.Core.Logging.Primitives;
+namespace AutoContext.Engine.Core.Logging;
 
 using System.Threading.Channels;
 

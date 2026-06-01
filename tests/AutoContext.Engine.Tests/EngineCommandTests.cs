@@ -5,7 +5,7 @@ using System.CommandLine.Parsing;
 
 using AutoContext.Engine;
 using AutoContext.Engine.Core;
-using AutoContext.Engine.Core.Logging.Primitives;
+using AutoContext.Engine.Core.Logging;
 using AutoContext.Engine.Tests.Support;
 
 /// <summary>

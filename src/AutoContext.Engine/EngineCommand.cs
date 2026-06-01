@@ -4,7 +4,7 @@ using System.CommandLine;
 using System.CommandLine.Parsing;
 
 using AutoContext.Engine.Core;
-using AutoContext.Engine.Core.Logging.Primitives;
+using AutoContext.Engine.Core.Logging;
 
 /// <summary>
 /// <see cref="RootCommand"/> describing the <c>autocontext-engine</c>

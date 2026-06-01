@@ -1,7 +1,7 @@
 namespace AutoContext.Engine.Core.Tests;
 
 using AutoContext.Engine.Core;
-using AutoContext.Engine.Core.Logging.Primitives;
+using AutoContext.Engine.Core.Logging;
 using AutoContext.Engine.Core.Tests.Support;
 using AutoContext.Engine.Core.Tests.Support.Shared;
 

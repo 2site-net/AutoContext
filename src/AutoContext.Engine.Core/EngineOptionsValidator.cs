@@ -1,6 +1,6 @@
 namespace AutoContext.Engine.Core;
 
-using AutoContext.Engine.Core.Logging.Primitives;
+using AutoContext.Engine.Core.Logging;
 
 using Microsoft.Extensions.Options;
 

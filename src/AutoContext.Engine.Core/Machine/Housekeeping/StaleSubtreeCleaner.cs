@@ -2,7 +2,7 @@ namespace AutoContext.Engine.Core.Machine.Housekeeping;
 
 using System.Diagnostics.CodeAnalysis;
 
-using AutoContext.Engine.Core.Logging.Primitives;
+using AutoContext.Engine.Core.Logging;
 
 using Microsoft.Extensions.Logging;
 

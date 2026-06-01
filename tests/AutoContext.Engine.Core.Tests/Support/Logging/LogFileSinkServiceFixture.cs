@@ -4,10 +4,8 @@ using System.Diagnostics.CodeAnalysis;
 
 using AutoContext.Engine.Core;
 using AutoContext.Engine.Core.Logging;
-using AutoContext.Engine.Core.Logging.Primitives;
 using AutoContext.Engine.Core.Machine;
 using AutoContext.Engine.Core.Tests.Support;
-using AutoContext.Engine.Core.Tests.Support.Logging.Primitives;
 using AutoContext.Engine.Core.Tests.Support.Machine;
 
 using Microsoft.Extensions.Logging.Abstractions;

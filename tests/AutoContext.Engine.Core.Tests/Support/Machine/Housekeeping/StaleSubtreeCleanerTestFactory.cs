@@ -1,7 +1,7 @@
 namespace AutoContext.Engine.Core.Tests.Support.Machine.Housekeeping;
 
 using AutoContext.Engine.Core.Machine.Housekeeping;
-using AutoContext.Engine.Core.Tests.Support.Logging.Primitives;
+using AutoContext.Engine.Core.Tests.Support.Logging;
 
 using Microsoft.Extensions.Logging.Abstractions;
 

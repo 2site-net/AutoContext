@@ -1,4 +1,4 @@
-namespace AutoContext.Engine.Core.Logging.Primitives;
+namespace AutoContext.Engine.Core.Logging;
 
 /// <summary>
 /// Log-rotation verbosity selector for the engine's own

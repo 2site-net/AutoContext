@@ -1,7 +1,6 @@
 namespace AutoContext.Engine.Core.Tests.Support.Logging;
 
 using AutoContext.Engine.Core.Logging;
-using AutoContext.Engine.Core.Logging.Primitives;
 
 using Microsoft.Extensions.Time.Testing;
 

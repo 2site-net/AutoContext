@@ -1,6 +1,4 @@
-namespace AutoContext.Engine.Core.Logging.Primitives;
-
-using AutoContext.Engine.Core.Logging;
+namespace AutoContext.Engine.Core.Logging;
 
 /// <summary>
 /// Per-verbosity rotation thresholds for the engine's own

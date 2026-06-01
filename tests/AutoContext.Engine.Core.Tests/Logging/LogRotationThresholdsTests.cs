@@ -1,7 +1,7 @@
-namespace AutoContext.Engine.Core.Tests.Logging.Primitives;
+namespace AutoContext.Engine.Core.Tests.Logging;
 
 using AutoContext.Engine.Core;
-using AutoContext.Engine.Core.Logging.Primitives;
+using AutoContext.Engine.Core.Logging;
 
 public sealed class LogRotationThresholdsTests
 {

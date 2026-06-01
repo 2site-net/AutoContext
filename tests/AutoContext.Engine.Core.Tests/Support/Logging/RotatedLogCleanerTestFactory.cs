@@ -2,7 +2,6 @@ namespace AutoContext.Engine.Core.Tests.Support.Logging;
 
 using AutoContext.Engine.Core;
 using AutoContext.Engine.Core.Logging;
-using AutoContext.Engine.Core.Logging.Primitives;
 
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;

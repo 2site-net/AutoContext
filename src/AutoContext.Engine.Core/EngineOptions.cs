@@ -1,6 +1,6 @@
 namespace AutoContext.Engine.Core;
 
-using AutoContext.Engine.Core.Logging.Primitives;
+using AutoContext.Engine.Core.Logging;
 
 /// <summary>
 /// Composition-time configuration for an

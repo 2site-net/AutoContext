@@ -2,7 +2,6 @@ namespace AutoContext.Engine.Core.Logging;
 
 using System.Diagnostics.CodeAnalysis;
 
-using AutoContext.Engine.Core.Logging.Primitives;
 using AutoContext.Engine.Protocol.Messages.Logs;
 
 using Microsoft.Extensions.Logging;
