@@ -9,6 +9,7 @@ using AutoContext.Engine.Core.Logging.Primitives;
 using AutoContext.Engine.Core.Registry;
 using AutoContext.Engine.Core.Rpc.Results;
 using AutoContext.Engine.Core.Workspace.Config;
+using AutoContext.Engine.Core.Workspace.Config.Primitives;
 using AutoContext.Engine.Core.Workspace.Config.Snapshot;
 using AutoContext.Engine.Protocol;
 using AutoContext.Engine.Protocol.JsonRpc;
@@ -59,6 +60,7 @@ internal sealed partial class DispatchPolicy : IRpcConnectionPolicy
     private readonly EngineLogFileReader _logFileReader;
     private readonly LogSubscriptionBroadcaster _logsBroadcaster;
     private readonly IConfigSnapshotAccessor _configAccessor;
+    private readonly ConfigSubscriptionBroadcaster _configBroadcaster;
     private readonly IConfigUpdater _configUpdater;
     private readonly ILogger _logger;
 
@@ -69,6 +71,7 @@ internal sealed partial class DispatchPolicy : IRpcConnectionPolicy
         LogSubscriptionBroadcaster logsBroadcaster,
         IConfigSnapshotAccessor configAccessor,
         IConfigUpdater configUpdater,
+        ConfigSubscriptionBroadcaster configBroadcaster,
         ILogger logger)
     {
         ArgumentNullException.ThrowIfNull(lifetime);
@@ -77,6 +80,7 @@ internal sealed partial class DispatchPolicy : IRpcConnectionPolicy
         ArgumentNullException.ThrowIfNull(logsBroadcaster);
         ArgumentNullException.ThrowIfNull(configAccessor);
         ArgumentNullException.ThrowIfNull(configUpdater);
+        ArgumentNullException.ThrowIfNull(configBroadcaster);
         ArgumentNullException.ThrowIfNull(logger);
 
         _lifetime = lifetime;
@@ -85,6 +89,7 @@ internal sealed partial class DispatchPolicy : IRpcConnectionPolicy
         _logsBroadcaster = logsBroadcaster;
         _configAccessor = configAccessor;
         _configUpdater = configUpdater;
+        _configBroadcaster = configBroadcaster;
         _logger = logger;
     }
 
@@ -139,6 +144,9 @@ internal sealed partial class DispatchPolicy : IRpcConnectionPolicy
             case ConfigMethods.ToggleRule:
                 return await HandleConfigToggleRuleAsync(request, cancellationToken)
                     .ConfigureAwait(false);
+
+            case ConfigMethods.Subscribe:
+                return HandleConfigSubscribe();
 
             case ProtocolMethods.Shutdown:
                 return HandleShutdown();
@@ -299,6 +307,39 @@ internal sealed partial class DispatchPolicy : IRpcConnectionPolicy
     }
 
     private UnaryHandlerResult HandleConfigGet() => ConfigSnapshotResult();
+
+    [SuppressMessage("Reliability", "CA2000",
+        Justification = "Ownership of the subscription is handed off to StreamingHandlerResult.PostFlush, which the RpcConnectionProcessor runs in a finally block — disposal is guaranteed on every path.")]
+    private StreamingHandlerResult HandleConfigSubscribe()
+    {
+        // Subscription is created up-front so its disposal can be
+        // routed through StreamingHandlerResult.PostFlush, which
+        // the processor runs in a finally — guaranteeing the
+        // broadcaster slot is released even when the peer hangs
+        // up mid-stream or the iterator faults.
+        var subscription = _configBroadcaster.Subscribe();
+
+        return new StreamingHandlerResult(
+            Payloads: MapConfigFramesAsync(subscription),
+            PostFlush: () =>
+            {
+                subscription.Dispose();
+                return Task.CompletedTask;
+            });
+    }
+
+    private static async IAsyncEnumerable<JsonElement> MapConfigFramesAsync(
+        ConfigSubscription subscription,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        await foreach (var frame in subscription
+            .ReadAllAsync(cancellationToken)
+            .ConfigureAwait(false))
+        {
+            yield return JsonSerializer.SerializeToElement(
+                frame, ProtocolJsonContext.Default.JsonConfigStreamFrame);
+        }
+    }
 
     private async Task<RpcHandlerResult> HandleConfigToggleFileAsync(
         JsonRpcRequest request, CancellationToken cancellationToken)

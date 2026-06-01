@@ -427,8 +427,7 @@ src/
         IConfigSnapshotAccessor.cs             # lock-free read seam (Current) that DispatchPolicy reads for Config.Get
         ConfigBatchWriter.cs                   # micro-batch write coalescer behind IConfigUpdater (P3 row 6, DONE)
         IConfigUpdater.cs                      # one-method write seam the manager satisfies (P3 row 6, DONE)
-        ConfigHandlers.cs                      # Config.Subscribe (P3 row 9, not started; Config.Get/ToggleFile/ToggleRule are served by DispatchPolicy, the latter two via ConfigToggle + IConfigUpdater)
-        ConfigSubscriptionBroadcaster.cs       # snapshot-on-subscribe + per-subscriber bounded buffer (not started)
+        ConfigSubscriptionBroadcaster.cs       # snapshot-on-subscribe + per-subscriber bounded buffer (P3 row 9, DONE); Config.Subscribe is served by DispatchPolicy, Config.Get/ToggleFile/ToggleRule also via DispatchPolicy (the latter two via ConfigToggle + IConfigUpdater)
       Context/                                 # ~60-flag detection (Workspace.* wire surface)
         WorkspaceContextDetector.cs            # orchestrator — injected with the four rule-data lists below; runs them, emits result
         WorkspaceHandlers.cs                   # Workspace.{Detect,Info}
@@ -1120,7 +1119,7 @@ its dependency on Phase 1's `RegistryFileReader` /
 
 ## Phase 3 — Config store
 
-**Status**: In progress (rows 1-8 landed).
+**Status**: In progress (rows 1-9 landed).
 
 | # | Commit subject | State |
 |---|---|---|
@@ -1132,7 +1131,7 @@ its dependency on Phase 1's `RegistryFileReader` /
 | 6 | `feat(engine-core): add writer mutex and micro-batch write coalescing` | DONE |
 | 7 | `feat(engine): serve Config.Get over rpc` | DONE |
 | 8 | `feat(engine): serve Config.ToggleFile and Config.ToggleRule over rpc` | DONE |
-| 9 | `feat(engine-core): add Config.Subscribe events stream with snapshot-on-subscribe` | Not started |
+| 9 | `feat(engine-core): add Config.Subscribe events stream with snapshot-on-subscribe` | DONE |
 | 10 | `test(engine): integration test for cross-instance config reload coalescing` | Not started |
 | 11 | `docs(plan): mark Phase 3 complete` | Not started |
 
@@ -1189,6 +1188,28 @@ its dependency on Phase 1's `RegistryFileReader` /
   existing one-method `IConfigUpdater` seam, and reply with the
   refreshed snapshot via `ToWireFormat`. The `{ revision, changes }`
   envelope and the `Config.Subscribe` fan-out stay deferred to row 9.
+- **Row 9 — `Config.Subscribe` events stream with
+  snapshot-on-subscribe.** Additive on top of the row 1-2 prelude,
+  mirroring `Logs.TailEngine`'s broadcaster. A singleton
+  `ConfigSubscriptionBroadcaster` caches the latest
+  `JsonConfigSnapshot` and replays it as the first frame to every new
+  subscriber (snapshot-on-subscribe — keyed state, not a pure live
+  tail, so a late subscriber never needs a separate `Config.Get`).
+  Each subscriber owns a bounded `Channel` (capacity 64); a
+  sustainedly slow subscriber is evicted with a terminal
+  `JsonConfigEvictedFrame` (reason `slow-subscriber`) while the
+  remaining subscribers keep flowing, and graceful `Complete` closes
+  every channel with a clean EOF (no terminal frame). Frames travel
+  as a discriminated `JsonConfigStreamFrame` envelope
+  (`kind: "snapshot" | "evicted"`). `ConfigFileService` bridges the
+  manager's change event into `TryPublish` and primes the cache once
+  at startup with the disk-loaded snapshot (the initial load raises no
+  change event). `DispatchPolicy` routes `Config.Subscribe` to a
+  streaming handler whose subscription disposal is handed off to
+  `StreamingHandlerResult.PostFlush`, so the processor's `finally`
+  releases the broadcaster slot on peer-close, cancellation, or
+  iterator fault. The `{ revision, changes }` envelope and
+  batch-coalescing fan-out stay deferred.
 
 **Prelude — server-streaming responses on the `rpc` pipe.** Phase 3
 is the first phase that needs `*.Subscribe` semantics

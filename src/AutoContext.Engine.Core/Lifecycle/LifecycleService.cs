@@ -78,6 +78,7 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
 
     private readonly IHostApplicationLifetime _applicationLifetime;
     private readonly IConfigSnapshotAccessor _configAccessor;
+    private readonly ConfigSubscriptionBroadcaster _configBroadcaster;
     private readonly IConfigUpdater _configUpdater;
     private int _disposed;
     private CancellationTokenSource? _drainCts;
@@ -145,6 +146,10 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
     /// in-memory config snapshot; threaded into the RPC dispatch
     /// policy so the <c>Config.ToggleFile</c> and
     /// <c>Config.ToggleRule</c> handlers can publish edits.</param>
+    /// <param name="configBroadcaster">Fan-out broadcaster backing
+    /// the <c>Config.Subscribe</c> RPC stream; threaded into the RPC
+    /// dispatch policy so each subscribing connection enrolls a
+    /// snapshot-seeded subscriber.</param>
     /// <exception cref="ArgumentNullException">
     /// Any constructor argument is <see langword="null"/>.
     /// </exception>
@@ -160,7 +165,8 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
         LogSubscriptionBroadcaster logsBroadcaster,
         EngineLogFileReader logFileReader,
         IConfigSnapshotAccessor configAccessor,
-        IConfigUpdater configUpdater)
+        IConfigUpdater configUpdater,
+        ConfigSubscriptionBroadcaster configBroadcaster)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(loggerFactory);
@@ -174,6 +180,7 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
         ArgumentNullException.ThrowIfNull(logFileReader);
         ArgumentNullException.ThrowIfNull(configAccessor);
         ArgumentNullException.ThrowIfNull(configUpdater);
+        ArgumentNullException.ThrowIfNull(configBroadcaster);
 
         _options = options.Value;
         _loggerFactory = loggerFactory;
@@ -188,6 +195,7 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
         _logFileReader = logFileReader;
         _configAccessor = configAccessor;
         _configUpdater = configUpdater;
+        _configBroadcaster = configBroadcaster;
     }
 
     /// <inheritdoc/>
@@ -472,7 +480,7 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
                 _ = await RpcConnectionProcessor
                     .RunAsync(
                         stream,
-                        new DispatchPolicy(_applicationLifetime, _registryReader, _logFileReader, _logsBroadcaster, _configAccessor, _configUpdater, _logger),
+                        new DispatchPolicy(_applicationLifetime, _registryReader, _logFileReader, _logsBroadcaster, _configAccessor, _configUpdater, _configBroadcaster, _logger),
                         _logger,
                         cancellationToken)
                     .ConfigureAwait(false);

@@ -282,6 +282,13 @@ public static class EngineHostBuilderExtensions
             sp => sp.GetRequiredService<ConfigFileManager>());
         builder.Services.TryAddSingleton<IConfigUpdater>(
             sp => sp.GetRequiredService<ConfigFileManager>());
+
+        // Config-subscription fan-out broadcaster. Singleton so the
+        // RPC Config.Subscribe handler and the ConfigFileService
+        // change-event bridge share one instance: the bridge primes
+        // the snapshot seed and publishes every change, the handler
+        // enrolls snapshot-seeded subscribers.
+        builder.Services.TryAddSingleton<ConfigSubscriptionBroadcaster>();
         builder.Services.TryAddEnumerable(
             ServiceDescriptor.Singleton<IHostedService, ConfigFileService>());
 

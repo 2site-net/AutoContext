@@ -29,4 +29,16 @@ public static class ConfigMethods
     /// the resulting <see cref="JsonConfigSnapshot"/>.
     /// </summary>
     public const string ToggleRule = "Config.ToggleRule";
+
+    /// <summary>
+    /// Opens a server-streaming subscription to the engine's config
+    /// state. Takes no params; the engine emits one
+    /// <see cref="JsonConfigStreamFrame"/> per frame — a
+    /// <see cref="JsonConfigSnapshotFrame"/> with the current
+    /// snapshot at subscribe time (snapshot-on-subscribe) and again
+    /// on every subsequent change, or a terminal
+    /// <see cref="JsonConfigEvictedFrame"/> for a slow subscriber.
+    /// A late subscriber never needs a separate <see cref="Get"/>.
+    /// </summary>
+    public const string Subscribe = "Config.Subscribe";
 }
