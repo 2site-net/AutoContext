@@ -45,6 +45,8 @@ using AutoContext.Engine.Protocol.Messages.Registry;
 [JsonSerializable(typeof(JsonRegistryEntry))]
 [JsonSerializable(typeof(JsonRegistryEntriesResult))]
 [JsonSerializable(typeof(JsonConfigSnapshot))]
+[JsonSerializable(typeof(JsonConfigToggleFileParams))]
+[JsonSerializable(typeof(JsonConfigToggleRuleParams))]
 [JsonSerializable(typeof(JsonShutdownResult))]
 public sealed partial class ProtocolJsonContext : JsonSerializerContext
 {

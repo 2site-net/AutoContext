@@ -15,4 +15,18 @@ public static class ConfigMethods
     /// <see cref="JsonConfigSnapshot"/>.
     /// </summary>
     public const string Get = "Config.Get";
+
+    /// <summary>
+    /// Flips the whole-file disabled state of one instruction file.
+    /// Takes <see cref="JsonConfigToggleFileParams"/>; returns the
+    /// resulting <see cref="JsonConfigSnapshot"/>.
+    /// </summary>
+    public const string ToggleFile = "Config.ToggleFile";
+
+    /// <summary>
+    /// Flips the disabled state of one rule within an instruction
+    /// file. Takes <see cref="JsonConfigToggleRuleParams"/>; returns
+    /// the resulting <see cref="JsonConfigSnapshot"/>.
+    /// </summary>
+    public const string ToggleRule = "Config.ToggleRule";
 }

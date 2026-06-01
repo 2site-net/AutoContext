@@ -58,7 +58,8 @@ public sealed class LifecycleServiceFixture : IAsyncDisposable
             instanceGuard,
             logsBroadcaster,
             logFileReader,
-            CreateConfigAccessor());
+            CreateConfigAccessor(),
+            CreateConfigUpdater());
 
         // Track in reverse dependency order so Dispose tears the
         // service down first, then the watchdog, then the lifetime.
@@ -77,6 +78,9 @@ public sealed class LifecycleServiceFixture : IAsyncDisposable
         };
 
     internal static IConfigSnapshotAccessor CreateConfigAccessor() =>
+        new FakeConfigSnapshotAccessor();
+
+    internal static IConfigUpdater CreateConfigUpdater() =>
         new FakeConfigSnapshotAccessor();
 
     internal static LifecycleEventStream CreateEventStream(EngineOptions? options = null) =>

@@ -111,7 +111,8 @@ public sealed class LifecycleServiceTests(
                 new FakeUniqueInstanceGuard(),
                 LifecycleServiceFixture.CreateLogsBroadcaster(),
                 LifecycleServiceFixture.CreateLogFileReader(),
-                LifecycleServiceFixture.CreateConfigAccessor()));
+                LifecycleServiceFixture.CreateConfigAccessor(),
+                LifecycleServiceFixture.CreateConfigUpdater()));
     }
 
     [Fact]
@@ -132,7 +133,8 @@ public sealed class LifecycleServiceTests(
                 new FakeUniqueInstanceGuard(),
                 LifecycleServiceFixture.CreateLogsBroadcaster(),
                 LifecycleServiceFixture.CreateLogFileReader(),
-                LifecycleServiceFixture.CreateConfigAccessor()));
+                LifecycleServiceFixture.CreateConfigAccessor(),
+                LifecycleServiceFixture.CreateConfigUpdater()));
     }
 
     [Fact]
@@ -153,7 +155,8 @@ public sealed class LifecycleServiceTests(
                 new FakeUniqueInstanceGuard(),
                 LifecycleServiceFixture.CreateLogsBroadcaster(),
                 LifecycleServiceFixture.CreateLogFileReader(),
-                LifecycleServiceFixture.CreateConfigAccessor()));
+                LifecycleServiceFixture.CreateConfigAccessor(),
+                LifecycleServiceFixture.CreateConfigUpdater()));
     }
 
     [Fact]
@@ -174,7 +177,8 @@ public sealed class LifecycleServiceTests(
                 new FakeUniqueInstanceGuard(),
                 LifecycleServiceFixture.CreateLogsBroadcaster(),
                 LifecycleServiceFixture.CreateLogFileReader(),
-                LifecycleServiceFixture.CreateConfigAccessor()));
+                LifecycleServiceFixture.CreateConfigAccessor(),
+                LifecycleServiceFixture.CreateConfigUpdater()));
     }
 
     [Fact]
@@ -195,7 +199,8 @@ public sealed class LifecycleServiceTests(
                 new FakeUniqueInstanceGuard(),
                 LifecycleServiceFixture.CreateLogsBroadcaster(),
                 LifecycleServiceFixture.CreateLogFileReader(),
-                LifecycleServiceFixture.CreateConfigAccessor()));
+                LifecycleServiceFixture.CreateConfigAccessor(),
+                LifecycleServiceFixture.CreateConfigUpdater()));
     }
 
     [Fact]
@@ -216,7 +221,8 @@ public sealed class LifecycleServiceTests(
                 new FakeUniqueInstanceGuard(),
                 LifecycleServiceFixture.CreateLogsBroadcaster(),
                 LifecycleServiceFixture.CreateLogFileReader(),
-                LifecycleServiceFixture.CreateConfigAccessor()));
+                LifecycleServiceFixture.CreateConfigAccessor(),
+                LifecycleServiceFixture.CreateConfigUpdater()));
     }
 
     [Fact]
@@ -236,7 +242,8 @@ public sealed class LifecycleServiceTests(
                 new FakeUniqueInstanceGuard(),
                 LifecycleServiceFixture.CreateLogsBroadcaster(),
                 LifecycleServiceFixture.CreateLogFileReader(),
-                LifecycleServiceFixture.CreateConfigAccessor()));
+                LifecycleServiceFixture.CreateConfigAccessor(),
+                LifecycleServiceFixture.CreateConfigUpdater()));
     }
 
     [Fact]
@@ -257,7 +264,8 @@ public sealed class LifecycleServiceTests(
                 null!,
                 LifecycleServiceFixture.CreateLogsBroadcaster(),
                 LifecycleServiceFixture.CreateLogFileReader(),
-                LifecycleServiceFixture.CreateConfigAccessor()));
+                LifecycleServiceFixture.CreateConfigAccessor(),
+                LifecycleServiceFixture.CreateConfigUpdater()));
     }
 
     [Fact]
@@ -278,7 +286,8 @@ public sealed class LifecycleServiceTests(
                 new FakeUniqueInstanceGuard(),
                 null!,
                 LifecycleServiceFixture.CreateLogFileReader(),
-                LifecycleServiceFixture.CreateConfigAccessor()));
+                LifecycleServiceFixture.CreateConfigAccessor(),
+                LifecycleServiceFixture.CreateConfigUpdater()));
     }
 
     [Fact]
@@ -299,7 +308,8 @@ public sealed class LifecycleServiceTests(
                 new FakeUniqueInstanceGuard(),
                 LifecycleServiceFixture.CreateLogsBroadcaster(),
                 null!,
-                LifecycleServiceFixture.CreateConfigAccessor()));
+                LifecycleServiceFixture.CreateConfigAccessor(),
+                LifecycleServiceFixture.CreateConfigUpdater()));
     }
 
     [Fact]
@@ -320,6 +330,29 @@ public sealed class LifecycleServiceTests(
                 new FakeUniqueInstanceGuard(),
                 LifecycleServiceFixture.CreateLogsBroadcaster(),
                 LifecycleServiceFixture.CreateLogFileReader(),
+                null!,
+                LifecycleServiceFixture.CreateConfigUpdater()));
+    }
+
+    [Fact]
+    public async Task Should_throw_when_constructed_with_null_config_updater()
+    {
+        using var lifetime = new FakeHostApplicationLifetime();
+        await using var watchdog = LifecycleServiceFixture.CreateWatchdog(LifecycleServiceFixture.CreateOptions(), lifetime);
+
+        Assert.Throws<ArgumentNullException>(() =>
+            new LifecycleService(
+                Options.Create(LifecycleServiceFixture.CreateOptions()),
+                NullLoggerFactory.Instance,
+                lifetime,
+                LifecycleServiceFixture.CreateRegistryReader(),
+                LifecycleServiceFixture.CreateEventStream(),
+                LifecycleServiceFixture.CreateNotifier(),
+                watchdog,
+                new FakeUniqueInstanceGuard(),
+                LifecycleServiceFixture.CreateLogsBroadcaster(),
+                LifecycleServiceFixture.CreateLogFileReader(),
+                LifecycleServiceFixture.CreateConfigAccessor(),
                 null!));
     }
 

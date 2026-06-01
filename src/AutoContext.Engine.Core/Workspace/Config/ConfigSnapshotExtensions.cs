@@ -64,6 +64,106 @@ internal static class ConfigSnapshotExtensions
         };
     }
 
+    /// <summary>
+    /// Flips the whole-file disabled flag for the instruction file
+    /// named <paramref name="name"/>. An untracked file becomes
+    /// disabled; a disabled file becomes enabled (and is pruned when
+    /// it then carries no rule state). The input snapshot is never
+    /// mutated; toggling normalises the result the same way a reload
+    /// would, dropping an entry that ends up carrying no state.
+    /// </summary>
+    /// <param name="snapshot">The domain snapshot to derive from.</param>
+    /// <param name="name">The instruction file to toggle.</param>
+    /// <returns>A new snapshot with the file's state flipped.</returns>
+    public static ConfigSnapshot ToggleInstructionsFile(this ConfigSnapshot snapshot, string name)
+    {
+        ArgumentNullException.ThrowIfNull(snapshot);
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+
+        var files = snapshot.Instructions;
+        var index = Array.FindIndex(
+            files, file => string.Equals(file.Name, name, StringComparison.Ordinal));
+
+        if (index < 0)
+        {
+            var created = new ConfigInstructionsFile { Name = name, Disabled = true };
+            return snapshot with { Instructions = [.. files, created] };
+        }
+
+        var existing = files[index];
+        var toggled = existing with
+        {
+            Disabled = existing.Disabled is true ? null : true,
+        };
+
+        return snapshot with { Instructions = ReplaceInstructionsFile(files, index, toggled) };
+    }
+
+    /// <summary>
+    /// Flips the disabled flag for the rule <paramref name="ruleId"/>
+    /// within the instruction file named <paramref name="name"/>. A
+    /// disabled rule is enabled by dropping its entry; any other rule
+    /// is recorded as disabled. The owning file is created when absent
+    /// and pruned when the edit leaves it with no state. The input
+    /// snapshot is never mutated.
+    /// </summary>
+    /// <param name="snapshot">The domain snapshot to derive from.</param>
+    /// <param name="name">The instruction file owning the rule.</param>
+    /// <param name="ruleId">The rule to toggle.</param>
+    /// <returns>A new snapshot with the rule's state flipped.</returns>
+    public static ConfigSnapshot ToggleInstructionsRule(
+        this ConfigSnapshot snapshot, string name, string ruleId)
+    {
+        ArgumentNullException.ThrowIfNull(snapshot);
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        ArgumentException.ThrowIfNullOrWhiteSpace(ruleId);
+
+        var files = snapshot.Instructions;
+        var index = Array.FindIndex(
+            files, file => string.Equals(file.Name, name, StringComparison.Ordinal));
+
+        if (index < 0)
+        {
+            var created = new ConfigInstructionsFile
+            {
+                Name = name,
+                Rules = [new ConfigInstructionsFile.InstructionsRule { Id = ruleId, Disabled = true }],
+            };
+            return snapshot with { Instructions = [.. files, created] };
+        }
+
+        var file = files[index];
+        var toggled = file with { Rules = UpdateInstructionsRuleState(file.Rules, ruleId) };
+
+        return snapshot with { Instructions = ReplaceInstructionsFile(files, index, toggled) };
+    }
+
+    private static bool IsEmpty(ConfigInstructionsFile file)
+        => file.Disabled is not true && file.Rules.Length == 0;
+
+    private static ConfigInstructionsFile[] ReplaceInstructionsFile(
+        ConfigInstructionsFile[] files, int index, ConfigInstructionsFile replacement)
+    {
+        if (IsEmpty(replacement))
+        {
+            return [.. files[..index], .. files[(index + 1)..]];
+        }
+
+        var next = (ConfigInstructionsFile[])files.Clone();
+        next[index] = replacement;
+        return next;
+    }
+
+    private static ConfigInstructionsFile.InstructionsRule[] ReplaceInstructionsRule(
+        ConfigInstructionsFile.InstructionsRule[] rules,
+        int index,
+        ConfigInstructionsFile.InstructionsRule replacement)
+    {
+        var next = (ConfigInstructionsFile.InstructionsRule[])rules.Clone();
+        next[index] = replacement;
+        return next;
+    }
+
     private static Dictionary<string, JsonConfigFileInstructionsEntry>? ToFileFormat(
         ConfigInstructionsFile[] instructions)
     {
@@ -167,4 +267,24 @@ internal static class ConfigSnapshotExtensions
                 }),
             ],
         };
+
+    private static ConfigInstructionsFile.InstructionsRule[] UpdateInstructionsRuleState(
+        ConfigInstructionsFile.InstructionsRule[] rules, string ruleId)
+    {
+        var index = Array.FindIndex(
+            rules, rule => string.Equals(rule.Id, ruleId, StringComparison.Ordinal));
+
+        if (index >= 0 && rules[index].Disabled is true)
+        {
+            // Enabling a disabled rule drops its entry entirely, so an
+            // enabled rule never lingers as dead weight in the graph.
+            return [.. rules[..index], .. rules[(index + 1)..]];
+        }
+
+        var disabled = new ConfigInstructionsFile.InstructionsRule { Id = ruleId, Disabled = true };
+
+        return index >= 0
+            ? ReplaceInstructionsRule(rules, index, disabled)
+            : [.. rules, disabled];
+    }
 }

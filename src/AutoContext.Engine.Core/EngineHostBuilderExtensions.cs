@@ -280,6 +280,8 @@ public static class EngineHostBuilderExtensions
         });
         builder.Services.TryAddSingleton<IConfigSnapshotAccessor>(
             sp => sp.GetRequiredService<ConfigFileManager>());
+        builder.Services.TryAddSingleton<IConfigUpdater>(
+            sp => sp.GetRequiredService<ConfigFileManager>());
         builder.Services.TryAddEnumerable(
             ServiceDescriptor.Singleton<IHostedService, ConfigFileService>());
 

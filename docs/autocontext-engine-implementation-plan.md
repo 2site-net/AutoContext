@@ -427,7 +427,7 @@ src/
         IConfigSnapshotAccessor.cs             # lock-free read seam (Current) that DispatchPolicy reads for Config.Get
         ConfigBatchWriter.cs                   # micro-batch write coalescer behind IConfigUpdater (P3 row 6, DONE)
         IConfigUpdater.cs                      # one-method write seam the manager satisfies (P3 row 6, DONE)
-        ConfigHandlers.cs                      # Config.{Subscribe,ToggleFile,ToggleRule} (P3 rows 8-9, not started; Config.Get is served by DispatchPolicy via IConfigSnapshotAccessor)
+        ConfigHandlers.cs                      # Config.Subscribe (P3 row 9, not started; Config.Get/ToggleFile/ToggleRule are served by DispatchPolicy, the latter two via ConfigToggle + IConfigUpdater)
         ConfigSubscriptionBroadcaster.cs       # snapshot-on-subscribe + per-subscriber bounded buffer (not started)
       Context/                                 # ~60-flag detection (Workspace.* wire surface)
         WorkspaceContextDetector.cs            # orchestrator — injected with the four rule-data lists below; runs them, emits result
@@ -1120,7 +1120,7 @@ its dependency on Phase 1's `RegistryFileReader` /
 
 ## Phase 3 — Config store
 
-**Status**: In progress (rows 1-7 landed).
+**Status**: In progress (rows 1-8 landed).
 
 | # | Commit subject | State |
 |---|---|---|
@@ -1131,7 +1131,7 @@ its dependency on Phase 1's `RegistryFileReader` /
 | 5 | `feat(engine-core): add deep-equal self-write suppressor` | DONE |
 | 6 | `feat(engine-core): add writer mutex and micro-batch write coalescing` | DONE |
 | 7 | `feat(engine): serve Config.Get over rpc` | DONE |
-| 8 | `feat(engine): serve Config.ToggleFile and Config.ToggleRule over rpc` | Not started |
+| 8 | `feat(engine): serve Config.ToggleFile and Config.ToggleRule over rpc` | DONE |
 | 9 | `feat(engine-core): add Config.Subscribe events stream with snapshot-on-subscribe` | Not started |
 | 10 | `test(engine): integration test for cross-instance config reload coalescing` | Not started |
 | 11 | `docs(plan): mark Phase 3 complete` | Not started |
@@ -1176,6 +1176,19 @@ its dependency on Phase 1's `RegistryFileReader` /
   onto the `Config.*` wire DTOs via
   `ConfigSnapshotExtensions.ToWireFormat`. The revision counter and
   the `Config.Subscribe` fan-out stay deferred to rows 8-9.
+- **Row 8 — serve `Config.ToggleFile` / `Config.ToggleRule` over
+  rpc.** Both methods flip state (matching the `Toggle` name): a pure
+  `ConfigToggle` transform takes the current `ConfigSnapshot` and
+  returns a new one with the targeted instruction file's whole-file
+  disabled flag (`ToggleFile`) or a single rule's disabled flag
+  (`ToggleRule`) flipped — creating the entry when absent and pruning
+  it when the edit leaves it carrying no state, so the in-memory graph
+  matches a reload. `DispatchPolicy` routes both methods to unary
+  handlers that validate params (rejecting missing `name`/`ruleId`
+  with `InvalidParams`), hand the transform to the manager through the
+  existing one-method `IConfigUpdater` seam, and reply with the
+  refreshed snapshot via `ToWireFormat`. The `{ revision, changes }`
+  envelope and the `Config.Subscribe` fan-out stay deferred to row 9.
 
 **Prelude — server-streaming responses on the `rpc` pipe.** Phase 3
 is the first phase that needs `*.Subscribe` semantics
@@ -1287,8 +1300,11 @@ write.
 - `Config.Get`, `Config.Subscribe`, `Config.ToggleFile`,
   `Config.ToggleRule` handlers. **Status:** `Config.Get` landed in
   row 7 (`DispatchPolicy.HandleConfigGet` projects the accessor's
-  current snapshot through `ToWireFormat`); `Config.Subscribe` and
-  the `Config.Toggle*` handlers are still rows 8–9.
+  current snapshot through `ToWireFormat`); the `Config.Toggle*`
+  handlers landed in row 8 (`DispatchPolicy` routes both to unary
+  handlers that hand a pure `ConfigToggle` transform to the manager
+  via `IConfigUpdater` and reply with the refreshed snapshot);
+  `Config.Subscribe` is still row 9.
 - Snapshot-on-subscribe (P6) — every new subscriber receives the
   current state as the first frame.
 
