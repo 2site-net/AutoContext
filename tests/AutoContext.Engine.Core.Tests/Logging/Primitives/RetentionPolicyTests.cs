@@ -2,9 +2,9 @@ namespace AutoContext.Engine.Core.Tests.Logging.Primitives;
 
 using AutoContext.Engine.Core;
 using AutoContext.Engine.Core.Logging.Primitives;
-using AutoContext.Engine.Core.Tests.Support.Shared;
 
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Time.Testing;
 
 public sealed class RetentionPolicyTests
 {

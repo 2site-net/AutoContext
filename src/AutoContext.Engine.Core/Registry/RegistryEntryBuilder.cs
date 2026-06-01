@@ -1,8 +1,8 @@
 namespace AutoContext.Engine.Core.Registry;
 
 using System.Diagnostics;
-using System.Reflection;
 
+using AutoContext.Engine.Core.Infrastructure;
 using AutoContext.Engine.Core.Infrastructure.Storage;
 using AutoContext.Engine.Protocol.Messages.Registry;
 
@@ -51,7 +51,7 @@ internal static class RegistryEntryBuilder
         var hash = WorkspaceHash.Compute(options.WorkspacePath);
 
         return new JsonRegistryEntry(
-            EngineVersion: ResolveEngineVersion(),
+            EngineVersion: EngineVersion.Resolve(),
             WorkspaceHash: hash.Value,
             WorkspacePath: Path.GetFullPath(options.WorkspacePath),
             InstanceId: options.InstanceId,
@@ -60,20 +60,5 @@ internal static class RegistryEntryBuilder
             ProcessStartTimeUtc: process.StartTime.ToUniversalTime(),
             StartedAt: clock.GetUtcNow(),
             Retention: options.Retention);
-    }
-
-    private static string ResolveEngineVersion()
-    {
-        var assembly = typeof(RegistryEntryBuilder).Assembly;
-        var informational = assembly
-            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()
-            ?.InformationalVersion;
-
-        if (!string.IsNullOrWhiteSpace(informational))
-        {
-            return informational;
-        }
-
-        return assembly.GetName().Version?.ToString() ?? "0.0.0";
     }
 }

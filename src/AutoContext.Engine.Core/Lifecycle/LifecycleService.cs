@@ -9,6 +9,7 @@ using AutoContext.Engine.Core.Registry;
 using AutoContext.Engine.Core.Rpc;
 using AutoContext.Engine.Core.Rpc.Policies;
 using AutoContext.Engine.Core.Watchdogs;
+using AutoContext.Engine.Core.Workspace.Config;
 using AutoContext.Engine.Protocol;
 using AutoContext.Engine.Protocol.JsonRpc;
 using AutoContext.Engine.Protocol.Messages.Lifecycle;
@@ -76,6 +77,9 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
     ];
 
     private readonly IHostApplicationLifetime _applicationLifetime;
+    private readonly IConfigSnapshotAccessor _configAccessor;
+    private readonly ConfigSubscriptionBroadcaster _configBroadcaster;
+    private readonly IConfigUpdater _configUpdater;
     private int _disposed;
     private CancellationTokenSource? _drainCts;
     private readonly LifecycleEventStream _eventStream;
@@ -134,6 +138,18 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
     /// active <c>engine.log</c>; threaded into the RPC dispatch
     /// policy so the <c>Logs.GetEngine</c> handler can answer
     /// snapshot requests against the on-disk file.</param>
+    /// <param name="configAccessor">Read-only view over the engine's
+    /// in-memory config snapshot; threaded into the RPC dispatch
+    /// policy so the <c>Config.Get</c> handler can answer with the
+    /// current snapshot.</param>
+    /// <param name="configUpdater">Write seam over the engine's
+    /// in-memory config snapshot; threaded into the RPC dispatch
+    /// policy so the <c>Config.ToggleFile</c> and
+    /// <c>Config.ToggleRule</c> handlers can publish edits.</param>
+    /// <param name="configBroadcaster">Fan-out broadcaster backing
+    /// the <c>Config.Subscribe</c> RPC stream; threaded into the RPC
+    /// dispatch policy so each subscribing connection enrolls a
+    /// snapshot-seeded subscriber.</param>
     /// <exception cref="ArgumentNullException">
     /// Any constructor argument is <see langword="null"/>.
     /// </exception>
@@ -147,7 +163,10 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
         IdleTimeoutWatchdog idleTimeoutWatchdog,
         IUniqueInstanceGuard instanceGuard,
         LogSubscriptionBroadcaster logsBroadcaster,
-        EngineLogFileReader logFileReader)
+        EngineLogFileReader logFileReader,
+        IConfigSnapshotAccessor configAccessor,
+        IConfigUpdater configUpdater,
+        ConfigSubscriptionBroadcaster configBroadcaster)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(loggerFactory);
@@ -159,6 +178,9 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
         ArgumentNullException.ThrowIfNull(instanceGuard);
         ArgumentNullException.ThrowIfNull(logsBroadcaster);
         ArgumentNullException.ThrowIfNull(logFileReader);
+        ArgumentNullException.ThrowIfNull(configAccessor);
+        ArgumentNullException.ThrowIfNull(configUpdater);
+        ArgumentNullException.ThrowIfNull(configBroadcaster);
 
         _options = options.Value;
         _loggerFactory = loggerFactory;
@@ -171,6 +193,9 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
         _instanceGuard = instanceGuard;
         _logsBroadcaster = logsBroadcaster;
         _logFileReader = logFileReader;
+        _configAccessor = configAccessor;
+        _configUpdater = configUpdater;
+        _configBroadcaster = configBroadcaster;
     }
 
     /// <inheritdoc/>
@@ -455,7 +480,7 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
                 _ = await RpcConnectionProcessor
                     .RunAsync(
                         stream,
-                        new DispatchPolicy(_applicationLifetime, _registryReader, _logFileReader, _logsBroadcaster, _logger),
+                        new DispatchPolicy(_applicationLifetime, _registryReader, _logFileReader, _logsBroadcaster, _configAccessor, _configUpdater, _configBroadcaster, _logger),
                         _logger,
                         cancellationToken)
                     .ConfigureAwait(false);

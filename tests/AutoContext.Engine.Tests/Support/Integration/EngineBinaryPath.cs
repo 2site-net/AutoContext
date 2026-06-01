@@ -28,7 +28,7 @@ internal static class EngineBinaryPath
     /// resolution time; callers check existence and surface a
     /// build-hint diagnostic when the file is missing.
     /// </summary>
-    internal static string Value { get; } = Resolve();
+    public static string Value { get; } = Resolve();
 
     private static string FindRepoRoot(string start)
     {

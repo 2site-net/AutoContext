@@ -21,6 +21,14 @@ using Microsoft.Extensions.Logging;
 /// limit.
 /// </para>
 /// <para>
+/// Several accepts are kept in flight at once (a small backlog) so at
+/// least one server instance is always listening, even while another
+/// instance is being re-armed after a connection. This keeps the pipe
+/// path continuously serviceable regardless of how the accept loop's
+/// thread is scheduled, which matters under heavy load when many
+/// processes are spawned concurrently.
+/// </para>
+/// <para>
 /// <see cref="RunAsync"/> is one-shot. <see cref="DisposeAsync"/> is
 /// the canonical teardown and may be called whether or not
 /// <see cref="RunAsync"/> ran.
@@ -28,8 +36,17 @@ using Microsoft.Extensions.Logging;
 /// </remarks>
 public sealed partial class BoundPipeListener : IAsyncDisposable
 {
+    /// <summary>
+    /// Number of overlapping accepts to keep in flight. Two is the
+    /// minimum that guarantees a listening instance survives every
+    /// re-arm: while one accepted instance is being replaced, the other
+    /// is still listening.
+    /// </summary>
+    private const int DefaultAcceptBacklog = 2;
+
     private readonly string _pipeName;
     private readonly int _maxInstances;
+    private readonly int _acceptBacklog;
     private readonly ILogger<PipeListener> _logger;
     private NamedPipeServerStream? _initialPipe;
     private int _running;
@@ -43,6 +60,9 @@ public sealed partial class BoundPipeListener : IAsyncDisposable
     {
         _pipeName = pipeName;
         _maxInstances = maxInstances;
+        _acceptBacklog = maxInstances == NamedPipeServerStream.MaxAllowedServerInstances
+            ? DefaultAcceptBacklog
+            : Math.Min(maxInstances, DefaultAcceptBacklog);
         _initialPipe = initialPipe;
         _logger = logger;
     }
@@ -77,21 +97,61 @@ public sealed partial class BoundPipeListener : IAsyncDisposable
         }
 
         var connections = new List<Task>();
+        var accepts = new List<Task<NamedPipeServerStream?>>(_acceptBacklog);
+
+        // A linked source lets the finally block unblock accepts that are
+        // still waiting for a connection — for example if one accept
+        // faulted unexpectedly and left its siblings pending — so every
+        // server stream is disposed before RunAsync returns. Canceling it
+        // does not affect the caller's token, so connection handlers keep
+        // observing the original token.
+        using var acceptCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        var acceptToken = acceptCts.Token;
         try
         {
-            while (!cancellationToken.IsCancellationRequested)
+            // Start a backlog of overlapping accepts. Keeping more than
+            // one accept in flight means a server instance is always
+            // listening while another is being re-armed after a
+            // connection. A single-instance loop instead leaves a window
+            // with zero listening instances between accepting a
+            // connection and creating the next one; under heavy CPU load
+            // (many concurrently spawned processes) the accept-loop
+            // thread can be starved long enough for that window to exceed
+            // a client's connect timeout.
+            for (var i = 0; i < _acceptBacklog && !acceptToken.IsCancellationRequested; i++)
             {
-                var pipe = await AcceptAsync(cancellationToken).ConfigureAwait(false);
+                accepts.Add(AcceptAsync(acceptToken));
+            }
+
+            while (accepts.Count > 0)
+            {
+                var completed = await Task.WhenAny(accepts).ConfigureAwait(false);
+                accepts.Remove(completed);
+
+                var pipe = await completed.ConfigureAwait(false);
                 if (pipe is null)
                 {
-                    break;
+                    // Canceled or faulted into shutdown: stop
+                    // replenishing and let the remaining accepts drain.
+                    continue;
                 }
 
                 connections.Add(InvokeHandlerAsync(pipe, connectionHandler, cancellationToken));
+
+                if (!acceptToken.IsCancellationRequested)
+                {
+                    accepts.Add(AcceptAsync(acceptToken));
+                }
             }
         }
         finally
         {
+            // Unblock and drain any accepts still waiting for a connection
+            // (left pending if the loop exited via an unexpected fault),
+            // disposing their server streams, then wait for in-flight
+            // handlers to finish.
+            await acceptCts.CancelAsync().ConfigureAwait(false);
+            await Task.WhenAll(accepts).ConfigureAwait(false);
             await Task.WhenAll(connections).ConfigureAwait(false);
         }
     }
@@ -104,10 +164,10 @@ public sealed partial class BoundPipeListener : IAsyncDisposable
             return;
         }
 
-        // Disposes whichever pipe is currently parked in the field:
-        // either the original pre-bound instance (RunAsync never
-        // started) or the most recent pre-bound "next" listener
-        // (RunAsync exited and left a leftover).
+        // Disposes the Bind-created instance if RunAsync never claimed
+        // it (RunAsync not started, or it returned before the first
+        // accept). Once RunAsync starts, each accept owns and disposes
+        // its own instance on cancellation.
         var pending = Interlocked.Exchange(ref _initialPipe, null);
         if (pending is not null)
         {
@@ -119,10 +179,11 @@ public sealed partial class BoundPipeListener : IAsyncDisposable
         Justification = "Ownership transfers to the caller on success via `ownsPipe = false`; the finally block disposes on every other path.")]
     private async Task<NamedPipeServerStream?> AcceptAsync(CancellationToken cancellationToken)
     {
-        // Use the pre-bound instance for connection #1, then re-use a
-        // pre-bound instance stashed by the previous successful accept
-        // (see below). Fall back to creating a fresh server stream only
-        // if neither is available (DisposeAsync race).
+        // The first accept claims the instance created by Bind; every
+        // other accept (backlog accepts and post-connection
+        // replenishment) creates its own fresh server stream. The
+        // Interlocked exchange makes the hand-off race-free when several
+        // accepts start together.
         var pipe = Interlocked.Exchange(ref _initialPipe, null) ?? CreateServerStream();
         var ownsPipe = true;
         CancellationTokenRegistration registration = default;
@@ -135,18 +196,6 @@ public sealed partial class BoundPipeListener : IAsyncDisposable
             registration = cancellationToken.Register(pipe.Dispose);
 
             await pipe.WaitForConnectionAsync(cancellationToken).ConfigureAwait(false);
-
-            // Eagerly bind the next listener BEFORE returning so the
-            // pipe path remains continuously listened-to even when the
-            // handler immediately disposes the accepted pipe. On Linux
-            // (Unix-domain-socket transport) closing the only bound
-            // server stream can briefly tear down the listener for the
-            // path, which races concurrent client connect attempts.
-            // Pre-binding closes that window.
-            if (!cancellationToken.IsCancellationRequested)
-            {
-                PrebindNextListener();
-            }
 
             ownsPipe = false;
             return pipe;
@@ -171,41 +220,6 @@ public sealed partial class BoundPipeListener : IAsyncDisposable
             {
                 await pipe.DisposeAsync().ConfigureAwait(false);
             }
-        }
-    }
-
-    [SuppressMessage("Design", "CA1031",
-        Justification = "Pre-bind is best-effort; failures are logged and the next AcceptAsync iteration falls back to creating a fresh server stream.")]
-    private void PrebindNextListener()
-    {
-        NamedPipeServerStream? next = null;
-        try
-        {
-            next = CreateServerStream();
-            if (Interlocked.CompareExchange(ref _initialPipe, next, null) is null)
-            {
-                // Successfully stashed; ownership transferred to the field.
-                next = null;
-
-                // Recheck disposal after stashing: a concurrent
-                // DisposeAsync that observed an empty field before we
-                // stashed would otherwise leave the stream parked
-                // forever. Reclaim and dispose it here.
-                if (_disposed != 0 &&
-                    Interlocked.Exchange(ref _initialPipe, null) is { } orphaned)
-                {
-                    orphaned.Dispose();
-                }
-            }
-        }
-        catch (Exception ex) when (!IsCritical(ex))
-        {
-            LogPrebindFailed(_logger, _pipeName, ex);
-        }
-        finally
-        {
-            // Drop the freshly-bound stream if we lost the race or threw.
-            next?.Dispose();
         }
     }
 
@@ -255,8 +269,4 @@ public sealed partial class BoundPipeListener : IAsyncDisposable
     [LoggerMessage(EventId = 1, Level = LogLevel.Warning,
         Message = "Pipe listener '{PipeName}' connection handler threw an unhandled exception.")]
     private static partial void LogHandlerFailed(ILogger logger, string pipeName, Exception exception);
-
-    [LoggerMessage(EventId = 2, Level = LogLevel.Warning,
-        Message = "Pipe listener '{PipeName}' failed to pre-bind the next server stream; falling back to lazy creation.")]
-    private static partial void LogPrebindFailed(ILogger logger, string pipeName, Exception exception);
 }

@@ -223,10 +223,10 @@ public sealed class PipeListenerTests
         try
         {
             // Drive the throwing handler first, then connect a second
-            // client and assert the listener accepted it. The listener
-            // pre-binds the next server stream before yielding the
-            // accepted pipe to the handler, so the throwing handler
-            // disposing its pipe cannot leave the path unlistened.
+            // client and assert the listener accepted it. Overlapping
+            // backlog accepts keep another server stream listening while
+            // the throwing handler disposes its pipe, so the path is
+            // never left unlistened.
             await using var c1 = new NamedPipeClientStream(".", name, PipeDirection.InOut, PipeOptions.Asynchronous);
             await c1.ConnectAsync(cancellationToken);
             await firstStarted.Task.WaitAsync(TimeSpan.FromSeconds(10), cancellationToken);

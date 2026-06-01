@@ -28,7 +28,7 @@ internal static class EngineWireTestClient
     /// Connects to <paramref name="kind"/> on the engine identified
     /// by <paramref name="workspacePath"/> + <paramref name="instanceId"/>.
     /// </summary>
-    internal static async Task<NamedPipeClientStream> ConnectAsync(
+    public static async Task<NamedPipeClientStream> ConnectAsync(
         EndpointKind kind,
         string workspacePath,
         Guid instanceId,
@@ -53,8 +53,19 @@ internal static class EngineWireTestClient
         }
     }
 
+    /// <summary>
+    /// Connects to <paramref name="kind"/> on <paramref name="engine"/>'s
+    /// endpoint, resolving the workspace + instance id from the
+    /// spawned process.
+    /// </summary>
+    public static Task<NamedPipeClientStream> ConnectAsync(
+        EndpointKind kind,
+        EngineTestProcess engine,
+        CancellationToken cancellationToken)
+        => ConnectAsync(kind, engine.WorkspacePath, engine.InstanceId, cancellationToken);
+
     /// <summary>Writes the mandatory <c>Engine.Hello</c> first frame.</summary>
-    internal static async Task SendHelloAsync(
+    public static async Task SendHelloAsync(
         LengthPrefixedFrameCodec codec,
         int protocolVersion,
         CancellationToken cancellationToken)
@@ -78,7 +89,7 @@ internal static class EngineWireTestClient
     }
 
     /// <summary>Writes a parameter-less JSON-RPC request with the given id and method.</summary>
-    internal static async Task SendRequestAsync(
+    public static async Task SendRequestAsync(
         LengthPrefixedFrameCodec codec,
         int id,
         string method,
@@ -98,19 +109,40 @@ internal static class EngineWireTestClient
         await codec.WriteAsync(bytes, cancellationToken).ConfigureAwait(false);
     }
 
+    /// <summary>Writes a JSON-RPC request carrying <paramref name="parameters"/>.</summary>
+    public static async Task SendRequestAsync(
+        LengthPrefixedFrameCodec codec,
+        int id,
+        string method,
+        JsonElement parameters,
+        CancellationToken cancellationToken)
+    {
+        var idElement = JsonDocument
+            .Parse(id.ToString(CultureInfo.InvariantCulture))
+            .RootElement;
+        var request = new JsonRpcRequest
+        {
+            JsonRpc = JsonRpcVersion.Value,
+            Id = idElement,
+            Method = method,
+            Params = parameters,
+        };
+        var bytes = JsonSerializer.SerializeToUtf8Bytes(
+            request, ProtocolJsonContext.Default.JsonRpcRequest);
+        await codec.WriteAsync(bytes, cancellationToken).ConfigureAwait(false);
+    }
+
     /// <summary>
     /// Completes the <c>Engine.Hello</c> handshake and the
     /// <c>Engine.Shutdown</c> exchange against <paramref name="engine"/>'s
     /// rpc endpoint, then awaits the process exit. The graceful-shutdown
     /// dance every multi-engine integration test repeats.
     /// </summary>
-    internal static async Task ShutdownGracefullyAsync(
+    public static async Task ShutdownGracefullyAsync(
         EngineTestProcess engine,
-        string workspacePath,
-        Guid instanceId,
         CancellationToken cancellationToken)
     {
-        var rpc = await ConnectAsync(EndpointKind.Rpc, workspacePath, instanceId, cancellationToken)
+        var rpc = await ConnectAsync(EndpointKind.Rpc, engine, cancellationToken)
             .ConfigureAwait(false);
         await using var rpcDisposer = rpc.ConfigureAwait(false);
         var codec = new LengthPrefixedFrameCodec(rpc);
@@ -126,7 +158,7 @@ internal static class EngineWireTestClient
     }
 
     /// <summary>Reads exactly one JSON-RPC response frame.</summary>
-    internal static async Task<JsonRpcResponse> ReadResponseAsync(
+    public static async Task<JsonRpcResponse> ReadResponseAsync(
         LengthPrefixedFrameCodec codec,
         CancellationToken cancellationToken)
     {
@@ -140,5 +172,22 @@ internal static class EngineWireTestClient
             bytes!, ProtocolJsonContext.Default.JsonRpcResponse);
         Assert.NotNull(response);
         return response!;
+    }
+
+    /// <summary>Reads exactly one server-streaming JSON-RPC frame.</summary>
+    public static async Task<JsonRpcStreamFrame> ReadStreamFrameAsync(
+        LengthPrefixedFrameCodec codec,
+        CancellationToken cancellationToken)
+    {
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        cts.CancelAfter(ReadResponseTimeout);
+
+        var bytes = await codec.ReadAsync(cts.Token).ConfigureAwait(false);
+        Assert.NotNull(bytes);
+
+        var frame = JsonSerializer.Deserialize(
+            bytes!, ProtocolJsonContext.Default.JsonRpcStreamFrame);
+        Assert.NotNull(frame);
+        return frame!;
     }
 }

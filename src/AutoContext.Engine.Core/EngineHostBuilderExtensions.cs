@@ -10,6 +10,7 @@ using AutoContext.Engine.Core.Machine;
 using AutoContext.Engine.Core.Machine.Housekeeping;
 using AutoContext.Engine.Core.Registry;
 using AutoContext.Engine.Core.Watchdogs;
+using AutoContext.Engine.Core.Workspace.Config;
 using AutoContext.Framework.Pipes;
 
 using Microsoft.Extensions.DependencyInjection;
@@ -256,6 +257,40 @@ public static class EngineHostBuilderExtensions
         // and (later) the registry-sweep liveness probes.
         builder.Services.TryAddSingleton<PipeTransport>();
         builder.Services.TryAddSingleton<IUniqueInstanceGuard, PerWorkspaceInstanceGuard>();
+
+        // Workspace config store. The manager owns the in-memory
+        // .autocontext.json snapshot for this workspace; it is the
+        // singleton source both the Config.Get RPC handler (via the
+        // IConfigSnapshotAccessor read seam) and future config writers
+        // resolve. ConfigFileService loads the snapshot from disk
+        // and arms the file watcher at startup. Registered BEFORE
+        // LifecycleService so it starts first — the snapshot is
+        // populated before the first rpc connection can issue
+        // Config.Get — and stops after the pipes are torn down. The
+        // manager is an IDisposable singleton the container disposes
+        // on host stop.
+        builder.Services.TryAddSingleton(sp =>
+        {
+            var options = sp.GetRequiredService<IOptions<EngineOptions>>().Value;
+            return new ConfigFileManager(
+                options.WorkspacePath,
+                EngineVersion.Resolve(),
+                logger: sp.GetService<ILogger<ConfigFileManager>>(),
+                timeProvider: sp.GetRequiredService<TimeProvider>());
+        });
+        builder.Services.TryAddSingleton<IConfigSnapshotAccessor>(
+            sp => sp.GetRequiredService<ConfigFileManager>());
+        builder.Services.TryAddSingleton<IConfigUpdater>(
+            sp => sp.GetRequiredService<ConfigFileManager>());
+
+        // Config-subscription fan-out broadcaster. Singleton so the
+        // RPC Config.Subscribe handler and the ConfigFileService
+        // change-event bridge share one instance: the bridge primes
+        // the snapshot seed and publishes every change, the handler
+        // enrolls snapshot-seeded subscribers.
+        builder.Services.TryAddSingleton<ConfigSubscriptionBroadcaster>();
+        builder.Services.TryAddEnumerable(
+            ServiceDescriptor.Singleton<IHostedService, ConfigFileService>());
 
         builder.Services.TryAddEnumerable(
             ServiceDescriptor.Singleton<IHostedService, LifecycleService>());

@@ -8,9 +8,13 @@ using AutoContext.Engine.Core.Logging;
 using AutoContext.Engine.Core.Logging.Primitives;
 using AutoContext.Engine.Core.Registry;
 using AutoContext.Engine.Core.Rpc.Results;
+using AutoContext.Engine.Core.Workspace.Config;
+using AutoContext.Engine.Core.Workspace.Config.Primitives;
+using AutoContext.Engine.Core.Workspace.Config.Snapshot;
 using AutoContext.Engine.Protocol;
 using AutoContext.Engine.Protocol.JsonRpc;
 using AutoContext.Engine.Protocol.Messages;
+using AutoContext.Engine.Protocol.Messages.Config;
 using AutoContext.Engine.Protocol.Messages.Logs;
 using AutoContext.Engine.Protocol.Messages.Registry;
 using AutoContext.Engine.Protocol.Serialization;
@@ -55,6 +59,9 @@ internal sealed partial class DispatchPolicy : IRpcConnectionPolicy
     private readonly RegistryFileReader _registryReader;
     private readonly EngineLogFileReader _logFileReader;
     private readonly LogSubscriptionBroadcaster _logsBroadcaster;
+    private readonly IConfigSnapshotAccessor _configAccessor;
+    private readonly ConfigSubscriptionBroadcaster _configBroadcaster;
+    private readonly IConfigUpdater _configUpdater;
     private readonly ILogger _logger;
 
     public DispatchPolicy(
@@ -62,18 +69,27 @@ internal sealed partial class DispatchPolicy : IRpcConnectionPolicy
         RegistryFileReader registryReader,
         EngineLogFileReader logFileReader,
         LogSubscriptionBroadcaster logsBroadcaster,
+        IConfigSnapshotAccessor configAccessor,
+        IConfigUpdater configUpdater,
+        ConfigSubscriptionBroadcaster configBroadcaster,
         ILogger logger)
     {
         ArgumentNullException.ThrowIfNull(lifetime);
         ArgumentNullException.ThrowIfNull(registryReader);
         ArgumentNullException.ThrowIfNull(logFileReader);
         ArgumentNullException.ThrowIfNull(logsBroadcaster);
+        ArgumentNullException.ThrowIfNull(configAccessor);
+        ArgumentNullException.ThrowIfNull(configUpdater);
+        ArgumentNullException.ThrowIfNull(configBroadcaster);
         ArgumentNullException.ThrowIfNull(logger);
 
         _lifetime = lifetime;
         _registryReader = registryReader;
         _logFileReader = logFileReader;
         _logsBroadcaster = logsBroadcaster;
+        _configAccessor = configAccessor;
+        _configUpdater = configUpdater;
+        _configBroadcaster = configBroadcaster;
         _logger = logger;
     }
 
@@ -117,6 +133,20 @@ internal sealed partial class DispatchPolicy : IRpcConnectionPolicy
 
             case LogsMethods.TailEngine:
                 return HandleLogsTailEngine();
+
+            case ConfigMethods.Get:
+                return HandleConfigGet();
+
+            case ConfigMethods.ToggleFile:
+                return await HandleConfigToggleFileAsync(request, cancellationToken)
+                    .ConfigureAwait(false);
+
+            case ConfigMethods.ToggleRule:
+                return await HandleConfigToggleRuleAsync(request, cancellationToken)
+                    .ConfigureAwait(false);
+
+            case ConfigMethods.Subscribe:
+                return HandleConfigSubscribe();
 
             case ProtocolMethods.Shutdown:
                 return HandleShutdown();
@@ -276,6 +306,152 @@ internal sealed partial class DispatchPolicy : IRpcConnectionPolicy
         }
     }
 
+    private UnaryHandlerResult HandleConfigGet() => ConfigSnapshotResult();
+
+    [SuppressMessage("Reliability", "CA2000",
+        Justification = "Ownership of the subscription is handed off to StreamingHandlerResult.PostFlush, which the RpcConnectionProcessor runs in a finally block — disposal is guaranteed on every path.")]
+    private StreamingHandlerResult HandleConfigSubscribe()
+    {
+        // Subscription is created up-front so its disposal can be
+        // routed through StreamingHandlerResult.PostFlush, which
+        // the processor runs in a finally — guaranteeing the
+        // broadcaster slot is released even when the peer hangs
+        // up mid-stream or the iterator faults.
+        var subscription = _configBroadcaster.Subscribe();
+
+        return new StreamingHandlerResult(
+            Payloads: MapConfigFramesAsync(subscription),
+            PostFlush: () =>
+            {
+                subscription.Dispose();
+                return Task.CompletedTask;
+            });
+    }
+
+    private static async IAsyncEnumerable<JsonElement> MapConfigFramesAsync(
+        ConfigSubscription subscription,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        await foreach (var frame in subscription
+            .ReadAllAsync(cancellationToken)
+            .ConfigureAwait(false))
+        {
+            yield return JsonSerializer.SerializeToElement(
+                frame, ProtocolJsonContext.Default.JsonConfigStreamFrame);
+        }
+    }
+
+    private async Task<RpcHandlerResult> HandleConfigToggleFileAsync(
+        JsonRpcRequest request, CancellationToken cancellationToken)
+    {
+        JsonConfigToggleFileParams? parameters;
+
+        try
+        {
+            parameters = request.Params is { ValueKind: not JsonValueKind.Undefined and not JsonValueKind.Null } element
+                ? element.Deserialize(ProtocolJsonContext.Default.JsonConfigToggleFileParams)
+                : null;
+        }
+        catch (JsonException ex)
+        {
+            LogParamsParseFailed(_logger, ConfigMethods.ToggleFile, ex);
+            return InvalidParams(ConfigMethods.ToggleFile);
+        }
+
+        if (string.IsNullOrWhiteSpace(parameters?.Name))
+        {
+            return InvalidParams(ConfigMethods.ToggleFile);
+        }
+
+        var name = parameters.Name;
+        return await ApplyConfigEditAsync(
+            ConfigMethods.ToggleFile,
+            snapshot => snapshot.ToggleInstructionsFile(name),
+            cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task<RpcHandlerResult> HandleConfigToggleRuleAsync(
+        JsonRpcRequest request, CancellationToken cancellationToken)
+    {
+        JsonConfigToggleRuleParams? parameters;
+
+        try
+        {
+            parameters = request.Params is { ValueKind: not JsonValueKind.Undefined and not JsonValueKind.Null } element
+                ? element.Deserialize(ProtocolJsonContext.Default.JsonConfigToggleRuleParams)
+                : null;
+        }
+        catch (JsonException ex)
+        {
+            LogParamsParseFailed(_logger, ConfigMethods.ToggleRule, ex);
+            return InvalidParams(ConfigMethods.ToggleRule);
+        }
+
+        if (string.IsNullOrWhiteSpace(parameters?.Name)
+            || string.IsNullOrWhiteSpace(parameters.RuleId))
+        {
+            return InvalidParams(ConfigMethods.ToggleRule);
+        }
+
+        var name = parameters.Name;
+        var ruleId = parameters.RuleId;
+        return await ApplyConfigEditAsync(
+            ConfigMethods.ToggleRule,
+            snapshot => snapshot.ToggleInstructionsRule(name, ruleId),
+            cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task<RpcHandlerResult> ApplyConfigEditAsync(
+        string method,
+        Func<ConfigSnapshot, ConfigSnapshot> edit,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _configUpdater.UpdateAsync(edit, cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            LogConfigEditFailed(_logger, method, ex);
+            return new UnaryHandlerResult(
+                Response: new JsonRpcResponse
+                {
+                    Error = new JsonRpcError
+                    {
+                        Code = JsonRpcErrorCodes.InternalError,
+                        Message = "Failed to update the engine config.",
+                    },
+                },
+                Continuation: Continuation.Continue);
+        }
+
+        return ConfigSnapshotResult();
+    }
+
+    private UnaryHandlerResult ConfigSnapshotResult()
+    {
+        var snapshot = _configAccessor.Current.ToWireFormat();
+        var resultElement = JsonSerializer.SerializeToElement(
+            snapshot, ProtocolJsonContext.Default.JsonConfigSnapshot);
+
+        return new UnaryHandlerResult(
+            Response: new JsonRpcResponse { Result = resultElement },
+            Continuation: Continuation.Continue);
+    }
+
+    private static UnaryHandlerResult InvalidParams(string method) =>
+        new(
+            Response: new JsonRpcResponse
+            {
+                Error = new JsonRpcError
+                {
+                    Code = JsonRpcErrorCodes.InvalidParams,
+                    Message = $"Invalid params for '{method}'.",
+                },
+            },
+            Continuation: Continuation.Continue);
+
     private UnaryHandlerResult HandleShutdown()
     {
         var result = new JsonShutdownResult { Accepted = true };
@@ -332,4 +508,8 @@ internal sealed partial class DispatchPolicy : IRpcConnectionPolicy
     [LoggerMessage(EventId = 59, Level = LogLevel.Debug,
         Message = "Logs.GetEngine rejected request with negative LastN={LastN}.")]
     private static partial void LogLogsGetEngineRejectedNegativeLastN(ILogger logger, int lastN);
+
+    [LoggerMessage(EventId = 60, Level = LogLevel.Warning,
+        Message = "Config edit handler '{Method}' failed to publish the update.")]
+    private static partial void LogConfigEditFailed(ILogger logger, string method, Exception exception);
 }

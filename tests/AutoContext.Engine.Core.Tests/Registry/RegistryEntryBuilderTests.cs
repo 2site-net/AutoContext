@@ -4,8 +4,9 @@ using AutoContext.Engine.Core;
 using AutoContext.Engine.Core.Infrastructure.Storage;
 using AutoContext.Engine.Core.Registry;
 using AutoContext.Engine.Core.Tests.Support;
-using AutoContext.Engine.Core.Tests.Support.Shared;
 using AutoContext.Engine.Protocol.Messages.Registry;
+
+using Microsoft.Extensions.Time.Testing;
 
 public sealed class RegistryEntryBuilderTests
 {
