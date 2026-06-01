@@ -9,14 +9,20 @@ using AutoContext.Engine.Core.Infrastructure.Storage;
 using AutoContext.Engine.Protocol;
 
 /// <summary>
-/// Spawns the <c>autocontext-engine</c> binary in daemon role and
-/// blocks until its <see cref="EndpointKind.Rpc"/> pipe is
+/// Spawns a single <c>autocontext-engine</c> binary in daemon role
+/// and blocks until its <see cref="EndpointKind.Rpc"/> pipe is
 /// connectable — the engine's atomic four-pipe bind guarantees that
 /// once <c>rpc</c> is reachable every other endpoint is too.
 /// Captures stderr for diagnostics and kills the process on
 /// <see cref="DisposeAsync"/>.
 /// </summary>
 /// <remarks>
+/// <para>
+/// Usage is construct, configure <see cref="Options"/>, then
+/// <see cref="SpawnAsync"/>. Each instance owns exactly one engine
+/// process; spawn a separate instance per engine and dispose each
+/// (typically with <c>await using</c>) to reap it.
+/// </para>
 /// <para>
 /// The engine emits no stderr ready-marker today (its diagnostics
 /// channel is reserved for error reporting), so this harness derives
@@ -27,12 +33,10 @@ using AutoContext.Engine.Protocol;
 /// elapses.
 /// </para>
 /// <para>
-/// Every spawned instance carries
-/// <c>--parent-pid &lt;Environment.ProcessId&gt;</c> so a crashed
-/// test run cannot leak a stale engine, and
+/// The <see cref="EngineTestProcessOptions"/> testing defaults pin
 /// <c>--idle-timeout 0</c> so the idle gate cannot race the test
-/// budget. Extra arguments may be appended via
-/// <paramref name="extraArguments"/>.
+/// budget and <c>--parent-pid &lt;current process&gt;</c> so a
+/// crashed run cannot leak a stale engine.
 /// </para>
 /// </remarks>
 internal sealed class EngineTestProcess : IAsyncDisposable
@@ -41,35 +45,32 @@ internal sealed class EngineTestProcess : IAsyncDisposable
     private static readonly TimeSpan ConnectPollTimeout = TimeSpan.FromMilliseconds(100);
     private static readonly TimeSpan ShutdownTimeout = TimeSpan.FromSeconds(5);
 
-    private readonly Process _process;
-    private readonly List<string> _stderrLines;
-    private readonly object _stderrLock;
+    private readonly List<string> _stderrLines = [];
+    private readonly Lock _stderrLock = new();
 
-    private EngineTestProcess(
-        Process process,
-        string workspacePath,
-        Guid instanceId,
-        List<string> stderrLines,
-        object stderrLock)
-    {
-        _process = process;
-        _stderrLines = stderrLines;
-        _stderrLock = stderrLock;
-        WorkspacePath = workspacePath;
-        InstanceId = instanceId;
-    }
+    private Process? _process;
+    private bool _spawned;
 
-    /// <summary>Workspace path passed to the engine via <c>--workspace</c>.</summary>
-    internal string WorkspacePath { get; }
+    /// <summary>
+    /// CLI-shaped spawn configuration. Populate before calling
+    /// <see cref="SpawnAsync"/>; the value is snapshotted at spawn,
+    /// so later mutation has no effect on the running process.
+    /// </summary>
+    public EngineTestProcessOptions Options { get; set; } = new();
 
-    /// <summary>Instance id passed to the engine via <c>--instance-id</c>.</summary>
-    internal Guid InstanceId { get; }
+    /// <summary>Workspace path the engine was spawned against (resolved at spawn).</summary>
+    public string WorkspacePath { get; private set; } = string.Empty;
+
+    /// <summary>Instance id the engine was spawned with (resolved at spawn).</summary>
+    public Guid InstanceId { get; private set; }
 
     /// <summary>Underlying engine <see cref="Process"/> for exit-code inspection and graceful waits.</summary>
-    internal Process Process => _process;
+    public Process Process =>
+        _process ?? throw new InvalidOperationException(
+            "The engine has not been spawned yet; call SpawnAsync first.");
 
     /// <summary>Snapshot of every stderr line the engine has written so far.</summary>
-    internal IReadOnlyList<string> StandardErrorLines
+    public IReadOnlyList<string> StandardErrorLines
     {
         get
         {
@@ -83,14 +84,21 @@ internal sealed class EngineTestProcess : IAsyncDisposable
     [SuppressMessage(
         "Reliability",
         "CA2000:Dispose objects before losing scope",
-        Justification = "Process ownership transfers to the returned EngineTestProcess, which disposes it via DisposeAsync. Failure paths kill and dispose the process explicitly before throwing.")]
-    internal static async Task<EngineTestProcess> StartAsync(
-        string workspacePath,
-        Guid instanceId,
-        CancellationToken cancellationToken,
-        IReadOnlyList<string>? extraArguments = null)
+        Justification = "Process ownership transfers to this EngineTestProcess, which disposes it via DisposeAsync. Failure paths kill and dispose the process explicitly before throwing.")]
+    public async Task<EngineTestProcess> SpawnAsync(CancellationToken cancellationToken)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(workspacePath);
+        if (_spawned)
+        {
+            throw new InvalidOperationException(
+                "This EngineTestProcess has already been spawned; create a new instance per engine.");
+        }
+
+        _spawned = true;
+        var options = Options;
+        var workspacePath = options.WorkspacePath ?? WorkspaceTestDirectoryFactory.Create();
+        var instanceId = options.InstanceId ?? Guid.NewGuid();
+        WorkspacePath = workspacePath;
+        InstanceId = instanceId;
 
         var executablePath = EngineBinaryPath.Value;
         if (!File.Exists(executablePath))
@@ -99,9 +107,6 @@ internal sealed class EngineTestProcess : IAsyncDisposable
                 "autocontext-engine binary not found. Run '.\\build.ps1 Compile DotNet' before running engine integration tests.",
                 executablePath);
         }
-
-        var stderrLines = new List<string>();
-        var stderrLock = new object();
 
         var process = new Process
         {
@@ -118,22 +123,35 @@ internal sealed class EngineTestProcess : IAsyncDisposable
 
         try
         {
-            process.StartInfo.ArgumentList.Add("--workspace");
-            process.StartInfo.ArgumentList.Add(workspacePath);
-            process.StartInfo.ArgumentList.Add("--instance-id");
-            process.StartInfo.ArgumentList.Add(instanceId.ToString("D"));
-            process.StartInfo.ArgumentList.Add("--idle-timeout");
-            process.StartInfo.ArgumentList.Add("0");
-            process.StartInfo.ArgumentList.Add("--parent-pid");
-            process.StartInfo.ArgumentList.Add(
-                Environment.ProcessId.ToString(CultureInfo.InvariantCulture));
+            var args = process.StartInfo.ArgumentList;
+            args.Add("--workspace");
+            args.Add(workspacePath);
+            args.Add("--instance-id");
+            args.Add(instanceId.ToString("D"));
+            args.Add("--idle-timeout");
+            args.Add(((int)options.IdleTimeout.TotalSeconds).ToString(CultureInfo.InvariantCulture));
 
-            if (extraArguments is not null)
+            if (options.ParentProcessId is { } parentProcessId)
             {
-                foreach (var arg in extraArguments)
-                {
-                    process.StartInfo.ArgumentList.Add(arg);
-                }
+                args.Add("--parent-pid");
+                args.Add(parentProcessId.ToString(CultureInfo.InvariantCulture));
+            }
+
+            if (options.CacheRootOverride is { } cacheRoot)
+            {
+                args.Add("--cache-root");
+                args.Add(cacheRoot);
+            }
+
+            if (options.Retention is { } retention)
+            {
+                args.Add("--retention");
+                args.Add(retention);
+            }
+
+            foreach (var arg in options.ExtraArguments)
+            {
+                args.Add(arg);
             }
 
             process.ErrorDataReceived += (_, e) =>
@@ -143,9 +161,9 @@ internal sealed class EngineTestProcess : IAsyncDisposable
                     return;
                 }
 
-                lock (stderrLock)
+                lock (_stderrLock)
                 {
-                    stderrLines.Add(e.Data);
+                    _stderrLines.Add(e.Data);
                 }
             };
 
@@ -158,8 +176,7 @@ internal sealed class EngineTestProcess : IAsyncDisposable
             process.BeginOutputReadLine();
             process.BeginErrorReadLine();
 
-            await WaitForReadinessAsync(
-                process, workspacePath, instanceId, stderrLines, stderrLock, cancellationToken)
+            await WaitForReadinessAsync(process, workspacePath, instanceId, cancellationToken)
                 .ConfigureAwait(false);
         }
         catch
@@ -169,21 +186,23 @@ internal sealed class EngineTestProcess : IAsyncDisposable
             throw;
         }
 
-        return new EngineTestProcess(process, workspacePath, instanceId, stderrLines, stderrLock);
+        _process = process;
+        return this;
     }
 
     public async ValueTask DisposeAsync()
     {
-        await KillAsync(_process).ConfigureAwait(false);
-        _process.Dispose();
+        if (_process is not null)
+        {
+            await KillAsync(_process).ConfigureAwait(false);
+            _process.Dispose();
+        }
     }
 
-    private static async Task WaitForReadinessAsync(
+    private async Task WaitForReadinessAsync(
         Process process,
         string workspacePath,
         Guid instanceId,
-        List<string> stderrLines,
-        object stderrLock,
         CancellationToken cancellationToken)
     {
         var hash = WorkspaceHash.Compute(workspacePath);
@@ -202,13 +221,13 @@ internal sealed class EngineTestProcess : IAsyncDisposable
             if (timeoutCts.IsCancellationRequested)
             {
                 throw new TimeoutException(
-                    $"autocontext-engine did not bind the rpc pipe '{pipeName}' within {ReadinessTimeout.TotalSeconds:0}s. Stderr:{Environment.NewLine}{SnapshotStderr(stderrLines, stderrLock)}");
+                    $"autocontext-engine did not bind the rpc pipe '{pipeName}' within {ReadinessTimeout.TotalSeconds:0}s. Stderr:{Environment.NewLine}{SnapshotStderr()}");
             }
 
             if (process.HasExited)
             {
                 throw new InvalidOperationException(
-                    $"autocontext-engine exited (code {process.ExitCode}) before binding the rpc pipe. Stderr:{Environment.NewLine}{SnapshotStderr(stderrLines, stderrLock)}");
+                    $"autocontext-engine exited (code {process.ExitCode}) before binding the rpc pipe. Stderr:{Environment.NewLine}{SnapshotStderr()}");
             }
 
             var probe = new NamedPipeClientStream(
@@ -240,13 +259,13 @@ internal sealed class EngineTestProcess : IAsyncDisposable
         }
     }
 
-    private static string SnapshotStderr(List<string> stderrLines, object stderrLock)
+    private string SnapshotStderr()
     {
-        lock (stderrLock)
+        lock (_stderrLock)
         {
-            return stderrLines.Count == 0
+            return _stderrLines.Count == 0
                 ? "(no stderr)"
-                : string.Join(Environment.NewLine, stderrLines);
+                : string.Join(Environment.NewLine, _stderrLines);
         }
     }
 

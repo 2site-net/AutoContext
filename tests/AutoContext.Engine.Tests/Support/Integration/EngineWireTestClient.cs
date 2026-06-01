@@ -28,7 +28,7 @@ internal static class EngineWireTestClient
     /// Connects to <paramref name="kind"/> on the engine identified
     /// by <paramref name="workspacePath"/> + <paramref name="instanceId"/>.
     /// </summary>
-    internal static async Task<NamedPipeClientStream> ConnectAsync(
+    public static async Task<NamedPipeClientStream> ConnectAsync(
         EndpointKind kind,
         string workspacePath,
         Guid instanceId,
@@ -53,8 +53,19 @@ internal static class EngineWireTestClient
         }
     }
 
+    /// <summary>
+    /// Connects to <paramref name="kind"/> on <paramref name="engine"/>'s
+    /// endpoint, resolving the workspace + instance id from the
+    /// spawned process.
+    /// </summary>
+    public static Task<NamedPipeClientStream> ConnectAsync(
+        EndpointKind kind,
+        EngineTestProcess engine,
+        CancellationToken cancellationToken)
+        => ConnectAsync(kind, engine.WorkspacePath, engine.InstanceId, cancellationToken);
+
     /// <summary>Writes the mandatory <c>Engine.Hello</c> first frame.</summary>
-    internal static async Task SendHelloAsync(
+    public static async Task SendHelloAsync(
         LengthPrefixedFrameCodec codec,
         int protocolVersion,
         CancellationToken cancellationToken)
@@ -78,7 +89,7 @@ internal static class EngineWireTestClient
     }
 
     /// <summary>Writes a parameter-less JSON-RPC request with the given id and method.</summary>
-    internal static async Task SendRequestAsync(
+    public static async Task SendRequestAsync(
         LengthPrefixedFrameCodec codec,
         int id,
         string method,
@@ -99,7 +110,7 @@ internal static class EngineWireTestClient
     }
 
     /// <summary>Writes a JSON-RPC request carrying <paramref name="parameters"/>.</summary>
-    internal static async Task SendRequestAsync(
+    public static async Task SendRequestAsync(
         LengthPrefixedFrameCodec codec,
         int id,
         string method,
@@ -127,13 +138,11 @@ internal static class EngineWireTestClient
     /// rpc endpoint, then awaits the process exit. The graceful-shutdown
     /// dance every multi-engine integration test repeats.
     /// </summary>
-    internal static async Task ShutdownGracefullyAsync(
+    public static async Task ShutdownGracefullyAsync(
         EngineTestProcess engine,
-        string workspacePath,
-        Guid instanceId,
         CancellationToken cancellationToken)
     {
-        var rpc = await ConnectAsync(EndpointKind.Rpc, workspacePath, instanceId, cancellationToken)
+        var rpc = await ConnectAsync(EndpointKind.Rpc, engine, cancellationToken)
             .ConfigureAwait(false);
         await using var rpcDisposer = rpc.ConfigureAwait(false);
         var codec = new LengthPrefixedFrameCodec(rpc);
@@ -149,7 +158,7 @@ internal static class EngineWireTestClient
     }
 
     /// <summary>Reads exactly one JSON-RPC response frame.</summary>
-    internal static async Task<JsonRpcResponse> ReadResponseAsync(
+    public static async Task<JsonRpcResponse> ReadResponseAsync(
         LengthPrefixedFrameCodec codec,
         CancellationToken cancellationToken)
     {
@@ -166,7 +175,7 @@ internal static class EngineWireTestClient
     }
 
     /// <summary>Reads exactly one server-streaming JSON-RPC frame.</summary>
-    internal static async Task<JsonRpcStreamFrame> ReadStreamFrameAsync(
+    public static async Task<JsonRpcStreamFrame> ReadStreamFrameAsync(
         LengthPrefixedFrameCodec codec,
         CancellationToken cancellationToken)
     {

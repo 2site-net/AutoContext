@@ -43,7 +43,7 @@ public sealed class CrossInstanceConfigReloadTests
     private static readonly string[] BothWritesDisabled = ["lang-csharp", "lang-fsharp"];
 
     [Fact]
-    public async Task Peer_write_should_reach_subscriber_as_one_fan_out_per_coalesced_write()
+    public async Task Should_reload_config_once_per_coalesced_peer_write()
     {
         // Arrange
         var ct = TestContext.Current.CancellationToken;
@@ -51,18 +51,34 @@ public sealed class CrossInstanceConfigReloadTests
         var workspacePath = WorkspaceTestDirectoryFactory.Create();
         var writerInstanceId = Guid.NewGuid();
         var subscriberInstanceId = Guid.NewGuid();
-        string[] sharedArgs = ["--cache-root", cache.Path];
 
-        await using var writer = await EngineTestProcess.StartAsync(
-            workspacePath, writerInstanceId, ct, extraArguments: sharedArgs);
-        await using var subscriber = await EngineTestProcess.StartAsync(
-            workspacePath, subscriberInstanceId, ct, extraArguments: sharedArgs);
+        await using var writer = new EngineTestProcess
+        {
+            Options = new()
+            {
+                WorkspacePath = workspacePath,
+                InstanceId = writerInstanceId,
+                CacheRootOverride = cache.Path,
+            },
+        };
+        await writer.SpawnAsync(ct);
+
+        await using var subscriber = new EngineTestProcess
+        {
+            Options = new()
+            {
+                WorkspacePath = workspacePath,
+                InstanceId = subscriberInstanceId,
+                CacheRootOverride = cache.Path,
+            },
+        };
+        await subscriber.SpawnAsync(ct);
 
         // Subscriber: open a Config.Subscribe stream and drain the
         // snapshot-on-subscribe seed frame so the watcher is armed
         // before the writer touches the file.
         var subscriberRpc = await EngineWireTestClient.ConnectAsync(
-            EndpointKind.Rpc, workspacePath, subscriberInstanceId, ct);
+            EndpointKind.Rpc, subscriber, ct);
         await using var subscriberDisposer = subscriberRpc.ConfigureAwait(false);
         var subscriberCodec = new LengthPrefixedFrameCodec(subscriberRpc);
 
@@ -74,7 +90,7 @@ public sealed class CrossInstanceConfigReloadTests
 
         // Writer: complete the handshake so it can serve toggles.
         var writerRpc = await EngineWireTestClient.ConnectAsync(
-            EndpointKind.Rpc, workspacePath, writerInstanceId, ct);
+            EndpointKind.Rpc, writer, ct);
         await using var writerDisposer = writerRpc.ConfigureAwait(false);
         var writerCodec = new LengthPrefixedFrameCodec(writerRpc);
 
