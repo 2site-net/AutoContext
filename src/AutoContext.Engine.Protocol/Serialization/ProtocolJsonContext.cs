@@ -6,6 +6,7 @@ using System.Text.Json.Serialization;
 using AutoContext.Engine.Protocol;
 using AutoContext.Engine.Protocol.JsonRpc;
 using AutoContext.Engine.Protocol.Messages;
+using AutoContext.Engine.Protocol.Messages.Config;
 using AutoContext.Engine.Protocol.Messages.Lifecycle;
 using AutoContext.Engine.Protocol.Messages.Logs;
 using AutoContext.Engine.Protocol.Messages.Registry;
@@ -43,6 +44,7 @@ using AutoContext.Engine.Protocol.Messages.Registry;
 [JsonSerializable(typeof(JsonLogsGetEngineResult))]
 [JsonSerializable(typeof(JsonRegistryEntry))]
 [JsonSerializable(typeof(JsonRegistryEntriesResult))]
+[JsonSerializable(typeof(JsonConfigSnapshot))]
 [JsonSerializable(typeof(JsonShutdownResult))]
 public sealed partial class ProtocolJsonContext : JsonSerializerContext
 {
