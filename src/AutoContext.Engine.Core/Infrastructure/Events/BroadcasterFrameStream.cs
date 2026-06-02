@@ -3,14 +3,13 @@ namespace AutoContext.Engine.Core.Infrastructure.Events;
 using System.Runtime.CompilerServices;
 
 /// <summary>
-/// Base <see cref="IBroadcasterFrameStream{TPayload, TFrame}"/> that owns the drain
-/// and terminal-flush skeleton shared by every stream: it drains the
-/// subscription, maps each payload through <see cref="ToFrame"/>, and —
-/// when the broadcaster dropped the subscriber for slowness — yields a
-/// single terminal frame from <see cref="CreateDroppedFrame"/> after the
-/// channel completes so the caller can flush it to the wire before
-/// closing the connection. Subclasses supply only the two domain
-/// mappings.
+/// Base <see cref="IBroadcasterFrameStream{TPayload, TFrame}"/> that owns the
+/// drain-and-terminal-flush skeleton shared by every stream. It drains the
+/// subscription and maps each payload through <see cref="ToFrame"/>. When the
+/// broadcaster dropped the subscriber for slowness, it yields one terminal
+/// frame from <see cref="CreateDroppedFrame"/> after the channel completes, so
+/// the caller can flush it to the wire before closing the connection.
+/// Subclasses supply only the two domain mappings.
 /// </summary>
 /// <typeparam name="TPayload">Payload fanned in by the broadcaster.</typeparam>
 /// <typeparam name="TFrame">Wire frame yielded to the caller.</typeparam>

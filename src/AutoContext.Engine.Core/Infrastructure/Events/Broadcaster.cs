@@ -5,13 +5,13 @@ using System.Threading.Channels;
 using Microsoft.Extensions.Logging;
 
 /// <summary>
-/// Singleton fan-out broadcaster: every subscriber owns its own
-/// bounded <see cref="Channel{T}"/>, a slow subscriber is dropped
-/// while the rest keep flowing, and graceful completion closes every
-/// channel without a terminal frame. <see cref="Subscribe"/> returns
-/// the <see cref="BroadcasterSubscription{T}"/> handle the caller drains; an
-/// optional seed is written to the new subscriber's buffer ahead of
-/// the live tail.
+/// Singleton fan-out broadcaster: every subscriber owns its own bounded
+/// <see cref="Channel{T}"/>. A slow subscriber is dropped while the rest keep
+/// flowing, and graceful completion closes every channel without a terminal
+/// frame. <see cref="Subscribe"/> returns the
+/// <see cref="BroadcasterSubscription{T}"/> handle the caller drains; an
+/// optional seed is written to the new subscriber's buffer ahead of the live
+/// tail.
 /// </summary>
 /// <remarks>
 /// Thread-safety: <see cref="Subscribe"/>, <see cref="TryPublish"/>,

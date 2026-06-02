@@ -9,6 +9,14 @@ using AutoContext.Engine.Protocol.Messages.Lifecycle;
 /// event passes through unchanged; a slow-subscriber drop appends a
 /// terminal <see cref="LifecycleEventKinds.Dropped"/> event.
 /// </summary>
+/// <remarks>
+/// <see cref="ToFrame"/> is the identity mapping because the lifecycle wire
+/// shape is a flat kind-tagged record — <see cref="JsonLifecycleEvent.Kind"/>
+/// is a field, so the payload already <em>is</em> its own frame. This differs
+/// from the log and config streams, whose discriminated-envelope frames
+/// (<c>*StreamFrame</c>) carry a distinct subtype per kind and therefore need a
+/// real payload-to-frame wrap.
+/// </remarks>
 internal sealed class LifecycleFrameStream : BroadcasterFrameStream<JsonLifecycleEvent, JsonLifecycleEvent>
 {
     /// <inheritdoc/>

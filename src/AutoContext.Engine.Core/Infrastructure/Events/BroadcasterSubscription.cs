@@ -10,12 +10,13 @@ using System.Threading.Channels;
 /// <see cref="WasDropped"/> probe.
 /// </summary>
 /// <remarks>
-/// Frame mapping is a caller concern: a domain framing function drains
-/// <see cref="ReadAllAsync"/>, wraps each payload in its own wire DTO,
-/// and — when <see cref="WasDropped"/> reports a slow-subscriber drop —
-/// yields its own terminal <c>dropped</c> frame after the channel
-/// completes. The write, close, and drop side of a subscriber stays
-/// inside the broadcaster and never surfaces here.
+/// Frame mapping is a caller concern, factored into
+/// <see cref="BroadcasterFrameStream{TPayload, TFrame}"/>: it drains
+/// <see cref="ReadAllAsync"/>, wraps each payload in its own wire DTO, and —
+/// when <see cref="WasDropped"/> reports a slow-subscriber drop — yields its
+/// own terminal <c>dropped</c> frame after the channel completes. The write,
+/// close, and drop side of a subscriber stays inside the broadcaster and never
+/// surfaces here.
 /// </remarks>
 /// <typeparam name="T">Payload type drained from the channel.</typeparam>
 internal sealed class BroadcasterSubscription<T> : IDisposable
