@@ -11,7 +11,7 @@ using Microsoft.Extensions.Options;
 /// every <c>events</c>-pipe connection that completes the
 /// <c>Engine.Hello</c> handshake calls <see cref="Subscribe"/> to
 /// receive a per-subscriber bounded buffer of
-/// <see cref="JsonLifecycleEvent"/> values. The fan-out, eviction,
+/// <see cref="JsonLifecycleEvent"/> values. The fan-out, drop,
 /// and completion mechanics are delegated to a wrapped
 /// <see cref="Broadcaster{T}"/>; this type layers on the
 /// lifecycle-specific <c>started</c> seed and terminal-event replay.
@@ -22,9 +22,9 @@ using Microsoft.Extensions.Options;
 /// terminal. Callers publish ordinary lifecycle events with
 /// <see cref="TryPublish"/> and complete the stream with
 /// <see cref="TryComplete"/> when they have a terminal event to send.
-/// A slow subscriber is evicted by the underlying broadcaster (which
-/// surfaces a terminal <see cref="LifecycleEventKinds.Evicted"/> frame
-/// downstream via <see cref="LifecycleEventFrames"/>) while the
+/// A slow subscriber is dropped by the underlying broadcaster (which
+/// surfaces a terminal <see cref="LifecycleEventKinds.Dropped"/> frame
+/// downstream via <see cref="LifecycleFrameStream"/>) while the
 /// remaining subscribers keep flowing.
 /// </para>
 /// <para>
@@ -62,7 +62,7 @@ internal sealed partial class LifecycleEventStream
     /// </param>
     /// <param name="logger">
     /// Diagnostic sink for publish accounting (slow-subscriber
-    /// evictions are logged by the wrapped broadcaster).
+    /// drops are logged by the wrapped broadcaster).
     /// </param>
     /// <exception cref="ArgumentNullException">
     /// Any argument is <see langword="null"/>.
@@ -84,7 +84,7 @@ internal sealed partial class LifecycleEventStream
     /// Enrolls a new subscriber, seeds it with the current
     /// <see cref="LifecycleEventKinds.Started"/> event, and returns a
     /// <see cref="BroadcasterSubscription{T}"/> the caller drains via
-    /// <see cref="LifecycleEventFrames.MapAsync"/>. Disposing the returned
+    /// <see cref="LifecycleFrameStream.StreamAsync"/>. Disposing the returned
     /// subscription unsubscribes and completes the underlying channel.
     /// </summary>
     /// <remarks>

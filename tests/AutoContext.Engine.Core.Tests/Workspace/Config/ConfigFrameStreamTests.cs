@@ -6,7 +6,7 @@ using AutoContext.Engine.Core.Infrastructure.Events;
 using AutoContext.Engine.Core.Workspace.Config;
 using AutoContext.Engine.Protocol.Messages.Config;
 
-public sealed class ConfigStreamFramesTests
+public sealed class ConfigFrameStreamTests
 {
     [Fact]
     public async Task Should_yield_snapshots_in_order_as_SnapshotFrames()
@@ -23,11 +23,11 @@ public sealed class ConfigStreamFramesTests
         using var subscription = new BroadcasterSubscription<JsonConfigSnapshot>(
             channel.Reader,
             release: () => { },
-            wasEvicted: () => false);
+            wasDropped: () => false);
 
         // Act
         var frames = new List<JsonConfigStreamFrame>();
-        await foreach (var frame in ConfigStreamFrames.MapAsync(subscription, TestContext.Current.CancellationToken))
+        await foreach (var frame in new ConfigFrameStream().StreamAsync(subscription, TestContext.Current.CancellationToken))
         {
             frames.Add(frame);
         }
@@ -40,7 +40,7 @@ public sealed class ConfigStreamFramesTests
     }
 
     [Fact]
-    public async Task Should_not_yield_terminal_frame_when_not_evicted()
+    public async Task Should_not_yield_terminal_frame_when_not_dropped()
     {
         // Arrange
         var channel = Channel.CreateUnbounded<JsonConfigSnapshot>();
@@ -49,11 +49,11 @@ public sealed class ConfigStreamFramesTests
         using var subscription = new BroadcasterSubscription<JsonConfigSnapshot>(
             channel.Reader,
             release: () => { },
-            wasEvicted: () => false);
+            wasDropped: () => false);
 
         // Act
         var frames = new List<JsonConfigStreamFrame>();
-        await foreach (var frame in ConfigStreamFrames.MapAsync(subscription, TestContext.Current.CancellationToken))
+        await foreach (var frame in new ConfigFrameStream().StreamAsync(subscription, TestContext.Current.CancellationToken))
         {
             frames.Add(frame);
         }
@@ -63,7 +63,7 @@ public sealed class ConfigStreamFramesTests
     }
 
     [Fact]
-    public async Task Should_yield_terminal_evicted_frame_when_wasEvicted_is_true()
+    public async Task Should_yield_terminal_dropped_frame_when_wasDropped_is_true()
     {
         // Arrange
         var channel = Channel.CreateUnbounded<JsonConfigSnapshot>();
@@ -72,17 +72,17 @@ public sealed class ConfigStreamFramesTests
         using var subscription = new BroadcasterSubscription<JsonConfigSnapshot>(
             channel.Reader,
             release: () => { },
-            wasEvicted: () => true);
+            wasDropped: () => true);
 
         // Act
         var frames = new List<JsonConfigStreamFrame>();
-        await foreach (var frame in ConfigStreamFrames.MapAsync(subscription, TestContext.Current.CancellationToken))
+        await foreach (var frame in new ConfigFrameStream().StreamAsync(subscription, TestContext.Current.CancellationToken))
         {
             frames.Add(frame);
         }
 
         // Assert
-        var terminal = Assert.IsType<JsonConfigEvictedFrame>(Assert.Single(frames));
-        Assert.Equal(JsonConfigEvictedFrame.SlowSubscriberReason, terminal.Reason);
+        var terminal = Assert.IsType<JsonConfigDroppedFrame>(Assert.Single(frames));
+        Assert.Equal(JsonConfigDroppedFrame.SlowSubscriberReason, terminal.Reason);
     }
 }

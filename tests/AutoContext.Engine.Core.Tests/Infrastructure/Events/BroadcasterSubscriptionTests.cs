@@ -12,7 +12,7 @@ public sealed class BroadcasterSubscriptionTests
     {
         // Act + Assert
         Assert.Throws<ArgumentNullException>(() =>
-            new BroadcasterSubscription<BroadcasterTestPayload>(null!, release: () => { }, wasEvicted: () => false));
+            new BroadcasterSubscription<BroadcasterTestPayload>(null!, release: () => { }, wasDropped: () => false));
     }
 
     [Fact]
@@ -23,18 +23,18 @@ public sealed class BroadcasterSubscriptionTests
 
         // Act + Assert
         Assert.Throws<ArgumentNullException>(() =>
-            new BroadcasterSubscription<BroadcasterTestPayload>(channel.Reader, release: null!, wasEvicted: () => false));
+            new BroadcasterSubscription<BroadcasterTestPayload>(channel.Reader, release: null!, wasDropped: () => false));
     }
 
     [Fact]
-    public void Should_throw_when_constructed_with_null_wasEvicted()
+    public void Should_throw_when_constructed_with_null_wasDropped()
     {
         // Arrange
         var channel = Channel.CreateUnbounded<BroadcasterTestPayload>();
 
         // Act + Assert
         Assert.Throws<ArgumentNullException>(() =>
-            new BroadcasterSubscription<BroadcasterTestPayload>(channel.Reader, release: () => { }, wasEvicted: null!));
+            new BroadcasterSubscription<BroadcasterTestPayload>(channel.Reader, release: () => { }, wasDropped: null!));
     }
 
     [Fact]
@@ -46,7 +46,7 @@ public sealed class BroadcasterSubscriptionTests
         var subscription = new BroadcasterSubscription<BroadcasterTestPayload>(
             channel.Reader,
             release: () => Interlocked.Increment(ref releaseCount),
-            wasEvicted: () => false);
+            wasDropped: () => false);
 
         // Act
         subscription.Dispose();
@@ -64,7 +64,7 @@ public sealed class BroadcasterSubscriptionTests
         var subscription = new BroadcasterSubscription<BroadcasterTestPayload>(
             channel.Reader,
             release: () => Interlocked.Increment(ref releaseCount),
-            wasEvicted: () => false);
+            wasDropped: () => false);
 
         // Act
         subscription.Dispose();

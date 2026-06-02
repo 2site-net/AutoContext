@@ -355,7 +355,7 @@ public sealed class LogFileSinkServiceTests(LogFileSinkServiceFixture fixture) :
 
         // Assert — file sink and subscriber both observed the
         // same record; the subscriber stream ended via EOF, with
-        // no terminal evicted frame.
+        // no terminal dropped frame.
         var fileRecords = NdjsonTestReader.Read(EngineLogPathTestComposer.Compose(context.Options));
         var single = Assert.Single(frames);
         var recordFrame = Assert.IsType<JsonLogRecordFrame>(single);
@@ -380,7 +380,7 @@ public sealed class LogFileSinkServiceTests(LogFileSinkServiceFixture fixture) :
 
         var frames = await LogStreamTestDrainer.DrainAsync(subscriber);
 
-        // Assert — clean EOF, no terminal evicted frame.
+        // Assert — clean EOF, no terminal dropped frame.
         Assert.Empty(frames);
     }
 }

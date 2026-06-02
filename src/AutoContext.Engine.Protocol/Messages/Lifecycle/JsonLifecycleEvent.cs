@@ -24,7 +24,7 @@ using System.Text.Json.Serialization;
 /// populated on <c>started</c>, <c>reloading</c>,
 /// <c>reloaded</c>, and <c>shutting-down</c> events.</item>
 /// <item><see cref="Reason"/> is populated only on the terminal
-/// <c>evicted</c> frame the engine writes when a slow subscriber
+/// <c>dropped</c> frame the engine writes when a slow subscriber
 /// fills its bounded buffer (see
 /// <c>design § events &gt; backpressure</c>).</item>
 /// </list>
@@ -44,9 +44,9 @@ public sealed record JsonLifecycleEvent
 
     /// <summary>
     /// Per-spawn engine instance the event originates from.
-    /// Present on every event except the terminal <c>evicted</c>
+    /// Present on every event except the terminal <c>dropped</c>
     /// frame, where it is omitted because the client already knows
-    /// which engine evicted it from the pipe it subscribed on.
+    /// which engine dropped it from the pipe it subscribed on.
     /// </summary>
     [JsonPropertyName("instanceId")]
     public Guid? InstanceId { get; init; }
@@ -62,8 +62,8 @@ public sealed record JsonLifecycleEvent
 
     /// <summary>
     /// Human-readable reason for the transition. Currently used
-    /// only on the terminal <c>evicted</c> frame to distinguish
-    /// the eviction trigger (e.g. <c>"slow-subscriber"</c>).
+    /// only on the terminal <c>dropped</c> frame to distinguish
+    /// the drop trigger (e.g. <c>"slow-subscriber"</c>).
     /// </summary>
     [JsonPropertyName("reason")]
     public string? Reason { get; init; }

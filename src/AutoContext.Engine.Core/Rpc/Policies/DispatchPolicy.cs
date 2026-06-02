@@ -58,8 +58,10 @@ internal sealed partial class DispatchPolicy : IRpcConnectionPolicy
     private readonly RegistryFileReader _registryReader;
     private readonly EngineLogFileReader _logFileReader;
     private readonly Broadcaster<JsonLogRecord> _logsBroadcaster;
+    private readonly LogFrameStream _logFrameStream;
     private readonly IConfigSnapshotAccessor _configAccessor;
     private readonly SnapshotBroadcaster<JsonConfigSnapshot> _configBroadcaster;
+    private readonly ConfigFrameStream _configFrameStream;
     private readonly IConfigUpdater _configUpdater;
     private readonly ILogger _logger;
 
@@ -86,9 +88,11 @@ internal sealed partial class DispatchPolicy : IRpcConnectionPolicy
         _registryReader = registryReader;
         _logFileReader = logFileReader;
         _logsBroadcaster = logsBroadcaster;
+        _logFrameStream = new();
         _configAccessor = configAccessor;
         _configUpdater = configUpdater;
         _configBroadcaster = configBroadcaster;
+        _configFrameStream = new();
         _logger = logger;
     }
 
@@ -292,12 +296,12 @@ internal sealed partial class DispatchPolicy : IRpcConnectionPolicy
             });
     }
 
-    private static async IAsyncEnumerable<JsonElement> MapFramesAsync(
+    private async IAsyncEnumerable<JsonElement> MapFramesAsync(
         BroadcasterSubscription<JsonLogRecord> subscription,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        await foreach (var frame in LogStreamFrames
-            .MapAsync(subscription, cancellationToken)
+        await foreach (var frame in _logFrameStream
+            .StreamAsync(subscription, cancellationToken)
             .ConfigureAwait(false))
         {
             yield return JsonSerializer.SerializeToElement(
@@ -327,12 +331,12 @@ internal sealed partial class DispatchPolicy : IRpcConnectionPolicy
             });
     }
 
-    private static async IAsyncEnumerable<JsonElement> MapConfigFramesAsync(
+    private async IAsyncEnumerable<JsonElement> MapConfigFramesAsync(
         BroadcasterSubscription<JsonConfigSnapshot> subscription,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        await foreach (var frame in ConfigStreamFrames
-            .MapAsync(subscription, cancellationToken)
+        await foreach (var frame in _configFrameStream
+            .StreamAsync(subscription, cancellationToken)
             .ConfigureAwait(false))
         {
             yield return JsonSerializer.SerializeToElement(

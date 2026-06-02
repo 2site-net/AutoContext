@@ -37,7 +37,7 @@ public static class ConfigMethods
     /// <see cref="JsonConfigSnapshotFrame"/> with the current
     /// snapshot at subscribe time (snapshot-on-subscribe) and again
     /// on every subsequent change, or a terminal
-    /// <see cref="JsonConfigEvictedFrame"/> for a slow subscriber.
+    /// <see cref="JsonConfigDroppedFrame"/> for a slow subscriber.
     /// A late subscriber never needs a separate <see cref="Get"/>.
     /// </summary>
     public const string Subscribe = "Config.Subscribe";

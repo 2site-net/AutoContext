@@ -21,8 +21,8 @@ using Microsoft.Extensions.Logging;
 /// <typeparam name="TPayload">Keyed payload fanned out to
 /// subscribers.</typeparam>
 /// <param name="logger">Diagnostic sink for slow-subscriber
-/// evictions.</param>
-/// <param name="channel">Channel label stamped onto the evict
+/// drops.</param>
+/// <param name="channel">Channel label stamped onto the drop
 /// warning's <c>{Channel}</c> property.</param>
 /// <exception cref="ArgumentNullException">
 /// <paramref name="logger"/> is <see langword="null"/>.

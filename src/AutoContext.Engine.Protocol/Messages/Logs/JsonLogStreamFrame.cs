@@ -7,7 +7,7 @@ using System.Text.Json.Serialization;
 /// <c>logs</c> named pipe. Every NDJSON line the engine emits on
 /// the <c>logs</c> pipe is one <see cref="JsonLogStreamFrame"/>: a
 /// <see cref="JsonLogRecordFrame"/> carrying a <see cref="JsonLogRecord"/>
-/// for normal records, or a <see cref="JsonLogEvictedFrame"/> as the
+/// for normal records, or a <see cref="JsonLogDroppedFrame"/> as the
 /// terminal frame the broadcaster sends to a slow subscriber
 /// before disconnecting it.
 /// </summary>
@@ -17,13 +17,13 @@ using System.Text.Json.Serialization;
 /// branch on it to project each frame to the right shape. The
 /// engine's on-disk <c>engine.log</c> NDJSON file is
 /// <see cref="JsonLogRecord"/> directly (no wrapper) — the wrapper
-/// only exists on the <c>logs</c>-pipe wire, where the eviction
+/// only exists on the <c>logs</c>-pipe wire, where the drop
 /// terminator requires a discriminator the disk file never needs.
 /// See <c>design § events &gt; backpressure</c> for the
-/// slow-subscriber eviction protocol.
+/// slow-subscriber drop protocol.
 /// </para>
 /// </remarks>
 [JsonPolymorphic(TypeDiscriminatorPropertyName = "kind")]
 [JsonDerivedType(typeof(JsonLogRecordFrame), typeDiscriminator: "record")]
-[JsonDerivedType(typeof(JsonLogEvictedFrame), typeDiscriminator: "evicted")]
+[JsonDerivedType(typeof(JsonLogDroppedFrame), typeDiscriminator: "dropped")]
 public abstract record JsonLogStreamFrame;

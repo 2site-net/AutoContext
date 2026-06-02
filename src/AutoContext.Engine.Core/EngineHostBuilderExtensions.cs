@@ -135,7 +135,7 @@ public static class EngineHostBuilderExtensions
         // Logs-pipe fan-out broadcaster. Sibling consumer of every
         // record drained by LogFileSinkService — file sink and
         // broadcaster receive each record symmetrically. Per-
-        // subscriber bounded buffers and slow-subscriber eviction
+        // subscriber bounded buffers and slow-subscriber drop
         // shield the file sink from a stalled pipe consumer.
         // Registered as a singleton so LifecycleService's logs-pipe
         // pump and the file sink share the same instance.

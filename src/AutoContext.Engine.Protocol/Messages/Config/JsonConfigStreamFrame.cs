@@ -8,7 +8,7 @@ using System.Text.Json.Serialization;
 /// is one <see cref="JsonConfigStreamFrame"/>: a
 /// <see cref="JsonConfigSnapshotFrame"/> carrying the full
 /// <see cref="JsonConfigSnapshot"/> for the current state, or a
-/// <see cref="JsonConfigEvictedFrame"/> as the terminal frame the
+/// <see cref="JsonConfigDroppedFrame"/> as the terminal frame the
 /// broadcaster sends to a slow subscriber before disconnecting it.
 /// </summary>
 /// <remarks>
@@ -19,10 +19,10 @@ using System.Text.Json.Serialization;
 /// every new subscriber receives the current snapshot as the first
 /// frame (snapshot-on-subscribe), so a late subscriber never needs a
 /// separate <c>Config.Get</c>. See <c>design § events &gt;
-/// backpressure</c> for the slow-subscriber eviction protocol.
+/// backpressure</c> for the slow-subscriber drop protocol.
 /// </para>
 /// </remarks>
 [JsonPolymorphic(TypeDiscriminatorPropertyName = "kind")]
 [JsonDerivedType(typeof(JsonConfigSnapshotFrame), typeDiscriminator: "snapshot")]
-[JsonDerivedType(typeof(JsonConfigEvictedFrame), typeDiscriminator: "evicted")]
+[JsonDerivedType(typeof(JsonConfigDroppedFrame), typeDiscriminator: "dropped")]
 public abstract record JsonConfigStreamFrame;

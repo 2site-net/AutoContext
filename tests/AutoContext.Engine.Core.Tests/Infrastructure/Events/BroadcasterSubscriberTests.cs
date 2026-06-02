@@ -20,7 +20,7 @@ public sealed class BroadcasterSubscriberTests
         var subscriber = BroadcasterSubscriberTestFactory.Create();
 
         // Assert
-        Assert.False(subscriber.WasEvicted);
+        Assert.False(subscriber.WasDropped);
     }
 
     [Fact]
@@ -35,54 +35,54 @@ public sealed class BroadcasterSubscriberTests
         // Assert
         Assert.Multiple(
             () => Assert.True(closed),
-            () => Assert.False(subscriber.WasEvicted));
+            () => Assert.False(subscriber.WasDropped));
     }
 
     [Fact]
-    public void Should_transition_to_evicted_via_TryEvict()
+    public void Should_transition_to_dropped_via_TryDrop()
     {
         // Arrange
         var subscriber = BroadcasterSubscriberTestFactory.Create();
 
         // Act
-        var evicted = subscriber.TryEvict();
+        var dropped = subscriber.TryDrop();
 
         // Assert
         Assert.Multiple(
-            () => Assert.True(evicted),
-            () => Assert.True(subscriber.WasEvicted));
+            () => Assert.True(dropped),
+            () => Assert.True(subscriber.WasDropped));
     }
 
     [Fact]
-    public void Should_refuse_TryClose_after_TryEvict()
+    public void Should_refuse_TryClose_after_TryDrop()
     {
         // Arrange
         var subscriber = BroadcasterSubscriberTestFactory.Create();
-        Assert.True(subscriber.TryEvict());
+        Assert.True(subscriber.TryDrop());
 
         // Act
         var closed = subscriber.TryClose();
 
-        // Assert — state remains Evicted.
+        // Assert — state remains Dropped.
         Assert.Multiple(
             () => Assert.False(closed),
-            () => Assert.True(subscriber.WasEvicted));
+            () => Assert.True(subscriber.WasDropped));
     }
 
     [Fact]
-    public void Should_refuse_TryEvict_after_TryClose()
+    public void Should_refuse_TryDrop_after_TryClose()
     {
         // Arrange
         var subscriber = BroadcasterSubscriberTestFactory.Create();
         Assert.True(subscriber.TryClose());
 
         // Act
-        var evicted = subscriber.TryEvict();
+        var dropped = subscriber.TryDrop();
 
-        // Assert — state remains Closed, WasEvicted false.
+        // Assert — state remains Closed, WasDropped false.
         Assert.Multiple(
-            () => Assert.False(evicted),
-            () => Assert.False(subscriber.WasEvicted));
+            () => Assert.False(dropped),
+            () => Assert.False(subscriber.WasDropped));
     }
 
     [Fact]

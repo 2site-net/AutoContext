@@ -97,7 +97,7 @@ public sealed class ConfigFileServiceTests(TempDirectoryFixture tempDirectory)
         var frames = await ConfigStreamTestDrainer.DrainAsync(subscription);
 
         // Assert — the stream terminates cleanly: just the seed
-        // frame and EOF, no terminal evicted frame.
+        // frame and EOF, no terminal dropped frame.
         Assert.IsType<JsonConfigSnapshotFrame>(Assert.Single(frames));
     }
 }

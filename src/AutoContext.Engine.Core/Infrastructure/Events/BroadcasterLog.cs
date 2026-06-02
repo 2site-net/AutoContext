@@ -13,7 +13,7 @@ using Microsoft.Extensions.Logging;
 internal static partial class BroadcasterLog
 {
     [LoggerMessage(EventId = 1, Level = LogLevel.Warning,
-        Message = "Evicted {EvictedCount} slow {Channel} subscriber(s) after bounded buffer overflow.")]
-    internal static partial void SubscribersEvicted(
-        ILogger logger, int evictedCount, string channel);
+        Message = "Dropped {DroppedCount} slow {Channel} subscriber(s) after bounded buffer overflow.")]
+    internal static partial void SubscribersDropped(
+        ILogger logger, int droppedCount, string channel);
 }

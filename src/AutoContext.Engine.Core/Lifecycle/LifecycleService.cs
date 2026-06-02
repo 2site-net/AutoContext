@@ -85,6 +85,7 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
     private int _disposed;
     private CancellationTokenSource? _drainCts;
     private readonly LifecycleEventStream _eventStream;
+    private readonly LifecycleFrameStream _eventFrameStream = new();
     private readonly IdleTimeoutWatchdog _idleTimeoutWatchdog;
     private readonly IUniqueInstanceGuard _instanceGuard;
     private readonly LifecycleNotifier _lifecycleNotifier;
@@ -92,6 +93,7 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
     private readonly ILogger<LifecycleService> _logger;
     private readonly ILoggerFactory _loggerFactory;
     private readonly Broadcaster<JsonLogRecord> _logsBroadcaster;
+    private readonly LogFrameStream _logFrameStream = new();
     private readonly EngineLogFileReader _logFileReader;
     private readonly EngineOptions _options;
     private readonly RegistryFileReader _registryReader;
@@ -515,8 +517,8 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
 
         try
         {
-            await foreach (var evt in LifecycleEventFrames
-                .MapAsync(subscription, drainToken)
+            await foreach (var evt in _eventFrameStream
+                .StreamAsync(subscription, drainToken)
                 .ConfigureAwait(false))
             {
                 var paramsElement = JsonSerializer.SerializeToElement(
@@ -556,8 +558,8 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
 
         try
         {
-            await foreach (var frame in LogStreamFrames
-                .MapAsync(subscription, drainToken)
+            await foreach (var frame in _logFrameStream
+                .StreamAsync(subscription, drainToken)
                 .ConfigureAwait(false))
             {
                 var bytes = JsonSerializer.SerializeToUtf8Bytes(

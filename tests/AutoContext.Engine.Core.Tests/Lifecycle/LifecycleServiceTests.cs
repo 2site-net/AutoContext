@@ -628,7 +628,7 @@ public sealed class LifecycleServiceTests(
     }
 
     [Fact]
-    public async Task Should_evict_slow_logs_pipe_subscriber_with_terminal_frame()
+    public async Task Should_drop_slow_logs_pipe_subscriber_with_terminal_frame()
     {
         // Arrange
         var context = lifecycle.Create();
@@ -647,8 +647,8 @@ public sealed class LifecycleServiceTests(
         // Act — flood the broadcaster while the wire is not being
         // read. The OS pipe buffer fills, the server-side pump
         // blocks, the 64-slot subscription buffer fills, and the
-        // next publish evicts the subscriber with a terminal
-        // LogEvictedFrame. The flood count must dwarf any
+        // next publish drops the subscriber with a terminal
+        // LogDroppedFrame. The flood count must dwarf any
         // reasonable OS pipe buffer (default NamedPipe out-buffer
         // is typically a few KB-64 KB).
         const int FloodCount = 65_536;
@@ -677,9 +677,9 @@ public sealed class LifecycleServiceTests(
         await context.Service.StopAsync(TestContext.Current.CancellationToken);
 
         // Assert — the very last frame on the wire is the
-        // terminal eviction frame with the slow-subscriber reason.
-        var terminal = Assert.IsType<JsonLogEvictedFrame>(frames[^1]);
-        Assert.Equal(JsonLogEvictedFrame.SlowSubscriberReason, terminal.Reason);
+        // terminal drop frame with the slow-subscriber reason.
+        var terminal = Assert.IsType<JsonLogDroppedFrame>(frames[^1]);
+        Assert.Equal(JsonLogDroppedFrame.SlowSubscriberReason, terminal.Reason);
     }
 
     [Fact]

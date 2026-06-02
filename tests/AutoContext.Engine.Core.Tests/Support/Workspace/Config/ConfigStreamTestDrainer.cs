@@ -9,7 +9,7 @@ internal static class ConfigStreamTestDrainer
     public static async Task<List<JsonConfigStreamFrame>> DrainAsync(BroadcasterSubscription<JsonConfigSnapshot> subscription)
     {
         var frames = new List<JsonConfigStreamFrame>();
-        await foreach (var frame in ConfigStreamFrames.MapAsync(subscription, TestContext.Current.CancellationToken).ConfigureAwait(false))
+        await foreach (var frame in new ConfigFrameStream().StreamAsync(subscription, TestContext.Current.CancellationToken).ConfigureAwait(false))
         {
             frames.Add(frame);
         }

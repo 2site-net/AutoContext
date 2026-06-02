@@ -20,7 +20,7 @@ internal static class LifecycleStreamTestReader
 
         var events = new List<JsonLifecycleEvent>();
 
-        await foreach (var evt in LifecycleEventFrames.MapAsync(subscription, cts.Token).ConfigureAwait(false))
+        await foreach (var evt in new LifecycleFrameStream().StreamAsync(subscription, cts.Token).ConfigureAwait(false))
         {
             events.Add(evt);
         }
@@ -42,7 +42,7 @@ internal static class LifecycleStreamTestReader
 
         var events = new List<JsonLifecycleEvent>();
 
-        await foreach (var evt in LifecycleEventFrames.MapAsync(subscription, cts.Token).ConfigureAwait(false))
+        await foreach (var evt in new LifecycleFrameStream().StreamAsync(subscription, cts.Token).ConfigureAwait(false))
         {
             events.Add(evt);
 

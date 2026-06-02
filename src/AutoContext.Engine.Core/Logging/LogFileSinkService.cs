@@ -103,7 +103,7 @@ internal sealed partial class LogFileSinkService : BackgroundService
     /// <param name="broadcaster">Sibling fan-out the drain loop
     /// publishes each record to after the file write succeeds. The
     /// broadcaster's per-subscriber buffers and slow-subscriber
-    /// eviction shield the file sink from subscriber slowness — a
+    /// drop shield the file sink from subscriber slowness — a
     /// stalled <c>logs</c>-pipe consumer cannot stall the file
     /// sink.</param>
     /// <param name="timeProvider">Clock source used to stamp
@@ -237,7 +237,7 @@ internal sealed partial class LogFileSinkService : BackgroundService
                 // AFTER the file write so a transient write
                 // failure (handled above) keeps the record off
                 // both sinks symmetrically. TryPublish is
-                // non-blocking: slow subscribers are evicted by
+                // non-blocking: slow subscribers are dropped by
                 // the broadcaster, never pushing backpressure
                 // onto the drain loop.
                 _broadcaster.TryPublish(record);

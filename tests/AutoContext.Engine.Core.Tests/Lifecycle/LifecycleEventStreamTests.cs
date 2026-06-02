@@ -24,7 +24,7 @@ public sealed class LifecycleEventStreamTests
     }
 
     [Fact]
-    public async Task Should_evict_subscriber_when_bounded_buffer_overflows()
+    public async Task Should_drop_subscriber_when_bounded_buffer_overflows()
     {
         // Arrange
         var sut = LifecycleEventStreamFakeData.CreateStream(EngineOptionsFakeData.CreateValidOptions());
@@ -37,7 +37,7 @@ public sealed class LifecycleEventStreamTests
         var events = await LifecycleStreamTestReader.ReadAllAsync(
             subscription, cancellationToken: TestContext.Current.CancellationToken);
 
-        Assert.Contains(events, e => e.Kind == LifecycleEventKinds.Evicted);
+        Assert.Contains(events, e => e.Kind == LifecycleEventKinds.Dropped);
 
         void OverflowSubscriberBuffer()
         {

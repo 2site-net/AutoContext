@@ -46,7 +46,7 @@ public sealed class LogChannelTests
     public async Task Should_drop_oldest_records_when_channel_is_full()
     {
         // Arrange — write one more than the channel's capacity so
-        // DropOldest evicts exactly the first record. No
+        // DropOldest drops exactly the first record. No
         // test-only capacity seam: the burst exercises the
         // production-sized channel directly.
         var channel = new LogChannel();
@@ -65,7 +65,7 @@ public sealed class LogChannelTests
 
         channel.Complete();
 
-        // Assert — the very first record was evicted; everything
+        // Assert — the very first record was dropped; everything
         // else drained in order.
         var drained = new List<JsonLogRecord>();
         await foreach (var record in channel.ReadAllAsync(TestContext.Current.CancellationToken))

@@ -9,7 +9,7 @@ internal static class LogStreamTestDrainer
     public static async Task<List<JsonLogStreamFrame>> DrainAsync(BroadcasterSubscription<JsonLogRecord> subscription)
     {
         var frames = new List<JsonLogStreamFrame>();
-        await foreach (var frame in LogStreamFrames.MapAsync(subscription, TestContext.Current.CancellationToken).ConfigureAwait(false))
+        await foreach (var frame in new LogFrameStream().StreamAsync(subscription, TestContext.Current.CancellationToken).ConfigureAwait(false))
         {
             frames.Add(frame);
         }

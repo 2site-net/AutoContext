@@ -24,8 +24,8 @@ public static class LogsMethods
     /// Server-streaming RPC that tails the engine's live
     /// <see cref="JsonLogRecord"/> firehose: each frame on the wire
     /// is a <see cref="JsonLogStreamFrame"/> (<see cref="JsonLogRecordFrame"/>
-    /// for records or a terminal <see cref="JsonLogEvictedFrame"/> when
-    /// the subscriber is evicted for slowness) carried as the
+    /// for records or a terminal <see cref="JsonLogDroppedFrame"/> when
+    /// the subscriber is dropped for slowness) carried as the
     /// <c>result</c> of a <c>JsonRpcStreamNext</c> envelope.
     /// Graceful broadcaster completion or peer-close terminates
     /// the stream without a wire-level error. Defined in

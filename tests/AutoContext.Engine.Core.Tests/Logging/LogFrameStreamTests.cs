@@ -7,7 +7,7 @@ using AutoContext.Engine.Core.Logging;
 using AutoContext.Engine.Core.Tests.Support.Logging;
 using AutoContext.Engine.Protocol.Messages.Logs;
 
-public sealed class LogStreamFramesTests
+public sealed class LogFrameStreamTests
 {
     [Fact]
     public async Task Should_yield_records_in_order_as_LogRecordFrames()
@@ -24,11 +24,11 @@ public sealed class LogStreamFramesTests
         using var subscription = new BroadcasterSubscription<JsonLogRecord>(
             channel.Reader,
             release: () => { },
-            wasEvicted: () => false);
+            wasDropped: () => false);
 
         // Act
         var frames = new List<JsonLogStreamFrame>();
-        await foreach (var frame in LogStreamFrames.MapAsync(subscription, TestContext.Current.CancellationToken))
+        await foreach (var frame in new LogFrameStream().StreamAsync(subscription, TestContext.Current.CancellationToken))
         {
             frames.Add(frame);
         }
@@ -41,7 +41,7 @@ public sealed class LogStreamFramesTests
     }
 
     [Fact]
-    public async Task Should_not_yield_terminal_frame_when_not_evicted()
+    public async Task Should_not_yield_terminal_frame_when_not_dropped()
     {
         // Arrange
         var channel = Channel.CreateUnbounded<JsonLogRecord>();
@@ -50,11 +50,11 @@ public sealed class LogStreamFramesTests
         using var subscription = new BroadcasterSubscription<JsonLogRecord>(
             channel.Reader,
             release: () => { },
-            wasEvicted: () => false);
+            wasDropped: () => false);
 
         // Act
         var frames = new List<JsonLogStreamFrame>();
-        await foreach (var frame in LogStreamFrames.MapAsync(subscription, TestContext.Current.CancellationToken))
+        await foreach (var frame in new LogFrameStream().StreamAsync(subscription, TestContext.Current.CancellationToken))
         {
             frames.Add(frame);
         }
@@ -64,7 +64,7 @@ public sealed class LogStreamFramesTests
     }
 
     [Fact]
-    public async Task Should_yield_terminal_evicted_frame_when_wasEvicted_is_true()
+    public async Task Should_yield_terminal_dropped_frame_when_wasDropped_is_true()
     {
         // Arrange
         var channel = Channel.CreateUnbounded<JsonLogRecord>();
@@ -73,17 +73,17 @@ public sealed class LogStreamFramesTests
         using var subscription = new BroadcasterSubscription<JsonLogRecord>(
             channel.Reader,
             release: () => { },
-            wasEvicted: () => true);
+            wasDropped: () => true);
 
         // Act
         var frames = new List<JsonLogStreamFrame>();
-        await foreach (var frame in LogStreamFrames.MapAsync(subscription, TestContext.Current.CancellationToken))
+        await foreach (var frame in new LogFrameStream().StreamAsync(subscription, TestContext.Current.CancellationToken))
         {
             frames.Add(frame);
         }
 
         // Assert
-        var terminal = Assert.IsType<JsonLogEvictedFrame>(Assert.Single(frames));
-        Assert.Equal(JsonLogEvictedFrame.SlowSubscriberReason, terminal.Reason);
+        var terminal = Assert.IsType<JsonLogDroppedFrame>(Assert.Single(frames));
+        Assert.Equal(JsonLogDroppedFrame.SlowSubscriberReason, terminal.Reason);
     }
 }

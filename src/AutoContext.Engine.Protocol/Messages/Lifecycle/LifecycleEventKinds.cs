@@ -45,5 +45,5 @@ public static class LifecycleEventKinds
     /// rest of the subscriber population keeps receiving events
     /// uninterrupted.
     /// </summary>
-    public const string Evicted = "evicted";
+    public const string Dropped = "dropped";
 }

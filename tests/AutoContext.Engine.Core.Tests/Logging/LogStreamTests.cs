@@ -10,13 +10,13 @@ using AutoContext.Engine.Protocol.Messages.Logs;
 public sealed class LogStreamTests
 {
     [Fact]
-    public async Task Should_yield_buffered_records_then_terminal_evicted_frame_on_overflow()
+    public async Task Should_yield_buffered_records_then_terminal_dropped_frame_on_overflow()
     {
         // Arrange
         var broadcaster = BroadcasterTestFactory.Create<JsonLogRecord>("logs-pipe");
         using var slow = broadcaster.Subscribe();
 
-        // Act — overflow a real broadcaster so it evicts the slow
+        // Act — overflow a real broadcaster so it drops the slow
         // subscriber, then drain it through the real framer.
         for (var i = 0; i <= Broadcaster<JsonLogRecord>.SubscriberBufferCapacity; i++)
         {
@@ -28,24 +28,24 @@ public sealed class LogStreamTests
         var frames = await LogStreamTestDrainer.DrainAsync(slow);
 
         // Assert — buffered record frames up to capacity, then the
-        // terminal evicted frame as the very last frame.
-        var terminal = Assert.IsType<JsonLogEvictedFrame>(frames[^1]);
+        // terminal dropped frame as the very last frame.
+        var terminal = Assert.IsType<JsonLogDroppedFrame>(frames[^1]);
         Assert.Multiple(
-            () => Assert.Equal(JsonLogEvictedFrame.SlowSubscriberReason, terminal.Reason),
+            () => Assert.Equal(JsonLogDroppedFrame.SlowSubscriberReason, terminal.Reason),
             () => Assert.Equal(Broadcaster<JsonLogRecord>.SubscriberBufferCapacity, frames.Count - 1),
             () => Assert.All(frames.Take(frames.Count - 1), frame => Assert.IsType<JsonLogRecordFrame>(frame)));
     }
 
     [Fact]
-    public async Task Should_keep_survivor_flowing_when_sibling_is_evicted()
+    public async Task Should_keep_survivor_flowing_when_sibling_is_dropped()
     {
         // Arrange
         var broadcaster = BroadcasterTestFactory.Create<JsonLogRecord>("logs-pipe");
         using var slow = broadcaster.Subscribe();
         using var fast = broadcaster.Subscribe();
 
-        await using var fastEnumerator = LogStreamFrames
-            .MapAsync(fast, TestContext.Current.CancellationToken)
+        await using var fastEnumerator = new LogFrameStream()
+            .StreamAsync(fast, TestContext.Current.CancellationToken)
             .GetAsyncEnumerator(TestContext.Current.CancellationToken);
 
         // Act — interleave publish + fast-side drain so 'fast' never
@@ -67,10 +67,10 @@ public sealed class LogStreamTests
             fastTrailing.Add(fastEnumerator.Current);
         }
 
-        // Assert — slow received its terminal evicted frame; fast
-        // kept pace and observed no terminal evicted frame.
+        // Assert — slow received its terminal dropped frame; fast
+        // kept pace and observed no terminal dropped frame.
         Assert.Multiple(
-            () => Assert.IsType<JsonLogEvictedFrame>(slowFrames[^1]),
-            () => Assert.DoesNotContain(fastTrailing, frame => frame is JsonLogEvictedFrame));
+            () => Assert.IsType<JsonLogDroppedFrame>(slowFrames[^1]),
+            () => Assert.DoesNotContain(fastTrailing, frame => frame is JsonLogDroppedFrame));
     }
 }

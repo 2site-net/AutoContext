@@ -23,18 +23,18 @@ public sealed class ConfigStreamTests
         var frames = await ConfigStreamTestDrainer.DrainAsync(subscription);
 
         // Assert — the primed snapshot is replayed as the first
-        // (and only) frame, with no terminal evicted frame.
+        // (and only) frame, with no terminal dropped frame.
         Assert.Same(primed, Assert.IsType<JsonConfigSnapshotFrame>(Assert.Single(frames)).Snapshot);
     }
 
     [Fact]
-    public async Task Should_yield_buffered_snapshots_then_terminal_evicted_frame_on_overflow()
+    public async Task Should_yield_buffered_snapshots_then_terminal_dropped_frame_on_overflow()
     {
         // Arrange
         var broadcaster = SnapshotBroadcasterTestFactory.Create<JsonConfigSnapshot>("Config.Subscribe");
         using var slow = broadcaster.Subscribe();
 
-        // Act — overflow a real snapshot broadcaster so it evicts the
+        // Act — overflow a real snapshot broadcaster so it drops the
         // slow subscriber, then drain it through the real framer.
         for (var i = 0; i <= Broadcaster<JsonConfigSnapshot>.SubscriberBufferCapacity; i++)
         {
@@ -45,10 +45,10 @@ public sealed class ConfigStreamTests
         var frames = await ConfigStreamTestDrainer.DrainAsync(slow);
 
         // Assert — buffered snapshot frames up to capacity, then the
-        // terminal evicted frame as the very last frame.
-        var terminal = Assert.IsType<JsonConfigEvictedFrame>(frames[^1]);
+        // terminal dropped frame as the very last frame.
+        var terminal = Assert.IsType<JsonConfigDroppedFrame>(frames[^1]);
         Assert.Multiple(
-            () => Assert.Equal(JsonConfigEvictedFrame.SlowSubscriberReason, terminal.Reason),
+            () => Assert.Equal(JsonConfigDroppedFrame.SlowSubscriberReason, terminal.Reason),
             () => Assert.Equal(Broadcaster<JsonConfigSnapshot>.SubscriberBufferCapacity, frames.Count - 1),
             () => Assert.All(frames.Take(frames.Count - 1), frame => Assert.IsType<JsonConfigSnapshotFrame>(frame)));
     }

@@ -6,7 +6,7 @@ using Microsoft.Extensions.Logging;
 
 /// <summary>
 /// Singleton fan-out broadcaster: every subscriber owns its own
-/// bounded <see cref="Channel{T}"/>, a slow subscriber is evicted
+/// bounded <see cref="Channel{T}"/>, a slow subscriber is dropped
 /// while the rest keep flowing, and graceful completion closes every
 /// channel without a terminal frame. <see cref="Subscribe"/> returns
 /// the <see cref="BroadcasterSubscription{T}"/> handle the caller drains; an
@@ -25,8 +25,8 @@ internal sealed class Broadcaster<TPayload>
 {
     /// <summary>
     /// Per-subscriber bounded buffer capacity. Sized to absorb a
-    /// burst of payloads without evicting a healthy subscriber that
-    /// is briefly behind on the wire; eviction kicks in only when a
+    /// burst of payloads without dropping a healthy subscriber that
+    /// is briefly behind on the wire; dropping kicks in only when a
     /// subscriber is sustainedly slower than the publisher.
     /// </summary>
     internal const int SubscriberBufferCapacity = 64;
@@ -42,8 +42,8 @@ internal sealed class Broadcaster<TPayload>
     /// <see cref="Broadcaster{T}"/>.
     /// </summary>
     /// <param name="logger">Diagnostic sink for slow-subscriber
-    /// evictions.</param>
-    /// <param name="channel">Channel label stamped onto the evict
+    /// drops.</param>
+    /// <param name="channel">Channel label stamped onto the drop
     /// warning's <c>{Channel}</c> property (e.g. <c>logs-pipe</c>).</param>
     /// <exception cref="ArgumentNullException">
     /// <paramref name="logger"/> is <see langword="null"/>.
@@ -63,7 +63,7 @@ internal sealed class Broadcaster<TPayload>
     /// <summary>
     /// Marks the broadcaster as completed and closes every active
     /// subscriber's channel. Subscribers observe EOF (no terminal
-    /// frame) — graceful shutdown is not an eviction. Idempotent:
+    /// frame) — graceful shutdown is not a drop. Idempotent:
     /// subsequent calls return without effect.
     /// </summary>
     public void Complete()
@@ -113,11 +113,11 @@ internal sealed class Broadcaster<TPayload>
                 SingleWriter = false,
 
                 // Wait mode (not DropWrite) is what makes the
-                // eviction path live: under Wait, TryWrite returns
+                // drop path live: under Wait, TryWrite returns
                 // false on a full buffer (it never blocks — only
                 // WriteAsync would), so the publisher can detect a
                 // sustainedly slow subscriber and route it through
-                // Evict. DropWrite would silently lose payloads and
+                // Drop. DropWrite would silently lose payloads and
                 // never signal back, defeating the backpressure
                 // contract.
                 FullMode = BoundedChannelFullMode.Wait,
@@ -159,13 +159,13 @@ internal sealed class Broadcaster<TPayload>
         return new BroadcasterSubscription<TPayload>(
             channel.Reader,
             release: () => Release(subscriber),
-            wasEvicted: () => subscriber.WasEvicted);
+            wasDropped: () => subscriber.WasDropped);
     }
 
     /// <summary>
     /// Attempts to publish <paramref name="payload"/> to every
     /// current subscriber. Slow subscribers (whose bounded buffer is
-    /// full) are evicted; surviving subscribers keep flowing. Returns
+    /// full) are dropped; surviving subscribers keep flowing. Returns
     /// <see langword="false"/> if the broadcaster has already
     /// completed.
     /// </summary>
@@ -181,7 +181,7 @@ internal sealed class Broadcaster<TPayload>
     {
         ArgumentNullException.ThrowIfNull(payload);
 
-        var evictedCount = 0;
+        var droppedCount = 0;
 
         lock (_gate)
         {
@@ -197,25 +197,25 @@ internal sealed class Broadcaster<TPayload>
                     continue;
                 }
 
-                if (EvictCore(subscriber))
+                if (DropCore(subscriber))
                 {
-                    evictedCount++;
+                    droppedCount++;
                 }
             }
         }
 
-        if (evictedCount > 0)
+        if (droppedCount > 0)
         {
-            BroadcasterLog.SubscribersEvicted(
-                _logger, evictedCount, _channel);
+            BroadcasterLog.SubscribersDropped(
+                _logger, droppedCount, _channel);
         }
 
         return true;
     }
 
-    private bool EvictCore(BroadcasterSubscriber<TPayload> subscriber)
+    private bool DropCore(BroadcasterSubscriber<TPayload> subscriber)
     {
-        if (!subscriber.TryEvict())
+        if (!subscriber.TryDrop())
         {
             return false;
         }

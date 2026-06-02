@@ -70,11 +70,11 @@ public sealed class BroadcasterTests
         using var subscription = broadcaster.Subscribe();
         var payloads = await BroadcasterSubscriptionTestDrainer.DrainAsync(subscription);
 
-        // Assert — no payloads, and the subscriber was not evicted
-        // (graceful completion is not an eviction).
+        // Assert — no payloads, and the subscriber was not dropped
+        // (graceful completion is not a drop).
         Assert.Multiple(
             () => Assert.Empty(payloads),
-            () => Assert.False(subscription.WasEvicted));
+            () => Assert.False(subscription.WasDropped));
     }
 
     [Fact]
@@ -128,21 +128,21 @@ public sealed class BroadcasterTests
         broadcaster.Complete();
         var payloads = await BroadcasterSubscriptionTestDrainer.DrainAsync(subscription);
 
-        // Assert — the payload plus EOF, no eviction.
+        // Assert — the payload plus EOF, no drop.
         Assert.Multiple(
             () => Assert.Same(payload, Assert.Single(payloads)),
-            () => Assert.False(subscription.WasEvicted));
+            () => Assert.False(subscription.WasDropped));
     }
 
     [Fact]
-    public async Task Should_evict_slow_subscriber_on_overflow()
+    public async Task Should_drop_slow_subscriber_on_overflow()
     {
         // Arrange
         var broadcaster = BroadcasterTestFactory.Create();
         using var slow = broadcaster.Subscribe();
 
         // Act — publish capacity + 1 payloads without draining. The
-        // (capacity+1)-th publish triggers eviction.
+        // (capacity+1)-th publish triggers the drop.
         for (var i = 0; i <= Broadcaster<BroadcasterTestPayload>.SubscriberBufferCapacity; i++)
         {
             Assert.True(broadcaster.TryPublish(new BroadcasterTestPayload(i)));
@@ -152,14 +152,14 @@ public sealed class BroadcasterTests
         var payloads = await BroadcasterSubscriptionTestDrainer.DrainAsync(slow);
 
         // Assert — buffered payloads up to capacity, and the
-        // subscriber was evicted for slowness.
+        // subscriber was dropped for slowness.
         Assert.Multiple(
             () => Assert.Equal(Broadcaster<BroadcasterTestPayload>.SubscriberBufferCapacity, payloads.Count),
-            () => Assert.True(slow.WasEvicted));
+            () => Assert.True(slow.WasDropped));
     }
 
     [Fact]
-    public async Task Should_keep_survivor_flowing_when_sibling_is_evicted()
+    public async Task Should_keep_survivor_flowing_when_sibling_is_dropped()
     {
         // Arrange
         var broadcaster = BroadcasterTestFactory.Create();
@@ -182,10 +182,10 @@ public sealed class BroadcasterTests
         broadcaster.Complete();
         var slowPayloads = await BroadcasterSubscriptionTestDrainer.DrainAsync(slow);
 
-        // Assert — slow was evicted; fast kept pace and was not.
+        // Assert — slow was dropped; fast kept pace and was not.
         Assert.Multiple(
             () => Assert.Equal(Broadcaster<BroadcasterTestPayload>.SubscriberBufferCapacity, slowPayloads.Count),
-            () => Assert.True(slow.WasEvicted),
-            () => Assert.False(fast.WasEvicted));
+            () => Assert.True(slow.WasDropped),
+            () => Assert.False(fast.WasDropped));
     }
 }

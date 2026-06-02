@@ -19,7 +19,7 @@ using Microsoft.Extensions.Logging;
 /// matches <see cref="Microsoft.Extensions.Logging"/>'s own provider
 /// convention) and enqueues the resulting record via
 /// <see cref="LogChannel.TryWrite"/>. The channel never blocks the
-/// caller — when full, it evicts the oldest pending record per its
+/// caller — when full, it drops the oldest pending record per its
 /// configured <c>FullMode = DropOldest</c> policy.
 /// </para>
 /// <para>

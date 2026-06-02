@@ -16,7 +16,7 @@ public sealed class LifecycleEventMessagesTests
             () => Assert.Equal("reloading", LifecycleEventKinds.Reloading),
             () => Assert.Equal("reloaded", LifecycleEventKinds.Reloaded),
             () => Assert.Equal("shutting-down", LifecycleEventKinds.ShuttingDown),
-            () => Assert.Equal("evicted", LifecycleEventKinds.Evicted));
+            () => Assert.Equal("dropped", LifecycleEventKinds.Dropped));
     }
 
     [Fact]
@@ -28,12 +28,12 @@ public sealed class LifecycleEventMessagesTests
     }
 
     [Fact]
-    public void Should_omit_optional_fields_on_evicted_terminal_frame()
+    public void Should_omit_optional_fields_on_dropped_terminal_frame()
     {
         // Arrange
         var evt = new JsonLifecycleEvent
         {
-            Kind = LifecycleEventKinds.Evicted,
+            Kind = LifecycleEventKinds.Dropped,
             Reason = "slow-subscriber",
         };
 
@@ -46,7 +46,7 @@ public sealed class LifecycleEventMessagesTests
         var root = document.RootElement;
 
         Assert.Multiple(
-            () => Assert.Equal("evicted", root.GetProperty("kind").GetString()),
+            () => Assert.Equal("dropped", root.GetProperty("kind").GetString()),
             () => Assert.Equal("slow-subscriber", root.GetProperty("reason").GetString()),
             () => Assert.False(root.TryGetProperty("instanceId", out _)),
             () => Assert.False(root.TryGetProperty("revision", out _)));
