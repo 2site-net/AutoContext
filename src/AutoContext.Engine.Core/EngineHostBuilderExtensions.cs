@@ -11,6 +11,7 @@ using AutoContext.Engine.Core.Machine.Housekeeping;
 using AutoContext.Engine.Core.Registry;
 using AutoContext.Engine.Core.Watchdogs;
 using AutoContext.Engine.Core.Workspace.Config;
+using AutoContext.Engine.Core.Workspace.Context;
 using AutoContext.Engine.Protocol.Messages.Config;
 using AutoContext.Engine.Protocol.Messages.Logs;
 using AutoContext.Framework.Pipes;
@@ -285,6 +286,16 @@ public static class EngineHostBuilderExtensions
             sp => sp.GetRequiredService<ConfigFileManager>());
         builder.Services.TryAddSingleton<IConfigUpdater>(
             sp => sp.GetRequiredService<ConfigFileManager>());
+
+        // Workspace context detection rule tables. The three declarative
+        // tables — file presence, content scans (npm + .NET, grouped by
+        // manifest), and the flag activation cascade — are static data
+        // ported from the VS Code extension's detector. They register as
+        // IReadOnlyList<T> singletons so the detector composes off them
+        // via constructor injection and tests can swap in trimmed lists.
+        builder.Services.TryAddSingleton(WorkspaceDetectionRules.FileRules);
+        builder.Services.TryAddSingleton(WorkspaceDetectionRules.ContentScans);
+        builder.Services.TryAddSingleton(WorkspaceDetectionRules.FlagActivationEdges);
 
         // Config-subscription fan-out broadcaster. Singleton so the
         // RPC Config.Subscribe handler and the ConfigFileService

@@ -437,16 +437,19 @@ src/
         IConfigUpdater.cs                      # one-method write seam the manager satisfies (P3 row 6, DONE)
         ConfigFrameStream.cs                   # BroadcasterFrameStream<JsonConfigSnapshot, JsonConfigStreamFrame> (IBroadcasterFrameStream impl) for Config.Subscribe: drains a BroadcasterSubscription<JsonConfigSnapshot> (fanned out by ConfigFileService over a shared Infrastructure/Events/SnapshotBroadcaster<T> — snapshot-on-subscribe + per-subscriber bounded buffer, P3 row 9, DONE) and yields snapshot/dropped frames; Config.Subscribe is served by DispatchPolicy, Config.Get/ToggleFile/ToggleRule also via DispatchPolicy (the latter two via ConfigToggle + IConfigUpdater)
       Context/                                 # ~60-flag detection (Workspace.* wire surface)
-        WorkspaceContextDetector.cs            # orchestrator — injected with the four rule-data lists below; runs them, emits result
+        WorkspaceContextDetector.cs            # orchestrator — injected with the three rule-data lists below; runs them, emits result
         WorkspaceHandlers.cs                   # Workspace.{Detect,Info}
         # — Rule data (plain records; each file holds a `static readonly`
         #   table registered in DI as the corresponding `IReadOnlyList<T>`
         #   singleton; no interfaces — substitution is over the data, not
         #   the behaviour) —
-        FilePresenceRules.cs                   # IReadOnlyList<FilePresenceRule>     — glob → flag
-        NpmContentRules.cs                     # IReadOnlyList<NpmContentRule>       — package.json dep-pattern → flag
-        DotNetContentRules.cs                  # IReadOnlyList<DotNetContentRule>    — csproj/PackageReference regex → flag
-        FlagActivationEdges.cs                 # IReadOnlyList<FlagActivationEdge>   — [child, parent] transitive activation graph
+        FileSelector.cs                        # (Value, FileSelectorKind) — one selection criterion, shared by presence + content
+        FileSelectorKind.cs                    # enum: Extension | FileName | GlobPattern
+        FilePresenceRule.cs                    # one row of IReadOnlyList<FilePresenceRule> — selectors → flag (presence only)
+        ContentScan.cs                         # one row of IReadOnlyList<ContentScan> — manifest selectors + ContentPatternRule list (npm, .NET, …)
+        ContentPatternRule.cs                  # (Flag, Regex) — body-pattern → flag, scoped under a ContentScan
+        FlagActivationEdge.cs                  # one row of IReadOnlyList<FlagActivationEdge> — [child, parent] transitive activation graph
+        WorkspaceDetectionRules.cs             # static partial holding the three tables (FileRules, ContentScans, FlagActivationEdges) + GeneratedRegex patterns
         # — Derived data (per-Detect outputs; plain records, not DI-registered) —
         FileExtensionsIndex.cs                 # derived ext set, fed to Discovery (P7)
     Instructions/                              # runtime services
@@ -1415,13 +1418,14 @@ projection there).
 | # | Commit subject | State |
 |---|---|---|
 | 1 | `feat(protocol): add Workspace.Detect and Info wire DTOs` | DONE |
-| 2 | `feat(engine-core): add workspace detection rule tables` | Not started |
-| 3 | `feat(engine-core): add WorkspaceContextDetector` | Not started |
-| 4 | `feat(engine-core): derive extensions index from file rules` | Not started |
-| 5 | `feat(engine): serve Workspace.Detect over rpc` | Not started |
-| 6 | `feat(engine): serve Workspace.Info over rpc` | Not started |
-| 7 | `test(engine): cover per-flag detection and activation cascade` | Not started |
-| 8 | `docs(plan): mark Phase 4 complete` | Not started |
+| 2 | `feat(engine-core): add workspace detection rule tables` | DONE |
+| 3 | `refactor(engine-core): model rules with file selectors and content scans` | DONE |
+| 4 | `feat(engine-core): add WorkspaceContextDetector` | Not started |
+| 5 | `feat(engine-core): derive extensions index from file rules` | Not started |
+| 6 | `feat(engine): serve Workspace.Detect over rpc` | Not started |
+| 7 | `feat(engine): serve Workspace.Info over rpc` | Not started |
+| 8 | `test(engine): cover per-flag detection and activation cascade` | Not started |
+| 9 | `docs(plan): mark Phase 4 complete` | Not started |
 
 **Goal**: engine runs `Workspace.Detect` on startup against its
 own `--workspace` path, exposes the result via `Workspace.Detect` and
@@ -1433,50 +1437,143 @@ own `--workspace` path, exposes the result via `Workspace.Detect` and
 `§ RPC surface` *`Detect` return shape*.
 
 **Code touch**:
-- `AutoContext.Engine.Core/Workspace/Context/WorkspaceContextDetector` —
-  port of today's `workspace-context-detector.ts`. The four
-  declarative tables (`fileRules`, `npmContentRules`,
-  `dotnetContentRules`, `flagActivationRules`) land as four
+- **Rule tables (rows 2–3).** The detection rules land as three
   `static readonly` lists of plain records — `FilePresenceRule`,
-  `NpmContentRule`, `DotNetContentRule`, `FlagActivationEdge` —
-  registered in DI as the corresponding `IReadOnlyList<T>`
-  singletons. No `I*Rules` interfaces, no provider types: the
-  detection probes are three different *operations* (filesystem
-  glob, package.json dep-set match, csproj regex match) that
-  happen to share a list shape, and the activation graph is a
-  fourth concept entirely (graph closure, no FS, no file content)
-  — collapsing them under one `I*Rules` interface would be
-  shape-driven naming, not concept-driven naming. The detector
-  takes the four lists via constructor injection and switches on
-  rule kind internally (same shape as today's TS port). Per-flag
-  test fixtures compose the detector with trimmed lists; the
-  substitution surface is *data*, not *behaviour*, which is what
-  `IReadOnlyList<T>` already gives us — the "no interface without
-  a second impl" invariant therefore never fires here, because no
-  interface is introduced. Same flag names, same globs, same
-  regex patterns, same `[child, parent]` activation edges as the
-  TS port; no rule expansion, the existing ~60-flag set is the
-  contract.
-- Derived `extensions[]` is a plain record produced by one `Detect`
-  call — owned by the result, not DI-registered (no shared lifetime
-  to manage). Built from the same glob rules so a new file-rule
-  flag automatically extends the extension set.
-- `Workspace.Detect` and `Workspace.Info` handlers. The detector
-  has **no** business with `.github/instructions/` content —
-  that inventory is owned by `Instructions/InstructionsOverrideWatcher`
-  (Phase 6) and reachable via `Instructions.List`. The TS reference
-  port (`src/AutoContext.VsCode/src/workspace-context-detector.ts`)
-  already enforces this split: `workspace-context-detector.ts` does
-  not scan overrides; `instructions-files-override-watcher.ts` does.
-  The .NET port mirrors that separation of concerns.
+  `ContentScan`, `FlagActivationEdge` — registered in DI as the
+  corresponding `IReadOnlyList<T>` singletons. No `I*Rules`
+  interfaces, no provider types: the detection probes are different
+  *operations* (filesystem traversal for presence, manifest-body
+  regex for content scans) and the activation graph is a third
+  concept entirely (graph closure, no FS, no file content) —
+  collapsing them under one `I*Rules` interface would be
+  shape-driven naming, not concept-driven naming. Per-flag test
+  fixtures compose the detector with trimmed lists; the substitution
+  surface is *data*, not *behaviour*, which is what `IReadOnlyList<T>`
+  already gives us — the "no interface without a second impl"
+  invariant therefore never fires here. Same flag names, same regex
+  patterns, same `[child, parent]` activation edges as the TS port;
+  no rule expansion, the existing ~60-flag set is the contract.
+- **Content detection is grouped by manifest, not split by platform.**
+  The TS port carries two parallel `npmContentRules` /
+  `dotnetContentRules` arrays whose elements are byte-for-byte the
+  same shape (`{ flag, pattern }`), differing only in which manifest
+  the patterns scan. Modelling that as two identical record types
+  (`NpmContentRule`, `DotNetContentRule`) would mean a third platform
+  is a third identical type. Instead a single `ContentScan` groups a
+  set of file selectors with the `ContentPatternRule` probes run
+  against those files' bodies, so a new platform is a *data* edit —
+  one more `ContentScan` row — not a new type:
+
+  ```csharp
+  internal sealed record FileSelector(string Value, FileSelectorKind Kind);
+
+  internal sealed record ContentScan(
+      IReadOnlyList<FileSelector> Selectors,
+      IReadOnlyList<ContentPatternRule> Rules);
+
+  internal sealed record ContentPatternRule(string Flag, Regex Pattern);
+
+  internal enum FileSelectorKind { Extension, FileName, GlobPattern }
+  ```
+
+  The `ContentScans` table holds two entries: the npm scan
+  (`package.json` by `FileName`, 12 patterns, case-sensitive except
+  `hasGraphql`) and the .NET scan (`csproj`/`fsproj`/`vbproj` by
+  `Extension`, 20 patterns, all case-insensitive). Case sensitivity
+  lives inside each `Regex`, never at the type level. Grouping the
+  selectors with their rules mirrors the detector's
+  read-each-manifest-once loop, so the table shape already matches
+  how the scan executes. DI collapses from four singletons to three.
+- **File rules are *not* a 1:1 port of the TS glob strings.** Row 2
+  shipped `FilePresenceRule(Flag, IReadOnlyList<string> Globs)` as
+  a faithful port; row 3 reshapes it into a typed-selector model so
+  the detector never has to re-parse glob *strings* the way the TS
+  reverse maps do (`/^\*\*\/\*\.\{([^}]+)\}$/`):
+
+  ```csharp
+  internal sealed record FilePresenceRule(
+      string Flag,
+      IReadOnlyList<FileSelector> Selectors);
+  ```
+
+  A rule matches if **any** selector matches (pure OR); each selector
+  is one criterion. `FileSelector` is a named record (not a bare
+  tuple) because it is reused at two call sites — `FilePresenceRule`
+  *and* `ContentScan` — and `FileSelectorKind` names the shared
+  selection vocabulary; the `(Value, Kind)` pair is deliberate, with
+  no nullable-triple invariant and no speculative modifier
+  properties. `FilePresenceRule` keeps the "presence only — never
+  reads the body" precision in its name (the body scan is
+  `ContentScan`'s job). Of the 32 file rules, most are `Extension`
+  selectors, nine add a `FileName` selector (`Cargo.toml`,
+  `go.mod`, `pom.xml`, …), and exactly two need a real
+  `GlobPattern` (`**/Dockerfile*`, the Unity
+  `ProjectSettings.asset` path). The selector set is the single
+  source of truth from which the detector derives both its
+  classification dictionaries and its watch filter.
+- **`WorkspaceContextDetector` (row 4) — single-pass, inverted
+  index.** The TS detector issues ~40 separate `vscode.findFiles`
+  globs plus a parallel hand-maintained watch-glob list; the engine
+  has no indexed `findFiles`, so a verbatim port would mean ~40
+  tree walks. Instead, an index built once from the selectors —
+  `byExtension`, `byFileName`, and the small glob list — lets a
+  **single** workspace traversal classify every file by lookup.
+  Incremental updates use an inverted index rather than the TS
+  re-glob-on-delete scheme:
+  - `_contributions`: path → the set of base flags that file
+    currently contributes.
+  - `_baseCounts`: base flag → live contributor count; a base flag
+    is on iff its count `> 0`.
+
+  Each watcher event reclassifies **one** path (no FS walk, no
+  glob), diffs its old vs new contribution set, adjusts the counts,
+  and re-runs only the cheap activation cascade. Deletes are O(1)
+  — "is there another file satisfying this flag?" is a count check,
+  not a re-glob — and a content change rereads exactly the one
+  changed manifest. Cold start seeds the same index in the single
+  opening pass, so one mechanism serves both cold start and warm
+  updates. The recursive watch is a raw `FileSystemWatcher`
+  (`IncludeSubdirectories = true`) whose in-code filter is derived
+  from the selector dictionaries, with `node_modules` / `bin` /
+  `obj` / `.git` excluded. **This derivation closes a latent TS
+  drift bug**: `hasYaml`, `hasDart`, `hasRuby`, and `hasSwift` are
+  in `fileRules` but their extensions are absent from
+  `existenceWatchGlob`, so today they are detected on a full scan
+  yet never update incrementally. Deriving the watch set from the
+  rules makes that class of drift unrepresentable. Synthetic flags
+  (`hasGit`, `hasNodeJs`) and the cascade-to-fixpoint semantics are
+  preserved exactly.
+- **Derived `extensions[]` (row 5).** A plain record produced by
+  one `Detect` call — owned by the result, not DI-registered (no
+  shared lifetime to manage). Built from the union of the
+  `Extension`-kind selectors of every active file-rule flag, so a
+  new file-rule flag automatically extends the extension set;
+  content-scan flags contribute none.
+- **`Workspace.Detect` and `Workspace.Info` handlers (rows 6–7).**
+  The detector has **no** business with `.github/instructions/`
+  content — that inventory is owned by
+  `Instructions/InstructionsOverrideWatcher` (Phase 6) and
+  reachable via `Instructions.List`. The TS reference port
+  (`src/AutoContext.VsCode/src/workspace-context-detector.ts`)
+  already enforces this split: it does not scan overrides;
+  `instructions-files-override-watcher.ts` does. The .NET port
+  mirrors that separation of concerns.
 
 **Tests**:
 - One fixture-per-flag test asserting each rule fires only on its
   declared trigger.
 - Activation cascade: `hasNextJs` triggers `hasReact` triggers
   `hasNodeJs` without re-running the file scans.
+- Incremental updates via the inverted index: creating a file flips
+  its flag on; deleting the *last* contributor flips it off while a
+  surviving sibling keeps it on (count-based, no re-glob); a
+  manifest content change reclassifies only that file.
+- Watch-filter derivation regression: every file-rule extension is
+  present in the derived watch set (guards against the TS
+  yaml/dart/ruby/swift drift).
 - `extensions[]` derivation matches the union of every active
-  file-rule flag's extensions; content-rule flags contribute none.
+  file-rule flag's `Extension` selectors; content-scan flags
+  contribute none.
 - `Workspace.Info` returns engine-process metadata distinct from
   `Detect`.
 - `Workspace.Detect` return shape carries **no** `overrides` field
@@ -2161,10 +2258,14 @@ servers manifest (`servers.json`) points at
    `npmContentRules` (`package.json` regex flags),
    `dotnetContentRules` (`.csproj` regex flags), and
    `flagActivationRules` (`[child, parent]` transitive activations).
-   Phase 4 ports each table to C# unchanged — same flag names, same
-   globs, same regex patterns, same activation edges. The ~60-flag
-   contract in the design doc and these tables are the same set; no
-   separate fixture extraction is needed. The per-flag tests use the
+   Phase 4 ports the flag set unchanged — same flag names, same
+   globs, same regex patterns, same activation edges — but folds the
+   two identical content arrays (`npmContentRules`,
+   `dotnetContentRules`) into one `ContentScans` table whose rows
+   group a manifest's file selectors with its `ContentPatternRule`
+   probes, so a new platform is a data row rather than a new type.
+   The ~60-flag contract in the design doc and these tables are the
+   same set; no separate fixture extraction is needed. The per-flag tests use the
    existing
    [`workspace-context-detector.test.ts`](../src/AutoContext.VsCode/tests/unit-tests/workspace-context-detector.test.ts)
    fixtures as their porting source.
