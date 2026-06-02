@@ -1410,7 +1410,18 @@ projection there).
 
 ## Phase 4 — Workspace detection
 
-**Status**: Not started.
+**Status**: In progress on branch `features/workspace-detection`.
+
+| # | Commit subject | State |
+|---|---|---|
+| 1 | `feat(protocol): add Workspace.Detect and Info wire DTOs` | DONE |
+| 2 | `feat(engine-core): add workspace detection rule tables` | Not started |
+| 3 | `feat(engine-core): add WorkspaceContextDetector` | Not started |
+| 4 | `feat(engine-core): derive extensions index from file rules` | Not started |
+| 5 | `feat(engine): serve Workspace.Detect over rpc` | Not started |
+| 6 | `feat(engine): serve Workspace.Info over rpc` | Not started |
+| 7 | `test(engine): cover per-flag detection and activation cascade` | Not started |
+| 8 | `docs(plan): mark Phase 4 complete` | Not started |
 
 **Goal**: engine runs `Workspace.Detect` on startup against its
 own `--workspace` path, exposes the result via `Workspace.Detect` and
