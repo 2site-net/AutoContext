@@ -22,7 +22,7 @@ public sealed class LifecycleNotifierTests
         var notified = sut.NotifyShutdown();
 
         // Assert
-        var events = await LifecycleSubscriptionTestReader.ReadAllAsync(
+        var events = await LifecycleStreamTestReader.ReadAllAsync(
             subscription, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Multiple(

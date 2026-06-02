@@ -1,6 +1,8 @@
 namespace AutoContext.Engine.Core.Workspace.Config;
 
+using AutoContext.Engine.Core.Infrastructure.Events;
 using AutoContext.Engine.Core.Workspace.Config.Snapshot;
+using AutoContext.Engine.Protocol.Messages.Config;
 
 using Microsoft.Extensions.Hosting;
 
@@ -8,7 +10,7 @@ using Microsoft.Extensions.Hosting;
 /// Hosted service that brings the workspace's
 /// <see cref="ConfigFileManager"/> online at engine start and
 /// bridges its change events into the
-/// <see cref="ConfigSubscriptionBroadcaster"/>: it subscribes to the
+/// <see cref="SnapshotBroadcaster{T}"/>: it subscribes to the
 /// manager's change event, performs the initial disk load so the
 /// in-memory snapshot is populated before the first <c>Config.Get</c>
 /// RPC can land, primes the broadcaster with that loaded snapshot
@@ -22,7 +24,7 @@ using Microsoft.Extensions.Hosting;
 /// </summary>
 internal sealed class ConfigFileService : IHostedService
 {
-    private readonly ConfigSubscriptionBroadcaster _broadcaster;
+    private readonly SnapshotBroadcaster<JsonConfigSnapshot> _broadcaster;
     private readonly ConfigFileManager _manager;
 
     /// <summary>
@@ -37,7 +39,7 @@ internal sealed class ConfigFileService : IHostedService
     /// </exception>
     public ConfigFileService(
         ConfigFileManager manager,
-        ConfigSubscriptionBroadcaster broadcaster)
+        SnapshotBroadcaster<JsonConfigSnapshot> broadcaster)
     {
         ArgumentNullException.ThrowIfNull(manager);
         ArgumentNullException.ThrowIfNull(broadcaster);

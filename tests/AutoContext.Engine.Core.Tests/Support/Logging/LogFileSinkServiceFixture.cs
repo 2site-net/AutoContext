@@ -3,10 +3,13 @@ namespace AutoContext.Engine.Core.Tests.Support.Logging;
 using System.Diagnostics.CodeAnalysis;
 
 using AutoContext.Engine.Core;
+using AutoContext.Engine.Core.Infrastructure.Events;
 using AutoContext.Engine.Core.Logging;
 using AutoContext.Engine.Core.Machine;
 using AutoContext.Engine.Core.Tests.Support;
+using AutoContext.Engine.Core.Tests.Support.Infrastructure.Events;
 using AutoContext.Engine.Core.Tests.Support.Machine;
+using AutoContext.Engine.Protocol.Messages.Logs;
 
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
@@ -30,7 +33,7 @@ public sealed class LogFileSinkServiceFixture : IDisposable
         EngineOptions? options = null,
         LogChannel? channel = null,
         LogRotationThresholds? thresholds = null,
-        LogSubscriptionBroadcaster? broadcaster = null,
+        Broadcaster<JsonLogRecord>? broadcaster = null,
         TimeProvider? timeProvider = null)
     {
         EngineOptions resolvedOptions;
@@ -50,7 +53,7 @@ public sealed class LogFileSinkServiceFixture : IDisposable
 
         var resolvedChannel = channel ?? new LogChannel();
         var resolvedThresholds = thresholds ?? LogRotationThresholdsFakeData.Normal;
-        var resolvedBroadcaster = broadcaster ?? LogSubscriptionBroadcasterTestFactory.Create();
+        var resolvedBroadcaster = broadcaster ?? BroadcasterTestFactory.Create<JsonLogRecord>("logs-pipe");
         var resolvedClock = timeProvider ?? TimeProvider.System;
 
         var service = new LogFileSinkService(
@@ -117,6 +120,6 @@ public sealed class LogFileSinkServiceFixture : IDisposable
     internal sealed record Context(
         EngineOptions Options,
         LogChannel Channel,
-        LogSubscriptionBroadcaster Broadcaster,
+        Broadcaster<JsonLogRecord> Broadcaster,
         LogFileSinkService Service);
 }

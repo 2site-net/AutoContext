@@ -5,13 +5,13 @@ using System.Threading.Channels;
 using Microsoft.Extensions.Logging;
 
 /// <summary>
-/// Singleton fan-out broadcaster core: every subscriber owns its own
+/// Singleton fan-out broadcaster: every subscriber owns its own
 /// bounded <see cref="Channel{T}"/>, a slow subscriber is evicted
 /// while the rest keep flowing, and graceful completion closes every
-/// channel without a terminal frame. Derived types supply the
-/// per-domain <see cref="Subscription{T}"/> via
-/// <see cref="CreateSubscription"/> and may seed/observe keyed state
-/// through <see cref="OnSubscribing"/> / <see cref="OnPublishing"/>.
+/// channel without a terminal frame. <see cref="Subscribe"/> returns
+/// the <see cref="BroadcasterSubscription{T}"/> handle the caller drains; an
+/// optional seed is written to the new subscriber's buffer ahead of
+/// the live tail.
 /// </summary>
 /// <remarks>
 /// Thread-safety: <see cref="Subscribe"/>, <see cref="TryPublish"/>,
@@ -20,11 +20,8 @@ using Microsoft.Extensions.Logging;
 /// independent of the publisher and of one another.
 /// </remarks>
 /// <typeparam name="TPayload">Payload fanned out to subscribers.</typeparam>
-/// <typeparam name="TSubscription">Domain handle returned from
-/// <see cref="Subscribe"/>.</typeparam>
-internal abstract class SubscriptionBroadcaster<TPayload, TSubscription>
+internal sealed class Broadcaster<TPayload>
     where TPayload : class
-    where TSubscription : Subscription<TPayload>
 {
     /// <summary>
     /// Per-subscriber bounded buffer capacity. Sized to absorb a
@@ -38,11 +35,11 @@ internal abstract class SubscriptionBroadcaster<TPayload, TSubscription>
     private bool _completed;
     private readonly Lock _gate = new();
     private readonly ILogger _logger;
-    private readonly HashSet<Subscriber<TPayload>> _subscribers = [];
+    private readonly HashSet<BroadcasterSubscriber<TPayload>> _subscribers = [];
 
     /// <summary>
     /// Creates a new
-    /// <see cref="SubscriptionBroadcaster{TPayload, TSubscription}"/>.
+    /// <see cref="Broadcaster{T}"/>.
     /// </summary>
     /// <param name="logger">Diagnostic sink for slow-subscriber
     /// evictions.</param>
@@ -54,7 +51,7 @@ internal abstract class SubscriptionBroadcaster<TPayload, TSubscription>
     /// <exception cref="ArgumentException">
     /// <paramref name="channel"/> is empty.
     /// </exception>
-    protected SubscriptionBroadcaster(ILogger logger, string channel)
+    public Broadcaster(ILogger logger, string channel)
     {
         ArgumentNullException.ThrowIfNull(logger);
         ArgumentException.ThrowIfNullOrEmpty(channel);
@@ -62,22 +59,6 @@ internal abstract class SubscriptionBroadcaster<TPayload, TSubscription>
         _logger = logger;
         _channel = channel;
     }
-
-    /// <summary>
-    /// Synchronization gate guarding subscriber set mutations and the
-    /// completion flag. Derived types lock on this when seeding or
-    /// reading keyed state so their writes are ordered against
-    /// <see cref="Subscribe"/> and <see cref="TryPublish"/>.
-    /// </summary>
-    protected Lock Gate
-        => _gate;
-
-    /// <summary>
-    /// <see langword="true"/> once <see cref="Complete"/> has run.
-    /// Read by derived types under <see cref="Gate"/>.
-    /// </summary>
-    protected bool IsCompleted
-        => _completed;
 
     /// <summary>
     /// Marks the broadcaster as completed and closes every active
@@ -109,18 +90,21 @@ internal abstract class SubscriptionBroadcaster<TPayload, TSubscription>
     }
 
     /// <summary>
-    /// Enrolls a new subscriber and returns the domain
-    /// <typeparamref name="TSubscription"/> the caller drains.
-    /// Disposing the returned subscription unsubscribes and completes
-    /// the underlying channel.
+    /// Enrolls a new subscriber and returns the
+    /// <see cref="BroadcasterSubscription{T}"/> the caller drains. Disposing the
+    /// returned subscription unsubscribes and completes the underlying
+    /// channel.
     /// </summary>
     /// <remarks>
     /// If the broadcaster has already completed, the new subscriber
-    /// receives any seed written by <see cref="OnSubscribing"/>
-    /// followed by an immediate EOF — no further frames.
+    /// receives the <paramref name="seed"/> payloads followed by an
+    /// immediate EOF — no further frames.
     /// </remarks>
-    /// <returns>A new domain subscription handle.</returns>
-    public TSubscription Subscribe()
+    /// <param name="seed">Payloads written to the new subscriber's
+    /// buffer, in order, ahead of the live tail. Empty for a pure
+    /// live-tail subscription.</param>
+    /// <returns>A new subscription handle.</returns>
+    public BroadcasterSubscription<TPayload> Subscribe(params ReadOnlySpan<TPayload> seed)
     {
         var channel = Channel.CreateBounded<TPayload>(
             new BoundedChannelOptions(SubscriberBufferCapacity)
@@ -150,14 +134,17 @@ internal abstract class SubscriptionBroadcaster<TPayload, TSubscription>
                 AllowSynchronousContinuations = false,
             });
 
-        var subscriber = new Subscriber<TPayload>(channel);
+        var subscriber = new BroadcasterSubscriber<TPayload>(channel);
 
         lock (_gate)
         {
-            // Seed keyed state (if any) BEFORE registering so it
-            // lands at the head of this subscriber's buffer ahead of
-            // any publish that races in once registration completes.
-            OnSubscribing(channel.Writer);
+            // Seed BEFORE registering so the seed payloads land at
+            // the head of this subscriber's buffer ahead of any
+            // publish that races in once registration completes.
+            foreach (var payload in seed)
+            {
+                channel.Writer.TryWrite(payload);
+            }
 
             if (_completed)
             {
@@ -169,7 +156,7 @@ internal abstract class SubscriptionBroadcaster<TPayload, TSubscription>
             }
         }
 
-        return CreateSubscription(
+        return new BroadcasterSubscription<TPayload>(
             channel.Reader,
             release: () => Release(subscriber),
             wasEvicted: () => subscriber.WasEvicted);
@@ -203,8 +190,6 @@ internal abstract class SubscriptionBroadcaster<TPayload, TSubscription>
                 return false;
             }
 
-            OnPublishing(payload);
-
             foreach (var subscriber in _subscribers.ToArray())
             {
                 if (subscriber.Channel.Writer.TryWrite(payload))
@@ -221,52 +206,14 @@ internal abstract class SubscriptionBroadcaster<TPayload, TSubscription>
 
         if (evictedCount > 0)
         {
-            SubscriptionBroadcasterLog.SubscribersEvicted(
+            BroadcasterLog.SubscribersEvicted(
                 _logger, evictedCount, _channel);
         }
 
         return true;
     }
 
-    /// <summary>
-    /// Creates the domain subscription handle wrapping the supplied
-    /// channel reader, release callback, and eviction probe.
-    /// </summary>
-    /// <param name="reader">Reader half of the subscriber's
-    /// channel.</param>
-    /// <param name="release">Unsubscribe callback for
-    /// <see cref="IDisposable.Dispose"/>.</param>
-    /// <param name="wasEvicted">Eviction probe consulted after the
-    /// drain completes.</param>
-    /// <returns>A new domain subscription.</returns>
-    protected abstract TSubscription CreateSubscription(
-        ChannelReader<TPayload> reader,
-        Action release,
-        Func<bool> wasEvicted);
-
-    /// <summary>
-    /// Called under <see cref="Gate"/> at the start of a publish,
-    /// giving keyed broadcasters a chance to cache the latest
-    /// payload. The base implementation is a no-op (no keyed state).
-    /// </summary>
-    /// <param name="payload">The payload about to be fanned out.</param>
-    protected virtual void OnPublishing(TPayload payload)
-    {
-    }
-
-    /// <summary>
-    /// Called under <see cref="Gate"/> just before a new subscriber
-    /// is registered, giving keyed broadcasters a chance to seed the
-    /// subscriber's buffer with the cached snapshot. The base
-    /// implementation is a no-op (pure live tail).
-    /// </summary>
-    /// <param name="writer">Writer half of the new subscriber's
-    /// channel.</param>
-    protected virtual void OnSubscribing(ChannelWriter<TPayload> writer)
-    {
-    }
-
-    private bool EvictCore(Subscriber<TPayload> subscriber)
+    private bool EvictCore(BroadcasterSubscriber<TPayload> subscriber)
     {
         if (!subscriber.TryEvict())
         {
@@ -279,7 +226,7 @@ internal abstract class SubscriptionBroadcaster<TPayload, TSubscription>
         return true;
     }
 
-    private void Release(Subscriber<TPayload> subscriber)
+    private void Release(BroadcasterSubscriber<TPayload> subscriber)
     {
         lock (_gate)
         {

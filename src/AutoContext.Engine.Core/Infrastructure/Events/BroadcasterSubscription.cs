@@ -3,22 +3,22 @@ namespace AutoContext.Engine.Core.Infrastructure.Events;
 using System.Threading.Channels;
 
 /// <summary>
-/// Base handle returned from a
-/// <see cref="SubscriptionBroadcaster{TPayload, TSubscription}"/>'s
+/// Handle returned from a <see cref="Broadcaster{T}"/>'s
 /// <c>Subscribe</c>. Owns the disposal and drain plumbing shared by
-/// every domain subscription: a one-shot release on
-/// <see cref="Dispose"/> and a raw payload drain exposed to derived
-/// types via <see cref="ReadPayloadsAsync"/>.
+/// every stream: a one-shot release on <see cref="Dispose"/>, a raw
+/// payload drain via <see cref="ReadAllAsync"/>, and the
+/// <see cref="WasEvicted"/> probe.
 /// </summary>
 /// <remarks>
-/// Frame mapping stays domain-specific. Each derived subscription
-/// drains <see cref="ReadPayloadsAsync"/>, wraps each payload in its
-/// own wire DTO, and — when <see cref="WasEvicted"/> reports a
-/// slow-subscriber drop — yields its own terminal <c>evicted</c>
-/// frame after the channel completes.
+/// Frame mapping is a caller concern: a domain framing function drains
+/// <see cref="ReadAllAsync"/>, wraps each payload in its own wire DTO,
+/// and — when <see cref="WasEvicted"/> reports a slow-subscriber drop —
+/// yields its own terminal <c>evicted</c> frame after the channel
+/// completes. The write, close, and evict side of a subscriber stays
+/// inside the broadcaster and never surfaces here.
 /// </remarks>
 /// <typeparam name="T">Payload type drained from the channel.</typeparam>
-internal abstract class Subscription<T> : IDisposable
+internal sealed class BroadcasterSubscription<T> : IDisposable
 {
     private int _disposed;
     private readonly ChannelReader<T> _reader;
@@ -26,7 +26,7 @@ internal abstract class Subscription<T> : IDisposable
     private readonly Func<bool> _wasEvicted;
 
     /// <summary>
-    /// Creates a new <see cref="Subscription{T}"/>.
+    /// Creates a new <see cref="BroadcasterSubscription{T}"/>.
     /// </summary>
     /// <param name="reader">Reader half of the per-subscriber bounded
     /// channel the broadcaster fans payloads into.</param>
@@ -35,12 +35,12 @@ internal abstract class Subscription<T> : IDisposable
     /// complete the underlying channel.</param>
     /// <param name="wasEvicted">Probe consulted after the channel
     /// completes to decide whether a terminal <c>evicted</c> frame is
-    /// yielded; closes over the owning <see cref="Subscriber{T}"/>'s
+    /// yielded; closes over the owning <see cref="BroadcasterSubscriber{T}"/>'s
     /// state.</param>
     /// <exception cref="ArgumentNullException">
     /// Any argument is <see langword="null"/>.
     /// </exception>
-    protected Subscription(
+    internal BroadcasterSubscription(
         ChannelReader<T> reader,
         Action release,
         Func<bool> wasEvicted)
@@ -56,11 +56,11 @@ internal abstract class Subscription<T> : IDisposable
 
     /// <summary>
     /// <see langword="true"/> if the broadcaster evicted this
-    /// subscriber for slowness. Consulted by derived subscriptions
-    /// after the drain completes to decide whether to yield a
-    /// terminal <c>evicted</c> frame.
+    /// subscriber for slowness. Consulted by a framing function after
+    /// the drain completes to decide whether to yield a terminal
+    /// <c>evicted</c> frame.
     /// </summary>
-    protected bool WasEvicted
+    public bool WasEvicted
         => _wasEvicted();
 
     /// <inheritdoc/>
@@ -76,12 +76,12 @@ internal abstract class Subscription<T> : IDisposable
 
     /// <summary>
     /// Drains raw payloads until the channel completes or
-    /// <paramref name="cancellationToken"/> fires. Derived
-    /// subscriptions wrap each payload in their domain wire DTO.
+    /// <paramref name="cancellationToken"/> fires. A framing function
+    /// wraps each payload in its domain wire DTO.
     /// </summary>
     /// <param name="cancellationToken">Cancels the drain.</param>
     /// <returns>The raw payloads fanned in by the broadcaster.</returns>
-    protected IAsyncEnumerable<T> ReadPayloadsAsync(
+    public IAsyncEnumerable<T> ReadAllAsync(
         CancellationToken cancellationToken)
         => _reader.ReadAllAsync(cancellationToken);
 }

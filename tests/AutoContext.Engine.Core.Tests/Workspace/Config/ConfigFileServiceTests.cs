@@ -1,5 +1,6 @@
 namespace AutoContext.Engine.Core.Tests.Workspace.Config;
 
+using AutoContext.Engine.Core.Tests.Support.Infrastructure.Events;
 using AutoContext.Engine.Core.Tests.Support.Shared;
 using AutoContext.Engine.Core.Tests.Support.Workspace.Config;
 using AutoContext.Engine.Core.Workspace.Config;
@@ -13,7 +14,7 @@ public sealed class ConfigFileServiceTests(TempDirectoryFixture tempDirectory)
     public void Should_throw_when_constructed_with_null_manager()
     {
         // Arrange
-        var broadcaster = ConfigSubscriptionBroadcasterTestFactory.Create();
+        var broadcaster = SnapshotBroadcasterTestFactory.Create<JsonConfigSnapshot>("Config.Subscribe");
 
         // Act + Assert
         Assert.Throws<ArgumentNullException>(
@@ -36,7 +37,7 @@ public sealed class ConfigFileServiceTests(TempDirectoryFixture tempDirectory)
     {
         // Arrange
         using var manager = ConfigFileManagerTestFactory.Create(tempDirectory.CreateDirectory());
-        var broadcaster = ConfigSubscriptionBroadcasterTestFactory.Create();
+        var broadcaster = SnapshotBroadcasterTestFactory.Create<JsonConfigSnapshot>("Config.Subscribe");
         var service = new ConfigFileService(manager, broadcaster);
 
         // Act — start loads + primes, then a fresh subscriber sees
@@ -44,7 +45,7 @@ public sealed class ConfigFileServiceTests(TempDirectoryFixture tempDirectory)
         await service.StartAsync(TestContext.Current.CancellationToken);
         using var subscription = broadcaster.Subscribe();
         await service.StopAsync(TestContext.Current.CancellationToken);
-        var frames = await ConfigSubscriptionTestDrainer.DrainAsync(subscription);
+        var frames = await ConfigStreamTestDrainer.DrainAsync(subscription);
 
         // Assert — empty workspace yields a versionless seed.
         var seed = Assert.IsType<JsonConfigSnapshotFrame>(Assert.Single(frames));
@@ -56,7 +57,7 @@ public sealed class ConfigFileServiceTests(TempDirectoryFixture tempDirectory)
     {
         // Arrange
         using var manager = ConfigFileManagerTestFactory.Create(tempDirectory.CreateDirectory());
-        var broadcaster = ConfigSubscriptionBroadcasterTestFactory.Create();
+        var broadcaster = SnapshotBroadcasterTestFactory.Create<JsonConfigSnapshot>("Config.Subscribe");
         var service = new ConfigFileService(manager, broadcaster);
         await service.StartAsync(TestContext.Current.CancellationToken);
         using var subscription = broadcaster.Subscribe();
@@ -70,7 +71,7 @@ public sealed class ConfigFileServiceTests(TempDirectoryFixture tempDirectory)
             },
             TestContext.Current.CancellationToken);
         await service.StopAsync(TestContext.Current.CancellationToken);
-        var frames = await ConfigSubscriptionTestDrainer.DrainAsync(subscription);
+        var frames = await ConfigStreamTestDrainer.DrainAsync(subscription);
 
         // Assert — the seed frame followed by the edited snapshot,
         // stamped with the engine version on write.
@@ -86,14 +87,14 @@ public sealed class ConfigFileServiceTests(TempDirectoryFixture tempDirectory)
     {
         // Arrange
         using var manager = ConfigFileManagerTestFactory.Create(tempDirectory.CreateDirectory());
-        var broadcaster = ConfigSubscriptionBroadcasterTestFactory.Create();
+        var broadcaster = SnapshotBroadcasterTestFactory.Create<JsonConfigSnapshot>("Config.Subscribe");
         var service = new ConfigFileService(manager, broadcaster);
         await service.StartAsync(TestContext.Current.CancellationToken);
         using var subscription = broadcaster.Subscribe();
 
         // Act
         await service.StopAsync(TestContext.Current.CancellationToken);
-        var frames = await ConfigSubscriptionTestDrainer.DrainAsync(subscription);
+        var frames = await ConfigStreamTestDrainer.DrainAsync(subscription);
 
         // Assert — the stream terminates cleanly: just the seed
         // frame and EOF, no terminal evicted frame.

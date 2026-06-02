@@ -4,6 +4,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
 
+using AutoContext.Engine.Core.Infrastructure.Events;
 using AutoContext.Engine.Core.Logging;
 using AutoContext.Engine.Core.Registry;
 using AutoContext.Engine.Core.Rpc.Results;
@@ -56,9 +57,9 @@ internal sealed partial class DispatchPolicy : IRpcConnectionPolicy
     private readonly IHostApplicationLifetime _lifetime;
     private readonly RegistryFileReader _registryReader;
     private readonly EngineLogFileReader _logFileReader;
-    private readonly LogSubscriptionBroadcaster _logsBroadcaster;
+    private readonly Broadcaster<JsonLogRecord> _logsBroadcaster;
     private readonly IConfigSnapshotAccessor _configAccessor;
-    private readonly ConfigSubscriptionBroadcaster _configBroadcaster;
+    private readonly SnapshotBroadcaster<JsonConfigSnapshot> _configBroadcaster;
     private readonly IConfigUpdater _configUpdater;
     private readonly ILogger _logger;
 
@@ -66,10 +67,10 @@ internal sealed partial class DispatchPolicy : IRpcConnectionPolicy
         IHostApplicationLifetime lifetime,
         RegistryFileReader registryReader,
         EngineLogFileReader logFileReader,
-        LogSubscriptionBroadcaster logsBroadcaster,
+        Broadcaster<JsonLogRecord> logsBroadcaster,
         IConfigSnapshotAccessor configAccessor,
         IConfigUpdater configUpdater,
-        ConfigSubscriptionBroadcaster configBroadcaster,
+        SnapshotBroadcaster<JsonConfigSnapshot> configBroadcaster,
         ILogger logger)
     {
         ArgumentNullException.ThrowIfNull(lifetime);
@@ -292,11 +293,11 @@ internal sealed partial class DispatchPolicy : IRpcConnectionPolicy
     }
 
     private static async IAsyncEnumerable<JsonElement> MapFramesAsync(
-        LogSubscription subscription,
+        BroadcasterSubscription<JsonLogRecord> subscription,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        await foreach (var frame in subscription
-            .ReadAllAsync(cancellationToken)
+        await foreach (var frame in LogStreamFrames
+            .MapAsync(subscription, cancellationToken)
             .ConfigureAwait(false))
         {
             yield return JsonSerializer.SerializeToElement(
@@ -327,11 +328,11 @@ internal sealed partial class DispatchPolicy : IRpcConnectionPolicy
     }
 
     private static async IAsyncEnumerable<JsonElement> MapConfigFramesAsync(
-        ConfigSubscription subscription,
+        BroadcasterSubscription<JsonConfigSnapshot> subscription,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        await foreach (var frame in subscription
-            .ReadAllAsync(cancellationToken)
+        await foreach (var frame in ConfigStreamFrames
+            .MapAsync(subscription, cancellationToken)
             .ConfigureAwait(false))
         {
             yield return JsonSerializer.SerializeToElement(

@@ -2,6 +2,7 @@ namespace AutoContext.Engine.Core;
 
 using AutoContext.Engine.Core.Infrastructure;
 using AutoContext.Engine.Core.Infrastructure.Diagnostics;
+using AutoContext.Engine.Core.Infrastructure.Events;
 using AutoContext.Engine.Core.Infrastructure.Storage;
 using AutoContext.Engine.Core.Lifecycle;
 using AutoContext.Engine.Core.Logging;
@@ -10,6 +11,8 @@ using AutoContext.Engine.Core.Machine.Housekeeping;
 using AutoContext.Engine.Core.Registry;
 using AutoContext.Engine.Core.Watchdogs;
 using AutoContext.Engine.Core.Workspace.Config;
+using AutoContext.Engine.Protocol.Messages.Config;
+using AutoContext.Engine.Protocol.Messages.Logs;
 using AutoContext.Framework.Pipes;
 
 using Microsoft.Extensions.DependencyInjection;
@@ -133,11 +136,12 @@ public static class EngineHostBuilderExtensions
         // record drained by LogFileSinkService — file sink and
         // broadcaster receive each record symmetrically. Per-
         // subscriber bounded buffers and slow-subscriber eviction
-        // shield the file sink from a stalled pipe consumer (see
-        // LogSubscriptionBroadcaster). Registered as a singleton
-        // so LifecycleService's logs-pipe pump and the file sink
-        // share the same instance.
-        builder.Services.TryAddSingleton<LogSubscriptionBroadcaster>();
+        // shield the file sink from a stalled pipe consumer.
+        // Registered as a singleton so LifecycleService's logs-pipe
+        // pump and the file sink share the same instance.
+        builder.Services.TryAddSingleton(sp => new Broadcaster<JsonLogRecord>(
+            sp.GetRequiredService<ILogger<Broadcaster<JsonLogRecord>>>(),
+            "logs-pipe"));
 
         builder.Services.TryAddEnumerable(
             ServiceDescriptor.Singleton<IHostedService, LogFileSinkService>());
@@ -287,7 +291,9 @@ public static class EngineHostBuilderExtensions
         // change-event bridge share one instance: the bridge primes
         // the snapshot seed and publishes every change, the handler
         // enrolls snapshot-seeded subscribers.
-        builder.Services.TryAddSingleton<ConfigSubscriptionBroadcaster>();
+        builder.Services.TryAddSingleton(sp => new SnapshotBroadcaster<JsonConfigSnapshot>(
+            sp.GetRequiredService<ILogger<SnapshotBroadcaster<JsonConfigSnapshot>>>(),
+            "Config.Subscribe"));
         builder.Services.TryAddEnumerable(
             ServiceDescriptor.Singleton<IHostedService, ConfigFileService>());
 

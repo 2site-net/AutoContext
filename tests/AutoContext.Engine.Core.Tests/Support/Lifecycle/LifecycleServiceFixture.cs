@@ -3,6 +3,7 @@ namespace AutoContext.Engine.Core.Tests.Support.Lifecycle;
 using System.Diagnostics.CodeAnalysis;
 
 using AutoContext.Engine.Core;
+using AutoContext.Engine.Core.Infrastructure.Events;
 using AutoContext.Engine.Core.Lifecycle;
 using AutoContext.Engine.Core.Logging;
 using AutoContext.Engine.Core.Machine;
@@ -12,6 +13,8 @@ using AutoContext.Engine.Core.Tests.Support.Machine;
 using AutoContext.Engine.Core.Tests.Support.Workspace.Config;
 using AutoContext.Engine.Core.Watchdogs;
 using AutoContext.Engine.Core.Workspace.Config;
+using AutoContext.Engine.Protocol.Messages.Config;
+using AutoContext.Engine.Protocol.Messages.Logs;
 
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -43,8 +46,8 @@ public sealed class LifecycleServiceFixture : IAsyncDisposable
         var notifier = CreateNotifier(resolvedOptions, stream);
         var watchdog = CreateWatchdog(resolvedOptions, lifetime);
         var instanceGuard = new FakeUniqueInstanceGuard();
-        var logsBroadcaster = new LogSubscriptionBroadcaster(
-            NullLogger<LogSubscriptionBroadcaster>.Instance);
+        var logsBroadcaster = new Broadcaster<JsonLogRecord>(
+            NullLogger<Broadcaster<JsonLogRecord>>.Instance, "logs-pipe");
         var logFileReader = new EngineLogFileReader(
             EngineCacheLayoutTestFactory.Create(resolvedOptions));
         var service = new LifecycleService(
@@ -84,8 +87,8 @@ public sealed class LifecycleServiceFixture : IAsyncDisposable
     internal static IConfigUpdater CreateConfigUpdater() =>
         new FakeConfigSnapshotAccessor();
 
-    internal static ConfigSubscriptionBroadcaster CreateConfigBroadcaster() =>
-        new(NullLogger<ConfigSubscriptionBroadcaster>.Instance);
+    internal static SnapshotBroadcaster<JsonConfigSnapshot> CreateConfigBroadcaster() =>
+        new(NullLogger<SnapshotBroadcaster<JsonConfigSnapshot>>.Instance, "Config.Subscribe");
 
     internal static LifecycleEventStream CreateEventStream(EngineOptions? options = null) =>
         new(
@@ -136,8 +139,8 @@ public sealed class LifecycleServiceFixture : IAsyncDisposable
             NullLogger<IdleTimeoutWatchdog>.Instance);
     }
 
-    internal static LogSubscriptionBroadcaster CreateLogsBroadcaster() =>
-        new(NullLogger<LogSubscriptionBroadcaster>.Instance);
+    internal static Broadcaster<JsonLogRecord> CreateLogsBroadcaster() =>
+        new(NullLogger<Broadcaster<JsonLogRecord>>.Instance, "logs-pipe");
 
     internal static EngineLogFileReader CreateLogFileReader(EngineOptions? options = null) =>
         new(EngineCacheLayoutTestFactory.Create(options ?? CreateOptions()));
@@ -187,5 +190,5 @@ public sealed class LifecycleServiceFixture : IAsyncDisposable
         FakeHostApplicationLifetime Lifetime,
         IdleTimeoutWatchdog Watchdog,
         LifecycleService Service,
-        LogSubscriptionBroadcaster LogsBroadcaster);
+        Broadcaster<JsonLogRecord> LogsBroadcaster);
 }

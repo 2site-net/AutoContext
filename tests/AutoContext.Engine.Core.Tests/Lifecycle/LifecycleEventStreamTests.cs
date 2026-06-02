@@ -34,7 +34,7 @@ public sealed class LifecycleEventStreamTests
         OverflowSubscriberBuffer();
 
         // Assert
-        var events = await LifecycleSubscriptionTestReader.ReadAllAsync(
+        var events = await LifecycleStreamTestReader.ReadAllAsync(
             subscription, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Contains(events, e => e.Kind == LifecycleEventKinds.Evicted);
@@ -63,9 +63,9 @@ public sealed class LifecycleEventStreamTests
         var completed = sut.TryComplete(terminal);
 
         // Assert
-        var firstEvents = await LifecycleSubscriptionTestReader.ReadUntilCountAsync(
+        var firstEvents = await LifecycleStreamTestReader.ReadUntilCountAsync(
             first, expectedCount: 2, cancellationToken: TestContext.Current.CancellationToken);
-        var secondEvents = await LifecycleSubscriptionTestReader.ReadUntilCountAsync(
+        var secondEvents = await LifecycleStreamTestReader.ReadUntilCountAsync(
             second, expectedCount: 2, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Multiple(
@@ -87,7 +87,7 @@ public sealed class LifecycleEventStreamTests
         using var subscription = sut.Subscribe();
 
         // Assert
-        var events = await LifecycleSubscriptionTestReader.ReadAllAsync(
+        var events = await LifecycleStreamTestReader.ReadAllAsync(
             subscription, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Multiple(
@@ -121,7 +121,7 @@ public sealed class LifecycleEventStreamTests
         using var subscription = sut.Subscribe();
 
         // Assert
-        var events = await LifecycleSubscriptionTestReader.ReadUntilCountAsync(
+        var events = await LifecycleStreamTestReader.ReadUntilCountAsync(
             subscription, expectedCount: 1, cancellationToken: TestContext.Current.CancellationToken);
         var started = Assert.Single(events);
 
@@ -172,7 +172,7 @@ public sealed class LifecycleEventStreamTests
         subscription.Dispose();
 
         // Assert
-        var events = await LifecycleSubscriptionTestReader.ReadAllAsync(
+        var events = await LifecycleStreamTestReader.ReadAllAsync(
             subscription, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Multiple(

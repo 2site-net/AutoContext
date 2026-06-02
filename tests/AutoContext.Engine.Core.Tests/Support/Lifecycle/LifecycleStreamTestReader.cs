@@ -1,14 +1,15 @@
 namespace AutoContext.Engine.Core.Tests.Support.Lifecycle;
 
+using AutoContext.Engine.Core.Infrastructure.Events;
 using AutoContext.Engine.Core.Lifecycle;
 using AutoContext.Engine.Protocol.Messages.Lifecycle;
 
-internal static class LifecycleSubscriptionTestReader
+internal static class LifecycleStreamTestReader
 {
     private static readonly TimeSpan DefaultTimeout = TimeSpan.FromSeconds(5);
 
     public static async Task<IReadOnlyList<JsonLifecycleEvent>> ReadAllAsync(
-        LifecycleEventSubscription subscription,
+        BroadcasterSubscription<JsonLifecycleEvent> subscription,
         TimeSpan? timeout = null,
         CancellationToken cancellationToken = default)
     {
@@ -19,7 +20,7 @@ internal static class LifecycleSubscriptionTestReader
 
         var events = new List<JsonLifecycleEvent>();
 
-        await foreach (var evt in subscription.ReadAllAsync(cts.Token).ConfigureAwait(false))
+        await foreach (var evt in LifecycleEventFrames.MapAsync(subscription, cts.Token).ConfigureAwait(false))
         {
             events.Add(evt);
         }
@@ -28,7 +29,7 @@ internal static class LifecycleSubscriptionTestReader
     }
 
     public static async Task<IReadOnlyList<JsonLifecycleEvent>> ReadUntilCountAsync(
-        LifecycleEventSubscription subscription,
+        BroadcasterSubscription<JsonLifecycleEvent> subscription,
         int expectedCount,
         TimeSpan? timeout = null,
         CancellationToken cancellationToken = default)
@@ -41,7 +42,7 @@ internal static class LifecycleSubscriptionTestReader
 
         var events = new List<JsonLifecycleEvent>();
 
-        await foreach (var evt in subscription.ReadAllAsync(cts.Token).ConfigureAwait(false))
+        await foreach (var evt in LifecycleEventFrames.MapAsync(subscription, cts.Token).ConfigureAwait(false))
         {
             events.Add(evt);
 

@@ -3,6 +3,7 @@ namespace AutoContext.Engine.Core.Lifecycle;
 using System.Text.Json;
 
 using AutoContext.Engine.Core.Infrastructure;
+using AutoContext.Engine.Core.Infrastructure.Events;
 using AutoContext.Engine.Core.Infrastructure.Storage;
 using AutoContext.Engine.Core.Logging;
 using AutoContext.Engine.Core.Registry;
@@ -12,6 +13,7 @@ using AutoContext.Engine.Core.Watchdogs;
 using AutoContext.Engine.Core.Workspace.Config;
 using AutoContext.Engine.Protocol;
 using AutoContext.Engine.Protocol.JsonRpc;
+using AutoContext.Engine.Protocol.Messages.Config;
 using AutoContext.Engine.Protocol.Messages.Lifecycle;
 using AutoContext.Engine.Protocol.Messages.Logs;
 using AutoContext.Engine.Protocol.Serialization;
@@ -78,7 +80,7 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
 
     private readonly IHostApplicationLifetime _applicationLifetime;
     private readonly IConfigSnapshotAccessor _configAccessor;
-    private readonly ConfigSubscriptionBroadcaster _configBroadcaster;
+    private readonly SnapshotBroadcaster<JsonConfigSnapshot> _configBroadcaster;
     private readonly IConfigUpdater _configUpdater;
     private int _disposed;
     private CancellationTokenSource? _drainCts;
@@ -89,7 +91,7 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
     private readonly Dictionary<EndpointKind, BoundPipeListener> _listeners = new(AllKinds.Length);
     private readonly ILogger<LifecycleService> _logger;
     private readonly ILoggerFactory _loggerFactory;
-    private readonly LogSubscriptionBroadcaster _logsBroadcaster;
+    private readonly Broadcaster<JsonLogRecord> _logsBroadcaster;
     private readonly EngineLogFileReader _logFileReader;
     private readonly EngineOptions _options;
     private readonly RegistryFileReader _registryReader;
@@ -162,11 +164,11 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
         LifecycleNotifier lifecycleNotifier,
         IdleTimeoutWatchdog idleTimeoutWatchdog,
         IUniqueInstanceGuard instanceGuard,
-        LogSubscriptionBroadcaster logsBroadcaster,
+        Broadcaster<JsonLogRecord> logsBroadcaster,
         EngineLogFileReader logFileReader,
         IConfigSnapshotAccessor configAccessor,
         IConfigUpdater configUpdater,
-        ConfigSubscriptionBroadcaster configBroadcaster)
+        SnapshotBroadcaster<JsonConfigSnapshot> configBroadcaster)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(loggerFactory);
@@ -513,8 +515,8 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
 
         try
         {
-            await foreach (var evt in subscription
-                .ReadAllAsync(drainToken)
+            await foreach (var evt in LifecycleEventFrames
+                .MapAsync(subscription, drainToken)
                 .ConfigureAwait(false))
             {
                 var paramsElement = JsonSerializer.SerializeToElement(
@@ -554,8 +556,8 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
 
         try
         {
-            await foreach (var frame in subscription
-                .ReadAllAsync(drainToken)
+            await foreach (var frame in LogStreamFrames
+                .MapAsync(subscription, drainToken)
                 .ConfigureAwait(false))
             {
                 var bytes = JsonSerializer.SerializeToUtf8Bytes(

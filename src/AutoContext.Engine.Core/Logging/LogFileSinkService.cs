@@ -3,6 +3,7 @@ namespace AutoContext.Engine.Core.Logging;
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 
+using AutoContext.Engine.Core.Infrastructure.Events;
 using AutoContext.Engine.Core.Infrastructure.Storage;
 using AutoContext.Engine.Core.Machine;
 using AutoContext.Engine.Protocol.Messages.Logs;
@@ -71,7 +72,7 @@ internal sealed partial class LogFileSinkService : BackgroundService
 
     private static readonly byte[] LineTerminator = "\n"u8.ToArray();
 
-    private readonly LogSubscriptionBroadcaster _broadcaster;
+    private readonly Broadcaster<JsonLogRecord> _broadcaster;
     private readonly LogChannel _channel;
     private readonly RotatedLogCleaner _cleaner;
     private readonly TaskCompletionSource _executeStarted =
@@ -117,7 +118,7 @@ internal sealed partial class LogFileSinkService : BackgroundService
         EngineCacheLayout cacheLayout,
         LogRotationThresholds thresholds,
         RotatedLogCleaner cleaner,
-        LogSubscriptionBroadcaster broadcaster,
+        Broadcaster<JsonLogRecord> broadcaster,
         TimeProvider timeProvider,
         ILogger<LogFileSinkService> logger)
     {

@@ -4,13 +4,13 @@ using System.Threading.Channels;
 
 /// <summary>
 /// Internal per-subscriber state for
-/// <see cref="SubscriptionBroadcaster{TPayload, TSubscription}"/>: the
+/// <see cref="Broadcaster{T}"/>: the
 /// bounded channel payloads are fanned into, plus an atomic state
 /// machine the subscription's reader-side adapter consults to surface
 /// the terminal <c>evicted</c> frame.
 /// </summary>
 /// <typeparam name="T">Payload type fanned into the channel.</typeparam>
-internal sealed class Subscriber<T>
+internal sealed class BroadcasterSubscriber<T>
 {
     private const int Active = 0;
     private const int Closed = 1;
@@ -26,7 +26,7 @@ internal sealed class Subscriber<T>
     /// <exception cref="ArgumentNullException">
     /// <paramref name="channel"/> is <see langword="null"/>.
     /// </exception>
-    public Subscriber(Channel<T> channel)
+    public BroadcasterSubscriber(Channel<T> channel)
     {
         ArgumentNullException.ThrowIfNull(channel);
 

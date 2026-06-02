@@ -366,15 +366,21 @@ src/
         IProcessLookup.cs                      # TryOpen(pid) → handle | null (gone / denied); single seam over Process.GetProcessById
         SystemProcessHandle.cs                 # production wrapper over System.Diagnostics.Process
         SystemProcessLookup.cs                 # production lookup; catches ArgumentException / InvalidOperationException / Win32Exception → null
+      Events/                                  # fan-out substrate — the generic pub/sub core every stream (Lifecycle, Logs, Config, …) shares; domains add only a thin *StreamFrames framer (and, where they seed/terminate, a thin stream wrapper)
+        Broadcaster.cs                         # singleton fan-out core `Broadcaster<TPayload>`: per-subscriber bounded Channel (capacity 64), slow-subscriber eviction while the rest keep flowing, graceful Complete (clean EOF, no terminal frame); Subscribe(optional seed) → BroadcasterSubscription<T>
+        SnapshotBroadcaster.cs                 # snapshot-on-subscribe wrapper over Broadcaster<T>: caches the latest published payload + Prime(seed) and replays it as the first frame to every new subscriber (post-Complete primes are dropped)
+        BroadcasterSubscriber.cs               # per-subscriber bounded channel + Active/Closed/Evicted state machine (Interlocked CAS)
+        BroadcasterSubscription.cs             # IDisposable handle returned by Subscribe; ReadAllAsync drains the channel; WasEvicted exposes the terminal state the framer reads
+        BroadcasterLog.cs                      # source-generated slow-subscriber-eviction log messages shared by every stream
+        TrailingEdgeDebouncer.cs               # capacity-one channel + TimeProvider quiet window (P3 row 4); wrapped by Infrastructure/IO/FileChangeWatcher
     Lifecycle/                                 # this engine's own lifecycle: Hello, Shutdown, own registry entry
       LifecycleService.cs                      # hosted service — owns the four-pipe accept loops
       PerWorkspaceInstanceGuard.cs             # IUniqueInstanceGuard impl — dials the would-be `rpc` endpoint before bind; throws IOException when a live peer answers (P4 launcher-bug guard); not a hosted service
       HelloHandler.cs                          # protocol-version check + greeting payload
       ShutdownHandler.cs                       # graceful drain + Engine.Shutdown RPC
-      # — Engine.Lifecycle.Subscribe events stream (P10) — split along ownership:
-      LifecycleEventStream.cs                  # singleton fan-out — Subscribe / TryPublish / TryComplete; per-subscriber bounded buffer with slow-subscriber eviction (P9)
-      LifecycleEventSubscriber.cs              # per-subscriber bounded channel + Active/Closed/Evicted state machine (Interlocked CAS)
-      LifecycleEventSubscription.cs            # IDisposable handle returned by Subscribe; ReadAllAsync drains the channel and yields a terminal `evicted` frame on eviction
+      # — Engine.Lifecycle.Subscribe events stream (P10) — thin domain layer over Infrastructure/Events/ —
+      LifecycleEventStream.cs                  # singleton fan-out backing Engine.Lifecycle.Subscribe — wraps a shared Infrastructure/Events/Broadcaster<T>; layers on the `started` seed + terminal-event replay (Subscribe / TryPublish / TryComplete)
+      LifecycleEventFrames.cs                  # MapAsync framer: drains a BroadcasterSubscription<LifecycleEvent> and yields each event as a wire frame, emitting a terminal `evicted` frame when the subscriber was evicted
       LifecycleNotifier.cs                     # stamps the engine's identity (InstanceId, Revision) onto each transition and publishes through LifecycleEventStream — the stream itself constructs only the seeded `started` event
       # — Engine registry (engine-registry.json mechanics + this engine's own entry) —
       RegistryFileFormat.cs                    # stateless serializer + schema-version contract shared by reader and writer (envelope shape, JsonSerializerOptions)
@@ -399,11 +405,11 @@ src/
         RetentionPolicy.cs                     # single reader of `--retention` — resolves the window per SubtreeRegistryStatus arm (per-entry, unregistered-fallback, foreign)
     Logging/                                   # engine sink, rotation, rotated-file cleanup
       LogChannel.cs                            # single-channel ingest; TryWrite / ReadAllAsync / Complete
-      LogFileSinkService.cs                    # drain loop + dispatcher; owns the per-target file appenders (engine.log / worker-<id>.log); from row 5 also fans drained records to the broadcaster
+      LogFileSinkService.cs                    # drain loop + dispatcher; owns the per-target file appenders (engine.log / worker-<id>.log); from row 5 also fans drained records out through a shared Infrastructure/Events/Broadcaster<JsonLogRecord> (pure live tail)
       LogRotator.cs                            # --logging thresholds (normal vs debug)
       RotatedLogCleaner.cs                     # deletes rotated log files past retention inside a live subtree (uses RetentionPolicy from Machine/Housekeeping/)
       WorkerLogRouter.cs                       # routes Engine.WriteLog by category prefix
-      LogsSubscriptionBroadcaster.cs           # logs pipe + Logs.Tail* fan-out with eviction
+      LogStreamFrames.cs                       # MapAsync framer for Logs.Tail*: drains a BroadcasterSubscription<JsonLogRecord> (fanned out by LogFileSinkService over the shared Infrastructure/Events/Broadcaster<T>) and yields record/evicted frames
       LogsHandlers.cs                          # Logs.GetEngine / TailEngine / GetWorker / TailWorker
     Workspace/                                 # workspace-scoped state — everything keyed by the current workspace root
       Config/                                  # .autocontext.json owner (Config.* wire surface)
@@ -427,7 +433,7 @@ src/
         IConfigSnapshotAccessor.cs             # lock-free read seam (Current) that DispatchPolicy reads for Config.Get
         ConfigBatchWriter.cs                   # micro-batch write coalescer behind IConfigUpdater (P3 row 6, DONE)
         IConfigUpdater.cs                      # one-method write seam the manager satisfies (P3 row 6, DONE)
-        ConfigSubscriptionBroadcaster.cs       # snapshot-on-subscribe + per-subscriber bounded buffer (P3 row 9, DONE); Config.Subscribe is served by DispatchPolicy, Config.Get/ToggleFile/ToggleRule also via DispatchPolicy (the latter two via ConfigToggle + IConfigUpdater)
+        ConfigStreamFrames.cs                  # MapAsync framer for Config.Subscribe: drains a BroadcasterSubscription<JsonConfigSnapshot> (fanned out by ConfigFileService over a shared Infrastructure/Events/SnapshotBroadcaster<T> — snapshot-on-subscribe + per-subscriber bounded buffer, P3 row 9, DONE) and yields snapshot/evicted frames; Config.Subscribe is served by DispatchPolicy, Config.Get/ToggleFile/ToggleRule also via DispatchPolicy (the latter two via ConfigToggle + IConfigUpdater)
       Context/                                 # ~60-flag detection (Workspace.* wire surface)
         WorkspaceContextDetector.cs            # orchestrator — injected with the four rule-data lists below; runs them, emits result
         WorkspaceHandlers.cs                   # Workspace.{Detect,Info}
@@ -449,7 +455,7 @@ src/
       InstructionsOverrides.cs                 # immutable snapshot of .github/instructions/ inventory (paths + basenames); consumed by InstructionsFileBodyProjector + InstructionsCorpusService
       ApplyToParser.cs                         # comma + brace-expand, extension extraction (shared with the build task via `<Compile Link>`)
       InstructionsHandlers.cs                  # List/Get/GetAll/GetAlwaysAttached/GetRaw/SearchContent/Subscribe
-      InstructionsSubscriptionBroadcaster.cs   # snapshot-on-subscribe + disabled-flag re-evaluation
+      InstructionsStreamFrames.cs              # MapAsync framer for Instructions.Subscribe: drains a BroadcasterSubscription<InstructionsSnapshot> (fanned out over a shared Infrastructure/Events/SnapshotBroadcaster<T> — snapshot-on-subscribe + disabled-flag re-evaluation) and yields snapshot/evicted frames
       InstructionsManifestLoader.cs            # reads Resources/instructions-files{,-metadata}.json
     Workers/                                   # worker dispatch (absorbs AutoContext.Mcp.Server/Workers/)
       WorkerManager.cs                         # ensureRunning(workerId) gate
@@ -473,7 +479,7 @@ src/
       ExtensionIndex.cs                        # extension → instruction file routing
       DiscoveryHandlers.cs                     # Discovery.{RouteForPrompt,RouteForTool}
     Agent/                                     # Agent.* RPC family
-      AgentEventsBroadcaster.cs                # bounded per-subscriber buffers, eviction
+      AgentEventStreamFrames.cs                # MapAsync framer for Events.Subscribe: drains a BroadcasterSubscription<AgentEvent> (fanned out over a shared Infrastructure/Events/Broadcaster<T> — pure live tail, bounded per-subscriber buffers + eviction) and yields event/evicted frames
       AgentNotificationHandlers.cs             # SubagentStarted/Stopped/Compacted/ToolUsed/TurnEnded
       AgentSessionToolHistogram.cs             # in-memory per-session ToolUsed counts
       AgentEventsHandlers.cs                   # Events.Subscribe pipe-side fan-out
@@ -1191,7 +1197,8 @@ its dependency on Phase 1's `RegistryFileReader` /
 - **Row 9 — `Config.Subscribe` events stream with
   snapshot-on-subscribe.** Additive on top of the row 1-2 prelude,
   mirroring `Logs.TailEngine`'s broadcaster. A singleton
-  `ConfigSubscriptionBroadcaster` caches the latest
+  `SnapshotBroadcaster<JsonConfigSnapshot>` (the shared
+  `Infrastructure/Events/` snapshot-on-subscribe core) caches the latest
   `JsonConfigSnapshot` and replays it as the first frame to every new
   subscriber (snapshot-on-subscribe — keyed state, not a pure live
   tail, so a late subscriber never needs a separate `Config.Get`).
@@ -1236,9 +1243,10 @@ additional commits ship on a Phase 3 prelude branch:
    up mid-stream.
 2. `feat(engine): serve Logs.TailEngine over rpc` — **DONE**.
    The deferred half of Phase 2 row 6, now trivial on top of (1):
-   `DispatchPolicy` consumes
-   `LogSubscriptionBroadcaster.Subscribe()` and yields each
-   `LogStreamFrame` (record/evicted) as a `JsonElement`;
+   `DispatchPolicy` consumes the logs
+   `Broadcaster<JsonLogRecord>.Subscribe()` and maps it through
+   `LogStreamFrames` to yield each
+   `JsonLogStreamFrame` (record/evicted) as a `JsonElement`;
    subscription disposal is handed off to
    `StreamingHandlerResult.PostFlush` so the processor's `finally`
    guarantees the broadcaster slot is released even on
@@ -1337,7 +1345,7 @@ a pure `with`-expression that flips the `Disabled` flag on the
 matching `ConfigInstructionsFile` / `InstructionsRule` /
 `ConfigMcpTool` / `McpTask` → `UpdateAsync` persists (recording the
 write signature), swaps the snapshot, and raises `Changed` → the
-`ConfigSubscriptionBroadcaster` fans the new snapshot out to
+`SnapshotBroadcaster<JsonConfigSnapshot>` fans the new snapshot out to
 `Config.Subscribe` subscribers. The local writer's own subsequent
 FS-watcher event is then suppressed by the signature match, so the
 toggle fans out exactly once; peer engines pick up the disk write
@@ -1759,7 +1767,8 @@ fire-and-forget; lost events tolerable (per the design).
 shape), `§ P10` (cross-process fan-out).
 
 **Code touch**:
-- `AutoContext.Engine.Core/Agent/AgentEventsBroadcaster` — same
+- `AutoContext.Engine.Core/Agent/AgentEventStreamFrames` over a shared
+  `Infrastructure/Events/Broadcaster<AgentEvent>` — same
   per-subscriber bounded-buffer / slow-subscriber-eviction discipline
   Phase 2 introduced.
 - The five notification handlers; in-memory per-session histogram for

@@ -6,6 +6,7 @@ using AutoContext.Engine.Core;
 using AutoContext.Engine.Core.Logging;
 using AutoContext.Engine.Core.Machine;
 using AutoContext.Engine.Core.Tests.Support;
+using AutoContext.Engine.Core.Tests.Support.Infrastructure.Events;
 using AutoContext.Engine.Core.Tests.Support.Logging;
 using AutoContext.Engine.Core.Tests.Support.Machine;
 using AutoContext.Engine.Core.Tests.Support.Shared;
@@ -27,7 +28,7 @@ public sealed class LogFileSinkServiceTests(LogFileSinkServiceFixture fixture) :
             cacheLayout: EngineCacheLayoutTestFactory.Create(EngineCrashWriterFixture.CreateOptions()),
             thresholds: LogRotationThresholdsFakeData.Normal,
             cleaner: RotatedLogCleanerTestFactory.Create(EngineCrashWriterFixture.CreateOptions()),
-            broadcaster: LogSubscriptionBroadcasterTestFactory.Create(),
+            broadcaster: BroadcasterTestFactory.Create<JsonLogRecord>("logs-pipe"),
             timeProvider: TimeProvider.System,
             logger: NullLogger<LogFileSinkService>.Instance));
     }
@@ -40,7 +41,7 @@ public sealed class LogFileSinkServiceTests(LogFileSinkServiceFixture fixture) :
             cacheLayout: null!,
             thresholds: LogRotationThresholdsFakeData.Normal,
             cleaner: RotatedLogCleanerTestFactory.Create(EngineCrashWriterFixture.CreateOptions()),
-            broadcaster: LogSubscriptionBroadcasterTestFactory.Create(),
+            broadcaster: BroadcasterTestFactory.Create<JsonLogRecord>("logs-pipe"),
             timeProvider: TimeProvider.System,
             logger: NullLogger<LogFileSinkService>.Instance));
     }
@@ -53,7 +54,7 @@ public sealed class LogFileSinkServiceTests(LogFileSinkServiceFixture fixture) :
             cacheLayout: EngineCacheLayoutTestFactory.Create(EngineCrashWriterFixture.CreateOptions()),
             thresholds: null!,
             cleaner: RotatedLogCleanerTestFactory.Create(EngineCrashWriterFixture.CreateOptions()),
-            broadcaster: LogSubscriptionBroadcasterTestFactory.Create(),
+            broadcaster: BroadcasterTestFactory.Create<JsonLogRecord>("logs-pipe"),
             timeProvider: TimeProvider.System,
             logger: NullLogger<LogFileSinkService>.Instance));
     }
@@ -66,7 +67,7 @@ public sealed class LogFileSinkServiceTests(LogFileSinkServiceFixture fixture) :
             cacheLayout: EngineCacheLayoutTestFactory.Create(EngineCrashWriterFixture.CreateOptions()),
             thresholds: LogRotationThresholdsFakeData.Normal,
             cleaner: null!,
-            broadcaster: LogSubscriptionBroadcasterTestFactory.Create(),
+            broadcaster: BroadcasterTestFactory.Create<JsonLogRecord>("logs-pipe"),
             timeProvider: TimeProvider.System,
             logger: NullLogger<LogFileSinkService>.Instance));
     }
@@ -79,7 +80,7 @@ public sealed class LogFileSinkServiceTests(LogFileSinkServiceFixture fixture) :
             cacheLayout: EngineCacheLayoutTestFactory.Create(EngineCrashWriterFixture.CreateOptions()),
             thresholds: LogRotationThresholdsFakeData.Normal,
             cleaner: RotatedLogCleanerTestFactory.Create(EngineCrashWriterFixture.CreateOptions()),
-            broadcaster: LogSubscriptionBroadcasterTestFactory.Create(),
+            broadcaster: BroadcasterTestFactory.Create<JsonLogRecord>("logs-pipe"),
             timeProvider: null!,
             logger: NullLogger<LogFileSinkService>.Instance));
     }
@@ -105,7 +106,7 @@ public sealed class LogFileSinkServiceTests(LogFileSinkServiceFixture fixture) :
             cacheLayout: EngineCacheLayoutTestFactory.Create(EngineCrashWriterFixture.CreateOptions()),
             thresholds: LogRotationThresholdsFakeData.Normal,
             cleaner: RotatedLogCleanerTestFactory.Create(EngineCrashWriterFixture.CreateOptions()),
-            broadcaster: LogSubscriptionBroadcasterTestFactory.Create(),
+            broadcaster: BroadcasterTestFactory.Create<JsonLogRecord>("logs-pipe"),
             timeProvider: TimeProvider.System,
             logger: null!));
     }
@@ -350,7 +351,7 @@ public sealed class LogFileSinkServiceTests(LogFileSinkServiceFixture fixture) :
         Assert.True(context.Channel.TryWrite(LogRecordFakeData.CreateLogRecord(message: "fan-out")));
         await context.Service.StopAsync(TestContext.Current.CancellationToken);
 
-        var frames = await LogSubscriptionTestDrainer.DrainAsync(subscriber);
+        var frames = await LogStreamTestDrainer.DrainAsync(subscriber);
 
         // Assert — file sink and subscriber both observed the
         // same record; the subscriber stream ended via EOF, with
@@ -377,7 +378,7 @@ public sealed class LogFileSinkServiceTests(LogFileSinkServiceFixture fixture) :
         await context.Service.StartAsync(TestContext.Current.CancellationToken);
         await context.Service.StopAsync(TestContext.Current.CancellationToken);
 
-        var frames = await LogSubscriptionTestDrainer.DrainAsync(subscriber);
+        var frames = await LogStreamTestDrainer.DrainAsync(subscriber);
 
         // Assert — clean EOF, no terminal evicted frame.
         Assert.Empty(frames);
