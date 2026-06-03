@@ -1413,7 +1413,7 @@ projection there).
 
 ## Phase 4 — Workspace detection
 
-**Status**: In progress on branch `features/workspace-detection`.
+**Status**: Completed on branch `features/workspace-detection`.
 
 | # | Commit subject | State |
 |---|---|---|
@@ -1429,7 +1429,7 @@ projection there).
 | 8 | `test(engine): cover per-flag detection and activation cascade` | DONE |
 | 9 | `test(engine-core): smoke incremental watch detection` | DONE |
 | 9b | `test(engine): cover Workspace.Detect and Info over rpc end-to-end` | DONE |
-| 10 | `docs(plan): mark Phase 4 complete` | Not started |
+| 10 | `docs(plan): mark Phase 4 complete` | DONE |
 
 **Goal**: engine runs `Workspace.Detect` on startup against its
 own `--workspace` path, exposes the result via `Workspace.Detect` and
