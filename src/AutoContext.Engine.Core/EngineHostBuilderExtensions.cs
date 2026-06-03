@@ -309,8 +309,9 @@ public static class EngineHostBuilderExtensions
             ServiceDescriptor.Singleton<IHostedService, ConfigFileService>());
 
         // Workspace context detector. The detector owns the in-memory
-        // detection result for this workspace; it is the singleton source
-        // the Workspace.Detect RPC handler resolves via the
+        // detection result and workspace-info metadata for this
+        // workspace; it is the singleton source the Workspace.Detect and
+        // Workspace.Info RPC handlers resolve via the
         // IWorkspaceContextAccessor read seam. WorkspaceDetectionService
         // runs the initial scan and arms the filesystem watcher at
         // startup. Registered BEFORE LifecycleService so it starts first —
@@ -322,7 +323,7 @@ public static class EngineHostBuilderExtensions
         {
             var options = sp.GetRequiredService<IOptions<EngineOptions>>().Value;
             return new WorkspaceContextDetector(
-                options.WorkspacePath,
+                options,
                 sp.GetRequiredService<IReadOnlyList<FilePresenceRule>>(),
                 sp.GetRequiredService<IReadOnlyList<ContentScan>>(),
                 sp.GetRequiredService<IReadOnlyList<FlagActivationEdge>>(),

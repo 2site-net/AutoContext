@@ -2,6 +2,7 @@ namespace AutoContext.Engine.Core.Tests.Rpc.Policies;
 
 using System.Text.Json;
 
+using AutoContext.Engine.Core.Infrastructure;
 using AutoContext.Engine.Core.Registry;
 using AutoContext.Engine.Core.Rpc;
 using AutoContext.Engine.Core.Rpc.Policies;
@@ -969,6 +970,87 @@ public sealed class DispatchPolicyTests(TempDirectoryFixture tempDirectory)
             () => Assert.True(envelope.TryGetProperty("extensions", out _)),
             () => Assert.True(envelope.TryGetProperty("flags", out _)),
             () => Assert.False(envelope.TryGetProperty("overrides", out _)));
+    }
+
+    [Fact]
+    public async Task Should_return_Continue_with_current_workspace_info_for_Workspace_Info()
+    {
+        // Arrange
+        var instanceId = Guid.NewGuid();
+        var accessor = new FakeWorkspaceContextAccessor
+        {
+            EngineInfo = new FakeWorkspaceEngineInfo
+            {
+                IdleTimeout = TimeSpan.FromMinutes(5),
+                InstanceId = instanceId,
+                InstanceLabel = "primary",
+            },
+            Revision = 42,
+        };
+        using var lifetime = new FakeHostApplicationLifetime();
+        var policy = new DispatchPolicy(
+            lifetime,
+            RegistryFileReaderTestFactory.Create(tempDirectory.CreatePath(RegistryFileName)),
+            LifecycleServiceFixture.CreateLogFileReader(),
+            LifecycleServiceFixture.CreateLogsBroadcaster(),
+            LifecycleServiceFixture.CreateConfigAccessor(),
+            LifecycleServiceFixture.CreateConfigUpdater(),
+            LifecycleServiceFixture.CreateConfigBroadcaster(),
+            accessor,
+            NullLogger.Instance);
+        var request = JsonRpcRequestTestFactory.BuildRequest(WorkspaceMethods.Info);
+
+        // Act
+        var result = Assert.IsType<UnaryHandlerResult>(
+            await policy.InvokeAsync(request, TestContext.Current.CancellationToken));
+
+        // Assert
+        var info = JsonSerializer.Deserialize(
+            result.Response.Result!.Value,
+            ProtocolJsonContext.Default.JsonWorkspaceInfoResult);
+        Assert.NotNull(info);
+        Assert.Multiple(
+            () => Assert.Equal(Continuation.Continue, result.Continuation),
+            () => Assert.Null(result.Response.Error),
+            () => Assert.Equal(EngineVersion.Value, info!.EngineVersion),
+            () => Assert.Equal(TimeSpan.FromMinutes(5), info!.IdleTimeout),
+            () => Assert.Equal(instanceId, info!.InstanceId),
+            () => Assert.Equal("primary", info!.InstanceLabel),
+            () => Assert.Equal(42L, info!.Revision));
+    }
+
+    [Fact]
+    public async Task Should_keep_empty_workspace_info_label_as_empty_string()
+    {
+        // Arrange
+        using var lifetime = new FakeHostApplicationLifetime();
+        var policy = new DispatchPolicy(
+            lifetime,
+            RegistryFileReaderTestFactory.Create(tempDirectory.CreatePath(RegistryFileName)),
+            LifecycleServiceFixture.CreateLogFileReader(),
+            LifecycleServiceFixture.CreateLogsBroadcaster(),
+            LifecycleServiceFixture.CreateConfigAccessor(),
+            LifecycleServiceFixture.CreateConfigUpdater(),
+            LifecycleServiceFixture.CreateConfigBroadcaster(),
+            new FakeWorkspaceContextAccessor
+            {
+                EngineInfo = new FakeWorkspaceEngineInfo { InstanceLabel = string.Empty },
+            },
+            NullLogger.Instance);
+        var request = JsonRpcRequestTestFactory.BuildRequest(WorkspaceMethods.Info);
+
+        // Act
+        var result = Assert.IsType<UnaryHandlerResult>(
+            await policy.InvokeAsync(request, TestContext.Current.CancellationToken));
+
+        // Assert
+        var info = JsonSerializer.Deserialize(
+            result.Response.Result!.Value,
+            ProtocolJsonContext.Default.JsonWorkspaceInfoResult);
+        Assert.Multiple(
+            () => Assert.Null(result.Response.Error),
+            () => Assert.NotNull(info),
+            () => Assert.Equal(string.Empty, info!.InstanceLabel));
     }
 
     private static JsonRpcRequest BuildToggleFileRequest(string name) =>

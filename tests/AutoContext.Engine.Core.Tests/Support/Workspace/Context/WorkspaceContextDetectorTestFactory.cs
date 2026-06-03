@@ -6,7 +6,7 @@ public static class WorkspaceContextDetectorTestFactory
 {
     internal static WorkspaceContextDetector Create(string workspacePath)
         => new(
-            workspacePath,
+            new FakeWorkspaceEngineInfo { WorkspacePath = workspacePath },
             WorkspaceDetectionRules.FileRules,
             WorkspaceDetectionRules.ContentScans,
             WorkspaceDetectionRules.FlagActivationEdges);

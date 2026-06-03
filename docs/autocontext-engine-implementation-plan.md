@@ -1425,7 +1425,7 @@ projection there).
 | 4c | `refactor(engine-core): extract file classifier and contribution index` | DONE |
 | 5 | `feat(engine-core): derive extensions index from file rules` | DONE |
 | 6 | `feat(engine): serve Workspace.Detect over rpc` | DONE |
-| 7 | `feat(engine): serve Workspace.Info over rpc` | Not started |
+| 7 | `feat(engine): serve Workspace.Info over rpc` | DONE |
 | 8 | `test(engine): cover per-flag detection and activation cascade` | Not started |
 | 9 | `test(engine-core): smoke incremental watch detection` | Not started |
 | 10 | `docs(plan): mark Phase 4 complete` | Not started |

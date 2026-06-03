@@ -18,17 +18,24 @@ public sealed class WorkspaceContextDetectorTests
 
             // Act + Assert
             Assert.Multiple(
+                () => Assert.Throws<ArgumentNullException>(
+                    () => new WorkspaceContextDetector(null!, rules, scans, edges)),
                 () => Assert.Throws<ArgumentException>(
-                    () => new WorkspaceContextDetector("  ", rules, scans, edges)),
+                    () => new WorkspaceContextDetector(
+                        new FakeWorkspaceEngineInfo { WorkspacePath = "  " }, rules, scans, edges)),
                 () => Assert.Throws<ArgumentNullException>(
-                    () => new WorkspaceContextDetector("x", null!, scans, edges)),
+                    () => new WorkspaceContextDetector(
+                        new FakeWorkspaceEngineInfo { WorkspacePath = "x" }, null!, scans, edges)),
                 () => Assert.Throws<ArgumentNullException>(
-                    () => new WorkspaceContextDetector("x", rules, null!, edges)),
+                    () => new WorkspaceContextDetector(
+                        new FakeWorkspaceEngineInfo { WorkspacePath = "x" }, rules, null!, edges)),
                 () => Assert.Throws<ArgumentNullException>(
-                    () => new WorkspaceContextDetector("x", rules, scans, null!)),
+                    () => new WorkspaceContextDetector(
+                        new FakeWorkspaceEngineInfo { WorkspacePath = "x" }, rules, scans, null!)),
                 () => Assert.Throws<ArgumentOutOfRangeException>(
                     () => new WorkspaceContextDetector(
-                        "x", rules, scans, edges, debounceDelay: TimeSpan.Zero)));
+                        new FakeWorkspaceEngineInfo { WorkspacePath = "x" },
+                        rules, scans, edges, debounceDelay: TimeSpan.Zero)));
         }
     }
 
@@ -46,6 +53,41 @@ public sealed class WorkspaceContextDetectorTests
 
             // Assert
             Assert.Empty(result.Flags);
+        }
+
+        [Fact]
+        public async Task Should_expose_workspace_info_metadata_and_bump_revision_when_snapshot_changes()
+        {
+            // Arrange
+            var root = tempDirectory.CreateDirectory();
+            WorkspaceFileTestWriter.Write(root, "App.csproj");
+            var instanceId = Guid.NewGuid();
+
+            using var sut = new WorkspaceContextDetector(
+                new FakeWorkspaceEngineInfo
+                {
+                    WorkspacePath = root,
+                    InstanceId = instanceId,
+                    InstanceLabel = "primary",
+                    IdleTimeout = TimeSpan.FromSeconds(15),
+                },
+                WorkspaceDetectionRules.FileRules,
+                WorkspaceDetectionRules.ContentScans,
+                WorkspaceDetectionRules.FlagActivationEdges);
+
+            // Act
+            _ = await sut.DetectAsync(TestContext.Current.CancellationToken);
+            WorkspaceFileTestWriter.Write(root, "app.py");
+            var second = await sut.DetectAsync(TestContext.Current.CancellationToken);
+
+            // Assert
+            Assert.Multiple(
+                () => Assert.Equal(instanceId, sut.EngineInfo.InstanceId),
+                () => Assert.Equal("primary", sut.EngineInfo.InstanceLabel),
+                () => Assert.Equal(TimeSpan.FromSeconds(15), sut.EngineInfo.IdleTimeout),
+                () => Assert.Equal(2L, sut.Revision),
+                () => Assert.True(second.Has("hasCSharp")),
+                () => Assert.True(second.Has("hasPython")));
         }
 
         [Theory]

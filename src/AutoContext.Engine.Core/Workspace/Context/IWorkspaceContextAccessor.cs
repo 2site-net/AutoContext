@@ -1,5 +1,7 @@
 namespace AutoContext.Engine.Core.Workspace.Context;
 
+using AutoContext.Engine.Core.Infrastructure;
+
 /// <summary>
 /// Read-only seam over the latest workspace detection result. Decouples
 /// detection readers — the <c>Workspace.Detect</c> RPC handler — from the
@@ -14,4 +16,16 @@ internal interface IWorkspaceContextAccessor
     /// an immutable value that is safe to use without locking.
     /// </summary>
     WorkspaceDetectionResult Current { get; }
+
+    /// <summary>
+    /// Engine-instance metadata — workspace path, instance
+    /// identity/label, and idle timeout — bound to this accessor.
+    /// </summary>
+    IWorkspaceEngineInfo EngineInfo { get; }
+
+    /// <summary>
+    /// Monotonic state-version counter of the workspace snapshot held
+    /// by this accessor.
+    /// </summary>
+    long Revision { get; }
 }

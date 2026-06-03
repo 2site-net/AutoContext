@@ -4,6 +4,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
 
+using AutoContext.Engine.Core.Infrastructure;
 using AutoContext.Engine.Core.Infrastructure.Events;
 using AutoContext.Engine.Core.Logging;
 using AutoContext.Engine.Core.Registry;
@@ -159,6 +160,9 @@ internal sealed partial class DispatchPolicy : IRpcConnectionPolicy
 
             case WorkspaceMethods.Detect:
                 return HandleWorkspaceDetect();
+
+            case WorkspaceMethods.Info:
+                return HandleWorkspaceInfo();
 
             case ProtocolMethods.Shutdown:
                 return HandleShutdown();
@@ -457,6 +461,24 @@ internal sealed partial class DispatchPolicy : IRpcConnectionPolicy
         var result = _workspaceAccessor.Current.ToWireFormat();
         var resultElement = JsonSerializer.SerializeToElement(
             result, ProtocolJsonContext.Default.JsonWorkspaceDetectResult);
+
+        return new UnaryHandlerResult(
+            Response: new JsonRpcResponse { Result = resultElement },
+            Continuation: Continuation.Continue);
+    }
+
+    private UnaryHandlerResult HandleWorkspaceInfo()
+    {
+        var result = new JsonWorkspaceInfoResult
+        {
+            EngineVersion = EngineVersion.Value,
+            IdleTimeout = _workspaceAccessor.EngineInfo.IdleTimeout,
+            InstanceId = _workspaceAccessor.EngineInfo.InstanceId,
+            InstanceLabel = _workspaceAccessor.EngineInfo.InstanceLabel,
+            Revision = _workspaceAccessor.Revision,
+        };
+        var resultElement = JsonSerializer.SerializeToElement(
+            result, ProtocolJsonContext.Default.JsonWorkspaceInfoResult);
 
         return new UnaryHandlerResult(
             Response: new JsonRpcResponse { Result = resultElement },

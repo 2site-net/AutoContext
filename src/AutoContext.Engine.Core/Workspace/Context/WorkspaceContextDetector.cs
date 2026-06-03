@@ -3,6 +3,7 @@ namespace AutoContext.Engine.Core.Workspace.Context;
 using System.Collections.Frozen;
 using System.Diagnostics.CodeAnalysis;
 
+using AutoContext.Engine.Core.Infrastructure;
 using AutoContext.Engine.Core.Infrastructure.Events;
 
 using Microsoft.Extensions.Logging;
@@ -52,6 +53,7 @@ internal sealed partial class WorkspaceContextDetector : IDisposable, IWorkspace
     private WorkspaceDetectionResult _current;
     private readonly TrailingEdgeDebouncer _debouncer;
     private bool _disposed;
+    private readonly IWorkspaceEngineInfo _engineInfo;
     private readonly FlagExtensionIndex _extensionIndex;
     private readonly IReadOnlyList<FlagActivationEdge> _flagActivationEdges;
     private readonly SemaphoreSlim _gate = new(1, 1);
@@ -59,17 +61,22 @@ internal sealed partial class WorkspaceContextDetector : IDisposable, IWorkspace
     private readonly ILogger<WorkspaceContextDetector> _logger;
     private readonly Lock _pendingLock = new();
     private readonly HashSet<string> _pendingPaths = new(StringComparer.OrdinalIgnoreCase);
+    private long _revision;
     private FileSystemWatcher? _watcher;
-    private readonly string _workspacePath;
 
     /// <summary>
-    /// Creates a detector bound to <paramref name="workspacePath"/> and
-    /// builds its classification index from the supplied rule tables.
-    /// The detector is inert until <see cref="DetectAsync"/> seeds the
-    /// index; arm incremental updates with <see cref="Watch"/>.
+    /// Creates a detector bound to the workspace described by
+    /// <paramref name="engineInfo"/> and builds its classification index
+    /// from the supplied rule tables. The detector is inert until
+    /// <see cref="DetectAsync"/> seeds the index; arm incremental updates
+    /// with <see cref="Watch"/>.
     /// </summary>
-    /// <param name="workspacePath">Absolute path of the workspace folder
-    /// to scan. Must not be <see langword="null"/> or whitespace.</param>
+    /// <param name="engineInfo">Engine-instance metadata — workspace
+    /// path, instance identity/label, and idle timeout — surfaced to
+    /// readers via <see cref="EngineInfo"/> and used to locate the
+    /// workspace folder to scan. Its
+    /// <see cref="IWorkspaceEngineInfo.WorkspacePath"/> must not be
+    /// <see langword="null"/> or whitespace.</param>
     /// <param name="fileRules">File-presence rules whose selectors are
     /// indexed for classification.</param>
     /// <param name="contentScans">Content-scan groups whose manifest
@@ -85,15 +92,15 @@ internal sealed partial class WorkspaceContextDetector : IDisposable, IWorkspace
     /// after the last filesystem event before reclassifying.
     /// <see langword="null"/> uses 500&#160;ms. Must be positive when
     /// supplied.</param>
-    /// <exception cref="ArgumentException"><paramref name="workspacePath"/>
-    /// is <see langword="null"/>, empty, or whitespace.</exception>
-    /// <exception cref="ArgumentNullException"><paramref name="fileRules"/>,
-    /// <paramref name="contentScans"/>, or
+    /// <exception cref="ArgumentNullException"><paramref name="engineInfo"/>,
+    /// <paramref name="fileRules"/>, <paramref name="contentScans"/>, or
     /// <paramref name="activationEdges"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException"><paramref name="engineInfo"/>'s
+    /// workspace path is <see langword="null"/>, empty, or whitespace.</exception>
     /// <exception cref="ArgumentOutOfRangeException">
     /// <paramref name="debounceDelay"/> is zero or negative.</exception>
     public WorkspaceContextDetector(
-        string workspacePath,
+        IWorkspaceEngineInfo engineInfo,
         IReadOnlyList<FilePresenceRule> fileRules,
         IReadOnlyList<ContentScan> contentScans,
         IReadOnlyList<FlagActivationEdge> activationEdges,
@@ -101,7 +108,8 @@ internal sealed partial class WorkspaceContextDetector : IDisposable, IWorkspace
         TimeProvider? timeProvider = null,
         TimeSpan? debounceDelay = null)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(workspacePath);
+        ArgumentNullException.ThrowIfNull(engineInfo);
+        ArgumentException.ThrowIfNullOrWhiteSpace(engineInfo.WorkspacePath);
         ArgumentNullException.ThrowIfNull(fileRules);
         ArgumentNullException.ThrowIfNull(contentScans);
         ArgumentNullException.ThrowIfNull(activationEdges);
@@ -112,7 +120,7 @@ internal sealed partial class WorkspaceContextDetector : IDisposable, IWorkspace
                 delay, TimeSpan.Zero, nameof(debounceDelay));
         }
 
-        _workspacePath = workspacePath;
+        _engineInfo = engineInfo;
         _logger = logger ?? NullLogger<WorkspaceContextDetector>.Instance;
         _flagActivationEdges = activationEdges;
         _classifier = new WorkspaceFileClassifier(fileRules, contentScans);
@@ -121,6 +129,7 @@ internal sealed partial class WorkspaceContextDetector : IDisposable, IWorkspace
         _debouncer = new TrailingEdgeDebouncer(
             FlushAsync, timeProvider ?? TimeProvider.System, debounceDelay ?? DefaultDebounceDelay);
         _current = WorkspaceDetectionResult.Empty;
+        _revision = 0;
     }
 
     /// <summary>
@@ -143,6 +152,20 @@ internal sealed partial class WorkspaceContextDetector : IDisposable, IWorkspace
         => Volatile.Read(ref _current);
 
     /// <summary>
+    /// Engine-instance metadata — workspace path, instance
+    /// identity/label, and idle timeout — surfaced to <c>Workspace.Info</c>.
+    /// </summary>
+    public IWorkspaceEngineInfo EngineInfo
+        => _engineInfo;
+
+    /// <summary>
+    /// Monotonic state-version counter for the snapshot in
+    /// <see cref="Current"/>.
+    /// </summary>
+    public long Revision
+        => Volatile.Read(ref _revision);
+
+    /// <summary>
     /// Runs a full workspace scan: clears the contribution index, walks
     /// the workspace once (pruning <c>node_modules</c> / <c>bin</c> /
     /// <c>obj</c> / <c>.git</c>), classifies every file, runs the
@@ -159,9 +182,9 @@ internal sealed partial class WorkspaceContextDetector : IDisposable, IWorkspace
         try
         {
             _contributionIndex.Clear();
-            _hasGit = Directory.Exists(Path.Combine(_workspacePath, ".git"));
+            _hasGit = Directory.Exists(Path.Combine(_engineInfo.WorkspacePath, ".git"));
 
-            foreach (var fullPath in WorkspaceFileEnumerator.Walk(_workspacePath, cancellationToken))
+            foreach (var fullPath in WorkspaceFileEnumerator.Walk(_engineInfo.WorkspacePath, cancellationToken))
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
@@ -175,7 +198,7 @@ internal sealed partial class WorkspaceContextDetector : IDisposable, IWorkspace
             }
 
             var result = BuildResult();
-            Volatile.Write(ref _current, result);
+            PublishIfChanged(result, publishChangedEvent: false);
             return result;
         }
         finally
@@ -208,14 +231,14 @@ internal sealed partial class WorkspaceContextDetector : IDisposable, IWorkspace
     /// </summary>
     public void Watch()
     {
-        if (_watcher is not null || !Directory.Exists(_workspacePath))
+        if (_watcher is not null || !Directory.Exists(_engineInfo.WorkspacePath))
         {
             return;
         }
 
         _debouncer.Run();
 
-        var watcher = new FileSystemWatcher(_workspacePath)
+        var watcher = new FileSystemWatcher(_engineInfo.WorkspacePath)
         {
             IncludeSubdirectories = true,
             NotifyFilter = NotifyFilters.FileName | NotifyFilters.LastWrite | NotifyFilters.DirectoryName,
@@ -344,7 +367,7 @@ internal sealed partial class WorkspaceContextDetector : IDisposable, IWorkspace
                 _contributionIndex.Apply(fullPath, flags);
             }
 
-            PublishIfChanged(BuildResult());
+            PublishIfChanged(BuildResult(), publishChangedEvent: true);
         }
         catch (OperationCanceledException)
         {
@@ -369,7 +392,9 @@ internal sealed partial class WorkspaceContextDetector : IDisposable, IWorkspace
         Enqueue(e.FullPath);
     }
 
-    private void PublishIfChanged(WorkspaceDetectionResult result)
+    private void PublishIfChanged(
+        WorkspaceDetectionResult result,
+        bool publishChangedEvent)
     {
         if (_current.Flags.SetEquals(result.Flags))
         {
@@ -377,9 +402,14 @@ internal sealed partial class WorkspaceContextDetector : IDisposable, IWorkspace
         }
 
         Volatile.Write(ref _current, result);
-        Changed?.Invoke(this, result);
+        _ = Interlocked.Increment(ref _revision);
+
+        if (publishChangedEvent)
+        {
+            Changed?.Invoke(this, result);
+        }
     }
 
     private string RelativePath(string fullPath)
-        => Path.GetRelativePath(_workspacePath, fullPath).Replace('\\', '/');
+        => Path.GetRelativePath(_engineInfo.WorkspacePath, fullPath).Replace('\\', '/');
 }

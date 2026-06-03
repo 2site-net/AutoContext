@@ -1,5 +1,7 @@
 namespace AutoContext.Engine.Core.Tests.Support.Workspace.Context;
 
+using AutoContext.Engine.Core;
+using AutoContext.Engine.Core.Infrastructure;
 using AutoContext.Engine.Core.Workspace.Context;
 
 /// <summary>
@@ -13,4 +15,8 @@ using AutoContext.Engine.Core.Workspace.Context;
 internal sealed class FakeWorkspaceContextAccessor : IWorkspaceContextAccessor
 {
     public WorkspaceDetectionResult Current { get; set; } = WorkspaceDetectionResult.Empty;
+
+    public IWorkspaceEngineInfo EngineInfo { get; set; } = new FakeWorkspaceEngineInfo();
+
+    public long Revision { get; set; }
 }
