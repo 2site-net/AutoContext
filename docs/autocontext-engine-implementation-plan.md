@@ -1427,7 +1427,8 @@ projection there).
 | 6 | `feat(engine): serve Workspace.Detect over rpc` | Not started |
 | 7 | `feat(engine): serve Workspace.Info over rpc` | Not started |
 | 8 | `test(engine): cover per-flag detection and activation cascade` | Not started |
-| 9 | `docs(plan): mark Phase 4 complete` | Not started |
+| 9 | `test(engine-core): smoke incremental watch detection` | Not started |
+| 10 | `docs(plan): mark Phase 4 complete` | Not started |
 
 **Goal**: engine runs `Workspace.Detect` on startup against its
 own `--workspace` path, exposes the result via `Workspace.Detect` and
