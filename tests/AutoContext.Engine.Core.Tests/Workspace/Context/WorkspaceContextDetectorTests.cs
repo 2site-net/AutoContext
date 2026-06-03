@@ -4,7 +4,7 @@ using AutoContext.Engine.Core.Tests.Support.Shared;
 using AutoContext.Engine.Core.Tests.Support.Workspace.Context;
 using AutoContext.Engine.Core.Workspace.Context;
 
-public sealed class WorkspaceContextDetectorTests
+public sealed partial class WorkspaceContextDetectorTests
 {
     public sealed class Constructor
     {
