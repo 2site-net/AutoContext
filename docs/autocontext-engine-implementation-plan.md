@@ -1420,7 +1420,7 @@ projection there).
 | 1 | `feat(protocol): add Workspace.Detect and Info wire DTOs` | DONE |
 | 2 | `feat(engine-core): add workspace detection rule tables` | DONE |
 | 3 | `refactor(engine-core): model rules with file selectors and content scans` | DONE |
-| 4 | `feat(engine-core): add WorkspaceContextDetector` | Not started |
+| 4 | `feat(engine-core): add WorkspaceContextDetector` | DONE |
 | 5 | `feat(engine-core): derive extensions index from file rules` | Not started |
 | 6 | `feat(engine): serve Workspace.Detect over rpc` | Not started |
 | 7 | `feat(engine): serve Workspace.Info over rpc` | Not started |
