@@ -52,6 +52,7 @@ internal sealed partial class WorkspaceContextDetector : IDisposable
     private WorkspaceDetectionResult _current;
     private readonly TrailingEdgeDebouncer _debouncer;
     private bool _disposed;
+    private readonly FlagExtensionIndex _extensionIndex;
     private readonly IReadOnlyList<FlagActivationEdge> _flagActivationEdges;
     private readonly SemaphoreSlim _gate = new(1, 1);
     private bool _hasGit;
@@ -115,6 +116,7 @@ internal sealed partial class WorkspaceContextDetector : IDisposable
         _logger = logger ?? NullLogger<WorkspaceContextDetector>.Instance;
         _flagActivationEdges = activationEdges;
         _classifier = new WorkspaceFileClassifier(fileRules, contentScans);
+        _extensionIndex = new FlagExtensionIndex(fileRules);
 
         _debouncer = new TrailingEdgeDebouncer(
             FlushAsync, timeProvider ?? TimeProvider.System, debounceDelay ?? DefaultDebounceDelay);
@@ -286,7 +288,11 @@ internal sealed partial class WorkspaceContextDetector : IDisposable
             }
         }
 
-        return new WorkspaceDetectionResult { Flags = active.ToFrozenSet(StringComparer.Ordinal) };
+        return new WorkspaceDetectionResult
+        {
+            Flags = active.ToFrozenSet(StringComparer.Ordinal),
+            Extensions = _extensionIndex.Resolve(active),
+        };
     }
 
     private void Enqueue(string fullPath)

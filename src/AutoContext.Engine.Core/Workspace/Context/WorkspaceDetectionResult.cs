@@ -9,8 +9,9 @@ using System.Collections.Frozen;
 /// cascade has propagated every implied parent flag. Produced by
 /// <see cref="WorkspaceContextDetector.DetectAsync"/> and surfaced
 /// through <see cref="WorkspaceContextDetector.Current"/>; the engine
-/// projects it onto the <c>JsonWorkspaceDetectResult</c> wire contract
-/// in a later phase.
+/// projects its <see cref="Flags"/> and derived <see cref="Extensions"/>
+/// onto the <c>JsonWorkspaceDetectResult</c> wire contract in a later
+/// phase.
 /// </summary>
 /// <remarks>
 /// <see cref="Flags"/> is an unordered set of raised flag names — a flag
@@ -28,7 +29,16 @@ internal sealed record WorkspaceDetectionResult
     /// first detection pass completes.
     /// </summary>
     public static readonly WorkspaceDetectionResult Empty =
-        new() { Flags = FrozenSet<string>.Empty };
+        new() { Flags = FrozenSet<string>.Empty, Extensions = [] };
+
+    /// <summary>
+    /// The distinct file extensions (e.g. <c>cs</c>, <c>ts</c>) named by
+    /// the active file-rule flags, in ordinal order. Derived from the same
+    /// detection pass as <see cref="Flags"/> and projected onto the
+    /// <c>extensions</c> field of the wire contract; empty when no active
+    /// flag names an extension.
+    /// </summary>
+    public required IReadOnlyList<string> Extensions { get; init; }
 
     /// <summary>
     /// The raised technology flag names (e.g. <c>hasCSharp</c>,
