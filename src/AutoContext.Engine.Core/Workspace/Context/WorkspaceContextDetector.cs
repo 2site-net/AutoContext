@@ -53,19 +53,6 @@ internal sealed partial class WorkspaceContextDetector : IDisposable
 
     private static readonly TimeSpan DefaultDebounceDelay = TimeSpan.FromMilliseconds(500);
 
-    private static readonly FrozenSet<string> ExcludedDirectories =
-        new[] { "node_modules", "bin", "obj", ".git" }.ToFrozenSet(StringComparer.OrdinalIgnoreCase);
-
-    private static readonly FrozenSet<string>.AlternateLookup<ReadOnlySpan<char>> ExcludedDirectoriesLookup =
-        ExcludedDirectories.GetAlternateLookup<ReadOnlySpan<char>>();
-
-    private static readonly EnumerationOptions WalkOptions = new()
-    {
-        IgnoreInaccessible = true,
-        AttributesToSkip = 0,
-        RecurseSubdirectories = false,
-    };
-
     private readonly Dictionary<string, int> _baseCounts = new(StringComparer.Ordinal);
     private readonly (FrozenSet<string> Extensions, FrozenSet<string> FileNames, IReadOnlyList<ContentPatternRule> Rules)[] _contentScans;
     private readonly Dictionary<string, HashSet<string>> _contributions = new(StringComparer.OrdinalIgnoreCase);
@@ -231,7 +218,7 @@ internal sealed partial class WorkspaceContextDetector : IDisposable
             _baseCounts.Clear();
             _hasGit = Directory.Exists(Path.Combine(_workspacePath, ".git"));
 
-            foreach (var fullPath in EnumerateWorkspaceFiles(cancellationToken))
+            foreach (var fullPath in WorkspaceFileEnumerator.Walk(_workspacePath, cancellationToken))
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
@@ -384,7 +371,7 @@ internal sealed partial class WorkspaceContextDetector : IDisposable
             var slash = remaining.IndexOf('/');
             var segment = slash < 0 ? remaining : remaining[..slash];
 
-            if (ExcludedDirectoriesLookup.Contains(segment))
+            if (WorkspaceFileEnumerator.IsExcludedDirectoryName(segment))
             {
                 return true;
             }
@@ -402,36 +389,6 @@ internal sealed partial class WorkspaceContextDetector : IDisposable
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Incremental workspace detection failed.")]
     private static partial void LogIncrementalDetectionFailed(ILogger logger, Exception exception);
-
-    private static IEnumerable<string> SafeEnumerate(string directory, bool isDirectory)
-    {
-        var source = isDirectory
-            ? Directory.EnumerateDirectories(directory, "*", WalkOptions)
-            : Directory.EnumerateFiles(directory, "*", WalkOptions);
-
-        using var enumerator = source.GetEnumerator();
-
-        while (true)
-        {
-            try
-            {
-                if (!enumerator.MoveNext())
-                {
-                    yield break;
-                }
-            }
-            catch (IOException)
-            {
-                yield break;
-            }
-            catch (UnauthorizedAccessException)
-            {
-                yield break;
-            }
-
-            yield return enumerator.Current;
-        }
-    }
 
     private static async Task<string?> TryReadAsync(string fullPath, CancellationToken cancellationToken)
     {
@@ -605,36 +562,6 @@ internal sealed partial class WorkspaceContextDetector : IDisposable
         }
 
         _debouncer.Signal();
-    }
-
-    private IEnumerable<string> EnumerateWorkspaceFiles(CancellationToken cancellationToken)
-    {
-        if (!Directory.Exists(_workspacePath))
-        {
-            yield break;
-        }
-
-        var stack = new Stack<string>();
-        stack.Push(_workspacePath);
-
-        while (stack.Count > 0)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            var directory = stack.Pop();
-
-            foreach (var subdirectory in SafeEnumerate(directory, isDirectory: true))
-            {
-                if (!ExcludedDirectories.Contains(Path.GetFileName(subdirectory)))
-                {
-                    stack.Push(subdirectory);
-                }
-            }
-
-            foreach (var file in SafeEnumerate(directory, isDirectory: false))
-            {
-                yield return file;
-            }
-        }
     }
 
     [SuppressMessage("Design", "CA1031",

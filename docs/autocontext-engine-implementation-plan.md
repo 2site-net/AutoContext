@@ -1421,6 +1421,7 @@ projection there).
 | 2 | `feat(engine-core): add workspace detection rule tables` | DONE |
 | 3 | `refactor(engine-core): model rules with file selectors and content scans` | DONE |
 | 4 | `feat(engine-core): add WorkspaceContextDetector` | DONE |
+| 4b | `refactor(engine-core): walk workspace via FileSystemEnumerator` | DONE |
 | 5 | `feat(engine-core): derive extensions index from file rules` | Not started |
 | 6 | `feat(engine): serve Workspace.Detect over rpc` | Not started |
 | 7 | `feat(engine): serve Workspace.Info over rpc` | Not started |
@@ -1543,6 +1544,32 @@ own `--workspace` path, exposes the result via `Workspace.Detect` and
   rules makes that class of drift unrepresentable. Synthetic flags
   (`hasGit`, `hasNodeJs`) and the cascade-to-fixpoint semantics are
   preserved exactly.
+- **Workspace walk via `FileSystemEnumerator` (row 4b).** Row 4
+  shipped the single opening pass as a hand-rolled `Stack<string>`
+  walk that opened each directory twice — once via
+  `Directory.EnumerateDirectories` to find subdirectories to prune
+  and recurse, once via `Directory.EnumerateFiles` to yield files —
+  with a `SafeEnumerate` wrapper that drove the enumerator manually
+  so a mid-walk `IOException` could be swallowed (the BCL's lazy
+  `Enumerate*` can't `yield` inside a `try`/`catch`, and an
+  `EnumerationOptions { RecurseSubdirectories = true }` walk can't
+  prune a subtree). Row 4b replaces that with a single
+  `FileSystemEnumerator<string>` subclass: one directory open per
+  directory (files and subdirectories reported from the same native
+  scan), `ShouldRecurseIntoEntry` prunes `node_modules` / `bin` /
+  `obj` / `.git` against the zero-allocation
+  `ReadOnlySpan<char>` `FileSystemEntry.FileName` (no per-entry path
+  string, no `Path.GetFileName`), and `ContinueOnError` skips the
+  single offending entry rather than aborting the rest of a
+  directory the way `SafeEnumerate`'s `yield break` did — the
+  resilience that matters for a detector pointed at a workspace
+  being actively edited. The lambda-driven `FileSystemEnumerable<T>`
+  was considered and rejected for this row precisely because it has
+  no `ContinueOnError` seam: it relies on `IgnoreInaccessible` for
+  the common case and propagates any other mid-walk fault, which is
+  weaker than the per-entry skip the subclass gives. `IsExcluded`
+  (the watcher-event relative-path filter) is a separate code path
+  and is unaffected.
 - **Derived `extensions[]` (row 5).** A plain record produced by
   one `Detect` call — owned by the result, not DI-registered (no
   shared lifetime to manage). Built from the union of the
