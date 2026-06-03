@@ -2,8 +2,6 @@ namespace AutoContext.Engine.Core.Workspace.Context;
 
 using System.Collections.Frozen;
 using System.Diagnostics.CodeAnalysis;
-using System.Text;
-using System.Text.RegularExpressions;
 
 using AutoContext.Engine.Core.Infrastructure.Events;
 
@@ -25,21 +23,19 @@ using Microsoft.Extensions.Logging.Abstractions;
 /// The detector is a faithful port of the VS Code extension's
 /// <c>workspace-context-detector.ts</c>, with two deliberate changes
 /// dictated by the engine's lack of an indexed <c>findFiles</c>. First,
-/// the ~40 per-rule globs the extension issues are replaced by one
-/// classification index (<see cref="_extensionToFlags"/>,
-/// <see cref="_fileNameToFlags"/>, and the small glob list
-/// <see cref="_globRules"/>) consulted during a single workspace walk.
-/// Second, incremental updates use the count-based inverted index
-/// (<see cref="_contributions"/> / <see cref="_baseCounts"/>) instead of
-/// re-globbing on delete: dropping the last contributor for a flag flips
-/// it off, while a surviving sibling keeps it on.
+/// the ~40 per-rule globs the extension issues are replaced by the
+/// <see cref="WorkspaceFileClassifier"/> lookup index consulted during a
+/// single workspace walk. Second, incremental updates use the count-based
+/// <see cref="FlagContributionIndex"/> instead of re-globbing on delete:
+/// dropping the last contributor for a flag flips it off, while a
+/// surviving sibling keeps it on.
 /// </para>
 /// <para>
 /// The recursive <see cref="FileSystemWatcher"/> armed by
-/// <see cref="Watch"/> filters events in-code through the same selector
-/// dictionaries that drive classification, so the watch surface can
-/// never drift from the detection rules. Synthetic flags
-/// (<c>hasGit</c>, <c>hasNodeJs</c>) and the cascade-to-fixpoint
+/// <see cref="Watch"/> filters events in-code through the same
+/// <see cref="WorkspaceFileClassifier"/> that drives classification, so
+/// the watch surface can never drift from the detection rules. Synthetic
+/// flags (<c>hasGit</c>, <c>hasNodeJs</c>) and the cascade-to-fixpoint
 /// semantics match the TypeScript source exactly. Detection passes and
 /// watcher-driven reclassifications are serialised through an internal
 /// gate; reads of <see cref="Current"/> are lock-free.
@@ -48,22 +44,16 @@ using Microsoft.Extensions.Logging.Abstractions;
 internal sealed partial class WorkspaceContextDetector : IDisposable
 {
     private const string HasGitFlag = "hasGit";
-    private const string HasNodeJsFlag = "hasNodeJs";
-    private const string PackageJsonFileName = "package.json";
 
     private static readonly TimeSpan DefaultDebounceDelay = TimeSpan.FromMilliseconds(500);
 
-    private readonly Dictionary<string, int> _baseCounts = new(StringComparer.Ordinal);
-    private readonly (FrozenSet<string> Extensions, FrozenSet<string> FileNames, IReadOnlyList<ContentPatternRule> Rules)[] _contentScans;
-    private readonly Dictionary<string, HashSet<string>> _contributions = new(StringComparer.OrdinalIgnoreCase);
+    private readonly WorkspaceFileClassifier _classifier;
+    private readonly FlagContributionIndex _contributionIndex = new();
     private WorkspaceDetectionResult _current;
     private readonly TrailingEdgeDebouncer _debouncer;
     private bool _disposed;
-    private readonly FrozenDictionary<string, string[]> _extensionToFlags;
-    private readonly FrozenDictionary<string, string[]> _fileNameToFlags;
     private readonly IReadOnlyList<FlagActivationEdge> _flagActivationEdges;
     private readonly SemaphoreSlim _gate = new(1, 1);
-    private readonly (Regex Pattern, string Flag)[] _globRules;
     private bool _hasGit;
     private readonly ILogger<WorkspaceContextDetector> _logger;
     private readonly Lock _pendingLock = new();
@@ -124,55 +114,7 @@ internal sealed partial class WorkspaceContextDetector : IDisposable
         _workspacePath = workspacePath;
         _logger = logger ?? NullLogger<WorkspaceContextDetector>.Instance;
         _flagActivationEdges = activationEdges;
-
-        var extensionMap = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
-        var fileNameMap = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
-        var globRules = new List<(Regex, string)>();
-
-        foreach (var rule in fileRules)
-        {
-            foreach (var selector in rule.Selectors)
-            {
-                switch (selector.Kind)
-                {
-                    case FileSelectorKind.Extension:
-                        AddFlag(extensionMap, selector.Value, rule.Flag);
-                        break;
-                    case FileSelectorKind.FileName:
-                        AddFlag(fileNameMap, selector.Value, rule.Flag);
-                        break;
-                    case FileSelectorKind.GlobPattern:
-                        globRules.Add((GlobToRegex(selector.Value), rule.Flag));
-                        break;
-                    default:
-                        break;
-                }
-            }
-        }
-
-        _extensionToFlags = extensionMap.ToFrozenDictionary(
-            static pair => pair.Key,
-            static pair => pair.Value.ToArray(),
-            StringComparer.OrdinalIgnoreCase);
-        _fileNameToFlags = fileNameMap.ToFrozenDictionary(
-            static pair => pair.Key,
-            static pair => pair.Value.ToArray(),
-            StringComparer.OrdinalIgnoreCase);
-        _globRules = [.. globRules];
-
-        _contentScans =
-        [
-            .. contentScans.Select(static scan => (
-                Extensions: scan.Selectors
-                    .Where(static s => s.Kind == FileSelectorKind.Extension)
-                    .Select(static s => s.Value)
-                    .ToFrozenSet(StringComparer.OrdinalIgnoreCase),
-                FileNames: scan.Selectors
-                    .Where(static s => s.Kind == FileSelectorKind.FileName)
-                    .Select(static s => s.Value)
-                    .ToFrozenSet(StringComparer.OrdinalIgnoreCase),
-                scan.Rules)),
-        ];
+        _classifier = new WorkspaceFileClassifier(fileRules, contentScans);
 
         _debouncer = new TrailingEdgeDebouncer(
             FlushAsync, timeProvider ?? TimeProvider.System, debounceDelay ?? DefaultDebounceDelay);
@@ -214,20 +156,19 @@ internal sealed partial class WorkspaceContextDetector : IDisposable
 
         try
         {
-            _contributions.Clear();
-            _baseCounts.Clear();
+            _contributionIndex.Clear();
             _hasGit = Directory.Exists(Path.Combine(_workspacePath, ".git"));
 
             foreach (var fullPath in WorkspaceFileEnumerator.Walk(_workspacePath, cancellationToken))
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
-                var flags = await ClassifyFileAsync(
+                var flags = await _classifier.ClassifyAsync(
                     fullPath, RelativePath(fullPath), cancellationToken).ConfigureAwait(false);
 
                 if (flags.Count > 0)
                 {
-                    ApplyContribution(fullPath, flags);
+                    _contributionIndex.Apply(fullPath, flags);
                 }
             }
 
@@ -287,75 +228,6 @@ internal sealed partial class WorkspaceContextDetector : IDisposable
         _watcher = watcher;
     }
 
-    private static void AddFlag(Dictionary<string, List<string>> map, string key, string flag)
-    {
-        if (map.TryGetValue(key, out var flags))
-        {
-            flags.Add(flag);
-        }
-        else
-        {
-            map[key] = [flag];
-        }
-    }
-
-    private static string ExtensionOf(string fileName)
-    {
-        var dot = fileName.LastIndexOf('.');
-        return dot >= 0 ? fileName[(dot + 1)..] : string.Empty;
-    }
-
-    private static Regex GlobToRegex(string glob)
-    {
-        var normalized = glob.Replace('\\', '/');
-        var pattern = new StringBuilder("^");
-
-        for (var i = 0; i < normalized.Length;)
-        {
-            var c = normalized[i];
-
-            if (c == '?')
-            {
-                pattern.Append("[^/]");
-                i++;
-
-                continue;
-            }
-
-            if (c != '*')
-            {
-                pattern.Append(Regex.Escape(c.ToString()));
-                i++;
-
-                continue;
-            }
-
-            if (i + 1 >= normalized.Length || normalized[i + 1] != '*')
-            {
-                pattern.Append("[^/]*");
-                i++;
-
-                continue;
-            }
-
-            if (i + 2 < normalized.Length && normalized[i + 2] == '/')
-            {
-                pattern.Append("(?:.*/)?");
-                i += 3;
-            }
-            else
-            {
-                pattern.Append(".*");
-                i += 2;
-            }
-        }
-
-        pattern.Append('$');
-        return new Regex(
-            pattern.ToString(),
-            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
-    }
-
     private static bool IsCritical(Exception ex)
         => ex is OutOfMemoryException
             or StackOverflowException
@@ -390,75 +262,9 @@ internal sealed partial class WorkspaceContextDetector : IDisposable
     [LoggerMessage(Level = LogLevel.Error, Message = "Incremental workspace detection failed.")]
     private static partial void LogIncrementalDetectionFailed(ILogger logger, Exception exception);
 
-    private static async Task<string?> TryReadAsync(string fullPath, CancellationToken cancellationToken)
-    {
-        try
-        {
-            return await File.ReadAllTextAsync(fullPath, cancellationToken).ConfigureAwait(false);
-        }
-        catch (IOException)
-        {
-            return null;
-        }
-        catch (UnauthorizedAccessException)
-        {
-            return null;
-        }
-    }
-
-    private void ApplyContribution(string fullPath, HashSet<string> newFlags)
-    {
-        _contributions.TryGetValue(fullPath, out var oldFlags);
-
-        if (oldFlags is not null)
-        {
-            foreach (var flag in oldFlags)
-            {
-                if (!newFlags.Contains(flag))
-                {
-                    Decrement(flag);
-                }
-            }
-        }
-
-        foreach (var flag in newFlags)
-        {
-            if (oldFlags is null || !oldFlags.Contains(flag))
-            {
-                _baseCounts[flag] = _baseCounts.GetValueOrDefault(flag) + 1;
-            }
-        }
-
-        if (newFlags.Count == 0)
-        {
-            _contributions.Remove(fullPath);
-        }
-        else
-        {
-            _contributions[fullPath] = newFlags;
-        }
-
-        void Decrement(string flag)
-        {
-            if (!_baseCounts.TryGetValue(flag, out var count))
-            {
-                return;
-            }
-
-            if (count <= 1)
-            {
-                _baseCounts.Remove(flag);
-            }
-            else
-            {
-                _baseCounts[flag] = count - 1;
-            }
-        }
-    }
-
     private WorkspaceDetectionResult BuildResult()
     {
-        var active = new HashSet<string>(_baseCounts.Keys, StringComparer.Ordinal);
+        var active = new HashSet<string>(_contributionIndex.ActiveFlags, StringComparer.Ordinal);
 
         if (_hasGit)
         {
@@ -483,75 +289,11 @@ internal sealed partial class WorkspaceContextDetector : IDisposable
         return new WorkspaceDetectionResult { Flags = active.ToFrozenSet(StringComparer.Ordinal) };
     }
 
-    private async Task<HashSet<string>> ClassifyFileAsync(
-        string fullPath, string relativePath, CancellationToken cancellationToken)
-    {
-        var flags = new HashSet<string>(StringComparer.Ordinal);
-        var fileName = Path.GetFileName(fullPath);
-        var extension = ExtensionOf(fileName);
-
-        if (extension.Length > 0 && _extensionToFlags.TryGetValue(extension, out var extensionFlags))
-        {
-            foreach (var flag in extensionFlags)
-            {
-                flags.Add(flag);
-            }
-        }
-
-        if (_fileNameToFlags.TryGetValue(fileName, out var nameFlags))
-        {
-            foreach (var flag in nameFlags)
-            {
-                flags.Add(flag);
-            }
-        }
-
-        foreach (var (pattern, flag) in _globRules)
-        {
-            if (pattern.IsMatch(relativePath))
-            {
-                flags.Add(flag);
-            }
-        }
-
-        if (string.Equals(fileName, PackageJsonFileName, StringComparison.OrdinalIgnoreCase))
-        {
-            flags.Add(HasNodeJsFlag);
-        }
-
-        string? content = null;
-
-        foreach (var (extensions, fileNames, rules) in _contentScans)
-        {
-            if (!extensions.Contains(extension) && !fileNames.Contains(fileName))
-            {
-                continue;
-            }
-
-            content ??= await TryReadAsync(fullPath, cancellationToken).ConfigureAwait(false);
-
-            if (content is null)
-            {
-                break;
-            }
-
-            foreach (var rule in rules)
-            {
-                if (rule.Pattern.IsMatch(content))
-                {
-                    flags.Add(rule.Flag);
-                }
-            }
-        }
-
-        return flags;
-    }
-
     private void Enqueue(string fullPath)
     {
         var relativePath = RelativePath(fullPath);
 
-        if (!IsRelevant(fullPath, relativePath))
+        if (IsExcluded(relativePath) || !_classifier.IsRelevant(fullPath, relativePath))
         {
             return;
         }
@@ -590,10 +332,10 @@ internal sealed partial class WorkspaceContextDetector : IDisposable
                 cancellationToken.ThrowIfCancellationRequested();
 
                 var flags = File.Exists(fullPath)
-                    ? await ClassifyFileAsync(fullPath, RelativePath(fullPath), cancellationToken).ConfigureAwait(false)
+                    ? await _classifier.ClassifyAsync(fullPath, RelativePath(fullPath), cancellationToken).ConfigureAwait(false)
                     : new HashSet<string>(StringComparer.Ordinal);
 
-                ApplyContribution(fullPath, flags);
+                _contributionIndex.Apply(fullPath, flags);
             }
 
             PublishIfChanged(BuildResult());
@@ -610,50 +352,6 @@ internal sealed partial class WorkspaceContextDetector : IDisposable
         {
             _gate.Release();
         }
-    }
-
-    private bool IsRelevant(string fullPath, string relativePath)
-    {
-        if (IsExcluded(relativePath))
-        {
-            return false;
-        }
-
-        var fileName = Path.GetFileName(fullPath);
-        var extension = ExtensionOf(fileName);
-
-        if (extension.Length > 0 && _extensionToFlags.ContainsKey(extension))
-        {
-            return true;
-        }
-
-        if (_fileNameToFlags.ContainsKey(fileName))
-        {
-            return true;
-        }
-
-        if (string.Equals(fileName, PackageJsonFileName, StringComparison.OrdinalIgnoreCase))
-        {
-            return true;
-        }
-
-        foreach (var (extensions, fileNames, _) in _contentScans)
-        {
-            if (extensions.Contains(extension) || fileNames.Contains(fileName))
-            {
-                return true;
-            }
-        }
-
-        foreach (var (pattern, _) in _globRules)
-        {
-            if (pattern.IsMatch(relativePath))
-            {
-                return true;
-            }
-        }
-
-        return false;
     }
 
     private void OnFileSystemEvent(object sender, FileSystemEventArgs e)

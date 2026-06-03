@@ -1422,6 +1422,7 @@ projection there).
 | 3 | `refactor(engine-core): model rules with file selectors and content scans` | DONE |
 | 4 | `feat(engine-core): add WorkspaceContextDetector` | DONE |
 | 4b | `refactor(engine-core): walk workspace via FileSystemEnumerator` | DONE |
+| 4c | `refactor(engine-core): extract file classifier and contribution index` | DONE |
 | 5 | `feat(engine-core): derive extensions index from file rules` | Not started |
 | 6 | `feat(engine): serve Workspace.Detect over rpc` | Not started |
 | 7 | `feat(engine): serve Workspace.Info over rpc` | Not started |
