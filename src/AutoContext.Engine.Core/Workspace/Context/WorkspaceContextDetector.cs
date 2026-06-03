@@ -41,7 +41,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 /// gate; reads of <see cref="Current"/> are lock-free.
 /// </para>
 /// </remarks>
-internal sealed partial class WorkspaceContextDetector : IDisposable
+internal sealed partial class WorkspaceContextDetector : IDisposable, IWorkspaceContextAccessor
 {
     private const string HasGitFlag = "hasGit";
 

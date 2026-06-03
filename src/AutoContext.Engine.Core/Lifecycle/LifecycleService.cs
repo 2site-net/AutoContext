@@ -11,6 +11,7 @@ using AutoContext.Engine.Core.Rpc;
 using AutoContext.Engine.Core.Rpc.Policies;
 using AutoContext.Engine.Core.Watchdogs;
 using AutoContext.Engine.Core.Workspace.Config;
+using AutoContext.Engine.Core.Workspace.Context;
 using AutoContext.Engine.Protocol;
 using AutoContext.Engine.Protocol.JsonRpc;
 using AutoContext.Engine.Protocol.Messages.Config;
@@ -101,6 +102,7 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
     private int _started;
     private int _stopped;
     private CancellationTokenSource? _stoppingCts;
+    private readonly IWorkspaceContextAccessor _workspaceAccessor;
 
     /// <summary>
     /// Creates a new <see cref="LifecycleService"/>.
@@ -154,6 +156,10 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
     /// the <c>Config.Subscribe</c> RPC stream; threaded into the RPC
     /// dispatch policy so each subscribing connection enrolls a
     /// snapshot-seeded subscriber.</param>
+    /// <param name="workspaceAccessor">Read-only view over the engine's
+    /// in-memory workspace detection result; threaded into the RPC
+    /// dispatch policy so the <c>Workspace.Detect</c> handler can answer
+    /// with the current detection result.</param>
     /// <exception cref="ArgumentNullException">
     /// Any constructor argument is <see langword="null"/>.
     /// </exception>
@@ -170,7 +176,8 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
         EngineLogFileReader logFileReader,
         IConfigSnapshotAccessor configAccessor,
         IConfigUpdater configUpdater,
-        SnapshotBroadcaster<JsonConfigSnapshot> configBroadcaster)
+        SnapshotBroadcaster<JsonConfigSnapshot> configBroadcaster,
+        IWorkspaceContextAccessor workspaceAccessor)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(loggerFactory);
@@ -185,6 +192,7 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
         ArgumentNullException.ThrowIfNull(configAccessor);
         ArgumentNullException.ThrowIfNull(configUpdater);
         ArgumentNullException.ThrowIfNull(configBroadcaster);
+        ArgumentNullException.ThrowIfNull(workspaceAccessor);
 
         _options = options.Value;
         _loggerFactory = loggerFactory;
@@ -200,6 +208,7 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
         _configAccessor = configAccessor;
         _configUpdater = configUpdater;
         _configBroadcaster = configBroadcaster;
+        _workspaceAccessor = workspaceAccessor;
     }
 
     /// <inheritdoc/>
@@ -484,7 +493,7 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
                 _ = await RpcConnectionProcessor
                     .RunAsync(
                         stream,
-                        new DispatchPolicy(_applicationLifetime, _registryReader, _logFileReader, _logsBroadcaster, _configAccessor, _configUpdater, _configBroadcaster, _logger),
+                        new DispatchPolicy(_applicationLifetime, _registryReader, _logFileReader, _logsBroadcaster, _configAccessor, _configUpdater, _configBroadcaster, _workspaceAccessor, _logger),
                         _logger,
                         cancellationToken)
                     .ConfigureAwait(false);

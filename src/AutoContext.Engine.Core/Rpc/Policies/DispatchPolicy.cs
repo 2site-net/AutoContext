@@ -10,12 +10,14 @@ using AutoContext.Engine.Core.Registry;
 using AutoContext.Engine.Core.Rpc.Results;
 using AutoContext.Engine.Core.Workspace.Config;
 using AutoContext.Engine.Core.Workspace.Config.Snapshot;
+using AutoContext.Engine.Core.Workspace.Context;
 using AutoContext.Engine.Protocol;
 using AutoContext.Engine.Protocol.JsonRpc;
 using AutoContext.Engine.Protocol.Messages;
 using AutoContext.Engine.Protocol.Messages.Config;
 using AutoContext.Engine.Protocol.Messages.Logs;
 using AutoContext.Engine.Protocol.Messages.Registry;
+using AutoContext.Engine.Protocol.Messages.Workspace;
 using AutoContext.Engine.Protocol.Serialization;
 
 using Microsoft.Extensions.Hosting;
@@ -63,6 +65,7 @@ internal sealed partial class DispatchPolicy : IRpcConnectionPolicy
     private readonly SnapshotBroadcaster<JsonConfigSnapshot> _configBroadcaster;
     private readonly ConfigFrameStream _configFrameStream;
     private readonly IConfigUpdater _configUpdater;
+    private readonly IWorkspaceContextAccessor _workspaceAccessor;
     private readonly ILogger _logger;
 
     public DispatchPolicy(
@@ -73,6 +76,7 @@ internal sealed partial class DispatchPolicy : IRpcConnectionPolicy
         IConfigSnapshotAccessor configAccessor,
         IConfigUpdater configUpdater,
         SnapshotBroadcaster<JsonConfigSnapshot> configBroadcaster,
+        IWorkspaceContextAccessor workspaceAccessor,
         ILogger logger)
     {
         ArgumentNullException.ThrowIfNull(lifetime);
@@ -82,6 +86,7 @@ internal sealed partial class DispatchPolicy : IRpcConnectionPolicy
         ArgumentNullException.ThrowIfNull(configAccessor);
         ArgumentNullException.ThrowIfNull(configUpdater);
         ArgumentNullException.ThrowIfNull(configBroadcaster);
+        ArgumentNullException.ThrowIfNull(workspaceAccessor);
         ArgumentNullException.ThrowIfNull(logger);
 
         _lifetime = lifetime;
@@ -93,6 +98,7 @@ internal sealed partial class DispatchPolicy : IRpcConnectionPolicy
         _configUpdater = configUpdater;
         _configBroadcaster = configBroadcaster;
         _configFrameStream = new();
+        _workspaceAccessor = workspaceAccessor;
         _logger = logger;
     }
 
@@ -150,6 +156,9 @@ internal sealed partial class DispatchPolicy : IRpcConnectionPolicy
 
             case ConfigMethods.Subscribe:
                 return HandleConfigSubscribe();
+
+            case WorkspaceMethods.Detect:
+                return HandleWorkspaceDetect();
 
             case ProtocolMethods.Shutdown:
                 return HandleShutdown();
@@ -437,6 +446,17 @@ internal sealed partial class DispatchPolicy : IRpcConnectionPolicy
         var snapshot = _configAccessor.Current.ToWireFormat();
         var resultElement = JsonSerializer.SerializeToElement(
             snapshot, ProtocolJsonContext.Default.JsonConfigSnapshot);
+
+        return new UnaryHandlerResult(
+            Response: new JsonRpcResponse { Result = resultElement },
+            Continuation: Continuation.Continue);
+    }
+
+    private UnaryHandlerResult HandleWorkspaceDetect()
+    {
+        var result = _workspaceAccessor.Current.ToWireFormat();
+        var resultElement = JsonSerializer.SerializeToElement(
+            result, ProtocolJsonContext.Default.JsonWorkspaceDetectResult);
 
         return new UnaryHandlerResult(
             Response: new JsonRpcResponse { Result = resultElement },

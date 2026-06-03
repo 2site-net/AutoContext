@@ -308,6 +308,32 @@ public static class EngineHostBuilderExtensions
         builder.Services.TryAddEnumerable(
             ServiceDescriptor.Singleton<IHostedService, ConfigFileService>());
 
+        // Workspace context detector. The detector owns the in-memory
+        // detection result for this workspace; it is the singleton source
+        // the Workspace.Detect RPC handler resolves via the
+        // IWorkspaceContextAccessor read seam. WorkspaceDetectionService
+        // runs the initial scan and arms the filesystem watcher at
+        // startup. Registered BEFORE LifecycleService so it starts first —
+        // the result is populated before the first rpc connection can
+        // issue Workspace.Detect — and the detector is an IDisposable
+        // singleton the container disposes on host stop, tearing down its
+        // watcher.
+        builder.Services.TryAddSingleton(sp =>
+        {
+            var options = sp.GetRequiredService<IOptions<EngineOptions>>().Value;
+            return new WorkspaceContextDetector(
+                options.WorkspacePath,
+                sp.GetRequiredService<IReadOnlyList<FilePresenceRule>>(),
+                sp.GetRequiredService<IReadOnlyList<ContentScan>>(),
+                sp.GetRequiredService<IReadOnlyList<FlagActivationEdge>>(),
+                logger: sp.GetService<ILogger<WorkspaceContextDetector>>(),
+                timeProvider: sp.GetRequiredService<TimeProvider>());
+        });
+        builder.Services.TryAddSingleton<IWorkspaceContextAccessor>(
+            sp => sp.GetRequiredService<WorkspaceContextDetector>());
+        builder.Services.TryAddEnumerable(
+            ServiceDescriptor.Singleton<IHostedService, WorkspaceDetectionService>());
+
         builder.Services.TryAddEnumerable(
             ServiceDescriptor.Singleton<IHostedService, LifecycleService>());
 
