@@ -167,5 +167,32 @@ public sealed class WorkspaceFileClassifierTests
             // Act + Assert
             Assert.False(classifier.IsRelevant(fileName, relativePath));
         }
+
+        [Fact]
+        public void Should_treat_every_file_rule_extension_and_name_selector_as_relevant()
+        {
+            // Arrange: the watcher filters events through IsRelevant, so every
+            // extension/name selector in the rule table must survive the filter
+            // or its files would never reclassify (the TS yaml/dart/ruby/swift drift).
+            var classifier = new WorkspaceFileClassifier(
+                WorkspaceDetectionRules.FileRules, WorkspaceDetectionRules.ContentScans);
+            var selectors = WorkspaceDetectionRules.FileRules
+                .SelectMany(rule => rule.Selectors)
+                .Where(selector => selector.Kind is FileSelectorKind.Extension or FileSelectorKind.FileName)
+                .ToArray();
+
+            // Act
+            var drifted = selectors
+                .Select(selector => selector.Kind == FileSelectorKind.Extension
+                    ? $"sample.{selector.Value}"
+                    : selector.Value)
+                .Where(fileName => !classifier.IsRelevant(fileName, fileName))
+                .Order(StringComparer.Ordinal);
+
+            // Assert
+            Assert.Multiple(
+                () => Assert.NotEmpty(selectors),
+                () => Assert.Empty(drifted));
+        }
     }
 }
