@@ -93,8 +93,11 @@ public sealed partial class WorkspaceContextDetectorTests
         [Theory]
         [InlineData("App.slnx", "hasDotNet")]
         [InlineData("App.csproj", "hasCSharp")]
+        [InlineData("Program.cs", "hasCSharp")]
         [InlineData("Lib.fsproj", "hasFSharp")]
+        [InlineData("Program.fs", "hasFSharp")]
         [InlineData("Lib.vbproj", "hasVbNet")]
+        [InlineData("Program.vb", "hasVbNet")]
         [InlineData("Counter.razor", "hasBlazor")]
         [InlineData("Window.xaml", "hasXaml")]
         [InlineData("Page.aspx", "hasWebForms")]
@@ -175,6 +178,31 @@ public sealed partial class WorkspaceContextDetectorTests
             Assert.Multiple(
                 () => Assert.True(result.Has("hasNodeJs")),
                 () => Assert.True(result.Has("hasJavaScript")));
+        }
+
+        [Theory]
+        [InlineData("app.cs", "hasCSharp")]
+        [InlineData("app.fs", "hasFSharp")]
+        [InlineData("app.vb", "hasVbNet")]
+        public async Task Should_set_language_flag_but_not_hasDotNet_for_a_bare_source_file(
+            string relativePath,
+            string expectedFlag)
+        {
+            // Arrange — a bare .NET source file (e.g. dotnet run app.cs,
+            // no project) is source for its language but not a .NET
+            // project structure: the language flag rises while hasDotNet
+            // stays project-scoped.
+            var root = tempDirectory.CreateDirectory();
+            WorkspaceFileTestWriter.Write(root, relativePath);
+            using var sut = WorkspaceContextDetectorTestFactory.Create(root);
+
+            // Act
+            var result = await sut.DetectAsync(TestContext.Current.CancellationToken);
+
+            // Assert
+            Assert.Multiple(
+                () => Assert.True(result.Has(expectedFlag)),
+                () => Assert.False(result.Has("hasDotNet")));
         }
 
         [Fact]

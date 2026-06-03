@@ -80,9 +80,9 @@ internal static partial class WorkspaceDetectionRules
     public static readonly IReadOnlyList<FilePresenceRule> FileRules =
     [
         new("hasDotNet", [new("csproj", Extension), new("fsproj", Extension), new("vbproj", Extension), new("sln", Extension), new("slnx", Extension)]),
-        new("hasCSharp", [new("csproj", Extension)]),
-        new("hasFSharp", [new("fsproj", Extension)]),
-        new("hasVbNet", [new("vbproj", Extension)]),
+        new("hasCSharp", [new("cs", Extension), new("csproj", Extension)]),
+        new("hasFSharp", [new("fs", Extension), new("fsproj", Extension)]),
+        new("hasVbNet", [new("vb", Extension), new("vbproj", Extension)]),
         new("hasBlazor", [new("razor", Extension)]),
         new("hasXaml", [new("xaml", Extension)]),
         new("hasWebForms", [new("aspx", Extension), new("ascx", Extension), new("master", Extension)]),
