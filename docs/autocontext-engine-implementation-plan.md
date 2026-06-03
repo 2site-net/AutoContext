@@ -1426,7 +1426,7 @@ projection there).
 | 5 | `feat(engine-core): derive extensions index from file rules` | DONE |
 | 6 | `feat(engine): serve Workspace.Detect over rpc` | DONE |
 | 7 | `feat(engine): serve Workspace.Info over rpc` | DONE |
-| 8 | `test(engine): cover per-flag detection and activation cascade` | Not started |
+| 8 | `test(engine): cover per-flag detection and activation cascade` | DONE |
 | 9 | `test(engine-core): smoke incremental watch detection` | Not started |
 | 10 | `docs(plan): mark Phase 4 complete` | Not started |
 
