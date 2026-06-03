@@ -2,6 +2,7 @@ namespace AutoContext.Engine.Core.Tests.Rpc.Policies;
 
 using System.Text.Json;
 
+using AutoContext.Engine.Core.Infrastructure;
 using AutoContext.Engine.Core.Registry;
 using AutoContext.Engine.Core.Rpc;
 using AutoContext.Engine.Core.Rpc.Policies;
@@ -12,14 +13,17 @@ using AutoContext.Engine.Core.Tests.Support.Rpc;
 using AutoContext.Engine.Core.Tests.Support.Rpc.Policies;
 using AutoContext.Engine.Core.Tests.Support.Shared;
 using AutoContext.Engine.Core.Tests.Support.Workspace.Config;
+using AutoContext.Engine.Core.Tests.Support.Workspace.Context;
 using AutoContext.Engine.Core.Workspace.Config;
 using AutoContext.Engine.Core.Workspace.Config.Snapshot;
+using AutoContext.Engine.Core.Workspace.Context;
 using AutoContext.Engine.Protocol;
 using AutoContext.Engine.Protocol.JsonRpc;
 using AutoContext.Engine.Protocol.Messages;
 using AutoContext.Engine.Protocol.Messages.Config;
 using AutoContext.Engine.Protocol.Messages.Logs;
 using AutoContext.Engine.Protocol.Messages.Registry;
+using AutoContext.Engine.Protocol.Messages.Workspace;
 using AutoContext.Engine.Protocol.Serialization;
 
 using Microsoft.Extensions.Logging;
@@ -35,7 +39,7 @@ public sealed class DispatchPolicyTests(TempDirectoryFixture tempDirectory)
     {
         // Arrange + Act + Assert
         Assert.Throws<ArgumentNullException>(
-            () => new DispatchPolicy(null!, RegistryFileReaderTestFactory.Create(tempDirectory.CreatePath(RegistryFileName)), LifecycleServiceFixture.CreateLogFileReader(), LifecycleServiceFixture.CreateLogsBroadcaster(), LifecycleServiceFixture.CreateConfigAccessor(), LifecycleServiceFixture.CreateConfigUpdater(), LifecycleServiceFixture.CreateConfigBroadcaster(), NullLogger.Instance));
+            () => new DispatchPolicy(null!, RegistryFileReaderTestFactory.Create(tempDirectory.CreatePath(RegistryFileName)), LifecycleServiceFixture.CreateLogFileReader(), LifecycleServiceFixture.CreateLogsBroadcaster(), LifecycleServiceFixture.CreateConfigAccessor(), LifecycleServiceFixture.CreateConfigUpdater(), LifecycleServiceFixture.CreateConfigBroadcaster(), LifecycleServiceFixture.CreateWorkspaceAccessor(), NullLogger.Instance));
     }
 
     [Fact]
@@ -46,7 +50,7 @@ public sealed class DispatchPolicyTests(TempDirectoryFixture tempDirectory)
 
         // Act + Assert
         Assert.Throws<ArgumentNullException>(
-            () => new DispatchPolicy(lifetime, registryReader: null!, LifecycleServiceFixture.CreateLogFileReader(), LifecycleServiceFixture.CreateLogsBroadcaster(), LifecycleServiceFixture.CreateConfigAccessor(), LifecycleServiceFixture.CreateConfigUpdater(), LifecycleServiceFixture.CreateConfigBroadcaster(), NullLogger.Instance));
+            () => new DispatchPolicy(lifetime, registryReader: null!, LifecycleServiceFixture.CreateLogFileReader(), LifecycleServiceFixture.CreateLogsBroadcaster(), LifecycleServiceFixture.CreateConfigAccessor(), LifecycleServiceFixture.CreateConfigUpdater(), LifecycleServiceFixture.CreateConfigBroadcaster(), LifecycleServiceFixture.CreateWorkspaceAccessor(), NullLogger.Instance));
     }
 
     [Fact]
@@ -57,7 +61,7 @@ public sealed class DispatchPolicyTests(TempDirectoryFixture tempDirectory)
 
         // Act + Assert
         Assert.Throws<ArgumentNullException>(
-            () => new DispatchPolicy(lifetime, RegistryFileReaderTestFactory.Create(tempDirectory.CreatePath(RegistryFileName)), logFileReader: null!, LifecycleServiceFixture.CreateLogsBroadcaster(), LifecycleServiceFixture.CreateConfigAccessor(), LifecycleServiceFixture.CreateConfigUpdater(), LifecycleServiceFixture.CreateConfigBroadcaster(), NullLogger.Instance));
+            () => new DispatchPolicy(lifetime, RegistryFileReaderTestFactory.Create(tempDirectory.CreatePath(RegistryFileName)), logFileReader: null!, LifecycleServiceFixture.CreateLogsBroadcaster(), LifecycleServiceFixture.CreateConfigAccessor(), LifecycleServiceFixture.CreateConfigUpdater(), LifecycleServiceFixture.CreateConfigBroadcaster(), LifecycleServiceFixture.CreateWorkspaceAccessor(), NullLogger.Instance));
     }
 
     [Fact]
@@ -68,7 +72,7 @@ public sealed class DispatchPolicyTests(TempDirectoryFixture tempDirectory)
 
         // Act + Assert
         Assert.Throws<ArgumentNullException>(
-            () => new DispatchPolicy(lifetime, RegistryFileReaderTestFactory.Create(tempDirectory.CreatePath(RegistryFileName)), LifecycleServiceFixture.CreateLogFileReader(), logsBroadcaster: null!, LifecycleServiceFixture.CreateConfigAccessor(), LifecycleServiceFixture.CreateConfigUpdater(), LifecycleServiceFixture.CreateConfigBroadcaster(), NullLogger.Instance));
+            () => new DispatchPolicy(lifetime, RegistryFileReaderTestFactory.Create(tempDirectory.CreatePath(RegistryFileName)), LifecycleServiceFixture.CreateLogFileReader(), logsBroadcaster: null!, LifecycleServiceFixture.CreateConfigAccessor(), LifecycleServiceFixture.CreateConfigUpdater(), LifecycleServiceFixture.CreateConfigBroadcaster(), LifecycleServiceFixture.CreateWorkspaceAccessor(), NullLogger.Instance));
     }
 
     [Fact]
@@ -79,7 +83,7 @@ public sealed class DispatchPolicyTests(TempDirectoryFixture tempDirectory)
 
         // Act + Assert
         Assert.Throws<ArgumentNullException>(
-            () => new DispatchPolicy(lifetime, RegistryFileReaderTestFactory.Create(tempDirectory.CreatePath(RegistryFileName)), LifecycleServiceFixture.CreateLogFileReader(), LifecycleServiceFixture.CreateLogsBroadcaster(), LifecycleServiceFixture.CreateConfigAccessor(), LifecycleServiceFixture.CreateConfigUpdater(), LifecycleServiceFixture.CreateConfigBroadcaster(), logger: null!));
+            () => new DispatchPolicy(lifetime, RegistryFileReaderTestFactory.Create(tempDirectory.CreatePath(RegistryFileName)), LifecycleServiceFixture.CreateLogFileReader(), LifecycleServiceFixture.CreateLogsBroadcaster(), LifecycleServiceFixture.CreateConfigAccessor(), LifecycleServiceFixture.CreateConfigUpdater(), LifecycleServiceFixture.CreateConfigBroadcaster(), LifecycleServiceFixture.CreateWorkspaceAccessor(), logger: null!));
     }
 
     [Fact]
@@ -90,7 +94,7 @@ public sealed class DispatchPolicyTests(TempDirectoryFixture tempDirectory)
 
         // Act + Assert
         Assert.Throws<ArgumentNullException>(
-            () => new DispatchPolicy(lifetime, RegistryFileReaderTestFactory.Create(tempDirectory.CreatePath(RegistryFileName)), LifecycleServiceFixture.CreateLogFileReader(), LifecycleServiceFixture.CreateLogsBroadcaster(), configAccessor: null!, LifecycleServiceFixture.CreateConfigUpdater(), LifecycleServiceFixture.CreateConfigBroadcaster(), NullLogger.Instance));
+            () => new DispatchPolicy(lifetime, RegistryFileReaderTestFactory.Create(tempDirectory.CreatePath(RegistryFileName)), LifecycleServiceFixture.CreateLogFileReader(), LifecycleServiceFixture.CreateLogsBroadcaster(), configAccessor: null!, LifecycleServiceFixture.CreateConfigUpdater(), LifecycleServiceFixture.CreateConfigBroadcaster(), LifecycleServiceFixture.CreateWorkspaceAccessor(), NullLogger.Instance));
     }
 
     [Fact]
@@ -101,7 +105,7 @@ public sealed class DispatchPolicyTests(TempDirectoryFixture tempDirectory)
 
         // Act + Assert
         Assert.Throws<ArgumentNullException>(
-            () => new DispatchPolicy(lifetime, RegistryFileReaderTestFactory.Create(tempDirectory.CreatePath(RegistryFileName)), LifecycleServiceFixture.CreateLogFileReader(), LifecycleServiceFixture.CreateLogsBroadcaster(), LifecycleServiceFixture.CreateConfigAccessor(), configUpdater: null!, LifecycleServiceFixture.CreateConfigBroadcaster(), NullLogger.Instance));
+            () => new DispatchPolicy(lifetime, RegistryFileReaderTestFactory.Create(tempDirectory.CreatePath(RegistryFileName)), LifecycleServiceFixture.CreateLogFileReader(), LifecycleServiceFixture.CreateLogsBroadcaster(), LifecycleServiceFixture.CreateConfigAccessor(), configUpdater: null!, LifecycleServiceFixture.CreateConfigBroadcaster(), LifecycleServiceFixture.CreateWorkspaceAccessor(), NullLogger.Instance));
     }
 
     [Fact]
@@ -112,7 +116,18 @@ public sealed class DispatchPolicyTests(TempDirectoryFixture tempDirectory)
 
         // Act + Assert
         Assert.Throws<ArgumentNullException>(
-            () => new DispatchPolicy(lifetime, RegistryFileReaderTestFactory.Create(tempDirectory.CreatePath(RegistryFileName)), LifecycleServiceFixture.CreateLogFileReader(), LifecycleServiceFixture.CreateLogsBroadcaster(), LifecycleServiceFixture.CreateConfigAccessor(), LifecycleServiceFixture.CreateConfigUpdater(), configBroadcaster: null!, NullLogger.Instance));
+            () => new DispatchPolicy(lifetime, RegistryFileReaderTestFactory.Create(tempDirectory.CreatePath(RegistryFileName)), LifecycleServiceFixture.CreateLogFileReader(), LifecycleServiceFixture.CreateLogsBroadcaster(), LifecycleServiceFixture.CreateConfigAccessor(), LifecycleServiceFixture.CreateConfigUpdater(), configBroadcaster: null!, LifecycleServiceFixture.CreateWorkspaceAccessor(), NullLogger.Instance));
+    }
+
+    [Fact]
+    public void Should_throw_when_constructed_with_null_workspaceAccessor()
+    {
+        // Arrange
+        using var lifetime = new FakeHostApplicationLifetime();
+
+        // Act + Assert
+        Assert.Throws<ArgumentNullException>(
+            () => new DispatchPolicy(lifetime, RegistryFileReaderTestFactory.Create(tempDirectory.CreatePath(RegistryFileName)), LifecycleServiceFixture.CreateLogFileReader(), LifecycleServiceFixture.CreateLogsBroadcaster(), LifecycleServiceFixture.CreateConfigAccessor(), LifecycleServiceFixture.CreateConfigUpdater(), LifecycleServiceFixture.CreateConfigBroadcaster(), workspaceAccessor: null!, NullLogger.Instance));
     }
 
     [Fact]
@@ -120,7 +135,7 @@ public sealed class DispatchPolicyTests(TempDirectoryFixture tempDirectory)
     {
         // Arrange
         using var lifetime = new FakeHostApplicationLifetime();
-        var policy = new DispatchPolicy(lifetime, RegistryFileReaderTestFactory.Create(tempDirectory.CreatePath(RegistryFileName)), LifecycleServiceFixture.CreateLogFileReader(), LifecycleServiceFixture.CreateLogsBroadcaster(), LifecycleServiceFixture.CreateConfigAccessor(), LifecycleServiceFixture.CreateConfigUpdater(), LifecycleServiceFixture.CreateConfigBroadcaster(), NullLogger.Instance);
+        var policy = new DispatchPolicy(lifetime, RegistryFileReaderTestFactory.Create(tempDirectory.CreatePath(RegistryFileName)), LifecycleServiceFixture.CreateLogFileReader(), LifecycleServiceFixture.CreateLogsBroadcaster(), LifecycleServiceFixture.CreateConfigAccessor(), LifecycleServiceFixture.CreateConfigUpdater(), LifecycleServiceFixture.CreateConfigBroadcaster(), LifecycleServiceFixture.CreateWorkspaceAccessor(), NullLogger.Instance);
 
         // Act + Assert
         Assert.Multiple(
@@ -137,7 +152,7 @@ public sealed class DispatchPolicyTests(TempDirectoryFixture tempDirectory)
         // Arrange
         var recorder = new FakeRecordingLogger();
         using var lifetime = new FakeHostApplicationLifetime();
-        var policy = new DispatchPolicy(lifetime, RegistryFileReaderTestFactory.Create(tempDirectory.CreatePath(RegistryFileName)), LifecycleServiceFixture.CreateLogFileReader(), LifecycleServiceFixture.CreateLogsBroadcaster(), LifecycleServiceFixture.CreateConfigAccessor(), LifecycleServiceFixture.CreateConfigUpdater(), LifecycleServiceFixture.CreateConfigBroadcaster(), recorder);
+        var policy = new DispatchPolicy(lifetime, RegistryFileReaderTestFactory.Create(tempDirectory.CreatePath(RegistryFileName)), LifecycleServiceFixture.CreateLogFileReader(), LifecycleServiceFixture.CreateLogsBroadcaster(), LifecycleServiceFixture.CreateConfigAccessor(), LifecycleServiceFixture.CreateConfigUpdater(), LifecycleServiceFixture.CreateConfigBroadcaster(), LifecycleServiceFixture.CreateWorkspaceAccessor(), recorder);
         var boom = new InvalidOperationException("framing");
 
         // Act
@@ -156,7 +171,7 @@ public sealed class DispatchPolicyTests(TempDirectoryFixture tempDirectory)
         // Arrange
         var recorder = new FakeRecordingLogger();
         using var lifetime = new FakeHostApplicationLifetime();
-        var policy = new DispatchPolicy(lifetime, RegistryFileReaderTestFactory.Create(tempDirectory.CreatePath(RegistryFileName)), LifecycleServiceFixture.CreateLogFileReader(), LifecycleServiceFixture.CreateLogsBroadcaster(), LifecycleServiceFixture.CreateConfigAccessor(), LifecycleServiceFixture.CreateConfigUpdater(), LifecycleServiceFixture.CreateConfigBroadcaster(), recorder);
+        var policy = new DispatchPolicy(lifetime, RegistryFileReaderTestFactory.Create(tempDirectory.CreatePath(RegistryFileName)), LifecycleServiceFixture.CreateLogFileReader(), LifecycleServiceFixture.CreateLogsBroadcaster(), LifecycleServiceFixture.CreateConfigAccessor(), LifecycleServiceFixture.CreateConfigUpdater(), LifecycleServiceFixture.CreateConfigBroadcaster(), LifecycleServiceFixture.CreateWorkspaceAccessor(), recorder);
 
         // Act
         policy.LogFrameInvalidRequest();
@@ -172,7 +187,7 @@ public sealed class DispatchPolicyTests(TempDirectoryFixture tempDirectory)
         // Arrange
         var recorder = new FakeRecordingLogger();
         using var lifetime = new FakeHostApplicationLifetime();
-        var policy = new DispatchPolicy(lifetime, RegistryFileReaderTestFactory.Create(tempDirectory.CreatePath(RegistryFileName)), LifecycleServiceFixture.CreateLogFileReader(), LifecycleServiceFixture.CreateLogsBroadcaster(), LifecycleServiceFixture.CreateConfigAccessor(), LifecycleServiceFixture.CreateConfigUpdater(), LifecycleServiceFixture.CreateConfigBroadcaster(), recorder);
+        var policy = new DispatchPolicy(lifetime, RegistryFileReaderTestFactory.Create(tempDirectory.CreatePath(RegistryFileName)), LifecycleServiceFixture.CreateLogFileReader(), LifecycleServiceFixture.CreateLogsBroadcaster(), LifecycleServiceFixture.CreateConfigAccessor(), LifecycleServiceFixture.CreateConfigUpdater(), LifecycleServiceFixture.CreateConfigBroadcaster(), LifecycleServiceFixture.CreateWorkspaceAccessor(), recorder);
 
         // Act
         policy.LogConnectionClosedByPeer();
@@ -190,7 +205,7 @@ public sealed class DispatchPolicyTests(TempDirectoryFixture tempDirectory)
         new RegistryFileWriter(registryPath).Write(seeded);
         var reader = new RegistryFileReader(registryPath);
         using var lifetime = new FakeHostApplicationLifetime();
-        var policy = new DispatchPolicy(lifetime, reader, LifecycleServiceFixture.CreateLogFileReader(), LifecycleServiceFixture.CreateLogsBroadcaster(), LifecycleServiceFixture.CreateConfigAccessor(), LifecycleServiceFixture.CreateConfigUpdater(), LifecycleServiceFixture.CreateConfigBroadcaster(), NullLogger.Instance);
+        var policy = new DispatchPolicy(lifetime, reader, LifecycleServiceFixture.CreateLogFileReader(), LifecycleServiceFixture.CreateLogsBroadcaster(), LifecycleServiceFixture.CreateConfigAccessor(), LifecycleServiceFixture.CreateConfigUpdater(), LifecycleServiceFixture.CreateConfigBroadcaster(), LifecycleServiceFixture.CreateWorkspaceAccessor(), NullLogger.Instance);
         var request = JsonRpcRequestTestFactory.BuildRequest(RegistryMethods.RegistryEntries);
 
         // Act
@@ -222,7 +237,7 @@ public sealed class DispatchPolicyTests(TempDirectoryFixture tempDirectory)
         };
         var reader = new RegistryFileReader(registryPath, readerOptions);
         using var lifetime = new FakeHostApplicationLifetime();
-        var policy = new DispatchPolicy(lifetime, reader, LifecycleServiceFixture.CreateLogFileReader(), LifecycleServiceFixture.CreateLogsBroadcaster(), LifecycleServiceFixture.CreateConfigAccessor(), LifecycleServiceFixture.CreateConfigUpdater(), LifecycleServiceFixture.CreateConfigBroadcaster(), NullLogger.Instance);
+        var policy = new DispatchPolicy(lifetime, reader, LifecycleServiceFixture.CreateLogFileReader(), LifecycleServiceFixture.CreateLogsBroadcaster(), LifecycleServiceFixture.CreateConfigAccessor(), LifecycleServiceFixture.CreateConfigUpdater(), LifecycleServiceFixture.CreateConfigBroadcaster(), LifecycleServiceFixture.CreateWorkspaceAccessor(), NullLogger.Instance);
         var request = JsonRpcRequestTestFactory.BuildRequest(RegistryMethods.RegistryEntries);
         using var lockedHandle = new FileStream(
             registryPath, FileMode.Open, FileAccess.Read, FileShare.None);
@@ -243,7 +258,7 @@ public sealed class DispatchPolicyTests(TempDirectoryFixture tempDirectory)
     {
         // Arrange
         using var lifetime = new FakeHostApplicationLifetime();
-        var policy = new DispatchPolicy(lifetime, RegistryFileReaderTestFactory.Create(tempDirectory.CreatePath(RegistryFileName)), LifecycleServiceFixture.CreateLogFileReader(), LifecycleServiceFixture.CreateLogsBroadcaster(), LifecycleServiceFixture.CreateConfigAccessor(), LifecycleServiceFixture.CreateConfigUpdater(), LifecycleServiceFixture.CreateConfigBroadcaster(), NullLogger.Instance);
+        var policy = new DispatchPolicy(lifetime, RegistryFileReaderTestFactory.Create(tempDirectory.CreatePath(RegistryFileName)), LifecycleServiceFixture.CreateLogFileReader(), LifecycleServiceFixture.CreateLogsBroadcaster(), LifecycleServiceFixture.CreateConfigAccessor(), LifecycleServiceFixture.CreateConfigUpdater(), LifecycleServiceFixture.CreateConfigBroadcaster(), LifecycleServiceFixture.CreateWorkspaceAccessor(), NullLogger.Instance);
         var request = JsonRpcRequestTestFactory.BuildRequest(ProtocolMethods.Shutdown);
 
         // Act
@@ -264,7 +279,7 @@ public sealed class DispatchPolicyTests(TempDirectoryFixture tempDirectory)
     {
         // Arrange
         using var lifetime = new FakeHostApplicationLifetime();
-        var policy = new DispatchPolicy(lifetime, RegistryFileReaderTestFactory.Create(tempDirectory.CreatePath(RegistryFileName)), LifecycleServiceFixture.CreateLogFileReader(), LifecycleServiceFixture.CreateLogsBroadcaster(), LifecycleServiceFixture.CreateConfigAccessor(), LifecycleServiceFixture.CreateConfigUpdater(), LifecycleServiceFixture.CreateConfigBroadcaster(), NullLogger.Instance);
+        var policy = new DispatchPolicy(lifetime, RegistryFileReaderTestFactory.Create(tempDirectory.CreatePath(RegistryFileName)), LifecycleServiceFixture.CreateLogFileReader(), LifecycleServiceFixture.CreateLogsBroadcaster(), LifecycleServiceFixture.CreateConfigAccessor(), LifecycleServiceFixture.CreateConfigUpdater(), LifecycleServiceFixture.CreateConfigBroadcaster(), LifecycleServiceFixture.CreateWorkspaceAccessor(), NullLogger.Instance);
         var request = JsonRpcRequestTestFactory.BuildRequest("Engine.WhoKnows");
 
         // Act
@@ -292,6 +307,7 @@ public sealed class DispatchPolicyTests(TempDirectoryFixture tempDirectory)
             LifecycleServiceFixture.CreateConfigAccessor(),
             LifecycleServiceFixture.CreateConfigUpdater(),
             LifecycleServiceFixture.CreateConfigBroadcaster(),
+            LifecycleServiceFixture.CreateWorkspaceAccessor(),
             NullLogger.Instance);
         var request = JsonRpcRequestTestFactory.BuildRequest(LogsMethods.GetEngine);
 
@@ -327,6 +343,7 @@ public sealed class DispatchPolicyTests(TempDirectoryFixture tempDirectory)
             LifecycleServiceFixture.CreateConfigAccessor(),
             LifecycleServiceFixture.CreateConfigUpdater(),
             LifecycleServiceFixture.CreateConfigBroadcaster(),
+            LifecycleServiceFixture.CreateWorkspaceAccessor(),
             NullLogger.Instance);
 
         // params is a JSON string, not the expected object shape
@@ -362,6 +379,7 @@ public sealed class DispatchPolicyTests(TempDirectoryFixture tempDirectory)
             LifecycleServiceFixture.CreateConfigAccessor(),
             LifecycleServiceFixture.CreateConfigUpdater(),
             LifecycleServiceFixture.CreateConfigBroadcaster(),
+            LifecycleServiceFixture.CreateWorkspaceAccessor(),
             NullLogger.Instance);
 
         var badParams = JsonSerializer.SerializeToElement(
@@ -399,6 +417,7 @@ public sealed class DispatchPolicyTests(TempDirectoryFixture tempDirectory)
             LifecycleServiceFixture.CreateConfigAccessor(),
             LifecycleServiceFixture.CreateConfigUpdater(),
             LifecycleServiceFixture.CreateConfigBroadcaster(),
+            LifecycleServiceFixture.CreateWorkspaceAccessor(),
             NullLogger.Instance);
         var request = JsonRpcRequestTestFactory.BuildRequest(LogsMethods.TailEngine);
 
@@ -465,6 +484,7 @@ public sealed class DispatchPolicyTests(TempDirectoryFixture tempDirectory)
             LifecycleServiceFixture.CreateConfigAccessor(),
             LifecycleServiceFixture.CreateConfigUpdater(),
             broadcaster,
+            LifecycleServiceFixture.CreateWorkspaceAccessor(),
             NullLogger.Instance);
         var request = JsonRpcRequestTestFactory.BuildRequest(ConfigMethods.Subscribe);
 
@@ -510,6 +530,7 @@ public sealed class DispatchPolicyTests(TempDirectoryFixture tempDirectory)
             new FakeConfigSnapshotAccessor(),
             new FakeConfigSnapshotAccessor(),
             LifecycleServiceFixture.CreateConfigBroadcaster(),
+            LifecycleServiceFixture.CreateWorkspaceAccessor(),
             NullLogger.Instance);
         var request = JsonRpcRequestTestFactory.BuildRequest(ConfigMethods.Get);
 
@@ -583,6 +604,7 @@ public sealed class DispatchPolicyTests(TempDirectoryFixture tempDirectory)
             new FakeConfigSnapshotAccessor { Current = config },
             new FakeConfigSnapshotAccessor(),
             LifecycleServiceFixture.CreateConfigBroadcaster(),
+            LifecycleServiceFixture.CreateWorkspaceAccessor(),
             NullLogger.Instance);
         var request = JsonRpcRequestTestFactory.BuildRequest(ConfigMethods.Get);
 
@@ -820,6 +842,7 @@ public sealed class DispatchPolicyTests(TempDirectoryFixture tempDirectory)
             new FakeConfigSnapshotAccessor(),
             new ThrowingConfigUpdater(new IOException("disk full")),
             LifecycleServiceFixture.CreateConfigBroadcaster(),
+            LifecycleServiceFixture.CreateWorkspaceAccessor(),
             NullLogger.Instance);
         var request = BuildToggleFileRequest("lang-csharp");
 
@@ -832,6 +855,202 @@ public sealed class DispatchPolicyTests(TempDirectoryFixture tempDirectory)
             () => Assert.Equal(Continuation.Continue, result.Continuation),
             () => Assert.NotNull(result.Response.Error),
             () => Assert.Equal(JsonRpcErrorCodes.InternalError, result.Response.Error!.Code));
+    }
+
+    [Fact]
+    public async Task Should_return_Continue_with_empty_detection_for_Workspace_Detect_when_result_is_empty()
+    {
+        // Arrange
+        using var lifetime = new FakeHostApplicationLifetime();
+        var policy = new DispatchPolicy(
+            lifetime,
+            RegistryFileReaderTestFactory.Create(tempDirectory.CreatePath(RegistryFileName)),
+            LifecycleServiceFixture.CreateLogFileReader(),
+            LifecycleServiceFixture.CreateLogsBroadcaster(),
+            LifecycleServiceFixture.CreateConfigAccessor(),
+            LifecycleServiceFixture.CreateConfigUpdater(),
+            LifecycleServiceFixture.CreateConfigBroadcaster(),
+            new FakeWorkspaceContextAccessor(),
+            NullLogger.Instance);
+        var request = JsonRpcRequestTestFactory.BuildRequest(WorkspaceMethods.Detect);
+
+        // Act
+        var result = Assert.IsType<UnaryHandlerResult>(
+            await policy.InvokeAsync(request, TestContext.Current.CancellationToken));
+
+        // Assert
+        var detect = JsonSerializer.Deserialize(
+            result.Response.Result!.Value,
+            ProtocolJsonContext.Default.JsonWorkspaceDetectResult);
+        Assert.Multiple(
+            () => Assert.Equal(Continuation.Continue, result.Continuation),
+            () => Assert.Null(result.Response.Error),
+            () => Assert.NotNull(detect),
+            () => Assert.Empty(detect!.Extensions),
+            () => Assert.False(detect!.Flags.HasCSharp),
+            () => Assert.False(detect!.Flags.HasNodeJs));
+    }
+
+    [Fact]
+    public async Task Should_return_Continue_with_current_detection_for_Workspace_Detect()
+    {
+        // Arrange
+        var detection = new WorkspaceDetectionResult
+        {
+            Extensions = ["cs", "ts"],
+            Flags = new HashSet<string> { "hasCSharp", "hasNodeJs" },
+        };
+        using var lifetime = new FakeHostApplicationLifetime();
+        var policy = new DispatchPolicy(
+            lifetime,
+            RegistryFileReaderTestFactory.Create(tempDirectory.CreatePath(RegistryFileName)),
+            LifecycleServiceFixture.CreateLogFileReader(),
+            LifecycleServiceFixture.CreateLogsBroadcaster(),
+            LifecycleServiceFixture.CreateConfigAccessor(),
+            LifecycleServiceFixture.CreateConfigUpdater(),
+            LifecycleServiceFixture.CreateConfigBroadcaster(),
+            new FakeWorkspaceContextAccessor { Current = detection },
+            NullLogger.Instance);
+        var request = JsonRpcRequestTestFactory.BuildRequest(WorkspaceMethods.Detect);
+
+        // Act
+        var result = Assert.IsType<UnaryHandlerResult>(
+            await policy.InvokeAsync(request, TestContext.Current.CancellationToken));
+
+        // Assert
+        var detect = JsonSerializer.Deserialize(
+            result.Response.Result!.Value,
+            ProtocolJsonContext.Default.JsonWorkspaceDetectResult);
+        Assert.NotNull(detect);
+        Assert.Multiple(
+            () => Assert.Equal(Continuation.Continue, result.Continuation),
+            () => Assert.Null(result.Response.Error),
+            () => Assert.Equal(["cs", "ts"], detect!.Extensions),
+            () => Assert.True(detect!.Flags.HasCSharp),
+            () => Assert.True(detect!.Flags.HasNodeJs),
+            () => Assert.False(detect!.Flags.HasPython));
+    }
+
+    [Fact]
+    public async Task Should_omit_overrides_field_from_Workspace_Detect_envelope()
+    {
+        // Arrange — the detector is blind to override content: a
+        // workspace with files under .github/instructions/ produces
+        // the same Detect envelope as one without. The wire shape
+        // carries no overrides field (negative-shape contract).
+        using var lifetime = new FakeHostApplicationLifetime();
+        var policy = new DispatchPolicy(
+            lifetime,
+            RegistryFileReaderTestFactory.Create(tempDirectory.CreatePath(RegistryFileName)),
+            LifecycleServiceFixture.CreateLogFileReader(),
+            LifecycleServiceFixture.CreateLogsBroadcaster(),
+            LifecycleServiceFixture.CreateConfigAccessor(),
+            LifecycleServiceFixture.CreateConfigUpdater(),
+            LifecycleServiceFixture.CreateConfigBroadcaster(),
+            new FakeWorkspaceContextAccessor
+            {
+                Current = new WorkspaceDetectionResult
+                {
+                    Extensions = ["cs"],
+                    Flags = new HashSet<string> { "hasCSharp" },
+                },
+            },
+            NullLogger.Instance);
+        var request = JsonRpcRequestTestFactory.BuildRequest(WorkspaceMethods.Detect);
+
+        // Act
+        var result = Assert.IsType<UnaryHandlerResult>(
+            await policy.InvokeAsync(request, TestContext.Current.CancellationToken));
+
+        // Assert
+        var envelope = result.Response.Result!.Value;
+        Assert.Multiple(
+            () => Assert.Equal(Continuation.Continue, result.Continuation),
+            () => Assert.Null(result.Response.Error),
+            () => Assert.True(envelope.TryGetProperty("extensions", out _)),
+            () => Assert.True(envelope.TryGetProperty("flags", out _)),
+            () => Assert.False(envelope.TryGetProperty("overrides", out _)));
+    }
+
+    [Fact]
+    public async Task Should_return_Continue_with_current_workspace_info_for_Workspace_Info()
+    {
+        // Arrange
+        var instanceId = Guid.NewGuid();
+        var accessor = new FakeWorkspaceContextAccessor
+        {
+            EngineInfo = new FakeWorkspaceEngineInfo
+            {
+                IdleTimeout = TimeSpan.FromMinutes(5),
+                InstanceId = instanceId,
+                InstanceLabel = "primary",
+            },
+            Revision = 42,
+        };
+        using var lifetime = new FakeHostApplicationLifetime();
+        var policy = new DispatchPolicy(
+            lifetime,
+            RegistryFileReaderTestFactory.Create(tempDirectory.CreatePath(RegistryFileName)),
+            LifecycleServiceFixture.CreateLogFileReader(),
+            LifecycleServiceFixture.CreateLogsBroadcaster(),
+            LifecycleServiceFixture.CreateConfigAccessor(),
+            LifecycleServiceFixture.CreateConfigUpdater(),
+            LifecycleServiceFixture.CreateConfigBroadcaster(),
+            accessor,
+            NullLogger.Instance);
+        var request = JsonRpcRequestTestFactory.BuildRequest(WorkspaceMethods.Info);
+
+        // Act
+        var result = Assert.IsType<UnaryHandlerResult>(
+            await policy.InvokeAsync(request, TestContext.Current.CancellationToken));
+
+        // Assert
+        var info = JsonSerializer.Deserialize(
+            result.Response.Result!.Value,
+            ProtocolJsonContext.Default.JsonWorkspaceInfoResult);
+        Assert.NotNull(info);
+        Assert.Multiple(
+            () => Assert.Equal(Continuation.Continue, result.Continuation),
+            () => Assert.Null(result.Response.Error),
+            () => Assert.Equal(EngineVersion.Value, info!.EngineVersion),
+            () => Assert.Equal(TimeSpan.FromMinutes(5), info!.IdleTimeout),
+            () => Assert.Equal(instanceId, info!.InstanceId),
+            () => Assert.Equal("primary", info!.InstanceLabel),
+            () => Assert.Equal(42L, info!.Revision));
+    }
+
+    [Fact]
+    public async Task Should_keep_empty_workspace_info_label_as_empty_string()
+    {
+        // Arrange
+        using var lifetime = new FakeHostApplicationLifetime();
+        var policy = new DispatchPolicy(
+            lifetime,
+            RegistryFileReaderTestFactory.Create(tempDirectory.CreatePath(RegistryFileName)),
+            LifecycleServiceFixture.CreateLogFileReader(),
+            LifecycleServiceFixture.CreateLogsBroadcaster(),
+            LifecycleServiceFixture.CreateConfigAccessor(),
+            LifecycleServiceFixture.CreateConfigUpdater(),
+            LifecycleServiceFixture.CreateConfigBroadcaster(),
+            new FakeWorkspaceContextAccessor
+            {
+                EngineInfo = new FakeWorkspaceEngineInfo { InstanceLabel = string.Empty },
+            },
+            NullLogger.Instance);
+        var request = JsonRpcRequestTestFactory.BuildRequest(WorkspaceMethods.Info);
+
+        // Act
+        var result = Assert.IsType<UnaryHandlerResult>(
+            await policy.InvokeAsync(request, TestContext.Current.CancellationToken));
+
+        // Assert
+        var info = JsonSerializer.Deserialize(
+            result.Response.Result!.Value,
+            ProtocolJsonContext.Default.JsonWorkspaceInfoResult);
+        Assert.Multiple(
+            () => Assert.Null(result.Response.Error),
+            () => Assert.NotNull(info),
+            () => Assert.Equal(string.Empty, info!.InstanceLabel));
     }
 
     private static JsonRpcRequest BuildToggleFileRequest(string name) =>
@@ -864,5 +1083,6 @@ public sealed class DispatchPolicyTests(TempDirectoryFixture tempDirectory)
             store,
             store,
             LifecycleServiceFixture.CreateConfigBroadcaster(),
+            LifecycleServiceFixture.CreateWorkspaceAccessor(),
             NullLogger.Instance);
 }

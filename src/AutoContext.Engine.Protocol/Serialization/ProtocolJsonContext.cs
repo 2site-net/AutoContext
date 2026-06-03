@@ -10,6 +10,7 @@ using AutoContext.Engine.Protocol.Messages.Config;
 using AutoContext.Engine.Protocol.Messages.Lifecycle;
 using AutoContext.Engine.Protocol.Messages.Logs;
 using AutoContext.Engine.Protocol.Messages.Registry;
+using AutoContext.Engine.Protocol.Messages.Workspace;
 
 /// <summary>
 /// System.Text.Json source-generation context for every wire shape
@@ -50,6 +51,9 @@ using AutoContext.Engine.Protocol.Messages.Registry;
 [JsonSerializable(typeof(JsonConfigDroppedFrame))]
 [JsonSerializable(typeof(JsonConfigToggleFileParams))]
 [JsonSerializable(typeof(JsonConfigToggleRuleParams))]
+[JsonSerializable(typeof(JsonWorkspaceFlags))]
+[JsonSerializable(typeof(JsonWorkspaceDetectResult))]
+[JsonSerializable(typeof(JsonWorkspaceInfoResult))]
 [JsonSerializable(typeof(JsonShutdownResult))]
 public sealed partial class ProtocolJsonContext : JsonSerializerContext
 {

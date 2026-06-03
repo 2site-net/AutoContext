@@ -11,6 +11,7 @@ using AutoContext.Engine.Core.Machine.Housekeeping;
 using AutoContext.Engine.Core.Registry;
 using AutoContext.Engine.Core.Watchdogs;
 using AutoContext.Engine.Core.Workspace.Config;
+using AutoContext.Engine.Core.Workspace.Context;
 using AutoContext.Engine.Protocol.Messages.Config;
 using AutoContext.Engine.Protocol.Messages.Logs;
 using AutoContext.Framework.Pipes;
@@ -286,6 +287,16 @@ public static class EngineHostBuilderExtensions
         builder.Services.TryAddSingleton<IConfigUpdater>(
             sp => sp.GetRequiredService<ConfigFileManager>());
 
+        // Workspace context detection rule tables. The three declarative
+        // tables — file presence, content scans (npm + .NET, grouped by
+        // manifest), and the flag activation cascade — are static data
+        // ported from the VS Code extension's detector. They register as
+        // IReadOnlyList<T> singletons so the detector composes off them
+        // via constructor injection and tests can swap in trimmed lists.
+        builder.Services.TryAddSingleton(WorkspaceDetectionRules.FileRules);
+        builder.Services.TryAddSingleton(WorkspaceDetectionRules.ContentScans);
+        builder.Services.TryAddSingleton(WorkspaceDetectionRules.FlagActivationEdges);
+
         // Config-subscription fan-out broadcaster. Singleton so the
         // RPC Config.Subscribe handler and the ConfigFileService
         // change-event bridge share one instance: the bridge primes
@@ -296,6 +307,33 @@ public static class EngineHostBuilderExtensions
             "Config.Subscribe"));
         builder.Services.TryAddEnumerable(
             ServiceDescriptor.Singleton<IHostedService, ConfigFileService>());
+
+        // Workspace context detector. The detector owns the in-memory
+        // detection result and workspace-info metadata for this
+        // workspace; it is the singleton source the Workspace.Detect and
+        // Workspace.Info RPC handlers resolve via the
+        // IWorkspaceContextAccessor read seam. WorkspaceDetectionService
+        // runs the initial scan and arms the filesystem watcher at
+        // startup. Registered BEFORE LifecycleService so it starts first —
+        // the result is populated before the first rpc connection can
+        // issue Workspace.Detect — and the detector is an IDisposable
+        // singleton the container disposes on host stop, tearing down its
+        // watcher.
+        builder.Services.TryAddSingleton(sp =>
+        {
+            var options = sp.GetRequiredService<IOptions<EngineOptions>>().Value;
+            return new WorkspaceContextDetector(
+                options,
+                sp.GetRequiredService<IReadOnlyList<FilePresenceRule>>(),
+                sp.GetRequiredService<IReadOnlyList<ContentScan>>(),
+                sp.GetRequiredService<IReadOnlyList<FlagActivationEdge>>(),
+                logger: sp.GetService<ILogger<WorkspaceContextDetector>>(),
+                timeProvider: sp.GetRequiredService<TimeProvider>());
+        });
+        builder.Services.TryAddSingleton<IWorkspaceContextAccessor>(
+            sp => sp.GetRequiredService<WorkspaceContextDetector>());
+        builder.Services.TryAddEnumerable(
+            ServiceDescriptor.Singleton<IHostedService, WorkspaceDetectionService>());
 
         builder.Services.TryAddEnumerable(
             ServiceDescriptor.Singleton<IHostedService, LifecycleService>());

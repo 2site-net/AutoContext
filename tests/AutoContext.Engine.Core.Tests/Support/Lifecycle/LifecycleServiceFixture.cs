@@ -11,8 +11,10 @@ using AutoContext.Engine.Core.Registry;
 using AutoContext.Engine.Core.Tests.Support;
 using AutoContext.Engine.Core.Tests.Support.Machine;
 using AutoContext.Engine.Core.Tests.Support.Workspace.Config;
+using AutoContext.Engine.Core.Tests.Support.Workspace.Context;
 using AutoContext.Engine.Core.Watchdogs;
 using AutoContext.Engine.Core.Workspace.Config;
+using AutoContext.Engine.Core.Workspace.Context;
 using AutoContext.Engine.Protocol.Messages.Config;
 using AutoContext.Engine.Protocol.Messages.Logs;
 
@@ -63,7 +65,8 @@ public sealed class LifecycleServiceFixture : IAsyncDisposable
             logFileReader,
             CreateConfigAccessor(),
             CreateConfigUpdater(),
-            CreateConfigBroadcaster());
+            CreateConfigBroadcaster(),
+            CreateWorkspaceAccessor());
 
         // Track in reverse dependency order so Dispose tears the
         // service down first, then the watchdog, then the lifetime.
@@ -89,6 +92,9 @@ public sealed class LifecycleServiceFixture : IAsyncDisposable
 
     internal static SnapshotBroadcaster<JsonConfigSnapshot> CreateConfigBroadcaster() =>
         new(NullLogger<SnapshotBroadcaster<JsonConfigSnapshot>>.Instance, "Config.Subscribe");
+
+    internal static IWorkspaceContextAccessor CreateWorkspaceAccessor() =>
+        new FakeWorkspaceContextAccessor();
 
     internal static LifecycleEventStream CreateEventStream(EngineOptions? options = null) =>
         new(

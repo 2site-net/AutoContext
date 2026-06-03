@@ -1,5 +1,6 @@
 namespace AutoContext.Engine.Core;
 
+using AutoContext.Engine.Core.Infrastructure;
 using AutoContext.Engine.Core.Logging;
 
 /// <summary>
@@ -31,7 +32,7 @@ using AutoContext.Engine.Core.Logging;
 /// default.
 /// </para>
 /// </remarks>
-public sealed class EngineOptions
+public sealed class EngineOptions : IWorkspaceEngineInfo
 {
     /// <summary>
     /// Maximum length of <see cref="InstanceLabel"/>, in characters.
