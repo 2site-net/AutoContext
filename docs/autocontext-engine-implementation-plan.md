@@ -1428,6 +1428,7 @@ projection there).
 | 7 | `feat(engine): serve Workspace.Info over rpc` | DONE |
 | 8 | `test(engine): cover per-flag detection and activation cascade` | DONE |
 | 9 | `test(engine-core): smoke incremental watch detection` | DONE |
+| 9b | `test(engine): cover Workspace.Detect and Info over rpc end-to-end` | DONE |
 | 10 | `docs(plan): mark Phase 4 complete` | Not started |
 
 **Goal**: engine runs `Workspace.Detect` on startup against its
@@ -1610,6 +1611,14 @@ own `--workspace` path, exposes the result via `Workspace.Detect` and
   files under `.github/instructions/` produces the same `Detect`
   envelope as a workspace without — the detector is blind to
   override content.
+- End-to-end over rpc (row 9b, integration suite): spawning the
+  `autocontext-engine` binary against a populated `--workspace` and
+  calling `Workspace.Detect` / `Workspace.Info` over the `rpc` pipe
+  returns the startup-scan flag set, the derived `extensions[]`, the
+  engine version, and the spawned instance identity — the same
+  contract the in-process handler tests assert, now exercised across
+  a real process boundary and serialised wire frames (including the
+  negative `overrides`-shape check). Gated `Category=Smoke`.
 
 **Out of scope**: `Discovery.RouteForPrompt` extension index (Phase 9
 — consumes the same data but lives in its own service).
