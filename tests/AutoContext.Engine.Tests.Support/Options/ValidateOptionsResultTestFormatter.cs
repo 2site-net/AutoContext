@@ -1,4 +1,4 @@
-namespace AutoContext.Engine.Core.Tests.Support.Shared;
+namespace AutoContext.Engine.Tests.Support.Options;
 
 using Microsoft.Extensions.Options;
 
@@ -7,7 +7,7 @@ using Microsoft.Extensions.Options;
 /// a single semicolon-delimited string suitable for use as an xUnit
 /// assertion message.
 /// </summary>
-internal static class ValidateOptionsResultTestFormatter
+public static class ValidateOptionsResultTestFormatter
 {
     public static string ReportFailures(ValidateOptionsResult result)
     {

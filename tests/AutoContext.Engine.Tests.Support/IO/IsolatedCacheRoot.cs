@@ -1,4 +1,4 @@
-namespace AutoContext.Engine.Tests.Support.Integration;
+namespace AutoContext.Engine.Tests.Support.IO;
 
 /// <summary>
 /// Allocates a per-test engine cache root under a fresh temp
@@ -7,7 +7,7 @@ namespace AutoContext.Engine.Tests.Support.Integration;
 /// option share a cache root — exactly what the cross-engine
 /// housekeeping test needs.
 /// </summary>
-internal sealed record class IsolatedCacheRoot(string Path)
+public sealed record class IsolatedCacheRoot(string Path)
 {
     private const string EngineCacheDirName = "autocontext";
 

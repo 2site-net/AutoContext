@@ -1,4 +1,4 @@
-namespace AutoContext.Engine.Tests.Support.Integration;
+namespace AutoContext.Engine.Tests.Support.Diagnostics;
 
 /// <summary>
 /// Resolves the absolute path to the <c>autocontext-engine</c>
@@ -20,7 +20,7 @@ namespace AutoContext.Engine.Tests.Support.Integration;
 /// number of intermediate folders. Resolution is one-shot at
 /// class-load time.
 /// </remarks>
-internal static class EngineBinaryPath
+public static class EngineBinaryPath
 {
     /// <summary>
     /// Absolute path to the engine binary published next to the

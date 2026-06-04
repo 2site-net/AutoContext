@@ -1,4 +1,4 @@
-namespace AutoContext.Engine.Tests.Support.Integration;
+namespace AutoContext.Engine.Tests.Support.Diagnostics;
 
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
@@ -7,6 +7,7 @@ using System.IO.Pipes;
 
 using AutoContext.Engine.Core.Infrastructure.Storage;
 using AutoContext.Engine.Protocol;
+using AutoContext.Engine.Tests.Support.IO;
 
 /// <summary>
 /// Spawns a single <c>autocontext-engine</c> binary in daemon role
@@ -39,7 +40,7 @@ using AutoContext.Engine.Protocol;
 /// crashed run cannot leak a stale engine.
 /// </para>
 /// </remarks>
-internal sealed class EngineTestProcess : IAsyncDisposable
+public sealed class EngineTestProcess : IAsyncDisposable
 {
     private static readonly TimeSpan ReadinessTimeout = TimeSpan.FromSeconds(30);
     private static readonly TimeSpan ConnectPollTimeout = TimeSpan.FromMilliseconds(100);
@@ -221,13 +222,13 @@ internal sealed class EngineTestProcess : IAsyncDisposable
             if (timeoutCts.IsCancellationRequested)
             {
                 throw new TimeoutException(
-                    $"autocontext-engine did not bind the rpc pipe '{pipeName}' within {ReadinessTimeout.TotalSeconds:0}s. Stderr:{Environment.NewLine}{SnapshotStderr()}");
+                    $"autocontext-engine did not bind the rpc pipe '{pipeName}' within {ReadinessTimeout.TotalSeconds:0}s. Stderr:{System.Environment.NewLine}{SnapshotStderr()}");
             }
 
             if (process.HasExited)
             {
                 throw new InvalidOperationException(
-                    $"autocontext-engine exited (code {process.ExitCode}) before binding the rpc pipe. Stderr:{Environment.NewLine}{SnapshotStderr()}");
+                    $"autocontext-engine exited (code {process.ExitCode}) before binding the rpc pipe. Stderr:{System.Environment.NewLine}{SnapshotStderr()}");
             }
 
             var probe = new NamedPipeClientStream(
@@ -265,7 +266,7 @@ internal sealed class EngineTestProcess : IAsyncDisposable
         {
             return _stderrLines.Count == 0
                 ? "(no stderr)"
-                : string.Join(Environment.NewLine, _stderrLines);
+                : string.Join(System.Environment.NewLine, _stderrLines);
         }
     }
 

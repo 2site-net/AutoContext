@@ -21,6 +21,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\AutoContext.Engine.Protocol\AutoContext.Engine.Protocol.csproj" />
+    <ProjectReference Include="..\AutoContext.Engine.Tests.Support\AutoContext.Engine.Tests.Support.csproj" />
   </ItemGroup>
 
 </Project>

@@ -1,4 +1,4 @@
-namespace AutoContext.Engine.Tests.Support.Integration;
+namespace AutoContext.Engine.Tests.Support.Diagnostics;
 
 /// <summary>
 /// CLI-shaped configuration for a single spawned
@@ -27,7 +27,7 @@ namespace AutoContext.Engine.Tests.Support.Integration;
 /// explicitly on both.
 /// </para>
 /// </remarks>
-internal sealed class EngineTestProcessOptions
+public sealed class EngineTestProcessOptions
 {
     /// <summary>
     /// Absolute workspace path passed via <c>--workspace</c>. When
@@ -65,7 +65,7 @@ internal sealed class EngineTestProcessOptions
     /// leak a stale engine. Set to <see langword="null"/> to omit the
     /// switch entirely.
     /// </summary>
-    public int? ParentProcessId { get; set; } = Environment.ProcessId;
+    public int? ParentProcessId { get; set; } = System.Environment.ProcessId;
 
     /// <summary>
     /// Retention window passed verbatim via <c>--retention</c>, using

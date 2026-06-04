@@ -1,8 +1,8 @@
-namespace AutoContext.Engine.Core.Tests.Support.Shared;
+namespace AutoContext.Engine.Tests.Support.Json;
 
 using System.Text.Json;
 
-internal static class NdjsonTestReader
+public static class NdjsonTestReader
 {
     public static List<JsonElement> Read(string path)
     {

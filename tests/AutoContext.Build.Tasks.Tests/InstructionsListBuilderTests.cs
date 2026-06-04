@@ -2,7 +2,7 @@ namespace AutoContext.Build.Tasks.Tests;
 
 using AutoContext.Build.Tasks;
 using AutoContext.Build.Tasks.Tests.Support;
-using AutoContext.Build.Tasks.Tests.Support.Shared;
+using AutoContext.Engine.Tests.Support.IO;
 
 public sealed class InstructionsListBuilderTests
 {

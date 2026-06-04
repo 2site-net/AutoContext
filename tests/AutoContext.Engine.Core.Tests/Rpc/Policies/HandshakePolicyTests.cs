@@ -7,11 +7,11 @@ using AutoContext.Engine.Core.Rpc.Policies;
 using AutoContext.Engine.Core.Rpc.Results;
 using AutoContext.Engine.Core.Tests.Support.Rpc;
 using AutoContext.Engine.Core.Tests.Support.Rpc.Policies;
-using AutoContext.Engine.Core.Tests.Support.Shared;
 using AutoContext.Engine.Protocol;
 using AutoContext.Engine.Protocol.JsonRpc;
 using AutoContext.Engine.Protocol.Messages;
 using AutoContext.Engine.Protocol.Serialization;
+using AutoContext.Engine.Tests.Support.Logging;
 
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;

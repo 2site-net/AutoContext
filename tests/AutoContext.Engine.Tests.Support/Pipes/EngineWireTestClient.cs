@@ -1,4 +1,4 @@
-namespace AutoContext.Engine.Tests.Support.Integration;
+namespace AutoContext.Engine.Tests.Support.Pipes;
 
 using System.Globalization;
 using System.IO.Pipes;
@@ -9,6 +9,7 @@ using AutoContext.Engine.Protocol;
 using AutoContext.Engine.Protocol.JsonRpc;
 using AutoContext.Engine.Protocol.Messages;
 using AutoContext.Engine.Protocol.Serialization;
+using AutoContext.Engine.Tests.Support.Diagnostics;
 using AutoContext.Framework.Pipes;
 
 /// <summary>
@@ -19,7 +20,7 @@ using AutoContext.Framework.Pipes;
 /// <c>internal</c> to its own assembly and the integration suite
 /// runs in a separate test project.
 /// </summary>
-internal static class EngineWireTestClient
+public static class EngineWireTestClient
 {
     private static readonly TimeSpan ConnectTimeout = TimeSpan.FromSeconds(5);
     private static readonly TimeSpan ReadResponseTimeout = TimeSpan.FromSeconds(5);
@@ -62,7 +63,10 @@ internal static class EngineWireTestClient
         EndpointKind kind,
         EngineTestProcess engine,
         CancellationToken cancellationToken)
-        => ConnectAsync(kind, engine.WorkspacePath, engine.InstanceId, cancellationToken);
+    {
+        ArgumentNullException.ThrowIfNull(engine);
+        return ConnectAsync(kind, engine.WorkspacePath, engine.InstanceId, cancellationToken);
+    }
 
     /// <summary>Writes the mandatory <c>Engine.Hello</c> first frame.</summary>
     public static async Task SendHelloAsync(
@@ -70,6 +74,8 @@ internal static class EngineWireTestClient
         int protocolVersion,
         CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(codec);
+
         var paramsElement = JsonSerializer.SerializeToElement(
             new JsonHandshakeParams { ProtocolVersion = protocolVersion },
             ProtocolJsonContext.Default.JsonHandshakeParams);
@@ -95,6 +101,8 @@ internal static class EngineWireTestClient
         string method,
         CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(codec);
+
         var idElement = JsonDocument
             .Parse(id.ToString(CultureInfo.InvariantCulture))
             .RootElement;
@@ -117,6 +125,8 @@ internal static class EngineWireTestClient
         JsonElement parameters,
         CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(codec);
+
         var idElement = JsonDocument
             .Parse(id.ToString(CultureInfo.InvariantCulture))
             .RootElement;
@@ -142,6 +152,8 @@ internal static class EngineWireTestClient
         EngineTestProcess engine,
         CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(engine);
+
         var rpc = await ConnectAsync(EndpointKind.Rpc, engine, cancellationToken)
             .ConfigureAwait(false);
         await using var rpcDisposer = rpc.ConfigureAwait(false);
@@ -162,6 +174,8 @@ internal static class EngineWireTestClient
         LengthPrefixedFrameCodec codec,
         CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(codec);
+
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         cts.CancelAfter(ReadResponseTimeout);
 
@@ -179,6 +193,8 @@ internal static class EngineWireTestClient
         LengthPrefixedFrameCodec codec,
         CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(codec);
+
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         cts.CancelAfter(ReadResponseTimeout);
 

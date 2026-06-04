@@ -19,6 +19,7 @@
     <Project Path="tests/AutoContext.Framework.Workers.Tests/AutoContext.Framework.Workers.Tests.csproj" />
     <Project Path="tests/AutoContext.Build.Tasks.Tests/AutoContext.Build.Tasks.Tests.csproj" />
     <Project Path="tests/AutoContext.Engine.Core.Tests/AutoContext.Engine.Core.Tests.csproj" />
+    <Project Path="tests/AutoContext.Engine.Tests.Support/AutoContext.Engine.Tests.Support.csproj" />
     <Project Path="tests/AutoContext.Engine.Tests/AutoContext.Engine.Tests.csproj" />
     <Project Path="tests/AutoContext.Worker.Workspace.Tests/AutoContext.Worker.Workspace.Tests.csproj" />
     <Project Path="tests/AutoContext.Worker.DotNet.Tests/AutoContext.Worker.DotNet.Tests.csproj" />

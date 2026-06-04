@@ -8,8 +8,8 @@ using System.Threading.Tasks;
 
 using AutoContext.Engine.Core.Registry;
 using AutoContext.Engine.Core.Tests.Support.Registry;
-using AutoContext.Engine.Core.Tests.Support.Shared;
 using AutoContext.Engine.Protocol.Messages.Registry;
+using AutoContext.Engine.Tests.Support.IO;
 
 public sealed class RegistryFileServiceTests
 {

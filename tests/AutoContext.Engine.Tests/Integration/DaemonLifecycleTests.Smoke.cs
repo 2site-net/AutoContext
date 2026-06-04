@@ -6,7 +6,8 @@ using System.Text.Json;
 using AutoContext.Engine.Protocol;
 using AutoContext.Engine.Protocol.Messages;
 using AutoContext.Engine.Protocol.Serialization;
-using AutoContext.Engine.Tests.Support.Integration;
+using AutoContext.Engine.Tests.Support.Diagnostics;
+using AutoContext.Engine.Tests.Support.Pipes;
 using AutoContext.Framework.Pipes;
 
 using Xunit.Sdk;

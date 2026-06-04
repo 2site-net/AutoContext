@@ -1,4 +1,4 @@
-namespace AutoContext.Build.Tasks.Tests.Support.Shared;
+namespace AutoContext.Engine.Tests.Support.IO;
 
 public sealed class TempDirectoryFixture : IDisposable
 {

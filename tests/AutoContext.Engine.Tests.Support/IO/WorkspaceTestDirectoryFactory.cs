@@ -1,6 +1,6 @@
-namespace AutoContext.Engine.Tests.Support.Integration;
+namespace AutoContext.Engine.Tests.Support.IO;
 
-internal static class WorkspaceTestDirectoryFactory
+public static class WorkspaceTestDirectoryFactory
 {
     public static string Create()
     {

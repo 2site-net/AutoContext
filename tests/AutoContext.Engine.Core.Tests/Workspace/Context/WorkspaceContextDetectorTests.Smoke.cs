@@ -1,7 +1,7 @@
 namespace AutoContext.Engine.Core.Tests.Workspace.Context;
 
-using AutoContext.Engine.Core.Tests.Support.Shared;
 using AutoContext.Engine.Core.Tests.Support.Workspace.Context;
+using AutoContext.Engine.Tests.Support.IO;
 
 public sealed partial class WorkspaceContextDetectorTests
 {
