@@ -7,6 +7,10 @@ appsettings.*.json
 .autocontext.json
 !/.autocontext.json
 
+# Build-generated instruction manifests — no source-side copy; regenerated each build.
+/src/AutoContext.Engine/Resources/instructions-files.json
+/src/AutoContext.Engine/Resources/instructions-files-metadata.json
+
 ###############################################################################
 #  OS FILES                                                                   #
 ###############################################################################
