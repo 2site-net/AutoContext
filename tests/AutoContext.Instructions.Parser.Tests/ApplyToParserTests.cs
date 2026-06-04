@@ -1,6 +1,4 @@
-namespace AutoContext.Engine.Core.Tests.Instructions;
-
-using AutoContext.Engine.Core.Instructions;
+namespace AutoContext.Instructions.Parser.Tests;
 
 public sealed class ApplyToParserTests
 {
@@ -176,35 +174,8 @@ public sealed class ApplyToParserTests
             => [.. values.OrderBy(static value => value, StringComparer.Ordinal)];
     }
 
-    public sealed class Compose
-    {
-        [Fact]
-        public void Should_reject_null_globs()
-        {
-            // Act + Assert
-            Assert.Throws<ArgumentNullException>(() => ApplyToParser.Compose(null!));
-        }
-
-        [Fact]
-        public void Should_join_globs_with_commas()
-        {
-            // Act
-            var composed = ApplyToParser.Compose(["**/*.cs", "**/*.ts"]);
-
-            // Assert
-            Assert.Equal("**/*.cs,**/*.ts", composed);
-        }
-    }
-
     public sealed class RoundTrips
     {
-        [Fact]
-        public void Should_reject_null_apply_to()
-        {
-            // Act + Assert
-            Assert.Throws<ArgumentNullException>(() => ApplyToParser.RoundTrips(null!));
-        }
-
         [Theory]
         [InlineData("**/*.cs")]
         [InlineData("**")]
@@ -216,14 +187,14 @@ public sealed class ApplyToParserTests
         public void Should_round_trip_modulo_whitespace(string applyTo)
         {
             // Act
-            var roundTrips = ApplyToParser.RoundTrips(applyTo);
+            var roundTrips = ApplyToParser.Parse(applyTo).RoundTrips;
 
             // Assert
             Assert.True(roundTrips);
         }
 
         // Every distinct `applyTo` value shipped in the instruction corpus
-        // (src/AutoContext.VsCode/instructions/*.instructions.md). The
+        // (src/AutoContext.Engine/Instructions/*.instructions.md). The
         // build-time generator enforces this same round-trip per file, so a
         // new corpus value that the parser cannot reproduce verbatim must
         // fail here first.
@@ -275,7 +246,7 @@ public sealed class ApplyToParserTests
         public void Should_round_trip_every_shipped_corpus_value(string applyTo)
         {
             // Act
-            var roundTrips = ApplyToParser.RoundTrips(applyTo);
+            var roundTrips = ApplyToParser.Parse(applyTo).RoundTrips;
 
             // Assert
             Assert.True(roundTrips);

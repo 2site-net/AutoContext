@@ -1,33 +1,19 @@
-namespace AutoContext.Engine.Core.Instructions;
+namespace AutoContext.Instructions.Parser;
 
 /// <summary>
 /// Parses an instruction file's <c>applyTo</c> frontmatter value into its
-/// structural pieces and verifies the parse round-trips. The parser splits
-/// comma-separated globs at brace depth zero (so intra-brace commas such as
-/// <c>{cs,fs}</c> survive), brace-expands <c>{a,b,c}</c> groups, and extracts
-/// the derived extension set. It deliberately never canonicalises globs,
-/// simplifies <c>**</c> patterns, or otherwise reasons about what a glob
-/// means — the recomposed glob list must equal the original modulo
-/// whitespace, which the build-time generator enforces per corpus file.
+/// structural pieces. This is an internal collaborator of
+/// <see cref="InstructionsFileParser"/> — the single public entry point — not a
+/// second file parser: it understands only the <c>applyTo</c> glob-list
+/// grammar. The parser splits comma-separated globs at brace depth zero (so
+/// intra-brace commas such as <c>{cs,fs}</c> survive), brace-expands
+/// <c>{a,b,c}</c> groups, and extracts the derived extension set. It
+/// deliberately never canonicalises globs, simplifies <c>**</c> patterns, or
+/// otherwise reasons about what a glob means; lossless-ness is asserted by
+/// <see cref="FrontmatterApplyToParsedResult.RoundTrips"/>.
 /// </summary>
 internal static class ApplyToParser
 {
-    /// <summary>
-    /// Recomposes a verbatim glob list into a single comma-separated
-    /// <c>applyTo</c> string. The inverse of the comma split in
-    /// <see cref="Parse"/> modulo whitespace.
-    /// </summary>
-    /// <param name="globs">The verbatim glob terms to join.</param>
-    /// <returns>The comma-joined glob string.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="globs"/> is
-    /// <see langword="null"/>.</exception>
-    public static string Compose(IReadOnlyList<string> globs)
-    {
-        ArgumentNullException.ThrowIfNull(globs);
-
-        return string.Join(",", globs);
-    }
-
     /// <summary>
     /// Parses <paramref name="applyTo"/> into its verbatim globs, the
     /// brace-expanded globs, and the derived extension set.
@@ -36,7 +22,7 @@ internal static class ApplyToParser
     /// <returns>The structural parse result.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="applyTo"/> is
     /// <see langword="null"/>.</exception>
-    public static ApplyToParseResult Parse(string applyTo)
+    public static FrontmatterApplyToParsedResult Parse(string applyTo)
     {
         ArgumentNullException.ThrowIfNull(applyTo);
 
@@ -64,26 +50,7 @@ internal static class ApplyToParser
             }
         }
 
-        return new ApplyToParseResult(globs, expanded, extensions);
-    }
-
-    /// <summary>
-    /// Verifies that parsing then recomposing <paramref name="applyTo"/>
-    /// reproduces the original modulo whitespace — the invariant that proves
-    /// the structural parse loses nothing.
-    /// </summary>
-    /// <param name="applyTo">The raw <c>applyTo</c> frontmatter value.</param>
-    /// <returns><see langword="true"/> when the recomposed glob list equals
-    /// <paramref name="applyTo"/> with all whitespace removed.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="applyTo"/> is
-    /// <see langword="null"/>.</exception>
-    public static bool RoundTrips(string applyTo)
-    {
-        ArgumentNullException.ThrowIfNull(applyTo);
-
-        var recomposed = Compose(Parse(applyTo).Globs);
-
-        return StripWhitespace(recomposed) == StripWhitespace(applyTo);
+        return new FrontmatterApplyToParsedResult(applyTo, globs, expanded, extensions);
     }
 
     private static List<string> ExpandBraces(string glob)
@@ -187,7 +154,4 @@ internal static class ApplyToParser
 
         return parts;
     }
-
-    private static string StripWhitespace(string value)
-        => string.Concat(value.Where(static c => !char.IsWhiteSpace(c)));
 }

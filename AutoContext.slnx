@@ -6,6 +6,7 @@
     <Project Path="src/AutoContext.Engine.Protocol/AutoContext.Engine.Protocol.csproj" />
     <Project Path="src/AutoContext.Build.Tasks/AutoContext.Build.Tasks.csproj" />
     <Project Path="src/AutoContext.Engine.Core/AutoContext.Engine.Core.csproj" />
+    <Project Path="src/AutoContext.Instructions.Parser/AutoContext.Instructions.Parser.csproj" />
     <Project Path="src/AutoContext.Engine/AutoContext.Engine.csproj" />
     <Project Path="src/AutoContext.Worker.Workspace/AutoContext.Worker.Workspace.csproj" />
     <Project Path="src/AutoContext.Worker.DotNet/AutoContext.Worker.DotNet.csproj" />
@@ -15,6 +16,7 @@
     <Project Path="tests/AutoContext.Framework.Tests.Support/AutoContext.Framework.Tests.Support.csproj" />
     <Project Path="tests/AutoContext.Framework.Pipes.Tests/AutoContext.Framework.Pipes.Tests.csproj" />
     <Project Path="tests/AutoContext.Framework.Logging.Tests/AutoContext.Framework.Logging.Tests.csproj" />
+    <Project Path="tests/AutoContext.Instructions.Parser.Tests/AutoContext.Instructions.Parser.Tests.csproj" />
     <Project Path="tests/AutoContext.Engine.Protocol.Tests/AutoContext.Engine.Protocol.Tests.csproj" />
     <Project Path="tests/AutoContext.Framework.Workers.Tests/AutoContext.Framework.Workers.Tests.csproj" />
     <Project Path="tests/AutoContext.Build.Tasks.Tests/AutoContext.Build.Tasks.Tests.csproj" />
