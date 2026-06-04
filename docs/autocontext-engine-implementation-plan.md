@@ -1650,7 +1650,7 @@ the engine first owns the registry (see *Scope note* below).
 | 4 | `refactor(instructions): add shared parser project` | DONE |
 | 5 | `refactor(instructions): replace MSBuild task with console app generator` | DONE |
 | 6 | `feat(instructions-manifest-gen): emit instructions-files-metadata.json` | DONE |
-| 7 | `test(instructions): cover corpus round-trips and applyTo parser` | Not started |
+| 7 | `test(instructions): cover corpus round-trips and applyTo parser` | DONE |
 | 8 | `docs(plan): mark Phase 5 complete` | Not started |
 
 **Goal**: a single build-time pass over `src/AutoContext.Engine/Instructions/`
