@@ -1630,7 +1630,7 @@ own `--workspace` path, exposes the result via `Workspace.Detect` and
 | # | Commit subject | State |
 |---|---|---|
 | 1 | `feat(build-tasks): scaffold AutoContext.Build.Tasks project` | DONE |
-| 2 | `feat(engine-core): add applyTo parser with round-trip check` | Not started |
+| 2 | `feat(engine-core): add applyTo parser with round-trip check` | DONE |
 | 3 | `refactor(engine): move instruction corpus to engine host` | Not started |
 | 4 | `feat(build-tasks): generate instructions-files.json wire manifest` | Not started |
 | 5 | `feat(build-tasks): emit instructions-files-metadata.json` | Not started |
