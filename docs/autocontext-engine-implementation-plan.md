@@ -1636,8 +1636,11 @@ own `--workspace` path, exposes the result via `Workspace.Detect` and
 ## Phase 5 — Instructions corpus build-time pipeline
 
 **Status**: In progress — the build-time pipeline landed and was then
-re-architected (see *Architecture note* below); the metadata manifest,
-registry rename, and `mcp-tools.json` projection remain.
+re-architected (see *Architecture note* below); the wire manifest and
+metadata manifest are done, leaving only the corpus round-trip /
+`applyTo` parser tests and the phase-completion doc. The MCP-tools
+registry and its `mcp-tools.json` projection moved to Phase 7, where
+the engine first owns the registry (see *Scope note* below).
 
 | # | Commit subject | State |
 |---|---|---|
@@ -1647,10 +1650,8 @@ registry rename, and `mcp-tools.json` projection remain.
 | 4 | `refactor(instructions): add shared parser project` | DONE |
 | 5 | `refactor(instructions): replace MSBuild task with console app generator` | DONE |
 | 6 | `feat(instructions-manifest-gen): emit instructions-files-metadata.json` | DONE |
-| 7 | `refactor(engine): rename mcp-workers-registry to mcp-tools-registry` | Not started |
-| 8 | `feat(instructions): project mcp-tools.json at build time` | Not started |
-| 9 | `test(instructions): cover corpus round-trips and registry schema` | Not started |
-| 10 | `docs(plan): mark Phase 5 complete` | Not started |
+| 7 | `test(instructions): cover corpus round-trips and applyTo parser` | Not started |
+| 8 | `docs(plan): mark Phase 5 complete` | Not started |
 
 **Goal**: a single build-time pass over `src/AutoContext.Engine/Instructions/`
 produces both `Resources/instructions-files.json` (wire shape) and
@@ -1677,6 +1678,21 @@ target `net10.0` like the rest of the engine. Sequencing is a
 `ProjectReference` from `AutoContext.Engine.csproj`
 (`ReferenceOutputAssembly=false`); the target runs
 `AfterTargets="ResolveProjectReferences" BeforeTargets="CoreCompile"`.
+
+**Scope note (MCP-tools registry moved to Phase 7)**: an earlier
+draft folded the MCP-tools registry rename
+(`mcp-workers-registry.json` → `mcp-tools-registry.json`) and the
+build-time `mcp-tools.json` projection into this phase. That work
+moved to Phase 7 — the phase where the engine first *owns* the
+registry (`McpTools.List`/`Invoke`). There is no rename: today's
+`src/AutoContext.Mcp.Server/mcp-workers-registry.json` stays in
+place under its legacy name, serving the still-live MCP server until
+Phase 16 deletes that project wholesale. The engine authors its own
+`Resources/mcp-tools-registry.json` (and schema, and the projected
+`mcp-tools.json`) **fresh, correctly named** in Phase 7 — the same
+copy-into-the-engine pattern this phase uses for the instruction
+corpus, where the old consumer keeps working untouched and the new
+file is born named for the project that owns it.
 
 **Code touch**:
 - **Create `AutoContext.Instructions.Parser/` and
@@ -1723,14 +1739,6 @@ target `net10.0` like the rest of the engine. Sequencing is a
   trim whitespace, extract extension set. Round-trip invariant
   (`recomposed == original` modulo whitespace) checked per
   corpus file at build time; a failing round-trip fails the build.
-- `mcp-tools-registry.json` renamed from `mcp-workers-registry.json`
-  (today's path at `src/AutoContext.Mcp.Server/mcp-workers-registry.json`).
-  Schema renamed alongside. Both move under
-  `src/AutoContext.Engine/Resources/` so the binary host owns every
-  manifest it ships.
-- Build-time projection of `mcp-tools.json` (wire shape only;
-  runtime projection applies the disabled-state filter) emitted into
-  `src/AutoContext.Engine/Resources/`.
 
 **Tests**:
 - Builder round-trips for every file in the corpus.
@@ -1743,8 +1751,6 @@ target `net10.0` like the rest of the engine. Sequencing is a
   (parse∘compose ≈ identity).
 - A `applyTo` value that would silently canonicalise (e.g. `**` vs.
   `**/*`) is preserved verbatim; the parser refuses to "simplify".
-- `mcp-tools-registry.json` schema-validates at build time;
-  malformed registry fails the build.
 
 **Out of scope**: any runtime projection (Phase 6); the
 content-search index seed (Phase 6 uses it but builds the live
@@ -1820,7 +1826,11 @@ MCP-tool dispatch (Phase 7).
 dispatcher. `McpTools.List` and `McpTools.Invoke` answer over the
 `rpc` pipe; the MCP-server-only role over stdio comes in Phase 11.
 Workers are spawned by the engine via the same lazy
-`ensureRunning(workerId)` pattern in use today.
+`ensureRunning(workerId)` pattern in use today. The engine also
+becomes the owner of the MCP-tools registry, authoring
+`mcp-tools-registry.json` (its schema, and the projected
+`mcp-tools.json`) **fresh** under its own `Resources/` rather than
+renaming today's `AutoContext.Mcp.Server` copy.
 
 **Design anchors**: `§ RPC surface` (`McpTools.*`), `§ Resource
 manifests` (`workers.json`, `mcp-tools-registry.json`),
@@ -1834,6 +1844,24 @@ manifests` (`workers.json`, `mcp-tools-registry.json`),
 - `Resources/workers.json` build generator — scans
   `src/AutoContext.Worker.*/` projects, derives `id`, `type`,
   `entrypoint`. Id-collision fails the build.
+- **Author the MCP-tools registry fresh under the engine.**
+  `Resources/mcp-tools-registry.json` and its
+  `mcp-tools-registry.schema.json` are created under
+  `src/AutoContext.Engine/Resources/` with their end-state names —
+  **not** renamed or moved from today's
+  `src/AutoContext.Mcp.Server/mcp-workers-registry.json`. That legacy
+  file stays in place, untouched under its old name, serving the
+  still-live `AutoContext.Mcp.Server` until Phase 16 deletes the whole
+  project (the same copy-into-the-engine pattern Phase 5 used for the
+  instruction corpus — the old consumer keeps working under the old
+  name; the engine's copy is born correctly named in the project that
+  owns it). `McpToolsRegistryLoader` reads it from `Resources/` via
+  `AppContext.BaseDirectory`; `McpToolsRegistrySchemaValidator`
+  validates it against the embedded schema at both build time and
+  load time.
+- Build-time projection of `mcp-tools.json` (wire shape only;
+  runtime projection applies the disabled-state filter) emitted into
+  `src/AutoContext.Engine/Resources/` from the registry above.
 - `McpTools.List` handler over the `mcp-tools-registry.json` data,
   filtered per-request by `disabledTools`/`disabledTasks` from the
   config snapshot.
@@ -1847,6 +1875,8 @@ manifests` (`workers.json`, `mcp-tools-registry.json`),
   Phase 0 consolidation; workers themselves are not absorbed).
 
 **Tests**:
+- `mcp-tools-registry.json` schema-validates at build time; a
+  malformed registry fails the build.
 - `McpTools.List` reflects the registry, filtered by disabled state
   from `Config.Get`; toggling config fans out via
   `Config.Subscribe` and a subsequent `List` reflects the change.
@@ -2291,10 +2321,12 @@ servers manifest (`servers.json`) points at
 - `servers.json` rewritten: the only entry is `autocontext-engine`
   with the MCP-server-only role argv; worker entries are removed
   (the engine spawns workers itself now).
-- The `mcp-tools-registry.json` move into
-  `AutoContext.Engine/Resources/` already happened in Phase 5;
-  deleting `AutoContext.Mcp.Server/` here removes anything left in
-  its directory by definition.
+- The engine-owned `mcp-tools-registry.json` was authored fresh
+  under `AutoContext.Engine/Resources/` in Phase 7 (not moved — the
+  old `mcp-workers-registry.json` stayed in `AutoContext.Mcp.Server/`
+  untouched under its legacy name); deleting `AutoContext.Mcp.Server/`
+  here removes that legacy registry and schema along with the rest of
+  the project.
 - Solution file (`AutoContext.slnx`) cleaned of the retired project.
 - `build.ps1` no longer references `AutoContext.Mcp.Server`.
 
