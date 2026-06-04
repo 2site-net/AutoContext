@@ -2,9 +2,9 @@ namespace AutoContext.Engine.Core.Tests.Registry;
 
 using AutoContext.Engine.Core.Registry;
 using AutoContext.Engine.Core.Tests.Support.Registry;
-using AutoContext.Engine.Core.Tests.Support.Shared;
 using AutoContext.Engine.Core.Tests.Support.Watchdogs;
 using AutoContext.Engine.Protocol.Messages.Registry;
+using AutoContext.Engine.Tests.Support.IO;
 
 using Microsoft.Extensions.Logging.Abstractions;
 

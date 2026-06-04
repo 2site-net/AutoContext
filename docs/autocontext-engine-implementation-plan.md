@@ -201,9 +201,11 @@ other reason still need a real second impl.
   `AutoContext.Engine.Core.Tests` (absorbs today's
   `AutoContext.Mcp.Server.Tests` over the course of phases 7 and 16),
   `AutoContext.Client.Core.Tests`, `AutoContext.Engine.Tests`,
-  `AutoContext.Build.Tasks.Tests` (round-trip-verifier fixtures and
-  task-output assertions; the task is also exercised end-to-end by
-  every other project's build).
+  `AutoContext.Instructions.Parser.Tests` (frontmatter + `applyTo`
+  parser fixtures, round-trip invariant) and
+  `AutoContext.Instructions.Manifest.Generator.Tests` (manifest
+  builder + serializer assertions; the generator is also exercised
+  end-to-end by the engine's build).
   Worker test projects are unchanged.
 - **TS tests** stay in Vitest, in the same layout
   `AutoContext.Nodejs.Core` and `AutoContext.VsCode` already use.
@@ -519,15 +521,21 @@ src/
       AgentEventsSubscription.cs
       LogsTailSubscription.cs
 
-  AutoContext.Build.Tasks/                # build-time MSBuild tasks (netstandard2.0 — separate so the runtime libs stay clean)
-    AutoContext.Build.Tasks.csproj             # TargetFramework=netstandard2.0; output not shipped with the engine
-    InstructionsListBuilder.targets            # imported by AutoContext.Engine.csproj; runs the task during the binary's build
-    BuildInstructionsListTask.cs               # MSBuild ITask — scans src/AutoContext.Engine/Instructions/, emits the two manifests into the binary's Resources/
-    ApplyToRoundTripVerifier.cs                # build-time invariant: parse(applyTo) then recompose == original (modulo whitespace)
-    # ApplyToParser.cs is shared from AutoContext.Engine.Core/Instructions/ApplyToParser.cs
-    # via <Compile Include="..\AutoContext.Engine.Core\Instructions\ApplyToParser.cs" Link="ApplyToParser.cs" />
-    # so build-time validation and runtime parsing compile the same source. (Not to be confused
-    # with dotnet/sourcelink, which is a PDB-to-source debugging feature.)
+  AutoContext.Instructions.Parser/        # shared parser library (net10.0) — referenced by both the generator and the engine runtime so one source is compiled for both
+    AutoContext.Instructions.Parser.csproj     # TargetFramework=net10.0; class library
+    InstructionsFileParser.cs                  # frontmatter reader (name/description/applyTo)
+    ApplyToParser.cs                           # applyTo splitter/brace-expander — parse only, round-trip-verified
+    # …plus the parsed-shape records the two parsers return
+
+  AutoContext.Instructions.Manifest.Generator/   # build-time console generator (net10.0, AssemblyName instructions-manifest-gen) — not shipped with the engine
+    AutoContext.Instructions.Manifest.Generator.csproj   # OutputType=Exe; ProjectReference → AutoContext.Instructions.Parser
+    InstructionsManifestGenerator.targets      # imported by AutoContext.Engine.csproj; <Exec>s the generator during the binary's build
+    Program.cs                                 # generic-host entry point (build host → resolve runner → Run → exit code)
+    InstructionsManifestGenerator.cs           # runner: scans src/AutoContext.Engine/Instructions/, writes the manifest into the binary's Resources/
+    InstructionsListBuilder.cs                 # corpus scan + curatorial validation → InstructionsManifest
+    InstructionsManifestSerializer.cs          # deterministic, byte-stable JSON writer (no System.Text.Json dependency)
+    # the engine sequences the generator via a ProjectReference (ReferenceOutputAssembly=false);
+    # the target runs AfterTargets=ResolveProjectReferences BeforeTargets=CoreCompile.
 
   AutoContext.Engine/                          # engine binary host
     AutoContext.Engine.csproj                  # publishes as autocontext-engine[.exe]
@@ -556,6 +564,8 @@ src/
     AutoContext.Engine.Core.Tests/             # engine-internal services + every RPC handler + lifecycle + watchdogs
     AutoContext.Client.Core.Tests/             # typed RPC clients, subscription consumers, find-or-spawn flow
     AutoContext.Engine.Tests/                  # binary-host integration: argv parser, role split, ready-marker, end-to-end spawn
+    AutoContext.Instructions.Parser.Tests/     # frontmatter + applyTo parser fixtures, round-trip invariant
+    AutoContext.Instructions.Manifest.Generator.Tests/  # manifest builder + serializer assertions
     AutoContext.Framework.Tests.Support/       # shared test-support reused by engine + worker tests
 ```
 
@@ -642,7 +652,7 @@ host-supplied path threads into the engine for side-car lookup.
 two dead-weight projects (`Mcp.Abstractions`, `Worker.Shared`) into
 it, and rename the shared TS substrate to its end-state identity.
 This phase touches existing code only — every new engine / client /
-build-tasks project is created in the phase that first uses it (see
+instructions-tooling project is created in the phase that first uses it (see
 *Just-in-time scaffolding* in the ground rules).
 
 **Design anchors**: `§ Project layout` (Framework substrate row),
@@ -712,12 +722,12 @@ build-tasks project is created in the phase that first uses it (see
   `AutoContext.Framework.Workers.Tests`.
   Today's `AutoContext.Framework.Tests` is split across the four
   substrate test projects according to which sub-project owns each
-  fixture. Test projects for the *new* engine / client / build-tasks
+  fixture. Test projects for the *new* engine / client / instructions-tooling
   projects come up alongside those projects in their first-use
   phases.
 - `AutoContext.slnx` updated for the four Framework sub-projects,
   the renamed `Nodejs.Core`, and the deletions of `Mcp.Abstractions`
-  / `Worker.Shared`. No entries for engine / client / build-tasks
+  / `Worker.Shared`. No entries for engine / client / instructions-tooling
   projects yet — those are added by the phases that introduce them.
 - `build.ps1` learns the new Framework project list (compile targets
   only; packaging stays out until Phase 13).
@@ -728,7 +738,7 @@ build-tasks project is created in the phase that first uses it (see
   tests stay green after the rename + consolidation (no behaviour
   change — the diff is purely namespace + project-graph).
 
-**Out of scope**: every new engine / client / build-tasks project
+**Out of scope**: every new engine / client / instructions-tooling project
 (introduced in their first-use phases); any pipe binding, DI
 registration, or executable host.
 
@@ -1625,63 +1635,108 @@ own `--workspace` path, exposes the result via `Workspace.Detect` and
 
 ## Phase 5 — Instructions corpus build-time pipeline
 
-**Status**: Not started.
+**Status**: Completed on branch `features/instructions-corpus-build-time-pipeline`.
+The MCP-tools registry and its `mcp-tools.json` projection moved to
+Phase 7, where the engine first owns the registry (see *Scope note*
+below).
+
+| # | Commit subject | State |
+|---|---|---|
+| 1 | `refactor(engine): copy instruction corpus into engine host` | DONE |
+| 2 | `feat(build-tasks): scaffold build task projects` | DONE |
+| 3 | `feat(build-tasks): generate instructions manifest` | DONE |
+| 4 | `refactor(instructions): add shared parser project` | DONE |
+| 5 | `refactor(instructions): replace MSBuild task with console app generator` | DONE |
+| 6 | `feat(instructions-manifest-gen): emit instructions-files-metadata.json` | DONE |
+| 7 | `test(instructions): cover corpus round-trips and applyTo parser` | DONE |
+| 8 | `docs(plan): mark Phase 5 complete` | DONE |
 
 **Goal**: a single build-time pass over `src/AutoContext.Engine/Instructions/`
 produces both `Resources/instructions-files.json` (wire shape) and
 `Resources/instructions-files-metadata.json` (engine-internal
-indices). The `applyTo` parser ships here, parses only, and is
-round-trip-verified per fixture.
+indices). The `applyTo` parser ships in `AutoContext.Instructions.Parser`,
+parses only, and is round-trip-verified per fixture.
 
 **Design anchors**: `§ Resource manifests`,
 `§ applyTo` matching subsection under `Instructions.*`,
 `§ P3` (wire ≠ internal), `§ applyTo parser pitfall`.
 
+**Architecture note (as-built)**: the original plan put the builder in
+a `netstandard2.0` MSBuild `ITask` library (`AutoContext.Build.Tasks`).
+That was replaced by two `net10.0` projects: a shared parser library,
+`AutoContext.Instructions.Parser` (frontmatter + `applyTo` parsing,
+referenced by both the build-time generator and the engine runtime so
+one source is compiled for both), and a console generator,
+`AutoContext.Instructions.Manifest.Generator` (AssemblyName
+`instructions-manifest-gen`). The engine invokes the generator with
+`<Exec>` from `InstructionsManifestGenerator.targets` rather than
+loading an `ITask` into MSBuild — this sidesteps the
+Full-Framework/Core MSBuild load constraint and lets the generator
+target `net10.0` like the rest of the engine. Sequencing is a
+`ProjectReference` from `AutoContext.Engine.csproj`
+(`ReferenceOutputAssembly=false`); the target runs
+`AfterTargets="ResolveProjectReferences" BeforeTargets="CoreCompile"`.
+
+**Scope note (MCP-tools registry moved to Phase 7)**: an earlier
+draft folded the MCP-tools registry rename
+(`mcp-workers-registry.json` → `mcp-tools-registry.json`) and the
+build-time `mcp-tools.json` projection into this phase. That work
+moved to Phase 7 — the phase where the engine first *owns* the
+registry (`McpTools.List`/`Invoke`). There is no rename: today's
+`src/AutoContext.Mcp.Server/mcp-workers-registry.json` stays in
+place under its legacy name, serving the still-live MCP server until
+Phase 16 deletes that project wholesale. The engine authors its own
+`Resources/mcp-tools-registry.json` (and schema, and the projected
+`mcp-tools.json`) **fresh, correctly named** in Phase 7 — the same
+copy-into-the-engine pattern this phase uses for the instruction
+corpus, where the old consumer keeps working untouched and the new
+file is born named for the project that owns it.
+
 **Code touch**:
-- **Create `AutoContext.Build.Tasks/`** — new `netstandard2.0` class
-  library, plus its sibling test project
-  `AutoContext.Build.Tasks.Tests`. Added to `AutoContext.slnx` and
-  `build.ps1` in the same change. The implementations described
-  below land in this project as it is introduced.
-- Curated instruction corpus moves to
+- **Create `AutoContext.Instructions.Parser/` and
+  `AutoContext.Instructions.Manifest.Generator/`** — two new `net10.0`
+  projects (shared parser library + console generator), each with a
+  sibling test project (`AutoContext.Instructions.Parser.Tests`,
+  `AutoContext.Instructions.Manifest.Generator.Tests`). Added to
+  `AutoContext.slnx` and `build.ps1` in the same change. The
+  implementations described below land in these projects as they are
+  introduced.
+- Curated instruction corpus is **copied** to
   `src/AutoContext.Engine/Instructions/` — the binary host owns the
   side-cars (P5). Today the corpus is co-located with the VS Code
-  extension at `src/AutoContext.VsCode/instructions/`; the move is
-  part of this phase because the engine binary is now the owner and
-  the files ship next to the binary (resolved at runtime via
-  `AppContext.BaseDirectory`, not embedded resources). The
-  `Instructions/` and `Resources/` side-car folders under
-  `src/AutoContext.Engine/` are created here too — first phase that
-  actually populates them.
-- `InstructionsListBuilder` — MSBuild task lives in a dedicated
-  build-tasks project (`AutoContext.Build.Tasks/`, netstandard2.0)
-  rather than the engine runtime library, because MSBuild ITask
-  implementations must load under both MSBuild-Full-Framework and
-  MSBuild-Core and because the task DLL + round-trip verifier ship
-  nothing at runtime. The `.targets` file is imported by
-  `AutoContext.Engine.csproj` (binary host — the project that
-  owns the output `Resources/` folder); the task writes
-  `instructions-files.json` + `instructions-files-metadata.json`
-  into `src/AutoContext.Engine/Resources/`. The `applyTo` parser
-  is shared from `AutoContext.Engine.Core/Instructions/` into the
-  build-tasks project via `<Compile Include="..." Link="..." />`
-  (not `dotnet/sourcelink`, which is the unrelated PDB-to-source
-  feature) so build-time validation and runtime parsing compile
-  the same source. Today's
+  extension at `src/AutoContext.VsCode/instructions/`; the engine
+  binary becomes the owner and the files ship next to the binary
+  (resolved at runtime via `AppContext.BaseDirectory`, not embedded
+  resources). This is a **copy, not a move**: the VS Code copy stays
+  in place and untouched so the extension's existing TS generators,
+  `package.json` `chatInstructions` wiring, and packaging keep
+  working unchanged. The VsCode original is deleted (and its
+  generators/packaging repointed at the engine corpus) in the later
+  phase that connects the engine to the VS Code extension — not
+  here. The `Instructions/` side-car folder under
+  `src/AutoContext.Engine/` is created here (populated with the
+  copied corpus); the `Resources/` folder is created in row 4 when
+  the build task first writes into it.
+- `InstructionsListBuilder` + `InstructionsManifestSerializer` — the
+  corpus scan, curatorial validation, and deterministic JSON writer
+  live in the `AutoContext.Instructions.Manifest.Generator` console
+  exe rather than the engine runtime library, so the build-time
+  generator and round-trip verifier ship nothing at runtime. The
+  `.targets` file is imported by `AutoContext.Engine.csproj` (binary
+  host — the project that owns the output `Resources/` folder) and
+  `<Exec>`s the generator, which writes `instructions-files.json`
+  (and, in row 6, `instructions-files-metadata.json`) into
+  `src/AutoContext.Engine/Resources/`. The frontmatter + `applyTo`
+  parser lives in `AutoContext.Instructions.Parser` and is referenced
+  by both the generator and the engine runtime via a normal
+  `ProjectReference`, so build-time validation and runtime parsing
+  compile one source. Today's
   `instructions-files-metadata-generator.ts` (TS) is retired; the
-  .NET task replaces it as the single producer.
+  .NET generator replaces it as the single producer.
 - `applyTo` parser: comma-split, brace-expand `{a,b,c}` groups,
   trim whitespace, extract extension set. Round-trip invariant
   (`recomposed == original` modulo whitespace) checked per
   corpus file at build time; a failing round-trip fails the build.
-- `mcp-tools-registry.json` renamed from `mcp-workers-registry.json`
-  (today's path at `src/AutoContext.Mcp.Server/mcp-workers-registry.json`).
-  Schema renamed alongside. Both move under
-  `src/AutoContext.Engine/Resources/` so the binary host owns every
-  manifest it ships.
-- Build-time projection of `mcp-tools.json` (wire shape only;
-  runtime projection applies the disabled-state filter) emitted into
-  `src/AutoContext.Engine/Resources/`.
 
 **Tests**:
 - Builder round-trips for every file in the corpus.
@@ -1694,8 +1749,6 @@ round-trip-verified per fixture.
   (parse∘compose ≈ identity).
 - A `applyTo` value that would silently canonicalise (e.g. `**` vs.
   `**/*`) is preserved verbatim; the parser refuses to "simplify".
-- `mcp-tools-registry.json` schema-validates at build time;
-  malformed registry fails the build.
 
 **Out of scope**: any runtime projection (Phase 6); the
 content-search index seed (Phase 6 uses it but builds the live
@@ -1771,7 +1824,11 @@ MCP-tool dispatch (Phase 7).
 dispatcher. `McpTools.List` and `McpTools.Invoke` answer over the
 `rpc` pipe; the MCP-server-only role over stdio comes in Phase 11.
 Workers are spawned by the engine via the same lazy
-`ensureRunning(workerId)` pattern in use today.
+`ensureRunning(workerId)` pattern in use today. The engine also
+becomes the owner of the MCP-tools registry, authoring
+`mcp-tools-registry.json` (its schema, and the projected
+`mcp-tools.json`) **fresh** under its own `Resources/` rather than
+renaming today's `AutoContext.Mcp.Server` copy.
 
 **Design anchors**: `§ RPC surface` (`McpTools.*`), `§ Resource
 manifests` (`workers.json`, `mcp-tools-registry.json`),
@@ -1785,6 +1842,24 @@ manifests` (`workers.json`, `mcp-tools-registry.json`),
 - `Resources/workers.json` build generator — scans
   `src/AutoContext.Worker.*/` projects, derives `id`, `type`,
   `entrypoint`. Id-collision fails the build.
+- **Author the MCP-tools registry fresh under the engine.**
+  `Resources/mcp-tools-registry.json` and its
+  `mcp-tools-registry.schema.json` are created under
+  `src/AutoContext.Engine/Resources/` with their end-state names —
+  **not** renamed or moved from today's
+  `src/AutoContext.Mcp.Server/mcp-workers-registry.json`. That legacy
+  file stays in place, untouched under its old name, serving the
+  still-live `AutoContext.Mcp.Server` until Phase 16 deletes the whole
+  project (the same copy-into-the-engine pattern Phase 5 used for the
+  instruction corpus — the old consumer keeps working under the old
+  name; the engine's copy is born correctly named in the project that
+  owns it). `McpToolsRegistryLoader` reads it from `Resources/` via
+  `AppContext.BaseDirectory`; `McpToolsRegistrySchemaValidator`
+  validates it against the embedded schema at both build time and
+  load time.
+- Build-time projection of `mcp-tools.json` (wire shape only;
+  runtime projection applies the disabled-state filter) emitted into
+  `src/AutoContext.Engine/Resources/` from the registry above.
 - `McpTools.List` handler over the `mcp-tools-registry.json` data,
   filtered per-request by `disabledTools`/`disabledTasks` from the
   config snapshot.
@@ -1798,6 +1873,8 @@ manifests` (`workers.json`, `mcp-tools-registry.json`),
   Phase 0 consolidation; workers themselves are not absorbed).
 
 **Tests**:
+- `mcp-tools-registry.json` schema-validates at build time; a
+  malformed registry fails the build.
 - `McpTools.List` reflects the registry, filtered by disabled state
   from `Config.Get`; toggling config fans out via
   `Config.Subscribe` and a subsequent `List` reflects the change.
@@ -2242,10 +2319,12 @@ servers manifest (`servers.json`) points at
 - `servers.json` rewritten: the only entry is `autocontext-engine`
   with the MCP-server-only role argv; worker entries are removed
   (the engine spawns workers itself now).
-- The `mcp-tools-registry.json` move into
-  `AutoContext.Engine/Resources/` already happened in Phase 5;
-  deleting `AutoContext.Mcp.Server/` here removes anything left in
-  its directory by definition.
+- The engine-owned `mcp-tools-registry.json` was authored fresh
+  under `AutoContext.Engine/Resources/` in Phase 7 (not moved — the
+  old `mcp-workers-registry.json` stayed in `AutoContext.Mcp.Server/`
+  untouched under its legacy name); deleting `AutoContext.Mcp.Server/`
+  here removes that legacy registry and schema along with the rest of
+  the project.
 - Solution file (`AutoContext.slnx`) cleaned of the retired project.
 - `build.ps1` no longer references `AutoContext.Mcp.Server`.
 

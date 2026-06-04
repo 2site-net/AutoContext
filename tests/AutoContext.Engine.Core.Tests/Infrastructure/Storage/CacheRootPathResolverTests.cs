@@ -1,7 +1,7 @@
 namespace AutoContext.Engine.Core.Tests.Infrastructure.Storage;
 
 using AutoContext.Engine.Core.Infrastructure.Storage;
-using AutoContext.Engine.Core.Tests.Support.Shared;
+using AutoContext.Engine.Tests.Support.Environment;
 
 public sealed class CacheRootPathResolverTests
 {

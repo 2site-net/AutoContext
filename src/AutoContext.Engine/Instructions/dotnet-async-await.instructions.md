@@ -1,0 +1,28 @@
+---
+name: "dotnet-async-await (v1.0.0)"
+description: "Apply when writing or reviewing async .NET code (Task/ValueTask, CancellationToken, IAsyncEnumerable, IAsyncDisposable, ConfigureAwait)."
+applyTo: "**/*.{cs,fs,vb}"
+---
+
+# Async / Await Instructions
+
+## MCP Tool Validation
+
+After editing or generating any C# source file, call the
+`analyze_csharp_code` MCP tool on the changed source. Pass the file
+contents as `content` and the file's absolute path as `originalPath`.
+For test files, also pass the production type's namespace as
+`originalNamespace` and the test file path as `comparedPath`. Treat
+any reported violation as blocking — fix it before reporting the work
+as done.
+
+## Rules
+
+- [INST0001] **Do** write true `async`/`await` code, don't mix sync and async code; follow the async all the way down.
+- [INST0002] **Do** add an optional `CancellationToken ct = default` as the final parameter in public async APIs.
+- [INST0003] **Do** use `IAsyncEnumerable<T>` for streaming operations (e.g., `await foreach (var row in repo.GetRowsAsync()) {}`).
+- [INST0004] **Do** use `ValueTask` only when best practices permit and profiling shows a measurable benefit over `Task`.
+- [INST0005] **Do** implement `IAsyncDisposable` for async cleanup.
+- [INST0006] **Do** add `.ConfigureAwait(false)` in library or other non-UI code to avoid deadlocks on captured contexts except in xUnit tests (xUnit1030).
+- [INST0007] **Don't** use `async void` except for event handlers—unobserved exceptions crash the process.
+- [INST0008] **Don't** block on async code by calling `.Result`, `.Wait()`, or `.GetAwaiter().GetResult()` on a `Task` — this deadlocks in UI / ASP.NET contexts and defeats all back-pressure from the async pipeline.

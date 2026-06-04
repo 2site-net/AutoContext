@@ -4,7 +4,9 @@ using System.Globalization;
 using System.IO;
 
 using AutoContext.Engine.Core.Infrastructure.Storage;
-using AutoContext.Engine.Tests.Support.Integration;
+using AutoContext.Engine.Tests.Support.Diagnostics;
+using AutoContext.Engine.Tests.Support.IO;
+using AutoContext.Engine.Tests.Support.Pipes;
 
 using Xunit.Sdk;
 

@@ -23,6 +23,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\AutoContext.Engine.Core\AutoContext.Engine.Core.csproj" />
+    <ProjectReference Include="..\AutoContext.Engine.Tests.Support\AutoContext.Engine.Tests.Support.csproj" />
   </ItemGroup>
 
 </Project>

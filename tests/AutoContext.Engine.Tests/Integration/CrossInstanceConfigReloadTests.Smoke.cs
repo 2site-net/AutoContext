@@ -7,7 +7,9 @@ using AutoContext.Engine.Protocol.JsonRpc;
 using AutoContext.Engine.Protocol.Messages;
 using AutoContext.Engine.Protocol.Messages.Config;
 using AutoContext.Engine.Protocol.Serialization;
-using AutoContext.Engine.Tests.Support.Integration;
+using AutoContext.Engine.Tests.Support.Diagnostics;
+using AutoContext.Engine.Tests.Support.IO;
+using AutoContext.Engine.Tests.Support.Pipes;
 using AutoContext.Framework.Pipes;
 
 /// <summary>

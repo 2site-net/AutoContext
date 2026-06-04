@@ -3,7 +3,7 @@ namespace AutoContext.Engine.Core.Tests;
 using AutoContext.Engine.Core;
 using AutoContext.Engine.Core.Logging;
 using AutoContext.Engine.Core.Tests.Support;
-using AutoContext.Engine.Core.Tests.Support.Shared;
+using AutoContext.Engine.Tests.Support.Options;
 
 using Microsoft.Extensions.Options;
 

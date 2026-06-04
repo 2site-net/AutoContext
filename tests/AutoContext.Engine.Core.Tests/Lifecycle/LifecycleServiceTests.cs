@@ -12,7 +12,6 @@ using AutoContext.Engine.Core.Tests.Support.Lifecycle;
 using AutoContext.Engine.Core.Tests.Support.Logging;
 using AutoContext.Engine.Core.Tests.Support.Registry;
 using AutoContext.Engine.Core.Tests.Support.Rpc;
-using AutoContext.Engine.Core.Tests.Support.Shared;
 using AutoContext.Engine.Protocol;
 using AutoContext.Engine.Protocol.JsonRpc;
 using AutoContext.Engine.Protocol.Messages;
@@ -20,6 +19,7 @@ using AutoContext.Engine.Protocol.Messages.Lifecycle;
 using AutoContext.Engine.Protocol.Messages.Logs;
 using AutoContext.Engine.Protocol.Messages.Registry;
 using AutoContext.Engine.Protocol.Serialization;
+using AutoContext.Engine.Tests.Support.IO;
 using AutoContext.Framework.Pipes;
 
 using Microsoft.Extensions.Logging.Abstractions;

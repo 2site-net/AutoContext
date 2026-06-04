@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Version>0.9.5</Version>
+    <TargetFramework>net10.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <RootNamespace>AutoContext.Engine.Tests.Support</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="xunit.v3.assert" Version="3.2.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\AutoContext.Engine.Core\AutoContext.Engine.Core.csproj" />
+    <ProjectReference Include="..\..\src\AutoContext.Engine.Protocol\AutoContext.Engine.Protocol.csproj" />
+    <ProjectReference Include="..\..\src\AutoContext.Framework.Pipes\AutoContext.Framework.Pipes.csproj" />
+  </ItemGroup>
+
+</Project>
