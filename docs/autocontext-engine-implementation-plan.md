@@ -1635,12 +1635,10 @@ own `--workspace` path, exposes the result via `Workspace.Detect` and
 
 ## Phase 5 — Instructions corpus build-time pipeline
 
-**Status**: In progress — the build-time pipeline landed and was then
-re-architected (see *Architecture note* below); the wire manifest and
-metadata manifest are done, leaving only the corpus round-trip /
-`applyTo` parser tests and the phase-completion doc. The MCP-tools
-registry and its `mcp-tools.json` projection moved to Phase 7, where
-the engine first owns the registry (see *Scope note* below).
+**Status**: Completed on branch `features/instructions-corpus-build-time-pipeline`.
+The MCP-tools registry and its `mcp-tools.json` projection moved to
+Phase 7, where the engine first owns the registry (see *Scope note*
+below).
 
 | # | Commit subject | State |
 |---|---|---|
@@ -1651,7 +1649,7 @@ the engine first owns the registry (see *Scope note* below).
 | 5 | `refactor(instructions): replace MSBuild task with console app generator` | DONE |
 | 6 | `feat(instructions-manifest-gen): emit instructions-files-metadata.json` | DONE |
 | 7 | `test(instructions): cover corpus round-trips and applyTo parser` | DONE |
-| 8 | `docs(plan): mark Phase 5 complete` | Not started |
+| 8 | `docs(plan): mark Phase 5 complete` | DONE |
 
 **Goal**: a single build-time pass over `src/AutoContext.Engine/Instructions/`
 produces both `Resources/instructions-files.json` (wire shape) and
