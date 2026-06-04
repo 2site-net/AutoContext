@@ -1631,7 +1631,7 @@ own `--workspace` path, exposes the result via `Workspace.Detect` and
 |---|---|---|
 | 1 | `feat(build-tasks): scaffold AutoContext.Build.Tasks project` | DONE |
 | 2 | `feat(engine-core): add applyTo parser with round-trip check` | DONE |
-| 3 | `refactor(engine): move instruction corpus to engine host` | Not started |
+| 3 | `refactor(engine): copy instruction corpus into engine host` | DONE |
 | 4 | `feat(build-tasks): generate instructions-files.json wire manifest` | Not started |
 | 5 | `feat(build-tasks): emit instructions-files-metadata.json` | Not started |
 | 6 | `refactor(engine): rename mcp-workers-registry to mcp-tools-registry` | Not started |
@@ -1655,16 +1655,22 @@ round-trip-verified per fixture.
   `AutoContext.Build.Tasks.Tests`. Added to `AutoContext.slnx` and
   `build.ps1` in the same change. The implementations described
   below land in this project as it is introduced.
-- Curated instruction corpus moves to
+- Curated instruction corpus is **copied** to
   `src/AutoContext.Engine/Instructions/` — the binary host owns the
   side-cars (P5). Today the corpus is co-located with the VS Code
-  extension at `src/AutoContext.VsCode/instructions/`; the move is
-  part of this phase because the engine binary is now the owner and
-  the files ship next to the binary (resolved at runtime via
-  `AppContext.BaseDirectory`, not embedded resources). The
-  `Instructions/` and `Resources/` side-car folders under
-  `src/AutoContext.Engine/` are created here too — first phase that
-  actually populates them.
+  extension at `src/AutoContext.VsCode/instructions/`; the engine
+  binary becomes the owner and the files ship next to the binary
+  (resolved at runtime via `AppContext.BaseDirectory`, not embedded
+  resources). This is a **copy, not a move**: the VS Code copy stays
+  in place and untouched so the extension's existing TS generators,
+  `package.json` `chatInstructions` wiring, and packaging keep
+  working unchanged. The VsCode original is deleted (and its
+  generators/packaging repointed at the engine corpus) in the later
+  phase that connects the engine to the VS Code extension — not
+  here. The `Instructions/` side-car folder under
+  `src/AutoContext.Engine/` is created here (populated with the
+  copied corpus); the `Resources/` folder is created in row 4 when
+  the build task first writes into it.
 - `InstructionsListBuilder` — MSBuild task lives in a dedicated
   build-tasks project (`AutoContext.Build.Tasks/`, netstandard2.0)
   rather than the engine runtime library, because MSBuild ITask
