@@ -1627,6 +1627,18 @@ own `--workspace` path, exposes the result via `Workspace.Detect` and
 
 **Status**: Not started.
 
+| # | Commit subject | State |
+|---|---|---|
+| 1 | `feat(build-tasks): scaffold AutoContext.Build.Tasks project` | DONE |
+| 2 | `feat(engine-core): add applyTo parser with round-trip check` | Not started |
+| 3 | `refactor(engine): move instruction corpus to engine host` | Not started |
+| 4 | `feat(build-tasks): generate instructions-files.json wire manifest` | Not started |
+| 5 | `feat(build-tasks): emit instructions-files-metadata.json` | Not started |
+| 6 | `refactor(engine): rename mcp-workers-registry to mcp-tools-registry` | Not started |
+| 7 | `feat(build-tasks): project mcp-tools.json wire shape at build time` | Not started |
+| 8 | `test(build-tasks): cover corpus round-trips and registry schema` | Not started |
+| 9 | `docs(plan): mark Phase 5 complete` | Not started |
+
 **Goal**: a single build-time pass over `src/AutoContext.Engine/Instructions/`
 produces both `Resources/instructions-files.json` (wire shape) and
 `Resources/instructions-files-metadata.json` (engine-internal
