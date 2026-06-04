@@ -1,7 +1,8 @@
 <Project>
 
   <!--
-    Generates the wire-shape Resources/instructions-files.json catalogue from the
+    Generates the wire-shape Resources/instructions-files.json catalogue and its
+    section-indexed Resources/instructions-files-metadata.json companion from the
     curated instruction corpus by running the
     AutoContext.Instructions.Manifest.Generator console tool. Imported by
     AutoContext.Engine.csproj because the engine binary host owns the output
@@ -17,7 +18,7 @@
   <Target Name="GenerateInstructionsFilesManifest"
           AfterTargets="ResolveProjectReferences"
           BeforeTargets="CoreCompile">
-    <Exec Command="dotnet &quot;$(_InstructionsManifestGeneratorAssembly)&quot; &quot;$(MSBuildProjectDirectory)\Instructions&quot; &quot;$(MSBuildProjectDirectory)\Resources\instructions-files.json&quot;" />
+    <Exec Command="dotnet &quot;$(_InstructionsManifestGeneratorAssembly)&quot; &quot;$(MSBuildProjectDirectory)\Instructions&quot; &quot;$(MSBuildProjectDirectory)\Resources\instructions-files.json&quot; &quot;$(MSBuildProjectDirectory)\Resources\instructions-files-metadata.json&quot;" />
   </Target>
 
 </Project>

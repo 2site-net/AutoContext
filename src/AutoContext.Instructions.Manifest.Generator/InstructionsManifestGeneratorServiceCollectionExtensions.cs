@@ -10,8 +10,10 @@ internal static class InstructionsManifestGeneratorServiceCollectionExtensions
 {
     /// <summary>
     /// Adds <see cref="InstructionsManifestGenerator"/>,
-    /// <see cref="IInstructionsListBuilder"/>, and
-    /// <see cref="IInstructionsManifestSerializer"/> to
+    /// <see cref="IInstructionsListBuilder"/>,
+    /// <see cref="IInstructionsManifestSerializer"/>,
+    /// <see cref="IInstructionsMetadataBuilder"/>, and
+    /// <see cref="IInstructionsMetadataSerializer"/> to
     /// <paramref name="services"/>.
     /// </summary>
     /// <param name="services">The service collection to extend.</param>
@@ -24,6 +26,8 @@ internal static class InstructionsManifestGeneratorServiceCollectionExtensions
 
         services.AddSingleton<IInstructionsListBuilder, InstructionsListBuilder>();
         services.AddSingleton<IInstructionsManifestSerializer, InstructionsManifestSerializer>();
+        services.AddSingleton<IInstructionsMetadataBuilder, InstructionsMetadataBuilder>();
+        services.AddSingleton<IInstructionsMetadataSerializer, InstructionsMetadataSerializer>();
         services.AddSingleton<InstructionsManifestGenerator>();
 
         return services;

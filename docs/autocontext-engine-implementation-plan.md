@@ -1646,7 +1646,7 @@ registry rename, and `mcp-tools.json` projection remain.
 | 3 | `feat(build-tasks): generate instructions manifest` | DONE |
 | 4 | `refactor(instructions): add shared parser project` | DONE |
 | 5 | `refactor(instructions): replace MSBuild task with console app generator` | DONE |
-| 6 | `feat(instructions-manifest-gen): emit instructions-files-metadata.json` | Not started |
+| 6 | `feat(instructions-manifest-gen): emit instructions-files-metadata.json` | DONE |
 | 7 | `refactor(engine): rename mcp-workers-registry to mcp-tools-registry` | Not started |
 | 8 | `feat(instructions): project mcp-tools.json at build time` | Not started |
 | 9 | `test(instructions): cover corpus round-trips and registry schema` | Not started |
