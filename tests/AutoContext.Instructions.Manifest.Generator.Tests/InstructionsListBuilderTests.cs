@@ -1,18 +1,20 @@
-namespace AutoContext.Build.Tasks.Tests;
+namespace AutoContext.Instructions.Manifest.Generator.Tests;
 
-using AutoContext.Build.Tasks;
-using AutoContext.Build.Tasks.Tests.Support;
 using AutoContext.Engine.Tests.Support.IO;
+using AutoContext.Instructions.Manifest.Generator;
+using AutoContext.Instructions.Manifest.Generator.Tests.Support;
 
 public sealed class InstructionsListBuilderTests
 {
     public sealed class Build(TempDirectoryFixture tempDirectory) : IClassFixture<TempDirectoryFixture>
     {
+        private readonly InstructionsListBuilder _sut = new();
+
         [Fact]
         public void Should_reject_null_corpus_directory()
         {
             // Act + Assert
-            Assert.Throws<ArgumentNullException>(() => InstructionsListBuilder.Build(null!));
+            Assert.Throws<ArgumentNullException>(() => _sut.Build(null!));
         }
 
         [Fact]
@@ -24,7 +26,7 @@ public sealed class InstructionsListBuilderTests
             InstructionsCorpusTestWriter.WriteInstruction(corpus, "beta.instructions.md", "beta (v2.3.4)", "Beta.");
 
             // Act
-            var manifest = InstructionsListBuilder.Build(corpus);
+            var manifest = _sut.Build(corpus);
 
             // Assert
             Assert.Equal(2, manifest.Instructions.Count);
@@ -40,7 +42,7 @@ public sealed class InstructionsListBuilderTests
             InstructionsCorpusTestWriter.WriteInstruction(corpus, "mike.instructions.md", "mike (v1.0.0)", "Mike.");
 
             // Act
-            var manifest = InstructionsListBuilder.Build(corpus);
+            var manifest = _sut.Build(corpus);
 
             // Assert
             var expectedKeys = new[] { "alpha", "mike", "zulu" };
@@ -55,7 +57,7 @@ public sealed class InstructionsListBuilderTests
             InstructionsCorpusTestWriter.WriteInstruction(corpus, "code-review.instructions.md", "code-review (v3.1.4)", "Review.");
 
             // Act
-            var entry = InstructionsListBuilder.Build(corpus).Instructions.Single();
+            var entry = _sut.Build(corpus).Instructions.Single();
 
             // Assert
             Assert.Multiple(
@@ -74,7 +76,7 @@ public sealed class InstructionsListBuilderTests
             InstructionsCorpusTestWriter.WriteInstruction(corpus, "code-review.instructions.md", "code-review (v1.0.0)", "Review.");
 
             // Act
-            var manifest = InstructionsListBuilder.Build(corpus);
+            var manifest = _sut.Build(corpus);
 
             // Assert
             Assert.Multiple(
@@ -90,7 +92,7 @@ public sealed class InstructionsListBuilderTests
             InstructionsCorpusTestWriter.WriteInstruction(corpus, "lang-csharp.instructions.md", "lang-csharp (v1.0.0)", "C#.", applyTo: "**/*.cs");
 
             // Act
-            var entry = InstructionsListBuilder.Build(corpus).Instructions.Single();
+            var entry = _sut.Build(corpus).Instructions.Single();
 
             // Assert
             Assert.Equal("**/*.cs", entry.ApplyTo);
@@ -104,7 +106,7 @@ public sealed class InstructionsListBuilderTests
             InstructionsCorpusTestWriter.WriteInstruction(corpus, "code-review.instructions.md", "code-review (v1.0.0)", "Review.");
 
             // Act
-            var entry = InstructionsListBuilder.Build(corpus).Instructions.Single();
+            var entry = _sut.Build(corpus).Instructions.Single();
 
             // Assert
             Assert.Null(entry.ApplyTo);
@@ -120,7 +122,7 @@ public sealed class InstructionsListBuilderTests
             InstructionsCorpusTestWriter.WriteChangelog(corpus, "code-review");
 
             // Act
-            var manifest = InstructionsListBuilder.Build(corpus);
+            var manifest = _sut.Build(corpus);
 
             // Assert
             Assert.Multiple(
@@ -136,7 +138,7 @@ public sealed class InstructionsListBuilderTests
             InstructionsCorpusTestWriter.WriteInstruction(corpus, "code-review.instructions.md", "code-review (v1.0.0)", "Review.");
 
             // Act
-            var entry = InstructionsListBuilder.Build(corpus).Instructions.Single();
+            var entry = _sut.Build(corpus).Instructions.Single();
 
             // Assert
             Assert.Multiple(
@@ -152,7 +154,7 @@ public sealed class InstructionsListBuilderTests
             File.WriteAllText(Path.Combine(corpus, "broken.instructions.md"), "---\ndescription: \"No name.\"\n---\nBody.\n");
 
             // Act
-            var exception = Assert.Throws<InvalidOperationException>(() => InstructionsListBuilder.Build(corpus));
+            var exception = Assert.Throws<InvalidOperationException>(() => _sut.Build(corpus));
 
             // Assert
             Assert.Contains("broken.instructions.md", exception.Message, StringComparison.Ordinal);
@@ -166,7 +168,7 @@ public sealed class InstructionsListBuilderTests
             InstructionsCorpusTestWriter.WriteInstruction(corpus, "code-review.instructions.md", "mismatch (v1.0.0)", "Review.");
 
             // Act
-            var exception = Assert.Throws<InvalidOperationException>(() => InstructionsListBuilder.Build(corpus));
+            var exception = Assert.Throws<InvalidOperationException>(() => _sut.Build(corpus));
 
             // Assert
             Assert.Contains("does not equal file basename", exception.Message, StringComparison.Ordinal);

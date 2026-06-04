@@ -1,17 +1,19 @@
-namespace AutoContext.Build.Tasks.Tests;
+namespace AutoContext.Instructions.Manifest.Generator.Tests;
 
-using AutoContext.Build.Tasks;
-using AutoContext.Build.Tasks.Tests.Support;
+using AutoContext.Instructions.Manifest.Generator;
+using AutoContext.Instructions.Manifest.Generator.Tests.Support;
 
-public sealed class InstructionsFilesManifestSerializerTests
+public sealed class InstructionsManifestSerializerTests
 {
     public sealed class Serialize
     {
+        private readonly InstructionsManifestSerializer _sut = new();
+
         [Fact]
         public void Should_reject_null_manifest()
         {
             // Act + Assert
-            Assert.Throws<ArgumentNullException>(() => InstructionsFilesManifestSerializer.Serialize(null!));
+            Assert.Throws<ArgumentNullException>(() => _sut.Serialize(null!));
         }
 
         [Fact]
@@ -21,7 +23,7 @@ public sealed class InstructionsFilesManifestSerializerTests
             var manifest = InstructionsManifestFakeData.CreateManifest();
 
             // Act
-            var json = InstructionsFilesManifestSerializer.Serialize(manifest);
+            var json = _sut.Serialize(manifest);
 
             // Assert
             Assert.Equal("{\n  \"schemaVersion\": \"1\",\n  \"instructions\": []\n}\n", json);
@@ -35,7 +37,7 @@ public sealed class InstructionsFilesManifestSerializerTests
                 InstructionsManifestFakeData.CreateEntry(applyTo: "**/*.cs", hasChangelog: true, alwaysAttached: true));
 
             // Act
-            var json = InstructionsFilesManifestSerializer.Serialize(manifest);
+            var json = _sut.Serialize(manifest);
 
             // Assert
             Assert.Equal(
@@ -66,7 +68,7 @@ public sealed class InstructionsFilesManifestSerializerTests
                 InstructionsManifestFakeData.CreateEntry(applyTo: null));
 
             // Act
-            var json = InstructionsFilesManifestSerializer.Serialize(manifest);
+            var json = _sut.Serialize(manifest);
 
             // Assert
             Assert.DoesNotContain("applyTo", json, StringComparison.Ordinal);
@@ -80,10 +82,27 @@ public sealed class InstructionsFilesManifestSerializerTests
                 InstructionsManifestFakeData.CreateEntry(description: "Quote \" and \\ slash."));
 
             // Act
-            var json = InstructionsFilesManifestSerializer.Serialize(manifest);
+            var json = _sut.Serialize(manifest);
 
             // Assert
             Assert.Contains("\"description\": \"Quote \\\" and \\\\ slash.\"", json, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void Should_keep_punctuation_literal()
+        {
+            // Arrange
+            var manifest = InstructionsManifestFakeData.CreateManifest(
+                InstructionsManifestFakeData.CreateEntry(description: "AutoContext's tools \u2014 see <docs> & more."));
+
+            // Act
+            var json = _sut.Serialize(manifest);
+
+            // Assert
+            Assert.Contains(
+                "\"description\": \"AutoContext's tools \u2014 see <docs> & more.\"",
+                json,
+                StringComparison.Ordinal);
         }
 
         [Fact]
@@ -94,7 +113,7 @@ public sealed class InstructionsFilesManifestSerializerTests
                 InstructionsManifestFakeData.CreateEntry());
 
             // Act
-            var json = InstructionsFilesManifestSerializer.Serialize(manifest);
+            var json = _sut.Serialize(manifest);
 
             // Assert
             Assert.EndsWith("}\n", json, StringComparison.Ordinal);

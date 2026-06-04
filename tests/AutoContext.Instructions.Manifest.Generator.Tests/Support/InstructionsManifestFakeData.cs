@@ -1,10 +1,10 @@
-namespace AutoContext.Build.Tasks.Tests.Support;
+namespace AutoContext.Instructions.Manifest.Generator.Tests.Support;
 
-using AutoContext.Build.Tasks;
+using AutoContext.Instructions.Manifest.Generator;
 
 internal static class InstructionsManifestFakeData
 {
-    internal static InstructionsFileManifestEntry CreateEntry(
+    internal static InstructionsManifestEntry CreateEntry(
         string key = "code-review",
         string fileName = "code-review.instructions.md",
         string name = "code-review (v1.0.0)",
@@ -16,6 +16,6 @@ internal static class InstructionsManifestFakeData
         bool alwaysAttached = false)
         => new(key, fileName, name, version, description, applyTo, hasChangelog, contentHash, alwaysAttached);
 
-    internal static InstructionsFilesManifest CreateManifest(params InstructionsFileManifestEntry[] entries)
+    internal static InstructionsManifest CreateManifest(params InstructionsManifestEntry[] entries)
         => new("1", entries);
 }

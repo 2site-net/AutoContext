@@ -14,11 +14,11 @@
 
   <ItemGroup>
     <ProjectReference Include="..\AutoContext.Engine.Core\AutoContext.Engine.Core.csproj" />
-    <!-- Build-time-only: provides the BuildInstructionsListTask used by the
-         imported targets below. ReferenceOutputAssembly=false keeps the
-         netstandard2.0 task assembly off the engine's runtime reference set
-         while still ordering its build before the engine's. -->
-    <ProjectReference Include="..\AutoContext.Build.Tasks\AutoContext.Build.Tasks.csproj"
+    <!-- Build-time-only: the console generator the imported targets invoke to
+         emit Resources/instructions-files.json. ReferenceOutputAssembly=false
+         keeps the generator off the engine's runtime reference set while still
+         ordering its build before the engine's. -->
+    <ProjectReference Include="..\AutoContext.Instructions.Manifest.Generator\AutoContext.Instructions.Manifest.Generator.csproj"
                       ReferenceOutputAssembly="false"
                       Private="false"
                       SkipGetTargetFrameworkProperties="true"
@@ -30,6 +30,6 @@
     <PackageReference Include="System.CommandLine" Version="2.0.8" />
   </ItemGroup>
 
-  <Import Project="..\AutoContext.Build.Tasks\InstructionsListBuilder.targets" />
+  <Import Project="..\AutoContext.Instructions.Manifest.Generator\InstructionsManifestGenerator.targets" />
 
 </Project>

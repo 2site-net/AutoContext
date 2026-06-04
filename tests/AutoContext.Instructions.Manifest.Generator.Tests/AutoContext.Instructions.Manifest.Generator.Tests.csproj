@@ -5,7 +5,7 @@
     <OutputType>Exe</OutputType>
     <TargetFramework>net10.0</TargetFramework>
     <IsPackable>false</IsPackable>
-    <RootNamespace>AutoContext.Build.Tasks.Tests</RootNamespace>
+    <RootNamespace>AutoContext.Instructions.Manifest.Generator.Tests</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
@@ -13,8 +13,6 @@
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
     <PackageReference Include="xunit.v3" Version="3.2.2" />
     <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5" />
-    <PackageReference Include="Microsoft.Build.Framework" Version="17.14.28" />
-    <PackageReference Include="Microsoft.Build.Utilities.Core" Version="17.14.28" />
   </ItemGroup>
 
   <ItemGroup>
@@ -22,7 +20,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\AutoContext.Build.Tasks\AutoContext.Build.Tasks.csproj" />
+    <ProjectReference Include="..\..\src\AutoContext.Instructions.Manifest.Generator\AutoContext.Instructions.Manifest.Generator.csproj" />
     <ProjectReference Include="..\AutoContext.Engine.Tests.Support\AutoContext.Engine.Tests.Support.csproj" />
   </ItemGroup>
 

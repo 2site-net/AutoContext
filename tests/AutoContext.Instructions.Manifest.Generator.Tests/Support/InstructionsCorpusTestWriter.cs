@@ -1,4 +1,4 @@
-namespace AutoContext.Build.Tasks.Tests.Support;
+namespace AutoContext.Instructions.Manifest.Generator.Tests.Support;
 
 using System.Text;
 
