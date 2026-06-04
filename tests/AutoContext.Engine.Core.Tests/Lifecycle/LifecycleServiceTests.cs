@@ -730,10 +730,10 @@ public sealed class LifecycleServiceTests(
             RegistryEntryFakeData.CreateValidEntry(),
             RegistryEntryFakeData.CreateValidEntry(),
         };
-        new RegistryFileWriter(registryPath).Write(seeded);
+        RegistryFileTestWriter.Write(registryPath, seeded);
 
         var context = lifecycle.Create(
-            registryReader: new RegistryFileReader(registryPath));
+            registryReader: RegistryFileReaderTestFactory.Create(registryPath));
         await context.Service.StartAsync(TestContext.Current.CancellationToken);
 
         await using var client = await EngineRpcTestClient.ConnectAsync(
@@ -795,10 +795,10 @@ public sealed class LifecycleServiceTests(
     {
         // Arrange
         var registryPath = tempDirectory.CreatePath(RegistryFileName);
-        new RegistryFileWriter(registryPath).Write([]);
+        RegistryFileTestWriter.Write(registryPath);
 
         var context = lifecycle.Create(
-            registryReader: new RegistryFileReader(registryPath));
+            registryReader: RegistryFileReaderTestFactory.Create(registryPath));
         await context.Service.StartAsync(TestContext.Current.CancellationToken);
 
         await using var client = await EngineRpcTestClient.ConnectAsync(

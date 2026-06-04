@@ -59,7 +59,7 @@ public sealed class RegistryEntryReaderTests
                 ProcessId = 4242,
                 ProcessStartTimeUtc = startTime,
             };
-            new RegistryFileWriter(path).Write([entry]);
+            RegistryFileTestWriter.Write(path, entry);
             var lookup = new FakeProcessLookup();
             lookup.Register(4242, new FakeProcessHandle(startTime.UtcDateTime));
             var sut = RegistryEntryReaderTestFactory.Create(path, lookup);
@@ -84,7 +84,7 @@ public sealed class RegistryEntryReaderTests
                 ProcessId = 5151,
                 ProcessStartTimeUtc = DateTimeOffset.UtcNow.AddMinutes(-2),
             };
-            new RegistryFileWriter(path).Write([entry]);
+            RegistryFileTestWriter.Write(path, entry);
             var sut = RegistryEntryReaderTestFactory.Create(path, new FakeProcessLookup());
 
             // Act
@@ -106,7 +106,7 @@ public sealed class RegistryEntryReaderTests
                 ProcessId = 6262,
                 ProcessStartTimeUtc = entryStart,
             };
-            new RegistryFileWriter(path).Write([entry]);
+            RegistryFileTestWriter.Write(path, entry);
             var lookup = new FakeProcessLookup();
             lookup.Register(6262, new FakeProcessHandle(DateTime.UtcNow));
             var sut = RegistryEntryReaderTestFactory.Create(path, lookup);
@@ -130,7 +130,7 @@ public sealed class RegistryEntryReaderTests
                 ProcessId = 7373,
                 ProcessStartTimeUtc = entryStart,
             };
-            new RegistryFileWriter(path).Write([entry]);
+            RegistryFileTestWriter.Write(path, entry);
             var lookup = new FakeProcessLookup();
             lookup.Register(7373, new FakeProcessHandle(entryStart.UtcDateTime.AddMilliseconds(500)));
             var sut = RegistryEntryReaderTestFactory.Create(path, lookup);
@@ -159,7 +159,7 @@ public sealed class RegistryEntryReaderTests
                 ProcessId = 1002,
                 ProcessStartTimeUtc = DateTimeOffset.UtcNow.AddMinutes(-30),
             };
-            new RegistryFileWriter(path).Write([liveEntry, staleEntry]);
+            RegistryFileTestWriter.Write(path, liveEntry, staleEntry);
             var lookup = new FakeProcessLookup();
             lookup.Register(1001, new FakeProcessHandle(liveStart.UtcDateTime));
             var sut = RegistryEntryReaderTestFactory.Create(path, lookup);
@@ -187,7 +187,7 @@ public sealed class RegistryEntryReaderTests
                 ProcessId = 9999,
                 ProcessStartTimeUtc = startTime,
             };
-            new RegistryFileWriter(path).Write([entry]);
+            RegistryFileTestWriter.Write(path, entry);
             var handle = new FakeProcessHandle(startTime.UtcDateTime);
             var lookup = new FakeProcessLookup();
             lookup.Register(9999, handle);

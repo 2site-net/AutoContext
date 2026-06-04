@@ -7,7 +7,6 @@ using AutoContext.Engine.Core.Workspace.Config.Format;
 using AutoContext.Engine.Core.Workspace.Config.Snapshot;
 
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 
 /// <summary>
 /// Owns the <c>.autocontext.json</c> file for a single workspace and
@@ -38,8 +37,8 @@ internal sealed partial class ConfigFileManager : IConfigUpdater, IConfigSnapsho
     private const string ConfigFileName = ".autocontext.json";
     private const string DeletedSignature = "<none>";
 
-    private static readonly TimeSpan DefaultBatchWindow = TimeSpan.FromMilliseconds(5);
-    private static readonly TimeSpan DefaultDebounceDelay = TimeSpan.FromMilliseconds(100);
+    internal static readonly TimeSpan DefaultBatchWindow = TimeSpan.FromMilliseconds(5);
+    internal static readonly TimeSpan DefaultDebounceDelay = TimeSpan.FromMilliseconds(100);
 
     private readonly string _configPath;
     private ConfigSnapshot _current;
@@ -61,59 +60,50 @@ internal sealed partial class ConfigFileManager : IConfigUpdater, IConfigSnapsho
     /// <c>version</c> field on every save and used as the default
     /// version source for newly created entries. Must not be
     /// <see langword="null"/> or whitespace.</param>
-    /// <param name="logger">Diagnostic sink. <see langword="null"/>
-    /// silences diagnostics.</param>
     /// <param name="timeProvider">Clock that schedules the watcher
-    /// debounce window. <see langword="null"/> uses
-    /// <see cref="TimeProvider.System"/>.</param>
+    /// debounce window.</param>
     /// <param name="debounceDelay">Quiet window the watcher waits for
     /// after the last filesystem event before reconciling, collapsing a
-    /// burst of raw events into a single read. <see langword="null"/>
-    /// uses 100&#160;ms. Must be positive when supplied.</param>
+    /// burst of raw events into a single read. Must be positive.</param>
     /// <param name="batchWindow">In-process window the writer collects
     /// further <see cref="UpdateBatchAsync"/> edits over before folding
-    /// them into a single write. <see langword="null"/> uses 5&#160;ms.
-    /// Must be positive when supplied.</param>
+    /// them into a single write. Must be positive.</param>
+    /// <param name="logger">Diagnostic sink.</param>
     /// <exception cref="ArgumentException"><paramref name="workspacePath"/>
     /// or <paramref name="engineVersion"/> is <see langword="null"/>,
     /// empty, or whitespace.</exception>
+    /// <exception cref="ArgumentNullException">
+    /// <paramref name="timeProvider"/> or <paramref name="logger"/> is
+    /// <see langword="null"/>.</exception>
     /// <exception cref="ArgumentOutOfRangeException">
     /// <paramref name="debounceDelay"/> or <paramref name="batchWindow"/>
     /// is zero or negative.</exception>
     public ConfigFileManager(
         string workspacePath,
         string engineVersion,
-        ILogger<ConfigFileManager>? logger = null,
-        TimeProvider? timeProvider = null,
-        TimeSpan? debounceDelay = null,
-        TimeSpan? batchWindow = null)
+        TimeProvider timeProvider,
+        TimeSpan debounceDelay,
+        TimeSpan batchWindow,
+        ILogger<ConfigFileManager> logger)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(workspacePath);
         ArgumentException.ThrowIfNullOrWhiteSpace(engineVersion);
-
-        if (debounceDelay is { } delay)
-        {
-            ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(
-                delay, TimeSpan.Zero, nameof(debounceDelay));
-        }
-
-        if (batchWindow is { } window)
-        {
-            ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(
-                window, TimeSpan.Zero, nameof(batchWindow));
-        }
-
-        var clock = timeProvider ?? TimeProvider.System;
+        ArgumentNullException.ThrowIfNull(timeProvider);
+        ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(
+            debounceDelay, TimeSpan.Zero, nameof(debounceDelay));
+        ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(
+            batchWindow, TimeSpan.Zero, nameof(batchWindow));
+        ArgumentNullException.ThrowIfNull(logger);
 
         _configPath = Path.Combine(workspacePath, ConfigFileName);
         _engineVersion = engineVersion;
-        _logger = logger ?? NullLogger<ConfigFileManager>.Instance;
+        _logger = logger;
         _watcher = new FileChangeWatcher(
             _configPath,
             ReconcileFromWatcherAsync,
-            clock,
-            debounceDelay ?? DefaultDebounceDelay);
-        _writer = new ConfigBatchWriter(this, clock, batchWindow ?? DefaultBatchWindow);
+            timeProvider,
+            debounceDelay);
+        _writer = new ConfigBatchWriter(this, timeProvider, batchWindow);
         _current = ConfigSnapshot.Empty;
     }
 

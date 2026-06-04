@@ -11,6 +11,8 @@ using AutoContext.Engine.Core.Tests.Support.Registry;
 using AutoContext.Engine.Protocol.Messages.Registry;
 using AutoContext.Engine.Tests.Support.IO;
 
+using Microsoft.Extensions.Logging.Abstractions;
+
 public sealed class RegistryFileServiceTests
 {
     private const string RegistryFileName = "engine-registry.json";
@@ -21,9 +23,9 @@ public sealed class RegistryFileServiceTests
         public void Should_reject_null_or_whitespace_path()
         {
             Assert.Multiple(
-                () => Assert.Throws<ArgumentNullException>(() => new RegistryFileService(null!)),
-                () => Assert.Throws<ArgumentException>(() => new RegistryFileService(string.Empty)),
-                () => Assert.Throws<ArgumentException>(() => new RegistryFileService("   ")));
+                () => Assert.Throws<ArgumentNullException>(() => new RegistryFileService(null!, NullLoggerFactory.Instance)),
+                () => Assert.Throws<ArgumentException>(() => new RegistryFileService(string.Empty, NullLoggerFactory.Instance)),
+                () => Assert.Throws<ArgumentException>(() => new RegistryFileService("   ", NullLoggerFactory.Instance)));
         }
     }
 
@@ -39,7 +41,7 @@ public sealed class RegistryFileServiceTests
 
             await sut.WriteAsync(_ => [entry], TestContext.Current.CancellationToken);
 
-            var reader = new RegistryFileReader(path);
+            var reader = RegistryFileReaderTestFactory.Create(path);
             var persisted = await reader.ReadAsync(TestContext.Current.CancellationToken);
             Assert.Single(persisted);
             Assert.Equal(entry.InstanceId, persisted[0].InstanceId);
@@ -65,7 +67,7 @@ public sealed class RegistryFileServiceTests
 
             await Task.WhenAll(appendTasks);
 
-            var reader = new RegistryFileReader(path);
+            var reader = RegistryFileReaderTestFactory.Create(path);
             var persisted = await reader.ReadAsync(TestContext.Current.CancellationToken);
             Assert.Equal(concurrentAppends, persisted.Count);
         }
@@ -92,7 +94,7 @@ public sealed class RegistryFileServiceTests
             Assert.NotNull(observedCurrent);
             Assert.Empty(observedCurrent!);
 
-            var reader = new RegistryFileReader(path);
+            var reader = RegistryFileReaderTestFactory.Create(path);
             var persisted = await reader.ReadAsync(TestContext.Current.CancellationToken);
             Assert.Single(persisted);
             Assert.Equal(entry.InstanceId, persisted[0].InstanceId);
@@ -199,7 +201,7 @@ public sealed class RegistryFileServiceTests
 
             await sut.StartAsync(TestContext.Current.CancellationToken);
 
-            var reader = new RegistryFileReader(path);
+            var reader = RegistryFileReaderTestFactory.Create(path);
             var persisted = await reader.ReadAsync(TestContext.Current.CancellationToken);
             Assert.Single(persisted);
             Assert.Equal(ownEntry.InstanceId, persisted[0].InstanceId);
@@ -220,7 +222,7 @@ public sealed class RegistryFileServiceTests
             await sut.StopAsync(TestContext.Current.CancellationToken);
             await write;
 
-            var reader = new RegistryFileReader(path);
+            var reader = RegistryFileReaderTestFactory.Create(path);
             var persisted = await reader.ReadAsync(TestContext.Current.CancellationToken);
             Assert.Single(persisted);
         }
@@ -255,7 +257,7 @@ public sealed class RegistryFileServiceTests
 
             await sut.StopAsync(TestContext.Current.CancellationToken);
 
-            var reader = new RegistryFileReader(path);
+            var reader = RegistryFileReaderTestFactory.Create(path);
             var persisted = await reader.ReadAsync(TestContext.Current.CancellationToken);
             Assert.Multiple(
                 () => Assert.Single(persisted),
@@ -275,7 +277,7 @@ public sealed class RegistryFileServiceTests
 
             await sut.StopAsync(cts.Token);
 
-            var reader = new RegistryFileReader(path);
+            var reader = RegistryFileReaderTestFactory.Create(path);
             var persisted = await reader.ReadAsync(TestContext.Current.CancellationToken);
             Assert.Single(persisted, e => e.InstanceId == ownEntry.InstanceId);
         }

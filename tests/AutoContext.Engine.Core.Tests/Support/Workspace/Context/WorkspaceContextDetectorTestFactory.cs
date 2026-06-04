@@ -2,6 +2,8 @@ namespace AutoContext.Engine.Core.Tests.Support.Workspace.Context;
 
 using AutoContext.Engine.Core.Workspace.Context;
 
+using Microsoft.Extensions.Logging.Abstractions;
+
 public static class WorkspaceContextDetectorTestFactory
 {
     internal static WorkspaceContextDetector Create(string workspacePath)
@@ -9,7 +11,10 @@ public static class WorkspaceContextDetectorTestFactory
             new FakeWorkspaceEngineInfo { WorkspacePath = workspacePath },
             WorkspaceDetectionRules.FileRules,
             WorkspaceDetectionRules.ContentScans,
-            WorkspaceDetectionRules.FlagActivationEdges);
+            WorkspaceDetectionRules.FlagActivationEdges,
+            TimeProvider.System,
+            WorkspaceContextDetector.DefaultDebounceDelay,
+            NullLogger<WorkspaceContextDetector>.Instance);
 
     internal static WorkspaceContextDetector Create(string workspacePath, TimeSpan debounceDelay)
         => new(
@@ -17,5 +22,7 @@ public static class WorkspaceContextDetectorTestFactory
             WorkspaceDetectionRules.FileRules,
             WorkspaceDetectionRules.ContentScans,
             WorkspaceDetectionRules.FlagActivationEdges,
-            debounceDelay: debounceDelay);
+            TimeProvider.System,
+            debounceDelay,
+            NullLogger<WorkspaceContextDetector>.Instance);
 }

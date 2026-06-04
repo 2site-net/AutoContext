@@ -9,6 +9,8 @@ using AutoContext.Engine.Core.Tests.Support.Registry;
 using AutoContext.Engine.Protocol.Messages.Registry;
 using AutoContext.Engine.Tests.Support.IO;
 
+using Microsoft.Extensions.Logging.Abstractions;
+
 /// <summary>
 /// Tests for the atomic, single-shot <see cref="RegistryFileWriter"/>.
 /// The writer is intentionally narrow — temp+fsync+rename only —
@@ -28,9 +30,9 @@ public sealed class RegistryFileWriterTests
         public void Should_reject_null_or_whitespace_path()
         {
             Assert.Multiple(
-                () => Assert.Throws<ArgumentNullException>(() => new RegistryFileWriter(null!)),
-                () => Assert.Throws<ArgumentException>(() => new RegistryFileWriter(string.Empty)),
-                () => Assert.Throws<ArgumentException>(() => new RegistryFileWriter("   ")));
+                () => Assert.Throws<ArgumentNullException>(() => new RegistryFileWriter(null!, NullLogger<RegistryFileWriter>.Instance)),
+                () => Assert.Throws<ArgumentException>(() => new RegistryFileWriter(string.Empty, NullLogger<RegistryFileWriter>.Instance)),
+                () => Assert.Throws<ArgumentException>(() => new RegistryFileWriter("   ", NullLogger<RegistryFileWriter>.Instance)));
         }
     }
 
@@ -40,7 +42,7 @@ public sealed class RegistryFileWriterTests
         public void Should_atomically_replace_existing_file_content()
         {
             var path = tempDirectory.CreatePath(RegistryFileName);
-            var sut = new RegistryFileWriter(path);
+            var sut = new RegistryFileWriter(path, NullLogger<RegistryFileWriter>.Instance);
             sut.Write([RegistryEntryFakeData.CreateValidEntry()]);
 
             sut.Write(
@@ -63,7 +65,7 @@ public sealed class RegistryFileWriterTests
         public void Should_create_the_file_when_it_does_not_exist()
         {
             var path = tempDirectory.CreatePath(RegistryFileName);
-            var sut = new RegistryFileWriter(path);
+            var sut = new RegistryFileWriter(path, NullLogger<RegistryFileWriter>.Instance);
             var entry = RegistryEntryFakeData.CreateValidEntry();
 
             sut.Write([entry]);
@@ -75,7 +77,7 @@ public sealed class RegistryFileWriterTests
         public void Should_emit_envelope_with_current_schema_version()
         {
             var path = tempDirectory.CreatePath(RegistryFileName);
-            var sut = new RegistryFileWriter(path);
+            var sut = new RegistryFileWriter(path, NullLogger<RegistryFileWriter>.Instance);
             var entry = RegistryEntryFakeData.CreateValidEntry();
 
             sut.Write([entry]);
@@ -92,7 +94,7 @@ public sealed class RegistryFileWriterTests
         public void Should_not_leak_temp_files_on_success()
         {
             var path = tempDirectory.CreatePath(RegistryFileName);
-            var sut = new RegistryFileWriter(path);
+            var sut = new RegistryFileWriter(path, NullLogger<RegistryFileWriter>.Instance);
 
             sut.Write([RegistryEntryFakeData.CreateValidEntry()]);
             sut.Write([RegistryEntryFakeData.CreateValidEntry()]);
@@ -106,7 +108,7 @@ public sealed class RegistryFileWriterTests
         public void Should_reject_null_entries()
         {
             var path = tempDirectory.CreatePath(RegistryFileName);
-            var sut = new RegistryFileWriter(path);
+            var sut = new RegistryFileWriter(path, NullLogger<RegistryFileWriter>.Instance);
 
             Assert.Throws<ArgumentNullException>(() => sut.Write(null!));
         }

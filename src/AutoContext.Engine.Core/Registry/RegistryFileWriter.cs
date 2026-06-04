@@ -3,7 +3,6 @@ namespace AutoContext.Engine.Core.Registry;
 using AutoContext.Engine.Protocol.Messages.Registry;
 
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 
 /// <summary>
 /// Atomic single-shot writer for <c>engine-registry.json</c>.
@@ -40,18 +39,20 @@ internal sealed partial class RegistryFileWriter
     /// </summary>
     /// <param name="path">Absolute path to the registry file.
     /// Must not be <see langword="null"/> or whitespace.</param>
-    /// <param name="logger">Diagnostic sink. <see langword="null"/>
-    /// silences diagnostics.</param>
+    /// <param name="logger">Diagnostic sink.</param>
     /// <exception cref="ArgumentException"><paramref name="path"/>
     /// is <see langword="null"/>, empty, or whitespace.</exception>
+    /// <exception cref="ArgumentNullException">
+    /// <paramref name="logger"/> is <see langword="null"/>.</exception>
     public RegistryFileWriter(
         string path,
-        ILogger<RegistryFileWriter>? logger = null)
+        ILogger<RegistryFileWriter> logger)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        ArgumentNullException.ThrowIfNull(logger);
 
         Path = path;
-        _logger = logger ?? NullLogger<RegistryFileWriter>.Instance;
+        _logger = logger;
     }
 
     /// <summary>

@@ -203,8 +203,8 @@ public sealed class DispatchPolicyTests(TempDirectoryFixture tempDirectory)
         // Arrange
         var registryPath = tempDirectory.CreatePath(RegistryFileName);
         var seeded = new[] { RegistryEntryFakeData.CreateValidEntry() };
-        new RegistryFileWriter(registryPath).Write(seeded);
-        var reader = new RegistryFileReader(registryPath);
+        RegistryFileTestWriter.Write(registryPath, seeded);
+        var reader = RegistryFileReaderTestFactory.Create(registryPath);
         using var lifetime = new FakeHostApplicationLifetime();
         var policy = new DispatchPolicy(lifetime, reader, LifecycleServiceFixture.CreateLogFileReader(), LifecycleServiceFixture.CreateLogsBroadcaster(), LifecycleServiceFixture.CreateConfigAccessor(), LifecycleServiceFixture.CreateConfigUpdater(), LifecycleServiceFixture.CreateConfigBroadcaster(), LifecycleServiceFixture.CreateWorkspaceAccessor(), NullLogger.Instance);
         var request = JsonRpcRequestTestFactory.BuildRequest(RegistryMethods.RegistryEntries);
@@ -229,14 +229,14 @@ public sealed class DispatchPolicyTests(TempDirectoryFixture tempDirectory)
         // the reader's single attempt fails with IOException, which
         // the dispatch handler translates into an InternalError.
         var registryPath = tempDirectory.CreatePath(RegistryFileName);
-        new RegistryFileWriter(registryPath).Write([RegistryEntryFakeData.CreateValidEntry()]);
+        RegistryFileTestWriter.Write(registryPath, RegistryEntryFakeData.CreateValidEntry());
         var readerOptions = new RegistryFileReaderOptions
         {
             MaxAttempts = 1,
             InitialRetryDelay = TimeSpan.FromMilliseconds(1),
             MaxRetryDelay = TimeSpan.FromMilliseconds(1),
         };
-        var reader = new RegistryFileReader(registryPath, readerOptions);
+        var reader = new RegistryFileReader(registryPath, NullLogger<RegistryFileReader>.Instance, readerOptions);
         using var lifetime = new FakeHostApplicationLifetime();
         var policy = new DispatchPolicy(lifetime, reader, LifecycleServiceFixture.CreateLogFileReader(), LifecycleServiceFixture.CreateLogsBroadcaster(), LifecycleServiceFixture.CreateConfigAccessor(), LifecycleServiceFixture.CreateConfigUpdater(), LifecycleServiceFixture.CreateConfigBroadcaster(), LifecycleServiceFixture.CreateWorkspaceAccessor(), NullLogger.Instance);
         var request = JsonRpcRequestTestFactory.BuildRequest(RegistryMethods.RegistryEntries);

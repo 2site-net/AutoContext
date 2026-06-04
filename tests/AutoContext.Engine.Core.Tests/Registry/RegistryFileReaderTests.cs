@@ -5,6 +5,9 @@ using System.Text;
 
 using AutoContext.Engine.Core.Registry;
 using AutoContext.Engine.Core.Tests.Support.Registry;
+
+using Microsoft.Extensions.Logging.Abstractions;
+
 /// <summary>
 /// Tests for <see cref="RegistryFileReader"/> in isolation. The
 /// reader is exercised against files seeded directly through
@@ -45,9 +48,9 @@ public sealed class RegistryFileReaderTests : IDisposable
     public void Constructor_should_reject_null_or_whitespace_path()
     {
         Assert.Multiple(
-            () => Assert.Throws<ArgumentNullException>(() => new RegistryFileReader(null!)),
-            () => Assert.Throws<ArgumentException>(() => new RegistryFileReader(string.Empty)),
-            () => Assert.Throws<ArgumentException>(() => new RegistryFileReader("   ")));
+            () => Assert.Throws<ArgumentNullException>(() => new RegistryFileReader(null!, NullLogger<RegistryFileReader>.Instance)),
+            () => Assert.Throws<ArgumentException>(() => new RegistryFileReader(string.Empty, NullLogger<RegistryFileReader>.Instance)),
+            () => Assert.Throws<ArgumentException>(() => new RegistryFileReader("   ", NullLogger<RegistryFileReader>.Instance)));
     }
 
     [Fact]
@@ -63,13 +66,12 @@ public sealed class RegistryFileReaderTests : IDisposable
     [Fact]
     public async Task ReadAsync_should_return_entries_persisted_by_the_writer()
     {
-        var writer = new RegistryFileWriter(_path);
         var seeded = new[]
         {
             RegistryEntryFakeData.CreateValidEntry(),
             RegistryEntryFakeData.CreateValidEntry(),
         };
-        writer.Write(seeded);
+        RegistryFileTestWriter.Write(_path, seeded);
         var sut = RegistryFileReaderTestFactory.Create(_path);
 
         var entries = await sut.ReadAsync(TestContext.Current.CancellationToken);

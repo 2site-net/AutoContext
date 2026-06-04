@@ -8,7 +8,6 @@ using AutoContext.Engine.Protocol.Messages.Registry;
 
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 
 // Alias the BCL path helpers because this type exposes a `Path`
 // property that shadows `System.IO.Path` inside member bodies.
@@ -99,46 +98,48 @@ public sealed partial class RegistryFileService : IHostedService, IAsyncDisposab
     /// </summary>
     /// <param name="path">Absolute path to <c>engine-registry.json</c>.
     /// Must not be <see langword="null"/> or whitespace.</param>
-    /// <param name="serviceOptions">Service-level knobs (mutex
-    /// timeout, shutdown drain). <see langword="null"/> uses
-    /// defaults.</param>
-    /// <param name="readerOptions">Reader retry knobs forwarded
-    /// to the inner <see cref="RegistryFileReader"/>.
-    /// <see langword="null"/> uses defaults.</param>
     /// <param name="loggerFactory">Factory used to build loggers
-    /// for the service, the reader, and the writer.
-    /// <see langword="null"/> silences diagnostics.</param>
-    /// <param name="ownEntryFactory">Optional factory invoked on
+    /// for the service, the reader, and the writer.</param>
+    /// <param name="serviceOptions">Service-level knobs (mutex
+    /// timeout, shutdown drain). Defaults to
+    /// <see cref="RegistryFileServiceOptions"/> defaults when
+    /// <see langword="null"/>.</param>
+    /// <param name="readerOptions">Reader retry knobs forwarded
+    /// to the inner <see cref="RegistryFileReader"/>. Defaults to
+    /// <see cref="RegistryFileReaderOptions"/> defaults when
+    /// <see langword="null"/>.</param>
+    /// <param name="ownEntryFactory">Factory invoked on
     /// <see cref="StartAsync"/> to build the single row that
     /// represents <i>this</i> engine in the registry. When supplied
     /// the service appends the row on start and removes it on stop
     /// (best-effort). When <see langword="null"/> the service acts
-    /// as a plain file coordinator with no own-entry lifecycle —
-    /// the convenient shape for tests.</param>
+    /// as a plain file coordinator with no own-entry lifecycle.</param>
     /// <exception cref="ArgumentException"><paramref name="path"/>
     /// is <see langword="null"/>, empty, or whitespace.</exception>
+    /// <exception cref="ArgumentNullException">
+    /// <paramref name="loggerFactory"/> is <see langword="null"/>.
+    /// </exception>
     /// <exception cref="ArgumentOutOfRangeException">An option
     /// value is invalid.</exception>
     public RegistryFileService(
         string path,
+        ILoggerFactory loggerFactory,
         RegistryFileServiceOptions? serviceOptions = null,
         RegistryFileReaderOptions? readerOptions = null,
-        ILoggerFactory? loggerFactory = null,
         Func<JsonRegistryEntry>? ownEntryFactory = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        ArgumentNullException.ThrowIfNull(loggerFactory);
 
-        var resolvedOptions = serviceOptions ?? new RegistryFileServiceOptions();
-        resolvedOptions.Validate();
-
-        var factory = loggerFactory ?? NullLoggerFactory.Instance;
+        var resolvedServiceOptions = serviceOptions ?? new RegistryFileServiceOptions();
+        resolvedServiceOptions.Validate();
 
         Path = path;
-        _options = resolvedOptions;
+        _options = resolvedServiceOptions;
         _ownEntryFactory = ownEntryFactory;
-        _logger = factory.CreateLogger<RegistryFileService>();
-        _reader = new RegistryFileReader(path, readerOptions, factory.CreateLogger<RegistryFileReader>());
-        _writer = new RegistryFileWriter(path, factory.CreateLogger<RegistryFileWriter>());
+        _logger = loggerFactory.CreateLogger<RegistryFileService>();
+        _reader = new RegistryFileReader(path, loggerFactory.CreateLogger<RegistryFileReader>(), readerOptions);
+        _writer = new RegistryFileWriter(path, loggerFactory.CreateLogger<RegistryFileWriter>());
         _crossProcessMutex = new Mutex(initiallyOwned: false, ComposeMutexName(path));
         _channel = Channel.CreateUnbounded<WriteRequest>(new UnboundedChannelOptions
         {

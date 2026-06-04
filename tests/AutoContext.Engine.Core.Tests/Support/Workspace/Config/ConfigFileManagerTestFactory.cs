@@ -2,6 +2,8 @@ namespace AutoContext.Engine.Core.Tests.Support.Workspace.Config;
 
 using AutoContext.Engine.Core.Workspace.Config;
 
+using Microsoft.Extensions.Logging.Abstractions;
+
 /// <summary>
 /// Builds an <see cref="ConfigFileManager"/> bound to a test
 /// workspace directory with a fixed engine version so on-disk
@@ -19,6 +21,8 @@ internal static class ConfigFileManagerTestFactory
         => new(
             workspacePath,
             engineVersion ?? EngineVersion,
-            timeProvider: timeProvider,
-            batchWindow: batchWindow);
+            timeProvider ?? TimeProvider.System,
+            ConfigFileManager.DefaultDebounceDelay,
+            batchWindow ?? ConfigFileManager.DefaultBatchWindow,
+            NullLogger<ConfigFileManager>.Instance);
 }

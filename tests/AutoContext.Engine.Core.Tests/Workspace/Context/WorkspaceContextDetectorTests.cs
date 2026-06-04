@@ -4,6 +4,8 @@ using AutoContext.Engine.Core.Tests.Support.Workspace.Context;
 using AutoContext.Engine.Core.Workspace.Context;
 using AutoContext.Engine.Tests.Support.IO;
 
+using Microsoft.Extensions.Logging.Abstractions;
+
 public sealed partial class WorkspaceContextDetectorTests
 {
     public sealed class Constructor
@@ -15,27 +17,30 @@ public sealed partial class WorkspaceContextDetectorTests
             var rules = WorkspaceDetectionRules.FileRules;
             var scans = WorkspaceDetectionRules.ContentScans;
             var edges = WorkspaceDetectionRules.FlagActivationEdges;
+            var time = TimeProvider.System;
+            var debounce = TimeSpan.FromMilliseconds(500);
+            var logger = NullLogger<WorkspaceContextDetector>.Instance;
 
             // Act + Assert
             Assert.Multiple(
                 () => Assert.Throws<ArgumentNullException>(
-                    () => new WorkspaceContextDetector(null!, rules, scans, edges)),
+                    () => new WorkspaceContextDetector(null!, rules, scans, edges, time, debounce, logger)),
                 () => Assert.Throws<ArgumentException>(
                     () => new WorkspaceContextDetector(
-                        new FakeWorkspaceEngineInfo { WorkspacePath = "  " }, rules, scans, edges)),
+                        new FakeWorkspaceEngineInfo { WorkspacePath = "  " }, rules, scans, edges, time, debounce, logger)),
                 () => Assert.Throws<ArgumentNullException>(
                     () => new WorkspaceContextDetector(
-                        new FakeWorkspaceEngineInfo { WorkspacePath = "x" }, null!, scans, edges)),
+                        new FakeWorkspaceEngineInfo { WorkspacePath = "x" }, null!, scans, edges, time, debounce, logger)),
                 () => Assert.Throws<ArgumentNullException>(
                     () => new WorkspaceContextDetector(
-                        new FakeWorkspaceEngineInfo { WorkspacePath = "x" }, rules, null!, edges)),
+                        new FakeWorkspaceEngineInfo { WorkspacePath = "x" }, rules, null!, edges, time, debounce, logger)),
                 () => Assert.Throws<ArgumentNullException>(
                     () => new WorkspaceContextDetector(
-                        new FakeWorkspaceEngineInfo { WorkspacePath = "x" }, rules, scans, null!)),
+                        new FakeWorkspaceEngineInfo { WorkspacePath = "x" }, rules, scans, null!, time, debounce, logger)),
                 () => Assert.Throws<ArgumentOutOfRangeException>(
                     () => new WorkspaceContextDetector(
                         new FakeWorkspaceEngineInfo { WorkspacePath = "x" },
-                        rules, scans, edges, debounceDelay: TimeSpan.Zero)));
+                        rules, scans, edges, time, TimeSpan.Zero, logger)));
         }
     }
 
@@ -73,7 +78,10 @@ public sealed partial class WorkspaceContextDetectorTests
                 },
                 WorkspaceDetectionRules.FileRules,
                 WorkspaceDetectionRules.ContentScans,
-                WorkspaceDetectionRules.FlagActivationEdges);
+                WorkspaceDetectionRules.FlagActivationEdges,
+                TimeProvider.System,
+                WorkspaceContextDetector.DefaultDebounceDelay,
+                NullLogger<WorkspaceContextDetector>.Instance);
 
             // Act
             _ = await sut.DetectAsync(TestContext.Current.CancellationToken);

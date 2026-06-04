@@ -166,9 +166,7 @@ public static class EngineHostBuilderExtensions
             var layout = sp.GetRequiredService<EngineCacheLayout>();
             return new RegistryFileService(
                 layout.RegistryFilePath,
-                serviceOptions: null,
-                readerOptions: null,
-                loggerFactory: sp.GetService<ILoggerFactory>(),
+                sp.GetRequiredService<ILoggerFactory>(),
                 ownEntryFactory: () => RegistryEntryBuilder.Build(options, clock));
         });
         builder.Services.TryAddEnumerable(
@@ -184,8 +182,7 @@ public static class EngineHostBuilderExtensions
             var layout = sp.GetRequiredService<EngineCacheLayout>();
             return new RegistryFileReader(
                 layout.RegistryFilePath,
-                options: null,
-                logger: sp.GetService<ILogger<RegistryFileReader>>());
+                sp.GetRequiredService<ILogger<RegistryFileReader>>());
         });
 
         // Liveness-aware view over the registry: composes the
@@ -279,8 +276,10 @@ public static class EngineHostBuilderExtensions
             return new ConfigFileManager(
                 options.WorkspacePath,
                 EngineVersion.Value,
-                logger: sp.GetService<ILogger<ConfigFileManager>>(),
-                timeProvider: sp.GetRequiredService<TimeProvider>());
+                sp.GetRequiredService<TimeProvider>(),
+                ConfigFileManager.DefaultDebounceDelay,
+                ConfigFileManager.DefaultBatchWindow,
+                sp.GetRequiredService<ILogger<ConfigFileManager>>());
         });
         builder.Services.TryAddSingleton<IConfigSnapshotAccessor>(
             sp => sp.GetRequiredService<ConfigFileManager>());
@@ -327,8 +326,9 @@ public static class EngineHostBuilderExtensions
                 sp.GetRequiredService<IReadOnlyList<FilePresenceRule>>(),
                 sp.GetRequiredService<IReadOnlyList<ContentScan>>(),
                 sp.GetRequiredService<IReadOnlyList<FlagActivationEdge>>(),
-                logger: sp.GetService<ILogger<WorkspaceContextDetector>>(),
-                timeProvider: sp.GetRequiredService<TimeProvider>());
+                sp.GetRequiredService<TimeProvider>(),
+                WorkspaceContextDetector.DefaultDebounceDelay,
+                sp.GetRequiredService<ILogger<WorkspaceContextDetector>>());
         });
         builder.Services.TryAddSingleton<IWorkspaceContextAccessor>(
             sp => sp.GetRequiredService<WorkspaceContextDetector>());

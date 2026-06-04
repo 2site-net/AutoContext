@@ -33,7 +33,7 @@ public sealed class ConfigBatchWriterTests
         [Fact]
         public void Should_reject_null_updater()
             => Assert.Throws<ArgumentNullException>(
-                () => new ConfigBatchWriter(null!, new FakeTimeProvider()));
+                () => new ConfigBatchWriter(null!, new FakeTimeProvider(), Window));
 
         [Fact]
         public void Should_reject_non_positive_batch_window()

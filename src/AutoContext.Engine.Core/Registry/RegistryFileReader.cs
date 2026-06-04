@@ -3,7 +3,6 @@ namespace AutoContext.Engine.Core.Registry;
 using AutoContext.Engine.Protocol.Messages.Registry;
 
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 
 /// <summary>
 /// Read-only accessor for <c>engine-registry.json</c>. Opens the
@@ -43,29 +42,31 @@ public sealed partial class RegistryFileReader
     /// </summary>
     /// <param name="path">Absolute path to <c>engine-registry.json</c>.
     /// Must not be <see langword="null"/> or whitespace.</param>
-    /// <param name="options">Retry knobs. <see langword="null"/>
-    /// uses production defaults from
-    /// <see cref="RegistryFileReaderOptions"/>.</param>
-    /// <param name="logger">Diagnostic sink. <see langword="null"/>
-    /// silences diagnostics.</param>
+    /// <param name="logger">Diagnostic sink.</param>
+    /// <param name="options">Retry knobs. Defaults to
+    /// <see cref="RegistryFileReaderOptions"/> defaults when
+    /// <see langword="null"/>.</param>
     /// <exception cref="ArgumentException"><paramref name="path"/>
     /// is <see langword="null"/>, empty, or whitespace.</exception>
+    /// <exception cref="ArgumentNullException">
+    /// <paramref name="logger"/> is <see langword="null"/>.</exception>
     /// <exception cref="ArgumentOutOfRangeException">
     /// <paramref name="options"/> contains an invalid value.
     /// </exception>
     public RegistryFileReader(
         string path,
-        RegistryFileReaderOptions? options = null,
-        ILogger<RegistryFileReader>? logger = null)
+        ILogger<RegistryFileReader> logger,
+        RegistryFileReaderOptions? options = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        ArgumentNullException.ThrowIfNull(logger);
 
         var resolvedOptions = options ?? new RegistryFileReaderOptions();
         resolvedOptions.Validate();
 
         Path = path;
         _options = resolvedOptions;
-        _logger = logger ?? NullLogger<RegistryFileReader>.Instance;
+        _logger = logger;
     }
 
     /// <summary>

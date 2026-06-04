@@ -7,7 +7,6 @@ using AutoContext.Engine.Core.Infrastructure;
 using AutoContext.Engine.Core.Infrastructure.Events;
 
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 
 /// <summary>
 /// Detects the technologies present in a workspace by classifying its
@@ -46,7 +45,7 @@ internal sealed partial class WorkspaceContextDetector : IDisposable, IWorkspace
 {
     private const string HasGitFlag = "hasGit";
 
-    private static readonly TimeSpan DefaultDebounceDelay = TimeSpan.FromMilliseconds(500);
+    internal static readonly TimeSpan DefaultDebounceDelay = TimeSpan.FromMilliseconds(500);
 
     private readonly WorkspaceFileClassifier _classifier;
     private readonly FlagContributionIndex _contributionIndex = new();
@@ -83,18 +82,16 @@ internal sealed partial class WorkspaceContextDetector : IDisposable, IWorkspace
     /// selectors and body patterns are indexed for classification.</param>
     /// <param name="activationEdges">Activation cascade edges walked
     /// after base detection.</param>
-    /// <param name="logger">Diagnostic sink. <see langword="null"/>
-    /// silences diagnostics.</param>
     /// <param name="timeProvider">Clock that schedules the incremental
-    /// debounce window. <see langword="null"/> uses
-    /// <see cref="TimeProvider.System"/>.</param>
+    /// debounce window.</param>
     /// <param name="debounceDelay">Quiet window the watcher waits for
-    /// after the last filesystem event before reclassifying.
-    /// <see langword="null"/> uses 500&#160;ms. Must be positive when
-    /// supplied.</param>
+    /// after the last filesystem event before reclassifying. Must be
+    /// positive.</param>
+    /// <param name="logger">Diagnostic sink.</param>
     /// <exception cref="ArgumentNullException"><paramref name="engineInfo"/>,
-    /// <paramref name="fileRules"/>, <paramref name="contentScans"/>, or
-    /// <paramref name="activationEdges"/> is <see langword="null"/>.</exception>
+    /// <paramref name="fileRules"/>, <paramref name="contentScans"/>,
+    /// <paramref name="activationEdges"/>, <paramref name="timeProvider"/>,
+    /// or <paramref name="logger"/> is <see langword="null"/>.</exception>
     /// <exception cref="ArgumentException"><paramref name="engineInfo"/>'s
     /// workspace path is <see langword="null"/>, empty, or whitespace.</exception>
     /// <exception cref="ArgumentOutOfRangeException">
@@ -104,30 +101,28 @@ internal sealed partial class WorkspaceContextDetector : IDisposable, IWorkspace
         IReadOnlyList<FilePresenceRule> fileRules,
         IReadOnlyList<ContentScan> contentScans,
         IReadOnlyList<FlagActivationEdge> activationEdges,
-        ILogger<WorkspaceContextDetector>? logger = null,
-        TimeProvider? timeProvider = null,
-        TimeSpan? debounceDelay = null)
+        TimeProvider timeProvider,
+        TimeSpan debounceDelay,
+        ILogger<WorkspaceContextDetector> logger)
     {
         ArgumentNullException.ThrowIfNull(engineInfo);
         ArgumentException.ThrowIfNullOrWhiteSpace(engineInfo.WorkspacePath);
         ArgumentNullException.ThrowIfNull(fileRules);
         ArgumentNullException.ThrowIfNull(contentScans);
         ArgumentNullException.ThrowIfNull(activationEdges);
-
-        if (debounceDelay is { } delay)
-        {
-            ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(
-                delay, TimeSpan.Zero, nameof(debounceDelay));
-        }
+        ArgumentNullException.ThrowIfNull(timeProvider);
+        ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(
+            debounceDelay, TimeSpan.Zero, nameof(debounceDelay));
+        ArgumentNullException.ThrowIfNull(logger);
 
         _engineInfo = engineInfo;
-        _logger = logger ?? NullLogger<WorkspaceContextDetector>.Instance;
+        _logger = logger;
         _flagActivationEdges = activationEdges;
         _classifier = new WorkspaceFileClassifier(fileRules, contentScans);
         _extensionIndex = new FlagExtensionIndex(fileRules);
 
         _debouncer = new TrailingEdgeDebouncer(
-            FlushAsync, timeProvider ?? TimeProvider.System, debounceDelay ?? DefaultDebounceDelay);
+            FlushAsync, timeProvider, debounceDelay);
         _current = WorkspaceDetectionResult.Empty;
         _revision = 0;
     }

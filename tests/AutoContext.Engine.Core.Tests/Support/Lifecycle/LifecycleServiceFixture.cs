@@ -121,7 +121,7 @@ public sealed class LifecycleServiceFixture : IAsyncDisposable
             Path.GetTempPath(),
             $"autocontext-engine-registry-{Guid.NewGuid():N}.json");
 
-        return new RegistryFileReader(path);
+        return new RegistryFileReader(path, NullLogger<RegistryFileReader>.Instance);
     }
 
     internal static IdleTimeoutWatchdog CreateWatchdog(

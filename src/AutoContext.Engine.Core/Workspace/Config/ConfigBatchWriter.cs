@@ -23,8 +23,6 @@ using AutoContext.Engine.Core.Workspace.Config.Snapshot;
 /// </remarks>
 internal sealed class ConfigBatchWriter : IDisposable
 {
-    private static readonly TimeSpan DefaultBatchWindow = TimeSpan.FromMilliseconds(5);
-
     private readonly TimeSpan _batchWindow;
     private readonly CancellationTokenSource _cts = new();
     private bool _disposed;
@@ -40,28 +38,24 @@ internal sealed class ConfigBatchWriter : IDisposable
     /// </summary>
     /// <param name="updater">The target whose writes are coalesced.</param>
     /// <param name="timeProvider">
-    /// Clock backing the micro-batch window; defaults to
-    /// <see cref="TimeProvider.System"/>.
+    /// Clock backing the micro-batch window.
     /// </param>
     /// <param name="batchWindow">
-    /// How long to collect further edits before flushing a batch; defaults
-    /// to a few milliseconds. Must be positive when supplied.
+    /// How long to collect further edits before flushing a batch. Must be
+    /// positive.
     /// </param>
     public ConfigBatchWriter(
         IConfigUpdater updater,
-        TimeProvider? timeProvider = null,
-        TimeSpan? batchWindow = null)
+        TimeProvider timeProvider,
+        TimeSpan batchWindow)
     {
         ArgumentNullException.ThrowIfNull(updater);
-
-        if (batchWindow is { } window)
-        {
-            ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(window, TimeSpan.Zero, nameof(batchWindow));
-        }
+        ArgumentNullException.ThrowIfNull(timeProvider);
+        ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(batchWindow, TimeSpan.Zero, nameof(batchWindow));
 
         _updater = updater;
-        _timeProvider = timeProvider ?? TimeProvider.System;
-        _batchWindow = batchWindow ?? DefaultBatchWindow;
+        _timeProvider = timeProvider;
+        _batchWindow = batchWindow;
         _loop = DrainAsync(_cts.Token);
     }
 
