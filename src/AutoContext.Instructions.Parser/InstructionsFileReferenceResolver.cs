@@ -1,0 +1,161 @@
+namespace AutoContext.Instructions.Parser;
+
+/// <summary>
+/// Resolves the bare <c>[locator#fragment]</c> references the parser captures
+/// from one file against the whole-corpus <see cref="InstructionsFileCatalog"/>,
+/// reporting every reference that does not point at a real rule or section. This
+/// is the cross-file half of reference checking: the parser validates a
+/// reference's <em>syntax</em> in isolation, this validates that it actually
+/// <em>resolves</em>. The resolver is pure — it reads only the references and the
+/// supplied catalogue and performs no I/O — so assembling the catalogue from disk
+/// stays a caller concern.
+/// </summary>
+public static class InstructionsFileReferenceResolver
+{
+    private const string InstructionsFileSuffix = ".instructions.md";
+
+    /// <summary>
+    /// Resolves every reference found in one source file against the catalogue.
+    /// </summary>
+    /// <param name="sourceKey">The catalogue key of the file the references were
+    /// parsed from. Same-file references (those with no locator) resolve against
+    /// this key, and an explicit locator equal to it is flagged redundant.</param>
+    /// <param name="references">The references the parser captured from the source
+    /// file's body.</param>
+    /// <param name="catalog">The whole-corpus index to resolve against.</param>
+    /// <returns>One finding per reference that fails to resolve, in input order;
+    /// an empty list when every reference resolves.</returns>
+    /// <exception cref="ArgumentNullException">Any argument is
+    /// <see langword="null"/>.</exception>
+    public static IReadOnlyList<InstructionsFileReferenceFinding> Resolve(
+        string sourceKey,
+        IReadOnlyList<InstructionsFileReference> references,
+        InstructionsFileCatalog catalog)
+    {
+        ArgumentNullException.ThrowIfNull(sourceKey);
+        ArgumentNullException.ThrowIfNull(references);
+        ArgumentNullException.ThrowIfNull(catalog);
+
+        var findings = new List<InstructionsFileReferenceFinding>();
+
+        foreach (var reference in references)
+        {
+            ResolveOne(sourceKey, reference, catalog, findings);
+        }
+
+        return findings;
+    }
+
+    private static bool IsUri(string locator)
+        => locator.Contains("://", StringComparison.Ordinal)
+            || locator.StartsWith("file:", StringComparison.Ordinal);
+
+    private static string NormalizeLocator(string locator)
+        => locator.EndsWith(InstructionsFileSuffix, StringComparison.Ordinal)
+            ? locator[..^InstructionsFileSuffix.Length]
+            : locator;
+
+    private static void ResolveAgainstTarget(
+        string targetKey,
+        bool sameFile,
+        InstructionsFileReference reference,
+        InstructionsFileCatalog catalog,
+        List<InstructionsFileReferenceFinding> findings)
+    {
+        if (!catalog.TryGet(targetKey, out var entry))
+        {
+            // A same-file miss means the caller left the source file out of the
+            // catalogue, not an authoring fault, so there is nothing to report.
+            if (!sameFile)
+            {
+                findings.Add(new InstructionsFileReferenceFinding(
+                    InstructionsFileReferenceFindingKind.UnknownLocator,
+                    reference,
+                    $"Reference locator '{targetKey}' does not match any known instruction file."));
+            }
+
+            return;
+        }
+
+        switch (reference.Kind)
+        {
+            case InstructionsFileReferenceKind.Rule:
+                ResolveRule(reference, entry, findings);
+                break;
+            case InstructionsFileReferenceKind.Section:
+                ResolveSection(reference, entry, findings);
+                break;
+            default:
+                break;
+        }
+    }
+
+    private static void ResolveOne(
+        string sourceKey,
+        InstructionsFileReference reference,
+        InstructionsFileCatalog catalog,
+        List<InstructionsFileReferenceFinding> findings)
+    {
+        var locator = reference.Locator;
+
+        if (locator is null)
+        {
+            ResolveAgainstTarget(sourceKey, sameFile: true, reference, catalog, findings);
+            return;
+        }
+
+        // URI locators are existence-unverified by design: the parser accepts the
+        // syntax but the corpus catalogue cannot confirm a remote target.
+
+        if (IsUri(locator))
+        {
+            return;
+        }
+
+        var targetKey = NormalizeLocator(locator);
+
+        if (string.Equals(targetKey, sourceKey, StringComparison.Ordinal))
+        {
+            findings.Add(new InstructionsFileReferenceFinding(
+                InstructionsFileReferenceFindingKind.RedundantLocator,
+                reference,
+                $"Reference '{targetKey}#{reference.Target}' names its own file; use the same-file form without the locator."));
+        }
+
+        ResolveAgainstTarget(targetKey, sameFile: false, reference, catalog, findings);
+    }
+
+    private static void ResolveRule(
+        InstructionsFileReference reference,
+        InstructionsFileCatalogEntry entry,
+        List<InstructionsFileReferenceFinding> findings)
+    {
+        if (!entry.RuleIds.Contains(reference.Target))
+        {
+            findings.Add(new InstructionsFileReferenceFinding(
+                InstructionsFileReferenceFindingKind.DanglingRuleReference,
+                reference,
+                $"Rule '{reference.Target}' is not defined in '{entry.Key}'."));
+        }
+    }
+
+    private static void ResolveSection(
+        InstructionsFileReference reference,
+        InstructionsFileCatalogEntry entry,
+        List<InstructionsFileReferenceFinding> findings)
+    {
+        var slug = InstructionsFileParser.Slugify(reference.Target);
+
+        var resolved = entry.Sections.Any(section =>
+            string.Equals(section.Anchor, slug, StringComparison.Ordinal)
+                || string.Equals(section.Heading, reference.Target, StringComparison.Ordinal));
+
+        if (!resolved)
+        {
+            findings.Add(new InstructionsFileReferenceFinding(
+                InstructionsFileReferenceFindingKind.UnresolvedSectionReference,
+                reference,
+                $"Section '{reference.Target}' is not defined in '{entry.Key}'."));
+        }
+    }
+}

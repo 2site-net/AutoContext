@@ -512,7 +512,7 @@ public static partial class InstructionsFileParser
         "Globalization",
         "CA1308:Normalize strings to uppercase",
         Justification = "Anchors are lowercase by GitHub/markdown convention; this is a display slug, not a security normalization.")]
-    private static string Slugify(string heading)
+    internal static string Slugify(string heading)
     {
         var lowered = heading.ToLowerInvariant();
         var dashed = GeneratedNonSlugRunRegex().Replace(lowered, "-");
