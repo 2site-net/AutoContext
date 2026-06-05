@@ -2,7 +2,8 @@ namespace AutoContext.Instructions.Parser;
 
 /// <summary>
 /// The category of an <see cref="InstructionsFileDiagnostic"/> raised while
-/// parsing instruction bullets. Consumers decide which kinds are fatal.
+/// parsing an instruction file's rule bullets and references. Consumers decide
+/// which kinds are fatal.
 /// </summary>
 public enum InstructionsFileDiagnosticKind
 {
@@ -16,4 +17,9 @@ public enum InstructionsFileDiagnosticKind
     /// <summary>A bullet carries a bracket tag that is not a well-formed
     /// <c>INST####</c> identifier.</summary>
     MalformedId,
+
+    /// <summary>A bare <c>[locator#fragment]</c> reference token whose fragment is
+    /// neither a well-formed <c>INST####</c> rule id nor a single-quoted section
+    /// heading — for example a bad locator, a truncated id, or a rule range.</summary>
+    MalformedReference,
 }

@@ -8,8 +8,9 @@ using System.Text.RegularExpressions;
 /// The single source of truth for reading an instruction file. One
 /// <see cref="Parse"/> call walks the markdown once and returns everything a
 /// consumer needs: the frontmatter, the normalised body, the <c>##</c>/<c>###</c>
-/// section index, the actionable <c>**Do**</c>/<c>**Don't**</c> rule bullets, and
-/// any bullet-tag diagnostics. Files with or without a frontmatter block, and
+/// section index, the actionable <c>**Do**</c>/<c>**Don't**</c> rule bullets, the
+/// bare <c>[locator#fragment]</c> cross-references, and any bullet-tag or
+/// reference diagnostics. Files with or without a frontmatter block, and
 /// with or without <c>INST####</c> tags, all parse cleanly; the parser never
 /// throws on content shape and never validates curatorial rules — it reports and
 /// returns, leaving fatality decisions to the build-time generators and the
@@ -21,7 +22,7 @@ public static partial class InstructionsFileParser
 
     /// <summary>
     /// Parses <paramref name="content"/> into its frontmatter, normalised body,
-    /// section index, rule bullets, and diagnostics.
+    /// section index, rule bullets, references, and diagnostics.
     /// </summary>
     /// <param name="content">The full instruction file text.</param>
     /// <returns>The complete structural parse.</returns>
@@ -167,6 +168,36 @@ public static partial class InstructionsFileParser
         return match.Success ? match.Groups[1].Value : null;
     }
 
+    private static int FindClosingBacktickRun(char[] buffer, int start, int fence)
+    {
+        var index = start;
+
+        while (index < buffer.Length)
+        {
+            if (buffer[index] != '`')
+            {
+                index++;
+                continue;
+            }
+
+            var run = index;
+            var length = 0;
+
+            while (index < buffer.Length && buffer[index] == '`')
+            {
+                length++;
+                index++;
+            }
+
+            if (length == fence)
+            {
+                return run;
+            }
+        }
+
+        return -1;
+    }
+
     [GeneratedRegex(@"\[([^\]]*)\]")]
     private static partial Regex GeneratedBracketTagRegex();
 
@@ -185,8 +216,20 @@ public static partial class InstructionsFileParser
     [GeneratedRegex(@"^---\r?\n[\s\S]*?\r?\n---\r?\n?")]
     private static partial Regex GeneratedFrontmatterStripRegex();
 
+    [GeneratedRegex(@"\\(.)")]
+    private static partial Regex GeneratedHeadingEscapeRegex();
+
     [GeneratedRegex(@"^(#{2,3}) +(.+?)\s*$")]
     private static partial Regex GeneratedHeadingLineRegex();
+
+    [GeneratedRegex(@"^(?:\.{1,2}/)?(?:[^/\s]+/)*[^/\s]+\.instructions\.md$")]
+    private static partial Regex GeneratedLocatorFileRegex();
+
+    [GeneratedRegex(@"^[a-z0-9]+(?:-[a-z0-9]+)*$")]
+    private static partial Regex GeneratedLocatorKeyRegex();
+
+    [GeneratedRegex(@"^[a-z][a-z0-9+.-]*://\S+$")]
+    private static partial Regex GeneratedLocatorUriRegex();
 
     [GeneratedRegex(@"^[-*]\s\[(?!INST\d{4}\])[^\]]*\]\s*\*\*(Do|Don't)\*\*")]
     private static partial Regex GeneratedMalformedRuleBulletRegex();
@@ -194,17 +237,81 @@ public static partial class InstructionsFileParser
     [GeneratedRegex("[^a-z0-9]+")]
     private static partial Regex GeneratedNonSlugRunRegex();
 
+    [GeneratedRegex(@"^INST\d{4}\s*[-–/]")]
+    private static partial Regex GeneratedReferenceRangeFragmentRegex();
+
+    [GeneratedRegex(@"^INST\d{4}$")]
+    private static partial Regex GeneratedReferenceRuleFragmentRegex();
+
+    [GeneratedRegex(@"^'(?:[^'\\]|\\.)+'$")]
+    private static partial Regex GeneratedReferenceSectionFragmentRegex();
+
+    [GeneratedRegex(@"\[([^\[\]#]*)#([^\[\]]*)\](?![(\[:])")]
+    private static partial Regex GeneratedReferenceTokenRegex();
+
     [GeneratedRegex(@"^[-*]\s(?:\[(INST\d{4})\]\s*)?\*\*(Do|Don't)\*\*")]
     private static partial Regex GeneratedRuleBulletRegex();
 
     [GeneratedRegex(@"\(v(\d+\.\d+\.\d+)\)")]
     private static partial Regex GeneratedVersionSuffixRegex();
 
+    private static bool IsValidLocator(string locator)
+        => GeneratedLocatorKeyRegex().IsMatch(locator)
+        || GeneratedLocatorFileRegex().IsMatch(locator)
+        || GeneratedLocatorUriRegex().IsMatch(locator);
+
+    private static string MaskInlineCode(ReadOnlySpan<char> line)
+    {
+        if (!line.Contains('`'))
+        {
+            return line.ToString();
+        }
+
+        var buffer = line.ToArray();
+        var index = 0;
+
+        while (index < buffer.Length)
+        {
+            if (buffer[index] != '`')
+            {
+                index++;
+                continue;
+            }
+
+            var open = index;
+            var fence = 0;
+
+            while (index < buffer.Length && buffer[index] == '`')
+            {
+                fence++;
+                index++;
+            }
+
+            var close = FindClosingBacktickRun(buffer, index, fence);
+
+            if (close < 0)
+            {
+                // No matching closing run — the remaining backtick is literal text,
+                // not a code span, so nothing further on the line is masked.
+                break;
+            }
+
+            // Blank the whole span, delimiters included, so bracketed examples
+            // inside it cannot be mistaken for references; length is preserved so
+            // offsets into the original line stay valid.
+            Array.Fill(buffer, ' ', open, close + fence - open);
+            index = close + fence;
+        }
+
+        return new string(buffer);
+    }
+
     private static InstructionsFileBodyParsedResult ParseBody(string body)
     {
         var bodySpan = body.AsSpan();
         var rawHeadings = new List<RawHeading>();
         var rules = new List<InstructionsFileRule>();
+        var references = new List<InstructionsFileReference>();
         var diagnostics = new List<InstructionsFileDiagnostic>();
         var seenIds = new Dictionary<string, int>(StringComparer.Ordinal);
 
@@ -216,10 +323,11 @@ public static partial class InstructionsFileParser
         string? ruleId = null;
         var lineIndex = 0;
 
-        // Each line feeds two independent scans that share no state: a
-        // fence-aware section scan (headings inside a fenced code block are
-        // literal text, not structure) and a fence-agnostic rule scan (rule
-        // bullets are recognised everywhere, including inside fences).
+        // Each line feeds independent scans that share no state: a fence-aware
+        // section-and-reference scan (headings and bare [domain#INST0001]
+        // references inside a fenced code block are literal text, not structure)
+        // and a fence-agnostic rule scan (rule bullets are recognised everywhere,
+        // including inside fences).
 
         foreach (var lineRange in bodySpan.Split('\n'))
         {
@@ -229,21 +337,28 @@ public static partial class InstructionsFileParser
             {
                 inFence = !inFence;
             }
-            else if (!inFence && GeneratedHeadingLineRegex().IsMatch(line))
+            else if (!inFence)
             {
-                var heading = GeneratedHeadingLineRegex().Match(line.ToString());
-                var level = heading.Groups[1].Value.Length;
-                var text = heading.Groups[2].Value.Trim();
+                if (GeneratedHeadingLineRegex().IsMatch(line))
+                {
+                    var heading = GeneratedHeadingLineRegex().Match(line.ToString());
+                    var level = heading.Groups[1].Value.Length;
+                    var text = heading.Groups[2].Value.Trim();
 
-                if (level == HeadingLevelSection)
-                {
-                    rawHeadings.Add(new RawHeading(level, text, lineRange.Start.Value, null));
-                    lastSectionHeading = text;
+                    if (level == HeadingLevelSection)
+                    {
+                        rawHeadings.Add(new RawHeading(level, text, lineRange.Start.Value, null));
+                        lastSectionHeading = text;
+                    }
+                    else
+                    {
+                        rawHeadings.Add(new RawHeading(level, text, lineRange.Start.Value, lastSectionHeading));
+                    }
                 }
-                else
-                {
-                    rawHeadings.Add(new RawHeading(level, text, lineRange.Start.Value, lastSectionHeading));
-                }
+
+                // Reference tokens are fence-aware: a bare [domain#INST0001] inside
+                // a code fence is a syntax example, not a live reference.
+                ScanReferences(line, lineRange.Start.Value, lineIndex, references, diagnostics);
             }
 
             if (GeneratedRuleBulletRegex().IsMatch(line))
@@ -312,7 +427,85 @@ public static partial class InstructionsFileParser
 
         var sections = BuildSections(rawHeadings, body.Length);
 
-        return new InstructionsFileBodyParsedResult(body, sections, rules, diagnostics);
+        return new InstructionsFileBodyParsedResult(body, sections, rules, references, diagnostics);
+    }
+
+    private static void ScanReferences(
+        ReadOnlySpan<char> line,
+        int lineStart,
+        int lineIndex,
+        List<InstructionsFileReference> references,
+        List<InstructionsFileDiagnostic> diagnostics)
+    {
+        // The mandatory '#' is the cheapest disqualifier: a line without one
+        // cannot hold a reference token.
+        if (!line.Contains('#'))
+        {
+            return;
+        }
+
+        var masked = MaskInlineCode(line);
+
+        foreach (Match match in GeneratedReferenceTokenRegex().Matches(masked))
+        {
+            var locator = match.Groups[1].Value;
+            var fragment = match.Groups[2].Value;
+            var hasLocator = locator.Length > 0;
+            var locatorValid = !hasLocator || IsValidLocator(locator);
+            var fragmentLooksReference = fragment.StartsWith("INST", StringComparison.Ordinal)
+                || (fragment.Length > 0 && fragment[0] == '\'');
+
+            // Only treat the token as a reference *attempt* when either the locator
+            // looks deliberate or the fragment opens like an id/section — otherwise
+            // it is ordinary bracketed prose and must be left alone.
+
+            if (!((hasLocator && locatorValid) || fragmentLooksReference))
+            {
+                continue;
+            }
+
+            var charStart = lineStart + match.Index;
+            var charEnd = charStart + match.Length;
+
+            if (hasLocator && !locatorValid)
+            {
+                diagnostics.Add(new InstructionsFileDiagnostic(
+                    InstructionsFileDiagnosticKind.MalformedReference,
+                    lineIndex,
+                    $"Malformed reference locator: [{locator}#{fragment}]"));
+            }
+            else if (GeneratedReferenceRuleFragmentRegex().IsMatch(fragment))
+            {
+                references.Add(new InstructionsFileReference(
+                    InstructionsFileReferenceKind.Rule,
+                    hasLocator ? locator : null,
+                    fragment,
+                    lineIndex,
+                    charStart,
+                    charEnd));
+            }
+            else if (GeneratedReferenceSectionFragmentRegex().IsMatch(fragment))
+            {
+                references.Add(new InstructionsFileReference(
+                    InstructionsFileReferenceKind.Section,
+                    hasLocator ? locator : null,
+                    UnescapeHeading(fragment[1..^1]),
+                    lineIndex,
+                    charStart,
+                    charEnd));
+            }
+            else
+            {
+                var message = GeneratedReferenceRangeFragmentRegex().IsMatch(fragment)
+                    ? $"Reference ranges are not allowed; cite each rule individually or the enclosing section: [{locator}#{fragment}]"
+                    : $"Malformed reference fragment: [{locator}#{fragment}]";
+
+                diagnostics.Add(new InstructionsFileDiagnostic(
+                    InstructionsFileDiagnosticKind.MalformedReference,
+                    lineIndex,
+                    message));
+            }
+        }
     }
 
     [SuppressMessage(
@@ -326,6 +519,15 @@ public static partial class InstructionsFileParser
 
         return GeneratedEdgeHyphensRegex().Replace(dashed, string.Empty);
     }
+
+    // Resolve markdown backslash escapes (e.g. \' → ') inside a quoted section
+    // heading so the stored target is the literal heading text. Matches are
+    // non-overlapping left-to-right, so \\ collapses to a single backslash before
+    // a following \' is considered.
+    private static string UnescapeHeading(string heading)
+        => heading.Contains('\\', StringComparison.Ordinal)
+            ? GeneratedHeadingEscapeRegex().Replace(heading, "$1")
+            : heading;
 
     private readonly record struct RawHeading(int Level, string Heading, int CharStart, string? Parent);
 }

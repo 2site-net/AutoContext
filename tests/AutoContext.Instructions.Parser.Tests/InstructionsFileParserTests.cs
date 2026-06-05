@@ -273,4 +273,239 @@ public sealed class InstructionsFileParserTests
             Assert.DoesNotContain("Unindented", rule.Text, StringComparison.Ordinal);
         }
     }
+
+    public sealed class ParseReferences
+    {
+        [Fact]
+        public void Should_capture_a_cross_file_rule_reference()
+        {
+            // Act
+            var reference = Assert.Single(
+                InstructionsFileParser.Parse("See [testing#INST0014] for details.\n").Body.References);
+
+            // Assert
+            Assert.Multiple(
+                () => Assert.Equal(InstructionsFileReferenceKind.Rule, reference.Kind),
+                () => Assert.Equal("testing", reference.Locator),
+                () => Assert.Equal("INST0014", reference.Target));
+        }
+
+        [Fact]
+        public void Should_treat_an_absent_locator_as_a_same_file_reference()
+        {
+            // Act
+            var reference = Assert.Single(
+                InstructionsFileParser.Parse("Group them with the API (see [#INST0017]).\n").Body.References);
+
+            // Assert
+            Assert.Multiple(
+                () => Assert.Equal(InstructionsFileReferenceKind.Rule, reference.Kind),
+                () => Assert.Null(reference.Locator),
+                () => Assert.Equal("INST0017", reference.Target));
+        }
+
+        [Fact]
+        public void Should_capture_a_cross_file_section_reference_without_its_quotes()
+        {
+            // Act
+            var reference = Assert.Single(
+                InstructionsFileParser.Parse("per [testing#'Test Support'] above.\n").Body.References);
+
+            // Assert
+            Assert.Multiple(
+                () => Assert.Equal(InstructionsFileReferenceKind.Section, reference.Kind),
+                () => Assert.Equal("testing", reference.Locator),
+                () => Assert.Equal("Test Support", reference.Target));
+        }
+
+        [Fact]
+        public void Should_capture_a_same_file_section_reference()
+        {
+            // Act
+            var reference = Assert.Single(
+                InstructionsFileParser.Parse("see [#'Assertions'].\n").Body.References);
+
+            // Assert
+            Assert.Multiple(
+                () => Assert.Equal(InstructionsFileReferenceKind.Section, reference.Kind),
+                () => Assert.Null(reference.Locator),
+                () => Assert.Equal("Assertions", reference.Target));
+        }
+
+        [Fact]
+        public void Should_resolve_an_escaped_apostrophe_in_a_section_reference()
+        {
+            // Act
+            var reference = Assert.Single(
+                InstructionsFileParser.Parse("see [#'Bob\\'s rules'] below.\n").Body.References);
+
+            // Assert
+            Assert.Multiple(
+                () => Assert.Equal(InstructionsFileReferenceKind.Section, reference.Kind),
+                () => Assert.Null(reference.Locator),
+                () => Assert.Equal("Bob's rules", reference.Target));
+        }
+
+        [Fact]
+        public void Should_resolve_an_escaped_apostrophe_in_a_cross_file_section_reference()
+        {
+            // Act
+            var reference = Assert.Single(
+                InstructionsFileParser.Parse("see [testing#'Don\\'t repeat yourself'] above.\n").Body.References);
+
+            // Assert
+            Assert.Multiple(
+                () => Assert.Equal(InstructionsFileReferenceKind.Section, reference.Kind),
+                () => Assert.Equal("testing", reference.Locator),
+                () => Assert.Equal("Don't repeat yourself", reference.Target));
+        }
+
+        [Fact]
+        public void Should_collapse_an_escaped_backslash_in_a_section_reference()
+        {
+            // Arrange
+            // Source heading text is: path\to  (an escaped backslash).
+            var body = "see [#'path\\\\to'] below.\n";
+
+            // Act
+            var reference = Assert.Single(InstructionsFileParser.Parse(body).Body.References);
+
+            // Assert
+            Assert.Multiple(
+                () => Assert.Equal(InstructionsFileReferenceKind.Section, reference.Kind),
+                () => Assert.Equal("path\\to", reference.Target));
+        }
+
+        [Fact]
+        public void Should_capture_multiple_references_on_one_line_in_order()
+        {
+            // Arrange
+            var body = "those names (see [dotnet-testing#INST0011]; root principle in [testing#INST0019]).\n";
+
+            // Act
+            var references = InstructionsFileParser.Parse(body).Body.References;
+
+            // Assert
+            Assert.Multiple(
+                () => Assert.Equal(2, references.Count),
+                () => Assert.Equal("dotnet-testing", references[0].Locator),
+                () => Assert.Equal("INST0011", references[0].Target),
+                () => Assert.Equal("testing", references[1].Locator),
+                () => Assert.Equal("INST0019", references[1].Target));
+        }
+
+        [Fact]
+        public void Should_not_treat_a_definition_tag_as_a_reference()
+        {
+            // Act — the bullet tag carries no '#', so it is a definition, not a reference.
+            var result = InstructionsFileParser.Parse("- [INST0006] **Do** cite [design-principles#INST0008] here.\n");
+
+            // Assert
+            Assert.Multiple(
+                () => Assert.Equal("INST0006", Assert.Single(result.Body.Rules).Id),
+                () => Assert.Equal("design-principles", Assert.Single(result.Body.References).Locator));
+        }
+
+        [Fact]
+        public void Should_ignore_references_inside_inline_code_spans()
+        {
+            // Act
+            var result = InstructionsFileParser.Parse("The form `[testing#INST0014]` is an example.\n");
+
+            // Assert
+            Assert.Empty(result.Body.References);
+        }
+
+        [Fact]
+        public void Should_ignore_references_inside_fenced_code_blocks()
+        {
+            // Arrange
+            var body = "Real [testing#INST0001] ref.\n\n```\n[testing#INST0002]\n```\n";
+
+            // Act
+            var reference = Assert.Single(InstructionsFileParser.Parse(body).Body.References);
+
+            // Assert
+            Assert.Equal("INST0001", reference.Target);
+        }
+
+        [Fact]
+        public void Should_not_treat_a_markdown_link_label_as_a_reference()
+        {
+            // Act
+            var result = InstructionsFileParser.Parse("[a#b](https://example.com) link.\n");
+
+            // Assert
+            Assert.Empty(result.Body.References);
+        }
+
+        [Fact]
+        public void Should_leave_ordinary_bracketed_prose_alone()
+        {
+            // Act — uppercase locator is not a deliberate reference attempt.
+            var result = InstructionsFileParser.Parse("Notes about [C# generics] go here.\n");
+
+            // Assert
+            Assert.Multiple(
+                () => Assert.Empty(result.Body.References),
+                () => Assert.Empty(result.Body.Diagnostics));
+        }
+
+        [Fact]
+        public void Should_flag_a_truncated_rule_id_as_a_malformed_reference()
+        {
+            // Act
+            var result = InstructionsFileParser.Parse("See [testing#INST014] please.\n");
+
+            // Assert
+            Assert.Multiple(
+                () => Assert.Empty(result.Body.References),
+                () => Assert.Equal(
+                    InstructionsFileDiagnosticKind.MalformedReference,
+                    Assert.Single(result.Body.Diagnostics).Kind));
+        }
+
+        [Fact]
+        public void Should_flag_a_rule_range_as_a_malformed_reference()
+        {
+            // Act
+            var result = InstructionsFileParser.Parse("See [testing#INST0014-INST0016] here.\n");
+
+            // Assert
+            Assert.Multiple(
+                () => Assert.Empty(result.Body.References),
+                () => Assert.Contains(
+                    "ranges are not allowed",
+                    Assert.Single(result.Body.Diagnostics).Message,
+                    StringComparison.Ordinal));
+        }
+
+        [Fact]
+        public void Should_flag_a_malformed_locator()
+        {
+            // Act — a deliberate id fragment with a non-key locator is a botched reference.
+            var result = InstructionsFileParser.Parse("See [My File#INST0014] here.\n");
+
+            // Assert
+            Assert.Equal(
+                InstructionsFileDiagnosticKind.MalformedReference,
+                Assert.Single(result.Body.Diagnostics).Kind);
+        }
+
+        [Fact]
+        public void Should_expose_body_relative_offsets_for_a_reference()
+        {
+            // Arrange
+            var body = "see [#INST0017] now.\n";
+
+            // Act
+            var reference = Assert.Single(InstructionsFileParser.Parse(body).Body.References);
+
+            // Assert
+            Assert.Multiple(
+                () => Assert.Equal(body.IndexOf('[', StringComparison.Ordinal), reference.CharStart),
+                () => Assert.Equal(body.IndexOf(']', StringComparison.Ordinal) + 1, reference.CharEnd),
+                () => Assert.Equal(0, reference.Line));
+        }
+    }
 }
