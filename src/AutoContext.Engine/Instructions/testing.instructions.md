@@ -24,7 +24,7 @@ validate this instructions file — apply it manually.
 ### Structure & Assertions
 
 - [INST0006] **Do** structure every test in AAA (Arrange-Act-Assert) style; place a single blank line between setup, action, and assertion groups. Consecutive bindings and consecutive calls within a group stay together — don't insert blank lines inside a group. In .NET tests `// Arrange` / `// Act` / `// Assert` comments are also acceptable.
-- [INST0007] **Do** keep each test laser-focused: one behavior, minimal mocks. Multiple assertions are fine when they verify facets of the same outcome — group them with the framework's API (see INST0008).
+- [INST0007] **Do** keep each test laser-focused: one behavior, minimal mocks. Multiple assertions are fine when they verify facets of the same outcome — group them with the framework's API (see [#INST0008]).
 - [INST0008] **Do** use the framework's grouped-assertion API when a test has multiple assertions — e.g., `Assert.Multiple()` in xUnit, `expect.soft()` in Vitest — so a first failure doesn't hide the rest.
 - [INST0009] **Do** use the test framework's lifecycle hooks for shared initialization and cleanup — don't inline repetitive setup or cleanup in individual tests.
 - [INST0010] **Do** mock only when truly required — prefer real implementations or simple fakes over mocking frameworks.
