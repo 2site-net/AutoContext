@@ -45,7 +45,7 @@ Before generating, editing, or reviewing files, discover which AutoContext instr
 - **Don't** run any git command that changes repository state (`git add`, `git rm`, `git commit`, `git push`, `git reset`, `git checkout`, `git merge`, `git rebase`, etc.) without explicit user permission — read-only commands (`git status`, `git diff`, `git log`, `git show`) are fine.
 - **Don't** omit `--gpg-sign` (`-S`) from `git commit` when the repo or global config has `commit.gpgSign = true`; always honour the user's signing settings.
 - **Don't** create markdown report files unless explicitly requested by the user.
-- **Don't** create a production folder named `Support` or `support` — those names are reserved for .NET test-support folders (see [dotnet-testing#INST0009]; root principle in [testing#INST0014]).
+- **Don't** create a production folder named `Support` or `support` — those names are reserved for .NET test-support folders (see [dotnet-testing#INST0011]; root principle in [testing#INST0019]).
 - **Don't** retrofit newly-added instruction rules onto pre-existing code that doesn't already trip them — apply new rules only to code you're touching for another reason. A rule landing in `*.instructions.md` is forward-looking; treat legacy violations as known debt, not an action item. Don't open speculative cleanup edits, and don't insert ignore comments either. If a rule is important enough to enforce retroactively, the user will say so explicitly.
 
 ## Workflow Instruction Triggers
