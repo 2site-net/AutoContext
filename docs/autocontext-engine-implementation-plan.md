@@ -1866,6 +1866,24 @@ corrected files):
 work was stashed pending **Phase 6R** (design remediation). Resumes on
 the corrected catalog + manifest shape.
 
+| # | Commit subject | State |
+|---|---|---|
+| 1 | `feat(protocol): add Instructions.* wire DTOs` | DONE |
+| 2 | `feat(engine-core): load instructions corpus snapshot on startup` | Not started |
+| 3 | `feat(engine-core): add InstructionsOverrideWatcher with debounced reload` | Not started |
+| 4 | `feat(engine): serve Instructions.List over rpc` | Not started |
+| 5 | `feat(engine-core): add InstructionsFileBodyProjector with disabled-rule filter and tag strip` | Not started |
+| 6 | `feat(engine): serve Instructions.Get and GetAll over rpc` | Not started |
+| 7 | `feat(engine): serve Instructions.GetAlwaysAttached over rpc` | Not started |
+| 8 | `feat(engine): serve Instructions.GetRaw with bundled/override/active source` | Not started |
+| 9 | `feat(engine-core): add InstructionsContentIndex seeded from metadata` | Not started |
+| 10 | `feat(engine): serve Instructions.SearchContent over rpc` | Not started |
+| 11 | `feat(engine-core): add Instructions.Subscribe events stream with snapshot-on-subscribe` | Not started |
+| 12 | `feat(engine-core): rebroadcast Instructions.Subscribe on Config.Subscribe changes` | Not started |
+| 13 | `feat(engine-core): warn when an override is older than its bundled file` | Not started |
+| 14 | `test(engine): integration test for instructions projection and invalidation over rpc` | Not started |
+| 15 | `docs(plan): mark Phase 6 complete` | Not started |
+
 **Goal**: engine answers every `Instructions.*` RPC from in-memory
 snapshots, applies per-request projection (disabled rules filtered,
 `[INSTxxxx]` stripped, overrides resolved), invalidates cleanly via
