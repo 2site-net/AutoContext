@@ -1827,7 +1827,7 @@ Phase 6 resumes on top of the corrected files.
     corpus, all rules build-FATAL with an
     `[instructions-catalog.json] …` message: **(A)** every catalog
     entry resolves to a real corpus file; **(B2)** every corpus file
-    is catalogued **except** the always-attached files (`copilot`,
+    has a catalog entry **except** the always-attached files (`copilot`,
     `autocontext` — matching the legacy TS exemption); **(membership)**
     every category-membership string resolves to a declared category.
   - Update `Program.cs` args (corpus dir + catalog path + manifest
@@ -1956,7 +1956,7 @@ pitfall.
 **Out of scope**: LM-tool shims (Phase 14 — they dial these RPCs);
 MCP-tool dispatch (Phase 7).
 
-## Phase 7 — MCP tool catalogue, dispatch, and worker manager
+## Phase 7 — MCP tool catalog, dispatch, and worker manager
 
 **Status**: Not started.
 

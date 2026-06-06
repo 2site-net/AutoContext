@@ -327,8 +327,8 @@ On activation (and on configuration or window-focus changes), `InstructionsFiles
 
 | Tool | Input | Returns |
 |------|-------|---------|
-| `list_autocontext_instructions_files` | `applyTo?` (path or glob), `category?`, `includeSections?` | Catalogue rows: `name`, `key`, `description`, `version`, `applyTo`, `categories`, `hasChangelog`, optional `sections`. |
-| `search_autocontext_instructions_files_by_metadata` | `predicate` (object: `name`, `description`, `version`, `applyTo`, `categories`, `hasChangelog`, `sections.heading`, `sections.anchor`, `sections.parent`, `sections.level`), `includeSections?` | Catalogue rows + `matchedAnchors[]` whenever the predicate touched a `sections.*` field. |
+| `list_autocontext_instructions_files` | `applyTo?` (path or glob), `category?`, `includeSections?` | Listing rows: `name`, `key`, `description`, `version`, `applyTo`, `categories`, `hasChangelog`, optional `sections`. |
+| `search_autocontext_instructions_files_by_metadata` | `predicate` (object: `name`, `description`, `version`, `applyTo`, `categories`, `hasChangelog`, `sections.heading`, `sections.anchor`, `sections.parent`, `sections.level`), `includeSections?` | Listing rows + `matchedAnchors[]` whenever the predicate touched a `sections.*` field. |
 | `search_autocontext_instructions_files_by_content` | `query` (free text), `applyTo?`, `category?`, `limit?` (≤ 25, default 10) | Ranked hits with up to 3 `excerpts[]` each, every excerpt carrying its `section`, `sectionLevel`, and `anchor`. |
 | `get_autocontext_instructions_file` | `name` (exact filename), `sections?` (anchors) | Normalized markdown body or section slices in document order. Unknown anchors come back via `notFoundSections`. |
 
@@ -351,7 +351,7 @@ Every handler inlines the same disabled-file filter using `InstructionsFileEntry
 
 ### Why Extension-Native (Not MCP)
 
-These tools are deliberately registered through `vscode.lm.registerTool`, **not** as MCP tools on `AutoContext.Mcp.Server`. The instruction catalogue, override resolution, and disabled-state are all in-process inside the extension; routing them through stdio + a worker pipe would add latency and a serialization boundary for no benefit. The MCP server stays focused on heavyweight code-quality tasks that genuinely belong in the workers.
+These tools are deliberately registered through `vscode.lm.registerTool`, **not** as MCP tools on `AutoContext.Mcp.Server`. The instruction listing, override resolution, and disabled-state are all in-process inside the extension; routing them through stdio + a worker pipe would add latency and a serialization boundary for no benefit. The MCP server stays focused on heavyweight code-quality tasks that genuinely belong in the workers.
 
 ---
 

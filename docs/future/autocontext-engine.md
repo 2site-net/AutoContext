@@ -177,7 +177,7 @@ the extension neither launches the hook nor proxies its RPCs.
 
 ## At a glance — reference index
 
-A one-screen catalogue of every named entity in this design.
+A one-screen catalog of every named entity in this design.
 Entries are terse pointers; the authoritative definition lives in
 the linked section below. New entities added to the design must
 also land here so the index stays the system's table of contents.
@@ -367,7 +367,7 @@ See [Composition contracts](#composition-contracts).
 |---|---|
 | `instructions-catalog.json` | **hand-authored** curatorial layer: category taxonomy (`name` + `description`) and per-file `label`, category membership, and `activationFlags`. Tracked source — not generated. |
 | `instructions-manifest.json` | **build-generated** per-file facts: section maps, parsed `applyTo` extension sets, content-index seed, `version`, `description`, `contentHash`, `hasChangelog`. |
-| `mcp-tools.json` | wire-shape catalogue for `McpTools.List` |
+| `mcp-tools.json` | wire-shape catalog for `McpTools.List` |
 | `mcp-tools-registry.json` | source-of-truth tool→worker dispatch table (hand-edited) |
 | `mcp-tools-registry-schema.json` | JSON-schema for the registry (hand-edited) |
 | `workers.json` | build-generated worker manifest (id + type + entrypoint per worker) |
@@ -1936,7 +1936,7 @@ way to set it.
   state) for diagnostics; it does not duplicate the `Detect`
   payload.
 - **`McpTools.*`** — `List`, `Invoke`. `List` surfaces the engine's
-  MCP tool catalogue (filtered by the same `disabledTools` /
+  MCP tool catalog (filtered by the same `disabledTools` /
   `disabledTasks` state) for hosts that want to introspect what the
   engine would advertise to an MCP client.
 
@@ -2429,7 +2429,7 @@ protocol event.
 
 The engine is the single owner of every piece of AutoContext state
 for a workspace — config, instructions corpus, projection,
-workspace-context detection, MCP tool catalogue, worker lifecycle.
+workspace-context detection, MCP tool catalog, worker lifecycle.
 Clients (VS Code extension, Anthropic plugin, any other pipe-RPC
 consumer) are
 **caches with UI**, never authorities. The contract is one-way:
@@ -3021,7 +3021,7 @@ write, and never lets a corpus reload tear a read in flight.
     the swap.
 - **Snapshots are immutable.** Every published snapshot
   (config view, corpus projection, content index, MCP-tool
-  catalogue, `Workspace.Detect` result) is a frozen value: no
+  catalog, `Workspace.Detect` result) is a frozen value: no
   field on a published snapshot is ever mutated in place. The
   revision counter on `Engine.Lifecycle.reloaded` is the only
   invalidation signal clients need (paired with `instanceId`
@@ -3338,7 +3338,7 @@ Decision:
       instructions-manifest.json                   # build-generated per-file facts (section maps,
                                                    #   parsed applyTo extension sets,
                                                    #   content-index seed)
-      mcp-tools.json                               # wire-shape catalogue for McpTools.List
+      mcp-tools.json                               # wire-shape catalog for McpTools.List
       mcp-tools-registry.json                      # source-of-truth tool→worker dispatch table
       mcp-tools-registry-schema.json               # JSON-schema for the registry
       workers.json                                 # build-generated worker manifest
@@ -3401,7 +3401,7 @@ mutating the manifests.
   partial view (the always-attached files `copilot`/`autocontext` are
   exempt; they belong to no category). The build-time generator **reads**
   it to cross-validate against the corpus (every entry resolves to a real
-  file; every non-always-attached file is catalogued; every membership
+  file; every non-always-attached file has a catalog entry; every membership
   resolves to a declared category) but never rewrites it.
 - **`instructions-manifest.json`** — **build-generated** by
   `instructions-manifest-gen` over the curated corpus: each file's
@@ -3417,7 +3417,7 @@ mutating the manifests.
   the `Instructions.Categories` taxonomy from it per request. The on-disk
   manifest, the engine-internal snapshot, and the wire envelopes are
   three decoupled representations (P3) — none constrains another's shape.
-- **`mcp-tools.json`** — build-generated wire-shape catalogue for
+- **`mcp-tools.json`** — build-generated wire-shape catalog for
   `McpTools.List`, projected from `mcp-tools-registry.json` at
   build time. The engine reads this file directly when answering
   `McpTools.List`; per-request projection only applies the
@@ -3908,7 +3908,7 @@ Shape:
   `AutoContext.CommandLine` skeleton.
 - **Engine library populated.** Config store, corpus reader,
   projector, corpus service, workspace detection, pipe-listener /
-  idle-watchdog hosted services, RPC handlers, MCP-tool catalogue,
+  idle-watchdog hosted services, RPC handlers, MCP-tool catalog,
   worker dispatch, MCP-server-only role composition.
   `EngineClient` (.NET, inside `Client.Core` — the CLI-as-library)
   and the TS-side `EngineDaemonManager` (engine-daemon lifecycle
