@@ -10,7 +10,7 @@ using AutoContext.Instructions.Parser;
 /// directory, reads each <c>*.instructions.md</c> file once via
 /// <see cref="InstructionsFile.Parse(string)"/>, and precomputes the
 /// frontmatter-stripped content hash and sibling-changelog flag. Every later stage
-/// (<see cref="InstructionsListBuilder"/>, <see cref="InstructionsMetadataBuilder"/>,
+/// (<see cref="InstructionsManifestBuilder"/>, <see cref="InstructionsCatalogReader"/>,
 /// and <see cref="InstructionsReferenceValidator"/>) reads the resulting
 /// <see cref="CorpusFileParsedResult"/> values and never touches disk again, so the markdown
 /// is read and parsed exactly once.

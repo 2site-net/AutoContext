@@ -1817,8 +1817,9 @@ Phase 6 resumes on top of the corrected files.
     `instructions-files.json` builder is dropped. The manifest carries
     no `categories`/`label`/`activationFlags` (the catalog's) and no
     workspace-state fields (`disabled`/`source` are per-request).
-    `alwaysAttached` is **derived** by the engine from its
-    `AlwaysAttachedFiles` set, not baked into the manifest.
+    `alwaysAttached` is **declared** in the catalog's `alwaysAttached`
+    array (the single source of truth) and derived by the engine at
+    merge time, not baked into the manifest.
   - `InstructionsCatalogReader` reads the hand-authored
     `instructions-catalog.json` and cross-validates against the
     corpus, all rules build-FATAL with an

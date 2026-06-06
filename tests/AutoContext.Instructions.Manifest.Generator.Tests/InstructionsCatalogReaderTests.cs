@@ -47,9 +47,9 @@ public sealed class InstructionsCatalogReaderTests
         }
 
         [Fact]
-        public void Should_exempt_always_attached_files_from_the_catalogue_requirement()
+        public void Should_exempt_always_attached_files_from_the_catalog_requirement()
         {
-            // Arrange — copilot/autocontext ship but are declared always-attached, not catalogued.
+            // Arrange — copilot/autocontext ship but are declared always-attached, not cataloged.
             var corpus = InstructionsCorpusTestWriter.WriteAndParse(
                 tempDirectory.CreateDirectory(), "copilot", "autocontext", "code-review");
             var catalogPath = InstructionsCatalogTestWriter.Write(
@@ -87,7 +87,7 @@ public sealed class InstructionsCatalogReaderTests
         }
 
         [Fact]
-        public void Should_throw_when_an_always_attached_file_is_also_catalogued()
+        public void Should_throw_when_an_always_attached_file_is_also_cataloged()
         {
             // Arrange — a file may be curated OR always-attached, never both.
             var corpus = InstructionsCorpusTestWriter.WriteAndParse(
@@ -102,7 +102,7 @@ public sealed class InstructionsCatalogReaderTests
             var exception = Assert.Throws<InvalidOperationException>(() => _sut.Read(catalogPath, corpus));
 
             // Assert
-            Assert.Contains("is declared always-attached and also catalogued", exception.Message, StringComparison.Ordinal);
+            Assert.Contains("is declared always-attached and also cataloged", exception.Message, StringComparison.Ordinal);
         }
 
         [Fact]
@@ -164,7 +164,7 @@ public sealed class InstructionsCatalogReaderTests
         }
 
         [Fact]
-        public void Should_throw_when_a_corpus_file_is_not_catalogued()
+        public void Should_throw_when_a_corpus_file_is_not_cataloged()
         {
             // Arrange — 'stray' ships, is not always-attached, and is left out of the catalog.
             var corpus = InstructionsCorpusTestWriter.WriteAndParse(
@@ -180,7 +180,7 @@ public sealed class InstructionsCatalogReaderTests
             // Assert
             Assert.Multiple(
                 () => Assert.Contains("stray.instructions.md", exception.Message, StringComparison.Ordinal),
-                () => Assert.Contains("is not catalogued", exception.Message, StringComparison.Ordinal));
+                () => Assert.Contains("is not cataloged", exception.Message, StringComparison.Ordinal));
         }
 
         [Fact]

@@ -12,7 +12,7 @@ namespace AutoContext.Instructions.Parser;
 /// real rule or section, is a later cross-file concern.
 /// </summary>
 /// <param name="Kind">Whether the fragment targets a rule or a section.</param>
-/// <param name="Locator">The target file locator — a catalogue key
+/// <param name="Locator">The target file locator — a catalog key
 /// (<c>testing</c>), a filename, or a URI — or <see langword="null"/> when the
 /// reference omits the locator and is therefore same-file.</param>
 /// <param name="Target">The cited target: the verbatim <c>INST####</c> id for a

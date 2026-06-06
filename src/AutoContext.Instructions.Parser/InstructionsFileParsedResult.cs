@@ -4,8 +4,8 @@ namespace AutoContext.Instructions.Parser;
 /// The complete structural parse of one instructions file: its parsed frontmatter
 /// paired with its parsed body (the normalised body text, the section index, the
 /// actionable rule bullets, and any bullet-tag diagnostics). This is the single
-/// shape every consumer — the build-time catalogue and metadata generators and the
-/// runtime engine — reads, so the markdown is parsed once.
+/// shape every consumer — the build-time manifest generator and the runtime
+/// engine — reads, so the markdown is parsed once.
 /// </summary>
 /// <param name="RawContent">The verbatim file content exactly as parsed,
 /// frontmatter and body included.</param>

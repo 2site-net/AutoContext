@@ -1659,7 +1659,7 @@ way to set it.
     applyTo?:       string,            // raw glob string (omitted if absent)
     hasChangelog:   boolean,           // sibling `<key>.CHANGELOG.md` exists
     contentHash:    string,            // "sha256:<hex>" over post-frontmatter body
-    alwaysAttached: boolean,           // frontmatter `alwaysAttached: true`
+    alwaysAttached: boolean,           // catalog-declared in `instructions-catalog.json`'s `alwaysAttached[]`
     disabled:       boolean,           // engine-resolved against `.autocontext.json`'s `disabledInstructions`
     source:         "bundled"|"override",
     overridePath?:  string,            // workspace-relative when source="override"
@@ -1709,14 +1709,14 @@ way to set it.
   loop get the identity envelope.
 
   **`GetAlwaysAttached`** is the SessionStart / `PreCompact`
-  consumer: it returns *only* the non-disabled files whose
-  frontmatter declares `alwaysAttached: true`, in deterministic
-  order. The flag is a per-file declarative signal in the source
-  markdown's YAML frontmatter — today only
+  consumer: it returns *only* the non-disabled files the catalog's
+  `alwaysAttached[]` array declares, in deterministic
+  order. The set is a declarative signal in the hand-authored
+  `instructions-catalog.json` — today only
   `copilot.instructions.md` and `autocontext.instructions.md`
-  carry it (they introduce AutoContext itself and must apply to
-  every turn). Files with no `applyTo` but no `alwaysAttached`
-  flag (`code-review`, `design-principles`, `git-commit`,
+  are listed (they introduce AutoContext itself and must apply to
+  every turn). Files with no `applyTo` but not in the
+  `alwaysAttached[]` array (`code-review`, `design-principles`, `git-commit`,
   `rest-api-design`) are domain-conditional, not universal, and
   surface only via `Discovery.RouteForPrompt`.
 
@@ -2513,8 +2513,8 @@ Hosts that need a file path get one of two patterns:
 - **Agent-plugin SessionStart hook:** calls `Instructions.GetAlwaysAttached`
   and returns the bodies inline as `additionalContext`. The set is
   small by design (2 files today: `copilot` and `autocontext`) and
-  curated by the `alwaysAttached: true` frontmatter flag in the
-  source markdown — not by `applyTo` absence. No file ever gets
+  curated by the catalog's `alwaysAttached[]` array in
+  `instructions-catalog.json` — not by `applyTo` absence. No file ever gets
   written under `${CLAUDE_PLUGIN_ROOT}`. Sub-agents that need
   file paths materialise them under the per-instance cache root
   (`%LOCALAPPDATA%\autocontext\<workspaceHash>\<instanceId>\cache\`
@@ -3282,7 +3282,7 @@ speak a narrower wire than full RPC clients do).
 | `AutoContext.Engine.Core.Tests` | Engine-internal services, RPC handlers, pipe-server bindings; absorbs today's `AutoContext.Mcp.Server.Tests` |
 | `AutoContext.Client.Core.Tests` | Typed RPC clients, subscription-stream consumers, dialer back-pressure / reconnect behaviour |
 | `AutoContext.Engine.Tests` | Binary host wiring — argv parsing, `AddAutoContextEngine` composition, exit codes |
-| `AutoContext.Build.Tasks.Tests` | `BuildInstructionsListTask` output fixtures and `ApplyToRoundTripVerifier` invariants (the task itself is also exercised end-to-end by every other project's build) |
+| `AutoContext.Build.Tasks.Tests` | `BuildInstructionsManifestTask` output fixtures and `ApplyToRoundTripVerifier` invariants (the task itself is also exercised end-to-end by every other project's build) |
 | `AutoContext.Worker.*.Tests` | Unchanged — per-worker task suites against the testing harness |
 
 `AutoContext.Mcp.Server.Tests` is retired into
@@ -3713,8 +3713,8 @@ Source-side locations for the editable inputs the build consumes:
   (`%LOCALAPPDATA%\autocontext\<workspaceHash>\<instanceId>\logs\engine.log`),
   or the OS user-cache dir — never in `Resources/`.
 - **`alwaysAttached` is explicit, not derived.** The set returned
-  by `Instructions.GetAlwaysAttached` is the files whose
-  frontmatter declares `alwaysAttached: true`, not the files
+  by `Instructions.GetAlwaysAttached` is the files the catalog's
+  `alwaysAttached[]` array declares, not the files
   whose frontmatter omits `applyTo`. Today's corpus has six files
   with no `applyTo` (`copilot`, `autocontext`, `code-review`,
   `design-principles`, `git-commit`, `rest-api-design`); only

@@ -2,8 +2,8 @@ namespace AutoContext.Instructions.Manifest.Generator;
 
 /// <summary>
 /// Reads the hand-authored <c>instructions-catalog.json</c> and cross-validates it
-/// against the parsed corpus: every catalogued file exists, every
-/// non-always-attached corpus file is catalogued, and every category membership
+/// against the parsed corpus: every cataloged file exists, every
+/// non-always-attached corpus file is cataloged, and every category membership
 /// resolves to a declared category. Any discrepancy is a build-fatal authoring
 /// error.
 /// </summary>
@@ -19,7 +19,7 @@ internal interface IInstructionsCatalogReader
     /// <exception cref="ArgumentNullException"><paramref name="catalogPath"/> or
     /// <paramref name="corpus"/> is <see langword="null"/>.</exception>
     /// <exception cref="InvalidOperationException">The catalog is malformed, or it
-    /// disagrees with the corpus (orphaned entry, uncatalogued corpus file, or
+    /// disagrees with the corpus (orphaned entry, uncataloged corpus file, or
     /// undeclared category membership).</exception>
     JsonInstructionsCatalog Read(
         string catalogPath,

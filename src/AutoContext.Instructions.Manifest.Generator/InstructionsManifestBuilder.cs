@@ -6,11 +6,10 @@ using AutoContext.Instructions.Parser;
 
 /// <summary>
 /// Builds the build-generated <c>instructions-manifest.json</c> fact index from an
-/// already-parsed corpus. The builder folds the former wire-list and metadata
-/// builders into one pass: it validates curatorial frontmatter shape and extracts
-/// the derived facts (section map, <c>applyTo</c> extension set) the engine merges
-/// with the hand-authored catalog at startup. Every file's frontmatter, content
-/// hash, and changelog flag are read from the shared
+/// already-parsed corpus. In a single pass it validates curatorial frontmatter
+/// shape and extracts the derived facts (section map, <c>applyTo</c> extension set)
+/// the engine merges with the hand-authored catalog at startup. Every file's
+/// frontmatter, content hash, and changelog flag are read from the shared
 /// <see cref="CorpusFileParsedResult"/> the <see cref="CorpusParser"/> already
 /// produced, so the builder touches no disk and re-parses nothing. It validates
 /// curatorial shape but never inspects glob semantics — <c>applyTo</c> is carried

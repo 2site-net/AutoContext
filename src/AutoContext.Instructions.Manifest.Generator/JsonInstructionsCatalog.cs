@@ -7,8 +7,8 @@ using System.Text.Json.Serialization;
 /// taxonomy that decorates the corpus for presentation. It is one of the three
 /// decoupled representations (P3) — authored and version-controlled by hand,
 /// never generated — and the generator reads it only to cross-validate it against
-/// the corpus (every catalogued file exists; every non-always-attached corpus
-/// file is catalogued; every category membership resolves). The engine merges it
+/// the corpus (every cataloged file exists; every non-always-attached corpus
+/// file is cataloged; every category membership resolves). The engine merges it
 /// with the generated <see cref="JsonInstructionsManifest"/> at startup.
 /// </summary>
 internal sealed class JsonInstructionsCatalog(
