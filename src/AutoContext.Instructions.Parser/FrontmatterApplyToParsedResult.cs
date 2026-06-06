@@ -1,7 +1,7 @@
 namespace AutoContext.Instructions.Parser;
 
 /// <summary>
-/// The structural parse of an instruction file's <c>applyTo</c> frontmatter
+/// The structural parse of an instructions file's <c>applyTo</c> frontmatter
 /// value, surfaced as part of the unified <see cref="InstructionsFileParsedResult"/>.
 /// <paramref name="RawValue"/> is the original string the parse derives from.
 /// <paramref name="Globs"/> is the verbatim, brace-depth-aware comma split of

@@ -1,7 +1,7 @@
 namespace AutoContext.Instructions.Parser;
 
 /// <summary>
-/// The subset of an instruction file's leading YAML frontmatter the parser
+/// The subset of an instructions file's leading YAML frontmatter the parser
 /// reads. Every field is optional at the parse layer: a file may carry no
 /// frontmatter block at all, in which case all fields are <see langword="null"/>.
 /// Presence and shape validation (required <c>name</c>, <c>&lt;key&gt; (vX.Y.Z)</c>

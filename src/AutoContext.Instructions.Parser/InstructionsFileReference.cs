@@ -2,7 +2,7 @@ namespace AutoContext.Instructions.Parser;
 
 /// <summary>
 /// One bare cross-reference token of the form <c>[locator#fragment]</c> found in
-/// an instruction file's prose — the machine-readable way one rule cites another
+/// an instructions file's prose — the machine-readable way one rule cites another
 /// rule or a whole section. The mandatory <c>#</c> separates an optional
 /// <em>locator</em> (the target file) from the <em>fragment</em> (the target rule
 /// id or quoted heading); an absent locator means the reference is same-file.

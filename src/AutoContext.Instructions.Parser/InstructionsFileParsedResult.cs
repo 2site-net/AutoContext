@@ -1,7 +1,7 @@
 namespace AutoContext.Instructions.Parser;
 
 /// <summary>
-/// The complete structural parse of one instruction file: its parsed frontmatter
+/// The complete structural parse of one instructions file: its parsed frontmatter
 /// paired with its parsed body (the normalised body text, the section index, the
 /// actionable rule bullets, and any bullet-tag diagnostics). This is the single
 /// shape every consumer — the build-time catalogue and metadata generators and the

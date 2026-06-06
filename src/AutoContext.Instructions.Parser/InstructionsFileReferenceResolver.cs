@@ -71,7 +71,7 @@ public static class InstructionsFileReferenceResolver
                 findings.Add(new InstructionsFileReferenceFinding(
                     InstructionsFileReferenceFindingKind.UnknownLocator,
                     reference,
-                    $"Reference locator '{targetKey}' does not match any known instruction file."));
+                    $"Reference locator '{targetKey}' does not match any known instructions file."));
             }
 
             return;

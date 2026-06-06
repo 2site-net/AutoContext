@@ -5,7 +5,7 @@ using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 
 /// <summary>
-/// The single source of truth for reading an instruction file. One
+/// The single source of truth for reading an instructions file. One
 /// <see cref="Parse"/> call walks the markdown once and returns everything a
 /// consumer needs: the frontmatter, the normalised body, the <c>##</c>/<c>###</c>
 /// section index, the actionable <c>**Do**</c>/<c>**Don't**</c> rule bullets, the
@@ -24,7 +24,7 @@ public static partial class InstructionsFileParser
     /// Parses <paramref name="content"/> into its frontmatter, normalised body,
     /// section index, rule bullets, references, and diagnostics.
     /// </summary>
-    /// <param name="content">The full instruction file text.</param>
+    /// <param name="content">The full instructions file text.</param>
     /// <returns>The complete structural parse.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="content"/> is
     /// <see langword="null"/>.</exception>
@@ -44,7 +44,7 @@ public static partial class InstructionsFileParser
     /// the cheap path for consumers that need the catalogue fields but not the
     /// section or rule index.
     /// </summary>
-    /// <param name="content">The full instruction file text.</param>
+    /// <param name="content">The full instructions file text.</param>
     /// <returns>The parsed frontmatter; all fields are <see langword="null"/>
     /// when no frontmatter block is present.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="content"/> is

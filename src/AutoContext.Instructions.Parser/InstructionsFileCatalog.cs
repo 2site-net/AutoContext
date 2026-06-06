@@ -4,7 +4,7 @@ using System.Diagnostics.CodeAnalysis;
 
 /// <summary>
 /// The whole-corpus index a cross-file reference resolves against: every
-/// instruction file's rule ids and section index, keyed by catalogue key. The
+/// instructions file's rule ids and section index, keyed by catalogue key. The
 /// catalogue is a pure value built once from already-parsed files; assembling it
 /// from disk (walking the corpus, reading and parsing each file) is a caller
 /// concern, so the resolver stays free of I/O and trivially testable.
@@ -16,7 +16,7 @@ public sealed class InstructionsFileCatalog
     /// <summary>
     /// Creates a catalogue from its per-file entries.
     /// </summary>
-    /// <param name="entries">One entry per instruction file. Keys must be
+    /// <param name="entries">One entry per instructions file. Keys must be
     /// unique.</param>
     /// <exception cref="ArgumentNullException"><paramref name="entries"/> is
     /// <see langword="null"/>.</exception>
@@ -42,7 +42,7 @@ public sealed class InstructionsFileCatalog
     }
 
     /// <summary>
-    /// Projects a set of parsed instruction files into a catalogue: each file's
+    /// Projects a set of parsed instructions files into a catalogue: each file's
     /// tagged rule ids and section index become its entry.
     /// </summary>
     /// <param name="parsedByKey">The parsed files, keyed by catalogue key.</param>

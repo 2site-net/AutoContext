@@ -1,7 +1,7 @@
 namespace AutoContext.Instructions.Parser;
 
 /// <summary>
-/// One <c>##</c> or <c>###</c> heading in an instruction file's body, with the
+/// One <c>##</c> or <c>###</c> heading in an instructions file's body, with the
 /// GitHub-style anchor a deep link would target and the body-relative character
 /// span the section covers. Deeper headings (<c>####</c>+) and the document title
 /// (<c>#</c>) are not sections; headings inside fenced code blocks are ignored.

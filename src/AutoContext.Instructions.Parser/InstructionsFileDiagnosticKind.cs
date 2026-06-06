@@ -2,7 +2,7 @@ namespace AutoContext.Instructions.Parser;
 
 /// <summary>
 /// The category of an <see cref="InstructionsFileDiagnostic"/> raised while
-/// parsing an instruction file's rule bullets and references. Consumers decide
+/// parsing an instructions file's rule bullets and references. Consumers decide
 /// which kinds are fatal.
 /// </summary>
 public enum InstructionsFileDiagnosticKind
