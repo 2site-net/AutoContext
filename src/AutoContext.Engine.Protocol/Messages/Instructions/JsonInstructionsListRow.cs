@@ -4,8 +4,10 @@ using System.Text.Json.Serialization;
 
 /// <summary>
 /// One identity row of the <see cref="InstructionsMethods.List"/>
-/// catalogue. Carries every build-time manifest field plus the four
-/// values the engine resolves per request from workspace state
+/// listing. Carries every build-time manifest field, the curatorial
+/// <see cref="Label"/> and category <see cref="Categories"/> membership
+/// from <c>instructions-catalog.json</c>, plus the four values the
+/// engine resolves per request from workspace state
 /// (<see cref="Disabled"/>, <see cref="Source"/>,
 /// <see cref="OverridePath"/>, <see cref="Sections"/>). Bodies are
 /// never included — the tree-view bulk render would otherwise pull
@@ -48,9 +50,26 @@ public sealed record JsonInstructionsListRow
     [JsonPropertyName("contentHash")]
     public string? ContentHash { get; init; }
 
-    /// <summary>Whether frontmatter declares <c>alwaysAttached: true</c>.</summary>
+    /// <summary>Whether the catalog declares this file in its <c>alwaysAttached[]</c> array.</summary>
     [JsonPropertyName("alwaysAttached")]
     public bool AlwaysAttached { get; init; }
+
+    /// <summary>
+    /// Curatorial display label from <c>instructions-catalog.json</c>,
+    /// or <see langword="null"/> when the catalog declares none (the
+    /// client then falls back to <see cref="Key"/>).
+    /// </summary>
+    [JsonPropertyName("label")]
+    public string? Label { get; init; }
+
+    /// <summary>
+    /// Category-membership names from <c>instructions-catalog.json</c>;
+    /// each resolves to a <see cref="JsonInstructionsCategory"/>
+    /// definition returned by <see cref="InstructionsMethods.Categories"/>.
+    /// Empty when the file is uncategorized.
+    /// </summary>
+    [JsonPropertyName("categories")]
+    public IReadOnlyList<string> Categories { get; init; } = [];
 
     /// <summary>
     /// Engine-resolved disabled state against <c>.autocontext.json</c>.

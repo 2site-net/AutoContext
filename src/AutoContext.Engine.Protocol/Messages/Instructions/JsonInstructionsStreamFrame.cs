@@ -7,7 +7,7 @@ using System.Text.Json.Serialization;
 /// <see cref="InstructionsMethods.Subscribe"/> RPC stream. Every frame
 /// is one <see cref="JsonInstructionsStreamFrame"/>: a
 /// <see cref="JsonInstructionsSnapshotFrame"/> carrying the current
-/// catalogue, or a <see cref="JsonInstructionsDroppedFrame"/> as the
+/// listing, or a <see cref="JsonInstructionsDroppedFrame"/> as the
 /// terminal frame the broadcaster sends to a slow subscriber before
 /// disconnecting it.
 /// </summary>
@@ -15,7 +15,7 @@ using System.Text.Json.Serialization;
 /// <para>
 /// The discriminator is the <c>kind</c> JSON property. Like
 /// <c>Config.Subscribe</c>, this is a keyed-state stream: every new
-/// subscriber receives the current catalogue as the first frame
+/// subscriber receives the current listing as the first frame
 /// (snapshot-on-subscribe), so a late subscriber never needs a
 /// separate <see cref="InstructionsMethods.List"/>. Subsequent frames
 /// arrive on every corpus reload. See <c>design § events &gt;

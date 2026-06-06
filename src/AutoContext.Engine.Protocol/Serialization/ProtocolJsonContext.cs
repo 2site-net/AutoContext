@@ -56,6 +56,8 @@ using AutoContext.Engine.Protocol.Messages.Workspace;
 [JsonSerializable(typeof(JsonInstructionsListResult))]
 [JsonSerializable(typeof(JsonInstructionsListRow))]
 [JsonSerializable(typeof(JsonInstructionsSection))]
+[JsonSerializable(typeof(JsonInstructionsCategoriesResult))]
+[JsonSerializable(typeof(JsonInstructionsCategory))]
 [JsonSerializable(typeof(JsonInstructionsGetParams))]
 [JsonSerializable(typeof(JsonInstructionsGetResult))]
 [JsonSerializable(typeof(JsonInstructionsGetOkResult))]

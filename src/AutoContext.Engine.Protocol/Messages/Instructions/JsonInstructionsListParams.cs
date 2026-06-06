@@ -17,4 +17,23 @@ public sealed record JsonInstructionsListParams
     /// </summary>
     [JsonPropertyName("includeSections")]
     public bool? IncludeSections { get; init; }
+
+    /// <summary>
+    /// Whether to drop rows whose <c>applyTo</c> extension set is
+    /// disjoint from the workspace's detected extensions
+    /// (<c>Workspace.Detect.extensions</c>). <see langword="null"/>
+    /// (the default when omitted) is treated as <see langword="true"/>;
+    /// always-attached files are exempt and never filtered out.
+    /// </summary>
+    [JsonPropertyName("applyToWorkspaceFilter")]
+    public bool? ApplyToWorkspaceFilter { get; init; }
+
+    /// <summary>
+    /// Optional extension-only hint (e.g. <c>".ts"</c>) the engine uses
+    /// to narrow rows to those whose <c>applyTo</c> matches that
+    /// extension. <see langword="null"/> applies no hint-based
+    /// narrowing.
+    /// </summary>
+    [JsonPropertyName("applyToHint")]
+    public string? ApplyToHint { get; init; }
 }

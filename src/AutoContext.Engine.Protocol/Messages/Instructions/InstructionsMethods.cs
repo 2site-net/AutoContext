@@ -10,7 +10,7 @@ namespace AutoContext.Engine.Protocol.Messages.Instructions;
 public static class InstructionsMethods
 {
     /// <summary>
-    /// Catalogue RPC. Returns one identity <see cref="JsonInstructionsListRow"/>
+    /// Listing RPC. Returns one identity <see cref="JsonInstructionsListRow"/>
     /// per bundled and override file — disabled rows carry
     /// <c>disabled: true</c> so a tree view can render the toggle UI.
     /// Bodies are never included. Takes
@@ -18,6 +18,18 @@ public static class InstructionsMethods
     /// <see cref="JsonInstructionsListResult"/>.
     /// </summary>
     public const string List = "Instructions.List";
+
+    /// <summary>
+    /// Taxonomy RPC. Returns the curated category definitions
+    /// (<c>name</c> + <c>description</c>) hand-authored in
+    /// <c>instructions-catalog.json</c> — static for the engine's
+    /// process lifetime, so clients fetch it once and cache it. The
+    /// per-file <see cref="JsonInstructionsListRow.Categories"/>
+    /// membership strings on <see cref="List"/> rows resolve against
+    /// these definitions. Takes no params; returns
+    /// <see cref="JsonInstructionsCategoriesResult"/>.
+    /// </summary>
+    public const string Categories = "Instructions.Categories";
 
     /// <summary>
     /// Reads one file's projected body (disabled rules filtered,
@@ -39,8 +51,8 @@ public static class InstructionsMethods
     public const string GetAll = "Instructions.GetAll";
 
     /// <summary>
-    /// Returns only the non-disabled files whose frontmatter declares
-    /// <c>alwaysAttached: true</c>, in deterministic order — the
+    /// Returns only the non-disabled files the catalog declares in its
+    /// <c>alwaysAttached[]</c> array, in deterministic order — the
     /// SessionStart / PreCompact consumer. Never returns a disabled
     /// identity envelope. Takes no params; returns
     /// <see cref="JsonInstructionsFilesResult"/>.
@@ -70,7 +82,7 @@ public static class InstructionsMethods
     /// Opens a server-streaming subscription to the corpus. The engine
     /// emits one <see cref="JsonInstructionsStreamFrame"/> per frame — a
     /// <see cref="JsonInstructionsSnapshotFrame"/> with the current
-    /// catalogue at subscribe time (snapshot-on-subscribe) and again on
+    /// listing at subscribe time (snapshot-on-subscribe) and again on
     /// every corpus reload, or a terminal
     /// <see cref="JsonInstructionsDroppedFrame"/> for a slow subscriber.
     /// </summary>

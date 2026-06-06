@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 /// <summary>
 /// Result of the <see cref="InstructionsMethods.List"/> request: the
-/// full corpus catalogue as identity rows.
+/// full listing as identity rows.
 /// </summary>
 public sealed record JsonInstructionsListResult
 {

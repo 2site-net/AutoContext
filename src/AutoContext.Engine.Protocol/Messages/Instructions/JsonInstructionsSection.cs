@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 /// <summary>
 /// One <c>##</c>/<c>###</c> heading in an instructions file's section
 /// index, in document order. The shape intentionally matches the
-/// build-time <c>instructions-files-metadata.json</c> generator output
+/// build-time <c>instructions-manifest.json</c> generator output
 /// — <c>heading</c>, <c>anchor</c>, <c>parent?</c>, no <c>level</c>;
 /// the parent chain carries hierarchy.
 /// </summary>

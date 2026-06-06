@@ -1780,10 +1780,9 @@ index in-memory at startup).
 
 ## Phase 6R — Design remediation: catalog + manifest split
 
-**Status**: Build-time slice complete on
-`features/fix-metadata-vs-manifest-design`. The runtime snapshot merge
-and the `Instructions.Categories` DTO (see **Out of scope**) resume in
-Phase 6.
+**Status**: Completed on branch `features/fix-metadata-vs-manifest-design`,
+merged to `dev/autocontext-engine`. The runtime snapshot merge and the
+`Instructions.Categories` DTO (see **Out of scope**) resume in Phase 6.
 
 **Why this phase exists**: Phase 6 runtime work was started and then
 **stashed** mid-flight when a critical design flaw surfaced. Phase 5's

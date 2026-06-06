@@ -1644,7 +1644,7 @@ way to set it.
   index; `GetRaw` returns the **source-faithful** bytes of the
   on-disk markdown file; `Subscribe` notifies on corpus reload.
 
-  **`List(opts?)`** is the catalogue RPC — every other identity-shaped
+  **`List(opts?)`** is the listing RPC — every other identity-shaped
   consumer (tree views, the `list_autocontext_instructions_files` LM
   tool, `search_autocontext_instructions_files_by_metadata`,
   `Discovery.*` index building) reads from it. Each entry carries:
@@ -1660,6 +1660,8 @@ way to set it.
     hasChangelog:   boolean,           // sibling `<key>.CHANGELOG.md` exists
     contentHash:    string,            // "sha256:<hex>" over post-frontmatter body
     alwaysAttached: boolean,           // catalog-declared in `instructions-catalog.json`'s `alwaysAttached[]`
+    label?:         string,            // curatorial label from `instructions-catalog.json` (omitted if none)
+    categories:     string[],          // catalog membership names; resolve via `Instructions.Categories`
     disabled:       boolean,           // engine-resolved against `.autocontext.json`'s `disabledInstructions`
     source:         "bundled"|"override",
     overridePath?:  string,            // workspace-relative when source="override"
