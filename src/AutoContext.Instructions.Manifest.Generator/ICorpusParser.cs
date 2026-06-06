@@ -3,7 +3,7 @@ namespace AutoContext.Instructions.Manifest.Generator;
 /// <summary>
 /// Reads a curated instructions corpus directory and parses every
 /// <c>*.instructions.md</c> file exactly once into a key-addressed corpus the
-/// downstream catalogue, metadata, and reference-validation stages all share.
+/// downstream catalog, manifest, and reference-validation stages all share.
 /// </summary>
 internal interface ICorpusParser
 {

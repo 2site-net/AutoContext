@@ -8,21 +8,20 @@ using Microsoft.Extensions.Logging;
 
 /// <summary>
 /// Orchestrates one build-time generation pass: parses the corpus once via
-/// <see cref="ICorpusParser"/>, builds the wire-shape manifest via
-/// <see cref="IInstructionsListBuilder"/>, enriches it into the metadata catalogue
-/// via <see cref="IInstructionsMetadataBuilder"/>, validates cross-file references
-/// via <see cref="IInstructionsReferenceValidator"/>, serialises each catalogue with
-/// its serializer, and writes both results to disk only when the bytes differ from
-/// the files already there. The generator owns the process exit-code contract the
-/// MSBuild <c>&lt;Exec&gt;</c> caller observes: <c>0</c> on success, <c>1</c> on a
-/// curatorial or reference fault, <c>2</c> on a usage error.
+/// <see cref="ICorpusParser"/>, cross-validates the hand-authored catalog against
+/// it via <see cref="IInstructionsCatalogReader"/>, builds the generated fact
+/// manifest via <see cref="IInstructionsManifestBuilder"/>, validates cross-file
+/// references via <see cref="IInstructionsReferenceValidator"/>, serialises the
+/// manifest, and writes it to disk only when the bytes differ from the file
+/// already there. The generator owns the process exit-code contract the MSBuild
+/// <c>&lt;Exec&gt;</c> caller observes: <c>0</c> on success, <c>1</c> on a
+/// curatorial, catalog, or reference fault, <c>2</c> on a usage error.
 /// </summary>
 internal sealed partial class InstructionsManifestGenerator(
     ICorpusParser corpusParser,
-    IInstructionsListBuilder builder,
+    IInstructionsCatalogReader catalogReader,
+    IInstructionsManifestBuilder builder,
     IInstructionsManifestSerializer manifestSerializer,
-    IInstructionsMetadataBuilder metadataBuilder,
-    IInstructionsMetadataSerializer metadataSerializer,
     IInstructionsReferenceValidator referenceValidator,
     ILogger<InstructionsManifestGenerator> logger)
 {
@@ -30,8 +29,8 @@ internal sealed partial class InstructionsManifestGenerator(
 
     /// <summary>
     /// Runs the generation pass described by the positional
-    /// <paramref name="args"/>: <c>[corpus-directory,
-    /// instructions-files-json-path, instructions-files-metadata-json-path]</c>.
+    /// <paramref name="args"/>: <c>[corpus-directory, catalog-json-path,
+    /// manifest-json-path]</c>.
     /// </summary>
     /// <param name="args">The positional command-line arguments.</param>
     /// <returns>The process exit code.</returns>
@@ -48,14 +47,14 @@ internal sealed partial class InstructionsManifestGenerator(
         }
 
         var corpusDirectory = args[0];
-        var manifestOutputPath = args[1];
-        var metadataOutputPath = args[2];
+        var catalogPath = args[1];
+        var manifestOutputPath = args[2];
 
         try
         {
             var corpus = corpusParser.Parse(corpusDirectory);
+            _ = catalogReader.Read(catalogPath, corpus);
             var manifest = builder.Build(corpus);
-            var metadata = metadataBuilder.Build(manifest, corpus);
 
             if (HasReferenceFault(corpus))
             {
@@ -63,7 +62,6 @@ internal sealed partial class InstructionsManifestGenerator(
             }
 
             WriteIfChanged(manifestOutputPath, manifestSerializer.Serialize(manifest));
-            WriteIfChanged(metadataOutputPath, metadataSerializer.Serialize(metadata));
 
             return 0;
         }
@@ -98,7 +96,7 @@ internal sealed partial class InstructionsManifestGenerator(
     [LoggerMessage(
         EventId = 1,
         Level = LogLevel.Error,
-        Message = "usage: instructions-manifest-gen <corpus-directory> <instructions-files-json-path> <instructions-files-metadata-json-path>")]
+        Message = "usage: instructions-manifest-gen <corpus-directory> <catalog-json-path> <manifest-json-path>")]
     private static partial void LogUsage(ILogger logger);
 
     private static void WriteIfChanged(string outputPath, string json)

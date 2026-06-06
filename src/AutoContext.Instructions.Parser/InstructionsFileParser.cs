@@ -41,7 +41,7 @@ public static partial class InstructionsFileParser
 
     /// <summary>
     /// Parses only the leading frontmatter block of <paramref name="content"/> —
-    /// the cheap path for consumers that need the catalogue fields but not the
+    /// the cheap path for consumers that need the catalog fields but not the
     /// section or rule index.
     /// </summary>
     /// <param name="content">The full instructions file text.</param>

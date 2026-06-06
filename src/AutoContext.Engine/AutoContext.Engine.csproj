@@ -15,7 +15,7 @@
   <ItemGroup>
     <ProjectReference Include="..\AutoContext.Engine.Core\AutoContext.Engine.Core.csproj" />
     <!-- Build-time-only: the console generator the imported targets invoke to
-         emit Resources/instructions-files.json. ReferenceOutputAssembly=false
+         emit Resources/instructions-manifest.json. ReferenceOutputAssembly=false
          keeps the generator off the engine's runtime reference set while still
          ordering its build before the engine's. -->
     <ProjectReference Include="..\AutoContext.Instructions.Manifest.Generator\AutoContext.Instructions.Manifest.Generator.csproj"

@@ -299,7 +299,7 @@ are marshalling shims — P1).
 |---|---|
 | `Engine.*` | `Hello`, `RegistryEntries`, `Shutdown`, `WriteLog` (fire-and-forget from workers), `Lifecycle.Subscribe` |
 | `Config.*` | `Get`, `Subscribe`, `ToggleFile`, `ToggleRule` |
-| `Instructions.*` | `List`, `Get`, `GetAll`, `GetAlwaysAttached`, `GetRaw`, `SearchContent`, `Subscribe` |
+| `Instructions.*` | `List`, `Categories`, `Get`, `GetAll`, `GetAlwaysAttached`, `GetRaw`, `SearchContent`, `Subscribe` |
 | `Workspace.*` | `Detect`, `Info` |
 | `Logs.*` | `GetEngine`, `TailEngine`, `GetWorker`, `TailWorker` |
 | `McpTools.*` | `List`, `Invoke` (future: `InvokeStream`, `GetDescription`, `SearchByMetadata`, `SearchByContent`) |
@@ -316,7 +316,8 @@ See [RPC surface (initial)](#rpc-surface-initial).
 |---|---|
 | Log record (engine + worker, on `logs` pipe, in `engine.log` and `worker-<workerId>.log`) | `{ timestamp, category, level, eventId?, message, properties?, exception? }` |
 | `Engine.RegistryEntries` entry | `{ workspaceHash, workspacePath, instanceId, instanceLabel, processId, processStartTimeUtc, engineVersion, startedAt, retention }` |
-| `Instructions.List` row | `{ key, fileName, name, version, description, applyTo?, hasChangelog, contentHash, alwaysAttached, disabled, source, overridePath?, sections? }` |
+| `Instructions.List` row | `{ key, fileName, name, version, description, applyTo?, hasChangelog, contentHash, alwaysAttached, label?, categories[], disabled, source, overridePath?, sections? }` |
+| `Instructions.Categories` response | `{ categories: [{ name, description }] }` — the curated taxonomy (bucket definitions), static for the process lifetime |
 | `Instructions.Get` response | `\|` of `{ kind: "ok", … }` / `{ kind: "disabled", … }` / `{ kind: "not-found", … }` |
 | `McpTools.Invoke` response | `\|` of `{ kind: "ok" \| "tool-error", content, isError? }` / `{ kind: "schema-error", errors[] }` / `{ kind: "disabled" \| "not-found" }` |
 | `Workspace.Detect` | `{ flags: { hasDotNet, hasCSharp, …~60 }, extensions[] }` — no `overrides` field; that inventory is reachable via `Instructions.List` |
@@ -342,9 +343,9 @@ See [Log categories](#log-categories).
 | Service | Role |
 |---|---|
 | `AutoContextConfigStore` | owns `.autocontext.json`, validates and broadcasts writes |
-| `InstructionsCorpusService` | corpus + per-request projection |
+| `InstructionsManifestService` | merged catalog + manifest snapshot — startup ingestion + per-request projection |
 | `InstructionsFileBodyProjector` | raw → projected body (disabled-rule filter, `[INSTxxxx]` strip, override resolution) |
-| `InstructionsListBuilder` | build-time manifest generator and startup ingestion |
+| `instructions-manifest-gen` (build-time tool, not a runtime service) | reads `instructions-catalog.json` + the corpus, emits `instructions-manifest.json` |
 | `InstructionsContentIndex` | in-memory content-search index (replaces extension-side trigram index) |
 | `WorkspaceContextDetector` | workspace detection (absorbed from extension) |
 | `WorkerManager` | lazy `ensureRunning(workerId)` worker dispatcher (absorbed from MCP server) |
@@ -364,8 +365,8 @@ See [Composition contracts](#composition-contracts).
 
 | File | Role |
 |---|---|
-| `instructions-files.json` | wire-shape catalogue for `Instructions.List` |
-| `instructions-files-metadata.json` | engine-internal indices (section maps, parsed `applyTo` extension sets, content-index seed) |
+| `instructions-catalog.json` | **hand-authored** curatorial layer: category taxonomy (`name` + `description`) and per-file `label`, category membership, and `activationFlags`. Tracked source — not generated. |
+| `instructions-manifest.json` | **build-generated** per-file facts: section maps, parsed `applyTo` extension sets, content-index seed, `version`, `description`, `contentHash`, `hasChangelog`. |
 | `mcp-tools.json` | wire-shape catalogue for `McpTools.List` |
 | `mcp-tools-registry.json` | source-of-truth tool→worker dispatch table (hand-edited) |
 | `mcp-tools-registry-schema.json` | JSON-schema for the registry (hand-edited) |
@@ -379,7 +380,7 @@ See [Resource manifests](#resource-manifests).
 |---|---|
 | **P1** | One handler per capability; transports are marshalling shims |
 | **P2** | Discriminated envelopes for state-bearing reads (`ok` / `disabled` / `not-found` / `*-error`) |
-| **P3** | Wire shape ≠ engine-internal shape (split build-generated manifests in two) |
+| **P3** | Three representations — on-disk (authoring/generation), engine-internal (runtime model), wire (per-RPC projection) — are decoupled; none dictates another's shape |
 | **P4** | Workspace identity is one hash; engine identity adds one launcher UUID |
 | **P5** | On-disk path ownership is explicit and exclusive |
 | **P6** | Subscriptions are first-class; clients never poll or watch |
@@ -400,7 +401,7 @@ classes:
 |-------|----------|---------|
 | `AutoContext.Mcp.Server` (orchestrator + MCP/stdio + worker dispatch + registry) | Standalone process | **Same `autocontext-engine` binary, MCP-server-only role** (`--mcp-server with-stdio`). Reads workspace state directly from `.autocontext.json` (re-read per MCP request) and bundled side-car corpus; no pipes, no worker dispatch, no registry entry. Concurrent daemon-role engine on the same workspace (when launched by a different host) is the writer; MCP-server role is read-mostly view. |
 | `AutoContextConfigManager` (TS, extension) | Extension process | **Engine internal**: `AutoContextConfigStore` (.NET) |
-| `InstructionsFilesManager` + `InstructionsFileContentProjector` + `instructions-files-metadata-generator` + client-side content trigram index | Extension process | **Engine internal**: `InstructionsCorpusService` + `InstructionsFileBodyProjector` + `InstructionsListBuilder` (now runs **both** at build time — producing `Resources/instructions-files.json` and `Resources/instructions-files-metadata.json` side-car manifests — **and** at engine startup, where the engine reads the manifests, applies per-request projection against workspace state, and returns rows via `Instructions.List`) + `InstructionsContentIndex` (replaces the client-side trigram index; built in-memory from the build-time metadata manifest at engine startup) |
+| `InstructionsFilesManager` + `InstructionsFileContentProjector` + `instructions-files-metadata-generator` + client-side content trigram index | Extension process | **Engine internal**: `InstructionsManifestService` + `InstructionsFileBodyProjector` + the build-time `instructions-manifest-gen` generator (now runs **both** at build time — reading the curated `Resources/instructions-catalog.json` and the corpus to emit the `Resources/instructions-manifest.json` side-car — **and** at engine startup, where the engine merges catalog + manifest into an immutable snapshot, applies per-request projection against workspace state, and returns rows via `Instructions.List`) + `InstructionsContentIndex` (replaces the client-side trigram index; built in-memory from the build-time manifest at engine startup) |
 | `servers.json` (TS-side worker/MCP-server inventory) + `mcp-workers-registry.json` (MCP-server–side worker dispatch table) | Extension `resources/` + `AutoContext.Mcp.Server/` | **Replaced** by build-generated `Resources/workers.json` (scan of `src/AutoContext.Worker.*/` projects, id derived by stripping `AutoContext.Worker.` and replacing `.` with `-`, entrypoint written from the actual published path) + `Resources/mcp-tools-registry.json` (renamed from `mcp-workers-registry.json`; tool→worker dispatch table) + `Resources/mcp-tools-registry-schema.json` (its JSON-schema). The old `servers.json` mixed MCP-server identity with worker identity; the MCP server is gone (consolidated into the engine), so the worker-only file is what remains. |
 | `LogServer` (sideband pipe) | Extension process | **Engine internal**: the engine binds the `logs` pipe (one of the four pipes — see `### Lifecycle`) as a unified server-streaming sink that fans out engine-emitted records **and** worker-emitted records forwarded through `Engine.WriteLog`, distinguished by the `category` field. The engine also persists every record to `…\<workspaceHash>\<instanceId>\logs\engine.log` (P4 / P5); clients tail the pipe instead of inventing their own log-watcher. |
 | `HealthMonitorServer` (sideband pipe) | Extension process | **Engine internal**: the engine binds the `health` pipe (one of the four pipes — see `### Lifecycle`) as a passive readiness/heartbeat probe — cheap connect-and-read, no `Engine.Hello` required, never counts toward the idle-timeout keep-alive gate. Replaces the extension-side `HealthMonitorServer` that earlier topology had clients dialling back to. |
@@ -1658,7 +1659,7 @@ way to set it.
     applyTo?:       string,            // raw glob string (omitted if absent)
     hasChangelog:   boolean,           // sibling `<key>.CHANGELOG.md` exists
     contentHash:    string,            // "sha256:<hex>" over post-frontmatter body
-    alwaysAttached: boolean,           // frontmatter `alwaysAttached: true`
+    alwaysAttached: boolean,           // catalog-declared in `instructions-catalog.json`'s `alwaysAttached[]`
     disabled:       boolean,           // engine-resolved against `.autocontext.json`'s `disabledInstructions`
     source:         "bundled"|"override",
     overridePath?:  string,            // workspace-relative when source="override"
@@ -1670,7 +1671,7 @@ way to set it.
   otherwise pull every body for nothing. `opts.includeSections` defaults
   to `true` (the LM-tool / discovery paths need them); tree-view callers
   pass `false` to drop the section payload. The section shape
-  intentionally matches today's `instructions-files.metadata.json`
+  intentionally matches the `instructions-manifest.json`
   generator output (`heading`, `anchor`, `parent?` — no `level`; the
   parent chain carries hierarchy).
 
@@ -1708,14 +1709,14 @@ way to set it.
   loop get the identity envelope.
 
   **`GetAlwaysAttached`** is the SessionStart / `PreCompact`
-  consumer: it returns *only* the non-disabled files whose
-  frontmatter declares `alwaysAttached: true`, in deterministic
-  order. The flag is a per-file declarative signal in the source
-  markdown's YAML frontmatter — today only
+  consumer: it returns *only* the non-disabled files the catalog's
+  `alwaysAttached[]` array declares, in deterministic
+  order. The set is a declarative signal in the hand-authored
+  `instructions-catalog.json` — today only
   `copilot.instructions.md` and `autocontext.instructions.md`
-  carry it (they introduce AutoContext itself and must apply to
-  every turn). Files with no `applyTo` but no `alwaysAttached`
-  flag (`code-review`, `design-principles`, `git-commit`,
+  are listed (they introduce AutoContext itself and must apply to
+  every turn). Files with no `applyTo` but not in the
+  `alwaysAttached[]` array (`code-review`, `design-principles`, `git-commit`,
   `rest-api-design`) are domain-conditional, not universal, and
   surface only via `Discovery.RouteForPrompt`.
 
@@ -1803,11 +1804,12 @@ way to set it.
 
   Engine side (coarse, once at corpus-load):
 
-  - **Parse, don't match.** A small lexical pass next to
-    `InstructionsListBuilder` (Issue #4's build-time generator,
-    repurposed as the build-side library that writes
-    `Resources/instructions-files.json` and
-    `Resources/instructions-files-metadata.json`; see
+  - **Parse, don't match.** A small lexical pass inside the
+    `instructions-manifest-gen` build generator (Issue #4's
+    build-time tool, which writes
+    `Resources/instructions-manifest.json` over the corpus while
+    cross-validating the hand-authored
+    `Resources/instructions-catalog.json`; see
     `## Distribution > Resource manifests`) splits comma-separated `applyTo` strings, trims
     whitespace, brace-expands `**/*.{cs,fs,vb}` into individual
     globs, and extracts the **extension set** as a derived index.
@@ -2042,7 +2044,7 @@ extension contributes today
 `search_autocontext_instructions_files_by_content`,
 `get_autocontext_instructions_file`) are no longer extension-native.
 The engine owns the only implementation — a single set of service
-classes (`InstructionsCorpusService`, `InstructionsContentIndex`,
+classes (`InstructionsManifestService`, `InstructionsContentIndex`,
 `InstructionsFileBodyProjector`) inside `Engine.Core` — and that
 implementation is reachable through two parallel surfaces that run
 in **two separate processes of the same engine binary**:
@@ -2345,8 +2347,8 @@ protocol event.
 | VS Code LM tool names | snake_case, verb-first, fully self-describing | `list_autocontext_instructions_files`, `get_autocontext_instructions_file` |
 | CLI verbs | lowercase, space-separated `noun verb [args]` | `instructions list`, `config toggle`, `workspace info`, `engine logs` |
 | Log-category prefixes | Dotted; lowercase namespace, PascalCase tail when the tail mirrors an RPC name | `engine.rpc.Instructions.Get`, `engine.lifecycle`, `worker.dotnet.RoslynAnalyzer` |
-| Resource manifest filenames | kebab-case `.json` | `instructions-files.json`, `mcp-tools.json`, `mcp-tools-registry.json`, `workers.json` |
-| .NET internal classes / services | PascalCase (standard .NET identifier rules) | `AutoContextConfigStore`, `InstructionsCorpusService`, `WorkspaceContextDetector` |
+| Resource manifest filenames | kebab-case `.json` | `instructions-catalog.json`, `instructions-manifest.json`, `mcp-tools.json`, `mcp-tools-registry.json`, `workers.json` |
+| .NET internal classes / services | PascalCase (standard .NET identifier rules) | `AutoContextConfigStore`, `InstructionsManifestService`, `WorkspaceContextDetector` |
 | Placeholder tokens in this doc | `<lowerCamelCase>` inside angle brackets | `<workspaceHash>`, `<instanceId>`, `<name>`, `<workerId>` — see [Identifier tokens](#identifier-tokens) |
 
 #### Cross-cutting rules
@@ -2511,8 +2513,8 @@ Hosts that need a file path get one of two patterns:
 - **Agent-plugin SessionStart hook:** calls `Instructions.GetAlwaysAttached`
   and returns the bodies inline as `additionalContext`. The set is
   small by design (2 files today: `copilot` and `autocontext`) and
-  curated by the `alwaysAttached: true` frontmatter flag in the
-  source markdown — not by `applyTo` absence. No file ever gets
+  curated by the catalog's `alwaysAttached[]` array in
+  `instructions-catalog.json` — not by `applyTo` absence. No file ever gets
   written under `${CLAUDE_PLUGIN_ROOT}`. Sub-agents that need
   file paths materialise them under the per-instance cache root
   (`%LOCALAPPDATA%\autocontext\<workspaceHash>\<instanceId>\cache\`
@@ -2559,7 +2561,7 @@ Consequences:
 
 - **One implementation, one home.** `AutoContextConfigStore`,
   `InstructionsFileBodyProjector`, `InstructionsCorpusReader`,
-  `InstructionsCorpusService`, the engine's hosted services, and
+  `InstructionsManifestService`, the engine's hosted services, and
   every RPC handler all live in `AutoContext.Engine/`. The engine
   binary is the only producer.
 - **The VS Code extension keeps no co-projector.** Once the engine
@@ -2656,28 +2658,45 @@ shape:
   so a model cannot route around the user's mute by reading the
   metadata.
 
-### P3. Wire shape ≠ engine-internal shape (split the manifests)
+### P3. Three decoupled representations — disk, engine-internal, wire
 
-When a build-generated artefact would otherwise carry both the
-public envelope **and** engine-internal indices, split it into two
-files: one matches the wire envelope verbatim
-(`instructions-files.json`, `mcp-tools.json`); the sibling carries
-internal-only state (`instructions-files-metadata.json` —
-section-anchor maps, parsed `applyTo` extension sets, content-index
-seed).
+A capability's data has up to three representations, and **none
+dictates another's shape**:
 
-- The wire file must round-trip against the public RPC envelope; a
-  unit test asserts equality.
-- The internal file may evolve freely without bumping the protocol
-  version.
+1. **On-disk** (authoring / generation) — optimised for how the data
+   is produced. The curatorial layer is hand-authored
+   (`instructions-catalog.json`); the per-file facts are
+   build-generated (`instructions-manifest.json`). These two files
+   are deliberately *different* shapes serving *different* producers
+   (a human editor vs. a build tool), not two copies of one schema.
+2. **Engine-internal** (runtime model) — the immutable in-memory
+   snapshot the engine merges from the on-disk files at startup
+   (`InstructionsManifestSnapshot`: categories + per-file domain
+   objects, including engine-only fields like `activationFlags` and
+   the parsed `applyTo` extension set). Optimised for projection and
+   indexing, free to hold derived structure the wire never sees.
+3. **Wire** (per-RPC projection) — what an envelope returns, projected
+   per request from the snapshot against workspace state
+   (`Instructions.List` rows, `Instructions.Categories` taxonomy).
+   Optimised for the consumer; carries `disabled` / `source` /
+   `overridePath?` resolved per request, omits engine-only fields.
+
+- Don't fuse the layers. The original defect this principle corrects
+  was making one on-disk file "the wire shape" — which silently
+  dropped the curatorial taxonomy and forced disk format to follow
+  protocol shape.
 - Don't publish derived structure on the wire just because the engine
   derived it. Every published field is a field future engine versions
   must keep producing.
-- The parsed `applyTo` extension set is the canonical example: the
-  engine needs it for its coarse filter and `Discovery.RouteForPrompt`
-  index, but it stays in `instructions-files-metadata.json` and
+- The parsed `applyTo` extension set is the canonical engine-only
+  field: the engine needs it for its coarse filter and
+  `Discovery.RouteForPrompt` index, but it lives only in the
+  generated `instructions-manifest.json` and the runtime snapshot and
   never appears on `Instructions.List`. Clients re-derive it from the
   raw `applyTo` string trivially when (if) they need it.
+- `activationFlags` is likewise engine-only: the catalog carries it on
+  disk, the snapshot evaluates it against workspace state, and only
+  the resulting `disabled` boolean ever reaches the wire.
 
 ### P4. Workspace identity is one hash; engine identity adds one UUID
 
@@ -3179,7 +3198,7 @@ do **not** reference `Framework.Services`. Worker.* references
   depending on it, so they belong with the substrate.
 - **`AutoContext.Engine.Core`** is the engine **as a library**.
   Everything under `### Engine-internal services` lives here
-  (`AutoContextConfigStore`, `InstructionsCorpusService`,
+  (`AutoContextConfigStore`, `InstructionsManifestService`,
   `InstructionsFileBodyProjector`,
   `InstructionsContentIndex`, `WorkspaceContextDetector`,
   `WorkerManager`), together with the pipe-server bindings for the
@@ -3263,7 +3282,7 @@ speak a narrower wire than full RPC clients do).
 | `AutoContext.Engine.Core.Tests` | Engine-internal services, RPC handlers, pipe-server bindings; absorbs today's `AutoContext.Mcp.Server.Tests` |
 | `AutoContext.Client.Core.Tests` | Typed RPC clients, subscription-stream consumers, dialer back-pressure / reconnect behaviour |
 | `AutoContext.Engine.Tests` | Binary host wiring — argv parsing, `AddAutoContextEngine` composition, exit codes |
-| `AutoContext.Build.Tasks.Tests` | `BuildInstructionsListTask` output fixtures and `ApplyToRoundTripVerifier` invariants (the task itself is also exercised end-to-end by every other project's build) |
+| `AutoContext.Build.Tasks.Tests` | `BuildInstructionsManifestTask` output fixtures and `ApplyToRoundTripVerifier` invariants (the task itself is also exercised end-to-end by every other project's build) |
 | `AutoContext.Worker.*.Tests` | Unchanged — per-worker task suites against the testing harness |
 
 `AutoContext.Mcp.Server.Tests` is retired into
@@ -3311,11 +3330,12 @@ Decision:
     <framework dlls / runtime files>               # self-contained .NET runtime for the engine
     Instructions/                                  # curated corpus (read-only side-car)
       <name>.instructions.md
-    Resources/                                     # build-generated read-only manifests
-      instructions-files.json                      # wire-shape catalogue for Instructions.List
-      instructions-files-metadata.json             # engine-internal indices (section maps,
+    Resources/                                     # build-generated + hand-authored read-only manifests
+      instructions-catalog.json                    # hand-authored curatorial layer (categories,
+                                                   #   label, membership, activationFlags)
+      instructions-manifest.json                   # build-generated per-file facts (section maps,
                                                    #   parsed applyTo extension sets,
-                                                   #   pre-computed content-index seed)
+                                                   #   content-index seed)
       mcp-tools.json                               # wire-shape catalogue for McpTools.List
       mcp-tools-registry.json                      # source-of-truth tool→worker dispatch table
       mcp-tools-registry-schema.json               # JSON-schema for the registry
@@ -3362,29 +3382,39 @@ Decision:
 
 ### Resource manifests
 
-Everything under `Resources/` is **read-only side-car data generated
-or copied at build time, parsed by the engine at startup, never
-written back by the engine**. The engine projects per-request
-against workspace state (disabled rules, overrides) instead of
+Everything under `Resources/` is **read-only side-car data — hand-authored
+or build-generated, copied or written at build time, parsed by the engine
+at startup, never written back by the engine**. The engine projects
+per-request against workspace state (disabled rules, overrides) instead of
 mutating the manifests.
 
-- **`instructions-files.json`** — build-generated by
-  `InstructionsListBuilder` over the curated corpus. Carries every
-  field the `Instructions.List` envelope returns (Issue #4) **except**
-  fields that depend on workspace state: `disabled` (resolved per
-  request from `.autocontext.json`) and `source`/`overridePath?`
-  (resolved per request from `<workspace>/.github/instructions/`).
-  The engine reads this manifest once at startup, holds it in
-  memory, and re-projects per request as workspace state changes.
-- **`instructions-files-metadata.json`** — build-generated companion
-  used **engine-internally only**: pre-computed section anchor maps,
-  parsed `applyTo` extension sets (the engine-internal output of
-  the Issue #7 parser), and the content-index seed that
-  `InstructionsContentIndex` rehydrates at startup. Not returned on
-  the wire; the wire shape is `instructions-files.json`. Splitting
-  the two keeps `instructions-files.json` round-trippable against
-  the public `Instructions.List` envelope and lets the internal
-  indices evolve without breaking the wire contract.
+- **`instructions-catalog.json`** — **hand-authored** curatorial layer,
+  tracked in source under `src/AutoContext.Engine/Resources/` (the human
+  authors it directly; nothing generates it). Top-level it carries the
+  category taxonomy (`name` + `description` — the bucket definitions);
+  per entry it carries `label`, category `membership`, and the optional
+  `activationFlags` that drive the engine's enable/disable evaluation.
+  It exists to give a human editorial control over how files are grouped
+  in the UI and which workspace flags auto-enable them — deliberately a
+  partial view (the always-attached files `copilot`/`autocontext` are
+  exempt; they belong to no category). The build-time generator **reads**
+  it to cross-validate against the corpus (every entry resolves to a real
+  file; every non-always-attached file is catalogued; every membership
+  resolves to a declared category) but never rewrites it.
+- **`instructions-manifest.json`** — **build-generated** by
+  `instructions-manifest-gen` over the curated corpus: each file's
+  pre-computed section anchor map, parsed `applyTo` extension set (the
+  engine-internal output of the Issue #7 parser), `version`,
+  `description`, `contentHash`, `hasChangelog`, and the content-index
+  seed that `InstructionsContentIndex` rehydrates at startup. It carries
+  **no** `categories`/`label`/`activationFlags` (those are the catalog's)
+  and **no** workspace-state fields (`disabled`, `source`, `overridePath`
+  are resolved per request). At startup the engine **merges** the
+  generated manifest with the curated catalog into one immutable
+  in-memory snapshot, then projects the `Instructions.List` wire rows and
+  the `Instructions.Categories` taxonomy from it per request. The on-disk
+  manifest, the engine-internal snapshot, and the wire envelopes are
+  three decoupled representations (P3) — none constrains another's shape.
 - **`mcp-tools.json`** — build-generated wire-shape catalogue for
   `McpTools.List`, projected from `mcp-tools-registry.json` at
   build time. The engine reads this file directly when answering
@@ -3436,11 +3466,16 @@ Source-side locations for the editable inputs the build consumes:
   `mcp-tools-registry-schema.json`) — hand-edited registry and its
   schema. The build copies them as-is into the per-RID staging
   `Resources/` dir.
-- `Resources/instructions-files.json`,
-  `Resources/instructions-files-metadata.json`,
+- `src/AutoContext.Engine/Resources/instructions-catalog.json` is
+  **hand-authored and tracked in source** — it is the curatorial
+  layer (categories, `label`, membership, `activationFlags`). The
+  build copies it as-is into the per-RID staging `Resources/` dir;
+  it is never generated.
+- `Resources/instructions-manifest.json`,
   `Resources/mcp-tools.json`, and `Resources/workers.json` have **no
   source-side copy** — they are pure build outputs, regenerated
-  every package run.
+  every package run. `instructions-manifest.json` is written by
+  `instructions-manifest-gen` over the corpus + catalog.
 
 ## Pitfalls
 
@@ -3678,8 +3713,8 @@ Source-side locations for the editable inputs the build consumes:
   (`%LOCALAPPDATA%\autocontext\<workspaceHash>\<instanceId>\logs\engine.log`),
   or the OS user-cache dir — never in `Resources/`.
 - **`alwaysAttached` is explicit, not derived.** The set returned
-  by `Instructions.GetAlwaysAttached` is the files whose
-  frontmatter declares `alwaysAttached: true`, not the files
+  by `Instructions.GetAlwaysAttached` is the files the catalog's
+  `alwaysAttached[]` array declares, not the files
   whose frontmatter omits `applyTo`. Today's corpus has six files
   with no `applyTo` (`copilot`, `autocontext`, `code-review`,
   `design-principles`, `git-commit`, `rest-api-design`); only
@@ -3758,9 +3793,9 @@ Source-side locations for the editable inputs the build consumes:
   matched, the entire surface goes inconsistent.
 - **The `applyTo` parser parses, it does not normalise, and its
   output is engine-internal.** (Instance of **P3**.) The engine-side `applyTo` parser
-  (next to `InstructionsListBuilder`, runs at build time and feeds
+  (inside `instructions-manifest-gen`, runs at build time and feeds
   the same parsed extension set into
-  `Resources/instructions-files-metadata.json`) splits comma-separated
+  `Resources/instructions-manifest.json`) splits comma-separated
   lists,
   trims whitespace, brace-expands `{a,b,c}` groups, and extracts an
   extension set. The result is consumed by the engine's coarse

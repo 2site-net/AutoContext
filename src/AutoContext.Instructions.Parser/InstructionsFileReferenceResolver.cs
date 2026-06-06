@@ -7,7 +7,7 @@ namespace AutoContext.Instructions.Parser;
 /// is the cross-file half of reference checking: the parser validates a
 /// reference's <em>syntax</em> in isolation, this validates that it actually
 /// <em>resolves</em>. The resolver is pure — it reads only the references and the
-/// supplied catalogue and performs no I/O — so assembling the catalogue from disk
+/// supplied catalog and performs no I/O — so assembling the catalog from disk
 /// stays a caller concern.
 /// </summary>
 public static class InstructionsFileReferenceResolver
@@ -15,9 +15,9 @@ public static class InstructionsFileReferenceResolver
     private const string InstructionsFileSuffix = ".instructions.md";
 
     /// <summary>
-    /// Resolves every reference found in one source file against the catalogue.
+    /// Resolves every reference found in one source file against the catalog.
     /// </summary>
-    /// <param name="sourceKey">The catalogue key of the file the references were
+    /// <param name="sourceKey">The catalog key of the file the references were
     /// parsed from. Same-file references (those with no locator) resolve against
     /// this key, and an explicit locator equal to it is flagged redundant.</param>
     /// <param name="references">The references the parser captured from the source
@@ -65,7 +65,7 @@ public static class InstructionsFileReferenceResolver
         if (!catalog.TryGet(targetKey, out var entry))
         {
             // A same-file miss means the caller left the source file out of the
-            // catalogue, not an authoring fault, so there is nothing to report.
+            // catalog, not an authoring fault, so there is nothing to report.
             if (!sameFile)
             {
                 findings.Add(new InstructionsFileReferenceFinding(
@@ -105,7 +105,7 @@ public static class InstructionsFileReferenceResolver
         }
 
         // URI locators are existence-unverified by design: the parser accepts the
-        // syntax but the corpus catalogue cannot confirm a remote target.
+        // syntax but the corpus catalog cannot confirm a remote target.
 
         if (IsUri(locator))
         {

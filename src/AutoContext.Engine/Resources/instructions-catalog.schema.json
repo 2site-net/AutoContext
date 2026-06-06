@@ -1,0 +1,115 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://autocontext.dev/schemas/instructions-catalog.schema.json",
+    "title": "AutoContext instructions catalog",
+    "description": "Hand-authored curatorial taxonomy: the presentation categories, the per-file catalog entries, and the always-attached file set. Cross-validated against the instruction corpus at build time by the manifest generator.",
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+        "schemaVersion",
+        "alwaysAttached",
+        "categories",
+        "instructions"
+    ],
+    "properties": {
+        "$schema": {
+            "type": "string",
+            "description": "Path or URL to this schema file. Enables editor IntelliSense."
+        },
+        "schemaVersion": {
+            "type": "string",
+            "const": "1",
+            "description": "Catalog format version. Bumped on breaking changes."
+        },
+        "alwaysAttached": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+                "$ref": "#/$defs/instructionFileName"
+            },
+            "description": "Corpus files the engine injects into every turn unconditionally. Declared here as the single source of truth for the always-attached set; deliberately omitted from 'instructions' and must not also appear there."
+        },
+        "categories": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+                "$ref": "#/$defs/category"
+            },
+            "description": "Presentation categories, in display order. Each entry's category membership must resolve to one of these names."
+        },
+        "instructions": {
+            "type": "array",
+            "items": {
+                "$ref": "#/$defs/entry"
+            },
+            "description": "Curated per-file entries. Every non-always-attached corpus file must have exactly one entry here."
+        }
+    },
+    "$defs": {
+        "instructionFileName": {
+            "type": "string",
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*\\.instructions\\.md$",
+            "description": "A corpus instruction file name (kebab-case, '.instructions.md' suffix)."
+        },
+        "category": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+                "name",
+                "description"
+            ],
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Category name entries reference by value. Unique across the catalog."
+                },
+                "description": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Human-readable category description."
+                }
+            }
+        },
+        "entry": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+                "label",
+                "fileName",
+                "categories"
+            ],
+            "properties": {
+                "label": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Human-readable presentation label."
+                },
+                "fileName": {
+                    "$ref": "#/$defs/instructionFileName",
+                    "description": "The corpus file this entry decorates (the join key into the generated manifest). Unique across the catalog."
+                },
+                "categories": {
+                    "type": "array",
+                    "minItems": 1,
+                    "uniqueItems": true,
+                    "items": {
+                        "type": "string",
+                        "minLength": 1
+                    },
+                    "description": "Category names this entry belongs to. Each must resolve to a declared category."
+                },
+                "activationFlags": {
+                    "type": "array",
+                    "minItems": 1,
+                    "uniqueItems": true,
+                    "items": {
+                        "type": "string",
+                        "pattern": "^[a-z][a-zA-Z0-9]*$"
+                    },
+                    "description": "Workspace-state flags (camelCase) that gate when the engine surfaces this entry. Omit when the entry is always offered."
+                }
+            }
+        }
+    }
+}
