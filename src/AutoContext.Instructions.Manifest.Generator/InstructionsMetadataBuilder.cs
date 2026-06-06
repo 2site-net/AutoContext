@@ -6,7 +6,7 @@ using AutoContext.Instructions.Parser;
 /// Builds the catalogue-only <c>instructions-files-metadata.json</c> index by
 /// enriching an already-validated <see cref="InstructionsManifest"/> with each
 /// file's <c>##</c>/<c>###</c> section map and the parsed <c>applyTo</c> extension
-/// set. Both come from the shared <see cref="ParsedCorpusFile"/> the
+/// set. Both come from the shared <see cref="CorpusFileParsedResult"/> the
 /// <see cref="CorpusParser"/> already produced, so the builder re-reads nothing and
 /// re-parses nothing. The shape-validating work (name, key, description, hash)
 /// already happened while the wire manifest was built; this builder only adds the
@@ -17,7 +17,7 @@ internal sealed class InstructionsMetadataBuilder : IInstructionsMetadataBuilder
     /// <inheritdoc />
     public InstructionsMetadata Build(
         InstructionsManifest manifest,
-        IReadOnlyDictionary<string, ParsedCorpusFile> corpus)
+        IReadOnlyDictionary<string, CorpusFileParsedResult> corpus)
     {
         ArgumentNullException.ThrowIfNull(manifest);
         ArgumentNullException.ThrowIfNull(corpus);
@@ -26,7 +26,7 @@ internal sealed class InstructionsMetadataBuilder : IInstructionsMetadataBuilder
 
         foreach (var entry in manifest.Instructions)
         {
-            entries.Add(BuildEntry(corpus[entry.Key].Parsed, entry));
+            entries.Add(BuildEntry(corpus[entry.Key].Content, entry));
         }
 
         return new InstructionsMetadata(manifest.SchemaVersion, entries);

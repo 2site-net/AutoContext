@@ -123,7 +123,7 @@ internal sealed partial class InstructionsManifestGenerator(
     /// warnings (they ship) and the resolution failures as errors (they fail the build).
     /// </summary>
     /// <returns><see langword="true"/> when at least one fatal reference fault was found.</returns>
-    private bool HasReferenceFault(IReadOnlyDictionary<string, ParsedCorpusFile> corpus)
+    private bool HasReferenceFault(IReadOnlyDictionary<string, CorpusFileParsedResult> corpus)
     {
         var hasFatal = false;
 

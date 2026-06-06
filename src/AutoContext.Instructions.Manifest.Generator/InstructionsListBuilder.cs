@@ -7,7 +7,7 @@ using System.Text.RegularExpressions;
 /// already-parsed corpus. The builder is the build-side library named by the
 /// engine design; <see cref="InstructionsManifestGenerator"/> drives it from the
 /// host entry point. Every file's frontmatter, content hash, and changelog flag
-/// are read from the shared <see cref="ParsedCorpusFile"/> the
+/// are read from the shared <see cref="CorpusFileParsedResult"/> the
 /// <see cref="CorpusParser"/> already produced, so the builder touches no disk and
 /// re-parses nothing. It validates curatorial shape, but deliberately never
 /// inspects glob semantics — <c>applyTo</c> is carried verbatim onto the wire.
@@ -25,7 +25,7 @@ internal sealed partial class InstructionsListBuilder : IInstructionsListBuilder
         };
 
     /// <inheritdoc />
-    public InstructionsManifest Build(IReadOnlyDictionary<string, ParsedCorpusFile> corpus)
+    public InstructionsManifest Build(IReadOnlyDictionary<string, CorpusFileParsedResult> corpus)
     {
         ArgumentNullException.ThrowIfNull(corpus);
 
@@ -41,10 +41,10 @@ internal sealed partial class InstructionsListBuilder : IInstructionsListBuilder
         return new InstructionsManifest(SchemaVersion, entries);
     }
 
-    private static InstructionsManifestEntry BuildEntry(ParsedCorpusFile file)
+    private static InstructionsManifestEntry BuildEntry(CorpusFileParsedResult file)
     {
         var fileName = file.FileName;
-        var frontmatter = file.Parsed.Frontmatter;
+        var frontmatter = file.Content.Frontmatter;
         var name = frontmatter.Name;
 
         if (name is null || name.Length == 0)

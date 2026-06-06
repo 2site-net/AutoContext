@@ -15,5 +15,5 @@ internal interface IInstructionsListBuilder
     /// is <see langword="null"/>.</exception>
     /// <exception cref="InvalidOperationException">A corpus file has malformed
     /// or missing frontmatter.</exception>
-    InstructionsManifest Build(IReadOnlyDictionary<string, ParsedCorpusFile> corpus);
+    InstructionsManifest Build(IReadOnlyDictionary<string, CorpusFileParsedResult> corpus);
 }

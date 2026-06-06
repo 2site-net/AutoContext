@@ -22,5 +22,5 @@ internal interface IInstructionsMetadataBuilder
     /// <paramref name="corpus"/> is <see langword="null"/>.</exception>
     /// <exception cref="InvalidOperationException">Two sections in one file slug to
     /// the same anchor.</exception>
-    InstructionsMetadata Build(InstructionsManifest manifest, IReadOnlyDictionary<string, ParsedCorpusFile> corpus);
+    InstructionsMetadata Build(InstructionsManifest manifest, IReadOnlyDictionary<string, CorpusFileParsedResult> corpus);
 }

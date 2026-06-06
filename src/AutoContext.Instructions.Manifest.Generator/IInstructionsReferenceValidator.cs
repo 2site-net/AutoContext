@@ -22,5 +22,5 @@ internal interface IInstructionsReferenceValidator
     /// reference's body position; empty when every reference resolves.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="corpus"/> is
     /// <see langword="null"/>.</exception>
-    IReadOnlyList<CorpusReferenceFinding> Validate(IReadOnlyDictionary<string, ParsedCorpusFile> corpus);
+    IReadOnlyList<CorpusReferenceFinding> Validate(IReadOnlyDictionary<string, CorpusFileParsedResult> corpus);
 }
