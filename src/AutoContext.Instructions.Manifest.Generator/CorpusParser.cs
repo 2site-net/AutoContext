@@ -7,8 +7,8 @@ using AutoContext.Instructions.Parser;
 
 /// <summary>
 /// The single disk-reading stage of one generation pass. It walks the corpus
-/// directory, reads each <c>*.instructions.md</c> file once, runs one
-/// <see cref="InstructionsFileParser.Parse(string)"/> over it, and precomputes the
+/// directory, reads each <c>*.instructions.md</c> file once via
+/// <see cref="InstructionsFile.Parse(string)"/>, and precomputes the
 /// frontmatter-stripped content hash and sibling-changelog flag. Every later stage
 /// (<see cref="InstructionsListBuilder"/>, <see cref="InstructionsMetadataBuilder"/>,
 /// and <see cref="InstructionsReferenceValidator"/>) reads the resulting
@@ -37,7 +37,7 @@ internal sealed class CorpusParser : ICorpusParser
 
         foreach (var fileName in fileNames)
         {
-            var parsed = InstructionsFileParser.ParseFile(Path.Combine(corpusDirectory, fileName));
+            var parsed = InstructionsFile.Parse(Path.Combine(corpusDirectory, fileName));
             var contentHash = ComputeContentHash(parsed.Body.RawValue);
             var key = fileName[..^InstructionsFileSuffix.Length];
             var hasChangelog = File.Exists(Path.Combine(corpusDirectory, key + ".CHANGELOG.md"));
