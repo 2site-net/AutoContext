@@ -1,5 +1,7 @@
 namespace AutoContext.Instructions.Parser.Tests;
 
+using AutoContext.Engine.Tests.Support.IO;
+
 public sealed class InstructionsFileParserTests
 {
     public sealed class ParseFrontmatter
@@ -557,6 +559,89 @@ public sealed class InstructionsFileParserTests
                 () => Assert.Equal(body.IndexOf('[', StringComparison.Ordinal), reference.CharStart),
                 () => Assert.Equal(body.IndexOf(']', StringComparison.Ordinal) + 1, reference.CharEnd),
                 () => Assert.Equal(0, reference.Line));
+        }
+    }
+
+    public sealed class ParseFile(TempDirectoryFixture tempDirectory) : IClassFixture<TempDirectoryFixture>
+    {
+        [Fact]
+        public void Should_reject_a_null_file_name()
+        {
+            // Act + Assert
+            Assert.Throws<ArgumentNullException>(
+                () => InstructionsFileParser.ParseFile(null!));
+        }
+
+        [Fact]
+        public void Should_read_and_parse_an_existing_file()
+        {
+            // Arrange
+            var content = "---\nname: \"lang-csharp (v1.2.3)\"\ndescription: \"C# rules.\"\n---\n## Heading\n\nBody.\n";
+            var path = tempDirectory.CreatePath("lang-csharp.instructions.md");
+            File.WriteAllText(path, content);
+
+            // Act
+            var result = InstructionsFileParser.ParseFile(path);
+
+            // Assert
+            Assert.Multiple(
+                () => Assert.Equal(content, result.RawContent),
+                () => Assert.Equal("lang-csharp (v1.2.3)", result.Frontmatter.Name));
+        }
+
+        [Fact]
+        public void Should_throw_when_the_file_does_not_exist()
+        {
+            // Arrange
+            var path = tempDirectory.CreatePath("absent.instructions.md");
+
+            // Act + Assert
+            Assert.Throws<FileNotFoundException>(() => InstructionsFileParser.ParseFile(path));
+        }
+    }
+
+    public sealed class TryParseFile(TempDirectoryFixture tempDirectory) : IClassFixture<TempDirectoryFixture>
+    {
+        [Fact]
+        public void Should_reject_a_null_file_name()
+        {
+            // Act + Assert
+            Assert.Throws<ArgumentNullException>(
+                () => InstructionsFileParser.TryParseFile(null!, out _));
+        }
+
+        [Fact]
+        public void Should_read_and_parse_an_existing_file()
+        {
+            // Arrange
+            var content = "---\nname: \"lang-csharp (v1.2.3)\"\ndescription: \"C# rules.\"\n---\n## Heading\n\nBody.\n";
+            var path = tempDirectory.CreatePath("lang-csharp.instructions.md");
+            File.WriteAllText(path, content);
+
+            // Act
+            var read = InstructionsFileParser.TryParseFile(path, out var result);
+
+            // Assert
+            Assert.Multiple(
+                () => Assert.True(read),
+                () => Assert.NotNull(result),
+                () => Assert.Equal(content, result!.RawContent),
+                () => Assert.Equal("lang-csharp (v1.2.3)", result!.Frontmatter.Name));
+        }
+
+        [Fact]
+        public void Should_return_false_when_the_file_does_not_exist()
+        {
+            // Arrange
+            var path = tempDirectory.CreatePath("absent.instructions.md");
+
+            // Act
+            var read = InstructionsFileParser.TryParseFile(path, out var result);
+
+            // Assert
+            Assert.Multiple(
+                () => Assert.False(read),
+                () => Assert.Null(result));
         }
     }
 }

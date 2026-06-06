@@ -40,6 +40,26 @@ public static partial class InstructionsFileParser
     }
 
     /// <summary>
+    /// Reads and parses the instructions file at <paramref name="fileName"/>,
+    /// throwing when the file cannot be read.
+    /// </summary>
+    /// <param name="fileName">The instructions file to read: a bare file name, a
+    /// path relative to the current directory, or an absolute path.</param>
+    /// <returns>The complete structural parse.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="fileName"/> is
+    /// <see langword="null"/>.</exception>
+    /// <exception cref="IOException">The file does not exist, or it is locked or
+    /// otherwise inaccessible.</exception>
+    /// <exception cref="UnauthorizedAccessException">The caller lacks permission to
+    /// read the file.</exception>
+    public static InstructionsFileParsedResult ParseFile(string fileName)
+    {
+        ArgumentNullException.ThrowIfNull(fileName);
+
+        return Parse(File.ReadAllText(fileName));
+    }
+
+    /// <summary>
     /// Parses only the leading frontmatter block of <paramref name="content"/> —
     /// the cheap path for consumers that need the catalogue fields but not the
     /// section or rule index.
@@ -102,6 +122,40 @@ public static partial class InstructionsFileParser
         var applyTo = applyToRaw is null ? null : ApplyToParser.Parse(applyToRaw);
 
         return new InstructionsFileFrontmatterParsedResult(block.Groups[1].Value, name, description, applyTo, version);
+    }
+
+    /// <summary>
+    /// Reads and parses the instructions file at <paramref name="fileName"/>,
+    /// returning <see langword="false"/> instead of throwing when the file cannot
+    /// be read — it does not exist, or it is locked or otherwise inaccessible.
+    /// </summary>
+    /// <param name="fileName">The instructions file to read: a bare file name, a
+    /// path relative to the current directory, or an absolute path.</param>
+    /// <param name="result">The complete structural parse when the method returns
+    /// <see langword="true"/>; otherwise <see langword="null"/>.</param>
+    /// <returns><see langword="true"/> when the file was read and parsed;
+    /// <see langword="false"/> when it could not be read.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="fileName"/> is
+    /// <see langword="null"/>.</exception>
+    public static bool TryParseFile(string fileName, [NotNullWhen(true)] out InstructionsFileParsedResult? result)
+    {
+        ArgumentNullException.ThrowIfNull(fileName);
+
+        try
+        {
+            result = ParseFile(fileName);
+            return true;
+        }
+        catch (IOException)
+        {
+            result = null;
+            return false;
+        }
+        catch (UnauthorizedAccessException)
+        {
+            result = null;
+            return false;
+        }
     }
 
     private static InstructionsFileRule BuildRule(
