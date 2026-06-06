@@ -202,7 +202,8 @@ other reason still need a real second impl.
   `AutoContext.Mcp.Server.Tests` over the course of phases 7 and 16),
   `AutoContext.Client.Core.Tests`, `AutoContext.Engine.Tests`,
   `AutoContext.Instructions.Parser.Tests` (frontmatter + `applyTo`
-  parser fixtures, round-trip invariant) and
+  parser fixtures, round-trip invariant, section-index and cross-file
+  reference-resolution coverage) and
   `AutoContext.Instructions.Manifest.Generator.Tests` (manifest
   builder + serializer assertions; the generator is also exercised
   end-to-end by the engine's build).
@@ -523,9 +524,10 @@ src/
 
   AutoContext.Instructions.Parser/        # shared parser library (net10.0) — referenced by both the generator and the engine runtime so one source is compiled for both
     AutoContext.Instructions.Parser.csproj     # TargetFramework=net10.0; class library
-    InstructionsFileParser.cs                  # frontmatter reader (name/description/applyTo)
+    InstructionsFileParser.cs                  # frontmatter reader (name/description/applyTo) + body section index + [locator#fragment] reference capture
     ApplyToParser.cs                           # applyTo splitter/brace-expander — parse only, round-trip-verified
-    # …plus the parsed-shape records the two parsers return
+    InstructionsFileReferenceResolver.cs       # pure cross-file resolver — validates rule/section references against an InstructionsFileCatalog (no I/O)
+    # …plus the parsed-shape records (frontmatter, section index, references) and the catalog/finding types the resolver consumes
 
   AutoContext.Instructions.Manifest.Generator/   # build-time console generator (net10.0, AssemblyName instructions-manifest-gen) — not shipped with the engine
     AutoContext.Instructions.Manifest.Generator.csproj   # OutputType=Exe; ProjectReference → AutoContext.Instructions.Parser
@@ -1664,9 +1666,11 @@ parses only, and is round-trip-verified per fixture.
 **Architecture note (as-built)**: the original plan put the builder in
 a `netstandard2.0` MSBuild `ITask` library (`AutoContext.Build.Tasks`).
 That was replaced by two `net10.0` projects: a shared parser library,
-`AutoContext.Instructions.Parser` (frontmatter + `applyTo` parsing,
-referenced by both the build-time generator and the engine runtime so
-one source is compiled for both), and a console generator,
+`AutoContext.Instructions.Parser` (frontmatter + `applyTo` parsing —
+since extended with a body section index and pure cross-file
+`[locator#fragment]` reference resolution; referenced by both the
+build-time generator and the engine runtime so one source is compiled
+for both), and a console generator,
 `AutoContext.Instructions.Manifest.Generator` (AssemblyName
 `instructions-manifest-gen`). The engine invokes the generator with
 `<Exec>` from `InstructionsManifestGenerator.targets` rather than
