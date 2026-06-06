@@ -47,7 +47,7 @@ public sealed class CorpusParserTests
             // Assert
             Assert.Multiple(
                 () => Assert.Equal("testing.instructions.md", file.FileName),
-                () => Assert.Contains("[INST0001]", file.Content, StringComparison.Ordinal),
+                () => Assert.Contains("[INST0001]", file.Parsed.RawContent, StringComparison.Ordinal),
                 () => Assert.Equal("testing (v1.0.0)", file.Parsed.Frontmatter.Name),
                 () => Assert.Equal("INST0001", Assert.Single(file.Parsed.Body.Rules).Id));
         }

@@ -43,7 +43,7 @@ internal sealed class CorpusParser : ICorpusParser
             var key = fileName[..^InstructionsFileSuffix.Length];
             var hasChangelog = File.Exists(Path.Combine(corpusDirectory, key + ".CHANGELOG.md"));
 
-            corpus.Add(key, new ParsedCorpusFile(fileName, content, parsed, contentHash, hasChangelog));
+            corpus.Add(key, new ParsedCorpusFile(fileName, parsed, contentHash, hasChangelog));
         }
 
         return corpus;
