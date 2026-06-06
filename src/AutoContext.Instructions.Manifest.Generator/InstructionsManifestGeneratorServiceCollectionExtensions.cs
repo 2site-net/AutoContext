@@ -10,10 +10,12 @@ internal static class InstructionsManifestGeneratorServiceCollectionExtensions
 {
     /// <summary>
     /// Adds <see cref="InstructionsManifestGenerator"/>,
+    /// <see cref="ICorpusParser"/>,
     /// <see cref="IInstructionsListBuilder"/>,
     /// <see cref="IInstructionsManifestSerializer"/>,
-    /// <see cref="IInstructionsMetadataBuilder"/>, and
-    /// <see cref="IInstructionsMetadataSerializer"/> to
+    /// <see cref="IInstructionsMetadataBuilder"/>,
+    /// <see cref="IInstructionsMetadataSerializer"/>, and
+    /// <see cref="IInstructionsReferenceValidator"/> to
     /// <paramref name="services"/>.
     /// </summary>
     /// <param name="services">The service collection to extend.</param>
@@ -24,10 +26,12 @@ internal static class InstructionsManifestGeneratorServiceCollectionExtensions
     {
         ArgumentNullException.ThrowIfNull(services);
 
+        services.AddSingleton<ICorpusParser, CorpusParser>();
         services.AddSingleton<IInstructionsListBuilder, InstructionsListBuilder>();
         services.AddSingleton<IInstructionsManifestSerializer, InstructionsManifestSerializer>();
         services.AddSingleton<IInstructionsMetadataBuilder, InstructionsMetadataBuilder>();
         services.AddSingleton<IInstructionsMetadataSerializer, InstructionsMetadataSerializer>();
+        services.AddSingleton<IInstructionsReferenceValidator, InstructionsReferenceValidator>();
         services.AddSingleton<InstructionsManifestGenerator>();
 
         return services;

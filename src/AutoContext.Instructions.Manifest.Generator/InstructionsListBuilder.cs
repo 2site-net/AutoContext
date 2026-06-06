@@ -1,21 +1,16 @@
 namespace AutoContext.Instructions.Manifest.Generator;
 
-using System.Security.Cryptography;
-using System.Text;
 using System.Text.RegularExpressions;
 
-using AutoContext.Instructions.Parser;
-
 /// <summary>
-/// Scans the curated instruction corpus and builds the wire-shape
-/// <c>instructions-files.json</c> catalogue. The builder is the build-side
-/// library named by the engine design;
-/// <see cref="InstructionsManifestGenerator"/> drives it from the host entry
-/// point. Frontmatter reading is delegated to the shared
-/// <see cref="InstructionsFileParser"/> so build-time catalogue generation and
-/// runtime parsing observe one parse of each file. The builder derives content
-/// hashes and validates curatorial shape, but deliberately never inspects glob
-/// semantics — <c>applyTo</c> is carried verbatim onto the wire.
+/// Builds the wire-shape <c>instructions-files.json</c> catalogue from an
+/// already-parsed corpus. The builder is the build-side library named by the
+/// engine design; <see cref="InstructionsManifestGenerator"/> drives it from the
+/// host entry point. Every file's frontmatter, content hash, and changelog flag
+/// are read from the shared <see cref="ParsedCorpusFile"/> the
+/// <see cref="CorpusParser"/> already produced, so the builder touches no disk and
+/// re-parses nothing. It validates curatorial shape, but deliberately never
+/// inspects glob semantics — <c>applyTo</c> is carried verbatim onto the wire.
 /// </summary>
 internal sealed partial class InstructionsListBuilder : IInstructionsListBuilder
 {
@@ -29,25 +24,16 @@ internal sealed partial class InstructionsListBuilder : IInstructionsListBuilder
             "autocontext.instructions.md",
         };
 
-    private static readonly UTF8Encoding Utf8NoBom = new(encoderShouldEmitUTF8Identifier: false);
-
     /// <inheritdoc />
-    public InstructionsManifest Build(string corpusDirectory)
+    public InstructionsManifest Build(IReadOnlyDictionary<string, ParsedCorpusFile> corpus)
     {
-        ArgumentNullException.ThrowIfNull(corpusDirectory);
+        ArgumentNullException.ThrowIfNull(corpus);
 
-        var fileNames = Directory
-            .GetFiles(corpusDirectory, "*" + InstructionsFileSuffix)
-            .Select(Path.GetFileName)
-            .OfType<string>()
-            .OrderBy(static name => name, StringComparer.Ordinal)
-            .ToList();
+        var entries = new List<InstructionsManifestEntry>(corpus.Count);
 
-        var entries = new List<InstructionsManifestEntry>(fileNames.Count);
-
-        foreach (var fileName in fileNames)
+        foreach (var file in corpus.Values)
         {
-            entries.Add(BuildEntry(corpusDirectory, fileName));
+            entries.Add(BuildEntry(file));
         }
 
         entries.Sort(static (left, right) => string.CompareOrdinal(left.Key, right.Key));
@@ -55,10 +41,10 @@ internal sealed partial class InstructionsListBuilder : IInstructionsListBuilder
         return new InstructionsManifest(SchemaVersion, entries);
     }
 
-    private static InstructionsManifestEntry BuildEntry(string corpusDirectory, string fileName)
+    private static InstructionsManifestEntry BuildEntry(ParsedCorpusFile file)
     {
-        var content = File.ReadAllText(Path.Combine(corpusDirectory, fileName), Utf8NoBom);
-        var frontmatter = InstructionsFileParser.ParseFrontmatter(content);
+        var fileName = file.FileName;
+        var frontmatter = file.Parsed.Frontmatter;
         var name = frontmatter.Name;
 
         if (name is null || name.Length == 0)
@@ -97,8 +83,8 @@ internal sealed partial class InstructionsListBuilder : IInstructionsListBuilder
             throw Fail(fileName, "`applyTo` is present but empty");
         }
 
-        var contentHash = ComputeContentHash(GeneratedFrontmatterBlockRegex().Replace(content, string.Empty));
-        var hasChangelog = File.Exists(Path.Combine(corpusDirectory, expectedKey + ".CHANGELOG.md"));
+        var contentHash = file.ContentHash;
+        var hasChangelog = file.HasChangelog;
         var alwaysAttached = AlwaysAttachedFiles.Contains(fileName);
 
         return new InstructionsManifestEntry(
@@ -113,18 +99,8 @@ internal sealed partial class InstructionsListBuilder : IInstructionsListBuilder
             alwaysAttached);
     }
 
-    private static string ComputeContentHash(string body)
-    {
-        var hash = SHA256.HashData(Utf8NoBom.GetBytes(body));
-
-        return "sha256:" + Convert.ToHexStringLower(hash);
-    }
-
     private static InvalidOperationException Fail(string fileName, string message)
         => new("[" + fileName + "] " + message);
-
-    [GeneratedRegex(@"^---\r?\n[\s\S]*?\r?\n---\r?\n?")]
-    private static partial Regex GeneratedFrontmatterBlockRegex();
 
     [GeneratedRegex(@"^([a-z0-9][a-z0-9-]*) \(v(\d+\.\d+\.\d+)\)$")]
     private static partial Regex GeneratedNamePatternRegex();

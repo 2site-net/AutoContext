@@ -8,17 +8,19 @@ public sealed class InstructionsMetadataBuilderTests
 {
     public sealed class Build(TempDirectoryFixture tempDirectory) : IClassFixture<TempDirectoryFixture>
     {
+        private readonly CorpusParser _corpusParser = new();
         private readonly InstructionsMetadataBuilder _sut = new();
 
         [Fact]
         public void Should_reject_null_manifest()
         {
             // Act + Assert
-            Assert.Throws<ArgumentNullException>(() => _sut.Build(null!, tempDirectory.CreateDirectory()));
+            Assert.Throws<ArgumentNullException>(
+                () => _sut.Build(null!, _corpusParser.Parse(tempDirectory.CreateDirectory())));
         }
 
         [Fact]
-        public void Should_reject_null_corpus_directory()
+        public void Should_reject_null_corpus()
         {
             // Arrange
             var manifest = InstructionsManifestFakeData.CreateManifest();
@@ -35,7 +37,7 @@ public sealed class InstructionsMetadataBuilderTests
             var manifest = InstructionsManifestFakeData.CreateManifest();
 
             // Act
-            var metadata = _sut.Build(manifest, corpus);
+            var metadata = _sut.Build(manifest, _corpusParser.Parse(corpus));
 
             // Assert
             Assert.Equal("1", metadata.SchemaVersion);
@@ -52,7 +54,7 @@ public sealed class InstructionsMetadataBuilderTests
                 InstructionsManifestFakeData.CreateEntry(applyTo: "**/*.cs", hasChangelog: true, contentHash: "sha256:xyz"));
 
             // Act
-            var entry = _sut.Build(manifest, corpus).Instructions.Single();
+            var entry = _sut.Build(manifest, _corpusParser.Parse(corpus)).Instructions.Single();
 
             // Assert
             Assert.Multiple(
@@ -81,7 +83,7 @@ public sealed class InstructionsMetadataBuilderTests
                 InstructionsManifestFakeData.CreateEntry());
 
             // Act
-            var sections = _sut.Build(manifest, corpus).Instructions.Single().Sections;
+            var sections = _sut.Build(manifest, _corpusParser.Parse(corpus)).Instructions.Single().Sections;
 
             // Assert
             Assert.Multiple(
@@ -105,7 +107,7 @@ public sealed class InstructionsMetadataBuilderTests
                 InstructionsManifestFakeData.CreateEntry());
 
             // Act
-            var sections = _sut.Build(manifest, corpus).Instructions.Single().Sections;
+            var sections = _sut.Build(manifest, _corpusParser.Parse(corpus)).Instructions.Single().Sections;
 
             // Assert
             Assert.Empty(sections);
@@ -123,7 +125,7 @@ public sealed class InstructionsMetadataBuilderTests
                     key: "lang-dotnet", fileName: "lang-dotnet.instructions.md", name: "lang-dotnet (v1.0.0)", applyTo: "**/*.{vb,cs,fs}"));
 
             // Act
-            var entry = _sut.Build(manifest, corpus).Instructions.Single();
+            var entry = _sut.Build(manifest, _corpusParser.Parse(corpus)).Instructions.Single();
 
             // Assert
             var expectedExtensions = new[] { "cs", "fs", "vb" };
@@ -141,7 +143,7 @@ public sealed class InstructionsMetadataBuilderTests
                 InstructionsManifestFakeData.CreateEntry());
 
             // Act
-            var entry = _sut.Build(manifest, corpus).Instructions.Single();
+            var entry = _sut.Build(manifest, _corpusParser.Parse(corpus)).Instructions.Single();
 
             // Assert
             Assert.Null(entry.Extensions);
@@ -159,7 +161,7 @@ public sealed class InstructionsMetadataBuilderTests
                     key: "global", fileName: "global.instructions.md", name: "global (v1.0.0)", applyTo: "**/*"));
 
             // Act
-            var entry = _sut.Build(manifest, corpus).Instructions.Single();
+            var entry = _sut.Build(manifest, _corpusParser.Parse(corpus)).Instructions.Single();
 
             // Assert
             Assert.Empty(entry.Extensions!);
@@ -177,7 +179,7 @@ public sealed class InstructionsMetadataBuilderTests
                 InstructionsManifestFakeData.CreateEntry(key: "beta", fileName: "beta.instructions.md", name: "beta (v1.0.0)"));
 
             // Act
-            var keys = _sut.Build(manifest, corpus).Instructions.Select(static entry => entry.Key);
+            var keys = _sut.Build(manifest, _corpusParser.Parse(corpus)).Instructions.Select(static entry => entry.Key);
 
             // Assert
             var expectedKeys = new[] { "alpha", "beta" };
@@ -197,9 +199,10 @@ public sealed class InstructionsMetadataBuilderTests
                 body: "## Do\n\nFirst.\n\n## Do\n\nSecond.\n");
             var manifest = InstructionsManifestFakeData.CreateManifest(
                 InstructionsManifestFakeData.CreateEntry());
+            var parsed = _corpusParser.Parse(corpus);
 
             // Act
-            var exception = Assert.Throws<InvalidOperationException>(() => _sut.Build(manifest, corpus));
+            var exception = Assert.Throws<InvalidOperationException>(() => _sut.Build(manifest, parsed));
 
             // Assert
             Assert.Multiple(

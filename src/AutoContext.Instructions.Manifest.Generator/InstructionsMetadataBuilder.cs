@@ -1,43 +1,41 @@
 namespace AutoContext.Instructions.Manifest.Generator;
 
-using System.Text;
-
 using AutoContext.Instructions.Parser;
 
 /// <summary>
 /// Builds the catalogue-only <c>instructions-files-metadata.json</c> index by
 /// enriching an already-validated <see cref="InstructionsManifest"/> with each
 /// file's <c>##</c>/<c>###</c> section map and the parsed <c>applyTo</c> extension
-/// set. The shared <see cref="InstructionsFileParser"/> yields both, so build-time
-/// catalogue generation and runtime parsing observe one parse semantics. The
-/// shape-validating work (name, key, description, hash) already happened while
-/// the wire manifest was built; this builder only adds the engine-internal
-/// indices and guards against heading-slug collisions.
+/// set. Both come from the shared <see cref="ParsedCorpusFile"/> the
+/// <see cref="CorpusParser"/> already produced, so the builder re-reads nothing and
+/// re-parses nothing. The shape-validating work (name, key, description, hash)
+/// already happened while the wire manifest was built; this builder only adds the
+/// engine-internal indices and guards against heading-slug collisions.
 /// </summary>
 internal sealed class InstructionsMetadataBuilder : IInstructionsMetadataBuilder
 {
-    private static readonly UTF8Encoding Utf8NoBom = new(encoderShouldEmitUTF8Identifier: false);
-
     /// <inheritdoc />
-    public InstructionsMetadata Build(InstructionsManifest manifest, string corpusDirectory)
+    public InstructionsMetadata Build(
+        InstructionsManifest manifest,
+        IReadOnlyDictionary<string, ParsedCorpusFile> corpus)
     {
         ArgumentNullException.ThrowIfNull(manifest);
-        ArgumentNullException.ThrowIfNull(corpusDirectory);
+        ArgumentNullException.ThrowIfNull(corpus);
 
         var entries = new List<InstructionsMetadataEntry>(manifest.Instructions.Count);
 
         foreach (var entry in manifest.Instructions)
         {
-            entries.Add(BuildEntry(corpusDirectory, entry));
+            entries.Add(BuildEntry(corpus[entry.Key].Parsed, entry));
         }
 
         return new InstructionsMetadata(manifest.SchemaVersion, entries);
     }
 
-    private static InstructionsMetadataEntry BuildEntry(string corpusDirectory, InstructionsManifestEntry entry)
+    private static InstructionsMetadataEntry BuildEntry(
+        InstructionsFileParsedResult parsed,
+        InstructionsManifestEntry entry)
     {
-        var content = File.ReadAllText(Path.Combine(corpusDirectory, entry.FileName), Utf8NoBom);
-        var parsed = InstructionsFileParser.Parse(content);
         var sections = ExtractSections(entry.FileName, parsed.Body.Sections);
         var extensions = ExtractExtensions(parsed.Frontmatter.ApplyTo);
 

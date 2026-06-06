@@ -8,6 +8,7 @@ public sealed class ShippedInstructionsRoundTripTests
 {
     public sealed class Build
     {
+        private readonly CorpusParser _corpusParser = new();
         private readonly InstructionsListBuilder _sut = new();
 
         [Fact]
@@ -18,7 +19,7 @@ public sealed class ShippedInstructionsRoundTripTests
             var expectedCount = Directory.GetFiles(instructionsPath, "*.instructions.md").Length;
 
             // Act
-            var manifest = _sut.Build(instructionsPath);
+            var manifest = _sut.Build(_corpusParser.Parse(instructionsPath));
 
             // Assert
             Assert.Multiple(
@@ -55,6 +56,7 @@ public sealed class ShippedInstructionsRoundTripTests
 
     public sealed class BuildMetadata
     {
+        private readonly CorpusParser _corpusParser = new();
         private readonly InstructionsListBuilder _listBuilder = new();
         private readonly InstructionsMetadataBuilder _sut = new();
 
@@ -62,11 +64,11 @@ public sealed class ShippedInstructionsRoundTripTests
         public void Should_enrich_the_shipped_instructions_without_faults()
         {
             // Arrange
-            var instructionsPath = EngineInstructionsPath.Value;
-            var manifest = _listBuilder.Build(instructionsPath);
+            var corpus = _corpusParser.Parse(EngineInstructionsPath.Value);
+            var manifest = _listBuilder.Build(corpus);
 
             // Act
-            var exception = Record.Exception(() => _sut.Build(manifest, instructionsPath));
+            var exception = Record.Exception(() => _sut.Build(manifest, corpus));
 
             // Assert
             Assert.Null(exception);
@@ -75,6 +77,7 @@ public sealed class ShippedInstructionsRoundTripTests
 
     public sealed class WireInternalSplit
     {
+        private readonly CorpusParser _corpusParser = new();
         private readonly InstructionsListBuilder _listBuilder = new();
         private readonly InstructionsMetadataBuilder _metadataBuilder = new();
         private readonly InstructionsManifestSerializer _manifestSerializer = new();
@@ -84,7 +87,7 @@ public sealed class ShippedInstructionsRoundTripTests
         public void Should_keep_section_maps_and_extensions_off_the_wire_manifest()
         {
             // Arrange
-            var manifest = _listBuilder.Build(EngineInstructionsPath.Value);
+            var manifest = _listBuilder.Build(_corpusParser.Parse(EngineInstructionsPath.Value));
 
             // Act
             var wireJson = _manifestSerializer.Serialize(manifest);
@@ -99,8 +102,8 @@ public sealed class ShippedInstructionsRoundTripTests
         public void Should_carry_section_maps_and_extensions_in_the_metadata_index()
         {
             // Arrange
-            var instructionsPath = EngineInstructionsPath.Value;
-            var metadata = _metadataBuilder.Build(_listBuilder.Build(instructionsPath), instructionsPath);
+            var corpus = _corpusParser.Parse(EngineInstructionsPath.Value);
+            var metadata = _metadataBuilder.Build(_listBuilder.Build(corpus), corpus);
 
             // Act
             var metadataJson = _metadataSerializer.Serialize(metadata);

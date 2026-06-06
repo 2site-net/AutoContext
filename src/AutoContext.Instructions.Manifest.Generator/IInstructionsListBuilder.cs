@@ -1,20 +1,19 @@
 namespace AutoContext.Instructions.Manifest.Generator;
 
 /// <summary>
-/// Builds the wire-shape <c>instructions-files.json</c> catalogue from a
-/// curated instruction corpus directory.
+/// Builds the wire-shape <c>instructions-files.json</c> catalogue from an
+/// already-parsed curated corpus.
 /// </summary>
 internal interface IInstructionsListBuilder
 {
     /// <summary>
-    /// Builds the manifest from every <c>*.instructions.md</c> file in
-    /// <paramref name="corpusDirectory"/>, ordered by key.
+    /// Builds the manifest from every parsed corpus file, ordered by key.
     /// </summary>
-    /// <param name="corpusDirectory">The curated corpus directory.</param>
+    /// <param name="corpus">The parsed corpus, keyed by basename stem.</param>
     /// <returns>The wire-shape manifest.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="corpusDirectory"/>
+    /// <exception cref="ArgumentNullException"><paramref name="corpus"/>
     /// is <see langword="null"/>.</exception>
     /// <exception cref="InvalidOperationException">A corpus file has malformed
     /// or missing frontmatter.</exception>
-    InstructionsManifest Build(string corpusDirectory);
+    InstructionsManifest Build(IReadOnlyDictionary<string, ParsedCorpusFile> corpus);
 }
