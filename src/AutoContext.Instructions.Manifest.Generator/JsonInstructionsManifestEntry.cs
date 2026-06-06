@@ -3,16 +3,19 @@ namespace AutoContext.Instructions.Manifest.Generator;
 using System.Text.Json.Serialization;
 
 /// <summary>
-/// One row of the catalogue-only <c>instructions-files-metadata.json</c> index.
-/// It mirrors the wire-shape <see cref="InstructionsManifestEntry"/> for the
-/// fields both share, but omits <c>alwaysAttached</c> (a wire concern) and adds
-/// the engine-internal indices the wire shape must not leak: the
-/// <see cref="Sections"/> heading map and the parsed <see cref="Extensions"/>
-/// set the coarse <c>applyTo</c> filter intersects against. The metadata file
-/// backs the language-model tools that read instruction bodies and section
-/// anchors, not the engine's <c>Instructions.List</c> envelope.
+/// One row of the build-generated <c>instructions-manifest.json</c>: the
+/// machine-extracted facts about a single corpus file. It carries the parsed
+/// frontmatter (name, version, description, verbatim <c>applyTo</c>), the derived
+/// <see cref="Extensions"/> set the coarse <c>applyTo</c> filter intersects
+/// against, the body <see cref="Sections"/> heading map, and the change-tracking
+/// fields (<see cref="HasChangelog"/>, <see cref="ContentHash"/>). It deliberately
+/// omits the curatorial fields — <c>label</c>, category membership, and
+/// <c>activationFlags</c> live in the hand-authored
+/// <see cref="JsonInstructionsCatalogEntry"/> — and the engine-derived
+/// <c>alwaysAttached</c> flag, which the engine computes at runtime rather than
+/// baking onto disk.
 /// </summary>
-internal sealed class InstructionsMetadataEntry(
+internal sealed class JsonInstructionsManifestEntry(
     string key,
     string fileName,
     string name,
@@ -22,7 +25,7 @@ internal sealed class InstructionsMetadataEntry(
     IReadOnlyList<string>? extensions,
     bool hasChangelog,
     string contentHash,
-    IReadOnlyList<InstructionsMetadataSection> sections)
+    IReadOnlyList<JsonInstructionsManifestSection> sections)
 {
     /// <summary>Gets the verbatim <c>applyTo</c> glob string, or <see langword="null"/>.</summary>
     [JsonPropertyOrder(5)]
@@ -62,7 +65,7 @@ internal sealed class InstructionsMetadataEntry(
 
     /// <summary>Gets the <c>##</c>/<c>###</c> section index, in document order.</summary>
     [JsonPropertyOrder(9)]
-    public IReadOnlyList<InstructionsMetadataSection> Sections { get; } = sections;
+    public IReadOnlyList<JsonInstructionsManifestSection> Sections { get; } = sections;
 
     /// <summary>Gets the semantic version extracted from <see cref="Name"/>.</summary>
     [JsonPropertyOrder(3)]

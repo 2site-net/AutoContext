@@ -11,10 +11,9 @@ internal static class InstructionsManifestGeneratorServiceCollectionExtensions
     /// <summary>
     /// Adds <see cref="InstructionsManifestGenerator"/>,
     /// <see cref="ICorpusParser"/>,
-    /// <see cref="IInstructionsListBuilder"/>,
-    /// <see cref="IInstructionsManifestSerializer"/>,
-    /// <see cref="IInstructionsMetadataBuilder"/>,
-    /// <see cref="IInstructionsMetadataSerializer"/>, and
+    /// <see cref="IInstructionsCatalogReader"/>,
+    /// <see cref="IInstructionsManifestBuilder"/>,
+    /// <see cref="IInstructionsManifestSerializer"/>, and
     /// <see cref="IInstructionsReferenceValidator"/> to
     /// <paramref name="services"/>.
     /// </summary>
@@ -27,10 +26,9 @@ internal static class InstructionsManifestGeneratorServiceCollectionExtensions
         ArgumentNullException.ThrowIfNull(services);
 
         services.AddSingleton<ICorpusParser, CorpusParser>();
-        services.AddSingleton<IInstructionsListBuilder, InstructionsListBuilder>();
+        services.AddSingleton<IInstructionsCatalogReader, InstructionsCatalogReader>();
+        services.AddSingleton<IInstructionsManifestBuilder, InstructionsManifestBuilder>();
         services.AddSingleton<IInstructionsManifestSerializer, InstructionsManifestSerializer>();
-        services.AddSingleton<IInstructionsMetadataBuilder, InstructionsMetadataBuilder>();
-        services.AddSingleton<IInstructionsMetadataSerializer, InstructionsMetadataSerializer>();
         services.AddSingleton<IInstructionsReferenceValidator, InstructionsReferenceValidator>();
         services.AddSingleton<InstructionsManifestGenerator>();
 

@@ -3,14 +3,14 @@ namespace AutoContext.Instructions.Manifest.Generator;
 using System.Text.Json.Serialization;
 
 /// <summary>
-/// One section of an instructions file's body as it appears in the catalogue-only
-/// <c>instructions-files-metadata.json</c> index: the <c>##</c>/<c>###</c> heading
-/// text and the GitHub-style <see cref="Anchor"/> a deep link targets. The heading
-/// level is intentionally not stored — it is trivially <c>parent is not null ? 3 : 2</c>
-/// — and neither are the body-relative offsets the parser carries, which serve
-/// runtime slicing rather than the wire index.
+/// One section of an instructions file's body as it appears in the build-generated
+/// <c>instructions-manifest.json</c>: the <c>##</c>/<c>###</c> heading text and the
+/// GitHub-style <see cref="Anchor"/> a deep link targets. The heading level is
+/// intentionally not stored — it is trivially <c>parent is not null ? 3 : 2</c> —
+/// and neither are the body-relative offsets the parser carries, which serve
+/// runtime slicing rather than the on-disk index.
 /// </summary>
-internal sealed class InstructionsMetadataSection(
+internal sealed class JsonInstructionsManifestSection(
     string heading,
     string anchor,
     string? parent)

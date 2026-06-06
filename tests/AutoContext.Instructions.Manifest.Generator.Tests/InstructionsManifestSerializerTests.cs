@@ -34,7 +34,7 @@ public sealed class InstructionsManifestSerializerTests
         {
             // Arrange
             var manifest = InstructionsManifestFakeData.CreateManifest(
-                InstructionsManifestFakeData.CreateEntry(applyTo: "**/*.cs", hasChangelog: true, alwaysAttached: true));
+                InstructionsManifestFakeData.CreateEntry(applyTo: "**/*.cs", hasChangelog: true));
 
             // Act
             var json = _sut.Serialize(manifest);
@@ -53,11 +53,49 @@ public sealed class InstructionsManifestSerializerTests
                 "      \"applyTo\": \"**/*.cs\",\n" +
                 "      \"hasChangelog\": true,\n" +
                 "      \"contentHash\": \"sha256:abc\",\n" +
-                "      \"alwaysAttached\": true\n" +
+                "      \"sections\": []\n" +
                 "    }\n" +
                 "  ]\n" +
                 "}\n",
                 json);
+        }
+
+        [Fact]
+        public void Should_emit_extensions_after_apply_to_and_before_changelog()
+        {
+            // Arrange
+            var manifest = InstructionsManifestFakeData.CreateManifest(
+                InstructionsManifestFakeData.CreateEntry(applyTo: "**/*.{cs,fs}", extensions: ["cs", "fs"]));
+
+            // Act
+            var json = _sut.Serialize(manifest);
+
+            // Assert
+            Assert.Multiple(
+                () => Assert.Contains("\"extensions\": [\n        \"cs\",\n        \"fs\"\n      ]", json, StringComparison.Ordinal),
+                () => Assert.True(
+                    json.IndexOf("\"applyTo\"", StringComparison.Ordinal)
+                    < json.IndexOf("\"extensions\"", StringComparison.Ordinal)),
+                () => Assert.True(
+                    json.IndexOf("\"extensions\"", StringComparison.Ordinal)
+                    < json.IndexOf("\"hasChangelog\"", StringComparison.Ordinal)));
+        }
+
+        [Fact]
+        public void Should_emit_section_rows_with_omitted_null_parent()
+        {
+            // Arrange
+            var manifest = InstructionsManifestFakeData.CreateManifest(
+                InstructionsManifestFakeData.CreateEntry(
+                    sections: [InstructionsManifestFakeData.CreateSection("Overview", "overview")]));
+
+            // Act
+            var json = _sut.Serialize(manifest);
+
+            // Assert
+            Assert.Multiple(
+                () => Assert.Contains("\"sections\": [\n        {\n          \"heading\": \"Overview\",\n          \"anchor\": \"overview\"\n        }\n      ]", json, StringComparison.Ordinal),
+                () => Assert.DoesNotContain("\"parent\"", json, StringComparison.Ordinal));
         }
 
         [Fact]

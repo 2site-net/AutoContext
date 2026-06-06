@@ -2,8 +2,22 @@ namespace AutoContext.Instructions.Manifest.Generator.Tests.Support;
 
 using System.Text;
 
+using AutoContext.Instructions.Manifest.Generator;
+
 public static class InstructionsCorpusTestWriter
 {
+    internal static IReadOnlyDictionary<string, CorpusFileParsedResult> WriteAndParse(
+        string directory,
+        params string[] keys)
+    {
+        foreach (var key in keys)
+        {
+            WriteInstruction(directory, key + ".instructions.md", key + " (v1.0.0)", "Body for " + key + ".");
+        }
+
+        return new CorpusParser().Parse(directory);
+    }
+
     public static void WriteInstruction(
         string directory,
         string fileName,

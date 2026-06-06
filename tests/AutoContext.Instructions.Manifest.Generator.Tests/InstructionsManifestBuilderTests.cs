@@ -4,12 +4,12 @@ using AutoContext.Engine.Tests.Support.IO;
 using AutoContext.Instructions.Manifest.Generator;
 using AutoContext.Instructions.Manifest.Generator.Tests.Support;
 
-public sealed class InstructionsListBuilderTests
+public sealed class InstructionsManifestBuilderTests
 {
     public sealed class Build(TempDirectoryFixture tempDirectory) : IClassFixture<TempDirectoryFixture>
     {
         private readonly CorpusParser _corpusParser = new();
-        private readonly InstructionsListBuilder _sut = new();
+        private readonly InstructionsManifestBuilder _sut = new();
 
         [Fact]
         public void Should_reject_null_corpus()
@@ -30,7 +30,9 @@ public sealed class InstructionsListBuilderTests
             var manifest = _sut.Build(_corpusParser.Parse(corpus));
 
             // Assert
-            Assert.Equal(2, manifest.Instructions.Count);
+            Assert.Multiple(
+                () => Assert.Equal("1", manifest.SchemaVersion),
+                () => Assert.Equal(2, manifest.Instructions.Count));
         }
 
         [Fact]
@@ -66,23 +68,6 @@ public sealed class InstructionsListBuilderTests
                 () => Assert.Equal("3.1.4", entry.Version),
                 () => Assert.Equal("code-review.instructions.md", entry.FileName),
                 () => Assert.Equal("Review.", entry.Description));
-        }
-
-        [Fact]
-        public void Should_flag_always_attached_files()
-        {
-            // Arrange
-            var corpus = tempDirectory.CreateDirectory();
-            InstructionsCorpusTestWriter.WriteInstruction(corpus, "copilot.instructions.md", "copilot (v1.0.0)", "Always.");
-            InstructionsCorpusTestWriter.WriteInstruction(corpus, "code-review.instructions.md", "code-review (v1.0.0)", "Review.");
-
-            // Act
-            var manifest = _sut.Build(_corpusParser.Parse(corpus));
-
-            // Assert
-            Assert.Multiple(
-                () => Assert.True(manifest.Instructions.Single(static e => e.Key == "copilot").AlwaysAttached),
-                () => Assert.False(manifest.Instructions.Single(static e => e.Key == "code-review").AlwaysAttached));
         }
 
         [Fact]
@@ -148,6 +133,93 @@ public sealed class InstructionsListBuilderTests
         }
 
         [Fact]
+        public void Should_extract_section_index_from_body()
+        {
+            // Arrange
+            var corpus = tempDirectory.CreateDirectory();
+            InstructionsCorpusTestWriter.WriteInstruction(
+                corpus,
+                "code-review.instructions.md",
+                "code-review (v1.0.0)",
+                "Review.",
+                body: "## Overview\n\nText.\n\n### Details\n\nMore.\n");
+
+            // Act
+            var sections = _sut.Build(_corpusParser.Parse(corpus)).Instructions.Single().Sections;
+
+            // Assert
+            Assert.Multiple(
+                () => Assert.Equal(2, sections.Count),
+                () => Assert.Equal("Overview", sections[0].Heading),
+                () => Assert.Equal("overview", sections[0].Anchor),
+                () => Assert.Null(sections[0].Parent),
+                () => Assert.Equal("Details", sections[1].Heading),
+                () => Assert.Equal("overview-details", sections[1].Anchor),
+                () => Assert.Equal("Overview", sections[1].Parent));
+        }
+
+        [Fact]
+        public void Should_yield_empty_sections_when_body_has_no_headings()
+        {
+            // Arrange
+            var corpus = tempDirectory.CreateDirectory();
+            InstructionsCorpusTestWriter.WriteInstruction(
+                corpus, "code-review.instructions.md", "code-review (v1.0.0)", "Review.", body: "Just prose.\n");
+
+            // Act
+            var sections = _sut.Build(_corpusParser.Parse(corpus)).Instructions.Single().Sections;
+
+            // Assert
+            Assert.Empty(sections);
+        }
+
+        [Fact]
+        public void Should_derive_sorted_extension_set_from_apply_to()
+        {
+            // Arrange
+            var corpus = tempDirectory.CreateDirectory();
+            InstructionsCorpusTestWriter.WriteInstruction(
+                corpus, "lang-dotnet.instructions.md", "lang-dotnet (v1.0.0)", ".NET.", applyTo: "**/*.{vb,cs,fs}");
+
+            // Act
+            var entry = _sut.Build(_corpusParser.Parse(corpus)).Instructions.Single();
+
+            // Assert
+            var expectedExtensions = new[] { "cs", "fs", "vb" };
+            Assert.Equal(expectedExtensions, entry.Extensions);
+        }
+
+        [Fact]
+        public void Should_yield_null_extensions_when_apply_to_absent()
+        {
+            // Arrange
+            var corpus = tempDirectory.CreateDirectory();
+            InstructionsCorpusTestWriter.WriteInstruction(
+                corpus, "code-review.instructions.md", "code-review (v1.0.0)", "Review.");
+
+            // Act
+            var entry = _sut.Build(_corpusParser.Parse(corpus)).Instructions.Single();
+
+            // Assert
+            Assert.Null(entry.Extensions);
+        }
+
+        [Fact]
+        public void Should_yield_empty_extensions_when_apply_to_names_no_extension()
+        {
+            // Arrange
+            var corpus = tempDirectory.CreateDirectory();
+            InstructionsCorpusTestWriter.WriteInstruction(
+                corpus, "global.instructions.md", "global (v1.0.0)", "Global.", applyTo: "**/*");
+
+            // Act
+            var entry = _sut.Build(_corpusParser.Parse(corpus)).Instructions.Single();
+
+            // Assert
+            Assert.Empty(entry.Extensions!);
+        }
+
+        [Fact]
         public void Should_throw_when_name_is_missing()
         {
             // Arrange
@@ -175,6 +247,28 @@ public sealed class InstructionsListBuilderTests
 
             // Assert
             Assert.Contains("does not equal file basename", exception.Message, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void Should_throw_on_duplicate_section_anchor()
+        {
+            // Arrange
+            var corpus = tempDirectory.CreateDirectory();
+            InstructionsCorpusTestWriter.WriteInstruction(
+                corpus,
+                "code-review.instructions.md",
+                "code-review (v1.0.0)",
+                "Review.",
+                body: "## Do\n\nFirst.\n\n## Do\n\nSecond.\n");
+            var parsed = _corpusParser.Parse(corpus);
+
+            // Act
+            var exception = Assert.Throws<InvalidOperationException>(() => _sut.Build(parsed));
+
+            // Assert
+            Assert.Multiple(
+                () => Assert.Contains("code-review.instructions.md", exception.Message, StringComparison.Ordinal),
+                () => Assert.Contains("duplicate section anchor 'do'", exception.Message, StringComparison.Ordinal));
         }
     }
 }
