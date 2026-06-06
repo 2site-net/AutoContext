@@ -39,7 +39,7 @@ internal sealed class CorpusParser : ICorpusParser
         {
             var content = File.ReadAllText(Path.Combine(corpusDirectory, fileName), Utf8NoBom);
             var parsed = InstructionsFileParser.Parse(content);
-            var contentHash = ComputeContentHash(parsed.Body.RawBody);
+            var contentHash = ComputeContentHash(parsed.Body.RawValue);
             var key = fileName[..^InstructionsFileSuffix.Length];
             var hasChangelog = File.Exists(Path.Combine(corpusDirectory, key + ".CHANGELOG.md"));
 

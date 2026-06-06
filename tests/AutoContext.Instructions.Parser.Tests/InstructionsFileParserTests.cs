@@ -22,7 +22,8 @@ public sealed class InstructionsFileParserTests
                 () => Assert.Null(frontmatter.Name),
                 () => Assert.Null(frontmatter.Description),
                 () => Assert.Null(frontmatter.ApplyTo),
-                () => Assert.Null(frontmatter.Version));
+                () => Assert.Null(frontmatter.Version),
+                () => Assert.Equal(string.Empty, frontmatter.RawValue));
         }
 
         [Fact]
@@ -39,7 +40,10 @@ public sealed class InstructionsFileParserTests
                 () => Assert.Equal("lang-csharp (v1.2.3)", frontmatter.Name),
                 () => Assert.Equal("C# rules.", frontmatter.Description),
                 () => Assert.Equal("**/*.cs", frontmatter.ApplyTo?.RawValue),
-                () => Assert.Equal("1.2.3", frontmatter.Version));
+                () => Assert.Equal("1.2.3", frontmatter.Version),
+                () => Assert.Equal(
+                    "name: \"lang-csharp (v1.2.3)\"\ndescription: \"C# rules.\"\napplyTo: \"**/*.cs\"",
+                    frontmatter.RawValue));
         }
 
         [Fact]
@@ -87,6 +91,53 @@ public sealed class InstructionsFileParserTests
         }
     }
 
+    public sealed class Parse
+    {
+        [Fact]
+        public void Should_preserve_the_verbatim_content_as_raw_content()
+        {
+            // Arrange
+            var content = "---\nname: \"x (v1.0.0)\"\ndescription: \"d\"\n---\n## Heading\n\nBody.\n";
+
+            // Act
+            var result = InstructionsFileParser.Parse(content);
+
+            // Assert
+            Assert.Equal(content, result.RawContent);
+        }
+
+        [Fact]
+        public void Should_end_raw_content_with_the_body_when_frontmatter_is_present()
+        {
+            // Arrange
+            var content = "---\nname: \"x (v1.0.0)\"\ndescription: \"d\"\n---\n## Heading\n\nBody.\n";
+
+            // Act
+            var result = InstructionsFileParser.Parse(content);
+
+            // Assert
+            Assert.Multiple(
+                () => Assert.StartsWith("---", result.RawContent, StringComparison.Ordinal),
+                () => Assert.EndsWith(result.Body.RawValue, result.RawContent, StringComparison.Ordinal));
+        }
+
+        [Fact]
+        public void Should_equate_raw_content_and_body_when_no_frontmatter_is_present()
+        {
+            // Arrange
+            var content = "## Heading\n\nBody only.\n";
+
+            // Act
+            var result = InstructionsFileParser.Parse(content);
+
+            // Assert
+            Assert.Multiple(
+                () => Assert.Equal(content, result.RawContent),
+                () => Assert.Equal(result.Body.RawValue, result.RawContent),
+                () => Assert.Equal(string.Empty, result.Frontmatter.RawValue));
+        }
+    }
+
     public sealed class ParseSections
     {
         [Fact]
@@ -99,7 +150,7 @@ public sealed class InstructionsFileParserTests
             var result = InstructionsFileParser.Parse(content);
 
             // Assert
-            Assert.StartsWith("## Heading", result.Body.RawBody, StringComparison.Ordinal);
+            Assert.StartsWith("## Heading", result.Body.RawValue, StringComparison.Ordinal);
         }
 
         [Fact]

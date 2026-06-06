@@ -7,6 +7,9 @@ namespace AutoContext.Instructions.Parser;
 /// Presence and shape validation (required <c>name</c>, <c>&lt;key&gt; (vX.Y.Z)</c>
 /// form, non-empty <c>description</c>) is a consumer concern, not the parser's.
 /// </summary>
+/// <param name="RawValue">The verbatim inner YAML payload between the leading
+/// <c>---</c> fences — neither the fences nor their surrounding newlines — and the
+/// empty string when the file carries no frontmatter block.</param>
 /// <param name="Name">The raw <c>name</c> field (expected
 /// <c>&lt;key&gt; (vX.Y.Z)</c>), or <see langword="null"/> when absent.</param>
 /// <param name="Description">The raw <c>description</c> field, or
@@ -18,6 +21,7 @@ namespace AutoContext.Instructions.Parser;
 /// <c>(vX.Y.Z)</c> suffix of <paramref name="Name"/>, or
 /// <see langword="null"/> when <paramref name="Name"/> carries no such suffix.</param>
 public sealed record InstructionsFileFrontmatterParsedResult(
+    string RawValue,
     string? Name,
     string? Description,
     FrontmatterApplyToParsedResult? ApplyTo,

@@ -36,7 +36,7 @@ public static partial class InstructionsFileParser
         var body = GeneratedFrontmatterStripRegex().Replace(content, string.Empty);
         var parsedBody = ParseBody(body);
 
-        return new InstructionsFileParsedResult(frontmatter, parsedBody);
+        return new InstructionsFileParsedResult(content, frontmatter, parsedBody);
     }
 
     /// <summary>
@@ -57,7 +57,7 @@ public static partial class InstructionsFileParser
 
         if (!block.Success)
         {
-            return new InstructionsFileFrontmatterParsedResult(null, null, null, null);
+            return new InstructionsFileFrontmatterParsedResult(string.Empty, null, null, null, null);
         }
 
         string? name = null;
@@ -101,7 +101,7 @@ public static partial class InstructionsFileParser
         var version = name is null ? null : ExtractVersion(name);
         var applyTo = applyToRaw is null ? null : ApplyToParser.Parse(applyToRaw);
 
-        return new InstructionsFileFrontmatterParsedResult(name, description, applyTo, version);
+        return new InstructionsFileFrontmatterParsedResult(block.Groups[1].Value, name, description, applyTo, version);
     }
 
     private static InstructionsFileRule BuildRule(

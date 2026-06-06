@@ -7,9 +7,12 @@ namespace AutoContext.Instructions.Parser;
 /// shape every consumer — the build-time catalogue and metadata generators and the
 /// runtime engine — reads, so the markdown is parsed once.
 /// </summary>
+/// <param name="RawContent">The verbatim file content exactly as parsed,
+/// frontmatter and body included.</param>
 /// <param name="Frontmatter">The parsed leading YAML frontmatter.</param>
 /// <param name="Body">The parsed body: normalised text plus its section, rule, and
 /// diagnostic index.</param>
 public sealed record InstructionsFileParsedResult(
+    string RawContent,
     InstructionsFileFrontmatterParsedResult Frontmatter,
     InstructionsFileBodyParsedResult Body);

@@ -8,7 +8,7 @@ namespace AutoContext.Instructions.Parser;
 /// bullet-tag or reference diagnostics. <see cref="InstructionsFileParser.Parse"/>
 /// fills this in one pass and pairs it with the parsed frontmatter.
 /// </summary>
-/// <param name="RawBody">The normalised body: the file content with its leading
+/// <param name="RawValue">The normalised body: the file content with its leading
 /// frontmatter block stripped. All section, rule, and reference offsets are
 /// relative to it.</param>
 /// <param name="Sections">The <c>##</c>/<c>###</c> section index, in document
@@ -24,7 +24,7 @@ namespace AutoContext.Instructions.Parser;
 /// <param name="Diagnostics">Observations about malformed, missing, or duplicate
 /// rule tags and malformed references, in document order.</param>
 public sealed record InstructionsFileBodyParsedResult(
-    string RawBody,
+    string RawValue,
     IReadOnlyList<InstructionsFileSection> Sections,
     IReadOnlyList<InstructionsFileRule> Rules,
     IReadOnlyList<InstructionsFileReference> References,
