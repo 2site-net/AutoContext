@@ -59,7 +59,7 @@
     explicit and let the type system carry the intent.
   - **Names are readable, not short.** Types, members, locals, and
     parameters are named for the role they play in their context
-    — `instructionsCorpusSnapshot` over `corpus`, `pendingReload`
+    — `instructionsManifestSnapshot` over `corpus`, `pendingReload`
     over `pr`, `workspaceHash` over `wh`. Favour the longer name
     that reads correctly out loud and that a reviewer can reason
     about without opening the call site. Cryptic abbreviations,
@@ -149,8 +149,11 @@ before merge.
   surfaces use; no business logic in the shim.
 - **P2**: discriminated envelopes for state-bearing reads
   (`ok` / `disabled` / `not-found` / `*-error`), never nullables.
-- **P3**: wire shape ≠ engine-internal shape; build-generated
-  manifests split into wire (`*.json`) and internal (`*-metadata.json`).
+- **P3**: three decoupled representations — on-disk (authoring /
+  generation), engine-internal (runtime snapshot), and wire (per-RPC
+  projection); none dictates another's shape. On disk the curatorial
+  layer is hand-authored (`instructions-catalog.json`) and the
+  per-file facts are build-generated (`instructions-manifest.json`).
 - **P4**: workspace identity is one hash; engine identity adds one
   per-launch UUID (fresh on every spawn; never reused across
   respawns). Endpoint names use the flat `<workspaceHash>#<instanceId>`
@@ -456,15 +459,15 @@ src/
         # — Derived data (per-Detect outputs; plain records, not DI-registered) —
         FileExtensionsIndex.cs                 # derived ext set, fed to Discovery (P7)
     Instructions/                              # runtime services
-      InstructionsCorpusService.cs             # immutable snapshot loader + reloader
+      InstructionsManifestService.cs           # merged catalog+manifest snapshot loader + reloader
       InstructionsFileBodyProjector.cs         # disabled-rule filter, [INSTxxxx] strip, override merge
       InstructionsContentIndex.cs              # in-memory content search index
       InstructionsOverrideWatcher.cs           # .github/instructions/ FS watcher (debounced); produces InstructionsOverrides snapshots
-      InstructionsOverrides.cs                 # immutable snapshot of .github/instructions/ inventory (paths + basenames); consumed by InstructionsFileBodyProjector + InstructionsCorpusService
+      InstructionsOverrides.cs                 # immutable snapshot of .github/instructions/ inventory (paths + basenames); consumed by InstructionsFileBodyProjector + InstructionsManifestService
       ApplyToParser.cs                         # comma + brace-expand, extension extraction (shared with the build task via `<Compile Link>`)
-      InstructionsHandlers.cs                  # List/Get/GetAll/GetAlwaysAttached/GetRaw/SearchContent/Subscribe
+      InstructionsHandlers.cs                  # List/Categories/Get/GetAll/GetAlwaysAttached/GetRaw/SearchContent/Subscribe
       InstructionsFrameStream.cs               # BroadcasterFrameStream<InstructionsSnapshot, …> (IBroadcasterFrameStream impl) for Instructions.Subscribe: drains a BroadcasterSubscription<InstructionsSnapshot> (fanned out over a shared Infrastructure/Events/SnapshotBroadcaster<T> — snapshot-on-subscribe + disabled-flag re-evaluation) and yields snapshot/dropped frames
-      InstructionsManifestLoader.cs            # reads Resources/instructions-files{,-metadata}.json
+      InstructionsManifestLoader.cs            # reads Resources/instructions-catalog.json + instructions-manifest.json, merges into the snapshot
     Workers/                                   # worker dispatch (absorbs AutoContext.Mcp.Server/Workers/)
       WorkerManager.cs                         # ensureRunning(workerId) gate
       WorkerProcessSupervisor.cs               # Process.Start + stderr capture under worker.<id>.engine.stderr
@@ -533,8 +536,9 @@ src/
     AutoContext.Instructions.Manifest.Generator.csproj   # OutputType=Exe; ProjectReference → AutoContext.Instructions.Parser
     InstructionsManifestGenerator.targets      # imported by AutoContext.Engine.csproj; <Exec>s the generator during the binary's build
     Program.cs                                 # generic-host entry point (build host → resolve runner → Run → exit code)
-    InstructionsManifestGenerator.cs           # runner: scans src/AutoContext.Engine/Instructions/, writes the manifest into the binary's Resources/
-    InstructionsListBuilder.cs                 # corpus scan + curatorial validation → InstructionsManifest
+    InstructionsManifestGenerator.cs           # runner: reads instructions-catalog.json, scans src/AutoContext.Engine/Instructions/, writes instructions-manifest.json into the binary's Resources/
+    InstructionsCatalogReader.cs               # reads + cross-validates the hand-authored instructions-catalog.json (categories, label, membership, activationFlags)
+    InstructionsManifestBuilder.cs             # corpus scan + per-file facts (sections, applyTo ext set, hashes) → JsonInstructionsManifest
     InstructionsManifestSerializer.cs          # deterministic, byte-stable JSON writer (no System.Text.Json dependency)
     # the engine sequences the generator via a ProjectReference (ReferenceOutputAssembly=false);
     # the target runs AfterTargets=ResolveProjectReferences BeforeTargets=CoreCompile.
@@ -550,9 +554,9 @@ src/
     Instructions/                              # bundled corpus — copied next to the binary,
       <curated *.instructions.md files>       # resolved via AppContext.BaseDirectory
                                                # (not embedded resources)
-    Resources/                                 # build-generated manifests — copied next to the binary
-      instructions-files.json                  #   wire shape (P3)
-      instructions-files-metadata.json         #   internal shape (P3 split)
+    Resources/                                 # read-only side-cars — copied next to the binary
+      instructions-catalog.json                #   hand-authored curatorial layer (tracked in source)
+      instructions-manifest.json               #   build-generated per-file facts (P3)
       mcp-tools-registry.json                  #   hand-authored registry
       mcp-tools-registry.schema.json           #   JSON-schema for the registry
       mcp-tools.json                           #   build-time projection of the registry
@@ -602,9 +606,9 @@ The per-RID segment that exists at build-staging time
     autocontext-engine[.exe]                   # the binary (one role, two modes)
     <self-contained .NET runtime files>        # dotnet publish -r <rid> --self-contained output
     Instructions/                              # curated corpus side-cars
-    Resources/                                 # build-generated manifests (mirror of src tree above)
-      instructions-files.json
-      instructions-files-metadata.json
+    Resources/                                 # read-only side-cars (mirror of src tree above)
+      instructions-catalog.json
+      instructions-manifest.json
       mcp-tools-registry.json
       mcp-tools-registry.schema.json
       mcp-tools.json
@@ -1642,6 +1646,22 @@ The MCP-tools registry and its `mcp-tools.json` projection moved to
 Phase 7, where the engine first owns the registry (see *Scope note*
 below).
 
+> **Superseded by the catalog+manifest redesign.** This phase shipped
+> two generated files — `instructions-files.json` ("wire shape") and
+> `instructions-files-metadata.json` ("internal") — under the original
+> *wire ≠ internal split* reading of P3. That reading fused three
+> independent layers and silently dropped the curatorial taxonomy
+> (categories / `label` / `activationFlags`). The corrected design
+> (see `§ P3 — three decoupled representations` and `§ Resource
+> manifests`) replaces those two files with a **hand-authored**
+> `instructions-catalog.json` (curatorial layer, tracked in source)
+> and a **build-generated** `instructions-manifest.json` (per-file
+> facts). The commit ladder below is preserved as historical record;
+> the redesign is tracked on
+> `features/fix-metadata-vs-manifest-design`. Read the Phase 5 prose
+> that follows as the *original* plan — the catalog+manifest model
+> overrides it wherever they disagree.
+
 | # | Commit subject | State |
 |---|---|---|
 | 1 | `refactor(engine): copy instruction corpus into engine host` | DONE |
@@ -1661,7 +1681,7 @@ parses only, and is round-trip-verified per fixture.
 
 **Design anchors**: `§ Resource manifests`,
 `§ applyTo` matching subsection under `Instructions.*`,
-`§ P3` (wire ≠ internal), `§ applyTo parser pitfall`.
+`§ P3` (three decoupled representations), `§ applyTo parser pitfall`.
 
 **Architecture note (as-built)**: the original plan put the builder in
 a `netstandard2.0` MSBuild `ITask` library (`AutoContext.Build.Tasks`).
@@ -1758,9 +1778,89 @@ file is born named for the project that owns it.
 content-search index seed (Phase 6 uses it but builds the live
 index in-memory at startup).
 
+## Phase 6R — Design remediation: catalog + manifest split
+
+**Status**: In progress on `features/fix-metadata-vs-manifest-design`.
+
+**Why this phase exists**: Phase 6 runtime work was started and then
+**stashed** mid-flight when a critical design flaw surfaced. Phase 5's
+two generated files — `instructions-files.json` ("wire shape") and
+`instructions-files-metadata.json` ("internal") — had converged to
+~80% duplicate content because the original P3 reading fused three
+independent layers (on-disk format / runtime model / wire shape) and
+silently dropped the curatorial taxonomy (categories / `label` /
+`activationFlags`) the LM-tools surface still needs
+(`list_autocontext_instructions_files` returns `categories`). Building
+Phase 6 on top of that shape would have meant porting the flaw into
+the runtime and **redoing the work** once it was caught downstream.
+This phase corrects the design at the build-time source **before**
+Phase 6 resumes. The two files are replaced per the corrected
+`§ P3 — three decoupled representations`.
+
+**Goal**: replace the two generated files with one **hand-authored**
+curatorial layer (`instructions-catalog.json`, tracked in source) and
+one **build-generated** per-file facts manifest
+(`instructions-manifest.json`). The generator reads the catalog,
+cross-validates it against the corpus, and emits only the manifest.
+Phase 6 resumes on top of the corrected files.
+
+**Design anchors**: `§ P3` (three decoupled representations),
+`§ Resource manifests` (catalog hand-authored + manifest generated),
+`§ RPC surface` (`Instructions.List` + `Instructions.Categories`).
+
+**Code touch**:
+- **Generator** (`AutoContext.Instructions.Manifest.Generator`):
+  - `InstructionsManifestBuilder` emits `instructions-manifest.json`
+    — per-file facts only (`key`, `fileName`, `name`, `version`,
+    `description`, `applyTo?`, `extensions?`, `hasChangelog`,
+    `contentHash`, `sections[]`). The old wire-shape
+    `instructions-files.json` builder is dropped. The manifest carries
+    no `categories`/`label`/`activationFlags` (the catalog's) and no
+    workspace-state fields (`disabled`/`source` are per-request).
+    `alwaysAttached` is **derived** by the engine from its
+    `AlwaysAttachedFiles` set, not baked into the manifest.
+  - `InstructionsCatalogReader` reads the hand-authored
+    `instructions-catalog.json` and cross-validates against the
+    corpus, all rules build-FATAL with an
+    `[instructions-catalog.json] …` message: **(A)** every catalog
+    entry resolves to a real corpus file; **(B2)** every corpus file
+    is catalogued **except** the always-attached files (`copilot`,
+    `autocontext` — matching the legacy TS exemption); **(membership)**
+    every category-membership string resolves to a declared category.
+  - Update `Program.cs` args (corpus dir + catalog path + manifest
+    output path), `InstructionsManifestGenerator.targets` `<Exec>`,
+    the DI registrations, serializers, and JSON source-gen contexts
+    to the new shape.
+- **Catalog authoring**: author
+  `src/AutoContext.Engine/Resources/instructions-catalog.json` by
+  porting the TS `src/AutoContext.VsCode/resources/instructions-files.json`
+  (categories + `label` + membership + `activationFlags`). Remove it
+  from `src/AutoContext.Engine/.gitignore` — the catalog is tracked
+  source; only the generated `instructions-manifest.json` stays
+  ignored — and wire its copy-to-output.
+
+**Tests**:
+- Catalog validation: rules **A** / **B2** / **membership** each fail
+  the build with the `[instructions-catalog.json] …` message on a
+  crafted bad fixture; the real catalog passes.
+- Manifest shape: emitted `instructions-manifest.json` carries the
+  per-file facts and **none** of the catalog-only fields; section maps
+  and parsed `applyTo` extension sets round-trip.
+- Deterministic, byte-stable manifest output (no spurious rewrites
+  when inputs are unchanged).
+
+**Out of scope** (these land as Phase 6 resumes, on top of the
+corrected files):
+- The runtime `InstructionsManifestSnapshot` merge + projection (the
+  stashed Row 2 work, rebuilt to the new shape).
+- The `Instructions.Categories` wire DTO in
+  `AutoContext.Engine.Protocol` (depends on the Row 1 envelope work).
+
 ## Phase 6 — Instructions corpus runtime + projection
 
-**Status**: Not started.
+**Status**: Started, then **paused** — the Row 2 runtime corpus-load
+work was stashed pending **Phase 6R** (design remediation). Resumes on
+the corrected catalog + manifest shape.
 
 **Goal**: engine answers every `Instructions.*` RPC from in-memory
 snapshots, applies per-request projection (disabled rules filtered,
@@ -1768,26 +1868,37 @@ snapshots, applies per-request projection (disabled rules filtered,
 `Config.Subscribe`, and exposes content search.
 
 **Design anchors**: `§ RPC surface` (`Instructions.*`),
-`§ P2` (discriminated envelopes), `§ P9` (snapshot-immutable),
+`§ P2` (discriminated envelopes), `§ P3` (three decoupled
+representations — disk catalog+manifest vs. runtime snapshot vs.
+wire), `§ P9` (snapshot-immutable),
 `§ alwaysAttached pitfall`, `§ Instructions.Get distinguishes disabled
 from not-found pitfall`, `§ Override survival across upgrades`
 pitfall.
 
 **Code touch**:
 - `AutoContext.Engine.Core/Instructions/`:
-  - `InstructionsCorpusService` — load on startup from the embedded
-    side-cars, hold the immutable snapshot, re-project per request.
+  - `InstructionsManifestService` — on startup, merge the
+    hand-authored `instructions-catalog.json` (categories, `label`,
+    membership, `activationFlags`) with the build-generated
+    `instructions-manifest.json` (per-file facts) into one immutable
+    `InstructionsManifestSnapshot`; re-project per request.
   - `InstructionsFileBodyProjector` — disabled-rule filter,
     `[INSTxxxx]` tag strip, override resolution.
   - `InstructionsContentIndex` — in-memory content search seeded
-    from `instructions-files-metadata.json`, hot across queries,
-    invalidated on corpus reload.
+    from the section/body facts in `instructions-manifest.json`, hot
+    across queries, invalidated on corpus reload.
   - `InstructionsOverrideWatcher` — `FileSystemWatcher` on
     `<workspace>/.github/instructions/` with the same debounce shape
     Phase 3 introduced.
-- Handlers: `Instructions.List`, `Get`, `GetAll`, `GetAlwaysAttached`,
-  `GetRaw` (with `opts.source: "bundled"|"override"|"active"`),
-  `SearchContent`, `Subscribe`. Discriminated envelopes per `§ P2`.
+- Handlers: `Instructions.List`, `Categories`, `Get`, `GetAll`,
+  `GetAlwaysAttached`, `GetRaw` (with
+  `opts.source: "bundled"|"override"|"active"`), `SearchContent`,
+  `Subscribe`. Discriminated envelopes per `§ P2`. `List` rows carry
+  `label` + category `membership` + computed `disabled`/`source`;
+  `Categories` returns the taxonomy definitions (`[{name,
+  description}]`) from the catalog, static/cached. `activationFlags`
+  is engine-internal — it is evaluated against workspace state to
+  derive `disabled` and is never serialised on the wire.
 - `Config.Subscribe` consumer that re-evaluates `disabled` flags and
   rebroadcasts on `Instructions.Subscribe`.
 - Override-mtime-vs-bundled-mtime warning (the *override survival*
@@ -1796,7 +1907,11 @@ pitfall.
 **Tests**:
 - `List` returns every bundled + override file; disabled rows carry
   `disabled: true`; `alwaysAttached` flag correctly reflects YAML
-  frontmatter.
+  frontmatter; rows carry `label` + category `membership` from the
+  catalog.
+- `Categories` returns the catalog taxonomy definitions in
+  deterministic order; every `membership` string on a `List` row
+  resolves to a returned category.
 - `Get` discriminated envelope: `ok` (with projected body),
   `disabled` (identity only — no description, no body, no version),
   `not-found` (just the name).
