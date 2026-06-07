@@ -30,6 +30,20 @@
     <PackageReference Include="System.CommandLine" Version="2.0.8" />
   </ItemGroup>
 
+  <!-- Ship the build-time instruction side-cars beside the engine binary so
+       InstructionsManifestService can load them from AppContext.BaseDirectory/Resources
+       at startup. The hand-authored catalog is tracked; the generator (imported below)
+       writes the manifest during the build, so it may not exist at evaluation time; an
+       explicit Include of the literal paths still registers the copy items, and the
+       Remove first drops the duplicate the SDK's default None glob would add on an
+       incremental build. -->
+  <ItemGroup>
+    <None Remove="Resources\instructions-catalog.json" />
+    <None Remove="Resources\instructions-manifest.json" />
+    <None Include="Resources\instructions-catalog.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="Resources\instructions-manifest.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
   <Import Project="..\AutoContext.Instructions.Manifest.Generator\InstructionsManifestGenerator.targets" />
 
 </Project>

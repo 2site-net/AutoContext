@@ -174,6 +174,21 @@ before merge.
 - **P10**: in-process async hooks are single-subscriber; cross-process
   fan-out is `*.Subscribe`. No classic .NET `event` slots in framework
   code.
+- **P11**: the engine library splits into a **capability tier** and an
+  **infrastructure substrate**. `Engine.Core/Features/` holds the
+  outward-facing capabilities the extension consumes over RPC
+  (`Instructions/` today; the `McpTools.*` capability is the next
+  tenant) — the engine still boots without any of them, but without
+  them nothing can consume anything. Everything outside `Features/` is
+  infrastructure: required for the engine to run, whether a substantial
+  subsystem (`Workspace/`, `Lifecycle/`, `Machine/`) or plumbing
+  (`Watchdogs/`, `Logging/`, `Infrastructure/`). A folder earns the
+  `Features/` tier only when (a) the engine still runs without it *and*
+  (b) it directly serves an outward consumer; `Workspace/` and the
+  engine registry fail (b) and stay at root. The dependency arrow is
+  one-way: capabilities may depend on the substrate, the substrate must
+  never depend on a capability — a `using …Features.*` inside
+  infrastructure is the smell that classification slipped.
 
 Anything that adds an interface "for portability" needs a second
 concrete implementation in the same phase or it doesn't ship. See
@@ -458,16 +473,18 @@ src/
         WorkspaceDetectionRules.cs             # static partial holding the three tables (FileRules, ContentScans, FlagActivationEdges) + GeneratedRegex patterns
         # — Derived data (per-Detect outputs; plain records, not DI-registered) —
         FileExtensionsIndex.cs                 # derived ext set, fed to Discovery (P7)
-    Instructions/                              # runtime services
-      InstructionsManifestService.cs           # merged catalog+manifest snapshot loader + reloader
-      InstructionsFileBodyProjector.cs         # disabled-rule filter, [INSTxxxx] strip, override merge
-      InstructionsContentIndex.cs              # in-memory content search index
-      InstructionsOverrideWatcher.cs           # .github/instructions/ FS watcher (debounced); produces InstructionsOverrides snapshots
-      InstructionsOverrides.cs                 # immutable snapshot of .github/instructions/ inventory (paths + basenames); consumed by InstructionsFileBodyProjector + InstructionsManifestService
-      ApplyToParser.cs                         # comma + brace-expand, extension extraction (shared with the build task via `<Compile Link>`)
-      InstructionsHandlers.cs                  # List/Categories/Get/GetAll/GetAlwaysAttached/GetRaw/SearchContent/Subscribe
-      InstructionsFrameStream.cs               # BroadcasterFrameStream<InstructionsSnapshot, …> (IBroadcasterFrameStream impl) for Instructions.Subscribe: drains a BroadcasterSubscription<InstructionsSnapshot> (fanned out over a shared Infrastructure/Events/SnapshotBroadcaster<T> — snapshot-on-subscribe + disabled-flag re-evaluation) and yields snapshot/dropped frames
-      InstructionsManifestLoader.cs            # reads Resources/instructions-catalog.json + instructions-manifest.json, merges into the snapshot
+    Features/                                  # outward-facing capability tier (P11): served to the extension over RPC; the engine runs without these, but without them nothing can consume anything
+      Instructions/                            # runtime services
+        InstructionsManifestService.cs           # merged catalog+manifest snapshot loader + reloader
+        InstructionsFileBodyProjector.cs         # disabled-rule filter, [INSTxxxx] strip, override merge
+        InstructionsContentIndex.cs              # in-memory content search index
+        InstructionsOverrideWatcher.cs           # .github/instructions/ FS watcher (debounced); produces InstructionsOverrides snapshots
+        InstructionsOverrides.cs                 # immutable snapshot of .github/instructions/ inventory (paths + basenames); consumed by InstructionsFileBodyProjector + InstructionsManifestService
+        ApplyToParser.cs                         # comma + brace-expand, extension extraction (shared with the build task via `<Compile Link>`)
+        InstructionsHandlers.cs                  # List/Categories/Get/GetAll/GetAlwaysAttached/GetRaw/SearchContent/Subscribe
+        InstructionsFrameStream.cs               # BroadcasterFrameStream<InstructionsSnapshot, …> (IBroadcasterFrameStream impl) for Instructions.Subscribe: drains a BroadcasterSubscription<InstructionsSnapshot> (fanned out over a shared Infrastructure/Events/SnapshotBroadcaster<T> — snapshot-on-subscribe + disabled-flag re-evaluation) and yields snapshot/dropped frames
+        InstructionsManifestLoader.cs            # reads Resources/instructions-catalog.json + instructions-manifest.json, merges into the snapshot
+      # McpTools/ — the McpTools.{List,Invoke} capability (today's Mcp/ below) is the next tenant of this tier (P11)
     Workers/                                   # worker dispatch (absorbs AutoContext.Mcp.Server/Workers/)
       WorkerManager.cs                         # ensureRunning(workerId) gate
       WorkerProcessSupervisor.cs               # Process.Start + stderr capture under worker.<id>.engine.stderr
@@ -1868,7 +1885,7 @@ the corrected catalog + manifest shape.
 | # | Commit subject | State |
 |---|---|---|
 | 1 | `feat(protocol): add Instructions.* wire DTOs` | DONE |
-| 2 | `feat(engine-core): load instructions corpus snapshot on startup` | Not started |
+| 2 | `feat(engine-core): load instructions corpus snapshot on startup` | DONE |
 | 3 | `feat(engine-core): add InstructionsOverrideWatcher with debounced reload` | Not started |
 | 4 | `feat(engine): serve Instructions.List over rpc` | Not started |
 | 5 | `feat(engine-core): add InstructionsFileBodyProjector with disabled-rule filter and tag strip` | Not started |
@@ -1897,7 +1914,7 @@ from not-found pitfall`, `§ Override survival across upgrades`
 pitfall.
 
 **Code touch**:
-- `AutoContext.Engine.Core/Instructions/`:
+- `AutoContext.Engine.Core/Features/Instructions/`:
   - `InstructionsManifestService` — on startup, merge the
     hand-authored `instructions-catalog.json` (categories, `label`,
     membership, `activationFlags`) with the build-generated

@@ -1,5 +1,6 @@
 namespace AutoContext.Engine.Core;
 
+using AutoContext.Engine.Core.Features.Instructions;
 using AutoContext.Engine.Core.Infrastructure;
 using AutoContext.Engine.Core.Infrastructure.Diagnostics;
 using AutoContext.Engine.Core.Infrastructure.Events;
@@ -285,6 +286,25 @@ public static class EngineHostBuilderExtensions
             sp => sp.GetRequiredService<ConfigFileManager>());
         builder.Services.TryAddSingleton<IConfigUpdater>(
             sp => sp.GetRequiredService<ConfigFileManager>());
+
+        // Bundled instruction corpus. The service loads the two
+        // build-time side-cars shipped beside the engine binary
+        // (instructions-manifest.json + instructions-catalog.json) into
+        // an immutable snapshot at start and holds it for the
+        // Instructions.* RPC handlers, which read it through the
+        // IInstructionsManifestAccessor seam. Registered BEFORE
+        // LifecycleService so the snapshot is populated before the first
+        // rpc connection can issue an Instructions.* request. The corpus
+        // is read-only with no watcher, so the service only loads on
+        // start and tears nothing down on stop.
+        builder.Services.TryAddSingleton(sp => new InstructionsManifestService(
+            Path.Combine(AppContext.BaseDirectory, "Resources"),
+            sp.GetRequiredService<ILogger<InstructionsManifestService>>()));
+        builder.Services.TryAddSingleton<IInstructionsManifestAccessor>(
+            sp => sp.GetRequiredService<InstructionsManifestService>());
+        builder.Services.TryAddEnumerable(
+            ServiceDescriptor.Singleton<IHostedService, InstructionsManifestService>(
+                sp => sp.GetRequiredService<InstructionsManifestService>()));
 
         // Workspace context detection rule tables. The three declarative
         // tables — file presence, content scans (npm + .NET, grouped by
