@@ -12,7 +12,7 @@ using System.Diagnostics.CodeAnalysis;
 /// </summary>
 public sealed record InstructionsFileTryResult
 {
-    private InstructionsFileTryResult(bool success, InstructionsFileParsedResult? value, string errorMessage)
+    private InstructionsFileTryResult(bool success, InstructionsFileParsedContent? value, string errorMessage)
     {
         (Success, Value, ErrorMessage) = (success, value, errorMessage);
     }
@@ -33,7 +33,7 @@ public sealed record InstructionsFileTryResult
     /// The complete structural parse when <see cref="Success"/> is
     /// <see langword="true"/>; otherwise <see langword="null"/>.
     /// </summary>
-    public InstructionsFileParsedResult? Value { get; }
+    public InstructionsFileParsedContent? Value { get; }
 
     /// <summary>
     /// Creates a failed result carrying <paramref name="errorMessage"/>.
@@ -56,7 +56,7 @@ public sealed record InstructionsFileTryResult
     /// <returns>A successful result.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="value"/> is
     /// <see langword="null"/>.</exception>
-    public static InstructionsFileTryResult Ok(InstructionsFileParsedResult value)
+    public static InstructionsFileTryResult Ok(InstructionsFileParsedContent value)
     {
         ArgumentNullException.ThrowIfNull(value);
 

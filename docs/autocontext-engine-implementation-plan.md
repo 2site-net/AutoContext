@@ -477,7 +477,7 @@ src/
       Instructions/                            # runtime services
         InstructionsManifestService.cs           # merged catalog+manifest snapshot loader + reloader
         InstructionsFileService.cs               # resolves override-vs-bundled, reads + parses the body, disabled-rule filter, section slice ([INSTxxxx] tags preserved)
-        InstructionsContentIndex.cs              # in-memory content search index
+        InstructionsFullTextSearchService.cs     # in-memory full-text search over instruction bodies
         InstructionsOverridesWatcher.cs          # .github/instructions/ FS watcher (debounced); produces InstructionsOverridesSnapshot values
         Snapshot/InstructionsOverridesSnapshot.cs # immutable snapshot of .github/instructions/ inventory (paths + basenames); consumed by InstructionsFileService + InstructionsManifestService
         ApplyToParser.cs                         # comma + brace-expand, extension extraction (shared with the build task via `<Compile Link>`)
@@ -1792,8 +1792,8 @@ file is born named for the project that owns it.
   `**/*`) is preserved verbatim; the parser refuses to "simplify".
 
 **Out of scope**: any runtime projection (Phase 6); the
-content-search index seed (Phase 6 uses it but builds the live
-index in-memory at startup).
+full-text search index (Phase 6 builds it in-memory over the
+projected bodies, not from any build-time seed).
 
 ## Phase 6R — Design remediation: catalog + manifest split
 
@@ -1893,7 +1893,7 @@ RPC handlers (rows 4, 6–15) build on the in-memory snapshot.
 | 6 | `feat(engine): serve Instructions.Get and GetAll over rpc` | Not started |
 | 7 | `feat(engine): serve Instructions.GetAlwaysAttached over rpc` | Not started |
 | 8 | `feat(engine): serve Instructions.GetRaw with bundled/override/active source` | Not started |
-| 9 | `feat(engine-core): add InstructionsContentIndex seeded from metadata` | Not started |
+| 9 | `feat(engine-core): add InstructionsFullTextSearchService over projected bodies` | Not started |
 | 10 | `feat(engine): serve Instructions.SearchContent over rpc` | Not started |
 | 11 | `feat(engine-core): add Instructions.Subscribe events stream with snapshot-on-subscribe` | Not started |
 | 12 | `feat(engine-core): rebroadcast Instructions.Subscribe on Config.Subscribe changes` | Not started |
@@ -1931,9 +1931,16 @@ pitfall.
     longer locate. Frontmatter is still stripped and disabled rules
     still filtered — only the tag-strip step is dropped relative to
     the original projector design.
-  - `InstructionsContentIndex` — in-memory content search seeded
-    from the section/body facts in `instructions-manifest.json`, hot
-    across queries, invalidated on corpus reload.
+  - `InstructionsFullTextSearchService` — in-memory full-text search
+    over the **projected body** each file resolves to (the same text
+    `Get` returns: override-over-bundled, frontmatter stripped,
+    disabled rules filtered), plus the manifest `description`. The
+    manifest carries no body text, so it supplies only the file roster
+    and heading anchors; the searchable content comes from
+    `InstructionsFileService`. Built lazily, hot across queries,
+    invalidated when an override changes (`InstructionsOverridesWatcher`)
+    or disabled state changes (`Config.Subscribe`) — not on a corpus
+    reload, since the bundled corpus is immutable at runtime.
   - `InstructionsOverridesWatcher` — `FileSystemWatcher` on
     `<workspace>/.github/instructions/` with the same debounce shape
     Phase 3 introduced.

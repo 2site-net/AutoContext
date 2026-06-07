@@ -10,7 +10,7 @@ namespace AutoContext.Instructions.Parser;
 /// <c>{a,b,c}</c> groups, and extracts the derived extension set. It
 /// deliberately never canonicalises globs, simplifies <c>**</c> patterns, or
 /// otherwise reasons about what a glob means; lossless-ness is asserted by
-/// <see cref="FrontmatterApplyToParsedResult.RoundTrips"/>.
+/// <see cref="FrontmatterApplyToParsedMetadata.RoundTrips"/>.
 /// </summary>
 internal static class ApplyToParser
 {
@@ -22,7 +22,7 @@ internal static class ApplyToParser
     /// <returns>The structural parse result.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="applyTo"/> is
     /// <see langword="null"/>.</exception>
-    public static FrontmatterApplyToParsedResult Parse(string applyTo)
+    public static FrontmatterApplyToParsedMetadata Parse(string applyTo)
     {
         ArgumentNullException.ThrowIfNull(applyTo);
 
@@ -50,7 +50,7 @@ internal static class ApplyToParser
             }
         }
 
-        return new FrontmatterApplyToParsedResult(applyTo, globs, expanded, extensions);
+        return new FrontmatterApplyToParsedMetadata(applyTo, globs, expanded, extensions);
     }
 
     private static List<string> ExpandBraces(string glob)

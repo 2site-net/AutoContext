@@ -72,8 +72,8 @@ internal sealed partial class InstructionsManifestGenerator(
         }
     }
 
-    private static string Describe(CorpusReferenceFinding finding)
-        => $"{finding.FileName} (body line {finding.Finding.Reference.Line + 1}): {finding.Finding.Message}";
+    private static string Describe(InstructionsFileReferenceFindingEntry finding)
+        => $"{finding.SourceFileName} (body line {finding.Failure.Reference.Line + 1}): {finding.Failure.Message}";
 
     [LoggerMessage(
         EventId = 2,
@@ -121,13 +121,13 @@ internal sealed partial class InstructionsManifestGenerator(
     /// warnings (they ship) and the resolution failures as errors (they fail the build).
     /// </summary>
     /// <returns><see langword="true"/> when at least one fatal reference fault was found.</returns>
-    private bool HasReferenceFault(IReadOnlyDictionary<string, CorpusFileParsedResult> corpus)
+    private bool HasReferenceFault(IReadOnlyDictionary<string, InstructionsFileParsedFile> corpus)
     {
         var hasFatal = false;
 
         foreach (var finding in referenceValidator.Validate(corpus))
         {
-            if (finding.Finding.Kind == InstructionsFileReferenceFindingKind.RedundantLocator)
+            if (finding.Failure.Kind == InstructionsFileReferenceFindingKind.RedundantLocator)
             {
                 LogReferenceWarning(logger, Describe(finding));
             }

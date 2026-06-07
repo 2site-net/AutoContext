@@ -18,5 +18,5 @@ internal interface IInstructionsManifestBuilder
     /// is <see langword="null"/>.</exception>
     /// <exception cref="InvalidOperationException">A corpus file has malformed or
     /// missing frontmatter, or a duplicate section anchor.</exception>
-    JsonInstructionsManifest Build(IReadOnlyDictionary<string, CorpusFileParsedResult> corpus);
+    JsonInstructionsManifest Build(IReadOnlyDictionary<string, InstructionsFileParsedFile> corpus);
 }

@@ -28,7 +28,7 @@ public static partial class InstructionsFileParser
     /// <returns>The complete structural parse.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="content"/> is
     /// <see langword="null"/>.</exception>
-    public static InstructionsFileParsedResult Parse(string content)
+    public static InstructionsFileParsedContent Parse(string content)
     {
         ArgumentNullException.ThrowIfNull(content);
 
@@ -36,7 +36,7 @@ public static partial class InstructionsFileParser
         var body = GeneratedFrontmatterStripRegex().Replace(content, string.Empty);
         var parsedBody = ParseBody(body);
 
-        return new InstructionsFileParsedResult(content, frontmatter, parsedBody);
+        return new InstructionsFileParsedContent(content, frontmatter, parsedBody);
     }
 
     /// <summary>
@@ -49,7 +49,7 @@ public static partial class InstructionsFileParser
     /// when no frontmatter block is present.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="content"/> is
     /// <see langword="null"/>.</exception>
-    public static InstructionsFileFrontmatterParsedResult ParseFrontmatter(string content)
+    public static InstructionsFileParsedFrontmatter ParseFrontmatter(string content)
     {
         ArgumentNullException.ThrowIfNull(content);
 
@@ -57,7 +57,7 @@ public static partial class InstructionsFileParser
 
         if (!block.Success)
         {
-            return new InstructionsFileFrontmatterParsedResult(string.Empty, null, null, null, null);
+            return new InstructionsFileParsedFrontmatter(string.Empty, null, null, null, null);
         }
 
         string? name = null;
@@ -101,7 +101,7 @@ public static partial class InstructionsFileParser
         var version = name is null ? null : ExtractVersion(name);
         var applyTo = applyToRaw is null ? null : ApplyToParser.Parse(applyToRaw);
 
-        return new InstructionsFileFrontmatterParsedResult(block.Groups[1].Value, name, description, applyTo, version);
+        return new InstructionsFileParsedFrontmatter(block.Groups[1].Value, name, description, applyTo, version);
     }
 
     private static InstructionsFileRule BuildRule(
@@ -306,7 +306,7 @@ public static partial class InstructionsFileParser
         return new string(buffer);
     }
 
-    private static InstructionsFileBodyParsedResult ParseBody(string body)
+    private static InstructionsFileParsedBody ParseBody(string body)
     {
         var bodySpan = body.AsSpan();
         var rawHeadings = new List<RawHeading>();
@@ -427,7 +427,7 @@ public static partial class InstructionsFileParser
 
         var sections = BuildSections(rawHeadings, body.Length);
 
-        return new InstructionsFileBodyParsedResult(body, sections, rules, references, diagnostics);
+        return new InstructionsFileParsedBody(body, sections, rules, references, diagnostics);
     }
 
     private static void ScanReferences(

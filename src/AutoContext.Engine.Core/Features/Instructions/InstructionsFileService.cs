@@ -112,7 +112,7 @@ internal sealed class InstructionsFileService
     }
 
     private static bool[] BuildSectionMask(
-        InstructionsFileBodyParsedResult body,
+        InstructionsFileParsedBody body,
         string[] lines,
         IReadOnlyList<string>? requestedSections,
         out IReadOnlyList<string> returnedSections,
@@ -193,7 +193,7 @@ internal sealed class InstructionsFileService
     }
 
     private static InstructionsBodyProjection Project(
-        InstructionsFileBodyParsedResult body,
+        InstructionsFileParsedBody body,
         IReadOnlyList<string>? requestedSections,
         IReadOnlySet<string> disabledRuleIds)
     {

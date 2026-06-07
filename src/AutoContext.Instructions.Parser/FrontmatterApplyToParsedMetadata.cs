@@ -2,7 +2,7 @@ namespace AutoContext.Instructions.Parser;
 
 /// <summary>
 /// The structural parse of an instructions file's <c>applyTo</c> frontmatter
-/// value, surfaced as part of the unified <see cref="InstructionsFileParsedResult"/>.
+/// value, surfaced as part of the unified <see cref="InstructionsFileParsedContent"/>.
 /// <paramref name="RawValue"/> is the original string the parse derives from.
 /// <paramref name="Globs"/> is the verbatim, brace-depth-aware comma split of
 /// that string — the canonical form that <see cref="RoundTrips"/> recomposes.
@@ -21,7 +21,7 @@ namespace AutoContext.Instructions.Parser;
 /// <param name="Extensions">The dotless file extensions named by the expanded
 /// globs, compared case-insensitively; empty when no glob names a concrete
 /// extension.</param>
-public sealed record FrontmatterApplyToParsedResult(
+public sealed record FrontmatterApplyToParsedMetadata(
     string RawValue,
     IReadOnlyList<string> Globs,
     IReadOnlyList<string> ExpandedGlobs,

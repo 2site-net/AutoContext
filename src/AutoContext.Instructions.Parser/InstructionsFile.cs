@@ -24,7 +24,7 @@ public static class InstructionsFile
     /// otherwise inaccessible.</exception>
     /// <exception cref="UnauthorizedAccessException">The caller lacks permission to
     /// read the file.</exception>
-    public static InstructionsFileParsedResult Parse(string path)
+    public static InstructionsFileParsedContent Parse(string path)
     {
         ArgumentNullException.ThrowIfNull(path);
 
@@ -46,7 +46,7 @@ public static class InstructionsFile
     /// <exception cref="UnauthorizedAccessException">The caller lacks permission to
     /// read the file.</exception>
     /// <exception cref="OperationCanceledException">The read was cancelled.</exception>
-    public static async Task<InstructionsFileParsedResult> ParseAsync(
+    public static async Task<InstructionsFileParsedContent> ParseAsync(
         string path,
         CancellationToken cancellationToken = default)
     {
@@ -70,7 +70,7 @@ public static class InstructionsFile
     /// <see langword="false"/> when it could not be read.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="path"/> is
     /// <see langword="null"/>.</exception>
-    public static bool TryParse(string path, [NotNullWhen(true)] out InstructionsFileParsedResult? result)
+    public static bool TryParse(string path, [NotNullWhen(true)] out InstructionsFileParsedContent? result)
     {
         ArgumentNullException.ThrowIfNull(path);
 

@@ -20,9 +20,9 @@ namespace AutoContext.Instructions.Parser;
 /// <param name="Version">The semantic version extracted from the
 /// <c>(vX.Y.Z)</c> suffix of <paramref name="Name"/>, or
 /// <see langword="null"/> when <paramref name="Name"/> carries no such suffix.</param>
-public sealed record InstructionsFileFrontmatterParsedResult(
+public sealed record InstructionsFileParsedFrontmatter(
     string RawValue,
     string? Name,
     string? Description,
-    FrontmatterApplyToParsedResult? ApplyTo,
+    FrontmatterApplyToParsedMetadata? ApplyTo,
     string? Version);

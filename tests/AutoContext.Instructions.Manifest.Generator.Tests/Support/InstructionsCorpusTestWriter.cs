@@ -6,7 +6,7 @@ using AutoContext.Instructions.Manifest.Generator;
 
 public static class InstructionsCorpusTestWriter
 {
-    internal static IReadOnlyDictionary<string, CorpusFileParsedResult> WriteAndParse(
+    internal static IReadOnlyDictionary<string, InstructionsFileParsedFile> WriteAndParse(
         string directory,
         params string[] keys)
     {

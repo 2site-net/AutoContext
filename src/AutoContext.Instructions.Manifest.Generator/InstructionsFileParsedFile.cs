@@ -13,12 +13,12 @@ using AutoContext.Instructions.Parser;
 /// </summary>
 /// <param name="FileName">The corpus file name (e.g. <c>testing.instructions.md</c>).</param>
 /// <param name="Content">The single structural parse of the file, including its
-/// verbatim <see cref="InstructionsFileParsedResult.RawContent"/>.</param>
+/// verbatim <see cref="InstructionsFileParsedContent.RawContent"/>.</param>
 /// <param name="ContentHash">The <c>sha256:&lt;hex&gt;</c> hash of the
 /// frontmatter-stripped body.</param>
 /// <param name="HasChangelog">Whether a sibling <c>&lt;key&gt;.CHANGELOG.md</c> file exists.</param>
-internal sealed record CorpusFileParsedResult(
+internal sealed record InstructionsFileParsedFile(
     string FileName,
-    InstructionsFileParsedResult Content,
+    InstructionsFileParsedContent Content,
     string ContentHash,
     bool HasChangelog);

@@ -1,7 +1,7 @@
 namespace AutoContext.Instructions.Parser;
 
 /// <summary>
-/// The body half of an <see cref="InstructionsFileParsedResult"/>: the normalised
+/// The body half of an <see cref="InstructionsFileParsedContent"/>: the normalised
 /// body the offsets are relative to plus everything a single walk over it yields —
 /// the <c>##</c>/<c>###</c> section index, the actionable <c>**Do**</c>/<c>**Don't**</c>
 /// rule bullets, the bare <c>[locator#fragment]</c> cross-reference tokens, and any
@@ -23,7 +23,7 @@ namespace AutoContext.Instructions.Parser;
 /// and what <em>locator</em> and <em>fragment</em> mean.</param>
 /// <param name="Diagnostics">Observations about malformed, missing, or duplicate
 /// rule tags and malformed references, in document order.</param>
-public sealed record InstructionsFileBodyParsedResult(
+public sealed record InstructionsFileParsedBody(
     string RawValue,
     IReadOnlyList<InstructionsFileSection> Sections,
     IReadOnlyList<InstructionsFileRule> Rules,

@@ -59,7 +59,7 @@ public sealed class ShippedInstructionsRoundTripTests
                 () => Assert.NotEmpty(files),
                 () => Assert.Empty(nonRoundTripping));
 
-            static FrontmatterApplyToParsedResult? ParseApplyTo(string path)
+            static FrontmatterApplyToParsedMetadata? ParseApplyTo(string path)
             {
                 return InstructionsFileParser.ParseFrontmatter(File.ReadAllText(path)).ApplyTo;
             }

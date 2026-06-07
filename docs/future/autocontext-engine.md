@@ -346,7 +346,7 @@ See [Log categories](#log-categories).
 | `InstructionsManifestService` | merged catalog + manifest snapshot — startup ingestion + per-request projection |
 | `InstructionsFileBodyProjector` | raw → projected body (disabled-rule filter, `[INSTxxxx]` strip, override resolution) |
 | `instructions-manifest-gen` (build-time tool, not a runtime service) | reads `instructions-catalog.json` + the corpus, emits `instructions-manifest.json` |
-| `InstructionsContentIndex` | in-memory content-search index (replaces extension-side trigram index) |
+| `InstructionsFullTextSearchService` | in-memory full-text search over instruction bodies (replaces extension-side trigram index) |
 | `WorkspaceContextDetector` | workspace detection (absorbed from extension) |
 | `WorkerManager` | lazy `ensureRunning(workerId)` worker dispatcher (absorbed from MCP server) |
 
@@ -366,7 +366,7 @@ See [Composition contracts](#composition-contracts).
 | File | Role |
 |---|---|
 | `instructions-catalog.json` | **hand-authored** curatorial layer: category taxonomy (`name` + `description`) and per-file `label`, category membership, and `activationFlags`. Tracked source — not generated. |
-| `instructions-manifest.json` | **build-generated** per-file facts: section maps, parsed `applyTo` extension sets, content-index seed, `version`, `description`, `contentHash`, `hasChangelog`. |
+| `instructions-manifest.json` | **build-generated** per-file facts: section maps, parsed `applyTo` extension sets, `version`, `description`, `contentHash`, `hasChangelog`. Carries no body text — full-text search indexes the projected bodies at runtime. |
 | `mcp-tools.json` | wire-shape catalog for `McpTools.List` |
 | `mcp-tools-registry.json` | source-of-truth tool→worker dispatch table (hand-edited) |
 | `mcp-tools-registry-schema.json` | JSON-schema for the registry (hand-edited) |
@@ -401,7 +401,7 @@ classes:
 |-------|----------|---------|
 | `AutoContext.Mcp.Server` (orchestrator + MCP/stdio + worker dispatch + registry) | Standalone process | **Same `autocontext-engine` binary, MCP-server-only role** (`--mcp-server with-stdio`). Reads workspace state directly from `.autocontext.json` (re-read per MCP request) and bundled side-car corpus; no pipes, no worker dispatch, no registry entry. Concurrent daemon-role engine on the same workspace (when launched by a different host) is the writer; MCP-server role is read-mostly view. |
 | `AutoContextConfigManager` (TS, extension) | Extension process | **Engine internal**: `AutoContextConfigStore` (.NET) |
-| `InstructionsFilesManager` + `InstructionsFileContentProjector` + `instructions-files-metadata-generator` + client-side content trigram index | Extension process | **Engine internal**: `InstructionsManifestService` + `InstructionsFileBodyProjector` + the build-time `instructions-manifest-gen` generator (now runs **both** at build time — reading the curated `Resources/instructions-catalog.json` and the corpus to emit the `Resources/instructions-manifest.json` side-car — **and** at engine startup, where the engine merges catalog + manifest into an immutable snapshot, applies per-request projection against workspace state, and returns rows via `Instructions.List`) + `InstructionsContentIndex` (replaces the client-side trigram index; built in-memory from the build-time manifest at engine startup) |
+| `InstructionsFilesManager` + `InstructionsFileContentProjector` + `instructions-files-metadata-generator` + client-side content trigram index | Extension process | **Engine internal**: `InstructionsManifestService` + `InstructionsFileBodyProjector` + the build-time `instructions-manifest-gen` generator (now runs **both** at build time — reading the curated `Resources/instructions-catalog.json` and the corpus to emit the `Resources/instructions-manifest.json` side-car — **and** at engine startup, where the engine merges catalog + manifest into an immutable snapshot, applies per-request projection against workspace state, and returns rows via `Instructions.List`) + `InstructionsFullTextSearchService` (replaces the client-side trigram index; built lazily in-memory over the projected bodies `InstructionsFileService` returns) |
 | `servers.json` (TS-side worker/MCP-server inventory) + `mcp-workers-registry.json` (MCP-server–side worker dispatch table) | Extension `resources/` + `AutoContext.Mcp.Server/` | **Replaced** by build-generated `Resources/workers.json` (scan of `src/AutoContext.Worker.*/` projects, id derived by stripping `AutoContext.Worker.` and replacing `.` with `-`, entrypoint written from the actual published path) + `Resources/mcp-tools-registry.json` (renamed from `mcp-workers-registry.json`; tool→worker dispatch table) + `Resources/mcp-tools-registry-schema.json` (its JSON-schema). The old `servers.json` mixed MCP-server identity with worker identity; the MCP server is gone (consolidated into the engine), so the worker-only file is what remains. |
 | `LogServer` (sideband pipe) | Extension process | **Engine internal**: the engine binds the `logs` pipe (one of the four pipes — see `### Lifecycle`) as a unified server-streaming sink that fans out engine-emitted records **and** worker-emitted records forwarded through `Engine.WriteLog`, distinguished by the `category` field. The engine also persists every record to `…\<workspaceHash>\<instanceId>\logs\engine.log` (P4 / P5); clients tail the pipe instead of inventing their own log-watcher. |
 | `HealthMonitorServer` (sideband pipe) | Extension process | **Engine internal**: the engine binds the `health` pipe (one of the four pipes — see `### Lifecycle`) as a passive readiness/heartbeat probe — cheap connect-and-read, no `Engine.Hello` required, never counts toward the idle-timeout keep-alive gate. Replaces the extension-side `HealthMonitorServer` that earlier topology had clients dialling back to. |
@@ -1998,7 +1998,7 @@ way to set it.
   `mcp_tools_list` / `mcp_tools_search_*` / `mcp_tools_get` MCP tools
   (and their LM-tool shims). Categories and descriptions are already
   collected in the embedded registry; an `McpToolsContentIndex`
-  mirror of `InstructionsContentIndex` closes the symmetry. Today's
+  mirror of `InstructionsFullTextSearchService` closes the symmetry. Today's
   `McpTools.List` envelope must therefore be designed so adding those
   siblings later is additive — leave room for `description`,
   `categories`, optional section-like metadata, and a stable `key`
@@ -2046,7 +2046,7 @@ extension contributes today
 `search_autocontext_instructions_files_by_content`,
 `get_autocontext_instructions_file`) are no longer extension-native.
 The engine owns the only implementation — a single set of service
-classes (`InstructionsManifestService`, `InstructionsContentIndex`,
+classes (`InstructionsManifestService`, `InstructionsFullTextSearchService`,
 `InstructionsFileBodyProjector`) inside `Engine.Core` — and that
 implementation is reachable through two parallel surfaces that run
 in **two separate processes of the same engine binary**:
@@ -3010,8 +3010,8 @@ write, and never lets a corpus reload tear a read in flight.
     atomic store, then releases the mutex and fires
     `Config.Subscribe` / re-evaluates `Instructions.*`
     `disabled` flags.
-  - **Corpus reloads** (re-parsing bundled / override markdown,
-    rebuilding `InstructionsContentIndex`, recomputing
+  - **Corpus reloads** (re-parsing override markdown,
+    invalidating `InstructionsFullTextSearchService`, recomputing
     projection) run on one in-process reloader that builds the
     next snapshot off the read path, then atomically swaps the
     snapshot pointer and increments the revision counter.
@@ -3202,7 +3202,7 @@ do **not** reference `Framework.Services`. Worker.* references
   Everything under `### Engine-internal services` lives here
   (`AutoContextConfigStore`, `InstructionsManifestService`,
   `InstructionsFileBodyProjector`,
-  `InstructionsContentIndex`, `WorkspaceContextDetector`,
+  `InstructionsFullTextSearchService`, `WorkspaceContextDetector`,
   `WorkerManager`), together with the pipe-server bindings for the
   four pipes and the RPC handlers (one per capability — P1). Public
   surface is `IHostApplicationBuilder.AddAutoContextEngine(Action<EngineOptions>)`
@@ -3293,7 +3293,7 @@ engine — see *What the engine absorbs from today's topology*).
 
 **Future subset-library carve-out is a possibility, not v1.**
 A consumer that wants only the corpus projection — say, a static
-documentation generator that wants `InstructionsContentIndex` and
+documentation generator that wants `InstructionsFullTextSearchService` and
 `InstructionsFileBodyProjector` without any pipe-server machinery
 — could be served by a future `AutoContext.Engine.Core.Instructions`
 slice carved out of `AutoContext.Engine.Core`. This is
@@ -3337,7 +3337,7 @@ Decision:
                                                    #   label, membership, activationFlags)
       instructions-manifest.json                   # build-generated per-file facts (section maps,
                                                    #   parsed applyTo extension sets,
-                                                   #   content-index seed)
+                                                   #   version, contentHash, hasChangelog)
       mcp-tools.json                               # wire-shape catalog for McpTools.List
       mcp-tools-registry.json                      # source-of-truth tool→worker dispatch table
       mcp-tools-registry-schema.json               # JSON-schema for the registry
@@ -3407,11 +3407,12 @@ mutating the manifests.
   `instructions-manifest-gen` over the curated corpus: each file's
   pre-computed section anchor map, parsed `applyTo` extension set (the
   engine-internal output of the Issue #7 parser), `version`,
-  `description`, `contentHash`, `hasChangelog`, and the content-index
-  seed that `InstructionsContentIndex` rehydrates at startup. It carries
-  **no** `categories`/`label`/`activationFlags` (those are the catalog's)
-  and **no** workspace-state fields (`disabled`, `source`, `overridePath`
-  are resolved per request). At startup the engine **merges** the
+  `description`, `contentHash`, and `hasChangelog`. It carries
+  **no** body text — `InstructionsFullTextSearchService` builds its index
+  lazily over the projected bodies `InstructionsFileService` returns, not
+  from any manifest seed — and **no** `categories`/`label`/`activationFlags`
+  (those are the catalog's) and **no** workspace-state fields (`disabled`,
+  `source`, `overridePath` are resolved per request). At startup the engine **merges** the
   generated manifest with the curated catalog into one immutable
   in-memory snapshot, then projects the `Instructions.List` wire rows and
   the `Instructions.Categories` taxonomy from it per request. The on-disk

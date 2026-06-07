@@ -9,7 +9,7 @@ namespace AutoContext.Instructions.Parser;
 /// <param name="Kind">Why the reference failed to resolve.</param>
 /// <param name="Reference">The offending reference, verbatim from the parse.</param>
 /// <param name="Message">A human-readable description of the fault.</param>
-public sealed record InstructionsFileReferenceFinding(
+public sealed record InstructionsFileReferenceResolutionFailure(
     InstructionsFileReferenceFindingKind Kind,
     InstructionsFileReference Reference,
     string Message);

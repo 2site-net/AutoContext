@@ -12,7 +12,7 @@ using AutoContext.Instructions.Parser;
 /// frontmatter-stripped content hash and sibling-changelog flag. Every later stage
 /// (<see cref="InstructionsManifestBuilder"/>, <see cref="InstructionsCatalogReader"/>,
 /// and <see cref="InstructionsReferenceValidator"/>) reads the resulting
-/// <see cref="CorpusFileParsedResult"/> values and never touches disk again, so the markdown
+/// <see cref="InstructionsFileParsedFile"/> values and never touches disk again, so the markdown
 /// is read and parsed exactly once.
 /// </summary>
 internal sealed class CorpusParser : ICorpusParser
@@ -22,7 +22,7 @@ internal sealed class CorpusParser : ICorpusParser
     private static readonly UTF8Encoding Utf8NoBom = new(encoderShouldEmitUTF8Identifier: false);
 
     /// <inheritdoc />
-    public IReadOnlyDictionary<string, CorpusFileParsedResult> Parse(string corpusDirectory)
+    public IReadOnlyDictionary<string, InstructionsFileParsedFile> Parse(string corpusDirectory)
     {
         ArgumentNullException.ThrowIfNull(corpusDirectory);
 
@@ -33,7 +33,7 @@ internal sealed class CorpusParser : ICorpusParser
             .OrderBy(static name => name, StringComparer.Ordinal)
             .ToList();
 
-        var corpus = new Dictionary<string, CorpusFileParsedResult>(fileNames.Count, StringComparer.Ordinal);
+        var corpus = new Dictionary<string, InstructionsFileParsedFile>(fileNames.Count, StringComparer.Ordinal);
 
         foreach (var fileName in fileNames)
         {
@@ -42,7 +42,7 @@ internal sealed class CorpusParser : ICorpusParser
             var key = fileName[..^InstructionsFileSuffix.Length];
             var hasChangelog = File.Exists(Path.Combine(corpusDirectory, key + ".CHANGELOG.md"));
 
-            corpus.Add(key, new CorpusFileParsedResult(fileName, parsed, contentHash, hasChangelog));
+            corpus.Add(key, new InstructionsFileParsedFile(fileName, parsed, contentHash, hasChangelog));
         }
 
         return corpus;

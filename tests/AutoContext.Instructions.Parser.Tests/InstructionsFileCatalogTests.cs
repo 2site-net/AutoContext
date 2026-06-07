@@ -41,13 +41,13 @@ public sealed class InstructionsFileCatalogTests
         }
     }
 
-    public sealed class FromParsed
+    public sealed class FromParsedCorpus
     {
         [Fact]
         public void Should_reject_a_null_map()
         {
             // Act / Assert
-            Assert.Throws<ArgumentNullException>(() => InstructionsFileCatalog.FromParsed(null!));
+            Assert.Throws<ArgumentNullException>(() => InstructionsFileCatalog.FromParsedCorpus(null!));
         }
 
         [Fact]
@@ -55,13 +55,13 @@ public sealed class InstructionsFileCatalogTests
         {
             // Arrange
             var parsed = InstructionsFileParser.Parse("- [INST0001] **Do** one.\n- [INST0002] **Don't** two.\n");
-            var parsedByKey = new Dictionary<string, InstructionsFileParsedResult>(StringComparer.Ordinal)
+            var parsedByKey = new Dictionary<string, InstructionsFileParsedContent>(StringComparer.Ordinal)
             {
                 ["testing"] = parsed,
             };
 
             // Act
-            var catalog = InstructionsFileCatalog.FromParsed(parsedByKey);
+            var catalog = InstructionsFileCatalog.FromParsedCorpus(parsedByKey);
 
             // Assert
             Assert.True(catalog.TryGet("testing", out var entry));
@@ -76,13 +76,13 @@ public sealed class InstructionsFileCatalogTests
         {
             // Arrange
             var parsed = InstructionsFileParser.Parse("- [INST0001] **Do** one.\n- **Do** untagged.\n");
-            var parsedByKey = new Dictionary<string, InstructionsFileParsedResult>(StringComparer.Ordinal)
+            var parsedByKey = new Dictionary<string, InstructionsFileParsedContent>(StringComparer.Ordinal)
             {
                 ["testing"] = parsed,
             };
 
             // Act
-            var catalog = InstructionsFileCatalog.FromParsed(parsedByKey);
+            var catalog = InstructionsFileCatalog.FromParsedCorpus(parsedByKey);
 
             // Assert
             Assert.True(catalog.TryGet("testing", out var entry));
@@ -94,13 +94,13 @@ public sealed class InstructionsFileCatalogTests
         {
             // Arrange
             var parsed = InstructionsFileParser.Parse("## Assertions\n\n## Test Support\n");
-            var parsedByKey = new Dictionary<string, InstructionsFileParsedResult>(StringComparer.Ordinal)
+            var parsedByKey = new Dictionary<string, InstructionsFileParsedContent>(StringComparer.Ordinal)
             {
                 ["testing"] = parsed,
             };
 
             // Act
-            var catalog = InstructionsFileCatalog.FromParsed(parsedByKey);
+            var catalog = InstructionsFileCatalog.FromParsedCorpus(parsedByKey);
 
             // Assert
             Assert.True(catalog.TryGet("testing", out var entry));

@@ -45,18 +45,18 @@ public sealed class InstructionsFileCatalog
     /// Projects a set of parsed instructions files into a catalog: each file's
     /// tagged rule ids and section index become its entry.
     /// </summary>
-    /// <param name="parsedByKey">The parsed files, keyed by catalog key.</param>
+    /// <param name="parsedFiles">The parsed files, keyed by catalog key.</param>
     /// <returns>The assembled catalog.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="parsedByKey"/> is
+    /// <exception cref="ArgumentNullException"><paramref name="parsedFiles"/> is
     /// <see langword="null"/>.</exception>
-    public static InstructionsFileCatalog FromParsed(
-        IReadOnlyDictionary<string, InstructionsFileParsedResult> parsedByKey)
+    public static InstructionsFileCatalog FromParsedCorpus(
+        IReadOnlyDictionary<string, InstructionsFileParsedContent> parsedFiles)
     {
-        ArgumentNullException.ThrowIfNull(parsedByKey);
+        ArgumentNullException.ThrowIfNull(parsedFiles);
 
-        var entries = new List<InstructionsFileCatalogEntry>(parsedByKey.Count);
+        var entries = new List<InstructionsFileCatalogEntry>(parsedFiles.Count);
 
-        foreach (var (key, parsed) in parsedByKey)
+        foreach (var (key, parsed) in parsedFiles)
         {
             var ruleIds = parsed.Body.Rules
                 .Select(rule => rule.Id)

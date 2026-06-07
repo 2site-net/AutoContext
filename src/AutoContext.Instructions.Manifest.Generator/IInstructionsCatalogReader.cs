@@ -23,5 +23,5 @@ internal interface IInstructionsCatalogReader
     /// undeclared category membership).</exception>
     JsonInstructionsCatalog Read(
         string catalogPath,
-        IReadOnlyDictionary<string, CorpusFileParsedResult> corpus);
+        IReadOnlyDictionary<string, InstructionsFileParsedFile> corpus);
 }

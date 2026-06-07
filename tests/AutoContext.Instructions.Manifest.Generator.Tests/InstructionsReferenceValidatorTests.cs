@@ -49,9 +49,9 @@ public sealed class InstructionsReferenceValidatorTests
 
             // Assert
             Assert.Multiple(
-                () => Assert.Equal("testing", finding.Key),
-                () => Assert.Equal("testing.instructions.md", finding.FileName),
-                () => Assert.Equal(InstructionsFileReferenceFindingKind.UnknownLocator, finding.Finding.Kind));
+                () => Assert.Equal("testing", finding.SourceKey),
+                () => Assert.Equal("testing.instructions.md", finding.SourceFileName),
+                () => Assert.Equal(InstructionsFileReferenceFindingKind.UnknownLocator, finding.Failure.Kind));
         }
 
         [Fact]
@@ -68,7 +68,7 @@ public sealed class InstructionsReferenceValidatorTests
             var finding = Assert.Single(_sut.Validate(_corpusParser.Parse(corpus)));
 
             // Assert
-            Assert.Equal(InstructionsFileReferenceFindingKind.DanglingRuleReference, finding.Finding.Kind);
+            Assert.Equal(InstructionsFileReferenceFindingKind.DanglingRuleReference, finding.Failure.Kind);
         }
 
         [Fact]
@@ -87,7 +87,7 @@ public sealed class InstructionsReferenceValidatorTests
             var finding = Assert.Single(_sut.Validate(_corpusParser.Parse(corpus)));
 
             // Assert
-            Assert.Equal(InstructionsFileReferenceFindingKind.RedundantLocator, finding.Finding.Kind);
+            Assert.Equal(InstructionsFileReferenceFindingKind.RedundantLocator, finding.Failure.Kind);
         }
 
         [Fact]
@@ -106,8 +106,8 @@ public sealed class InstructionsReferenceValidatorTests
             // Assert
             Assert.Multiple(
                 () => Assert.Equal(2, findings.Count),
-                () => Assert.Equal("alpha", findings[0].Key),
-                () => Assert.Equal("beta", findings[1].Key));
+                () => Assert.Equal("alpha", findings[0].SourceKey),
+                () => Assert.Equal("beta", findings[1].SourceKey));
         }
     }
 }

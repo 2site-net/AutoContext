@@ -12,7 +12,7 @@ namespace AutoContext.Instructions.Parser;
 /// <param name="Frontmatter">The parsed leading YAML frontmatter.</param>
 /// <param name="Body">The parsed body: normalised text plus its section, rule, and
 /// diagnostic index.</param>
-public sealed record InstructionsFileParsedResult(
+public sealed record InstructionsFileParsedContent(
     string RawContent,
-    InstructionsFileFrontmatterParsedResult Frontmatter,
-    InstructionsFileBodyParsedResult Body);
+    InstructionsFileParsedFrontmatter Frontmatter,
+    InstructionsFileParsedBody Body);

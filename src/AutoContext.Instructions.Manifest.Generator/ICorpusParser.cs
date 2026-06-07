@@ -17,5 +17,5 @@ internal interface ICorpusParser
     /// <returns>The parsed corpus, keyed by basename stem.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="corpusDirectory"/>
     /// is <see langword="null"/>.</exception>
-    IReadOnlyDictionary<string, CorpusFileParsedResult> Parse(string corpusDirectory);
+    IReadOnlyDictionary<string, InstructionsFileParsedFile> Parse(string corpusDirectory);
 }

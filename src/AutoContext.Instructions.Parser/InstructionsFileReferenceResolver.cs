@@ -27,7 +27,7 @@ public static class InstructionsFileReferenceResolver
     /// an empty list when every reference resolves.</returns>
     /// <exception cref="ArgumentNullException">Any argument is
     /// <see langword="null"/>.</exception>
-    public static IReadOnlyList<InstructionsFileReferenceFinding> Resolve(
+    public static IReadOnlyList<InstructionsFileReferenceResolutionFailure> Resolve(
         string sourceKey,
         IReadOnlyList<InstructionsFileReference> references,
         InstructionsFileCatalog catalog)
@@ -36,7 +36,7 @@ public static class InstructionsFileReferenceResolver
         ArgumentNullException.ThrowIfNull(references);
         ArgumentNullException.ThrowIfNull(catalog);
 
-        var findings = new List<InstructionsFileReferenceFinding>();
+        var findings = new List<InstructionsFileReferenceResolutionFailure>();
 
         foreach (var reference in references)
         {
@@ -60,7 +60,7 @@ public static class InstructionsFileReferenceResolver
         bool sameFile,
         InstructionsFileReference reference,
         InstructionsFileCatalog catalog,
-        List<InstructionsFileReferenceFinding> findings)
+        List<InstructionsFileReferenceResolutionFailure> findings)
     {
         if (!catalog.TryGet(targetKey, out var entry))
         {
@@ -68,7 +68,7 @@ public static class InstructionsFileReferenceResolver
             // catalog, not an authoring fault, so there is nothing to report.
             if (!sameFile)
             {
-                findings.Add(new InstructionsFileReferenceFinding(
+                findings.Add(new InstructionsFileReferenceResolutionFailure(
                     InstructionsFileReferenceFindingKind.UnknownLocator,
                     reference,
                     $"Reference locator '{targetKey}' does not match any known instructions file."));
@@ -94,7 +94,7 @@ public static class InstructionsFileReferenceResolver
         string sourceKey,
         InstructionsFileReference reference,
         InstructionsFileCatalog catalog,
-        List<InstructionsFileReferenceFinding> findings)
+        List<InstructionsFileReferenceResolutionFailure> findings)
     {
         var locator = reference.Locator;
 
@@ -116,7 +116,7 @@ public static class InstructionsFileReferenceResolver
 
         if (string.Equals(targetKey, sourceKey, StringComparison.Ordinal))
         {
-            findings.Add(new InstructionsFileReferenceFinding(
+            findings.Add(new InstructionsFileReferenceResolutionFailure(
                 InstructionsFileReferenceFindingKind.RedundantLocator,
                 reference,
                 $"Reference '{targetKey}#{reference.Target}' names its own file; use the same-file form without the locator."));
@@ -128,11 +128,11 @@ public static class InstructionsFileReferenceResolver
     private static void ResolveRule(
         InstructionsFileReference reference,
         InstructionsFileCatalogEntry entry,
-        List<InstructionsFileReferenceFinding> findings)
+        List<InstructionsFileReferenceResolutionFailure> findings)
     {
         if (!entry.RuleIds.Contains(reference.Target))
         {
-            findings.Add(new InstructionsFileReferenceFinding(
+            findings.Add(new InstructionsFileReferenceResolutionFailure(
                 InstructionsFileReferenceFindingKind.DanglingRuleReference,
                 reference,
                 $"Rule '{reference.Target}' is not defined in '{entry.Key}'."));
@@ -142,7 +142,7 @@ public static class InstructionsFileReferenceResolver
     private static void ResolveSection(
         InstructionsFileReference reference,
         InstructionsFileCatalogEntry entry,
-        List<InstructionsFileReferenceFinding> findings)
+        List<InstructionsFileReferenceResolutionFailure> findings)
     {
         var slug = InstructionsFileParser.Slugify(reference.Target);
 
@@ -152,7 +152,7 @@ public static class InstructionsFileReferenceResolver
 
         if (!resolved)
         {
-            findings.Add(new InstructionsFileReferenceFinding(
+            findings.Add(new InstructionsFileReferenceResolutionFailure(
                 InstructionsFileReferenceFindingKind.UnresolvedSectionReference,
                 reference,
                 $"Section '{reference.Target}' is not defined in '{entry.Key}'."));
