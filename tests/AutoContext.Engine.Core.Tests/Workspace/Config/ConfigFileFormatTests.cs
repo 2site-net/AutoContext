@@ -155,5 +155,32 @@ public sealed class ConfigFileFormatTests
             // Assert
             Assert.True(config.McpTools!["t1"].IsShorthandDisabled);
         }
+
+        [Fact]
+        public void Should_drop_engine_with_empty_directories()
+        {
+            // Arrange
+            var bytes = Encoding.UTF8.GetBytes("""{ "engine": { "instructions.overrideRoots": [] } }""");
+
+            // Act
+            ConfigFileFormat.TryDeserialize(bytes, out var config);
+
+            // Assert
+            Assert.Null(config.Engine);
+        }
+
+        [Fact]
+        public void Should_preserve_engine_directories()
+        {
+            // Arrange
+            var bytes = Encoding.UTF8.GetBytes(
+                """{ "engine": { "instructions.overrideRoots": [".github", ".copilot"] } }""");
+
+            // Act
+            ConfigFileFormat.TryDeserialize(bytes, out var config);
+
+            // Assert
+            Assert.Equal([".github", ".copilot"], config.Engine!.InstructionsOverrideRoots);
+        }
     }
 }

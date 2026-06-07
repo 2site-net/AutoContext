@@ -106,10 +106,23 @@ internal static class ConfigFileFormat
         => new()
         {
             Version = parsed.Version,
+            Engine = NormalizeEngine(parsed.Engine),
             Diagnostic = parsed.Diagnostic,
             Instructions = NormalizeInstructions(parsed.Instructions),
             McpTools = NormalizeTools(parsed.McpTools),
         };
+
+    private static JsonConfigFileEngine? NormalizeEngine(JsonConfigFileEngine? engine)
+    {
+        if (engine is null)
+        {
+            return null;
+        }
+
+        var directories = EmptyToNull(engine.InstructionsOverrideRoots);
+
+        return directories is null ? null : engine with { InstructionsOverrideRoots = directories };
+    }
 
     private static Dictionary<string, JsonConfigFileInstructionsEntry>? NormalizeInstructions(
         IReadOnlyDictionary<string, JsonConfigFileInstructionsEntry>? instructions)

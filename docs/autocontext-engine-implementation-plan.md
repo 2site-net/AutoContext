@@ -1886,7 +1886,7 @@ the corrected catalog + manifest shape.
 |---|---|---|
 | 1 | `feat(protocol): add Instructions.* wire DTOs` | DONE |
 | 2 | `feat(engine-core): load instructions corpus snapshot on startup` | DONE |
-| 3 | `feat(engine-core): add InstructionsOverrideWatcher with debounced reload` | Not started |
+| 3 | `feat(engine-core): add InstructionsOverrideWatcher with debounced reload` | DONE |
 | 4 | `feat(engine): serve Instructions.List over rpc` | Not started |
 | 5 | `feat(engine-core): add InstructionsFileBodyProjector with disabled-rule filter and tag strip` | Not started |
 | 6 | `feat(engine): serve Instructions.Get and GetAll over rpc` | Not started |

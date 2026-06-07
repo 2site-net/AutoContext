@@ -42,6 +42,22 @@ public sealed class JsonConfigFileExtensionsTests
         }
 
         [Fact]
+        public void Should_map_engine_instruction_directories()
+        {
+            // Arrange
+            var json = new JsonConfigFile
+            {
+                Engine = new JsonConfigFileEngine([".github", ".copilot"]),
+            };
+
+            // Act
+            var config = json.ToDomainGraph();
+
+            // Assert
+            Assert.Equal([".github", ".copilot"], config.Engine?.InstructionsOverrideRoots);
+        }
+
+        [Fact]
         public void Should_map_instruction_file_with_disabled_rules()
         {
             // Arrange

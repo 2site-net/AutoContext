@@ -18,9 +18,40 @@ public sealed class ConfigSnapshotExtensionsTests
         }
 
         [Fact]
-        public void Should_drop_instruction_file_without_state()
+        public void Should_carry_engine_instruction_directories()
         {
             // Arrange
+            var config = ConfigSnapshot.Empty with
+            {
+                Engine = new ConfigEngineSettings { InstructionsOverrideRoots = [".github", ".copilot"] },
+            };
+
+            // Act
+            var json = config.ToFileFormat();
+
+            // Assert
+            Assert.Equal([".github", ".copilot"], json.Engine?.InstructionsOverrideRoots);
+        }
+
+        [Fact]
+        public void Should_drop_engine_without_directories()
+        {
+            // Arrange
+            var config = ConfigSnapshot.Empty with
+            {
+                Engine = new ConfigEngineSettings { InstructionsOverrideRoots = [] },
+            };
+
+            // Act
+            var json = config.ToFileFormat();
+
+            // Assert
+            Assert.Null(json.Engine);
+        }
+
+        [Fact]
+        public void Should_drop_instruction_file_without_state()
+        {            // Arrange
             var config = ConfigSnapshot.Empty with
             {
                 Instructions = [new ConfigInstructionsFile { Name = "a.md", Version = "1.0" }],

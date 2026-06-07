@@ -25,6 +25,11 @@ internal sealed record ConfigSnapshot
     public ConfigDiagnostic? Diagnostic { get; init; }
 
     /// <summary>
+    /// Optional engine-only settings, carried through verbatim.
+    /// </summary>
+    public ConfigEngineSettings? Engine { get; init; }
+
+    /// <summary>
     /// Per-instruction-file entries, in the order they appear on disk.
     /// </summary>
     public ConfigInstructionsFile[] Instructions { get; init; } = [];

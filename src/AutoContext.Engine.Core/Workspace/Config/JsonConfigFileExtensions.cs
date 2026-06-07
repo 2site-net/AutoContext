@@ -29,6 +29,9 @@ internal static class JsonConfigFileExtensions
             Diagnostic = json.Diagnostic is { } diagnostic
                 ? new ConfigDiagnostic { WarnOnMissingId = diagnostic.WarnOnMissingId }
                 : null,
+            Engine = json.Engine is { } engine
+                ? new ConfigEngineSettings { InstructionsOverrideRoots = engine.InstructionsOverrideRoots ?? [] }
+                : null,
             Instructions = ToDomainModel(json.Instructions),
             McpTools = ToDomainModel(json.McpTools),
         };
