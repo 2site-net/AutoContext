@@ -1,13 +1,14 @@
 namespace AutoContext.Engine.Core.Tests.Features.Instructions;
 
 using AutoContext.Engine.Core.Features.Instructions;
+using AutoContext.Engine.Core.Features.Instructions.Snapshot;
 using AutoContext.Engine.Core.Tests.Support.Features.Instructions;
 using AutoContext.Engine.Core.Tests.Support.Workspace.Context;
 using AutoContext.Engine.Tests.Support.IO;
 
 using Microsoft.Extensions.Logging.Abstractions;
 
-public sealed class InstructionsOverrideWatcherTests
+public sealed class InstructionsOverridesWatcherTests
 {
     public sealed class Constructor
     {
@@ -16,44 +17,44 @@ public sealed class InstructionsOverrideWatcherTests
         [InlineData("   ")]
         public void Should_reject_blank_workspace_path(string workspacePath)
             => Assert.Throws<ArgumentException>(
-                () => InstructionsOverrideWatcherTestFactory.Create(workspacePath));
+                () => InstructionsOverridesWatcherTestFactory.Create(workspacePath));
 
         [Fact]
         public void Should_reject_null_time_provider()
             => Assert.Throws<ArgumentNullException>(
-                () => new InstructionsOverrideWatcher(
+                () => new InstructionsOverridesWatcher(
                     "ws",
                     [".github"],
                     null!,
                     TimeSpan.FromMilliseconds(100),
-                    NullLogger<InstructionsOverrideWatcher>.Instance));
+                    NullLogger<InstructionsOverridesWatcher>.Instance));
 
         [Fact]
         public void Should_reject_null_instruction_directories()
             => Assert.Throws<ArgumentNullException>(
-                () => new InstructionsOverrideWatcher(
+                () => new InstructionsOverridesWatcher(
                     "ws",
                     null!,
                     TimeProvider.System,
                     TimeSpan.FromMilliseconds(100),
-                    NullLogger<InstructionsOverrideWatcher>.Instance));
+                    NullLogger<InstructionsOverridesWatcher>.Instance));
 
         [Theory]
         [InlineData(0)]
         [InlineData(-1)]
         public void Should_reject_non_positive_debounce_delay(int milliseconds)
             => Assert.Throws<ArgumentOutOfRangeException>(
-                () => new InstructionsOverrideWatcher(
+                () => new InstructionsOverridesWatcher(
                     "ws",
                     [".github"],
                     TimeProvider.System,
                     TimeSpan.FromMilliseconds(milliseconds),
-                    NullLogger<InstructionsOverrideWatcher>.Instance));
+                    NullLogger<InstructionsOverridesWatcher>.Instance));
 
         [Fact]
         public void Should_reject_null_logger()
             => Assert.Throws<ArgumentNullException>(
-                () => new InstructionsOverrideWatcher(
+                () => new InstructionsOverridesWatcher(
                     "ws",
                     [".github"],
                     TimeProvider.System,
@@ -68,10 +69,10 @@ public sealed class InstructionsOverrideWatcherTests
         public void Should_be_empty_before_load()
         {
             // Arrange
-            using var watcher = InstructionsOverrideWatcherTestFactory.Create(tempDirectory.CreateDirectory());
+            using var watcher = InstructionsOverridesWatcherTestFactory.Create(tempDirectory.CreateDirectory());
 
             // Assert
-            Assert.Same(InstructionsOverrides.Empty, watcher.Current);
+            Assert.Same(InstructionsOverridesSnapshot.Empty, watcher.Current);
         }
     }
 
@@ -82,7 +83,7 @@ public sealed class InstructionsOverrideWatcherTests
         public async Task Should_return_empty_when_directory_missing()
         {
             // Arrange
-            using var watcher = InstructionsOverrideWatcherTestFactory.Create(tempDirectory.CreateDirectory());
+            using var watcher = InstructionsOverridesWatcherTestFactory.Create(tempDirectory.CreateDirectory());
 
             // Act
             var overrides = await watcher.LoadAsync(TestContext.Current.CancellationToken);
@@ -98,7 +99,7 @@ public sealed class InstructionsOverrideWatcherTests
             var workspace = tempDirectory.CreateDirectory();
             WorkspaceFileTestWriter.Write(workspace, ".github/instructions/docker.instructions.md");
             WorkspaceFileTestWriter.Write(workspace, ".github/instructions/python.instructions.md");
-            using var watcher = InstructionsOverrideWatcherTestFactory.Create(workspace);
+            using var watcher = InstructionsOverridesWatcherTestFactory.Create(workspace);
 
             // Act
             var overrides = await watcher.LoadAsync(TestContext.Current.CancellationToken);
@@ -119,7 +120,7 @@ public sealed class InstructionsOverrideWatcherTests
             var workspace = tempDirectory.CreateDirectory();
             WorkspaceFileTestWriter.Write(workspace, ".github/instructions/docker.instructions.md");
             WorkspaceFileTestWriter.Write(workspace, ".github/instructions/README.md");
-            using var watcher = InstructionsOverrideWatcherTestFactory.Create(workspace);
+            using var watcher = InstructionsOverridesWatcherTestFactory.Create(workspace);
 
             // Act
             var overrides = await watcher.LoadAsync(TestContext.Current.CancellationToken);
@@ -134,7 +135,7 @@ public sealed class InstructionsOverrideWatcherTests
             // Arrange
             var workspace = tempDirectory.CreateDirectory();
             WorkspaceFileTestWriter.Write(workspace, ".github/instructions/docker.instructions.md");
-            using var watcher = InstructionsOverrideWatcherTestFactory.Create(workspace);
+            using var watcher = InstructionsOverridesWatcherTestFactory.Create(workspace);
 
             var raised = false;
             watcher.Changed += (_, _) => raised = true;
@@ -156,7 +157,7 @@ public sealed class InstructionsOverrideWatcherTests
         public void Should_arm_without_throwing_when_github_absent()
         {
             // Arrange
-            using var watcher = InstructionsOverrideWatcherTestFactory.Create(tempDirectory.CreateDirectory());
+            using var watcher = InstructionsOverridesWatcherTestFactory.Create(tempDirectory.CreateDirectory());
 
             // Act + Assert
             watcher.Watch();
@@ -168,7 +169,7 @@ public sealed class InstructionsOverrideWatcherTests
             // Arrange
             var workspace = tempDirectory.CreateDirectory();
             WorkspaceFileTestWriter.Write(workspace, ".github/instructions/docker.instructions.md");
-            using var watcher = InstructionsOverrideWatcherTestFactory.Create(workspace);
+            using var watcher = InstructionsOverridesWatcherTestFactory.Create(workspace);
 
             // Act + Assert
             watcher.Watch();
@@ -184,10 +185,10 @@ public sealed class InstructionsOverrideWatcherTests
         {
             // Arrange
             var workspace = tempDirectory.CreateDirectory();
-            using var watcher = InstructionsOverrideWatcherTestFactory.Create(workspace);
+            using var watcher = InstructionsOverridesWatcherTestFactory.Create(workspace);
             await watcher.LoadAsync(TestContext.Current.CancellationToken);
 
-            InstructionsOverrides? observed = null;
+            InstructionsOverridesSnapshot? observed = null;
             watcher.Changed += (_, overrides) => observed = overrides;
 
             WorkspaceFileTestWriter.Write(workspace, ".github/instructions/docker.instructions.md");
@@ -207,7 +208,7 @@ public sealed class InstructionsOverrideWatcherTests
             // Arrange
             var workspace = tempDirectory.CreateDirectory();
             WorkspaceFileTestWriter.Write(workspace, ".github/instructions/docker.instructions.md");
-            using var watcher = InstructionsOverrideWatcherTestFactory.Create(workspace);
+            using var watcher = InstructionsOverridesWatcherTestFactory.Create(workspace);
             await watcher.LoadAsync(TestContext.Current.CancellationToken);
 
             File.Delete(Path.Combine(workspace, ".github", "instructions", "docker.instructions.md"));
@@ -230,8 +231,8 @@ public sealed class InstructionsOverrideWatcherTests
             var workspace = tempDirectory.CreateDirectory();
             WorkspaceFileTestWriter.Write(workspace, ".github/instructions/docker.instructions.md");
             WorkspaceFileTestWriter.Write(workspace, ".copilot/instructions/python.instructions.md");
-            using var watcher = InstructionsOverrideWatcherTestFactory.Create(
-                workspace, instructionsOverrideRoots: [".github", ".copilot"]);
+            using var watcher = InstructionsOverridesWatcherTestFactory.Create(
+                workspace, instructionsOverridesRoots: [".github", ".copilot"]);
 
             // Act
             var overrides = await watcher.LoadAsync(TestContext.Current.CancellationToken);
@@ -248,8 +249,8 @@ public sealed class InstructionsOverrideWatcherTests
             var workspace = tempDirectory.CreateDirectory();
             WorkspaceFileTestWriter.Write(workspace, ".github/instructions/docker.instructions.md");
             WorkspaceFileTestWriter.Write(workspace, ".copilot/instructions/docker.instructions.md");
-            using var watcher = InstructionsOverrideWatcherTestFactory.Create(
-                workspace, instructionsOverrideRoots: [".github", ".copilot"]);
+            using var watcher = InstructionsOverridesWatcherTestFactory.Create(
+                workspace, instructionsOverridesRoots: [".github", ".copilot"]);
 
             // Act
             var overrides = await watcher.LoadAsync(TestContext.Current.CancellationToken);

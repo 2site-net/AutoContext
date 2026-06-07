@@ -23,14 +23,14 @@ public sealed class ConfigSnapshotExtensionsTests
             // Arrange
             var config = ConfigSnapshot.Empty with
             {
-                Engine = new ConfigEngineSettings { InstructionsOverrideRoots = [".github", ".copilot"] },
+                Engine = new ConfigEngineSettings { InstructionsOverridesRoots = [".github", ".copilot"] },
             };
 
             // Act
             var json = config.ToFileFormat();
 
             // Assert
-            Assert.Equal([".github", ".copilot"], json.Engine?.InstructionsOverrideRoots);
+            Assert.Equal([".github", ".copilot"], json.Engine?.InstructionsOverridesRoots);
         }
 
         [Fact]
@@ -39,7 +39,7 @@ public sealed class ConfigSnapshotExtensionsTests
             // Arrange
             var config = ConfigSnapshot.Empty with
             {
-                Engine = new ConfigEngineSettings { InstructionsOverrideRoots = [] },
+                Engine = new ConfigEngineSettings { InstructionsOverridesRoots = [] },
             };
 
             // Act

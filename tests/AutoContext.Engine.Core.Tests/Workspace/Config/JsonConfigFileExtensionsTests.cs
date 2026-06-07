@@ -54,7 +54,7 @@ public sealed class JsonConfigFileExtensionsTests
             var config = json.ToDomainGraph();
 
             // Assert
-            Assert.Equal([".github", ".copilot"], config.Engine?.InstructionsOverrideRoots);
+            Assert.Equal([".github", ".copilot"], config.Engine?.InstructionsOverridesRoots);
         }
 
         [Fact]

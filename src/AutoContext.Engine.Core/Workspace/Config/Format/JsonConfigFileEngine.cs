@@ -8,10 +8,10 @@ using System.Text.Json.Serialization;
 /// MCP tool, carried through verbatim on load and save so the engine
 /// never drops them when it rewrites the file.
 /// </summary>
-/// <param name="InstructionsOverrideRoots">Workspace-relative directories,
+/// <param name="InstructionsOverridesRoots">Workspace-relative directories,
 /// in precedence order, whose <c>instructions/</c> subfolder the engine
 /// watches for <c>*.instructions.md</c> overrides. Absent when the user
 /// never set it, in which case the engine applies its default
 /// (<c>.github</c>).</param>
 internal sealed record JsonConfigFileEngine(
-    [property: JsonPropertyName("instructions.overrideRoots")] IReadOnlyList<string>? InstructionsOverrideRoots = null);
+    [property: JsonPropertyName("instructions.overridesRoots")] IReadOnlyList<string>? InstructionsOverridesRoots = null);

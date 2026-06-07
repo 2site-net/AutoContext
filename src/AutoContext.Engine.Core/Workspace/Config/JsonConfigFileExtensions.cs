@@ -30,7 +30,7 @@ internal static class JsonConfigFileExtensions
                 ? new ConfigDiagnostic { WarnOnMissingId = diagnostic.WarnOnMissingId }
                 : null,
             Engine = json.Engine is { } engine
-                ? new ConfigEngineSettings { InstructionsOverrideRoots = engine.InstructionsOverrideRoots ?? [] }
+                ? new ConfigEngineSettings { InstructionsOverridesRoots = engine.InstructionsOverridesRoots ?? [] }
                 : null,
             Instructions = ToDomainModel(json.Instructions),
             McpTools = ToDomainModel(json.McpTools),

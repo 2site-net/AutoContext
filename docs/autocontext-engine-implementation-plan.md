@@ -476,10 +476,10 @@ src/
     Features/                                  # outward-facing capability tier (P11): served to the extension over RPC; the engine runs without these, but without them nothing can consume anything
       Instructions/                            # runtime services
         InstructionsManifestService.cs           # merged catalog+manifest snapshot loader + reloader
-        InstructionsFileBodyProjector.cs         # disabled-rule filter, [INSTxxxx] strip, override merge
+        InstructionsFileService.cs               # resolves override-vs-bundled, reads + parses the body, disabled-rule filter, section slice ([INSTxxxx] tags preserved)
         InstructionsContentIndex.cs              # in-memory content search index
-        InstructionsOverrideWatcher.cs           # .github/instructions/ FS watcher (debounced); produces InstructionsOverrides snapshots
-        InstructionsOverrides.cs                 # immutable snapshot of .github/instructions/ inventory (paths + basenames); consumed by InstructionsFileBodyProjector + InstructionsManifestService
+        InstructionsOverridesWatcher.cs          # .github/instructions/ FS watcher (debounced); produces InstructionsOverridesSnapshot values
+        Snapshot/InstructionsOverridesSnapshot.cs # immutable snapshot of .github/instructions/ inventory (paths + basenames); consumed by InstructionsFileService + InstructionsManifestService
         ApplyToParser.cs                         # comma + brace-expand, extension extraction (shared with the build task via `<Compile Link>`)
         InstructionsHandlers.cs                  # List/Categories/Get/GetAll/GetAlwaysAttached/GetRaw/SearchContent/Subscribe
         InstructionsFrameStream.cs               # BroadcasterFrameStream<InstructionsSnapshot, …> (IBroadcasterFrameStream impl) for Instructions.Subscribe: drains a BroadcasterSubscription<InstructionsSnapshot> (fanned out over a shared Infrastructure/Events/SnapshotBroadcaster<T> — snapshot-on-subscribe + disabled-flag re-evaluation) and yields snapshot/dropped frames
@@ -1615,7 +1615,7 @@ own `--workspace` path, exposes the result via `Workspace.Detect` and
 - **`Workspace.Detect` and `Workspace.Info` handlers (rows 6–7).**
   The detector has **no** business with `.github/instructions/`
   content — that inventory is owned by
-  `Instructions/InstructionsOverrideWatcher` (Phase 6) and
+  `Instructions/InstructionsOverridesWatcher` (Phase 6) and
   reachable via `Instructions.List`. The TS reference port
   (`src/AutoContext.VsCode/src/workspace-context-detector.ts`)
   already enforces this split: it does not scan overrides;
@@ -1878,17 +1878,18 @@ corrected files):
 
 ## Phase 6 — Instructions corpus runtime + projection
 
-**Status**: Started, then **paused** — the Row 2 runtime corpus-load
-work was stashed pending **Phase 6R** (design remediation). Resumes on
-the corrected catalog + manifest shape.
+**Status**: **In progress** on branch
+`features/instructions-corpus-runtime`, atop the merged Phase 6R
+catalog + manifest shape. Rows 1–3 and 5 are landed; the remaining
+RPC handlers (rows 4, 6–15) build on the in-memory snapshot.
 
 | # | Commit subject | State |
 |---|---|---|
 | 1 | `feat(protocol): add Instructions.* wire DTOs` | DONE |
 | 2 | `feat(engine-core): load instructions corpus snapshot on startup` | DONE |
-| 3 | `feat(engine-core): add InstructionsOverrideWatcher with debounced reload` | DONE |
+| 3 | `feat(engine-core): add InstructionsOverridesWatcher with debounced reload` | DONE |
 | 4 | `feat(engine): serve Instructions.List over rpc` | Not started |
-| 5 | `feat(engine-core): add InstructionsFileBodyProjector with disabled-rule filter and tag strip` | Not started |
+| 5 | `feat(engine-core): add InstructionsFileService with override resolution and disabled-rule filter` | DONE |
 | 6 | `feat(engine): serve Instructions.Get and GetAll over rpc` | Not started |
 | 7 | `feat(engine): serve Instructions.GetAlwaysAttached over rpc` | Not started |
 | 8 | `feat(engine): serve Instructions.GetRaw with bundled/override/active source` | Not started |
@@ -1902,7 +1903,8 @@ the corrected catalog + manifest shape.
 
 **Goal**: engine answers every `Instructions.*` RPC from in-memory
 snapshots, applies per-request projection (disabled rules filtered,
-`[INSTxxxx]` stripped, overrides resolved), invalidates cleanly via
+`[INSTxxxx]` tags preserved so cross-rule references stay navigable,
+overrides resolved), invalidates cleanly via
 `Config.Subscribe`, and exposes content search.
 
 **Design anchors**: `§ RPC surface` (`Instructions.*`),
@@ -1920,12 +1922,19 @@ pitfall.
     membership, `activationFlags`) with the build-generated
     `instructions-manifest.json` (per-file facts) into one immutable
     `InstructionsManifestSnapshot`; re-project per request.
-  - `InstructionsFileBodyProjector` — disabled-rule filter,
-    `[INSTxxxx]` tag strip, override resolution.
+  - `InstructionsFileService` — resolves override-vs-bundled, reads
+    and parses the body, filters disabled rules, and slices the
+    requested sections. `[INSTxxxx]` tags are **preserved** (not
+    stripped): the id is the anchor a cross-rule / cross-file
+    `[locator#fragment]` reference resolves to, so stripping them
+    would leave every reference pointing at content the reader can no
+    longer locate. Frontmatter is still stripped and disabled rules
+    still filtered — only the tag-strip step is dropped relative to
+    the original projector design.
   - `InstructionsContentIndex` — in-memory content search seeded
     from the section/body facts in `instructions-manifest.json`, hot
     across queries, invalidated on corpus reload.
-  - `InstructionsOverrideWatcher` — `FileSystemWatcher` on
+  - `InstructionsOverridesWatcher` — `FileSystemWatcher` on
     `<workspace>/.github/instructions/` with the same debounce shape
     Phase 3 introduced.
 - Handlers: `Instructions.List`, `Categories`, `Get`, `GetAll`,

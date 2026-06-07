@@ -10,8 +10,9 @@ internal sealed record ConfigEngineSettings
     /// <summary>
     /// Workspace-relative directories, in precedence order, whose
     /// <c>instructions/</c> subfolder the engine watches for
-    /// <c>*.instructions.md</c> overrides. Empty when the user never
-    /// set it, in which case the engine applies its default.
+    /// <c>*.instructions.md</c> overrides. Defaults to <c>.github</c>
+    /// (resolving to <c>.github/instructions/</c>) when the user never
+    /// set it; this is the single place that owns the convention default.
     /// </summary>
-    public IReadOnlyList<string> InstructionsOverrideRoots { get; init; } = [];
+    public IReadOnlyList<string> InstructionsOverridesRoots { get; init; } = [".github"];
 }

@@ -1,5 +1,6 @@
 namespace AutoContext.Engine.Core.Features.Instructions;
 
+using AutoContext.Engine.Core.Features.Instructions.Snapshot;
 using AutoContext.Engine.Core.Infrastructure.Events;
 
 using Microsoft.Extensions.Logging;
@@ -7,10 +8,10 @@ using Microsoft.Extensions.Logging;
 /// <summary>
 /// Watches one or more workspace-relative override directories for
 /// external edits and keeps an immutable
-/// <see cref="InstructionsOverrides"/> inventory in sync with them. The
-/// directories are supplied by the caller — typically resolved from a
-/// workspace's <c>.autocontext.json</c> via
-/// <see cref="InstructionsOverrideRoots"/> — so the watcher itself
+/// <see cref="InstructionsOverridesSnapshot"/> inventory in sync with them. The
+/// directories are supplied by the caller — typically the resolved
+/// <c>InstructionsOverridesRoots</c> from a workspace's
+/// <c>.autocontext.json</c> engine settings — so the watcher itself
 /// is directory-agnostic and never assumes a particular layout such as
 /// <c>.github</c>. Each supplied root <c>R</c> contributes the override
 /// files under <c>&lt;workspace&gt;/R/instructions/*.instructions.md</c>.
@@ -50,7 +51,7 @@ using Microsoft.Extensions.Logging;
 /// precedence order wins and the shadowed copies are logged and ignored.
 /// </para>
 /// </remarks>
-internal sealed partial class InstructionsOverrideWatcher : IDisposable
+internal sealed partial class InstructionsOverridesWatcher : IDisposable, IInstructionsOverridesAccessor
 {
     private const string InstructionsSubdirectory = "instructions";
     private const string OverridePattern = "*.instructions.md";
@@ -62,16 +63,16 @@ internal sealed partial class InstructionsOverrideWatcher : IDisposable
     /// </summary>
     internal static readonly TimeSpan DefaultDebounceDelay = TimeSpan.FromMilliseconds(100);
 
-    private InstructionsOverrides _current = InstructionsOverrides.Empty;
+    private InstructionsOverridesSnapshot _current = InstructionsOverridesSnapshot.Empty;
     private readonly TrailingEdgeDebouncer _debouncer;
     private bool _disposed;
     private readonly SemaphoreSlim _gate = new(1, 1);
-    private readonly ILogger<InstructionsOverrideWatcher> _logger;
+    private readonly ILogger<InstructionsOverridesWatcher> _logger;
     private readonly List<string> _overrideDirectories;
     private readonly IReadOnlyList<OverrideDirectoryWatch> _watches;
 
     /// <summary>
-    /// Creates a watcher over <paramref name="instructionsOverrideRoots"/>,
+    /// Creates a watcher over <paramref name="instructionsOverridesRoots"/>,
     /// resolved relative to <paramref name="workspacePath"/>. Each entry
     /// is a directory whose <c>instructions/</c> subfolder holds the
     /// override files; the entries are taken in precedence order. The
@@ -80,7 +81,7 @@ internal sealed partial class InstructionsOverrideWatcher : IDisposable
     /// </summary>
     /// <param name="workspacePath">Absolute path of the workspace
     /// folder. Must not be <see langword="null"/> or whitespace.</param>
-    /// <param name="instructionsOverrideRoots">Workspace-relative override
+    /// <param name="instructionsOverridesRoots">Workspace-relative override
     /// roots, in precedence order. Blank entries, duplicates, and entries
     /// that escape the workspace are skipped. Must not be
     /// <see langword="null"/>.</param>
@@ -93,20 +94,20 @@ internal sealed partial class InstructionsOverrideWatcher : IDisposable
     /// <exception cref="ArgumentException"><paramref name="workspacePath"/>
     /// is <see langword="null"/>, empty, or whitespace.</exception>
     /// <exception cref="ArgumentNullException">
-    /// <paramref name="instructionsOverrideRoots"/>,
+    /// <paramref name="instructionsOverridesRoots"/>,
     /// <paramref name="timeProvider"/>, or <paramref name="logger"/> is
     /// <see langword="null"/>.</exception>
     /// <exception cref="ArgumentOutOfRangeException">
     /// <paramref name="debounceDelay"/> is zero or negative.</exception>
-    public InstructionsOverrideWatcher(
+    public InstructionsOverridesWatcher(
         string workspacePath,
-        IReadOnlyList<string> instructionsOverrideRoots,
+        IReadOnlyList<string> instructionsOverridesRoots,
         TimeProvider timeProvider,
         TimeSpan debounceDelay,
-        ILogger<InstructionsOverrideWatcher> logger)
+        ILogger<InstructionsOverridesWatcher> logger)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(workspacePath);
-        ArgumentNullException.ThrowIfNull(instructionsOverrideRoots);
+        ArgumentNullException.ThrowIfNull(instructionsOverridesRoots);
         ArgumentNullException.ThrowIfNull(timeProvider);
         ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(
             debounceDelay, TimeSpan.Zero, nameof(debounceDelay));
@@ -116,7 +117,7 @@ internal sealed partial class InstructionsOverrideWatcher : IDisposable
         _debouncer = new TrailingEdgeDebouncer(ReconcileFromWatcherAsync, timeProvider, debounceDelay);
 
         var workspaceRoot = Path.GetFullPath(workspacePath);
-        _overrideDirectories = ResolveScanDirectories(workspaceRoot, instructionsOverrideRoots);
+        _overrideDirectories = ResolveScanDirectories(workspaceRoot, instructionsOverridesRoots);
         _watches = [.. _overrideDirectories.Select(directory =>
             new OverrideDirectoryWatch(directory, workspaceRoot, _debouncer.Signal))];
     }
@@ -126,13 +127,14 @@ internal sealed partial class InstructionsOverrideWatcher : IDisposable
     /// carrying the snapshot now in <see cref="Current"/>. Not raised by
     /// <see cref="LoadAsync"/>.
     /// </summary>
-    public event EventHandler<InstructionsOverrides>? Changed;
+    public event EventHandler<InstructionsOverridesSnapshot>? Changed;
 
-    /// <summary>
-    /// The override inventory currently in memory. Lock-free; returns an
-    /// immutable snapshot that never changes after it is published.
-    /// </summary>
-    public InstructionsOverrides Current => Volatile.Read(ref _current);
+    /// <inheritdoc />
+    /// <remarks>
+    /// Lock-free; returns an immutable snapshot that never changes after
+    /// it is published.
+    /// </remarks>
+    public InstructionsOverridesSnapshot Current => Volatile.Read(ref _current);
 
     /// <summary>
     /// The absolute scan directories this watcher owns, in precedence
@@ -168,7 +170,7 @@ internal sealed partial class InstructionsOverrideWatcher : IDisposable
     /// </summary>
     /// <param name="cancellationToken">Cancels the scan.</param>
     /// <returns>The inventory now in <see cref="Current"/>.</returns>
-    public async Task<InstructionsOverrides> LoadAsync(CancellationToken cancellationToken)
+    public async Task<InstructionsOverridesSnapshot> LoadAsync(CancellationToken cancellationToken)
     {
         await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
 
@@ -193,7 +195,7 @@ internal sealed partial class InstructionsOverrideWatcher : IDisposable
     /// <param name="cancellationToken">Cancels the scan.</param>
     public async Task RefreshAsync(CancellationToken cancellationToken)
     {
-        InstructionsOverrides overrides;
+        InstructionsOverridesSnapshot overrides;
 
         await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
 
@@ -226,12 +228,12 @@ internal sealed partial class InstructionsOverrideWatcher : IDisposable
     }
 
     private static List<string> ResolveScanDirectories(
-        string workspaceRoot, IReadOnlyList<string> instructionsOverrideRoots)
+        string workspaceRoot, IReadOnlyList<string> instructionsOverridesRoots)
     {
         var seen = new HashSet<string>(StringComparer.Ordinal);
-        var directories = new List<string>(instructionsOverrideRoots.Count);
+        var directories = new List<string>(instructionsOverridesRoots.Count);
 
-        foreach (var root in instructionsOverrideRoots)
+        foreach (var root in instructionsOverridesRoots)
         {
             if (string.IsNullOrWhiteSpace(root))
             {
@@ -273,11 +275,11 @@ internal sealed partial class InstructionsOverrideWatcher : IDisposable
         return rearmed;
     }
 
-    private InstructionsOverrides Scan()
+    private InstructionsOverridesSnapshot Scan()
     {
         if (_overrideDirectories.Count == 0)
         {
-            return InstructionsOverrides.Empty;
+            return InstructionsOverridesSnapshot.Empty;
         }
 
         var pathsByFileName = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -305,8 +307,8 @@ internal sealed partial class InstructionsOverrideWatcher : IDisposable
         }
 
         return pathsByFileName.Count == 0
-            ? InstructionsOverrides.Empty
-            : new InstructionsOverrides(pathsByFileName);
+            ? InstructionsOverridesSnapshot.Empty
+            : new InstructionsOverridesSnapshot(pathsByFileName);
     }
 
     private async Task ReconcileFromWatcherAsync(CancellationToken cancellationToken)

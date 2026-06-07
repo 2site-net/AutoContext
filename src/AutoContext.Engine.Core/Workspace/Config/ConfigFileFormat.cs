@@ -119,9 +119,9 @@ internal static class ConfigFileFormat
             return null;
         }
 
-        var directories = EmptyToNull(engine.InstructionsOverrideRoots);
+        var directories = EmptyToNull(engine.InstructionsOverridesRoots);
 
-        return directories is null ? null : engine with { InstructionsOverrideRoots = directories };
+        return directories is null ? null : engine with { InstructionsOverridesRoots = directories };
     }
 
     private static Dictionary<string, JsonConfigFileInstructionsEntry>? NormalizeInstructions(

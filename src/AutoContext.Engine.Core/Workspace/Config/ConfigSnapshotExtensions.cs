@@ -36,8 +36,8 @@ internal static class ConfigSnapshotExtensions
             Diagnostic = config.Diagnostic is { } diagnostic
                 ? new JsonConfigFileDiagnostic(diagnostic.WarnOnMissingId)
                 : null,
-            Engine = config.Engine is { InstructionsOverrideRoots.Count: > 0 } engine
-                ? new JsonConfigFileEngine([.. engine.InstructionsOverrideRoots])
+            Engine = config.Engine is { InstructionsOverridesRoots.Count: > 0 } engine
+                ? new JsonConfigFileEngine([.. engine.InstructionsOverridesRoots])
                 : null,
             Instructions = ToFileFormat(config.Instructions),
             McpTools = ToFileFormat(config.McpTools),

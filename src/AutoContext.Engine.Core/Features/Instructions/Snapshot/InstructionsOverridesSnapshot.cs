@@ -1,25 +1,25 @@
-namespace AutoContext.Engine.Core.Features.Instructions;
+namespace AutoContext.Engine.Core.Features.Instructions.Snapshot;
 
 /// <summary>
 /// Immutable snapshot of the workspace override inventory: the
 /// <c>*.instructions.md</c> files present under the configured override
 /// directories, keyed by file name (basename) with their absolute
-/// on-disk path. Produced by <see cref="InstructionsOverrideWatcher"/>
+/// on-disk path. Produced by <see cref="InstructionsOverridesWatcher"/>
 /// on each settled rescan — already merged across directories with
 /// first-directory-wins precedence — and consumed downstream to decide
 /// which bundled instruction files a workspace-local copy shadows. A
 /// reader holds the reference it observed and is never mutated, so
 /// iteration is lock-free and never tears.
 /// </summary>
-internal sealed class InstructionsOverrides
+internal sealed class InstructionsOverridesSnapshot
 {
     /// <summary>
     /// The shared empty inventory: no override files. This is the value
-    /// <see cref="InstructionsOverrideWatcher"/> exposes before its
+    /// <see cref="InstructionsOverridesWatcher"/> exposes before its
     /// initial scan completes and whenever the override directory is
     /// absent.
     /// </summary>
-    public static InstructionsOverrides Empty { get; } = new(new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase));
+    public static InstructionsOverridesSnapshot Empty { get; } = new(new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase));
 
     private readonly Dictionary<string, string> _pathsByFileName;
 
@@ -36,7 +36,7 @@ internal sealed class InstructionsOverrides
     /// <exception cref="ArgumentNullException">
     /// <paramref name="pathsByFileName"/> is <see langword="null"/>.
     /// </exception>
-    public InstructionsOverrides(IReadOnlyDictionary<string, string> pathsByFileName)
+    public InstructionsOverridesSnapshot(IReadOnlyDictionary<string, string> pathsByFileName)
     {
         ArgumentNullException.ThrowIfNull(pathsByFileName);
 

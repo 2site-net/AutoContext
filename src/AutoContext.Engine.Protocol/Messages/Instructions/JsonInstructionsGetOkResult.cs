@@ -23,8 +23,9 @@ public sealed record JsonInstructionsGetOkResult : JsonInstructionsGetResult
 
     /// <summary>
     /// Projected body — disabled rules filtered, <c>[INSTxxxx]</c>
-    /// tags stripped, override preferred over bundled — sliced to the
-    /// requested sections when
+    /// tags preserved (so cross-rule references stay navigable),
+    /// override preferred over bundled — sliced to the requested
+    /// sections when
     /// <see cref="JsonInstructionsGetParams.Sections"/> was set.
     /// </summary>
     [JsonPropertyName("content")]

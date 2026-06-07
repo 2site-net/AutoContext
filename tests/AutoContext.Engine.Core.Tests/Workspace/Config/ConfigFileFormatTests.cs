@@ -160,7 +160,7 @@ public sealed class ConfigFileFormatTests
         public void Should_drop_engine_with_empty_directories()
         {
             // Arrange
-            var bytes = Encoding.UTF8.GetBytes("""{ "engine": { "instructions.overrideRoots": [] } }""");
+            var bytes = Encoding.UTF8.GetBytes("""{ "engine": { "instructions.overridesRoots": [] } }""");
 
             // Act
             ConfigFileFormat.TryDeserialize(bytes, out var config);
@@ -174,13 +174,13 @@ public sealed class ConfigFileFormatTests
         {
             // Arrange
             var bytes = Encoding.UTF8.GetBytes(
-                """{ "engine": { "instructions.overrideRoots": [".github", ".copilot"] } }""");
+                """{ "engine": { "instructions.overridesRoots": [".github", ".copilot"] } }""");
 
             // Act
             ConfigFileFormat.TryDeserialize(bytes, out var config);
 
             // Assert
-            Assert.Equal([".github", ".copilot"], config.Engine!.InstructionsOverrideRoots);
+            Assert.Equal([".github", ".copilot"], config.Engine!.InstructionsOverridesRoots);
         }
     }
 }

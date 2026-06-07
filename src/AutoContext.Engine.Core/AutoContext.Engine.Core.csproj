@@ -14,6 +14,7 @@
     <ProjectReference Include="..\AutoContext.Framework.Pipes\AutoContext.Framework.Pipes.csproj" />
     <ProjectReference Include="..\AutoContext.Framework.Logging\AutoContext.Framework.Logging.csproj" />
     <ProjectReference Include="..\AutoContext.Engine.Protocol\AutoContext.Engine.Protocol.csproj" />
+    <ProjectReference Include="..\AutoContext.Instructions.Parser\AutoContext.Instructions.Parser.csproj" />
   </ItemGroup>
 
   <ItemGroup>
