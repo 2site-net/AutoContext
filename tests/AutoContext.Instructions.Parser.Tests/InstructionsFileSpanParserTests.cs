@@ -63,10 +63,10 @@ public sealed class InstructionsFileSpanParserTests
             Assert.Multiple(
                 () => Assert.Equal(0, spans[0].TextSpan.StartIndex),
                 () => Assert.Equal(document.Length, spans[^1].TextSpan.EndIndex),
-                () => Assert.Equal(document, string.Concat(spans.Select(span => span.Text))),
+                () => Assert.Equal(document, string.Concat(spans.Select(span => span.Text.ToString()))),
                 () => Assert.All(spans, span => Assert.Equal(
                     document.Substring(span.TextSpan.StartIndex, span.TextSpan.Length),
-                    span.Text)));
+                    span.Text.ToString())));
         }
     }
 
@@ -243,7 +243,7 @@ public sealed class InstructionsFileSpanParserTests
                 () => Assert.Equal(18, block.TextSpan.Length),
                 () => Assert.Equal(0, block.LineSpan.StartLine),
                 () => Assert.Equal(3, block.LineSpan.LineCount),
-                () => Assert.Equal("---\nname: \"x\"\n---\n", block.Text));
+                () => Assert.Equal("---\nname: \"x\"\n---\n", block.Text.ToString()));
         }
 
         [Fact]
@@ -378,7 +378,7 @@ public sealed class InstructionsFileSpanParserTests
             var reference = Assert.Single(spans);
             Assert.Multiple(
                 () => Assert.Equal(InstructionsFileSpanKind.Reference, reference.Kind),
-                () => Assert.Equal("[foo.instructions.md#INST0001]", reference.Text));
+                () => Assert.Equal("[foo.instructions.md#INST0001]", reference.Text.ToString()));
         }
 
         [Fact]
@@ -395,7 +395,7 @@ public sealed class InstructionsFileSpanParserTests
 
             // Assert
             var reference = Assert.Single(spans);
-            Assert.Equal("[Some Heading#INST0001]", reference.Text);
+            Assert.Equal("[Some Heading#INST0001]", reference.Text.ToString());
         }
 
         [Fact]

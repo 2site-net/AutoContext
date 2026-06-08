@@ -1,7 +1,6 @@
 namespace AutoContext.Instructions.Parser;
 
 using System.Buffers;
-using System.Text;
 using System.Text.RegularExpressions;
 
 /// <summary>
@@ -58,7 +57,7 @@ internal sealed partial class InstructionsFileSpanParser(
         string text,
         CancellationToken cancellationToken = default)
     {
-        var state = new ParserState();
+        var state = new ParserState { Source = text };
         var output = new List<InstructionsFileParsedSpan>();
 
         foreach (var line in ReadPhysicalLines(text))
@@ -130,16 +129,14 @@ internal sealed partial class InstructionsFileSpanParser(
                     continue;
                 }
 
-                var text = token.ToString();
                 var diagnostic = includeDiagnostics
-                    ? ClassifyReference(text, hasLocator, locatorValid, fragment)
+                    ? ClassifyReference(token.ToString(), hasLocator, locatorValid, fragment)
                     : null;
 
                 tokens.Add(new TokenDraft(
                     line.StartIndex + match.Index,
                     match.Length,
                     line.LineIndex,
-                    text,
                     InstructionsFileSpanKind.Reference,
                     diagnostic));
             }
@@ -151,32 +148,6 @@ internal sealed partial class InstructionsFileSpanParser(
                 ArrayPool<char>.Shared.Return(rented);
             }
         }
-    }
-
-    private static string BuildText(List<PhysicalLine> lines, int length)
-    {
-        var builder = new StringBuilder(length);
-
-        foreach (var line in lines)
-        {
-            builder.Append(line.Content);
-            builder.Append(line.Terminator);
-        }
-
-        return builder.ToString();
-    }
-
-    private static string BuildText(List<TextLine> lines, int length)
-    {
-        var builder = new StringBuilder(length);
-
-        foreach (var entry in lines)
-        {
-            builder.Append(entry.Line.Content);
-            builder.Append(entry.Line.Terminator);
-        }
-
-        return builder.ToString();
     }
 
     private static InstructionsFileDiagnostic? ClassifyReference(
@@ -441,7 +412,7 @@ internal sealed partial class InstructionsFileSpanParser(
 
             if (line.Content == "---")
             {
-                BuildFrontmatterSpans(state.FrontmatterLines, output);
+                BuildFrontmatterSpans(state, output);
                 state.Phase = ParsePhase.Body;
             }
         }
@@ -500,18 +471,20 @@ internal sealed partial class InstructionsFileSpanParser(
         state.PendingText.Add(new TextLine(line, !state.InFence));
     }
 
-    private void BuildFrontmatterSpans(List<PhysicalLine> frontmatterLines, List<InstructionsFileParsedSpan> output)
+    private void BuildFrontmatterSpans(ParserState state, List<InstructionsFileParsedSpan> output)
     {
+        var frontmatterLines = state.FrontmatterLines;
         var first = frontmatterLines[0];
         var last = frontmatterLines[^1];
         var endIndex = last.StartIndex + last.FullLength;
 
-        var block = MakeLineBlockSpan(
-            frontmatterLines,
+        var block = MakeSpan(
+            state,
             InstructionsFileSpanKind.FrontmatterBlock,
             first.StartIndex,
             endIndex - first.StartIndex,
-            first.LineIndex);
+            first.LineIndex,
+            frontmatterLines.Count);
 
         if (block is not null)
         {
@@ -542,13 +515,11 @@ internal sealed partial class InstructionsFileSpanParser(
                 line.StartIndex,
                 line.Content.Length,
                 line.LineIndex,
-                line.Content,
                 InstructionsFileSpanKind.FrontmatterProperty));
             tokens.Add(new TokenDraft(
                 line.StartIndex + key.Index,
                 key.Length,
                 line.LineIndex,
-                key.Value,
                 InstructionsFileSpanKind.FrontmatterKey));
 
             if (value.Length > 0)
@@ -557,12 +528,11 @@ internal sealed partial class InstructionsFileSpanParser(
                     line.StartIndex + value.Index,
                     value.Length,
                     line.LineIndex,
-                    value.Value,
                     InstructionsFileSpanKind.FrontmatterValue));
             }
         }
 
-        EmitOrdered(tokens, output);
+        EmitOrdered(state, tokens, output);
     }
 
     private void EmitHeading(ParserState state, PhysicalLine line, List<InstructionsFileParsedSpan> output)
@@ -584,7 +554,7 @@ internal sealed partial class InstructionsFileSpanParser(
             state.UnderRules = level == 2 && heading.Groups[2].Value == "Rules";
         }
 
-        var block = MakeSpan(line.Content + line.Terminator, kind, line.StartIndex, line.FullLength, line.LineIndex, 1);
+        var block = MakeSpan(state, kind, line.StartIndex, line.FullLength, line.LineIndex, 1);
 
         if (block is not null)
         {
@@ -598,10 +568,10 @@ internal sealed partial class InstructionsFileSpanParser(
 
         var tokens = new List<TokenDraft>();
         AddReferenceDrafts(line, tokens, _includeDiagnostics);
-        EmitOrdered(tokens, output);
+        EmitOrdered(state, tokens, output);
     }
 
-    private void EmitOrdered(List<TokenDraft> tokens, List<InstructionsFileParsedSpan> output)
+    private void EmitOrdered(ParserState state, List<TokenDraft> tokens, List<InstructionsFileParsedSpan> output)
     {
         if (tokens.Count == 0)
         {
@@ -612,7 +582,7 @@ internal sealed partial class InstructionsFileSpanParser(
 
         foreach (var token in tokens)
         {
-            var span = MakeSpan(token.Text, token.Kind, token.Start, token.Length, token.LineIndex, 1);
+            var span = MakeSpan(state, token.Kind, token.Start, token.Length, token.LineIndex, 1);
 
             if (span is null)
             {
@@ -673,7 +643,7 @@ internal sealed partial class InstructionsFileSpanParser(
         var lastLine = bodyLines[^1].Line;
         var endIndex = lastLine.StartIndex + lastLine.FullLength;
 
-        var block = MakeLineBlockSpan(bodyLines, rule.Kind, rule.StartIndex, endIndex - rule.StartIndex, rule.StartLine);
+        var block = MakeSpan(state, rule.Kind, rule.StartIndex, endIndex - rule.StartIndex, rule.StartLine, bodyLines.Count);
 
         if (block is not null)
         {
@@ -696,8 +666,7 @@ internal sealed partial class InstructionsFileSpanParser(
         if (_emitTags && rule.Tag is { } extent)
         {
             var first = bodyLines[0].Line;
-            var text = first.Content.Substring(extent.Offset, extent.Length);
-            tokens.Add(new TokenDraft(first.StartIndex + extent.Offset, extent.Length, first.LineIndex, text, InstructionsFileSpanKind.Tag, rule.TagDiagnostic));
+            tokens.Add(new TokenDraft(first.StartIndex + extent.Offset, extent.Length, first.LineIndex, InstructionsFileSpanKind.Tag, rule.TagDiagnostic));
         }
 
         if (_emitReferences)
@@ -711,7 +680,7 @@ internal sealed partial class InstructionsFileSpanParser(
             }
         }
 
-        EmitOrdered(tokens, output);
+        EmitOrdered(state, tokens, output);
 
         foreach (var entry in trailing)
         {
@@ -734,12 +703,13 @@ internal sealed partial class InstructionsFileSpanParser(
             length += entry.Line.FullLength;
         }
 
-        var block = MakeLineBlockSpan(
-            state.PendingText,
+        var block = MakeSpan(
+            state,
             InstructionsFileSpanKind.Text,
             first.StartIndex,
             length,
-            first.LineIndex);
+            first.LineIndex,
+            state.PendingText.Count);
 
         if (block is not null)
         {
@@ -758,42 +728,14 @@ internal sealed partial class InstructionsFileSpanParser(
                 }
             }
 
-            EmitOrdered(tokens, output);
+            EmitOrdered(state, tokens, output);
         }
 
         state.PendingText.Clear();
     }
 
-    private InstructionsFileParsedSpan? MakeLineBlockSpan(
-        List<PhysicalLine> lines,
-        InstructionsFileSpanKind kind,
-        int startIndex,
-        int length,
-        int startLine)
-        => ShouldEmit(kind)
-            ? new InstructionsFileParsedSpan(
-                BuildText(lines, length),
-                kind,
-                new InstructionsFileTextSpan(startIndex, length),
-                new InstructionsFileLineSpan(startLine, lines.Count))
-            : null;
-
-    private InstructionsFileParsedSpan? MakeLineBlockSpan(
-        List<TextLine> lines,
-        InstructionsFileSpanKind kind,
-        int startIndex,
-        int length,
-        int startLine)
-        => ShouldEmit(kind)
-            ? new InstructionsFileParsedSpan(
-                BuildText(lines, length),
-                kind,
-                new InstructionsFileTextSpan(startIndex, length),
-                new InstructionsFileLineSpan(startLine, lines.Count))
-            : null;
-
     private InstructionsFileParsedSpan? MakeSpan(
-        string text,
+        ParserState state,
         InstructionsFileSpanKind kind,
         int startIndex,
         int length,
@@ -801,7 +743,7 @@ internal sealed partial class InstructionsFileSpanParser(
         int lineCount)
         => ShouldEmit(kind)
             ? new InstructionsFileParsedSpan(
-                text,
+                state.Source.AsMemory(startIndex, length),
                 kind,
                 new InstructionsFileTextSpan(startIndex, length),
                 new InstructionsFileLineSpan(startLine, lineCount))
@@ -900,6 +842,9 @@ internal sealed partial class InstructionsFileSpanParser(
         /// <c>INST####</c> tag was seen, used to flag later repeats as duplicates.</summary>
         public Dictionary<string, int> SeenTags { get; } = [];
 
+        /// <summary>Gets the decoded source buffer the spans are sliced from.</summary>
+        public string Source { get; init; } = string.Empty;
+
         /// <summary>Gets or sets a value indicating whether the cursor sits within the
         /// <c>## Rules</c> section (or one of its <c>###</c> subsections), where tagged
         /// rules belong and plain rules are faults.</summary>
@@ -930,7 +875,6 @@ internal sealed partial class InstructionsFileSpanParser(
         int Start,
         int Length,
         int LineIndex,
-        string Text,
         InstructionsFileSpanKind Kind,
         InstructionsFileDiagnostic? Diagnostic = null);
 }

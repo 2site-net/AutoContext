@@ -67,7 +67,7 @@ internal sealed partial class InstructionsFileStructuredParser
 
             if (IsBlockKind(kind))
             {
-                rawContent.Append(span.Text);
+                rawContent.Append(span.Text.Span);
             }
 
             if (kind == InstructionsFileSpanKind.FrontmatterBlock)
@@ -75,12 +75,12 @@ internal sealed partial class InstructionsFileStructuredParser
                 frontmatterCharLength = span.TextSpan.Length;
                 frontmatterLineCount = span.LineSpan.LineCount;
 
-                var block = GeneratedFrontmatterBlockRegex().Match(span.Text);
+                var block = GeneratedFrontmatterBlockRegex().Match(span.Text.ToString());
                 frontmatterRawValue = block.Success ? block.Groups[1].Value : string.Empty;
             }
             else if (kind == InstructionsFileSpanKind.FrontmatterProperty)
             {
-                var field = GeneratedFrontmatterFieldRegex().Match(span.Text);
+                var field = GeneratedFrontmatterFieldRegex().Match(span.Text.ToString());
 
                 if (field.Success)
                 {
@@ -103,7 +103,7 @@ internal sealed partial class InstructionsFileStructuredParser
             else if (kind is InstructionsFileSpanKind.Heading2 or InstructionsFileSpanKind.Heading3)
             {
                 var level = kind == InstructionsFileSpanKind.Heading2 ? 2 : 3;
-                var text = ParseHeadingText(span.Text);
+                var text = ParseHeadingText(span.Text.Span);
                 var parent = level == 2 ? null : lastSectionHeading;
 
                 if (level == 2)
@@ -115,11 +115,11 @@ internal sealed partial class InstructionsFileStructuredParser
             }
             else if (kind is InstructionsFileSpanKind.PlainRule or InstructionsFileSpanKind.TaggedRule)
             {
-                var id = kind == InstructionsFileSpanKind.TaggedRule ? ParseRuleId(span.Text) : null;
+                var id = kind == InstructionsFileSpanKind.TaggedRule ? ParseRuleId(span.Text.Span) : null;
 
                 (rules ??= []).Add(new InstructionsFileRule(
                     id,
-                    StripFinalLineTerminator(span.Text),
+                    StripFinalLineTerminator(span.Text.Span),
                     span.LineSpan.StartLine - frontmatterLineCount,
                     span.LineSpan.EndLine - 1 - frontmatterLineCount));
             }
@@ -325,7 +325,7 @@ internal sealed partial class InstructionsFileStructuredParser
         int frontmatterLineCount)
     {
         var token = span.Text;
-        var inner = token.AsSpan(1, token.Length - 2);
+        var inner = token.Span[1..^1];
         var separator = inner.IndexOf('#');
 
         if (separator < 0)
