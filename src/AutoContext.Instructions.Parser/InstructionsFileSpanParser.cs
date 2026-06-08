@@ -130,7 +130,7 @@ internal sealed partial class InstructionsFileSpanParser(
                     continue;
                 }
 
-                var diagnostic = includeDiagnostics
+                var diagnostic = includeDiagnostics && scan.Fault != ReferenceFault.None
                     ? ReferenceFaultDiagnostic(scan.Fault, token.ToString())
                     : null;
 
@@ -586,7 +586,7 @@ internal sealed partial class InstructionsFileSpanParser(
     private void EmitHeading(ParserState state, PhysicalLine line, List<InstructionsFileParsedSpan> output)
     {
         var heading = GeneratedHeadingRegex().Match(line.Content);
-        var level = heading.Groups[1].Value.Length;
+        var level = heading.Groups[1].Length;
 
         var kind = level switch
         {
@@ -599,7 +599,7 @@ internal sealed partial class InstructionsFileSpanParser(
         {
             // A level-3 heading keeps the current section; level 1 always ends it,
             // and level 2 opens the addressable-rule region only for an exact `Rules`.
-            state.UnderRules = level == 2 && heading.Groups[2].Value == "Rules";
+            state.UnderRules = level == 2 && heading.Groups[2].ValueSpan.SequenceEqual("Rules");
         }
 
         var block = MakeSpan(state, kind, line.StartIndex, line.FullLength, line.LineIndex, 1);
@@ -704,11 +704,16 @@ internal sealed partial class InstructionsFileSpanParser(
             // otherwise it has no token to land on and promotes to the rule block.
             if (!_emitTags && rule.TagDiagnostic is { } tagDiagnostic)
             {
-                block = block with { Diagnostics = [.. rule.BlockDiagnostics, tagDiagnostic] };
+                block = block with
+                {
+                    Diagnostics = rule.BlockDiagnostics is { } blockDiagnostics
+                        ? [.. blockDiagnostics, tagDiagnostic]
+                        : [tagDiagnostic],
+                };
             }
-            else if (rule.BlockDiagnostics.Count > 0)
+            else if (rule.BlockDiagnostics is { Count: > 0 } ruleDiagnostics)
             {
-                block = block with { Diagnostics = rule.BlockDiagnostics };
+                block = block with { Diagnostics = ruleDiagnostics };
             }
 
             output.Add(block);
@@ -813,7 +818,7 @@ internal sealed partial class InstructionsFileSpanParser(
         InstructionsFileSpanKind kind;
         TagExtent? tag = null;
         InstructionsFileDiagnostic? tagDiagnostic = null;
-        List<InstructionsFileDiagnostic> blockDiagnostics = [];
+        List<InstructionsFileDiagnostic>? blockDiagnostics = null;
 
         if (valid.Success && valid.Groups[1].Success)
         {
@@ -827,7 +832,7 @@ internal sealed partial class InstructionsFileSpanParser(
 
                 if (state.SeenTags.TryGetValue(id, out var firstLine))
                 {
-                    blockDiagnostics.Add(new InstructionsFileDiagnostic(
+                    (blockDiagnostics ??= []).Add(new InstructionsFileDiagnostic(
                         InstructionsFileDiagnosticKind.DuplicateTag,
                         $"Duplicate INST tag [{id}]; first defined at line {firstLine + 1}."));
                 }
@@ -838,7 +843,7 @@ internal sealed partial class InstructionsFileSpanParser(
 
                 if (!state.UnderRules)
                 {
-                    blockDiagnostics.Add(new InstructionsFileDiagnostic(
+                    (blockDiagnostics ??= []).Add(new InstructionsFileDiagnostic(
                         InstructionsFileDiagnosticKind.MisplacedRule,
                         $"Tagged rule [{id}] appears outside the ## Rules section."));
                 }
@@ -850,7 +855,7 @@ internal sealed partial class InstructionsFileSpanParser(
 
             if (_includeDiagnostics && state.UnderRules)
             {
-                blockDiagnostics.Add(new InstructionsFileDiagnostic(
+                (blockDiagnostics ??= []).Add(new InstructionsFileDiagnostic(
                     InstructionsFileDiagnosticKind.MissingTag,
                     "Rule has no INST#### tag, so it cannot be addressed."));
             }
@@ -911,7 +916,7 @@ internal sealed partial class InstructionsFileSpanParser(
         int StartLine,
         List<TextLine> Lines,
         InstructionsFileDiagnostic? TagDiagnostic,
-        List<InstructionsFileDiagnostic> BlockDiagnostics);
+        List<InstructionsFileDiagnostic>? BlockDiagnostics);
 
     private readonly record struct PhysicalLine(string Content, string Terminator, int StartIndex, int LineIndex)
     {
