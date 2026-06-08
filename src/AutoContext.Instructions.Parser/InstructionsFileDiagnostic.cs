@@ -1,16 +1,18 @@
 namespace AutoContext.Instructions.Parser;
 
 /// <summary>
-/// A non-fatal observation the parser makes about an instruction bullet — a
-/// duplicate, missing, or malformed <c>INST####</c> tag. The parser reports
-/// diagnostics rather than throwing; whether any kind aborts a build is the
-/// consumer's policy.
+/// One file-local diagnostic discovered while parsing an instructions file. The
+/// span parser attaches it to the <see cref="InstructionsFileParsedSpan"/> that
+/// represents the fault; the structured parser later resolves <see cref="Line"/>
+/// to the body-relative coordinate consumers read. The <see cref="Kind"/> names
+/// the syntax problem; the <see cref="Message"/> describes it for a human reader.
 /// </summary>
-/// <param name="Kind">The category of the observation.</param>
-/// <param name="Line">The zero-based line index in the normalised body where the
-/// observation was made.</param>
-/// <param name="Message">A human-readable description of the observation.</param>
+/// <param name="Kind">The category of the fault.</param>
+/// <param name="Message">A human-readable description of the fault.</param>
+/// <param name="Line">The zero-based line index in the frontmatter-stripped body
+/// where the fault was found, or <c>-1</c> before the structured parser resolves
+/// it from the owning span's whole-file coordinates.</param>
 public sealed record InstructionsFileDiagnostic(
     InstructionsFileDiagnosticKind Kind,
-    int Line,
-    string Message);
+    string Message,
+    int Line = -1);

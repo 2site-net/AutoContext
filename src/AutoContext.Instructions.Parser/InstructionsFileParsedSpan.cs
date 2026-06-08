@@ -19,10 +19,10 @@ public sealed record InstructionsFileParsedSpan(
 {
     /// <summary>A shared, empty diagnostic list — the default
     /// <see cref="Diagnostics"/> value for any span that carries no fault.</summary>
-    public static IReadOnlyList<InstructionsFileSpanDiagnostic> NoDiagnostics { get; } = [];
+    public static IReadOnlyList<InstructionsFileDiagnostic> NoDiagnostics { get; } = [];
 
     /// <summary>The file-local diagnostics attached to this span. Empty unless the
     /// span — or a more specific span that was filtered out by the active emit
     /// level or scope and promoted here — represents a fault.</summary>
-    public IReadOnlyList<InstructionsFileSpanDiagnostic> Diagnostics { get; init; } = NoDiagnostics;
+    public IReadOnlyList<InstructionsFileDiagnostic> Diagnostics { get; init; } = NoDiagnostics;
 }

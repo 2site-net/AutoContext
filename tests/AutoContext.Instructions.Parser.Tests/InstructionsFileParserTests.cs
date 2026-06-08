@@ -262,7 +262,7 @@ public sealed class InstructionsFileParserTests
             Assert.Multiple(
                 () => Assert.Null(Assert.Single(result.Body.Rules).Id),
                 () => Assert.Equal(
-                    InstructionsFileDiagnosticKind.MissingId,
+                    InstructionsFileDiagnosticKind.MissingTag,
                     Assert.Single(result.Body.Diagnostics).Kind));
         }
 
@@ -274,7 +274,7 @@ public sealed class InstructionsFileParserTests
 
             // Assert
             Assert.Equal(
-                InstructionsFileDiagnosticKind.MalformedId,
+                InstructionsFileDiagnosticKind.MalformedTag,
                 Assert.Single(result.Body.Diagnostics).Kind);
         }
 
@@ -289,7 +289,7 @@ public sealed class InstructionsFileParserTests
 
             // Assert
             Assert.Equal(
-                InstructionsFileDiagnosticKind.DuplicateId,
+                InstructionsFileDiagnosticKind.DuplicateTag,
                 Assert.Single(result.Body.Diagnostics).Kind);
         }
 

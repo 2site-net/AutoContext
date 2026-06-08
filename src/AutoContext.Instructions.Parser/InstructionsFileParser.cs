@@ -377,16 +377,16 @@ public static partial class InstructionsFileParser
                 if (ruleId is null)
                 {
                     diagnostics.Add(new InstructionsFileDiagnostic(
-                        InstructionsFileDiagnosticKind.MissingId,
-                        lineIndex,
-                        "Instruction has no ID (unfilterable)"));
+                        InstructionsFileDiagnosticKind.MissingTag,
+                        "Instruction has no ID (unfilterable)",
+                        lineIndex));
                 }
                 else if (seenIds.TryGetValue(ruleId, out var firstLine))
                 {
                     diagnostics.Add(new InstructionsFileDiagnostic(
-                        InstructionsFileDiagnosticKind.DuplicateId,
-                        lineIndex,
-                        $"Duplicate instruction ID: {ruleId} (first seen at line {firstLine + 1})"));
+                        InstructionsFileDiagnosticKind.DuplicateTag,
+                        $"Duplicate instruction ID: {ruleId} (first seen at line {firstLine + 1})",
+                        lineIndex));
                 }
                 else
                 {
@@ -398,9 +398,9 @@ public static partial class InstructionsFileParser
                 var bracket = GeneratedBracketTagRegex().Match(line.ToString()).Groups[1].Value;
 
                 diagnostics.Add(new InstructionsFileDiagnostic(
-                    InstructionsFileDiagnosticKind.MalformedId,
-                    lineIndex,
-                    $"Malformed instruction ID: [{bracket}]"));
+                    InstructionsFileDiagnosticKind.MalformedTag,
+                    $"Malformed instruction ID: [{bracket}]",
+                    lineIndex));
             }
             else if (ruleStart >= 0)
             {
@@ -471,8 +471,8 @@ public static partial class InstructionsFileParser
             {
                 diagnostics.Add(new InstructionsFileDiagnostic(
                     InstructionsFileDiagnosticKind.MalformedReference,
-                    lineIndex,
-                    $"Malformed reference locator: [{locator}#{fragment}]"));
+                    $"Malformed reference locator: [{locator}#{fragment}]",
+                    lineIndex));
             }
             else if (GeneratedReferenceRuleFragmentRegex().IsMatch(fragment))
             {
@@ -502,8 +502,8 @@ public static partial class InstructionsFileParser
 
                 diagnostics.Add(new InstructionsFileDiagnostic(
                     InstructionsFileDiagnosticKind.MalformedReference,
-                    lineIndex,
-                    message));
+                    message,
+                    lineIndex));
             }
         }
     }

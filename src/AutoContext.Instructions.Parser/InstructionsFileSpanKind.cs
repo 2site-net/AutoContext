@@ -5,7 +5,7 @@ namespace AutoContext.Instructions.Parser;
 /// what a span <em>is</em> as written — never whether it is well-formed. A
 /// malformed construct keeps its natural kind (a bad rule tag is still a
 /// <see cref="Tag"/>); the fault is carried by an attached
-/// <see cref="InstructionsFileSpanDiagnostic"/>, not by a diagnostic-specific
+/// <see cref="InstructionsFileDiagnostic"/>, not by a diagnostic-specific
 /// kind.
 /// </summary>
 public enum InstructionsFileSpanKind

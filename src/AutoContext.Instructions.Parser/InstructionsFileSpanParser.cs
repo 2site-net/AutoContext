@@ -194,7 +194,7 @@ internal sealed partial class InstructionsFileSpanParser(
         return builder.ToString();
     }
 
-    private static InstructionsFileSpanDiagnostic? ClassifyReference(
+    private static InstructionsFileDiagnostic? ClassifyReference(
         string token,
         bool hasLocator,
         bool locatorValid,
@@ -202,8 +202,8 @@ internal sealed partial class InstructionsFileSpanParser(
     {
         if (hasLocator && !locatorValid)
         {
-            return new InstructionsFileSpanDiagnostic(
-                InstructionsFileSpanDiagnosticKind.MalformedReference,
+            return new InstructionsFileDiagnostic(
+                InstructionsFileDiagnosticKind.MalformedReference,
                 $"Malformed reference locator in {token}.");
         }
 
@@ -217,8 +217,8 @@ internal sealed partial class InstructionsFileSpanParser(
             ? $"Reference ranges are not allowed in {token}; cite each rule or the enclosing section."
             : $"Malformed reference fragment in {token}.";
 
-        return new InstructionsFileSpanDiagnostic(
-            InstructionsFileSpanDiagnosticKind.MalformedReference,
+        return new InstructionsFileDiagnostic(
+            InstructionsFileDiagnosticKind.MalformedReference,
             message);
     }
 
@@ -856,8 +856,8 @@ internal sealed partial class InstructionsFileSpanParser(
 
         InstructionsFileSpanKind kind;
         TagExtent? tag = null;
-        InstructionsFileSpanDiagnostic? tagDiagnostic = null;
-        List<InstructionsFileSpanDiagnostic> blockDiagnostics = [];
+        InstructionsFileDiagnostic? tagDiagnostic = null;
+        List<InstructionsFileDiagnostic> blockDiagnostics = [];
 
         if (valid.Success && valid.Groups[1].Success)
         {
@@ -871,8 +871,8 @@ internal sealed partial class InstructionsFileSpanParser(
 
                 if (state.SeenTags.TryGetValue(id, out var firstLine))
                 {
-                    blockDiagnostics.Add(new InstructionsFileSpanDiagnostic(
-                        InstructionsFileSpanDiagnosticKind.DuplicateTag,
+                    blockDiagnostics.Add(new InstructionsFileDiagnostic(
+                        InstructionsFileDiagnosticKind.DuplicateTag,
                         $"Duplicate INST tag [{id}]; first defined at line {firstLine + 1}."));
                 }
                 else
@@ -882,8 +882,8 @@ internal sealed partial class InstructionsFileSpanParser(
 
                 if (!state.UnderRules)
                 {
-                    blockDiagnostics.Add(new InstructionsFileSpanDiagnostic(
-                        InstructionsFileSpanDiagnosticKind.MisplacedRule,
+                    blockDiagnostics.Add(new InstructionsFileDiagnostic(
+                        InstructionsFileDiagnosticKind.MisplacedRule,
                         $"Tagged rule [{id}] appears outside the ## Rules section."));
                 }
             }
@@ -894,8 +894,8 @@ internal sealed partial class InstructionsFileSpanParser(
 
             if (_includeDiagnostics && state.UnderRules)
             {
-                blockDiagnostics.Add(new InstructionsFileSpanDiagnostic(
-                    InstructionsFileSpanDiagnosticKind.MissingTag,
+                blockDiagnostics.Add(new InstructionsFileDiagnostic(
+                    InstructionsFileDiagnosticKind.MissingTag,
                     "Rule has no INST#### tag, so it cannot be addressed."));
             }
         }
@@ -907,8 +907,8 @@ internal sealed partial class InstructionsFileSpanParser(
 
             if (_includeDiagnostics)
             {
-                tagDiagnostic = new InstructionsFileSpanDiagnostic(
-                    InstructionsFileSpanDiagnosticKind.MalformedTag,
+                tagDiagnostic = new InstructionsFileDiagnostic(
+                    InstructionsFileDiagnosticKind.MalformedTag,
                     $"Malformed INST tag [{bracket.Groups[1].Value}]; expected the form [INST####].");
             }
         }
@@ -951,8 +951,8 @@ internal sealed partial class InstructionsFileSpanParser(
         int StartIndex,
         int StartLine,
         List<TextLine> Lines,
-        InstructionsFileSpanDiagnostic? TagDiagnostic,
-        List<InstructionsFileSpanDiagnostic> BlockDiagnostics);
+        InstructionsFileDiagnostic? TagDiagnostic,
+        List<InstructionsFileDiagnostic> BlockDiagnostics);
 
     private readonly record struct PhysicalLine(string Content, string Terminator, int StartIndex, int LineIndex)
     {
@@ -971,5 +971,5 @@ internal sealed partial class InstructionsFileSpanParser(
         int LineIndex,
         string Text,
         InstructionsFileSpanKind Kind,
-        InstructionsFileSpanDiagnostic? Diagnostic = null);
+        InstructionsFileDiagnostic? Diagnostic = null);
 }

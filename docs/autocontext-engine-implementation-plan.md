@@ -1888,21 +1888,21 @@ consumers run on the new parser. Lands on branch
 | 1 | `feat(instructions): add InstructionsFileSpanParser span model and enums` | DONE |
 | 2 | `feat(instructions): implement InstructionsFileSpanParser block and token emission` | DONE |
 | 3 | `feat(instructions): attach file-local diagnostics to spans` | DONE |
-| 4 | `feat(instructions): add span-stream materializer for the structural parse` | Not started |
+| 4 | `feat(instructions): add structured parser over the span stream` | DONE |
 | 5 | `refactor(instructions-manifest-gen): repoint corpus parse onto the span parser` | Not started |
 | 6 | `refactor(engine-core): repoint InstructionsFileService onto the span parser` | Not started |
-| 7 | `refactor(instructions): delegate InstructionsFileParser.Parse to span parser and materializer` (interim façade) | Not started |
+| 7 | `refactor(instructions): delegate InstructionsFileParser.Parse to span parser and structured parser` (interim façade) | Not started |
 | 8 | `docs(plan): mark Phase 6P complete` | Not started |
 
 **Goal**: replace the single-pass regex `InstructionsFileParser` with a
 lower-level, incremental `InstructionsFileSpanParser` that emits
-source-positioned spans, plus a materializer that rebuilds the existing
+source-positioned spans, plus a structured parser that rebuilds the existing
 `InstructionsFileParsedContent` on top of the span stream. The two
 current corpus consumers — the build-time
 `AutoContext.Instructions.Manifest.Generator` and the runtime
 `InstructionsFileService` — are repointed onto the new parser;
 `InstructionsFileParser.Parse` is retained as a façade delegating to
-span parser + materializer so no other call site changes.
+span parser + structured parser so no other call site changes.
 
 **Design anchors**: the locked span-parser design contracts —
 emit-level/emit-scope **intersection** model
@@ -1927,8 +1927,8 @@ references, and the Rules-boundary `---` fence-aware).
   `InstructionsFileLineSpan`, `InstructionsFileSpanKind`,
   `[Flags] InstructionsFileSpanEmitLevel`,
   `[Flags] InstructionsFileSpanEmitScope`,
-  `InstructionsFileSpanDiagnostic`,
-  `InstructionsFileSpanDiagnosticKind` (`MissingTag`, `DuplicateTag`,
+  `InstructionsFileDiagnostic`,
+  `InstructionsFileDiagnosticKind` (`MissingTag`, `DuplicateTag`,
   `MalformedTag`, `MalformedReference`, `MisplacedRule`).
 - Single streaming pass carries: an `inFence` toggle (gates
   headings/references and the `---` Rules boundary; rule bullets stay
@@ -1938,16 +1938,16 @@ references, and the Rules-boundary `---` fence-aware).
   EOF), and a seen-tag set for `DuplicateTag`. Diagnostics attach to
   the most specific emitted span, promoting to the nearest emitted
   parent when the specific span is filtered out by level/scope.
-- Materializer (`InstructionsFileSpanMaterializer`) — consumes the
+- Structured parser (`InstructionsFileStructuredParser`) — consumes the
   `Full`/`All` span stream and rebuilds `InstructionsFileParsedContent`
   (frontmatter `name`/`description`/`applyTo`/`version`, the
   `##`/`###` section index with slug anchors, rule bullets,
   `[locator#fragment]` references split into Rule/Section kinds, and
-  diagnostics mapped onto the legacy `InstructionsFileDiagnosticKind`
-  vocabulary — span `MissingTag` → `MissingId`, etc.). `ApplyToParser`
+  diagnostics carrying the span `InstructionsFileSpanDiagnosticKind`
+  directly with a body-relative line). `ApplyToParser`
   glob parsing and `Slugify` are reused unchanged.
 - `InstructionsFileParser.Parse(string)` retained **as an interim
-  façade**, now delegating to span parser + materializer;
+  façade**, now delegating to span parser + structured parser;
   `InstructionsFile.Parse` / `ParseAsync` / `TryParse*` unchanged on
   the surface. The façade is a migration shim, not the end state — see
   *Eventual full retirement* below.
@@ -1974,7 +1974,7 @@ references, and the Rules-boundary `---` fence-aware).
 - Malformed-tag redefinition: `- [foo] **Do**` → `TaggedRule` +
   `Tag` + `MalformedTag` (captured as the one intentional parity diff
   versus the legacy parser).
-- Materializer parity: across the shipped corpus the rebuilt
+- Structured-parser parity: across the shipped corpus the rebuilt
   `InstructionsFileParsedContent` matches the legacy parser
   field-for-field except the documented malformed-tag diff.
 - Generator parity: `instructions-manifest.json` is byte-identical
@@ -1984,9 +1984,9 @@ references, and the Rules-boundary `---` fence-aware).
 
 **Eventual full retirement** (a later follow-up phase, not 6P): once
 both consumers and the test suite have run on the span parser +
-materializer through a release cycle, retire `InstructionsFileParser`
+structured parser through a release cycle, retire `InstructionsFileParser`
 entirely — move every consumer and test onto the span parser /
-materializer (or a thin public entry point over them) and delete the
+structured parser (or a thin public entry point over them) and delete the
 legacy regex implementation and its result-shape adapters. 6P
 deliberately keeps the façade so the cutover is reversible and the
 parity diff stays small; the façade is the bridge, the span parser is

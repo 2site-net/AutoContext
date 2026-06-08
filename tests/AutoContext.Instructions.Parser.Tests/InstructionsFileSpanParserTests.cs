@@ -473,7 +473,7 @@ public sealed class InstructionsFileSpanParserTests
             var diagnostic = Assert.Single(rule.Diagnostics);
             Assert.Multiple(
                 () => Assert.Equal(InstructionsFileSpanKind.PlainRule, rule.Kind),
-                () => Assert.Equal(InstructionsFileSpanDiagnosticKind.MissingTag, diagnostic.Kind));
+                () => Assert.Equal(InstructionsFileDiagnosticKind.MissingTag, diagnostic.Kind));
         }
 
         [Fact]
@@ -510,7 +510,7 @@ public sealed class InstructionsFileSpanParserTests
             var diagnostic = Assert.Single(rule.Diagnostics);
             Assert.Multiple(
                 () => Assert.Equal(InstructionsFileSpanKind.TaggedRule, rule.Kind),
-                () => Assert.Equal(InstructionsFileSpanDiagnosticKind.MisplacedRule, diagnostic.Kind));
+                () => Assert.Equal(InstructionsFileDiagnosticKind.MisplacedRule, diagnostic.Kind));
         }
 
         [Fact]
@@ -547,7 +547,7 @@ public sealed class InstructionsFileSpanParserTests
             var diagnostic = Assert.Single(rules[1].Diagnostics);
             Assert.Multiple(
                 () => Assert.Empty(rules[0].Diagnostics),
-                () => Assert.Equal(InstructionsFileSpanDiagnosticKind.DuplicateTag, diagnostic.Kind));
+                () => Assert.Equal(InstructionsFileDiagnosticKind.DuplicateTag, diagnostic.Kind));
         }
 
         [Fact]
@@ -567,7 +567,7 @@ public sealed class InstructionsFileSpanParserTests
             // Assert
             var diagnostic = Assert.Single(tag.Diagnostics);
             Assert.Multiple(
-                () => Assert.Equal(InstructionsFileSpanDiagnosticKind.MalformedTag, diagnostic.Kind),
+                () => Assert.Equal(InstructionsFileDiagnosticKind.MalformedTag, diagnostic.Kind),
                 () => Assert.Empty(rule.Diagnostics));
         }
 
@@ -587,7 +587,7 @@ public sealed class InstructionsFileSpanParserTests
             var diagnostic = Assert.Single(rule.Diagnostics);
             Assert.Multiple(
                 () => Assert.Equal(InstructionsFileSpanKind.TaggedRule, rule.Kind),
-                () => Assert.Equal(InstructionsFileSpanDiagnosticKind.MalformedTag, diagnostic.Kind));
+                () => Assert.Equal(InstructionsFileDiagnosticKind.MalformedTag, diagnostic.Kind));
         }
 
         [Fact]
@@ -606,7 +606,7 @@ public sealed class InstructionsFileSpanParserTests
             var diagnostic = Assert.Single(reference.Diagnostics);
             Assert.Multiple(
                 () => Assert.Equal(InstructionsFileSpanKind.Reference, reference.Kind),
-                () => Assert.Equal(InstructionsFileSpanDiagnosticKind.MalformedReference, diagnostic.Kind));
+                () => Assert.Equal(InstructionsFileDiagnosticKind.MalformedReference, diagnostic.Kind));
         }
 
         [Fact]
@@ -623,7 +623,7 @@ public sealed class InstructionsFileSpanParserTests
 
             // Assert
             var diagnostic = Assert.Single(reference.Diagnostics);
-            Assert.Equal(InstructionsFileSpanDiagnosticKind.MalformedReference, diagnostic.Kind);
+            Assert.Equal(InstructionsFileDiagnosticKind.MalformedReference, diagnostic.Kind);
         }
 
         [Fact]
@@ -690,7 +690,7 @@ public sealed class InstructionsFileSpanParserTests
 
             // Assert
             var diagnostic = Assert.Single(rule.Diagnostics);
-            Assert.Equal(InstructionsFileSpanDiagnosticKind.MissingTag, diagnostic.Kind);
+            Assert.Equal(InstructionsFileDiagnosticKind.MissingTag, diagnostic.Kind);
         }
 
         [Fact]
@@ -707,7 +707,7 @@ public sealed class InstructionsFileSpanParserTests
 
             // Assert
             var diagnostic = Assert.Single(rule.Diagnostics);
-            Assert.Equal(InstructionsFileSpanDiagnosticKind.MissingTag, diagnostic.Kind);
+            Assert.Equal(InstructionsFileDiagnosticKind.MissingTag, diagnostic.Kind);
         }
 
         [Fact]
