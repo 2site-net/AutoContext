@@ -17,6 +17,7 @@ builder.Services.AddInstructionsManifestGenerator();
 
 using var host = builder.Build();
 
-return host.Services
+return await host.Services
     .GetRequiredService<InstructionsManifestGenerator>()
-    .Run(args);
+    .RunAsync(args)
+    .ConfigureAwait(false);

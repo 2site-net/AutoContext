@@ -7,7 +7,7 @@ using System.Text.RegularExpressions;
 /// Scans the raw text of an instructions file and breaks it into
 /// <see cref="InstructionsFileParsedSpan"/> pieces — frontmatter, headings, rule
 /// bullets, tags, and references — each marked with where it sits in the file.
-/// This is the first of two passes; <see cref="InstructionsFileStructuredParser"/>
+/// This is the first of two passes; <see cref="InstructionsFileParser"/>
 /// takes the flat pieces produced here and turns them into the final structured
 /// result.
 /// <para>
@@ -46,7 +46,7 @@ using System.Text.RegularExpressions;
 /// single-line <c>name</c> / <c>description</c> / <c>applyTo</c> entries.
 /// </para>
 /// </summary>
-internal sealed partial class InstructionsFileSpanParser(
+public sealed partial class InstructionsFileSyntaxParser(
     InstructionsFileSpanEmitLevel emitLevel = InstructionsFileSpanEmitLevel.Full,
     InstructionsFileSpanEmitScope emitScope = InstructionsFileSpanEmitScope.All,
     bool includeDiagnostics = true)
@@ -79,10 +79,14 @@ internal sealed partial class InstructionsFileSpanParser(
     /// <param name="text">The decoded instructions text.</param>
     /// <param name="cancellationToken">Cancels the scan; checked once per line.</param>
     /// <returns>The list of spans.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="text"/> is
+    /// <see langword="null"/>.</exception>
     public IReadOnlyList<InstructionsFileParsedSpan> Parse(
         string text,
         CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(text);
+
         var state = new ParserState { Source = text };
         var output = new List<InstructionsFileParsedSpan>();
 

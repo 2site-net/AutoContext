@@ -12,14 +12,14 @@ public sealed class ShippedInstructionsRoundTripTests
         private readonly InstructionsManifestBuilder _sut = new();
 
         [Fact]
-        public void Should_build_one_entry_for_every_shipped_file()
+        public async Task Should_build_one_entry_for_every_shipped_file()
         {
             // Arrange
             var instructionsPath = EngineInstructionsPath.Value;
             var expectedCount = Directory.GetFiles(instructionsPath, "*.instructions.md").Length;
 
             // Act
-            var manifest = _sut.Build(_corpusParser.Parse(instructionsPath));
+            var manifest = _sut.Build(await _corpusParser.ParseAsync(instructionsPath, TestContext.Current.CancellationToken));
 
             // Assert
             Assert.Multiple(
@@ -28,10 +28,10 @@ public sealed class ShippedInstructionsRoundTripTests
         }
 
         [Fact]
-        public void Should_carry_section_maps_and_extensions_for_the_shipped_files()
+        public async Task Should_carry_section_maps_and_extensions_for_the_shipped_files()
         {
             // Act
-            var manifest = _sut.Build(_corpusParser.Parse(EngineInstructionsPath.Value));
+            var manifest = _sut.Build(await _corpusParser.ParseAsync(EngineInstructionsPath.Value, TestContext.Current.CancellationToken));
 
             // Assert
             Assert.Multiple(
@@ -43,26 +43,27 @@ public sealed class ShippedInstructionsRoundTripTests
     public sealed class ApplyTo
     {
         [Fact]
-        public void Should_round_trip_every_shipped_value_verbatim()
+        public async Task Should_round_trip_every_shipped_value_verbatim()
         {
             // Arrange
             var files = Directory.GetFiles(EngineInstructionsPath.Value, "*.instructions.md");
+            var parser = new InstructionsFileParser();
 
             // Act
-            var nonRoundTripping = files
-                .Where(static path => ParseApplyTo(path) is { RoundTrips: false })
-                .Select(Path.GetFileName)
-                .ToList();
+            var nonRoundTripping = new List<string?>();
+            foreach (var path in files)
+            {
+                var parsed = await parser.ParseFileAsync(path, TestContext.Current.CancellationToken);
+                if (parsed.Frontmatter.ApplyTo is { RoundTrips: false })
+                {
+                    nonRoundTripping.Add(Path.GetFileName(path));
+                }
+            }
 
             // Assert
             Assert.Multiple(
                 () => Assert.NotEmpty(files),
                 () => Assert.Empty(nonRoundTripping));
-
-            static FrontmatterApplyToParsedMetadata? ParseApplyTo(string path)
-            {
-                return InstructionsFileParser.ParseFrontmatter(File.ReadAllText(path)).ApplyTo;
-            }
         }
     }
 
@@ -72,10 +73,10 @@ public sealed class ShippedInstructionsRoundTripTests
         private readonly InstructionsCatalogReader _sut = new();
 
         [Fact]
-        public void Should_reconcile_the_shipped_catalog_with_the_corpus()
+        public async Task Should_reconcile_the_shipped_catalog_with_the_corpus()
         {
             // Arrange
-            var corpus = _corpusParser.Parse(EngineInstructionsPath.Value);
+            var corpus = await _corpusParser.ParseAsync(EngineInstructionsPath.Value, TestContext.Current.CancellationToken);
             var catalogPath = Path.Combine(
                 Path.GetDirectoryName(EngineInstructionsPath.Value)!,
                 "Resources",

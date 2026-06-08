@@ -3,7 +3,7 @@ namespace AutoContext.Instructions.Parser;
 /// <summary>
 /// Parses an instructions file's <c>applyTo</c> frontmatter value into its
 /// structural pieces. This is an internal collaborator of
-/// <see cref="InstructionsFileParser"/> — the single public entry point — not a
+/// <see cref="InstructionsFileParser"/> — the structural file parser — not a
 /// second file parser: it understands only the <c>applyTo</c> glob-list
 /// grammar. The parser splits comma-separated globs at brace depth zero (so
 /// intra-brace commas such as <c>{cs,fs}</c> survive), brace-expands

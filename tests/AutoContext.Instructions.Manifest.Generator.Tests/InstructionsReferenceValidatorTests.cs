@@ -20,7 +20,7 @@ public sealed class InstructionsReferenceValidatorTests
         }
 
         [Fact]
-        public void Should_yield_no_findings_when_every_reference_resolves()
+        public async Task Should_yield_no_findings_when_every_reference_resolves()
         {
             // Arrange
             var corpus = tempDirectory.CreateDirectory();
@@ -30,14 +30,14 @@ public sealed class InstructionsReferenceValidatorTests
                 corpus, "dotnet-testing.instructions.md", "dotnet-testing (v1.0.0)", ".NET testing.", body: "See [testing#INST0001] here.\n");
 
             // Act
-            var findings = _sut.Validate(_corpusParser.Parse(corpus));
+            var findings = _sut.Validate(await _corpusParser.ParseAsync(corpus, TestContext.Current.CancellationToken));
 
             // Assert
             Assert.Empty(findings);
         }
 
         [Fact]
-        public void Should_flag_unknown_locator()
+        public async Task Should_flag_unknown_locator()
         {
             // Arrange
             var corpus = tempDirectory.CreateDirectory();
@@ -45,7 +45,7 @@ public sealed class InstructionsReferenceValidatorTests
                 corpus, "testing.instructions.md", "testing (v1.0.0)", "Testing.", body: "See [nosuch#INST0001] here.\n");
 
             // Act
-            var finding = Assert.Single(_sut.Validate(_corpusParser.Parse(corpus)));
+            var finding = Assert.Single(_sut.Validate(await _corpusParser.ParseAsync(corpus, TestContext.Current.CancellationToken)));
 
             // Assert
             Assert.Multiple(
@@ -55,7 +55,7 @@ public sealed class InstructionsReferenceValidatorTests
         }
 
         [Fact]
-        public void Should_flag_dangling_rule_reference()
+        public async Task Should_flag_dangling_rule_reference()
         {
             // Arrange
             var corpus = tempDirectory.CreateDirectory();
@@ -65,14 +65,14 @@ public sealed class InstructionsReferenceValidatorTests
                 corpus, "dotnet-testing.instructions.md", "dotnet-testing (v1.0.0)", ".NET testing.", body: "See [testing#INST9999] here.\n");
 
             // Act
-            var finding = Assert.Single(_sut.Validate(_corpusParser.Parse(corpus)));
+            var finding = Assert.Single(_sut.Validate(await _corpusParser.ParseAsync(corpus, TestContext.Current.CancellationToken)));
 
             // Assert
             Assert.Equal(InstructionsFileReferenceFindingKind.DanglingRuleReference, finding.Failure.Kind);
         }
 
         [Fact]
-        public void Should_flag_redundant_self_locator()
+        public async Task Should_flag_redundant_self_locator()
         {
             // Arrange
             var corpus = tempDirectory.CreateDirectory();
@@ -84,14 +84,14 @@ public sealed class InstructionsReferenceValidatorTests
                 body: "- [INST0001] **Do** test, see [testing#INST0001].\n");
 
             // Act
-            var finding = Assert.Single(_sut.Validate(_corpusParser.Parse(corpus)));
+            var finding = Assert.Single(_sut.Validate(await _corpusParser.ParseAsync(corpus, TestContext.Current.CancellationToken)));
 
             // Assert
             Assert.Equal(InstructionsFileReferenceFindingKind.RedundantLocator, finding.Failure.Kind);
         }
 
         [Fact]
-        public void Should_aggregate_findings_across_files_in_key_order()
+        public async Task Should_aggregate_findings_across_files_in_key_order()
         {
             // Arrange
             var corpus = tempDirectory.CreateDirectory();
@@ -101,7 +101,7 @@ public sealed class InstructionsReferenceValidatorTests
                 corpus, "beta.instructions.md", "beta (v1.0.0)", "Beta.", body: "See [missing#INST0002] here.\n");
 
             // Act
-            var findings = _sut.Validate(_corpusParser.Parse(corpus));
+            var findings = _sut.Validate(await _corpusParser.ParseAsync(corpus, TestContext.Current.CancellationToken));
 
             // Assert
             Assert.Multiple(

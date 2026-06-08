@@ -33,10 +33,11 @@ internal sealed partial class InstructionsManifestGenerator(
     /// manifest-json-path]</c>.
     /// </summary>
     /// <param name="args">The positional command-line arguments.</param>
+    /// <param name="cancellationToken">Cancels the generation pass.</param>
     /// <returns>The process exit code.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="args"/> is
     /// <see langword="null"/>.</exception>
-    public int Run(IReadOnlyList<string> args)
+    public async Task<int> RunAsync(IReadOnlyList<string> args, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(args);
 
@@ -52,7 +53,7 @@ internal sealed partial class InstructionsManifestGenerator(
 
         try
         {
-            var corpus = corpusParser.Parse(corpusDirectory);
+            var corpus = await corpusParser.ParseAsync(corpusDirectory, cancellationToken).ConfigureAwait(false);
             _ = catalogReader.Read(catalogPath, corpus);
             var manifest = builder.Build(corpus);
 

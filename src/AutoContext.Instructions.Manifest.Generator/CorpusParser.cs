@@ -8,7 +8,7 @@ using AutoContext.Instructions.Parser;
 /// <summary>
 /// The single disk-reading stage of one generation pass. It walks the corpus
 /// directory, reads each <c>*.instructions.md</c> file once via
-/// <see cref="InstructionsFile.Parse(string)"/>, and precomputes the
+/// <see cref="InstructionsFileParser.ParseFileAsync"/>, and precomputes the
 /// frontmatter-stripped content hash and sibling-changelog flag. Every later stage
 /// (<see cref="InstructionsManifestBuilder"/>, <see cref="InstructionsCatalogReader"/>,
 /// and <see cref="InstructionsReferenceValidator"/>) reads the resulting
@@ -22,7 +22,9 @@ internal sealed class CorpusParser : ICorpusParser
     private static readonly UTF8Encoding Utf8NoBom = new(encoderShouldEmitUTF8Identifier: false);
 
     /// <inheritdoc />
-    public IReadOnlyDictionary<string, InstructionsFileParsedFile> Parse(string corpusDirectory)
+    public async Task<IReadOnlyDictionary<string, InstructionsFileParsedFile>> ParseAsync(
+        string corpusDirectory,
+        CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(corpusDirectory);
 
@@ -34,10 +36,13 @@ internal sealed class CorpusParser : ICorpusParser
             .ToList();
 
         var corpus = new Dictionary<string, InstructionsFileParsedFile>(fileNames.Count, StringComparer.Ordinal);
+        var parser = new InstructionsFileParser();
 
         foreach (var fileName in fileNames)
         {
-            var parsed = InstructionsFile.Parse(Path.Combine(corpusDirectory, fileName));
+            var parsed = await parser
+                .ParseFileAsync(Path.Combine(corpusDirectory, fileName), cancellationToken)
+                .ConfigureAwait(false);
             var contentHash = ComputeContentHash(parsed.Body.RawValue);
             var key = fileName[..^InstructionsFileSuffix.Length];
             var hasChangelog = File.Exists(Path.Combine(corpusDirectory, key + ".CHANGELOG.md"));

@@ -1,7 +1,7 @@
 namespace AutoContext.Instructions.Parser;
 
 /// <summary>
-/// Chooses how much detail an <see cref="InstructionsFileSpanParser"/> emits.
+/// Chooses how much detail an <see cref="InstructionsFileSyntaxParser"/> emits.
 /// Works together with <see cref="InstructionsFileSpanEmitScope"/>: a span is
 /// emitted only when both its level (here) and its scope are switched on.
 /// </summary>

@@ -1,7 +1,7 @@
 namespace AutoContext.Instructions.Parser;
 
 /// <summary>
-/// Chooses which groups of spans an <see cref="InstructionsFileSpanParser"/>
+/// Chooses which groups of spans an <see cref="InstructionsFileSyntaxParser"/>
 /// emits. Pick the groups you want and their spans are added. Works together with
 /// <see cref="InstructionsFileSpanEmitLevel"/>: a span is emitted only when both
 /// its scope (here) and its level are switched on.

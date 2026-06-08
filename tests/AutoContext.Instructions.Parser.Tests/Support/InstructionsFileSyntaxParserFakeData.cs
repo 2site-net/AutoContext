@@ -1,6 +1,6 @@
 namespace AutoContext.Instructions.Parser.Tests.Support;
 
-internal static class InstructionsFileSpanParserFakeData
+internal static class InstructionsFileSyntaxParserFakeData
 {
     public const string AllKinds =
         "---\n" +

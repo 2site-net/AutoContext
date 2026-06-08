@@ -1,7 +1,7 @@
 namespace AutoContext.Instructions.Parser;
 
 /// <summary>
-/// One piece of an instructions file that <see cref="InstructionsFileSpanParser"/>
+/// One piece of an instructions file that <see cref="InstructionsFileSyntaxParser"/>
 /// found and labelled. A span is not the same as a line: it may cover part of a
 /// line, a whole line, or several lines. A large block span (a frontmatter block,
 /// a rule bullet) can hold smaller token spans inside it (keys, values, tags,

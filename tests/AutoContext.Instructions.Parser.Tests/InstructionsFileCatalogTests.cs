@@ -1,5 +1,7 @@
 namespace AutoContext.Instructions.Parser.Tests;
 
+using AutoContext.Instructions.Parser.Tests.Support;
+
 public sealed class InstructionsFileCatalogTests
 {
     public sealed class Constructor
@@ -54,7 +56,7 @@ public sealed class InstructionsFileCatalogTests
         public void Should_project_tagged_rule_ids_into_the_entry()
         {
             // Arrange
-            var parsed = InstructionsFileParser.Parse("- [INST0001] **Do** one.\n- [INST0002] **Don't** two.\n");
+            var parsed = InstructionsFileSpanStream.Parse("- [INST0001] **Do** one.\n- [INST0002] **Don't** two.\n");
             var parsedByKey = new Dictionary<string, InstructionsFileParsedContent>(StringComparer.Ordinal)
             {
                 ["testing"] = parsed,
@@ -75,7 +77,7 @@ public sealed class InstructionsFileCatalogTests
         public void Should_omit_untagged_rules_from_the_entry()
         {
             // Arrange
-            var parsed = InstructionsFileParser.Parse("- [INST0001] **Do** one.\n- **Do** untagged.\n");
+            var parsed = InstructionsFileSpanStream.Parse("- [INST0001] **Do** one.\n- **Do** untagged.\n");
             var parsedByKey = new Dictionary<string, InstructionsFileParsedContent>(StringComparer.Ordinal)
             {
                 ["testing"] = parsed,
@@ -93,7 +95,7 @@ public sealed class InstructionsFileCatalogTests
         public void Should_project_the_section_index_into_the_entry()
         {
             // Arrange
-            var parsed = InstructionsFileParser.Parse("## Assertions\n\n## Test Support\n");
+            var parsed = InstructionsFileSpanStream.Parse("## Assertions\n\n## Test Support\n");
             var parsedByKey = new Dictionary<string, InstructionsFileParsedContent>(StringComparer.Ordinal)
             {
                 ["testing"] = parsed,

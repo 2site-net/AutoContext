@@ -11,14 +11,15 @@ public sealed class CorpusParserTests
         private readonly CorpusParser _sut = new();
 
         [Fact]
-        public void Should_reject_null_corpus_directory()
+        public async Task Should_reject_null_corpus_directory()
         {
             // Act + Assert
-            Assert.Throws<ArgumentNullException>(() => _sut.Parse(null!));
+            await Assert.ThrowsAsync<ArgumentNullException>(
+                () => _sut.ParseAsync(null!, TestContext.Current.CancellationToken));
         }
 
         [Fact]
-        public void Should_key_files_by_basename_stem()
+        public async Task Should_key_files_by_basename_stem()
         {
             // Arrange
             var corpus = tempDirectory.CreateDirectory();
@@ -26,7 +27,7 @@ public sealed class CorpusParserTests
             InstructionsCorpusTestWriter.WriteInstruction(corpus, "code-review.instructions.md", "code-review (v1.0.0)", "Review.");
 
             // Act
-            var parsed = _sut.Parse(corpus);
+            var parsed = await _sut.ParseAsync(corpus, TestContext.Current.CancellationToken);
 
             // Assert
             var expectedKeys = new[] { "code-review", "testing" };
@@ -34,7 +35,7 @@ public sealed class CorpusParserTests
         }
 
         [Fact]
-        public void Should_bundle_verbatim_content_and_full_parse()
+        public async Task Should_bundle_verbatim_content_and_full_parse()
         {
             // Arrange
             var corpus = tempDirectory.CreateDirectory();
@@ -42,7 +43,7 @@ public sealed class CorpusParserTests
                 corpus, "testing.instructions.md", "testing (v1.0.0)", "Testing.", body: "## Heading\n\n- [INST0001] **Do** test.\n");
 
             // Act
-            var file = _sut.Parse(corpus)["testing"];
+            var file = (await _sut.ParseAsync(corpus, TestContext.Current.CancellationToken))["testing"];
 
             // Assert
             Assert.Multiple(
@@ -53,14 +54,14 @@ public sealed class CorpusParserTests
         }
 
         [Fact]
-        public void Should_compute_sha256_content_hash()
+        public async Task Should_compute_sha256_content_hash()
         {
             // Arrange
             var corpus = tempDirectory.CreateDirectory();
             InstructionsCorpusTestWriter.WriteInstruction(corpus, "testing.instructions.md", "testing (v1.0.0)", "Testing.");
 
             // Act
-            var file = _sut.Parse(corpus)["testing"];
+            var file = (await _sut.ParseAsync(corpus, TestContext.Current.CancellationToken))["testing"];
 
             // Assert
             Assert.Multiple(
@@ -69,7 +70,7 @@ public sealed class CorpusParserTests
         }
 
         [Fact]
-        public void Should_exclude_frontmatter_from_content_hash()
+        public async Task Should_exclude_frontmatter_from_content_hash()
         {
             // Arrange
             var corpus = tempDirectory.CreateDirectory();
@@ -79,14 +80,14 @@ public sealed class CorpusParserTests
                 corpus, "design.instructions.md", "design (v9.9.9)", "Different frontmatter.", applyTo: "**/*.cs", body: "# Heading\n\nShared body.\n");
 
             // Act
-            var parsed = _sut.Parse(corpus);
+            var parsed = await _sut.ParseAsync(corpus, TestContext.Current.CancellationToken);
 
             // Assert
             Assert.Equal(parsed["testing"].ContentHash, parsed["design"].ContentHash);
         }
 
         [Fact]
-        public void Should_flag_sibling_changelog()
+        public async Task Should_flag_sibling_changelog()
         {
             // Arrange
             var corpus = tempDirectory.CreateDirectory();
@@ -95,7 +96,7 @@ public sealed class CorpusParserTests
             InstructionsCorpusTestWriter.WriteChangelog(corpus, "testing");
 
             // Act
-            var parsed = _sut.Parse(corpus);
+            var parsed = await _sut.ParseAsync(corpus, TestContext.Current.CancellationToken);
 
             // Assert
             Assert.Multiple(

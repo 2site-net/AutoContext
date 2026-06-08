@@ -1878,31 +1878,30 @@ corrected files):
 
 ## Phase 6P — New span-based instructions parser
 
-**Status**: Not started. **Interrupts Phase 6** after rows 1–3 and 5:
-Phase 6 is paused here and resumes (rows 4, 6–15) once both corpus
-consumers run on the new parser. Lands on branch
-`features/instructions-span-parser`.
+**Status**: **Complete.** All rows landed: both corpus consumers run on
+the new parser pair, and the legacy single-pass parser has been deleted.
+Landed on branch `features/instructions-span-parser`.
 
 | # | Commit subject | State |
 |---|---|---|
-| 1 | `feat(instructions): add InstructionsFileSpanParser span model and enums` | DONE |
-| 2 | `feat(instructions): implement InstructionsFileSpanParser block and token emission` | DONE |
+| 1 | `feat(instructions): add InstructionsFileSyntaxParser span model and enums` | DONE |
+| 2 | `feat(instructions): implement InstructionsFileSyntaxParser block and token emission` | DONE |
 | 3 | `feat(instructions): attach file-local diagnostics to spans` | DONE |
 | 4 | `feat(instructions): add structured parser over the span stream` | DONE |
-| 5 | `refactor(instructions-manifest-gen): repoint corpus parse onto the span parser` | Not started |
-| 6 | `refactor(engine-core): repoint InstructionsFileService onto the span parser` | Not started |
-| 7 | `refactor(instructions): delegate InstructionsFileParser.Parse to span parser and structured parser` (interim façade) | Not started |
-| 8 | `docs(plan): mark Phase 6P complete` | Not started |
+| 5 | `refactor(instructions-manifest-gen): repoint corpus parse onto the syntax parser` | DONE |
+| 6 | `refactor(engine-core): repoint InstructionsFileService onto the syntax parser` | DONE |
+| 7 | `refactor(instructions): delete legacy InstructionsFileParser/InstructionsFile and rename structured parser to InstructionsFileParser` | DONE |
+| 8 | `docs(plan): mark Phase 6P complete` | DONE |
 
-**Goal**: replace the single-pass regex `InstructionsFileParser` with a
-lower-level, incremental `InstructionsFileSpanParser` that emits
-source-positioned spans, plus a structured parser that rebuilds the existing
-`InstructionsFileParsedContent` on top of the span stream. The two
+**Goal**: replace the single-pass regex parser with a
+lower-level, incremental `InstructionsFileSyntaxParser` that emits
+source-positioned spans, plus a structured `InstructionsFileParser` that
+rebuilds `InstructionsFileParsedContent` on top of the span stream. The two
 current corpus consumers — the build-time
 `AutoContext.Instructions.Manifest.Generator` and the runtime
-`InstructionsFileService` — are repointed onto the new parser;
-`InstructionsFileParser.Parse` is retained as a façade delegating to
-span parser + structured parser so no other call site changes.
+`InstructionsFileService` — are repointed onto the new parser pair, and the
+legacy regex `InstructionsFileParser` and the `InstructionsFile` static entry
+are deleted.
 
 **Design anchors**: the locked span-parser design contracts —
 emit-level/emit-scope **intersection** model
@@ -1916,7 +1915,7 @@ preserved fence asymmetry (rule bullets fence-agnostic; headings,
 references, and the Rules-boundary `---` fence-aware).
 
 **Code touch** (`AutoContext.Instructions.Parser/`):
-- `InstructionsFileSpanParser` — `internal sealed`;
+- `InstructionsFileSyntaxParser` — `internal sealed`;
   `ParseFileAsync(string)` owns I/O (`FileStream` + `StreamReader`)
   and delegates to `ParseAsync(TextReader)`, which consumes decoded
   text incrementally and yields `InstructionsFileParsedSpan`. Ctor:
@@ -1938,7 +1937,7 @@ references, and the Rules-boundary `---` fence-aware).
   EOF), and a seen-tag set for `DuplicateTag`. Diagnostics attach to
   the most specific emitted span, promoting to the nearest emitted
   parent when the specific span is filtered out by level/scope.
-- Structured parser (`InstructionsFileStructuredParser`) — consumes the
+- Structured parser (`InstructionsFileParser`) — consumes the
   `Full`/`All` span stream and rebuilds `InstructionsFileParsedContent`
   (frontmatter `name`/`description`/`applyTo`/`version`, the
   `##`/`###` section index with slug anchors, rule bullets,
@@ -1946,17 +1945,15 @@ references, and the Rules-boundary `---` fence-aware).
   diagnostics carrying the span `InstructionsFileSpanDiagnosticKind`
   directly with a body-relative line). `ApplyToParser`
   glob parsing and `Slugify` are reused unchanged.
-- `InstructionsFileParser.Parse(string)` retained **as an interim
-  façade**, now delegating to span parser + structured parser;
-  `InstructionsFile.Parse` / `ParseAsync` / `TryParse*` unchanged on
-  the surface. The façade is a migration shim, not the end state — see
-  *Eventual full retirement* below.
+- The legacy single-pass `InstructionsFileParser`, the `InstructionsFile`
+  static entry (`Parse` / `ParseAsync` / `TryParse*`), and
+  `InstructionsFileTryResult` are deleted; the structured parser takes the
+  `InstructionsFileParser` name and is the sole structural entry point.
 - Repoint `AutoContext.Instructions.Manifest.Generator/CorpusParser`
   and `AutoContext.Engine.Core/Features/Instructions/InstructionsFileService`
-  (the `InstructionsFileParser.Parse(content).Body` call) onto the new
-  path. Decide per-consumer whether to adopt the async span API
-  directly — the generator can stay synchronous through the façade;
-  the file service already runs async.
+  onto `InstructionsFileParser.ParseFileAsync`. Both consumers adopt the
+  async API directly — `CorpusParser.ParseAsync` and the already-async
+  file service.
 
 **Tests**:
 - Span parser: emit-level × emit-scope truth table
@@ -1982,18 +1979,12 @@ references, and the Rules-boundary `---` fence-aware).
 - `InstructionsFileService` parity: projected bodies and
   disabled-rule filtering unchanged.
 
-**Eventual full retirement** (a later follow-up phase, not 6P): once
-both consumers and the test suite have run on the span parser +
-structured parser through a release cycle, retire `InstructionsFileParser`
-entirely — move every consumer and test onto the span parser /
-structured parser (or a thin public entry point over them) and delete the
-legacy regex implementation and its result-shape adapters. 6P
-deliberately keeps the façade so the cutover is reversible and the
-parity diff stays small; the façade is the bridge, the span parser is
-the destination.
+**Full retirement** (completed): both consumers and the test suite run on
+the syntax parser + structured `InstructionsFileParser`; the legacy regex
+implementation, the `InstructionsFile` static entry, and
+`InstructionsFileTryResult` are deleted.
 
-**Out of scope**: full deletion of `InstructionsFileParser` (the
-*Eventual full retirement* follow-up above, not 6P); zero-copy
+**Out of scope**: zero-copy
 `ReadOnlyMemory<char>` span slicing (deferred — accept per-span
 `string` for now); first-class `CodeFence` / `CodeSpan` span kinds
 (internal fence state only); corpus-level cross-file reference

@@ -90,8 +90,10 @@ internal sealed class InstructionsFileService
         ArgumentNullException.ThrowIfNull(file);
 
         var path = ResolveBodyPath(file.FileName);
-        var content = await File.ReadAllTextAsync(path, cancellationToken).ConfigureAwait(false);
-        var body = InstructionsFileParser.Parse(content).Body;
+        var parsed = await new InstructionsFileParser()
+            .ParseFileAsync(path, cancellationToken)
+            .ConfigureAwait(false);
+        var body = parsed.Body;
         var disabledRuleIds = ResolveDisabledRuleIds(file.Key);
 
         return Project(body, sections, disabledRuleIds);
