@@ -1886,7 +1886,7 @@ consumers run on the new parser. Lands on branch
 | # | Commit subject | State |
 |---|---|---|
 | 1 | `feat(instructions): add InstructionsFileSpanParser span model and enums` | DONE |
-| 2 | `feat(instructions): emit block and token spans with fence-aware section state` | Not started |
+| 2 | `feat(instructions): implement InstructionsFileSpanParser block and token emission` | DONE |
 | 3 | `feat(instructions): attach file-local diagnostics to spans` | Not started |
 | 4 | `feat(instructions): add span-stream materializer for the structural parse` | Not started |
 | 5 | `refactor(instructions-manifest-gen): repoint corpus parse onto the span parser` | Not started |
