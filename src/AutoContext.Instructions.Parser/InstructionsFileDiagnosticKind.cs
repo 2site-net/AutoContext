@@ -1,15 +1,15 @@
 namespace AutoContext.Instructions.Parser;
 
 /// <summary>
-/// The category of an <see cref="InstructionsFileDiagnostic"/> raised while
-/// parsing a single instructions file. These describe file-local syntax faults
-/// only; cross-file concerns such as a reference whose target does not resolve
-/// once the whole corpus is known live in a later validation layer, not here.
+/// What kind of problem an <see cref="InstructionsFileDiagnostic"/> reports. These
+/// cover problems within a single file only; cross-file problems — such as a
+/// reference whose target does not exist once every file is known — are checked
+/// later, not here.
 /// </summary>
 public enum InstructionsFileDiagnosticKind
 {
-    /// <summary>A rule bullet under the <c>## Rules</c> section carries no
-    /// <c>INST####</c> tag and is therefore unfilterable.</summary>
+    /// <summary>A rule bullet under the <c>## Rules</c> section has no
+    /// <c>INST####</c> tag, so it cannot be picked out on its own.</summary>
     MissingTag,
 
     /// <summary>An <c>INST####</c> tag appears on more than one rule bullet within
@@ -25,10 +25,9 @@ public enum InstructionsFileDiagnosticKind
     /// range.</summary>
     MalformedReference,
 
-    /// <summary>A tagged rule bullet appears outside the addressable-rule region.
-    /// Tagged rules are allowed under the <c>## Rules</c> heading and any
-    /// <c>###</c> subsection nested within it; this diagnostic fires when a tagged
-    /// bullet appears anywhere else, where such bullets are not recognised as
-    /// addressable rules.</summary>
+    /// <summary>A tagged rule bullet appears where tagged rules are not allowed.
+    /// Tagged rules belong under the <c>## Rules</c> heading and any <c>###</c>
+    /// subsection within it; this fires when a tagged bullet shows up anywhere
+    /// else, where it is not treated as a real rule.</summary>
     MisplacedRule,
 }

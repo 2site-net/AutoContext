@@ -1,11 +1,10 @@
 namespace AutoContext.Instructions.Parser;
 
 /// <summary>
-/// Selects which logical groups of spans an <see cref="InstructionsFileSpanParser"/>
-/// emits. An additive union of kind groups — selecting a group adds its spans to
-/// the stream. Combines with <see cref="InstructionsFileSpanEmitLevel"/> by
-/// intersection: a span is emitted only when its kind belongs to a selected level
-/// <em>and</em> a selected scope.
+/// Chooses which groups of spans an <see cref="InstructionsFileSpanParser"/>
+/// emits. Pick the groups you want and their spans are added. Works together with
+/// <see cref="InstructionsFileSpanEmitLevel"/>: a span is emitted only when both
+/// its scope (here) and its level are switched on.
 /// </summary>
 [Flags]
 public enum InstructionsFileSpanEmitScope
@@ -29,10 +28,10 @@ public enum InstructionsFileSpanEmitScope
     /// <summary>Emit reference token spans.</summary>
     References = 1 << 4,
 
-    /// <summary>Broad shortcut for every non-frontmatter group:
+    /// <summary>Shortcut for every group except frontmatter:
     /// <see cref="Text"/> | <see cref="Headings"/> | <see cref="Rules"/> |
-    /// <see cref="References"/>. Because it already subsumes the narrower body
-    /// groups, <c>Body | Headings</c> is equivalent to <c>Body</c>.</summary>
+    /// <see cref="References"/>. It already includes those groups, so
+    /// <c>Body | Headings</c> is the same as <c>Body</c>.</summary>
     Body = Text | Headings | Rules | References,
 
     /// <summary>Emit spans from the whole file: <see cref="Frontmatter"/> |

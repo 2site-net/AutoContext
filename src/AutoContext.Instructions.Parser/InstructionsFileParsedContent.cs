@@ -1,17 +1,17 @@
 namespace AutoContext.Instructions.Parser;
 
 /// <summary>
-/// The complete structural parse of one instructions file: its parsed frontmatter
-/// paired with its parsed body (the normalised body text, the section index, the
-/// actionable rule bullets, and any bullet-tag diagnostics). This is the single
-/// shape every consumer — the build-time manifest generator and the runtime
-/// engine — reads, so the markdown is parsed once.
+/// The full parse of one instructions file: its frontmatter together with its
+/// body (the body text, the list of sections, the rule bullets, and any
+/// diagnostics). Everything that reads instructions files — the build-time
+/// manifest generator and the runtime engine — works from this one shape, so each
+/// file is parsed just once.
 /// </summary>
-/// <param name="RawContent">The verbatim file content exactly as parsed,
-/// frontmatter and body included.</param>
-/// <param name="Frontmatter">The parsed leading YAML frontmatter.</param>
-/// <param name="Body">The parsed body: normalised text plus its section, rule, and
-/// diagnostic index.</param>
+/// <param name="RawContent">The exact file content, frontmatter and body
+/// included.</param>
+/// <param name="Frontmatter">The parsed frontmatter from the top of the file.</param>
+/// <param name="Body">The parsed body: the body text plus its sections, rules, and
+/// diagnostics.</param>
 public sealed record InstructionsFileParsedContent(
     string RawContent,
     InstructionsFileParsedFrontmatter Frontmatter,

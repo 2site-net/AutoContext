@@ -1,13 +1,12 @@
 namespace AutoContext.Instructions.Parser;
 
 /// <summary>
-/// A physical-line range within some unit of text. Coordinates are zero-based:
-/// <see cref="StartLine"/> is the first line covered and <see cref="EndLine"/> is
-/// exclusive. A span may cover exactly one line or several lines, so
-/// <see cref="LineCount"/> is the number of physical lines the span touches. The
-/// coordinate system the indices count in — whole-file text or the
-/// frontmatter-stripped body — is defined by whatever produces the span; consult
-/// the member that exposes it.
+/// A range of lines within some piece of text. Positions are zero-based:
+/// <see cref="StartLine"/> is the first line and <see cref="EndLine"/> is one past
+/// the last. A span may cover one line or several, so <see cref="LineCount"/> is
+/// how many lines it touches. What the line numbers are measured against — the
+/// whole file or the body with the frontmatter removed — depends on whatever
+/// produced the span, so check the member that hands it to you.
 /// </summary>
 /// <param name="StartLine">The zero-based index of the first line covered.</param>
 /// <param name="LineCount">The number of physical lines covered.</param>

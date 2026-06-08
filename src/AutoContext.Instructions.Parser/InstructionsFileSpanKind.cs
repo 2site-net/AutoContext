@@ -1,19 +1,18 @@
 namespace AutoContext.Instructions.Parser;
 
 /// <summary>
-/// The syntax role of an <see cref="InstructionsFileParsedSpan"/>. A kind names
-/// what a span <em>is</em> as written — never whether it is well-formed. A
-/// malformed construct keeps its natural kind (a bad rule tag is still a
-/// <see cref="Tag"/>); the fault is carried by an attached
-/// <see cref="InstructionsFileDiagnostic"/>, not by a diagnostic-specific
-/// kind.
+/// What an <see cref="InstructionsFileParsedSpan"/> is. A kind says what a span is
+/// as written, never whether it is correct. Something malformed keeps its natural
+/// kind (a bad rule tag is still a <see cref="Tag"/>); the problem is reported by
+/// an attached <see cref="InstructionsFileDiagnostic"/>, not by a separate
+/// "broken" kind.
 /// </summary>
 public enum InstructionsFileSpanKind
 {
-    /// <summary>Plain text that matches no more specific syntax — ordinary body
-    /// prose, blank lines, and the interstitial newlines between recognised
-    /// block spans. <see cref="InstructionsFileSpanEmitLevel.Blocks"/> emits these
-    /// to keep its partition gapless.</summary>
+    /// <summary>Plain text that is nothing more specific — ordinary prose, blank
+    /// lines, and the newlines between recognised blocks.
+    /// <see cref="InstructionsFileSpanEmitLevel.Blocks"/> emits these so its blocks
+    /// cover the file with no gaps.</summary>
     Text,
 
     /// <summary>The leading frontmatter block, opening and closing <c>---</c>
@@ -35,8 +34,8 @@ public enum InstructionsFileSpanKind
     FrontmatterValue,
 
     /// <summary>A level-one heading (<c>#&#160;Heading</c>). A block-level kind.
-    /// Heading levels are emitted as written; deciding which headings become
-    /// structural sections is the materializer's job.</summary>
+    /// Headings are emitted exactly as written; choosing which ones count as
+    /// sections is left to <see cref="InstructionsFileStructuredParser"/>.</summary>
     Heading1,
 
     /// <summary>A level-two heading (<c>##&#160;Section</c>). A block-level

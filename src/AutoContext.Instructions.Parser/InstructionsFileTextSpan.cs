@@ -1,12 +1,12 @@
 namespace AutoContext.Instructions.Parser;
 
 /// <summary>
-/// A character range within some unit of decoded text. Coordinates are zero-based:
-/// <see cref="StartIndex"/> is an offset into the text the producer addresses and
-/// <see cref="EndIndex"/> is exclusive. The coordinate system the offsets count in
-/// — whole-file text or the frontmatter-stripped body — is defined by whatever
-/// produces the span; consult the member that exposes it. No newline normalisation
-/// is implied, so a <c>CRLF</c> pair counts as two characters.
+/// A range of characters within some piece of text. Positions are zero-based:
+/// <see cref="StartIndex"/> is the first character and <see cref="EndIndex"/> is
+/// one past the last. What the positions are measured against — the whole file or
+/// the body with the frontmatter removed — depends on whatever produced the span,
+/// so check the member that hands it to you. Nothing is done to line breaks, so a
+/// <c>CRLF</c> pair counts as two characters.
 /// </summary>
 /// <param name="StartIndex">The zero-based index of the first character.</param>
 /// <param name="Length">The number of characters covered.</param>

@@ -5,21 +5,19 @@ using System.Text;
 using System.Text.RegularExpressions;
 
 /// <summary>
-/// Rebuilds the structured <see cref="InstructionsFileParsedContent"/> from the
-/// flat span stream emitted by <see cref="InstructionsFileSpanParser"/> in
-/// <see cref="InstructionsFileSpanEmitLevel.Full"/> / <see cref="InstructionsFileSpanEmitScope.All"/>
-/// mode. The span parser is the lexer — a gapless block partition with nested
-/// token spans addressed by whole-file coordinates; this structured parser is the
-/// structuring pass that turns that stream into the frontmatter, the
-/// <c>##</c>/<c>###</c> section index, the rule bullets, the
-/// <c>[locator#fragment]</c> references, and the file-local diagnostics consumers
-/// read.
+/// Turns the flat list of spans from <see cref="InstructionsFileSpanParser"/> into
+/// a structured <see cref="InstructionsFileParsedContent"/> — the frontmatter, the
+/// list of <c>##</c>/<c>###</c> sections, the rule bullets, the
+/// <c>[locator#fragment]</c> references, and any diagnostics. The span parser does
+/// the raw scanning; this second pass gives the result its shape, so callers get
+/// one ready-to-use object instead of a stream of loose pieces.
 /// <para>
-/// Two coordinate systems meet here. The spans carry whole-file offsets that count
-/// the frontmatter block; the structured body addresses everything relative to the
-/// frontmatter-stripped body, exactly as a consumer expects. The leading
-/// <see cref="InstructionsFileSpanKind.FrontmatterBlock"/> span supplies the
-/// character and line lengths that translate one into the other.
+/// One thing it sorts out is positions. The spans count from the start of the
+/// file, frontmatter included, but callers expect positions measured from the
+/// start of the body, as if the frontmatter were not there. The leading
+/// <see cref="InstructionsFileSpanKind.FrontmatterBlock"/> span says how long the
+/// frontmatter is, and this pass subtracts that from every offset before handing
+/// the result back.
 /// </para>
 /// </summary>
 internal sealed partial class InstructionsFileStructuredParser
@@ -35,13 +33,12 @@ internal sealed partial class InstructionsFileStructuredParser
     }
 
     /// <summary>
-    /// Rebuilds the structured parse from a <see cref="InstructionsFileSpanParser"/>
-    /// span stream. The spans must be the complete <see cref="InstructionsFileSpanEmitLevel.Full"/> /
-    /// <see cref="InstructionsFileSpanEmitScope.All"/> decomposition of one file, in
-    /// document order — the block partition supplies the verbatim content while the
-    /// nested token spans supply the frontmatter fields, tags, and references. The
-    /// stream is consumed lazily in a single forward pass; no intermediate list is
-    /// materialised.
+    /// Builds the structured parse from a span stream. The spans must be the
+    /// complete <see cref="InstructionsFileSpanEmitLevel.Full"/> /
+    /// <see cref="InstructionsFileSpanEmitScope.All"/> output for a single file, in
+    /// document order: the block spans supply the verbatim text, and the token spans
+    /// nested inside them supply the frontmatter fields, tags, and references. The
+    /// stream is read once, front to back, without being buffered into a list.
     /// </summary>
     /// <param name="spans">The span stream.</param>
     /// <returns>The complete structural parse.</returns>
@@ -179,11 +176,11 @@ internal sealed partial class InstructionsFileStructuredParser
     }
 
     /// <summary>
-    /// Reads the instructions file at <paramref name="path"/> and rebuilds its
-    /// structured parse. This overload owns the lex: it runs an
+    /// Reads the instructions file at <paramref name="path"/> and builds its
+    /// structured parse. This overload does the scanning for you: it runs an
     /// <see cref="InstructionsFileSpanParser"/> over the file in its default
     /// <see cref="InstructionsFileSpanEmitLevel.Full"/> / <see cref="InstructionsFileSpanEmitScope.All"/>
-    /// configuration and feeds the span stream straight into <see cref="Parse"/>.
+    /// configuration and passes the spans straight to <see cref="Parse"/>.
     /// </summary>
     /// <param name="path">The instructions file to read.</param>
     /// <param name="cancellationToken">Cancels the read.</param>

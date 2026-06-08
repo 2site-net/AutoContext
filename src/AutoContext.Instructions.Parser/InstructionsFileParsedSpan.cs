@@ -1,16 +1,17 @@
 namespace AutoContext.Instructions.Parser;
 
 /// <summary>
-/// A syntax-driven source span emitted by <see cref="InstructionsFileSpanParser"/>.
-/// A span is not a physical line: it may cover part of a line, exactly one line,
-/// or several lines. Larger block spans (frontmatter blocks, rule bullets) can
-/// contain smaller token spans (keys, values, tags, references), so in
-/// <see cref="InstructionsFileSpanEmitLevel.Full"/> mode emitted spans may overlap.
+/// One piece of an instructions file that <see cref="InstructionsFileSpanParser"/>
+/// found and labelled. A span is not the same as a line: it may cover part of a
+/// line, a whole line, or several lines. A large block span (a frontmatter block,
+/// a rule bullet) can hold smaller token spans inside it (keys, values, tags,
+/// references), so in <see cref="InstructionsFileSpanEmitLevel.Full"/> mode the
+/// spans you get back can overlap.
 /// </summary>
-/// <param name="Text">The verbatim source text the span covers, as a zero-copy
-/// slice of the backing file buffer (equivalent to the substring at
+/// <param name="Text">The exact text the span covers, as a slice of the loaded
+/// file (no copy is made; it is the same characters as the substring at
 /// <see cref="TextSpan"/>).</param>
-/// <param name="Kind">The span's syntax role.</param>
+/// <param name="Kind">What kind of thing the span is.</param>
 /// <param name="TextSpan">The whole-file character range the span covers.</param>
 /// <param name="LineSpan">The physical-line range the span covers.</param>
 public sealed record InstructionsFileParsedSpan(
@@ -19,29 +20,29 @@ public sealed record InstructionsFileParsedSpan(
     InstructionsFileTextSpan TextSpan,
     InstructionsFileLineSpan LineSpan)
 {
-    /// <summary>A shared, empty diagnostic list — the default
-    /// <see cref="Diagnostics"/> value for any span that carries no fault.</summary>
+    /// <summary>A shared empty list, used as the default <see cref="Diagnostics"/>
+    /// value for any span with no problems.</summary>
     public static IReadOnlyList<InstructionsFileDiagnostic> NoDiagnostics { get; } = [];
 
-    /// <summary>The file-local diagnostics attached to this span. Empty unless the
-    /// span — or a more specific span that was filtered out by the active emit
-    /// level or scope and promoted here — represents a fault.</summary>
+    /// <summary>Any problems found with this span. Empty unless the span has a
+    /// fault — or a more specific span was turned off by the current emit level or
+    /// scope and its fault moved up to this one.</summary>
     public IReadOnlyList<InstructionsFileDiagnostic> Diagnostics { get; init; } = NoDiagnostics;
 
-    /// <summary>The coordinate-free classification of a
-    /// <see cref="InstructionsFileSpanKind.Reference"/> span, or
-    /// <see langword="null"/> for any other kind or for a malformed reference whose
-    /// fault is carried in <see cref="Diagnostics"/> instead.</summary>
+    /// <summary>For a <see cref="InstructionsFileSpanKind.Reference"/> span, what it
+    /// points at (without any position). <see langword="null"/> for any other kind,
+    /// and for a malformed reference — whose problem is reported in
+    /// <see cref="Diagnostics"/> instead.</summary>
     public InstructionsFileReferenceAddress? ReferenceAddress { get; init; }
 
     /// <summary>
-    /// Determines whether this span equals <paramref name="other"/> by value. The
-    /// synthesised record equality is overridden because <see cref="Text"/> is a
-    /// <see cref="ReadOnlyMemory{T}"/>, whose default equality compares the backing
-    /// reference and slice bounds rather than the characters; this override compares
-    /// <see cref="Text"/> by content and <see cref="Diagnostics"/> element-wise, so
-    /// two spans with identical content compare equal even when sliced from
-    /// different buffers.
+    /// Compares this span with <paramref name="other"/> by value. The record's
+    /// generated equality is replaced because <see cref="Text"/> is a
+    /// <see cref="ReadOnlyMemory{T}"/>, which by default compares the underlying
+    /// buffer and slice bounds rather than the actual characters. This version
+    /// compares <see cref="Text"/> character by character and
+    /// <see cref="Diagnostics"/> item by item, so two spans with the same content
+    /// are equal even when they were sliced from different buffers.
     /// </summary>
     /// <param name="other">The span to compare against.</param>
     /// <returns><see langword="true"/> if the spans are equal by value.</returns>
@@ -55,7 +56,7 @@ public sealed record InstructionsFileParsedSpan(
             && Diagnostics.SequenceEqual(other.Diagnostics);
 
     /// <summary>
-    /// Computes a hash code consistent with <see cref="Equals(InstructionsFileParsedSpan)"/>,
+    /// Computes a hash code that matches <see cref="Equals(InstructionsFileParsedSpan)"/>,
     /// hashing the <see cref="Text"/> characters rather than the memory reference.
     /// </summary>
     /// <returns>The content-based hash code.</returns>

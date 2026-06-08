@@ -1,10 +1,9 @@
 namespace AutoContext.Instructions.Parser;
 
 /// <summary>
-/// The kind of target an <see cref="InstructionsFileReference"/> points at. The
-/// fragment after the <c>#</c> discriminates: a bare <c>INST####</c> id is a
-/// <see cref="Rule"/> reference, a single-quoted heading is a <see cref="Section"/>
-/// reference.
+/// What an <see cref="InstructionsFileReference"/> points at. The fragment after
+/// the <c>#</c> decides: an <c>INST####</c> id on its own is a <see cref="Rule"/>
+/// reference, a single-quoted heading is a <see cref="Section"/> reference.
 /// </summary>
 public enum InstructionsFileReferenceKind
 {

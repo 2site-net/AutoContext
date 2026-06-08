@@ -4,26 +4,46 @@ using System.Buffers;
 using System.Text.RegularExpressions;
 
 /// <summary>
-/// A lower-level, source-positioned lexer for instructions files. It consumes
-/// decoded text and yields <see cref="InstructionsFileParsedSpan"/> values
-/// addressed by whole-file, zero-based, exclusive-ended coordinates (no
-/// frontmatter stripping, no newline normalisation, so a <c>CRLF</c> pair counts
-/// as two characters).
+/// Scans the raw text of an instructions file and breaks it into
+/// <see cref="InstructionsFileParsedSpan"/> pieces — frontmatter, headings, rule
+/// bullets, tags, and references — each marked with where it sits in the file.
+/// This is the first of two passes; <see cref="InstructionsFileStructuredParser"/>
+/// takes the flat pieces produced here and turns them into the final structured
+/// result.
 /// <para>
-/// Two emission layers are produced. The <em>block</em> layer
-/// (<see cref="InstructionsFileSpanEmitLevel.Blocks"/>) is a gapless,
-/// non-overlapping partition of the file — every character belongs to exactly one
-/// block span, and anything that matches no richer structure becomes
-/// <see cref="InstructionsFileSpanKind.Text"/>. The <em>token</em> layer
-/// (<see cref="InstructionsFileSpanEmitLevel.Tokens"/>) is sparse and may nest
-/// inside the blocks that contain it. A span is emitted only when its kind belongs
-/// to a selected level <em>and</em> a selected scope; on overlap a container span
-/// is always emitted before the spans it contains.
+/// Two things to know about the positions it reports. They are measured from the
+/// very start of the file, with the frontmatter counted in rather than stripped
+/// out, and they count raw characters, so a <c>CRLF</c> line break counts as two.
+/// A span's start is inclusive and its end is exclusive, like an ordinary .NET
+/// slice.
 /// </para>
 /// <para>
-/// Fence handling is deliberately asymmetric: rule bullets are recognised
-/// everywhere (fence-agnostic), while headings and references are recognised only
-/// outside fenced code blocks (fence-aware).
+/// Spans come in two sizes. <em>Block</em> spans
+/// (<see cref="InstructionsFileSpanEmitLevel.Blocks"/>) tile the whole file end to
+/// end with no gaps: every character belongs to exactly one block, and anything
+/// that is not a heading, rule, or frontmatter falls through to a plain
+/// <see cref="InstructionsFileSpanKind.Text"/> block. <em>Token</em> spans
+/// (<see cref="InstructionsFileSpanEmitLevel.Tokens"/>) are the smaller pieces that
+/// sit inside a block — a frontmatter key, a tag, a reference. A span is emitted
+/// only when both its level (block or token) and its scope (frontmatter, headings,
+/// rules, references) are switched on; when a token and the block around it are
+/// both emitted, the block comes first.
+/// </para>
+/// <para>
+/// Fenced code blocks are treated two ways on purpose: rule bullets are still
+/// picked up inside a fence, but headings and references are not.
+/// </para>
+/// <para>
+/// Frontmatter is read as plain, single-line <c>key: value</c> pairs only; the
+/// value may be wrapped in double quotes and runs to the end of the line. Anything
+/// richer — values spread across several lines, block scalars (<c>|</c>,
+/// <c>&gt;</c>), embedded quotes, lists, nested maps — is deliberately left alone:
+/// that line produces no
+/// <see cref="InstructionsFileSpanKind.FrontmatterProperty"/> token, though its raw
+/// text is still available on the surrounding
+/// <see cref="InstructionsFileSpanKind.FrontmatterBlock"/> span. That covers
+/// everything the real instructions files use, since their frontmatter is only
+/// single-line <c>name</c> / <c>description</c> / <c>applyTo</c> entries.
 /// </para>
 /// </summary>
 internal sealed partial class InstructionsFileSpanParser(
@@ -53,14 +73,12 @@ internal sealed partial class InstructionsFileSpanParser(
     }
 
     /// <summary>
-    /// Produces the span decomposition of <paramref name="text"/> over the
-    /// in-memory buffer. The parse runs to completion and returns a fully
-    /// materialised list of spans in emission order.
+    /// Scans <paramref name="text"/> and returns all of its spans as a finished
+    /// list, in the order they appear in the file.
     /// </summary>
     /// <param name="text">The decoded instructions text.</param>
-    /// <param name="cancellationToken">Cancels the parse, checked once per
-    /// physical line.</param>
-    /// <returns>The materialised span list.</returns>
+    /// <param name="cancellationToken">Cancels the scan; checked once per line.</param>
+    /// <returns>The list of spans.</returns>
     public IReadOnlyList<InstructionsFileParsedSpan> Parse(
         string text,
         CancellationToken cancellationToken = default)
@@ -80,15 +98,15 @@ internal sealed partial class InstructionsFileSpanParser(
     }
 
     /// <summary>
-    /// Reads the instructions file at <paramref name="path"/> once into memory (with
-    /// byte-order-mark encoding detection) and returns its span decomposition over
-    /// that buffer. Only the read is asynchronous; parsing runs synchronously to
-    /// completion once the read completes.
+    /// Reads the instructions file at <paramref name="path"/> into memory, detecting
+    /// its encoding from any byte-order mark, and returns its spans. Only the file
+    /// read is asynchronous; the scan itself runs synchronously once the text is
+    /// loaded.
     /// </summary>
     /// <param name="path">The instructions file to read.</param>
-    /// <param name="cancellationToken">Cancels the read and the subsequent
-    /// parse.</param>
-    /// <returns>The materialised span list.</returns>
+    /// <param name="cancellationToken">Cancels the read and the scan that
+    /// follows.</param>
+    /// <returns>The list of spans.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="path"/> is
     /// <see langword="null"/>.</exception>
     public async Task<IReadOnlyList<InstructionsFileParsedSpan>> ParseFileAsync(
@@ -188,6 +206,9 @@ internal sealed partial class InstructionsFileSpanParser(
     [GeneratedRegex("^```")]
     private static partial Regex GeneratedFenceRegex();
 
+    // Matches a single flat frontmatter scalar: an unquoted key, a colon, then an
+    // optionally double-quoted value running to end of line. By design it does not
+    // span lines or honour block scalars; see the class summary for the contract.
     [GeneratedRegex("^(\\w+):\\s*\"?([^\"\\r\\n]*)\"?\\s*$")]
     private static partial Regex GeneratedFrontmatterFieldRegex();
 

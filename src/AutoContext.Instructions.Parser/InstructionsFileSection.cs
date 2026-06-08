@@ -2,9 +2,10 @@ namespace AutoContext.Instructions.Parser;
 
 /// <summary>
 /// One <c>##</c> or <c>###</c> heading in an instructions file's body, with the
-/// GitHub-style anchor a deep link would target and the body-relative character
-/// span the section covers. Deeper headings (<c>####</c>+) and the document title
-/// (<c>#</c>) are not sections; headings inside fenced code blocks are ignored.
+/// GitHub-style anchor a link would jump to and the character range the section
+/// covers (measured against the body). Deeper headings (<c>####</c>+) and the
+/// document title (<c>#</c>) are not sections; headings inside fenced code blocks
+/// are ignored.
 /// </summary>
 /// <param name="Heading">The trimmed heading text, without the leading hashes.</param>
 /// <param name="Level">The heading level: <c>2</c> for <c>##</c>, <c>3</c> for
@@ -13,10 +14,10 @@ namespace AutoContext.Instructions.Parser;
 /// with its parent <c>##</c> slug for in-file uniqueness.</param>
 /// <param name="Parent">The text of the nearest preceding <c>##</c> heading for
 /// a <c>###</c> section; <see langword="null"/> for a <c>##</c> section.</param>
-/// <param name="TextSpan">The character range the section covers, in normalised
-/// (frontmatter-stripped) body coordinates: from the offset of the heading line to
-/// the exclusive offset at which the section ends — the start of the next heading
-/// of equal-or-shallower level, or the body length.</param>
+/// <param name="TextSpan">The character range the section covers, measured against
+/// the body (with the frontmatter removed): from the start of the heading line to
+/// where the section ends — the start of the next heading at the same level or a
+/// shallower one (fewer <c>#</c>), or the end of the body.</param>
 public sealed record InstructionsFileSection(
     string Heading,
     int Level,
