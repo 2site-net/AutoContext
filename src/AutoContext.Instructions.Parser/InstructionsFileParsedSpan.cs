@@ -17,8 +17,8 @@ public sealed record InstructionsFileParsedSpan(
     InstructionsFileTextSpan TextSpan,
     InstructionsFileLineSpan LineSpan)
 {
-    /// <summary>The shared empty diagnostic list used by every span that carries
-    /// no fault, so the common case allocates nothing.</summary>
+    /// <summary>A shared, empty diagnostic list — the default
+    /// <see cref="Diagnostics"/> value for any span that carries no fault.</summary>
     public static IReadOnlyList<InstructionsFileSpanDiagnostic> NoDiagnostics { get; } = [];
 
     /// <summary>The file-local diagnostics attached to this span. Empty unless the

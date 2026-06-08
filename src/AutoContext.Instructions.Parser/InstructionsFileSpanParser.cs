@@ -23,7 +23,7 @@ using System.Text.RegularExpressions;
 /// is always emitted before the spans it contains.
 /// </para>
 /// <para>
-/// Fence handling mirrors the legacy parser: rule bullets are recognised
+/// Fence handling is deliberately asymmetric: rule bullets are recognised
 /// everywhere (fence-agnostic), while headings and references are recognised only
 /// outside fenced code blocks (fence-aware).
 /// </para>
@@ -77,8 +77,9 @@ internal sealed partial class InstructionsFileSpanParser(
     }
 
     /// <summary>
-    /// Opens <paramref name="path"/> and streams its span decomposition. Owns the
-    /// file I/O and delegates parsing to <see cref="ParseAsync"/>.
+    /// Streams the span decomposition of the instructions file at
+    /// <paramref name="path"/>. This overload owns the file's lifetime: it opens
+    /// the file for reading and closes it once the stream completes.
     /// </summary>
     /// <param name="path">The instructions file to read.</param>
     /// <param name="cancellationToken">Cancels the read.</param>
