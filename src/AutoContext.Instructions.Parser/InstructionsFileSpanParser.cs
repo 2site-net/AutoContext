@@ -30,13 +30,15 @@ using System.Text.RegularExpressions;
 /// </summary>
 internal sealed partial class InstructionsFileSpanParser(
     InstructionsFileSpanEmitLevel emitLevel = InstructionsFileSpanEmitLevel.Full,
-    InstructionsFileSpanEmitScope emitScope = InstructionsFileSpanEmitScope.All)
+    InstructionsFileSpanEmitScope emitScope = InstructionsFileSpanEmitScope.All,
+    bool includeDiagnostics = true)
 {
     private const int ReadBufferSize = 4096;
     private const int StackMaskThreshold = 256;
 
     private readonly bool _emitReferences = IsEmitted(emitLevel, emitScope, InstructionsFileSpanKind.Reference);
     private readonly bool _emitTags = IsEmitted(emitLevel, emitScope, InstructionsFileSpanKind.Tag);
+    private readonly bool _includeDiagnostics = includeDiagnostics;
 
     private enum ParsePhase
     {
@@ -108,7 +110,7 @@ internal sealed partial class InstructionsFileSpanParser(
         }
     }
 
-    private static void AddReferenceDrafts(PhysicalLine line, List<TokenDraft> tokens)
+    private static void AddReferenceDrafts(PhysicalLine line, List<TokenDraft> tokens, bool includeDiagnostics)
     {
         var content = line.Content.AsSpan();
 
@@ -143,12 +145,18 @@ internal sealed partial class InstructionsFileSpanParser(
                     continue;
                 }
 
+                var text = token.ToString();
+                var diagnostic = includeDiagnostics
+                    ? ClassifyReference(text, hasLocator, locatorValid, fragment)
+                    : null;
+
                 tokens.Add(new TokenDraft(
                     line.StartIndex + match.Index,
                     match.Length,
                     line.LineIndex,
-                    token.ToString(),
-                    InstructionsFileSpanKind.Reference));
+                    text,
+                    InstructionsFileSpanKind.Reference,
+                    diagnostic));
             }
         }
         finally
@@ -184,6 +192,34 @@ internal sealed partial class InstructionsFileSpanParser(
         }
 
         return builder.ToString();
+    }
+
+    private static InstructionsFileSpanDiagnostic? ClassifyReference(
+        string token,
+        bool hasLocator,
+        bool locatorValid,
+        ReadOnlySpan<char> fragment)
+    {
+        if (hasLocator && !locatorValid)
+        {
+            return new InstructionsFileSpanDiagnostic(
+                InstructionsFileSpanDiagnosticKind.MalformedReference,
+                $"Malformed reference locator in {token}.");
+        }
+
+        if (GeneratedReferenceRuleFragmentRegex().IsMatch(fragment)
+            || GeneratedReferenceSectionFragmentRegex().IsMatch(fragment))
+        {
+            return null;
+        }
+
+        var message = GeneratedReferenceRangeFragmentRegex().IsMatch(fragment)
+            ? $"Reference ranges are not allowed in {token}; cite each rule or the enclosing section."
+            : $"Malformed reference fragment in {token}.";
+
+        return new InstructionsFileSpanDiagnostic(
+            InstructionsFileSpanDiagnosticKind.MalformedReference,
+            message);
     }
 
     private static int FindClosingBacktickRun(ReadOnlySpan<char> buffer, int start, int fence)
@@ -240,6 +276,15 @@ internal sealed partial class InstructionsFileSpanParser(
     [GeneratedRegex(@"^[-*]\s\[(?!INST\d{4}\])[^\]]*\]\s*\*\*(Do|Don't)\*\*")]
     private static partial Regex GeneratedMalformedRuleBulletRegex();
 
+    [GeneratedRegex(@"^INST\d{4}\s*[-\u2013/]")]
+    private static partial Regex GeneratedReferenceRangeFragmentRegex();
+
+    [GeneratedRegex(@"^INST\d{4}$")]
+    private static partial Regex GeneratedReferenceRuleFragmentRegex();
+
+    [GeneratedRegex(@"^'(?:[^'\\]|\\.)+'$")]
+    private static partial Regex GeneratedReferenceSectionFragmentRegex();
+
     [GeneratedRegex(@"\[([^\[\]#]*)#([^\[\]]*)\](?![(\[:])")]
     private static partial Regex GeneratedReferenceTokenRegex();
 
@@ -251,6 +296,26 @@ internal sealed partial class InstructionsFileSpanParser(
         InstructionsFileSpanEmitScope scope,
         InstructionsFileSpanKind kind)
         => (level & LevelOf(kind)) != 0 && (scope & ScopeOf(kind)) != 0;
+
+    private static bool IsThematicBreak(ReadOnlySpan<char> content)
+    {
+        var trimmed = content.Trim();
+
+        if (trimmed.Length < 3)
+        {
+            return false;
+        }
+
+        foreach (var c in trimmed)
+        {
+            if (c != '-')
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
 
     private static bool IsValidLocator(ReadOnlySpan<char> locator)
         => GeneratedLocatorKeyRegex().IsMatch(locator)
@@ -386,36 +451,6 @@ internal sealed partial class InstructionsFileSpanParser(
             _ => InstructionsFileSpanEmitScope.References,
         };
 
-    private static void StartRule(ParserState state, PhysicalLine line)
-    {
-        var content = line.Content;
-        var valid = GeneratedRuleBulletRegex().Match(content);
-
-        InstructionsFileSpanKind kind;
-        TagExtent? tag = null;
-
-        if (valid.Success && valid.Groups[1].Success)
-        {
-            kind = InstructionsFileSpanKind.TaggedRule;
-            var bracket = GeneratedBracketTagRegex().Match(content);
-            tag = new TagExtent(bracket.Index, bracket.Length);
-        }
-        else if (valid.Success)
-        {
-            kind = InstructionsFileSpanKind.PlainRule;
-        }
-        else
-        {
-            kind = InstructionsFileSpanKind.TaggedRule;
-            var bracket = GeneratedBracketTagRegex().Match(content);
-            tag = new TagExtent(bracket.Index, bracket.Length);
-        }
-
-        var rule = new PendingRule(kind, tag, line.StartIndex, line.LineIndex, []);
-        rule.Lines.Add(new TextLine(line, !state.InFence));
-        state.Rule = rule;
-    }
-
     private List<InstructionsFileParsedSpan> Advance(ParserState state, PhysicalLine line)
     {
         var output = new List<InstructionsFileParsedSpan>();
@@ -488,8 +523,13 @@ internal sealed partial class InstructionsFileSpanParser(
         if (!state.InFence && GeneratedHeadingRegex().IsMatch(content))
         {
             FlushText(state, output);
-            EmitHeading(line, output);
+            EmitHeading(state, line, output);
             return;
+        }
+
+        if (_includeDiagnostics && !state.InFence && IsThematicBreak(content))
+        {
+            state.UnderRules = false;
         }
 
         state.PendingText.Add(new TextLine(line, !state.InFence));
@@ -560,7 +600,7 @@ internal sealed partial class InstructionsFileSpanParser(
         EmitOrdered(tokens, output);
     }
 
-    private void EmitHeading(PhysicalLine line, List<InstructionsFileParsedSpan> output)
+    private void EmitHeading(ParserState state, PhysicalLine line, List<InstructionsFileParsedSpan> output)
     {
         var heading = GeneratedHeadingRegex().Match(line.Content);
         var level = heading.Groups[1].Value.Length;
@@ -571,6 +611,13 @@ internal sealed partial class InstructionsFileSpanParser(
             2 => InstructionsFileSpanKind.Heading2,
             _ => InstructionsFileSpanKind.Heading3,
         };
+
+        if (_includeDiagnostics && level <= 2)
+        {
+            // A level-3 heading keeps the current section; level 1 always ends it,
+            // and level 2 opens the addressable-rule region only for an exact `Rules`.
+            state.UnderRules = level == 2 && heading.Groups[2].Value == "Rules";
+        }
 
         var block = MakeSpan(line.Content + line.Terminator, kind, line.StartIndex, line.FullLength, line.LineIndex, 1);
 
@@ -585,7 +632,7 @@ internal sealed partial class InstructionsFileSpanParser(
         }
 
         var tokens = new List<TokenDraft>();
-        AddReferenceDrafts(line, tokens);
+        AddReferenceDrafts(line, tokens, _includeDiagnostics);
         EmitOrdered(tokens, output);
     }
 
@@ -602,10 +649,17 @@ internal sealed partial class InstructionsFileSpanParser(
         {
             var span = MakeSpan(token.Text, token.Kind, token.Start, token.Length, token.LineIndex, 1);
 
-            if (span is not null)
+            if (span is null)
             {
-                output.Add(span);
+                continue;
             }
+
+            if (token.Diagnostic is { } diagnostic)
+            {
+                span = span with { Diagnostics = [diagnostic] };
+            }
+
+            output.Add(span);
         }
     }
 
@@ -662,6 +716,17 @@ internal sealed partial class InstructionsFileSpanParser(
 
         if (block is not null)
         {
+            // A malformed tag attaches to its Tag token when tokens are emitted;
+            // otherwise it has no token to land on and promotes to the rule block.
+            if (!_emitTags && rule.TagDiagnostic is { } tagDiagnostic)
+            {
+                block = block with { Diagnostics = [.. rule.BlockDiagnostics, tagDiagnostic] };
+            }
+            else if (rule.BlockDiagnostics.Count > 0)
+            {
+                block = block with { Diagnostics = rule.BlockDiagnostics };
+            }
+
             output.Add(block);
         }
 
@@ -671,7 +736,7 @@ internal sealed partial class InstructionsFileSpanParser(
         {
             var first = bodyLines[0].Line;
             var text = first.Content.Substring(extent.Offset, extent.Length);
-            tokens.Add(new TokenDraft(first.StartIndex + extent.Offset, extent.Length, first.LineIndex, text, InstructionsFileSpanKind.Tag));
+            tokens.Add(new TokenDraft(first.StartIndex + extent.Offset, extent.Length, first.LineIndex, text, InstructionsFileSpanKind.Tag, rule.TagDiagnostic));
         }
 
         if (_emitReferences)
@@ -680,7 +745,7 @@ internal sealed partial class InstructionsFileSpanParser(
             {
                 if (entry.RefsScanned)
                 {
-                    AddReferenceDrafts(entry.Line, tokens);
+                    AddReferenceDrafts(entry.Line, tokens, _includeDiagnostics);
                 }
             }
         }
@@ -728,7 +793,7 @@ internal sealed partial class InstructionsFileSpanParser(
             {
                 if (entry.RefsScanned)
                 {
-                    AddReferenceDrafts(entry.Line, tokens);
+                    AddReferenceDrafts(entry.Line, tokens, _includeDiagnostics);
                 }
             }
 
@@ -784,6 +849,75 @@ internal sealed partial class InstructionsFileSpanParser(
     private bool ShouldEmit(InstructionsFileSpanKind kind)
         => IsEmitted(emitLevel, emitScope, kind);
 
+    private void StartRule(ParserState state, PhysicalLine line)
+    {
+        var content = line.Content;
+        var valid = GeneratedRuleBulletRegex().Match(content);
+
+        InstructionsFileSpanKind kind;
+        TagExtent? tag = null;
+        InstructionsFileSpanDiagnostic? tagDiagnostic = null;
+        List<InstructionsFileSpanDiagnostic> blockDiagnostics = [];
+
+        if (valid.Success && valid.Groups[1].Success)
+        {
+            kind = InstructionsFileSpanKind.TaggedRule;
+            var bracket = GeneratedBracketTagRegex().Match(content);
+            tag = new TagExtent(bracket.Index, bracket.Length);
+
+            if (_includeDiagnostics)
+            {
+                var id = valid.Groups[1].Value;
+
+                if (state.SeenTags.TryGetValue(id, out var firstLine))
+                {
+                    blockDiagnostics.Add(new InstructionsFileSpanDiagnostic(
+                        InstructionsFileSpanDiagnosticKind.DuplicateTag,
+                        $"Duplicate INST tag [{id}]; first defined at line {firstLine + 1}."));
+                }
+                else
+                {
+                    state.SeenTags[id] = line.LineIndex;
+                }
+
+                if (!state.UnderRules)
+                {
+                    blockDiagnostics.Add(new InstructionsFileSpanDiagnostic(
+                        InstructionsFileSpanDiagnosticKind.MisplacedRule,
+                        $"Tagged rule [{id}] appears outside the ## Rules section."));
+                }
+            }
+        }
+        else if (valid.Success)
+        {
+            kind = InstructionsFileSpanKind.PlainRule;
+
+            if (_includeDiagnostics && state.UnderRules)
+            {
+                blockDiagnostics.Add(new InstructionsFileSpanDiagnostic(
+                    InstructionsFileSpanDiagnosticKind.MissingTag,
+                    "Rule has no INST#### tag, so it cannot be addressed."));
+            }
+        }
+        else
+        {
+            kind = InstructionsFileSpanKind.TaggedRule;
+            var bracket = GeneratedBracketTagRegex().Match(content);
+            tag = new TagExtent(bracket.Index, bracket.Length);
+
+            if (_includeDiagnostics)
+            {
+                tagDiagnostic = new InstructionsFileSpanDiagnostic(
+                    InstructionsFileSpanDiagnosticKind.MalformedTag,
+                    $"Malformed INST tag [{bracket.Groups[1].Value}]; expected the form [INST####].");
+            }
+        }
+
+        var rule = new PendingRule(kind, tag, line.StartIndex, line.LineIndex, [], tagDiagnostic, blockDiagnostics);
+        rule.Lines.Add(new TextLine(line, !state.InFence));
+        state.Rule = rule;
+    }
+
     private sealed class ParserState
     {
         /// <summary>Gets or sets the buffered frontmatter lines, including the delimiters.</summary>
@@ -800,6 +934,15 @@ internal sealed partial class InstructionsFileSpanParser(
 
         /// <summary>Gets or sets the rule currently being accumulated, or null when none is open.</summary>
         public PendingRule? Rule { get; set; }
+
+        /// <summary>Gets the first source line, by zero-based index, on which each
+        /// <c>INST####</c> tag was seen, used to flag later repeats as duplicates.</summary>
+        public Dictionary<string, int> SeenTags { get; } = [];
+
+        /// <summary>Gets or sets a value indicating whether the cursor sits within the
+        /// <c>## Rules</c> section (or one of its <c>###</c> subsections), where tagged
+        /// rules belong and plain rules are faults.</summary>
+        public bool UnderRules { get; set; }
     }
 
     private sealed record PendingRule(
@@ -807,7 +950,9 @@ internal sealed partial class InstructionsFileSpanParser(
         TagExtent? Tag,
         int StartIndex,
         int StartLine,
-        List<TextLine> Lines);
+        List<TextLine> Lines,
+        InstructionsFileSpanDiagnostic? TagDiagnostic,
+        List<InstructionsFileSpanDiagnostic> BlockDiagnostics);
 
     private readonly record struct PhysicalLine(string Content, string Terminator, int StartIndex, int LineIndex)
     {
@@ -820,5 +965,11 @@ internal sealed partial class InstructionsFileSpanParser(
 
     private readonly record struct TextLine(PhysicalLine Line, bool RefsScanned);
 
-    private readonly record struct TokenDraft(int Start, int Length, int LineIndex, string Text, InstructionsFileSpanKind Kind);
+    private readonly record struct TokenDraft(
+        int Start,
+        int Length,
+        int LineIndex,
+        string Text,
+        InstructionsFileSpanKind Kind,
+        InstructionsFileSpanDiagnostic? Diagnostic = null);
 }

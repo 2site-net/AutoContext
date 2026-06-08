@@ -454,4 +454,311 @@ public sealed class InstructionsFileSpanParserTests
                 () => Assert.Equal(content.Length, text.TextSpan.EndIndex));
         }
     }
+
+    public sealed class Diagnostics
+    {
+        [Fact]
+        public async Task Should_flag_a_plain_rule_under_rules_as_missing_a_tag()
+        {
+            // Arrange
+            var parser = new InstructionsFileSpanParser(
+                InstructionsFileSpanEmitLevel.Full,
+                InstructionsFileSpanEmitScope.Rules);
+            var content = "## Rules\n\n- **Do** a thing.\n";
+
+            // Act
+            var rule = (await InstructionsFileSpanParserTestDrainer.DrainAsync(parser, content)).Single();
+
+            // Assert
+            var diagnostic = Assert.Single(rule.Diagnostics);
+            Assert.Multiple(
+                () => Assert.Equal(InstructionsFileSpanKind.PlainRule, rule.Kind),
+                () => Assert.Equal(InstructionsFileSpanDiagnosticKind.MissingTag, diagnostic.Kind));
+        }
+
+        [Fact]
+        public async Task Should_not_flag_a_plain_rule_outside_rules()
+        {
+            // Arrange
+            var parser = new InstructionsFileSpanParser(
+                InstructionsFileSpanEmitLevel.Full,
+                InstructionsFileSpanEmitScope.Rules);
+            var content = "## Notes\n\n- **Do** a thing.\n";
+
+            // Act
+            var rule = (await InstructionsFileSpanParserTestDrainer.DrainAsync(parser, content)).Single();
+
+            // Assert
+            Assert.Multiple(
+                () => Assert.Equal(InstructionsFileSpanKind.PlainRule, rule.Kind),
+                () => Assert.Empty(rule.Diagnostics));
+        }
+
+        [Fact]
+        public async Task Should_flag_a_tagged_rule_outside_rules_as_misplaced()
+        {
+            // Arrange
+            var parser = new InstructionsFileSpanParser(
+                InstructionsFileSpanEmitLevel.Blocks,
+                InstructionsFileSpanEmitScope.Rules);
+            var content = "- [INST0001] **Do** a thing.\n";
+
+            // Act
+            var rule = (await InstructionsFileSpanParserTestDrainer.DrainAsync(parser, content)).Single();
+
+            // Assert
+            var diagnostic = Assert.Single(rule.Diagnostics);
+            Assert.Multiple(
+                () => Assert.Equal(InstructionsFileSpanKind.TaggedRule, rule.Kind),
+                () => Assert.Equal(InstructionsFileSpanDiagnosticKind.MisplacedRule, diagnostic.Kind));
+        }
+
+        [Fact]
+        public async Task Should_not_flag_a_unique_tagged_rule_under_rules()
+        {
+            // Arrange
+            var parser = new InstructionsFileSpanParser(
+                InstructionsFileSpanEmitLevel.Full,
+                InstructionsFileSpanEmitScope.Rules);
+            var content = "## Rules\n\n- [INST0001] **Do** a thing.\n";
+
+            // Act
+            var spans = await InstructionsFileSpanParserTestDrainer.DrainAsync(parser, content);
+
+            // Assert
+            Assert.All(spans, span => Assert.Empty(span.Diagnostics));
+        }
+
+        [Fact]
+        public async Task Should_flag_a_repeated_tag_on_the_second_rule_only()
+        {
+            // Arrange
+            var parser = new InstructionsFileSpanParser(
+                InstructionsFileSpanEmitLevel.Blocks,
+                InstructionsFileSpanEmitScope.Rules);
+            var content = "## Rules\n\n- [INST0001] **Do** a.\n\n- [INST0001] **Do** b.\n";
+
+            // Act
+            var rules = (await InstructionsFileSpanParserTestDrainer.DrainAsync(parser, content))
+                .Where(span => span.Kind == InstructionsFileSpanKind.TaggedRule)
+                .ToList();
+
+            // Assert
+            var diagnostic = Assert.Single(rules[1].Diagnostics);
+            Assert.Multiple(
+                () => Assert.Empty(rules[0].Diagnostics),
+                () => Assert.Equal(InstructionsFileSpanDiagnosticKind.DuplicateTag, diagnostic.Kind));
+        }
+
+        [Fact]
+        public async Task Should_attach_a_malformed_tag_to_the_tag_token_when_tokens_are_emitted()
+        {
+            // Arrange
+            var parser = new InstructionsFileSpanParser(
+                InstructionsFileSpanEmitLevel.Full,
+                InstructionsFileSpanEmitScope.Rules);
+            var content = "## Rules\n\n- [foo] **Do** a thing.\n";
+
+            // Act
+            var spans = await InstructionsFileSpanParserTestDrainer.DrainAsync(parser, content);
+            var tag = spans.Single(span => span.Kind == InstructionsFileSpanKind.Tag);
+            var rule = spans.Single(span => span.Kind == InstructionsFileSpanKind.TaggedRule);
+
+            // Assert
+            var diagnostic = Assert.Single(tag.Diagnostics);
+            Assert.Multiple(
+                () => Assert.Equal(InstructionsFileSpanDiagnosticKind.MalformedTag, diagnostic.Kind),
+                () => Assert.Empty(rule.Diagnostics));
+        }
+
+        [Fact]
+        public async Task Should_promote_a_malformed_tag_to_the_rule_block_when_the_tag_token_is_filtered_out()
+        {
+            // Arrange
+            var parser = new InstructionsFileSpanParser(
+                InstructionsFileSpanEmitLevel.Blocks,
+                InstructionsFileSpanEmitScope.Rules);
+            var content = "## Rules\n\n- [foo] **Do** a thing.\n";
+
+            // Act
+            var rule = (await InstructionsFileSpanParserTestDrainer.DrainAsync(parser, content)).Single();
+
+            // Assert
+            var diagnostic = Assert.Single(rule.Diagnostics);
+            Assert.Multiple(
+                () => Assert.Equal(InstructionsFileSpanKind.TaggedRule, rule.Kind),
+                () => Assert.Equal(InstructionsFileSpanDiagnosticKind.MalformedTag, diagnostic.Kind));
+        }
+
+        [Fact]
+        public async Task Should_attach_a_malformed_reference_to_the_reference_token()
+        {
+            // Arrange
+            var parser = new InstructionsFileSpanParser(
+                InstructionsFileSpanEmitLevel.Tokens,
+                InstructionsFileSpanEmitScope.References);
+            var content = "See [Bad Locator#INST0001] here.\n";
+
+            // Act
+            var reference = (await InstructionsFileSpanParserTestDrainer.DrainAsync(parser, content)).Single();
+
+            // Assert
+            var diagnostic = Assert.Single(reference.Diagnostics);
+            Assert.Multiple(
+                () => Assert.Equal(InstructionsFileSpanKind.Reference, reference.Kind),
+                () => Assert.Equal(InstructionsFileSpanDiagnosticKind.MalformedReference, diagnostic.Kind));
+        }
+
+        [Fact]
+        public async Task Should_flag_a_reference_rule_range_as_malformed()
+        {
+            // Arrange
+            var parser = new InstructionsFileSpanParser(
+                InstructionsFileSpanEmitLevel.Tokens,
+                InstructionsFileSpanEmitScope.References);
+            var content = "See [#INST0001-INST0003] here.\n";
+
+            // Act
+            var reference = (await InstructionsFileSpanParserTestDrainer.DrainAsync(parser, content)).Single();
+
+            // Assert
+            var diagnostic = Assert.Single(reference.Diagnostics);
+            Assert.Equal(InstructionsFileSpanDiagnosticKind.MalformedReference, diagnostic.Kind);
+        }
+
+        [Fact]
+        public async Task Should_not_flag_a_well_formed_reference()
+        {
+            // Arrange
+            var parser = new InstructionsFileSpanParser(
+                InstructionsFileSpanEmitLevel.Tokens,
+                InstructionsFileSpanEmitScope.References);
+            var content = "See [foo.instructions.md#INST0001] here.\n";
+
+            // Act
+            var reference = (await InstructionsFileSpanParserTestDrainer.DrainAsync(parser, content)).Single();
+
+            // Assert
+            Assert.Empty(reference.Diagnostics);
+        }
+
+        [Fact]
+        public async Task Should_not_promote_a_malformed_reference_to_a_block()
+        {
+            // Arrange
+            var parser = new InstructionsFileSpanParser(
+                InstructionsFileSpanEmitLevel.Blocks,
+                InstructionsFileSpanEmitScope.All);
+            var content = "See [Bad Locator#INST0001] here.\n";
+
+            // Act
+            var spans = await InstructionsFileSpanParserTestDrainer.DrainAsync(parser, content);
+
+            // Assert
+            Assert.All(spans, span => Assert.Empty(span.Diagnostics));
+        }
+
+        [Fact]
+        public async Task Should_close_the_rules_section_on_a_thematic_break()
+        {
+            // Arrange
+            var parser = new InstructionsFileSpanParser(
+                InstructionsFileSpanEmitLevel.Full,
+                InstructionsFileSpanEmitScope.Rules);
+            var content = "## Rules\n\n---\n\n- **Do** a thing.\n";
+
+            // Act
+            var rule = (await InstructionsFileSpanParserTestDrainer.DrainAsync(parser, content)).Single();
+
+            // Assert
+            Assert.Multiple(
+                () => Assert.Equal(InstructionsFileSpanKind.PlainRule, rule.Kind),
+                () => Assert.Empty(rule.Diagnostics));
+        }
+
+        [Fact]
+        public async Task Should_keep_the_rules_section_open_for_a_thematic_break_inside_a_fence()
+        {
+            // Arrange
+            var parser = new InstructionsFileSpanParser(
+                InstructionsFileSpanEmitLevel.Full,
+                InstructionsFileSpanEmitScope.Rules);
+            var content = "## Rules\n\n```\n---\n```\n\n- **Do** a thing.\n";
+
+            // Act
+            var rule = (await InstructionsFileSpanParserTestDrainer.DrainAsync(parser, content)).Single();
+
+            // Assert
+            var diagnostic = Assert.Single(rule.Diagnostics);
+            Assert.Equal(InstructionsFileSpanDiagnosticKind.MissingTag, diagnostic.Kind);
+        }
+
+        [Fact]
+        public async Task Should_keep_the_rules_section_open_across_a_subsection_heading()
+        {
+            // Arrange
+            var parser = new InstructionsFileSpanParser(
+                InstructionsFileSpanEmitLevel.Full,
+                InstructionsFileSpanEmitScope.Rules);
+            var content = "## Rules\n\n### Subsection\n\n- **Do** a thing.\n";
+
+            // Act
+            var rule = (await InstructionsFileSpanParserTestDrainer.DrainAsync(parser, content)).Single();
+
+            // Assert
+            var diagnostic = Assert.Single(rule.Diagnostics);
+            Assert.Equal(InstructionsFileSpanDiagnosticKind.MissingTag, diagnostic.Kind);
+        }
+
+        [Fact]
+        public async Task Should_close_the_rules_section_on_the_next_level_two_heading()
+        {
+            // Arrange
+            var parser = new InstructionsFileSpanParser(
+                InstructionsFileSpanEmitLevel.Full,
+                InstructionsFileSpanEmitScope.Rules);
+            var content = "## Rules\n\n## Other\n\n- **Do** a thing.\n";
+
+            // Act
+            var rule = (await InstructionsFileSpanParserTestDrainer.DrainAsync(parser, content)).Single();
+
+            // Assert
+            Assert.Empty(rule.Diagnostics);
+        }
+
+        [Fact]
+        public async Task Should_close_the_rules_section_on_a_level_one_heading()
+        {
+            // Arrange
+            var parser = new InstructionsFileSpanParser(
+                InstructionsFileSpanEmitLevel.Full,
+                InstructionsFileSpanEmitScope.Rules);
+            var content = "## Rules\n\n# Top\n\n- **Do** a thing.\n";
+
+            // Act
+            var rule = (await InstructionsFileSpanParserTestDrainer.DrainAsync(parser, content)).Single();
+
+            // Assert
+            Assert.Empty(rule.Diagnostics);
+        }
+
+        [Fact]
+        public async Task Should_omit_diagnostics_when_disabled()
+        {
+            // Arrange
+            var parser = new InstructionsFileSpanParser(
+                InstructionsFileSpanEmitLevel.Full,
+                InstructionsFileSpanEmitScope.Rules,
+                includeDiagnostics: false);
+            var content = "## Rules\n\n- **Do** a thing.\n";
+
+            // Act
+            var rule = (await InstructionsFileSpanParserTestDrainer.DrainAsync(parser, content)).Single();
+
+            // Assert
+            Assert.Multiple(
+                () => Assert.Equal(InstructionsFileSpanKind.PlainRule, rule.Kind),
+                () => Assert.Empty(rule.Diagnostics));
+        }
+    }
 }
