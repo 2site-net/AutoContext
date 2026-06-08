@@ -1876,12 +1876,138 @@ corrected files):
 - The `Instructions.Categories` wire DTO in
   `AutoContext.Engine.Protocol` (depends on the Row 1 envelope work).
 
+## Phase 6P — New span-based instructions parser
+
+**Status**: Not started. **Interrupts Phase 6** after rows 1–3 and 5:
+Phase 6 is paused here and resumes (rows 4, 6–15) once both corpus
+consumers run on the new parser. Lands on branch
+`features/instructions-span-parser`.
+
+| # | Commit subject | State |
+|---|---|---|
+| 1 | `feat(instructions): add InstructionsFileSpanParser span model and enums` | Not started |
+| 2 | `feat(instructions): emit block and token spans with fence-aware section state` | Not started |
+| 3 | `feat(instructions): attach file-local diagnostics to spans` | Not started |
+| 4 | `feat(instructions): add span-stream materializer for the structural parse` | Not started |
+| 5 | `refactor(instructions-manifest-gen): repoint corpus parse onto the span parser` | Not started |
+| 6 | `refactor(engine-core): repoint InstructionsFileService onto the span parser` | Not started |
+| 7 | `refactor(instructions): delegate InstructionsFileParser.Parse to span parser and materializer` (interim façade) | Not started |
+| 8 | `docs(plan): mark Phase 6P complete` | Not started |
+
+**Goal**: replace the single-pass regex `InstructionsFileParser` with a
+lower-level, incremental `InstructionsFileSpanParser` that emits
+source-positioned spans, plus a materializer that rebuilds the existing
+`InstructionsFileParsedContent` on top of the span stream. The two
+current corpus consumers — the build-time
+`AutoContext.Instructions.Manifest.Generator` and the runtime
+`InstructionsFileService` — are repointed onto the new parser;
+`InstructionsFileParser.Parse` is retained as a façade delegating to
+span parser + materializer so no other call site changes.
+
+**Design anchors**: the locked span-parser design contracts —
+emit-level/emit-scope **intersection** model
+(`ShouldEmit = MatchesLevel(kind) && MatchesScope(kind)`), gapless
+non-overlapping `Blocks` partition, recursive
+container-before-contained ordering, whole-file zero-based
+exclusive-ended coordinates (`CRLF` = two chars, no normalisation),
+span-attached file-local diagnostics with promotion to the nearest
+emitted parent, the `## Rules` section state machine, and the
+preserved fence asymmetry (rule bullets fence-agnostic; headings,
+references, and the Rules-boundary `---` fence-aware).
+
+**Code touch** (`AutoContext.Instructions.Parser/`):
+- `InstructionsFileSpanParser` — `internal sealed`;
+  `ParseFileAsync(string)` owns I/O (`FileStream` + `StreamReader`)
+  and delegates to `ParseAsync(TextReader)`, which consumes decoded
+  text incrementally and yields `InstructionsFileParsedSpan`. Ctor:
+  `(emitLevel = Full, emitScope = All, includeDiagnostics = true)`.
+- Span model, coordinate structs, and enums:
+  `InstructionsFileParsedSpan` (`Text`, `Kind`, `TextSpan`,
+  `LineSpan`, `Diagnostics`), `InstructionsFileTextSpan`,
+  `InstructionsFileLineSpan`, `InstructionsFileSpanKind`,
+  `[Flags] InstructionsFileSpanEmitLevel`,
+  `[Flags] InstructionsFileSpanEmitScope`,
+  `InstructionsFileSpanDiagnostic`,
+  `InstructionsFileSpanDiagnosticKind` (`MissingTag`, `DuplicateTag`,
+  `MalformedTag`, `MalformedReference`, `MisplacedRule`).
+- Single streaming pass carries: an `inFence` toggle (gates
+  headings/references and the `---` Rules boundary; rule bullets stay
+  fence-agnostic), an "under `## Rules`" bool (enter on a `Heading2`
+  whose trimmed text is exactly `Rules`, stay across `Heading3`, exit
+  on the next `Heading2` / any `Heading1` / a thematic break `---` /
+  EOF), and a seen-tag set for `DuplicateTag`. Diagnostics attach to
+  the most specific emitted span, promoting to the nearest emitted
+  parent when the specific span is filtered out by level/scope.
+- Materializer (`InstructionsFileSpanMaterializer`) — consumes the
+  `Full`/`All` span stream and rebuilds `InstructionsFileParsedContent`
+  (frontmatter `name`/`description`/`applyTo`/`version`, the
+  `##`/`###` section index with slug anchors, rule bullets,
+  `[locator#fragment]` references split into Rule/Section kinds, and
+  diagnostics mapped onto the legacy `InstructionsFileDiagnosticKind`
+  vocabulary — span `MissingTag` → `MissingId`, etc.). `ApplyToParser`
+  glob parsing and `Slugify` are reused unchanged.
+- `InstructionsFileParser.Parse(string)` retained **as an interim
+  façade**, now delegating to span parser + materializer;
+  `InstructionsFile.Parse` / `ParseAsync` / `TryParse*` unchanged on
+  the surface. The façade is a migration shim, not the end state — see
+  *Eventual full retirement* below.
+- Repoint `AutoContext.Instructions.Manifest.Generator/CorpusParser`
+  and `AutoContext.Engine.Core/Features/Instructions/InstructionsFileService`
+  (the `InstructionsFileParser.Parse(content).Body` call) onto the new
+  path. Decide per-consumer whether to adopt the async span API
+  directly — the generator can stay synchronous through the façade;
+  the file service already runs async.
+
+**Tests**:
+- Span parser: emit-level × emit-scope truth table
+  (`Full`/`Blocks`/`Tokens` × `All`/`Frontmatter`/`Headings`/`Rules`/`References`,
+  including `Blocks + References` → empty); gapless `Blocks` partition
+  over fixtures; recursive ordering
+  (`FrontmatterProperty` → `FrontmatterKey`/`FrontmatterValue`;
+  `TaggedRule` → `Tag`/`Reference`); whole-file coordinates with
+  `CRLF` = two chars; diagnostic attachment + promotion across the
+  three levels.
+- Section state machine: `## Rules` enter / stay-across-`Heading3` /
+  exit on each boundary kind; a `---` inside a fence does **not**
+  close Rules; `MissingTag` only under Rules; `MisplacedRule` for a
+  tagged rule outside Rules; a `PlainRule` outside Rules stays clean.
+- Malformed-tag redefinition: `- [foo] **Do**` → `TaggedRule` +
+  `Tag` + `MalformedTag` (captured as the one intentional parity diff
+  versus the legacy parser).
+- Materializer parity: across the shipped corpus the rebuilt
+  `InstructionsFileParsedContent` matches the legacy parser
+  field-for-field except the documented malformed-tag diff.
+- Generator parity: `instructions-manifest.json` is byte-identical
+  before and after the repoint.
+- `InstructionsFileService` parity: projected bodies and
+  disabled-rule filtering unchanged.
+
+**Eventual full retirement** (a later follow-up phase, not 6P): once
+both consumers and the test suite have run on the span parser +
+materializer through a release cycle, retire `InstructionsFileParser`
+entirely — move every consumer and test onto the span parser /
+materializer (or a thin public entry point over them) and delete the
+legacy regex implementation and its result-shape adapters. 6P
+deliberately keeps the façade so the cutover is reversible and the
+parity diff stays small; the façade is the bridge, the span parser is
+the destination.
+
+**Out of scope**: full deletion of `InstructionsFileParser` (the
+*Eventual full retirement* follow-up above, not 6P); zero-copy
+`ReadOnlyMemory<char>` span slicing (deferred — accept per-span
+`string` for now); first-class `CodeFence` / `CodeSpan` span kinds
+(internal fence state only); corpus-level cross-file reference
+resolution (stays in `InstructionsFileReferenceResolver`, outside the
+span parser).
+
 ## Phase 6 — Instructions corpus runtime + projection
 
-**Status**: **In progress** on branch
-`features/instructions-corpus-runtime`, atop the merged Phase 6R
-catalog + manifest shape. Rows 1–3 and 5 are landed; the remaining
-RPC handlers (rows 4, 6–15) build on the in-memory snapshot.
+**Status**: **Paused** after rows 1–3 and 5 pending **Phase 6P**
+(new span-based parser); resumes once both corpus consumers run on
+the new parser. On branch `features/instructions-corpus-runtime`,
+atop the merged Phase 6R catalog + manifest shape. Rows 1–3 and 5 are
+landed; the remaining RPC handlers (rows 4, 6–15) build on the
+in-memory snapshot.
 
 | # | Commit subject | State |
 |---|---|---|
