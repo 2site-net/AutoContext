@@ -4,20 +4,6 @@ using AutoContext.Instructions.Parser.Tests.Support;
 
 public sealed class InstructionsFileSpanParserTests
 {
-    public sealed class ParseAsync
-    {
-        [Fact]
-        public async Task Should_reject_null_reader()
-        {
-            // Arrange
-            var parser = new InstructionsFileSpanParser();
-
-            // Act + Assert
-            await Assert.ThrowsAsync<ArgumentNullException>(
-                () => InstructionsFileSpanParserTestDrainer.DrainAsync(parser, (TextReader)null!));
-        }
-    }
-
     public sealed class ParseFileAsync
     {
         [Fact]

@@ -36,7 +36,6 @@ internal sealed partial class InstructionsFileStructuredParser
     /// materialised.
     /// </summary>
     /// <param name="spans">The span stream.</param>
-    /// <param name="cancellationToken">Cancels the enumeration.</param>
     /// <returns>The complete structural parse.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="spans"/> is
     /// <see langword="null"/>.</exception>
@@ -44,9 +43,8 @@ internal sealed partial class InstructionsFileStructuredParser
         "Performance",
         "CA1822:Mark members as static",
         Justification = "Kept an instance method so the parser presents one coherent instance API surface alongside the stateful ParseFileAsync.")]
-    public async Task<InstructionsFileParsedContent> ParseAsync(
-        IAsyncEnumerable<InstructionsFileParsedSpan> spans,
-        CancellationToken cancellationToken = default)
+    public InstructionsFileParsedContent Parse(
+        IEnumerable<InstructionsFileParsedSpan> spans)
     {
         ArgumentNullException.ThrowIfNull(spans);
 
@@ -63,7 +61,7 @@ internal sealed partial class InstructionsFileStructuredParser
         List<InstructionsFileDiagnostic>? diagnostics = null;
         string? lastSectionHeading = null;
 
-        await foreach (var span in spans.WithCancellation(cancellationToken).ConfigureAwait(false))
+        foreach (var span in spans)
         {
             var kind = span.Kind;
 
@@ -166,7 +164,7 @@ internal sealed partial class InstructionsFileStructuredParser
     /// structured parse. This overload owns the lex: it runs an
     /// <see cref="InstructionsFileSpanParser"/> over the file in its default
     /// <see cref="InstructionsFileSpanEmitLevel.Full"/> / <see cref="InstructionsFileSpanEmitScope.All"/>
-    /// configuration and feeds the span stream straight into <see cref="ParseAsync"/>.
+    /// configuration and feeds the span stream straight into <see cref="Parse"/>.
     /// </summary>
     /// <param name="path">The instructions file to read.</param>
     /// <param name="cancellationToken">Cancels the read.</param>
@@ -180,8 +178,9 @@ internal sealed partial class InstructionsFileStructuredParser
         ArgumentNullException.ThrowIfNull(path);
 
         var spanParser = _spanParser ??= new InstructionsFileSpanParser();
+        var spans = await spanParser.ParseFileAsync(path, cancellationToken).ConfigureAwait(false);
 
-        return await ParseAsync(spanParser.ParseFileAsync(path, cancellationToken), cancellationToken).ConfigureAwait(false);
+        return Parse(spans);
     }
 
     private static List<InstructionsFileSection> BuildSections(List<RawHeading>? rawHeadings, int bodyLength)

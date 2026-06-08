@@ -4,39 +4,39 @@ using AutoContext.Instructions.Parser.Tests.Support;
 
 public sealed class InstructionsFileStructuredParserTests
 {
-    public sealed class ParseAsync
+    public sealed class Parse
     {
         [Fact]
-        public async Task Should_reject_null_spans()
+        public void Should_reject_null_spans()
         {
             // Act + Assert
-            await Assert.ThrowsAsync<ArgumentNullException>(
-                () => new InstructionsFileStructuredParser().ParseAsync(null!, TestContext.Current.CancellationToken));
+            Assert.Throws<ArgumentNullException>(
+                () => new InstructionsFileStructuredParser().Parse(null!));
         }
 
         [Fact]
-        public async Task Should_preserve_verbatim_content()
+        public void Should_preserve_verbatim_content()
         {
             // Arrange
             var content = "---\nname: \"x (v1.0.0)\"\n---\n# Title\n\nBody.\n";
             var spans = InstructionsFileSpanStream.From(content);
 
             // Act
-            var parsed = await new InstructionsFileStructuredParser().ParseAsync(spans, TestContext.Current.CancellationToken);
+            var parsed = new InstructionsFileStructuredParser().Parse(spans);
 
             // Assert
             Assert.Equal(content, parsed.RawContent);
         }
 
         [Fact]
-        public async Task Should_strip_frontmatter_from_the_body_raw_value()
+        public void Should_strip_frontmatter_from_the_body_raw_value()
         {
             // Arrange
             var content = "---\nname: \"x (v1.0.0)\"\n---\n# Title\n\nBody.\n";
             var spans = InstructionsFileSpanStream.From(content);
 
             // Act
-            var parsed = await new InstructionsFileStructuredParser().ParseAsync(spans, TestContext.Current.CancellationToken);
+            var parsed = new InstructionsFileStructuredParser().Parse(spans);
 
             // Assert
             Assert.Equal("# Title\n\nBody.\n", parsed.Body.RawValue);
@@ -83,14 +83,14 @@ public sealed class InstructionsFileStructuredParserTests
     public sealed class Frontmatter
     {
         [Fact]
-        public async Task Should_read_name_description_apply_to_and_version()
+        public void Should_read_name_description_apply_to_and_version()
         {
             // Arrange
             var content = "---\nname: \"lang-csharp (v1.2.3)\"\ndescription: \"C# rules.\"\napplyTo: \"**/*.cs\"\n---\nBody.\n";
             var spans = InstructionsFileSpanStream.From(content);
 
             // Act
-            var parsed = await new InstructionsFileStructuredParser().ParseAsync(spans, TestContext.Current.CancellationToken);
+            var parsed = new InstructionsFileStructuredParser().Parse(spans);
             var frontmatter = parsed.Frontmatter;
 
             // Assert
@@ -105,14 +105,14 @@ public sealed class InstructionsFileStructuredParserTests
         }
 
         [Fact]
-        public async Task Should_leave_all_fields_null_when_no_frontmatter_block()
+        public void Should_leave_all_fields_null_when_no_frontmatter_block()
         {
             // Arrange
             var content = "# Title\n\nBody only.\n";
             var spans = InstructionsFileSpanStream.From(content);
 
             // Act
-            var parsed = await new InstructionsFileStructuredParser().ParseAsync(spans, TestContext.Current.CancellationToken);
+            var parsed = new InstructionsFileStructuredParser().Parse(spans);
             var frontmatter = parsed.Frontmatter;
 
             // Assert
@@ -128,14 +128,14 @@ public sealed class InstructionsFileStructuredParserTests
     public sealed class Sections
     {
         [Fact]
-        public async Task Should_index_sections_with_anchors_parents_and_ranges()
+        public void Should_index_sections_with_anchors_parents_and_ranges()
         {
             // Arrange
             var content = "# Title\n\n## First Section\n\nText.\n\n### Sub A\n\nMore.\n\n## Second\n\nEnd.\n";
             var spans = InstructionsFileSpanStream.From(content);
 
             // Act
-            var parsed = await new InstructionsFileStructuredParser().ParseAsync(spans, TestContext.Current.CancellationToken);
+            var parsed = new InstructionsFileStructuredParser().Parse(spans);
             var body = parsed.Body;
 
             // Assert
@@ -160,14 +160,14 @@ public sealed class InstructionsFileStructuredParserTests
         }
 
         [Fact]
-        public async Task Should_ignore_the_document_title()
+        public void Should_ignore_the_document_title()
         {
             // Arrange
             var content = "# Title\n\n## Only\n\nText.\n";
             var spans = InstructionsFileSpanStream.From(content);
 
             // Act
-            var parsed = await new InstructionsFileStructuredParser().ParseAsync(spans, TestContext.Current.CancellationToken);
+            var parsed = new InstructionsFileStructuredParser().Parse(spans);
             var sections = parsed.Body.Sections;
 
             // Assert
@@ -180,14 +180,14 @@ public sealed class InstructionsFileStructuredParserTests
     public sealed class Rules
     {
         [Fact]
-        public async Task Should_extract_tagged_and_plain_rule_ids()
+        public void Should_extract_tagged_and_plain_rule_ids()
         {
             // Arrange
             var content = "## Rules\n\n- [INST0001] **Do** alpha.\n- **Don't** beta.\n";
             var spans = InstructionsFileSpanStream.From(content);
 
             // Act
-            var parsed = await new InstructionsFileStructuredParser().ParseAsync(spans, TestContext.Current.CancellationToken);
+            var parsed = new InstructionsFileStructuredParser().Parse(spans);
             var rules = parsed.Body.Rules;
 
             // Assert
@@ -200,14 +200,14 @@ public sealed class InstructionsFileStructuredParserTests
         }
 
         [Fact]
-        public async Task Should_treat_a_malformed_tag_bullet_as_an_untagged_rule()
+        public void Should_treat_a_malformed_tag_bullet_as_an_untagged_rule()
         {
             // Arrange
             var content = "## Rules\n\n- [oops] **Do** gamma.\n";
             var spans = InstructionsFileSpanStream.From(content);
 
             // Act
-            var parsed = await new InstructionsFileStructuredParser().ParseAsync(spans, TestContext.Current.CancellationToken);
+            var parsed = new InstructionsFileStructuredParser().Parse(spans);
             var body = parsed.Body;
 
             // Assert
@@ -220,14 +220,14 @@ public sealed class InstructionsFileStructuredParserTests
         }
 
         [Fact]
-        public async Task Should_address_rule_lines_relative_to_the_body()
+        public void Should_address_rule_lines_relative_to_the_body()
         {
             // Arrange
             var content = "---\nname: \"x (v1.0.0)\"\n---\n## Rules\n\n- [INST0001] **Do** a.\n";
             var spans = InstructionsFileSpanStream.From(content);
 
             // Act
-            var parsed = await new InstructionsFileStructuredParser().ParseAsync(spans, TestContext.Current.CancellationToken);
+            var parsed = new InstructionsFileStructuredParser().Parse(spans);
             var body = parsed.Body;
 
             // Assert
@@ -241,14 +241,14 @@ public sealed class InstructionsFileStructuredParserTests
     public sealed class References
     {
         [Fact]
-        public async Task Should_split_rule_and_section_references()
+        public void Should_split_rule_and_section_references()
         {
             // Arrange
             var content = "# Title\n\nSee [testing#INST0014] and [#'Assertions'] and [other#INST0002].\n";
             var spans = InstructionsFileSpanStream.From(content);
 
             // Act
-            var parsed = await new InstructionsFileStructuredParser().ParseAsync(spans, TestContext.Current.CancellationToken);
+            var parsed = new InstructionsFileStructuredParser().Parse(spans);
             var references = parsed.Body.References;
 
             // Assert
@@ -266,14 +266,14 @@ public sealed class InstructionsFileStructuredParserTests
         }
 
         [Fact]
-        public async Task Should_skip_a_malformed_reference_but_keep_its_diagnostic()
+        public void Should_skip_a_malformed_reference_but_keep_its_diagnostic()
         {
             // Arrange
             var content = "# Title\n\nBad [bad locator#INST0001] reference.\n";
             var spans = InstructionsFileSpanStream.From(content);
 
             // Act
-            var parsed = await new InstructionsFileStructuredParser().ParseAsync(spans, TestContext.Current.CancellationToken);
+            var parsed = new InstructionsFileStructuredParser().Parse(spans);
             var body = parsed.Body;
 
             // Assert
@@ -287,14 +287,14 @@ public sealed class InstructionsFileStructuredParserTests
     public sealed class Diagnostics
     {
         [Fact]
-        public async Task Should_report_a_missing_tag_under_rules()
+        public void Should_report_a_missing_tag_under_rules()
         {
             // Arrange
             var content = "## Rules\n\n- **Do** untagged.\n";
             var spans = InstructionsFileSpanStream.From(content);
 
             // Act
-            var parsed = await new InstructionsFileStructuredParser().ParseAsync(spans, TestContext.Current.CancellationToken);
+            var parsed = new InstructionsFileStructuredParser().Parse(spans);
             var diagnostics = parsed.Body.Diagnostics;
 
             // Assert
@@ -305,14 +305,14 @@ public sealed class InstructionsFileStructuredParserTests
         }
 
         [Fact]
-        public async Task Should_report_a_duplicate_tag()
+        public void Should_report_a_duplicate_tag()
         {
             // Arrange
             var content = "## Rules\n\n- [INST0001] **Do** a.\n- [INST0001] **Do** b.\n";
             var spans = InstructionsFileSpanStream.From(content);
 
             // Act
-            var parsed = await new InstructionsFileStructuredParser().ParseAsync(spans, TestContext.Current.CancellationToken);
+            var parsed = new InstructionsFileStructuredParser().Parse(spans);
             var diagnostics = parsed.Body.Diagnostics;
 
             // Assert
@@ -323,14 +323,14 @@ public sealed class InstructionsFileStructuredParserTests
         }
 
         [Fact]
-        public async Task Should_report_a_tagged_rule_misplaced_outside_rules()
+        public void Should_report_a_tagged_rule_misplaced_outside_rules()
         {
             // Arrange
             var content = "## Notes\n\n- [INST0001] **Do** a.\n";
             var spans = InstructionsFileSpanStream.From(content);
 
             // Act
-            var parsed = await new InstructionsFileStructuredParser().ParseAsync(spans, TestContext.Current.CancellationToken);
+            var parsed = new InstructionsFileStructuredParser().Parse(spans);
             var diagnostics = parsed.Body.Diagnostics;
 
             // Assert

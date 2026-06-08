@@ -1,16 +1,15 @@
 namespace AutoContext.Instructions.Parser;
 
 using System.Buffers;
-using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.RegularExpressions;
 
 /// <summary>
-/// A lower-level, incremental, source-positioned lexer for instructions files. It
-/// consumes decoded text from a <see cref="TextReader"/> and yields
-/// <see cref="InstructionsFileParsedSpan"/> values addressed by whole-file,
-/// zero-based, exclusive-ended coordinates (no frontmatter stripping, no newline
-/// normalisation, so a <c>CRLF</c> pair counts as two characters).
+/// A lower-level, source-positioned lexer for instructions files. It consumes
+/// decoded text and yields <see cref="InstructionsFileParsedSpan"/> values
+/// addressed by whole-file, zero-based, exclusive-ended coordinates (no
+/// frontmatter stripping, no newline normalisation, so a <c>CRLF</c> pair counts
+/// as two characters).
 /// <para>
 /// Two emission layers are produced. The <em>block</em> layer
 /// (<see cref="InstructionsFileSpanEmitLevel.Blocks"/>) is a gapless,
@@ -33,7 +32,6 @@ internal sealed partial class InstructionsFileSpanParser(
     InstructionsFileSpanEmitScope emitScope = InstructionsFileSpanEmitScope.All,
     bool includeDiagnostics = true)
 {
-    private const int ReadBufferSize = 4096;
     private const int StackMaskThreshold = 256;
 
     private readonly bool _emitReferences = IsEmitted(emitLevel, emitScope, InstructionsFileSpanKind.Reference);
@@ -48,24 +46,25 @@ internal sealed partial class InstructionsFileSpanParser(
     }
 
     /// <summary>
-    /// Streams the span decomposition of the text behind <paramref name="reader"/>,
-    /// consuming it incrementally without materialising the whole file.
+    /// Produces the span decomposition of <paramref name="text"/> as a lazily
+    /// evaluated sequence over the in-memory buffer. The parse runs as the sequence
+    /// is enumerated; no intermediate list is materialised, so a consumer that
+    /// stops early stops the parse.
     /// </summary>
-    /// <param name="reader">The decoded instructions text.</param>
-    /// <param name="cancellationToken">Cancels the read.</param>
-    /// <returns>The span stream.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="reader"/> is
-    /// <see langword="null"/>.</exception>
-    public async IAsyncEnumerable<InstructionsFileParsedSpan> ParseAsync(
-        TextReader reader,
-        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    /// <param name="text">The decoded instructions text.</param>
+    /// <param name="cancellationToken">Cancels the enumeration, checked once per
+    /// physical line.</param>
+    /// <returns>The lazy span sequence.</returns>
+    public IEnumerable<InstructionsFileParsedSpan> Parse(
+        string text,
+        CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(reader);
-
         var state = new ParserState();
 
-        await foreach (var line in ReadPhysicalLinesAsync(reader, cancellationToken).ConfigureAwait(false))
+        foreach (var line in ReadPhysicalLines(text))
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             foreach (var span in Advance(state, line))
             {
                 yield return span;
@@ -79,35 +78,27 @@ internal sealed partial class InstructionsFileSpanParser(
     }
 
     /// <summary>
-    /// Streams the span decomposition of the instructions file at
-    /// <paramref name="path"/>. This overload owns the file's lifetime: it opens
-    /// the file for reading and closes it once the stream completes.
+    /// Reads the instructions file at <paramref name="path"/> once into memory (with
+    /// byte-order-mark encoding detection) and returns its span decomposition as a
+    /// lazily evaluated sequence produced over that buffer. Only the read is
+    /// asynchronous; the returned sequence is parsed synchronously as it is
+    /// enumerated.
     /// </summary>
     /// <param name="path">The instructions file to read.</param>
-    /// <param name="cancellationToken">Cancels the read.</param>
-    /// <returns>The span stream.</returns>
+    /// <param name="cancellationToken">Cancels the read and the subsequent
+    /// enumeration.</param>
+    /// <returns>The lazy span sequence.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="path"/> is
     /// <see langword="null"/>.</exception>
-    public async IAsyncEnumerable<InstructionsFileParsedSpan> ParseFileAsync(
+    public async Task<IEnumerable<InstructionsFileParsedSpan>> ParseFileAsync(
         string path,
-        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(path);
 
-        using var stream = new FileStream(
-            path,
-            FileMode.Open,
-            FileAccess.Read,
-            FileShare.Read,
-            ReadBufferSize,
-            useAsync: true);
+        var text = await File.ReadAllTextAsync(path, cancellationToken).ConfigureAwait(false);
 
-        using var reader = new StreamReader(stream, detectEncodingFromByteOrderMarks: true);
-
-        await foreach (var span in ParseAsync(reader, cancellationToken).ConfigureAwait(false))
-        {
-            yield return span;
-        }
+        return Parse(text, cancellationToken);
     }
 
     private static void AddReferenceDrafts(PhysicalLine line, List<TokenDraft> tokens, bool includeDiagnostics)
@@ -380,56 +371,40 @@ internal sealed partial class InstructionsFileSpanParser(
         }
     }
 
-    private static async IAsyncEnumerable<PhysicalLine> ReadPhysicalLinesAsync(
-        TextReader reader,
-        [EnumeratorCancellation] CancellationToken cancellationToken)
+    private static IEnumerable<PhysicalLine> ReadPhysicalLines(string text)
     {
-        var buffer = new char[ReadBufferSize];
-        var pending = new StringBuilder();
         var lineStart = 0;
-        var absolute = 0;
         var lineIndex = 0;
-        int read;
 
-        while ((read = await reader.ReadAsync(buffer.AsMemory(0, buffer.Length), cancellationToken).ConfigureAwait(false)) > 0)
+        for (var i = 0; i < text.Length; i++)
         {
-            for (var i = 0; i < read; i++)
+            if (text[i] != '\n')
             {
-                var c = buffer[i];
-
-                if (c == '\n')
-                {
-                    string content;
-                    string terminator;
-
-                    if (pending.Length > 0 && pending[^1] == '\r')
-                    {
-                        content = pending.ToString(0, pending.Length - 1);
-                        terminator = "\r\n";
-                    }
-                    else
-                    {
-                        content = pending.ToString();
-                        terminator = "\n";
-                    }
-
-                    yield return new PhysicalLine(content, terminator, lineStart, lineIndex);
-                    pending.Clear();
-                    lineIndex++;
-                    absolute++;
-                    lineStart = absolute;
-                }
-                else
-                {
-                    pending.Append(c);
-                    absolute++;
-                }
+                continue;
             }
+
+            string content;
+            string terminator;
+
+            if (i > lineStart && text[i - 1] == '\r')
+            {
+                content = text[lineStart..(i - 1)];
+                terminator = "\r\n";
+            }
+            else
+            {
+                content = text[lineStart..i];
+                terminator = "\n";
+            }
+
+            yield return new PhysicalLine(content, terminator, lineStart, lineIndex);
+            lineStart = i + 1;
+            lineIndex++;
         }
 
-        if (pending.Length > 0)
+        if (lineStart < text.Length)
         {
-            yield return new PhysicalLine(pending.ToString(), string.Empty, lineStart, lineIndex);
+            yield return new PhysicalLine(text[lineStart..], string.Empty, lineStart, lineIndex);
         }
     }
 
