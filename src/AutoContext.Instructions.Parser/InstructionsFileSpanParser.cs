@@ -46,51 +46,45 @@ internal sealed partial class InstructionsFileSpanParser(
     }
 
     /// <summary>
-    /// Produces the span decomposition of <paramref name="text"/> as a lazily
-    /// evaluated sequence over the in-memory buffer. The parse runs as the sequence
-    /// is enumerated; no intermediate list is materialised, so a consumer that
-    /// stops early stops the parse.
+    /// Produces the span decomposition of <paramref name="text"/> over the
+    /// in-memory buffer. The parse runs to completion and returns a fully
+    /// materialised list of spans in emission order.
     /// </summary>
     /// <param name="text">The decoded instructions text.</param>
-    /// <param name="cancellationToken">Cancels the enumeration, checked once per
+    /// <param name="cancellationToken">Cancels the parse, checked once per
     /// physical line.</param>
-    /// <returns>The lazy span sequence.</returns>
-    public IEnumerable<InstructionsFileParsedSpan> Parse(
+    /// <returns>The materialised span list.</returns>
+    public IReadOnlyList<InstructionsFileParsedSpan> Parse(
         string text,
         CancellationToken cancellationToken = default)
     {
         var state = new ParserState();
+        var output = new List<InstructionsFileParsedSpan>();
 
         foreach (var line in ReadPhysicalLines(text))
         {
             cancellationToken.ThrowIfCancellationRequested();
-
-            foreach (var span in Advance(state, line))
-            {
-                yield return span;
-            }
+            Advance(state, line, output);
         }
 
-        foreach (var span in Finish(state))
-        {
-            yield return span;
-        }
+        Finish(state, output);
+
+        return output;
     }
 
     /// <summary>
     /// Reads the instructions file at <paramref name="path"/> once into memory (with
-    /// byte-order-mark encoding detection) and returns its span decomposition as a
-    /// lazily evaluated sequence produced over that buffer. Only the read is
-    /// asynchronous; the returned sequence is parsed synchronously as it is
-    /// enumerated.
+    /// byte-order-mark encoding detection) and returns its span decomposition over
+    /// that buffer. Only the read is asynchronous; parsing runs synchronously to
+    /// completion once the read completes.
     /// </summary>
     /// <param name="path">The instructions file to read.</param>
     /// <param name="cancellationToken">Cancels the read and the subsequent
-    /// enumeration.</param>
-    /// <returns>The lazy span sequence.</returns>
+    /// parse.</param>
+    /// <returns>The materialised span list.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="path"/> is
     /// <see langword="null"/>.</exception>
-    public async Task<IEnumerable<InstructionsFileParsedSpan>> ParseFileAsync(
+    public async Task<IReadOnlyList<InstructionsFileParsedSpan>> ParseFileAsync(
         string path,
         CancellationToken cancellationToken = default)
     {
@@ -426,10 +420,8 @@ internal sealed partial class InstructionsFileSpanParser(
             _ => InstructionsFileSpanEmitScope.References,
         };
 
-    private List<InstructionsFileParsedSpan> Advance(ParserState state, PhysicalLine line)
+    private void Advance(ParserState state, PhysicalLine line, List<InstructionsFileParsedSpan> output)
     {
-        var output = new List<InstructionsFileParsedSpan>();
-
         if (state.Phase == ParsePhase.Start)
         {
             state.Phase = line.Content == "---" ? ParsePhase.Frontmatter : ParsePhase.Body;
@@ -457,8 +449,6 @@ internal sealed partial class InstructionsFileSpanParser(
         {
             AdvanceBody(state, line, output);
         }
-
-        return output;
     }
 
     private void AdvanceBody(ParserState state, PhysicalLine line, List<InstructionsFileParsedSpan> output)
@@ -638,10 +628,8 @@ internal sealed partial class InstructionsFileSpanParser(
         }
     }
 
-    private List<InstructionsFileParsedSpan> Finish(ParserState state)
+    private void Finish(ParserState state, List<InstructionsFileParsedSpan> output)
     {
-        var output = new List<InstructionsFileParsedSpan>();
-
         if (state.Phase == ParsePhase.Frontmatter)
         {
             // The opening '---' was never closed, so it is not a frontmatter block;
@@ -658,8 +646,6 @@ internal sealed partial class InstructionsFileSpanParser(
 
         FlushRule(state, output);
         FlushText(state, output);
-
-        return output;
     }
 
     private void FlushRule(ParserState state, List<InstructionsFileParsedSpan> output)
