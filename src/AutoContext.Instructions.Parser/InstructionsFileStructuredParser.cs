@@ -26,6 +26,14 @@ internal sealed partial class InstructionsFileStructuredParser
 {
     private InstructionsFileSpanParser? _spanParser;
 
+    private enum FrontmatterField
+    {
+        Unknown,
+        Name,
+        Description,
+        ApplyTo,
+    }
+
     /// <summary>
     /// Rebuilds the structured parse from a <see cref="InstructionsFileSpanParser"/>
     /// span stream. The spans must be the complete <see cref="InstructionsFileSpanEmitLevel.Full"/> /
@@ -60,6 +68,7 @@ internal sealed partial class InstructionsFileStructuredParser
         List<InstructionsFileReference>? references = null;
         List<InstructionsFileDiagnostic>? diagnostics = null;
         string? lastSectionHeading = null;
+        var currentFrontmatterField = FrontmatterField.Unknown;
 
         foreach (var span in spans)
         {
@@ -78,27 +87,14 @@ internal sealed partial class InstructionsFileStructuredParser
                 var block = GeneratedFrontmatterBlockRegex().Match(span.Text.ToString());
                 frontmatterRawValue = block.Success ? block.Groups[1].Value : string.Empty;
             }
-            else if (kind == InstructionsFileSpanKind.FrontmatterProperty)
+            else if (kind == InstructionsFileSpanKind.FrontmatterKey)
             {
-                var field = GeneratedFrontmatterFieldRegex().Match(span.Text.ToString());
-
-                if (field.Success)
-                {
-                    var key = field.Groups[1].Value;
-
-                    if (key == "name")
-                    {
-                        name = field.Groups[2].Value;
-                    }
-                    else if (key == "description")
-                    {
-                        description = field.Groups[2].Value;
-                    }
-                    else if (key == "applyTo")
-                    {
-                        applyToRaw = field.Groups[2].Value;
-                    }
-                }
+                currentFrontmatterField = ClassifyFrontmatterKey(span.Text.Span);
+                AssignFrontmatterField(currentFrontmatterField, string.Empty);
+            }
+            else if (kind == InstructionsFileSpanKind.FrontmatterValue)
+            {
+                AssignFrontmatterField(currentFrontmatterField, span.Text.ToString());
             }
             else if (kind is InstructionsFileSpanKind.Heading2 or InstructionsFileSpanKind.Heading3)
             {
@@ -157,6 +153,25 @@ internal sealed partial class InstructionsFileStructuredParser
             diagnostics ?? []);
 
         return new InstructionsFileParsedContent(content, frontmatter, parsedBody);
+
+        void AssignFrontmatterField(FrontmatterField field, string value)
+        {
+            switch (field)
+            {
+                case FrontmatterField.Name:
+                    name = value;
+                    break;
+                case FrontmatterField.Description:
+                    description = value;
+                    break;
+                case FrontmatterField.ApplyTo:
+                    applyToRaw = value;
+                    break;
+                case FrontmatterField.Unknown:
+                default:
+                    break;
+            }
+        }
     }
 
     /// <summary>
@@ -211,6 +226,15 @@ internal sealed partial class InstructionsFileStructuredParser
         return sections;
     }
 
+    private static FrontmatterField ClassifyFrontmatterKey(ReadOnlySpan<char> key)
+        => key switch
+        {
+            "name" => FrontmatterField.Name,
+            "description" => FrontmatterField.Description,
+            "applyTo" => FrontmatterField.ApplyTo,
+            _ => FrontmatterField.Unknown,
+        };
+
     private static int ComputeCharEnd(IReadOnlyList<RawHeading> rawHeadings, int index, int bodyLength)
     {
         var current = rawHeadings[index];
@@ -238,9 +262,6 @@ internal sealed partial class InstructionsFileStructuredParser
 
     [GeneratedRegex(@"^---\r?\n([\s\S]*?)\r?\n---")]
     private static partial Regex GeneratedFrontmatterBlockRegex();
-
-    [GeneratedRegex("^(\\w+):\\s*\"?([^\"\\r\\n]*)\"?\\s*$")]
-    private static partial Regex GeneratedFrontmatterFieldRegex();
 
     [GeneratedRegex(@"\\(.)")]
     private static partial Regex GeneratedHeadingEscapeRegex();
