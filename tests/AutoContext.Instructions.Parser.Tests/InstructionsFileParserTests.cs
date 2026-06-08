@@ -209,9 +209,9 @@ public sealed class InstructionsFileParserTests
 
             // Assert
             Assert.Multiple(
-                () => Assert.Equal(0, sections[0].CharStart),
-                () => Assert.Equal(body.IndexOf("## B", StringComparison.Ordinal), sections[0].CharEnd),
-                () => Assert.Equal(body.Length, sections[1].CharEnd));
+                () => Assert.Equal(0, sections[0].TextSpan.StartIndex),
+                () => Assert.Equal(body.IndexOf("## B", StringComparison.Ordinal), sections[0].TextSpan.EndIndex),
+                () => Assert.Equal(body.Length, sections[1].TextSpan.EndIndex));
         }
 
         [Fact]
@@ -306,8 +306,8 @@ public sealed class InstructionsFileParserTests
             Assert.Multiple(
                 () => Assert.Equal(2, rules.Count),
                 () => Assert.Contains("continued detail", rules[0].Text, StringComparison.Ordinal),
-                () => Assert.Equal(0, rules[0].StartLine),
-                () => Assert.Equal(1, rules[0].EndLine),
+                () => Assert.Equal(0, rules[0].LineSpan.StartLine),
+                () => Assert.Equal(2, rules[0].LineSpan.EndLine),
                 () => Assert.Equal("INST0002", rules[1].Id));
         }
 
@@ -336,9 +336,9 @@ public sealed class InstructionsFileParserTests
 
             // Assert
             Assert.Multiple(
-                () => Assert.Equal(InstructionsFileReferenceKind.Rule, reference.Kind),
-                () => Assert.Equal("testing", reference.Locator),
-                () => Assert.Equal("INST0014", reference.Target));
+                () => Assert.Equal(InstructionsFileReferenceKind.Rule, reference.Address.Kind),
+                () => Assert.Equal("testing", reference.Address.Locator),
+                () => Assert.Equal("INST0014", reference.Address.Target));
         }
 
         [Fact]
@@ -350,9 +350,9 @@ public sealed class InstructionsFileParserTests
 
             // Assert
             Assert.Multiple(
-                () => Assert.Equal(InstructionsFileReferenceKind.Rule, reference.Kind),
-                () => Assert.Null(reference.Locator),
-                () => Assert.Equal("INST0017", reference.Target));
+                () => Assert.Equal(InstructionsFileReferenceKind.Rule, reference.Address.Kind),
+                () => Assert.Null(reference.Address.Locator),
+                () => Assert.Equal("INST0017", reference.Address.Target));
         }
 
         [Fact]
@@ -364,9 +364,9 @@ public sealed class InstructionsFileParserTests
 
             // Assert
             Assert.Multiple(
-                () => Assert.Equal(InstructionsFileReferenceKind.Section, reference.Kind),
-                () => Assert.Equal("testing", reference.Locator),
-                () => Assert.Equal("Test Support", reference.Target));
+                () => Assert.Equal(InstructionsFileReferenceKind.Section, reference.Address.Kind),
+                () => Assert.Equal("testing", reference.Address.Locator),
+                () => Assert.Equal("Test Support", reference.Address.Target));
         }
 
         [Fact]
@@ -378,9 +378,9 @@ public sealed class InstructionsFileParserTests
 
             // Assert
             Assert.Multiple(
-                () => Assert.Equal(InstructionsFileReferenceKind.Section, reference.Kind),
-                () => Assert.Null(reference.Locator),
-                () => Assert.Equal("Assertions", reference.Target));
+                () => Assert.Equal(InstructionsFileReferenceKind.Section, reference.Address.Kind),
+                () => Assert.Null(reference.Address.Locator),
+                () => Assert.Equal("Assertions", reference.Address.Target));
         }
 
         [Fact]
@@ -392,9 +392,9 @@ public sealed class InstructionsFileParserTests
 
             // Assert
             Assert.Multiple(
-                () => Assert.Equal(InstructionsFileReferenceKind.Section, reference.Kind),
-                () => Assert.Null(reference.Locator),
-                () => Assert.Equal("Bob's rules", reference.Target));
+                () => Assert.Equal(InstructionsFileReferenceKind.Section, reference.Address.Kind),
+                () => Assert.Null(reference.Address.Locator),
+                () => Assert.Equal("Bob's rules", reference.Address.Target));
         }
 
         [Fact]
@@ -406,9 +406,9 @@ public sealed class InstructionsFileParserTests
 
             // Assert
             Assert.Multiple(
-                () => Assert.Equal(InstructionsFileReferenceKind.Section, reference.Kind),
-                () => Assert.Equal("testing", reference.Locator),
-                () => Assert.Equal("Don't repeat yourself", reference.Target));
+                () => Assert.Equal(InstructionsFileReferenceKind.Section, reference.Address.Kind),
+                () => Assert.Equal("testing", reference.Address.Locator),
+                () => Assert.Equal("Don't repeat yourself", reference.Address.Target));
         }
 
         [Fact]
@@ -423,8 +423,8 @@ public sealed class InstructionsFileParserTests
 
             // Assert
             Assert.Multiple(
-                () => Assert.Equal(InstructionsFileReferenceKind.Section, reference.Kind),
-                () => Assert.Equal("path\\to", reference.Target));
+                () => Assert.Equal(InstructionsFileReferenceKind.Section, reference.Address.Kind),
+                () => Assert.Equal("path\\to", reference.Address.Target));
         }
 
         [Fact]
@@ -439,10 +439,10 @@ public sealed class InstructionsFileParserTests
             // Assert
             Assert.Multiple(
                 () => Assert.Equal(2, references.Count),
-                () => Assert.Equal("dotnet-testing", references[0].Locator),
-                () => Assert.Equal("INST0011", references[0].Target),
-                () => Assert.Equal("testing", references[1].Locator),
-                () => Assert.Equal("INST0019", references[1].Target));
+                () => Assert.Equal("dotnet-testing", references[0].Address.Locator),
+                () => Assert.Equal("INST0011", references[0].Address.Target),
+                () => Assert.Equal("testing", references[1].Address.Locator),
+                () => Assert.Equal("INST0019", references[1].Address.Target));
         }
 
         [Fact]
@@ -454,7 +454,7 @@ public sealed class InstructionsFileParserTests
             // Assert
             Assert.Multiple(
                 () => Assert.Equal("INST0006", Assert.Single(result.Body.Rules).Id),
-                () => Assert.Equal("design-principles", Assert.Single(result.Body.References).Locator));
+                () => Assert.Equal("design-principles", Assert.Single(result.Body.References).Address.Locator));
         }
 
         [Fact]
@@ -477,7 +477,7 @@ public sealed class InstructionsFileParserTests
             var reference = Assert.Single(InstructionsFileParser.Parse(body).Body.References);
 
             // Assert
-            Assert.Equal("INST0001", reference.Target);
+            Assert.Equal("INST0001", reference.Address.Target);
         }
 
         [Fact]
@@ -554,8 +554,8 @@ public sealed class InstructionsFileParserTests
 
             // Assert
             Assert.Multiple(
-                () => Assert.Equal(body.IndexOf('[', StringComparison.Ordinal), reference.CharStart),
-                () => Assert.Equal(body.IndexOf(']', StringComparison.Ordinal) + 1, reference.CharEnd),
+                () => Assert.Equal(body.IndexOf('[', StringComparison.Ordinal), reference.TextSpan.StartIndex),
+                () => Assert.Equal(body.IndexOf(']', StringComparison.Ordinal) + 1, reference.TextSpan.EndIndex),
                 () => Assert.Equal(0, reference.Line));
         }
     }

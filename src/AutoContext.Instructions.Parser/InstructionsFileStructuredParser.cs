@@ -116,16 +116,20 @@ internal sealed partial class InstructionsFileStructuredParser
                 (rules ??= []).Add(new InstructionsFileRule(
                     id,
                     StripFinalLineTerminator(span.Text.Span),
-                    span.LineSpan.StartLine - frontmatterLineCount,
-                    span.LineSpan.EndLine - 1 - frontmatterLineCount));
+                    new InstructionsFileLineSpan(
+                        span.LineSpan.StartLine - frontmatterLineCount,
+                        span.LineSpan.LineCount)));
             }
             else if (kind == InstructionsFileSpanKind.Reference)
             {
-                var reference = ParseReference(span, frontmatterCharLength, frontmatterLineCount);
-
-                if (reference is not null)
+                if (span.ReferenceAddress is { } address)
                 {
-                    (references ??= []).Add(reference);
+                    (references ??= []).Add(new InstructionsFileReference(
+                        address,
+                        new InstructionsFileTextSpan(
+                            span.TextSpan.StartIndex - frontmatterCharLength,
+                            span.TextSpan.Length),
+                        span.LineSpan.StartLine - frontmatterLineCount));
                 }
             }
 
@@ -219,8 +223,7 @@ internal sealed partial class InstructionsFileStructuredParser
                 heading.Level,
                 anchor,
                 heading.Parent,
-                heading.CharStart,
-                charEnd));
+                new InstructionsFileTextSpan(heading.CharStart, charEnd - heading.CharStart)));
         }
 
         return sections;
@@ -263,26 +266,8 @@ internal sealed partial class InstructionsFileStructuredParser
     [GeneratedRegex(@"^---\r?\n([\s\S]*?)\r?\n---")]
     private static partial Regex GeneratedFrontmatterBlockRegex();
 
-    [GeneratedRegex(@"\\(.)")]
-    private static partial Regex GeneratedHeadingEscapeRegex();
-
-    [GeneratedRegex(@"^(?:\.{1,2}/)?(?:[^/\s]+/)*[^/\s]+\.instructions\.md$")]
-    private static partial Regex GeneratedLocatorFileRegex();
-
-    [GeneratedRegex(@"^[a-z0-9]+(?:-[a-z0-9]+)*$")]
-    private static partial Regex GeneratedLocatorKeyRegex();
-
-    [GeneratedRegex(@"^[a-z][a-z0-9+.-]*://\S+$")]
-    private static partial Regex GeneratedLocatorUriRegex();
-
     [GeneratedRegex("[^a-z0-9]+")]
     private static partial Regex GeneratedNonSlugRunRegex();
-
-    [GeneratedRegex(@"^INST\d{4}$")]
-    private static partial Regex GeneratedReferenceRuleFragmentRegex();
-
-    [GeneratedRegex(@"^'(?:[^'\\]|\\.)+'$")]
-    private static partial Regex GeneratedReferenceSectionFragmentRegex();
 
     [GeneratedRegex(@"\(v(\d+\.\d+\.\d+)\)")]
     private static partial Regex GeneratedVersionSuffixRegex();
@@ -323,11 +308,6 @@ internal sealed partial class InstructionsFileStructuredParser
         return true;
     }
 
-    private static bool IsValidLocator(ReadOnlySpan<char> locator)
-        => GeneratedLocatorKeyRegex().IsMatch(locator)
-        || GeneratedLocatorFileRegex().IsMatch(locator)
-        || GeneratedLocatorUriRegex().IsMatch(locator);
-
     private static string ParseHeadingText(ReadOnlySpan<char> headingLine)
     {
         var index = 0;
@@ -338,62 +318,6 @@ internal sealed partial class InstructionsFileStructuredParser
         }
 
         return headingLine[index..].Trim().ToString();
-    }
-
-    private static InstructionsFileReference? ParseReference(
-        InstructionsFileParsedSpan span,
-        int frontmatterCharLength,
-        int frontmatterLineCount)
-    {
-        var token = span.Text;
-        var inner = token.Span[1..^1];
-        var separator = inner.IndexOf('#');
-
-        if (separator < 0)
-        {
-            return null;
-        }
-
-        var locator = inner[..separator];
-        var fragment = inner[(separator + 1)..];
-        var hasLocator = locator.Length > 0;
-
-        // A bad locator is reported by the span's own MalformedReference diagnostic;
-        // it yields no structured reference.
-        if (hasLocator && !IsValidLocator(locator))
-        {
-            return null;
-        }
-
-        var line = span.LineSpan.StartLine - frontmatterLineCount;
-        var charStart = span.TextSpan.StartIndex - frontmatterCharLength;
-        var charEnd = span.TextSpan.EndIndex - frontmatterCharLength;
-
-        if (GeneratedReferenceRuleFragmentRegex().IsMatch(fragment))
-        {
-            return new InstructionsFileReference(
-                InstructionsFileReferenceKind.Rule,
-                hasLocator ? locator.ToString() : null,
-                fragment.ToString(),
-                line,
-                charStart,
-                charEnd);
-        }
-
-        if (GeneratedReferenceSectionFragmentRegex().IsMatch(fragment))
-        {
-            return new InstructionsFileReference(
-                InstructionsFileReferenceKind.Section,
-                hasLocator ? locator.ToString() : null,
-                UnescapeHeading(fragment[1..^1].ToString()),
-                line,
-                charStart,
-                charEnd);
-        }
-
-        // A malformed fragment is likewise carried by the span diagnostic, not as a
-        // structured reference.
-        return null;
     }
 
     private static string? ParseRuleId(ReadOnlySpan<char> ruleLine)
@@ -446,11 +370,6 @@ internal sealed partial class InstructionsFileStructuredParser
 
         return text[..length].ToString();
     }
-
-    private static string UnescapeHeading(string heading)
-        => heading.Contains('\\', StringComparison.Ordinal)
-            ? GeneratedHeadingEscapeRegex().Replace(heading, "$1")
-            : heading;
 
     private readonly record struct RawHeading(int Level, string Text, string? Parent, int CharStart);
 }

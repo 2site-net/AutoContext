@@ -44,6 +44,14 @@ internal sealed partial class InstructionsFileSpanParser(
         Body,
     }
 
+    private enum ReferenceFault
+    {
+        None,
+        Locator,
+        Range,
+        Fragment,
+    }
+
     /// <summary>
     /// Produces the span decomposition of <paramref name="text"/> over the
     /// in-memory buffer. The parse runs to completion and returns a fully
@@ -115,22 +123,15 @@ internal sealed partial class InstructionsFileSpanParser(
             foreach (var match in GeneratedReferenceTokenRegex().EnumerateMatches(masked))
             {
                 var token = content.Slice(match.Index, match.Length);
-                var inner = token[1..^1];
-                var separator = inner.IndexOf('#');
-                var locator = inner[..separator];
-                var fragment = inner[(separator + 1)..];
-                var hasLocator = locator.Length > 0;
-                var locatorValid = !hasLocator || IsValidLocator(locator);
-                var fragmentLooksReference = fragment.StartsWith("INST", StringComparison.Ordinal)
-                    || (fragment.Length > 0 && fragment[0] == '\'');
+                var scan = ScanReference(token);
 
-                if (!((hasLocator && locatorValid) || fragmentLooksReference))
+                if (!scan.IsReference)
                 {
                     continue;
                 }
 
                 var diagnostic = includeDiagnostics
-                    ? ClassifyReference(token.ToString(), hasLocator, locatorValid, fragment)
+                    ? ReferenceFaultDiagnostic(scan.Fault, token.ToString())
                     : null;
 
                 tokens.Add(new TokenDraft(
@@ -138,7 +139,8 @@ internal sealed partial class InstructionsFileSpanParser(
                     match.Length,
                     line.LineIndex,
                     InstructionsFileSpanKind.Reference,
-                    diagnostic));
+                    diagnostic,
+                    scan.Address));
             }
         }
         finally
@@ -148,34 +150,6 @@ internal sealed partial class InstructionsFileSpanParser(
                 ArrayPool<char>.Shared.Return(rented);
             }
         }
-    }
-
-    private static InstructionsFileDiagnostic? ClassifyReference(
-        string token,
-        bool hasLocator,
-        bool locatorValid,
-        ReadOnlySpan<char> fragment)
-    {
-        if (hasLocator && !locatorValid)
-        {
-            return new InstructionsFileDiagnostic(
-                InstructionsFileDiagnosticKind.MalformedReference,
-                $"Malformed reference locator in {token}.");
-        }
-
-        if (GeneratedReferenceRuleFragmentRegex().IsMatch(fragment)
-            || GeneratedReferenceSectionFragmentRegex().IsMatch(fragment))
-        {
-            return null;
-        }
-
-        var message = GeneratedReferenceRangeFragmentRegex().IsMatch(fragment)
-            ? $"Reference ranges are not allowed in {token}; cite each rule or the enclosing section."
-            : $"Malformed reference fragment in {token}.";
-
-        return new InstructionsFileDiagnostic(
-            InstructionsFileDiagnosticKind.MalformedReference,
-            message);
     }
 
     private static int FindClosingBacktickRun(ReadOnlySpan<char> buffer, int start, int fence)
@@ -216,6 +190,9 @@ internal sealed partial class InstructionsFileSpanParser(
 
     [GeneratedRegex("^(\\w+):\\s*\"?([^\"\\r\\n]*)\"?\\s*$")]
     private static partial Regex GeneratedFrontmatterFieldRegex();
+
+    [GeneratedRegex(@"\\(.)")]
+    private static partial Regex GeneratedHeadingEscapeRegex();
 
     [GeneratedRegex(@"^(#{1,3}) +(.+?)\s*$")]
     private static partial Regex GeneratedHeadingRegex();
@@ -373,6 +350,72 @@ internal sealed partial class InstructionsFileSpanParser(
         }
     }
 
+    private static InstructionsFileDiagnostic? ReferenceFaultDiagnostic(ReferenceFault fault, string token)
+        => fault switch
+        {
+            ReferenceFault.Locator => new InstructionsFileDiagnostic(
+                InstructionsFileDiagnosticKind.MalformedReference,
+                $"Malformed reference locator in {token}."),
+            ReferenceFault.Range => new InstructionsFileDiagnostic(
+                InstructionsFileDiagnosticKind.MalformedReference,
+                $"Reference ranges are not allowed in {token}; cite each rule or the enclosing section."),
+            ReferenceFault.Fragment => new InstructionsFileDiagnostic(
+                InstructionsFileDiagnosticKind.MalformedReference,
+                $"Malformed reference fragment in {token}."),
+            ReferenceFault.None => null,
+            _ => null,
+        };
+
+    private static ReferenceScanResult ScanReference(ReadOnlySpan<char> token)
+    {
+        var inner = token[1..^1];
+        var separator = inner.IndexOf('#');
+        var locator = inner[..separator];
+        var fragment = inner[(separator + 1)..];
+        var hasLocator = locator.Length > 0;
+        var locatorValid = !hasLocator || IsValidLocator(locator);
+        var fragmentLooksReference = fragment.StartsWith("INST", StringComparison.Ordinal)
+            || (fragment.Length > 0 && fragment[0] == '\'');
+
+        if (!((hasLocator && locatorValid) || fragmentLooksReference))
+        {
+            return new ReferenceScanResult(false, null, ReferenceFault.None);
+        }
+
+        if (hasLocator && !locatorValid)
+        {
+            return new ReferenceScanResult(true, null, ReferenceFault.Locator);
+        }
+
+        if (GeneratedReferenceRuleFragmentRegex().IsMatch(fragment))
+        {
+            return new ReferenceScanResult(
+                true,
+                new InstructionsFileReferenceAddress(
+                    InstructionsFileReferenceKind.Rule,
+                    hasLocator ? locator.ToString() : null,
+                    fragment.ToString()),
+                ReferenceFault.None);
+        }
+
+        if (GeneratedReferenceSectionFragmentRegex().IsMatch(fragment))
+        {
+            return new ReferenceScanResult(
+                true,
+                new InstructionsFileReferenceAddress(
+                    InstructionsFileReferenceKind.Section,
+                    hasLocator ? locator.ToString() : null,
+                    UnescapeHeading(fragment[1..^1].ToString())),
+                ReferenceFault.None);
+        }
+
+        var fault = GeneratedReferenceRangeFragmentRegex().IsMatch(fragment)
+            ? ReferenceFault.Range
+            : ReferenceFault.Fragment;
+
+        return new ReferenceScanResult(true, null, fault);
+    }
+
     private static InstructionsFileSpanEmitScope ScopeOf(InstructionsFileSpanKind kind)
         => kind switch
         {
@@ -390,6 +433,11 @@ internal sealed partial class InstructionsFileSpanParser(
             InstructionsFileSpanKind.Reference => InstructionsFileSpanEmitScope.References,
             _ => InstructionsFileSpanEmitScope.References,
         };
+
+    private static string UnescapeHeading(string heading)
+        => heading.Contains('\\', StringComparison.Ordinal)
+            ? GeneratedHeadingEscapeRegex().Replace(heading, "$1")
+            : heading;
 
     private void Advance(ParserState state, PhysicalLine line, List<InstructionsFileParsedSpan> output)
     {
@@ -592,6 +640,11 @@ internal sealed partial class InstructionsFileSpanParser(
             if (token.Diagnostic is { } diagnostic)
             {
                 span = span with { Diagnostics = [diagnostic] };
+            }
+
+            if (token.Address is { } address)
+            {
+                span = span with { ReferenceAddress = address };
             }
 
             output.Add(span);
@@ -867,6 +920,11 @@ internal sealed partial class InstructionsFileSpanParser(
             => Content.Length + Terminator.Length;
     }
 
+    private readonly record struct ReferenceScanResult(
+        bool IsReference,
+        InstructionsFileReferenceAddress? Address,
+        ReferenceFault Fault);
+
     private readonly record struct TagExtent(int Offset, int Length);
 
     private readonly record struct TextLine(PhysicalLine Line, bool RefsScanned);
@@ -876,5 +934,6 @@ internal sealed partial class InstructionsFileSpanParser(
         int Length,
         int LineIndex,
         InstructionsFileSpanKind Kind,
-        InstructionsFileDiagnostic? Diagnostic = null);
+        InstructionsFileDiagnostic? Diagnostic = null,
+        InstructionsFileReferenceAddress? Address = null);
 }

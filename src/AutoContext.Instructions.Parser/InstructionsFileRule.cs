@@ -10,12 +10,11 @@ namespace AutoContext.Instructions.Parser;
 /// <param name="Id">The <c>INST####</c> tag, or <see langword="null"/> when the
 /// bullet carries no tag (and is therefore unfilterable).</param>
 /// <param name="Text">The verbatim bullet text, trailing blank lines trimmed.</param>
-/// <param name="StartLine">The zero-based line index of the bullet's first line
-/// within the normalised body.</param>
-/// <param name="EndLine">The zero-based line index of the bullet's last
-/// non-blank line within the normalised body.</param>
+/// <param name="LineSpan">The physical-line range the bullet covers, in normalised
+/// (frontmatter-stripped) body coordinates: from the bullet's first line to the
+/// exclusive line just past its last non-blank line (trailing blank continuation
+/// lines trimmed).</param>
 public sealed record InstructionsFileRule(
     string? Id,
     string Text,
-    int StartLine,
-    int EndLine);
+    InstructionsFileLineSpan LineSpan);

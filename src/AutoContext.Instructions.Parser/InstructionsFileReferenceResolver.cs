@@ -77,7 +77,7 @@ public static class InstructionsFileReferenceResolver
             return;
         }
 
-        switch (reference.Kind)
+        switch (reference.Address.Kind)
         {
             case InstructionsFileReferenceKind.Rule:
                 ResolveRule(reference, entry, findings);
@@ -96,7 +96,7 @@ public static class InstructionsFileReferenceResolver
         InstructionsFileCatalog catalog,
         List<InstructionsFileReferenceResolutionFailure> findings)
     {
-        var locator = reference.Locator;
+        var locator = reference.Address.Locator;
 
         if (locator is null)
         {
@@ -119,7 +119,7 @@ public static class InstructionsFileReferenceResolver
             findings.Add(new InstructionsFileReferenceResolutionFailure(
                 InstructionsFileReferenceFindingKind.RedundantLocator,
                 reference,
-                $"Reference '{targetKey}#{reference.Target}' names its own file; use the same-file form without the locator."));
+                $"Reference '{targetKey}#{reference.Address.Target}' names its own file; use the same-file form without the locator."));
         }
 
         ResolveAgainstTarget(targetKey, sameFile: false, reference, catalog, findings);
@@ -130,12 +130,12 @@ public static class InstructionsFileReferenceResolver
         InstructionsFileCatalogEntry entry,
         List<InstructionsFileReferenceResolutionFailure> findings)
     {
-        if (!entry.RuleIds.Contains(reference.Target))
+        if (!entry.RuleIds.Contains(reference.Address.Target))
         {
             findings.Add(new InstructionsFileReferenceResolutionFailure(
                 InstructionsFileReferenceFindingKind.DanglingRuleReference,
                 reference,
-                $"Rule '{reference.Target}' is not defined in '{entry.Key}'."));
+                $"Rule '{reference.Address.Target}' is not defined in '{entry.Key}'."));
         }
     }
 
@@ -144,18 +144,18 @@ public static class InstructionsFileReferenceResolver
         InstructionsFileCatalogEntry entry,
         List<InstructionsFileReferenceResolutionFailure> findings)
     {
-        var slug = InstructionsFileParser.Slugify(reference.Target);
+        var slug = InstructionsFileParser.Slugify(reference.Address.Target);
 
         var resolved = entry.Sections.Any(section =>
             string.Equals(section.Anchor, slug, StringComparison.Ordinal)
-                || string.Equals(section.Heading, reference.Target, StringComparison.Ordinal));
+                || string.Equals(section.Heading, reference.Address.Target, StringComparison.Ordinal));
 
         if (!resolved)
         {
             findings.Add(new InstructionsFileReferenceResolutionFailure(
                 InstructionsFileReferenceFindingKind.UnresolvedSectionReference,
                 reference,
-                $"Section '{reference.Target}' is not defined in '{entry.Key}'."));
+                $"Section '{reference.Address.Target}' is not defined in '{entry.Key}'."));
         }
     }
 }

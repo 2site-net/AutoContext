@@ -11,25 +11,14 @@ namespace AutoContext.Instructions.Parser;
 /// only checks their syntax; resolving a locator to a real file, or a target to a
 /// real rule or section, is a later cross-file concern.
 /// </summary>
-/// <param name="Kind">Whether the fragment targets a rule or a section.</param>
-/// <param name="Locator">The target file locator — a catalog key
-/// (<c>testing</c>), a filename, or a URI — or <see langword="null"/> when the
-/// reference omits the locator and is therefore same-file.</param>
-/// <param name="Target">The cited target: the verbatim <c>INST####</c> id for a
-/// <see cref="InstructionsFileReferenceKind.Rule"/> reference, or the heading text
-/// for a <see cref="InstructionsFileReferenceKind.Section"/> reference with the
-/// surrounding quotes removed and any backslash escapes resolved (so a heading
-/// containing an apostrophe, written <c>[#'Bob\'s rules']</c>, has the target
-/// <c>Bob's rules</c>).</param>
+/// <param name="Address">The coordinate-free classification of the reference: the
+/// target kind together with the normalised locator and target.</param>
+/// <param name="TextSpan">The character range of the whole token — from the opening
+/// <c>[</c> to just past the closing <c>]</c> — in normalised
+/// (frontmatter-stripped) body coordinates.</param>
 /// <param name="Line">The zero-based line index of the reference within the
-/// normalised body.</param>
-/// <param name="CharStart">The offset of the opening <c>[</c> into the normalised
-/// (frontmatter-stripped) body.</param>
-/// <param name="CharEnd">The exclusive offset just past the closing <c>]</c>.</param>
+/// normalised (frontmatter-stripped) body.</param>
 public sealed record InstructionsFileReference(
-    InstructionsFileReferenceKind Kind,
-    string? Locator,
-    string Target,
-    int Line,
-    int CharStart,
-    int CharEnd);
+    InstructionsFileReferenceAddress Address,
+    InstructionsFileTextSpan TextSpan,
+    int Line);

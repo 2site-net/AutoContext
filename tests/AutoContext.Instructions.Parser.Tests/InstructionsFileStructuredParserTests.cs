@@ -153,10 +153,10 @@ public sealed class InstructionsFileStructuredParserTests
                 () => Assert.Equal(2, body.Sections[2].Level),
                 () => Assert.Equal("second", body.Sections[2].Anchor),
                 () => Assert.Null(body.Sections[2].Parent),
-                () => Assert.Equal(body.RawValue.IndexOf("## First Section", StringComparison.Ordinal), body.Sections[0].CharStart),
-                () => Assert.Equal(body.RawValue.IndexOf("## Second", StringComparison.Ordinal), body.Sections[0].CharEnd),
-                () => Assert.Equal(body.RawValue.IndexOf("## Second", StringComparison.Ordinal), body.Sections[1].CharEnd),
-                () => Assert.Equal(body.RawValue.Length, body.Sections[2].CharEnd));
+                () => Assert.Equal(body.RawValue.IndexOf("## First Section", StringComparison.Ordinal), body.Sections[0].TextSpan.StartIndex),
+                () => Assert.Equal(body.RawValue.IndexOf("## Second", StringComparison.Ordinal), body.Sections[0].TextSpan.EndIndex),
+                () => Assert.Equal(body.RawValue.IndexOf("## Second", StringComparison.Ordinal), body.Sections[1].TextSpan.EndIndex),
+                () => Assert.Equal(body.RawValue.Length, body.Sections[2].TextSpan.EndIndex));
         }
 
         [Fact]
@@ -232,9 +232,9 @@ public sealed class InstructionsFileStructuredParserTests
 
             // Assert
             Assert.Multiple(
-                () => Assert.Equal(2, body.Rules[0].StartLine),
-                () => Assert.Equal(2, body.Rules[0].EndLine),
-                () => Assert.Equal(0, body.Sections[0].CharStart));
+                () => Assert.Equal(2, body.Rules[0].LineSpan.StartLine),
+                () => Assert.Equal(3, body.Rules[0].LineSpan.EndLine),
+                () => Assert.Equal(0, body.Sections[0].TextSpan.StartIndex));
         }
     }
 
@@ -254,15 +254,15 @@ public sealed class InstructionsFileStructuredParserTests
             // Assert
             Assert.Multiple(
                 () => Assert.Equal(3, references.Count),
-                () => Assert.Equal(InstructionsFileReferenceKind.Rule, references[0].Kind),
-                () => Assert.Equal("testing", references[0].Locator),
-                () => Assert.Equal("INST0014", references[0].Target),
-                () => Assert.Equal(InstructionsFileReferenceKind.Section, references[1].Kind),
-                () => Assert.Null(references[1].Locator),
-                () => Assert.Equal("Assertions", references[1].Target),
-                () => Assert.Equal(InstructionsFileReferenceKind.Rule, references[2].Kind),
-                () => Assert.Equal("other", references[2].Locator),
-                () => Assert.Equal("INST0002", references[2].Target));
+                () => Assert.Equal(InstructionsFileReferenceKind.Rule, references[0].Address.Kind),
+                () => Assert.Equal("testing", references[0].Address.Locator),
+                () => Assert.Equal("INST0014", references[0].Address.Target),
+                () => Assert.Equal(InstructionsFileReferenceKind.Section, references[1].Address.Kind),
+                () => Assert.Null(references[1].Address.Locator),
+                () => Assert.Equal("Assertions", references[1].Address.Target),
+                () => Assert.Equal(InstructionsFileReferenceKind.Rule, references[2].Address.Kind),
+                () => Assert.Equal("other", references[2].Address.Locator),
+                () => Assert.Equal("INST0002", references[2].Address.Target));
         }
 
         [Fact]

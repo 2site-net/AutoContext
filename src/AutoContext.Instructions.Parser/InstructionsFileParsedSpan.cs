@@ -28,6 +28,12 @@ public sealed record InstructionsFileParsedSpan(
     /// level or scope and promoted here — represents a fault.</summary>
     public IReadOnlyList<InstructionsFileDiagnostic> Diagnostics { get; init; } = NoDiagnostics;
 
+    /// <summary>The coordinate-free classification of a
+    /// <see cref="InstructionsFileSpanKind.Reference"/> span, or
+    /// <see langword="null"/> for any other kind or for a malformed reference whose
+    /// fault is carried in <see cref="Diagnostics"/> instead.</summary>
+    public InstructionsFileReferenceAddress? ReferenceAddress { get; init; }
+
     /// <summary>
     /// Determines whether this span equals <paramref name="other"/> by value. The
     /// synthesised record equality is overridden because <see cref="Text"/> is a
@@ -45,6 +51,7 @@ public sealed record InstructionsFileParsedSpan(
             && TextSpan == other.TextSpan
             && LineSpan == other.LineSpan
             && Text.Span.SequenceEqual(other.Text.Span)
+            && ReferenceAddress == other.ReferenceAddress
             && Diagnostics.SequenceEqual(other.Diagnostics);
 
     /// <summary>
@@ -59,6 +66,7 @@ public sealed record InstructionsFileParsedSpan(
         hash.Add(TextSpan);
         hash.Add(LineSpan);
         hash.Add(string.GetHashCode(Text.Span, StringComparison.Ordinal));
+        hash.Add(ReferenceAddress);
 
         foreach (var diagnostic in Diagnostics)
         {

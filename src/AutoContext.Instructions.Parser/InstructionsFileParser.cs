@@ -120,7 +120,7 @@ public static partial class InstructionsFileParser
 
         var text = string.Join('\n', CollectionsMarshal.AsSpan(lines)[..end]);
 
-        return new InstructionsFileRule(id, text, startLine, endLine);
+        return new InstructionsFileRule(id, text, new InstructionsFileLineSpan(startLine, endLine - startLine + 1));
     }
 
     private static List<InstructionsFileSection> BuildSections(IReadOnlyList<RawHeading> rawHeadings, int bodyLength)
@@ -139,8 +139,7 @@ public static partial class InstructionsFileParser
                 heading.Level,
                 anchor,
                 heading.Parent,
-                heading.CharStart,
-                charEnd));
+                new InstructionsFileTextSpan(heading.CharStart, charEnd - heading.CharStart)));
         }
 
         return sections;
@@ -477,22 +476,22 @@ public static partial class InstructionsFileParser
             else if (GeneratedReferenceRuleFragmentRegex().IsMatch(fragment))
             {
                 references.Add(new InstructionsFileReference(
-                    InstructionsFileReferenceKind.Rule,
-                    hasLocator ? locator : null,
-                    fragment,
-                    lineIndex,
-                    charStart,
-                    charEnd));
+                    new InstructionsFileReferenceAddress(
+                        InstructionsFileReferenceKind.Rule,
+                        hasLocator ? locator : null,
+                        fragment),
+                    new InstructionsFileTextSpan(charStart, charEnd - charStart),
+                    lineIndex));
             }
             else if (GeneratedReferenceSectionFragmentRegex().IsMatch(fragment))
             {
                 references.Add(new InstructionsFileReference(
-                    InstructionsFileReferenceKind.Section,
-                    hasLocator ? locator : null,
-                    UnescapeHeading(fragment[1..^1]),
-                    lineIndex,
-                    charStart,
-                    charEnd));
+                    new InstructionsFileReferenceAddress(
+                        InstructionsFileReferenceKind.Section,
+                        hasLocator ? locator : null,
+                        UnescapeHeading(fragment[1..^1])),
+                    new InstructionsFileTextSpan(charStart, charEnd - charStart),
+                    lineIndex));
             }
             else
             {

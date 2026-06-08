@@ -77,7 +77,7 @@ public sealed class InstructionsFileReferenceResolverTests
             // Assert
             Assert.Multiple(
                 () => Assert.Equal(InstructionsFileReferenceFindingKind.DanglingRuleReference, finding.Kind),
-                () => Assert.Equal("INST9999", finding.Reference.Target));
+                () => Assert.Equal("INST9999", finding.Reference.Address.Target));
         }
 
         [Fact]
@@ -171,7 +171,7 @@ public sealed class InstructionsFileReferenceResolverTests
             // Assert
             Assert.Multiple(
                 () => Assert.Equal(InstructionsFileReferenceFindingKind.UnresolvedSectionReference, finding.Kind),
-                () => Assert.Equal("No Such Section", finding.Reference.Target));
+                () => Assert.Equal("No Such Section", finding.Reference.Address.Target));
         }
 
         [Fact]

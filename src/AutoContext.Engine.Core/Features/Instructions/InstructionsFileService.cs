@@ -168,7 +168,7 @@ internal sealed class InstructionsFileService
                 continue;
             }
 
-            for (var index = rule.StartLine; index <= rule.EndLine; index++)
+            for (var index = rule.LineSpan.StartLine; index < rule.LineSpan.EndLine; index++)
             {
                 keep[index] = false;
             }
@@ -181,8 +181,8 @@ internal sealed class InstructionsFileService
         int bodyLength,
         InstructionsFileSection section)
     {
-        var startLine = lineForOffset[section.CharStart];
-        var endLineExclusive = section.CharEnd >= bodyLength || !lineForOffset.TryGetValue(section.CharEnd, out var end)
+        var startLine = lineForOffset[section.TextSpan.StartIndex];
+        var endLineExclusive = section.TextSpan.EndIndex >= bodyLength || !lineForOffset.TryGetValue(section.TextSpan.EndIndex, out var end)
             ? keep.Length
             : end;
 

@@ -13,14 +13,13 @@ namespace AutoContext.Instructions.Parser;
 /// with its parent <c>##</c> slug for in-file uniqueness.</param>
 /// <param name="Parent">The text of the nearest preceding <c>##</c> heading for
 /// a <c>###</c> section; <see langword="null"/> for a <c>##</c> section.</param>
-/// <param name="CharStart">The offset of the heading line into the normalised
-/// (frontmatter-stripped) body.</param>
-/// <param name="CharEnd">The exclusive offset at which the section ends — the
-/// start of the next heading of equal-or-shallower level, or the body length.</param>
+/// <param name="TextSpan">The character range the section covers, in normalised
+/// (frontmatter-stripped) body coordinates: from the offset of the heading line to
+/// the exclusive offset at which the section ends — the start of the next heading
+/// of equal-or-shallower level, or the body length.</param>
 public sealed record InstructionsFileSection(
     string Heading,
     int Level,
     string Anchor,
     string? Parent,
-    int CharStart,
-    int CharEnd);
+    InstructionsFileTextSpan TextSpan);
