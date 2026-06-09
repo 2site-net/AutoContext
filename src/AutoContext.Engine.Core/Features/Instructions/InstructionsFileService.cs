@@ -31,6 +31,22 @@ using AutoContext.Instructions.Parser.Syntax;
 /// </remarks>
 internal sealed class InstructionsFileService
 {
+    /// <summary>
+    /// The parser used to re-derive sections from already-projected body text
+    /// (see <see cref="ReparseSections"/>). Scoped deliberately: the reparse
+    /// input is the filtered body, which has no frontmatter, so
+    /// <see cref="InstructionsFileSpanEmitScope.Body"/> (<c>Text | Headings |
+    /// Rules | References</c>) is sufficient — <see cref="InstructionsFile.FromSpans"/>
+    /// needs only the <c>Text</c> blocks to recover the source string and the
+    /// heading spans to build the section index. Diagnostics are off because
+    /// the reparse discards them. This is a hot path (it runs for every file at
+    /// index-build time), so emitting fewer span kinds and skipping diagnostic
+    /// construction is a worthwhile narrowing over the full-scope parser the
+    /// disk-backed <see cref="InstructionsFileFactory"/> uses.
+    /// </summary>
+    private static readonly InstructionsFileSyntaxParser BodyReparser =
+        new(emitScope: InstructionsFileSpanEmitScope.Body, includeDiagnostics: false);
+
     private static readonly IReadOnlySet<string> EmptyRuleIds =
         new HashSet<string>(StringComparer.Ordinal);
 
@@ -104,6 +120,39 @@ internal sealed class InstructionsFileService
         var disabledRuleIds = GetDisabledRuleIds(manifestFile.Key);
 
         return CreateProjection(body, requestedSectionAnchors, disabledRuleIds);
+    }
+
+    /// <summary>
+    /// Reads and projects the whole body of <paramref name="manifestFile"/>
+    /// for indexing: resolves override-over-bundled, parses, removes the
+    /// rules disabled for this file, and re-parses the filtered text so the
+    /// returned sections carry offsets into the projected content.
+    /// </summary>
+    /// <param name="manifestFile">The corpus file to project, identified
+    /// from the in-memory snapshot. Must not be
+    /// <see langword="null"/>.</param>
+    /// <param name="cancellationToken">Cancels the body read.</param>
+    /// <returns>The projected body text and its offset-bearing
+    /// sections.</returns>
+    /// <exception cref="ArgumentNullException">
+    /// <paramref name="manifestFile"/> is
+    /// <see langword="null"/>.</exception>
+    public async Task<InstructionsProjectedBody> ProjectBodyAsync(
+        InstructionsManifestFile manifestFile,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(manifestFile);
+
+        var path = ResolveBodySourcePath(manifestFile.FileName);
+        var parsed = await InstructionsFileFactory
+            .FromFileAsync(path, cancellationToken)
+            .ConfigureAwait(false);
+        var disabledRuleIds = GetDisabledRuleIds(manifestFile.Key);
+        var excludedLineSpans = GetDisabledRuleLineSpans(parsed.Body.Rules, disabledRuleIds);
+        var content = FilterBodyLines(parsed.Body.RawValue, includedSections: null, excludedLineSpans);
+        var sections = ReparseSections(content, cancellationToken);
+
+        return new InstructionsProjectedBody(content, sections);
     }
 
     private static bool AnySectionCovers(
@@ -198,6 +247,35 @@ internal sealed class InstructionsFileService
         }
 
         return spans;
+    }
+
+    /// <summary>
+    /// Re-parses <paramref name="content"/> — the already-filtered body — so the
+    /// returned sections carry offsets that index into that exact string.
+    /// </summary>
+    /// <remarks>
+    /// The sections from the original parse cannot be reused here. Removing
+    /// disabled rules in <see cref="FilterBodyLines"/> deletes whole lines, which
+    /// shifts every byte after the first deletion; the original sections' offsets
+    /// point into the unfiltered <c>RawValue</c> and would land on the wrong
+    /// content — or out of bounds — once applied to the shorter filtered text.
+    /// The consumer (the full-text index) maps a match offset back to its section
+    /// via those offsets, so they must be re-anchored against the body actually
+    /// searched. A second pass is therefore required whenever filtering changed
+    /// the text; callers that filter nothing can skip it and keep the original
+    /// sections.
+    /// </remarks>
+    /// <param name="content">The projected (rule-filtered) body text.</param>
+    /// <param name="cancellationToken">Cancels the reparse.</param>
+    /// <returns>The sections of <paramref name="content"/>, with offsets relative
+    /// to it.</returns>
+    private static IReadOnlyList<InstructionsFileSection> ReparseSections(
+        string content,
+        CancellationToken cancellationToken)
+    {
+        var spans = BodyReparser.Parse(content, cancellationToken);
+
+        return InstructionsFile.FromSpans(spans).Body.Sections;
     }
 
     private static SectionSelection SelectSections(

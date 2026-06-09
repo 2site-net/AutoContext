@@ -11,14 +11,17 @@ using AutoContext.Engine.Core.Features.Instructions.Snapshot;
 /// </summary>
 internal static class InstructionsManifestFileTestFactory
 {
-    public static InstructionsManifestFile Create(string key, string? fileName = null)
+    public static InstructionsManifestFile Create(
+        string key,
+        string? fileName = null,
+        string? description = null)
         => new()
         {
             Key = key,
             FileName = fileName ?? $"{key}.instructions.md",
             Name = $"{key} (v1.0.0)",
             Version = "1.0.0",
-            Description = $"{key} description.",
+            Description = description ?? $"{key} description.",
             HasChangelog = false,
             ContentHash = "sha256:0",
             AlwaysAttached = false,

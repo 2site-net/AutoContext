@@ -2027,7 +2027,7 @@ atop the merged **Phase 6P** (new span-based parser) and Phase 6R catalog
 | 6 | `feat(engine): serve Instructions.Get and GetAll over rpc` | Not started |
 | 7 | `feat(engine): serve Instructions.GetAlwaysAttached over rpc` | Not started |
 | 8 | `feat(engine): serve Instructions.GetRaw with bundled/override/active source` | Not started |
-| 9 | `feat(engine-core): add InstructionsFullTextSearchService over projected bodies` | Not started |
+| 9 | `feat(engine-core): add InstructionsFullTextSearchService over projected bodies` | DONE |
 | 10 | `feat(engine): serve Instructions.SearchContent over rpc` | Not started |
 | 11 | `feat(engine-core): add Instructions.Subscribe events stream with snapshot-on-subscribe` | Not started |
 | 12 | `feat(engine-core): rebroadcast Instructions.Subscribe on Config.Subscribe changes` | Not started |
