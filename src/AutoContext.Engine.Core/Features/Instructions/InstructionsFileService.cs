@@ -92,7 +92,7 @@ internal sealed class InstructionsFileService
 
         var path = ResolveBodyPath(file.FileName);
         var parsed = await InstructionsFileFactory
-            .ParseFileAsync(path, cancellationToken)
+            .FromFileAsync(path, cancellationToken)
             .ConfigureAwait(false);
         var body = parsed.Body;
         var disabledRuleIds = ResolveDisabledRuleIds(file.Key);

@@ -2,14 +2,14 @@ namespace AutoContext.Instructions.Parser.Tests;
 
 public sealed class InstructionsFileFactoryTests
 {
-    public sealed class ParseFileAsync
+    public sealed class FromFileAsync
     {
         [Fact]
         public async Task Should_reject_null_path()
         {
             // Act + Assert
             await Assert.ThrowsAsync<ArgumentNullException>(
-                () => InstructionsFileFactory.ParseFileAsync(null!, TestContext.Current.CancellationToken));
+                () => InstructionsFileFactory.FromFileAsync(null!, TestContext.Current.CancellationToken));
         }
 
         [Fact]
@@ -23,7 +23,7 @@ public sealed class InstructionsFileFactoryTests
             try
             {
                 // Act
-                var parsed = await InstructionsFileFactory.ParseFileAsync(path, TestContext.Current.CancellationToken);
+                var parsed = await InstructionsFileFactory.FromFileAsync(path, TestContext.Current.CancellationToken);
 
                 // Assert
                 Assert.Multiple(

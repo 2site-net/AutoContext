@@ -8,7 +8,7 @@ using AutoContext.Instructions.Parser;
 /// <summary>
 /// The single disk-reading stage of one generation pass. It walks the corpus
 /// directory, reads each <c>*.instructions.md</c> file once via
-/// <see cref="InstructionsFileFactory.ParseFileAsync"/>, and precomputes the
+/// <see cref="InstructionsFileFactory.FromFileAsync"/>, and precomputes the
 /// frontmatter-stripped content hash and sibling-changelog flag. Every later stage
 /// (<see cref="InstructionsManifestBuilder"/>, <see cref="InstructionsCatalogReader"/>,
 /// and <see cref="InstructionsReferenceValidator"/>) reads the resulting
@@ -40,7 +40,7 @@ internal sealed class CorpusParser : ICorpusParser
         foreach (var fileName in fileNames)
         {
             var parsed = await InstructionsFileFactory
-                .ParseFileAsync(Path.Combine(corpusDirectory, fileName), cancellationToken)
+                .FromFileAsync(Path.Combine(corpusDirectory, fileName), cancellationToken)
                 .ConfigureAwait(false);
             var contentHash = ComputeContentHash(parsed.Body.RawValue);
             var key = fileName[..^InstructionsFileSuffix.Length];

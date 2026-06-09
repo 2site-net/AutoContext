@@ -52,7 +52,7 @@ public sealed class ShippedInstructionsRoundTripTests
             var nonRoundTripping = new List<string?>();
             foreach (var path in files)
             {
-                var parsed = await InstructionsFileFactory.ParseFileAsync(path, TestContext.Current.CancellationToken);
+                var parsed = await InstructionsFileFactory.FromFileAsync(path, TestContext.Current.CancellationToken);
                 if (parsed.Frontmatter.ApplyTo is { RoundTrips: false })
                 {
                     nonRoundTripping.Add(Path.GetFileName(path));

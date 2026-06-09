@@ -15,7 +15,7 @@ using AutoContext.Instructions.Parser.Syntax;
 /// engine — works from this one shape, so each file is parsed just once.
 /// <para>
 /// Construct one from a span stream with <see cref="FromSpans"/>, or read and parse
-/// a file from disk with <see cref="InstructionsFileFactory.ParseFileAsync"/>.
+/// a file from disk with <see cref="InstructionsFileFactory.FromFileAsync"/>.
 /// </para>
 /// </summary>
 /// <param name="RawContent">The exact file content, frontmatter and body

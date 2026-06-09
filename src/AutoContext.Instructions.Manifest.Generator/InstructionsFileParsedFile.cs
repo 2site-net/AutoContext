@@ -7,7 +7,7 @@ using AutoContext.Instructions.Parser.Model;
 /// One curated corpus file read from disk and parsed exactly once. The
 /// <see cref="CorpusParser"/> bundles everything the downstream builders and the
 /// reference validator need — its single
-/// <see cref="InstructionsFileFactory.ParseFileAsync"/> result (which carries the
+/// <see cref="InstructionsFileFactory.FromFileAsync"/> result (which carries the
 /// verbatim file text), the precomputed frontmatter-stripped content hash, and
 /// whether a sibling <c>.CHANGELOG.md</c> ships — so no consumer re-reads the file
 /// or re-parses its markdown.
