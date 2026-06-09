@@ -1,18 +1,20 @@
 namespace AutoContext.Instructions.Parser;
 
+using AutoContext.Instructions.Parser.Model;
+
 /// <summary>
 /// Parses an instructions file's <c>applyTo</c> frontmatter value into its
 /// structural pieces. This is an internal collaborator of
-/// <see cref="InstructionsFileParser"/> — the structural file parser — not a
+/// <see cref="InstructionsFile"/> — the structural file parser — not a
 /// second file parser: it understands only the <c>applyTo</c> glob-list
 /// grammar. The parser splits comma-separated globs at brace depth zero (so
 /// intra-brace commas such as <c>{cs,fs}</c> survive), brace-expands
 /// <c>{a,b,c}</c> groups, and extracts the derived extension set. It
 /// deliberately never canonicalises globs, simplifies <c>**</c> patterns, or
 /// otherwise reasons about what a glob means; lossless-ness is asserted by
-/// <see cref="FrontmatterApplyToParsedMetadata.RoundTrips"/>.
+/// <see cref="FrontmatterApplyTo.RoundTrips"/>.
 /// </summary>
-internal static class ApplyToParser
+internal static class FrontmatterApplyToParser
 {
     /// <summary>
     /// Parses <paramref name="applyTo"/> into its verbatim globs, the
@@ -22,7 +24,7 @@ internal static class ApplyToParser
     /// <returns>The structural parse result.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="applyTo"/> is
     /// <see langword="null"/>.</exception>
-    public static FrontmatterApplyToParsedMetadata Parse(string applyTo)
+    public static FrontmatterApplyTo Parse(string applyTo)
     {
         ArgumentNullException.ThrowIfNull(applyTo);
 
@@ -50,7 +52,7 @@ internal static class ApplyToParser
             }
         }
 
-        return new FrontmatterApplyToParsedMetadata(applyTo, globs, expanded, extensions);
+        return new FrontmatterApplyTo(applyTo, globs, expanded, extensions);
     }
 
     private static List<string> ExpandBraces(string glob)

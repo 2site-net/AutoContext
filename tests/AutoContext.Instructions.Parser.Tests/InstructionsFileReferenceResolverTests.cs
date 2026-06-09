@@ -1,5 +1,7 @@
 namespace AutoContext.Instructions.Parser.Tests;
 
+using AutoContext.Instructions.Parser.Model;
+using AutoContext.Instructions.Parser.Syntax;
 using AutoContext.Instructions.Parser.Tests.Support;
 
 public sealed class InstructionsFileReferenceResolverTests

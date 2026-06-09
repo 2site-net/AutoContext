@@ -1,6 +1,8 @@
-namespace AutoContext.Instructions.Parser.Tests;
+namespace AutoContext.Instructions.Parser.Tests.Syntax;
 
-public sealed class InstructionsFileParsedSpanTests
+using AutoContext.Instructions.Parser.Syntax;
+
+public sealed class InstructionsFileSyntaxSpanTests
 {
     public sealed class Equality
     {
@@ -8,12 +10,12 @@ public sealed class InstructionsFileParsedSpanTests
         public void Should_treat_identical_content_from_different_buffers_as_equal()
         {
             // Arrange
-            var left = new InstructionsFileParsedSpan(
+            var left = new InstructionsFileSyntaxSpan(
                 "## Heading\n".AsMemory(),
                 InstructionsFileSpanKind.Heading2,
                 new InstructionsFileTextSpan(0, 11),
                 new InstructionsFileLineSpan(0, 1));
-            var right = new InstructionsFileParsedSpan(
+            var right = new InstructionsFileSyntaxSpan(
                 "prefix ## Heading\n".AsMemory(7, 11),
                 InstructionsFileSpanKind.Heading2,
                 new InstructionsFileTextSpan(0, 11),
@@ -30,7 +32,7 @@ public sealed class InstructionsFileParsedSpanTests
         public void Should_distinguish_spans_with_different_text_content()
         {
             // Arrange
-            var left = new InstructionsFileParsedSpan(
+            var left = new InstructionsFileSyntaxSpan(
                 "hello".AsMemory(),
                 InstructionsFileSpanKind.Text,
                 new InstructionsFileTextSpan(0, 5),
@@ -45,7 +47,7 @@ public sealed class InstructionsFileParsedSpanTests
         public void Should_treat_equal_diagnostics_from_distinct_lists_as_equal()
         {
             // Arrange
-            var left = new InstructionsFileParsedSpan(
+            var left = new InstructionsFileSyntaxSpan(
                 "[INST0001]".AsMemory(),
                 InstructionsFileSpanKind.TaggedRule,
                 new InstructionsFileTextSpan(0, 10),
@@ -68,7 +70,7 @@ public sealed class InstructionsFileParsedSpanTests
         public void Should_distinguish_spans_with_different_diagnostics()
         {
             // Arrange
-            var span = new InstructionsFileParsedSpan(
+            var span = new InstructionsFileSyntaxSpan(
                 "[INST0001]".AsMemory(),
                 InstructionsFileSpanKind.TaggedRule,
                 new InstructionsFileTextSpan(0, 10),

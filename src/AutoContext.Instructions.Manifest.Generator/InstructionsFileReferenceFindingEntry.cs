@@ -1,6 +1,6 @@
 namespace AutoContext.Instructions.Manifest.Generator;
 
-using AutoContext.Instructions.Parser;
+using AutoContext.Instructions.Parser.Model;
 
 /// <summary>
 /// One cross-file reference fault tied back to the corpus file it was found in.

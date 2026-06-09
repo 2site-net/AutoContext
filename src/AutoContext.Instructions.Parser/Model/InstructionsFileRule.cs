@@ -1,4 +1,6 @@
-namespace AutoContext.Instructions.Parser;
+namespace AutoContext.Instructions.Parser.Model;
+
+using AutoContext.Instructions.Parser.Syntax;
 
 /// <summary>
 /// One instruction bullet — a list item of the form

@@ -2,7 +2,7 @@ namespace AutoContext.Instructions.Manifest.Generator;
 
 using System.Text.RegularExpressions;
 
-using AutoContext.Instructions.Parser;
+using AutoContext.Instructions.Parser.Model;
 
 /// <summary>
 /// Builds the build-generated <c>instructions-manifest.json</c> fact index from an
@@ -96,7 +96,7 @@ internal sealed partial class InstructionsManifestBuilder : IInstructionsManifes
             sections);
     }
 
-    private static IReadOnlyList<string>? ExtractExtensions(FrontmatterApplyToParsedMetadata? applyTo)
+    private static IReadOnlyList<string>? ExtractExtensions(FrontmatterApplyTo? applyTo)
     {
         if (applyTo is null)
         {

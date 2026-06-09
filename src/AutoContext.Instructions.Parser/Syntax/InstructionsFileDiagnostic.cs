@@ -1,8 +1,8 @@
-namespace AutoContext.Instructions.Parser;
+namespace AutoContext.Instructions.Parser.Syntax;
 
 /// <summary>
 /// One problem found while parsing a single instructions file. The span parser
-/// attaches it to the <see cref="InstructionsFileParsedSpan"/> where the problem
+/// attaches it to the <see cref="InstructionsFileSyntaxSpan"/> where the problem
 /// is; the structured parser later sets <see cref="Line"/> to the body-relative
 /// line number that consumers read. <see cref="Kind"/> says what the problem is;
 /// <see cref="Message"/> spells it out for a person.

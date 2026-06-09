@@ -1,4 +1,6 @@
-namespace AutoContext.Instructions.Parser;
+namespace AutoContext.Instructions.Parser.Model;
+
+using AutoContext.Instructions.Parser.Syntax;
 
 /// <summary>
 /// One <c>[locator#fragment]</c> reference found in an instructions file's prose —

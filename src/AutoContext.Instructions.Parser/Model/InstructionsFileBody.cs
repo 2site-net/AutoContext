@@ -1,7 +1,9 @@
-namespace AutoContext.Instructions.Parser;
+namespace AutoContext.Instructions.Parser.Model;
+
+using AutoContext.Instructions.Parser.Syntax;
 
 /// <summary>
-/// The body part of an <see cref="InstructionsFileParsedContent"/>: the body text
+/// The body part of an <see cref="InstructionsFile"/>: the body text
 /// that the offsets are measured against, plus everything found in a single walk
 /// over it — the <c>##</c>/<c>###</c> sections, the <c>**Do**</c>/<c>**Don't**</c>
 /// rule bullets, the <c>[locator#fragment]</c> references in the prose, and any
@@ -23,7 +25,7 @@ namespace AutoContext.Instructions.Parser;
 /// what <em>locator</em> and <em>fragment</em> mean.</param>
 /// <param name="Diagnostics">Problems found with rule tags (malformed, missing, or
 /// duplicate) and with references, in the order they appear.</param>
-public sealed record InstructionsFileParsedBody(
+public sealed record InstructionsFileBody(
     string RawValue,
     IReadOnlyList<InstructionsFileSection> Sections,
     IReadOnlyList<InstructionsFileRule> Rules,

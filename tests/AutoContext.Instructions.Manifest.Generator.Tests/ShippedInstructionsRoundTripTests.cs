@@ -47,13 +47,12 @@ public sealed class ShippedInstructionsRoundTripTests
         {
             // Arrange
             var files = Directory.GetFiles(EngineInstructionsPath.Value, "*.instructions.md");
-            var parser = new InstructionsFileParser();
 
             // Act
             var nonRoundTripping = new List<string?>();
             foreach (var path in files)
             {
-                var parsed = await parser.ParseFileAsync(path, TestContext.Current.CancellationToken);
+                var parsed = await InstructionsFileFactory.ParseFileAsync(path, TestContext.Current.CancellationToken);
                 if (parsed.Frontmatter.ApplyTo is { RoundTrips: false })
                 {
                     nonRoundTripping.Add(Path.GetFileName(path));

@@ -1,4 +1,4 @@
-namespace AutoContext.Instructions.Parser;
+namespace AutoContext.Instructions.Parser.Syntax;
 
 /// <summary>
 /// A range of characters within some piece of text. Positions are zero-based:

@@ -1,4 +1,4 @@
-namespace AutoContext.Instructions.Parser;
+namespace AutoContext.Instructions.Parser.Model;
 
 /// <summary>
 /// One file's contribution to an <see cref="InstructionsFileCatalog"/>: the
@@ -10,7 +10,7 @@ namespace AutoContext.Instructions.Parser;
 /// </summary>
 /// <param name="Key">The catalog key — the file name stem with the
 /// <c>.instructions.md</c> suffix removed (e.g. <c>testing</c>) — that a
-/// <see cref="InstructionsFileReferenceAddress.Locator"/> resolves to.</param>
+/// <see cref="Syntax.InstructionsFileReferenceAddress.Locator"/> resolves to.</param>
 /// <param name="RuleIds">The <c>INST####</c> ids of every tagged rule the file
 /// defines. Untagged bullets contribute nothing because they cannot be
 /// referenced.</param>

@@ -1,8 +1,8 @@
-namespace AutoContext.Instructions.Parser;
+namespace AutoContext.Instructions.Parser.Model;
 
 /// <summary>
 /// Why a parsed <see cref="InstructionsFileReference"/> failed to resolve against
-/// the corpus catalog. Unlike <see cref="InstructionsFileDiagnosticKind"/>,
+/// the corpus catalog. Unlike <see cref="Syntax.InstructionsFileDiagnosticKind"/>,
 /// which reports <em>syntactic</em> faults a single file can detect on its own,
 /// these are <em>cross-file</em> faults that only surface once every file's rules
 /// and sections are known.

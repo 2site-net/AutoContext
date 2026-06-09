@@ -1,10 +1,13 @@
 namespace AutoContext.Instructions.Parser.Tests.Support;
 
+using AutoContext.Instructions.Parser.Model;
+using AutoContext.Instructions.Parser.Syntax;
+
 internal static class InstructionsFileSpanStream
 {
-    public static IEnumerable<InstructionsFileParsedSpan> From(string text)
+    public static IEnumerable<InstructionsFileSyntaxSpan> From(string text)
         => new InstructionsFileSyntaxParser().Parse(text, TestContext.Current.CancellationToken);
 
-    public static InstructionsFileParsedContent Parse(string text)
-        => new InstructionsFileParser().Parse(From(text));
+    public static InstructionsFile Parse(string text)
+        => InstructionsFile.FromSpans(From(text));
 }

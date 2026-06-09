@@ -1,4 +1,6 @@
-namespace AutoContext.Instructions.Parser;
+namespace AutoContext.Instructions.Parser.Model;
+
+using AutoContext.Instructions.Parser.Syntax;
 
 /// <summary>
 /// One <c>##</c> or <c>###</c> heading in an instructions file's body, with the

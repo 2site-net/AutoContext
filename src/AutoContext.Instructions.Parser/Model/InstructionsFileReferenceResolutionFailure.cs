@@ -1,4 +1,4 @@
-namespace AutoContext.Instructions.Parser;
+namespace AutoContext.Instructions.Parser.Model;
 
 /// <summary>
 /// One cross-file resolution fault: a parsed <see cref="InstructionsFileReference"/>

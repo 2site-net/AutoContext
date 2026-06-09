@@ -1,4 +1,4 @@
-namespace AutoContext.Instructions.Parser;
+namespace AutoContext.Instructions.Parser.Model;
 
 /// <summary>
 /// The parts of an instructions file's frontmatter that the parser reads. Every
@@ -20,9 +20,9 @@ namespace AutoContext.Instructions.Parser;
 /// <param name="Version">The version taken from the <c>(vX.Y.Z)</c> suffix of
 /// <paramref name="Name"/>, or <see langword="null"/> when <paramref name="Name"/>
 /// has no such suffix.</param>
-public sealed record InstructionsFileParsedFrontmatter(
+public sealed record InstructionsFileFrontmatter(
     string RawValue,
     string? Name,
     string? Description,
-    FrontmatterApplyToParsedMetadata? ApplyTo,
+    FrontmatterApplyTo? ApplyTo,
     string? Version);

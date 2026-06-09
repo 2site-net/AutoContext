@@ -3,7 +3,7 @@ namespace AutoContext.Instructions.Manifest.Generator.Tests;
 using AutoContext.Engine.Tests.Support.IO;
 using AutoContext.Instructions.Manifest.Generator;
 using AutoContext.Instructions.Manifest.Generator.Tests.Support;
-using AutoContext.Instructions.Parser;
+using AutoContext.Instructions.Parser.Model;
 
 public sealed class InstructionsReferenceValidatorTests
 {

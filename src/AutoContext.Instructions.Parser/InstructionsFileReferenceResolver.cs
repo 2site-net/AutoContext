@@ -1,5 +1,8 @@
 namespace AutoContext.Instructions.Parser;
 
+using AutoContext.Instructions.Parser.Model;
+using AutoContext.Instructions.Parser.Syntax;
+
 /// <summary>
 /// Resolves the bare <c>[locator#fragment]</c> references the parser captures
 /// from one file against the whole-corpus <see cref="InstructionsFileCatalog"/>,
@@ -144,7 +147,7 @@ public static class InstructionsFileReferenceResolver
         InstructionsFileCatalogEntry entry,
         List<InstructionsFileReferenceResolutionFailure> findings)
     {
-        var slug = InstructionsFileParser.Slugify(reference.Address.Target);
+        var slug = InstructionsFile.Slugify(reference.Address.Target);
 
         var resolved = entry.Sections.Any(section =>
             string.Equals(section.Anchor, slug, StringComparison.Ordinal)

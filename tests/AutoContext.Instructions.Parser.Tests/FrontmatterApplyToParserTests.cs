@@ -1,6 +1,6 @@
 namespace AutoContext.Instructions.Parser.Tests;
 
-public sealed class ApplyToParserTests
+public sealed class FrontmatterApplyToParserTests
 {
     public sealed class Parse
     {
@@ -8,14 +8,14 @@ public sealed class ApplyToParserTests
         public void Should_reject_null_apply_to()
         {
             // Act + Assert
-            Assert.Throws<ArgumentNullException>(() => ApplyToParser.Parse(null!));
+            Assert.Throws<ArgumentNullException>(() => FrontmatterApplyToParser.Parse(null!));
         }
 
         [Fact]
         public void Should_split_comma_separated_globs_and_trim_whitespace()
         {
             // Act
-            var result = ApplyToParser.Parse("  **/*.cs , **/*.ts  ");
+            var result = FrontmatterApplyToParser.Parse("  **/*.cs , **/*.ts  ");
 
             // Assert
             Assert.Equal(["**/*.cs", "**/*.ts"], result.Globs);
@@ -25,7 +25,7 @@ public sealed class ApplyToParserTests
         public void Should_drop_empty_terms()
         {
             // Act
-            var result = ApplyToParser.Parse("**/*.cs,, ,**/*.ts");
+            var result = FrontmatterApplyToParser.Parse("**/*.cs,, ,**/*.ts");
 
             // Assert
             Assert.Equal(["**/*.cs", "**/*.ts"], result.Globs);
@@ -35,7 +35,7 @@ public sealed class ApplyToParserTests
         public void Should_keep_intra_brace_commas_in_a_single_glob()
         {
             // Act
-            var result = ApplyToParser.Parse("**/*.{cs,fs,vb}");
+            var result = FrontmatterApplyToParser.Parse("**/*.{cs,fs,vb}");
 
             // Assert
             Assert.Equal(["**/*.{cs,fs,vb}"], result.Globs);
@@ -45,7 +45,7 @@ public sealed class ApplyToParserTests
         public void Should_split_top_level_commas_while_preserving_brace_groups()
         {
             // Act
-            var result = ApplyToParser.Parse("**/*.{csproj,fsproj,vbproj},**/Directory.Packages.props");
+            var result = FrontmatterApplyToParser.Parse("**/*.{csproj,fsproj,vbproj},**/Directory.Packages.props");
 
             // Assert
             Assert.Equal(
@@ -57,7 +57,7 @@ public sealed class ApplyToParserTests
         public void Should_expand_a_brace_group_into_individual_globs()
         {
             // Act
-            var result = ApplyToParser.Parse("**/*.{cs,fs,vb}");
+            var result = FrontmatterApplyToParser.Parse("**/*.{cs,fs,vb}");
 
             // Assert
             Assert.Equal(["**/*.cs", "**/*.fs", "**/*.vb"], result.ExpandedGlobs);
@@ -67,7 +67,7 @@ public sealed class ApplyToParserTests
         public void Should_expand_multiple_brace_groups_as_a_cartesian_product()
         {
             // Act
-            var result = ApplyToParser.Parse("**/*.{test,spec}.{js,ts}");
+            var result = FrontmatterApplyToParser.Parse("**/*.{test,spec}.{js,ts}");
 
             // Assert
             Assert.Equal(
@@ -79,7 +79,7 @@ public sealed class ApplyToParserTests
         public void Should_pass_brace_free_globs_through_expansion_unchanged()
         {
             // Act
-            var result = ApplyToParser.Parse("**/*.cs,**/*.ts");
+            var result = FrontmatterApplyToParser.Parse("**/*.cs,**/*.ts");
 
             // Assert
             Assert.Equal(["**/*.cs", "**/*.ts"], result.ExpandedGlobs);
@@ -89,7 +89,7 @@ public sealed class ApplyToParserTests
         public void Should_extract_the_dotless_lowercase_extension_set()
         {
             // Act
-            var result = ApplyToParser.Parse("**/*.{cs,fs,vb}");
+            var result = FrontmatterApplyToParser.Parse("**/*.{cs,fs,vb}");
 
             // Assert
             Assert.Equal(["cs", "fs", "vb"], Sorted(result.Extensions));
@@ -99,7 +99,7 @@ public sealed class ApplyToParserTests
         public void Should_extract_extensions_from_cartesian_expansions()
         {
             // Act
-            var result = ApplyToParser.Parse("**/*.{test,spec}.{js,jsx,ts}");
+            var result = FrontmatterApplyToParser.Parse("**/*.{test,spec}.{js,jsx,ts}");
 
             // Assert
             Assert.Equal(["js", "jsx", "ts"], Sorted(result.Extensions));
@@ -109,7 +109,7 @@ public sealed class ApplyToParserTests
         public void Should_extract_the_extension_of_a_literal_filename_glob()
         {
             // Act
-            var result = ApplyToParser.Parse("**/Directory.Packages.props");
+            var result = FrontmatterApplyToParser.Parse("**/Directory.Packages.props");
 
             // Assert
             Assert.Equal(["props"], Sorted(result.Extensions));
@@ -122,7 +122,7 @@ public sealed class ApplyToParserTests
         public void Should_extract_no_extension_when_no_concrete_extension_is_named(string applyTo)
         {
             // Act
-            var result = ApplyToParser.Parse(applyTo);
+            var result = FrontmatterApplyToParser.Parse(applyTo);
 
             // Assert
             Assert.Empty(result.Extensions);
@@ -132,8 +132,8 @@ public sealed class ApplyToParserTests
         public void Should_preserve_distinct_star_patterns_verbatim()
         {
             // Act
-            var doubleStar = ApplyToParser.Parse("**");
-            var doubleStarSlash = ApplyToParser.Parse("**/*");
+            var doubleStar = FrontmatterApplyToParser.Parse("**");
+            var doubleStarSlash = FrontmatterApplyToParser.Parse("**/*");
 
             // Assert
             Assert.Multiple(
@@ -145,7 +145,7 @@ public sealed class ApplyToParserTests
         public void Should_take_the_last_dotted_segment_as_the_extension()
         {
             // Act
-            var result = ApplyToParser.Parse("**/*.razor,**/*.razor.cs");
+            var result = FrontmatterApplyToParser.Parse("**/*.razor,**/*.razor.cs");
 
             // Assert
             Assert.Multiple(
@@ -157,7 +157,7 @@ public sealed class ApplyToParserTests
         public void Should_parse_a_mixed_filename_wildcard_and_brace_corpus_value()
         {
             // Act
-            var result = ApplyToParser.Parse("**/Dockerfile*,**/docker-compose*.{yml,yaml},**/.dockerignore");
+            var result = FrontmatterApplyToParser.Parse("**/Dockerfile*,**/docker-compose*.{yml,yaml},**/.dockerignore");
 
             // Assert
             Assert.Multiple(
@@ -187,7 +187,7 @@ public sealed class ApplyToParserTests
         public void Should_round_trip_modulo_whitespace(string applyTo)
         {
             // Act
-            var roundTrips = ApplyToParser.Parse(applyTo).RoundTrips;
+            var roundTrips = FrontmatterApplyToParser.Parse(applyTo).RoundTrips;
 
             // Assert
             Assert.True(roundTrips);
@@ -246,7 +246,7 @@ public sealed class ApplyToParserTests
         public void Should_round_trip_every_shipped_corpus_value(string applyTo)
         {
             // Act
-            var roundTrips = ApplyToParser.Parse(applyTo).RoundTrips;
+            var roundTrips = FrontmatterApplyToParser.Parse(applyTo).RoundTrips;
 
             // Assert
             Assert.True(roundTrips);

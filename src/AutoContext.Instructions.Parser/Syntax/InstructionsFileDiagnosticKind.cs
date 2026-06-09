@@ -1,4 +1,4 @@
-namespace AutoContext.Instructions.Parser;
+namespace AutoContext.Instructions.Parser.Syntax;
 
 /// <summary>
 /// What kind of problem an <see cref="InstructionsFileDiagnostic"/> reports. These

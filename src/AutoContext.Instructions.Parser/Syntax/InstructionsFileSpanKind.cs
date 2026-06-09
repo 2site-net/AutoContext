@@ -1,7 +1,7 @@
-namespace AutoContext.Instructions.Parser;
+namespace AutoContext.Instructions.Parser.Syntax;
 
 /// <summary>
-/// What an <see cref="InstructionsFileParsedSpan"/> is. A kind says what a span is
+/// What an <see cref="InstructionsFileSyntaxSpan"/> is. A kind says what a span is
 /// as written, never whether it is correct. Something malformed keeps its natural
 /// kind (a bad rule tag is still a <see cref="Tag"/>); the problem is reported by
 /// an attached <see cref="InstructionsFileDiagnostic"/>, not by a separate
@@ -35,7 +35,7 @@ public enum InstructionsFileSpanKind
 
     /// <summary>A level-one heading (<c>#&#160;Heading</c>). A block-level kind.
     /// Headings are emitted exactly as written; choosing which ones count as
-    /// sections is left to <see cref="InstructionsFileParser"/>.</summary>
+    /// sections is left to <see cref="Model.InstructionsFile.FromSpans"/>.</summary>
     Heading1,
 
     /// <summary>A level-two heading (<c>##&#160;Section</c>). A block-level

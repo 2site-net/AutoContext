@@ -1,4 +1,4 @@
-namespace AutoContext.Instructions.Parser;
+namespace AutoContext.Instructions.Parser.Model;
 
 using System.Diagnostics.CodeAnalysis;
 
@@ -50,7 +50,7 @@ public sealed class InstructionsFileCatalog
     /// <exception cref="ArgumentNullException"><paramref name="parsedFiles"/> is
     /// <see langword="null"/>.</exception>
     public static InstructionsFileCatalog FromParsedCorpus(
-        IReadOnlyDictionary<string, InstructionsFileParsedContent> parsedFiles)
+        IReadOnlyDictionary<string, InstructionsFile> parsedFiles)
     {
         ArgumentNullException.ThrowIfNull(parsedFiles);
 

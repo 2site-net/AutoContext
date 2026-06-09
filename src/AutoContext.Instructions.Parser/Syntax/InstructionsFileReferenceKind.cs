@@ -1,7 +1,7 @@
-namespace AutoContext.Instructions.Parser;
+namespace AutoContext.Instructions.Parser.Syntax;
 
 /// <summary>
-/// What an <see cref="InstructionsFileReference"/> points at. The fragment after
+/// What an <see cref="Model.InstructionsFileReference"/> points at. The fragment after
 /// the <c>#</c> decides: an <c>INST####</c> id on its own is a <see cref="Rule"/>
 /// reference, a single-quoted heading is a <see cref="Section"/> reference.
 /// </summary>

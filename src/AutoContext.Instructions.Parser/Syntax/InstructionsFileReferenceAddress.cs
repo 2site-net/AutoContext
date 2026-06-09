@@ -1,4 +1,4 @@
-namespace AutoContext.Instructions.Parser;
+namespace AutoContext.Instructions.Parser.Syntax;
 
 /// <summary>
 /// What a well-formed <see cref="InstructionsFileSpanKind.Reference"/> token points

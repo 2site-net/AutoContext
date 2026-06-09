@@ -1,5 +1,6 @@
-namespace AutoContext.Instructions.Parser.Tests;
+namespace AutoContext.Instructions.Parser.Tests.Model;
 
+using AutoContext.Instructions.Parser.Model;
 using AutoContext.Instructions.Parser.Tests.Support;
 
 public sealed class InstructionsFileCatalogTests
@@ -57,7 +58,7 @@ public sealed class InstructionsFileCatalogTests
         {
             // Arrange
             var parsed = InstructionsFileSpanStream.Parse("- [INST0001] **Do** one.\n- [INST0002] **Don't** two.\n");
-            var parsedByKey = new Dictionary<string, InstructionsFileParsedContent>(StringComparer.Ordinal)
+            var parsedByKey = new Dictionary<string, InstructionsFile>(StringComparer.Ordinal)
             {
                 ["testing"] = parsed,
             };
@@ -78,7 +79,7 @@ public sealed class InstructionsFileCatalogTests
         {
             // Arrange
             var parsed = InstructionsFileSpanStream.Parse("- [INST0001] **Do** one.\n- **Do** untagged.\n");
-            var parsedByKey = new Dictionary<string, InstructionsFileParsedContent>(StringComparer.Ordinal)
+            var parsedByKey = new Dictionary<string, InstructionsFile>(StringComparer.Ordinal)
             {
                 ["testing"] = parsed,
             };
@@ -96,7 +97,7 @@ public sealed class InstructionsFileCatalogTests
         {
             // Arrange
             var parsed = InstructionsFileSpanStream.Parse("## Assertions\n\n## Test Support\n");
-            var parsedByKey = new Dictionary<string, InstructionsFileParsedContent>(StringComparer.Ordinal)
+            var parsedByKey = new Dictionary<string, InstructionsFile>(StringComparer.Ordinal)
             {
                 ["testing"] = parsed,
             };

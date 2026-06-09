@@ -1,6 +1,7 @@
 namespace AutoContext.Instructions.Manifest.Generator;
 
 using AutoContext.Instructions.Parser;
+using AutoContext.Instructions.Parser.Model;
 
 /// <inheritdoc cref="IInstructionsReferenceValidator" />
 internal sealed class InstructionsReferenceValidator : IInstructionsReferenceValidator

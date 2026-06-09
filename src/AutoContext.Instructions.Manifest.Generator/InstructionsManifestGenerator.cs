@@ -2,7 +2,7 @@ namespace AutoContext.Instructions.Manifest.Generator;
 
 using System.Text;
 
-using AutoContext.Instructions.Parser;
+using AutoContext.Instructions.Parser.Model;
 
 using Microsoft.Extensions.Logging;
 

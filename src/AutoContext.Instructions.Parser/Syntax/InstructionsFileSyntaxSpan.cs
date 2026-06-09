@@ -1,4 +1,4 @@
-namespace AutoContext.Instructions.Parser;
+namespace AutoContext.Instructions.Parser.Syntax;
 
 /// <summary>
 /// One piece of an instructions file that <see cref="InstructionsFileSyntaxParser"/>
@@ -14,7 +14,7 @@ namespace AutoContext.Instructions.Parser;
 /// <param name="Kind">What kind of thing the span is.</param>
 /// <param name="TextSpan">The whole-file character range the span covers.</param>
 /// <param name="LineSpan">The physical-line range the span covers.</param>
-public sealed record InstructionsFileParsedSpan(
+public sealed record InstructionsFileSyntaxSpan(
     ReadOnlyMemory<char> Text,
     InstructionsFileSpanKind Kind,
     InstructionsFileTextSpan TextSpan,
@@ -46,7 +46,7 @@ public sealed record InstructionsFileParsedSpan(
     /// </summary>
     /// <param name="other">The span to compare against.</param>
     /// <returns><see langword="true"/> if the spans are equal by value.</returns>
-    public bool Equals(InstructionsFileParsedSpan? other)
+    public bool Equals(InstructionsFileSyntaxSpan? other)
         => other is not null
             && Kind == other.Kind
             && TextSpan == other.TextSpan
@@ -56,7 +56,7 @@ public sealed record InstructionsFileParsedSpan(
             && Diagnostics.SequenceEqual(other.Diagnostics);
 
     /// <summary>
-    /// Computes a hash code that matches <see cref="Equals(InstructionsFileParsedSpan)"/>,
+    /// Computes a hash code that matches <see cref="Equals(InstructionsFileSyntaxSpan)"/>,
     /// hashing the <see cref="Text"/> characters rather than the memory reference.
     /// </summary>
     /// <returns>The content-based hash code.</returns>

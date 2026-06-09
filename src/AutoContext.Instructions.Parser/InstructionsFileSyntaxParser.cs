@@ -3,11 +3,13 @@ namespace AutoContext.Instructions.Parser;
 using System.Buffers;
 using System.Text.RegularExpressions;
 
+using AutoContext.Instructions.Parser.Syntax;
+
 /// <summary>
 /// Scans the raw text of an instructions file and breaks it into
-/// <see cref="InstructionsFileParsedSpan"/> pieces — frontmatter, headings, rule
+/// <see cref="InstructionsFileSyntaxSpan"/> pieces — frontmatter, headings, rule
 /// bullets, tags, and references — each marked with where it sits in the file.
-/// This is the first of two passes; <see cref="InstructionsFileParser"/>
+/// This is the first of two passes; <see cref="Model.InstructionsFile.FromSpans"/>
 /// takes the flat pieces produced here and turns them into the final structured
 /// result.
 /// <para>
@@ -81,14 +83,14 @@ public sealed partial class InstructionsFileSyntaxParser(
     /// <returns>The list of spans.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="text"/> is
     /// <see langword="null"/>.</exception>
-    public IReadOnlyList<InstructionsFileParsedSpan> Parse(
+    public IReadOnlyList<InstructionsFileSyntaxSpan> Parse(
         string text,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(text);
 
         var state = new ParserState { Source = text };
-        var output = new List<InstructionsFileParsedSpan>();
+        var output = new List<InstructionsFileSyntaxSpan>();
 
         foreach (var line in ReadPhysicalLines(text))
         {
@@ -113,7 +115,7 @@ public sealed partial class InstructionsFileSyntaxParser(
     /// <returns>The list of spans.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="path"/> is
     /// <see langword="null"/>.</exception>
-    public async Task<IReadOnlyList<InstructionsFileParsedSpan>> ParseFileAsync(
+    public async Task<IReadOnlyList<InstructionsFileSyntaxSpan>> ParseFileAsync(
         string path,
         CancellationToken cancellationToken = default)
     {
@@ -464,7 +466,7 @@ public sealed partial class InstructionsFileSyntaxParser(
             ? GeneratedHeadingEscapeRegex().Replace(heading, "$1")
             : heading;
 
-    private void Advance(ParserState state, PhysicalLine line, List<InstructionsFileParsedSpan> output)
+    private void Advance(ParserState state, PhysicalLine line, List<InstructionsFileSyntaxSpan> output)
     {
         if (state.Phase == ParsePhase.Start)
         {
@@ -495,7 +497,7 @@ public sealed partial class InstructionsFileSyntaxParser(
         }
     }
 
-    private void AdvanceBody(ParserState state, PhysicalLine line, List<InstructionsFileParsedSpan> output)
+    private void AdvanceBody(ParserState state, PhysicalLine line, List<InstructionsFileSyntaxSpan> output)
     {
         var content = line.Content;
 
@@ -544,7 +546,7 @@ public sealed partial class InstructionsFileSyntaxParser(
         state.PendingText.Add(new TextLine(line, !state.InFence));
     }
 
-    private void BuildFrontmatterSpans(ParserState state, List<InstructionsFileParsedSpan> output)
+    private void BuildFrontmatterSpans(ParserState state, List<InstructionsFileSyntaxSpan> output)
     {
         var frontmatterLines = state.FrontmatterLines;
         var first = frontmatterLines[0];
@@ -608,7 +610,7 @@ public sealed partial class InstructionsFileSyntaxParser(
         EmitOrdered(state, tokens, output);
     }
 
-    private void EmitHeading(ParserState state, PhysicalLine line, List<InstructionsFileParsedSpan> output)
+    private void EmitHeading(ParserState state, PhysicalLine line, List<InstructionsFileSyntaxSpan> output)
     {
         var heading = GeneratedHeadingRegex().Match(line.Content);
         var level = heading.Groups[1].Length;
@@ -644,7 +646,7 @@ public sealed partial class InstructionsFileSyntaxParser(
         EmitOrdered(state, tokens, output);
     }
 
-    private void EmitOrdered(ParserState state, List<TokenDraft> tokens, List<InstructionsFileParsedSpan> output)
+    private void EmitOrdered(ParserState state, List<TokenDraft> tokens, List<InstructionsFileSyntaxSpan> output)
     {
         if (tokens.Count == 0)
         {
@@ -676,7 +678,7 @@ public sealed partial class InstructionsFileSyntaxParser(
         }
     }
 
-    private void Finish(ParserState state, List<InstructionsFileParsedSpan> output)
+    private void Finish(ParserState state, List<InstructionsFileSyntaxSpan> output)
     {
         if (state.Phase == ParsePhase.Frontmatter)
         {
@@ -696,7 +698,7 @@ public sealed partial class InstructionsFileSyntaxParser(
         FlushText(state, output);
     }
 
-    private void FlushRule(ParserState state, List<InstructionsFileParsedSpan> output)
+    private void FlushRule(ParserState state, List<InstructionsFileSyntaxSpan> output)
     {
         var rule = state.Rule;
 
@@ -771,7 +773,7 @@ public sealed partial class InstructionsFileSyntaxParser(
         }
     }
 
-    private void FlushText(ParserState state, List<InstructionsFileParsedSpan> output)
+    private void FlushText(ParserState state, List<InstructionsFileSyntaxSpan> output)
     {
         if (state.PendingText.Count == 0)
         {
@@ -817,7 +819,7 @@ public sealed partial class InstructionsFileSyntaxParser(
         state.PendingText.Clear();
     }
 
-    private InstructionsFileParsedSpan? MakeSpan(
+    private InstructionsFileSyntaxSpan? MakeSpan(
         ParserState state,
         InstructionsFileSpanKind kind,
         int startIndex,
@@ -825,7 +827,7 @@ public sealed partial class InstructionsFileSyntaxParser(
         int startLine,
         int lineCount)
         => ShouldEmit(kind)
-            ? new InstructionsFileParsedSpan(
+            ? new InstructionsFileSyntaxSpan(
                 state.Source.AsMemory(startIndex, length),
                 kind,
                 new InstructionsFileTextSpan(startIndex, length),

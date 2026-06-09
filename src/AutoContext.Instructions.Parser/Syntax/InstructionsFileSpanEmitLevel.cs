@@ -1,4 +1,4 @@
-namespace AutoContext.Instructions.Parser;
+namespace AutoContext.Instructions.Parser.Syntax;
 
 /// <summary>
 /// Chooses how much detail an <see cref="InstructionsFileSyntaxParser"/> emits.

@@ -1,29 +1,33 @@
-namespace AutoContext.Instructions.Parser;
+namespace AutoContext.Instructions.Parser.Model;
 
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using System.Text.RegularExpressions;
 
+using AutoContext.Instructions.Parser.Syntax;
+
 /// <summary>
-/// Turns the flat list of spans from <see cref="InstructionsFileSyntaxParser"/> into
-/// a structured <see cref="InstructionsFileParsedContent"/> — the frontmatter, the
-/// list of <c>##</c>/<c>###</c> sections, the rule bullets, the
-/// <c>[locator#fragment]</c> references, and any diagnostics. The span parser does
-/// the raw scanning; this second pass gives the result its shape, so callers get
-/// one ready-to-use object instead of a stream of loose pieces.
+/// A single instructions file in memory: its verbatim <see cref="RawContent"/>
+/// together with the parsed <see cref="Frontmatter"/> and <see cref="Body"/> (the
+/// body text, the <c>##</c>/<c>###</c> sections, the rule bullets, the
+/// <c>[locator#fragment]</c> references, and any diagnostics). Everything that
+/// reads instructions files — the build-time manifest generator and the runtime
+/// engine — works from this one shape, so each file is parsed just once.
 /// <para>
-/// One thing it sorts out is positions. The spans count from the start of the
-/// file, frontmatter included, but callers expect positions measured from the
-/// start of the body, as if the frontmatter were not there. The leading
-/// <see cref="InstructionsFileSpanKind.FrontmatterBlock"/> span says how long the
-/// frontmatter is, and this pass subtracts that from every offset before handing
-/// the result back.
+/// Construct one from a span stream with <see cref="FromSpans"/>, or read and parse
+/// a file from disk with <see cref="InstructionsFileFactory.ParseFileAsync"/>.
 /// </para>
 /// </summary>
-public sealed partial class InstructionsFileParser
+/// <param name="RawContent">The exact file content, frontmatter and body
+/// included.</param>
+/// <param name="Frontmatter">The parsed frontmatter from the top of the file.</param>
+/// <param name="Body">The parsed body: the body text plus its sections, rules, and
+/// diagnostics.</param>
+public sealed partial record InstructionsFile(
+    string RawContent,
+    InstructionsFileFrontmatter Frontmatter,
+    InstructionsFileBody Body)
 {
-    private InstructionsFileSyntaxParser? _spanParser;
-
     private enum FrontmatterField
     {
         Unknown,
@@ -33,23 +37,27 @@ public sealed partial class InstructionsFileParser
     }
 
     /// <summary>
-    /// Builds the structured parse from a span stream. The spans must be the
-    /// complete <see cref="InstructionsFileSpanEmitLevel.Full"/> /
+    /// Builds an <see cref="InstructionsFile"/> from a span stream. The spans must be
+    /// the complete <see cref="InstructionsFileSpanEmitLevel.Full"/> /
     /// <see cref="InstructionsFileSpanEmitScope.All"/> output for a single file, in
     /// document order: the block spans supply the verbatim text, and the token spans
     /// nested inside them supply the frontmatter fields, tags, and references. The
     /// stream is read once, front to back, without being buffered into a list.
+    /// <para>
+    /// One thing it sorts out is positions. The spans count from the start of the
+    /// file, frontmatter included, but callers expect positions measured from the
+    /// start of the body, as if the frontmatter were not there. The leading
+    /// <see cref="InstructionsFileSpanKind.FrontmatterBlock"/> span says how long the
+    /// frontmatter is, and this method subtracts that from every offset before handing
+    /// the result back.
+    /// </para>
     /// </summary>
     /// <param name="spans">The span stream.</param>
     /// <returns>The complete structural parse.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="spans"/> is
     /// <see langword="null"/>.</exception>
-    [SuppressMessage(
-        "Performance",
-        "CA1822:Mark members as static",
-        Justification = "Kept an instance method so the parser presents one coherent instance API surface alongside the stateful ParseFileAsync.")]
-    public InstructionsFileParsedContent Parse(
-        IEnumerable<InstructionsFileParsedSpan> spans)
+    public static InstructionsFile FromSpans(
+        IEnumerable<InstructionsFileSyntaxSpan> spans)
     {
         ArgumentNullException.ThrowIfNull(spans);
 
@@ -143,17 +151,17 @@ public sealed partial class InstructionsFileParser
         var body = content[frontmatterCharLength..];
         var sections = BuildSections(rawHeadings, body.Length);
         var version = name is null ? null : ExtractVersion(name);
-        var applyTo = applyToRaw is null ? null : ApplyToParser.Parse(applyToRaw);
+        var applyTo = applyToRaw is null ? null : FrontmatterApplyToParser.Parse(applyToRaw);
 
-        var frontmatter = new InstructionsFileParsedFrontmatter(frontmatterRawValue, name, description, applyTo, version);
-        var parsedBody = new InstructionsFileParsedBody(
+        var frontmatter = new InstructionsFileFrontmatter(frontmatterRawValue, name, description, applyTo, version);
+        var parsedBody = new InstructionsFileBody(
             body,
             sections,
             rules ?? [],
             references ?? [],
             diagnostics ?? []);
 
-        return new InstructionsFileParsedContent(content, frontmatter, parsedBody);
+        return new InstructionsFile(content, frontmatter, parsedBody);
 
         void AssignFrontmatterField(FrontmatterField field, string value)
         {
@@ -173,30 +181,6 @@ public sealed partial class InstructionsFileParser
                     break;
             }
         }
-    }
-
-    /// <summary>
-    /// Reads the instructions file at <paramref name="path"/> and builds its
-    /// structured parse. This overload does the scanning for you: it runs an
-    /// <see cref="InstructionsFileSyntaxParser"/> over the file in its default
-    /// <see cref="InstructionsFileSpanEmitLevel.Full"/> / <see cref="InstructionsFileSpanEmitScope.All"/>
-    /// configuration and passes the spans straight to <see cref="Parse"/>.
-    /// </summary>
-    /// <param name="path">The instructions file to read.</param>
-    /// <param name="cancellationToken">Cancels the read.</param>
-    /// <returns>The complete structural parse.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="path"/> is
-    /// <see langword="null"/>.</exception>
-    public async Task<InstructionsFileParsedContent> ParseFileAsync(
-        string path,
-        CancellationToken cancellationToken = default)
-    {
-        ArgumentNullException.ThrowIfNull(path);
-
-        var spanParser = _spanParser ??= new InstructionsFileSyntaxParser();
-        var spans = await spanParser.ParseFileAsync(path, cancellationToken).ConfigureAwait(false);
-
-        return Parse(spans);
     }
 
     [SuppressMessage(

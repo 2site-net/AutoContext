@@ -5,6 +5,7 @@ using AutoContext.Engine.Core.Workspace.Config;
 using AutoContext.Engine.Core.Workspace.Config.Snapshot;
 
 using AutoContext.Instructions.Parser;
+using AutoContext.Instructions.Parser.Model;
 
 /// <summary>
 /// Projects one instruction file's body per request for the
@@ -90,7 +91,7 @@ internal sealed class InstructionsFileService
         ArgumentNullException.ThrowIfNull(file);
 
         var path = ResolveBodyPath(file.FileName);
-        var parsed = await new InstructionsFileParser()
+        var parsed = await InstructionsFileFactory
             .ParseFileAsync(path, cancellationToken)
             .ConfigureAwait(false);
         var body = parsed.Body;
@@ -114,7 +115,7 @@ internal sealed class InstructionsFileService
     }
 
     private static bool[] BuildSectionMask(
-        InstructionsFileParsedBody body,
+        InstructionsFileBody body,
         string[] lines,
         IReadOnlyList<string>? requestedSections,
         out IReadOnlyList<string> returnedSections,
@@ -195,7 +196,7 @@ internal sealed class InstructionsFileService
     }
 
     private static InstructionsBodyProjection Project(
-        InstructionsFileParsedBody body,
+        InstructionsFileBody body,
         IReadOnlyList<string>? requestedSections,
         IReadOnlySet<string> disabledRuleIds)
     {

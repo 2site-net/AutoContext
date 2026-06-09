@@ -1,4 +1,4 @@
-namespace AutoContext.Instructions.Parser;
+namespace AutoContext.Instructions.Parser.Syntax;
 
 /// <summary>
 /// Chooses which groups of spans an <see cref="InstructionsFileSyntaxParser"/>
