@@ -133,17 +133,9 @@ internal static partial class InstructionsContentTokenizer
     /// Token sink that counts occurrences into a frequency map, materializing
     /// a string key only the first time a token is seen.
     /// </summary>
-    private ref struct FrequencySink : ITokenSink
+    private ref struct FrequencySink(Dictionary<string, int> counts) : ITokenSink
     {
-        private Dictionary<string, int>.AlternateLookup<ReadOnlySpan<char>> _counts;
-
-        /// <summary>
-        /// Creates a sink over <paramref name="counts"/>, the frequency map to
-        /// accumulate into.
-        /// </summary>
-        /// <param name="counts">The destination frequency map.</param>
-        public FrequencySink(Dictionary<string, int> counts)
-            => _counts = counts.GetAlternateLookup<ReadOnlySpan<char>>();
+        private Dictionary<string, int>.AlternateLookup<ReadOnlySpan<char>> _counts = counts.GetAlternateLookup<ReadOnlySpan<char>>();
 
         /// <inheritdoc />
         public void Push(scoped ReadOnlySpan<char> token)
@@ -165,25 +157,11 @@ internal static partial class InstructionsContentTokenizer
     /// Token sink that collects distinct tokens in first-seen order,
     /// materializing a string only when a token is first encountered.
     /// </summary>
-    private readonly ref struct QueryTokenSink : ITokenSink
+    private readonly ref struct QueryTokenSink(HashSet<string> seen, List<string> tokens) : ITokenSink
     {
-        private readonly HashSet<string> _seen;
-        private readonly HashSet<string>.AlternateLookup<ReadOnlySpan<char>> _seenLookup;
-        private readonly List<string> _tokens;
-
-        /// <summary>
-        /// Creates a sink that records distinct tokens into
-        /// <paramref name="tokens"/>, using <paramref name="seen"/> for the
-        /// ordinal distinctness check.
-        /// </summary>
-        /// <param name="seen">The set tracking already-seen tokens.</param>
-        /// <param name="tokens">The destination list, in first-seen order.</param>
-        public QueryTokenSink(HashSet<string> seen, List<string> tokens)
-        {
-            _seen = seen;
-            _seenLookup = seen.GetAlternateLookup<ReadOnlySpan<char>>();
-            _tokens = tokens;
-        }
+        private readonly HashSet<string> _seen = seen;
+        private readonly HashSet<string>.AlternateLookup<ReadOnlySpan<char>> _seenLookup = seen.GetAlternateLookup<ReadOnlySpan<char>>();
+        private readonly List<string> _tokens = tokens;
 
         /// <inheritdoc />
         public void Push(scoped ReadOnlySpan<char> token)
