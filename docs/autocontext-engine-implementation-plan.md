@@ -1878,9 +1878,10 @@ corrected files):
 
 ## Phase 6P — New span-based instructions parser
 
-**Status**: **Complete.** All rows landed: both corpus consumers run on
-the new parser pair, and the legacy single-pass parser has been deleted.
-Landed on branch `features/instructions-span-parser`.
+**Status**: Completed on branch `features/instructions-span-parser`,
+merged to `features/instructions-corpus-runtime`. All rows landed: both
+corpus consumers run on the new parser pair, and the legacy single-pass
+parser has been deleted.
 
 | # | Commit subject | State |
 |---|---|---|
@@ -1993,12 +1994,10 @@ span parser).
 
 ## Phase 6 — Instructions corpus runtime + projection
 
-**Status**: **Paused** after rows 1–3 and 5 pending **Phase 6P**
-(new span-based parser); resumes once both corpus consumers run on
-the new parser. On branch `features/instructions-corpus-runtime`,
-atop the merged Phase 6R catalog + manifest shape. Rows 1–3 and 5 are
-landed; the remaining RPC handlers (rows 4, 6–15) build on the
-in-memory snapshot.
+**Status**: **In progress** on branch `features/instructions-corpus-runtime`,
+atop the merged **Phase 6P** (new span-based parser) and Phase 6R catalog
++ manifest shape. Rows 1–3 and 5 are landed; the remaining RPC handlers
+(rows 4, 6–15) build on the in-memory snapshot.
 
 | # | Commit subject | State |
 |---|---|---|
