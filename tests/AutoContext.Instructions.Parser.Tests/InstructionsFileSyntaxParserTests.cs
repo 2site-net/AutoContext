@@ -454,13 +454,14 @@ public sealed class InstructionsFileSyntaxParserTests
             var content = "## Rules\n\n- **Do** a thing.\n";
 
             // Act
-            var rule = (await InstructionsFileSyntaxParserTestDrainer.DrainAsync(parser, content)).Single();
+            var tree = await InstructionsFileSyntaxParserTestDrainer.DrainTreeAsync(parser, content);
 
             // Assert
-            var diagnostic = Assert.Single(rule.Diagnostics);
+            var rule = Assert.Single(tree.Body);
+            var diagnostic = Assert.Single(tree.Diagnostics);
             Assert.Multiple(
                 () => Assert.Equal(InstructionsFileSpanKind.PlainRule, rule.Kind),
-                () => Assert.Equal(InstructionsFileDiagnosticKind.MissingTag, diagnostic.Kind));
+                () => Assert.Equal(InstructionsFileDiagnosticKind.MissingTag, diagnostic.Diagnostic.Kind));
         }
 
         [Fact]
@@ -473,12 +474,13 @@ public sealed class InstructionsFileSyntaxParserTests
             var content = "## Notes\n\n- **Do** a thing.\n";
 
             // Act
-            var rule = (await InstructionsFileSyntaxParserTestDrainer.DrainAsync(parser, content)).Single();
+            var tree = await InstructionsFileSyntaxParserTestDrainer.DrainTreeAsync(parser, content);
 
             // Assert
+            var rule = Assert.Single(tree.Body);
             Assert.Multiple(
                 () => Assert.Equal(InstructionsFileSpanKind.PlainRule, rule.Kind),
-                () => Assert.Empty(rule.Diagnostics));
+                () => Assert.Empty(tree.Diagnostics));
         }
 
         [Fact]
@@ -491,13 +493,14 @@ public sealed class InstructionsFileSyntaxParserTests
             var content = "- [INST0001] **Do** a thing.\n";
 
             // Act
-            var rule = (await InstructionsFileSyntaxParserTestDrainer.DrainAsync(parser, content)).Single();
+            var tree = await InstructionsFileSyntaxParserTestDrainer.DrainTreeAsync(parser, content);
 
             // Assert
-            var diagnostic = Assert.Single(rule.Diagnostics);
+            var rule = Assert.Single(tree.Body);
+            var diagnostic = Assert.Single(tree.Diagnostics);
             Assert.Multiple(
                 () => Assert.Equal(InstructionsFileSpanKind.TaggedRule, rule.Kind),
-                () => Assert.Equal(InstructionsFileDiagnosticKind.MisplacedRule, diagnostic.Kind));
+                () => Assert.Equal(InstructionsFileDiagnosticKind.MisplacedRule, diagnostic.Diagnostic.Kind));
         }
 
         [Fact]
@@ -510,10 +513,10 @@ public sealed class InstructionsFileSyntaxParserTests
             var content = "## Rules\n\n- [INST0001] **Do** a thing.\n";
 
             // Act
-            var spans = await InstructionsFileSyntaxParserTestDrainer.DrainAsync(parser, content);
+            var tree = await InstructionsFileSyntaxParserTestDrainer.DrainTreeAsync(parser, content);
 
             // Assert
-            Assert.All(spans, span => Assert.Empty(span.Diagnostics));
+            Assert.Empty(tree.Diagnostics);
         }
 
         [Fact]
@@ -526,19 +529,21 @@ public sealed class InstructionsFileSyntaxParserTests
             var content = "## Rules\n\n- [INST0001] **Do** a.\n\n- [INST0001] **Do** b.\n";
 
             // Act
-            var rules = (await InstructionsFileSyntaxParserTestDrainer.DrainAsync(parser, content))
-                .Where(span => span.Kind == InstructionsFileSpanKind.TaggedRule)
-                .ToList();
+            var tree = await InstructionsFileSyntaxParserTestDrainer.DrainTreeAsync(parser, content);
 
             // Assert
-            var diagnostic = Assert.Single(rules[1].Diagnostics);
+            var rules = tree.Body
+                .Where(span => span.Kind == InstructionsFileSpanKind.TaggedRule)
+                .ToList();
+            var diagnostic = Assert.Single(tree.Diagnostics);
             Assert.Multiple(
-                () => Assert.Empty(rules[0].Diagnostics),
-                () => Assert.Equal(InstructionsFileDiagnosticKind.DuplicateTag, diagnostic.Kind));
+                () => Assert.Equal(2, rules.Count),
+                () => Assert.Equal(InstructionsFileDiagnosticKind.DuplicateTag, diagnostic.Diagnostic.Kind),
+                () => Assert.Equal(rules[1].LineSpan.StartLine, diagnostic.LineSpan.StartLine));
         }
 
         [Fact]
-        public async Task Should_attach_a_malformed_tag_to_the_tag_token_when_tokens_are_emitted()
+        public async Task Should_emit_a_malformed_tag_diagnostic_alongside_the_tag_token()
         {
             // Arrange
             var parser = new InstructionsFileSyntaxParser(
@@ -547,19 +552,17 @@ public sealed class InstructionsFileSyntaxParserTests
             var content = "## Rules\n\n- [foo] **Do** a thing.\n";
 
             // Act
-            var spans = await InstructionsFileSyntaxParserTestDrainer.DrainAsync(parser, content);
-            var tag = spans.Single(span => span.Kind == InstructionsFileSpanKind.Tag);
-            var rule = spans.Single(span => span.Kind == InstructionsFileSpanKind.TaggedRule);
+            var tree = await InstructionsFileSyntaxParserTestDrainer.DrainTreeAsync(parser, content);
 
             // Assert
-            var diagnostic = Assert.Single(tag.Diagnostics);
+            var diagnostic = Assert.Single(tree.Diagnostics);
             Assert.Multiple(
-                () => Assert.Equal(InstructionsFileDiagnosticKind.MalformedTag, diagnostic.Kind),
-                () => Assert.Empty(rule.Diagnostics));
+                () => Assert.Contains(tree.Body, span => span.Kind == InstructionsFileSpanKind.Tag),
+                () => Assert.Equal(InstructionsFileDiagnosticKind.MalformedTag, diagnostic.Diagnostic.Kind));
         }
 
         [Fact]
-        public async Task Should_promote_a_malformed_tag_to_the_rule_block_when_the_tag_token_is_filtered_out()
+        public async Task Should_still_emit_a_malformed_tag_diagnostic_when_the_tag_token_is_filtered_out()
         {
             // Arrange
             var parser = new InstructionsFileSyntaxParser(
@@ -568,17 +571,19 @@ public sealed class InstructionsFileSyntaxParserTests
             var content = "## Rules\n\n- [foo] **Do** a thing.\n";
 
             // Act
-            var rule = (await InstructionsFileSyntaxParserTestDrainer.DrainAsync(parser, content)).Single();
+            var tree = await InstructionsFileSyntaxParserTestDrainer.DrainTreeAsync(parser, content);
 
             // Assert
-            var diagnostic = Assert.Single(rule.Diagnostics);
+            var rule = Assert.Single(tree.Body);
+            var diagnostic = Assert.Single(tree.Diagnostics);
             Assert.Multiple(
                 () => Assert.Equal(InstructionsFileSpanKind.TaggedRule, rule.Kind),
-                () => Assert.Equal(InstructionsFileDiagnosticKind.MalformedTag, diagnostic.Kind));
+                () => Assert.DoesNotContain(tree.Body, span => span.Kind == InstructionsFileSpanKind.Tag),
+                () => Assert.Equal(InstructionsFileDiagnosticKind.MalformedTag, diagnostic.Diagnostic.Kind));
         }
 
         [Fact]
-        public async Task Should_attach_a_malformed_reference_to_the_reference_token()
+        public async Task Should_emit_a_malformed_reference_diagnostic_for_the_reference_token()
         {
             // Arrange
             var parser = new InstructionsFileSyntaxParser(
@@ -587,13 +592,15 @@ public sealed class InstructionsFileSyntaxParserTests
             var content = "See [Bad Locator#INST0001] here.\n";
 
             // Act
-            var reference = (await InstructionsFileSyntaxParserTestDrainer.DrainAsync(parser, content)).Single();
+            var tree = await InstructionsFileSyntaxParserTestDrainer.DrainTreeAsync(parser, content);
 
             // Assert
-            var diagnostic = Assert.Single(reference.Diagnostics);
+            var reference = Assert.Single(tree.Body);
+            var diagnostic = Assert.Single(tree.Diagnostics);
             Assert.Multiple(
                 () => Assert.Equal(InstructionsFileSpanKind.Reference, reference.Kind),
-                () => Assert.Equal(InstructionsFileDiagnosticKind.MalformedReference, diagnostic.Kind));
+                () => Assert.Empty(tree.References),
+                () => Assert.Equal(InstructionsFileDiagnosticKind.MalformedReference, diagnostic.Diagnostic.Kind));
         }
 
         [Fact]
@@ -606,11 +613,11 @@ public sealed class InstructionsFileSyntaxParserTests
             var content = "See [#INST0001-INST0003] here.\n";
 
             // Act
-            var reference = (await InstructionsFileSyntaxParserTestDrainer.DrainAsync(parser, content)).Single();
+            var tree = await InstructionsFileSyntaxParserTestDrainer.DrainTreeAsync(parser, content);
 
             // Assert
-            var diagnostic = Assert.Single(reference.Diagnostics);
-            Assert.Equal(InstructionsFileDiagnosticKind.MalformedReference, diagnostic.Kind);
+            var diagnostic = Assert.Single(tree.Diagnostics);
+            Assert.Equal(InstructionsFileDiagnosticKind.MalformedReference, diagnostic.Diagnostic.Kind);
         }
 
         [Fact]
@@ -623,14 +630,16 @@ public sealed class InstructionsFileSyntaxParserTests
             var content = "See [foo.instructions.md#INST0001] here.\n";
 
             // Act
-            var reference = (await InstructionsFileSyntaxParserTestDrainer.DrainAsync(parser, content)).Single();
+            var tree = await InstructionsFileSyntaxParserTestDrainer.DrainTreeAsync(parser, content);
 
             // Assert
-            Assert.Empty(reference.Diagnostics);
+            Assert.Multiple(
+                () => Assert.Single(tree.References),
+                () => Assert.Empty(tree.Diagnostics));
         }
 
         [Fact]
-        public async Task Should_not_promote_a_malformed_reference_to_a_block()
+        public async Task Should_not_flag_a_malformed_reference_when_reference_tokens_are_not_emitted()
         {
             // Arrange
             var parser = new InstructionsFileSyntaxParser(
@@ -639,10 +648,10 @@ public sealed class InstructionsFileSyntaxParserTests
             var content = "See [Bad Locator#INST0001] here.\n";
 
             // Act
-            var spans = await InstructionsFileSyntaxParserTestDrainer.DrainAsync(parser, content);
+            var tree = await InstructionsFileSyntaxParserTestDrainer.DrainTreeAsync(parser, content);
 
             // Assert
-            Assert.All(spans, span => Assert.Empty(span.Diagnostics));
+            Assert.Empty(tree.Diagnostics);
         }
 
         [Fact]
@@ -655,12 +664,13 @@ public sealed class InstructionsFileSyntaxParserTests
             var content = "## Rules\n\n---\n\n- **Do** a thing.\n";
 
             // Act
-            var rule = (await InstructionsFileSyntaxParserTestDrainer.DrainAsync(parser, content)).Single();
+            var tree = await InstructionsFileSyntaxParserTestDrainer.DrainTreeAsync(parser, content);
 
             // Assert
+            var rule = Assert.Single(tree.Body);
             Assert.Multiple(
                 () => Assert.Equal(InstructionsFileSpanKind.PlainRule, rule.Kind),
-                () => Assert.Empty(rule.Diagnostics));
+                () => Assert.Empty(tree.Diagnostics));
         }
 
         [Fact]
@@ -673,11 +683,11 @@ public sealed class InstructionsFileSyntaxParserTests
             var content = "## Rules\n\n```\n---\n```\n\n- **Do** a thing.\n";
 
             // Act
-            var rule = (await InstructionsFileSyntaxParserTestDrainer.DrainAsync(parser, content)).Single();
+            var tree = await InstructionsFileSyntaxParserTestDrainer.DrainTreeAsync(parser, content);
 
             // Assert
-            var diagnostic = Assert.Single(rule.Diagnostics);
-            Assert.Equal(InstructionsFileDiagnosticKind.MissingTag, diagnostic.Kind);
+            var diagnostic = Assert.Single(tree.Diagnostics);
+            Assert.Equal(InstructionsFileDiagnosticKind.MissingTag, diagnostic.Diagnostic.Kind);
         }
 
         [Fact]
@@ -690,11 +700,11 @@ public sealed class InstructionsFileSyntaxParserTests
             var content = "## Rules\n\n### Subsection\n\n- **Do** a thing.\n";
 
             // Act
-            var rule = (await InstructionsFileSyntaxParserTestDrainer.DrainAsync(parser, content)).Single();
+            var tree = await InstructionsFileSyntaxParserTestDrainer.DrainTreeAsync(parser, content);
 
             // Assert
-            var diagnostic = Assert.Single(rule.Diagnostics);
-            Assert.Equal(InstructionsFileDiagnosticKind.MissingTag, diagnostic.Kind);
+            var diagnostic = Assert.Single(tree.Diagnostics);
+            Assert.Equal(InstructionsFileDiagnosticKind.MissingTag, diagnostic.Diagnostic.Kind);
         }
 
         [Fact]
@@ -707,10 +717,10 @@ public sealed class InstructionsFileSyntaxParserTests
             var content = "## Rules\n\n## Other\n\n- **Do** a thing.\n";
 
             // Act
-            var rule = (await InstructionsFileSyntaxParserTestDrainer.DrainAsync(parser, content)).Single();
+            var tree = await InstructionsFileSyntaxParserTestDrainer.DrainTreeAsync(parser, content);
 
             // Assert
-            Assert.Empty(rule.Diagnostics);
+            Assert.Empty(tree.Diagnostics);
         }
 
         [Fact]
@@ -723,10 +733,10 @@ public sealed class InstructionsFileSyntaxParserTests
             var content = "## Rules\n\n# Top\n\n- **Do** a thing.\n";
 
             // Act
-            var rule = (await InstructionsFileSyntaxParserTestDrainer.DrainAsync(parser, content)).Single();
+            var tree = await InstructionsFileSyntaxParserTestDrainer.DrainTreeAsync(parser, content);
 
             // Assert
-            Assert.Empty(rule.Diagnostics);
+            Assert.Empty(tree.Diagnostics);
         }
 
         [Fact]
@@ -740,12 +750,13 @@ public sealed class InstructionsFileSyntaxParserTests
             var content = "## Rules\n\n- **Do** a thing.\n";
 
             // Act
-            var rule = (await InstructionsFileSyntaxParserTestDrainer.DrainAsync(parser, content)).Single();
+            var tree = await InstructionsFileSyntaxParserTestDrainer.DrainTreeAsync(parser, content);
 
             // Assert
+            var rule = Assert.Single(tree.Body);
             Assert.Multiple(
                 () => Assert.Equal(InstructionsFileSpanKind.PlainRule, rule.Kind),
-                () => Assert.Empty(rule.Diagnostics));
+                () => Assert.Empty(tree.Diagnostics));
         }
     }
 }

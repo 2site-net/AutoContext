@@ -273,9 +273,9 @@ internal sealed class InstructionsFileService
         string content,
         CancellationToken cancellationToken)
     {
-        var spans = BodyReparser.Parse(content, cancellationToken);
+        var tree = BodyReparser.Parse(content, cancellationToken);
 
-        return InstructionsFile.FromSpans(spans).Body.Sections;
+        return InstructionsFile.FromSpans(tree).Body.Sections;
     }
 
     private static SectionSelection SelectSections(

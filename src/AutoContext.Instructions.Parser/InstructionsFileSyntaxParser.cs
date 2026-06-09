@@ -10,8 +10,10 @@ using AutoContext.Instructions.Parser.Syntax;
 /// <see cref="InstructionsFileSyntaxSpan"/> pieces — frontmatter, headings, rule
 /// bullets, tags, and references — each marked with where it sits in the file.
 /// This is the first of two passes; <see cref="Model.InstructionsFile.FromSpans"/>
-/// takes the flat pieces produced here and turns them into the final structured
-/// result.
+/// takes the <see cref="InstructionsFileSyntaxTree"/> produced here and turns it
+/// into the final structured result. The tree splits the spans into a frontmatter
+/// stream and a body stream, with references and diagnostics gathered into their
+/// own self-locating side streams.
 /// <para>
 /// Two things to know about the positions it reports. They are measured from the
 /// very start of the file, with the frontmatter counted in rather than stripped
@@ -75,32 +77,36 @@ public sealed partial class InstructionsFileSyntaxParser(
     }
 
     /// <summary>
-    /// Scans <paramref name="text"/> and returns all of its spans as a finished
-    /// list, in the order they appear in the file.
+    /// Scans <paramref name="text"/> and returns its spans as a finished
+    /// <see cref="InstructionsFileSyntaxTree"/>, with each stream in the order it
+    /// appears in the file.
     /// </summary>
     /// <param name="text">The decoded instructions text.</param>
     /// <param name="cancellationToken">Cancels the scan; checked once per line.</param>
-    /// <returns>The list of spans.</returns>
+    /// <returns>The parsed syntax tree.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="text"/> is
     /// <see langword="null"/>.</exception>
-    public IReadOnlyList<InstructionsFileSyntaxSpan> Parse(
+    public InstructionsFileSyntaxTree Parse(
         string text,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(text);
 
         var state = new ParserState { Source = text };
-        var output = new List<InstructionsFileSyntaxSpan>();
 
         foreach (var line in ReadPhysicalLines(text))
         {
             cancellationToken.ThrowIfCancellationRequested();
-            Advance(state, line, output);
+            Advance(state, line);
         }
 
-        Finish(state, output);
+        Finish(state);
 
-        return output;
+        return new InstructionsFileSyntaxTree(
+            state.Frontmatter,
+            state.Body,
+            state.References,
+            state.Diagnostics);
     }
 
     /// <summary>
@@ -112,10 +118,10 @@ public sealed partial class InstructionsFileSyntaxParser(
     /// <param name="path">The instructions file to read.</param>
     /// <param name="cancellationToken">Cancels the read and the scan that
     /// follows.</param>
-    /// <returns>The list of spans.</returns>
+    /// <returns>The parsed syntax tree.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="path"/> is
     /// <see langword="null"/>.</exception>
-    public async Task<IReadOnlyList<InstructionsFileSyntaxSpan>> ParseFileAsync(
+    public async Task<InstructionsFileSyntaxTree> ParseFileAsync(
         string path,
         CancellationToken cancellationToken = default)
     {
@@ -466,7 +472,7 @@ public sealed partial class InstructionsFileSyntaxParser(
             ? GeneratedHeadingEscapeRegex().Replace(heading, "$1")
             : heading;
 
-    private void Advance(ParserState state, PhysicalLine line, List<InstructionsFileSyntaxSpan> output)
+    private void Advance(ParserState state, PhysicalLine line)
     {
         if (state.Phase == ParsePhase.Start)
         {
@@ -478,7 +484,7 @@ public sealed partial class InstructionsFileSyntaxParser(
             }
             else
             {
-                AdvanceBody(state, line, output);
+                AdvanceBody(state, line);
             }
         }
         else if (state.Phase == ParsePhase.Frontmatter)
@@ -487,24 +493,24 @@ public sealed partial class InstructionsFileSyntaxParser(
 
             if (line.Content == "---")
             {
-                BuildFrontmatterSpans(state, output);
+                BuildFrontmatterSpans(state);
                 state.Phase = ParsePhase.Body;
             }
         }
         else
         {
-            AdvanceBody(state, line, output);
+            AdvanceBody(state, line);
         }
     }
 
-    private void AdvanceBody(ParserState state, PhysicalLine line, List<InstructionsFileSyntaxSpan> output)
+    private void AdvanceBody(ParserState state, PhysicalLine line)
     {
         var content = line.Content;
 
         if (GeneratedFenceRegex().IsMatch(content))
         {
             state.InFence = !state.InFence;
-            FlushRule(state, output);
+            FlushRule(state);
             state.PendingText.Add(new TextLine(line, RefsScanned: false));
             return;
         }
@@ -514,8 +520,8 @@ public sealed partial class InstructionsFileSyntaxParser(
 
         if (validRule || malformedRule)
         {
-            FlushRule(state, output);
-            FlushText(state, output);
+            FlushRule(state);
+            FlushText(state);
             StartRule(state, line);
             return;
         }
@@ -528,13 +534,13 @@ public sealed partial class InstructionsFileSyntaxParser(
                 return;
             }
 
-            FlushRule(state, output);
+            FlushRule(state);
         }
 
         if (!state.InFence && GeneratedHeadingRegex().IsMatch(content))
         {
-            FlushText(state, output);
-            EmitHeading(state, line, output);
+            FlushText(state);
+            EmitHeading(state, line);
             return;
         }
 
@@ -546,7 +552,7 @@ public sealed partial class InstructionsFileSyntaxParser(
         state.PendingText.Add(new TextLine(line, !state.InFence));
     }
 
-    private void BuildFrontmatterSpans(ParserState state, List<InstructionsFileSyntaxSpan> output)
+    private void BuildFrontmatterSpans(ParserState state)
     {
         var frontmatterLines = state.FrontmatterLines;
         var first = frontmatterLines[0];
@@ -563,7 +569,7 @@ public sealed partial class InstructionsFileSyntaxParser(
 
         if (block is not null)
         {
-            output.Add(block);
+            EmitSpan(state, block);
         }
 
         if (!ShouldEmit(InstructionsFileSpanKind.FrontmatterProperty))
@@ -607,10 +613,10 @@ public sealed partial class InstructionsFileSyntaxParser(
             }
         }
 
-        EmitOrdered(state, tokens, output);
+        EmitOrdered(state, tokens);
     }
 
-    private void EmitHeading(ParserState state, PhysicalLine line, List<InstructionsFileSyntaxSpan> output)
+    private void EmitHeading(ParserState state, PhysicalLine line)
     {
         var heading = GeneratedHeadingRegex().Match(line.Content);
         var level = heading.Groups[1].Length;
@@ -633,7 +639,7 @@ public sealed partial class InstructionsFileSyntaxParser(
 
         if (block is not null)
         {
-            output.Add(block);
+            EmitSpan(state, block);
         }
 
         if (!_emitReferences)
@@ -643,10 +649,10 @@ public sealed partial class InstructionsFileSyntaxParser(
 
         var tokens = new List<TokenDraft>();
         AddReferenceDrafts(line, tokens, _includeDiagnostics);
-        EmitOrdered(state, tokens, output);
+        EmitOrdered(state, tokens);
     }
 
-    private void EmitOrdered(ParserState state, List<TokenDraft> tokens, List<InstructionsFileSyntaxSpan> output)
+    private void EmitOrdered(ParserState state, List<TokenDraft> tokens)
     {
         if (tokens.Count == 0)
         {
@@ -664,21 +670,33 @@ public sealed partial class InstructionsFileSyntaxParser(
                 continue;
             }
 
-            if (token.Diagnostic is { } diagnostic)
-            {
-                span = span with { Diagnostics = [diagnostic] };
-            }
+            EmitSpan(state, span);
 
             if (token.Address is { } address)
             {
-                span = span with { ReferenceAddress = address };
+                state.References.Add(new InstructionsFileSyntaxReference(address, span.TextSpan, span.LineSpan));
             }
 
-            output.Add(span);
+            if (token.Diagnostic is { } diagnostic)
+            {
+                state.Diagnostics.Add(new InstructionsFileSyntaxDiagnostic(diagnostic, span.TextSpan, span.LineSpan));
+            }
         }
     }
 
-    private void Finish(ParserState state, List<InstructionsFileSyntaxSpan> output)
+    private static void EmitSpan(ParserState state, InstructionsFileSyntaxSpan span)
+    {
+        if (ScopeOf(span.Kind) == InstructionsFileSpanEmitScope.Frontmatter)
+        {
+            state.Frontmatter.Add(span);
+        }
+        else
+        {
+            state.Body.Add(span);
+        }
+    }
+
+    private void Finish(ParserState state)
     {
         if (state.Phase == ParsePhase.Frontmatter)
         {
@@ -690,15 +708,15 @@ public sealed partial class InstructionsFileSyntaxParser(
 
             foreach (var line in buffered)
             {
-                AdvanceBody(state, line, output);
+                AdvanceBody(state, line);
             }
         }
 
-        FlushRule(state, output);
-        FlushText(state, output);
+        FlushRule(state);
+        FlushText(state);
     }
 
-    private void FlushRule(ParserState state, List<InstructionsFileSyntaxSpan> output)
+    private void FlushRule(ParserState state)
     {
         var rule = state.Rule;
 
@@ -727,23 +745,32 @@ public sealed partial class InstructionsFileSyntaxParser(
 
         if (block is not null)
         {
-            // A malformed tag attaches to its Tag token when tokens are emitted;
-            // otherwise it has no token to land on and promotes to the rule block.
-            if (!_emitTags && rule.TagDiagnostic is { } tagDiagnostic)
-            {
-                block = block with
-                {
-                    Diagnostics = rule.BlockDiagnostics is { } blockDiagnostics
-                        ? [.. blockDiagnostics, tagDiagnostic]
-                        : [tagDiagnostic],
-                };
-            }
-            else if (rule.BlockDiagnostics is { Count: > 0 } ruleDiagnostics)
-            {
-                block = block with { Diagnostics = ruleDiagnostics };
-            }
+            EmitSpan(state, block);
+        }
 
-            output.Add(block);
+        // Rule diagnostics live in the diagnostic stream, independent of whether the
+        // rule block (or its tag token) is emitted. A rule carries either block
+        // diagnostics (duplicate/misplaced/missing) or a malformed-tag diagnostic,
+        // never both, so their order relative to each other does not matter.
+        if (rule.BlockDiagnostics is { } blockDiagnostics)
+        {
+            var blockTextSpan = new InstructionsFileTextSpan(rule.StartIndex, endIndex - rule.StartIndex);
+            var blockLineSpan = new InstructionsFileLineSpan(rule.StartLine, bodyLines.Count);
+
+            foreach (var diagnostic in blockDiagnostics)
+            {
+                state.Diagnostics.Add(new InstructionsFileSyntaxDiagnostic(diagnostic, blockTextSpan, blockLineSpan));
+            }
+        }
+
+        if (rule.TagDiagnostic is { } tagDiagnostic && rule.Tag is { } tagExtent)
+        {
+            var first = bodyLines[0].Line;
+
+            state.Diagnostics.Add(new InstructionsFileSyntaxDiagnostic(
+                tagDiagnostic,
+                new InstructionsFileTextSpan(first.StartIndex + tagExtent.Offset, tagExtent.Length),
+                new InstructionsFileLineSpan(first.LineIndex, 1)));
         }
 
         var tokens = new List<TokenDraft>();
@@ -751,7 +778,7 @@ public sealed partial class InstructionsFileSyntaxParser(
         if (_emitTags && rule.Tag is { } extent)
         {
             var first = bodyLines[0].Line;
-            tokens.Add(new TokenDraft(first.StartIndex + extent.Offset, extent.Length, first.LineIndex, InstructionsFileSpanKind.Tag, rule.TagDiagnostic));
+            tokens.Add(new TokenDraft(first.StartIndex + extent.Offset, extent.Length, first.LineIndex, InstructionsFileSpanKind.Tag));
         }
 
         if (_emitReferences)
@@ -765,7 +792,7 @@ public sealed partial class InstructionsFileSyntaxParser(
             }
         }
 
-        EmitOrdered(state, tokens, output);
+        EmitOrdered(state, tokens);
 
         foreach (var entry in trailing)
         {
@@ -773,7 +800,7 @@ public sealed partial class InstructionsFileSyntaxParser(
         }
     }
 
-    private void FlushText(ParserState state, List<InstructionsFileSyntaxSpan> output)
+    private void FlushText(ParserState state)
     {
         if (state.PendingText.Count == 0)
         {
@@ -798,7 +825,7 @@ public sealed partial class InstructionsFileSyntaxParser(
 
         if (block is not null)
         {
-            output.Add(block);
+            EmitSpan(state, block);
         }
 
         if (_emitReferences)
@@ -813,7 +840,7 @@ public sealed partial class InstructionsFileSyntaxParser(
                 }
             }
 
-            EmitOrdered(state, tokens, output);
+            EmitOrdered(state, tokens);
         }
 
         state.PendingText.Clear();
@@ -908,6 +935,15 @@ public sealed partial class InstructionsFileSyntaxParser(
 
     private sealed class ParserState
     {
+        /// <summary>Gets the body spans emitted so far, in document order.</summary>
+        public List<InstructionsFileSyntaxSpan> Body { get; } = [];
+
+        /// <summary>Gets the diagnostics emitted so far, in document order.</summary>
+        public List<InstructionsFileSyntaxDiagnostic> Diagnostics { get; } = [];
+
+        /// <summary>Gets the frontmatter spans emitted so far, in document order.</summary>
+        public List<InstructionsFileSyntaxSpan> Frontmatter { get; } = [];
+
         /// <summary>Gets or sets the buffered frontmatter lines, including the delimiters.</summary>
         public List<PhysicalLine> FrontmatterLines { get; set; } = [];
 
@@ -919,6 +955,9 @@ public sealed partial class InstructionsFileSyntaxParser(
 
         /// <summary>Gets or sets the current parse phase.</summary>
         public ParsePhase Phase { get; set; } = ParsePhase.Start;
+
+        /// <summary>Gets the references emitted so far, in document order.</summary>
+        public List<InstructionsFileSyntaxReference> References { get; } = [];
 
         /// <summary>Gets or sets the rule currently being accumulated, or null when none is open.</summary>
         public PendingRule? Rule { get; set; }

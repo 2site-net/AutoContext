@@ -37,12 +37,16 @@ public sealed partial record InstructionsFile(
     }
 
     /// <summary>
-    /// Builds an <see cref="InstructionsFile"/> from a span stream. The spans must be
-    /// the complete <see cref="InstructionsFileSpanEmitLevel.Full"/> /
-    /// <see cref="InstructionsFileSpanEmitScope.All"/> output for a single file, in
-    /// document order: the block spans supply the verbatim text, and the token spans
-    /// nested inside them supply the frontmatter fields, tags, and references. The
-    /// stream is read once, front to back, without being buffered into a list.
+    /// Builds an <see cref="InstructionsFile"/> from a parsed
+    /// <see cref="InstructionsFileSyntaxTree"/>. The tree must be the complete
+    /// <see cref="InstructionsFileSpanEmitLevel.Full"/> /
+    /// <see cref="InstructionsFileSpanEmitScope.All"/> output for a single file: the
+    /// <see cref="InstructionsFileSyntaxTree.Frontmatter"/> stream supplies the
+    /// frontmatter fields, the <see cref="InstructionsFileSyntaxTree.Body"/> stream
+    /// supplies the headings and rule bullets, and the
+    /// <see cref="InstructionsFileSyntaxTree.References"/> and
+    /// <see cref="InstructionsFileSyntaxTree.Diagnostics"/> side streams supply the
+    /// references and problems.
     /// <para>
     /// One thing it sorts out is positions. The spans count from the start of the
     /// file, frontmatter included, but callers expect positions measured from the
@@ -52,14 +56,13 @@ public sealed partial record InstructionsFile(
     /// the result back.
     /// </para>
     /// </summary>
-    /// <param name="spans">The span stream.</param>
+    /// <param name="tree">The parsed syntax tree.</param>
     /// <returns>The complete structural parse.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="spans"/> is
+    /// <exception cref="ArgumentNullException"><paramref name="tree"/> is
     /// <see langword="null"/>.</exception>
-    public static InstructionsFile FromSpans(
-        IEnumerable<InstructionsFileSyntaxSpan> spans)
+    public static InstructionsFile FromSpans(InstructionsFileSyntaxTree tree)
     {
-        ArgumentNullException.ThrowIfNull(spans);
+        ArgumentNullException.ThrowIfNull(tree);
 
         string? sourceText = null;
         var frontmatterCharLength = 0;
@@ -68,23 +71,16 @@ public sealed partial record InstructionsFile(
         string? name = null;
         string? description = null;
         string? applyToRaw = null;
-        List<RawHeading>? rawHeadings = null;
-        List<InstructionsFileRule>? rules = null;
-        List<InstructionsFileReference>? references = null;
-        List<InstructionsFileDiagnostic>? diagnostics = null;
-        string? lastSectionHeading = null;
         var currentFrontmatterField = FrontmatterField.Unknown;
 
-        foreach (var span in spans)
+        foreach (var span in tree.Frontmatter)
         {
-            var kind = span.Kind;
-
             // Every span is a window over the single source string the lexer
-            // parsed, so recover that string from the first (block) span rather
-            // than rebuilding the file by concatenating spans.
+            // parsed, so recover that string from the first span rather than
+            // rebuilding the file by concatenating spans.
             sourceText ??= RecoverSourceText(span);
 
-            if (kind == InstructionsFileSpanKind.FrontmatterBlock)
+            if (span.Kind == InstructionsFileSpanKind.FrontmatterBlock)
             {
                 frontmatterCharLength = span.TextSpan.Length;
                 frontmatterLineCount = span.LineSpan.LineCount;
@@ -92,16 +88,27 @@ public sealed partial record InstructionsFile(
                 var block = GeneratedFrontmatterBlockRegex().Match(sourceText, 0, frontmatterCharLength);
                 frontmatterRawValue = block.Success ? block.Groups[1].Value : string.Empty;
             }
-            else if (kind == InstructionsFileSpanKind.FrontmatterKey)
+            else if (span.Kind == InstructionsFileSpanKind.FrontmatterKey)
             {
                 currentFrontmatterField = ClassifyFrontmatterKey(span.Text.Span);
                 AssignFrontmatterField(currentFrontmatterField, string.Empty);
             }
-            else if (kind == InstructionsFileSpanKind.FrontmatterValue)
+            else if (span.Kind == InstructionsFileSpanKind.FrontmatterValue)
             {
                 AssignFrontmatterField(currentFrontmatterField, span.Text.ToString());
             }
-            else if (kind is InstructionsFileSpanKind.Heading2 or InstructionsFileSpanKind.Heading3)
+        }
+
+        List<RawHeading>? rawHeadings = null;
+        List<InstructionsFileRule>? rules = null;
+        string? lastSectionHeading = null;
+
+        foreach (var span in tree.Body)
+        {
+            sourceText ??= RecoverSourceText(span);
+            var kind = span.Kind;
+
+            if (kind is InstructionsFileSpanKind.Heading2 or InstructionsFileSpanKind.Heading3)
             {
                 var level = kind == InstructionsFileSpanKind.Heading2 ? 2 : 3;
                 var text = ParseHeadingText(span.Text.Span);
@@ -125,26 +132,28 @@ public sealed partial record InstructionsFile(
                         span.LineSpan.StartLine - frontmatterLineCount,
                         span.LineSpan.LineCount)));
             }
-            else if (kind == InstructionsFileSpanKind.Reference)
-            {
-                if (span.ReferenceAddress is { } address)
-                {
-                    (references ??= []).Add(new InstructionsFileReference(
-                        address,
-                        new InstructionsFileTextSpan(
-                            span.TextSpan.StartIndex - frontmatterCharLength,
-                            span.TextSpan.Length),
-                        span.LineSpan.StartLine - frontmatterLineCount));
-                }
-            }
+        }
 
-            foreach (var diagnostic in span.Diagnostics)
+        List<InstructionsFileReference>? references = null;
+
+        foreach (var reference in tree.References)
+        {
+            (references ??= []).Add(new InstructionsFileReference(
+                reference.Address,
+                new InstructionsFileTextSpan(
+                    reference.TextSpan.StartIndex - frontmatterCharLength,
+                    reference.TextSpan.Length),
+                reference.LineSpan.StartLine - frontmatterLineCount));
+        }
+
+        List<InstructionsFileDiagnostic>? diagnostics = null;
+
+        foreach (var diagnostic in tree.Diagnostics)
+        {
+            (diagnostics ??= []).Add(diagnostic.Diagnostic with
             {
-                (diagnostics ??= []).Add(diagnostic with
-                {
-                    Line = span.LineSpan.StartLine - frontmatterLineCount,
-                });
-            }
+                Line = diagnostic.LineSpan.StartLine - frontmatterLineCount,
+            });
         }
 
         var content = sourceText ?? string.Empty;

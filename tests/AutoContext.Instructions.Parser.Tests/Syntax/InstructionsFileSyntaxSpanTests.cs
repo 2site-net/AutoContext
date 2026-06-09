@@ -42,46 +42,5 @@ public sealed class InstructionsFileSyntaxSpanTests
             // Act + Assert
             Assert.NotEqual(left, right);
         }
-
-        [Fact]
-        public void Should_treat_equal_diagnostics_from_distinct_lists_as_equal()
-        {
-            // Arrange
-            var left = new InstructionsFileSyntaxSpan(
-                "[INST0001]".AsMemory(),
-                InstructionsFileSpanKind.TaggedRule,
-                new InstructionsFileTextSpan(0, 10),
-                new InstructionsFileLineSpan(0, 1))
-            {
-                Diagnostics = [new InstructionsFileDiagnostic(InstructionsFileDiagnosticKind.DuplicateTag, "duplicate")],
-            };
-            var right = left with
-            {
-                Diagnostics = [new InstructionsFileDiagnostic(InstructionsFileDiagnosticKind.DuplicateTag, "duplicate")],
-            };
-
-            // Act + Assert
-            Assert.Multiple(
-                () => Assert.Equal(left, right),
-                () => Assert.Equal(left.GetHashCode(), right.GetHashCode()));
-        }
-
-        [Fact]
-        public void Should_distinguish_spans_with_different_diagnostics()
-        {
-            // Arrange
-            var span = new InstructionsFileSyntaxSpan(
-                "[INST0001]".AsMemory(),
-                InstructionsFileSpanKind.TaggedRule,
-                new InstructionsFileTextSpan(0, 10),
-                new InstructionsFileLineSpan(0, 1));
-            var flagged = span with
-            {
-                Diagnostics = [new InstructionsFileDiagnostic(InstructionsFileDiagnosticKind.DuplicateTag, "duplicate")],
-            };
-
-            // Act + Assert
-            Assert.NotEqual(span, flagged);
-        }
     }
 }

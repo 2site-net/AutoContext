@@ -26,8 +26,8 @@ public static class InstructionsFileFactory
     {
         ArgumentNullException.ThrowIfNull(path);
 
-        var spans = await SyntaxParser.ParseFileAsync(path, cancellationToken).ConfigureAwait(false);
+        var tree = await SyntaxParser.ParseFileAsync(path, cancellationToken).ConfigureAwait(false);
 
-        return InstructionsFile.FromSpans(spans);
+        return InstructionsFile.FromSpans(tree);
     }
 }
