@@ -176,6 +176,44 @@ public sealed class InstructionsFileServiceTests
         }
 
         [Fact]
+        public async Task Should_preserve_trailing_newline_when_slicing_last_section()
+        {
+            // Arrange
+            var directory = tempDirectory.CreateDirectory();
+            var body =
+                """
+                ---
+                name: "testing (v1.0.0)"
+                description: "Test file."
+                ---
+                # Title
+
+                ## Alpha
+
+                Alpha body line.
+
+                ## Beta
+
+                Beta body line.
+
+                """;
+            InstructionsBodyTestFiles.Write(directory, "testing.instructions.md", body);
+            var service = new InstructionsFileService(
+                directory,
+                new FakeInstructionsOverridesAccessor(),
+                new FakeConfigSnapshotAccessor());
+
+            // Act
+            var projection = await service.ProjectAsync(
+                InstructionsManifestFileTestFactory.Create("testing"),
+                sections: ["beta"],
+                TestContext.Current.CancellationToken);
+
+            // Assert
+            Assert.Equal("## Beta\n\nBeta body line.\n", projection.Content);
+        }
+
+        [Fact]
         public async Task Should_report_unresolved_requested_sections_as_not_found()
         {
             // Arrange

@@ -1,11 +1,14 @@
 namespace AutoContext.Engine.Core.Features.Instructions;
 
+using System.Text;
+
 using AutoContext.Engine.Core.Features.Instructions.Snapshot;
 using AutoContext.Engine.Core.Workspace.Config;
 using AutoContext.Engine.Core.Workspace.Config.Snapshot;
 
 using AutoContext.Instructions.Parser;
 using AutoContext.Instructions.Parser.Model;
+using AutoContext.Instructions.Parser.Syntax;
 
 /// <summary>
 /// Projects one instruction file's body per request for the
@@ -100,99 +103,18 @@ internal sealed class InstructionsFileService
         return Project(body, sections, disabledRuleIds);
     }
 
-    private static Dictionary<int, int> BuildLineForOffset(string[] lines)
+    private static bool Covers(IReadOnlyList<InstructionsFileTextSpan> sections, int offset, int bodyLength)
     {
-        var lineForOffset = new Dictionary<int, int>(lines.Length);
-        var offset = 0;
-
-        for (var index = 0; index < lines.Length; index++)
+        foreach (var section in sections)
         {
-            lineForOffset[offset] = index;
-            offset += lines[index].Length + 1;
-        }
-
-        return lineForOffset;
-    }
-
-    private static bool[] BuildSectionMask(
-        InstructionsFileBody body,
-        string[] lines,
-        IReadOnlyList<string>? requestedSections,
-        out IReadOnlyList<string> returnedSections,
-        out IReadOnlyList<string> notFoundSections)
-    {
-        var keep = new bool[lines.Length];
-
-        if (requestedSections is not { Count: > 0 })
-        {
-            Array.Fill(keep, true);
-            returnedSections = [.. body.Sections.Select(section => section.Anchor)];
-            notFoundSections = [];
-            return keep;
-        }
-
-        var lineForOffset = BuildLineForOffset(lines);
-        var requested = new HashSet<string>(requestedSections, StringComparer.Ordinal);
-        var resolved = new HashSet<string>(StringComparer.Ordinal);
-        var returned = new List<string>();
-
-        foreach (var section in body.Sections)
-        {
-            if (!requested.Contains(section.Anchor) || !resolved.Add(section.Anchor))
+            if (offset >= section.StartIndex
+                && (offset < section.EndIndex || (offset == bodyLength && section.EndIndex == bodyLength)))
             {
-                continue;
-            }
-
-            returned.Add(section.Anchor);
-            MarkSection(keep, lineForOffset, body.RawValue.Length, section);
-        }
-
-        returnedSections = returned;
-        notFoundSections = [.. requestedSections
-            .Where(anchor => !resolved.Contains(anchor))
-            .Distinct(StringComparer.Ordinal)];
-        return keep;
-    }
-
-    private static void FilterDisabledRules(
-        bool[] keep,
-        IReadOnlyList<InstructionsFileRule> rules,
-        IReadOnlySet<string> disabledRuleIds)
-    {
-        if (disabledRuleIds.Count == 0)
-        {
-            return;
-        }
-
-        foreach (var rule in rules)
-        {
-            if (rule.Id is not { } id || !disabledRuleIds.Contains(id))
-            {
-                continue;
-            }
-
-            for (var index = rule.LineSpan.StartLine; index < rule.LineSpan.EndLine; index++)
-            {
-                keep[index] = false;
+                return true;
             }
         }
-    }
 
-    private static void MarkSection(
-        bool[] keep,
-        Dictionary<int, int> lineForOffset,
-        int bodyLength,
-        InstructionsFileSection section)
-    {
-        var startLine = lineForOffset[section.TextSpan.StartIndex];
-        var endLineExclusive = section.TextSpan.EndIndex >= bodyLength || !lineForOffset.TryGetValue(section.TextSpan.EndIndex, out var end)
-            ? keep.Length
-            : end;
-
-        for (var index = startLine; index < endLineExclusive; index++)
-        {
-            keep[index] = true;
-        }
+        return false;
     }
 
     private static InstructionsBodyProjection Project(
@@ -200,15 +122,138 @@ internal sealed class InstructionsFileService
         IReadOnlyList<string>? requestedSections,
         IReadOnlySet<string> disabledRuleIds)
     {
-        var lines = body.RawValue.Split('\n');
-        var keep = BuildSectionMask(body, lines, requestedSections, out var returned, out var notFound);
+        var keptSections = ResolveKeptSections(body.Sections, requestedSections, out var returned, out var notFound);
+        var disabledRanges = ResolveDisabledRuleRanges(body.Rules, disabledRuleIds);
 
-        FilterDisabledRules(keep, body.Rules, disabledRuleIds);
-
-        var content = string.Join('\n', lines.Where((_, index) => keep[index]));
+        var content = ProjectBody(body.RawValue, keptSections, disabledRanges);
 
         return new InstructionsBodyProjection(content, returned, notFound);
     }
+
+    private static string ProjectBody(
+        string rawBody,
+        IReadOnlyList<InstructionsFileTextSpan>? keptSections,
+        IReadOnlyList<InstructionsFileLineSpan> disabledRanges)
+    {
+        ReadOnlySpan<char> body = rawBody;
+        var builder = new StringBuilder(rawBody.Length);
+        var lineStart = 0;
+        var lineIndex = 0;
+        var wroteLine = false;
+
+        while (true)
+        {
+            var newlineOffset = body[lineStart..].IndexOf('\n');
+            var lineEnd = newlineOffset < 0 ? body.Length : lineStart + newlineOffset;
+
+            if (ShouldKeepLine(lineStart, lineIndex, body.Length, keptSections, disabledRanges))
+            {
+                if (wroteLine)
+                {
+                    builder.Append('\n');
+                }
+
+                builder.Append(body[lineStart..lineEnd]);
+                wroteLine = true;
+            }
+
+            if (newlineOffset < 0)
+            {
+                break;
+            }
+
+            lineStart = lineEnd + 1;
+            lineIndex++;
+        }
+
+        return builder.ToString();
+    }
+
+    private static List<InstructionsFileLineSpan> ResolveDisabledRuleRanges(
+        IReadOnlyList<InstructionsFileRule> rules,
+        IReadOnlySet<string> disabledRuleIds)
+    {
+        if (disabledRuleIds.Count == 0)
+        {
+            return [];
+        }
+
+        var ranges = new List<InstructionsFileLineSpan>();
+
+        foreach (var rule in rules)
+        {
+            if (rule.Id is { } id && disabledRuleIds.Contains(id))
+            {
+                ranges.Add(rule.LineSpan);
+            }
+        }
+
+        return ranges;
+    }
+
+    private static List<InstructionsFileTextSpan>? ResolveKeptSections(
+        IReadOnlyList<InstructionsFileSection> sections,
+        IReadOnlyList<string>? requestedSections,
+        out IReadOnlyList<string> returnedSections,
+        out IReadOnlyList<string> notFoundSections)
+    {
+        if (requestedSections is not { Count: > 0 })
+        {
+            returnedSections = [.. sections.Select(section => section.Anchor)];
+            notFoundSections = [];
+            return null;
+        }
+
+        var requested = new HashSet<string>(requestedSections, StringComparer.Ordinal);
+        var resolved = new HashSet<string>(StringComparer.Ordinal);
+        var returned = new List<string>();
+        var ranges = new List<InstructionsFileTextSpan>();
+
+        foreach (var section in sections)
+        {
+            if (!requested.Contains(section.Anchor) || !resolved.Add(section.Anchor))
+            {
+                continue;
+            }
+
+            returned.Add(section.Anchor);
+            ranges.Add(section.TextSpan);
+        }
+
+        returnedSections = returned;
+        notFoundSections = [.. requestedSections
+            .Where(anchor => !resolved.Contains(anchor))
+            .Distinct(StringComparer.Ordinal)];
+        return ranges;
+    }
+
+    private static bool ShouldKeepLine(
+        int lineStart,
+        int lineIndex,
+        int bodyLength,
+        IReadOnlyList<InstructionsFileTextSpan>? keptSections,
+        IReadOnlyList<InstructionsFileLineSpan> disabledRanges)
+    {
+        if (keptSections is not null && !Covers(keptSections, lineStart, bodyLength))
+        {
+            return false;
+        }
+
+        foreach (var range in disabledRanges)
+        {
+            if (lineIndex >= range.StartLine && lineIndex < range.EndLine)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private string ResolveBodyPath(string fileName)
+        => _overrideAccessor.Current.TryGetPath(fileName, out var overridePath) && overridePath is not null
+            ? overridePath
+            : Path.Combine(_instructionsDirectory, fileName);
 
     private IReadOnlySet<string> ResolveDisabledRuleIds(string key)
     {
@@ -233,9 +278,4 @@ internal sealed class InstructionsFileService
 
         return disabled;
     }
-
-    private string ResolveBodyPath(string fileName)
-        => _overrideAccessor.Current.TryGetPath(fileName, out var overridePath) && overridePath is not null
-            ? overridePath
-            : Path.Combine(_instructionsDirectory, fileName);
 }
