@@ -31,14 +31,14 @@ using AutoContext.Engine.Core.Workspace.Config.Snapshot;
 /// <param name="Instructions">Per-instruction-file state keyed by
 /// file name. Insertion order is preserved on save.</param>
 /// <param name="McpTools">Per-MCP-tool state keyed by tool name. Each
-/// value is either the shorthand <c>false</c> or an object entry.
-/// Insertion order is preserved on save.</param>
+/// value is an object entry. Insertion order is preserved on
+/// save.</param>
 internal sealed record JsonConfigFile(
     [property: JsonPropertyName("version")] string? Version = null,
     [property: JsonPropertyName("engine")] JsonConfigFileEngine? Engine = null,
     [property: JsonPropertyName("diagnostic")] JsonConfigFileDiagnostic? Diagnostic = null,
     [property: JsonPropertyName("instructions")] IReadOnlyDictionary<string, JsonConfigFileInstructionsEntry>? Instructions = null,
-    [property: JsonPropertyName("mcpTools")] IReadOnlyDictionary<string, JsonConfigFileMcpToolValue>? McpTools = null)
+    [property: JsonPropertyName("mcpTools")] IReadOnlyDictionary<string, JsonConfigFileMcpToolEntry>? McpTools = null)
 {
     /// <summary>
     /// The shared empty config: no version and no sections.

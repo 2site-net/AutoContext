@@ -20,41 +20,43 @@ public sealed class ConfigFileFormatTests
                     ["a.md"] = new()
                     {
                         Version = "1.0",
-                        Enabled = false,
-                        DisabledInstructions = ["x"],
+                        Disabled = true,
+                        DisabledRules = ["x"],
                     },
                 },
-                McpTools = new Dictionary<string, JsonConfigFileMcpToolValue>
+                McpTools = new Dictionary<string, JsonConfigFileMcpToolEntry>
                 {
-                    ["t1"] = JsonConfigFileMcpToolValue.Disabled,
-                    ["t2"] = JsonConfigFileMcpToolValue.FromEntry(
-                        new JsonConfigFileMcpToolEntry { Enabled = false, DisabledTasks = ["k"] }),
+                    ["t1"] = new() { Disabled = true },
+                    ["t2"] = new() { Disabled = true, DisabledTasks = ["k"] },
                 },
             };
 
-            var expected = string.Join(
-                "\n",
-                "{",
-                "    \"version\": \"1.2.3\",",
-                "    \"instructions\": {",
-                "        \"a.md\": {",
-                "            \"version\": \"1.0\",",
-                "            \"enabled\": false,",
-                "            \"disabledInstructions\": [",
-                "                \"x\"",
-                "            ]",
-                "        }",
-                "    },",
-                "    \"mcpTools\": {",
-                "        \"t1\": false,",
-                "        \"t2\": {",
-                "            \"enabled\": false,",
-                "            \"disabledTasks\": [",
-                "                \"k\"",
-                "            ]",
-                "        }",
-                "    }",
-                "}") + "\n";
+            var expected =
+                """
+                {
+                    "version": "1.2.3",
+                    "instructions": {
+                        "a.md": {
+                            "version": "1.0",
+                            "disabled": true,
+                            "disabledRules": [
+                                "x"
+                            ]
+                        }
+                    },
+                    "mcpTools": {
+                        "t1": {
+                            "disabled": true
+                        },
+                        "t2": {
+                            "disabled": true,
+                            "disabledTasks": [
+                                "k"
+                            ]
+                        }
+                    }
+                }
+                """ + "\n";
 
             // Act
             var text = Encoding.UTF8.GetString(ConfigFileFormat.Serialize(config, "1.2.3"));
@@ -100,11 +102,10 @@ public sealed class ConfigFileFormatTests
             var original = ConfigFileFormat.Serialize(
                 new JsonConfigFile
                 {
-                    McpTools = new Dictionary<string, JsonConfigFileMcpToolValue>
+                    McpTools = new Dictionary<string, JsonConfigFileMcpToolEntry>
                     {
-                        ["t1"] = JsonConfigFileMcpToolValue.Disabled,
-                        ["t2"] = JsonConfigFileMcpToolValue.FromEntry(
-                            new JsonConfigFileMcpToolEntry { Enabled = false, DisabledTasks = ["k"] }),
+                        ["t1"] = new() { Disabled = true },
+                        ["t2"] = new() { Disabled = true, DisabledTasks = ["k"] },
                     },
                 },
                 "1.2.3");
@@ -118,14 +119,14 @@ public sealed class ConfigFileFormatTests
         }
 
         [Fact]
-        public void Should_normalize_empty_arrays_and_redundant_enabled_flags()
+        public void Should_normalize_empty_arrays_and_redundant_disabled_flags()
         {
             // Arrange
             var bytes = Encoding.UTF8.GetBytes(
                 """
                 {
                     "instructions": {
-                        "a.md": { "enabled": true, "disabledInstructions": [] }
+                        "a.md": { "disabled": false, "disabledRules": [] }
                     },
                     "mcpTools": {
                         "t1": { "disabledTasks": [] }
@@ -138,22 +139,9 @@ public sealed class ConfigFileFormatTests
 
             // Assert
             Assert.Multiple(
-                () => Assert.Null(config.Instructions!["a.md"].Enabled),
-                () => Assert.Null(config.Instructions!["a.md"].DisabledInstructions),
-                () => Assert.Null(config.McpTools!["t1"].Entry!.DisabledTasks));
-        }
-
-        [Fact]
-        public void Should_preserve_shorthand_disabled_tool()
-        {
-            // Arrange
-            var bytes = Encoding.UTF8.GetBytes("""{ "mcpTools": { "t1": false } }""");
-
-            // Act
-            ConfigFileFormat.TryDeserialize(bytes, out var config);
-
-            // Assert
-            Assert.True(config.McpTools!["t1"].IsShorthandDisabled);
+                () => Assert.Null(config.Instructions!["a.md"].Disabled),
+                () => Assert.Null(config.Instructions!["a.md"].DisabledRules),
+                () => Assert.Null(config.McpTools!["t1"].DisabledTasks));
         }
 
         [Fact]

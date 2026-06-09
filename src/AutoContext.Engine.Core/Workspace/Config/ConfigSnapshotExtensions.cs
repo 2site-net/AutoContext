@@ -8,21 +8,18 @@ using AutoContext.Engine.Protocol.Messages.Config;
 /// Maps the immutable <see cref="ConfigSnapshot"/> domain graph onto
 /// the two wire shapes it crosses to: the on-disk
 /// <see cref="JsonConfigFile"/> format (via <see cref="ToFileFormat"/>),
-/// whose space-saving quirks — dropping entries that carry no state,
-/// choosing the shorthand <c>mcpTools: { "tool": false }</c> versus
-/// the object form, and the disabled-only encoding of rules and tasks
-/// — are kept out of the domain graph; and the
-/// <see cref="JsonConfigSnapshot"/> Protocol shape (via
-/// <see cref="ToWireFormat"/>) returned by the <c>Config.Get</c> RPC,
-/// which is a structural, lossless one-for-one projection.
+/// whose space-saving quirks — dropping entries that carry no state and
+/// the disabled-only encoding of rules and tasks — are kept out of the
+/// domain graph; and the <see cref="JsonConfigSnapshot"/> Protocol shape
+/// (via <see cref="ToWireFormat"/>) returned by the <c>Config.Get</c>
+/// RPC, which is a structural, lossless one-for-one projection.
 /// </summary>
 internal static class ConfigSnapshotExtensions
 {
     /// <summary>
     /// Builds the wire config from a domain graph, dropping entries that
-    /// carry no state and choosing the shorthand or object form for each
-    /// MCP tool. The top-level <c>version</c> is left as-is; the file
-    /// writer stamps the engine version on save.
+    /// carry no state. The top-level <c>version</c> is left as-is; the
+    /// file writer stamps the engine version on save.
     /// </summary>
     /// <param name="config">The domain snapshot.</param>
     /// <returns>The equivalent wire config.</returns>
@@ -194,16 +191,16 @@ internal static class ConfigSnapshotExtensions
 
             result[name] = new JsonConfigFileInstructionsEntry(
                 Version: file.Version,
-                Enabled: isDisabled ? false : null,
-                DisabledInstructions: disabledRules.Count > 0 ? disabledRules : null);
+                Disabled: isDisabled ? true : null,
+                DisabledRules: disabledRules.Count > 0 ? disabledRules : null);
         }
 
         return result.Count == 0 ? null : result;
     }
 
-    private static Dictionary<string, JsonConfigFileMcpToolValue>? ToFileFormat(ConfigMcpTool[] tools)
+    private static Dictionary<string, JsonConfigFileMcpToolEntry>? ToFileFormat(ConfigMcpTool[] tools)
     {
-        var result = new Dictionary<string, JsonConfigFileMcpToolValue>(StringComparer.Ordinal);
+        var result = new Dictionary<string, JsonConfigFileMcpToolEntry>(StringComparer.Ordinal);
 
         foreach (var tool in tools)
         {
@@ -226,14 +223,10 @@ internal static class ConfigSnapshotExtensions
                 continue;
             }
 
-            var hasVersion = tool.Version is not null;
-
-            result[name] = isDisabled && !hasVersion && !hasTasks
-                ? JsonConfigFileMcpToolValue.Disabled
-                : JsonConfigFileMcpToolValue.FromEntry(new JsonConfigFileMcpToolEntry(
-                    Enabled: isDisabled ? false : null,
-                    Version: tool.Version,
-                    DisabledTasks: hasTasks ? disabledTasks : null));
+            result[name] = new JsonConfigFileMcpToolEntry(
+                Disabled: isDisabled ? true : null,
+                Version: tool.Version,
+                DisabledTasks: hasTasks ? disabledTasks : null);
         }
 
         return result.Count == 0 ? null : result;

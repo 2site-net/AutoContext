@@ -90,13 +90,13 @@ public sealed class ConfigSnapshotExtensionsTests
 
             Assert.Multiple(
                 () => Assert.Equal("a.md", entry.Key),
-                () => Assert.False(entry.Value.Enabled),
+                () => Assert.True(entry.Value.Disabled),
                 () => Assert.Equal("1.0", entry.Value.Version),
-                () => Assert.Equal(["x"], entry.Value.DisabledInstructions));
+                () => Assert.Equal(["x"], entry.Value.DisabledRules));
         }
 
         [Fact]
-        public void Should_emit_shorthand_for_disabled_only_tool()
+        public void Should_emit_disabled_only_tool()
         {
             // Arrange
             var config = ConfigSnapshot.Empty with
@@ -112,7 +112,9 @@ public sealed class ConfigSnapshotExtensionsTests
 
             Assert.Multiple(
                 () => Assert.Equal("t1", entry.Key),
-                () => Assert.True(entry.Value.IsShorthandDisabled));
+                () => Assert.True(entry.Value.Disabled),
+                () => Assert.Null(entry.Value.Version),
+                () => Assert.Null(entry.Value.DisabledTasks));
         }
 
         [Fact]
@@ -140,9 +142,9 @@ public sealed class ConfigSnapshotExtensionsTests
 
             Assert.Multiple(
                 () => Assert.Equal("t2", entry.Key),
-                () => Assert.False(entry.Value.IsShorthandDisabled),
-                () => Assert.Equal("2.0", entry.Value.Entry?.Version),
-                () => Assert.Equal(["k"], entry.Value.Entry?.DisabledTasks));
+                () => Assert.Null(entry.Value.Disabled),
+                () => Assert.Equal("2.0", entry.Value.Version),
+                () => Assert.Equal(["k"], entry.Value.DisabledTasks));
         }
 
         [Fact]

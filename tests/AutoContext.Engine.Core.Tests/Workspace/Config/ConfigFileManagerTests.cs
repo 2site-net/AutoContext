@@ -188,7 +188,7 @@ public sealed class ConfigFileManagerTests
 
             await File.WriteAllTextAsync(
                 manager.ConfigPath,
-                "{ \"mcpTools\": { \"t1\": false } }",
+                "{ \"mcpTools\": { \"t1\": { \"disabled\": true } } }",
                 TestContext.Current.CancellationToken);
 
             // Act
