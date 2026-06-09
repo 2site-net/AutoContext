@@ -14,7 +14,7 @@ namespace AutoContext.Instructions.Parser.Syntax;
 /// removed) where the problem is, or <c>-1</c> until
 /// <see cref="Model.InstructionsFile.FromSpans"/> fills it in from the owning span's
 /// whole-file position.</param>
-public sealed record InstructionsFileDiagnostic(
+public readonly record struct InstructionsFileDiagnostic(
     InstructionsFileDiagnosticKind Kind,
     string Message,
     int Line = -1);
