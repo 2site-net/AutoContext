@@ -1,7 +1,7 @@
 namespace AutoContext.Instructions.Parser.Model;
 
 using System.Diagnostics.CodeAnalysis;
-using System.Text;
+using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 
 using AutoContext.Instructions.Parser.Syntax;
@@ -61,7 +61,7 @@ public sealed partial record InstructionsFile(
     {
         ArgumentNullException.ThrowIfNull(spans);
 
-        var rawContent = new StringBuilder();
+        string? sourceText = null;
         var frontmatterCharLength = 0;
         var frontmatterLineCount = 0;
         var frontmatterRawValue = string.Empty;
@@ -79,17 +79,17 @@ public sealed partial record InstructionsFile(
         {
             var kind = span.Kind;
 
-            if (IsBlockKind(kind))
-            {
-                rawContent.Append(span.Text.Span);
-            }
+            // Every span is a window over the single source string the lexer
+            // parsed, so recover that string from the first (block) span rather
+            // than rebuilding the file by concatenating spans.
+            sourceText ??= RecoverSourceText(span);
 
             if (kind == InstructionsFileSpanKind.FrontmatterBlock)
             {
                 frontmatterCharLength = span.TextSpan.Length;
                 frontmatterLineCount = span.LineSpan.LineCount;
 
-                var block = GeneratedFrontmatterBlockRegex().Match(span.Text.ToString());
+                var block = GeneratedFrontmatterBlockRegex().Match(sourceText, 0, frontmatterCharLength);
                 frontmatterRawValue = block.Success ? block.Groups[1].Value : string.Empty;
             }
             else if (kind == InstructionsFileSpanKind.FrontmatterKey)
@@ -147,7 +147,7 @@ public sealed partial record InstructionsFile(
             }
         }
 
-        var content = rawContent.ToString();
+        var content = sourceText ?? string.Empty;
         var body = content[frontmatterCharLength..];
         var sections = BuildSections(rawHeadings, body.Length);
         var version = name is null ? null : ExtractVersion(name);
@@ -203,13 +203,30 @@ public sealed partial record InstructionsFile(
         }
 
         var sections = new List<InstructionsFileSection>(rawHeadings.Count);
+        string? cachedParent = null;
+        string? cachedParentSlug = null;
 
         for (var index = 0; index < rawHeadings.Count; index++)
         {
             var heading = rawHeadings[index];
             var charEnd = ComputeCharEnd(rawHeadings, index, bodyLength);
             var baseSlug = Slugify(heading.Text);
-            var anchor = heading.Parent is null ? baseSlug : Slugify(heading.Parent) + "-" + baseSlug;
+            string anchor;
+
+            if (heading.Parent is null)
+            {
+                anchor = baseSlug;
+            }
+            else
+            {
+                if (!string.Equals(heading.Parent, cachedParent, StringComparison.Ordinal))
+                {
+                    cachedParent = heading.Parent;
+                    cachedParentSlug = Slugify(heading.Parent);
+                }
+
+                anchor = cachedParentSlug + "-" + baseSlug;
+            }
 
             sections.Add(new InstructionsFileSection(
                 heading.Text,
@@ -265,24 +282,6 @@ public sealed partial record InstructionsFile(
     [GeneratedRegex(@"\(v(\d+\.\d+\.\d+)\)")]
     private static partial Regex GeneratedVersionSuffixRegex();
 
-    private static bool IsBlockKind(InstructionsFileSpanKind kind)
-        => kind switch
-        {
-            InstructionsFileSpanKind.Text
-                or InstructionsFileSpanKind.FrontmatterBlock
-                or InstructionsFileSpanKind.Heading1
-                or InstructionsFileSpanKind.Heading2
-                or InstructionsFileSpanKind.Heading3
-                or InstructionsFileSpanKind.PlainRule
-                or InstructionsFileSpanKind.TaggedRule => true,
-            InstructionsFileSpanKind.FrontmatterProperty
-                or InstructionsFileSpanKind.FrontmatterKey
-                or InstructionsFileSpanKind.FrontmatterValue
-                or InstructionsFileSpanKind.Tag
-                or InstructionsFileSpanKind.Reference => false,
-            _ => false,
-        };
-
     private static bool IsRuleTag(ReadOnlySpan<char> candidate)
     {
         if (candidate.Length != 8 || !candidate.StartsWith("INST", StringComparison.Ordinal))
@@ -334,6 +333,11 @@ public sealed partial record InstructionsFile(
 
         return IsRuleTag(candidate) ? candidate.ToString() : null;
     }
+
+    private static string RecoverSourceText(InstructionsFileSyntaxSpan span)
+        => MemoryMarshal.TryGetString(span.Text, out var text, out _, out _)
+            ? text
+            : span.Text.ToString();
 
     private static string StripFinalLineTerminator(ReadOnlySpan<char> text)
     {
