@@ -28,16 +28,13 @@ internal static class FrontmatterApplyToParser
     {
         ArgumentNullException.ThrowIfNull(applyTo);
 
-        var globs = SplitTopLevel(applyTo, ',')
-            .Select(static term => term.Trim())
-            .Where(static term => term.Length > 0)
-            .ToArray();
+        var globs = SplitGlobs(applyTo);
 
         var expanded = new List<string>();
 
         foreach (var glob in globs)
         {
-            expanded.AddRange(ExpandBraces(glob));
+            ExpandBraces(glob, expanded);
         }
 
         var extensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -55,36 +52,34 @@ internal static class FrontmatterApplyToParser
         return new FrontmatterApplyTo(applyTo, globs, expanded, extensions);
     }
 
-    private static List<string> ExpandBraces(string glob)
+    private static void ExpandBraces(ReadOnlySpan<char> glob, List<string> results)
     {
-        var open = glob.IndexOf('{', StringComparison.Ordinal);
+        var open = glob.IndexOf('{');
 
         if (open < 0)
         {
-            return [glob];
+            results.Add(glob.ToString());
+            return;
         }
 
         var close = FindMatchingBrace(glob, open);
 
         if (close < 0)
         {
-            return [glob];
+            results.Add(glob.ToString());
+            return;
         }
 
         var prefix = glob[..open];
         var suffix = glob[(close + 1)..];
-        var options = SplitTopLevel(glob[(open + 1)..close], ',');
-        var results = new List<string>();
 
-        foreach (var option in options)
+        foreach (var option in new TopLevelSplitEnumerator(glob[(open + 1)..close]))
         {
-            results.AddRange(ExpandBraces(prefix + option + suffix));
+            ExpandBraces(string.Concat(prefix, option, suffix), results);
         }
-
-        return results;
     }
 
-    private static string? ExtractExtension(string glob)
+    private static string? ExtractExtension(ReadOnlySpan<char> glob)
     {
         var slash = glob.LastIndexOf('/');
         var segment = slash >= 0 ? glob[(slash + 1)..] : glob;
@@ -97,10 +92,10 @@ internal static class FrontmatterApplyToParser
 
         var extension = segment[(dot + 1)..];
 
-        return extension.AsSpan().IndexOfAny("*?{}") >= 0 ? null : extension;
+        return extension.IndexOfAny("*?{}") >= 0 ? null : extension.ToString();
     }
 
-    private static int FindMatchingBrace(string glob, int open)
+    private static int FindMatchingBrace(ReadOnlySpan<char> glob, int open)
     {
         var depth = 0;
 
@@ -125,35 +120,81 @@ internal static class FrontmatterApplyToParser
         return -1;
     }
 
-    private static List<string> SplitTopLevel(string value, char separator)
+    private static string[] SplitGlobs(ReadOnlySpan<char> applyTo)
     {
-        var parts = new List<string>();
-        var depth = 0;
-        var start = 0;
+        var globs = new List<string>();
 
-        for (var i = 0; i < value.Length; i++)
+        foreach (var term in new TopLevelSplitEnumerator(applyTo))
         {
-            var c = value[i];
+            var trimmed = term.Trim();
 
-            if (c == '{')
+            if (!trimmed.IsEmpty)
             {
-                depth++;
-            }
-
-            if (c == '}' && depth > 0)
-            {
-                depth--;
-            }
-
-            if (c == separator && depth == 0)
-            {
-                parts.Add(value[start..i]);
-                start = i + 1;
+                globs.Add(trimmed.ToString());
             }
         }
 
-        parts.Add(value[start..]);
+        return [.. globs];
+    }
 
-        return parts;
+    /// <summary>
+    /// Splits a span on top-level commas — those at brace depth zero — yielding
+    /// each segment as a <see cref="ReadOnlySpan{T}"/> without allocating. Commas
+    /// inside <c>{...}</c> groups stay within their segment, and empty segments
+    /// are yielded verbatim so brace options such as <c>{a,,b}</c> survive.
+    /// </summary>
+    private ref struct TopLevelSplitEnumerator(ReadOnlySpan<char> value)
+    {
+        private bool _exhausted = false;
+        private int _start = 0;
+        private readonly ReadOnlySpan<char> _value = value;
+
+        /// <summary>Gets the segment yielded by the most recent
+        /// <see cref="MoveNext"/>.</summary>
+        public ReadOnlySpan<char> Current { get; private set; } = default;
+
+        /// <summary>Returns this enumerator so it can drive a <c>foreach</c>.</summary>
+        /// <returns>This enumerator.</returns>
+        public readonly TopLevelSplitEnumerator GetEnumerator()
+            => this;
+
+        /// <summary>Advances to the next top-level segment.</summary>
+        /// <returns><see langword="true"/> if a segment was produced;
+        /// <see langword="false"/> once the span is exhausted.</returns>
+        public bool MoveNext()
+        {
+            if (_exhausted)
+            {
+                return false;
+            }
+
+            var depth = 0;
+
+            for (var i = _start; i < _value.Length; i++)
+            {
+                var c = _value[i];
+
+                if (c == '{')
+                {
+                    depth++;
+                }
+
+                if (c == '}' && depth > 0)
+                {
+                    depth--;
+                }
+
+                if (c == ',' && depth == 0)
+                {
+                    Current = _value[_start..i];
+                    _start = i + 1;
+                    return true;
+                }
+            }
+
+            Current = _value[_start..];
+            _exhausted = true;
+            return true;
+        }
     }
 }
