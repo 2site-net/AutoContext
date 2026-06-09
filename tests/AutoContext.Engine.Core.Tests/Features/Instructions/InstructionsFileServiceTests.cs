@@ -38,7 +38,7 @@ public sealed class InstructionsFileServiceTests
                     null!));
     }
 
-    public sealed class ProjectAsync(TempDirectoryFixture tempDirectory)
+    public sealed class GetBodyProjectionAsync(TempDirectoryFixture tempDirectory)
         : IClassFixture<TempDirectoryFixture>
     {
         [Fact]
@@ -53,9 +53,9 @@ public sealed class InstructionsFileServiceTests
                 new FakeConfigSnapshotAccessor());
 
             // Act
-            var projection = await service.ProjectAsync(
+            var projection = await service.GetBodyProjectionAsync(
                 InstructionsManifestFileTestFactory.Create("testing"),
-                sections: null,
+                requestedSectionAnchors: null,
                 TestContext.Current.CancellationToken);
 
             // Assert
@@ -102,9 +102,9 @@ public sealed class InstructionsFileServiceTests
                 config);
 
             // Act
-            var projection = await service.ProjectAsync(
+            var projection = await service.GetBodyProjectionAsync(
                 InstructionsManifestFileTestFactory.Create("testing"),
-                sections: null,
+                requestedSectionAnchors: null,
                 TestContext.Current.CancellationToken);
 
             // Assert
@@ -135,9 +135,9 @@ public sealed class InstructionsFileServiceTests
                 new FakeConfigSnapshotAccessor());
 
             // Act
-            var projection = await service.ProjectAsync(
+            var projection = await service.GetBodyProjectionAsync(
                 InstructionsManifestFileTestFactory.Create("testing"),
-                sections: null,
+                requestedSectionAnchors: null,
                 TestContext.Current.CancellationToken);
 
             // Assert
@@ -158,9 +158,9 @@ public sealed class InstructionsFileServiceTests
                 new FakeConfigSnapshotAccessor());
 
             // Act
-            var projection = await service.ProjectAsync(
+            var projection = await service.GetBodyProjectionAsync(
                 InstructionsManifestFileTestFactory.Create("testing"),
-                sections: ["alpha"],
+                requestedSectionAnchors: ["alpha"],
                 TestContext.Current.CancellationToken);
 
             // Assert
@@ -204,9 +204,9 @@ public sealed class InstructionsFileServiceTests
                 new FakeConfigSnapshotAccessor());
 
             // Act
-            var projection = await service.ProjectAsync(
+            var projection = await service.GetBodyProjectionAsync(
                 InstructionsManifestFileTestFactory.Create("testing"),
-                sections: ["beta"],
+                requestedSectionAnchors: ["beta"],
                 TestContext.Current.CancellationToken);
 
             // Assert
@@ -225,9 +225,9 @@ public sealed class InstructionsFileServiceTests
                 new FakeConfigSnapshotAccessor());
 
             // Act
-            var projection = await service.ProjectAsync(
+            var projection = await service.GetBodyProjectionAsync(
                 InstructionsManifestFileTestFactory.Create("testing"),
-                sections: ["beta", "ghost"],
+                requestedSectionAnchors: ["beta", "ghost"],
                 TestContext.Current.CancellationToken);
 
             // Assert

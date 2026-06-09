@@ -72,38 +72,44 @@ internal sealed class InstructionsFileService
     }
 
     /// <summary>
-    /// Reads and projects the body of <paramref name="file"/>: resolves
-    /// override-over-bundled, parses, removes the rules disabled for this
-    /// file, and slices to <paramref name="sections"/> when requested.
+    /// Reads and projects the body of <paramref name="manifestFile"/>:
+    /// resolves override-over-bundled, parses, removes the rules disabled
+    /// for this file, and slices to
+    /// <paramref name="requestedSectionAnchors"/> when requested.
     /// </summary>
-    /// <param name="file">The corpus file to project, identified from the
-    /// in-memory snapshot. Must not be <see langword="null"/>.</param>
-    /// <param name="sections">The section anchors to slice the body down
-    /// to, or <see langword="null"/>/empty to return the whole projected
-    /// body.</param>
+    /// <param name="manifestFile">The corpus file to project, identified
+    /// from the in-memory snapshot. Must not be
+    /// <see langword="null"/>.</param>
+    /// <param name="requestedSectionAnchors">The section anchors to slice
+    /// the body down to, or <see langword="null"/>/empty to return the
+    /// whole projected body.</param>
     /// <param name="cancellationToken">Cancels the body read.</param>
     /// <returns>The projected body with its resolved and unresolved
     /// section anchors.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="file"/> is
+    /// <exception cref="ArgumentNullException">
+    /// <paramref name="manifestFile"/> is
     /// <see langword="null"/>.</exception>
-    public async Task<InstructionsBodyProjection> ProjectAsync(
-        InstructionsManifestFile file,
-        IReadOnlyList<string>? sections,
+    public async Task<InstructionsBodyProjection> GetBodyProjectionAsync(
+        InstructionsManifestFile manifestFile,
+        IReadOnlyList<string>? requestedSectionAnchors,
         CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(file);
+        ArgumentNullException.ThrowIfNull(manifestFile);
 
-        var path = ResolveBodyPath(file.FileName);
+        var path = ResolveBodySourcePath(manifestFile.FileName);
         var parsed = await InstructionsFileFactory
             .FromFileAsync(path, cancellationToken)
             .ConfigureAwait(false);
         var body = parsed.Body;
-        var disabledRuleIds = ResolveDisabledRuleIds(file.Key);
+        var disabledRuleIds = GetDisabledRuleIds(manifestFile.Key);
 
-        return Project(body, sections, disabledRuleIds);
+        return CreateProjection(body, requestedSectionAnchors, disabledRuleIds);
     }
 
-    private static bool Covers(IReadOnlyList<InstructionsFileTextSpan> sections, int offset, int bodyLength)
+    private static bool AnySectionCovers(
+        IReadOnlyList<InstructionsFileTextSpan> sections,
+        int offset,
+        int bodyLength)
     {
         foreach (var section in sections)
         {
@@ -117,23 +123,26 @@ internal sealed class InstructionsFileService
         return false;
     }
 
-    private static InstructionsBodyProjection Project(
+    private static InstructionsBodyProjection CreateProjection(
         InstructionsFileBody body,
-        IReadOnlyList<string>? requestedSections,
+        IReadOnlyList<string>? requestedSectionAnchors,
         IReadOnlySet<string> disabledRuleIds)
     {
-        var keptSections = ResolveKeptSections(body.Sections, requestedSections, out var returned, out var notFound);
-        var disabledRanges = ResolveDisabledRuleRanges(body.Rules, disabledRuleIds);
+        var selection = SelectSections(body.Sections, requestedSectionAnchors);
+        var excludedLineSpans = GetDisabledRuleLineSpans(body.Rules, disabledRuleIds);
 
-        var content = ProjectBody(body.RawValue, keptSections, disabledRanges);
+        var content = FilterBodyLines(body.RawValue, selection.IncludedSections, excludedLineSpans);
 
-        return new InstructionsBodyProjection(content, returned, notFound);
+        return new InstructionsBodyProjection(
+            content,
+            selection.ReturnedSections,
+            selection.NotFoundSections);
     }
 
-    private static string ProjectBody(
+    private static string FilterBodyLines(
         string rawBody,
-        IReadOnlyList<InstructionsFileTextSpan>? keptSections,
-        IReadOnlyList<InstructionsFileLineSpan> disabledRanges)
+        IReadOnlyList<InstructionsFileTextSpan>? includedSections,
+        IReadOnlyList<InstructionsFileLineSpan> excludedLineSpans)
     {
         ReadOnlySpan<char> body = rawBody;
         var builder = new StringBuilder(rawBody.Length);
@@ -146,7 +155,7 @@ internal sealed class InstructionsFileService
             var newlineOffset = body[lineStart..].IndexOf('\n');
             var lineEnd = newlineOffset < 0 ? body.Length : lineStart + newlineOffset;
 
-            if (ShouldKeepLine(lineStart, lineIndex, body.Length, keptSections, disabledRanges))
+            if (ShouldIncludeLine(lineStart, lineIndex, body.Length, includedSections, excludedLineSpans))
             {
                 if (wroteLine)
                 {
@@ -169,7 +178,7 @@ internal sealed class InstructionsFileService
         return builder.ToString();
     }
 
-    private static List<InstructionsFileLineSpan> ResolveDisabledRuleRanges(
+    private static List<InstructionsFileLineSpan> GetDisabledRuleLineSpans(
         IReadOnlyList<InstructionsFileRule> rules,
         IReadOnlySet<string> disabledRuleIds)
     {
@@ -178,33 +187,32 @@ internal sealed class InstructionsFileService
             return [];
         }
 
-        var ranges = new List<InstructionsFileLineSpan>();
+        var spans = new List<InstructionsFileLineSpan>();
 
         foreach (var rule in rules)
         {
             if (rule.Id is { } id && disabledRuleIds.Contains(id))
             {
-                ranges.Add(rule.LineSpan);
+                spans.Add(rule.LineSpan);
             }
         }
 
-        return ranges;
+        return spans;
     }
 
-    private static List<InstructionsFileTextSpan>? ResolveKeptSections(
+    private static SectionSelection SelectSections(
         IReadOnlyList<InstructionsFileSection> sections,
-        IReadOnlyList<string>? requestedSections,
-        out IReadOnlyList<string> returnedSections,
-        out IReadOnlyList<string> notFoundSections)
+        IReadOnlyList<string>? requestedSectionAnchors)
     {
-        if (requestedSections is not { Count: > 0 })
+        if (requestedSectionAnchors is not { Count: > 0 })
         {
-            returnedSections = [.. sections.Select(section => section.Anchor)];
-            notFoundSections = [];
-            return null;
+            return new SectionSelection(
+                IncludedSections: null,
+                ReturnedSections: [.. sections.Select(section => section.Anchor)],
+                NotFoundSections: []);
         }
 
-        var requested = new HashSet<string>(requestedSections, StringComparer.Ordinal);
+        var requested = new HashSet<string>(requestedSectionAnchors, StringComparer.Ordinal);
         var resolved = new HashSet<string>(StringComparer.Ordinal);
         var returned = new List<string>();
         var ranges = new List<InstructionsFileTextSpan>();
@@ -220,28 +228,29 @@ internal sealed class InstructionsFileService
             ranges.Add(section.TextSpan);
         }
 
-        returnedSections = returned;
-        notFoundSections = [.. requestedSections
-            .Where(anchor => !resolved.Contains(anchor))
-            .Distinct(StringComparer.Ordinal)];
-        return ranges;
+        return new SectionSelection(
+            ranges,
+            returned,
+            [.. requestedSectionAnchors
+                .Where(anchor => !resolved.Contains(anchor))
+                .Distinct(StringComparer.Ordinal)]);
     }
 
-    private static bool ShouldKeepLine(
+    private static bool ShouldIncludeLine(
         int lineStart,
         int lineIndex,
         int bodyLength,
-        IReadOnlyList<InstructionsFileTextSpan>? keptSections,
-        IReadOnlyList<InstructionsFileLineSpan> disabledRanges)
+        IReadOnlyList<InstructionsFileTextSpan>? includedSections,
+        IReadOnlyList<InstructionsFileLineSpan> excludedLineSpans)
     {
-        if (keptSections is not null && !Covers(keptSections, lineStart, bodyLength))
+        if (includedSections is not null && !AnySectionCovers(includedSections, lineStart, bodyLength))
         {
             return false;
         }
 
-        foreach (var range in disabledRanges)
+        foreach (var span in excludedLineSpans)
         {
-            if (lineIndex >= range.StartLine && lineIndex < range.EndLine)
+            if (lineIndex >= span.StartLine && lineIndex < span.EndLine)
             {
                 return false;
             }
@@ -250,12 +259,7 @@ internal sealed class InstructionsFileService
         return true;
     }
 
-    private string ResolveBodyPath(string fileName)
-        => _overrideAccessor.Current.TryGetPath(fileName, out var overridePath) && overridePath is not null
-            ? overridePath
-            : Path.Combine(_instructionsDirectory, fileName);
-
-    private IReadOnlySet<string> ResolveDisabledRuleIds(string key)
+    private IReadOnlySet<string> GetDisabledRuleIds(string key)
     {
         var entry = Array.Find(
             _configAccessor.Current.Instructions,
@@ -278,4 +282,26 @@ internal sealed class InstructionsFileService
 
         return disabled;
     }
+
+    private string ResolveBodySourcePath(string fileName)
+        => _overrideAccessor.Current.TryGetPath(fileName, out var overridePath) && overridePath is not null
+            ? overridePath
+            : Path.Combine(_instructionsDirectory, fileName);
+
+    /// <summary>
+    /// The outcome of resolving requested section anchors against the
+    /// parsed body: the text spans to keep (or <see langword="null"/> when
+    /// no slicing was requested), the anchors that resolved, and the
+    /// requested anchors that did not.
+    /// </summary>
+    /// <param name="IncludedSections">The text spans to slice the body to,
+    /// or <see langword="null"/> to keep the whole body.</param>
+    /// <param name="ReturnedSections">The anchors that resolved to a
+    /// section, in document order.</param>
+    /// <param name="NotFoundSections">The requested anchors that did not
+    /// resolve to any section.</param>
+    private sealed record SectionSelection(
+        IReadOnlyList<InstructionsFileTextSpan>? IncludedSections,
+        IReadOnlyList<string> ReturnedSections,
+        IReadOnlyList<string> NotFoundSections);
 }
