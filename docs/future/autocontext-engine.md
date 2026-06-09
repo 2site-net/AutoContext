@@ -265,7 +265,7 @@ Every path AutoContext touches has exactly one owner (P5).
 | Path | Owner | Lifetime |
 |---|---|---|
 | `<workspace>/.autocontext.json` | engine | workspace; cross-instance shared on disk |
-| `<workspace>/.github/instructions/<name>.instructions.md` | user | workspace; overrides bundled |
+| `<workspace>/<root>/instructions/<name>.instructions.md` (each `<root>` from `engine.instructions.overridesRoots`, default `.github`) | user | workspace; overrides bundled |
 | `<host-bundle>/engine/{autocontext-engine, Instructions/, Resources/, Workers/}` | build | read-only at runtime |
 | `…\autocontext\engine-registry.json` | every live engine (co-owned) | entry-per-instance liveness registry; **append-only at startup**, own entry removed at graceful shutdown |
 | `…\autocontext\<workspaceHash>\<instanceId>\logs\engine.log` | engine | rotated in-process by `--logging` thresholds; rotated files retained per `--retention` |
@@ -344,7 +344,7 @@ See [Log categories](#log-categories).
 |---|---|
 | `AutoContextConfigStore` | owns `.autocontext.json`, validates and broadcasts writes |
 | `InstructionsManifestService` | merged catalog + manifest snapshot — startup ingestion + per-request projection |
-| `InstructionsFileBodyProjector` | raw → projected body (disabled-rule filter, `[INSTxxxx]` strip, override resolution) |
+| `InstructionsFileBodyProjector` | raw → projected body (disabled-rule filter, `[INSTxxxx]` tags preserved as reference anchors, override resolution) |
 | `instructions-manifest-gen` (build-time tool, not a runtime service) | reads `instructions-catalog.json` + the corpus, emits `instructions-manifest.json` |
 | `InstructionsFullTextSearchService` | in-memory full-text search over instruction bodies (replaces extension-side trigram index) |
 | `WorkspaceContextDetector` | workspace detection (absorbed from extension) |
@@ -622,9 +622,11 @@ shared engine across unrelated launchers on the same workspace.
 The reasons are structural, not incidental:
 
 - **State is workspace-shaped.** `.autocontext.json`, the override
-  directory `<workspace>/.github/instructions/`,
-  workspace-context detection results, and the `disabledTools` /
-  `disabledTasks` state are all per-workspace. A single process
+  directories (each `engine.instructions.overridesRoots` root's
+  `instructions/` subfolder, default `<workspace>/.github/instructions/`),
+  workspace-context detection results, and the per-file and per-tool
+  `disabled` / `disabledRules` / `disabledTasks` state are all
+  per-workspace. A single process
   serving N workspaces would just be N independent state machines
   glued into one address space — no shared cache, no shared
   lifecycle, only shared crash blast radius.
@@ -1639,10 +1641,16 @@ way to set it.
   `GetAlwaysAttached`, `GetRaw(name, opts?)`, `SearchContent(query, opts?)`,
   `Subscribe`. `List` returns identity rows; `Get` / `GetAll` /
   `GetAlwaysAttached` return **projected** bodies (disabled rules
-  filtered out, `[INSTxxxx]` tags stripped, workspace override
-  preferred over bundled); `SearchContent` searches the projected
-  index; `GetRaw` returns the **source-faithful** bytes of the
-  on-disk markdown file; `Subscribe` notifies on corpus reload.
+  filtered out, `[INSTxxxx]` tags preserved as cross-reference
+  anchors, the highest-precedence workspace override preferred over
+  bundled); `SearchContent` searches the projected index; `GetRaw`
+  returns the **source-faithful** bytes of the on-disk markdown file;
+  `Subscribe` notifies on corpus reload. Overrides resolve against the
+  `engine.instructions.overridesRoots` roots in precedence order
+  (default `.github`): the engine watches each root's `instructions/`
+  subfolder for `<name>.instructions.md` and the first root that
+  supplies a file wins, falling back to the bundled corpus when none
+  do.
 
   **`List(opts?)`** is the listing RPC — every other identity-shaped
   consumer (tree views, the `list_autocontext_instructions_files` LM
@@ -1662,7 +1670,7 @@ way to set it.
     alwaysAttached: boolean,           // catalog-declared in `instructions-catalog.json`'s `alwaysAttached[]`
     label?:         string,            // curatorial label from `instructions-catalog.json` (omitted if none)
     categories:     string[],          // catalog membership names; resolve via `Instructions.Categories`
-    disabled:       boolean,           // engine-resolved against `.autocontext.json`'s `disabledInstructions`
+    disabled:       boolean,           // engine-resolved against `.autocontext.json`'s `disabled` flag
     source:         "bundled"|"override",
     overridePath?:  string,            // workspace-relative when source="override"
     sections?:      Array<{ heading: string, anchor: string, parent?: string }>
@@ -1757,8 +1765,10 @@ way to set it.
   file the projected body cannot provide. The motivating case is
   the **rule enable/disable CodeLens**: the extension renders one
   lens per `[INSTxxxx]` tag at the tag's source-file line so the
-  user can toggle individual rules, and the projected stream has
-  those tags stripped — nothing for the lens to anchor to.
+  user can toggle individual rules, and although the projected body
+  preserves the tags, it drops frontmatter and filters disabled
+  rules — so its line numbers no longer align with the source file
+  the lens decorates.
   "Open instruction source" commands, the corpus service's
   internal override-vs-bundled equality check, export tooling,
   and future raw-dump CLI verbs use it for similar reasons.
@@ -1936,7 +1946,7 @@ way to set it.
   state) for diagnostics; it does not duplicate the `Detect`
   payload.
 - **`McpTools.*`** — `List`, `Invoke`. `List` surfaces the engine's
-  MCP tool catalog (filtered by the same `disabledTools` /
+  MCP tool catalog (filtered by the same per-tool `disabled` /
   `disabledTasks` state) for hosts that want to introspect what the
   engine would advertise to an MCP client.
 
@@ -3422,7 +3432,7 @@ mutating the manifests.
   `McpTools.List`, projected from `mcp-tools-registry.json` at
   build time. The engine reads this file directly when answering
   `McpTools.List`; per-request projection only applies the
-  `disabledTools` / `disabledTasks` filter.
+  per-tool `disabled` / `disabledTasks` filter.
 - **`mcp-tools-registry.json`** — source-of-truth tool→worker
   dispatch table (renamed from today's `mcp-workers-registry.json`).
   Drives the engine's worker dispatch for `McpTools.Invoke`
