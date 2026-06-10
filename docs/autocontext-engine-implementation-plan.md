@@ -476,10 +476,10 @@ src/
     Features/                                  # outward-facing capability tier (P11): served to the extension over RPC; the engine runs without these, but without them nothing can consume anything
       Instructions/                            # runtime services
         InstructionsManifestService.cs           # merged catalog+manifest snapshot loader + reloader
-        InstructionsFileService.cs               # resolves override-vs-bundled, reads + parses the body, disabled-rule filter, section slice ([INSTxxxx] tags preserved)
+        InstructionsBodyProjector.cs             # projects a manifest entry's body per request: resolves override-vs-bundled, reads + parses; ToResponseBodyAsync filters disabled rules + slices sections for Get ([INSTxxxx] tags preserved), ToSearchBodyAsync rebuilds the offset-bearing body for indexing
         InstructionsFullTextSearchService.cs     # in-memory full-text search over instruction bodies
         InstructionsOverridesWatcher.cs          # per-overrides-root instructions/ FS watcher (debounced, default .github); produces InstructionsOverridesSnapshot values
-        Snapshot/InstructionsOverridesSnapshot.cs # immutable snapshot of the overrides-root instructions/ inventory (paths + basenames); consumed by InstructionsFileService + InstructionsManifestService
+        Snapshot/InstructionsOverridesSnapshot.cs # immutable snapshot of the overrides-root instructions/ inventory (paths + basenames); consumed by InstructionsBodyProjector + InstructionsManifestService
         FrontmatterApplyToParser.cs              # comma + brace-expand, extension extraction (shared with the build task via `<Compile Link>`)
         InstructionsHandlers.cs                  # List/Categories/Get/GetAll/GetAlwaysAttached/GetRaw/SearchContent/Subscribe
         InstructionsFrameStream.cs               # BroadcasterFrameStream<InstructionsSnapshot, …> (IBroadcasterFrameStream impl) for Instructions.Subscribe: drains a BroadcasterSubscription<InstructionsSnapshot> (fanned out over a shared Infrastructure/Events/SnapshotBroadcaster<T> — snapshot-on-subscribe + disabled-flag re-evaluation) and yields snapshot/dropped frames
@@ -544,12 +544,12 @@ src/
 
   AutoContext.Instructions.Parser/        # shared parser library (net10.0) — referenced by both the generator and the engine runtime so one source is compiled for both
     AutoContext.Instructions.Parser.csproj     # TargetFramework=net10.0; class library
-    InstructionsFileSyntaxParser.cs            # pass 1: streaming span lexer → InstructionsFileSyntaxSpan (frontmatter, headings, rule bullets, tags, references) with source coordinates + file-local diagnostics
-    InstructionsFileFactory.cs                 # disk entry point: FromFileAsync → spans → Model.InstructionsFile.FromSpans
+    InstructionsFileSyntaxParser.cs            # streaming lexer → InstructionsFileSyntaxTree: frontmatter + body span streams plus reference + diagnostic side streams, with whole-file source coordinates
+    InstructionsFileFactory.cs                 # disk entry point: FromFileAsync → InstructionsFileSyntaxParser tree → Model.InstructionsFile.FromSyntaxTree
     FrontmatterApplyToParser.cs                # applyTo splitter/brace-expander — parse only, round-trip-verified
     InstructionsFileReferenceResolver.cs       # pure cross-file resolver — validates rule/section references against an InstructionsFileCatalog (no I/O)
-    Syntax/                                    # span model: InstructionsFileSyntaxSpan + coordinate structs + Kind/EmitLevel/EmitScope/Diagnostic(Kind) enums
-    Model/                                     # structured model: InstructionsFile (RawContent/Frontmatter/Body) rebuilt from the span stream, plus section/rule/reference + catalog/finding records
+    Syntax/                                    # syntax layer: InstructionsFileSyntaxTree (frontmatter/body span streams + reference + diagnostic side streams) + InstructionsFileSyntaxSpan + coordinate structs + Kind/EmitLevel/EmitScope/Diagnostic(Kind) enums
+    Model/                                     # structured model: InstructionsFile (RawContent/Frontmatter/Body/References/Diagnostics) rebuilt from the syntax tree (InstructionsFileBody.WithoutTaggedRules reparses for disabled-rule projection), plus section/rule/reference + catalog/finding records
 
   AutoContext.Instructions.Manifest.Generator/   # build-time console generator (net10.0, AssemblyName instructions-manifest-gen) — not shipped with the engine
     AutoContext.Instructions.Manifest.Generator.csproj   # OutputType=Exe; ProjectReference → AutoContext.Instructions.Parser
@@ -1965,9 +1965,13 @@ references, and the Rules-boundary `---` fence-aware).
   sole structural entry point. (Post-ladder `refactor(parser): …`
   commits then split the syntax and model layers into `Syntax/` and
   `Model/`, collapsed the public surface, emitted span text as
-  zero-copy memory slices, and renamed the disk entry to
-  `InstructionsFileFactory` — the names above are the final shipped
-  shape.)
+  zero-copy memory slices, renamed the disk entry to
+  `InstructionsFileFactory`, decoupled the parse into the four-stream
+  `InstructionsFileSyntaxTree` and renamed the model rebuild
+  `Model.InstructionsFile.FromSpans` → `Model.InstructionsFile.FromSyntaxTree`,
+  and repointed the runtime body projector onto
+  `InstructionsBodyProjector` — see the **Target structure** section
+  for the current names.)
 - Repoint `AutoContext.Instructions.Manifest.Generator/CorpusParser`
   and `AutoContext.Engine.Core/Features/Instructions/InstructionsFileService`
   onto `InstructionsFileFactory.FromFileAsync`. Both consumers adopt the
@@ -2056,10 +2060,13 @@ pitfall.
     membership, `activationFlags`) with the build-generated
     `instructions-manifest.json` (per-file facts) into one immutable
     `InstructionsManifestSnapshot`; re-project per request.
-  - `InstructionsFileService` — resolves override-vs-bundled, reads
+  - `InstructionsBodyProjector` — projects a manifest entry's body on
+    demand. `ToResponseBodyAsync` resolves override-vs-bundled, reads
     and parses the body, filters disabled rules, and slices the
-    requested sections. `[INSTxxxx]` tags are **preserved** (not
-    stripped): the id is the anchor a cross-rule / cross-file
+    requested sections for `Get`; `ToSearchBodyAsync` rebuilds the
+    offset-bearing body the search index consumes. `[INSTxxxx]` tags
+    are **preserved** (not stripped): the id is the anchor a
+    cross-rule / cross-file
     `[locator#fragment]` reference resolves to, so stripping them
     would leave every reference pointing at content the reader can no
     longer locate. Frontmatter is still stripped and disabled rules
@@ -2071,7 +2078,8 @@ pitfall.
     disabled rules filtered), plus the manifest `description`. The
     manifest carries no body text, so it supplies only the file roster
     and heading anchors; the searchable content comes from
-    `InstructionsFileService`. Built lazily, hot across queries,
+    `InstructionsBodyProjector.ToSearchBodyAsync`. Built lazily, hot
+    across queries,
     invalidated when an override changes (`InstructionsOverridesWatcher`)
     or disabled state changes (`Config.Subscribe`) — not on a corpus
     reload, since the bundled corpus is immutable at runtime.
