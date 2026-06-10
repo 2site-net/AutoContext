@@ -13,5 +13,12 @@ using AutoContext.Engine.Core.Features.Instructions.Snapshot;
 internal sealed class FakeInstructionsManifestAccessor(params InstructionsFileManifestEntry[] files)
     : IInstructionsManifestAccessor
 {
+    public FakeInstructionsManifestAccessor(
+        IReadOnlyList<InstructionsCategory> categories, params InstructionsFileManifestEntry[] files)
+        : this(files)
+    {
+        Current = new InstructionsManifestSnapshot(categories, files);
+    }
+
     public InstructionsManifestSnapshot Current { get; } = new([], files);
 }

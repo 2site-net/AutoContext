@@ -14,7 +14,13 @@ internal static class InstructionsFileManifestEntryTestFactory
     public static InstructionsFileManifestEntry Create(
         string key,
         string? fileName = null,
-        string? description = null)
+        string? description = null,
+        bool alwaysAttached = false,
+        string? applyTo = null,
+        IReadOnlyList<string>? extensions = null,
+        IReadOnlyList<string>? categories = null,
+        string? label = null,
+        IReadOnlyList<InstructionsSection>? sections = null)
         => new()
         {
             Key = key,
@@ -22,8 +28,13 @@ internal static class InstructionsFileManifestEntryTestFactory
             Name = $"{key} (v1.0.0)",
             Version = "1.0.0",
             Description = description ?? $"{key} description.",
+            ApplyTo = applyTo,
+            Extensions = extensions,
             HasChangelog = false,
             ContentHash = "sha256:0",
-            AlwaysAttached = false,
+            AlwaysAttached = alwaysAttached,
+            Label = label,
+            Categories = categories ?? [],
+            Sections = sections ?? [],
         };
 }

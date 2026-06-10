@@ -306,6 +306,41 @@ public static class EngineHostBuilderExtensions
             ServiceDescriptor.Singleton<IHostedService, InstructionsManifestService>(
                 sp => sp.GetRequiredService<InstructionsManifestService>()));
 
+        // Instruction override inventory. The service performs a one-shot
+        // startup scan of the workspace's override directories and exposes
+        // the result through the IInstructionsOverridesAccessor seam the
+        // Instructions.* handlers read. Its hosted lifetime is registered
+        // AFTER ConfigFileService (below) so the configured override roots
+        // are loaded before the scan runs; the singleton mapping here is
+        // lazily resolved so the registration order is irrelevant.
+        builder.Services.TryAddSingleton(sp => new InstructionsOverridesService(
+            sp.GetRequiredService<IWorkspaceContextAccessor>(),
+            sp.GetRequiredService<IConfigSnapshotAccessor>(),
+            sp.GetRequiredService<TimeProvider>(),
+            sp.GetRequiredService<ILoggerFactory>(),
+            sp.GetRequiredService<ILogger<InstructionsOverridesService>>()));
+        builder.Services.TryAddSingleton<IInstructionsOverridesAccessor>(
+            sp => sp.GetRequiredService<InstructionsOverridesService>());
+
+        // Instruction body projection + raw file reads + full-text search.
+        // All read the bundled corpus body files shipped beside the engine
+        // binary under Resources/Instructions and resolve override bodies
+        // through the accessor above. Lazily resolved singletons backing the
+        // Instructions.Get / GetAll / GetAlwaysAttached / GetRaw /
+        // SearchContent handlers.
+        builder.Services.TryAddSingleton(sp => new InstructionsBodyProjector(
+            Path.Combine(AppContext.BaseDirectory, "Resources", "Instructions"),
+            sp.GetRequiredService<IInstructionsOverridesAccessor>(),
+            sp.GetRequiredService<IConfigSnapshotAccessor>()));
+        builder.Services.TryAddSingleton(sp => new InstructionsFileReader(
+            Path.Combine(AppContext.BaseDirectory, "Resources", "Instructions"),
+            sp.GetRequiredService<IInstructionsOverridesAccessor>()));
+        builder.Services.TryAddSingleton(sp => new InstructionsFullTextSearchService(
+            sp.GetRequiredService<IInstructionsManifestAccessor>(),
+            sp.GetRequiredService<InstructionsBodyProjector>(),
+            sp.GetRequiredService<IConfigSnapshotAccessor>(),
+            sp.GetRequiredService<ILogger<InstructionsFullTextSearchService>>()));
+
         // Workspace context detection rule tables. The three declarative
         // tables — file presence, content scans (npm + .NET, grouped by
         // manifest), and the flag activation cascade — are static data
@@ -326,6 +361,13 @@ public static class EngineHostBuilderExtensions
             "Config.Subscribe"));
         builder.Services.TryAddEnumerable(
             ServiceDescriptor.Singleton<IHostedService, ConfigFileService>());
+
+        // Instruction override scan. Hosted lifetime registered AFTER
+        // ConfigFileService so the configured InstructionsOverridesRoots are
+        // loaded before the one-shot startup scan reads them.
+        builder.Services.TryAddEnumerable(
+            ServiceDescriptor.Singleton<IHostedService, InstructionsOverridesService>(
+                sp => sp.GetRequiredService<InstructionsOverridesService>()));
 
         // Workspace context detector. The detector owns the in-memory
         // detection result and workspace-info metadata for this

@@ -4,17 +4,19 @@ using AutoContext.Instructions.Parser.Model;
 
 /// <summary>
 /// Parses an instructions file's <c>applyTo</c> frontmatter value into its
-/// structural pieces. This is an internal collaborator of
-/// <see cref="InstructionsFile.FromSyntaxTree"/> — the structured-model pass — not a
-/// second file parser: it understands only the <c>applyTo</c> glob-list
-/// grammar. The parser splits comma-separated globs at brace depth zero (so
-/// intra-brace commas such as <c>{cs,fs}</c> survive), brace-expands
-/// <c>{a,b,c}</c> groups, and extracts the derived extension set. It
-/// deliberately never canonicalises globs, simplifies <c>**</c> patterns, or
-/// otherwise reasons about what a glob means; lossless-ness is asserted by
+/// structural pieces. It is the structured-model pass's collaborator
+/// (<see cref="InstructionsFile.FromSyntaxTree"/>) and the canonical
+/// <c>applyTo</c> parser for any caller that needs the same grammar — such as
+/// the engine's <c>Instructions.List</c> extension hint — not a second file
+/// parser: it understands only the <c>applyTo</c> glob-list grammar. The
+/// parser splits comma-separated globs at brace depth zero (so intra-brace
+/// commas such as <c>{cs,fs}</c> survive), brace-expands <c>{a,b,c}</c>
+/// groups, and extracts the derived extension set. It deliberately never
+/// canonicalises globs, simplifies <c>**</c> patterns, or otherwise reasons
+/// about what a glob means; lossless-ness is asserted by
 /// <see cref="FrontmatterApplyTo.RoundTrips"/>.
 /// </summary>
-internal static class FrontmatterApplyToParser
+public static class FrontmatterApplyToParser
 {
     /// <summary>
     /// Parses <paramref name="applyTo"/> into its verbatim globs, the

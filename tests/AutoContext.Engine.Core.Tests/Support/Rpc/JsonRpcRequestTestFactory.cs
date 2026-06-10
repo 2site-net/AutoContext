@@ -1,6 +1,7 @@
 namespace AutoContext.Engine.Core.Tests.Support.Rpc;
 
 using System.Text.Json;
+using System.Text.Json.Serialization.Metadata;
 
 using AutoContext.Engine.Protocol.JsonRpc;
 using AutoContext.Engine.Protocol.Messages;
@@ -18,6 +19,15 @@ internal static class JsonRpcRequestTestFactory
         {
             Method = method,
             Id = JsonSerializer.SerializeToElement(1),
+        };
+
+    public static JsonRpcRequest BuildRequest<T>(
+        string method, T parameters, JsonTypeInfo<T> typeInfo) =>
+        new()
+        {
+            Method = method,
+            Id = JsonSerializer.SerializeToElement(1),
+            Params = JsonSerializer.SerializeToElement(parameters, typeInfo),
         };
 
     public static JsonRpcRequest BuildHelloRequest(string method, int? protocolVersion)

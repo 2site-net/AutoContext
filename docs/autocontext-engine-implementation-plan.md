@@ -2026,13 +2026,13 @@ atop the merged **Phase 6P** (new span-based parser) and Phase 6R catalog
 | 1 | `feat(protocol): add Instructions.* wire DTOs` | DONE |
 | 2 | `feat(engine-core): load instructions corpus snapshot on startup` | DONE |
 | 3 | `feat(engine-core): add InstructionsOverridesWatcher with debounced reload` | DONE |
-| 4 | `feat(engine): serve Instructions.List over rpc` | Not started |
+| 4 | `feat(engine): serve Instructions.List over rpc` | DONE |
 | 5 | `feat(engine-core): add InstructionsFileService with override resolution and disabled-rule filter` | DONE |
-| 6 | `feat(engine): serve Instructions.Get and GetAll over rpc` | Not started |
-| 7 | `feat(engine): serve Instructions.GetAlwaysAttached over rpc` | Not started |
-| 8 | `feat(engine): serve Instructions.GetRaw with bundled/override/active source` | Not started |
+| 6 | `feat(engine): serve Instructions.Get and GetAll over rpc` | DONE |
+| 7 | `feat(engine): serve Instructions.GetAlwaysAttached over rpc` | DONE |
+| 8 | `feat(engine): serve Instructions.GetRaw with bundled/override/active source` | DONE |
 | 9 | `feat(engine-core): add InstructionsFullTextSearchService over projected bodies` | DONE |
-| 10 | `feat(engine): serve Instructions.SearchContent over rpc` | Not started |
+| 10 | `feat(engine): serve Instructions.SearchContent over rpc` | DONE |
 | 11 | `feat(engine-core): add Instructions.Subscribe events stream with snapshot-on-subscribe` | Not started |
 | 12 | `feat(engine-core): rebroadcast Instructions.Subscribe on Config.Subscribe changes` | Not started |
 | 13 | `feat(engine-core): warn when an override is older than its bundled file` | Not started |
