@@ -24,7 +24,7 @@ internal sealed class InstructionsReferenceValidator : IInstructionsReferenceVal
             var file = parsedFiles[key];
             var fileFindings = InstructionsFileReferenceResolver.Resolve(
                 key,
-                file.Content.Body.References,
+                file.Content.References,
                 catalog);
 
             foreach (var finding in fileFindings)

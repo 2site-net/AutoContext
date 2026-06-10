@@ -1,18 +1,15 @@
 namespace AutoContext.Instructions.Parser.Model;
 
-using System.Diagnostics.CodeAnalysis;
-using System.Runtime.InteropServices;
-using System.Text.RegularExpressions;
-
 using AutoContext.Instructions.Parser.Syntax;
 
 /// <summary>
 /// A single instructions file in memory: its verbatim <see cref="RawContent"/>
-/// together with the parsed <see cref="Frontmatter"/> and <see cref="Body"/> (the
-/// body text, the <c>##</c>/<c>###</c> sections, the rule bullets, the
-/// <c>[locator#fragment]</c> references, and any diagnostics). Everything that
-/// reads instructions files — the build-time manifest generator and the runtime
-/// engine — works from this one shape, so each file is parsed just once.
+/// together with the parsed <see cref="Frontmatter"/>, <see cref="Body"/> (the body
+/// text plus its sections and rule bullets), and the file-level
+/// <see cref="References"/> and <see cref="Diagnostics"/> gathered from the body
+/// prose. Everything that reads instructions files — the build-time manifest
+/// generator and the runtime engine — works from this one shape, so each file is
+/// parsed just once.
 /// <para>
 /// Construct one from a span stream with <see cref="FromSpans"/>, or read and parse
 /// a file from disk with <see cref="InstructionsFileFactory.FromFileAsync"/>.
@@ -21,40 +18,36 @@ using AutoContext.Instructions.Parser.Syntax;
 /// <param name="RawContent">The exact file content, frontmatter and body
 /// included.</param>
 /// <param name="Frontmatter">The parsed frontmatter from the top of the file.</param>
-/// <param name="Body">The parsed body: the body text plus its sections, rules, and
-/// diagnostics.</param>
-public sealed partial record InstructionsFile(
+/// <param name="Body">The parsed body: the body text plus its sections and
+/// rules.</param>
+/// <param name="References">The <c>[locator#fragment]</c> rule and section
+/// references found in the body prose (e.g. <c>[testing#INST0014]</c> or
+/// <c>[#'Assertions']</c>), in the order they appear. References inside fenced code
+/// blocks and inline code are left out, since those are examples rather than real
+/// links. Their offsets are measured from the start of <see cref="Body"/>. See
+/// <see cref="InstructionsFileReference"/> for the exact form and what
+/// <em>locator</em> and <em>fragment</em> mean.</param>
+/// <param name="Diagnostics">Problems found with rule tags (malformed, missing, or
+/// duplicate) and with references, in the order they appear. Their line numbers are
+/// measured from the start of <see cref="Body"/>.</param>
+public sealed record InstructionsFile(
     string RawContent,
     InstructionsFileFrontmatter Frontmatter,
-    InstructionsFileBody Body)
+    InstructionsFileBody Body,
+    IReadOnlyList<InstructionsFileReference> References,
+    IReadOnlyList<InstructionsFileDiagnostic> Diagnostics)
 {
-    private enum FrontmatterField
-    {
-        Unknown,
-        Name,
-        Description,
-        ApplyTo,
-    }
-
     /// <summary>
     /// Builds an <see cref="InstructionsFile"/> from a parsed
     /// <see cref="InstructionsFileSyntaxTree"/>. The tree must be the complete
     /// <see cref="InstructionsFileSpanEmitLevel.Full"/> /
-    /// <see cref="InstructionsFileSpanEmitScope.All"/> output for a single file: the
-    /// <see cref="InstructionsFileSyntaxTree.Frontmatter"/> stream supplies the
-    /// frontmatter fields, the <see cref="InstructionsFileSyntaxTree.Body"/> stream
-    /// supplies the headings and rule bullets, and the
-    /// <see cref="InstructionsFileSyntaxTree.References"/> and
-    /// <see cref="InstructionsFileSyntaxTree.Diagnostics"/> side streams supply the
-    /// references and problems.
-    /// <para>
-    /// One thing it sorts out is positions. The spans count from the start of the
-    /// file, frontmatter included, but callers expect positions measured from the
-    /// start of the body, as if the frontmatter were not there. The leading
-    /// <see cref="InstructionsFileSpanKind.FrontmatterBlock"/> span says how long the
-    /// frontmatter is, and this method subtracts that from every offset before handing
-    /// the result back.
-    /// </para>
+    /// <see cref="InstructionsFileSpanEmitScope.All"/> output for a single file. This
+    /// method composes the pieces: it recovers the verbatim <see cref="RawContent"/>
+    /// from the spans, hands the frontmatter stream to
+    /// <see cref="InstructionsFileFrontmatter.FromSpans"/> and the body stream to
+    /// <see cref="InstructionsFileBody.FromSpans"/>, then rebases the reference and
+    /// diagnostic side streams from whole-file offsets to body-relative ones using
+    /// the body origin recovered from the first body span.
     /// </summary>
     /// <param name="tree">The parsed syntax tree.</param>
     /// <returns>The complete structural parse.</returns>
@@ -64,306 +57,87 @@ public sealed partial record InstructionsFile(
     {
         ArgumentNullException.ThrowIfNull(tree);
 
-        string? sourceText = null;
-        var frontmatterCharLength = 0;
-        var frontmatterLineCount = 0;
-        var frontmatterRawValue = string.Empty;
-        string? name = null;
-        string? description = null;
-        string? applyToRaw = null;
-        var currentFrontmatterField = FrontmatterField.Unknown;
+        var content = RecoverContent(tree);
+        var frontmatter = InstructionsFileFrontmatter.FromSpans(tree.Frontmatter);
+        var body = InstructionsFileBody.FromSpans(tree.Body);
+        var (charOrigin, lineOrigin) = BodyOrigin(tree.Body);
+        var references = BuildReferences(tree.References, charOrigin, lineOrigin);
+        var diagnostics = BuildDiagnostics(tree.Diagnostics, lineOrigin);
 
-        foreach (var span in tree.Frontmatter)
+        return new InstructionsFile(content, frontmatter, body, references, diagnostics);
+    }
+
+    private static (int CharOrigin, int LineOrigin) BodyOrigin(IReadOnlyList<InstructionsFileSyntaxSpan> bodySpans)
+    {
+        if (bodySpans.Count == 0)
         {
-            // Every span is a window over the single source string the lexer
-            // parsed, so recover that string from the first span rather than
-            // rebuilding the file by concatenating spans.
-            sourceText ??= RecoverSourceText(span);
-
-            if (span.Kind == InstructionsFileSpanKind.FrontmatterBlock)
-            {
-                frontmatterCharLength = span.TextSpan.Length;
-                frontmatterLineCount = span.LineSpan.LineCount;
-
-                var block = GeneratedFrontmatterBlockRegex().Match(sourceText, 0, frontmatterCharLength);
-                frontmatterRawValue = block.Success ? block.Groups[1].Value : string.Empty;
-            }
-            else if (span.Kind == InstructionsFileSpanKind.FrontmatterKey)
-            {
-                currentFrontmatterField = ClassifyFrontmatterKey(span.Text.Span);
-                AssignFrontmatterField(currentFrontmatterField, string.Empty);
-            }
-            else if (span.Kind == InstructionsFileSpanKind.FrontmatterValue)
-            {
-                AssignFrontmatterField(currentFrontmatterField, span.Text.ToString());
-            }
+            return (0, 0);
         }
 
-        List<RawHeading>? rawHeadings = null;
-        List<InstructionsFileRule>? rules = null;
-        string? lastSectionHeading = null;
+        // The first body span is a block at the body origin, so the difference
+        // between its absolute and body-relative offsets recovers that origin.
+        // Every body span carries an offset.
+        var first = bodySpans[0];
+        var offset = first.Offset
+            ?? throw new InvalidOperationException("A body span must carry an offset, but one was null.");
 
-        foreach (var span in tree.Body)
+        return (
+            first.TextSpan.StartIndex - offset.StartIndex,
+            first.LineSpan.StartLine - offset.StartLine);
+    }
+
+    private static List<InstructionsFileDiagnostic> BuildDiagnostics(
+        IReadOnlyList<InstructionsFileSyntaxDiagnostic> diagnostics,
+        int lineOrigin)
+    {
+        var list = new List<InstructionsFileDiagnostic>(diagnostics.Count);
+
+        foreach (var diagnostic in diagnostics)
         {
-            sourceText ??= RecoverSourceText(span);
-            var kind = span.Kind;
-
-            if (kind is InstructionsFileSpanKind.Heading2 or InstructionsFileSpanKind.Heading3)
+            list.Add(diagnostic.Diagnostic with
             {
-                var level = kind == InstructionsFileSpanKind.Heading2 ? 2 : 3;
-                var text = ParseHeadingText(span.Text.Span);
-                var parent = level == 2 ? null : lastSectionHeading;
-
-                if (level == 2)
-                {
-                    lastSectionHeading = text;
-                }
-
-                (rawHeadings ??= []).Add(new RawHeading(level, text, parent, span.TextSpan.StartIndex - frontmatterCharLength));
-            }
-            else if (kind is InstructionsFileSpanKind.PlainRule or InstructionsFileSpanKind.TaggedRule)
-            {
-                var id = kind == InstructionsFileSpanKind.TaggedRule ? ParseRuleId(span.Text.Span) : null;
-
-                (rules ??= []).Add(new InstructionsFileRule(
-                    id,
-                    StripFinalLineTerminator(span.Text.Span),
-                    new InstructionsFileLineSpan(
-                        span.LineSpan.StartLine - frontmatterLineCount,
-                        span.LineSpan.LineCount)));
-            }
-        }
-
-        List<InstructionsFileReference>? references = null;
-
-        foreach (var reference in tree.References)
-        {
-            (references ??= []).Add(new InstructionsFileReference(
-                reference.Address,
-                new InstructionsFileTextSpan(
-                    reference.TextSpan.StartIndex - frontmatterCharLength,
-                    reference.TextSpan.Length),
-                reference.LineSpan.StartLine - frontmatterLineCount));
-        }
-
-        List<InstructionsFileDiagnostic>? diagnostics = null;
-
-        foreach (var diagnostic in tree.Diagnostics)
-        {
-            (diagnostics ??= []).Add(diagnostic.Diagnostic with
-            {
-                Line = diagnostic.LineSpan.StartLine - frontmatterLineCount,
+                Line = diagnostic.LineSpan.StartLine - lineOrigin,
             });
         }
 
-        var content = sourceText ?? string.Empty;
-        var body = content[frontmatterCharLength..];
-        var sections = BuildSections(rawHeadings, body.Length);
-        var version = name is null ? null : ExtractVersion(name);
-        var applyTo = applyToRaw is null ? null : FrontmatterApplyToParser.Parse(applyToRaw);
-
-        var frontmatter = new InstructionsFileFrontmatter(frontmatterRawValue, name, description, applyTo, version);
-        var parsedBody = new InstructionsFileBody(
-            body,
-            sections,
-            rules ?? [],
-            references ?? [],
-            diagnostics ?? []);
-
-        return new InstructionsFile(content, frontmatter, parsedBody);
-
-        void AssignFrontmatterField(FrontmatterField field, string value)
-        {
-            switch (field)
-            {
-                case FrontmatterField.Name:
-                    name = value;
-                    break;
-                case FrontmatterField.Description:
-                    description = value;
-                    break;
-                case FrontmatterField.ApplyTo:
-                    applyToRaw = value;
-                    break;
-                case FrontmatterField.Unknown:
-                default:
-                    break;
-            }
-        }
+        return list;
     }
 
-    [SuppressMessage(
-        "Globalization",
-        "CA1308:Normalize strings to uppercase",
-        Justification = "Anchors are lowercase by GitHub/markdown convention; this is a display slug, not a security normalization.")]
-    internal static string Slugify(string heading)
+    private static List<InstructionsFileReference> BuildReferences(
+        IReadOnlyList<InstructionsFileSyntaxReference> references,
+        int charOrigin,
+        int lineOrigin)
     {
-        var lowered = heading.ToLowerInvariant();
-        var dashed = GeneratedNonSlugRunRegex().Replace(lowered, "-");
+        var list = new List<InstructionsFileReference>(references.Count);
 
-        return GeneratedEdgeHyphensRegex().Replace(dashed, string.Empty);
+        foreach (var reference in references)
+        {
+            list.Add(new InstructionsFileReference(
+                reference.Address,
+                new InstructionsFileTextSpan(
+                    reference.TextSpan.StartIndex - charOrigin,
+                    reference.TextSpan.Length),
+                reference.LineSpan.StartLine - lineOrigin));
+        }
+
+        return list;
     }
 
-    private static List<InstructionsFileSection> BuildSections(List<RawHeading>? rawHeadings, int bodyLength)
+    private static string RecoverContent(InstructionsFileSyntaxTree tree)
     {
-        if (rawHeadings is null)
+        // Every span is a window over the single source string the parser read, so the
+        // whole file is recovered from any one of them rather than rebuilt by
+        // concatenation. An empty tree (an empty file) recovers the empty string.
+        if (tree.Frontmatter.Count > 0)
         {
-            return [];
+            return tree.Frontmatter[0].RecoverSourceText();
         }
 
-        var sections = new List<InstructionsFileSection>(rawHeadings.Count);
-        string? cachedParent = null;
-        string? cachedParentSlug = null;
-
-        for (var index = 0; index < rawHeadings.Count; index++)
+        if (tree.Body.Count > 0)
         {
-            var heading = rawHeadings[index];
-            var charEnd = ComputeCharEnd(rawHeadings, index, bodyLength);
-            var baseSlug = Slugify(heading.Text);
-            string anchor;
-
-            if (heading.Parent is null)
-            {
-                anchor = baseSlug;
-            }
-            else
-            {
-                if (!string.Equals(heading.Parent, cachedParent, StringComparison.Ordinal))
-                {
-                    cachedParent = heading.Parent;
-                    cachedParentSlug = Slugify(heading.Parent);
-                }
-
-                anchor = cachedParentSlug + "-" + baseSlug;
-            }
-
-            sections.Add(new InstructionsFileSection(
-                heading.Text,
-                heading.Level,
-                anchor,
-                heading.Parent,
-                new InstructionsFileTextSpan(heading.CharStart, charEnd - heading.CharStart)));
+            return tree.Body[0].RecoverSourceText();
         }
 
-        return sections;
+        return string.Empty;
     }
-
-    private static FrontmatterField ClassifyFrontmatterKey(ReadOnlySpan<char> key)
-        => key switch
-        {
-            "name" => FrontmatterField.Name,
-            "description" => FrontmatterField.Description,
-            "applyTo" => FrontmatterField.ApplyTo,
-            _ => FrontmatterField.Unknown,
-        };
-
-    private static int ComputeCharEnd(IReadOnlyList<RawHeading> rawHeadings, int index, int bodyLength)
-    {
-        var current = rawHeadings[index];
-
-        for (var next = index + 1; next < rawHeadings.Count; next++)
-        {
-            if (rawHeadings[next].Level <= current.Level)
-            {
-                return rawHeadings[next].CharStart;
-            }
-        }
-
-        return bodyLength;
-    }
-
-    private static string? ExtractVersion(string name)
-    {
-        var match = GeneratedVersionSuffixRegex().Match(name);
-
-        return match.Success ? match.Groups[1].Value : null;
-    }
-
-    [GeneratedRegex("^-+|-+$")]
-    private static partial Regex GeneratedEdgeHyphensRegex();
-
-    [GeneratedRegex(@"^---\r?\n([\s\S]*?)\r?\n---")]
-    private static partial Regex GeneratedFrontmatterBlockRegex();
-
-    [GeneratedRegex("[^a-z0-9]+")]
-    private static partial Regex GeneratedNonSlugRunRegex();
-
-    [GeneratedRegex(@"\(v(\d+\.\d+\.\d+)\)")]
-    private static partial Regex GeneratedVersionSuffixRegex();
-
-    private static bool IsRuleTag(ReadOnlySpan<char> candidate)
-    {
-        if (candidate.Length != 8 || !candidate.StartsWith("INST", StringComparison.Ordinal))
-        {
-            return false;
-        }
-
-        for (var index = 4; index < candidate.Length; index++)
-        {
-            if (!char.IsDigit(candidate[index]))
-            {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    private static string ParseHeadingText(ReadOnlySpan<char> headingLine)
-    {
-        var index = 0;
-
-        while (index < headingLine.Length && headingLine[index] == '#')
-        {
-            index++;
-        }
-
-        return headingLine[index..].Trim().ToString();
-    }
-
-    private static string? ParseRuleId(ReadOnlySpan<char> ruleLine)
-    {
-        var open = ruleLine.IndexOf('[');
-
-        if (open < 0)
-        {
-            return null;
-        }
-
-        var inner = ruleLine[(open + 1)..];
-        var close = inner.IndexOf(']');
-
-        if (close < 0)
-        {
-            return null;
-        }
-
-        var candidate = inner[..close];
-
-        return IsRuleTag(candidate) ? candidate.ToString() : null;
-    }
-
-    private static string RecoverSourceText(InstructionsFileSyntaxSpan span)
-        => MemoryMarshal.TryGetString(span.Text, out var text, out _, out _)
-            ? text
-            : span.Text.ToString();
-
-    private static string StripFinalLineTerminator(ReadOnlySpan<char> text)
-    {
-        if (text.Length == 0 || text[^1] != '\n')
-        {
-            return text.ToString();
-        }
-
-        var length = text.Length - 1;
-
-        if (length > 0 && text[length - 1] == '\r')
-        {
-            length--;
-        }
-
-        return text[..length].ToString();
-    }
-
-    private readonly record struct RawHeading(int Level, string Text, string? Parent, int CharStart);
 }

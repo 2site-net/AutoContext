@@ -271,8 +271,8 @@ public sealed class InstructionsFileTests
                 () => Assert.Single(body.Rules),
                 () => Assert.Null(body.Rules[0].Id),
                 () => Assert.Equal("- [oops] **Do** gamma.", body.Rules[0].Text),
-                () => Assert.Single(body.Diagnostics),
-                () => Assert.Equal(InstructionsFileDiagnosticKind.MalformedTag, body.Diagnostics[0].Kind));
+                () => Assert.Single(parsed.Diagnostics),
+                () => Assert.Equal(InstructionsFileDiagnosticKind.MalformedTag, parsed.Diagnostics[0].Kind));
         }
 
         [Fact]
@@ -336,7 +336,7 @@ public sealed class InstructionsFileTests
 
             // Act
             var parsed = InstructionsFile.FromSpans(spans);
-            var references = parsed.Body.References;
+            var references = parsed.References;
 
             // Assert
             Assert.Multiple(
@@ -361,13 +361,12 @@ public sealed class InstructionsFileTests
 
             // Act
             var parsed = InstructionsFile.FromSpans(spans);
-            var body = parsed.Body;
 
             // Assert
             Assert.Multiple(
-                () => Assert.Empty(body.References),
-                () => Assert.Single(body.Diagnostics),
-                () => Assert.Equal(InstructionsFileDiagnosticKind.MalformedReference, body.Diagnostics[0].Kind));
+                () => Assert.Empty(parsed.References),
+                () => Assert.Single(parsed.Diagnostics),
+                () => Assert.Equal(InstructionsFileDiagnosticKind.MalformedReference, parsed.Diagnostics[0].Kind));
         }
 
         [Fact]
@@ -378,7 +377,7 @@ public sealed class InstructionsFileTests
             var spans = InstructionsFileSpanStream.From(content);
 
             // Act
-            var references = InstructionsFile.FromSpans(spans).Body.References;
+            var references = InstructionsFile.FromSpans(spans).References;
 
             // Assert
             Assert.Multiple(
@@ -399,7 +398,7 @@ public sealed class InstructionsFileTests
             var spans = InstructionsFileSpanStream.From(content);
 
             // Act
-            var reference = Assert.Single(InstructionsFile.FromSpans(spans).Body.References);
+            var reference = Assert.Single(InstructionsFile.FromSpans(spans).References);
 
             // Assert
             Assert.Multiple(
@@ -420,7 +419,7 @@ public sealed class InstructionsFileTests
             // Assert
             Assert.Multiple(
                 () => Assert.Equal("INST0006", Assert.Single(parsed.Body.Rules).Id),
-                () => Assert.Equal("design-principles", Assert.Single(parsed.Body.References).Address.Locator));
+                () => Assert.Equal("design-principles", Assert.Single(parsed.References).Address.Locator));
         }
 
         [Fact]
@@ -431,7 +430,7 @@ public sealed class InstructionsFileTests
             var spans = InstructionsFileSpanStream.From(content);
 
             // Act
-            var reference = Assert.Single(InstructionsFile.FromSpans(spans).Body.References);
+            var reference = Assert.Single(InstructionsFile.FromSpans(spans).References);
 
             // Assert
             Assert.Equal("INST0001", reference.Address.Target);
@@ -449,8 +448,8 @@ public sealed class InstructionsFileTests
 
             // Assert
             Assert.Multiple(
-                () => Assert.Empty(parsed.Body.References),
-                () => Assert.Empty(parsed.Body.Diagnostics));
+                () => Assert.Empty(parsed.References),
+                () => Assert.Empty(parsed.Diagnostics));
         }
 
         [Fact]
@@ -461,17 +460,17 @@ public sealed class InstructionsFileTests
             var spans = InstructionsFileSpanStream.From(content);
 
             // Act
-            var body = InstructionsFile.FromSpans(spans).Body;
+            var file = InstructionsFile.FromSpans(spans);
 
             // Assert
             Assert.Multiple(
-                () => Assert.Empty(body.References),
-                () => Assert.Equal(2, body.Diagnostics.Count),
+                () => Assert.Empty(file.References),
+                () => Assert.Equal(2, file.Diagnostics.Count),
                 () => Assert.All(
-                    body.Diagnostics,
+                    file.Diagnostics,
                     static diagnostic => Assert.Equal(InstructionsFileDiagnosticKind.MalformedReference, diagnostic.Kind)),
                 () => Assert.Contains(
-                    body.Diagnostics,
+                    file.Diagnostics,
                     static diagnostic => diagnostic.Message.Contains("ranges are not allowed", StringComparison.Ordinal)));
         }
 
@@ -483,8 +482,9 @@ public sealed class InstructionsFileTests
             var spans = InstructionsFileSpanStream.From(content);
 
             // Act
-            var body = InstructionsFile.FromSpans(spans).Body;
-            var reference = Assert.Single(body.References);
+            var file = InstructionsFile.FromSpans(spans);
+            var body = file.Body;
+            var reference = Assert.Single(file.References);
 
             // Assert
             Assert.Multiple(
@@ -507,7 +507,7 @@ public sealed class InstructionsFileTests
 
             // Act
             var parsed = InstructionsFile.FromSpans(spans);
-            var diagnostics = parsed.Body.Diagnostics;
+            var diagnostics = parsed.Diagnostics;
 
             // Assert
             Assert.Multiple(
@@ -525,7 +525,7 @@ public sealed class InstructionsFileTests
 
             // Act
             var parsed = InstructionsFile.FromSpans(spans);
-            var diagnostics = parsed.Body.Diagnostics;
+            var diagnostics = parsed.Diagnostics;
 
             // Assert
             Assert.Multiple(
@@ -543,7 +543,7 @@ public sealed class InstructionsFileTests
 
             // Act
             var parsed = InstructionsFile.FromSpans(spans);
-            var diagnostics = parsed.Body.Diagnostics;
+            var diagnostics = parsed.Diagnostics;
 
             // Assert
             Assert.Multiple(

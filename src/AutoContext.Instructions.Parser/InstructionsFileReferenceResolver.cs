@@ -147,7 +147,7 @@ public static class InstructionsFileReferenceResolver
         InstructionsFileCatalogEntry entry,
         List<InstructionsFileReferenceResolutionFailure> findings)
     {
-        var slug = InstructionsFile.Slugify(reference.Address.Target);
+        var slug = InstructionsFileUtils.Slugify(reference.Address.Target);
 
         var resolved = entry.Sections.Any(section =>
             string.Equals(section.Anchor, slug, StringComparison.Ordinal)

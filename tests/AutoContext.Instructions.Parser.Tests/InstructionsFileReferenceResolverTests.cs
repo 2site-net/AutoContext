@@ -34,7 +34,7 @@ public sealed class InstructionsFileReferenceResolverTests
                     new HashSet<string>(StringComparer.Ordinal) { "INST0014" },
                     []),
             ]);
-            var references = InstructionsFileSpanStream.Parse("see [testing#INST0014].\n").Body.References;
+            var references = InstructionsFileSpanStream.Parse("see [testing#INST0014].\n").References;
 
             // Act
             var findings = InstructionsFileReferenceResolver.Resolve("dotnet-testing", references, catalog);
@@ -53,7 +53,7 @@ public sealed class InstructionsFileReferenceResolverTests
                     new HashSet<string>(StringComparer.Ordinal) { "INST0017" },
                     []),
             ]);
-            var references = InstructionsFileSpanStream.Parse("see [#INST0017].\n").Body.References;
+            var references = InstructionsFileSpanStream.Parse("see [#INST0017].\n").References;
 
             // Act
             var findings = InstructionsFileReferenceResolver.Resolve("testing", references, catalog);
@@ -72,7 +72,7 @@ public sealed class InstructionsFileReferenceResolverTests
                     new HashSet<string>(StringComparer.Ordinal) { "INST0014" },
                     []),
             ]);
-            var references = InstructionsFileSpanStream.Parse("see [testing#INST9999].\n").Body.References;
+            var references = InstructionsFileSpanStream.Parse("see [testing#INST9999].\n").References;
 
             // Act
             var finding = Assert.Single(
@@ -89,7 +89,7 @@ public sealed class InstructionsFileReferenceResolverTests
         {
             // Arrange
             var catalog = new InstructionsFileCatalog([]);
-            var references = InstructionsFileSpanStream.Parse("see [nosuch#INST0001].\n").Body.References;
+            var references = InstructionsFileSpanStream.Parse("see [nosuch#INST0001].\n").References;
 
             // Act
             var finding = Assert.Single(
@@ -109,7 +109,7 @@ public sealed class InstructionsFileReferenceResolverTests
                     new HashSet<string>(StringComparer.Ordinal),
                     InstructionsFileSpanStream.Parse("## Test Support\n").Body.Sections),
             ]);
-            var references = InstructionsFileSpanStream.Parse("see [testing#'Test Support'].\n").Body.References;
+            var references = InstructionsFileSpanStream.Parse("see [testing#'Test Support'].\n").References;
 
             // Act
             var findings = InstructionsFileReferenceResolver.Resolve("dotnet-testing", references, catalog);
@@ -128,7 +128,7 @@ public sealed class InstructionsFileReferenceResolverTests
                     new HashSet<string>(StringComparer.Ordinal),
                     InstructionsFileSpanStream.Parse("## General\n\n### Layout\n").Body.Sections),
             ]);
-            var references = InstructionsFileSpanStream.Parse("see [testing#'Layout'].\n").Body.References;
+            var references = InstructionsFileSpanStream.Parse("see [testing#'Layout'].\n").References;
 
             // Act
             var findings = InstructionsFileReferenceResolver.Resolve("dotnet-testing", references, catalog);
@@ -147,7 +147,7 @@ public sealed class InstructionsFileReferenceResolverTests
                     new HashSet<string>(StringComparer.Ordinal),
                     InstructionsFileSpanStream.Parse("## Assertions\n").Body.Sections),
             ]);
-            var references = InstructionsFileSpanStream.Parse("see [testing#'assertions'].\n").Body.References;
+            var references = InstructionsFileSpanStream.Parse("see [testing#'assertions'].\n").References;
 
             // Act
             var findings = InstructionsFileReferenceResolver.Resolve("dotnet-testing", references, catalog);
@@ -166,7 +166,7 @@ public sealed class InstructionsFileReferenceResolverTests
                     new HashSet<string>(StringComparer.Ordinal),
                     InstructionsFileSpanStream.Parse("## Assertions\n").Body.Sections),
             ]);
-            var references = InstructionsFileSpanStream.Parse("see [testing#'No Such Section'].\n").Body.References;
+            var references = InstructionsFileSpanStream.Parse("see [testing#'No Such Section'].\n").References;
 
             // Act
             var finding = Assert.Single(
@@ -188,7 +188,7 @@ public sealed class InstructionsFileReferenceResolverTests
                     new HashSet<string>(StringComparer.Ordinal) { "INST0014" },
                     []),
             ]);
-            var references = InstructionsFileSpanStream.Parse("see [testing#INST0014].\n").Body.References;
+            var references = InstructionsFileSpanStream.Parse("see [testing#INST0014].\n").References;
 
             // Act
             var finding = Assert.Single(
@@ -208,7 +208,7 @@ public sealed class InstructionsFileReferenceResolverTests
                     new HashSet<string>(StringComparer.Ordinal) { "INST0014" },
                     []),
             ]);
-            var references = InstructionsFileSpanStream.Parse("see [testing#INST9999].\n").Body.References;
+            var references = InstructionsFileSpanStream.Parse("see [testing#INST9999].\n").References;
 
             // Act
             var findings = InstructionsFileReferenceResolver.Resolve("testing", references, catalog);
@@ -229,7 +229,7 @@ public sealed class InstructionsFileReferenceResolverTests
             var catalog = new InstructionsFileCatalog([]);
             var references = InstructionsFileSpanStream
                 .Parse("see [https://example.com/testing.instructions.md#INST0001].\n")
-                .Body.References;
+                .References;
 
             // Act
             var findings = InstructionsFileReferenceResolver.Resolve("testing", references, catalog);
@@ -250,7 +250,7 @@ public sealed class InstructionsFileReferenceResolverTests
             ]);
             var references = InstructionsFileSpanStream
                 .Parse("see [testing.instructions.md#INST0014].\n")
-                .Body.References;
+                .References;
 
             // Act
             var findings = InstructionsFileReferenceResolver.Resolve("dotnet-testing", references, catalog);
@@ -271,7 +271,7 @@ public sealed class InstructionsFileReferenceResolverTests
             ]);
             var references = InstructionsFileSpanStream
                 .Parse("first [testing#INST9999] then [nosuch#INST0001] then [testing#INST0014].\n")
-                .Body.References;
+                .References;
 
             // Act
             var findings = InstructionsFileReferenceResolver.Resolve("dotnet-testing", references, catalog);

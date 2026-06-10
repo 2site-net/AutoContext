@@ -572,48 +572,53 @@ public sealed partial class InstructionsFileSyntaxParser(
             EmitSpan(state, block);
         }
 
-        if (!ShouldEmit(InstructionsFileSpanKind.FrontmatterProperty))
+        if (ShouldEmit(InstructionsFileSpanKind.FrontmatterProperty))
         {
-            return;
-        }
+            var tokens = new List<TokenDraft>();
 
-        var tokens = new List<TokenDraft>();
-
-        for (var i = 1; i < frontmatterLines.Count - 1; i++)
-        {
-            var line = frontmatterLines[i];
-            var field = GeneratedFrontmatterFieldRegex().Match(line.Content);
-
-            if (!field.Success)
+            for (var i = 1; i < frontmatterLines.Count - 1; i++)
             {
-                continue;
-            }
+                var line = frontmatterLines[i];
+                var field = GeneratedFrontmatterFieldRegex().Match(line.Content);
 
-            var key = field.Groups[1];
-            var value = field.Groups[2];
+                if (!field.Success)
+                {
+                    continue;
+                }
 
-            tokens.Add(new TokenDraft(
-                line.StartIndex,
-                line.Content.Length,
-                line.LineIndex,
-                InstructionsFileSpanKind.FrontmatterProperty));
-            tokens.Add(new TokenDraft(
-                line.StartIndex + key.Index,
-                key.Length,
-                line.LineIndex,
-                InstructionsFileSpanKind.FrontmatterKey));
+                var key = field.Groups[1];
+                var value = field.Groups[2];
 
-            if (value.Length > 0)
-            {
                 tokens.Add(new TokenDraft(
-                    line.StartIndex + value.Index,
-                    value.Length,
+                    line.StartIndex,
+                    line.Content.Length,
                     line.LineIndex,
-                    InstructionsFileSpanKind.FrontmatterValue));
+                    InstructionsFileSpanKind.FrontmatterProperty));
+                tokens.Add(new TokenDraft(
+                    line.StartIndex + key.Index,
+                    key.Length,
+                    line.LineIndex,
+                    InstructionsFileSpanKind.FrontmatterKey));
+
+                if (value.Length > 0)
+                {
+                    tokens.Add(new TokenDraft(
+                        line.StartIndex + value.Index,
+                        value.Length,
+                        line.LineIndex,
+                        InstructionsFileSpanKind.FrontmatterValue));
+                }
             }
+
+            EmitOrdered(state, tokens);
         }
 
-        EmitOrdered(state, tokens);
+        // Record the frontmatter extent only now that every frontmatter span has
+        // been made with a zero offset (so the frontmatter region's relative and
+        // absolute positions agree). From here on MakeSpan subtracts it, rebasing
+        // every body span to the start of the body.
+        state.FrontmatterCharLength = endIndex - first.StartIndex;
+        state.FrontmatterLineCount = frontmatterLines.Count;
     }
 
     private void EmitHeading(ParserState state, PhysicalLine line)
@@ -859,6 +864,17 @@ public sealed partial class InstructionsFileSyntaxParser(
                 kind,
                 new InstructionsFileTextSpan(startIndex, length),
                 new InstructionsFileLineSpan(startLine, lineCount))
+            {
+                // Only body spans carry an offset. Frontmatter spans are made while the
+                // phase is still Frontmatter (the extent is recorded only once they are
+                // all emitted), so they get none. Body spans are made afterwards and
+                // rebase to the start of the body in a single subtraction.
+                Offset = state.Phase == ParsePhase.Body
+                    ? new InstructionsFileOffset(
+                        startIndex - state.FrontmatterCharLength,
+                        startLine - state.FrontmatterLineCount)
+                    : null,
+            }
             : null;
 
     private bool ShouldEmit(InstructionsFileSpanKind kind)
@@ -943,6 +959,16 @@ public sealed partial class InstructionsFileSyntaxParser(
 
         /// <summary>Gets the frontmatter spans emitted so far, in document order.</summary>
         public List<InstructionsFileSyntaxSpan> Frontmatter { get; } = [];
+
+        /// <summary>Gets or sets the character length of the leading frontmatter block,
+        /// or zero until it is parsed (and for files with no frontmatter). Body spans
+        /// subtract this to rebase their character offsets to the start of the body.</summary>
+        public int FrontmatterCharLength { get; set; }
+
+        /// <summary>Gets or sets the line count of the leading frontmatter block, or zero
+        /// until it is parsed (and for files with no frontmatter). Body spans subtract this
+        /// to rebase their line numbers to the start of the body.</summary>
+        public int FrontmatterLineCount { get; set; }
 
         /// <summary>Gets or sets the buffered frontmatter lines, including the delimiters.</summary>
         public List<PhysicalLine> FrontmatterLines { get; set; } = [];
