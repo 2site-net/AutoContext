@@ -1,8 +1,9 @@
 namespace AutoContext.Engine.Core.Features.Instructions.Snapshot;
 
 /// <summary>
-/// Immutable in-memory view of a single bundled instruction file,
-/// composed at startup by merging the <c>instructions-manifest.json</c>
+/// One entry in the in-memory instruction manifest: the merged metadata
+/// describing a single bundled instruction file, composed at startup by
+/// merging the <c>instructions-manifest.json</c>
 /// fact row (identity, <see cref="Sections"/>, <see cref="Extensions"/>)
 /// with its <c>instructions-catalog.json</c> curatorial row
 /// (<see cref="Label"/>, <see cref="Categories"/>,
@@ -11,7 +12,7 @@ namespace AutoContext.Engine.Core.Features.Instructions.Snapshot;
 /// Pure data — it carries no body; the body is projected per request in
 /// a later phase.
 /// </summary>
-internal sealed record InstructionsManifestFile
+internal sealed record InstructionsFileManifestEntry
 {
     /// <summary>
     /// The stable key (the file basename without the

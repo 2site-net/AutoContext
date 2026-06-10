@@ -1,5 +1,7 @@
 namespace AutoContext.Instructions.Parser.Model;
 
+using System.Text;
+
 using AutoContext.Instructions.Parser.Syntax;
 
 /// <summary>
@@ -22,6 +24,16 @@ public sealed record InstructionsFileBody(
     IReadOnlyList<InstructionsFileSection> Sections,
     IReadOnlyList<InstructionsFileRule> Rules)
 {
+    /// <summary>
+    /// The parser used to rebuild a body from its text once rules have been
+    /// removed (see <see cref="WithoutTaggedRules"/>). The reparse input is a body
+    /// with no frontmatter, so <see cref="InstructionsFileSpanEmitScope.Body"/>
+    /// emits everything the rebuild reads; diagnostics are off because a body
+    /// carries none. Shared and stateless across calls.
+    /// </summary>
+    private static readonly InstructionsFileSyntaxParser BodyReparser =
+        new(emitScope: InstructionsFileSpanEmitScope.Body, includeDiagnostics: false);
+
     /// <summary>
     /// Builds an <see cref="InstructionsFileBody"/> from the body span stream of a
     /// parsed file. The body spans supply the <see cref="RawValue"/>,
@@ -94,6 +106,54 @@ public sealed record InstructionsFileBody(
         return new InstructionsFileBody(rawValue, sections, rules ?? []);
     }
 
+    /// <summary>
+    /// Returns a body with the tagged rules whose ids are in
+    /// <paramref name="ruleIds"/> removed. The matched rules' lines are deleted
+    /// from the body text and the shortened text is parsed again, so the returned
+    /// body's <see cref="RawValue"/>, <see cref="Sections"/>, and
+    /// <see cref="Rules"/> all describe what remains — every offset and line
+    /// number is measured against the shortened text. Rules with no id, and ids
+    /// not present in this body, are left untouched; when nothing matches the same
+    /// instance is returned.
+    /// </summary>
+    /// <param name="ruleIds">The <c>INST####</c> ids of the rules to drop.</param>
+    /// <param name="cancellationToken">Cancels the reparse.</param>
+    /// <returns>A body without the named rules, or this same body when none
+    /// matched.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="ruleIds"/> is
+    /// <see langword="null"/>.</exception>
+    public InstructionsFileBody WithoutTaggedRules(
+        IReadOnlySet<string> ruleIds,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(ruleIds);
+
+        if (ruleIds.Count == 0)
+        {
+            return this;
+        }
+
+        List<InstructionsFileLineSpan>? removed = null;
+
+        foreach (var rule in Rules)
+        {
+            if (rule.Id is { } id && ruleIds.Contains(id))
+            {
+                (removed ??= []).Add(rule.LineSpan);
+            }
+        }
+
+        if (removed is null)
+        {
+            return this;
+        }
+
+        var shortened = RemoveLines(RawValue, removed);
+        var tree = BodyReparser.Parse(shortened, cancellationToken);
+
+        return FromSpans(tree.Body);
+    }
+
     private static List<InstructionsFileSection> BuildSections(List<RawHeading>? rawHeadings, int bodyLength)
     {
         if (rawHeadings is null)
@@ -153,6 +213,19 @@ public sealed record InstructionsFileBody(
         return bodyLength;
     }
 
+    private static bool IsExcluded(int lineIndex, List<InstructionsFileLineSpan> excludedLineSpans)
+    {
+        foreach (var span in excludedLineSpans)
+        {
+            if (lineIndex >= span.StartLine && lineIndex < span.EndLine)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private static bool IsRuleTag(ReadOnlySpan<char> candidate)
     {
         if (candidate.Length != 8 || !candidate.StartsWith("INST", StringComparison.Ordinal))
@@ -206,6 +279,42 @@ public sealed record InstructionsFileBody(
         var candidate = inner[..close];
 
         return IsRuleTag(candidate) ? candidate.ToString() : null;
+    }
+
+    private static string RemoveLines(string rawValue, List<InstructionsFileLineSpan> excludedLineSpans)
+    {
+        ReadOnlySpan<char> body = rawValue;
+        var builder = new StringBuilder(rawValue.Length);
+        var lineStart = 0;
+        var lineIndex = 0;
+        var wroteLine = false;
+
+        while (true)
+        {
+            var newlineOffset = body[lineStart..].IndexOf('\n');
+            var lineEnd = newlineOffset < 0 ? body.Length : lineStart + newlineOffset;
+
+            if (!IsExcluded(lineIndex, excludedLineSpans))
+            {
+                if (wroteLine)
+                {
+                    builder.Append('\n');
+                }
+
+                builder.Append(body[lineStart..lineEnd]);
+                wroteLine = true;
+            }
+
+            if (newlineOffset < 0)
+            {
+                break;
+            }
+
+            lineStart = lineEnd + 1;
+            lineIndex++;
+        }
+
+        return builder.ToString();
     }
 
     private static string StripFinalLineTerminator(ReadOnlySpan<char> text)

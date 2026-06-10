@@ -7,7 +7,7 @@ using AutoContext.Engine.Core.Tests.Support.Workspace.Config;
 using AutoContext.Engine.Core.Workspace.Config.Snapshot;
 using AutoContext.Engine.Tests.Support.IO;
 
-public sealed class InstructionsFileServiceTests
+public sealed class InstructionsBodyProjectorTests
 {
     public sealed class Constructor
     {
@@ -16,7 +16,7 @@ public sealed class InstructionsFileServiceTests
         [InlineData("   ")]
         public void Should_reject_blank_instructions_directory(string directory)
             => Assert.Throws<ArgumentException>(
-                () => new InstructionsFileService(
+                () => new InstructionsBodyProjector(
                     directory,
                     new FakeInstructionsOverridesAccessor(),
                     new FakeConfigSnapshotAccessor()));
@@ -24,7 +24,7 @@ public sealed class InstructionsFileServiceTests
         [Fact]
         public void Should_reject_null_override_accessor()
             => Assert.Throws<ArgumentNullException>(
-                () => new InstructionsFileService(
+                () => new InstructionsBodyProjector(
                     "dir",
                     null!,
                     new FakeConfigSnapshotAccessor()));
@@ -32,13 +32,13 @@ public sealed class InstructionsFileServiceTests
         [Fact]
         public void Should_reject_null_config_accessor()
             => Assert.Throws<ArgumentNullException>(
-                () => new InstructionsFileService(
+                () => new InstructionsBodyProjector(
                     "dir",
                     new FakeInstructionsOverridesAccessor(),
                     null!));
     }
 
-    public sealed class GetBodyProjectionAsync(TempDirectoryFixture tempDirectory)
+    public sealed class ToResponseBodyAsync(TempDirectoryFixture tempDirectory)
         : IClassFixture<TempDirectoryFixture>
     {
         [Fact]
@@ -47,14 +47,14 @@ public sealed class InstructionsFileServiceTests
             // Arrange
             var directory = tempDirectory.CreateDirectory();
             InstructionsBodyTestFiles.Write(directory, "testing.instructions.md", InstructionsBodyTestFiles.Body);
-            var service = new InstructionsFileService(
+            var service = new InstructionsBodyProjector(
                 directory,
                 new FakeInstructionsOverridesAccessor(),
                 new FakeConfigSnapshotAccessor());
 
             // Act
-            var projection = await service.GetBodyProjectionAsync(
-                InstructionsManifestFileTestFactory.Create("testing"),
+            var projection = await service.ToResponseBodyAsync(
+                InstructionsFileManifestEntryTestFactory.Create("testing"),
                 requestedSectionAnchors: null,
                 TestContext.Current.CancellationToken);
 
@@ -96,14 +96,14 @@ public sealed class InstructionsFileServiceTests
                     ],
                 },
             };
-            var service = new InstructionsFileService(
+            var service = new InstructionsBodyProjector(
                 directory,
                 new FakeInstructionsOverridesAccessor(),
                 config);
 
             // Act
-            var projection = await service.GetBodyProjectionAsync(
-                InstructionsManifestFileTestFactory.Create("testing"),
+            var projection = await service.ToResponseBodyAsync(
+                InstructionsFileManifestEntryTestFactory.Create("testing"),
                 requestedSectionAnchors: null,
                 TestContext.Current.CancellationToken);
 
@@ -114,6 +114,55 @@ public sealed class InstructionsFileServiceTests
                 () => Assert.Contains("[INST0001]", projection.Content, StringComparison.Ordinal),
                 () => Assert.Contains("keep this rule", projection.Content, StringComparison.Ordinal),
                 () => Assert.Contains("Beta body line.", projection.Content, StringComparison.Ordinal));
+        }
+
+        [Fact]
+        public async Task Should_drop_disabled_rules_within_a_sliced_section()
+        {
+            // Arrange
+            var directory = tempDirectory.CreateDirectory();
+            InstructionsBodyTestFiles.Write(directory, "testing.instructions.md", InstructionsBodyTestFiles.Body);
+            var config = new FakeConfigSnapshotAccessor
+            {
+                Current = new ConfigSnapshot
+                {
+                    Instructions =
+                    [
+                        new ConfigInstructionsFile
+                        {
+                            Name = "testing",
+                            Rules =
+                            [
+                                new ConfigInstructionsFile.InstructionsRule
+                                {
+                                    Disabled = true,
+                                    Id = "INST0002",
+                                },
+                            ],
+                        },
+                    ],
+                },
+            };
+            var service = new InstructionsBodyProjector(
+                directory,
+                new FakeInstructionsOverridesAccessor(),
+                config);
+
+            // Act
+            var projection = await service.ToResponseBodyAsync(
+                InstructionsFileManifestEntryTestFactory.Create("testing"),
+                requestedSectionAnchors: ["alpha"],
+                TestContext.Current.CancellationToken);
+
+            // Assert
+            Assert.Multiple(
+                () => Assert.Contains("## Alpha", projection.Content, StringComparison.Ordinal),
+                () => Assert.Contains("[INST0001]", projection.Content, StringComparison.Ordinal),
+                () => Assert.DoesNotContain("[INST0002]", projection.Content, StringComparison.Ordinal),
+                () => Assert.DoesNotContain("do the bad thing", projection.Content, StringComparison.Ordinal),
+                () => Assert.DoesNotContain("## Beta", projection.Content, StringComparison.Ordinal),
+                () => Assert.Equal(["alpha"], projection.ReturnedSections),
+                () => Assert.Empty(projection.NotFoundSections));
         }
 
         [Fact]
@@ -129,14 +178,14 @@ public sealed class InstructionsFileServiceTests
                 "# Override\n\nOVERRIDE marker.\n");
             var overrides = new InstructionsOverridesSnapshot(
                 new Dictionary<string, string> { ["testing.instructions.md"] = overridePath });
-            var service = new InstructionsFileService(
+            var service = new InstructionsBodyProjector(
                 bundledDirectory,
                 new FakeInstructionsOverridesAccessor(overrides),
                 new FakeConfigSnapshotAccessor());
 
             // Act
-            var projection = await service.GetBodyProjectionAsync(
-                InstructionsManifestFileTestFactory.Create("testing"),
+            var projection = await service.ToResponseBodyAsync(
+                InstructionsFileManifestEntryTestFactory.Create("testing"),
                 requestedSectionAnchors: null,
                 TestContext.Current.CancellationToken);
 
@@ -152,14 +201,14 @@ public sealed class InstructionsFileServiceTests
             // Arrange
             var directory = tempDirectory.CreateDirectory();
             InstructionsBodyTestFiles.Write(directory, "testing.instructions.md", InstructionsBodyTestFiles.Body);
-            var service = new InstructionsFileService(
+            var service = new InstructionsBodyProjector(
                 directory,
                 new FakeInstructionsOverridesAccessor(),
                 new FakeConfigSnapshotAccessor());
 
             // Act
-            var projection = await service.GetBodyProjectionAsync(
-                InstructionsManifestFileTestFactory.Create("testing"),
+            var projection = await service.ToResponseBodyAsync(
+                InstructionsFileManifestEntryTestFactory.Create("testing"),
                 requestedSectionAnchors: ["alpha"],
                 TestContext.Current.CancellationToken);
 
@@ -198,14 +247,14 @@ public sealed class InstructionsFileServiceTests
 
                 """;
             InstructionsBodyTestFiles.Write(directory, "testing.instructions.md", body);
-            var service = new InstructionsFileService(
+            var service = new InstructionsBodyProjector(
                 directory,
                 new FakeInstructionsOverridesAccessor(),
                 new FakeConfigSnapshotAccessor());
 
             // Act
-            var projection = await service.GetBodyProjectionAsync(
-                InstructionsManifestFileTestFactory.Create("testing"),
+            var projection = await service.ToResponseBodyAsync(
+                InstructionsFileManifestEntryTestFactory.Create("testing"),
                 requestedSectionAnchors: ["beta"],
                 TestContext.Current.CancellationToken);
 
@@ -219,14 +268,14 @@ public sealed class InstructionsFileServiceTests
             // Arrange
             var directory = tempDirectory.CreateDirectory();
             InstructionsBodyTestFiles.Write(directory, "testing.instructions.md", InstructionsBodyTestFiles.Body);
-            var service = new InstructionsFileService(
+            var service = new InstructionsBodyProjector(
                 directory,
                 new FakeInstructionsOverridesAccessor(),
                 new FakeConfigSnapshotAccessor());
 
             // Act
-            var projection = await service.GetBodyProjectionAsync(
-                InstructionsManifestFileTestFactory.Create("testing"),
+            var projection = await service.ToResponseBodyAsync(
+                InstructionsFileManifestEntryTestFactory.Create("testing"),
                 requestedSectionAnchors: ["beta", "ghost"],
                 TestContext.Current.CancellationToken);
 

@@ -9,8 +9,8 @@ using Microsoft.Extensions.Logging;
 
 /// <summary>
 /// Free-text body search across the bundled instruction corpus. Indexes
-/// each file's <see cref="InstructionsManifestFile.Description"/> and its
-/// projected body (via <see cref="InstructionsFileService.ProjectBodyAsync"/>,
+/// each file's <see cref="InstructionsFileManifestEntry.Description"/> and its
+/// projected body (via <see cref="InstructionsBodyProjector.ToSearchBodyAsync"/>,
 /// so workspace overrides and disabled-rule filtering are already
 /// reconciled) into per-file token-frequency maps with an identifier-aware
 /// tokenizer that splits on non-word runs <em>and</em> camelCase / kebab /
@@ -49,10 +49,9 @@ internal sealed partial class InstructionsFullTextSearchService : IDisposable
     private const int ExcerptRadius = 80;
     private const int MaxExcerptsPerHit = 3;
     private const int MaxLimit = 25;
-
+    private readonly InstructionsBodyProjector _bodyProjector;
     private readonly IConfigSnapshotAccessor _configAccessor;
     private volatile bool _dirty;
-    private readonly InstructionsFileService _fileService;
     private readonly SemaphoreSlim _gate = new(1, 1);
     private IReadOnlyList<IndexedFile>? _index;
     private readonly ILogger<InstructionsFullTextSearchService> _logger;
@@ -61,12 +60,12 @@ internal sealed partial class InstructionsFullTextSearchService : IDisposable
     /// <summary>
     /// Creates a search service over the corpus snapshot from
     /// <paramref name="manifestAccessor"/>, projecting bodies through
-    /// <paramref name="fileService"/> and reading whole-file disabled state
+    /// <paramref name="bodyProjector"/> and reading whole-file disabled state
     /// from <paramref name="configAccessor"/>.
     /// </summary>
     /// <param name="manifestAccessor">Read seam over the in-memory corpus
     /// snapshot.</param>
-    /// <param name="fileService">Projects one file body per index entry.</param>
+    /// <param name="bodyProjector">Projects one file body per index entry.</param>
     /// <param name="configAccessor">Read seam over the workspace config, the
     /// source of whole-file disabled state.</param>
     /// <param name="logger">Diagnostic sink.</param>
@@ -74,17 +73,17 @@ internal sealed partial class InstructionsFullTextSearchService : IDisposable
     /// <see langword="null"/>.</exception>
     public InstructionsFullTextSearchService(
         IInstructionsManifestAccessor manifestAccessor,
-        InstructionsFileService fileService,
+        InstructionsBodyProjector bodyProjector,
         IConfigSnapshotAccessor configAccessor,
         ILogger<InstructionsFullTextSearchService> logger)
     {
         ArgumentNullException.ThrowIfNull(manifestAccessor);
-        ArgumentNullException.ThrowIfNull(fileService);
+        ArgumentNullException.ThrowIfNull(bodyProjector);
         ArgumentNullException.ThrowIfNull(configAccessor);
         ArgumentNullException.ThrowIfNull(logger);
 
         _manifestAccessor = manifestAccessor;
-        _fileService = fileService;
+        _bodyProjector = bodyProjector;
         _configAccessor = configAccessor;
         _logger = logger;
     }
@@ -342,14 +341,14 @@ internal sealed partial class InstructionsFullTextSearchService : IDisposable
     }
 
     private async Task<IndexedFile?> BuildFileIndexAsync(
-        InstructionsManifestFile file,
+        InstructionsFileManifestEntry file,
         CancellationToken cancellationToken)
     {
-        InstructionsProjectedBody projected;
+        InstructionsSearchBody projected;
 
         try
         {
-            projected = await _fileService.ProjectBodyAsync(file, cancellationToken).ConfigureAwait(false);
+            projected = await _bodyProjector.ToSearchBodyAsync(file, cancellationToken).ConfigureAwait(false);
         }
         catch (Exception exception) when (exception is not OperationCanceledException)
         {

@@ -3,15 +3,15 @@ namespace AutoContext.Engine.Core.Tests.Support.Features.Instructions;
 using AutoContext.Engine.Core.Features.Instructions.Snapshot;
 
 /// <summary>
-/// Builds <see cref="InstructionsManifestFile"/> instances for tests that
+/// Builds <see cref="InstructionsFileManifestEntry"/> instances for tests that
 /// only care about the identity fields the body projection reads
-/// (<see cref="InstructionsManifestFile.Key"/> and
-/// <see cref="InstructionsManifestFile.FileName"/>); every other required
+/// (<see cref="InstructionsFileManifestEntry.Key"/> and
+/// <see cref="InstructionsFileManifestEntry.FileName"/>); every other required
 /// field is filled with an inert placeholder.
 /// </summary>
-internal static class InstructionsManifestFileTestFactory
+internal static class InstructionsFileManifestEntryTestFactory
 {
-    public static InstructionsManifestFile Create(
+    public static InstructionsFileManifestEntry Create(
         string key,
         string? fileName = null,
         string? description = null)

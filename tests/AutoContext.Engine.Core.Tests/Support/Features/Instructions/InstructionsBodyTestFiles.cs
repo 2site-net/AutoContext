@@ -2,11 +2,11 @@ namespace AutoContext.Engine.Core.Tests.Support.Features.Instructions;
 
 /// <summary>
 /// The canonical instruction-file body used by
-/// <c>InstructionsFileServiceTests</c>: a frontmatter block followed by
+/// <c>InstructionsBodyProjectorTests</c>: a frontmatter block followed by
 /// two <c>##</c> sections (<c>alpha</c>, <c>beta</c>) where the
 /// <c>alpha</c> section carries two tagged rule bullets
 /// (<c>INST0001</c>, <c>INST0002</c>). Writing it to disk lets the
-/// service exercise frontmatter stripping, section slicing, and
+/// projector exercise frontmatter stripping, section slicing, and
 /// disabled-rule filtering against a single known shape.
 /// </summary>
 internal static class InstructionsBodyTestFiles

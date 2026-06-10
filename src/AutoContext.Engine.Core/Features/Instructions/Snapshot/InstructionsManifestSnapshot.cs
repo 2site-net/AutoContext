@@ -3,7 +3,7 @@ namespace AutoContext.Engine.Core.Features.Instructions.Snapshot;
 /// <summary>
 /// Immutable snapshot of the bundled instruction corpus: the category
 /// taxonomy the catalog declares, plus the merged
-/// <see cref="InstructionsManifestFile"/> rows the engine ships, in
+/// <see cref="InstructionsFileManifestEntry"/> rows the engine ships, in
 /// document order, with an ordinal lookup by file name. Built once at
 /// startup by <see cref="InstructionsManifestLoader"/> from the
 /// build-time catalog and manifest side-cars and published through
@@ -20,7 +20,7 @@ internal sealed class InstructionsManifestSnapshot
     /// </summary>
     public static InstructionsManifestSnapshot Empty { get; } = new([], []);
 
-    private readonly Dictionary<string, InstructionsManifestFile> _byFileName;
+    private readonly Dictionary<string, InstructionsFileManifestEntry> _byFileName;
 
     /// <summary>
     /// Creates a snapshot over <paramref name="categories"/> and
@@ -31,7 +31,7 @@ internal sealed class InstructionsManifestSnapshot
     /// <param name="files">The merged corpus rows, in document order.
     /// Must not be <see langword="null"/>, contain a
     /// <see langword="null"/> element, or contain two rows with the same
-    /// <see cref="InstructionsManifestFile.FileName"/>.</param>
+    /// <see cref="InstructionsFileManifestEntry.FileName"/>.</param>
     /// <exception cref="ArgumentNullException">
     /// <paramref name="categories"/> or <paramref name="files"/> is
     /// <see langword="null"/>.</exception>
@@ -40,12 +40,12 @@ internal sealed class InstructionsManifestSnapshot
     /// name.</exception>
     public InstructionsManifestSnapshot(
         IReadOnlyList<InstructionsCategory> categories,
-        IReadOnlyList<InstructionsManifestFile> files)
+        IReadOnlyList<InstructionsFileManifestEntry> files)
     {
         ArgumentNullException.ThrowIfNull(categories);
         ArgumentNullException.ThrowIfNull(files);
 
-        _byFileName = new Dictionary<string, InstructionsManifestFile>(
+        _byFileName = new Dictionary<string, InstructionsFileManifestEntry>(
             files.Count, StringComparer.Ordinal);
 
         foreach (var file in files)
@@ -72,11 +72,11 @@ internal sealed class InstructionsManifestSnapshot
     /// <summary>
     /// The merged corpus rows in document order.
     /// </summary>
-    public IReadOnlyList<InstructionsManifestFile> Files { get; }
+    public IReadOnlyList<InstructionsFileManifestEntry> Files { get; }
 
     /// <summary>
     /// Returns the row whose
-    /// <see cref="InstructionsManifestFile.FileName"/> equals
+    /// <see cref="InstructionsFileManifestEntry.FileName"/> equals
     /// <paramref name="fileName"/> (ordinal), or <see langword="null"/>
     /// when no row matches.
     /// </summary>
@@ -85,7 +85,7 @@ internal sealed class InstructionsManifestSnapshot
     /// <see langword="null"/>.</param>
     /// <exception cref="ArgumentNullException"><paramref name="fileName"/>
     /// is <see langword="null"/>.</exception>
-    public InstructionsManifestFile? FindByFileName(string fileName)
+    public InstructionsFileManifestEntry? FindByFileName(string fileName)
     {
         ArgumentNullException.ThrowIfNull(fileName);
 

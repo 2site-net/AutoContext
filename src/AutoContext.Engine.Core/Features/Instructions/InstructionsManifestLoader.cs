@@ -74,7 +74,7 @@ internal static class InstructionsManifestLoader
         var rows = manifest.Instructions
             ?? throw Malformed(manifestPath, "the 'instructions' array is missing.");
 
-        var files = new List<InstructionsManifestFile>(rows.Count);
+        var files = new List<InstructionsFileManifestEntry>(rows.Count);
 
         foreach (var row in rows)
         {
@@ -162,7 +162,7 @@ internal static class InstructionsManifestLoader
         return byFileName;
     }
 
-    private static InstructionsManifestFile Merge(
+    private static InstructionsFileManifestEntry Merge(
         JsonInstructionsManifestEntry manifest,
         HashSet<string> alwaysAttached,
         IReadOnlyDictionary<string, JsonInstructionsCatalogEntry> catalogByFileName,
@@ -177,7 +177,7 @@ internal static class InstructionsManifestLoader
             ? (null, [], [])
             : ResolveCatalog(fileName, catalogByFileName, catalogPath);
 
-        return new InstructionsManifestFile
+        return new InstructionsFileManifestEntry
         {
             Key = key,
             FileName = fileName,
