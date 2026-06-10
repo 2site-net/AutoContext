@@ -35,7 +35,7 @@ public enum InstructionsFileSpanKind
 
     /// <summary>A level-one heading (<c>#&#160;Heading</c>). A block-level kind.
     /// Headings are emitted exactly as written; choosing which ones count as
-    /// sections is left to <see cref="Model.InstructionsFile.FromSpans"/>.</summary>
+    /// sections is left to <see cref="Model.InstructionsFile.FromSyntaxTree"/>.</summary>
     Heading1,
 
     /// <summary>A level-two heading (<c>##&#160;Section</c>). A block-level

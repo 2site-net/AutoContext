@@ -11,7 +11,7 @@ using AutoContext.Instructions.Parser.Syntax;
 /// generator and the runtime engine — works from this one shape, so each file is
 /// parsed just once.
 /// <para>
-/// Construct one from a span stream with <see cref="FromSpans"/>, or read and parse
+/// Construct one from a span stream with <see cref="FromSyntaxTree"/>, or read and parse
 /// a file from disk with <see cref="InstructionsFileFactory.FromFileAsync"/>.
 /// </para>
 /// </summary>
@@ -53,7 +53,7 @@ public sealed record InstructionsFile(
     /// <returns>The complete structural parse.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="tree"/> is
     /// <see langword="null"/>.</exception>
-    public static InstructionsFile FromSpans(InstructionsFileSyntaxTree tree)
+    public static InstructionsFile FromSyntaxTree(InstructionsFileSyntaxTree tree)
     {
         ArgumentNullException.ThrowIfNull(tree);
 

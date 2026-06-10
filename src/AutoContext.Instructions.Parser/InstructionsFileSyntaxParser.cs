@@ -9,7 +9,7 @@ using AutoContext.Instructions.Parser.Syntax;
 /// Scans the raw text of an instructions file and breaks it into
 /// <see cref="InstructionsFileSyntaxSpan"/> pieces — frontmatter, headings, rule
 /// bullets, tags, and references — each marked with where it sits in the file.
-/// This is the first of two passes; <see cref="Model.InstructionsFile.FromSpans"/>
+/// This is the first of two passes; <see cref="Model.InstructionsFile.FromSyntaxTree"/>
 /// takes the <see cref="InstructionsFileSyntaxTree"/> produced here and turns it
 /// into the final structured result. The tree splits the spans into a frontmatter
 /// stream and a body stream, with references and diagnostics gathered into their

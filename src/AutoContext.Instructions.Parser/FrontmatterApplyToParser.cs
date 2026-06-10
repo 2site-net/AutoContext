@@ -5,7 +5,7 @@ using AutoContext.Instructions.Parser.Model;
 /// <summary>
 /// Parses an instructions file's <c>applyTo</c> frontmatter value into its
 /// structural pieces. This is an internal collaborator of
-/// <see cref="InstructionsFile.FromSpans"/> — the structured-model pass — not a
+/// <see cref="InstructionsFile.FromSyntaxTree"/> — the structured-model pass — not a
 /// second file parser: it understands only the <c>applyTo</c> glob-list
 /// grammar. The parser splits comma-separated globs at brace depth zero (so
 /// intra-brace commas such as <c>{cs,fs}</c> survive), brace-expands

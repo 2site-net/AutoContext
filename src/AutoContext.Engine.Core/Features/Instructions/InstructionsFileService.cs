@@ -36,7 +36,7 @@ internal sealed class InstructionsFileService
     /// (see <see cref="ReparseSections"/>). Scoped deliberately: the reparse
     /// input is the filtered body, which has no frontmatter, so
     /// <see cref="InstructionsFileSpanEmitScope.Body"/> (<c>Text | Headings |
-    /// Rules | References</c>) is sufficient — <see cref="InstructionsFile.FromSpans"/>
+    /// Rules | References</c>) is sufficient — <see cref="InstructionsFile.FromSyntaxTree"/>
     /// needs only the <c>Text</c> blocks to recover the source string and the
     /// heading spans to build the section index. Diagnostics are off because
     /// the reparse discards them. This is a hot path (it runs for every file at
@@ -275,7 +275,7 @@ internal sealed class InstructionsFileService
     {
         var tree = BodyReparser.Parse(content, cancellationToken);
 
-        return InstructionsFile.FromSpans(tree).Body.Sections;
+        return InstructionsFile.FromSyntaxTree(tree).Body.Sections;
     }
 
     private static SectionSelection SelectSections(

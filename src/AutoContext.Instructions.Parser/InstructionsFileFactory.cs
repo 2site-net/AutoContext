@@ -28,6 +28,6 @@ public static class InstructionsFileFactory
 
         var tree = await SyntaxParser.ParseFileAsync(path, cancellationToken).ConfigureAwait(false);
 
-        return InstructionsFile.FromSpans(tree);
+        return InstructionsFile.FromSyntaxTree(tree);
     }
 }

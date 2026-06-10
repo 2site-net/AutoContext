@@ -13,7 +13,7 @@ public sealed class InstructionsFileTests
         {
             // Act + Assert
             Assert.Throws<ArgumentNullException>(
-                () => InstructionsFile.FromSpans(null!));
+                () => InstructionsFile.FromSyntaxTree(null!));
         }
 
         [Fact]
@@ -24,7 +24,7 @@ public sealed class InstructionsFileTests
             var spans = InstructionsFileSpanStream.From(content);
 
             // Act
-            var parsed = InstructionsFile.FromSpans(spans);
+            var parsed = InstructionsFile.FromSyntaxTree(spans);
 
             // Assert
             Assert.Equal(content, parsed.RawContent);
@@ -38,7 +38,7 @@ public sealed class InstructionsFileTests
             var spans = InstructionsFileSpanStream.From(content);
 
             // Act
-            var parsed = InstructionsFile.FromSpans(spans);
+            var parsed = InstructionsFile.FromSyntaxTree(spans);
 
             // Assert
             Assert.Equal("# Title\n\nBody.\n", parsed.Body.RawValue);
@@ -55,7 +55,7 @@ public sealed class InstructionsFileTests
             var spans = InstructionsFileSpanStream.From(content);
 
             // Act
-            var parsed = InstructionsFile.FromSpans(spans);
+            var parsed = InstructionsFile.FromSyntaxTree(spans);
             var frontmatter = parsed.Frontmatter;
 
             // Assert
@@ -77,7 +77,7 @@ public sealed class InstructionsFileTests
             var spans = InstructionsFileSpanStream.From(content);
 
             // Act
-            var parsed = InstructionsFile.FromSpans(spans);
+            var parsed = InstructionsFile.FromSyntaxTree(spans);
             var frontmatter = parsed.Frontmatter;
 
             // Assert
@@ -97,7 +97,7 @@ public sealed class InstructionsFileTests
             var spans = InstructionsFileSpanStream.From(content);
 
             // Act
-            var applyTo = InstructionsFile.FromSpans(spans).Frontmatter.ApplyTo;
+            var applyTo = InstructionsFile.FromSyntaxTree(spans).Frontmatter.ApplyTo;
 
             // Assert
             Assert.Multiple(
@@ -114,7 +114,7 @@ public sealed class InstructionsFileTests
             var spans = InstructionsFileSpanStream.From(content);
 
             // Act
-            var frontmatter = InstructionsFile.FromSpans(spans).Frontmatter;
+            var frontmatter = InstructionsFile.FromSyntaxTree(spans).Frontmatter;
 
             // Assert
             Assert.Null(frontmatter.ApplyTo);
@@ -128,7 +128,7 @@ public sealed class InstructionsFileTests
             var spans = InstructionsFileSpanStream.From(content);
 
             // Act
-            var frontmatter = InstructionsFile.FromSpans(spans).Frontmatter;
+            var frontmatter = InstructionsFile.FromSyntaxTree(spans).Frontmatter;
 
             // Assert
             Assert.Multiple(
@@ -147,7 +147,7 @@ public sealed class InstructionsFileTests
             var spans = InstructionsFileSpanStream.From(content);
 
             // Act
-            var parsed = InstructionsFile.FromSpans(spans);
+            var parsed = InstructionsFile.FromSyntaxTree(spans);
             var body = parsed.Body;
 
             // Assert
@@ -179,7 +179,7 @@ public sealed class InstructionsFileTests
             var spans = InstructionsFileSpanStream.From(content);
 
             // Act
-            var parsed = InstructionsFile.FromSpans(spans);
+            var parsed = InstructionsFile.FromSyntaxTree(spans);
             var sections = parsed.Body.Sections;
 
             // Assert
@@ -196,7 +196,7 @@ public sealed class InstructionsFileTests
             var spans = InstructionsFileSpanStream.From(content);
 
             // Act
-            var sections = InstructionsFile.FromSpans(spans).Body.Sections;
+            var sections = InstructionsFile.FromSyntaxTree(spans).Body.Sections;
 
             // Assert
             Assert.Multiple(
@@ -212,7 +212,7 @@ public sealed class InstructionsFileTests
             var spans = InstructionsFileSpanStream.From(content);
 
             // Act
-            var sections = InstructionsFile.FromSpans(spans).Body.Sections;
+            var sections = InstructionsFile.FromSyntaxTree(spans).Body.Sections;
 
             // Assert
             Assert.Equal(["Real", "AlsoReal"], sections.Select(static section => section.Heading));
@@ -226,7 +226,7 @@ public sealed class InstructionsFileTests
             var spans = InstructionsFileSpanStream.From(content);
 
             // Act — the parser reports structure verbatim; collision policy is the consumer's.
-            var sections = InstructionsFile.FromSpans(spans).Body.Sections;
+            var sections = InstructionsFile.FromSyntaxTree(spans).Body.Sections;
 
             // Assert
             Assert.Equal(["same", "same"], sections.Select(static section => section.Anchor));
@@ -243,7 +243,7 @@ public sealed class InstructionsFileTests
             var spans = InstructionsFileSpanStream.From(content);
 
             // Act
-            var parsed = InstructionsFile.FromSpans(spans);
+            var parsed = InstructionsFile.FromSyntaxTree(spans);
             var rules = parsed.Body.Rules;
 
             // Assert
@@ -263,7 +263,7 @@ public sealed class InstructionsFileTests
             var spans = InstructionsFileSpanStream.From(content);
 
             // Act
-            var parsed = InstructionsFile.FromSpans(spans);
+            var parsed = InstructionsFile.FromSyntaxTree(spans);
             var body = parsed.Body;
 
             // Assert
@@ -283,7 +283,7 @@ public sealed class InstructionsFileTests
             var spans = InstructionsFileSpanStream.From(content);
 
             // Act
-            var parsed = InstructionsFile.FromSpans(spans);
+            var parsed = InstructionsFile.FromSyntaxTree(spans);
             var body = parsed.Body;
 
             // Assert
@@ -301,7 +301,7 @@ public sealed class InstructionsFileTests
             var spans = InstructionsFileSpanStream.From(content);
 
             // Act
-            var rules = InstructionsFile.FromSpans(spans).Body.Rules;
+            var rules = InstructionsFile.FromSyntaxTree(spans).Body.Rules;
 
             // Assert
             Assert.Multiple(
@@ -318,7 +318,7 @@ public sealed class InstructionsFileTests
             var spans = InstructionsFileSpanStream.From(content);
 
             // Act
-            var rule = Assert.Single(InstructionsFile.FromSpans(spans).Body.Rules);
+            var rule = Assert.Single(InstructionsFile.FromSyntaxTree(spans).Body.Rules);
 
             // Assert
             Assert.DoesNotContain("Unindented", rule.Text, StringComparison.Ordinal);
@@ -335,7 +335,7 @@ public sealed class InstructionsFileTests
             var spans = InstructionsFileSpanStream.From(content);
 
             // Act
-            var parsed = InstructionsFile.FromSpans(spans);
+            var parsed = InstructionsFile.FromSyntaxTree(spans);
             var references = parsed.References;
 
             // Assert
@@ -360,7 +360,7 @@ public sealed class InstructionsFileTests
             var spans = InstructionsFileSpanStream.From(content);
 
             // Act
-            var parsed = InstructionsFile.FromSpans(spans);
+            var parsed = InstructionsFile.FromSyntaxTree(spans);
 
             // Assert
             Assert.Multiple(
@@ -377,7 +377,7 @@ public sealed class InstructionsFileTests
             var spans = InstructionsFileSpanStream.From(content);
 
             // Act
-            var references = InstructionsFile.FromSpans(spans).References;
+            var references = InstructionsFile.FromSyntaxTree(spans).References;
 
             // Assert
             Assert.Multiple(
@@ -398,7 +398,7 @@ public sealed class InstructionsFileTests
             var spans = InstructionsFileSpanStream.From(content);
 
             // Act
-            var reference = Assert.Single(InstructionsFile.FromSpans(spans).References);
+            var reference = Assert.Single(InstructionsFile.FromSyntaxTree(spans).References);
 
             // Assert
             Assert.Multiple(
@@ -414,7 +414,7 @@ public sealed class InstructionsFileTests
             var spans = InstructionsFileSpanStream.From(content);
 
             // Act
-            var parsed = InstructionsFile.FromSpans(spans);
+            var parsed = InstructionsFile.FromSyntaxTree(spans);
 
             // Assert
             Assert.Multiple(
@@ -430,7 +430,7 @@ public sealed class InstructionsFileTests
             var spans = InstructionsFileSpanStream.From(content);
 
             // Act
-            var reference = Assert.Single(InstructionsFile.FromSpans(spans).References);
+            var reference = Assert.Single(InstructionsFile.FromSyntaxTree(spans).References);
 
             // Assert
             Assert.Equal("INST0001", reference.Address.Target);
@@ -444,7 +444,7 @@ public sealed class InstructionsFileTests
             var spans = InstructionsFileSpanStream.From(content);
 
             // Act
-            var parsed = InstructionsFile.FromSpans(spans);
+            var parsed = InstructionsFile.FromSyntaxTree(spans);
 
             // Assert
             Assert.Multiple(
@@ -460,7 +460,7 @@ public sealed class InstructionsFileTests
             var spans = InstructionsFileSpanStream.From(content);
 
             // Act
-            var file = InstructionsFile.FromSpans(spans);
+            var file = InstructionsFile.FromSyntaxTree(spans);
 
             // Assert
             Assert.Multiple(
@@ -482,7 +482,7 @@ public sealed class InstructionsFileTests
             var spans = InstructionsFileSpanStream.From(content);
 
             // Act
-            var file = InstructionsFile.FromSpans(spans);
+            var file = InstructionsFile.FromSyntaxTree(spans);
             var body = file.Body;
             var reference = Assert.Single(file.References);
 
@@ -506,7 +506,7 @@ public sealed class InstructionsFileTests
             var spans = InstructionsFileSpanStream.From(content);
 
             // Act
-            var parsed = InstructionsFile.FromSpans(spans);
+            var parsed = InstructionsFile.FromSyntaxTree(spans);
             var diagnostics = parsed.Diagnostics;
 
             // Assert
@@ -524,7 +524,7 @@ public sealed class InstructionsFileTests
             var spans = InstructionsFileSpanStream.From(content);
 
             // Act
-            var parsed = InstructionsFile.FromSpans(spans);
+            var parsed = InstructionsFile.FromSyntaxTree(spans);
             var diagnostics = parsed.Diagnostics;
 
             // Assert
@@ -542,7 +542,7 @@ public sealed class InstructionsFileTests
             var spans = InstructionsFileSpanStream.From(content);
 
             // Act
-            var parsed = InstructionsFile.FromSpans(spans);
+            var parsed = InstructionsFile.FromSyntaxTree(spans);
             var diagnostics = parsed.Diagnostics;
 
             // Assert

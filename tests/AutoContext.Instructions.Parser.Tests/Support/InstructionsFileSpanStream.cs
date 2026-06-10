@@ -9,5 +9,5 @@ internal static class InstructionsFileSpanStream
         => new InstructionsFileSyntaxParser().Parse(text, TestContext.Current.CancellationToken);
 
     public static InstructionsFile Parse(string text)
-        => InstructionsFile.FromSpans(From(text));
+        => InstructionsFile.FromSyntaxTree(From(text));
 }

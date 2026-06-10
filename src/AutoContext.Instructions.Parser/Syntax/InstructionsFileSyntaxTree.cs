@@ -7,7 +7,7 @@ namespace AutoContext.Instructions.Parser.Syntax;
 /// cites, and any <see cref="Diagnostics"/>. The parser already knows which region
 /// it is in as it scans, so routing each span to <see cref="Frontmatter"/> or
 /// <see cref="Body"/> costs nothing extra; references and diagnostics are
-/// self-locating side streams. <see cref="Model.InstructionsFile.FromSpans"/> turns
+/// self-locating side streams. <see cref="Model.InstructionsFile.FromSyntaxTree"/> turns
 /// this into the final structured result.
 /// </summary>
 /// <param name="Frontmatter">The frontmatter spans, in document order: the block
