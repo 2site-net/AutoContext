@@ -1,0 +1,112 @@
+namespace AutoContext.Engine.Core.Features.Instructions;
+
+using AutoContext.Engine.Core.Features.Instructions.Snapshot;
+
+using Microsoft.Extensions.Logging;
+
+/// <summary>
+/// Detects the <em>override survival across upgrades</em> pitfall: a
+/// workspace-local <c>&lt;name&gt;.instructions.md</c> override keeps
+/// winning silently after an engine release refreshes the bundled copy of
+/// the same file. For each override that shadows a bundled file, this
+/// inspector compares last-write timestamps and emits a warning-level
+/// event when the override is older than the bundled file, so a UI can
+/// surface the staleness as a non-fatal hint.
+/// </summary>
+/// <remarks>
+/// Overrides that have no bundled counterpart (workspace-only instruction
+/// files) are skipped, and a per-file read failure is logged at debug and
+/// otherwise ignored so one unreadable file never derails the inspection
+/// of the rest.
+/// </remarks>
+internal sealed partial class StaleOverrideInspector
+{
+    private readonly string _bundledInstructionsDirectory;
+    private readonly ILogger _logger;
+
+    /// <summary>
+    /// Creates an inspector that compares overrides against the bundled
+    /// bodies in <paramref name="bundledInstructionsDirectory"/>.
+    /// </summary>
+    /// <param name="bundledInstructionsDirectory">Absolute path of the
+    /// directory holding the bundled <c>*.instructions.md</c> files. Must
+    /// not be <see langword="null"/>, empty, or whitespace.</param>
+    /// <param name="logger">Diagnostic sink that carries the staleness
+    /// warning.</param>
+    /// <exception cref="ArgumentException">
+    /// <paramref name="bundledInstructionsDirectory"/> is
+    /// <see langword="null"/>, empty, or whitespace.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="logger"/> is
+    /// <see langword="null"/>.</exception>
+    public StaleOverrideInspector(string bundledInstructionsDirectory, ILogger logger)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(bundledInstructionsDirectory);
+        ArgumentNullException.ThrowIfNull(logger);
+
+        _bundledInstructionsDirectory = bundledInstructionsDirectory;
+        _logger = logger;
+    }
+
+    /// <summary>
+    /// Inspects every override in <paramref name="overrides"/> and warns
+    /// for each one that is older than the bundled file it shadows.
+    /// </summary>
+    /// <param name="overrides">The override inventory to inspect. Must not
+    /// be <see langword="null"/>.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="overrides"/>
+    /// is <see langword="null"/>.</exception>
+    public void Inspect(InstructionsOverridesSnapshot overrides)
+    {
+        ArgumentNullException.ThrowIfNull(overrides);
+
+        foreach (var fileName in overrides.FileNames)
+        {
+            if (overrides.TryGetPath(fileName, out var overridePath) && overridePath is not null)
+            {
+                InspectOverride(fileName, overridePath);
+            }
+        }
+    }
+
+    private void InspectOverride(string fileName, string overridePath)
+    {
+        var bundledPath = Path.Combine(_bundledInstructionsDirectory, fileName);
+
+        if (!File.Exists(bundledPath))
+        {
+            return;
+        }
+
+        try
+        {
+            var overrideWriteTimeUtc = File.GetLastWriteTimeUtc(overridePath);
+            var bundledWriteTimeUtc = File.GetLastWriteTimeUtc(bundledPath);
+
+            if (overrideWriteTimeUtc < bundledWriteTimeUtc)
+            {
+                LogStaleOverride(_logger, fileName, overrideWriteTimeUtc, bundledWriteTimeUtc);
+            }
+        }
+        catch (IOException exception)
+        {
+            LogInspectionFailed(_logger, fileName, exception);
+        }
+        catch (UnauthorizedAccessException exception)
+        {
+            LogInspectionFailed(_logger, fileName, exception);
+        }
+    }
+
+    [LoggerMessage(
+        EventId = 1,
+        Level = LogLevel.Warning,
+        Message = "Instruction override '{FileName}' (last modified {OverrideWriteTimeUtc:u}) is older than its bundled file (last modified {BundledWriteTimeUtc:u}); the override may be stale after an engine upgrade.")]
+    private static partial void LogStaleOverride(
+        ILogger logger, string fileName, DateTime overrideWriteTimeUtc, DateTime bundledWriteTimeUtc);
+
+    [LoggerMessage(
+        EventId = 2,
+        Level = LogLevel.Debug,
+        Message = "Failed to compare modification times for instruction override '{FileName}'.")]
+    private static partial void LogInspectionFailed(ILogger logger, string fileName, Exception exception);
+}

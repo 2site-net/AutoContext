@@ -315,10 +315,16 @@ public static class EngineHostBuilderExtensions
         // Instructions.* handlers read. Its hosted lifetime is registered
         // AFTER ConfigFileService (below) so the configured override roots
         // are loaded before the scan runs; the singleton mapping here is
-        // lazily resolved so the registration order is irrelevant.
+        // lazily resolved so the registration order is irrelevant. The
+        // scan compares each override against the bundled file it shadows
+        // through the StaleOverrideInspector and warns on stale overrides.
+        builder.Services.TryAddSingleton(sp => new StaleOverrideInspector(
+            Path.Combine(AppContext.BaseDirectory, "Resources", "Instructions"),
+            sp.GetRequiredService<ILogger<StaleOverrideInspector>>()));
         builder.Services.TryAddSingleton(sp => new InstructionsOverridesService(
             sp.GetRequiredService<IWorkspaceContextAccessor>(),
             sp.GetRequiredService<IConfigSnapshotAccessor>(),
+            sp.GetRequiredService<StaleOverrideInspector>(),
             sp.GetRequiredService<TimeProvider>(),
             sp.GetRequiredService<ILoggerFactory>(),
             sp.GetRequiredService<ILogger<InstructionsOverridesService>>()));

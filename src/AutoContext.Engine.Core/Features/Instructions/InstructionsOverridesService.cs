@@ -34,6 +34,7 @@ internal sealed partial class InstructionsOverridesService
     private readonly IConfigSnapshotAccessor _configAccessor;
     private readonly ILoggerFactory _loggerFactory;
     private readonly ILogger<InstructionsOverridesService> _logger;
+    private readonly StaleOverrideInspector _staleOverrideInspector;
     private readonly TimeProvider _timeProvider;
     private readonly IWorkspaceContextAccessor _workspaceAccessor;
     private InstructionsOverridesWatcher? _watcher;
@@ -45,6 +46,8 @@ internal sealed partial class InstructionsOverridesService
     /// folder the override roots are anchored to.</param>
     /// <param name="configAccessor">Supplies the configured override
     /// roots.</param>
+    /// <param name="staleOverrideInspector">Warns when a scanned override
+    /// is older than the bundled file it shadows.</param>
     /// <param name="timeProvider">Clock forwarded to the watcher.</param>
     /// <param name="loggerFactory">Creates the watcher's logger.</param>
     /// <param name="logger">Diagnostic sink for this service.</param>
@@ -53,18 +56,21 @@ internal sealed partial class InstructionsOverridesService
     public InstructionsOverridesService(
         IWorkspaceContextAccessor workspaceAccessor,
         IConfigSnapshotAccessor configAccessor,
+        StaleOverrideInspector staleOverrideInspector,
         TimeProvider timeProvider,
         ILoggerFactory loggerFactory,
         ILogger<InstructionsOverridesService> logger)
     {
         ArgumentNullException.ThrowIfNull(workspaceAccessor);
         ArgumentNullException.ThrowIfNull(configAccessor);
+        ArgumentNullException.ThrowIfNull(staleOverrideInspector);
         ArgumentNullException.ThrowIfNull(timeProvider);
         ArgumentNullException.ThrowIfNull(loggerFactory);
         ArgumentNullException.ThrowIfNull(logger);
 
         _workspaceAccessor = workspaceAccessor;
         _configAccessor = configAccessor;
+        _staleOverrideInspector = staleOverrideInspector;
         _timeProvider = timeProvider;
         _loggerFactory = loggerFactory;
         _logger = logger;
@@ -116,6 +122,7 @@ internal sealed partial class InstructionsOverridesService
         _watcher = watcher;
 
         LogOverridesLoaded(_logger, snapshot.Count, workspacePath);
+        _staleOverrideInspector.Inspect(snapshot);
     }
 
     /// <inheritdoc />
