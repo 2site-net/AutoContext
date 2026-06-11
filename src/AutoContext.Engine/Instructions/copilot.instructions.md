@@ -28,9 +28,9 @@ Before generating, editing, or reviewing files, discover which AutoContext instr
 
 | Trigger                                        | Example                                                            | Returns                                                                                          | Call                                                |
 |------------------------------------------------|--------------------------------------------------------------------|--------------------------------------------------------------------------------------------------|-----------------------------------------------------|
-| Find rules for a file before touching it       | `{ applyTo: "src/Foo.cs" }`                                        | Catalogue rows: `name`, `label`, `description`, `version`, `applyTo`, `hasChangelog`, categories | `list_autocontext_instructions_files`               |
+| Find rules for a file before touching it       | `{ applyTo: "src/Foo.cs" }`                                        | Listing rows: `name`, `label`, `description`, `version`, `applyTo`, `hasChangelog`, categories   | `list_autocontext_instructions_files`               |
 | Search AutoContext guidance by topic           | `{ query: "ConfigureAwait" }`                                      | Ranked hits with `excerpts[]`, including `section`, `sectionLevel`, and `anchor`                 | `search_autocontext_instructions_files_by_content`  |
-| Find rules by metadata                         | `{ predicate: { "sections.heading": "Security" } }`                | Catalogue rows, plus `matchedAnchors` when querying `sections.*` metadata                        | `search_autocontext_instructions_files_by_metadata` |
+| Find rules by metadata                         | `{ predicate: { "sections.heading": "Security" } }`                | Listing rows, plus `matchedAnchors` when querying `sections.*` metadata                        | `search_autocontext_instructions_files_by_metadata` |
 | Read a known rule file, or selected sections   | `{ name: "lang-csharp.instructions.md", sections: ["security"] }`   | Normalized markdown body, or only the requested sections in document order                       | `get_autocontext_instructions_file`                 |
 
 ## Prompt Instructions

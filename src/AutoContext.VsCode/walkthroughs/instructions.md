@@ -28,7 +28,7 @@ Beyond the always-attached files, the extension contributes four Language Model 
 
 - `list_autocontext_instructions_files` — *"which curated rules apply to this path?"*
 - `search_autocontext_instructions_files_by_metadata` — *"which rules have a Security section?"*
-- `search_autocontext_instructions_files_by_content` — free-text body search across the catalogue
+- `search_autocontext_instructions_files_by_content` — free-text body search across the listing
 - `get_autocontext_instructions_file` — fetch the full body of a file, or only specific sections
 
 These tools honour your toggles: disabled files are reported as such, and disabled rules are stripped from any returned body.

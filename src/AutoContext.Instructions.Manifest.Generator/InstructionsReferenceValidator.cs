@@ -1,34 +1,35 @@
 namespace AutoContext.Instructions.Manifest.Generator;
 
 using AutoContext.Instructions.Parser;
+using AutoContext.Instructions.Parser.Model;
 
 /// <inheritdoc cref="IInstructionsReferenceValidator" />
 internal sealed class InstructionsReferenceValidator : IInstructionsReferenceValidator
 {
     /// <inheritdoc />
-    public IReadOnlyList<CorpusReferenceFinding> Validate(IReadOnlyDictionary<string, CorpusFileParsedResult> corpus)
+    public IReadOnlyList<InstructionsFileReferenceFindingEntry> Validate(IReadOnlyDictionary<string, InstructionsFileParsedFile> parsedFiles)
     {
-        ArgumentNullException.ThrowIfNull(corpus);
+        ArgumentNullException.ThrowIfNull(parsedFiles);
 
-        var parsedByKey = corpus.ToDictionary(
+        var parsedCorpus = parsedFiles.ToDictionary(
             static pair => pair.Key,
             static pair => pair.Value.Content,
             StringComparer.Ordinal);
-        var catalog = InstructionsFileCatalog.FromParsed(parsedByKey);
+        var catalog = InstructionsFileCatalog.FromParsedCorpus(parsedCorpus);
 
-        var findings = new List<CorpusReferenceFinding>();
+        var findings = new List<InstructionsFileReferenceFindingEntry>();
 
-        foreach (var key in corpus.Keys.OrderBy(static key => key, StringComparer.Ordinal))
+        foreach (var key in parsedFiles.Keys.OrderBy(static key => key, StringComparer.Ordinal))
         {
-            var file = corpus[key];
+            var file = parsedFiles[key];
             var fileFindings = InstructionsFileReferenceResolver.Resolve(
                 key,
-                file.Content.Body.References,
+                file.Content.References,
                 catalog);
 
             foreach (var finding in fileFindings)
             {
-                findings.Add(new CorpusReferenceFinding(key, file.FileName, finding));
+                findings.Add(new InstructionsFileReferenceFindingEntry(key, file.FileName, finding));
             }
         }
 

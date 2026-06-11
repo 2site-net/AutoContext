@@ -4,6 +4,8 @@ using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
 
+using AutoContext.Engine.Core.Features.Instructions;
+using AutoContext.Engine.Core.Features.Instructions.Snapshot;
 using AutoContext.Engine.Core.Infrastructure;
 using AutoContext.Engine.Core.Infrastructure.Events;
 using AutoContext.Engine.Core.Logging;
@@ -16,6 +18,7 @@ using AutoContext.Engine.Protocol;
 using AutoContext.Engine.Protocol.JsonRpc;
 using AutoContext.Engine.Protocol.Messages;
 using AutoContext.Engine.Protocol.Messages.Config;
+using AutoContext.Engine.Protocol.Messages.Instructions;
 using AutoContext.Engine.Protocol.Messages.Logs;
 using AutoContext.Engine.Protocol.Messages.Registry;
 using AutoContext.Engine.Protocol.Messages.Workspace;
@@ -67,6 +70,13 @@ internal sealed partial class DispatchPolicy : IRpcConnectionPolicy
     private readonly ConfigFrameStream _configFrameStream;
     private readonly IConfigUpdater _configUpdater;
     private readonly IWorkspaceContextAccessor _workspaceAccessor;
+    private readonly IInstructionsManifestAccessor _manifestAccessor;
+    private readonly InstructionsBodyProjector _bodyProjector;
+    private readonly InstructionsFileReader _fileReader;
+    private readonly InstructionsFullTextSearchService _searchService;
+    private readonly InstructionsListProjector _listProjector;
+    private readonly SnapshotBroadcaster<IReadOnlyList<JsonInstructionsListRow>> _instructionsBroadcaster;
+    private readonly InstructionsFrameStream _instructionsFrameStream;
     private readonly ILogger _logger;
 
     public DispatchPolicy(
@@ -78,6 +88,12 @@ internal sealed partial class DispatchPolicy : IRpcConnectionPolicy
         IConfigUpdater configUpdater,
         SnapshotBroadcaster<JsonConfigSnapshot> configBroadcaster,
         IWorkspaceContextAccessor workspaceAccessor,
+        IInstructionsManifestAccessor manifestAccessor,
+        IInstructionsOverridesAccessor overridesAccessor,
+        InstructionsBodyProjector bodyProjector,
+        InstructionsFileReader fileReader,
+        InstructionsFullTextSearchService searchService,
+        SnapshotBroadcaster<IReadOnlyList<JsonInstructionsListRow>> instructionsBroadcaster,
         ILogger logger)
     {
         ArgumentNullException.ThrowIfNull(lifetime);
@@ -88,6 +104,12 @@ internal sealed partial class DispatchPolicy : IRpcConnectionPolicy
         ArgumentNullException.ThrowIfNull(configUpdater);
         ArgumentNullException.ThrowIfNull(configBroadcaster);
         ArgumentNullException.ThrowIfNull(workspaceAccessor);
+        ArgumentNullException.ThrowIfNull(manifestAccessor);
+        ArgumentNullException.ThrowIfNull(overridesAccessor);
+        ArgumentNullException.ThrowIfNull(bodyProjector);
+        ArgumentNullException.ThrowIfNull(fileReader);
+        ArgumentNullException.ThrowIfNull(searchService);
+        ArgumentNullException.ThrowIfNull(instructionsBroadcaster);
         ArgumentNullException.ThrowIfNull(logger);
 
         _lifetime = lifetime;
@@ -100,6 +122,14 @@ internal sealed partial class DispatchPolicy : IRpcConnectionPolicy
         _configBroadcaster = configBroadcaster;
         _configFrameStream = new();
         _workspaceAccessor = workspaceAccessor;
+        _manifestAccessor = manifestAccessor;
+        _bodyProjector = bodyProjector;
+        _fileReader = fileReader;
+        _searchService = searchService;
+        _listProjector = new InstructionsListProjector(
+            manifestAccessor, overridesAccessor, configAccessor, workspaceAccessor);
+        _instructionsBroadcaster = instructionsBroadcaster;
+        _instructionsFrameStream = new();
         _logger = logger;
     }
 
@@ -163,6 +193,35 @@ internal sealed partial class DispatchPolicy : IRpcConnectionPolicy
 
             case WorkspaceMethods.Info:
                 return HandleWorkspaceInfo();
+
+            case InstructionsMethods.List:
+                return HandleInstructionsList(request);
+
+            case InstructionsMethods.Categories:
+                return HandleInstructionsCategories();
+
+            case InstructionsMethods.Get:
+                return await HandleInstructionsGetAsync(request, cancellationToken)
+                    .ConfigureAwait(false);
+
+            case InstructionsMethods.GetAll:
+                return await HandleInstructionsGetAllAsync(cancellationToken)
+                    .ConfigureAwait(false);
+
+            case InstructionsMethods.GetAlwaysAttached:
+                return await HandleInstructionsGetAlwaysAttachedAsync(cancellationToken)
+                    .ConfigureAwait(false);
+
+            case InstructionsMethods.GetRaw:
+                return await HandleInstructionsGetRawAsync(request, cancellationToken)
+                    .ConfigureAwait(false);
+
+            case InstructionsMethods.SearchContent:
+                return await HandleInstructionsSearchContentAsync(request, cancellationToken)
+                    .ConfigureAwait(false);
+
+            case InstructionsMethods.Subscribe:
+                return HandleInstructionsSubscribe();
 
             case ProtocolMethods.Shutdown:
                 return HandleShutdown();

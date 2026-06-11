@@ -32,7 +32,7 @@ using Microsoft.Extensions.Logging;
 /// published signature is treated as an echo and ignored.
 /// </para>
 /// </remarks>
-internal sealed partial class ConfigFileManager : IConfigUpdater, IConfigSnapshotAccessor, IDisposable
+internal sealed partial class ConfigFileManager : IConfigUpdater, IConfigSnapshotAccessor, IConfigChangeNotifier, IDisposable
 {
     private const string ConfigFileName = ".autocontext.json";
     private const string DeletedSignature = "<none>";

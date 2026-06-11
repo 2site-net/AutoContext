@@ -14,8 +14,11 @@ internal interface ICorpusParser
     /// ordinal filename order for deterministic downstream output.
     /// </summary>
     /// <param name="corpusDirectory">The curated corpus directory.</param>
+    /// <param name="cancellationToken">Cancels the corpus read.</param>
     /// <returns>The parsed corpus, keyed by basename stem.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="corpusDirectory"/>
     /// is <see langword="null"/>.</exception>
-    IReadOnlyDictionary<string, CorpusFileParsedResult> Parse(string corpusDirectory);
+    Task<IReadOnlyDictionary<string, InstructionsFileParsedFile>> ParseAsync(
+        string corpusDirectory,
+        CancellationToken cancellationToken = default);
 }

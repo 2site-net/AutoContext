@@ -2,7 +2,7 @@ namespace AutoContext.Instructions.Manifest.Generator;
 
 using System.Text.RegularExpressions;
 
-using AutoContext.Instructions.Parser;
+using AutoContext.Instructions.Parser.Model;
 
 /// <summary>
 /// Builds the build-generated <c>instructions-manifest.json</c> fact index from an
@@ -10,7 +10,7 @@ using AutoContext.Instructions.Parser;
 /// shape and extracts the derived facts (section map, <c>applyTo</c> extension set)
 /// the engine merges with the hand-authored catalog at startup. Every file's
 /// frontmatter, content hash, and changelog flag are read from the shared
-/// <see cref="CorpusFileParsedResult"/> the <see cref="CorpusParser"/> already
+/// <see cref="InstructionsFileParsedFile"/> the <see cref="CorpusParser"/> already
 /// produced, so the builder touches no disk and re-parses nothing. It validates
 /// curatorial shape but never inspects glob semantics — <c>applyTo</c> is carried
 /// verbatim onto the manifest, and only its concrete extensions are projected.
@@ -21,7 +21,7 @@ internal sealed partial class InstructionsManifestBuilder : IInstructionsManifes
     private const string SchemaVersion = "1";
 
     /// <inheritdoc />
-    public JsonInstructionsManifest Build(IReadOnlyDictionary<string, CorpusFileParsedResult> corpus)
+    public JsonInstructionsManifest Build(IReadOnlyDictionary<string, InstructionsFileParsedFile> corpus)
     {
         ArgumentNullException.ThrowIfNull(corpus);
 
@@ -37,7 +37,7 @@ internal sealed partial class InstructionsManifestBuilder : IInstructionsManifes
         return new JsonInstructionsManifest(SchemaVersion, entries);
     }
 
-    private static JsonInstructionsManifestEntry BuildEntry(CorpusFileParsedResult file)
+    private static JsonInstructionsManifestEntry BuildEntry(InstructionsFileParsedFile file)
     {
         var fileName = file.FileName;
         var parsed = file.Content;
@@ -96,7 +96,7 @@ internal sealed partial class InstructionsManifestBuilder : IInstructionsManifes
             sections);
     }
 
-    private static IReadOnlyList<string>? ExtractExtensions(FrontmatterApplyToParsedResult? applyTo)
+    private static IReadOnlyList<string>? ExtractExtensions(FrontmatterApplyTo? applyTo)
     {
         if (applyTo is null)
         {

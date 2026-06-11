@@ -42,6 +42,22 @@ public sealed class JsonConfigFileExtensionsTests
         }
 
         [Fact]
+        public void Should_map_engine_instruction_directories()
+        {
+            // Arrange
+            var json = new JsonConfigFile
+            {
+                Engine = new JsonConfigFileEngine([".github", ".copilot"]),
+            };
+
+            // Act
+            var config = json.ToDomainGraph();
+
+            // Assert
+            Assert.Equal([".github", ".copilot"], config.Engine?.InstructionsOverridesRoots);
+        }
+
+        [Fact]
         public void Should_map_instruction_file_with_disabled_rules()
         {
             // Arrange
@@ -52,8 +68,8 @@ public sealed class JsonConfigFileExtensionsTests
                     ["a.md"] = new()
                     {
                         Version = "1.0",
-                        Enabled = false,
-                        DisabledInstructions = ["x", "y"],
+                        Disabled = true,
+                        DisabledRules = ["x", "y"],
                     },
                 },
             };
@@ -73,14 +89,14 @@ public sealed class JsonConfigFileExtensionsTests
         }
 
         [Fact]
-        public void Should_map_shorthand_disabled_tool()
+        public void Should_map_disabled_tool()
         {
             // Arrange
             var json = new JsonConfigFile
             {
-                McpTools = new Dictionary<string, JsonConfigFileMcpToolValue>
+                McpTools = new Dictionary<string, JsonConfigFileMcpToolEntry>
                 {
-                    ["t1"] = JsonConfigFileMcpToolValue.Disabled,
+                    ["t1"] = new() { Disabled = true },
                 },
             };
 
@@ -103,10 +119,9 @@ public sealed class JsonConfigFileExtensionsTests
             // Arrange
             var json = new JsonConfigFile
             {
-                McpTools = new Dictionary<string, JsonConfigFileMcpToolValue>
+                McpTools = new Dictionary<string, JsonConfigFileMcpToolEntry>
                 {
-                    ["t2"] = JsonConfigFileMcpToolValue.FromEntry(
-                        new JsonConfigFileMcpToolEntry { Version = "2.0", DisabledTasks = ["k"] }),
+                    ["t2"] = new() { Version = "2.0", DisabledTasks = ["k"] },
                 },
             };
 

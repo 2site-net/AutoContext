@@ -6,7 +6,7 @@ using AutoContext.Instructions.Manifest.Generator;
 
 public static class InstructionsCorpusTestWriter
 {
-    internal static IReadOnlyDictionary<string, CorpusFileParsedResult> WriteAndParse(
+    internal static async Task<IReadOnlyDictionary<string, InstructionsFileParsedFile>> WriteAndParseAsync(
         string directory,
         params string[] keys)
     {
@@ -15,7 +15,7 @@ public static class InstructionsCorpusTestWriter
             WriteInstruction(directory, key + ".instructions.md", key + " (v1.0.0)", "Body for " + key + ".");
         }
 
-        return new CorpusParser().Parse(directory);
+        return await new CorpusParser().ParseAsync(directory).ConfigureAwait(false);
     }
 
     public static void WriteInstruction(

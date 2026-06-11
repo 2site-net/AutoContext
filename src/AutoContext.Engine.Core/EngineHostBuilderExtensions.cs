@@ -1,5 +1,6 @@
 namespace AutoContext.Engine.Core;
 
+using AutoContext.Engine.Core.Features.Instructions;
 using AutoContext.Engine.Core.Infrastructure;
 using AutoContext.Engine.Core.Infrastructure.Diagnostics;
 using AutoContext.Engine.Core.Infrastructure.Events;
@@ -13,6 +14,7 @@ using AutoContext.Engine.Core.Watchdogs;
 using AutoContext.Engine.Core.Workspace.Config;
 using AutoContext.Engine.Core.Workspace.Context;
 using AutoContext.Engine.Protocol.Messages.Config;
+using AutoContext.Engine.Protocol.Messages.Instructions;
 using AutoContext.Engine.Protocol.Messages.Logs;
 using AutoContext.Framework.Pipes;
 
@@ -285,6 +287,82 @@ public static class EngineHostBuilderExtensions
             sp => sp.GetRequiredService<ConfigFileManager>());
         builder.Services.TryAddSingleton<IConfigUpdater>(
             sp => sp.GetRequiredService<ConfigFileManager>());
+        builder.Services.TryAddSingleton<IConfigChangeNotifier>(
+            sp => sp.GetRequiredService<ConfigFileManager>());
+
+        // Bundled instruction corpus. The service loads the two
+        // build-time side-cars shipped beside the engine binary
+        // (instructions-manifest.json + instructions-catalog.json) into
+        // an immutable snapshot at start and holds it for the
+        // Instructions.* RPC handlers, which read it through the
+        // IInstructionsManifestAccessor seam. Registered BEFORE
+        // LifecycleService so the snapshot is populated before the first
+        // rpc connection can issue an Instructions.* request. The corpus
+        // is read-only with no watcher, so the service only loads on
+        // start and tears nothing down on stop.
+        builder.Services.TryAddSingleton(sp => new InstructionsManifestService(
+            Path.Combine(AppContext.BaseDirectory, "Resources"),
+            sp.GetRequiredService<ILogger<InstructionsManifestService>>()));
+        builder.Services.TryAddSingleton<IInstructionsManifestAccessor>(
+            sp => sp.GetRequiredService<InstructionsManifestService>());
+        builder.Services.TryAddEnumerable(
+            ServiceDescriptor.Singleton<IHostedService, InstructionsManifestService>(
+                sp => sp.GetRequiredService<InstructionsManifestService>()));
+
+        // Instruction override inventory. The service performs a one-shot
+        // startup scan of the workspace's override directories and exposes
+        // the result through the IInstructionsOverridesAccessor seam the
+        // Instructions.* handlers read. Its hosted lifetime is registered
+        // AFTER ConfigFileService (below) so the configured override roots
+        // are loaded before the scan runs; the singleton mapping here is
+        // lazily resolved so the registration order is irrelevant. The
+        // scan compares each override against the bundled file it shadows
+        // through the StaleOverrideInspector and warns on stale overrides.
+        builder.Services.TryAddSingleton(sp => new StaleOverrideInspector(
+            Path.Combine(AppContext.BaseDirectory, "Resources", "Instructions"),
+            sp.GetRequiredService<ILogger<StaleOverrideInspector>>()));
+        builder.Services.TryAddSingleton(sp => new InstructionsOverridesService(
+            sp.GetRequiredService<IWorkspaceContextAccessor>(),
+            sp.GetRequiredService<IConfigSnapshotAccessor>(),
+            sp.GetRequiredService<StaleOverrideInspector>(),
+            sp.GetRequiredService<TimeProvider>(),
+            sp.GetRequiredService<ILoggerFactory>(),
+            sp.GetRequiredService<ILogger<InstructionsOverridesService>>()));
+        builder.Services.TryAddSingleton<IInstructionsOverridesAccessor>(
+            sp => sp.GetRequiredService<InstructionsOverridesService>());
+
+        // Instruction body projection + raw file reads + full-text search.
+        // All read the bundled corpus body files shipped beside the engine
+        // binary under Resources/Instructions and resolve override bodies
+        // through the accessor above. Lazily resolved singletons backing the
+        // Instructions.Get / GetAll / GetAlwaysAttached / GetRaw /
+        // SearchContent handlers.
+        builder.Services.TryAddSingleton(sp => new InstructionsBodyProjector(
+            Path.Combine(AppContext.BaseDirectory, "Resources", "Instructions"),
+            sp.GetRequiredService<IInstructionsOverridesAccessor>(),
+            sp.GetRequiredService<IConfigSnapshotAccessor>()));
+        builder.Services.TryAddSingleton(sp => new InstructionsFileReader(
+            Path.Combine(AppContext.BaseDirectory, "Resources", "Instructions"),
+            sp.GetRequiredService<IInstructionsOverridesAccessor>()));
+        builder.Services.TryAddSingleton(sp => new InstructionsFullTextSearchService(
+            sp.GetRequiredService<IInstructionsManifestAccessor>(),
+            sp.GetRequiredService<InstructionsBodyProjector>(),
+            sp.GetRequiredService<IConfigSnapshotAccessor>(),
+            sp.GetRequiredService<ILogger<InstructionsFullTextSearchService>>()));
+
+        // Shared corpus-listing projection. Single source of the
+        // per-row listing shape — disabled resolution, override
+        // source, section mapping — so the List RPC and the
+        // Instructions.Subscribe snapshot frame project each row
+        // identically (the row set still differs: List defaults to
+        // workspace filtering, Subscribe projects the whole corpus).
+        // Lazily resolved so its accessor seams need not be ordered
+        // ahead of it.
+        builder.Services.TryAddSingleton(sp => new InstructionsListProjector(
+            sp.GetRequiredService<IInstructionsManifestAccessor>(),
+            sp.GetRequiredService<IInstructionsOverridesAccessor>(),
+            sp.GetRequiredService<IConfigSnapshotAccessor>(),
+            sp.GetRequiredService<IWorkspaceContextAccessor>()));
 
         // Workspace context detection rule tables. The three declarative
         // tables — file presence, content scans (npm + .NET, grouped by
@@ -306,6 +384,23 @@ public static class EngineHostBuilderExtensions
             "Config.Subscribe"));
         builder.Services.TryAddEnumerable(
             ServiceDescriptor.Singleton<IHostedService, ConfigFileService>());
+
+        // Instructions-subscription fan-out broadcaster. Singleton so the
+        // RPC Instructions.Subscribe handler and the
+        // InstructionsSubscriptionService share one instance: the service
+        // primes the snapshot seed at startup and republishes the listing
+        // on every config change, the handler enrolls snapshot-seeded
+        // subscribers.
+        builder.Services.TryAddSingleton(sp => new SnapshotBroadcaster<IReadOnlyList<JsonInstructionsListRow>>(
+            sp.GetRequiredService<ILogger<SnapshotBroadcaster<IReadOnlyList<JsonInstructionsListRow>>>>(),
+            "Instructions.Subscribe"));
+
+        // Instruction override scan. Hosted lifetime registered AFTER
+        // ConfigFileService so the configured InstructionsOverridesRoots are
+        // loaded before the one-shot startup scan reads them.
+        builder.Services.TryAddEnumerable(
+            ServiceDescriptor.Singleton<IHostedService, InstructionsOverridesService>(
+                sp => sp.GetRequiredService<InstructionsOverridesService>()));
 
         // Workspace context detector. The detector owns the in-memory
         // detection result and workspace-info metadata for this
@@ -334,6 +429,17 @@ public static class EngineHostBuilderExtensions
             sp => sp.GetRequiredService<WorkspaceContextDetector>());
         builder.Services.TryAddEnumerable(
             ServiceDescriptor.Singleton<IHostedService, WorkspaceDetectionService>());
+
+        // Instructions snapshot priming. Hosted lifetime registered AFTER
+        // WorkspaceDetectionService so the manifest, override, config, and
+        // workspace accessors it projects are fully populated, and BEFORE
+        // LifecycleService so the snapshot seed is primed before the first
+        // events-pipe connection can enroll an Instructions.Subscribe
+        // subscriber. The service also bridges config changes into the
+        // broadcaster, republishing the re-projected listing on each
+        // Config.Toggle* edit.
+        builder.Services.TryAddEnumerable(
+            ServiceDescriptor.Singleton<IHostedService, InstructionsSubscriptionService>());
 
         builder.Services.TryAddEnumerable(
             ServiceDescriptor.Singleton<IHostedService, LifecycleService>());

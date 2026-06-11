@@ -250,7 +250,7 @@ What each verb does, on the wire:
   (resolved workspace path, engine version,
   `(instanceId, revision)` pair, idle-timeout state) for the
   engine the CLI just dialled.
-- **`mcp list`** → `McpTools.List`. The catalogue of MCP tools the
+- **`mcp list`** → `McpTools.List`. The catalog of MCP tools the
   engine would advertise to an MCP client, filtered by the same
   `disabledTools` / `disabledTasks` state the engine applies on its
   MCP/stdio facade.

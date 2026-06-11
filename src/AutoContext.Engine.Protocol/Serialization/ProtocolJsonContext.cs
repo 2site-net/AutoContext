@@ -7,6 +7,7 @@ using AutoContext.Engine.Protocol;
 using AutoContext.Engine.Protocol.JsonRpc;
 using AutoContext.Engine.Protocol.Messages;
 using AutoContext.Engine.Protocol.Messages.Config;
+using AutoContext.Engine.Protocol.Messages.Instructions;
 using AutoContext.Engine.Protocol.Messages.Lifecycle;
 using AutoContext.Engine.Protocol.Messages.Logs;
 using AutoContext.Engine.Protocol.Messages.Registry;
@@ -51,6 +52,30 @@ using AutoContext.Engine.Protocol.Messages.Workspace;
 [JsonSerializable(typeof(JsonConfigDroppedFrame))]
 [JsonSerializable(typeof(JsonConfigToggleFileParams))]
 [JsonSerializable(typeof(JsonConfigToggleRuleParams))]
+[JsonSerializable(typeof(JsonInstructionsListParams))]
+[JsonSerializable(typeof(JsonInstructionsListResult))]
+[JsonSerializable(typeof(JsonInstructionsListRow))]
+[JsonSerializable(typeof(JsonInstructionsSection))]
+[JsonSerializable(typeof(JsonInstructionsCategoriesResult))]
+[JsonSerializable(typeof(JsonInstructionsCategory))]
+[JsonSerializable(typeof(JsonInstructionsGetParams))]
+[JsonSerializable(typeof(JsonInstructionsGetResult))]
+[JsonSerializable(typeof(JsonInstructionsGetOkResult))]
+[JsonSerializable(typeof(JsonInstructionsGetDisabledResult))]
+[JsonSerializable(typeof(JsonInstructionsGetNotFoundResult))]
+[JsonSerializable(typeof(JsonInstructionsFile))]
+[JsonSerializable(typeof(JsonInstructionsFilesResult))]
+[JsonSerializable(typeof(JsonInstructionsGetRawParams))]
+[JsonSerializable(typeof(JsonInstructionsGetRawResult))]
+[JsonSerializable(typeof(JsonInstructionsGetRawOkResult))]
+[JsonSerializable(typeof(JsonInstructionsGetRawNotFoundResult))]
+[JsonSerializable(typeof(JsonInstructionsSearchContentParams))]
+[JsonSerializable(typeof(JsonInstructionsSearchContentResult))]
+[JsonSerializable(typeof(JsonInstructionsContentHit))]
+[JsonSerializable(typeof(JsonInstructionsContentExcerpt))]
+[JsonSerializable(typeof(JsonInstructionsStreamFrame))]
+[JsonSerializable(typeof(JsonInstructionsSnapshotFrame))]
+[JsonSerializable(typeof(JsonInstructionsDroppedFrame))]
 [JsonSerializable(typeof(JsonWorkspaceFlags))]
 [JsonSerializable(typeof(JsonWorkspaceDetectResult))]
 [JsonSerializable(typeof(JsonWorkspaceInfoResult))]

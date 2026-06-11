@@ -10,9 +10,7 @@ using AutoContext.Engine.Core.Workspace.Config.Format;
 /// Stateless helpers for the on-disk <c>.autocontext.json</c> format.
 /// Centralises the JSON options, the fixed key order, and the parse
 /// normalisation so reading and writing always agree on one format:
-/// camelCase keys, four-space indentation, and a trailing newline. The
-/// same file is also written by the TypeScript extension, so this byte
-/// layout has to match it.
+/// camelCase keys, four-space indentation, and a trailing newline.
 /// </summary>
 internal static class ConfigFileFormat
 {
@@ -35,7 +33,7 @@ internal static class ConfigFileFormat
     /// Serialises <paramref name="config"/> into the UTF-8 bytes
     /// written to disk. The <c>version</c> field is stamped with
     /// <paramref name="engineVersion"/> and written first, followed by
-    /// a trailing newline to match the TypeScript writer.
+    /// a trailing newline.
     /// </summary>
     /// <param name="config">Config to persist. Must not be
     /// <see langword="null"/> or empty (callers delete the file
@@ -99,17 +97,30 @@ internal static class ConfigFileFormat
 
     /// <summary>
     /// Drops sections and members the writer never emits, so a
-    /// hand-edited file (empty arrays, <c>enabled: true</c>, empty
+    /// hand-edited file (empty arrays, <c>disabled: false</c>, empty
     /// maps) parses to the same canonical form the engine writes.
     /// </summary>
     private static JsonConfigFile Normalize(JsonConfigFile parsed)
         => new()
         {
             Version = parsed.Version,
+            Engine = NormalizeEngine(parsed.Engine),
             Diagnostic = parsed.Diagnostic,
             Instructions = NormalizeInstructions(parsed.Instructions),
             McpTools = NormalizeTools(parsed.McpTools),
         };
+
+    private static JsonConfigFileEngine? NormalizeEngine(JsonConfigFileEngine? engine)
+    {
+        if (engine is null)
+        {
+            return null;
+        }
+
+        var directories = EmptyToNull(engine.InstructionsOverridesRoots);
+
+        return directories is null ? null : engine with { InstructionsOverridesRoots = directories };
+    }
 
     private static Dictionary<string, JsonConfigFileInstructionsEntry>? NormalizeInstructions(
         IReadOnlyDictionary<string, JsonConfigFileInstructionsEntry>? instructions)
@@ -125,37 +136,31 @@ internal static class ConfigFileFormat
         {
             result[fileName] = entry with
             {
-                Enabled = entry.Enabled is false ? false : null,
-                DisabledInstructions = EmptyToNull(entry.DisabledInstructions),
+                Disabled = entry.Disabled is true ? true : null,
+                DisabledRules = EmptyToNull(entry.DisabledRules),
             };
         }
 
         return result;
     }
 
-    private static Dictionary<string, JsonConfigFileMcpToolValue>? NormalizeTools(
-        IReadOnlyDictionary<string, JsonConfigFileMcpToolValue>? tools)
+    private static Dictionary<string, JsonConfigFileMcpToolEntry>? NormalizeTools(
+        IReadOnlyDictionary<string, JsonConfigFileMcpToolEntry>? tools)
     {
         if (tools is null || tools.Count == 0)
         {
             return null;
         }
 
-        var result = new Dictionary<string, JsonConfigFileMcpToolValue>(tools.Count);
+        var result = new Dictionary<string, JsonConfigFileMcpToolEntry>(tools.Count);
 
-        foreach (var (toolName, value) in tools)
+        foreach (var (toolName, entry) in tools)
         {
-            if (value.Entry is not { } entry)
+            result[toolName] = entry with
             {
-                result[toolName] = value;
-                continue;
-            }
-
-            result[toolName] = JsonConfigFileMcpToolValue.FromEntry(entry with
-            {
-                Enabled = entry.Enabled is false ? false : null,
+                Disabled = entry.Disabled is true ? true : null,
                 DisabledTasks = EmptyToNull(entry.DisabledTasks),
-            });
+            };
         }
 
         return result;

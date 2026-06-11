@@ -6,9 +6,8 @@ using AutoContext.Engine.Core.Workspace.Config.Snapshot;
 /// <summary>
 /// Maps the on-disk <see cref="JsonConfigFile"/> wire shape onto
 /// the immutable <see cref="ConfigSnapshot"/> domain graph. The wire
-/// quirks decoded here — the shorthand <c>mcpTools: { "tool": false }</c>
-/// versus the object form, and the disabled-only encoding of rules and
-/// tasks — are kept out of the domain graph.
+/// quirk decoded here — the disabled-only encoding of rules and tasks
+/// — is kept out of the domain graph.
 /// </summary>
 internal static class JsonConfigFileExtensions
 {
@@ -29,6 +28,9 @@ internal static class JsonConfigFileExtensions
             Diagnostic = json.Diagnostic is { } diagnostic
                 ? new ConfigDiagnostic { WarnOnMissingId = diagnostic.WarnOnMissingId }
                 : null,
+            Engine = json.Engine is { } engine
+                ? new ConfigEngineSettings { InstructionsOverridesRoots = engine.InstructionsOverridesRoots ?? [] }
+                : null,
             Instructions = ToDomainModel(json.Instructions),
             McpTools = ToDomainModel(json.McpTools),
         };
@@ -46,14 +48,14 @@ internal static class JsonConfigFileExtensions
 
         foreach (var (name, entry) in instructions)
         {
-            var rules = entry.DisabledInstructions is { Count: > 0 } ids
+            var rules = entry.DisabledRules is { Count: > 0 } ids
                 ? ids.Select(id => new ConfigInstructionsFile.InstructionsRule { Id = id, Disabled = true }).ToArray()
                 : [];
 
             result.Add(new ConfigInstructionsFile
             {
                 Name = name,
-                Disabled = entry.Enabled is false ? true : null,
+                Disabled = entry.Disabled is true ? true : null,
                 Version = entry.Version,
                 Rules = rules,
             });
@@ -63,7 +65,7 @@ internal static class JsonConfigFileExtensions
     }
 
     private static ConfigMcpTool[] ToDomainModel(
-        IReadOnlyDictionary<string, JsonConfigFileMcpToolValue>? tools)
+        IReadOnlyDictionary<string, JsonConfigFileMcpToolEntry>? tools)
     {
         if (tools is null || tools.Count == 0)
         {
@@ -72,14 +74,8 @@ internal static class JsonConfigFileExtensions
 
         var result = new List<ConfigMcpTool>(tools.Count);
 
-        foreach (var (name, value) in tools)
+        foreach (var (name, entry) in tools)
         {
-            if (value.Entry is not { } entry)
-            {
-                result.Add(new ConfigMcpTool { Name = name, Disabled = true });
-                continue;
-            }
-
             var tasks = entry.DisabledTasks is { Count: > 0 } names
                 ? names.Select(task => new ConfigMcpTool.McpTask { Name = task, Disabled = true }).ToArray()
                 : [];
@@ -87,7 +83,7 @@ internal static class JsonConfigFileExtensions
             result.Add(new ConfigMcpTool
             {
                 Name = name,
-                Disabled = entry.Enabled is false ? true : null,
+                Disabled = entry.Disabled is true ? true : null,
                 Version = entry.Version,
                 Tasks = tasks,
             });

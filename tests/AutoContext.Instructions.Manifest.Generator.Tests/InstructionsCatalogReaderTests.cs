@@ -12,11 +12,13 @@ public sealed class InstructionsCatalogReaderTests
         private readonly InstructionsCatalogReader _sut = new();
 
         [Fact]
-        public void Should_reject_null_catalog_path()
+        public async Task Should_reject_null_catalog_path()
         {
+            // Arrange
+            var corpus = await _corpusParser.ParseAsync(tempDirectory.CreateDirectory(), TestContext.Current.CancellationToken);
+
             // Act + Assert
-            Assert.Throws<ArgumentNullException>(
-                () => _sut.Read(null!, _corpusParser.Parse(tempDirectory.CreateDirectory())));
+            Assert.Throws<ArgumentNullException>(() => _sut.Read(null!, corpus));
         }
 
         [Fact]
@@ -28,10 +30,10 @@ public sealed class InstructionsCatalogReaderTests
         }
 
         [Fact]
-        public void Should_read_a_catalog_that_reconciles_with_the_corpus()
+        public async Task Should_read_a_catalog_that_reconciles_with_the_corpus()
         {
             // Arrange
-            var corpus = InstructionsCorpusTestWriter.WriteAndParse(
+            var corpus = await InstructionsCorpusTestWriter.WriteAndParseAsync(
                 tempDirectory.CreateDirectory(), "copilot", "autocontext", "code-review");
             var catalogPath = InstructionsCatalogTestWriter.Write(
                 tempDirectory.CreateDirectory(),
@@ -47,10 +49,10 @@ public sealed class InstructionsCatalogReaderTests
         }
 
         [Fact]
-        public void Should_exempt_always_attached_files_from_the_catalog_requirement()
+        public async Task Should_exempt_always_attached_files_from_the_catalog_requirement()
         {
             // Arrange — copilot/autocontext ship but are declared always-attached, not cataloged.
-            var corpus = InstructionsCorpusTestWriter.WriteAndParse(
+            var corpus = await InstructionsCorpusTestWriter.WriteAndParseAsync(
                 tempDirectory.CreateDirectory(), "copilot", "autocontext", "code-review");
             var catalogPath = InstructionsCatalogTestWriter.Write(
                 tempDirectory.CreateDirectory(),
@@ -66,10 +68,10 @@ public sealed class InstructionsCatalogReaderTests
         }
 
         [Fact]
-        public void Should_throw_when_an_always_attached_file_is_not_in_the_corpus()
+        public async Task Should_throw_when_an_always_attached_file_is_not_in_the_corpus()
         {
             // Arrange — the always-attached array names a file the corpus does not ship.
-            var corpus = InstructionsCorpusTestWriter.WriteAndParse(
+            var corpus = await InstructionsCorpusTestWriter.WriteAndParseAsync(
                 tempDirectory.CreateDirectory(), "code-review");
             var catalogPath = InstructionsCatalogTestWriter.Write(
                 tempDirectory.CreateDirectory(),
@@ -87,10 +89,10 @@ public sealed class InstructionsCatalogReaderTests
         }
 
         [Fact]
-        public void Should_throw_when_an_always_attached_file_is_also_cataloged()
+        public async Task Should_throw_when_an_always_attached_file_is_also_cataloged()
         {
             // Arrange — a file may be curated OR always-attached, never both.
-            var corpus = InstructionsCorpusTestWriter.WriteAndParse(
+            var corpus = await InstructionsCorpusTestWriter.WriteAndParseAsync(
                 tempDirectory.CreateDirectory(), "code-review");
             var catalogPath = InstructionsCatalogTestWriter.Write(
                 tempDirectory.CreateDirectory(),
@@ -106,10 +108,10 @@ public sealed class InstructionsCatalogReaderTests
         }
 
         [Fact]
-        public void Should_throw_on_duplicate_always_attached_entry()
+        public async Task Should_throw_on_duplicate_always_attached_entry()
         {
             // Arrange
-            var corpus = InstructionsCorpusTestWriter.WriteAndParse(
+            var corpus = await InstructionsCorpusTestWriter.WriteAndParseAsync(
                 tempDirectory.CreateDirectory(), "copilot");
             var catalogPath = InstructionsCatalogTestWriter.Write(
                 tempDirectory.CreateDirectory(),
@@ -124,10 +126,10 @@ public sealed class InstructionsCatalogReaderTests
         }
 
         [Fact]
-        public void Should_throw_when_an_always_attached_entry_is_blank()
+        public async Task Should_throw_when_an_always_attached_entry_is_blank()
         {
             // Arrange
-            var corpus = InstructionsCorpusTestWriter.WriteAndParse(
+            var corpus = await InstructionsCorpusTestWriter.WriteAndParseAsync(
                 tempDirectory.CreateDirectory(), "code-review");
             var catalogPath = InstructionsCatalogTestWriter.Write(
                 tempDirectory.CreateDirectory(),
@@ -143,10 +145,10 @@ public sealed class InstructionsCatalogReaderTests
         }
 
         [Fact]
-        public void Should_throw_when_an_entry_names_a_file_outside_the_corpus()
+        public async Task Should_throw_when_an_entry_names_a_file_outside_the_corpus()
         {
             // Arrange
-            var corpus = InstructionsCorpusTestWriter.WriteAndParse(
+            var corpus = await InstructionsCorpusTestWriter.WriteAndParseAsync(
                 tempDirectory.CreateDirectory(), "code-review");
             var catalogPath = InstructionsCatalogTestWriter.Write(
                 tempDirectory.CreateDirectory(),
@@ -164,10 +166,10 @@ public sealed class InstructionsCatalogReaderTests
         }
 
         [Fact]
-        public void Should_throw_when_a_corpus_file_is_not_cataloged()
+        public async Task Should_throw_when_a_corpus_file_is_not_cataloged()
         {
             // Arrange — 'stray' ships, is not always-attached, and is left out of the catalog.
-            var corpus = InstructionsCorpusTestWriter.WriteAndParse(
+            var corpus = await InstructionsCorpusTestWriter.WriteAndParseAsync(
                 tempDirectory.CreateDirectory(), "code-review", "stray");
             var catalogPath = InstructionsCatalogTestWriter.Write(
                 tempDirectory.CreateDirectory(),
@@ -184,10 +186,10 @@ public sealed class InstructionsCatalogReaderTests
         }
 
         [Fact]
-        public void Should_throw_when_an_entry_references_an_undeclared_category()
+        public async Task Should_throw_when_an_entry_references_an_undeclared_category()
         {
             // Arrange
-            var corpus = InstructionsCorpusTestWriter.WriteAndParse(
+            var corpus = await InstructionsCorpusTestWriter.WriteAndParseAsync(
                 tempDirectory.CreateDirectory(), "code-review");
             var catalogPath = InstructionsCatalogTestWriter.Write(
                 tempDirectory.CreateDirectory(),
@@ -202,10 +204,10 @@ public sealed class InstructionsCatalogReaderTests
         }
 
         [Fact]
-        public void Should_throw_on_duplicate_category()
+        public async Task Should_throw_on_duplicate_category()
         {
             // Arrange
-            var corpus = InstructionsCorpusTestWriter.WriteAndParse(
+            var corpus = await InstructionsCorpusTestWriter.WriteAndParseAsync(
                 tempDirectory.CreateDirectory(), "code-review");
             var catalogPath = InstructionsCatalogTestWriter.Write(
                 tempDirectory.CreateDirectory(),
@@ -223,10 +225,10 @@ public sealed class InstructionsCatalogReaderTests
         }
 
         [Fact]
-        public void Should_throw_on_duplicate_entry_for_a_file()
+        public async Task Should_throw_on_duplicate_entry_for_a_file()
         {
             // Arrange
-            var corpus = InstructionsCorpusTestWriter.WriteAndParse(
+            var corpus = await InstructionsCorpusTestWriter.WriteAndParseAsync(
                 tempDirectory.CreateDirectory(), "code-review");
             var catalogPath = InstructionsCatalogTestWriter.Write(
                 tempDirectory.CreateDirectory(),
@@ -242,10 +244,10 @@ public sealed class InstructionsCatalogReaderTests
         }
 
         [Fact]
-        public void Should_throw_when_an_entry_declares_no_categories()
+        public async Task Should_throw_when_an_entry_declares_no_categories()
         {
             // Arrange
-            var corpus = InstructionsCorpusTestWriter.WriteAndParse(
+            var corpus = await InstructionsCorpusTestWriter.WriteAndParseAsync(
                 tempDirectory.CreateDirectory(), "code-review");
             var catalogPath = InstructionsCatalogTestWriter.Write(
                 tempDirectory.CreateDirectory(),
@@ -260,10 +262,10 @@ public sealed class InstructionsCatalogReaderTests
         }
 
         [Fact]
-        public void Should_throw_on_malformed_json()
+        public async Task Should_throw_on_malformed_json()
         {
             // Arrange
-            var corpus = InstructionsCorpusTestWriter.WriteAndParse(
+            var corpus = await InstructionsCorpusTestWriter.WriteAndParseAsync(
                 tempDirectory.CreateDirectory(), "code-review");
             var catalogPath = InstructionsCatalogTestWriter.WriteRaw(tempDirectory.CreateDirectory(), "{ not json");
 
@@ -275,10 +277,10 @@ public sealed class InstructionsCatalogReaderTests
         }
 
         [Fact]
-        public void Should_throw_when_the_categories_array_is_missing()
+        public async Task Should_throw_when_the_categories_array_is_missing()
         {
             // Arrange — structurally valid JSON, but the top-level `categories` key is absent.
-            var corpus = InstructionsCorpusTestWriter.WriteAndParse(
+            var corpus = await InstructionsCorpusTestWriter.WriteAndParseAsync(
                 tempDirectory.CreateDirectory(), "code-review");
             var catalogPath = InstructionsCatalogTestWriter.WriteRaw(
                 tempDirectory.CreateDirectory(),
@@ -294,10 +296,10 @@ public sealed class InstructionsCatalogReaderTests
         }
 
         [Fact]
-        public void Should_throw_when_the_instructions_array_is_missing()
+        public async Task Should_throw_when_the_instructions_array_is_missing()
         {
             // Arrange — structurally valid JSON, but the top-level `instructions` key is absent.
-            var corpus = InstructionsCorpusTestWriter.WriteAndParse(
+            var corpus = await InstructionsCorpusTestWriter.WriteAndParseAsync(
                 tempDirectory.CreateDirectory(), "code-review");
             var catalogPath = InstructionsCatalogTestWriter.WriteRaw(
                 tempDirectory.CreateDirectory(),
@@ -313,10 +315,10 @@ public sealed class InstructionsCatalogReaderTests
         }
 
         [Fact]
-        public void Should_throw_when_the_always_attached_array_is_missing()
+        public async Task Should_throw_when_the_always_attached_array_is_missing()
         {
             // Arrange — structurally valid JSON, but the top-level `alwaysAttached` key is absent.
-            var corpus = InstructionsCorpusTestWriter.WriteAndParse(
+            var corpus = await InstructionsCorpusTestWriter.WriteAndParseAsync(
                 tempDirectory.CreateDirectory(), "code-review");
             var catalogPath = InstructionsCatalogTestWriter.WriteRaw(
                 tempDirectory.CreateDirectory(),
@@ -332,10 +334,10 @@ public sealed class InstructionsCatalogReaderTests
         }
 
         [Fact]
-        public void Should_throw_when_an_entry_omits_its_categories_array()
+        public async Task Should_throw_when_an_entry_omits_its_categories_array()
         {
             // Arrange — the entry has no `categories` key at all (null rather than empty).
-            var corpus = InstructionsCorpusTestWriter.WriteAndParse(
+            var corpus = await InstructionsCorpusTestWriter.WriteAndParseAsync(
                 tempDirectory.CreateDirectory(), "code-review");
             var catalogPath = InstructionsCatalogTestWriter.WriteRaw(
                 tempDirectory.CreateDirectory(),
@@ -356,10 +358,10 @@ public sealed class InstructionsCatalogReaderTests
         }
 
         [Fact]
-        public void Should_throw_when_the_catalog_file_is_missing()
+        public async Task Should_throw_when_the_catalog_file_is_missing()
         {
             // Arrange
-            var corpus = InstructionsCorpusTestWriter.WriteAndParse(
+            var corpus = await InstructionsCorpusTestWriter.WriteAndParseAsync(
                 tempDirectory.CreateDirectory(), "code-review");
             var missingPath = Path.Combine(tempDirectory.CreateDirectory(), "instructions-catalog.json");
 

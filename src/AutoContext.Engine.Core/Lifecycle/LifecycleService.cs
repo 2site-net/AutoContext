@@ -2,6 +2,7 @@ namespace AutoContext.Engine.Core.Lifecycle;
 
 using System.Text.Json;
 
+using AutoContext.Engine.Core.Features.Instructions;
 using AutoContext.Engine.Core.Infrastructure;
 using AutoContext.Engine.Core.Infrastructure.Events;
 using AutoContext.Engine.Core.Infrastructure.Storage;
@@ -15,6 +16,7 @@ using AutoContext.Engine.Core.Workspace.Context;
 using AutoContext.Engine.Protocol;
 using AutoContext.Engine.Protocol.JsonRpc;
 using AutoContext.Engine.Protocol.Messages.Config;
+using AutoContext.Engine.Protocol.Messages.Instructions;
 using AutoContext.Engine.Protocol.Messages.Lifecycle;
 using AutoContext.Engine.Protocol.Messages.Logs;
 using AutoContext.Engine.Protocol.Serialization;
@@ -103,6 +105,12 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
     private int _stopped;
     private CancellationTokenSource? _stoppingCts;
     private readonly IWorkspaceContextAccessor _workspaceAccessor;
+    private readonly IInstructionsManifestAccessor _manifestAccessor;
+    private readonly IInstructionsOverridesAccessor _overridesAccessor;
+    private readonly InstructionsBodyProjector _bodyProjector;
+    private readonly InstructionsFileReader _fileReader;
+    private readonly InstructionsFullTextSearchService _searchService;
+    private readonly SnapshotBroadcaster<IReadOnlyList<JsonInstructionsListRow>> _instructionsBroadcaster;
 
     /// <summary>
     /// Creates a new <see cref="LifecycleService"/>.
@@ -160,6 +168,24 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
     /// in-memory workspace detection result; threaded into the RPC
     /// dispatch policy so the <c>Workspace.Detect</c> handler can answer
     /// with the current detection result.</param>
+    /// <param name="manifestAccessor">Read-only view over the immutable
+    /// instruction manifest snapshot; threaded into the RPC dispatch
+    /// policy so the <c>Instructions.*</c> handlers can answer corpus
+    /// listing and read requests.</param>
+    /// <param name="overridesAccessor">Read-only view over the workspace
+    /// instruction override inventory; threaded into the RPC dispatch
+    /// policy so the <c>Instructions.List</c> handler can mark overridden
+    /// files.</param>
+    /// <param name="bodyProjector">Projects instruction bodies for the
+    /// <c>Instructions.Get</c>, <c>GetAll</c>, and <c>GetAlwaysAttached</c>
+    /// handlers.</param>
+    /// <param name="fileReader">Reads verbatim on-disk instruction bodies
+    /// for the <c>Instructions.GetRaw</c> handler.</param>
+    /// <param name="searchService">Full-text search over the projected
+    /// corpus backing the <c>Instructions.SearchContent</c>
+    /// handler.</param>
+    /// <param name="instructionsBroadcaster">Fan-out broadcaster backing
+    /// the <c>Instructions.Subscribe</c> snapshot-on-subscribe stream.</param>
     /// <exception cref="ArgumentNullException">
     /// Any constructor argument is <see langword="null"/>.
     /// </exception>
@@ -177,7 +203,13 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
         IConfigSnapshotAccessor configAccessor,
         IConfigUpdater configUpdater,
         SnapshotBroadcaster<JsonConfigSnapshot> configBroadcaster,
-        IWorkspaceContextAccessor workspaceAccessor)
+        IWorkspaceContextAccessor workspaceAccessor,
+        IInstructionsManifestAccessor manifestAccessor,
+        IInstructionsOverridesAccessor overridesAccessor,
+        InstructionsBodyProjector bodyProjector,
+        InstructionsFileReader fileReader,
+        InstructionsFullTextSearchService searchService,
+        SnapshotBroadcaster<IReadOnlyList<JsonInstructionsListRow>> instructionsBroadcaster)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(loggerFactory);
@@ -193,6 +225,12 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
         ArgumentNullException.ThrowIfNull(configUpdater);
         ArgumentNullException.ThrowIfNull(configBroadcaster);
         ArgumentNullException.ThrowIfNull(workspaceAccessor);
+        ArgumentNullException.ThrowIfNull(manifestAccessor);
+        ArgumentNullException.ThrowIfNull(overridesAccessor);
+        ArgumentNullException.ThrowIfNull(bodyProjector);
+        ArgumentNullException.ThrowIfNull(fileReader);
+        ArgumentNullException.ThrowIfNull(searchService);
+        ArgumentNullException.ThrowIfNull(instructionsBroadcaster);
 
         _options = options.Value;
         _loggerFactory = loggerFactory;
@@ -209,6 +247,12 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
         _configUpdater = configUpdater;
         _configBroadcaster = configBroadcaster;
         _workspaceAccessor = workspaceAccessor;
+        _manifestAccessor = manifestAccessor;
+        _overridesAccessor = overridesAccessor;
+        _bodyProjector = bodyProjector;
+        _fileReader = fileReader;
+        _searchService = searchService;
+        _instructionsBroadcaster = instructionsBroadcaster;
     }
 
     /// <inheritdoc/>
@@ -493,7 +537,7 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
                 _ = await RpcConnectionProcessor
                     .RunAsync(
                         stream,
-                        new DispatchPolicy(_applicationLifetime, _registryReader, _logFileReader, _logsBroadcaster, _configAccessor, _configUpdater, _configBroadcaster, _workspaceAccessor, _logger),
+                        new DispatchPolicy(_applicationLifetime, _registryReader, _logFileReader, _logsBroadcaster, _configAccessor, _configUpdater, _configBroadcaster, _workspaceAccessor, _manifestAccessor, _overridesAccessor, _bodyProjector, _fileReader, _searchService, _instructionsBroadcaster, _logger),
                         _logger,
                         cancellationToken)
                     .ConfigureAwait(false);

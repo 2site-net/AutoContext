@@ -174,6 +174,21 @@ before merge.
 - **P10**: in-process async hooks are single-subscriber; cross-process
   fan-out is `*.Subscribe`. No classic .NET `event` slots in framework
   code.
+- **P11**: the engine library splits into a **capability tier** and an
+  **infrastructure substrate**. `Engine.Core/Features/` holds the
+  outward-facing capabilities the extension consumes over RPC
+  (`Instructions/` today; the `McpTools.*` capability is the next
+  tenant) — the engine still boots without any of them, but without
+  them nothing can consume anything. Everything outside `Features/` is
+  infrastructure: required for the engine to run, whether a substantial
+  subsystem (`Workspace/`, `Lifecycle/`, `Machine/`) or plumbing
+  (`Watchdogs/`, `Logging/`, `Infrastructure/`). A folder earns the
+  `Features/` tier only when (a) the engine still runs without it *and*
+  (b) it directly serves an outward consumer; `Workspace/` and the
+  engine registry fail (b) and stay at root. The dependency arrow is
+  one-way: capabilities may depend on the substrate, the substrate must
+  never depend on a capability — a `using …Features.*` inside
+  infrastructure is the smell that classification slipped.
 
 Anything that adds an interface "for portability" needs a second
 concrete implementation in the same phase or it doesn't ship. See
@@ -423,16 +438,16 @@ src/
       Config/                                  # .autocontext.json owner (Config.* wire surface)
         Snapshot/                              # immutable domain graph (engine-internal source of truth)
           ConfigSnapshot.cs                    # domain: root record + Empty
+          ConfigEngineSettings.cs              # domain: engine settings record (instructions.overridesRoots)
           ConfigDiagnostic.cs                  # domain: diagnostic prefs record
           ConfigInstructionsFile.cs            # domain: per-instruction-file record (+ nested InstructionsRule)
           ConfigMcpTool.cs                     # domain: per-MCP-tool record (+ nested McpTask)
         Format/                                # on-disk wire DTOs (.autocontext.json shape)
           JsonConfigFile.cs                    # wire DTO: immutable on-disk config shape (P9)
+          JsonConfigFileEngine.cs              # wire DTO: engine block (instructions.overridesRoots)
           JsonConfigFileDiagnostic.cs          # wire DTO: diagnostic block
-          JsonConfigFileInstructionsEntry.cs   # wire DTO: instructions map entry
-          JsonConfigFileMcpToolEntry.cs        # wire DTO: mcpTools object entry
-          JsonConfigFileMcpToolValue.cs        # wire DTO: mcpTools value (false | object union)
-          JsonConfigFileMcpToolValueConverter.cs # custom converter for the false|object union
+          JsonConfigFileInstructionsEntry.cs   # wire DTO: instructions map entry (disabled, disabledRules)
+          JsonConfigFileMcpToolEntry.cs        # wire DTO: mcpTools object entry (disabled, disabledTasks)
         ConfigSnapshotExtensions.cs            # mapper: domain -> on-disk (ToFileFormat) + domain -> Config.* wire (ToWireFormat)
         JsonConfigFileExtensions.cs            # mapper: on-disk -> domain (ToDomainGraph)
         ConfigFileFormat.cs                    # stateless .autocontext.json serializer (mirrors RegistryFileFormat)
@@ -458,16 +473,18 @@ src/
         WorkspaceDetectionRules.cs             # static partial holding the three tables (FileRules, ContentScans, FlagActivationEdges) + GeneratedRegex patterns
         # — Derived data (per-Detect outputs; plain records, not DI-registered) —
         FileExtensionsIndex.cs                 # derived ext set, fed to Discovery (P7)
-    Instructions/                              # runtime services
-      InstructionsManifestService.cs           # merged catalog+manifest snapshot loader + reloader
-      InstructionsFileBodyProjector.cs         # disabled-rule filter, [INSTxxxx] strip, override merge
-      InstructionsContentIndex.cs              # in-memory content search index
-      InstructionsOverrideWatcher.cs           # .github/instructions/ FS watcher (debounced); produces InstructionsOverrides snapshots
-      InstructionsOverrides.cs                 # immutable snapshot of .github/instructions/ inventory (paths + basenames); consumed by InstructionsFileBodyProjector + InstructionsManifestService
-      ApplyToParser.cs                         # comma + brace-expand, extension extraction (shared with the build task via `<Compile Link>`)
-      InstructionsHandlers.cs                  # List/Categories/Get/GetAll/GetAlwaysAttached/GetRaw/SearchContent/Subscribe
-      InstructionsFrameStream.cs               # BroadcasterFrameStream<InstructionsSnapshot, …> (IBroadcasterFrameStream impl) for Instructions.Subscribe: drains a BroadcasterSubscription<InstructionsSnapshot> (fanned out over a shared Infrastructure/Events/SnapshotBroadcaster<T> — snapshot-on-subscribe + disabled-flag re-evaluation) and yields snapshot/dropped frames
-      InstructionsManifestLoader.cs            # reads Resources/instructions-catalog.json + instructions-manifest.json, merges into the snapshot
+    Features/                                  # outward-facing capability tier (P11): served to the extension over RPC; the engine runs without these, but without them nothing can consume anything
+      Instructions/                            # runtime services
+        InstructionsManifestService.cs           # merged catalog+manifest snapshot loader + reloader
+        InstructionsBodyProjector.cs             # projects a manifest entry's body per request: resolves override-vs-bundled, reads + parses; ToResponseBodyAsync filters disabled rules + slices sections for Get ([INSTxxxx] tags preserved), ToSearchBodyAsync rebuilds the offset-bearing body for indexing
+        InstructionsFullTextSearchService.cs     # in-memory full-text search over instruction bodies
+        InstructionsOverridesWatcher.cs          # per-overrides-root instructions/ FS watcher (debounced, default .github); produces InstructionsOverridesSnapshot values
+        Snapshot/InstructionsOverridesSnapshot.cs # immutable snapshot of the overrides-root instructions/ inventory (paths + basenames); consumed by InstructionsBodyProjector + InstructionsManifestService
+        FrontmatterApplyToParser.cs              # comma + brace-expand, extension extraction (shared with the build task via `<Compile Link>`)
+        InstructionsHandlers.cs                  # List/Categories/Get/GetAll/GetAlwaysAttached/GetRaw/SearchContent/Subscribe
+        InstructionsFrameStream.cs               # BroadcasterFrameStream<InstructionsSnapshot, …> (IBroadcasterFrameStream impl) for Instructions.Subscribe: drains a BroadcasterSubscription<InstructionsSnapshot> (fanned out over a shared Infrastructure/Events/SnapshotBroadcaster<T> — snapshot-on-subscribe + disabled-flag re-evaluation) and yields snapshot/dropped frames
+        InstructionsManifestLoader.cs            # reads Resources/instructions-catalog.json + instructions-manifest.json, merges into the snapshot
+      # McpTools/ — the McpTools.{List,Invoke} capability (today's Mcp/ below) is the next tenant of this tier (P11)
     Workers/                                   # worker dispatch (absorbs AutoContext.Mcp.Server/Workers/)
       WorkerManager.cs                         # ensureRunning(workerId) gate
       WorkerProcessSupervisor.cs               # Process.Start + stderr capture under worker.<id>.engine.stderr
@@ -527,10 +544,12 @@ src/
 
   AutoContext.Instructions.Parser/        # shared parser library (net10.0) — referenced by both the generator and the engine runtime so one source is compiled for both
     AutoContext.Instructions.Parser.csproj     # TargetFramework=net10.0; class library
-    InstructionsFileParser.cs                  # frontmatter reader (name/description/applyTo) + body section index + [locator#fragment] reference capture
-    ApplyToParser.cs                           # applyTo splitter/brace-expander — parse only, round-trip-verified
+    InstructionsFileSyntaxParser.cs            # streaming lexer → InstructionsFileSyntaxTree: frontmatter + body span streams plus reference + diagnostic side streams, with whole-file source coordinates
+    InstructionsFileFactory.cs                 # disk entry point: FromFileAsync → InstructionsFileSyntaxParser tree → Model.InstructionsFile.FromSyntaxTree
+    FrontmatterApplyToParser.cs                # applyTo splitter/brace-expander — parse only, round-trip-verified
     InstructionsFileReferenceResolver.cs       # pure cross-file resolver — validates rule/section references against an InstructionsFileCatalog (no I/O)
-    # …plus the parsed-shape records (frontmatter, section index, references) and the catalog/finding types the resolver consumes
+    Syntax/                                    # syntax layer: InstructionsFileSyntaxTree (frontmatter/body span streams + reference + diagnostic side streams) + InstructionsFileSyntaxSpan + coordinate structs + Kind/EmitLevel/EmitScope/Diagnostic(Kind) enums
+    Model/                                     # structured model: InstructionsFile (RawContent/Frontmatter/Body/References/Diagnostics) rebuilt from the syntax tree (InstructionsFileBody.WithoutTaggedRules reparses for disabled-rule projection), plus section/rule/reference + catalog/finding records
 
   AutoContext.Instructions.Manifest.Generator/   # build-time console generator (net10.0, AssemblyName instructions-manifest-gen) — not shipped with the engine
     AutoContext.Instructions.Manifest.Generator.csproj   # OutputType=Exe; ProjectReference → AutoContext.Instructions.Parser
@@ -1289,10 +1308,17 @@ write.
 
 **Code touch**:
 - `AutoContext.Engine.Core/Workspace/Config/ConfigFileManager` —
-  port of today's `AutoContextConfigManager` (TS) into .NET. JSON
-  shape unchanged; `.autocontext.json` keys are camelCase only
-  (`mcpTools`, `disabledTasks`, `enabled`), matching the existing
-  TS model — no dual-casing, no key normalisation. The manager owns
+  port of today's `AutoContextConfigManager` (TS) into .NET.
+  `.autocontext.json` keys are camelCase only (`engine`,
+  `instructions`, `mcpTools`, `disabled`, `disabledRules`,
+  `disabledTasks`) — no dual-casing, no key normalisation. (The
+  on-disk shape was finalised after this phase by the
+  `fix(config): correct .autocontext.json on-disk format` commit,
+  which renamed the whole-item toggle to `disabled: true`, renamed the
+  per-file rule opt-out list to `disabledRules`, dropped the
+  bare-`false` `mcpTools` shorthand so every entry is an object, and
+  added the `engine` block — see the three-participant model below.)
+  The manager owns
   the live snapshot and exposes `LoadAsync` / `RefreshAsync` /
   `UpdateAsync` / `Watch` with a `Changed` event. It implements
   `IConfigSnapshotAccessor` (the lock-free `Current` read seam) and
@@ -1301,12 +1327,13 @@ write.
   engine start so the snapshot is populated before the first
   `Config.Get` can land.
 - Three-participant config model split out from the manager: an
-  immutable **domain graph** (`ConfigSnapshot` + `ConfigDiagnostic` +
-  `ConfigInstructionsFile` + `ConfigMcpTool`, pure data, no
-  behaviour) that the rest of the engine reads, an **on-disk wire
-  DTO** layer (`JsonConfigFile` + `JsonConfigFile*` records, plus
-  `JsonConfigFileMcpToolValueConverter` for the `false | object`
-  `mcpTools` union) that mirrors the file shape byte-for-byte, and
+  immutable **domain graph** (`ConfigSnapshot` + `ConfigEngineSettings`
+  + `ConfigDiagnostic` + `ConfigInstructionsFile` + `ConfigMcpTool`,
+  pure data, no behaviour) that the rest of the engine reads, an
+  **on-disk wire DTO** layer (`JsonConfigFile` + `JsonConfigFileEngine`
+  + `JsonConfigFile*` records, every `mcpTools` value an object entry
+  — no bare-`false` shorthand) that mirrors the file shape
+  byte-for-byte, and
   the **`Config.*` RPC wire DTOs** (`JsonConfig*` under
   `Engine.Protocol/Messages/Config`) the engine streams to clients.
   `ConfigSnapshotExtensions.ToFileFormat` (domain -> on-disk) and
@@ -1598,7 +1625,7 @@ own `--workspace` path, exposes the result via `Workspace.Detect` and
 - **`Workspace.Detect` and `Workspace.Info` handlers (rows 6–7).**
   The detector has **no** business with `.github/instructions/`
   content — that inventory is owned by
-  `Instructions/InstructionsOverrideWatcher` (Phase 6) and
+  `Instructions/InstructionsOverridesWatcher` (Phase 6) and
   reachable via `Instructions.List`. The TS reference port
   (`src/AutoContext.VsCode/src/workspace-context-detector.ts`)
   already enforces this split: it does not scan overrides;
@@ -1775,15 +1802,14 @@ file is born named for the project that owns it.
   `**/*`) is preserved verbatim; the parser refuses to "simplify".
 
 **Out of scope**: any runtime projection (Phase 6); the
-content-search index seed (Phase 6 uses it but builds the live
-index in-memory at startup).
+full-text search index (Phase 6 builds it in-memory over the
+projected bodies, not from any build-time seed).
 
 ## Phase 6R — Design remediation: catalog + manifest split
 
-**Status**: Build-time slice complete on
-`features/fix-metadata-vs-manifest-design`. The runtime snapshot merge
-and the `Instructions.Categories` DTO (see **Out of scope**) resume in
-Phase 6.
+**Status**: Completed on branch `features/fix-metadata-vs-manifest-design`,
+merged to `dev/autocontext-engine`. The runtime snapshot merge and the
+`Instructions.Categories` DTO (see **Out of scope**) resume in Phase 6.
 
 **Why this phase exists**: Phase 6 runtime work was started and then
 **stashed** mid-flight when a critical design flaw surfaced. Phase 5's
@@ -1828,7 +1854,7 @@ Phase 6 resumes on top of the corrected files.
     corpus, all rules build-FATAL with an
     `[instructions-catalog.json] …` message: **(A)** every catalog
     entry resolves to a real corpus file; **(B2)** every corpus file
-    is catalogued **except** the always-attached files (`copilot`,
+    has a catalog entry **except** the always-attached files (`copilot`,
     `autocontext` — matching the legacy TS exemption); **(membership)**
     every category-membership string resolves to a declared category.
   - Update `Program.cs` args (corpus dir + catalog path + manifest
@@ -1860,15 +1886,163 @@ corrected files):
 - The `Instructions.Categories` wire DTO in
   `AutoContext.Engine.Protocol` (depends on the Row 1 envelope work).
 
+## Phase 6P — New span-based instructions parser
+
+**Status**: Completed on branch `features/instructions-span-parser`,
+merged to `features/instructions-corpus-runtime`. All rows landed: both
+corpus consumers run on the new parser pair, and the legacy single-pass
+parser has been deleted.
+
+| # | Commit subject | State |
+|---|---|---|
+| 1 | `feat(instructions): add InstructionsFileSyntaxParser span model and enums` | DONE |
+| 2 | `feat(instructions): implement InstructionsFileSyntaxParser block and token emission` | DONE |
+| 3 | `feat(instructions): attach file-local diagnostics to spans` | DONE |
+| 4 | `feat(instructions): add structured parser over the span stream` | DONE |
+| 5 | `refactor(instructions-manifest-gen): repoint corpus parse onto the syntax parser` | DONE |
+| 6 | `refactor(engine-core): repoint InstructionsFileService onto the syntax parser` | DONE |
+| 7 | `refactor(instructions): delete the legacy regex InstructionsFileParser and make InstructionsFileFactory the sole structural entry point` | DONE |
+| 8 | `docs(plan): mark Phase 6P complete` | DONE |
+
+**Goal**: replace the single-pass regex parser with a
+lower-level, incremental `InstructionsFileSyntaxParser` that emits
+source-positioned `InstructionsFileSyntaxSpan`s, plus a structured layer
+(`InstructionsFileFactory.FromFileAsync` for the disk entry point and
+`Model.InstructionsFile.FromSpans` for the span→model rebuild) that
+reconstructs the `InstructionsFile` model on top of the span stream. The
+two current corpus consumers — the build-time
+`AutoContext.Instructions.Manifest.Generator` and the runtime
+`InstructionsFileService` — are repointed onto the new parser pair, and the
+legacy regex parser and its static entry point are deleted.
+
+**Design anchors**: the locked span-parser design contracts —
+emit-level/emit-scope **intersection** model
+(`ShouldEmit = MatchesLevel(kind) && MatchesScope(kind)`), gapless
+non-overlapping `Blocks` partition, recursive
+container-before-contained ordering, whole-file zero-based
+exclusive-ended coordinates (`CRLF` = two chars, no normalisation),
+span-attached file-local diagnostics with promotion to the nearest
+emitted parent, the `## Rules` section state machine, and the
+preserved fence asymmetry (rule bullets fence-agnostic; headings,
+references, and the Rules-boundary `---` fence-aware).
+
+**Code touch** (`AutoContext.Instructions.Parser/`):
+- `InstructionsFileSyntaxParser` — `internal sealed`;
+  `ParseFileAsync(string)` owns I/O (`FileStream` + `StreamReader`)
+  and delegates to `ParseAsync(TextReader)`, which consumes decoded
+  text incrementally and yields `InstructionsFileSyntaxSpan`. Ctor:
+  `(emitLevel = Full, emitScope = All, includeDiagnostics = true)`.
+- Span model, coordinate structs, and enums:
+  `InstructionsFileSyntaxSpan` (`Text`, `Kind`, `TextSpan`,
+  `LineSpan`, `Diagnostics`), `InstructionsFileTextSpan`,
+  `InstructionsFileLineSpan`, `InstructionsFileSpanKind`,
+  `[Flags] InstructionsFileSpanEmitLevel`,
+  `[Flags] InstructionsFileSpanEmitScope`,
+  `InstructionsFileDiagnostic`,
+  `InstructionsFileDiagnosticKind` (`MissingTag`, `DuplicateTag`,
+  `MalformedTag`, `MalformedReference`, `MisplacedRule`).
+- Single streaming pass carries: an `inFence` toggle (gates
+  headings/references and the `---` Rules boundary; rule bullets stay
+  fence-agnostic), an "under `## Rules`" bool (enter on a `Heading2`
+  whose trimmed text is exactly `Rules`, stay across `Heading3`, exit
+  on the next `Heading2` / any `Heading1` / a thematic break `---` /
+  EOF), and a seen-tag set for `DuplicateTag`. Diagnostics attach to
+  the most specific emitted span, promoting to the nearest emitted
+  parent when the specific span is filtered out by level/scope.
+- Structured layer (`Model.InstructionsFile.FromSpans`, reached on
+  disk through `InstructionsFileFactory.FromFileAsync`) — consumes the
+  `Full`/`All` span stream and rebuilds the `InstructionsFile` model
+  (frontmatter `name`/`description`/`applyTo`/`version`, the
+  `##`/`###` section index with slug anchors, rule bullets,
+  `[locator#fragment]` references split into Rule/Section kinds, and
+  diagnostics carrying the span `InstructionsFileDiagnosticKind`
+  directly with a body-relative line). `FrontmatterApplyToParser`
+  glob parsing and `Slugify` are reused unchanged.
+- The legacy single-pass regex parser, its static entry
+  (`Parse` / `ParseAsync` / `TryParse*`), and
+  `InstructionsFileTryResult` are deleted; `InstructionsFileFactory`
+  (disk entry point) over `Model.InstructionsFile.FromSpans` is the
+  sole structural entry point. (Post-ladder `refactor(parser): …`
+  commits then split the syntax and model layers into `Syntax/` and
+  `Model/`, collapsed the public surface, emitted span text as
+  zero-copy memory slices, renamed the disk entry to
+  `InstructionsFileFactory`, decoupled the parse into the four-stream
+  `InstructionsFileSyntaxTree` and renamed the model rebuild
+  `Model.InstructionsFile.FromSpans` → `Model.InstructionsFile.FromSyntaxTree`,
+  and repointed the runtime body projector onto
+  `InstructionsBodyProjector` — see the **Target structure** section
+  for the current names.)
+- Repoint `AutoContext.Instructions.Manifest.Generator/CorpusParser`
+  and `AutoContext.Engine.Core/Features/Instructions/InstructionsFileService`
+  onto `InstructionsFileFactory.FromFileAsync`. Both consumers adopt the
+  async API directly — `CorpusParser.ParseAsync` and the already-async
+  file service.
+
+**Tests**:
+- Span parser: emit-level × emit-scope truth table
+  (`Full`/`Blocks`/`Tokens` × `All`/`Frontmatter`/`Headings`/`Rules`/`References`,
+  including `Blocks + References` → empty); gapless `Blocks` partition
+  over fixtures; recursive ordering
+  (`FrontmatterProperty` → `FrontmatterKey`/`FrontmatterValue`;
+  `TaggedRule` → `Tag`/`Reference`); whole-file coordinates with
+  `CRLF` = two chars; diagnostic attachment + promotion across the
+  three levels.
+- Section state machine: `## Rules` enter / stay-across-`Heading3` /
+  exit on each boundary kind; a `---` inside a fence does **not**
+  close Rules; `MissingTag` only under Rules; `MisplacedRule` for a
+  tagged rule outside Rules; a `PlainRule` outside Rules stays clean.
+- Malformed-tag redefinition: `- [foo] **Do**` → `TaggedRule` +
+  `Tag` + `MalformedTag` (captured as the one intentional parity diff
+  versus the legacy parser).
+- Structured-parser parity: across the shipped corpus the rebuilt
+  `InstructionsFile` model matches the legacy parser
+  field-for-field except the documented malformed-tag diff.
+- Generator parity: `instructions-manifest.json` is byte-identical
+  before and after the repoint.
+- `InstructionsFileService` parity: projected bodies and
+  disabled-rule filtering unchanged.
+
+**Full retirement** (completed): both consumers and the test suite run on
+the syntax parser + `InstructionsFileFactory` / `Model.InstructionsFile`;
+the legacy regex implementation, its static entry, and
+`InstructionsFileTryResult` are deleted.
+
+**Out of scope**: zero-copy
+`ReadOnlyMemory<char>` span slicing (deferred — accept per-span
+`string` for now); first-class `CodeFence` / `CodeSpan` span kinds
+(internal fence state only); corpus-level cross-file reference
+resolution (stays in `InstructionsFileReferenceResolver`, outside the
+span parser).
+
 ## Phase 6 — Instructions corpus runtime + projection
 
-**Status**: Started, then **paused** — the Row 2 runtime corpus-load
-work was stashed pending **Phase 6R** (design remediation). Resumes on
-the corrected catalog + manifest shape.
+**Status**: Completed on branch `features/instructions-corpus-runtime`,
+atop the merged **Phase 6P** (new span-based parser) and Phase 6R catalog
++ manifest shape. Every `Instructions.*` RPC is served from the in-memory
+snapshot, with config-driven invalidation and content search.
+
+| # | Commit subject | State |
+|---|---|---|
+| 1 | `feat(protocol): add Instructions.* wire DTOs` | DONE |
+| 2 | `feat(engine-core): load instructions corpus snapshot on startup` | DONE |
+| 3 | `feat(engine-core): add InstructionsOverridesWatcher with debounced reload` | DONE |
+| 4 | `feat(engine): serve Instructions.List over rpc` | DONE |
+| 5 | `feat(engine-core): add InstructionsFileService with override resolution and disabled-rule filter` | DONE |
+| 6 | `feat(engine): serve Instructions.Get and GetAll over rpc` | DONE |
+| 7 | `feat(engine): serve Instructions.GetAlwaysAttached over rpc` | DONE |
+| 8 | `feat(engine): serve Instructions.GetRaw with bundled/override/active source` | DONE |
+| 9 | `feat(engine-core): add InstructionsFullTextSearchService over projected bodies` | DONE |
+| 10 | `feat(engine): serve Instructions.SearchContent over rpc` | DONE |
+| 11 | `feat(engine-core): add Instructions.Subscribe events stream with snapshot-on-subscribe` | DONE |
+| 12 | `feat(engine-core): rebroadcast Instructions.Subscribe on Config.Subscribe changes` | DONE |
+| 13 | `feat(engine-core): warn when an override is older than its bundled file` | DONE |
+| 14 | `test(engine): integration test for instructions projection and invalidation over rpc` | DONE |
+| 15 | `docs(plan): mark Phase 6 complete` | DONE |
 
 **Goal**: engine answers every `Instructions.*` RPC from in-memory
 snapshots, applies per-request projection (disabled rules filtered,
-`[INSTxxxx]` stripped, overrides resolved), invalidates cleanly via
+`[INSTxxxx]` tags preserved so cross-rule references stay navigable,
+overrides resolved), invalidates cleanly via
 `Config.Subscribe`, and exposes content search.
 
 **Design anchors**: `§ RPC surface` (`Instructions.*`),
@@ -1880,20 +2054,41 @@ from not-found pitfall`, `§ Override survival across upgrades`
 pitfall.
 
 **Code touch**:
-- `AutoContext.Engine.Core/Instructions/`:
+- `AutoContext.Engine.Core/Features/Instructions/`:
   - `InstructionsManifestService` — on startup, merge the
     hand-authored `instructions-catalog.json` (categories, `label`,
     membership, `activationFlags`) with the build-generated
     `instructions-manifest.json` (per-file facts) into one immutable
     `InstructionsManifestSnapshot`; re-project per request.
-  - `InstructionsFileBodyProjector` — disabled-rule filter,
-    `[INSTxxxx]` tag strip, override resolution.
-  - `InstructionsContentIndex` — in-memory content search seeded
-    from the section/body facts in `instructions-manifest.json`, hot
-    across queries, invalidated on corpus reload.
-  - `InstructionsOverrideWatcher` — `FileSystemWatcher` on
-    `<workspace>/.github/instructions/` with the same debounce shape
-    Phase 3 introduced.
+  - `InstructionsBodyProjector` — projects a manifest entry's body on
+    demand. `ToResponseBodyAsync` resolves override-vs-bundled, reads
+    and parses the body, filters disabled rules, and slices the
+    requested sections for `Get`; `ToSearchBodyAsync` rebuilds the
+    offset-bearing body the search index consumes. `[INSTxxxx]` tags
+    are **preserved** (not stripped): the id is the anchor a
+    cross-rule / cross-file
+    `[locator#fragment]` reference resolves to, so stripping them
+    would leave every reference pointing at content the reader can no
+    longer locate. Frontmatter is still stripped and disabled rules
+    still filtered — only the tag-strip step is dropped relative to
+    the original projector design.
+  - `InstructionsFullTextSearchService` — in-memory full-text search
+    over the **projected body** each file resolves to (the same text
+    `Get` returns: override-over-bundled, frontmatter stripped,
+    disabled rules filtered), plus the manifest `description`. The
+    manifest carries no body text, so it supplies only the file roster
+    and heading anchors; the searchable content comes from
+    `InstructionsBodyProjector.ToSearchBodyAsync`. Built lazily, hot
+    across queries,
+    invalidated when an override changes (`InstructionsOverridesWatcher`)
+    or disabled state changes (`Config.Subscribe`) — not on a corpus
+    reload, since the bundled corpus is immutable at runtime.
+  - `InstructionsOverridesWatcher` — a `FileSystemWatcher` per
+    `engine.instructions.overridesRoots` root's `instructions/`
+    subfolder (default `<workspace>/.github/instructions/`), with the
+    same debounce shape Phase 3 introduced. Override resolution walks
+    the roots in precedence order — the first root that supplies
+    `<name>.instructions.md` wins, falling back to the bundled corpus.
 - Handlers: `Instructions.List`, `Categories`, `Get`, `GetAll`,
   `GetAlwaysAttached`, `GetRaw` (with
   `opts.source: "bundled"|"override"|"active"`), `SearchContent`,
@@ -1939,7 +2134,7 @@ pitfall.
 **Out of scope**: LM-tool shims (Phase 14 — they dial these RPCs);
 MCP-tool dispatch (Phase 7).
 
-## Phase 7 — MCP tool catalogue, dispatch, and worker manager
+## Phase 7 — MCP tool catalog, dispatch, and worker manager
 
 **Status**: Not started.
 
@@ -1984,8 +2179,8 @@ manifests` (`workers.json`, `mcp-tools-registry.json`),
   runtime projection applies the disabled-state filter) emitted into
   `src/AutoContext.Engine/Resources/` from the registry above.
 - `McpTools.List` handler over the `mcp-tools-registry.json` data,
-  filtered per-request by `disabledTools`/`disabledTasks` from the
-  config snapshot.
+  filtered per-request by each tool's `disabled` flag and
+  `disabledTasks` from the config snapshot.
 - `McpTools.Invoke` handler: schema-validate `arguments` against the
   tool's `inputSchema`, dispatch to the worker, marshal the worker
   response into the discriminated envelope (`ok`/`tool-error`/

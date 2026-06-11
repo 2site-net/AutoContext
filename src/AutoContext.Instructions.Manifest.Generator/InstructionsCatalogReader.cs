@@ -28,7 +28,7 @@ internal sealed class InstructionsCatalogReader : IInstructionsCatalogReader
     /// <inheritdoc />
     public JsonInstructionsCatalog Read(
         string catalogPath,
-        IReadOnlyDictionary<string, CorpusFileParsedResult> corpus)
+        IReadOnlyDictionary<string, InstructionsFileParsedFile> corpus)
     {
         ArgumentNullException.ThrowIfNull(catalogPath);
         ArgumentNullException.ThrowIfNull(corpus);
@@ -94,7 +94,7 @@ internal sealed class InstructionsCatalogReader : IInstructionsCatalogReader
     private static void ReconcileWithCorpus(
         IReadOnlyList<JsonInstructionsCatalogEntry> entries,
         IReadOnlyList<string> alwaysAttached,
-        IReadOnlyDictionary<string, CorpusFileParsedResult> corpus)
+        IReadOnlyDictionary<string, InstructionsFileParsedFile> corpus)
     {
         var corpusFiles = new HashSet<string>(StringComparer.Ordinal);
 

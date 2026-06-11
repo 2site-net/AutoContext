@@ -2,7 +2,7 @@ namespace AutoContext.Instructions.Manifest.Generator;
 
 using System.Text;
 
-using AutoContext.Instructions.Parser;
+using AutoContext.Instructions.Parser.Model;
 
 using Microsoft.Extensions.Logging;
 
@@ -33,10 +33,11 @@ internal sealed partial class InstructionsManifestGenerator(
     /// manifest-json-path]</c>.
     /// </summary>
     /// <param name="args">The positional command-line arguments.</param>
+    /// <param name="cancellationToken">Cancels the generation pass.</param>
     /// <returns>The process exit code.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="args"/> is
     /// <see langword="null"/>.</exception>
-    public int Run(IReadOnlyList<string> args)
+    public async Task<int> RunAsync(IReadOnlyList<string> args, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(args);
 
@@ -52,7 +53,7 @@ internal sealed partial class InstructionsManifestGenerator(
 
         try
         {
-            var corpus = corpusParser.Parse(corpusDirectory);
+            var corpus = await corpusParser.ParseAsync(corpusDirectory, cancellationToken).ConfigureAwait(false);
             _ = catalogReader.Read(catalogPath, corpus);
             var manifest = builder.Build(corpus);
 
@@ -72,8 +73,8 @@ internal sealed partial class InstructionsManifestGenerator(
         }
     }
 
-    private static string Describe(CorpusReferenceFinding finding)
-        => $"{finding.FileName} (body line {finding.Finding.Reference.Line + 1}): {finding.Finding.Message}";
+    private static string Describe(InstructionsFileReferenceFindingEntry finding)
+        => $"{finding.SourceFileName} (body line {finding.Failure.Reference.Line + 1}): {finding.Failure.Message}";
 
     [LoggerMessage(
         EventId = 2,
@@ -121,13 +122,13 @@ internal sealed partial class InstructionsManifestGenerator(
     /// warnings (they ship) and the resolution failures as errors (they fail the build).
     /// </summary>
     /// <returns><see langword="true"/> when at least one fatal reference fault was found.</returns>
-    private bool HasReferenceFault(IReadOnlyDictionary<string, CorpusFileParsedResult> corpus)
+    private bool HasReferenceFault(IReadOnlyDictionary<string, InstructionsFileParsedFile> corpus)
     {
         var hasFatal = false;
 
         foreach (var finding in referenceValidator.Validate(corpus))
         {
-            if (finding.Finding.Kind == InstructionsFileReferenceFindingKind.RedundantLocator)
+            if (finding.Failure.Kind == InstructionsFileReferenceFindingKind.RedundantLocator)
             {
                 LogReferenceWarning(logger, Describe(finding));
             }

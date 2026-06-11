@@ -3,12 +3,14 @@ namespace AutoContext.Engine.Core.Tests.Support.Lifecycle;
 using System.Diagnostics.CodeAnalysis;
 
 using AutoContext.Engine.Core;
+using AutoContext.Engine.Core.Features.Instructions;
 using AutoContext.Engine.Core.Infrastructure.Events;
 using AutoContext.Engine.Core.Lifecycle;
 using AutoContext.Engine.Core.Logging;
 using AutoContext.Engine.Core.Machine;
 using AutoContext.Engine.Core.Registry;
 using AutoContext.Engine.Core.Tests.Support;
+using AutoContext.Engine.Core.Tests.Support.Features.Instructions;
 using AutoContext.Engine.Core.Tests.Support.Machine;
 using AutoContext.Engine.Core.Tests.Support.Workspace.Config;
 using AutoContext.Engine.Core.Tests.Support.Workspace.Context;
@@ -16,6 +18,7 @@ using AutoContext.Engine.Core.Watchdogs;
 using AutoContext.Engine.Core.Workspace.Config;
 using AutoContext.Engine.Core.Workspace.Context;
 using AutoContext.Engine.Protocol.Messages.Config;
+using AutoContext.Engine.Protocol.Messages.Instructions;
 using AutoContext.Engine.Protocol.Messages.Logs;
 
 using Microsoft.Extensions.Hosting;
@@ -37,6 +40,10 @@ public sealed class LifecycleServiceFixture : IAsyncDisposable
     private readonly List<IAsyncDisposable> _asyncTracked = [];
     private readonly List<IDisposable> _syncTracked = [];
 
+    [SuppressMessage(
+        "Reliability",
+        "CA2000:Dispose objects before losing scope",
+        Justification = "The full-text search service is owned by the constructed LifecycleService, which the fixture tracks and disposes during teardown.")]
     internal Context Create(
         EngineOptions? options = null,
         RegistryFileReader? registryReader = null)
@@ -66,7 +73,13 @@ public sealed class LifecycleServiceFixture : IAsyncDisposable
             CreateConfigAccessor(),
             CreateConfigUpdater(),
             CreateConfigBroadcaster(),
-            CreateWorkspaceAccessor());
+            CreateWorkspaceAccessor(),
+            CreateInstructionsManifestAccessor(),
+            CreateInstructionsOverridesAccessor(),
+            CreateInstructionsBodyProjector(),
+            CreateInstructionsFileReader(),
+            CreateInstructionsSearchService(),
+            CreateInstructionsBroadcaster());
 
         // Track in reverse dependency order so Dispose tears the
         // service down first, then the watchdog, then the lifetime.
@@ -90,11 +103,72 @@ public sealed class LifecycleServiceFixture : IAsyncDisposable
     internal static IConfigUpdater CreateConfigUpdater() =>
         new FakeConfigSnapshotAccessor();
 
+    internal static IConfigChangeNotifier CreateConfigChangeNotifier() =>
+        new FakeConfigSnapshotAccessor();
+
     internal static SnapshotBroadcaster<JsonConfigSnapshot> CreateConfigBroadcaster() =>
         new(NullLogger<SnapshotBroadcaster<JsonConfigSnapshot>>.Instance, "Config.Subscribe");
 
+    internal static SnapshotBroadcaster<IReadOnlyList<JsonInstructionsListRow>> CreateInstructionsBroadcaster() =>
+        new(
+            NullLogger<SnapshotBroadcaster<IReadOnlyList<JsonInstructionsListRow>>>.Instance,
+            "Instructions.Subscribe");
+
     internal static IWorkspaceContextAccessor CreateWorkspaceAccessor() =>
         new FakeWorkspaceContextAccessor();
+
+    internal static IInstructionsManifestAccessor CreateInstructionsManifestAccessor() =>
+        new FakeInstructionsManifestAccessor();
+
+    internal static IInstructionsOverridesAccessor CreateInstructionsOverridesAccessor() =>
+        new FakeInstructionsOverridesAccessor();
+
+    internal static InstructionsListProjector CreateInstructionsListProjector(
+        IInstructionsManifestAccessor? manifest = null,
+        IInstructionsOverridesAccessor? overrides = null,
+        IConfigSnapshotAccessor? config = null,
+        IWorkspaceContextAccessor? workspace = null) =>
+        new(
+            manifest ?? CreateInstructionsManifestAccessor(),
+            overrides ?? CreateInstructionsOverridesAccessor(),
+            config ?? CreateConfigAccessor(),
+            workspace ?? CreateWorkspaceAccessor());
+
+    internal static InstructionsBodyProjector CreateInstructionsBodyProjector(
+        IInstructionsOverridesAccessor? overrides = null,
+        IConfigSnapshotAccessor? config = null) =>
+        new(
+            CreateInstructionsDirectory(),
+            overrides ?? CreateInstructionsOverridesAccessor(),
+            config ?? CreateConfigAccessor());
+
+    internal static InstructionsFileReader CreateInstructionsFileReader(
+        IInstructionsOverridesAccessor? overrides = null) =>
+        new(
+            CreateInstructionsDirectory(),
+            overrides ?? CreateInstructionsOverridesAccessor());
+
+    internal static InstructionsFullTextSearchService CreateInstructionsSearchService(
+        IInstructionsManifestAccessor? manifest = null,
+        InstructionsBodyProjector? projector = null,
+        IConfigSnapshotAccessor? config = null)
+    {
+        var resolvedConfig = config ?? CreateConfigAccessor();
+        var resolvedManifest = manifest ?? CreateInstructionsManifestAccessor();
+        var resolvedProjector = projector
+            ?? CreateInstructionsBodyProjector(config: resolvedConfig);
+
+        return new InstructionsFullTextSearchService(
+            resolvedManifest,
+            resolvedProjector,
+            resolvedConfig,
+            NullLogger<InstructionsFullTextSearchService>.Instance);
+    }
+
+    private static string CreateInstructionsDirectory() =>
+        Path.Combine(
+            Path.GetTempPath(),
+            $"autocontext-instructions-{Guid.NewGuid():N}");
 
     internal static LifecycleEventStream CreateEventStream(EngineOptions? options = null) =>
         new(

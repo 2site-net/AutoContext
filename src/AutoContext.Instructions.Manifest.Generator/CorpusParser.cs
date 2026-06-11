@@ -8,11 +8,11 @@ using AutoContext.Instructions.Parser;
 /// <summary>
 /// The single disk-reading stage of one generation pass. It walks the corpus
 /// directory, reads each <c>*.instructions.md</c> file once via
-/// <see cref="InstructionsFile.Parse(string)"/>, and precomputes the
+/// <see cref="InstructionsFileFactory.FromFileAsync"/>, and precomputes the
 /// frontmatter-stripped content hash and sibling-changelog flag. Every later stage
 /// (<see cref="InstructionsManifestBuilder"/>, <see cref="InstructionsCatalogReader"/>,
 /// and <see cref="InstructionsReferenceValidator"/>) reads the resulting
-/// <see cref="CorpusFileParsedResult"/> values and never touches disk again, so the markdown
+/// <see cref="InstructionsFileParsedFile"/> values and never touches disk again, so the markdown
 /// is read and parsed exactly once.
 /// </summary>
 internal sealed class CorpusParser : ICorpusParser
@@ -22,7 +22,9 @@ internal sealed class CorpusParser : ICorpusParser
     private static readonly UTF8Encoding Utf8NoBom = new(encoderShouldEmitUTF8Identifier: false);
 
     /// <inheritdoc />
-    public IReadOnlyDictionary<string, CorpusFileParsedResult> Parse(string corpusDirectory)
+    public async Task<IReadOnlyDictionary<string, InstructionsFileParsedFile>> ParseAsync(
+        string corpusDirectory,
+        CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(corpusDirectory);
 
@@ -33,16 +35,18 @@ internal sealed class CorpusParser : ICorpusParser
             .OrderBy(static name => name, StringComparer.Ordinal)
             .ToList();
 
-        var corpus = new Dictionary<string, CorpusFileParsedResult>(fileNames.Count, StringComparer.Ordinal);
+        var corpus = new Dictionary<string, InstructionsFileParsedFile>(fileNames.Count, StringComparer.Ordinal);
 
         foreach (var fileName in fileNames)
         {
-            var parsed = InstructionsFile.Parse(Path.Combine(corpusDirectory, fileName));
+            var parsed = await InstructionsFileFactory
+                .FromFileAsync(Path.Combine(corpusDirectory, fileName), cancellationToken)
+                .ConfigureAwait(false);
             var contentHash = ComputeContentHash(parsed.Body.RawValue);
             var key = fileName[..^InstructionsFileSuffix.Length];
             var hasChangelog = File.Exists(Path.Combine(corpusDirectory, key + ".CHANGELOG.md"));
 
-            corpus.Add(key, new CorpusFileParsedResult(fileName, parsed, contentHash, hasChangelog));
+            corpus.Add(key, new InstructionsFileParsedFile(fileName, parsed, contentHash, hasChangelog));
         }
 
         return corpus;
