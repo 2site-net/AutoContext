@@ -8,7 +8,7 @@ using AutoContext.Engine.Tests.Support.Logging;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
-public sealed class StaleOverrideInspectorTests
+public sealed class InstructionsOverridesStalenessInspectorTests
 {
     public sealed class Constructor
     {
@@ -17,13 +17,13 @@ public sealed class StaleOverrideInspectorTests
         [InlineData("   ")]
         public void Should_reject_blank_bundled_directory(string bundledDirectory)
             => Assert.Throws<ArgumentException>(
-                () => new StaleOverrideInspector(
+                () => new InstructionsOverridesStalenessInspector(
                     bundledDirectory, NullLogger.Instance));
 
         [Fact]
         public void Should_reject_null_logger()
             => Assert.Throws<ArgumentNullException>(
-                () => new StaleOverrideInspector("bundled", null!));
+                () => new InstructionsOverridesStalenessInspector("bundled", null!));
     }
 
     public sealed class Inspect(TempDirectoryFixture tempDirectory)
@@ -33,7 +33,7 @@ public sealed class StaleOverrideInspectorTests
         public void Should_reject_null_overrides()
         {
             // Arrange
-            var inspector = new StaleOverrideInspector(
+            var inspector = new InstructionsOverridesStalenessInspector(
                 tempDirectory.CreateDirectory(), NullLogger.Instance);
 
             // Act + Assert
@@ -52,7 +52,7 @@ public sealed class StaleOverrideInspectorTests
                 overrideDirectory, fileName, File.GetLastWriteTimeUtc(bundledPath).AddDays(-1));
 
             var recorder = new FakeRecordingLogger();
-            var inspector = new StaleOverrideInspector(bundledDirectory, recorder);
+            var inspector = new InstructionsOverridesStalenessInspector(bundledDirectory, recorder);
 
             // Act
             inspector.Inspect(SnapshotOf(fileName, overridePath));
@@ -76,7 +76,7 @@ public sealed class StaleOverrideInspectorTests
                 overrideDirectory, fileName, File.GetLastWriteTimeUtc(bundledPath).AddDays(1));
 
             var recorder = new FakeRecordingLogger();
-            var inspector = new StaleOverrideInspector(bundledDirectory, recorder);
+            var inspector = new InstructionsOverridesStalenessInspector(bundledDirectory, recorder);
 
             // Act
             inspector.Inspect(SnapshotOf(fileName, overridePath));
@@ -96,7 +96,7 @@ public sealed class StaleOverrideInspectorTests
                 overrideDirectory, fileName, DateTime.UtcNow.AddDays(-1));
 
             var recorder = new FakeRecordingLogger();
-            var inspector = new StaleOverrideInspector(bundledDirectory, recorder);
+            var inspector = new InstructionsOverridesStalenessInspector(bundledDirectory, recorder);
 
             // Act
             inspector.Inspect(SnapshotOf(fileName, overridePath));

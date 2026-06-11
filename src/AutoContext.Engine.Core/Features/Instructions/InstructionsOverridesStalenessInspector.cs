@@ -19,7 +19,7 @@ using Microsoft.Extensions.Logging;
 /// otherwise ignored so one unreadable file never derails the inspection
 /// of the rest.
 /// </remarks>
-internal sealed partial class StaleOverrideInspector
+internal sealed partial class InstructionsOverridesStalenessInspector
 {
     private readonly string _bundledInstructionsDirectory;
     private readonly ILogger _logger;
@@ -38,7 +38,7 @@ internal sealed partial class StaleOverrideInspector
     /// <see langword="null"/>, empty, or whitespace.</exception>
     /// <exception cref="ArgumentNullException"><paramref name="logger"/> is
     /// <see langword="null"/>.</exception>
-    public StaleOverrideInspector(string bundledInstructionsDirectory, ILogger logger)
+    public InstructionsOverridesStalenessInspector(string bundledInstructionsDirectory, ILogger logger)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(bundledInstructionsDirectory);
         ArgumentNullException.ThrowIfNull(logger);
@@ -63,12 +63,12 @@ internal sealed partial class StaleOverrideInspector
         {
             if (overrides.TryGetPath(fileName, out var overridePath) && overridePath is not null)
             {
-                InspectOverride(fileName, overridePath);
+                InspectShadowingOverride(fileName, overridePath);
             }
         }
     }
 
-    private void InspectOverride(string fileName, string overridePath)
+    private void InspectShadowingOverride(string fileName, string overridePath)
     {
         var bundledPath = Path.Combine(_bundledInstructionsDirectory, fileName);
 
@@ -84,7 +84,7 @@ internal sealed partial class StaleOverrideInspector
 
             if (overrideWriteTimeUtc < bundledWriteTimeUtc)
             {
-                LogStaleOverride(_logger, fileName, overrideWriteTimeUtc, bundledWriteTimeUtc);
+                LogOutdatedInstructionsOverride(_logger, fileName, overrideWriteTimeUtc, bundledWriteTimeUtc);
             }
         }
         catch (IOException exception)
@@ -100,9 +100,8 @@ internal sealed partial class StaleOverrideInspector
     [LoggerMessage(
         EventId = 1,
         Level = LogLevel.Warning,
-        Message = "Instruction override '{FileName}' (last modified {OverrideWriteTimeUtc:u}) is older than its bundled file (last modified {BundledWriteTimeUtc:u}); the override may be stale after an engine upgrade.")]
-    private static partial void LogStaleOverride(
-        ILogger logger, string fileName, DateTime overrideWriteTimeUtc, DateTime bundledWriteTimeUtc);
+        Message = "Instruction override '{FileName}' (last modified {OverrideWriteTimeUtc:u}) is older than its bundled file (last modified {BundledWriteTimeUtc:u}); the override may be outdated after an engine upgrade.")]
+    private static partial void LogOutdatedInstructionsOverride(ILogger logger, string fileName, DateTime overrideWriteTimeUtc, DateTime bundledWriteTimeUtc);
 
     [LoggerMessage(
         EventId = 2,

@@ -317,14 +317,15 @@ public static class EngineHostBuilderExtensions
         // are loaded before the scan runs; the singleton mapping here is
         // lazily resolved so the registration order is irrelevant. The
         // scan compares each override against the bundled file it shadows
-        // through the StaleOverrideInspector and warns on stale overrides.
-        builder.Services.TryAddSingleton(sp => new StaleOverrideInspector(
+        // through the InstructionsOverridesStalenessInspector and warns on
+        // stale overrides.
+        builder.Services.TryAddSingleton(sp => new InstructionsOverridesStalenessInspector(
             Path.Combine(AppContext.BaseDirectory, "Resources", "Instructions"),
-            sp.GetRequiredService<ILogger<StaleOverrideInspector>>()));
+            sp.GetRequiredService<ILogger<InstructionsOverridesStalenessInspector>>()));
         builder.Services.TryAddSingleton(sp => new InstructionsOverridesService(
             sp.GetRequiredService<IWorkspaceContextAccessor>(),
             sp.GetRequiredService<IConfigSnapshotAccessor>(),
-            sp.GetRequiredService<StaleOverrideInspector>(),
+            sp.GetRequiredService<InstructionsOverridesStalenessInspector>(),
             sp.GetRequiredService<TimeProvider>(),
             sp.GetRequiredService<ILoggerFactory>(),
             sp.GetRequiredService<ILogger<InstructionsOverridesService>>()));
