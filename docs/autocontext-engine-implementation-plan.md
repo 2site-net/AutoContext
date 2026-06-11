@@ -2138,6 +2138,19 @@ MCP-tool dispatch (Phase 7).
 
 **Status**: Not started.
 
+| # | Commit subject | State |
+|---|---|---|
+| 1 | `feat(protocol): add McpTools.* wire DTOs` | Not started |
+| 2 | `feat(engine): author mcp-tools-registry.json and its schema` | Not started |
+| 3 | `feat(engine-core): add McpToolsRegistryLoader and schema validator` | Not started |
+| 4 | `feat(build): generate workers.json from worker projects` | Not started |
+| 5 | `feat(build): project mcp-tools.json from the registry` | Not started |
+| 6 | `feat(engine-core): port WorkerManager with ensureRunning gate` | Not started |
+| 7 | `feat(engine): serve McpTools.List over rpc` | Not started |
+| 8 | `feat(engine): serve McpTools.Invoke over rpc` | Not started |
+| 9 | `test(engine): integration test for mcp tool dispatch over rpc` | Not started |
+| 10 | `docs(plan): mark Phase 7 complete` | Not started |
+
 **Goal**: engine absorbs today's `AutoContext.Mcp.Server` worker
 dispatcher. `McpTools.List` and `McpTools.Invoke` answer over the
 `rpc` pipe; the MCP-server-only role over stdio comes in Phase 11.
