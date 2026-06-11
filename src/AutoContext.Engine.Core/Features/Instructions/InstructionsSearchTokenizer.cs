@@ -12,7 +12,7 @@ using System.Text.RegularExpressions;
 /// <c>configure_await</c> alike. Every piece is lowercased; pieces
 /// shorter than <see cref="MinTokenLength"/> are dropped as noise.
 /// </summary>
-internal static partial class InstructionsContentTokenizer
+internal static partial class InstructionsSearchTokenizer
 {
     private const int MinTokenLength = 2;
     private const int StackBufferThreshold = 256;

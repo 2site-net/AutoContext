@@ -16,10 +16,10 @@ namespace AutoContext.Engine.Core.Features.Instructions;
 /// <param name="Score">The relevance score; higher ranks first.</param>
 /// <param name="Excerpts">The matched body excerpts, ordered by earliest
 /// position in the body.</param>
-internal sealed record InstructionsContentHit(
+internal sealed record InstructionsSearchBodyHit(
     string Key,
     string FileName,
     string Name,
     string Description,
     double Score,
-    IReadOnlyList<InstructionsContentExcerpt> Excerpts);
+    IReadOnlyList<InstructionsSearchBodyExcerpt> Excerpts);

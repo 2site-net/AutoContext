@@ -394,7 +394,7 @@ internal sealed partial class DispatchPolicy
         }
     }
 
-    private static JsonInstructionsContentHit MapHit(InstructionsContentHit hit)
+    private static JsonInstructionsContentHit MapHit(InstructionsSearchBodyHit hit)
     {
         var excerpts = new List<JsonInstructionsContentExcerpt>(hit.Excerpts.Count);
 

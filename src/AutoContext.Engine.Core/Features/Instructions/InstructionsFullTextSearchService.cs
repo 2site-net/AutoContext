@@ -25,7 +25,7 @@ using Microsoft.Extensions.Logging;
 /// <para>
 /// <b>Score:</b> per matching query token, <c>descHits * 2 + bodyHits</c>,
 /// summed across the distinct query tokens. Ties break by
-/// <see cref="InstructionsContentHit.Key"/> ascending for deterministic
+/// <see cref="InstructionsSearchBodyHit.Key"/> ascending for deterministic
 /// output.
 /// </para>
 /// <para>
@@ -112,10 +112,10 @@ internal sealed partial class InstructionsFullTextSearchService : IDisposable
     /// workspace has disabled whole are excluded.</param>
     /// <param name="cancellationToken">Cancels the index build.</param>
     /// <returns>The ranked hits, highest score first, ties broken by
-    /// <see cref="InstructionsContentHit.Key"/> ascending.</returns>
+    /// <see cref="InstructionsSearchBodyHit.Key"/> ascending.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="query"/> is
     /// <see langword="null"/>.</exception>
-    public async Task<IReadOnlyList<InstructionsContentHit>> SearchAsync(
+    public async Task<IReadOnlyList<InstructionsSearchBodyHit>> SearchAsync(
         string query,
         int? limit,
         bool includeDisabled,
@@ -123,7 +123,7 @@ internal sealed partial class InstructionsFullTextSearchService : IDisposable
     {
         ArgumentNullException.ThrowIfNull(query);
 
-        var queryTokens = InstructionsContentTokenizer.CollectQueryTokens(query);
+        var queryTokens = InstructionsSearchTokenizer.CollectQueryTokens(query);
 
         if (queryTokens.Count == 0)
         {
@@ -132,7 +132,7 @@ internal sealed partial class InstructionsFullTextSearchService : IDisposable
 
         var effectiveLimit = NormalizeLimit(limit);
         var index = await GetIndexAsync(cancellationToken).ConfigureAwait(false);
-        var hits = new List<InstructionsContentHit>();
+        var hits = new List<InstructionsSearchBodyHit>();
 
         foreach (var file in index)
         {
@@ -148,7 +148,7 @@ internal sealed partial class InstructionsFullTextSearchService : IDisposable
                 continue;
             }
 
-            hits.Add(new InstructionsContentHit(
+            hits.Add(new InstructionsSearchBodyHit(
                 file.Key,
                 file.FileName,
                 file.Name,
@@ -167,7 +167,7 @@ internal sealed partial class InstructionsFullTextSearchService : IDisposable
         return hits.Count <= effectiveLimit ? hits : hits.GetRange(0, effectiveLimit);
     }
 
-    private static List<InstructionsContentExcerpt> ExtractExcerpts(
+    private static List<InstructionsSearchBodyExcerpt> ExtractExcerpts(
         IndexedFile file,
         IReadOnlyList<string> queryTokens)
     {
@@ -178,7 +178,7 @@ internal sealed partial class InstructionsFullTextSearchService : IDisposable
             return [];
         }
 
-        var excerpts = new List<InstructionsContentExcerpt>();
+        var excerpts = new List<InstructionsSearchBodyExcerpt>();
         var lastEnd = -1;
 
         foreach (var position in positions)
@@ -198,7 +198,7 @@ internal sealed partial class InstructionsFullTextSearchService : IDisposable
             var section = FindSectionForOffset(file.Sections, position.Start);
             var snippet = file.Body.AsSpan(window.Start, window.End - window.Start).Trim();
 
-            excerpts.Add(new InstructionsContentExcerpt(
+            excerpts.Add(new InstructionsSearchBodyExcerpt(
                 section?.Anchor ?? string.Empty,
                 snippet.ToString(),
                 LineForOffset(file.Body, position.Start)));
@@ -364,8 +364,8 @@ internal sealed partial class InstructionsFullTextSearchService : IDisposable
             file.Description,
             projected.Content,
             projected.Sections,
-            InstructionsContentTokenizer.Tokenize(file.Description),
-            InstructionsContentTokenizer.Tokenize(projected.Content),
+            InstructionsSearchTokenizer.Tokenize(file.Description),
+            InstructionsSearchTokenizer.Tokenize(projected.Content),
             IsDisabled(file.Key));
     }
 
