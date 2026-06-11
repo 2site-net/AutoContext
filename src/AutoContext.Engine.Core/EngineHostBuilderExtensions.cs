@@ -14,6 +14,7 @@ using AutoContext.Engine.Core.Watchdogs;
 using AutoContext.Engine.Core.Workspace.Config;
 using AutoContext.Engine.Core.Workspace.Context;
 using AutoContext.Engine.Protocol.Messages.Config;
+using AutoContext.Engine.Protocol.Messages.Instructions;
 using AutoContext.Engine.Protocol.Messages.Logs;
 using AutoContext.Framework.Pipes;
 
@@ -341,6 +342,20 @@ public static class EngineHostBuilderExtensions
             sp.GetRequiredService<IConfigSnapshotAccessor>(),
             sp.GetRequiredService<ILogger<InstructionsFullTextSearchService>>()));
 
+        // Shared corpus-listing projection. Single source of the
+        // per-row listing shape — disabled resolution, override
+        // source, section mapping — so the List RPC and the
+        // Instructions.Subscribe snapshot frame project each row
+        // identically (the row set still differs: List defaults to
+        // workspace filtering, Subscribe projects the whole corpus).
+        // Lazily resolved so its accessor seams need not be ordered
+        // ahead of it.
+        builder.Services.TryAddSingleton(sp => new InstructionsListProjector(
+            sp.GetRequiredService<IInstructionsManifestAccessor>(),
+            sp.GetRequiredService<IInstructionsOverridesAccessor>(),
+            sp.GetRequiredService<IConfigSnapshotAccessor>(),
+            sp.GetRequiredService<IWorkspaceContextAccessor>()));
+
         // Workspace context detection rule tables. The three declarative
         // tables — file presence, content scans (npm + .NET, grouped by
         // manifest), and the flag activation cascade — are static data
@@ -361,6 +376,15 @@ public static class EngineHostBuilderExtensions
             "Config.Subscribe"));
         builder.Services.TryAddEnumerable(
             ServiceDescriptor.Singleton<IHostedService, ConfigFileService>());
+
+        // Instructions-subscription fan-out broadcaster. Singleton so the
+        // RPC Instructions.Subscribe handler and the
+        // InstructionsSubscriptionService share one instance: the service
+        // primes the snapshot seed at startup, the handler enrolls
+        // snapshot-seeded subscribers.
+        builder.Services.TryAddSingleton(sp => new SnapshotBroadcaster<IReadOnlyList<JsonInstructionsListRow>>(
+            sp.GetRequiredService<ILogger<SnapshotBroadcaster<IReadOnlyList<JsonInstructionsListRow>>>>(),
+            "Instructions.Subscribe"));
 
         // Instruction override scan. Hosted lifetime registered AFTER
         // ConfigFileService so the configured InstructionsOverridesRoots are
@@ -396,6 +420,15 @@ public static class EngineHostBuilderExtensions
             sp => sp.GetRequiredService<WorkspaceContextDetector>());
         builder.Services.TryAddEnumerable(
             ServiceDescriptor.Singleton<IHostedService, WorkspaceDetectionService>());
+
+        // Instructions snapshot priming. Hosted lifetime registered AFTER
+        // WorkspaceDetectionService so the manifest, override, config, and
+        // workspace accessors it projects are fully populated, and BEFORE
+        // LifecycleService so the snapshot seed is primed before the first
+        // events-pipe connection can enroll an Instructions.Subscribe
+        // subscriber.
+        builder.Services.TryAddEnumerable(
+            ServiceDescriptor.Singleton<IHostedService, InstructionsSubscriptionService>());
 
         builder.Services.TryAddEnumerable(
             ServiceDescriptor.Singleton<IHostedService, LifecycleService>());

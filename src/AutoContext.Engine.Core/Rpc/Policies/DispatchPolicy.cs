@@ -71,10 +71,12 @@ internal sealed partial class DispatchPolicy : IRpcConnectionPolicy
     private readonly IConfigUpdater _configUpdater;
     private readonly IWorkspaceContextAccessor _workspaceAccessor;
     private readonly IInstructionsManifestAccessor _manifestAccessor;
-    private readonly IInstructionsOverridesAccessor _overridesAccessor;
     private readonly InstructionsBodyProjector _bodyProjector;
     private readonly InstructionsFileReader _fileReader;
     private readonly InstructionsFullTextSearchService _searchService;
+    private readonly InstructionsListProjector _listProjector;
+    private readonly SnapshotBroadcaster<IReadOnlyList<JsonInstructionsListRow>> _instructionsBroadcaster;
+    private readonly InstructionsFrameStream _instructionsFrameStream;
     private readonly ILogger _logger;
 
     public DispatchPolicy(
@@ -91,6 +93,7 @@ internal sealed partial class DispatchPolicy : IRpcConnectionPolicy
         InstructionsBodyProjector bodyProjector,
         InstructionsFileReader fileReader,
         InstructionsFullTextSearchService searchService,
+        SnapshotBroadcaster<IReadOnlyList<JsonInstructionsListRow>> instructionsBroadcaster,
         ILogger logger)
     {
         ArgumentNullException.ThrowIfNull(lifetime);
@@ -106,6 +109,7 @@ internal sealed partial class DispatchPolicy : IRpcConnectionPolicy
         ArgumentNullException.ThrowIfNull(bodyProjector);
         ArgumentNullException.ThrowIfNull(fileReader);
         ArgumentNullException.ThrowIfNull(searchService);
+        ArgumentNullException.ThrowIfNull(instructionsBroadcaster);
         ArgumentNullException.ThrowIfNull(logger);
 
         _lifetime = lifetime;
@@ -119,10 +123,13 @@ internal sealed partial class DispatchPolicy : IRpcConnectionPolicy
         _configFrameStream = new();
         _workspaceAccessor = workspaceAccessor;
         _manifestAccessor = manifestAccessor;
-        _overridesAccessor = overridesAccessor;
         _bodyProjector = bodyProjector;
         _fileReader = fileReader;
         _searchService = searchService;
+        _listProjector = new InstructionsListProjector(
+            manifestAccessor, overridesAccessor, configAccessor, workspaceAccessor);
+        _instructionsBroadcaster = instructionsBroadcaster;
+        _instructionsFrameStream = new();
         _logger = logger;
     }
 
@@ -212,6 +219,9 @@ internal sealed partial class DispatchPolicy : IRpcConnectionPolicy
             case InstructionsMethods.SearchContent:
                 return await HandleInstructionsSearchContentAsync(request, cancellationToken)
                     .ConfigureAwait(false);
+
+            case InstructionsMethods.Subscribe:
+                return HandleInstructionsSubscribe();
 
             case ProtocolMethods.Shutdown:
                 return HandleShutdown();

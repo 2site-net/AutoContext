@@ -11,6 +11,7 @@ using AutoContext.Engine.Core.Tests.Support.Lifecycle;
 using AutoContext.Engine.Core.Workspace.Config;
 using AutoContext.Engine.Core.Workspace.Context;
 using AutoContext.Engine.Protocol.Messages.Config;
+using AutoContext.Engine.Protocol.Messages.Instructions;
 using AutoContext.Engine.Protocol.Messages.Logs;
 
 using Microsoft.Extensions.Hosting;
@@ -45,6 +46,7 @@ internal static class DispatchPolicyTestFactory
         InstructionsBodyProjector? bodyProjector = null,
         InstructionsFileReader? fileReader = null,
         InstructionsFullTextSearchService? searchService = null,
+        SnapshotBroadcaster<IReadOnlyList<JsonInstructionsListRow>>? instructionsBroadcaster = null,
         ILogger? logger = null)
     {
         var config = configAccessor ?? LifecycleServiceFixture.CreateConfigAccessor();
@@ -73,6 +75,7 @@ internal static class DispatchPolicyTestFactory
             projector,
             reader,
             search,
+            instructionsBroadcaster ?? LifecycleServiceFixture.CreateInstructionsBroadcaster(),
             logger ?? NullLogger.Instance);
     }
 }

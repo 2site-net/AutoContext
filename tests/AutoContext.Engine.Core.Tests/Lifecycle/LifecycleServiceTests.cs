@@ -119,7 +119,8 @@ public sealed class LifecycleServiceTests(
                 LifecycleServiceFixture.CreateInstructionsOverridesAccessor(),
                 LifecycleServiceFixture.CreateInstructionsBodyProjector(),
                 LifecycleServiceFixture.CreateInstructionsFileReader(),
-                LifecycleServiceFixture.CreateInstructionsSearchService()));
+                LifecycleServiceFixture.CreateInstructionsSearchService(),
+                LifecycleServiceFixture.CreateInstructionsBroadcaster()));
     }
 
     [Fact]
@@ -148,7 +149,8 @@ public sealed class LifecycleServiceTests(
                 LifecycleServiceFixture.CreateInstructionsOverridesAccessor(),
                 LifecycleServiceFixture.CreateInstructionsBodyProjector(),
                 LifecycleServiceFixture.CreateInstructionsFileReader(),
-                LifecycleServiceFixture.CreateInstructionsSearchService()));
+                LifecycleServiceFixture.CreateInstructionsSearchService(),
+                LifecycleServiceFixture.CreateInstructionsBroadcaster()));
     }
 
     [Fact]
@@ -177,7 +179,8 @@ public sealed class LifecycleServiceTests(
                 LifecycleServiceFixture.CreateInstructionsOverridesAccessor(),
                 LifecycleServiceFixture.CreateInstructionsBodyProjector(),
                 LifecycleServiceFixture.CreateInstructionsFileReader(),
-                LifecycleServiceFixture.CreateInstructionsSearchService()));
+                LifecycleServiceFixture.CreateInstructionsSearchService(),
+                LifecycleServiceFixture.CreateInstructionsBroadcaster()));
     }
 
     [Fact]
@@ -206,7 +209,8 @@ public sealed class LifecycleServiceTests(
                 LifecycleServiceFixture.CreateInstructionsOverridesAccessor(),
                 LifecycleServiceFixture.CreateInstructionsBodyProjector(),
                 LifecycleServiceFixture.CreateInstructionsFileReader(),
-                LifecycleServiceFixture.CreateInstructionsSearchService()));
+                LifecycleServiceFixture.CreateInstructionsSearchService(),
+                LifecycleServiceFixture.CreateInstructionsBroadcaster()));
     }
 
     [Fact]
@@ -235,7 +239,8 @@ public sealed class LifecycleServiceTests(
                 LifecycleServiceFixture.CreateInstructionsOverridesAccessor(),
                 LifecycleServiceFixture.CreateInstructionsBodyProjector(),
                 LifecycleServiceFixture.CreateInstructionsFileReader(),
-                LifecycleServiceFixture.CreateInstructionsSearchService()));
+                LifecycleServiceFixture.CreateInstructionsSearchService(),
+                LifecycleServiceFixture.CreateInstructionsBroadcaster()));
     }
 
     [Fact]
@@ -264,7 +269,8 @@ public sealed class LifecycleServiceTests(
                 LifecycleServiceFixture.CreateInstructionsOverridesAccessor(),
                 LifecycleServiceFixture.CreateInstructionsBodyProjector(),
                 LifecycleServiceFixture.CreateInstructionsFileReader(),
-                LifecycleServiceFixture.CreateInstructionsSearchService()));
+                LifecycleServiceFixture.CreateInstructionsSearchService(),
+                LifecycleServiceFixture.CreateInstructionsBroadcaster()));
     }
 
     [Fact]
@@ -292,7 +298,8 @@ public sealed class LifecycleServiceTests(
                 LifecycleServiceFixture.CreateInstructionsOverridesAccessor(),
                 LifecycleServiceFixture.CreateInstructionsBodyProjector(),
                 LifecycleServiceFixture.CreateInstructionsFileReader(),
-                LifecycleServiceFixture.CreateInstructionsSearchService()));
+                LifecycleServiceFixture.CreateInstructionsSearchService(),
+                LifecycleServiceFixture.CreateInstructionsBroadcaster()));
     }
 
     [Fact]
@@ -321,7 +328,8 @@ public sealed class LifecycleServiceTests(
                 LifecycleServiceFixture.CreateInstructionsOverridesAccessor(),
                 LifecycleServiceFixture.CreateInstructionsBodyProjector(),
                 LifecycleServiceFixture.CreateInstructionsFileReader(),
-                LifecycleServiceFixture.CreateInstructionsSearchService()));
+                LifecycleServiceFixture.CreateInstructionsSearchService(),
+                LifecycleServiceFixture.CreateInstructionsBroadcaster()));
     }
 
     [Fact]
@@ -350,7 +358,8 @@ public sealed class LifecycleServiceTests(
                 LifecycleServiceFixture.CreateInstructionsOverridesAccessor(),
                 LifecycleServiceFixture.CreateInstructionsBodyProjector(),
                 LifecycleServiceFixture.CreateInstructionsFileReader(),
-                LifecycleServiceFixture.CreateInstructionsSearchService()));
+                LifecycleServiceFixture.CreateInstructionsSearchService(),
+                LifecycleServiceFixture.CreateInstructionsBroadcaster()));
     }
 
     [Fact]
@@ -379,7 +388,8 @@ public sealed class LifecycleServiceTests(
                 LifecycleServiceFixture.CreateInstructionsOverridesAccessor(),
                 LifecycleServiceFixture.CreateInstructionsBodyProjector(),
                 LifecycleServiceFixture.CreateInstructionsFileReader(),
-                LifecycleServiceFixture.CreateInstructionsSearchService()));
+                LifecycleServiceFixture.CreateInstructionsSearchService(),
+                LifecycleServiceFixture.CreateInstructionsBroadcaster()));
     }
 
     [Fact]
@@ -408,7 +418,8 @@ public sealed class LifecycleServiceTests(
                 LifecycleServiceFixture.CreateInstructionsOverridesAccessor(),
                 LifecycleServiceFixture.CreateInstructionsBodyProjector(),
                 LifecycleServiceFixture.CreateInstructionsFileReader(),
-                LifecycleServiceFixture.CreateInstructionsSearchService()));
+                LifecycleServiceFixture.CreateInstructionsSearchService(),
+                LifecycleServiceFixture.CreateInstructionsBroadcaster()));
     }
 
     [Fact]
@@ -437,7 +448,8 @@ public sealed class LifecycleServiceTests(
                 LifecycleServiceFixture.CreateInstructionsOverridesAccessor(),
                 LifecycleServiceFixture.CreateInstructionsBodyProjector(),
                 LifecycleServiceFixture.CreateInstructionsFileReader(),
-                LifecycleServiceFixture.CreateInstructionsSearchService()));
+                LifecycleServiceFixture.CreateInstructionsSearchService(),
+                LifecycleServiceFixture.CreateInstructionsBroadcaster()));
     }
 
     [Fact]
@@ -466,7 +478,8 @@ public sealed class LifecycleServiceTests(
                 LifecycleServiceFixture.CreateInstructionsOverridesAccessor(),
                 LifecycleServiceFixture.CreateInstructionsBodyProjector(),
                 LifecycleServiceFixture.CreateInstructionsFileReader(),
-                LifecycleServiceFixture.CreateInstructionsSearchService()));
+                LifecycleServiceFixture.CreateInstructionsSearchService(),
+                LifecycleServiceFixture.CreateInstructionsBroadcaster()));
     }
 
     [Fact]
@@ -495,7 +508,8 @@ public sealed class LifecycleServiceTests(
                 LifecycleServiceFixture.CreateInstructionsOverridesAccessor(),
                 LifecycleServiceFixture.CreateInstructionsBodyProjector(),
                 LifecycleServiceFixture.CreateInstructionsFileReader(),
-                LifecycleServiceFixture.CreateInstructionsSearchService()));
+                LifecycleServiceFixture.CreateInstructionsSearchService(),
+                LifecycleServiceFixture.CreateInstructionsBroadcaster()));
     }
 
     [Fact]
@@ -524,7 +538,8 @@ public sealed class LifecycleServiceTests(
                 LifecycleServiceFixture.CreateInstructionsOverridesAccessor(),
                 LifecycleServiceFixture.CreateInstructionsBodyProjector(),
                 LifecycleServiceFixture.CreateInstructionsFileReader(),
-                LifecycleServiceFixture.CreateInstructionsSearchService()));
+                LifecycleServiceFixture.CreateInstructionsSearchService(),
+                LifecycleServiceFixture.CreateInstructionsBroadcaster()));
     }
 
     [Fact]
@@ -553,7 +568,8 @@ public sealed class LifecycleServiceTests(
                 null!,
                 LifecycleServiceFixture.CreateInstructionsBodyProjector(),
                 LifecycleServiceFixture.CreateInstructionsFileReader(),
-                LifecycleServiceFixture.CreateInstructionsSearchService()));
+                LifecycleServiceFixture.CreateInstructionsSearchService(),
+                LifecycleServiceFixture.CreateInstructionsBroadcaster()));
     }
 
     [Fact]
@@ -582,7 +598,8 @@ public sealed class LifecycleServiceTests(
                 LifecycleServiceFixture.CreateInstructionsOverridesAccessor(),
                 null!,
                 LifecycleServiceFixture.CreateInstructionsFileReader(),
-                LifecycleServiceFixture.CreateInstructionsSearchService()));
+                LifecycleServiceFixture.CreateInstructionsSearchService(),
+                LifecycleServiceFixture.CreateInstructionsBroadcaster()));
     }
 
     [Fact]
@@ -611,7 +628,8 @@ public sealed class LifecycleServiceTests(
                 LifecycleServiceFixture.CreateInstructionsOverridesAccessor(),
                 LifecycleServiceFixture.CreateInstructionsBodyProjector(),
                 null!,
-                LifecycleServiceFixture.CreateInstructionsSearchService()));
+                LifecycleServiceFixture.CreateInstructionsSearchService(),
+                LifecycleServiceFixture.CreateInstructionsBroadcaster()));
     }
 
     [Fact]
@@ -640,6 +658,37 @@ public sealed class LifecycleServiceTests(
                 LifecycleServiceFixture.CreateInstructionsOverridesAccessor(),
                 LifecycleServiceFixture.CreateInstructionsBodyProjector(),
                 LifecycleServiceFixture.CreateInstructionsFileReader(),
+                null!,
+                LifecycleServiceFixture.CreateInstructionsBroadcaster()));
+    }
+
+    [Fact]
+    public async Task Should_throw_when_constructed_with_null_instructions_broadcaster()
+    {
+        using var lifetime = new FakeHostApplicationLifetime();
+        await using var watchdog = LifecycleServiceFixture.CreateWatchdog(LifecycleServiceFixture.CreateOptions(), lifetime);
+
+        Assert.Throws<ArgumentNullException>(() =>
+            new LifecycleService(
+                Options.Create(LifecycleServiceFixture.CreateOptions()),
+                NullLoggerFactory.Instance,
+                lifetime,
+                LifecycleServiceFixture.CreateRegistryReader(),
+                LifecycleServiceFixture.CreateEventStream(),
+                LifecycleServiceFixture.CreateNotifier(),
+                watchdog,
+                new FakeUniqueInstanceGuard(),
+                LifecycleServiceFixture.CreateLogsBroadcaster(),
+                LifecycleServiceFixture.CreateLogFileReader(),
+                LifecycleServiceFixture.CreateConfigAccessor(),
+                LifecycleServiceFixture.CreateConfigUpdater(),
+                LifecycleServiceFixture.CreateConfigBroadcaster(),
+                LifecycleServiceFixture.CreateWorkspaceAccessor(),
+                LifecycleServiceFixture.CreateInstructionsManifestAccessor(),
+                LifecycleServiceFixture.CreateInstructionsOverridesAccessor(),
+                LifecycleServiceFixture.CreateInstructionsBodyProjector(),
+                LifecycleServiceFixture.CreateInstructionsFileReader(),
+                LifecycleServiceFixture.CreateInstructionsSearchService(),
                 null!));
     }
 

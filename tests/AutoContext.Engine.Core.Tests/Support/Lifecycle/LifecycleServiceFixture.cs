@@ -18,6 +18,7 @@ using AutoContext.Engine.Core.Watchdogs;
 using AutoContext.Engine.Core.Workspace.Config;
 using AutoContext.Engine.Core.Workspace.Context;
 using AutoContext.Engine.Protocol.Messages.Config;
+using AutoContext.Engine.Protocol.Messages.Instructions;
 using AutoContext.Engine.Protocol.Messages.Logs;
 
 using Microsoft.Extensions.Hosting;
@@ -77,7 +78,8 @@ public sealed class LifecycleServiceFixture : IAsyncDisposable
             CreateInstructionsOverridesAccessor(),
             CreateInstructionsBodyProjector(),
             CreateInstructionsFileReader(),
-            CreateInstructionsSearchService());
+            CreateInstructionsSearchService(),
+            CreateInstructionsBroadcaster());
 
         // Track in reverse dependency order so Dispose tears the
         // service down first, then the watchdog, then the lifetime.
@@ -104,6 +106,11 @@ public sealed class LifecycleServiceFixture : IAsyncDisposable
     internal static SnapshotBroadcaster<JsonConfigSnapshot> CreateConfigBroadcaster() =>
         new(NullLogger<SnapshotBroadcaster<JsonConfigSnapshot>>.Instance, "Config.Subscribe");
 
+    internal static SnapshotBroadcaster<IReadOnlyList<JsonInstructionsListRow>> CreateInstructionsBroadcaster() =>
+        new(
+            NullLogger<SnapshotBroadcaster<IReadOnlyList<JsonInstructionsListRow>>>.Instance,
+            "Instructions.Subscribe");
+
     internal static IWorkspaceContextAccessor CreateWorkspaceAccessor() =>
         new FakeWorkspaceContextAccessor();
 
@@ -112,6 +119,17 @@ public sealed class LifecycleServiceFixture : IAsyncDisposable
 
     internal static IInstructionsOverridesAccessor CreateInstructionsOverridesAccessor() =>
         new FakeInstructionsOverridesAccessor();
+
+    internal static InstructionsListProjector CreateInstructionsListProjector(
+        IInstructionsManifestAccessor? manifest = null,
+        IInstructionsOverridesAccessor? overrides = null,
+        IConfigSnapshotAccessor? config = null,
+        IWorkspaceContextAccessor? workspace = null) =>
+        new(
+            manifest ?? CreateInstructionsManifestAccessor(),
+            overrides ?? CreateInstructionsOverridesAccessor(),
+            config ?? CreateConfigAccessor(),
+            workspace ?? CreateWorkspaceAccessor());
 
     internal static InstructionsBodyProjector CreateInstructionsBodyProjector(
         IInstructionsOverridesAccessor? overrides = null,

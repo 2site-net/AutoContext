@@ -2,13 +2,15 @@ namespace AutoContext.Engine.Core.Rpc.Policies;
 
 using System;
 using System.Collections.Generic;
-using System.IO;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Text.Json.Serialization.Metadata;
 
 using AutoContext.Engine.Core.Features.Instructions;
 using AutoContext.Engine.Core.Features.Instructions.Snapshot;
+using AutoContext.Engine.Core.Infrastructure.Events;
 using AutoContext.Engine.Core.Rpc.Results;
 using AutoContext.Engine.Protocol.JsonRpc;
 using AutoContext.Engine.Protocol.Messages.Instructions;
@@ -48,33 +50,7 @@ internal sealed partial class DispatchPolicy
                 ? null
                 : FrontmatterApplyToParser.Parse(parameters.ApplyToHint).Extensions;
 
-            var snapshot = _manifestAccessor.Current;
-            var overrides = _overridesAccessor.Current;
-            var workspacePath = _workspaceAccessor.EngineInfo.WorkspacePath;
-            var workspaceExtensions = new HashSet<string>(
-                _workspaceAccessor.Current.Extensions, StringComparer.OrdinalIgnoreCase);
-
-            var rows = new List<JsonInstructionsListRow>(snapshot.Files.Count);
-
-            foreach (var entry in snapshot.Files)
-            {
-                if (applyWorkspaceFilter && !PassesExtensionFilter(entry, workspaceExtensions))
-                {
-                    continue;
-                }
-
-                if (hintExtensions is not null && !PassesExtensionFilter(entry, hintExtensions))
-                {
-                    continue;
-                }
-
-                rows.Add(CreateListRow(
-                    entry,
-                    overrides,
-                    workspacePath,
-                    IsFileDisabled(entry.Key),
-                    includeSections));
-            }
+            var rows = _listProjector.Project(includeSections, applyWorkspaceFilter, hintExtensions);
 
             var result = new JsonInstructionsListResult { Files = rows };
             return Success(result, ProtocolJsonContext.Default.JsonInstructionsListResult);
@@ -83,6 +59,39 @@ internal sealed partial class DispatchPolicy
         {
             LogInstructionsFailed(_logger, InstructionsMethods.List, ex);
             return InternalError("Failed to list the instruction corpus.");
+        }
+    }
+
+    [SuppressMessage("Reliability", "CA2000",
+        Justification = "Ownership of the subscription is handed off to StreamingHandlerResult.PostFlush, which the RpcConnectionProcessor runs in a finally block — disposal is guaranteed on every path.")]
+    private StreamingHandlerResult HandleInstructionsSubscribe()
+    {
+        // Subscription is created up-front so its disposal can be
+        // routed through StreamingHandlerResult.PostFlush, which
+        // the processor runs in a finally — guaranteeing the
+        // broadcaster slot is released even when the peer hangs
+        // up mid-stream or the iterator faults.
+        var subscription = _instructionsBroadcaster.Subscribe();
+
+        return new StreamingHandlerResult(
+            Payloads: MapInstructionsFramesAsync(subscription),
+            PostFlush: () =>
+            {
+                subscription.Dispose();
+                return Task.CompletedTask;
+            });
+    }
+
+    private async IAsyncEnumerable<JsonElement> MapInstructionsFramesAsync(
+        BroadcasterSubscription<IReadOnlyList<JsonInstructionsListRow>> subscription,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        await foreach (var frame in _instructionsFrameStream
+            .StreamAsync(subscription, cancellationToken)
+            .ConfigureAwait(false))
+        {
+            yield return JsonSerializer.SerializeToElement(
+                frame, ProtocolJsonContext.Default.JsonInstructionsStreamFrame);
         }
     }
 
@@ -344,7 +353,7 @@ internal sealed partial class DispatchPolicy
                 Key = entry.Key,
                 FileName = entry.FileName,
                 Content = body.Content,
-                Sections = MapSections(entry.Sections),
+                Sections = InstructionsListProjector.MapSections(entry.Sections),
             });
         }
 
@@ -383,93 +392,6 @@ internal sealed partial class DispatchPolicy
             parameters = default;
             return InvalidParams(method);
         }
-    }
-
-    private static JsonInstructionsListRow CreateListRow(
-        InstructionsFileManifestEntry entry,
-        InstructionsOverridesSnapshot overrides,
-        string workspacePath,
-        bool disabled,
-        bool includeSections)
-    {
-        var isOverride = overrides.TryGetPath(entry.FileName, out var overridePath) && overridePath is not null;
-
-        return new JsonInstructionsListRow
-        {
-            Key = entry.Key,
-            FileName = entry.FileName,
-            Name = entry.Name,
-            Version = entry.Version,
-            Description = entry.Description,
-            ApplyTo = entry.ApplyTo,
-            HasChangelog = entry.HasChangelog,
-            ContentHash = entry.ContentHash,
-            AlwaysAttached = entry.AlwaysAttached,
-            Label = entry.Label,
-            Categories = entry.Categories,
-            Disabled = disabled,
-            Source = isOverride ? InstructionsSource.Override : InstructionsSource.Bundled,
-            OverridePath = overridePath is not null ? ToWorkspaceRelative(workspacePath, overridePath) : null,
-            Sections = includeSections ? MapSections(entry.Sections) : null,
-        };
-    }
-
-    private static bool PassesExtensionFilter(
-        InstructionsFileManifestEntry entry,
-        IReadOnlySet<string> candidateExtensions)
-    {
-        if (entry.AlwaysAttached)
-        {
-            return true;
-        }
-
-        if (entry.Extensions is not { Count: > 0 } entryExtensions)
-        {
-            return false;
-        }
-
-        foreach (var extension in entryExtensions)
-        {
-            if (candidateExtensions.Contains(extension))
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private static string ToWorkspaceRelative(string workspacePath, string absolutePath)
-    {
-        if (string.IsNullOrWhiteSpace(workspacePath))
-        {
-            return absolutePath.Replace('\\', '/');
-        }
-
-        return Path.GetRelativePath(workspacePath, absolutePath).Replace('\\', '/');
-    }
-
-    private static List<JsonInstructionsSection> MapSections(
-        IReadOnlyList<InstructionsSection> sections)
-    {
-        if (sections.Count == 0)
-        {
-            return [];
-        }
-
-        var mapped = new List<JsonInstructionsSection>(sections.Count);
-
-        foreach (var section in sections)
-        {
-            mapped.Add(new JsonInstructionsSection
-            {
-                Heading = section.Heading,
-                Anchor = section.Anchor,
-                Parent = section.Parent,
-            });
-        }
-
-        return mapped;
     }
 
     private static JsonInstructionsContentHit MapHit(InstructionsContentHit hit)

@@ -16,6 +16,7 @@ using AutoContext.Engine.Core.Workspace.Context;
 using AutoContext.Engine.Protocol;
 using AutoContext.Engine.Protocol.JsonRpc;
 using AutoContext.Engine.Protocol.Messages.Config;
+using AutoContext.Engine.Protocol.Messages.Instructions;
 using AutoContext.Engine.Protocol.Messages.Lifecycle;
 using AutoContext.Engine.Protocol.Messages.Logs;
 using AutoContext.Engine.Protocol.Serialization;
@@ -109,6 +110,7 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
     private readonly InstructionsBodyProjector _bodyProjector;
     private readonly InstructionsFileReader _fileReader;
     private readonly InstructionsFullTextSearchService _searchService;
+    private readonly SnapshotBroadcaster<IReadOnlyList<JsonInstructionsListRow>> _instructionsBroadcaster;
 
     /// <summary>
     /// Creates a new <see cref="LifecycleService"/>.
@@ -182,6 +184,8 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
     /// <param name="searchService">Full-text search over the projected
     /// corpus backing the <c>Instructions.SearchContent</c>
     /// handler.</param>
+    /// <param name="instructionsBroadcaster">Fan-out broadcaster backing
+    /// the <c>Instructions.Subscribe</c> snapshot-on-subscribe stream.</param>
     /// <exception cref="ArgumentNullException">
     /// Any constructor argument is <see langword="null"/>.
     /// </exception>
@@ -204,7 +208,8 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
         IInstructionsOverridesAccessor overridesAccessor,
         InstructionsBodyProjector bodyProjector,
         InstructionsFileReader fileReader,
-        InstructionsFullTextSearchService searchService)
+        InstructionsFullTextSearchService searchService,
+        SnapshotBroadcaster<IReadOnlyList<JsonInstructionsListRow>> instructionsBroadcaster)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(loggerFactory);
@@ -225,6 +230,7 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
         ArgumentNullException.ThrowIfNull(bodyProjector);
         ArgumentNullException.ThrowIfNull(fileReader);
         ArgumentNullException.ThrowIfNull(searchService);
+        ArgumentNullException.ThrowIfNull(instructionsBroadcaster);
 
         _options = options.Value;
         _loggerFactory = loggerFactory;
@@ -246,6 +252,7 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
         _bodyProjector = bodyProjector;
         _fileReader = fileReader;
         _searchService = searchService;
+        _instructionsBroadcaster = instructionsBroadcaster;
     }
 
     /// <inheritdoc/>
@@ -530,7 +537,7 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
                 _ = await RpcConnectionProcessor
                     .RunAsync(
                         stream,
-                        new DispatchPolicy(_applicationLifetime, _registryReader, _logFileReader, _logsBroadcaster, _configAccessor, _configUpdater, _configBroadcaster, _workspaceAccessor, _manifestAccessor, _overridesAccessor, _bodyProjector, _fileReader, _searchService, _logger),
+                        new DispatchPolicy(_applicationLifetime, _registryReader, _logFileReader, _logsBroadcaster, _configAccessor, _configUpdater, _configBroadcaster, _workspaceAccessor, _manifestAccessor, _overridesAccessor, _bodyProjector, _fileReader, _searchService, _instructionsBroadcaster, _logger),
                         _logger,
                         cancellationToken)
                     .ConfigureAwait(false);
