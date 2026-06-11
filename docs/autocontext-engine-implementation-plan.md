@@ -2016,10 +2016,10 @@ span parser).
 
 ## Phase 6 — Instructions corpus runtime + projection
 
-**Status**: **In progress** on branch `features/instructions-corpus-runtime`,
+**Status**: Completed on branch `features/instructions-corpus-runtime`,
 atop the merged **Phase 6P** (new span-based parser) and Phase 6R catalog
-+ manifest shape. Rows 1–3 and 5 are landed; the remaining RPC handlers
-(rows 4, 6–15) build on the in-memory snapshot.
++ manifest shape. Every `Instructions.*` RPC is served from the in-memory
+snapshot, with config-driven invalidation and content search.
 
 | # | Commit subject | State |
 |---|---|---|
@@ -2037,7 +2037,7 @@ atop the merged **Phase 6P** (new span-based parser) and Phase 6R catalog
 | 12 | `feat(engine-core): rebroadcast Instructions.Subscribe on Config.Subscribe changes` | DONE |
 | 13 | `feat(engine-core): warn when an override is older than its bundled file` | DONE |
 | 14 | `test(engine): integration test for instructions projection and invalidation over rpc` | DONE |
-| 15 | `docs(plan): mark Phase 6 complete` | Not started |
+| 15 | `docs(plan): mark Phase 6 complete` | DONE |
 
 **Goal**: engine answers every `Instructions.*` RPC from in-memory
 snapshots, applies per-request projection (disabled rules filtered,
