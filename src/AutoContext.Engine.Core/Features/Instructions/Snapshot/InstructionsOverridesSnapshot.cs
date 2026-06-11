@@ -7,7 +7,7 @@ namespace AutoContext.Engine.Core.Features.Instructions.Snapshot;
 /// on-disk path. Produced by <see cref="InstructionsOverridesWatcher"/>
 /// on each settled rescan — already merged across directories with
 /// first-directory-wins precedence — and consumed downstream to decide
-/// which bundled instruction files a workspace-local copy shadows. A
+/// which bundled instructions files a workspace-local copy shadows. A
 /// reader holds the reference it observed and is never mutated, so
 /// iteration is lock-free and never tears.
 /// </summary>
@@ -59,7 +59,7 @@ internal sealed class InstructionsOverridesSnapshot
     /// Returns whether a workspace override exists for
     /// <paramref name="fileName"/> (case-insensitive ordinal).
     /// </summary>
-    /// <param name="fileName">The instruction file name to test,
+    /// <param name="fileName">The instructions file name to test,
     /// including the <c>.instructions.md</c> extension. Must not be
     /// <see langword="null"/>.</param>
     /// <exception cref="ArgumentNullException"><paramref name="fileName"/>
@@ -75,7 +75,7 @@ internal sealed class InstructionsOverridesSnapshot
     /// Looks up the absolute path of the override for
     /// <paramref name="fileName"/> (case-insensitive ordinal).
     /// </summary>
-    /// <param name="fileName">The instruction file name to look up,
+    /// <param name="fileName">The instructions file name to look up,
     /// including the <c>.instructions.md</c> extension. Must not be
     /// <see langword="null"/>.</param>
     /// <param name="path">The absolute override path when one exists;

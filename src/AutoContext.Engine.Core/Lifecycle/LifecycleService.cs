@@ -169,11 +169,11 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
     /// dispatch policy so the <c>Workspace.Detect</c> handler can answer
     /// with the current detection result.</param>
     /// <param name="manifestAccessor">Read-only view over the immutable
-    /// instruction manifest snapshot; threaded into the RPC dispatch
+    /// instructions manifest snapshot; threaded into the RPC dispatch
     /// policy so the <c>Instructions.*</c> handlers can answer corpus
     /// listing and read requests.</param>
     /// <param name="overridesAccessor">Read-only view over the workspace
-    /// instruction override inventory; threaded into the RPC dispatch
+    /// instructions override inventory; threaded into the RPC dispatch
     /// policy so the <c>Instructions.List</c> handler can mark overridden
     /// files.</param>
     /// <param name="bodyProjector">Projects instruction bodies for the

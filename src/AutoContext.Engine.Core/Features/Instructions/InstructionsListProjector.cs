@@ -29,7 +29,7 @@ internal sealed class InstructionsListProjector
     /// Creates a new <see cref="InstructionsListProjector"/>.
     /// </summary>
     /// <param name="manifestAccessor">Read seam over the immutable
-    /// instruction manifest snapshot.</param>
+    /// instructions manifest snapshot.</param>
     /// <param name="overridesAccessor">Read seam over the workspace
     /// override inventory used to mark overridden rows.</param>
     /// <param name="configAccessor">Read seam over the workspace

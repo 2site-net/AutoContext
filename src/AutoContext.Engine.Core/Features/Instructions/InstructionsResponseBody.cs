@@ -2,7 +2,7 @@ namespace AutoContext.Engine.Core.Features.Instructions;
 
 /// <summary>
 /// The body payload <see cref="InstructionsBodyProjector.ToResponseBodyAsync"/>
-/// returns for the <c>Instructions.Get</c> RPC: one instruction file's
+/// returns for the <c>Instructions.Get</c> RPC: one instructions file's
 /// frontmatter-stripped body with disabled rules filtered out and (when
 /// requested) sliced to a set of sections, paired with the anchors that
 /// were and were not resolved. The <c>[INSTxxxx]</c> tags on the surviving

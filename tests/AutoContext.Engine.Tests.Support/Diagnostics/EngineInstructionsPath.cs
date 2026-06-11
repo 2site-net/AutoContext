@@ -1,7 +1,7 @@
 namespace AutoContext.Engine.Tests.Support.Diagnostics;
 
 /// <summary>
-/// Resolves the absolute path to the curated set of instruction files shipped
+/// Resolves the absolute path to the curated set of instructions files shipped
 /// by the <c>AutoContext.Engine</c> project
 /// (<c>src/AutoContext.Engine/Instructions/</c>). Mirrors
 /// <see cref="EngineBinaryPath"/>: the repository root is located by searching

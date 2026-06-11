@@ -3,7 +3,7 @@ namespace AutoContext.Engine.Protocol.Messages.Config;
 using System.Text.Json.Serialization;
 
 /// <summary>
-/// Wire shape of one instruction file's config state, carried on
+/// Wire shape of one instructions file's config state, carried on
 /// <see cref="JsonConfigSnapshot.Instructions"/>.
 /// </summary>
 public sealed record JsonConfigInstructionsFile

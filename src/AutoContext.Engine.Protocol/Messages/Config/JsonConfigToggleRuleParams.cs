@@ -4,14 +4,14 @@ using System.Text.Json.Serialization;
 
 /// <summary>
 /// Parameters of the <see cref="ConfigMethods.ToggleRule"/> request:
-/// the single rule, identified by its owning instruction file and
+/// the single rule, identified by its owning instructions file and
 /// rule id, whose disabled state should be flipped. Toggling an
 /// enabled rule disables it; toggling a disabled rule re-enables it.
 /// </summary>
 public sealed record JsonConfigToggleRuleParams
 {
     /// <summary>
-    /// The instruction file name that owns the rule, matching
+    /// The instructions file name that owns the rule, matching
     /// <see cref="JsonConfigInstructionsFile.Name"/>. Required.
     /// </summary>
     [JsonPropertyName("name")]

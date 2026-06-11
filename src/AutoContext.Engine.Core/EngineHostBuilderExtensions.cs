@@ -290,7 +290,7 @@ public static class EngineHostBuilderExtensions
         builder.Services.TryAddSingleton<IConfigChangeNotifier>(
             sp => sp.GetRequiredService<ConfigFileManager>());
 
-        // Bundled instruction corpus. The service loads the two
+        // Bundled instructions corpus. The service loads the two
         // build-time side-cars shipped beside the engine binary
         // (instructions-manifest.json + instructions-catalog.json) into
         // an immutable snapshot at start and holds it for the
@@ -309,7 +309,7 @@ public static class EngineHostBuilderExtensions
             ServiceDescriptor.Singleton<IHostedService, InstructionsManifestService>(
                 sp => sp.GetRequiredService<InstructionsManifestService>()));
 
-        // Instruction override inventory. The service performs a one-shot
+        // Instructions override inventory. The service performs a one-shot
         // startup scan of the workspace's override directories and exposes
         // the result through the IInstructionsOverridesAccessor seam the
         // Instructions.* handlers read. Its hosted lifetime is registered
@@ -331,7 +331,7 @@ public static class EngineHostBuilderExtensions
         builder.Services.TryAddSingleton<IInstructionsOverridesAccessor>(
             sp => sp.GetRequiredService<InstructionsOverridesService>());
 
-        // Instruction body projection + raw file reads + full-text search.
+        // Instructions body projection + raw file reads + full-text search.
         // All read the bundled corpus body files shipped beside the engine
         // binary under Resources/Instructions and resolve override bodies
         // through the accessor above. Lazily resolved singletons backing the
@@ -395,7 +395,7 @@ public static class EngineHostBuilderExtensions
             sp.GetRequiredService<ILogger<SnapshotBroadcaster<IReadOnlyList<JsonInstructionsListRow>>>>(),
             "Instructions.Subscribe"));
 
-        // Instruction override scan. Hosted lifetime registered AFTER
+        // Instructions override scan. Hosted lifetime registered AFTER
         // ConfigFileService so the configured InstructionsOverridesRoots are
         // loaded before the one-shot startup scan reads them.
         builder.Services.TryAddEnumerable(

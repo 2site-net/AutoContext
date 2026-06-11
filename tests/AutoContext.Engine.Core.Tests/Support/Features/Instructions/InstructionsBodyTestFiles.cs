@@ -1,7 +1,7 @@
 namespace AutoContext.Engine.Core.Tests.Support.Features.Instructions;
 
 /// <summary>
-/// The canonical instruction-file body used by
+/// The canonical instructions-file body used by
 /// <c>InstructionsBodyProjectorTests</c>: a frontmatter block followed by
 /// two <c>##</c> sections (<c>alpha</c>, <c>beta</c>) where the
 /// <c>alpha</c> section carries two tagged rule bullets

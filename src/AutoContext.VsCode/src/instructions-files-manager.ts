@@ -9,7 +9,7 @@ import type { AutoContextConfigManager } from './autocontext-config-manager.js';
 import type { ChannelLogger } from 'autocontext-nodejs-core';
 
 /**
- * Generates normalized instruction files with disabled instructions removed
+ * Generates normalized instructions files with disabled instructions removed
  * and `[INSTxxxx]` tags stripped.
  *
  * Multi-window safe via per-workspace staging + focus-based write:

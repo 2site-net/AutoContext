@@ -3,7 +3,7 @@ namespace AutoContext.Engine.Core.Features.Instructions;
 using AutoContext.Engine.Core.Features.Instructions.Snapshot;
 
 /// <summary>
-/// Read-only seam over the in-memory instruction corpus snapshot.
+/// Read-only seam over the in-memory instructions corpus snapshot.
 /// Decouples snapshot readers — the <c>Instructions.*</c> RPC handlers —
 /// from the stateful <see cref="InstructionsManifestService"/> so they
 /// depend only on the ability to read the current corpus, not on its

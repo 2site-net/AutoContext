@@ -9,7 +9,7 @@ using Microsoft.Extensions.Logging;
 
 /// <summary>
 /// Hosted service that performs the one-shot startup scan of the
-/// workspace's instruction override directories and exposes the resulting
+/// workspace's instructions override directories and exposes the resulting
 /// inventory through the <see cref="IInstructionsOverridesAccessor"/> seam
 /// that every <c>Instructions.*</c> RPC handler reads. The override roots
 /// are taken from the resolved engine settings

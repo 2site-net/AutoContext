@@ -3,7 +3,7 @@ namespace AutoContext.Engine.Core.Features.Instructions;
 using AutoContext.Instructions.Parser.Model;
 
 /// <summary>
-/// The whole projected body of one instruction file, as
+/// The whole projected body of one instructions file, as
 /// <see cref="InstructionsBodyProjector.ToSearchBodyAsync"/> hands it to the
 /// full-text search index: the filtered body text (frontmatter stripped,
 /// disabled-rule lines removed) and the section index re-derived against

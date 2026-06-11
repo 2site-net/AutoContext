@@ -11,7 +11,7 @@ using AutoContext.Instructions.Parser.Model;
 using AutoContext.Instructions.Parser.Syntax;
 
 /// <summary>
-/// Projects one instruction file's body per request for the
+/// Projects one instructions file's body per request for the
 /// <c>Instructions.Get</c> family of RPCs. Resolves the body source
 /// (a workspace override shadows the bundled copy), reads and parses it,
 /// filters out the rules disabled in <c>.autocontext.json</c>, and slices

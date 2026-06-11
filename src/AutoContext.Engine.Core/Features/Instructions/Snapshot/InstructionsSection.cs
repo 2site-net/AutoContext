@@ -1,7 +1,7 @@
 namespace AutoContext.Engine.Core.Features.Instructions.Snapshot;
 
 /// <summary>
-/// Immutable section heading of a bundled instruction file: the
+/// Immutable section heading of a bundled instructions file: the
 /// <c>##</c>/<c>###</c> heading text and the GitHub-style
 /// <see cref="Anchor"/> a deep link targets. The heading level is not
 /// stored — it is trivially <c>Parent is not null ? 3 : 2</c>. Pure

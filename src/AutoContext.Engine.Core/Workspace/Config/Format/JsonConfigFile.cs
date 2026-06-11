@@ -28,7 +28,7 @@ using AutoContext.Engine.Core.Workspace.Config.Snapshot;
 /// verbatim.</param>
 /// <param name="Diagnostic">Optional diagnostic preferences, carried
 /// through verbatim.</param>
-/// <param name="Instructions">Per-instruction-file state keyed by
+/// <param name="Instructions">Per-instructions-file state keyed by
 /// file name. Insertion order is preserved on save.</param>
 /// <param name="McpTools">Per-MCP-tool state keyed by tool name. Each
 /// value is an object entry. Insertion order is preserved on

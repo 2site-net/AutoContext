@@ -1,7 +1,7 @@
 namespace AutoContext.Engine.Core.Features.Instructions.Snapshot;
 
 /// <summary>
-/// Immutable snapshot of the bundled instruction corpus: the category
+/// Immutable snapshot of the bundled instructions corpus: the category
 /// taxonomy the catalog declares, plus the merged
 /// <see cref="InstructionsFileManifestEntry"/> rows the engine ships, in
 /// document order, with an ordinal lookup by file name. Built once at

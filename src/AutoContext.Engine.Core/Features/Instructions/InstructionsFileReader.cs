@@ -1,7 +1,7 @@
 namespace AutoContext.Engine.Core.Features.Instructions;
 
 /// <summary>
-/// Reads the verbatim on-disk body of an instruction file, either from the
+/// Reads the verbatim on-disk body of an instructions file, either from the
 /// bundled corpus copy or from a workspace override, without any parsing or
 /// projection. The caller names the source; the two are read independently
 /// and never fall back to one another.

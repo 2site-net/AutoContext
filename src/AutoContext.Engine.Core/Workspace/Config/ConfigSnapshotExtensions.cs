@@ -65,7 +65,7 @@ internal static class ConfigSnapshotExtensions
     }
 
     /// <summary>
-    /// Flips the whole-file disabled flag for the instruction file
+    /// Flips the whole-file disabled flag for the instructions file
     /// named <paramref name="name"/>. An untracked file becomes
     /// disabled; a disabled file becomes enabled (and is pruned when
     /// it then carries no rule state). The input snapshot is never
@@ -73,7 +73,7 @@ internal static class ConfigSnapshotExtensions
     /// would, dropping an entry that ends up carrying no state.
     /// </summary>
     /// <param name="snapshot">The domain snapshot to derive from.</param>
-    /// <param name="name">The instruction file to toggle.</param>
+    /// <param name="name">The instructions file to toggle.</param>
     /// <returns>A new snapshot with the file's state flipped.</returns>
     public static ConfigSnapshot ToggleInstructionsFile(this ConfigSnapshot snapshot, string name)
     {
@@ -101,14 +101,14 @@ internal static class ConfigSnapshotExtensions
 
     /// <summary>
     /// Flips the disabled flag for the rule <paramref name="ruleId"/>
-    /// within the instruction file named <paramref name="name"/>. A
+    /// within the instructions file named <paramref name="name"/>. A
     /// disabled rule is enabled by dropping its entry; any other rule
     /// is recorded as disabled. The owning file is created when absent
     /// and pruned when the edit leaves it with no state. The input
     /// snapshot is never mutated.
     /// </summary>
     /// <param name="snapshot">The domain snapshot to derive from.</param>
-    /// <param name="name">The instruction file owning the rule.</param>
+    /// <param name="name">The instructions file owning the rule.</param>
     /// <param name="ruleId">The rule to toggle.</param>
     /// <returns>A new snapshot with the rule's state flipped.</returns>
     public static ConfigSnapshot ToggleInstructionsRule(

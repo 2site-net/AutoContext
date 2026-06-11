@@ -5,7 +5,7 @@ import type { InstructionsFileSectionWithOffsets } from '#types/instructions-fil
 const DEFAULT_MAX_ENTRIES = 200;
 
 /**
- * In-memory cache of parsed instruction-file sections, keyed by
+ * In-memory cache of parsed instructions-file sections, keyed by
  * `sha256(body)`. Different bodies produce different keys, so stale
  * entries naturally fall out of the LRU window without explicit
  * invalidation.

@@ -8,7 +8,7 @@ const overrideWatchGlob =
 /**
  * Watches `.github/instructions/*.instructions.md` (and the legacy
  * `.github/copilot-instructions.md`) under the workspace and tracks
- * which bundled instruction files are currently shadowed by a
+ * which bundled instructions files are currently shadowed by a
  * workspace-local copy.
  *
  * Owns:

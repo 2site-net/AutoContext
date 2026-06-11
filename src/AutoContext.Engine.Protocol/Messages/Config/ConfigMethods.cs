@@ -17,7 +17,7 @@ public static class ConfigMethods
     public const string Get = "Config.Get";
 
     /// <summary>
-    /// Flips the whole-file disabled state of one instruction file.
+    /// Flips the whole-file disabled state of one instructions file.
     /// Takes <see cref="JsonConfigToggleFileParams"/>; returns the
     /// resulting <see cref="JsonConfigSnapshot"/>.
     /// </summary>

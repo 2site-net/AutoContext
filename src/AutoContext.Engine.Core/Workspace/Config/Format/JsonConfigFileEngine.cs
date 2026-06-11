@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 /// <summary>
 /// Optional <c>engine</c> block of <c>.autocontext.json</c>. Holds the
-/// engine-only settings that don't belong to any instruction file or
+/// engine-only settings that don't belong to any instructions file or
 /// MCP tool, carried through verbatim on load and save so the engine
 /// never drops them when it rewrites the file.
 /// </summary>

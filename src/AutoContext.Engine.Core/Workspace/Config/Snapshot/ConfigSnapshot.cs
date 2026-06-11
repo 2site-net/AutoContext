@@ -6,7 +6,7 @@ using AutoContext.Engine.Core.Workspace.Config.Format;
 /// Immutable in-memory snapshot of a workspace's
 /// <c>.autocontext.json</c>, modelled as a composed graph that mirrors
 /// the file's structure: a top-level version, an optional diagnostic
-/// block, and the per-instruction-file and per-MCP-tool entries. Pure
+/// block, and the per-instructions-file and per-MCP-tool entries. Pure
 /// data with no behaviour — <see cref="ConfigFileManager"/> maps
 /// it to and from the on-disk <see cref="JsonConfigFile"/> wire
 /// shape and owns the live snapshot.
@@ -30,7 +30,7 @@ internal sealed record ConfigSnapshot
     public ConfigEngineSettings? Engine { get; init; }
 
     /// <summary>
-    /// Per-instruction-file entries, in the order they appear on disk.
+    /// Per-instructions-file entries, in the order they appear on disk.
     /// </summary>
     public ConfigInstructionsFile[] Instructions { get; init; } = [];
 

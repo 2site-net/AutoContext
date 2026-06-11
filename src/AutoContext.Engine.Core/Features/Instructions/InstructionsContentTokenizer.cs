@@ -4,7 +4,7 @@ using System.Buffers;
 using System.Text.RegularExpressions;
 
 /// <summary>
-/// Identifier-aware tokenizer shared by the instruction-body full-text
+/// Identifier-aware tokenizer shared by the instructions-body full-text
 /// search index. Splits text on non-word runs <em>and</em> on
 /// camelCase / kebab / snake boundaries, so a query of
 /// <c>ConfigureAwait</c> matches a heading written as

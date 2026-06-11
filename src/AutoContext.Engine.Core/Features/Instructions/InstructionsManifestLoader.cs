@@ -6,7 +6,7 @@ using AutoContext.Engine.Core.Features.Instructions.Format;
 using AutoContext.Engine.Core.Features.Instructions.Snapshot;
 
 /// <summary>
-/// Loads the bundled instruction corpus into an immutable
+/// Loads the bundled instructions corpus into an immutable
 /// <see cref="InstructionsManifestSnapshot"/> by reading and merging the
 /// two build-time side-cars shipped beside the engine binary:
 /// <c>instructions-manifest.json</c> (the generated fact index, the join

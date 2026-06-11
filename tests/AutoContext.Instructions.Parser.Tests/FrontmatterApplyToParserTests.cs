@@ -193,7 +193,7 @@ public sealed class FrontmatterApplyToParserTests
             Assert.True(roundTrips);
         }
 
-        // Every distinct `applyTo` value shipped in the instruction corpus
+        // Every distinct `applyTo` value shipped in the instructions corpus
         // (src/AutoContext.Engine/Instructions/*.instructions.md). The
         // build-time generator enforces this same round-trip per file, so a
         // new corpus value that the parser cannot reproduce verbatim must

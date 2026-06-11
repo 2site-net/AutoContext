@@ -9,7 +9,7 @@ import type { InstructionsFileProjection } from './types/instructions-file-proje
 import { InstructionsRulesUtils } from './instructions-rules-utils.js';
 
 /**
- * Reads an instruction file's markdown body for LM-tool surfaces, paired
+ * Reads an instructions file's markdown body for LM-tool surfaces, paired
  * with its parsed section index.
  *
  * - When the workspace ships an override under `.github/instructions/<fileName>`

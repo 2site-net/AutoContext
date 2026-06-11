@@ -2,7 +2,7 @@ import type { InstructionsFilesDiagnosticsRunner } from './instructions-files-di
 import { LogCategory, type ChannelLogger } from 'autocontext-nodejs-core';
 
 /**
- * ChannelLogger sink for instruction-file diagnostics. Owns a dedicated
+ * ChannelLogger sink for instructions-file diagnostics. Owns a dedicated
  * `'AutoContext: Instructions'` output channel obtained via
  * {@link ChannelLogger.forChannel} so {@link ChannelLogger.clear} only wipes
  * diagnostic lines — never unrelated activation/worker output on the

@@ -16,7 +16,7 @@ using Microsoft.Extensions.Logging;
 /// <c>.github</c>. Each supplied root <c>R</c> contributes the override
 /// files under <c>&lt;workspace&gt;/R/instructions/*.instructions.md</c>.
 /// The inventory is the in-memory source of truth for which bundled
-/// instruction files a workspace-local copy shadows: the initial scan
+/// instructions files a workspace-local copy shadows: the initial scan
 /// runs through <see cref="LoadAsync"/>, and later filesystem changes
 /// flow in through the watcher, which collapses a burst of raw events
 /// into a single rescan via a <see cref="TrailingEdgeDebouncer"/> and

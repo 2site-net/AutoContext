@@ -1,7 +1,7 @@
 namespace AutoContext.Engine.Core.Features.Instructions;
 
 /// <summary>
-/// One ranked file hit of the instruction-body full-text search: a corpus
+/// One ranked file hit of the instructions-body full-text search: a corpus
 /// file whose projected body and/or description matched every distinct
 /// query token, with the matched excerpts. The identity fields
 /// (<see cref="Key"/>, <see cref="FileName"/>, <see cref="Name"/>) and

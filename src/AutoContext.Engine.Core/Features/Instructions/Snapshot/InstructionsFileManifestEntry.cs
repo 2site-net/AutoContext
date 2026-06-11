@@ -1,8 +1,8 @@
 namespace AutoContext.Engine.Core.Features.Instructions.Snapshot;
 
 /// <summary>
-/// One entry in the in-memory instruction manifest: the merged metadata
-/// describing a single bundled instruction file, composed at startup by
+/// One entry in the in-memory instructions manifest: the merged metadata
+/// describing a single bundled instructions file, composed at startup by
 /// merging the <c>instructions-manifest.json</c>
 /// fact row (identity, <see cref="Sections"/>, <see cref="Extensions"/>)
 /// with its <c>instructions-catalog.json</c> curatorial row

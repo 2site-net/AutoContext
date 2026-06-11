@@ -8,7 +8,7 @@ using AutoContext.Instructions.Parser.Model;
 using Microsoft.Extensions.Logging;
 
 /// <summary>
-/// Free-text body search across the bundled instruction corpus. Indexes
+/// Free-text body search across the bundled instructions corpus. Indexes
 /// each file's <see cref="InstructionsFileManifestEntry.Description"/> and its
 /// projected body (via <see cref="InstructionsBodyProjector.ToSearchBodyAsync"/>,
 /// so workspace overrides and disabled-rule filtering are already

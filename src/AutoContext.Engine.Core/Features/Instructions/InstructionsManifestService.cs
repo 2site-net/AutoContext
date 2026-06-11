@@ -6,7 +6,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 /// <summary>
-/// Hosted service that loads the bundled instruction corpus at engine
+/// Hosted service that loads the bundled instructions corpus at engine
 /// start and holds the immutable snapshot every <c>Instructions.*</c>
 /// RPC handler reads through the
 /// <see cref="IInstructionsManifestAccessor"/> seam. The corpus is

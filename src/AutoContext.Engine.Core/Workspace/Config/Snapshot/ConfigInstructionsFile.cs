@@ -1,7 +1,7 @@
 namespace AutoContext.Engine.Core.Workspace.Config.Snapshot;
 
 /// <summary>
-/// Immutable state of a single instruction file from the
+/// Immutable state of a single instructions file from the
 /// <c>instructions</c> section of <c>.autocontext.json</c>: whether the
 /// whole file is disabled, the version its rule state was captured
 /// against, and the individual rules turned off within it. Pure data.
@@ -9,13 +9,13 @@ namespace AutoContext.Engine.Core.Workspace.Config.Snapshot;
 internal sealed record ConfigInstructionsFile
 {
     /// <summary>
-    /// <see langword="true"/> when the whole instruction file is
+    /// <see langword="true"/> when the whole instructions file is
     /// disabled. <see langword="null"/> when enabled.
     /// </summary>
     public bool? Disabled { get; init; }
 
     /// <summary>
-    /// The instruction file name this entry applies to.
+    /// The instructions file name this entry applies to.
     /// </summary>
     public string? Name { get; init; }
 
@@ -26,13 +26,13 @@ internal sealed record ConfigInstructionsFile
     public InstructionsRule[] Rules { get; init; } = [];
 
     /// <summary>
-    /// The MAJOR.MINOR instruction-file version the disabled rules were
+    /// The MAJOR.MINOR instructions-file version the disabled rules were
     /// recorded against. <see langword="null"/> when unset.
     /// </summary>
     public string? Version { get; init; }
 
     /// <summary>
-    /// Immutable state of a single rule within an instruction file.
+    /// Immutable state of a single rule within an instructions file.
     /// Pure data.
     /// </summary>
     internal sealed record InstructionsRule

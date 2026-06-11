@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 /// <summary>
 /// Wire shape of the engine's current config snapshot, returned by
 /// the <c>Config.Get</c> RPC. Mirrors the engine-internal config
-/// graph as flat arrays — instruction files and MCP tools each
+/// graph as flat arrays — instructions files and MCP tools each
 /// carry their own enable/disable state plus a nested list of
 /// per-rule / per-task overrides — rather than the
 /// <c>.autocontext.json</c> on-disk encoding (which collapses
@@ -29,7 +29,7 @@ public sealed record JsonConfigSnapshot
     public JsonConfigDiagnostic? Diagnostic { get; init; }
 
     /// <summary>
-    /// Per-instruction-file state. Empty when no instruction file
+    /// Per-instructions-file state. Empty when no instructions file
     /// carries an override.
     /// </summary>
     [JsonPropertyName("instructions")]
