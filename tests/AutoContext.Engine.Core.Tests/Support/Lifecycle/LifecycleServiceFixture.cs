@@ -103,6 +103,9 @@ public sealed class LifecycleServiceFixture : IAsyncDisposable
     internal static IConfigUpdater CreateConfigUpdater() =>
         new FakeConfigSnapshotAccessor();
 
+    internal static IConfigChangeNotifier CreateConfigChangeNotifier() =>
+        new FakeConfigSnapshotAccessor();
+
     internal static SnapshotBroadcaster<JsonConfigSnapshot> CreateConfigBroadcaster() =>
         new(NullLogger<SnapshotBroadcaster<JsonConfigSnapshot>>.Instance, "Config.Subscribe");
 

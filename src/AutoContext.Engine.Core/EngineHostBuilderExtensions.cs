@@ -287,6 +287,8 @@ public static class EngineHostBuilderExtensions
             sp => sp.GetRequiredService<ConfigFileManager>());
         builder.Services.TryAddSingleton<IConfigUpdater>(
             sp => sp.GetRequiredService<ConfigFileManager>());
+        builder.Services.TryAddSingleton<IConfigChangeNotifier>(
+            sp => sp.GetRequiredService<ConfigFileManager>());
 
         // Bundled instruction corpus. The service loads the two
         // build-time side-cars shipped beside the engine binary
@@ -380,8 +382,9 @@ public static class EngineHostBuilderExtensions
         // Instructions-subscription fan-out broadcaster. Singleton so the
         // RPC Instructions.Subscribe handler and the
         // InstructionsSubscriptionService share one instance: the service
-        // primes the snapshot seed at startup, the handler enrolls
-        // snapshot-seeded subscribers.
+        // primes the snapshot seed at startup and republishes the listing
+        // on every config change, the handler enrolls snapshot-seeded
+        // subscribers.
         builder.Services.TryAddSingleton(sp => new SnapshotBroadcaster<IReadOnlyList<JsonInstructionsListRow>>(
             sp.GetRequiredService<ILogger<SnapshotBroadcaster<IReadOnlyList<JsonInstructionsListRow>>>>(),
             "Instructions.Subscribe"));
@@ -426,7 +429,9 @@ public static class EngineHostBuilderExtensions
         // workspace accessors it projects are fully populated, and BEFORE
         // LifecycleService so the snapshot seed is primed before the first
         // events-pipe connection can enroll an Instructions.Subscribe
-        // subscriber.
+        // subscriber. The service also bridges config changes into the
+        // broadcaster, republishing the re-projected listing on each
+        // Config.Toggle* edit.
         builder.Services.TryAddEnumerable(
             ServiceDescriptor.Singleton<IHostedService, InstructionsSubscriptionService>());
 
