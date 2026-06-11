@@ -2036,7 +2036,7 @@ atop the merged **Phase 6P** (new span-based parser) and Phase 6R catalog
 | 11 | `feat(engine-core): add Instructions.Subscribe events stream with snapshot-on-subscribe` | DONE |
 | 12 | `feat(engine-core): rebroadcast Instructions.Subscribe on Config.Subscribe changes` | DONE |
 | 13 | `feat(engine-core): warn when an override is older than its bundled file` | DONE |
-| 14 | `test(engine): integration test for instructions projection and invalidation over rpc` | Not started |
+| 14 | `test(engine): integration test for instructions projection and invalidation over rpc` | DONE |
 | 15 | `docs(plan): mark Phase 6 complete` | Not started |
 
 **Goal**: engine answers every `Instructions.*` RPC from in-memory
