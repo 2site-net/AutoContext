@@ -44,6 +44,16 @@
     <None Include="Resources\instructions-manifest.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
+  <!-- Ship the hand-authored MCP-tools registry and its JSON schema beside the
+       engine binary so McpToolsRegistryLoader can read them from
+       AppContext.BaseDirectory/Resources at startup. -->
+  <ItemGroup>
+    <None Remove="Resources\mcp-tools-registry.json" />
+    <None Remove="Resources\mcp-tools-registry.schema.json" />
+    <None Include="Resources\mcp-tools-registry.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="Resources\mcp-tools-registry.schema.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
   <!-- Ship the curated instruction corpus bodies beside the engine binary so
        InstructionsBodyProjector and InstructionsFullTextSearchService can read
        the bundled body text from AppContext.BaseDirectory/Resources/Instructions
