@@ -2139,8 +2139,8 @@ MCP-tool dispatch (Phase 7).
 **Status**: Not started.
 
 | # | Commit subject | State |
-|---|---|---|
-| 1 | `feat(protocol): add McpTools.* wire DTOs` | Not started |
+|---|---|---| 
+| 1 | `feat(protocol): add McpTools.* wire DTOs` | DONE |
 | 2 | `feat(engine): author mcp-tools-registry.json and its schema` | Not started |
 | 3 | `feat(engine-core): add McpToolsRegistryLoader and schema validator` | Not started |
 | 4 | `feat(build): generate workers.json from worker projects` | Not started |
