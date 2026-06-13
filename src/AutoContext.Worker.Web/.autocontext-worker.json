@@ -1,0 +1,5 @@
+{
+  "id": "web",
+  "type": "script",
+  "command": "node ${root}/index.js"
+}

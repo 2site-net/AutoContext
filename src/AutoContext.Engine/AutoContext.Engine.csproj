@@ -23,6 +23,17 @@
                       Private="false"
                       SkipGetTargetFrameworkProperties="true"
                       UndefineProperties="TargetFramework" />
+    <!-- Build-time-only: the console generator the imported targets invoke to
+         emit Resources/workers.json by aggregating the per-worker
+         .autocontext-worker.json descriptors under src/AutoContext.Worker.*.
+         ReferenceOutputAssembly=false keeps the generator off the
+         engine's runtime reference set while still ordering its build before
+         the engine's. -->
+    <ProjectReference Include="..\AutoContext.Workers.Manifest.Generator\AutoContext.Workers.Manifest.Generator.csproj"
+                      ReferenceOutputAssembly="false"
+                      Private="false"
+                      SkipGetTargetFrameworkProperties="true"
+                      UndefineProperties="TargetFramework" />
   </ItemGroup>
 
   <ItemGroup>
@@ -54,6 +65,17 @@
     <None Include="Resources\mcp-tools-registry.schema.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
+  <!-- Ship the build-generated worker manifest beside the engine binary so the
+       worker resolver can read it from AppContext.BaseDirectory/Resources at
+       startup. The generator (imported below) writes it during the build, so it
+       may not exist at evaluation time; an explicit Include of the literal path
+       still registers the copy item, and the Remove first drops the duplicate
+       the SDK's default None glob would add on an incremental build. -->
+  <ItemGroup>
+    <None Remove="Resources\workers.json" />
+    <None Include="Resources\workers.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
   <!-- Ship the curated instruction corpus bodies beside the engine binary so
        InstructionsBodyProjector and InstructionsFullTextSearchService can read
        the bundled body text from AppContext.BaseDirectory/Resources/Instructions
@@ -68,5 +90,6 @@
   </ItemGroup>
 
   <Import Project="..\AutoContext.Instructions.Manifest.Generator\InstructionsManifestGenerator.targets" />
+  <Import Project="..\AutoContext.Workers.Manifest.Generator\WorkersManifestGenerator.targets" />
 
 </Project>

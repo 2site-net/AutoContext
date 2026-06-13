@@ -1,3 +1,6 @@
 # Build-generated instruction manifest — no source-side copy; regenerated each build.
 # (Resources/instructions-catalog.json is hand-authored and tracked.)
 Resources/instructions-manifest.json
+
+# Build-generated worker manifest — no source-side copy; regenerated each build.
+Resources/workers.json

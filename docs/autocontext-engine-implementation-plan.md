@@ -2143,7 +2143,7 @@ MCP-tool dispatch (Phase 7).
 | 1 | `feat(protocol): add McpTools.* wire DTOs` | DONE |
 | 2 | `feat(engine): author mcp-tools-registry.json and its schema` | DONE |
 | 3 | `feat(engine-core): add McpToolsRegistryLoader and schema validator` | Not started |
-| 4 | `feat(build): generate workers.json from worker projects` | Not started |
+| 4 | `feat(build): generate workers.json from worker projects` | DONE |
 | 5 | `feat(build): project mcp-tools.json from the registry` | Not started |
 | 6 | `feat(engine-core): port WorkerManager with ensureRunning gate` | Not started |
 | 7 | `feat(engine): serve McpTools.List over rpc` | Not started |
@@ -2170,9 +2170,11 @@ manifests` (`workers.json`, `mcp-tools-registry.json`),
 - `AutoContext.Engine.Core/Workers/WorkerManager` — port of
   today's `WorkerManager` from `AutoContext.Mcp.Server/Workers/`
   into the engine library. `ensureRunning(workerId)` gate unchanged.
-- `Resources/workers.json` build generator — scans
-  `src/AutoContext.Worker.*/` projects, derives `id`, `type`,
-  `entrypoint`. Id-collision fails the build.
+- `Resources/workers.json` build generator — aggregates the
+  per-worker `.autocontext-worker.json` descriptors under
+  `src/AutoContext.Worker.*/` ({ `id`, `type`, `command` },
+  optional `label`) verbatim. A missing descriptor or an
+  id-collision fails the build.
 - **Author the MCP-tools registry fresh under the engine.**
   `Resources/mcp-tools-registry.json` and its
   `mcp-tools-registry.schema.json` are created under
