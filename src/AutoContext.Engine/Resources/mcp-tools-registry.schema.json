@@ -2,12 +2,12 @@
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "$id": "https://autocontext.dev/schemas/mcp-tools-registry.schema.json",
     "title": "AutoContext MCP Tools registry",
-    "description": "Execution registry: worker entries, the MCP Tools each worker exposes, and the MCP Tasks each tool dispatches.",
+    "description": "Execution registry: a flat list of MCP Tools, each tagged with the worker that runs it and the EditorConfig keys it consumes.",
     "type": "object",
     "additionalProperties": false,
     "required": [
         "schemaVersion",
-        "workers"
+        "tools"
     ],
     "properties": {
         "$schema": {
@@ -19,59 +19,35 @@
             "const": "1",
             "description": "Registry format version. Bumped on breaking changes."
         },
-        "workers": {
+        "tools": {
             "type": "array",
             "minItems": 1,
             "items": {
-                "$ref": "#/$defs/worker"
+                "$ref": "#/$defs/toolDefinition"
             },
-            "description": "Worker entries \u2014 one per AutoContext.Worker.* process."
+            "description": "MCP Tool definitions \u2014 one per tool the engine advertises."
         }
     },
     "$defs": {
-        "worker": {
-            "type": "object",
-            "additionalProperties": false,
-            "required": [
-                "id",
-                "name",
-                "tools"
-            ],
-            "properties": {
-                "id": {
-                    "type": "string",
-                    "pattern": "^[a-z][a-z0-9-]*$",
-                    "description": "Short worker identifier (kebab-case, lowercase). Used to compose the worker's named-pipe service address as 'autocontext.worker-<id>[#<instance-id>]'. Unique across the registry."
-                },
-                "name": {
-                    "type": "string",
-                    "pattern": "^AutoContext\\.Worker\\.[A-Z][A-Za-z0-9]*$",
-                    "description": "Full project name (e.g. 'AutoContext.Worker.DotNet'). Used in logs and error messages. Unique across the registry."
-                },
-                "tools": {
-                    "type": "array",
-                    "minItems": 1,
-                    "items": {
-                        "$ref": "#/$defs/toolDefinition"
-                    },
-                    "description": "MCP Tool definitions exposed by this worker."
-                }
-            }
-        },
         "toolDefinition": {
             "type": "object",
             "additionalProperties": false,
             "required": [
                 "name",
+                "workerId",
                 "description",
-                "parameters",
-                "tasks"
+                "parameters"
             ],
             "properties": {
                 "name": {
                     "type": "string",
                     "pattern": "^[a-z][a-z0-9_]*$",
                     "description": "MCP Tool name (snake_case). Unique across the whole registry."
+                },
+                "workerId": {
+                    "type": "string",
+                    "pattern": "^[a-z][a-z0-9-]*$",
+                    "description": "Identifier (kebab-case, lowercase) of the worker that runs this tool. Foreign key into workers.json 'id'; also composes the worker's named-pipe service address as 'autocontext.worker-<workerId>[#<instance-id>]'."
                 },
                 "description": {
                     "type": "string",
@@ -89,13 +65,14 @@
                     },
                     "description": "Parameter map (camelCase names) \u2192 parameter spec."
                 },
-                "tasks": {
+                "editorconfig": {
                     "type": "array",
-                    "minItems": 1,
+                    "uniqueItems": true,
                     "items": {
-                        "$ref": "#/$defs/task"
+                        "type": "string",
+                        "pattern": "^[a-z][a-z0-9_]*$"
                     },
-                    "description": "MCP Tasks dispatched when this tool is invoked."
+                    "description": "EditorConfig keys this tool consumes. The engine resolves them and injects the values before dispatching to the worker."
                 }
             }
         },
@@ -123,29 +100,6 @@
                 },
                 "required": {
                     "type": "boolean"
-                }
-            }
-        },
-        "task": {
-            "type": "object",
-            "additionalProperties": false,
-            "required": [
-                "name"
-            ],
-            "properties": {
-                "name": {
-                    "type": "string",
-                    "pattern": "^[a-z][a-z0-9_]*$",
-                    "description": "MCP Task identifier (snake_case)."
-                },
-                "editorconfig": {
-                    "type": "array",
-                    "uniqueItems": true,
-                    "items": {
-                        "type": "string",
-                        "pattern": "^[a-z][a-z0-9_]*$"
-                    },
-                    "description": "EditorConfig keys this task consumes."
                 }
             }
         }

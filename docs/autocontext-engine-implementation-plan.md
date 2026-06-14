@@ -576,9 +576,9 @@ src/
     Resources/                                 # read-only side-cars — copied next to the binary
       instructions-catalog.json                #   hand-authored curatorial layer (tracked in source)
       instructions-manifest.json               #   build-generated per-file facts (P3)
-      mcp-tools-registry.json                  #   hand-authored registry
+      mcp-tools-registry.json                  #   hand-authored execution registry (flat tools[])
       mcp-tools-registry.schema.json           #   JSON-schema for the registry
-      mcp-tools.json                           #   build-time projection of the registry
+      mcp-tools-catalog.json                   #   hand-authored UI catalog (same idea as instructions-catalog.json, its own shape)
       workers.json                             #   generated from AutoContext.Worker.* projects
 
   tests/
@@ -630,7 +630,7 @@ The per-RID segment that exists at build-staging time
       instructions-manifest.json
       mcp-tools-registry.json
       mcp-tools-registry.schema.json
-      mcp-tools.json
+      mcp-tools-catalog.json
       workers.json
     Workers/
       workspace/<entrypoint>                   # one self-contained subdir per worker
@@ -1669,9 +1669,9 @@ own `--workspace` path, exposes the result via `Workspace.Detect` and
 ## Phase 5 — Instructions corpus build-time pipeline
 
 **Status**: Completed on branch `features/instructions-corpus-build-time-pipeline`.
-The MCP-tools registry and its `mcp-tools.json` projection moved to
-Phase 7, where the engine first owns the registry (see *Scope note*
-below).
+The MCP-tools registry and its sibling hand-authored UI catalog
+(`mcp-tools-catalog.json`) moved to Phase 7, where the engine first
+owns the registry (see *Scope note* below).
 
 > **Superseded by the catalog+manifest redesign.** This phase shipped
 > two generated files — `instructions-files.json` ("wire shape") and
@@ -1730,18 +1730,23 @@ target `net10.0` like the rest of the engine. Sequencing is a
 
 **Scope note (MCP-tools registry moved to Phase 7)**: an earlier
 draft folded the MCP-tools registry rename
-(`mcp-workers-registry.json` → `mcp-tools-registry.json`) and the
+(`mcp-workers-registry.json` → `mcp-tools-registry.json`) and a
 build-time `mcp-tools.json` projection into this phase. That work
 moved to Phase 7 — the phase where the engine first *owns* the
 registry (`McpTools.List`/`Invoke`). There is no rename: today's
 `src/AutoContext.Mcp.Server/mcp-workers-registry.json` stays in
 place under its legacy name, serving the still-live MCP server until
 Phase 16 deletes that project wholesale. The engine authors its own
-`Resources/mcp-tools-registry.json` (and schema, and the projected
-`mcp-tools.json`) **fresh, correctly named** in Phase 7 — the same
-copy-into-the-engine pattern this phase uses for the instruction
-corpus, where the old consumer keeps working untouched and the new
-file is born named for the project that owns it.
+`Resources/mcp-tools-registry.json` (and schema, and the
+hand-authored `mcp-tools-catalog.json`) **fresh, correctly named**
+in Phase 7 — the same copy-into-the-engine pattern this phase uses
+for the instruction corpus, where the old consumer keeps working
+untouched and the new file is born named for the project that owns
+it. (The earlier "build-time `mcp-tools.json` projection" framing is
+superseded — both the registry and the catalog are now
+hand-authored, like the `instructions-catalog.json` /
+`instructions-manifest.json` split; see the *New direction* note
+under Phase 7.)
 
 **Code touch**:
 - **Create `AutoContext.Instructions.Parser/` and
@@ -2157,14 +2162,42 @@ dispatcher. `McpTools.List` and `McpTools.Invoke` answer over the
 Workers are spawned by the engine via the same lazy
 `ensureRunning(workerId)` pattern in use today. The engine also
 becomes the owner of the MCP-tools registry, authoring
-`mcp-tools-registry.json` (its schema, and the projected
-`mcp-tools.json`) **fresh** under its own `Resources/` rather than
-renaming today's `AutoContext.Mcp.Server` copy.
+`mcp-tools-registry.json` (its schema, and the hand-authored
+`mcp-tools-catalog.json` UI catalog) **fresh** under its own
+`Resources/` rather than renaming today's `AutoContext.Mcp.Server`
+copy.
 
 **Design anchors**: `§ RPC surface` (`McpTools.*`), `§ Resource
 manifests` (`workers.json`, `mcp-tools-registry.json`),
 `§ McpTools.Invoke and MCP tools/call share one handler` pitfall,
 `§ What the engine absorbs from today's topology`.
+
+> **New direction (supersedes the "projection" framing in rows 2 / 5
+> below).** The execution registry and the UI catalog are **both
+> hand-authored**, following the same curatorial concept as the
+> `instructions-catalog.json` /
+> `instructions-manifest.json` split — there is **no build-time
+> projection step**. `mcp-tools-registry.json` is a **flat `tools[]`**
+> list (no nested worker → tool → task tree): each tool carries
+> `name`, `workerId` (FK to `workers.json`), `description`,
+> `parameters`, and an optional `editorconfig` array. "Tasks" no
+> longer exist on the wire or in the registry — each former task is
+> its own top-level tool; tasks survive only as worker-internal
+> checker classes, and a tool that bundles several checks (e.g.
+> `analyze_csharp_code_style`) runs them behind one tool name. The
+> sibling UI catalog is hand-authored as `mcp-tools-catalog.json`
+> (renamed from the planned `mcp-tools.json`; same curatorial concept
+> as `instructions-catalog.json`, its own shape) and joins the
+> registry by tool `name` +
+> `workerId`. The engine merges registry + catalog at runtime for
+> `McpTools.List`, analogous to how it merges the instructions catalog +
+> manifest. Consequently the row-5
+> `AutoContext.McpTools.Manifest.Generator` (`mcp-tools-manifest-gen`)
+> projector has no projection job; its disposition is being
+> reconsidered and is tracked separately. Disable granularity
+> correspondingly collapses from per-task to per-tool; a few
+> `disabledTasks` config-model mentions elsewhere still reflect the
+> old model and are reconciled in a separate config pass.
 
 **Code touch**:
 - `AutoContext.Engine.Core/Workers/WorkerManager` — port of
@@ -2190,10 +2223,13 @@ manifests` (`workers.json`, `mcp-tools-registry.json`),
   `AppContext.BaseDirectory`; `McpToolsRegistrySchemaValidator`
   validates it against the embedded schema at both build time and
   load time.
-- **DONE** — Build-time projection of `mcp-tools.json` (wire shape
-  only; the per-request `disabled` filter is layered by the engine at
-  runtime) emitted into `src/AutoContext.Engine/Resources/` from the
-  registry above. A dedicated `AutoContext.McpTools.Manifest.Generator`
+- **DONE, now superseded** (the build-time projection model is
+  replaced by a hand-authored `mcp-tools-catalog.json`; see the *New
+  direction* note above — the paragraph below is retained as
+  historical record of what row 5 shipped). Build-time projection of
+  `mcp-tools.json` (wire shape only; the per-request `disabled` filter
+  is layered by the engine at runtime) emitted into
+  `src/AutoContext.Engine/Resources/` from the registry above. A dedicated `AutoContext.McpTools.Manifest.Generator`
   console tool (`mcp-tools-manifest-gen`) — mirroring the
   `workers.json` generator's structure, source-gen serializer, and
   `WriteIfChanged` byte-stability — reads `mcp-tools-registry.json`,
@@ -2208,8 +2244,9 @@ manifests` (`workers.json`, `mcp-tools-registry.json`),
   `AutoContext.Engine.csproj`; the output is gitignored (no
   source-side copy).
 - `McpTools.List` handler over the `mcp-tools-registry.json` data,
-  filtered per-request by each tool's `disabled` flag and
-  `disabledTasks` from the config snapshot.
+  filtered per-request by each tool's `disabled` flag from the config
+  snapshot (per-tool granularity; the task concept — and its
+  `disabledTasks` filter — is gone with the flatten).
 - `McpTools.Invoke` handler: schema-validate `arguments` against the
   tool's `inputSchema`, dispatch to the worker, marshal the worker
   response into the discriminated envelope (`ok`/`tool-error`/
@@ -2226,7 +2263,7 @@ manifests` (`workers.json`, `mcp-tools-registry.json`),
   from `Config.Get`; toggling config fans out via
   `Config.Subscribe` and a subsequent `List` reflects the change.
 - `McpTools.Invoke` happy path: dispatched to the right worker per
-  the registry's `endpoint` field; response composed into the wire
+  the registry's `workerId` field; response composed into the wire
   envelope; `content` block-for-block matches the worker payload
   (P1 — same shape regardless of transport).
 - `schema-error` on malformed `arguments`.
