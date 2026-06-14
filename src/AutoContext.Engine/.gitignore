@@ -4,3 +4,7 @@ Resources/instructions-manifest.json
 
 # Build-generated worker manifest — no source-side copy; regenerated each build.
 Resources/workers.json
+
+# Build-generated mcp-tools catalog — no source-side copy; regenerated each build.
+# (Resources/mcp-tools-registry.json and its schema are hand-authored and tracked.)
+Resources/mcp-tools.json

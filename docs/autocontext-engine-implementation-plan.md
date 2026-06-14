@@ -2144,7 +2144,7 @@ MCP-tool dispatch (Phase 7).
 | 2 | `feat(engine): author mcp-tools-registry.json and its schema` | DONE |
 | 3 | `feat(engine-core): add McpToolsRegistryLoader and schema validator` | Not started |
 | 4 | `feat(build): generate workers.json from worker projects` | DONE |
-| 5 | `feat(build): project mcp-tools.json from the registry` | Not started |
+| 5 | `feat(build): project mcp-tools.json from the registry` | DONE |
 | 6 | `feat(engine-core): port WorkerManager with ensureRunning gate` | Not started |
 | 7 | `feat(engine): serve McpTools.List over rpc` | Not started |
 | 8 | `feat(engine): serve McpTools.Invoke over rpc` | Not started |
@@ -2190,9 +2190,23 @@ manifests` (`workers.json`, `mcp-tools-registry.json`),
   `AppContext.BaseDirectory`; `McpToolsRegistrySchemaValidator`
   validates it against the embedded schema at both build time and
   load time.
-- Build-time projection of `mcp-tools.json` (wire shape only;
-  runtime projection applies the disabled-state filter) emitted into
-  `src/AutoContext.Engine/Resources/` from the registry above.
+- **DONE** — Build-time projection of `mcp-tools.json` (wire shape
+  only; the per-request `disabled` filter is layered by the engine at
+  runtime) emitted into `src/AutoContext.Engine/Resources/` from the
+  registry above. A dedicated `AutoContext.McpTools.Manifest.Generator`
+  console tool (`mcp-tools-manifest-gen`) — mirroring the
+  `workers.json` generator's structure, source-gen serializer, and
+  `WriteIfChanged` byte-stability — reads `mcp-tools-registry.json`,
+  flattens the worker groups into one flat tool list (preserving
+  registry declaration order), and carries each tool's `name`,
+  `description`, and task `name`s forward. It drops the registry's
+  input `parameters` (the `McpTools.List` wire shape omits input
+  schemas) and per-task `editorconfig` bindings (dispatch metadata).
+  A missing, unparsable, or empty registry, a tool or task without a
+  name, a tool without a description, or a duplicate tool name all
+  fail the build. The generator runs from a `.targets` imported by
+  `AutoContext.Engine.csproj`; the output is gitignored (no
+  source-side copy).
 - `McpTools.List` handler over the `mcp-tools-registry.json` data,
   filtered per-request by each tool's `disabled` flag and
   `disabledTasks` from the config snapshot.

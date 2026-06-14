@@ -1,0 +1,24 @@
+<Project>
+
+  <!--
+    Generates the Resources/mcp-tools.json catalog by projecting the
+    hand-authored Resources/mcp-tools-registry.json into the wire shape
+    McpTools.List answers, running the AutoContext.McpTools.Manifest.Generator
+    console tool. The registry is read, not built. Imported by
+    AutoContext.Engine.csproj because the engine binary host owns the output
+    Resources/ folder. The generator assembly is built by the ProjectReference the
+    engine declares to AutoContext.McpTools.Manifest.Generator
+    (ReferenceOutputAssembly=false), so it exists by the time this target runs.
+  -->
+
+  <PropertyGroup>
+    <_McpToolsManifestGeneratorAssembly Condition="'$(_McpToolsManifestGeneratorAssembly)' == ''">$(MSBuildThisFileDirectory)bin\$(Configuration)\net10.0\mcp-tools-manifest-gen.dll</_McpToolsManifestGeneratorAssembly>
+  </PropertyGroup>
+
+  <Target Name="GenerateMcpToolsManifest"
+          AfterTargets="ResolveProjectReferences"
+          BeforeTargets="CoreCompile">
+    <Exec Command="dotnet &quot;$(_McpToolsManifestGeneratorAssembly)&quot; &quot;$(MSBuildProjectDirectory)\Resources\mcp-tools-registry.json&quot; &quot;$(MSBuildProjectDirectory)\Resources\mcp-tools.json&quot;" />
+  </Target>
+
+</Project>
