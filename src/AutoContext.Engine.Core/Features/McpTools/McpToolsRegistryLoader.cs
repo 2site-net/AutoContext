@@ -95,25 +95,12 @@ internal static class McpToolsRegistryLoader
                 + string.Join(Environment.NewLine, catalogValidation.Errors));
         }
 
-        JsonMcpToolsRegistry? registry;
+        var registry = Deserialize(
+            registryJson, McpToolsRegistryJsonContext.Default.JsonMcpToolsRegistry, registryPath);
+        var catalog = Deserialize(
+            catalogJson, McpToolsCatalogJsonContext.Default.JsonMcpToolsCatalog, catalogPath);
 
-        try
-        {
-            registry = JsonSerializer.Deserialize(
-                registryJson, McpToolsRegistryJsonContext.Default.JsonMcpToolsRegistry);
-        }
-        catch (JsonException exception)
-        {
-            throw new InvalidOperationException(
-                $"Bundled MCP-tools registry '{registryPath}' is not valid JSON.", exception);
-        }
-
-        if (registry is null)
-        {
-            throw Malformed(registryPath, "it deserialised to null.");
-        }
-
-        return Map(registry, registryPath);
+        return Merge(registry, catalog, registryPath, catalogPath);
     }
 
     private static async Task<string> ReadTextAsync(string path, CancellationToken cancellationToken)
@@ -127,33 +114,228 @@ internal static class McpToolsRegistryLoader
         return await File.ReadAllTextAsync(path, cancellationToken).ConfigureAwait(false);
     }
 
-    private static McpToolsRegistry Map(JsonMcpToolsRegistry registry, string registryPath)
+    private static T Deserialize<T>(
+        string json,
+        System.Text.Json.Serialization.Metadata.JsonTypeInfo<T> typeInfo,
+        string path)
+        where T : class
     {
-        var rows = registry.Tools
+        T? parsed;
+
+        try
+        {
+            parsed = JsonSerializer.Deserialize(json, typeInfo);
+        }
+        catch (JsonException exception)
+        {
+            throw new InvalidOperationException(
+                $"Bundled MCP-tools side-car '{path}' is not valid JSON.", exception);
+        }
+
+        return parsed ?? throw Malformed(path, "it deserialised to null.");
+    }
+
+    private static McpToolsRegistry Merge(
+        JsonMcpToolsRegistry registry,
+        JsonMcpToolsCatalog catalog,
+        string registryPath,
+        string catalogPath)
+    {
+        var categoryRows = catalog.Categories
+            ?? throw Malformed(catalogPath, "the 'categories' array is missing.");
+
+        var categoriesByName = IndexCategories(categoryRows, catalogPath);
+        var resolvedCategories = ResolveCategories(categoryRows, categoriesByName, catalogPath);
+        var catalogToolsByName = IndexCatalogTools(catalog.Tools, categoriesByName, catalogPath);
+
+        var categories = new List<McpToolsCategoryEntry>(categoryRows.Count);
+
+        foreach (var row in categoryRows)
+        {
+            var name = Required(row.Name, "categories[].name", catalogPath);
+
+            categories.Add(new McpToolsCategoryEntry
+            {
+                Name = name,
+                Description = Required(
+                    row.Description, $"categories[].description for '{name}'", catalogPath),
+                Parent = row.Parent,
+                ActivationFlags = resolvedCategories[name].Flags,
+            });
+        }
+
+        var registryRows = registry.Tools
             ?? throw Malformed(registryPath, "the 'tools' array is missing.");
 
-        var tools = new List<McpToolsRegistryTool>(rows.Count);
+        var tools = new List<McpToolsRegistryEntry>(registryRows.Count);
+
+        foreach (var row in registryRows)
+        {
+            tools.Add(MergeTool(
+                row, catalogToolsByName, resolvedCategories, registryPath, catalogPath));
+        }
+
+        return new McpToolsRegistry(categories, tools);
+    }
+
+    private static Dictionary<string, JsonMcpToolsCatalogCategory> IndexCategories(
+        IReadOnlyList<JsonMcpToolsCatalogCategory> rows,
+        string catalogPath)
+    {
+        var byName = new Dictionary<string, JsonMcpToolsCatalogCategory>(
+            rows.Count, StringComparer.Ordinal);
 
         foreach (var row in rows)
         {
-            tools.Add(MapTool(row, registryPath));
+            var name = Required(row.Name, "categories[].name", catalogPath);
+
+            if (!byName.TryAdd(name, row))
+            {
+                throw Malformed(
+                    catalogPath, $"the category name '{name}' appears more than once.");
+            }
         }
 
-        return new McpToolsRegistry(tools);
+        return byName;
     }
 
-    private static McpToolsRegistryTool MapTool(JsonMcpToolsRegistryTool tool, string registryPath)
+    private static Dictionary<string, (IReadOnlyList<string> Flags, string? WorkerId)> ResolveCategories(
+        IReadOnlyList<JsonMcpToolsCatalogCategory> rows,
+        IReadOnlyDictionary<string, JsonMcpToolsCatalogCategory> byName,
+        string catalogPath)
+    {
+        var resolved = new Dictionary<string, (IReadOnlyList<string>, string?)>(
+            rows.Count, StringComparer.Ordinal);
+
+        foreach (var row in rows)
+        {
+            var name = Required(row.Name, "categories[].name", catalogPath);
+            var chain = AncestryRootToLeaf(name, byName, catalogPath);
+
+            var flags = new List<string>();
+            var seen = new HashSet<string>(StringComparer.Ordinal);
+            string? workerId = null;
+
+            foreach (var ancestor in chain)
+            {
+                foreach (var flag in ancestor.ActivationFlags ?? [])
+                {
+                    if (seen.Add(flag))
+                    {
+                        flags.Add(flag);
+                    }
+                }
+
+                if (!string.IsNullOrEmpty(ancestor.WorkerId))
+                {
+                    workerId = ancestor.WorkerId;
+                }
+            }
+
+            resolved[name] = (flags, workerId);
+        }
+
+        return resolved;
+    }
+
+    private static List<JsonMcpToolsCatalogCategory> AncestryRootToLeaf(
+        string name,
+        IReadOnlyDictionary<string, JsonMcpToolsCatalogCategory> byName,
+        string catalogPath)
+    {
+        var chain = new List<JsonMcpToolsCatalogCategory>();
+        var visited = new HashSet<string>(StringComparer.Ordinal);
+        string? current = name;
+
+        while (current is not null)
+        {
+            if (!visited.Add(current))
+            {
+                throw Malformed(catalogPath, $"the category '{current}' is part of a parent cycle.");
+            }
+
+            if (!byName.TryGetValue(current, out var node))
+            {
+                throw Malformed(
+                    catalogPath, $"the category '{name}' references undefined ancestor '{current}'.");
+            }
+
+            chain.Add(node);
+            current = node.Parent;
+        }
+
+        chain.Reverse();
+        return chain;
+    }
+
+    private static Dictionary<string, JsonMcpToolsCatalogTool> IndexCatalogTools(
+        IReadOnlyList<JsonMcpToolsCatalogTool>? rows,
+        Dictionary<string, JsonMcpToolsCatalogCategory> categoriesByName,
+        string catalogPath)
+    {
+        var toolRows = rows
+            ?? throw Malformed(catalogPath, "the 'tools' array is missing.");
+
+        var byName = new Dictionary<string, JsonMcpToolsCatalogTool>(
+            toolRows.Count, StringComparer.Ordinal);
+
+        foreach (var row in toolRows)
+        {
+            var name = Required(row.Name, "tools[].name", catalogPath);
+
+            if (!byName.TryAdd(name, row))
+            {
+                throw Malformed(catalogPath, $"the tool name '{name}' appears more than once.");
+            }
+
+            var category = Required(row.Category, $"tools[].category for '{name}'", catalogPath);
+
+            if (!categoriesByName.ContainsKey(category))
+            {
+                throw Malformed(
+                    catalogPath, $"tool '{name}' references undefined category '{category}'.");
+            }
+        }
+
+        return byName;
+    }
+
+    private static McpToolsRegistryEntry MergeTool(
+        JsonMcpToolsRegistryTool tool,
+        Dictionary<string, JsonMcpToolsCatalogTool> catalogToolsByName,
+        Dictionary<string, (IReadOnlyList<string> Flags, string? WorkerId)> resolvedCategories,
+        string registryPath,
+        string catalogPath)
     {
         var name = Required(tool.Name, "tools[].name", registryPath);
+
+        if (!catalogToolsByName.TryGetValue(name, out var catalogTool))
+        {
+            throw Malformed(catalogPath, $"the registry tool '{name}' has no catalog entry.");
+        }
+
+        var category = Required(
+            catalogTool.Category, $"catalog tool '{name}' category", catalogPath);
+        var (flags, catalogWorkerId) = resolvedCategories[category];
+        var workerId = Required(tool.WorkerId, $"tool '{name}' workerId", registryPath);
+
+        if (catalogWorkerId is not null
+            && !string.Equals(catalogWorkerId, workerId, StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                $"Bundled MCP-tools manifests disagree on the worker for tool '{name}': registry "
+                + $"'{registryPath}' declares workerId '{workerId}' but catalog '{catalogPath}' "
+                + $"resolves category '{category}' to workerId '{catalogWorkerId}'.");
+        }
 
         var parameterRows = tool.Parameters
             ?? throw Malformed(registryPath, $"tool '{name}' has no 'parameters'.");
 
-        var parameters = new List<McpToolsRegistryParameter>(parameterRows.Count);
+        var parameters = new List<McpToolsRegistryParameterEntry>(parameterRows.Count);
 
         foreach (var (parameterName, spec) in parameterRows)
         {
-            parameters.Add(new McpToolsRegistryParameter
+            parameters.Add(new McpToolsRegistryParameterEntry
             {
                 Name = parameterName,
                 Type = Required(spec.Type, $"tool '{name}' parameter '{parameterName}' type", registryPath),
@@ -163,21 +345,25 @@ internal static class McpToolsRegistryLoader
             });
         }
 
-        return new McpToolsRegistryTool
+        return new McpToolsRegistryEntry
         {
             Name = name,
-            WorkerId = Required(tool.WorkerId, $"tool '{name}' workerId", registryPath),
-            Description = Required(tool.Description, $"tool '{name}' description", registryPath),
+            Category = category,
+            WorkerId = workerId,
+            ModelDescription = Required(tool.Description, $"tool '{name}' description", registryPath),
+            DisplayDescription = Required(
+                catalogTool.Description, $"catalog tool '{name}' description", catalogPath),
             Parameters = parameters,
             Editorconfig = tool.Editorconfig ?? [],
+            ActivationFlags = flags,
         };
     }
 
-    private static string Required(string? value, string field, string registryPath)
+    private static string Required(string? value, string field, string path)
         => string.IsNullOrEmpty(value)
-            ? throw Malformed(registryPath, $"required field '{field}' is missing or empty.")
+            ? throw Malformed(path, $"required field '{field}' is missing or empty.")
             : value;
 
-    private static InvalidOperationException Malformed(string registryPath, string detail)
-        => new($"Bundled MCP-tools registry '{registryPath}' is malformed: {detail}");
+    private static InvalidOperationException Malformed(string path, string detail)
+        => new($"Bundled MCP-tools side-car '{path}' is malformed: {detail}");
 }

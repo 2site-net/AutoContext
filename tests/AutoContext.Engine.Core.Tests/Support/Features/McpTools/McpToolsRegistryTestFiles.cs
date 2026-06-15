@@ -8,10 +8,12 @@ using AutoContext.Engine.Core.Features.McpTools;
 /// across two workers (one declaring a required and an optional parameter
 /// plus an EditorConfig key, the other a single optional parameter and no
 /// EditorConfig keys), validated against the <em>real</em> bundled
-/// <c>mcp-tools-registry.schema.json</c>. The schema is read from the copy
-/// the build links into the test output from
-/// <c>src/AutoContext.Engine/Resources</c>, so the tests can never drift
-/// from the shipped contract.
+/// <c>mcp-tools-registry.schema.json</c>. The tool names are real entries in
+/// the bundled <c>mcp-tools-catalog.json</c> (read from the linked copy) so
+/// the loader's registry/catalog merge resolves each tool to its category.
+/// The schema and catalog are read from the copies the build links into the
+/// test output from <c>src/AutoContext.Engine/Resources</c>, so the tests can
+/// never drift from the shipped contracts.
 /// </summary>
 internal static class McpToolsRegistryTestFiles
 {
@@ -26,7 +28,7 @@ internal static class McpToolsRegistryTestFiles
           "schemaVersion": "1",
           "tools": [
             {
-              "name": "analyze_sample_code",
+              "name": "analyze_csharp_code_style",
               "workerId": "dotnet",
               "description": "Analyse sample source.",
               "parameters": {
@@ -36,7 +38,7 @@ internal static class McpToolsRegistryTestFiles
               "editorconfig": [ "csharp_indent_size" ]
             },
             {
-              "name": "read_sample_config",
+              "name": "read_editorconfig_rules",
               "workerId": "workspace",
               "description": "Read sample config.",
               "parameters": {

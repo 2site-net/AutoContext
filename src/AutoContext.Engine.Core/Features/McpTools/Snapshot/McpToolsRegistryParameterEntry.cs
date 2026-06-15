@@ -5,9 +5,9 @@ namespace AutoContext.Engine.Core.Features.McpTools.Snapshot;
 /// <see cref="Name"/> the model passes, the JSON Schema
 /// <see cref="Type"/> keyword it accepts, the model-facing
 /// <see cref="Description"/>, and whether it is <see cref="Required"/>.
-/// Carried in declaration order on <see cref="McpToolsRegistryTool"/>.
+/// Carried in declaration order on <see cref="McpToolsRegistryEntry"/>.
 /// </summary>
-internal sealed record McpToolsRegistryParameter
+internal sealed record McpToolsRegistryParameterEntry
 {
     /// <summary>The parameter name (camelCase).</summary>
     public required string Name { get; init; }

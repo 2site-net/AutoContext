@@ -23,8 +23,8 @@ public sealed class McpToolsRegistryLoaderTests
             // Assert
             Assert.Collection(
                 registry.Tools,
-                first => Assert.Equal("analyze_sample_code", first.Name),
-                second => Assert.Equal("read_sample_config", second.Name));
+                first => Assert.Equal("analyze_csharp_code_style", first.Name),
+                second => Assert.Equal("read_editorconfig_rules", second.Name));
         }
 
         [Fact]
@@ -39,13 +39,77 @@ public sealed class McpToolsRegistryLoaderTests
                 directory, TestContext.Current.CancellationToken);
 
             // Assert
-            var tool = registry.FindByName("analyze_sample_code");
+            var tool = registry.FindByName("analyze_csharp_code_style");
 
             Assert.NotNull(tool);
             Assert.Multiple(
                 () => Assert.Equal("dotnet", tool.WorkerId),
-                () => Assert.Equal("Analyse sample source.", tool.Description),
+                () => Assert.Equal("Analyse sample source.", tool.ModelDescription),
                 () => Assert.Equal(["csharp_indent_size"], tool.Editorconfig));
+        }
+
+        [Fact]
+        public async Task Should_merge_catalog_category_and_display_description()
+        {
+            // Arrange
+            var directory = tempDirectory.CreateDirectory();
+            McpToolsRegistryTestFiles.WriteValid(directory);
+
+            // Act
+            var registry = await McpToolsRegistryLoader.LoadAsync(
+                directory, TestContext.Current.CancellationToken);
+
+            // Assert
+            var tool = registry.FindByName("analyze_csharp_code_style");
+
+            Assert.NotNull(tool);
+            Assert.Multiple(
+                () => Assert.Equal("C#", tool.Category),
+                () => Assert.Equal("Analyse sample source.", tool.ModelDescription),
+                () => Assert.Contains(
+                    "coding style", tool.DisplayDescription, StringComparison.Ordinal));
+        }
+
+        [Fact]
+        public async Task Should_flatten_activation_flags_from_category_ancestry()
+        {
+            // Arrange
+            var directory = tempDirectory.CreateDirectory();
+            McpToolsRegistryTestFiles.WriteValid(directory);
+
+            // Act
+            var registry = await McpToolsRegistryLoader.LoadAsync(
+                directory, TestContext.Current.CancellationToken);
+
+            // Assert
+            var nested = registry.FindByName("analyze_csharp_code_style");
+            var root = registry.FindByName("read_editorconfig_rules");
+
+            Assert.NotNull(nested);
+            Assert.NotNull(root);
+            Assert.Multiple(
+                () => Assert.Equal(["hasDotNet", "hasCSharp"], nested.ActivationFlags),
+                () => Assert.Empty(root.ActivationFlags));
+        }
+
+        [Fact]
+        public async Task Should_expose_catalog_categories_with_parent_and_flags()
+        {
+            // Arrange
+            var directory = tempDirectory.CreateDirectory();
+            McpToolsRegistryTestFiles.WriteValid(directory);
+
+            // Act
+            var registry = await McpToolsRegistryLoader.LoadAsync(
+                directory, TestContext.Current.CancellationToken);
+
+            // Assert
+            var csharp = Assert.Single(
+                registry.Categories, category => category.Name == "C#");
+
+            Assert.Multiple(
+                () => Assert.Equal(".NET", csharp.Parent),
+                () => Assert.Equal(["hasDotNet", "hasCSharp"], csharp.ActivationFlags));
         }
 
         [Fact]
@@ -60,7 +124,7 @@ public sealed class McpToolsRegistryLoaderTests
                 directory, TestContext.Current.CancellationToken);
 
             // Assert
-            var tool = registry.FindByName("analyze_sample_code");
+            var tool = registry.FindByName("analyze_csharp_code_style");
 
             Assert.NotNull(tool);
             Assert.Collection(
@@ -88,7 +152,7 @@ public sealed class McpToolsRegistryLoaderTests
                 directory, TestContext.Current.CancellationToken);
 
             // Assert
-            var tool = registry.FindByName("read_sample_config");
+            var tool = registry.FindByName("read_editorconfig_rules");
 
             Assert.NotNull(tool);
             Assert.Empty(tool.Editorconfig);
@@ -265,6 +329,76 @@ public sealed class McpToolsRegistryLoaderTests
                 directory, McpToolsRegistryTestFiles.CatalogSchemaJson);
             McpToolsRegistryTestFiles.WriteRegistry(
                 directory, McpToolsRegistryTestFiles.RegistryJson);
+            McpToolsRegistryTestFiles.WriteSchema(
+                directory, McpToolsRegistryTestFiles.SchemaJson);
+
+            // Act + Assert
+            await Assert.ThrowsAsync<InvalidOperationException>(
+                () => McpToolsRegistryLoader.LoadAsync(
+                    directory, TestContext.Current.CancellationToken));
+        }
+
+        [Fact]
+        public async Task Should_throw_when_registry_tool_has_no_catalog_entry()
+        {
+            // Arrange - the registry tool name is absent from the catalog.
+            var directory = tempDirectory.CreateDirectory();
+            McpToolsRegistryTestFiles.WriteCatalog(
+                directory, McpToolsRegistryTestFiles.CatalogJson);
+            McpToolsRegistryTestFiles.WriteCatalogSchema(
+                directory, McpToolsRegistryTestFiles.CatalogSchemaJson);
+            McpToolsRegistryTestFiles.WriteRegistry(
+                directory,
+                """
+                {
+                  "schemaVersion": "1",
+                  "tools": [
+                    {
+                      "name": "analyze_unlisted_tool",
+                      "workerId": "dotnet",
+                      "description": "Not in the catalog.",
+                      "parameters": {
+                        "content": { "type": "string", "description": "Source.", "required": true }
+                      }
+                    }
+                  ]
+                }
+                """);
+            McpToolsRegistryTestFiles.WriteSchema(
+                directory, McpToolsRegistryTestFiles.SchemaJson);
+
+            // Act + Assert
+            await Assert.ThrowsAsync<InvalidOperationException>(
+                () => McpToolsRegistryLoader.LoadAsync(
+                    directory, TestContext.Current.CancellationToken));
+        }
+
+        [Fact]
+        public async Task Should_throw_when_workerid_conflicts_with_catalog_category()
+        {
+            // Arrange - the registry worker disagrees with the catalog category's worker.
+            var directory = tempDirectory.CreateDirectory();
+            McpToolsRegistryTestFiles.WriteCatalog(
+                directory, McpToolsRegistryTestFiles.CatalogJson);
+            McpToolsRegistryTestFiles.WriteCatalogSchema(
+                directory, McpToolsRegistryTestFiles.CatalogSchemaJson);
+            McpToolsRegistryTestFiles.WriteRegistry(
+                directory,
+                """
+                {
+                  "schemaVersion": "1",
+                  "tools": [
+                    {
+                      "name": "analyze_csharp_code_style",
+                      "workerId": "workspace",
+                      "description": "Mismatched worker.",
+                      "parameters": {
+                        "content": { "type": "string", "description": "Source.", "required": true }
+                      }
+                    }
+                  ]
+                }
+                """);
             McpToolsRegistryTestFiles.WriteSchema(
                 directory, McpToolsRegistryTestFiles.SchemaJson);
 
