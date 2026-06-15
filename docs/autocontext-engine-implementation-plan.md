@@ -441,13 +441,13 @@ src/
           ConfigEngineSettings.cs              # domain: engine settings record (instructions.overridesRoots)
           ConfigDiagnostic.cs                  # domain: diagnostic prefs record
           ConfigInstructionsFile.cs            # domain: per-instruction-file record (+ nested InstructionsRule)
-          ConfigMcpTool.cs                     # domain: per-MCP-tool record (+ nested McpTask)
+          ConfigMcpTool.cs                     # domain: per-MCP-tool record
         Format/                                # on-disk wire DTOs (.autocontext.json shape)
           JsonConfigFile.cs                    # wire DTO: immutable on-disk config shape (P9)
           JsonConfigFileEngine.cs              # wire DTO: engine block (instructions.overridesRoots)
           JsonConfigFileDiagnostic.cs          # wire DTO: diagnostic block
           JsonConfigFileInstructionsEntry.cs   # wire DTO: instructions map entry (disabled, disabledRules)
-          JsonConfigFileMcpToolEntry.cs        # wire DTO: mcpTools object entry (disabled, disabledTasks)
+          JsonConfigFileMcpToolEntry.cs        # wire DTO: mcpTools object entry (disabled)
         ConfigSnapshotExtensions.cs            # mapper: domain -> on-disk (ToFileFormat) + domain -> Config.* wire (ToWireFormat)
         JsonConfigFileExtensions.cs            # mapper: on-disk -> domain (ToDomainGraph)
         ConfigFileFormat.cs                    # stateless .autocontext.json serializer (mirrors RegistryFileFormat)
@@ -1313,7 +1313,7 @@ write.
   port of today's `AutoContextConfigManager` (TS) into .NET.
   `.autocontext.json` keys are camelCase only (`engine`,
   `instructions`, `mcpTools`, `disabled`, `disabledRules`,
-  `disabledTasks`) — no dual-casing, no key normalisation. (The
+  `version`) — no dual-casing, no key normalisation. (The
   on-disk shape was finalised after this phase by the
   `fix(config): correct .autocontext.json on-disk format` commit,
   which renamed the whole-item toggle to `disabled: true`, renamed the
@@ -2147,7 +2147,8 @@ MCP-tool dispatch (Phase 7).
 
 | # | Commit subject | State |
 |---|---|---| 
-| 1 | `feat(protocol): add McpTools.* wire DTOs` | DONE |
+| 1 | `feat(protocol): add McpTools.* wire DTOs` | DONE (legacy task shape) |
+| 1b | `refactor(protocol): flatten McpTools/config MCP DTOs` | DONE |
 | 2 | `feat(engine): author mcp-tools-registry.json and its schema` | DONE |
 | 3 | `feat(engine-core): add McpToolsRegistryLoader and schema validator` | Not started |
 | 4 | `feat(build): generate workers.json from worker projects` | DONE |
@@ -2212,9 +2213,8 @@ manifests` (`workers.json`, `mcp-tools-registry.json`),
 > `Resources/mcp-tools.json` output, and the `.gitignore` entry are all
 > removed, and the generator project and its tests have been **deleted
 > from the tree**. Disable granularity
-> correspondingly collapses from per-task to per-tool; a few
-> `disabledTasks` config-model mentions elsewhere still reflect the
-> old model and are reconciled in a separate config pass.
+> correspondingly collapses from per-task to per-tool; the engine-side
+> config model and wire DTOs are flattened to match.
 
 **Code touch**:
 - `AutoContext.Engine.Core/Workers/WorkerManager` — port of
@@ -2270,7 +2270,7 @@ manifests` (`workers.json`, `mcp-tools-registry.json`),
 - `McpTools.List` handler over the `mcp-tools-registry.json` data,
   filtered per-request by each tool's `disabled` flag from the config
   snapshot (per-tool granularity; the task concept — and its
-  `disabledTasks` filter — is gone with the flatten).
+  legacy per-task filter — is gone with the flatten).
 - `McpTools.Invoke` handler: schema-validate `arguments` against the
   tool's `inputSchema`, dispatch to the worker, marshal the worker
   response into the discriminated envelope (`ok`/`tool-error`/

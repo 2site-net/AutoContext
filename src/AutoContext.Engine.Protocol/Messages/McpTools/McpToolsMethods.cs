@@ -16,7 +16,7 @@ public static class McpToolsMethods
     /// that want to introspect what the engine would advertise to an
     /// MCP client. Rows are projected from the embedded
     /// <c>mcp-tools-registry.json</c> and carry the engine-resolved
-    /// per-tool / per-task disabled state. Takes no params; returns
+    /// per-tool disabled state. Takes no params; returns
     /// <see cref="JsonMcpToolsListResult"/>.
     /// </summary>
     public const string List = "McpTools.List";

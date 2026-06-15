@@ -159,7 +159,6 @@ internal static class ConfigFileFormat
             result[toolName] = entry with
             {
                 Disabled = entry.Disabled is true ? true : null,
-                DisabledTasks = EmptyToNull(entry.DisabledTasks),
             };
         }
 

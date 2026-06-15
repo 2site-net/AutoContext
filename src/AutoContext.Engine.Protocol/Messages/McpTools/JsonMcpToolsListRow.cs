@@ -8,7 +8,7 @@ using System.Text.Json.Serialization;
 /// <c>mcp-tools-registry.json</c>, with the engine-resolved disabled
 /// state layered on per request. Input schemas are deliberately absent
 /// (schema exposure on the pipe is a later meta-discovery concern); the
-/// shape leaves room for the forward-noted <see cref="Categories"/> /
+/// shape leaves room for the forward-noted <see cref="Category"/> /
 /// <see cref="Description"/> / <see cref="Key"/> metadata so the
 /// discovery siblings can land additively per <c>design § RPC surface
 /// (McpTools.*)</c>.
@@ -31,21 +31,22 @@ public sealed record JsonMcpToolsListRow
     public string? Description { get; init; }
 
     /// <summary>
-    /// Category-membership names the tool belongs to, leaf-last. Empty
+    /// Dispatch target for the tool (FK to <c>workers.json</c>).
+    /// </summary>
+    [JsonPropertyName("workerId")]
+    public string? WorkerId { get; init; }
+
+    /// <summary>
+    /// Catalog category the tool belongs to (FK to a
+    /// <c>mcp-tools-catalog.json</c> category <c>name</c>). The
+    /// leaf-last parent chain is resolved from the category taxonomy's
+    /// <c>parent</c> links, not duplicated here. <see langword="null"/>
     /// when the tool is uncategorized. Backs the
     /// <c>category → tools</c> index a future
     /// <c>Discovery.RouteForPrompt</c> inverts.
     /// </summary>
-    [JsonPropertyName("categories")]
-    public IReadOnlyList<string> Categories { get; init; } = [];
-
-    /// <summary>
-    /// The MCP tasks this tool dispatches when invoked, each carrying
-    /// its own engine-resolved disabled state. Empty when the tool
-    /// declares no tasks.
-    /// </summary>
-    [JsonPropertyName("tasks")]
-    public IReadOnlyList<JsonMcpToolsTask> Tasks { get; init; } = [];
+    [JsonPropertyName("category")]
+    public string? Category { get; init; }
 
     /// <summary>
     /// Engine-resolved disabled state against <c>.autocontext.json</c>.

@@ -6,14 +6,14 @@ using AutoContext.Engine.Core.Workspace.Config.Snapshot;
 /// <summary>
 /// Maps the on-disk <see cref="JsonConfigFile"/> wire shape onto
 /// the immutable <see cref="ConfigSnapshot"/> domain graph. The wire
-/// quirk decoded here — the disabled-only encoding of rules and tasks
+/// quirk decoded here — the disabled-only encoding of rules and tools
 /// — is kept out of the domain graph.
 /// </summary>
 internal static class JsonConfigFileExtensions
 {
     /// <summary>
     /// Builds the domain graph from a parsed wire config. Each rule and
-    /// task present on disk is, by the format's design, a disabled one,
+    /// tool present on disk is, by the format's design, a disabled one,
     /// so it maps to <c>Disabled = true</c>.
     /// </summary>
     /// <param name="json">The parsed wire config.</param>
@@ -76,16 +76,11 @@ internal static class JsonConfigFileExtensions
 
         foreach (var (name, entry) in tools)
         {
-            var tasks = entry.DisabledTasks is { Count: > 0 } names
-                ? names.Select(task => new ConfigMcpTool.McpTask { Name = task, Disabled = true }).ToArray()
-                : [];
-
             result.Add(new ConfigMcpTool
             {
                 Name = name,
                 Disabled = entry.Disabled is true ? true : null,
                 Version = entry.Version,
-                Tasks = tasks,
             });
         }
 

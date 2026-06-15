@@ -645,14 +645,6 @@ public sealed class DispatchPolicyTests(TempDirectoryFixture tempDirectory)
                     Name = "analyze_csharp_code",
                     Version = "2.0",
                     Disabled = false,
-                    Tasks =
-                    [
-                        new ConfigMcpTool.McpTask
-                        {
-                            Name = "lint",
-                            Disabled = true,
-                        },
-                    ],
                 },
             ],
         };
@@ -675,7 +667,6 @@ public sealed class DispatchPolicyTests(TempDirectoryFixture tempDirectory)
         var instructions = Assert.Single(snapshot!.Instructions);
         var rule = Assert.Single(instructions.Rules);
         var tool = Assert.Single(snapshot.McpTools);
-        var task = Assert.Single(tool.Tasks);
         Assert.Multiple(
             () => Assert.Equal(Continuation.Continue, result.Continuation),
             () => Assert.Null(result.Response.Error),
@@ -688,9 +679,7 @@ public sealed class DispatchPolicyTests(TempDirectoryFixture tempDirectory)
             () => Assert.True(rule.Disabled),
             () => Assert.Equal("analyze_csharp_code", tool.Name),
             () => Assert.Equal("2.0", tool.Version),
-            () => Assert.False(tool.Disabled),
-            () => Assert.Equal("lint", task.Name),
-            () => Assert.True(task.Disabled));
+                () => Assert.False(tool.Disabled));
     }
 
     [Fact]

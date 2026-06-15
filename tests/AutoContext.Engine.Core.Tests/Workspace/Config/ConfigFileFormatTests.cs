@@ -27,7 +27,7 @@ public sealed class ConfigFileFormatTests
                 McpTools = new Dictionary<string, JsonConfigFileMcpToolEntry>
                 {
                     ["t1"] = new() { Disabled = true },
-                    ["t2"] = new() { Disabled = true, DisabledTasks = ["k"] },
+                    ["t2"] = new() { Disabled = true },
                 },
             };
 
@@ -49,10 +49,7 @@ public sealed class ConfigFileFormatTests
                             "disabled": true
                         },
                         "t2": {
-                            "disabled": true,
-                            "disabledTasks": [
-                                "k"
-                            ]
+                            "disabled": true
                         }
                     }
                 }
@@ -105,7 +102,7 @@ public sealed class ConfigFileFormatTests
                     McpTools = new Dictionary<string, JsonConfigFileMcpToolEntry>
                     {
                         ["t1"] = new() { Disabled = true },
-                        ["t2"] = new() { Disabled = true, DisabledTasks = ["k"] },
+                        ["t2"] = new() { Disabled = true },
                     },
                 },
                 "1.2.3");
@@ -129,7 +126,7 @@ public sealed class ConfigFileFormatTests
                         "a.md": { "disabled": false, "disabledRules": [] }
                     },
                     "mcpTools": {
-                        "t1": { "disabledTasks": [] }
+                        "t1": { "disabled": false }
                     }
                 }
                 """);
@@ -141,7 +138,7 @@ public sealed class ConfigFileFormatTests
             Assert.Multiple(
                 () => Assert.Null(config.Instructions!["a.md"].Disabled),
                 () => Assert.Null(config.Instructions!["a.md"].DisabledRules),
-                () => Assert.Null(config.McpTools!["t1"].DisabledTasks));
+                () => Assert.Null(config.McpTools!["t1"].Disabled));
         }
 
         [Fact]

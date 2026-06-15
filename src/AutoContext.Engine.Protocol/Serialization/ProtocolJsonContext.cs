@@ -79,7 +79,6 @@ using AutoContext.Engine.Protocol.Messages.Workspace;
 [JsonSerializable(typeof(JsonInstructionsDroppedFrame))]
 [JsonSerializable(typeof(JsonMcpToolsListResult))]
 [JsonSerializable(typeof(JsonMcpToolsListRow))]
-[JsonSerializable(typeof(JsonMcpToolsTask))]
 [JsonSerializable(typeof(JsonMcpToolsInvokeParams))]
 [JsonSerializable(typeof(JsonMcpToolsInvokeResult))]
 [JsonSerializable(typeof(JsonMcpToolsInvokeOkResult))]

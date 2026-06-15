@@ -27,11 +27,4 @@ public sealed record JsonConfigMcpTool
     /// </summary>
     [JsonPropertyName("disabled")]
     public bool? Disabled { get; init; }
-
-    /// <summary>
-    /// Per-task overrides within this tool. Empty when no task is
-    /// individually toggled.
-    /// </summary>
-    [JsonPropertyName("tasks")]
-    public IReadOnlyList<JsonConfigMcpTask> Tasks { get; init; } = [];
 }

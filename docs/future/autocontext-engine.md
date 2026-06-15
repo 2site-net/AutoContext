@@ -625,7 +625,7 @@ The reasons are structural, not incidental:
   directories (each `engine.instructions.overridesRoots` root's
   `instructions/` subfolder, default `<workspace>/.github/instructions/`),
   workspace-context detection results, and the per-file and per-tool
-  `disabled` / `disabledRules` / `disabledTasks` state are all
+  `disabled` / `disabledRules` state are all
   per-workspace. A single process
   serving N workspaces would just be N independent state machines
   glued into one address space — no shared cache, no shared
@@ -1946,8 +1946,8 @@ way to set it.
   state) for diagnostics; it does not duplicate the `Detect`
   payload.
 - **`McpTools.*`** — `List`, `Invoke`. `List` surfaces the engine's
-  MCP tool catalog (filtered by the same per-tool `disabled` /
-  `disabledTasks` state) for hosts that want to introspect what the
+  MCP tool catalog (filtered by the same per-tool `disabled`
+  state) for hosts that want to introspect what the
   engine would advertise to an MCP client.
 
   **`Invoke(name, arguments)`** is the pipe-RPC counterpart of MCP's
