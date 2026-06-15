@@ -1,0 +1,68 @@
+namespace AutoContext.Engine.Core.Tests.Support.Features.McpTools;
+
+using AutoContext.Engine.Core.Features.McpTools;
+
+/// <summary>
+/// Shared MCP-tools registry side-car fixtures for the loader and validator
+/// tests: a hand-authored <c>mcp-tools-registry.json</c> with two tools
+/// across two workers (one declaring a required and an optional parameter
+/// plus an EditorConfig key, the other a single optional parameter and no
+/// EditorConfig keys), validated against the <em>real</em> bundled
+/// <c>mcp-tools-registry.schema.json</c>. The schema is read from the copy
+/// the build links into the test output from
+/// <c>src/AutoContext.Engine/Resources</c>, so the tests can never drift
+/// from the shipped contract.
+/// </summary>
+internal static class McpToolsRegistryTestFiles
+{
+    public const string RegistryJson =
+        """
+        {
+          "$schema": "./mcp-tools-registry.schema.json",
+          "schemaVersion": "1",
+          "tools": [
+            {
+              "name": "analyze_sample_code",
+              "workerId": "dotnet",
+              "description": "Analyse sample source.",
+              "parameters": {
+                "content": { "type": "string", "description": "The source text.", "required": true },
+                "maxIssues": { "type": "number", "description": "Issue cap." }
+              },
+              "editorconfig": [ "csharp_indent_size" ]
+            },
+            {
+              "name": "read_sample_config",
+              "workerId": "workspace",
+              "description": "Read sample config.",
+              "parameters": {
+                "filePath": { "type": "string", "description": "Absolute path." }
+              }
+            }
+          ]
+        }
+        """;
+
+    /// <summary>
+    /// The real bundled registry JSON Schema, read from the copy the build
+    /// links into the test output. Single source of truth: there is no
+    /// embedded duplicate to fall out of step with the shipped schema.
+    /// </summary>
+    public static string SchemaJson { get; } = File.ReadAllText(
+        Path.Combine(
+            AppContext.BaseDirectory, "Resources", McpToolsRegistryLoader.SchemaFileName));
+
+    public static void WriteValid(string directory)
+    {
+        WriteRegistry(directory, RegistryJson);
+        WriteSchema(directory, SchemaJson);
+    }
+
+    public static void WriteRegistry(string directory, string json)
+        => File.WriteAllText(
+            Path.Combine(directory, McpToolsRegistryLoader.RegistryFileName), json);
+
+    public static void WriteSchema(string directory, string json)
+        => File.WriteAllText(
+            Path.Combine(directory, McpToolsRegistryLoader.SchemaFileName), json);
+}
