@@ -7,10 +7,13 @@ using AutoContext.Engine.Core.Features.McpTools.Snapshot;
 
 /// <summary>
 /// Loads the bundled MCP-tools registry into an immutable
-/// <see cref="McpToolsRegistry"/> by reading the two side-cars shipped
+/// <see cref="McpToolsRegistry"/> by reading the side-cars shipped
 /// beside the engine binary: <c>mcp-tools-registry.json</c> (the
 /// hand-authored execution registry) and its
-/// <c>mcp-tools-registry.schema.json</c> (the validation contract).
+/// <c>mcp-tools-registry.schema.json</c> (the validation contract), plus
+/// <c>mcp-tools-catalog.json</c> and
+/// <c>mcp-tools-catalog.schema.json</c> to ensure the UI catalog side is
+/// also package-valid at startup.
 /// </summary>
 /// <remarks>
 /// The side-cars are engine build artifacts, not user input: a missing
@@ -29,10 +32,18 @@ internal static class McpToolsRegistryLoader
     /// <summary>The registry's JSON Schema side-car file name.</summary>
     public const string SchemaFileName = "mcp-tools-registry.schema.json";
 
+    /// <summary>The hand-authored MCP-tools catalog side-car file name.</summary>
+    public const string CatalogFileName = "mcp-tools-catalog.json";
+
+    /// <summary>The catalog's JSON Schema side-car file name.</summary>
+    public const string CatalogSchemaFileName = "mcp-tools-catalog.schema.json";
+
     /// <summary>
     /// Reads and validates the registry side-car in
     /// <paramref name="resourcesDirectory"/> and maps it to an immutable
-    /// snapshot.
+    /// snapshot. The catalog side-cars are also read and schema-validated so
+    /// startup fails fast when either half of the MCP-tools manifest set is
+    /// malformed.
     /// </summary>
     /// <param name="resourcesDirectory">Absolute path of the directory
     /// holding both side-cars. Must not be <see langword="null"/> or
@@ -55,9 +66,14 @@ internal static class McpToolsRegistryLoader
 
         var registryPath = Path.Combine(resourcesDirectory, RegistryFileName);
         var schemaPath = Path.Combine(resourcesDirectory, SchemaFileName);
+        var catalogPath = Path.Combine(resourcesDirectory, CatalogFileName);
+        var catalogSchemaPath = Path.Combine(resourcesDirectory, CatalogSchemaFileName);
 
         var registryJson = await ReadTextAsync(registryPath, cancellationToken).ConfigureAwait(false);
         var schemaJson = await ReadTextAsync(schemaPath, cancellationToken).ConfigureAwait(false);
+        var catalogJson = await ReadTextAsync(catalogPath, cancellationToken).ConfigureAwait(false);
+        var catalogSchemaJson = await ReadTextAsync(catalogSchemaPath, cancellationToken)
+            .ConfigureAwait(false);
 
         var validation = McpToolsRegistrySchemaValidator.Validate(registryJson, schemaJson);
 
@@ -67,6 +83,16 @@ internal static class McpToolsRegistryLoader
                 $"Bundled MCP-tools registry '{registryPath}' failed validation:"
                 + Environment.NewLine
                 + string.Join(Environment.NewLine, validation.Errors));
+        }
+
+        var catalogValidation = McpToolsCatalogSchemaValidator.Validate(catalogJson, catalogSchemaJson);
+
+        if (!catalogValidation.IsValid)
+        {
+            throw new InvalidOperationException(
+                $"Bundled MCP-tools catalog '{catalogPath}' failed validation:"
+                + Environment.NewLine
+                + string.Join(Environment.NewLine, catalogValidation.Errors));
         }
 
         JsonMcpToolsRegistry? registry;

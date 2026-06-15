@@ -114,6 +114,10 @@ public sealed class McpToolsRegistryLoaderTests
         {
             // Arrange
             var directory = tempDirectory.CreateDirectory();
+            McpToolsRegistryTestFiles.WriteCatalog(
+                directory, McpToolsRegistryTestFiles.CatalogJson);
+            McpToolsRegistryTestFiles.WriteCatalogSchema(
+                directory, McpToolsRegistryTestFiles.CatalogSchemaJson);
             McpToolsRegistryTestFiles.WriteSchema(
                 directory, McpToolsRegistryTestFiles.SchemaJson);
 
@@ -128,8 +132,48 @@ public sealed class McpToolsRegistryLoaderTests
         {
             // Arrange
             var directory = tempDirectory.CreateDirectory();
+            McpToolsRegistryTestFiles.WriteCatalog(
+                directory, McpToolsRegistryTestFiles.CatalogJson);
+            McpToolsRegistryTestFiles.WriteCatalogSchema(
+                directory, McpToolsRegistryTestFiles.CatalogSchemaJson);
             McpToolsRegistryTestFiles.WriteRegistry(
                 directory, McpToolsRegistryTestFiles.RegistryJson);
+
+            // Act + Assert
+            await Assert.ThrowsAsync<FileNotFoundException>(
+                () => McpToolsRegistryLoader.LoadAsync(
+                    directory, TestContext.Current.CancellationToken));
+        }
+
+        [Fact]
+        public async Task Should_throw_when_catalog_missing()
+        {
+            // Arrange
+            var directory = tempDirectory.CreateDirectory();
+            McpToolsRegistryTestFiles.WriteCatalogSchema(
+                directory, McpToolsRegistryTestFiles.CatalogSchemaJson);
+            McpToolsRegistryTestFiles.WriteRegistry(
+                directory, McpToolsRegistryTestFiles.RegistryJson);
+            McpToolsRegistryTestFiles.WriteSchema(
+                directory, McpToolsRegistryTestFiles.SchemaJson);
+
+            // Act + Assert
+            await Assert.ThrowsAsync<FileNotFoundException>(
+                () => McpToolsRegistryLoader.LoadAsync(
+                    directory, TestContext.Current.CancellationToken));
+        }
+
+        [Fact]
+        public async Task Should_throw_when_catalog_schema_missing()
+        {
+            // Arrange
+            var directory = tempDirectory.CreateDirectory();
+            McpToolsRegistryTestFiles.WriteCatalog(
+                directory, McpToolsRegistryTestFiles.CatalogJson);
+            McpToolsRegistryTestFiles.WriteRegistry(
+                directory, McpToolsRegistryTestFiles.RegistryJson);
+            McpToolsRegistryTestFiles.WriteSchema(
+                directory, McpToolsRegistryTestFiles.SchemaJson);
 
             // Act + Assert
             await Assert.ThrowsAsync<FileNotFoundException>(
@@ -142,6 +186,10 @@ public sealed class McpToolsRegistryLoaderTests
         {
             // Arrange
             var directory = tempDirectory.CreateDirectory();
+            McpToolsRegistryTestFiles.WriteCatalog(
+                directory, McpToolsRegistryTestFiles.CatalogJson);
+            McpToolsRegistryTestFiles.WriteCatalogSchema(
+                directory, McpToolsRegistryTestFiles.CatalogSchemaJson);
             McpToolsRegistryTestFiles.WriteRegistry(directory, "not json");
             McpToolsRegistryTestFiles.WriteSchema(
                 directory, McpToolsRegistryTestFiles.SchemaJson);
@@ -157,6 +205,10 @@ public sealed class McpToolsRegistryLoaderTests
         {
             // Arrange — the tool name violates the snake_case pattern.
             var directory = tempDirectory.CreateDirectory();
+            McpToolsRegistryTestFiles.WriteCatalog(
+                directory, McpToolsRegistryTestFiles.CatalogJson);
+            McpToolsRegistryTestFiles.WriteCatalogSchema(
+                directory, McpToolsRegistryTestFiles.CatalogSchemaJson);
             McpToolsRegistryTestFiles.WriteRegistry(
                 directory,
                 """
@@ -174,6 +226,45 @@ public sealed class McpToolsRegistryLoaderTests
                   ]
                 }
                 """);
+            McpToolsRegistryTestFiles.WriteSchema(
+                directory, McpToolsRegistryTestFiles.SchemaJson);
+
+            // Act + Assert
+            await Assert.ThrowsAsync<InvalidOperationException>(
+                () => McpToolsRegistryLoader.LoadAsync(
+                    directory, TestContext.Current.CancellationToken));
+        }
+
+        [Fact]
+        public async Task Should_throw_when_catalog_fails_schema_validation()
+        {
+            // Arrange - the tool name violates the snake_case pattern.
+            var directory = tempDirectory.CreateDirectory();
+            McpToolsRegistryTestFiles.WriteCatalog(
+                directory,
+                """
+                {
+                  "schemaVersion": "1",
+                  "categories": [
+                    {
+                      "name": "Workspace",
+                      "description": "Workspace-level tools.",
+                      "workerId": "workspace"
+                    }
+                  ],
+                  "tools": [
+                    {
+                      "name": "AnalyzeGitCommit",
+                      "description": "Validate commit messages.",
+                      "category": "Workspace"
+                    }
+                  ]
+                }
+                """);
+            McpToolsRegistryTestFiles.WriteCatalogSchema(
+                directory, McpToolsRegistryTestFiles.CatalogSchemaJson);
+            McpToolsRegistryTestFiles.WriteRegistry(
+                directory, McpToolsRegistryTestFiles.RegistryJson);
             McpToolsRegistryTestFiles.WriteSchema(
                 directory, McpToolsRegistryTestFiles.SchemaJson);
 

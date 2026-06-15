@@ -15,6 +15,10 @@ using AutoContext.Engine.Core.Features.McpTools;
 /// </summary>
 internal static class McpToolsRegistryTestFiles
 {
+    public static string CatalogJson { get; } = File.ReadAllText(
+        Path.Combine(
+            AppContext.BaseDirectory, "Resources", McpToolsRegistryLoader.CatalogFileName));
+
     public const string RegistryJson =
         """
         {
@@ -52,11 +56,25 @@ internal static class McpToolsRegistryTestFiles
         Path.Combine(
             AppContext.BaseDirectory, "Resources", McpToolsRegistryLoader.SchemaFileName));
 
+    public static string CatalogSchemaJson { get; } = File.ReadAllText(
+        Path.Combine(
+            AppContext.BaseDirectory, "Resources", McpToolsRegistryLoader.CatalogSchemaFileName));
+
     public static void WriteValid(string directory)
     {
+        WriteCatalog(directory, CatalogJson);
+        WriteCatalogSchema(directory, CatalogSchemaJson);
         WriteRegistry(directory, RegistryJson);
         WriteSchema(directory, SchemaJson);
     }
+
+    public static void WriteCatalog(string directory, string json)
+        => File.WriteAllText(
+            Path.Combine(directory, McpToolsRegistryLoader.CatalogFileName), json);
+
+    public static void WriteCatalogSchema(string directory, string json)
+        => File.WriteAllText(
+            Path.Combine(directory, McpToolsRegistryLoader.CatalogSchemaFileName), json);
 
     public static void WriteRegistry(string directory, string json)
         => File.WriteAllText(

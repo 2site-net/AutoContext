@@ -2151,6 +2151,7 @@ MCP-tool dispatch (Phase 7).
 | 1b | `refactor(protocol): flatten McpTools/config MCP DTOs` | DONE |
 | 2 | `feat(engine): author mcp-tools-registry.json and its schema` | DONE |
 | 3 | `feat(engine-core): add McpToolsRegistryLoader and schema validator` | DONE |
+| 3b | `feat(engine-core): validate mcp-tools-catalog at loader startup` | DONE |
 | 4 | `feat(build): generate workers.json from worker projects` | DONE |
 | 5 | ~~`feat(build): project mcp-tools.json from the registry`~~ | REMOVED — catalog is hand-authored |
 | 6 | `feat(engine-core): port WorkerManager with ensureRunning gate` | Not started |

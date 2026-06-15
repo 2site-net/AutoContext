@@ -26,13 +26,20 @@
     <ProjectReference Include="..\AutoContext.Engine.Tests.Support\AutoContext.Engine.Tests.Support.csproj" />
   </ItemGroup>
 
-  <!-- Link the real bundled MCP-tools registry schema into the test output so the
-       registry fixtures validate against the shipped contract instead of a verbatim
-       copy that could silently drift. McpToolsRegistryTestFiles reads it from
-       AppContext.BaseDirectory/Resources at run time. -->
+  <!-- Link the real bundled MCP-tools side-cars (registry schema plus the catalog
+       and its schema) into the test output so the fixtures validate against the
+       shipped contracts instead of verbatim copies that could silently drift.
+       McpToolsRegistryTestFiles reads them from AppContext.BaseDirectory/Resources
+       at run time. -->
   <ItemGroup>
     <Content Include="..\..\src\AutoContext.Engine\Resources\mcp-tools-registry.schema.json"
              Link="Resources\mcp-tools-registry.schema.json"
+             CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\src\AutoContext.Engine\Resources\mcp-tools-catalog.json"
+             Link="Resources\mcp-tools-catalog.json"
+             CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\src\AutoContext.Engine\Resources\mcp-tools-catalog.schema.json"
+             Link="Resources\mcp-tools-catalog.schema.json"
              CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
