@@ -2210,8 +2210,8 @@ manifests` (`workers.json`, `mcp-tools-registry.json`),
 > engine build** — the `ProjectReference`, the
 > `McpToolsManifestGenerator.targets` import, the gitignored
 > `Resources/mcp-tools.json` output, and the `.gitignore` entry are all
-> removed. The generator project itself remains on disk pending
-> retirement (tracked separately). Disable granularity
+> removed, and the generator project and its tests have been **deleted
+> from the tree**. Disable granularity
 > correspondingly collapses from per-task to per-tool; a few
 > `disabledTasks` config-model mentions elsewhere still reflect the
 > old model and are reconciled in a separate config pass.
@@ -2248,7 +2248,8 @@ manifests` (`workers.json`, `mcp-tools-registry.json`),
   `AutoContext.McpTools.Manifest.Generator` `ProjectReference`, the
   `McpToolsManifestGenerator.targets` import, the gitignored
   `Resources/mcp-tools.json` output, and its `.gitignore` entry are all
-  gone; the generator project remains on disk pending retirement.
+  gone, and the generator project and its test project have been
+  deleted from the tree.
   Historically, build-time projection of
   `mcp-tools.json` (wire shape only; the per-request `disabled` filter
   is layered by the engine at runtime) emitted into

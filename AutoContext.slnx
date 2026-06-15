@@ -7,7 +7,6 @@
     <Project Path="src/AutoContext.Engine.Core/AutoContext.Engine.Core.csproj" />
     <Project Path="src/AutoContext.Instructions.Manifest.Generator/AutoContext.Instructions.Manifest.Generator.csproj" />
     <Project Path="src/AutoContext.Workers.Manifest.Generator/AutoContext.Workers.Manifest.Generator.csproj" />
-    <Project Path="src/AutoContext.McpTools.Manifest.Generator/AutoContext.McpTools.Manifest.Generator.csproj" />
     <Project Path="src/AutoContext.Instructions.Parser/AutoContext.Instructions.Parser.csproj" />
     <Project Path="src/AutoContext.Engine/AutoContext.Engine.csproj" />
     <Project Path="src/AutoContext.Worker.Workspace/AutoContext.Worker.Workspace.csproj" />
@@ -20,7 +19,6 @@
     <Project Path="tests/AutoContext.Framework.Logging.Tests/AutoContext.Framework.Logging.Tests.csproj" />
     <Project Path="tests/AutoContext.Instructions.Manifest.Generator.Tests/AutoContext.Instructions.Manifest.Generator.Tests.csproj" />
     <Project Path="tests/AutoContext.Workers.Manifest.Generator.Tests/AutoContext.Workers.Manifest.Generator.Tests.csproj" />
-    <Project Path="tests/AutoContext.McpTools.Manifest.Generator.Tests/AutoContext.McpTools.Manifest.Generator.Tests.csproj" />
     <Project Path="tests/AutoContext.Instructions.Parser.Tests/AutoContext.Instructions.Parser.Tests.csproj" />
     <Project Path="tests/AutoContext.Engine.Protocol.Tests/AutoContext.Engine.Protocol.Tests.csproj" />
     <Project Path="tests/AutoContext.Framework.Workers.Tests/AutoContext.Framework.Workers.Tests.csproj" />

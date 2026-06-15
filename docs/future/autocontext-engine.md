@@ -3453,7 +3453,7 @@ mutating the manifests.
   Schema-validated against the sibling `mcp-tools-catalog.schema.json`.
   Not generated — there is **no** build-time `mcp-tools.json`
   projection step (the former `mcp-tools-manifest-gen` projector has
-  been unwired from the engine build).
+  been removed from the tree).
 - **`mcp-tools-registry.json`** — **hand-authored** execution
   registry: it describes **what** each tool is for the model and how
   it dispatches (renamed from today's `mcp-workers-registry.json`).
