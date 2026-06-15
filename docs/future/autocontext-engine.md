@@ -3348,9 +3348,10 @@ Decision:
       instructions-manifest.json                   # build-generated per-file facts (section maps,
                                                    #   parsed applyTo extension sets,
                                                    #   version, contentHash, hasChangelog)
-      mcp-tools.json                               # wire-shape catalog for McpTools.List
-      mcp-tools-registry.json                      # source-of-truth tool→worker dispatch table
-      mcp-tools-registry-schema.json               # JSON-schema for the registry
+      mcp-tools-registry.json                      # source-of-truth tool→worker dispatch table (flat tools[])
+      mcp-tools-registry.schema.json               # JSON-schema for the registry
+      mcp-tools-catalog.json                       # hand-authored UI catalog for McpTools.List
+      mcp-tools-catalog.schema.json                # JSON-schema for the catalog
       workers.json                                 # build-generated worker manifest
     Workers/                                       # per-worker subdir, key = workers.json `id`
       workspace/AutoContext.Worker.Workspace[.exe] # self-contained per-RID dotnet worker
@@ -3428,17 +3429,27 @@ mutating the manifests.
   the `Instructions.Categories` taxonomy from it per request. The on-disk
   manifest, the engine-internal snapshot, and the wire envelopes are
   three decoupled representations (P3) — none constrains another's shape.
-- **`mcp-tools.json`** — build-generated wire-shape catalog for
-  `McpTools.List`, projected from `mcp-tools-registry.json` at
-  build time. The engine reads this file directly when answering
-  `McpTools.List`; per-request projection only applies the
-  per-tool `disabled` / `disabledTasks` filter.
+- **`mcp-tools-catalog.json`** — **hand-authored** UI catalog for
+  `McpTools.List`, tracked in source under
+  `src/AutoContext.Engine/Resources/`. Same curatorial concept as
+  `instructions-catalog.json` (a hand-authored layer over a separate
+  facts file) but its own shape: a hierarchical category tree
+  (`name`, optional `parent`, `description`, optional `workerId` and
+  `activationFlags`) plus per-tool entries (`name`, `description`,
+  `category`). `workerId` is inherited from the nearest ancestor
+  category that defines it; `activationFlags` accumulate down the
+  ancestry and are ANDed. It joins the registry by tool `name` +
+  `workerId`; the engine merges registry + catalog at runtime, and
+  per-request projection only applies the per-tool `disabled` filter.
+  Schema-validated against the sibling `mcp-tools-catalog.schema.json`.
+  Not generated — there is **no** build-time `mcp-tools.json`
+  projection step (the former `mcp-tools-manifest-gen` projector has
+  been unwired from the engine build).
 - **`mcp-tools-registry.json`** — source-of-truth tool→worker
   dispatch table (renamed from today's `mcp-workers-registry.json`).
   Drives the engine's worker dispatch for `McpTools.Invoke`
-  (Issue #8) and the build-time projection that writes
-  `mcp-tools.json`. Schema-validated at build time against the
-  sibling `mcp-tools-registry-schema.json`; the schema file ships
+  (Issue #8). Schema-validated at build time against the
+  sibling `mcp-tools-registry.schema.json`; the schema file ships
   alongside the registry so external tooling (CI lint, IDE
   intellisense in `mcp-tools-registry.json` itself) can validate
   without reaching into the source tree.
@@ -3476,19 +3487,23 @@ Source-side locations for the editable inputs the build consumes:
 
 - `src/AutoContext.Engine/Instructions/` — editable curated corpus.
 - `src/AutoContext.Engine/Resources/mcp-tools-registry.json` (+
-  `mcp-tools-registry-schema.json`) — hand-edited registry and its
+  `mcp-tools-registry.schema.json`) — hand-edited registry and its
   schema. The build copies them as-is into the per-RID staging
   `Resources/` dir.
+- `src/AutoContext.Engine/Resources/mcp-tools-catalog.json` (+
+  `mcp-tools-catalog.schema.json`) — **hand-authored and tracked in
+  source**; the curatorial UI catalog (category tree + per-tool
+  entries) and its schema. The build copies them as-is into the
+  per-RID staging `Resources/` dir; the catalog is never generated.
 - `src/AutoContext.Engine/Resources/instructions-catalog.json` is
   **hand-authored and tracked in source** — it is the curatorial
   layer (categories, `label`, membership, `activationFlags`). The
   build copies it as-is into the per-RID staging `Resources/` dir;
   it is never generated.
-- `Resources/instructions-manifest.json`,
-  `Resources/mcp-tools.json`, and `Resources/workers.json` have **no
-  source-side copy** — they are pure build outputs, regenerated
-  every package run. `instructions-manifest.json` is written by
-  `instructions-manifest-gen` over the corpus + catalog.
+- `Resources/instructions-manifest.json` and `Resources/workers.json`
+  have **no source-side copy** — they are pure build outputs,
+  regenerated every package run. `instructions-manifest.json` is
+  written by `instructions-manifest-gen` over the corpus + catalog.
 
 ## Pitfalls
 

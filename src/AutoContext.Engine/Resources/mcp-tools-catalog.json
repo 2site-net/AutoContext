@@ -1,0 +1,94 @@
+{
+    "schemaVersion": "1",
+    "categories": [
+        {
+            "name": ".NET",
+            "description": "Code-quality and dependency-hygiene tools for .NET projects.",
+            "activationFlags": [
+                "hasDotNet"
+            ],
+            "workerId": "dotnet"
+        },
+        {
+            "name": "C#",
+            "parent": ".NET",
+            "description": "C#-specific source and test analysis.",
+            "activationFlags": [
+                "hasCSharp"
+            ]
+        },
+        {
+            "name": "NuGet",
+            "parent": ".NET",
+            "description": "NuGet package-reference analysis."
+        },
+        {
+            "name": "Workspace",
+            "description": "Repository-level tools independent of any specific language.",
+            "workerId": "workspace"
+        },
+        {
+            "name": "Git",
+            "parent": "Workspace",
+            "description": "Git commit-message analysis.",
+            "activationFlags": [
+                "hasGit"
+            ]
+        },
+        {
+            "name": "EditorConfig",
+            "parent": "Workspace",
+            "description": "EditorConfig resolution."
+        },
+        {
+            "name": "Web",
+            "description": "Code-quality tools for web stacks.",
+            "workerId": "web"
+        },
+        {
+            "name": "TypeScript",
+            "parent": "Web",
+            "description": "TypeScript-specific source analysis.",
+            "activationFlags": [
+                "hasTypeScript"
+            ]
+        }
+    ],
+    "tools": [
+        {
+            "name": "analyze_csharp_code_style",
+            "description": "Analyzes a C# source file for coding style, member ordering, naming conventions, async/await patterns, and nullable safety.",
+            "category": "C#"
+        },
+        {
+            "name": "analyze_csharp_project_structure",
+            "description": "Checks a C# source file for project-structure rules: file-scoped namespaces, one type per file, file name matching the declared type, and no suppressed warnings.",
+            "category": "C#"
+        },
+        {
+            "name": "analyze_csharp_testing_style",
+            "description": "Checks a C# test file for test conventions: class and method naming, no XML doc comments, multi-assertion grouping, no ConfigureAwait, and namespace conformance.",
+            "category": "C#"
+        },
+        {
+            "name": "analyze_nuget_references",
+            "description": "Analyzes a project file's NuGet package references for hygiene issues such as duplicates, floating or wildcard versions, and missing version attributes.",
+            "category": "NuGet"
+        },
+        {
+            "name": "analyze_git_commit_message",
+            "description": "Validates a Git commit message against project conventions for both format and content.",
+            "category": "Git"
+        },
+        {
+            "name": "read_editorconfig_rules",
+            "description": "Resolves the effective .editorconfig properties that apply to a specific file.",
+            "category": "EditorConfig"
+        },
+        {
+            "name": "analyze_typescript_code_style",
+            "description": "Analyzes a TypeScript source file for coding-style anti-patterns.",
+            "category": "TypeScript"
+        }
+    ]
+}

@@ -1,0 +1,116 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://autocontext.dev/schemas/mcp-tools-catalog.schema.json",
+    "title": "AutoContext MCP tools catalog",
+    "description": "Hand-authored curatorial taxonomy for the MCP tool surface: a hierarchical category tree and the per-tool catalog entries. Conceptually similar to instructions-catalog.json, but its own shape. Curated descriptions here are human-facing presentation copy and are deliberately independent of the MCP tool descriptions in mcp-tools-registry.json.",
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+        "schemaVersion",
+        "categories",
+        "tools"
+    ],
+    "properties": {
+        "$schema": {
+            "type": "string",
+            "description": "Path or URL to this schema file. Enables editor IntelliSense."
+        },
+        "schemaVersion": {
+            "type": "string",
+            "const": "1",
+            "description": "Catalog format version. Bumped on breaking changes."
+        },
+        "categories": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+                "$ref": "#/$defs/category"
+            },
+            "description": "Presentation categories, in display order, forming a parent/child tree. Names must be unique. A category's 'parent', when present, must reference another category's name, and parent chains must not contain cycles (not expressible in JSON Schema; enforced by the loader)."
+        },
+        "tools": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+                "$ref": "#/$defs/tool"
+            },
+            "description": "Curated per-tool entries. Every entry's 'category' must resolve to a declared category name (cross-reference enforced by the loader)."
+        }
+    },
+    "$defs": {
+        "categoryName": {
+            "type": "string",
+            "minLength": 1,
+            "description": "A category name referenced by value (by a child category's 'parent' or a tool's 'category')."
+        },
+        "workerId": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]*$",
+            "description": "Worker identifier (kebab-case). Join key into workers.json. Inherited by descendant categories from the nearest ancestor that defines it; a child may override by declaring its own value."
+        },
+        "activationFlags": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+                "type": "string",
+                "pattern": "^[a-z][a-zA-Z0-9]*$"
+            },
+            "description": "Workspace-state flags (camelCase) that gate when the engine surfaces this category and its tools. Cumulative across the category ancestry and ANDed together (e.g. C# resolves to hasDotNet && hasCSharp)."
+        },
+        "category": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+                "name",
+                "description"
+            ],
+            "properties": {
+                "name": {
+                    "$ref": "#/$defs/categoryName",
+                    "description": "Category name tools and child categories reference by value. Unique across the catalog."
+                },
+                "parent": {
+                    "$ref": "#/$defs/categoryName",
+                    "description": "Name of the parent category. Omit for a root category. Must reference another declared category and must not introduce a cycle."
+                },
+                "description": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Human-facing category description. Independent of any MCP tool description in mcp-tools-registry.json."
+                },
+                "workerId": {
+                    "$ref": "#/$defs/workerId"
+                },
+                "activationFlags": {
+                    "$ref": "#/$defs/activationFlags"
+                }
+            }
+        },
+        "tool": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+                "name",
+                "description",
+                "category"
+            ],
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "pattern": "^[a-z][a-z0-9_]*$",
+                    "description": "MCP tool name (snake_case). Join key into mcp-tools-registry.json."
+                },
+                "description": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Human-facing tool description. Independent of the tool's MCP description in mcp-tools-registry.json."
+                },
+                "category": {
+                    "$ref": "#/$defs/categoryName",
+                    "description": "Name of the category this tool belongs to. Must resolve to a declared category."
+                }
+            }
+        }
+    }
+}

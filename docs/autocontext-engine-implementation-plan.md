@@ -579,6 +579,7 @@ src/
       mcp-tools-registry.json                  #   hand-authored execution registry (flat tools[])
       mcp-tools-registry.schema.json           #   JSON-schema for the registry
       mcp-tools-catalog.json                   #   hand-authored UI catalog (same idea as instructions-catalog.json, its own shape)
+      mcp-tools-catalog.schema.json            #   JSON-schema for the catalog
       workers.json                             #   generated from AutoContext.Worker.* projects
 
   tests/
@@ -631,6 +632,7 @@ The per-RID segment that exists at build-staging time
       mcp-tools-registry.json
       mcp-tools-registry.schema.json
       mcp-tools-catalog.json
+      mcp-tools-catalog.schema.json
       workers.json
     Workers/
       workspace/<entrypoint>                   # one self-contained subdir per worker
@@ -2149,7 +2151,7 @@ MCP-tool dispatch (Phase 7).
 | 2 | `feat(engine): author mcp-tools-registry.json and its schema` | DONE |
 | 3 | `feat(engine-core): add McpToolsRegistryLoader and schema validator` | Not started |
 | 4 | `feat(build): generate workers.json from worker projects` | DONE |
-| 5 | `feat(build): project mcp-tools.json from the registry` | DONE |
+| 5 | ~~`feat(build): project mcp-tools.json from the registry`~~ | REMOVED — catalog is hand-authored |
 | 6 | `feat(engine-core): port WorkerManager with ensureRunning gate` | Not started |
 | 7 | `feat(engine): serve McpTools.List over rpc` | Not started |
 | 8 | `feat(engine): serve McpTools.Invoke over rpc` | Not started |
@@ -2163,7 +2165,7 @@ Workers are spawned by the engine via the same lazy
 `ensureRunning(workerId)` pattern in use today. The engine also
 becomes the owner of the MCP-tools registry, authoring
 `mcp-tools-registry.json` (its schema, and the hand-authored
-`mcp-tools-catalog.json` UI catalog) **fresh** under its own
+`mcp-tools-catalog.json` UI catalog and its schema) **fresh** under its own
 `Resources/` rather than renaming today's `AutoContext.Mcp.Server`
 copy.
 
@@ -2193,8 +2195,12 @@ manifests` (`workers.json`, `mcp-tools-registry.json`),
 > `McpTools.List`, analogous to how it merges the instructions catalog +
 > manifest. Consequently the row-5
 > `AutoContext.McpTools.Manifest.Generator` (`mcp-tools-manifest-gen`)
-> projector has no projection job; its disposition is being
-> reconsidered and is tracked separately. Disable granularity
+> projector has no projection job and has now been **unwired from the
+> engine build** — the `ProjectReference`, the
+> `McpToolsManifestGenerator.targets` import, the gitignored
+> `Resources/mcp-tools.json` output, and the `.gitignore` entry are all
+> removed. The generator project itself remains on disk pending
+> retirement (tracked separately). Disable granularity
 > correspondingly collapses from per-task to per-tool; a few
 > `disabledTasks` config-model mentions elsewhere still reflect the
 > old model and are reconciled in a separate config pass.
@@ -2223,10 +2229,16 @@ manifests` (`workers.json`, `mcp-tools-registry.json`),
   `AppContext.BaseDirectory`; `McpToolsRegistrySchemaValidator`
   validates it against the embedded schema at both build time and
   load time.
-- **DONE, now superseded** (the build-time projection model is
-  replaced by a hand-authored `mcp-tools-catalog.json`; see the *New
+- **REMOVED** (the build-time projection model was replaced by a
+  hand-authored `mcp-tools-catalog.json` + its schema; see the *New
   direction* note above — the paragraph below is retained as
-  historical record of what row 5 shipped). Build-time projection of
+  historical record of what row 5 originally shipped, since deleted).
+  The engine wiring has been removed: the
+  `AutoContext.McpTools.Manifest.Generator` `ProjectReference`, the
+  `McpToolsManifestGenerator.targets` import, the gitignored
+  `Resources/mcp-tools.json` output, and its `.gitignore` entry are all
+  gone; the generator project remains on disk pending retirement.
+  Historically, build-time projection of
   `mcp-tools.json` (wire shape only; the per-request `disabled` filter
   is layered by the engine at runtime) emitted into
   `src/AutoContext.Engine/Resources/` from the registry above. A dedicated `AutoContext.McpTools.Manifest.Generator`
