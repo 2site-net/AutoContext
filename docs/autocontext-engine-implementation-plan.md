@@ -576,9 +576,9 @@ src/
     Resources/                                 # read-only side-cars — copied next to the binary
       instructions-catalog.json                #   hand-authored curatorial layer (tracked in source)
       instructions-manifest.json               #   build-generated per-file facts (P3)
-      mcp-tools-registry.json                  #   hand-authored execution registry (flat tools[])
+      mcp-tools-registry.json                  #   hand-authored: what each tool is for the model + dispatch (flat tools[])
       mcp-tools-registry.schema.json           #   JSON-schema for the registry
-      mcp-tools-catalog.json                   #   hand-authored UI catalog (same idea as instructions-catalog.json, its own shape)
+      mcp-tools-catalog.json                   #   hand-authored: when each tool activates + where it sits in the UI
       mcp-tools-catalog.schema.json            #   JSON-schema for the catalog
       workers.json                             #   generated from AutoContext.Worker.* projects
 
@@ -2179,17 +2179,28 @@ manifests` (`workers.json`, `mcp-tools-registry.json`),
 > hand-authored**, following the same curatorial concept as the
 > `instructions-catalog.json` /
 > `instructions-manifest.json` split — there is **no build-time
-> projection step**. `mcp-tools-registry.json` is a **flat `tools[]`**
+> projection step**. The two files have a clean division of labour:
+> `mcp-tools-registry.json` describes **what** each tool is for the
+> model and how it dispatches, while `mcp-tools-catalog.json` answers
+> **when** each tool activates and **where** it sits in the UI —
+> neither restates the other's concern.
+> `mcp-tools-registry.json` is a **flat `tools[]`**
 > list (no nested worker → tool → task tree): each tool carries
 > `name`, `workerId` (FK to `workers.json`), `description`,
-> `parameters`, and an optional `editorconfig` array. "Tasks" no
+> `parameters`, and an optional `editorconfig` array — the
+> `description` and `parameters` being the model-facing contract
+> surfaced over MCP `tools/list`. "Tasks" no
 > longer exist on the wire or in the registry — each former task is
 > its own top-level tool; tasks survive only as worker-internal
 > checker classes, and a tool that bundles several checks (e.g.
 > `analyze_csharp_code_style`) runs them behind one tool name. The
-> sibling UI catalog is hand-authored as `mcp-tools-catalog.json`
+> sibling catalog is hand-authored as `mcp-tools-catalog.json`
 > (renamed from the planned `mcp-tools.json`; same curatorial concept
-> as `instructions-catalog.json`, its own shape) and joins the
+> as `instructions-catalog.json`, its own shape): a hierarchical
+> category tree whose `activationFlags` (accumulated down the tree and
+> ANDed) gate **when** a tool is offered and whose category placement
+> decides **where** it renders, carrying no model-facing contract of
+> its own. It joins the
 > registry by tool `name` +
 > `workerId`. The engine merges registry + catalog at runtime for
 > `McpTools.List`, analogous to how it merges the instructions catalog +

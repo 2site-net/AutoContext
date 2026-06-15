@@ -367,8 +367,8 @@ See [Composition contracts](#composition-contracts).
 |---|---|
 | `instructions-catalog.json` | **hand-authored** curatorial layer: category taxonomy (`name` + `description`) and per-file `label`, category membership, and `activationFlags`. Tracked source — not generated. |
 | `instructions-manifest.json` | **build-generated** per-file facts: section maps, parsed `applyTo` extension sets, `version`, `description`, `contentHash`, `hasChangelog`. Carries no body text — full-text search indexes the projected bodies at runtime. |
-| `mcp-tools-catalog.json` | **hand-authored** UI catalog for `McpTools.List`: category taxonomy + per-tool `label` / category membership. Same curatorial concept as `instructions-catalog.json` (hand-authored layer over a separate facts file) but its own shape; joins the registry by tool `name` + `workerId`. Tracked source — not generated. |
-| `mcp-tools-registry.json` | **hand-authored** execution registry: a flat `tools[]` list, each tool `{ name, workerId (FK to workers.json), description, parameters, editorconfig? }`. Source-of-truth tool→worker dispatch table — no nested worker/task tree. |
+| `mcp-tools-catalog.json` | **hand-authored** activation + UI catalog. Answers two questions the registry deliberately does not: **when** each tool activates (category `activationFlags`, accumulated down the tree and ANDed) and **where** it appears in the UI (its category in the presentation tree). Carries no model-facing tool contract; joins the registry by tool `name` + `workerId`. Same curatorial concept as `instructions-catalog.json` (hand-authored layer over a separate facts file) but its own shape. Tracked source — not generated. |
+| `mcp-tools-registry.json` | **hand-authored** execution registry. Describes **what** each tool is for the model and how it dispatches: a flat `tools[]` list, each tool `{ name, workerId (FK to workers.json), description, parameters, editorconfig? }`. The `description` and `parameters` are the model-facing contract surfaced over MCP `tools/list`; `workerId` is the source-of-truth dispatch target. No activation or UI concerns, and no nested worker/task tree. |
 | `mcp-tools-registry.schema.json` | JSON-schema for the registry (hand-edited) |
 | `workers.json` | build-generated worker manifest (id + type + entrypoint per worker) |
 
@@ -3429,27 +3429,40 @@ mutating the manifests.
   the `Instructions.Categories` taxonomy from it per request. The on-disk
   manifest, the engine-internal snapshot, and the wire envelopes are
   three decoupled representations (P3) — none constrains another's shape.
-- **`mcp-tools-catalog.json`** — **hand-authored** UI catalog for
-  `McpTools.List`, tracked in source under
-  `src/AutoContext.Engine/Resources/`. Same curatorial concept as
+- **`mcp-tools-catalog.json`** — **hand-authored** activation + UI
+  catalog for `McpTools.List`, tracked in source under
+  `src/AutoContext.Engine/Resources/`. It is the deliberate complement
+  to the registry: where the registry says **what** each tool is and
+  how it dispatches, the catalog says **when** each tool activates and
+  **where** it lives in the UI. Same curatorial concept as
   `instructions-catalog.json` (a hand-authored layer over a separate
   facts file) but its own shape: a hierarchical category tree
   (`name`, optional `parent`, `description`, optional `workerId` and
   `activationFlags`) plus per-tool entries (`name`, `description`,
-  `category`). `workerId` is inherited from the nearest ancestor
-  category that defines it; `activationFlags` accumulate down the
-  ancestry and are ANDed. It joins the registry by tool `name` +
-  `workerId`; the engine merges registry + catalog at runtime, and
-  per-request projection only applies the per-tool `disabled` filter.
+  `category`). A tool's **UI placement** is its `category`; its
+  **activation** is the `activationFlags` accumulated from that
+  category up its ancestry and ANDed (so C# resolves to
+  `hasDotNet && hasCSharp`). `workerId` is inherited from the nearest
+  ancestor category that defines it, so the catalog's tree mirrors the
+  registry's flat `workerId` join without restating it per tool. The
+  catalog carries **no** model-facing tool contract — descriptions
+  here are human-facing presentation copy, independent of the
+  registry's model-facing `description`. The engine merges registry +
+  catalog at runtime, and per-request projection applies the per-tool
+  `disabled` filter on top of the catalog's activation gating.
   Schema-validated against the sibling `mcp-tools-catalog.schema.json`.
   Not generated — there is **no** build-time `mcp-tools.json`
   projection step (the former `mcp-tools-manifest-gen` projector has
   been unwired from the engine build).
-- **`mcp-tools-registry.json`** — source-of-truth tool→worker
-  dispatch table (renamed from today's `mcp-workers-registry.json`).
-  Drives the engine's worker dispatch for `McpTools.Invoke`
-  (Issue #8). Schema-validated at build time against the
-  sibling `mcp-tools-registry.schema.json`; the schema file ships
+- **`mcp-tools-registry.json`** — **hand-authored** execution
+  registry: it describes **what** each tool is for the model and how
+  it dispatches (renamed from today's `mcp-workers-registry.json`).
+  Each tool's `description` and `parameters` are the model-facing
+  contract surfaced over MCP `tools/list`; its `workerId` is the
+  source-of-truth dispatch target the engine uses for
+  `McpTools.Invoke` (Issue #8). It holds no activation or UI concerns
+  — those live in the catalog. Schema-validated at build time against
+  the sibling `mcp-tools-registry.schema.json`; the schema file ships
   alongside the registry so external tooling (CI lint, IDE
   intellisense in `mcp-tools-registry.json` itself) can validate
   without reaching into the source tree.
