@@ -4,6 +4,7 @@ using System.Diagnostics.CodeAnalysis;
 
 using AutoContext.Engine.Core;
 using AutoContext.Engine.Core.Features.Instructions;
+using AutoContext.Engine.Core.Features.McpTools;
 using AutoContext.Engine.Core.Infrastructure.Events;
 using AutoContext.Engine.Core.Lifecycle;
 using AutoContext.Engine.Core.Logging;
@@ -11,6 +12,7 @@ using AutoContext.Engine.Core.Machine;
 using AutoContext.Engine.Core.Registry;
 using AutoContext.Engine.Core.Tests.Support;
 using AutoContext.Engine.Core.Tests.Support.Features.Instructions;
+using AutoContext.Engine.Core.Tests.Support.Features.McpTools;
 using AutoContext.Engine.Core.Tests.Support.Machine;
 using AutoContext.Engine.Core.Tests.Support.Workspace.Config;
 using AutoContext.Engine.Core.Tests.Support.Workspace.Context;
@@ -79,7 +81,8 @@ public sealed class LifecycleServiceFixture : IAsyncDisposable
             CreateInstructionsBodyProjector(),
             CreateInstructionsFileReader(),
             CreateInstructionsSearchService(),
-            CreateInstructionsBroadcaster());
+            CreateInstructionsBroadcaster(),
+            CreateMcpToolsRegistryAccessor());
 
         // Track in reverse dependency order so Dispose tears the
         // service down first, then the watchdog, then the lifetime.
@@ -119,6 +122,9 @@ public sealed class LifecycleServiceFixture : IAsyncDisposable
 
     internal static IInstructionsManifestAccessor CreateInstructionsManifestAccessor() =>
         new FakeInstructionsManifestAccessor();
+
+    internal static IMcpToolsRegistryAccessor CreateMcpToolsRegistryAccessor() =>
+        new FakeMcpToolsRegistryAccessor();
 
     internal static IInstructionsOverridesAccessor CreateInstructionsOverridesAccessor() =>
         new FakeInstructionsOverridesAccessor();

@@ -3,6 +3,7 @@ namespace AutoContext.Engine.Core.Lifecycle;
 using System.Text.Json;
 
 using AutoContext.Engine.Core.Features.Instructions;
+using AutoContext.Engine.Core.Features.McpTools;
 using AutoContext.Engine.Core.Infrastructure;
 using AutoContext.Engine.Core.Infrastructure.Events;
 using AutoContext.Engine.Core.Infrastructure.Storage;
@@ -111,6 +112,7 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
     private readonly InstructionsFileReader _fileReader;
     private readonly InstructionsFullTextSearchService _searchService;
     private readonly SnapshotBroadcaster<IReadOnlyList<JsonInstructionsListRow>> _instructionsBroadcaster;
+    private readonly IMcpToolsRegistryAccessor _mcpToolsRegistryAccessor;
 
     /// <summary>
     /// Creates a new <see cref="LifecycleService"/>.
@@ -186,6 +188,9 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
     /// handler.</param>
     /// <param name="instructionsBroadcaster">Fan-out broadcaster backing
     /// the <c>Instructions.Subscribe</c> snapshot-on-subscribe stream.</param>
+    /// <param name="mcpToolsRegistryAccessor">Read-only view over the immutable
+    /// MCP-tools registry snapshot; threaded into the RPC dispatch policy
+    /// so the <c>McpTools.*</c> handlers can answer the tool listing.</param>
     /// <exception cref="ArgumentNullException">
     /// Any constructor argument is <see langword="null"/>.
     /// </exception>
@@ -209,7 +214,8 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
         InstructionsBodyProjector bodyProjector,
         InstructionsFileReader fileReader,
         InstructionsFullTextSearchService searchService,
-        SnapshotBroadcaster<IReadOnlyList<JsonInstructionsListRow>> instructionsBroadcaster)
+        SnapshotBroadcaster<IReadOnlyList<JsonInstructionsListRow>> instructionsBroadcaster,
+        IMcpToolsRegistryAccessor mcpToolsRegistryAccessor)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(loggerFactory);
@@ -231,6 +237,7 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
         ArgumentNullException.ThrowIfNull(fileReader);
         ArgumentNullException.ThrowIfNull(searchService);
         ArgumentNullException.ThrowIfNull(instructionsBroadcaster);
+        ArgumentNullException.ThrowIfNull(mcpToolsRegistryAccessor);
 
         _options = options.Value;
         _loggerFactory = loggerFactory;
@@ -253,6 +260,7 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
         _fileReader = fileReader;
         _searchService = searchService;
         _instructionsBroadcaster = instructionsBroadcaster;
+        _mcpToolsRegistryAccessor = mcpToolsRegistryAccessor;
     }
 
     /// <inheritdoc/>
@@ -537,7 +545,7 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
                 _ = await RpcConnectionProcessor
                     .RunAsync(
                         stream,
-                        new DispatchPolicy(_applicationLifetime, _registryReader, _logFileReader, _logsBroadcaster, _configAccessor, _configUpdater, _configBroadcaster, _workspaceAccessor, _manifestAccessor, _overridesAccessor, _bodyProjector, _fileReader, _searchService, _instructionsBroadcaster, _logger),
+                        new DispatchPolicy(_applicationLifetime, _registryReader, _logFileReader, _logsBroadcaster, _configAccessor, _configUpdater, _configBroadcaster, _workspaceAccessor, _manifestAccessor, _overridesAccessor, _bodyProjector, _fileReader, _searchService, _instructionsBroadcaster, _mcpToolsRegistryAccessor, _logger),
                         _logger,
                         cancellationToken)
                     .ConfigureAwait(false);

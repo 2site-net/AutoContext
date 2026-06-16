@@ -3,6 +3,7 @@ namespace AutoContext.Engine.Core.Tests.Support.Rpc.Policies;
 using System.Diagnostics.CodeAnalysis;
 
 using AutoContext.Engine.Core.Features.Instructions;
+using AutoContext.Engine.Core.Features.McpTools;
 using AutoContext.Engine.Core.Infrastructure.Events;
 using AutoContext.Engine.Core.Logging;
 using AutoContext.Engine.Core.Registry;
@@ -47,6 +48,7 @@ internal static class DispatchPolicyTestFactory
         InstructionsFileReader? fileReader = null,
         InstructionsFullTextSearchService? searchService = null,
         SnapshotBroadcaster<IReadOnlyList<JsonInstructionsListRow>>? instructionsBroadcaster = null,
+        IMcpToolsRegistryAccessor? mcpToolsRegistryAccessor = null,
         ILogger? logger = null)
     {
         var config = configAccessor ?? LifecycleServiceFixture.CreateConfigAccessor();
@@ -76,6 +78,7 @@ internal static class DispatchPolicyTestFactory
             reader,
             search,
             instructionsBroadcaster ?? LifecycleServiceFixture.CreateInstructionsBroadcaster(),
+            mcpToolsRegistryAccessor ?? LifecycleServiceFixture.CreateMcpToolsRegistryAccessor(),
             logger ?? NullLogger.Instance);
     }
 }

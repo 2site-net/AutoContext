@@ -6,6 +6,7 @@ using System.Text.Json;
 
 using AutoContext.Engine.Core.Features.Instructions;
 using AutoContext.Engine.Core.Features.Instructions.Snapshot;
+using AutoContext.Engine.Core.Features.McpTools;
 using AutoContext.Engine.Core.Infrastructure;
 using AutoContext.Engine.Core.Infrastructure.Events;
 using AutoContext.Engine.Core.Logging;
@@ -20,6 +21,7 @@ using AutoContext.Engine.Protocol.Messages;
 using AutoContext.Engine.Protocol.Messages.Config;
 using AutoContext.Engine.Protocol.Messages.Instructions;
 using AutoContext.Engine.Protocol.Messages.Logs;
+using AutoContext.Engine.Protocol.Messages.McpTools;
 using AutoContext.Engine.Protocol.Messages.Registry;
 using AutoContext.Engine.Protocol.Messages.Workspace;
 using AutoContext.Engine.Protocol.Serialization;
@@ -77,6 +79,7 @@ internal sealed partial class DispatchPolicy : IRpcConnectionPolicy
     private readonly InstructionsListProjector _listProjector;
     private readonly SnapshotBroadcaster<IReadOnlyList<JsonInstructionsListRow>> _instructionsBroadcaster;
     private readonly InstructionsFrameStream _instructionsFrameStream;
+    private readonly IMcpToolsRegistryAccessor _mcpToolsRegistryAccessor;
     private readonly ILogger _logger;
 
     public DispatchPolicy(
@@ -94,6 +97,7 @@ internal sealed partial class DispatchPolicy : IRpcConnectionPolicy
         InstructionsFileReader fileReader,
         InstructionsFullTextSearchService searchService,
         SnapshotBroadcaster<IReadOnlyList<JsonInstructionsListRow>> instructionsBroadcaster,
+        IMcpToolsRegistryAccessor mcpToolsRegistryAccessor,
         ILogger logger)
     {
         ArgumentNullException.ThrowIfNull(lifetime);
@@ -110,6 +114,7 @@ internal sealed partial class DispatchPolicy : IRpcConnectionPolicy
         ArgumentNullException.ThrowIfNull(fileReader);
         ArgumentNullException.ThrowIfNull(searchService);
         ArgumentNullException.ThrowIfNull(instructionsBroadcaster);
+        ArgumentNullException.ThrowIfNull(mcpToolsRegistryAccessor);
         ArgumentNullException.ThrowIfNull(logger);
 
         _lifetime = lifetime;
@@ -130,6 +135,7 @@ internal sealed partial class DispatchPolicy : IRpcConnectionPolicy
             manifestAccessor, overridesAccessor, configAccessor, workspaceAccessor);
         _instructionsBroadcaster = instructionsBroadcaster;
         _instructionsFrameStream = new();
+        _mcpToolsRegistryAccessor = mcpToolsRegistryAccessor;
         _logger = logger;
     }
 
@@ -222,6 +228,9 @@ internal sealed partial class DispatchPolicy : IRpcConnectionPolicy
 
             case InstructionsMethods.Subscribe:
                 return HandleInstructionsSubscribe();
+
+            case McpToolsMethods.List:
+                return HandleMcpToolsList();
 
             case ProtocolMethods.Shutdown:
                 return HandleShutdown();

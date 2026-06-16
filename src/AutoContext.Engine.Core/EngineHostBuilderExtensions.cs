@@ -1,6 +1,7 @@
 namespace AutoContext.Engine.Core;
 
 using AutoContext.Engine.Core.Features.Instructions;
+using AutoContext.Engine.Core.Features.McpTools;
 using AutoContext.Engine.Core.Infrastructure;
 using AutoContext.Engine.Core.Infrastructure.Diagnostics;
 using AutoContext.Engine.Core.Infrastructure.Events;
@@ -308,6 +309,25 @@ public static class EngineHostBuilderExtensions
         builder.Services.TryAddEnumerable(
             ServiceDescriptor.Singleton<IHostedService, InstructionsManifestService>(
                 sp => sp.GetRequiredService<InstructionsManifestService>()));
+
+        // Bundled MCP-tools registry. The service loads the build-time
+        // side-cars shipped beside the engine binary
+        // (mcp-tools-registry.json + mcp-tools-catalog.json, each with its
+        // schema) into an immutable snapshot at start and holds it for the
+        // McpTools.* RPC handlers, which read it through the
+        // IMcpToolsRegistryAccessor seam. Registered BEFORE LifecycleService
+        // so the snapshot is populated before the first rpc connection can
+        // issue a McpTools.* request. The registry is read-only with no
+        // watcher, so the service only loads on start and tears nothing
+        // down on stop.
+        builder.Services.TryAddSingleton(sp => new McpToolsRegistryService(
+            Path.Combine(AppContext.BaseDirectory, "Resources"),
+            sp.GetRequiredService<ILogger<McpToolsRegistryService>>()));
+        builder.Services.TryAddSingleton<IMcpToolsRegistryAccessor>(
+            sp => sp.GetRequiredService<McpToolsRegistryService>());
+        builder.Services.TryAddEnumerable(
+            ServiceDescriptor.Singleton<IHostedService, McpToolsRegistryService>(
+                sp => sp.GetRequiredService<McpToolsRegistryService>()));
 
         // Instructions override inventory. The service performs a one-shot
         // startup scan of the workspace's override directories and exposes
