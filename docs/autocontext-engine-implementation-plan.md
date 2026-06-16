@@ -2154,7 +2154,7 @@ MCP-tool dispatch (Phase 7).
 | 3b | `feat(engine-core): validate mcp-tools-catalog at loader startup` | DONE |
 | 4 | `feat(build): generate workers.json from worker projects` | DONE |
 | 5 | ~~`feat(build): project mcp-tools.json from the registry`~~ | REMOVED — catalog is hand-authored |
-| 6 | `feat(engine-core): port WorkerManager with ensureRunning gate` | Not started |
+| 6 | `feat(engine-core): port WorkerManager with ensureRunning gate` | DONE |
 | 7 | `feat(engine): serve McpTools.List over rpc` | Not started |
 | 8 | `feat(engine): serve McpTools.Invoke over rpc` | Not started |
 | 9 | `test(engine): integration test for mcp tool dispatch over rpc` | Not started |
