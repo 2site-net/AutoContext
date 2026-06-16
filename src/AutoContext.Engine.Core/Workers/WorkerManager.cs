@@ -17,60 +17,63 @@ using Microsoft.Extensions.Logging;
 /// <para>
 /// Concurrent callers for the same worker coalesce onto a single
 /// in-flight ready <see cref="Task"/>, so a burst of calls never starts
-/// more than one process per worker id. The ready barrier is the
-/// worker's stderr ready marker (see <see cref="WorkerProcessInfo.ReadyMarker"/>);
-/// the gate completes when that line arrives and faults if the process
-/// fails to start or exits before emitting it.
+/// more than one process per worker id. The ready barrier is a successful
+/// connection to the worker's listen endpoint: the gate completes once the
+/// readiness probe connects and faults if the process fails to start or
+/// exits before becoming connectable.
 /// </para>
 /// <para>
-/// Per-worker state is guarded by a single <see cref="Lock"/>. The
-/// launcher itself runs outside that lock so a process that raises
+/// Each worker has its own guarded <see cref="WorkerProcessHost"/>. The
+/// launcher runs outside that host's gate so a process that raises
 /// stderr/exit notifications during start-up cannot re-enter the gate.
-/// Stderr-line and exit notifications arrive on arbitrary threads and a
-/// per-spawn <c>generation</c> stamp lets a stale notification from a
-/// replaced process be ignored rather than resolving or clearing the
-/// slot's current spawn.
+/// Stderr-line and exit notifications arrive on arbitrary threads; each
+/// concrete spawn is represented by its own
+/// <see cref="WorkerProcessInstance"/>, and a notification acts only while
+/// that instance is still its host's current one, so a stale notification
+/// from a replaced process is ignored.
 /// </para>
 /// </remarks>
 internal sealed partial class WorkerManager : IDisposable
 {
     private bool _disposed;
     private readonly Lock _gate = new();
-    private readonly IProcessLauncher<WorkerProcessInfo> _launcher;
-    private readonly ILogger<WorkerManager> _logger;
-    private readonly Dictionary<string, WorkerSlot> _slots;
+    private readonly Dictionary<string, WorkerProcessHost> _hosts;
 
     /// <summary>
     /// Creates a new <see cref="WorkerManager"/> over the resolved
-    /// <paramref name="processInfos"/>.
+    /// <paramref name="workersProcessInfo"/>.
     /// </summary>
-    /// <param name="processInfos">The resolved launch specifications, one
-    /// per worker; ids must be unique.</param>
+    /// <param name="workersProcessInfo">The resolved launch specifications,
+    /// one per worker; ids must be unique.</param>
     /// <param name="launcher">The process-creation seam.</param>
+    /// <param name="probe">The readiness seam that confirms a spawned
+    /// worker is connectable.</param>
     /// <param name="logger">Diagnostic sink.</param>
-    /// <exception cref="ArgumentNullException">Any argument, or any
-    /// element of <paramref name="processInfos"/>, is
+    /// <exception cref="ArgumentNullException">Any argument, or any element
+    /// of <paramref name="workersProcessInfo"/>, is
     /// <see langword="null"/>.</exception>
     /// <exception cref="InvalidOperationException">Two entries share a
     /// worker id.</exception>
     public WorkerManager(
-        IEnumerable<WorkerProcessInfo> processInfos,
+        IEnumerable<WorkerProcessInfo> workersProcessInfo,
         IProcessLauncher<WorkerProcessInfo> launcher,
+        IWorkerConnectionProbe probe,
         ILogger<WorkerManager> logger)
     {
-        ArgumentNullException.ThrowIfNull(processInfos);
+        ArgumentNullException.ThrowIfNull(workersProcessInfo);
         ArgumentNullException.ThrowIfNull(launcher);
+        ArgumentNullException.ThrowIfNull(probe);
         ArgumentNullException.ThrowIfNull(logger);
 
-        _launcher = launcher;
-        _logger = logger;
-        _slots = new Dictionary<string, WorkerSlot>(StringComparer.Ordinal);
+        _hosts = new Dictionary<string, WorkerProcessHost>(StringComparer.Ordinal);
 
-        foreach (var processInfo in processInfos)
+        foreach (var processInfo in workersProcessInfo)
         {
             ArgumentNullException.ThrowIfNull(processInfo);
 
-            if (!_slots.TryAdd(processInfo.WorkerId, new WorkerSlot(processInfo)))
+            if (!_hosts.TryAdd(
+                    processInfo.WorkerId,
+                    new WorkerProcessHost(processInfo, launcher, probe, logger)))
             {
                 throw new InvalidOperationException(
                     $"Duplicate worker id '{processInfo.WorkerId}'.");
@@ -85,8 +88,7 @@ internal sealed partial class WorkerManager : IDisposable
     /// </summary>
     public void Dispose()
     {
-        List<TaskCompletionSource> waiters;
-        List<IProcess> processes;
+        WorkerProcessHost[] hosts;
 
         lock (_gate)
         {
@@ -94,49 +96,21 @@ internal sealed partial class WorkerManager : IDisposable
             {
                 return;
             }
+
             _disposed = true;
-
-            waiters = [];
-            processes = [];
-
-            foreach (var slot in _slots.Values)
-            {
-                // Invalidate in-flight notifications from any live process.
-                slot.Generation++;
-
-                if (slot.Resolver is { } resolver)
-                {
-                    waiters.Add(resolver);
-                    slot.Resolver = null;
-                }
-
-                if (slot.Process is { } process)
-                {
-                    processes.Add(process);
-                    slot.Process = null;
-                }
-
-                slot.ReadyTask = null;
-            }
+            hosts = [.. _hosts.Values];
         }
 
-        foreach (var waiter in waiters)
+        foreach (var host in hosts)
         {
-            waiter.TrySetException(new ObjectDisposedException(nameof(WorkerManager)));
-        }
-
-        foreach (var process in processes)
-        {
-            process.Kill();
-            process.Dispose();
+            host.Dispose();
         }
     }
 
     /// <summary>
     /// Ensures the worker identified by <paramref name="workerId"/> is
-    /// running and has emitted its ready marker. Concurrent callers
-    /// coalesce onto the same in-flight spawn; after a worker has exited
-    /// the next call respawns it.
+    /// running and ready. Concurrent callers coalesce onto the same
+    /// in-flight spawn; after a worker has exited the next call respawns it.
     /// </summary>
     /// <param name="workerId">The worker's short id.</param>
     /// <param name="cancellationToken">Cancels this caller's wait without
@@ -152,63 +126,48 @@ internal sealed partial class WorkerManager : IDisposable
     {
         ArgumentException.ThrowIfNullOrEmpty(workerId);
 
-        WorkerSlot slot;
-        SlotObserver? observer = null;
-        var generation = 0;
-        Task readyTask;
+        WorkerProcessHost host;
 
         lock (_gate)
         {
             ObjectDisposedException.ThrowIf(_disposed, this);
 
-            if (!_slots.TryGetValue(workerId, out var resolvedSlot))
+            if (!_hosts.TryGetValue(workerId, out var resolvedHost))
             {
                 throw new InvalidOperationException(
                     $"No worker registered with id '{workerId}'.");
             }
 
-            slot = resolvedSlot;
-
-            if (slot.ReadyTask is null)
-            {
-                var resolver = new TaskCompletionSource(
-                    TaskCreationOptions.RunContinuationsAsynchronously);
-                slot.Resolver = resolver;
-                slot.ReadyTask = resolver.Task;
-                generation = ++slot.Generation;
-                observer = new SlotObserver(this, slot, generation);
-            }
-
-            readyTask = slot.ReadyTask;
+            host = resolvedHost;
         }
 
-        if (observer is not null)
+        return host.EnsureRunningAsync(cancellationToken);
+    }
+
+    private static void CancelAndDispose(CancellationTokenSource? cts)
+    {
+        if (cts is null)
         {
-            // Start the process outside the lock: the launcher is a pluggable
-            // seam and a started process can raise stderr/exit notifications
-            // immediately, so holding the gate across the call would risk
-            // re-entrancy and stall unrelated workers. Only the caller that
-            // claimed an idle slot reaches here; coalescing callers fall
-            // through to the shared ready task.
-            LaunchWorker(slot, generation, observer);
+            return;
         }
 
-        return readyTask.WaitAsync(cancellationToken);
+        cts.Cancel();
+        cts.Dispose();
     }
 
     private static string FormatExitCode(int? exitCode)
         => exitCode?.ToString(CultureInfo.InvariantCulture) ?? "unknown";
 
     [LoggerMessage(EventId = 4, Level = LogLevel.Debug,
-        Message = "Worker '{WorkerId}' ready marker received.")]
-    private static partial void LogReadyMarkerReceived(ILogger logger, string workerId);
+        Message = "Worker '{WorkerId}' ready (pipe connected).")]
+    private static partial void LogReady(ILogger logger, string workerId);
 
     [LoggerMessage(EventId = 3, Level = LogLevel.Warning,
         Message = "Failed to spawn worker '{WorkerId}'.")]
     private static partial void LogSpawnFailed(ILogger logger, string workerId, Exception exception);
 
     [LoggerMessage(EventId = 2, Level = LogLevel.Debug,
-        Message = "Spawned worker '{WorkerId}' (pid {ProcessId}); waiting for ready marker.")]
+        Message = "Spawned worker '{WorkerId}' (pid {ProcessId}); waiting for readiness.")]
     private static partial void LogSpawned(ILogger logger, string workerId, int? processId);
 
     [LoggerMessage(EventId = 1, Level = LogLevel.Debug,
@@ -223,148 +182,361 @@ internal sealed partial class WorkerManager : IDisposable
         Message = "[{WorkerId}] {Line}")]
     private static partial void LogWorkerStandardError(ILogger logger, string workerId, string line);
 
-    private void HandleExited(WorkerSlot slot, int generation, int? exitCode)
+    /// <summary>
+    /// Per-worker lifecycle owner. Guards the current spawn and coalesces
+    /// concurrent callers onto that spawn's ready task. The host is idle
+    /// exactly when it holds no current <see cref="WorkerProcessInstance"/>.
+    /// </summary>
+    private sealed class WorkerProcessHost(
+        WorkerProcessInfo processInfo,
+        IProcessLauncher<WorkerProcessInfo> launcher,
+        IWorkerConnectionProbe probe,
+        ILogger logger) : IDisposable
     {
-        TaskCompletionSource? resolver;
-        IProcess? process;
+        private WorkerProcessInstance? _currentInstance;
+        private bool _disposed;
+        private readonly Lock _gate = new();
 
-        lock (_gate)
+        /// <summary>
+        /// Detaches and tears down the current spawn, if any. Idempotent.
+        /// </summary>
+        public void Dispose()
         {
-            if (slot.Generation != generation)
-            {
-                return;
-            }
-
-            resolver = slot.Resolver;
-            slot.Resolver = null;
-            process = slot.Process;
-            slot.Process = null;
-            slot.ReadyTask = null;
-        }
-
-        LogWorkerExited(_logger, slot.ProcessInfo.WorkerId, exitCode);
-
-        resolver?.TrySetException(new ProcessLaunchException<WorkerProcessInfo>(
-            slot.ProcessInfo,
-            $"Worker '{slot.ProcessInfo.WorkerId}' exited with code {FormatExitCode(exitCode)} before becoming ready."));
-
-        process?.Dispose();
-    }
-
-    private void HandleStandardErrorLine(WorkerSlot slot, int generation, string line)
-    {
-        LogWorkerStandardError(_logger, slot.ProcessInfo.WorkerId, line);
-
-        TaskCompletionSource resolver;
-
-        lock (_gate)
-        {
-            if (slot.Generation != generation || slot.Resolver is null)
-            {
-                return;
-            }
-
-            if (!string.Equals(line, slot.ProcessInfo.ReadyMarker, StringComparison.Ordinal))
-            {
-                return;
-            }
-
-            resolver = slot.Resolver;
-            slot.Resolver = null;
-        }
-
-        LogReadyMarkerReceived(_logger, slot.ProcessInfo.WorkerId);
-        resolver.TrySetResult();
-    }
-
-    private void LaunchWorker(WorkerSlot slot, int generation, IProcessObserver observer)
-    {
-        LogSpawning(_logger, slot.ProcessInfo.WorkerId, slot.ProcessInfo.Command);
-
-        IProcess process;
-
-        try
-        {
-            process = _launcher.Launch(slot.ProcessInfo, observer);
-        }
-        catch (ProcessLaunchException<WorkerProcessInfo> exception)
-        {
-            TaskCompletionSource? resolver = null;
+            WorkerProcessInstance? currentInstance;
 
             lock (_gate)
             {
-                // Roll the slot back only if this spawn is still its current
-                // one; a newer spawn or Dispose may have superseded it while
-                // the gate was released.
-                if (slot.Generation == generation)
+                if (_disposed)
                 {
-                    resolver = slot.Resolver;
-                    slot.Resolver = null;
-                    slot.ReadyTask = null;
-                    slot.Process = null;
+                    return;
                 }
+
+                _disposed = true;
+                currentInstance = _currentInstance;
+                _currentInstance = null;
             }
 
-            LogSpawnFailed(_logger, slot.ProcessInfo.WorkerId, exception);
-            resolver?.TrySetException(exception);
-
-            return;
+            currentInstance?.Abort(new ObjectDisposedException(nameof(WorkerManager)));
         }
 
-        bool adopted;
-
-        lock (_gate)
+        /// <summary>
+        /// Returns the current spawn's ready task, starting a new spawn when
+        /// the host is idle. The launch runs outside the gate.
+        /// </summary>
+        public Task EnsureRunningAsync(CancellationToken cancellationToken)
         {
-            // While the gate was released a ready or exit notification for
-            // this spawn may already have run. Adopt the handle only if this
-            // spawn is still the slot's active generation and has not already
-            // exited; otherwise the process is orphaned and must be torn down.
-            adopted = slot.Generation == generation && slot.ReadyTask is not null;
+            WorkerProcessInstance? instanceToStart = null;
+            Task readyTask;
 
-            if (adopted)
+            lock (_gate)
             {
-                slot.Process = process;
+                ObjectDisposedException.ThrowIf(_disposed, this);
+
+                _currentInstance ??= instanceToStart = new WorkerProcessInstance(
+                    this,
+                    processInfo,
+                    launcher,
+                    probe,
+                    logger);
+
+                readyTask = _currentInstance.ReadyTask;
+            }
+
+            instanceToStart?.Start();
+
+            return readyTask.WaitAsync(cancellationToken);
+        }
+
+        /// <summary>
+        /// Reports whether <paramref name="instance"/> is still this host's
+        /// current spawn, taking the gate to read it safely.
+        /// </summary>
+        public bool IsCurrent(WorkerProcessInstance instance)
+        {
+            lock (_gate)
+            {
+                return ReferenceEquals(_currentInstance, instance);
             }
         }
 
-        if (adopted)
+        /// <summary>
+        /// Records the launched process against <paramref name="instance"/>
+        /// and returns its readiness probe token, but only while the instance
+        /// is still current. Returns <see langword="false"/> for a superseded
+        /// spawn so the caller tears the orphan down.
+        /// </summary>
+        public bool TryAdopt(
+            WorkerProcessInstance instance,
+            IProcess process,
+            out CancellationToken probeToken)
         {
-            LogSpawned(_logger, slot.ProcessInfo.WorkerId, process.ProcessId);
+            lock (_gate)
+            {
+                if (!ReferenceEquals(_currentInstance, instance))
+                {
+                    probeToken = default;
+                    return false;
+                }
+
+                probeToken = instance.Adopt(process);
+                return true;
+            }
         }
-        else
+
+        /// <summary>
+        /// Hands the instance's readiness probe to the caller for disposal
+        /// while leaving it current. Returns <see langword="false"/> for a
+        /// superseded spawn. Used on the non-terminal ready transition.
+        /// </summary>
+        public bool TryDetachProbe(
+            WorkerProcessInstance instance,
+            out CancellationTokenSource? probe)
         {
-            process.Kill();
-            process.Dispose();
+            lock (_gate)
+            {
+                if (!ReferenceEquals(_currentInstance, instance))
+                {
+                    probe = null;
+                    return false;
+                }
+
+                probe = instance.DetachProbe();
+                return true;
+            }
+        }
+
+        /// <summary>
+        /// Clears the current spawn and hands its probe and process to the
+        /// caller for teardown, but only if <paramref name="instance"/> is
+        /// still current. Returns <see langword="false"/> otherwise.
+        /// </summary>
+        public bool TryRetire(
+            WorkerProcessInstance instance,
+            out CancellationTokenSource? probe,
+            out IProcess? process)
+        {
+            lock (_gate)
+            {
+                if (!ReferenceEquals(_currentInstance, instance))
+                {
+                    probe = null;
+                    process = null;
+                    return false;
+                }
+
+                _currentInstance = null;
+                probe = instance.DetachProbe();
+                process = instance.DetachProcess();
+                return true;
+            }
         }
     }
 
-    private sealed class SlotObserver(WorkerManager manager, WorkerSlot slot, int generation)
-        : IProcessObserver
+    /// <summary>
+    /// One concrete spawned worker process: the unit of identity that tells
+    /// a live spawn from a superseded one. Owns its launch, readiness
+    /// monitoring, process callbacks, and the completion of the shared ready
+    /// task. A notification acts only while the instance is still its host's
+    /// current one.
+    /// </summary>
+    private sealed class WorkerProcessInstance(
+        WorkerProcessHost host,
+        WorkerProcessInfo processInfo,
+        IProcessLauncher<WorkerProcessInfo> launcher,
+        IWorkerConnectionProbe probe,
+        ILogger logger) : IProcessObserver
     {
+        private CancellationTokenSource? _probeCancellationTokenSource = new();
+        private IProcess? _process;
+        private readonly TaskCompletionSource _resolver =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        /// <summary>The task that completes when this spawn becomes ready.</summary>
+        public Task ReadyTask
+            => _resolver.Task;
+
+        /// <summary>
+        /// Terminates the spawn after the host has detached it: cancels the
+        /// readiness probe, faults the ready task, and tears down the
+        /// process. Called only by the host's <see cref="WorkerProcessHost.Dispose"/>.
+        /// </summary>
+        public void Abort(Exception exception)
+        {
+            CancelAndDispose(DetachProbe());
+            _resolver.TrySetException(exception);
+
+            if (DetachProcess() is { } process)
+            {
+                process.Kill();
+                process.Dispose();
+            }
+        }
+
+        /// <summary>
+        /// Records the adopted process handle and returns the readiness
+        /// probe's token. Called by the host under its gate while this
+        /// instance is still current.
+        /// </summary>
+        public CancellationToken Adopt(IProcess process)
+        {
+            _process = process;
+            return _probeCancellationTokenSource?.Token ?? CancellationToken.None;
+        }
+
+        /// <summary>
+        /// Detaches and returns the readiness probe source, leaving the
+        /// instance with none. Called by the host under its gate.
+        /// </summary>
+        public CancellationTokenSource? DetachProbe()
+        {
+            var probe = _probeCancellationTokenSource;
+            _probeCancellationTokenSource = null;
+            return probe;
+        }
+
+        /// <summary>
+        /// Detaches and returns the running process handle, leaving the
+        /// instance with none. Called by the host under its gate.
+        /// </summary>
+        public IProcess? DetachProcess()
+        {
+            var process = _process;
+            _process = null;
+            return process;
+        }
+
         /// <inheritdoc/>
         public void OnExited(int? exitCode)
-            => manager.HandleExited(slot, generation, exitCode);
+        {
+            if (!host.TryRetire(this, out var probe, out var process))
+            {
+                return;
+            }
+
+            CancelAndDispose(probe);
+            LogWorkerExited(logger, processInfo.WorkerId, exitCode);
+
+            // No-op once the instance is already ready: a worker that exits
+            // after connecting retires its host but must not turn the already
+            // completed ready task into a fault.
+            _resolver.TrySetException(new ProcessLaunchException<WorkerProcessInfo>(
+                processInfo,
+                $"Worker '{processInfo.WorkerId}' exited with code {FormatExitCode(exitCode)} before becoming ready."));
+
+            process?.Dispose();
+        }
 
         /// <inheritdoc/>
         public void OnStandardErrorLine(string line)
-            => manager.HandleStandardErrorLine(slot, generation, line);
-    }
+        {
+            if (!host.IsCurrent(this))
+            {
+                return;
+            }
 
-    private sealed class WorkerSlot(WorkerProcessInfo processInfo)
-    {
-        /// <summary>The per-spawn stamp that invalidates stale notifications.</summary>
-        public int Generation { get; set; }
+            LogWorkerStandardError(logger, processInfo.WorkerId, line);
+        }
 
-        /// <summary>The current running process, or <see langword="null"/>.</summary>
-        public IProcess? Process { get; set; }
+        /// <summary>
+        /// Launches the worker process and, once adopted, starts monitoring
+        /// it for readiness. Runs outside the host gate.
+        /// </summary>
+        public void Start()
+        {
+            if (!host.IsCurrent(this))
+            {
+                return;
+            }
 
-        /// <summary>The immutable launch specification for this worker.</summary>
-        public WorkerProcessInfo ProcessInfo { get; } = processInfo;
+            LogSpawning(logger, processInfo.WorkerId, processInfo.Command);
 
-        /// <summary>The in-flight ready task, or <see langword="null"/> when idle.</summary>
-        public Task? ReadyTask { get; set; }
+            IProcess process;
 
-        /// <summary>The source completed when the worker becomes ready.</summary>
-        public TaskCompletionSource? Resolver { get; set; }
+            try
+            {
+                process = launcher.Launch(processInfo, this);
+            }
+            catch (ProcessLaunchException<WorkerProcessInfo> exception)
+            {
+                FailLaunch(exception);
+                return;
+            }
+
+            if (host.TryAdopt(this, process, out var probeToken))
+            {
+                LogSpawned(logger, processInfo.WorkerId, process.ProcessId);
+                _ = MonitorReadinessAsync(probeToken);
+            }
+            else
+            {
+                process.Kill();
+                process.Dispose();
+            }
+        }
+
+        private void FailLaunch(ProcessLaunchException<WorkerProcessInfo> exception)
+        {
+            if (host.TryRetire(this, out var probe, out _))
+            {
+                CancelAndDispose(probe);
+                LogSpawnFailed(logger, processInfo.WorkerId, exception);
+            }
+
+            _resolver.TrySetException(exception);
+        }
+
+        private void FaultReady(Exception exception)
+        {
+            if (!host.TryRetire(this, out var probe, out var process))
+            {
+                return;
+            }
+
+            CancelAndDispose(probe);
+            LogSpawnFailed(logger, processInfo.WorkerId, exception);
+            _resolver.TrySetException(exception);
+
+            process?.Kill();
+            process?.Dispose();
+        }
+
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1031",
+            Justification = "Background readiness task: an unexpected probe failure must fault the ready gate, never crash the process.")]
+        private async Task MonitorReadinessAsync(CancellationToken probeToken)
+        {
+            try
+            {
+                await probe.WaitForConnectionAsync(processInfo.Endpoint, probeToken)
+                    .ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                // Superseded, exited before ready, or disposed; whichever path
+                // cancelled the probe has already faulted or replaced the instance.
+                return;
+            }
+            catch (Exception exception)
+            {
+                FaultReady(exception);
+                return;
+            }
+
+            ResolveReady();
+        }
+
+        private void ResolveReady()
+        {
+            if (!host.TryDetachProbe(this, out var probe))
+            {
+                return;
+            }
+
+            // Becoming ready is not terminal: the instance stays its host's
+            // current one. Only the probe is retired here so a later exit
+            // notification cannot dispose it a second time.
+            CancelAndDispose(probe);
+            LogReady(logger, processInfo.WorkerId);
+            _resolver.TrySetResult();
+        }
     }
 }

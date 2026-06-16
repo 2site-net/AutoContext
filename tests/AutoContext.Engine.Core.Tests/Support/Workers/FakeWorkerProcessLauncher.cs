@@ -32,4 +32,23 @@ internal sealed class FakeWorkerProcessLauncher : IProcessLauncher<WorkerProcess
 
         return process;
     }
+
+    /// <summary>
+    /// Returns the readiness source of the most recently recorded launch
+    /// whose pipe matches <paramref name="pipeName"/>, or
+    /// <see langword="null"/> when no launch targets that pipe. Used by
+    /// <see cref="FakeWorkerConnectionProbe"/> to resolve readiness.
+    /// </summary>
+    public TaskCompletionSource? LatestReadySource(string pipeName)
+    {
+        for (var i = _launches.Count - 1; i >= 0; i--)
+        {
+            if (string.Equals(_launches[i].ProcessInfo.Endpoint, pipeName, StringComparison.Ordinal))
+            {
+                return _launches[i].ReadySource;
+            }
+        }
+
+        return null;
+    }
 }

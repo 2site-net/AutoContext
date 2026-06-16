@@ -5,16 +5,17 @@ using AutoContext.Engine.Core.Infrastructure.Diagnostics;
 /// <summary>
 /// Launch specification for an engine worker process. Extends the base
 /// <see cref="ProcessInfo"/> with the worker's stable identifier and the
-/// stderr ready marker the manager waits on before treating the worker as
-/// available.
+/// named-pipe address the manager dials to confirm the worker is ready.
 /// </summary>
 internal sealed record WorkerProcessInfo : ProcessInfo
 {
     /// <summary>
-    /// The exact stderr line the worker emits once it is ready to accept
-    /// requests (for example <c>[Worker.DotNet] Ready.</c>).
+    /// The named-pipe address the worker listens on (for example
+    /// <c>autocontext.worker-dotnet#&lt;instanceId&gt;</c>). The manager
+    /// treats the worker as ready the first time a connection to this
+    /// address succeeds.
     /// </summary>
-    public required string ReadyMarker { get; init; }
+    public required string Endpoint { get; init; }
 
     /// <summary>
     /// The worker's stable short identifier (for example <c>dotnet</c>);

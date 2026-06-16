@@ -15,6 +15,6 @@ internal static class WorkerProcessInfoFakeData
             WorkerId = workerId,
             Command = $"AutoContext.Worker.{workerId}",
             Arguments = ["--instance-id", "00000000-0000-0000-0000-000000000000"],
-            ReadyMarker = $"[Worker.{workerId}] Ready.",
+            Endpoint = $"autocontext.worker-{workerId}#test",
         };
 }

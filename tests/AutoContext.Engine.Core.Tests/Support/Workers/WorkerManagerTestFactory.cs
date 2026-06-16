@@ -15,5 +15,6 @@ internal static class WorkerManagerTestFactory
         new(
             [WorkerProcessInfoFakeData.CreateValid("dotnet")],
             launcher,
+            new FakeWorkerConnectionProbe(launcher),
             NullLogger<WorkerManager>.Instance);
 }

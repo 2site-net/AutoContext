@@ -2155,6 +2155,7 @@ MCP-tool dispatch (Phase 7).
 | 4 | `feat(build): generate workers.json from worker projects` | DONE |
 | 5 | ~~`feat(build): project mcp-tools.json from the registry`~~ | REMOVED — catalog is hand-authored |
 | 6 | `feat(engine-core): port WorkerManager with ensureRunning gate` | DONE |
+| 6b | `refactor(engine-core): use pipe probe for readiness` | DONE |
 | 7 | `feat(engine): serve McpTools.List over rpc` | Not started |
 | 8 | `feat(engine): serve McpTools.Invoke over rpc` | Not started |
 | 9 | `test(engine): integration test for mcp tool dispatch over rpc` | Not started |
@@ -2216,6 +2217,31 @@ manifests` (`workers.json`, `mcp-tools-registry.json`),
 > from the tree**. Disable granularity
 > correspondingly collapses from per-task to per-tool; the engine-side
 > config model and wire DTOs are flattened to match.
+
+**Landed-row notes.**
+
+- **Row 6b — `refactor(engine-core): use pipe probe for readiness`.** The
+  ported `WorkerManager` (row 6) gated readiness on scraping a worker's
+  **stderr ready marker** (`WorkerProcessInfo.ReadyMarker`), inherited
+  verbatim from the MCP-server port. That barrier is wrong for the
+  engine: the engine owns the worker's named pipe, so the authoritative
+  "ready" signal is *the pipe becoming connectable*, not a log line the
+  worker happens to print. Row 6b replaces the marker with a connection
+  probe:
+  - `WorkerProcessInfo.ReadyMarker` → `Endpoint`; readiness is now the
+    first successful dial of the worker's listen pipe via a new
+    `IWorkerConnectionProbe` (production `WorkerConnectionProbe` retries
+    the connect until it succeeds, the caller cancels, or the process
+    exits). Stderr lines are now logged for diagnostics only.
+  - The lifecycle was also restructured to remove a design smell: each
+    worker now owns a `WorkerProcessHost` (the gate + current-instance
+    identity) holding one `WorkerProcessInstance` per concrete spawn,
+    and the instance *is* the `IProcessObserver`. Staleness is reference
+    identity under the host gate (`TryAdopt` / `TryRetire` /
+    `TryDetachProbe` / `IsCurrent`), replacing the earlier
+    `instance.Slot.CurrentInstance` reach-around; the launch runs
+    outside the gate so start-up stderr/exit callbacks cannot re-enter
+    it. The public `EnsureRunningAsync` surface is unchanged.
 
 **Code touch**:
 - `AutoContext.Engine.Core/Workers/WorkerManager` — port of

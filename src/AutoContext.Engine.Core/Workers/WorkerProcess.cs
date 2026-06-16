@@ -9,8 +9,8 @@ using AutoContext.Engine.Core.Infrastructure.Diagnostics;
 /// Production <see cref="IProcess"/> wrapping a
 /// <see cref="Process"/>. Redirects both standard
 /// streams: stderr lines are forwarded to the supplied
-/// <see cref="IProcessObserver"/> (the manager scrapes them for
-/// the ready marker) and stdout is drained and discarded so a full pipe
+/// <see cref="IProcessObserver"/> (the manager logs them for
+/// diagnostics) and stdout is drained and discarded so a full pipe
 /// buffer can never block the worker. The single terminal exit is
 /// forwarded exactly once.
 /// </summary>
