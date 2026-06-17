@@ -1,6 +1,7 @@
 namespace AutoContext.Engine.Core.Features.McpTools;
 
 using AutoContext.Engine.Core.Features.McpTools.Snapshot;
+using AutoContext.Engine.Core.Infrastructure;
 
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -20,30 +21,28 @@ using Microsoft.Extensions.Logging;
 internal sealed partial class McpToolsRegistryService : IHostedService, IMcpToolsRegistryAccessor
 {
     private readonly ILogger<McpToolsRegistryService> _logger;
-    private readonly string _resourcesDirectory;
+    private readonly EngineResourcesDirectory _resources;
     private volatile McpToolsRegistry _current = McpToolsRegistry.Empty;
 
     /// <summary>
     /// Creates a service that loads the registry from
-    /// <paramref name="resourcesDirectory"/>.
+    /// <paramref name="resources"/>.
     /// </summary>
-    /// <param name="resourcesDirectory">Absolute path of the directory
-    /// holding the side-cars. Must not be <see langword="null"/>, empty,
-    /// or whitespace.</param>
+    /// <param name="resources">The resources directory holding the
+    /// side-cars (override copies shadow the bundled ones). Must not be
+    /// <see langword="null"/>.</param>
     /// <param name="logger">Diagnostic sink.</param>
-    /// <exception cref="ArgumentException">
-    /// <paramref name="resourcesDirectory"/> is <see langword="null"/>,
-    /// empty, or whitespace.</exception>
     /// <exception cref="ArgumentNullException">
-    /// <paramref name="logger"/> is <see langword="null"/>.</exception>
+    /// <paramref name="resources"/> or <paramref name="logger"/> is
+    /// <see langword="null"/>.</exception>
     public McpToolsRegistryService(
-        string resourcesDirectory,
+        EngineResourcesDirectory resources,
         ILogger<McpToolsRegistryService> logger)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(resourcesDirectory);
+        ArgumentNullException.ThrowIfNull(resources);
         ArgumentNullException.ThrowIfNull(logger);
 
-        _resourcesDirectory = resourcesDirectory;
+        _resources = resources;
         _logger = logger;
     }
 
@@ -59,11 +58,19 @@ internal sealed partial class McpToolsRegistryService : IHostedService, IMcpTool
     public async Task StartAsync(CancellationToken cancellationToken)
     {
         var registry = await McpToolsRegistryLoader
-            .LoadAsync(_resourcesDirectory, cancellationToken)
+            .LoadAsync(_resources, cancellationToken)
             .ConfigureAwait(false);
 
         _current = registry;
-        LogRegistryLoaded(_logger, registry.Tools.Count, _resourcesDirectory);
+
+        if (_resources.OverrideDirectory is { } overrideRoot)
+        {
+            LogRegistryLoadedWithOverride(_logger, registry.Tools.Count, _resources.BaseDirectory, overrideRoot);
+        }
+        else
+        {
+            LogRegistryLoaded(_logger, registry.Tools.Count, _resources.BaseDirectory);
+        }
     }
 
     /// <summary>
@@ -79,4 +86,15 @@ internal sealed partial class McpToolsRegistryService : IHostedService, IMcpTool
         Level = LogLevel.Information,
         Message = "Loaded MCP-tools registry: {Count} tools from '{ResourcesDirectory}'.")]
     private static partial void LogRegistryLoaded(ILogger logger, int count, string resourcesDirectory);
+
+    [LoggerMessage(
+        EventId = 2,
+        Level = LogLevel.Information,
+        Message = "Loaded MCP-tools registry: {Count} tools from '{ResourcesDirectory}' "
+            + "with side-car overrides from '{OverrideDirectory}'.")]
+    private static partial void LogRegistryLoadedWithOverride(
+        ILogger logger,
+        int count,
+        string resourcesDirectory,
+        string overrideDirectory);
 }

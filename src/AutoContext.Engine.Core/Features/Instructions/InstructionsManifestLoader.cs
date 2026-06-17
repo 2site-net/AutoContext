@@ -4,6 +4,7 @@ using System.Text.Json;
 
 using AutoContext.Engine.Core.Features.Instructions.Format;
 using AutoContext.Engine.Core.Features.Instructions.Snapshot;
+using AutoContext.Engine.Core.Infrastructure;
 
 /// <summary>
 /// Loads the bundled instructions corpus into an immutable
@@ -33,30 +34,29 @@ internal static class InstructionsManifestLoader
     public const string CatalogFileName = "instructions-catalog.json";
 
     /// <summary>
-    /// Reads the two side-cars from <paramref name="resourcesDirectory"/>
-    /// and merges them into a corpus snapshot.
+    /// Reads the two side-cars from <paramref name="resources"/> and merges
+    /// them into a corpus snapshot.
     /// </summary>
-    /// <param name="resourcesDirectory">Absolute path of the directory
-    /// holding both side-cars. Must not be <see langword="null"/> or
-    /// whitespace.</param>
+    /// <param name="resources">The resources directory holding both
+    /// side-cars (override copies shadow the bundled ones). Must not be
+    /// <see langword="null"/>.</param>
     /// <param name="cancellationToken">Cancels the file reads.</param>
     /// <returns>The loaded, immutable corpus snapshot.</returns>
-    /// <exception cref="ArgumentException">
-    /// <paramref name="resourcesDirectory"/> is <see langword="null"/>,
-    /// empty, or whitespace.</exception>
+    /// <exception cref="ArgumentNullException">
+    /// <paramref name="resources"/> is <see langword="null"/>.</exception>
     /// <exception cref="FileNotFoundException">A side-car is
     /// missing.</exception>
     /// <exception cref="InvalidOperationException">A side-car is
     /// malformed, a manifest row is missing a required field, or a
     /// non-always-attached file has no catalog entry.</exception>
     public static async Task<InstructionsManifestSnapshot> LoadAsync(
-        string resourcesDirectory,
+        EngineResourcesDirectory resources,
         CancellationToken cancellationToken)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(resourcesDirectory);
+        ArgumentNullException.ThrowIfNull(resources);
 
-        var manifestPath = Path.Combine(resourcesDirectory, ManifestFileName);
-        var catalogPath = Path.Combine(resourcesDirectory, CatalogFileName);
+        var manifestPath = resources.ResolveFile(ManifestFileName);
+        var catalogPath = resources.ResolveFile(CatalogFileName);
 
         var manifest = await ReadAsync(
             manifestPath,

@@ -303,7 +303,7 @@ public static class EngineHostBuilderExtensions
         // is read-only with no watcher, so the service only loads on
         // start and tears nothing down on stop.
         builder.Services.TryAddSingleton(sp => new InstructionsManifestService(
-            Path.Combine(AppContext.BaseDirectory, "Resources"),
+            ResolveResources(sp),
             sp.GetRequiredService<ILogger<InstructionsManifestService>>()));
         builder.Services.TryAddSingleton<IInstructionsManifestAccessor>(
             sp => sp.GetRequiredService<InstructionsManifestService>());
@@ -322,7 +322,7 @@ public static class EngineHostBuilderExtensions
         // watcher, so the service only loads on start and tears nothing
         // down on stop.
         builder.Services.TryAddSingleton(sp => new McpToolsRegistryService(
-            Path.Combine(AppContext.BaseDirectory, "Resources"),
+            ResolveResources(sp),
             sp.GetRequiredService<ILogger<McpToolsRegistryService>>()));
         builder.Services.TryAddSingleton<IMcpToolsRegistryAccessor>(
             sp => sp.GetRequiredService<McpToolsRegistryService>());
@@ -348,7 +348,7 @@ public static class EngineHostBuilderExtensions
         {
             var options = sp.GetRequiredService<IOptions<EngineOptions>>().Value;
             var workersProcessInfo = WorkerProcessInfoResolver.Resolve(
-                WorkersManifestLoader.Load(Path.Combine(AppContext.BaseDirectory, "Resources")),
+                WorkersManifestLoader.Load(ResolveResources(options)),
                 Path.Combine(AppContext.BaseDirectory, "Workers"),
                 options.InstanceId.ToString("D"),
                 options.WorkspacePath);
@@ -371,7 +371,7 @@ public static class EngineHostBuilderExtensions
         // through the InstructionsOverridesStalenessInspector and warns on
         // stale overrides.
         builder.Services.TryAddSingleton(sp => new InstructionsOverridesStalenessInspector(
-            Path.Combine(AppContext.BaseDirectory, "Resources", "Instructions"),
+            ResolveResources(sp).SubDirectory("Instructions"),
             sp.GetRequiredService<ILogger<InstructionsOverridesStalenessInspector>>()));
         builder.Services.TryAddSingleton(sp => new InstructionsOverridesService(
             sp.GetRequiredService<IWorkspaceContextAccessor>(),
@@ -390,11 +390,11 @@ public static class EngineHostBuilderExtensions
         // Instructions.Get / GetAll / GetAlwaysAttached / GetRaw /
         // SearchContent handlers.
         builder.Services.TryAddSingleton(sp => new InstructionsBodyProjector(
-            Path.Combine(AppContext.BaseDirectory, "Resources", "Instructions"),
+            ResolveResources(sp).SubDirectory("Instructions"),
             sp.GetRequiredService<IInstructionsOverridesAccessor>(),
             sp.GetRequiredService<IConfigSnapshotAccessor>()));
         builder.Services.TryAddSingleton(sp => new InstructionsFileReader(
-            Path.Combine(AppContext.BaseDirectory, "Resources", "Instructions"),
+            ResolveResources(sp).SubDirectory("Instructions"),
             sp.GetRequiredService<IInstructionsOverridesAccessor>()));
         builder.Services.TryAddSingleton(sp => new InstructionsFullTextSearchService(
             sp.GetRequiredService<IInstructionsManifestAccessor>(),
@@ -498,4 +498,10 @@ public static class EngineHostBuilderExtensions
 
         return builder;
     }
+
+    private static EngineResourcesDirectory ResolveResources(IServiceProvider services)
+        => ResolveResources(services.GetRequiredService<IOptions<EngineOptions>>().Value);
+
+    private static EngineResourcesDirectory ResolveResources(EngineOptions options)
+        => new(Path.Combine(AppContext.BaseDirectory, "Resources"), options.ResourcesRootOverride);
 }

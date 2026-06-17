@@ -4,6 +4,7 @@ using System.Text.Json;
 
 using AutoContext.Engine.Core.Features.McpTools.Format;
 using AutoContext.Engine.Core.Features.McpTools.Snapshot;
+using AutoContext.Engine.Core.Infrastructure;
 
 /// <summary>
 /// Loads the bundled MCP-tools registry into an immutable
@@ -39,35 +40,34 @@ internal static class McpToolsRegistryLoader
     public const string CatalogSchemaFileName = "mcp-tools-catalog.schema.json";
 
     /// <summary>
-    /// Reads and validates the registry side-car in
-    /// <paramref name="resourcesDirectory"/> and maps it to an immutable
-    /// snapshot. The catalog side-cars are also read and schema-validated so
-    /// startup fails fast when either half of the MCP-tools manifest set is
+    /// Reads and validates the registry side-car from
+    /// <paramref name="resources"/> and maps it to an immutable snapshot.
+    /// The catalog side-cars are also read and schema-validated so startup
+    /// fails fast when either half of the MCP-tools manifest set is
     /// malformed.
     /// </summary>
-    /// <param name="resourcesDirectory">Absolute path of the directory
-    /// holding both side-cars. Must not be <see langword="null"/> or
-    /// whitespace.</param>
+    /// <param name="resources">The resources directory holding all four
+    /// side-cars (override copies shadow the bundled ones). Must not be
+    /// <see langword="null"/>.</param>
     /// <param name="cancellationToken">Cancels the file reads.</param>
     /// <returns>The loaded, immutable registry snapshot.</returns>
-    /// <exception cref="ArgumentException">
-    /// <paramref name="resourcesDirectory"/> is <see langword="null"/>,
-    /// empty, or whitespace.</exception>
+    /// <exception cref="ArgumentNullException">
+    /// <paramref name="resources"/> is <see langword="null"/>.</exception>
     /// <exception cref="FileNotFoundException">A side-car is
     /// missing.</exception>
     /// <exception cref="InvalidOperationException">The registry is
     /// malformed, fails validation, or a row is missing a required
     /// field.</exception>
     public static async Task<McpToolsRegistry> LoadAsync(
-        string resourcesDirectory,
+        EngineResourcesDirectory resources,
         CancellationToken cancellationToken)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(resourcesDirectory);
+        ArgumentNullException.ThrowIfNull(resources);
 
-        var registryPath = Path.Combine(resourcesDirectory, RegistryFileName);
-        var schemaPath = Path.Combine(resourcesDirectory, SchemaFileName);
-        var catalogPath = Path.Combine(resourcesDirectory, CatalogFileName);
-        var catalogSchemaPath = Path.Combine(resourcesDirectory, CatalogSchemaFileName);
+        var registryPath = resources.ResolveFile(RegistryFileName);
+        var schemaPath = resources.ResolveFile(SchemaFileName);
+        var catalogPath = resources.ResolveFile(CatalogFileName);
+        var catalogSchemaPath = resources.ResolveFile(CatalogSchemaFileName);
 
         var registryJson = await ReadTextAsync(registryPath, cancellationToken).ConfigureAwait(false);
         var schemaJson = await ReadTextAsync(schemaPath, cancellationToken).ConfigureAwait(false);

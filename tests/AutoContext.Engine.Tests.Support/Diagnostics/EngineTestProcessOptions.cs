@@ -52,6 +52,18 @@ public sealed class EngineTestProcessOptions
     public string? CacheRootOverride { get; set; }
 
     /// <summary>
+    /// Resources-root (side-car) override passed via
+    /// <c>--resources-root</c>. When <see langword="null"/>, the engine
+    /// resolves its resources root the usual way
+    /// (<c>AppContext.BaseDirectory/Resources</c>). Integration tests
+    /// that need the spawned engine to read a substitute side-car tree
+    /// — for example a <c>workers.json</c> + <c>mcp-tools-registry.json</c>
+    /// pair that dispatches to a stand-in worker — point this at an
+    /// absolute path to that tree.
+    /// </summary>
+    public string? ResourcesRootOverride { get; set; }
+
+    /// <summary>
     /// Idle-shutdown window passed via <c>--idle-timeout</c> as whole
     /// seconds. Defaults to <see cref="TimeSpan.Zero"/> (the
     /// "disable the idle gate" sentinel) so the gate cannot race the

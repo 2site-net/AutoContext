@@ -144,6 +144,12 @@ public sealed class EngineTestProcess : IAsyncDisposable
                 args.Add(cacheRoot);
             }
 
+            if (options.ResourcesRootOverride is { } resourcesRoot)
+            {
+                args.Add("--resources-root");
+                args.Add(resourcesRoot);
+            }
+
             if (options.Retention is { } retention)
             {
                 args.Add("--retention");

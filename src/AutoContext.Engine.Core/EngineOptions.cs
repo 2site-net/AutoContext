@@ -139,6 +139,22 @@ public sealed class EngineOptions : IWorkspaceEngineInfo
     public int? ParentProcessId { get; set; }
 
     /// <summary>
+    /// Override for the engine resources root — the directory holding
+    /// the build-time side-cars shipped beside the engine binary
+    /// (<c>workers.json</c>, <c>mcp-tools-registry.json</c>,
+    /// <c>instructions-manifest.json</c>, the <c>Instructions/</c> body
+    /// corpus, and their siblings). When <see langword="null"/> the
+    /// engine resolves the root the usual way
+    /// (<c>AppContext.BaseDirectory/Resources</c>); tests and embedders
+    /// that need to point the engine at a temporary side-car tree — for
+    /// example to substitute a registry whose tools dispatch to a
+    /// stand-in worker — set this to an absolute path. Surfaced on the
+    /// engine binary as <c>--resources-root &lt;absolute-path&gt;</c>
+    /// in both the daemon and <c>--mcp-server with-stdio</c> roles.
+    /// </summary>
+    public string? ResourcesRootOverride { get; set; }
+
+    /// <summary>
     /// Housekeeping retention window. <see cref="TimeSpan.Zero"/>
     /// disables retention entirely (sweep deletes immediately on
     /// shutdown). Defaults to <see cref="DefaultRetention"/>.

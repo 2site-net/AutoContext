@@ -1,6 +1,7 @@
 namespace AutoContext.Engine.Core.Features.Instructions;
 
 using AutoContext.Engine.Core.Features.Instructions.Snapshot;
+using AutoContext.Engine.Core.Infrastructure;
 
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -21,30 +22,28 @@ using Microsoft.Extensions.Logging;
 internal sealed partial class InstructionsManifestService : IHostedService, IInstructionsManifestAccessor
 {
     private readonly ILogger<InstructionsManifestService> _logger;
-    private readonly string _resourcesDirectory;
+    private readonly EngineResourcesDirectory _resources;
     private volatile InstructionsManifestSnapshot _current = InstructionsManifestSnapshot.Empty;
 
     /// <summary>
     /// Creates a service that loads the corpus from
-    /// <paramref name="resourcesDirectory"/>.
+    /// <paramref name="resources"/>.
     /// </summary>
-    /// <param name="resourcesDirectory">Absolute path of the directory
-    /// holding the two side-cars. Must not be <see langword="null"/>,
-    /// empty, or whitespace.</param>
+    /// <param name="resources">The resources directory holding the two
+    /// side-cars (override copies shadow the bundled ones). Must not be
+    /// <see langword="null"/>.</param>
     /// <param name="logger">Diagnostic sink.</param>
-    /// <exception cref="ArgumentException">
-    /// <paramref name="resourcesDirectory"/> is <see langword="null"/>,
-    /// empty, or whitespace.</exception>
     /// <exception cref="ArgumentNullException">
-    /// <paramref name="logger"/> is <see langword="null"/>.</exception>
+    /// <paramref name="resources"/> or <paramref name="logger"/> is
+    /// <see langword="null"/>.</exception>
     public InstructionsManifestService(
-        string resourcesDirectory,
+        EngineResourcesDirectory resources,
         ILogger<InstructionsManifestService> logger)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(resourcesDirectory);
+        ArgumentNullException.ThrowIfNull(resources);
         ArgumentNullException.ThrowIfNull(logger);
 
-        _resourcesDirectory = resourcesDirectory;
+        _resources = resources;
         _logger = logger;
     }
 
@@ -60,11 +59,19 @@ internal sealed partial class InstructionsManifestService : IHostedService, IIns
     public async Task StartAsync(CancellationToken cancellationToken)
     {
         var snapshot = await InstructionsManifestLoader
-            .LoadAsync(_resourcesDirectory, cancellationToken)
+            .LoadAsync(_resources, cancellationToken)
             .ConfigureAwait(false);
 
         _current = snapshot;
-        LogCorpusLoaded(_logger, snapshot.Files.Count, _resourcesDirectory);
+
+        if (_resources.OverrideDirectory is { } overrideRoot)
+        {
+            LogCorpusLoadedWithOverride(_logger, snapshot.Files.Count, _resources.BaseDirectory, overrideRoot);
+        }
+        else
+        {
+            LogCorpusLoaded(_logger, snapshot.Files.Count, _resources.BaseDirectory);
+        }
     }
 
     /// <summary>
@@ -80,4 +87,15 @@ internal sealed partial class InstructionsManifestService : IHostedService, IIns
         Level = LogLevel.Information,
         Message = "Loaded instruction corpus: {Count} files from '{ResourcesDirectory}'.")]
     private static partial void LogCorpusLoaded(ILogger logger, int count, string resourcesDirectory);
+
+    [LoggerMessage(
+        EventId = 2,
+        Level = LogLevel.Information,
+        Message = "Loaded instruction corpus: {Count} files from '{ResourcesDirectory}' "
+            + "with side-car overrides from '{OverrideDirectory}'.")]
+    private static partial void LogCorpusLoadedWithOverride(
+        ILogger logger,
+        int count,
+        string resourcesDirectory,
+        string overrideDirectory);
 }

@@ -2,6 +2,7 @@ namespace AutoContext.Engine.Core.Workers;
 
 using System.Text.Json;
 
+using AutoContext.Engine.Core.Infrastructure;
 using AutoContext.Engine.Core.Workers.Format;
 
 /// <summary>
@@ -22,25 +23,24 @@ internal static class WorkersManifestLoader
     public const string ManifestFileName = "workers.json";
 
     /// <summary>
-    /// Reads and parses the worker-manifest side-car in
-    /// <paramref name="resourcesDirectory"/>.
+    /// Reads and parses the worker-manifest side-car from
+    /// <paramref name="resources"/>.
     /// </summary>
-    /// <param name="resourcesDirectory">Absolute path of the directory
-    /// holding <c>workers.json</c>. Must not be <see langword="null"/>,
-    /// empty, or whitespace.</param>
+    /// <param name="resources">The resources directory holding
+    /// <c>workers.json</c> (an override copy shadows the bundled one).
+    /// Must not be <see langword="null"/>.</param>
     /// <returns>The parsed, immutable manifest read-model.</returns>
-    /// <exception cref="ArgumentException">
-    /// <paramref name="resourcesDirectory"/> is <see langword="null"/>,
-    /// empty, or whitespace.</exception>
+    /// <exception cref="ArgumentNullException">
+    /// <paramref name="resources"/> is <see langword="null"/>.</exception>
     /// <exception cref="FileNotFoundException">The side-car is
     /// missing.</exception>
     /// <exception cref="InvalidOperationException">The side-car is not
     /// valid JSON or deserialises to <see langword="null"/>.</exception>
-    public static JsonWorkersManifest Load(string resourcesDirectory)
+    public static JsonWorkersManifest Load(EngineResourcesDirectory resources)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(resourcesDirectory);
+        ArgumentNullException.ThrowIfNull(resources);
 
-        var manifestPath = Path.Combine(resourcesDirectory, ManifestFileName);
+        var manifestPath = resources.ResolveFile(ManifestFileName);
 
         if (!File.Exists(manifestPath))
         {
