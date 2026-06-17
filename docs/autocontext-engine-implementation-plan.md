@@ -2157,7 +2157,9 @@ MCP-tool dispatch (Phase 7).
 | 6 | `feat(engine-core): port WorkerManager with ensureRunning gate` | DONE |
 | 6b | `refactor(engine-core): use pipe probe for readiness` | DONE |
 | 7 | `feat(engine): serve McpTools.List over rpc` | DONE |
-| 8 | `feat(engine): serve McpTools.Invoke over rpc` | Not started |
+| 8 | `feat(engine-core): load workers.json and wire the worker manager` | DONE |
+| 8b | `feat(engine): serve McpTools.Invoke over rpc` | Not started |
+| 8c | `feat(engine): enrich McpTools.Invoke with editorconfig` | Not started |
 | 9 | `test(engine): integration test for mcp tool dispatch over rpc` | Not started |
 | 10 | `docs(plan): mark Phase 7 complete` | Not started |
 

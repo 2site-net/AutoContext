@@ -1,10 +1,12 @@
 namespace AutoContext.Engine.Core.Tests;
 
 using AutoContext.Engine.Core;
+using AutoContext.Engine.Core.Infrastructure.Diagnostics;
 using AutoContext.Engine.Core.Infrastructure.Storage;
 using AutoContext.Engine.Core.Machine;
 using AutoContext.Engine.Core.Registry;
 using AutoContext.Engine.Core.Tests.Support;
+using AutoContext.Engine.Core.Workers;
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -182,6 +184,55 @@ public sealed class EngineHostBuilderExtensionsTests
 
             // Assert
             Assert.Single(hosted, h => h is RegistryFileService);
+        }
+
+        [Fact]
+        public void Should_register_WorkerManager_as_a_singleton()
+        {
+            // Arrange
+            var builder = Host.CreateApplicationBuilder();
+
+            // Act
+            builder.AddAutoContextEngine(ConfigureValid);
+
+            // Assert
+            var descriptor = Assert.Single(
+                builder.Services, d => d.ServiceType == typeof(WorkerManager));
+            Assert.Equal(ServiceLifetime.Singleton, descriptor.Lifetime);
+        }
+
+        [Fact]
+        public void Should_register_the_worker_process_launcher_seam_as_a_singleton()
+        {
+            // Arrange
+            var builder = Host.CreateApplicationBuilder();
+
+            // Act
+            builder.AddAutoContextEngine(ConfigureValid);
+
+            // Assert
+            var descriptor = Assert.Single(
+                builder.Services, d => d.ServiceType == typeof(IProcessLauncher<WorkerProcessInfo>));
+            Assert.Multiple(
+                () => Assert.Equal(ServiceLifetime.Singleton, descriptor.Lifetime),
+                () => Assert.Equal(typeof(WorkerProcessLauncher), descriptor.ImplementationType));
+        }
+
+        [Fact]
+        public void Should_register_the_worker_connection_probe_seam_as_a_singleton()
+        {
+            // Arrange
+            var builder = Host.CreateApplicationBuilder();
+
+            // Act
+            builder.AddAutoContextEngine(ConfigureValid);
+
+            // Assert
+            var descriptor = Assert.Single(
+                builder.Services, d => d.ServiceType == typeof(IWorkerConnectionProbe));
+            Assert.Multiple(
+                () => Assert.Equal(ServiceLifetime.Singleton, descriptor.Lifetime),
+                () => Assert.Equal(typeof(WorkerConnectionProbe), descriptor.ImplementationType));
         }
 
         [Fact]

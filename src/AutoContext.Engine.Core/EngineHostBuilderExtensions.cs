@@ -12,6 +12,7 @@ using AutoContext.Engine.Core.Machine;
 using AutoContext.Engine.Core.Machine.Housekeeping;
 using AutoContext.Engine.Core.Registry;
 using AutoContext.Engine.Core.Watchdogs;
+using AutoContext.Engine.Core.Workers;
 using AutoContext.Engine.Core.Workspace.Config;
 using AutoContext.Engine.Core.Workspace.Context;
 using AutoContext.Engine.Protocol.Messages.Config;
@@ -328,6 +329,36 @@ public static class EngineHostBuilderExtensions
         builder.Services.TryAddEnumerable(
             ServiceDescriptor.Singleton<IHostedService, McpToolsRegistryService>(
                 sp => sp.GetRequiredService<McpToolsRegistryService>()));
+
+        // Worker-dispatch substrate. The engine spawns workers lazily —
+        // WorkerManager.EnsureRunningAsync(workerId) starts a worker the
+        // first time a tool routed to it is invoked and reuses the live
+        // process thereafter. The manager's launch specifications are
+        // resolved once here from the build-generated workers.json side-car:
+        // each row's ${root} placeholder expands to that worker's staging
+        // subdir under Workers/, and the engine instance id is threaded onto
+        // every spawn so worker and engine derive the same listen endpoint.
+        // The launcher (process creation) and connection probe (readiness
+        // dial over the shared PipeTransport) are the seams the manager
+        // drives. WorkerManager is an IDisposable singleton the container
+        // disposes on host stop, which kills any workers still running.
+        builder.Services.TryAddSingleton<IProcessLauncher<WorkerProcessInfo>, WorkerProcessLauncher>();
+        builder.Services.TryAddSingleton<IWorkerConnectionProbe, WorkerConnectionProbe>();
+        builder.Services.TryAddSingleton(sp =>
+        {
+            var options = sp.GetRequiredService<IOptions<EngineOptions>>().Value;
+            var workersProcessInfo = WorkerProcessInfoResolver.Resolve(
+                WorkersManifestLoader.Load(Path.Combine(AppContext.BaseDirectory, "Resources")),
+                Path.Combine(AppContext.BaseDirectory, "Workers"),
+                options.InstanceId.ToString("D"),
+                options.WorkspacePath);
+
+            return new WorkerManager(
+                workersProcessInfo,
+                sp.GetRequiredService<IProcessLauncher<WorkerProcessInfo>>(),
+                sp.GetRequiredService<IWorkerConnectionProbe>(),
+                sp.GetRequiredService<ILogger<WorkerManager>>());
+        });
 
         // Instructions override inventory. The service performs a one-shot
         // startup scan of the workspace's override directories and exposes
