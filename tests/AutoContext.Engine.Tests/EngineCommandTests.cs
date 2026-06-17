@@ -343,6 +343,84 @@ public sealed class EngineCommandTests
             e => e.Message.Contains("--cache-root", StringComparison.Ordinal));
     }
 
+    [Fact]
+    public void Should_parse_resources_root_in_daemon_role()
+    {
+        // Arrange
+        var command = new EngineCommand();
+        var resourcesRoot = OperatingSystem.IsWindows()
+            ? @"C:\temp\acx-resources"
+            : "/tmp/acx-resources";
+        var args = new[]
+        {
+            "--workspace", EngineCommandArgsFakeData.GetWorkspacePathArgValue(),
+            "--instance-id", EngineCommandArgsFakeData.GetInstanceIdArgValue(),
+            "--resources-root", resourcesRoot,
+        };
+
+        // Act
+        var parseResult = command.Parse(args);
+        var built = command.TryBuildOptions(parseResult, out var options, out var error);
+
+        // Assert
+        Assert.Multiple(
+            () => Assert.Empty(parseResult.Errors),
+            () => Assert.True(built, error),
+            () => Assert.Equal(resourcesRoot, options.ResourcesRootOverride));
+    }
+
+    [Fact]
+    public void Should_parse_resources_root_in_mcp_server_role()
+    {
+        // Arrange
+        var command = new EngineCommand();
+        var resourcesRoot = OperatingSystem.IsWindows()
+            ? @"C:\temp\acx-resources"
+            : "/tmp/acx-resources";
+        var args = new[]
+        {
+            "--workspace", EngineCommandArgsFakeData.GetWorkspacePathArgValue(),
+            "--mcp-server", "with-stdio",
+            "--resources-root", resourcesRoot,
+        };
+
+        // Act
+        var parseResult = command.Parse(args);
+        var built = command.TryBuildOptions(parseResult, out var options, out var error);
+
+        // Assert
+        Assert.Multiple(
+            () => Assert.Empty(parseResult.Errors),
+            () => Assert.True(built, error),
+            () => Assert.Equal(resourcesRoot, options.ResourcesRootOverride),
+            () => Assert.Equal(EngineMcpServerMode.WithStdio, options.McpServerMode));
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("relative/path")]
+    [InlineData("..\\relative")]
+    public void Should_reject_non_absolute_resources_root(string value)
+    {
+        // Arrange
+        var command = new EngineCommand();
+        var args = new[]
+        {
+            "--workspace", EngineCommandArgsFakeData.GetWorkspacePathArgValue(),
+            "--instance-id", EngineCommandArgsFakeData.GetInstanceIdArgValue(),
+            "--resources-root", value,
+        };
+
+        // Act
+        var parseResult = command.Parse(args);
+
+        // Assert
+        Assert.NotEmpty(parseResult.Errors);
+        Assert.Contains(
+            parseResult.Errors,
+            e => e.Message.Contains("--resources-root", StringComparison.Ordinal));
+    }
+
     [Theory]
     [InlineData("normal", LogVerbosity.Normal)]
     [InlineData("debug", LogVerbosity.Debug)]
