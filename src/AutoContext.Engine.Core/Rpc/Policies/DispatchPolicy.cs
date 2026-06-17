@@ -80,6 +80,7 @@ internal sealed partial class DispatchPolicy : IRpcConnectionPolicy
     private readonly SnapshotBroadcaster<IReadOnlyList<JsonInstructionsListRow>> _instructionsBroadcaster;
     private readonly InstructionsFrameStream _instructionsFrameStream;
     private readonly IMcpToolsRegistryAccessor _mcpToolsRegistryAccessor;
+    private readonly IMcpToolsInvoker _mcpToolsInvoker;
     private readonly ILogger _logger;
 
     public DispatchPolicy(
@@ -98,7 +99,8 @@ internal sealed partial class DispatchPolicy : IRpcConnectionPolicy
         InstructionsFullTextSearchService searchService,
         SnapshotBroadcaster<IReadOnlyList<JsonInstructionsListRow>> instructionsBroadcaster,
         IMcpToolsRegistryAccessor mcpToolsRegistryAccessor,
-        ILogger logger)
+        ILogger logger,
+        IMcpToolsInvoker? mcpToolsInvoker = null)
     {
         ArgumentNullException.ThrowIfNull(lifetime);
         ArgumentNullException.ThrowIfNull(registryReader);
@@ -137,6 +139,7 @@ internal sealed partial class DispatchPolicy : IRpcConnectionPolicy
         _instructionsFrameStream = new();
         _mcpToolsRegistryAccessor = mcpToolsRegistryAccessor;
         _logger = logger;
+        _mcpToolsInvoker = mcpToolsInvoker ?? McpToolsInvokerNoop.Instance;
     }
 
     public EndpointKind EndpointKind => EndpointKind.Rpc;
@@ -231,6 +234,10 @@ internal sealed partial class DispatchPolicy : IRpcConnectionPolicy
 
             case McpToolsMethods.List:
                 return HandleMcpToolsList();
+
+            case McpToolsMethods.Invoke:
+                return await HandleMcpToolsInvokeAsync(request, cancellationToken)
+                    .ConfigureAwait(false);
 
             case ProtocolMethods.Shutdown:
                 return HandleShutdown();

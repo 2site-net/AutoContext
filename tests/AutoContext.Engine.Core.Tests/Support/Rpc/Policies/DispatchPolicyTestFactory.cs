@@ -49,6 +49,7 @@ internal static class DispatchPolicyTestFactory
         InstructionsFullTextSearchService? searchService = null,
         SnapshotBroadcaster<IReadOnlyList<JsonInstructionsListRow>>? instructionsBroadcaster = null,
         IMcpToolsRegistryAccessor? mcpToolsRegistryAccessor = null,
+        IMcpToolsInvoker? mcpToolsInvoker = null,
         ILogger? logger = null)
     {
         var config = configAccessor ?? LifecycleServiceFixture.CreateConfigAccessor();
@@ -79,6 +80,7 @@ internal static class DispatchPolicyTestFactory
             search,
             instructionsBroadcaster ?? LifecycleServiceFixture.CreateInstructionsBroadcaster(),
             mcpToolsRegistryAccessor ?? LifecycleServiceFixture.CreateMcpToolsRegistryAccessor(),
-            logger ?? NullLogger.Instance);
+            logger ?? NullLogger.Instance,
+            mcpToolsInvoker);
     }
 }
