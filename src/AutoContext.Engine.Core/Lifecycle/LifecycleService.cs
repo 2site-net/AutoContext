@@ -4,6 +4,7 @@ using System.Text.Json;
 
 using AutoContext.Engine.Core.Features.Instructions;
 using AutoContext.Engine.Core.Features.McpTools;
+using AutoContext.Engine.Core.Features.McpTools.EditorConfig;
 using AutoContext.Engine.Core.Infrastructure;
 using AutoContext.Engine.Core.Infrastructure.Events;
 using AutoContext.Engine.Core.Infrastructure.Storage;
@@ -700,10 +701,19 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
             var transport = _services.GetService(typeof(PipeTransport)) as PipeTransport
                 ?? new PipeTransport(_loggerFactory.CreateLogger<PipeTransport>());
 
+            var instanceId = _options.InstanceId.ToString("D");
+
+            var editorConfigResolver = new WorkerEditorConfigResolver(
+                workerManager,
+                transport,
+                instanceId,
+                _loggerFactory.CreateLogger<WorkerEditorConfigResolver>());
+
             _mcpToolsInvoker = new McpToolsInvoker(
                 workerManager,
                 transport,
-                _options.InstanceId.ToString("D"),
+                instanceId,
+                editorConfigResolver,
                 _loggerFactory.CreateLogger<McpToolsInvoker>());
 
             return _mcpToolsInvoker;

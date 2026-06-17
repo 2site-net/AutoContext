@@ -2159,7 +2159,7 @@ MCP-tool dispatch (Phase 7).
 | 7 | `feat(engine): serve McpTools.List over rpc` | DONE |
 | 8 | `feat(engine-core): load workers.json and wire the worker manager` | DONE |
 | 8b | `feat(engine): serve McpTools.Invoke over rpc` | DONE |
-| 8c | `feat(engine): enrich McpTools.Invoke with editorconfig` | Not started |
+| 8c | `feat(engine): enrich McpTools.Invoke with editorconfig` | DONE |
 | 9 | `test(engine): integration test for mcp tool dispatch over rpc` | Not started |
 | 10 | `docs(plan): mark Phase 7 complete` | Not started |
 

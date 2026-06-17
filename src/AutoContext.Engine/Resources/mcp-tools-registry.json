@@ -5,12 +5,16 @@
         {
             "name": "analyze_csharp_code_style",
             "workerId": "dotnet",
-            "description": "Runs the core C# code-quality checks on a single source file and returns one combined report: coding style, member ordering, naming conventions, async/await patterns, and nullable safety. Use this whenever generating, editing, or reviewing C# code. For project-structure rules use analyze_csharp_project_structure; for test-specific rules use analyze_csharp_testing_style.",
+            "description": "Runs the core C# code-quality checks on a single source file and returns one combined report: coding style, member ordering, naming conventions, async/await patterns, and nullable safety. Use this whenever generating, editing, or reviewing C# code. Pass the source as content and, when available, the file's absolute path as filePath so the effective .editorconfig style rules can be resolved and applied. For project-structure rules use analyze_csharp_project_structure; for test-specific rules use analyze_csharp_testing_style.",
             "parameters": {
                 "content": {
                     "type": "string",
                     "description": "The C# source code to check.",
                     "required": true
+                },
+                "filePath": {
+                    "type": "string",
+                    "description": "Absolute path of the file whose source is in content. Used to resolve the effective .editorconfig style rules that apply to the file."
                 }
             },
             "editorconfig": [

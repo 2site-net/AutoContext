@@ -4,6 +4,7 @@ using System.IO;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
+using AutoContext.Engine.Core.Features.McpTools.EditorConfig;
 using AutoContext.Engine.Core.Features.McpTools.Snapshot;
 using AutoContext.Engine.Core.Infrastructure.Diagnostics;
 using AutoContext.Engine.Core.Workers;
@@ -23,6 +24,7 @@ internal sealed partial class McpToolsInvoker : IMcpToolsInvoker
     private const string DataPropertyName = "data";
     private const string EditorconfigPropertyName = "editorconfig";
     private const string ErrorPropertyName = "error";
+    private const string FilePathPropertyName = "filePath";
     private const string OutputPropertyName = "output";
     private const string StatusError = "error";
     private const string StatusOk = "ok";
@@ -32,6 +34,7 @@ internal sealed partial class McpToolsInvoker : IMcpToolsInvoker
 
     private static readonly JsonSerializerOptions WorkerJsonOptions = CreateWorkerJsonOptions();
 
+    private readonly IEditorConfigResolver _editorConfigResolver;
     private readonly string _instanceId;
     private readonly ILogger<McpToolsInvoker> _logger;
     private readonly PipeTransport _transport;
@@ -42,8 +45,9 @@ internal sealed partial class McpToolsInvoker : IMcpToolsInvoker
         WorkerManager workerManager,
         PipeTransport transport,
         string instanceId,
+        IEditorConfigResolver editorConfigResolver,
         ILogger<McpToolsInvoker> logger)
-        : this(workerManager, transport, instanceId, TimeSpan.FromSeconds(30), logger)
+        : this(workerManager, transport, instanceId, editorConfigResolver, TimeSpan.FromSeconds(30), logger)
     {
     }
 
@@ -51,6 +55,7 @@ internal sealed partial class McpToolsInvoker : IMcpToolsInvoker
         WorkerManager workerManager,
         PipeTransport transport,
         string instanceId,
+        IEditorConfigResolver editorConfigResolver,
         TimeSpan waitDeadline,
         ILogger<McpToolsInvoker> logger)
     {
@@ -65,11 +70,13 @@ internal sealed partial class McpToolsInvoker : IMcpToolsInvoker
         ArgumentNullException.ThrowIfNull(workerManager);
         ArgumentNullException.ThrowIfNull(transport);
         ArgumentException.ThrowIfNullOrWhiteSpace(instanceId);
+        ArgumentNullException.ThrowIfNull(editorConfigResolver);
         ArgumentNullException.ThrowIfNull(logger);
 
         _workerManager = workerManager;
         _transport = transport;
         _instanceId = instanceId;
+        _editorConfigResolver = editorConfigResolver;
         _waitDeadline = waitDeadline;
         _logger = logger;
     }
@@ -90,11 +97,15 @@ internal sealed partial class McpToolsInvoker : IMcpToolsInvoker
 
         try
         {
+            var editorconfig = await _editorConfigResolver
+                .ResolveAsync(TryGetFilePath(arguments), tool.Editorconfig, deadlineCts.Token)
+                .ConfigureAwait(false);
+
             await _workerManager
                 .EnsureRunningAsync(tool.WorkerId, deadlineCts.Token)
                 .ConfigureAwait(false);
 
-            var requestBytes = BuildRequestBytes(tool.Name, arguments, correlationId);
+            var requestBytes = BuildRequestBytes(tool.Name, arguments, editorconfig, correlationId);
 
             var exchange = new PipeTransientExchangeClient(_transport, endpoint);
             await using (exchange.ConfigureAwait(false))
@@ -134,20 +145,46 @@ internal sealed partial class McpToolsInvoker : IMcpToolsInvoker
         }
     }
 
-    private static byte[] BuildRequestBytes(
+    internal static byte[] BuildRequestBytes(
         string taskName,
         JsonElement arguments,
+        IReadOnlyDictionary<string, string> editorconfig,
         string correlationId)
     {
+        var editorconfigObject = new JsonObject();
+
+        foreach (var (key, value) in editorconfig)
+        {
+            editorconfigObject[key] = value;
+        }
+
         var request = new JsonObject
         {
             [TaskPropertyName] = taskName,
             [DataPropertyName] = JsonNode.Parse(arguments.GetRawText()),
-            [EditorconfigPropertyName] = new JsonObject(),
+            [EditorconfigPropertyName] = editorconfigObject,
             [CorrelationIdPropertyName] = correlationId,
         };
 
         return JsonSerializer.SerializeToUtf8Bytes(request, WorkerJsonOptions);
+    }
+
+    /// <summary>
+    /// Extracts the optional <c>filePath</c> argument used to resolve
+    /// EditorConfig values; returns <see langword="null"/> when absent,
+    /// blank, or not a string.
+    /// </summary>
+    internal static string? TryGetFilePath(JsonElement arguments)
+    {
+        if (arguments.ValueKind == JsonValueKind.Object
+            && arguments.TryGetProperty(FilePathPropertyName, out var filePath)
+            && filePath.ValueKind == JsonValueKind.String)
+        {
+            var value = filePath.GetString();
+            return string.IsNullOrWhiteSpace(value) ? null : value;
+        }
+
+        return null;
     }
 
     private static JsonElement CreateTextBlock(string text)
