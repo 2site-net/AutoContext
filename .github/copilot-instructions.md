@@ -10,16 +10,25 @@
 
 ## Build & Test
 
-- **Do** route all compilation, testing, linting, and packaging through `build.ps1` from the repository root — it configures paths, aliases, manifests, and compilation order that bare tool invocations miss.
-- **Do** consult the **Build Commands** table below for the canonical command for each task.
+- **Do** route all compilation, testing, linting, and packaging through the AutoContext build tooling — never bare `npx vitest`, `npx tsc`, `dotnet build`, `dotnet test`, etc. The tooling configures paths, aliases, manifests, npm-install gating, and compilation order that bare invocations miss.
+- **Do** use the orchestrator `build.ps1` from the repository root as the canonical entry point; consult the **Build Commands** table below for the command for each task.
 - **Do** run `.\build.ps1 -Help` for the full list of actions, targets, and switches (e.g. `-Clean`, `-Local`, `-WhatIf`, `-RuntimeIdentifier`).
-- **Don't** invoke `npx vitest`, `npx tsc`, `dotnet build`, `dotnet test`, or any other build/test tool directly.
+- **Don't** invoke `npx vitest`, `npx tsc`, `dotnet build`, `dotnet test`, or any other build/test tool directly — go through `build.ps1` or a `scripts/*.ps1` wrapper.
+
+### Two-tier workflow
+
+The build logic lives in `scripts/AutoContext.Build.psm1`; `build.ps1` is the orchestrator and the `scripts/*.ps1` files are granular wrappers over the same module functions. Use the right tier for the job:
+
+- **Inner loop (fast, narrow):** use the granular `scripts/*.ps1` wrappers while iterating — e.g. `scripts/compile.ps1 DotNet` (compile only, no tests/format gate), `scripts/test.ps1 TS`, `scripts/format.ps1`, `scripts/clean.ps1`. They skip the composite phases so they return quickly. `scripts/compile.ps1` is **compile-only** and deliberately differs from `build.ps1 Compile` (which also runs the format gate and unit tests).
+- **Gate (full, authoritative):** before declaring work done or proposing a commit, run the full composite `.\build.ps1 Compile` (both stacks: compile + .NET format gate + unit tests). A green `build.ps1 Compile` — not a green inner-loop wrapper — is the bar for "done".
+- **Note:** `scripts/test.ps1 DotNet` runs `dotnet test --no-build`, so compile first (or use `build.ps1 Compile`). npm installs are hash-gated on `package-lock.json`, so repeated TypeScript compiles skip `npm install` when dependencies are unchanged.
+- **Do** run `scripts/build.tests.ps1` after changing `build.ps1`, the build module, or any wrapper — it exercises every action/target/switch combination (including the wrappers) under `-WhatIf`.
 
 ### Build Commands
 
 | Task                                            | Command                                |
 |-------------------------------------------------|----------------------------------------|
-| Compile everything + run unit tests             | `.\build.ps1 Compile`                  |
+| Compile everything + run unit tests (the gate)  | `.\build.ps1 Compile`                  |
 | Compile TypeScript + TS tests                   | `.\build.ps1 Compile TS`               |
 | Compile .NET + .NET tests                       | `.\build.ps1 Compile DotNet`           |
 | Compile only — skip unit tests                  | `.\build.ps1 Compile -NoTest`          |
@@ -29,9 +38,14 @@
 | Smoke-test .NET only                            | `.\build.ps1 Compile -Smoke DotNet`    |
 | Prepare (clean + compile + test + copy assets)  | `.\build.ps1 Prepare`                  |
 | Package                                         | `.\build.ps1 Package`                  |
+| Inner-loop compile (compile only, no tests)     | `.\scripts\compile.ps1 [TS\|DotNet]`   |
+| Inner-loop tests (assumes prior compile)        | `.\scripts\test.ps1 [TS\|DotNet]`      |
+| Inner-loop .NET format gate                     | `.\scripts\format.ps1`                 |
+| Run the build self-test suite                   | `.\scripts\build.tests.ps1`            |
 
 > `Compile` always runs unit tests unless you pass `-NoTest`. There is no
-> standalone `Test` action — tests always run with a fresh compile.
+> standalone `Test` action — `build.ps1` tests always run with a fresh compile.
+> For a tests-only run against an already-compiled tree, use `scripts/test.ps1`.
 
 ## MCP Tool Scope
 

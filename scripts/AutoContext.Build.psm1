@@ -309,6 +309,54 @@ function Sync-ProjectVersions {
 
 # ── Core actions ─────────────────────────────────────────────────────────────
 
+function Invoke-NpmInstall {
+    <#
+    .SYNOPSIS
+        Installs npm dependencies for a project, skipping the install when
+        package-lock.json is unchanged since the last successful install.
+    .DESCRIPTION
+        Gates `npm install` / `npm ci` on a SHA-256 hash of package-lock.json
+        recorded under node_modules after a successful install. When the lock
+        file is unchanged and node_modules is present, the install is skipped —
+        eliminating the dominant cost of repeated inner-loop compiles. Assumes
+        the current working directory is $ProjectDir (callers Push-Location
+        into it before invoking npm).
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)][string]$ProjectDir,
+        [Parameter(Mandatory)][string]$InstallCommand,
+        [Parameter(Mandatory)][string]$Label
+    )
+
+    $lockPath = Join-Path $ProjectDir 'package-lock.json'
+    $nodeModulesDir = Join-Path $ProjectDir 'node_modules'
+    $markerPath = Join-Path $nodeModulesDir '.autocontext-lock-hash'
+
+    $lockHash = if (Test-Path -LiteralPath $lockPath) {
+        (Get-FileHash -LiteralPath $lockPath -Algorithm SHA256).Hash
+    } else { $null }
+
+    # Skip when the lock file matches the hash recorded at the last successful
+    # install AND node_modules is still present.
+    if ($lockHash -and (Test-Path -LiteralPath $nodeModulesDir) -and (Test-Path -LiteralPath $markerPath)) {
+        $recordedHash = (Get-Content -LiteralPath $markerPath -Raw).Trim()
+        if ($recordedHash -ceq $lockHash) {
+            Write-Status "$Label dependencies up to date (skipped install)" 'OK'
+            return
+        }
+    }
+
+    Write-Status "Installing $Label dependencies..." 'INFO'
+    npm $InstallCommand
+    if ($LASTEXITCODE -ne 0) { throw "$Label npm install failed." }
+
+    # Record the lock hash so the next install for an unchanged lock is skipped.
+    if ($lockHash) {
+        Set-Content -LiteralPath $markerPath -Value $lockHash -NoNewline
+    }
+}
+
 function Build-TypeScript {
     [CmdletBinding(SupportsShouldProcess)]
     param([Parameter(Mandatory)][psobject]$Context)
@@ -328,9 +376,7 @@ function Build-TypeScript {
 
             Push-Location $libDir
             try {
-                Write-Status "Installing $libName dependencies..." 'INFO'
-                npm $Context.NpmInstallCmd
-                if ($LASTEXITCODE -ne 0) { throw "$libName npm install failed." }
+                Invoke-NpmInstall -ProjectDir $libDir -InstallCommand $Context.NpmInstallCmd -Label $libName
 
                 Write-Status "Compiling $libName (src + tests)..." 'INFO'
                 npx tsc -b ./tsconfig.json
@@ -344,9 +390,7 @@ function Build-TypeScript {
 
         Push-Location $Context.ExtensionDir
         try {
-            Write-Status 'Installing extension dependencies...' 'INFO'
-            npm $Context.NpmInstallCmd
-            if ($LASTEXITCODE -ne 0) { throw 'Extension npm install failed.' }
+            Invoke-NpmInstall -ProjectDir $Context.ExtensionDir -InstallCommand $Context.NpmInstallCmd -Label 'extension'
 
             Write-Status 'Generating instructions files metadata...' 'INFO'
             npx tsx src/instructions-files-metadata-generator.ts
@@ -396,9 +440,7 @@ function Build-TypeScript {
             $serverLabel = $server.name
             Push-Location $serverDir
             try {
-                Write-Status "Installing $serverLabel dependencies..." 'INFO'
-                npm $Context.NpmInstallCmd
-                if ($LASTEXITCODE -ne 0) { throw "$serverLabel npm install failed." }
+                Invoke-NpmInstall -ProjectDir $serverDir -InstallCommand $Context.NpmInstallCmd -Label $serverLabel
 
                 $versionTsPath = Join-Path $serverDir 'src' 'version.ts'
                 Write-Status "Generating $serverLabel version..." 'INFO'
