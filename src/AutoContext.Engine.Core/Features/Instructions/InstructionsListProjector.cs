@@ -168,7 +168,7 @@ internal sealed class InstructionsListProjector
             ContentHash = entry.ContentHash,
             AlwaysAttached = entry.AlwaysAttached,
             Label = entry.Label,
-            Categories = entry.Categories,
+            Category = entry.Category,
             Disabled = disabled,
             Source = isOverride ? InstructionsSource.Override : InstructionsSource.Bundled,
             OverridePath = overridePath is not null ? ToWorkspaceRelative(workspacePath, overridePath) : null,

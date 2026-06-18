@@ -52,7 +52,7 @@ public sealed class InstructionsManifestLoaderTests
                 () => Assert.Null(file.ApplyTo),
                 () => Assert.Null(file.Extensions),
                 () => Assert.Null(file.Label),
-                () => Assert.Empty(file.Categories),
+                () => Assert.Null(file.Category),
                 () => Assert.Empty(file.ActivationFlags));
         }
 
@@ -106,7 +106,7 @@ public sealed class InstructionsManifestLoaderTests
             Assert.NotNull(file);
             Assert.Multiple(
                 () => Assert.Equal("Docker", file.Label),
-                () => Assert.Equal(["Tools"], file.Categories),
+                () => Assert.Equal("Tools", file.Category),
                 () => Assert.Equal(["hasDocker"], file.ActivationFlags));
         }
 

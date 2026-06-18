@@ -173,8 +173,8 @@ internal static class InstructionsManifestLoader
         var fileName = Required(manifest.FileName, "fileName", manifestPath);
         var isAlwaysAttached = alwaysAttached.Contains(fileName);
 
-        var (label, categories, activationFlags) = isAlwaysAttached
-            ? (null, [], [])
+        var (label, category, activationFlags) = isAlwaysAttached
+            ? (null, null, [])
             : ResolveCatalog(fileName, catalogByFileName, catalogPath);
 
         return new InstructionsFileManifestEntry
@@ -190,13 +190,13 @@ internal static class InstructionsManifestLoader
             ContentHash = Required(manifest.ContentHash, "contentHash", manifestPath),
             AlwaysAttached = isAlwaysAttached,
             Label = label,
-            Categories = categories,
+            Category = category,
             ActivationFlags = activationFlags,
             Sections = ProjectSections(manifest.Sections, key, manifestPath),
         };
     }
 
-    private static (string? Label, IReadOnlyList<string> Categories, IReadOnlyList<string> ActivationFlags)
+    private static (string? Label, string? Category, IReadOnlyList<string> ActivationFlags)
         ResolveCatalog(
             string fileName,
             IReadOnlyDictionary<string, JsonInstructionsCatalogEntry> catalogByFileName,
@@ -210,7 +210,7 @@ internal static class InstructionsManifestLoader
 
         return (
             Required(entry.Label, $"instructions[].label for '{fileName}'", catalogPath),
-            entry.Categories ?? [],
+            entry.Category,
             entry.ActivationFlags ?? []);
     }
 

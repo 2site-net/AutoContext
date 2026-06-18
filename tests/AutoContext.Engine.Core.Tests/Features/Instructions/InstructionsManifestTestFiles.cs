@@ -61,7 +61,7 @@ internal static class InstructionsManifestTestFiles
             {
               "label": "Docker",
               "fileName": "docker.instructions.md",
-              "categories": [ "Tools" ],
+              "category": "Tools",
               "activationFlags": [ "hasDocker" ]
             }
           ]

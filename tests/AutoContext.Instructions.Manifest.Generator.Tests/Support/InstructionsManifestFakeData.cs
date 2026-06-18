@@ -34,9 +34,9 @@ internal static class InstructionsManifestFakeData
     internal static JsonInstructionsCatalogEntry CreateCatalogEntry(
         string label = "Code Review",
         string fileName = "code-review.instructions.md",
-        IReadOnlyList<string>? categories = null,
+        string? category = null,
         IReadOnlyList<string>? activationFlags = null)
-        => new(label, fileName, categories ?? ["General"], activationFlags);
+        => new(label, fileName, category ?? "General", activationFlags);
 
     internal static JsonInstructionsCatalog CreateCatalog(
         IReadOnlyList<JsonInstructionsCatalogCategory> categories,

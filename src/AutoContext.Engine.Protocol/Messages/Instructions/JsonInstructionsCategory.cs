@@ -7,8 +7,8 @@ using System.Text.Json.Serialization;
 /// <see cref="InstructionsMethods.Categories"/> taxonomy — a
 /// <c>name</c> plus its human-readable <c>description</c>. These
 /// definitions are hand-authored in <c>instructions-catalog.json</c>;
-/// the per-file membership strings on
-/// <see cref="JsonInstructionsListRow.Categories"/> resolve to them.
+/// the per-file membership string on
+/// <see cref="JsonInstructionsListRow.Category"/> resolves to them.
 /// </summary>
 public sealed record JsonInstructionsCategory
 {

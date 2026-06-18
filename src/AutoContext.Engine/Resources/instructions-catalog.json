@@ -30,30 +30,22 @@
         {
             "label": "Code Review",
             "fileName": "code-review.instructions.md",
-            "categories": [
-                "General"
-            ]
+            "category": "General"
         },
         {
             "label": "Design Principles",
             "fileName": "design-principles.instructions.md",
-            "categories": [
-                "General"
-            ]
+            "category": "General"
         },
         {
             "label": "REST API Design",
             "fileName": "rest-api-design.instructions.md",
-            "categories": [
-                "General"
-            ]
+            "category": "General"
         },
         {
             "label": "Testing",
             "fileName": "testing.instructions.md",
-            "categories": [
-                "General"
-            ],
+            "category": "General",
             "activationFlags": [
                 "hasDotNetTesting",
                 "hasWebTesting"
@@ -62,9 +54,7 @@
         {
             "label": "Bash",
             "fileName": "lang-bash.instructions.md",
-            "categories": [
-                "Languages"
-            ],
+            "category": "Languages",
             "activationFlags": [
                 "hasBash"
             ]
@@ -72,9 +62,7 @@
         {
             "label": "Batch (CMD)",
             "fileName": "lang-batch.instructions.md",
-            "categories": [
-                "Languages"
-            ],
+            "category": "Languages",
             "activationFlags": [
                 "hasBatch"
             ]
@@ -82,9 +70,7 @@
         {
             "label": "C",
             "fileName": "lang-c.instructions.md",
-            "categories": [
-                "Languages"
-            ],
+            "category": "Languages",
             "activationFlags": [
                 "hasC"
             ]
@@ -92,9 +78,7 @@
         {
             "label": "C#",
             "fileName": "lang-csharp.instructions.md",
-            "categories": [
-                "Languages"
-            ],
+            "category": "Languages",
             "activationFlags": [
                 "hasCSharp"
             ]
@@ -102,9 +86,7 @@
         {
             "label": "C++",
             "fileName": "lang-cpp.instructions.md",
-            "categories": [
-                "Languages"
-            ],
+            "category": "Languages",
             "activationFlags": [
                 "hasCpp"
             ]
@@ -112,9 +94,7 @@
         {
             "label": "CSS",
             "fileName": "lang-css.instructions.md",
-            "categories": [
-                "Languages"
-            ],
+            "category": "Languages",
             "activationFlags": [
                 "hasCss"
             ]
@@ -122,9 +102,7 @@
         {
             "label": "Dart",
             "fileName": "lang-dart.instructions.md",
-            "categories": [
-                "Languages"
-            ],
+            "category": "Languages",
             "activationFlags": [
                 "hasDart"
             ]
@@ -132,9 +110,7 @@
         {
             "label": "F#",
             "fileName": "lang-fsharp.instructions.md",
-            "categories": [
-                "Languages"
-            ],
+            "category": "Languages",
             "activationFlags": [
                 "hasFSharp"
             ]
@@ -142,9 +118,7 @@
         {
             "label": "Go",
             "fileName": "lang-go.instructions.md",
-            "categories": [
-                "Languages"
-            ],
+            "category": "Languages",
             "activationFlags": [
                 "hasGo"
             ]
@@ -152,9 +126,7 @@
         {
             "label": "GraphQL",
             "fileName": "lang-graphql.instructions.md",
-            "categories": [
-                "Languages"
-            ],
+            "category": "Languages",
             "activationFlags": [
                 "hasGraphql"
             ]
@@ -162,9 +134,7 @@
         {
             "label": "Groovy",
             "fileName": "lang-groovy.instructions.md",
-            "categories": [
-                "Languages"
-            ],
+            "category": "Languages",
             "activationFlags": [
                 "hasGroovy"
             ]
@@ -172,9 +142,7 @@
         {
             "label": "HTML",
             "fileName": "lang-html.instructions.md",
-            "categories": [
-                "Languages"
-            ],
+            "category": "Languages",
             "activationFlags": [
                 "hasHtml"
             ]
@@ -182,9 +150,7 @@
         {
             "label": "Java",
             "fileName": "lang-java.instructions.md",
-            "categories": [
-                "Languages"
-            ],
+            "category": "Languages",
             "activationFlags": [
                 "hasJava"
             ]
@@ -192,9 +158,7 @@
         {
             "label": "JavaScript",
             "fileName": "lang-javascript.instructions.md",
-            "categories": [
-                "Languages"
-            ],
+            "category": "Languages",
             "activationFlags": [
                 "hasJavaScript",
                 "hasTypeScript"
@@ -203,9 +167,7 @@
         {
             "label": "Kotlin",
             "fileName": "lang-kotlin.instructions.md",
-            "categories": [
-                "Languages"
-            ],
+            "category": "Languages",
             "activationFlags": [
                 "hasKotlin"
             ]
@@ -213,9 +175,7 @@
         {
             "label": "Lua",
             "fileName": "lang-lua.instructions.md",
-            "categories": [
-                "Languages"
-            ],
+            "category": "Languages",
             "activationFlags": [
                 "hasLua"
             ]
@@ -223,9 +183,7 @@
         {
             "label": "PHP",
             "fileName": "lang-php.instructions.md",
-            "categories": [
-                "Languages"
-            ],
+            "category": "Languages",
             "activationFlags": [
                 "hasPhp"
             ]
@@ -233,9 +191,7 @@
         {
             "label": "PowerShell",
             "fileName": "lang-powershell.instructions.md",
-            "categories": [
-                "Languages"
-            ],
+            "category": "Languages",
             "activationFlags": [
                 "hasPowerShell"
             ]
@@ -243,9 +199,7 @@
         {
             "label": "Python",
             "fileName": "lang-python.instructions.md",
-            "categories": [
-                "Languages"
-            ],
+            "category": "Languages",
             "activationFlags": [
                 "hasPython"
             ]
@@ -253,9 +207,7 @@
         {
             "label": "Ruby",
             "fileName": "lang-ruby.instructions.md",
-            "categories": [
-                "Languages"
-            ],
+            "category": "Languages",
             "activationFlags": [
                 "hasRuby"
             ]
@@ -263,9 +215,7 @@
         {
             "label": "Rust",
             "fileName": "lang-rust.instructions.md",
-            "categories": [
-                "Languages"
-            ],
+            "category": "Languages",
             "activationFlags": [
                 "hasRust"
             ]
@@ -273,9 +223,7 @@
         {
             "label": "Scala",
             "fileName": "lang-scala.instructions.md",
-            "categories": [
-                "Languages"
-            ],
+            "category": "Languages",
             "activationFlags": [
                 "hasScala"
             ]
@@ -283,16 +231,12 @@
         {
             "label": "SQL",
             "fileName": "lang-sql.instructions.md",
-            "categories": [
-                "Languages"
-            ]
+            "category": "Languages"
         },
         {
             "label": "Swift",
             "fileName": "lang-swift.instructions.md",
-            "categories": [
-                "Languages"
-            ],
+            "category": "Languages",
             "activationFlags": [
                 "hasSwift"
             ]
@@ -300,9 +244,7 @@
         {
             "label": "TypeScript",
             "fileName": "lang-typescript.instructions.md",
-            "categories": [
-                "Languages"
-            ],
+            "category": "Languages",
             "activationFlags": [
                 "hasTypeScript"
             ]
@@ -310,9 +252,7 @@
         {
             "label": "VB.NET",
             "fileName": "lang-vbnet.instructions.md",
-            "categories": [
-                "Languages"
-            ],
+            "category": "Languages",
             "activationFlags": [
                 "hasVbNet"
             ]
@@ -320,9 +260,7 @@
         {
             "label": "YAML",
             "fileName": "lang-yaml.instructions.md",
-            "categories": [
-                "Languages"
-            ],
+            "category": "Languages",
             "activationFlags": [
                 "hasYaml"
             ]
@@ -330,9 +268,7 @@
         {
             "label": ".NET MAUI",
             "fileName": "dotnet-maui.instructions.md",
-            "categories": [
-                ".NET"
-            ],
+            "category": ".NET",
             "activationFlags": [
                 "hasMaui"
             ]
@@ -340,9 +276,7 @@
         {
             "label": "ASP.NET Core",
             "fileName": "dotnet-aspnetcore.instructions.md",
-            "categories": [
-                ".NET"
-            ],
+            "category": ".NET",
             "activationFlags": [
                 "hasAspNetCore"
             ]
@@ -350,9 +284,7 @@
         {
             "label": "ASP.NET Web Forms",
             "fileName": "dotnet-aspx.instructions.md",
-            "categories": [
-                ".NET"
-            ],
+            "category": ".NET",
             "activationFlags": [
                 "hasWebForms"
             ]
@@ -360,9 +292,7 @@
         {
             "label": "Async/Await",
             "fileName": "dotnet-async-await.instructions.md",
-            "categories": [
-                ".NET"
-            ],
+            "category": ".NET",
             "activationFlags": [
                 "hasDotNet"
             ]
@@ -370,9 +300,7 @@
         {
             "label": "Blazor",
             "fileName": "dotnet-blazor.instructions.md",
-            "categories": [
-                ".NET"
-            ],
+            "category": ".NET",
             "activationFlags": [
                 "hasBlazor"
             ]
@@ -380,9 +308,7 @@
         {
             "label": "Coding Standards",
             "fileName": "dotnet-coding-standards.instructions.md",
-            "categories": [
-                ".NET"
-            ],
+            "category": ".NET",
             "activationFlags": [
                 "hasDotNet"
             ]
@@ -390,9 +316,7 @@
         {
             "label": "Core (DI, Logging, Config, Security)",
             "fileName": "dotnet-core.instructions.md",
-            "categories": [
-                ".NET"
-            ],
+            "category": ".NET",
             "activationFlags": [
                 "hasDotNet"
             ]
@@ -400,9 +324,7 @@
         {
             "label": "Dapper",
             "fileName": "dotnet-dapper.instructions.md",
-            "categories": [
-                ".NET"
-            ],
+            "category": ".NET",
             "activationFlags": [
                 "hasDapper"
             ]
@@ -410,9 +332,7 @@
         {
             "label": "Debugging",
             "fileName": "dotnet-debugging.instructions.md",
-            "categories": [
-                ".NET"
-            ],
+            "category": ".NET",
             "activationFlags": [
                 "hasDotNet"
             ]
@@ -420,9 +340,7 @@
         {
             "label": "Entity Framework Core",
             "fileName": "dotnet-entity-framework-core.instructions.md",
-            "categories": [
-                ".NET"
-            ],
+            "category": ".NET",
             "activationFlags": [
                 "hasEntityFrameworkCore"
             ]
@@ -430,9 +348,7 @@
         {
             "label": "gRPC",
             "fileName": "dotnet-grpc.instructions.md",
-            "categories": [
-                ".NET"
-            ],
+            "category": ".NET",
             "activationFlags": [
                 "hasGrpc"
             ]
@@ -440,9 +356,7 @@
         {
             "label": "Mediator / CQRS",
             "fileName": "dotnet-mediator-cqrs.instructions.md",
-            "categories": [
-                ".NET"
-            ],
+            "category": ".NET",
             "activationFlags": [
                 "hasMediatR"
             ]
@@ -450,9 +364,7 @@
         {
             "label": "MongoDB",
             "fileName": "dotnet-mongodb.instructions.md",
-            "categories": [
-                ".NET"
-            ],
+            "category": ".NET",
             "activationFlags": [
                 "hasMongoDb"
             ]
@@ -460,9 +372,7 @@
         {
             "label": "MSTest",
             "fileName": "dotnet-mstest.instructions.md",
-            "categories": [
-                ".NET"
-            ],
+            "category": ".NET",
             "activationFlags": [
                 "hasMsTest"
             ]
@@ -470,9 +380,7 @@
         {
             "label": "MySQL",
             "fileName": "dotnet-mysql.instructions.md",
-            "categories": [
-                ".NET"
-            ],
+            "category": ".NET",
             "activationFlags": [
                 "hasMySql"
             ]
@@ -480,9 +388,7 @@
         {
             "label": "NuGet",
             "fileName": "dotnet-nuget.instructions.md",
-            "categories": [
-                ".NET"
-            ],
+            "category": ".NET",
             "activationFlags": [
                 "hasDotNet"
             ]
@@ -490,9 +396,7 @@
         {
             "label": "NUnit",
             "fileName": "dotnet-nunit.instructions.md",
-            "categories": [
-                ".NET"
-            ],
+            "category": ".NET",
             "activationFlags": [
                 "hasNUnit"
             ]
@@ -500,9 +404,7 @@
         {
             "label": "Oracle",
             "fileName": "dotnet-oracle.instructions.md",
-            "categories": [
-                ".NET"
-            ],
+            "category": ".NET",
             "activationFlags": [
                 "hasOracle"
             ]
@@ -510,9 +412,7 @@
         {
             "label": "Performance & Memory",
             "fileName": "dotnet-performance-memory.instructions.md",
-            "categories": [
-                ".NET"
-            ],
+            "category": ".NET",
             "activationFlags": [
                 "hasDotNet"
             ]
@@ -520,9 +420,7 @@
         {
             "label": "PostgreSQL",
             "fileName": "dotnet-postgresql.instructions.md",
-            "categories": [
-                ".NET"
-            ],
+            "category": ".NET",
             "activationFlags": [
                 "hasPostgres"
             ]
@@ -530,9 +428,7 @@
         {
             "label": "Razor",
             "fileName": "dotnet-razor.instructions.md",
-            "categories": [
-                ".NET"
-            ],
+            "category": ".NET",
             "activationFlags": [
                 "hasRazor"
             ]
@@ -540,9 +436,7 @@
         {
             "label": "Redis",
             "fileName": "dotnet-redis.instructions.md",
-            "categories": [
-                ".NET"
-            ],
+            "category": ".NET",
             "activationFlags": [
                 "hasRedis"
             ]
@@ -550,9 +444,7 @@
         {
             "label": "SignalR",
             "fileName": "dotnet-signalr.instructions.md",
-            "categories": [
-                ".NET"
-            ],
+            "category": ".NET",
             "activationFlags": [
                 "hasSignalR"
             ]
@@ -560,9 +452,7 @@
         {
             "label": "SQL Server",
             "fileName": "dotnet-sql-server.instructions.md",
-            "categories": [
-                ".NET"
-            ],
+            "category": ".NET",
             "activationFlags": [
                 "hasSqlServer"
             ]
@@ -570,9 +460,7 @@
         {
             "label": "SQLite",
             "fileName": "dotnet-sqlite.instructions.md",
-            "categories": [
-                ".NET"
-            ],
+            "category": ".NET",
             "activationFlags": [
                 "hasSqlite"
             ]
@@ -580,9 +468,7 @@
         {
             "label": "Testing",
             "fileName": "dotnet-testing.instructions.md",
-            "categories": [
-                ".NET"
-            ],
+            "category": ".NET",
             "activationFlags": [
                 "hasDotNetTesting"
             ]
@@ -590,9 +476,7 @@
         {
             "label": "Unity",
             "fileName": "dotnet-unity.instructions.md",
-            "categories": [
-                ".NET"
-            ],
+            "category": ".NET",
             "activationFlags": [
                 "hasUnity"
             ]
@@ -600,9 +484,7 @@
         {
             "label": "Windows Forms",
             "fileName": "dotnet-winforms.instructions.md",
-            "categories": [
-                ".NET"
-            ],
+            "category": ".NET",
             "activationFlags": [
                 "hasWinForms"
             ]
@@ -610,9 +492,7 @@
         {
             "label": "WPF",
             "fileName": "dotnet-wpf.instructions.md",
-            "categories": [
-                ".NET"
-            ],
+            "category": ".NET",
             "activationFlags": [
                 "hasWpf"
             ]
@@ -620,9 +500,7 @@
         {
             "label": "XAML",
             "fileName": "dotnet-xaml.instructions.md",
-            "categories": [
-                ".NET"
-            ],
+            "category": ".NET",
             "activationFlags": [
                 "hasXaml"
             ]
@@ -630,9 +508,7 @@
         {
             "label": "xUnit",
             "fileName": "dotnet-xunit.instructions.md",
-            "categories": [
-                ".NET"
-            ],
+            "category": ".NET",
             "activationFlags": [
                 "hasXunit"
             ]
@@ -640,9 +516,7 @@
         {
             "label": "Angular",
             "fileName": "web-angular.instructions.md",
-            "categories": [
-                "Web"
-            ],
+            "category": "Web",
             "activationFlags": [
                 "hasAngular"
             ]
@@ -650,9 +524,7 @@
         {
             "label": "Cypress",
             "fileName": "web-cypress.instructions.md",
-            "categories": [
-                "Web"
-            ],
+            "category": "Web",
             "activationFlags": [
                 "hasCypress"
             ]
@@ -660,9 +532,7 @@
         {
             "label": "Jasmine",
             "fileName": "web-jasmine.instructions.md",
-            "categories": [
-                "Web"
-            ],
+            "category": "Web",
             "activationFlags": [
                 "hasJasmine"
             ]
@@ -670,9 +540,7 @@
         {
             "label": "Jest",
             "fileName": "web-jest.instructions.md",
-            "categories": [
-                "Web"
-            ],
+            "category": "Web",
             "activationFlags": [
                 "hasJest"
             ]
@@ -680,9 +548,7 @@
         {
             "label": "Mocha",
             "fileName": "web-mocha.instructions.md",
-            "categories": [
-                "Web"
-            ],
+            "category": "Web",
             "activationFlags": [
                 "hasMocha"
             ]
@@ -690,9 +556,7 @@
         {
             "label": "Next.js",
             "fileName": "web-nextjs.instructions.md",
-            "categories": [
-                "Web"
-            ],
+            "category": "Web",
             "activationFlags": [
                 "hasNextJs"
             ]
@@ -700,9 +564,7 @@
         {
             "label": "Node.js",
             "fileName": "web-nodejs.instructions.md",
-            "categories": [
-                "Web"
-            ],
+            "category": "Web",
             "activationFlags": [
                 "hasNodeJs"
             ]
@@ -710,9 +572,7 @@
         {
             "label": "Playwright",
             "fileName": "web-playwright.instructions.md",
-            "categories": [
-                "Web"
-            ],
+            "category": "Web",
             "activationFlags": [
                 "hasPlaywright"
             ]
@@ -720,9 +580,7 @@
         {
             "label": "React",
             "fileName": "web-react.instructions.md",
-            "categories": [
-                "Web"
-            ],
+            "category": "Web",
             "activationFlags": [
                 "hasReact"
             ]
@@ -730,9 +588,7 @@
         {
             "label": "Svelte",
             "fileName": "web-svelte.instructions.md",
-            "categories": [
-                "Web"
-            ],
+            "category": "Web",
             "activationFlags": [
                 "hasSvelte"
             ]
@@ -740,9 +596,7 @@
         {
             "label": "Testing",
             "fileName": "web-testing.instructions.md",
-            "categories": [
-                "Web"
-            ],
+            "category": "Web",
             "activationFlags": [
                 "hasWebTesting"
             ]
@@ -750,9 +604,7 @@
         {
             "label": "Vitest",
             "fileName": "web-vitest.instructions.md",
-            "categories": [
-                "Web"
-            ],
+            "category": "Web",
             "activationFlags": [
                 "hasVitest"
             ]
@@ -760,9 +612,7 @@
         {
             "label": "Vue.js",
             "fileName": "web-vue.instructions.md",
-            "categories": [
-                "Web"
-            ],
+            "category": "Web",
             "activationFlags": [
                 "hasVue"
             ]
@@ -770,9 +620,7 @@
         {
             "label": "Git Commit Format",
             "fileName": "git-commit.instructions.md",
-            "categories": [
-                "Tools"
-            ],
+            "category": "Tools",
             "activationFlags": [
                 "hasGit"
             ]
@@ -780,9 +628,7 @@
         {
             "label": "Docker",
             "fileName": "docker.instructions.md",
-            "categories": [
-                "Tools"
-            ],
+            "category": "Tools",
             "activationFlags": [
                 "hasDocker"
             ]

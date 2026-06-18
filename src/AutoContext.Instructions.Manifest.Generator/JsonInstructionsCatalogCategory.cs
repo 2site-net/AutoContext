@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 /// <summary>
 /// One category declared in the hand-authored <c>instructions-catalog.json</c>:
 /// the presentation grouping (e.g. <c>Languages</c>, <c>.NET</c>, <c>Web</c>) a
-/// catalog entry's <see cref="JsonInstructionsCatalogEntry.Categories"/> membership
+/// catalog entry's <see cref="JsonInstructionsCatalogEntry.Category"/> membership
 /// resolves against.
 /// </summary>
 internal sealed class JsonInstructionsCatalogCategory(

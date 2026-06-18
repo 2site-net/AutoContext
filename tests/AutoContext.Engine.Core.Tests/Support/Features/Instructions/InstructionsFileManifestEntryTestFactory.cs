@@ -18,7 +18,7 @@ internal static class InstructionsFileManifestEntryTestFactory
         bool alwaysAttached = false,
         string? applyTo = null,
         IReadOnlyList<string>? extensions = null,
-        IReadOnlyList<string>? categories = null,
+        string? category = null,
         string? label = null,
         IReadOnlyList<InstructionsSection>? sections = null)
         => new()
@@ -34,7 +34,7 @@ internal static class InstructionsFileManifestEntryTestFactory
             ContentHash = "sha256:0",
             AlwaysAttached = alwaysAttached,
             Label = label,
-            Categories = categories ?? [],
+            Category = category,
             Sections = sections ?? [],
         };
 }

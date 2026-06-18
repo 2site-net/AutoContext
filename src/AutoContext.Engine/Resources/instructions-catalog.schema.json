@@ -77,7 +77,7 @@
             "required": [
                 "label",
                 "fileName",
-                "categories"
+                "category"
             ],
             "properties": {
                 "label": {
@@ -89,15 +89,10 @@
                     "$ref": "#/$defs/instructionFileName",
                     "description": "The corpus file this entry decorates (the join key into the generated manifest). Unique across the catalog."
                 },
-                "categories": {
-                    "type": "array",
-                    "minItems": 1,
-                    "uniqueItems": true,
-                    "items": {
-                        "type": "string",
-                        "minLength": 1
-                    },
-                    "description": "Category names this entry belongs to. Each must resolve to a declared category."
+                "category": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Category name this entry belongs to. Must resolve to a declared category."
                 },
                 "activationFlags": {
                     "type": "array",

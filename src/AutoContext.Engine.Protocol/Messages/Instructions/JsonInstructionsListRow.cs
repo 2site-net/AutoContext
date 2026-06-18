@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 /// <summary>
 /// One identity row of the <see cref="InstructionsMethods.List"/>
 /// listing. Carries every build-time manifest field, the curatorial
-/// <see cref="Label"/> and category <see cref="Categories"/> membership
+/// <see cref="Label"/> and category <see cref="Category"/> membership
 /// from <c>instructions-catalog.json</c>, plus the four values the
 /// engine resolves per request from workspace state
 /// (<see cref="Disabled"/>, <see cref="Source"/>,
@@ -63,13 +63,13 @@ public sealed record JsonInstructionsListRow
     public string? Label { get; init; }
 
     /// <summary>
-    /// Category-membership names from <c>instructions-catalog.json</c>;
-    /// each resolves to a <see cref="JsonInstructionsCategory"/>
+    /// Category-membership name from <c>instructions-catalog.json</c>;
+    /// resolves to a <see cref="JsonInstructionsCategory"/>
     /// definition returned by <see cref="InstructionsMethods.Categories"/>.
-    /// Empty when the file is uncategorized.
+    /// <see langword="null"/> when the file is uncategorized.
     /// </summary>
-    [JsonPropertyName("categories")]
-    public IReadOnlyList<string> Categories { get; init; } = [];
+    [JsonPropertyName("category")]
+    public string? Category { get; init; }
 
     /// <summary>
     /// Engine-resolved disabled state against <c>.autocontext.json</c>.

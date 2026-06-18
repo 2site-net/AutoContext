@@ -209,17 +209,14 @@ internal sealed class InstructionsCatalogReader : IInstructionsCatalogReader
                 throw Fail("duplicate entry for file '" + entry.FileName + "'");
             }
 
-            if (entry.Categories is null || entry.Categories.Count == 0)
+            if (string.IsNullOrWhiteSpace(entry.Category))
             {
-                throw Fail("entry '" + entry.FileName + "' declares no categories");
+                throw Fail("entry '" + entry.FileName + "' declares no category");
             }
 
-            foreach (var category in entry.Categories)
+            if (!declaredCategories.Contains(entry.Category))
             {
-                if (!declaredCategories.Contains(category))
-                {
-                    throw Fail("entry '" + entry.FileName + "' references undeclared category '" + category + "'");
-                }
+                throw Fail("entry '" + entry.FileName + "' references undeclared category '" + entry.Category + "'");
             }
         }
 

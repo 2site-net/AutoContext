@@ -6,7 +6,7 @@ namespace AutoContext.Engine.Core.Features.Instructions.Snapshot;
 /// merging the <c>instructions-manifest.json</c>
 /// fact row (identity, <see cref="Sections"/>, <see cref="Extensions"/>)
 /// with its <c>instructions-catalog.json</c> curatorial row
-/// (<see cref="Label"/>, <see cref="Categories"/>,
+/// (<see cref="Label"/>, <see cref="Category"/>,
 /// <see cref="ActivationFlags"/>) and deriving
 /// <see cref="AlwaysAttached"/> from the catalog's always-attached list.
 /// Pure data — it carries no body; the body is projected per request in
@@ -68,7 +68,7 @@ internal sealed record InstructionsFileManifestEntry
     /// <see langword="true"/> when the file is always attached, derived
     /// from membership in the catalog's always-attached list. Always-
     /// attached files carry no <see cref="Label"/> or
-    /// <see cref="Categories"/>.
+    /// <see cref="Category"/>.
     /// </summary>
     public required bool AlwaysAttached { get; init; }
 
@@ -80,10 +80,10 @@ internal sealed record InstructionsFileManifestEntry
     public string? Label { get; init; }
 
     /// <summary>
-    /// The category names this file belongs to; empty for always-
-    /// attached files.
+    /// The category name this file belongs to; <see langword="null"/> for
+    /// always-attached files.
     /// </summary>
-    public IReadOnlyList<string> Categories { get; init; } = [];
+    public string? Category { get; init; }
 
     /// <summary>
     /// The engine-internal workspace-context flags that gate activation.

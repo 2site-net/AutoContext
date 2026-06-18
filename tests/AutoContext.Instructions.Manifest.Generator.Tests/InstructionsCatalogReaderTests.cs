@@ -39,7 +39,7 @@ public sealed class InstructionsCatalogReaderTests
                 tempDirectory.CreateDirectory(),
                 ["copilot.instructions.md", "autocontext.instructions.md"],
                 [InstructionsManifestFakeData.CreateCategory("General")],
-                InstructionsManifestFakeData.CreateCatalogEntry("Code Review", "code-review.instructions.md", ["General"]));
+                InstructionsManifestFakeData.CreateCatalogEntry("Code Review", "code-review.instructions.md", "General"));
 
             // Act
             var catalog = _sut.Read(catalogPath, corpus);
@@ -58,7 +58,7 @@ public sealed class InstructionsCatalogReaderTests
                 tempDirectory.CreateDirectory(),
                 ["copilot.instructions.md", "autocontext.instructions.md"],
                 [InstructionsManifestFakeData.CreateCategory("General")],
-                InstructionsManifestFakeData.CreateCatalogEntry("Code Review", "code-review.instructions.md", ["General"]));
+                InstructionsManifestFakeData.CreateCatalogEntry("Code Review", "code-review.instructions.md", "General"));
 
             // Act
             var exception = Record.Exception(() => _sut.Read(catalogPath, corpus));
@@ -77,7 +77,7 @@ public sealed class InstructionsCatalogReaderTests
                 tempDirectory.CreateDirectory(),
                 ["ghost.instructions.md"],
                 [InstructionsManifestFakeData.CreateCategory("General")],
-                InstructionsManifestFakeData.CreateCatalogEntry("Code Review", "code-review.instructions.md", ["General"]));
+                InstructionsManifestFakeData.CreateCatalogEntry("Code Review", "code-review.instructions.md", "General"));
 
             // Act
             var exception = Assert.Throws<InvalidOperationException>(() => _sut.Read(catalogPath, corpus));
@@ -98,7 +98,7 @@ public sealed class InstructionsCatalogReaderTests
                 tempDirectory.CreateDirectory(),
                 ["code-review.instructions.md"],
                 [InstructionsManifestFakeData.CreateCategory("General")],
-                InstructionsManifestFakeData.CreateCatalogEntry("Code Review", "code-review.instructions.md", ["General"]));
+                InstructionsManifestFakeData.CreateCatalogEntry("Code Review", "code-review.instructions.md", "General"));
 
             // Act
             var exception = Assert.Throws<InvalidOperationException>(() => _sut.Read(catalogPath, corpus));
@@ -135,7 +135,7 @@ public sealed class InstructionsCatalogReaderTests
                 tempDirectory.CreateDirectory(),
                 [" "],
                 [InstructionsManifestFakeData.CreateCategory("General")],
-                InstructionsManifestFakeData.CreateCatalogEntry("Code Review", "code-review.instructions.md", ["General"]));
+                InstructionsManifestFakeData.CreateCatalogEntry("Code Review", "code-review.instructions.md", "General"));
 
             // Act
             var exception = Assert.Throws<InvalidOperationException>(() => _sut.Read(catalogPath, corpus));
@@ -153,7 +153,7 @@ public sealed class InstructionsCatalogReaderTests
             var catalogPath = InstructionsCatalogTestWriter.Write(
                 tempDirectory.CreateDirectory(),
                 [InstructionsManifestFakeData.CreateCategory("General")],
-                InstructionsManifestFakeData.CreateCatalogEntry("Missing", "missing.instructions.md", ["General"]));
+                InstructionsManifestFakeData.CreateCatalogEntry("Missing", "missing.instructions.md", "General"));
 
             // Act
             var exception = Assert.Throws<InvalidOperationException>(() => _sut.Read(catalogPath, corpus));
@@ -174,7 +174,7 @@ public sealed class InstructionsCatalogReaderTests
             var catalogPath = InstructionsCatalogTestWriter.Write(
                 tempDirectory.CreateDirectory(),
                 [InstructionsManifestFakeData.CreateCategory("General")],
-                InstructionsManifestFakeData.CreateCatalogEntry("Code Review", "code-review.instructions.md", ["General"]));
+                InstructionsManifestFakeData.CreateCatalogEntry("Code Review", "code-review.instructions.md", "General"));
 
             // Act
             var exception = Assert.Throws<InvalidOperationException>(() => _sut.Read(catalogPath, corpus));
@@ -194,7 +194,7 @@ public sealed class InstructionsCatalogReaderTests
             var catalogPath = InstructionsCatalogTestWriter.Write(
                 tempDirectory.CreateDirectory(),
                 [InstructionsManifestFakeData.CreateCategory("General")],
-                InstructionsManifestFakeData.CreateCatalogEntry("Code Review", "code-review.instructions.md", ["Nonexistent"]));
+                InstructionsManifestFakeData.CreateCatalogEntry("Code Review", "code-review.instructions.md", "Nonexistent"));
 
             // Act
             var exception = Assert.Throws<InvalidOperationException>(() => _sut.Read(catalogPath, corpus));
@@ -215,7 +215,7 @@ public sealed class InstructionsCatalogReaderTests
                     InstructionsManifestFakeData.CreateCategory("General"),
                     InstructionsManifestFakeData.CreateCategory("General"),
                 ],
-                InstructionsManifestFakeData.CreateCatalogEntry("Code Review", "code-review.instructions.md", ["General"]));
+                InstructionsManifestFakeData.CreateCatalogEntry("Code Review", "code-review.instructions.md", "General"));
 
             // Act
             var exception = Assert.Throws<InvalidOperationException>(() => _sut.Read(catalogPath, corpus));
@@ -233,8 +233,8 @@ public sealed class InstructionsCatalogReaderTests
             var catalogPath = InstructionsCatalogTestWriter.Write(
                 tempDirectory.CreateDirectory(),
                 [InstructionsManifestFakeData.CreateCategory("General")],
-                InstructionsManifestFakeData.CreateCatalogEntry("Code Review", "code-review.instructions.md", ["General"]),
-                InstructionsManifestFakeData.CreateCatalogEntry("Code Review Again", "code-review.instructions.md", ["General"]));
+                InstructionsManifestFakeData.CreateCatalogEntry("Code Review", "code-review.instructions.md", "General"),
+                InstructionsManifestFakeData.CreateCatalogEntry("Code Review Again", "code-review.instructions.md", "General"));
 
             // Act
             var exception = Assert.Throws<InvalidOperationException>(() => _sut.Read(catalogPath, corpus));
@@ -244,7 +244,7 @@ public sealed class InstructionsCatalogReaderTests
         }
 
         [Fact]
-        public async Task Should_throw_when_an_entry_declares_no_categories()
+        public async Task Should_throw_when_an_entry_declares_no_category()
         {
             // Arrange
             var corpus = await InstructionsCorpusTestWriter.WriteAndParseAsync(
@@ -252,13 +252,13 @@ public sealed class InstructionsCatalogReaderTests
             var catalogPath = InstructionsCatalogTestWriter.Write(
                 tempDirectory.CreateDirectory(),
                 [InstructionsManifestFakeData.CreateCategory("General")],
-                InstructionsManifestFakeData.CreateCatalogEntry("Code Review", "code-review.instructions.md", []));
+                InstructionsManifestFakeData.CreateCatalogEntry("Code Review", "code-review.instructions.md", ""));
 
             // Act
             var exception = Assert.Throws<InvalidOperationException>(() => _sut.Read(catalogPath, corpus));
 
             // Assert
-            Assert.Contains("declares no categories", exception.Message, StringComparison.Ordinal);
+            Assert.Contains("declares no category", exception.Message, StringComparison.Ordinal);
         }
 
         [Fact]
@@ -334,9 +334,9 @@ public sealed class InstructionsCatalogReaderTests
         }
 
         [Fact]
-        public async Task Should_throw_when_an_entry_omits_its_categories_array()
+        public async Task Should_throw_when_an_entry_omits_its_category()
         {
-            // Arrange — the entry has no `categories` key at all (null rather than empty).
+            // Arrange — the entry has no `category` key at all (null rather than blank).
             var corpus = await InstructionsCorpusTestWriter.WriteAndParseAsync(
                 tempDirectory.CreateDirectory(), "code-review");
             var catalogPath = InstructionsCatalogTestWriter.WriteRaw(
@@ -354,7 +354,7 @@ public sealed class InstructionsCatalogReaderTests
             var exception = Assert.Throws<InvalidOperationException>(() => _sut.Read(catalogPath, corpus));
 
             // Assert
-            Assert.Contains("declares no categories", exception.Message, StringComparison.Ordinal);
+            Assert.Contains("declares no category", exception.Message, StringComparison.Ordinal);
         }
 
         [Fact]

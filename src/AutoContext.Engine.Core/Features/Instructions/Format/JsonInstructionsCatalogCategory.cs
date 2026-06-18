@@ -7,7 +7,7 @@ namespace AutoContext.Engine.Core.Features.Instructions.Format;
 /// generator's <c>JsonInstructionsCatalogCategory</c> shape.
 /// </summary>
 /// <param name="Name">The category name; the value a
-/// <see cref="JsonInstructionsCatalogEntry.Categories"/> membership
+/// <see cref="JsonInstructionsCatalogEntry.Category"/> membership
 /// resolves against.</param>
 /// <param name="Description">The human-readable category
 /// description.</param>

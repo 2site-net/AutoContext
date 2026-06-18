@@ -24,8 +24,8 @@ public static class InstructionsMethods
     /// (<c>name</c> + <c>description</c>) hand-authored in
     /// <c>instructions-catalog.json</c> — static for the engine's
     /// process lifetime, so clients fetch it once and cache it. The
-    /// per-file <see cref="JsonInstructionsListRow.Categories"/>
-    /// membership strings on <see cref="List"/> rows resolve against
+    /// per-file <see cref="JsonInstructionsListRow.Category"/>
+    /// membership string on <see cref="List"/> rows resolves against
     /// these definitions. Takes no params; returns
     /// <see cref="JsonInstructionsCategoriesResult"/>.
     /// </summary>

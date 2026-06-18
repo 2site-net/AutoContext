@@ -7,8 +7,8 @@ using System.Text.Json.Serialization;
 /// the curated category taxonomy (bucket definitions) hand-authored in
 /// <c>instructions-catalog.json</c>. Static for the engine's process
 /// lifetime, so clients fetch it once and cache it — the per-file
-/// <see cref="JsonInstructionsListRow.Categories"/> membership strings
-/// on <see cref="InstructionsMethods.List"/> rows resolve against these
+/// <see cref="JsonInstructionsListRow.Category"/> membership string
+/// on <see cref="InstructionsMethods.List"/> rows resolves against these
 /// definitions.
 /// </summary>
 public sealed record JsonInstructionsCategoriesResult
