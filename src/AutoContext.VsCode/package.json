@@ -924,7 +924,7 @@
     "vscode:prepublish": "node -e \"if(!process.env.AUTOCONTEXT_VSCE_BYPASS){console.error('Do not run vsce package directly. Use: ./scripts/package.ps1');process.exit(1)}\"",
     "compile": "pwsh ../../scripts/compile.ps1 TS",
     "watch": "tsc -b --watch ./tsconfig.json",
-    "test": "pwsh ../../build.ps1 TS",
+    "test": "pwsh ../../scripts/test.ps1 TS",
     "test:smoke": "pwsh ../../scripts/test.ps1 -Smoke"
   },
   "dependencies": {

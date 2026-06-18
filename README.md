@@ -100,10 +100,9 @@ orchestrator — it exposes every tool declared in the embedded
 ## Testing
 
 ```powershell
-./build.ps1                   # compile + format + unit tests (all)
-./build.ps1 TS                # TypeScript compile + tests
-./build.ps1 DotNet            # .NET compile + format + tests
-./scripts/compile.ps1         # compile only, skip tests + format
+./scripts/test.ps1           # compile + run all unit tests
+./scripts/test.ps1 TS        # compile + run TypeScript tests
+./scripts/test.ps1 DotNet    # compile + run .NET tests
 ```
 
 ### VS Code Extension — Smoke Tests
