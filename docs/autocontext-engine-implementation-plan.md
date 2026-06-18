@@ -2160,7 +2160,7 @@ MCP-tool dispatch (Phase 7).
 | 8 | `feat(engine-core): load workers.json and wire the worker manager` | DONE |
 | 8b | `feat(engine-core): serve McpTools.Invoke over rpc` | DONE |
 | 8c | `feat(engine-core): enrich McpTools.Invoke with editorconfig` | DONE |
-| 9 | `test(engine): integration test for mcp tool dispatch over rpc` | Not started |
+| 9 | `test(engine): integration test for mcp tool dispatch over rpc` | DONE |
 | 10 | `docs(plan): mark Phase 7 complete` | Not started |
 
 **Goal**: engine absorbs today's `AutoContext.Mcp.Server` worker
