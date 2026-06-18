@@ -5,7 +5,7 @@ using AutoContext.Engine.Core.Workers;
 
 /// <summary>
 /// Fake <see cref="IProcess"/> that records whether it was killed
-/// and disposed so tests can assert <see cref="WorkerManager"/> tears
+/// and disposed so tests can assert <see cref="WorkerProcessService"/> tears
 /// down its processes.
 /// </summary>
 internal sealed class FakeWorkerProcess(int? processId) : IProcess

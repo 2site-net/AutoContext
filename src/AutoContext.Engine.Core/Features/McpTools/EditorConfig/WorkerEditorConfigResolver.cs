@@ -42,19 +42,19 @@ internal sealed partial class WorkerEditorConfigResolver : IEditorConfigResolver
     private readonly ILogger<WorkerEditorConfigResolver> _logger;
     private readonly PipeTransport _transport;
     private readonly TimeSpan _waitDeadline;
-    private readonly WorkerManager _workerManager;
+    private readonly WorkerProcessService _workerProcessService;
 
     public WorkerEditorConfigResolver(
-        WorkerManager workerManager,
+        WorkerProcessService workerProcessService,
         PipeTransport transport,
         string instanceId,
         ILogger<WorkerEditorConfigResolver> logger)
-        : this(workerManager, transport, instanceId, TimeSpan.FromSeconds(30), logger)
+        : this(workerProcessService, transport, instanceId, TimeSpan.FromSeconds(30), logger)
     {
     }
 
     public WorkerEditorConfigResolver(
-        WorkerManager workerManager,
+        WorkerProcessService workerProcessService,
         PipeTransport transport,
         string instanceId,
         TimeSpan waitDeadline,
@@ -68,12 +68,12 @@ internal sealed partial class WorkerEditorConfigResolver : IEditorConfigResolver
                 "Resolve wait deadline must be positive.");
         }
 
-        ArgumentNullException.ThrowIfNull(workerManager);
+        ArgumentNullException.ThrowIfNull(workerProcessService);
         ArgumentNullException.ThrowIfNull(transport);
         ArgumentException.ThrowIfNullOrWhiteSpace(instanceId);
         ArgumentNullException.ThrowIfNull(logger);
 
-        _workerManager = workerManager;
+        _workerProcessService = workerProcessService;
         _transport = transport;
         _instanceId = instanceId;
         _waitDeadline = waitDeadline;
@@ -101,7 +101,7 @@ internal sealed partial class WorkerEditorConfigResolver : IEditorConfigResolver
 
         try
         {
-            await _workerManager
+            await _workerProcessService
                 .EnsureRunningAsync(WorkspaceWorkerId, deadlineCts.Token)
                 .ConfigureAwait(false);
 

@@ -332,56 +332,59 @@ public static class EngineHostBuilderExtensions
                 sp => sp.GetRequiredService<McpToolsRegistryService>()));
 
         // Worker-dispatch substrate. The engine spawns workers lazily —
-        // WorkerManager.EnsureRunningAsync(workerId) starts a worker the
-        // first time a tool routed to it is invoked and reuses the live
-        // process thereafter. The manager's launch specifications are
-        // resolved once here from the build-generated workers.json side-car:
-        // each row's ${root} placeholder expands to that worker's staging
-        // subdir under Workers/, and the engine instance id is threaded onto
-        // every spawn so worker and engine derive the same listen endpoint.
-        // The launcher (process creation) and connection probe (readiness
-        // dial over the shared PipeTransport) are the seams the manager
-        // drives. WorkerManager is an IDisposable singleton the container
-        // disposes on host stop, which kills any workers still running.
+        // WorkerProcessService.EnsureRunningAsync(workerId) starts a worker
+        // the first time a tool routed to it is invoked and reuses the live
+        // process thereafter. The service resolves its launch specifications
+        // when the host starts it: the provider reads the build-generated
+        // workers.json side-car, expands each row's ${root} placeholder to
+        // that worker's staging subdir under Workers/, and threads the engine
+        // instance id onto every spawn so worker and engine derive the same
+        // listen endpoint. Resolving the provider at StartAsync — not during
+        // construction — keeps the manifest read off the DI resolution path,
+        // so a missing or malformed side-car fails host start loudly rather
+        // than the first dispatch, mirroring the instructions and registry
+        // services. Registered as an IHostedService BEFORE LifecycleService so
+        // its hosts are populated before the first rpc connection can dispatch
+        // a tool. The launcher (process creation) and connection probe
+        // (readiness dial over the shared PipeTransport) are the seams the
+        // service drives. WorkerProcessService is an IDisposable singleton the
+        // container disposes on host stop, which kills any workers still
+        // running.
         builder.Services.TryAddSingleton<IProcessLauncher<WorkerProcessInfo>, WorkerProcessLauncher>();
         builder.Services.TryAddSingleton<IWorkerConnectionProbe, WorkerConnectionProbe>();
         builder.Services.TryAddSingleton(sp =>
         {
             var options = sp.GetRequiredService<IOptions<EngineOptions>>().Value;
-            var workersProcessInfo = WorkerProcessInfoResolver.Resolve(
-                WorkersManifestLoader.Load(ResolveResources(options)),
-                Path.Combine(AppContext.BaseDirectory, "Workers"),
-                options.InstanceId.ToString("D"),
-                options.WorkspacePath);
 
-            return new WorkerManager(
-                workersProcessInfo,
+            return new WorkerProcessService(
+                () => WorkerProcessInfoResolver.Resolve(
+                    WorkersManifestLoader.Load(ResolveResources(options)),
+                    Path.Combine(AppContext.BaseDirectory, "Workers"),
+                    options.InstanceId.ToString("D"),
+                    options.WorkspacePath),
                 sp.GetRequiredService<IProcessLauncher<WorkerProcessInfo>>(),
                 sp.GetRequiredService<IWorkerConnectionProbe>(),
-                sp.GetRequiredService<ILogger<WorkerManager>>());
+                sp.GetRequiredService<ILogger<WorkerProcessService>>());
         });
+        builder.Services.TryAddEnumerable(
+            ServiceDescriptor.Singleton<IHostedService, WorkerProcessService>(
+                sp => sp.GetRequiredService<WorkerProcessService>()));
 
         // MCP-tools dispatch seam. The invoker round-trips one tool call to
         // its owning worker over the shared request/response pipe contract,
-        // spawning the worker lazily via WorkerManager on first invoke; the
-        // editorconfig resolver is the engine's single editorconfig hop
+        // spawning the worker lazily via WorkerProcessService on first invoke;
+        // the editorconfig resolver is the engine's single editorconfig hop
         // (resolution lives in Worker.Workspace, never in-process). Both are
-        // built from the already-registered WorkerManager + PipeTransport
-        // singletons plus the engine instance id.
-        //
-        // LifecycleService injects Lazy<IMcpToolsInvoker> rather than the
-        // invoker itself: LifecycleService is a hosted service constructed at
-        // host startup, but the invoker is needed only at RPC-dispatch time
-        // and pulls in WorkerManager (which loads the workers.json side-car).
-        // Deferring resolution behind Lazy keeps the worker substrate out of
-        // the startup construction path — preserving the lazy-worker contract
-        // and letting the DI graph build without the Resources side-cars
-        // present — while the first McpTools dispatch forces the value once.
+        // built from the already-registered WorkerProcessService +
+        // PipeTransport singletons plus the engine instance id. LifecycleService
+        // injects IMcpToolsInvoker directly: WorkerProcessService now resolves
+        // its manifest at StartAsync, so constructing the invoker (and the
+        // worker service it depends on) at host startup is side-effect-free.
         builder.Services.TryAddSingleton<IEditorConfigResolver>(sp =>
         {
             var options = sp.GetRequiredService<IOptions<EngineOptions>>().Value;
             return new WorkerEditorConfigResolver(
-                sp.GetRequiredService<WorkerManager>(),
+                sp.GetRequiredService<WorkerProcessService>(),
                 sp.GetRequiredService<PipeTransport>(),
                 options.InstanceId.ToString("D"),
                 sp.GetRequiredService<ILogger<WorkerEditorConfigResolver>>());
@@ -390,14 +393,12 @@ public static class EngineHostBuilderExtensions
         {
             var options = sp.GetRequiredService<IOptions<EngineOptions>>().Value;
             return new McpToolsInvoker(
-                sp.GetRequiredService<WorkerManager>(),
+                sp.GetRequiredService<WorkerProcessService>(),
                 sp.GetRequiredService<PipeTransport>(),
                 options.InstanceId.ToString("D"),
                 sp.GetRequiredService<IEditorConfigResolver>(),
                 sp.GetRequiredService<ILogger<McpToolsInvoker>>());
         });
-        builder.Services.TryAddSingleton(sp =>
-            new Lazy<IMcpToolsInvoker>(sp.GetRequiredService<IMcpToolsInvoker>));
 
         // Instructions override inventory. The service performs a one-shot
         // startup scan of the workspace's override directories and exposes

@@ -6,12 +6,12 @@ using AutoContext.Engine.Core.Workers;
 
 using Microsoft.Extensions.Logging.Abstractions;
 
-public sealed class WorkerManagerTests
+public sealed class WorkerProcessServiceTests
 {
     public sealed class Constructor
     {
         [Fact]
-        public void Should_reject_null_specs()
+        public void Should_reject_null_provider()
         {
             // Arrange
             var launcher = new FakeWorkerProcessLauncher();
@@ -19,61 +19,102 @@ public sealed class WorkerManagerTests
 
             // Act + Assert
             Assert.Throws<ArgumentNullException>(
-                () => new WorkerManager(null!, launcher, probe, NullLogger<WorkerManager>.Instance));
+                () => new WorkerProcessService(null!, launcher, probe, NullLogger<WorkerProcessService>.Instance));
         }
 
         [Fact]
         public void Should_reject_null_launcher()
         {
             // Arrange
-            var specs = new[] { WorkerProcessInfoFakeData.CreateValid() };
             var probe = new FakeWorkerConnectionProbe(new FakeWorkerProcessLauncher());
 
             // Act + Assert
             Assert.Throws<ArgumentNullException>(
-                () => new WorkerManager(specs, null!, probe, NullLogger<WorkerManager>.Instance));
+                () => new WorkerProcessService(
+                    () => [WorkerProcessInfoFakeData.CreateValid()], null!, probe, NullLogger<WorkerProcessService>.Instance));
         }
 
         [Fact]
         public void Should_reject_null_probe()
         {
             // Arrange
-            var specs = new[] { WorkerProcessInfoFakeData.CreateValid() };
             var launcher = new FakeWorkerProcessLauncher();
 
             // Act + Assert
             Assert.Throws<ArgumentNullException>(
-                () => new WorkerManager(specs, launcher, null!, NullLogger<WorkerManager>.Instance));
+                () => new WorkerProcessService(
+                    () => [WorkerProcessInfoFakeData.CreateValid()], launcher, null!, NullLogger<WorkerProcessService>.Instance));
         }
 
         [Fact]
         public void Should_reject_null_logger()
         {
             // Arrange
-            var specs = new[] { WorkerProcessInfoFakeData.CreateValid() };
             var launcher = new FakeWorkerProcessLauncher();
             var probe = new FakeWorkerConnectionProbe(launcher);
 
             // Act + Assert
             Assert.Throws<ArgumentNullException>(
-                () => new WorkerManager(specs, launcher, probe, null!));
+                () => new WorkerProcessService(
+                    () => [WorkerProcessInfoFakeData.CreateValid()], launcher, probe, null!));
+        }
+    }
+
+    public sealed class StartAsync
+    {
+        [Fact]
+        public async Task Should_reject_duplicate_worker_ids()
+        {
+            // Arrange
+            var launcher = new FakeWorkerProcessLauncher();
+            var probe = new FakeWorkerConnectionProbe(launcher);
+            using var service = new WorkerProcessService(
+                () =>
+                [
+                    WorkerProcessInfoFakeData.CreateValid("dotnet"),
+                    WorkerProcessInfoFakeData.CreateValid("dotnet"),
+                ],
+                launcher,
+                probe,
+                NullLogger<WorkerProcessService>.Instance);
+
+            // Act + Assert
+            await Assert.ThrowsAsync<InvalidOperationException>(
+                () => service.StartAsync(TestContext.Current.CancellationToken));
         }
 
         [Fact]
-        public void Should_reject_duplicate_worker_ids()
+        public async Task Should_reject_a_null_manifest()
         {
             // Arrange
-            var specs = new[]
-            {
-                WorkerProcessInfoFakeData.CreateValid("dotnet"),
-                WorkerProcessInfoFakeData.CreateValid("dotnet"),
-            };
             var launcher = new FakeWorkerProcessLauncher();
             var probe = new FakeWorkerConnectionProbe(launcher);
+            using var service = new WorkerProcessService(
+                () => null!,
+                launcher,
+                probe,
+                NullLogger<WorkerProcessService>.Instance);
 
             // Act + Assert
-            Assert.Throws<InvalidOperationException>(
-                () => new WorkerManager(specs, launcher, probe, NullLogger<WorkerManager>.Instance));
+            await Assert.ThrowsAsync<ArgumentNullException>(
+                () => service.StartAsync(TestContext.Current.CancellationToken));
+        }
+
+        [Fact]
+        public async Task Should_reject_a_null_spec()
+        {
+            // Arrange
+            var launcher = new FakeWorkerProcessLauncher();
+            var probe = new FakeWorkerConnectionProbe(launcher);
+            using var service = new WorkerProcessService(
+                () => [null!],
+                launcher,
+                probe,
+                NullLogger<WorkerProcessService>.Instance);
+
+            // Act + Assert
+            await Assert.ThrowsAsync<ArgumentNullException>(
+                () => service.StartAsync(TestContext.Current.CancellationToken));
         }
     }
 
@@ -84,7 +125,7 @@ public sealed class WorkerManagerTests
         {
             // Arrange
             var launcher = new FakeWorkerProcessLauncher();
-            using var manager = WorkerManagerTestFactory.Create(launcher);
+            using var manager = WorkerProcessServiceTestFactory.Create(launcher);
 
             // Act + Assert
             Assert.Throws<ArgumentException>(() =>
@@ -98,7 +139,7 @@ public sealed class WorkerManagerTests
         {
             // Arrange
             var launcher = new FakeWorkerProcessLauncher();
-            using var manager = WorkerManagerTestFactory.Create(launcher);
+            using var manager = WorkerProcessServiceTestFactory.Create(launcher);
 
             // Act + Assert
             await Assert.ThrowsAsync<InvalidOperationException>(
@@ -110,7 +151,7 @@ public sealed class WorkerManagerTests
         {
             // Arrange
             var launcher = new FakeWorkerProcessLauncher();
-            using var manager = WorkerManagerTestFactory.Create(launcher);
+            using var manager = WorkerProcessServiceTestFactory.Create(launcher);
             var ready = manager.EnsureRunningAsync("dotnet", TestContext.Current.CancellationToken);
 
             // Act
@@ -126,7 +167,7 @@ public sealed class WorkerManagerTests
         {
             // Arrange
             var launcher = new FakeWorkerProcessLauncher();
-            using var manager = WorkerManagerTestFactory.Create(launcher);
+            using var manager = WorkerProcessServiceTestFactory.Create(launcher);
 
             // Act
             var first = manager.EnsureRunningAsync("dotnet", TestContext.Current.CancellationToken);
@@ -143,7 +184,7 @@ public sealed class WorkerManagerTests
         {
             // Arrange
             var launcher = new FakeWorkerProcessLauncher();
-            using var manager = WorkerManagerTestFactory.Create(launcher);
+            using var manager = WorkerProcessServiceTestFactory.Create(launcher);
             var first = manager.EnsureRunningAsync("dotnet", TestContext.Current.CancellationToken);
             launcher.Launches[0].MarkReady();
             await first;
@@ -160,7 +201,7 @@ public sealed class WorkerManagerTests
         {
             // Arrange
             var launcher = new FakeWorkerProcessLauncher();
-            using var manager = WorkerManagerTestFactory.Create(launcher);
+            using var manager = WorkerProcessServiceTestFactory.Create(launcher);
             var first = manager.EnsureRunningAsync("dotnet", TestContext.Current.CancellationToken);
             launcher.Launches[0].MarkReady();
             await first;
@@ -184,7 +225,7 @@ public sealed class WorkerManagerTests
                 FailWith = new ProcessLaunchException<WorkerProcessInfo>(
                     WorkerProcessInfoFakeData.CreateValid("dotnet"), "boom"),
             };
-            using var manager = WorkerManagerTestFactory.Create(launcher);
+            using var manager = WorkerProcessServiceTestFactory.Create(launcher);
 
             // Act + Assert
             await Assert.ThrowsAsync<ProcessLaunchException<WorkerProcessInfo>>(
@@ -200,7 +241,7 @@ public sealed class WorkerManagerTests
                 FailWith = new ProcessLaunchException<WorkerProcessInfo>(
                     WorkerProcessInfoFakeData.CreateValid("dotnet"), "boom"),
             };
-            using var manager = WorkerManagerTestFactory.Create(launcher);
+            using var manager = WorkerProcessServiceTestFactory.Create(launcher);
             await Assert.ThrowsAsync<ProcessLaunchException<WorkerProcessInfo>>(
                 () => manager.EnsureRunningAsync("dotnet", TestContext.Current.CancellationToken));
             launcher.FailWith = null;
@@ -219,7 +260,7 @@ public sealed class WorkerManagerTests
         {
             // Arrange
             var launcher = new FakeWorkerProcessLauncher();
-            using var manager = WorkerManagerTestFactory.Create(launcher);
+            using var manager = WorkerProcessServiceTestFactory.Create(launcher);
             var ready = manager.EnsureRunningAsync("dotnet", TestContext.Current.CancellationToken);
 
             // Act
@@ -234,7 +275,7 @@ public sealed class WorkerManagerTests
         {
             // Arrange
             var launcher = new FakeWorkerProcessLauncher();
-            using var manager = WorkerManagerTestFactory.Create(launcher);
+            using var manager = WorkerProcessServiceTestFactory.Create(launcher);
             var ready = manager.EnsureRunningAsync("dotnet", TestContext.Current.CancellationToken);
 
             // Act
@@ -249,7 +290,7 @@ public sealed class WorkerManagerTests
         {
             // Arrange
             var launcher = new FakeWorkerProcessLauncher();
-            using var manager = WorkerManagerTestFactory.Create(launcher);
+            using var manager = WorkerProcessServiceTestFactory.Create(launcher);
             using var cts = new CancellationTokenSource();
             var ready = manager.EnsureRunningAsync("dotnet", cts.Token);
 
@@ -269,7 +310,7 @@ public sealed class WorkerManagerTests
         {
             // Arrange
             var launcher = new FakeWorkerProcessLauncher();
-            var manager = WorkerManagerTestFactory.Create(launcher);
+            var manager = WorkerProcessServiceTestFactory.Create(launcher);
             var ready = manager.EnsureRunningAsync("dotnet", TestContext.Current.CancellationToken);
 
             // Act
@@ -284,7 +325,7 @@ public sealed class WorkerManagerTests
         {
             // Arrange
             var launcher = new FakeWorkerProcessLauncher();
-            var manager = WorkerManagerTestFactory.Create(launcher);
+            var manager = WorkerProcessServiceTestFactory.Create(launcher);
             var ready = manager.EnsureRunningAsync("dotnet", TestContext.Current.CancellationToken);
             launcher.Launches[0].MarkReady();
             await ready;
@@ -303,7 +344,7 @@ public sealed class WorkerManagerTests
         {
             // Arrange
             var launcher = new FakeWorkerProcessLauncher();
-            var manager = WorkerManagerTestFactory.Create(launcher);
+            var manager = WorkerProcessServiceTestFactory.Create(launcher);
             manager.Dispose();
 
             // Act + Assert
@@ -316,7 +357,7 @@ public sealed class WorkerManagerTests
         {
             // Arrange
             var launcher = new FakeWorkerProcessLauncher();
-            var manager = WorkerManagerTestFactory.Create(launcher);
+            var manager = WorkerProcessServiceTestFactory.Create(launcher);
 
             // Act
             manager.Dispose();

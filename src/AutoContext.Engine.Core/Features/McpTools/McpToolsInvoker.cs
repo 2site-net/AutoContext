@@ -39,20 +39,20 @@ internal sealed partial class McpToolsInvoker : IMcpToolsInvoker
     private readonly ILogger<McpToolsInvoker> _logger;
     private readonly PipeTransport _transport;
     private readonly TimeSpan _waitDeadline;
-    private readonly WorkerManager _workerManager;
+    private readonly WorkerProcessService _workerProcessService;
 
     public McpToolsInvoker(
-        WorkerManager workerManager,
+        WorkerProcessService workerProcessService,
         PipeTransport transport,
         string instanceId,
         IEditorConfigResolver editorConfigResolver,
         ILogger<McpToolsInvoker> logger)
-        : this(workerManager, transport, instanceId, editorConfigResolver, TimeSpan.FromSeconds(30), logger)
+        : this(workerProcessService, transport, instanceId, editorConfigResolver, TimeSpan.FromSeconds(30), logger)
     {
     }
 
     public McpToolsInvoker(
-        WorkerManager workerManager,
+        WorkerProcessService workerProcessService,
         PipeTransport transport,
         string instanceId,
         IEditorConfigResolver editorConfigResolver,
@@ -67,13 +67,13 @@ internal sealed partial class McpToolsInvoker : IMcpToolsInvoker
                 "Invoke wait deadline must be positive.");
         }
 
-        ArgumentNullException.ThrowIfNull(workerManager);
+        ArgumentNullException.ThrowIfNull(workerProcessService);
         ArgumentNullException.ThrowIfNull(transport);
         ArgumentException.ThrowIfNullOrWhiteSpace(instanceId);
         ArgumentNullException.ThrowIfNull(editorConfigResolver);
         ArgumentNullException.ThrowIfNull(logger);
 
-        _workerManager = workerManager;
+        _workerProcessService = workerProcessService;
         _transport = transport;
         _instanceId = instanceId;
         _editorConfigResolver = editorConfigResolver;
@@ -101,7 +101,7 @@ internal sealed partial class McpToolsInvoker : IMcpToolsInvoker
                 .ResolveAsync(TryGetFilePath(arguments), tool.Editorconfig, deadlineCts.Token)
                 .ConfigureAwait(false);
 
-            await _workerManager
+            await _workerProcessService
                 .EnsureRunningAsync(tool.WorkerId, deadlineCts.Token)
                 .ConfigureAwait(false);
 

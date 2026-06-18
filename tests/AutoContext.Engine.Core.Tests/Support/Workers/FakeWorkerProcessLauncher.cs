@@ -5,7 +5,7 @@ using AutoContext.Engine.Core.Workers;
 
 /// <summary>
 /// In-memory <see cref="IProcessLauncher{T}"/> for driving
-/// <see cref="WorkerManager"/> tests without spawning real processes.
+/// <see cref="WorkerProcessService"/> tests without spawning real processes.
 /// Each launch is recorded as a <see cref="FakeWorkerLaunch"/> whose
 /// observer the test drives directly to emit stderr lines or signal
 /// exit. Set <see cref="FailWith"/> to make the next launch throw.

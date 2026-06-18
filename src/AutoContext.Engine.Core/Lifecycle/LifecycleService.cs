@@ -112,7 +112,7 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
     private readonly InstructionsFileReader _fileReader;
     private readonly InstructionsFullTextSearchService _searchService;
     private readonly SnapshotBroadcaster<IReadOnlyList<JsonInstructionsListRow>> _instructionsBroadcaster;
-    private readonly Lazy<IMcpToolsInvoker> _mcpToolsInvoker;
+    private readonly IMcpToolsInvoker _mcpToolsInvoker;
     private readonly IMcpToolsRegistryAccessor _mcpToolsRegistryAccessor;
 
     /// <summary>
@@ -192,12 +192,12 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
     /// <param name="mcpToolsRegistryAccessor">Read-only view over the immutable
     /// MCP-tools registry snapshot; threaded into the RPC dispatch policy
     /// so the <c>McpTools.*</c> handlers can answer the tool listing.</param>
-    /// <param name="mcpToolsInvoker">Deferred worker-dispatch seam backing
-    /// <c>McpTools.Invoke</c>; forced once on the first RPC dispatch and
-    /// threaded into the policy so the handler can round-trip a tool call to
-    /// its owning worker. Deferred behind <see cref="Lazy{T}"/> because the
-    /// invoker pulls in the worker substrate, which must not resolve during
-    /// this hosted service's startup construction.</param>
+    /// <param name="mcpToolsInvoker">Worker-dispatch seam backing
+    /// <c>McpTools.Invoke</c>; threaded into the policy so the handler can
+    /// round-trip a tool call to its owning worker. Injected directly because
+    /// the backing worker service resolves its manifest at host start, so
+    /// constructing the invoker during this hosted service's startup is
+    /// side-effect-free.</param>
     /// <exception cref="ArgumentNullException">
     /// Any constructor argument is <see langword="null"/>.
     /// </exception>
@@ -223,7 +223,7 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
         InstructionsFullTextSearchService searchService,
         SnapshotBroadcaster<IReadOnlyList<JsonInstructionsListRow>> instructionsBroadcaster,
         IMcpToolsRegistryAccessor mcpToolsRegistryAccessor,
-        Lazy<IMcpToolsInvoker> mcpToolsInvoker)
+        IMcpToolsInvoker mcpToolsInvoker)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(loggerFactory);
@@ -555,7 +555,7 @@ internal sealed partial class LifecycleService : IHostedService, IAsyncDisposabl
                 _ = await RpcConnectionProcessor
                     .RunAsync(
                         stream,
-                        new DispatchPolicy(_applicationLifetime, _registryReader, _logFileReader, _logsBroadcaster, _configAccessor, _configUpdater, _configBroadcaster, _workspaceAccessor, _manifestAccessor, _overridesAccessor, _bodyProjector, _fileReader, _searchService, _instructionsBroadcaster, _mcpToolsRegistryAccessor, _logger, _mcpToolsInvoker.Value),
+                        new DispatchPolicy(_applicationLifetime, _registryReader, _logFileReader, _logsBroadcaster, _configAccessor, _configUpdater, _configBroadcaster, _workspaceAccessor, _manifestAccessor, _overridesAccessor, _bodyProjector, _fileReader, _searchService, _instructionsBroadcaster, _mcpToolsRegistryAccessor, _logger, _mcpToolsInvoker),
                         _logger,
                         cancellationToken)
                     .ConfigureAwait(false);

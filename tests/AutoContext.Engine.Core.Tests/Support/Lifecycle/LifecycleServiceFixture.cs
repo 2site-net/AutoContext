@@ -127,8 +127,8 @@ public sealed class LifecycleServiceFixture : IAsyncDisposable
     internal static IMcpToolsRegistryAccessor CreateMcpToolsRegistryAccessor() =>
         new FakeMcpToolsRegistryAccessor();
 
-    internal static Lazy<IMcpToolsInvoker> CreateMcpToolsInvoker() =>
-        new(new FakeMcpToolsInvoker());
+    internal static IMcpToolsInvoker CreateMcpToolsInvoker() =>
+        new FakeMcpToolsInvoker();
 
     internal static IInstructionsOverridesAccessor CreateInstructionsOverridesAccessor() =>
         new FakeInstructionsOverridesAccessor();

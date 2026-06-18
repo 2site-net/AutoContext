@@ -4,7 +4,7 @@ using AutoContext.Engine.Core.Workers;
 
 /// <summary>
 /// In-memory <see cref="IWorkerConnectionProbe"/> for
-/// <see cref="WorkerManager"/> tests. Resolves a worker's readiness
+/// <see cref="WorkerProcessService"/> tests. Resolves a worker's readiness
 /// against the matching <see cref="FakeWorkerLaunch.ReadySource"/> on the
 /// supplied launcher, so a test signals readiness via
 /// <see cref="FakeWorkerLaunch.MarkReady"/> rather than dialling a real

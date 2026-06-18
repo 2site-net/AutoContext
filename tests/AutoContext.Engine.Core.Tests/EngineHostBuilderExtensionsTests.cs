@@ -187,7 +187,7 @@ public sealed class EngineHostBuilderExtensionsTests
         }
 
         [Fact]
-        public void Should_register_WorkerManager_as_a_singleton()
+        public void Should_register_WorkerProcessService_as_a_singleton()
         {
             // Arrange
             var builder = Host.CreateApplicationBuilder();
@@ -197,7 +197,7 @@ public sealed class EngineHostBuilderExtensionsTests
 
             // Assert
             var descriptor = Assert.Single(
-                builder.Services, d => d.ServiceType == typeof(WorkerManager));
+                builder.Services, d => d.ServiceType == typeof(WorkerProcessService));
             Assert.Equal(ServiceLifetime.Singleton, descriptor.Lifetime);
         }
 

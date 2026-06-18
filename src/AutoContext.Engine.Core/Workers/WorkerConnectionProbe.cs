@@ -14,7 +14,7 @@ using Microsoft.Extensions.Logging;
 /// retried after a brief delay. The probe never imposes an overall
 /// deadline — readiness is bounded instead by the caller's cancellation
 /// and by the worker's process-exit signal, which the
-/// <see cref="WorkerManager"/> translates into cancellation.
+/// <see cref="WorkerProcessService"/> translates into cancellation.
 /// </summary>
 internal sealed partial class WorkerConnectionProbe : IWorkerConnectionProbe
 {

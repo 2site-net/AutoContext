@@ -6,7 +6,7 @@ using AutoContext.Engine.Protocol;
 /// <summary>
 /// Transforms the parsed <see cref="JsonWorkersManifest"/> read-model into
 /// the immutable <see cref="WorkerProcessInfo"/> launch specifications the
-/// <see cref="WorkerManager"/> spawns from. This is a pure mapping: it
+/// <see cref="WorkerProcessService"/> spawns from. This is a pure mapping: it
 /// expands each row's <c>${root}</c> placeholder to the worker's staging
 /// subdir, splits the launch command into an executable and its leading
 /// arguments, threads the engine instance id onto every spawn, and derives

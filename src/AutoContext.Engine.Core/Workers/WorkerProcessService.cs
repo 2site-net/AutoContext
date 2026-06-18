@@ -4,6 +4,7 @@ using System.Globalization;
 
 using AutoContext.Engine.Core.Infrastructure.Diagnostics;
 
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 /// <summary>
@@ -33,52 +34,47 @@ using Microsoft.Extensions.Logging;
 /// from a replaced process is ignored.
 /// </para>
 /// </remarks>
-internal sealed partial class WorkerManager : IDisposable
+internal sealed partial class WorkerProcessService : IHostedService, IDisposable
 {
     private bool _disposed;
     private readonly Lock _gate = new();
-    private readonly Dictionary<string, WorkerProcessHost> _hosts;
+    private readonly Dictionary<string, WorkerProcessHost> _hosts =
+        new(StringComparer.Ordinal);
+    private readonly IProcessLauncher<WorkerProcessInfo> _launcher;
+    private readonly ILogger<WorkerProcessService> _logger;
+    private readonly IWorkerConnectionProbe _probe;
+    private readonly Func<IReadOnlyList<WorkerProcessInfo>> _workersProcessInfoProvider;
 
     /// <summary>
-    /// Creates a new <see cref="WorkerManager"/> over the resolved
-    /// <paramref name="workersProcessInfo"/>.
+    /// Creates a new <see cref="WorkerProcessService"/> that resolves its
+    /// launch specifications from
+    /// <paramref name="workersProcessInfoProvider"/> when the host starts it.
     /// </summary>
-    /// <param name="workersProcessInfo">The resolved launch specifications,
-    /// one per worker; ids must be unique.</param>
+    /// <param name="workersProcessInfoProvider">Produces the resolved launch
+    /// specifications, one per worker. Invoked once from
+    /// <see cref="StartAsync"/> so the worker-manifest side-car is read at
+    /// host start rather than during construction; ids must be unique.</param>
     /// <param name="launcher">The process-creation seam.</param>
     /// <param name="probe">The readiness seam that confirms a spawned
     /// worker is connectable.</param>
     /// <param name="logger">Diagnostic sink.</param>
-    /// <exception cref="ArgumentNullException">Any argument, or any element
-    /// of <paramref name="workersProcessInfo"/>, is
+    /// <exception cref="ArgumentNullException">Any argument is
     /// <see langword="null"/>.</exception>
-    /// <exception cref="InvalidOperationException">Two entries share a
-    /// worker id.</exception>
-    public WorkerManager(
-        IEnumerable<WorkerProcessInfo> workersProcessInfo,
+    public WorkerProcessService(
+        Func<IReadOnlyList<WorkerProcessInfo>> workersProcessInfoProvider,
         IProcessLauncher<WorkerProcessInfo> launcher,
         IWorkerConnectionProbe probe,
-        ILogger<WorkerManager> logger)
+        ILogger<WorkerProcessService> logger)
     {
-        ArgumentNullException.ThrowIfNull(workersProcessInfo);
+        ArgumentNullException.ThrowIfNull(workersProcessInfoProvider);
         ArgumentNullException.ThrowIfNull(launcher);
         ArgumentNullException.ThrowIfNull(probe);
         ArgumentNullException.ThrowIfNull(logger);
 
-        _hosts = new Dictionary<string, WorkerProcessHost>(StringComparer.Ordinal);
-
-        foreach (var processInfo in workersProcessInfo)
-        {
-            ArgumentNullException.ThrowIfNull(processInfo);
-
-            if (!_hosts.TryAdd(
-                    processInfo.WorkerId,
-                    new WorkerProcessHost(processInfo, launcher, probe, logger)))
-            {
-                throw new InvalidOperationException(
-                    $"Duplicate worker id '{processInfo.WorkerId}'.");
-            }
-        }
+        _workersProcessInfoProvider = workersProcessInfoProvider;
+        _launcher = launcher;
+        _probe = probe;
+        _logger = logger;
     }
 
     /// <summary>
@@ -143,6 +139,55 @@ internal sealed partial class WorkerManager : IDisposable
 
         return host.EnsureRunningAsync(cancellationToken);
     }
+
+    /// <summary>
+    /// Resolves the launch specifications and registers a per-worker host for
+    /// each. Reads the worker-manifest side-car through the provider, so a
+    /// missing or malformed manifest, or a duplicate worker id, fails host
+    /// start loudly — before any worker can be launched.
+    /// </summary>
+    /// <param name="cancellationToken">Ignored; the resolve is
+    /// synchronous.</param>
+    /// <returns>A completed task.</returns>
+    /// <exception cref="ArgumentNullException">The provider returns
+    /// <see langword="null"/>, or any element is
+    /// <see langword="null"/>.</exception>
+    /// <exception cref="InvalidOperationException">Two entries share a
+    /// worker id.</exception>
+    public Task StartAsync(CancellationToken cancellationToken)
+    {
+        var workersProcessInfo = _workersProcessInfoProvider();
+        ArgumentNullException.ThrowIfNull(workersProcessInfo);
+
+        lock (_gate)
+        {
+            ObjectDisposedException.ThrowIf(_disposed, this);
+
+            foreach (var processInfo in workersProcessInfo)
+            {
+                ArgumentNullException.ThrowIfNull(processInfo);
+
+                if (!_hosts.TryAdd(
+                        processInfo.WorkerId,
+                        new WorkerProcessHost(processInfo, _launcher, _probe, _logger)))
+                {
+                    throw new InvalidOperationException(
+                        $"Duplicate worker id '{processInfo.WorkerId}'.");
+                }
+            }
+        }
+
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// No-op: running workers are torn down by <see cref="Dispose"/> when the
+    /// container disposes this singleton on host stop.
+    /// </summary>
+    /// <param name="cancellationToken">Ignored.</param>
+    /// <returns>A completed task.</returns>
+    public Task StopAsync(CancellationToken cancellationToken)
+        => Task.CompletedTask;
 
     private static void CancelAndDispose(CancellationTokenSource? cts)
     {
@@ -216,7 +261,7 @@ internal sealed partial class WorkerManager : IDisposable
                 _currentInstance = null;
             }
 
-            currentInstance?.Abort(new ObjectDisposedException(nameof(WorkerManager)));
+            currentInstance?.Abort(new ObjectDisposedException(nameof(WorkerProcessService)));
         }
 
         /// <summary>
