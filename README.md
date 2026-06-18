@@ -118,13 +118,30 @@ in `src/AutoContext.VsCode/.vscode-test/`.
 
 ## Building and Publishing the Extension
 
+There are two distinct steps. **Packaging** builds a self-contained `.vsix`
+installer on your machine — nothing leaves your computer, so it's what you use
+to test an install locally or hand the file to someone directly.
+**Publishing** takes that same package and uploads it to the public
+marketplaces, making the release available to everyone.
+
+You don't need to package before publishing — `publish.ps1` builds the package
+itself as part of the run. Use `package.ps1` only when you want the `.vsix`
+locally without releasing it.
+
+Package the extension into a `.vsix` (one per target platform):
+
 ```powershell
 ./scripts/package.ps1                          # current platform
 ./scripts/package.ps1 All                      # all 6 platforms
 ./scripts/package.ps1 -RuntimeIdentifier win-x64
+./scripts/package.ps1 -Local                   # runnable F5 layout, no .vsix
 ```
 
 Available targets: `win-x64`, `win-arm64`, `linux-x64`, `linux-arm64`, `osx-x64`, `osx-arm64`.
+
+`-Local` skips producing a `.vsix` and instead stages a framework-dependent
+server copy into the extension's layout, giving you a tree you can run directly
+with VS Code's F5 (Extension Development Host) for debugging.
 
 Publish to the VS Code Marketplace and [Open VSX](https://open-vsx.org/) registry:
 
