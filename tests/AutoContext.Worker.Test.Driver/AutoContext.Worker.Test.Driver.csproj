@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Version>0.9.5</Version>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <RootNamespace>AutoContext.Worker.Test.Driver</RootNamespace>
+    <AssemblyName>AutoContext.Worker.Test.Driver</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\AutoContext.Engine.Protocol\AutoContext.Engine.Protocol.csproj" />
+    <ProjectReference Include="..\..\src\AutoContext.Framework.Pipes\AutoContext.Framework.Pipes.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.5" />
+  </ItemGroup>
+
+</Project>

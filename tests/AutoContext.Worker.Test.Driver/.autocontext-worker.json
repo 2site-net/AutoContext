@@ -1,0 +1,5 @@
+{
+  "id": "test-driver",
+  "type": "executable",
+  "command": "${root}/AutoContext.Worker.Test.Driver"
+}
