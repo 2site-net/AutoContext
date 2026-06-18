@@ -21,7 +21,7 @@ The build logic lives in `scripts/AutoContext.Build.psm1`; `build.ps1` is the or
 
 - **Inner loop (fast, narrow):** use the granular `scripts/*.ps1` wrappers while iterating — e.g. `scripts/compile.ps1 DotNet` (compile only, no tests/format gate), `scripts/test.ps1 TS`, `scripts/format.ps1`, `scripts/clean.ps1`. They skip the composite phases so they return quickly. `scripts/compile.ps1` is **compile-only** and deliberately differs from `build.ps1` (which also runs the format gate and unit tests).
 - **Gate (full, authoritative):** before declaring work done or proposing a commit, run the full composite `.\build.ps1` (both stacks: compile + .NET format gate + unit tests). A green `build.ps1` — not a green inner-loop wrapper — is the bar for "done".
-- **Note:** `scripts/test.ps1 DotNet` runs `dotnet test --no-build`, so compile first (or use `build.ps1`). npm installs are hash-gated on `package-lock.json`, so repeated TypeScript compiles skip `npm install` when dependencies are unchanged.
+- **Note:** `scripts/test.ps1` compiles the selected stack(s) before running the unit suites by default, so an inner-loop test run never tests stale output. Pass `-NoCompile` to skip the compile and run `dotnet test`/vitest against the existing build (e.g. immediately after `scripts/compile.ps1` or `build.ps1`). npm installs are hash-gated on `package-lock.json`, so repeated TypeScript compiles skip `npm install` when dependencies are unchanged.
 - **Do** run `scripts/build.tests.ps1` after changing `build.ps1`, the build module, or any wrapper — it exercises every action/target/switch combination (including the wrappers) under `-WhatIf`.
 
 ### Build Commands
@@ -34,7 +34,8 @@ The build logic lives in `scripts/AutoContext.Build.psm1`; `build.ps1` is the or
 | Clean all build artifacts                       | `.\build.ps1 -Clean`                   |
 | Clean then run the gate                         | `.\build.ps1 -Clean All`               |
 | Inner-loop compile (compile only, no tests)     | `.\scripts\compile.ps1 [TS\|DotNet]`   |
-| Inner-loop tests (assumes prior compile)        | `.\scripts\test.ps1 [TS\|DotNet]`      |
+| Inner-loop compile + tests                      | `.\scripts\test.ps1 [TS\|DotNet]`      |
+| Inner-loop tests only (skip the compile)        | `.\scripts\test.ps1 -NoCompile`        |
 | Smoke-test the extension / .NET                 | `.\scripts\test.ps1 -Smoke [DotNet]`   |
 | Inner-loop .NET format gate                     | `.\scripts\format.ps1`                 |
 | Prepare (clean + compile + test + copy assets)  | `.\scripts\prepare.ps1`               |
@@ -46,8 +47,8 @@ The build logic lives in `scripts/AutoContext.Build.psm1`; `build.ps1` is the or
 > `build.ps1` is the compile + format + unit-test gate; it always runs unit
 > tests. There is no standalone `Test` action — `build.ps1` tests always run
 > with a fresh compile. For a tests-only run against an already-compiled tree,
-> use `scripts/test.ps1`. Packaging, publishing, tagging, and the staged
-> `Prepare` layout live only in the `scripts/*.ps1` wrappers.
+> use `scripts/test.ps1 -NoCompile`. Packaging, publishing, tagging, and the
+> staged `Prepare` layout live only in the `scripts/*.ps1` wrappers.
 
 ## MCP Tool Scope
 
