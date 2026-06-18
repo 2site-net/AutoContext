@@ -33,6 +33,81 @@ unrelated commit either.
 
 ## Open
 
+## Introduce `IResourceSource` seam for external/hybrid resource consumption
+
+- **Found**: 2026-06-18 during an architecture discussion on consuming
+  Resources, Workers, MCP Tools, and Instructions from outside the
+  engine (remote service) or in a hybrid local+remote setup.
+- **Severity**: enhancement.
+- **Location**:
+  - `src/AutoContext.Engine.Core/Workers/WorkersManifestLoader.cs`
+    (reads `workers.json` via `File.ReadAllText`),
+  - `src/AutoContext.Engine.Core/Registry/RegistryFileReader.cs` /
+    `RegistryFileService.cs` (registry side-car loading),
+  - `src/AutoContext.Engine.Core/Infrastructure/` —
+    `EngineResourcesDirectory.ResolveFile` (already does
+    "override copy shadows the bundled one" precedence),
+  - `src/AutoContext.Engine.Core/Workers/WorkerConnectionProbe.cs` +
+    `WorkerProcessLauncher.cs` (provisioning + transport fused today),
+  - resource side-cars under `src/AutoContext.Engine/Resources/`.
+- **Motivation**: today Resources, Instructions, the MCP
+  registry/catalog, and Workers are all local — JSON side-cars read
+  from disk and worker processes launched locally over named pipes.
+  We want the *option* to source declarative content and/or talk to
+  task runners that live in another host, without changing the
+  architecture. Two existing seams already point the way: the
+  `endpoint` field is deliberately transport-agnostic ("could be an
+  HTTPS URL"), and `EngineResourcesDirectory` already encodes overlay
+  precedence.
+- **Shape**: split the four nouns into two evolutions, each behind an
+  interface with a **local-first default** and identical downstream
+  read-models/wire contracts (evolve the *acquisition*, freeze the
+  *contract*):
+  1. **Declarative content** (Resources / Instructions / MCP
+     registry+catalog): introduce `IResourceSource` yielding bytes for
+     a logical resource name; have the manifest/registry/catalog
+     readers consume it instead of `File.ReadAllText`. Local source =
+     today's bundled+override behavior; remote source = fetch + cache;
+     hybrid = composite with the same precedence rule already used by
+     `ResolveFile`.
+  2. **Capability execution** (Workers, and the MCP Tools that dispatch
+     to them): split `WorkerManager` provisioning ("launch" vs
+     "assume-running") from transport (pipe vs socket/HTTP). A remote
+     worker is just a registry entry whose `endpoint` is a URL and
+     whose provisioning is "assume-running"; the per-task wire envelope
+     is reused as-is.
+  - Keep the two abstractions **separate** — content sourcing and
+    worker transport have different failure, trust, and lifecycle
+    models; one unified "provider" would be wrong in both directions.
+  - Three things genuinely change and need deliberate decisions:
+    - **Failure semantics**: bundled side-cars fail-fast (a miss is a
+      packaging defect — current `WorkersManifestLoader` throws);
+      remote must **degrade to last-known-good** (cache → bundled),
+      never inherit the throw-on-miss reflex.
+    - **Caching / offline**: remote sources need an on-disk cache and a
+      staleness policy; never block activation on a remote fetch —
+      serve cache, refresh in the background. The engine must stay
+      fully functional from bundled resources alone (remote is an
+      overlay, never a dependency).
+    - **Supply-chain trust** (the big one): remote Instructions steer
+      the model and a remote registry entry carries an executable
+      `command`. Require signed/verified payloads, a pinned/allowlisted
+      source set, and an ironclad rule that **a remote source may never
+      supply argv for a locally-launched worker** — remote workers may
+      only be *connected to*, never *spawned from remote-provided
+      commands*. Bake the asymmetry into the provisioning strategy.
+    - **Schema negotiation**: `schemaVersion` already exists; the source
+      layer must reject/negotiate incompatible remote schema versions
+      before they reach the deserializer.
+  - Suggested phasing: (1) pure refactor introducing the seams with
+    only local implementations (no behavior change, tests stay green);
+    (2) add the caching composite source (still local inputs); (3) add
+    the remote implementation + "assume-running" worker strategy behind
+    config, off by default, gated by the trust controls.
+- **Lands**: future — not scoped to any current phase. Step (1) (the
+  local-only seam refactor) is the safe, additive first move whenever
+  someone picks this up; remote is purely additive on top.
+
 ## `get_autocontext_instructions_file` MCP tool returns stale instruction body
 
 - **Found**: 2026-05-23 during review of `tests/support/` refactor on
